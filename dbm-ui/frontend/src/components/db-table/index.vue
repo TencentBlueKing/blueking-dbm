@@ -150,13 +150,14 @@
     primaryKey?: string;
     // 是否解析 URL query 参数
     releateUrlQuery?: boolean;
-    // 是否开启远程分页
     remotePagination?: boolean;
     remoteSort?: boolean;
+    // 是否开启远程分页
     selectable?: boolean;
     // 是否开启跨页全选
     showSelectAllPage?: boolean;
     showSettings?: boolean;
+    sortType?: 'ordering' | 'default';
   }
 
   export interface Emits {
@@ -193,6 +194,7 @@
     selectable: false,
     showSelectAllPage: true,
     showSettings: false,
+    sortType: 'default',
   });
 
   const emits = defineEmits<Emits>();
@@ -590,9 +592,15 @@
       desc: 0,
       null: undefined,
     };
-    sortParams = {
-      [sortPayload.column.field]: valueMap[sortPayload.type as keyof typeof valueMap],
-    };
+    if (props.sortType === 'ordering') {
+      sortParams = {
+        ordering: `${valueMap[sortPayload.type as keyof typeof valueMap] === 0 ? '-' : ''}${sortPayload.column.field}`,
+      };
+    } else {
+      sortParams = {
+        [sortPayload.column.field]: valueMap[sortPayload.type as keyof typeof valueMap],
+      };
+    }
     fetchListData();
   };
 

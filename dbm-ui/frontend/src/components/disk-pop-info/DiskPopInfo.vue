@@ -2,7 +2,7 @@
   <BkPopover
     :popover-delay="[0, 300]"
     theme="light"
-    trigger="hover"
+    :trigger="trigger"
     :width="430">
     <span style="padding: 0 10px">
       <slot />
@@ -26,9 +26,12 @@
 
   interface Props {
     data: DbResourceModel['storage_device'];
+    trigger?: 'hover' | 'click' | 'manual';
   }
 
-  const props = defineProps<Props>();
+  const props = withDefaults(defineProps<Props>(), {
+    trigger: 'hover',
+  });
 
   const { t } = useI18n();
 
