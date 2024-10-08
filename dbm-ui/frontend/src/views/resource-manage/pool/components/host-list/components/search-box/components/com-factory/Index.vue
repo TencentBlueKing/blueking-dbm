@@ -90,7 +90,7 @@
     mount_point: MountPoint,
     cpu: Cpu,
     mem: Mem,
-    label: Label,
+    labels: Label,
     disk: Disk,
     disk_type: DiskType,
     city: CitySubzones,

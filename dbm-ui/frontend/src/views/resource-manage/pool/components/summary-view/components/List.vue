@@ -6,7 +6,8 @@
     <div class="opearte-row">
       <DimensionSelect
         v-model="dimension"
-        @change="handleChangeDimension" />
+        @change="handleChangeDimension"
+        @change-spec-enable="handleChangeSpecEnable" />
       <Export
         :data="allTableData"
         :dimension="dimension" />
@@ -112,6 +113,7 @@
 
   const loadingRef = ref();
   const dimension = ref('spec');
+  const isSpecEnable = ref(true);
   const tableRef = ref();
   const pagination = ref(useDefaultPagination());
   const isAnomalies = ref(false);
@@ -142,12 +144,21 @@
   const fetchListData = () => {
     fetchData({
       group_by: dimension.value,
+      spec_param: {
+        enable_spec: isSpecEnable.value,
+      },
       ...getSearchParams(),
     } as ServiceParameters<typeof getSummaryList>);
   };
 
   const handleChangeDimension = (value: string) => {
     dimension.value = value;
+    handleChangePage(1);
+    fetchListData();
+  };
+
+  const handleChangeSpecEnable = (value: boolean) => {
+    isSpecEnable.value = value;
     handleChangePage(1);
     fetchListData();
   };
