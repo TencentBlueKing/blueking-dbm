@@ -12,7 +12,7 @@
 -->
 
 <template>
-  <div class="batch-assign-list-panel">
+  <div class="batch-import-list-panel">
     <div class="title">
       <span>
         {{ t('已选主机') }}
@@ -28,8 +28,7 @@
           :class="{
             active: isShowHostActionPop,
           }"
-          @blur="handleHideHostAction"
-          @click="handleShowHostAction">
+          @click="toggleHostActionShow">
           <DbIcon type="more" />
         </div>
         <template #content>
@@ -64,6 +63,11 @@
             v-bk-tooltips="t('复制')"
             type="copy"
             @click="handleCopy(hostItem)" />
+          <DbIcon
+            v-bk-tooltips="t('删除')"
+            style="font-size: 16px"
+            type="close"
+            @click="handleRemove(hostItem)" />
         </div>
       </div>
       <BkException
@@ -78,17 +82,21 @@
   import { reactive } from 'vue';
   import { useI18n } from 'vue-i18n';
 
-  import DbResourceModel from '@services/model/db-resource/DbResource';
+  import FaultOrRecycleMachineModel from '@services/model/db-resource/FaultOrRecycleMachine';
 
   import { useCopy } from '@hooks';
 
   import { messageWarn } from '@utils';
 
   interface Expose {
-    getValue: () => Promise<any>;
+    getValue: () => Promise<{
+      for_biz: number;
+      resource_type: string;
+      labels: number[];
+    }>;
   }
 
-  const hostList = defineModel<DbResourceModel[]>({
+  const hostList = defineModel<FaultOrRecycleMachineModel[]>({
     default: () => [],
   });
 
@@ -103,12 +111,8 @@
     labels: '',
   });
 
-  const handleShowHostAction = () => {
+  const toggleHostActionShow = () => {
     isShowHostActionPop.value = true;
-  };
-
-  const handleHideHostAction = () => {
-    isShowHostActionPop.value = false;
   };
 
   // 复制所有主机 IP
@@ -124,8 +128,20 @@
   };
 
   // 复制单个指定主机 IP
-  const handleCopy = (hostItem: DbResourceModel) => {
+  const handleCopy = (hostItem: FaultOrRecycleMachineModel) => {
     copy(hostItem.ip);
+  };
+
+  // 删除单个主机
+  const handleRemove = (hostItem: FaultOrRecycleMachineModel) => {
+    const hostListResult = hostList.value.reduce<FaultOrRecycleMachineModel[]>((result, item) => {
+      if (item.bk_host_id !== hostItem.bk_host_id) {
+        result.push(item);
+      }
+      return result;
+    }, []);
+
+    hostList.value = hostListResult;
   };
 
   defineExpose<Expose>({
@@ -139,7 +155,7 @@
   });
 </script>
 <style lang="less">
-  .batch-assign-list-panel {
+  .batch-import-list-panel {
     display: flex;
     height: 100%;
     background: #f5f6fa;
@@ -179,9 +195,9 @@
       margin-top: 14px;
       margin-bottom: 4px;
       font-size: 12px;
+      align-items: center;
       line-height: 24px;
       color: #63656e;
-      align-items: center;
     }
 
     .host-list {

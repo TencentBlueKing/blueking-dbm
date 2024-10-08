@@ -11,7 +11,10 @@
         class="w-88"
         theme="primary"
         @click="handleExportHost">
-        {{ t('导入') }}
+        <DbIcon
+          class="mr-6"
+          type="add" />
+        {{ t('导入主机') }}
       </BkButton>
     </BkBadge>
     <template #content>
