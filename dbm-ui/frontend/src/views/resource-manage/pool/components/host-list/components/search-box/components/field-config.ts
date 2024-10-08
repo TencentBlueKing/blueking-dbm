@@ -135,9 +135,9 @@ export default {
       return true;
     },
   },
-  label: {
+  labels: {
     label: t('标签'),
-    component: 'label',
+    component: 'labels',
     type: 'string',
   },
   disk: {
