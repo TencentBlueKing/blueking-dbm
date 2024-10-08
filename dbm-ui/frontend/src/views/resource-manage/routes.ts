@@ -26,6 +26,24 @@ const resourcePoolRoute = {
   component: () => import('@views/resource-manage/pool/global/Index.vue'),
 };
 
+const faultPoolRoute = {
+  name: 'faultPool',
+  path: 'fault-pool',
+  meta: {
+    navName: t('故障池'),
+  },
+  component: () => import('@views/resource-manage/pool/components/fault-or-recycle-list/Index.vue'),
+};
+
+const toRecyclePoolRoute = {
+  name: 'toRecyclePool',
+  path: 'to-recycle-pool',
+  meta: {
+    navName: t('待回收池'),
+  },
+  component: () => import('@views/resource-manage/pool/components/fault-or-recycle-list/Index.vue'),
+};
+
 const resourcePoolOperationRecordRoute = {
   name: 'resourcePoolOperationRecord',
   path: 'record',
@@ -85,6 +103,14 @@ export default function getRoutes() {
   if (checkDbConsole('resourceManage.resourcePool')) {
     mainRoute[0].children.push(resourcePoolRoute);
     existResourcePool = true;
+  }
+
+  if (checkDbConsole('resourceManage.faultPool')) {
+    mainRoute[0].children.push(faultPoolRoute);
+  }
+
+  if (checkDbConsole('resourceManage.toRecyclePool')) {
+    mainRoute[0].children.push(toRecyclePoolRoute);
   }
 
   if (checkDbConsole('resourceManage.dirtyHostManage')) {
