@@ -84,9 +84,10 @@
 <style scoped lang="less">
   .tag-research-selector {
     width: 150;
+
     .trigger-btn {
-      margin-left: 8px;
       width: 150px;
+      margin-left: 8px;
     }
   }
 </style>

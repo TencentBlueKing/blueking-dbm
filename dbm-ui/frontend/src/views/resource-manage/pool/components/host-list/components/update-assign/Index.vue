@@ -16,7 +16,8 @@
         required>
         <BkSelect
           v-model="formData.for_biz"
-          :allow-empty-values="[0]">
+          :allow-empty-values="[0]"
+          :disabled="isBusiness">
           <BkOption
             v-for="bizItem in bizList"
             :key="bizItem.bk_biz_id"
@@ -72,6 +73,8 @@
   import { fetchDbTypeList } from '@services/source/infras';
   import type { BizItem } from '@services/types';
 
+  import { useGlobalBizs } from '@stores';
+
   import TagSelector from '@views/resource-manage/pool/components/tag-selector/Index.vue';
 
   interface Props {
@@ -92,14 +95,18 @@
 
   const { t } = useI18n();
   const formRef = useTemplateRef('formRef');
+  const globalBizsStore = useGlobalBizs();
+  const route = useRoute();
 
   const formData = reactive({
-    for_biz: 0,
+    for_biz: globalBizsStore.currentBizId,
     resource_type: '',
     labels: [] as DbResourceModel['labels'][number]['id'][],
   });
   const bizList = shallowRef<ServiceReturnType<typeof getBizs>>([]);
   const dbTypeList = shallowRef<ServiceReturnType<typeof fetchDbTypeList>>([]);
+
+  const isBusiness = route.name === 'BizResourcePool';
 
   watch(
     () => props.editData,

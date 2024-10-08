@@ -27,10 +27,7 @@
         </BkButton>
       </template>
       <template v-else>
-        <ImportHostBtn
-          class="w-88"
-          @export-host="handleImportHost" />
-        <BkDropdown>
+        <BkDropdown :disabled="selectionHostIdList.length < 1">
           <BkButton
             class="ml-8"
             :disabled="selectionHostIdList.length < 1">
@@ -39,19 +36,30 @@
           </BkButton>
           <template #content>
             <BkDropdownMenu>
-              <BkDropdownItem @click="handleShowBatchSetting"> {{ t('设置属性') }} </BkDropdownItem>
+              <BkDropdownItem @click="handleShowBatchAssign">
+                {{ t('重新设置资源归属') }}
+              </BkDropdownItem>
               <BkDropdownItem
                 v-bk-tooltips="{
                   content: t('仅支持同业务的主机'),
                   disabled: isSelectedSameBiz,
                 }"
                 :class="isSelectedSameBiz ? undefined : 'disabled-cls'"
-                @click="handleShowBatchAssign">
-                {{ t('添加资源归属') }}
+                @click="handleShowBatchAddTags">
+                {{ t('添加资源标签') }}
               </BkDropdownItem>
-              <BkDropdownItem @click="handleShowBatchCovertToPublic"> {{ t('转为公共资源') }} </BkDropdownItem>
-              <BkDropdownItem @click="handleShowBatchMoveToRecyclePool"> {{ t('移入待回收池') }} </BkDropdownItem>
-              <BkDropdownItem @click="handleShowBatchMoveToFaultPool"> {{ t('移入故障池') }} </BkDropdownItem>
+              <BkDropdownItem
+                v-if="type === 'business'"
+                @click="handleShowBatchCovertToPublic">
+                {{ t('退回公共资源池') }}
+              </BkDropdownItem>
+              <BkDropdownItem @click="handleShowBatchSetting"> {{ t('设置主机属性') }} </BkDropdownItem>
+              <BkDropdownItem @click="handleShowBatchMoveToFaultPool"> {{ t('转入故障池') }} </BkDropdownItem>
+              <BkDropdownItem
+                v-if="type !== 'business'"
+                @click="handleShowBatchMoveToRecyclePool">
+                {{ t('转入待回收池') }}
+              </BkDropdownItem>
               <BkDropdownItem @click="handleShowBatchUndoImport"> {{ t('撤销导入') }} </BkDropdownItem>
             </BkDropdownMenu>
           </template>
@@ -97,15 +105,16 @@
       @clear-search="handleClearSearch"
       @selection="handleSelection"
       @setting-change="handleSettingChange" />
-    <ImportHost
-      v-model:is-show="isShowImportHost"
-      @change="handleImportHostChange" />
     <BatchSetting
       v-model:is-show="isShowBatchSetting"
       :data="selectionHostIdList"
       @change="handleBatchSettingChange" />
     <BatchCovertToPublic
       v-model:is-show="isShowBatchCovertToPublic"
+      :selected="selectionListWholeDataMemo"
+      @refresh="handleRefresh" />
+    <BatchAddTags
+      v-model:is-show="isShowBatchAddTags"
       :selected="selectionListWholeDataMemo"
       @refresh="handleRefresh" />
     <BatchMoveToRecyclePool
@@ -136,8 +145,6 @@
   </div>
 </template>
 <script setup lang="tsx">
-  import { Tag } from 'bkui-vue';
-  import BkButton from 'bkui-vue/lib/button';
   import { ref } from 'vue';
   import { useI18n } from 'vue-i18n';
   import { useRouter } from 'vue-router';
@@ -155,6 +162,7 @@
 
   import { ResourcePool } from '../../type';
 
+  import BatchAddTags from './components/batch-add-tags/Index.vue';
   import BatchAssign from './components/batch-assign/Index.vue';
   import BatchConvertToBusiness from './components/batch-convert-to-business/Index.vue';
   import BatchCovertToPublic from './components/batch-covert-to-public/Index.vue';
@@ -163,8 +171,6 @@
   import BatchSetting from './components/batch-setting/Index.vue';
   import BatchUndoImport from './components/batch-undo-import/Index.vue';
   import HostOperationTip from './components/HostOperationTip.vue';
-  import ImportHost from './components/import-host/Index.vue';
-  import ImportHostBtn from './components/ImportHostBtn.vue';
   import RenderTable from './components/RenderTable.vue';
   import SearchBox from './components/search-box/Index.vue';
   import UpdateAssign from './components/update-assign/Index.vue';
@@ -191,7 +197,6 @@
   const tableRef = ref();
   const selectionHostIdList = ref<number[]>([]);
   const isShowBatchSetting = ref(false);
-  const isShowImportHost = ref(false);
   const isShowBatchCovertToPublic = ref(false);
   const isShowBatchMoveToRecyclePool = ref(false);
   const isShowBatchMoveToFaultPool = ref(false);
@@ -199,6 +204,7 @@
   const isShowBatchConvertToBusiness = ref(false);
   const isShowBatchAssign = ref(false);
   const isShowUpdateAssign = ref(false);
+  const isShowBatchAddTags = ref(false);
   const curEditData = ref<DbResourceModel>({} as DbResourceModel);
   const isSelectedSameBiz = ref(false);
 
@@ -245,29 +251,92 @@
       field: 'resourceOwner',
       width: 320,
       render: ({ data }: { data: DbResourceModel }) => (
-        <div class='resource-owner-wrapper'>
-          <div class='resource-owner'>
-            <Tag
-              theme={(data.for_biz.bk_biz_id === 0 || !data.for_biz.bk_biz_name) ? 'success' : undefined}>{t('所属业务')} : {data.forBizDisplay}
-            </Tag>
-            <Tag
-              theme={(!data.resource_type || data.resource_type === 'PUBLIC') ? 'success' : undefined}>{t('所属DB')} : {data.resourceTypeDisplay}
-            </Tag>
-            {
-              data.labels && Array.isArray(data.labels) && (
-                data.labels.map(item => (
-                  <Tag>
-                    {item.name}
-                  </Tag>
-                ))
-              )}
-          </div>
-          <DbIcon
-            type="edit"
-            class='operation-icon'
-            onClick={() => handleEdit(data)}
-          />
-        </div>
+        <bk-popover
+          theme="light"
+          placement="top"
+          popover-delay={[300, 0]}
+          disable-outside-click>
+          {{
+            default: () => (
+              <div class='resource-owner-wrapper'>
+                <div class='resource-owner'>
+                  <bk-tag
+                    theme={
+                      (data.for_biz.bk_biz_id === 0 || !data.for_biz.bk_biz_name)
+                        ? 'success'
+                        : ''
+                    }
+                  >
+                    {t('所属业务')} : {data.forBizDisplay}
+                  </bk-tag>
+                  <bk-tag
+                    theme={
+                      (!data.resource_type || data.resource_type === 'PUBLIC')
+                        ? 'success'
+                        : ''
+                    }
+                  >
+                    {t('所属DB')} : {data.resourceTypeDisplay}
+                  </bk-tag>
+                  {
+                    data.labels && Array.isArray(data.labels) && (
+                      data.labels.map(item => (<bk-tag>{item.name}</bk-tag>))
+                    )}
+                </div>
+                {
+                  props.type !== ResourcePool.public && (
+                    <DbIcon
+                      type="edit"
+                      class='operation-icon'
+                      onClick={() => handleEdit(data)}
+                    />
+                  )
+                }
+              </div>
+            ),
+            content: () => (
+              <div class='resource-owner-tips'>
+                <strong>{t('所属业务')}：</strong>
+                <div class='resource-owner-tips-values mb-10'>
+                  <bk-tag
+                    theme={
+                      (data.for_biz.bk_biz_id === 0 || !data.for_biz.bk_biz_name)
+                        ? 'success'
+                        : ''
+                    }
+                  >
+                    {data.forBizDisplay}
+                  </bk-tag>
+                </div>
+                <strong>{t('所属DB')}</strong>
+                <div class='resource-owner-tips-values mb-10'>
+                  <bk-tag
+                    theme={
+                      (!data.resource_type || data.resource_type === 'PUBLIC')
+                        ? 'success'
+                        : ''
+                    }
+                  >
+                    {data.resourceTypeDisplay}
+                  </bk-tag>
+                </div>
+                {
+                  !!data.labels.length && (
+                    <>
+                      <strong>{t('资源标签')}</strong>
+                      <div class='resource-owner-tips-values mb-10'>
+                        {
+                          data.labels.map(item => (<bk-tag>{item.name}</bk-tag>))
+                        }
+                      </div>
+                    </>
+                  )
+                }
+
+              </div>
+            )
+          }}
+        </bk-popover>
       ),
     },
     {
@@ -323,63 +392,82 @@
       width: 300,
       fixed: 'right',
       render: ({ data }: { data: DbResourceModel }) => (
-        props.type === ResourcePool.public ? (
-          <HostOperationTip
-            data={data}
-            type="public"
-            onRefresh={fetchData}
-            tip={t('确认后，主机将标记为业务专属')}
-            title={t('确认转入业务资源池？')}
-          >
-            <BkButton
-              text
-              theme="primary">
-              {t('转入业务资源池')}
-            </BkButton>
-          </HostOperationTip>
-        ) : (
-          <>
+        <>
+          {props.type === ResourcePool.public && (
             <HostOperationTip
               data={data}
-              title={t('确认转入待回收池？')}
-              tip={t('确认后，主机将标记为待回收，等待处理')}
-              type='to_recycle'
-              onRefresh={fetchData} >
-              <BkButton
+              type="to_biz"
+              onRefresh={fetchData}
+              tip={t('确认后，主机将标记为业务专属')}
+              title={t('确认转入业务资源池？')}
+            >
+              <bk-button
                 text
                 theme="primary">
-                {t('移入待回收池')}
-              </BkButton>
+                {t('转入业务资源池')}
+              </bk-button>
             </HostOperationTip>
-            <HostOperationTip
-              data={data}
-              title={t('确认转入待故障池？')}
-              tip={t('确认后，主机将标记为故障，等待处理')}
-              type='to_fault'
-              onRefresh={fetchData} >
-              <BkButton
-                text
-                class='ml-16'
-                theme="primary">
-                {t('移入故障池')}
-              </BkButton>
-            </HostOperationTip>
-            <HostOperationTip
-              data={data}
-              title={t('确认撤销导入？')}
-              tip={t('确认后，主机将从资源池移回原有模块')}
-              type='undo_import'
-              onRefresh={fetchData}>
-              <BkButton
-                text
-                class='ml-16'
-                theme="primary">
-                {t('撤销导入')}
-              </BkButton>
-            </HostOperationTip>
-          </>
-        )
-
+          )}
+          {
+            [ResourcePool.business, ResourcePool.global].includes(props.type) && <>
+              {
+                props.type === ResourcePool.business ? (
+                  <HostOperationTip
+                    data={data}
+                    title={t('确认退回公共资源池？')}
+                    tip={t('确认后，主机不再归属当前业务')}
+                    type='to_public'
+                    onRefresh={fetchData} >
+                    <bk-button
+                      text
+                      theme="primary">
+                      {t('退回公共资源池')}
+                    </bk-button>
+                  </HostOperationTip>
+                ) : (
+                  <HostOperationTip
+                    data={data}
+                    title={t('确认转入待回收池？')}
+                    tip={t('确认后，主机将标记为待回收，等待处理')}
+                    type='to_recycle'
+                    onRefresh={fetchData} >
+                    <bk-button
+                      text
+                      theme="primary">
+                      {t('转入待回收池')}
+                    </bk-button>
+                  </HostOperationTip>
+                )
+              }
+              <HostOperationTip
+                data={data}
+                title={t('确认转入待故障池？')}
+                tip={t('确认后，主机将标记为故障，等待处理')}
+                type='to_fault'
+                onRefresh={fetchData} >
+                <bk-button
+                  text
+                  class='ml-16'
+                  theme="primary">
+                  {t('转入故障池')}
+                </bk-button>
+              </HostOperationTip>
+              <HostOperationTip
+                data={data}
+                title={t('确认撤销导入？')}
+                tip={t('确认后，主机将从资源池移回原有模块')}
+                type='undo_import'
+                onRefresh={fetchData}>
+                <bk-button
+                  text
+                  class='ml-16'
+                  theme="primary">
+                  {t('撤销导入')}
+                </bk-button>
+              </HostOperationTip>
+            </>
+          }
+        </>
       ),
     },
   ];
@@ -389,18 +477,8 @@
   };
 
   const handleSearch = (params: Record<string, any>) => {
-    searchParams = {...searchParams, ...params};
-    tableRef.value.fetchData(searchParams);
-  };
-
-  // 导入主机
-  const handleImportHost = () => {
-    isShowImportHost.value = true;
-  };
-
-  // 导入主机成功需要刷新列表
-  const handleImportHostChange = () => {
-    fetchData();
+    searchParams = params;
+    tableRef.value.fetchData(params);
   };
 
   // 批量设置
@@ -487,10 +565,12 @@
     isShowBatchConvertToBusiness.value = true;
   }
 
+  const handleShowBatchAddTags = () => {
+    isShowBatchAddTags.value = true;
+  }
+
   const handleShowBatchAssign = () => {
-    if (isSelectedSameBiz.value) {
-      isShowBatchAssign.value = true;
-    }
+    isShowBatchAssign.value = true;
   }
 
   const handleEdit = (data: DbResourceModel) => {
@@ -509,10 +589,6 @@
 
   onMounted(() => {
     fetchData();
-  });
-
-  defineExpose({
-    handleImportHost,
   });
 </script>
 <style lang="less">
@@ -546,25 +622,35 @@
 
         .operation-icon {
           margin-left: 7.5px;
+          font-size: 12px;
           color: #3a84ff;
           cursor: pointer;
-          font-size: 12px;
           visibility: hidden;
         }
       }
 
       &:hover {
         .operation-icon {
-          visibility: visible;
           display: block;
+          visibility: visible;
         }
       }
     }
   }
 
   .disabled-cls {
-    background-color: #f9fafd !important;
-    cursor: not-allowed !important;
     color: #dcdee5 !important;
+    cursor: not-allowed !important;
+    background-color: #f9fafd !important;
+  }
+
+  .resource-owner-tips {
+    min-width: 280px;
+    padding: 9px 0 0;
+    color: #63656e;
+
+    .resource-owner-tips-values {
+      margin: 6px 0;
+    }
   }
 </style>

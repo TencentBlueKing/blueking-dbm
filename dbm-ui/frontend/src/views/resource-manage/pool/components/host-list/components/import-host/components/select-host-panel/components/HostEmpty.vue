@@ -18,7 +18,9 @@
       type="empty" />
     <div style="display: inline-block; text-align: left">
       <div class="mb-12">
-        {{ t('暂无主机，你通过以下方法获取主机至“DBA 业务  -> 空闲机池  -> 空闲机模块”') }}
+        <I18nT keypath="暂无主机，你通过以下方法获取主机至n->空闲机池->空闲机模块">
+          {{ globalBizsStore.bizIdMap.get(bkBizId)?.name || bkBizId }}
+        </I18nT>
       </div>
       <div>
         <I18nT keypath="方法一：从CMDB 资源池分配；">
@@ -56,7 +58,16 @@
 
   import { fetchResourceImportUrls } from '@services/source/dbresourceResource';
 
+  import { useGlobalBizs } from '@stores';
+
+  interface Props {
+    bkBizId: number;
+  }
+
+  defineProps<Props>();
+
   const { t } = useI18n();
+  const globalBizsStore = useGlobalBizs();
 
   const { data } = useRequest(fetchResourceImportUrls);
 </script>
