@@ -15,8 +15,32 @@
   <div class="export-host-select-panel">
     <div class="title">
       {{ t('导入主机') }}
-      <span style="font-size: 12px; color: #979ba5">
-        {{ t('（从 CMDB 的 DBA 业务空闲机导入）') }}
+      <BusinessSelector
+        v-if="!isBusiness"
+        v-model="bizId">
+        <template #trigger>
+          <span style="font-size: 12px; color: #979ba5; cursor: pointer">
+            （
+            <I18nT
+              keypath="从n业务CMDB空闲机模块导入"
+              tag="span">
+              {{ globalBizsStore.bizIdMap.get(bizId)?.name }}
+            </I18nT>
+            ）
+            <DbIcon type="down-big" />
+          </span>
+        </template>
+      </BusinessSelector>
+      <span
+        v-else
+        style="font-size: 12px; color: #979ba5">
+        （
+        <I18nT
+          keypath="从n业务CMDB空闲机模块导入"
+          tag="span">
+          {{ globalBizsStore.bizIdMap.get(bizId)?.name }}
+        </I18nT>
+        ）
       </span>
     </div>
     <BkInput
@@ -43,7 +67,7 @@
         <template
           v-if="!searchContent"
           #empty>
-          <HostEmpty />
+          <HostEmpty :bk-biz-id="bizId" />
         </template>
       </DbTable>
     </div>
@@ -59,7 +83,11 @@
   import { fetchListDbaHost } from '@services/source/dbresourceResource';
   import type { HostInfo } from '@services/types';
 
+  import { useGlobalBizs, useSystemEnviron } from '@stores';
+
   import DbStatus from '@components/db-status/index.vue';
+
+  import BusinessSelector from '@views/tag-manage/components/BusinessSelector.vue';
 
   import HostEmpty from './components/HostEmpty.vue';
 
@@ -73,11 +101,17 @@
 
   const props = defineProps<Props>();
   const emits = defineEmits<Emits>();
+  const route = useRoute();
+  const globalBizsStore = useGlobalBizs();
+  const systemEnvironStore = useSystemEnviron();
+
+  const isBusiness = route.name === 'BizResourcePool';
 
   const { t } = useI18n();
 
   const tableRef = ref();
   const searchContent = ref('');
+  const bizId = ref(isBusiness ? globalBizsStore.currentBizId : systemEnvironStore.urls.DBA_APP_BK_BIZ_ID);
 
   const tableColumn = [
     {
@@ -89,7 +123,7 @@
     {
       label: 'IPV6',
       field: 'ipv6',
-      render: ({ data }: { data: HostInfo}) => data.ipv6 || '--',
+      render: ({ data }: { data: HostInfo }) => data.ipv6 || '--',
     },
     {
       label: t('管控区域'),
@@ -98,7 +132,7 @@
     {
       label: t('Agent 状态'),
       field: 'agent',
-      render: ({ data }: { data: HostInfo}) => {
+      render: ({ data }: { data: HostInfo }) => {
         const info = data.alive === 1 ? { theme: 'success', text: t('正常') } : { theme: 'danger', text: t('异常') };
         return <DbStatus theme={info.theme}>{info.text}</DbStatus>;
       },
@@ -129,6 +163,18 @@
     });
   });
 
+  watch(bizId, () => {
+      fetchData();
+    }
+  );
+
+  const fetchData = () => {
+    tableRef.value.fetchData({
+      search_content: searchContent.value,
+      bk_biz_id: bizId.value,
+    });
+  };
+
   const disableSelectMethod = (data: HostInfo) => {
     if (data.alive !== 1) {
       return t('异常主机不可用');
@@ -137,11 +183,6 @@
       return t('主机已被导入');
     }
     return false;
-  };
-  const fetchData = () => {
-    tableRef.value.fetchData({
-      search_content: searchContent.value,
-    });
   };
 
   const handleSearch = () => {
@@ -166,9 +207,11 @@
     padding: 16px 24px;
 
     .title {
+      display: flex;
       font-size: 20px;
       line-height: 28px;
       color: #313238;
+      align-items: center;
     }
 
     .search-input {

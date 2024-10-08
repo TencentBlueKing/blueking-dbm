@@ -39,20 +39,14 @@
     </BkResizeLayout>
     <template #footer>
       <div>
-        <span
-          v-bk-tooltips="{
-            disabled: hostSelectList.length > 0,
-            content: t('请选择主机'),
-          }">
-          <BkButton
-            v-bk-tooltips="tooltip"
-            :disabled="hostSelectList.length < 1"
-            :loading="isSubmitting"
-            theme="primary"
-            @click="handleSubmit">
-            {{ t('确定') }}
-          </BkButton>
-        </span>
+        <BkButton
+          v-bk-tooltips="tooltip"
+          :disabled="hostSelectList.length < 1"
+          :loading="isSubmitting"
+          theme="primary"
+          @click="handleSubmit">
+          {{ t('确定') }}
+        </BkButton>
         <BkButton
           class="ml-8"
           @click="handleCancel">
@@ -97,19 +91,26 @@
   const layoutStyle = {
     height: `${contentHeight}px`,
   };
+
   const tooltip = computed(() => {
     const path = router.resolve({
       name: 'taskHistory'
     });
-    return {
-      theme: 'light',
-      disabled: hostSelectList.value.length < 1,
-      content: () => (
-        <div>
-          {t('提交后，将会进行主机初始化任务，具体的导入结果，可以通过“')}<a href={path.href} target='_blank'>{t('任务历史')}</a>{t('”查看')}
-        </div>
-      )
-    }
+    return !hostSelectList.value.length
+      ? {
+        disabled: !!hostSelectList.value.length,
+        content: t('请选择主机'),
+      }
+      : {
+        theme: 'light',
+        content: () => (
+          <div>
+            {t('提交后，将会进行主机初始化任务，具体的导入结果，可以通过“')}
+            <a href={path.href} target='_blank'>{t('任务历史')}</a>
+            {t('”查看')}
+          </div>
+        ),
+      }
   });
 
   const handleSubmit = () => {
