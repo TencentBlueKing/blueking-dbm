@@ -125,8 +125,8 @@
 
 <style scoped lang="less">
   .resource-search-selector {
-    margin-left: auto;
     width: 560px;
     height: 32px;
+    margin-left: auto;
   }
 </style>

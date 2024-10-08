@@ -56,7 +56,7 @@
   import { useRequest } from 'vue-request';
 
   import DbResourceModel from '@services/model/db-resource/DbResource';
-  import { updateResource } from '@services/source/dbresourceResource';
+  import { appendHostLabel } from '@services/source/dbresourceResource';
 
   import { messageSuccess } from '@utils';
 
@@ -93,7 +93,7 @@
 
   const curBizId = computed(() => hostList.value[0]?.for_biz.bk_biz_id || 0);
 
-  const { loading: isUpdating, run: runUpdate } = useRequest(updateResource, {
+  const { loading: isUpdating, run: runAppend } = useRequest(appendHostLabel, {
     manual: true,
     onSuccess() {
       emits('refresh');
@@ -115,13 +115,9 @@
 
   const handleSubmit = async () => {
     const data = await formPanelRef.value!.getValue();
-    runUpdate({
+    runAppend({
       bk_host_ids: hostList.value.map((item) => item.bk_host_id),
-      for_biz: data.for_biz as number,
-      resource_type: data.resource_type as string,
       labels: data.labels,
-      rack_id: '',
-      storage_device: {},
     });
   };
 

@@ -55,7 +55,8 @@
   const { loading: isUpdating, run: runUpdate } = useRequest(updateResource, {
     manual: true,
     onSuccess() {
-      handleCancel();
+      isShow.value = false;
+      emits('refresh');
       messageSuccess(t('设置成功'));
     },
   });
@@ -65,13 +66,12 @@
       bk_host_ids: props.selected.map((item) => item.bk_host_id),
       for_biz: 0,
       rack_id: '',
-      resource_type: 'PUBLIC',
       storage_device: {},
+      labels: [],
     });
   };
 
   const handleCancel = () => {
     isShow.value = false;
-    emits('refresh');
   };
 </script>
