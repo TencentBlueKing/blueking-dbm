@@ -4,7 +4,7 @@
     :width="800"
     @update:is-show="handleCancel">
     <template #header>
-      <span>{{ t('设置业务专用') }}</span>
+      <span>{{ t('设置主机属性') }}</span>
       <span style="margin-left: 12px; font-size: 12px; color: #63656e">
         <I18nT keypath="已选:n台主机">
           <span class="number">{{ data.length }}</span>
@@ -13,47 +13,49 @@
     </template>
     <div class="resource-pool-batch-setting">
       <div class="mb-36">
+        <BkSelect
+          v-model="selectedOptions"
+          class="mb-16 setting-item-selector"
+          multiple>
+          <template #trigger>
+            <BkButton
+              text
+              theme="primary">
+              <DbIcon type="plus-circle" /> {{ t('添加属性') }}
+            </BkButton>
+          </template>
+          <BkOption
+            v-for="item in SETTING_OPTIONS"
+            :key="item.value"
+            :label="item.label"
+            :value="item.value" />
+        </BkSelect>
         <DbForm
           ref="formRef"
           form-type="vertical"
           :model="formData">
-          <DbFormItem
-            :label="t('所属业务')"
-            property="for_biz">
-            <div class="com-input">
-              <BkSelect
-                v-model="formData.for_biz"
-                :allow-empty-values="[0]"
-                filterable>
-                <BkOption
-                  v-for="bizItem in bizList"
-                  :key="bizItem.bk_biz_id"
-                  :label="bizItem.display_name"
-                  :value="bizItem.bk_biz_id" />
-              </BkSelect>
-            </div>
-          </DbFormItem>
-          <DbFormItem
-            :label="t('所属DB类型')"
-            property="resource_type">
-            <div class="com-input">
-              <BkSelect
-                v-model="formData.resource_type"
-                filterable>
-                <BkOption
-                  v-for="item in dbTypeList"
-                  :key="item.id"
-                  :label="item.name"
-                  :value="item.id" />
-              </BkSelect>
-            </div>
-          </DbFormItem>
-          <DbFormItem :label="t('磁盘')">
-            <ResourceSpecStorage v-model="formData.storage_spec" />
-          </DbFormItem>
-          <DbFormItem :label="t('机架')">
-            <BkInput v-model="formData.rack_id" />
-          </DbFormItem>
+          <div
+            v-if="selectedOptions.includes('storage_spec')"
+            class="mb-16 setting-item">
+            <DbIcon
+              class="close-icon"
+              type="close"
+              @click.stop="() => handleDelete('storage_spec')" />
+            <DbFormItem :label="t('磁盘')">
+              <ResourceSpecStorage v-model="formData.storage_spec" />
+            </DbFormItem>
+          </div>
+          <div
+            v-if="selectedOptions.includes('rack_id')"
+            class="mb-16 setting-item">
+            <DbIcon
+              class="close-icon"
+              type="close"
+              @click.stop="() => handleDelete('rack_id')" />
+            <DbFormItem :label="t('机架')">
+              <BkInput v-model="formData.rack_id" />
+            </DbFormItem>
+          </div>
         </DbForm>
       </div>
     </div>
@@ -74,7 +76,7 @@
   </DbSideslider>
 </template>
 <script setup lang="ts">
-  import { computed, reactive, ref } from 'vue';
+  import { reactive, ref } from 'vue';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
@@ -99,14 +101,13 @@
   }
 
   const props = defineProps<Props>();
+
   const emits = defineEmits<Emits>();
 
   const { t } = useI18n();
 
   const genDefaultData = () => ({
-    for_biz: undefined,
     rack_id: '',
-    resource_type: '',
     storage_spec: [] as IStorageSpecItem[],
   });
 
@@ -115,11 +116,22 @@
   const bizList = shallowRef<ServiceReturnType<typeof getBizs>>([]);
   const dbTypeList = shallowRef<ServiceReturnType<typeof fetchDbTypeList>>([]);
 
+  const selectedOptions = ref<string[]>([]);
+
   const formData = reactive(genDefaultData());
 
-  const isSubmitDisabled = computed(
-    () => !(formData.for_biz !== '' || formData.resource_type || formData.storage_spec.length > 0),
-  );
+  const isSubmitDisabled = computed(() => !(formData.storage_spec.length > 0 || formData.rack_id));
+
+  const SETTING_OPTIONS = [
+    {
+      label: t('磁盘'),
+      value: 'storage_spec',
+    },
+    {
+      label: t('机架'),
+      value: 'rack_id',
+    },
+  ];
 
   useRequest(getBizs, {
     onSuccess(data) {
@@ -144,6 +156,15 @@
     },
   });
 
+  watch(
+    () => props.isShow,
+    () => {
+      if (props.isShow) {
+        selectedOptions.value = [];
+      }
+    },
+  );
+
   const handleSubmit = () => {
     isSubmiting.value = true;
     formRef.value
@@ -161,22 +182,10 @@
         );
         const params = {
           bk_host_ids: props.data.map((item) => ~~item),
-          for_biz: formData.for_biz,
           rack_id: formData.rack_id,
           storage_device: storageDevice,
         };
-        if (formData.rack_id !== '') {
-          Object.assign(params, { rack_id: formData.rack_id });
-        }
-        if (Object.values(storageDevice).length > 0) {
-          Object.assign(params, { storage_device: storageDevice });
-        }
-        if (formData.for_biz !== '') {
-          Object.assign(params, { for_biz: Number(formData.for_biz) });
-        }
-        if (formData.resource_type !== '') {
-          Object.assign(params, { resource_type: formData.resource_type });
-        }
+
         return updateResource(params).then(() => {
           window.changeConfirm = false;
           emits('change');
@@ -186,6 +195,11 @@
       .finally(() => {
         isSubmiting.value = false;
       });
+  };
+
+  const handleDelete = (value: 'storage_spec' | 'rack_id') => {
+    selectedOptions.value = selectedOptions.value.filter((item) => item !== value);
+    formData[value] = undefined;
   };
 
   const handleCancel = () => {
@@ -208,6 +222,32 @@
 
       .bk-select {
         flex: 1;
+      }
+    }
+
+    .setting-item-selector {
+      width: 352px;
+    }
+
+    .setting-item {
+      position: relative;
+
+      .close-icon {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        visibility: hidden;
+      }
+
+      &:hover {
+        padding: 6px;
+        background-color: #f0f1f5;
+
+        .close-icon {
+          z-index: 99;
+          cursor: pointer;
+          visibility: visible;
+        }
       }
     }
   }

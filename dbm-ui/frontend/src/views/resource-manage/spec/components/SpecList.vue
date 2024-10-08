@@ -47,6 +47,13 @@
           {{ t('启用') }}
         </BkButton>
       </span>
+      <div class="enable-checkbox">
+        <BkCheckbox
+          v-model="isEnableSpec"
+          class="mr-6"
+          @change="fetchData" />
+        {{ t('仅显示已启用的规格') }}
+      </div>
       <BkInput
         v-model="searchKey"
         clearable
@@ -149,6 +156,7 @@
   const setRowClass = (data: ResourceSpecModel) => (data.isRecentSeconds ? 'is-new-row' : '');
 
   const tableRef = ref();
+  const isEnableSpec = ref(true);
 
   const specOperationState = reactive({
     isShow: false,
@@ -452,15 +460,13 @@
   };
 
   const fetchData = () => {
-    tableRef.value.fetchData(
-      {
-        spec_name: searchKey.value,
-      },
-      {
-        spec_cluster_type: props.dbType,
-        spec_machine_type: props.machineType,
-      },
-    );
+    tableRef.value.fetchData({
+      spec_name: searchKey.value,
+    }, {
+      spec_cluster_type: props.dbType,
+      spec_machine_type: props.machineType,
+      enable: isEnableSpec.value,
+    });
   };
 
   const handleSelectionChange = (idList: number[], list: ResourceSpecModel[]) => {
@@ -552,6 +558,14 @@
 
       .delete-button {
         margin-right: auto;
+      }
+
+      .enable-checkbox {
+        display: flex;
+        margin-right: 16px;
+        font-size: 12px;
+        color: #4d4f56;
+        align-items: center;
       }
     }
 

@@ -18,17 +18,18 @@
         class="editor-wrapper">
         <BkInput
           v-model="tagValue"
-          class="editor" />
+          class="editor"
+          @blur="handleClose" />
         <div
           class="operator-wrapper"
-          @click.stop="handleCreate">
+          @click="handleCreate">
           <DbIcon
             class="check-line"
             type="check-line" />
         </div>
         <div
           class="operator-wrapper"
-          @click.stop="handleClose">
+          @click="handleClose">
           <DbIcon
             class="close"
             type="close" />
@@ -108,23 +109,19 @@
 
   const { run: runCreate } = useRequest(createTag, {
     manual: true,
-    async onSuccess() {
-      const data = await listTag({
-        bk_biz_id: props.bkBizId,
-        offset: pagination.count,
-        limit: 1,
-        ordering: 'create_at',
-      });
-      tagList.value = uniqBy([...tagList.value, ...data.results], 'value');
-      pagination.count = data.count;
-      modelValue.value = [...modelValue.value, data.results[0].id];
-      handleClose();
+    onSuccess() {
+      pagination.count += 1;
+      loadMore();
+      isEdit.value = false;
       messageSuccess(t('新建成功'));
     },
   });
 
   const loadMore = () => {
-    if (listTagLoading.value || pagination.offset >= pagination.count) {
+    if (listTagLoading.value) {
+      return;
+    }
+    if (tagList.value.length >= pagination.count) {
       return;
     }
     pagination.offset = Math.min(pagination.count, pagination.offset + pagination.limit);
@@ -143,7 +140,6 @@
       tagList.value = [];
       runListTag({
         bk_biz_id: props.bkBizId,
-        ordering: 'create_at',
       });
     },
   );
@@ -157,7 +153,6 @@
       offset: pagination.offset,
       limit: pagination.limit,
       value: searchVal.value,
-      ordering: 'create_at',
     });
   });
 
@@ -166,7 +161,6 @@
   };
 
   const handleClose = () => {
-    tagValue.value = '';
     isEdit.value = false;
   };
 
@@ -210,7 +204,6 @@
       bk_biz_id: props.bkBizId,
       offset: 0,
       limit: pagination.limit,
-      ordering: 'create_time',
     });
   });
 </script>
@@ -257,6 +250,7 @@
 
       &:hover {
         cursor: pointer;
+        background-color: #e1ecff;
       }
 
       .check-line {
