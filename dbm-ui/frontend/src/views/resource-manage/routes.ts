@@ -23,7 +23,7 @@ const resourcePoolRoute = {
     navName: t('DB 资源池'),
     fullscreen: true,
   },
-  component: () => import('@views/resource-manage/pool/Index.vue'),
+  component: () => import('@views/resource-manage/pool/global/Index.vue'),
 };
 
 const resourcePoolOperationRecordRoute = {
@@ -42,6 +42,15 @@ const resourcePoolDirtyMachinesRoute = {
     navName: t('污点主机处理'),
   },
   component: () => import('@views/resource-manage/dirty-machine/Index.vue'),
+};
+
+const resourceTagsManagementRoute = {
+  name: 'resourceTagsManagement',
+  path: 'tags-management',
+  meta: {
+    navName: t('资源标签管理'),
+  },
+  component: () => import('@views/tag-manage/Index.vue'),
 };
 
 const resourceSpecRoute = {
@@ -80,6 +89,10 @@ export default function getRoutes() {
 
   if (checkDbConsole('resourceManage.dirtyHostManage')) {
     mainRoute[0].children.push(resourcePoolDirtyMachinesRoute);
+  }
+
+  if (checkDbConsole('resourceManage.resourceTagsManagement')) {
+    mainRoute[0].children.push(resourceTagsManagementRoute);
   }
 
   if (checkDbConsole('resourceManage.resourceOperationRecord')) {

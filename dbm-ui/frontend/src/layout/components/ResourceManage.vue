@@ -42,6 +42,18 @@
         </span>
       </BkMenuItem>
       <BkMenuItem
+        key="resourceTagsManagement"
+        v-db-console="'resourceManage.resourceTagsManagement'">
+        <template #icon>
+          <DbIcon type="tag-3" />
+        </template>
+        <span
+          v-overflow-tips.right
+          class="text-overflow">
+          {{ t('资源标签管理') }}
+        </span>
+      </BkMenuItem>
+      <BkMenuItem
         key="resourcePoolOperationRecord"
         v-db-console="'resourceManage.resourceOperationRecord'">
         <template #icon>

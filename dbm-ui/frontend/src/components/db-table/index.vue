@@ -111,7 +111,7 @@
     // 是否允许行点击选中
     allowRowClickSelect?: boolean,
     remoteSort?: boolean,
-    showSettings?: boolean,
+    sortType?: 'ordering' | 'default';
   }
 
   interface Emits {
@@ -146,7 +146,7 @@
     remotePagination: true,
     allowRowClickSelect: false,
     remoteSort: false,
-    showSettings: true,
+    sortType: 'default',
   });
 
   const emits = defineEmits<Emits>();
@@ -519,9 +519,16 @@
       desc: 0,
       asc: 1,
     };
-    sortParams = {
-      [sortPayload.column.field]: valueMap[sortPayload.type as keyof typeof valueMap],
-    };
+    if (props.sortType === 'ordering') {
+      sortParams = {
+        ordering: `${valueMap[sortPayload.type as keyof typeof valueMap] === 0 ? '-' : ''}${sortPayload.column.field}`
+      };
+    }
+    else {
+      sortParams = {
+        [sortPayload.column.field]: valueMap[sortPayload.type as keyof typeof valueMap],
+      };
+    }
     fetchListData();
   };
 
