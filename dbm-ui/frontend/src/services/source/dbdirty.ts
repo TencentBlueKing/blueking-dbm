@@ -57,7 +57,13 @@ export function deleteDirtyRecords(params: { bk_host_ids: number[] }) {
 /**
  * 故障池、待回收池列表
  */
-export function getMachinePool(params: { limit?: number; offset?: number; ips?: string; pool: 'fault' | 'recycle' }) {
+export function getMachinePool(params: {
+  limit?: number;
+  offset?: number;
+  ips?: string;
+  pool: 'fault' | 'recycle';
+  bk_biz_id?: number;
+}) {
   return http.get<ListBase<FaultOrRecycleMachineModel[]>>(`${path}/query_machine_pool/`, params).then((res) => ({
     ...res,
     results: res.results.map((item: FaultOrRecycleMachineModel) => new FaultOrRecycleMachineModel(item)),

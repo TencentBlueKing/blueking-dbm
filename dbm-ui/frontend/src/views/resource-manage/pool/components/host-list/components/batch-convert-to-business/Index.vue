@@ -65,8 +65,8 @@
       bk_host_ids: props.selected.map((item) => item.bk_host_id),
       for_biz: props.bizId,
       rack_id: props.selected[0].rack_id,
-      resource_type: '',
       storage_device: props.selected[0].storage_device,
+      labels: [],
     });
   };
 
