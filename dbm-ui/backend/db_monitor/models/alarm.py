@@ -433,7 +433,7 @@ class DispatchGroup(AuditedModel):
         ]
 
         # 补充 dbha 特殊策略的分派规则
-        if db_type in [DBType.MySQL, DBType.Redis, DBType.Sqlserver]:
+        if db_type in [DBType.MySQL, DBType.TenDBCluster, DBType.Redis, DBType.Sqlserver]:
             policies = MonitorPolicy.get_dbha_policies()
             rules.append(
                 {
