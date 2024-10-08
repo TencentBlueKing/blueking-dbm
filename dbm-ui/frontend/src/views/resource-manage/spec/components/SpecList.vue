@@ -47,13 +47,20 @@
           {{ t('启用') }}
         </BkButton>
       </span>
+      <div class="enable-checkbox">
+        <BkCheckbox
+          v-model="isEnableSpec"
+          class="mr-6"
+          @change="fetchData" />
+        {{ t('仅显示已启用的规格') }}
+      </div>
       <BkInput
         v-model="searchKey"
         clearable
         :placeholder="t('请输入xx', [t('规格名称')])"
         style="width: 500px"
         type="search"
-        @enter="fetchData()" />
+        @enter="fetchData" />
     </div>
     <DbTable
       ref="tableRef"
@@ -149,11 +156,12 @@
   const setRowClass = (data: ResourceSpecModel) => (data.isRecentSeconds ? 'is-new-row' : '');
 
   const tableRef = ref();
+  const isEnableSpec = ref(true);
 
   const specOperationState = reactive({
+    data: null as ResourceSpecModel | null,
     isShow: false,
     type: 'create' as SpecOperationType,
-    data: null as ResourceSpecModel | null,
   });
 
   const selectedList = ref<ResourceSpecModel[]>([]);
@@ -163,23 +171,11 @@
   const columns = computed(() => {
     const baseColumns: Column[] = [
       {
-        label: t('规格名称'),
         field: 'spec_name',
-        width: 180,
+        label: t('规格名称'),
         render: ({ data }: { data: ResourceSpecModel }) => (
           <TextOverflowLayout>
             {{
-              default: () => (
-                <auth-button
-                  action-id='spec_update'
-                  resource={props.dbType}
-                  permission={data.permission.spec_update}
-                  text
-                  theme='primary'
-                  onClick={() => handleShowUpdate(data)}>
-                  {data.spec_name}
-                </auth-button>
-              ),
               append: () =>
                 data.isRecentSeconds && (
                   <span
@@ -187,22 +183,73 @@
                     data-text='NEW'
                   />
                 ),
+              default: () => (
+                <auth-button
+                  action-id='spec_update'
+                  permission={data.permission.spec_update}
+                  resource={props.dbType}
+                  theme='primary'
+                  text
+                  onClick={() => handleShowUpdate(data)}>
+                  {data.spec_name}
+                </auth-button>
+              ),
             }}
           </TextOverflowLayout>
         ),
+        width: 180,
       },
       {
-        label: () => props.machineTypeLabel,
         field: 'model',
-        showOverflowTooltip: false,
+        label: () => props.machineTypeLabel,
         minWidth: 400,
         render: ({ data }: { data: ResourceSpecModel }) => (
           <bk-popover
-            theme='light'
             placement='top'
             popover-delay={[300, 0]}
+            theme='light'
             disable-outside-click>
             {{
+              content: () => (
+                <div class='resource-machine-info-tips'>
+                  {data.cpu.min > 0 && data.device_class.length === 0 && (
+                    <>
+                      <strong>CPU: </strong>
+                      <div class='resource-machine-info__values mb-10'>
+                        <bk-tag>
+                          {`${data.cpu.min} ~ ${data.cpu.max}`} {t('核')}
+                        </bk-tag>
+                      </div>
+                      <strong>{t('内存')}: </strong>
+                      <div class='resource-machine-info__values mb-10'>
+                        <bk-tag>{`${data.mem.min} ~ ${data.mem.max}`} G</bk-tag>
+                      </div>
+                    </>
+                  )}
+                  {data.device_class.length > 0 && (
+                    <>
+                      <strong>{t('机型')}: </strong>
+                      <div class='resource-machine-info__values mb-10'>
+                        {data.device_class.map((item) => (
+                          <bk-tag>{item}</bk-tag>
+                        ))}
+                      </div>
+                    </>
+                  )}
+                  <strong>{t('磁盘')}: </strong>
+                  <div class='resource-machine-info__values'>
+                    {data.storage_spec.length > 0
+                      ? data.storage_spec.map((item) => (
+                          <p>
+                            <bk-tag>
+                              {`(${t('挂载点')}: ${item.mount_point}, ${t('最小容量')}: ${item.size} G, ${item.type})`}
+                            </bk-tag>
+                          </p>
+                        ))
+                      : '--'}
+                  </div>
+                </div>
+              ),
               default: () => (
                 <div class='machine-info text-overflow'>
                   {data.cpu.min > 0 && data.device_class.length === 0 && (
@@ -248,107 +295,67 @@
                   </bk-tag>
                 </div>
               ),
-              content: () => (
-                <div class='resource-machine-info-tips'>
-                  {data.cpu.min > 0 && data.device_class.length === 0 && (
-                    <>
-                      <strong>CPU: </strong>
-                      <div class='resource-machine-info__values mb-10'>
-                        <bk-tag>
-                          {`${data.cpu.min} ~ ${data.cpu.max}`} {t('核')}
-                        </bk-tag>
-                      </div>
-                      <strong>{t('内存')}: </strong>
-                      <div class='resource-machine-info__values mb-10'>
-                        <bk-tag>{`${data.mem.min} ~ ${data.mem.max}`} G</bk-tag>
-                      </div>
-                    </>
-                  )}
-                  {data.device_class.length > 0 && (
-                    <>
-                      <strong>{t('机型')}: </strong>
-                      <div class='resource-machine-info__values mb-10'>
-                        {data.device_class.map((item) => (
-                          <bk-tag>{item}</bk-tag>
-                        ))}
-                      </div>
-                    </>
-                  )}
-                  <strong>{t('磁盘')}: </strong>
-                  <div class='resource-machine-info__values'>
-                    {data.storage_spec.length > 0
-                      ? data.storage_spec.map((item) => (
-                          <p>
-                            <bk-tag>
-                              {`(${t('挂载点')}: ${item.mount_point}, ${t('最小容量')}: ${item.size} G, ${item.type})`}
-                            </bk-tag>
-                          </p>
-                        ))
-                      : '--'}
-                  </div>
-                </div>
-              ),
             }}
           </bk-popover>
         ),
+        showOverflowTooltip: false,
       },
       {
-        label: t('描述'),
         field: 'desc',
+        label: t('描述'),
       },
       {
-        label: t('是否启用'),
         field: 'enable',
-        width: 120,
+        label: t('是否启用'),
         render: ({ data }: { data: ResourceSpecModel }) => (
           <bk-pop-confirm
-            title={data.enable ? t('确认停用该规格？') : t('确认启用该规格？')}
             content={
               data.enable
                 ? t('停用后，在资源规格选择时，将不可见，且不可使用')
                 : t('启用后，在资源规格选择时，将开放选择')
             }
-            width='308'
-            trigger='click'
-            placement='bottom'
             confirm-text={data.enable ? t('停用') : t('启用')}
+            placement='bottom'
+            title={data.enable ? t('确认停用该规格？') : t('确认启用该规格？')}
+            trigger='click'
+            width='308'
             onConfirm={() => handleConfirmSwitch(data)}>
             <auth-switcher
-              size='small'
               action-id='spec_update'
+              model-value={data.enable}
               permission={data.permission.spec_update}
               resource={props.dbType}
-              model-value={data.enable}
+              size='small'
               theme='primary'
             />
           </bk-pop-confirm>
         ),
+        width: 120,
       },
       {
-        label: t('更新时间'),
         field: 'update_at',
+        label: t('更新时间'),
+        render: ({ data }: { data: ResourceSpecModel }) => data.updateAtDisplay,
         sort: true,
         width: 250,
-        render: ({ data }: { data: ResourceSpecModel }) => data.updateAtDisplay,
       },
       {
-        label: t('更新人'),
         field: 'updater',
-        width: 120,
+        label: t('更新人'),
         render: ({ data }: { data: ResourceSpecModel }) => data.updater || '--',
+        width: 120,
       },
       {
-        label: t('操作'),
         field: '',
-        width: 180,
         fixed: 'right',
+        label: t('操作'),
         render: ({ data }: { data: ResourceSpecModel }) => (
           <>
             <auth-button
               action-id='spec_update'
-              resource={props.dbType}
-              permission={data.permission.spec_update}
               class='mr-8'
+              permission={data.permission.spec_update}
+              resource={props.dbType}
               theme='primary'
               text
               onClick={handleShowUpdate.bind(null, data)}>
@@ -356,9 +363,9 @@
             </auth-button>
             <auth-button
               action-id='spec_create'
-              resource={props.dbType}
-              permission={data.permission.spec_create}
               class='mr-8'
+              permission={data.permission.spec_create}
+              resource={props.dbType}
               theme='primary'
               text
               onClick={handleShowClone.bind(null, data)}>
@@ -366,23 +373,23 @@
             </auth-button>
             {data.is_refer ? (
               <span
-                class='inline-block;'
-                v-bk-tooltips={t('该规格已被使用_无法删除')}>
+                v-bk-tooltips={t('该规格已被使用_无法删除')}
+                class='inline-block;'>
                 <auth-button
                   action-id='spec_delete'
-                  resource={props.dbType}
                   permission={data.permission.spec_delete}
+                  resource={props.dbType}
                   theme='primary'
-                  text
-                  disabled>
+                  disabled
+                  text>
                   {t('删除')}
                 </auth-button>
               </span>
             ) : (
               <auth-button
                 action-id='spec_delete'
-                resource={props.dbType}
                 permission={data.permission.spec_delete}
+                resource={props.dbType}
                 theme='primary'
                 text
                 onClick={() => handleDelete([data], false)}>
@@ -391,19 +398,20 @@
             )}
           </>
         ),
+        width: 180,
       },
     ];
     if (hasInstance.value) {
       baseColumns.splice(3, 0, {
-        label: t('每台主机实例数量'),
         field: 'instance_num',
+        label: t('每台主机实例数量'),
         width: 140,
       });
     }
     if (hasQPS.value) {
       baseColumns.splice(3, 0, {
-        label: t('单机QPS'),
         field: 'qpsText',
+        label: t('单机QPS'),
         width: 140,
       });
     }
@@ -412,14 +420,14 @@
 
   // 设置用户个人表头信息
   const defaultSettings = {
+    checked: columns.value.map((item) => item.field).filter((key) => !!key) as string[],
     fields: columns.value
       .filter((item) => item.field)
       .map((item) => ({
-        label: item.label as string,
+        disabled: ['model', 'spec_name'].includes(item.field as string),
         field: item.field as string,
-        disabled: ['spec_name', 'model'].includes(item.field as string),
+        label: item.label as string,
       })),
-    checked: columns.value.map((item) => item.field).filter((key) => !!key) as string[],
     trigger: 'manual' as const,
   };
 
@@ -446,8 +454,8 @@
 
   const handleConfirmSwitch = (row: ResourceSpecModel) => {
     runUpdateResourceSpec({
-      spec_ids: [row.spec_id],
       enable: !row.enable,
+      spec_ids: [row.spec_id],
     });
   };
 
@@ -457,6 +465,7 @@
         spec_name: searchKey.value,
       },
       {
+        enable: isEnableSpec.value,
         spec_cluster_type: props.dbType,
         spec_machine_type: props.machineType,
       },
@@ -507,15 +516,13 @@
 
   const handleBacthEnable = () => {
     runUpdateResourceSpec({
-      spec_ids: selectedList.value.map((item) => item.spec_id),
       enable: true,
+      spec_ids: selectedList.value.map((item) => item.spec_id),
     });
   };
 
   const handleDelete = (list: ResourceSpecModel[], isBatch = true) => {
     InfoBox({
-      type: 'warning',
-      title: t('确认删除以下规格'),
       content: () => (
         <>
           {list.map((item) => (
@@ -531,10 +538,12 @@
           messageSuccess(t('删除成功'));
           fetchData();
           return true;
-        } catch (_) {
+        } catch {
           return false;
         }
       },
+      title: t('确认删除以下规格'),
+      type: 'warning',
     });
   };
 </script>
@@ -552,6 +561,14 @@
 
       .delete-button {
         margin-right: auto;
+      }
+
+      .enable-checkbox {
+        display: flex;
+        margin-right: 16px;
+        font-size: 12px;
+        color: #4d4f56;
+        align-items: center;
       }
     }
 
