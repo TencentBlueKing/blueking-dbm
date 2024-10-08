@@ -35,7 +35,7 @@
         class="mr8"
         :loading="isConfirmLoading"
         size="small"
-        theme="primary"
+        :theme="theme"
         @click="handleConfirm">
         {{ $t('确认') }}
       </BkButton>
@@ -56,19 +56,21 @@
     confirmHandler: () => Promise<any> | void;
     content?: string;
     placement?: Placement;
+    theme?: 'primary' | 'danger';
     title: string;
     width?: number;
   }
+
+  defineOptions({
+    name: 'DbPopconfirm',
+  });
 
   const props = withDefaults(defineProps<Props>(), {
     cancelHandler: () => Promise.resolve(),
     content: '',
     placement: 'top',
+    theme: 'primary',
     width: 280,
-  });
-
-  defineOptions({
-    name: 'DbPopconfirm',
   });
 
   let tippyIns: Instance;

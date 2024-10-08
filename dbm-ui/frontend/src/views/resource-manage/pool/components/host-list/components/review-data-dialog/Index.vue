@@ -42,7 +42,7 @@
         <BkButton
           :loading="loading"
           style="width: 88px"
-          theme="primary"
+          :theme="theme"
           @click="handleConfirm"
           >{{ t('确定') }}
         </BkButton>
@@ -66,6 +66,7 @@
     tip: string;
     loading: boolean;
     selected: string[];
+    theme?: 'primary' | 'danger';
   }
 
   interface Emits {
@@ -73,7 +74,10 @@
     (e: 'cancel'): void;
   }
 
-  defineProps<Props>();
+  withDefaults(defineProps<Props>(), {
+    theme: 'primary',
+  });
+
   const emits = defineEmits<Emits>();
   const isShow = defineModel<boolean>('isShow', {
     default: false,
@@ -123,17 +127,21 @@
       }
 
       .selected-content {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
         font-size: 12px;
 
         .selected-item {
           padding: 6px 16px;
 
-          &:nth-child(even) {
-            background-color: #fafbfd;
+          &:nth-child(4n-3),
+          &:nth-child(4n-2) {
+            background-color: #ffffff;
           }
 
-          &:nth-child(odd) {
-            background-color: #ffffff;
+          &:nth-child(4n-1),
+          &:nth-child(4n) {
+            background-color: #fafbfd;
           }
         }
       }
