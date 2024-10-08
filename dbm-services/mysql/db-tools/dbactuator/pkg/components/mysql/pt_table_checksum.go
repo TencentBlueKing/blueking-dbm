@@ -162,7 +162,7 @@ func (c *PtTableChecksumComp) GenerateConfigFile() (err error) {
 		return err
 	}
 
-	c.cfgFile = path.Join("/tmp", fmt.Sprintf("checksum_%s.yaml", c.uid))
+	c.cfgFile = path.Join("/tmp", fmt.Sprintf("checksum_%d_%s.yaml", c.Params.MasterPort, c.uid))
 	err = os.WriteFile(c.cfgFile, yamlData, 0644)
 	if err != nil {
 		logger.Error("write config failed: %s", err.Error())

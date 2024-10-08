@@ -106,7 +106,7 @@ class MysqlChecksumFlow(object):
         if len(dup_masters) > 0:
             raise Exception("duplicate master found: {}".format(dup_masters))
 
-        ran_str = get_random_string(length=8)
+        ran_str = get_random_string(length=8).lower()
         random_account = "{}{}".format(ACCOUNT_PREFIX, ran_str)
         ran_str_obj = {"ran_str": ran_str}
 
