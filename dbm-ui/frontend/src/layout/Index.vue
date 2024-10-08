@@ -127,6 +127,8 @@
 
   const routeGroup = {
     [menuEnum.configManage]: [
+      'BizResourcePool',
+      'BizResourceTag',
       'DbConfigure',
       'DBMonitorStrategy',
       'DBMonitorAlarmGroup',
