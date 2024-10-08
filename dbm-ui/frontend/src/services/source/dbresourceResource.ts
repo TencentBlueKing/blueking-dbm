@@ -25,7 +25,7 @@ const path = '/apis/dbresource/resource';
 /**
  * 资源删除
  */
-export function removeResource(params: { bk_host_ids: number[] }) {
+export function removeResource(params: { bk_host_ids: number[]; event: 'to_recycle' | 'to_fault' | 'undo_import' }) {
   return http.post<{ bk_host_ids: number[] }>(`${path}/delete/`, params);
 }
 
@@ -84,6 +84,7 @@ export function importResource(params: {
     host_id: number;
     bk_cloud_id: number;
   }>;
+  labels: number;
 }) {
   return http.post(`${path}/import/`, params);
 }
@@ -188,6 +189,7 @@ export function getSpecResourceCount(params: {
  */
 export function updateResource(params: {
   bk_host_ids: number[];
+  labels?: number[];
   for_biz: number;
   rack_id: string;
   resource_type: string;
