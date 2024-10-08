@@ -5,6 +5,7 @@
     :model-value="selected"
     multiple
     multiple-mode="tag"
+    :remote-method="handleSearch"
     :scroll-loading="isLoading"
     selected-style="checkbox"
     @change="handleChange"
@@ -18,6 +19,7 @@
 </template>
 
 <script setup lang="tsx">
+  import { uniqBy } from 'lodash';
   import { useRequest } from 'vue-request';
 
   import type DbResource from '@services/model/db-resource/DbResource';
@@ -37,6 +39,7 @@
 
   const emits = defineEmits<Emits>();
 
+  const searchVal = ref('');
   const tagList = ref<ServiceReturnType<typeof listTag>['results']>([]);
   const selected = ref<DbResource['labels'][number]['id'][]>([]);
   const pagination = reactive({
@@ -49,15 +52,21 @@
     manual: true,
     onSuccess(data) {
       pagination.count = data.count;
-      tagList.value.push(...data.results);
+      tagList.value = uniqBy([...tagList.value, ...data.results], 'value');
     },
   });
 
+  const { runAsync: runAsyncList } = useRequest(listTag);
+
   watch(
     () => props.defaultValue,
-    () => {
+    async () => {
       if (props.defaultValue) {
         selected.value = props.defaultValue.split(',').map((v) => +v);
+        const { results } = await runAsyncList({
+          ids: props.defaultValue,
+        });
+        tagList.value = uniqBy([...tagList.value, ...results], 'value');
       }
     },
     {
@@ -66,16 +75,33 @@
     },
   );
 
+  watch(searchVal, () => {
+    pagination.offset = 0;
+    pagination.count = 0;
+    tagList.value = [];
+    runList({
+      ...pagination,
+      value: searchVal.value,
+    });
+  });
+
   const loadMore = () => {
-    if (tagList.value.length >= pagination.count || isLoading.value) {
+    if (pagination.offset >= pagination.count || isLoading.value) {
       return;
     }
-    pagination.offset += pagination.limit;
-    runList(pagination);
+    pagination.offset = Math.min(pagination.count, pagination.offset + pagination.limit);
+    runList({
+      ...pagination,
+      value: searchVal.value,
+    });
   };
 
   const handleChange = (value: string[]) => {
     emits('change', value.join(','));
+  };
+
+  const handleSearch = (val: string) => {
+    searchVal.value = val;
   };
 
   onMounted(() => {

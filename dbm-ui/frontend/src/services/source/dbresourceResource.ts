@@ -96,7 +96,7 @@ export function fetchList(params: Record<string, any>, payload = {} as IRequestP
 /**
  * 获取DBA业务下的主机信息
  */
-export function fetchListDbaHost(params: { limit: number; offset: number; search_content: string }) {
+export function fetchListDbaHost(params: { limit: number; offset: number; search_content: string; bk_biz_id: number }) {
   return http
     .get<{
       total: number;
@@ -105,6 +105,7 @@ export function fetchListDbaHost(params: { limit: number; offset: number; search
       search_content: params.search_content,
       start: params.offset,
       page_size: params.limit,
+      bk_biz_id: params.bk_biz_id,
     })
     .then((data) => ({
       count: data.total,
@@ -177,7 +178,7 @@ export function getSpecResourceCount(params: {
 export function updateResource(params: {
   bk_host_ids: number[];
   labels?: number[];
-  for_biz: number;
+  for_biz?: number;
   rack_id: string;
   resource_type?: string;
   storage_device?: Record<string, { size: number; disk_type: string }>;
@@ -212,10 +213,18 @@ export function getSummaryList(params: {
     machine_type?: string;
     cluster_type?: string;
     spec_id_list?: number[];
+    enable_spec?: boolean;
   };
 }) {
   return http.get<SummaryModel[]>(`${path}/resource_summary/`, params).then((data) => ({
     count: data.length || 0,
     results: data.map((item) => new SummaryModel(item)),
   }));
+}
+
+/**
+ * 追加主机标签
+ */
+export function appendHostLabel(params: { bk_host_ids: number[]; labels: number[] }) {
+  return http.post(`${path}/append_labels/`, params);
 }

@@ -15,6 +15,7 @@
   <div class="search-field-input">
     <div class="row">
       <ComFactory
+        v-if="!isBusiness"
         :ref="(el: any) => initInputRefCallback(el, 'for_biz')"
         :model="localValueMemo"
         name="for_biz"
@@ -25,9 +26,9 @@
         name="resource_type"
         @change="handleChange" />
       <ComFactory
-        :ref="(el: any) => initInputRefCallback(el, 'bk_cloud_ids')"
+        :ref="(el: any) => initInputRefCallback(el, 'label')"
         :model="localValueMemo"
-        name="bk_cloud_ids"
+        name="labels"
         @change="handleChange" />
       <ComFactory
         :ref="(el: any) => initInputRefCallback(el, 'agent_status')"
@@ -71,11 +72,10 @@
             name="mem"
             @change="handleChange" />
           <ComFactory
-            :ref="(el: any) => initInputRefCallback(el, 'label')"
+            :ref="(el: any) => initInputRefCallback(el, 'bk_cloud_ids')"
             :model="localValueMemo"
-            name="labels"
+            name="bk_cloud_ids"
             @change="handleChange" />
-          <div style="flex: 1" />
         </div>
         <div class="row">
           <ComFactory
@@ -156,6 +156,7 @@
   const emits = defineEmits<Emits>();
 
   const { t } = useI18n();
+  const route = useRoute();
 
   const isShowMore = ref(false);
   const inputRef = shallowRef<Record<string, typeof ComFactory>>({});
@@ -164,11 +165,12 @@
     os_type: true,
     cpu: true,
     mem: true,
-    labels: true,
+    bk_cloud_ids: true,
     mount_point: true,
     disk: true,
     disk_type: true,
   };
+  const isBusiness = route.name === 'BizResourcePool';
 
   const initInputRefCallback = (com: typeof ComFactory, name: string) => {
     inputRef.value[name] = com;

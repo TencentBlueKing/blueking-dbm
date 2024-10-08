@@ -16,6 +16,7 @@ export function listTag(params: {
   limit?: number;
   offset?: number;
   ordering?: string;
+  ids?: string;
 }) {
   return http.get<ListBase<ResourceTagModel[]>>(`${path}`, params).then((res) => ({
     ...res,

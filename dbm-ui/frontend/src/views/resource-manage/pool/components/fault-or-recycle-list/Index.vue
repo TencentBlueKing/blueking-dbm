@@ -114,7 +114,8 @@
 
   const dataSource = (params: FaultOrRecycleMachineModel) => getMachinePool({
     ...params,
-    pool: isFaultPool.value ? 'fault' : 'recycle'
+    pool: isFaultPool.value ? 'fault' : 'recycle',
+    bk_biz_id: undefined,
   });
   const tableColumn = [
     {
