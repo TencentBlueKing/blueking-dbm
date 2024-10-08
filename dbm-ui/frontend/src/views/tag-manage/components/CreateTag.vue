@@ -163,8 +163,8 @@
   .header-wrapper {
     display: flex;
     align-items: center;
-    color: #979ba5;
     font-size: 14px;
+    color: #979ba5;
 
     .title {
       font-size: 20px;
