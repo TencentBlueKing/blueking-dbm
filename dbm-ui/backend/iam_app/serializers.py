@@ -65,5 +65,5 @@ class CheckAllowedResSerializer(serializers.Serializer):
 
 class AssignAuthToDBASerializer(serializers.Serializer):
     bk_biz_id = serializers.IntegerField(help_text=_("业务ID"))
-    group_name = serializers.CharField(help_text=_("组名"))
+    group_name = serializers.CharField(help_text=_("组名"), required=False, default="")
     members = serializers.ListField(help_text=_("成员列表"), child=serializers.CharField())
