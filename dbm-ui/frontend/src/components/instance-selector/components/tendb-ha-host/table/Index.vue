@@ -13,12 +13,10 @@
 
 <template>
   <div class="instance-selector-render-topo-host">
-    <SerachBar
+    <BkInput
       v-model="searchValue"
-      :placeholder="t('请输入或选择条件搜索')"
-      :search-attrs="searchAttrs"
-      :validate-search-values="validateSearchValues"
-      @search-value-change="handleSearchValueChange" />
+      clearable
+      :placeholder="t('请输入主机')" />
     <BkLoading
       :loading="isLoading"
       :z-index="2">
@@ -30,20 +28,15 @@
         :remote-pagination="isRemotePagination"
         :settings="tableSetting"
         style="margin-top: 12px"
-        @clear-search="clearSearchValue"
-        @column-filter="columnFilterChange"
         @page-limit-change="handeChangeLimit"
         @page-value-change="handleChangePage"
-        @row-click.stop.prevent="handleRowClick" />
+        @refresh="fetchResources" />
     </BkLoading>
   </div>
 </template>
 <script setup lang="tsx" generic="T extends IValue">
+  import type { Ref } from 'vue';
   import { useI18n } from 'vue-i18n';
-
-  import { useLinkQueryColumnSerach } from '@hooks';
-
-  import { ClusterTypes } from '@common/const';
 
   import DbStatus from '@components/db-status/index.vue';
 
@@ -56,15 +49,12 @@
     type PanelListType,
     type TableSetting,
   } from '../../../Index.vue';
-  import SerachBar from '../../common/SearchBar.vue';
+  import RenderInstance from '../../common/render-instance/Index.vue';
 
   import { useTableData } from './useTableData';
 
   type TableConfigType = Required<PanelListType[number]>['tableConfig'];
-
-  interface DataRow {
-    data: T,
-  }
+  type DataRow = Record<string, any>;
 
   interface Props {
     lastValues: InstanceSelectorValues<T>,
@@ -72,124 +62,79 @@
     clusterId?: number,
     isRemotePagination?: TableConfigType['isRemotePagination'],
     firsrColumn?: TableConfigType['firsrColumn'],
+    // eslint-disable-next-line vue/no-unused-properties
     roleFilterList?: TableConfigType['roleFilterList'],
     disabledRowConfig?: TableConfigType['disabledRowConfig'],
-    getTableList: NonNullable<TableConfigType['getTableList']>,
+    // eslint-disable-next-line vue/no-unused-properties
+    getTableList?: TableConfigType['getTableList'],
+    // eslint-disable-next-line vue/no-unused-properties
     statusFilter?: TableConfigType['statusFilter'],
   }
 
   interface Emits {
-    (e: 'change', value: Props['lastValues']): void;
+    (e: 'change', value: InstanceSelectorValues<T>): void;
   }
 
   const props = withDefaults(defineProps<Props>(), {
     clusterId: undefined,
-    isManul: false,
-    manualTableData: () => ([]),
     firsrColumn: undefined,
     statusFilter: undefined,
     isRemotePagination: true,
-    activePanelId: 'tendbcluster',
     disabledRowConfig: undefined,
     roleFilterList: undefined,
+    getTableList: undefined,
   });
 
   const emits = defineEmits<Emits>();
 
   const formatValue = (data: T) => ({
-    bk_host_id: data.bk_host_id,
-    instance_address: data.instance_address || '',
-    cluster_id: data.cluster_id,
-    bk_cloud_id: data?.host_info?.cloud_id || 0,
-    ip: data.ip || '',
-    port: data.port,
-    cluster_type: data.cluster_type,
-    db_module_id: data.db_module_id,
-    db_module_name: data.db_module_name,
-    master_domain: data.master_domain || '',
-    related_clusters: data.related_clusters || [],
-    role: data.role
+    ...data,
+    related_instances: (data.related_instances || []).map((item, index) => ({
+      ...item,
+      cluster_id: data.related_clusters?.[index].id || 0
+    })),
   });
 
   const { t } = useI18n();
 
-  const {
-    columnAttrs,
-    searchAttrs,
-    searchValue,
-    columnCheckedMap,
-    clearSearchValue,
-    columnFilterChange,
-    validateSearchValues,
-    handleSearchValueChange,
-  } = useLinkQueryColumnSerach({
-    searchType: ClusterTypes.TENDBHA,
-    attrs: [
-      'bk_cloud_id'
-    ],
-    fetchDataFn: () => fetchResources(),
-    defaultSearchItem: {
-      name: t('IP 或 IP:Port'),
-      id: 'instance',
-    },
-    isDiscardNondefault: true,
-  });
-
   const activePanel = inject(activePanelInjectionKey) as Ref<string> | undefined;
 
-  const checkedMap = shallowRef({} as Record<string, T>);
+  const checkedMap = shallowRef({} as DataRow);
 
   const initRole = computed(() => props.firsrColumn?.role);
   const selectClusterId = computed(() => props.clusterId);
-  const firstColumnFieldId = computed(() => (props.firsrColumn?.field || 'instance_address') as keyof IValue);
-  const mainSelectDisable = computed(() => (props.disabledRowConfig ? tableData.value
-    .filter(data => props.disabledRowConfig?.handler(data)).length === tableData.value.length : false));
+  const firstColumnFieldId = computed(() => (props.firsrColumn?.field || 'ip'));
+  const mainSelectDisable = computed(() => (props.disabledRowConfig
+    ? tableData.value.filter(data => props.disabledRowConfig?.handler(data)).length === tableData.value.length : false));
 
   const {
     isLoading,
     data: tableData,
     pagination,
-    generateParams,
+    searchValue,
     fetchResources,
     handleChangePage,
     handeChangeLimit,
-  } = useTableData<T>(searchValue, initRole, selectClusterId);
+  } = useTableData<T>(initRole, selectClusterId);
 
   const isSelectedAll = computed(() => (
     tableData.value.length > 0
-    && tableData.value.length === tableData.value
-      .filter(item => checkedMap.value[item[firstColumnFieldId.value]]).length
+    && tableData.value.length === tableData.value.filter(item => checkedMap.value[item[firstColumnFieldId.value]]).length
   ));
 
-  const columns = computed(() => [
+  let isSelectedAllReal = false;
+
+  const columns = [
     {
-      minWidth: 70,
+      width: 60,
       fixed: 'left',
       label: () => (
-        <div style="display:flex;align-items:center">
-          <bk-checkbox
-            label={true}
-            model-value={isSelectedAll.value}
-            disabled={mainSelectDisable.value}
-            onChange={handleSelectPageAll}
-          />
-          <bk-popover
-            placement="bottom-start"
-            theme="light db-table-select-menu"
-            arrow={ false }
-            trigger='hover'
-            v-slots={{
-              default: () => <db-icon class="select-menu-flag" type="down-big" />,
-              content: () => (
-                <div class="db-table-select-plan">
-                  <div
-                    class="item"
-                    onClick={handleWholeSelect}>{t('跨页全选')}</div>
-                </div>
-              ),
-            }}>
-          </bk-popover>
-        </div>
+        <bk-checkbox
+          label={true}
+          model-value={isSelectedAll.value}
+          disabled={mainSelectDisable.value}
+          onChange={handleSelectPageAll}
+        />
       ),
       render: ({ data }: DataRow) => {
         if (props.disabledRowConfig && props.disabledRowConfig.handler(data)) {
@@ -219,47 +164,17 @@
       field: props.firsrColumn?.field ? props.firsrColumn.field : 'instance_address',
     },
     {
-      label: t('角色'),
-      field: 'role',
+      label: t('关联的从库实例'),
+      field: 'related_instances',
       showOverflowTooltip: true,
-      filter: props.roleFilterList,
-    },
-    {
-      label: t('实例状态'),
-      field: 'status',
-      filter: {
-        list: [
-          {
-            value: 'running',
-            text: t('正常'),
-          },
-          {
-            value: 'unavailable',
-            text: t('异常'),
-          },
-          {
-            value: 'loading',
-            text: t('重建中'),
-          },
-        ],
-        checked: columnCheckedMap.value.status,
-      },
-      render: ({ data }: DataRow) => {
-        const isNormal = props.statusFilter ? props.statusFilter(data) : data.status === 'running';
-        const info = isNormal ? { theme: 'success', text: t('正常') } : { theme: 'danger', text: t('异常') };
-        return <DbStatus theme={info.theme}>{info.text}</DbStatus>;
-      },
+      width: 200,
+      render: ({ data }: DataRow) => <RenderInstance data={data.related_instances || []}></RenderInstance>,
     },
     {
       minWidth: 100,
       label: t('管控区域'),
-      field: 'bk_cloud_id',
+      field: 'bk_cloud_name',
       showOverflowTooltip: true,
-      filter: {
-        list: columnAttrs.value.bk_cloud_id,
-        checked: columnCheckedMap.value.bk_cloud_id,
-      },
-      render: ({ data }: DataRow) => <span>{data.bk_cloud_name ?? '--'}</span>,
     },
     {
       minWidth: 100,
@@ -306,7 +221,7 @@
       showOverflowTooltip: true,
       render: ({ data }: DataRow) => data.host_info?.agent_id || '--',
     },
-  ]);
+  ];
 
   watch(() => props.lastValues, () => {
     // 切换 tab 回显选中状态 \ 预览结果操作选中状态
@@ -345,26 +260,13 @@
     }
   };
 
-  // 跨页全选
-  const handleWholeSelect = () => {
-    isLoading.value = true;
-    const params = generateParams();
-    params.limit = -1;
-    props.getTableList(params).then((data) => {
-      data.results.forEach((dataItem: T) => {
-        if (!props.disabledRowConfig?.handler(dataItem)) {
-          handleTableSelectOne(true, dataItem);
-        }
-      });
-    }).finally(() => isLoading.value = false);
-  };
-
   const handleSelectPageAll = (checked: boolean) => {
     const list = tableData.value;
     if (props.disabledRowConfig) {
+      isSelectedAllReal = !isSelectedAllReal;
       for (const data of list) {
         if (!props.disabledRowConfig.handler(data)) {
-          handleTableSelectOne(checked, data);
+          handleTableSelectOne(isSelectedAllReal, data);
         }
       }
       return;
@@ -374,19 +276,10 @@
     }
   };
 
-  const handleRowClick = (row: unknown, data: T) => {
-    if (props.disabledRowConfig && props.disabledRowConfig.handler(data)) {
-      return;
-    }
-
-    const isChecked = !!checkedMap.value[data[firstColumnFieldId.value]];
-    handleTableSelectOne(!isChecked, data);
-  };
-
   const handleTableSelectOne = (checked: boolean, data: T) => {
     const lastCheckMap = { ...checkedMap.value };
     if (checked) {
-      lastCheckMap[data[firstColumnFieldId.value]] = formatValue(data) as T;
+      lastCheckMap[data[firstColumnFieldId.value]] = formatValue(data);
     } else {
       delete lastCheckMap[data[firstColumnFieldId.value]];
     }

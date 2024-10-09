@@ -17,12 +17,21 @@
       fixed="left"
       :min-width="200"
       :width="240">
-      {{ t('目标实例') }}
+      {{ t('目标Proxy主机') }}
       <template #append>
-        <BatchOperateIcon
-          class="ml-4"
-          @click="handleShowBatchSelectCluster" />
+        <span
+          v-bk-tooltips="t('批量选择')"
+          class="batch-edit-btn ml-4"
+          @click="handleShowBatchSelectCluster">
+          <DbIcon type="batch-host-select" />
+        </span>
       </template>
+    </RenderTableHeadColumn>
+    <RenderTableHeadColumn
+      :min-width="200"
+      :required="false"
+      :width="240">
+      {{ t('同机关联实例') }}
     </RenderTableHeadColumn>
     <RenderTableHeadColumn
       :min-width="200"
@@ -46,8 +55,6 @@
   import RenderTableHeadColumn from '@components/render-table/HeadColumn.vue';
   import RenderTable from '@components/render-table/Index.vue';
 
-  import BatchOperateIcon from '@views/db-manage/common/batch-operate-icon/Index.vue';
-
   interface Emits {
     (e: 'batchSelectCluster'): void;
   }
@@ -60,3 +67,11 @@
     emits('batchSelectCluster');
   };
 </script>
+
+<style lang="less">
+  .batch-edit-btn {
+    font-size: 16px;
+    color: #3a84ff;
+    cursor: pointer;
+  }
+</style>
