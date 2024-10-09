@@ -68,21 +68,23 @@
       const config = fieldConfig[fieldName as keyof typeof fieldConfig];
       const value = route.query[fieldName] as string;
 
-      if (config && value) {
-        switch (config.type) {
-          case 'array':
-            searchParams.value[fieldName] = value.split(',');
-            break;
-          case 'rang':
-            searchParams.value[fieldName] = value.split('-');
-            break;
-          case 'number':
-            searchParams.value[fieldName] = Number(value);
-            break;
-          default:
-            searchParams.value[fieldName] = value;
-        }
+      if (!config) {
+        return;
       }
+
+      if (value === '') {
+        delete searchParams.value[fieldName];
+        return;
+      }
+
+      const typeHandlers = {
+        array: () => value.split(','),
+        rang: () => value.split('-'),
+        number: () => Number(value),
+        string: () => value,
+      };
+
+      searchParams.value[fieldName] = typeHandlers[config.type]();
     });
   };
 
