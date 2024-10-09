@@ -401,6 +401,7 @@ export interface MySQLProxySwitchDetails extends DetailBase {
   clusters: DetailClusters;
   force: boolean;
   infos: {
+    display_info: Record<string, string>;
     cluster_ids: number[];
     origin_proxy: MysqlIpItem;
     target_proxy: MysqlIpItem;

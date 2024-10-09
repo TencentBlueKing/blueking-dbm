@@ -36,11 +36,9 @@
   import { ref } from 'vue';
   import { useI18n } from 'vue-i18n';
 
-  import type { MySQLProxySwitchDetails } from '@services/model/ticket/details/mysql';
+  import { useTicketCloneInfo } from '@hooks';
 
-  import { useGlobalBizs } from '@stores';
-
-  import { ClusterTypes } from '@common/const';
+  import { ClusterTypes, TicketTypes } from '@common/const';
 
   import InstanceSelector, {
     type InstanceSelectorValues,
@@ -51,19 +49,28 @@
   import RenderData from './components/RenderData/Index.vue';
   import RenderRow, { createRowData, type IDataRow } from './components/RenderData/Row.vue';
 
-  interface Props {
-    data: MySQLProxySwitchDetails['infos'];
-  }
-
   interface Exposes {
     getValue(): Promise<any>;
     reset(): void;
   }
 
-  const props = defineProps<Props>();
-
   const { t } = useI18n();
-  const { currentBizId } = useGlobalBizs();
+  useTicketCloneInfo({
+    type: TicketTypes.MYSQL_PROXY_SWITCH,
+    onSuccess(data) {
+      tableData.value = data.infos.map((item) =>
+        createRowData({
+          originProxy: {
+            cluster_id: item.cluster_ids[0],
+            ...item.origin_proxy,
+            instance_address: `${item.origin_proxy.ip}:${item.origin_proxy.port}`,
+          },
+          targetProxy: item.target_proxy,
+        }),
+      );
+      window.changeConfirm = true;
+    },
+  });
 
   const tabListConfig = {
     [ClusterTypes.TENDBHA]: [
@@ -100,27 +107,6 @@
   const tableData = shallowRef<IDataRow[]>([createRowData({})]);
   const selectedIntances = shallowRef<InstanceSelectorValues<IValue>>({ [ClusterTypes.TENDBHA]: [] });
 
-  watch(
-    () => props.data,
-    () => {
-      if (props.data.length > 0) {
-        tableData.value = props.data.map((item) =>
-          createRowData({
-            originProxy: {
-              cluster_id: item.cluster_ids[0],
-              ...item.origin_proxy,
-              instance_address: `${item.origin_proxy.ip}:${item.origin_proxy.port}`,
-            },
-            targetProxy: item.target_proxy,
-          }),
-        );
-      }
-    },
-    {
-      immediate: true,
-    },
-  );
-
   const handleShowInstanceSelector = () => {
     isShowInstanceSelecotr.value = true;
   };
@@ -146,7 +132,7 @@
             ip: item.ip,
             bk_cloud_id: item.bk_cloud_id,
             bk_host_id: item.bk_host_id,
-            bk_biz_id: currentBizId,
+            bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
             port: item.port,
             instance_address: instance,
           },

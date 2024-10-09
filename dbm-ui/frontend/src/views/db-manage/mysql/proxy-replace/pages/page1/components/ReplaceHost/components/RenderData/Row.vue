@@ -48,7 +48,7 @@
       bk_cloud_id: number | null;
       bk_host_id: number;
       bk_biz_id: number;
-      port: number;
+      port?: number;
     };
     relatedInstances: {
       cluster_id: number;
@@ -59,7 +59,7 @@
       bk_host_id: number;
       bk_biz_id: number;
       cluster_id: number;
-      port: number;
+      port?: number;
       ip: string;
       instance_address: string;
     };
