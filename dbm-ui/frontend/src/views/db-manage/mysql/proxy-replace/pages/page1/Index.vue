@@ -27,25 +27,22 @@
           :desc="t('只替换目标实例')"
           icon="rebuild"
           :title="t('实例替换')"
-          :true-value="ProxyReplaceTypes.MYSQL_PROXY_REPLACE"
-          @update:model-value="handleReplaceTypeChange" />
+          :true-value="ProxyReplaceTypes.INSTANCE_REPLACE" />
         <CardCheckbox
           v-model="replaceType"
           class="ml-8"
           :desc="t('主机关联的所有实例一并替换')"
           icon="host"
           :title="t('整机替换')"
-          :true-value="ProxyReplaceTypes.MYSQL_PROXY_HOST_REPLACE"
-          @update:model-value="handleReplaceTypeChange" />
+          :true-value="ProxyReplaceTypes.HOST_REPLACE" />
       </div>
     </div>
     <Component
       :is="renderComponent"
-      ref="tableRef"
-      :data="data" />
+      ref="tableRef" />
     <div class="safe-action">
       <BkCheckbox
-        v-model="isSafe"
+        v-model="force"
         v-bk-tooltips="t('如忽略_在有连接的情况下Proxy也会执行替换')"
         :false-label="false"
         true-label>
@@ -75,10 +72,8 @@
 </template>
 
 <script setup lang="tsx">
-  import { type Component, ref } from 'vue';
   import { useI18n } from 'vue-i18n';
 
-  import type { MySQLProxySwitchDetails } from '@services/model/ticket/details/mysql';
   import { createTicket } from '@services/source/ticket';
 
   import { useTicketCloneInfo } from '@hooks';
@@ -91,69 +86,64 @@
   import ReplaceInstance from './components/ReplaceInstance/Index.vue';
 
   enum ProxyReplaceTypes {
-    MYSQL_PROXY_REPLACE = 'MYSQL_PROXY_REPLACE', // 实例替换
-    MYSQL_PROXY_HOST_REPLACE = 'MYSQL_PROXY_HOST_REPLACE', // 整机替换
+    INSTANCE_REPLACE = 'INSTANCE_REPLACE', // 实例替换
+    HOST_REPLACE = 'HOST_REPLACE', // 整机替换
   }
 
-  const ProxyReplaceMap: Record<ProxyReplaceTypes, Component> = {
-    [ProxyReplaceTypes.MYSQL_PROXY_REPLACE]: ReplaceInstance,
-    [ProxyReplaceTypes.MYSQL_PROXY_HOST_REPLACE]: ReplaceHost,
+  const ProxyReplaceMap = {
+    [ProxyReplaceTypes.INSTANCE_REPLACE]: ReplaceInstance,
+    [ProxyReplaceTypes.HOST_REPLACE]: ReplaceHost,
   };
 
   const { t } = useI18n();
   const router = useRouter();
 
   const tableRef = ref();
-  const replaceType = ref<ProxyReplaceTypes>(ProxyReplaceTypes.MYSQL_PROXY_REPLACE);
-  const data = shallowRef<MySQLProxySwitchDetails['infos']>([]);
-  const isSafe = ref(true);
+  const replaceType = ref(ProxyReplaceTypes.INSTANCE_REPLACE);
+  const force = ref(true);
   const isSubmitting = ref(false);
 
   const renderComponent = computed(() => ProxyReplaceMap[replaceType.value]);
 
   useTicketCloneInfo({
     type: TicketTypes.MYSQL_PROXY_SWITCH,
-    onSuccess(cloneData) {
-      const { force, infos } = cloneData;
-      data.value = infos;
-      isSafe.value = force;
+    onSuccess(data) {
+      replaceType.value = (data.infos[0].display_info.type as ProxyReplaceTypes) || ProxyReplaceTypes.INSTANCE_REPLACE;
+      force.value = data.force;
       window.changeConfirm = true;
     },
   });
 
-  const handleReplaceTypeChange = () => {
-    data.value = [];
-  };
-
-  const handleSubmit = () => {
-    isSubmitting.value = true;
-    tableRef
-      .value!.getValue()
-      .then((infos: MySQLProxySwitchDetails['infos']) => {
-        createTicket({
-          bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-          ticket_type: TicketTypes.MYSQL_PROXY_SWITCH,
-          remark: '',
-          details: {
-            infos,
-            is_safe: isSafe.value,
+  const handleSubmit = async () => {
+    try {
+      isSubmitting.value = true;
+      const infos = await tableRef.value!.getValue();
+      infos[0].display_info = {
+        type: replaceType.value,
+      };
+      await createTicket({
+        bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+        ticket_type: TicketTypes.MYSQL_PROXY_SWITCH,
+        remark: '',
+        details: {
+          infos,
+          force: force.value,
+        },
+      }).then((data) => {
+        window.changeConfirm = false;
+        router.push({
+          name: 'MySQLProxyReplace',
+          params: {
+            page: 'success',
           },
-        }).then((data) => {
-          window.changeConfirm = false;
-          router.push({
-            name: 'MySQLProxyReplace',
-            params: {
-              page: 'success',
-            },
-            query: {
-              ticketId: data.id,
-            },
-          });
+          query: {
+            ticketId: data.id,
+          },
         });
-      })
-      .finally(() => {
-        isSubmitting.value = false;
       });
+    } finally {
+      isSubmitting.value = false;
+    }
   };
 
   const handleReset = () => {

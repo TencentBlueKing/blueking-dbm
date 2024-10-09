@@ -34,7 +34,8 @@
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
-  import { checkMysqlInstances } from '@services/source/instances';
+  import { checkInstance } from '@services/source/dbbase';
+  import type { InstanceInfos } from '@services/types/instanceInfos';
 
   import { useGlobalBizs } from '@stores';
 
@@ -71,8 +72,8 @@
     },
     {
       validator: (value: string): Promise<boolean> =>
-        checkMysqlInstances({
-          bizId: currentBizId,
+        checkInstance<InstanceInfos>({
+          bk_biz_id: currentBizId,
           instance_addresses: [value],
         }).then((data) => {
           if (data.length < 1) {

@@ -292,7 +292,7 @@
   type RedisHostModel = ServiceReturnType<typeof getRedisMachineList>['results'][number];
 
   interface Props {
-    clusterTypes: (ClusterTypes | 'TendbClusterHost' | 'RedisHost' | 'mongoCluster')[];
+    clusterTypes: (ClusterTypes | 'TendbhaHost' | 'TendbClusterHost' | 'RedisHost' | 'mongoCluster')[];
     tabListConfig?: Record<string, PanelListType>;
     selected?: InstanceSelectorValues<T>;
     unqiuePanelValue?: boolean;
