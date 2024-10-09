@@ -26,6 +26,7 @@ class ProxyScaleDownDetailSerializer(SkipToRepresentationMixin, ClusterValidateM
     class InfoSerializer(serializers.Serializer):
         cluster_id = serializers.IntegerField(help_text=_("集群ID"))
         target_proxy_count = serializers.IntegerField(help_text=_("目标proxy数量"), min_value=2, required=False)
+        proxy_reduce_count = serializers.IntegerField(help_text=_("缩容proxy数量"), required=False)
         proxy_reduced_hosts = serializers.ListSerializer(
             help_text=_("缩容指定主机"), child=HostInfoSerializer(), required=False
         )

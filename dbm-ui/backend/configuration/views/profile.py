@@ -40,6 +40,7 @@ class ProfileViewSet(viewsets.SystemViewSet):
                 "global_manage": global_manage,
                 "username": username,
                 "profile": list(Profile.objects.filter(username=username).values("label", "values")),
+                "is_superuser": request.user.is_superuser,
             }
         )
 

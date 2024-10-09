@@ -239,6 +239,7 @@ def assign_auth_to_dba(bk_biz_id: int, group_name: str, members: list):
     iam = Permission.get_iam_client()
 
     # 创建用户组
+    group_name = group_name or f"{biz.bk_biz_name}_DBA(#{biz.bk_biz_id})"
     group_data = {"groups": [{"name": group_name, "description": group_name}]}
     ok, message, data = iam._client.create_user_groups(env.BK_IAM_SYSTEM_ID, manager_id, data=group_data)
     if not ok:
