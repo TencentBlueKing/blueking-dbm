@@ -15,6 +15,7 @@
       ref="loadingRef"
       :loading="loading">
       <BkTable
+        ref="tableRef"
         class="summary-view-table"
         :data="tableData"
         :pagination="pagination"
@@ -100,6 +101,7 @@
 
   const loadingRef = ref();
   const dimension = ref('spec');
+  const tableRef = ref();
   const pagination = ref(useDefaultPagination());
   const isAnomalies = ref(false);
   const allTableData = shallowRef<SummaryModel[]>([]);
@@ -135,11 +137,13 @@
 
   const handleChangeDimension = (value: string) => {
     dimension.value = value;
+    handleChangePage(1);
     fetchListData();
   };
 
   const handleChangePage = (value: number) => {
     pagination.value.current = value;
+    tableRef.value.scrollTo(0, 0);
   };
 
   const handeChangeLimit = (value: number) => {
@@ -152,7 +156,7 @@
       for_biz: row.dedicated_biz,
       resource_type: getSearchParams().db_type,
       city: row.city,
-      subzone_ids: subzoneId,
+      subzone_ids: subzoneId || '',
       spec_id: row.spec_id,
       device_class: row.device_class,
       mount_point: row.disk_summary?.[0].mount_point,
