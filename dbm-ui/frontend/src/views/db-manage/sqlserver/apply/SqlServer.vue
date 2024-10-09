@@ -99,10 +99,9 @@
         <RegionItem
           ref="regionItemRef"
           v-model="formData.details.city_code" />
-        <DbCard
-          v-if="!isSingleType"
-          :title="t('数据库部署信息')">
+        <DbCard :title="t('数据库部署信息')">
           <AffinityItem
+            v-if="!isSingleType"
             v-model="formData.details.disaster_tolerance_level"
             :city-code="formData.details.city_code" />
           <BkFormItem
