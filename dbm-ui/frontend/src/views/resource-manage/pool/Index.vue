@@ -25,9 +25,7 @@
   </BkTab>
   <div class="pool-content">
     <KeepAlive>
-      <Component
-        :is="renderComponent"
-        ref="comRef" />
+      <Component :is="renderComponent" />
     </KeepAlive>
   </div>
 </template>
@@ -54,8 +52,6 @@
       label: t('主机列表'),
     },
   ];
-
-  const comRef = ref();
 
   const activeTab = useDebouncedRef(route.params.page);
 

@@ -37,7 +37,7 @@
 
   const { t } = useI18n();
 
-  const localValue = ref<string>('0');
+  const localValue = ref('0');
   const bizList = shallowRef<
     {
       bk_biz_id: number;

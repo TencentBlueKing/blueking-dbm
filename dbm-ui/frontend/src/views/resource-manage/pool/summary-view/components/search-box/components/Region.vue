@@ -56,7 +56,7 @@
   const emits = defineEmits<Emits>();
 
   const citiyList = ref<CityItem[]>([]);
-  const cityCode = ref<string>('');
+  const cityCode = ref('');
   const subzoneIds = ref<string[]>([]);
   const renderSubzoneList = computed(() =>
     (subzoneList.value || []).filter((item) => item.bk_city_code === cityCode.value),
