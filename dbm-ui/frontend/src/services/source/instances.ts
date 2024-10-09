@@ -14,7 +14,7 @@
 import RedisClusterNodeByIpModel from '@services/model/redis/redis-cluster-node-by-ip';
 
 import http from '../http';
-import type { InstanceInfos } from '../types/clusters';
+import type { InstanceInfos } from '../types/instanceInfos';
 
 /**
  * 判断 Mysql 实例是否存在

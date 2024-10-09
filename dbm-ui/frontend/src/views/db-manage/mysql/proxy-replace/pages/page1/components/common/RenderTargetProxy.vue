@@ -31,17 +31,22 @@
 
   import TableEditInput from '@components/render-table/columns/input/index.vue';
 
-  import type { IHostData } from './Row.vue';
-
   interface Props {
     cloudId: number | null;
-    modelValue?: IHostData;
+    modelValue: {
+      ip: string;
+      bk_cloud_id: number | null;
+      bk_host_id: number;
+      bk_biz_id: number;
+    };
     disabled: boolean;
     targetIp?: string;
   }
 
   interface Exposes {
-    getValue: () => Promise<Array<string>>;
+    getValue: () => {
+      target_proxy: Props['modelValue'];
+    };
   }
 
   const props = defineProps<Props>();
@@ -105,26 +110,14 @@
 
   defineExpose<Exposes>({
     getValue() {
-      return inputRef.value
-        .getValue()
-        .then(() => ({
-          target_proxy: {
-            bk_biz_id: currentBizId,
-            bk_host_id: hostDataMemo.bk_host_id,
-            bk_cloud_id: hostDataMemo.bk_cloud_id,
-            ip: hostDataMemo.ip,
-          },
-        }))
-        .catch(() =>
-          Promise.reject({
-            target_proxy: {
-              bk_biz_id: currentBizId,
-              bk_host_id: hostDataMemo.bk_host_id,
-              bk_cloud_id: hostDataMemo.bk_cloud_id,
-              ip: hostDataMemo.ip,
-            },
-          }),
-        );
+      return inputRef.value.getValue().then(() => ({
+        target_proxy: {
+          bk_biz_id: currentBizId,
+          bk_host_id: hostDataMemo.bk_host_id,
+          bk_cloud_id: hostDataMemo.bk_cloud_id,
+          ip: hostDataMemo.ip,
+        },
+      }));
     },
   });
 </script>

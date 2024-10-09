@@ -8,7 +8,7 @@
       <span>{{ item.instance }}</span>
     </div>
     <BkButton
-      v-if="data.length >= 3"
+      v-if="data.length > 3"
       class="ml-20"
       text
       theme="primary"
@@ -59,8 +59,8 @@
     }
 
     .show-all-icon {
-      font-size: 16px;
       margin-left: 2px;
+      font-size: 16px;
     }
   }
 </style>
