@@ -14,6 +14,7 @@ from django.db import transaction
 
 from backend.constants import DEFAULT_BK_CLOUD_ID
 from backend.db_meta.api.cluster.base.handler import ClusterHandler
+from backend.db_meta.api.cluster.nosqlcomm import scan_cluster
 from backend.db_meta.api.cluster.nosqlcomm.decommission import (
     decommission_backends,
     decommission_cluster,
@@ -24,7 +25,6 @@ from backend.db_meta.api.cluster.nosqlcomm.scale_tendis import make_sync_mms, re
 from backend.db_meta.enums import ClusterType
 
 from .create import create
-from .detail import scan_cluster
 
 
 class RedisClusterHandler(ClusterHandler):
