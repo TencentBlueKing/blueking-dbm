@@ -87,7 +87,7 @@ class BigDataBaseListRetrieveResource(query.ListRetrieveResource):
         instance_queryset = (
             StorageInstance.objects.select_related("machine")
             .prefetch_related("cluster")
-            .annotate(role=F("instance_inner_role"), instance_name=F("name"))
+            .annotate(role=F("instance_role"), instance_name=F("name"))
             .filter(query_filters)
             .values(*inst_fields)
             .order_by("create_at")
