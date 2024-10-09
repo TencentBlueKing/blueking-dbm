@@ -50,6 +50,7 @@ class SqlserverDBMeta(object):
             bk_cloud_id=int(self.global_data["bk_cloud_id"]),
             resource_spec=self.global_data.get("resource_spec", def_resource_spec),
             region=self.global_data["region"],
+            is_increment=self.global_data.get("is_increment", False),
         )
         return True
 
@@ -72,6 +73,7 @@ class SqlserverDBMeta(object):
             region=self.global_data["region"],
             sync_type=self.global_data["sync_type"],
             disaster_tolerance_level=self.global_data["disaster_tolerance_level"],
+            is_increment=self.global_data.get("is_increment", False),
         )
         return True
 

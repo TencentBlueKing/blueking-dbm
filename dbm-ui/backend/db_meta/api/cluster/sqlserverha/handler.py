@@ -49,6 +49,7 @@ class SqlserverHAClusterHandler(ClusterHandler):
         region: str,
         sync_type: str,
         disaster_tolerance_level: str,
+        is_increment: bool = False,
     ):
         """
         1: 录入机器信息
@@ -121,7 +122,9 @@ class SqlserverHAClusterHandler(ClusterHandler):
             )
 
         # 主机转移模块、添加对应的服务实例
-        SqlserverCCTopoOperator(new_clusters).transfer_instances_to_cluster_module(storage_objs)
+        SqlserverCCTopoOperator(new_clusters).transfer_instances_to_cluster_module(
+            instances=storage_objs, is_increment=is_increment
+        )
 
     @transaction.atomic
     def decommission(self):

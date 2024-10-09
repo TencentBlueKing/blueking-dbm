@@ -34,6 +34,7 @@ class SqlserverSingleClusterHandler(ClusterHandler):
         bk_cloud_id: int,
         resource_spec: dict,
         region: str,
+        is_increment: bool = False,
     ):
         """
         1: 录入机器信息
@@ -90,7 +91,9 @@ class SqlserverSingleClusterHandler(ClusterHandler):
             )
 
         # 主机转移模块、添加对应的服务实例
-        SqlserverCCTopoOperator(new_clusters).transfer_instances_to_cluster_module(new_storage_objs)
+        SqlserverCCTopoOperator(new_clusters).transfer_instances_to_cluster_module(
+            instances=new_storage_objs, is_increment=is_increment
+        )
 
     @transaction.atomic
     def decommission(self):
