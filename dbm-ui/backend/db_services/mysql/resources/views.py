@@ -17,10 +17,11 @@ from rest_framework.response import Response
 
 from backend.bk_web.swagger import common_swagger_auto_schema
 from backend.bk_web.viewsets import SystemViewSet
+from backend.db_meta.enums import ClusterType
 from backend.db_meta.models.cluster import Cluster
 from backend.db_meta.models.db_module import DBModule
 from backend.db_services.dbbase.resources.constants import ResourceNodeType
-from backend.db_services.dbbase.resources.serializers import SearchResourceTreeSLZ
+from backend.db_services.dbbase.resources.serializers import SearchMySQLResourceSLZ, SearchResourceTreeSLZ
 from backend.db_services.dbbase.resources.views import BaseListResourceViewSet
 from backend.db_services.dbbase.resources.yasg_slz import ResourceTreeSLZ
 from backend.db_services.mysql.resources import constants
@@ -84,3 +85,37 @@ class ResourceTreeViewSet(SystemViewSet):
             for db_module in db_module_qset
         ]
         return Response(tree)
+
+
+class TendbResourceViewSet(SystemViewSet):
+    pagination_class = None
+
+    action_permission_map = {}
+    default_permission_class = [DBManagePermission()]
+
+    @common_swagger_auto_schema(
+        operation_summary=_("获取tendb集群"),
+        query_serializer=SearchMySQLResourceSLZ(),
+        tags=[constants.RESOURCE_TAG],
+    )
+    def get_tendb_resource(self, request, bk_biz_id):
+        cluster_type = self.params_validate(SearchMySQLResourceSLZ).get("cluster_type")
+        immute_domain = self.params_validate(SearchMySQLResourceSLZ).get("immute_domain")
+        status = self.params_validate(SearchMySQLResourceSLZ).get("status")
+        db_module_id = self.params_validate(SearchMySQLResourceSLZ).get("db_module_id")
+
+        query_params = {"bk_biz_id": bk_biz_id}
+        query_params.update({"cluster_type": cluster_type}) if cluster_type else None
+        query_params.update({"immute_domain": immute_domain}) if immute_domain else None
+        query_params.update({"status": status}) if status else None
+        query_params.update({"db_module_id": db_module_id}) if db_module_id else None
+
+        cluster_qset = Cluster.objects.filter(cluster_type__in=[ClusterType.TenDBSingle, ClusterType.TenDBHA]).filter(
+            **query_params
+        )
+        db_module_map = DBModule.db_module_map()
+        data_list = [cluster.to_dict() for cluster in cluster_qset]
+        for data in data_list:
+            data["db_module_name"] = db_module_map.get(data["db_module_id"])
+
+        return Response(data_list)

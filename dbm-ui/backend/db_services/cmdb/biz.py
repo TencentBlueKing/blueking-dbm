@@ -12,9 +12,12 @@ import collections
 import logging
 from typing import Dict, List
 
+from django.db.models import Count
+
 from backend.components import CCApi
 from backend.components.dbconfig.constants import DEPLOY_FILE_NAME, ConfType, LevelName
-from backend.db_meta.models import AppCache, DBModule
+from backend.db_meta.enums import ClusterType
+from backend.db_meta.models import AppCache, Cluster, DBModule
 from backend.db_services.cmdb.exceptions import BkAppAttrAlreadyExistException
 from backend.db_services.dbconfig.dataclass import DBBaseConfig, DBConfigLevelData
 from backend.db_services.dbconfig.handlers import DBConfigHandler
@@ -221,3 +224,70 @@ def get_or_create_set_with_name(bk_biz_id: int, bk_set_name: str) -> int:
             raise err
         else:
             return bk_set_id
+
+
+def filter_by_biz_name(data: list, biz_name: str) -> list:
+    return [biz for biz in data if biz["bk_biz_name"] == biz_name]
+
+
+def filter_by_module_name(data: list, module_name: str) -> list:
+    result = []
+    for biz in data:
+        filtered_modules = [module for module in biz["modules"] if module["module_name"] == module_name]
+        if filtered_modules:
+            new_biz = biz.copy()
+            new_biz["modules"] = filtered_modules
+            result.append(new_biz)
+    return result
+
+
+def list_biz_module_trees(cluster_type: str, bk_biz_name: str, module_name: str) -> List[Dict]:
+    """
+    获取业务与模块维度集群数量
+    """
+    if cluster_type in [ClusterType.TenDBSingle, ClusterType.TenDBHA]:
+        clusters = (
+            Cluster.objects.filter(cluster_type__in=[ClusterType.TenDBSingle, ClusterType.TenDBHA])
+            .values("db_module_id", "bk_biz_id")
+            .annotate(count=Count("db_module_id"))
+            .order_by("-count")
+        )
+    else:
+        clusters = (
+            Cluster.objects.filter(cluster_type=cluster_type)
+            .values("db_module_id", "bk_biz_id")
+            .annotate(count=Count("db_module_id"))
+            .order_by("-count")
+        )
+
+    db_module_map = DBModule.db_module_map()
+    id_to_name = AppCache.id_to_name()
+
+    nested_data = collections.defaultdict(lambda: {"count": 0, "modules": collections.defaultdict(int)})
+    for cluster in clusters:
+        bk_biz_id = cluster["bk_biz_id"]
+        db_module_id = cluster["db_module_id"]
+        count = cluster["count"]
+        nested_data[bk_biz_id]["count"] += count
+        nested_data[bk_biz_id]["modules"][db_module_id] = count
+
+    final_data = []
+    for bk_biz_id, data in nested_data.items():
+        modules = [
+            {"module_name": db_module_map.get(module_id), "module_id": module_id, "count": count}
+            for module_id, count in data["modules"].items()
+        ]
+        final_data.append(
+            {
+                "bk_biz_name": id_to_name.get(bk_biz_id),
+                "bk_biz_id": bk_biz_id,
+                "count": data["count"],
+                "modules": modules,
+            }
+        )
+
+    if bk_biz_name:
+        final_data = filter_by_biz_name(final_data, bk_biz_name)
+    if module_name:
+        final_data = filter_by_module_name(final_data, module_name)
+    return final_data
