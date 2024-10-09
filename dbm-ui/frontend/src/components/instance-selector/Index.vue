@@ -106,22 +106,44 @@
     bk_cloud_name: string;
     bk_host_id: number;
     cluster_id: number;
-    cluster_name: string;
+    cluster_name?: string;
     cluster_type: string;
+    create_at: string;
     db_module_id: number;
     db_module_name: string;
+    host_info: any;
     id: number;
+    name: string;
+    instance_address: string;
+    instance_role: string;
     ip: string;
     port: number;
-    instance_address: string;
     status?: string;
-    host_info?: any;
+    machine_type: string;
     master_domain: string;
-    related_instances?: {
-      instance: string;
+    related_clusters: {
+      id: number;
+      name: string;
+      master_domain: string;
+      immute_domain: string;
+      cluster_type: string;
+    }[];
+    related_instances: {
+      cluster_id: number;
+      ip: string;
+      name: string;
+      phase: string;
+      port: number;
       status: string;
+      instance: string;
+      bk_biz_id: number;
+      bk_cloud_id: number;
+      bk_host_id: number;
+      bk_instance_id: number;
+      admin_port: number;
     }[];
     spec_config?: TendbclusterMachineModel['spec_config'];
+    spec_id?: number;
     role: string;
   }
 
@@ -202,7 +224,11 @@
     getTendbclusterInstanceList,
     getTendbclusterMachineList,
   } from '@services/source/tendbcluster';
-  import { getTendbhaFlatList as getTendbhaList, getTendbhaInstanceList } from '@services/source/tendbha';
+  import {
+    getTendbhaFlatList as getTendbhaList,
+    getTendbhaInstanceList,
+    getTendbhaMachineList,
+  } from '@services/source/tendbha';
   import {
     getTendbsingleFlatList as getTendbsingleList,
     getTendbsingleInstanceList,
@@ -221,6 +247,7 @@
   import SqlServerContent from './components/sqlserver/Index.vue';
   import TendbClusterContent from './components/tendb-cluster/Index.vue';
   import TendbClusterHostContent from './components/tendb-cluster-host/Index.vue';
+  import TendbhaHostContent from './components/tendb-ha-host/Index.vue';
 
   export type TableSetting = ReturnType<typeof getSettings>;
 
@@ -273,7 +300,7 @@
   type RedisHostModel = ServiceReturnType<typeof getRedisMachineList>['results'][number];
 
   interface Props {
-    clusterTypes: (ClusterTypes | 'TendbClusterHost' | 'RedisHost' | 'mongoCluster')[];
+    clusterTypes: (ClusterTypes | 'TendbhaHost' | 'TendbClusterHost' | 'RedisHost' | 'mongoCluster')[];
     tabListConfig?: Record<string, PanelListType>;
     selected?: InstanceSelectorValues<T>;
     unqiuePanelValue?: boolean;
@@ -513,6 +540,51 @@
           displayKey: 'ip',
         },
         content: ManualInputContent,
+      },
+    ],
+    TendbhaHost: [
+      {
+        id: 'TendbhaHost',
+        name: t('主库主机'),
+        topoConfig: {
+          getTopoList: getMysqlClusterList,
+        },
+        tableConfig: {
+          getTableList: getTendbhaMachineList,
+          firsrColumn: {
+            label: t('主库主机'),
+            field: 'ip',
+            role: 'master',
+          },
+          columnsChecked: ['ip', 'related_instances', 'cloud_area', 'alive', 'host_name', 'os_name'],
+        },
+        previewConfig: {
+          displayKey: 'ip',
+        },
+        content: TendbhaHostContent,
+      },
+      {
+        id: 'manualInput',
+        name: t('手动输入'),
+        tableConfig: {
+          getTableList: getTendbhaMachineList,
+          firsrColumn: {
+            label: t('主库主机'),
+            field: 'ip',
+            role: 'master',
+          },
+          columnsChecked: ['ip', 'related_instances', 'cloud_area', 'alive', 'host_name', 'os_name'],
+        },
+        manualConfig: {
+          checkInstances: getTendbhaMachineList,
+          checkType: 'ip',
+          checkKey: 'ip',
+          activePanelId: 'TendbhaHost',
+        },
+        previewConfig: {
+          displayKey: 'ip',
+        },
+        content: ManualInputHostContent,
       },
     ],
     TendbClusterHost: [
