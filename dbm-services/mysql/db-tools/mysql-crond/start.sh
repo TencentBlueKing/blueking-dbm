@@ -3,6 +3,8 @@
 # ./start.sh
 # ./start.sh -c runtime.yaml
 
+killall mysql-monitor
+
 pgrep -x 'mysql-crond' && echo "mysql-crond process already running" && exit 1
 
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
