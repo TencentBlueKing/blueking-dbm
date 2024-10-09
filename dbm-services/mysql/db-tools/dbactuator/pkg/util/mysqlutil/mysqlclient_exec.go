@@ -131,10 +131,11 @@ func (e ExecuteSqlAtLocal) ExcuteCommand(command string, report bool) (err error
 	}
 	defer ef.Close()
 	defer ef.Sync()
-	stdout := io.MultiWriter(os.Stdout)
-
+	// 标准输出复制一份到错误文件中
+	// stdout := io.MultiWriter(os.Stdout)
+	stdout := io.MultiWriter(os.Stdout, ef)
 	// 错误不输出控制台 去掉os.Stderr
-	//stderr := io.MultiWriter(os.Stderr, &stderrBuf, ef)
+	// stderr := io.MultiWriter(os.Stderr, &stderrBuf, ef)
 	stderr := io.MultiWriter(&stderrBuf, ef)
 	if !report {
 		stderr = io.MultiWriter(&stderrBuf, ef)
