@@ -9,12 +9,14 @@ import (
 	"sync"
 
 	"dbm-services/redis/redis-dts/config"
+	"dbm-services/redis/redis-dts/pkg/cleanOldTasksDir"
 	"dbm-services/redis/redis-dts/pkg/constvar"
 	"dbm-services/redis/redis-dts/pkg/dtsJob"
 	"dbm-services/redis/redis-dts/pkg/osPerf"
 	"dbm-services/redis/redis-dts/tclog"
 	"dbm-services/redis/redis-dts/util"
 
+	"github.com/robfig/cron/v3"
 	"github.com/spf13/viper"
 )
 
@@ -69,6 +71,17 @@ func main() {
 	go func() {
 		osPerf.WatchDtsSvrPerf()
 	}()
+
+	// 添加定时任务,每天凌晨2点清理180天以前的job目录
+	c := cron.New(
+		cron.WithLogger(tclog.GlobCronLogger),
+	)
+	_, err = c.AddJob("0 2 * * *", cron.NewChain(cron.SkipIfStillRunning(tclog.GlobCronLogger)).
+		Then(cleanOldTasksDir.GetGlobCleanOldTasksDir()))
+	if err != nil {
+		log.Fatal(err)
+	}
+	c.Start()
 
 	jobers := make([]dtsJob.DtsJober, 0, 3)
 	jobers = append(jobers, dtsJob.NewTendisSSDDtsJob(constvar.GetBkCloudID(), localIP,
