@@ -122,10 +122,10 @@
         </BkFormItem>
         <BkFormItem :label="t('权限明细')">
           <BkAlert
-            v-if="clusterTypes.includes(ClusterTypes.TENDBHA)"
+            v-if="showTip"
             class="mb-16 mt-10"
             theme="warning"
-            :title="t('注意_对从库授权时仅会授予select权限')" />
+            :title="t('注意_对从域名授权时仅会授予 select 权限')" />
           <DbOriginalTable
             :columns="permissonColumns"
             :data="selectedRules"
@@ -221,6 +221,7 @@
   import { getPermissionRules, preCheckAuthorizeRules } from '@services/source/permission';
   import { getSqlserverPermissionRules } from '@services/source/sqlserverPermissionAccount';
   import { preCheckSqlserverAuthorizeRules } from '@services/source/sqlserverPermissionAuthorize';
+  import { getTendbSlaveClusterList } from '@services/source/tendbcluster';
   import { getTendbhaList, getTendbhaSalveList } from '@services/source/tendbha';
   import { createTicket } from '@services/source/ticket';
   import { getWhitelist } from '@services/source/whitelist';
@@ -324,8 +325,17 @@
       }
     },
     [ClusterTypes.TENDBCLUSTER]: {
-      name: t('TendbCluster集群'),
+      name: t('TendbCluster-主域名'),
       showPreviewResultTitle: true,
+    },
+    tendbclusterSlave: {
+      name: t('TendbCluster-从域名'),
+      showPreviewResultTitle: true,
+      getResourceList: (params: any) => {
+        params.slave_domain = params.domain;
+        delete params.domain;
+        return getTendbSlaveClusterList(params)
+      }
     },
     [ClusterTypes.TENDBHA]: {
       name: t('高可用-主域名'),
@@ -387,6 +397,7 @@
       [ClusterTypes.TENDBHA]: [],
       [ClusterTypes.TENDBSINGLE]: [],
       [ClusterTypes.TENDBCLUSTER]: [],
+      tendbclusterSlave: [],
       [ClusterTypes.SQLSERVER_HA]: [],
       [ClusterTypes.SQLSERVER_SINGLE]: []
     } as ClusterSelectorResult,
@@ -419,6 +430,7 @@
     isShow: false,
     data: []
   })
+  const showTip = computed(() => props.clusterTypes.some(item => ([ClusterTypes.TENDBHA, ClusterTypes.TENDBCLUSTER] as string[]).includes(item)));
 
   const isMysql = computed(() => [AccountTypes.MYSQL, AccountTypes.TENDBCLUSTER].includes(props.accountType))
 
@@ -750,9 +762,18 @@
       [AccountTypes.MONGODB]: preCheckMongodbAuthorizeRules,
       [AccountTypes.SQLSERVER]: preCheckSqlserverAuthorizeRules
     };
+
+    let {clusterType} = clusterState;
+
+    if (clusterState.clusterType === 'tendbhaSlave') {
+      clusterType = 'tendbha'
+    } else if (clusterState.clusterType === 'tendbclusterSlave') {
+      clusterType = 'tendbcluster'
+    }
+
     const params = {
       target_instances: formdata.target_instances,
-      cluster_type: clusterState.clusterType === 'tendbhaSlave' ? 'tendbha' : clusterState.clusterType,
+      cluster_type: clusterType,
     };
 
     if (props.accountType === AccountTypes.MONGODB) {
