@@ -223,9 +223,9 @@ func (r ResourDistributionParam) dbFilter(db *gorm.DB) (err error) {
 }
 
 func dealCity(city string) string {
-	if lo.IsEmpty(city) {
-		city = "无区域信息"
-	}
+	// if lo.IsEmpty(city) {
+	// 	city = "无区域信息"
+	// }
 	return city
 }
 

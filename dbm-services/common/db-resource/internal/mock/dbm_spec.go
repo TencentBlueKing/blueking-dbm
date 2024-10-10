@@ -33,11 +33,11 @@ func GetDbmSpecListMock() (dbmSpecList []dbmapi.DbmSpec) {
 				Min: 2000,
 				Max: 8000,
 			},
-			StorageSpecs: []meta.DiskSpec{
+			StorageSpecs: []dbmapi.RealDiskSpec{
 				{
 					MountPoint: "/data",
 					DiskType:   "ALL",
-					MinSize:    10,
+					Size:       10,
 				},
 			},
 		},
@@ -56,11 +56,11 @@ func GetDbmSpecListMock() (dbmSpecList []dbmapi.DbmSpec) {
 				Max: 16000,
 			},
 
-			StorageSpecs: []meta.DiskSpec{
+			StorageSpecs: []dbmapi.RealDiskSpec{
 				{
 					MountPoint: "/data",
 					DiskType:   "ALL",
-					MinSize:    100,
+					Size:       100,
 				},
 			},
 		},
@@ -78,11 +78,11 @@ func GetDbmSpecListMock() (dbmSpecList []dbmapi.DbmSpec) {
 				Min: 60000,
 				Max: 64000,
 			},
-			StorageSpecs: []meta.DiskSpec{
+			StorageSpecs: []dbmapi.RealDiskSpec{
 				{
 					MountPoint: "/data",
 					DiskType:   "ALL",
-					MinSize:    2900,
+					Size:       2900,
 				},
 			},
 		},
