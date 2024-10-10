@@ -12,13 +12,11 @@
 -->
 
 <template>
-  <BkLoading :loading="isLoading">
-    <TableEditInput
-      ref="editInputRef"
-      :model-value="localInstanceData?.master_domain"
-      :placeholder="t('根据实例生成')"
-      readonly />
-  </BkLoading>
+  <RenderText
+    ref="editInputRef"
+    :data="localInstanceData?.master_domain"
+    :is-loading="isLoading"
+    :placeholder="t('根据实例生成')" />
 </template>
 <script setup lang="ts">
   import { shallowRef } from 'vue';
@@ -29,7 +27,7 @@
 
   import { useGlobalBizs } from '@stores';
 
-  import TableEditInput from '@views/db-manage/tendb-cluster/common/edit/Input.vue';
+  import RenderText from '@components/render-table/columns/text-plain/index.vue';
 
   import type { IDataRow } from './Row.vue';
 
