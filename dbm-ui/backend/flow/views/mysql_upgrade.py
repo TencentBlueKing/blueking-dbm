@@ -66,6 +66,21 @@ class NonStanbySlavesUpgradeMySQLSceneApiView(FlowTestView):
         return Response({"root_id": root_id})
 
 
+class TendbHaMigrateUpgradeSceneApiView(FlowTestView):
+    """
+    api: /apis/v1/flow/scene/migrate_upgrade_tendbha_cluster
+    """
+
+    @staticmethod
+    def post(request):
+        logger.info(_("开始测试迁移升级tendbha场景"))
+        root_id = generate_root_id()
+        logger.info("define root_id: {}".format(root_id))
+        test = MySQLController(root_id=root_id, ticket_data=request.data)
+        test.tendbha_upgrade_scene()
+        return Response({"root_id": root_id})
+
+
 class NonStanbySlavesDestorySceneApiView(FlowTestView):
     """
     api: /apis/v1/flow/scene/uninstall_non_standby_slave
