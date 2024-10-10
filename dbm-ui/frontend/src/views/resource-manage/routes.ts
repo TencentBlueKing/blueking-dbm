@@ -49,7 +49,7 @@ const resourceTagsManagementRoute = {
   meta: {
     navName: t('资源标签管理'),
   },
-  component: () => import('@views/resource-manage/tags-management/Index.vue'),
+  component: () => import('@views/tag-manage/Index.vue'),
 };
 
 const resourceSpecRoute = {

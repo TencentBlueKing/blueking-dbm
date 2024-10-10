@@ -35,16 +35,14 @@
           @click="handleBatchDelete"
           >{{ t('批量删除') }}</BkButton
         >
-        <DbSearchSelect
+        <BkSearchSelect
+          v-model="searchValue"
           class="search-selector"
           :data="searchSelectData"
-          :get-menu-list="getMenuList"
-          :model-value="searchValue"
           :placeholder="t('请输入标签关键字')"
-          style="width: 500px"
           unique-select
-          :validate-values="validateSearchValues"
-          @change="handleSearchValueChange" />
+          value-split-code="+"
+          @search="fetchData" />
       </div>
       <div>
         <DbTable
@@ -55,12 +53,10 @@
           primary-key="tag"
           selectable
           @clear-search="clearSearchValue"
-          @column-filter="columnFilterChange"
-          @column-sort="columnSortChange"
           @selection="handleSelection" />
       </div>
     </div>
-    <CreateTagDialog
+    <CreateTag
       v-model:is-show="isCreateTagDialogShow"
       bk-biz-id="1" />
   </div>
@@ -69,29 +65,24 @@
 <script setup lang="tsx">
   import { Button, InfoBox } from 'bkui-vue';
   import BKPopConfirm from 'bkui-vue/lib/pop-confirm';
-  import type { ISearchItem } from 'bkui-vue/lib/search-select/utils';
   import { useI18n } from 'vue-i18n';
 
-  import AutoFocusInput from '@views/resource-manage/tags-management/AutoFocusInput.vue'
-  import CreateTagDialog from '@views/resource-manage/tags-management/CreateTagDialog.vue'
+  import type ResourceTagModel from '@services/model/db-resource/ResourceTag';
+  import { deleteResourceTags, getResourceTags, modifyResourceTag } from '@services/source/tag';
 
-  import { ClusterTypes } from '@/common/const/clusterTypes';
+  import { ClusterTypes } from '@common/const/clusterTypes';
+
+  import AutoFocusInput from '@views/tag-manage/AutoFocusInput.vue'
+  import CreateTag from '@views/tag-manage/CreateTag.vue'
+
   import { useCopy } from '@/hooks';
   import { useLinkQueryColumnSerach } from '@/hooks/useLinkQueryColumnSerach';
-  import type ResourceTagModel from '@/services/model/db-resource/ResourceTag';
-  import { deleteResourceTags, getResourceTags, modifyResourceTag } from '@/services/source/tag';
-  import { getUserList } from '@/services/source/user';
-  import { getMenuListSearch } from '@/utils/getMenuListSearch';
 
   const { t } = useI18n();
   const copy = useCopy();
   const {
     searchValue,
-    columnFilterChange,
-    columnSortChange,
     clearSearchValue,
-    validateSearchValues,
-    handleSearchValueChange,
   } = useLinkQueryColumnSerach({
     searchType: ClusterTypes.TENDBHA,
     attrs: [],
@@ -108,7 +99,7 @@
 
   const hasSelected = computed(() => selected.value.length > 0);
   const selectedIds = computed(() => selected.value.map(item => item.id));
-  const searchSelectData = computed(() => ([
+  const searchSelectData = [
     {
       name: '标签',
       id: 'tag',
@@ -125,7 +116,7 @@
       name: '创建时间',
       id: 'creationTime',
     },
-  ]));
+  ];
 
   const tableColumn = [
     {
@@ -135,16 +126,7 @@
         const renderTag = () => {
           if (data.is_show_edit) {
             return (
-              <AutoFocusInput modelValue={data.tag} clearable={false} onBlur={async () => {
-                try {
-                  await modifyResourceTag(data);
-                }
-                finally {
-                  Object.assign(data, {
-                    is_show_edit: false,
-                  });
-                }
-              }}></AutoFocusInput>
+              <AutoFocusInput modelValue={data.tag} clearable={false} onBlur={() => handleBlur(data)} />
             )
           }
           return (
@@ -154,11 +136,7 @@
                 class="operation-icon"
                 type="edit"
                 style="font-size: 18px"
-                onClick={() => {
-                  Object.assign(data, {
-                    is_show_edit: true,
-                  });
-                }} />
+                onClick={() => handleEdit(data)} />
             </>
           )
         }
@@ -206,10 +184,7 @@
           width={280}
           trigger='click'
           title={t('确认删除该标签值？')}
-          onConfirm={async () => {
-            await deleteResourceTags([data.id]);
-            fetchData();
-          }}
+          onConfirm={() => handleDelete(data)}
         >
           {{
             default: <Button theme='primary' text>删除</Button>,
@@ -283,34 +258,27 @@
     isCreateTagDialogShow.value = true;
   }
 
-  const getMenuList = async (item: ISearchItem | undefined, keyword: string) => {
-    if (item?.id !== 'creator' && keyword) {
-      return getMenuListSearch(item, keyword, searchSelectData.value, searchValue.value);
+  const handleBlur = async (data: ResourceTagModel) => {
+    try {
+      await modifyResourceTag(data);
     }
-
-    // 没有选中过滤标签
-    if (!item) {
-      // 过滤掉已经选过的标签
-      const selected = (searchValue.value || []).map(value => value.id);
-      return searchSelectData.value.filter(item => !selected.includes(item.id));
+    finally {
+      Object.assign(data, {
+        is_show_edit: false,
+      });
     }
+  }
 
-    // 远程加载执行人
-    if (item.id === 'creator') {
-      if (!keyword) {
-        return [];
-      }
-      return getUserList({
-        fuzzy_lookups: keyword,
-      }).then(res => res.results.map(item => ({
-        id: item.username,
-        name: item.username,
-      })));
-    }
+  const handleEdit = (data: ResourceTagModel) => {
+    Object.assign(data, {
+      is_show_edit: true,
+    });
+  }
 
-    // 不需要远层加载
-    return searchSelectData.value.find(set => set.id === item.id)?.children || [];
-  };
+  const handleDelete = async (data: ResourceTagModel) => {
+    await deleteResourceTags([data.id]);
+    fetchData();
+  }
 </script>
 
 <style scoped lang="less">
@@ -360,27 +328,8 @@
 
       .search-selector {
         margin-left: auto;
+        width: 400px;
       }
-    }
-  }
-
-  .batch-delete-wrapper {
-    .tags-info {
-      display: flex;
-
-      .tags-info-title {
-        width: 42px;
-      }
-
-      .tags-info-content {
-        color: #313238;
-      }
-    }
-
-    .batch-delete-tip {
-      background: #f5f6fa;
-      border-radius: 2px;
-      padding: 12px 16px;
     }
   }
 
@@ -389,3 +338,5 @@
     color: #313238 !important;
   }
 </style>
+
+<style lang="less"></style>
