@@ -26,7 +26,7 @@ from backend.iam_app.dataclass.actions import ActionEnum
 @method_decorator(
     name="list",
     decorator=common_swagger_auto_schema(
-        query_serializer=serializers.ListMySQLResourceSLZ(),
+        query_serializer=serializers.ListTendbClusterResourceSLZ(),
         responses={status.HTTP_200_OK: yasg_slz.PaginatedResourceSLZ()},
         tags=[constants.RESOURCE_TAG],
     ),
@@ -79,7 +79,7 @@ class SpiderViewSet(viewsets.ResourceViewSet):
     """Spider 架构资源"""
 
     query_class = ListRetrieveResource
-    query_serializer_class = serializers.ListMySQLResourceSLZ
+    query_serializer_class = serializers.ListTendbClusterResourceSLZ
     list_machine_slz = serializers.ListTendbClusterMachineResourceSLZ
     db_type = DBType.TenDBCluster
 
