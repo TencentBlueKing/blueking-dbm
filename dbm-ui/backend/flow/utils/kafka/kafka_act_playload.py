@@ -24,6 +24,7 @@ from backend.flow.consts import (
 from backend.ticket.constants import TicketType
 
 apply_list = [TicketType.MYSQL_SINGLE_APPLY.value, TicketType.MYSQL_HA_APPLY.value]
+KAFKA_0102 = "0.10.2"
 
 
 def get_base_payload(action, host) -> dict:
@@ -98,6 +99,9 @@ class KafkaActPayload(object):
         kafka_config = copy.deepcopy(self.kafka_config)
         if not self.ticket_data.get("no_security"):
             self.ticket_data["no_security"] = 0
+        # 0.10.2版本默认不开启鉴权
+        if self.ticket_data["db_version"] == KAFKA_0102:
+            self.ticket_data["no_security"] = 1
         if not self.ticket_data.get("retention_bytes"):
             self.ticket_data["retention_bytes"] = -1
         # 根据 ticket_type 选择 kafka_configs

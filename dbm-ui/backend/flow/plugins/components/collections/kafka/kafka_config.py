@@ -59,12 +59,11 @@ class KafkaConfigService(BaseService):
                 {
                     "log.retention.hours": str(global_data["retention_hours"]),
                     "num.partitions": str(global_data["partition_num"]),
-                    "default.replication.factor": str(global_data["factor"]),
+                    "default.replication.factor": str(global_data["replication_num"]),
                     "offsets.topic.replication.factor": str(global_data["factor"]),
-                    "transaction.state.log.replication.factor": str(global_data["factor"]),
-                    "transaction.state.log.min.isr": str(global_data["factor"]),
+                    "transaction.state.log.replication.factor": str(global_data["replication_num"]),
+                    "transaction.state.log.min.isr": str(global_data["replication_num"]),
                     "log.retention.bytes": str(global_data["retention_bytes"]),
-                    "zookeeper.connect": str(global_data["zookeeper_connect"]),
                 }
             )
 
