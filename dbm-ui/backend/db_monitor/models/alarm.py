@@ -421,29 +421,9 @@ class DispatchGroup(AuditedModel):
     @classmethod
     def get_rules_by_dbtype(cls, db_type, bk_biz_id) -> List[Dict[str, Any]]:
         """根据db类型生成规则"""
-        conditions = []
-        # 仅分派平台策略
-        policies = MonitorPolicy.get_policies(db_type)
+        rules = []
 
-        # 排除无效的db类型，比如cloud
-        if not policies:
-            return []
-
-        conditions.append({"field": "alert.strategy_id", "value": policies, "method": "eq", "condition": "and"})
         user_groups = [NoticeGroup.get_groups(bk_biz_id).get(db_type)]
-
-        # 业务级分派策略
-        if bk_biz_id != PLAT_BIZ_ID:
-            conditions.append({"field": "appid", "value": [str(bk_biz_id)], "method": "eq", "condition": "and"})
-
-        rules = [
-            {
-                "user_groups": user_groups,
-                "conditions": conditions,
-                **BK_MONITOR_DISPATCH_RULE_MIXIN,
-            }
-        ]
-
         # 补充 dbha 特殊策略的分派规则
         if db_type in [DBType.MySQL, DBType.TenDBCluster, DBType.Redis, DBType.Sqlserver]:
             policies = MonitorPolicy.get_dbha_policies()
@@ -465,6 +445,25 @@ class DispatchGroup(AuditedModel):
                     **BK_MONITOR_DISPATCH_RULE_MIXIN,
                 }
             )
+
+        # 仅分派平台策略
+        policies = MonitorPolicy.get_policies(db_type)
+
+        # 排除无效的db类型，比如cloud
+        if policies:
+            conditions = [{"field": "alert.strategy_id", "value": policies, "method": "eq", "condition": "and"}]
+
+            # 业务级分派策略
+            if bk_biz_id != PLAT_BIZ_ID:
+                conditions.append({"field": "appid", "value": [str(bk_biz_id)], "method": "eq", "condition": "and"})
+
+            rules = [
+                {
+                    "user_groups": user_groups,
+                    "conditions": conditions,
+                    **BK_MONITOR_DISPATCH_RULE_MIXIN,
+                }
+            ]
 
         return rules
 
