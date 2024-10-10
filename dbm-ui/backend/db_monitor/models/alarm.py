@@ -447,19 +447,21 @@ class DispatchGroup(AuditedModel):
         # 补充 dbha 特殊策略的分派规则
         if db_type in [DBType.MySQL, DBType.TenDBCluster, DBType.Redis, DBType.Sqlserver]:
             policies = MonitorPolicy.get_dbha_policies()
+            conditions = [
+                {"field": "alert.strategy_id", "method": "eq", "value": policies, "condition": "and"},
+                {
+                    "field": "cluster_type",
+                    "method": "eq",
+                    "value": ClusterType.db_type_to_cluster_types(db_type),
+                    "condition": "and",
+                },
+            ]
+            if bk_biz_id != PLAT_BIZ_ID:
+                conditions.append({"field": "appid", "method": "eq", "value": [str(bk_biz_id)], "condition": "and"})
             rules.append(
                 {
                     "user_groups": user_groups,
-                    "conditions": [
-                        {"field": "alert.strategy_id", "method": "eq", "value": policies, "condition": "and"},
-                        {
-                            "field": "cluster_type",
-                            "method": "eq",
-                            "value": ClusterType.db_type_to_cluster_types(db_type),
-                            "condition": "and",
-                        },
-                        {"field": "appid", "method": "eq", "value": [str(bk_biz_id)], "condition": "and"},
-                    ],
+                    "conditions": conditions,
                     **BK_MONITOR_DISPATCH_RULE_MIXIN,
                 }
             )
