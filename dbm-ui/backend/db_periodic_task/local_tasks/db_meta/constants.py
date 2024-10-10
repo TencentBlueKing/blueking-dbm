@@ -37,26 +37,21 @@ QUERY_TEMPLATE = {
     ClusterType.TendisTwemproxyRedisInstance: {
         "range": 5,
         "used": """sum by (cluster_domain) (
-            sum_over_time(
-                bkmonitor:exporter_dbm_redis_exporter:redis_memory_used_bytes{instance_role="redis_master",%s}[1m]
-            ))""",
+            bkmonitor:exporter_dbm_redis_exporter:redis_memory_used_bytes{instance_role="redis_master",%s}
+           )""",
         "total": """sum by (cluster_domain) (
             avg by (cluster_domain, bk_target_ip) (
-                avg_over_time(
-                    bkmonitor:dbm_system:mem:total{instance_role="redis_master",%s}[1m]
-                )
+                    bkmonitor:dbm_system:mem:total{instance_role="redis_master",%s}
             ))""",
     },
     ClusterType.TwemproxyTendisSSDInstance: {
         "range": 5,
         "used": """sum by (cluster_domain) (max by (cluster_domain,ip,mount_point) (
-            max_over_time(
-                bkmonitor:exporter_dbm_redis_exporter:redis_datadir_df_used_mb{instance_role="redis_master",%s}[1m]
-            ) * 1024 * 1024))""",
+        bkmonitor:exporter_dbm_redis_exporter:redis_datadir_df_used_mb{instance_role="redis_master",%s} * 1024 * 1024
+        ))""",
         "total": """sum by (cluster_domain) (max by (cluster_domain,ip,mount_point) (
-            max_over_time(
-                bkmonitor:exporter_dbm_redis_exporter:redis_datadir_df_total_mb{instance_role="redis_master",%s}[1m]
-            ) * 1024 * 1024))""",
+        bkmonitor:exporter_dbm_redis_exporter:redis_datadir_df_total_mb{instance_role="redis_master",%s} * 1024 *
+        1024))""",
     },
     ClusterType.TenDBSingle: {
         "range": 120,
@@ -128,71 +123,71 @@ QUERY_TEMPLATE = {
     ClusterType.Es: {
         "range": 5,
         "used": """sum by (cluster_domain) (
-            sum_over_time(
+            max_over_time(
                 bkmonitor:dbm_system:disk:used{
                         device_type=~"ext.?|xfs",
                         instance_role=~"^(es_datanode_hot|es_datanode_cold)$",
                         mount_point!~"^(/|/usr/local)$",%s
-                    }[1m]
+                    }[5m]
                 ))""",
         "total": """sum by (cluster_domain) (
-            sum_over_time(
+            max_over_time(
                 bkmonitor:dbm_system:disk:total{
                         device_type=~"ext.?|xfs",
                         instance_role=~"^(es_datanode_hot|es_datanode_cold)$",
                         mount_point!~"^(/|/usr/local)$",%s
-                    }[1m]
+                    }[5m]
                 ))""",
     },
     ClusterType.Kafka: {
         "range": 5,
         "used": """sum by (cluster_domain) (
-            sum_over_time(
+            max_over_time(
                 bkmonitor:dbm_system:disk:used{
                     device_type=~"ext.?|xfs",instance_role="broker",mount_point!~"^(/|/usr/local)$",%s
-                }[1m]
+                }[5m]
             ))""",
         "total": """sum by (cluster_domain) (
-            sum_over_time(
+            max_over_time(
                 bkmonitor:dbm_system:disk:total{
                     device_type=~"ext.?|xfs",
                     instance_role="broker",
                     mount_point!~"^(/|/usr/local)$",%s
-                }[1m]
+                }[5m]
             ))""",
     },
     ClusterType.Pulsar: {
         "range": 5,
         "used": """sum by (cluster_domain) (
-            sum_over_time(
+            max_over_time(
                 bkmonitor:dbm_system:disk:used{
                     device_type=~"ext.?|xfs",
                     instance_role="pulsar_bookkeeper",
                     mount_point!~"^(/|/usr/local)$",%s
-                }[1m]
+                }[5m]
             ))""",
         "total": """sum by (cluster_domain) (
-            sum_over_time(
+            max_over_time(
                 bkmonitor:dbm_system:disk:total{
                     device_type=~"ext.?|xfs",
                     instance_role="pulsar_bookkeeper",
                     mount_point!~"^(/|/usr/local)$",%s
-                }[1m]
+                }[5m]
             ))""",
     },
     ClusterType.Hdfs: {
         "range": 5,
         "used": """avg by (cluster_domain) (
-                    avg_over_time(bkmonitor:exporter_dbm_hdfs_exporter:hadoop_namenode_capacity_used{%s}[1m]))""",
+                    avg_over_time(bkmonitor:exporter_dbm_hdfs_exporter:hadoop_namenode_capacity_used{%s}[5m]))""",
         "total": """avg by (cluster_domain) (
-                    avg_over_time(bkmonitor:exporter_dbm_hdfs_exporter:hadoop_namenode_capacity_total{%s}[1m]))""",
+                    avg_over_time(bkmonitor:exporter_dbm_hdfs_exporter:hadoop_namenode_capacity_total{%s}[5m]))""",
     },
     ClusterType.Influxdb: {
         "range": 5,
         "used": """max by (instance_host) (
-            max_over_time(bkmonitor:pushgateway_dbm_influxdb_bkpull:disk_used{path=~"^/data|/data1$",%s}[1m]))""",
+            max_over_time(bkmonitor:pushgateway_dbm_influxdb_bkpull:disk_used{path=~"^/data|/data1$",%s}[5m]))""",
         "total": """max by (instance_host) (
-            max_over_time(bkmonitor:pushgateway_dbm_influxdb_bkpull:disk_total{path=~"^/data|/data1$",%s}[1m]))""",
+            max_over_time(bkmonitor:pushgateway_dbm_influxdb_bkpull:disk_total{path=~"^/data|/data1$",%s}[5m]))""",
     },
     ClusterType.Dbmon: {
         "range": 5,
