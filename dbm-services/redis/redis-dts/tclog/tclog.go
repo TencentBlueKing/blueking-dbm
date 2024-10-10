@@ -2,8 +2,11 @@
 package tclog
 
 import (
+	"fmt"
+	"strings"
 	"time"
 
+	"github.com/robfig/cron/v3"
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
@@ -12,6 +15,9 @@ import (
 
 // Logger is a global log descripter
 var Logger *zap.Logger
+
+// GlobCronLogger 适配robfig/cron logger
+var GlobCronLogger *cronLogAdapter
 
 // timeEncoder format log time
 func timeEncoder(t time.Time, enc zapcore.PrimitiveArrayEncoder) {
@@ -91,6 +97,9 @@ func InitMainlog() {
 		// zapcore.NewCore(zapcore.NewJSONEncoder(newEncoderConfig()), zapcore.AddSync(os.Stdout), level),
 	)
 	Logger = zap.New(core, zap.AddCaller())
+
+	GlobCronLogger = &cronLogAdapter{}
+	GlobCronLogger.Logger = Logger
 }
 
 // NewFileLogger 新建一个logger
@@ -114,4 +123,54 @@ func NewFileLogger(logFile string) *zap.Logger {
 		// zapcore.NewCore(zapcore.NewJSONEncoder(newEncoderConfig()), zapcore.AddSync(os.Stdout), level),
 	)
 	return zap.New(core, zap.AddCaller())
+}
+
+// 无实际作用,仅确保实现了 cron.Logger  接口
+var _ cron.Logger = (*cronLogAdapter)(nil)
+
+// cronLogAdapter 适配器,目标兼容 go.uber.org/zap.Logger 和 robfig/cron.Logger的接口
+type cronLogAdapter struct {
+	*zap.Logger
+}
+
+// Error error
+func (l *cronLogAdapter) Error(err error, msg string, keysAndValues ...interface{}) {
+	keysAndValues = formatTimes(keysAndValues)
+	l.Error(err, fmt.Sprintf(formatString(len(keysAndValues)+2), append([]interface{}{msg, "error", err},
+		keysAndValues...)...))
+}
+
+// Info info
+func (l *cronLogAdapter) Info(msg string, keysAndValues ...interface{}) {
+	keysAndValues = formatTimes(keysAndValues)
+	l.Logger.Info(fmt.Sprintf(formatString(len(keysAndValues)), append([]interface{}{msg}, keysAndValues...)...))
+}
+
+// formatString returns a logfmt-like format string for the number of
+// key/values.
+func formatString(numKeysAndValues int) string {
+	var sb strings.Builder
+	sb.WriteString("%s")
+	if numKeysAndValues > 0 {
+		sb.WriteString(", ")
+	}
+	for i := 0; i < numKeysAndValues/2; i++ {
+		if i > 0 {
+			sb.WriteString(", ")
+		}
+		sb.WriteString("%v=%v")
+	}
+	return sb.String()
+}
+
+// formatTimes formats any time.Time values as RFC3339.
+func formatTimes(keysAndValues []interface{}) []interface{} {
+	var formattedArgs []interface{}
+	for _, arg := range keysAndValues {
+		if t, ok := arg.(time.Time); ok {
+			arg = t.Format(time.RFC3339)
+		}
+		formattedArgs = append(formattedArgs, arg)
+	}
+	return formattedArgs
 }
