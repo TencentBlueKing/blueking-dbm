@@ -27,14 +27,14 @@ import (
 
 // DbmSpec Data dbm 规格信息
 type DbmSpec struct {
-	SpecId          int               `json:"spec_id"`
-	SpecName        string            `json:"spec_name"`
-	SpecClusterType string            `json:"spec_cluster_type"`
-	SpecMachineType string            `json:"spec_machine_type"`
-	DeviceClass     []string          `json:"device_class"`
-	Mem             meta.MeasureRange `json:"mem"`
-	Cpu             meta.MeasureRange `json:"cpu"`
-	StorageSpecs    []RealDiskSpec    `json:"storage_spec"`
+	SpecId          int                    `json:"spec_id"`
+	SpecName        string                 `json:"spec_name"`
+	SpecClusterType string                 `json:"spec_cluster_type"`
+	SpecMachineType string                 `json:"spec_machine_type"`
+	DeviceClass     []string               `json:"device_class"`
+	Mem             meta.FloatMeasureRange `json:"mem"`
+	Cpu             meta.MeasureRange      `json:"cpu"`
+	StorageSpecs    []RealDiskSpec         `json:"storage_spec"`
 }
 
 // RealDiskSpec 真实磁盘规格

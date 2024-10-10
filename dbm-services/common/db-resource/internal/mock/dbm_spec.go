@@ -29,7 +29,7 @@ func GetDbmSpecListMock() (dbmSpecList []dbmapi.DbmSpec) {
 				Min: 2,
 				Max: 4,
 			},
-			Mem: meta.MeasureRange{
+			Mem: meta.FloatMeasureRange{
 				Min: 2000,
 				Max: 8000,
 			},
@@ -51,7 +51,7 @@ func GetDbmSpecListMock() (dbmSpecList []dbmapi.DbmSpec) {
 				Min: 4,
 				Max: 8,
 			},
-			Mem: meta.MeasureRange{
+			Mem: meta.FloatMeasureRange{
 				Min: 6000,
 				Max: 16000,
 			},
@@ -74,7 +74,7 @@ func GetDbmSpecListMock() (dbmSpecList []dbmapi.DbmSpec) {
 				Min: 16,
 				Max: 16,
 			},
-			Mem: meta.MeasureRange{
+			Mem: meta.FloatMeasureRange{
 				Min: 60000,
 				Max: 64000,
 			},
