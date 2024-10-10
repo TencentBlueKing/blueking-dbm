@@ -148,9 +148,14 @@ def master_and_slave_switch(root_id: str, ticket_data: dict, cluster: Cluster, c
     mysql_storage_slave = cluster.storageinstance_set.filter(
         instance_inner_role=InstanceInnerRole.SLAVE.value, status=InstanceStatus.RUNNING.value
     )
-    cluster_info["other_slave_info"] = [
-        y.machine.ip for y in mysql_storage_slave.exclude(machine__ip=cluster_info["old_slave_ip"])
-    ]
+    exclude_ips = [cluster_info["old_slave_ip"]]
+    if cluster_info.get("old_ro_slave_ips"):
+        exclude_ips.extend(cluster_info["old_ro_slave_ips"])
+    logger.info(_("exclude_ips ip list {}").format(exclude_ips))
+    cluster_info["other_slave_info"] = [y.machine.ip for y in mysql_storage_slave.exclude(machine__ip__in=exclude_ips)]
+    logger.info(_("other_slave_info:{}").format(cluster_info["other_slave_info"]))
+    if cluster_info.get("new_ro_slave_ips"):
+        cluster_info["other_slave_info"].extend(cluster_info["new_ro_slave_ips"])
     domain_map = get_tendb_ha_entry(cluster.id)
     cluster_info["master_domain"] = domain_map["master_domain"]
     cluster_info["slave_domain"] = domain_map["slave_domain"]
@@ -171,7 +176,7 @@ def master_and_slave_switch(root_id: str, ticket_data: dict, cluster: Cluster, c
     if cluster_info["other_slave_info"]:
         # 如果集群存在其他slave节点，则建立新的你主从关系
         acts_list = []
-        for exec_ip in cluster_info["other_slave_info"]:
+        for exec_ip in list(set(cluster_info["other_slave_info"])):
             cluster_sw_kwargs.exec_ip = exec_ip
             cluster_sw_kwargs.get_mysql_payload_func = MysqlActPayload.get_change_master_payload.__name__
             acts_list.append(

@@ -30,14 +30,14 @@ from backend.flow.engine.bamboo.scene.mysql.mysql_ha_enable_flow import MySQLHAE
 from backend.flow.engine.bamboo.scene.mysql.mysql_ha_full_backup_flow import MySQLHAFullBackupFlow
 from backend.flow.engine.bamboo.scene.mysql.mysql_ha_metadata_import import TenDBHAMetadataImportFlow
 from backend.flow.engine.bamboo.scene.mysql.mysql_ha_standardize_flow import MySQLHAStandardizeFlow
+from backend.flow.engine.bamboo.scene.mysql.mysql_ha_upgrade import (
+    DestroyNonStanbySlaveMySQLFlow,
+    TendbClusterUpgradeFlow,
+)
 from backend.flow.engine.bamboo.scene.mysql.mysql_master_fail_over import MySQLMasterFailOverFlow
 from backend.flow.engine.bamboo.scene.mysql.mysql_master_slave_switch import MySQLMasterSlaveSwitchFlow
 from backend.flow.engine.bamboo.scene.mysql.mysql_migrate_cluster_flow import MySQLMigrateClusterFlow
 from backend.flow.engine.bamboo.scene.mysql.mysql_migrate_cluster_remote_flow import MySQLMigrateClusterRemoteFlow
-from backend.flow.engine.bamboo.scene.mysql.mysql_non_standby_slaves_upgrade import (
-    DestroyNonStanbySlaveMySQLFlow,
-    MySQLNonStandbySlavesUpgradeFlow,
-)
 from backend.flow.engine.bamboo.scene.mysql.mysql_open_area_flow import MysqlOpenAreaFlow
 from backend.flow.engine.bamboo.scene.mysql.mysql_partition import MysqlPartitionFlow
 from backend.flow.engine.bamboo.scene.mysql.mysql_partition_cron import MysqlPartitionCronFlow
@@ -683,8 +683,15 @@ class MySQLController(BaseController):
         """
         非Standby从库升级
         """
-        flow = MySQLNonStandbySlavesUpgradeFlow(root_id=self.root_id, ticket_data=self.ticket_data)
-        flow.upgrade()
+        flow = TendbClusterUpgradeFlow(root_id=self.root_id, ticket_data=self.ticket_data)
+        flow.upgrade_ro_slaves()
+
+    def tendbha_upgrade_scene(self):
+        """
+        tendbha 迁移升级,兼容一主多从的场景
+        """
+        flow = TendbClusterUpgradeFlow(root_id=self.root_id, ticket_data=self.ticket_data)
+        flow.upgrade_tendbha_cluster()
 
     def non_standby_slaves_destroy_scene(self):
         """
