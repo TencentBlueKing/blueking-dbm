@@ -18,6 +18,7 @@ from backend.flow.engine.controller.mysql import MySQLController
 from backend.ticket import builders
 from backend.ticket.builders.common.base import (
     BaseOperateResourceParamBuilder,
+    DisplayInfoSerializer,
     HostInfoSerializer,
     InstanceInfoSerializer,
 )
@@ -30,7 +31,7 @@ from backend.ticket.constants import FlowRetryType, TicketType
 
 
 class MysqlProxySwitchDetailSerializer(MySQLBaseOperateDetailSerializer):
-    class SwitchInfoSerializer(serializers.Serializer):
+    class SwitchInfoSerializer(DisplayInfoSerializer):
         cluster_ids = serializers.ListField(help_text=_("集群ID列表"), child=serializers.IntegerField())
         origin_proxy = InstanceInfoSerializer(help_text=_("旧Proxy实例信息"))
         target_proxy = HostInfoSerializer(help_text=_("新Proxy机器信息"), required=False)
