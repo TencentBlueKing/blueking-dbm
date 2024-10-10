@@ -13,8 +13,9 @@ from dataclasses import dataclass
 from django.utils.translation import gettext as _
 
 from backend.constants import DEFAULT_SYSTEM_USER
+from backend.db_meta.models.sqlserver_dts import DtsStatus, SqlserverDtsInfo
 from backend.ticket import todos
-from backend.ticket.constants import TicketFlowStatus, TodoType
+from backend.ticket.constants import TicketFlowStatus, TicketType, TodoType
 from backend.ticket.exceptions import TodoWrongOperatorException
 from backend.ticket.flow_manager import manager
 from backend.ticket.flow_manager.manager import TicketFlowManager
@@ -50,6 +51,12 @@ class PauseTodo(todos.TodoActor):
         # 所有待办完成后，执行后面的flow
         if not self.todo.ticket.todo_of_ticket.exist_unfinished():
             manager.TicketFlowManager(ticket=self.todo.ticket).run_next_flow()
+
+        # 如果是数据迁移单据，更改迁移记录状态信息
+        if self.todo.ticket.ticket_type in [TicketType.SQLSERVER_INCR_MIGRATE, TicketType.SQLSERVER_FULL_MIGRATE]:
+            dts = SqlserverDtsInfo.objects.get(ticket_id=self.todo.ticket.id)
+            dts.status = DtsStatus.Terminated.value
+            dts.save()
 
 
 @todos.TodoActorFactory.register(TodoType.RESOURCE_REPLENISH)

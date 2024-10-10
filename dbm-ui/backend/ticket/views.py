@@ -24,7 +24,6 @@ from backend import env
 from backend.bk_web import viewsets
 from backend.bk_web.swagger import PaginatedResponseSwaggerAutoSchema, common_swagger_auto_schema
 from backend.configuration.models import DBAdministrator
-from backend.db_meta.models.sqlserver_dts import DtsStatus, SqlserverDtsInfo
 from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
 from backend.iam_app.dataclass import ResourceEnum
 from backend.iam_app.dataclass.actions import ActionEnum
@@ -441,11 +440,6 @@ class TicketViewSet(viewsets.AuditedModelViewSet):
         todo = ticket.todo_of_ticket.get(id=validated_data["todo_id"])
         TodoActorFactory.actor(todo).process(request.user.username, validated_data["action"], validated_data["params"])
 
-        # 如果是数据迁移单据，更改迁移记录状态信息
-        if ticket.ticket_type in [TicketType.SQLSERVER_INCR_MIGRATE, TicketType.SQLSERVER_FULL_MIGRATE]:
-            dts = SqlserverDtsInfo.objects.get(ticket_id=ticket.id)
-            dts.status = DtsStatus.Terminated.value
-            dts.save()
         return Response(TodoSerializer(ticket.todo_of_ticket.all(), many=True).data)
 
     @common_swagger_auto_schema(
