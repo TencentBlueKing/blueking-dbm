@@ -64,6 +64,8 @@ class FilterDatabaseTableFromFlashbackInputService(BaseService):
             return False
 
         databases_filtered = [ele["SCHEMA_NAME"] for ele in db_filter_res[0]["cmd_results"][0]["table_data"]]
+        if len(databases_filtered) == 0:
+            databases_filtered.append("")
 
         # tables 和 tables_ignore 使用三元操作符返回一个恒真表达式, 简化代码
         table_filter_sql = (
