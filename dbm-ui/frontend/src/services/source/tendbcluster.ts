@@ -52,6 +52,25 @@ export function getTendbClusterList(params: {
 }
 
 /**
+ * 获取 TendbCluster 从集群列表
+ */
+export function getTendbSlaveClusterList(params: { limit?: number; offset?: number; spider_slave_exist?: boolean }) {
+  params.spider_slave_exist = true;
+  return http.get<ListBase<TendbclusterModel[]>>(`${getRootPath()}/`, params).then((data) => ({
+    ...data,
+    results: data.results.map(
+      (item) =>
+        new TendbclusterModel(
+          Object.assign(item, {
+            master_domain: item.slave_domain,
+            permission: Object.assign({}, item.permission, data.permission),
+          }),
+        ),
+    ),
+  }));
+}
+
+/**
  * 根据业务 id 获取 spider 集群列表
  */
 export function getTendbclusterListByBizId(params: {

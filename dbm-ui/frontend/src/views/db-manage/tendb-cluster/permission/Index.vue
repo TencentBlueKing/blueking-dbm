@@ -57,7 +57,7 @@
         v-model="authorizeShow"
         :access-dbs="authorizeDbs"
         :account-type="AccountTypes.TENDBCLUSTER"
-        :cluster-types="[ClusterTypes.TENDBCLUSTER]"
+        :cluster-types="[ClusterTypes.TENDBCLUSTER, 'tendbclusterSlave']"
         :user="authorizeUser" />
     </div>
   </PermissionCatch>
