@@ -64,6 +64,7 @@
   export interface IListItem {
     value: IKey;
     label: string;
+    [x: string]: any;
   }
 </script>
 <script setup lang="ts">
