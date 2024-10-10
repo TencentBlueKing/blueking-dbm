@@ -400,31 +400,21 @@ class ListRetrieveResource(BaseListRetrieveResource):
         # 一join多的一方会有重复的数据,去重
         cluster_queryset = Cluster.objects.filter(query_filters).distinct()
 
-        def filter_inst_queryset(_cluster_queryset, _proxy_queryset, _storage_queryset, _filters):
-            # 注意这里用新的变量获取过滤后的queryset，不要用原queryset过滤，会影响后续集群关联实例的获取
-            _proxy_filter_queryset = _proxy_queryset.filter(_filters)
-            _storage_filter_queryset = _storage_queryset.filter(_filters)
-            # 这里如果不用distinct，会查询出重复记录。TODO: 排查查询重复记录的原因
-            _cluster_queryset = _cluster_queryset.filter(
-                Q(proxyinstance__in=_proxy_filter_queryset) | Q(storageinstance__in=_storage_filter_queryset)
-            ).distinct()
-            return _cluster_queryset
-
         # 实例筛选
         def filter_instance_func(_query_params, _cluster_queryset, _proxy_queryset, _storage_queryset):
             """实例过滤ip:port 以及 ip 两种情况"""
-            # 应用过滤条件并返回查询集
-            _cluster_queryset = filter_inst_queryset(
-                _cluster_queryset, _proxy_queryset, _storage_queryset, build_q_for_instance_filter(_query_params)
-            )
-
+            # 注意这里用新的变量获取过滤后的queryset，不要用原queryset过滤，会影响后续集群关联实例的获取
+            _filters = build_q_for_instance_filter(_query_params)
+            _proxy_filter_qs, _storage_filter_qs = _proxy_queryset.filter(_filters), _storage_queryset.filter(_filters)
+            _cluster_queryset = _cluster_queryset.filter(
+                Q(proxyinstance__in=_proxy_filter_qs) | Q(storageinstance__in=_storage_filter_qs)
+            ).distinct()
             return _cluster_queryset
 
+        inner_filter_func_map = {"instance": filter_instance_func}
         filter_func_map = filter_func_map or {}
-        filter_func_map = {
-            "instance": filter_instance_func,
-            **filter_func_map,
-        }
+        filter_func_map.update(inner_filter_func_map)
+
         # 通过基础过滤函数进行cluster过滤
         for params in filter_func_map:
             if params in query_params:

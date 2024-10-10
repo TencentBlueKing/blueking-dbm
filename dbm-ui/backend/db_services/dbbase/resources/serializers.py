@@ -40,6 +40,10 @@ class ListMySQLResourceSLZ(ListResourceSLZ):
     slave_domain = serializers.CharField(required=False)
 
 
+class ListTendbClusterResourceSLZ(ListMySQLResourceSLZ):
+    spider_slave_exist = serializers.BooleanField(required=False)
+
+
 class ListRedisResourceSLZ(ListResourceSLZ):
     pass
 

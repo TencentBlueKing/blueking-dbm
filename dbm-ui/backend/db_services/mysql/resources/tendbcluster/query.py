@@ -62,6 +62,8 @@ class ListRetrieveResource(query.ListRetrieveResource):
         **kwargs,
     ) -> ResourceList:
         """查询集群信息"""
+        slave_role = TenDBClusterSpiderRole.SPIDER_SLAVE
+        filter_params_map = {"spider_slave_exist": Q(proxyinstance__tendbclusterspiderext__spider_role=slave_role)}
         return super()._list_clusters(
             bk_biz_id, query_params, limit, offset, filter_params_map, filter_func_map, **kwargs
         )
