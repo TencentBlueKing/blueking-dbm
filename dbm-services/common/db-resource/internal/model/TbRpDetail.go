@@ -133,7 +133,7 @@ func (t TbRpDetail) MatchDbmSpec(spec dbmapi.DbmSpec) bool {
 			logger.Warn("cpu not match, dbmSpec:%+v, detail:%s", spec.SpecName, t.IP)
 			return false
 		}
-		if !isWithinRange(t.DramCap, int(spec.Mem.Min*1024), spec.Mem.Max*1024) {
+		if !isWithinRange(t.DramCap, int(spec.Mem.Min*1024), int(spec.Mem.Max*1024)) {
 			logger.Warn("mem not match, dbmSpec:%+v, detail:%s", spec.SpecName, t.IP)
 			return false
 		}
