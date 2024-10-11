@@ -13,29 +13,21 @@
 
 import dayjs from 'dayjs';
 
+import type { PermissionRule, PermissionRuleAccount, PermissionRuleInfo } from '@services/types';
+
 import { utcDisplayTime } from '@utils';
 
-export default class SqlserverPermissionAccount {
-  account: {
-    account_id: number;
-    bk_biz_id: number;
-    create_time: string;
-    creator: string;
-    password: string;
-    user: string;
+export default class SqlserverPermissionAccount implements PermissionRule {
+  account: PermissionRuleAccount;
+  permission: {
+    sqlserver_account_delete: boolean;
+    sqlserver_add_account_rule: boolean;
   };
-  rules: {
-    access_db: string;
-    account_id: number;
-    bk_biz_id: number;
-    create_time: string;
-    creator: string;
-    privilege: string;
-    rule_id: number;
-  }[];
+  rules: PermissionRuleInfo[];
 
   constructor(payload: SqlserverPermissionAccount) {
     this.account = payload.account;
+    this.permission = payload.permission;
     this.rules = payload.rules;
   }
 

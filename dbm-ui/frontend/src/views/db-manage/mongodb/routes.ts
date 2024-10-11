@@ -121,7 +121,7 @@ const routes: RouteRecordRaw[] = [
         name: 'MongoDBReplicaSetList',
         path: 'replica-set-list',
         meta: {
-          navName: t('【MongDB】副本集集群管理'),
+          navName: t('【MongoDB】副本集集群管理'),
           fullscreen: true,
         },
         component: () => import('@views/db-manage/mongodb/replica-set-list/Index.vue'),
@@ -130,7 +130,7 @@ const routes: RouteRecordRaw[] = [
         name: 'MongoDBSharedClusterList',
         path: 'shared-cluster-list',
         meta: {
-          navName: t('【MongDB】分片集群管理'),
+          navName: t('【MongoDB】分片集群管理'),
           fullscreen: true,
         },
         component: () => import('@views/db-manage/mongodb/shared-cluster-list/Index.vue'),
@@ -139,7 +139,7 @@ const routes: RouteRecordRaw[] = [
         name: 'mongodbInstance',
         path: 'mongodb-instance',
         meta: {
-          navName: t('mongDB实例视图'),
+          navName: t('【MongoDB】实例视图'),
           fullscreen: true,
         },
         component: () => import('@views/db-manage/mongodb/mongodb-instance/index.vue'),
@@ -148,7 +148,7 @@ const routes: RouteRecordRaw[] = [
         name: 'MongodbPermission',
         path: 'permission',
         meta: {
-          navName: t('【MongDB】授权规则'),
+          navName: t('【MongoDB】授权规则'),
         },
         component: () => import('@views/db-manage/mongodb/permission/Index.vue'),
       },

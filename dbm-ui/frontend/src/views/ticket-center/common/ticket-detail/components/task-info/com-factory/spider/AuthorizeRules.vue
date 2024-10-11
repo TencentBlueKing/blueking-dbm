@@ -94,7 +94,7 @@
 
   import type { MysqlAuthorizationDetails } from '@services/model/ticket/details/mysql';
   import TicketModel from '@services/model/ticket/ticket';
-  import { queryAccountRules } from '@services/source/permission';
+  import { queryAccountRules } from '@services/source/mysqlPermissionAccount';
   import { getHostInAuthorize } from '@services/source/ticket';
 
   import {
