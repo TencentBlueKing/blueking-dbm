@@ -29,10 +29,10 @@
     type="card"
     @change="handleChange">
     <BkRadioButton
-      v-for="(item, index) in rollbackInfos"
-      :key="index"
-      :label="item.value">
-      {{ item.label }}
+      v-for="(value, key) in rollbackTypeLabel"
+      :key="key"
+      :label="key">
+      {{ value }}
     </BkRadioButton>
   </BkRadioGroup>
   <RenderData
@@ -51,9 +51,8 @@
 
   import TimeZonePicker from '@components/time-zone-picker/index.vue';
 
-  import { rollbackInfos } from '@views/db-manage/mysql/rollback/pages/page1/components/common/const';
-
-  import RenderData, { createRowData, type IDataRow } from './components/render-data/Index.vue';
+  import { createRowData, type IDataRow } from './components/render-row/Index.vue';
+  import RenderData from './components/RenderData.vue';
 
   const { t } = useI18n();
 
@@ -62,14 +61,20 @@
     type: TicketTypes.TENDBCLUSTER_ROLLBACK_CLUSTER,
     onSuccess(cloneData) {
       rollbackClusterType.value = cloneData.rollback_cluster_type;
-      tableData.value = cloneData.tableDataList as IDataRow[];
+      tableData.value = cloneData.tableDataList;
       window.changeConfirm = true;
     },
   });
 
+  const rollbackTypeLabel = {
+    [RollbackClusterTypes.BUILD_INTO_NEW_CLUSTER]: t('构造到新集群'),
+    [RollbackClusterTypes.BUILD_INTO_EXIST_CLUSTER]: t('构造到已有集群'),
+    [RollbackClusterTypes.BUILD_INTO_METACLUSTER]: t('构造到原集群'),
+  };
+
   const renderDataRef = ref<InstanceType<typeof RenderData>>();
   const rollbackClusterType = ref<RollbackClusterTypes>(RollbackClusterTypes.BUILD_INTO_NEW_CLUSTER);
-  const tableData = shallowRef<Array<IDataRow>>([createRowData({})]);
+  const tableData = shallowRef<IDataRow[]>([createRowData({})]);
 
   const handleChange = () => {
     renderDataRef.value!.reset();

@@ -15,13 +15,13 @@
   <div class="render-host-box">
     <TableSeletorInput
       ref="editRef"
-      v-model="localValue"
+      v-model="localClusterDomain"
       :rules="rules"
       @click-seletor="handleOpenSeletor" />
   </div>
   <ClusterSelector
     v-model:is-show="isShowSelector"
-    :cluster-types="[ClusterTypes.TENDBHA, ClusterTypes.TENDBSINGLE]"
+    :cluster-types="[ClusterTypes.TENDBCLUSTER]"
     :selected="selectedClusters"
     :tab-list-config="tabListConfig"
     @change="handelClusterChange" />
@@ -29,11 +29,10 @@
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
-  import type TendbhaModel from '@services/model/mysql/tendbha';
-  import type TendbsingleModel from '@services/model/mysql/tendbsingle';
+  import TendbhaModel from '@services/model/mysql/tendbha';
+  import type TendbClusterModel from '@services/model/tendbcluster/tendbcluster';
   import { queryClusters } from '@services/source/mysqlCluster';
-
-  import { useGlobalBizs } from '@stores';
+  import { getTendbClusterList } from '@services/source/tendbcluster';
 
   import { ClusterTypes } from '@common/const';
   import { batchSplitRegex, domainRegex } from '@common/regex';
@@ -53,42 +52,26 @@
     }>;
   }
 
-  type SelectedClusters = Array<TendbhaModel | TendbsingleModel>;
-
   const props = withDefaults(defineProps<Props>(), {
     sourceClusterId: 0,
     targetClusterId: 0,
   });
 
   const { t } = useI18n();
-  const { currentBizId } = useGlobalBizs();
-
-  const isShowSelector = ref(false);
 
   const editRef = ref<InstanceType<typeof TableSeletorInput>>();
-  const localValue = ref();
-  const localClusterIds = ref<number[]>([props.targetClusterId]);
-  const selectedClusters = shallowRef<{ [key: string]: SelectedClusters }>({
-    [ClusterTypes.TENDBHA]: [],
-    [ClusterTypes.TENDBSINGLE]: [],
+  const isShowSelector = ref(false);
+  const localClusterDomain = ref('');
+  const localClusterId = ref<number>(props.targetClusterId);
+  const selectedClusters = shallowRef<{ [key: string]: Array<TendbClusterModel> }>({
+    [ClusterTypes.TENDBCLUSTER]: [],
   });
 
   const tabListConfig = {
-    [ClusterTypes.TENDBHA]: {
-      showPreviewResultTitle: true,
+    [ClusterTypes.TENDBCLUSTER]: {
       disabledRowConfig: [
         {
           handler: (data: TendbhaModel) => data.id === props.sourceClusterId,
-          tip: t('不能选择源集群'),
-        },
-      ],
-      multiple: false,
-    },
-    [ClusterTypes.TENDBSINGLE]: {
-      showPreviewResultTitle: true,
-      disabledRowConfig: [
-        {
-          handler: (data: TendbsingleModel) => data.id === props.sourceClusterId,
           tip: t('不能选择源集群'),
         },
       ],
@@ -112,7 +95,7 @@
           cluster_filters: list.map((item) => ({
             immute_domain: item,
           })),
-          bk_biz_id: currentBizId,
+          bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
         }).then((data) => {
           if (data.length === list.length) {
             return true;
@@ -125,17 +108,29 @@
   ];
 
   const queryClustersById = (id: number) => {
-    queryClusters({
-      cluster_filters: [
-        {
-          id,
-        },
-      ],
-      bk_biz_id: currentBizId,
+    getTendbClusterList({
+      cluster_ids: [id],
     }).then((data) => {
-      if (data) {
-        localValue.value = data[0].master_domain;
+      if (data?.results.length > 0) {
+        localClusterDomain.value = data.results[0]?.master_domain;
       }
+    });
+  };
+
+  const handleOpenSeletor = () => {
+    isShowSelector.value = true;
+  };
+
+  // 批量选择
+  const handelClusterChange = (selected: { [key: string]: TendbClusterModel[] }) => {
+    selectedClusters.value = selected;
+    const list = Object.values(selected).flat();
+    const [firstItem] = list;
+    localClusterDomain.value = firstItem.master_domain;
+    localClusterId.value = firstItem.id;
+    window.changeConfirm = true;
+    setTimeout(() => {
+      editRef.value!.getValue();
     });
   };
 
@@ -151,26 +146,10 @@
     },
   );
 
-  const handleOpenSeletor = () => {
-    isShowSelector.value = true;
-  };
-
-  // 批量选择
-  const handelClusterChange = (selected: { [key: string]: SelectedClusters }) => {
-    selectedClusters.value = selected;
-    const list = Object.keys(selected).reduce((list: SelectedClusters, key) => list.concat(...selected[key]), []);
-    localValue.value = list.map((item) => item.master_domain).join(',');
-    localClusterIds.value = list.map((item) => item.id);
-    window.changeConfirm = true;
-    setTimeout(() => {
-      editRef.value!.getValue();
-    });
-  };
-
   defineExpose<Exposes>({
     getValue() {
       return editRef.value!.getValue().then(() => ({
-        target_cluster_id: localClusterIds.value[0],
+        target_cluster_id: localClusterId.value,
       }));
     },
   });

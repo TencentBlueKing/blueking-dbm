@@ -98,7 +98,6 @@
 
   const handleChange = (value: Required<Props>['modelValue']) => {
     localValue.value = value;
-    console.log('handleChange', value);
     validator(localValue.value).then(() => {
       window.changeConfirm = true;
       emits('update:modelValue', localValue.value);
