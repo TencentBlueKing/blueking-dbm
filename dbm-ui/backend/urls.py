@@ -65,6 +65,7 @@ api_patterns = [
 ]
 
 urlpatterns = [
+    path("admin/dynamic_raw_id/", include("dynamic_raw_id.urls")),
     path("admin/", admin.site.urls),
     path("account/", include("blueapps.account.urls")),
     path("apis/", include(api_patterns)),
