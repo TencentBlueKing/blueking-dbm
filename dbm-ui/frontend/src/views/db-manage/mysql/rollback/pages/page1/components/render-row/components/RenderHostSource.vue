@@ -20,13 +20,14 @@
     :rules="rules"
     @change="(value) => handleChange(value as string)">
     <template #default="{ optionItem }">
-      <div class="option-item">
-        <span>{{ optionItem.label }}</span>
-        <span class="option-count">{{ optionItem.count }}</span>
+      <div class="role-host-select-option">
+        <div>{{ optionItem.label }}</div>
+        <div class="option-count">{{ optionItem.count }}</div>
       </div>
     </template>
   </TableEditSelect>
 </template>
+
 <script setup lang="ts">
   import { ref } from 'vue';
   import { useI18n } from 'vue-i18n';
@@ -48,11 +49,11 @@
   }
 
   const props = defineProps<Props>();
+
   const emits = defineEmits<Emits>();
 
   const { t } = useI18n();
 
-  const bizId = window.PROJECT_CONFIG.BIZ_ID;
   const rules = [
     {
       validator: (value: string) => Boolean(value),
@@ -70,23 +71,13 @@
     },
   ]);
 
-  watch(
-    () => props.modelValue,
-    () => {
-      localValue.value = props.modelValue;
-    },
-    {
-      immediate: true,
-    },
-  );
-
   const getHostsCount = () => {
     getHostTopo({
       mode: 'idle_only',
       all_scope: true,
       scope_list: [
         {
-          scope_id: bizId,
+          scope_id: window.PROJECT_CONFIG.BIZ_ID,
           scope_type: 'biz',
         },
       ],
@@ -97,11 +88,25 @@
       }
     });
   };
-  getHostsCount();
+
   const handleChange = (value: string) => {
     localValue.value = value;
     emits('change', localValue.value);
   };
+
+  watch(
+    () => props.modelValue,
+    () => {
+      localValue.value = props.modelValue;
+    },
+    {
+      immediate: true,
+    },
+  );
+
+  onMounted(() => {
+    getHostsCount();
+  });
 
   defineExpose<Exposes>({
     getValue() {
@@ -111,21 +116,20 @@
     },
   });
 </script>
-<style lang="less" scoped>
-  .option-item {
+
+<style lang="less">
+  .role-host-select-option {
     display: flex;
-    align-items: center;
     width: 100%;
-    justify-content: space-between;
 
     .option-count {
-      display: flex;
-      align-items: center;
       width: 23px;
-      height: 17px;
-      background: #eaebf0;
+      height: 16px;
+      padding: 0 8px;
+      margin-left: auto;
+      color: #979ba5;
+      background-color: #f0f1f5;
       border-radius: 2px;
-      justify-content: center;
     }
   }
 </style>
