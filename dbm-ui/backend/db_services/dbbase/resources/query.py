@@ -461,6 +461,7 @@ class ListRetrieveResource(BaseListRetrieveResource):
         cluster_queryset = cluster_queryset[offset : limit + offset].prefetch_related(
             Prefetch("proxyinstance_set", queryset=proxy_queryset.select_related("machine"), to_attr="proxies"),
             Prefetch("storageinstance_set", queryset=storage_queryset.select_related("machine"), to_attr="storages"),
+            Prefetch("nosqlstoragesetdtl_set", to_attr="storage_set_dtl"),
             Prefetch("clusterentry_set", to_attr="entries"),
             "tag_set",
         )
@@ -526,6 +527,18 @@ class ListRetrieveResource(BaseListRetrieveResource):
         """
         cluster_entry_map_value = cluster_entry_map.get(cluster.id, {})
         bk_cloud_name = cloud_info.get(str(cluster.bk_cloud_id), {}).get("bk_cloud_name", "")
+
+        machine_list = [
+            (storage_set_dtl.seg_range, f"{storage_set_dtl.instance.machine.ip}:{storage_set_dtl.instance.port}")
+            for storage_set_dtl in cluster.storage_set_dtl
+        ]
+        machine_map = {}
+        for group_name, machine_ip_port in machine_list:
+            if not machine_map.get(group_name):
+                machine_map[group_name] = [machine_ip_port]
+            else:
+                machine_map[group_name].append(machine_ip_port)
+
         return {
             "id": cluster.id,
             "phase": cluster.phase,
@@ -548,6 +561,7 @@ class ListRetrieveResource(BaseListRetrieveResource):
             "bk_cloud_name": bk_cloud_name,
             "major_version": cluster.major_version,
             "region": cluster.region,
+            "seg_range": machine_map,
             "db_module_name": db_module_names_map.get(cluster.db_module_id, ""),
             "db_module_id": cluster.db_module_id,
             "creator": cluster.creator,
