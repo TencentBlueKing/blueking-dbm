@@ -14,6 +14,7 @@
 import ClusterSpecModel from '@services/model/resource-spec/cluster-sepc';
 
 import type { DetailClusters, DetailSpecs, SpecInfo } from './common';
+import type { RollbackClusterTypes } from './mysql';
 
 // spider 部署
 export interface SpiderApplyDetails {
@@ -245,25 +246,29 @@ export interface SpiderNodeRebalanceDetails {
 
 // spider 定点回档
 export interface SpiderRollbackDetails {
-  cluster_id: number;
   clusters: DetailClusters;
-  rollback_type: 'REMOTE_AND_BACKUPID' | 'REMOTE_AND_TIME';
-  rollback_time: string;
-  backupinfo: {
-    backup_begin_time: string;
-    backup_end_time: string;
-    backup_id: string;
-    backup_time: string;
-    bill_id: string;
-    bk_biz_id: number;
-    bk_cloud_id: number;
-    cluster_address: string;
+  infos: {
     cluster_id: number;
-  };
-  databases: string[];
-  tables: string[];
-  databases_ignore: string[];
-  tables_ignore: string[];
+    target_cluster_id: number;
+    rollback_type: 'REMOTE_AND_BACKUPID' | 'REMOTE_AND_TIME';
+    rollback_time: string;
+    backupinfo: {
+      backup_begin_time: string;
+      backup_end_time: string;
+      backup_id: string;
+      backup_time: string;
+      bill_id: string;
+      bk_biz_id: number;
+      bk_cloud_id: number;
+      cluster_address: string;
+      cluster_id: number;
+    };
+    databases: string[];
+    tables: string[];
+    databases_ignore: string[];
+    tables_ignore: string[];
+  }[];
+  rollback_cluster_type: RollbackClusterTypes;
 }
 
 // Spider flashback

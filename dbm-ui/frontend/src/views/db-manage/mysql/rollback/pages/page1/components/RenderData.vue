@@ -13,21 +13,22 @@
 
 <template>
   <SmartAction>
-    <Component
-      :is="components.RenderData"
+    <RenderTable
+      :key="rollbackClusterType"
       class="mt16 mb-20"
+      :rollback-cluster-type="rollbackClusterType"
       @batch-edit="(obj) => handleBatchEdit(obj)"
       @show-selector="handleShowSelector">
-      <Component
-        :is="components.RenderDataRow"
+      <RenderRow
         v-for="(item, index) in tableData"
         :key="item.rowKey"
         ref="rowRefs"
         :data="item"
         :removeable="tableData.length < 2"
-        @add="(payload: Array<IDataRow>) => handleAppend(index, payload)"
+        :rollback-cluster-type="rollbackClusterType"
+        @add="(payload: IDataRow[]) => handleAppend(index, payload)"
         @remove="() => handleRemove(index)" />
-    </Component>
+    </RenderTable>
     <template #action>
       <BkButton
         class="w-88"
@@ -52,59 +53,27 @@
     v-model:is-show="isShowSelector"
     :cluster-types="[ClusterTypes.TENDBHA, ClusterTypes.TENDBSINGLE]"
     :selected="selectedClusters"
-    :tab-list-config="tabListConfig"
     @change="handelClusterChange" />
 </template>
-<script lang="ts">
-  import { random } from '@utils';
 
-  import { BackupSources, BackupTypes } from '../common/const';
-  import type { HostDataItem } from '../common/RenderHostInputSelect.vue';
+<script setup lang="ts">
+  import { debounce } from 'lodash';
+  import { useI18n } from 'vue-i18n';
+  import { useRouter } from 'vue-router';
 
-  export interface IDataRow {
-    rowKey: string;
-    clusterData?: {
-      id: number;
-      domain: string;
-      cloudId?: number;
-      cloudName?: string;
-      clusterType?: string;
-    };
-    targetClusterId?: number;
-    rollbackHost?: HostDataItem;
-    backupSource: BackupSources;
-    rollbackType: BackupTypes;
-    backupid?: string;
-    rollbackTime?: string;
-    databases: string[];
-    databasesIgnore?: string[];
-    tables: string[];
-    tablesIgnore?: string[];
-  }
+  import TendbhaModel from '@services/model/mysql/tendbha';
+  import TendbsingleModel from '@services/model/mysql/tendbsingle';
+  import { RollbackClusterTypes } from '@services/model/ticket/details/mysql';
+  import { createTicket } from '@services/source/ticket';
 
-  // 创建表格数据
-  export const createRowData = (data = {} as Partial<IDataRow>) => ({
-    rowKey: random(),
-    clusterData: data.clusterData || {
-      id: 0,
-      domain: '',
-    },
-    targetClusterId: data.targetClusterId || 0,
-    rollbackHost: data.rollbackHost || {
-      ip: '',
-      bk_host_id: 0,
-      bk_cloud_id: 0,
-      bk_biz_id: 0,
-    },
-    backupSource: data.backupSource || BackupSources.REMOTE,
-    rollbackType: data.rollbackType || BackupTypes.BACKUPID,
-    backupid: data.backupid || '',
-    rollbackTime: data.rollbackTime || '',
-    databases: data.databases || ['*'],
-    databasesIgnore: data.databasesIgnore,
-    tables: data.tables || ['*'],
-    tablesIgnore: data.tablesIgnore,
-  });
+  import { ClusterTypes, TicketTypes } from '@common/const';
+
+  import ClusterSelector from '@components/cluster-selector/Index.vue';
+
+  import { messageWarn } from '@utils';
+
+  import RenderRow, { createRowData, type IDataRow } from './render-row/Index.vue';
+  import RenderTable from './RenderTable.vue';
 
   interface Props {
     data: IDataRow[];
@@ -114,59 +83,12 @@
   interface Exposes {
     reset: () => void;
   }
-</script>
-<script setup lang="ts">
-  import { useI18n } from 'vue-i18n';
-  import { useRouter } from 'vue-router';
-
-  import TendbhaModel from '@services/model/mysql/tendbha';
-  import TendbsingleModel from '@services/model/mysql/tendbsingle';
-  import { RollbackClusterTypes } from '@services/model/ticket/details/mysql';
-  import { createTicket } from '@services/source/ticket';
-
-  import { useGlobalBizs } from '@stores';
-
-  import { ClusterTypes, TicketTypes } from '@common/const';
-
-  import ClusterSelector from '@components/cluster-selector/Index.vue';
-
-  import ExistCluster from './exist-cluster/Index.vue';
-  import ExistClusterRow from './exist-cluster/Row.vue';
-  import NewCluster from './new-cluster/Index.vue';
-  import NewClusterRow from './new-cluster/Row.vue';
-  import OriginCluster from './origin-cluster/Index.vue';
-  import OriginClusterRow from './origin-cluster/Row.vue';
 
   const props = defineProps<Props>();
-
-  const rollbackRenderDataInfo = {
-    [RollbackClusterTypes.BUILD_INTO_NEW_CLUSTER]: {
-      RenderData: NewCluster,
-      RenderDataRow: NewClusterRow,
-    },
-    [RollbackClusterTypes.BUILD_INTO_EXIST_CLUSTER]: {
-      RenderData: ExistCluster,
-      RenderDataRow: ExistClusterRow,
-    },
-    [RollbackClusterTypes.BUILD_INTO_METACLUSTER]: {
-      RenderData: OriginCluster,
-      RenderDataRow: OriginClusterRow,
-    },
-  };
-
-  const tabListConfig = {
-    [ClusterTypes.TENDBHA]: {
-      showPreviewResultTitle: true,
-    },
-    [ClusterTypes.TENDBSINGLE]: {
-      showPreviewResultTitle: true,
-    },
-  };
 
   const { t } = useI18n();
 
   const router = useRouter();
-  const { currentBizId } = useGlobalBizs();
 
   // 集群域名是否已存在表格的映射表
   let domainMemo: Record<string, boolean> = {};
@@ -178,13 +100,11 @@
   const rowRefs = ref();
   const isShowSelector = ref(false);
   const isSubmitting = ref(false);
-  const tableData = ref<Array<IDataRow>>([createRowData({})]);
+  const tableData = ref<IDataRow[]>([createRowData({})]);
   const selectedClusters = shallowRef<{ [key: string]: Array<TendbhaModel> | Array<TendbsingleModel> }>(initSelected);
 
-  const components = computed(() => rollbackRenderDataInfo[props.rollbackClusterType]);
-
   // 检测列表是否为空
-  const checkListEmpty = (list: Array<IDataRow>) => {
+  const checkListEmpty = (list: IDataRow[]) => {
     if (list.length > 1) {
       return false;
     }
@@ -198,6 +118,12 @@
 
   // 批量编辑
   const handleBatchEdit = (obj: Record<string, any>) => {
+    if (checkListEmpty(tableData.value)) {
+      debounce(() => {
+        messageWarn(t('请先添加待回档集群'));
+      }, 300);
+      return;
+    }
     if (!obj) {
       return;
     }
@@ -244,7 +170,7 @@
   };
 
   // 追加一个集群
-  const handleAppend = (index: number, appendList: Array<IDataRow>) => {
+  const handleAppend = (index: number, appendList: IDataRow[]) => {
     const dataList = [...tableData.value];
     dataList.splice(index + 1, 0, ...appendList);
     tableData.value = dataList;
@@ -268,7 +194,7 @@
       isSubmitting.value = true;
       const infos = await Promise.all(rowRefs.value.map((item: { getValue: () => Promise<any> }) => item.getValue()));
       await createTicket({
-        bk_biz_id: currentBizId,
+        bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
         ticket_type: TicketTypes.MYSQL_ROLLBACK_CLUSTER,
         remark: '',
         details: {
