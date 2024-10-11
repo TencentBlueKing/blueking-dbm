@@ -31,7 +31,7 @@ def bkm_get_alarm_strategy(name, bk_biz_id=env.DBA_APP_BK_BIZ_ID):
     res = BKMonitorV3Api.search_alarm_strategy_v3(
         {
             "page": 1,
-            "page_size": 1,
+            "page_size": 100,
             "conditions": [{"key": "name", "value": name}],
             "bk_biz_id": bk_biz_id,
             "with_notice_group": False,
@@ -39,10 +39,10 @@ def bkm_get_alarm_strategy(name, bk_biz_id=env.DBA_APP_BK_BIZ_ID):
         },
         use_admin=True,
     )
-
     # 批量获取策略
-    strategy_config_list = res["strategy_config_list"]
-    return strategy_config_list[0] if strategy_config_list else None
+    for strategy in res["strategy_config_list"]:
+        if strategy["name"] == name:
+            return strategy
 
 
 def bkm_save_alarm_strategy(params):

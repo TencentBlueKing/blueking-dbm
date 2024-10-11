@@ -424,11 +424,11 @@ class DispatchGroup(AuditedModel):
         rules = []
 
         user_groups = [NoticeGroup.get_groups(bk_biz_id).get(db_type)]
-        # 补充 dbha 特殊策略的分派规则
+        # 特殊策略需要独立分派
+        dispatch_policies = MonitorPolicy.get_dispatch_policies()
         if db_type in [DBType.MySQL, DBType.TenDBCluster, DBType.Redis, DBType.Sqlserver]:
-            policies = MonitorPolicy.get_dbha_policies()
             conditions = [
-                {"field": "alert.strategy_id", "method": "eq", "value": policies, "condition": "and"},
+                {"field": "alert.strategy_id", "method": "eq", "value": dispatch_policies, "condition": "and"},
                 {
                     "field": "cluster_type",
                     "method": "eq",
@@ -446,10 +446,8 @@ class DispatchGroup(AuditedModel):
                 }
             )
 
-        # 仅分派平台策略
-        policies = MonitorPolicy.get_policies(db_type)
-
-        # 排除无效的db类型，比如cloud
+        # 仅分派平台策略，排除掉需要特殊分派的策略
+        policies = list(set(MonitorPolicy.get_policies(db_type)) - set(dispatch_policies))
         if policies:
             conditions = [{"field": "alert.strategy_id", "value": policies, "method": "eq", "condition": "and"}]
 
@@ -457,13 +455,13 @@ class DispatchGroup(AuditedModel):
             if bk_biz_id != PLAT_BIZ_ID:
                 conditions.append({"field": "appid", "value": [str(bk_biz_id)], "method": "eq", "condition": "and"})
 
-            rules = [
+            rules.append(
                 {
                     "user_groups": user_groups,
                     "conditions": conditions,
                     **BK_MONITOR_DISPATCH_RULE_MIXIN,
                 }
-            ]
+            )
 
         return rules
 
@@ -1003,10 +1001,12 @@ class MonitorPolicy(AuditedModel):
         return policy_ids
 
     @classmethod
-    def get_dbha_policies(cls):
-        """获取高可用策略id列表"""
+    def get_dispatch_policies(cls):
+        """获取需独立分派的特殊策略"""
         return list(
-            cls.objects.filter(details__labels__contains=["/DBM_DBHA/"]).values_list("monitor_policy_id", flat=True)
+            cls.objects.filter(details__labels__contains=["/DBM_NEED_DISPATCH/"]).values_list(
+                "monitor_policy_id", flat=True
+            )
         )
 
     @classmethod

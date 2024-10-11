@@ -232,7 +232,8 @@
     "labels": [
       "DBM",
       "DBM_CLOUD",
-      "DBM_DBHA"
+      "DBM_DBHA",
+      "DBM_NEED_DISPATCH"
     ],
     "app": "",
     "path": "",
