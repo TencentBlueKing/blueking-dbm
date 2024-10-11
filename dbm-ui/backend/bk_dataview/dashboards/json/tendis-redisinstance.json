@@ -37,7 +37,7 @@
         "x": 0,
         "y": 0
       },
-      "id": null,
+      "id": 7,
       "panels": [
         {
           "datasource": {
@@ -100,7 +100,7 @@
             "x": 0,
             "y": 1
           },
-          "id": null,
+          "id": 56,
           "interval": "2m",
           "options": {
             "legend": {
@@ -243,7 +243,7 @@
             "x": 12,
             "y": 1
           },
-          "id": null,
+          "id": 58,
           "interval": "2m",
           "options": {
             "legend": {
@@ -386,7 +386,7 @@
             "x": 0,
             "y": 9
           },
-          "id": null,
+          "id": 60,
           "interval": "2m",
           "options": {
             "legend": {
@@ -585,7 +585,7 @@
             "x": 12,
             "y": 9
           },
-          "id": null,
+          "id": 68,
           "interval": "2m",
           "options": {
             "legend": {
@@ -1193,7 +1193,7 @@
             "x": 0,
             "y": 17
           },
-          "id": null,
+          "id": 65,
           "interval": "2m",
           "options": {
             "legend": {
@@ -1449,7 +1449,7 @@
             "x": 12,
             "y": 17
           },
-          "id": null,
+          "id": 63,
           "interval": "2m",
           "options": {
             "legend": {
@@ -1648,7 +1648,7 @@
             "x": 0,
             "y": 25
           },
-          "id": null,
+          "id": 71,
           "interval": "2m",
           "options": {
             "legend": {
@@ -1848,7 +1848,7 @@
             "x": 12,
             "y": 25
           },
-          "id": null,
+          "id": 66,
           "interval": "2m",
           "options": {
             "legend": {
@@ -1943,7 +1943,7 @@
         "x": 0,
         "y": 1
       },
-      "id": null,
+      "id": 9,
       "panels": [],
       "title": "Redis",
       "type": "row"
@@ -1988,7 +1988,7 @@
         "x": 0,
         "y": 2
       },
-      "id": null,
+      "id": 73,
       "options": {
         "colorMode": "value",
         "graphMode": "area",
@@ -2111,7 +2111,7 @@
         "x": 3,
         "y": 2
       },
-      "id": null,
+      "id": 26,
       "options": {
         "colorMode": "value",
         "graphMode": "area",
@@ -2218,7 +2218,7 @@
         "x": 6,
         "y": 2
       },
-      "id": null,
+      "id": 28,
       "options": {
         "colorMode": "value",
         "graphMode": "area",
@@ -2337,7 +2337,7 @@
         "x": 9,
         "y": 2
       },
-      "id": null,
+      "id": 17,
       "options": {
         "colorMode": "value",
         "graphMode": "area",
@@ -2437,7 +2437,7 @@
         "x": 12,
         "y": 2
       },
-      "id": null,
+      "id": 86,
       "options": {
         "colorMode": "value",
         "graphMode": "none",
@@ -2555,7 +2555,7 @@
         "x": 15,
         "y": 2
       },
-      "id": null,
+      "id": 36,
       "options": {
         "colorMode": "value",
         "graphMode": "area",
@@ -2667,7 +2667,7 @@
         "x": 18,
         "y": 2
       },
-      "id": null,
+      "id": 72,
       "options": {
         "colorMode": "value",
         "graphMode": "area",
@@ -2690,17 +2690,10 @@
             "type": "bkmonitor-timeseries-datasource",
             "uid": "bkmonitor_timeseries"
           },
-          "expressionList": [
-            {
-              "active": true,
-              "alias": "",
-              "expression": "sum(a)",
-              "functions": []
-            }
-          ],
+          "expressionList": [],
           "format": "time_series",
           "host": [],
-          "mode": "ui",
+          "mode": "code",
           "module": [],
           "promqlAlias": "",
           "query_configs": [
@@ -2711,12 +2704,10 @@
               "display": false,
               "filter_dict": {},
               "functions": [],
-              "group_by": [
-                "bk_target_ip"
-              ],
+              "group_by": [],
               "interval": 60,
               "interval_unit": "s",
-              "method": "avg_without_time",
+              "method": "sum_without_time",
               "metric_field": "total",
               "refId": "a",
               "result_table_id": "dbm_system.mem",
@@ -2742,7 +2733,7 @@
             }
           ],
           "refId": "A",
-          "source": "avg by (target) (avg_over_time(bkmonitor:dbm_system:mem:total{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[1m]))",
+          "source": "sum(bkmonitor:dbm_system:mem:total{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"})",
           "step": "",
           "type": "instant"
         }
@@ -2784,7 +2775,7 @@
         "x": 21,
         "y": 2
       },
-      "id": null,
+      "id": 37,
       "options": {
         "colorMode": "value",
         "graphMode": "none",
@@ -2903,7 +2894,7 @@
         "x": 0,
         "y": 5
       },
-      "id": null,
+      "id": 84,
       "options": {
         "colorMode": "value",
         "graphMode": "area",
@@ -3016,7 +3007,7 @@
         "x": 3,
         "y": 5
       },
-      "id": null,
+      "id": 82,
       "options": {
         "colorMode": "value",
         "graphMode": "area",
@@ -3128,7 +3119,7 @@
         "x": 6,
         "y": 5
       },
-      "id": null,
+      "id": 35,
       "options": {
         "colorMode": "value",
         "graphMode": "area",
@@ -3251,7 +3242,7 @@
         "x": 9,
         "y": 5
       },
-      "id": null,
+      "id": 85,
       "options": {
         "colorMode": "value",
         "graphMode": "area",
@@ -3359,7 +3350,7 @@
         "x": 12,
         "y": 5
       },
-      "id": null,
+      "id": 74,
       "options": {
         "colorMode": "value",
         "graphMode": "area",
@@ -3517,7 +3508,7 @@
         "x": 15,
         "y": 5
       },
-      "id": null,
+      "id": 29,
       "options": {
         "colorMode": "value",
         "graphMode": "area",
@@ -3629,7 +3620,7 @@
         "x": 18,
         "y": 5
       },
-      "id": null,
+      "id": 75,
       "options": {
         "colorMode": "value",
         "graphMode": "area",
@@ -3770,7 +3761,7 @@
         "x": 0,
         "y": 8
       },
-      "id": null,
+      "id": 51,
       "interval": "2m",
       "options": {
         "legend": {
@@ -3856,6 +3847,72 @@
           "source": "sum by(cmd) (irate(bkmonitor:exporter_dbm_redis_exporter:__default__:redis_commands_total{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[$__interval]))",
           "step": "",
           "type": "range"
+        },
+        {
+          "cluster": [],
+          "datasource": {
+            "type": "bkmonitor-timeseries-datasource",
+            "uid": "bkmonitor_timeseries"
+          },
+          "expressionList": [],
+          "format": "time_series",
+          "hide": false,
+          "host": [],
+          "mode": "code",
+          "module": [],
+          "promqlAlias": "total",
+          "query_configs": [
+            {
+              "alias": "$tag_cmd",
+              "data_source_label": "bk_monitor",
+              "data_type_label": "time_series",
+              "display": true,
+              "filter_dict": {},
+              "functions": [
+                {
+                  "id": "irate",
+                  "params": [
+                    {
+                      "id": "window",
+                      "value": "2m"
+                    }
+                  ]
+                }
+              ],
+              "group_by": [
+                "cmd"
+              ],
+              "interval": 60,
+              "interval_unit": "s",
+              "method": "SUM",
+              "metric_field": "redis_commands_total",
+              "refId": "a",
+              "result_table_id": "exporter_dbm_redis_exporter.__default__",
+              "result_table_label": "component",
+              "time_field": "",
+              "where": [
+                {
+                  "key": "cluster_domain",
+                  "method": "eq",
+                  "value": [
+                    "$cluster_domain"
+                  ]
+                },
+                {
+                  "condition": "and",
+                  "key": "instance_role",
+                  "method": "eq",
+                  "value": [
+                    "redis_master"
+                  ]
+                }
+              ]
+            }
+          ],
+          "refId": "B",
+          "source": "sum (irate(bkmonitor:exporter_dbm_redis_exporter:__default__:redis_commands_total{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[$__interval]))",
+          "step": "",
+          "type": "range"
         }
       ],
       "title": "Redis Qps ",
@@ -3926,7 +3983,7 @@
         "x": 12,
         "y": 8
       },
-      "id": null,
+      "id": 5,
       "interval": "2m",
       "options": {
         "legend": {
@@ -4111,7 +4168,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": null
               }
             ]
           },
@@ -4125,7 +4183,7 @@
         "x": 0,
         "y": 16
       },
-      "id": null,
+      "id": 49,
       "options": {
         "legend": {
           "calcs": [
@@ -4314,7 +4372,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": null
               },
               {
                 "color": "red",
@@ -4332,7 +4391,7 @@
         "x": 12,
         "y": 16
       },
-      "id": null,
+      "id": 40,
       "options": {
         "legend": {
           "calcs": [
@@ -4638,7 +4697,7 @@
         "x": 0,
         "y": 24
       },
-      "id": null,
+      "id": 81,
       "options": {
         "legend": {
           "calcs": [
@@ -4834,7 +4893,7 @@
         "x": 12,
         "y": 24
       },
-      "id": null,
+      "id": 46,
       "options": {
         "legend": {
           "calcs": [
@@ -5046,7 +5105,7 @@
         "x": 0,
         "y": 32
       },
-      "id": null,
+      "id": 50,
       "interval": "2m",
       "options": {
         "legend": {
@@ -5236,7 +5295,7 @@
         "x": 12,
         "y": 32
       },
-      "id": null,
+      "id": 52,
       "options": {
         "legend": {
           "calcs": [
@@ -5386,7 +5445,7 @@
         "x": 0,
         "y": 40
       },
-      "id": null,
+      "id": 47,
       "options": {
         "legend": {
           "calcs": [
@@ -5602,7 +5661,7 @@
         "x": 12,
         "y": 40
       },
-      "id": null,
+      "id": 83,
       "options": {
         "legend": {
           "calcs": [
@@ -5736,7 +5795,7 @@
         "x": 0,
         "y": 48
       },
-      "id": null,
+      "id": 79,
       "options": {
         "footer": {
           "fields": "",
@@ -6132,7 +6191,7 @@
         "x": 0,
         "y": 56
       },
-      "id": null,
+      "id": 80,
       "options": {
         "footer": {
           "fields": "",
@@ -6500,7 +6559,7 @@
   "timezone": "",
   "title": "RedisInstance",
   "uid": "RedisInstance",
-  "version": 29,
+  "version": 31,
   "weekStart": "",
   "__inputs": [
     {
