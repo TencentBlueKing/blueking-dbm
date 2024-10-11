@@ -9,12 +9,43 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
+from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
 from backend.bk_web.serializers import AuditedSerializer
+from backend.db_meta.models import Tag
 
 
 class TagSerializer(AuditedSerializer, serializers.ModelSerializer):
     """
     标签序列化器
     """
+
+    class Meta:
+        model = Tag
+        fields = "__all__"
+
+
+class BatchCreateTagsSerializer(serializers.Serializer):
+    class CreateTagSerializer(serializers.Serializer):
+        key = serializers.CharField(help_text=_("标签key"))
+        value = serializers.CharField(help_text=_("标签value"))
+
+    bk_biz_id = serializers.IntegerField(help_text=_("业务ID"))
+    tags = serializers.ListField(child=CreateTagSerializer())
+
+
+class UpdateTagSerializer(serializers.Serializer):
+    bk_biz_id = serializers.IntegerField(help_text=_("业务ID"))
+    id = serializers.IntegerField(help_text=_("标签 ID"))
+    value = serializers.CharField(help_text=_("标签value"))
+
+
+class DeleteTagsSerializer(serializers.Serializer):
+    bk_biz_id = serializers.IntegerField(help_text=_("业务ID"))
+    ids = serializers.ListSerializer(child=serializers.IntegerField(help_text=_("标签 ID")), help_text=_("标签 ID 列表"))
+
+
+class QueryRelatedResourceSerializer(serializers.Serializer):
+    bk_biz_id = serializers.IntegerField(help_text=_("业务ID"))
+    ids = serializers.ListSerializer(child=serializers.IntegerField(help_text=_("标签 ID")), help_text=_("标签 ID 列表"))

@@ -19,8 +19,10 @@ from backend.db_meta.enums.comm import TagType
 class Tag(AuditedModel):
     bk_biz_id = models.IntegerField(help_text=_("业务 ID"), default=0)
     key = models.CharField(help_text=_("标签键"), default="", max_length=64)
-    value = models.CharField(help_text=_("标签值"), default="", max_length=64)
-    type = models.CharField(help_text=_("tag类型"), max_length=64, choices=TagType.get_choices())
+    value = models.CharField(help_text=_("标签值"), default="", max_length=255)
+    type = models.CharField(
+        help_text=_("tag类型"), max_length=64, choices=TagType.get_choices(), default=TagType.CUSTOM.value
+    )
 
     class Meta:
         unique_together = ["bk_biz_id", "key", "value"]
