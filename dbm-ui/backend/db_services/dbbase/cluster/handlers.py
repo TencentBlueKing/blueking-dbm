@@ -14,7 +14,7 @@ from collections import defaultdict
 from functools import reduce
 from typing import Any, Dict, List, Set
 
-from django.db.models import Prefetch, Q
+from django.db.models import F, Prefetch, Q
 from django.forms import model_to_dict
 from django.utils.translation import ugettext_lazy as _
 
@@ -197,8 +197,12 @@ class ClusterServiceHandler:
             for cluster_id in cluster_ids
         ]
 
-    def find_related_clusters_by_instances(self, instances: List[DBInstance]) -> List[Dict[str, Any]]:
+    def find_related_clusters_by_instances(
+        self, instances: List[DBInstance], same_role: bool = False
+    ) -> List[Dict[str, Any]]:
         """
+        @param instances: 查询实例
+        @param same_role: 是否需要同级同实例
         查询集群同机关联的集群
         HostA: cluster1.master1, cluster2.master1, cluster3.master1
         HostB: cluster1.slave1, cluster2.slave1, cluster3.slave1
@@ -221,27 +225,42 @@ class ClusterServiceHandler:
         """
         inst_cluster_map: Dict[str, Dict] = {}
         host_id_related_cluster: Dict[int, List] = defaultdict(list)
+        same_role_host_related_cluster: Dict[Dict[int, List]] = defaultdict(lambda: defaultdict(list))
 
         # 基于 存储实例 和 Proxy 不会混部 的原则
         instance_objs = self._get_instance_objs(instances)
         for inst_obj in instance_objs:
-            inst_data = DBInstance.from_inst_obj(inst_obj)
-            inst_cluster_map[str(inst_data)] = model_to_dict(inst_obj.cluster.first())
-            host_id_related_cluster[inst_obj.machine.bk_host_id].extend(inst_obj.cluster.all())
+            inst_data = DBInstance.from_inst_obj(inst_obj).__str__()
+            cluster = inst_obj.cluster.first()
+            inst_cluster_map[inst_data] = model_to_dict(cluster)
+            host_id_related_cluster[inst_obj.machine.bk_host_id].append(cluster)
+            same_role_host_related_cluster[inst_obj.machine.bk_host_id][inst_obj.role].append(cluster)
 
-        return [
-            {
-                "instance_address": f"{instance.ip}:{instance.port}",
-                "bk_host_id": instance.bk_host_id,
-                "cluster_info": self._format_cluster_field(inst_cluster_map[str(instance)]),
-                "related_clusters": [
-                    self._format_cluster_field(model_to_dict(cluster))
-                    for cluster in host_id_related_cluster[instance.bk_host_id]
-                    if cluster.id != inst_cluster_map[str(instance)]["id"]
-                ],
+        # 获取关联集群信息
+        related_cluster_infos: List[Dict] = []
+        for inst in instance_objs:
+            if not same_role:
+                clusters = host_id_related_cluster[inst.machine.bk_host_id]
+            else:
+                clusters = same_role_host_related_cluster[inst.machine.bk_host_id][inst.role]
+
+            inst_data = DBInstance.from_inst_obj(inst).__str__()
+            related_clusters = [
+                self._format_cluster_field(model_to_dict(cluster))
+                for cluster in clusters
+                if cluster.id != inst_cluster_map[inst_data]["id"]
+            ]
+
+            info = {
+                "instance_address": f"{inst.machine.ip}:{inst.port}",
+                "bk_host_id": inst.machine.bk_host_id,
+                "cluster_info": self._format_cluster_field(inst_cluster_map[inst_data]),
+                "related_clusters": related_clusters,
             }
-            for instance in instances
-        ]
+
+            related_cluster_infos.append(info)
+
+        return related_cluster_infos
 
     def get_intersected_machines_from_clusters(self, cluster_ids: List[int], role: str, is_stand_by: bool):
         """
@@ -310,11 +329,13 @@ class ClusterServiceHandler:
                 StorageInstance.objects.select_related("machine")
                 .prefetch_related("cluster")
                 .filter(machine__bk_host_id__in=bk_host_ids)
+                .annotate(role=F("instance_role"))
             ),
             *list(
                 ProxyInstance.objects.select_related("machine")
                 .prefetch_related("cluster")
                 .filter(machine__bk_host_id__in=bk_host_ids)
+                .annotate(role=F("access_layer"))
             ),
         ]
         return instance_objs

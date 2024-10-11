@@ -264,6 +264,7 @@ class ResourceSummarySerializer(serializers.Serializer):
         # 平铺列表字段
         attrs["subzone_ids"] = attrs["subzone_ids"].split(",") if attrs["subzone_ids"] else []
         attrs["spec_id_list"] = attrs["spec_id_list"].split(",") if attrs["spec_id_list"] else []
+        attrs["spec_id_list"] = list(map(int, attrs["spec_id_list"]))
         # 把聚合过滤字段放在spec_param
         spec_param_fields = ["db_type", "machine_type", "cluster_type", "spec_id_list"]
         attrs["spec_param"] = {field: attrs.pop(field) for field in spec_param_fields}

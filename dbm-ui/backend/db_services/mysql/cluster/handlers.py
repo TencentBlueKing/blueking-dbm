@@ -147,6 +147,9 @@ class ClusterServiceHandler(BaseClusterServiceHandler):
         ]
         return remote_pair_infos
 
+    def find_related_clusters_by_instances(self, instances: List[DBInstance]) -> List[Dict[str, Any]]:
+        return super().find_related_clusters_by_instances(instances, same_role=True)
+
     def _get_instance_objs(self, instances: List[DBInstance]):
         """
         根据instance(属DBInstance类)查询数据库实例，注意这里要考虑混布的情况

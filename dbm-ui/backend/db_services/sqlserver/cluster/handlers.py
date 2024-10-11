@@ -9,12 +9,13 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 from datetime import datetime
-from typing import Dict, List
+from typing import Any, Dict, List
 
 from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.utils.translation import ugettext as _
 
 from backend.db_services.dbbase.cluster.handlers import ClusterServiceHandler as BaseClusterServiceHandler
+from backend.db_services.dbbase.dataclass import DBInstance
 from backend.db_services.sqlserver.rollback.handlers import SQLServerRollbackHandler
 from backend.exceptions import ValidationError
 from backend.flow.utils.sqlserver import sqlserver_db_function
@@ -24,6 +25,9 @@ from backend.utils.excel import ExcelHandler
 class ClusterServiceHandler(BaseClusterServiceHandler):
     def __init__(self, bk_biz_id: int):
         self.bk_biz_id = bk_biz_id
+
+    def find_related_clusters_by_instances(self, instances: List[DBInstance]) -> List[Dict[str, Any]]:
+        return super().find_related_clusters_by_instances(instances, same_role=True)
 
     @classmethod
     def get_dbs_for_drs(cls, cluster_id: int, db_list: list, ignore_db_list: list) -> list:
