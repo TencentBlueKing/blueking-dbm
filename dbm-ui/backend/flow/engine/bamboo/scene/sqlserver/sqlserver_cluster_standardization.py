@@ -144,7 +144,7 @@ class SqlserverStandardizationFlow(BaseFlow):
                             ),
                         },
                     )
-                if len(dns_acts_list) == 0:
+                if len(dns_acts_list) > 0:
                     cluster_sub_pipeline.add_parallel_acts(acts_list=dns_acts_list)
 
                 act_list.append(
