@@ -55,7 +55,7 @@
   const { t } = useI18n();
 
   // 是否是添加授权
-  const isAddAuth = props.ticketDetails.ticket_type === TicketTypes.MONGODB_AUTHORIZE;
+  const isAddAuth = props.ticketDetails.ticket_type === TicketTypes.MONGODB_AUTHORIZE_RULES;
   const ruleList = (props.ticketDetails.details?.authorize_data || [])
     .reduce((prevRuleList, authorizeItem) => [...prevRuleList, {
       username: authorizeItem.username,

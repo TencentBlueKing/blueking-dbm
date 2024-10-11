@@ -40,10 +40,19 @@
         :label-width="200"
         :model="formData">
         <InstanceList v-model="formData.instanceList" />
-        <PasswordInput v-model="formData.password" />
+        <BkFormItem
+          :label="t('统一临时密码')"
+          property="password"
+          required>
+          <PasswordInput
+            v-model="formData.password"
+            :button-disabled="!instanceDbType"
+            :button-disabled-tip="t('请先添加实例')"
+            :db-type="instanceDbType" />
+        </BkFormItem>
         <ValidDuration
           v-model="formData.validDuration"
-          v-model:validDurationType="formData.validDurationType" />
+          v-model:valid-duration-type="formData.validDurationType" />
       </DbForm>
     </div>
     <template
@@ -74,10 +83,11 @@
 
   import { modifyAdminPassword } from '@services/source/permission';
 
-  import { type ClusterTypes } from '@common/const';
+  import { ClusterTypes, DBTypes } from '@common/const';
+
+  import PasswordInput from '@views/db-manage/common/password-input/Index.vue';
 
   import InstanceList from './components/form-item/InstanceList.vue';
-  import PasswordInput from './components/form-item/PasswordInput.vue';
   import ValidDuration from './components/form-item/ValidDuration.vue';
   import RenderPasswordInstance from './components/render-passwrod-instance/Index.vue';
   import UpdateResult from './components/UpdateResult.vue';
@@ -85,7 +95,7 @@
   const { t } = useI18n();
 
   const createDefaultData = () => ({
-    instanceList: [],
+    instanceList: [] as { ip: string; port: number; bk_cloud_id: number; cluster_type: ClusterTypes; role: string }[],
     password: '',
     validDuration: 1,
     validDurationType: 'day',
@@ -96,11 +106,24 @@
   const formRef = ref();
   const submitRoleMap = shallowRef<Record<string, string>>({});
   const formData = reactive(createDefaultData());
+  const instanceDbType = ref<DBTypes>();
 
   watch(
     formData,
     () => {
       console.log('formData = ', formData);
+      const { instanceList } = formData;
+      if (instanceList.length > 0) {
+        const instance = instanceList[0];
+        const dbTypeMap = {
+          [ClusterTypes.TENDBSINGLE]: DBTypes.MYSQL,
+          [ClusterTypes.TENDBHA]: DBTypes.MYSQL,
+          [ClusterTypes.TENDBCLUSTER]: DBTypes.TENDBCLUSTER,
+          [ClusterTypes.SQLSERVER_HA]: DBTypes.SQLSERVER,
+          [ClusterTypes.SQLSERVER_SINGLE]: DBTypes.SQLSERVER,
+        } as Record<ClusterTypes, DBTypes>;
+        instanceDbType.value = dbTypeMap[instance.cluster_type];
+      }
     },
     {
       deep: true,
@@ -218,6 +241,10 @@
       :deep(.password-form-instance) {
         display: flex;
         align-items: center;
+      }
+
+      :deep(.password-form-item) {
+        width: 386px;
       }
     }
 
