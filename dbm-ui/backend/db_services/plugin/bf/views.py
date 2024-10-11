@@ -17,7 +17,8 @@ from rest_framework.response import Response
 from backend import env
 from backend.bk_web import viewsets
 from backend.bk_web.swagger import common_swagger_auto_schema
-from backend.configuration.models import DBAdministrator
+from backend.configuration.constants import SystemSettingsEnum
+from backend.configuration.models import DBAdministrator, SystemSettings
 from backend.db_meta.enums import ClusterType
 from backend.db_meta.models import Machine
 from backend.db_services.plugin.bf.serializers import HasBFPrivSerializer
@@ -58,5 +59,7 @@ class BFPluginViewSet(viewsets.SystemViewSet):
     @action(methods=["GET"], detail=False)
     def list_bf_biz_whitelist(self, request, *args, **kwargs):
         # 目前默认只认为默认DBM业务才能申请
-        bf_biz_whitelist = [env.DBA_APP_BK_BIZ_ID]
+        bf_biz_whitelist = SystemSettings.get_setting_value(
+            SystemSettingsEnum.BF_WHITELIST_BIZS, default=[env.DBA_APP_BK_BIZ_ID]
+        )
         return Response(bf_biz_whitelist)

@@ -73,6 +73,7 @@ class AppCache(AuditedModel):
 
     @classmethod
     def batch_get_app_attr(cls, bk_biz_ids, attr_name="db_app_abbr"):
+        bk_biz_ids = list(set(bk_biz_ids))
         apps = cls.objects.filter(bk_biz_id__in=bk_biz_ids)
         infos = apps.values("bk_biz_id", attr_name)
         if set(apps.values_list("bk_biz_id", flat=True)) != set(bk_biz_ids):
