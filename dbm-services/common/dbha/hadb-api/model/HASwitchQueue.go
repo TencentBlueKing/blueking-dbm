@@ -25,10 +25,10 @@ type HASwitchQueue struct {
 	SlaveIP            string     `gorm:"column:slave_ip;type:varchar(32)" json:"slave_ip,omitempty"`
 	SlavePort          int        `gorm:"column:slave_port;type:int(11)" json:"slave_port,omitempty"`
 	Status             string     `gorm:"column:status;type:varchar(32);" json:"status,omitempty"`
-	ConfirmResult      string     `gorm:"column:confirm_result;type:tinyblob" json:"confirm_result,omitempty"`
+	ConfirmResult      string     `gorm:"column:confirm_result;type:blob" json:"confirm_result,omitempty"`
 	SwitchStartTime    *time.Time `gorm:"column:switch_start_time;type:datetime" json:"switch_start_time,omitempty"`
 	SwitchFinishedTime *time.Time `gorm:"column:switch_finished_time;type:datetime" json:"switch_finished_time,omitempty"`
-	SwitchResult       string     `gorm:"column:switch_result;type:tinyblob" json:"switch_result,omitempty"`
+	SwitchResult       string     `gorm:"column:switch_result;type:blob" json:"switch_result,omitempty"`
 	Remark             string     `gorm:"column:remark;type:varchar(64)" json:"remark,omitempty"`
 	DbType             string     `gorm:"column:db_type;type:varchar(32)" json:"db_type,omitempty"`
 	IdcID              int        `gorm:"column:idc_id;type:int(11)" json:"idc_id,omitempty"`

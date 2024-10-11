@@ -186,7 +186,8 @@ func (m *MySQLDetectInstance) CheckMySQL(errChan chan error) {
 	defer m.dbMutex.Unlock()
 
 	if m.realDB == nil {
-		connParam := fmt.Sprintf("%s:%s@(%s:%d)/%s", m.User, m.Pass, m.Ip, m.Port, "infodba_schema")
+		connParam := fmt.Sprintf("%s:%s@(%s:%d)/%s?timeout=%ds", m.User, m.Pass, m.Ip, m.Port,
+			"infodba_schema", m.Timeout)
 		db, err := gorm.Open(mysql.Open(connParam), &gorm.Config{
 			Logger: log.GormLogger,
 		})
@@ -195,8 +196,6 @@ func (m *MySQLDetectInstance) CheckMySQL(errChan chan error) {
 			errChan <- err
 			return
 		}
-		// set connect timeout
-		db.Set("gorm:connect_timeout", m.Timeout)
 		m.realDB = db
 	}
 

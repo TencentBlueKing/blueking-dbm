@@ -113,7 +113,7 @@ func (ins *SpiderStorageSwitch) DoSwitch() error {
 	}
 	ins.StandBySlave.BinlogFile = binlogFile
 	ins.StandBySlave.BinlogPosition = binlogPosition
-	ins.ReportLogs(constvar.InfoResult, fmt.Sprintf("reset slave success, consistent binlog info:%s,%s",
+	ins.ReportLogs(constvar.InfoResult, fmt.Sprintf("reset slave success, consistent binlog info:%s,%d",
 		ins.StandBySlave.BinlogFile, ins.StandBySlave.BinlogPosition))
 
 	ins.ReportLogs(constvar.InfoResult, fmt.Sprintf("try to update route from old master to new master"))
