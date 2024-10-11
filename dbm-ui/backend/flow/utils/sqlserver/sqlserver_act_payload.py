@@ -17,7 +17,11 @@ from backend.db_package.models import Package
 from backend.env import WINDOW_SSH_PORT
 from backend.flow.consts import SQLSERVER_CUSTOM_SYS_USER, DBActuatorTypeEnum, MediumEnum, SqlserverActuatorActionEnum
 from backend.flow.utils.sqlserver.payload_handler import PayloadHandler
-from backend.flow.utils.sqlserver.sqlserver_bk_config import get_module_infos, get_sqlserver_config
+from backend.flow.utils.sqlserver.sqlserver_bk_config import (
+    get_module_infos,
+    get_sqlserver_alarm_config,
+    get_sqlserver_config,
+)
 
 logger = logging.getLogger("flow")
 
@@ -122,6 +126,12 @@ class SqlserverActPayload(PayloadHandler):
                     "buffer_percent": int(db_module["buffer_percent"]),
                     "ports": self.global_data["install_ports"],
                     "sqlserver_configs": {},
+                    "init_sql": get_sqlserver_alarm_config(
+                        bk_biz_id=int(self.global_data["bk_biz_id"]),
+                        cluster_domain=self.global_data["clusters"][0]["immutable_domain"],
+                        db_module_id=int(self.global_data["db_module_id"]),
+                        is_only_init_sql=True,
+                    ).get("init_sql", ""),
                 },
             },
         }

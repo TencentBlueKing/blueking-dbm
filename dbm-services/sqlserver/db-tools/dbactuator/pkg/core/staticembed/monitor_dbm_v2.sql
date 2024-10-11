@@ -2,106 +2,6 @@ USE MASTER
 SET QUOTED_IDENTIFIER ON
 SET NOCOUNT ON
 GO
-
-DECLARE @SERVERNAME VARCHAR(100),@SQLSERVERACCOUNT VARCHAR(100)
-SET @SERVERNAME = CAST(SERVERPROPERTY('SERVERNAME') AS VARCHAR(100))
-IF CHARINDEX('\',@SERVERNAME) > 0
-	SET @SQLSERVERACCOUNT = SUBSTRING(@SERVERNAME,1,CHARINDEX('\',@SERVERNAME)-1)+'\sqlserver'
-ELSE 
-	SET @SQLSERVERACCOUNT = @SERVERNAME+'\sqlserver'
-DECLARE @SQL VARCHAR(MAX) = 
-'IF SUSER_SID('''+@SQLSERVERACCOUNT+''') IS NULL
-	CREATE LOGIN ['+@SQLSERVERACCOUNT+'] FROM WINDOWS
-EXEC SP_ADDSRVROLEMEMBER ['+@SQLSERVERACCOUNT+'],''sysadmin'''
---PRINT(@SQL)
-EXEC(@SQL)
-GO
-
-USE [master]
-
-EXEC SP_CONFIGURE 'SHOW ADVANCED OPTIONS',1
-GO
-RECONFIGURE;
-GO
-
-EXEC SP_CONFIGURE 'CROSS DB OWNERSHIP CHAINING',1
-EXEC SP_CONFIGURE 'AGENT XPS',1
-exec SP_CONFIGURE 'remote access',1
-EXEC SP_CONFIGURE 'REMOTE ADMIN CONNECTIONS',0
-EXEC SP_CONFIGURE 'XP_CMDSHELL',1
-EXEC SP_CONFIGURE 'C2 AUDIT MODE',0
-EXEC SP_CONFIGURE 'RECOVERY INTERVAL',0
-EXEC SP_CONFIGURE 'FILL FACTOR (%)',80
-EXEC SP_CONFIGURE 'ALLOW UPDATES',0
-EXEC SP_CONFIGURE 'BACKUP COMPRESSION DEFAULT',1
-EXEC SP_CONFIGURE 'AD HOC DISTRIBUTED QUERIES',1
-EXEC SP_CONFIGURE 'SMO and DMO XPs',1
-
-GO
-RECONFIGURE
-GO
-
---EXEC SP_CONFIGURE 'SHOW ADVANCED OPTIONS',0
---GO
---RECONFIGURE;
---GO
-
---modify modeldb
-IF EXISTS(select 1 from model.sys.database_files where name='modeldev' and size/128<500)
-	ALTER DATABASE MODEL MODIFY FILE (NAME = 'modeldev',SIZE = 500MB,FILEGROWTH = 512MB)
-IF EXISTS(select 1 from model.sys.database_files where name='modellog' and size/128<500)
-	ALTER DATABASE MODEL MODIFY FILE (NAME = 'modellog',SIZE = 500MB,FILEGROWTH = 512MB)
-GO
-
-DECLARE @SQL VARCHAR(MAX)
-SELECT @SQL = ISNULL(@SQL+CHAR(13),'')+'ALTER DATABASE TEMPDB MODIFY FILE (NAME = '''+name+''',SIZE = 1GB,FILEGROWTH = 512MB);'
-FROM SYS.MASTER_FILES where database_id =2
-EXEC(@SQL)
-GO
-
-DECLARE @physical_path VARCHAR(1000)
-SELECT @physical_path=replace(physical_name,'\tempdb.mdf','') FROM SYS.MASTER_FILES where database_id =2 and name='tempdev'
-
---add tempdb datafile by logical cpu number
-DECLARE @SQL VARCHAR(MAX)
-;WITH T_INDEXNO AS
-(
-SELECT NUMBER AS INDEXNO
-FROM SYS.DM_OS_SYS_INFO A,MASTER.DBO.SPT_VALUES B
-WHERE B.TYPE = 'P' AND B.NUMBER > 1
-	AND B.NUMBER <= A.CPU_COUNT
-),T_TEMP AS
-(
-SELECT REPLACE(NAME,'temp','') AS INDEXNO
-FROM SYS.MASTER_FILES
-WHERE LEN(REPLACE(NAME,'temp','')) >= 1 AND DATABASE_ID = 2 AND TYPE = 0 AND name not in('tempdev')
-)
-SELECT @SQL = ISNULL(@SQL+CHAR(13),'')+'ALTER DATABASE tempdb ADD FILE(NAME = ''temp'+LTRIM(A.INDEXNO)+''',FILENAME = '''+@physical_path+'\tempdb_mssql_'+LTRIM(A.INDEXNO)+'.ndf'',SIZE =1GB,FILEGROWTH = 512MB);'
-FROM T_INDEXNO A LEFT JOIN T_TEMP B ON A.INDEXNO = B.INDEXNO
-WHERE B.INDEXNO IS NULL
-PRINT(@SQL)
-EXEC(@SQL)
-GO
-
---modfiy agent log setting
-EXEC MSDB.DBO.SP_SET_SQLAGENT_PROPERTIES @JOBHISTORY_MAX_ROWS = 43200,@JOBHISTORY_MAX_ROWS_PER_JOB = 4320;
-GO
-
-EXEC xp_instance_regwrite N'HKEY_LOCAL_MACHINE', N'Software\Microsoft\MSSQLServer\MSSQLServer', N'NumErrorLogs', REG_DWORD, 30
-GO
-
-USE MASTER
-GO
-REVOKE EXECUTE ON xp_dirtree FROM PUBLIC
-REVOKE EXECUTE ON xp_grantlogin FROM PUBLIC
-REVOKE EXECUTE ON xp_revokelogin FROM PUBLIC
-GO
-
-
-USE MASTER
-SET QUOTED_IDENTIFIER ON
-SET NOCOUNT ON
-GO
 --**************************************** 结束当前启用的跟踪 *******************************
 DECLARE @SQL VARCHAR(8000)
 SELECT @SQL = ISNULL(@SQL+'
@@ -3552,12 +3452,12 @@ BEGIN
 DECLARE @SQL VARCHAR(8000)
 
 SELECT @SQL = ISNULL(@SQL+'','')+'EXEC ['+name+'].dbo.sp_changedbowner @loginame = N''sa'', @map = false;'
-from master.sys.databases where database_id>4 and name not in('Monitor') and state=0 and is_read_only=0 and is_distributor = 0  and owner_sid in(select sid from master.sys.sql_logins where sid<>0x01 and name LIKE '%\_%' ESCAPE '\')
+from master.sys.databases where database_id>4 and name not in('Monitor') and state=0 and is_read_only=0 and is_distributor = 0  and owner_sid in(select sid from master.sys.sql_logins where sid<>0x01 and name like '%J_%')
 --PRINT(@SQL)
 EXEC(@SQL)
 
 SELECT @SQL = ISNULL(@SQL+'','')+'EXEC msdb.dbo.sp_update_job @job_name=N'''+name+''', @owner_login_name=N''sa'';'
-from msdb.dbo.sysjobs where owner_sid in(select sid from master.sys.sql_logins where sid<>0x01 and name LIKE '%\_%' ESCAPE '\')
+from msdb.dbo.sysjobs where owner_sid in(select sid from master.sys.sql_logins where sid<>0x01 and name like '%J_%')
 --PRINT(@SQL)
 EXEC(@SQL)
 

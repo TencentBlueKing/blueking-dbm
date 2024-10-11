@@ -122,6 +122,10 @@ func (d *InitSqlServerAct) Run() (err error) {
 			FunName: "初始化账号",
 			Func:    d.BaseService.InitUsers,
 		},
+		{
+			FunName: "初始化个性化配置",
+			Func:    d.BaseService.ExecInitSQL,
+		},
 	}
 
 	if err := steps.Run(); err != nil {
