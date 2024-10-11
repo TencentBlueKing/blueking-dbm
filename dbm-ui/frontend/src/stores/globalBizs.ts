@@ -29,6 +29,11 @@ export const useGlobalBizs = defineStore('GlobalBizs', {
   }),
   getters: {
     currentBizInfo: (state): BizItem | undefined => state.bizs.find((item) => item.bk_biz_id === state.currentBizId),
+    bizIdMap: (state): Map<number, BizItem> => {
+      const map = new Map<number, BizItem>();
+      state.bizs.forEach((biz) => map.set(biz.bk_biz_id, biz));
+      return map;
+    },
   },
   actions: {
     /**

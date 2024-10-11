@@ -9,6 +9,22 @@
         :active-key="currentActiveKey"
         :opened-keys="[parentKey]"
         @click="handleMenuChange">
+        <BkMenuGroup :name="t('资源管理')">
+          <BkMenuItem
+            key="ResourceTag"
+            v-db-console="'bizConfigManage.businessResourceTag'">
+            <template #icon>
+              <DbIcon
+                svg
+                type="tag-3" />
+            </template>
+            <span
+              v-overflow-tips.right
+              class="text-overflow">
+              {{ t('资源标签') }}
+            </span>
+          </BkMenuItem>
+        </BkMenuGroup>
         <BkMenuGroup :name="t('业务配置')">
           <BkMenuItem
             key="DbConfigure"

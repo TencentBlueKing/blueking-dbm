@@ -14,17 +14,6 @@ import dayjs from 'dayjs';
 
 import { utcDisplayTime } from '@utils';
 
-export interface IResourceTag {
-  tag: string;
-  boundIp: string[];
-  creator: string;
-  creationTime: string;
-  id: number;
-  is_enabled: boolean;
-  created_at: string;
-  updated_at: string;
-}
-
 export default class ResourceTagModel {
   tag: string;
   boundIp: string[];
@@ -34,9 +23,7 @@ export default class ResourceTagModel {
   is_enabled: boolean;
   created_at: string;
   updated_at: string;
-  is_show_edit: boolean;
-
-  constructor(payload: IResourceTag) {
+  constructor(payload = {} as ResourceTagModel) {
     this.id = payload.id;
     this.tag = payload.tag;
     this.boundIp = payload.boundIp;
@@ -45,7 +32,6 @@ export default class ResourceTagModel {
     this.is_enabled = payload.is_enabled;
     this.created_at = payload.created_at;
     this.updated_at = payload.updated_at;
-    this.is_show_edit = false;
   }
 
   get isNewCreated() {
@@ -62,9 +48,5 @@ export default class ResourceTagModel {
 
   get ipCount() {
     return this.boundIp.length;
-  }
-
-  generateStatus() {
-    return this.is_enabled ? 'ACTIVE' : 'TERMINATED'; // 根据 is_enabled 返回状态
   }
 }

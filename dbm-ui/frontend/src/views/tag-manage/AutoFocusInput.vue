@@ -24,7 +24,6 @@
   import { defineEmits, defineProps, onMounted, useAttrs } from 'vue';
 
   interface Props {
-    modelValue?: string;
     clearable?: boolean;
   }
 
@@ -35,6 +34,10 @@
   defineProps<Props>();
 
   const emit = defineEmits<Emits>();
+
+  const modelValue = defineModel<string>('modelValue', {
+    default: '',
+  });
 
   const attrs = useAttrs();
   const inputRef = useTemplateRef<HTMLInputElement>('inputRef');

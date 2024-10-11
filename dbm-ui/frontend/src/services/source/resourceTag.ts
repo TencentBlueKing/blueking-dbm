@@ -1,5 +1,5 @@
 import http from '../http';
-import ResourceTagModel, { type IResourceTag } from '../model/db-resource/ResourceTag';
+import ResourceTagModel from '../model/db-resource/ResourceTag';
 import type { ListBase } from '../types/listBase';
 
 const path = '/api/mock';
@@ -10,29 +10,29 @@ const path = '/api/mock';
 export function getResourceTags() {
   return http.post<ListBase<ResourceTagModel[]>>(`${path}/query_tags/`).then((res) => ({
     ...res,
-    results: res.results.map((item: IResourceTag) => new ResourceTagModel(item)),
+    results: res.results.map((item: ResourceTagModel) => new ResourceTagModel(item)),
   }));
 }
 
 /**
  * 批量删除资源标签
  */
-export async function deleteResourceTags(ids: number[]) {
-  return http.post(`${path}/delete_tags/`, { ids });
+export function deleteResourceTags(params: { ids: number[] }) {
+  return http.post(`${path}/delete_tags/`, params);
 }
 
 /**
  * 新增资源标签
  */
-export async function createResourceTag(tags: string[]) {
-  return http.post(`${path}/add_tag/`, { tags });
+export function createResourceTag(params: { tags: string[] }) {
+  return http.post(`${path}/add_tag/`, params);
 }
 
 /**
  * 修改资源标签
  */
-export async function modifyResourceTag(data: ResourceTagModel) {
-  return http.post(`${path}/mod_tag/`, { data });
+export async function modifyResourceTag(params: { data: ResourceTagModel }) {
+  return http.post(`${path}/mod_tag/`, params);
 }
 
 /**

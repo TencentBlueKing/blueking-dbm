@@ -12,30 +12,28 @@
 -->
 
 <template>
-  <div>
-    <BkDialog
-      :is-show="isShow"
-      render-directive="if"
-      :title="computedTitle"
-      @closed="handleClose"
-      @confirm="handleConfirm">
-      <BkForm
-        ref="formRef"
-        form-type="vertical"
-        :model="formModel"
-        :rules="rules">
-        <BkFormItem
-          :label="t('标签')"
-          required>
-          <BkTagInput
-            v-model="formModel.tags"
-            allow-create
-            :clearable="false"
-            has-delete-icon />
-        </BkFormItem>
-      </BkForm>
-    </BkDialog>
-  </div>
+  <BkDialog
+    :is-show="isShow"
+    render-directive="if"
+    :title="computedTitle"
+    @closed="handleClose"
+    @confirm="handleConfirm">
+    <BkForm
+      ref="formRef"
+      form-type="vertical"
+      :model="formModel"
+      :rules="rules">
+      <BkFormItem
+        :label="t('标签')"
+        required>
+        <BkTagInput
+          v-model="formModel.tags"
+          allow-create
+          :clearable="false"
+          has-delete-icon />
+      </BkFormItem>
+    </BkForm>
+  </BkDialog>
 </template>
 
 <script setup lang="tsx">
@@ -43,7 +41,9 @@
   import { computed, reactive, ref, watch } from 'vue';
   import { useI18n } from 'vue-i18n';
 
-  import { createResourceTag, getAllResourceTags } from '@services/source/tag';
+  import { createResourceTag, getAllResourceTags } from '@services/source/resourceTag';
+
+  import type { BizItem } from '@/services/types';
 
   export type ValidateInfo = {
     res: boolean;
@@ -52,7 +52,7 @@
 
   interface Props {
     isShow: boolean;
-    bkBizId: string;
+    biz: BizItem;
   }
 
   interface Emit {
@@ -71,7 +71,7 @@
     tags: [],
   });
 
-  const computedTitle = computed(() => `${t('新建标签')} - ${props.bkBizId}`);
+  const computedTitle = computed(() => `${t('新建标签')} - ${props.biz.name}`);
 
   const rules = computed(() => {
     const { res, message } = handleValidate(formModel.tags);
@@ -105,13 +105,19 @@
     const existedArr = arrVal.filter((item) => existedTagsSet.value.has(item));
     const validateRes = existedArr.length === 0;
 
-    return { ...validateInfo, res: validateRes, message: validateRes ? '' : `${existedArr.join(',')} 已存在` };
+    return {
+      ...validateInfo,
+      res: validateRes,
+      message: validateRes ? '' : t('n 已存在', { n: existedArr.join(',') }),
+    };
   };
 
   const handleConfirm = async () => {
     submitLoading.value = true;
     try {
-      await createResourceTag(formModel.tags);
+      await createResourceTag({
+        tags: formModel.tags,
+      });
       handleClose();
     } finally {
       submitLoading.value = false;

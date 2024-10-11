@@ -14,12 +14,26 @@
 <template>
   <div>
     <Teleport to="#dbContentTitleAppend">
-      <BkTag
-        class="ml-8"
-        theme="info">
-        {{ t('全局') }}
-      </BkTag>
-      <span class="title-divider">|</span>
+      <section
+        v-if="!isBusiness"
+        class="tag-manage-header-container">
+        <BkTag
+          class="ml-8"
+          theme="info">
+          {{ t('全局') }}
+        </BkTag>
+        <span class="title-divider">|</span>
+        <BusinessSelector @change="handleBizChange" />
+      </section>
+      <section
+        v-else
+        class="tag-manage-header-container">
+        <BkTag
+          class="ml-8"
+          theme="info">
+          {{ t('业务') }}
+        </BkTag>
+      </section>
     </Teleport>
     <div class="tags-management-container">
       <div class="header-action mb-16">
@@ -27,14 +41,14 @@
           class="operation-btn"
           theme="primary"
           @click="handleCreate"
-          >{{ t('新建') }}</BkButton
-        >
+          >{{ t('新建') }}
+        </BkButton>
         <BkButton
           class="operation-btn"
           :disabled="!hasSelected"
           @click="handleBatchDelete"
-          >{{ t('批量删除') }}</BkButton
-        >
+          >{{ t('批量删除') }}
+        </BkButton>
         <BkSearchSelect
           v-model="searchValue"
           class="search-selector"
@@ -49,7 +63,7 @@
           ref="tableRef"
           class="table-box"
           :columns="tableColumn"
-          :data-source="getResourceTags"
+          :data-source="getDataSource"
           primary-key="tag"
           selectable
           @clear-search="clearSearchValue"
@@ -58,7 +72,7 @@
     </div>
     <CreateTag
       v-model:is-show="isCreateTagDialogShow"
-      bk-biz-id="1" />
+      :biz="curBiz as BizItem" />
   </div>
 </template>
 
@@ -67,19 +81,28 @@
   import BKPopConfirm from 'bkui-vue/lib/pop-confirm';
   import { useI18n } from 'vue-i18n';
 
-  import type ResourceTagModel from '@services/model/db-resource/ResourceTag';
-  import { deleteResourceTags, getResourceTags, modifyResourceTag } from '@services/source/tag';
+  import { deleteResourceTags, getResourceTags, modifyResourceTag } from '@services/source/resourceTag';
+  import type { BizItem } from '@services/types';
+
+  import { useCopy, useLinkQueryColumnSerach } from '@hooks';
+
+  import { useGlobalBizs } from '@stores';
 
   import { ClusterTypes } from '@common/const/clusterTypes';
 
-  import AutoFocusInput from '@views/tag-manage/AutoFocusInput.vue'
+  import BusinessSelector from '@views/tag-manage/BusinessSelector.vue';
   import CreateTag from '@views/tag-manage/CreateTag.vue'
 
-  import { useCopy } from '@/hooks';
-  import { useLinkQueryColumnSerach } from '@/hooks/useLinkQueryColumnSerach';
+  import EditableCell from './EditableCell.vue';
+
+  type ResourceTagModel = ServiceReturnType<typeof getResourceTags>['results'][number];
+
+  export type ResourceTagListItem = ResourceTagModel & { is_show_edit: boolean };
 
   const { t } = useI18n();
   const copy = useCopy();
+  const { bizIdMap, currentBizInfo } = useGlobalBizs();
+  const route = useRoute();
   const {
     searchValue,
     clearSearchValue,
@@ -94,63 +117,44 @@
   });
 
   const tableRef = ref();
-  const selected = ref<ResourceTagModel[]>([]);
+  const selected = ref<ResourceTagListItem[]>([]);
   const isCreateTagDialogShow = ref(false);
+  const curBiz = ref(currentBizInfo);
 
   const hasSelected = computed(() => selected.value.length > 0);
   const selectedIds = computed(() => selected.value.map(item => item.id));
+  const isBusiness = computed(() => route.path.includes('business-resource-tag'));
   const searchSelectData = [
     {
-      name: '标签',
+      name: t('标签'),
       id: 'tag',
     },
     {
-      name: '绑定的IP',
+      name: t('IP'),
       id: 'boundIp',
     },
     {
-      name: '创建人',
+      name: t('创建人'),
       id: 'creator',
-    },
-    {
-      name: '创建时间',
-      id: 'creationTime',
-    },
+    }
   ];
 
   const tableColumn = [
     {
-      label: '标签',
+      label: t('标签'),
       field: 'tag',
-      render: ({ data }: { data: ResourceTagModel }) => {
-        const renderTag = () => {
-          if (data.is_show_edit) {
-            return (
-              <AutoFocusInput modelValue={data.tag} clearable={false} onBlur={() => handleBlur(data)} />
-            )
-          }
-          return (
-            <>
-              <span>{data.tag}</span>
-              <db-icon
-                class="operation-icon"
-                type="edit"
-                style="font-size: 18px"
-                onClick={() => handleEdit(data)} />
-            </>
-          )
-        }
-        return (
-          <div class="tag-box">
-            {renderTag()}
-          </div>
-        );
-      }
+      render: ({ data }: { data: ResourceTagListItem }) => (
+        <EditableCell
+          data={data}
+          onBlur={handleBlur}
+          onEdit={handleEdit}
+        />
+      )
     },
     {
-      label: '绑定的IP',
+      label: t('绑定的IP'),
       field: 'boundIp',
-      render: ({ data }: { data: ResourceTagModel }) => (
+      render: ({ data }: { data: ResourceTagListItem }) => (
         <div class={'ip-box'}>
           <span v-bk-tooltips={{
             content: data.boundIp.join('\n'),
@@ -162,24 +166,22 @@
             class="operation-icon"
             type="copy"
             style="font-size: 18px"
-            onClick={() => {
-              copy(data.boundIp.join('\n'));
-            }} />
+            onClick={() => handleCopy(data)} />
         </div>
       )
     },
     {
-      label: '创建人',
+      label: t('创建人'),
       field: 'creator',
     },
     {
-      label: '创建时间',
+      label: t('创建时间'),
       field: 'creationTime',
-      render: ({ data }: { data: ResourceTagModel }) => data.creationTimeDisplay,
+      render: ({ data }: { data: ResourceTagListItem }) => data.creationTimeDisplay,
     },
     {
-      label: '操作',
-      render: ({ data }: { data: ResourceTagModel }) => (
+      label: t('操作'),
+      render: ({ data }: { data: ResourceTagListItem }) => (
         <BKPopConfirm
           width={280}
           trigger='click'
@@ -190,7 +192,7 @@
             default: <Button theme='primary' text>删除</Button>,
             content: (
               <div>
-                <div>{t('标签：')}<span style={{ color: '#313238' }}>{data.tag}</span></div>
+                <div>{t('标签：')}<span style="color: '#313238'">{data.tag}</span></div>
                 <div class={'mb-10 mt-4'}>{t('删除操作无法撤回，请谨慎操作！')}</div>
               </div>
             )
@@ -204,7 +206,23 @@
     tableRef.value.fetchData();
   };
 
-  const handleSelection = (_data: ResourceTagModel, list: ResourceTagModel[]) => {
+  const getDataSource = async () => {
+    const res = await getResourceTags();
+    const tmp = {
+      ...res,
+      results: res.results.map((item: ResourceTagModel) => (
+        Object.defineProperty(item, 'is_show_edit', {
+          value: false,
+          writable: true,
+          configurable: true,
+          enumerable: true,
+        })
+      )),
+    };
+    return tmp;
+  }
+
+  const handleSelection = (_data: ResourceTagListItem, list: ResourceTagListItem[]) => {
     selected.value = list;
   };
 
@@ -217,30 +235,18 @@
       width: 480,
       class: 'batch-delete-wrapper',
       content: (
-        <div class={'batch-delete-wrapper'}>
-          <div style={{
-            display: 'flex'
-          }}>
-            <div style={{
-              textAlign: 'left'
-            }}>
+        <div class='tag-manage-batch-delete-wrapper'>
+          <div class='tag-wrapper'>
+            <div class='tag'>
               {t('标签:')}
             </div>
-            <div style={{
-              flex: 1,
-              color: '#313238'
-            }}>
+            <div class='content'>
               {
                 selected.value.map(v => v.tag).join(',')
               }
-            </div>
+            </div>∏∏
           </div>
-          <div style={{
-            background: '#F5F6FA',
-            borderRadius: '2px',
-            padding: '12px 16px',
-            marginTop: '16px'
-          }}>
+          <div class='tips'>
             {
               t('删除后将无法恢复，请谨慎操作')
             }
@@ -248,7 +254,7 @@
         </div>
       ),
       onConfirm: async () => {
-        await deleteResourceTags(selectedIds.value);
+        await deleteResourceTags({ ids: selectedIds.value });
         fetchData();
       }
     });
@@ -258,9 +264,9 @@
     isCreateTagDialogShow.value = true;
   }
 
-  const handleBlur = async (data: ResourceTagModel) => {
+  const handleBlur = async (data: ResourceTagListItem) => {
     try {
-      await modifyResourceTag(data);
+      await modifyResourceTag({ data });
     }
     finally {
       Object.assign(data, {
@@ -269,19 +275,30 @@
     }
   }
 
-  const handleEdit = (data: ResourceTagModel) => {
+  const handleEdit = (data: ResourceTagListItem) => {
     Object.assign(data, {
       is_show_edit: true,
     });
   }
 
-  const handleDelete = async (data: ResourceTagModel) => {
-    await deleteResourceTags([data.id]);
+  const handleDelete = async (data: ResourceTagListItem) => {
+    await deleteResourceTags({
+      ids: [data.id]
+    });
+    fetchData();
+  }
+
+  const handleCopy = (data: ResourceTagListItem) => {
+    copy(data.boundIp.join('\n'));
+  }
+
+  const handleBizChange = (bkBizId: number) => {
+    curBiz.value = bizIdMap.get(bkBizId);
     fetchData();
   }
 </script>
 
-<style scoped lang="less">
+<style lang="less" scoped>
   .title-divider {
     color: #dcdee5;
     margin-right: 16px;
@@ -339,4 +356,57 @@
   }
 </style>
 
-<style lang="less"></style>
+<style lang="less">
+  .tag-manage-header-container {
+    display: flex;
+    align-items: center;
+
+    .business-selector {
+      cursor: pointer;
+      color: #3a84ff;
+      display: flex;
+      align-items: center;
+      font-size: 14px;
+      width: 360px;
+
+      .triangle {
+        width: 0;
+        height: 0;
+        border-left: 4.875px solid transparent;
+        border-right: 4.875px solid transparent;
+        border-top: 6px solid #3a84ff;
+        transition: transform 0.3s ease;
+        margin-left: 7px;
+
+        &.up {
+          transform: rotate(180deg);
+        }
+      }
+    }
+  }
+
+  .tag-manage-batch-delete-wrapper {
+    .tag-wrapper {
+      display: flex;
+      font-size: 14px;
+
+      .tag {
+        text-align: left;
+      }
+
+      .content {
+        flex: 1;
+        color: #313238;
+      }
+    }
+
+    .tips {
+      background: #f5f6fa;
+      border-radius: 2px;
+      padding: 12px 16px;
+      margin-top: 16px;
+      text-align: left;
+      font-size: 14px;
+    }
+  }
+</style>
