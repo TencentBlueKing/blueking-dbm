@@ -1102,6 +1102,20 @@ django = ">=3.2.4"
 sqlparse = ">=0.2"
 
 [[package]]
+name = "django-dynamic-raw-id"
+version = "4.3"
+description = "raw_id_fields widget replacement that handles display of an object's string value on change."
+optional = false
+python-versions = "<4.0,>=3.8"
+files = [
+    {file = "django_dynamic_raw_id-4.3-py3-none-any.whl", hash = "sha256:30d7515fe2d4265becc7c25b88c308317899e5fb778c65228d24df2b6c55be2e"},
+    {file = "django_dynamic_raw_id-4.3.tar.gz", hash = "sha256:9ac32aee72e39d1ca259c5206058f898ff764007026ed752f64afbddf81e16dd"},
+]
+
+[package.dependencies]
+django = ">=3.2"
+
+[[package]]
 name = "django-environ"
 version = "0.11.2"
 description = "A package that allows you to utilize 12factor inspired environment variables to configure your Django application."
@@ -3732,4 +3746,4 @@ testing = ["coverage (>=5.0.3)", "zope.event", "zope.testing"]
 [metadata]
 lock-version = "2.0"
 python-versions = "~3.10.0"
-content-hash = "576ce5a0b9e75a4b12aedfda283bc6b84eca7c0f743fef9cdfada92d88546499"
+content-hash = "e0460a725c63a09f213be6966abd5cc7481f7309e2d85a9eb93f3949610999a9"

@@ -25,6 +25,7 @@ class TicketFlowAdmin(admin.ModelAdmin):
     list_display = ("id", "ticket_id", "flow_type", "flow_alias", "flow_obj_id", "status", "update_at")
     search_fields = ("flow_obj_id", "ticket__id")
     list_filter = ("flow_type", "flow_alias", "status", "update_at")
+    raw_id_fields = ("ticket",)
 
 
 @admin.register(models.TicketFlowsConfig)
@@ -39,3 +40,4 @@ class TodoAdmin(admin.ModelAdmin):
     list_display = ("id", "name", "flow_id", "ticket_id", "operators", "type", "done_by", "done_at")
     list_filter = ("type", "status", "done_at")
     search_fields = ("id", "name", "done_by", "ticket__id")
+    raw_id_fields = ("ticket", "flow")

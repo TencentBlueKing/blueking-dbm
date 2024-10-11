@@ -96,6 +96,8 @@ INSTALLED_APPS += (
     "apigw_manager.apigw",
     # DB重连
     "backend.django_dbconn_retry",
+    # 动态 raw-id
+    "dynamic_raw_id",
     # backend
     "backend.bk_web",
     "backend.core.storages",

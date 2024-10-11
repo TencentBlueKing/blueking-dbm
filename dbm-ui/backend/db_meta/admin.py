@@ -9,6 +9,7 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 from django.contrib import admin
+from dynamic_raw_id.admin import DynamicRawIDMixin
 
 from . import models
 
@@ -51,10 +52,11 @@ class ClusterAdmin(admin.ModelAdmin):
 
 
 @admin.register(models.cluster_entry.ClusterEntry)
-class ClusterEntryAdmin(admin.ModelAdmin):
+class ClusterEntryAdmin(DynamicRawIDMixin, admin.ModelAdmin):
     list_display = ("cluster", "cluster_entry_type", "entry")
     list_filter = ("cluster_entry_type",)
     search_fields = ("entry",)
+    dynamic_raw_id_fields = ("cluster", "forward_to")
 
 
 @admin.register(models.db_module.DBModule)
@@ -65,7 +67,7 @@ class DBModuleAdmin(admin.ModelAdmin):
 
 
 @admin.register(models.instance.StorageInstance)
-class StorageInstanceAdmin(admin.ModelAdmin):
+class StorageInstanceAdmin(DynamicRawIDMixin, admin.ModelAdmin):
     list_display = (
         "machine",
         "port",
@@ -89,10 +91,12 @@ class StorageInstanceAdmin(admin.ModelAdmin):
         "bk_biz_id",
     )
     search_fields = ("machine__ip",)
+
+    dynamic_raw_id_fields = ("machine", "cluster", "bind_entry")
 
 
 @admin.register(models.instance.ProxyInstance)
-class ProxyInstanceAdmin(admin.ModelAdmin):
+class ProxyInstanceAdmin(DynamicRawIDMixin, admin.ModelAdmin):
     list_display = (
         "machine",
         "port",
@@ -112,6 +116,7 @@ class ProxyInstanceAdmin(admin.ModelAdmin):
         "bk_biz_id",
     )
     search_fields = ("machine__ip",)
+    dynamic_raw_id_fields = ("machine", "cluster", "storageinstance", "bind_entry")
 
 
 @admin.register(models.machine.Machine)
@@ -122,12 +127,13 @@ class MachineAdmin(admin.ModelAdmin):
 
 
 @admin.register(models.storage_instance_tuple.StorageInstanceTuple)
-class StorageInstanceTupleAdmin(admin.ModelAdmin):
+class StorageInstanceTupleAdmin(DynamicRawIDMixin, admin.ModelAdmin):
     list_display = (
         "ejector",
         "receiver",
     )
     search_fields = ("ejector__machine__ip", "receiver__machine__ip")
+    dynamic_raw_id_fields = ("ejector", "receiver")
 
 
 @admin.register(models.spec.Spec)
