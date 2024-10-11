@@ -13,9 +13,11 @@ package manage
 import (
 	"github.com/gin-gonic/gin"
 
+	"dbm-services/common/db-resource/internal/config"
 	"dbm-services/common/db-resource/internal/model"
 	"dbm-services/common/db-resource/internal/svr/apply"
 	"dbm-services/common/db-resource/internal/svr/bk"
+	"dbm-services/common/db-resource/internal/svr/dbmapi"
 	"dbm-services/common/db-resource/internal/svr/meta"
 	"dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/common/go-pubpkg/errno"
@@ -24,10 +26,11 @@ import (
 
 // SpecCheckInput TODO
 type SpecCheckInput struct {
-	ResourceType string     `json:"resource_type"`
-	BkCloudId    int        `json:"bk_cloud_id"`
-	ForbizId     int        `json:"for_biz_id"`
-	Details      []SpecInfo `json:"details" binding:"required,gt=0,dive"`
+	ResourceType string            `json:"resource_type"`
+	BkCloudId    int               `json:"bk_cloud_id"`
+	ForbizId     int               `json:"for_biz_id"`
+	LocationSpec meta.LocationSpec `json:"location_spec"`
+	Details      []SpecInfo        `json:"details" binding:"required,gt=0,dive"`
 }
 
 // SpecInfo TODO
@@ -47,16 +50,30 @@ func (m MachineResourceHandler) SpecSum(r *gin.Context) {
 		return
 	}
 	rpdata := make(map[string]int64)
+	var idcCitys []string
+	var err error
+	if config.AppConfig.RunMode == "dev" {
+		idcCitys = []string{}
+	} else {
+		idcCitys, err = dbmapi.GetIdcCityByLogicCity(input.LocationSpec.City)
+		if err != nil {
+			logger.Error("request real citys by logic city %s from bkdbm api failed:%v", input.LocationSpec.City, err)
+			m.SendResponse(r, err, err.Error(), requestId)
+			return
+		}
+	}
 	for _, item := range input.Details {
 		var count int64
 		s := &apply.SearchContext{
 			IntetionBkBizId: input.ForbizId,
 			RsType:          input.ResourceType,
+			IdcCitys:        idcCitys,
 			ObjectDetail: &apply.ObjectDetail{
 				GroupMark:    item.GroupMark,
 				DeviceClass:  item.DeviceClass,
 				Spec:         item.Spec,
 				StorageSpecs: item.StorageSpecs,
+				LocationSpec: input.LocationSpec,
 			},
 		}
 
@@ -66,13 +83,16 @@ func (m MachineResourceHandler) SpecSum(r *gin.Context) {
 		// 如果没有指定资源类型，表示只能选择无资源类型标签的资源
 		// 没有资源类型标签的资源可以被所有其他类型使用
 		if input.ForbizId > 0 {
-			db.Where("dedicated_biz = ? ", input.ForbizId)
+			db.Where("dedicated_biz in (?) ", []int{input.ForbizId, 0})
 		}
 		if cmutil.IsNotEmpty(input.ResourceType) {
-			db.Where("rs_type = ? ", input.ResourceType)
+			db.Where("rs_type in (?) ", []string{input.ResourceType, model.PUBLIC_RESOURCE_DBTYEP})
+		} else {
+			db.Where("rs_type in (?) ", []string{model.PUBLIC_RESOURCE_DBTYEP})
 		}
 		s.MatchStorage(db)
 		s.MatchSpec(db)
+		s.MatchLocationSpec(db)
 		if err := db.Scan(&count).Error; err != nil {
 			logger.Error("query pre check count failed %s", err.Error())
 			m.SendResponse(r, errno.ErrDBQuery.AddErr(err), err.Error(), requestId)
