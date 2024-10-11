@@ -14,20 +14,16 @@
 import SqlserverPermissionAccountModel from '@services/model/sqlserver/sqlserver-permission-account';
 import type { ListBase } from '@services/types';
 
-import { useGlobalBizs } from '@stores';
-
 import type { AccountTypesValues } from '@common/const';
 
 import http from '../http';
 
-const { currentBizId } = useGlobalBizs();
-
-const path = `/apis/sqlserver/bizs/${currentBizId}/permission/account`;
+const getRootPath = () => `/apis/sqlserver/bizs/${window.PROJECT_CONFIG.BIZ_ID}/permission/account`;
 
 /**
  * 添加账号规则
  */
-export function addSqlserverAccountRule(params: {
+export function addAccountRule(params: {
   account_id: number;
   access_db: string;
   privilege: {
@@ -36,27 +32,27 @@ export function addSqlserverAccountRule(params: {
   };
   account_type: AccountTypesValues;
 }) {
-  return http.post<null>(`${path}/add_account_rule/`, params);
+  return http.post<null>(`${getRootPath()}/add_account_rule/`, params);
 }
 
 /**
  * 创建账号
  */
-export function createSqlserverAccount(params: { user: string; password: string; account_type?: AccountTypesValues }) {
-  return http.post<null>(`${path}/create_account/`, params);
+export function createAccount(params: { user: string; password: string; account_type?: AccountTypesValues }) {
+  return http.post<null>(`${getRootPath()}/create_account/`, params);
 }
 
 /**
  * 删除账号
  */
-export function deleteSqlserverAccount(params: { account_id: number; account_type?: AccountTypesValues }) {
-  return http.delete<null>(`${path}/delete_account/`, params);
+export function deleteAccount(params: { account_id: number; account_type?: AccountTypesValues }) {
+  return http.delete<null>(`${getRootPath()}/delete_account/`, params);
 }
 
 /**
  * 查询账号规则列表
  */
-export function getSqlserverPermissionRules(params: {
+export function getPermissionRules(params: {
   limit?: number;
   offset?: number;
   user?: string;
@@ -64,22 +60,22 @@ export function getSqlserverPermissionRules(params: {
   privilege?: string;
   account_type?: AccountTypesValues;
 }) {
-  return http.get<ListBase<SqlserverPermissionAccountModel[]>>(`${path}/list_account_rules/`, params).then((res) => ({
-    ...res,
-    results: res.results.map((item) => new SqlserverPermissionAccountModel(item)),
-  }));
+  return http
+    .get<ListBase<SqlserverPermissionAccountModel[]>>(`${getRootPath()}/list_account_rules/`, params)
+    .then((res) => ({
+      ...res,
+      results: res.results.map((item) => new SqlserverPermissionAccountModel(item)),
+    }));
 }
 
 /**
  * 查询账号规则
  */
-export function querySqlserverAccountRules(params: {
-  user: string;
-  access_dbs: string[];
-  account_type?: AccountTypesValues;
-}) {
-  return http.post<ListBase<SqlserverPermissionAccountModel[]>>(`${path}/query_account_rules/`, params).then((res) => ({
-    ...res,
-    results: res.results.map((item) => new SqlserverPermissionAccountModel(item)),
-  }));
+export function queryAccountRules(params: { user: string; access_dbs: string[]; account_type?: AccountTypesValues }) {
+  return http
+    .post<ListBase<SqlserverPermissionAccountModel[]>>(`${getRootPath()}/query_account_rules/`, params)
+    .then((res) => ({
+      ...res,
+      results: res.results.map((item) => new SqlserverPermissionAccountModel(item)),
+    }));
 }

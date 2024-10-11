@@ -13,7 +13,7 @@
 
 <template>
   <PreviewDiff
-    :db-type="DBTypes.TENDBCLUSTER"
+    :account-type="AccountTypes.TENDBCLUSTER"
     :rules-form-data="rulesFormData" />
 </template>
 
@@ -22,7 +22,7 @@
   import TicketModel from '@services/model/ticket/ticket';
   import type { AccountRule } from '@services/types';
 
-  import { DBTypes } from '@common/const';
+  import { AccountTypes } from '@common/const';
 
   import PreviewDiff from '../mysql/account-rule-change/components/PreviewDiff.vue';
 
