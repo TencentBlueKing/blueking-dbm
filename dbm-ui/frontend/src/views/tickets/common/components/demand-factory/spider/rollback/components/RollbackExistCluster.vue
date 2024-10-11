@@ -22,16 +22,16 @@
   import { useI18n } from 'vue-i18n';
 
   import type TendbclusterModel from '@services/model/tendbcluster/tendbcluster';
-  import type { MySQLRollbackDetails } from '@services/model/ticket/details/mysql';
+  import type { SpiderRollbackDetails } from '@services/model/ticket/details/spider';
   import TicketModel from '@services/model/ticket/ticket';
   import { getTendbclusterListByBizId } from '@services/source/tendbcluster';
 
-  import { type BackupSources, selectList } from '@views/db-manage/mysql/rollback/pages/page1/components/common/const';
+  import { backupSourceList, type BackupSources } from '@views/db-manage/mysql/rollback/pages/page1/components/render-row/components/RenderBackup.vue';
 
   import { utcDisplayTime } from '@utils';
 
   interface Props {
-    ticketDetails: TicketModel<MySQLRollbackDetails>
+    ticketDetails: TicketModel<SpiderRollbackDetails>
   }
 
   const props = defineProps<Props>();
@@ -55,13 +55,13 @@
       label: t('备份源'),
       field: 'backup_source',
       width: 100,
-      render: ({ cell }: { cell: BackupSources }) => <span>{ selectList.backupSource.find(item=>item.value === cell)?.label || '--' }</span>,
+      render: ({ cell }: { cell: BackupSources }) => <span>{ backupSourceList.find(item=>item.value === cell)?.label || '--' }</span>,
     },
     {
       label: t('回档类型'),
       field: '',
       width: 280,
-      render: ({ data }: { data: MySQLRollbackDetails['infos'][0] }) =>  {
+      render: ({ data }: { data: SpiderRollbackDetails['infos'][0] }) =>  {
         if (data.rollback_time) {
           return <span>{ t('回档到指定时间') } - { utcDisplayTime(data.rollback_time) }</span>;
         }
@@ -129,7 +129,7 @@
     },
   ];
 
-  const targetClusters = shallowRef<Array<TendbclusterModel>>([]);
+  const targetClusters = shallowRef<TendbclusterModel[]>([]);
 
   const tableData = computed(()=>{
     const { clusters, infos } = props.ticketDetails.details;
@@ -144,7 +144,7 @@
   watch(
     ()=> props.ticketDetails.details,
     () => {
-      const targetClusterIds = props.ticketDetails.details.infos.map(item => Number(item.target_cluster_id));
+      const targetClusterIds = props.ticketDetails.details.infos.map(item => item.target_cluster_id);
       getTendbclusterListByBizId({
         cluster_ids: targetClusterIds,
         bk_biz_id: props.ticketDetails.bk_biz_id,

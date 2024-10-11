@@ -57,9 +57,7 @@
     },
   };
 
-  const renderData = computed(
-    () => rollbackInfo[props.ticketDetails.details.rollback_cluster_type as RollbackClusterTypes],
-  );
+  const renderData = computed(() => rollbackInfo[props.ticketDetails.details.rollback_cluster_type]);
 </script>
 
 <style lang="less" scoped>
