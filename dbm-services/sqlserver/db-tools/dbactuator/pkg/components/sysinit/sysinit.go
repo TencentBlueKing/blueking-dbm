@@ -141,7 +141,7 @@ func (s *SysInitParam) CreateSysUser() error {
 	// 创建backupman账号
 	backupman := osutil.WINSOSUser{
 		User:    "backupman",
-		Pass:    osutil.GenerateRandomString(12),
+		Pass:    fmt.Sprintf("%sAa!#", osutil.GenerateRandomString(8)),
 		Comment: "BACKUP ACCOUNT",
 	}
 	if backupman.UserExists() {
@@ -177,9 +177,9 @@ func (s *SysInitParam) CreateSysDir() error {
 	}
 	if check {
 		// 添加E盘必须创建的目录
-		createDir = append(createDir, filepath.Join(cst.BASE_DATA_PATH, cst.BASE_BACKUP_PATH))
-		createDir = append(createDir, filepath.Join(cst.BASE_DATA_PATH, cst.BASE_BACKUP_PATH, "full"))
-		createDir = append(createDir, filepath.Join(cst.BASE_DATA_PATH, cst.BASE_BACKUP_PATH, "log"))
+		createDir = append(createDir, filepath.Join(cst.BASE_BACKUP_PATH, cst.MSSQL_BACKUP_NAME))
+		createDir = append(createDir, filepath.Join(cst.BASE_BACKUP_PATH, cst.MSSQL_BACKUP_NAME, "full"))
+		createDir = append(createDir, filepath.Join(cst.BASE_BACKUP_PATH, cst.MSSQL_BACKUP_NAME, "log"))
 	}
 
 	// 循环创建目录

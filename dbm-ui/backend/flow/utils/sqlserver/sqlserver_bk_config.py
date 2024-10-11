@@ -87,13 +87,14 @@ def get_sqlserver_backup_config(bk_biz_id: int, cluster_domain: str, db_module_i
     return data
 
 
-def get_sqlserver_alarm_config(bk_biz_id: int, cluster_domain: str, db_module_id: int):
+def get_sqlserver_alarm_config(bk_biz_id: int, cluster_domain: str, db_module_id: int, is_only_init_sql: bool = False):
     """
     获取sqlserver实例的告警配置,集群级别配置
     sqlserver_single和sqlserver_ha集群统一用这里拿去配置
     @param bk_biz_id: 业务id
     @param cluster_domain: 集群主域名
     @param db_module_id: db模块id
+    @param is_only_init_sql: 是否只获取初始化配置
     """
     data = DBConfigApi.query_conf_item(
         {
@@ -107,4 +108,8 @@ def get_sqlserver_alarm_config(bk_biz_id: int, cluster_domain: str, db_module_id
             "format": FormatType.MAP,
         }
     )["content"]
+    init_sql = data.pop("init_sql")
+    if is_only_init_sql:
+        return {"init_sql": init_sql}
+
     return data

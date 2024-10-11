@@ -12,6 +12,7 @@ package sqlserver
 
 import (
 	"bytes"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"html/template"
@@ -58,6 +59,7 @@ type InstallSqlServerParams struct {
 	BufferPercent    uint64          `json:"buffer_percent" validate:"required,gt=0,lt=100"`
 	MaxRemainMemGB   uint64          `json:"max_remain_mem_gb" validate:"required,gt=0"`
 	SQLServerConfigs json.RawMessage `json:"sqlserver_configs"  validate:"required" `
+	InitSQL          string          `json:"init_sql" `
 }
 
 // RenderConfig TODO
@@ -629,4 +631,62 @@ func WriteInitSQLFile() ([]string, error) {
 		dealFiles = append(dealFiles, tmpScriptName)
 	}
 	return dealFiles, nil
+}
+
+// WriteInitSQLFileV2 TODO
+// 把初始化的sql文件写入到本地, 导入专属
+func WriteInitSQLFileV2() ([]string, error) {
+	var dealFiles []string
+	sqls := []string{
+		staticembed.InitDBMMonitorFileV2Name,
+	}
+
+	for _, sqlFile := range sqls {
+		data, err := staticembed.SQLScript.ReadFile(sqlFile)
+		if err != nil {
+			logger.Error("read sql script failed %s", err.Error())
+			return nil, err
+		}
+		// tmpScriptName := fmt.Sprintf("%s\\%s", cst.BASE_DATA_PATH, sqlFile)
+		// 添加 UTF-8 BOM 字节序列
+		data = append([]byte{0xEF, 0xBB, 0xBF}, data...)
+
+		tmpScriptName := filepath.Join(cst.BASE_DATA_PATH, sqlFile)
+		if err = os.WriteFile(tmpScriptName, data, 0755); err != nil {
+			logger.Error("write sql script failed %s", err.Error())
+			return nil, err
+		}
+		dealFiles = append(dealFiles, tmpScriptName)
+	}
+	return dealFiles, nil
+}
+
+// ExecInitSQL 读取并执行自定义初始化sql的配置
+func (i *InstallSqlServerComp) ExecInitSQL() error {
+	if i.Params.InitSQL == "" {
+		logger.Warn("init sql is null, skip")
+		return nil
+	}
+	for _, port := range i.Params.Ports {
+		data, err := base64.StdEncoding.DecodeString(i.Params.InitSQL)
+		if err != nil {
+			// 参数不属于base64字符串，属于非法
+			logger.Error("decodestring init_sql error")
+			return err
+		}
+		// 添加 UTF-8 BOM 字节序列
+		data = append([]byte{0xEF, 0xBB, 0xBF}, data...)
+		tmpScriptName := filepath.Join(cst.BASE_DATA_PATH, fmt.Sprintf("init_sql_%d.sql", port))
+		if err := os.WriteFile(tmpScriptName, data, 0755); err != nil {
+			logger.Error("write init_sql_%s.sql script failed %s", port, err.Error())
+			return err
+		}
+		if err := sqlserver.ExecLocalSQLFile(
+			i.Params.SQlServerVersion, "master", 0, []string{tmpScriptName}, port); err != nil {
+			return err
+		}
+	}
+
+	return nil
+
 }

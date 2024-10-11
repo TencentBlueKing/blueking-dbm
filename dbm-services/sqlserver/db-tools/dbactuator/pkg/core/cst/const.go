@@ -100,7 +100,7 @@ const (
 	// SQLCMD_2019 TODO
 	SQLCMD_2019 = "C:\\Program Files\\Microsoft SQL Server\\Client SDK\\ODBC\\170\\Tools\\Binn\\SQLCMD.EXE"
 	// SQLCMD_2017 TODO
-	SQLCMD_2017 = "C:\\Program Files\\Microsoft SQL Server\\Client SDK\\ODBC\\150\\Tools\\Binn\\SQLCMD.EXE"
+	SQLCMD_2017 = "C:\\Program Files\\Microsoft SQL Server\\Client SDK\\ODBC\\130\\Tools\\Binn\\SQLCMD.EXE"
 	// SQLCMD_2016 TODO
 	SQLCMD_2016 = "C:\\Program Files\\Microsoft SQL Server\\Client SDK\\ODBC\\130\\Tools\\Binn\\SQLCMD.EXE"
 	// SQLCMD_2014 TODO
@@ -293,6 +293,14 @@ var (
 	,[KEEP_FULL_BACKUP_DAYS]
 	,[KEEP_LOG_BACKUP_DAYS]
 	FROM [%s].[dbo].[BACKUP_SETTING]`
+	SAVE_BACKUP_TRACE_SQL = `
+USE [master]
+IF EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[BACKUP_TRACE]') AND type in (N'U'))
+BEGIN
+DROP TABLE [master].[dbo].[BACKUP_TRACE];
+END
+SELECT * INTO [master].[dbo].[BACKUP_TRACE] FROM [%s].[dbo].[BACKUP_TRACE];
+	`
 )
 
 // 在DB移除DR可用组信息
