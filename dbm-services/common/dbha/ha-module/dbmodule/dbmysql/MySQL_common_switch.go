@@ -61,7 +61,7 @@ type MySQLCommonSwitchUtil interface {
 	GetSlaveCheckSum() (int, int, error)
 	GetSlaveDelay() (int, int, error)
 	FindUsefulDatabase() (bool, error)
-	CheckSlaveSlow() error
+	CheckSlaveSlow(bool) error
 	ResetSlave() (string, uint64, error)
 	SetStandbySlave([]dbutil.SlaveInfo)
 
@@ -304,7 +304,7 @@ func (ins *MySQLCommonSwitch) CheckSlaveStatus() error {
 		slaveDelay, gmConf.GCM.AllowedSlaveDelayMax))
 
 	if timeDelay >= gmConf.GCM.AllowedTimeDelayMax {
-		return fmt.Errorf("IO_Thread delay on slave too large than master(%d >= %d)", timeDelay,
+		return fmt.Errorf("heartbeat delay on slave too large than master(%d >= %d)", timeDelay,
 			gmConf.GCM.AllowedTimeDelayMax)
 	}
 	ins.ReportLogs(constvar.InfoResult, fmt.Sprintf("IO_Thread delay [%d] in allowed range[%d]",
@@ -594,6 +594,7 @@ func (ins *MySQLCommonSwitch) ResetSlave() (string, uint64, error) {
 	}
 
 	stopSql := "stop slave"
+	slaveSql := "show slave status"
 	masterSql := "show master status"
 	resetSql := "reset slave /*!50516 all */"
 
@@ -602,6 +603,16 @@ func (ins *MySQLCommonSwitch) ResetSlave() (string, uint64, error) {
 		return "", 0, fmt.Errorf("stop slave failed. err:%s", err.Error())
 	}
 	log.Logger.Infof("execute %s success", stopSql)
+
+	slaveStatus := SlaveStatus{}
+	err = db.Raw(slaveSql).Scan(&slaveStatus).Error
+	if err != nil {
+		log.Logger.Warnf("show slave status failed. err:%s", err.Error())
+	} else {
+		log.Logger.Debugf("slave status info:%v", slaveStatus)
+		ins.ReportLogs(constvar.InfoResult, fmt.Sprintf("after stop slave, binlog binlog_file:%s, "+
+			"binlog_pos:%d", slaveStatus.RelayMasterLogFile, slaveStatus.ExecMasterLogPos))
+	}
 
 	var masterStatus MasterStatus
 	err = db.Raw(masterSql).Scan(&masterStatus).Error

@@ -4,6 +4,7 @@ import (
 	"dbm-services/common/dbha/hadb-api/model"
 	"fmt"
 	"net"
+	"sort"
 	"strconv"
 	"sync"
 	"time"
@@ -86,7 +87,7 @@ func NewMonitorAgent(conf *config.Config, detectType string) (*MonitorAgent, err
 func (a *MonitorAgent) Process(instances map[string]dbutil.DataBaseDetect) {
 	var wg sync.WaitGroup
 	sem := make(chan struct{}, a.MaxConcurrency) // 创建一个有缓冲的通道，容量为 maxConcurrency
-	log.Logger.Debugf("need to detect instances number:%d", len(a.DBInstance))
+	log.Logger.Debugf("[%s] need to detect instances number:%d", a.DetectType, len(a.DBInstance))
 	for _, ins := range instances {
 		wg.Add(1)
 		sem <- struct{}{} // 向通道发送信号，表明一个新的 goroutine 启动
@@ -152,7 +153,7 @@ func (a *MonitorAgent) DetectPostProcess() {
 	if err != nil {
 		log.Logger.Errorf("reporter heartbeat failed. err:%s", err.Error())
 	}
-	log.Logger.Infof("report agent heartbeat success.")
+	log.Logger.Infof("[%s] report agent heartbeat success.", a.DetectType)
 }
 
 // RefreshGMCache refresh gm cache, delete expire gm
@@ -305,7 +306,17 @@ func (a *MonitorAgent) ReporterDetectInfo(reporterInstance dbutil.DataBaseDetect
 		return nil
 	}
 
-	for _, gmIns := range a.GMInstance {
+	// 提取 GMInstance 的 IP 列表
+	var gmIPs []string
+	for gmIP := range a.GMInstance {
+		gmIPs = append(gmIPs, gmIP)
+	}
+
+	// 按照 IP 字典顺序排序
+	sort.Strings(gmIPs)
+
+	for _, sortedIp := range gmIPs {
+		gmIns := a.GMInstance[sortedIp]
 		gmIns.Mutex.Lock()
 		if !gmIns.IsConnection {
 			gmIns.Mutex.Unlock()

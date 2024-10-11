@@ -73,8 +73,7 @@ func main() {
 				}
 			}(clusterType)
 		}
-		var c chan struct{}
-		<-c
+		select {}
 	case constvar.GM:
 		GM := gm.NewGM(conf)
 		if err = GM.Run(); err != nil {
