@@ -23,7 +23,7 @@
   import type { MySQLRollbackDetails } from '@services/model/ticket/details/mysql';
   import TicketModel from '@services/model/ticket/ticket';
 
-  import { type BackupSources, selectList } from '@views/db-manage/mysql/rollback/pages/page1/components/common/const';
+  import { backupSourceList, type BackupSources } from '@views/db-manage/mysql/rollback/pages/page1/components/render-row/components/RenderBackup.vue';
 
   import { utcDisplayTime } from '@utils';
 
@@ -44,7 +44,7 @@
     {
       label: t('备份源'),
       field: 'backup_source',
-      render: ({ cell }: { cell: BackupSources }) => <span>{ selectList.backupSource.find(item => item.value === cell)?.label || '--' }</span>,
+      render: ({ cell }: { cell: BackupSources }) => <span>{ backupSourceList.find(item => item.value === cell)?.label || '--' }</span>,
     },
     {
       label: t('回档类型'),

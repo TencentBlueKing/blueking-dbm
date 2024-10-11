@@ -23,8 +23,7 @@
   import type { MySQLRollbackDetails } from '@services/model/ticket/details/mysql';
   import TicketModel from '@services/model/ticket/ticket';
 
-  import { type BackupSources, selectList } from '@views/db-manage/mysql/rollback/pages/page1/components/common/const';
-  import type { IDataRow } from '@views/db-manage/mysql/rollback/pages/page1/components/render-data/Index.vue';
+  import { backupSourceList, type BackupSources } from '@views/db-manage/mysql/rollback/pages/page1/components/render-row/components/RenderBackup.vue';
 
   import { utcDisplayTime } from '@utils';
 
@@ -53,13 +52,13 @@
       label: t('回档新主机'),
       field: 'rollback_host',
       width: 120,
-      render: ({ data }: { data: MySQLRollbackDetails['infos'][0] }) => <span>{ (data.rollback_host as IDataRow['rollbackHost'])?.ip || '--' }</span>,
+      render: ({ data }: { data: MySQLRollbackDetails['infos'][0] }) => <span>{ data.rollback_host?.ip || '--' }</span>,
     },
     {
       label: t('备份源'),
       field: 'backup_source',
       width: 100,
-      render: ({ cell }: { cell: BackupSources }) => <span>{ selectList.backupSource.find(item => item.value === cell)?.label || '--' }</span>,
+      render: ({ cell }: { cell: BackupSources }) => <span>{ backupSourceList.find(item => item.value === cell)?.label || '--' }</span>,
     },
     {
       label: t('回档类型'),

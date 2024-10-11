@@ -20,13 +20,12 @@
 <script setup lang="tsx">
   import { useI18n } from 'vue-i18n';
 
-  import type Tendbha from '@services/model/mysql/tendbha';
-  import type Tendbsingle from '@services/model/mysql/tendbsingle';
+  import TendbhaModel from '@services/model/mysql/tendbha';
   import type { MySQLRollbackDetails } from '@services/model/ticket/details/mysql';
   import TicketModel from '@services/model/ticket/ticket';
   import { queryClusters } from '@services/source/mysqlCluster';
 
-  import { type BackupSources, selectList } from '@views/db-manage/mysql/rollback/pages/page1/components/common/const';
+  import { backupSourceList, type BackupSources } from '@views/db-manage/mysql/rollback/pages/page1/components/render-row/components/RenderBackup.vue';
 
   import { utcDisplayTime } from '@utils';
 
@@ -55,7 +54,7 @@
       label: t('备份源'),
       field: 'backup_source',
       width: 100,
-      render: ({ cell }: { cell: BackupSources }) => <span>{ selectList.backupSource.find(item => item.value === cell)?.label || '--' }</span>,
+      render: ({ cell }: { cell: BackupSources }) => <span>{ backupSourceList.find(item => item.value === cell)?.label || '--' }</span>,
     },
     {
       label: t('回档类型'),
@@ -129,7 +128,7 @@
     },
   ];
 
-  const targetClusters = shallowRef<Array<Tendbha | Tendbsingle>>([]);
+  const targetClusters = shallowRef<TendbhaModel[]>([]);
 
   const tableData = computed(() => {
     const { clusters, infos } = props.ticketDetails.details;
@@ -143,7 +142,7 @@
   watch(
     () => props.ticketDetails.details,
     () => {
-      const targetClusterIds = props.ticketDetails.details.infos.map(item => ({ id: Number(item.target_cluster_id) }));
+      const targetClusterIds = props.ticketDetails.details.infos.map(item => ({ id: item.target_cluster_id }));
       queryClusters({
         cluster_filters: targetClusterIds,
         bk_biz_id: props.ticketDetails.bk_biz_id,
