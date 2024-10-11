@@ -131,7 +131,7 @@ class DBResourceViewSet(viewsets.SystemViewSet):
 
         # 获取云区域信息和业务信息
         cloud_info = ResourceQueryHelper.search_cc_cloud(get_cache=True)
-        for_biz_ids = [data["dedicated_biz"] for data in resource_data["details"]]
+        for_biz_ids = [data["dedicated_biz"] for data in resource_data["details"] if data["dedicated_biz"]]
         for_biz_infos = AppCache.batch_get_app_attr(bk_biz_ids=for_biz_ids, attr_name="bk_biz_name")
         # 格式化资源池字段信息
         for data in resource_data.get("details") or []:

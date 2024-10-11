@@ -18,7 +18,8 @@ from ..domains import MYSQL_PRIV_MANAGER_APIGW_DOMAIN
 class _DBPrivManagerApi(BaseApi):
     MODULE = _("DB权限管理")
     BASE = MYSQL_PRIV_MANAGER_APIGW_DOMAIN
-    # 权限相关操作的默认超时时间，暂定3h
+    # 权限相关操作的默认超时时间，暂定3h，请在调用接口的时候按需使用
+    # eg: DBPrivManagerApi.modify_admin_password(params=xxx,timeout=DBPrivManagerApi.TIMEOUT)
     TIMEOUT = 3 * 60 * 60
 
     def __init__(self):

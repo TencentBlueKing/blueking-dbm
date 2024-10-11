@@ -394,17 +394,12 @@ class ResourceHandler(object):
         resource_type = ClusterType.cluster_type_to_db_type(spec_cluster_type[0])
         # 构造申请参数
         spec_count_details = [
-            spec.get_group_apply_params(
-                group_mark=str(spec.spec_id),
-                count=1,
-                group_count=1,
-                bk_cloud_id=bk_cloud_id,
-                location_spec={"city": city, "sub_zone_ids": []},
-            )
+            spec.get_group_apply_params(group_mark=str(spec.spec_id), count=1, group_count=1, bk_cloud_id=bk_cloud_id)
             for spec in specs
         ]
         spec_count_details = list(itertools.chain(*spec_count_details))
         spec_count_params = {
+            "location_spec": {"city": "" if city == "default" else city, "sub_zone_ids": []},
             "for_biz_id": bk_biz_id,
             "resource_type": resource_type,
             "bk_cloud_id": bk_cloud_id,
