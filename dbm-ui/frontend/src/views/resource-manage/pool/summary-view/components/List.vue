@@ -31,22 +31,27 @@
         <template v-if="isSpec">
           <BkTableColumn
             :label="t('规格类型')"
-            prop="specTypeDisplay" />
+            prop="specTypeDisplay"
+            :width="150" />
           <BkTableColumn
             :label="t('规格')"
-            prop="spec_name" />
+            prop="spec_name"
+            :width="150" />
         </template>
         <template v-else>
           <BkTableColumn
             :label="t('机型（硬盘）')"
-            prop="deviceDisplay" />
+            prop="deviceDisplay"
+            :width="150" />
           <BkTableColumn
             :label="t('CPU 内存')"
-            prop="cpu_mem_summary" />
+            prop="cpu_mem_summary"
+            :width="150" />
         </template>
         <BkTableColumn
           :label="t('园区分布（台）')"
-          prop="sub_zone_detail">
+          prop="sub_zone_detail"
+          :width="400">
           <template #default="{ row }">
             <span
               v-for="(item, subzoneId, index) in row.sub_zone_detail"
@@ -62,7 +67,9 @@
           </template>
         </BkTableColumn>
         <BkTableColumn
+          fixed="right"
           :label="t('总数（台）')"
+          :min-width="100"
           prop="count"
           :width="100">
           <template #default="{ row }">
