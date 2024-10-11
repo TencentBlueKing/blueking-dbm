@@ -68,10 +68,8 @@ func (m MachineResourceHandler) SpecSum(r *gin.Context) {
 		if input.ForbizId > 0 {
 			db.Where("dedicated_biz = ? ", input.ForbizId)
 		}
-		if cmutil.IsEmpty(input.ResourceType) {
-			db.Where("JSON_LENGTH(rs_types) <= 0")
-		} else {
-			db.Where("( ? or JSON_LENGTH(rs_types) <= 0 )", model.JSONQuery("rs_types").Contains([]string{input.ResourceType}))
+		if cmutil.IsNotEmpty(input.ResourceType) {
+			db.Where("rs_type = ? ", input.ResourceType)
 		}
 		s.MatchStorage(db)
 		s.MatchSpec(db)
