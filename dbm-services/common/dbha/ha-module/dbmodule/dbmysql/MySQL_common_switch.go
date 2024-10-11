@@ -35,7 +35,7 @@ const (
 	// GetRouteSQL TendbCluster used to get all routes
 	GetRouteSQL = "SELECT Server_name, Host, Username, Password, Port, Wrapper FROM mysql.servers"
 	//FlushRouteSQL TendbCluster used to flush routes
-	FlushRouteSQL = "TDBCTL FLUSH ROUTING"
+	FlushRouteSQL = "TDBCTL FLUSH ROUTING FORCE"
 	// ForcePrimarySQL enable primary tdbctl force
 	ForcePrimarySQL = "TDBCTL ENABLE PRIMARY FORCE"
 	// AlterNodeFormat TDBCTL alter node sql format
