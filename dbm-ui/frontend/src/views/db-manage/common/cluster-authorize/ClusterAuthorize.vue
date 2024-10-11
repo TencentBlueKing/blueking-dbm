@@ -316,7 +316,7 @@
 
   const tabListConfigMap = {
     tendbhaSlave: {
-      name: t('高可用-从域名'),
+      name: t('MySQL主从-从域名'),
       showPreviewResultTitle: true,
       getResourceList: (params: any) => {
         params.slave_domain = params.domain;
@@ -338,7 +338,7 @@
       }
     },
     [ClusterTypes.TENDBHA]: {
-      name: t('高可用-主域名'),
+      name: t('MySQL主从-主域名'),
       showPreviewResultTitle: true,
       getResourceList: (params: any) => {
         params.master_domain = params.domain;
@@ -347,7 +347,7 @@
       }
     },
     [ClusterTypes.TENDBSINGLE]: {
-      name: t('单节点集群'),
+      name: t('MySQL单节点'),
       showPreviewResultTitle: true,
     },
     [ClusterTypes.MONGO_REPLICA_SET]: {
