@@ -47,10 +47,12 @@
   }
 
   interface Exposes {
-    getValue: (field: string) => Promise<{
-      bk_host_id: number;
-      ip: string;
-      bk_cloud_id: number;
+    getValue: () => Promise<{
+      master: {
+        bk_host_id: number;
+        ip: string;
+        bk_cloud_id: number;
+      };
     }>;
   }
 
@@ -76,7 +78,7 @@
     },
     {
       validator: () =>
-        checkInstance<SqlServerHaInstanceModel>({
+        checkInstance({
           bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
           instance_addresses: [localValue.value],
         }).then((data) => {
