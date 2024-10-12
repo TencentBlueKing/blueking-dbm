@@ -22,15 +22,19 @@
 package main
 
 import (
+	"context"
 	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
+	"time"
 
 	"dbm-services/common/go-pubpkg/apm/metric"
 	"dbm-services/common/go-pubpkg/apm/trace"
+	"dbm-services/mysql/db-simulation/app/config"
 
 	"go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin"
 
-	"dbm-services/common/db-resource/internal/config"
 	"dbm-services/common/db-resource/internal/middleware"
 	"dbm-services/common/db-resource/internal/routers"
 	"dbm-services/common/db-resource/internal/svr/task"
@@ -49,24 +53,24 @@ var version = ""
 func main() {
 	logger.Info("buildstamp:%s,githash:%s,version:%s", buildstamp, githash, version)
 
-	engine := gin.New()
-	pprof.Register(engine)
+	app := gin.New()
+	pprof.Register(app)
 
 	// setup trace
 	trace.Setup()
 	// apm: add otlgin middleware
-	engine.Use(
+	app.Use(
 		gin.Recovery(),
 		otelgin.Middleware("db_resource"),
 	)
 	// apm: add prom metrics middleware
-	metric.NewPrometheus("").Use(engine)
+	metric.NewPrometheus("").Use(app)
 
-	engine.Use(requestid.New())
-	engine.Use(middleware.ApiLogger)
-	engine.Use(middleware.BodyLogMiddleware)
-	routers.RegisterRoutes(engine)
-	engine.POST("/app", func(ctx *gin.Context) {
+	app.Use(requestid.New())
+	app.Use(middleware.ApiLogger)
+	app.Use(middleware.BodyLogMiddleware)
+	routers.RegisterRoutes(app)
+	app.POST("/app", func(ctx *gin.Context) {
 		ctx.SecureJSON(http.StatusOK, map[string]interface{}{"buildstamp": buildstamp, "githash": githash,
 			"version": version})
 	})
@@ -74,9 +78,33 @@ func main() {
 	registerCrontab(lcron)
 	lcron.Start()
 	defer lcron.Stop()
-	if err := engine.Run(config.AppConfig.ListenAddress); err != nil {
-		logger.Error("start  run failed %v", err)
+
+	srv := &http.Server{
+		Addr:              config.GAppConfig.ListenAddr,
+		Handler:           app,
+		ReadHeaderTimeout: 5 * time.Second,
 	}
+	go func() {
+		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			logger.Fatal("listen: %s\n", err)
+		}
+	}()
+	// Wait for interrupt signal to gracefully shutdown the server with
+	// a timeout of 5 seconds.
+	quit := make(chan os.Signal, 1)
+	// kill (no param) default send syscall.SIGTERM
+	// kill -2 is syscall.SIGINT
+	// kill -9 is syscall.SIGKILL but can't be catch, so don't need add it
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+	<-quit
+	logger.Info("Shutting down server...")
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	if err := srv.Shutdown(ctx); err != nil {
+		//nolint
+		logger.Fatal("Server forced to shutdown: %v ", err)
+	}
+	logger.Info("Server exiting\n")
 }
 
 // init init logger
