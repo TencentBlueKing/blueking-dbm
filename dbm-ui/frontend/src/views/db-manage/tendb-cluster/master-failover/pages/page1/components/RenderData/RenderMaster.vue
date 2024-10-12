@@ -58,7 +58,7 @@
   }
 
   interface Exposes {
-    getValue: (field: string) => Promise<IValue>;
+    getValue: () => Promise<IValue>;
   }
 
   const props = defineProps<Props>();
