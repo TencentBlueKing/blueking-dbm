@@ -48,6 +48,7 @@ export const useTreeData = (treeState: TreeState) => {
     mysql: getMysqlResourceTree,
     mongodb: getMongoDBResourceTree,
     sqlserver: geSqlserverResourceTree,
+    tendbcluster: getMysqlResourceTree,
   };
 
   const activeTreeNode = computed(() => treeState.activeNode);
