@@ -55,13 +55,13 @@
     biz: BizItem;
   }
 
-  interface Emit {
+  interface Emits {
     (e: 'update:isShow', value: boolean): void;
   }
 
   const props = defineProps<Props>();
 
-  const emit = defineEmits<Emit>();
+  const emit = defineEmits<Emits>();
 
   const { t } = useI18n();
   const existedTagsSet = ref<Set<string>>(new Set());
