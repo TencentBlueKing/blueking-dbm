@@ -233,6 +233,20 @@
       tableContent: SpiderTable,
       resultContent: ResultPreview,
     },
+    tendbclusterSlave: {
+      id: 'tendbclusterSlave',
+      name: t('集群选择'),
+      disabledRowConfig: [
+        {
+          handler: (data: T) => data.isOffline,
+          tip: t('集群已禁用'),
+        },
+      ],
+      multiple: true,
+      getResourceList: getTendbClusterList,
+      tableContent: SpiderTable,
+      resultContent: ResultPreview,
+    },
     [ClusterTypes.REDIS]: {
       id: ClusterTypes.REDIS,
       name: t('集群选择'),
