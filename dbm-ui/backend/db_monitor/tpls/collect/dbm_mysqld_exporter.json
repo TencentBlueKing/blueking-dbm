@@ -11,7 +11,7 @@
     "metric_relabel_configs": [{
       "source_labels": ["__name__"],
       "action": "drop",
-      "regex": "^mysql_global_variables_[a-lnp-su-z]|^mysql_global_status_tokudb|^mysql_global_status_mysqlx"
+      "regex": "^mysql_global_variables_[a-lnp-su-z].*|^mysql_global_status_tokudb.*|^mysql_global_status_mysqlx.*"
     }],
     "params": {
       "collector": {
@@ -58,7 +58,7 @@
     "plugin_id": "dbm_mysqld_exporter"
   },
   "db_type": "mysql",
-  "version": 17,
+  "version": 19,
   "machine_types": [],
   "plugin_id": "dbm_mysqld_exporter"
 }
