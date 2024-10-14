@@ -285,7 +285,7 @@ func (m *CreatePartitionsInput) CreatePartitionsConfig() (error, []int) {
 	partitionType := 0
 	// 普通分区类型0 5 101
 	switch m.PartitionColumnType {
-	case "datetime":
+	case "datetime", "date":
 		if strings.EqualFold(m.RemoteHashAlgorithm, "range") {
 			partitionType = 4
 		} else {
@@ -293,14 +293,14 @@ func (m *CreatePartitionsInput) CreatePartitionsConfig() (error, []int) {
 		}
 	case "timestamp":
 		partitionType = 5
-	case "int":
+	case "int", "bigint":
 		if strings.EqualFold(m.RemoteHashAlgorithm, "list") {
 			partitionType = 3
 		} else {
 			partitionType = 101
 		}
 	default:
-		return errors.New("请选择分区字段类型：datetime、timestamp或int"), []int{}
+		return errors.New("请选择分区字段类型：datetime、date、timestamp、int、bigint"), []int{}
 	}
 	var errs []string
 	warnings1, err := m.compareWithSameArray()
@@ -397,14 +397,14 @@ func (m *CreatePartitionsInput) UpdatePartitionsConfig() error {
 	partitionType := 0
 
 	switch m.PartitionColumnType {
-	case "datetime":
+	case "datetime", "date":
 		partitionType = 0
 	case "timestamp":
 		partitionType = 5
-	case "int":
+	case "int", "bigint":
 		partitionType = 101
 	default:
-		return errors.New("请选择分区字段类型：datetime、timestamp或int")
+		return errors.New("请选择分区字段类型：datetime、date、timestamp、int、bigint")
 	}
 	var errs []string
 	for _, dblike := range m.DbLikes {
