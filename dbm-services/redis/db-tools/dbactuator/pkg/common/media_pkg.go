@@ -70,6 +70,10 @@ func (pkg *DbToolsMediaPkg) Install() (err error) {
 	// if err != nil {
 	// 	return
 	// }
+
+	// 如果 /home/mysql/dbtools 是个无效的软链接,则删除
+	util.RemoveInvalidSoftLink(consts.DbToolsPath)
+
 	toolsName := filepath.Base(consts.DbToolsPath)
 	backupDir := filepath.Join(consts.GetRedisBackupDir(), "dbbak") // 如 /data/dbbak
 	bakdirToolsTar := filepath.Join(backupDir, toolsName+".tar.gz") // 如 /data/dbbak/dbtools.tar.gz

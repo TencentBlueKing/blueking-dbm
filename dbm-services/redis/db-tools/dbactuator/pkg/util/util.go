@@ -15,6 +15,7 @@ import (
 	"syscall"
 	"time"
 
+	"dbm-services/redis/db-tools/dbactuator/mylog"
 	"dbm-services/redis/db-tools/dbactuator/pkg/consts"
 
 	"github.com/dustin/go-humanize"
@@ -313,4 +314,22 @@ func SizeToHumanStr(ssize int64) string {
 		return "+" + humanize.BigIBytes((&big.Int{}).SetInt64(ssize))
 	}
 	return "-" + humanize.BigIBytes((&big.Int{}).SetInt64(-ssize))
+}
+
+// RemoveInvalidSoftLink 删除无效的软链接
+func RemoveInvalidSoftLink(softLink string) (err error) {
+	softLink = strings.TrimSpace(softLink)
+	if softLink == "" {
+		mylog.Logger.Info(fmt.Sprintf("softLink %s is empty,skip RemoveInvalidSoftLink", softLink))
+		return nil
+	}
+	execCmd := fmt.Sprintf(`
+	if [[ -L %q && ! -e %q ]]
+	then
+	rm -rf %s
+	fi
+		`, softLink, softLink, softLink)
+	mylog.Logger.Info(execCmd)
+	_, err = RunBashCmd(execCmd, "", nil, 2*time.Minute)
+	return
 }
