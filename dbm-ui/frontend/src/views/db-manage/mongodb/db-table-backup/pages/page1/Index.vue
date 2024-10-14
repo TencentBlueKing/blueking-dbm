@@ -66,16 +66,22 @@
         :model="formData"
         style="margin-top: 16px">
         <BkFormItem
-          :label="t('备份文件保存时间')"
+          :label="t('备份保存时间')"
           property="file_tag">
           <BkRadioGroup
             v-model="formData.file_tag"
             size="small">
             <BkRadio label="normal_backup">
-              {{ t('常规备份（25天）') }}
+              {{ t('25天') }}
+            </BkRadio>
+            <BkRadio label="half_year_backup">
+              {{ t('6个月') }}
+            </BkRadio>
+            <BkRadio label="a_year_backup">
+              {{ t('1年') }}
             </BkRadio>
             <BkRadio label="forever_backup">
-              {{ t('长期备份（3年）') }}
+              {{ t('3年') }}
             </BkRadio>
           </BkRadioGroup>
         </BkFormItem>
@@ -108,7 +114,6 @@
   </SmartAction>
 </template>
 <script setup lang="tsx">
-  import { InfoBox } from 'bkui-vue';
   import { useI18n } from 'vue-i18n';
   import { useRouter } from 'vue-router';
 
@@ -141,6 +146,7 @@
   });
 
   const formData = reactive({
+    // file_tag: 'DBFILE1M',
     file_tag: 'normal_backup',
   });
 
@@ -247,48 +253,39 @@
   };
 
   const handleSubmit = async () => {
-    const infos = await Promise.all<InfoItem[]>(
-      rowRefs.value.map((item: { getValue: () => Promise<InfoItem> }) => item.getValue()),
-    );
-
-    const params: Record<string, any> = {
-      bk_biz_id: currentBizId,
-      ticket_type: TicketTypes.MONGODB_BACKUP,
-      remark: '',
-      details: {
-        file_tag: formData.file_tag,
-        backup_type: backupType.value,
-        infos,
-      },
-    };
-    if (clusterType.value === ClusterTypes.MONGO_REPLICA_SET) {
-      delete params.details.backup_type;
+    try {
+      isSubmitting.value = true;
+      const infos = await Promise.all<InfoItem[]>(
+        rowRefs.value.map((item: { getValue: () => Promise<InfoItem> }) => item.getValue()),
+      );
+      const params: Record<string, any> = {
+        bk_biz_id: currentBizId,
+        ticket_type: TicketTypes.MONGODB_BACKUP,
+        remark: '',
+        details: {
+          file_tag: formData.file_tag,
+          backup_type: backupType.value,
+          infos,
+        },
+      };
+      if (clusterType.value === ClusterTypes.MONGO_REPLICA_SET) {
+        delete params.details.backup_type;
+      }
+      await createTicket(params).then((data) => {
+        window.changeConfirm = false;
+        router.push({
+          name: 'MongoDbTableBackup',
+          params: {
+            page: 'success',
+          },
+          query: {
+            ticketId: data.id,
+          },
+        });
+      });
+    } finally {
+      isSubmitting.value = false;
     }
-
-    InfoBox({
-      title: t('确认提交n个库表备份任务', { n: infos.length }),
-      subTitle: t('将会对库表进行备份'),
-      width: 480,
-      onConfirm: () => {
-        isSubmitting.value = true;
-        createTicket(params)
-          .then((data) => {
-            window.changeConfirm = false;
-            router.push({
-              name: 'MongoDbTableBackup',
-              params: {
-                page: 'success',
-              },
-              query: {
-                ticketId: data.id,
-              },
-            });
-          })
-          .finally(() => {
-            isSubmitting.value = false;
-          });
-      },
-    });
   };
 
   const handleReset = () => {

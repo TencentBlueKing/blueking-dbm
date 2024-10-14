@@ -49,7 +49,6 @@
           {{ t('操作') }}
         </RenderTableHeadColumn>
       </template>
-
       <template #data>
         <slot />
       </template>

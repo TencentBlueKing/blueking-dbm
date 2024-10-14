@@ -115,16 +115,16 @@
       title: t('需求信息'),
       list: [
         {
-          label: t('主从节点数'),
-          key: 'details.node_count',
-        },
-        {
           label: t('部署副本集数量'),
           key: 'details.replica_count',
         },
         {
-          label: t('每台主机部署副本集数量'),
+          label: t('每组主机部署副本集数量'),
           key: 'details.node_replica_count',
+        },
+        {
+          label: t('Shard 节点数'),
+          key: 'details.node_count',
         },
         {
           label: t('后端存储规格'),

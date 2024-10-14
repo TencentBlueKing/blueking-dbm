@@ -19,7 +19,7 @@ import { useGlobalBizs } from '@stores';
 /**
  * 处理集群列表数据
  */
-export function useTableData<T>(clusterId?: Ref<number | undefined>) {
+export function useTableData<T>(clusterId?: Ref<number | undefined>, role?: Ref<string | undefined>) {
   const { currentBizId } = useGlobalBizs();
   const currentInstance = getCurrentInstance() as ComponentInternalInstance & {
     proxy: {
@@ -70,6 +70,11 @@ export function useTableData<T>(clusterId?: Ref<number | undefined>) {
     if (clusterId?.value && clusterId.value !== currentBizId) {
       Object.assign(params, {
         cluster_id: clusterId.value,
+      });
+    }
+    if (role?.value) {
+      Object.assign(params, {
+        role: role.value,
       });
     }
     return params;

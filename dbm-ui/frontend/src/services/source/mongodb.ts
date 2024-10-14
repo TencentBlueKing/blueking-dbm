@@ -24,7 +24,7 @@ import http from '../http';
 
 const { currentBizId } = useGlobalBizs();
 
-const path = `/apis/mongodb/bizs/${currentBizId}/mongodb_resources`;
+const getRootPath = () => `/apis/mongodb/bizs/${window.PROJECT_CONFIG.BIZ_ID}/mongodb_resources`;
 
 interface RelatedCluster {
   cluster_id: number;
@@ -72,7 +72,7 @@ export function getMongoList(params: {
   limit?: number;
   offset?: number;
 }) {
-  return http.get<ListBase<MongodbModel[]>>(`${path}/`, params).then((data) => ({
+  return http.get<ListBase<MongodbModel[]>>(`${getRootPath()}/`, params).then((data) => ({
     ...data,
     results: data.results.map((item) => new MongodbModel(item)),
   }));
@@ -97,7 +97,7 @@ export function getMongoTopoList(params: {
   offset?: number;
 }) {
   return http
-    .get<ListBase<MongodbModel[]>>(`${path}/`, params)
+    .get<ListBase<MongodbModel[]>>(`${getRootPath()}/`, params)
     .then((data) => data.results.map((item) => new MongodbModel(item)));
 }
 
@@ -105,21 +105,23 @@ export function getMongoTopoList(params: {
  * 查询Mongo集群详情
  */
 export function getMongoClusterDetails(params: { cluster_id: number }) {
-  return http.get<MongodbDetailModel>(`${path}/${params.cluster_id}/`).then((data) => new MongodbDetailModel(data));
+  return http
+    .get<MongodbDetailModel>(`${getRootPath()}/${params.cluster_id}/`)
+    .then((data) => new MongodbDetailModel(data));
 }
 
 /**
  * 查询Mongo拓扑图
  */
 export function getMongoClustersTopoGraph(params: { cluster_id: number }) {
-  return http.get(`${path}/${params.cluster_id}/get_topo_graph/`);
+  return http.get(`${getRootPath()}/${params.cluster_id}/get_topo_graph/`);
 }
 
 /**
  * 获取Mongo集群 table 信息
  */
 export function getMongoTableFields(params: { limit?: number; offset?: number }) {
-  return http.get(`${path}/get_table_fields/`, params);
+  return http.get(`${getRootPath()}/get_table_fields/`, params);
 }
 
 /**
@@ -138,7 +140,7 @@ export function getMongoInstancesList(params: {
   offset?: number;
   extra?: number;
 }) {
-  return http.get<ListBase<MongodbInstanceModel[]>>(`${path}/list_instances/`, params).then((data) => ({
+  return http.get<ListBase<MongodbInstanceModel[]>>(`${getRootPath()}/list_instances/`, params).then((data) => ({
     ...data,
     results: data.results.map((item) => new MongodbInstanceModel(item)),
   }));
@@ -156,7 +158,7 @@ export function getMongoInstanceDetail(params: {
   offset?: number;
 }) {
   return http
-    .get<MongodbInstanceDetailModel>(`${path}/retrieve_instance/`, params)
+    .get<MongodbInstanceDetailModel>(`${getRootPath()}/retrieve_instance/`, params)
     .then((data) => new MongodbInstanceDetailModel(data));
 }
 
@@ -164,7 +166,7 @@ export function getMongoInstanceDetail(params: {
  * 获取Mongo角色列表
  */
 export function getMongoRoleList(params: { limit?: number; offset?: number }) {
-  return http.get<string[]>(`${path}/get_instance_role/`, params);
+  return http.get<string[]>(`${getRootPath()}/get_instance_role/`, params);
 }
 
 /**
@@ -174,6 +176,7 @@ export function getMongodbMachineList(params: {
   bk_host_id?: number;
   ip?: string;
   machine_type?: string;
+  cluster_type?: string;
   bk_os_name?: string;
   bk_cloud_id?: number;
   bk_agent_id?: string;
@@ -182,21 +185,21 @@ export function getMongodbMachineList(params: {
   limit?: number;
   offset?: number;
 }) {
-  return http.get<string[]>(`${path}/list_machines/`, params);
+  return http.get<string[]>(`${getRootPath()}/list_machines/`, params);
 }
 
 /**
  * 导出Mongo集群数据为 excel 文件
  */
 export function exportMongodbClusterToExcel(params: { cluster_ids?: number[] }) {
-  return http.post<string>(`${path}/export_cluster/`, params, { responseType: 'blob' });
+  return http.post<string>(`${getRootPath()}/export_cluster/`, params, { responseType: 'blob' });
 }
 
 /**
  * 导出Mongo实例数据为 excel 文件
  */
 export function exportMongodbInstanceToExcel(params: { bk_host_ids?: number[] }) {
-  return http.post<string>(`${path}/export_instance/`, params, { responseType: 'blob' });
+  return http.post<string>(`${getRootPath()}/export_instance/`, params, { responseType: 'blob' });
 }
 
 /**

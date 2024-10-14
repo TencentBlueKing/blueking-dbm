@@ -17,10 +17,11 @@
       ref="editRef"
       v-model="localValue"
       :disabled="disabled"
+      :max="max"
+      :min="1"
       :placeholder="t('请输入缩容数量')"
       :rules="rules"
-      type="number"
-      @submit="handldInputChange" />
+      type="number" />
   </BkLoading>
 </template>
 <script setup lang="ts">
@@ -31,14 +32,10 @@
   import type { IDataRow } from './Row.vue';
 
   interface Props {
-    data?: IDataRow['targetNum'];
-    max?: number;
+    data: IDataRow['targetNum'];
     isLoading?: boolean;
+    count: number;
     disabled?: boolean;
-  }
-
-  interface Emits {
-    (e: 'change', value: number): void;
   }
 
   interface Exposes {
@@ -49,10 +46,7 @@
     data: '',
     isLoading: false,
     disabled: false,
-    max: 1,
   });
-
-  const emits = defineEmits<Emits>();
 
   const { t } = useI18n();
 
@@ -71,18 +65,22 @@
       message: t('格式有误，请输入数字'),
     },
     {
-      validator: (value: string) => Number(value) < props.max,
-      message: t('必须小于当前台数'),
-    },
-    {
-      validator: (value: string) => Number(value) >= 2,
-      message: t('不能少于2台'),
+      validator: (value: number) => props.count - value >= 2,
+      message: t('缩容后不能少于2台'),
     },
   ];
 
-  const handldInputChange = (value: string) => {
-    emits('change', Number(value));
-  };
+  const max = computed(() => props.count - 2);
+
+  watch(
+    () => props.data,
+    () => {
+      localValue.value = props.data;
+    },
+    {
+      immediate: true,
+    },
+  );
 
   defineExpose<Exposes>({
     getValue() {

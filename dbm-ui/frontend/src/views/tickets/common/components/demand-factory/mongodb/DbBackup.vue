@@ -18,11 +18,11 @@
     :data="dataList" />
   <div class="ticket-details-list">
     <div class="ticket-details-item">
-      <span class="ticket-details-item-label">{{ t('备份文件保存时间') }}：</span>
-      <span class="ticket-details-item-value">{{ fileTag }}</span>
+      <span class="ticket-details-item-label">{{ t('备份保存时间') }}：</span>
+      <span class="ticket-details-item-value">{{ fileTagText }}</span>
     </div>
     <div class="ticket-details-item">
-      <span class="ticket-details-item-label">{{ t('是否开启 Oplog') }}：</span>
+      <span class="ticket-details-item-label">{{ t('是否备份 Oplog') }}：</span>
       <span class="ticket-details-item-value">{{ oplogType }}</span>
     </div>
   </div>
@@ -75,10 +75,17 @@
 
   const { t } = useI18n();
 
-  const { clusters, file_tag, oplog, infos } = props.ticketDetails.details;
+  const { clusters, file_tag: fileTag, oplog, infos } = props.ticketDetails.details;
+
+  const fileTagMap: Record<string, string> = {
+    normal_backup: t('25天'),
+    half_year_backup: t('6 个月'),
+    a_year_backup: t('1 年'),
+    forever_backup: t('3 年'),
+  };
 
   // eslint-disable-next-line camelcase
-  const fileTag = file_tag === 'normal_backup' ? t('常规备份（25天）') : t('长期备份（3年）');
+  const fileTagText = fileTagMap[fileTag];
   const oplogType = oplog ? t('是') : t('否');
 
   const columns = [

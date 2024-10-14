@@ -16,12 +16,14 @@
     <td style="padding: 0">
       <RenderHost
         ref="hostRef"
+        :cluster-node-count="clusterNodeCount"
         :data="data.ip"
+        :row-data="data"
         @input-finish="handleInputFinish" />
     </td>
     <td style="padding: 0">
       <RenderText
-        :data="data.role"
+        :data="roleText"
         :is-loading="data.isLoading"
         :placeholder="t('输入主机后自动生成')" />
     </td>
@@ -61,16 +63,19 @@
 
   import { useGlobalBizs } from '@stores';
 
+  import { ClusterTypes } from '@common/const';
+
   import OperateColumn from '@components/render-table/columns/operate-column/index.vue';
   import RenderText from '@components/render-table/columns/text-plain/index.vue';
 
-  import RenderHost from '@views/db-manage/mongodb/components/edit-field/HostName.vue';
   import type { SpecInfo } from '@views/db-manage/mongodb/components/edit-field/spec-select/components/Panel.vue';
   import type { IListItem } from '@views/db-manage/mongodb/components/edit-field/spec-select/components/Select.vue';
   import RenderTargetSpec from '@views/db-manage/mongodb/components/edit-field/spec-select/Index.vue';
   import RelatedClusters from '@views/db-manage/mongodb/components/RelatedClusters.vue';
 
   import { random } from '@utils';
+
+  import RenderHost from './HostName.vue';
 
   export interface IDataRow {
     rowKey: string;
@@ -80,6 +85,7 @@
     clusterType: string;
     role: string;
     machineType: string;
+    shard: string;
     cluster: {
       domain: string;
       isStart: boolean;
@@ -99,6 +105,7 @@
     clusterId: 0,
     clusterType: '',
     machineType: '',
+    shard: '',
     role: '',
     relatedClusters: [],
     cluster: {
@@ -108,11 +115,11 @@
       rowSpan: 1,
     },
   });
-</script>
-<script setup lang="ts">
+
   interface Props {
     data: IDataRow;
     removeable: boolean;
+    clusterNodeCount: Record<number, Record<string, number[]>>;
   }
 
   interface Emits {
@@ -124,7 +131,8 @@
   interface Exposes {
     getValue: () => Promise<Record<string, number>>;
   }
-
+</script>
+<script setup lang="ts">
   const props = defineProps<Props>();
 
   const emits = defineEmits<Emits>();
@@ -135,6 +143,14 @@
   const hostRef = ref<InstanceType<typeof RenderHost>>();
   const specRef = ref<InstanceType<typeof RenderTargetSpec>>();
   const specList = ref<IListItem[]>([]);
+
+  const roleText = computed(() => {
+    const { clusterType, machineType, shard } = props.data;
+    if (clusterType === ClusterTypes.MONGO_SHARED_CLUSTER && machineType === 'mongodb') {
+      return shard;
+    }
+    return machineType || '';
+  });
 
   const { run: fetchSpecResourceCount } = useRequest(getSpecResourceCount, {
     manual: true,

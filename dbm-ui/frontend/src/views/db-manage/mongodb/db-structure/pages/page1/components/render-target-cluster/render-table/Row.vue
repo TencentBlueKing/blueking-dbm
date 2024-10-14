@@ -52,6 +52,7 @@
   </tr>
 </template>
 <script setup lang="ts">
+  import type { ComponentExposed } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
 
   import RenderText from '@components/render-table/columns/text-plain/index.vue';
@@ -77,7 +78,9 @@
   }
 
   interface Exposes {
-    getValue: () => Promise<any>;
+    getValue: () =>
+      | ReturnType<ComponentExposed<typeof RenderBackupFile>['getValue']>
+      | ReturnType<ComponentExposed<typeof RenderTargetTime>['getValue']>;
   }
 
   const props = defineProps<Props>();
@@ -85,23 +88,23 @@
 
   const { t } = useI18n();
 
-  const backupFileRef = ref<InstanceType<typeof RenderBackupFile>>();
-  const targetTimeRef = ref<InstanceType<typeof RenderTargetTime>>();
+  const backupFileRef = ref<ComponentExposed<typeof RenderBackupFile>>();
+  const targetTimeRef = ref<ComponentExposed<typeof RenderTargetTime>>();
 
   const handleRemove = () => {
     emits('remove', props.index);
   };
 
-  const handleStructTypeChange = (value) => {
+  const handleStructTypeChange = (value: string) => {
     emits('structTypeChange', value);
   };
 
   defineExpose<Exposes>({
     async getValue() {
       if (props.isBackupRecordType) {
-        return await backupFileRef.value?.getValue();
+        return await backupFileRef.value!.getValue();
       }
-      return await targetTimeRef.value?.getValue();
+      return await targetTimeRef.value!.getValue();
     },
   });
 </script>
