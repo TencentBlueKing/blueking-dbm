@@ -21,7 +21,8 @@
     <td style="padding: 0">
       <RenderCluster
         ref="clusterRef"
-        :old-slave="localOldSlave" />
+        :data="localOldSlave"
+        role="slave" />
     </td>
     <td style="padding: 0">
       <RenderNewSlave
@@ -38,12 +39,15 @@
   </tr>
 </template>
 <script lang="ts">
+  import type { ComponentExposed } from 'vue-component-type-helpers';
+
   import FixedColumn from '@components/render-table/columns/fixed-column/index.vue';
   import OperateColumn from '@components/render-table/columns/operate-column/index.vue';
 
+  import RenderCluster from '@views/db-manage/common/RenderRelatedClusters.vue';
+
   import { random } from '@utils';
 
-  import RenderCluster from './RenderCluster.vue';
   import RenderNewSlave from './RenderNewSlave.vue';
   import RenderOldSlave from './RenderOldSlave.vue';
 
@@ -96,7 +100,7 @@
   const emits = defineEmits<Emits>();
 
   const slaveRef = ref<InstanceType<typeof RenderOldSlave>>();
-  const clusterRef = ref<InstanceType<typeof RenderCluster>>();
+  const clusterRef = ref<ComponentExposed<typeof RenderCluster>>();
   const newSlaveRef = ref<InstanceType<typeof RenderNewSlave>>();
 
   const localOldSlave = ref<IDataRow['oldSlave']>();

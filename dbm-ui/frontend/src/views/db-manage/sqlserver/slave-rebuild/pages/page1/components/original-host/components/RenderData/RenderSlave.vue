@@ -27,7 +27,6 @@
   import { ref, watch } from 'vue';
   import { useI18n } from 'vue-i18n';
 
-  import SqlServerHaInstanceModel from '@services/model/sqlserver/sqlserver-ha-instance';
   import { checkInstance } from '@services/source/dbbase';
 
   import { ipPort } from '@common/regex';
@@ -37,7 +36,7 @@
   import type { IDataRow } from './Row.vue';
 
   interface Exposes {
-    getValue: (field: string) => Promise<string>;
+    getValue: () => Promise<{ slave: any }>;
   }
 
   const { t } = useI18n();
@@ -59,7 +58,7 @@
     },
     {
       validator: (value: string) =>
-        checkInstance<SqlServerHaInstanceModel>({
+        checkInstance({
           bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
           instance_addresses: [value],
         }).then((data) => {

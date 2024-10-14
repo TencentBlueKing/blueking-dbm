@@ -28,7 +28,7 @@
     <td style="padding: 0">
       <RenderCluster
         ref="clusterRef"
-        :master-data="localMasterData"
+        :data="localMasterData"
         @change="handleClusterChange" />
     </td>
     <OperateColumn
@@ -41,13 +41,15 @@
 </template>
 <script lang="ts">
   import { ref, shallowRef, watch } from 'vue';
+  import type { ComponentExposed } from 'vue-component-type-helpers';
 
   import FixedColumn from '@components/render-table/columns/fixed-column/index.vue';
   import OperateColumn from '@components/render-table/columns/operate-column/index.vue';
 
+  import RenderCluster from '@views/db-manage/common/RenderRelatedClusters.vue';
+
   import { random } from '@utils';
 
-  import RenderCluster from './RenderCluster.vue';
   import RenderMaster from './RenderMaster.vue';
   import RenderSlave from './RenderSlave.vue';
 
@@ -94,9 +96,9 @@
 
   const emits = defineEmits<Emits>();
 
-  const masterHostRef = ref();
-  const slaveHostRef = ref();
-  const clusterRef = ref();
+  const masterHostRef = ref<InstanceType<typeof RenderMaster>>();
+  const slaveHostRef = ref<InstanceType<typeof RenderSlave>>();
+  const clusterRef = ref<ComponentExposed<typeof RenderCluster>>();
 
   const localMasterData = shallowRef();
 
@@ -132,9 +134,9 @@
   };
 
   const getRowData = () => [
-    masterHostRef.value.getValue('master_ip'),
-    slaveHostRef.value.getValue(),
-    clusterRef.value.getValue(),
+    masterHostRef.value!.getValue(),
+    slaveHostRef.value!.getValue(),
+    clusterRef.value!.getValue(),
   ];
 
   const handleClone = () => {
