@@ -14,13 +14,13 @@
 <template>
   <div class="tag-box">
     <AutoFocusInput
-      v-if="data.is_show_edit"
+      v-if="isEdit"
+      v-model="editVal"
       :clearable="false"
-      :model-value="data.tag"
       @blur="handleBlur(data)" />
     <span v-else>{{ data.tag }}</span>
     <DbIcon
-      v-if="!data.is_show_edit"
+      v-if="!isEdit"
       class="operation-icon"
       style="font-size: 18px"
       type="edit"
@@ -31,25 +31,29 @@
 <script setup lang="ts">
   import { defineEmits, defineProps } from 'vue';
 
-  import AutoFocusInput from '@views/tag-manage/AutoFocusInput.vue';
+  import type ResourceTag from '@services/model/db-resource/ResourceTag';
 
-  import type { ResourceTagListItem } from './Index.vue';
+  import AutoFocusInput from '@views/tag-manage/components/AutoFocusInput.vue';
 
-  defineProps<{
-    data: ResourceTagListItem;
+  const props = defineProps<{
+    data: ResourceTag;
+    isEdit: boolean;
   }>();
 
-  const emit = defineEmits<{
-    (event: 'blur', data: ResourceTagListItem): void;
-    (event: 'edit', data: ResourceTagListItem): void;
+  const emits = defineEmits<{
+    (event: 'blur', data: ResourceTag, val: string): void;
+    (event: 'edit', data: ResourceTag): void;
   }>();
 
-  const handleBlur = (data: ResourceTagListItem) => {
-    emit('blur', data);
+  const editVal = ref(props.data.tag);
+
+  const handleBlur = (data: ResourceTag) => {
+    console.log();
+    emits('blur', data, editVal.value);
   };
 
-  const handleEdit = (data: ResourceTagListItem) => {
-    emit('edit', data);
+  const handleEdit = (data: ResourceTag) => {
+    emits('edit', data);
   };
 </script>
 

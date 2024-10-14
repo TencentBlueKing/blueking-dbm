@@ -15,8 +15,8 @@
   <BkInput
     ref="inputRef"
     v-bind="attrs"
+    v-model="modelValue"
     :clearable="clearable"
-    :model-value="modelValue"
     @blur="handleBlur" />
 </template>
 

@@ -11,7 +11,7 @@
         @click="handleMenuChange">
         <BkMenuGroup :name="t('资源管理')">
           <BkMenuItem
-            key="ResourceTag"
+            key="BizResourceTag"
             v-db-console="'bizConfigManage.businessResourceTag'">
             <template #icon>
               <DbIcon

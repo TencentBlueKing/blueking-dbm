@@ -13,11 +13,20 @@
 
 <template>
   <BkDialog
+    :is-loading="createLoading || validateLoading"
     :is-show="isShow"
     render-directive="if"
-    :title="computedTitle"
     @closed="handleClose"
     @confirm="handleConfirm">
+    <template #header>
+      <div class="header-wrapper">
+        <span class="title">{{ t('新建标签') }}</span>
+        <span class="title-divider">|</span>
+        <span class="biz-name">
+          {{ biz?.name }}
+        </span>
+      </div>
+    </template>
     <BkForm
       ref="formRef"
       form-type="vertical"
@@ -27,9 +36,10 @@
         :label="t('标签')"
         required>
         <BkTagInput
+          ref="inputRef"
           v-model="formModel.tags"
+          allow-auto-match
           allow-create
-          :clearable="false"
           has-delete-icon />
       </BkFormItem>
     </BkForm>
@@ -40,19 +50,14 @@
   import type { Form } from 'bkui-vue';
   import { computed, reactive, ref, watch } from 'vue';
   import { useI18n } from 'vue-i18n';
+  import { useRequest } from 'vue-request';
 
-  import { createResourceTag, getAllResourceTags } from '@services/source/resourceTag';
-
-  import type { BizItem } from '@/services/types';
-
-  export type ValidateInfo = {
-    res: boolean;
-    message: string;
-  };
+  import { createTag, validateTag } from '@services/source/tag';
+  import type { BizItem } from '@services/types';
 
   interface Props {
     isShow: boolean;
-    biz: BizItem;
+    biz: BizItem | undefined;
   }
 
   interface Emits {
@@ -66,12 +71,27 @@
   const { t } = useI18n();
   const existedTagsSet = ref<Set<string>>(new Set());
   const formRef = useTemplateRef<InstanceType<typeof Form>>('formRef');
-  const submitLoading = ref(false);
-  const formModel = reactive({
-    tags: [],
+  const inputRef = useTemplateRef<HTMLInputElement>('inputRef');
+  const { loading: validateLoading, run: runValidate } = useRequest(validateTag, {
+    manual: true,
+    onSuccess(data) {
+      const { duplicated_values } = data;
+      existedTagsSet.value = new Set(duplicated_values);
+      formRef.value?.validate();
+    },
+  });
+  const { loading: createLoading, run: runCreate } = useRequest(createTag, {
+    manual: true,
+    onSuccess() {
+      handleClose();
+    },
   });
 
-  const computedTitle = computed(() => `${t('新建标签')} - ${props.biz.name}`);
+  const formModel = reactive<{
+    tags: string[];
+  }>({
+    tags: [],
+  });
 
   const rules = computed(() => {
     const { res, message } = handleValidate(formModel.tags);
@@ -85,15 +105,16 @@
 
   watch(
     () => formModel.tags,
-    async () => {
-      const { results } = await getAllResourceTags();
-      existedTagsSet.value = new Set(results);
-      await formRef.value?.validate();
+    async (tags) => {
+      runValidate({
+        bk_biz_id: props.biz?.bk_biz_id as number,
+        values: tags,
+      });
     },
   );
 
   const handleValidate = (arrVal: string[]) => {
-    const validateInfo: ValidateInfo = {
+    const validateInfo = {
       res: true,
       message: '',
     };
@@ -113,18 +134,37 @@
   };
 
   const handleConfirm = async () => {
-    submitLoading.value = true;
-    try {
-      await createResourceTag({
-        tags: formModel.tags,
-      });
-      handleClose();
-    } finally {
-      submitLoading.value = false;
-    }
+    runCreate({
+      bk_biz_id: props.biz?.bk_biz_id as number,
+      type: 'system',
+      key: 'resource',
+      value: formModel.tags,
+    });
   };
 
   const handleClose = () => {
     emit('update:isShow', false);
   };
+
+  onMounted(() => {
+    inputRef.value?.focus();
+  });
 </script>
+
+<style lang="less" scoped>
+  .header-wrapper {
+    display: flex;
+    align-items: center;
+    color: #979ba5;
+    font-size: 14px;
+
+    .title {
+      font-size: 20px;
+      color: #313238;
+    }
+
+    .title-divider {
+      margin: 0 8px 0 11px;
+    }
+  }
+</style>

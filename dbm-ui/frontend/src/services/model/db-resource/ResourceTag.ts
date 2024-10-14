@@ -14,39 +14,42 @@ import dayjs from 'dayjs';
 
 import { utcDisplayTime } from '@utils';
 
-export default class ResourceTagModel {
-  tag: string;
-  boundIp: string[];
-  creator: string;
-  creationTime: string;
-  id: number;
-  is_enabled: boolean;
-  created_at: string;
-  updated_at: string;
-  constructor(payload = {} as ResourceTagModel) {
-    this.id = payload.id;
-    this.tag = payload.tag;
-    this.boundIp = payload.boundIp;
-    this.creator = payload.creator;
-    this.creationTime = payload.creationTime;
-    this.is_enabled = payload.is_enabled;
-    this.created_at = payload.created_at;
-    this.updated_at = payload.updated_at;
+export default class ResourceTag {
+  id: number; // 标签ID
+  tag: string; // 标签名
+  creator: string; // 创建人
+  create_time: string; // 创建时间
+  bind_ips: string[]; // 绑定的IP
+  update_time: string; // 更新时间
+  is_builtin: boolean; // 是否内置标签
+
+  constructor(payload = {} as ResourceTag) {
+    this.id = payload.id || 0;
+    this.tag = payload.tag || '';
+    this.bind_ips = payload.bind_ips || [];
+    this.creator = payload.creator || '';
+    this.create_time = payload.create_time || '';
+    this.update_time = payload.update_time || '';
+    this.is_builtin = payload.is_builtin || false;
   }
 
   get isNewCreated() {
-    return dayjs().isBefore(dayjs(this.created_at).add(24, 'hour'));
+    return dayjs().isBefore(dayjs(this.create_time).add(24, 'hour'));
   }
 
   get creationTimeDisplay() {
-    return utcDisplayTime(this.creationTime);
+    return utcDisplayTime(this.create_time);
   }
 
   get updatedAtDisplay() {
-    return utcDisplayTime(this.updated_at);
+    return utcDisplayTime(this.update_time);
   }
 
   get ipCount() {
-    return this.boundIp.length;
+    return this.bind_ips.length;
+  }
+
+  get isBinded() {
+    return this.bind_ips.length > 0;
   }
 }

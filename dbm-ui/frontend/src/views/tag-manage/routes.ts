@@ -18,7 +18,7 @@ import { t } from '@locales/index';
 
 const routes: RouteRecordRaw[] = [
   {
-    name: 'ResourceTag',
+    name: 'BizResourceTag',
     path: 'business-resource-tag',
     meta: {
       navName: t('资源标签'),
