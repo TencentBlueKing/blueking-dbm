@@ -1,10 +1,11 @@
 package pkg
 
 import (
-	"dbm-services/common/go-pubpkg/logger"
-	"dbm-services/mysql/db-tools/dbactuator/pkg/util/db_table_filter"
 	"fmt"
 	"strings"
+
+	"dbm-services/common/go-pubpkg/logger"
+	"dbm-services/mysql/db-tools/dbactuator/pkg/util/db_table_filter"
 
 	"github.com/jmoiron/sqlx"
 )

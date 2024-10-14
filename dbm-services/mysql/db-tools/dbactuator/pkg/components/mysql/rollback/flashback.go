@@ -31,7 +31,7 @@ func (c *FlashbackComp) Example() interface{} {
 				WorkDir:          "/data/dbbak",
 				BinlogDir:        "",
 				ParseConcurrency: 2,
-				RecoverOpt: &RecoverOpt{
+				RecoverOpt: &FlashbackOpt{
 					Databases: []string{"db1", "db2"},
 					Tables:    []string{"tb1", "tb2"},
 				},

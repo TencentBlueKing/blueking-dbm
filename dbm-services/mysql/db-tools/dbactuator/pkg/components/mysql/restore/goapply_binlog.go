@@ -16,8 +16,6 @@ import (
 	"dbm-services/common/go-pubpkg/mysqlcomm"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/core/cst"
 
-	"github.com/spf13/cast"
-
 	"dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/common/go-pubpkg/logger"
 	"dbm-services/common/go-pubpkg/reportlog"
@@ -33,35 +31,36 @@ import (
 	"github.com/pkg/errors"
 )
 
-// RecoverBinlogComp 有 resp 返回
-type RecoverBinlogComp struct {
+// GoApplyBinlogComp 有 resp 返回
+type GoApplyBinlogComp struct {
 	GeneralParam *components.GeneralParam `json:"general"`
-	Params       RecoverBinlog            `json:"extend"`
+	Params       GoApplyBinlog            `json:"extend"`
 }
 
 // Example TODO
-func (c *RecoverBinlogComp) Example() interface{} {
-	return RecoverBinlogComp{
-		Params: RecoverBinlog{
+func (c *GoApplyBinlogComp) Example() interface{} {
+	return GoApplyBinlogComp{
+		Params: GoApplyBinlog{
 			TgtInstance: common.InstanceObjExample,
-			RecoverOpt: &MySQLBinlogUtil{
-				StartTime:      "2022-11-05 00:00:01",
-				StopTime:       "2022-11-05 22:00:01",
-				IdempotentMode: true,
-				NotWriteBinlog: true,
-				Databases:      []string{"db1,db2"},
-				Tables:         []string{"tb1,tb2"},
-				MySQLClientOpt: &MySQLClientOpt{
-					MaxAllowedPacket: 1073741824,
-					BinaryMode:       true,
-				},
+			BinlogOpt: &GoMySQLBinlogUtil{
+				StartTime:     "2022-11-05 00:00:01",
+				StopTime:      "2022-11-05 22:00:01",
+				Idempotent:    true,
+				DisableLogBin: true,
+				Databases:     []string{"db1", "db2"},
+				Tables:        []string{"tb1", "tb2"},
 			},
-			QuickMode:   true,
-			BinlogDir:   "/data/dbbak/20000/binlog",
-			BinlogFiles: []string{"binlog20000.00001", "binlog20000.00002"},
-			WorkDir:     "/data/dbbak/",
-			ParseOnly:   false,
-			ToolSet:     *tools.NewToolSetWithPickNoValidate(tools.ToolMysqlbinlog),
+			MySQLClientOpt: &MySQLClientOpt{
+				MaxAllowedPacket: 1073741824,
+				BinaryMode:       true,
+			},
+			QuickMode:       true,
+			BinlogDir:       "/data/dbbak/20000/binlog",
+			BinlogFiles:     []string{"binlog20000.00001", "binlog20000.00002", "binlog20000.00003"},
+			BinlogStartFile: "binlog20000.00001",
+			WorkDir:         "/data/dbbak/",
+			ParseOnly:       false,
+			ToolSet:         *tools.NewToolSetWithPickNoValidate(tools.ToolGoMysqlbinlog),
 		},
 		GeneralParam: &components.GeneralParam{
 			RuntimeAccountParam: components.RuntimeAccountParam{
@@ -71,14 +70,24 @@ func (c *RecoverBinlogComp) Example() interface{} {
 	}
 }
 
-// RecoverBinlog TODO
-type RecoverBinlog struct {
-	TgtInstance native.InsObject `json:"tgt_instance" validate:"required"`
-	RecoverOpt  *MySQLBinlogUtil `json:"recover_opt" validate:"required"`
+// GoApplyBinlog TODO
+type GoApplyBinlog struct {
+	TgtInstance native.InsObject   `json:"tgt_instance" validate:"required"`
+	BinlogOpt   *GoMySQLBinlogUtil `json:"binlog_opt" validate:"required"`
 	// 恢复时 binlog 存放目录，一般是下载目录
 	BinlogDir string `json:"binlog_dir" validate:"required" example:"/data/dbbak/123456/binlog"`
 	// binlog列表
 	BinlogFiles []string `json:"binlog_files" validate:"required"`
+	// 指定要开始应用的第 1 个 binlog。如果指定，一般要设置 start_pos，如果不指定则使用 start_time
+	// BinlogStartFile 只能由外部传入，不要内部修改
+	BinlogStartPos  uint   `json:"binlog_start_pos"`
+	BinlogStartFile string `json:"binlog_start_file"`
+	// 格式 "2006-01-02 15:04:05" 原样传递给 mysqlbinlog
+	// 格式"2006-01-02T15:04:05Z07:00"(示例"2023-12-11T05:03:05+08:00")按照机器本地时间，解析成 "2006-01-02 15:04:05" 再传递给 mysqlbinlog
+	// 在 Init 时会统一把时间字符串转换成 time.RFC3399
+	StartTime string `json:"start_time"`
+	// --stop-datetime   时间格式同 StartTime，可带时区，会转换成机器本地时间
+	StopTime string `json:"stop_time"`
 	// binlog 解析所在目录，存放运行日志
 	WorkDir string `json:"work_dir" validate:"required" example:"/data/dbbak/"`
 	WorkID  string `json:"work_id" example:"123456"`
@@ -86,14 +95,14 @@ type RecoverBinlog struct {
 	ParseOnly bool `json:"parse_only"`
 	// 解析的并发度，默认 1
 	ParseConcurrency int `json:"parse_concurrency"`
-	// 指定要开始应用的第 1 个 binlog。如果指定，一般要设置 start_pos，如果不指定则使用 start_time
-	// BinlogStartFile 只能由外部传入，不要内部修改
-	BinlogStartFile string `json:"binlog_start_file"`
 
-	// 如果启用 quick_mode，解析 binlog 时根据 filter databases 等选项过滤 row event，对 query event 会全部保留 。需要 mysqlbinlog 工具支持 --tables 选项，可以指定参数的 tools
+	// 如果启用 quick_mode，解析 binlog 时根据 filter databases 等选项过滤 row event，对 query event 会全部保留 。
+	// 需要 mysqlbinlog 工具支持 --tables 选项，可以指定参数的 tools
 	// 当 quick_mode=false 时，recover_opt 里的 databases 等选项无效，会应用全部 binlog
 	QuickMode          bool   `json:"quick_mode"`
 	SourceBinlogFormat string `json:"source_binlog_format" enums:",ROW,STATEMENT,MIXED"`
+
+	MySQLClientOpt *MySQLClientOpt `json:"mysql_client_opt"`
 
 	// 恢复用到的客户端工具，不提供时会有默认值
 	tools.ToolSet
@@ -101,41 +110,15 @@ type RecoverBinlog struct {
 	// /WorkDir/WorkID/
 	taskDir         string
 	dbWorker        *native.DbWorker // TgtInstance
-	binlogCli       string
 	mysqlCli        string
-	filterOpts      string
 	importScript    string
 	parseScript     string
 	binlogParsedDir string
 	logDir          string
-	// tools           tools.ToolSet
-}
-
-const (
-	dirBinlogParsed = "binlog_parsed"
-	importScript    = "import_binlog.sh"
-	parseScript     = "parse_binlog.sh"
-)
-
-// MySQLClientOpt TODO
-type MySQLClientOpt struct {
-	MaxAllowedPacket int `json:"max_allowed_packet"`
-	// 是否启用 --binary-mode
-	BinaryMode bool `json:"binary_mode"`
-}
-
-func (r *RecoverBinlog) parse(f string) error {
-	parsedName := fmt.Sprintf(`%s/%s.sql`, dirBinlogParsed, f)
-	cmd := fmt.Sprintf("cd %s && %s %s/%s  >%s", r.taskDir, r.binlogCli, r.BinlogDir, f, parsedName)
-	//logger.Info("run: %s", cmd)
-	if outStr, err := osutil.ExecShellCommand(false, cmd); err != nil {
-		return errors.Wrapf(err, "fail to parse %s: %s, cmd: %s", f, outStr, cmd)
-	}
-	return nil
 }
 
 // ParseBinlogFiles TODO
-func (r *RecoverBinlog) ParseBinlogFiles() error {
+func (r *GoApplyBinlog) ParseBinlogFiles() error {
 	logger.Info("start to parse binlog files with concurrency %d", r.ParseConcurrency)
 
 	errChan := make(chan error)
@@ -150,7 +133,12 @@ func (r *RecoverBinlog) ParseBinlogFiles() error {
 			tokenBulkChan <- struct{}{}
 			go func(binlogFilePath string) {
 				logger.Info("parse %s", binlogFilePath)
-				err := r.parse(binlogFilePath)
+				if binlogFilePath == r.BinlogStartFile {
+					r.BinlogOpt.StartPos = r.BinlogStartPos
+				} else {
+					r.BinlogOpt.StartPos = 0
+				}
+				_, err := r.BinlogOpt.Parse(r.BinlogDir, binlogFilePath, r.QuickMode)
 
 				<-tokenBulkChan
 
@@ -174,16 +162,24 @@ func (r *RecoverBinlog) ParseBinlogFiles() error {
 }
 
 // buildScript 创建 parse_binlog.sh, import_binlog.sh 脚本，需要调用执行
-func (r *RecoverBinlog) buildScript() error {
+func (r *GoApplyBinlog) buildScript() error {
 	// 创建解析 binlog 的脚本，只是为了查看或者后面手动跑
 	// 因为要并行解析，所以真正跑的是 ParseBinlogFiles
 	parseCmds := []string{fmt.Sprintf("cd %s", r.taskDir)}
-	for _, f := range r.BinlogFiles {
-		if f == "" {
+	for _, fileName := range r.BinlogFiles {
+		if fileName == "" {
 			continue
+		} else if fileName == r.BinlogStartFile {
+			r.BinlogOpt.StartPos = r.BinlogStartPos
+		} else {
+			r.BinlogOpt.StartPos = 0
 		}
-		parsedName := fmt.Sprintf(`%s/%s.sql`, dirBinlogParsed, f)
-		cmd := fmt.Sprintf("%s %s/%s  >%s 2>logs/parse_%s.err", r.binlogCli, r.BinlogDir, f, parsedName, f)
+		_, _ = r.BinlogOpt.BuildArgs(r.QuickMode)
+		parsedFile := fmt.Sprintf(`%s/%s.sql`, dirBinlogParsed, fileName)
+		logFile := fmt.Sprintf("logs/parse_%s.err", fileName)
+		binlogFile := filepath.Join(r.BinlogDir, fileName)
+		cmd := fmt.Sprintf("%s %s --file %s  -r %s 2>%s",
+			r.BinlogOpt.cmdPath, strings.Join(r.BinlogOpt.cmdArgs, " "), binlogFile, parsedFile, logFile)
 		parseCmds = append(parseCmds, cmd)
 	}
 	r.parseScript = fmt.Sprintf(filepath.Join(r.taskDir, parseScript))
@@ -208,20 +204,20 @@ mysql_cmd={{.mysqlCmd}}
 retcode=0
 
 if [ "$dbpass" = "" ];then 
-  echo 'please set password'
-  exit 1
+	echo 'please set password'
+	exit 1
 fi
 mysql_opt="-u$dbuser -p$dbpass -h$dbhost -P$dbport {{.mysqlOpt}} -A "
 sqlFiles="{{.sqlFiles}}"
 for f in $sqlFiles
 do
-  filename={{.dirBinlogParsed}}/${f}.sql
-  echo "importing $filename"
-  $mysql_cmd $mysql_opt < $filename >>logs/import_binlog.log 2>>logs/import_binlog.err
-  if [ $? -gt 0 ];then
-    retcode=1
-    break
-  fi
+	filename={{.dirBinlogParsed}}/${f}.sql
+	echo "importing $filename"
+	$mysql_cmd $mysql_opt < $filename >>logs/import_binlog.log 2>>logs/import_binlog.err
+	if [ $? -gt 0 ];then
+		retcode=1
+		break
+	fi
 done
 exit $retcode
 `
@@ -231,7 +227,7 @@ exit $retcode
 		return err
 	}
 	defer fi.Close()
-	if r.RecoverOpt.Flashback {
+	if r.BinlogOpt.Flashback {
 		sort.Sort(sort.Reverse(sort.StringSlice(r.BinlogFiles))) // 降序
 		// sort.Slice(sqlFiles, func(i, j int) bool { return sqlFiles[i] > sqlFiles[j] }) // 降序
 	}
@@ -256,10 +252,10 @@ exit $retcode
 }
 
 // Init TODO
-func (r *RecoverBinlog) Init() error {
+func (r *GoApplyBinlog) Init() error {
 	var err error
 	// 工具路径初始化，检查工具路径, 工具可执行权限
-	toolset, err := tools.NewToolSetWithPick(tools.ToolMysqlbinlog, tools.ToolMysqlclient, tools.ToolMysqlbinlogRollback)
+	toolset, err := tools.NewToolSetWithPick(tools.ToolGoMysqlbinlog, tools.ToolMysqlclient)
 	if err != nil {
 		return err
 	}
@@ -268,56 +264,65 @@ func (r *RecoverBinlog) Init() error {
 	}
 
 	// quick_mode is only allowed when binlog_format=row
-	if r.SourceBinlogFormat != "ROW" && r.QuickMode {
+	if r.SourceBinlogFormat != "ROW" && r.QuickMode && !r.BinlogOpt.Flashback {
 		r.QuickMode = false
 		logger.Warn("quick_mode set to false because source_binlog_format != ROW")
 	}
-	// quick_mode=true 需要 mysqlbinlog 支持 --databases --tables 等选项
-	if r.QuickMode && !r.RecoverOpt.Flashback {
-		mysqlbinlogCli := r.ToolSet.MustGet(tools.ToolMysqlbinlog)
-		checkMysqlbinlog := fmt.Sprintf(`%s --help |grep "\-\-tables="`, mysqlbinlogCli)
-		if _, err := mysqlutil.ExecCommandMySQLShell(checkMysqlbinlog); err != nil {
-			r.QuickMode = false
-			logger.Warn("%s has not --tables option, set recover_binlog quick_mode=false", mysqlbinlogCli)
+	//if r.QuickMode && r.SourceBinlogFormat != "ROW" {
+	//	return errors.New("source_binlog_format=ROW is needed because quick_mode will filter tables from binlog")
+	//}
+	if r.BinlogOpt.Flashback {
+		if r.SourceBinlogFormat != "ROW" {
+			return errors.New("flashback=true need source_binlog_format=ROW")
 		}
-	}
-	if r.RecoverOpt.Flashback && !r.QuickMode {
-		return errors.New("--flashback need quick_mode=true")
-	}
-	if r.RecoverOpt.StartTime != "" {
-		if t, err := time.ParseInLocation(time.DateTime, r.RecoverOpt.StartTime, time.Local); err == nil {
-			r.RecoverOpt.StartTime = t.Format(time.RFC3339)
-		} else if _, err := time.ParseInLocation(time.RFC3339, r.RecoverOpt.StartTime, time.Local); err == nil {
-			// keep
-		} else {
-			return errors.Errorf("unknown time format for start_time: %s", r.RecoverOpt.StartTime)
+		if !r.QuickMode {
+			return errors.New("flashback=true need quick_mode=true")
+		}
+		if !r.ParseOnly {
+			return errors.New("flashback=true must have parse_only=true")
 		}
 	}
 
-	if r.RecoverOpt.StopTime != "" {
-		var stopTime time.Time
-		if t, err := time.ParseInLocation(time.DateTime, r.RecoverOpt.StopTime, time.Local); err == nil {
-			r.RecoverOpt.StopTime = t.Format(time.RFC3339)
-		} else if _, err := time.ParseInLocation(time.RFC3339, r.RecoverOpt.StopTime, time.Local); err == nil {
-			// keep
+	if r.BinlogStartPos > 0 && r.BinlogStartFile == "" {
+		return errors.Errorf("binlog_start_pos must has binlog_start_file")
+	}
+	if r.BinlogStartPos == 0 && r.StartTime == "" {
+		return errors.Errorf("start_time and start_pos cannot be empty both")
+	}
+	// r.StartTime, r.StopTime 统一成 RFC3339 格式，便于后面做比较
+	// r.BinlogOpt.StartTime r.BinlogOpt.StopTime 是 DateTime 格式，传给 gomysqlbinlog
+	if r.StartTime != "" {
+		if t, err := time.ParseInLocation(time.DateTime, r.StartTime, time.Local); err == nil {
+			r.BinlogOpt.StartTime = r.StartTime
+			r.StartTime = t.Format(time.RFC3339)
+		} else if t, err := time.ParseInLocation(time.RFC3339, r.StartTime, time.Local); err == nil {
+			r.BinlogOpt.StartTime = t.Format(time.DateTime)
 		} else {
-			return errors.Errorf("unknown time format for stop_time: %s", r.RecoverOpt.StopTime)
+			return errors.Errorf("unknown time format for start_time: %s", r.StartTime)
 		}
-		stopTime, _ = time.ParseInLocation(time.RFC3339, r.RecoverOpt.StopTime, time.Local)
+	}
+	if r.StopTime != "" {
+		var stopTime time.Time
+		if t, err := time.ParseInLocation(time.DateTime, r.StopTime, time.Local); err == nil {
+			r.BinlogOpt.StopTime = r.StopTime
+			r.StopTime = t.Format(time.RFC3339)
+		} else if t, err := time.ParseInLocation(time.RFC3339, r.StopTime, time.Local); err == nil {
+			r.BinlogOpt.StopTime = t.Format(time.DateTime)
+		} else {
+			return errors.Errorf("unknown time format for stop_time: %s", r.StopTime)
+		}
+		stopTime, _ = time.ParseInLocation(time.DateTime, r.BinlogOpt.StopTime, time.Local)
 		if nowTime := time.Now(); nowTime.Compare(stopTime) < 0 {
 			return errors.Errorf("StopTime [%s] cannot be greater than db current time [%s]",
-				r.RecoverOpt.StopTime, nowTime)
+				r.BinlogOpt.StopTime, nowTime)
 		}
 	}
 
-	if err = r.initDirs(); err != nil {
-		return err
-	}
 	if r.ParseConcurrency == 0 {
 		r.ParseConcurrency = 1
 	}
 	// 检查目标实例连接性
-	if r.RecoverOpt.Flashback || !r.ParseOnly {
+	if r.BinlogOpt.Flashback || !r.ParseOnly {
 		// logger.Info("tgtInstance: %+v", r.TgtInstance)
 		r.dbWorker, err = r.TgtInstance.Conn()
 		if err != nil {
@@ -329,19 +334,19 @@ func (r *RecoverBinlog) Init() error {
 			logger.Error("MySQLClientExec failed: %w %s", ret, err)
 		}
 	}
-	if r.RecoverOpt.Flashback && !r.ParseOnly {
-		return errors.New("flashback=true must have parse_only=true")
+	if err = r.initDirs(); err != nil {
+		return err
 	}
 	return nil
 }
 
-func (r *RecoverBinlog) buildMysqlOptions() error {
-	b := r.RecoverOpt
-	mysqlOpt := r.RecoverOpt.MySQLClientOpt
+func (r *GoApplyBinlog) buildMysqlCliOptions() error {
+	b := r.BinlogOpt
+	mysqlOpt := r.MySQLClientOpt
 
 	// init mysql client options
 	var initCommands []string
-	if b.NotWriteBinlog {
+	if b.DisableLogBin {
 		initCommands = append(initCommands, "set session sql_log_bin=0")
 	}
 	if len(initCommands) > 0 {
@@ -357,115 +362,19 @@ func (r *RecoverBinlog) buildMysqlOptions() error {
 	return nil
 }
 
-func (r *RecoverBinlog) buildBinlogOptions() error {
-	b := r.RecoverOpt
-	if b.StartPos == 0 && b.StartTime == "" {
-		return errors.Errorf("start_time and start_pos cannot be empty both")
-	}
-	// 优先使用 start_pos
-	if b.StartPos > 0 {
-		if r.BinlogStartFile == "" {
-			return errors.Errorf("start_pos must has binlog_start_file")
-		} else {
-			b.options += fmt.Sprintf(" --start-position=%d", b.StartPos)
-			// 输入的 binlog 列表的第一个文件，就是 start_file
-			// 同时要把 BinlogFiles 列表里面，binlog_start_file 之前的文件去掉
-		}
-	} else {
-		if b.StartTime != "" {
-			startTime, err := time.ParseInLocation(time.RFC3339, b.StartTime, time.Local)
-			if err != nil {
-				return errors.Errorf("start_time expect format %s but got %s", time.RFC3339, b.StartTime)
-			}
-			b.options += fmt.Sprintf(" --start-datetime='%s'", startTime.Local().Format(time.DateTime))
-		}
-	}
-	if b.StopTime != "" {
-		stopTime, err := time.ParseInLocation(time.RFC3339, b.StopTime, time.Local)
-		if err != nil {
-			return errors.Errorf("stop_time expect format %s but got %s", time.RFC3339, b.StopTime)
-		}
-		b.options += fmt.Sprintf(" --stop-datetime='%s'", stopTime.Local().Format(time.DateTime))
-	} else {
-		return errors.Errorf("stop_time cannot be empty")
-	}
-	b.options += " --base64-output=auto"
-	// 严谨的情况，只有在确定源实例是 row full 模式下，才能启用 binlog 过滤条件，否则只能全量应用。
-	// 但 --databases 等条件只对 row event 有效，在 query-event-handler=keep 情况下解析不会报错
-	// 逻辑导入的库表过滤规则，跟 mysqlbinlog_rollback 的库表过滤规则不一样，这里先不处理 @todo
-	// 如果 mysqlbinlog 没有 --tables 选项，也不能启用 quick_mode
-	if r.QuickMode {
-		if err := r.buildFilterOpts(); err != nil {
-			return err
-		}
-	}
-	if b.NotWriteBinlog {
-		b.options += " --disable-log-bin"
-	}
-	binlogTool := ""
-	if r.RecoverOpt.Flashback {
-		binlogTool = r.ToolSet.MustGet(tools.ToolMysqlbinlogRollback)
-	} else {
-		binlogTool = r.ToolSet.MustGet(tools.ToolMysqlbinlog)
-	}
-	if b.IdempotentMode && mysqlbinlogHasOpt(binlogTool, "--idempotent") == nil {
-		b.options += fmt.Sprintf(" --idempotent")
-	} else if r.QuickMode {
-		logger.Warn("idempotent=false and quick_mode=true may lead binlog-recover fail")
-	}
-	r.binlogCli += fmt.Sprintf("%s %s", binlogTool, r.RecoverOpt.options)
-	logger.Info("mysqlbinlog parse cmd:%s", r.binlogCli)
+func (r *GoApplyBinlog) buildBinlogOptions() error {
+
+	binlogTool := r.ToolSet.MustGet(tools.ToolGoMysqlbinlog)
+	r.BinlogOpt.SetCmdPath(binlogTool)
+	r.BinlogOpt.SetWorkDir(r.taskDir)
 	return nil
 }
 
-func (r *RecoverBinlog) buildFilterOpts() error {
-	b := r.RecoverOpt
-	r.filterOpts = ""
-	if b.Flashback {
-		r.filterOpts += " --flashback"
-	}
-	if len(b.Databases) > 0 {
-		r.filterOpts += fmt.Sprintf(" --databases='%s'", strings.Join(b.Databases, ","))
-	}
-	if len(b.Tables) > 0 {
-		r.filterOpts += fmt.Sprintf(" --tables='%s'", strings.Join(b.Tables, ","))
-	}
-	if len(b.DatabasesIgnore) > 0 {
-		r.filterOpts += fmt.Sprintf(" --databases-ignore='%s'", strings.Join(b.DatabasesIgnore, ","))
-	}
-	if len(b.TablesIgnore) > 0 {
-		r.filterOpts += fmt.Sprintf(" --tables-ignore='%s'", strings.Join(b.TablesIgnore, ","))
-	}
-	if r.filterOpts == "" {
-		logger.Warn("quick_mode=true shall works with binlog-filter data import")
-	}
-	if r.filterOpts == "" && !b.IdempotentMode {
-		return errors.Errorf("no binlog-filter need idempotent_mode=true")
-	}
-	// query event 都全部应用，没法做部分过滤。前提是表结构已全部导入，否则导入会报错。也可以设置为 error 模式，解析时就会报错
-	if b.QueryEventHandler == "" {
-		b.QueryEventHandler = "keep"
-	}
-	r.filterOpts += fmt.Sprintf(" --query-event-handler=%s", b.QueryEventHandler)
-	// 正向解析，不设置 --filter-statement-match-error
-	if b.Flashback {
-		if len(b.Tables) > 0 {
-			r.filterOpts += fmt.Sprintf(" --filter-statement-match-error=\"%s\"", strings.Join(b.Tables, ","))
-		} else {
-			r.filterOpts += fmt.Sprintf(" --filter-statement-match-error=\"%s\"", strings.Join(b.Databases, ","))
-		}
-		r.filterOpts += fmt.Sprintf(" --filter-statement-match-ignore=\"flush ,FLUSH ,create table,CREATE TABLE\"")
-	}
-	r.filterOpts += fmt.Sprintf(" --filter-statement-match-ignore-force=\"%s\"", native.INFODBA_SCHEMA)
-	b.options += " " + r.filterOpts
-	return nil
-}
-
-func (r *RecoverBinlog) initDirs() error {
+func (r *GoApplyBinlog) initDirs() error {
 	if r.WorkID == "" {
 		r.WorkID = newTimestampString()
 	}
-	r.taskDir = fmt.Sprintf("%s/recover_binlog_%s/%d", r.WorkDir, r.WorkID, r.TgtInstance.Port)
+	r.taskDir = fmt.Sprintf("%s/apply_binlog_%s/%d", r.WorkDir, r.WorkID, r.TgtInstance.Port)
 	if err := osutil.CheckAndMkdir("", r.taskDir); err != nil {
 		return err
 	}
@@ -480,9 +389,7 @@ func (r *RecoverBinlog) initDirs() error {
 	return nil
 }
 
-var ErrorBinlogMissing = errors.New("binlog missing")
-
-func (r *RecoverBinlog) checkBinlogFiles() error {
+func (r *GoApplyBinlog) checkBinlogFiles() error {
 	// 检查 binlog 是否存在
 	var binlogFilesErrs []error
 	for _, f := range r.BinlogFiles {
@@ -547,7 +454,7 @@ func (r *RecoverBinlog) checkBinlogFiles() error {
 
 // GetBinlogFilesFromDir 获取指定目录下的 binlog 文件列表
 // 合法的 binlog 格式 binlog\d*\.\d+$
-func (r *RecoverBinlog) GetBinlogFilesFromDir(binlogDir, namePrefix string) ([]string, error) {
+func (r *GoApplyBinlog) GetBinlogFilesFromDir(binlogDir, namePrefix string) ([]string, error) {
 	// 临时关闭 binlog 删除
 	files, err := os.ReadDir(binlogDir) // 已经按文件名排序
 	if err != nil {
@@ -570,9 +477,9 @@ func (r *RecoverBinlog) GetBinlogFilesFromDir(binlogDir, namePrefix string) ([]s
 
 // PreCheck TODO
 // r.BinlogFiles 是已经过滤后的 binlog 文件列表
-func (r *RecoverBinlog) PreCheck() error {
+func (r *GoApplyBinlog) PreCheck() error {
 	var err error
-	if err = r.buildMysqlOptions(); err != nil {
+	if err = r.buildMysqlCliOptions(); err != nil {
 		return err
 	}
 	// init mysqlbinlog options
@@ -597,7 +504,7 @@ func (r *RecoverBinlog) PreCheck() error {
 // FilterBinlogFiles 对 binlog 列表根据时间，掐头去尾，并返回文件总大小
 // binlog开始点：如果 start_file 不为空，以 start_file 为优先
 // binlog结束点：最后一个binlog end_time > 过滤条件 stop_time
-func (r *RecoverBinlog) FilterBinlogFiles() (totalSize int64, err error) {
+func (r *GoApplyBinlog) FilterBinlogFiles() (totalSize int64, err error) {
 	logger.Info("BinlogFiles before filter: %v", r.BinlogFiles)
 	sort.Strings(r.BinlogFiles)
 
@@ -630,13 +537,13 @@ func (r *RecoverBinlog) FilterBinlogFiles() (totalSize int64, err error) {
 	// 如果有需要 也会过滤 binlog time > start_time
 	var startTimeMore, stopTimeMore time.Time // 前后时间偏移 20分钟
 	var startTimeFilter, stopTimeFilter string
-	if r.RecoverOpt.StartTime != "" {
-		startTimeMore, _ = time.ParseInLocation(time.RFC3339, r.RecoverOpt.StartTime, time.Local)
+	if r.BinlogOpt.StartTime != "" {
+		startTimeMore, _ = time.ParseInLocation(time.DateTime, r.BinlogOpt.StartTime, time.Local)
 		// binlog时间 start_time 比 预期start_time 提早 20 分钟
 		startTimeFilter = startTimeMore.Add(-20 * time.Minute).Format(time.RFC3339)
 	}
-	if stopTimeMore, err = time.ParseInLocation(time.RFC3339, r.RecoverOpt.StopTime, time.Local); err != nil {
-		return 0, errors.Errorf("stop_time parse failed: %s", r.RecoverOpt.StopTime)
+	if stopTimeMore, err = time.ParseInLocation(time.DateTime, r.BinlogOpt.StopTime, time.Local); err != nil {
+		return 0, errors.Errorf("stop_time parse failed: %s", r.BinlogOpt.StopTime)
 	} else {
 		// binlog时间 stop_time 比 预期stop_time 延后 20 分钟
 		stopTimeFilter = stopTimeMore.Add(20 * time.Minute).Format(time.RFC3339)
@@ -655,13 +562,13 @@ func (r *RecoverBinlog) FilterBinlogFiles() (totalSize int64, err error) {
 		fileSize := cmutil.GetFileSize(fileName)
 		// **** get binlog time
 
-		if r.RecoverOpt.StopTime != "" && stopTime > stopTimeFilter {
+		if r.BinlogOpt.StopTime != "" && stopTime > stopTimeFilter {
 			break
 		}
 		if r.BinlogStartFile != "" {
 			binlogFiles = append(binlogFiles, f)
 			totalSize += fileSize
-		} else if r.RecoverOpt.StartTime != "" {
+		} else if r.BinlogOpt.StartTime != "" {
 			if startTime > startTimeFilter { // time.RFC3339
 				if !firstBinlogFound { // 拿到binlog时间符合条件的 前一个binlog
 					firstBinlogFound = true
@@ -688,23 +595,10 @@ func (r *RecoverBinlog) FilterBinlogFiles() (totalSize int64, err error) {
 	return totalSize, nil
 }
 
-func getSequenceFromFilename(binlogFileName string) int {
-	file0Arr := strings.Split(binlogFileName, ".")
-	return cast.ToInt(strings.TrimLeft(file0Arr[1], "0"))
-}
-
-func constructBinlogFilename(fileNameTmpl string, sequenceSuffix int) string {
-	file0Arr := strings.Split(fileNameTmpl, ".")
-	file0Arr1Len := cast.ToString(len(file0Arr[1]))
-	fileNameFmt := "%s." + "%0" + file0Arr1Len + "d"
-	newFileName := fmt.Sprintf(fileNameFmt, file0Arr[0], sequenceSuffix)
-	return newFileName
-}
-
 // checkTimeRange 再次检查 binlog 时间
-func (r *RecoverBinlog) checkTimeRange() error {
-	startTime := r.RecoverOpt.StartTime
-	stopTime := r.RecoverOpt.StopTime
+func (r *GoApplyBinlog) checkTimeRange() error {
+	startTime := r.StartTime
+	stopTime := r.StopTime
 	if startTime != "" && stopTime != "" && startTime >= stopTime {
 		return errors.Errorf("binlog start_time [%s] should be little then stop_time [%s]", startTime, stopTime)
 	}
@@ -753,15 +647,14 @@ func (r *RecoverBinlog) checkTimeRange() error {
 
 // Start godoc
 // 一定会解析 binlog
-func (r *RecoverBinlog) Start() error {
-	binlogFiles := strings.Join(r.BinlogFiles, " ")
+func (r *GoApplyBinlog) Start() error {
 	if r.ParseOnly {
 		if err := r.buildScript(); err != nil {
 			return err
 		}
 		return r.ParseBinlogFiles()
-	} else if !r.RecoverOpt.Flashback {
-		if r.RecoverOpt.IdempotentMode {
+	} else if !r.BinlogOpt.Flashback {
+		if r.BinlogOpt.Idempotent {
 			// 这个要在主函数运行，调用 defer 来设置回去
 			newValue := "IDEMPOTENT"
 			originValue, err := r.dbWorker.SetSingleGlobalVarAndReturnOrigin("slave_exec_mode", newValue)
@@ -780,10 +673,8 @@ func (r *RecoverBinlog) Start() error {
 		// 这里要考虑命令行的长度
 		outFile := filepath.Join(r.taskDir, fmt.Sprintf("import_binlog_%s.log", r.WorkID))
 		errFile := filepath.Join(r.taskDir, fmt.Sprintf("import_binlog_%s.err", r.WorkID))
-		cmd := fmt.Sprintf(
-			`cd %s; %s %s | %s >>%s 2>%s`,
-			r.BinlogDir, r.binlogCli, binlogFiles, r.mysqlCli, outFile, errFile,
-		)
+		parseCmd := r.BinlogOpt.ReturnParseCommand(r.BinlogDir, r.BinlogFiles)
+		cmd := fmt.Sprintf(`%s | %s >>%s 2>%s`, parseCmd, r.mysqlCli, outFile, errFile)
 		logger.Info(mysqlcomm.ClearSensitiveInformation(mysqlcomm.RemovePassword(cmd)))
 		stdoutStr, err := mysqlutil.ExecCommandMySQLShell(cmd)
 		if err != nil {
@@ -808,8 +699,8 @@ func (r *RecoverBinlog) Start() error {
 }
 
 // Import import_binlog.sh
-func (r *RecoverBinlog) Import() error {
-	if r.RecoverOpt.IdempotentMode {
+func (r *GoApplyBinlog) Import() error {
+	if r.BinlogOpt.Idempotent {
 		// 这个要在主函数运行，调用 defer 来设置回去
 		newValue := "IDEMPOTENT"
 		originValue, err := r.dbWorker.SetSingleGlobalVarAndReturnOrigin("slave_exec_mode", newValue)
@@ -834,23 +725,23 @@ func (r *RecoverBinlog) Import() error {
 }
 
 // WaitDone TODO
-func (r *RecoverBinlog) WaitDone() error {
+func (r *GoApplyBinlog) WaitDone() error {
 	// 通过 lsof 查看 mysqlbinlog 当前打开的是那个 binlog，来判断进度
 	return nil
 }
 
 // PostCheck TODO
-func (r *RecoverBinlog) PostCheck() error {
+func (r *GoApplyBinlog) PostCheck() error {
 	// 检查 infodba_schema.master_slave_heartbeat 里面的时间与 target_time 差异不超过 65s
 	return nil
 }
 
 // GetDBWorker TODO
-func (r *RecoverBinlog) GetDBWorker() *native.DbWorker {
+func (r *GoApplyBinlog) GetDBWorker() *native.DbWorker {
 	return r.dbWorker
 }
 
 // GetTaskDir TODO
-func (r *RecoverBinlog) GetTaskDir() string {
+func (r *GoApplyBinlog) GetTaskDir() string {
 	return r.taskDir
 }

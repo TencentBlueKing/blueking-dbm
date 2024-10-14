@@ -28,6 +28,7 @@ const (
 	ToolMysqlbinlogRollback ExternalTool = "mysqlbinlog_rollback"
 	// ToolMysqlbinlogRollback80 mysqlbinlog_rollback80
 	ToolMysqlbinlogRollback80 ExternalTool = "mysqlbinlog_rollback80"
+	ToolGoMysqlbinlog         ExternalTool = "gomysqlbinlog"
 	// ToolMysqlTableChecksum mysql-table-checksum
 	ToolMysqlTableChecksum ExternalTool = "mysql-table-checksum"
 	// ToolPtTableChecksum pt-table-checksum
@@ -52,6 +53,7 @@ var defaultPath = map[ExternalTool]string{
 	ToolPv:                    "/home/mysql/dbbackup-go/bin/pv",
 	ToolMysqlclient:           "/usr/local/mysql/bin/mysql",
 	ToolMysqlbinlog:           "/usr/local/mysql/bin/mysqlbinlog",
+	ToolGoMysqlbinlog:         filepath.Join(cst.DBAToolkitPath, string(ToolGoMysqlbinlog)),
 	ToolMysqlbinlogRollback:   filepath.Join(cst.DBAToolkitPath, string(ToolMysqlbinlogRollback)),
 	ToolMysqlbinlogRollback80: filepath.Join(cst.DBAToolkitPath, "mysqlbinlog_rollback_80"),
 	ToolMysqlTableChecksum:    path.Join(cst.ChecksumInstallPath, string(ToolMysqlTableChecksum)),

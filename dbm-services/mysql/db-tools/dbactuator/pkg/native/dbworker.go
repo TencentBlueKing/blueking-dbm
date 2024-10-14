@@ -194,7 +194,7 @@ func (h *DbWorker) QueryWithArgs(query string, args ...interface{}) ([]map[strin
 	if len(args) <= 0 {
 		rows, err = h.Db.Query(query)
 	} else {
-		rows, err = h.Db.Query(query, args)
+		rows, err = h.Db.Query(query, args...)
 	}
 	if err != nil {
 		return nil, err
@@ -587,20 +587,22 @@ func (h *DbWorker) SelectDatabases(dbNameLike string) (databases []string, err e
 // TableColumnDef TODO
 type TableColumnDef struct {
 	ColName string
-	ColPos  string // int?
+	ColPos  int // int?
 	ColType string
 }
 
+type TableColumnInfo map[string]TableColumnDef
+
 // TableSchema TODO
 type TableSchema struct {
-	DBName     string
-	TableName  string
-	DBTableStr string // dbX.tableY
-	SchemaStr  string
+	DbName          string
+	TableName       string
+	DbTableFullname string // dbX.tableY
+	SchemaStr       string
 
 	PrimaryKey []string
 	UniqueKey  []string
-	ColumnMap  map[string]TableColumnDef
+	ColumnMap  TableColumnInfo
 }
 
 // SelectTables 查询 tables
@@ -634,9 +636,9 @@ func (h *DbWorker) SelectTables(dbNames, tbNames []string) (map[string]TableSche
 		for _, row := range result {
 			dbtbl := fmt.Sprintf(`%s.%s`, row["TABLE_SCHEMA"].(string), row["TABLE_NAME"].(string))
 			tblSchemas[dbtbl] = TableSchema{
-				DBName:     row["TABLE_SCHEMA"].(string),
-				TableName:  row["TABLE_NAME"].(string),
-				DBTableStr: dbtbl,
+				DbName:          row["TABLE_SCHEMA"].(string),
+				TableName:       row["TABLE_NAME"].(string),
+				DbTableFullname: dbtbl,
 			}
 		}
 
@@ -914,8 +916,9 @@ func GetTableUniqueKeyBest(uniqKeys map[string][]string) []string {
 	}
 }
 
-// GetTableColumns get table column info
-func GetTableColumns(dbworker *DbWorker, dbName, tblName string) (map[string]TableSchema, error) {
+// GetOneTableColumns get table column info
+// return {columnName1:info, columName2:info}
+func GetOneTableColumns(dbworker *DbWorker, dbName, tblName string) (map[string]TableColumnDef, error) {
 	// tblSchemas = {"dbX.tableY": {"a": {"name":"a", "pos":"1", "type":"int"}}}
 	/*
 		queryStr := fmt.Sprintf("SELECT TABLE_SCHEMA,TABLE_NAME,COLUMN_NAME,ORDINAL_POSITION,DATA_TYPE,COLUMN_TYPE " +
@@ -933,22 +936,18 @@ func GetTableColumns(dbworker *DbWorker, dbName, tblName string) (map[string]Tab
 		return nil, err
 	}
 
-	dbtbl := fmt.Sprintf(`%s.%s`, dbName, tblName)
-	tblSchemas := make(map[string]TableSchema)
 	if len(result) > 0 {
 		tblColumns := make(map[string]TableColumnDef)
 		for _, row := range result {
 			colDef := TableColumnDef{
 				ColName: row["COLUMN_NAME"].(string),
-				ColPos:  row["ORDINAL_POSITION"].(string),
+				ColPos:  cast.ToInt(row["ORDINAL_POSITION"].(string)),
 				ColType: row["DATA_TYPE"].(string),
 			}
 			tblColumns[row["COLUMN_NAME"].(string)] = colDef
 		}
-		tblSchemas[dbtbl] = TableSchema{
-			ColumnMap: tblColumns,
-		}
-		return tblSchemas, nil
+
+		return tblColumns, nil
 	}
 	return nil, errors.New("table not found")
 }
