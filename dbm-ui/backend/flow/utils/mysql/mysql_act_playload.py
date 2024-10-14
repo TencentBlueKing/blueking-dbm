@@ -1026,11 +1026,12 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
         """
         MYSQL 定点回档恢复备份介质
         """
-        # if self.cluster.get("rollback_type", "") == RollbackType.LOCAL_AND_TIME:
-        #     index_file = os.path.basename(kwargs["trans_data"]["backupinfo"]["index_file"])
-        # elif self.cluster.get("rollback_type", "") == RollbackType.LOCAL_AND_BACKUPID:
-        #     index_file = os.path.basename(self.cluster["backupinfo"]["index_file"])
-        # else:
+        # if (
+        #     self.ticket_data["ticket_type"] == TicketType.TENDBCLUSTER_ROLLBACK_CLUSTER
+        #     or self.ticket_data["ticket_type"] == TicketType.MYSQL_ROLLBACK_CLUSTER
+        # ):
+        #     self.cluster["master_ip"] = ""
+        #     self.cluster["master_port"] = 0
         index_file = os.path.basename(self.cluster["backupinfo"]["index"]["file_name"])
         payload = {
             "db_type": DBActuatorTypeEnum.MySQL.value,
@@ -1059,7 +1060,7 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
                         "ignore_tables": self.cluster["tables_ignore"],
                         "recover_binlog": self.cluster["recover_binlog"],
                     },
-                    "src_instance": {"host": self.cluster["master_ip"], "port": self.cluster["master_port"]},
+                    "src_instance": {"host": "", "port": 0},
                     "change_master": self.cluster["change_master"],
                     "work_id": "",
                 },
