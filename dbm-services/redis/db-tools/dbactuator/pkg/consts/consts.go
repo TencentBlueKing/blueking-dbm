@@ -116,7 +116,7 @@ const (
 	PackageSavePath    = "/data/install"
 	Data1Path          = "/data1"
 	DataPath           = "/data"
-	DbaReportSaveDir   = "/home/mysql/dbareport/"
+	DbaReportSaveDir   = "/home/mysql/dbareport"
 	RedisReportSaveDir = "/home/mysql/dbareport/redis/"
 	ExporterConfDir    = "/home/mysql/.exporter"
 	RedisReportLeftDay = 15

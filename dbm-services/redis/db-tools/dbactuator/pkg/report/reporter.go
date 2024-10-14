@@ -20,6 +20,10 @@ type Reporter interface {
 // CreateReportDir 创建上报目录 /home/mysql/dbareport -> {REDIS_BACKUP_DIR}/dbbak/dbareport
 func CreateReportDir() (err error) {
 	mylog.Logger.Info("begin to create reportDir(%s)", consts.DbaReportSaveDir)
+
+	// 如果 /home/mysql/dbareport 是个无效的软链接,则删除
+	util.RemoveInvalidSoftLink(consts.DbaReportSaveDir)
+
 	var realLink string
 	realReportDir := filepath.Join(consts.GetRedisBackupDir(), "dbbak", "dbareport") // 如 /data/dbbak/dbareport
 	if !util.FileExists(realReportDir) {

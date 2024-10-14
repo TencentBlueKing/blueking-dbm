@@ -243,19 +243,8 @@ func (job *BkDbmonInstall) UntarMedia() (err error) {
 		return
 	}
 	// 如果 /home/mysql/bk-dbmon 是一个无效的软链接,则删除
-	if util.FileExists(consts.BkDbmonPath) {
-		var stat fs.FileInfo
-		var link string
-		stat, err = os.Stat(consts.BkDbmonPath)
-		if err == nil && stat.Mode()&os.ModeSymlink != 0 {
-			link, err = os.Readlink(consts.BkDbmonPath)
-			if err == nil && !util.FileExists(link) {
-				rmCmd := fmt.Sprintf("rm -rf %s", consts.BkDbmonPath)
-				job.runtime.Logger.Info(rmCmd)
-				util.RunBashCmd(rmCmd, "", nil, 1*time.Minute)
-			}
-		}
-	}
+	util.RemoveInvalidSoftLink(consts.BkDbmonPath)
+
 	remoteVersion = l01[1]
 	if util.FileExists(consts.BkDbmonBin) {
 		cmd := fmt.Sprintf("%s -v |awk '{print $2}'", consts.BkDbmonBin)
