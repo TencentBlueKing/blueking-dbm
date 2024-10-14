@@ -11,7 +11,8 @@ import logging
 
 from pipeline.component_framework.component import Component
 
-from backend.components import DBPrivManagerApi
+from backend.components import DBPrivManagerApi, DRSApi
+from backend.constants import IP_PORT_DIVIDER
 from backend.db_meta.models import Cluster
 from backend.flow.consts import TDBCTL_USER
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptService
@@ -27,6 +28,27 @@ class RemoteMigrateCutOverService(ExecuteDBActuatorScriptService):
     1: 给新机器都需要加内置账号
     2: 执行成对切换的db_actor命令
     """
+
+    def _drop_tdbctl_user(self, instances: list, ctl_primary: str, bk_cloud_id: int):
+        """
+        尝试在新节点删除内置账号，这里不做返回报错处理
+        @param instances: 需要操作的实例
+        @param ctl_primary: 集群中控信息
+        @param bk_cloud_id: 新节点的云区域
+        """
+        # 删除已经存在的spider账号
+        rpc_params = {
+            "addresses": instances,
+            "cmds": [
+                f"drop user '{TDBCTL_USER}'@'{ctl_primary.split(IP_PORT_DIVIDER)[0]}'",
+            ],
+            "force": False,
+            "bk_cloud_id": bk_cloud_id,
+        }
+        # drs服务远程请求
+        res = DRSApi.rpc(rpc_params)
+        self.log_info(res)
+        return
 
     def _execute(self, data, parent_data, callback=None) -> bool:
         global_data = data.get_one_of_inputs("global_data")
@@ -47,6 +69,13 @@ class RemoteMigrateCutOverService(ExecuteDBActuatorScriptService):
             "address": "",
             "hosts": [ctl_primary.split(":")[0]],
         }
+
+        # 尝试删除内置账号
+        self._drop_tdbctl_user(
+            instances=[i[key] for i in global_data["migrate_tuples"] for key in ["new_master", "new_slave"]],
+            ctl_primary=ctl_primary,
+            bk_cloud_id=cluster.bk_cloud_id,
+        )
 
         for info in global_data["migrate_tuples"]:
             params["address"] = info["new_master"]
