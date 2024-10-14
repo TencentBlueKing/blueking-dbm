@@ -12,6 +12,7 @@ import (
 	"github.com/shirou/gopsutil/process"
 	"github.com/spf13/cast"
 
+	"dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/cst"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/dbareport"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/logger"
@@ -108,7 +109,8 @@ func (g GlobalBackup) initializeBackup(backupServers []MysqlServer, dbw *mysqlco
 	logger.Log.Infof("init backup tasks:%+v, %+v", sqlStr, sqlArgs)
 	if _, err := sqlI.RunWith(dbw.Db).Exec(); err != nil {
 		logger.Log.Warnf("fail to initializeBackup: %s", err.Error())
-		if err2 := migrateBackupSchema(err, dbw.Db); err2 != nil {
+		mysqlErr := cmutil.NewMySQLError(err)
+		if err2 := migrateBackupSchema(mysqlErr, dbw.Db); err2 != nil {
 			return errors.WithMessagef(err, "migrateBackupSchema failed:%s", err2.Error())
 		} else {
 			logger.Log.Infof("migrateBackupSchema sucess: continue")
@@ -158,7 +160,11 @@ func (b GlobalBackupModel) queryBackupTasks(retries int, db *sqlx.DB) (backupTas
 
 	if err = db.Select(&backupTasks, sqlStr, sqlArgs...); err != nil {
 		logger.Log.Warnf("fail to queryBackupTasks: %s, retries %d", err.Error(), retries)
-		if err2 := migrateBackupSchema(err, db); err2 != nil {
+		mysqlErr := cmutil.NewMySQLError(err)
+		if mysqlErr.Code == 1146 { // 定时查询备份任务里，遇到表不存在，不重建表结构
+			return nil, errors.WithMessagef(err, "queryBackupTasks")
+		}
+		if err2 := migrateBackupSchema(mysqlErr, db); err2 != nil {
 			return nil, errors.WithMessagef(err, "migrateBackupSchema failed:%s", err2.Error())
 		} else {
 			logger.Log.Infof("migrateBackupSchema sucess: continue")

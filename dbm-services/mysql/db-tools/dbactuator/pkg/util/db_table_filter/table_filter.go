@@ -20,6 +20,7 @@ package db_table_filter
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 
 	"github.com/dlclark/regexp2"
@@ -84,6 +85,14 @@ func (c *DbTableFilter) GetExcludeTables(ip string, port int, user string, passw
 
 func (c *DbTableFilter) GetTablesByConn(conn *sqlx.Conn) (map[string][]string, error) {
 	return c.getTablesByConn(conn, true)
+}
+func (c *DbTableFilter) GetTablesByConnRaw(db *sql.DB) (map[string][]string, error) {
+	dbx := sqlx.NewDb(db, "mysql")
+	connx, err := dbx.Connx(context.Background())
+	if err != nil {
+		return nil, err
+	}
+	return c.getTablesByConn(connx, true)
 }
 
 func (c *DbTableFilter) GetExcludeTablesByConn(conn *sqlx.Conn) (map[string][]string, error) {

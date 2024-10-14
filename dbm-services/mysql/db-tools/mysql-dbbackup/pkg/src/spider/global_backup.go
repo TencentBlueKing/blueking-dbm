@@ -159,8 +159,7 @@ CREATE TABLE IF NOT EXISTS %s.global_backup (
 	return createSQL
 }
 
-func migrateBackupSchema(err error, db *sqlx.DB) error {
-	mysqlErr := cmutil.NewMySQLError(err).Code
+func migrateBackupSchema(mysqlErr cmutil.MySQLError, db *sqlx.DB) error {
 	isSpider, isTdbctl, err2 := mysqlconn.IsSpiderNode(db.DB)
 	if err2 != nil {
 		logger.Log.Error("buildSchema IsSpiderNode", err2)
@@ -177,18 +176,18 @@ func migrateBackupSchema(err error, db *sqlx.DB) error {
 	if isTdbctl {
 		sqlList = append(sqlList, "set session tc_admin=0;")
 	}
-	if mysqlErr == 1146 {
+	if mysqlErr.Code == 1146 {
 		sqlList = append(sqlList, backupSchema)
-	} else if mysqlErr == 1054 || mysqlErr == 1049 {
+	} else if mysqlErr.Code == 1054 || mysqlErr.Code == 1049 {
 		dropSchema := fmt.Sprintf(`DROP TABLE IF EXISTS %s.global_backup;`, cst.INFODBA_SCHEMA)
 		sqlList = append(sqlList, dropSchema)
 		sqlList = append(sqlList, backupSchema)
 	} else {
-		logger.Log.Error("migrateBackupSchema with err code:", mysqlErr, err.Error())
+		logger.Log.Error("migrateBackupSchema with err code:", mysqlErr.Code, mysqlErr.Raw)
 	}
 	logger.Log.Infof("init global_backup: %v", sqlList)
 	for _, sqlStr := range sqlList {
-		if _, err = db.Exec(sqlStr); err != nil {
+		if _, err := db.Exec(sqlStr); err != nil {
 			if strings.Contains(sqlStr, "ddl_execute_by_ctl") { // 忽略错误
 				continue
 			}

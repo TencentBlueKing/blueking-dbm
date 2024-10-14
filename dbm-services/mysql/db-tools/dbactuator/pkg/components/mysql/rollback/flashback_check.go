@@ -30,7 +30,7 @@ type Flashback struct {
 // FlashbackBinlog TODO
 type FlashbackBinlog struct {
 	TgtInstance native.InsObject `json:"tgt_instance" validate:"required"`
-	RecoverOpt  *RecoverOpt      `json:"recover_opt" validate:"required"`
+	RecoverOpt  *FlashbackOpt    `json:"recover_opt" validate:"required"`
 	// 当 binlog_dir 不为空，表示 binlog 已下载；当为空时，目前只从本地软连接
 	BinlogDir string `json:"binlog_dir"`
 	// binlog列表，如果不提供，则自动从本地查找符合时间范围的 binlog
@@ -47,8 +47,8 @@ type FlashbackBinlog struct {
 	binlogSaveDir string
 }
 
-// RecoverOpt TODO
-type RecoverOpt struct {
+// FlashbackOpt TODO
+type FlashbackOpt struct {
 	// row event 解析指定 databases
 	Databases []string `json:"databases,omitempty"`
 	// row event 解析指定 tables
@@ -57,8 +57,12 @@ type RecoverOpt struct {
 	DatabasesIgnore []string `json:"databases_ignore,omitempty"`
 	// row event 解析指定 忽略 tables
 	TablesIgnore []string `json:"tables_ignore,omitempty"`
-	// 暂不支持行级闪回
-	FilterRows string `json:"filter_rows"`
+
+	// RowsFilter max length 60000
+	RowsFilter string `json:"rows_filter"`
+	//RowsFilter            string `json:"rows_filter"`
+	RowsEventType         string `json:"rows_event_type"`
+	ConvRowsUpdateToWrite bool   `json:"conv_rows_update_to_write"`
 }
 
 // getBinlogFiles 从本地实例查找并过滤 binlog
@@ -172,8 +176,8 @@ func (f *Flashback) checkDBTableInUse() error {
 		logger.Info("tables opened %v", openTablesList)
 		logger.Info("tables to flashback %+v", dbTables)
 		for _, dbt := range dbTables {
-			if util.StringsHas(openTablesList, dbt.DBTableStr) {
-				errList = append(errList, errors.Errorf("table is opened %s", dbt.DBTableStr))
+			if util.StringsHas(openTablesList, dbt.DbTableFullname) {
+				errList = append(errList, errors.Errorf("table is opened %s", dbt.DbTableFullname))
 			}
 		}
 		if len(errList) > 0 {
