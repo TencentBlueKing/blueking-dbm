@@ -295,6 +295,7 @@ func (job *RedisVersionUpdate) allInstsAbleToConnect() (err error) {
 		if err != nil {
 			return err
 		}
+		cli.ConfigRewrite()
 		job.AddrMapCli[addr] = cli
 	}
 	job.runtime.Logger.Info("all redis instances able to connect,(%+v)", instsAddrs)
@@ -458,7 +459,7 @@ func (job *RedisVersionUpdate) stopRedis(port int) (err error) {
 	job.runtime.Logger.Info(fmt.Sprintf("su %s -c \"%s\"",
 		consts.MysqlAaccount, stopScript+" "+strconv.Itoa(port)+" xxxx"))
 	_, err = util.RunLocalCmd("su",
-		[]string{consts.MysqlAaccount, "-c", stopScript + " " + strconv.Itoa(port) + " " + password},
+		[]string{consts.MysqlAaccount, "-c", fmt.Sprintf("%s %d %q", stopScript, port, password)},
 		"", nil, 10*time.Minute)
 	if err != nil && !strings.Contains(err.Error(), "Warning: Using a password") {
 		return err

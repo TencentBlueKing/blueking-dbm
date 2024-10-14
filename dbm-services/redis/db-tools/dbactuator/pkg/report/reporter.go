@@ -49,7 +49,7 @@ func CreateReportDir() (err error) {
 		rmCmd := "rm -rf " + consts.DbaReportSaveDir
 		util.RunBashCmd(rmCmd, "", nil, 1*time.Minute)
 	}
-	err = os.Symlink(realReportDir, filepath.Dir(consts.DbaReportSaveDir))
+	err = os.Symlink(realReportDir, consts.DbaReportSaveDir)
 	if err != nil {
 		err = fmt.Errorf("os.Symlink %s -> %s fail,err:%s", consts.DbaReportSaveDir, realReportDir, err)
 		mylog.Logger.Error(err.Error())
