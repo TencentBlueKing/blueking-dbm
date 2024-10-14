@@ -98,6 +98,10 @@
         :cluster-type="ClusterTypes.MONGO_REPLICA_SET"
         :data="detailData" />
     </DbSideslider>
+    <AccessEntry
+      v-if="accessEntryInfo"
+      v-model:is-show="accessEntryInfoShow"
+      :data="accessEntryInfo" />
   </div>
 </template>
 
@@ -110,7 +114,6 @@
   import {
     getMongoInstancesList,
     getMongoList,
-    getMongoPassword
   } from '@services/source/mongodb';
   import { createTicket } from '@services/source/ticket';
   import { getUserList } from '@services/source/user';
@@ -147,7 +150,8 @@
   import RenderCellCopy from '@views/db-manage/common/render-cell-copy/Index.vue';
   import RenderHeadCopy from '@views/db-manage/common/render-head-copy/Index.vue';
   import RenderInstances from '@views/db-manage/common/render-instances/RenderInstances.vue';
-  import RenderOperationTag from '@views/db-manage/common/RenderOperationTagNew.vue';
+  import RenderOperationTag from '@views/db-manage/common/RenderOperationTag.vue';
+  import AccessEntry from '@views/db-manage/mongodb/components/AccessEntry.vue';
   import CapacityChange from '@views/db-manage/mongodb/components/CapacityChange.vue';
 
   import {
@@ -278,6 +282,8 @@
     shardNum: number,
     shardNodeCount: number,
   }>();
+  const accessEntryInfoShow = ref(false);
+  const accessEntryInfo = ref<MongodbModel | undefined>();
 
   const tableDataList = computed(() => tableRef.value?.getData<MongodbModel>() || [])
   const hasData = computed(() => tableDataList.value.length > 0);
@@ -562,12 +568,13 @@
       fixed: isStretchLayoutOpen.value ? false : 'right',
       render: ({ data }: { data: MongodbModel }) => {
         const baseButtons = [
-          <bk-button
-            text
-            theme="primary"
-            onclick={() => handleCopyMasterDomainDisplayName(data)}>
-            { t('复制访问地址') }
-          </bk-button>,
+        <bk-button
+          disabled={data.isOffline}
+          text
+          theme="primary"
+          onClick={() => handleShowAccessEntry(data)}>
+          { t('获取访问方式') }
+        </bk-button>,
           <OperationBtnStatusTips data={data}>
             <bk-button
               text
@@ -751,18 +758,9 @@
     selected.value = [];
   };
 
-  const handleCopyMasterDomainDisplayName = (row: MongodbModel) => {
-    const getUrl = (username: string, password: string) => `mongodb://${username}:${password}@${row.master_domain}/?replicaSet=${row.cluster_name}&authSource=admin`
-
-    getMongoPassword({ cluster_id: row.id })
-      .then((passwordResult) => {
-        const { username, password } = passwordResult
-        if (username && password) {
-          copy(getUrl(username, password));
-        } else {
-          copy(getUrl('username', 'password'));
-        }
-      })
+  const handleShowAccessEntry = (data: MongodbModel) => {
+    accessEntryInfo.value = data;
+    accessEntryInfoShow.value = true
   };
 
   const handleToDetails = (id: number) => {

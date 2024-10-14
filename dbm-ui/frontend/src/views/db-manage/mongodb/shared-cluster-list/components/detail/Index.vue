@@ -25,9 +25,10 @@
       </div>
       <div class="shared-cluster-breadcrumbs-box-button">
         <BkButton
+          :disabled="data.isOffline"
           size="small"
-          @click="handleCopyMasterDomainDisplayName">
-          {{ t('复制访问地址') }}
+          @click="handleShowAccessEntry">
+          {{ t('获取访问方式') }}
         </BkButton>
         <BkButton
           class="ml-4"
@@ -114,16 +115,21 @@
       :cluster-type="ClusterTypes.MONGO_SHARED_CLUSTER"
       :data="capacityData" />
   </DbSideslider>
+  <AccessEntry
+    v-if="accessEntryInfo"
+    v-model:is-show="accessEntryInfoShow"
+    :data="accessEntryInfo" />
 </template>
 
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import { getMongoClusterDetails, getMongoPassword } from '@services/source/mongodb';
+  import MongodbDetailModel from '@services/model/mongodb/mongodb-detail';
+  import { getMongoClusterDetails } from '@services/source/mongodb';
   import { getMonitorUrls } from '@services/source/monitorGrafana';
 
-  import { useCopy, useStretchLayout } from '@hooks';
+  import { useStretchLayout } from '@hooks';
 
   import { useGlobalBizs } from '@stores';
 
@@ -134,6 +140,7 @@
   import ClusterTopo from '@views/db-manage/common/cluster-details/ClusterTopo.vue';
   import ClusterEventChange from '@views/db-manage/common/cluster-event-change/EventChange.vue';
   import MonitorDashboard from '@views/db-manage/common/cluster-monitor/MonitorDashboard.vue';
+  import AccessEntry from '@views/db-manage/mongodb/components/AccessEntry.vue';
   import CapacityChange from '@views/db-manage/mongodb/components/CapacityChange.vue';
 
   import { useDisableCluster } from '../../hooks/useDisableCluster';
@@ -149,7 +156,7 @@
   const { t } = useI18n();
   const { currentBizId } = useGlobalBizs();
   const { isOpen: isStretchLayoutOpen } = useStretchLayout();
-  const copy = useCopy();
+
   const disableCluster = useDisableCluster();
 
   const capacityChangeShow = ref(false);
@@ -172,6 +179,8 @@
       link: string;
     }[]
   >([]);
+  const accessEntryInfoShow = ref(false);
+  const accessEntryInfo = ref<MongodbDetailModel | undefined>();
 
   const activePanel = computed(() => monitorPanelList.value.find((item) => item.name === activePanelKey.value));
 
@@ -203,6 +212,7 @@
         shardNum,
         shardNodeCount,
       };
+      accessEntryInfo.value = result;
     },
   });
 
@@ -239,21 +249,8 @@
     },
   );
 
-  const handleCopyMasterDomainDisplayName = () => {
-    const row = data.value;
-    if (row) {
-      const getUrl = (username: string, password: string) =>
-        `mongodb://${username}:${password}@${row.master_domain}/?authSource=admin`;
-
-      getMongoPassword({ cluster_id: row.id }).then((passwordResult) => {
-        const { username, password } = passwordResult;
-        if (username && password) {
-          copy(getUrl(username, password));
-        } else {
-          copy(getUrl('username', 'password'));
-        }
-      });
-    }
+  const handleShowAccessEntry = () => {
+    accessEntryInfoShow.value = true;
   };
 
   const handleCapacityChange = () => {

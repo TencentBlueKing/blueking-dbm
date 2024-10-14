@@ -63,7 +63,6 @@
 </template>
 
 <script setup lang="tsx">
-  import { InfoBox } from 'bkui-vue';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
   import { useRouter } from 'vue-router';
@@ -174,7 +173,7 @@
     clusterId: item.id,
     shardNum: item.shard_num,
     machineNum: item.replicaset_machine_num,
-    mongosNum: item.mongos.length,
+    // mongosNum: item.mongos.length,
     currentSpec: {
       ...item.mongos[0].spec_config,
       count: item.shard_num,
@@ -245,41 +244,33 @@
 
   // 点击提交按钮
   const handleSubmit = async () => {
-    const infos = await Promise.all<InfoItem[]>(
-      rowRefs.value.map((item: { getValue: () => Promise<InfoItem> }) => item.getValue()),
-    );
-
-    const params = {
-      bk_biz_id: currentBizId,
-      ticket_type: TicketTypes.MONGODB_ADD_MONGOS,
-      details: {
-        infos,
-      },
-    };
-
-    InfoBox({
-      title: t('确认扩容n个集群', { n: totalNum.value }),
-      width: 400,
-      onConfirm: () => {
-        isSubmitting.value = true;
-        createTicket(params)
-          .then((data) => {
-            window.changeConfirm = false;
-            router.push({
-              name: 'MongoProxyScaleUp',
-              params: {
-                page: 'success',
-              },
-              query: {
-                ticketId: data.id,
-              },
-            });
-          })
-          .finally(() => {
-            isSubmitting.value = false;
-          });
-      },
-    });
+    try {
+      isSubmitting.value = true;
+      const infos = await Promise.all<InfoItem[]>(
+        rowRefs.value.map((item: { getValue: () => Promise<InfoItem> }) => item.getValue()),
+      );
+      const params = {
+        bk_biz_id: currentBizId,
+        ticket_type: TicketTypes.MONGODB_ADD_MONGOS,
+        details: {
+          infos,
+        },
+      };
+      await createTicket(params).then((data) => {
+        window.changeConfirm = false;
+        router.push({
+          name: 'MongoProxyScaleUp',
+          params: {
+            page: 'success',
+          },
+          query: {
+            ticketId: data.id,
+          },
+        });
+      });
+    } finally {
+      isSubmitting.value = false;
+    }
   };
 
   const handleReset = () => {

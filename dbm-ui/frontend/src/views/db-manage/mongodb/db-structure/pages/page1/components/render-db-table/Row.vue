@@ -14,20 +14,30 @@
 <template>
   <tr>
     <td style="padding: 0">
-      <RenderDbName ref="dbPatternsRef" />
+      <RenderDbName
+        ref="dbPatternsRef"
+        :data="data.databases" />
     </td>
     <td style="padding: 0">
       <RenderDbName
         ref="ignoreDbsRef"
-        :required="false" />
+        :compare-data="localTablesIgnore"
+        :data="localDatabasesIgnore"
+        :required="false"
+        @change="handleDatabasesIgnoreChange" />
     </td>
     <td style="padding: 0">
-      <RenderTableName ref="tablePatternsRef" />
+      <RenderTableName
+        ref="tablePatternsRef"
+        :data="data.tables" />
     </td>
     <td style="padding: 0">
       <RenderTableName
         ref="ignoreTablesRef"
-        :required="false" />
+        :compare-data="localDatabasesIgnore"
+        :data="localTablesIgnore"
+        :required="false"
+        @change="handleTablesIgnoreChange" />
     </td>
   </tr>
 </template>
@@ -48,27 +58,52 @@
     rowKey: random(),
     clusterName: '',
   });
+
+  interface Props {
+    data: IDataRow;
+  }
+
+  interface Exposes {
+    getValue: () => Promise<any>;
+  }
 </script>
 <script setup lang="ts">
   import RenderDbName from '@views/db-manage/mongodb/components/edit-field/DbName.vue';
   import RenderTableName from '@views/db-manage/mongodb/components/edit-field/TableName.vue';
 
-  interface Exposes {
-    getValue: () => Promise<any>;
-  }
+  const props = defineProps<Props>();
 
   const dbPatternsRef = ref<InstanceType<typeof RenderDbName>>();
   const ignoreDbsRef = ref<InstanceType<typeof RenderDbName>>();
   const tablePatternsRef = ref<InstanceType<typeof RenderTableName>>();
   const ignoreTablesRef = ref<InstanceType<typeof RenderTableName>>();
 
+  const localDatabasesIgnore = ref<string[]>([]);
+  const localTablesIgnore = ref<string[]>([]);
+
+  watchEffect(() => {
+    localDatabasesIgnore.value = props.data.databasesIgnore || [];
+  });
+
+  watchEffect(() => {
+    localTablesIgnore.value = props.data.tablesIgnore || [];
+  });
+
+  const handleDatabasesIgnoreChange = (value: string[]) => {
+    localDatabasesIgnore.value = value;
+  };
+
+  const handleTablesIgnoreChange = (value: string[]) => {
+    localTablesIgnore.value = value;
+  };
+
   defineExpose<Exposes>({
     getValue() {
       return Promise.all([
         dbPatternsRef.value!.getValue('db_patterns'),
-        ignoreDbsRef.value!.getValue('ignore_dbs'),
+        ignoreDbsRef.value!.getValue('ignore_dbs', true),
         tablePatternsRef.value!.getValue('table_patterns'),
-        ignoreTablesRef.value!.getValue('ignore_tables'),
+        ignoreTablesRef.value!.getValue('ignore_tables', true),
       ]).then(([databasesData, tablesData, databasesIgnoreData, tablesIgnoreData]) => ({
         ...databasesData,
         ...tablesData,

@@ -74,23 +74,23 @@
         validator: (val: string) => clusterIdKeys.value.filter(item => item === val).length < 2,
       },
     ],
-    name: [
-      {
-        required: true,
-        message: t('必填项'),
-        trigger: 'change',
-      },
-      {
-        message: t('最大长度为m', { m: 63 }),
-        trigger: 'blur',
-        validator: (val: string) => val.length <= 63,
-      },
-      {
-        message: t('集群ID重复'),
-        trigger: 'blur',
-        validator: (val: string) => clusterNameKeys.value.filter(item => item === val).length < 2,
-      },
-    ],
+    // name: [
+    //   {
+    //     required: true,
+    //     message: t('必填项'),
+    //     trigger: 'change',
+    //   },
+    //   {
+    //     message: t('最大长度为m', { m: 63 }),
+    //     trigger: 'blur',
+    //     validator: (val: string) => val.length <= 63,
+    //   },
+    //   {
+    //     message: t('集群ID重复'),
+    //     trigger: 'blur',
+    //     validator: (val: string) => clusterNameKeys.value.filter(item => item === val).length < 2,
+    //   },
+    // ],
   };
 
   const columns: Column[] = [
@@ -115,6 +115,7 @@
               </span>
             )
           }
+          <span class="required-mark ml-4">*</span>
         </div>
       ),
       field: 'set_id',
@@ -165,7 +166,6 @@
           errorDisplayType="tooltips"
           property={`details.replica_sets.${index}.name`}
           key={index}
-          rules={rules.name}
           label-width={0}>
           <bk-input
             model-value={domains.value[index]?.name}
@@ -188,7 +188,7 @@
     return [];
   });
   const clusterIdKeys = computed(() => tableData.value.map(item => item.set_id));
-  const clusterNameKeys = computed(() => tableData.value.map(item => item.name));
+  // const clusterNameKeys = computed(() => tableData.value.map(item => item.name));
 
   watch(() => props.nodesNumber, () => {
     clusterIdRefs.splice(0, clusterIdRefs.length - 1);
@@ -258,6 +258,10 @@
     :deep(.table-custom-label) {
       display: flex;
       align-items: center;
+
+      .required-mark {
+        color: #ea3636;
+      }
     }
 
     :deep(.domain-address) {

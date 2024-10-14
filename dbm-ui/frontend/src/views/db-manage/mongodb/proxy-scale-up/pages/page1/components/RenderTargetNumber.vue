@@ -17,7 +17,8 @@
       ref="editRef"
       v-model="localValue"
       :disabled="disabled"
-      :placeholder="disabled ? t('请输入扩容数量') : t('不能少于n台', { n: min + 1 })"
+      :min="1"
+      :placeholder="disabled ? t('请输入扩容数量') : t('不能少于n台', { n: 1 })"
       :rules="rules"
       type="number" />
   </BkLoading>
@@ -30,7 +31,6 @@
   import type { IDataRow } from './Row.vue';
 
   interface Props {
-    min: number;
     data?: IDataRow['targetNum'];
     isLoading?: boolean;
     disabled?: boolean;
@@ -62,8 +62,8 @@
       message: t('格式有误，请输入数字'),
     },
     {
-      validator: (value: string) => Number(value) > props.min,
-      message: t('不能少于n台', { n: props.min + 1 }),
+      validator: (value: string) => Number(value) >= 1,
+      message: t('不能少于n台', { n: 1 }),
     },
   ];
 

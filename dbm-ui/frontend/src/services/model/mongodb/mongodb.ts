@@ -14,6 +14,8 @@
 import dayjs from 'dayjs';
 import { uniq } from 'lodash';
 
+import type { ClusterListEntry } from '@services/types';
+
 import { PipelineStatus, TicketTypes } from '@common/const';
 
 import { utcDisplayTime } from '@utils';
@@ -81,6 +83,7 @@ export default class Mongodb {
   bk_cloud_name: string;
   cluster_access_port: number;
   cluster_alias: string;
+  cluster_entry: ClusterListEntry[];
   cluster_name: string;
   cluster_stats: Record<'used' | 'total' | 'in_use', number>;
   cluster_time_zone: string;
@@ -114,6 +117,7 @@ export default class Mongodb {
   phase_name: string;
   region: string;
   replicaset_machine_num: number;
+  seg_range: Record<string, string[]>;
   slave_domain: string;
   shard_node_count: number; // 分片节点数
   shard_num: number; // 分片数
@@ -135,6 +139,7 @@ export default class Mongodb {
     this.db_module_name = payload.db_module_name;
     this.cluster_access_port = payload.cluster_access_port;
     this.cluster_alias = payload.cluster_alias;
+    this.cluster_entry = payload.cluster_entry || [];
     this.disaster_tolerance_level = payload.disaster_tolerance_level;
     this.cluster_name = payload.cluster_name;
     this.cluster_stats = payload.cluster_stats || {};
@@ -158,6 +163,7 @@ export default class Mongodb {
     this.phase_name = payload.phase_name;
     this.region = payload.region;
     this.replicaset_machine_num = payload.replicaset_machine_num;
+    this.seg_range = payload.seg_range;
     this.slave_domain = payload.slave_domain;
     this.shard_node_count = payload.shard_node_count;
     this.shard_num = payload.shard_num;
@@ -312,5 +318,42 @@ export default class Mongodb {
 
   get updateAtDisplay() {
     return utcDisplayTime(this.update_at);
+  }
+
+  get entryDomain() {
+    if (this.isMongoReplicaSet) {
+      const domainList = this.cluster_entry.reduce<string[]>((prevDomainList, entryItem) => {
+        if (!entryItem.entry.includes('backup')) {
+          return prevDomainList.concat(`${entryItem.entry}:${this.cluster_access_port}`);
+        }
+        return prevDomainList;
+      }, []);
+      return domainList.join(',');
+    }
+    return `${this.master_domain}:${this.cluster_access_port}`;
+  }
+
+  get entryAccess() {
+    if (this.isMongoReplicaSet) {
+      return `mongodb://{username}:{password}@${this.entryDomain}/?replicaSet=${this.cluster_name}&authSource=admin`;
+    }
+    return `mongodb://{username}:{password}@${this.entryDomain}/?authSource=admin`;
+  }
+
+  get entryAccessClb() {
+    if (!this.isMongoReplicaSet) {
+      const clbItem = this.cluster_entry.find((entryItem) => entryItem.cluster_entry_type === 'clbDns');
+      if (clbItem) {
+        return `mongodb://{username}:{password}@${clbItem.entry}:${this.cluster_access_port}/?authSource=admin`;
+      }
+    }
+    return '';
+  }
+
+  get shardList() {
+    return Object.entries(this.seg_range).map(([shardName, instanceList]) => ({
+      shardName,
+      instanceList,
+    }));
   }
 }

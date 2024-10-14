@@ -21,16 +21,16 @@
       :class="{ 'is-empty': !clusterData, 'is-error': Boolean(errorMessage) }">
       <span
         v-if="!localHostIp"
-        class="placehold"
-        >{{ t('请选择主机') }}</span
-      >
+        class="placehold">
+        {{ t('请选择主机') }}
+      </span>
       <span
         v-else
         ref="contentRef"
         v-overflow-tips
-        class="content-text"
-        >{{ localHostIp }}</span
-      >
+        class="content-text">
+        {{ localHostIp }}
+      </span>
       <BkPopover
         v-if="clusterData && showEditIcon"
         :content="t('从业务拓扑选择')"

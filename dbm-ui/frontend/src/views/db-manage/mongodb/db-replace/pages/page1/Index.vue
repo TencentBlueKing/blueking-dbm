@@ -18,19 +18,41 @@
         closable
         theme="info"
         :title="t('整机替换：将原主机上的所有实例搬迁到同等规格的新主机')" />
-      <RenderData
-        class="mt16"
-        @show-master-batch-selector="handleShowMasterBatchSelector">
-        <RenderDataRow
-          v-for="(item, index) in tableData"
-          :key="item.rowKey"
-          ref="rowRefs"
-          :data="item"
-          :removeable="tableData.length < 2"
-          @add="(payload: Array<IDataRow>) => handleAppend(index, payload)"
-          @host-input-finish="(ip: string) => handleChangeHostIp(index, ip)"
-          @remove="handleRemove(index)" />
-      </RenderData>
+      <DbForm
+        ref="formRef"
+        class="mt-16"
+        form-type="vertical"
+        :model="formData">
+        <DbFormItem
+          :label="t('集群类型')"
+          required>
+          <BkRadioGroup
+            v-model="formData.clusterType"
+            style="width: 400px"
+            type="card">
+            <BkRadioButton :label="ClusterTypes.MONGO_REPLICA_SET">
+              {{ t('副本集集群') }}
+            </BkRadioButton>
+            <BkRadioButton :label="ClusterTypes.MONGO_SHARED_CLUSTER">
+              {{ t('分片集群') }}
+            </BkRadioButton>
+          </BkRadioGroup>
+        </DbFormItem>
+        <RenderData
+          class="mt16"
+          @show-master-batch-selector="handleShowMasterBatchSelector">
+          <RenderDataRow
+            v-for="(item, index) in tableData"
+            :key="item.rowKey"
+            ref="rowRefs"
+            :cluster-node-count="clusterNodeCount"
+            :data="item"
+            :removeable="tableData.length < 2"
+            @add="(payload: Array<IDataRow>) => handleAppend(index, payload)"
+            @host-input-finish="(ip: string) => handleChangeHostIp(index, ip)"
+            @remove="handleRemove(index)" />
+        </RenderData>
+      </DbForm>
     </div>
     <template #action>
       <BkButton
@@ -53,27 +75,31 @@
       </DbPopconfirm>
     </template>
     <InstanceSelector
+      :key="formData.clusterType"
       v-model:is-show="isShowMasterInstanceSelector"
       :cluster-types="['mongoCluster']"
       :selected="selected"
+      :tab-list-config="tabListConfig"
       @change="handleInstanceSelectChange" />
   </SmartAction>
 </template>
 
 <script setup lang="tsx">
-  import { InfoBox } from 'bkui-vue';
   import { useI18n } from 'vue-i18n';
   import { useRouter } from 'vue-router';
 
   import MongodbInstanceModel from '@services/model/mongodb/mongodb-instance';
-  import { getMongoInstancesList } from '@services/source/mongodb';
+  import { getMongoInstancesList, getMongoTopoList } from '@services/source/mongodb';
   import { createTicket } from '@services/source/ticket';
 
   import { useGlobalBizs } from '@stores';
 
-  import { TicketTypes } from '@common/const';
+  import { ClusterTypes, TicketTypes } from '@common/const';
 
-  import InstanceSelector, { type InstanceSelectorValues } from '@components/instance-selector/Index.vue';
+  import InstanceSelector, {
+    type InstanceSelectorValues,
+    type PanelListType,
+  } from '@components/instance-selector/Index.vue';
 
   import RenderData from './components/Index.vue';
   import RenderDataRow, { createRowData, type IDataRow } from './components/Row.vue';
@@ -81,14 +107,118 @@
   const { currentBizId } = useGlobalBizs();
   const { t } = useI18n();
   const router = useRouter();
+
+  const createDefaultFormData = () => ({
+    clusterType: ClusterTypes.MONGO_REPLICA_SET,
+  });
+
   const rowRefs = ref();
   const isShowMasterInstanceSelector = ref(false);
   const isSubmitting = ref(false);
-
   const tableData = ref([createRowData()]);
+
   const selected = shallowRef({ mongoCluster: [] } as InstanceSelectorValues<MongodbInstanceModel>);
 
+  const formData = reactive(createDefaultFormData());
+
   const totalNum = computed(() => tableData.value.filter((item) => Boolean(item.ip)).length);
+
+  const clusterNodeCount = computed(() => {
+    const nodeCount = tableData.value.reduce<Record<number, Record<string, number>>>((prev, tableItem) => {
+      if (tableItem.ip) {
+        let countMap: Record<string, number> = {};
+        if (prev[tableItem.clusterId]) {
+          countMap = prev[tableItem.clusterId];
+          if (tableItem.clusterType === ClusterTypes.MONGO_SHARED_CLUSTER && tableItem.machineType === 'mongodb') {
+            countMap[tableItem.shard] = countMap[tableItem.shard] ? countMap[tableItem.shard] + 1 : 1;
+          } else {
+            countMap[tableItem.machineType] = countMap[tableItem.machineType]
+              ? countMap[tableItem.machineType] + 1
+              : countMap[tableItem.machineType];
+          }
+        } else {
+          if (tableItem.clusterType === ClusterTypes.MONGO_SHARED_CLUSTER && tableItem.machineType === 'mongodb') {
+            countMap[tableItem.shard] = 1;
+          } else {
+            countMap[tableItem.machineType] = 1;
+          }
+        }
+
+        return Object.assign({}, prev, {
+          [tableItem.clusterId]: countMap,
+        });
+      }
+      return prev;
+    }, {});
+
+    return Object.entries(nodeCount).reduce<Record<number, Record<string, number[]>>>((prev, [clusterId, countMap]) => {
+      const typeCountMap: Record<string, number[]> = {
+        mongos: [],
+        mongodb: [],
+        mongo_config: [],
+      };
+      Object.entries(countMap).forEach(([type, count]) => {
+        if (type in typeCountMap) {
+          typeCountMap[type].push(count);
+        } else {
+          typeCountMap.mongodb.push(count);
+        }
+      });
+      return Object.assign({}, prev, {
+        [clusterId]: typeCountMap,
+      });
+    }, {});
+  });
+
+  const tabListConfig = computed(
+    () =>
+      ({
+        mongoCluster: [
+          {
+            topoConfig: {
+              getTopoList: (params: ServiceParameters<typeof getMongoTopoList>) =>
+                getMongoTopoList({
+                  ...params,
+                  cluster_type: formData.clusterType,
+                }),
+            },
+            tableConfig: {
+              getTableList: (params: ServiceParameters<typeof getMongoInstancesList>) =>
+                getMongoInstancesList({
+                  ...params,
+                  cluster_type: formData.clusterType,
+                }),
+            },
+          },
+          {
+            topoConfig: {
+              getTopoList: (params: ServiceParameters<typeof getMongoTopoList>) =>
+                getMongoTopoList({
+                  ...params,
+                  cluster_type: formData.clusterType,
+                }),
+            },
+            tableConfig: {
+              getTableList: (params: ServiceParameters<typeof getMongoInstancesList>) =>
+                getMongoInstancesList({
+                  ...params,
+                  cluster_type: formData.clusterType,
+                }),
+            },
+          },
+        ],
+      }) as unknown as Record<ClusterTypes, PanelListType>,
+  );
+
+  watch(
+    () => formData.clusterType,
+    () => {
+      tableData.value = [createRowData()];
+      selected.value.mongoCluster = [];
+      ipMemo = {};
+      window.changeConfirm = false;
+    },
+  );
 
   // ip 是否已存在表格的映射表
   let ipMemo = {} as Record<string, boolean>;
@@ -115,7 +245,7 @@
     isLoading: false,
     ip: item.ip,
     role: item.role,
-    relatedClusters: item.related_clusters.map((obj) => obj.immute_domain),
+    relatedClusters: item.related_clusters.map((obj) => obj.master_domain),
     bkCloudId: item.bk_cloud_id,
     clusterId: item.cluster_id,
     clusterType: item.cluster_type,
@@ -127,6 +257,7 @@
     },
     currentSpec: item.spec_config,
     machineType: item.machine_type,
+    shard: item.shard,
   });
 
   // 批量选择
@@ -229,48 +360,41 @@
 
   // 提交
   const handleSubmit = async () => {
-    const ipSpecList = await Promise.all(
-      rowRefs.value.map((item: { getValue: () => Promise<Record<string, number>> }) => item.getValue()),
-    );
-    const ipSpecMap = ipSpecList.reduce((results, item) => Object.assign(results, item), {});
-    const infos = generateRequestParam(ipSpecMap);
-    const params = {
-      bk_biz_id: currentBizId,
-      ticket_type: TicketTypes.MONGODB_CUTOFF,
-      details: {
-        ip_source: 'resource_pool',
-        infos,
-      },
-    };
-
-    InfoBox({
-      title: t('确认提交n个整机替换任务', { n: totalNum.value }),
-      subTitle: t('信息将会被替换，请谨慎操作！'),
-      width: 500,
-      onConfirm: () => {
-        isSubmitting.value = true;
-        createTicket(params)
-          .then((data) => {
-            window.changeConfirm = false;
-            router.push({
-              name: 'MongoDBReplace',
-              params: {
-                page: 'success',
-              },
-              query: {
-                ticketId: data.id,
-              },
-            });
-          })
-          .finally(() => {
-            isSubmitting.value = false;
-          });
-      },
-    });
+    try {
+      isSubmitting.value = true;
+      const ipSpecList = await Promise.all(
+        rowRefs.value.map((item: { getValue: () => Promise<Record<string, number>> }) => item.getValue()),
+      );
+      const ipSpecMap = ipSpecList.reduce((results, item) => Object.assign(results, item), {});
+      const infos = generateRequestParam(ipSpecMap);
+      const params = {
+        bk_biz_id: currentBizId,
+        ticket_type: TicketTypes.MONGODB_CUTOFF,
+        details: {
+          ip_source: 'resource_pool',
+          infos,
+        },
+      };
+      await createTicket(params).then((data) => {
+        window.changeConfirm = false;
+        router.push({
+          name: 'MongoDBReplace',
+          params: {
+            page: 'success',
+          },
+          query: {
+            ticketId: data.id,
+          },
+        });
+      });
+    } finally {
+      isSubmitting.value = false;
+    }
   };
 
   // 重置
   const handleReset = () => {
+    Object.assign(formData, createDefaultFormData());
     tableData.value = [createRowData()];
     selected.value.mongoCluster = [];
     ipMemo = {};
