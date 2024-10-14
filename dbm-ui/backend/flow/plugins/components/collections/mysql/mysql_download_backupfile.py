@@ -43,7 +43,7 @@ class MySQLDownloadBackupfile(BkJobService):
         response = MysqlBackupApi.download(params=params)
         backup_bill_id = response.get("bill_id", -1)
         if backup_bill_id > 0:
-            self.log_debug(_("调起下载 {}").format(backup_bill_id))
+            self.log_info(_("调起下载 {}").format(backup_bill_id))
             data.outputs.backup_bill_id = backup_bill_id
             return True
         else:
@@ -70,13 +70,13 @@ class MySQLDownloadBackupfile(BkJobService):
                 return True
             elif result_response["total"]["fail"] > 0:
                 self.log_error(_("{} 下载失败").format(backup_bill_id))
-                self.log_debug(str(result_response))
+                self.log_error(str(result_response))
                 self.finish_schedule()
                 return False
             else:
-                self.log_debug(_("{} 下载中: todo {}").format(backup_bill_id, result_response["total"]["todo"]))
+                self.log_info(_("{} 下载中: todo {}").format(backup_bill_id, result_response["total"]["todo"]))
         else:
-            self.log_debug("result response fail")
+            self.log_error("result response fail")
             self.finish_schedule()
             return False
 
