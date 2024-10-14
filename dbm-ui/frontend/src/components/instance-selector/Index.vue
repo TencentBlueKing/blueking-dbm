@@ -209,10 +209,7 @@
   import MongodbModel from '@services/model/mongodb/mongodb';
   import { checkMongoInstances, checkMysqlInstances, checkRedisInstances } from '@services/source/instances';
   import { getMongoInstancesList, getMongoTopoList } from '@services/source/mongodb';
-  import {
-    queryClusters as getMysqlClusterList,
-    queryClusters as queryMysqlCluster,
-  } from '@services/source/mysqlCluster';
+  import { queryClusters as queryMysqlCluster } from '@services/source/mysqlCluster';
   import { getRedisClusterList, getRedisMachineList } from '@services/source/redis';
   import {
     getHaClusterWholeList as getSqlServerHaCluster,
@@ -222,9 +219,20 @@
     getSingleClusterList,
     getSqlServerInstanceList as getSqlServerSingleInstanceList,
   } from '@services/source/sqlserverSingleCluster';
-  import { getTendbclusterInstanceList, getTendbclusterMachineList } from '@services/source/tendbcluster';
-  import { getTendbhaInstanceList, getTendbhaMachineList } from '@services/source/tendbha';
-  import { getTendbsingleInstanceList } from '@services/source/tendbsingle';
+  import {
+    getTendbClusterFlatList as getTendbClusterList,
+    getTendbclusterInstanceList,
+    getTendbclusterMachineList,
+  } from '@services/source/tendbcluster';
+  import {
+    getTendbhaFlatList as getTendbhaList,
+    getTendbhaInstanceList,
+    getTendbhaMachineList,
+  } from '@services/source/tendbha';
+  import {
+    getTendbsingleFlatList as getTendbsingleList,
+    getTendbsingleInstanceList,
+  } from '@services/source/tendbsingle';
 
   import { ClusterTypes } from '@common/const';
 
@@ -386,7 +394,7 @@
         id: 'tendbcluster',
         name: 'Tendb Cluster',
         topoConfig: {
-          getTopoList: getMysqlClusterList,
+          getTopoList: getTendbClusterList,
         },
         tableConfig: {
           getTableList: getTendbclusterInstanceList,
@@ -423,7 +431,7 @@
         id: 'tendbsingle',
         name: t('Mysql 单节点'),
         topoConfig: {
-          getTopoList: getMysqlClusterList,
+          getTopoList: getTendbsingleList,
         },
         tableConfig: {
           getTableList: getTendbsingleInstanceList,
@@ -460,7 +468,7 @@
         id: 'tendbha',
         name: t('Mysql 主从'),
         topoConfig: {
-          getTopoList: getMysqlClusterList,
+          getTopoList: getTendbhaList,
         },
         tableConfig: {
           getTableList: getTendbhaInstanceList,
@@ -539,7 +547,7 @@
         id: 'TendbhaHost',
         name: t('主库主机'),
         topoConfig: {
-          getTopoList: getMysqlClusterList,
+          getTopoList: queryMysqlCluster,
         },
         tableConfig: {
           getTableList: getTendbhaMachineList,
