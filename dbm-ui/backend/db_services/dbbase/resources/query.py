@@ -465,7 +465,9 @@ class ListRetrieveResource(BaseListRetrieveResource):
             Prefetch("clusterentry_set", to_attr="entries"),
             "tag_set",
         )
-        cluster_ids = list(cluster_queryset.values_list("id", flat=True))
+        # 由于对 queryset 切片工作方式的模糊性，这里的values可能会获得非预期的排序，所以不要在切片后用values
+        # cluster_ids = list(cluster_queryset.values_list("id", flat=True))
+        cluster_ids = [c.id for c in cluster_queryset]
 
         # 获取集群与访问入口的映射
         cluster_entry_map = ClusterEntry.get_cluster_entry_map(cluster_ids)
@@ -889,8 +891,9 @@ class ListRetrieveResource(BaseListRetrieveResource):
         # 获取machine关联的集群信息，目前一个实例只关联一个集群
         related_clusters_map: Dict[int, List[Dict]] = {}
         for inst in [*list(machine.storageinstance_set.all()), *list(machine.proxyinstance_set.all())]:
-            cluster = inst.cluster.all()[0]
-            related_clusters_map[cluster.id] = cluster.to_dict()
+            cluster = inst.cluster.first()
+            if cluster:
+                related_clusters_map[cluster.id] = cluster.to_dict()
 
         return {
             "instance_role": instance_role,

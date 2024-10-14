@@ -34,7 +34,7 @@ class RedisVersionUpdateDetailSerializer(serializers.Serializer):
         for info in attrs["infos"]:
             # 校验当前版本不能和目标版本一致
             if info["target_version"] in info["current_versions"]:
-                raise serializers.ValidationError(_("当前版本不能和目标版本{}一致").fromat(info["current_versions"]))
+                raise serializers.ValidationError(_("当前版本不能和目标版本{}一致").format(info["current_versions"]))
 
         return attrs
 
