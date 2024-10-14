@@ -204,7 +204,7 @@ class MySQLMasterSlaveSwitchFlow(object):
                 kwargs=asdict(
                     DownloadMediaKwargs(
                         bk_cloud_id=info["slave_ip"]["bk_cloud_id"],
-                        exec_ip=info["slave_ip"]["ip"],
+                        exec_ip=[info["slave_ip"]["ip"], info["master_ip"]["ip"]],
                         file_list=GetFileList(db_type=DBType.MySQL).get_db_actuator_package(),
                     )
                 ),
@@ -309,6 +309,20 @@ class MySQLMasterSlaveSwitchFlow(object):
                 )
 
                 # 阶段4 并发change master 的 原子任务，集群所有的slave节点同步new master 的数据
+                # 补充其余slave信息下发dbactor，有可能有产生文件冲突
+                if cluster["other_slave_info"]:
+                    cluster_switch_sub_pipeline.add_act(
+                        act_name=_("其余slave下发db-actuator介质"),
+                        act_component_code=TransFileComponent.code,
+                        kwargs=asdict(
+                            DownloadMediaKwargs(
+                                bk_cloud_id=info["slave_ip"]["bk_cloud_id"],
+                                exec_ip=cluster["other_slave_info"],
+                                file_list=GetFileList(db_type=DBType.MySQL).get_db_actuator_package(),
+                            )
+                        ),
+                    )
+
                 acts_list = []
 
                 for exec_ip in [info["master_ip"]["ip"]] + cluster["other_slave_info"]:
