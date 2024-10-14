@@ -178,14 +178,18 @@ func (m *PrivTaskPara) AddPriv(jsonPara string, ticket string) error {
 								runningNum = runningNum + 1
 							}
 						}
-						for _, proxy := range instance.Proxies {
-							if runningNum > 0 && proxy.Status != running {
-								slog.Warn(baseInfo, "proxy instance not running state, skipped", fmt.Sprintf("%s:%d", proxy.IP, proxy.Port))
-								continue
-							}
-							err = ImportProxyPrivilege(proxy, proxySQL, instance.BkCloudId)
-							if err != nil {
-								errMsgInner = append(errMsgInner, err.Error())
+						if runningNum == 0 {
+							errMsgInner = append(errMsgInner, "no running state proxy")
+						} else {
+							for _, proxy := range instance.Proxies {
+								if proxy.Status != running {
+									slog.Warn(baseInfo, "proxy instance not running state, skipped", fmt.Sprintf("%s:%d", proxy.IP, proxy.Port))
+									continue
+								}
+								err = ImportProxyPrivilege(proxy, proxySQL, instance.BkCloudId)
+								if err != nil {
+									errMsgInner = append(errMsgInner, err.Error())
+								}
 							}
 						}
 					}
@@ -204,13 +208,27 @@ func (m *PrivTaskPara) AddPriv(jsonPara string, ticket string) error {
 					} else {
 						errMsgInner = append(errMsgInner, fmt.Sprintf("wrong entry role %s", instance.EntryRole))
 					}
+					var runningNum int
 					for _, spider := range spiders {
-						address = fmt.Sprintf("%s:%d", spider.IP, spider.Port)
-						err = ImportBackendPrivilege(account, accountRule, address, proxyIPs, m.SourceIPs,
-							instance.ClusterType, tendbhaMasterDomain, instance.BkCloudId, false,
-							tendbhaPaddingProxy)
-						if err != nil {
-							errMsgInner = append(errMsgInner, err.Error())
+						if spider.Status == running {
+							runningNum = runningNum + 1
+						}
+					}
+					if runningNum == 0 {
+						errMsgInner = append(errMsgInner, "no running state spider")
+					} else {
+						for _, spider := range spiders {
+							address = fmt.Sprintf("%s:%d", spider.IP, spider.Port)
+							if spider.Status != running {
+								slog.Warn(baseInfo, "spider instance not running state, skipped", address)
+								continue
+							}
+							err = ImportBackendPrivilege(account, accountRule, address, proxyIPs, m.SourceIPs,
+								instance.ClusterType, tendbhaMasterDomain, instance.BkCloudId, false,
+								tendbhaPaddingProxy)
+							if err != nil {
+								errMsgInner = append(errMsgInner, err.Error())
+							}
 						}
 					}
 					if len(errMsgInner) > 0 {
