@@ -42,7 +42,7 @@
   }
 
   interface Exposes {
-    getValue: (field: string) => Promise<string>;
+    getValue: () => Promise<{ slave: ISlaveHost }>;
   }
 
   interface ISlaveHost {

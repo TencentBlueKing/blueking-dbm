@@ -22,7 +22,8 @@
       <td style="padding: 0">
         <RenderCluster
           ref="clusterRef"
-          :old-slave="localOldSlave" />
+          :data="localOldSlave"
+          role="slave" />
       </td>
       <td style="padding: 0">
         <RenderNewSlave
@@ -37,14 +38,17 @@
   </tbody>
 </template>
 <script lang="ts">
+  import type { ComponentExposed } from 'vue-component-type-helpers';
+
   import SqlServerHaInstanceModel from '@services/model/sqlserver/sqlserver-ha-instance';
 
   import FixedColumn from '@components/render-table/columns/fixed-column/index.vue';
   import OperateColumn from '@components/render-table/columns/operate-column/index.vue';
 
+  import RenderCluster from '@views/db-manage/common/RenderRelatedClusters.vue';
+
   import { random } from '@utils';
 
-  import RenderCluster from './RenderCluster.vue';
   import RenderNewSlave from './RenderNewSlave.vue';
   import RenderOldSlave from './RenderOldSlave.vue';
 
@@ -94,9 +98,9 @@
 
   const emits = defineEmits<Emits>();
 
-  const slaveRef = ref();
-  const clusterRef = ref();
-  const newSlaveRef = ref();
+  const slaveRef = ref<InstanceType<typeof RenderOldSlave>>();
+  const newSlaveRef = ref<InstanceType<typeof RenderNewSlave>>();
+  const clusterRef = ref<ComponentExposed<typeof RenderCluster>>();
 
   const localOldSlave = ref<IDataRow['oldSlave']>();
 
@@ -125,13 +129,15 @@
 
   defineExpose<Exposes>({
     getValue() {
-      return Promise.all([slaveRef.value.getValue(), clusterRef.value.getValue(), newSlaveRef.value.getValue()]).then(
-        ([sourceData, moduleData, newSlaveData]) => ({
-          ...sourceData,
-          ...moduleData,
-          ...newSlaveData,
-        }),
-      );
+      return Promise.all([
+        slaveRef.value!.getValue(),
+        clusterRef.value!.getValue(),
+        newSlaveRef.value!.getValue(),
+      ]).then(([sourceData, moduleData, newSlaveData]) => ({
+        ...sourceData,
+        ...moduleData,
+        ...newSlaveData,
+      }));
     },
   });
 </script>
