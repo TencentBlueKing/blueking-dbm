@@ -92,8 +92,10 @@ var (
 		CNMessage: "检查没有通过"}
 	MigrateFail = Errno{Code: 51038, Message: "migrate fail",
 		CNMessage: "迁移失败"}
-	PortRequired        = Errno{Code: 51039, Message: "port is required", CNMessage: "port不能为空"}
-	IpRequired          = Errno{Code: 51040, Message: "ip is required", CNMessage: "ip列表不能为空"}
-	DomainRequired      = Errno{Code: 51041, Message: "domain is required", CNMessage: "域名列表不能为空"}
-	QueryPrivilegesFail = Errno{Code: 51042, Message: "query privileges fail", CNMessage: "查询权限失败"}
+	PortRequired                  = Errno{Code: 51039, Message: "port is required", CNMessage: "port不能为空"}
+	IpRequired                    = Errno{Code: 51040, Message: "ip is required", CNMessage: "ip列表不能为空"}
+	DomainRequired                = Errno{Code: 51041, Message: "domain is required", CNMessage: "域名列表不能为空"}
+	QueryPrivilegesFail           = Errno{Code: 51042, Message: "query privileges fail", CNMessage: "查询权限失败"}
+	InternalAccountNameNotAllowed = Errno{Code: 51043, Message: "internal account name is not allowed",
+		CNMessage: "不允许使用内部账号名称"}
 )

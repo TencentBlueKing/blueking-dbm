@@ -28,17 +28,17 @@ func (m *GetPrivPara) GetUserList() ([]string, int, error) {
 	burst := 20                                // 桶容量 20
 	limiter := rate.NewLimiter(limit, burst)
 	for _, item := range m.ImmuteDomains {
+		errLimiter := limiter.Wait(context.Background())
+		if errLimiter != nil {
+			AddError(&errMsg, item, errLimiter)
+			continue
+		}
 		wg.Add(1)
 		go func(item string) {
 			defer func() {
 				wg.Done()
 			}()
 			var users []string
-			err := limiter.Wait(context.Background())
-			if err != nil {
-				AddError(&errMsg, item, err)
-				return
-			}
 			instance, err := GetCluster(*m.ClusterType, Domain{EntryName: item})
 			if err != nil {
 				AddError(&errMsg, item, err)
@@ -75,9 +75,18 @@ func (m *GetPrivPara) GetUserList() ([]string, int, error) {
 					}
 				} else if instance.ClusterType == tendbcluster {
 					// tendbcluster，从spider节点查询账号
-					for _, spider := range instance.Proxies {
-						address = fmt.Sprintf("%s:%d", spider.IP, spider.Port)
-						break
+					if instance.EntryRole == masterEntry {
+						for _, spider := range instance.SpiderMaster {
+							address = fmt.Sprintf("%s:%d", spider.IP, spider.Port)
+							break
+						}
+					} else if instance.EntryRole == slaveEntry {
+						for _, spider := range instance.SpiderSlave {
+							address = fmt.Sprintf("%s:%d", spider.IP, spider.Port)
+							break
+						}
+					} else {
+						AddError(&errMsg, item, fmt.Errorf("wrong entry role %s", instance.EntryRole))
 					}
 				} else {
 					AddError(&errMsg, item, fmt.Errorf("wrong cluster type %s", instance.ClusterType))
@@ -99,13 +108,26 @@ func (m *GetPrivPara) GetUserList() ([]string, int, error) {
 	if len(errMsg.errs) > 0 {
 		return userList.l, count, errno.QueryPrivilegesFail.Add("\n" + strings.Join(errMsg.errs, "\n"))
 	}
-	return userList.l, len(userList.l), nil
+	var uniqUser = make(map[string]struct{})
+	var users []string
+	for _, user := range userList.l {
+		if _, isExists := uniqUser[user]; isExists == false {
+			uniqUser[user] = struct{}{}
+			users = append(users, user)
+		}
+	}
+	return users, len(users), nil
 }
 
 // GetPriv 获取权限
 func (m *GetPrivPara) GetPriv() ([]RelatedIp, []RelatedDomain2, int, []GrantInfo, []string, []string, error) {
+	type PrivMu struct {
+		mu        sync.RWMutex
+		resources []GrantInfo
+	}
+
 	var (
-		all    []GrantInfo
+		all    PrivMu
 		count  int
 		errMsg Err
 	)
@@ -118,10 +140,15 @@ func (m *GetPrivPara) GetPriv() ([]RelatedIp, []RelatedDomain2, int, []GrantInfo
 	}
 	users := strings.Join(m.Users, "','")
 	wg := sync.WaitGroup{}
-	limit := rate.Every(time.Millisecond * 50) // QPS：20
-	burst := 20                                // 桶容量 20
+	limit := rate.Every(time.Millisecond * 200) // 并发查询集群数量 QPS 5
+	burst := 5                                  // 桶容量 5
 	limiter := rate.NewLimiter(limit, burst)
 	for _, item := range m.ImmuteDomains {
+		errLimiter := limiter.Wait(context.Background())
+		if errLimiter != nil {
+			AddError(&errMsg, item, errLimiter)
+			continue
+		}
 		wg.Add(1)
 		go func(item string) {
 			defer func() {
@@ -136,11 +163,6 @@ func (m *GetPrivPara) GetPriv() ([]RelatedIp, []RelatedDomain2, int, []GrantInfo
 			var userGrants []UserGrant
 			var result []GrantInfo
 			var matchHosts string
-			err = limiter.Wait(context.Background())
-			if err != nil {
-				AddError(&errMsg, item, err)
-				return
-			}
 			dbpriv := make(map[string][]DbPriv)
 			if instance.ClusterType == tendbha && instance.BindTo == machineTypeProxy && !instance.PaddingProxy {
 				tendbhaMasterDomain = true
@@ -156,6 +178,7 @@ func (m *GetPrivPara) GetPriv() ([]RelatedIp, []RelatedDomain2, int, []GrantInfo
 					for _, storage := range instance.Storages {
 						if storage.InstanceRole == backendMaster {
 							address := fmt.Sprintf("%s:%d", storage.IP, storage.Port)
+							slog.Info("msg", "backend", address)
 							userGrants, err = GetRemotePrivilege(address, proxy.IP, instance.BkCloudId,
 								machineTypeBackend, users, true)
 							if err != nil {
@@ -168,6 +191,7 @@ func (m *GetPrivPara) GetPriv() ([]RelatedIp, []RelatedDomain2, int, []GrantInfo
 						}
 					}
 					address := fmt.Sprintf("%s:%d", proxy.IP, proxy.AdminPort)
+					slog.Info("msg", "proxy", address)
 					// 在proxy查询查询user@ip
 					result, _, _, err = ProxyWhiteList(address, instance.BkCloudId, m.Ips, m.Users, item)
 					if err != nil {
@@ -189,16 +213,27 @@ func (m *GetPrivPara) GetPriv() ([]RelatedIp, []RelatedDomain2, int, []GrantInfo
 						}
 					}
 				} else if instance.ClusterType == tendbcluster {
-					for _, spider := range instance.Proxies {
-						address = fmt.Sprintf("%s:%d", spider.IP, spider.Port)
-						machineType = machineTypeSpider
-						break
+					// tendbcluster，从spider节点查询账号
+					if instance.EntryRole == masterEntry {
+						for _, spider := range instance.SpiderMaster {
+							address = fmt.Sprintf("%s:%d", spider.IP, spider.Port)
+							break
+						}
+					} else if instance.EntryRole == slaveEntry {
+						for _, spider := range instance.SpiderSlave {
+							address = fmt.Sprintf("%s:%d", spider.IP, spider.Port)
+							break
+						}
+					} else {
+						AddError(&errMsg, item, fmt.Errorf("wrong entry role %s", instance.EntryRole))
 					}
 				} else {
 					AddError(&errMsg, item, fmt.Errorf("wrong cluster type %s", instance.ClusterType))
+					return
 				}
 				if address == "" {
 					AddError(&errMsg, item, fmt.Errorf("no instance found"))
+					return
 				}
 				// 在后端mysql中获取匹配的user@host列表
 				result, _, matchHosts, err = MysqlUserList(address, instance.BkCloudId, m.Ips, m.Users, item)
@@ -228,20 +263,25 @@ func (m *GetPrivPara) GetPriv() ([]RelatedIp, []RelatedDomain2, int, []GrantInfo
 				// mysql中的账号与权限相结合
 				result = CombineUserWithGrant(result, dbpriv, tendbhaMasterDomain)
 			}
-			all = append(all, result...)
+			slog.Info("msg", "SplitGrantSql", dbpriv)
+			slog.Info("msg", "CombineUserWithGrant", result)
+			all.mu.Lock()
+			all.resources = append(all.resources, result...)
+			all.mu.Unlock()
 		}(item)
 	}
 	wg.Wait()
 	if len(errMsg.errs) > 0 {
 		return nil, nil, count, nil, nil, nil, errno.QueryPrivilegesFail.Add("\n" + strings.Join(errMsg.errs, "\n"))
 	}
+	slog.Info("msg", "all.resources", all.resources)
 	// 以访问源的ip等维度聚合展示
 	if m.Format == "ip" {
-		formatted, hasPriv, noPriv := FormatRelatedIp(all, m.Ips)
-		return formatted, nil, len(formatted), all, hasPriv, noPriv, nil
+		formatted, hasPriv, noPriv := FormatRelatedIp(all.resources, m.Ips)
+		return formatted, nil, len(formatted), all.resources, hasPriv, noPriv, nil
 	} else if m.Format == "cluster" {
-		formatted, hasPriv, noPriv := FormatRelatedCluster(all, m.Ips, m.ImmuteDomains)
-		return nil, formatted, len(formatted), all, hasPriv, noPriv, nil
+		formatted, hasPriv, noPriv := FormatRelatedCluster(all.resources, m.Ips, m.ImmuteDomains)
+		return nil, formatted, len(formatted), all.resources, hasPriv, noPriv, nil
 	} else {
 		return nil, nil, 0, nil, nil, nil, fmt.Errorf("not supported display format")
 	}
@@ -485,40 +525,29 @@ func FormatRelatedIp(source []GrantInfo, ips []string) ([]RelatedIp, []string, [
 	var UniqIpDbDomain = make(map[string][]RelatedUser)
 	var UniqIpDbDomainUser = make(map[string][]RelatedMatchIp)
 	var UniqIpDbDomainUserMatchIp = make(map[string][]RelatedMatchDb)
-	wg := sync.WaitGroup{}
-	tokenBucket := make(chan int, 20)
 	for _, grant := range source {
-		wg.Add(1)
-		tokenBucket <- 0
-		go func(grant GrantInfo) {
-			defer func() {
-				<-tokenBucket
-				wg.Done()
-			}()
-			// 对所有的权限归类，记录每个权限细则的信息：查询ip、查询db、域名、用户、命中ip
-			for _, priv := range grant.Privs {
-				IpDbDomainUserMatchIp := fmt.Sprintf("%s|%s|%s|%s|%s", grant.Ip, priv.Db,
-					grant.ImmuteDomain, grant.User, grant.MatchIp)
-				IpDbDomainUser := fmt.Sprintf("%s|%s|%s|%s", grant.Ip, priv.Db,
-					grant.ImmuteDomain, grant.User)
-				IpDbDomain := fmt.Sprintf("%s|%s|%s", grant.Ip, priv.Db, grant.ImmuteDomain)
-				IpDb := fmt.Sprintf("%s|%s", grant.Ip, priv.Db)
-				Ip := grant.Ip
-				UniqIpDbDomainUserMatchIp[IpDbDomainUserMatchIp] = append(UniqIpDbDomainUserMatchIp[IpDbDomainUserMatchIp],
-					RelatedMatchDb{priv.MatchDb, priv.Priv})
-				UniqIpDbDomainUser[IpDbDomainUser] = nil
-				UniqIpDbDomain[IpDbDomain] = nil
-				UniqIpDb[IpDb] = nil
-				UniqIp[Ip] = nil
-			}
-		}(grant)
+		// 对所有的权限归类，记录每个权限细则的信息：查询ip、查询db、域名、用户、命中ip
+		for _, priv := range grant.Privs {
+			IpDbDomainUserMatchIp := fmt.Sprintf("|%s|%s|%s|%s|%s|", grant.Ip, priv.Db,
+				grant.ImmuteDomain, grant.User, grant.MatchIp)
+			IpDbDomainUser := fmt.Sprintf("|%s|%s|%s|%s|", grant.Ip, priv.Db,
+				grant.ImmuteDomain, grant.User)
+			IpDbDomain := fmt.Sprintf("|%s|%s|%s|", grant.Ip, priv.Db, grant.ImmuteDomain)
+			IpDb := fmt.Sprintf("|%s|%s|", grant.Ip, priv.Db)
+			Ip := grant.Ip
+			UniqIpDbDomainUserMatchIp[IpDbDomainUserMatchIp] = append(UniqIpDbDomainUserMatchIp[IpDbDomainUserMatchIp],
+				RelatedMatchDb{priv.MatchDb, priv.Priv})
+			UniqIpDbDomainUser[IpDbDomainUser] = nil
+			UniqIpDbDomain[IpDbDomain] = nil
+			UniqIpDb[IpDb] = nil
+			UniqIp[Ip] = nil
+		}
 	}
-	wg.Wait()
-	close(tokenBucket)
+
 	for user := range UniqIpDbDomainUser {
 		for k, v := range UniqIpDbDomainUserMatchIp {
 			if strings.Contains(k, user) {
-				matchIp := strings.Split(k, "|")[4]
+				matchIp := strings.Split(k, "|")[5]
 				UniqIpDbDomainUser[user] = append(UniqIpDbDomainUser[user], RelatedMatchIp{matchIp, v})
 			}
 		}
@@ -526,7 +555,7 @@ func FormatRelatedIp(source []GrantInfo, ips []string) ([]RelatedIp, []string, [
 	for domain := range UniqIpDbDomain {
 		for k, v := range UniqIpDbDomainUser {
 			if strings.Contains(k, domain) {
-				user := strings.Split(k, "|")[3]
+				user := strings.Split(k, "|")[4]
 				UniqIpDbDomain[domain] = append(UniqIpDbDomain[domain], RelatedUser{user, v})
 			}
 		}
@@ -534,15 +563,15 @@ func FormatRelatedIp(source []GrantInfo, ips []string) ([]RelatedIp, []string, [
 	for db := range UniqIpDb {
 		for k, v := range UniqIpDbDomain {
 			if strings.Contains(k, db) {
-				domain := strings.Split(k, "|")[2]
+				domain := strings.Split(k, "|")[3]
 				UniqIpDb[db] = append(UniqIpDb[db], RelatedDomain{domain, v})
 			}
 		}
 	}
 	for ip := range UniqIp {
 		for k, v := range UniqIpDb {
-			if strings.Contains(k, ip) {
-				db := strings.Split(k, "|")[1]
+			if strings.Contains(k, fmt.Sprintf("|%s|", ip)) {
+				db := strings.Split(k, "|")[2]
 				UniqIp[ip] = append(UniqIp[ip], RelatedDb{db, v})
 			}
 		}
@@ -569,34 +598,22 @@ func FormatRelatedCluster(source []GrantInfo, ips []string, domains []string) ([
 	var UniqDomainUserMatchIpMatchDbPriv = make(map[string][]RelatedIpDb)
 	var UniqDomainUserMatchIpMatchDbPrivTemp = make(map[string][]RelatedIpDb)
 	var uniqIp = make(map[string]struct{})
-	wg := sync.WaitGroup{}
-	tokenBucket := make(chan int, 20)
 	for _, grant := range source {
-		wg.Add(1)
-		tokenBucket <- 0
-		go func(grant GrantInfo) {
-			defer func() {
-				<-tokenBucket
-				wg.Done()
-			}()
-			// 对所有的权限归类，记录每个权限细则的信息：域名、用户、命中ip、命中的db、权限细则
-			for _, priv := range grant.Privs {
-				DomainUserMatchIpMatchDbPriv := fmt.Sprintf("%s|%s|%s|%s|%s", grant.ImmuteDomain,
-					grant.User, grant.MatchIp, priv.MatchDb, priv.Priv)
-				DomainUserMatchIp := fmt.Sprintf("%s|%s|%s", grant.ImmuteDomain, grant.User, grant.MatchIp)
-				DomainUser := fmt.Sprintf("%s|%s", grant.ImmuteDomain, grant.User)
-				vDomain := grant.ImmuteDomain
-				UniqDomainUserMatchIpMatchDbPrivTemp[DomainUserMatchIpMatchDbPriv] =
-					append(UniqDomainUserMatchIpMatchDbPrivTemp[DomainUserMatchIpMatchDbPriv],
-						RelatedIpDb{grant.Ip, priv.Db})
-				UniqDomainUserMatchIp[DomainUserMatchIp] = nil
-				UniqDomainUser[DomainUser] = nil
-				UniqDomain[vDomain] = nil
-			}
-		}(grant)
+		// 对所有的权限归类，记录每个权限细则的信息：域名、用户、命中ip、命中的db、权限细则
+		for _, priv := range grant.Privs {
+			DomainUserMatchIpMatchDbPriv := fmt.Sprintf("|%s|%s|%s|%s|%s|", grant.ImmuteDomain,
+				grant.User, grant.MatchIp, priv.MatchDb, priv.Priv)
+			DomainUserMatchIp := fmt.Sprintf("|%s|%s|%s|", grant.ImmuteDomain, grant.User, grant.MatchIp)
+			DomainUser := fmt.Sprintf("|%s|%s|", grant.ImmuteDomain, grant.User)
+			vDomain := grant.ImmuteDomain
+			UniqDomainUserMatchIpMatchDbPrivTemp[DomainUserMatchIpMatchDbPriv] =
+				append(UniqDomainUserMatchIpMatchDbPrivTemp[DomainUserMatchIpMatchDbPriv],
+					RelatedIpDb{grant.Ip, priv.Db})
+			UniqDomainUserMatchIp[DomainUserMatchIp] = nil
+			UniqDomainUser[DomainUser] = nil
+			UniqDomain[vDomain] = nil
+		}
 	}
-	wg.Wait()
-	close(tokenBucket)
 	// 同一个权限规则，对应的ip与db整合展示、去重
 	for k, v := range UniqDomainUserMatchIpMatchDbPrivTemp {
 		var uniqIpForUserHost = make(map[string]struct{})
@@ -629,8 +646,8 @@ func FormatRelatedCluster(source []GrantInfo, ips []string, domains []string) ([
 		for k, v := range UniqDomainUserMatchIpMatchDbPriv {
 			if strings.Contains(k, matchip) {
 				splits := strings.Split(k, "|")
-				matchDB := splits[3]
-				priv := splits[4]
+				matchDB := splits[4]
+				priv := splits[5]
 				UniqDomainUserMatchIp[matchip] = append(UniqDomainUserMatchIp[matchip],
 					RelatedMatchDb2{matchDB, priv, v})
 			}
@@ -639,7 +656,7 @@ func FormatRelatedCluster(source []GrantInfo, ips []string, domains []string) ([
 	for user := range UniqDomainUser {
 		for k, v := range UniqDomainUserMatchIp {
 			if strings.Contains(k, user) {
-				matchip := strings.Split(k, "|")[2]
+				matchip := strings.Split(k, "|")[3]
 				UniqDomainUser[user] = append(UniqDomainUser[user],
 					RelatedMatchIp2{matchip, v})
 			}
@@ -647,8 +664,8 @@ func FormatRelatedCluster(source []GrantInfo, ips []string, domains []string) ([
 	}
 	for domain := range UniqDomain {
 		for k, v := range UniqDomainUser {
-			if strings.Contains(k, domain) {
-				user := strings.Split(k, "|")[1]
+			if strings.Contains(k, fmt.Sprintf("|%s|", domain)) {
+				user := strings.Split(k, "|")[2]
 				UniqDomain[domain] = append(UniqDomain[domain],
 					RelatedUser2{user, v})
 			}

@@ -214,10 +214,13 @@ func GenerateBackendSQL(account TbAccounts, rule TbAccountRules, ips []string, m
 					sql = fmt.Sprintf("%s '%s'@'%s' %s;", insertConnLogPriv, account.User, ip, identifiedByPassword)
 					sqlTemp = append(sqlTemp, sql)
 				}
-				if strings.Contains(strings.ToLower(rule.GlobalPriv), "show databases") {
-					sql = fmt.Sprintf(`GRANT SHOW DATABASES ON *.* TO '%s'@'%s' %s;`,
-						account.User, ip, identifiedByPassword)
-					sqlTemp = append(sqlTemp, sql)
+				slaveAllowedPriv := []string{"show databases", "replication slave", "replication client"}
+				for _, priv := range slaveAllowedPriv {
+					if strings.Contains(strings.ToLower(rule.GlobalPriv), priv) {
+						sql = fmt.Sprintf(`GRANT %s ON *.* TO '%s'@'%s' %s;`,
+							priv, account.User, ip, identifiedByPassword)
+						sqlTemp = append(sqlTemp, sql)
+					}
 				}
 				result.mu.Lock()
 				result.backendSQL = append(result.backendSQL, sqlTemp...)

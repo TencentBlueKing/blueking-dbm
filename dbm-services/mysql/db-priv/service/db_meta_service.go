@@ -20,6 +20,8 @@ const machineTypeRemote string = "remote"
 const machineTypeProxy string = "proxy"
 const machineTypeSpider string = "spider"
 const backendSlave string = "backend_slave"
+const masterEntry = "master_entry"
+const slaveEntry = "slave_entry"
 const running string = "running"
 const tdbctl string = "tdbctl"
 const sqlserver string = "sqlserver"
@@ -28,11 +30,10 @@ const sqlserverSingle string = "sqlserver_single"
 const backendMaster string = "backend_master"
 const orphan string = "orphan"
 const sqlserverSysDB string = "Monitor"
+const mongodb string = "mongodb"
 
-// GetAllClustersInfo TODO
+// GetAllClustersInfo 获取业务下所有集群信息
 /*
-GetAllClustersInfo 获取业务下所有集群信息
-
 	[{
 		  "db_module_id": 126,
 		  "bk_biz_id": "3",

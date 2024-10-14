@@ -2,23 +2,49 @@ package service
 
 import (
 	"dbm-services/common/go-pubpkg/errno"
+	"dbm-services/mysql/priv-service/util"
 	"fmt"
 	"time"
 )
 
 // ModifySecurityRule 修改安全规则
 func (m *SecurityRulePara) ModifySecurityRule(jsonPara string, ticket string) error {
+	// 根据规则的id，修改规则内容
 	if m.Id == 0 {
 		return errno.RuleIdNull
 	}
+	// 重置为默认的规则
+	if m.Reset {
+		var rules []*TbSecurityRules
+		id := TbSecurityRules{Id: m.Id}
+		err := DB.Self.Model(&TbSecurityRules{}).Where(&id).Take(&rules).Error
+		if err != nil {
+			return err
+		}
+		// 不允许删除各个组件默认使用的密码规则
+		var v2 string
+		switch rules[0].Name {
+		case "mongodb_password":
+			v2 = MongodbRule
+		case "redis_password_v2":
+			v2 = RedisRule
+		case "mysql_password", "tendbcluster_password", "sqlserver_password":
+			v2 = MysqlSqlserverRule
+		case "es_password", "kafka_password", "hdfs_password", "pulsar_password", "influxdb_password", "doris_password":
+			v2 = BigDataRule
+		default:
+			return fmt.Errorf("not system config, can not be reset")
+		}
+		m.Rule = v2
+	}
 	updateTime := time.Now()
-	rule := TbSecurityRules{Name: m.Name, Rule: m.Rule, Operator: m.Operator, UpdateTime: updateTime}
+	rule := TbSecurityRules{Rule: m.Rule, Operator: m.Operator, UpdateTime: updateTime}
 	id := TbSecurityRules{Id: m.Id}
 	result := DB.Self.Model(&id).Update(&rule)
 	if result.Error != nil {
 		return result.Error
 	}
-	// 是否更新
+	// 是否更新成功
 	if result.RowsAffected == 0 {
 		return errno.RuleNotExisted
 	}
@@ -54,6 +80,7 @@ func (m *SecurityRulePara) AddSecurityRule(jsonPara string, ticket string) error
 // GetSecurityRule 查询安全规则
 func (m *SecurityRulePara) GetSecurityRule() (*TbSecurityRules, error) {
 	var rules []*TbSecurityRules
+	// 根据规则名称查询
 	if m.Name == "" {
 		return nil, errno.RuleNameNull
 	}
@@ -78,8 +105,11 @@ func (m *SecurityRulePara) DeleteSecurityRule(jsonPara string, ticket string) er
 	if err != nil {
 		return err
 	}
-	// 不允许删除密码规则，随机化默认使用的规则
-	if len(rules) > 0 && rules[0].Name == "password" {
+	system := []string{"mysql_password", "tendbcluster_password", "redis_password_v2", "es_password",
+		"kafka_password", "hdfs_password", "pulsar_password", "influxdb_password",
+		"sqlserver_password", "mongodb_password", "doris_password"}
+	// 不允许删除各个组件默认使用的密码规则
+	if len(rules) > 0 && util.HasElem(rules[0].Name, system) {
 		return fmt.Errorf("system config can not be delete")
 	}
 	// 根据id删除

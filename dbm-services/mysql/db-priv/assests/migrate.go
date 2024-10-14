@@ -78,33 +78,59 @@ func DoMigrateFromEmbed() error {
 }
 
 func DoMigratePlatformPassword() error {
-	// 初始化安全规则
-	// 通用的安全规则
-	passwordSecurityRule := &service.SecurityRulePara{Name: "password",
-		Rule: "{\"max_length\":12,\"min_length\":8,\"include_rule\":{\"numbers\":true,\"symbols\":true,\"lowercase\":true,\"uppercase\":true},\"exclude_continuous_rule\":{\"limit\":4,\"letters\":false,\"numbers\":false,\"symbols\":false,\"keyboards\":false,\"repeats\":false}}", Operator: "admin"}
-	b, _ := json.Marshal(passwordSecurityRule)
-	errOuter := passwordSecurityRule.AddSecurityRule(string(b), "add_security_rule")
-	if errOuter != nil {
-		no, _ := errno.DecodeErr(errOuter)
-		if no != errno.RuleExisted.Code {
-			return errOuter
+	// 兼容历史版本，避免未同步调整，引起旧规则无法使用
+	oldRules := []string{"password", "mongo_password", "redis_password", "simple_password"}
+	for _, old := range oldRules {
+		SecurityRulePara := &service.SecurityRulePara{Name: old}
+		rule, err := SecurityRulePara.GetSecurityRule()
+		if err != nil {
+			continue
+		}
+		var v2 string
+		switch old {
+		case "password":
+			v2 = service.MysqlSqlserverRule
+		case "mongo_password":
+			v2 = service.MongodbRule
+		case "redis_password":
+			v2 = service.RedisRule
+		case "simple_password":
+			v2 = service.BigDataRule
+		default:
+			continue
+		}
+		SecurityRulePara = &service.SecurityRulePara{Id: rule.Id, Rule: v2, Operator: "deprecated"}
+		b, _ := json.Marshal(SecurityRulePara)
+		err = SecurityRulePara.ModifySecurityRule(string(b), "modify_security_rule")
+		if err != nil {
+			slog.Error("modify_security_rule", "name", old, "error", err)
 		}
 	}
 
-	// 不需要符号、固定长度的安全规则
-	NoSymbols := []string{"mongo_password", "redis_password", "simple_password"}
-	// mongodb专用的安全规则
-	for _, name := range NoSymbols {
-		passwordSecurityRule = &service.SecurityRulePara{Name: name,
-			Rule: "{\"max_length\":16,\"min_length\":16,\"include_rule\":{\"numbers\":true,\"symbols\":false,\"lowercase\":true,\"uppercase\":true},\"exclude_continuous_rule\":{\"limit\":4,\"letters\":false,\"numbers\":false,\"symbols\":false,\"keyboards\":false,\"repeats\":false}}", Operator: "admin"}
-		b, _ = json.Marshal(passwordSecurityRule)
-		errOuter = passwordSecurityRule.AddSecurityRule(string(b), "add_security_rule")
-		if errOuter != nil {
-			no, _ := errno.DecodeErr(errOuter)
-			if no != errno.RuleExisted.Code {
-				return errOuter
-			}
+	// 初始化新版本安全规则
+	// 密码服务V2版本，各个组件有独立的安全规则
+	bigData := []string{"es_password", "kafka_password", "hdfs_password", "pulsar_password",
+		"influxdb_password", "doris_password"}
+	mysqlSqlserver := []string{"mysql_password", "tendbcluster_password", "sqlserver_password"}
+	for _, name := range bigData {
+		err := AddRule(name, service.BigDataRule)
+		if err != nil {
+			return err
 		}
+	}
+	for _, name := range mysqlSqlserver {
+		err := AddRule(name, service.MysqlSqlserverRule)
+		if err != nil {
+			return err
+		}
+	}
+	err := AddRule("redis_password_v2", service.RedisRule)
+	if err != nil {
+		return err
+	}
+	err = AddRule("mongodb_password", service.MongodbRule)
+	if err != nil {
+		return err
 	}
 
 	// 初始化平台密码，随机密码
@@ -113,7 +139,7 @@ func DoMigratePlatformPassword() error {
 		Usernames []string
 	}
 
-	// 平台密码初始化，不存在新增
+	// 平台密码初始化，不存在则新增
 	var users []ComponentPlatformUser
 	users = append(users, ComponentPlatformUser{Component: "mysql", Usernames: []string{
 		"dba_bak_all_sel", "MONITOR", "MONITOR_ALL", "mysql", "repl", "yw", "partition_yw"}})
@@ -140,12 +166,27 @@ func DoMigratePlatformPassword() error {
 						Instances:    []service.Address{{"0.0.0.0", &defaultInt, &defaultInt}},
 						InitPlatform: true, SecurityRuleName: "redis_password"}
 				}
-				b, _ = json.Marshal(*insertPara)
+				b, _ := json.Marshal(*insertPara)
 				err = insertPara.ModifyPassword(string(b), "modify_password")
 				if err != nil {
 					return fmt.Errorf("%s error: %s", "init platform password, modify password", err.Error())
 				}
 			}
+		}
+	}
+	return nil
+}
+
+func AddRule(name string, content string) error {
+	rule := &service.SecurityRulePara{Name: name,
+		Rule: content, Operator: "admin"}
+	b, _ := json.Marshal(rule)
+	err := rule.AddSecurityRule(string(b), "add_security_rule")
+	if err != nil {
+		no, _ := errno.DecodeErr(err)
+		if no != errno.RuleExisted.Code {
+			slog.Error("add_rule", "name", name, "error", err)
+			return err
 		}
 	}
 	return nil

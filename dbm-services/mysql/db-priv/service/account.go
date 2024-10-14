@@ -1,6 +1,7 @@
 package service
 
 import (
+	"dbm-services/mysql/priv-service/util"
 	"encoding/hex"
 	"fmt"
 	"log/slog"
@@ -46,6 +47,17 @@ func (m *AccountPara) AddAccount(jsonPara string, ticket string) (TbAccounts, er
 	}
 	if count != 0 {
 		return detail, errno.AccountExisted.AddBefore(m.User)
+	}
+	innerAccount := make(map[string][]string)
+	innerAccount[sqlserver] = []string{"mssql_exporter", "dbm_admin", "sa", "sqlserver"}
+	innerAccount[mongodb] = []string{"dba", "apppdba", "monitor", "appmonitor"}
+	innerAccount[mysql] = []string{"gcs_admin", "gcs_dba", "monitor", "gm", "admin", "repl", "dba_bak_all_sel",
+		"yw", "partition_yw", "spider", "mysql.session", "mysql.sys", "gcs_spider", "sync"}
+	innerAccount[tendbcluster] = innerAccount[mysql]
+	if !m.MigrateFlag {
+		if util.HasElem(strings.ToLower(m.User), innerAccount[*m.ClusterType]) {
+			return detail, errno.InternalAccountNameNotAllowed
+		}
 	}
 	psw = m.Psw
 	// 从旧系统迁移的，不检查是否帐号和密码不同

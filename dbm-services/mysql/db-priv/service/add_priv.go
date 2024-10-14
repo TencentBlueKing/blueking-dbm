@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"regexp"
 	"strings"
 	"sync"
 	"time"
@@ -80,11 +81,26 @@ func (m *PrivTaskPara) AddPriv(jsonPara string, ticket string) error {
 	limit := rate.Every(time.Millisecond * 100) // QPS：10
 	burst := 10                                 // 桶容量 10
 	limiter := rate.NewLimiter(limit, burst)
-	for _, rule := range m.AccoutRules { // 添加权限,for acccountRuleList;for instanceList; do create a routine
+	for _, rule := range m.AccoutRules { // 添加权限,for accountRuleList;for instanceList; do create a routine
 		account, accountRule, outerErr := GetAccountRuleInfo(m.BkBizId, m.ClusterType, m.User, rule.Dbname)
 		if outerErr != nil {
 			AddErrorOnly(&errMsg, outerErr)
 			continue
+		}
+		repl := accountRule
+		var replFlag bool
+		// replication slave、replication client 权限在tendbha集群下，单独处理，授权方式与其他权限不同
+		for _, priv := range []string{"replication slave", "replication client"} {
+			if strings.Contains(accountRule.GlobalPriv, priv) {
+				replFlag = true
+				accountRule.GlobalPriv = strings.Replace(accountRule.GlobalPriv, priv, "", -1)
+				repl.GlobalPriv = fmt.Sprintf("%s,%s", repl.GlobalPriv, priv)
+			}
+		}
+		if replFlag {
+			repl.GlobalPriv = strings.Trim(repl.GlobalPriv, ",")
+			accountRule.GlobalPriv = strings.Trim(accountRule.GlobalPriv, ",")
+			accountRule.GlobalPriv = regexp.MustCompile(`,+`).ReplaceAllString(accountRule.GlobalPriv, ",")
 		}
 		for _, dns := range m.TargetInstances {
 			errLimiter := limiter.Wait(context.Background())
@@ -140,6 +156,15 @@ func (m *PrivTaskPara) AddPriv(jsonPara string, ticket string) error {
 						if err != nil {
 							errMsgInner = append(errMsgInner, err.Error())
 						}
+						if replFlag {
+							// 在mysql实例上授权
+							err = ImportBackendPrivilege(account, repl, address, proxyIPs, m.SourceIPs,
+								instance.ClusterType, tendbhaMasterDomain, instance.BkCloudId, false,
+								true)
+							if err != nil {
+								errMsgInner = append(errMsgInner, err.Error())
+							}
+						}
 					}
 					if len(errMsgInner) > 0 {
 						AddErrorOnly(&errMsg, errors.New(failInfo+sep+strings.Join(errMsgInner, sep)))
@@ -172,7 +197,13 @@ func (m *PrivTaskPara) AddPriv(jsonPara string, ticket string) error {
 					var spiders []Proxy
 					// spider在spider-master和spider-slave节点添加权限的行为是一致的，
 					// 通过部署时spider-slave实例只读控制实际能执行的操作
-					spiders = append(append(spiders, instance.SpiderMaster...), instance.SpiderSlave...)
+					if instance.EntryRole == masterEntry {
+						spiders = append(spiders, instance.SpiderMaster...)
+					} else if instance.EntryRole == slaveEntry {
+						spiders = append(spiders, instance.SpiderSlave...)
+					} else {
+						errMsgInner = append(errMsgInner, fmt.Sprintf("wrong entry role %s", instance.EntryRole))
+					}
 					for _, spider := range spiders {
 						address = fmt.Sprintf("%s:%d", spider.IP, spider.Port)
 						err = ImportBackendPrivilege(account, accountRule, address, proxyIPs, m.SourceIPs,
