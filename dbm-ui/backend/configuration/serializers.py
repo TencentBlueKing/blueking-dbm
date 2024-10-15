@@ -154,19 +154,23 @@ class PasswordPolicySerializer(serializers.Serializer):
         include_rule = IncludeRuleSerializer(help_text=_("包含规则"))
         exclude_continuous_rule = ExcludeContinuousRuleSerializer(help_text=_("排除连续性规则"))
 
-    rule = serializers.JSONField(help_text=_("密码安全策略"))
+    rule = serializers.JSONField(help_text=_("密码安全策略"), required=False)
     name = serializers.CharField(help_text=_("密码安全规则策略名称"))
     id = serializers.IntegerField(help_text=_("密码安全规则策略id"))
+    reset = serializers.BooleanField(help_text=_("是否重置"), required=False, default=False)
 
     class Meta:
         swagger_schema_fields = {"example": PASSWORD_POLICY}
 
     def validate(self, attrs):
-        try:
-            if int(attrs["rule"]["max_length"]) < int(attrs["rule"]["min_length"]):
-                raise serializers.ValidationError(_("密码最小长度不能大于最大长度"))
-        except ValueError:
-            raise serializers.ValidationError(_("请确保密码长度范围为整型"))
+        if not attrs.get("reset"):
+            if not attrs.get("rule"):
+                raise serializers.ValidationError(_("缺少参数: rule!"))
+            try:
+                if int(attrs["rule"]["max_length"]) < int(attrs["rule"]["min_length"]):
+                    raise serializers.ValidationError(_("密码最小长度不能大于最大长度"))
+            except ValueError:
+                raise serializers.ValidationError(_("请确保密码长度范围为整型"))
 
         return attrs
 
@@ -176,12 +180,18 @@ class GetRandomPasswordSerializer(serializers.Serializer):
         help_text=_("密码类型"),
         required=False,
         choices=DBPrivSecurityType.get_choices(),
-        default=DBPrivSecurityType.PASSWORD.value,
+        default=DBPrivSecurityType.MYSQL_PASSWOR.value,
     )
 
 
 class VerifyPasswordSerializer(serializers.Serializer):
     password = serializers.CharField(help_text=_("待校验密码"))
+    security_type = serializers.ChoiceField(
+        help_text=_("密码类型"),
+        required=False,
+        choices=DBPrivSecurityType.get_choices(),
+        default=DBPrivSecurityType.MYSQL_PASSWOR.value,
+    )
 
 
 class VerifyPasswordResponseSerializer(serializers.Serializer):
