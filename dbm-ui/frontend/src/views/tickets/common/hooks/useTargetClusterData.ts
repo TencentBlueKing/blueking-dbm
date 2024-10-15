@@ -93,9 +93,14 @@ export function useTargetClusterData(ticketDetails: TicketModel<MysqlAuthorizati
     listState.isLoading = true;
 
     apiMap[type](params)
-      .then((res) => {
-        listState.pagination.count = res.count;
-        listState.data = res.results;
+      .then((result) => {
+        listState.pagination.count = result.count;
+        // 从域名集群需要处理 slave_domian 为 master_domain
+        const targetClusters = ticketDetails.details.authorize_data.target_instances;
+        const isMaster = result.results.find((item) => targetClusters.includes(item.master_domain));
+        listState.data = isMaster
+          ? result.results
+          : result.results.map((item) => Object.assign(item, { master_domain: item.slave_domain }));
         listState.isAnomalies = false;
       })
       .catch(() => {

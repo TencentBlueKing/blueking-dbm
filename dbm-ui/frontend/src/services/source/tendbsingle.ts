@@ -37,6 +37,22 @@ export function getTendbsingleList(params: { limit?: number; offset?: number; cl
 }
 
 /**
+ * 查询资源列表
+ */
+export function getTendbsingleFlatList(params: { limit?: number; offset?: number; cluster_ids?: number[] | number }) {
+  return http.get<ListBase<TendbsingleModel[]>>(`${getRootPath()}/`, params).then((data) =>
+    data.results.map(
+      (item) =>
+        new TendbsingleModel(
+          Object.assign(item, {
+            permission: Object.assign({}, item.permission, data.permission),
+          }),
+        ),
+    ),
+  );
+}
+
+/**
  * 根据业务 ID 查询资源列表
  */
 export function getTendbsingleListByBizId(params: {
