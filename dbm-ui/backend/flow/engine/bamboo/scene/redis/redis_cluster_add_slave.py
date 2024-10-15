@@ -61,7 +61,12 @@ class RedisClusterAddSlaveFlow(object):
 
     @staticmethod
     def get_cluster_info(bk_biz_id, cluster_id):
-        cluster = Cluster.objects.get(id=cluster_id, bk_biz_id=bk_biz_id)
+        cluster = Cluster.objects.prefetch_related(
+            "proxyinstance_set",
+            "storageinstance_set",
+            "storageinstance_set__machine",
+            "storageinstance_set__as_ejector",
+        ).get(id=cluster_id, bk_biz_id=bk_biz_id)
         if cluster.cluster_type == ClusterType.TendisRedisInstance.value:
             """
             如果是主从版,根据cluster_id找到cluster,进而找到相同 master ip,所有master/slave实例
@@ -74,7 +79,9 @@ class RedisClusterAddSlaveFlow(object):
                     )
                 )
             master_ip = master_inst.machine.ip
-            cluster_masters = StorageInstance.objects.filter(machine__ip=master_ip)
+            cluster_masters = StorageInstance.objects.prefetch_related("as_ejector", "machine").filter(
+                machine__ip=master_ip
+            )
         else:
             cluster_masters = cluster.storageinstance_set.filter(instance_role=InstanceRole.REDIS_MASTER.value)
 

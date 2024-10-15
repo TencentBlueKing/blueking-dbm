@@ -18,7 +18,7 @@ from django.utils.crypto import get_random_string
 
 from backend.components.hadb.client import HADBApi
 from backend.constants import DEFAULT_BK_CLOUD_ID
-from backend.db_meta.api.cluster.apis import query_cluster_by_hosts
+from backend.db_meta.api.cluster.apis import query_cluster_by_hosts_biz
 from backend.db_meta.enums import ClusterType
 from backend.exceptions import ApiRequestError, ApiResultError
 from backend.utils.time import datetime2timestamp
@@ -49,8 +49,7 @@ def watcher_get_by_hosts() -> (int, dict):
         )
     except (ApiResultError, ApiRequestError, Exception) as error:  # pylint: disable=broad-except
         # 捕获ApiResultError, ApiRequestError和其他未知异常
-        logger.warn("meet exception {}  when request switch logs".format(error))
-        return 0, {}
+        raise Exception("meet exception {}  when request switch logs".format(error))
 
     # 遍历切换队列，聚合故障机
     switch_hosts, batch_small_id = {}, SWITCH_SMALL
@@ -66,7 +65,9 @@ def watcher_get_by_hosts() -> (int, dict):
                 )
             )
             # 忽略没有集群信息、或者多集群共用的情况
-            cluster = query_cluster_by_hosts([switch_ip])  # return: [{},{}]
+            cluster = query_cluster_by_hosts_biz(
+                [switch_ip], int(switch_inst["app"]), int(switch_inst["cloud_id"])
+            )  # return: [{},{}]
             if not cluster:
                 logger.info("will ignore got none cluster info by ip {}".format(switch_ip))
                 continue

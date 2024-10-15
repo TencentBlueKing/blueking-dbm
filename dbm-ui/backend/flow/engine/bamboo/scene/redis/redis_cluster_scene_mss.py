@@ -87,8 +87,12 @@ class RedisClusterMSSSceneFlow(object):
             defaultdict(),
             defaultdict(list),
         )
-        cluster = Cluster.objects.get(id=cluster_id, bk_biz_id=bk_biz_id)
-
+        cluster = Cluster.objects.prefetch_related(
+            "proxyinstance_set",
+            "storageinstance_set",
+            "storageinstance_set__machine",
+            "storageinstance_set__as_ejector",
+        ).get(id=cluster_id, bk_biz_id=bk_biz_id)
         for master_obj in cluster.storageinstance_set.filter(instance_role=InstanceRole.REDIS_MASTER.value):
             slave_obj = master_obj.as_ejector.get().receiver
             master_ports[master_obj.machine.ip].append(master_obj.port)
@@ -151,8 +155,7 @@ class RedisClusterMSSSceneFlow(object):
                 cluster_info = self.__get_cluster_info(self.data["bk_biz_id"], cluster_id)
 
                 flow_data = self.data
-                for k, v in cluster_info.items():
-                    cluster_kwargs.cluster[k] = v
+                cluster_kwargs.cluster.update(cluster_info)
                 cluster_kwargs.cluster["created_by"] = self.data["created_by"]
                 cluster_kwargs.cluster["switch_option"] = ms_switch["online_switch_type"]
                 flow_data["switch_input"] = ms_switch
