@@ -1,4 +1,4 @@
-FROM mirrors.tencent.com/sccmsp/golang:1.16
+FROM centos:6
 MAINTAINER hadb-api Development
 
 ARG BASEDIR=/home/hadb
