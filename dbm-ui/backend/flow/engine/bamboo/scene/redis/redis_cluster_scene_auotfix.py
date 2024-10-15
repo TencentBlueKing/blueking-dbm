@@ -98,7 +98,12 @@ class RedisClusterAutoFixSceneFlow(object):
         2. master 上的端口列表
         3. 实例对应关系：{master:port:slave:port}
         """
-        cluster = Cluster.objects.get(id=cluster_id, bk_biz_id=bk_biz_id)
+        cluster = Cluster.objects.prefetch_related(
+            "proxyinstance_set",
+            "storageinstance_set",
+            "storageinstance_set__machine",
+            "storageinstance_set__as_ejector",
+        ).get(id=cluster_id, bk_biz_id=bk_biz_id)
 
         master_ports, slave_ports = defaultdict(list), defaultdict(list)
         slave_master_map, slave_ins_map = defaultdict(), defaultdict()
@@ -203,8 +208,7 @@ class RedisClusterAutoFixSceneFlow(object):
                 cluster_kwargs = deepcopy(act_kwargs)
                 cluster_info = self.get_cluster_info(self.data["bk_biz_id"], cluster_id)
                 flow_data = self.data
-                for k, v in cluster_info.items():
-                    cluster_kwargs.cluster[k] = v
+                cluster_kwargs.cluster.update(cluster_info)
                 cluster_kwargs.cluster["created_by"] = self.data["created_by"]
                 flow_data["fix_info"] = cluster_fix
                 redis_pipeline.add_act(

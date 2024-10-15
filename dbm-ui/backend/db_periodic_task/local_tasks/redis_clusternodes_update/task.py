@@ -126,6 +126,7 @@ def redis_clusternodes_update_record():
         oper_type = ""
         for oper in opers:
             if oper["ticket_type"] and oper["ticket_type"] in [
+                TicketType.REDIS_CLUSTER_AUTOFIX.value,
                 TicketType.REDIS_SCALE_UPDOWN.value,
                 TicketType.REDIS_CLUSTER_CUTOFF.value,
                 TicketType.REDIS_CLUSTER_INSTANCE_SHUTDOWN.value,
@@ -369,9 +370,16 @@ class RedisClusterNodesUpdateJob:
     # 发起自愈流程
     def start_autofix_flow(self, cluster: Cluster):
         # 如果存在集群中某个slave机器,所有实例均变成了 unrunning 状态,则对其发起自愈流程
-        slave_group_by_ip = defaultdict(list)
-        for slave_obj in cluster.storageinstance_set.filter(instance_role=InstanceRole.REDIS_SLAVE.value):
-            slave_group_by_ip[slave_obj.machine.ip].append(slave_obj)
+        slave_group_by_ip, nodes_by_ip = defaultdict(list), defaultdict(list)
+        for node_obj in cluster.storageinstance_set.all():
+            nodes_by_ip[node_obj.machine.ip].append(node_obj)
+        for ip, objs in slave_group_by_ip.items():
+            for obj in objs:  # 只要有一个实例角色是Slave就放进来
+                if obj.instance_role == InstanceRole.REDIS_SLAVE.value:
+                    slave_group_by_ip[ip].append(objs)
+                    break
+        # for slave_obj in cluster.storageinstance_set.filter(instance_role=InstanceRole.REDIS_SLAVE.value):
+        #     slave_group_by_ip[slave_obj.machine.ip].append(slave_obj)
         fault_machines = []
         for ip, slave_objs in slave_group_by_ip.items():
             if all([slave_obj.status == InstanceStatus.UNAVAILABLE.value for slave_obj in slave_objs]):

@@ -683,7 +683,7 @@ class RedisDBMeta(object):
             api.cluster.nosqlcomm.make_sync(cluster=cluster, tendisss=tendiss)
         return True
 
-    def instances_status_update(self) -> bool:
+    def instances_status_update(self, cluster_obj) -> bool:
         """
         Redis/Proxy 实例修改实例状态 {"ip":"","ports":[],"status":11}
         """
@@ -694,19 +694,23 @@ class RedisDBMeta(object):
                     machine__ip=self.cluster["meta_update_ip"], port__in=self.cluster["meta_update_ports"]
                 ).update(status=self.cluster["meta_update_status"])
             else:
-                StorageInstance.objects.filter(
-                    machine__ip=self.cluster["meta_update_ip"], port__in=self.cluster["meta_update_ports"]
-                ).update(status=self.cluster["meta_update_status"])
+                # 支持互切的 不修改状态，保持 running
+                if cluster_obj.cluster_type not in [
+                    ClusterType.TendisPredixyRedisCluster.value,
+                    ClusterType.TendisPredixyTendisplusCluster.value,
+                ]:
+                    StorageInstance.objects.filter(
+                        machine__ip=self.cluster["meta_update_ip"], port__in=self.cluster["meta_update_ports"]
+                    ).update(status=self.cluster["meta_update_status"])
         return True
 
     def instances_failover_4_scene(self) -> bool:
         """1.修改状态、2.切换角色"""
-        self.instances_status_update()
         # 获取cluster
-        cluster_id = self.cluster["cluster_id"]
-        cluster = Cluster.objects.get(id=cluster_id)
+        cluster_obj = Cluster.objects.get(id=int(self.cluster["cluster_id"]))
+        self.instances_status_update(cluster_obj)
         with atomic():
-            cc_manage, bk_host_ids = CcManage(self.cluster["bk_biz_id"], cluster.cluster_type), []
+            cc_manage, bk_host_ids = CcManage(int(self.cluster["bk_biz_id"]), cluster_obj.cluster_type), []
             for port in self.cluster["meta_update_ports"]:
                 old_master = StorageInstance.objects.get(
                     machine__ip=self.cluster["meta_update_ip"],
@@ -839,7 +843,7 @@ class RedisDBMeta(object):
         cluster_id = self.cluster["cluster_id"]
         cluster = Cluster.objects.get(id=cluster_id)
 
-        cc_manage = CcManage(self.cluster["bk_biz_id"], cluster.cluster_type)
+        cc_manage = CcManage(int(self.cluster["bk_biz_id"]), cluster.cluster_type)
         with atomic():
             for ins in self.cluster["role_swap_ins"]:
                 ins1 = StorageInstance.objects.get(

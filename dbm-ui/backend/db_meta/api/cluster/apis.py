@@ -52,6 +52,17 @@ def domain_exists(domains: List[str]) -> Dict[str, bool]:
     return res
 
 
+def query_cluster_by_hosts_biz(hosts: List, biz_id: int, cloud_id: int):
+    """
+    根据 bk_biz_id ， bk_cloud_id  在过滤下
+    """
+    clusters = []
+    for cluster in query_cluster_by_hosts(hosts):
+        if cluster["bk_biz_id"] == biz_id and cluster["bk_cloud_id"] == cloud_id:
+            clusters.append(cluster)
+    return clusters
+
+
 def query_cluster_by_hosts(hosts: List):
     """根据提供的IP 查询集群信息
 

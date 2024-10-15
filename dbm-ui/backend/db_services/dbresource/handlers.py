@@ -161,7 +161,9 @@ class TendisPlusSpecFilter(RedisSpecFilter):
     """TendisPlus集群规格过滤器"""
 
     # 最佳容量管理大小 300G
-    OPTIMAL_MANAGE_CAPACITY = 300
+    SINGLE_SHARD_SIZE = 300
+    # 单机 1 ， 2，4 分片 可选
+    SINGLE_SHARD_NUMBS = [1, 2, 4]
 
     def calc_machine_pair(self):
         """计算每种规格所需的机器组数，TendisPlus至少需要三组"""
@@ -170,12 +172,34 @@ class TendisPlusSpecFilter(RedisSpecFilter):
             spec["cluster_capacity"] = spec["machine_pair"] * spec["capacity"]
 
     def calc_cluster_shard_num(self):
+        # 先进行排序
+        self.specs.sort(key=lambda x: (x["capacity"]))
+
+        # 选取合适的规格
+        spec_idx, spec_cnt, candidate_specs = 0, len(self.specs), []
+        # 取相近的规格
         for spec in self.specs:
-            spec["cluster_shard_num"] = max(3, math.ceil(self.capacity / self.OPTIMAL_MANAGE_CAPACITY))
-            # 将分片数上取整为机器组数的倍数
-            spec["cluster_shard_num"] = (
-                math.ceil(spec["cluster_shard_num"] / spec["machine_pair"]) * spec["machine_pair"]
-            )
+            if self.capacity <= spec["capacity"]:
+                candidate_specs.append(spec)
+                if spec_idx >= 1:
+                    candidate_specs.append(self.specs[spec_idx - 1])
+                break
+            spec_idx += 1
+
+        # 最后取两个规格
+        if self.capacity > self.specs[spec_cnt - 1]["capacity"]:
+            candidate_specs.append(self.specs[spec_cnt - 1])
+            if spec_cnt > 2:
+                candidate_specs.append(self.specs[spec_cnt - 2])
+
+        aviable_specs: List[Dict[str, Any]] = []
+        for spec in candidate_specs:
+            shard = max(1, math.ceil(spec["capacity"] / self.SINGLE_SHARD_SIZE) - 1)
+            if shard > 2:
+                shard = int(shard / 2) * 2
+            spec["cluster_shard_num"] = spec["machine_pair"] * shard
+            aviable_specs.append(spec)
+        self.specs = aviable_specs
 
     def custom_filter(self):
         super().custom_filter()
@@ -257,7 +281,7 @@ class TendisSSDSpecFilter(RedisSpecFilter):
     """TendisSSD集群规格过滤器"""
 
     # 单实例最大容量 50G
-    SINGLE_MAX_CAPACITY = 50
+    SINGLE_MAX_CAPACITY = 100
     MACHINE_PAIR_SORT = True
 
     def calc_cluster_shard_num(self):

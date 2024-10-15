@@ -88,16 +88,23 @@ class RedisClusterCMRSceneFlow(object):
         self.root_id = root_id
         self.data = data
         self.precheck_for_compelete_replace()
+        self.cluster_cache = {}
 
-    @staticmethod
-    def get_cluster_info(bk_biz_id: int, cluster_id: int) -> dict:
+    def get_cluster_info(self, bk_biz_id: int, cluster_id: int) -> dict:
         """获取集群现有信息
         1. master 对应 slave 机器
         2. master 上的端口列表
         3. 实例对应关系：{master:port:slave:port}
         """
-        cluster = Cluster.objects.get(id=cluster_id, bk_biz_id=bk_biz_id)
+        if self.cluster_cache.get(cluster_id):
+            return self.cluster_cache[cluster_id]
 
+        cluster = Cluster.objects.prefetch_related(
+            "proxyinstance_set",
+            "storageinstance_set",
+            "storageinstance_set__machine",
+            "storageinstance_set__as_ejector",
+        ).get(id=cluster_id, bk_biz_id=bk_biz_id)
         master_ports, slave_ports = defaultdict(list), defaultdict(list)
         ins_pair_map, slave_ins_map = defaultdict(), defaultdict()
         master_slave_map, slave_master_map = defaultdict(), defaultdict()
@@ -148,7 +155,7 @@ class RedisClusterCMRSceneFlow(object):
             proxy_port = cluster.proxyinstance_set.first().port
             proxy_ips = [proxy_obj.machine.ip for proxy_obj in cluster.proxyinstance_set.all()]
 
-        return {
+        cluster_info = {
             "immute_domain": cluster.immute_domain,
             "bk_biz_id": str(cluster.bk_biz_id),
             "bk_cloud_id": cluster.bk_cloud_id,
@@ -166,6 +173,10 @@ class RedisClusterCMRSceneFlow(object):
             "db_version": cluster.major_version,
             "backend_servers": servers,
         }
+
+        # 加到这一次的缓存里边
+        self.cluster_cache[cluster_id] = cluster_info
+        return self.cluster_cache[cluster_id]
 
     @staticmethod
     def __get_cluster_config(bk_biz_id: int, namespace: str, domain_name: str, db_version: str) -> Any:
@@ -220,8 +231,7 @@ class RedisClusterCMRSceneFlow(object):
                     sync_type = SyncType.SYNC_SMS.value
 
                 flow_data = self.data
-                for k, v in cluster_info.items():
-                    cluster_kwargs.cluster[k] = v
+                cluster_kwargs.cluster.update(cluster_info)
                 cluster_kwargs.cluster["created_by"] = self.data["created_by"]
                 flow_data["sync_type"] = sync_type
                 flow_data["replace_info"] = cluster_replacement
