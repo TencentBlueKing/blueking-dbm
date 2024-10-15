@@ -12,7 +12,7 @@ import copy
 from collections import defaultdict
 from typing import Any, Dict, List
 
-from django.db.models import Q
+from django.db.models import Q, Value
 from django.db.models.query import QuerySet
 from django.forms import model_to_dict
 
@@ -170,6 +170,7 @@ class ClusterServiceHandler(BaseClusterServiceHandler):
                     Q(machine__bk_host_id__in=bk_host_ids)
                     & Q(tendbclusterspiderext__spider_role=TenDBClusterSpiderRole.SPIDER_MASTER.value)
                 )
+                .annotate(role=Value("spider_ctl"))
             )
             # 覆写port为admin port
             for instance in controller_instances:
