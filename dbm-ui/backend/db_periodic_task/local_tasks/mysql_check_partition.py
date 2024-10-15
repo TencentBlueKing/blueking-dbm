@@ -55,7 +55,7 @@ def mysql_check_partition():
             {
                 "receiver__username": "admin",
                 "group_receiver": chat_ids,
-                "content": _("【DBM】分区表异常情况 {} \n业务名称 bk_biz_id DB类型 失败/未执行 数量 DBA\n{}").format(
+                "content": _("【DBM】分区表异常情况 {} \n业务名称 bk_biz_id DB类型 失败/未执行 数量 DBA 策略ID\n{}").format(
                     datetime.date.today(), content
                 ),
                 "msg_type": [CmsiApi.MsgType.WECOM_ROBOT.value],
@@ -77,8 +77,15 @@ def _format_msg(logs: list, db_type: str, fail_type: str, content: str):
             if dbas:
                 dba = dbas[0]
             content = _(
-                "{}{}   {}   {}   {}   {}   <@{}>\n".format(
-                    content, biz_msg["db_app_abbr"], biz_msg["bk_biz_id"], db_type, fail_type, biz_msg["cnt"], dba
+                "{}{}   {}   {}   {}   {}   <@{}>   {}\n".format(
+                    content,
+                    biz_msg["db_app_abbr"],
+                    biz_msg["bk_biz_id"],
+                    db_type,
+                    fail_type,
+                    biz_msg["cnt"],
+                    dba,
+                    biz_msg["ids"],
                 )
             )
     return content

@@ -698,16 +698,19 @@ func CheckLog(clusterType string, days int) ([]*CheckSummary, []*CheckSummary, e
 
 	if len(notRunFilter) > 0 {
 		vsql := fmt.Sprintf(`select bk_biz_id as bk_biz_id, db_app_abbr as db_app_abbr, `+
-			`count(*) as cnt from %s where id in (%s) group by 1,2 order by 3 desc;`, tb, notRunFilter)
+			`count(*) as cnt, GROUP_CONCAT(id) as ids from %s where id in (%s) group by 1,2 order by 3 desc;`,
+			tb, notRunFilter)
 		err = model.DB.Self.Raw(vsql).Scan(&notRun).Error
 		if err != nil {
 			slog.Error("msg", "get partition configs error", err)
 			return notRun, fail, fmt.Errorf("get partition configs error: %s", err.Error())
 		}
 	}
+
 	if len(failFilter) > 0 {
 		vsql := fmt.Sprintf(`select bk_biz_id as bk_biz_id, db_app_abbr as db_app_abbr, `+
-			`count(*) as cnt from %s where id in (%s) group by 1,2 order by 3 desc;`, tb, failFilter)
+			`count(*) as cnt, GROUP_CONCAT(id) as ids from %s where id in (%s) group by 1,2 order by 3 desc;`,
+			tb, failFilter)
 		err = model.DB.Self.Raw(vsql).Scan(&fail).Error
 		if err != nil {
 			slog.Error("msg", "get partition configs error", err)
