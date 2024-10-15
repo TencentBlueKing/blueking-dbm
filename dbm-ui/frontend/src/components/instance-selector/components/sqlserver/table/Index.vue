@@ -126,7 +126,7 @@
   } = useLinkQueryColumnSerach({
     searchType: ClusterTypes.SQLSERVER_HA,
     attrs: ['bk_cloud_id'],
-    fetchDataFn: () => fetchResources()
+    fetchDataFn: () => fetchResources(),
   });
 
   const activePanel = inject(activePanelInjectionKey);
