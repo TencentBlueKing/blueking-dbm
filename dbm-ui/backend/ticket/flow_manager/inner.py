@@ -24,9 +24,17 @@ from backend.flow.consts import StateType
 from backend.flow.models import FlowTree
 from backend.ticket import constants
 from backend.ticket.builders.common.base import fetch_cluster_ids
-from backend.ticket.constants import BAMBOO_STATE__TICKET_STATE_MAP, FlowCallbackType, TicketType
+from backend.ticket.constants import (
+    BAMBOO_STATE__TICKET_STATE_MAP,
+    FlowCallbackType,
+    TicketFlowStatus,
+    TicketType,
+    TodoStatus,
+    TodoType,
+)
 from backend.ticket.flow_manager.base import BaseTicketFlow
-from backend.ticket.models import Flow
+from backend.ticket.models import Flow, Todo
+from backend.ticket.todos import BaseTodoContext
 from backend.utils.basic import generate_root_id
 from backend.utils.time import datetime2str
 
@@ -82,21 +90,38 @@ class InnerFlow(BaseTicketFlow):
     @property
     def _summary(self) -> str:
         # TODO 可以给出具体失败的节点和原因
-        return _("任务{status_display}").format(status_display=constants.TicketStatus.get_choice_label(self.status))
+        return _("任务{status_display}").format(status_display=constants.TicketFlowStatus.get_choice_label(self.status))
 
     @property
     def _status(self) -> str:
-        # 如果未找到流程树，则直接取flow_obj的status
+        # 查询流程树状态，如果未找到则直接取flow_obj的status
         if not self.flow_tree:
             return self.flow_obj.status
+        status = BAMBOO_STATE__TICKET_STATE_MAP.get(self.flow_tree.status, constants.TicketFlowStatus.RUNNING)
 
-        status = BAMBOO_STATE__TICKET_STATE_MAP.get(self.flow_tree.status, constants.TicketStatus.RUNNING)
-        self.flow_obj.update_status(status)
-        return status
+        # 如果任务失败，则变更todo状态
+        todo_status = TodoStatus.TODO if status == TicketFlowStatus.FAILED else TodoStatus.DONE_SUCCESS
+        fail_todo = self.flow_obj.todo_of_flow.filter(type=TodoType.INNER_FAILED)
+        if fail_todo.exists() and fail_todo.first().status != todo_status:
+            fail_todo.update(status=todo_status)
+
+        return self.flow_obj.update_status(status)
 
     @property
     def _url(self) -> str:
         return f"{env.BK_SAAS_HOST}/{self.ticket.bk_biz_id}/task-history/detail/{self.root_id}"
+
+    def create_inner_todo(self):
+        # 创建一条todo记录，在失败时变更为TODO状态
+        Todo.objects.create(
+            name=_("【{}】单据任务执行失败，待处理").format(self.ticket.get_ticket_type_display()),
+            flow=self.flow_obj,
+            ticket=self.ticket,
+            type=TodoType.INNER_FAILED,
+            operators=[self.ticket.creator],
+            context=BaseTodoContext(self.flow_obj.id, self.ticket.id).to_dict(),
+            status=TodoStatus.DONE_SUCCESS,
+        )
 
     def check_exclusive_operations(self):
         """判断执行互斥"""
@@ -122,10 +147,6 @@ class InnerFlow(BaseTicketFlow):
             cluster_ids=cluster_ids, ticket_type=ticket_type, exclude_ticket_ids=[self.ticket.id]
         )
 
-    def handle_exclusive_error(self):
-        """处理执行互斥后重试的逻辑"""
-        pass
-
     def callback(self, callback_type: FlowCallbackType) -> None:
         """
         inner节点独有的钩子函数，执行前置/后继流程节点动作
@@ -141,6 +162,7 @@ class InnerFlow(BaseTicketFlow):
         # 获取or生成inner flow的root id
         root_id = self.flow_obj.flow_obj_id or generate_root_id()
         try:
+            self.create_inner_todo()
             # 由于 _run 执行后可能会触发信号，导致 current_flow 的误判，因此需提前写入 flow_obj_id
             self.run_status_handler(root_id)
             # 判断执行互斥
@@ -184,6 +206,15 @@ class InnerFlow(BaseTicketFlow):
         )
         super()._retry()
 
+    def _revoke(self, operator) -> Any:
+        # 终止运行的pipeline
+        from backend.db_services.taskflow.handlers import TaskFlowHandler
+
+        if FlowTree.objects.filter(root_id=self.flow_obj.flow_obj_id).exists():
+            TaskFlowHandler(self.flow_obj.flow_obj_id).revoke_pipeline()
+        # 流转flow的终止状态
+        super()._revoke(operator)
+
 
 class QuickInnerFlow(InnerFlow):
     """
@@ -193,7 +224,7 @@ class QuickInnerFlow(InnerFlow):
 
     @property
     def _status(self) -> str:
-        return constants.TicketStatus.SUCCEEDED
+        return constants.TicketFlowStatus.SUCCEEDED
 
     @property
     def _summary(self) -> str:
@@ -218,7 +249,7 @@ class IgnoreResultInnerFlow(InnerFlow):
     @property
     def _summary(self) -> str:
         return _("(执行结果可忽略)任务状态: {status_display}").format(
-            status_display=constants.TicketStatus.get_choice_label(self._raw_status)
+            status_display=constants.TicketFlowStatus.get_choice_label(self._raw_status)
         )
 
     @property
@@ -228,7 +259,7 @@ class IgnoreResultInnerFlow(InnerFlow):
     @property
     def _status(self) -> str:
         status = self._raw_status
-        if status in [constants.TicketStatus.SUCCEEDED, constants.TicketStatus.REVOKED, constants.TicketStatus.FAILED]:
-            return constants.TicketStatus.SUCCEEDED
+        if status in [constants.TicketFlowStatus.SUCCEEDED, *constants.TICKET_FAILED_STATUS]:
+            return constants.TicketFlowStatus.SUCCEEDED
 
         return status

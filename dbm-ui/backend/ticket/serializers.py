@@ -23,7 +23,15 @@ from backend.core.encrypt.constants import AsymmetricCipherConfigType
 from backend.core.encrypt.handlers import AsymmetricHandler
 from backend.ticket import mock_data
 from backend.ticket.builders import BuilderFactory
-from backend.ticket.constants import CountType, FlowType, TicketStatus, TicketType, TodoStatus
+from backend.ticket.constants import (
+    TICKET_RUNNING_STATUS,
+    TODO_RUNNING_STATUS,
+    FlowType,
+    TicketFlowStatus,
+    TicketStatus,
+    TicketType,
+    TodoStatus,
+)
 from backend.ticket.flow_manager.manager import TicketFlowManager
 from backend.ticket.models import Flow, Ticket, Todo
 from backend.ticket.todos import ActionType
@@ -118,7 +126,7 @@ class TicketSerializer(AuditedSerializer, serializers.ModelSerializer):
         return obj.get_status_display()
 
     def get_cost_time(self, obj):
-        if obj.status in [TicketStatus.PENDING, TicketStatus.RUNNING]:
+        if obj.status in [TicketStatus.PENDING, *TICKET_RUNNING_STATUS]:
             return calculate_cost_time(timezone.now(), obj.create_at)
         return calculate_cost_time(obj.update_at, obj.create_at)
 
@@ -164,7 +172,7 @@ class TicketFlowSerializer(TranslationSerializerMixin, serializers.ModelSerializ
     def get_cost_time(self, obj):
         start_time = strptime(self.get_start_time(obj))
         end_time = strptime(self.get_end_time(obj))
-        if self.get_status(obj) in [TicketStatus.PENDING, TicketStatus.RUNNING]:
+        if self.get_status(obj) in [TicketFlowStatus.PENDING, TicketFlowStatus.RUNNING]:
             return calculate_cost_time(timezone.now(), start_time)
         return calculate_cost_time(end_time, start_time)
 
@@ -215,7 +223,7 @@ class TodoSerializer(serializers.ModelSerializer):
     cost_time = serializers.SerializerMethodField(help_text=_("耗时"))
 
     def get_cost_time(self, obj):
-        if obj.status in [TodoStatus.TODO, TodoStatus.RUNNING]:
+        if obj.status in TODO_RUNNING_STATUS:
             return calculate_cost_time(timezone.now(), obj.create_at)
         return calculate_cost_time(obj.done_at, obj.create_at)
 
@@ -264,10 +272,6 @@ class GetTodosSLZ(serializers.Serializer):
     todo_status = serializers.ChoiceField(
         help_text=_("状态"), choices=TodoStatus.get_choices(), required=False, allow_blank=True
     )
-
-
-class CountTicketSLZ(serializers.Serializer):
-    count_type = serializers.ChoiceField(help_text=_("类型"), choices=CountType.get_choices(), default=CountType.MY_TODO)
 
 
 class ClusterModifyOpSerializer(serializers.Serializer):
@@ -383,3 +387,11 @@ class BatchTodoOperateSerializer(serializers.Serializer):
             if todo_id not in existing_todo_ids:
                 raise serializers.ValidationError(_("待办id{}不存在".format(attrs["todo_id"])))
         return attrs
+
+
+class BatchTicketOperateSerializer(serializers.Serializer):
+    action = serializers.ChoiceField(
+        choices=[ActionType.APPROVE.value, ActionType.TERMINATE.value], help_text=_("统一动作")
+    )
+    ticket_ids = serializers.ListField(help_text=_("单据ID列表"), child=serializers.IntegerField())
+    params = serializers.JSONField(help_text=_("动作参数"), required=False, default={})
