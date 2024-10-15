@@ -25,6 +25,11 @@
         :list="localRelatedInstances" />
     </td>
     <td style="padding: 0">
+      <RenderRelatedClusters
+        ref="relatedClustersRef"
+        :list="localRelatedClusters" />
+    </td>
+    <td style="padding: 0">
       <RenderTargetProxy
         ref="targetRef"
         :cloud-id="data.originProxy.bk_cloud_id"
@@ -53,6 +58,10 @@
     relatedInstances: {
       cluster_id: number;
       instance: string;
+    }[];
+    relatedClusters: {
+      cluster_id: number;
+      domain: string;
     }[];
     targetProxy: {
       bk_cloud_id: number | null;
@@ -107,6 +116,7 @@
         port: 0,
       } as IDataRow['originProxy']),
     relatedInstances: data.relatedInstances || [],
+    relatedClusters: data.relatedClusters || [],
     targetProxy:
       data.targetProxy ||
       ({
@@ -124,7 +134,9 @@
   import FixedColumn from '@components/render-table/columns/fixed-column/index.vue';
   import OperateColumn from '@components/render-table/columns/operate-column/index.vue';
 
-  import RenderTargetProxy from '../../../common/RenderTargetProxy.vue';
+  import RenderRelatedClusters from '@views/db-manage/mysql/proxy-replace/pages/page1/components/common/RenderRelatedClusters.vue';
+  import RenderTargetProxy from '@views/db-manage/mysql/proxy-replace/pages/page1/components/common/RenderTargetProxy.vue';
+
   import RenderOriginalProxyHost from '../RenderOriginalProxyHost.vue';
   import RenderRelatedInstances from '../RenderRelatedInstances.vue';
 
@@ -138,6 +150,7 @@
 
   const localIp = ref('');
   const localRelatedInstances = ref<IDataRow['relatedInstances']>([]);
+  const localRelatedClusters = ref<IDataRow['relatedClusters']>([]);
 
   watch(
     () => props.data,
@@ -149,8 +162,12 @@
     },
   );
 
-  const handleOriginProxyInputFinish = (value: IDataRow['relatedInstances']) => {
-    localRelatedInstances.value = value;
+  const handleOriginProxyInputFinish = (
+    relatedInstances: IDataRow['relatedInstances'],
+    relatedClusters: IDataRow['relatedClusters'],
+  ) => {
+    localRelatedInstances.value = relatedInstances;
+    localRelatedClusters.value = relatedClusters;
   };
 
   const handleAppend = () => {

@@ -22,7 +22,11 @@
   const proxyHostMemo: { [key: string]: Record<string, boolean> } = {};
 
   interface Emits {
-    (e: 'inputFinish', relatedInstances: IDataRow['relatedInstances']): void;
+    (
+      e: 'inputFinish',
+      relatedInstances: IDataRow['relatedInstances'],
+      relatedClusters: IDataRow['relatedClusters'],
+    ): void;
   }
 
   interface Exposes {
@@ -32,6 +36,7 @@
   }
 </script>
 <script setup lang="ts">
+  import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
 
   import { checkInstance } from '@services/source/dbbase';
@@ -77,7 +82,7 @@
           instance_addresses: [value],
         }).then((data) => {
           if (data.length < 1) {
-            emits('inputFinish', []);
+            emits('inputFinish', [], []);
             return false;
           }
           const [currentData] = data;
@@ -93,7 +98,14 @@
             cluster_id: item.cluster_id,
             instance: item.instance_address,
           }));
-          emits('inputFinish', relatedInstances);
+          const relatedClusters = _.sortBy(
+            currentData.related_clusters.map((item) => ({
+              cluster_id: item.id,
+              domain: item.master_domain,
+            })),
+            'cluster_id',
+          );
+          emits('inputFinish', relatedInstances, relatedClusters);
           return true;
         }),
       message: t('目标Proxy主机不存在'),
@@ -115,7 +127,7 @@
         const currentSelectClusterIdList = Object.keys(currentClusterSelectMap);
         for (let i = 0; i < currentSelectClusterIdList.length; i++) {
           if (otherClusterIdMap[currentSelectClusterIdList[i]]) {
-            emits('inputFinish', []);
+            emits('inputFinish', [], []);
             return false;
           }
         }

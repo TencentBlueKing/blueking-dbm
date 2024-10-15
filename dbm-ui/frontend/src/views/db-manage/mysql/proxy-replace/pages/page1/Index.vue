@@ -37,9 +37,11 @@
           :true-value="ProxyReplaceTypes.HOST_REPLACE" />
       </div>
     </div>
-    <Component
-      :is="renderComponent"
-      ref="tableRef" />
+    <KeepAlive>
+      <Component
+        :is="renderComponent"
+        ref="tableRef" />
+    </KeepAlive>
     <div class="safe-action">
       <BkCheckbox
         v-model="force"
@@ -71,6 +73,12 @@
   </SmartAction>
 </template>
 
+<script lang="tsx">
+  export enum ProxyReplaceTypes {
+    INSTANCE_REPLACE = 'INSTANCE_REPLACE', // 实例替换
+    HOST_REPLACE = 'HOST_REPLACE', // 整机替换
+  }
+</script>
 <script setup lang="tsx">
   import { useI18n } from 'vue-i18n';
 
@@ -85,23 +93,18 @@
   import ReplaceHost from './components/ReplaceHost/Index.vue';
   import ReplaceInstance from './components/ReplaceInstance/Index.vue';
 
-  enum ProxyReplaceTypes {
-    INSTANCE_REPLACE = 'INSTANCE_REPLACE', // 实例替换
-    HOST_REPLACE = 'HOST_REPLACE', // 整机替换
-  }
-
-  const ProxyReplaceMap = {
-    [ProxyReplaceTypes.INSTANCE_REPLACE]: ReplaceInstance,
-    [ProxyReplaceTypes.HOST_REPLACE]: ReplaceHost,
-  };
-
   const { t } = useI18n();
   const router = useRouter();
 
   const tableRef = ref();
   const replaceType = ref(ProxyReplaceTypes.INSTANCE_REPLACE);
-  const force = ref(true);
+  const force = ref(false);
   const isSubmitting = ref(false);
+
+  const ProxyReplaceMap = {
+    [ProxyReplaceTypes.INSTANCE_REPLACE]: ReplaceInstance,
+    [ProxyReplaceTypes.HOST_REPLACE]: ReplaceHost,
+  };
 
   const renderComponent = computed(() => ProxyReplaceMap[replaceType.value]);
 
@@ -149,6 +152,12 @@
   const handleReset = () => {
     tableRef.value.reset();
   };
+
+  watch(replaceType, () => {
+    nextTick(() => {
+      tableRef.value.reset();
+    });
+  });
 </script>
 
 <style lang="less">
