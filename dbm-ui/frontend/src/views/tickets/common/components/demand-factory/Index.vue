@@ -78,8 +78,8 @@
   import MySQLMigrateCluster from './mysql/MigrateCluster.vue';
   import MysqlOpenArea from './mysql/openarea/Index.vue';
   import MysqlParition from './mysql/Partition.vue';
+  import MySQLProxyReplace from './mysql/proxy-replace/Index.vue';
   import MySQLProxyAdd from './mysql/ProxyAdd.vue';
-  import MySQLProxySwitch from './mysql/ProxySwitch.vue';
   import MySQLRename from './mysql/Rename.vue';
   import MySQLRestoreLocalSlave from './mysql/RestoreLocalSlave.vue';
   import MySQLRestoreSlave from './mysql/RestoreSlave.vue';
@@ -295,7 +295,7 @@
     [TicketTypes.INFLUXDB_APPLY]: DetailsInfluxDB,
     [TicketTypes.INFLUXDB_REPLACE]: InfluxdbReplace,
     [TicketTypes.KAFKA_APPLY]: DetailsKafka,
-    [TicketTypes.MYSQL_PROXY_SWITCH]: MySQLProxySwitch,
+    [TicketTypes.MYSQL_PROXY_SWITCH]: MySQLProxyReplace,
     [TicketTypes.MYSQL_HA_DB_TABLE_BACKUP]: MySQLTableBackup,
     [TicketTypes.MYSQL_MIGRATE_CLUSTER]: MySQLMigrateCluster,
     [TicketTypes.MYSQL_PROXY_ADD]: MySQLProxyAdd,

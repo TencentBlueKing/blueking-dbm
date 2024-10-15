@@ -125,9 +125,10 @@
   import FixedColumn from '@components/render-table/columns/fixed-column/index.vue';
   import OperateColumn from '@components/render-table/columns/operate-column/index.vue';
 
-  import RenderTargetProxy from '../../../common/RenderTargetProxy.vue';
+  import RenderRelatedClusters from '@views/db-manage/mysql/proxy-replace/pages/page1/components/common/RenderRelatedClusters.vue';
+  import RenderTargetProxy from '@views/db-manage/mysql/proxy-replace/pages/page1/components/common/RenderTargetProxy.vue';
+
   import RenderOriginalProxyInst from '../RenderOriginalProxyInst.vue';
-  import RenderRelatedClusters from '../RenderRelatedClusters.vue';
 
   const props = defineProps<Props>();
 
