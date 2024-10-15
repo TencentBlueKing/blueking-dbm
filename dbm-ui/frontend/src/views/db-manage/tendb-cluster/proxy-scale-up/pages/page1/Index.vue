@@ -39,6 +39,7 @@
         v-model:is-show="isShowMasterInstanceSelector"
         :cluster-types="[ClusterTypes.TENDBCLUSTER]"
         :selected="selectedClusters"
+        support-offline-data
         :tab-list-config="tabListConfig"
         @change="handelClusterChoosed" />
     </div>
