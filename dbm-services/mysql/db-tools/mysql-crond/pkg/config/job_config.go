@@ -100,7 +100,9 @@ func (j *ExternalJob) Run() {
 				"job_name": j.Name,
 			},
 		)
-		slog.Error("send event", slog.String("error", err.Error()))
+		if err != nil {
+			slog.Error("send event", slog.String("error", err.Error()))
+		}
 	}
 }
 
