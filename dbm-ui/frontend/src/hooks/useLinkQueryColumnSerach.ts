@@ -44,6 +44,7 @@ export const useLinkQueryColumnSerach = (config: {
     name: string;
   };
   isDiscardNondefault?: boolean;
+  initAutoFetch?: boolean;
 }) => {
   const {
     searchType,
@@ -53,6 +54,7 @@ export const useLinkQueryColumnSerach = (config: {
     isQueryAttrs = true,
     defaultSearchItem,
     isDiscardNondefault = false,
+    initAutoFetch = true,
   } = config;
   const { currentBizId } = useGlobalBizs();
   const { t } = useI18n();
@@ -115,7 +117,9 @@ export const useLinkQueryColumnSerach = (config: {
   }
 
   onMounted(() => {
-    fetchDataFn();
+    if (initAutoFetch) {
+      fetchDataFn();
+    }
   });
 
   // 表头筛选
