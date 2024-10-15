@@ -70,14 +70,10 @@
           required>
           <BkSelect v-model="formData.partition_column_type">
             <BkOption
-              id="int"
-              name="整型(int)" />
-            <BkOption
-              id="datetime"
-              name="日期类型(date)" />
-            <BkOption
-              id="timestamp"
-              name="时间戳类型(timestamp)" />
+              v-for="item in columnTypeSelectList"
+              :id="item.id"
+              :key="item.id"
+              :name="item.name" />
           </BkSelect>
         </DbFormItem>
         <DbFormItem
@@ -86,7 +82,7 @@
           required>
           <BkInput
             v-model="formData.partition_column"
-            :placeholder="t('须为时间类型的字段，如2022-12-12 或 2022.12.12')" />
+            :placeholder="t('请输入')" />
         </DbFormItem>
         <DbFormItem
           :description="t('多少天为一个分区，例如 7 天为一个分区')"
@@ -181,6 +177,7 @@
   });
 
   let showPopConfirm = false;
+  let partionColumnVerifyErrorText = '';
 
   const { t } = useI18n();
   const { currentBizId } = useGlobalBizs();
@@ -254,17 +251,22 @@
             tblikes: formData.tblikes,
             partition_column: value,
             partition_column_type: formData.partition_column_type,
-          }).then((result) => {
-            if (result) {
-              showPopConfirm = true;
-              verifyWarnTip.value = result;
-            } else {
-              showPopConfirm = false;
-              verifyWarnTip.value = '';
-            }
-            return true;
-          }),
-        message: t('分区字段验证失败'),
+          })
+            .then((result) => {
+              if (result) {
+                showPopConfirm = true;
+                verifyWarnTip.value = result;
+              } else {
+                showPopConfirm = false;
+                verifyWarnTip.value = '';
+              }
+              return true;
+            })
+            .catch((err) => {
+              partionColumnVerifyErrorText = err.message;
+              return false;
+            }),
+        message: () => partionColumnVerifyErrorText,
         trigger: 'blur',
       },
     ],
@@ -287,6 +289,29 @@
       },
     ],
   }));
+
+  const columnTypeSelectList = [
+    {
+      id: 'int',
+      name: t('整型(int)'),
+    },
+    {
+      id: 'bigint',
+      name: t('整型(bigint)'),
+    },
+    {
+      id: 'date',
+      name: t('日期类型(date)'),
+    },
+    {
+      id: 'datetime',
+      name: t('日期时间类型(datetime)'),
+    },
+    {
+      id: 'timestamp',
+      name: t('时间戳类型(timestamp)'),
+    },
+  ];
 
   const { loading: isCluserListLoading, data: clusterList } = useRequest(getTendbhaList, {
     defaultParams: [
