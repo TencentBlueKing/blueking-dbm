@@ -923,6 +923,8 @@ class MySQLBackupFileTagEnum(str, StructuredEnum):
 
 class MongoDBBackupFileTagEnum(str, StructuredEnum):
     NORMAL_BACKUP = EnumField("normal_backup", _("常规备份(25天)"))
+    HALF_YEAR_BACKUP = EnumField("half_year_backup", _("6个月"))
+    A_YEAR_BACKUP = EnumField("a_year_backup", _("1年"))
     FOREVER_BACKUP = EnumField("forever_backup", _("长期备份(3年)"))
 
 
