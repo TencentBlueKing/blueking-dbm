@@ -19,7 +19,7 @@ from rest_framework.response import Response
 from backend.bk_web import viewsets
 from backend.bk_web.swagger import common_swagger_auto_schema
 from backend.components import DBPrivManagerApi
-from backend.configuration.constants import DBM_PASSWORD_SECURITY_NAME
+from backend.configuration.constants import DBPrivSecurityType
 from backend.configuration.handlers.password import DBPasswordHandler
 from backend.configuration.serializers import (
     GetAdminPasswordSerializer,
@@ -58,7 +58,10 @@ class PasswordPolicyViewSet(viewsets.SystemViewSet):
     )
     @action(methods=["GET"], detail=False)
     def get_password_policy(self, request):
-        policy = DBPrivManagerApi.get_security_rule({"name": DBM_PASSWORD_SECURITY_NAME})
+        name = request.GET.get("name", DBPrivSecurityType.MYSQL_PASSWOR.value)
+        if name not in DBPrivSecurityType.get_values():
+            raise ValueError(_("不支持该name值！"))
+        policy = DBPrivManagerApi.get_security_rule({"name": name})
         policy["rule"] = json.loads(policy["rule"])
         return Response(policy)
 
@@ -68,9 +71,12 @@ class PasswordPolicyViewSet(viewsets.SystemViewSet):
     @action(methods=["POST"], detail=False, serializer_class=PasswordPolicySerializer)
     def update_password_policy(self, request):
         validated_data = self.params_validate(self.get_serializer_class())
-        policy = DBPrivManagerApi.modify_security_rule(
-            {"rule": json.dumps(validated_data["rule"]), "id": validated_data["id"], "operator": request.user.username}
-        )
+        data = {"id": validated_data["id"], "operator": request.user.username}
+        if validated_data.get("reset"):
+            data["reset"] = validated_data["reset"]
+        else:
+            data["rule"] = json.dumps(validated_data["rule"])
+        policy = DBPrivManagerApi.modify_security_rule(data)
         return Response(policy)
 
     @common_swagger_auto_schema(
@@ -82,7 +88,8 @@ class PasswordPolicyViewSet(viewsets.SystemViewSet):
     @action(methods=["POST"], detail=False, serializer_class=VerifyPasswordSerializer)
     def verify_password_strength(self, request):
         password = self.params_validate(self.get_serializer_class())["password"]
-        return Response(DBPasswordHandler.verify_password_strength(password))
+        security_type = self.params_validate(self.get_serializer_class())["security_type"]
+        return Response(DBPasswordHandler.verify_password_strength(password=password, security_type=security_type))
 
     @common_swagger_auto_schema(
         operation_summary=_("获取符合密码强度的字符串"),
