@@ -794,7 +794,7 @@
             return {
               ...details,
               resource_spec: {
-                single: {
+                backend: {
                   ...details.resource_spec.single,
                   ...specSingleRef.value.getData(),
                   count: hostNums.value,
@@ -816,10 +816,10 @@
                 ...regionAndDisasterParams,
                 count: hostNums.value,
               },
-              backend: {
+              backend_group: {
                 ...details.resource_spec.backend,
                 ...specBackendRef.value.getData(),
-                count: hostNums.value,
+                count: Math.floor(hostNums.value / 2),
                 location_spec: {
                   city: cityCode,
                   sub_zone_ids: [],
