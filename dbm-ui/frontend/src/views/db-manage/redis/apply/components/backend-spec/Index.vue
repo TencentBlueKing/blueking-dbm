@@ -1,58 +1,69 @@
 <template>
   <div class="redis-backend-spec">
-    <BkFormItem
-      :label="targetCapacityTitle"
-      property="details.resource_spec.backend_group.capacity"
-      required>
-      <BkInput
-        :min="1"
-        :model-value="modelValue.capacity"
-        style="width: 314px"
-        type="number"
-        @change="handleChangeCapacity" />
-      <span class="input-desc">G</span>
-    </BkFormItem>
-    <BkFormItem
-      :label="futureCapacityTitle"
-      property="details.resource_spec.backend_group.future_capacity"
-      required>
-      <BkInput
-        :min="Number(modelValue.capacity)"
-        :model-value="modelValue.future_capacity"
-        style="width: 314px"
-        type="number"
-        @change="handleChangeFutureCapacity" />
-      <span class="input-desc">G</span>
-    </BkFormItem>
-    <BkFormItem
-      ref="specRef"
-      :label="t('集群部署方案')"
-      property="details.resource_spec.backend_group.spec_id"
-      required>
-      <DbOriginalTable
-        v-bkloading="{ loading: isLoading }"
-        class="custom-edit-table"
-        :columns="columns"
-        :data="specs"
-        @row-click="handleRowClick">
-        <template #empty>
-          <p
-            v-if="!modelValue.capacity || !modelValue.future_capacity"
-            style="width: 100%; line-height: 128px; text-align: center">
-            <DbIcon
-              class="mr-4"
-              type="attention" />
-            <span>{{ t('请先设置容量') }}</span>
-          </p>
-          <BkException
-            v-else
-            :description="t('无匹配的资源规格_请先修改容量设置')"
-            scene="part"
-            style="font-size: 12px"
-            type="empty" />
-        </template>
-      </DbOriginalTable>
-    </BkFormItem>
+    <ApplySchema v-model="applySchema" />
+    <template v-if="applySchema === APPLY_SCHEME.AUTO">
+      <BkFormItem
+        :label="targetCapacityTitle"
+        property="details.resource_spec.backend_group.capacity"
+        required>
+        <BkInput
+          :min="1"
+          :model-value="modelValue.capacity"
+          style="width: 314px"
+          type="number"
+          @change="handleChangeCapacity" />
+        <span class="input-desc">G</span>
+      </BkFormItem>
+      <BkFormItem
+        :label="futureCapacityTitle"
+        property="details.resource_spec.backend_group.future_capacity"
+        required>
+        <BkInput
+          :min="Number(modelValue.capacity)"
+          :model-value="modelValue.future_capacity"
+          style="width: 314px"
+          type="number"
+          @change="handleChangeFutureCapacity" />
+        <span class="input-desc">G</span>
+      </BkFormItem>
+      <BkFormItem
+        ref="specRef"
+        :label="t('集群部署方案')"
+        property="details.resource_spec.backend_group.spec_id"
+        required>
+        <DbOriginalTable
+          v-bkloading="{ loading: isLoading }"
+          class="custom-edit-table"
+          :columns="columns"
+          :data="specs"
+          @row-click="handleRowClick">
+          <template #empty>
+            <p
+              v-if="!modelValue.capacity || !modelValue.future_capacity"
+              style="width: 100%; line-height: 128px; text-align: center">
+              <DbIcon
+                class="mr-4"
+                type="attention" />
+              <span>{{ t('请先设置容量') }}</span>
+            </p>
+            <BkException
+              v-else
+              :description="t('无匹配的资源规格_请先修改容量设置')"
+              scene="part"
+              style="font-size: 12px"
+              type="empty" />
+          </template>
+        </DbOriginalTable>
+      </BkFormItem>
+    </template>
+    <CustomSchema
+      v-else
+      ref="customSchemaRef"
+      v-model="modelValue"
+      :biz-id="bizId"
+      :cloud-id="cloudId"
+      :cluster-type="clusterType"
+      :machine-type="machineType" />
   </div>
 </template>
 
@@ -68,8 +79,13 @@
 
   import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
 
+  import ApplySchema, { APPLY_SCHEME } from '@views/db-manage/common/apply-schema/Index.vue';
+
+  import CustomSchema from './components/CustomSchema.vue';
+
   interface ModelValue {
     spec_id: number | '',
+    count: number,
     capacity: number | string,
     future_capacity: number | string,
   }
@@ -86,10 +102,12 @@
 
   const { t } = useI18n();
 
-
   const specRef = ref();
-  const specs = shallowRef<ClusterSpecModel[]>([]);
+  const customSchemaRef = ref<InstanceType<typeof CustomSchema>>()
   const isLoading = ref(false);
+  const applySchema = ref(APPLY_SCHEME.AUTO)
+
+  const specs = shallowRef<ClusterSpecModel[]>([]);
   const countMap = shallowRef({} as Record<number, number>)
 
   const isTendisCache = computed(() => props.clusterType === ClusterTypes.TWEMPROXY_REDIS_INSTANCE);
@@ -154,15 +172,12 @@
 
   watch(() => modelValue.value.spec_id, () => {
     if (modelValue.value.spec_id) {
-      specRef.value.clearValidate();
+      specRef.value?.clearValidate();
     }
   });
 
-  watch([
-    () => props.bizId,
-    () => props.cloudId,
-    specs,
-  ], () => {
+  watch(
+    () => [props.bizId, props.cloudId, specs], () => {
     if (
       typeof props.bizId === 'number'
       && props.bizId > 0
@@ -173,10 +188,7 @@
     }
   }, { immediate: true, deep: true });
 
-  watch([
-    () => modelValue.value.capacity,
-    () => modelValue.value.future_capacity,
-  ], ([capacityValue, futureCapacityValue]) => {
+  watch(() => [modelValue.value.capacity, modelValue.value.future_capacity], ([capacityValue, futureCapacityValue]) => {
     if (capacityValue === '' || futureCapacityValue === '') {
       resetSlider();
     } else {
@@ -266,8 +278,21 @@
 
   defineExpose({
     getData() {
-      const item = specs.value.find(item => item.spec_id === Number(modelValue.value.spec_id));
-      return item ?? {};
+      if (applySchema.value === APPLY_SCHEME.AUTO) {
+        const item = specs.value.find(item => item.spec_id === Number(modelValue.value.spec_id));
+        if (item) {
+          return {
+            spec_name: item.spec_name,
+            machine_pair: item.machine_pair,
+            cluster_shard_num: item.cluster_shard_num,
+            cluster_capacity: item.cluster_capacity,
+            qps: item.qps
+          }
+        }
+        return {}
+      }
+
+      return customSchemaRef.value!.getInfo()
     },
   });
 </script>

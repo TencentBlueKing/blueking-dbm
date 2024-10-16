@@ -75,6 +75,8 @@
   </tr>
 </template>
 <script lang="ts">
+  import { useI18n } from 'vue-i18n';
+
   import RedisModel from '@services/model/redis/redis';
 
   import OperateColumn from '@components/render-table/columns/operate-column/index.vue';
@@ -102,6 +104,7 @@
     srcClusterType: string;
     clusterType: string;
     currentShardNum: number;
+    groupNum: number;
     clusterTypeName: string;
     specConfig: {
       cpu: {
@@ -131,10 +134,6 @@
       used: number;
       current: number;
       total: number;
-    };
-    backendGroup?: {
-      id: number;
-      count: number;
     };
     targetShardNum?: number;
   }
@@ -179,6 +178,7 @@
     clusterType: '',
     dbVersion: '',
     currentShardNum: 0,
+    groupNum: 0,
     clusterTypeName: '',
     currentSepc: '',
     specConfig: {
@@ -201,9 +201,6 @@
       count: 0,
     },
   });
-</script>
-<script setup lang="ts">
-  import { useI18n } from 'vue-i18n';
 
   interface Props {
     data: IDataRow;
@@ -221,7 +218,8 @@
   interface Exposes {
     getValue: () => Promise<InfoItem>;
   }
-
+</script>
+<script setup lang="ts">
   const props = withDefaults(defineProps<Props>(), {
     inputedClusters: () => [],
   });

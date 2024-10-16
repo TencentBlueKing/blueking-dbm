@@ -53,6 +53,7 @@ export async function generateRedisClusterTypeUpdateCloneData(ticketData: Ticket
       currentSepc: `${currentClusterInfo.cluster_capacity}G_${currentClusterInfo.cluster_spec.qps.max}/s${t('（n 分片）', { n: currentClusterInfo.cluster_shard_num })}`,
       targetClusterType: item.target_cluster_type,
       currentShardNum: currentClusterInfo.cluster_shard_num,
+      groupNum: currentClusterInfo.machine_pair_cnt,
       clusterTypeName: currentClusterInfo.cluster_type_name,
       currentSpecId: currentClusterInfo.cluster_spec.spec_id,
       dbVersion: item.db_version,
