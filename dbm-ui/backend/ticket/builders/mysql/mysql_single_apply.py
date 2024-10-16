@@ -156,7 +156,7 @@ class MysqlSingleApplyFlowParamBuilder(builders.FlowParamBuilder):
     @classmethod
     def insert_ip_into_apply_infos(cls, ticket_data, apply_infos: List[Dict]):
         # 适配手动输入和资源池导入的角色类型
-        backend_nodes = ticket_data["nodes"]["backend"] or ticket_data["nodes"]["single"]
+        backend_nodes = ticket_data["nodes"]["backend"]
         for index, apply_info in enumerate(apply_infos):
             apply_info["new_ip"] = backend_nodes[index]
 
@@ -204,7 +204,7 @@ class MysqlSingleApplyFlowBuilder(BaseMySQLSingleTicketFlowBuilder):
     inner_flow_name = _("MySQL单节点部署执行")
     resource_apply_builder = MysqlSingleApplyResourceParamBuilder
 
-    def patch_ticket_detail(self):
+    def patch_dbconfig(self, cluster_type):
         # 补充数据库版本和字符集
         db_config = DBConfigApi.query_conf_item(
             {
@@ -213,13 +213,17 @@ class MysqlSingleApplyFlowBuilder(BaseMySQLSingleTicketFlowBuilder):
                 "level_value": str(self.ticket.details["db_module_id"]),
                 "conf_file": dbconf_const.DEPLOY_FILE_NAME,
                 "conf_type": dbconf_const.ConfType.DEPLOY,
-                "namespace": ClusterType.TenDBSingle,
+                "namespace": cluster_type,
                 "format": dbconf_const.FormatType.MAP,
             }
         )["content"]
 
         # 校验配置是否存在
         if not db_config.get("db_version") or not db_config.get("charset"):
-            raise TicketParamsVerifyException(_("获取数据库字符集或版本失败，请检查获取参数, db_config: {}").format(db_config))
+            raise TicketParamsVerifyException(_("获取数据库配置失败，请检查获取参数db_config: {}").format(db_config))
 
         self.ticket.update_details(db_version=db_config.get("db_version"), charset=db_config.get("charset"))
+
+    def patch_ticket_detail(self):
+        self.patch_dbconfig(cluster_type=ClusterType.TenDBSingle)
+        super().patch_ticket_detail()
