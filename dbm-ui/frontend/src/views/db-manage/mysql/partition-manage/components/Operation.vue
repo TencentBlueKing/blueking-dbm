@@ -26,10 +26,10 @@
             :model-value="formData.cluster_id || undefined"
             @change="handleClusterChange">
             <BkOption
-              v-for="item in clusterList?.results"
+              v-for="item in clusterList"
               :id="item.id"
               :key="item.id"
-              :name="item.master_domain" />
+              :name="item.immute_domain" />
           </BkSelect>
         </DbFormItem>
         <DbFormItem
@@ -138,16 +138,14 @@
   import { useRequest } from 'vue-request';
 
   import type PartitionModel from '@services/model/partition/partition';
+  import { queryAllTypeCluster } from '@services/source/dbbase';
   import {
     create as createParitition,
     edit as editPartition,
     verifyPartitionField,
   } from '@services/source/partitionManage';
-  import { getTendbhaList } from '@services/source/tendbha';
 
-  import { useGlobalBizs } from '@stores';
-
-  import { ClusterTypes, dbSysExclude, DBTypes } from '@common/const';
+  import { dbSysExclude } from '@common/const';
   import { dbRegex } from '@common/regex';
 
   interface Props {
@@ -180,7 +178,6 @@
   let partionColumnVerifyErrorText = '';
 
   const { t } = useI18n();
-  const { currentBizId } = useGlobalBizs();
 
   const formRef = ref();
   const isEditMode = ref(false);
@@ -313,14 +310,13 @@
     },
   ];
 
-  const { loading: isCluserListLoading, data: clusterList } = useRequest(getTendbhaList, {
+  const { loading: isCluserListLoading, data: clusterList } = useRequest(queryAllTypeCluster, {
     defaultParams: [
       {
         offset: 0,
         limit: -1,
-        dbType: DBTypes.MYSQL,
-        bk_biz_id: currentBizId,
-        type: ClusterTypes.TENDBHA,
+        bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+        cluster_types: 'tendbha,tendbsingle',
       },
     ],
   });
