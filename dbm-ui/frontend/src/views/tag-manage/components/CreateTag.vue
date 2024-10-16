@@ -27,6 +27,23 @@
         </span>
       </div>
     </template>
+    <template #footer>
+      <div class="footer-wrapper">
+        <BkButton
+          class="mr-8"
+          :disabled="formModel.tags.length === 0 || existedTagsSet.size > 0"
+          :loading="createLoading || validateLoading"
+          theme="primary"
+          @click="handleConfirm">
+          {{ t('确定') }}
+        </BkButton>
+        <BkButton
+          :loading="validateLoading"
+          @click="handleClose">
+          {{ t('取消') }}
+        </BkButton>
+      </div>
+    </template>
     <BkForm
       ref="formRef"
       form-type="vertical"
@@ -34,7 +51,7 @@
       :rules="rules">
       <BkFormItem
         :label="t('标签')"
-        required>
+        property="tag">
         <BkTagInput
           ref="inputRef"
           v-model="formModel.tags"
@@ -48,67 +65,71 @@
 
 <script setup lang="tsx">
   import type { Form } from 'bkui-vue';
-  import { computed, reactive, ref, watch } from 'vue';
+  import { computed, ref } from 'vue';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
   import { createTag, validateTag } from '@services/source/tag';
   import type { BizItem } from '@services/types';
 
+  import useFormModel from '@/hooks/useFormModel';
+
   interface Props {
-    isShow: boolean;
     biz: BizItem | undefined;
   }
 
   interface Emits {
-    (e: 'update:isShow', value: boolean): void;
+    (e: 'create'): void;
   }
 
   const props = defineProps<Props>();
-
-  const emit = defineEmits<Emits>();
+  const emits = defineEmits<Emits>();
+  const isShow = defineModel<boolean>('isShow');
 
   const { t } = useI18n();
-  const existedTagsSet = ref<Set<string>>(new Set());
   const formRef = useTemplateRef<InstanceType<typeof Form>>('formRef');
   const inputRef = useTemplateRef<HTMLInputElement>('inputRef');
+
+  const existedTagsSet = ref<Set<string>>(new Set());
+
+  const { formModel, resetForm } = useFormModel({
+    tags: [] as Array<string>,
+  });
+
+  const rules = computed(() => {
+    const { res, message } = handleValidate(formModel.tags);
+    return {
+      tag: [
+        {
+          validator: () => res,
+          message: String(message),
+        },
+      ],
+    };
+  });
+
   const { loading: validateLoading, run: runValidate } = useRequest(validateTag, {
     manual: true,
     onSuccess(data) {
-      const { duplicated_values } = data;
-      existedTagsSet.value = new Set(duplicated_values);
-      formRef.value?.validate();
+      existedTagsSet.value = new Set(data.map((v) => v.value));
+      nextTick(() => {
+        formRef.value?.validate();
+      });
     },
   });
   const { loading: createLoading, run: runCreate } = useRequest(createTag, {
     manual: true,
     onSuccess() {
-      handleClose();
+      handleSubmit();
     },
-  });
-
-  const formModel = reactive<{
-    tags: string[];
-  }>({
-    tags: [],
-  });
-
-  const rules = computed(() => {
-    const { res, message } = handleValidate(formModel.tags);
-    return [
-      {
-        validator: () => res,
-        message,
-      },
-    ];
   });
 
   watch(
     () => formModel.tags,
-    async (tags) => {
+    (tags) => {
       runValidate({
         bk_biz_id: props.biz?.bk_biz_id as number,
-        values: tags,
+        tags: tags.map((tag) => ({ key: 'dbresource', value: tag })),
       });
     },
   );
@@ -129,25 +150,30 @@
     return {
       ...validateInfo,
       res: validateRes,
-      message: validateRes ? '' : t('n 已存在', { n: existedArr.join(',') }),
+      message: validateRes ? t('标签不能为空') : t('n 已存在', { n: existedArr.join(',') }),
     };
   };
 
   const handleConfirm = async () => {
+    await formRef.value?.validate();
     runCreate({
       bk_biz_id: props.biz?.bk_biz_id as number,
-      type: 'system',
-      key: 'resource',
-      value: formModel.tags,
+      tags: formModel.tags.map((tag) => ({ key: 'dbresource', value: tag })),
     });
   };
 
   const handleClose = () => {
-    emit('update:isShow', false);
+    isShow.value = false;
+  };
+
+  const handleSubmit = () => {
+    isShow.value = false;
+    emits('create');
   };
 
   onMounted(() => {
     inputRef.value?.focus();
+    resetForm();
   });
 </script>
 

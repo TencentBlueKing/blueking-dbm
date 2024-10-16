@@ -63,7 +63,7 @@
           ref="tableRef"
           class="table-box"
           :columns="tableColumn"
-          :data-source="listTag"
+          :data-source="getDataSource"
           :disable-select-method="disableSelectMethod"
           primary-key="tag"
           remote-sort
@@ -74,45 +74,33 @@
     </div>
     <CreateTag
       v-model:is-show="isCreateTagDialogShow"
-      :biz="curBiz" />
+      :biz="curBiz"
+      @create="handleCreateSuccess" />
   </div>
 </template>
 
 <script setup lang="tsx">
-  import { Button, InfoBox } from 'bkui-vue';
+  import { Button, InfoBox, Message } from 'bkui-vue';
   import BKPopConfirm from 'bkui-vue/lib/pop-confirm';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import { useCopy } from '@hooks';
+  import { deleteTag, getTagRelatedResource, listTag, updateTag } from '@services/source/tag';
 
   import { useGlobalBizs } from '@stores';
 
-  import { deleteTag, listTag, updateTag } from '@/services/source/tag';
+  import BusinessSelector from '@views/tag-manage/components/BusinessSelector.vue';
+  import CreateTag from '@views/tag-manage/components/CreateTag.vue'
+  import EditableCell from '@views/tag-manage/components/EditableCell.vue';
+
+  import ResourceTag from '@/services/model/db-resource/ResourceTag';
   import { getSearchSelectorParams } from '@/utils';
-  import BusinessSelector from '@/views/tag-manage/components/BusinessSelector.vue';
-  import CreateTag from '@/views/tag-manage/components/CreateTag.vue'
-  import EditableCell from '@/views/tag-manage/components/EditableCell.vue';
 
   type ResourceTagModel = ServiceReturnType<typeof listTag>['results'][number];
 
   const { t } = useI18n();
-  const copy = useCopy();
   const { bizIdMap, currentBizInfo } = useGlobalBizs();
   const route = useRoute();
-  const router = useRouter();
-  const { run: runDelete } = useRequest(deleteTag, {
-    manual: true,
-    onSuccess() {
-      fetchData();
-    }
-  });
-  const { run: runUpdate } = useRequest(updateTag, {
-    manual: true,
-    onAfter() {
-      curEditId.value = -1;
-    }
-  });
 
   const tableRef = ref();
   const selected = ref<ResourceTagModel[]>([]);
@@ -125,14 +113,32 @@
   const selectedIds = computed(() => selected.value.map(item => item.id));
   const isBusiness = computed(() => route.name === 'BizResourceTag');
 
+  const { run: runDelete } = useRequest(deleteTag, {
+    manual: true,
+    onSuccess() {
+      fetchData();
+      Message({
+        message: t('删除成功'),
+        theme: 'success',
+      });
+    }
+  });
+  const { run: runUpdate } = useRequest(updateTag, {
+    manual: true,
+    onAfter() {
+      curEditId.value = -1;
+      fetchData();
+      Message({
+        message: t('更新成功'),
+        theme: 'success',
+      });
+    }
+  });
+
   const searchSelectData = [
     {
       name: t('标签'),
-      id: 'tag',
-    },
-    {
-      name: t('IP'),
-      id: 'boundIp',
+      id: 'value',
     },
     {
       name: t('创建人'),
@@ -156,29 +162,7 @@
     },
     {
       label: t('绑定的IP'),
-      field: 'boundIp',
-      render: ({ data }: { data: ResourceTagModel }) => (
-        <div class="ip-box">
-          <span v-bk-tooltips={{
-            content: data.bind_ips.join('\n'),
-            disabled: data.ipCount === 0
-          }}
-            class={data.isBinded ? 'ip-count' : undefined}
-            onClick={() => handleViewBindedIp(data)}
-          >
-            {data.ipCount}
-          </span>
-          {
-            data.isBinded && (
-              <db-icon
-                class="operation-icon"
-                type="copy"
-                style="font-size: 18px"
-                onClick={() => handleCopy(data)} />
-            )
-          }
-        </div>
-      )
+      field: 'count',
     },
     {
       label: t('创建人'),
@@ -198,7 +182,7 @@
           width={280}
           trigger='click'
           title={t('确认删除该标签值？')}
-          extCls={'content-wrapper'}
+          ext-cls={'content-wrapper'}
           onConfirm={() => handleDelete(data)}
         >
           {{
@@ -222,9 +206,9 @@
     fetchData();
   });
 
-  const fetchData = () => {
+  const fetchData = async () => {
     const searchParams = getSearchSelectorParams(searchValue.value);
-    tableRef.value.fetchData(searchParams);
+    await tableRef.value.fetchData(searchParams);
   };
 
   const handleSelection = (_data: ResourceTagModel, list: ResourceTagModel[]) => {
@@ -259,7 +243,10 @@
         </div>
       ),
       onConfirm: async () => {
-        runDelete({ ids: selectedIds.value });
+        runDelete({
+          bk_biz_id: curBiz.value?.bk_biz_id as number,
+          ids: selectedIds.value
+        });
       }
     });
   };
@@ -270,6 +257,7 @@
 
   const handleBlur = async (data: ResourceTagModel, val: string) => {
     runUpdate({
+      bk_biz_id: curBiz.value?.bk_biz_id as number,
       id: data.id,
       value: val,
     });
@@ -282,13 +270,10 @@
 
   const handleDelete = async (data: ResourceTagModel) => {
     await runDelete({
+      bk_biz_id: curBiz.value?.bk_biz_id as number,
       ids: [data.id]
     });
     fetchData();
-  }
-
-  const handleCopy = (data: ResourceTagModel) => {
-    copy(data.bind_ips.join('\n'));
   }
 
   const handleBizChange = (bkBizId: number) => {
@@ -298,17 +283,40 @@
 
   const disableSelectMethod = (data: ResourceTagModel) => data.isBinded ? t('该标签已被绑定 ，不能删除') : false;
 
-  const handleViewBindedIp = (data: ResourceTagModel) => {
-    if (!data.isBinded) return;
-    const route = router.resolve({
-      name: 'bizTicketManage',
-    });
-    window.open(route.href, '_blank');
-  };
-
   const clearSearchValue = () => {
     searchValue.value = [];
     tableRef.value?.fetchData();
+  };
+
+  const handleCreateSuccess = async () => {
+    await fetchData();
+    Message({
+      theme: 'success',
+      message: t('创建成功'),
+    })
+  };
+
+  const getDataSource = async (params: ServiceParameters<typeof listTag>) => {
+    const res = await listTag(params);
+    const ids = res.results.map(item => item.id);
+    const resourceData = await getTagRelatedResource({
+      bk_biz_id: curBiz.value?.bk_biz_id as number,
+      ids,
+    });
+    const map = new Map<number, number>();
+    resourceData.forEach(item => {
+      const dbResource = item.related_resources.find(resource => resource.resource_type === 'db_resource');
+      if (dbResource) {
+        map.set(item.id, dbResource.count);
+      }
+    });
+    return {
+      ...res,
+      results: res.results.map((item: ResourceTag) => new ResourceTag({
+        ...item,
+        count: map.get(item.id),
+      })),
+    }
   };
 
   onMounted(() => {
@@ -383,6 +391,7 @@
   .tag-manage-batch-delete-wrapper {
     .tag-wrapper {
       display: flex;
+      align-items: top;
       font-size: 14px;
 
       .tag {
@@ -394,6 +403,7 @@
         color: #313238;
         text-align: left;
         margin-left: 14px;
+        word-break: break-all;
       }
     }
 

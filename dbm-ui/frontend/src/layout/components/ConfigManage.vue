@@ -11,6 +11,20 @@
         @click="handleMenuChange">
         <BkMenuGroup :name="t('资源管理')">
           <BkMenuItem
+            key="BizResourcePool"
+            v-db-console="'bizConfigManage.businessResourcePool'">
+            <template #icon>
+              <DbIcon
+                svg
+                type="list" />
+            </template>
+            <span
+              v-overflow-tips.right
+              class="text-overflow">
+              {{ t('资源池') }}
+            </span>
+          </BkMenuItem>
+          <BkMenuItem
             key="BizResourceTag"
             v-db-console="'bizConfigManage.businessResourceTag'">
             <template #icon>

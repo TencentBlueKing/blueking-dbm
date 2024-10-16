@@ -117,6 +117,6 @@ export default class DbResource {
     if (!this.resource_type || this.resource_type === 'PUBLIC') {
       return t('通用');
     }
-    return DBTypeInfos[this.resource_type as DBTypes].name;
+    return DBTypeInfos[this.resource_type as DBTypes]?.name;
   }
 }

@@ -23,7 +23,7 @@ const resourcePoolRoute = {
     navName: t('DB 资源池'),
     fullscreen: true,
   },
-  component: () => import('@views/resource-manage/pool/Index.vue'),
+  component: () => import('@views/resource-manage/pool/global/Index.vue'),
 };
 
 const resourcePoolOperationRecordRoute = {

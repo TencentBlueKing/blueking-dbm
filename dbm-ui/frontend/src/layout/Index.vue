@@ -137,6 +137,7 @@
     ],
     [menuEnum.observableManage]: ['DBHASwitchEvents', 'inspectionManage'],
     [menuEnum.configManage]: [
+      'BizResourcePool',
       'BizResourceTag',
       'DbConfigure',
       'DBMonitorStrategy',

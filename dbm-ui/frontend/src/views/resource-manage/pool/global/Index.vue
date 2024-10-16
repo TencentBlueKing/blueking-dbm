@@ -12,21 +12,30 @@
 -->
 
 <template>
-  <BkTab
-    v-model:active="activeTab"
-    class="pool-tab"
-    type="unborder-card"
-    @change="handleChange">
-    <BkTabPanel
-      v-for="item in panels"
-      :key="item.name"
-      :label="item.label"
-      :name="item.name" />
-  </BkTab>
-  <div class="pool-content">
-    <KeepAlive>
-      <Component :is="renderComponent" />
-    </KeepAlive>
+  <div>
+    <Teleport to="#dbContentTitleAppend">
+      <BkTag
+        class="ml-8"
+        theme="info">
+        {{ t('全局') }}
+      </BkTag>
+    </Teleport>
+    <BkTab
+      v-model:active="activeTab"
+      class="pool-tab"
+      type="unborder-card"
+      @change="handleChange">
+      <BkTabPanel
+        v-for="item in panels"
+        :key="item.name"
+        :label="item.label"
+        :name="item.name" />
+    </BkTab>
+    <div class="pool-content">
+      <KeepAlive>
+        <Component :is="renderComponent" />
+      </KeepAlive>
+    </div>
   </div>
 </template>
 
@@ -35,8 +44,8 @@
 
   import { useDebouncedRef } from '@hooks';
 
-  import HostList from './host-list/Index.vue';
-  import SummaryView from './summary-view/Index.vue';
+  import HostList from '../components/host-list/Index.vue';
+  import SummaryView from '../components/summary-view/Index.vue';
 
   const { t } = useI18n();
   const router = useRouter();

@@ -33,9 +33,9 @@
 
   defineProps<Props>();
 
-  const emit = defineEmits<Emits>();
+  const emits = defineEmits<Emits>();
 
-  const modelValue = defineModel<string>('modelValue', {
+  const modelValue = defineModel({
     default: '',
   });
 
@@ -43,7 +43,7 @@
   const inputRef = useTemplateRef<HTMLInputElement>('inputRef');
 
   const handleBlur = () => {
-    emit('blur');
+    emits('blur');
   };
 
   onMounted(() => {

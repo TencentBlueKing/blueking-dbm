@@ -62,7 +62,7 @@
     (e: 'change', value: number): void;
   }
 
-  const emit = defineEmits<Emits>();
+  const emits = defineEmits<Emits>();
 
   const { bizs: bizList, currentBizInfo, bizIdMap } = useGlobalBizs();
   const triangleRef = useTemplateRef('triangleRef');
@@ -81,8 +81,8 @@
     });
   });
 
-  watch(selected, (newValue) => {
-    emit('change', newValue as number);
+  watch(selected, () => {
+    emits('change', selected.value as number);
   });
 
   const handleFavor = (bkBizId: number) => {

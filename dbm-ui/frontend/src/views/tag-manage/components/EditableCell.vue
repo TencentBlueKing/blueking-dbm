@@ -18,13 +18,16 @@
       v-model="editVal"
       :clearable="false"
       @blur="handleBlur(data)" />
-    <span v-else>{{ data.tag }}</span>
-    <DbIcon
-      v-if="!isEdit"
-      class="operation-icon"
-      style="font-size: 18px"
-      type="edit"
-      @click="handleEdit(data)" />
+    <span
+      v-else
+      class="tag-content">
+      {{ data.tag }}
+      <DbIcon
+        class="operation-icon"
+        style="font-size: 18px"
+        type="edit"
+        @click="handleEdit(data)" />
+    </span>
   </div>
 </template>
 
@@ -35,20 +38,23 @@
 
   import AutoFocusInput from '@views/tag-manage/components/AutoFocusInput.vue';
 
-  const props = defineProps<{
+  interface Props {
     data: ResourceTag;
     isEdit: boolean;
-  }>();
+  }
 
-  const emits = defineEmits<{
+  interface Emits {
     (event: 'blur', data: ResourceTag, val: string): void;
     (event: 'edit', data: ResourceTag): void;
-  }>();
+  }
+
+  const props = defineProps<Props>();
+
+  const emits = defineEmits<Emits>();
 
   const editVal = ref(props.data.tag);
 
   const handleBlur = (data: ResourceTag) => {
-    console.log();
     emits('blur', data, editVal.value);
   };
 
@@ -57,26 +63,24 @@
   };
 </script>
 
-<style scoped>
+<style lang="less" scoped>
   .tag-box {
     display: flex;
     align-items: center;
 
-    &:hover {
-      .operation-icon {
-        display: block;
-      }
+    &:hover .operation-icon {
+      visibility: visible;
     }
 
-    .operation-icon {
-      display: none;
-      color: #3a84ff;
-      cursor: pointer;
-      margin-left: 7.5px;
+    .tag-content {
+      display: flex;
+      align-items: center; // 确保文字和图标垂直居中对齐
     }
   }
 
   .operation-icon {
+    color: #3a84ff;
     cursor: pointer;
+    margin-left: 7.5px;
   }
 </style>

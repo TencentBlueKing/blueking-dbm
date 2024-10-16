@@ -27,6 +27,7 @@
         :pagination="pagination"
         :pagination-heihgt="60"
         remote-pagination
+        :row-class="rowCls"
         show-overflow-tooltip
         v-bind="$attrs"
         @column-sort="handleColumnSortChange"
@@ -87,6 +88,7 @@
     paginationExtra?: IPaginationExtra;
     selectable?: boolean;
     disableSelectMethod?: (data: any) => boolean | string;
+    rowCls?: string;
     // data 数据的主键
     primaryKey?: string;
   }
