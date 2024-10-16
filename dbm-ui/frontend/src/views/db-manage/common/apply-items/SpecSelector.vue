@@ -94,10 +94,6 @@
     count?: number;
   }
 
-  interface Emits {
-    (e: 'update:modelValue', value: number | string): void;
-  }
-
   interface Props {
     modelValue: number | string;
     clusterType: string;
@@ -107,6 +103,16 @@
     showRefresh?: boolean;
     clearable?: boolean;
     city?: string;
+  }
+
+  interface Emits {
+    (e: 'update:modelValue', value: number | string): void;
+  }
+
+  interface Expose {
+    getData: () => Pick<ResourceSpecModel, 'spec_name' | 'cpu' | 'mem' | 'storage_spec' | 'qps'> & {
+      instance_num?: number;
+    };
   }
 
   const props = withDefaults(defineProps<Props>(), {
@@ -202,7 +208,7 @@
     { immediate: true, deep: true },
   );
 
-  defineExpose({
+  defineExpose<Expose>({
     getData() {
       const item = list.value.find((item) => item.spec_id === props.modelValue);
       if (item) {
@@ -216,7 +222,7 @@
           qps: item.qps,
         };
       }
-      return {};
+      return {} as ReturnType<Expose['getData']>;
     },
   });
 </script>

@@ -53,9 +53,7 @@
   import { getResourceSpecList } from '@services/source/dbresourceSpec';
   import { getRedisListByBizId } from '@services/source/redis';
 
-  import { ClusterTypes } from '@common/const';
-
-  import { repairAndVerifyFrequencyList, repairAndVerifyTypeList } from '@views/db-manage/redis/common/const';
+  import { ClusterMachineMap, repairAndVerifyFrequencyList, repairAndVerifyTypeList } from '@views/db-manage/redis/common/const'
 
   interface Props {
     ticketDetails: TicketModel<RedisClusterTypeUpdateDetails>
@@ -141,12 +139,6 @@
 
   const repairAndVerifyFrequencyMap = generateMap(repairAndVerifyFrequencyList);
 
-  const clusterTypeMap: Record<string, string> = {
-    [ClusterTypes.TWEMPROXY_REDIS_INSTANCE]: t('TendisCache'),
-    [ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE]: t('TendisSSD'),
-    [ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER]: t('Tendisplus'),
-  };
-
   const { loading } = useRequest(getRedisListByBizId, {
     defaultParams: [{
       bk_biz_id: props.ticketDetails.bk_biz_id,
@@ -181,11 +173,11 @@
         const targetSepcPlan = sepcMap[item.target_cluster_type].filter(row => row.spec_id === item.resource_spec.backend_group.spec_id);
         return ({
           clusterName: currentCluster.master_domain,
-          srcClusterType: clusterTypeMap[clusters[item.src_cluster].cluster_type],
+          srcClusterType: ClusterMachineMap[clusters[item.src_cluster].cluster_type],
           clusterTypeName: clusters[item.src_cluster].cluster_type_name,
           currentSepc: `${currentCluster.cluster_capacity}G_${specConfig.qps.max}/s（${item.current_shard_num} 分片）`,
           deployPlan: targetSepcPlan.length > 0 ? targetSepcPlan[0].spec_name : '',
-          targetClusterType: clusterTypeMap[item.target_cluster_type],
+          targetClusterType: ClusterMachineMap[item.target_cluster_type],
           dbVersion: item.db_version,
           switchMode: item.online_switch_type,
           capacity: item.capacity,
