@@ -16,8 +16,8 @@
     <div class="apply-instance">
       <DbForm
         ref="formRef"
-        auto-label-width
         class="apply-form"
+        :label-width="200"
         :model="state.formdata"
         :rules="rules">
         <DbCard :title="t('业务信息')">
@@ -384,7 +384,6 @@
   import IpSelector from '@components/ip-selector/IpSelector.vue';
 
   import AffinityItem from '@views/db-manage/common/apply-items/AffinityItem.vue';
-  import BackendQPSSpec from '@views/db-manage/common/apply-items/BackendSpec.vue';
   import BusinessItems from '@views/db-manage/common/apply-items/BusinessItems.vue';
   import CloudItem from '@views/db-manage/common/apply-items/CloudItem.vue';
   import ClusterAlias from '@views/db-manage/common/apply-items/ClusterAlias.vue';
@@ -397,6 +396,7 @@
   import { generateId } from '@utils';
 
   import { redisClusterTypes, redisIpSources } from './common/const';
+  import BackendQPSSpec from './components/backend-spec/Index.vue';
   import RecommendArchitectrue from './components/recommend-architectrue/Index.vue';
 
   type CapSepcs = ServiceReturnType<typeof getCapSpecs>[number];
@@ -458,7 +458,7 @@
           count: 2,
         },
         backend_group: {
-          count: 0,
+          count: 1,
           spec_id: '' as number | '',
           capacity: '' as number | string,
           future_capacity: '' as number | string,
@@ -633,7 +633,7 @@
     state.formdata.details.resource_spec.proxy.spec_id = '';
     state.formdata.details.resource_spec.backend_group = {
       ...state.formdata.details.resource_spec.backend_group,
-      count: 0,
+      count: 1,
       spec_id: '',
       capacity: '',
       future_capacity: '',

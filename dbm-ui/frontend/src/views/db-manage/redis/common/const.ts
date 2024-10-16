@@ -10,6 +10,7 @@
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
  */
+import { RedisClusterTypes } from '@services/model/redis/redis';
 import {
   CopyModes,
   DisconnectModes,
@@ -105,9 +106,17 @@ export const repairAndVerifyTypeList = [
   },
 ];
 
-export const clusterTypeMachineMap: Record<string, string> = {
+export const QueryKeyMap: Record<string, string> = {
   TwemproxyRedisInstance: 'redis',
   TwemproxyTendisSSDInstance: 'tendisssd',
   PredixyTendisplusCluster: 'tendisplus',
   PredixyRedisCluster: 'redis',
+};
+
+export const ClusterMachineMap: Record<string, string> = {
+  [RedisClusterTypes.PredixyTendisplusCluster]: 'tendisplus',
+  [RedisClusterTypes.PredixyRedisCluster]: 'tendiscache',
+  [RedisClusterTypes.RedisInstance]: 'tendiscache',
+  [RedisClusterTypes.TwemproxyRedisInstance]: 'tendiscache',
+  [RedisClusterTypes.TwemproxyTendisSSDInstance]: 'tendisssd',
 };

@@ -286,7 +286,16 @@ export interface RedisDetails extends DetailBase {
       affinity: string;
       count: number;
       spec_id: number;
-      spec_info: SpecInfo;
+      spec_info: {
+        spec_name: string;
+        machine_pair: number;
+        cluster_shard_num: number;
+        cluster_capacity: number;
+        qps?: {
+          max: number;
+          min: number;
+        };
+      };
       location_spec: {
         city: string;
         sub_zone_ids: number[];

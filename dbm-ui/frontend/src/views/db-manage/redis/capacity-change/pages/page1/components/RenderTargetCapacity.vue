@@ -105,7 +105,6 @@
   import { useI18n } from 'vue-i18n';
 
   import RedisModel, { RedisClusterTypes } from '@services/model/redis/redis';
-  import ClusterSpecModel from '@services/model/resource-spec/cluster-sepc';
 
   import DisableSelect from '@components/render-table/columns/select-disable/index.vue';
   import RenderSpec from '@components/render-table/columns/spec-display/Index.vue';
@@ -116,7 +115,11 @@
 
   import { convertStorageUnits } from '@utils';
 
-  import ChooseClusterTargetPlan, { type Props as TargetPlanProps, type TargetInfo } from './ClusterDeployPlan.vue';
+  import ChooseClusterTargetPlan, {
+    type Props as TargetPlanProps,
+    type SpecResultInfo,
+    type TargetInfo,
+  } from './ClusterDeployPlan.vue';
   import type { IDataRow } from './Row.vue';
 
   interface Props {
@@ -149,7 +152,7 @@
   const selectRef = ref();
   const activeRowData = ref<TargetPlanProps['data']>();
   const showChooseClusterTargetPlan = ref(false);
-  const localValue = shallowRef<ClusterSpecModel>();
+  const localValue = shallowRef<SpecResultInfo>();
   const futureCapacity = ref(1);
   const targetObj = ref<TargetInfo>();
   const targetClusterStats = ref<RedisModel['cluster_stats']>({} as Record<string, never>);
@@ -188,8 +191,11 @@
         },
         capacity: rowData.currentCapacity ?? { used: 0, total: 1 },
         clusterType: rowData.clusterType ?? RedisClusterTypes.TwemproxyRedisInstance,
+        cloudId: rowData.bkCloudId,
         groupNum: rowData.groupNum ?? 0,
         shardNum: rowData.shardNum ?? 0,
+        machinePair: targetObj.value?.groupNum ?? 0,
+        bkCloudId: rowData.bkCloudId,
       };
       activeRowData.value = obj;
       showChooseClusterTargetPlan.value = true;
@@ -197,7 +203,7 @@
   };
 
   // 从侧边窗点击确认后触发
-  const handleChoosedTargetCapacity = (obj: ClusterSpecModel, capacity: number, targetInfo: TargetInfo) => {
+  const handleChoosedTargetCapacity = (obj: SpecResultInfo, capacity: number, targetInfo: TargetInfo) => {
     localValue.value = obj;
     futureCapacity.value = capacity;
     targetObj.value = targetInfo;
