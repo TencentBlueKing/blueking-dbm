@@ -26,8 +26,6 @@
   import TicketModel from '@services/model/ticket/ticket';
   import { getTendbclusterListByBizId } from '@services/source/tendbcluster';
 
-  import { type BackupSources, selectList } from '@views/db-manage/mysql/rollback/pages/page1/components/common/const';
-
   import { utcDisplayTime } from '@utils';
 
   interface Props {
@@ -55,7 +53,7 @@
       label: t('备份源'),
       field: 'backup_source',
       width: 100,
-      render: ({ cell }: { cell: BackupSources }) => <span>{ selectList.backupSource.find(item=>item.value === cell)?.label || '--' }</span>,
+      render: ({ cell }: { cell: string }) => cell === 'remote' ? t('远程备份') : t('本地备份'),
     },
     {
       label: t('回档类型'),
