@@ -65,11 +65,9 @@
   }
 
   const props = defineProps<Props>();
-
-  const emit = defineEmits<Emits>();
+  const emits = defineEmits<Emits>();
 
   const { t } = useI18n();
-  const existedTagsSet = ref<Set<string>>(new Set());
   const formRef = useTemplateRef<InstanceType<typeof Form>>('formRef');
   const inputRef = useTemplateRef<HTMLInputElement>('inputRef');
   const { loading: validateLoading, run: runValidate } = useRequest(validateTag, {
@@ -87,6 +85,7 @@
     },
   });
 
+  const existedTagsSet = ref<Set<string>>(new Set());
   const formModel = reactive<{
     tags: string[];
   }>({
@@ -143,7 +142,7 @@
   };
 
   const handleClose = () => {
-    emit('update:isShow', false);
+    emits('update:isShow', false);
   };
 
   onMounted(() => {

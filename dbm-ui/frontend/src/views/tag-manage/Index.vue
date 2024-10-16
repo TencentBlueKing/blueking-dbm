@@ -84,15 +84,17 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
+  import { deleteTag, listTag, updateTag } from '@services/source/tag';
+
   import { useCopy } from '@hooks';
 
   import { useGlobalBizs } from '@stores';
 
-  import { deleteTag, listTag, updateTag } from '@/services/source/tag';
+  import BusinessSelector from '@views/tag-manage/components/BusinessSelector.vue';
+  import CreateTag from '@views/tag-manage/components/CreateTag.vue'
+  import EditableCell from '@views/tag-manage/components/EditableCell.vue';
+
   import { getSearchSelectorParams } from '@/utils';
-  import BusinessSelector from '@/views/tag-manage/components/BusinessSelector.vue';
-  import CreateTag from '@/views/tag-manage/components/CreateTag.vue'
-  import EditableCell from '@/views/tag-manage/components/EditableCell.vue';
 
   type ResourceTagModel = ServiceReturnType<typeof listTag>['results'][number];
 
@@ -129,10 +131,6 @@
     {
       name: t('标签'),
       id: 'tag',
-    },
-    {
-      name: t('IP'),
-      id: 'boundIp',
     },
     {
       name: t('创建人'),
@@ -383,6 +381,7 @@
   .tag-manage-batch-delete-wrapper {
     .tag-wrapper {
       display: flex;
+      align-items: center;
       font-size: 14px;
 
       .tag {
