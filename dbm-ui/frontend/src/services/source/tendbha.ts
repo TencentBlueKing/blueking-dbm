@@ -49,6 +49,34 @@ export function getTendbhaList(params: {
   }));
 }
 
+/**
+ * 查询资源列表
+ */
+export function getTendbhaFlatList(params: {
+  bk_biz_id?: number;
+  limit?: number;
+  offset?: number;
+  type?: string;
+  dbType?: string;
+  cluster_ids?: number[] | number;
+  domain?: string;
+  master_domain?: string;
+  slave_domain?: string;
+  exact_domain?: string;
+  id?: string;
+}) {
+  return http.get<ListBase<TendbhaModel[]>>(`${getRootPath()}/`, params).then((data) =>
+    data.results.map(
+      (item) =>
+        new TendbhaModel(
+          Object.assign(item, {
+            permission: Object.assign({}, item.permission, data.permission),
+          }),
+        ),
+    ),
+  );
+}
+
 export function getTendbhaSalveList(params: {
   bk_biz_id?: number;
   limit?: number;

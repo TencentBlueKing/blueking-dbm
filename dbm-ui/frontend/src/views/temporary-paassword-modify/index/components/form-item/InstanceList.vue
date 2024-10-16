@@ -45,9 +45,13 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
+  import TendbhaModel from '@services/model/mysql/tendbha';
   import TendbhaInstanceModel from '@services/model/mysql/tendbha-instance';
+  import TendbsingleModel from '@services/model/mysql/tendbsingle';
+  import SqlServerHaModel from '@services/model/sqlserver/sqlserver-ha';
   import SqlServerHaInstanceModel from '@services/model/sqlserver/sqlserver-ha-instance';
   import SqlServerSingleInstanceModel from '@services/model/sqlserver/sqlserver-single-instance';
+  import TendbclusterModel from '@services/model/tendbcluster/tendbcluster';
   import TendbclusterInstanceModel from '@services/model/tendbcluster/tendbcluster-instance';
   import { queryAdminPassword } from '@services/source/permission';
   import { getTendbclusterInstanceList } from '@services/source/tendbcluster';
@@ -66,10 +70,22 @@
     `${instance.bk_cloud_id}:${instance.ip}:${instance.port}`;
 
   const tabListConfig = {
+    [ClusterTypes.TENDBSINGLE]: [
+      {
+        id: 'tendbsingle',
+        name: t('Mysql 单节点'),
+        topoConfig: {
+          countFunc: (item: TendbsingleModel) => item.masters.length,
+        }
+      }
+    ],
     [ClusterTypes.TENDBHA]: [
       {
         id: 'tendbha',
         name: t('Mysql 主从'),
+        topoConfig: {
+          countFunc: (item: TendbhaModel) => item.masters.length + item.slaves.length,
+        },
         tableConfig: {
           getTableList: (params: ServiceParameters<typeof getTendbhaInstanceList>) => getTendbhaInstanceList({
             ...params,
@@ -86,6 +102,9 @@
     [ClusterTypes.TENDBCLUSTER]: [
       {
         name: 'TendbCluster',
+        topoConfig: {
+          countFunc: (item: TendbclusterModel) => item.remote_db.length + item.remote_dr.length + item.spider_master.length * 2 + item.spider_slave.length,
+        },
         tableConfig: {
           getTableList: (params: ServiceParameters<typeof getTendbclusterInstanceList>) => getTendbclusterInstanceList({
             ...params,
@@ -98,6 +117,13 @@
           },
         },
       },
+    ],
+    [ClusterTypes.SQLSERVER_HA]: [
+      {
+        topoConfig: {
+          countFunc: (item: SqlServerHaModel) => item.masters.length + item.slaves.length,
+        }
+      }
     ],
   } as unknown as Record<ClusterTypes, PanelListType>;
 

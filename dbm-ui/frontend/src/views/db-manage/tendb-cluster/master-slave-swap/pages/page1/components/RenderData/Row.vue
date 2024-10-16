@@ -28,7 +28,7 @@
     <td style="padding: 0">
       <RenderCluster
         ref="clusterRef"
-        :master-data="localMasterData" />
+        :data="localMasterData" />
     </td>
     <OperateColumn
       :removeable="removeable"
@@ -39,11 +39,14 @@
   </tr>
 </template>
 <script lang="ts">
+  import type { ComponentExposed } from 'vue-component-type-helpers';
+
   import OperateColumn from '@components/render-table/columns/operate-column/index.vue';
+
+  import RenderCluster from '@views/db-manage/common/RenderRelatedClusters.vue';
 
   import { random } from '@utils';
 
-  import RenderCluster from './RenderCluster.vue';
   import RenderMaster from './RenderMaster.vue';
   import RenderSlave from './RenderSlave.vue';
 
@@ -90,9 +93,9 @@
 
   const emits = defineEmits<Emits>();
 
-  const masterHostRef = ref();
-  const slaveHostRef = ref();
-  const clusterRef = ref();
+  const masterHostRef = ref<InstanceType<typeof RenderMaster>>();
+  const slaveHostRef = ref<InstanceType<typeof RenderSlave>>();
+  const clusterRef = ref<ComponentExposed<typeof RenderCluster>>();
 
   const localMasterData = ref<IHostData>();
 
@@ -121,10 +124,12 @@
     emits('remove');
   };
 
-  const getRowData = () => [masterHostRef.value.getValue(), slaveHostRef.value.getValue(), clusterRef.value.getValue()];
-
   const handleClone = () => {
-    Promise.allSettled(getRowData()).then((rowData) => {
+    Promise.allSettled([
+      masterHostRef.value!.getValue(),
+      slaveHostRef.value!.getValue(),
+      clusterRef.value!.getValue(),
+    ]).then((rowData) => {
       const [masterHostData, slaveHostData, clusterData] = rowData.map((item) =>
         item.status === 'fulfilled' ? item.value : item.reason,
       );
@@ -134,7 +139,7 @@
           masterData: masterHostData.master,
           slaveData: slaveHostData.slave,
           clusterData: {
-            id: clusterData.cluster_id,
+            id: clusterData.cluster_ids[0],
             domain: '',
           },
         }),
@@ -144,8 +149,12 @@
 
   defineExpose<Exposes>({
     getValue() {
-      return Promise.all(getRowData()).then(([masterHostData, slaveHostData, clusterData]) => ({
-        ...clusterData,
+      return Promise.all([
+        masterHostRef.value!.getValue(),
+        slaveHostRef.value!.getValue(),
+        clusterRef.value!.getValue(),
+      ]).then(([masterHostData, slaveHostData, clusterData]) => ({
+        cluster_id: clusterData.cluster_ids[0],
         switch_tuples: [
           {
             ...masterHostData,

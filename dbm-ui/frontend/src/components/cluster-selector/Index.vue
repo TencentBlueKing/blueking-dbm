@@ -172,7 +172,7 @@
     // 不可选行及提示
     disabledRowConfig?: {
       handler: (data: any) => boolean;
-      tip?: string;
+      tip: string;
     }[];
     // 自定义列
     customColums?: any[];
@@ -200,6 +200,7 @@
     clusterTypes: string[];
     tabListConfig?: Record<string, TabConfig>;
     onlyOneType?: boolean;
+    supportOfflineData?: boolean;
   }
 
   interface Emits {
@@ -221,6 +222,20 @@
   const tabListMap: Record<string, TabItem> = {
     [ClusterTypes.TENDBCLUSTER]: {
       id: ClusterTypes.TENDBCLUSTER,
+      name: t('集群选择'),
+      disabledRowConfig: [
+        {
+          handler: (data: T) => data.isOffline,
+          tip: t('集群已禁用'),
+        },
+      ],
+      multiple: true,
+      getResourceList: getTendbClusterList,
+      tableContent: SpiderTable,
+      resultContent: ResultPreview,
+    },
+    tendbclusterSlave: {
+      id: 'tendbclusterSlave',
       name: t('集群选择'),
       disabledRowConfig: [
         {
@@ -360,7 +375,14 @@
     if (props.tabListConfig) {
       Object.keys(props.tabListConfig).forEach((type) => {
         if (props.tabListConfig?.[type]) {
-          const disabledRowConfigList = tabListMap[type].disabledRowConfig!;
+          const disabledRowConfigList = props.supportOfflineData
+            ? []
+            : [
+                {
+                  handler: (data: T) => data.isOffline,
+                  tip: t('集群已禁用'),
+                },
+              ];
           const disabledRowConfigProp = props.tabListConfig?.[type].disabledRowConfig;
           if (disabledRowConfigProp) {
             // 外部设置了 disabledRowConfig, 需要追加到 disabledRowConfig列表

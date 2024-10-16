@@ -45,7 +45,7 @@
   }
 
   interface Exposes {
-    getValue: (field: string) => Promise<string>;
+    getValue: () => Promise<{ slave_ip: ISlaveHost }>;
   }
 
   interface ISlaveHost {

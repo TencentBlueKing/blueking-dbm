@@ -18,7 +18,7 @@
         ref="editRef"
         v-model="localValue"
         :list="slaveHostSelectList"
-        :placeholder="$t('请输入选择从库')"
+        :placeholder="t('请输入选择从库')"
         :rules="rules" />
     </BkLoading>
   </div>
@@ -47,7 +47,7 @@
   }
 
   interface Exposes {
-    getValue: (field: string) => Promise<string>;
+    getValue: () => Promise<{ slave_ip: ISlaveHost }>;
   }
 
   interface ISlaveHost {

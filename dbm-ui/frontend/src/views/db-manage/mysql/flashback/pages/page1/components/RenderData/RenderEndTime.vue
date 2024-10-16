@@ -43,7 +43,7 @@
 
   import { useTimeZoneFormat } from '@hooks';
 
-  import TableEditDateTime from '@views/db-manage/tendb-cluster/common/edit/DateTime.vue';
+  import TableEditDateTime from '@components/render-table/columns/DateTime.vue';
 
   interface Props {
     startTime?: string;

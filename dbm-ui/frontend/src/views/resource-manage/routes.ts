@@ -18,9 +18,10 @@ import { t } from '@locales/index';
 
 const resourcePoolRoute = {
   name: 'resourcePool',
-  path: 'pool',
+  path: 'pool/:page?',
   meta: {
     navName: t('DB 资源池'),
+    fullscreen: true,
   },
   component: () => import('@views/resource-manage/pool/Index.vue'),
 };

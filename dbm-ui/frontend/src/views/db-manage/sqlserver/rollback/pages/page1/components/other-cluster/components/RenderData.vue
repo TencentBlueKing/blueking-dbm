@@ -37,13 +37,20 @@
         :width="400">
         {{ t('回档类型') }}
       </RenderTableHeadColumn>
-      <RenderTableHeadColumn>
+      <RenderTableHeadColumn
+        :min-width="200"
+        :width="250">
         {{ t('构造 DB') }}
       </RenderTableHeadColumn>
-      <RenderTableHeadColumn :required="false">
+      <RenderTableHeadColumn
+        :min-width="200"
+        :required="false"
+        :width="250">
         {{ t('忽略 DB') }}
       </RenderTableHeadColumn>
-      <RenderTableHeadColumn>
+      <RenderTableHeadColumn
+        :min-width="200"
+        :width="250">
         {{ t('构造后 DB 名') }}
       </RenderTableHeadColumn>
       <RenderTableHeadColumn

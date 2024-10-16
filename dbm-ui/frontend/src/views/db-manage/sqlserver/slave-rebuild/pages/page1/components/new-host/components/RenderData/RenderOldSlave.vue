@@ -24,7 +24,6 @@
   import { ref, watch } from 'vue';
   import { useI18n } from 'vue-i18n';
 
-  import SqlServerHaInstanceModel from '@services/model/sqlserver/sqlserver-ha-instance';
   import { checkInstance } from '@services/source/dbbase';
 
   import { ipv4 } from '@common/regex';
@@ -63,7 +62,7 @@
     },
     {
       validator: (value: string) =>
-        checkInstance<SqlServerHaInstanceModel>({
+        checkInstance({
           bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
           instance_addresses: [value],
         }).then((data) => {

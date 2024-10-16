@@ -25,7 +25,6 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import SqlServerHaInstanceModel from '@services/model/sqlserver/sqlserver-ha-instance';
   import { checkInstance } from '@services/source/dbbase';
 
   import TableEditInput from '@views/db-manage/tendb-cluster/common/edit/Input.vue';
@@ -45,12 +44,12 @@
   const { t } = useI18n();
 
   const editInputRef = ref();
-  const localInstanceData = shallowRef<ServiceReturnType<typeof checkInstance<SqlServerHaInstanceModel>>[number]>();
+  const localInstanceData = shallowRef<ServiceReturnType<typeof checkInstance>[number]>();
 
-  const { loading: isLoading, run: fetchCheckInstances } = useRequest(checkInstance<SqlServerHaInstanceModel>, {
+  const { loading: isLoading, run: fetchCheckInstances } = useRequest(checkInstance, {
     manual: true,
     onSuccess(data) {
-      [localInstanceData.value] = data;
+      [localInstanceData.value] = data.filter((item) => item.role === 'slave');
     },
   });
 

@@ -133,6 +133,7 @@
       id: 'instance',
     },
     isDiscardNondefault: true,
+    initAutoFetch: false
   });
 
   const activePanel = inject(activePanelInjectionKey);

@@ -116,7 +116,7 @@
   <ClusterAuthorize
     v-model="clusterAuthorizeShow"
     :account-type="AccountTypes.TENDBCLUSTER"
-    :cluster-types="[ClusterTypes.TENDBCLUSTER]"
+    :cluster-types="[ClusterTypes.TENDBCLUSTER, 'tendbclusterSlave']"
     :selected="selected"
     @success="handleClearSelected" />
   <ExcelAuthorize

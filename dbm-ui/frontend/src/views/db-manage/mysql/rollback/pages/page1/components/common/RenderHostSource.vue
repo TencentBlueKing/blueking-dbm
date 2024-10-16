@@ -19,10 +19,10 @@
     :placeholder="t('请选择')"
     :rules="rules"
     @change="(value) => handleChange(value as string)">
-    <template #option="{ optionItem }">
-      <div :style="{ ...centerStyle, justifyContent: 'space-between' }">
-        <span>{{ optionItem.name }}</span>
-        <span :style="{ ...centerStyle, ...numberStyle }">{{ optionItem.count }}</span>
+    <template #default="{ optionItem }">
+      <div class="option-item">
+        <span>{{ optionItem.label }}</span>
+        <span class="option-count">{{ optionItem.count }}</span>
       </div>
     </template>
   </TableEditSelect>
@@ -33,7 +33,7 @@
 
   import { getHostTopo } from '@services/source/ipchooser';
 
-  import TableEditSelect from '@views/db-manage/tendb-cluster/common/edit/Select.vue';
+  import TableEditSelect from '@components/render-table/columns/select/index.vue';
 
   interface Props {
     modelValue: string;
@@ -52,18 +52,6 @@
 
   const { t } = useI18n();
 
-  const centerStyle = {
-    display: 'flex',
-    alignItems: 'center',
-  };
-  const numberStyle = {
-    width: '23px',
-    height: '17px',
-    background: '#EAEBF0',
-    borderRadius: '2px',
-    justifyContent: 'center',
-  };
-
   const bizId = window.PROJECT_CONFIG.BIZ_ID;
   const rules = [
     {
@@ -76,8 +64,8 @@
   const localValue = ref('');
   const list = ref([
     {
-      id: 'idle',
-      name: t('业务空闲机'),
+      value: 'idle',
+      label: t('业务空闲机'),
       count: 0,
     },
   ]);
@@ -123,3 +111,21 @@
     },
   });
 </script>
+<style lang="less" scoped>
+  .option-item {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    justify-content: space-between;
+
+    .option-count {
+      display: flex;
+      align-items: center;
+      width: 23px;
+      height: 17px;
+      background: #eaebf0;
+      border-radius: 2px;
+      justify-content: center;
+    }
+  }
+</style>
