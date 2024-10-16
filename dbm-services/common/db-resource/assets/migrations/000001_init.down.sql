@@ -1,0 +1,1 @@
+SET names utf8;

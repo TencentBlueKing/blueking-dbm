@@ -20,6 +20,7 @@ import (
 	"strings"
 	"time"
 
+	"dbm-services/common/db-resource/assets"
 	"dbm-services/common/db-resource/internal/config"
 	"dbm-services/common/go-pubpkg/logger"
 
@@ -53,7 +54,6 @@ func init() {
 		Self:      ormDB,
 		SelfSqlDB: sqlDB,
 	}
-	migration()
 	initarchive()
 	TbRpOperationInfoColumns = []string{}
 	TbRpOperationInfoColumns, err = getTbRpOperationInfoColumns()
@@ -79,6 +79,10 @@ func createSysDb() {
 	sqldb, err := testConn.DB()
 	if err != nil {
 		log.Fatalf("init create db failed:%s", err.Error())
+	}
+	err = assets.DoMigrateFromEmbed(user, addr, pwd, dbname, 3306)
+	if err != nil {
+		log.Fatalf("init migrate from embed failed:%s", err.Error())
 	}
 	var autoIncrement sql.NullInt64
 	err = testConn.Raw(fmt.Sprintf("select max(id) from `%s`.`%s`", dbname, TbRpDetailArchiveName())).Scan(&autoIncrement).
@@ -135,15 +139,6 @@ func initSelfDB() *gorm.DB {
 		config.AppConfig.Db.Addr,
 		config.AppConfig.Db.Name,
 	)
-}
-
-// migration migration
-func migration() {
-	err := DB.Self.AutoMigrate(&TbRpDetail{}, &TbRequestLog{}, &TbRpDetailArchive{}, &TbRpApplyDetailLog{},
-		&TbRpOperationInfo{})
-	if err != nil {
-		logger.Error("auto migrate failed %v", err)
-	}
 }
 
 // JSONQueryExpression json query expression, implements clause.Expression interface to use as querier
