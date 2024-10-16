@@ -54,6 +54,7 @@ export async function generateRedisClusterShardUpdateCloneData(
       clusterType: currentClusterInfo.cluster_spec.spec_cluster_type,
       clusterTypeName: currentClusterInfo.cluster_type_name,
       currentShardNum: currentClusterInfo.cluster_shard_num,
+      groupNum: currentClusterInfo.machine_pair_cnt,
       currentSpecId: currentClusterInfo.cluster_spec.spec_id,
       dbVersion: item.db_version,
       specConfig: {

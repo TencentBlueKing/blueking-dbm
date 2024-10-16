@@ -117,6 +117,7 @@
   import { useRequest } from 'vue-request';
   import { useRouter } from 'vue-router';
 
+  import RedisModel from '@services/model/redis/redis';
   import { RepairAndVerifyFrequencyModes, RepairAndVerifyModes } from '@services/model/redis/redis-dst-history-job';
   import { listPackages } from '@services/source/package';
   import { getRedisList } from '@services/source/redis';
@@ -132,7 +133,7 @@
   import TicketRemark from '@components/ticket-remark/Index.vue';
 
   import {
-    clusterTypeMachineMap,
+    QueryKeyMap,
     repairAndVerifyFrequencyList,
     repairAndVerifyTypeList,
   } from '@views/db-manage/redis/common/const';
@@ -144,8 +145,6 @@
     type IDataRowBatchKey,
     type InfoItem,
   } from './components/Row.vue';
-
-  type RedisModel = ServiceReturnType<typeof getRedisList>['results'][number];
 
   const router = useRouter();
   const { t } = useI18n();
@@ -229,7 +228,7 @@
     if (versionCluserType.value) {
       fetchListPackages({
         db_type: 'redis',
-        query_key: clusterTypeMachineMap[versionCluserType.value] ?? 'redis',
+        query_key: QueryKeyMap[versionCluserType.value] ?? 'redis',
       });
     } else {
       versionList.value = [];
@@ -257,7 +256,9 @@
     currentSpecId: item.cluster_spec.spec_id,
     srcClusterType: item.cluster_type_name,
     clusterType: item.cluster_type,
+    machineType: item.cluster_spec.spec_machine_type,
     currentShardNum: item.cluster_shard_num,
+    groupNum: item.machine_pair_cnt,
     dbVersion: item.major_version,
     specConfig: {
       cpu: item.cluster_spec.cpu,
