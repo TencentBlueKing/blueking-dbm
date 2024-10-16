@@ -81,7 +81,7 @@ class DBPartitionViewSet(viewsets.AuditedModelViewSet):
             *ActionEnum.get_match_actions(
                 "tendbcluster_partition", exclude=[ActionEnum.TENDBCLUSTER_PARTITION_CREATE]
             ),
-            *[ActionEnum.TENDBCLUSTER_PARTITION_ENABLE_DISABLE],
+            ActionEnum.TENDBCLUSTER_PARTITION_ENABLE_DISABLE,
         ]
         if d["cluster_type"] == ClusterType.TenDBCluster
         else [*ActionEnum.get_match_actions("mysql_partition", exclude=[ActionEnum.MYSQL_PARTITION_CREATE])],

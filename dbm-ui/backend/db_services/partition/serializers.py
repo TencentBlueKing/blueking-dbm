@@ -27,16 +27,20 @@ class PartitionListSerializer(serializers.Serializer):
     immute_domains = serializers.CharField(help_text=_("集群域名"), required=False)
     dblikes = serializers.CharField(help_text=_("匹配库"), required=False)
     tblikes = serializers.CharField(help_text=_("匹配表"), required=False)
+    ids = serializers.CharField(help_text=_("策略ID"), required=False)
 
     limit = serializers.IntegerField(required=False, default=10)
     offset = serializers.IntegerField(required=False, default=0)
 
     def validate(self, attrs):
-        filter_fields = ["immute_domains", "dblikes", "tblikes"]
+        filter_fields = ["immute_domains", "dblikes", "tblikes", "ids"]
+        # 将过滤参数转为list
         for field in filter_fields:
             if field in attrs:
                 attrs[field] = attrs[field].split(",")
-
+        # id过滤类型为int
+        if attrs.get("ids"):
+            attrs["ids"] = list(map(int, attrs["ids"]))
         return attrs
 
 

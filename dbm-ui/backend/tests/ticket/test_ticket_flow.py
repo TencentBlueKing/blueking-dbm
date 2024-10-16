@@ -182,8 +182,8 @@ class TestTicketFlow:
         "backend.ticket.flow_manager.resource.ResourceApplyFlow.patch_resource_spec", lambda self, ticket_data: None
     )
     @patch("backend.db_services.cmdb.biz.Permission", PermissionMock)
-    @patch("backend.ticket.builders.mysql.mysql_ha_apply.DBConfigApi", DBConfigApiMock)
-    def test_mysql_HA_apply_flow(
+    @patch("backend.ticket.builders.mysql.mysql_single_apply.DBConfigApi", DBConfigApiMock)
+    def test_mysql_ha_apply_flow(
         self, mock_pause_status, mocked_status, mocked__run, mocked_permission_classes, query_fixture, db, init_app
     ):
         # MySQL 高可用部署: start --> itsm --> PAUSE --> RESOURC --> INNER_FLOW --> end

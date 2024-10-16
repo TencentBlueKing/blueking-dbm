@@ -8,13 +8,12 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import itertools
 from typing import Dict, List
 
 from django.utils.translation import ugettext_lazy as _
 from rest_framework import serializers
 
-from backend.components import DBConfigApi
-from backend.components.dbconfig import constants as dbconf_const
 from backend.configuration.constants import MASTER_DOMAIN_INITIAL_VALUE, SLAVE_DOMAIN_INITIAL_VALUE, AffinityEnum
 from backend.db_meta.enums import ClusterType
 from backend.db_meta.models import AppCache, DBModule
@@ -26,11 +25,11 @@ from backend.ticket.builders import BuilderFactory
 from backend.ticket.builders.mysql.base import BaseMySQLHATicketFlowBuilder
 from backend.ticket.builders.mysql.mysql_single_apply import (
     MysqlSingleApplyDetailSerializer,
+    MysqlSingleApplyFlowBuilder,
     MysqlSingleApplyFlowParamBuilder,
     MysqlSingleApplyResourceParamBuilder,
 )
 from backend.ticket.constants import TicketType
-from backend.ticket.exceptions import TicketParamsVerifyException
 
 
 class MysqlHAApplyDetailSerializer(MysqlSingleApplyDetailSerializer):
@@ -47,6 +46,7 @@ class MysqlHAApplyDetailSerializer(MysqlSingleApplyDetailSerializer):
 
     def validate(self, attrs):
         super().validate(attrs)
+
         # 验证输入的机器数量是否预期
         if attrs["ip_source"] == IpSource.RESOURCE_POOL:
             return attrs
@@ -104,19 +104,22 @@ class MysqlHAApplyFlowParamBuilder(MysqlSingleApplyFlowParamBuilder):
         proxy_nodes = ticket_data["nodes"]["proxy"]
         for index, apply_info in enumerate(apply_infos):
             # 每组集群需要两个后端 IP 和两个 Proxy IP
-            start = index * 2
-            end = (index + 1) * 2
+            start, end = index * 2, (index + 1) * 2
             apply_info["mysql_ip_list"] = backend_nodes[start:end]
             apply_info["proxy_ip_list"] = proxy_nodes[start:end]
 
 
 class MysqlHaApplyResourceParamBuilder(MysqlSingleApplyResourceParamBuilder):
+    @classmethod
+    def insert_ip_into_apply_infos(cls, ticket_data, apply_infos: List[Dict]):
+        backend_nodes = [[group["master"], group["slave"]] for group in ticket_data["nodes"]["backend_group"]]
+        ticket_data["nodes"]["backend"] = list(itertools.chain(*backend_nodes))
+        MysqlHAApplyFlowParamBuilder.insert_ip_into_apply_infos(ticket_data, apply_infos)
+
     def post_callback(self):
         next_flow = self.ticket.next_flow()
         apply_infos = next_flow.details["ticket_data"]["apply_infos"]
-
-        MysqlHAApplyFlowParamBuilder.insert_ip_into_apply_infos(self.ticket.details, apply_infos)
-
+        self.insert_ip_into_apply_infos(next_flow.details["ticket_data"], apply_infos)
         next_flow.details["ticket_data"].update(apply_infos=apply_infos)
         next_flow.save(update_fields=["details"])
 
@@ -124,28 +127,12 @@ class MysqlHaApplyResourceParamBuilder(MysqlSingleApplyResourceParamBuilder):
 @BuilderFactory.register(
     TicketType.MYSQL_HA_APPLY, is_apply=True, cluster_type=ClusterType.TenDBHA, iam=ActionEnum.MYSQL_APPLY
 )
-class MysqlHAApplyFlowBuilder(BaseMySQLHATicketFlowBuilder):
+class MysqlHAApplyFlowBuilder(BaseMySQLHATicketFlowBuilder, MysqlSingleApplyFlowBuilder):
     serializer = MysqlHAApplyDetailSerializer
     inner_flow_builder = MysqlHAApplyFlowParamBuilder
     inner_flow_name = _("MySQL高可用部署执行")
     resource_apply_builder = MysqlHaApplyResourceParamBuilder
 
     def patch_ticket_detail(self):
-        # 补充数据库版本和字符集
-        db_config = DBConfigApi.query_conf_item(
-            {
-                "bk_biz_id": str(self.ticket.bk_biz_id),
-                "level_name": dbconf_const.LevelName.MODULE,
-                "level_value": str(self.ticket.details["db_module_id"]),
-                "conf_file": dbconf_const.DEPLOY_FILE_NAME,
-                "conf_type": dbconf_const.ConfType.DEPLOY,
-                "namespace": ClusterType.TenDBHA,
-                "format": dbconf_const.FormatType.MAP,
-            }
-        )["content"]
-
-        # 校验配置是否存在
-        if not db_config.get("db_version") or not db_config.get("charset"):
-            raise TicketParamsVerifyException(_("获取数据库字符集或版本失败，请检查获取参数, db_config: {}").format(db_config))
-
-        self.ticket.update_details(db_version=db_config.get("db_version"), charset=db_config.get("charset"))
+        super().patch_dbconfig(cluster_type=ClusterType.TenDBHA)
+        super().patch_ticket_detail()
