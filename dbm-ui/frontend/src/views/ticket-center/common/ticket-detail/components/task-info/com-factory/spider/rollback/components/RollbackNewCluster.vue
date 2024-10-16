@@ -24,9 +24,6 @@
   import type { MySQLRollbackDetails } from '@services/model/ticket/details/mysql';
   import TicketModel from '@services/model/ticket/ticket';
 
-  import { type BackupSources, selectList } from '@views/db-manage/mysql/rollback/pages/page1/components/common/const';
-  import type { IDataRow } from '@views/db-manage/tendb-cluster/rollback/pages/page1/components/render-data/Index.vue';
-
   import { utcDisplayTime } from '@utils';
 
   interface Props {
@@ -54,19 +51,19 @@
       label: t('存储层主机'),
       field: 'remote_hosts',
       width: 120,
-      render: ({ data }: { data: MySQLRollbackDetails['infos'][0] }) => <span>{(data.rollback_host as IDataRow['rollbackHost']).remote_hosts?.map(item => item.ip) || '--'}</span>,
+      render: ({ data }: { data: MySQLRollbackDetails['infos'][0] }) => <span>{(data.rollback_host as any).remote_hosts?.map((item: any) => item.ip) || '--'}</span>,
     },
     {
       label: t('接入层主机'),
       field: 'spider_host',
       width: 120,
-      render: ({ data }: { data: MySQLRollbackDetails['infos'][0] }) => <span>{(data.rollback_host as IDataRow['rollbackHost']).spider_host?.ip || '--'}</span>,
+      render: ({ data }: { data: MySQLRollbackDetails['infos'][0] }) => <span>{(data.rollback_host as any).spider_host?.ip || '--'}</span>,
     },
     {
       label: t('备份源'),
       field: 'backup_source',
       width: 100,
-      render: ({ cell }: { cell: BackupSources }) => <span>{ selectList.backupSource.find(item=>item.value === cell)?.label || '--' }</span>,
+      render: ({ cell }: { cell: string }) => cell === 'remote' ? t('远程备份') : t('本地备份'),
     },
     {
       label: t('回档类型'),
