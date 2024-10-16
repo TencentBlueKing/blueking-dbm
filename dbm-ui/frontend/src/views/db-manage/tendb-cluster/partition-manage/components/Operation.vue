@@ -21,14 +21,15 @@
           property="cluster_id"
           required>
           <BkSelect
+            :disabled="isEditMode"
             :loading="isCluserListLoading"
             :model-value="formData.cluster_id || undefined"
             @change="handleClusterChange">
             <BkOption
-              v-for="item in clusterList?.results"
+              v-for="item in clusterList"
               :id="item.id"
               :key="item.id"
-              :name="item.master_domain" />
+              :name="item.immute_domain" />
           </BkSelect>
         </DbFormItem>
         <DbFormItem
@@ -137,14 +138,14 @@
   import { useRequest } from 'vue-request';
 
   import type PartitionModel from '@services/model/partition/partition';
+  import { queryAllTypeCluster } from '@services/source/dbbase';
   import {
     create as createParitition,
     edit as editPartition,
     verifyPartitionField,
   } from '@services/source/partitionManage';
-  import { getTendbClusterList } from '@services/source/tendbcluster';
 
-  import { dbSysExclude } from '@common/const';
+  import { ClusterTypes, dbSysExclude } from '@common/const';
   import { dbRegex } from '@common/regex';
 
   interface Props {
@@ -309,10 +310,13 @@
     },
   ];
 
-  const { loading: isCluserListLoading, data: clusterList } = useRequest(getTendbClusterList, {
+  const { loading: isCluserListLoading, data: clusterList } = useRequest(queryAllTypeCluster, {
     defaultParams: [
       {
+        offset: 0,
         limit: -1,
+        bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+        cluster_types: ClusterTypes.TENDBCLUSTER,
       },
     ],
   });
