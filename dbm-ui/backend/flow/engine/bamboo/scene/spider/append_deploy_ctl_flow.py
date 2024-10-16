@@ -72,7 +72,9 @@ class AppendDeployCTLFlow(object):
         self.threads = 0
         self.bk_cloud_id = 0
         # stream mydumper & myloader 流式备份导入，否则退化成mysqldump方式
-        self.use_mydumper = True
+        self.use_mydumper = False
+        if self.data.get("use_mydumper"):
+            self.use_mydumper = self.data["use_mydumper"]
         self.stream = False
         if self.data.get("use_stream"):
             self.stream = self.data["use_stream"]

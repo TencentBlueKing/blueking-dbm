@@ -219,7 +219,7 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
             # 介质管理暂未记录介质来源属性
             if db_version >= "8.0.30":
                 is_community = True
-        cfg = self.deal_with_upgrade_to_mysql80(is_community=is_community, cfg=cfg)
+            cfg = self.deal_with_upgrade_to_mysql80(is_community=is_community, cfg=cfg)
 
         return cfg
 
