@@ -3536,6 +3536,7 @@
     "不允许超过 x 位连续字符": "不允许超过 {x} 位连续字符",
     "TendbCluster-主域名": "TendbCluster-主域名",
     "TendbCluster-从域名": "TendbCluster-从域名",
+    "必须要能除尽总分片数": "必须要能除尽总分片数",
     "日期类型(date)": "日期类型(date)",
     "日期时间类型(datetime)": "日期时间类型(datetime)",
     "时间戳类型(timestamp)": "时间戳类型(timestamp)",

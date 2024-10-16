@@ -66,6 +66,10 @@ export async function generateRedisClusterTypeUpdateCloneData(ticketData: Ticket
         id: currentClusterInfo.proxy[0].spec_config.id,
         count: new Set(currentClusterInfo.proxy.map((item) => item.ip)).size,
       },
+      backendGroup: {
+        id: currentClusterInfo.cluster_spec.spec_id,
+        count: currentClusterInfo.redis_master.length,
+      },
     };
   });
   return {

@@ -69,7 +69,7 @@
             <div class="column-content">
               <RenderSpec
                 :data="data.currentSepc"
-                :hide-qps="!data.currentSepc.qps.max"
+                :hide-qps="!data.currentSepc.qps?.max"
                 is-ignore-counts />
             </div>
           </div>
@@ -184,50 +184,65 @@
       </div>
       <div class="deploy-box">
         <div class="title-spot">{{ t('集群部署方案') }}<span class="required" /></div>
-        <div class="input-box">
-          <BkInput
-            ref="capacityInputRef"
-            class="mb10"
-            :min="0"
-            :model-value="capacityNeed"
-            :prefix="t('目标容量')"
-            style="width: 450px"
-            suffix="G"
-            type="number"
-            @blur="handleSearchClusterSpec"
-            @change="(value) => (capacityNeed = Number(value))"
-            @enter="handleCapacityNeedEnter" />
-          <div class="uint-text ml-12">
-            <span>{{ t('当前') }}</span>
-            <span class="spec-text">{{ props.data.capacity.total ?? 0 }}</span>
-            <span>G</span>
-          </div>
-        </div>
-        <BkLoading :loading="isTableLoading">
-          <DbOriginalTable
-            class="deploy-table"
-            :columns="columns"
-            :data="tableData"
-            @column-sort="handleColumnSort"
-            @row-click.stop="handleRowClick">
-            <template #empty>
-              <p
-                v-if="!capacityNeed"
-                style="width: 100%; line-height: 128px; text-align: center">
-                <DbIcon
-                  class="mr-4"
-                  type="attention" />
-                <span>{{ t('请先设置容量') }}</span>
-              </p>
-              <BkException
-                v-else
-                :description="t('无匹配的资源规格_请先修改容量设置')"
-                scene="part"
-                style="font-size: 12px"
-                type="empty" />
-            </template>
-          </DbOriginalTable>
-        </BkLoading>
+        <DbForm
+          ref="formRef"
+          :model="specInfo">
+          <ApplySchema v-model="applySchema" />
+          <template v-if="applySchema === APPLY_SCHEME.AUTO">
+            <DbFormItem
+              :label="t('目标容量')"
+              required>
+              <div class="input-box">
+                <BkInput
+                  ref="capacityInputRef"
+                  class="mb10"
+                  :min="0"
+                  :model-value="capacityNeed"
+                  style="width: 314px"
+                  type="number"
+                  @blur="handleSearchClusterSpec"
+                  @change="(value) => (capacityNeed = Number(value))"
+                  @enter="handleCapacityNeedEnter" />
+                <div class="uint-text ml-12">
+                  <span>{{ t('当前') }}</span>
+                  <span class="spec-text">{{ props.data.capacity.total ?? 0 }}</span>
+                  <span>G</span>
+                </div>
+              </div>
+            </DbFormItem>
+            <BkLoading :loading="isTableLoading">
+              <DbOriginalTable
+                class="deploy-table"
+                :columns="columns"
+                :data="tableData"
+                @column-sort="handleColumnSort"
+                @row-click.stop="handleRowClick">
+                <template #empty>
+                  <p
+                    v-if="!capacityNeed"
+                    style="width: 100%; line-height: 128px; text-align: center">
+                    <DbIcon
+                      class="mr-4"
+                      type="attention" />
+                    <span>{{ t('请先设置容量') }}</span>
+                  </p>
+                  <BkException
+                    v-else
+                    :description="t('无匹配的资源规格_请先修改容量设置')"
+                    scene="part"
+                    style="font-size: 12px"
+                    type="empty" />
+                </template>
+              </DbOriginalTable>
+            </BkLoading>
+          </template>
+          <CustomSchema
+            v-else
+            ref="customSchemaRef"
+            v-model="specInfo"
+            :cluster-info="clusterInfo"
+            :shard-num-disabled="shardNumDisabled" />
+        </DbForm>
       </div>
     </div>
     <template #footer>
@@ -249,7 +264,7 @@
 </template>
 <script setup lang="tsx">
   import _ from 'lodash';
-  import type { UnwrapRef } from 'vue';
+    import type { UnwrapRef } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import RedisModel, { RedisClusterTypes } from '@services/model/redis/redis';
@@ -259,16 +274,28 @@
 
   import { useBeforeClose } from '@hooks';
 
+  import DbForm from '@components/db-form/index.vue'
   import RenderSpec from '@components/render-table/columns/spec-display/Index.vue';
 
+  import ApplySchema, { APPLY_SCHEME } from '@views/db-manage/common/apply-schema/Index.vue';
   import ClusterCapacityUsageRate from '@views/db-manage/common/cluster-capacity-usage-rate/Index.vue'
   import ValueDiff from '@views/db-manage/common/value-diff/Index.vue'
+  import CustomSchema from '@views/db-manage/redis/common/cluster-deploy-plan/CustomSchema.vue';
+  import { ClusterMachineMap } from '@views/db-manage/redis/common/const'
 
   import { convertStorageUnits, messageError } from '@utils';
 
   export interface CapacityNeed {
     current: number,
     future: number,
+  }
+
+  export interface SpecResultInfo {
+    cluster_capacity: number,
+    max: number,
+    cluster_shard_num: number,
+    spec_id: number,
+    machine_pair: number
   }
 
   export interface TargetInfo {
@@ -298,8 +325,11 @@
         used: number,
       },
       clusterType: RedisClusterTypes,
+      cloudId: number,
       groupNum: number,
       shardNum: number,
+      machinePair: number,
+      bkCloudId: number
     };
     title?: string,
     showTitleTag?: boolean,
@@ -310,7 +340,7 @@
   }
 
   interface Emits {
-    (e: 'clickConfirm', obj: ClusterSpecModel, capacity: number, target: UnwrapRef<typeof targetInfo>): void
+    (e: 'clickConfirm', obj: SpecResultInfo, capacity: number, target: UnwrapRef<typeof targetInfo>): void
     (e: 'clickCancel'): void
     (e: 'targetStatsChange', value: RedisModel['cluster_stats']): void
   }
@@ -333,9 +363,12 @@
         used: 0,
       },
       clusterType: RedisClusterTypes.TwemproxyRedisInstance,
+      cloudId: 0,
       groupNum: 0,
       requireMachineGroupNum: 0,
       shardNum: 0,
+      machinePair: 0,
+      bkCloudId: 0,
     }),
     title: '',
     showTitleTag: true,
@@ -365,6 +398,8 @@
     updateMode: ''
   })
 
+  const formRef = ref<InstanceType<typeof DbForm>>()
+  const customSchemaRef = ref<InstanceType<typeof CustomSchema>>()
   const capacityInputRef = ref()
   const capacityNeed = ref();
   const radioValue = ref(-1);
@@ -373,10 +408,32 @@
   const isConfirmLoading = ref(false);
   const tableData = ref<ClusterSpecModel[]>([]);
   const targetInfo = ref(createDefaultTargetInfo());
+  const applySchema = ref(APPLY_SCHEME.AUTO);
+  const updateInfoError = ref(false)
 
   const specDisabledMap = shallowRef<Record<number, boolean>>({})
 
-  const isAbleSubmit = computed(() => radioValue.value !== -1);
+  const specInfo = reactive({
+    specId: '',
+    count: 0,
+    shardNum: 0,
+    clusterShardNum: 0,
+    totalCapcity: 0,
+  })
+
+  const clusterInfo = reactive({
+    bizId: 0,
+    cloudId: 0,
+    clusterType: '',
+    machineType: ''
+  })
+
+  const isAbleSubmit = computed(() => {
+    if (applySchema.value === APPLY_SCHEME.AUTO) {
+      return radioValue.value !== -1
+    }
+    return !updateInfoError.value
+  });
 
   const isDataChange = computed(() => capacityNeed.value !== undefined
     || radioValue.value !== -1);
@@ -405,13 +462,7 @@
     return convertStorageUnits(props.clusterStats.total, 'B', 'GB')
   })
 
-  const cluserMachineMap = {
-    [RedisClusterTypes.PredixyTendisplusCluster]: 'tendisplus',
-    [RedisClusterTypes.PredixyRedisCluster]: 'tendiscache',
-    [RedisClusterTypes.RedisInstance]: 'tendiscache',
-    [RedisClusterTypes.TwemproxyRedisInstance]: 'tendiscache',
-    [RedisClusterTypes.TwemproxyTendisSSDInstance]: 'tendisssd',
-  };
+  const shardNumDisabled = computed(() => props.data.clusterType !== RedisClusterTypes.PredixyTendisplusCluster)
 
   const columns =  [
     {
@@ -466,6 +517,70 @@
     }
   })
 
+  watch(() => props.data, () => {
+    if (props.data) {
+      Object.assign(specInfo, {
+        spec_id: props.data.currentSepc.id,
+        count: props.data.machinePair,
+        clusterShardNum: props.data.shardNum
+      })
+      Object.assign(clusterInfo, {
+        bizId: window.PROJECT_CONFIG.BIZ_ID,
+        cloudId: props.data.bkCloudId,
+        clusterType: props.data.clusterType,
+        machineType: ClusterMachineMap[props.data.clusterType]
+      })
+    }
+  }, {
+    immediate: true,
+  });
+
+  watch(() => props.data.shardNum, () => {
+    specInfo.shardNum = props.data.shardNum
+  })
+
+  watch(specInfo, () => {
+    if (specInfo.specId && specInfo.count && specInfo.clusterShardNum) {
+      getCustomUpdateInfo()
+    }
+  }, {
+    deep: true,
+    immediate: true
+  })
+
+  const getCustomUpdateInfo = _.debounce(() => {
+    getRedisClusterCapacityUpdateInfo({
+      cluster_id: props.clusterId!,
+      new_storage_version: props.targetVerison!,
+      new_spec_id : Number(specInfo.specId),
+      new_machine_group_num: specInfo.count,
+      new_shards_num: specInfo.clusterShardNum
+    }).then((updateInfo) => {
+      if (updateInfo.err_msg) {
+        updateInfoError.value = true
+        messageError(updateInfo.err_msg)
+        return
+      }
+      updateInfoError.value = false
+      const customSepcInfo = customSchemaRef.value!.getInfo()
+      targetInfo.value = {
+        capacity: specInfo.totalCapcity,
+        spec: {
+          id: Number(specInfo.specId),
+          name: customSepcInfo.spec_name,
+          cpu: customSepcInfo.cpu,
+          mem: customSepcInfo.mem,
+          qps: customSepcInfo.qps,
+          storage_spec: customSepcInfo.storage_spec
+        },
+        groupNum: specInfo.count,
+        requireMachineGroupNum: updateInfo.require_machine_group_num,
+        shardNum: specInfo.clusterShardNum,
+        updateMode: updateInfo.capacity_update_type
+      }
+    })
+  }, 200)
+
   const handleSearchClusterSpec = async () => {
     if (capacityNeed.value === undefined) {
       return;
@@ -475,7 +590,7 @@
       const clusterType = props.data?.clusterType ?? RedisClusterTypes.TwemproxyRedisInstance;
       const params = {
         spec_cluster_type: clusterType,
-        spec_machine_type: cluserMachineMap[clusterType],
+        spec_machine_type: ClusterMachineMap[clusterType],
         shard_num: props.data.shardNum === 0 ? undefined : props.data.shardNum,
         capacity: capacityNeed.value,
         future_capacity: capacityNeed.value,
@@ -499,15 +614,47 @@
   }
 
   // 点击确定
-  const handleConfirm = () => {
-    const index = radioValue.value;
-    if (index === -1) {
-      return;
+  const handleConfirm = async () => {
+    if (applySchema.value === APPLY_SCHEME.AUTO) {
+      const index = radioValue.value;
+      if (index !== -1) {
+        handleClickConfirm()
+      }
+    } else {
+      const validateResult = await formRef.value!.validate()
+      if (validateResult) {
+        handleClickConfirm()
+      }
     }
-    emits('clickConfirm', tableData.value[index], capacityNeed.value, targetInfo.value);
   };
+  const handleClickConfirm = () => {
+    const result = {} as SpecResultInfo
+    let capacityResult = 0
+    if (applySchema.value === APPLY_SCHEME.AUTO) {
+      const index = radioValue.value;
+      const choosedObj = tableData.value[index]
+      Object.assign(result, {
+        cluster_capacity: choosedObj.cluster_capacity,
+        max: choosedObj.qps.max,
+        cluster_shard_num: choosedObj.cluster_shard_num,
+        spec_id: choosedObj.spec_id,
+        machine_pair: choosedObj.machine_pair,
+      })
+      capacityResult = Number(capacityNeed.value || 0)
+    } else {
+      Object.assign(result, {
+        cluster_capacity: specInfo.totalCapcity,
+        max: 0,
+        cluster_shard_num: specInfo.clusterShardNum,
+        spec_id: specInfo.specId,
+        machine_pair: specInfo.count
+      })
+      capacityResult = specInfo.totalCapcity
+    }
+    emits('clickConfirm', result, capacityResult, targetInfo.value);
+  }
 
-  async function handleClose() {
+  const handleClose = async () => {
     const result = await handleBeforeClose(isDataChange.value);
     if (!result) return;
     window.changeConfirm = false;
@@ -652,23 +799,6 @@
           .num-input {
             height: 32px;
           }
-
-          // .uint {
-          //   margin-left: 12px;
-          //   font-size: 12px;
-          //   color: #63656e;
-          // }
-        }
-
-        .gt-tip {
-          position: absolute;
-          right: 252px;
-          bottom: -20px;
-
-          span {
-            font-size: 12px;
-            color: #ea3636;
-          }
         }
       }
     }
@@ -679,7 +809,6 @@
       .input-box {
         display: flex;
         align-items: center;
-        margin-top: 12px;
 
         .uint-text {
           font-size: 12px;

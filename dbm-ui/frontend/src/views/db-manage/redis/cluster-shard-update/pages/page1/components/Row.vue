@@ -179,8 +179,7 @@
       count: 0,
     },
   });
-</script>
-<script setup lang="ts">
+
   interface Props {
     data: IDataRow;
     removeable: boolean;
@@ -197,7 +196,8 @@
   interface Exposes {
     getValue: () => Promise<InfoItem>;
   }
-
+</script>
+<script setup lang="ts">
   const props = withDefaults(defineProps<Props>(), {
     inputedClusters: () => [],
   });
