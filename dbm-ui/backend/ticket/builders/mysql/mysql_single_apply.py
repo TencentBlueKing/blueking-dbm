@@ -187,9 +187,13 @@ class MysqlSingleApplyFlowParamBuilder(builders.FlowParamBuilder):
 class MysqlSingleApplyResourceParamBuilder(builders.ResourceApplyParamBuilder):
     def post_callback(self):
         next_flow = self.ticket.next_flow()
-        apply_infos = next_flow.details["ticket_data"]["apply_infos"]
 
+        # 组装后台部署节点格式
+        apply_infos = next_flow.details["ticket_data"]["apply_infos"]
         MysqlSingleApplyFlowParamBuilder.insert_ip_into_apply_infos(self.ticket.details, apply_infos)
+        # 补充规格信息
+        resource_spec = next_flow.details["ticket_data"]["resource_spec"]
+        resource_spec["single"] = resource_spec.pop("backend")
 
         next_flow.details["ticket_data"].update(apply_infos=apply_infos)
         next_flow.save(update_fields=["details"])

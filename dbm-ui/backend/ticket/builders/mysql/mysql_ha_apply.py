@@ -110,6 +110,10 @@ class MysqlHAApplyFlowParamBuilder(MysqlSingleApplyFlowParamBuilder):
 
 
 class MysqlHaApplyResourceParamBuilder(MysqlSingleApplyResourceParamBuilder):
+    def format(self):
+        # 在跨机房亲和性要求下，接入层proxy的亲和性要求至少分布在2个机房
+        self.ticket_data["resource_spec"]["proxy"]["group_count"] = 2
+
     @classmethod
     def insert_ip_into_apply_infos(cls, ticket_data, apply_infos: List[Dict]):
         backend_nodes = [[group["master"], group["slave"]] for group in ticket_data["nodes"]["backend_group"]]
@@ -118,8 +122,14 @@ class MysqlHaApplyResourceParamBuilder(MysqlSingleApplyResourceParamBuilder):
 
     def post_callback(self):
         next_flow = self.ticket.next_flow()
+
+        # 组装后台部署节点格式
         apply_infos = next_flow.details["ticket_data"]["apply_infos"]
         self.insert_ip_into_apply_infos(next_flow.details["ticket_data"], apply_infos)
+        # 补充规格信息
+        resource_spec = next_flow.details["ticket_data"]["resource_spec"]
+        resource_spec["backend"] = resource_spec.pop("master")
+
         next_flow.details["ticket_data"].update(apply_infos=apply_infos)
         next_flow.save(update_fields=["details"])
 
