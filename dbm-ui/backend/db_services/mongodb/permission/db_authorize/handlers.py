@@ -41,6 +41,7 @@ class MongoDBAuthorizeHandler(AuthorizeHandler):
         user_info_map: Dict = None,
         user_db__rules: Dict = None,
         user__password: Dict = None,
+        **kwargs
     ) -> Tuple[bool, str, Dict]:
         """前置校验"""
 
@@ -58,9 +59,10 @@ class MongoDBAuthorizeHandler(AuthorizeHandler):
         }
 
         # 校验密码是否存在
-        if authorize.user not in user__password:
+        user_password_map = kwargs.get("user_password_map", {})
+        if authorize.user not in user_password_map:
             return False, _("无法查询用户{}对应的密码").format(authorize.user), authorize_data
-        authorize_data["password"] = user__password[authorize.user]
+        authorize_data["password"] = user_password_map[authorize.user]
 
         # 检查授权规则是否存在
         for db in authorize.access_dbs:
