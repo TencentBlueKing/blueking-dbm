@@ -43,6 +43,8 @@ MYSQL_BINLOG_ROLLBACK = "/home/mysql/dba-toolkit/mysqlbinlog_rollback"
 
 MYSQL_CHECKSUM_TABLE = "checksum_history"
 
+MONGODB_VERSION_PREFIX = "mongodb"
+
 
 class BigDataRole(object):
     class Es(str, StructuredEnum):

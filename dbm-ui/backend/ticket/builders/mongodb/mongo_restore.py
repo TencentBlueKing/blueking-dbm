@@ -23,6 +23,7 @@ from backend.db_services.dbbase.constants import IpSource
 from backend.flow.consts import MongoDBClusterDefaultPort
 from backend.flow.engine.controller.mongodb import MongoDBController
 from backend.ticket import builders
+from backend.ticket.builders.common.constants import MONGODB_VERSION_PREFIX
 from backend.ticket.builders.common.field import DBTimezoneField
 from backend.ticket.builders.mongodb.base import (
     BaseMongoDBOperateDetailSerializer,
@@ -91,7 +92,12 @@ class MongoDBRestoreClusterApplyFlowParamBuilder(builders.FlowParamBuilder):
         return super().build_controller_info()
 
     def format_ticket_data(self):
-        pass
+        bk_biz_id = self.ticket_data["bk_biz_id"]
+        self.ticket_data["bk_app_abbr"] = AppCache.objects.get(bk_biz_id=bk_biz_id).db_app_abbr
+        apply_details = self.ticket_data.pop("apply_details")
+        for key, value in apply_details.items():
+            self.ticket_data[key] = value
+        self.ticket_data["db_version"] = MONGODB_VERSION_PREFIX + "-" + apply_details["db_version"]
 
 
 class MongoDBRestoreFlowParamBuilder(builders.FlowParamBuilder):
@@ -193,7 +199,7 @@ class MongoDBRestoreApplyFlowBuilder(BaseMongoDBTicketFlowBuilder):
             replica_count=len(ticket_data["cluster_ids"]),
             # 每个副本集只有一个节点
             node_count=1,
-            spec_id=ticket_data["resource_spec"]["mongodb"],
+            spec_id=ticket_data["resource_spec"]["mongodb"]["spec_id"],
         )
         return apply_details
 
