@@ -96,7 +96,7 @@ export default defineConfig(({ mode }) => {
       }),
     ].concat(isHttps ? [basicSsl()] : []),
     optimizeDeps: {
-      exclude: ['@blueking/ip-selector/dist/vue3.x.js', 'lib/'],
+      exclude: ['@blueking/ip-selector/dist/vue3.x.js'],
     },
     server: {
       strictPort: true,
