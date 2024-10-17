@@ -105,7 +105,7 @@ class TenDBClusterAppendCTLSerializer(serializers.Serializer):
     use_stream = serializers.BooleanField(help_text=_("是否使用mydumper流式备份迁移"), required=False, default=False)
     drop_before = serializers.BooleanField(help_text=_("导入到tdbctl前,是否先删除"), required=False, default=False)
     threads = serializers.IntegerField(help_text=_("mydumper 并发"), required=False, default=0)
-    use_mydumper = serializers.BooleanField(help_text=_("是否使用mydumper,myloader迁移"), required=False, default=True)
+    use_mydumper = serializers.BooleanField(help_text=_("是否使用mydumper,myloader迁移"), required=False, default=False)
 
     def validate(self, attrs):
         return attrs
