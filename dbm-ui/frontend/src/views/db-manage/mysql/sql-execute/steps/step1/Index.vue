@@ -148,7 +148,7 @@
     },
   });
 
-  const { run: runSemanticCheck } = useRequest(semanticCheck, {
+  const { runAsync: runSemanticCheck } = useRequest(semanticCheck, {
     manual: true,
     onSuccess(data) {
       window.changeConfirm = false;
