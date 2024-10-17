@@ -112,6 +112,7 @@
     cluster_id: number;
     bk_cloud_id: number;
     target_proxy_count?: number | string;
+    proxy_reduce_count?: number | string;
     spider_reduced_hosts?: {
       ip: string;
       bk_host_id: number;
@@ -132,8 +133,7 @@
     cluster_type_name: '',
     proxyList: [],
   });
-</script>
-<script setup lang="ts">
+
   interface Props {
     data: IDataRow;
     removeable: boolean;
@@ -150,7 +150,8 @@
   interface Exposes {
     getValue: () => Promise<InfoItem>;
   }
-
+</script>
+<script setup lang="ts">
   const props = withDefaults(defineProps<Props>(), {
     inputedClusters: () => [],
   });
@@ -250,7 +251,7 @@
         ...props.data,
         rowKey: random(),
         isLoading: false,
-        targetNum: String(roleHostCount.value - Number(rowInfo[1])),
+        targetNum: String(Number(rowInfo[1].proxy_reduce_count)),
         switchMode: rowInfo[3],
       };
       if (rowInfo[2]) {
@@ -281,7 +282,7 @@
         if (hostData) {
           return Object.assign(info, { ...hostData });
         }
-        return Object.assign(info, { target_proxy_count: targetNum });
+        return Object.assign(info, { ...targetNum });
       });
     },
   });

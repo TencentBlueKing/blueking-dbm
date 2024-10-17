@@ -19,6 +19,7 @@
 
 <script setup lang="tsx">
   import { useI18n } from 'vue-i18n';
+
   import type { RedisProxyScaleUpDetails } from '@services/model/ticket/details/redis';
   import TicketModel from '@services/model/ticket/ticket';
 
@@ -65,22 +66,20 @@
       render: ({ data }: {data: RowData}) => <span>{data.sepc.name}</span>,
     },
     {
-      label: t('扩容至(台)'),
+      label: t('扩容数量（台）'),
       field: 'targetNum',
     },
   ];
 
-  const tableData = infos.map((item) => {
-    return {
-      clusterName: clusters[item.cluster_id].immute_domain,
-      clusterType: clusters[item.cluster_id].cluster_type,
-      clusterTypeName: clusters[item.cluster_id].cluster_type_name,
-      nodeType: 'Proxy',
-      sepc: {
-        id: item.resource_spec.proxy.spec_id,
-        name: specs[item.resource_spec.proxy.spec_id].name,
-      },
-      targetNum: item.target_proxy_count,
-    };
-  });
+  const tableData = infos.map((item) => ({
+    clusterName: clusters[item.cluster_id].immute_domain,
+    clusterType: clusters[item.cluster_id].cluster_type,
+    clusterTypeName: clusters[item.cluster_id].cluster_type_name,
+    nodeType: 'Proxy',
+    sepc: {
+      id: item.resource_spec.proxy.spec_id,
+      name: specs[item.resource_spec.proxy.spec_id].name,
+    },
+    targetNum: item.resource_spec.proxy.count,
+  }));
 </script>

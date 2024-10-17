@@ -78,7 +78,7 @@
       )
     },
     {
-      label: t('缩容数量(台)'),
+      label: t('缩容数量（台）'),
       field: 'targetNum',
     },
   ];
