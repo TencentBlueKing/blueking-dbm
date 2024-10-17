@@ -1,3 +1,4 @@
+import _ from 'lodash';
 import { computed, shallowRef } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRequest } from 'vue-request';
@@ -65,7 +66,14 @@ export default () => {
     },
   ]);
 
-  const formatSearchValue = computed(() => getSearchSelectorParams(value.value));
+  const formatSearchValue = computed(() => {
+    const result = getSearchSelectorParams(value.value);
+    if (_.has(result, 'id')) {
+      result.ids = result.id;
+      delete result.id;
+    }
+    return result;
+  });
 
   useRequest(getTicketTypes, {
     onSuccess(data) {
