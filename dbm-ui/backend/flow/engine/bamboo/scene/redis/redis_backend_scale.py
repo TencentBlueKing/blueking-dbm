@@ -596,16 +596,27 @@ class RedisBackendScaleFlow(object):
                         }
                     )
                 sub_pipeline.add_parallel_acts(acts_list)
-            # 更新 dbconfig 中版本信息
-            act_kwargs.cluster["cluster_domain"] = act_kwargs.cluster["immute_domain"]
-            act_kwargs.cluster["current_version"] = act_kwargs.cluster["origin_db_version"]
-            act_kwargs.cluster["target_version"] = act_kwargs.cluster["db_version"]
-            act_kwargs.get_redis_payload_func = RedisActPayload.redis_cluster_version_update_dbconfig.__name__
-            sub_pipeline.add_act(
-                act_name=_("Redis-更新dbconfig中集群版本"),
-                act_component_code=RedisConfigComponent.code,
-                kwargs=asdict(act_kwargs),
-            )
+
+            if act_kwargs.cluster["origin_db_version"] != act_kwargs.cluster["db_version"]:
+                # 更新元数据版本
+                act_kwargs.cluster["cluster_ids"] = [act_kwargs.cluster["cluster_id"]]
+                act_kwargs.cluster["meta_func_name"] = RedisDBMeta.redis_cluster_version_update.__name__
+                sub_pipeline.add_act(
+                    act_name=_("Redis-元数据更新集群版本"),
+                    act_component_code=RedisDBMetaComponent.code,
+                    kwargs=asdict(act_kwargs),
+                )
+
+                # 更新 dbconfig 中版本信息
+                act_kwargs.cluster["cluster_domain"] = act_kwargs.cluster["immute_domain"]
+                act_kwargs.cluster["current_version"] = act_kwargs.cluster["origin_db_version"]
+                act_kwargs.cluster["target_version"] = act_kwargs.cluster["db_version"]
+                act_kwargs.get_redis_payload_func = RedisActPayload.redis_cluster_version_update_dbconfig.__name__
+                sub_pipeline.add_act(
+                    act_name=_("Redis-更新dbconfig中集群版本"),
+                    act_component_code=RedisConfigComponent.code,
+                    kwargs=asdict(act_kwargs),
+                )
 
             if is_redis_cluster_protocal(act_kwargs.cluster["cluster_type"]):
                 # 重写predixy配置文件
