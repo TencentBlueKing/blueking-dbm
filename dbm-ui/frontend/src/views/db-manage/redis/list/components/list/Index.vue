@@ -795,7 +795,7 @@
         list: columnAttrs.value.major_version,
         checked: columnCheckedMap.value.major_version,
       },
-      render: ({ cell }: TableColumnRender) => <span>{cell || '--'}</span>,
+      render: ({ data }: ColumnRenderData) => data.major_version || '--',
     },
     {
       label: t('地域'),
@@ -805,25 +805,25 @@
         list: columnAttrs.value.region,
         checked: columnCheckedMap.value.region,
       },
-      render: ({ cell }: TableColumnRender) => <span>{cell || '--'}</span>,
+      render: ({ data }: ColumnRenderData) => data.region || '--',
     },
     {
       label: t('更新人'),
       field: 'updater',
       width: 140,
-      render: ({ cell }: TableColumnRender) => <span>{cell || '--'}</span>,
+      render: ({ data }: ColumnRenderData) => data.updater || '--',
     },
     {
       label: t('更新时间'),
       field: 'update_at',
       width: 160,
-      render: ({ data }: ColumnRenderData) => <span>{data.updateAtDisplay || '--'}</span>,
+      render: ({ data }: ColumnRenderData) => data.update_at || '--',
     },
     {
       label: t('创建人'),
       field: 'creator',
       width: 140,
-      render: ({ cell }: TableColumnRender) => <span>{cell || '--'}</span>,
+      render: ({ data }: ColumnRenderData) => data.creator || '--',
     },
     {
       label: t('部署时间'),
@@ -840,7 +840,7 @@
         list: columnAttrs.value.time_zone,
         checked: columnCheckedMap.value.time_zone,
       },
-      render: ({ cell }: TableColumnRender) => <span>{cell || '--'}</span>,
+      render: ({ data }: ColumnRenderData) => data.cluster_time_zone || '--',
     },
     {
       label: t('操作'),
