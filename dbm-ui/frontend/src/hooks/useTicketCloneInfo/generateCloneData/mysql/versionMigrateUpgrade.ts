@@ -20,7 +20,7 @@ import { random } from '@utils';
 
 // MySQL 迁移升级
 export async function generateMysqlVersionMigrateUpgradeCloneData(ticketData: TicketModel<MySQLMigrateUpgradeDetails>) {
-  const { clusters, infos, backup_source: backupSource } = ticketData.details;
+  const { clusters, infos, backup_source: backupSource, force } = ticketData.details;
   const clusterListResult = await getTendbhaList({
     id: infos.map((item) => item.cluster_ids[0]).join(','),
   });
@@ -59,5 +59,6 @@ export async function generateMysqlVersionMigrateUpgradeCloneData(ticketData: Ti
     tableList,
     backupSource,
     remark: ticketData.remark,
+    force,
   });
 }
