@@ -15,6 +15,7 @@ from backend.flow.engine.bamboo.scene.redis.redis_cluster_add_slave import Redis
 from backend.flow.engine.bamboo.scene.redis.redis_cluster_backup import RedisClusterBackupFlow
 from backend.flow.engine.bamboo.scene.redis.redis_cluster_data_check_repair import RedisClusterDataCheckRepairFlow
 from backend.flow.engine.bamboo.scene.redis.redis_cluster_data_copy import RedisClusterDataCopyFlow
+from backend.flow.engine.bamboo.scene.redis.redis_cluster_ins_migrate import RedisClusterInsMigrateFlow
 from backend.flow.engine.bamboo.scene.redis.redis_cluster_instance_shutdown import (
     RedisClusterInstanceShutdownSceneFlow,
 )
@@ -39,6 +40,7 @@ from backend.flow.engine.bamboo.scene.redis.redis_data_structure import RedisDat
 from backend.flow.engine.bamboo.scene.redis.redis_data_structure_task_delete import RedisDataStructureTaskDeleteFlow
 from backend.flow.engine.bamboo.scene.redis.redis_dbmon import RedisDbmonSceneFlow
 from backend.flow.engine.bamboo.scene.redis.redis_flush_data import RedisFlushDataFlow
+from backend.flow.engine.bamboo.scene.redis.redis_ins_migrate import RedisSingleInsMigrateFlow
 from backend.flow.engine.bamboo.scene.redis.redis_ins_shutdown import RedisInsShutdownFlow
 from backend.flow.engine.bamboo.scene.redis.redis_instance_apply_flow import RedisInstanceApplyFlow
 from backend.flow.engine.bamboo.scene.redis.redis_keys_delete import RedisKeysDeleteFlow
@@ -164,6 +166,20 @@ class RedisController(BaseController):
         """
         flow = RedisBackendScaleFlow(root_id=self.root_id, data=self.ticket_data)
         flow.redis_backend_scale_flow()
+
+    def redis_cluster_ins_migrate(self):
+        """
+        redis集群指定实例迁移
+        """
+        flow = RedisClusterInsMigrateFlow(root_id=self.root_id, data=self.ticket_data)
+        flow.redis_cluster_ins_migrate_flow()
+
+    def redis_single_ins_migrate(self):
+        """
+        redis主从指定实例迁移
+        """
+        flow = RedisSingleInsMigrateFlow(root_id=self.root_id, data=self.ticket_data)
+        flow.redis_single_ins_migrate_flow()
 
     def redis_cluster_cutoff_scene(self):
         """

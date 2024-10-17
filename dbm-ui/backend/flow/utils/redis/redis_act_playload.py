@@ -1258,7 +1258,7 @@ class RedisActPayload(object):
             cluster_ids.add(cluster.id)
         # 单实例下架的时候，如果全下架完了的话，这个地方的cluster是没有了的
         if cluster is None:
-            payload = self.get_bkdbmon_payload_header(kwargs["params"]["bk_biz_id"])
+            payload = self.get_bkdbmon_payload_header(str(kwargs["params"]["bk_biz_id"]))
         else:
             payload = self.get_bkdbmon_payload_header(str(cluster.bk_biz_id))
             payload["redis_maxmemory_set"] = get_dbmon_maxmemory_config_by_cluster_ids(list(cluster_ids))
@@ -1381,7 +1381,7 @@ class RedisActPayload(object):
             "data_dirs": ConfigDefaultEnum.DATA_DIRS,
             "ports": params.get("ports", []),
             "databases": 2,  # 给个默认值吧
-            "maxmemory": 666,  # 给个默认值吧
+            "maxmemory": 0,  # 给个默认值吧
             "ip": params["exec_ip"],
             "inst_num": int(params["inst_num"]),
             "start_port": int(params["start_port"]),
