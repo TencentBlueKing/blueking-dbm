@@ -14,32 +14,9 @@ from backend.components import DRSApi
 from backend.db_meta.models import Cluster, ProxyInstance
 from backend.flow.engine.bamboo.scene.spider.common.exceptions import DropSpiderNodeFailedException
 from backend.flow.plugins.components.collections.common.base_service import BaseService
-from backend.flow.utils.mysql.check_client_connections import check_client_connection
 
 
 class DropSpiderRoutingService(BaseService):
-    def _pre_check(self, cluster: Cluster, reduce_spider: ProxyInstance):
-        """
-        检测待下架的spider节点是否有存在访问
-        """
-
-        res = check_client_connection(bk_cloud_id=cluster.bk_cloud_id, instances=[reduce_spider.ip_port])
-
-        if res[0]["error_msg"]:
-            raise DropSpiderNodeFailedException(message=_("select processlist failed: {}".format(res[0]["error_msg"])))
-
-        if res[0]["cmd_results"][0]["table_data"]:
-            self.log_error(f"There are also {len(res[0]['cmd_results'][0]['table_data'])} non-sleep state threads")
-            process_list = res[0]["cmd_results"][0]["table_data"]
-            for p in process_list:
-                # 打印连接
-                self.log_error(
-                    f"proc_id: {p['ID']}, command:{p['COMMAND']}, host:{p['HOST']}, info:{p['INFO']}, time:{p['TIME']}"
-                )
-            return False
-
-        return True
-
     def _exec_drop_routing(self, cluster: Cluster, spider: ProxyInstance):
         """
         执行删除节点路由逻辑
@@ -91,17 +68,11 @@ class DropSpiderRoutingService(BaseService):
         kwargs = data.get_one_of_inputs("kwargs")
 
         reduce_spiders = kwargs["reduce_spiders"]
-        is_safe = kwargs["is_safe"]
         cluster = Cluster.objects.get(id=kwargs["cluster_id"])
 
         for spider in reduce_spiders:
             # spider机器是专属于一套集群，单机单实例
             s = cluster.proxyinstance_set.get(machine__ip=spider["ip"])
-
-            if is_safe:
-                if not self._pre_check(cluster, s):
-                    # 检测不通过退出
-                    return False
 
             # 执行删除路由
             self.log_info(f"exec drop node [{s.ip_port}]")

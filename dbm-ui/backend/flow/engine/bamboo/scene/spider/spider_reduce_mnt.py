@@ -14,14 +14,16 @@ from typing import Dict, Optional
 
 from django.utils.translation import ugettext as _
 
+from backend.constants import IP_PORT_DIVIDER
 from backend.db_meta.enums import TenDBClusterSpiderRole
 from backend.db_meta.models import Cluster
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.spider.common.common_sub_flow import reduce_spider_slaves_flow
 from backend.flow.plugins.components.collections.common.pause import PauseComponent
+from backend.flow.plugins.components.collections.mysql.check_client_connections import CheckClientConnComponent
 from backend.flow.plugins.components.collections.mysql.dns_manage import MySQLDnsManageComponent
 from backend.flow.plugins.components.collections.spider.drop_spider_ronting import DropSpiderRoutingComponent
-from backend.flow.utils.mysql.mysql_act_dataclass import RecycleDnsRecordKwargs
+from backend.flow.utils.mysql.mysql_act_dataclass import CheckClientConnKwargs, RecycleDnsRecordKwargs
 from backend.flow.utils.spider.spider_act_dataclass import DropSpiderRoutingKwargs
 
 logger = logging.getLogger("flow")
@@ -62,6 +64,22 @@ class TenDBClusterReduceMNTFlow(object):
             sub_flow_context["reduce_spiders"] = reduce_spiders
 
             sub_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(sub_flow_context))
+
+            # 预检测
+            if self.data["is_safe"]:
+                sub_pipeline.add_act(
+                    act_name=_("检测回收Spider端连接情况"),
+                    act_component_code=CheckClientConnComponent.code,
+                    kwargs=asdict(
+                        CheckClientConnKwargs(
+                            bk_cloud_id=cluster.bk_cloud_id,
+                            check_instances=[
+                                f"{i['ip']}{IP_PORT_DIVIDER}{cluster.proxyinstance_set.first().port}"
+                                for i in reduce_spiders
+                            ],
+                        )
+                    ),
+                )
 
             # 删除spider的路由关系
             sub_pipeline.add_act(

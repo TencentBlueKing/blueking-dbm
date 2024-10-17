@@ -165,6 +165,18 @@ class MySQLMasterFailOverFlow(object):
                 # 阶段3 并发change master 的 原子任务，如果集群多余的slave节点，剩余所有的slave节点同步new master 的数据
 
                 if cluster["other_slave_info"]:
+                    cluster_switch_sub_pipeline.add_act(
+                        act_name=_("其余slave下发db-actuator介质"),
+                        act_component_code=TransFileComponent.code,
+                        kwargs=asdict(
+                            DownloadMediaKwargs(
+                                bk_cloud_id=info["slave_ip"]["bk_cloud_id"],
+                                exec_ip=cluster["other_slave_info"],
+                                file_list=GetFileList(db_type=DBType.MySQL).get_db_actuator_package(),
+                            )
+                        ),
+                    )
+
                     acts_list = []
                     for exec_ip in cluster["other_slave_info"]:
                         cluster_sw_kwargs.exec_ip = exec_ip
