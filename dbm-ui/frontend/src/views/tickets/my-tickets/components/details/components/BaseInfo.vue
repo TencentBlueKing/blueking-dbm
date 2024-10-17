@@ -3,31 +3,33 @@
     mode="collapse"
     :title="t('基本信息')">
     <table class="ticket-base-info">
-      <tr>
-        <td>{{ t('单号') }}:</td>
-        <td>{{ ticketData.id }}</td>
-        <td>{{ t('单据状态') }}:</td>
-        <td>
-          <BkTag :theme="ticketData.tagTheme">
-            {{ t(ticketData.statusText) }}
-          </BkTag>
-        </td>
-        <td>{{ t('已耗时') }}:</td>
-        <td>
-          <CostTimer
-            :is-timing="ticketData?.status === 'RUNNING'"
-            :start-time="utcTimeToSeconds(ticketData?.create_at)"
-            :value="ticketData?.cost_time || 0" />
-        </td>
-      </tr>
-      <tr>
-        <td>{{ t('单据类型') }}:</td>
-        <td>{{ ticketData.ticket_type_display }}</td>
-        <td>{{ t('申请人') }}:</td>
-        <td>{{ ticketData.creator }}</td>
-        <td>{{ t('申请时间') }}:</td>
-        <td>{{ utcDisplayTime(ticketData.create_at) }}</td>
-      </tr>
+      <tbody>
+        <tr>
+          <td>{{ t('单号') }}:</td>
+          <td>{{ ticketData.id }}</td>
+          <td>{{ t('单据状态') }}:</td>
+          <td>
+            <BkTag :theme="ticketData.tagTheme">
+              {{ t(ticketData.statusText) }}
+            </BkTag>
+          </td>
+          <td>{{ t('已耗时') }}:</td>
+          <td>
+            <CostTimer
+              :is-timing="ticketData?.status === 'RUNNING'"
+              :start-time="utcTimeToSeconds(ticketData?.create_at)"
+              :value="ticketData?.cost_time || 0" />
+          </td>
+        </tr>
+        <tr>
+          <td>{{ t('单据类型') }}:</td>
+          <td>{{ ticketData.ticket_type_display }}</td>
+          <td>{{ t('申请人') }}:</td>
+          <td>{{ ticketData.creator }}</td>
+          <td>{{ t('申请时间') }}:</td>
+          <td>{{ utcDisplayTime(ticketData.create_at) }}</td>
+        </tr>
+      </tbody>
     </table>
   </DbCard>
 </template>
