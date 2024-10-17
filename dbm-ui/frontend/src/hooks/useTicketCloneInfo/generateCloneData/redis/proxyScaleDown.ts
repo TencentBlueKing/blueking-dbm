@@ -78,8 +78,7 @@ export async function generateRedisProxyScaleDownCloneData(ticketData: TicketMod
         selectedNodeList: (item.proxy_reduced_hosts || []).map((proxyHost) =>
           formatValue(instanceListMap[proxyHost.ip]),
         ),
-        // targetNum: `${clusterListMap[clusterId].proxy.length}`,
-        targetNum: `${clusterListMap[clusterId].proxy.length - (item.target_proxy_count || 0)}`,
+        targetNum: item.proxy_reduced_hosts?.length || item.proxy_reduce_count,
         switchMode: item.online_switch_type,
       };
     }),

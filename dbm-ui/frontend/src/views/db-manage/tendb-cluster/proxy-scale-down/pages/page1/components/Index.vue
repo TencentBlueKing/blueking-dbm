@@ -18,10 +18,10 @@
         <RenderTableHeadColumn
           :min-width="120"
           :width="450">
-          <span>{{ $t('目标集群') }}</span>
+          <span>{{ t('目标集群') }}</span>
           <template #append>
             <BkPopover
-              :content="$t('批量添加')"
+              :content="t('批量添加')"
               theme="dark">
               <span
                 class="batch-edit-btn"
@@ -35,32 +35,31 @@
           :min-width="120"
           :required="false"
           :width="150">
-          <span>{{ $t('缩容节点类型') }}</span>
+          <span>{{ t('缩容节点类型') }}</span>
         </RenderTableHeadColumn>
         <!-- <RenderTableHeadColumn
           :min-width="150"
           :required="false"
           :width="240">
-          <span>{{ $t('当前规格') }}</span>
+          <span>{{ t('当前规格') }}</span>
         </RenderTableHeadColumn> -->
         <RenderTableHeadColumn
           :min-width="100"
           :width="300">
-          <span>{{ $t('主机选择方式') }}</span>
+          <span>{{ t('主机选择方式') }}</span>
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
           :min-width="100"
           :width="300">
-          <span>{{ $t('缩容数量(台)') }}</span>
+          <span>{{ t('缩容数量（台）') }}</span>
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
           fixed="right"
           :required="false"
           :width="100">
-          {{ $t('操作') }}
+          {{ t('操作') }}
         </RenderTableHeadColumn>
       </template>
-
       <template #data>
         <slot />
       </template>
@@ -68,6 +67,8 @@
   </div>
 </template>
 <script setup lang="ts">
+  import { useI18n } from 'vue-i18n';
+
   import RenderTableHeadColumn from '@components/render-table/HeadColumn.vue';
   import RenderTable from '@components/render-table/Index.vue';
 
@@ -76,6 +77,8 @@
   }
 
   const emits = defineEmits<Emits>();
+
+  const { t } = useI18n();
 
   const handleShowMasterBatchSelector = () => {
     emits('showMasterBatchSelector');
