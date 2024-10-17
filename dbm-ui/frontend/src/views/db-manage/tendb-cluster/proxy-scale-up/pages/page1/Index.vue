@@ -116,12 +116,8 @@
 
   const tabListConfig = {
     [ClusterTypes.TENDBCLUSTER]: {
-      disabledRowConfig: [
-        {
-          handler: (data: TendbClusterModel) => data.status !== 'normal',
-          tip: t('集群异常'),
-        },
-      ],
+      id: ClusterTypes.TENDBCLUSTER,
+      name: t('集群选择'),
     },
   };
 

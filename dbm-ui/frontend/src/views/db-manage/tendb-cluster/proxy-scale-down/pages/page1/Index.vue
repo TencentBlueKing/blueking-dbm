@@ -133,10 +133,6 @@
     [ClusterTypes.TENDBCLUSTER]: {
       disabledRowConfig: [
         {
-          handler: (data: TendbClusterModel) => data.status !== 'normal',
-          tip: t('集群异常'),
-        },
-        {
           handler: (data: TendbClusterModel) => data.spider_master.length <= 2 && data.spider_slave.length <= 1,
           tip: t('Master 至少保留 2 台 ，Slave 至少 保留 1台'),
         },
