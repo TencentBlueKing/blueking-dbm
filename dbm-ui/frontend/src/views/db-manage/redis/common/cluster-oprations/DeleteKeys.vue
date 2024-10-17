@@ -289,13 +289,15 @@
   }
 
   watch(() => props.data, (data) => {
-    state.formdata = data.map(item => ({
+    state.formdata = data.map(item => Object.assign({}, item, {
       white_regex: '',
       black_regex: '',
-      ...item,
     }));
     state.renderKey = generateId('DELETE_FORM_');
-  }, { immediate: true, deep: true });
+  }, {
+    immediate: true,
+    deep: true
+  });
 
   function handleRemoveItem(index: number) {
     state.formdata.splice(index, 1);
@@ -323,82 +325,73 @@
   /**
    * 确认删除 keys
    */
-  async function handleConfirm() {
-    await formRef.value?.validate?.();
-
-    InfoBox({
-      type: 'warning',
-      title: t('确认从数据库中删除Key'),
-      width: 500,
-      class: 'redis-delete-keys-confirm',
-      content: () => (
-        <div class="delete-confirm">
-          {
-            isBatch.value
-              ? (
-                state.formdata.map((item, index) => (
-                  <p class="delete-confirm-item">
-                    {index + 1}.{item.master_domain}
-                    {
-                      item.cluster_alias
-                        ? <span class="delete-confirm-desc">（{item.cluster_alias}）</span>
-                        : null
-                    }
-                  </p>
-                ))
-              )
-              : (
-                  <p class="delete-confirm-item">
-                    {t('集群')}：{firstData.value.master_domain}
-                    {
-                      firstData.value.cluster_alias
-                        ? <span class="delete-confirm-desc">（{firstData.value.cluster_alias}）</span>
-                        : null
-                    }
-                  </p>
-                )
-          }
-          <p class="delete-confirm-item">{t('删除Key_会将Key提取的对应内容进行删除_请谨慎操作')}</p>
-        </div>
-      ),
-      onConfirm: async () => {
-        try {
-          await handleSubmit();
-          return true;
-        } catch (_) {
-          return false;
-        }
-      },
-    });
-  }
-
-  function handleSubmit() {
+  const handleConfirm = async () => {
     state.isLoading = true;
-    const params = {
-      bk_biz_id: globalBizsStore.currentBizId,
-      ticket_type: TicketTypes.REDIS_KEYS_DELETE,
-      details: {
-        delete_type: state.deleteType,
-        rules: state.formdata.map(item => ({
-          cluster_id: item.id,
-          domain: item.master_domain,
-          white_regex: item.white_regex,
-          black_regex: item.black_regex,
-        })),
-      },
-    };
-    return createTicket(params)
-      .then((res) => {
-        ticketMessage(res.id);
-        nextTick(() => {
+    try {
+      await formRef.value?.validate();
+      InfoBox({
+        type: 'warning',
+        title: t('确认从数据库中删除Key'),
+        width: 500,
+        class: 'redis-delete-keys-confirm',
+        content: () => (
+          <div class="delete-confirm">
+            {
+              isBatch.value
+                ? (
+                  state.formdata.map((item, index) => (
+                    <p class="delete-confirm-item">
+                      {index + 1}.{item.master_domain}
+                      {
+                        item.cluster_alias
+                          ? <span class="delete-confirm-desc">（{item.cluster_alias}）</span>
+                          : null
+                      }
+                    </p>
+                  ))
+                )
+                : (
+                    <p class="delete-confirm-item">
+                      {t('集群')}：{firstData.value.master_domain}
+                      {
+                        firstData.value.cluster_alias
+                          ? <span class="delete-confirm-desc">（{firstData.value.cluster_alias}）</span>
+                          : null
+                      }
+                    </p>
+                  )
+            }
+            <p class="delete-confirm-item">{t('删除Key_会将Key提取的对应内容进行删除_请谨慎操作')}</p>
+          </div>
+        ),
+        onCancel() {
+          state.isLoading = false;
+        },
+        onConfirm: () => createTicket({
+          bk_biz_id: globalBizsStore.currentBizId,
+          ticket_type: TicketTypes.REDIS_KEYS_DELETE,
+          details: {
+            delete_type: state.deleteType,
+            rules: state.formdata.map(item => ({
+              cluster_id: item.id,
+              domain: item.master_domain,
+              white_regex: item.white_regex,
+              black_regex: item.black_regex,
+            })),
+          },
+        })
+        .then((res) => {
+          ticketMessage(res.id);
           emits('success');
           window.changeConfirm = false;
           handleClose();
-        });
-      })
-      .finally(() => {
-        state.isLoading = false;
+        }).finally(() => {
+          state.isLoading = false;
+        }),
       });
+    } finally {
+      state.isLoading = false;
+    }
   }
 
   async function handleClose() {

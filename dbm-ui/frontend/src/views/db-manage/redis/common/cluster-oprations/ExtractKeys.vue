@@ -287,13 +287,15 @@
   }
 
   watch(() => props.data, (data) => {
-    state.formdata = data.map(item => ({
+    state.formdata = data.map(item => Object.assign({}, item, {
       white_regex: '',
       black_regex: '',
-      ...item,
     }));
     state.renderKey = generateId('EXTRACT_FORM_');
-  }, { immediate: true, deep: true });
+  }, {
+    immediate: true,
+    deep: true
+  });
 
   function handleRemoveItem(index: number) {
     state.formdata.splice(index, 1);
@@ -319,33 +321,30 @@
   }
 
   async function handleSubmit() {
-    await formRef.value?.validate?.();
-
     state.isLoading = true;
-    const params = {
-      bk_biz_id: globalBizsStore.currentBizId,
-      ticket_type: TicketTypes.REDIS_KEYS_EXTRACT,
-      details: {
-        rules: state.formdata.map(item => ({
-          cluster_id: item.id,
-          domain: item.master_domain,
-          white_regex: item.white_regex,
-          black_regex: item.black_regex,
-        })),
-      },
-    };
-    createTicket(params)
-      .then((res) => {
-        ticketMessage(res.id);
-        nextTick(() => {
-          emits('success');
-          window.changeConfirm = false;
-          handleClose();
-        });
-      })
-      .finally(() => {
-        state.isLoading = false;
-      });
+    try {
+      await formRef.value?.validate?.();
+      const params = {
+        bk_biz_id: globalBizsStore.currentBizId,
+        ticket_type: TicketTypes.REDIS_KEYS_EXTRACT,
+        details: {
+          rules: state.formdata.map(item => ({
+            cluster_id: item.id,
+            domain: item.master_domain,
+            white_regex: item.white_regex,
+            black_regex: item.black_regex,
+          })),
+        },
+      };
+      const res = await createTicket(params)
+      ticketMessage(res.id);
+      emits('success');
+      window.changeConfirm = false;
+      handleClose();
+    } finally {
+      state.isLoading = false;
+    }
+
   }
 
   async function handleClose() {
