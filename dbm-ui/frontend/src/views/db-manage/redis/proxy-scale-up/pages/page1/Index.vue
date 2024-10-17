@@ -157,7 +157,6 @@
       id: item.proxy[0].spec_config.id,
       count: item.proxy.length,
     },
-    targetNum: `${item.proxy.length}`,
     rowModelData: item,
   });
   // 批量选择

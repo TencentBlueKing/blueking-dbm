@@ -39,7 +39,10 @@
   }
 
   interface Exposes {
-    getValue: () => Promise<string>;
+    getValue: () => Promise<{
+      target_proxy_count: number;
+      proxy_reduce_count: number;
+    }>;
   }
 
   const props = withDefaults(defineProps<Props>(), {
@@ -87,8 +90,16 @@
     getValue() {
       return editRef.value
         .getValue()
-        .then(() => props.count - Number(localValue.value))
-        .catch(() => Promise.reject(localValue.value));
+        .then(() => ({
+          target_proxy_count: props.count - Number(localValue.value),
+          proxy_reduce_count: Number(localValue.value),
+        }))
+        .catch(() =>
+          Promise.reject({
+            target_proxy_count: Number(localValue.value),
+            proxy_reduce_count: Number(localValue.value),
+          }),
+        );
     },
   });
 </script>
