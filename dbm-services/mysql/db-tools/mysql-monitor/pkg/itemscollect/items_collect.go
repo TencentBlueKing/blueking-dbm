@@ -10,6 +10,7 @@
 package itemscollect
 
 import (
+	"dbm-services/mysql/db-tools/mysql-monitor/pkg/itemscollect/rotateproxyconnlog"
 	"fmt"
 	"log/slog"
 
@@ -92,4 +93,5 @@ func init() {
 	_ = registerItemConstructor(scenesnapshot.Register())
 	_ = registerItemConstructor(timezonechange.RegisterSysTimezoneChange())
 	_ = registerItemConstructor(timezonechange.RegisterMySQLTimezoneChange())
+	_ = registerItemConstructor(rotateproxyconnlog.RegisterRotateProxyConnlog())
 }

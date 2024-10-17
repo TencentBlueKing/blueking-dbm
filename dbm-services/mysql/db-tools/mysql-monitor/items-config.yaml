@@ -78,25 +78,19 @@
   - spider
   role: []
 - name: mysql-connlog-size
-  enable: false
+  enable: true
   schedule: 0 0 12 * * *
   machine_type:
-  - single
-  - backend
-  - remote
   - spider
   role: []
 - name: mysql-connlog-rotate
-  enable: false
+  enable: true
   schedule: 0 30 23 * * *
   machine_type:
-  - single
-  - backend
-  - remote
   - spider
   role: []
 - name: mysql-err-notice
-  enable: true
+  enable: false
   schedule: '@every 1m'
   machine_type:
   - single
@@ -104,7 +98,7 @@
   - remote
   role: []
 - name: mysql-err-critical
-  enable: true
+  enable: false
   schedule: '@every 1m'
   machine_type:
   - single
@@ -112,19 +106,19 @@
   - remote
   role: []
 - name: spider-err-notice
-  enable: true
+  enable: false
   schedule: '@every 1m'
   machine_type:
   - spider
   role: []
 - name: spider-err-warn
-  enable: true
+  enable: false
   schedule: '@every 1m'
   machine_type:
   - spider
   role: []
 - name: spider-err-critical
-  enable: true
+  enable: false
   schedule: '@every 1m'
   machine_type:
   - spider
@@ -166,7 +160,7 @@
   role: []
 - name: proxy-user-list
   enable: true
-  schedule: '@every 1m'
+  schedule: 0 55 23 * * *
   machine_type:
   - proxy
   role: []
@@ -202,7 +196,7 @@
   - spider
   role: []
 - name: spider-table-schema-consistency
-  enable: true
+  enable: false
   schedule: 0 10 1 * * *
   machine_type:
   - spider
@@ -250,4 +244,10 @@
   - remote
   - backend
   - single
+  role: []
+- name: rotate-proxy-connlog
+  enable: true
+  schedule: 0 55 23 * * *
+  machine_type:
+  - proxy
   role: []
