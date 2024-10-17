@@ -313,6 +313,7 @@
     })
       .then((data) => {
         ticketMessage(data.id);
+        modelValue.value = false;
       })
       .finally(() => {
         isExecSubmiting.value = false;
