@@ -19,6 +19,7 @@ from backend.ticket.models import ClusterOperateRecord, Ticket
 class TicketListFilter(filters.FilterSet):
     remark = filters.CharFilter(field_name="remark", lookup_expr="icontains", label=_("备注"))
     cluster = filters.CharFilter(field_name="cluster", method="filter_cluster", label=_("集群域名"))
+    ids = filters.CharFilter(field_name="ids", method="filter_ids", label=_("单据ID列表"))
 
     class Meta:
         model = Ticket
@@ -35,3 +36,7 @@ class TicketListFilter(filters.FilterSet):
         clusters = Cluster.objects.filter(immute_domain__icontains=value).values_list("id", flat=True)
         records = ClusterOperateRecord.objects.filter(cluster_id__in=clusters).values_list("id", flat=True)
         return queryset.filter(clusteroperaterecord__in=records)
+
+    def filter_ids(self, queryset, name, value):
+        ids = list(map(int, value.split(",")))
+        return queryset.filter(id__in=ids)
