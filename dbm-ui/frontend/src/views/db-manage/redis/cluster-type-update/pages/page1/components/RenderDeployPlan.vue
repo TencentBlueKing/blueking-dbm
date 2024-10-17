@@ -33,13 +33,13 @@
   import { useI18n } from 'vue-i18n';
 
   import { RedisClusterTypes } from '@services/model/redis/redis';
-  import ClusterSpecModel from '@services/model/resource-spec/cluster-sepc';
 
   import DisableSelect from '@components/render-table/columns/select-disable/index.vue';
 
   import ChooseClusterTargetPlan, {
     type CapacityNeed,
     type Props as TargetPlanProps,
+    type SpecResultInfo,
   } from '@views/db-manage/redis/common/cluster-deploy-plan/Index.vue';
 
   import type { IDataRow } from './Row.vue';
@@ -92,8 +92,8 @@
   ];
 
   // 从侧边窗点击确认后触发
-  const handleChoosedTargetCapacity = (choosedObj: ClusterSpecModel, capacity: CapacityNeed) => {
-    displayText.value = `${choosedObj.cluster_capacity}G_${choosedObj.qps.min}/s（${choosedObj.cluster_shard_num} 分片）`;
+  const handleChoosedTargetCapacity = (choosedObj: SpecResultInfo, capacity: CapacityNeed) => {
+    displayText.value = `${choosedObj.cluster_capacity}G_（${choosedObj.cluster_shard_num} 分片）`;
     localValue.value = {
       spec_id: choosedObj.spec_id,
       count: choosedObj.machine_pair,
@@ -120,9 +120,12 @@
           disks: rowData.currentCapacity?.total,
           qps: specConfig.qps.max,
         }),
+        currentSepcId: `${rowData.backendGroup?.id || ''}`,
         capacity: { total: rowData.currentCapacity?.total ?? 1, used: 0 },
         clusterType: props.targetClusterType as RedisClusterTypes,
         shardNum: rowData.currentShardNum,
+        machinePair: rowData.backendGroup?.count || 0,
+        bkCloudId: rowData.bkCloudId,
       };
       activeRowData.value = obj;
       showChooseClusterTargetPlan.value = true;

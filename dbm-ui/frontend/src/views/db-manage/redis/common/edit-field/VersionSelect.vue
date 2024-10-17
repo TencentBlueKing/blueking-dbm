@@ -58,7 +58,7 @@
 
   import TableEditSelect from '@components/render-table/columns/select/index.vue';
 
-  import { clusterTypeMachineMap } from '@views/db-manage/redis/common/const';
+  import { QueryKeyMap } from '@views/db-manage/redis/common/const';
 
   interface Props {
     data?: string;
@@ -111,7 +111,7 @@
       if (props.clusterType) {
         fetchListPackages({
           db_type: 'redis',
-          query_key: clusterTypeMachineMap[props.clusterType] ?? 'redis',
+          query_key: QueryKeyMap[props.clusterType] ?? 'redis',
         });
       }
     },
