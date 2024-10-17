@@ -65,15 +65,6 @@
     toDatabase: string;
   }
 
-  // 创建表格数据
-  export const createRowData = (data = {} as Partial<IDataRow>): IDataRow => ({
-    rowKey: random(),
-    clusterData: data.clusterData,
-    fromDatabase: data.fromDatabase || '',
-    toDatabase: data.toDatabase || '',
-  });
-</script>
-<script setup lang="ts">
   interface Props {
     data: IDataRow;
     removeable: boolean;
@@ -87,6 +78,15 @@
     getValue: () => Promise<any>;
   }
 
+  // 创建表格数据
+  export const createRowData = (data = {} as Partial<IDataRow>): IDataRow => ({
+    rowKey: random(),
+    clusterData: data.clusterData,
+    fromDatabase: data.fromDatabase || '',
+    toDatabase: data.toDatabase || '',
+  });
+</script>
+<script setup lang="ts">
   const props = defineProps<Props>();
 
   const emits = defineEmits<Emits>();
