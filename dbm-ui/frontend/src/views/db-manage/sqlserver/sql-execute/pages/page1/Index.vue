@@ -23,7 +23,7 @@
           :model="formData">
           <ClusterIds
             v-model="formData.cluster_ids"
-            v-model:clusterVersionList="clusterVersionList"
+            v-model:cluster-version-list="clusterVersionList"
             :cluster-type-list="[ClusterTypes.SQLSERVER_HA, ClusterTypes.SQLSERVER_SINGLE]" />
           <ExecuteObjects
             v-model="formData.execute_objects"
