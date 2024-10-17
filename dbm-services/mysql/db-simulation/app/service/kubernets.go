@@ -130,7 +130,11 @@ func (k *DbPodSets) getClusterPodContanierSpec() []v1.Container {
 			Resources:       k.getResourceLimit(),
 			ImagePullPolicy: v1.PullIfNotPresent,
 			Image:           k.DbImage,
-			Args: []string{"mysqld", "--defaults-file=/etc/my.cnf", "--log_bin_trust_function_creators", "--port=20000",
+			Args: []string{"mysqld",
+				"--defaults-file=/etc/my.cnf",
+				"--log_bin_trust_function_creators",
+				"--port=20000",
+				"--max_allowed_packet=1073741824",
 				fmt.Sprintf("--character-set-server=%s",
 					k.BaseInfo.Charset),
 				"--user=mysql"},
@@ -152,7 +156,11 @@ func (k *DbPodSets) getClusterPodContanierSpec() []v1.Container {
 			Resources:       k.getResourceLimit(),
 			ImagePullPolicy: v1.PullIfNotPresent,
 			Image:           k.SpiderImage,
-			Args: []string{"mysqld", "--defaults-file=/etc/my.cnf", "--log_bin_trust_function_creators", "--port=25000",
+			Args: []string{"mysqld",
+				"--defaults-file=/etc/my.cnf",
+				"--log_bin_trust_function_creators",
+				"--port=25000",
+				"--max_allowed_packet=1073741824",
 				fmt.Sprintf("--character-set-server=%s",
 					k.BaseInfo.Charset),
 				"--user=mysql"},
@@ -343,7 +351,7 @@ func (k *DbPodSets) gettdbctlResourceLimit() v1.ResourceRequirements {
 
 // CreateMySQLPod create mysql pod
 func (k *DbPodSets) CreateMySQLPod() (err error) {
-	startArgs := []string{"--defaults-file=/etc/my.cnf", "--skip-log-bin",
+	startArgs := []string{"--defaults-file=/etc/my.cnf", "--skip-log-bin", "--max_allowed_packet=1073741824",
 		fmt.Sprintf("--character-set-server=%s", k.BaseInfo.Charset)}
 	startArgs = append(startArgs, k.BaseInfo.Args...)
 	startArgs = append(startArgs, "--user=mysql")

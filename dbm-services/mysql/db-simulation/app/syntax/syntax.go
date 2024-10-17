@@ -142,8 +142,8 @@ func (tf *TmysqlParseFile) Do(dbtype string, versions []string) (result map[stri
 }
 
 func (tf *TmysqlParseFile) doSingleVersion(dbtype string, mysqlVersion string) (err error) {
-	errChan := make(chan error)
-	alreadExecutedSqlfileChan := make(chan string, 10)
+	errChan := make(chan error, 1)
+	alreadExecutedSqlfileChan := make(chan string, len(tf.Param.FileNames))
 	signalChan := make(chan struct{})
 
 	go func() {
@@ -166,6 +166,7 @@ func (tf *TmysqlParseFile) doSingleVersion(dbtype string, mysqlVersion string) (
 
 	select {
 	case err := <-errChan:
+		logger.Error("failed to do sytax check:%s", err.Error())
 		return err
 	case <-signalChan:
 		logger.Info("analyze the parsing result done")
@@ -331,7 +332,7 @@ func (tf *TmysqlParseFile) Execute(alreadExecutedSqlfileCh chan string, version 
 	var wg sync.WaitGroup
 	var errs []error
 	c := make(chan struct{}, 10) // Semaphore to limit concurrent goroutines
-	errChan := make(chan error, 5)
+	errChan := make(chan error, len(tf.Param.FileNames))
 
 	// Iterate through all SQL files
 	for _, fileName := range tf.Param.FileNames {

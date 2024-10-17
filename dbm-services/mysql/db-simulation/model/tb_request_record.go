@@ -24,8 +24,15 @@ type TbRequestRecord struct {
 	User string `gorm:"column:user;type:varchar(32);not null" json:"user"`
 	// 请求路径
 	Path string `gorm:"column:path;type:varchar(32);not null" json:"path"`
+	// response code
+	ResponeCode int `gorm:"column:response_code;type:int(11);not null" json:"response_code"`
 	// 请求来源Ip
 	SourceIP   string    `gorm:"column:source_ip;type:varchar(32);not null" json:"source_ip"`
 	UpdateTime time.Time `gorm:"column:update_time;type:timestamp;default:CURRENT_TIMESTAMP()" json:"update_time"`
 	CreateTime time.Time `gorm:"column:create_time;type:timestamp;default:CURRENT_TIMESTAMP()" json:"create_time"`
+}
+
+// UpdateTbRequestLog 更新请求日志
+func UpdateTbRequestLog(requestid string, updatesCols map[string]interface{}) (err error) {
+	return DB.Model(&TbRequestRecord{}).Where("request_id = ?", requestid).Updates(updatesCols).Error
 }
