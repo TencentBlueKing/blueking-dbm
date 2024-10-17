@@ -71,7 +71,8 @@
             </div>
             <BkInput
               v-model="formData.symbols_allowed"
-              class="symbols-input" />
+              class="symbols-input"
+              @keyup="handleInputChange" />
           </div>
         </BkFormItem>
         <BkFormItem
@@ -197,12 +198,16 @@
     },
   });
 
+  const fetchData = () => {
+    getPasswordPolicyRun({
+      name: props.dbType === DBTypes.REDIS ? 'redis_password_v2' : `${props.dbType}_password`,
+    });
+  };
+
   watch(
     () => props.dbType,
     () => {
-      getPasswordPolicyRun({
-        name: props.dbType === DBTypes.REDIS ? 'redis_password_v2' : `${props.dbType}_password`,
-      });
+      fetchData();
     },
   );
 
@@ -210,22 +215,32 @@
     formData.number_of_types = Math.min(formData.number_of_types, typeMaxCount.value);
   };
 
-  const handleReset = () => {
-    Object.assign(formData, defaultConfig);
-    handleSubmit(t('重置成功'));
+  const handleInputChange = (value: string) => {
+    if (/[A-Za-z0-9]/.test(value)) {
+      formData.symbols_allowed = value.slice(0, -1);
+    }
   };
 
-  const handleSubmit = (message = t('保存成功')) => {
+  const handleReset = () => {
+    Object.assign(formData, defaultConfig);
+    handleSubmit(t('重置成功'), true);
+  };
+
+  const handleSubmit = (message = t('保存成功'), reset = false) => {
     isSubmitting.value = true;
     updatePasswordPolicy({
       ...passwordPolicyData,
       rule: formData,
+      reset,
     })
       .then(() => {
         Message({
           theme: 'success',
           message,
         });
+        if (reset) {
+          fetchData();
+        }
       })
       .finally(() => {
         isSubmitting.value = false;

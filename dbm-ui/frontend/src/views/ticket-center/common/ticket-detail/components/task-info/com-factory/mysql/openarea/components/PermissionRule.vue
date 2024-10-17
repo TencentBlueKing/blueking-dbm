@@ -25,7 +25,7 @@
   import { useRequest } from 'vue-request';
 
   import MysqlPermissonAccountModel from '@services/model/mysql/mysql-permission-account';
-  import { getPermissionRules } from '@services/source/permission';
+  import { getPermissionRules } from '@services/source/mysqlPermissionAccount';
 
   import { useGlobalBizs } from '@stores';
 

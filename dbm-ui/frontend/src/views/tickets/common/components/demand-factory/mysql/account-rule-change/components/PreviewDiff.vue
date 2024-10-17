@@ -52,9 +52,11 @@
   import type { Column } from 'bkui-vue/lib/table/props';
   import { useI18n } from 'vue-i18n';
 
-  import { DBTypes } from '@common/const';
+  import type { AccountRule, AccountRulePrivilegeKey } from '@services/types';
 
-  import { type AuthItemKey, configMap, type RulesFormData } from "@views/db-manage/common/permission/create-rule/Index.vue";
+  import { AccountTypes } from '@common/const';
+
+  import configMap from '@views/db-manage/common/permission/components/mysql/config';
 
   interface PrivilegeRow {
     privilegeKey: string;
@@ -68,12 +70,15 @@
   }
 
   interface Props {
-    dbType?: DBTypes;
-    rulesFormData: RulesFormData
+    accountType?: AccountTypes.MYSQL | AccountTypes.TENDBCLUSTER;
+    rulesFormData: {
+      beforeChange: AccountRule;
+      afterChange: AccountRule;
+    }
   }
 
   const props = withDefaults(defineProps<Props>(), {
-    dbType: DBTypes.MYSQL,
+    accountType: AccountTypes.MYSQL,
   });
 
   const { t } = useI18n();
@@ -101,10 +106,10 @@
   }
 
   const getSensitiveWordMap = () => Object.fromEntries(
-    (configMap[props.dbType]?.ddlSensitiveWords || []).map(word => [word, true])
+    (configMap[props.accountType]?.ddlSensitiveWords || []).map(word => [word, true])
   );
 
-  const getPrivilegeData = (key: AuthItemKey) => {
+  const getPrivilegeData = (key: AccountRulePrivilegeKey) => {
     const beforeList = props.rulesFormData.beforeChange?.privilege[key] || [];
     const afterList = props.rulesFormData.afterChange?.privilege[key] || [];
     const diffMap = diffArray(beforeList, afterList);

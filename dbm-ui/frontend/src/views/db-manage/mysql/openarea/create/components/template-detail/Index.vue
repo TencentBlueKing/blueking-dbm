@@ -31,9 +31,9 @@
 <script setup lang="tsx">
   import { useI18n } from 'vue-i18n';
 
-  import MysqlPermissonAccountModel from '@services/model/mysql/mysql-permission-account';
+  import MysqlPermissionAccountModel from '@services/model/mysql/mysql-permission-account';
   import OpenareaTemplateModel from '@services/model/openarea/openareaTemplate';
-  import { getPermissionRules } from '@services/source/permission';
+  import { getPermissionRules } from '@services/source/mysqlPermissionAccount'
 
   import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
 
@@ -48,7 +48,7 @@
   const permissionTableloading = ref(false);
   const activeIndex =  ref(['clone-rule', 'permission-rule']);
   const rowFlodMap = ref<Record<string, boolean>>({});
-  const permissionTableData = ref<MysqlPermissonAccountModel[]>([]);
+  const permissionTableData = ref<MysqlPermissionAccountModel[]>([]);
 
   const permissionTableColumns = computed(() => [
     {
@@ -56,7 +56,7 @@
       field: 'user',
       width: 220,
       showOverflowTooltip: false,
-      render: ({ data }: { data: MysqlPermissonAccountModel }) => (
+      render: ({ data }: { data: MysqlPermissionAccountModel }) => (
         <div class="account-box">
           {
             data.rules.length > 1
@@ -77,7 +77,7 @@
       width: 300,
       field: 'access_db',
       showOverflowTooltip: true,
-      render: ({ data }: { data: MysqlPermissonAccountModel }) => {
+      render: ({ data }: { data: MysqlPermissionAccountModel }) => {
         const renderRules = rowFlodMap.value[data.account.user] ? data.rules.slice(0, 1) : data.rules;
         return renderRules.map(item => (
           <div class="inner-row">
@@ -92,7 +92,7 @@
       label: t('权限'),
       field: 'privilege',
       showOverflowTooltip: false,
-      render: ({ data }: { data: MysqlPermissonAccountModel }) => {
+      render: ({ data }: { data: MysqlPermissionAccountModel }) => {
         if (data.rules.length === 0) {
           return <div class="inner-row">--</div>;
         }

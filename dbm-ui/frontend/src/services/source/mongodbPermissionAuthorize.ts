@@ -11,18 +11,14 @@
  * the specific language governing permissions and limitations under the License.
  */
 
-import { useGlobalBizs } from '@stores';
-
 import http from '../http';
 
-const { currentBizId } = useGlobalBizs();
-
-const path = `/apis/mongodb/bizs/${currentBizId}/permission/authorize`;
+const getRootPath = () => `/apis/mongodb/bizs/${window.PROJECT_CONFIG.BIZ_ID}/permission/authorize`;
 
 /**
  * MongoDB 授权规则前置检查
  */
-export function preCheckMongodbAuthorizeRules(params: {
+export function preCheckAuthorizeRules(params: {
   mongo_users: {
     user: string;
     access_dbs: string[];
@@ -45,5 +41,5 @@ export function preCheckMongodbAuthorizeRules(params: {
     authorize_uid: string;
     message: string;
     pre_check: boolean;
-  }>(`${path}/pre_check_rules/`, params);
+  }>(`${getRootPath()}/pre_check_rules/`, params);
 }

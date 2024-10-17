@@ -36,6 +36,7 @@ export interface PermissionRuleAccount {
   account_id: number;
   bk_biz_id: number;
   user: string;
+  password: string;
   creator: string;
   create_time: string;
 }
@@ -130,6 +131,8 @@ export interface AccountRulePrivilege {
   dml: string[];
   glob: string[];
 }
+
+export type AccountRulePrivilegeKey = keyof AccountRulePrivilege;
 
 /**
  * 规则授权前置检查信息

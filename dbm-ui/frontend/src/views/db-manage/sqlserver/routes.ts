@@ -60,7 +60,7 @@ const routes: RouteRecordRaw[] = [
         name: 'SqlServerPermissionRules',
         path: 'permission-rules',
         meta: {
-          navName: t('授权规则'),
+          navName: t('【SQLServer】授权规则'),
         },
         component: () => import('@views/db-manage/sqlserver/permission/Index.vue'),
       },

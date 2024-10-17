@@ -85,8 +85,8 @@
       <PermissionRule
         v-model="permissionRules"
         v-model:is-show="isShowPermissionRule"
+        :account-type="AccountTypes.MYSQL"
         :cluster-id="formData.source_cluster_id"
-        db-type="mysql"
         @submit="handleSelectedPermissionRule" />
       <template #action>
         <BkButton
@@ -118,10 +118,10 @@
   import { useRequest } from 'vue-request';
   import { useRoute, useRouter } from 'vue-router';
 
-  import MysqlPermissonAccountModel from '@services/model/mysql/mysql-permission-account';
+  import MysqlPermissionAccountModel from '@services/model/mysql/mysql-permission-account';
   import TendbhaModel from '@services/model/mysql/tendbha';
+  import { getPermissionRules } from '@services/source/mysqlPermissionAccount'
   import { create as createOpenarea, getDetail, update as updateOpenarea } from '@services/source/openarea';
-  import { getPermissionRules } from '@services/source/permission';
   import { getTendbhaList } from '@services/source/tendbha';
   import { getTendbsingleList } from '@services/source/tendbsingle';
 
@@ -129,7 +129,7 @@
 
   import { useGlobalBizs } from '@stores';
 
-  import { ClusterTypes } from '@common/const';
+  import { AccountTypes, ClusterTypes } from '@common/const';
 
   import ClusterSelector, { type TabConfig } from '@components/cluster-selector/Index.vue';
   import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
@@ -166,7 +166,7 @@
   const permissionTableloading = ref(false);
   const permissionRules = ref<number[]>([]);
   const rowFlodMap = ref<Record<string, boolean>>({});
-  const permissionTableData = ref<MysqlPermissonAccountModel[]>([]);
+  const permissionTableData = ref<MysqlPermissionAccountModel[]>([]);
   const formDataChanged = ref(false);
   const currentCluster = ref({
     type: 'tendbha',
@@ -190,7 +190,7 @@
       showPreviewResultTitle: true,
       multiple: false,
     },
-  } as Record<string, TabConfig>;
+  } as unknown as Record<string, TabConfig>;
 
   const permissionTableColumns = computed(() => [
     {
@@ -198,7 +198,7 @@
       field: 'user',
       width: 220,
       showOverflowTooltip: false,
-      render: ({ data }: { data: MysqlPermissonAccountModel }) => (
+      render: ({ data }: { data: MysqlPermissionAccountModel }) => (
         <div class="account-box">
           {
             data.rules.length > 1
@@ -219,7 +219,7 @@
       width: 300,
       field: 'access_db',
       showOverflowTooltip: true,
-      render: ({ data }: { data: MysqlPermissonAccountModel }) => {
+      render: ({ data }: { data: MysqlPermissionAccountModel }) => {
         const renderRules = rowFlodMap.value[data.account.user] ? data.rules.slice(0, 1) : data.rules;
         return renderRules.map(item => (
           <div class="inner-row">
@@ -234,7 +234,7 @@
       label: t('权限'),
       field: 'privilege',
       showOverflowTooltip: false,
-      render: ({ data }: { data: MysqlPermissonAccountModel }) => {
+      render: ({ data }: { data: MysqlPermissionAccountModel }) => {
         if (data.rules.length === 0) {
           return <div class="inner-row">--</div>;
         }
@@ -254,7 +254,7 @@
       label: t('操作'),
       field: 'operate',
       width: 145,
-      render: ({ data }: { data: MysqlPermissonAccountModel }) => {
+      render: ({ data }: { data: MysqlPermissionAccountModel }) => {
         const renderRules = rowFlodMap.value[data.account.user] ? data.rules.slice(0, 1) : data.rules;
         return renderRules.map(item => (
           <div class="inner-row">
@@ -311,7 +311,7 @@
 
   const getCellClass = (data: { field: string }) => ['privilege', 'operate'].includes(data.field) ? 'cell-privilege' : '';
 
-  const handleRemoveSelectedPermissionRules = (data: MysqlPermissonAccountModel['rules'][number]) => {
+  const handleRemoveSelectedPermissionRules = (data: MysqlPermissionAccountModel['rules'][number]) => {
     const permissionIndex = permissionTableData.value.findIndex(item => item.account.account_id === data.account_id)!;
     const permission = permissionTableData.value[permissionIndex];
     const ruleIndex = permission.rules.findIndex(item => item.rule_id === data.rule_id)!;
