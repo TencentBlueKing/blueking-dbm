@@ -18,7 +18,7 @@ import { useRouter } from 'vue-router';
 export const useTicketMessage = () => {
   const { t } = useI18n();
   const router = useRouter();
-  return (id: number) => {
+  return (id: number | string) => {
     const route = router.resolve({
       name: 'bizTicketManage',
       query: {
