@@ -51,7 +51,7 @@
         <RenderTableHeadColumn
           :min-width="100"
           :width="300">
-          <span>{{ $t('缩容数量(台)') }}</span>
+          <span>{{ $t('缩容数量（台）') }}</span>
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
           fixed="right"

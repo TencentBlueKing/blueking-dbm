@@ -31,7 +31,6 @@
 
   interface Props {
     data?: IDataRow['targetNum'];
-    min?: number;
     isLoading?: boolean;
     disabled?: boolean;
   }
@@ -63,8 +62,8 @@
       message: t('格式有误，请输入数字'),
     },
     {
-      validator: (value: string) => Number(value) > props.min,
-      message: t('必须大于当前台数n', { n: props.min }),
+      validator: (value: string) => Number(value) >= 1,
+      message: t('不能少于n台', { n: 1 }),
     },
   ];
 
