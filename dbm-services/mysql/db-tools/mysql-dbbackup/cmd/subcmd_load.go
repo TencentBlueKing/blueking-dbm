@@ -77,6 +77,7 @@ func loadData(cnf *config.BackupConfig, backupType string) error {
 
 	metaInfo, err := backupexe.ParseJsonFile(indexPath)
 	if err != nil {
+		logger.Log.Errorf("can not parse index file:%s, errmsg:%s", indexPath, err)
 		return err
 	}
 	if backupType != "" && metaInfo.BackupType != backupType {

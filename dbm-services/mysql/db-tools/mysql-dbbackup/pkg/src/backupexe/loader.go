@@ -18,7 +18,8 @@ type Loader interface {
 }
 
 // BuildLoader TODO
-func BuildLoader(cnf *config.BackupConfig, backupType string, backupTool string) (loader Loader, err error) {
+func BuildLoader(cnf *config.BackupConfig, backupType string, backupTool string, storageEngine string) (loader Loader, err error) {
+
 	if strings.ToLower(backupType) == cst.BackupLogical {
 		if backupTool == cst.ToolMysqldump {
 			// mysqldump 共用 LogicalLoad 参数
@@ -46,8 +47,15 @@ func BuildLoader(cnf *config.BackupConfig, backupType string, backupTool string)
 		if err := validate.GoValidateStruct(cnf.PhysicalLoad, false, false); err != nil {
 			return nil, err
 		}
-		loader = &PhysicalLoader{
-			cnf: cnf,
+
+		if cst.StorageEngineRocksdb == storageEngine {
+			loader = &PhysicalRocksdbLoader{
+				cfg: cnf,
+			}
+		} else {
+			loader = &PhysicalLoader{
+				cnf: cnf,
+			}
 		}
 	} else {
 		logger.Log.Error(fmt.Sprintf("Unknown BackupType: %s", backupType))
