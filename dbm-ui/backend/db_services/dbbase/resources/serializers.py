@@ -33,6 +33,7 @@ class ListResourceSLZ(serializers.Serializer):
     db_module_id = serializers.CharField(required=False, help_text=_("所属DB模块"))
     bk_cloud_id = serializers.CharField(required=False, help_text=_("管控区域"))
     cluster_type = serializers.CharField(required=False, help_text=_("集群类型"))
+    tag_ids = serializers.CharField(required=False, help_text=_("标签"))
 
 
 class ListMySQLResourceSLZ(ListResourceSLZ):

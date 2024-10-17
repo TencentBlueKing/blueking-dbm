@@ -12,20 +12,29 @@ from django.db import models
 from django.utils.translation import ugettext_lazy as _
 
 from backend.bk_web.models import AuditedModel
+from backend.configuration.constants import PLAT_BIZ_ID
 from backend.db_meta.enums.comm import TagType
-from backend.db_meta.models import Cluster
 
 
 class Tag(AuditedModel):
-    bk_biz_id = models.IntegerField(default=0)
-    name = models.CharField(max_length=64, default="", help_text=_("tag名称"))
-    type = models.CharField(max_length=64, help_text=_("tag类型"), choices=TagType.get_choices())
-    cluster = models.ManyToManyField(Cluster, blank=True, help_text=_("关联集群"))
+    bk_biz_id = models.IntegerField(help_text=_("业务 ID"), default=0)
+    key = models.CharField(help_text=_("标签键"), default="", max_length=64)
+    value = models.CharField(help_text=_("标签值"), default="", max_length=255)
+    type = models.CharField(
+        help_text=_("tag类型"), max_length=64, choices=TagType.get_choices(), default=TagType.CUSTOM.value
+    )
 
     class Meta:
-        unique_together = ["bk_biz_id", "name"]
+        unique_together = ["bk_biz_id", "key", "value"]
 
     @property
     def tag_desc(self):
         """仅返回tag的信息"""
-        return {"bk_biz_id": self.bk_biz_id, "name": self.name, "type": self.type}
+        return {"bk_biz_id": self.bk_biz_id, "key": self.key, "type": self.type}
+
+    @classmethod
+    def get_or_create_system_tag(cls, key: str, value: str):
+        tag, created = cls.objects.get_or_create(
+            bk_biz_id=PLAT_BIZ_ID, key=key, value=value, type=TagType.SYSTEM.value
+        )
+        return tag
