@@ -351,9 +351,19 @@ export default class Mongodb {
   }
 
   get shardList() {
-    return Object.entries(this.seg_range).map(([shardName, instanceList]) => ({
-      shardName,
-      instanceList,
-    }));
+    return Object.entries(this.seg_range).reduce<
+      {
+        shardName: string;
+        instanceList: string[];
+      }[]
+    >((prevList, [shardName, instanceList]) => {
+      if (!shardName.endsWith('conf')) {
+        return prevList.concat({
+          shardName,
+          instanceList,
+        });
+      }
+      return prevList;
+    }, []);
   }
 }
