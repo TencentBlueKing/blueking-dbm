@@ -307,6 +307,22 @@ class RedisBackendScaleSceneApiView(FlowTestView):
         return Response({"root_id": root_id})
 
 
+class RedisClusterInsMigrateApiView(FlowTestView):
+    @staticmethod
+    def post(request):
+        root_id = generate_root_id()
+        RedisController(root_id=root_id, ticket_data=request.data).redis_cluster_ins_migrate()
+        return Response({"root_id": root_id})
+
+
+class RedisSingleInsMigrateApiView(FlowTestView):
+    @staticmethod
+    def post(request):
+        root_id = generate_root_id()
+        RedisController(root_id=root_id, ticket_data=request.data).redis_single_ins_migrate()
+        return Response({"root_id": root_id})
+
+
 class RedisClusterDataCopySceneApiView(FlowTestView):
     """
     api: /apis/v1/flow/scene/redis_cluster_data_copy
