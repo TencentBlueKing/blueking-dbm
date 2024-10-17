@@ -686,9 +686,9 @@ class MySQLController(BaseController):
         flow = MySQLNonStandbySlavesUpgradeFlow(root_id=self.root_id, ticket_data=self.ticket_data)
         flow.upgrade()
 
-    def non_standby_slaves_destory_scene(self):
+    def non_standby_slaves_destroy_scene(self):
         """
-        非Standby从库升级
+        非Standby从库销毁
         """
         flow = DestroyNonStanbySlaveMySQLFlow(root_id=self.root_id, ticket_data=self.ticket_data)
         flow.destroy()

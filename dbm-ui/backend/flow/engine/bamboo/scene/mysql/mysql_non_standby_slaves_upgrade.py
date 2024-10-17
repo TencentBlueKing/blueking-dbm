@@ -145,13 +145,13 @@ class DestroyNonStanbySlaveMySQLFlow(object):
 
 class MySQLNonStandbySlavesUpgradeFlow(object):
     """
-    一直多从非stanby slaves升级
+    一主多从非stand by slaves升级
     """
 
     def __init__(self, root_id: str, ticket_data: Optional[Dict]):
         """
         @param root_id : 任务流程定义的root_id
-        @param tick_data : 单据传递过来的参数列表，是dict格式
+        @param ticket_data : 单据传递过来的参数列表，是dict格式
         """
         self.root_id = root_id
         self.ticket_data = ticket_data
