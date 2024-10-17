@@ -93,9 +93,11 @@ export const dryRun = function (params: { config_id: number; cluster_id: number;
 
 // 分区策略执行
 export const execute = function (params: { cluster_id: number; partition_objects: Record<any, unknown> }) {
-  return http.post<{
-    id: number;
-  }>('/apis/partition/execute_partition/', params);
+  return http.post<
+    {
+      id: number;
+    }[]
+  >('/apis/partition/execute_partition/', params);
 };
 
 // 查询分区策略日志
