@@ -683,7 +683,7 @@ class RedisDBMeta(object):
             api.cluster.nosqlcomm.make_sync(cluster=cluster, tendisss=tendiss)
         return True
 
-    def instances_status_update(self, cluster_obj) -> bool:
+    def instances_status_update(self) -> bool:
         """
         Redis/Proxy 实例修改实例状态 {"ip":"","ports":[],"status":11}
         """
@@ -695,7 +695,7 @@ class RedisDBMeta(object):
                 ).update(status=self.cluster["meta_update_status"])
             else:
                 # 支持互切的 不修改状态，保持 running
-                if cluster_obj.cluster_type not in [
+                if machine_obj.cluster_type not in [
                     ClusterType.TendisPredixyRedisCluster.value,
                     ClusterType.TendisPredixyTendisplusCluster.value,
                 ]:
@@ -708,7 +708,7 @@ class RedisDBMeta(object):
         """1.修改状态、2.切换角色"""
         # 获取cluster
         cluster_obj = Cluster.objects.get(id=int(self.cluster["cluster_id"]))
-        self.instances_status_update(cluster_obj)
+        self.instances_status_update()
         with atomic():
             cc_manage, bk_host_ids = CcManage(int(self.cluster["bk_biz_id"]), cluster_obj.cluster_type), []
             for port in self.cluster["meta_update_ports"]:
