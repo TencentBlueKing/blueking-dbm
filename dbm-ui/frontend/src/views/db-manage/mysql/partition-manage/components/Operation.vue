@@ -26,10 +26,10 @@
             :model-value="formData.cluster_id || undefined"
             @change="handleClusterChange">
             <BkOption
-              v-for="item in clusterList?.results"
+              v-for="item in clusterList"
               :id="item.id"
               :key="item.id"
-              :name="item.master_domain" />
+              :name="item.immute_domain" />
           </BkSelect>
         </DbFormItem>
         <DbFormItem
@@ -70,14 +70,10 @@
           required>
           <BkSelect v-model="formData.partition_column_type">
             <BkOption
-              id="int"
-              name="整型(int)" />
-            <BkOption
-              id="datetime"
-              name="日期类型(date)" />
-            <BkOption
-              id="timestamp"
-              name="时间戳类型(timestamp)" />
+              v-for="item in columnTypeSelectList"
+              :id="item.id"
+              :key="item.id"
+              :name="item.name" />
           </BkSelect>
         </DbFormItem>
         <DbFormItem
@@ -86,7 +82,7 @@
           required>
           <BkInput
             v-model="formData.partition_column"
-            :placeholder="t('须为时间类型的字段，如2022-12-12 或 2022.12.12')" />
+            :placeholder="t('请输入')" />
         </DbFormItem>
         <DbFormItem
           :description="t('多少天为一个分区，例如 7 天为一个分区')"
@@ -142,16 +138,14 @@
   import { useRequest } from 'vue-request';
 
   import type PartitionModel from '@services/model/partition/partition';
+  import { queryAllTypeCluster } from '@services/source/dbbase';
   import {
     create as createParitition,
     edit as editPartition,
     verifyPartitionField,
   } from '@services/source/partitionManage';
-  import { getTendbhaList } from '@services/source/tendbha';
 
-  import { useGlobalBizs } from '@stores';
-
-  import { ClusterTypes, dbSysExclude, DBTypes } from '@common/const';
+  import { dbSysExclude } from '@common/const';
   import { dbRegex } from '@common/regex';
 
   interface Props {
@@ -181,9 +175,9 @@
   });
 
   let showPopConfirm = false;
+  let partionColumnVerifyErrorText = '';
 
   const { t } = useI18n();
-  const { currentBizId } = useGlobalBizs();
 
   const formRef = ref();
   const isEditMode = ref(false);
@@ -254,17 +248,22 @@
             tblikes: formData.tblikes,
             partition_column: value,
             partition_column_type: formData.partition_column_type,
-          }).then((result) => {
-            if (result) {
-              showPopConfirm = true;
-              verifyWarnTip.value = result;
-            } else {
-              showPopConfirm = false;
-              verifyWarnTip.value = '';
-            }
-            return true;
-          }),
-        message: t('分区字段验证失败'),
+          })
+            .then((result) => {
+              if (result) {
+                showPopConfirm = true;
+                verifyWarnTip.value = result;
+              } else {
+                showPopConfirm = false;
+                verifyWarnTip.value = '';
+              }
+              return true;
+            })
+            .catch((err) => {
+              partionColumnVerifyErrorText = err.message;
+              return false;
+            }),
+        message: () => partionColumnVerifyErrorText,
         trigger: 'blur',
       },
     ],
@@ -288,14 +287,36 @@
     ],
   }));
 
-  const { loading: isCluserListLoading, data: clusterList } = useRequest(getTendbhaList, {
+  const columnTypeSelectList = [
+    {
+      id: 'int',
+      name: t('整型(int)'),
+    },
+    {
+      id: 'bigint',
+      name: t('整型(bigint)'),
+    },
+    {
+      id: 'date',
+      name: t('日期类型(date)'),
+    },
+    {
+      id: 'datetime',
+      name: t('日期时间类型(datetime)'),
+    },
+    {
+      id: 'timestamp',
+      name: t('时间戳类型(timestamp)'),
+    },
+  ];
+
+  const { loading: isCluserListLoading, data: clusterList } = useRequest(queryAllTypeCluster, {
     defaultParams: [
       {
         offset: 0,
         limit: -1,
-        dbType: DBTypes.MYSQL,
-        bk_biz_id: currentBizId,
-        type: ClusterTypes.TENDBHA,
+        bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+        cluster_types: 'tendbha,tendbsingle',
       },
     ],
   });
