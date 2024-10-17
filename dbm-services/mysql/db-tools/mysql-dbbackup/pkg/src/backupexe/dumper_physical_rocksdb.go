@@ -74,7 +74,8 @@ func (p *PhysicalRocksdbDumper) initConfig(mysqlVersion string) error {
 	p.dbbackupHome = filepath.Dir(cmdPath)
 	db, err := mysqlconn.InitConn(&p.cfg.Public)
 	if err != nil {
-		logger.Log.Errorf("can not connect to the mysql, host:%s, port:%d, errmsg:%s", p.cfg.Public.MysqlHost, p.cfg.Public.MysqlPort, err)
+		logger.Log.Errorf("can not connect to the mysql, host:%s, port:%d, errmsg:%s",
+			p.cfg.Public.MysqlHost, p.cfg.Public.MysqlPort, err)
 		return err
 	}
 
@@ -86,7 +87,8 @@ func (p *PhysicalRocksdbDumper) initConfig(mysqlVersion string) error {
 	p.storageEngine, err = mysqlconn.GetStorageEngine(db)
 
 	if err != nil {
-		logger.Log.Errorf("can not get the storage engine from the mysql, host:%s, port:%d, errmsg:%s", p.cfg.Public.MysqlHost, p.cfg.Public.MysqlPort, err)
+		logger.Log.Errorf("can not get the storage engine from the mysql, host:%s, port:%d, errmsg:%s",
+			p.cfg.Public.MysqlHost, p.cfg.Public.MysqlPort, err)
 		return err
 	}
 
@@ -96,7 +98,8 @@ func (p *PhysicalRocksdbDumper) initConfig(mysqlVersion string) error {
 	if p.mysqlRole == cst.RoleSlave || p.mysqlRole == cst.RoleRepeater {
 		p.masterHost, p.masterPort, err = mysqlconn.ShowMysqlSlaveStatus(db)
 		if err != nil {
-			logger.Log.Errorf("can not get the master host and port from the mysql, host:%s, port:%d, errmsg:%s", p.cfg.Public.MysqlHost, p.cfg.Public.MysqlPort, err)
+			logger.Log.Errorf("can not get the master host and port from the mysql, host:%s, port:%d, errmsg:%s",
+				p.cfg.Public.MysqlHost, p.cfg.Public.MysqlPort, err)
 			return err
 		}
 	}
@@ -114,11 +117,13 @@ func (p *PhysicalRocksdbDumper) Execute(enableTimeOut bool) error {
 	}()
 
 	if p.storageEngine != cst.StorageEngineRocksdb {
-		err := fmt.Errorf("unsupported engine:%s, host:%s, port:%d", p.storageEngine, p.cfg.Public.MysqlHost, p.cfg.Public.MysqlPort)
+		err := fmt.Errorf("unsupported engine:%s, host:%s, port:%d", p.storageEngine,
+			p.cfg.Public.MysqlHost, p.cfg.Public.MysqlPort)
 		logger.Log.Error(err)
 		return err
 	}
 
+	// pre-created checkpoint dir
 	_, err := os.Stat(p.checkpointDir)
 	if os.IsNotExist(err) {
 		logger.Log.Infof("the checkpoint does not exist, will create it. checkpoint:%s", p.checkpointDir)
@@ -150,7 +155,9 @@ func (p *PhysicalRocksdbDumper) Execute(enableTimeOut bool) error {
 		cmd = exec.Command("sh", "-c", backupCmd)
 	}
 
-	p.backupLogfile = fmt.Sprintf("dumper_%s_%s_%d_%d.log", p.storageEngine, cst.ToolMyrocksHotbackup, p.cfg.Public.MysqlPort, int(time.Now().Weekday()))
+	p.backupLogfile = fmt.Sprintf("dumper_%s_%s_%d_%d.log", p.storageEngine,
+		cst.ToolMyrocksHotbackup, p.cfg.Public.MysqlPort, int(time.Now().Weekday()))
+
 	p.backupLogfile = filepath.Join(p.dbbackupHome, "logs", p.backupLogfile)
 
 	outFile, err := os.Create(p.backupLogfile)
@@ -169,7 +176,8 @@ func (p *PhysicalRocksdbDumper) Execute(enableTimeOut bool) error {
 
 	err = cmd.Run()
 	if err != nil {
-		logger.Log.Errorf("can not run the rocksdb physical dumper command:%s, engine:%s, errmsg:%s", backupCmd, p.storageEngine, err)
+		logger.Log.Errorf("can not run the rocksdb physical dumper command:%s, engine:%s, errmsg:%s",
+			backupCmd, p.storageEngine, err)
 		return err
 	}
 
@@ -198,7 +206,8 @@ func (p *PhysicalRocksdbDumper) PrepareBackupMetaInfo(cnf *config.BackupConfig) 
 
 	masterStatus, err := parseXtraBinlogInfo(qpressPath, xtrabackupBinlogInfoFileName, tmpFileName)
 	if err != nil {
-		logger.Log.Errorf("do not parse xtrabackup binlog file, file name:%s, errmsg:%s", xtrabackupBinlogInfoFileName, err)
+		logger.Log.Errorf("do not parse xtrabackup binlog file, file name:%s, errmsg:%s",
+			xtrabackupBinlogInfoFileName, err)
 		return nil, err
 	}
 
@@ -210,7 +219,8 @@ func (p *PhysicalRocksdbDumper) PrepareBackupMetaInfo(cnf *config.BackupConfig) 
 		slaveStatus, err := parseXtraSlaveInfo(qpressPath, xtrabackupSlaveInfoFileName, tmpFileName)
 
 		if err != nil {
-			logger.Log.Errorf("do not parse xtrabackup slave information, xtrabackup file:%s, errmsg:%s", xtrabackupSlaveInfoFileName, err)
+			logger.Log.Errorf("do not parse xtrabackup slave information, xtrabackup file:%s, errmsg:%s",
+				xtrabackupSlaveInfoFileName, err)
 			return nil, err
 		}
 

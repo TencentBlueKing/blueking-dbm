@@ -81,7 +81,8 @@ func (p *PhysicalRocksdbLoader) decompress() error {
 			return errors.Wrap(err, errStr)
 		}
 
-		logger.Log.Infof("decompress success, command:%s, file name:%s, load dir:%s %s", binPath, file.FileName, p.cfg.PhysicalLoad.MysqlLoadDir, outStr)
+		logger.Log.Infof("decompress success, command:%s, file name:%s, load dir:%s %s",
+			binPath, file.FileName, p.cfg.PhysicalLoad.MysqlLoadDir, outStr)
 	}
 
 	return nil
@@ -90,7 +91,8 @@ func (p *PhysicalRocksdbLoader) decompress() error {
 func (p *PhysicalRocksdbLoader) load() error {
 
 	if p.storageEngine != cst.StorageEngineRocksdb {
-		err := fmt.Errorf("unsupported engine:%s, host:%s, port:%d", p.storageEngine, p.cfg.Public.MysqlHost, p.cfg.Public.MysqlPort)
+		err := fmt.Errorf("unsupported engine:%s, host:%s, port:%d",
+			p.storageEngine, p.cfg.Public.MysqlHost, p.cfg.Public.MysqlPort)
 		return err
 	}
 
@@ -116,12 +118,14 @@ func (p *PhysicalRocksdbLoader) load() error {
 
 	err = cmd.Run()
 	if err != nil {
-		logger.Log.Errorf("can not run the rocksdb physical loader command:%s, engine:%s, errmsg:%s", loaderCmd, p.storageEngine, err)
+		logger.Log.Errorf("can not run the rocksdb physical loader command:%s, engine:%s, errmsg:%s",
+			loaderCmd, p.storageEngine, err)
 		return err
 	}
 
 	logger.Log.Infof("run load rocksdb success, command:%s", cmd.String())
 
+	// convert to root user and group to mysql.mysql, the mysql server was started by user mysql
 	cmutil.ExecCommand(false, "", "chown", "-R", "mysql.mysql", p.dataDir)
 	cmutil.ExecCommand(false, "", "chown", "-R", "mysql.mysql", p.innodbLogGroupHomeDir)
 	cmutil.ExecCommand(false, "", "chown", "-R", "mysql.mysql", p.innodbDataHomeDir)
@@ -139,6 +143,7 @@ func (p *PhysicalRocksdbLoader) initConfig(indexContent *dbareport.IndexContent)
 		return errors.New("rocksdb physical loader config missed")
 	}
 
+	// the user mysql and group mysql is required
 	_, err := user.Lookup("mysql")
 	if err != nil {
 		logger.Log.Errorf("can not lookup the user: mysql, errmsg:%s", err)
@@ -159,7 +164,9 @@ func (p *PhysicalRocksdbLoader) initConfig(indexContent *dbareport.IndexContent)
 	p.storageEngine = strings.ToLower(indexContent.StorageEngine)
 	p.indexContent = indexContent
 
-	p.loaderLogfile = filepath.Join(pwd, "logs", fmt.Sprintf("loader_%s_%s_%d_%d.log", p.storageEngine, cst.ToolMyrocksHotbackup, p.cfg.Public.MysqlPort, int(time.Now().Weekday())))
+	p.loaderLogfile = filepath.Join(pwd, "logs", fmt.Sprintf("loader_%s_%s_%d_%d.log",
+		p.storageEngine, cst.ToolMyrocksHotbackup, p.cfg.Public.MysqlPort, int(time.Now().Weekday())))
+
 	loaderLogDir := filepath.Dir(p.loaderLogfile)
 	err = os.MkdirAll(loaderLogDir, 0755)
 	if err != nil {
