@@ -309,8 +309,8 @@
       cluster_id: props.clusterId,
       partition_objects: dryRunData.value,
     })
-      .then((data) => {
-        ticketMessage(data.id);
+      .then((result) => {
+        ticketMessage(result.map(item => item.id).join(','));
         modelValue.value = false;
       })
       .finally(() => {
