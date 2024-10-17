@@ -9,7 +9,7 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import re
-from typing import List
+from typing import List, Tuple
 
 from django.utils.translation import ugettext_lazy as _
 
@@ -26,14 +26,25 @@ def glob_check(patterns: List[str]):
 
     for p in patterns:
         if contain_glob(p):
-            if len(patterns) > 1:
-                raise DbTableFilterValidateException(msg=_("使用通配符时, 只能有一个模式: {}").format(patterns))
+            # if len(patterns) > 1:
+            #     raise DbTableFilterValidateException(msg=_("使用通配符时, 只能有一个模式: {}").format(patterns))
 
             if ("%" in p or "?" in p) and r1.match(p):
                 raise DbTableFilterValidateException(msg=_("% ? 不能独立使用"))
 
             if "*" in p and not r2.match(p):
                 raise DbTableFilterValidateException(msg=_("* 只能独立使用"))
+
+
+def pattern_inclusion(patterns: List[str]) -> List[Tuple[str, str]]:
+    regex_list = [re.compile(replace_glob(f"^{p}$")) for p in patterns]
+
+    res = []
+    for i in range(len(patterns)):
+        for j in range(i + 1, len(patterns)):
+            if regex_list[i].match(patterns[j]) or regex_list[j].match(patterns[i]):
+                res.append((patterns[i], patterns[j]))
+    return res
 
 
 def replace_glob(p: str) -> str:

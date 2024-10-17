@@ -9,12 +9,12 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import itertools
-from typing import List
+from typing import Dict, List, Tuple
 
 from django.utils.translation import ugettext_lazy as _
 
 from .exception import DbTableFilterValidateException
-from .tools import build_exclude_regexp, build_include_regexp, glob_check, replace_glob
+from .tools import build_exclude_regexp, build_include_regexp, glob_check, pattern_inclusion, replace_glob
 
 
 class DbTableFilter(object):
@@ -100,3 +100,16 @@ class DbTableFilter(object):
 
         self._build_db_filter_regexp()
         self._build_table_filter_regexp()
+
+    def check_inclusion(self) -> Dict[str, List[Tuple[str, str]]]:
+        """
+        模式包含关系检查
+        如果存在包含关系, List[Tuple[str, str]] 非空
+        类似 [('p%', 'p2???'), ('p%', 'p211'), ('p%', 'p4'), ('p%', 'p5')]
+        """
+        return {
+            "include-db": pattern_inclusion(self.include_db_patterns),
+            "exclude-db": pattern_inclusion(self.exclude_db_patterns),
+            "include-table": pattern_inclusion(self.include_table_patterns),
+            "exclude-table": pattern_inclusion(self.exclude_table_patterns),
+        }
