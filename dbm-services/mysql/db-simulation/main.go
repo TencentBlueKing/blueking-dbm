@@ -13,6 +13,7 @@ package main
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"io"
 	"net/http"
 	"os"
@@ -23,12 +24,16 @@ import (
 	"github.com/gin-contrib/pprof"
 	"github.com/gin-contrib/requestid"
 	"github.com/gin-gonic/gin"
+	"github.com/samber/lo"
 	"go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin"
+
+	_ "go.uber.org/automaxprocs"
 
 	"dbm-services/common/go-pubpkg/apm/metric"
 	"dbm-services/common/go-pubpkg/apm/trace"
 	"dbm-services/common/go-pubpkg/logger"
 	"dbm-services/mysql/db-simulation/app/config"
+	"dbm-services/mysql/db-simulation/handler"
 	"dbm-services/mysql/db-simulation/model"
 	"dbm-services/mysql/db-simulation/router"
 )
@@ -50,6 +55,7 @@ func main() {
 
 	app.Use(requestid.New())
 	app.Use(apiLogger)
+	app.Use(returnRessponeMiddleware)
 	router.RegisterRouter(app)
 	app.POST("/app", func(ctx *gin.Context) {
 		ctx.SecureJSON(http.StatusOK, map[string]interface{}{"buildstamp": buildstamp, "githash": githash,
@@ -113,4 +119,41 @@ func apiLogger(c *gin.Context) {
 		})
 	}
 	c.Next()
+}
+
+type bodyLogWriter struct {
+	gin.ResponseWriter
+	body *bytes.Buffer
+}
+
+// Write 用于常见IO
+func (w bodyLogWriter) Write(b []byte) (int, error) {
+	w.body.Write(b)
+	return w.ResponseWriter.Write(b)
+}
+
+// BodyLogMiddleware 记录返回的body
+func returnRessponeMiddleware(c *gin.Context) {
+	blw := &bodyLogWriter{body: bytes.NewBufferString(""), ResponseWriter: c.Writer}
+	c.Writer = blw
+	c.Next()
+	statusCode := c.Writer.Status()
+	// if statusCode >= 400 {
+	// ok this is an request with error, let's make a record for it
+	// now print body (or log in your preferred way)
+	var rp handler.Response
+	if blw.body == nil {
+		rp = handler.Response{}
+		return
+	}
+	if err := json.Unmarshal(blw.body.Bytes(), &rp); err != nil {
+		return
+	}
+	if lo.IsNotEmpty(rp.RequestID) {
+		if err := model.UpdateTbRequestLog(rp.RequestID, map[string]interface{}{
+			"response_code": statusCode,
+			"update_time":   time.Now()}); err != nil {
+			logger.Warn("update request response failed %s", err.Error())
+		}
+	}
 }
