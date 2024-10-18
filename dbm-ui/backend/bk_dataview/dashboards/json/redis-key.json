@@ -2942,7 +2942,7 @@
           "uid": "bkmonitor_timeseries"
         },
         "definition": "- Blueking Monitor - 维度",
-        "hide": 2,
+        "hide": 0,
         "includeAll": false,
         "multi": false,
         "name": "cluster_domain",

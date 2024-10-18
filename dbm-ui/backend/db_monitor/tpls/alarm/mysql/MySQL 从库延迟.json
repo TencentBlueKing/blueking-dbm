@@ -89,7 +89,7 @@
             "time_ranges": [
               {
                   "end": "23:59",
-                  "start": "06:00"
+                  "start": "07:00"
               },
               {
                   "end": "02:59",
@@ -297,7 +297,7 @@
   },
   "is_enabled": true,
   "monitor_indicator": "AVG(mysql_slave_status_seconds_behind_master)",
-  "version": 22,
+  "version": 23,
   "alert_source": "time_series",
   "custom_conditions": []
 }
