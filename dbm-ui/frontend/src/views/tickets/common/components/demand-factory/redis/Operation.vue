@@ -90,12 +90,22 @@
     {
       label: t('包含Key'),
       field: 'white_regex',
-      render: ({ cell }: { cell: string }) => <span>{cell || '--'}</span>,
+      render: ({ cell }: {cell: string}) => {
+        if (cell.length > 0) {
+          return cell.split('\n').filter(item => item).map((key, index) => <bk-tag key={index}>{key}</bk-tag>);
+        }
+        return <span>--</span>;
+      },
     },
     {
       label: t('排除Key'),
       field: 'black_regex',
-      render: ({ cell }: { cell: string }) => <span>{cell || '--'}</span>,
+      render: ({ cell }: {cell: string}) => {
+        if (cell.length > 0) {
+          return cell.split('\n').filter(item => item).map((key, index) => <bk-tag key={index}>{key}</bk-tag>);
+        }
+        return <span>--</span>;
+      },
     },
   ];
 
