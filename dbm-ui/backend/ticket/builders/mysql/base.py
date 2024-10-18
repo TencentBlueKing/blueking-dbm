@@ -205,12 +205,14 @@ class DBTableField(serializers.CharField):
     """
 
     # 库表匹配正则
-    db_tb_pattern = re.compile("^[-_a-zA-Z0-9\*\?%]{0,35}$")  # noqa: W605
+    db_pattern = re.compile("^[-_a-zA-Z0-9\*\?%]{1,35}$")  # noqa: W605
+    table_pattern = re.compile("^[-_a-zA-Z0-9\*\?%]{1,64}$")  # noqa: W605
     # 是否为库
     db_field = False
 
     def __init__(self, **kwargs):
         self.db_field = kwargs.pop("db_field", False)
+        self.table_field = not self.db_field
         super().__init__(**kwargs)
 
     def to_internal_value(self, data):
@@ -224,8 +226,10 @@ class DBTableField(serializers.CharField):
         data = super().to_internal_value(data)
 
         # 库表字符集校验
-        if not self.db_tb_pattern.match(data):
-            raise serializers.ValidationError(_("【库表字段校验】库表只能由`[0-9],[a-z],[A-Z],-,_` 组成，(某些单据)支持*/%/?通配符。库表长度最大为35"))
+        if self.db_field and not self.db_pattern.match(data):
+            raise serializers.ValidationError(_("【库字段校验】库只能由`[0-9],[a-z],[A-Z],-,_` 组成，(某些单据)支持*/%/?通配符。库长度为1-35"))
+        elif self.table_field and not self.table_pattern.match(data):
+            raise serializers.ValidationError(_("【表字段校验】表只能由`[0-9],[a-z],[A-Z],-,_` 组成，(某些单据)支持*/%/?通配符。表长度为1-64"))
 
         # 库表通配符规则校验
         try:
