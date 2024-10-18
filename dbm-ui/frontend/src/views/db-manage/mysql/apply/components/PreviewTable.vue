@@ -90,20 +90,14 @@
           render: () => {
             const hosts = props.nodes.backend;
             return (
-            <div class="host-list">
-              <div class="host-list__wrapper">
-                {
-                  hosts.map(item => (
-                    <div class="host-list__item">
-                      <strong class='host-list__tag host-list__tag--master'>
-                        M
-                      </strong>
-                      <span class="host-list__ip">{item.ip}</span>
-                    </div>
-                  ))
-                }
-              </div>
-            </div>
+              hosts.map(item => (
+                <div class="host-list__item">
+                  <strong class='host-list__tag host-list__tag--master'>
+                    M
+                  </strong>
+                  <span class="host-list__ip">{item.ip}</span>
+                </div>
+              ))
             );
           },
         });
@@ -153,24 +147,19 @@
         render: () => {
           const hosts = props.nodes.proxy;
           return (
-          <div class="host-list">
-            <div class="host-list__wrapper">
-              {
-                getRenderHosts(hosts).map(group => (
-                  <div class="host-list__group">
-                    {
-                      group.map(item => (
-                        <div class="host-list__item">
-                          <strong class="host-list__tag host-list__tag--proxy">P</strong>
-                          <span class="host-list__ip">{item.ip}</span>
-                        </div>
-                      ))
-                    }
-                  </div>
-                ))
-              }
-            </div>
-          </div>
+            getRenderHosts(hosts).map(group => (
+              <div class="host-list__group">
+                {
+                  group.map(item => (
+                    <div class="host-list__item">
+                      <strong class="host-list__tag host-list__tag--proxy">P</strong>
+                      <span class="host-list__ip">{item.ip}</span>
+                    </div>
+                  ))
+                }
+              </div>
+            ))
+
           );
         },
       }, {
@@ -181,29 +170,23 @@
         render: () => {
           const hosts = props.nodes.backend;
           return (
-          <div class="host-list">
-            <div class="host-list__wrapper">
-              {
-                getRenderHosts(hosts).map(group => (
-                  <div class="host-list__group">
-                    {
-                      group.map((item, index) => {
-                        const tag = index === 0 ? 'master' : 'slave';
-                        return (
-                          <div class="host-list__item">
-                            <strong class={`host-list__tag ${`host-list__tag--${tag}`}`}>
-                              {tag.charAt(0).toUpperCase()}
-                            </strong>
-                            <span class="host-list__ip">{item.ip}</span>
-                          </div>
-                        );
-                      })
-                    }
-                  </div>
-                ))
-              }
-            </div>
-          </div>
+            getRenderHosts(hosts).map(group => (
+              <div class="host-list__group">
+                {
+                  group.map((item, index) => {
+                    const tag = index === 0 ? 'master' : 'slave';
+                    return (
+                      <div class="host-list__item">
+                        <strong class={`host-list__tag ${`host-list__tag--${tag}`}`}>
+                          {tag.charAt(0).toUpperCase()}
+                        </strong>
+                        <span class="host-list__ip">{item.ip}</span>
+                      </div>
+                    );
+                  })
+                }
+              </div>
+            ))
           );
         },
       }]);
