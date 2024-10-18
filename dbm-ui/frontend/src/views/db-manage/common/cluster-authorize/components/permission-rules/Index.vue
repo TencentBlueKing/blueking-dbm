@@ -53,8 +53,8 @@
 
   import { AccountTypes } from '@common/const';
 
+  import AccountRulesSelector from './components/accounter-rules-selector/Index.vue';
   import AccountRulesTable from './components/accout-rules-preview-table/Index.vue';
-  import AccountRulesSelector from './components/accouter-rules-selector/Index.vue';
 
   interface Props {
     accountType: AccountTypes;

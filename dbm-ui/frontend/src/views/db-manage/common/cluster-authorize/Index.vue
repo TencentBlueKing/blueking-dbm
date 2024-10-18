@@ -20,7 +20,7 @@
         @click="handleSubmit">
         {{ t('提交') }}
       </BkButton>
-      <AccountRulesPreview
+      <RulesPreview
         v-if="isShowPreview"
         :account-type="accountType"
         :data="dbComRef?.formData" />
@@ -35,6 +35,7 @@
 </template>
 <script setup lang="tsx">
   import { useI18n } from 'vue-i18n';
+  import { useRequest } from 'vue-request';
 
   import { preCheckAuthorizeRules as preCheckMongodbAuthorizeRules } from '@services/source/mongodbPermissionAuthorize';
   import { preCheckAuthorizeRules as preCheckMysqlAuthorizeRules } from '@services/source/mysqlPermissionAuthorize';
@@ -44,17 +45,14 @@
 
   import { useBeforeClose, useTicketMessage } from '@hooks';
 
-  import { AccountTypes, ClusterTypes, TicketTypes } from '@common/const';
+  import { AccountTypes, ClusterTypes } from '@common/const';
 
-  import AccountRulesPreview from './components/AccountRulesPreview.vue';
   import ErrorMessage from './components/ErrorMessage.vue';
-  import MongoContent from './db-form/Mongo.vue';
-  import MysqlContent from './db-form/Mysql.vue';
-  import SqlserverContent from './db-form/Sqlserver.vue';
-
-  type MysqlPreCheckResulst = ServiceReturnType<typeof preCheckMysqlAuthorizeRules>;
-  type MongoPreCheckResulst = ServiceReturnType<typeof preCheckMongodbAuthorizeRules>;
-  type SqlserverPreCheckResulst = ServiceReturnType<typeof preCheckSqlserverAuthorizeRules>;
+  import RulesPreview from './components/RulesPreview.vue';
+  import MongoForm from './db-form/Mongo.vue';
+  import MysqlForm from './db-form/Mysql.vue';
+  import SqlserverForm from './db-form/Sqlserver.vue';
+  import TendbclusterForm from './db-form/Tendbcluster.vue';
 
   interface Props {
     accountType: AccountTypes;
@@ -100,10 +98,10 @@
   const handleBeforeClose = useBeforeClose();
 
   const comMap = {
-    [AccountTypes.MYSQL]: MysqlContent,
-    [AccountTypes.TENDBCLUSTER]: MysqlContent,
-    [AccountTypes.MONGODB]: MongoContent,
-    [AccountTypes.SQLSERVER]: SqlserverContent,
+    [AccountTypes.MYSQL]: MysqlForm,
+    [AccountTypes.TENDBCLUSTER]: TendbclusterForm,
+    [AccountTypes.MONGODB]: MongoForm,
+    [AccountTypes.SQLSERVER]: SqlserverForm,
   };
 
   const state = reactive({
@@ -116,52 +114,23 @@
     () => props.accountType === AccountTypes.MYSQL || props.accountType === AccountTypes.TENDBCLUSTER,
   );
 
-  /**
-   * 创建授权单据
-   */
-  const createAuthorizeTicket = (
-    uid: string,
-    data:
-      | MysqlPreCheckResulst['authorize_data']
-      | MongoPreCheckResulst['authorize_data']
-      | SqlserverPreCheckResulst['authorize_data'],
-  ) => {
-    const ticketTypeMap = {
-      [AccountTypes.MYSQL]: TicketTypes.MYSQL_AUTHORIZE_RULES,
-      [AccountTypes.TENDBCLUSTER]: TicketTypes.TENDBCLUSTER_AUTHORIZE_RULES,
-      [AccountTypes.MONGODB]: TicketTypes.MONGODB_AUTHORIZE_RULES,
-      [AccountTypes.SQLSERVER]: TicketTypes.SQLSERVER_AUTHORIZE_RULES,
-    };
-
-    const params = {
-      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-      details: {
-        authorize_uid: uid,
-        authorize_data: data,
-      },
-      remark: '',
-      ticket_type: ticketTypeMap[props.accountType],
-    };
-
-    createTicket(params)
-      .then((res) => {
-        ticketMessage(res.id);
-        nextTick(() => {
-          emits('success');
-          window.changeConfirm = false;
-          handleClose();
-        });
-      })
-      .finally(() => {
-        state.isLoading = false;
+  const { run: createTicketRun } = useRequest(createTicket, {
+    manual: true,
+    onSuccess: (res) => {
+      ticketMessage(res.id);
+      nextTick(() => {
+        emits('success');
+        window.changeConfirm = false;
+        handleClose();
       });
-  };
+    },
+  });
 
   /**
    * 授权规则前置检测
    */
   const handleSubmit = async () => {
-    const params = await dbComRef.value.getValue();
+    const { ticketType, params } = await dbComRef.value.getValue();
 
     const apiMap = {
       [AccountTypes.MYSQL]: preCheckMysqlAuthorizeRules,
@@ -170,20 +139,31 @@
       [AccountTypes.SQLSERVER]: preCheckSqlserverAuthorizeRules,
     };
 
-    state.isLoading = true;
-    apiMap[props.accountType](params)
-      .then((res) => {
-        const { pre_check: preCheck, authorize_uid: uid, authorize_data: data, message } = res;
-        if (preCheck) {
-          createAuthorizeTicket(uid, data);
-          state.errorMessage = '';
-          return;
-        }
-        state.errorMessage = message;
-      })
-      .finally(() => {
-        state.isLoading = false;
-      });
+    try {
+      state.isLoading = true;
+      const {
+        pre_check: preCheck,
+        authorize_uid: uid,
+        authorize_data: data,
+        message,
+      } = await apiMap[props.accountType](params);
+      if (preCheck) {
+        createTicketRun({
+          bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+          details: {
+            authorize_uid: uid,
+            authorize_data: data,
+          },
+          remark: '',
+          ticket_type: ticketType,
+        });
+        state.errorMessage = '';
+        return;
+      }
+      state.errorMessage = message;
+    } finally {
+      state.isLoading = false;
+    }
   };
 
   /**

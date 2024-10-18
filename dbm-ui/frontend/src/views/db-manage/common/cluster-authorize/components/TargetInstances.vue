@@ -4,7 +4,8 @@
     class="cluster-authorize-bold"
     :label="t('目标集群')"
     property="target_instances"
-    required>
+    required
+    :rules="rules">
     <BkButton
       class="cluster-authorize-button"
       @click="handleShowTargetCluster">
@@ -73,6 +74,14 @@
 
   const { t } = useI18n();
   const copy = useCopy();
+
+  const rules = [
+    {
+      trigger: 'change',
+      message: t('请添加目标集群'),
+      validator: (value: string[]) => value.length > 0,
+    },
+  ]
 
   const tabListConfigMap = {
     tendbhaSlave: {

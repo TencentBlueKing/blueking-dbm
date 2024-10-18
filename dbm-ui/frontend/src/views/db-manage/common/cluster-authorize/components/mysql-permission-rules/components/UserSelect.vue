@@ -4,13 +4,13 @@
     property="user"
     required>
     <BkSelect
-      v-model="modelValue"
+      v-model="user"
       :clearable="false"
       filterable
       :input-search="false"
       :loading="isLoading">
       <BkOption
-        v-for="item of accountRules"
+        v-for="item of accounts"
         :key="item.account.account_id"
         :label="item.account.user"
         :value="item.account.user" />
@@ -33,28 +33,32 @@
   }
 
   interface Emits {
-    (e: 'success', data: PermissionRule[]): void;
+    (e: 'change', data: PermissionRule['rules']): void;
   }
 
   const props = defineProps<Props>();
 
   const emits = defineEmits<Emits>();
 
-  const modelValue = defineModel<string>('modelValue', {
+  const user = defineModel<string>('modelValue', {
     default: '',
   });
 
   const { t } = useI18n();
 
   const isLoading = ref(false);
-  const accountRules = ref<PermissionRule[]>([]);
+  const accounts = ref<PermissionRule[]>([]);
+
+  const updateAccoutRules = () => {
+    emits('change', accounts.value.find((item) => item.account.user === user.value)?.rules || []);
+  };
+
+  watch(user, updateAccoutRules);
 
   /**
    * 获取账号信息
    */
-  const getAccount = () => {
-    isLoading.value = true;
-
+  const fetchAccounts = async () => {
     const apiMap = {
       [AccountTypes.MYSQL]: getMysqlPermissionRules,
       [AccountTypes.TENDBCLUSTER]: getMysqlPermissionRules,
@@ -62,25 +66,20 @@
       [AccountTypes.SQLSERVER]: getSqlserverPermissionRules,
     };
 
-    apiMap[props.accountType]({
-      offset: 0,
-      limit: -1,
-      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-      account_type: props.accountType,
-    })
-      .then((res) => {
-        emits('success', res.results);
-        accountRules.value = res.results;
-        // // 只有一个则直接默认选中
-        // if (curRules.value.length === 1) {
-        //   // accessDbs.value = [curRules.value[0].access_db];
-        //   emits('success', [curRules.value[0].access_db]);
-        // }
-      })
-      .finally(() => {
-        isLoading.value = false;
+    try {
+      isLoading.value = true;
+      const { results } = await apiMap[props.accountType]({
+        offset: 0,
+        limit: -1,
+        bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+        account_type: props.accountType,
       });
+      accounts.value = results;
+      updateAccoutRules();
+    } finally {
+      isLoading.value = false;
+    }
   };
 
-  getAccount();
+  fetchAccounts();
 </script>

@@ -1,10 +1,10 @@
 <template>
   <DbFormItem
-    v-model="sourceIps"
     class="cluster-authorize-bold"
     :label="t('访问源')"
     property="source_ips"
-    required>
+    required
+    :rules="rules">
     <IpSelector
       :biz-id="bizId"
       button-text="添加 IP"
@@ -41,6 +41,13 @@
 
   const selected = ref<HostInfo[]>([]);
   const bizId = window.PROJECT_CONFIG.BIZ_ID;
+  const rules = [
+    {
+      trigger: 'change',
+      message: t('请添加访问源'),
+      validator: (value: string[]) => value.length > 0,
+    },
+  ];
 
   const handleChangeIP = (data: HostInfo[]) => {
     selected.value = data;
