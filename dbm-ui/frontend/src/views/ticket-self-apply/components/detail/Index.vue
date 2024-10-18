@@ -109,7 +109,7 @@
     fetchTicketDetails({
       id: props.ticketId,
     });
-  }, 10000);
+  }, 10000000);
 
   watch(
     () => props.ticketId,
