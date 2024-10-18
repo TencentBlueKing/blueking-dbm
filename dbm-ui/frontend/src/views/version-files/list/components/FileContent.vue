@@ -58,95 +58,96 @@
         </BkLoading>
       </div>
     </div>
-    <!-- 新增版本 -->
-    <BkDialog
-      v-model:is-show="createFileState.isShow"
-      :mask-close="false"
-      theme="primary"
-      :title="t('新增版本')"
-      :width="480">
-      <BkForm
-        ref="versionFormRef"
-        class="create-dialog-operations"
-        form-type="vertical"
-        :model="createFileState.formdata"
-        :rules="rules">
-        <BkFormItem
-          :label="t('版本名称')"
-          property="version"
-          required>
-          <template v-if="isInputType">
-            <BkInput
-              v-model="createFileState.formdata.version"
-              :placeholder="t('请输入')" />
-          </template>
-          <template v-else>
-            <BkSelect
-              v-model="createFileState.formdata.version"
-              :clearable="false"
-              filterable
-              :input-search="false"
-              :loading="createFileState.isLoadVersions">
-              <BkOption
-                v-for="version of createFileState.versions"
-                :key="version"
-                :label="version"
-                :value="version" />
-            </BkSelect>
-          </template>
-        </BkFormItem>
-        <BkFormItem
-          class="pb-16"
-          :label="t('文件')"
-          property="name"
-          required>
-          <BkUpload
-            ref="uplodRef"
-            v-bk-tooltips="fileTips"
-            :accept="acceptInfo.accept"
-            :before-upload="handleBeforeUpload"
-            :custom-request="handleCustomRequest"
-            :disabled="!createFileState.formdata.version"
-            :header="[
-              {
-                name: 'Content-Type',
-                value: 'application/octet-stream',
-              },
-              {
-                name: 'X-CSRFToken',
-                value: Cookies.get('dbm_csrftoken'),
-              },
-              {
-                name: 'X-BKREPO-OVERWRITE',
-                value: true,
-              },
-            ]"
-            method="put"
-            :multiple="false"
-            name=""
-            :size="10240"
-            :tip="acceptInfo.tips"
-            :url="createFileState.uploadUrl"
-            @delete="handleDeleteFile"
-            @success="handleUpdateSuccess" />
-        </BkFormItem>
-      </BkForm>
-      <template #footer>
-        <BkButton
-          class="mr-8"
-          :loading="createFileState.isLoading"
-          theme="primary"
-          @click="handleConfirmCreate">
-          {{ t('确定') }}
-        </BkButton>
-        <BkButton
-          :disabled="createFileState.isLoading"
-          @click="handleClose">
-          {{ t('取消') }}
-        </BkButton>
-      </template>
-    </BkDialog>
   </ApplyPermissionCatch>
+  <!-- 新增版本 -->
+  <BkDialog
+    v-model:is-show="createFileState.isShow"
+    :mask-close="false"
+    render-directive="if"
+    theme="primary"
+    :title="t('新增版本')"
+    :width="480">
+    <BkForm
+      ref="versionFormRef"
+      class="create-dialog-operations"
+      form-type="vertical"
+      :model="createFileState.formdata"
+      :rules="rules">
+      <BkFormItem
+        :label="t('版本名称')"
+        property="version"
+        required>
+        <template v-if="isInputType">
+          <BkInput
+            v-model="createFileState.formdata.version"
+            :placeholder="t('请输入')" />
+        </template>
+        <template v-else>
+          <BkSelect
+            v-model="createFileState.formdata.version"
+            :clearable="false"
+            filterable
+            :input-search="false"
+            :loading="createFileState.isLoadVersions">
+            <BkOption
+              v-for="version of createFileState.versions"
+              :key="version"
+              :label="version"
+              :value="version" />
+          </BkSelect>
+        </template>
+      </BkFormItem>
+      <BkFormItem
+        class="pb-16"
+        :label="t('文件')"
+        property="name"
+        required>
+        <BkUpload
+          ref="uplodRef"
+          v-bk-tooltips="fileTips"
+          :accept="acceptInfo.accept"
+          :before-upload="handleBeforeUpload"
+          :custom-request="handleCustomRequest"
+          :disabled="!createFileState.formdata.version"
+          :header="[
+            {
+              name: 'Content-Type',
+              value: 'application/octet-stream',
+            },
+            {
+              name: 'X-CSRFToken',
+              value: Cookies.get('dbm_csrftoken'),
+            },
+            {
+              name: 'X-BKREPO-OVERWRITE',
+              value: true,
+            },
+          ]"
+          method="put"
+          :multiple="false"
+          name=""
+          :size="10240"
+          :tip="acceptInfo.tips"
+          :url="createFileState.uploadUrl"
+          @delete="handleDeleteFile"
+          @success="handleUpdateSuccess" />
+      </BkFormItem>
+    </BkForm>
+    <template #footer>
+      <BkButton
+        class="mr-8"
+        :loading="createFileState.isLoading"
+        theme="primary"
+        @click="handleConfirmCreate">
+        {{ t('确定') }}
+      </BkButton>
+      <BkButton
+        :disabled="createFileState.isLoading"
+        @click="handleClose">
+        {{ t('取消') }}
+      </BkButton>
+    </template>
+  </BkDialog>
 </template>
 <script setup lang="tsx">
   import { Form, Message } from 'bkui-vue';
