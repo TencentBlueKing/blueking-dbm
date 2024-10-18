@@ -42,23 +42,12 @@
         @change="handleChange"
         @clear="() => emits('clear')"
         @focus="handleFocus"
-        @input="handleInput"
-        @paste="handlePaste" />
+        @input="handleInput" />
     </Teleport>
   </div>
 </template>
-
-<script lang="ts">
-  export default {
-    name: 'DbTextarea',
-    inheritAttrs: false,
-  };
-</script>
-
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
-
-  import { encodeMult } from '@utils';
 
   interface Props {
     displayHeight?: number | string;
@@ -82,6 +71,12 @@
     rowHeight: 18,
   });
   const emits = defineEmits<Emits>();
+
+  defineOptions({
+    name: 'DbTextarea',
+    inheritAttrs: false,
+  });
+
   const modelValue = defineModel<string>({
     default: '',
   });
@@ -200,14 +195,15 @@
   };
 
   const handleInput = (value: string) => {
-    setTextareaHeight();
     emits('input', value);
-    modelValue.value = value;
+    setTimeout(() => {
+      setTextareaHeight();
+    });
   };
 
   const handleChange = (value: string) => {
     emits('change', value);
-    modelValue.value = value;
+    setTextareaHeight();
   };
 
   /**
@@ -215,14 +211,6 @@
    */
   const focus = () => {
     textareaRef.value?.focus?.();
-  };
-
-  const handlePaste = (value: string, event: any) => {
-    const cursorPosition = event.target.selectionStart;
-    event.preventDefault();
-    let paste = (event.clipboardData || window.clipboardData).getData('text');
-    paste = encodeMult(paste).replace(/^\s+|\s+$/g, '');
-    modelValue.value = modelValue.value.slice(0, cursorPosition) + paste + modelValue.value.slice(cursorPosition);
   };
 
   defineExpose({
