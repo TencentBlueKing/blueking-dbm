@@ -212,6 +212,9 @@ class AppendDeployCTLFlow(object):
             master_spiders = cluster_obj.proxyinstance_set.filter(
                 tendbclusterspiderext__spider_role=TenDBClusterSpiderRole.SPIDER_MASTER.value
             )
+            slave_spiders = cluster_obj.proxyinstance_set.filter(
+                tendbclusterspiderext__spider_role=TenDBClusterSpiderRole.SPIDER_SLAVE.value
+            )
             master_spider_ips = [c.machine.ip for c in master_spiders]
             logging.info("master_spider_ips: %s" % [c.machine.ip for c in master_spiders])
             if len(master_spider_ips) < 2:
@@ -219,7 +222,6 @@ class AppendDeployCTLFlow(object):
             leader_spider = master_spiders[0]
             primary_ctl_ip = master_spider_ips[0]
             slave_ctp_ips = master_spider_ips[1:]
-            spiders = cluster_obj.proxyinstance_set.all()
             backends = cluster_obj.storageinstance_set.all()
             if len(backends) < 0:
                 raise Exception(_("沒有发现remote节点"))
@@ -231,8 +233,14 @@ class AppendDeployCTLFlow(object):
             # 赋值给全局参数
             sub_flow_context = copy.deepcopy(self.data)
             sub_flow_context["spider_ip_list"] = [
-                {"ip": value} for value in list(set([c.machine.ip for c in spiders]))
+                {"ip": value} for value in list(set([c.machine.ip for c in master_spiders]))
             ]
+            # 处理slave spider
+            if len(slave_spiders) > 0:
+                sub_flow_context["slave_spider_ip_list"] = [
+                    {"ip": value} for value in list(set([c.machine.ip for c in slave_spiders]))
+                ]
+                sub_flow_context["slave_spider_port"] = slave_spiders[0].port
             sub_flow_context["tdbctl_ip_list"] = [
                 {"ip": value} for value in list(set([c.machine.ip for c in master_spiders]))
             ]
