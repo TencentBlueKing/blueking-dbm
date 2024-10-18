@@ -52,13 +52,7 @@
             @remove="handleRemove(index)" />
         </template>
       </RenderTable>
-      <div class="force-action">
-        <BkCheckbox
-          v-model="isForce"
-          v-bk-tooltips="t('如忽略，有连接的情况下也会执行强制升级')">
-          <span class="force-action-text">{{ t('忽略业务连接') }}</span>
-        </BkCheckbox>
-      </div>
+      <ForceAction v-model="isForce" />
       <TicketRemark v-model="localRemark" />
       <ClusterSelector
         v-model:is-show="isShowClusterSelector"
@@ -105,6 +99,8 @@
 
   import BatchOperateIcon from '@views/db-manage/common/batch-operate-icon/Index.vue';
   import type { InfoItem } from '@views/db-manage/redis/db-data-copy/pages/page1/Index.vue';
+
+  import ForceAction from '../force-action/Index.vue';
 
   import RenderDataRow, { createRowData, type IDataRow } from './Row.vue';
 
