@@ -170,7 +170,7 @@ class FixPointRollbackHandler:
         """
         聚合tendbcluster的mysql_backup_result日志，按照backup_id聚合tendb备份记录
         :param backup_logs: 备份记录列表
-        :param shard_list: 备份分片数
+        :param shard_list: 指定备份分片数
         """
 
         def insert_time_field(_back_log, _log):
@@ -198,10 +198,9 @@ class FixPointRollbackHandler:
                     # 能覆盖的条件：
                     # 1. 如果是remote角色，则master能覆盖slave记录。同种角色可以时间接近rollback_time可以覆盖
                     # 2. 如果是spider角色，则时间接近rollback_time可以覆盖
-                    # todo 备份角色改造完毕后去除_log["backup_port"]判断条件
+                    # 3. 如果是TDBCTL角色，则时间接近rollback_time可以覆盖
                     (
-                        _log["mysql_role"] in ["spider_master", "spider_slave"]
-                        and int(_log["backup_port"]) < 26000
+                        _log["mysql_role"] in ["spider_master", "spider_slave", "TDBCTL"]
                         and _log["consistent_backup_time"] > _backup_node["backup_time"]
                     )
                     or (
@@ -245,6 +244,7 @@ class FixPointRollbackHandler:
                 # 初始化整体的角色信息
                 backup_id__backup_logs_map[backup_id]["spider_node"] = {}
                 backup_id__backup_logs_map[backup_id]["spider_slave"] = {}
+                backup_id__backup_logs_map[backup_id]["tdbctl_node"] = {}
                 backup_id__backup_logs_map[backup_id]["remote_node"] = defaultdict(dict)
                 # 保留聚合需要的通用字段
                 common_fields = [
@@ -267,7 +267,8 @@ class FixPointRollbackHandler:
                 backup_node = backup_id__backup_logs_map[backup_id]["remote_node"][log["shard_value"]]
                 backup_node = insert_log_into_node(backup_node, log)
             else:
-                node_role = "spider_node" if log["mysql_role"] == "spider_master" else "spider_slave"
+                role_map = {"spider_master": "spider_node", "TDBCTL": "tdbctl_node", "spider_slave": "spider_slave"}
+                node_role = role_map.get(log["mysql_role"], log["mysql_role"])
                 backup_node = backup_id__backup_logs_map[backup_id][node_role]
                 backup_node = insert_log_into_node(backup_node, log)
 
@@ -286,18 +287,19 @@ class FixPointRollbackHandler:
         backup_id__valid_backup_logs = defaultdict(dict)
         for backup_id, backup_log in backup_id__backup_logs_map.items():
             # 获取合法分片ID，如果分片数不完整，则忽略
-            shard_value_list = [
-                int(shard_value)
-                for shard_value in backup_log["remote_node"].keys()
-                if backup_log["remote_node"][shard_value]
-            ]
-            logger.info("backup shard list:", shard_value_list)
-            logger.info("user shard list:", shard_list)
+            shard_value_list = [int(s) for s in backup_log["remote_node"].keys() if backup_log["remote_node"][s]]
             if not set(shard_value_list).issuperset(set(shard_list)):
+                logger.warning(_("back[{}]的shard_list{}和预期{}不匹配").format(backup_id, shard_value_list, shard_list))
                 continue
 
-            # 如果不存在spider master记录，则忽略
-            if not backup_log["spider_node"]:
+            # 如果没有指定分片列表，且不存在spider master记录，则忽略
+            if not backup_log["spider_node"] and not shard_list:
+                logger.warning(_("back[{}]不包含spider_node备份").format(backup_id))
+                continue
+
+            # 如果没有指定分片列表，且不存在中控备份记录，则忽略
+            if not backup_log["tdbctl_node"] and not shard_list:
+                logger.warning(_("back[{}]不包含tdbctl_node备份").format(backup_id))
                 continue
 
             # 如果存在多条完整的backup记录，则保留最接近rollback time的记录
