@@ -64,7 +64,7 @@ if (CSRFToken !== undefined) {
   console.warn('Can not find csrftoken in document.cookie');
 }
 const defaultConfig = {
-  timeout: 60000,
+  timeout: 120000,
   headers: {},
   withCredentials: true,
   paramsSerializer,
