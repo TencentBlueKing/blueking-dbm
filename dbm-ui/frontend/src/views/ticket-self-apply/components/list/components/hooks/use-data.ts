@@ -53,7 +53,7 @@ export default (options?: { onSuccess?: (data: TicketModel<unknown>[]) => void }
 
   const { start: loopFetchTicketStatus } = useTimeoutFn(() => {
     fetchTicketStatus();
-  }, 10000);
+  }, 10000000);
 
   const { run: fetchTicketList } = useRequest(
     (params: ServiceParameters<typeof getTickets>) =>
