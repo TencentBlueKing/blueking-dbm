@@ -341,7 +341,9 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
         拼接spider_slave 安装时需要的参数
         """
         content = self.get_install_spider_payload(**kwargs)
-        slave_config = {"spider_read_only_mode": "1", "read_only": "1"}
+        # 允许 spider 本地 mysqld 可写
+        # 保留 spider 不能写 remote
+        slave_config = {"spider_read_only_mode": "1"}
         # 拼装spider_slave需要的只读参数
         for key in content["payload"]["extend"]["mycnf_configs"]:
             content["payload"]["extend"]["mycnf_configs"][key]["mysqld"].update(slave_config)
