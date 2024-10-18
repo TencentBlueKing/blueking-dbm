@@ -6494,6 +6494,65 @@
     "list": [
       {
         "current": {
+          "selected": true,
+          "text": "RedisInstance",
+          "value": "RedisInstance"
+        },
+        "hide": 0,
+        "includeAll": false,
+        "label": "cluster_type",
+        "multi": false,
+        "name": "cluster_type",
+        "options": [
+          {
+            "selected": true,
+            "text": "RedisInstance",
+            "value": "RedisInstance"
+          }
+        ],
+        "query": "",
+        "queryValue": "",
+        "skipUrlSync": false,
+        "type": "custom"
+      },
+      {
+        "current": {
+          "selected": false,
+          "text": "dbatest",
+          "value": "dbatest"
+        },
+        "datasource": {
+          "type": "bkmonitor-timeseries-datasource",
+          "uid": "bkmonitor_timeseries"
+        },
+        "definition": "- Blueking Monitor - 维度",
+        "hide": 2,
+        "includeAll": false,
+        "label": "app",
+        "multi": false,
+        "name": "app",
+        "options": [],
+        "query": {
+          "metricConfig": {
+            "data_source_label": "bk_monitor",
+            "data_type_label": "time_series",
+            "group_by": "app",
+            "metric_field": "redis_up",
+            "result_table_id": "exporter_dbm_redis_exporter.__default__",
+            "result_table_label": "component",
+            "where": []
+          },
+          "queryType": "dimension",
+          "variables": ""
+        },
+        "refresh": 1,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 0,
+        "type": "query"
+      },
+      {
+        "current": {
           "selected": false,
           "text": "unknown",
           "value": "unknown"
@@ -6503,7 +6562,7 @@
           "uid": "bkmonitor_timeseries"
         },
         "definition": "- Blueking Monitor - 维度",
-        "hide": 2,
+        "hide": 0,
         "includeAll": false,
         "label": "cluster_domain",
         "multi": false,
@@ -6518,6 +6577,13 @@
             "result_table_id": "exporter_dbm_redis_exporter.__default__",
             "result_table_label": "component",
             "where": [
+              {
+                "key": "app",
+                "method": "eq",
+                "value": [
+                  "$app"
+                ]
+              },
               {
                 "key": "cluster_type",
                 "method": "eq",

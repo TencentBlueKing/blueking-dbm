@@ -1520,7 +1520,6 @@
               "gseIndex": true,
               "index": true,
               "iterationIndex": true,
-              "log": true,
               "path": true,
               "serverIp": true,
               "slow_query.db_name": true
@@ -1636,7 +1635,7 @@
           "uid": "bkmonitor_timeseries"
         },
         "definition": "- Blueking Monitor - 维度",
-        "hide": 2,
+        "hide": 0,
         "includeAll": false,
         "multi": false,
         "name": "cluster_domain",
