@@ -27,6 +27,16 @@
                 @click="handleShowMasterBatchSelector" />
             </template>
           </RenderTableHeadColumn>
+          <RenderTableHeadColumn
+            :required="false"
+            :width="120">
+            <span>{{ t('主从主机') }}</span>
+          </RenderTableHeadColumn>
+          <RenderTableHeadColumn
+            :required="false"
+            :width="100">
+            <span>{{ t('只读主机') }}</span>
+          </RenderTableHeadColumn>
           <RenderTableHeadColumn :width="220">
             <span>{{ t('当前版本') }}</span>
           </RenderTableHeadColumn>
@@ -36,7 +46,12 @@
           <RenderTableHeadColumn
             :min-width="130"
             :width="300">
-            <span>{{ t('新从库主机') }}</span>
+            <span>{{ t('新主从主机') }}</span>
+          </RenderTableHeadColumn>
+          <RenderTableHeadColumn
+            :min-width="200"
+            :width="300">
+            <span>{{ t('新只读主机') }}</span>
           </RenderTableHeadColumn>
           <RenderTableHeadColumn
             fixed="right"
@@ -57,13 +72,7 @@
             @remove="handleRemove(index)" />
         </template>
       </RenderTable>
-      <div class="force-action">
-        <BkCheckbox
-          v-model="isForce"
-          v-bk-tooltips="t('如忽略，有连接的情况下也会执行强制升级')">
-          <span class="force-action-text">{{ t('忽略业务连接') }}</span>
-        </BkCheckbox>
-      </div>
+      <ForceAction v-model="isForce" />
       <BkForm
         class="storage-remote-form mt-24"
         form-type="vertical">
@@ -126,6 +135,8 @@
 
   import BatchOperateIcon from '@views/db-manage/common/batch-operate-icon/Index.vue';
   import type { InfoItem } from '@views/db-manage/redis/db-data-copy/pages/page1/Index.vue';
+
+  import ForceAction from '../force-action/Index.vue';
 
   import RenderDataRow, { createRowData, type IDataRow } from './Row.vue';
 
@@ -225,6 +236,20 @@
       packageVersion: item.masters[0].version,
       moduleName: item.db_module_name,
       cloudId: item.bk_cloud_id,
+      masterSlaveList: [...item.masters, ...item.slaves.filter((item) => item.is_stand_by)].map((item) => ({
+        bk_biz_id: item.bk_biz_id,
+        bk_host_id: item.bk_host_id,
+        ip: item.ip,
+        bk_cloud_id: item.bk_cloud_id,
+      })),
+      readonlySlaveList: item.slaves
+        .filter((item) => !item.is_stand_by)
+        .map((item) => ({
+          bk_biz_id: item.bk_biz_id,
+          bk_host_id: item.bk_host_id,
+          ip: item.ip,
+          bk_cloud_id: item.bk_cloud_id,
+        })),
     },
   });
 

@@ -601,6 +601,10 @@ export interface MySQLMigrateUpgradeDetails extends DetailBase {
     pkg_id: string;
     new_master: MysqlIpItem;
     new_slave: MysqlIpItem;
+    read_only_slaves?: {
+      old_slave: MysqlIpItem;
+      new_slave: MysqlIpItem;
+    }[];
     display_info: {
       current_version: string;
       target_version: string;
@@ -609,6 +613,7 @@ export interface MySQLMigrateUpgradeDetails extends DetailBase {
       charset: string;
       current_module_name: string;
       target_module_name: string;
+      old_master_slave?: string[];
     };
   }[];
   force: boolean;
