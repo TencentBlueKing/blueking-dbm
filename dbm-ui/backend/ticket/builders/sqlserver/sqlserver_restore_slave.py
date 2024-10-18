@@ -94,6 +94,7 @@ class SQLServerRestoreSlaveResourceParamBuilder(SQLServerBaseOperateResourcePara
         for info in self.ticket.details["infos"]:
             # 申请新的slave, 需要和当前集群中的master处于不同机房;
             master_machine = id__machine[formatted_dict[info["old_slave_host"]["bk_host_id"]]]
+            # TODO: 还有补充操作系统
             info["resource_spec"]["sqlserver_ha"]["location_spec"] = {
                 "city": master_machine.bk_city.logical_city.name,
                 "sub_zone_ids": [master_machine.bk_sub_zone_id],

@@ -12,7 +12,9 @@ specific language governing permissions and limitations under the License.
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
+from backend.configuration.constants import AffinityEnum
 from backend.db_meta.enums import ClusterType
+from backend.db_meta.models import StorageInstance
 from backend.db_services.dbbase.constants import IpSource
 from backend.flow.engine.controller.spider import SpiderController
 from backend.ticket import builders
@@ -21,6 +23,7 @@ from backend.ticket.builders.common.constants import MySQLBackupSource
 from backend.ticket.builders.mysql.mysql_restore_slave import MysqlRestoreSlaveDetailSerializer
 from backend.ticket.builders.tendbcluster.base import BaseTendbTicketFlowBuilder
 from backend.ticket.constants import TicketType
+from backend.utils.basic import get_target_items_from_details
 
 
 class TendbClusterRestoreSlaveDetailSerializer(MysqlRestoreSlaveDetailSerializer):
@@ -63,6 +66,30 @@ class TendbClusterRestoreSlaveParamBuilder(builders.FlowParamBuilder):
 
 
 class TendbClusterRestoreSlaveResourceParamBuilder(BaseOperateResourceParamBuilder):
+    def patch_slave_subzone(self):
+        # 对于亲和性为跨园区的，slave和master需要在不同园区
+        slave_host_ids = get_target_items_from_details(self.ticket.details, match_keys=["bk_host_id"])
+        slaves = StorageInstance.objects.prefetch_related("as_receiver__ejector__machine", "machine").filter(
+            machine__bk_host_id__in=slave_host_ids, cluster_type=ClusterType.TenDBCluster
+        )
+        slave_host_map = {slave.machine.bk_host_id: slave for slave in slaves}
+        for info in self.ticket_data["infos"]:
+            resource_spec = info["resource_spec"]["new_slave"]
+            slave = slave_host_map[info["old_slave"]["bk_host_id"]]
+            master_subzone_id = slave.as_receiver.get().ejector.machine.bk_sub_zone_id
+            # 同城跨园区，要求slave和master在不同subzone
+            if resource_spec["affinity"] == AffinityEnum.CROS_SUBZONE:
+                resource_spec["location_spec"].update(sub_zone_ids=[master_subzone_id], include_or_exclue=False)
+            # 同城同园区，要求slave和master在一个subzone
+            elif resource_spec["affinity"] in [AffinityEnum.SAME_SUBZONE, AffinityEnum.SAME_SUBZONE_CROSS_SWTICH]:
+                resource_spec["location_spec"].update(sub_zone_ids=[master_subzone_id], include_or_exclue=True)
+
+    def format(self):
+        # 补充亲和性和城市信息
+        super().patch_info_affinity_location(roles=["new_slave"])
+        # 补充slave园区申请
+        self.patch_slave_subzone()
+
     def post_callback(self):
         next_flow = self.ticket.next_flow()
         ticket_data = next_flow.details["ticket_data"]
