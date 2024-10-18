@@ -253,6 +253,13 @@
         id: version,
         name: version,
       }));
+
+      if (localVersion.value) {
+        packageSelectList.value = (versionMap[localVersion.value] || []).map((versionItem) => ({
+          id: versionItem.pkg_id,
+          name: versionItem.pkg_name,
+        }));
+      }
     },
   });
 

@@ -29,9 +29,7 @@
         :label="t('角色类型')"
         property="roleType"
         required>
-        <BkRadioGroup
-          v-model="formData.roleType"
-          @change="handleRoleTypeChange">
+        <BkRadioGroup v-model="formData.roleType">
           <BkRadioButton
             v-for="item in roleTypeList"
             :key="item.value"
@@ -130,6 +128,7 @@
       window.changeConfirm = true;
 
       formData.roleType = 'haStorageLayer';
+      formData.updateType = 'remote';
       nextTick(() => {
         formData.updateType = 'remote';
       });
@@ -169,15 +168,17 @@
 
   const formData = reactive(initFormData());
 
+  const renderKey = computed(() => `${formData.roleType}-${formData.updateType}`);
+
   const currentTable = computed(() => {
-    const { roleType, updateType } = formData;
-    if (roleType === 'haAccessLayer') {
+    const [currentUpdateType, currentRoleType] = renderKey.value.split('-');
+    if (currentUpdateType === 'haAccessLayer') {
       return RenderAccessLayerTable;
     }
-    if (roleType === 'singleStorageLayer') {
+    if (currentUpdateType === 'singleStorageLayer') {
       return RenderSingleStorageTable;
     }
-    if (updateType === 'local') {
+    if (currentRoleType === 'local') {
       return RenderStorageLayerLocalTable;
     }
     return RenderStorageLayerRemoteTable;
@@ -190,21 +191,15 @@
     },
   );
 
-  watch(
-    () => formData.updateType,
-    () => {
-      tableList.value = [];
-      remark.value = '';
-      if (formData.updateType === '') {
-        formData.updateType = 'local';
-      }
-    },
-  );
-
-  const handleRoleTypeChange = () => {
-    remark.value = '';
+  watch(renderKey, () => {
     tableList.value = [];
-  };
+    remark.value = '';
+  });
+
+  // const handleRoleTypeChange = () => {
+  //   remark.value = '';
+  //   tableList.value = [];
+  // };
 </script>
 
 <style lang="less">
