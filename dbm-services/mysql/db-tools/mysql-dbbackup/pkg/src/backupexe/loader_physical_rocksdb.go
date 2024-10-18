@@ -19,6 +19,7 @@ import (
 	"github.com/pkg/errors"
 )
 
+// PhysicalRocksdbLoader physical rocksdb loader
 type PhysicalRocksdbLoader struct {
 	cfg                   *config.BackupConfig
 	indexContent          *dbareport.IndexContent
@@ -38,6 +39,7 @@ type PhysicalRocksdbLoader struct {
 	rocksdbCmd            string
 }
 
+// buildArgs construct the instruction parameters for data recovery.
 func (p *PhysicalRocksdbLoader) buildArgs() []string {
 
 	indexFileName := filepath.Base(p.cfg.PhysicalLoad.IndexFilePath)
@@ -57,22 +59,28 @@ func (p *PhysicalRocksdbLoader) buildArgs() []string {
 	return args
 }
 
+// decompress decompress the tar package
 func (p *PhysicalRocksdbLoader) decompress() error {
 
+	// change to the backup dir
 	err := os.Chdir(p.cfg.Public.BackupDir)
 	if err != nil {
 		logger.Log.Errorf("do not change to the backup dir:%s, errmsg:%s", p.cfg.Public.BackupDir, err)
 		return err
 	}
 
+	// decompress all tar packages
 	for _, file := range p.indexContent.FileList {
 
+		// the file name format like this: xxxx_physical.tar.part_0
 		if !strings.Contains(file.FileName, ".tar.") {
 			continue
 		}
 
+		// 'MysqlLoadDir' is the location where the tar file is stored after it has been unpacked
 		binPath := fmt.Sprintf("tar xf %s -C %s", file.FileName, p.cfg.PhysicalLoad.MysqlLoadDir)
 
+		// redirect the standard out and error logs to the loader log file
 		args := []string{" >> ", p.loaderLogfile, " 2>&1"}
 		logger.Log.Info("decompress command:", binPath, strings.Join(args, " "))
 		outStr, errStr, err := cmutil.ExecCommand(true, "", binPath, args...)
@@ -88,6 +96,7 @@ func (p *PhysicalRocksdbLoader) decompress() error {
 	return nil
 }
 
+// load restore mysql data
 func (p *PhysicalRocksdbLoader) load() error {
 
 	if p.storageEngine != cst.StorageEngineRocksdb {
@@ -113,6 +122,7 @@ func (p *PhysicalRocksdbLoader) load() error {
 		_ = outFile.Close()
 	}()
 
+	// redirect standard output and error messages to a file
 	cmd.Stdout = outFile
 	cmd.Stderr = outFile
 
@@ -138,18 +148,20 @@ func (p *PhysicalRocksdbLoader) load() error {
 	return nil
 }
 
+// initConfig init config
 func (p *PhysicalRocksdbLoader) initConfig(indexContent *dbareport.IndexContent) error {
 	if p.cfg == nil {
 		return errors.New("rocksdb physical loader config missed")
 	}
 
-	// the user mysql and group mysql is required
+	// the user mysql mysql is required
 	_, err := user.Lookup("mysql")
 	if err != nil {
 		logger.Log.Errorf("can not lookup the user: mysql, errmsg:%s", err)
 		return err
 	}
 
+	// the group mysql mysql is required
 	_, err = user.LookupGroup("mysql")
 	if err != nil {
 		logger.Log.Errorf("can not lookup the group: mysql, errmsg:%s", err)
@@ -161,12 +173,14 @@ func (p *PhysicalRocksdbLoader) initConfig(indexContent *dbareport.IndexContent)
 		return err
 	}
 
+	// keep the storage engine name is lower case
 	p.storageEngine = strings.ToLower(indexContent.StorageEngine)
 	p.indexContent = indexContent
 
 	p.loaderLogfile = filepath.Join(pwd, "logs", fmt.Sprintf("loader_%s_%s_%d_%d.log",
 		p.storageEngine, cst.ToolMyrocksHotbackup, p.cfg.Public.MysqlPort, int(time.Now().Weekday())))
 
+	// obtain the directory where the loader log file is located
 	loaderLogDir := filepath.Dir(p.loaderLogfile)
 	err = os.MkdirAll(loaderLogDir, 0755)
 	if err != nil {
@@ -179,6 +193,7 @@ func (p *PhysicalRocksdbLoader) initConfig(indexContent *dbareport.IndexContent)
 		return err
 	}
 
+	// DefaultsFile should be the mysql config(eg: /etc/my.cnf)
 	if p.cfg.PhysicalLoad.DefaultsFile == "" {
 		return fmt.Errorf("physical load defaults file is required, config file:%s", p.cfg.PhysicalLoad.DefaultsFile)
 	}
@@ -194,6 +209,7 @@ func (p *PhysicalRocksdbLoader) initConfig(indexContent *dbareport.IndexContent)
 
 	defer file.Close()
 
+	// extract parameters from the configuration file.
 	scanner := bufio.NewScanner(file)
 	for scanner.Scan() {
 		line := scanner.Text()
@@ -233,6 +249,7 @@ func (p *PhysicalRocksdbLoader) initConfig(indexContent *dbareport.IndexContent)
 		}
 	}
 
+	// store the base parameters
 	p.dbbackupHome = filepath.Dir(cmdPath)
 	p.storageEngine = strings.ToLower(indexContent.StorageEngine)
 	p.rocksdbCmd = filepath.Join("bin", cst.ToolMyrocksHotbackup)
@@ -241,69 +258,90 @@ func (p *PhysicalRocksdbLoader) initConfig(indexContent *dbareport.IndexContent)
 	return nil
 }
 
+// cleanDirs Before the database resotres the data, it cleans up the existing data.
 func (p *PhysicalRocksdbLoader) cleanDirs() error {
 
 	logger.Log.Infof("delete the data dir:%s", p.dataDir)
 	if p.dataDir != "" {
+		// delete the old directory
 		os.RemoveAll(p.dataDir)
+		// create the new directory
 		os.MkdirAll(p.dataDir, 0755)
 	}
 
 	logger.Log.Infof("delete the innodb log group home dir:%s", p.innodbLogGroupHomeDir)
 	if p.innodbDataHomeDir != "" {
+		// delete the old directory
 		os.RemoveAll(p.innodbLogGroupHomeDir)
+		// create the new directory
 		os.MkdirAll(p.innodbLogGroupHomeDir, 0755)
 	}
 
 	logger.Log.Infof("delete the innodb data home dir:%s", p.innodbDataHomeDir)
 	if p.innodbDataHomeDir != "" {
+		// delete the old directory
 		os.RemoveAll(p.innodbDataHomeDir)
+		// create the new directory
 		os.MkdirAll(p.innodbDataHomeDir, 0755)
 	}
 
 	logger.Log.Infof("delete the relay log dir:%s", p.relaylogDir)
 	if p.relaylogDir != "" {
+		// delete the old directory
 		os.RemoveAll(p.relaylogDir)
+		// create the new directory
 		os.MkdirAll(p.relaylogDir, 0755)
 	}
 
 	logger.Log.Infof("delete the log bin dir:%s", p.logbinDir)
 	if p.logbinDir != "" {
+		// delete the old directory
 		os.RemoveAll(p.logbinDir)
+		// create the new directory
 		os.MkdirAll(p.logbinDir, 0755)
 	}
 
 	logger.Log.Infof("delete the slow query log file:%s", p.slowQueryLogFile)
 	if p.slowQueryLogFile != "" {
+		// delete the old directory
 		os.Remove(p.slowQueryLogFile)
+		// create the new directory
 		os.MkdirAll(p.slowQueryLogFile, 0755)
 	}
 
 	logger.Log.Infof("delete the tmp dir:%s", p.tmpDir)
 	if p.tmpDir != "" {
+		// delete the old directory
 		os.RemoveAll(p.tmpDir)
+		// create the new directory
 		os.MkdirAll(p.tmpDir, 0755)
 	}
 	return nil
 }
 
+// Execute Perform data recovery operations.
 func (p *PhysicalRocksdbLoader) Execute() error {
+
+	// the storage engine must be rocksdb
 	if p.storageEngine != cst.StorageEngineRocksdb {
 		err := fmt.Errorf("unsupported engine:%s", p.storageEngine)
 		logger.Log.Error(err)
 		return err
 	}
 
+	// decompress the backup package
 	err := p.decompress()
 	if err != nil {
 		return err
 	}
 
+	// delete the old directory used to restore the backup data
 	err = p.cleanDirs()
 	if err != nil {
 		return err
 	}
 
+	// restore the backup data
 	err = p.load()
 	if err != nil {
 		return err
