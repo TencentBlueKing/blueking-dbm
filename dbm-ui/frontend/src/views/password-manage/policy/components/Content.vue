@@ -14,8 +14,11 @@
 <template>
   <BkLoading :loading="isLoading">
     <DbForm
+      ref="formRef"
       class="password-policy"
-      :label-width="260">
+      :label-width="260"
+      :model="formData"
+      :rules="rules">
       <DbCard
         mode="collapse"
         :title="t('密码组成设置')">
@@ -38,6 +41,7 @@
         </BkFormItem>
         <BkFormItem
           :label="t('密码组成')"
+          property="include_rule"
           required>
           <BkCheckbox
             v-model="formData.include_rule.lowercase"
@@ -77,6 +81,7 @@
         </BkFormItem>
         <BkFormItem
           :label="t('密码校验')"
+          property="number_of_types"
           required>
           {{ t('包含上述任意') }}
           <BkInput
@@ -145,7 +150,7 @@
   const props = defineProps<Props>();
 
   const initData = () => ({
-    repeats: -1,
+    repeats: 0,
     max_length: 32,
     min_length: 8,
     include_rule: {
@@ -155,7 +160,7 @@
       uppercase: true,
     },
     weak_password: false,
-    number_of_types: -1,
+    number_of_types: 0,
     symbols_allowed: '',
   });
 
@@ -166,8 +171,25 @@
     name: '',
   };
 
-  const isSubmitting = ref(false);
+  const rules = {
+    include_rule: [
+      {
+        trigger: 'change',
+        message: t('密码组成至少要选 1 种'),
+        validator: () => Object.values(formData.include_rule).some((checked) => checked),
+      },
+    ],
+    number_of_types: [
+      {
+        trigger: 'change',
+        message: t('任意 N 种， N 必须 >= 1 。且 <= 密码组成的种类'),
+        validator: () => formData.number_of_types >= 1 && formData.number_of_types <= typeMaxCount.value,
+      },
+    ],
+  };
+
   const defaultConfig = reactive(initData());
+  const formRef = ref();
   const formData = reactive(initData());
   const excludeContinuousRule = shallowRef({
     keyboards: [] as string[],
@@ -176,6 +198,7 @@
     symbols: [] as string[],
     repeats: [] as string[],
   });
+  let message = '';
 
   const typeMaxCount = computed(() => Object.values(formData.include_rule).filter((item) => item).length);
 
@@ -204,6 +227,17 @@
     });
   };
 
+  const { run: updatePasswordPolicyRun, loading: isSubmitting } = useRequest(updatePasswordPolicy, {
+    manual: true,
+    onSuccess: () => {
+      Message({
+        theme: 'success',
+        message,
+      });
+      fetchData();
+    },
+  });
+
   watch(
     () => props.dbType,
     () => {
@@ -211,7 +245,8 @@
     },
   );
 
-  const handleChangeIncludeRule = () => {
+  const handleChangeIncludeRule = async () => {
+    await formRef.value.validate();
     formData.number_of_types = Math.min(formData.number_of_types, typeMaxCount.value);
   };
 
@@ -221,30 +256,24 @@
     }
   };
 
-  const handleReset = () => {
-    Object.assign(formData, defaultConfig);
-    handleSubmit(t('重置成功'), true);
-  };
-
-  const handleSubmit = (message = t('保存成功'), reset = false) => {
-    isSubmitting.value = true;
-    updatePasswordPolicy({
+  const handleSubmit = async (reset = false) => {
+    if (!reset) {
+      await formRef.value.validate();
+      message = t('保存成功');
+    } else {
+      message = t('重置成功');
+      formRef.value.clearValidate();
+    }
+    updatePasswordPolicyRun({
       ...passwordPolicyData,
       rule: formData,
       reset,
-    })
-      .then(() => {
-        Message({
-          theme: 'success',
-          message,
-        });
-        if (reset) {
-          fetchData();
-        }
-      })
-      .finally(() => {
-        isSubmitting.value = false;
-      });
+    });
+  };
+
+  const handleReset = () => {
+    Object.assign(formData, defaultConfig);
+    handleSubmit(true);
   };
 </script>
 

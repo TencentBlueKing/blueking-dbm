@@ -2,7 +2,8 @@
   <BkFormItem
     :label="t('访问DB')"
     property="access_dbs"
-    required>
+    required
+    :rules="rules">
     <BkSelect
       v-model="accessDbs"
       :clearable="false"
@@ -13,7 +14,7 @@
       multiple-mode="tag"
       show-select-all>
       <BkOption
-        v-for="item of curRules"
+        v-for="item of accountRules"
         :key="item.rule_id"
         :label="item.access_db"
         :value="item.access_db" />
@@ -41,48 +42,25 @@
 
   interface Props {
     accountType: AccountTypes;
-    accountRules: PermissionRule[];
+    accountRules: PermissionRule['rules'];
   }
 
   const props = defineProps<Props>();
 
-  const user = defineModel<string>('user', {
-    default: '',
-  });
-
-  const accessDbs = defineModel<string[]>('accessDbs', {
-    default: () => [],
-  });
-
-  const rules = defineModel<PermissionRule['rules']>('rules', {
+  const accessDbs = defineModel<string[]>('modelValue', {
     default: () => [],
   });
 
   const router = useRouter();
   const { t } = useI18n();
 
-  const curRules = computed(() => {
-    if (user.value === '') {
-      return [];
-    }
-
-    const item = props.accountRules.find((item) => item.account.user === user.value);
-    return item?.rules || [];
-  });
-
-  const updateRules = () => {
-    if (accessDbs.value.length === 0) {
-      rules.value = [];
-      return;
-    }
-    rules.value = curRules.value.filter((item) => accessDbs.value.includes(item.access_db));
-  };
-
-  watch(curRules, updateRules, {
-    immediate: true,
-  });
-
-  watch(accessDbs, updateRules);
+  const rules = [
+    {
+      trigger: 'blur',
+      message: t('请选择访问DB'),
+      validator: (value: string[]) => value.length > 0,
+    },
+  ];
 
   /**
    * 跳转新建规则界面

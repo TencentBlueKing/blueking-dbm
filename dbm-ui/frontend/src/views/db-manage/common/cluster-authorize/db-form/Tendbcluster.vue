@@ -67,7 +67,7 @@
     clusterTypes: () => [ClusterTypes.TENDBHA, ClusterTypes.TENDBSINGLE],
   });
 
-  const accountType = AccountTypes.MYSQL;
+  const accountType = AccountTypes.TENDBCLUSTER;
   const targetInstancesRef = ref<InstanceType<typeof TargetInstances>>();
   const sourceIpsRef = ref<InstanceType<typeof SourceIps>>();
   const formRef = ref();
@@ -101,7 +101,7 @@
     async getValue() {
       await formRef.value.validate();
       return {
-        ticketType: TicketTypes.MYSQL_AUTHORIZE_RULES,
+        ticketType: TicketTypes.TENDBCLUSTER_AUTHORIZE_RULES,
         params: {
           user: formData.user,
           access_dbs: formData.access_dbs,

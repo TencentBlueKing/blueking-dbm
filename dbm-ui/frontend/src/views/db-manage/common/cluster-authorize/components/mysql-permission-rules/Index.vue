@@ -5,12 +5,10 @@
   <UserSelect
     v-bind="props"
     v-model="user"
-    @success="handleSuccess" />
+    @change="handleChange" />
   <DbSelect
     v-bind="props"
-    v-model:access-dbs="accessDbs"
-    v-model:rules="rules"
-    v-model:user="user"
+    v-model="accessDbs"
     :account-rules="accountRules" />
   <RulesTable v-model="rules" />
 </template>
@@ -46,11 +44,18 @@
 
   const { t } = useI18n();
 
-  const accountRules = ref<PermissionRule[]>([]);
+  const accountRules = ref<PermissionRule['rules']>([]);
 
-  const handleSuccess = (data: PermissionRule[]) => {
+  const handleChange = (data: PermissionRule['rules']) => {
     accountRules.value = data;
+    const filterData = accountRules.value.filter((item) => accessDbs.value.includes(item.access_db));
+    accessDbs.value = filterData.length > 0 ? accessDbs.value : data.slice(0, 1).map((item) => item.access_db);
+    rules.value = filterData;
   };
+
+  watch(accessDbs, () => {
+    rules.value = accountRules.value.filter((item) => accessDbs.value.includes(item.access_db));
+  });
 </script>
 
 <style lang="less" scoped>

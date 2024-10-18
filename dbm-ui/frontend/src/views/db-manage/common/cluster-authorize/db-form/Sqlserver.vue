@@ -3,15 +3,14 @@
     ref="formRef"
     class="cluster-authorize"
     form-type="vertical"
-    :model="formData"
-    :rules="formRules">
-    <TargetClusters
-      ref="targetClustersRef"
+    :model="formData">
+    <TargetInstances
+      ref="targetInstancesRef"
       v-model="formData.target_instances"
       :account-type="accountType"
       :cluster-types="clusterTypes"
       :data="selected" />
-    <SelectorSelectRules
+    <PermissionRules
       v-model:rules="formData.rules"
       v-model:user="formData.user"
       :account-type="accountType" />
@@ -19,17 +18,14 @@
 </template>
 
 <script setup lang="ts">
-  import { useI18n } from 'vue-i18n';
-
   import type { PermissionRule } from '@services/types';
 
-  import { AccountTypes, ClusterTypes } from '@common/const';
+  import { AccountTypes, ClusterTypes, TicketTypes } from '@common/const';
 
-  import SelectorSelectRules from '../components/select-permission-rules/selector-select/Index.vue';
-  import TargetClusters from '../components/TargetClusters.vue';
+  import PermissionRules from '@views/db-manage/common/cluster-authorize/components/permission-rules/Index.vue';
+  import TargetInstances from '@views/db-manage/common/cluster-authorize/components/TargetInstances.vue';
 
   interface Props {
-    accountType: AccountTypes;
     user?: string;
     selected?: {
       master_domain: string;
@@ -43,12 +39,15 @@
 
   interface Exposes {
     getValue: () => Promise<{
-      target_instances: string[];
-      cluster_type: ClusterTypes;
-      sqlserver_users: {
-        user: string;
-        access_dbs: string[];
-      }[];
+      ticketType: TicketTypes;
+      params: {
+        target_instances: string[];
+        cluster_type: ClusterTypes;
+        sqlserver_users: {
+          user: string;
+          access_dbs: string[];
+        }[];
+      };
     }>;
   }
 
@@ -59,26 +58,8 @@
     rules: () => [],
   });
 
-  const { t } = useI18n();
-
-  const formRules = {
-    target_instances: [
-      {
-        trigger: 'change',
-        message: t('请添加目标集群'),
-        validator: (value: string[]) => value.length > 0,
-      },
-    ],
-    rules: [
-      {
-        trigger: 'change',
-        message: t('请添加权限规则'),
-        validator: (value: PermissionRule['rules']) => value.length > 0,
-      },
-    ],
-  };
-
-  const targetClustersRef = ref<InstanceType<typeof TargetClusters>>();
+  const accountType = AccountTypes.SQLSERVER;
+  const targetInstancesRef = ref<InstanceType<typeof TargetInstances>>();
   const formRef = ref();
   const formData = reactive({
     target_instances: [] as string[],
@@ -101,12 +82,15 @@
     async getValue() {
       await formRef.value.validate();
       return {
-        target_instances: formData.target_instances,
-        cluster_type: targetClustersRef.value!.getClusterType(),
-        sqlserver_users: formData.rules.map((rule) => ({
-          user: formData.user,
-          access_dbs: rule.map((mapItem) => mapItem.access_db),
-        })),
+        ticketType: TicketTypes.SQLSERVER_AUTHORIZE_RULES,
+        params: {
+          target_instances: formData.target_instances,
+          cluster_type: targetInstancesRef.value!.getClusterType(),
+          sqlserver_users: formData.rules.map((rule) => ({
+            user: formData.user,
+            access_dbs: rule.map((mapItem) => mapItem.access_db),
+          })),
+        },
       };
     },
   });

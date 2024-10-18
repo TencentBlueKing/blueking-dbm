@@ -1,7 +1,9 @@
 <template>
   <BkFormItem
     v-model="modelValue"
-    :label="t('权限明细')">
+    :label="t('权限明细')"
+    property="rules"
+    :rules="rules">
     <BkAlert
       class="mb-16 mt-10"
       theme="warning"
@@ -9,7 +11,8 @@
     <DbOriginalTable
       :columns="columns"
       :data="modelValue"
-      :empty-text="t('请选择访问DB')" />
+      :empty-text="t('请选择访问DB')"
+      :height="300" />
   </BkFormItem>
 </template>
 
@@ -23,6 +26,14 @@
   });
 
   const { t } = useI18n();
+
+  const rules = [
+    {
+      trigger: 'change',
+      message: t('请添加权限规则'),
+      validator: (value: PermissionRule['rules']) => value.length > 0,
+    },
+  ];
 
   const columns = [
     {
