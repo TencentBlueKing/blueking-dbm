@@ -19,6 +19,9 @@
     <InfoItem :label="t('忽略业务连接：')">
       {{ ticketDetails.details.force ? t('是') : t('否') }}
     </InfoItem>
+    <InfoItem :label="t('备份源：')">
+      {{ ticketDetails.details.backup_source === 'local' ? t('本地备份') : t('远程备份') }}
+    </InfoItem>
   </InfoList>
 </template>
 
@@ -54,7 +57,10 @@
       charSet: string;
       moduleName: string;
     },
-    ip: string
+    ip: string[];
+    old_master_slave: string;
+    old_readonly_slaves: string[];
+    new_readonly_slaves: string[];
   }
 
   interface Props {
@@ -68,12 +74,12 @@
   const dataList = ref<DataItem[]>([])
 
   const columns = [
-    {
-      label: t('集群ID'),
-      field: 'cluster_id',
-      width: 100,
-      render: ({ cell }: { cell: [] }) => <span>{cell || '--'}</span>,
-    },
+    // {
+    //   label: t('集群ID'),
+    //   field: 'cluster_id',
+    //   width: 100,
+    //   render: ({ cell }: { cell: [] }) => <span>{cell || '--'}</span>,
+    // },
     {
       label: t('集群名称'),
       field: 'immute_domain',
@@ -93,30 +99,69 @@
       ),
     },
     {
+      label: t('主从主机'),
+      field: 'old_master_slave',
+      render: ({ data }: { data: DataItem }) => data.old_master_slave.length ? (
+        <div class="old-master-slave-host">
+          <div class="host-item">
+            <div class="host-tag host-tag-master">M</div>
+            <div>{data.old_master_slave[0]}</div>
+          </div>
+          <div class="host-item mt-4">
+            <div class="host-tag host-tag-slave">S</div>
+            <div>{data.old_master_slave[1]}</div>
+          </div>
+        </div>
+      ) : '--'
+    },
+    {
+      label: t('只读主机'),
+      field: 'old_readonly_slaves',
+      render: ({ data }: { data: DataItem }) => data.old_readonly_slaves.length ? data.old_readonly_slaves.map(item => <p>{item}</p>) : '--'
+    },
+    {
       label: t('当前版本'),
       field: 'new_master',
+      minWidth: 200,
       render: ({ data }: { data: DataItem }) => <VersionContent data={data.currentVersion} />
     },
     {
       label: t('目标版本'),
       field: 'new_version',
+      minWidth: 200,
       render: ({ data }: { data: DataItem }) => <VersionContent data={data.targetVersion} />
     },
     {
-      label: t('新从库主机'),
+      label: t('新主从主机'),
       field: 'ip',
-      render: ({ cell }: { cell: string }) => <span>{cell || '--'}</span>,
+      render: ({ data }: { data: DataItem }) => data.ip.map(item => <p>{item}</p>)
+    },
+    {
+      label: t('新只读主机'),
+      field: 'new_readonly_slaves',
+      render: ({ data }: { data: DataItem }) => data.new_readonly_slaves.length ? data.new_readonly_slaves.map(item => <p>{item}</p>) : '--'
     }
   ];
 
   const list: DataItem[] = [];
-  const infosData = props.ticketDetails?.details?.infos || [];
-  const clusterIds = props.ticketDetails?.details?.clusters || {};
+  const infosData = props.ticketDetails.details.infos;
+  const clusterIds = props.ticketDetails.details.clusters;
   infosData.forEach((item) => {
     item.cluster_ids.forEach((id) => {
       const clusterData = clusterIds[id];
+      const readonlySlaves = item.read_only_slaves || [];
+      const readonlySlaveMap = readonlySlaves.reduce<{
+        old: string[],
+        new: string[]
+      }>((prevMap, slaveItem) => Object.assign({}, prevMap, {
+          old: prevMap.old.concat([slaveItem.old_slave.ip]),
+          new: prevMap.new.concat([slaveItem.new_slave.ip])
+        }), {
+        old: [],
+        new: []
+      })
       list.push(Object.assign({
-        cluster_id: id,
+        // cluster_id: id,
         immute_domain: clusterData.immute_domain,
         name: clusterData.name,
         currentVersion: {
@@ -133,7 +178,10 @@
           charSet: item.display_info.charset,
           moduleName: item.display_info.target_module_name,
         },
-        ip: [item.new_master.ip, item.new_slave.ip].join(',')
+        ip: [item.new_master.ip, item.new_slave.ip],
+        old_master_slave: item.display_info.old_master_slave || [],
+        old_readonly_slaves: readonlySlaveMap.old,
+        new_readonly_slaves: readonlySlaveMap.new
       }));
     });
   });
@@ -165,4 +213,31 @@
 
 <style lang="less" scoped>
   @import '@views/tickets/common/styles/DetailsTable.less';
+
+  :deep(.old-master-slave-host) {
+    .host-item {
+      display: flex;
+      align-items: center;
+
+      .host-tag {
+        width: 16px;
+        height: 16px;
+        margin-right: 4px;
+        font-size: @font-size-mini;
+        font-weight: bolder;
+        line-height: 16px;
+        text-align: center;
+      }
+
+      .host-tag-master {
+        color: @primary-color;
+        background-color: #cad7eb;
+      }
+
+      .host-tag-slave {
+        color: #2dcb56;
+        background-color: #c8e5cd;
+      }
+    }
+  }
 </style>
