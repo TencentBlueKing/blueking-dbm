@@ -59,6 +59,6 @@
   },
   "db_type": "mysql",
   "version": 19,
-  "machine_types": [],
+  "machine_types": ["backend", "remote", "single"],
   "plugin_id": "dbm_mysqld_exporter"
 }
