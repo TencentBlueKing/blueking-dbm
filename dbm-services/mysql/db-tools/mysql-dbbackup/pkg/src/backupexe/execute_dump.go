@@ -33,10 +33,17 @@ func ExecuteBackup(cnf *config.BackupConfig) (*dbareport.IndexContent, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	storageEngine, err := mysqlconn.GetStorageEngine(db)
+	if err != nil {
+		return nil, err
+	}
+	storageEngine = strings.ToLower(storageEngine)
+
 	mysqlVersion, isOfficial := util.VersionParser(versionStr)
 	XbcryptBin = GetXbcryptBin(mysqlVersion, isOfficial)
 
-	dumper, err := BuildDumper(cnf)
+	dumper, err := BuildDumper(cnf, storageEngine)
 	if err != nil {
 		return nil, err
 	}
