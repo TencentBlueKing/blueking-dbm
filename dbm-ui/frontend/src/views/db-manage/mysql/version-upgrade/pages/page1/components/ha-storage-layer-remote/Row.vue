@@ -20,6 +20,25 @@
         @id-change="handleClusterIdChange" />
     </FixedColumn>
     <td style="padding: 0">
+      <RenderOldMasterSlaveHost
+        :data="oldMasterSlaveHost"
+        :is-loading="data.isLoading" />
+    </td>
+    <td style="padding: 0">
+      <RenderText
+        :data="readonlySlaveHost.join(',')"
+        :is-loading="data.isLoading"
+        :placeholder="readonlySlavePlaceholder">
+        <template #content>
+          <p
+            v-for="item in readonlySlaveHost"
+            :key="item">
+            {{ item }}
+          </p>
+        </template>
+      </RenderText>
+    </td>
+    <td style="padding: 0">
       <RenderCurrentVersion
         :charset="localCharset"
         :data="data.clusterData"
@@ -45,6 +64,14 @@
         :master-host="data.masterHostData"
         :slave-host="data.slaveHostData" />
     </td>
+    <td style="padding: 0">
+      <RenderNewReadonlySlaveHost
+        ref="newReadonlySlaveHostRef"
+        :cloud-id="data.clusterData?.cloudId"
+        :domain="data.clusterData?.domain"
+        :ip-list="data.readonlyHostData"
+        :slave-list="data.clusterData?.readonlySlaveList" />
+    </td>
     <OperateColumn
       :removeable="removeable"
       @add="handleAppend"
@@ -52,10 +79,13 @@
   </tr>
 </template>
 <script lang="ts">
+  import { useI18n } from 'vue-i18n';
+
   import TendbhaModel from '@services/model/mysql/tendbha';
 
   import FixedColumn from '@components/render-table/columns/fixed-column/index.vue';
   import OperateColumn from '@components/render-table/columns/operate-column/index.vue';
+  import RenderText from '@components/render-table/columns/text-plain/index.vue';
 
   import { random } from '@utils';
 
@@ -63,6 +93,8 @@
   import RenderCurrentVersion from '../RenderCurrentVersion.vue';
 
   import RenderMasterSlaveHost from './RenderMasterSlaveHost.vue';
+  import RenderNewReadonlySlaveHost from './RenderNewReadonlySlaveHost.vue';
+  import RenderOldMasterSlaveHost from './RenderOldMasterSlaveHost.vue';
   import RenderTargetVersion from './RenderTargetVersion.vue';
 
   export interface IHostData {
@@ -83,12 +115,15 @@
       packageVersion: string;
       moduleName: string;
       cloudId: number;
+      masterSlaveList: IHostData[];
+      readonlySlaveList: IHostData[];
     };
     targetVersion?: string;
     targetPackage?: number;
     targetModule?: number;
     masterHostData?: IHostData;
     slaveHostData?: IHostData;
+    readonlyHostData?: IHostData[];
   }
 
   // 创建表格数据
@@ -97,9 +132,7 @@
     isLoading: false,
     ...data,
   });
-</script>
 
-<script setup lang="ts">
   interface Props {
     data: IDataRow;
     removeable: boolean;
@@ -114,14 +147,18 @@
   interface Exposes {
     getValue: () => Promise<any>;
   }
+</script>
 
+<script setup lang="ts">
   const props = defineProps<Props>();
-
   const emits = defineEmits<Emits>();
+
+  const { t } = useI18n();
 
   const clusterRef = ref<InstanceType<typeof RenderCluster>>();
   const targetVersionRef = ref<InstanceType<typeof RenderTargetVersion>>();
   const masterSlaveHostRef = ref<InstanceType<typeof RenderMasterSlaveHost>>();
+  const newReadonlySlaveHostRef = ref<InstanceType<typeof RenderNewReadonlySlaveHost>>();
   const localCharset = ref('');
 
   const clusterInfo = computed(() => {
@@ -132,6 +169,19 @@
       };
     }
     return undefined;
+  });
+
+  const oldMasterSlaveHost = computed(() => (props.data.clusterData?.masterSlaveList || []).map((item) => item.ip));
+  const readonlySlaveHost = computed(() => (props.data.clusterData?.readonlySlaveList || []).map((item) => item.ip));
+
+  const readonlySlavePlaceholder = computed(() => {
+    if (!props.data.clusterData) {
+      return t('选择集群后自动生成');
+    }
+    if (!props.data.clusterData.readonlySlaveList.length) {
+      return t('无只读主机');
+    }
+    return '';
   });
 
   const handleClusterIdChange = (value: TendbhaModel | null) => {
@@ -159,19 +209,22 @@
         clusterRef.value!.getValue(),
         targetVersionRef.value!.getValue(),
         masterSlaveHostRef.value!.getValue(),
+        newReadonlySlaveHostRef.value!.getValue(),
       ]).then((data) => {
-        const [clusterData, targetVersionData, masterSlaveHostData] = data;
+        const [clusterData, targetVersionData, masterSlaveHostData, newReadonlySlaveHostData] = data;
         const clusterInfo = props.data.clusterData!;
         Object.assign(targetVersionData.display_info, {
           current_version: clusterInfo.currentVersion,
           current_package: clusterInfo.packageVersion,
           charset: localCharset.value,
           current_module_name: clusterInfo.moduleName,
+          old_master_slave: oldMasterSlaveHost.value,
         });
         return {
           ...clusterData,
           ...targetVersionData,
           ...masterSlaveHostData,
+          ...newReadonlySlaveHostData,
         };
       });
     },

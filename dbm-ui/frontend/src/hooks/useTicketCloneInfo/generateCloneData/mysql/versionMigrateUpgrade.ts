@@ -46,12 +46,30 @@ export async function generateMysqlVersionMigrateUpgradeCloneData(ticketData: Ti
         packageVersion: clusterListMap[clusterId].masters[0].version,
         moduleName: item.display_info.current_module_name,
         cloudId: clusters[clusterId].bk_cloud_id,
+        masterSlaveList: [
+          ...clusterListMap[clusterId].masters,
+          ...clusterListMap[clusterId].slaves.filter((item) => item.is_stand_by),
+        ].map((item) => ({
+          bk_biz_id: item.bk_biz_id,
+          bk_host_id: item.bk_host_id,
+          ip: item.ip,
+          bk_cloud_id: item.bk_cloud_id,
+        })),
+        readonlySlaveList: clusterListMap[clusterId].slaves
+          .filter((item) => !item.is_stand_by)
+          .map((item) => ({
+            bk_biz_id: item.bk_biz_id,
+            bk_host_id: item.bk_host_id,
+            ip: item.ip,
+            bk_cloud_id: item.bk_cloud_id,
+          })),
       },
       targetVersion: item.display_info.target_version,
       targetPackage: item.pkg_id,
       targetModule: item.new_db_module_id,
       masterHostData: item.new_master,
       slaveHostData: item.new_slave,
+      readonlyHostData: (item.read_only_slaves || []).map((readonlySlaveItem) => readonlySlaveItem.new_slave),
     };
   });
 

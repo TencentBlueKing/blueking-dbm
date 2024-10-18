@@ -71,9 +71,7 @@
     isLoading: false,
     clusterData,
   });
-</script>
 
-<script setup lang="ts">
   interface Props {
     data: IDataRow;
     removeable: boolean;
@@ -88,7 +86,9 @@
   interface Exposes {
     getValue: () => Promise<any>;
   }
+</script>
 
+<script setup lang="ts">
   const props = defineProps<Props>();
 
   const emits = defineEmits<Emits>();
