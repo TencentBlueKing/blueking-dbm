@@ -67,6 +67,11 @@
 
   import { random } from '@utils';
 
+  interface Props {
+    data: IDataRow;
+    removeable: boolean;
+  }
+
   export interface IDataRow {
     rowKey: string;
     clusterData?: {
@@ -100,10 +105,6 @@
   import RenderBackupLocal from './RenderBackupLocal.vue';
   import RenderCluster from './RenderCluster.vue';
 
-  interface Props {
-    data: IDataRow;
-    removeable: boolean;
-  }
   interface Emits {
     (e: 'add', params: Array<IDataRow>): void;
     (e: 'remove'): void;

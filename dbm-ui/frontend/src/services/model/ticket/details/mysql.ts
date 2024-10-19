@@ -190,8 +190,8 @@ export interface MySQLDetails extends DetailBase {
   };
   resource_spec: {
     proxy: SpecInfo;
+    backend_group: SpecInfo;
     backend: SpecInfo;
-    single: SpecInfo;
   };
 }
 

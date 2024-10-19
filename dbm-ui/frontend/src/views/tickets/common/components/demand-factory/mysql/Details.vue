@@ -12,61 +12,61 @@
 -->
 
 <template>
-  <strong class="ticket-details-info-title">{{ $t('部署模块') }}</strong>
+  <strong class="ticket-details-info-title">{{ t('部署模块') }}</strong>
   <div class="ticket-details-list">
     <div class="ticket-details-item">
-      <span class="ticket-details-item-label">{{ $t('所属业务') }}：</span>
+      <span class="ticket-details-item-label">{{ t('所属业务') }}：</span>
       <span class="ticket-details-item-value">{{ ticketDetails?.bk_biz_name || '--' }}</span>
     </div>
     <div class="ticket-details-item">
-      <span class="ticket-details-item-label">{{ $t('业务英文名') }}：</span>
+      <span class="ticket-details-item-label">{{ t('业务英文名') }}：</span>
       <span class="ticket-details-item-value">{{ ticketDetails?.db_app_abbr || '--' }}</span>
     </div>
     <div class="ticket-details-item">
-      <span class="ticket-details-item-label">{{ $t('DB模块名') }}：</span>
+      <span class="ticket-details-item-label">{{ t('DB模块名') }}：</span>
       <span class="ticket-details-item-value">{{ ticketDetails?.details?.db_module_name || '--' }}</span>
     </div>
   </div>
-  <strong class="ticket-details-info-title">{{ $t('地域要求') }}</strong>
+  <strong class="ticket-details-info-title">{{ t('地域要求') }}</strong>
   <div class="ticket-details-list">
     <div class="ticket-details-item">
-      <span class="ticket-details-item-label">{{ $t('数据库部署地域') }}：</span>
+      <span class="ticket-details-item-label">{{ t('数据库部署地域') }}：</span>
       <span class="ticket-details-item-value">{{ cityName }}</span>
     </div>
   </div>
-  <strong class="ticket-details-info-title">{{ $t('数据库部署信息') }}</strong>
+  <strong class="ticket-details-info-title">{{ t('数据库部署信息') }}</strong>
   <div class="ticket-details-list">
     <div
       v-if="!isSingleType"
       class="ticket-details-item">
-      <span class="ticket-details-item-label">{{ $t('容灾要求') }}：</span>
+      <span class="ticket-details-item-label">{{ t('容灾要求') }}：</span>
       <span class="ticket-details-item-value">{{ affinity }}</span>
     </div>
     <div
       v-if="!isSingleType"
       class="ticket-details-item">
-      <span class="ticket-details-item-label">{{ $t('Proxy起始端口') }}：</span>
+      <span class="ticket-details-item-label">{{ t('Proxy起始端口') }}：</span>
       <span class="ticket-details-item-value">{{ ticketDetails?.details?.start_proxy_port || '--' }}</span>
     </div>
     <div class="ticket-details-item">
-      <span class="ticket-details-item-label">{{ $t('MySQL起始端口') }}：</span>
+      <span class="ticket-details-item-label">{{ t('MySQL起始端口') }}：</span>
       <span class="ticket-details-item-value">{{ ticketDetails?.details?.start_mysql_port || '--' }}</span>
     </div>
   </div>
-  <strong class="ticket-details-info-title">{{ $t('需求信息') }}</strong>
+  <strong class="ticket-details-info-title">{{ t('需求信息') }}</strong>
   <div
     class="ticket-details-list"
     style="max-width: unset">
     <div
       class="ticket-details-item"
       style="max-width: 500px">
-      <span class="ticket-details-item-label">{{ $t('数量') }}：</span>
+      <span class="ticket-details-item-label">{{ t('数量') }}：</span>
       <span class="ticket-details-item-value">{{ ticketDetails?.details?.cluster_count }}</span>
     </div>
     <div
       class="ticket-details-item"
       style="max-width: 500px">
-      <span class="ticket-details-item-label">{{ $t('备注') }}：</span>
+      <span class="ticket-details-item-label">{{ t('备注') }}：</span>
       <span class="ticket-details-item-value">{{ ticketDetails?.remark || '--' }}</span>
     </div>
     <div
@@ -76,7 +76,7 @@
       <div
         v-if="isSingleType"
         class="ticket-details-item">
-        <span class="ticket-details-item-label">{{ $t('后端存储资源规格') }}：</span>
+        <span class="ticket-details-item-label">{{ t('后端存储资源规格') }}：</span>
         <span class="ticket-details-item-value">
           <BkPopover
             placement="top"
@@ -84,7 +84,7 @@
             <span
               class="pb-2"
               style="cursor: pointer; border-bottom: 1px dashed #979ba5">
-              {{ singleSpec?.spec_name }}（{{ `${singleSpec?.count} ${$t('台')}` }}）
+              {{ singleSpec?.spec_name }}（{{ `${singleSpec?.count} ${t('台')}` }}）
             </span>
             <template #content>
               <SpecInfos :data="singleSpec" />
@@ -94,7 +94,7 @@
       </div>
       <template v-else>
         <div class="ticket-details-item">
-          <span class="ticket-details-item-label">{{ $t('Proxy存储资源规格') }}：</span>
+          <span class="ticket-details-item-label">{{ t('Proxy存储资源规格') }}：</span>
           <span class="ticket-details-item-value">
             <BkPopover
               placement="top"
@@ -102,7 +102,7 @@
               <span
                 class="pb-2"
                 style="cursor: pointer; border-bottom: 1px dashed #979ba5">
-                {{ proxySpec?.spec_name }}（{{ `${proxySpec?.count} ${$t('台')}` }}）
+                {{ proxySpec?.spec_name }}（{{ `${proxySpec?.count} ${t('台')}` }}）
               </span>
               <template #content>
                 <SpecInfos :data="proxySpec" />
@@ -111,7 +111,7 @@
           </span>
         </div>
         <div class="ticket-details-item">
-          <span class="ticket-details-item-label">{{ $t('后端存储资源规格') }}：</span>
+          <span class="ticket-details-item-label">{{ t('后端存储资源规格') }}：</span>
           <span class="ticket-details-item-value">
             <BkPopover
               placement="top"
@@ -119,7 +119,7 @@
               <span
                 class="pb-2"
                 style="cursor: pointer; border-bottom: 1px dashed #979ba5">
-                {{ backendSpec?.spec_name }}（{{ `${backendSpec?.count} ${$t('台')}` }}）
+                {{ backendSpec?.spec_name }}（{{ `${backendSpec?.count} ${t('台')}` }}）
               </span>
               <template #content>
                 <SpecInfos :data="backendSpec" />
@@ -130,7 +130,7 @@
       </template>
     </div>
     <div class="ticket-details-item table">
-      <span class="ticket-details-item-label">{{ $t('集群设置') }}：</span>
+      <span class="ticket-details-item-label">{{ t('集群设置') }}：</span>
       <span class="ticket-details-item-value">
         <PreviewTable
           :key="ticketDetails?.ticket_type"
@@ -171,9 +171,9 @@
 
   const cityName = ref('--');
 
-  const proxySpec = computed(() => props.ticketDetails?.details?.resource_spec?.proxy || {});
-  const backendSpec = computed(() => props.ticketDetails?.details?.resource_spec?.backend || {});
-  const singleSpec = computed(() => props.ticketDetails?.details?.resource_spec?.single || {});
+  const proxySpec = computed(() => props.ticketDetails.details.resource_spec.proxy || {});
+  const backendSpec = computed(() => props.ticketDetails.details.resource_spec.backend_group || {});
+  const singleSpec = computed(() => props.ticketDetails.details.resource_spec.backend || {});
 
   // 是否为单节点类型
   const isSingleType = computed(() => props.ticketDetails?.ticket_type === TicketTypes.MYSQL_SINGLE_APPLY);
