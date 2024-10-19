@@ -87,8 +87,8 @@
         message: t('表名不能为空'),
       },
       {
-        validator: (value: string[]) => _.every(value, (item) => /^[-_a-zA-Z0-9*?%]{0,35}$/.test(item)),
-        message: t('库表名支持数字、字母、中划线、下划线，最大35字符'),
+        validator: (value: string[]) => _.every(value, (item) => /^[-_a-zA-Z0-9*?%]{0,64}$/.test(item)),
+        message: t('库表名支持数字、字母、中划线、下划线，最大64字符'),
       },
       {
         validator: (value: string[]) => {
