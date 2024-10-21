@@ -167,8 +167,8 @@ class AddAccountRuleSerializer(serializers.Serializer):
         )
 
     account_id = serializers.IntegerField(help_text=_("账号ID"))
-    access_db = serializers.CharField(help_text=_("访问DB"))
-    privilege = RuleTypeSerializer(help_text=_("授权规则"))
+    access_db = serializers.CharField(help_text=_("访问DB"), required=False)
+    privilege = RuleTypeSerializer(help_text=_("授权规则"), required=False)
     account_type = serializers.ChoiceField(help_text=_("账号类型"), choices=AccountType.get_choices())
 
     class Meta:
