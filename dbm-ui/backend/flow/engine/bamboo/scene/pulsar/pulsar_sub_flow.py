@@ -268,6 +268,8 @@ class PulsarOperationFlow(PulsarBaseFlow):
 
         # 停止BookKeeper服务 + 退役BookKeeper
         for bookie_ip in data["shrink_bookie_ips"]:
+            # 每个bookie 串行 进行停服和退役操作
+            act_kwargs.exec_ip = bookie_ip
             act_kwargs.get_pulsar_payload_func = PulsarActPayload.get_stop_process_payload.__name__
             act_kwargs.role = PulsarRoleEnum.BookKeeper
             sub_pipeline.add_act(

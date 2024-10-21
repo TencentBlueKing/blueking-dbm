@@ -384,8 +384,16 @@ def get_all_node_ips_in_ticket(data: dict) -> list:
 
 
 def fe_exists_in_ticket(data: dict) -> bool:
-    return DorisRoleEnum.FOLLOWER in data["nodes"] or DorisRoleEnum.OBSERVER in data["nodes"]
+    return role_exists_in_ticket(data=data, role=DorisRoleEnum.FOLLOWER) or role_exists_in_ticket(
+        data=data, role=DorisRoleEnum.OBSERVER
+    )
 
 
 def be_exists_in_ticket(data: dict) -> bool:
-    return DorisRoleEnum.HOT in data["nodes"] or DorisRoleEnum.COLD in data["nodes"]
+    return role_exists_in_ticket(data=data, role=DorisRoleEnum.HOT) or role_exists_in_ticket(
+        data=data, role=DorisRoleEnum.COLD
+    )
+
+
+def role_exists_in_ticket(data: dict, role: DorisRoleEnum) -> bool:
+    return role in data["nodes"] and data["nodes"][role]
