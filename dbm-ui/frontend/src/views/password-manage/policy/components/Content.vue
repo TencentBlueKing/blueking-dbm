@@ -88,7 +88,7 @@
             v-model="formData.number_of_types"
             class="password-policy-number ml-6 mr-6"
             :max="typeMaxCount"
-            :min="0"
+            :min="1"
             type="number" />
           {{ t('种类型') }}
         </BkFormItem>
@@ -175,15 +175,8 @@
     include_rule: [
       {
         trigger: 'change',
-        message: t('密码组成至少要选 1 种'),
+        message: t('请至少选择一种类型'),
         validator: () => Object.values(formData.include_rule).some((checked) => checked),
-      },
-    ],
-    number_of_types: [
-      {
-        trigger: 'change',
-        message: t('任意 N 种， N 必须 >= 1 。且 <= 密码组成的种类'),
-        validator: () => formData.number_of_types >= 1 && formData.number_of_types <= typeMaxCount.value,
       },
     ],
   };
@@ -245,9 +238,9 @@
     },
   );
 
-  const handleChangeIncludeRule = async () => {
-    await formRef.value.validate();
-    formData.number_of_types = Math.min(formData.number_of_types, typeMaxCount.value);
+  const handleChangeIncludeRule = () => {
+    formData.number_of_types = typeMaxCount.value;
+    formRef.value.validate();
   };
 
   const handleInputChange = (value: string) => {
