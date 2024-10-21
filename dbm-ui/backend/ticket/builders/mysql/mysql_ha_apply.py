@@ -137,12 +137,12 @@ class MysqlHaApplyResourceParamBuilder(MysqlSingleApplyResourceParamBuilder):
 @BuilderFactory.register(
     TicketType.MYSQL_HA_APPLY, is_apply=True, cluster_type=ClusterType.TenDBHA, iam=ActionEnum.MYSQL_APPLY
 )
-class MysqlHAApplyFlowBuilder(BaseMySQLHATicketFlowBuilder, MysqlSingleApplyFlowBuilder):
+class MysqlHAApplyFlowBuilder(BaseMySQLHATicketFlowBuilder):
     serializer = MysqlHAApplyDetailSerializer
     inner_flow_builder = MysqlHAApplyFlowParamBuilder
     inner_flow_name = _("MySQL高可用部署执行")
     resource_apply_builder = MysqlHaApplyResourceParamBuilder
 
     def patch_ticket_detail(self):
-        super().patch_dbconfig(cluster_type=ClusterType.TenDBHA)
+        MysqlSingleApplyFlowBuilder.patch_dbconfig(ticket=self.ticket, cluster_type=ClusterType.TenDBHA)
         super().patch_ticket_detail()
