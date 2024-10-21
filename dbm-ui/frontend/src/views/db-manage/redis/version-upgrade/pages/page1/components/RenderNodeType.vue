@@ -23,7 +23,7 @@
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
-  import { RedisClusterTypes } from '@services/model/redis/redis';
+  import { ClusterTypes } from '@common/const';
 
   import TableEditSelect from '@views/db-manage/redis/common/edit/Select.vue';
 
@@ -65,7 +65,7 @@
       },
     ];
 
-    if (props.clusterType !== RedisClusterTypes.RedisInstance) {
+    if (props.clusterType !== ClusterTypes.REDIS_INSTANCE) {
       nodeTypeList.push({
         value: 'Proxy',
         label: 'Proxy',
@@ -78,7 +78,7 @@
   watch(
     () => props.data,
     () => {
-      const defaultNodeType = props.clusterType === RedisClusterTypes.RedisInstance ? 'Backend' : 'Proxy';
+      const defaultNodeType = props.clusterType === ClusterTypes.REDIS_INSTANCE ? 'Backend' : 'Proxy';
       localValue.value = props.data ? props.data : defaultNodeType;
     },
     {

@@ -343,6 +343,7 @@ export interface RedisProxyScaleDownDetails extends DetailBase {
   infos: {
     cluster_id: number;
     target_proxy_count?: number;
+    proxy_reduce_count?: number;
     proxy_reduced_hosts?: {
       ip: string;
       bk_host_id: number;
