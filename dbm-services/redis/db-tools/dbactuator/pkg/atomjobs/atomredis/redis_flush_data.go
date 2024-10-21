@@ -152,8 +152,18 @@ func (job *RedisFlushData) FlushDB(port int) error {
 	}
 	defer redisClient.Close()
 
+	cmd := []string{consts.FlushDBRename}
+	// 判断实例版本，如果是4.0+，则使用flushall ASYNC
+	version, err := redisClient.GetTendisVersion()
+	if err == nil {
+		v, err := strconv.Atoi(strings.Split(version, ".")[0])
+		if err == nil && v >= 4 {
+			cmd = append(cmd, consts.ASYNC)
+			job.runtime.Logger.Info("redis version is %d. will exec command：%+v", version, cmd)
+		}
+	}
 	for _, db := range params.DBList {
-		result, err := redisClient.DoCommand([]string{consts.FlushDBRename}, db)
+		result, err := redisClient.DoCommand(cmd, db)
 		if err != nil {
 			return err
 		}
@@ -188,8 +198,19 @@ func (job *RedisFlushData) FlushAll(port int) error {
 	params := job.params
 	if consts.IsTendisSSDInstanceDbType(params.DbType) {
 		cmd = []string{consts.SSDFlushAllRename}
-	} else if consts.IsTendisplusInstanceDbType(params.DbType) || consts.IsRedisInstanceDbType(params.DbType) {
+	} else if consts.IsTendisplusInstanceDbType(params.DbType) {
+		cmd = []string{consts.TendisPlusFlushAllRename}
+	} else if consts.IsRedisInstanceDbType(params.DbType) {
 		cmd = []string{consts.CacheFlushAllRename}
+		// 判断实例版本，如果是4.0+，则使用flushall ASYNC
+		version, err := redisClient.GetTendisVersion()
+		if err == nil {
+			v, err := strconv.Atoi(strings.Split(version, ".")[0])
+			if err == nil && v >= 4 {
+				cmd = append(cmd, consts.ASYNC)
+				job.runtime.Logger.Info("redis version is %d. will exec command：%+v", version, cmd)
+			}
+		}
 	} else {
 		err = fmt.Errorf("unknown dbType(%s)", params.DbType)
 		return err
