@@ -45,8 +45,7 @@
         ref="numRef"
         :data="data.targetNum"
         :disabled="!data.cluster"
-        :is-loading="data.isLoading"
-        :min="data.spec?.count" />
+        :is-loading="data.isLoading" />
     </td>
     <OperateColumn
       :removeable="removeable"
@@ -117,8 +116,7 @@
     nodeType: '',
     cluster_type_name: '',
   });
-</script>
-<script setup lang="ts">
+
   interface Props {
     data: IDataRow;
     removeable: boolean;
@@ -135,7 +133,8 @@
   interface Exposes {
     getValue: () => Promise<InfoItem>;
   }
-
+</script>
+<script setup lang="ts">
   const props = withDefaults(defineProps<Props>(), {
     inputedClusters: () => [],
   });
@@ -144,7 +143,7 @@
 
   // 查询集群对应的规格列表
   const querySpecList = async (item: RedisModel) => {
-    const proxyMachineMap = {
+    const proxyMachineMap: Record<string, string> = {
       TwemproxyRedisInstance: 'twemproxy',
       TwemproxyTendisSSDInstance: 'twemproxy',
       PredixyTendisplusCluster: 'predixy',
@@ -250,11 +249,11 @@
         return {
           cluster_id: props.data.clusterId,
           bk_cloud_id: props.data.bkCloudId,
-          target_proxy_count: targetNum,
+          target_proxy_count: (props.data.spec?.count || 0) + targetNum,
           resource_spec: {
             proxy: {
               spec_id: specId,
-              count: props.data.spec?.count ? targetNum - props.data.spec.count : targetNum,
+              count: targetNum,
             },
           },
         };

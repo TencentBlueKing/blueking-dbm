@@ -32,7 +32,7 @@
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
-  import { RedisClusterTypes } from '@services/model/redis/redis';
+  import { ClusterTypes } from '@common/const';
 
   import DisableSelect from '@components/render-table/columns/select-disable/index.vue';
 
@@ -130,7 +130,7 @@
         }),
         currentSepcId: `${specConfig.id}`,
         capacity: { total: rowData.currentCapacity?.total ?? 1, used: 0 },
-        clusterType: props.targetClusterType as RedisClusterTypes,
+        clusterType: props.targetClusterType as ClusterTypes,
         shardNum: localValue.target_shard_num,
         groupNum: localValue.count,
         bkCloudId: rowData.bkCloudId,

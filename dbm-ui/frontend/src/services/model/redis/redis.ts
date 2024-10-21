@@ -18,14 +18,6 @@ import { isRecentDays, utcDisplayTime } from '@utils';
 
 import { t } from '@locales/index';
 
-export const enum RedisClusterTypes {
-  PredixyTendisplusCluster = 'PredixyTendisplusCluster', // Tendisplus
-  PredixyRedisCluster = 'PredixyRedisCluster',
-  RedisInstance = 'RedisInstance',
-  TwemproxyRedisInstance = 'TwemproxyRedisInstance', // TendisCache
-  TwemproxyTendisSSDInstance = 'TwemproxyTendisSSDInstance', // TendisSSD
-}
-
 export default class Redis {
   static REDIS_DESTROY = 'REDIS_DESTROY';
   static REDIS_PROXY_CLOSE = 'REDIS_PROXY_CLOSE';

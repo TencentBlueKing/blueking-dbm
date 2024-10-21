@@ -10,10 +10,12 @@
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
  */
-import RedisModel, { RedisClusterTypes } from '@services/model/redis/redis';
+import RedisModel from '@services/model/redis/redis';
 import type { RedisScaleUpDownDetails } from '@services/model/ticket/details/redis';
 import TicketModel from '@services/model/ticket/ticket';
 import { getRedisList } from '@services/source/redis';
+
+import { ClusterTypes } from '@common/const';
 
 import { random } from '@utils';
 
@@ -45,7 +47,7 @@ export async function generateRedisScaleUpdownCloneData(ticketData: TicketModel<
     shardNum: clusterListMap[item.cluster_id].cluster_shard_num,
     groupNum: clusterListMap[item.cluster_id].machine_pair_cnt,
     version: item.db_version,
-    clusterType: clusters[item.cluster_id].cluster_type as RedisClusterTypes,
+    clusterType: clusters[item.cluster_id].cluster_type as ClusterTypes,
     currentCapacity: {
       used: 1,
       total: clusterListMap[item.cluster_id].cluster_capacity,
