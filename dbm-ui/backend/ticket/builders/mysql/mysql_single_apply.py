@@ -208,13 +208,14 @@ class MysqlSingleApplyFlowBuilder(BaseMySQLSingleTicketFlowBuilder):
     inner_flow_name = _("MySQL单节点部署执行")
     resource_apply_builder = MysqlSingleApplyResourceParamBuilder
 
-    def patch_dbconfig(self, cluster_type):
+    @classmethod
+    def patch_dbconfig(cls, ticket, cluster_type):
         # 补充数据库版本和字符集
         db_config = DBConfigApi.query_conf_item(
             {
-                "bk_biz_id": str(self.ticket.bk_biz_id),
+                "bk_biz_id": str(ticket.bk_biz_id),
                 "level_name": dbconf_const.LevelName.MODULE,
-                "level_value": str(self.ticket.details["db_module_id"]),
+                "level_value": str(ticket.details["db_module_id"]),
                 "conf_file": dbconf_const.DEPLOY_FILE_NAME,
                 "conf_type": dbconf_const.ConfType.DEPLOY,
                 "namespace": cluster_type,
@@ -226,8 +227,8 @@ class MysqlSingleApplyFlowBuilder(BaseMySQLSingleTicketFlowBuilder):
         if not db_config.get("db_version") or not db_config.get("charset"):
             raise TicketParamsVerifyException(_("获取数据库配置失败，请检查获取参数db_config: {}").format(db_config))
 
-        self.ticket.update_details(db_version=db_config.get("db_version"), charset=db_config.get("charset"))
+        ticket.update_details(db_version=db_config.get("db_version"), charset=db_config.get("charset"))
 
     def patch_ticket_detail(self):
-        self.patch_dbconfig(cluster_type=ClusterType.TenDBSingle)
+        self.patch_dbconfig(ticket=self.ticket, cluster_type=ClusterType.TenDBSingle)
         super().patch_ticket_detail()
