@@ -258,6 +258,7 @@
     clusterType: item.cluster_type,
     machineType: item.cluster_spec.spec_machine_type,
     currentShardNum: item.cluster_shard_num,
+    groupNum: item.machine_pair_cnt,
     dbVersion: item.major_version,
     specConfig: {
       cpu: item.cluster_spec.cpu,
@@ -268,10 +269,6 @@
     proxy: {
       id: item.proxy[0].spec_config.id,
       count: new Set(item.proxy.map((item) => item.ip)).size,
-    },
-    backendGroup: {
-      id: item.cluster_spec.spec_id,
-      count: item.redis_master.length,
     },
   });
 

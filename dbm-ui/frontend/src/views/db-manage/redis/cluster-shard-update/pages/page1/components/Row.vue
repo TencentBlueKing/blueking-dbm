@@ -82,6 +82,7 @@
     switchMode: string;
     clusterType: string;
     currentShardNum: number;
+    groupNum: number;
     currentSpecId: number;
     clusterTypeName: string;
     dbVersion: string;
@@ -113,10 +114,6 @@
       capacity: number;
       qps: number;
       shardNum: number;
-    };
-    backendGroup?: {
-      id: number;
-      count: number;
     };
     targetShardNum?: number;
   }
@@ -157,6 +154,7 @@
     clusterType: '',
     clusterTypeName: '',
     currentShardNum: 0,
+    groupNum: 0,
     currentSpecId: 0,
     dbVersion: '',
     specConfig: {

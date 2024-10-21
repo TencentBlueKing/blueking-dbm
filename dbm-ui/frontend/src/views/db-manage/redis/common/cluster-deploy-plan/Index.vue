@@ -207,7 +207,7 @@
       },
       clusterType: RedisClusterTypes,
       shardNum: number,
-      machinePair: number,
+      groupNum: number,
       bkCloudId: number
     };
     title?: string,
@@ -248,7 +248,7 @@
       },
       clusterType: RedisClusterTypes.TwemproxyRedisInstance,
       shardNum: 0,
-      machinePair: 0,
+      groupNum: 0,
       bkCloudId: 0
     }),
     title: '',
@@ -281,7 +281,7 @@
     specId: '',
     count: 1,
     shardNum: 1,
-    clusterShardNum: 0,
+    clusterShardNum: 1,
     totalCapcity: 0,
   })
 
@@ -377,8 +377,9 @@
     if (props.data) {
       targetCapacity.value.current = props.data.capacity.total;
       Object.assign(specInfo, {
-        spec_id: props.data.currentSepcId,
-        count: props.data.machinePair
+        count: props.data.groupNum,
+        shardNum: props.data.shardNum / props.data.groupNum,
+        clusterShardNum: props.data.shardNum,
       })
       Object.assign(clusterInfo, {
         bizId: window.PROJECT_CONFIG.BIZ_ID,

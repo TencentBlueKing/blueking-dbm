@@ -74,7 +74,7 @@
   const showChooseClusterTargetPlan = ref(false);
   const activeRowData = ref<TargetPlanProps['data']>();
 
-  const localValue = ref({
+  const localValue = reactive({
     spec_id: 0,
     count: 0,
     target_shard_num: 0,
@@ -88,21 +88,29 @@
       message: t('请选择目标容量'),
     },
     {
-      validator: () => props.rowData.currentShardNum !== localValue.value.target_shard_num,
+      validator: () => props.rowData.currentShardNum !== localValue.target_shard_num,
       message: t('目标分片数不能与当前分片数相同'),
     },
   ];
 
+  watchEffect(() => {
+    localValue.target_shard_num = props.rowData.currentShardNum;
+  });
+
+  watchEffect(() => {
+    localValue.count = props.rowData.groupNum;
+  });
+
   // 从侧边窗点击确认后触发
   const handleChoosedTargetCapacity = (choosedObj: SpecResultInfo, capacity: CapacityNeed) => {
     displayText.value = `${choosedObj.cluster_capacity}G_（${choosedObj.cluster_shard_num} 分片）`;
-    localValue.value = {
+    Object.assign(localValue, {
       spec_id: choosedObj.spec_id,
       count: choosedObj.machine_pair,
       target_shard_num: choosedObj.cluster_shard_num,
       capacity: capacity.current,
       future_capacity: capacity.future,
-    };
+    });
     showChooseClusterTargetPlan.value = false;
   };
 
@@ -119,11 +127,11 @@
           disks: rowData.currentCapacity?.total,
           qps: specConfig.qps.max,
         }),
-        currentSepcId: `${rowData.backendGroup?.id || ''}`,
+        currentSepcId: `${specConfig.id}`,
         capacity: { total: rowData.currentCapacity?.total ?? 1, used: 0 },
         clusterType: rowData.clusterType as RedisClusterTypes,
         shardNum: rowData.currentShardNum,
-        machinePair: rowData.backendGroup?.count || 0,
+        groupNum: localValue.count,
         bkCloudId: rowData.bkCloudId,
       };
       activeRowData.value = obj;
@@ -135,8 +143,8 @@
     getValue() {
       return selectRef.value
         .getValue()
-        .then(() => localValue.value)
-        .catch(() => localValue.value);
+        .then(() => localValue)
+        .catch(() => localValue);
     },
   });
 </script>

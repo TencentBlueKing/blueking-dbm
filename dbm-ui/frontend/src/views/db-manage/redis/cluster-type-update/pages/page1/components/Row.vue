@@ -104,6 +104,7 @@
     srcClusterType: string;
     clusterType: string;
     currentShardNum: number;
+    groupNum: number;
     clusterTypeName: string;
     specConfig: {
       cpu: {
@@ -133,10 +134,6 @@
       used: number;
       current: number;
       total: number;
-    };
-    backendGroup?: {
-      id: number;
-      count: number;
     };
     targetShardNum?: number;
   }
@@ -181,6 +178,7 @@
     clusterType: '',
     dbVersion: '',
     currentShardNum: 0,
+    groupNum: 0,
     clusterTypeName: '',
     currentSepc: '',
     specConfig: {
