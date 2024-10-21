@@ -41,15 +41,15 @@ from backend.ticket.builders import BuilderFactory
 from backend.ticket.builders.common.base import InfluxdbTicketFlowBuilderPatchMixin, fetch_cluster_ids
 from backend.ticket.constants import (
     TICKET_RUNNING_STATUS,
+    TICKET_TODO_STATUS,
     TODO_RUNNING_STATUS,
     CountType,
-    TicketStatus,
     TicketType,
     TodoType,
 )
 from backend.ticket.contexts import TicketContext
 from backend.ticket.exceptions import TicketDuplicationException
-from backend.ticket.filters import TicketListFilter
+from backend.ticket.filters import ClusterOpRecordListFilter, InstanceOpRecordListFilter, TicketListFilter
 from backend.ticket.flow_manager.manager import TicketFlowManager
 from backend.ticket.handler import TicketHandler
 from backend.ticket.models import ClusterOperateRecord, InstanceOperateRecord, Ticket, TicketFlowsConfig
@@ -428,10 +428,9 @@ class TicketViewSet(viewsets.AuditedModelViewSet):
         # 我的申请
         count_map[CountType.MY_APPROVE] = tickets.filter(creator=user).count()
         # 我的代办
-        todo_status = [TicketStatus.APPROVE, TicketStatus.TODO, TicketStatus.RESOURCE_REPLENISH, TicketStatus.FAILED]
         my_todo = (
             tickets.filter(
-                status__in=todo_status,
+                status__in=TICKET_TODO_STATUS,
                 todo_of_ticket__operators__contains=user,
                 todo_of_ticket__status__in=TODO_RUNNING_STATUS,
             )
@@ -448,73 +447,35 @@ class TicketViewSet(viewsets.AuditedModelViewSet):
 
     @common_swagger_auto_schema(
         operation_summary=_("查询集群变更单据事件"),
-        query_serializer=ClusterModifyOpSerializer(),
         tags=[TICKET_TAG],
     )
-    @action(methods=["GET"], detail=False, serializer_class=ClusterModifyOpSerializer)
+    @action(
+        methods=["GET"],
+        detail=False,
+        serializer_class=ClusterModifyOpSerializer,
+        queryset=ClusterOperateRecord.objects.select_related("ticket").order_by("-create_at"),
+        filter_class=ClusterOpRecordListFilter,
+    )
     def get_cluster_operate_records(self, request, *args, **kwargs):
-        validated_data = self.params_validate(self.get_serializer_class())
-        op_filters = Q(cluster_id=validated_data["cluster_id"])
-        if validated_data.get("start_time"):
-            op_filters &= Q(create_at__gte=validated_data.get("start_time"))
-
-        if validated_data.get("end_time"):
-            op_filters &= Q(create_at__lte=validated_data.get("end_time"))
-
-        if validated_data.get("op_type"):
-            op_filters &= Q(ticket__ticket_type=validated_data.get("op_type"))
-
-        if validated_data.get("op_status"):
-            op_filters &= Q(ticket__status=validated_data.get("op_status"))
-
-        op_records = ClusterOperateRecord.objects.select_related("ticket").filter(op_filters).order_by("-create_at")
-        op_records_info = [
-            {
-                "create_at": record.create_at,
-                "op_type": TicketType.get_choice_label(record.ticket.ticket_type),
-                "op_status": record.ticket.status,
-                "ticket_id": record.ticket.id,
-                "creator": record.creator,
-            }
-            for record in op_records
-        ]
-        op_records_page = self.paginate_queryset(op_records_info)
-        return self.get_paginated_response(op_records_page)
+        op_records_page_qs = self.paginate_queryset(self.filter_queryset(self.queryset))
+        op_records_page_data = self.serializer_class(op_records_page_qs, many=True).data
+        return self.get_paginated_response(data=op_records_page_data)
 
     @common_swagger_auto_schema(
         operation_summary=_("查询集群实例变更单据事件"),
-        query_serializer=InstanceModifyOpSerializer(),
         tags=[TICKET_TAG],
     )
-    @action(methods=["GET"], detail=False, serializer_class=InstanceModifyOpSerializer)
+    @action(
+        methods=["GET"],
+        detail=False,
+        serializer_class=InstanceModifyOpSerializer,
+        queryset=InstanceOperateRecord.objects.select_related("ticket").order_by("-create_at"),
+        filter_class=InstanceOpRecordListFilter,
+    )
     def get_instance_operate_records(self, request, *args, **kwargs):
-        validated_data = self.params_validate(self.get_serializer_class())
-        op_filters = Q(instance_id=validated_data["instance_id"])
-        if validated_data.get("start_time"):
-            op_filters &= Q(create_at__gte=validated_data.get("start_time"))
-
-        if validated_data.get("end_time"):
-            op_filters &= Q(create_at__lte=validated_data.get("end_time"))
-
-        if validated_data.get("op_type"):
-            op_filters &= Q(ticket__ticket_type=validated_data.get("op_type"))
-
-        if validated_data.get("op_status"):
-            op_filters &= Q(ticket__status=validated_data.get("op_status"))
-
-        op_records = InstanceOperateRecord.objects.select_related("ticket").filter(op_filters).order_by("-create_at")
-        op_records_info = [
-            {
-                "create_at": record.create_at,
-                "op_type": TicketType.get_choice_label(record.ticket.ticket_type),
-                "op_status": record.ticket.status,
-                "ticket_id": record.ticket.id,
-                "creator": record.creator,
-            }
-            for record in op_records
-        ]
-        op_records_page = self.paginate_queryset(op_records_info)
-        return self.get_paginated_response(op_records_page)
+        op_records_page_qs = self.paginate_queryset(self.filter_queryset(self.queryset))
+        op_records_page_data = self.serializer_class(op_records_page_qs, many=True).data
+        return self.get_paginated_response(data=op_records_page_data)
 
     @swagger_auto_schema(
         operation_summary=_("查询可编辑单据流程描述"),

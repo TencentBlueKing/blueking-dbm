@@ -100,6 +100,13 @@ TICKET_RUNNING_STATUS = [
     TicketStatus.RUNNING,
     TicketStatus.TIMER,
 ]
+TICKET_TODO_STATUS = [
+    TicketStatus.APPROVE,
+    TicketStatus.TODO,
+    TicketStatus.RESOURCE_REPLENISH,
+    TicketStatus.FAILED,
+    TicketStatus.RUNNING,
+]
 TICKET_FAILED_STATUS = [TicketStatus.REVOKED, TicketStatus.TERMINATED, TicketStatus.FAILED]
 
 

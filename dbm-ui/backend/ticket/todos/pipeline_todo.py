@@ -11,13 +11,9 @@ specific language governing permissions and limitations under the License.
 import logging
 from dataclasses import dataclass
 
-from django.utils.translation import gettext as _
-
-from backend.constants import DEFAULT_SYSTEM_USER
 from backend.flow.engine.bamboo.engine import BambooEngine
 from backend.ticket import todos
 from backend.ticket.constants import TodoType
-from backend.ticket.exceptions import TodoWrongOperatorException
 from backend.ticket.models import TodoHistory
 from backend.ticket.todos import ActionType, BaseTodoContext
 
@@ -34,11 +30,8 @@ class PipelineTodoContext(BaseTodoContext):
 class PipelineTodo(todos.TodoActor):
     """来自自动化流程中的待办"""
 
-    def process(self, username, action, params):
+    def _process(self, username, action, params):
         """确认/终止"""
-        if username not in self.todo.operators and username != DEFAULT_SYSTEM_USER:
-            raise TodoWrongOperatorException(_("{}不在处理人: {}中，无法处理").format(username, self.todo.operators))
-
         # 从todo的上下文获取pipeline节点信息
         root_id, node_id = self.context.get("root_id"), self.context.get("node_id")
         engine = BambooEngine(root_id=root_id)

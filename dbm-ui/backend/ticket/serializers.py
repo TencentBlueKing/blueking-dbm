@@ -274,20 +274,28 @@ class GetTodosSLZ(serializers.Serializer):
     )
 
 
-class ClusterModifyOpSerializer(serializers.Serializer):
+class OpRecordSerializer(serializers.Serializer):
+    start_time = serializers.DateTimeField(help_text=_("查询起始时间"), required=False)
+    end_time = serializers.DateTimeField(help_text=_("查询终止时间"), required=False)
+    op_type = serializers.ChoiceField(help_text=_("操作类型"), choices=TicketType.get_choices(), required=False)
+    op_status = serializers.ChoiceField(help_text=_("操作状态"), choices=TicketStatus.get_choices(), required=False)
+
+    def to_representation(self, instance):
+        return {
+            "create_at": instance.create_at,
+            "op_type": instance.ticket.ticket_type,
+            "op_status": instance.ticket.status,
+            "ticket_id": instance.ticket.id,
+            "creator": instance.creator,
+        }
+
+
+class ClusterModifyOpSerializer(OpRecordSerializer):
     cluster_id = serializers.IntegerField(help_text=_("集群ID"))
-    start_time = serializers.DateTimeField(help_text=_("查询起始时间"), required=False)
-    end_time = serializers.DateTimeField(help_text=_("查询终止时间"), required=False)
-    op_type = serializers.ChoiceField(help_text=_("操作类型"), choices=TicketType.get_choices(), required=False)
-    op_status = serializers.ChoiceField(help_text=_("操作状态"), choices=TicketStatus.get_choices(), required=False)
 
 
-class InstanceModifyOpSerializer(serializers.Serializer):
+class InstanceModifyOpSerializer(OpRecordSerializer):
     instance_id = serializers.IntegerField(help_text=_("实例ID"))
-    start_time = serializers.DateTimeField(help_text=_("查询起始时间"), required=False)
-    end_time = serializers.DateTimeField(help_text=_("查询终止时间"), required=False)
-    op_type = serializers.ChoiceField(help_text=_("操作类型"), choices=TicketType.get_choices(), required=False)
-    op_status = serializers.ChoiceField(help_text=_("操作状态"), choices=TicketStatus.get_choices(), required=False)
 
 
 class QueryTicketFlowDescribeSerializer(serializers.Serializer):

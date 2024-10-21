@@ -14,6 +14,7 @@ import os
 from dataclasses import asdict, dataclass
 from typing import Callable
 
+from blueapps.account.models import User
 from django.utils.translation import ugettext_lazy as _
 
 from backend.constants import DEFAULT_SYSTEM_USER
@@ -40,7 +41,8 @@ class TodoActor:
         return cls.__name__
 
     def process(self, username, action, params):
-        if username not in self.todo.operators and username != DEFAULT_SYSTEM_USER:
+        is_superuser = User.objects.get(username=username).is_superuser
+        if not is_superuser and username not in self.todo.operators and username != DEFAULT_SYSTEM_USER:
             raise TodoWrongOperatorException(_("{}不在处理人: {}中，无法处理").format(username, self.todo.operators))
         self._process(username, action, params)
 

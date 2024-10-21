@@ -14,7 +14,7 @@ from django_filters import rest_framework as filters
 
 from backend.db_meta.models import Cluster
 from backend.ticket.constants import TODO_RUNNING_STATUS
-from backend.ticket.models import ClusterOperateRecord, Ticket
+from backend.ticket.models import ClusterOperateRecord, InstanceOperateRecord, Ticket
 
 
 class TicketListFilter(filters.FilterSet):
@@ -51,3 +51,32 @@ class TicketListFilter(filters.FilterSet):
             )
         else:
             return queryset.filter(todo_of_ticket__done_by=user)
+
+
+class OpRecordListFilter(filters.FilterSet):
+    start_time = filters.DateTimeFilter(field_name="create_at", lookup_expr="gte", label=_("开始时间"))
+    end_time = filters.DateTimeFilter(field_name="create_at", lookup_expr="lte", label=_("开始时间"))
+    op_type = filters.CharFilter(field_name="op_type", method="filter_op_type", label=_("操作类型"))
+    op_status = filters.CharFilter(field_name="op_status", method="filter_op_status", label=_("操作状态"))
+
+    def filter_op_type(self, queryset, name, value):
+        return queryset.filter(ticket__ticket_type=value)
+
+    def filter_op_status(self, queryset, name, value):
+        return queryset.filter(ticket__status=value)
+
+
+class ClusterOpRecordListFilter(OpRecordListFilter):
+    cluster_id = filters.NumberFilter(field_name="cluster_id", lookup_expr="exact", label=_("集群ID"))
+
+    class Meta:
+        model = ClusterOperateRecord
+        fields = ["start_time", "end_time", "op_type", "op_status"]
+
+
+class InstanceOpRecordListFilter(OpRecordListFilter):
+    instance_id = filters.NumberFilter(field_name="instance_id", lookup_expr="exact", label=_("实例ID"))
+
+    class Meta:
+        model = InstanceOperateRecord
+        fields = ["start_time", "end_time", "op_type", "op_status"]
