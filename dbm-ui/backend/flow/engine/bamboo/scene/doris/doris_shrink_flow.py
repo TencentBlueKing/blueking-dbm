@@ -27,7 +27,9 @@ from backend.flow.engine.bamboo.scene.doris.doris_base_flow import (
     get_node_ips_in_ticket_by_role,
 )
 from backend.flow.engine.bamboo.scene.doris.exceptions import (
+    BeMachineCountException,
     FollowerScaleUpUnsupportedException,
+    NoShrinkMachineException,
     RoleMachineCountException,
     RoleMachineCountMustException,
 )
@@ -39,7 +41,11 @@ from backend.flow.plugins.components.collections.doris.exec_doris_actuator_scrip
 from backend.flow.plugins.components.collections.doris.get_doris_payload import GetDorisActPayloadComponent
 from backend.flow.plugins.components.collections.doris.get_doris_resource import GetDorisResourceComponent
 from backend.flow.plugins.components.collections.es.trans_files import TransFileComponent
-from backend.flow.utils.doris.consts import DORIS_FOLLOWER_MUST_COUNT, DORIS_OBSERVER_NOT_COUNT
+from backend.flow.utils.doris.consts import (
+    DORIS_BACKEND_NOT_COUNT,
+    DORIS_FOLLOWER_MUST_COUNT,
+    DORIS_OBSERVER_NOT_COUNT,
+)
 from backend.flow.utils.doris.doris_act_payload import DorisActPayload
 from backend.flow.utils.doris.doris_context_dataclass import DnsKwargs, DorisActKwargs, DorisApplyContext
 
@@ -151,12 +157,26 @@ class DorisShrinkFlow(DorisBaseFlow):
         doris_pipeline.run_pipeline()
 
     def check_shrink_role_ip_count(self, data: dict):
-        # 扩容无需检查数据节点数量
+        # 缩容 检查各个角色节点传参
+        if not fe_exists_in_ticket(data=data) and not be_exists_in_ticket(data=data):
+            logger.error(_("Doris缩容未选择机器"))
+            raise NoShrinkMachineException()
+
+        former_cold_cnt = len(self.get_role_ips_in_dbmeta(InstanceRole.DORIS_BACKEND_COLD))
+        del_cold_cnt = len(get_node_ips_in_ticket_by_role(data, DorisRoleEnum.COLD))
+
+        former_hot_cnt = len(self.get_role_ips_in_dbmeta(InstanceRole.DORIS_BACKEND_HOT))
+        del_hot_cnt = len(get_node_ips_in_ticket_by_role(data, DorisRoleEnum.HOT))
+
+        # 检查 所有数据节点 剩余数量不能为0
+        if former_cold_cnt + former_hot_cnt - del_cold_cnt - del_hot_cnt == DORIS_BACKEND_NOT_COUNT:
+            logger.error(_("Doris 缩容后数据节点数量不能为{}".format(DORIS_BACKEND_NOT_COUNT)))
+            raise BeMachineCountException(must_count=DORIS_BACKEND_NOT_COUNT)
 
         # 检查 follower 数量
         follower_count = len(get_node_ips_in_ticket_by_role(data, DorisRoleEnum.FOLLOWER))
         if follower_count > 0:
-            logger.error(_("DorisFollower不支持缩容,当前选择缩容机器数量为{}".format(follower_count)))
+            logger.error(_("Doris Follower不支持缩容,当前选择缩容机器数量为{}".format(follower_count)))
             raise FollowerScaleUpUnsupportedException(machine_count=follower_count)
 
         # 检查 observer 数量

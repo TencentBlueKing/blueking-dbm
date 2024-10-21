@@ -52,3 +52,9 @@ class ReplaceMachineCountException(DorisFlowBaseException):
     ERROR_CODE = "006"
     MESSAGE = _("Doris替换机器数量不一致")
     MESSAGE_TPL = _("Doris集群替换角色{doris_role}数量不一致,已选旧节点个数{old_count},新节点个数{new_count}")
+
+
+class NoShrinkMachineException(DorisFlowBaseException):
+    ERROR_CODE = "007"
+    MESSAGE = _("机器数量异常")
+    MESSAGE_TPL = _("Doris缩容选择机器不能为空")
