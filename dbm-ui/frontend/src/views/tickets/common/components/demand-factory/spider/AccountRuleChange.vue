@@ -12,49 +12,22 @@
 -->
 
 <template>
-  <PreviewDiff
+  <AccountRuleChange
     :account-type="AccountTypes.TENDBCLUSTER"
-    :rules-form-data="rulesFormData" />
+    :ticket-details="ticketDetails" />
 </template>
 
 <script setup lang="ts">
   import type { MySQLAccountRuleChangeDetails } from '@services/model/ticket/details/mysql';
   import TicketModel from '@services/model/ticket/ticket';
-  import type { AccountRule } from '@services/types';
 
   import { AccountTypes } from '@common/const';
 
-  import PreviewDiff from '../mysql/account-rule-change/components/PreviewDiff.vue';
+  import AccountRuleChange from '@views/tickets/common/components/demand-factory/mysql/account-rule-change/Index.vue';
 
   interface Props {
     ticketDetails: TicketModel<MySQLAccountRuleChangeDetails>;
   }
 
-  const props = defineProps<Props>();
-
-  const rulesFormData = reactive({
-    beforeChange: {} as AccountRule,
-    afterChange: {} as AccountRule,
-  });
-
-  watch(
-    () => props.ticketDetails,
-    () => {
-      const {
-        last_account_rules: lastAccountRules,
-        account_id: accountId,
-        access_db: accessDb,
-        privilege,
-      } = props.ticketDetails.details;
-      rulesFormData.beforeChange = lastAccountRules;
-      rulesFormData.afterChange = {
-        account_id: accountId,
-        access_db: accessDb,
-        privilege,
-      };
-    },
-    {
-      immediate: true,
-    },
-  );
+  defineProps<Props>();
 </script>

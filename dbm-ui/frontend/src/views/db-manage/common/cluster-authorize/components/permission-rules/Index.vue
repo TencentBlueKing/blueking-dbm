@@ -1,10 +1,10 @@
 <template>
   <BkFormItem
-    v-model="rules"
     class="cluster-authorize-bold"
     :label="t('权限规则')"
-    property="rules"
-    required>
+    :property="property"
+    required
+    :rules="rules">
     <div class="permission-item">
       <BkButton
         class="cluster-authorize-button"
@@ -58,15 +58,17 @@
 
   interface Props {
     accountType: AccountTypes;
+    property: string;
   }
 
   defineProps<Props>();
 
-  const user = defineModel<string>('user', {
-    default: () => [],
-  });
-
-  const rules = defineModel<PermissionRule['rules'][]>('rules', {
+  const modelValue = defineModel<
+    {
+      user: string;
+      rules: PermissionRule['rules'];
+    }[]
+  >('modelValue', {
     default: () => [],
   });
 
@@ -75,6 +77,14 @@
   const accoutRulesShow = ref(false);
   const selectedList = shallowRef<T[]>([]);
 
+  const rules = [
+    {
+      trigger: 'change',
+      message: t('请添加账号规则'),
+      validator: (value: T[]) => value.length > 0,
+    },
+  ];
+
   const handleShowAccoutRules = () => {
     accoutRulesShow.value = true;
   };
@@ -82,7 +92,10 @@
   const handleAccountRulesChange = (value: T[]) => {
     selectedList.value = value;
     if (value.length > 0) {
-      rules.value = value.map((item) => item.rules);
+      modelValue.value = value.map((item) => ({
+        user: item.account.user,
+        rules: item.rules,
+      }));
     }
   };
 
@@ -95,19 +108,14 @@
   };
 
   watch(
-    () => [user.value, rules.value],
+    modelValue,
     () => {
-      if (rules.value.length === 0) {
-        return;
-      }
-      selectedList.value = [
-        {
-          account: {
-            user: user.value,
-          },
-          rules: rules.value[0],
+      selectedList.value = modelValue.value.map((item) => ({
+        account: {
+          user: item.user,
         },
-      ];
+        rules: item.rules,
+      })) as T[];
     },
     {
       immediate: true,

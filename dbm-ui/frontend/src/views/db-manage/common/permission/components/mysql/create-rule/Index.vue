@@ -82,7 +82,7 @@
   import { createTicket } from '@services/source/ticket';
   import type { AccountRule, AccountRulePrivilege, PermissionRuleInfo } from '@services/types/permission';
 
-  import { useBeforeClose } from '@hooks';
+  import { useBeforeClose,useTicketMessage } from '@hooks';
 
   import { AccountTypes, TicketTypes } from '@common/const';
 
@@ -92,6 +92,16 @@
 
   import PreviewDiff from './components/PreviewDiff.vue';
   import RuleSettings from './components/RuleSettings.vue';
+
+  interface Props {
+    accountId?: number;
+    ruleObj?: PermissionRuleInfo;
+    accountType?: AccountTypes.MYSQL | AccountTypes.TENDBCLUSTER;
+  }
+
+  interface Emits {
+    (e: 'success'): void;
+  }
 
   const props = withDefaults(defineProps<Props>(), {
     accountId: -1,
@@ -107,22 +117,8 @@
   });
 
   const { t } = useI18n();
+  const ticketMessage = useTicketMessage();
   const handleBeforeClose = useBeforeClose();
-
-  interface RulesFormData {
-    beforeChange: AccountRule;
-    afterChange: AccountRule;
-  }
-
-  interface Props {
-    accountId?: number;
-    ruleObj?: PermissionRuleInfo;
-    accountType?: AccountTypes.MYSQL | AccountTypes.TENDBCLUSTER;
-  }
-
-  interface Emits {
-    (e: 'success'): void;
-  }
 
   const initFormData = (): AccountRule => ({
     account_id: null,
@@ -140,10 +136,14 @@
   const showPopConfirm = ref(false);
   const precheckWarnTip = ref<JSX.Element>();
   const isSubmitting = ref(false);
-  const rulesFormData = reactive<RulesFormData>({
+  const rulesFormData = reactive<{
+    beforeChange: AccountRule;
+    afterChange: AccountRule;
+  }>({
     beforeChange: initFormData(),
     afterChange: initFormData(),
   });
+  let userName = ''
 
   const isEdit = computed(() => !!props.ruleObj?.account_id);
   const isFirstStep = computed(() => currentStep.value === 1);
@@ -216,9 +216,10 @@
    */
   const { run: createTicketRun } = useRequest(createTicket, {
     manual: true,
-    onSuccess() {
+    onSuccess(data) {
       window.changeConfirm = false;
       handleClose();
+      ticketMessage(data.id);
     },
     onAfter() {
       isSubmitting.value = false;
@@ -264,7 +265,9 @@
   const generateRequestParam = async () => {
     let accountRule: AccountRule;
     if (isFirstStep.value) {
-      accountRule = await ruleSettingsRef.value!.validate();
+      const ruleSettingResult = await ruleSettingsRef.value!.getValue();
+      accountRule = ruleSettingResult.accountRule;
+      userName = ruleSettingResult.userName;
     } else {
       accountRule = _.cloneDeep(rulesFormData.afterChange);
     }
@@ -283,18 +286,20 @@
   };
 
   const handleGoPreviewDiff = async () => {
-    const accountRule = await ruleSettingsRef.value!.validate();
-    rulesFormData.afterChange = accountRule;
+    const ruleSettingResult = await ruleSettingsRef.value!.getValue();
+    rulesFormData.afterChange = ruleSettingResult.accountRule;
+    userName = ruleSettingResult.userName;
     currentStep.value = 2;
   };
 
   const handleSubmit = async () => {
     isSubmitting.value = true;
     const params = await generateRequestParam();
-    if (isEdit.value) {
-      const addCount = previewDiffRef.value?.addCount || 0;
-      const deleteCount = previewDiffRef.value?.deleteCount || 0;
-      if (deleteCount > 0) {
+    if (isEdit.value && previewDiffRef.value) {
+      const { changed } = previewDiffRef.value;
+      const isAccessDbChanged = changed.accessDb;
+      const isHasDelete = changed.privilege.deleteCount > 0;
+      if (isAccessDbChanged || isHasDelete) {
         const ticketTypeMap = {
           [AccountTypes.MYSQL]: TicketTypes.MYSQL_ACCOUNT_RULE_CHANGE,
           [AccountTypes.TENDBCLUSTER]: TicketTypes.TENDBCLUSTER_ACCOUNT_RULE_CHANGE,
@@ -304,8 +309,11 @@
           ticket_type: ticketTypeMap[props.accountType],
           remark: '',
           details: {
-            last_account_rules: rulesFormData.beforeChange,
-            action: addCount > 0 ? 'change' : 'delete',
+            last_account_rules: {
+              userName,
+              ...rulesFormData.beforeChange
+            },
+            action: 'change',
             ...params,
             rule_id: props.ruleObj!.rule_id,
           },

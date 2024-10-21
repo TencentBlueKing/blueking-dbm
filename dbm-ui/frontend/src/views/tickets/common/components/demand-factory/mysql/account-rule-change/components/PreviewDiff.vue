@@ -12,6 +12,16 @@
 -->
 
 <template>
+  <div class="ticket-details-list">
+    <div class="ticket-details-item">
+      <span class="ticket-details-item-label">{{ t('变更类型') }}：</span>
+      <span class="ticket-details-item-value">{{ t('变更规则') }}</span>
+    </div>
+    <div class="ticket-details-item">
+      <span class="ticket-details-item-label">{{ t('账户名称') }}：</span>
+      <span class="ticket-details-item-value">{{ ticketDetails.details.last_account_rules.userName }}</span>
+    </div>
+  </div>
   <div class="preview-diff">
     <DbCard
       v-model:collapse="collapseActive.accessDb"
@@ -52,6 +62,8 @@
   import type { Column } from 'bkui-vue/lib/table/props';
   import { useI18n } from 'vue-i18n';
 
+  import type { MySQLAccountRuleChangeDetails } from '@services/model/ticket/details/mysql';
+  import TicketModel from '@services/model/ticket/ticket';
   import type { AccountRule, AccountRulePrivilegeKey } from '@services/types';
 
   import { AccountTypes } from '@common/const';
@@ -70,11 +82,8 @@
   }
 
   interface Props {
+    ticketDetails: TicketModel<MySQLAccountRuleChangeDetails>;
     accountType?: AccountTypes.MYSQL | AccountTypes.TENDBCLUSTER;
-    rulesFormData: {
-      beforeChange: AccountRule;
-      afterChange: AccountRule;
-    }
   }
 
   const props = withDefaults(defineProps<Props>(), {
@@ -88,12 +97,38 @@
     privilege: true,
   });
 
+  const rulesFormData = reactive({
+    beforeChange: {} as AccountRule,
+    afterChange: {} as AccountRule,
+  });
+
   const accessDbData = computed(() => [
     {
-      oldAccessDb: props.rulesFormData.beforeChange?.access_db || '--',
-      newAccessDb: props.rulesFormData.afterChange?.access_db || '--',
+      oldAccessDb: rulesFormData.beforeChange.access_db || '--',
+      newAccessDb: rulesFormData.afterChange.access_db || '--',
     },
   ]);
+
+  watch(
+    () => props.ticketDetails,
+    () => {
+      const {
+        last_account_rules: lastAccountRules,
+        account_id: accountId,
+        access_db: accessDb,
+        privilege,
+      } = props.ticketDetails.details;
+      rulesFormData.beforeChange = lastAccountRules;
+      rulesFormData.afterChange = {
+        account_id: accountId,
+        access_db: accessDb,
+        privilege,
+      };
+    },
+    {
+      immediate: true,
+    },
+  );
 
   const diffArray = (oldArray: string[], newArray: string[]) => {
     const diffMap: Record<string, PrivilegeRow['diffType']> = Object.fromEntries(
@@ -110,8 +145,8 @@
   );
 
   const getPrivilegeData = (key: AccountRulePrivilegeKey) => {
-    const beforeList = props.rulesFormData.beforeChange?.privilege[key] || [];
-    const afterList = props.rulesFormData.afterChange?.privilege[key] || [];
+    const beforeList = rulesFormData.beforeChange.privilege[key] || [];
+    const afterList = rulesFormData.afterChange.privilege[key] || [];
     const diffMap = diffArray(beforeList, afterList);
     const sensitiveWordMap = getSensitiveWordMap();
     return Object.entries(diffMap).reduce<PrivilegeRow[]>((acc, [privilege, diffType]) => [...acc, {

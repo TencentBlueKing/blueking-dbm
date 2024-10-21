@@ -171,7 +171,10 @@
   }
 
   interface Exposes {
-    validate: () => Promise<AccountRule>;
+    getValue: () => Promise<{
+      userName: string;
+      accountRule: AccountRule;
+    }>;
   }
 
   const props = defineProps<Props>();
@@ -234,7 +237,6 @@
           }
 
           const { results } = await queryAccountRules({
-            bizId: window.PROJECT_CONFIG.BIZ_ID,
             user,
             access_dbs: dbs,
             account_type: props.accountType,
@@ -299,7 +301,13 @@
   });
 
   defineExpose<Exposes>({
-    validate: () => formRef.value.validate(),
+    getValue: async () => {
+      await formRef.value.validate();
+      return {
+        userName: accounts.value.find((item) => item.account_id === formData.value.account_id)?.user || '',
+        accountRule: formData.value,
+      };
+    },
   });
 </script>
 
