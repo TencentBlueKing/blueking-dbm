@@ -35,11 +35,7 @@ class ExecPrepareInstanceInfoOperation(BaseService):
         kwargs 私有变量
         """
 
-        # trans_data = data.get_one_of_inputs("trans_data")
         kwargs = data.get_one_of_inputs("kwargs")
-
-        # if trans_data is None or trans_data == "${trans_data}":
-        # 表示没有加载上下文内容，则在此添加
         trans_data = getattr(flow_context, kwargs["set_trans_data_dataclass"])()
 
         iplist = kwargs["trans_data_var"]["iplist"]

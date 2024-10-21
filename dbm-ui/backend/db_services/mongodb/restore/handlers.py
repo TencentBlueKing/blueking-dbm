@@ -33,7 +33,8 @@ class MongoDBRestoreHandler(object):
     """mongodb定点构造函数封装"""
 
     def __init__(self, cluster_id: int):
-        self.cluster = Cluster.objects.get(id=cluster_id)
+        self.cluster_id = cluster_id
+        # self.cluster = Cluster.objects.get(id=cluster_id)
 
     @staticmethod
     def _get_log_from_bklog(collector: str, start_time: datetime, end_time: datetime, query_string="*") -> List[Dict]:
@@ -52,7 +53,11 @@ class MongoDBRestoreHandler(object):
             query_string=query_string,
         )
         if not backup_logs:
-            raise AppBaseException(_("距离回档时间点7天内没有备份日志 {} {}").format(query_string, rollback_time))
+            raise AppBaseException(
+                _("距离回档时间点{}天内没有备份日志 query_string: {} from {} to {}").format(
+                    BACKUP_LOG_RANGE_DAYS, query_string, start_time, end_time
+                )
+            )
 
         # 获取距离回档时间最近的全备日志
         backup_logs.sort(key=lambda x: x[time_key])
@@ -60,7 +65,7 @@ class MongoDBRestoreHandler(object):
         try:
             latest_backup_log_index = find_nearby_time(time_keys, rollback_time, flag)
         except IndexError:
-            raise AppBaseException(_("无法找到时间点{}附近的全备日志记录 query_string:{} ").format(rollback_time, query_string))
+            raise AppBaseException(_("无法找到时间点{}附近的全备日志记录 query_string:{}").format(rollback_time, query_string))
 
         return backup_logs, latest_backup_log_index
 
@@ -71,7 +76,7 @@ class MongoDBRestoreHandler(object):
         @param set_name: 指定SetName. cluster_type为ReplicaSet时，只有一个set_name， 可以为空.
         """
         # 获取距离回档时间最近的全备日志
-        query_string = f"cluster_id: {self.cluster.id} AND pitr_file_type: {PitrFillType.FULL}"
+        query_string = f"cluster_id: {self.cluster_id} AND pitr_file_type: {PitrFillType.FULL}"
         if set_name is not None:
             query_string += f" AND set_name: {set_name}"
         full_backup_logs, full_latest_index = self._query_latest_log_and_index(
@@ -82,7 +87,7 @@ class MongoDBRestoreHandler(object):
         # 找到与全备日志pitr_fullname相同的增量备份日志
         pitr_fullname = latest_full_backup_log["pitr_fullname"]
         query_string = (
-            f"cluster_id: {self.cluster.id} AND pitr_file_type: {PitrFillType.INCR} AND pitr_fullname: {pitr_fullname}"
+            f"cluster_id: {self.cluster_id} AND pitr_file_type: {PitrFillType.INCR} AND pitr_fullname: {pitr_fullname}"
         )
         if set_name is not None:
             query_string += f" AND set_name: {set_name}"

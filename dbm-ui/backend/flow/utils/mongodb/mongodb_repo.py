@@ -1,3 +1,4 @@
+import re
 from abc import abstractmethod
 from typing import List, Union
 
@@ -12,6 +13,7 @@ from backend.flow.consts import MongoDBClusterRole
 from backend.flow.utils.mongodb import mongodb_password
 from backend.ticket.constants import InstanceType
 
+
 # entities
 # Node -> ReplicaSet -> Cluster[Rs,ShardedCluster]
 # MongoNodeWithLabel
@@ -19,9 +21,9 @@ from backend.ticket.constants import InstanceType
 
 
 class MongoNode:
-    def __init__(self, ip, port, role, bk_cloud_id, mtype, domain=None):
+    def __init__(self, ip: str, port: int, role: str, bk_cloud_id: int, mtype: str, domain: str = None):
         self.ip: str = ip
-        self.port: str = port
+        self.port: int = port
         self.role: str = role
         self.bk_cloud_id: int = bk_cloud_id
         self.machine_type = mtype
@@ -36,10 +38,26 @@ class MongoNode:
         domain = None
         if with_domain:
             domain = s.bind_entry.first().entry
-        node = MongoNode(
-            s.ip_port.split(":")[0], str(s.port), meta_role, s.machine.bk_cloud_id, s.machine_type, domain
-        )
+        node = MongoNode(s.ip_port.split(":")[0], s.port, meta_role, s.machine.bk_cloud_id, s.machine_type, domain)
         return node
+
+    def equal(self, other: "MongoNode") -> bool:
+        return self.ip == other.ip and self.port == other.port and self.bk_cloud_id == other.bk_cloud_id
+
+    @classmethod
+    def from_conf(cls, conf) -> "MongoNode":
+        """from dict"""
+        return MongoNode(conf["ip"], int(conf["port"]), conf["role"], int(conf["bk_cloud_id"]), "")
+
+    def __json__(self):
+        return {
+            "ip": self.ip,
+            "port": self.port,
+            "role": self.role,
+            "bk_cloud_id": self.bk_cloud_id,
+            "machine_type": self.machine_type,
+            "domain": self.domain,
+        }
 
 
 class ReplicaSet:
@@ -51,6 +69,20 @@ class ReplicaSet:
         self.set_type = set_type
         self.set_name = set_name
         self.members = members
+
+    @classmethod
+    def from_conf(cls, conf, set_type: None) -> "ReplicaSet":
+        """from dict"""
+        if set_type is None:
+            if set_type is None:
+                raise Exception("conf.set_type is None")
+            set_type = conf["set_type"]
+
+        return ReplicaSet(
+            set_type,
+            conf["set_name"],
+            [MongoNode.from_conf(m) for m in conf["members"]],
+        )
 
     # get_backup_node 返回MONGO_BACKUP member
     def get_backup_node(self):
@@ -75,6 +107,13 @@ class ReplicaSet:
         for i in self.members:
             return i.bk_cloud_id
         return None
+
+    def __json__(self):
+        return {
+            "set_name": self.set_name,
+            "set_type": self.set_type,
+            "members": [m.__json__() for m in self.members],
+        }
 
 
 # MongoDBCluster [interface] 有cluster_id cluster_name cluster_type
@@ -114,11 +153,16 @@ class MongoDBCluster:
         self.region = region
 
     @abstractmethod
-    def get_shards(self) -> List[ReplicaSet]:
+    def get_shards(self, with_config: bool = False, sort_by_set_name: bool = False) -> List[ReplicaSet]:
         raise NotImplementedError
 
     @abstractmethod
     def get_mongos(self) -> List[MongoNode]:
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_connect_node(self) -> MongoNode:
+        """返回可连接的节点 集群是mongos, 副本集是第1个节点"""
         raise NotImplementedError
 
     @abstractmethod
@@ -132,6 +176,7 @@ class MongoDBCluster:
         return self.cluster_type == str(ClusterType.MongoShardedCluster.value)
 
     def get_iplist(self) -> List:
+        """return all iplist of cluster"""
         iplist = []
         for shard in self.get_shards():
             for member in shard.members:
@@ -142,10 +187,15 @@ class MongoDBCluster:
                 iplist.append(member.ip)
         for mongos in self.get_mongos():
             iplist.append(mongos.ip)
+
+        iplist = list(set(iplist))
         return iplist
 
 
 class ReplicaSetCluster(MongoDBCluster):
+    def get_connect_node(self) -> MongoNode:
+        return self.shard.members[0]
+
     shard: ReplicaSet  # storages
 
     def __init__(
@@ -173,8 +223,8 @@ class ReplicaSetCluster(MongoDBCluster):
         )
         self.shard = shard
 
-    def get_shards(self, with_config: bool = False) -> List[ReplicaSet]:
-        # no config
+    def get_shards(self, with_config: bool = False, sort_by_set_name: bool = False) -> List[ReplicaSet]:
+        # get_shards return [ReplicaSet]
         return [self.shard]
 
     def get_mongos(self) -> List[MongoNode]:
@@ -185,8 +235,25 @@ class ReplicaSetCluster(MongoDBCluster):
         """Not Implemented"""
         return None
 
+    def __json__(self):
+        return {
+            "bk_cloud_id": self.bk_cloud_id,
+            "cluster_id": self.cluster_id,
+            "name": self.name,
+            "cluster_type": self.cluster_type,
+            "major_version": self.major_version,
+            "bk_biz_id": self.bk_biz_id,
+            "immute_domain": self.immute_domain,
+            "app": self.app,
+            "region": self.region,
+            "shard": self.shard.__json__(),
+        }
+
 
 class ShardedCluster(MongoDBCluster):
+    def get_connect_node(self) -> MongoNode:
+        return self.get_mongos()[0]
+
     shards: List[ReplicaSet]  # storages
     mongos: List[MongoNode]  # proxies
     configsvr: ReplicaSet  # configs
@@ -220,12 +287,20 @@ class ShardedCluster(MongoDBCluster):
         self.mongos = mongos
         self.config = configsvr
 
-    def get_shards(self, with_config: bool = False) -> List[ReplicaSet]:
-        if not with_config:
-            return self.shards
+    def get_shards(self, with_config: bool = False, sort_by_set_name: bool = False) -> List[ReplicaSet]:
+        """返回 shards 列表，可以选择是否包含configsvr， 是否按照set_name排序."""
 
-        shards = [self.config]
+        def __get_shard_idx(set_name: str):
+            matches = re.findall("[0-9]+$", set_name)
+            return int(matches[-1]) if matches else 0
+
+        shards = []
+        if with_config:
+            shards.append(self.config)
         shards.extend(self.shards)
+
+        if sort_by_set_name:
+            shards.sort(key=lambda x: __get_shard_idx(x.set_name))
         return shards
 
     def get_config(self) -> ReplicaSet:
@@ -234,12 +309,63 @@ class ShardedCluster(MongoDBCluster):
     def get_mongos(self) -> List[MongoNode]:
         return self.mongos
 
+    def __json__(self):
+        return {
+            "bk_cloud_id": self.bk_cloud_id,
+            "cluster_id": self.cluster_id,
+            "name": self.name,
+            "cluster_type": self.cluster_type,
+            "major_version": self.major_version,
+            "bk_biz_id": self.bk_biz_id,
+            "immute_domain": self.immute_domain,
+            "app": self.app,
+            "region": self.region,
+            "mongos": [m.__json__() for m in self.mongos],
+            "shards": [s.__json__() for s in self.shards],
+            "configsvr": self.config.__json__(),
+        }
+
 
 # MongoRepository
 #
 class MongoRepository:
     def __init__(self):
         pass
+
+    @staticmethod
+    def new_cluster_from_conf(conf) -> MongoDBCluster:
+        """
+        NewCluster 根据conf创建一个MongoDBCluster, 它可能在cmdb中不存在了. 但是我们仍然可以创建一个MongoDBCluster
+        此处不会检测各个数据的合法性，请在调用前检查
+        """
+        if conf["cluster_type"] == ClusterType.MongoReplicaSet.value:
+            return ReplicaSetCluster(
+                bk_cloud_id=conf["bk_cloud_id"],
+                cluster_id=conf["cluster_id"],
+                name=conf["name"],
+                major_version=conf["major_version"],
+                bk_biz_id=conf["bk_biz_id"],
+                immute_domain=conf["immute_domain"],
+                app=conf["app"],
+                region=conf["region"],
+                shard=ReplicaSet.from_conf(conf["shard"], set_type=MongoDBClusterRole.Replicaset.value),
+            )
+        elif conf["cluster_type"] == ClusterType.MongoShardedCluster.value:
+            return ShardedCluster(
+                bk_cloud_id=conf["bk_cloud_id"],
+                cluster_id=conf["cluster_id"],
+                name=conf["name"],
+                major_version=conf["major_version"],
+                bk_biz_id=conf["bk_biz_id"],
+                immute_domain=conf["immute_domain"],
+                app=conf["app"],
+                region=conf["region"],
+                mongos=[MongoNode.from_conf(m) for m in conf["mongos"]],
+                configsvr=ReplicaSet.from_conf(conf["configsvr"], set_type=MongoDBClusterRole.ConfigSvr.value),
+                shards=[ReplicaSet.from_conf(m, set_type=MongoDBClusterRole.ShardSvr.value) for m in conf["shards"]],
+            )
+        else:
+            raise Exception("bad cluster_type {}".format(conf["cluster_type"]))
 
     @classmethod
     def fetch_many_cluster(cls, with_domain: bool, **kwargs):
@@ -284,7 +410,6 @@ class MongoRepository:
                     if m.instance.machine_type == machine_type.MachineType.MONOG_CONFIG.value:
                         shard = ReplicaSet(MongoDBClusterRole.ConfigSvr.value, set_name=m.seg_range, members=members)
                         configsvr = shard
-
                     # shardsvr
                     else:
                         shard = ReplicaSet(MongoDBClusterRole.ShardSvr.value, set_name=m.seg_range, members=members)
@@ -303,7 +428,6 @@ class MongoRepository:
                     configsvr=configsvr,
                     region=i.region,
                 )
-
                 rows.append(row)
 
         return rows
@@ -574,7 +698,7 @@ class MongoNodeWithLabel(object):
         return instance_list
 
     @staticmethod
-    def append_password(nodes: List, username: str):
+    def append_password(nodes: List, username: str, allow_empty_password: bool = False):
         """
         为每个节点添加密码
         """

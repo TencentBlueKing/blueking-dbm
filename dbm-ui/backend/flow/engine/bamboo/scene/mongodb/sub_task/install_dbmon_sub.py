@@ -53,7 +53,7 @@ class InstallDBMonSubTask(BaseSubTask):
             "payload_func": payload_func,
             "db_act_template": {
                 "exec_ip": ip,  # 用于 payload_func
-                "action": MongoDBActuatorActionEnum.InstallDBMon,
+                "action": MongoDBActuatorActionEnum.InstallDBMon.value,
                 "file_path": file_path,
                 "exec_account": "root",
                 "sudo_account": "mysql",
@@ -124,7 +124,7 @@ class PrepareInstanceInfo(BaseSubTask):
                 "bk_cloud_id": bk_cloud_id,
             },
             "db_act_template": {
-                "action": MongoDBActuatorActionEnum.InstallDBMon,
+                "action": MongoDBActuatorActionEnum.InstallDBMon.value,
                 "file_path": file_path,
                 "exec_account": "root",
                 "sudo_account": "mysql",
