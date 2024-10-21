@@ -255,6 +255,7 @@
       currentSepc: `${item.cluster_capacity}G_${specConfig.qps.max}/s（${item.cluster_shard_num} 分片）`,
       clusterType: item.cluster_spec.spec_cluster_type,
       currentShardNum: item.cluster_shard_num,
+      groupNum: item.machine_pair_cnt,
       clusterTypeName: item.cluster_type_name,
       currentSpecId: item.cluster_spec.spec_id,
       dbVersion: item.major_version,
@@ -267,10 +268,6 @@
       proxy: {
         id: item.proxy[0].spec_config.id,
         count: new Set(item.proxy.map((item) => item.ip)).size,
-      },
-      backendGroup: {
-        id: item.cluster_spec.spec_id,
-        count: item.redis_master.length,
       },
     };
   };

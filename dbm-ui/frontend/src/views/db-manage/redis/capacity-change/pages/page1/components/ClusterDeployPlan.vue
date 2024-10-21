@@ -186,6 +186,7 @@
         <div class="title-spot">{{ t('集群部署方案') }}<span class="required" /></div>
         <DbForm
           ref="formRef"
+          class="mt-16"
           :model="specInfo">
           <ApplySchema v-model="applySchema" />
           <template v-if="applySchema === APPLY_SCHEME.AUTO">
@@ -324,11 +325,10 @@
         total: number,
         used: number,
       },
-      clusterType: RedisClusterTypes,
+      clusterType: string,
       cloudId: number,
       groupNum: number,
       shardNum: number,
-      machinePair: number,
       bkCloudId: number
     };
     title?: string,
@@ -415,9 +415,9 @@
 
   const specInfo = reactive({
     specId: '',
-    count: 0,
-    shardNum: 0,
-    clusterShardNum: 0,
+    count: 1,
+    shardNum: 1,
+    clusterShardNum: 1,
     totalCapcity: 0,
   })
 
@@ -520,9 +520,9 @@
   watch(() => props.data, () => {
     if (props.data) {
       Object.assign(specInfo, {
-        spec_id: props.data.currentSepc.id,
-        count: props.data.machinePair,
-        clusterShardNum: props.data.shardNum
+        count: props.data.groupNum,
+        shardNum: props.data.shardNum / props.data.groupNum,
+        clusterShardNum: props.data.shardNum,
       })
       Object.assign(clusterInfo, {
         bizId: window.PROJECT_CONFIG.BIZ_ID,

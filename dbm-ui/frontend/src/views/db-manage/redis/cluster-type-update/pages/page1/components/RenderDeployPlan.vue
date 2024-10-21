@@ -76,7 +76,7 @@
   const showChooseClusterTargetPlan = ref(false);
   const activeRowData = ref<TargetPlanProps['data']>();
 
-  const localValue = ref({
+  const localValue = reactive({
     spec_id: 0,
     count: 0,
     target_shard_num: 0,
@@ -91,16 +91,24 @@
     },
   ];
 
+  watchEffect(() => {
+    localValue.target_shard_num = props.rowData.currentShardNum;
+  });
+
+  watchEffect(() => {
+    localValue.count = props.rowData.groupNum;
+  });
+
   // 从侧边窗点击确认后触发
   const handleChoosedTargetCapacity = (choosedObj: SpecResultInfo, capacity: CapacityNeed) => {
     displayText.value = `${choosedObj.cluster_capacity}G_（${choosedObj.cluster_shard_num} 分片）`;
-    localValue.value = {
+    Object.assign(localValue, {
       spec_id: choosedObj.spec_id,
       count: choosedObj.machine_pair,
       target_shard_num: choosedObj.cluster_shard_num,
       capacity: capacity.current,
       future_capacity: capacity.future,
-    };
+    });
     showChooseClusterTargetPlan.value = false;
   };
 
@@ -120,11 +128,11 @@
           disks: rowData.currentCapacity?.total,
           qps: specConfig.qps.max,
         }),
-        currentSepcId: `${rowData.backendGroup?.id || ''}`,
+        currentSepcId: `${specConfig.id}`,
         capacity: { total: rowData.currentCapacity?.total ?? 1, used: 0 },
         clusterType: props.targetClusterType as RedisClusterTypes,
-        shardNum: rowData.currentShardNum,
-        machinePair: rowData.backendGroup?.count || 0,
+        shardNum: localValue.target_shard_num,
+        groupNum: localValue.count,
         bkCloudId: rowData.bkCloudId,
       };
       activeRowData.value = obj;
@@ -136,8 +144,8 @@
     getValue() {
       return selectRef.value
         .getValue()
-        .then(() => localValue.value)
-        .catch(() => Promise.reject(localValue.value));
+        .then(() => localValue)
+        .catch(() => Promise.reject(localValue));
     },
   });
 </script>
