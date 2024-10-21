@@ -76,13 +76,14 @@ func (p *PhysicalLoader) decompress() error {
 	binPath := filepath.Join(p.dbbackupHome, p.innodbCmd.innobackupexBin)
 
 	args := []string{
-		"--decompress", "--remove-original",
+		"--decompress",
 		//fmt.Sprintf("--qpress=%s", filepath.Join(p.dbbackupHome, "/bin", "qpress")),
 		fmt.Sprintf("--parallel=%d", p.cnf.PhysicalLoad.Threads),
 	}
 	if strings.Compare(p.mysqlVersion, "005007000") < 0 {
 		args = append(args, p.cnf.PhysicalLoad.MysqlLoadDir)
 	} else {
+		args = append(args, "--remove-original")
 		args = append(args, []string{
 			fmt.Sprintf("--target-dir=%s", p.cnf.PhysicalLoad.MysqlLoadDir),
 		}...)
@@ -97,7 +98,7 @@ func (p *PhysicalLoader) decompress() error {
 	_ = os.MkdirAll(filepath.Dir(logfile), 0755)
 	// decompress 会把正常日志打印到错误输出
 	args = append(args, ">>", logfile, "2>&1")
-	logger.Log.Info("decompress command:", binPath, strings.Join(args, " "))
+	logger.Log.Info("decompress command:", binPath+" ", strings.Join(args, " "))
 	outStr, errStr, err := cmutil.ExecCommand(true, "", binPath, args...)
 	if err != nil {
 		logger.Log.Error("decompress failed: ", err, errStr)
@@ -146,7 +147,7 @@ func (p *PhysicalLoader) apply() error {
 	_ = os.MkdirAll(filepath.Dir(logfile), 0755)
 
 	args = append(args, ">>", logfile, "2>&1")
-	logger.Log.Info("physical apply command:", binPath, strings.Join(args, " "))
+	logger.Log.Info("physical apply command:", binPath+" ", strings.Join(args, " "))
 	outStr, errStr, err := cmutil.ExecCommand(true, "", binPath, args...)
 	if err != nil {
 		logger.Log.Error("physical apply failed: ", err, errStr)

@@ -74,6 +74,7 @@ func (m *DBLoader) PreCheck() error {
 		m.RestoreParam.RestoreOpt = &RestoreOpt{
 			EnableBinlog:      false,
 			WillRecoverBinlog: true,
+			InitCommand:       "",
 		}
 	}
 	if m.RestoreParam.RestoreOpt.WillRecoverBinlog {
@@ -102,6 +103,7 @@ func (m *DBLoader) chooseDBBackupLoader() error {
 	if m.RestoreOpt == nil {
 		m.RestoreOpt = &RestoreOpt{
 			EnableBinlog: false,
+			InitCommand:  "",
 		}
 	}
 	// logger.Warn("validate dbLoaderUtil: %+v", m.dbLoaderUtil)
