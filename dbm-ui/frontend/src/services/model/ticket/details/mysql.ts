@@ -618,7 +618,9 @@ export interface MySQLMigrateUpgradeDetails extends DetailBase {
  * MySQL 权限规则变更
  */
 export interface MySQLAccountRuleChangeDetails extends DetailBase {
-  last_account_rules: AccountRule;
+  last_account_rules: AccountRule & {
+    userName: string;
+  };
   action: 'change' | 'delete';
   account_id: number;
   access_db: string;

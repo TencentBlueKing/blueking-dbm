@@ -88,14 +88,17 @@
   import { InfoBox, Message } from 'bkui-vue';
   import { differenceInHours } from 'date-fns';
   import { useI18n } from 'vue-i18n';
+  import { useRequest } from 'vue-request';
 
   import { deleteAccount as deleteMongodbAccount, getPermissionRules as getMongodbPermissionRules } from '@services/source/mongodbPermissionAccount';
   import { deleteAccount as deleteMysqlAccount, getPermissionRules as getMysqlPermissionRules } from '@services/source/mysqlPermissionAccount';
   import { deleteAccount as deleteSqlserverAccount, getPermissionRules as getSqlserverPermissionRules } from '@services/source/sqlserverPermissionAccount';
+  import { createTicket } from '@services/source/ticket';
   import type { PermissionRule, PermissionRuleInfo } from '@services/types/permission';
 
   import {
     useTicketCloneInfo,
+    useTicketMessage,
   } from '@hooks';
   import type { CloneDataHandlerMapKeys } from '@hooks/useTicketCloneInfo/generateCloneData';
 
@@ -160,6 +163,7 @@
   };
 
   const { t } = useI18n();
+  const ticketMessage = useTicketMessage();
 
   useTicketCloneInfo({
     type: configMap[props.accountType].ticketType as CloneDataHandlerMapKeys,
@@ -253,11 +257,14 @@
 
   const rowExpandMap = shallowRef<Record<number, boolean>>({});
 
+  const isMysql = computed(() => props.accountType === AccountTypes.MYSQL || props.accountType === AccountTypes.TENDBCLUSTER);
+
   const columns = [
     {
       label: t('账号名称'),
       field: 'user',
       showOverflowTooltip: false,
+      width: 350,
       render: ({ data }: { data: PermissionRule }) => (
         <TextOverflowLayout>
           {{
@@ -311,6 +318,7 @@
     {
       label: t('访问的DB名'),
       field: 'access_db',
+      width: 350,
       render: ({ data }: { data: PermissionRule }) => {
         if (data.rules.length === 0) {
           return (
@@ -359,7 +367,7 @@
     },
     {
       label: t('操作'),
-      width: 100,
+      width: 150,
       render: ({ data }: { data: PermissionRule }) => {
         if (data.rules.length === 0) {
           return (
@@ -393,12 +401,38 @@
                 onClick={(event: PointerEvent) => handleShowEditRule(event, data, index)}>
                 {t('编辑')}
               </bk-button>
+              { isMysql.value &&
+                <bk-pop-confirm
+                  width="288"
+                  content={t('删除操作将发起单据，单据获得审批后才会执行删除')}
+                  title={t('确认删除该规则？')}
+                  trigger="click"
+                  onConfirm={() => handleShowDeleteRule(data, index)}
+                >
+                  <bk-button
+                    theme="primary"
+                    class="ml-8"
+                    text>
+                    {t('删除')}
+                  </bk-button>
+                </bk-pop-confirm>
+              }
             </div>
           ))
         );
       },
     },
   ];
+
+  /**
+   * 规则变更走单据
+   */
+   const { run: createTicketRun } = useRequest(createTicket, {
+    manual: true,
+    onSuccess(data) {
+      ticketMessage(data.id)
+    },
+  })
 
   // 设置行样式
   const setRowClass = (row: PermissionRule) => (isNewUser(row) ? 'is-new' : '');
@@ -483,7 +517,6 @@
     });
   };
 
-
   const handleShowCreateRule = (row: PermissionRule, e: PointerEvent) => {
     e.stopPropagation();
     ruleState.rowData = {} as PermissionRuleInfo;
@@ -498,13 +531,34 @@
     ruleState.isShow = true;
   };
 
-
   const handleShowAuthorize = (row: PermissionRule, rule: PermissionRuleInfo, e: PointerEvent) => {
     e.stopPropagation();
     authorizeState.isShow = true;
     authorizeState.user = row.account.user;
     authorizeState.dbs = [rule.access_db];
     authorizeState.rules = [rule];
+  };
+
+  const handleShowDeleteRule = (row: PermissionRule, index: number) => {
+    const ticketTypeMap = {
+      [AccountTypes.MYSQL]: TicketTypes.MYSQL_ACCOUNT_RULE_CHANGE,
+      [AccountTypes.TENDBCLUSTER]: TicketTypes.TENDBCLUSTER_ACCOUNT_RULE_CHANGE,
+    }
+    createTicketRun({
+      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+      ticket_type: ticketTypeMap[props.accountType as AccountTypes.MYSQL | AccountTypes.TENDBCLUSTER],
+      remark: '',
+      details: {
+        last_account_rules: {
+          userName: row.account.user,
+          ...row.rules[index],
+        },
+        action: 'delete',
+        account_type: props.accountType,
+        account_id: row.account.account_id,
+        rule_id: row.rules[index].rule_id,
+      },
+    });
   };
 
   onMounted(() => {

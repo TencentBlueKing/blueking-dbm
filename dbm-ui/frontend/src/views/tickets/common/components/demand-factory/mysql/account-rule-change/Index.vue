@@ -12,45 +12,31 @@
 -->
 
 <template>
-  <PreviewDiff :rules-form-data="rulesFormData" />
+  <Component
+    :is="comMap[ticketDetails.details.action]"
+    v-bind="props" />
 </template>
 
 <script setup lang="ts">
   import type { MySQLAccountRuleChangeDetails } from '@services/model/ticket/details/mysql';
   import TicketModel from '@services/model/ticket/ticket';
-  import type { AccountRule } from '@services/types';
+
+  import { AccountTypes } from '@common/const';
 
   import PreviewDiff from './components/PreviewDiff.vue';
+  import RuleDeleteTable from './components/RuleDeleteTable.vue';
 
   interface Props {
     ticketDetails: TicketModel<MySQLAccountRuleChangeDetails>;
+    accountType?: AccountTypes.MYSQL | AccountTypes.TENDBCLUSTER;
   }
 
-  const props = defineProps<Props>();
-
-  const rulesFormData = reactive({
-    beforeChange: {} as AccountRule,
-    afterChange: {} as AccountRule,
+  const props = withDefaults(defineProps<Props>(), {
+    accountType: AccountTypes.MYSQL,
   });
 
-  watch(
-    () => props.ticketDetails,
-    () => {
-      const {
-        last_account_rules: lastAccountRules,
-        account_id: accountId,
-        access_db: accessDb,
-        privilege,
-      } = props.ticketDetails.details;
-      rulesFormData.beforeChange = lastAccountRules;
-      rulesFormData.afterChange = {
-        account_id: accountId,
-        access_db: accessDb,
-        privilege,
-      };
-    },
-    {
-      immediate: true,
-    },
-  );
+  const comMap = {
+    change: PreviewDiff,
+    delete: RuleDeleteTable,
+  } as Record<string, any>;
 </script>

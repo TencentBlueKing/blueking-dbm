@@ -87,8 +87,13 @@
   }
 
   interface Exposes {
-    addCount: number;
-    deleteCount: number;
+    changed: {
+      accessDb: boolean;
+      privilege: {
+        addCount: number;
+        deleteCount: number;
+      };
+    };
   }
 
   const props = defineProps<Props>();
@@ -223,8 +228,13 @@
   const getCellClass = (data: { field: string }) => data.field === 'afterPrivilege' ? 'cell-privilege' : '';
 
   defineExpose<Exposes>({
-    addCount: addCount.value,
-    deleteCount: deleteCount.value,
+    changed: {
+      accessDb: accessDbData.value[0].newAccessDb!== accessDbData.value[0].oldAccessDb,
+      privilege: {
+        addCount: addCount.value,
+        deleteCount: deleteCount.value,
+      }
+    }
   })
 </script>
 
