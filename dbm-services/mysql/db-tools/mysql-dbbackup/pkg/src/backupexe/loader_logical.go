@@ -21,11 +21,11 @@ import (
 
 // LogicalLoader this is used to load logical backup
 type LogicalLoader struct {
-	cnf          *config.BackupConfig
-	dbbackupHome string
-	dbConn       *sql.DB
-	initConnect  string
-	metaInfo     *dbareport.IndexContent
+	cnf                 *config.BackupConfig
+	dbbackupHome        string
+	dbConn              *sql.DB
+	initConnectOriginal string
+	metaInfo            *dbareport.IndexContent
 }
 
 func (l *LogicalLoader) initConfig(metaInfo *dbareport.IndexContent) error {
@@ -51,8 +51,8 @@ func (l *LogicalLoader) preExecute() error {
 	if err := l.dbConn.QueryRow("select @@init_connect").Scan(&initConnect); err != nil {
 		return err
 	}
-	l.initConnect = initConnect
-	if l.initConnect != "" && strings.TrimSpace(dbListDrop) != "" {
+	l.initConnectOriginal = initConnect
+	if l.initConnectOriginal != "" && strings.TrimSpace(dbListDrop) != "" {
 		logger.Log.Info("set global init_connect='' for safe")
 		if _, err := l.dbConn.Exec("set global init_connect=''"); err != nil {
 			return err
@@ -84,7 +84,14 @@ func (l *LogicalLoader) preExecute() error {
 		dbConn, _ := l.dbConn.Conn(ctx)
 		defer dbConn.Close()
 		if !l.cnf.LogicalLoad.EnableBinlog {
-			dbConn.ExecContext(ctx, "set session sql_log_bin=off")
+			if _, err := dbConn.ExecContext(ctx, "set session sql_log_bin=off"); err != nil {
+				return errors.WithMessage(err, "disable log_bin for LogicalLoad connection")
+			}
+		}
+		if l.cnf.LogicalLoad.InitCommand != "" {
+			if _, err := dbConn.ExecContext(ctx, l.cnf.LogicalLoad.InitCommand); err != nil {
+				return errors.WithMessage(err, "init command for LogicalLoad connection")
+			}
 		}
 		for _, dbName := range dblistNew {
 			dropDbSql := fmt.Sprintf("DROP DATABASE IF EXISTS `%s`", dbName)
@@ -114,19 +121,19 @@ func (l *LogicalLoader) Execute() (err error) {
 	defer func() {
 		_ = l.dbConn.Close()
 	}()
-	if err = l.preExecute(); err != nil {
-		return err
-	}
-
 	defer func() {
-		if l.initConnect != "" {
-			logger.Log.Info("set global init_connect back:", l.initConnect)
-			if _, err = l.dbConn.Exec(fmt.Sprintf(`set global init_connect="%s"`, l.initConnect)); err != nil {
+		if l.initConnectOriginal != "" {
+			logger.Log.Info("set global init_connect back:", l.initConnectOriginal)
+			if _, err = l.dbConn.Exec(fmt.Sprintf(`set global init_connect="%s"`, l.initConnectOriginal)); err != nil {
 				//return err
-				logger.Log.Warn("fail set global init_connect back:", l.initConnect)
+				logger.Log.Warn("fail set global init_connect back:", l.initConnectOriginal)
 			}
 		}
 	}()
+	if err = l.preExecute(); err != nil {
+		return err
+	}
+	pwd, _ := os.Getwd()
 
 	binPath := filepath.Join(l.dbbackupHome, "bin/myloader")
 	args := []string{
@@ -136,6 +143,21 @@ func (l *LogicalLoader) Execute() (err error) {
 		"-p", l.cnf.LogicalLoad.MysqlPasswd,
 		"-d", l.cnf.LogicalLoad.MysqlLoadDir,
 		fmt.Sprintf("--set-names=%s", l.cnf.LogicalLoad.MysqlCharset),
+	}
+	if l.cnf.LogicalLoad.InitCommand != "" {
+		// https://github.com/mydumper/mydumper/blob/master/README.md#defaults-file
+		// [myloader_session_variables]
+		// tc_admin=0  # for tdbctl
+		sessionVars, globalVars := SetVariablesToConfigIni(l.cnf.LogicalLoad.InitCommand)
+		myloaderVariables := &MydumperIni{
+			MyloaderSessionVariables: sessionVars,
+			MyloaderGlobalVariables:  globalVars,
+		}
+		defaultsFile := filepath.Join(pwd, fmt.Sprintf("myloader_vars_%d.cnf", l.cnf.LogicalLoad.MysqlPort))
+		if err = myloaderVariables.SaveIni(defaultsFile); err != nil {
+			return err
+		}
+		args = append(args, "--defaults-file", defaultsFile)
 	}
 	if l.cnf.LogicalLoad.Threads > 0 {
 		// cpus, err := cmutil.GetCPUInfo()
@@ -157,7 +179,6 @@ func (l *LogicalLoader) Execute() (err error) {
 	}
 	// ToDo extraOpt
 	// myloader 日志输出到当前目录的 logs/myloader_xx.log
-	pwd, _ := os.Getwd()
 	logfile := filepath.Join(pwd, "logs", fmt.Sprintf("myloader_%d.log", int(time.Now().Weekday())))
 	_ = os.MkdirAll(filepath.Dir(logfile), 0755)
 

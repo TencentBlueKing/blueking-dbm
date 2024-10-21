@@ -18,6 +18,10 @@ type LogicalLoad struct {
 	MysqlPasswd   string `ini:"MysqlPasswd"`
 	MysqlCharset  string `ini:"MysqlCharset"`
 	EnableBinlog  bool   `ini:"EnableBinlog"`
+	// InitCommand set global xxx=y;
+	// for myloader, no native --init-command option, will set variables to --defaults-file
+	// for mysqldump, will append --init-command to mysql cli
+	InitCommand string `json:"InitCommand"`
 
 	// Threads logical loader concurrency for myloader
 	Threads int `ini:"Threads"`

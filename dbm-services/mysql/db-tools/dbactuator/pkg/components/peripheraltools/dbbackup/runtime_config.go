@@ -1,13 +1,14 @@
 package dbbackup
 
 import (
+	"fmt"
+	"path/filepath"
+	"text/template"
+
 	"dbm-services/common/go-pubpkg/logger"
 	"dbm-services/common/go-pubpkg/mysqlcomm"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/core/cst"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/config"
-	"fmt"
-	"path/filepath"
-	"text/template"
 
 	"github.com/pkg/errors"
 	"gopkg.in/ini.v1"
@@ -34,7 +35,6 @@ func (c *NewDbBackupComp) GenerateRuntimeConfig() (err error) {
 		if err != nil {
 			return err
 		}
-
 		if c.Params.Role == cst.BackupRoleSpiderMaster {
 			cnfPath, err := writeCnf(mysqlcomm.GetTdbctlPortBySpider(port), c.installPath, c.renderCnf, cnfTemp)
 			if err != nil {

@@ -108,7 +108,14 @@ func (l *LogicalLoaderMysqldump) preExecute() error {
 		dbConn, _ := l.dbConn.Conn(ctx)
 		defer dbConn.Close()
 		if !l.cnf.LogicalLoad.EnableBinlog {
-			dbConn.ExecContext(ctx, "set session sql_log_bin=off")
+			if _, err := dbConn.ExecContext(ctx, "set session sql_log_bin=off"); err != nil {
+				return errors.WithMessage(err, "disable log_bin for LogicalLoad connection")
+			}
+		}
+		if l.cnf.LogicalLoad.InitCommand != "" {
+			if _, err := dbConn.ExecContext(ctx, l.cnf.LogicalLoad.InitCommand); err != nil {
+				return errors.WithMessage(err, "init command for LogicalLoad connection")
+			}
 		}
 		for _, dbName := range dblistNew {
 			dropDbSql := fmt.Sprintf("DROP DATABASE IF EXISTS `%s`", dbName)
@@ -174,8 +181,15 @@ func (l *LogicalLoaderMysqldump) Execute() (err error) {
 		"--max_allowed_packet=1073741824 ",
 		fmt.Sprintf("--default-character-set=%s", l.cnf.LogicalLoad.MysqlCharset),
 	}
+	var initCommand []string
 	if !l.cnf.LogicalLoad.EnableBinlog {
-		args = append(args, "--init-command", "'set session sql_log_bin=off'")
+		initCommand = append(initCommand, "set session sql_log_bin=off")
+	}
+	if l.cnf.LogicalLoad.InitCommand != "" {
+		initCommand = append(initCommand, l.cnf.LogicalLoad.InitCommand)
+	}
+	if len(initCommand) > 0 {
+		args = append(args, fmt.Sprintf(`--init-command='%s'`, strings.Join(initCommand, ";")))
 	}
 
 	// ExtraOpt is to freely add command line arguments
