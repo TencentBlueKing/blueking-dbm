@@ -157,6 +157,8 @@ class TenDBClusterAddNodesFlow(object):
         添加spider-slave节点的子流程流程逻辑
         必须集群存在从集群，才能添加
         """
+        # spider slave 不安装备份程序，只解压
+        sub_flow_context["untar_only"] = True
 
         sub_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(sub_flow_context))
 

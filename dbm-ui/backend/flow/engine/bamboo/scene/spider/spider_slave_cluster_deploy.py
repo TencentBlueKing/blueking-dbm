@@ -81,6 +81,9 @@ class TenDBSlaveClusterApplyFlow(object):
             sub_flow_context["spider_charset"] = spider_charset
             sub_flow_context["spider_version"] = spider_version
 
+            # spider slave 不安装备份程序，只解压
+            sub_flow_context["untar_only"] = True
+
             # 启动子流程
             sub_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(sub_flow_context))
 
