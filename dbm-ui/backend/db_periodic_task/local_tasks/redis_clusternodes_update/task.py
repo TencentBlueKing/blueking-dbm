@@ -373,10 +373,10 @@ class RedisClusterNodesUpdateJob:
         slave_group_by_ip, nodes_by_ip = defaultdict(list), defaultdict(list)
         for node_obj in cluster.storageinstance_set.all():
             nodes_by_ip[node_obj.machine.ip].append(node_obj)
-        for ip, objs in slave_group_by_ip.items():
+        for ip, objs in nodes_by_ip.items():
             for obj in objs:  # 只要有一个实例角色是Slave就放进来
                 if obj.instance_role == InstanceRole.REDIS_SLAVE.value:
-                    slave_group_by_ip[ip].append(objs)
+                    slave_group_by_ip[ip] = objs
                     break
         # for slave_obj in cluster.storageinstance_set.filter(instance_role=InstanceRole.REDIS_SLAVE.value):
         #     slave_group_by_ip[slave_obj.machine.ip].append(slave_obj)
