@@ -547,7 +547,7 @@
         id: 'TendbhaHost',
         name: t('主库主机'),
         topoConfig: {
-          getTopoList: getMysqlClusterList,
+          getTopoList: queryMysqlCluster,
         },
         tableConfig: {
           getTableList: getTendbhaMachineList,
