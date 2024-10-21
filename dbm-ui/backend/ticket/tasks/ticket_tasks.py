@@ -47,7 +47,7 @@ from backend.ticket.constants import (
 from backend.ticket.exceptions import TicketTaskTriggerException
 from backend.ticket.flow_manager.inner import InnerFlow
 from backend.ticket.models.ticket import Flow, Ticket, TicketFlowsConfig
-from backend.utils.time import datetime2str
+from backend.utils.time import date2str, datetime2str
 
 logger = logging.getLogger("root")
 
@@ -204,8 +204,8 @@ class TicketTask(object):
                 "is_ticket_consistent": False,
                 "checksum_table": MYSQL_CHECKSUM_TABLE,
                 "trigger_type": MySQLDataRepairTriggerMode.ROUTINE.value,
-                "start_time": datetime2str(start_time),
-                "end_time": datetime2str(end_time),
+                "start_time": date2str(start_time),
+                "end_time": date2str(end_time),
                 "infos": [
                     {
                         "cluster_id": cluster_id,

@@ -465,13 +465,10 @@ def build_apps_for_spider_sub_flow(
                     },
                 )
             # 因为同一台机器的只有会有一个spider实例，所以直接根据ip、bk_cloud_id获取对应实例的spider角色，来判断是否安装备份程序
-            if (
-                spider_role in [TenDBClusterSpiderRole.SPIDER_MASTER, TenDBClusterSpiderRole.SPIDER_MNT]
-                and is_install_backup
-            ):
+            if is_install_backup:
                 acts_list.append(
                     {
-                        "act_name": _("spider[{}]安装备份程序".format(spider_ip)),
+                        "act_name": _("{}[{}]安装备份程序".format(spider_role.value, spider_ip)),
                         "act_component_code": ExecuteDBActuatorScriptComponent.code,
                         "kwargs": asdict(
                             ExecActuatorKwargs(

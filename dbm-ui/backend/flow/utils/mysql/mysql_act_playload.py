@@ -714,6 +714,7 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
                     "cluster_type": cluster_type,
                     "exec_user": self.ticket_data["created_by"],
                     "shard_value": shard_port_map,
+                    "untar_only": self.ticket_data.get("untar_only", False),
                 },
             },
         }
