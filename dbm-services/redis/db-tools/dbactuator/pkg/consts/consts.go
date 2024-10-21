@@ -229,6 +229,7 @@ const (
 	ConfigRename = "confxx"
 	// TendisPlusFlushAllRename ..
 	TendisPlusFlushAllRename = "cleanall"
+	ASYNC                    = "async"
 )
 
 // redis maxmemory-policy
