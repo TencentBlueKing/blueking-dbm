@@ -35,7 +35,7 @@
           :min-width="120"
           :required="false"
           :width="200">
-          <span>{{ $t('架构版本') }}</span>
+          <span>{{ t('架构版本') }}</span>
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
           :min-width="100"
@@ -47,17 +47,17 @@
           :min-width="130"
           :required="false"
           :width="240">
-          <span>{{ $t('缩容规格') }}</span>
+          <span>{{ t('缩容规格') }}</span>
         </RenderTableHeadColumn> -->
         <RenderTableHeadColumn
           :min-width="100"
           :width="300">
-          <span>{{ $t('主机选择方式') }}</span>
+          <span>{{ t('主机选择方式') }}</span>
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
           :min-width="100"
           :width="300">
-          <span>{{ $t('缩容数量(台)') }}</span>
+          <span>{{ t('缩容数量（台）') }}</span>
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
           :min-width="120"

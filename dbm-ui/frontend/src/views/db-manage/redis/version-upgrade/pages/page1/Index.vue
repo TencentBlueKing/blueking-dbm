@@ -69,7 +69,7 @@
   import { useI18n } from 'vue-i18n';
   import { useRouter } from 'vue-router';
 
-  import RedisModel, { RedisClusterTypes } from '@services/model/redis/redis';
+  import RedisModel from '@services/model/redis/redis';
   import { findRelatedClustersByClusterIds } from '@services/source/redisToolbox';
   import { createTicket } from '@services/source/ticket';
 
@@ -162,7 +162,7 @@
     cluster: item.master_domain,
     clusterId: item.id,
     clusterType: item.cluster_type_name,
-    nodeType: item.cluster_spec.spec_cluster_type === RedisClusterTypes.RedisInstance ? 'Backend' : 'Proxy',
+    nodeType: item.cluster_spec.spec_cluster_type === ClusterTypes.REDIS_INSTANCE ? 'Backend' : 'Proxy',
   });
 
   // 批量选择

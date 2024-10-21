@@ -69,7 +69,7 @@
   import type { ComponentExposed } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
 
-  import { RedisClusterTypes } from '@services/model/redis/redis';
+  import { ClusterTypes } from '@common/const';
 
   import SpecSelector from '@views/db-manage/common/apply-items/SpecSelector.vue';
 
@@ -169,8 +169,8 @@
 
   const getSpecCapacity = (resourceSpec: ReturnType<ComponentExposed<typeof SpecSelector>['getData']>) => {
     if (
-      [RedisClusterTypes.PredixyTendisplusCluster, RedisClusterTypes.TwemproxyTendisSSDInstance].includes(
-        props.clusterInfo.clusterType as RedisClusterTypes,
+      [ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER, ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE].includes(
+        props.clusterInfo.clusterType as ClusterTypes,
       )
     ) {
       const specItem = resourceSpec.storage_spec.find((storageSpecItem) => storageSpecItem.mount_point === '/data1');
