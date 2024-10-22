@@ -45,7 +45,7 @@
 
   import { downloadText } from '@utils';
 
-  import RenderMysqlMessage from './components/RenderMysqlMessage.vue';
+  import RenderMysqlMessage, { validate } from './components/RenderMysqlMessage.vue';
   import RenderRedisMessage, {
     getInputPlaceholder as getRedisPlaceholder,
     switchDbIndex,
@@ -78,7 +78,7 @@
       number,
       Array<{
         message: string | Record<string, string>[];
-        type: 'success' | 'error' | 'normal' | 'command';
+        type: 'success' | 'error' | 'normal' | 'command' | string;
       }>
     >
   >({});
@@ -96,6 +96,7 @@
     string,
     {
       renderMessage: any;
+      validate?: (cmd: string) => string;
       getInputPlaceholder?: (clusterId: number, domain: string) => string;
       switchDbIndex?: (params: { clusterId: number; cmd: string; queryResult: string; commandInputs: string[] }) => {
         dbIndex: number;
@@ -105,9 +106,11 @@
   > = {
     [DBTypes.MYSQL]: {
       renderMessage: RenderMysqlMessage,
+      validate,
     },
     [DBTypes.TENDBCLUSTER]: {
       renderMessage: RenderMysqlMessage,
+      validate,
     },
     [DBTypes.REDIS]: {
       renderMessage: RenderRedisMessage,
@@ -168,11 +171,12 @@
 
   // 回车输入指令
   const handleClickSendCommand = async (e: any) => {
+    // 输入预处理
     let cmd = e.target.value.trim() as string;
     const isInputed = cmd.length > inputPlaceholder.length;
     const commandLine = {
       message: isInputed ? cmd : inputPlaceholder,
-      type: 'command' as const,
+      type: 'command',
     };
     commandInputMap[clusterId.value].push(cmd);
     currentCommandIndex = commandInputMap[clusterId.value].length;
@@ -181,61 +185,77 @@
     if (!isInputed) {
       return;
     }
-    loading.value = true;
-    cmd = cmd.substring(inputPlaceholder.length);
-    if (typeof props.raw === 'boolean') {
-      baseParams = {
-        ...baseParams,
-        raw: props.raw,
-      };
-    }
-    const executeResult = await queryWebconsole({
-      ...baseParams,
-      cmd,
-    }).finally(() => {
-      loading.value = false;
-      setTimeout(() => {
-        inputRef.value.focus();
-      });
-    });
 
-    if (executeResult.error_msg) {
-      // 错误消息
-      const errorLine = {
-        message: executeResult.error_msg,
-        type: 'error' as const,
-      };
-      panelInputMap[clusterId.value].push(errorLine);
-    } else {
-      // 正常消息
-      const normalLine = {
-        message: executeResult.query,
-        type: 'normal' as const,
-      };
-      panelInputMap[clusterId.value].push(normalLine);
-
-      const config = consoleConfig.value;
-      if (config.switchDbIndex) {
-        const { dbIndex, commandInputs } = config.switchDbIndex({
-          clusterId: clusterId.value,
-          cmd,
-          queryResult: executeResult.query as string,
-          commandInputs: commandInputMap[clusterId.value],
-        });
-        baseParams = {
-          ...baseParams,
-          db_num: dbIndex,
+    // 校验语句
+    if (consoleConfig.value.validate) {
+      const validateResult = consoleConfig.value.validate(cmd);
+      if (validateResult) {
+        const errorLine = {
+          message: validateResult,
+          type: 'error',
         };
-        commandInputMap[clusterId.value] = commandInputs;
-        if (config.getInputPlaceholder) {
-          command.value = config.getInputPlaceholder(clusterId.value, props.modelValue.immute_domain);
-        }
+        panelInputMap[clusterId.value].push(errorLine);
+        return;
       }
     }
 
-    setTimeout(() => {
-      consolePanelRef.value.scrollTop = consolePanelRef.value.scrollHeight - consolePanelRef.value.clientHeight;
-    });
+    // 开始请求
+    try {
+      loading.value = true;
+      cmd = cmd.substring(inputPlaceholder.length);
+      if (typeof props.raw === 'boolean') {
+        baseParams = {
+          ...baseParams,
+          raw: props.raw,
+        };
+      }
+      const executeResult = await queryWebconsole({
+        ...baseParams,
+        cmd,
+      });
+
+      // 请求结果渲染
+      if (executeResult.error_msg) {
+        // 错误消息
+        const errorLine = {
+          message: executeResult.error_msg,
+          type: 'error',
+        };
+        panelInputMap[clusterId.value].push(errorLine);
+      } else {
+        // 正常消息
+        const normalLine = {
+          message: executeResult.query,
+          type: 'normal',
+        };
+        panelInputMap[clusterId.value].push(normalLine);
+
+        // 切换数据库、修改行前缀
+        const config = consoleConfig.value;
+        if (config.switchDbIndex) {
+          const { dbIndex, commandInputs } = config.switchDbIndex({
+            clusterId: clusterId.value,
+            cmd,
+            queryResult: executeResult.query as string,
+            commandInputs: commandInputMap[clusterId.value],
+          });
+          baseParams = {
+            ...baseParams,
+            db_num: dbIndex,
+          };
+          commandInputMap[clusterId.value] = commandInputs;
+          if (config.getInputPlaceholder) {
+            command.value = config.getInputPlaceholder(clusterId.value, props.modelValue.immute_domain);
+          }
+        }
+      }
+    } finally {
+      loading.value = false;
+      setTimeout(() => {
+        inputRef.value.focus();
+        consolePanelRef.value.scrollTop = consolePanelRef.value.scrollHeight - consolePanelRef.value.clientHeight;
+      });
+    }
   };
 
   // 恢复最近一次输入并矫正光标
