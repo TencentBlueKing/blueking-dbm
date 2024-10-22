@@ -20,7 +20,6 @@ from backend.flow.consts import SqlserverSyncMode
 class ListResourceSLZ(serializers.Serializer):
     id = serializers.IntegerField(required=False)
     name = serializers.CharField(required=False)
-    ip = serializers.CharField(required=False)
     instance = serializers.CharField(required=False)
     domain = serializers.CharField(required=False)
     creator = serializers.CharField(required=False)
@@ -28,11 +27,11 @@ class ListResourceSLZ(serializers.Serializer):
     region = serializers.CharField(required=False)
     cluster_ids = serializers.ListField(child=serializers.IntegerField(), required=False, allow_empty=True)
     exact_domain = serializers.CharField(help_text=_("精确域名查询"), required=False)
-    ordering = serializers.CharField(required=False, help_text=_("排序字段,非必填"))
     status = serializers.CharField(required=False, help_text=_("状态"))
     db_module_id = serializers.CharField(required=False, help_text=_("所属DB模块"))
     bk_cloud_id = serializers.CharField(required=False, help_text=_("管控区域"))
     cluster_type = serializers.CharField(required=False, help_text=_("集群类型"))
+    ordering = serializers.CharField(required=False, help_text=_("排序字段,非必填"))
 
 
 class ListMySQLResourceSLZ(ListResourceSLZ):

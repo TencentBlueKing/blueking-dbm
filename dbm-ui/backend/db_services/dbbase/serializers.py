@@ -8,17 +8,16 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-import re
 
 from django.db.models import Q
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
 from backend.components import CCApi
-from backend.constants import IP_PORT_DIVIDER, IP_PORT_RE_PATTERN
 from backend.db_dirty.models import DirtyMachine
 from backend.db_meta.enums import ClusterPhase, ClusterType
 from backend.db_services.dbbase.constants import ResourceType
+from backend.db_services.dbbase.resources.serializers import ListResourceSLZ
 from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
 from backend.db_services.redis.resources.redis_cluster.query import RedisListRetrieveResource
 from backend.dbm_init.constants import CC_APP_ABBR_ATTR
@@ -76,33 +75,23 @@ class CommonQueryClusterResponseSerializer(serializers.Serializer):
         swagger_schema_fields = {"example": []}
 
 
-class ClusterFilterSerializer(serializers.Serializer):
+class ClusterFilterSerializer(ListResourceSLZ):
+    # 基础的集群过滤条件
     bk_biz_id = serializers.IntegerField(help_text=_("业务ID"))
-    exact_domain = serializers.CharField(help_text=_("域名精确查询(逗号分割)"), required=False, default="")
     cluster_ids = serializers.CharField(help_text=_("集群ID(逗号分割)"), required=False, default="")
-
-    # 后续有其他过滤条件可以再加
-    cluster_type = serializers.CharField(help_text=_("集群类型"), required=False)
-    instance = serializers.CharField(help_text=_("实例查询(逗号分割)"), required=False, default="")
+    cluster_type = serializers.CharField(help_text=_("集群类型"), required=False, default="")
 
     def validate(self, attrs):
-        cluster_ids = attrs["cluster_ids"].split(",") if attrs["cluster_ids"] else []
-        exact_domains = attrs["exact_domain"].split(",") if attrs["exact_domain"] else []
-        instances = attrs["instance"].split(",") if attrs["instance"] else []
+        # 获取集群基础过滤条件用作第一轮过滤
         filters = Q(bk_biz_id=attrs["bk_biz_id"])
-        filters &= Q(id__in=cluster_ids) if cluster_ids else Q()
-        filters &= Q(immute_domain__in=exact_domains) if exact_domains else Q()
-        filters &= Q(cluster_type=attrs["cluster_type"]) if attrs.get("cluster_type") else Q()
-        instance_filters = Q()
-        for instance in instances:
-            if re.compile(IP_PORT_RE_PATTERN).match(instance):
-                ip, port = instance.split(IP_PORT_DIVIDER)
-                instance_filter = Q(storageinstance__machine__ip=ip, storageinstance__port=port) | Q(
-                    proxyinstance__machine__ip=ip, proxyinstance__port=port
-                )
-                instance_filters |= instance_filter
-        filters &= instance_filters
+        if attrs["cluster_ids"]:
+            filters &= Q(id__in=attrs["cluster_ids"].split(","))
+        if attrs["cluster_type"]:
+            filters &= Q(cluster_type__in=attrs["cluster_type"].split(","))
         attrs["filters"] = filters
+        # 补充list resource过滤条件
+        query_params = {field: attrs[field] for field in self.fields.keys() if field in attrs}
+        attrs["query_params"] = query_params
         return attrs
 
 

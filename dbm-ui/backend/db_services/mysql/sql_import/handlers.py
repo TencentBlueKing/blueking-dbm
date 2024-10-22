@@ -259,6 +259,7 @@ class SQLHandler(object):
         flow_tree_list = FlowTree.objects.filter(root_id__in=task_ids)
         semantic_info_list = [
             {
+                "cluster_type": cluster_type,
                 "bk_biz_id": tree.bk_biz_id,
                 "root_id": tree.root_id,
                 "created_at": tree.created_at,

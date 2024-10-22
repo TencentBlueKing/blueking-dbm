@@ -373,7 +373,9 @@ class ListRetrieveResource(BaseListRetrieveResource):
         # 定义内置的过滤参数map
         filter_params_map = filter_params_map or {}
         inner_filter_params_map = {
+            # 集群id
             "id": Q(id=query_params.get("id")),
+            # 集群名/别名
             "name": (
                 Q(name__in=query_params.get("name", "").split(","))
                 | Q(alias__in=query_params.get("name", "").split(","))
@@ -384,7 +386,9 @@ class ListRetrieveResource(BaseListRetrieveResource):
             "major_version": Q(major_version__in=query_params.get("major_version", "").split(",")),
             # 地域
             "region": Q(region__in=query_params.get("region", "").split(",")),
+            # 集群id列表
             "cluster_ids": Q(id__in=query_params.get("cluster_ids")),
+            # 创建者
             "creator": Q(creator__icontains=query_params.get("creator")),
             # 所属DB模块
             "db_module_id": Q(db_module_id__in=query_params.get("db_module_id", "").split(",")),
@@ -394,8 +398,8 @@ class ListRetrieveResource(BaseListRetrieveResource):
             "status": Q(status__in=query_params.get("status", "").split(",")),
             # 时区
             "time_zone": Q(time_zone=query_params.get("time_zone", "").split(",")),
-            # 域名精确查询，主要用于工具箱手动填入域名查询
-            "exact_domain": Q(immute_domain=query_params.get("exact_domain")),
+            # 主域名精确查询，主要用于工具箱手动填入域名查询
+            "exact_domain": Q(immute_domain__in=query_params.get("exact_domain", "").split(",")),
             # 域名
             "domain": build_q_for_domain_by_cluster(domains=query_params.get("domain", "").split(",")),
         }

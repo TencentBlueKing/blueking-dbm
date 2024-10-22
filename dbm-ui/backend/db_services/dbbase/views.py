@@ -117,16 +117,17 @@ class DBBaseViewSet(viewsets.SystemViewSet):
     @action(methods=["GET"], detail=False, serializer_class=ClusterFilterSerializer)
     def filter_clusters(self, request, *args, **kwargs):
         data = self.params_validate(self.get_serializer_class())
-        clusters = Cluster.objects.filter(data["filters"])
         # 先按照集群类型聚合
-        cluster_type__clusters: Dict[str, List[Cluster]] = defaultdict(list)
-        for cluster in clusters:
-            cluster_type__clusters[cluster.cluster_type].append(cluster)
+        resource_cls__cluster_ids_map = defaultdict(list)
+        for cluster in Cluster.objects.filter(data["filters"]).values("id", "cluster_type"):
+            resource_class = register.cluster_type__resource_class[cluster["cluster_type"]]
+            resource_cls__cluster_ids_map[resource_class].append(cluster["id"])
         # 按照不同的集群类型，调用不同的query resource去查询集群数据
         clusters_data: List[Dict] = []
-        for cluster_type, clusters in cluster_type__clusters.items():
-            query_params = {"cluster_ids": [cluster.id for cluster in clusters]}
-            resource_class: ListRetrieveResource = register.cluster_type__resource_class[cluster_type]
+        for resource_class, cluster_ids in resource_cls__cluster_ids_map.items():
+            if not list(cluster_ids):
+                continue
+            query_params = {**data["query_params"], "cluster_ids": list(cluster_ids)}
             cluster_resource_data: ResourceList = resource_class.list_clusters(
                 bk_biz_id=data["bk_biz_id"], query_params=query_params, limit=-1, offset=0
             )
