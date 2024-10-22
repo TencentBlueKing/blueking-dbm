@@ -17,14 +17,22 @@ from rest_framework.response import Response
 
 from backend.bk_web import viewsets
 from backend.bk_web.swagger import common_swagger_auto_schema
-from backend.db_services.dbpermission.db_account.dataclass import AccountMeta, AccountRuleMeta
+from backend.db_services.dbpermission.db_account.dataclass import (
+    AccountMeta,
+    AccountPrivMeta,
+    AccountRuleMeta,
+    AccountUserMeta,
+)
 from backend.db_services.dbpermission.db_account.handlers import AccountHandler
 from backend.db_services.dbpermission.db_account.serializers import (
+    AccountPrivSerializer,
+    AccountUserSerializer,
     AddAccountRuleSerializer,
     CreateAccountSerializer,
     DeleteAccountRuleSerializer,
     DeleteAccountSerializer,
     FilterAccountRulesSerializer,
+    FilterPrivSerializer,
     ListAccountRulesSerializer,
     ModifyMySQLAccountRuleSerializer,
     PageAccountRulesSerializer,
@@ -43,6 +51,8 @@ SWAGGER_TAG = "db_services/permission/account"
 class BaseDBAccountViewSet(viewsets.SystemViewSet):
     account_meta: AccountMeta = AccountMeta
     account_rule_meta: AccountRuleMeta = AccountRuleMeta
+    account_priv_meta: AccountPrivMeta = AccountPrivMeta
+    account_user_meta: AccountUserMeta = AccountUserMeta
     account_handler: AccountHandler = AccountHandler
 
     @staticmethod
@@ -189,3 +199,56 @@ class BaseDBAccountViewSet(viewsets.SystemViewSet):
             meta=self.account_rule_meta,
             func=self.account_handler.delete_account_rule.__name__,
         )
+
+    @common_swagger_auto_schema(
+        operation_summary=_("查询权限清单"),
+        query_serializer=AccountPrivSerializer(),
+        responses={status.HTTP_200_OK: AccountPrivSerializer()},
+        tags=[SWAGGER_TAG],
+    )
+    @action(methods=["GET"], detail=False, serializer_class=FilterPrivSerializer)
+    def get_account_privs(self, request, bk_biz_id):
+        return self._view_common_handler(
+            request=request,
+            bk_biz_id=bk_biz_id,
+            meta=self.account_priv_meta,
+            func=self.account_handler.get_account_privs.__name__,
+        )
+
+    @common_swagger_auto_schema(
+        operation_summary=_("查询用户列表"),
+        query_serializer=AccountUserSerializer(),
+        responses={status.HTTP_200_OK: AccountUserSerializer()},
+        tags=[SWAGGER_TAG],
+    )
+    @action(methods=["GET"], detail=False, serializer_class=AccountUserSerializer)
+    def get_account_users(self, request, bk_biz_id):
+        return self._view_common_handler(
+            request=request,
+            bk_biz_id=bk_biz_id,
+            meta=self.account_user_meta,
+            func=self.account_handler.get_account_users.__name__,
+        )
+
+    @common_swagger_auto_schema(
+        operation_summary=_("下载权限清单"),
+        query_serializer=AccountPrivSerializer(),
+        tags=[SWAGGER_TAG],
+    )
+    @action(methods=["GET"], detail=False, serializer_class=AccountPrivSerializer)
+    def get_download_privs(self, request, bk_biz_id):
+        validated_data = self.params_validate(self.get_serializer_class())
+        base_info = {
+            "bk_biz_id": bk_biz_id,
+            "operator": request.user.username,
+            "account_type": validated_data.get("account_type"),
+            "context": {},
+        }
+        meta_init_data = self.account_priv_meta.from_dict(validated_data)
+        results = getattr(self.account_handler(**base_info), self.account_handler.get_download_privs.__name__)(
+            meta_init_data
+        )
+        if not results:
+            return Response({"error": _("下载权限清单失败")})
+        # 返回响应
+        return results

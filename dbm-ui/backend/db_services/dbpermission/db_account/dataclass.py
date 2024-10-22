@@ -60,3 +60,47 @@ class AccountRuleMeta(AccountMeta):
         if "sqlserver_owner" in self.privilege:
             self.privilege["owner"] = self.privilege.pop("sqlserver_owner")
         self.privilege = {rule_type: ",".join(self.privilege[rule_type]) for rule_type in self.privilege}
+
+
+@dataclass
+class AccountUserMeta(AccountMeta):
+    """用户元信息的数据模型"""
+
+    ips: List[str] = None
+    immute_domains: List[str] = None
+    cluster_type: str = None
+
+    def to_dict(self):
+        return asdict(self)
+
+    def __post_init__(self):
+        if self.ips and isinstance(self.ips, str):
+            self.ips = list(map(str, self.ips.split(",")))
+        if self.immute_domains and isinstance(self.immute_domains, str):
+            self.immute_domains = list(map(str, self.immute_domains.split(",")))
+
+
+@dataclass
+class AccountPrivMeta(AccountUserMeta):
+    """权限元信息的数据模型"""
+
+    users: List[str] = None
+    dbs: List[str] = None
+    format_type: str = None
+
+    # 用于分页
+    offset: int = None
+    limit: int = None
+
+    def to_dict(self):
+        return asdict(self)
+
+    def __post_init__(self):
+        if self.ips and isinstance(self.ips, str):
+            self.ips = list(map(str, self.ips.split(",")))
+        if self.immute_domains and isinstance(self.immute_domains, str):
+            self.immute_domains = list(map(str, self.immute_domains.split(",")))
+        if self.users and isinstance(self.users, str):
+            self.users = list(map(str, self.users.split(",")))
+        if self.dbs and isinstance(self.dbs, str):
+            self.dbs = list(map(str, self.dbs.split(",")))

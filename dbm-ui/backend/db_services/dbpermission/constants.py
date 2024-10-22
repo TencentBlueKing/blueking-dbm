@@ -100,6 +100,13 @@ class AccountType(str, StructuredEnum):
     SQLServer = EnumField("sqlserver", _("SQLServer"))
 
 
+class FormatType(str, StructuredEnum):
+    """权限格式枚举"""
+
+    IP = EnumField("ip", _("ip"))
+    CLUSTER = EnumField("cluster", _("cluster"))
+
+
 class AuthorizeExcelHeader(str, StructuredEnum):
     """授权excel的头部信息"""
 

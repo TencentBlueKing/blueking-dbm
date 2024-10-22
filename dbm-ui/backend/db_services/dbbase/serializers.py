@@ -15,6 +15,7 @@ from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
 from backend.components import CCApi
+from backend.configuration.constants import DBType
 from backend.constants import IP_PORT_DIVIDER, IP_PORT_RE_PATTERN
 from backend.db_dirty.models import DirtyMachine
 from backend.db_meta.enums import ClusterPhase, ClusterType
@@ -195,3 +196,8 @@ class WebConsoleSerializer(serializers.Serializer):
 class WebConsoleResponseSerializer(serializers.Serializer):
     class Meta:
         swagger_schema_fields = {"example": [{"title1": "xxx", "title2": "xxx"}]}
+
+
+class ClusterDbTypeSerializer(serializers.Serializer):
+    bk_biz_id = serializers.IntegerField(help_text=_("业务ID"))
+    db_type = serializers.ChoiceField(help_text=_("数据库类型"), choices=DBType.get_choices())
