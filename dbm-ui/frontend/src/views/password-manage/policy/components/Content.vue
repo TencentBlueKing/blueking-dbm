@@ -209,7 +209,7 @@
         message: t('请输入除大小写字母、数字外的英文半角字符'),
         validator: (value: string) => {
           if (formData.include_rule.symbols) {
-            return !/[A-Za-z0-9]/.test(value);
+            return /^[\u0021-\u002f\u003a-\u0040\u005b-\u0060\u007b-\u007e]+$/.test(value);
           }
           return true;
         },
