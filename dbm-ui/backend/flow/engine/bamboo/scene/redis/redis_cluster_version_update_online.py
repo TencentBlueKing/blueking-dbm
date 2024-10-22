@@ -72,6 +72,7 @@ class RedisClusterVersionUpdateOnline(object):
         """
         self.root_id = root_id
         self.data = data
+        self.cluster_cache = {}
         self.precheck()
 
     def precheck(self):
@@ -192,7 +193,10 @@ class RedisClusterVersionUpdateOnline(object):
             act_kwargs = ActKwargs()
             act_kwargs.set_trans_data_dataclass = CommonContext.__name__
             act_kwargs.is_update_trans_data = True
-            cluster_meta_data = get_cluster_info_by_cluster_id(cluster_id)
+            # 加个缓存
+            if not self.cluster_cache.get(cluster_id):
+                self.cluster_cache[cluster_id] = get_cluster_info_by_cluster_id(cluster_id)
+            cluster_meta_data = self.cluster_cache[cluster_id]
             act_kwargs.bk_cloud_id = cluster_meta_data["bk_cloud_id"]
             act_kwargs.cluster.update(cluster_meta_data)
             target_major_version = get_major_version_by_version_name(input_item["target_version"])

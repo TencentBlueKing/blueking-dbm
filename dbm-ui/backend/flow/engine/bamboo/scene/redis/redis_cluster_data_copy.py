@@ -107,6 +107,7 @@ class RedisClusterDataCopyFlow(object):
     def __init__(self, root_id, data):
         self.root_id = root_id
         self.data = data
+        self.cluster_cache = {}
 
     def redis_cluster_data_copy_flow(self):
         self.data_copy_precheck()

@@ -109,6 +109,7 @@ class RedisDataStructureFlow(object):
         """
         self.root_id = root_id
         self.data = data
+        self.cluster_cache = {}
 
     def redis_data_structure_flow(self):
 
@@ -635,13 +636,14 @@ class RedisDataStructureFlow(object):
         logger.info(_("cluster_id: {},所有的redis_instance_set:{}".format(info["cluster_id"], redis_instance_set)))
         return cluster_backup_instance, redis_instance_set
 
-    @staticmethod
-    def __get_cluster_info(bk_biz_id: int, cluster_id: int) -> dict:
+    def __get_cluster_info(self, bk_biz_id: int, cluster_id: int) -> dict:
         """获取集群现有信息
         1. slave 对应 master 机器
         2. slave 上的端口列表
         3. 实例对应关系：{slave:port : master:port}
         """
+        if self.cluster_cache.get(cluster_id):
+            return self.cluster_cache[cluster_id]
 
         cluster = Cluster.objects.get(id=cluster_id, bk_biz_id=bk_biz_id)
         slave_master_map = defaultdict()
@@ -678,7 +680,7 @@ class RedisDataStructureFlow(object):
         else:
             proxy_port = DEFAULT_REDIS_START_PORT
 
-        return {
+        cluster_info = {
             "immute_domain": cluster.immute_domain,
             "bk_biz_id": cluster.bk_biz_id,
             "bk_cloud_id": cluster.bk_cloud_id,
@@ -695,6 +697,9 @@ class RedisDataStructureFlow(object):
             "redis_slave_set": redis_slave_set,
             "redis_master_set": redis_master_set,
         }
+
+        self.cluster_cache[cluster_id] = cluster_info
+        return self.cluster_cache[cluster_id]
 
     def __init_builder(self, operate_name: str, info: dict):
         cluster_info = self.__get_cluster_info(self.data["bk_biz_id"], info["cluster_id"])

@@ -818,7 +818,13 @@ def get_cluster_info_by_cluster_id(cluster_id):
     """
     通过cluster_id集中获取集群信息
     """
-    cluster = Cluster.objects.get(id=cluster_id)
+    cluster = Cluster.objects.prefetch_related(
+        "proxyinstance_set",
+        "storageinstance_set",
+        "proxyinstance_set__machine",
+        "storageinstance_set__machine",
+        "storageinstance_set__as_ejector",
+    ).get(id=cluster_id)
     cluster_masters = None
     cluster_masters = cluster.storageinstance_set.filter(instance_role=InstanceRole.REDIS_MASTER.value)
     passwd_ret = PayloadHandler.redis_get_cluster_password(cluster)

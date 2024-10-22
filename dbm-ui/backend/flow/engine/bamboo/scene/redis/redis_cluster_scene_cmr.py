@@ -102,6 +102,7 @@ class RedisClusterCMRSceneFlow(object):
         cluster = Cluster.objects.prefetch_related(
             "proxyinstance_set",
             "storageinstance_set",
+            "proxyinstance_set__machine",
             "storageinstance_set__machine",
             "storageinstance_set__as_ejector",
         ).get(id=cluster_id, bk_biz_id=bk_biz_id)
