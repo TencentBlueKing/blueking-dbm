@@ -384,7 +384,7 @@ func (b GlobalBackupModel) archiveAbnormalTasks(db *sqlx.DB) error {
 			// toQuitTask = append(toQuitTask, t)
 			bTmp.handleQuitTasks(db)
 		} else if t.CreatedAt < time.Now().Add(-12*time.Hour).Format(time.DateTime) &&
-			t.CreatedAt > time.Now().Add(-24*14*time.Hour).Format(time.DateTime) &&
+			t.CreatedAt > time.Now().Add(-24*(cst.SpiderRemoveOldTaskBeforeDays-1)*time.Hour).Format(time.DateTime) &&
 			(t.BackupStatus == StatusInit || t.BackupStatus == StatusReplicated) {
 			bTmp.updateBackupTask(StatusQuit, 0, db)
 		}

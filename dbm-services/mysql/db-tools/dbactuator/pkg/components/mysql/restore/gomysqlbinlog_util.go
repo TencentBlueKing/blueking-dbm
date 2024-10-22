@@ -9,6 +9,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/spf13/cast"
 
+	"dbm-services/common/go-pubpkg/logger"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util/osutil"
 )
 
@@ -150,6 +151,7 @@ func (b *GoMySQLBinlogUtil) Parse(binlogDir, fileName string, filterMode bool) (
 	}
 	cmdStr += fmt.Sprintf("%s %s --file %s  -r %s",
 		b.cmdPath, strings.Join(b.cmdArgs, " "), binlogFile, parsedFile)
+	logger.Info("parse command: %s", cmdStr)
 	if outStr, err := osutil.ExecShellCommand(false, cmdStr); err != nil {
 		return parsedFile, errors.Wrapf(err, "fail to parse %s: %s, cmd: %s", fileName, outStr, cmdStr)
 	}

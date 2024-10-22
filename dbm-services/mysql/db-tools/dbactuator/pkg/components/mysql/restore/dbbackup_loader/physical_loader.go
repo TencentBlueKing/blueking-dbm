@@ -1,4 +1,4 @@
-package dbloader
+package dbbackup_loader
 
 import (
 	"fmt"

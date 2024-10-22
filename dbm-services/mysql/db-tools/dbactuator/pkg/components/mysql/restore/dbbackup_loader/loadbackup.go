@@ -1,5 +1,5 @@
 // Package dbloader TODO
-package dbloader
+package dbbackup_loader
 
 // DBBackupLoader dbbackup loadbackup sub-command
 type DBBackupLoader interface {

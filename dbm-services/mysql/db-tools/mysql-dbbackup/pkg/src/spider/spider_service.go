@@ -283,8 +283,8 @@ func (b GlobalBackupModel) handleOldTask(db *sqlx.DB) error {
 }
 
 func (b GlobalBackupModel) updateBackupTask(backupStatus string, taskPid int, db *sqlx.DB) (int64, error) {
-	logger.Log.Infof("update task: BackupId=%s, Port=%d, BackupStatus=%s, TaskPid=%d",
-		b.BackupId, b.Port, backupStatus, taskPid)
+	logger.Log.Infof("update task: BackupId=%s, Port=%d, BackupStatus=%s, TaskPid=%d, CreatedAt=%s",
+		b.BackupId, b.Port, backupStatus, taskPid, b.CreatedAt)
 
 	sqlBuilder := sq.Update(b.TableName()).Where("BackupId=? and Host=? and Port=?", b.BackupId, b.Host, b.Port)
 	sqlBuilder = sqlBuilder.Set("BackupStatus", backupStatus)

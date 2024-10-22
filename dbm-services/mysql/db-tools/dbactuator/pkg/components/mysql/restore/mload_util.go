@@ -1,7 +1,6 @@
 package restore
 
 import (
-	"dbm-services/common/go-pubpkg/mysqlcomm"
 	"fmt"
 	"os"
 	"os/exec"
@@ -13,6 +12,7 @@ import (
 
 	"dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/common/go-pubpkg/logger"
+	"dbm-services/common/go-pubpkg/mysqlcomm"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/native"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util/osutil"
 
@@ -256,4 +256,31 @@ func (m *MLoadParam) checkMLoadComplete(errFile string) (bool, int, error) {
 	}
 
 	return true, 0, nil
+}
+
+func checkExistRunningDbLoad(db *native.DbWorker, checkProcess bool, dblist []string) (bool, []string, error) {
+	// 检查进程
+	if !checkProcess || len(dblist) == 0 {
+		return true, nil, nil
+	}
+
+	processList, err := db.SelectProcesslist([]string{native.DBUserAdmin})
+	if err != nil {
+		return false, nil, err
+	}
+	if len(processList) == 0 {
+		return true, nil, nil
+	}
+
+	var runningDbs []string
+	for _, process := range processList {
+		if !process.DB.Valid {
+			continue
+		}
+		if cmutil.StringsHas(dblist, process.DB.String) {
+			runningDbs = append(runningDbs, process.DB.String)
+		}
+	}
+	runningDbs = cmutil.UniqueStrings(runningDbs)
+	return true, runningDbs, nil
 }

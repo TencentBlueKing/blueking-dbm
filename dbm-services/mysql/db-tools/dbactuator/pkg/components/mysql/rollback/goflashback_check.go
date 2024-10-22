@@ -102,18 +102,19 @@ func (f *GoFlashback) checkDBTableInUse() error {
 	return nil
 }
 
-func (f *GoFlashback) checkTableColumnExists(columnNames []string) ([]string, error) {
+func (f *GoFlashback) checkTableColumnExists(columnNames []string) ([]string, native.TableColumnInfo, error) {
 	var err error
 	var columnsInfo native.TableColumnInfo
 	for i, tableInfo := range f.tablesInfo {
 		columnsInfo, err = native.GetOneTableColumns(f.dbWorker, tableInfo.DbName, tableInfo.TableName)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 		f.tablesInfo[i].ColumnMap = columnsInfo
 	}
 	var err2 error
 	var columnPositions []string
+	var columnInfo = make(map[string]native.TableColumnDef)
 	for _, colName := range columnNames {
 		// 判断列名，在不同的表里的位置是否相同
 		firstTableName := ""
@@ -125,6 +126,7 @@ func (f *GoFlashback) checkTableColumnExists(columnNames []string) ([]string, er
 					firstTableName = tableInfo.DbTableFullname
 					colPosConverted := fmt.Sprintf("col[%d]", colPosFromFirstTable-1) // gomysqlbinlog
 					columnPositions = append(columnPositions, colPosConverted)
+					columnInfo[colName] = colDef // 返回
 					continue
 				} else if colPosFromFirstTable != colDef.ColPos {
 					err2 = errs.Join(err2, fmt.Errorf("column %s position %d from table %s is not same with %s",
@@ -136,12 +138,12 @@ func (f *GoFlashback) checkTableColumnExists(columnNames []string) ([]string, er
 		}
 	}
 	if err2 != nil {
-		return nil, err2
+		return nil, nil, err2
 	}
 	if len(columnNames) != len(columnPositions) {
-		return nil, errors.Errorf("columnNames %v count dosnot match columnPositions %v", columnNames, columnPositions)
+		return nil, nil, errors.Errorf("columnNames %v count dosnot match columnPositions %v", columnNames, columnPositions)
 	}
-	return columnPositions, nil
+	return columnPositions, columnInfo, nil
 	/*
 		// dbName tbName 必须是完整的表名
 		for _, col := range columnNames {

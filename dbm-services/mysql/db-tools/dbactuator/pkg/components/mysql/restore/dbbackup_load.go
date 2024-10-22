@@ -13,25 +13,27 @@ import (
 	"dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/common/go-pubpkg/logger"
 	"dbm-services/common/go-pubpkg/validate"
-	"dbm-services/mysql/db-tools/dbactuator/pkg/components/mysql/restore/dbloader"
+	"dbm-services/mysql/db-tools/dbactuator/pkg/components/mysql/restore/dbbackup_loader"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/core/cst"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/native"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/tools"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util/mysqlutil"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util/osutil"
+	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/spider"
 )
 
 // DBLoader 使用 dbbackup-go loadbackup 进行恢复
 type DBLoader struct {
 	*RestoreParam
 
-	taskDir      string // 依赖 BackupInfo.WorkDir ${work_dir}/doDr_${id}/${port}/
-	targetDir    string // 备份解压后的目录，${taskDir}/<backupBaseName>/
-	LogDir       string `json:"-"`
-	dbLoaderUtil *dbloader.LoaderUtil
+	taskDir   string // 依赖 BackupInfo.WorkDir ${work_dir}/doDr_${id}/${port}/
+	targetDir string // 备份解压后的目录，${taskDir}/<backupBaseName>/
+	LogDir    string `json:"-"`
+	// dbLoaderUtil logical and physical 通用参数，会传给 PhysicalLoader / LogicalLoader
+	dbLoaderUtil *dbbackup_loader.LoaderUtil
 	// dbLoader is interface
-	dbLoader dbloader.DBBackupLoader
+	dbLoader dbbackup_loader.DBBackupLoader
 	// myCnf for physical backup
 	myCnf *util.CnfFile
 }
@@ -90,7 +92,7 @@ func (m *DBLoader) PreCheck() error {
 // chooseDBBackupLoader 选择是 dbbackup-go 恢复是 logical or physical
 func (m *DBLoader) chooseDBBackupLoader() error {
 	dbloaderPath := m.Tools.MustGet(tools.ToolDbbackupGo)
-	m.dbLoaderUtil = &dbloader.LoaderUtil{
+	m.dbLoaderUtil = &dbbackup_loader.LoaderUtil{
 		Client:        dbloaderPath,
 		TgtInstance:   m.TgtInstance,
 		IndexFilePath: m.BackupInfo.indexFilePath,
@@ -98,7 +100,8 @@ func (m *DBLoader) chooseDBBackupLoader() error {
 		LoaderDir:     m.targetDir,
 		TaskDir:       m.taskDir,
 		LogDir:        m.LogDir,
-		//EnableBinlog:  m.RestoreOpt.EnableBinlog,
+		EnableBinlog:  m.RestoreOpt.EnableBinlog,
+		InitCommand:   m.RestoreOpt.InitCommand,
 	}
 	if m.RestoreOpt == nil {
 		m.RestoreOpt = &RestoreOpt{
@@ -112,17 +115,17 @@ func (m *DBLoader) chooseDBBackupLoader() error {
 	}
 
 	if m.backupType == cst.BackupTypeLogical {
-		myloaderOpt := &dbloader.LoaderOpt{}
+		myloaderOpt := &dbbackup_loader.LoaderOpt{}
 		copier.Copy(myloaderOpt, m.RestoreOpt)
 		logger.Warn("myloaderOpt copied: %+v. src:%+v", myloaderOpt, m.RestoreOpt)
-		m.dbLoader = &dbloader.LogicalLoader{
+		m.dbLoader = &dbbackup_loader.LogicalLoader{
 			LoaderUtil:  m.dbLoaderUtil,
 			MyloaderOpt: myloaderOpt,
 		}
 	} else if m.backupType == cst.BackupTypePhysical {
-		m.dbLoader = &dbloader.PhysicalLoader{
+		m.dbLoader = &dbbackup_loader.PhysicalLoader{
 			LoaderUtil: m.dbLoaderUtil,
-			Xtrabackup: &dbloader.Xtrabackup{
+			Xtrabackup: &dbbackup_loader.Xtrabackup{
 				TgtInstance:   m.dbLoaderUtil.TgtInstance,
 				SrcBackupHost: m.dbLoaderUtil.IndexObj.BackupHost,
 				QpressTool:    m.Tools.MustGet(tools.ToolQPress),
@@ -173,6 +176,18 @@ func (m *DBLoader) WaitDone() error {
 
 // PostCheck TODO
 func (m *DBLoader) PostCheck() error {
+	// update old backup tasks to quit
+	// 对于 spider remote，恢复完数据后 global_backup 可能包含废弃的 备份任务，这里把状态改成 quit 避免任务被重新发起
+	dbWorker, err := m.TgtInstance.Conn()
+	if err != nil {
+		return err
+	}
+	defer dbWorker.Stop()
+	sqlStr := fmt.Sprintf(`update infodba_schema.global_backup SET BackupStatus ='%s' where Host ='%s' and Port =%d`,
+		spider.StatusQuit, m.TgtInstance.Host, m.TgtInstance.Port)
+	if _, err = dbWorker.ExecMore([]string{"set session sql_log_bin=off", sqlStr}); err != nil {
+		logger.Warn("fail to repair data for table global_backup. ignore", err.Error())
+	}
 	return nil
 }
 

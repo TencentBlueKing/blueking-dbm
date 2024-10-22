@@ -39,6 +39,11 @@ func UniqueInts(slice []int) []int {
 	return RemoveDuplicate(slice)
 }
 
+// UniqueStrings Returns unique items in a slice
+func UniqueStrings(slice []string) []string {
+	return lo.Uniq(slice)
+}
+
 // StringsRemove an value form an string slice
 func StringsRemove(ss []string, s string) (ns []string) {
 	ns = slices.DeleteFunc(ss, func(item string) bool {
