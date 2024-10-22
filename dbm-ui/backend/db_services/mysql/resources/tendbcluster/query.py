@@ -291,5 +291,6 @@ class ListRetrieveResource(query.ListRetrieveResource):
 
     @classmethod
     def get_cluster_primary(cls, cluster_ids: list) -> list:
+        """获取集群主节点信息"""
         cluster_id__primary_address_map = Cluster.get_cluster_id__primary_address_map(cluster_ids)
         return [{"cluster_id": k, "primary": v} for k, v in cluster_id__primary_address_map.items()]

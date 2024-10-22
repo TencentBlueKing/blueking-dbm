@@ -45,6 +45,7 @@ from backend.db_meta.enums.cluster_status import (
 )
 from backend.db_meta.exceptions import ClusterExclusiveOperateException, DBMetaException
 from backend.db_services.version.constants import LATEST, PredixyVersion, TwemproxyVersion
+from backend.exceptions import ApiError
 from backend.flow.consts import DEFAULT_RIAK_PORT
 from backend.ticket.constants import TicketType
 from backend.ticket.models import ClusterOperateRecord
@@ -361,14 +362,16 @@ class Cluster(AuditedModel):
         if self.cluster_type != ClusterType.TenDBCluster.value:
             raise DBMetaException(message=_("{} 类型集群没有中控节点".format(self.cluster_type)))
 
+        # 取一个状态正常的 spider-master 接入层
         spider_instance = self.proxyinstance_set.filter(
-            tendbclusterspiderext__spider_role=TenDBClusterSpiderRole.SPIDER_MASTER
-        ).first()  # 随便拿一个spider-master接入层
+            tendbclusterspiderext__spider_role=TenDBClusterSpiderRole.SPIDER_MASTER,
+            status=InstanceStatus.RUNNING.value,
+        ).first()
 
         ctl_address = "{}{}{}".format(spider_instance.machine.ip, IP_PORT_DIVIDER, spider_instance.port + 1000)
 
         logger.info("ctl address: {}".format(ctl_address))
-        res = DRSApi.rpc(
+        res = DRSApi.short_rpc(
             {
                 "addresses": [ctl_address],
                 "cmds": ["tdbctl get primary"],
@@ -376,6 +379,7 @@ class Cluster(AuditedModel):
                 "bk_cloud_id": self.bk_cloud_id,
             }
         )
+
         logger.info("tdbctl get primary res: {}".format(res))
 
         if res[0]["error_msg"]:
@@ -440,9 +444,11 @@ class Cluster(AuditedModel):
                     logger.error(_("集群id:{} {} 类型集群没有中控节点".format(cluster.id, cluster.cluster_type)))
                     continue
 
+                # 取一个状态正常的 spider-master 接入层
                 spider_instance = cluster.proxyinstance_set.filter(
-                    tendbclusterspiderext__spider_role=TenDBClusterSpiderRole.SPIDER_MASTER
-                ).first()  # 随便拿一个spider-master接入层
+                    tendbclusterspiderext__spider_role=TenDBClusterSpiderRole.SPIDER_MASTER,
+                    status=InstanceStatus.RUNNING.value,
+                ).first()
 
                 ctl_address = "{}{}{}".format(spider_instance.machine.ip, IP_PORT_DIVIDER, spider_instance.port + 1000)
                 addresses.append(ctl_address)
@@ -450,14 +456,19 @@ class Cluster(AuditedModel):
 
             logger.info("addresses: {}".format(addresses))
 
-            res = DRSApi.rpc(
-                {
-                    "addresses": addresses,
-                    "cmds": ["tdbctl get primary"],
-                    "force": False,
-                    "bk_cloud_id": bk_cloud_id,
-                }
-            )
+            try:
+                res = DRSApi.short_rpc(
+                    {
+                        "addresses": addresses,
+                        "cmds": ["tdbctl get primary"],
+                        "force": False,
+                        "bk_cloud_id": bk_cloud_id,
+                    }
+                )
+            except ApiError as e:
+                logger.error(_("get primary failed: {}".format(e)))
+                continue
+
             logger.info("tdbctl get primary res: {}".format(res))
 
             for item in res:
