@@ -106,12 +106,11 @@ class RedisProxyScaleFlow(object):
                 "format": FormatType.MAP,
             }
         )
-        if passwd_ret.get("redis_password"):
-            data["content"]["redis_password"] = passwd_ret.get("redis_password")
-        if passwd_ret.get("redis_proxy_password"):
-            data["content"]["password"] = passwd_ret.get("redis_proxy_password")
-        if passwd_ret.get("redis_proxy_admin_password"):
-            data["content"]["redis_proxy_admin_password"] = passwd_ret.get("redis_proxy_admin_password")
+
+        # 密码相关信息以密码服务为准，直接覆盖
+        data["content"]["redis_password"] = passwd_ret.get("redis_password")
+        data["content"]["password"] = passwd_ret.get("redis_proxy_password")
+        data["content"]["redis_proxy_admin_password"] = passwd_ret.get("redis_proxy_admin_password")
         return data["content"]
 
     def redis_proxy_scale_up_flow(self):
