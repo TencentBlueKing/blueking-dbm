@@ -26,22 +26,11 @@
         :list="nodeStatusList"
         :node-info="nodeInfoMap" />
       <div class="node-panel">
-        <template v-if="nodeType === 'observer'">
-          <DorisObserverHostShrink
-            v-if="!isLoading"
-            :key="nodeType"
-            :data="nodeInfoMap[nodeType]"
-            @change="handleNodeHostChange"
-            @target-disk-change="handleTargetDiskChange" />
-        </template>
-        <template v-else>
-          <HostShrink
-            v-if="!isLoading"
-            :key="nodeType"
-            :data="nodeInfoMap[nodeType]"
-            @change="handleNodeHostChange"
-            @target-disk-change="handleTargetDiskChange" />
-        </template>
+        <HostShrink
+          v-if="!isLoading"
+          :key="nodeType"
+          :data="nodeInfoMap[nodeType]"
+          @change="handleNodeHostChange" />
       </div>
     </div>
   </BkLoading>
@@ -63,7 +52,6 @@
 
   import { TicketTypes } from '@common/const';
 
-  import DorisObserverHostShrink from '@views/db-manage/common/doris-observer-host-shrink/Index.vue'
   import HostShrink, {
     type TShrinkNode,
   } from '@views/db-manage/common/host-shrink/Index.vue';
@@ -96,7 +84,7 @@
     originalNodeList: [],
     nodeList: [],
     totalDisk: 0,
-    targetDisk: 0,
+    // targetDisk: 0,
     shrinkDisk: 0,
   })
 
@@ -175,21 +163,12 @@
 
         nodeInfoMap.hot.originalNodeList = hotOriginalNodeList;
         nodeInfoMap.hot.totalDisk = hotDiskTotal;
-        if (nodeInfoMap.hot.shrinkDisk) {
-          nodeInfoMap.hot.targetDisk = hotDiskTotal - nodeInfoMap.hot.shrinkDisk;
-        }
 
         nodeInfoMap.cold.originalNodeList = coldOriginalNodeList;
         nodeInfoMap.cold.totalDisk = coldDiskTotal;
-        if (nodeInfoMap.cold.shrinkDisk) {
-          nodeInfoMap.cold.targetDisk = coldDiskTotal - nodeInfoMap.cold.shrinkDisk;
-        }
 
         nodeInfoMap.observer.originalNodeList = observerOriginalNodeList;
         nodeInfoMap.observer.totalDisk = observerDiskTotal;
-        if (nodeInfoMap.observer.shrinkDisk) {
-          nodeInfoMap.observer.targetDisk = observerDiskTotal - nodeInfoMap.observer.shrinkDisk;
-        }
       })
       .finally(() => {
         isLoading.value = false;
@@ -226,14 +205,17 @@
     nodeInfoMap.cold.shrinkDisk = coldShrinkDisk;
     nodeInfoMap.observer.nodeList = observerNodeList;
     nodeInfoMap.observer.shrinkDisk = observerShrinkDisk;
+
+    if (coldNodeList.length) {
+      nodeType.value = 'cold'
+    } else if (hotNodeList.length) {
+      nodeType.value = 'hot'
+    } else if (observerNodeList) {
+      nodeType.value = 'observer'
+    }
   }, {
     immediate: true,
   });
-
-  // 容量修改
-  const handleTargetDiskChange = (value: number) => {
-    nodeInfoMap[nodeType.value].targetDisk = value;
-  };
 
   // 缩容节点主机修改
   const handleNodeHostChange = (nodeList: TNodeInfo['nodeList']) => {
@@ -244,17 +226,9 @@
     if (nodeInfoMap.hot.nodeList.length === nodeInfoMap.hot.originalNodeList.length) {
       // 热节点全缩容后，限制冷节点至少留2台
       nodeInfoMap.cold.minHost = 2;
-      if (nodeInfoMap.cold.originalNodeList.length === 2) {
-        // 冷节点只有2台并且已经不可编辑状态，需要初始化已填写的目标容量值
-        nodeInfoMap.cold.targetDisk = 0;
-      }
     } else if (nodeInfoMap.cold.nodeList.length === nodeInfoMap.cold.originalNodeList.length) {
       // 冷节点全缩容后，限制热节点至少留2台
       nodeInfoMap.hot.minHost = 2;
-      if (nodeInfoMap.hot.originalNodeList.length === 2) {
-        // 热节点只有2台并且已经不可编辑状态，需要初始化已填写的目标容量值
-        nodeInfoMap.hot.targetDisk = 0;
-      }
     } else {
       // 取消限制
       nodeInfoMap.cold.minHost = 0;
@@ -271,19 +245,6 @@
         }
 
         const renderSubTitle = () => {
-          const renderDiskTips = () => {
-            const isNotMatch = Object.values(nodeInfoMap)
-              .some(nodeData => nodeData.totalDisk + nodeData.shrinkDisk !== nodeData.targetDisk);
-            if (isNotMatch) {
-              return (
-                <div style="font-size: 14px">
-                  <div>{t('目标容量与所选 IP 容量不一致，确认提交？')}</div>
-                  <div class="mb-8">{t('继续提交将按照手动选择的 IP 容量进行')}</div>
-                </div>
-              );
-            }
-            return null;
-          };
           const renderShrinkDiskTips = () => Object.entries(nodeInfoMap).map(([nodeType, nodeData]) => {
             if (nodeData.shrinkDisk) {
               if (nodeType === 'observer') {
@@ -311,19 +272,16 @@
           });
 
           return (
-            <div>
-              {renderDiskTips()}
-              <div style="background-color: #F5F7FA; padding: 8px 16px;">
-                <div class='tips-item'>
-                  {t('集群')} :
-                  <span
-                    style="color: #313238"
-                    class="ml-8">
-                    {props.data.cluster_name}
-                  </span>
-                </div>
-                {renderShrinkDiskTips()}
+            <div style="background-color: #F5F7FA; padding: 8px 16px;">
+              <div class='tips-item'>
+                {t('集群')} :
+                <span
+                  style="color: #313238"
+                  class="ml-8">
+                  {props.data.cluster_name}
+                </span>
               </div>
+              {renderShrinkDiskTips()}
             </div>
           );
         };
@@ -355,7 +313,7 @@
                 })),
                 total_hosts: item.originalNodeList.length,
                 total_disk: item.totalDisk,
-                target_disk: item.targetDisk,
+                // target_disk: item.targetDisk,
                 shrink_disk: item.shrinkDisk,
               };
               Object.assign(results, {

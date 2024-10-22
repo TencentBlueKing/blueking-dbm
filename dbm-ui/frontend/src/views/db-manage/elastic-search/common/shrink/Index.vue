@@ -30,8 +30,7 @@
           v-if="!isLoading"
           :key="nodeType"
           :data="nodeInfoMap[nodeType]"
-          @change="handleNodeHostChange"
-          @target-disk-change="handleTargetDiskChange" />
+          @change="handleNodeHostChange" />
       </div>
     </div>
   </BkLoading>
@@ -109,7 +108,7 @@
       originalNodeList: [],
       nodeList: [],
       totalDisk: 0,
-      targetDisk: 0,
+      // targetDisk: 0,
       shrinkDisk: 0,
       minHost: 0,
       tagText: t('存储层')
@@ -119,7 +118,7 @@
       originalNodeList: [],
       nodeList: [],
       totalDisk: 0,
-      targetDisk: 0,
+      // targetDisk: 0,
       shrinkDisk: 0,
       minHost: 0,
       tagText: t('存储层')
@@ -129,7 +128,7 @@
       originalNodeList: [],
       nodeList: [],
       totalDisk: 0,
-      targetDisk: 0,
+      // targetDisk: 0,
       shrinkDisk: 0,
       minHost: 0,
       tagText: t('接入层')
@@ -169,21 +168,12 @@
 
       nodeInfoMap.hot.originalNodeList = hotOriginalNodeList;
       nodeInfoMap.hot.totalDisk = hotDiskTotal;
-      if (nodeInfoMap.hot.shrinkDisk) {
-        nodeInfoMap.hot.targetDisk = hotDiskTotal - nodeInfoMap.hot.shrinkDisk;
-      }
 
       nodeInfoMap.cold.originalNodeList = coldOriginalNodeList;
       nodeInfoMap.cold.totalDisk = coldDiskTotal;
-      if (nodeInfoMap.cold.shrinkDisk) {
-        nodeInfoMap.cold.targetDisk = coldDiskTotal - nodeInfoMap.cold.shrinkDisk;
-      }
 
       nodeInfoMap.client.originalNodeList = clientOriginalNodeList;
       nodeInfoMap.client.totalDisk = clientDiskTotal;
-      if (nodeInfoMap.client.shrinkDisk) {
-        nodeInfoMap.client.targetDisk = clientDiskTotal - nodeInfoMap.client.shrinkDisk;
-      }
     })
       .finally(() => {
         isLoading.value = false;
@@ -220,14 +210,17 @@
     nodeInfoMap.cold.shrinkDisk = coldShrinkDisk;
     nodeInfoMap.client.nodeList = clientNodeList;
     nodeInfoMap.client.shrinkDisk = clientShrinkDisk;
+
+    if (coldNodeList.length) {
+      nodeType.value = 'cold'
+    } else if (hotNodeList.length) {
+      nodeType.value = 'hot'
+    } else if (clientNodeList.length) {
+      nodeType.value = 'client'
+    }
   }, {
     immediate: true,
   });
-
-  // 容量修改
-  const handleTargetDiskChange = (value: number) => {
-    nodeInfoMap[nodeType.value].targetDisk = value;
-  };
 
   // 缩容节点主机修改
   const handleNodeHostChange = (nodeList: TNodeInfo['nodeList']) => {
@@ -237,17 +230,9 @@
     if (nodeInfoMap.hot.nodeList.length === nodeInfoMap.hot.originalNodeList.length) {
       // 热节点全缩容后，限制冷节点至少留1台
       nodeInfoMap.cold.minHost = 1;
-      if (nodeInfoMap.cold.originalNodeList.length === 1) {
-        // 冷节点只有1台并且已经不可编辑状态，需要初始化已填写的目标容量值
-        nodeInfoMap.cold.targetDisk = 0;
-      }
     } else if (nodeInfoMap.cold.nodeList.length === nodeInfoMap.cold.originalNodeList.length) {
       // 冷节点全缩容后，限制热节点至少留1台
       nodeInfoMap.hot.minHost = 1;
-      if (nodeInfoMap.hot.originalNodeList.length === 1) {
-        // 热节点只有1台并且已经不可编辑状态，需要初始化已填写的目标容量值
-        nodeInfoMap.hot.targetDisk = 0;
-      }
     } else {
       // 取消限制
       nodeInfoMap.cold.minHost = 0;
@@ -264,19 +249,6 @@
         }
 
         const renderSubTitle = () => {
-          const renderDiskTips = () => {
-            const isNotMatch = Object.values(nodeInfoMap)
-              .some(nodeData => nodeData.totalDisk + nodeData.shrinkDisk !== nodeData.targetDisk);
-            if (isNotMatch) {
-              return (
-                <>
-                  <div>{t('目标容量与所选 IP 容量不一致，确认提交？')}</div>
-                  <div>{t('继续提交将按照手动选择的 IP 容量进行')}</div>
-                </>
-              );
-            }
-            return null;
-          };
           const renderShrinkDiskTips = () => Object.values(nodeInfoMap).map((nodeData) => {
             if (nodeData.shrinkDisk) {
               return (
@@ -294,7 +266,6 @@
 
           return (
           <div style="font-size: 14px; line-height: 28px; color: #63656E;">
-            {renderDiskTips()}
             {renderShrinkDiskTips()}
           </div>
           );
@@ -326,7 +297,7 @@
                 })),
                 total_hosts: item.originalNodeList.length,
                 total_disk: item.totalDisk,
-                target_disk: item.targetDisk,
+                // target_disk: item.targetDisk,
                 shrink_disk: item.shrinkDisk,
               };
               Object.assign(results, {

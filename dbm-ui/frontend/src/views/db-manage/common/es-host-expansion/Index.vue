@@ -22,58 +22,6 @@
       </BkTag>
     </div>
     <BkForm form-type="vertical">
-      <BkFormItem :label="t('期望容量')">
-        <div class="target-content-box">
-          <div class="content-label">
-            {{ t('扩容至') }}
-          </div>
-          <div class="content-value">
-            <div>
-              <BkInput
-                clearable
-                :min="data.totalDisk"
-                :model-value="targetDisk"
-                :placeholder="t('请输入')"
-                style="width: 156px; margin-right: 8px"
-                type="number"
-                @change="handleTargetDiskChange" />
-              <span>GB</span>
-              <template v-if="targetDisk">
-                <span>
-                  {{ t(', 共扩容') }}
-                </span>
-                <span
-                  class="strong-num"
-                  style="color: #2dcb56">
-                  {{ targetDisk - data.totalDisk }}
-                </span>
-                <span>GB</span>
-              </template>
-            </div>
-            <div class="content-tips">
-              <span>
-                {{ t('当前容量') }}:
-                <span class="strong-num">
-                  {{ data.totalDisk }}
-                </span>
-                GB
-              </span>
-              <span style="margin-left: 65px">
-                <span>{{ t('扩容后') }}:</span>
-                <template v-if="data.targetDisk">
-                  <span class="strong-num">{{ data.targetDisk }}</span>
-                  GB
-                </template>
-                <span
-                  v-else
-                  style="padding-left: 4px">
-                  {{ t('请先设置期望容量') }}
-                </span>
-              </span>
-            </div>
-          </div>
-        </div>
-      </BkFormItem>
       <BkFormItem>
         <ResourcePoolSelector
           v-if="ipSource === 'resource_pool'"
@@ -92,8 +40,7 @@
   </div>
 </template>
 <script setup lang="tsx">
-  import { useI18n } from 'vue-i18n';
-
+  import EsMachineModel from '@services/model/es/es-machine';
   import type { HostInfo } from '@services/types';
 
   import HostSelector from './components/HostSelector.vue';
@@ -107,7 +54,7 @@
     // 集群的节点类型
     role: string;
     // 初始主机
-    originalHostList: HostInfo[];
+    originalHostList: EsMachineModel[];
     // 服务器来源
     ipSource: 'resource_pool' | 'manual_input';
     // 扩容主机
@@ -115,7 +62,7 @@
     // 当前主机的总容量
     totalDisk: number;
     // 扩容目标容量
-    targetDisk: number;
+    // targetDisk: number;
     // 实际选中的扩容主机容量
     expansionDisk: number;
     // 资源池规格集群类型
@@ -142,11 +89,8 @@
     disableHostMethod?: (params: HostInfo) => string | boolean;
   }
 
-  const props = defineProps<Props>();
+  defineProps<Props>();
 
-  const targetDisk = defineModel<TExpansionNode['targetDisk']>('targetDisk', {
-    required: true,
-  });
   const resourceSpec = defineModel<TExpansionNode['resourceSpec']>('resourceSpec', {
     required: true,
   });
@@ -157,17 +101,7 @@
     required: true,
   });
 
-  const { t } = useI18n();
-
   const resourcePoolSelectorRef = ref<InstanceType<typeof ResourcePoolSelector>>();
-
-  const handleTargetDiskChange = (value: TExpansionNode['targetDisk']) => {
-    targetDisk.value = Math.floor(value);
-    window.changeConfirm = true;
-    if (props.ipSource === 'resource_pool') {
-      resourcePoolSelectorRef.value!.triggerLatestValue();
-    }
-  };
 
   const handleHoseSelectChange = (
     hostListValue: TExpansionNode['hostList'],

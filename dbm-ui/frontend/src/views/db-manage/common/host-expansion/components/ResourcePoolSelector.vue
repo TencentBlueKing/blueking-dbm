@@ -7,38 +7,31 @@
             {{ t('xx节点规格', { name: data.label.toLocaleLowerCase() }) }}
             <span class="required-flag">*</span>
           </div>
-          <span
-            v-bk-tooltips="{
-              content: t('请先设置期望容量'),
-              disabled: data.targetDisk > 0,
-            }">
-            <BkSelect
-              :disabled="data.targetDisk < 1"
-              :loading="isResourceSpecLoading"
-              :model-value="specId || undefined"
-              @change="handleSpecChange">
-              <BkOption
-                v-for="item in resourceSpecList?.results"
-                :key="item.spec_id"
-                :label="item.spec_name"
-                :popover-delay="0"
-                :value="item.spec_id">
-                <BkPopover
-                  :offset="20"
-                  placement="right"
-                  theme="light"
-                  width="580">
-                  <div style="display: flex; width: 100%; align-items: center">
-                    <div>{{ item.spec_name }}</div>
-                    <BkTag style="margin-left: auto">{{ specCountMap[item.spec_id] }}</BkTag>
-                  </div>
-                  <template #content>
-                    <SpecDetail :data="item" />
-                  </template>
-                </BkPopover>
-              </BkOption>
-            </BkSelect>
-          </span>
+          <BkSelect
+            :loading="isResourceSpecLoading"
+            :model-value="specId"
+            @change="handleSpecChange">
+            <BkOption
+              v-for="item in resourceSpecList?.results"
+              :key="item.spec_id"
+              :label="item.spec_name"
+              :popover-delay="0"
+              :value="item.spec_id">
+              <BkPopover
+                :offset="20"
+                placement="right"
+                theme="light"
+                width="580">
+                <div style="display: flex; width: 100%; align-items: center">
+                  <div>{{ item.spec_name }}</div>
+                  <BkTag style="margin-left: auto">{{ specCountMap[item.spec_id] }}</BkTag>
+                </div>
+                <template #content>
+                  <SpecDetail :data="item" />
+                </template>
+              </BkPopover>
+            </BkOption>
+          </BkSelect>
         </div>
         <div class="form-block-item">
           <div class="form-block-title">
@@ -47,18 +40,11 @@
             </I18nT>
             <span class="required-flag">*</span>
           </div>
-          <span
-            v-bk-tooltips="{
-              content: t('请先设置期望容量'),
-              disabled: data.targetDisk > 0,
-            }">
-            <BkInput
-              :disabled="data.targetDisk < 1"
-              :min="originalHostNums"
-              :model-value="machinePairCnt || undefined"
-              type="number"
-              @change="handleMachinePairCntChange" />
-          </span>
+          <BkInput
+            :min="originalHostNums"
+            :model-value="machinePairCnt"
+            type="number"
+            @change="handleMachinePairCntChange" />
         </div>
       </div>
     </BkLoading>
@@ -159,18 +145,20 @@
     onSuccess(recommendSpecList) {
       if (recommendSpecList.length > 0) {
         specId.value = recommendSpecList[0].spec_id;
+        handleSpecChange(recommendSpecList[0].spec_id);
       }
     },
   });
 
   const triggerChange = () => {
+    const count = Math.max(machinePairCnt.value - originalHostNums.value, 0);
     emits(
       'change',
       {
         spec_id: specId.value,
-        count: Math.max(machinePairCnt.value - originalHostNums.value, 0),
+        count,
       },
-      estimateCapacity.value,
+      count ? estimateCapacity.value : 0,
     );
   };
 

@@ -27,8 +27,7 @@
           v-if="!isLoading"
           :key="nodeType"
           :data="nodeInfoMap[nodeType]"
-          @change="handleNodeHostChange"
-          @target-disk-change="handleTargetDiskChange" />
+          @change="handleNodeHostChange" />
       </div>
     </div>
   </BkLoading>
@@ -100,7 +99,7 @@
       // 当前主机总容量
       totalDisk: 0,
       // 缩容后的目标容量
-      targetDisk: 0,
+      // targetDisk: 0,
       // 实际选择的缩容主机容量
       shrinkDisk: 0,
       // 最小主机数
@@ -132,9 +131,6 @@
 
       nodeInfoMap.datanode.originalNodeList = datanodeOriginalNodeList;
       nodeInfoMap.datanode.totalDisk = datanodeDiskTotal;
-      if (nodeInfoMap.datanode.shrinkDisk) {
-        nodeInfoMap.datanode.targetDisk = datanodeDiskTotal - nodeInfoMap.datanode.shrinkDisk;
-      }
     })
       .finally(() => {
         isLoading.value = false;
@@ -161,10 +157,6 @@
     immediate: true,
   });
 
-  // 容量修改
-  const handleTargetDiskChange = (value: number) => {
-    nodeInfoMap[nodeType.value].targetDisk = value;
-  };
 
   // 缩容节点主机修改
   const handleNodeHostChange = (nodeList: TNodeInfo['nodeList']) => {
@@ -182,19 +174,6 @@
         }
 
         const renderSubTitle = () => {
-          const renderDiskTips = () => {
-            const isNotMatch = Object.values(nodeInfoMap)
-              .some(nodeData => nodeData.totalDisk + nodeData.shrinkDisk !== nodeData.targetDisk);
-            if (isNotMatch) {
-              return (
-                <>
-                  <div>{t('目标容量与所选 IP 容量不一致，确认提交？')}</div>
-                  <div>{t('继续提交将按照手动选择的 IP 容量进行')}</div>
-                </>
-              );
-            }
-            return null;
-          };
           const renderShrinkDiskTips = () => Object.values(nodeInfoMap).map((nodeData) => {
             if (nodeData.shrinkDisk) {
               return (
@@ -212,7 +191,6 @@
 
           return (
           <div style="font-size: 14px; line-height: 28px; color: #63656E;">
-            {renderDiskTips()}
             {renderShrinkDiskTips()}
           </div>
           );
@@ -244,7 +222,7 @@
                 })),
                 total_hosts: item.originalNodeList.length,
                 total_disk: item.totalDisk,
-                target_disk: item.targetDisk,
+                // target_disk: item.targetDisk,
                 shrink_disk: item.shrinkDisk,
               };
               Object.assign(results, {

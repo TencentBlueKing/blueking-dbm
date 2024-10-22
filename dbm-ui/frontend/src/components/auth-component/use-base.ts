@@ -69,6 +69,7 @@ const withBizActionList = [
   'sqlserver_account_create',
   'sqlserver_account_rules_view',
   'biz_ticket_config_set',
+  'doris_apply',
 ];
 
 export default function (props: Props) {

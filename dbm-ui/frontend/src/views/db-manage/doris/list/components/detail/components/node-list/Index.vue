@@ -16,7 +16,7 @@
     <div class="action-box">
       <OperationBtnStatusTips :data="operationData">
         <AuthButton
-          action-id="es_scale_up"
+          action-id="doris_scale_up"
           :disabled="operationData?.operationDisabled"
           :resource="clusterId"
           theme="primary"
@@ -27,7 +27,7 @@
       <OperationBtnStatusTips :data="operationData">
         <span v-bk-tooltips="batchShrinkDisabledInfo.tooltips">
           <AuthButton
-            action-id="es_shrink"
+            action-id="doris_shrink"
             class="ml8"
             :disabled="batchShrinkDisabledInfo.disabled || operationData?.operationDisabled"
             :resource="clusterId"
@@ -43,7 +43,7 @@
             disabled: !isBatchReplaceDisabeld,
           }">
           <AuthButton
-            action-id="es_replace"
+            action-id="doris_replace"
             class="ml8"
             :disabled="isBatchReplaceDisabeld || operationData?.operationDisabled"
             :resource="clusterId"

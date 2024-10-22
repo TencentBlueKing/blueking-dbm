@@ -24,7 +24,7 @@
     <template #footer>
       <I18nT
         class="mr-16"
-        keypath="已选n台_共nG_(目标容量:nG)"
+        keypath="已选n台_共nG"
         tag="span">
         <span
           class="number"
@@ -36,11 +36,11 @@
           style="color: #2dcb56">
           {{ selectNodeDiskTotal }}
         </span>
-        <span
+        <!-- <span
           class="number"
           style="color: #63656e">
           {{ targetDisk }}
-        </span>
+        </span> -->
       </I18nT>
       <BkButton
         style="width: 64px"
@@ -84,7 +84,6 @@
     modelValue: TShrinkNode<T>['nodeList'],
     isShow: boolean,
     originalNodeList: TShrinkNode<T>['nodeList'],
-    targetDisk: number,
     minHost: number
   }
 
