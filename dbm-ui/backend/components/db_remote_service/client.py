@@ -40,6 +40,15 @@ class _DRSApi(object):
             default_timeout=self.DRS_MYSQL_TIMEOUT,
         )
 
+        self.short_rpc = ProxyAPI(
+            method="POST",
+            base=self.BASE_DOMAIN,
+            url="mysql/rpc",
+            module=self.MODULE,
+            ssl=ssl_flag,
+            description=_("DB 远程执行（短耗时）"),
+        )
+
         self.proxyrpc = ProxyAPI(
             method="POST",
             base=self.BASE_DOMAIN,
