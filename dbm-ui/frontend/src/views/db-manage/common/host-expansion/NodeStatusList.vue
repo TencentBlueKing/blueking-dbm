@@ -41,7 +41,7 @@
           <span>G</span>
         </div>
         <div
-          v-else-if="nodeInfo[nodeItem.key].targetDisk"
+          v-else-if="!nodeInfo[nodeItem.key].resourceSpec.spec_id || !nodeInfo[nodeItem.key].resourceSpec.count"
           class="unfinished-tips">
           <span>{{ t('未完善') }}</span>
         </div>
@@ -57,8 +57,6 @@
 <script setup lang="ts">
   import { reactive } from 'vue';
   import { useI18n } from 'vue-i18n';
-
-  import DorisNodeModel from '@services/model/doris/doris-node';
 
   import type { TExpansionNode } from './Index.vue';
 
@@ -101,9 +99,6 @@
     validate() {
       Object.keys(validateStatusMemo).forEach((key) => (validateStatusMemo[key] = true));
       return Object.values(props.nodeInfo).some((nodeData) => {
-        if (!nodeData.targetDisk && nodeData.role !== DorisNodeModel.ROLE_OBSERVER) {
-          return false;
-        }
         if (props.ipSource === 'manual_input') {
           return nodeData.hostList.length > 0;
         }

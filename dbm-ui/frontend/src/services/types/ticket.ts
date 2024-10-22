@@ -257,7 +257,7 @@ export interface BigDataCapacityDetails {
       }[];
       total_hosts: number;
       total_disk: number;
-      target_disk: number;
+      // target_disk: number;
       expansion_disk: number;
       shrink_disk: number;
     };

@@ -353,6 +353,10 @@
           label: 'Doris',
           name: DBTypes.DORIS,
         },
+        {
+          label: t('任务执行器'),
+          name: 'actuator',
+        },
       ],
     },
   ];

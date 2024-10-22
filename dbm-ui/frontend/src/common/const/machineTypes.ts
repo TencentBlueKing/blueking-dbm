@@ -32,7 +32,7 @@ export enum MachineTypes {
   SQLSERVER_HA = 'sqlserver_ha',
   SQLSERVER_SINGLE = 'sqlserver_single',
 }
-// kefka
+// kafka
 export enum MachineTypes {
   BROKER = 'broker',
   ZOOKEEPER = 'zookeeper',
@@ -61,4 +61,10 @@ export enum MachineTypes {
 // riak
 export enum MachineTypes {
   RIAK = 'riak',
+}
+// doris
+export enum MachineTypes {
+  DORIS_FOLLOWER = 'doris_follower',
+  DORIS_OBSERVER = 'doris_observer',
+  DORIS_BACKEND = 'doris_backend',
 }
