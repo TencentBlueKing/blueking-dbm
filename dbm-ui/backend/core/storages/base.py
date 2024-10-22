@@ -36,9 +36,9 @@ class StorageFileOverwriteMixin:
         file_root, file_ext = os.path.splitext(file_name)
 
         def _gen_random_name(_file_root) -> str:
-            # 在文件名的起始位置添加随机串，源码规则为 "%s_%s%s" % (_file_root, get_random_string(7), file_ext)
+            # 在文件名的起始位置添加随机串，源码规则为 "%s_dbmrpt_%s%s" % (_file_root, get_random_string(7), file_ext)
             # 上述规则对 .tar.gz 不友好，会在类型后缀中间加随机串，所以改为随机串作为前缀
-            return os.path.join(dir_name, "%s_%s%s" % (get_random_string(7), _file_root, file_ext))
+            return os.path.join(dir_name, "%s_dbmrpt_%s%s" % (get_random_string(7), _file_root, file_ext))
 
         # not self.file_overwrite and self.exists(name) 利用 and 短路特点，如果 file_overwrite=True 就无需校验文件是否存在
         while (not self.file_overwrite and self.exists(name)) or (max_length and len(name) > max_length):

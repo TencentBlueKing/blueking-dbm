@@ -27,11 +27,13 @@ from backend.db_meta.models import AppCache, Machine, Spec
 from backend.db_meta.models.cluster import Cluster
 from backend.db_services.dbbase.resources import query
 from backend.db_services.dbbase.resources.query import ResourceList
+from backend.db_services.dbbase.resources.register import register_resource_decorator
 from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
 from backend.db_services.redis.resources.constants import SQL_QUERY_MASTER_SLAVE_STATUS
 from backend.utils.basic import dictfetchall
 
 
+@register_resource_decorator()
 class RedisListRetrieveResource(query.ListRetrieveResource):
     """查看twemproxy-redis架构的资源"""
 
@@ -141,8 +143,8 @@ class RedisListRetrieveResource(query.ListRetrieveResource):
         if machine_list:
             spec_id = cluster.storages[0].machine.spec_id
             spec = redis_spec_map.get(spec_id)
-            cluster_spec = model_to_dict(spec)
-            cluster_capacity = spec.capacity * machine_pair_cnt
+            cluster_spec = model_to_dict(spec) if spec else {}
+            cluster_capacity = spec.capacity * machine_pair_cnt if spec else 0
 
         # dns是否指向clb
         dns_to_clb = cluster.clusterentry_set.filter(
