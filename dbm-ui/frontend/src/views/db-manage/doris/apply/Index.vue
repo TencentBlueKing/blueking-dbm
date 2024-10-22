@@ -85,9 +85,13 @@
                   style="display: inline-block"
                   @change="(data: HostInfo[]) => handleIpListChange(data, 'follower')">
                   <template #submitTips="{ hostList }">
-                    <IpSelectorSubmitTips
+                    <I18nT
                       keypath="需n台_已选n台"
-                      :values="[3, hostList.length]" />
+                      style="font-size: 14px; color: #63656e"
+                      tag="span">
+                      <span style="font-weight: bold; color: #2dcb56">3</span>
+                      <span style="font-weight: bold; color: #3a84ff">{{ hostList.length }}</span>
+                    </I18nT>
                   </template>
                   <template #desc>
                     {{ t('需n台', { n: 3 }) }}
@@ -110,9 +114,13 @@
                 :show-view="false"
                 @change="(data: HostInfo[]) => handleIpListChange(data, 'observer')">
                 <template #submitTips="{ hostList }">
-                  <IpSelectorSubmitTips
+                  <I18nT
                     keypath="若选择至少需要n台，已选m台"
-                    :values="[2, hostList.length]" />
+                    style="font-size: 14px; color: #63656e"
+                    tag="span">
+                    <span style="font-weight: bold; color: #2dcb56">2</span>
+                    <span style="font-weight: bold; color: #3a84ff">{{ hostList.length }}</span>
+                  </I18nT>
                 </template>
                 <template #desc>
                   {{ t('若选择至少需要n台', [2]) }}
@@ -140,9 +148,13 @@
                 :show-view="false"
                 @change="(data: HostInfo[]) => handleIpListChange(data, 'hot')">
                 <template #submitTips="{ hostList }">
-                  <IpSelectorSubmitTips
+                  <I18nT
                     keypath="若选择至少需要n台，已选m台"
-                    :values="[2, hostList.length]" />
+                    style="font-size: 14px; color: #63656e"
+                    tag="span">
+                    <span style="font-weight: bold; color: #2dcb56">2</span>
+                    <span style="font-weight: bold; color: #3a84ff">{{ hostList.length }}</span>
+                  </I18nT>
                 </template>
                 <template #desc>
                   {{ t('若选择至少需要n台', [2]) }}
@@ -164,9 +176,13 @@
                 :show-view="false"
                 @change="(data: HostInfo[]) => handleIpListChange(data, 'cold')">
                 <template #submitTips="{ hostList }">
-                  <IpSelectorSubmitTips
+                  <I18nT
                     keypath="若选择至少需要n台，已选m台"
-                    :values="[2, hostList.length]" />
+                    style="font-size: 14px; color: #63656e"
+                    tag="span">
+                    <span style="font-weight: bold; color: #2dcb56">2</span>
+                    <span style="font-weight: bold; color: #3a84ff">{{ hostList.length }}</span>
+                  </I18nT>
                 </template>
                 <template #desc>
                   {{ t('若选择至少需要n台', [2]) }}
@@ -368,7 +384,6 @@
 
   import DbForm from '@components/db-form/index.vue';
   import IpSelector from '@components/ip-selector/IpSelector.vue';
-  import IpSelectorSubmitTips from '@components/ip-selector-submit-tips/Index.vue';
 
   import AffinityItem from '@views/db-manage/common/apply-items/AffinityItem.vue';
   import BusinessItems from '@views/db-manage/common/apply-items/BusinessItems.vue';

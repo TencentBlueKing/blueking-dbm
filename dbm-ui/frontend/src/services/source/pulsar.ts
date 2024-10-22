@@ -13,6 +13,7 @@
 
 import PulsarModel from '@services/model/pulsar/pulsar';
 import PulsarInstanceModel from '@services/model/pulsar/pulsar-instance';
+import PulsarMachineModel from '@services/model/pulsar/pulsar-machine';
 import PulsarNodeModel from '@services/model/pulsar/pulsar-node';
 import PulsarPasswordModel from '@services/model/pulsar/pulsar-password';
 import type { ListBase } from '@services/types';
@@ -125,4 +126,29 @@ export function exportPulsarClusterToExcel(params: { cluster_ids?: number[] }) {
  */
 export function exportPulsarInstanceToExcel(params: { bk_host_ids?: number[] }) {
   return http.post<string>(`${path}/export_instance/`, params, { responseType: 'blob' });
+}
+
+/**
+ * 查询主机列表
+ */
+export function getPulsarMachineList(params: {
+  limit?: number;
+  offset?: number;
+  bk_host_id?: number;
+  ip?: string;
+  cluster_ids?: string;
+  bk_city_name?: string;
+  machine_type?: string;
+  bk_os_name?: string;
+  bk_cloud_id?: number;
+  bk_agent_id?: string;
+  instance_role?: string;
+  creator?: string;
+  add_role_count?: boolean;
+  cluster_type?: string;
+}) {
+  return http.get<ListBase<PulsarMachineModel[]>>(`${path}/list_machines/`, params).then((data) => ({
+    ...data,
+    results: data.results.map((item) => new PulsarMachineModel(item)),
+  }));
 }

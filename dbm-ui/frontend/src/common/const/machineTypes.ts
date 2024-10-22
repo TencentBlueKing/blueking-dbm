@@ -36,7 +36,7 @@ export enum MachineTypes {
   // SQLSERVER_SINGLE = 'sqlserver_single',
   SQLSERVER = 'sqlserver', // 后端存储
 }
-// kefka
+// kafka
 export enum MachineTypes {
   KAFKA_BROKER = 'broker', // Broker节点
   KAFKA_ZOOKEEPER = 'zookeeper', // Zookeeper节点
@@ -65,4 +65,10 @@ export enum MachineTypes {
 // riak
 export enum MachineTypes {
   RIAK = 'riak', // 后端存储
+}
+// doris
+export enum MachineTypes {
+  DORIS_FOLLOWER = 'doris_follower',
+  DORIS_OBSERVER = 'doris_observer',
+  DORIS_BACKEND = 'doris_backend',
 }

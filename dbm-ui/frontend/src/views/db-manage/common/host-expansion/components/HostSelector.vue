@@ -5,13 +5,12 @@
       class="mt-12"
       :cloud-info="cloudInfo"
       :disable-host-method="disableHostMethod"
-      :disable-tips="data.targetDisk < 1 ? t('请先设置期望容量') : ''"
       :os-types="[OSTypes.Linux]"
       :show-view="false"
       @change="handleHostChange">
       <template #submitTips="{ hostList }">
         <I18nT
-          keypath="已选n台_共nGB(目标容量:nG)"
+          keypath="已选n台_共nGB"
           style="font-size: 14px; color: #63656e"
           tag="span">
           <span
@@ -24,11 +23,11 @@
             style="color: #3a84ff">
             {{ calcSelectHostDisk(hostList) }}
           </span>
-          <span
+          <!-- <span
             class="number"
             style="color: #63656e">
             {{ data.targetDisk - data.totalDisk }}
-          </span>
+          </span> -->
         </I18nT>
       </template>
     </IpSelector>
@@ -48,26 +47,6 @@
             {{ calcSelectHostDisk(hostTableData) }}
           </span>
         </I18nT>
-        <I18nT
-          v-if="targetMatchReal > 0"
-          class="ml-8"
-          keypath="较目标容量相差nG">
-          <span
-            class="number"
-            style="color: #ff9c01">
-            {{ targetMatchReal }}
-          </span>
-        </I18nT>
-        <I18nT
-          v-if="targetMatchReal < 0"
-          class="ml-8"
-          keypath="较目标容量超出nG">
-          <span
-            class="number"
-            style="color: #ff9c01">
-            {{ Math.abs(targetMatchReal) }}
-          </span>
-        </I18nT>
       </div>
       <BkTable
         :columns="tableColumns"
@@ -77,7 +56,6 @@
 </template>
 <script setup lang="tsx">
   import {
-    computed,
     shallowRef,
   } from 'vue';
   import { useI18n } from 'vue-i18n';
@@ -119,18 +97,6 @@
   const bizId = globalBizsStore.currentBizId;
 
   const hostTableData = shallowRef<TExpansionNode['hostList']>(props.data.hostList || []);
-
-  // 目标容量和实际容量误差
-  const targetMatchReal = computed(() => {
-    const {
-      totalDisk,
-      targetDisk,
-      expansionDisk,
-    } = props.data;
-
-    const realTargetDisk = totalDisk + expansionDisk;
-    return targetDisk - realTargetDisk;
-  });
 
   const tableColumns = [
     {

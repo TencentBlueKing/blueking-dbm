@@ -13,7 +13,7 @@
 
 import type { HostInfo, MachineRelatedCluster, MachineRelatedInstance, MachineSpecConfig } from '@services/types';
 
-export default class RedisMachine {
+export default class EsMachine {
   bk_cloud_id: number;
   bk_cloud_name: string;
   bk_host_id: number;
@@ -32,7 +32,7 @@ export default class RedisMachine {
   unavailable_master: number;
   unavailable_slave: number;
 
-  constructor(payload = {} as RedisMachine) {
+  constructor(payload = {} as EsMachine) {
     this.bk_cloud_id = payload.bk_cloud_id;
     this.bk_cloud_name = payload.bk_cloud_name;
     this.bk_host_id = payload.bk_host_id;
@@ -52,16 +52,12 @@ export default class RedisMachine {
     this.unavailable_slave = payload.unavailable_slave;
   }
 
-  get isSlaveFailover() {
-    return this.instance_role === 'redis_slave' && this.related_instances.some((item) => item.status === 'unavailable');
+  get isHot() {
+    return this.instance_role.includes('hot');
   }
 
-  get isMasterFailover() {
-    return this.instance_role === 'redis_master' && this.unavailable_master > 0;
-  }
-
-  get isMaster() {
-    return this.instance_role === 'redis_master';
+  get isCold() {
+    return this.instance_role.includes('cold');
   }
 
   get isUnvailable() {

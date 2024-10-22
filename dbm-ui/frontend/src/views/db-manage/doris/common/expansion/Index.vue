@@ -37,38 +37,19 @@
         :list="nodeStatusList"
         :node-info="nodeInfoMap" />
       <div class="node-panel">
-        <template v-if="nodeType === 'observer'">
-          <DorisObserverHostExpansion
-            v-if="!isLoading"
-            :key="nodeType"
-            v-model:expansion-disk="nodeInfoMap[nodeType].expansionDisk"
-            v-model:host-list="nodeInfoMap[nodeType].hostList"
-            v-model:resource-spec="nodeInfoMap[nodeType].resourceSpec"
-            v-model:target-disk="nodeInfoMap[nodeType].targetDisk"
-            :cloud-info="{
-              id: data.bk_cloud_id,
-              name: data.bk_cloud_name,
-            }"
-            :data="nodeInfoMap[nodeType]"
-            :disable-host-method="(data: HostInfo) => disableHostMethod(data, nodeInfoMap[nodeType].mutexNodeTypes)"
-            :ip-source="ipSource" />
-        </template>
-        <template v-else>
-          <HostExpansion
-            v-if="!isLoading"
-            :key="nodeType"
-            v-model:expansion-disk="nodeInfoMap[nodeType].expansionDisk"
-            v-model:host-list="nodeInfoMap[nodeType].hostList"
-            v-model:resource-spec="nodeInfoMap[nodeType].resourceSpec"
-            v-model:target-disk="nodeInfoMap[nodeType].targetDisk"
-            :cloud-info="{
-              id: data.bk_cloud_id,
-              name: data.bk_cloud_name,
-            }"
-            :data="nodeInfoMap[nodeType]"
-            :disable-host-method="(data: HostInfo) => disableHostMethod(data, nodeInfoMap[nodeType].mutexNodeTypes)"
-            :ip-source="ipSource" />
-        </template>
+        <HostExpansion
+          v-if="!isLoading"
+          :key="nodeType"
+          v-model:expansion-disk="nodeInfoMap[nodeType].expansionDisk"
+          v-model:host-list="nodeInfoMap[nodeType].hostList"
+          v-model:resource-spec="nodeInfoMap[nodeType].resourceSpec"
+          :cloud-info="{
+            id: data.bk_cloud_id,
+            name: data.bk_cloud_name,
+          }"
+          :data="nodeInfoMap[nodeType]"
+          :disable-host-method="(data: HostInfo) => disableHostMethod(data, nodeInfoMap[nodeType].mutexNodeTypes)"
+          :ip-source="ipSource" />
       </div>
     </div>
   </BkLoading>
@@ -79,8 +60,8 @@
   import { useI18n } from 'vue-i18n';
 
   import DorisModel from '@services/model/doris/doris';
-  import DorisNodeModel from '@services/model/doris/doris-node';
-  import { getHostDetails } from '@services/source/ipchooser';
+  import DorisMachineModel from '@services/model/doris/doris-machine';
+  import { getDorisMachineList } from '@services/source/doris';
   import { createTicket } from '@services/source/ticket';
   import type { HostInfo } from '@services/types';
 
@@ -93,7 +74,6 @@
     TicketTypes
   } from '@common/const';
 
-  import DorisObserverHostExpansion from '@views/db-manage/common/doris-observer-host-expansion/Index.vue';
   import HostExpansion, {
     type TExpansionNode,
   } from '@views/db-manage/common/host-expansion/Index.vue';
@@ -125,19 +105,19 @@
     [item.host_id]: true,
   }), {} as Record<number, boolean>);
 
-  const generateNodeInfo = (values: Pick<TDorisExpansionNode, 'label' | 'role' | 'specMachineType' | 'tagText' | 'mutexNodeTypes'>): TDorisExpansionNode => ({
+  const generateNodeInfo = (values: Pick<TDorisExpansionNode, 'label' | 'role' | 'specMachineType' | 'tagText' | 'mutexNodeTypes' | 'showCount'>): TDorisExpansionNode => ({
     ...values,
     clusterId: props.data.id,
     originalHostList: [],
     ipSource: 'resource_pool',
     hostList: [],
     totalDisk: 0,
-    targetDisk: 0,
+    // targetDisk: 0,
     expansionDisk: 0,
     specClusterType: ClusterTypes.DORIS,
     resourceSpec: {
       spec_id: 0,
-      count: 1,
+      count: 0,
     },
   })
 
@@ -181,6 +161,7 @@
       specMachineType: 'doris_observer',
       tagText: t('接入层'),
       mutexNodeTypes: ['hot', 'cold'],
+      showCount: true
     })
   });
 
@@ -191,54 +172,30 @@
 
   // 获取主机详情
   const fetchHostDetail = () => {
-    const hotHostIdMap = props.data.doris_backend_hot.reduce((result, item) => ({
-      ...result,
-      [item.bk_host_id]: true,
-    }), {} as Record<number, boolean>);
-    const coldHostIdMap = props.data.doris_backend_cold.reduce((result, item) => ({
-      ...result,
-      [item.bk_host_id]: true,
-    }), {} as Record<number, boolean>);
-    const followerHostIdMap = props.data.doris_follower.reduce((result, item) => ({
-      ...result,
-      [item.bk_host_id]: true,
-    }), {} as Record<number, boolean>);
-
-    const hostIdList = [
-      ...props.data.doris_backend_hot,
-      ...props.data.doris_backend_cold,
-    ].map(item => ({
-      host_id: item.bk_host_id,
-      meta: {
-        bk_biz_id: item.bk_biz_id,
-        scope_id: `${item.bk_biz_id}`,
-        scope_type: 'biz',
-      },
-    }));
-
     isLoading.value = true;
-    getHostDetails({
-      host_list: hostIdList,
-      scope_list: [{
-        scope_id: `${currentBizId}`,
-        scope_type: 'biz',
-      }],
+
+    getDorisMachineList({
+      cluster_ids: String(props.data.id),
+      offset: 0,
+      limit: -1
     }).then((data) => {
-      const hotOriginalHostList: HostInfo[] = [];
-      const coldOriginalHostList: HostInfo[] = [];
-      const observerOriginalHostList: HostInfo[] = []
+      const hotOriginalHostList: DorisMachineModel[] = [];
+      const coldOriginalHostList: DorisMachineModel[] = [];
+      const observerOriginalHostList: DorisMachineModel[] = []
 
       let hotDiskTotal = 0;
       let coldDiskTotal = 0;
+      let observerDiskTotal = 0;
 
-      data.forEach((hostItem) => {
-        if (hotHostIdMap[hostItem.host_id]) {
-          hotDiskTotal += Math.floor(Number(hostItem.bk_disk));
+      data.results.forEach((hostItem) => {
+        if (hostItem.isHot) {
+          hotDiskTotal += Math.floor(Number(hostItem.host_info.bk_disk));
           hotOriginalHostList.push(hostItem);
-        } else if (coldHostIdMap[hostItem.host_id]) {
-          coldDiskTotal += Math.floor(Number(hostItem.bk_disk));
+        } else if (hostItem.isCold) {
+          coldDiskTotal += Math.floor(Number(hostItem.host_info.bk_disk));
           coldOriginalHostList.push(hostItem);
-        } else if (followerHostIdMap[hostItem.host_id]) {
+        } else if (hostItem.isObserver) {
+          observerDiskTotal += Math.floor(Number(hostItem.host_info.bk_disk))
           observerOriginalHostList.push(hostItem)
         }
       });
@@ -249,9 +206,10 @@
       nodeInfoMap.cold.totalDisk = coldDiskTotal;
       nodeInfoMap.cold.originalHostList = coldOriginalHostList;
 
+      nodeInfoMap.observer.totalDisk = observerDiskTotal;
       nodeInfoMap.observer.originalHostList = observerOriginalHostList;
     })
-      .finally(() => {
+       .finally(() => {
         isLoading.value = false;
       });
   };
@@ -283,60 +241,47 @@
       }
 
       const renderSubTitle = () => {
-        const renderDiskTips = () => {
-          const isNotMatch = Object.values(nodeInfoMap)
-            .some(nodeData => nodeData.targetDisk > 0
-              && nodeData.totalDisk + nodeData.expansionDisk !== nodeData.targetDisk);
-          if (isNotMatch) {
-            return (
-              <div style="font-size: 14px">
-                <div>{t('目标容量与所选 IP 容量不一致，确认提交？')}</div>
-                <div class="mb-8">{t('继续提交将按照手动选择的 IP 容量进行')}</div>
-              </div>
-            );
-          }
-          return null;
-        };
         const renderExpansionDiskTips = () => Object.values(nodeInfoMap).map((nodeData) => {
-          if (nodeData.expansionDisk) {
-            if (nodeData.specMachineType === DorisNodeModel.ROLE_OBSERVER) {
+          if (nodeData.showCount) {
+            const expansionCount = ipSource.value === 'resource_pool' ? nodeData.resourceSpec.count : nodeData.hostList.length;
+            if (expansionCount) {
               return (
                 <div class='tips-item'>
                   {t('name容量从n台扩容至n台', {
                     name: nodeData.label,
                     hostNumBefore: nodeData.originalHostList.length,
-                    hostNumAfter: nodeData.resourceSpec.count + nodeData.originalHostList.length,
+                    hostNumAfter: expansionCount + nodeData.originalHostList.length,
                   })}
                 </div>
               );
             }
-            return (
-              <div class='tips-item'>
-                {t('name容量从nG扩容至nG', {
-                  name: nodeData.label,
-                  totalDisk: nodeData.totalDisk,
-                  expansionDisk: nodeData.totalDisk + nodeData.expansionDisk,
-                })}
-              </div>
-            );
+          } else {
+            if (nodeData.expansionDisk) {
+              return (
+                <div class='tips-item'>
+                  {t('name容量从nG扩容至nG', {
+                    name: nodeData.label,
+                    totalDisk: nodeData.totalDisk,
+                    expansionDisk: nodeData.totalDisk + nodeData.expansionDisk,
+                  })}
+                </div>
+              );
+            }
           }
           return null;
         });
 
         return (
-          <div>
-            {renderDiskTips()}
-            <div style="background-color: #F5F7FA; padding: 8px 16px;">
-              <div class='tips-item'>
-                {t('集群')} :
-                <span
-                  style="color: #313238"
-                  class="ml-8">
-                  {props.data.cluster_name}
-                </span>
-              </div>
-              {renderExpansionDiskTips()}
+          <div style="background-color: #F5F7FA; padding: 8px 16px;">
+            <div class='tips-item'>
+              {t('集群')} :
+              <span
+                style="color: #313238"
+                class="ml-8">
+                {props.data.cluster_name}
+              </span>
             </div>
+            {renderExpansionDiskTips()}
           </div>
         );
       };
@@ -360,7 +305,7 @@
                 host_list: item.hostList,
                 total_hosts: item.originalHostList.length,
                 total_disk: item.totalDisk,
-                target_disk: item.targetDisk,
+                // target_disk: item.targetDisk,
                 expansion_disk: item.expansionDisk,
               };
               Object.assign(results, {

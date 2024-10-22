@@ -24,31 +24,22 @@
       </div>
       <template v-if="validateStatusMemo[nodeItem.key]">
         <div
-          v-if="
-            nodeItem.key === 'observer' &&
-            nodeInfo[nodeItem.key].resourceSpec.count - nodeInfo[nodeItem.key].originalHostList.length > 0
+          v-if="getCountText(nodeInfo[nodeItem.key])"
+          class="disk-tips">
+          <span class="number">{{ getCountText(nodeInfo[nodeItem.key]) }}</span>
+          <span>{{ nodeInfo[nodeItem.key].showCount ? t('台') : 'G' }}</span>
+        </div>
+        <div
+          v-else-if="
+            nodeInfo[nodeItem.key].resourceSpec.spec_id === 0 && nodeInfo[nodeItem.key].resourceSpec.count === 0
           "
-          class="disk-tips">
-          <span class="number">{{
-            nodeInfo[nodeItem.key].resourceSpec.count - nodeInfo[nodeItem.key].originalHostList.length
-          }}</span>
-          <span>{{ t('台') }}</span>
-        </div>
-        <div
-          v-else-if="nodeInfo[nodeItem.key].expansionDisk"
-          class="disk-tips">
-          <span class="number">{{ nodeInfo[nodeItem.key].expansionDisk }}</span>
-          <span>G</span>
-        </div>
-        <div
-          v-else-if="nodeInfo[nodeItem.key].targetDisk"
-          class="unfinished-tips">
-          <span>{{ t('未完善') }}</span>
+          class="empty-tips">
+          <span>{{ t('未填写') }}</span>
         </div>
         <div
           v-else
-          class="empty-tips">
-          <span>{{ t('未填写') }}</span>
+          class="unfinished-tips">
+          <span>{{ t('未完善') }}</span>
         </div>
       </template>
     </div>
@@ -57,8 +48,6 @@
 <script setup lang="ts">
   import { reactive } from 'vue';
   import { useI18n } from 'vue-i18n';
-
-  import DorisNodeModel from '@services/model/doris/doris-node';
 
   import type { TExpansionNode } from './Index.vue';
 
@@ -92,6 +81,14 @@
     ),
   );
 
+  const getCountText = (nodeItem: TExpansionNode) => {
+    const { ipSource } = props;
+    if (nodeItem.showCount) {
+      return ipSource === 'resource_pool' ? nodeItem.resourceSpec.count : nodeItem.hostList.length;
+    }
+    return nodeItem.expansionDisk;
+  };
+
   const handleSelect = (value: string) => {
     validateStatusMemo[modelValue.value] = true;
     modelValue.value = value;
@@ -101,9 +98,6 @@
     validate() {
       Object.keys(validateStatusMemo).forEach((key) => (validateStatusMemo[key] = true));
       return Object.values(props.nodeInfo).some((nodeData) => {
-        if (!nodeData.targetDisk && nodeData.role !== DorisNodeModel.ROLE_OBSERVER) {
-          return false;
-        }
         if (props.ipSource === 'manual_input') {
           return nodeData.hostList.length > 0;
         }

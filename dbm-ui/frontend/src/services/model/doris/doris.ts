@@ -13,7 +13,7 @@
 
 import { uniq } from 'lodash';
 
-import type { ClusterListNode, ClusterListOperation } from '@services/types';
+import type { ClusterEntryDetail, ClusterListNode, ClusterListOperation } from '@services/types';
 
 import { TicketTypes } from '@common/const';
 
@@ -60,6 +60,7 @@ export default class Doris {
   bk_cloud_name: string;
   cluster_access_port: number;
   cluster_alias: string;
+  cluster_entry_details: ClusterEntryDetail[];
   cluster_name: string;
   cluster_stats: Record<'used' | 'total' | 'in_use', number>;
   cluster_time_zone: string;
@@ -76,6 +77,7 @@ export default class Doris {
   major_version: string;
   operations: ClusterListOperation[];
   permission: {
+    access_entry_edit: boolean;
     doris_access_entry_view: boolean;
     doris_destroy: boolean;
     doris_enable_disable: boolean;
@@ -99,6 +101,7 @@ export default class Doris {
     this.bk_cloud_name = payload.bk_cloud_name;
     this.cluster_access_port = payload.cluster_access_port;
     this.cluster_alias = payload.cluster_alias;
+    this.cluster_entry_details = payload.cluster_entry_details;
     this.cluster_name = payload.cluster_name;
     this.cluster_stats = payload.cluster_stats || {};
     this.cluster_type = payload.cluster_type;

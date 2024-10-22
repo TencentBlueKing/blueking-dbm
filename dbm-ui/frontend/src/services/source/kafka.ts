@@ -14,6 +14,7 @@
 import KafkaModel from '@services/model/kafka/kafka';
 import KafkaDetailModel from '@services/model/kafka/kafka-detail';
 import KafkaInstanceModel from '@services/model/kafka/kafka-instance';
+import KafkaMachineModel from '@services/model/kafka/kafka-machine';
 import KafkaNodeModel from '@services/model/kafka/kafka-node';
 import KafkaPasswordModel from '@services/model/kafka/kafka-password';
 import type { ListBase } from '@services/types';
@@ -124,4 +125,29 @@ export function exportKafkaClusterToExcel(params: { cluster_ids?: number[] }) {
  */
 export function exportKafkaInstanceToExcel(params: { bk_host_ids?: number[] }) {
   return http.post<string>(`${path}/export_instance/`, params, { responseType: 'blob' });
+}
+
+/**
+ * 查询主机列表
+ */
+export function getKafkaMachineList(params: {
+  limit?: number;
+  offset?: number;
+  bk_host_id?: number;
+  ip?: string;
+  cluster_ids?: string;
+  bk_city_name?: string;
+  machine_type?: string;
+  bk_os_name?: string;
+  bk_cloud_id?: number;
+  bk_agent_id?: string;
+  instance_role?: string;
+  creator?: string;
+  add_role_count?: boolean;
+  cluster_type?: string;
+}) {
+  return http.get<ListBase<KafkaMachineModel[]>>(`${path}/list_machines/`, params).then((data) => ({
+    ...data,
+    results: data.results.map((item) => new KafkaMachineModel(item)),
+  }));
 }

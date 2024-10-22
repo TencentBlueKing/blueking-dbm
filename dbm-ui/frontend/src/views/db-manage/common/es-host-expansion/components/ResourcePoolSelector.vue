@@ -7,65 +7,59 @@
             {{ t('xx节点规格', { name: data.label.toLocaleLowerCase() }) }}
             <span class="required-flag">*</span>
           </div>
-          <span
-            v-bk-tooltips="{
-              content: t('请先设置期望容量'),
-              disabled: data.targetDisk > 0,
-            }">
-            <BkSelect
-              :disabled="data.targetDisk < 1"
-              :loading="isResourceSpecLoading"
-              :model-value="specId || undefined"
-              @change="handleSpecChange">
-              <BkOption
-                v-for="item in resourceSpecList?.results"
-                :key="item.spec_id"
-                :label="item.spec_name"
-                :value="item.spec_id">
-                <BkPopover
-                  placement="right"
-                  theme="light"
-                  width="580">
-                  <div style="display: flex; width: 100%; align-items: center">
-                    <div>{{ item.spec_name }}</div>
-                    <BkTag style="margin-left: auto">{{ specCountMap[item.spec_id] }}</BkTag>
-                  </div>
-                  <template #content>
-                    <SpecDetail :data="item" />
-                  </template>
-                </BkPopover>
-              </BkOption>
-            </BkSelect>
-          </span>
+          <BkSelect
+            :loading="isResourceSpecLoading"
+            :model-value="specId"
+            @change="handleSpecChange">
+            <BkOption
+              v-for="item in resourceSpecList?.results"
+              :key="item.spec_id"
+              :label="item.spec_name"
+              :value="item.spec_id">
+              <BkPopover
+                placement="right"
+                theme="light"
+                width="580">
+                <div style="display: flex; width: 100%; align-items: center">
+                  <div>{{ item.spec_name }}</div>
+                  <BkTag style="margin-left: auto">{{ specCountMap[item.spec_id] }}</BkTag>
+                </div>
+                <template #content>
+                  <SpecDetail :data="item" />
+                </template>
+              </BkPopover>
+            </BkOption>
+          </BkSelect>
         </div>
         <div class="form-block-item">
           <div class="form-block-title">
-            <I18nT keypath="扩容至（当前n台）">
+            <I18nT keypath="扩容数量（当前n台）">
               {{ originalHostNums }}
             </I18nT>
             <span class="required-flag">*</span>
           </div>
-          <span
-            v-bk-tooltips="{
-              content: t('请先设置期望容量'),
-              disabled: data.targetDisk > 0,
-            }">
-            <BkInput
-              :disabled="data.targetDisk < 1"
-              :min="originalHostNums"
-              :model-value="machinePairCnt || undefined"
-              type="number"
-              @change="handleMachinePairCntChange" />
-          </span>
+          <BkInput
+            :min="0"
+            :model-value="machinePairCnt"
+            type="number"
+            @change="handleMachinePairCntChange" />
         </div>
       </div>
     </BkLoading>
     <div
       v-if="estimateCapacity > 0"
       class="disk-tips mt-16">
-      <span style="padding-right: 4px"> {{ t('预估容量（以最小配置计算）') }}: </span>
-      <span class="number">{{ estimateCapacity }}</span>
-      <span>G</span>
+      <I18nT
+        keypath="当前容量：nG"
+        tag="span">
+        <span style="font-weight: bolder">{{ data.totalDisk }}</span>
+      </I18nT>
+      ，
+      <I18nT
+        keypath="扩容后预估：nG"
+        tag="span">
+        <span style="font-weight: bolder">{{ estimateCapacity + data.totalDisk }}</span>
+      </I18nT>
     </div>
   </div>
 </template>
@@ -94,17 +88,13 @@
     (e: 'change', value: TExpansionNode['resourceSpec'], expansionDisk: TExpansionNode['expansionDisk']): void;
   }
 
-  interface Exposes {
-    triggerLatestValue: () => void;
-  }
-
   const props = defineProps<Props>();
   const emits = defineEmits<Emits>();
 
   const { t } = useI18n();
 
   const specId = ref(props.data.resourceSpec.spec_id);
-  const machinePairCnt = ref(props.data.resourceSpec.count + props.data.originalHostList.length);
+  const machinePairCnt = ref(props.data.resourceSpec.count);
   const specCountMap = shallowRef<Record<number, number>>({});
 
   const originalHostNums = computed(() => props.data.originalHostList.length);
@@ -125,14 +115,15 @@
   });
 
   const triggerChange = () => {
+    const count = machinePairCnt.value;
     emits(
       'change',
       {
         spec_id: specId.value,
-        count: Math.max(machinePairCnt.value - originalHostNums.value, 0),
+        count,
         instance_num: currentSelectSpec.value ? (currentSelectSpec.value.instance_num as number) : 0,
       },
-      estimateCapacity.value,
+      count ? estimateCapacity.value : 0,
     );
   };
 
@@ -152,6 +143,9 @@
       },
     ],
     onSuccess(data) {
+      if (specId.value) {
+        triggerChange();
+      }
       fetchSpecResourceCount({
         bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
         bk_cloud_id: props.cloudInfo.id,
@@ -184,12 +178,6 @@
     machinePairCnt.value = value;
     triggerChange();
   };
-
-  defineExpose<Exposes>({
-    triggerLatestValue() {
-      triggerChange();
-    },
-  });
 </script>
 <style lang="less">
   .es-cluster-expansion-resource-pool-selector {
