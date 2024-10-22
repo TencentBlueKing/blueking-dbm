@@ -116,10 +116,10 @@
   import { useRequest } from 'vue-request';
   import { useRoute, useRouter } from 'vue-router';
 
-  import MysqlPermissonAccountModel from '@services/model/mysql/mysql-permission-account';
+  import MysqlPermissionAccountModel from '@services/model/mysql/mysql-permission-account';
   import TendbclusterModel from '@services/model/tendbcluster/tendbcluster';
+  import { getPermissionRules } from '@services/source/mysqlPermissionAccount'
   import { create as createOpenarea, getDetail, update as updateOpenarea } from '@services/source/openarea';
-  import { getPermissionRules } from '@services/source/permission';
 
   import { useBeforeClose } from '@hooks';
 
@@ -164,7 +164,7 @@
   const permissionTableloading = ref(false);
   const permissionRules = ref<number[]>([]);
   const rowFlodMap = ref<Record<string, boolean>>({});
-  const permissionTableData = ref<MysqlPermissonAccountModel[]>([]);
+  const permissionTableData = ref<MysqlPermissionAccountModel[]>([]);
   const formDataChanged = ref(false);
   const currentCluster = ref({
     type: 'tendbha',
@@ -187,7 +187,7 @@
       field: 'user',
       width: 220,
       showOverflowTooltip: false,
-      render: ({ data }: { data: MysqlPermissonAccountModel }) => (
+      render: ({ data }: { data: MysqlPermissionAccountModel }) => (
         <div class="account-box">
           {
             data.rules.length > 1
@@ -208,7 +208,7 @@
       width: 300,
       field: 'access_db',
       showOverflowTooltip: true,
-      render: ({ data }: { data: MysqlPermissonAccountModel }) => {
+      render: ({ data }: { data: MysqlPermissionAccountModel }) => {
         const renderRules = rowFlodMap.value[data.account.user] ? data.rules.slice(0, 1) : data.rules;
         return renderRules.map(item => (
           <div class="inner-row">
@@ -223,7 +223,7 @@
       label: t('权限'),
       field: 'privilege',
       showOverflowTooltip: false,
-      render: ({ data }: { data: MysqlPermissonAccountModel }) => {
+      render: ({ data }: { data: MysqlPermissionAccountModel }) => {
         if (data.rules.length === 0) {
           return <div class="inner-row">--</div>;
         }
@@ -243,7 +243,7 @@
       label: t('操作'),
       field: 'operate',
       width: 145,
-      render: ({ data }: { data: MysqlPermissonAccountModel }) => {
+      render: ({ data }: { data: MysqlPermissionAccountModel }) => {
         const renderRules = rowFlodMap.value[data.account.user] ? data.rules.slice(0, 1) : data.rules;
         return renderRules.map(item => (
           <div class="inner-row">
@@ -287,7 +287,7 @@
 
   const getCellClass = (data: { field: string }) => ['privilege', 'operate'].includes(data.field) ? 'cell-privilege' : '';
 
-  const handleRemoveSelectedPermissionRules = (data: MysqlPermissonAccountModel['rules'][number]) => {
+  const handleRemoveSelectedPermissionRules = (data: MysqlPermissionAccountModel['rules'][number]) => {
     const permissionIndex = permissionTableData.value.findIndex(item => item.account.account_id === data.account_id)!;
     const permission = permissionTableData.value[permissionIndex];
     const ruleIndex = permission.rules.findIndex(item => item.rule_id === data.rule_id)!;
