@@ -91,7 +91,7 @@
         "x": 0,
         "y": 0
       },
-      "id": null,
+      "id": 2,
       "options": {
         "legend": {
           "calcs": [],
@@ -245,6 +245,82 @@
                     "$cluster_domain"
                   ]
                 }
+              ],
+              [
+                {
+                  "key": "xvlrd5ao2q",
+                  "list": [
+                    {
+                      "id": "and",
+                      "name": "AND"
+                    },
+                    {
+                      "id": "or",
+                      "name": "OR"
+                    }
+                  ],
+                  "type": "condition",
+                  "value": "and"
+                },
+                {
+                  "key": "gpic8m9pxh",
+                  "list": [
+                    {
+                      "id": "__ext.instance_role",
+                      "name": "__ext.instance_role"
+                    }
+                  ],
+                  "open": false,
+                  "type": "key",
+                  "value": "__ext.instance_role"
+                },
+                {
+                  "key": "qp1pbmnuhj",
+                  "list": [
+                    {
+                      "id": "is",
+                      "name": "is"
+                    },
+                    {
+                      "id": "is one of",
+                      "name": "is one of"
+                    },
+                    {
+                      "id": "is not",
+                      "name": "is not"
+                    },
+                    {
+                      "id": "is not one of",
+                      "name": "is not one of"
+                    },
+                    {
+                      "id": "gt",
+                      "name": ">"
+                    },
+                    {
+                      "id": "gte",
+                      "name": ">="
+                    },
+                    {
+                      "id": "lt",
+                      "name": "<"
+                    },
+                    {
+                      "id": "lte",
+                      "name": "<="
+                    }
+                  ],
+                  "type": "method",
+                  "value": "is"
+                },
+                {
+                  "key": "xqksksuxcs",
+                  "list": [],
+                  "type": "value",
+                  "value": [
+                    "$instance_role"
+                  ]
+                }
               ]
             ],
             "dimensions": [
@@ -261,6 +337,7 @@
                 "[采集项]mysql_slowlog"
               ]
             },
+            "indexSetString": "",
             "method": "value_count",
             "metric": "bk_host_id",
             "period": 60,
@@ -281,8 +358,6 @@
             "type": "bk_log_datasource",
             "uid": "bklog"
           },
-          "datasourceId": "bk_log_datasource",
-          "name": "BlueKing Log TimeSeries",
           "refId": "A"
         }
       ],
@@ -352,7 +427,7 @@
         "x": 8,
         "y": 0
       },
-      "id": null,
+      "id": 10,
       "options": {
         "legend": {
           "calcs": [],
@@ -506,6 +581,82 @@
                     "$cluster_domain"
                   ]
                 }
+              ],
+              [
+                {
+                  "key": "wvvswf84pt",
+                  "list": [
+                    {
+                      "id": "and",
+                      "name": "AND"
+                    },
+                    {
+                      "id": "or",
+                      "name": "OR"
+                    }
+                  ],
+                  "type": "condition",
+                  "value": "and"
+                },
+                {
+                  "key": "u2sf4w6fvm",
+                  "list": [
+                    {
+                      "id": "__ext.instance_role",
+                      "name": "__ext.instance_role"
+                    }
+                  ],
+                  "open": false,
+                  "type": "key",
+                  "value": "__ext.instance_role"
+                },
+                {
+                  "key": "lgh3dxh9el",
+                  "list": [
+                    {
+                      "id": "is",
+                      "name": "is"
+                    },
+                    {
+                      "id": "is one of",
+                      "name": "is one of"
+                    },
+                    {
+                      "id": "is not",
+                      "name": "is not"
+                    },
+                    {
+                      "id": "is not one of",
+                      "name": "is not one of"
+                    },
+                    {
+                      "id": "gt",
+                      "name": ">"
+                    },
+                    {
+                      "id": "gte",
+                      "name": ">="
+                    },
+                    {
+                      "id": "lt",
+                      "name": "<"
+                    },
+                    {
+                      "id": "lte",
+                      "name": "<="
+                    }
+                  ],
+                  "type": "method",
+                  "value": "is"
+                },
+                {
+                  "key": "y2mhhjn3sn",
+                  "list": [],
+                  "type": "value",
+                  "value": [
+                    "$instance_role"
+                  ]
+                }
               ]
             ],
             "dimensions": [],
@@ -518,6 +669,7 @@
                 "[采集项]mysql_slowlog"
               ]
             },
+            "indexSetString": "",
             "method": "max",
             "metric": "query_time",
             "period": 60,
@@ -538,8 +690,6 @@
             "type": "bk_log_datasource",
             "uid": "bklog"
           },
-          "datasourceId": "bk_log_datasource",
-          "name": "BlueKing Log TimeSeries",
           "refId": "A"
         }
       ],
@@ -609,7 +759,7 @@
         "x": 16,
         "y": 0
       },
-      "id": null,
+      "id": 11,
       "options": {
         "legend": {
           "calcs": [],
@@ -763,6 +913,82 @@
                     "$cluster_domain"
                   ]
                 }
+              ],
+              [
+                {
+                  "key": "3eetndscqx",
+                  "list": [
+                    {
+                      "id": "and",
+                      "name": "AND"
+                    },
+                    {
+                      "id": "or",
+                      "name": "OR"
+                    }
+                  ],
+                  "type": "condition",
+                  "value": "and"
+                },
+                {
+                  "key": "8g2gu2426k",
+                  "list": [
+                    {
+                      "id": "__ext.instance_role",
+                      "name": "__ext.instance_role"
+                    }
+                  ],
+                  "open": false,
+                  "type": "key",
+                  "value": "__ext.instance_role"
+                },
+                {
+                  "key": "gzpyfg0mjd",
+                  "list": [
+                    {
+                      "id": "is",
+                      "name": "is"
+                    },
+                    {
+                      "id": "is one of",
+                      "name": "is one of"
+                    },
+                    {
+                      "id": "is not",
+                      "name": "is not"
+                    },
+                    {
+                      "id": "is not one of",
+                      "name": "is not one of"
+                    },
+                    {
+                      "id": "gt",
+                      "name": ">"
+                    },
+                    {
+                      "id": "gte",
+                      "name": ">="
+                    },
+                    {
+                      "id": "lt",
+                      "name": "<"
+                    },
+                    {
+                      "id": "lte",
+                      "name": "<="
+                    }
+                  ],
+                  "type": "method",
+                  "value": "is"
+                },
+                {
+                  "key": "tcg9jdati2",
+                  "list": [],
+                  "type": "value",
+                  "value": [
+                    "$instance_role"
+                  ]
+                }
               ]
             ],
             "dimensions": [],
@@ -775,6 +1001,7 @@
                 "[采集项]mysql_slowlog"
               ]
             },
+            "indexSetString": "",
             "method": "avg",
             "metric": "query_time",
             "period": 60,
@@ -795,8 +1022,6 @@
             "type": "bk_log_datasource",
             "uid": "bklog"
           },
-          "datasourceId": "bk_log_datasource",
-          "name": "BlueKing Log TimeSeries",
           "refId": "A"
         }
       ],
@@ -830,7 +1055,7 @@
         "x": 0,
         "y": 11
       },
-      "id": null,
+      "id": 6,
       "options": {
         "legend": {
           "displayMode": "list",
@@ -991,6 +1216,82 @@
                     "$cluster_domain"
                   ]
                 }
+              ],
+              [
+                {
+                  "key": "dn819uw8fx",
+                  "list": [
+                    {
+                      "id": "and",
+                      "name": "AND"
+                    },
+                    {
+                      "id": "or",
+                      "name": "OR"
+                    }
+                  ],
+                  "type": "condition",
+                  "value": "and"
+                },
+                {
+                  "key": "k7xyundq1h",
+                  "list": [
+                    {
+                      "id": "__ext.instance_role",
+                      "name": "__ext.instance_role"
+                    }
+                  ],
+                  "open": false,
+                  "type": "key",
+                  "value": "__ext.instance_role"
+                },
+                {
+                  "key": "du8wyo9d0f",
+                  "list": [
+                    {
+                      "id": "is",
+                      "name": "is"
+                    },
+                    {
+                      "id": "is one of",
+                      "name": "is one of"
+                    },
+                    {
+                      "id": "is not",
+                      "name": "is not"
+                    },
+                    {
+                      "id": "is not one of",
+                      "name": "is not one of"
+                    },
+                    {
+                      "id": "gt",
+                      "name": ">"
+                    },
+                    {
+                      "id": "gte",
+                      "name": ">="
+                    },
+                    {
+                      "id": "lt",
+                      "name": "<"
+                    },
+                    {
+                      "id": "lte",
+                      "name": "<="
+                    }
+                  ],
+                  "type": "method",
+                  "value": "is"
+                },
+                {
+                  "key": "qdgkqxdik9",
+                  "list": [],
+                  "type": "value",
+                  "value": [
+                    "$instance_role"
+                  ]
+                }
               ]
             ],
             "dimensions": [
@@ -1006,6 +1307,7 @@
                 "[采集项]mysql_slowlog"
               ]
             },
+            "indexSetString": "",
             "method": "value_count",
             "metric": "bk_host_id",
             "period": 86400,
@@ -1026,8 +1328,6 @@
             "type": "bk_log_datasource",
             "uid": "bklog"
           },
-          "datasourceId": "bk_log_datasource",
-          "name": "BlueKing Log TimeSeries",
           "refId": "A"
         }
       ],
@@ -1061,7 +1361,7 @@
         "x": 12,
         "y": 11
       },
-      "id": null,
+      "id": 8,
       "options": {
         "legend": {
           "displayMode": "list",
@@ -1222,6 +1522,82 @@
                     "$cluster_domain"
                   ]
                 }
+              ],
+              [
+                {
+                  "key": "rjwgqy7sl6",
+                  "list": [
+                    {
+                      "id": "and",
+                      "name": "AND"
+                    },
+                    {
+                      "id": "or",
+                      "name": "OR"
+                    }
+                  ],
+                  "type": "condition",
+                  "value": "and"
+                },
+                {
+                  "key": "aiuw43h333",
+                  "list": [
+                    {
+                      "id": "__ext.instance_role",
+                      "name": "__ext.instance_role"
+                    }
+                  ],
+                  "open": false,
+                  "type": "key",
+                  "value": "__ext.instance_role"
+                },
+                {
+                  "key": "ylo17atfvg",
+                  "list": [
+                    {
+                      "id": "is",
+                      "name": "is"
+                    },
+                    {
+                      "id": "is one of",
+                      "name": "is one of"
+                    },
+                    {
+                      "id": "is not",
+                      "name": "is not"
+                    },
+                    {
+                      "id": "is not one of",
+                      "name": "is not one of"
+                    },
+                    {
+                      "id": "gt",
+                      "name": ">"
+                    },
+                    {
+                      "id": "gte",
+                      "name": ">="
+                    },
+                    {
+                      "id": "lt",
+                      "name": "<"
+                    },
+                    {
+                      "id": "lte",
+                      "name": "<="
+                    }
+                  ],
+                  "type": "method",
+                  "value": "is"
+                },
+                {
+                  "key": "g25nspnms1",
+                  "list": [],
+                  "type": "value",
+                  "value": [
+                    "$instance_role"
+                  ]
+                }
               ]
             ],
             "dimensions": [
@@ -1237,6 +1613,7 @@
                 "[采集项]mysql_slowlog"
               ]
             },
+            "indexSetString": "",
             "method": "value_count",
             "metric": "bk_host_id",
             "period": 86400,
@@ -1257,8 +1634,6 @@
             "type": "bk_log_datasource",
             "uid": "bklog"
           },
-          "datasourceId": "bk_log_datasource",
-          "name": "BlueKing Log TimeSeries",
           "refId": "A"
         }
       ],
@@ -1305,7 +1680,7 @@
         "x": 0,
         "y": 24
       },
-      "id": null,
+      "id": 4,
       "options": {
         "footer": {
           "enablePagination": false,
@@ -1316,7 +1691,12 @@
           "show": false
         },
         "showHeader": true,
-        "sortBy": []
+        "sortBy": [
+          {
+            "desc": false,
+            "displayName": "__ext.instance_role"
+          }
+        ]
       },
       "pluginVersion": "9.1.0",
       "targets": [
@@ -1460,6 +1840,82 @@
                     "$cluster_domain"
                   ]
                 }
+              ],
+              [
+                {
+                  "key": "rhgpo7bq3o",
+                  "list": [
+                    {
+                      "id": "and",
+                      "name": "AND"
+                    },
+                    {
+                      "id": "or",
+                      "name": "OR"
+                    }
+                  ],
+                  "type": "condition",
+                  "value": "and"
+                },
+                {
+                  "key": "pb0e8ddk04",
+                  "list": [
+                    {
+                      "id": "__ext.instance_role",
+                      "name": "__ext.instance_role"
+                    }
+                  ],
+                  "open": false,
+                  "type": "key",
+                  "value": "__ext.instance_role"
+                },
+                {
+                  "key": "4jlixuj77l",
+                  "list": [
+                    {
+                      "id": "is",
+                      "name": "is"
+                    },
+                    {
+                      "id": "is one of",
+                      "name": "is one of"
+                    },
+                    {
+                      "id": "is not",
+                      "name": "is not"
+                    },
+                    {
+                      "id": "is not one of",
+                      "name": "is not one of"
+                    },
+                    {
+                      "id": "gt",
+                      "name": ">"
+                    },
+                    {
+                      "id": "gte",
+                      "name": ">="
+                    },
+                    {
+                      "id": "lt",
+                      "name": "<"
+                    },
+                    {
+                      "id": "lte",
+                      "name": "<="
+                    }
+                  ],
+                  "type": "method",
+                  "value": "is"
+                },
+                {
+                  "key": "f2ene6kku7",
+                  "list": [],
+                  "type": "value",
+                  "value": [
+                    "$instance_role"
+                  ]
+                }
               ]
             ],
             "dimensions": [],
@@ -1472,6 +1928,7 @@
                 "[采集项]mysql_slowlog"
               ]
             },
+            "indexSetString": "",
             "method": "logs",
             "metric": "bk_host_id",
             "period": 60,
@@ -1492,8 +1949,6 @@
             "type": "bk_log_datasource",
             "uid": "bklog"
           },
-          "datasourceId": "bk_log_datasource",
-          "name": "BlueKing Log TimeSeries",
           "refId": "A"
         }
       ],
@@ -1520,6 +1975,7 @@
               "gseIndex": true,
               "index": true,
               "iterationIndex": true,
+              "log": false,
               "path": true,
               "serverIp": true,
               "slow_query.db_name": true
@@ -1596,6 +2052,9 @@
     "list": [
       {
         "current": {
+          "selected": true,
+          "text": "",
+          "value": ""
         },
         "datasource": {
           "type": "bkmonitor-timeseries-datasource",
@@ -1629,6 +2088,9 @@
       },
       {
         "current": {
+          "selected": true,
+          "text": "",
+          "value": ""
         },
         "datasource": {
           "type": "bkmonitor-timeseries-datasource",
@@ -1670,6 +2132,47 @@
       },
       {
         "current": {
+          "selected": true,
+          "text": "backend_master",
+          "value": "backend_master"
+        },
+        "definition": "- Blueking Monitor - 维度",
+        "hide": 0,
+        "includeAll": false,
+        "label": "instance_role",
+        "multi": false,
+        "name": "instance_role",
+        "options": [],
+        "query": {
+          "metricConfig": {
+            "data_label": "exporter_dbm_mysqld_exporter",
+            "data_source_label": "bk_monitor",
+            "data_type_label": "time_series",
+            "group_by": "instance_role",
+            "metric_field": "mysql_up",
+            "result_table_id": "exporter_dbm_mysqld_exporter.__default__",
+            "result_table_label": "component",
+            "where": [
+              {
+                "key": "cluster_domain",
+                "method": "eq",
+                "value": [
+                  "${cluster_domain}"
+                ]
+              }
+            ]
+          },
+          "queryType": "dimension",
+          "variables": "${cluster_domain}"
+        },
+        "refresh": 1,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 0,
+        "type": "query"
+      },
+      {
+        "current": {
           "selected": false,
           "text": "*",
           "value": "*"
@@ -1697,6 +2200,6 @@
   "timezone": "default",
   "title": "MySQL慢查询",
   "uid": "T03zLYLSz",
-  "version": 23,
+  "version": 27,
   "weekStart": ""
 }
