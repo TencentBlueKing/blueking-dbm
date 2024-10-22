@@ -12,14 +12,16 @@
 -->
 
 <template>
-  <DbTab v-model:active="activeTab" />
+  <DbTab
+    v-model:active="activeTab"
+    :exclude="[DBTypes.RIAK]" />
   <div class="password-policy-content">
     <RenderContent :db-type="activeTab" />
   </div>
 </template>
 
 <script setup lang="ts">
-  import type { DBTypes } from '@common/const';
+  import { DBTypes } from '@common/const';
 
   import DbTab from '@components/db-tab/Index.vue';
 

@@ -29,10 +29,18 @@
 
   import { DBTypeInfos, DBTypes } from '@common/const';
 
+  interface Props {
+    exclude?: DBTypes[];
+  }
+
   interface TabItem {
     id: DBTypes;
     name: string;
   }
+
+  const props = withDefaults(defineProps<Props>(), {
+    exclude: () => [],
+  });
 
   const funControllerStore = useFunController();
 
@@ -43,7 +51,7 @@
   const renderTabs = Object.values(DBTypeInfos).reduce((result, item) => {
     const { id, name, moduleId } = item;
     const data = funControllerStore.funControllerData.getFlatData(moduleId);
-    if (data[id]) {
+    if (data[id] && !props.exclude.includes(id)) {
       result.push({ id, name });
     }
     return result;
