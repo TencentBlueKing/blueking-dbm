@@ -15,7 +15,7 @@
   <div class="doris-list-page">
     <div class="header-action">
       <AuthButton
-        action-id="es_apply"
+        action-id="doris_apply"
         class="mb16"
         theme="primary"
         @click="handleGoApply">
@@ -95,8 +95,8 @@
 
   import DorisModel from '@services/model/doris/doris';
   import {
-    getDorisInstanceList,
-    getDorisList,
+   getDorisInstanceList,
+   getDorisList
   } from '@services/source/doris';
   import { createTicket } from '@services/source/ticket';
   import { getUserList } from '@services/source/user';
@@ -113,8 +113,9 @@
 
   import {
     ClusterTypes,
+    DBTypes,
     TicketTypes,
-    UserPersonalSettings
+    UserPersonalSettings,
   } from '@common/const';
 
   import RenderClusterStatus from '@components/cluster-status/Index.vue';
@@ -122,6 +123,7 @@
   import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
 
   import ClusterCapacityUsageRate from '@views/db-manage/common/cluster-capacity-usage-rate/Index.vue'
+  import EditEntryConfig from '@views/db-manage/common/cluster-entry-config/Index.vue';
   import ClusterIpCopy from '@views/db-manage/common/cluster-ip-copy/Index.vue';
   import DropdownExportExcel from '@views/db-manage/common/dropdown-export-excel/index.vue';
   import OperationBtnStatusTips from '@views/db-manage/common/OperationBtnStatusTips.vue';
@@ -327,7 +329,7 @@
           {{
             default: () => (
               <auth-button
-                action-id="es_view"
+                action-id="doris_view"
                 resource={data.id}
                 permission={data.permission.doris_view}
                 text
@@ -354,6 +356,14 @@
                     }/>
                   )
                 }
+                <span v-db-console="doris.clusterManage.modifyEntryConfiguration">
+                  <EditEntryConfig
+                    id={data.id}
+                    bizId={data.bk_biz_id}
+                    permission={data.permission.access_entry_edit}
+                    resource={DBTypes.DORIS}
+                    onSuccess={fetchTableData} />
+                </span>
               </>
             ),
           }}
@@ -1127,17 +1137,19 @@
       }
     }
 
-    .db-icon-copy {
+    .db-icon-copy,
+    .db-icon-visible1 {
       display: none;
+      margin-top: 1px;
+      margin-left: 4px;
+      color: @primary-color;
+      cursor: pointer;
     }
 
     tr:hover {
-      .db-icon-copy {
+      .db-icon-copy,
+      .db-icon-visible1 {
         display: inline-block !important;
-        margin-left: 4px;
-        color: #3a84ff;
-        vertical-align: middle;
-        cursor: pointer;
       }
     }
   }

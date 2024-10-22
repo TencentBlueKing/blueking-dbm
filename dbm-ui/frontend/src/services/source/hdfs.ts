@@ -15,6 +15,7 @@ import HdfsModel from '@services/model/hdfs/hdfs';
 import ClusterConfigXmlsModel from '@services/model/hdfs/hdfs-cluster-config-xmls';
 import HdfsDetailModel from '@services/model/hdfs/hdfs-detail';
 import HdfsInstanceModel from '@services/model/hdfs/hdfs-instance';
+import HdfsMachineModel from '@services/model/hdfs/hdfs-machine';
 import HdfsNodeModel from '@services/model/hdfs/hdfs-node';
 import HdfsPasswordModel from '@services/model/hdfs/hdfs-password';
 import type { ListBase } from '@services/types';
@@ -131,4 +132,29 @@ export function exportHdfsClusterToExcel(params: { cluster_ids?: number[] }) {
  */
 export function exportHdfsInstanceToExcel(params: { bk_host_ids?: number[] }) {
   return http.post<string>(`${path}/export_instance/`, params, { responseType: 'blob' });
+}
+
+/**
+ * 查询主机列表
+ */
+export function getHdfsMachineList(params: {
+  limit?: number;
+  offset?: number;
+  bk_host_id?: number;
+  ip?: string;
+  cluster_ids?: string;
+  bk_city_name?: string;
+  machine_type?: string;
+  bk_os_name?: string;
+  bk_cloud_id?: number;
+  bk_agent_id?: string;
+  instance_role?: string;
+  creator?: string;
+  add_role_count?: boolean;
+  cluster_type?: string;
+}) {
+  return http.get<ListBase<HdfsMachineModel[]>>(`${path}/list_machines/`, params).then((data) => ({
+    ...data,
+    results: data.results.map((item) => new HdfsMachineModel(item)),
+  }));
 }

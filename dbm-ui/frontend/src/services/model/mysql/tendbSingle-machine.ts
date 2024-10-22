@@ -13,7 +13,7 @@
 
 import type { HostInfo, MachineRelatedCluster, MachineRelatedInstance, MachineSpecConfig } from '@services/types';
 
-export default class RedisMachine {
+export default class TendbSingleMachine {
   bk_cloud_id: number;
   bk_cloud_name: string;
   bk_host_id: number;
@@ -27,12 +27,8 @@ export default class RedisMachine {
   related_instances: MachineRelatedInstance[];
   spec_config: MachineSpecConfig;
   spec_id: number;
-  total_master: number;
-  total_slave: number;
-  unavailable_master: number;
-  unavailable_slave: number;
 
-  constructor(payload = {} as RedisMachine) {
+  constructor(payload = {} as TendbSingleMachine) {
     this.bk_cloud_id = payload.bk_cloud_id;
     this.bk_cloud_name = payload.bk_cloud_name;
     this.bk_host_id = payload.bk_host_id;
@@ -46,25 +42,5 @@ export default class RedisMachine {
     this.related_instances = payload.related_instances;
     this.spec_config = payload.spec_config;
     this.spec_id = payload.spec_id;
-    this.total_master = payload.total_master;
-    this.total_slave = payload.total_slave;
-    this.unavailable_master = payload.unavailable_master;
-    this.unavailable_slave = payload.unavailable_slave;
-  }
-
-  get isSlaveFailover() {
-    return this.instance_role === 'redis_slave' && this.related_instances.some((item) => item.status === 'unavailable');
-  }
-
-  get isMasterFailover() {
-    return this.instance_role === 'redis_master' && this.unavailable_master > 0;
-  }
-
-  get isMaster() {
-    return this.instance_role === 'redis_master';
-  }
-
-  get isUnvailable() {
-    return this.host_info?.alive !== 1;
   }
 }

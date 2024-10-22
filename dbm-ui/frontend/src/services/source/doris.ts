@@ -13,6 +13,7 @@
 
 import DorisModel from '@services/model/doris/doris';
 import DorisInstanceModel from '@services/model/doris/doris-instance';
+import DorisMachineModel from '@services/model/doris/doris-machine';
 import DorisNodeModel from '@services/model/doris/doris-node';
 import DorisPasswordModel from '@services/model/doris/doris-password';
 import type { ListBase } from '@services/types';
@@ -140,4 +141,29 @@ export function exportDorisClusterToExcel(params: { cluster_ids?: number[] }) {
  */
 export function exportDorisInstanceToExcel(params: { bk_host_ids?: number[] }) {
   return http.post<string>(`${getRootPath()}/export_instance/`, params, { responseType: 'blob' });
+}
+
+/**
+ * 查询主机列表
+ */
+export function getDorisMachineList(params: {
+  limit?: number;
+  offset?: number;
+  bk_host_id?: number;
+  ip?: string;
+  cluster_ids?: string;
+  bk_city_name?: string;
+  machine_type?: string;
+  bk_os_name?: string;
+  bk_cloud_id?: number;
+  bk_agent_id?: string;
+  instance_role?: string;
+  creator?: string;
+  add_role_count?: boolean;
+  cluster_type?: string;
+}) {
+  return http.get<ListBase<DorisMachineModel[]>>(`${getRootPath()}/list_machines/`, params).then((data) => ({
+    ...data,
+    results: data.results.map((item) => new DorisMachineModel(item)),
+  }));
 }

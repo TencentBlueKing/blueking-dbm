@@ -43,7 +43,6 @@
           v-model:expansion-disk="nodeInfoMap[nodeType].expansionDisk"
           v-model:host-list="nodeInfoMap[nodeType].hostList"
           v-model:resource-spec="nodeInfoMap[nodeType].resourceSpec"
-          v-model:target-disk="nodeInfoMap[nodeType].targetDisk"
           :cloud-info="{
             id: data.bk_cloud_id,
             name: data.bk_cloud_name,
@@ -63,10 +62,11 @@
   } from 'vue';
   import { useI18n } from 'vue-i18n';
 
-  import type ESModel from '@services/model/es/es';
-  import { getHostDetails } from '@services/source/ipchooser';
+  import ESModel from '@services/model/es/es';
+  import EsMachineModel from '@services/model/es/es-machine';
+  import { getEsMachineList } from '@services/source/es'
   import { createTicket } from '@services/source/ticket';
-  import type { HostInfo } from '@services/types';
+  import type { HostInfo } from '@services/types'
 
   import { useTicketMessage } from '@hooks';
 
@@ -131,13 +131,12 @@
       ipSource: 'resource_pool',
       hostList: [],
       totalDisk: 0,
-      targetDisk: 0,
       expansionDisk: 0,
       specClusterType: ClusterTypes.ES,
       specMachineType: 'es_datanode',
       resourceSpec: {
         spec_id: 0,
-        count: 1,
+        count: 0,
         instance_num: 1,
       },
       tagText: t('存储层')
@@ -150,13 +149,12 @@
       ipSource: 'resource_pool',
       hostList: [],
       totalDisk: 0,
-      targetDisk: 0,
       expansionDisk: 0,
       specClusterType: ClusterTypes.ES,
       specMachineType: 'es_datanode',
       resourceSpec: {
         spec_id: 0,
-        count: 1,
+        count: 0,
         instance_num: 1,
       },
       tagText: t('存储层')
@@ -169,13 +167,12 @@
       ipSource: 'resource_pool',
       hostList: [],
       totalDisk: 0,
-      targetDisk: 0,
       expansionDisk: 0,
       specClusterType: ClusterTypes.ES,
       specMachineType: 'es_client',
       resourceSpec: {
         spec_id: 0,
-        count: 1,
+        count: 0,
         instance_num: 1,
       },
       tagText: t('接入层')
@@ -189,48 +186,25 @@
 
   // 获取主机详情
   const fetchHostDetail = () => {
-    const hotHostIdMap = props.data.es_datanode_hot.reduce((result, item) => ({
-      ...result,
-      [item.bk_host_id]: true,
-    }), {} as Record<number, boolean>);
-    const coldHostIdMap = props.data.es_datanode_cold.reduce((result, item) => ({
-      ...result,
-      [item.bk_host_id]: true,
-    }), {} as Record<number, boolean>);
-
-    const hostIdList = [
-      ...props.data.es_datanode_hot,
-      ...props.data.es_datanode_cold,
-    ].map(item => ({
-      host_id: item.bk_host_id,
-      meta: {
-        bk_biz_id: item.bk_biz_id,
-        scope_id: `${item.bk_biz_id}`,
-        scope_type: 'biz',
-      },
-    }));
-
     isLoading.value = true;
-    getHostDetails({
-      host_list: hostIdList,
-      scope_list: [{
-        scope_id: `${bizId}`,
-        scope_type: 'biz',
-      }],
+    getEsMachineList({
+      cluster_ids: String(props.data.id),
+      offset: 0,
+      limit: -1
     }).then((data) => {
-      const hotOriginalHostList: HostInfo[] = [];
-      const coldOriginalHostList: HostInfo[] = [];
+      const hotOriginalHostList: EsMachineModel[] = [];
+      const coldOriginalHostList: EsMachineModel[] = [];
 
       let hotDiskTotal = 0;
       let coldDiskTotal = 0;
 
-      data.forEach((hostItem) => {
-        if (hotHostIdMap[hostItem.host_id]) {
-          hotDiskTotal += ~~Number(hostItem.bk_disk);
+      data.results.forEach((hostItem) => {
+        if (hostItem.isHot) {
+          hotDiskTotal += Math.floor(Number(hostItem.host_info.bk_disk));
           hotOriginalHostList.push(hostItem);
         }
-        if (coldHostIdMap[hostItem.host_id]) {
-          coldDiskTotal += ~~Number(hostItem.bk_disk);
+        if (hostItem.isCold) {
+          coldDiskTotal += Math.floor(Number(hostItem.host_info.bk_disk));
           coldOriginalHostList.push(hostItem);
         }
       });
@@ -249,15 +223,15 @@
   fetchHostDetail();
 
   // 扩容主机节点互斥
-  const disableHostMethod = (hostData: TExpansionNode['originalHostList'][0]) => {
-    const hotDisableHostMethod = (hostData: TExpansionNode['originalHostList'][0]) => {
+  const disableHostMethod = (hostData: HostInfo) => {
+    const hotDisableHostMethod = (hostData: HostInfo) => {
       const coldHostIdMap = makeMapByHostId(nodeInfoMap.cold.hostList);
       if (coldHostIdMap[hostData.host_id]) {
         return t('主机已被xx节点使用', ['冷']);
       }
       return false;
     };
-    const coldDisableHostMethod = (hostData: TExpansionNode['originalHostList'][0]) => {
+    const coldDisableHostMethod = (hostData: HostInfo) => {
       const hotHostIdMap = makeMapByHostId(nodeInfoMap.hot.hostList);
       if (hotHostIdMap[hostData.host_id]) {
         return t('主机已被xx节点使用', ['热']);
@@ -283,20 +257,6 @@
       }
 
       const renderSubTitle = () => {
-        const renderDiskTips = () => {
-          const isNotMatch = Object.values(nodeInfoMap)
-            .some(nodeData => nodeData.targetDisk > 0
-              && nodeData.totalDisk + nodeData.expansionDisk !== nodeData.targetDisk);
-          if (isNotMatch) {
-            return (
-              <>
-                <div>{t('目标容量与所选 IP 容量不一致，确认提交？')}</div>
-                <div>{t('继续提交将按照手动选择的 IP 容量进行')}</div>
-              </>
-            );
-          }
-          return null;
-        };
         const renderExpansionDiskTips = () => Object.values(nodeInfoMap).map((nodeData) => {
           if (nodeData.expansionDisk) {
             return (
@@ -314,7 +274,6 @@
 
         return (
           <div style="font-size: 14px; line-height: 28px; color: #63656E;">
-            {renderDiskTips()}
             {renderExpansionDiskTips()}
           </div>
         );
@@ -338,7 +297,7 @@
                 host_list: item.hostList,
                 total_hosts: item.originalHostList.length,
                 total_disk: item.totalDisk,
-                target_disk: item.targetDisk,
+                // target_disk: item.targetDisk,
                 expansion_disk: item.expansionDisk,
               };
               Object.assign(results, {
