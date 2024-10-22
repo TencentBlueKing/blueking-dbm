@@ -1,4 +1,4 @@
-package dbloader
+package dbbackup_loader
 
 import (
 	"fmt"
@@ -45,7 +45,7 @@ func (l *LogicalLoader) CreateConfigFile() error {
 		IndexFilePath: p.IndexFilePath,
 		Threads:       cpuCores,
 		EnableBinlog:  p.EnableBinlog,
-		InitCommand:   l.MyloaderOpt.InitCommand,
+		InitCommand:   p.InitCommand,
 		TableFilter: config.TableFilter{
 			Regex: l.myloaderRegex,
 		},

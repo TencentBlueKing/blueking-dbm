@@ -1,6 +1,8 @@
 package rollback
 
 import (
+	"bytes"
+	"encoding/csv"
 	"fmt"
 	"path/filepath"
 	"regexp"
@@ -166,20 +168,39 @@ func (f *GoFlashback) PreCheck() error {
 	if f.FlashbackOpt.RowsFilter != "" {
 		rowsFilterExpr := f.FlashbackOpt.RowsFilter
 		var columnNames, columnPositions []string
+		var columnInfo native.TableColumnInfo
 		if guessRowsFilterType(rowsFilterExpr) < 0 {
 			// 如果是 csv 格式
-			lines := strings.Split(rowsFilterExpr, "\n")
-			columnNames = strings.Split(strings.ReplaceAll(lines[0], " ", ""), ",")
-			columnPositions, err = f.checkTableColumnExists(columnNames)
+			buf := bytes.NewBufferString(rowsFilterExpr)
+			csvReader := csv.NewReader(buf)
+			records, err := csvReader.ReadAll()
+			if err != nil {
+				return errors.WithMessagef(err, "Unable to parse file as CSV for")
+			}
+			if len(records) <= 1 {
+				return errors.Errorf("error csv format")
+			}
+
+			csvHeader := records[0]
+			_, columnInfo, err = f.checkTableColumnExists(csvHeader)
 			if err != nil {
 				return err
 			}
-			lines[0] = strings.Join(columnPositions, ",")
+			logger.Info("table column info:%+v", columnInfo)
+			lines := strings.Split(rowsFilterExpr, "\n")
+			//lines[0] = strings.Join(columnPositions, ",")
+			for i, originalColumnName := range csvHeader {
+				colPosName := fmt.Sprintf("col[%d]", columnInfo[originalColumnName].ColPos-1)
+				newColumnName := fmt.Sprintf("%s:%s", colPosName, columnInfo[originalColumnName].ColType)
+				records[0][i] = newColumnName
+			}
+			lines[0] = strings.Join(records[0], ",")
+			logger.Info("table column name with position:%+v", lines[0])
 			f.FlashbackOpt.RowsFilter = strings.Join(lines, "\n")
 		} else {
 			// 如果是 go-expr 格式
 			columnNames = findColumnNamesFromRowsFilter(rowsFilterExpr)
-			columnPositions, err = f.checkTableColumnExists(columnNames)
+			columnPositions, columnInfo, err = f.checkTableColumnExists(columnNames)
 			if err != nil {
 				return err
 			}
@@ -223,11 +244,8 @@ func findColumnNamesFromRowsFilter(rowsFilterExpr string) []string {
 func replaceColumnNamesWithPosition(rowsFilterExpr string, columnNames, columnPositions []string) string {
 	for i, columnName := range columnNames {
 		col := "@" + columnName
-		fmt.Println("yyyyyy", col, columnPositions[i], rowsFilterExpr)
 		rowsFilterExpr = strings.ReplaceAll(rowsFilterExpr, col, columnPositions[i])
-		fmt.Println("yyyyyy2", rowsFilterExpr)
 	}
-	fmt.Println("yyyyyy3", rowsFilterExpr)
 	return rowsFilterExpr
 }
 

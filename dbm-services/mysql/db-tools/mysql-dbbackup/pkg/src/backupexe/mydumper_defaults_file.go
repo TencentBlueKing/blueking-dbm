@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
+	"github.com/spf13/cast"
 	"gopkg.in/ini.v1"
 )
 
@@ -38,26 +39,26 @@ func (i *MydumperIni) SaveIni(fileName string) error {
 	var err error
 	if i.MydumperSessionVariables != nil {
 		section, _ := f.NewSection("mydumper_session_variables")
-		if err = section.ReflectFrom(i.MydumperSessionVariables); err != nil {
-			return err
+		for k, v := range i.MydumperSessionVariables {
+			section.NewKey(k, cast.ToString(v))
 		}
 	}
 	if i.MydumperGlobalVariables != nil {
 		section, _ := f.NewSection("mydumper_global_variables")
-		if err = section.ReflectFrom(i.MydumperGlobalVariables); err != nil {
-			return err
+		for k, v := range i.MydumperGlobalVariables {
+			section.NewKey(k, cast.ToString(v))
 		}
 	}
 	if i.MyloaderSessionVariables != nil {
 		section, _ := f.NewSection("myloader_session_variables")
-		if err = section.ReflectFrom(i.MyloaderSessionVariables); err != nil {
-			return err
+		for k, v := range i.MyloaderSessionVariables {
+			section.NewKey(k, cast.ToString(v))
 		}
 	}
 	if i.MyloaderGlobalVariables != nil {
 		section, _ := f.NewSection("myloader_global_variables")
-		if err = section.ReflectFrom(i.MyloaderGlobalVariables); err != nil {
-			return err
+		for k, v := range i.MyloaderGlobalVariables {
+			section.NewKey(k, cast.ToString(v))
 		}
 	}
 	if err = f.SaveTo(fileName); err != nil {
@@ -71,9 +72,9 @@ func SetVariablesToConfigIni(s string) (map[string]interface{}, map[string]inter
 	//reSpaceSquash := regexp.MustCompile(`\s+`)
 	//s = reSpaceSquash.ReplaceAllString(s, " ")
 	setVars := strings.Split(s, ";")
-	reSetGlobal := regexp.MustCompile(`(?i)(set\s+global\s+)(\w)\s*=\s*(.*)`)
-	reSetSession := regexp.MustCompile(`(?i)(set\s+session\s+)(\w)\s*=\s*(.*)`)
-	reSet := regexp.MustCompile(`(?i)(set\s+)(\w)\s*=\s*(.*)`)
+	reSetGlobal := regexp.MustCompile(`(?i)(set\s+global\s+)(\w+)\s*=\s*(.*)`)
+	reSetSession := regexp.MustCompile(`(?i)(set\s+session\s+)(\w+)\s*=\s*(.*)`)
+	reSet := regexp.MustCompile(`(?i)(set\s+)(\w+)\s*=\s*(.*)`)
 
 	var sessionVars = make(map[string]interface{})
 	var globalVars = make(map[string]interface{})

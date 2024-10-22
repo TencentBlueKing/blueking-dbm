@@ -80,7 +80,7 @@ type FilterOpt struct {
 // 封装 Restore 接口
 type RestoreDRComp struct {
 	GeneralParam *components.GeneralParam `json:"general"` // 通用参数
-	// 恢复参数，会复制给具体的 Restore 实现. 见 ChooseType 方法
+	// 恢复参数，会复制给具体的 Restore 实现. 见 ChooseType 方法(dbbackup-load / mload / xload)
 	Params       RestoreParam            `json:"extend"`
 	restore      Restore                 // 接口
 	changeMaster *mysqlutil.ChangeMaster // 存放恢复完的 change master 信息

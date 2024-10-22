@@ -1,11 +1,11 @@
-package dbloader
+package dbbackup_loader
 
 import (
 	"dbm-services/mysql/db-tools/dbactuator/pkg/components/mysql/dbbackup"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/native"
 )
 
-// LoaderUtil TODO
+// LoaderUtil myloader / xtrabackup 恢复 通用参数
 type LoaderUtil struct {
 	Client string `json:"client" validate:"required"`
 	// 恢复本地的目标实例
@@ -14,6 +14,7 @@ type LoaderUtil struct {
 
 	// EnableBinlog 导入数据时是否写binlog，默认不启用 (set sql_log_bin=0)
 	EnableBinlog  bool   `json:"enable_binlog"`
+	InitCommand   string `json:"init_command"`
 	IndexFilePath string `json:"index_file_path" validate:"required"`
 	// LoaderDir 备份解压后的目录
 	LoaderDir string `json:"loader_dir"`

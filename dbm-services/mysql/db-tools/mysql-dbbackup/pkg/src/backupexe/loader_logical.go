@@ -155,9 +155,16 @@ func (l *LogicalLoader) Execute() (err error) {
 		}
 		defaultsFile := filepath.Join(pwd, fmt.Sprintf("myloader_vars_%d.cnf", l.cnf.LogicalLoad.MysqlPort))
 		if err = myloaderVariables.SaveIni(defaultsFile); err != nil {
-			return err
+			return errors.WithMessage(err, "generate myloader_vars")
 		}
 		args = append(args, "--defaults-file", defaultsFile)
+	}
+	var serverVersion string
+	if err := l.dbConn.QueryRow("select version()").Scan(&serverVersion); err == nil {
+		if strings.Contains(serverVersion, "tdbctl") &&
+			!strings.Contains(strings.ToLower(l.cnf.LogicalLoad.InitCommand), "tc_admin") {
+			return errors.Errorf("importing sql to tdbctl need setting tc_admin as InitCommand")
+		}
 	}
 	if l.cnf.LogicalLoad.Threads > 0 {
 		// cpus, err := cmutil.GetCPUInfo()
