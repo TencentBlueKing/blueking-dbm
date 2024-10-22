@@ -36,11 +36,13 @@ class MySQLAccountRuleChangeFlowParamBuilder(builders.FlowParamBuilder):
         self.ticket_data.update(
             cluster_type=self.ticket_data["account_type"],
             id=self.ticket_data["rule_id"],
-            dbname=self.ticket_data["access_db"],
-            # 格式化priv
-            priv=AccountRuleMeta(privilege=self.ticket_data["privilege"]).privilege,
             operator=self.ticket.creator,
         )
+        if self.ticket_data["action"] == RuleActionType.CHANGE:
+            self.ticket_data.update(
+                dbname=self.ticket_data["access_db"],
+                priv=AccountRuleMeta(privilege=self.ticket_data["privilege"]).privilege,
+            )
 
     def build_controller_info(self) -> dict:
         if self.ticket_data["action"] == RuleActionType.CHANGE:
