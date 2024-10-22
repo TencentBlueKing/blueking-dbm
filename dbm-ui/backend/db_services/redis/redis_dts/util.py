@@ -115,7 +115,11 @@ def get_cluster_info_by_id(
     """
     try:
         # cluster_id = domain_without_port(cluster_id)
-        cluster = Cluster.objects.get(bk_biz_id=bk_biz_id, id=cluster_id)
+        cluster = Cluster.objects.prefetch_related(
+            "proxyinstance_set",
+            "storageinstance_set",
+            "storageinstance_set__machine",
+        ).get(bk_biz_id=bk_biz_id, id=cluster_id)
         one_master = cluster.storageinstance_set.filter(
             instance_role=InstanceRole.REDIS_MASTER.value, status=InstanceStatus.RUNNING
         ).first()
@@ -166,7 +170,10 @@ def get_cluster_one_running_master(bk_biz_id: int, cluster_id: int) -> dict:
     获取集群下的slaves实例信息
     """
     try:
-        cluster = Cluster.objects.get(bk_biz_id=bk_biz_id, id=cluster_id)
+        cluster = Cluster.objects.prefetch_related(
+            "storageinstance_set",
+            "storageinstance_set__machine",
+        ).get(bk_biz_id=bk_biz_id, id=cluster_id)
         one_master_instance = cluster.storageinstance_set.filter(
             instance_role=InstanceRole.REDIS_MASTER.value, status=InstanceStatus.RUNNING
         ).first()
@@ -185,7 +192,12 @@ def get_cluster_one_running_master(bk_biz_id: int, cluster_id: int) -> dict:
 def get_cluster_segment_info(cluster_id: int) -> Tuple[dict, dict]:
     master_segment_info = {}
     slave_segment_info = {}
-    cluster = Cluster.objects.get(id=cluster_id)
+    cluster = Cluster.objects.prefetch_related(
+        "nosqlstoragesetdtl_set",
+        "storageinstance_set",
+        "storageinstance_set__machine",
+        "storageinstance_set__as_ejector",
+    ).get(id=cluster_id)
     for dtl_row in cluster.nosqlstoragesetdtl_set.all():
         master_obj = dtl_row.instance
         master_inst = "{}:{}".format(master_obj.machine.ip, master_obj.port)
@@ -204,7 +216,10 @@ def get_dbm_cluster_slaves_data(bk_biz_id: int, cluster_id: int) -> Tuple[list, 
     获取dbm集群的slaves实例信息
     """
     try:
-        cluster = Cluster.objects.get(bk_biz_id=bk_biz_id, id=cluster_id)
+        cluster = Cluster.objects.prefetch_related(
+            "storageinstance_set",
+            "storageinstance_set__machine",
+        ).get(bk_biz_id=bk_biz_id, id=cluster_id)
         slave_instances = []
         uniq_hosts = set()
         slave_hosts = []
@@ -540,7 +555,12 @@ def complete_dst_data_with_cluster_id(bk_biz_id: int, dst_cluster_id: int, act_k
     dst_cluster_data["cluster_type"] = cluster_info["cluster_type"]
     dst_cluster_data["redis_password"] = cluster_info["redis_password"]
 
-    cluster = Cluster.objects.get(id=dst_cluster_id)
+    cluster = Cluster.objects.prefetch_related(
+        "proxyinstance_set",
+        "storageinstance_set",
+        "proxyinstance_set__machine",
+        "storageinstance_set__machine",
+    ).get(id=dst_cluster_id)
     dst_cluster_data["major_version"] = cluster.major_version
     for proxy in cluster.proxyinstance_set.filter(status=InstanceStatus.RUNNING):
         dst_proxy_instances.append(
@@ -602,7 +622,10 @@ def get_etc_hosts_lines_and_ips(
     etc_hosts_lines = ""  # 代表需要添加到 /etc/hosts 中的内容
     ip_list = set()  # 代表需要添加 /etc/hosts 的ip列表
     if dts_copy_type == DtsCopyType.USER_BUILT_TO_DBM.value:
-        dst_cluster = Cluster.objects.get(id=int(info["dst_cluster"]))
+        dst_cluster = Cluster.objects.prefetch_related(
+            "proxyinstance_set",
+            "proxyinstance_set__machine",
+        ).get(id=int(info["dst_cluster"]))
         idx = 0
         for proxy_inst in dst_cluster.proxyinstance_set.filter(status=InstanceStatus.RUNNING):
             if idx == 0:
@@ -610,7 +633,12 @@ def get_etc_hosts_lines_and_ips(
                 idx = 1
             ip_list.add(proxy_inst.machine.ip)
     elif dts_copy_type == DtsCopyType.COPY_TO_OTHER_SYSTEM.value:
-        src_cluster = Cluster.objects.get(id=int(info["src_cluster"]))
+        src_cluster = Cluster.objects.prefetch_related(
+            "proxyinstance_set",
+            "storageinstance_set",
+            "storageinstance_set__machine",
+            "proxyinstance_set__machine",
+        ).get(id=int(info["src_cluster"]))
         for proxy_inst in src_cluster.proxyinstance_set.filter(status=InstanceStatus.RUNNING):
             etc_hosts_lines += "{} {}\n".format(proxy_inst.machine.ip, src_cluster.immute_domain)
             break
@@ -622,7 +650,12 @@ def get_etc_hosts_lines_and_ips(
         DtsBillType.REDIS_CLUSTER_SHARD_NUM_UPDATE.value,
         DtsBillType.REDIS_CLUSTER_TYPE_UPDATE.value,
     ]:
-        src_cluster = Cluster.objects.get(id=int(info["src_cluster"]))
+        src_cluster = Cluster.objects.prefetch_related(
+            "proxyinstance_set",
+            "storageinstance_set",
+            "proxyinstance_set__machine",
+            "storageinstance_set__machine",
+        ).get(id=int(info["src_cluster"]))
         for proxy_inst in src_cluster.proxyinstance_set.filter(status=InstanceStatus.RUNNING):
             etc_hosts_lines += "{} {}\n".format(proxy_inst.machine.ip, src_cluster.immute_domain)
             break
@@ -640,16 +673,29 @@ def get_etc_hosts_lines_and_ips(
         for master in rollback_task.temp_instance_range:
             ip_port = master.split(IP_PORT_DIVIDER)
             ip_list.add(ip_port[0])
-        dst_cluster = Cluster.objects.get(id=int(info["dst_cluster"]))
+        dst_cluster = Cluster.objects.prefetch_related(
+            "proxyinstance_set",
+            "proxyinstance_set__machine",
+        ).get(id=int(info["dst_cluster"]))
         for proxy_inst in dst_cluster.proxyinstance_set.filter(status=InstanceStatus.RUNNING):
             etc_hosts_lines += "{} {}\n".format(proxy_inst.machine.ip, dst_cluster.immute_domain)
             break
     else:
-        src_cluster = Cluster.objects.get(id=int(info["src_cluster"]))
+        src_cluster = Cluster.objects.prefetch_related(
+            "proxyinstance_set",
+            "storageinstance_set",
+            "proxyinstance_set__machine",
+            "storageinstance_set__machine",
+        ).get(id=int(info["src_cluster"]))
         for proxy_inst in src_cluster.proxyinstance_set.filter(status=InstanceStatus.RUNNING):
             etc_hosts_lines += "{} {}\n".format(proxy_inst.machine.ip, src_cluster.immute_domain)
             break
-        dst_cluster = Cluster.objects.get(id=int(info["dst_cluster"]))
+        dst_cluster = Cluster.objects.prefetch_related(
+            "proxyinstance_set",
+            "storageinstance_set",
+            "proxyinstance_set__machine",
+            "storageinstance_set__machine",
+        ).get(id=int(info["dst_cluster"]))
         for proxy_inst in dst_cluster.proxyinstance_set.filter(status=InstanceStatus.RUNNING):
             etc_hosts_lines += "{} {}\n".format(proxy_inst.machine.ip, dst_cluster.immute_domain)
             break

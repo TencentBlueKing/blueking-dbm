@@ -73,14 +73,17 @@ class RedisClusterMSSSceneFlow(object):
         """
         self.root_id = root_id
         self.data = data
+        self.cluster_cache = {}
 
-    @staticmethod
-    def __get_cluster_info(bk_biz_id: int, cluster_id: int) -> dict:
+    def __get_cluster_info(self, bk_biz_id: int, cluster_id: int) -> dict:
         """获取集群现有信息
         1. master 对应 slave 机器
         2. master 上的端口列表
         3. 实例对应关系：{master:port:slave:port}
         """
+        if self.cluster_cache.get(cluster_id):
+            return self.cluster_cache[cluster_id]
+
         slave_ins_map, master_pair_map, master_slave_map, master_ports = (
             defaultdict(),
             defaultdict(),
@@ -90,6 +93,7 @@ class RedisClusterMSSSceneFlow(object):
         cluster = Cluster.objects.prefetch_related(
             "proxyinstance_set",
             "storageinstance_set",
+            "proxyinstance_set__machine",
             "storageinstance_set__machine",
             "storageinstance_set__as_ejector",
         ).get(id=cluster_id, bk_biz_id=bk_biz_id)
@@ -116,7 +120,7 @@ class RedisClusterMSSSceneFlow(object):
             proxy_port = cluster.proxyinstance_set.first().port
             proxy_ips = [proxy_obj.machine.ip for proxy_obj in cluster.proxyinstance_set.all()]
 
-        return {
+        cluster_info = {
             "immute_domain": cluster.immute_domain,
             "bk_biz_id": cluster.bk_biz_id,
             "bk_cloud_id": cluster.bk_cloud_id,
@@ -131,6 +135,10 @@ class RedisClusterMSSSceneFlow(object):
             "proxy_ips": proxy_ips,
             "db_version": cluster.major_version,
         }
+
+        # 加到这一次的缓存里边
+        self.cluster_cache[cluster_id] = cluster_info
+        return self.cluster_cache[cluster_id]
 
     def __init_builder(self, operate_name: str):
         redis_pipeline = Builder(root_id=self.root_id, data=self.data)
