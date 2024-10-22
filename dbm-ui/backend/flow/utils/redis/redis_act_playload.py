@@ -480,15 +480,11 @@ class RedisActPayload(object):
             }
         )
         if conf_type == ConfigTypeEnum.ProxyConf.value:
-            if passwd_ret.get("redis_password"):
-                data["content"]["redis_password"] = passwd_ret.get("redis_password")
-            if passwd_ret.get("redis_proxy_password"):
-                data["content"]["password"] = passwd_ret.get("redis_proxy_password")
-            if passwd_ret.get("redis_proxy_admin_password"):
-                data["content"]["redis_proxy_admin_password"] = passwd_ret.get("redis_proxy_admin_password")
+            data["content"]["redis_password"] = passwd_ret.get("redis_password")
+            data["content"]["password"] = passwd_ret.get("redis_proxy_password")
+            data["content"]["redis_proxy_admin_password"] = passwd_ret.get("redis_proxy_admin_password")
         elif conf_type == ConfigTypeEnum.DBConf.value:
-            if passwd_ret.get("redis_password"):
-                data["content"]["requirepass"] = passwd_ret.get("redis_password")
+            data["content"]["requirepass"] = passwd_ret.get("redis_password")
 
         return data["content"]
 

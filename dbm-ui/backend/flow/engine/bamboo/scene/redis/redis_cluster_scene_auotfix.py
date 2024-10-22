@@ -178,12 +178,9 @@ class RedisClusterAutoFixSceneFlow(object):
         )
 
         passwd_ret = PayloadHandler.redis_get_password_by_domain(domain_name)
-        if passwd_ret.get("redis_password"):
-            data["content"]["redis_password"] = passwd_ret.get("redis_password")
-        if passwd_ret.get("redis_proxy_password"):
-            data["content"]["password"] = passwd_ret.get("redis_proxy_password")
-        if passwd_ret.get("redis_proxy_admin_password"):
-            data["content"]["redis_proxy_admin_password"] = passwd_ret.get("redis_proxy_admin_password")
+        data["content"]["redis_password"] = passwd_ret.get("redis_password")
+        data["content"]["password"] = passwd_ret.get("redis_proxy_password")
+        data["content"]["redis_proxy_admin_password"] = passwd_ret.get("redis_proxy_admin_password")
 
         return data["content"]
 
