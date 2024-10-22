@@ -29,7 +29,9 @@ class TodoType(str, StructuredEnum):
     待办类型
     """
 
+    ITSM = EnumField("ITSM", _("主流程-单据审批"))
     APPROVE = EnumField("APPROVE", _("主流程-人工确认"))
+    INNER_FAILED = EnumField("INNER_FAILED", _("主流程-失败后待确认"))
     INNER_APPROVE = EnumField("INNER_APPROVE", _("自动化流程-人工确认"))
     RESOURCE_REPLENISH = EnumField("RESOURCE_REPLENISH", _("资源补货"))
 
@@ -39,19 +41,24 @@ class CountType(str, StructuredEnum):
     单据计数类型
     """
 
-    MY_TODO = EnumField("MY_TODO", _("我的待办"))
     MY_APPROVE = EnumField("MY_APPROVE", _("我的申请"))
+    APPROVE = EnumField("APPROVE", _("待我审批"))
+    TODO = EnumField("TODO", _("待我确认执行"))
+    RUNNING = EnumField("RUNNING", _("待我继续"))
+    RESOURCE_REPLENISH = EnumField("RESOURCE_REPLENISH", _("待我补货"))
+    FAILED = EnumField("FAILED", _("失败待处理"))
+    DONE = EnumField("DONE", _("我的已办"))
+    SELF_MANAGE = EnumField("SELF_MANAGE", _("我负责的业务"))
 
 
 class TodoStatus(str, StructuredEnum):
     """
     待办状态枚举
-       TODO -> (RUNNING，可选) -> DONE_SUCCESS
-                            | -> DONE_FAILED
+    TODO -> (RUNNING，可选) -> DONE_SUCCESS
+                        | -> DONE_FAILED
     """
 
     TODO = EnumField("TODO", _("待处理"))
-    RUNNING = EnumField("RUNNING", _("处理中"))
     DONE_SUCCESS = EnumField("DONE_SUCCESS", _("已处理"))
     DONE_FAILED = EnumField("DONE_FAILED", _("已终止"))
 
@@ -68,18 +75,39 @@ class ResourceApplyErrCode(int, StructuredEnum):
 
 
 TODO_DONE_STATUS = [TodoStatus.DONE_SUCCESS, TodoStatus.DONE_FAILED]
-TODO_RUNNING_STATUS = [TodoStatus.TODO, TodoStatus.RUNNING]
+TODO_RUNNING_STATUS = [TodoStatus.TODO]
 
 
 class TicketStatus(str, StructuredEnum):
     """单据状态枚举"""
 
     PENDING = EnumField("PENDING", _("等待中"))
+    APPROVE = EnumField("APPROVE", _("待审批"))
+    RESOURCE_REPLENISH = EnumField("RESOURCE_REPLENISH", _("待补货"))
+    TODO = EnumField("TODO", _("待执行"))
+    TIMER = EnumField("TIMER", _("定时中"))
     RUNNING = EnumField("RUNNING", _("执行中"))
-    SUCCEEDED = EnumField("SUCCEEDED", _("成功"))
+    SUCCEEDED = EnumField("SUCCEEDED", _("已完成"))
     FAILED = EnumField("FAILED", _("失败"))
-    REVOKED = EnumField("REVOKED", _("撤销"))
-    TERMINATED = EnumField("TERMINATED", _("终止"))
+    REVOKED = EnumField("REVOKED", _("已撤销"))
+    TERMINATED = EnumField("TERMINATED", _("已终止"))
+
+
+TICKET_RUNNING_STATUS = [
+    TicketStatus.APPROVE,
+    TicketStatus.RESOURCE_REPLENISH,
+    TicketStatus.TODO,
+    TicketStatus.RUNNING,
+    TicketStatus.TIMER,
+]
+TICKET_TODO_STATUS = [
+    TicketStatus.APPROVE,
+    TicketStatus.TODO,
+    TicketStatus.RESOURCE_REPLENISH,
+    TicketStatus.FAILED,
+    TicketStatus.RUNNING,
+]
+TICKET_FAILED_STATUS = [TicketStatus.REVOKED, TicketStatus.TERMINATED, TicketStatus.FAILED]
 
 
 class TicketFlowStatus(str, StructuredEnum):
@@ -94,8 +122,8 @@ class TicketFlowStatus(str, StructuredEnum):
     SKIPPED = EnumField("SKIPPED", _("跳过"))
 
 
-FLOW_FINISHED_STATUS = [TicketFlowStatus.SKIPPED, TicketStatus.SUCCEEDED]
-FLOW_NOT_EXECUTE_STATUS = [TicketFlowStatus.SKIPPED, TicketStatus.PENDING]
+FLOW_FINISHED_STATUS = [TicketFlowStatus.SKIPPED, TicketFlowStatus.SUCCEEDED]
+FLOW_NOT_EXECUTE_STATUS = [TicketFlowStatus.SKIPPED, TicketFlowStatus.PENDING]
 
 BAMBOO_STATE__TICKET_STATE_MAP = {
     StateType.FINISHED.value: TicketFlowStatus.SUCCEEDED.value,
@@ -178,7 +206,8 @@ class TicketType(str, StructuredEnum):
     MYSQL_MASTER_FAIL_OVER = TicketEnumField("MYSQL_MASTER_FAIL_OVER", _("MySQL 主库故障切换"), _("集群维护"))
     MYSQL_HA_APPLY = TicketEnumField("MYSQL_HA_APPLY", _("MySQL 高可用部署"), register_iam=False)
     MYSQL_IMPORT_SQLFILE = TicketEnumField("MYSQL_IMPORT_SQLFILE", _("MySQL 变更SQL执行"), _("SQL 任务"))
-    MYSQL_FORCE_IMPORT_SQLFILE = TicketEnumField("MYSQL_FORCE_IMPORT_SQLFILE", _("MySQL 强制变更SQL执行"), _("SQL 任务"), register_iam=False)  # noqa
+    MYSQL_FORCE_IMPORT_SQLFILE = TicketEnumField("MYSQL_FORCE_IMPORT_SQLFILE", _("MySQL 强制变更SQL执行"),
+                                                 _("SQL 任务"), register_iam=False)  # noqa
     MYSQL_SEMANTIC_CHECK = TicketEnumField("MYSQL_SEMANTIC_CHECK", _("MySQL 模拟执行"), register_iam=False)
     MYSQL_PROXY_ADD = TicketEnumField("MYSQL_PROXY_ADD", _("MySQL 添加Proxy"), _("集群维护"))
     MYSQL_PROXY_SWITCH = TicketEnumField("MYSQL_PROXY_SWITCH", _("MySQL 替换Proxy"), _("集群维护"))
@@ -190,7 +219,8 @@ class TicketType(str, StructuredEnum):
     MYSQL_HA_ENABLE = TicketEnumField("MYSQL_HA_ENABLE", _("MySQL 高可用启用"), register_iam=False)
     MYSQL_AUTHORIZE_RULES = TicketEnumField("MYSQL_AUTHORIZE_RULES", _("MySQL 集群授权"), _("权限管理"))
     MYSQL_EXCEL_AUTHORIZE_RULES = TicketEnumField("MYSQL_EXCEL_AUTHORIZE_RULES", _("MySQL EXCEL授权"), _("权限管理"))
-    MYSQL_CLIENT_CLONE_RULES = TicketEnumField("MYSQL_CLIENT_CLONE_RULES", _("MySQL 客户端权限克隆"), register_iam=False)
+    MYSQL_CLIENT_CLONE_RULES = TicketEnumField("MYSQL_CLIENT_CLONE_RULES", _("MySQL 客户端权限克隆"),
+                                               register_iam=False)
     MYSQL_INSTANCE_CLONE_RULES = TicketEnumField("MYSQL_INSTANCE_CLONE_RULES", _("MySQL DB实例权限克隆"), _("权限管理"))
     MYSQL_HA_RENAME_DATABASE = TicketEnumField("MYSQL_HA_RENAME_DATABASE", _("MySQL 高可用DB重命名"), _("集群维护"))
     MYSQL_HA_TRUNCATE_DATA = TicketEnumField("MYSQL_HA_TRUNCATE_DATA", _("MySQL 高可用清档"), _("数据处理"))
@@ -203,7 +233,8 @@ class TicketType(str, StructuredEnum):
     MYSQL_ROLLBACK_CLUSTER = TicketEnumField("MYSQL_ROLLBACK_CLUSTER", _("MySQL 定点构造"), _("回档"))
     MYSQL_HA_FULL_BACKUP = TicketEnumField("MYSQL_HA_FULL_BACKUP", _("MySQL 高可用全库备份"), _("备份"))
     MYSQL_SINGLE_TRUNCATE_DATA = TicketEnumField("MYSQL_SINGLE_TRUNCATE_DATA", _("MySQL 单节点清档"), _("数据处理"))
-    MYSQL_SINGLE_RENAME_DATABASE = TicketEnumField("MYSQL_SINGLE_RENAME_DATABASE", _("MySQL 单节点DB重命名"), _("集群维护"))  # noqa
+    MYSQL_SINGLE_RENAME_DATABASE = TicketEnumField("MYSQL_SINGLE_RENAME_DATABASE", _("MySQL 单节点DB重命名"),
+                                                   _("集群维护"))  # noqa
     MYSQL_HA_STANDARDIZE = TicketEnumField("MYSQL_HA_STANDARDIZE", _("TendbHA 标准化"), register_iam=False)
     MYSQL_HA_METADATA_IMPORT = TicketEnumField("MYSQL_HA_METADATA_IMPORT", _("TendbHA 元数据导入"), register_iam=False)
     MYSQL_OPEN_AREA = TicketEnumField("MYSQL_OPEN_AREA", _("MySQL 开区"), _("克隆开区"), register_iam=False)
@@ -214,58 +245,97 @@ class TicketType(str, StructuredEnum):
     MYSQL_SLAVE_MIGRATE_UPGRADE = TicketEnumField("MYSQL_SLAVE_MIGRATE_UPGRADE", _("MySQL Slave 迁移升级"), _("版本升级"))
     MYSQL_RO_SLAVE_UNINSTALL = TicketEnumField("MYSQL_RO_SLAVE_UNINSTALL", _("MySQL非stanby slave下架"), _("集群维护"))
     MYSQL_PROXY_UPGRADE = TicketEnumField("MYSQL_PROXY_UPGRADE", _("MySQL Proxy升级"), _("版本升级"))
-    MYSQL_HA_TRANSFER_TO_OTHER_BIZ = TicketEnumField("MYSQL_HA_TRANSFER_TO_OTHER_BIZ", _("TendbHA集群迁移至其他业务"), register_iam=False)# noqa
-    MYSQL_PUSH_PERIPHERAL_CONFIG = TicketEnumField("MYSQL_PUSH_PERIPHERAL_CONFIG", _("推送周边配置"), register_iam=False)
+    MYSQL_HA_TRANSFER_TO_OTHER_BIZ = TicketEnumField("MYSQL_HA_TRANSFER_TO_OTHER_BIZ", _("TendbHA集群迁移至其他业务"),
+                                                     register_iam=False)  # noqa
+    MYSQL_PUSH_PERIPHERAL_CONFIG = TicketEnumField("MYSQL_PUSH_PERIPHERAL_CONFIG", _("推送周边配置"),
+                                                   register_iam=False)
 
     # SPIDER(TenDB Cluster)
-    TENDBCLUSTER_OPEN_AREA = TicketEnumField("TENDBCLUSTER_OPEN_AREA", _("TenDB Cluster 开区"), _("克隆开区"), register_iam=False)  # noqa
+    TENDBCLUSTER_OPEN_AREA = TicketEnumField("TENDBCLUSTER_OPEN_AREA", _("TenDB Cluster 开区"), _("克隆开区"),
+                                             register_iam=False)  # noqa
     TENDBCLUSTER_CHECKSUM = TicketEnumField("TENDBCLUSTER_CHECKSUM", _("TenDB Cluster 数据校验修复"), _("数据处理"))
-    TENDBCLUSTER_DATA_REPAIR = TicketEnumField("TENDBCLUSTER_DATA_REPAIR", _("TenDB Cluster 数据修复"), register_iam=False)  # noqa
+    TENDBCLUSTER_DATA_REPAIR = TicketEnumField("TENDBCLUSTER_DATA_REPAIR", _("TenDB Cluster 数据修复"),
+                                               register_iam=False)  # noqa
     TENDBCLUSTER_PARTITION = TicketEnumField("TENDBCLUSTER_PARTITION", _("TenDB Cluster 分区管理"), _("分区管理"))
-    TENDBCLUSTER_PARTITION_CRON = TicketEnumField("TENDBCLUSTER_PARTITION_CRON", _("TenDB Cluster 分区定时任务"), register_iam=False)  # noqa
-    TENDBCLUSTER_DB_TABLE_BACKUP = TicketEnumField("TENDBCLUSTER_DB_TABLE_BACKUP", _("TenDB Cluster 库表备份"), _("备份"))
-    TENDBCLUSTER_RENAME_DATABASE = TicketEnumField("TENDBCLUSTER_RENAME_DATABASE", _("TenDB Cluster 数据库重命名"), _("SQL 任务"))  # noqa
-    TENDBCLUSTER_TRUNCATE_DATABASE = TicketEnumField("TENDBCLUSTER_TRUNCATE_DATABASE", _("TenDB Cluster 清档"), _("数据处理"))
-    TENDBCLUSTER_MASTER_FAIL_OVER = TicketEnumField("TENDBCLUSTER_MASTER_FAIL_OVER", _("TenDB Cluster 主库故障切换"), _("集群维护"))  # noqa
-    TENDBCLUSTER_MASTER_SLAVE_SWITCH = TicketEnumField("TENDBCLUSTER_MASTER_SLAVE_SWITCH", _("TenDB Cluster 主从互切"), _("集群维护"))  # noqa
-    TENDBCLUSTER_IMPORT_SQLFILE = TicketEnumField("TENDBCLUSTER_IMPORT_SQLFILE", _("TenDB Cluster 变更SQL执行"), _("SQL 任务"))  # noqa
-    TENDBCLUSTER_FORCE_IMPORT_SQLFILE = TicketEnumField("TENDBCLUSTER_FORCE_IMPORT_SQLFILE", _("TenDB Cluster 强制变更SQL执行"), _("SQL 任务"), register_iam=False)  # noqa
-    TENDBCLUSTER_SEMANTIC_CHECK = TicketEnumField("TENDBCLUSTER_SEMANTIC_CHECK", _("TenDB Cluster 模拟执行"), register_iam=False)  # noqa
-    TENDBCLUSTER_SPIDER_ADD_NODES = TicketEnumField("TENDBCLUSTER_SPIDER_ADD_NODES", _("TenDB Cluster 扩容接入层"), _("集群维护"))  # noqa
-    TENDBCLUSTER_SPIDER_REDUCE_NODES = TicketEnumField("TENDBCLUSTER_SPIDER_REDUCE_NODES", _("TenDB Cluster 缩容接入层"), _("集群维护"))  # noqa
-    TENDBCLUSTER_SPIDER_MNT_APPLY = TicketEnumField("TENDBCLUSTER_SPIDER_MNT_APPLY", _("TenDB Cluster 添加运维节点"), _("运维 Spider 管理"))  # noqa
-    TENDBCLUSTER_SPIDER_MNT_DESTROY = TicketEnumField("TENDBCLUSTER_SPIDER_MNT_DESTROY", _("TenDB Cluster 下架运维节点"), _("运维 Spider 管理"))  # noqa
-    TENDBCLUSTER_SPIDER_SLAVE_APPLY = TicketEnumField("TENDBCLUSTER_SPIDER_SLAVE_APPLY", _("TenDB Cluster 部署只读接入层"), _("访问入口"))  # noqa
-    TENDBCLUSTER_SPIDER_SLAVE_DESTROY = TicketEnumField("TENDBCLUSTER_SPIDER_SLAVE_DESTROY", _("TenDB Cluster 只读接入层下架"), _("访问入口"))  # noqa
-    TENDBCLUSTER_RESTORE_SLAVE = TicketEnumField("TENDBCLUSTER_RESTORE_SLAVE", _("TenDB Cluster Slave重建"), _("集群维护"))  # noqa
-    TENDBCLUSTER_RESTORE_LOCAL_SLAVE = TicketEnumField("TENDBCLUSTER_RESTORE_LOCAL_SLAVE", _("TenDB Cluster Slave原地重建"), _("集群维护"))  # noqa
-    TENDBCLUSTER_MIGRATE_CLUSTER = TicketEnumField("TENDBCLUSTER_MIGRATE_CLUSTER", _("TenDB Cluster 主从迁移"), _("集群维护"))  # noqa
+    TENDBCLUSTER_PARTITION_CRON = TicketEnumField("TENDBCLUSTER_PARTITION_CRON", _("TenDB Cluster 分区定时任务"),
+                                                  register_iam=False)  # noqa
+    TENDBCLUSTER_DB_TABLE_BACKUP = TicketEnumField("TENDBCLUSTER_DB_TABLE_BACKUP", _("TenDB Cluster 库表备份"),
+                                                   _("备份"))
+    TENDBCLUSTER_RENAME_DATABASE = TicketEnumField("TENDBCLUSTER_RENAME_DATABASE", _("TenDB Cluster 数据库重命名"),
+                                                   _("SQL 任务"))  # noqa
+    TENDBCLUSTER_TRUNCATE_DATABASE = TicketEnumField("TENDBCLUSTER_TRUNCATE_DATABASE", _("TenDB Cluster 清档"),
+                                                     _("数据处理"))
+    TENDBCLUSTER_MASTER_FAIL_OVER = TicketEnumField("TENDBCLUSTER_MASTER_FAIL_OVER", _("TenDB Cluster 主库故障切换"),
+                                                    _("集群维护"))  # noqa
+    TENDBCLUSTER_MASTER_SLAVE_SWITCH = TicketEnumField("TENDBCLUSTER_MASTER_SLAVE_SWITCH", _("TenDB Cluster 主从互切"),
+                                                       _("集群维护"))  # noqa
+    TENDBCLUSTER_IMPORT_SQLFILE = TicketEnumField("TENDBCLUSTER_IMPORT_SQLFILE", _("TenDB Cluster 变更SQL执行"),
+                                                  _("SQL 任务"))  # noqa
+    TENDBCLUSTER_FORCE_IMPORT_SQLFILE = TicketEnumField("TENDBCLUSTER_FORCE_IMPORT_SQLFILE",
+                                                        _("TenDB Cluster 强制变更SQL执行"), _("SQL 任务"),
+                                                        register_iam=False)  # noqa
+    TENDBCLUSTER_SEMANTIC_CHECK = TicketEnumField("TENDBCLUSTER_SEMANTIC_CHECK", _("TenDB Cluster 模拟执行"),
+                                                  register_iam=False)  # noqa
+    TENDBCLUSTER_SPIDER_ADD_NODES = TicketEnumField("TENDBCLUSTER_SPIDER_ADD_NODES", _("TenDB Cluster 扩容接入层"),
+                                                    _("集群维护"))  # noqa
+    TENDBCLUSTER_SPIDER_REDUCE_NODES = TicketEnumField("TENDBCLUSTER_SPIDER_REDUCE_NODES",
+                                                       _("TenDB Cluster 缩容接入层"), _("集群维护"))  # noqa
+    TENDBCLUSTER_SPIDER_MNT_APPLY = TicketEnumField("TENDBCLUSTER_SPIDER_MNT_APPLY", _("TenDB Cluster 添加运维节点"),
+                                                    _("运维 Spider 管理"))  # noqa
+    TENDBCLUSTER_SPIDER_MNT_DESTROY = TicketEnumField("TENDBCLUSTER_SPIDER_MNT_DESTROY",
+                                                      _("TenDB Cluster 下架运维节点"), _("运维 Spider 管理"))  # noqa
+    TENDBCLUSTER_SPIDER_SLAVE_APPLY = TicketEnumField("TENDBCLUSTER_SPIDER_SLAVE_APPLY",
+                                                      _("TenDB Cluster 部署只读接入层"), _("访问入口"))  # noqa
+    TENDBCLUSTER_SPIDER_SLAVE_DESTROY = TicketEnumField("TENDBCLUSTER_SPIDER_SLAVE_DESTROY",
+                                                        _("TenDB Cluster 只读接入层下架"), _("访问入口"))  # noqa
+    TENDBCLUSTER_RESTORE_SLAVE = TicketEnumField("TENDBCLUSTER_RESTORE_SLAVE", _("TenDB Cluster Slave重建"),
+                                                 _("集群维护"))  # noqa
+    TENDBCLUSTER_RESTORE_LOCAL_SLAVE = TicketEnumField("TENDBCLUSTER_RESTORE_LOCAL_SLAVE",
+                                                       _("TenDB Cluster Slave原地重建"), _("集群维护"))  # noqa
+    TENDBCLUSTER_MIGRATE_CLUSTER = TicketEnumField("TENDBCLUSTER_MIGRATE_CLUSTER", _("TenDB Cluster 主从迁移"),
+                                                   _("集群维护"))  # noqa
     TENDBCLUSTER_APPLY = TicketEnumField("TENDBCLUSTER_APPLY", _("TenDB Cluster 集群部署"))
     TENDBCLUSTER_ENABLE = TicketEnumField("TENDBCLUSTER_ENABLE", _("TenDB Cluster 集群启用"), register_iam=False)
     TENDBCLUSTER_DISABLE = TicketEnumField("TENDBCLUSTER_DISABLE", _("TenDB Cluster 集群禁用"), register_iam=False)
     TENDBCLUSTER_DESTROY = TicketEnumField("TENDBCLUSTER_DESTROY", _("TenDB Cluster 集群销毁"), _("集群管理"))
-    TENDBCLUSTER_TEMPORARY_DESTROY = TicketEnumField("TENDBCLUSTER_TEMPORARY_DESTROY", _("TenDB Cluster 临时集群销毁"), _("集群管理"))  # noqa
-    TENDBCLUSTER_NODE_REBALANCE = TicketEnumField("TENDBCLUSTER_NODE_REBALANCE", _("TenDB Cluster 集群容量变更"), _("集群维护")) # noqa
+    TENDBCLUSTER_TEMPORARY_DESTROY = TicketEnumField("TENDBCLUSTER_TEMPORARY_DESTROY", _("TenDB Cluster 临时集群销毁"),
+                                                     _("集群管理"))  # noqa
+    TENDBCLUSTER_NODE_REBALANCE = TicketEnumField("TENDBCLUSTER_NODE_REBALANCE", _("TenDB Cluster 集群容量变更"),
+                                                  _("集群维护"))  # noqa
     TENDBCLUSTER_FULL_BACKUP = TicketEnumField("TENDBCLUSTER_FULL_BACKUP", _("TenDB Cluster 全库备份"), _("备份"))
-    TENDBCLUSTER_ROLLBACK_CLUSTER = TicketEnumField("TENDBCLUSTER_ROLLBACK_CLUSTER", _("TenDB Cluster 定点构造"), _("回档")) # noqa
+    TENDBCLUSTER_ROLLBACK_CLUSTER = TicketEnumField("TENDBCLUSTER_ROLLBACK_CLUSTER", _("TenDB Cluster 定点构造"),
+                                                    _("回档"))  # noqa
     TENDBCLUSTER_FLASHBACK = TicketEnumField("TENDBCLUSTER_FLASHBACK", _("TenDB Cluster 闪回"), _("回档"))
-    TENDBCLUSTER_CLIENT_CLONE_RULES = TicketEnumField("TENDBCLUSTER_CLIENT_CLONE_RULES", _("TenDB Cluster 客户端权限克隆"), _("权限管理"))  # noqa
-    TENDBCLUSTER_INSTANCE_CLONE_RULES = TicketEnumField("TENDBCLUSTER_INSTANCE_CLONE_RULES", _("TenDB Cluster DB实例权限克隆"), _("权限管理"))  # noqa
-    TENDBCLUSTER_AUTHORIZE_RULES = TicketEnumField("TENDBCLUSTER_AUTHORIZE_RULES", _("TenDB Cluster 授权"), _("权限管理"))
-    TENDBCLUSTER_EXCEL_AUTHORIZE_RULES = TicketEnumField("TENDBCLUSTER_EXCEL_AUTHORIZE_RULES", _("TenDB Cluster EXCEL授权"), _("权限管理"))  # noqa
-    TENDBCLUSTER_STANDARDIZE = TicketEnumField("TENDBCLUSTER_STANDARDIZE", _("TenDB Cluster 集群标准化"), register_iam=False)
-    TENDBCLUSTER_METADATA_IMPORT = TicketEnumField("TENDBCLUSTER_METADATA_IMPORT", _("TenDB Cluster 元数据导入"), register_iam=False)  # noqa
-    TENDBCLUSTER_APPEND_DEPLOY_CTL = TicketEnumField("TENDBCLUSTER_APPEND_DEPLOY_CTL", _("TenDB Cluster 追加部署中控"), register_iam=False)  # noqa
-    TENDBSINGLE_METADATA_IMPORT = TicketEnumField("TENDBSINGLE_METADATA_IMPORT", _("TenDB Single 元数据导入"), register_iam=False)  # noqa
-    TENDBSINGLE_STANDARDIZE = TicketEnumField("TENDBSINGLE_STANDARDIZE", _("TenDB Single 集群标准化"), register_iam=False)  # noqa
+    TENDBCLUSTER_CLIENT_CLONE_RULES = TicketEnumField("TENDBCLUSTER_CLIENT_CLONE_RULES",
+                                                      _("TenDB Cluster 客户端权限克隆"), _("权限管理"))  # noqa
+    TENDBCLUSTER_INSTANCE_CLONE_RULES = TicketEnumField("TENDBCLUSTER_INSTANCE_CLONE_RULES",
+                                                        _("TenDB Cluster DB实例权限克隆"), _("权限管理"))  # noqa
+    TENDBCLUSTER_AUTHORIZE_RULES = TicketEnumField("TENDBCLUSTER_AUTHORIZE_RULES", _("TenDB Cluster 授权"),
+                                                   _("权限管理"))
+    TENDBCLUSTER_EXCEL_AUTHORIZE_RULES = TicketEnumField("TENDBCLUSTER_EXCEL_AUTHORIZE_RULES",
+                                                         _("TenDB Cluster EXCEL授权"), _("权限管理"))  # noqa
+    TENDBCLUSTER_STANDARDIZE = TicketEnumField("TENDBCLUSTER_STANDARDIZE", _("TenDB Cluster 集群标准化"),
+                                               register_iam=False)
+    TENDBCLUSTER_METADATA_IMPORT = TicketEnumField("TENDBCLUSTER_METADATA_IMPORT", _("TenDB Cluster 元数据导入"),
+                                                   register_iam=False)  # noqa
+    TENDBCLUSTER_APPEND_DEPLOY_CTL = TicketEnumField("TENDBCLUSTER_APPEND_DEPLOY_CTL", _("TenDB Cluster 追加部署中控"),
+                                                     register_iam=False)  # noqa
+    TENDBSINGLE_METADATA_IMPORT = TicketEnumField("TENDBSINGLE_METADATA_IMPORT", _("TenDB Single 元数据导入"),
+                                                  register_iam=False)  # noqa
+    TENDBSINGLE_STANDARDIZE = TicketEnumField("TENDBSINGLE_STANDARDIZE", _("TenDB Single 集群标准化"),
+                                              register_iam=False)  # noqa
     TENDBCLUSTER_DATA_MIGRATE = TicketEnumField("TENDBCLUSTER_DATA_MIGRATE", _("TenDB Cluster DB克隆"), _("数据处理"))
     TENDBCLUSTER_DUMP_DATA = TicketEnumField("TENDBCLUSTER_DUMP_DATA", _("TenDB Cluster 数据导出"), _("数据处理"))
     # Tbinlogdumper
     TBINLOGDUMPER_INSTALL = TicketEnumField("TBINLOGDUMPER_INSTALL", _("TBINLOGDUMPER 上架"), register_iam=False)
-    TBINLOGDUMPER_REDUCE_NODES = TicketEnumField("TBINLOGDUMPER_REDUCE_NODES", _("TBINLOGDUMPER 下架"), register_iam=False)  # noqa
-    TBINLOGDUMPER_SWITCH_NODES = TicketEnumField("TBINLOGDUMPER_SWITCH_NODES", _("TBINLOGDUMPER 切换"), register_iam=False)  # noqa
-    TBINLOGDUMPER_DISABLE_NODES = TicketEnumField("TBINLOGDUMPER_DISABLE_NODES", _("TBINLOGDUMPER 禁用"), register_iam=False)  # noqa
-    TBINLOGDUMPER_ENABLE_NODES = TicketEnumField("TBINLOGDUMPER_ENABLE_NODES", _("TBINLOGDUMPER 启用"), register_iam=False)  # noqa
+    TBINLOGDUMPER_REDUCE_NODES = TicketEnumField("TBINLOGDUMPER_REDUCE_NODES", _("TBINLOGDUMPER 下架"),
+                                                 register_iam=False)  # noqa
+    TBINLOGDUMPER_SWITCH_NODES = TicketEnumField("TBINLOGDUMPER_SWITCH_NODES", _("TBINLOGDUMPER 切换"),
+                                                 register_iam=False)  # noqa
+    TBINLOGDUMPER_DISABLE_NODES = TicketEnumField("TBINLOGDUMPER_DISABLE_NODES", _("TBINLOGDUMPER 禁用"),
+                                                  register_iam=False)  # noqa
+    TBINLOGDUMPER_ENABLE_NODES = TicketEnumField("TBINLOGDUMPER_ENABLE_NODES", _("TBINLOGDUMPER 启用"),
+                                                 register_iam=False)  # noqa
 
     # SQLServer
     SQLSERVER_SINGLE_APPLY = TicketEnumField("SQLSERVER_SINGLE_APPLY", _("SQLServer 单节点部署"), register_iam=False)
@@ -277,9 +347,12 @@ class TicketType(str, StructuredEnum):
     SQLSERVER_DISABLE = TicketEnumField("SQLSERVER_DISABLE", _("SQLServer 集群禁用"), register_iam=False)
     SQLSERVER_ENABLE = TicketEnumField("SQLSERVER_ENABLE", _("SQLServer 集群启用"), register_iam=False)
     SQLSERVER_DBRENAME = TicketEnumField("SQLSERVER_DBRENAME", _("SQLServer DB重命名"), _("集群维护"))
-    SQLSERVER_MASTER_SLAVE_SWITCH = TicketEnumField("SQLSERVER_MASTER_SLAVE_SWITCH", _("SQLServer 主从互切"), _("集群维护")) # noqa
-    SQLSERVER_MASTER_FAIL_OVER = TicketEnumField("SQLSERVER_MASTER_FAIL_OVER", _("SQLServer 主库故障切换"), _("集群维护"))
-    SQLSERVER_RESTORE_LOCAL_SLAVE = TicketEnumField("SQLSERVER_RESTORE_LOCAL_SLAVE", _("SQLServer 原地重建"), _("集群维护")) # noqa
+    SQLSERVER_MASTER_SLAVE_SWITCH = TicketEnumField("SQLSERVER_MASTER_SLAVE_SWITCH", _("SQLServer 主从互切"),
+                                                    _("集群维护"))  # noqa
+    SQLSERVER_MASTER_FAIL_OVER = TicketEnumField("SQLSERVER_MASTER_FAIL_OVER", _("SQLServer 主库故障切换"),
+                                                 _("集群维护"))
+    SQLSERVER_RESTORE_LOCAL_SLAVE = TicketEnumField("SQLSERVER_RESTORE_LOCAL_SLAVE", _("SQLServer 原地重建"),
+                                                    _("集群维护"))  # noqa
     SQLSERVER_RESTORE_SLAVE = TicketEnumField("SQLSERVER_RESTORE_SLAVE", _("SQLServer 新机重建"), _("集群维护"))
     SQLSERVER_ADD_SLAVE = TicketEnumField("SQLSERVER_ADD_SLAVE", _("SQLServer 添加从库"), _("集群维护"))
     SQLSERVER_RESET = TicketEnumField("SQLSERVER_RESET", _("SQLServer 集群重置"), _("集群维护"))
@@ -287,7 +360,8 @@ class TicketType(str, StructuredEnum):
     SQLSERVER_INCR_MIGRATE = TicketEnumField("SQLSERVER_INCR_MIGRATE", _("SQLServer 增量迁移"), _("数据处理"))
     SQLSERVER_ROLLBACK = TicketEnumField("SQLSERVER_ROLLBACK", _("SQLServer 定点构造"), _("数据处理"))
     SQLSERVER_AUTHORIZE_RULES = TicketEnumField("SQLSERVER_AUTHORIZE_RULES", _("SQLServer 集群授权"), _("权限管理"))
-    SQLSERVER_EXCEL_AUTHORIZE_RULES = TicketEnumField("SQLSERVER_EXCEL_AUTHORIZE_RULES", _("SQLServer EXCEL授权"), _("权限管理"))  # noqa
+    SQLSERVER_EXCEL_AUTHORIZE_RULES = TicketEnumField("SQLSERVER_EXCEL_AUTHORIZE_RULES", _("SQLServer EXCEL授权"),
+                                                      _("权限管理"))  # noqa
     SQLSERVER_BUILD_DB_SYNC = TicketEnumField("SQLSERVER_BUILD_DB_SYNC", _("SQLServer DB建立同步"), register_iam=False)
     SQLSERVER_MODIFY_STATUS = TicketEnumField("SQLSERVER_MODIFY_STATUS", _("SQLServer 修改故障实例状态"), register_iam=False)
 
@@ -315,18 +389,22 @@ class TicketType(str, StructuredEnum):
     REDIS_SCALE_UPDOWN = TicketEnumField("REDIS_SCALE_UPDOWN", _("Redis 集群容量变更"), _("集群维护"))
     REDIS_CLUSTER_CUTOFF = TicketEnumField("REDIS_CLUSTER_CUTOFF", _("Redis 整机替换"), _("集群维护"))
     REDIS_CLUSTER_AUTOFIX = TicketEnumField("REDIS_CLUSTER_AUTOFIX", _("Redis 故障自愈"), _("集群维护"))
-    REDIS_CLUSTER_INSTANCE_SHUTDOWN = TicketEnumField("REDIS_CLUSTER_INSTANCE_SHUTDOWN", _("Redis 故障自愈-实例下架"), _("集群维护"))  # noqa
+    REDIS_CLUSTER_INSTANCE_SHUTDOWN = TicketEnumField("REDIS_CLUSTER_INSTANCE_SHUTDOWN", _("Redis 故障自愈-实例下架"),
+                                                      _("集群维护"))  # noqa
     REDIS_MASTER_SLAVE_SWITCH = TicketEnumField("REDIS_MASTER_SLAVE_SWITCH", _("Redis 主从切换"), _("集群维护"))
     REDIS_PROXY_SCALE_UP = TicketEnumField("REDIS_PROXY_SCALE_UP", _("Redis Proxy扩容"), _("集群维护"))
     REDIS_PROXY_SCALE_DOWN = TicketEnumField("REDIS_PROXY_SCALE_DOWN", _("Redis Proxy缩容"), _("集群维护"))
     REDIS_ADD_DTS_SERVER = TicketEnumField("REDIS_ADD_DTS_SERVER", _("Redis 新增DTS SERVER"), register_iam=False)
     REDIS_REMOVE_DTS_SERVER = TicketEnumField("REDIS_REMOVE_DTS_SERVER", _("Redis 删除DTS SERVER"), register_iam=False)
     REDIS_DATA_STRUCTURE = TicketEnumField("REDIS_DATA_STRUCTURE", _("Redis 集群数据构造"), _("数据构造"))
-    REDIS_DATA_STRUCTURE_TASK_DELETE = TicketEnumField("REDIS_DATA_STRUCTURE_TASK_DELETE", _("Redis 数据构造记录删除"), _("数据构造"))  # noqa
-    REDIS_CLUSTER_SHARD_NUM_UPDATE = TicketEnumField("REDIS_CLUSTER_SHARD_NUM_UPDATE", _("Redis 集群分片数变更"), _("集群维护"))
+    REDIS_DATA_STRUCTURE_TASK_DELETE = TicketEnumField("REDIS_DATA_STRUCTURE_TASK_DELETE", _("Redis 数据构造记录删除"),
+                                                       _("数据构造"))  # noqa
+    REDIS_CLUSTER_SHARD_NUM_UPDATE = TicketEnumField("REDIS_CLUSTER_SHARD_NUM_UPDATE", _("Redis 集群分片数变更"),
+                                                     _("集群维护"))
     REDIS_CLUSTER_TYPE_UPDATE = TicketEnumField("REDIS_CLUSTER_TYPE_UPDATE", _("Redis 集群类型变更"), _("集群维护"))
     REDIS_CLUSTER_DATA_COPY = TicketEnumField("REDIS_CLUSTER_DATA_COPY", _("Redis 集群数据复制"), _("数据传输"))
-    REDIS_CLUSTER_ROLLBACK_DATA_COPY = TicketEnumField("REDIS_CLUSTER_ROLLBACK_DATA_COPY", _("Redis 构造实例数据回写"), _("数据构造"))  # noqa
+    REDIS_CLUSTER_ROLLBACK_DATA_COPY = TicketEnumField("REDIS_CLUSTER_ROLLBACK_DATA_COPY", _("Redis 构造实例数据回写"),
+                                                       _("数据构造"))  # noqa
     REDIS_DATACOPY_CHECK_REPAIR = TicketEnumField("REDIS_DATACOPY_CHECK_REPAIR", _("Redis 数据校验与修复"))
     REDIS_CLUSTER_ADD_SLAVE = TicketEnumField("REDIS_CLUSTER_ADD_SLAVE", _("Redis 重建从库"), _("集群维护"))
     REDIS_DTS_ONLINE_SWITCH = TicketEnumField("REDIS_DTS_ONLINE_SWITCH", _("Redis DTS在线切换"), register_iam=False)
@@ -334,8 +412,10 @@ class TicketType(str, StructuredEnum):
     REDIS_SLOTS_MIGRATE = TicketEnumField("REDIS_SLOTS_MIGRATE", _("Redis slots 迁移"), register_iam=False)
     REDIS_VERSION_UPDATE_ONLINE = TicketEnumField("REDIS_VERSION_UPDATE_ONLINE", _("Redis 集群版本升级"))  # noqa
     REDIS_CLUSTER_REINSTALL_DBMON = TicketEnumField("REDIS_CLUSTER_REINSTALL_DBMON", _("Redis 集群重装DBMON"))  # noqa
-    REDIS_PREDIXY_CONFIG_SERVERS_REWRITE = TicketEnumField("REDIS_PREDIXY_CONFIG_SERVERS_REWRITE", _("predixy配置重写"), register_iam=False)  # noqa
-    REDIS_CLUSTER_PROXYS_UPGRADE = TicketEnumField("REDIS_CLUSTER_PROXYS_UPGRADE", _("Redis 集群proxys版本升级"), register_iam=False)  # noqa
+    REDIS_PREDIXY_CONFIG_SERVERS_REWRITE = TicketEnumField("REDIS_PREDIXY_CONFIG_SERVERS_REWRITE", _("predixy配置重写"),
+                                                           register_iam=False)  # noqa
+    REDIS_CLUSTER_PROXYS_UPGRADE = TicketEnumField("REDIS_CLUSTER_PROXYS_UPGRADE", _("Redis 集群proxys版本升级"),
+                                                   register_iam=False)  # noqa
     REDIS_DIRTY_MACHINE_CLEAR = TicketEnumField("REDIS_DIRTY_MACHINE_CLEAR", _("Redis脏机清理"), register_iam=False)
     REDIS_CLUSTER_STORAGES_CLI_CONNS_KILL = TicketEnumField("REDIS_CLUSTER_STORAGES_CLI_CONNS_KILL", _("Redis 集群存储层cli连接kill"), register_iam=False)  # noqa
     REDIS_CLUSTER_RENAME_DOMAIN = TicketEnumField("REDIS_CLUSTER_RENAME_DOMAIN", _("Redis集群域名重命名"), _("集群维护"))
@@ -408,8 +488,10 @@ class TicketType(str, StructuredEnum):
     RIAK_CLUSTER_MIGRATE = TicketEnumField("RIAK_CLUSTER_MIGRATE", _("Riak 集群迁移"), _("集群管理"))
 
     # MONGODB
-    MONGODB_REPLICASET_APPLY = TicketEnumField("MONGODB_REPLICASET_APPLY", _("MongoDB 副本集集群部署"), register_iam=False) # noqa
-    MONGODB_SHARD_APPLY = TicketEnumField("MONGODB_SHARD_APPLY", _("MongoDB 分片集群部署"), _("集群管理"), register_iam=False) # noqa
+    MONGODB_REPLICASET_APPLY = TicketEnumField("MONGODB_REPLICASET_APPLY", _("MongoDB 副本集集群部署"),
+                                               register_iam=False)  # noqa
+    MONGODB_SHARD_APPLY = TicketEnumField("MONGODB_SHARD_APPLY", _("MongoDB 分片集群部署"), _("集群管理"),
+                                          register_iam=False)  # noqa
     MONGODB_EXEC_SCRIPT_APPLY = TicketEnumField("MONGODB_EXEC_SCRIPT_APPLY", _("MongoDB 变更脚本执行"), _("脚本任务"))
     MONGODB_REMOVE_NS = TicketEnumField("MONGODB_REMOVE_NS", _("MongoDB 清档"), _("数据处理"))
     MONGODB_FULL_BACKUP = TicketEnumField("MONGODB_FULL_BACKUP", _("MongoDB 全库备份"), _("备份"))
@@ -417,7 +499,8 @@ class TicketType(str, StructuredEnum):
     MONGODB_ADD_MONGOS = TicketEnumField("MONGODB_ADD_MONGOS", _("MongoDB 扩容接入层"), _("集群维护"))
     MONGODB_REDUCE_MONGOS = TicketEnumField("MONGODB_REDUCE_MONGOS", _("MongoDB 缩容接入层"), _("集群维护"))
     MONGODB_ADD_SHARD_NODES = TicketEnumField("MONGODB_ADD_SHARD_NODES", _("MongoDB 扩容shard节点数"), _("集群维护"))
-    MONGODB_REDUCE_SHARD_NODES = TicketEnumField("MONGODB_REDUCE_SHARD_NODES", _("MongoDB 缩容shard节点数"), _("集群维护"))
+    MONGODB_REDUCE_SHARD_NODES = TicketEnumField("MONGODB_REDUCE_SHARD_NODES", _("MongoDB 缩容shard节点数"),
+                                                 _("集群维护"))
     MONGODB_SCALE_UPDOWN = TicketEnumField("MONGODB_SCALE_UPDOWN", _("MongoDB 集群容量变更"), _("集群维护"))
     MONGODB_ENABLE = TicketEnumField("MONGODB_ENABLE", _("MongoDB 集群启用"), register_iam=False)
     MONGODB_INSTANCE_RELOAD = TicketEnumField("MONGODB_INSTANCE_RELOAD", _("MongoDB 实例重启"), _("集群管理"))
@@ -425,7 +508,8 @@ class TicketType(str, StructuredEnum):
     MONGODB_DESTROY = TicketEnumField("MONGODB_DESTROY", _("MongoDB 集群删除"), _("集群管理"))
     MONGODB_CUTOFF = TicketEnumField("MONGODB_CUTOFF", _("MongoDB 整机替换"), _("集群维护"))
     MONGODB_AUTHORIZE_RULES = TicketEnumField("MONGODB_AUTHORIZE_RULES", _("MongoDB 授权"), _("权限管理"))
-    MONGODB_EXCEL_AUTHORIZE_RULES = TicketEnumField("MONGODB_EXCEL_AUTHORIZE_RULES", _("MongoDB Excel授权"), _("权限管理")) # noqa
+    MONGODB_EXCEL_AUTHORIZE_RULES = TicketEnumField("MONGODB_EXCEL_AUTHORIZE_RULES", _("MongoDB Excel授权"),
+                                                    _("权限管理"))  # noqa
     MONGODB_IMPORT = TicketEnumField("MONGODB_IMPORT", _("MongoDB 数据导入"), _("集群维护"))
     MONGODB_RESTORE = TicketEnumField("MONGODB_RESTORE", _("MongoDB 定点回档"), _("集群维护"))
     MONGODB_TEMPORARY_DESTROY = TicketEnumField("MONGODB_TEMPORARY_DESTROY", _("MongoDB 临时集群销毁"), _("集群维护"))
@@ -632,6 +716,7 @@ class OperateNodeActionType(str, StructuredEnum):
     DISTRIBUTE = EnumField("DISTRIBUTE", _("派单"))
     DELIVER = EnumField("DELIVER", _("转单"))
     TERMINATE = EnumField("TERMINATE", _("终止节点和单据"))
+    WITHDRAW = EnumField("WITHDRAW", _("撤销单据"))
 
 
 class ItsmTicketNodeEnum(str, StructuredEnum):
@@ -677,4 +762,14 @@ FLOW_TYPE__EXPIRE_TYPE_CONFIG = {
     FlowType.PAUSE: TicketExpireType.FLOW_TODO,
     FlowType.RESOURCE_APPLY: TicketExpireType.FLOW_TODO,
     FlowType.RESOURCE_BATCH_APPLY: TicketExpireType.FLOW_TODO,
+}
+
+# 根据流程类型来映射单据状态
+RUNNING_FLOW__TICKET_STATUS = {
+    FlowType.BK_ITSM: TicketStatus.APPROVE,
+    FlowType.RESOURCE_APPLY: TicketStatus.RESOURCE_REPLENISH,
+    FlowType.RESOURCE_BATCH_APPLY: TicketStatus.RESOURCE_REPLENISH,
+    FlowType.PAUSE: TicketStatus.TODO,
+    FlowType.INNER_FLOW: TicketStatus.RUNNING,
+    FlowType.TIMER: TicketStatus.TIMER,
 }

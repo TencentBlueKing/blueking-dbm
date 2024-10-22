@@ -21,7 +21,7 @@ from backend.db_meta.models.instance import StorageInstance
 from backend.db_proxy.models import ClusterExtension
 from backend.db_services.dbbase.resources import query
 from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
-from backend.ticket.constants import TicketFlowStatus
+from backend.ticket.constants import TICKET_RUNNING_STATUS
 from backend.ticket.models import InstanceOperateRecord
 from backend.utils.time import datetime2str
 
@@ -65,7 +65,7 @@ class BigDataBaseListRetrieveResource(query.ListRetrieveResource):
 
         # 获取实例的操作与实例记录
         records = InstanceOperateRecord.objects.filter(
-            instance_id__in=instance_ids, ticket__status=TicketFlowStatus.RUNNING
+            instance_id__in=instance_ids, ticket__status__in=TICKET_RUNNING_STATUS
         )
         instance_operate_records_map: Dict[int, List] = defaultdict(list)
         for record in records:

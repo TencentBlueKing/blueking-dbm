@@ -53,7 +53,7 @@ logger = logging.getLogger("test")
 pytestmark = pytest.mark.django_db
 client = APIClient()
 
-INITIAL_FLOW_FINISHED_STATUS = [TicketFlowStatus.SKIPPED, TicketStatus.SUCCEEDED]
+INITIAL_FLOW_FINISHED_STATUS = [TicketFlowStatus.SKIPPED, TicketFlowStatus.SUCCEEDED]
 CHANGED_MOCK_STATUS = [TicketFlowStatus.SKIPPED, TicketStatus.SUCCEEDED, TicketFlowStatus.RUNNING]
 
 

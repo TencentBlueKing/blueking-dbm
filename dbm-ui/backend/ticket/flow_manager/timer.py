@@ -56,7 +56,7 @@ class TimerFlow(BaseTicketFlow):
             return _("定时时间{}，已超时{}，需手动触发。暂停状态:{}").format(
                 self.trigger_time,
                 countdown2str(run_time - trigger_time),
-                constants.TicketStatus.get_choice_label(self.status),
+                constants.TicketFlowStatus.get_choice_label(self.status),
             )
 
         now = datetime.now(timezone.utc)
@@ -68,19 +68,17 @@ class TimerFlow(BaseTicketFlow):
     @property
     def _status(self) -> str:
         trigger_time = str2datetime(self.trigger_time)
+        # 还未到定时节点，返回pending
         if self.expired_flag is None:
-            return constants.TicketStatus.PENDING.value
-
+            return constants.TicketFlowStatus.PENDING.value
+        # 已过期，但是todo未处理，则返回running
         if self.expired_flag and self.ticket.todo_of_ticket.exist_unfinished():
-            self.flow_obj.update_status(constants.TicketStatus.RUNNING.value)
-            return constants.TicketStatus.RUNNING.value
-
+            return self.flow_obj.update_status(constants.TicketFlowStatus.RUNNING.value)
+        # 触发时间晚于当前时间，则返回running
         if trigger_time > datetime.now(timezone.utc):
-            self.flow_obj.update_status(constants.TicketStatus.RUNNING.value)
-            return constants.TicketStatus.RUNNING.value
-
-        self.flow_obj.update_status(constants.TicketStatus.SUCCEEDED.value)
-        return constants.TicketStatus.SUCCEEDED.value
+            return self.flow_obj.update_status(constants.TicketFlowStatus.RUNNING.value)
+        # 其他情况说明已触发，返回succeed
+        return self.flow_obj.update_status(constants.TicketFlowStatus.SUCCEEDED.value)
 
     @property
     def _url(self) -> str:
