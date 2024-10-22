@@ -36,11 +36,14 @@ func (c *MySQLRPCEmbed) MakeConnection(address string, user string, password str
 		timeout, url.QueryEscape(timezone),
 	)
 
-	db, err := sqlx.Connect(
+	//db, err := sqlx.Connect(
+	//	"mysql",
+	//	fmt.Sprintf(`%s:%s@tcp(%s)/?%s`, user, password, address, connectParam),
+	//)
+	db, err := sqlx.Open(
 		"mysql",
 		fmt.Sprintf(`%s:%s@tcp(%s)/?%s`, user, password, address, connectParam),
 	)
-
 	if err != nil {
 		slog.Warn("first time connect to mysql",
 			slog.String("err", err.Error()),
@@ -51,7 +54,23 @@ func (c *MySQLRPCEmbed) MakeConnection(address string, user string, password str
 
 		time.Sleep(2 * time.Second)
 
-		db, err = sqlx.Connect(
+		//db, err = sqlx.Connect(
+		//	"mysql",
+		//	fmt.Sprintf(`%s:%s@tcp(%s)/?%s`, user, password, address, connectParam),
+		//)
+		//if err != nil {
+		//	slog.Error(
+		//		"retry connect to mysql",
+		//		slog.String("error", err.Error()),
+		//		slog.String("address", address),
+		//		slog.String("user", user),
+		//		slog.String("password", password),
+		//	)
+		//	return nil, err
+		//}
+		//slog.Info("retry connect to mysql success")
+
+		db, err = sqlx.Open(
 			"mysql",
 			fmt.Sprintf(`%s:%s@tcp(%s)/?%s`, user, password, address, connectParam),
 		)
@@ -66,6 +85,7 @@ func (c *MySQLRPCEmbed) MakeConnection(address string, user string, password str
 			return nil, err
 		}
 		slog.Info("retry connect to mysql success")
+
 		return db, nil
 	}
 	return db, nil
