@@ -199,6 +199,16 @@ class _DBPrivManagerApi(BaseApi):
             url="/priv/clone_account_rule",
             description=_("从某个业务克隆账号和账号规则到其他业务"),
         )
+        self.get_priv = self.generate_data_api(
+            method="POST",
+            url="/priv/get_priv",
+            description=_("查询权限信息"),
+        )
+        self.get_user_list = self.generate_data_api(
+            method="POST",
+            url="/priv/get_user_list",
+            description=_("查询用户列表"),
+        )
 
 
 # 历史原因，最先只对mysql进行权限操作，所以命名为MySQLPrivManagerApi。但是现在统一作为所有组件的权限操作

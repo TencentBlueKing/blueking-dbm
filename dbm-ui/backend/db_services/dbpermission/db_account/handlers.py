@@ -20,10 +20,16 @@ from backend.components.mysql_priv_manager.client import DBPrivManagerApi
 from backend.core.encrypt.constants import AsymmetricCipherConfigType
 from backend.core.encrypt.handlers import AsymmetricHandler
 from backend.db_services.dbpermission.constants import DPRIV_PARAMETER_MAP, AccountType
-from backend.db_services.dbpermission.db_account.dataclass import AccountMeta, AccountRuleMeta
+from backend.db_services.dbpermission.db_account.dataclass import (
+    AccountMeta,
+    AccountPrivMeta,
+    AccountRuleMeta,
+    AccountUserMeta,
+)
 from backend.db_services.dbpermission.db_account.signals import create_account_signal
 from backend.db_services.mysql.open_area.models import TendbOpenAreaConfig
 from backend.db_services.mysql.permission.exceptions import DBPermissionBaseException
+from backend.utils.excel import ExcelHandler
 
 logger = logging.getLogger("root")
 
@@ -250,3 +256,145 @@ class AccountHandler(object):
             account, rules = account_rule["account"], account_rule["rules"]
             user_db__rules[account["user"]] = {rule["dbname"]: rule["priv"] for rule in rules}
         return user_db__rules
+
+    def paginate_match_ips(self, data, privs_format, offset, limit):
+        # 收集所有的 match_ips，保留原数据的引用
+        if privs_format == "privs_for_ip":
+            all_match_ips = [
+                (ip, dbs, domain, user, match_ip)
+                for ip in data[privs_format]
+                for dbs in ip["dbs"]
+                for domain in dbs["domains"]
+                for user in domain["users"]
+                for match_ip in user["match_ips"]
+            ]
+        elif privs_format == "privs_for_cluster":
+            all_match_ips = [
+                (cluster, user, match_ip)
+                for cluster in data[privs_format]
+                for user in cluster["users"]
+                for match_ip in user["match_ips"]
+            ]
+
+        # 获取分页的 match_ips
+        paginated_match_ips = all_match_ips[offset : offset + limit]
+
+        # 创建新的数据结构来存储分页后的结果
+        paginated_data = {privs_format: []}
+
+        if privs_format == "privs_for_ip":
+            # 用于存储已经处理过的 IP, dbs, domain 和 user 的引用
+            ip_dbs_domain_user_map = {}
+
+            for ip, dbs, domain, user, match_ip in paginated_match_ips:
+                # 查找或创建新的 IP 条目
+                if ip["ip"] not in ip_dbs_domain_user_map:
+                    new_ip = {"ip": ip["ip"], "dbs": []}
+                    paginated_data[privs_format].append(new_ip)
+                    ip_dbs_domain_user_map[ip["ip"]] = {"ip": new_ip, "dbs": {}}
+                else:
+                    new_ip = ip_dbs_domain_user_map[ip["ip"]]["ip"]
+
+                # 查找或创建新的 dbs 条目
+                dbs_map = ip_dbs_domain_user_map[ip["ip"]]["dbs"]
+                if dbs["db"] not in dbs_map:
+                    new_dbs = {"db": dbs["db"], "domains": []}
+                    new_ip["dbs"].append(new_dbs)
+                    dbs_map[dbs["db"]] = {"dbs": new_dbs, "domains": {}}
+                else:
+                    new_dbs = dbs_map[dbs["db"]]["dbs"]
+
+                # 查找或创建新的 domain 条目
+                domain_map = dbs_map[dbs["db"]]["domains"]
+                if domain["immute_domain"] not in domain_map:
+                    new_domain = {"immute_domain": domain["immute_domain"], "users": []}
+                    new_dbs["domains"].append(new_domain)
+                    domain_map[domain["immute_domain"]] = {"domains": new_domain, "users": {}}
+                else:
+                    new_domain = domain_map[domain["immute_domain"]]["domains"]
+
+                # 查找或创建新的用户条目
+                user_map = domain_map[domain["immute_domain"]]["users"]
+                if user["user"] not in user_map:
+                    new_user = {"user": user["user"], "match_ips": []}
+                    new_domain["users"].append(new_user)
+                    user_map[user["user"]] = new_user
+                else:
+                    new_user = user_map[user["user"]]
+
+                # 添加匹配的 match_ip
+                new_user["match_ips"].append(match_ip)
+
+        elif privs_format == "privs_for_cluster":
+            # 用于存储已经处理过的集群和用户的引用
+            cluster_user_map = {}
+
+            for cluster, user, match_ip in paginated_match_ips:
+                # 查找或创建新的集群条目
+                if cluster["immute_domain"] not in cluster_user_map:
+                    new_cluster = {"immute_domain": cluster["immute_domain"], "users": []}
+                    paginated_data[privs_format].append(new_cluster)
+                    cluster_user_map[cluster["immute_domain"]] = {"cluster": new_cluster, "users": {}}
+                else:
+                    new_cluster = cluster_user_map[cluster["immute_domain"]]["cluster"]
+
+                # 查找或创建新的用户条目
+                user_map = cluster_user_map[cluster["immute_domain"]]["users"]
+                if user["user"] not in user_map:
+                    new_user = {"user": user["user"], "match_ips": []}
+                    new_cluster["users"].append(new_user)
+                    user_map[user["user"]] = new_user
+                else:
+                    new_user = user_map[user["user"]]
+
+                # 添加匹配的 match_ip
+                new_user["match_ips"].append(match_ip)
+
+        # 更新原数据
+        data[privs_format] = paginated_data[privs_format]
+
+        # 返回分页数据以及总 match_ips 的数量
+        return data, len(all_match_ips)
+
+    def get_account_privs(self, priv_filter: AccountPrivMeta) -> Dict:
+        """获取权限信息"""
+        # 过滤字典为None的键值对
+        priv_meta = {k: v for k, v in priv_filter.to_dict().items() if v is not None}
+        priv_meta["bk_biz_id"] = self.bk_biz_id
+        priv_meta["format"] = priv_meta.pop("format_type")
+        offset = priv_meta.pop("offset")
+        limit = priv_meta.pop("limit")
+        rules_list = DBPrivManagerApi.get_priv(priv_meta)
+        privs_format = "privs_for_ip" if priv_meta["format"] == "ip" else "privs_for_cluster"
+        if not rules_list[privs_format]:
+            return {"match_ips_count": 0, "results": rules_list}
+        # 分页
+        paginated_data, total_match_ips_count = self.paginate_match_ips(rules_list, privs_format, offset, limit)
+        paginated_data.pop("download")
+        return {"match_ips_count": total_match_ips_count, "results": paginated_data}
+
+    def get_download_privs(self, priv_filter: AccountPrivMeta) -> Dict:
+        """获取权限信息"""
+        # 过滤字典为None的键值对
+        priv_meta = {k: v for k, v in priv_filter.to_dict().items() if v is not None}
+        priv_meta["bk_biz_id"] = self.bk_biz_id
+        priv_meta["format"] = priv_meta.pop("format_type")
+        rules_list = DBPrivManagerApi.get_priv(priv_meta)
+
+        headers = [_("源客户端IP"), _("匹配中的访问源"), _("集群域名"), _("账号"), _("权限规则")]
+        excel_name = "privs.xlsx"
+        wb = ExcelHandler.serialize(rules_list["download"], headers=headers, match_header=False)
+        return ExcelHandler.response(wb, excel_name)
+
+    def get_account_users(self, account_users: AccountUserMeta):
+        """获取认证用户列表"""
+        user_meta = {
+            "ips": account_users.ips,
+            "immute_domains": account_users.immute_domains,
+            "cluster_type": account_users.cluster_type,
+        }
+        user_list = DBPrivManagerApi.get_user_list(user_meta)
+        if not user_list["items"]:
+            return {"count": 0, "results": []}
+
+        return {"count": user_list["count"], "results": user_list["items"]}

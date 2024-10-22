@@ -15,6 +15,7 @@ from typing import Any, Dict, List, Union
 
 import openpyxl
 from django.http.response import HttpResponse, StreamingHttpResponse
+from django.utils.translation import ugettext as _
 from openpyxl import Workbook
 from openpyxl.styles import Alignment, PatternFill
 from openpyxl.worksheet.worksheet import Worksheet
@@ -139,6 +140,13 @@ class ExcelHandler:
                         sheet.cell(row + first_data_row, col + 1, str(data_dict[header_id]))
             else:
                 for col, value in enumerate(list(data_dict.values())):
+                    if "privs" in data_dict and isinstance(value, list):
+                        value = (
+                            str(value)
+                            .replace("'match_db':", _("'匹配的DB':"))
+                            .replace("'db':", _("'访问的DB':"))
+                            .replace("'priv':", _("'权限':"))
+                        )
                     sheet.cell(row + first_data_row, col + 1, str(value))
 
         # 自适应设置行高和列宽

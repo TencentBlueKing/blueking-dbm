@@ -15,8 +15,9 @@ from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
 from backend.configuration.handlers.password import DBPasswordHandler
+from backend.db_meta.enums import ClusterType
 from backend.db_services.dbpermission import constants
-from backend.db_services.dbpermission.constants import AccountType, PrivilegeType
+from backend.db_services.dbpermission.constants import AccountType, FormatType, PrivilegeType
 from backend.db_services.dbpermission.db_account import mock_data
 
 
@@ -110,6 +111,26 @@ class FilterAccountRulesSerializer(serializers.Serializer):
 
 
 class PageAccountRulesSerializer(FilterAccountRulesSerializer):
+    limit = serializers.IntegerField(required=False, default=10)
+    offset = serializers.IntegerField(required=False, default=0)
+
+
+class AccountUserSerializer(serializers.Serializer):
+    ips = serializers.CharField(help_text=_("过滤ip，多个ip以逗号分割"))
+    immute_domains = serializers.CharField(help_text=_("集群域名，多个域名以逗号分割"))
+    account_type = serializers.ChoiceField(help_text=_("账号类型"), choices=AccountType.get_choices())
+    cluster_type = serializers.ChoiceField(help_text=_("集群类型"), choices=ClusterType.get_choices())
+
+
+class AccountPrivSerializer(AccountUserSerializer):
+    users = serializers.CharField(help_text=_("账号名称，多个账号以逗号分割"))
+    dbs = serializers.CharField(help_text=_("访问DB，多个DB以逗号分割"), required=False)
+    format_type = serializers.ChoiceField(
+        help_text=_("format格式"), choices=FormatType.get_choices(), default=FormatType.IP
+    )
+
+
+class FilterPrivSerializer(AccountPrivSerializer):
     limit = serializers.IntegerField(required=False, default=10)
     offset = serializers.IntegerField(required=False, default=0)
 
