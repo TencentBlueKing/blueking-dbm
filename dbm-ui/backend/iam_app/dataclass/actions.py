@@ -398,7 +398,7 @@ class ActionEnum:
 
     MYSQL_ADD_ACCOUNT_RULE = ActionMeta(
         id="mysql_add_account_rule",
-        name=_("MySQL账号规则创建"),
+        name=_("MySQL账号规则变更"),
         name_en="mysql_add_account_rule",
         type="create",
         related_actions=[DB_MANAGE.id],
@@ -705,7 +705,7 @@ class ActionEnum:
 
     TENDBCLUSTER_ADD_ACCOUNT_RULE = ActionMeta(
         id="tendbcluster_add_account_rule",
-        name=_("TenDB Cluster 账号规则创建"),
+        name=_("TenDB Cluster 账号规则变更"),
         name_en="tendbcluster_add_account_rule",
         type="create",
         related_actions=[DB_MANAGE.id],
