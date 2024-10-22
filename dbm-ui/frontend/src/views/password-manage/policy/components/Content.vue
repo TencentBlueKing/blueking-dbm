@@ -73,10 +73,13 @@
             <div class="input-prefix">
               {{ t('指定特殊字符') }}
             </div>
-            <BkInput
-              v-model="formData.symbols_allowed"
+            <BkFormItem
               class="symbols-input"
-              @keyup="handleInputChange" />
+              property="symbols_allowed">
+              <BkInput
+                v-model="formData.symbols_allowed"
+                :placeholder="t('请输入英文半角字符，重复字符将去重')" />
+            </BkFormItem>
           </div>
         </BkFormItem>
         <BkFormItem
@@ -136,6 +139,7 @@
 
 <script setup lang="ts">
   import { Message } from 'bkui-vue';
+  import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
@@ -177,6 +181,38 @@
         trigger: 'change',
         message: t('请至少选择一种类型'),
         validator: () => Object.values(formData.include_rule).some((checked) => checked),
+      },
+    ],
+    symbols_allowed: [
+      {
+        trigger: 'blur',
+        message: t('请指定特殊字符'),
+        validator: (value: string) => {
+          if (formData.include_rule.symbols) {
+            return !!value;
+          }
+          return true;
+        },
+      },
+      {
+        trigger: 'blur',
+        message: t('特殊字符不允许包含空格'),
+        validator: (value: string) => {
+          if (formData.include_rule.symbols) {
+            return !/\s/.test(value);
+          }
+          return true;
+        },
+      },
+      {
+        trigger: 'blur',
+        message: t('请输入除大小写字母、数字外的英文半角字符'),
+        validator: (value: string) => {
+          if (formData.include_rule.symbols) {
+            return /^[\u0021-\u002f\u003a-\u0040\u005b-\u0060\u007b-\u007e]+$/.test(value);
+          }
+          return true;
+        },
       },
     ],
   };
@@ -243,12 +279,6 @@
     formRef.value.validate();
   };
 
-  const handleInputChange = (value: string) => {
-    if (/[A-Za-z0-9]/.test(value)) {
-      formData.symbols_allowed = value.slice(0, -1);
-    }
-  };
-
   const handleSubmit = async (reset = false) => {
     if (!reset) {
       await formRef.value.validate();
@@ -259,7 +289,10 @@
     }
     updatePasswordPolicyRun({
       ...passwordPolicyData,
-      rule: formData,
+      rule: {
+        ...formData,
+        symbols_allowed: _.uniq(formData.symbols_allowed.split('')).join(''),
+      },
       reset,
     });
   };
