@@ -129,8 +129,6 @@ class SQLServerDataMigrateFlowBuilder(BaseSQLServerTicketFlowBuilder):
     serializer = SQLServerRollbackDetailSerializer
     inner_flow_builder = SQLServerDataMigrateFlowParamBuilder
     retry_type = FlowRetryType.MANUAL_RETRY
-    # 流程不允许修改
-    editable = False
 
     def custom_ticket_flows(self):
         rollback_flow = Flow(
