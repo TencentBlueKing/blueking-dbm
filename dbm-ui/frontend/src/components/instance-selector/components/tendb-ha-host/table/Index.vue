@@ -13,10 +13,13 @@
 
 <template>
   <div class="instance-selector-render-topo-host">
-    <BkInput
+    <SerachBar
       v-model="searchValue"
-      clearable
-      :placeholder="t('请输入主机')" />
+      is-host
+      :placeholder="t('请输入或选择条件搜索')"
+      :search-attrs="searchAttrs"
+      :validate-search-values="validateSearchValues"
+      @search-value-change="handleSearchValueChange" />
     <BkLoading
       :loading="isLoading"
       :z-index="2">
@@ -28,15 +31,20 @@
         :remote-pagination="isRemotePagination"
         :settings="tableSetting"
         style="margin-top: 12px"
+        @clear-search="clearSearchValue"
+        @column-filter="columnFilterChange"
         @page-limit-change="handeChangeLimit"
-        @page-value-change="handleChangePage"
-        @refresh="fetchResources" />
+        @page-value-change="handleChangePage" />
     </BkLoading>
   </div>
 </template>
 <script setup lang="tsx" generic="T extends IValue">
   import type { Ref } from 'vue';
   import { useI18n } from 'vue-i18n';
+
+  import { useLinkQueryColumnSerach } from '@hooks';
+
+  import { ClusterTypes } from '@common/const';
 
   import DbStatus from '@components/db-status/index.vue';
 
@@ -50,6 +58,7 @@
     type TableSetting,
   } from '../../../Index.vue';
   import RenderInstance from '../../common/render-instance/Index.vue';
+  import SerachBar from '../../common/SearchBar.vue';
 
   import { useTableData } from './useTableData';
 
@@ -66,7 +75,7 @@
     roleFilterList?: TableConfigType['roleFilterList'],
     disabledRowConfig?: TableConfigType['disabledRowConfig'],
     // eslint-disable-next-line vue/no-unused-properties
-    getTableList?: TableConfigType['getTableList'],
+    getTableList: NonNullable<TableConfigType['getTableList']>,
     // eslint-disable-next-line vue/no-unused-properties
     statusFilter?: TableConfigType['statusFilter'],
   }
@@ -82,7 +91,6 @@
     isRemotePagination: true,
     disabledRowConfig: undefined,
     roleFilterList: undefined,
-    getTableList: undefined,
   });
 
   const emits = defineEmits<Emits>();
@@ -97,6 +105,28 @@
 
   const { t } = useI18n();
 
+  const {
+    columnAttrs,
+    searchAttrs,
+    searchValue,
+    columnCheckedMap,
+    clearSearchValue,
+    columnFilterChange,
+    validateSearchValues,
+    handleSearchValueChange,
+  } = useLinkQueryColumnSerach({
+    searchType: ClusterTypes.TENDBHA,
+    attrs: [
+      'bk_cloud_id'
+    ],
+    fetchDataFn: () => fetchResources(),
+    defaultSearchItem: {
+      name: 'IP',
+      id: 'ip',
+    },
+    isDiscardNondefault: true,
+  });
+
   const activePanel = inject(activePanelInjectionKey) as Ref<string> | undefined;
 
   const checkedMap = shallowRef({} as DataRow);
@@ -107,15 +137,15 @@
   const mainSelectDisable = computed(() => (props.disabledRowConfig
     ? tableData.value.filter(data => props.disabledRowConfig?.handler(data)).length === tableData.value.length : false));
 
-  const {
+    const {
     isLoading,
     data: tableData,
     pagination,
-    searchValue,
+    generateParams,
     fetchResources,
     handleChangePage,
     handeChangeLimit,
-  } = useTableData<T>(initRole, selectClusterId);
+  } = useTableData<T>(searchValue, initRole, selectClusterId);
 
   const isSelectedAll = computed(() => (
     tableData.value.length > 0
@@ -129,12 +159,30 @@
       width: 60,
       fixed: 'left',
       label: () => (
-        <bk-checkbox
-          label={true}
-          model-value={isSelectedAll.value}
-          disabled={mainSelectDisable.value}
-          onChange={handleSelectPageAll}
-        />
+        <div style="display:flex;align-items:center">
+          <bk-checkbox
+            label={true}
+            model-value={isSelectedAll.value}
+            disabled={mainSelectDisable.value}
+            onChange={handleSelectPageAll}
+          />
+          <bk-popover
+            placement="bottom-start"
+            theme="light db-table-select-menu"
+            arrow={ false }
+            trigger='hover'
+            v-slots={{
+              default: () => <db-icon class="select-menu-flag" type="down-big" />,
+              content: () => (
+                <div class="db-table-select-plan">
+                  <div
+                    class="item"
+                    onClick={handleWholeSelect}>{t('跨页全选')}</div>
+                </div>
+              ),
+            }}>
+          </bk-popover>
+        </div>
       ),
       render: ({ data }: DataRow) => {
         if (props.disabledRowConfig && props.disabledRowConfig.handler(data)) {
@@ -173,8 +221,13 @@
     {
       minWidth: 100,
       label: t('管控区域'),
-      field: 'bk_cloud_name',
+      field: 'bk_cloud_id',
       showOverflowTooltip: true,
+      filter: {
+        list: columnAttrs.value.bk_cloud_id,
+        checked: columnCheckedMap.value.bk_cloud_id,
+      },
+      render: ({ data }: DataRow) => <span>{data.bk_cloud_name ?? '--'}</span>,
     },
     {
       minWidth: 100,
@@ -259,6 +312,21 @@
       });
     }
   };
+
+  // 跨页全选
+    const handleWholeSelect = () => {
+    isLoading.value = true;
+    const params = generateParams();
+    params.limit = -1;
+    props.getTableList(params).then((data) => {
+      data.results.forEach((dataItem: T) => {
+        if (!props.disabledRowConfig?.handler(dataItem)) {
+          handleTableSelectOne(true, dataItem);
+        }
+      });
+    }).finally(() => isLoading.value = false);
+  };
+
 
   const handleSelectPageAll = (checked: boolean) => {
     const list = tableData.value;

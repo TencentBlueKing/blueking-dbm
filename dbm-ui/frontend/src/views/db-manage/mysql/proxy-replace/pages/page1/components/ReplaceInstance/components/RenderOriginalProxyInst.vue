@@ -22,7 +22,13 @@
   const instanceAddreddMemo: { [key: string]: Record<string, boolean> } = {};
 
   interface Emits {
-    (e: 'inputFinish', relatedClusters: IDataRow['relatedClusters']): void;
+    (
+      e: 'inputFinish',
+      data: {
+        originProxy: IDataRow['originProxy'];
+        relatedClusters: IDataRow['relatedClusters'];
+      },
+    ): void;
   }
 
   interface Exposes {
@@ -52,7 +58,7 @@
 
   const instanceKey = `render_original_proxy_${random()}`;
   instanceAddreddMemo[instanceKey] = {};
-  let proxyInstanceData = {} as IDataRow['originProxy'];
+  let originProxy = {} as IDataRow['originProxy'];
 
   const { currentBizId } = useGlobalBizs();
   const { t } = useI18n();
@@ -76,25 +82,26 @@
           instance_addresses: [value],
         }).then((data) => {
           if (data.length < 1) {
-            emits('inputFinish', []);
             return false;
           }
           const [currentData] = data;
           instanceAddreddMemo[instanceKey][currentData.instance_address] = true;
-          proxyInstanceData = {
+          originProxy = {
             ip: currentData.ip,
             bk_cloud_id: currentData.bk_cloud_id,
             bk_host_id: currentData.bk_host_id,
             bk_biz_id: currentBizId,
             port: currentData.port,
-            cluster_id: currentData.cluster_id,
             instance_address: currentData.instance_address,
           };
           const relatedClusters = currentData.related_clusters.map((item) => ({
             cluster_id: item.id,
             domain: item.master_domain,
           }));
-          emits('inputFinish', relatedClusters);
+          emits('inputFinish', {
+            originProxy,
+            relatedClusters,
+          });
           return true;
         }),
       message: t('目标Proxy不存在'),
@@ -116,7 +123,6 @@
         const currentSelectClusterIdList = Object.keys(currentClusterSelectMap);
         for (let i = 0; i < currentSelectClusterIdList.length; i++) {
           if (otherClusterIdMap[currentSelectClusterIdList[i]]) {
-            emits('inputFinish', []);
             return false;
           }
         }
@@ -147,7 +153,7 @@
   defineExpose<Exposes>({
     getValue() {
       return editRef.value.getValue().then(() => ({
-        origin_proxy: proxyInstanceData,
+        origin_proxy: originProxy,
       }));
     },
   });

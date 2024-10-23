@@ -61,7 +61,6 @@
       tableData.value = data.infos.map((item) =>
         createRowData({
           originProxy: {
-            cluster_id: item.cluster_ids[0],
             ...item.origin_proxy,
             instance_address: `${item.origin_proxy.ip}:${item.origin_proxy.port}`,
           },

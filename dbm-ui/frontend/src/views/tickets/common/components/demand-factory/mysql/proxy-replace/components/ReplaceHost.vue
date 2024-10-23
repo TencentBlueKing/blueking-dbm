@@ -66,8 +66,6 @@
     },
   ];
 
-  const relatedInstances = shallowRef<Record<string, string[]>>({});
-  const relatedClusters = shallowRef<Record<string, string[]>>({});
   const tableData = shallowRef<RowData[]>([]);
 
   watch(
@@ -78,13 +76,17 @@
         instance_addresses: ips,
         bk_biz_id: props.ticketDetails.bk_biz_id,
       }).then((data) => {
-        const { ip } = data[0];
-        relatedInstances.value[ip] = data.map(item => item.instance_address);
-        relatedClusters.value[ip] = data.map(item => item.master_domain);
+        const relatedInstances = {} as Record<string, string[]>;
+        const relatedClusters = {} as Record<string, string[]>;
+        ips.forEach(ip => {
+          const filteredData = data.filter(item => item.ip === ip);
+          relatedInstances[ip] = filteredData.map(item => item.instance_address);
+          relatedClusters[ip] = filteredData.map(item => item.master_domain);
+        });
         tableData.value = props.ticketDetails.details.infos.map(item => ({
           originProxy: item.origin_proxy.ip,
-          relatedInstances: relatedInstances.value[item.origin_proxy.ip] || [],
-          relatedClusters: relatedClusters.value[item.origin_proxy.ip] || [],
+          relatedInstances: relatedInstances[item.origin_proxy.ip] || [],
+          relatedClusters: relatedClusters[item.origin_proxy.ip] || [],
           targetProxy: item.target_proxy.ip,
         }));
       })
