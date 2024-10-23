@@ -11,14 +11,19 @@
  * the specific language governing permissions and limitations under the License.
  */
 
-import 'vue-router';
+import { AccountTypes } from '@common/const';
 
-declare module 'vue-router' {
-  interface RouteMeta {
-    navName?: string; // 用于设置面包屑 name
-    fullscreen?: boolean; // 用于判断是否满屏幕
-    accoutType?: string;
-  }
-}
+import configMap from '@views/db-manage/common/permission/components/mysql/config';
 
-export {};
+export const isSensitivePriv = (accountType: AccountTypes, priv: string) => {
+  const dbOprationsMap: Record<string, string[]> = {
+    [AccountTypes.MYSQL]: [
+      ...configMap[AccountTypes.MYSQL].dbOperations.glob,
+      ...configMap[AccountTypes.MYSQL].ddlSensitiveWords,
+    ],
+    [AccountTypes.TENDBCLUSTER]: configMap[AccountTypes.TENDBCLUSTER].dbOperations.glob,
+  };
+
+  const dbOprations = dbOprationsMap[accountType];
+  return dbOprations.includes(priv);
+};

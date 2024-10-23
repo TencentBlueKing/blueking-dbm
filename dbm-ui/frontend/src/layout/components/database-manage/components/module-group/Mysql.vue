@@ -70,6 +70,13 @@
             {{ t('授权规则') }}
           </span>
         </BkMenuItem>
+        <BkMenuItem key="MysqlPermissionRetrieve">
+          <span
+            v-overflow-tips.right
+            class="text-overflow">
+            {{ t('权限查询') }}
+          </span>
+        </BkMenuItem>
         <BkMenuItem key="mysqlWhitelist">
           <span
             v-overflow-tips.right

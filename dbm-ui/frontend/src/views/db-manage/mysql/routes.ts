@@ -16,6 +16,8 @@ import type { RouteRecordRaw } from 'vue-router';
 import type { MySQLFunctions } from '@services/model/function-controller/functionController';
 import FunctionControllModel from '@services/model/function-controller/functionController';
 
+import { AccountTypes } from '@common/const';
+
 import { checkDbConsole } from '@utils';
 
 import { t } from '@locales/index';
@@ -272,6 +274,15 @@ const commonRouters: RouteRecordRaw[] = [
           navName: t('【MySQL】授权规则'),
         },
         component: () => import('@views/db-manage/mysql/permission/Index.vue'),
+      },
+      {
+        name: 'MysqlPermissionRetrieve',
+        path: 'permission-retrieve',
+        meta: {
+          navName: t('权限查询'),
+          accountType: AccountTypes.MYSQL,
+        },
+        component: () => import('@views/permission-retrieve/Index.vue'),
       },
       {
         path: 'whitelist',
