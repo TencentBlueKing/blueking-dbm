@@ -155,7 +155,7 @@
 
   import InfluxDBInstanceModel from '@services/model/influxdb/influxdbInstance';
   import { getInfluxdbInstanceList } from '@services/source/influxdb';
-  import { moveInstancesToGroup } from '@services/source/influxdbGroup';
+  import { getGroupList,moveInstancesToGroup } from '@services/source/influxdbGroup';
   import { createTicket } from '@services/source/ticket';
   import { getUserList } from '@services/source/user';
 
@@ -296,6 +296,12 @@
         width: 54,
         label: '',
         fixed: 'left',
+      },
+      {
+        label: 'ID',
+        field: 'id',
+        fixed: 'left',
+        width: 80,
       },
       {
         label: t('实例'),
