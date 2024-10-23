@@ -75,7 +75,7 @@
           <template #default="{ data }">
             <div v-if="data.status === 'Failed'">
               <div style="font-size: 12px; font-weight: bold; line-height: 22px; color: #ea3636">
-                {{ data.file_name }}
+                {{ getSQLFilename(data.file_name) }}
               </div>
               <MultLineText
                 :line="3"
@@ -99,6 +99,8 @@
   import { getSemanticExecuteResult, querySemanticData } from '@services/source/mysqlSqlImport';
 
   import MultLineText from '@components/mult-line-text/Index.vue';
+
+  import { getSQLFilename } from '@utils';
 
   import StatusFailed from './components/render-status/Failed.vue';
   import StatusPending from './components/render-status/Pending.vue';
