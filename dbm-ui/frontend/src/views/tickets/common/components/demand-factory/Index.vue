@@ -63,6 +63,7 @@
   import MySQLChecksum from './mysql/Checksum.vue';
   import MySQLClone from './mysql/Clone.vue';
   import MySQLClusterOperation from './mysql/ClusterOperation.vue';
+  import MySQLClusterStandardize from './mysql/ClusterStandardize.vue';
   import MySQLDataMigrate from './mysql/DataMigrate.vue';
   import DetailsMySQL from './mysql/Details.vue';
   import DumperInstall from './mysql/DumperInstall.vue';
@@ -156,6 +157,12 @@
     TicketTypes.MYSQL_SINGLE_ENABLE,
     TicketTypes.MYSQL_HA_DESTROY,
     TicketTypes.MYSQL_SINGLE_DESTROY,
+  ];
+
+  const mysqlClusterStandardize = [
+    TicketTypes.MYSQL_HA_STANDARDIZE,
+    TicketTypes.TENDBSINGLE_STANDARDIZE,
+    TicketTypes.TENDBCLUSTER_STANDARDIZE,
   ];
 
   const dumperNodeStatusUpdateType = [TicketTypes.TBINLOGDUMPER_DISABLE_NODES, TicketTypes.TBINLOGDUMPER_ENABLE_NODES];
@@ -502,6 +509,11 @@
 
     if ([TicketTypes.MYSQL_MASTER_SLAVE_SWITCH, TicketTypes.SQLSERVER_MASTER_SLAVE_SWITCH].includes(ticketType)) {
       return MySQLMasterSlaveSwitch;
+    }
+
+    // MySQL 集群标准化
+    if (mysqlClusterStandardize.includes(ticketType)) {
+      return MySQLClusterStandardize;
     }
 
     return DefaultDetails;

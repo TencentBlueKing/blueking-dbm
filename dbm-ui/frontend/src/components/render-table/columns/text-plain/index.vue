@@ -98,6 +98,7 @@
     color: #63656e;
     text-overflow: ellipsis;
     white-space: nowrap;
+    background-color: #fff;
 
     .input-error {
       position: absolute;

@@ -16,6 +16,7 @@ import { createRouter, createWebHistory, type Router, type RouteRecordRaw } from
 import { useGlobalBizs } from '@stores';
 
 import BizPermission from '@views/BizPermission.vue';
+import getClusterStandardRoutes from '@views/cluster-standardize/routes';
 import getDbConfRoutes from '@views/db-configure/routes';
 import getDbManageRoutes from '@views/db-manage/routes';
 import getDbhaSwitchEventsRouters from '@views/dbha-switch-events/routes';
@@ -105,6 +106,7 @@ export default () => {
         ...getServiceApplyRoutes(),
         ...getQuickSearchRoutes(),
         ...getDutyRuleManageRoutes(),
+        ...getClusterStandardRoutes(),
         ...getTicketSelfApplyRoutes(),
         ...getTicketSelfTodoRoutes(),
         ...getTicketSelfManageRoutes(),

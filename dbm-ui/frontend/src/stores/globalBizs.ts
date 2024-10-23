@@ -104,5 +104,8 @@ export const useGlobalBizs = defineStore('GlobalBizs', {
     changeBizId(id: number) {
       this.currentBizId = id;
     },
+    getBizById(id: number) {
+      return this.bizs.find((item) => item.bk_biz_id === id);
+    },
   },
 });

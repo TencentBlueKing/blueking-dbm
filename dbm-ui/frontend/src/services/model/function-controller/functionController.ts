@@ -63,6 +63,7 @@ interface ControllerData {
   'globalConfigManage.versionFile': ControllerItem<string>;
   'globalConfigManage.monitorStrategy': ControllerItem<string>;
   'globalConfigManage.rotationManage': ControllerItem<string>;
+  'globalConfigManage.clusterStandardize': ControllerItem<string>;
   'globalConfigManage.passwordSafe': ControllerItem<string>;
   'globalConfigManage.staffManage': ControllerItem<string>;
   'globalConfigManage.ticketFlowSetting': ControllerItem<string>;
@@ -203,6 +204,7 @@ export default class FunctionController {
   'globalConfigManage.versionFile': ControllerItem<string>;
   'globalConfigManage.monitorStrategy': ControllerItem<string>;
   'globalConfigManage.rotationManage': ControllerItem<string>;
+  'globalConfigManage.clusterStandardize': ControllerItem<string>;
   'globalConfigManage.passwordSafe': ControllerItem<string>;
   'globalConfigManage.staffManage': ControllerItem<string>;
   'globalConfigManage.ticketFlowSetting': ControllerItem<string>;

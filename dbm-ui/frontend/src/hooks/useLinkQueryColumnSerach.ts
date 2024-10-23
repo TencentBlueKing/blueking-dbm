@@ -35,7 +35,7 @@ type ColumnCheckedMap = Record<string, string[]>;
 
 export const useLinkQueryColumnSerach = (config: {
   searchType: string;
-  attrs: string[];
+  attrs?: string[];
   fetchDataFn?: () => void;
   isCluster?: boolean;
   isQueryAttrs?: boolean;
@@ -48,7 +48,7 @@ export const useLinkQueryColumnSerach = (config: {
 }) => {
   const {
     searchType,
-    attrs,
+    attrs = [],
     fetchDataFn = () => {},
     isCluster = true,
     isQueryAttrs = true,
