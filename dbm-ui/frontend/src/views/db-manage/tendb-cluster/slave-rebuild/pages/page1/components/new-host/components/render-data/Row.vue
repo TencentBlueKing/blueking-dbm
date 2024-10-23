@@ -96,9 +96,7 @@
       slaveInstanceList: [] as IDataRow['oldSlave']['slaveInstanceList'],
     },
   });
-</script>
 
-<script setup lang="ts">
   interface Props {
     data: IDataRow;
     removeable: boolean;
@@ -114,7 +112,8 @@
   interface Exposes {
     getValue: () => Promise<any>;
   }
-
+</script>
+<script setup lang="ts">
   const props = defineProps<Props>();
   const emits = defineEmits<Emits>();
 
@@ -142,10 +141,10 @@
     emits('remove');
   };
 
-  const getRowData = () => [oldSlaveRef.value!.validate(), newSlaveRef.value!.getValue()];
+  const getRowData = () => [oldSlaveRef.value!.validate(), newSlaveRef.value!.getValue()] as const;
 
   const handleClone = () => {
-    Promise.allSettled(getRowData()).then((rowData) => {
+    Promise.allSettled(getRowData()).then(() => {
       emits('clone', {
         rowKey: random(),
         isLoading: false,
