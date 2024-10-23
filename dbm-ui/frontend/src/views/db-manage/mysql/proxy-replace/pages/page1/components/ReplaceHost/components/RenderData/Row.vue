@@ -16,26 +16,25 @@
     <FixedColumn fixed="left">
       <RenderOriginalProxyHost
         ref="originRef"
-        v-model="localIp"
+        v-model="rowData.originProxy.ip"
         @input-finish="handleOriginProxyInputFinish" />
     </FixedColumn>
     <td style="padding: 0">
-      <RenderRelatedInstances
+      <RenderRelatedItems
         ref="relatedInstancesRef"
-        :list="localRelatedInstances" />
+        field="instance"
+        :list="rowData.relatedInstances" />
     </td>
     <td style="padding: 0">
-      <RenderRelatedClusters
-        ref="relatedClustersRef"
-        :list="localRelatedClusters" />
+      <RenderRelatedItems
+        field="domain"
+        :list="rowData.relatedClusters" />
     </td>
     <td style="padding: 0">
       <RenderTargetProxy
         ref="targetRef"
-        :cloud-id="data.originProxy.bk_cloud_id"
-        :disabled="!localIp"
-        :model-value="data.targetProxy"
-        :target-ip="data.originProxy.ip" />
+        v-model="rowData.targetProxy"
+        :origin-proxy="rowData.originProxy" />
     </td>
     <OperateColumn
       :removeable="removeable"
@@ -49,10 +48,10 @@
   export interface IDataRow {
     rowKey: string;
     originProxy: {
-      ip: string;
+      bk_biz_id: number;
       bk_cloud_id: number | null;
       bk_host_id: number;
-      bk_biz_id: number;
+      ip: string;
       port?: number;
     };
     relatedInstances: {
@@ -64,13 +63,11 @@
       domain: string;
     }[];
     targetProxy: {
+      bk_biz_id: number;
       bk_cloud_id: number | null;
       bk_host_id: number;
-      bk_biz_id: number;
-      cluster_id: number;
-      port?: number;
       ip: string;
-      instance_address: string;
+      port?: number;
     };
   }
 
@@ -86,20 +83,8 @@
   interface Exposes {
     getValue: () => Promise<{
       cluster_ids: number[];
-      origin_proxy: {
-        ip: string;
-        bk_cloud_id: number | null;
-        bk_host_id: number;
-        bk_biz_id: number;
-        port?: number;
-      };
-      target_proxy: {
-        ip: string;
-        bk_cloud_id: number | null;
-        bk_host_id: number;
-        bk_biz_id: number;
-        port?: number;
-      };
+      origin_proxy: IDataRow['originProxy'];
+      target_proxy: IDataRow['targetProxy'];
     }>;
   }
 
@@ -134,40 +119,32 @@
   import FixedColumn from '@components/render-table/columns/fixed-column/index.vue';
   import OperateColumn from '@components/render-table/columns/operate-column/index.vue';
 
-  import RenderRelatedClusters from '@views/db-manage/mysql/proxy-replace/pages/page1/components/common/RenderRelatedClusters.vue';
+  import RenderRelatedItems from '@views/db-manage/mysql/proxy-replace/pages/page1/components/common/RenderRelatedItems.vue';
   import RenderTargetProxy from '@views/db-manage/mysql/proxy-replace/pages/page1/components/common/RenderTargetProxy.vue';
 
   import RenderOriginalProxyHost from '../RenderOriginalProxyHost.vue';
-  import RenderRelatedInstances from '../RenderRelatedInstances.vue';
 
   const props = defineProps<Props>();
 
   const emits = defineEmits<Emits>();
 
   const originRef = ref<InstanceType<typeof RenderOriginalProxyHost>>();
-  const relatedInstancesRef = ref<InstanceType<typeof RenderRelatedInstances>>();
+  const relatedInstancesRef = ref<InstanceType<typeof RenderRelatedItems>>();
   const targetRef = ref<InstanceType<typeof RenderTargetProxy>>();
-
-  const localIp = ref('');
-  const localRelatedInstances = ref<IDataRow['relatedInstances']>([]);
-  const localRelatedClusters = ref<IDataRow['relatedClusters']>([]);
+  const rowData = ref<IDataRow>(createRowData());
 
   watch(
     () => props.data,
     () => {
-      localIp.value = props.data.originProxy.ip;
+      rowData.value = props.data;
     },
     {
       immediate: true,
     },
   );
 
-  const handleOriginProxyInputFinish = (
-    relatedInstances: IDataRow['relatedInstances'],
-    relatedClusters: IDataRow['relatedClusters'],
-  ) => {
-    localRelatedInstances.value = relatedInstances;
-    localRelatedClusters.value = relatedClusters;
+  const handleOriginProxyInputFinish = (data: Omit<IDataRow, 'rowKey' | 'targetProxy'>) => {
+    rowData.value = Object.assign(rowData.value, data);
   };
 
   const handleAppend = () => {

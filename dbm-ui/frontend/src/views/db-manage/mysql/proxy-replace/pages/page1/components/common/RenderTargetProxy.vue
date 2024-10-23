@@ -14,13 +14,13 @@
 <template>
   <TableEditInput
     ref="inputRef"
-    v-model="localValue"
-    :disabled="disabled"
+    v-model="modelValue.ip"
+    :disabled="!originProxy.ip"
     :placeholder="t('请输入单个IP')"
     :rules="rules" />
 </template>
 <script setup lang="ts">
-  import { ref, watch } from 'vue';
+  import { ref } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import { getHostTopoInfos } from '@services/source/ipchooser';
@@ -31,31 +31,40 @@
 
   import TableEditInput from '@components/render-table/columns/input/index.vue';
 
+  interface ProxyItem {
+    bk_biz_id: number;
+    bk_cloud_id: number | null;
+    bk_host_id: number;
+    ip: string;
+    port?: number;
+  }
+
   interface Props {
-    cloudId: number | null;
-    modelValue: {
-      ip: string;
-      bk_cloud_id: number | null;
-      bk_host_id: number;
-      bk_biz_id: number;
-    };
-    disabled: boolean;
-    targetIp?: string;
+    originProxy: ProxyItem;
   }
 
   interface Exposes {
     getValue: () => {
-      target_proxy: Props['modelValue'];
+      target_proxy: ProxyItem;
     };
   }
 
   const props = defineProps<Props>();
 
+  const modelValue = defineModel<ProxyItem>('modelValue', {
+    default: () => ({
+      ip: '',
+      bk_cloud_id: null,
+      bk_host_id: 0,
+      bk_biz_id: 0,
+      port: 0,
+    }),
+  });
+
   const { t, locale } = useI18n();
   const { currentBizId, currentBizInfo } = useGlobalBizs();
 
   const inputRef = ref();
-  const localValue = ref('');
 
   const isCN = computed(() => locale.value === 'zh-cn');
 
@@ -81,11 +90,11 @@
             errorMessage = t('IP不在x业务空闲机模块', { name: bizName });
             return false;
           }
-          const hostData = data.hosts_topo_info.find((item) => item.bk_cloud_id === props.cloudId);
+          const hostData = data.hosts_topo_info.find((item) => item.bk_cloud_id === props.originProxy.bk_cloud_id);
           if (!hostData) {
             errorMessage = t('新主机xx跟目标proxy主机xx须在同一个管控区域', {
               ip: value,
-              target: props.targetIp,
+              target: props.originProxy.ip,
             });
             return false;
           }
@@ -95,18 +104,6 @@
       message: () => errorMessage,
     },
   ];
-
-  watch(
-    () => props.modelValue,
-    () => {
-      if (props.modelValue) {
-        localValue.value = props.modelValue.ip;
-      }
-    },
-    {
-      immediate: true,
-    },
-  );
 
   defineExpose<Exposes>({
     getValue() {
