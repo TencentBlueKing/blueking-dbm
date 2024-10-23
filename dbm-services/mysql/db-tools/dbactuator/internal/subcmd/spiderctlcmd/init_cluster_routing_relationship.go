@@ -3,12 +3,12 @@ package spiderctlcmd
 import (
 	"fmt"
 
+	"github.com/spf13/cobra"
+
 	"dbm-services/common/go-pubpkg/logger"
 	"dbm-services/mysql/db-tools/dbactuator/internal/subcmd"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/components/spiderctl"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util"
-
-	"github.com/spf13/cobra"
 )
 
 // InitCLusterRoutingAct  初始化tendb cluster 集群的路由关系

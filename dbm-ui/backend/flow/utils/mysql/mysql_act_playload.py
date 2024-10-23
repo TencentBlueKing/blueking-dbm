@@ -394,6 +394,8 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
                 "extend": {
                     "host": kwargs["ip"],
                     "port": self.cluster["ctl_port"],
+                    "backend_host": self.cluster["shard_0_host"],
+                    "backend_port": self.cluster["shard_0_port"],
                     "spider_port": self.cluster["spider_port"],
                     "use_mydumper": self.cluster["use_mydumper"],
                     "stream": self.cluster["stream"],

@@ -19,7 +19,7 @@ from django.utils.translation import ugettext as _
 from backend.components.db_remote_service.client import DRSApi
 from backend.configuration.constants import DBType
 from backend.constants import IP_PORT_DIVIDER
-from backend.db_meta.enums import ClusterType, TenDBClusterSpiderRole
+from backend.db_meta.enums import ClusterType, InstanceInnerRole, TenDBClusterSpiderRole
 from backend.db_meta.exceptions import ClusterNotExistException
 from backend.db_meta.models import Cluster, StorageInstance
 from backend.flow.consts import LONG_JOB_TIMEOUT
@@ -215,6 +215,11 @@ class AppendDeployCTLFlow(object):
             slave_spiders = cluster_obj.proxyinstance_set.filter(
                 tendbclusterspiderext__spider_role=TenDBClusterSpiderRole.SPIDER_SLAVE.value
             )
+            shard0 = cluster_obj.tendbclusterstorageset_set.get(
+                shard_id=0, storage_instance_tuple__ejector__instance_inner_role=InstanceInnerRole.MASTER
+            )
+            shard0_host = shard0.storage_instance_tuple.receiver.machine.ip
+            shard0_port = shard0.storage_instance_tuple.receiver.port
             master_spider_ips = [c.machine.ip for c in master_spiders]
             logging.info("master_spider_ips: %s" % [c.machine.ip for c in master_spiders])
             if len(master_spider_ips) < 2:
@@ -350,6 +355,8 @@ class AppendDeployCTLFlow(object):
                 "use_mydumper": self.use_mydumper,
                 "drop_before": self.drop_before,
                 "threads": self.threads,
+                "shard_0_host": shard0_host,
+                "shard_0_port": shard0_port,
                 "tdbctl_user": self.tdbctl_user,
                 "tdbctl_pass": self.tdbctl_pass,
             }

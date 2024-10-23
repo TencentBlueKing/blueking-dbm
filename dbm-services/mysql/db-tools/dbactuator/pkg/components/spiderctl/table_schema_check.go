@@ -60,7 +60,7 @@ var TsccSchemaChecksum = `CREATE TABLE if not exists infodba_schema.tscc_schema_
 	PRIMARY KEY (db,tbl)
 );`
 
-// Example useage
+// Example usage
 func (r *TableSchemaCheckComp) Example() interface{} {
 	return &TableSchemaCheckComp{
 		Params: TableSchemaCheckParam{
@@ -120,7 +120,7 @@ func (r *TableSchemaCheckComp) Run() (err error) {
 // checkSpecial 校验指定对象
 func (r *TableSchemaCheckComp) checkSpecial() (err error) {
 	for _, checkObject := range r.Params.CheckObjects {
-		if len(checkObject.Tables) <= 0 {
+		if len(checkObject.Tables) == 0 {
 			return r.atomUpdateDbTables(checkObject.DbName)
 		}
 		if err = r.atomUpdateTables(checkObject.DbName, checkObject.Tables); err != nil {
@@ -151,7 +151,11 @@ func (r *TableSchemaCheckComp) atomUpdateDbTables(dbName string) (err error) {
 		return err
 	}
 	defer xconn.Close()
-	xconn.ExecContext(context.Background(), "set tc_admin = 1;")
+	_, err = xconn.ExecContext(context.Background(), "set tc_admin = 1;")
+	if err != nil {
+		logger.Error("set tc_admin = 1 failed error: %v", err)
+		return err
+	}
 	var result native.SchemaCheckResults
 	if err = xconn.SelectContext(context.Background(), &result, fmt.Sprintf("TDBCTL CHECK DATABASE `%s`;",
 		dbName)); err != nil {
@@ -159,7 +163,7 @@ func (r *TableSchemaCheckComp) atomUpdateDbTables(dbName string) (err error) {
 		return err
 	}
 	inconsistentItems := result.CheckResult()
-	if len(inconsistentItems) <= 0 {
+	if len(inconsistentItems) == 0 {
 		logger.Info("完成校验%s库,暂未发现差异表", dbName)
 		return nil
 	}
@@ -186,15 +190,20 @@ func (r *TableSchemaCheckComp) atomUpdateDbTables(dbName string) (err error) {
 }
 
 func (r *TableSchemaCheckComp) atomUpdateTables(dbName string, tables []string) (err error) {
-	if len(tables) <= 0 {
+	if len(tables) == 0 {
 		return nil
 	}
 	xconn, err := r.tdbCtlConn.GetSqlxDb().Connx(context.Background())
 	if err != nil {
+		logger.Error("get sqlx conn failed: %s", err.Error())
 		return err
 	}
 	defer xconn.Close()
-	xconn.ExecContext(context.Background(), "set tc_admin = 1;")
+	_, err = xconn.ExecContext(context.Background(), "set tc_admin = 1;")
+	if err != nil {
+		logger.Error("set tc_admin = 1 failed error: %v", err)
+		return err
+	}
 	for _, table := range tables {
 		// check table schema
 		var result native.SchemaCheckResults
@@ -212,7 +221,11 @@ func (r *TableSchemaCheckComp) atomUpdateTables(dbName string, tables []string) 
 
 func (r *TableSchemaCheckComp) atomUpdateCheckResult(db, tbl string, inconsistentItems []native.SchemaCheckResult) (
 	err error) {
-	r.tdbCtlConn.Exec("set tc_admin=0;")
+	_, err = r.tdbCtlConn.Exec("set tc_admin=0;")
+	if err != nil {
+		logger.Error("set tc_admin=0 failed error: %v", err)
+		return err
+	}
 	status := native.SchemaCheckOk
 	checkResult := []byte("{}")
 	if len(inconsistentItems) > 0 {

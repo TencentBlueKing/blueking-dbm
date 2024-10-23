@@ -21,20 +21,14 @@ import (
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util"
 )
 
-// ImportSchemaFromLocalSpiderAct 从本地Spider导入表结构到中控节点
-type ImportSchemaFromLocalSpiderAct struct {
-	*subcmd.BaseOptions
-	Service spiderctl.ImportSchemaFromLocalSpiderComp
-}
-
 // NewImportSchemaToTdbctlCommand create new subcommand
 func NewImportSchemaToTdbctlCommand() *cobra.Command {
-	act := ImportSchemaFromLocalSpiderAct{
+	act := ImportSchemaFromBackendAct{
 		BaseOptions: subcmd.GBaseOptions,
 	}
 	cmd := &cobra.Command{
 		Use:   "import-schema-to-tdbctl",
-		Short: "从spider节点导入表结构到中控节点",
+		Short: "从backend分片0导入表结构到中控节点",
 		Example: fmt.Sprintf(
 			`dbactuator spiderctl import-schema-to-tdbctl %s %s`,
 			subcmd.CmdBaseExampleStr, subcmd.ToPrettyJson(act.Service.Example()),
@@ -46,6 +40,12 @@ func NewImportSchemaToTdbctlCommand() *cobra.Command {
 		},
 	}
 	return cmd
+}
+
+// ImportSchemaFromLocalSpiderAct 从本地Spider导入表结构到中控节点
+type ImportSchemaFromLocalSpiderAct struct {
+	*subcmd.BaseOptions
+	Service spiderctl.ImportSchemaFromLocalSpiderComp
 }
 
 // Init 初始化
@@ -77,5 +77,47 @@ func (d *ImportSchemaFromLocalSpiderAct) Run() (err error) {
 	}
 
 	logger.Info("import schema to empty tdbctl succcess ~")
+	return nil
+}
+
+// ImportSchemaFromBackendAct 从backend导入表结构到中控节点
+type ImportSchemaFromBackendAct struct {
+	*subcmd.BaseOptions
+	Service spiderctl.ImportSchemaFromBackendComp
+}
+
+// Init prepare run env
+func (d *ImportSchemaFromBackendAct) Init() (err error) {
+	logger.Info("InitCLusterRoutingAct Init")
+	if err = d.Deserialize(&d.Service.Params); err != nil {
+		logger.Error("DeserializeAndValidate failed, %v", err)
+		return err
+	}
+	d.Service.GeneralParam = subcmd.GeneralRuntimeParam
+	return
+}
+
+// Run 执行
+func (d *ImportSchemaFromBackendAct) Run() (err error) {
+	steps := subcmd.Steps{
+		{
+			FunName: "初始化",
+			Func:    d.Service.Init,
+		},
+		{
+			FunName: "从backend节点导出表结构至tdbctl",
+			Func:    d.Service.Migrate,
+		},
+		{
+			FunName: "从本地spider导出存储过程、触发器等dbctl",
+			Func:    d.Service.MigrateRoutinesAndTriger,
+		},
+	}
+
+	if err = steps.Run(); err != nil {
+		return err
+	}
+
+	logger.Info("migrate schema to tdbctl succcess ~")
 	return nil
 }
