@@ -122,11 +122,18 @@ def RedisClusterSwitchAtomJob(root_id, data, act_kwargs: ActKwargs, sync_params:
     ):
         sub_pipeline.add_act(act_name=_("Redis-人工确认"), act_component_code=PauseComponent.code, kwargs={})
 
-    # 实际实例切换，修改proxy指向
-    act_kwargs.cluster["switch_info"] = []
+    # 实际实例切换，修改proxy指向; 精简一下传入参数，对于超大集群太多了
+    swith_act = deepcopy(act_kwargs)
+    swith_act.cluster = {
+        "switch_info": [],
+        "cluster_id": act_kwargs.cluster["cluster_id"],
+        "cluster_type": act_kwargs.cluster["cluster_type"],
+        "immute_domain": act_kwargs.cluster["immute_domain"],
+        "switch_condition": act_kwargs.cluster["switch_condition"],
+    }
     for sync_host in sync_params:
         for sync_port in sync_host["ins_link"]:
-            act_kwargs.cluster["switch_info"].append(
+            swith_act.cluster["switch_info"].append(
                 {
                     "master": {
                         "ip": sync_host["origin_1"],
@@ -138,14 +145,11 @@ def RedisClusterSwitchAtomJob(root_id, data, act_kwargs: ActKwargs, sync_params:
                     },
                 }
             )
-    act_kwargs.cluster["db_version"] = act_kwargs.cluster["db_version"]
-    act_kwargs.cluster["domain_name"] = act_kwargs.cluster["immute_domain"]
-    act_kwargs.cluster["switch_condition"] = act_kwargs.cluster["switch_condition"]
-    act_kwargs.get_redis_payload_func = RedisActPayload.redis__switch_4_scene.__name__
+    swith_act.get_redis_payload_func = RedisActPayload.redis__switch_4_scene.__name__
     sub_pipeline.add_act(
         act_name=_("Redis-{}-实例切换").format(exec_ip),
         act_component_code=ExecuteDBActuatorScriptComponent.code,
-        kwargs=asdict(act_kwargs),
+        kwargs=asdict(swith_act),
     )
 
     # 检查Proxy后端一致性
