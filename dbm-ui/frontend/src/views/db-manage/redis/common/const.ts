@@ -10,7 +10,6 @@
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
  */
-import { RedisClusterTypes } from '@services/model/redis/redis';
 import {
   CopyModes,
   DisconnectModes,
@@ -19,6 +18,8 @@ import {
   RepairAndVerifyModes,
   WriteModes,
 } from '@services/model/redis/redis-dst-history-job';
+
+import { ClusterTypes } from '@common/const';
 
 export const repairAndVerifyFrequencyList = [
   {
@@ -114,9 +115,9 @@ export const QueryKeyMap: Record<string, string> = {
 };
 
 export const ClusterMachineMap: Record<string, string> = {
-  [RedisClusterTypes.PredixyTendisplusCluster]: 'tendisplus',
-  [RedisClusterTypes.PredixyRedisCluster]: 'tendiscache',
-  [RedisClusterTypes.RedisInstance]: 'tendiscache',
-  [RedisClusterTypes.TwemproxyRedisInstance]: 'tendiscache',
-  [RedisClusterTypes.TwemproxyTendisSSDInstance]: 'tendisssd',
+  [ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER]: 'tendisplus',
+  [ClusterTypes.PREDIXY_REDIS_CLUSTER]: 'tendiscache',
+  [ClusterTypes.REDIS_INSTANCE]: 'tendiscache',
+  [ClusterTypes.TWEMPROXY_REDIS_INSTANCE]: 'tendiscache',
+  [ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE]: 'tendisssd',
 };

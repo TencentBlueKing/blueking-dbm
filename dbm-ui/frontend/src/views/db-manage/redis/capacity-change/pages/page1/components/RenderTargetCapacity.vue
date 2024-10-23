@@ -104,7 +104,9 @@
   import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
 
-  import RedisModel, { RedisClusterTypes } from '@services/model/redis/redis';
+  import RedisModel from '@services/model/redis/redis';
+
+  import { ClusterTypes } from '@common/const';
 
   import DisableSelect from '@components/render-table/columns/select-disable/index.vue';
   import RenderSpec from '@components/render-table/columns/spec-display/Index.vue';
@@ -205,7 +207,7 @@
           storage_spec: spec.storage_spec,
         },
         capacity: rowData.currentCapacity ?? { used: 0, total: 1 },
-        clusterType: rowData.clusterType ?? RedisClusterTypes.TwemproxyRedisInstance,
+        clusterType: rowData.clusterType ?? ClusterTypes.TWEMPROXY_REDIS_INSTANCE,
         cloudId: rowData.bkCloudId,
         // groupNum: rowData.groupNum ?? 0,
         groupNum: localValue.machine_pair,

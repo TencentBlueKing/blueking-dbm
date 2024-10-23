@@ -268,12 +268,14 @@
     import type { UnwrapRef } from 'vue';
   import { useI18n } from 'vue-i18n';
 
-  import RedisModel, { RedisClusterTypes } from '@services/model/redis/redis';
+  import RedisModel from '@services/model/redis/redis';
   import ClusterSpecModel from '@services/model/resource-spec/cluster-sepc';
   import { getFilterClusterSpec } from '@services/source/dbresourceSpec';
   import { getRedisClusterCapacityUpdateInfo } from '@services/source/redisToolbox'
 
   import { useBeforeClose } from '@hooks';
+
+  import { ClusterTypes } from '@common/const';
 
   import DbForm from '@components/db-form/index.vue'
   import RenderSpec from '@components/render-table/columns/spec-display/Index.vue';
@@ -362,7 +364,7 @@
         total: 1,
         used: 0,
       },
-      clusterType: RedisClusterTypes.TwemproxyRedisInstance,
+      clusterType: ClusterTypes.TWEMPROXY_REDIS_INSTANCE,
       cloudId: 0,
       groupNum: 0,
       requireMachineGroupNum: 0,
@@ -462,7 +464,7 @@
     return convertStorageUnits(props.clusterStats.total, 'B', 'GB')
   })
 
-  const shardNumDisabled = computed(() => props.data.clusterType !== RedisClusterTypes.PredixyTendisplusCluster)
+  const shardNumDisabled = computed(() => props.data.clusterType !== ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER)
 
   const columns =  [
     {
@@ -587,7 +589,7 @@
     }
     if (capacityNeed.value > 0) {
       isTableLoading.value = true;
-      const clusterType = props.data?.clusterType ?? RedisClusterTypes.TwemproxyRedisInstance;
+      const clusterType = props.data?.clusterType ?? ClusterTypes.TWEMPROXY_REDIS_INSTANCE;
       const params = {
         spec_cluster_type: clusterType,
         spec_machine_type: ClusterMachineMap[clusterType],

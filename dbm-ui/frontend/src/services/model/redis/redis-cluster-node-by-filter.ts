@@ -10,13 +10,14 @@
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
  */
-import { RedisClusterTypes } from '@services/model/redis/redis';
 import RedisClusterNodeByIpModel from '@services/model/redis/redis-cluster-node-by-ip';
+
+import { ClusterTypes } from '@common/const';
 
 export default class RedisClusterNodeByFilter {
   cluster: {
     bk_cloud_id: number;
-    cluster_type: RedisClusterTypes;
+    cluster_type: ClusterTypes;
     deploy_plan: any;
     deploy_plan_id: number;
     id: number;
