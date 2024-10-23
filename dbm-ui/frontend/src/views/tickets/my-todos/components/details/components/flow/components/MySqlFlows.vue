@@ -37,7 +37,7 @@
                 type="file" />
               <span>
                 <span style="color: #3a84ff">
-                  {{ fileName?.replace(/[^_]+_/, '') }}
+                  {{ getSQLFilename(fileName) }}
                 </span>
                 ，
                 <span v-if="ticketData.details.grammar_check_info[fileName].highrisk_warnings?.length > 0">
@@ -156,7 +156,7 @@
   import FlowIcon from '@views/tickets/common/components/flow-content/components/FlowIcon.vue';
   import FlowContent from '@views/tickets/common/components/flow-content/Index.vue';
 
-  import { getCostTimeDisplay } from '@utils';
+  import { getCostTimeDisplay, getSQLFilename } from '@utils';
 
   interface Props {
     ticketData: TicketModel<MySQLImportSQLFileDetails>,
