@@ -70,15 +70,16 @@
       </template>
     </BkResizeLayout>
     <template #footer>
-      <span
-        v-bk-tooltips="{
-          content: t('请选择实例'),
-          disabled: !isEmpty,
-        }"
-        class="inline-block">
+      <span class="mr24">
+        <slot
+          v-if="slots.submitTips"
+          :host-list="lastHostList"
+          name="submitTips" />
+      </span>
+      <span v-bk-tooltips="submitButtonDisabledInfo.tooltips">
         <BkButton
           class="w-88"
-          :disabled="isEmpty"
+          :disabled="submitButtonDisabledInfo.disabled"
           theme="primary"
           @click="handleSubmit">
           {{ t('确定') }}
@@ -234,6 +235,7 @@
   import {
     getTendbsingleFlatList as getTendbsingleList,
     getTendbsingleInstanceList,
+    getTendbSingleMachineList,
   } from '@services/source/tendbsingle';
 
   import { ClusterTypes } from '@common/const';
@@ -249,7 +251,8 @@
   import SqlServerContent from './components/sqlserver/Index.vue';
   import TendbClusterContent from './components/tendb-cluster/Index.vue';
   import TendbClusterHostContent from './components/tendb-cluster-host/Index.vue';
-  import TendbhaHostContent from './components/tendb-ha-host/Index.vue';
+  import TendbHaHostContent from './components/tendb-ha-host/Index.vue';
+  import TendbSingleHostContent from './components/tendb-single-host/Index.vue';
 
   export type TableSetting = ReturnType<typeof getSettings>;
 
@@ -302,12 +305,22 @@
   type RedisHostModel = ServiceReturnType<typeof getRedisMachineList>['results'][number];
 
   type Props = {
-    clusterTypes: (ClusterTypes | 'TendbhaHost' | 'TendbClusterHost' | 'RedisHost' | 'mongoCluster')[];
+    clusterTypes: (
+      | ClusterTypes
+      | 'TendbhaHost'
+      | 'TendbClusterHost'
+      | 'RedisHost'
+      | 'mongoCluster'
+      | 'TendbSingleHost'
+      | 'TendbHaHost'
+    )[];
     tabListConfig?: Record<string, PanelListType>;
     selected?: InstanceSelectorValues<T>;
     unqiuePanelValue?: boolean;
     unqiuePanelTips?: string;
     hideManualInput?: boolean;
+    onlyOneType?: boolean;
+    disableDialogSubmitMethod?: (hostList: Array<string>) => string | boolean;
   };
 
   type Emits = {
@@ -321,6 +334,8 @@
     unqiuePanelValue: false,
     unqiuePanelTips: t('仅可选择一种实例类型'),
     hideManualInput: false,
+    onlyOneType: false,
+    disableDialogSubmitMethod: () => false,
   });
 
   const emits = defineEmits<Emits>();
@@ -332,6 +347,8 @@
   const isShow = defineModel<boolean>('isShow', {
     default: false,
   });
+
+  const slots = useSlots();
 
   const tabListMap: Record<string, PanelListType> = {
     [ClusterTypes.REDIS]: [
@@ -563,7 +580,7 @@
         previewConfig: {
           displayKey: 'ip',
         },
-        content: TendbhaHostContent,
+        content: TendbHaHostContent,
       },
       {
         id: 'manualInput',
@@ -757,6 +774,96 @@
         content: ManualInputContent,
       },
     ],
+    TendbSingleHost: [
+      {
+        id: 'TendbSingleHost',
+        name: t('MySQL 单节点'),
+        topoConfig: {
+          getTopoList: queryMysqlCluster,
+        },
+        tableConfig: {
+          getTableList: getTendbSingleMachineList,
+          firsrColumn: {
+            label: 'IP',
+            field: 'ip',
+            role: '',
+          },
+          columnsChecked: ['ip', 'related_instances', 'cloud_area', 'alive', 'host_name', 'os_name'],
+        },
+        previewConfig: {
+          displayKey: 'ip',
+        },
+        content: TendbSingleHostContent,
+      },
+      {
+        id: 'manualInput',
+        name: t('手动输入'),
+        tableConfig: {
+          getTableList: getTendbSingleMachineList,
+          firsrColumn: {
+            label: 'IP',
+            field: 'ip',
+            role: '',
+          },
+          columnsChecked: ['ip', 'related_instances', 'cloud_area', 'alive', 'host_name', 'os_name'],
+        },
+        manualConfig: {
+          checkInstances: getTendbSingleMachineList,
+          checkType: 'ip',
+          checkKey: 'ip',
+          activePanelId: 'TendbClusterHost',
+        },
+        previewConfig: {
+          displayKey: 'ip',
+        },
+        content: ManualInputHostContent,
+      },
+    ],
+    TendbHaHost: [
+      {
+        id: 'TendbHaHost',
+        name: t('MySQL 主从'),
+        topoConfig: {
+          getTopoList: queryMysqlCluster,
+        },
+        tableConfig: {
+          getTableList: getTendbhaMachineList,
+          firsrColumn: {
+            label: 'IP',
+            field: 'ip',
+            role: '',
+          },
+          columnsChecked: ['ip', 'cloud_area', 'alive', 'host_name', 'os_name'],
+        },
+        previewConfig: {
+          displayKey: 'ip',
+        },
+        content: TendbHaHostContent,
+      },
+      {
+        id: 'manualInput',
+        name: t('手动输入'),
+        tableConfig: {
+          getTableList: getTendbhaMachineList,
+          firsrColumn: {
+            label: 'IP',
+            field: 'ip',
+            role: '',
+          },
+          columnsChecked: ['ip', 'cloud_area', 'alive', 'host_name', 'os_name'],
+        },
+        manualConfig: {
+          checkInstances: getTendbhaMachineList,
+          checkType: 'ip',
+          checkKey: 'ip',
+          activePanelId: 'TendbClusterHost',
+        },
+        previewConfig: {
+          displayKey: 'ip',
+        },
+        content: ManualInputHostContent,
+      },
+    ],
   };
 
   const panelTabActive = ref<string>('');
@@ -831,6 +938,45 @@
   const isEmpty = computed(() => Object.values(lastValues).every((values) => values.length < 1));
   const renderCom = computed(() => (activePanelObj.value ? activePanelObj.value.content : 'div'));
 
+  const lastHostList = computed(() =>
+    Object.values(lastValues).reduce<string[]>((prevList, hostListItem) => {
+      const ipList = hostListItem.map((listItem) => listItem.ip);
+      prevList.push(...ipList);
+      return prevList;
+    }, []),
+  );
+
+  const submitButtonDisabledInfo = computed(() => {
+    const info = {
+      disabled: false,
+      tooltips: {
+        disabled: true,
+        content: '',
+      },
+    };
+
+    if (isEmpty.value) {
+      info.disabled = true;
+      info.tooltips.disabled = false;
+      info.tooltips.content = panelTabActive.value.includes('Host') ? t('请选择主机') : t('请选择实例');
+      return info;
+    }
+
+    const hostList = Object.values(lastValues).reduce<string[]>((prevList, hostListItem) => {
+      const ipList = hostListItem.map((listItem) => listItem.ip);
+      prevList.push(...ipList);
+      return prevList;
+    }, []);
+
+    const checkValue = props.disableDialogSubmitMethod(hostList);
+    if (checkValue) {
+      info.disabled = true;
+      info.tooltips.disabled = false;
+      info.tooltips.content = _.isString(checkValue) ? checkValue : t('无法保存');
+    }
+    return info;
+  });
+
   let isInnerChange = false;
 
   watch(
@@ -861,9 +1007,32 @@
 
   const handleChangePanel = (obj: PanelListItem) => {
     activePanelObj.value = obj;
+    if (props.onlyOneType) {
+      const initValues = Object.keys(lastValues).reduce<Record<string, T[]>>(
+        (results, id) =>
+          Object.assign({}, results, {
+            [id]: [],
+          }),
+        {},
+      );
+      Object.assign(lastValues, initValues);
+    }
   };
 
-  const handleChange = (values: Props['selected']) => {
+  const handleChange = (values: Props['selected'] = {}) => {
+    // 如果只允许选一种类型, 则清空非当前类型的选中列表
+    // 如果是勾选的取消全选，则忽略
+    const currentKey = panelTabActive.value;
+    if (props.onlyOneType && values[currentKey].length > 0) {
+      Object.keys(lastValues).forEach((key) => {
+        if (key !== currentKey) {
+          lastValues[key] = [];
+        } else {
+          lastValues[key] = values[key];
+        }
+      });
+      return;
+    }
     Object.assign(lastValues, values);
   };
 
