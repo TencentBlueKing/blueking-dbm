@@ -33,7 +33,7 @@ paginated_resource_example = {
                 "updater": "admin",
                 "spec_id": 3,
                 "spec_name": "test_msql",
-                "spec_cluster_type": "tendbsingle",
+                "spec_cluster_type": "mysql",
                 "spec_machine_type": "single",
                 "cpu": {"max": "12", "min": "12"},
                 "mem": {"max": "2", "min": "1"},

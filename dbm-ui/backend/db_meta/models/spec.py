@@ -21,7 +21,7 @@ from backend.bk_web.models import AuditedModel
 from backend.configuration.constants import AffinityEnum, SystemSettingsEnum
 from backend.configuration.models import SystemSettings
 from backend.constants import INT_MAX
-from backend.db_meta.enums import ClusterType, MachineType
+from backend.db_meta.enums.spec import SpecClusterType, SpecMachineType
 
 logger = logging.getLogger("root")
 
@@ -33,15 +33,13 @@ class Spec(AuditedModel):
 
     spec_id = models.AutoField(primary_key=True)
     spec_name = models.CharField(max_length=128, help_text=_("虚拟规格名称"))
-    spec_cluster_type = models.CharField(
-        max_length=64, choices=ClusterType.get_choices(), help_text=_("集群类型:MySQL、Proxy、Spider")
-    )
-    spec_machine_type = models.CharField(max_length=64, choices=MachineType.get_choices(), help_text=_("机器规格类型"))
-    cpu = models.JSONField(null=True, help_text=_('cpu规格描述:{"min":1,"max":10}'))
-    mem = models.JSONField(null=True, help_text=_('mem规格描述:{"min":100,"max":1000}'))
-    device_class = models.JSONField(null=True, help_text=_('实际机器机型: ["class1","class2"]'))
+    spec_cluster_type = models.CharField(max_length=64, choices=SpecClusterType.get_choices(), help_text=_("组件类型"))
+    spec_machine_type = models.CharField(max_length=64, choices=SpecMachineType.get_choices(), help_text=_("机器类型"))
+    cpu = models.JSONField(help_text=_('cpu规格描述:{"min":1,"max":10}'), default=dict)
+    mem = models.JSONField(help_text=_('mem规格描述:{"min":100,"max":1000}'), default=dict)
+    device_class = models.JSONField(help_text=_('实际机器机型: ["class1","class2"]'), default=dict)
     storage_spec = models.JSONField(
-        null=True, help_text=_('存储磁盘需求配置:[{"mount_point":"/data","size":500,"type":"ssd"}]')
+        help_text=_('存储磁盘需求配置:[{"mount_point":"/data","size":500,"type":"ssd"}]'), default=dict
     )
     desc = models.TextField(help_text=_("资源规格描述"), null=True, blank=True)
     enable = models.BooleanField(help_text=_("是否启用"), default=True)
@@ -64,21 +62,17 @@ class Spec(AuditedModel):
         默认：磁盘总容量
         """
         mount_point__size: Dict[str, int] = {disk["mount_point"]: disk["size"] for disk in self.storage_spec}
-        if self.spec_cluster_type == ClusterType.TenDBCluster:
+        if self.spec_cluster_type == SpecClusterType.TenDBCluster:
             return mount_point__size.get("/data1") or mount_point__size["/data"] / 2
 
-        if self.spec_cluster_type in [
-            ClusterType.TwemproxyTendisSSDInstance,
-            ClusterType.TendisPredixyTendisplusCluster,
-            ClusterType.MongoShardedCluster,
+        if self.spec_machine_type in [
+            SpecMachineType.TwemproxyTendisSSDInstance,
+            SpecMachineType.TendisPredixyTendisplusCluster,
+            SpecMachineType.MONGODB,
         ]:
             return mount_point__size.get("/data1") or mount_point__size["/data"] / 2
 
-        if self.spec_cluster_type in [
-            ClusterType.TendisTwemproxyRedisInstance,
-            ClusterType.RedisInstance,
-            ClusterType.TendisPredixyRedisCluster,
-        ]:
+        if self.spec_machine_type in [SpecMachineType.TendisTwemproxyRedisInstance]:
             # 取规格内存平均值
             return (self.mem["min"] + self.mem["max"]) / 2
 

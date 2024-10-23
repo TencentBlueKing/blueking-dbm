@@ -11,6 +11,7 @@ specific language governing permissions and limitations under the License.
 
 from backend.db_meta.enums.cluster_type import ClusterType
 from backend.db_meta.enums.machine_type import MachineType
+from backend.db_meta.enums.spec import SpecClusterType
 from backend.tests.mock_data import constant
 from backend.ticket.constants import TicketType
 
@@ -249,7 +250,7 @@ DORIS_SPEC_DATA = [
         "cpu": {"max": 256, "min": 2},
         "mem": {"max": 256, "min": 2},
         "storage_spec": [{"size": 30, "type": "ALL", "mount_point": "/data"}],
-        "spec_cluster_type": ClusterType.Doris.value,
+        "spec_cluster_type": SpecClusterType.Doris.value,
         "spec_machine_type": MachineType.DORIS_FOLLOWER.value,
         "device_class": [-1],
         "qps": {"max": 0, "min": 0},
@@ -261,7 +262,7 @@ DORIS_SPEC_DATA = [
         "cpu": {"max": 256, "min": 2},
         "mem": {"max": 256, "min": 2},
         "storage_spec": [{"size": 30, "type": "ALL", "mount_point": "/data"}],
-        "spec_cluster_type": ClusterType.Doris.value,
+        "spec_cluster_type": SpecClusterType.Doris.value,
         "spec_machine_type": MachineType.DORIS_OBSERVER.value,
         "device_class": [-1],
         "qps": {"max": 0, "min": 0},
@@ -273,7 +274,7 @@ DORIS_SPEC_DATA = [
         "cpu": {"max": 256, "min": 2},
         "mem": {"max": 256, "min": 2},
         "storage_spec": [{"size": 30, "type": "ALL", "mount_point": "/data"}],
-        "spec_cluster_type": ClusterType.Doris.value,
+        "spec_cluster_type": SpecClusterType.Doris.value,
         "spec_machine_type": MachineType.DORIS_BACKEND.value,
         "device_class": [-1],
         "qps": {"max": 0, "min": 0},
