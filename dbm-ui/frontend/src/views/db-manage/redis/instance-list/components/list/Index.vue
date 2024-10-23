@@ -170,6 +170,12 @@
 
   const columns = computed(() => {
     const list = [
+    {
+        label: 'ID',
+        field: 'id',
+        fixed: 'left',
+        width: 80,
+      },
       {
         label: t('实例'),
         field: 'instance_address',

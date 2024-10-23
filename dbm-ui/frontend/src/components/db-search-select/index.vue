@@ -36,7 +36,7 @@
   }
 
   interface Emits {
-    (e: 'change', value: SearchSelectProps['modelValue']): void;
+    (e: 'change', value: NonNullable<SearchSelectProps['modelValue']>): void;
   }
 
   const props = withDefaults(defineProps<Props>(), {
@@ -71,8 +71,8 @@
     return defaultValue.length > 0 ? defaultValue : [];
   };
 
-  const modelValues = defineModel<SearchSelectProps['modelValue']>({
-    default: [],
+  const modelValues = defineModel<NonNullable<SearchSelectProps['modelValue']>>({
+    default: () => [],
   });
 
   watch(

@@ -110,7 +110,7 @@
   }
 
   interface Exposes {
-    getValue: () => Promise<Record<string, string>>;
+    getValue: () => Promise<Record<string, any>>;
   }
 
   const props = defineProps<Props>();
@@ -431,6 +431,7 @@
 
           return value;
         }
+        return Promise.reject();
       };
       return editSelectRef
         .value!.getValue()
