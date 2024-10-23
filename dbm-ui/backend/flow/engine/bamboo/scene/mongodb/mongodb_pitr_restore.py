@@ -26,7 +26,7 @@ from backend.flow.engine.bamboo.scene.mongodb.sub_task.hello_sub import HelloSub
 from backend.flow.engine.bamboo.scene.mongodb.sub_task.pitr_restore_sub import PitrRestoreSubTask
 from backend.flow.engine.bamboo.scene.mongodb.sub_task.send_media import SendMedia
 from backend.flow.plugins.components.collections.mongodb.exec_actuator_job2 import ExecJobComponent2
-from backend.flow.utils.mongodb.mongodb_repo import MongoRepository, MongoDBCluster, MongoNode
+from backend.flow.utils.mongodb.mongodb_repo import MongoDBCluster, MongoNode, MongoRepository
 from backend.flow.utils.mongodb.mongodb_script_template import prepare_recover_dir_script
 from backend.flow.utils.mongodb.mongodb_util import MongoUtil
 

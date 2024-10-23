@@ -86,6 +86,7 @@ from backend.flow.views.mongodb_scene import (
     MongoDBExecScriptView,
     MongoDBIncreaseMongoSView,
     MongoDBIncreaseNodeView,
+    MongoDBInstanceDeInstallView,
     MongoDBInstanceRestartView,
     MongoDBReduceMongoSView,
     MongoDBReduceNodeView,
@@ -335,6 +336,7 @@ urlpatterns = [
     url(r"^scene/multi_cluster_enable$", MongoDBEnableClusterView.as_view()),
     url(r"^scene/multi_cluster_disable$", MongoDBDisableClusterView.as_view()),
     url(r"^scene/multi_cluster_migrate_meta$", MongoDBClusterMigrateView.as_view()),
+    url(r"^scene/multi_instance_deinstall$", MongoDBInstanceDeInstallView.as_view()),
     # mongodb end
     # mysql upgrade
     url(r"^scene/upgrade_mysql_proxy$", UpgradeMySQLProxySceneApiView.as_view()),

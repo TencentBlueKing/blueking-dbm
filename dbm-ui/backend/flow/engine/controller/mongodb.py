@@ -8,6 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+from backend.flow.engine.bamboo.scene.mongodb.mongodb_autofix import MongoAutofixFlow
 from backend.flow.engine.bamboo.scene.mongodb.mongodb_backup import MongoBackupFlow
 from backend.flow.engine.bamboo.scene.mongodb.mongodb_cluster_scale_mongos import ScaleMongoSFlow
 from backend.flow.engine.bamboo.scene.mongodb.mongodb_deinstall import MongoDBDeInstallFlow
@@ -16,6 +17,7 @@ from backend.flow.engine.bamboo.scene.mongodb.mongodb_exec_script import MongoEx
 from backend.flow.engine.bamboo.scene.mongodb.mongodb_fake_install import MongoFakeInstallFlow
 from backend.flow.engine.bamboo.scene.mongodb.mongodb_install import MongoDBInstallFlow
 from backend.flow.engine.bamboo.scene.mongodb.mongodb_install_dbmon import MongoInstallDBMonFlow
+from backend.flow.engine.bamboo.scene.mongodb.mongodb_instance_deinstall import MongoInstanceDeInstallFlow
 from backend.flow.engine.bamboo.scene.mongodb.mongodb_instance_restart import MongoRestartInstanceFlow
 from backend.flow.engine.bamboo.scene.mongodb.mongodb_migrate import MongoDBMigrateMetaFlow
 from backend.flow.engine.bamboo.scene.mongodb.mongodb_pitr_restore import MongoPitrRestoreFlow
@@ -180,6 +182,22 @@ class MongoDBController(BaseController):
 
         flow = MongoEnableDisableFlow(root_id=self.root_id, data=self.ticket_data)
         flow.multi_cluster_flow(enable=False)
+
+    def instance_deinstall(self):
+        """
+        instance卸载
+        """
+
+        flow = MongoInstanceDeInstallFlow(root_id=self.root_id, data=self.ticket_data)
+        flow.multi_instance_deinstall_flow()
+
+    def mongo_autofix(self):
+        """
+        mongodb自愈
+        """
+
+        flow = MongoAutofixFlow(root_id=self.root_id, data=self.ticket_data)
+        flow.autofix()
 
     def migrate_meta(self):
         """

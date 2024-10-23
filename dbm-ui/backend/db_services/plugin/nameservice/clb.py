@@ -384,3 +384,37 @@ def immute_domain_clb_ip(cluster_id: int, creator: str, bind: bool) -> Dict[str,
             return response_fail(code=3, message=message)
         return response_ok()
     return response_ok()
+
+
+def operate_part_target(cluster_id: int, ips: list, bind: bool) -> dict:
+    """绑定或解绑部分后端主机"""
+
+    # 获取信息
+    cluster = get_cluster_info(cluster_id=cluster_id)
+    clb = cluster["clusterentry_set"]["clb"]
+    clb_id = clb["clb_id"]
+    listener_id = clb["listener_id"]
+    clb_region = clb["clb_region"]
+
+    # 进行请求，得到返回结果
+    if bind:
+        output = NameServiceApi.clb_register_part_target(
+            {
+                "region": clb_region,
+                "loadbalancerid": clb_id,
+                "listenerid": listener_id,
+                "ips": ips,
+            },
+            raw=True,
+        )
+    else:
+        output = NameServiceApi.clb_deregister_part_target(
+            {
+                "region": clb_region,
+                "loadbalancerid": clb_id,
+                "listenerid": listener_id,
+                "ips": ips,
+            },
+            raw=True,
+        )
+    return output
