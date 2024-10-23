@@ -28,6 +28,8 @@ def tendis_cluster(clusters: QuerySet) -> List[Dict]:
             "storageinstance_set",
             "clusterentry_set",
             "nosqlstoragesetdtl_set",
+            "proxyinstance_set__machine",
+            "storageinstance_set__machine",
         )
     )
 
