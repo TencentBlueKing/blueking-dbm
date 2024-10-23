@@ -147,6 +147,8 @@
       tendbclusterSlave: [],
       [ClusterTypes.SQLSERVER_HA]: [],
       [ClusterTypes.SQLSERVER_SINGLE]: [],
+      [ClusterTypes.MONGO_REPLICA_SET]: [],
+      [ClusterTypes.MONGO_SHARED_CLUSTER]: [],
     } as ClusterSelectorResult,
     isShow: false,
     tableProps: {
