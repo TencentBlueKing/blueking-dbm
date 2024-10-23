@@ -1607,7 +1607,9 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
                 )
         # 增加对安装spider监控的适配
         elif machine.machine_type == MachineType.SPIDER.value:
-            for instance in ProxyInstance.objects.filter(machine__ip=kwargs["ip"], cluster__id__in=cluster_ids):
+            for instance in ProxyInstance.objects.filter(
+                machine__ip=kwargs["ip"], cluster__id__in=cluster_ids
+            ).prefetch_related("tendbclusterspiderext"):
                 cluster = instance.cluster.get()
                 instances_info.append(
                     {

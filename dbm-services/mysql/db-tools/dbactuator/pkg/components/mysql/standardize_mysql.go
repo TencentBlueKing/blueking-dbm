@@ -98,9 +98,10 @@ func (c *StandardizeMySQLComp) Init() error {
 }
 
 func (c *StandardizeMySQLComp) ClearOldCrontab() error {
-	err := osutil.RemoveUserCrontab("mysql")
+	err := osutil.CleanLocalCrontab()
 	if err != nil {
 		logger.Error("clear mysql crontab failed: %s", err.Error())
+		return err
 	} else {
 		logger.Info("clear mysql crontab success")
 	}

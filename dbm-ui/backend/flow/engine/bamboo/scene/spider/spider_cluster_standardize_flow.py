@@ -65,6 +65,12 @@ class SpiderClusterStandardizeFlow(object):
 
         cluster_objects = Cluster.objects.filter(
             pk__in=cluster_ids, bk_biz_id=bk_biz_id, cluster_type=ClusterType.TenDBCluster.value
+        ).prefetch_related(
+            "proxyinstance_set",
+            "storageinstance_set",
+            "proxyinstance_set__machine",
+            "storageinstance_set__machine",
+            "proxyinstance_set__tendbclusterspiderext",
         )
         if cluster_objects.count() != len(cluster_ids):
             raise DBMetaException(
@@ -77,7 +83,6 @@ class SpiderClusterStandardizeFlow(object):
             need_random_pass_cluster_ids=list(set(self.data["infos"]["cluster_ids"])),
         )
 
-        standardize_pipe.add_sub_pipeline(self._build_trans_module_sub(clusters=cluster_objects))
         standardize_pipe.add_sub_pipeline(self._build_instantiate_config_sub(clusters=cluster_objects))
 
         spider_master_ips = {}
@@ -122,6 +127,8 @@ class SpiderClusterStandardizeFlow(object):
 
         if spider_mnt_ips:
             standardize_pipe.add_sub_pipeline(self._build_spider_mnt_sub(ips=spider_mnt_ips))
+
+        standardize_pipe.add_sub_pipeline(self._build_trans_module_sub(clusters=cluster_objects))
 
         logger.info(_("构建TenDBCluster集群标准化流程成功"))
         standardize_pipe.run_pipeline(is_drop_random_user=True)

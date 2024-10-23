@@ -54,7 +54,7 @@ class TenDBSingleStandardizeFlow(object):
 
         cluster_objects = Cluster.objects.filter(
             pk__in=cluster_ids, bk_biz_id=bk_biz_id, cluster_type=ClusterType.TenDBSingle.value
-        )
+        ).prefetch_related("storageinstance_set", "storageinstance_set__machine")
         if cluster_objects.count() != len(cluster_ids):
             raise DBMetaException(
                 message="input {} clusters, but found {}".format(len(cluster_ids), cluster_objects.count())
@@ -65,7 +65,7 @@ class TenDBSingleStandardizeFlow(object):
             data=self.data,
             need_random_pass_cluster_ids=list(set(self.data["infos"]["cluster_ids"])),
         )
-        standardize_pipe.add_sub_pipeline(self._build_trans_module_sub(clusters=cluster_objects))
+
         standardize_pipe.add_sub_pipeline(self._build_instantiate_mysql_config_sub(clusters=cluster_objects))
 
         storage_ips = {}
@@ -84,6 +84,7 @@ class TenDBSingleStandardizeFlow(object):
                 self._build_storage_sub(ips=storage_ips),
             ]
         )
+        standardize_pipe.add_sub_pipeline(self._build_trans_module_sub(clusters=cluster_objects))
         logger.info(_("构建TenDBSingle集群标准化流程成功"))
         standardize_pipe.run_pipeline(is_drop_random_user=True)
 
