@@ -21,6 +21,7 @@ from backend.configuration.models import DBAdministrator, SystemSettings
 from backend.db_monitor.constants import DEFAULT_ALERT_NOTICE, MONITOR_EVENTS
 from backend.db_monitor.models import CollectInstance, DispatchGroup, MonitorPolicy, NoticeGroup
 from backend.db_monitor.tasks import update_app_policy
+from backend.db_periodic_task.local_tasks.context_manager import start_new_span
 from backend.db_periodic_task.local_tasks.register import register_periodic_task
 from backend.db_periodic_task.utils import TimeUnit, calculate_countdown
 
@@ -35,7 +36,8 @@ def update_local_notice_group():
     for index, dba_id in enumerate(dba_ids):
         countdown = calculate_countdown(count=count, index=index, duration=6 * TimeUnit.HOUR)
         logger.info("dba_id({}) update notice group will be run after {} seconds.".format(dba_id, countdown))
-        update_dba_notice_group.apply_async(kwargs={"dba_id": dba_id}, countdown=countdown)
+        with start_new_span(update_dba_notice_group):
+            update_dba_notice_group.apply_async(kwargs={"dba_id": dba_id}, countdown=countdown)
 
 
 @app.task
@@ -88,7 +90,8 @@ def sync_plat_dispatch_policy():
     for index, bk_biz_id in enumerate(biz_ids):
         countdown = calculate_countdown(count=count, index=index, duration=TimeUnit.HOUR)
         logger.info("biz({}) sync dispatch policy will be run after {} seconds.".format(bk_biz_id, countdown))
-        sync_biz_dispatch_policy.apply_async(kwargs={"bk_biz_id": bk_biz_id}, countdown=countdown)
+        with start_new_span(sync_biz_dispatch_policy):
+            sync_biz_dispatch_policy.apply_async(kwargs={"bk_biz_id": bk_biz_id}, countdown=countdown)
 
 
 @app.task
