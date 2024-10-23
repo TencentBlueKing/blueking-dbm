@@ -202,16 +202,18 @@ func CleanLocalCrontab() error {
 		slaveSync          = "/home/mysql/monitor/master_slave_sync_check.pl"
 		tbinlodumperStatus = "tbinlogdumper_status.pl"
 		prometheus         = "prometheus"
+		filebeatWatcher    = "/home/mysql/filebeat-deploy/monitor_filebeat_watcher"
 	)
 	cleanCrontabs := []string{
 		getStatusPL, dbBackupOld, dbBackupNew, dbBackupMulti, dbBackupXtrabackup, rotateLog,
-		proxyStatus, slaveSync, tbinlodumperStatus, prometheus, rotateLogGo, dbBackupMultiGo,
+		proxyStatus, slaveSync, tbinlodumperStatus, prometheus, rotateLogGo, dbBackupMultiGo, filebeatWatcher,
 	}
 
 	existCrontabs, err := CrontabsExist(cleanCrontabs)
 	if err != nil {
 		return err
 	}
+	logger.Info("find crontabs %s", existCrontabs)
 	// 如果不存在需要清理的crontab 直接返回成功
 	if len(existCrontabs) <= 0 {
 		return nil

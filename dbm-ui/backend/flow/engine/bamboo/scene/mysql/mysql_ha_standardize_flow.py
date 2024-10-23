@@ -67,6 +67,8 @@ class MySQLHAStandardizeFlow(object):
 
         cluster_objects = Cluster.objects.filter(
             pk__in=cluster_ids, bk_biz_id=bk_biz_id, cluster_type=ClusterType.TenDBHA.value
+        ).prefetch_related(
+            "proxyinstance_set", "storageinstance_set", "proxyinstance_set__machine", "storageinstance_set__machine"
         )
         if cluster_objects.count() != len(cluster_ids):
             raise DBMetaException(
@@ -78,7 +80,7 @@ class MySQLHAStandardizeFlow(object):
             data=self.data,
             need_random_pass_cluster_ids=list(set(self.data["infos"]["cluster_ids"])),
         )
-        standardize_pipe.add_sub_pipeline(self._build_trans_module_sub(clusters=cluster_objects))
+
         standardize_pipe.add_sub_pipeline(self._build_instantiate_mysql_config_sub(clusters=cluster_objects))
 
         # 为了代码方便这里稍微特殊点
@@ -111,6 +113,9 @@ class MySQLHAStandardizeFlow(object):
                 self._build_storage_sub(ips=storage_ips),
             ]
         )
+
+        standardize_pipe.add_sub_pipeline(self._build_trans_module_sub(clusters=cluster_objects))
+
         logger.info(_("构建TenDBHA集群标准化流程成功"))
         standardize_pipe.run_pipeline(is_drop_random_user=True)
 

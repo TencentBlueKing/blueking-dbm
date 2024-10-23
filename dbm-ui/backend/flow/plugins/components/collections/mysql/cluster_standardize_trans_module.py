@@ -11,6 +11,7 @@ specific language governing permissions and limitations under the License.
 from django.utils.translation import ugettext as _
 from pipeline.component_framework.component import Component
 
+from backend.db_meta.enums import TenDBClusterSpiderRole
 from backend.db_meta.models import Cluster
 from backend.flow.plugins.components.collections.common.base_service import BaseService
 from backend.flow.utils.mysql.mysql_module_operate import MysqlCCTopoOperator
@@ -28,8 +29,15 @@ class ClusterStandardizeTransModuleService(BaseService):
             cluster_obj.storageinstance_set.all(), is_increment=True
         )
         MysqlCCTopoOperator(cluster_obj).transfer_instances_to_cluster_module(
-            cluster_obj.proxyinstance_set.all(), is_increment=True
+            cluster_obj.proxyinstance_set.exclude(
+                tendbclusterspiderext__spider_role__in=[
+                    TenDBClusterSpiderRole.SPIDER_MNT,
+                    TenDBClusterSpiderRole.SPIDER_SLAVE_MNT,
+                ]
+            ),
+            is_increment=True,
         )
+
         self.log_info(_("[{}] CC 模块标准化完成".format(kwargs["node_name"])))
         return True
 
