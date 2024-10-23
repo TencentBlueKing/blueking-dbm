@@ -302,6 +302,7 @@
     const resourceData = await getTagRelatedResource({
       bk_biz_id: curBiz.value?.bk_biz_id as number,
       ids,
+      resource_type: 'resource',
     });
     const map = new Map<number, number>();
     resourceData.forEach(item => {

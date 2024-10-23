@@ -55,7 +55,7 @@ export function validateTag(params: { bk_biz_id: number; tags: Array<{ key: stri
 /**
  * 根据标签id获取标签
  */
-export function getTagRelatedResource(params: { bk_biz_id: number; ids: number[] }) {
+export function getTagRelatedResource(params: { bk_biz_id: number; ids: number[]; resource_type?: string }) {
   return http.post<
     Array<{
       id: number;
