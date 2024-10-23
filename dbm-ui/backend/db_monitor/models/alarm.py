@@ -498,7 +498,7 @@ class DispatchGroup(AuditedModel):
         )
 
         if self.monitor_dispatch_id:
-            # data["id"] = self.monitor_dispatch_id
+            data["id"] = self.monitor_dispatch_id
             data["assign_group_id"] = self.monitor_dispatch_id
 
             # 复用旧的rule_id
