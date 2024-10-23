@@ -148,8 +148,6 @@ class SQLServerDataMigrateFlowBuilder(BaseSQLServerTicketFlowBuilder):
     inner_flow_builder = SQLServerDataMigrateFlowParamBuilder
     inner_flow_name = _("SQLServer 全备迁移执行")
     retry_type = FlowRetryType.MANUAL_RETRY
-    # 流程不允许修改
-    editable = False
 
     def need_itsm(self):
         super().need_itsm()

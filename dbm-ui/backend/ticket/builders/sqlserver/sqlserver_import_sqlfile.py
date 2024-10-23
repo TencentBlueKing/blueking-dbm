@@ -109,7 +109,6 @@ class SQLServerImportFlowParamBuilder(builders.FlowParamBuilder):
 @builders.BuilderFactory.register(TicketType.SQLSERVER_IMPORT_SQLFILE)
 class SQLServerSingleApplyFlowBuilder(BaseSQLServerTicketFlowBuilder):
     serializer = SQLServerImportDetailSerializer
-    editable = False
 
     def init_ticket_flows(self):
         """
@@ -118,14 +117,17 @@ class SQLServerSingleApplyFlowBuilder(BaseSQLServerTicketFlowBuilder):
         自动：单据审批-->(备份)--->sql导入
         定时：单据审批-->定时触发-->(备份)--->sql导入
         """
-        flows = [
-            Flow(
-                ticket=self.ticket,
-                flow_type=FlowType.BK_ITSM.value,
-                details=builders.ItsmParamBuilder(self.ticket).get_params(),
-                flow_alias=_("单据审批"),
-            ),
-        ]
+        flows = []
+
+        if self.need_itsm:
+            flows.append(
+                Flow(
+                    ticket=self.ticket,
+                    flow_type=FlowType.BK_ITSM.value,
+                    details=builders.ItsmParamBuilder(self.ticket).get_params(),
+                    flow_alias=_("单据审批"),
+                ),
+            )
 
         mode = self.ticket.details["ticket_mode"]["mode"]
         if mode == SQLExecuteTicketMode.MANUAL.value:
