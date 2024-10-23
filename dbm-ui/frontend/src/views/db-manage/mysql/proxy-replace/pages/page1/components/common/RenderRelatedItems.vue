@@ -14,12 +14,12 @@
 <template>
   <div
     v-if="list.length"
-    class="related-instances">
+    class="related-clusters">
     <div
       v-for="(item, index) in list"
       :key="index"
       class="item">
-      <span>{{ item.instance }}</span>
+      <span>{{ item[field] }}</span>
     </div>
   </div>
   <RenderText
@@ -34,8 +34,9 @@
   interface Props {
     list: {
       cluster_id: number;
-      instance: string;
+      [key: string]: string | number;
     }[];
+    field: string;
   }
 
   interface Exposes {
@@ -44,6 +45,7 @@
 
   const props = withDefaults(defineProps<Props>(), {
     list: () => [],
+    field: 'domain',
   });
 
   const { t } = useI18n();
@@ -57,7 +59,7 @@
   });
 </script>
 <style lang="less">
-  .related-instances {
+  .related-clusters {
     padding: 10px 16px;
     line-height: 20px;
     background: #fff;

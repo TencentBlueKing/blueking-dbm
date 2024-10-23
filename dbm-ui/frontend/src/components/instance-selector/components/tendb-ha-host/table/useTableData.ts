@@ -11,15 +11,22 @@
  * the specific language governing permissions and limitations under the License.
  */
 
+import type { ISearchValue } from 'bkui-vue/lib/search-select/utils';
 import type { ComponentInternalInstance, Ref } from 'vue';
 import { useRequest } from 'vue-request';
 
 import { useGlobalBizs } from '@stores';
 
+import { getSearchSelectorParams } from '@utils';
+
 /**
  * 处理集群列表数据
  */
-export function useTableData<T>(role?: Ref<string | undefined>, clusterId?: Ref<number | undefined>) {
+export function useTableData<T>(
+  searchSelectValue: Ref<ISearchValue[]>,
+  role?: Ref<string | undefined>,
+  clusterId?: Ref<number | undefined>,
+) {
   const { currentBizId } = useGlobalBizs();
   const currentInstance = getCurrentInstance() as ComponentInternalInstance & {
     proxy: {
@@ -37,14 +44,12 @@ export function useTableData<T>(role?: Ref<string | undefined>, clusterId?: Ref<
     align: 'right',
     layout: ['total', 'limit', 'list'],
   });
-  const searchValue = ref('');
 
   const { run: getTableListRun, loading: isLoading } = useRequest(currentInstance.proxy.getTableList, {
     manual: true,
     onSuccess(data) {
-      const ret = data;
-      tableData.value = ret.results;
-      pagination.count = ret.count;
+      tableData.value = data.results;
+      pagination.count = data.count;
       isAnomalies.value = false;
     },
     onError() {
@@ -54,18 +59,18 @@ export function useTableData<T>(role?: Ref<string | undefined>, clusterId?: Ref<
     },
   });
 
-  watch(searchValue, () => {
+  watch(searchSelectValue, () => {
     setTimeout(() => {
       handleChangePage(1);
     });
   });
 
-  const fetchResources = async () => {
+  const generateParams = () => {
     const params = {
       bk_biz_id: currentBizId,
-      ip: searchValue.value,
       limit: pagination.limit,
       offset: (pagination.current - 1) * pagination.limit,
+      ...getSearchSelectorParams(searchSelectValue.value),
     };
     if (role?.value) {
       Object.assign(params, {
@@ -74,9 +79,14 @@ export function useTableData<T>(role?: Ref<string | undefined>, clusterId?: Ref<
     }
     if (clusterId?.value && clusterId.value !== currentBizId) {
       Object.assign(params, {
-        cluster_ids: clusterId.value,
+        cluster_ids: [clusterId.value],
       });
     }
+    return params;
+  };
+
+  const fetchResources = async () => {
+    const params = generateParams();
     return getTableListRun(params);
   };
 
@@ -94,7 +104,7 @@ export function useTableData<T>(role?: Ref<string | undefined>, clusterId?: Ref<
     isLoading,
     data: tableData,
     pagination,
-    searchValue,
+    generateParams,
     fetchResources,
     handleChangePage,
     handeChangeLimit,

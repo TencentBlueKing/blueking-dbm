@@ -24,8 +24,11 @@
   interface Emits {
     (
       e: 'inputFinish',
-      relatedInstances: IDataRow['relatedInstances'],
-      relatedClusters: IDataRow['relatedClusters'],
+      data: {
+        originProxy: IDataRow['originProxy'];
+        relatedInstances: IDataRow['relatedInstances'];
+        relatedClusters: IDataRow['relatedClusters'];
+      },
     ): void;
   }
 
@@ -58,7 +61,7 @@
 
   const instanceKey = `render_original_proxy_${random()}`;
   proxyHostMemo[instanceKey] = {};
-  let proxyHostData = {} as IDataRow['originProxy'];
+  let originProxy = {} as IDataRow['originProxy'];
 
   const { currentBizId } = useGlobalBizs();
   const { t } = useI18n();
@@ -82,12 +85,11 @@
           instance_addresses: [value],
         }).then((data) => {
           if (data.length < 1) {
-            emits('inputFinish', [], []);
             return false;
           }
           const [currentData] = data;
           proxyHostMemo[instanceKey][currentData.ip] = true;
-          proxyHostData = {
+          originProxy = {
             ip: currentData.ip,
             bk_cloud_id: currentData.bk_cloud_id,
             bk_host_id: currentData.bk_host_id,
@@ -105,7 +107,11 @@
             })),
             'cluster_id',
           );
-          emits('inputFinish', relatedInstances, relatedClusters);
+          emits('inputFinish', {
+            originProxy,
+            relatedInstances,
+            relatedClusters,
+          });
           return true;
         }),
       message: t('目标Proxy主机不存在'),
@@ -127,7 +133,6 @@
         const currentSelectClusterIdList = Object.keys(currentClusterSelectMap);
         for (let i = 0; i < currentSelectClusterIdList.length; i++) {
           if (otherClusterIdMap[currentSelectClusterIdList[i]]) {
-            emits('inputFinish', [], []);
             return false;
           }
         }
@@ -158,7 +163,7 @@
   defineExpose<Exposes>({
     getValue() {
       return editRef.value.getValue().then(() => ({
-        origin_proxy: proxyHostData,
+        origin_proxy: originProxy,
       }));
     },
   });
