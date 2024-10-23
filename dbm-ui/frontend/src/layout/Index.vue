@@ -156,6 +156,7 @@
       'passwordManage',
       'PlatformTicketFlowSetting',
       'PlatformStaffManage',
+      'PlatformClusterStandardize',
     ],
     [menuEnum.personalWorkbench]: ['SelfServiceMyTickets', 'MyTodos', 'serviceApply', 'ticketSelfManage'],
   } as Record<string, string[]>;

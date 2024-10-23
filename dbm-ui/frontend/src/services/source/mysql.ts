@@ -12,16 +12,37 @@
  */
 
 import BizConfTopoTreeModel from '@services/model/config/biz-conf-topo-tree';
-
-import { useGlobalBizs } from '@stores';
+import TendbhaModel from '@services/model/mysql/tendbha';
 
 import http from '../http';
-
-const { currentBizId } = useGlobalBizs();
+import type { ListBase } from '../types';
 
 /**
  * 获取业务拓扑树
  */
 export function getMysqlResourceTree(params: { cluster_type: string }) {
-  return http.get<BizConfTopoTreeModel[]>(`/apis/mysql/bizs/${currentBizId}/resource_tree/`, params);
+  return http.get<BizConfTopoTreeModel[]>(`/apis/mysql/bizs/${window.PROJECT_CONFIG.BIZ_ID}/resource_tree/`, params);
+}
+
+/**
+ * 根据业务id、模块id、及筛选条件获取集群列表
+ */
+export function getClusterList(params: {
+  bk_biz_id?: number;
+  db_module_id?: number;
+  limit?: number;
+  offset?: number;
+  type?: string;
+  dbType?: string;
+  cluster_ids?: number[] | number;
+  domain?: string;
+}) {
+  return http.post<ListBase<TendbhaModel[]>>(`/apis/mysql/query_clusters/`, params);
+}
+
+/**
+ * 根据用户手动输入的域名列表查询
+ */
+export function checkDomains(params: { domains: Array<string> }) {
+  return http.post<Array<TendbhaModel>>(`/apis/mysql/check_domains/`, params);
 }

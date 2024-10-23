@@ -11,7 +11,7 @@
  * the specific language governing permissions and limitations under the License.
  */
 
-import type { InstanceInfos } from '@services/types';
+import type { InstanceInfos, ListBase } from '@services/types';
 
 import { ClusterTypes } from '@common/const';
 
@@ -32,11 +32,15 @@ export function verifyDuplicatedClusterName(params: { cluster_type: string; name
 export function filterClusters<
   T extends {
     bk_biz_id: number;
+    bk_biz_name: string;
     bk_cloud_id: number;
     bk_cloud_name: string;
+    id: number;
     cluster_name: string;
     cluster_type: string;
     major_version: string;
+    master_domain: string;
+    status: string;
   },
 >(params: { bk_biz_id: number; exact_domain?: string; cluster_ids?: string }) {
   return http.get<T[]>(`${path}/filter_clusters/`, params);
@@ -102,22 +106,39 @@ export function checkInstance<T extends InstanceInfos>(params: { instance_addres
 
 // 查询全集群信息
 export function queryAllTypeCluster(params: {
-  bk_biz_id: number;
-  cluster_types?: string;
-  immute_domain?: string;
-  phase?: string;
+  bk_biz_id?: number; // 业务id
+  cluster_types?: string; // 集群类型(逗号间隔)
+  immute_domain?: string; // 集群域名
+  phase?: string; // 集群阶段状态
+  name?: string; // 集群英文名
+  alias?: string; // 集群别名
+  db_module_id?: number; // 集群所属模块id
+  db_module_name?: string; // 集群所属模块名
+  major_version?: string; // 集群主版本
+  status?: string; // 集群状态
+  bk_cloud_id?: number; // 集群所属云区域id
+  region?: string; // 集群所属地域
   limit?: number;
   offset?: number;
 }) {
   return http.get<
-    {
-      bk_cloud_id: number;
-      cluster_type: string;
-      id: number;
-      immute_domain: string;
-      major_version: string;
-      name: string;
-      region: string;
-    }[]
+    ListBase<
+      {
+        alias: string;
+        bk_biz_id: number;
+        bk_cloud_id: number;
+        bk_cloud_name: string;
+        cluster_type: string;
+        db_module_id: number;
+        db_module_name: string;
+        id: number;
+        immute_domain: string;
+        major_version: string;
+        name: string;
+        phase: string;
+        region: string;
+        status: string;
+      }[]
+    >
   >(`${path}/simple_query_cluster/`, params);
 }

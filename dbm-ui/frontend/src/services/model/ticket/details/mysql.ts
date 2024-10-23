@@ -631,3 +631,13 @@ export interface MySQLAccountRuleChangeDetails extends DetailBase {
   account_type: string;
   rule_id: number;
 }
+
+/**
+ * MySQL 集群标准化
+ */
+export interface MysqlClusterStandardizeDetails extends DetailBase {
+  clusters: DetailClusters;
+  infos: {
+    cluster_ids: number[];
+  };
+}
