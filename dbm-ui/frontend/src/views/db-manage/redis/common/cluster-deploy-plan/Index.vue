@@ -181,11 +181,12 @@
   import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
 
-  import { RedisClusterTypes } from '@services/model/redis/redis';
   import ClusterSpecModel from '@services/model/resource-spec/cluster-sepc';
   import { getFilterClusterSpec } from '@services/source/dbresourceSpec';
 
   import { useBeforeClose } from '@hooks';
+
+  import { ClusterTypes } from '@common/const';
 
   import DbForm from '@components/db-form/index.vue'
 
@@ -205,7 +206,7 @@
         total: number,
         used: number,
       },
-      clusterType: RedisClusterTypes,
+      clusterType: ClusterTypes,
       shardNum: number,
       groupNum: number,
       bkCloudId: number
@@ -246,7 +247,7 @@
         total: 1,
         used: 0,
       },
-      clusterType: RedisClusterTypes.TwemproxyRedisInstance,
+      clusterType: ClusterTypes.TWEMPROXY_REDIS_INSTANCE,
       shardNum: 0,
       groupNum: 0,
       bkCloudId: 0
@@ -306,7 +307,7 @@
     }
     return true
   });
-  const isTendisCache = computed(() => props.data.clusterType === RedisClusterTypes.TwemproxyRedisInstance);
+  const isTendisCache = computed(() => props.data.clusterType === ClusterTypes.TWEMPROXY_REDIS_INSTANCE);
   const targetCapacityTitle = computed(() => (isTendisCache.value ? t('目标集群容量需求(内存容量)') : t('目标集群容量需求(磁盘容量)')));
   const futureCapacityTitle = computed(() => (isTendisCache.value ? t('未来集群容量需求(内存容量)') : t('未来集群容量需求(磁盘容量)')));
 
@@ -424,7 +425,7 @@
     }
     if (specInfo.capacityNeed > 0 && specInfo.capacityFutureNeed > 0) {
       isTableLoading.value = true;
-      const clusterType = props.data?.clusterType ?? RedisClusterTypes.TwemproxyRedisInstance;
+      const clusterType = props.data?.clusterType ?? ClusterTypes.TWEMPROXY_REDIS_INSTANCE;
       const params = {
         spec_cluster_type: clusterType,
         spec_machine_type: ClusterMachineMap[clusterType],
