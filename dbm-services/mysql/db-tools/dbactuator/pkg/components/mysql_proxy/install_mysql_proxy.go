@@ -44,9 +44,10 @@ type InstallMySQLProxyComp struct {
 // payload param
 type InstallMySQLProxyParam struct {
 	components.Medium
-	ProxyConfigs json.RawMessage `json:"proxy_configs"`
-	Host         string          `json:"host"  validate:"required,ip"`
-	Ports        []int           `json:"ports" validate:"required,gt=0,dive"`
+	ProxyConfigs    json.RawMessage `json:"proxy_configs"`
+	Host            string          `json:"host"  validate:"required,ip"`
+	Ports           []int           `json:"ports" validate:"required,gt=0,dive"`
+	DBHAAccountName string          `json:"dbha_account" validate:"required"`
 }
 
 // InitDirs 别名
@@ -373,6 +374,13 @@ func (i *InstallMySQLProxyComp) initOneProxyAdminAccount(port Port) (err error) 
 		logger.Error("add ProxyAdminAccount failed %s", err.Error())
 		return err
 	}
+
+	_, err = pc.Exec(fmt.Sprintf(`refresh_users('%s@%%', '+')`, i.Params.DBHAAccountName))
+	if err != nil {
+		logger.Error("add dbha account failed %s", err.Error())
+		return err
+	}
+
 	return nil
 }
 
