@@ -13,7 +13,7 @@
         theme="primary"
         @click="handleShowSql">
         <span v-if="modelValue.length < 1">{{ t('点击添加') }}</span>
-        <span v-else-if="modelValue.length === 1">{{ modelValue[0] }}</span>
+        <span v-else-if="modelValue.length === 1">{{ getSQLFilename(modelValue[0]) }}</span>
         <span v-else>{{ t('n 个 SQL 文件', { n: modelValue.length }) }}</span>
       </BkButton>
     </span>
@@ -53,6 +53,8 @@
   import { useI18n } from 'vue-i18n';
 
   import RenderTextPlain from '@components/render-table/columns/text-plain/index.vue';
+
+  import { getSQLFilename } from '@utils';
 
   import SqlContent from './components/sql-content/Index.vue';
 
