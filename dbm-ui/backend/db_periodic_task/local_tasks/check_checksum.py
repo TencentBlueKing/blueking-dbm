@@ -12,6 +12,7 @@ from backend import env
 from backend.components import BKLogApi
 from backend.db_meta.enums import ClusterType, InstanceInnerRole
 from backend.db_meta.models import Cluster
+from backend.db_periodic_task.local_tasks.context_manager import start_new_span
 from backend.db_periodic_task.local_tasks.register import register_periodic_task
 from backend.db_periodic_task.utils import TimeUnit, calculate_countdown
 from backend.db_report.models import ChecksumCheckReport, ChecksumInstance
@@ -65,15 +66,16 @@ def auto_check_checksum():
     for index, cluster_id in enumerate(cluster_ids):
         countdown = calculate_countdown(count=count, index=index, duration=TimeUnit.HOUR)
         logger.info("cluster({}) checksum will be run after {} seconds.".format(cluster_id, countdown))
-        check_cluster_checksum.apply_async(
-            kwargs={
-                "cluster_id": cluster_id,
-                "start_time": start_time,
-                "end_time": end_time,
-                "log_start_time": log_start_time,
-            },
-            countdown=countdown,
-        )
+        with start_new_span(check_cluster_checksum):
+            check_cluster_checksum.apply_async(
+                kwargs={
+                    "cluster_id": cluster_id,
+                    "start_time": start_time,
+                    "end_time": end_time,
+                    "log_start_time": log_start_time,
+                },
+                countdown=countdown,
+            )
 
 
 @app.task

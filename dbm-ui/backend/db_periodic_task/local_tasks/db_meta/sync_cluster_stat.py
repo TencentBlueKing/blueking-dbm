@@ -24,7 +24,7 @@ from backend.components import BKMonitorV3Api
 from backend.constants import CACHE_CLUSTER_STATS
 from backend.db_meta.enums import ClusterType
 from backend.db_meta.models import Cluster
-from backend.db_periodic_task.local_tasks import register_periodic_task
+from backend.db_periodic_task.local_tasks import register_periodic_task, start_new_span
 from backend.db_periodic_task.local_tasks.db_meta.constants import (
     QUERY_TEMPLATE,
     SAME_QUERY_TEMPLATE_CLUSTER_TYPE_MAP,
@@ -145,6 +145,7 @@ def sync_cluster_stat_from_monitor():
                 bk_biz_id, cluster_type, countdown
             )
         )
-        sync_cluster_stat_by_cluster_type.apply_async(
-            kwargs={"bk_biz_id": bk_biz_id, "cluster_type": cluster_type}, countdown=countdown
-        )
+        with start_new_span(sync_cluster_stat_by_cluster_type):
+            sync_cluster_stat_by_cluster_type.apply_async(
+                kwargs={"bk_biz_id": bk_biz_id, "cluster_type": cluster_type}, countdown=countdown
+            )
