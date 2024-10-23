@@ -19,20 +19,21 @@ import { useRequest } from 'vue-request';
 import type UserSemanticTaskModel from '@services/model/sql-import/user-semantic-task';
 import { getUserSemanticTasks } from '@services/source/mysqlSqlImport';
 
+import { DBTypes } from '@common/const';
+
 export const useSQLTaskNotify = () => {
   const { t } = useI18n();
   const router = useRouter();
 
   const handleGoTaskLog = (taskData: UserSemanticTaskModel) => {
     router.push({
-      name: 'MySQLExecute',
+      name: taskData.cluster_type === DBTypes.MYSQL ? 'MySQLExecute' : 'spiderSqlExecute',
       params: {
         step: 'log',
         bizId: taskData.bk_biz_id,
       },
       query: {
         rootId: taskData.root_id,
-        nodeId: taskData.node_id,
       },
     });
   };
