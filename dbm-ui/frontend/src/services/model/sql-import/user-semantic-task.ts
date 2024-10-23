@@ -12,20 +12,20 @@
  */
 
 export default class UserSemanticTasks {
-  root_id: string;
-  node_id: string;
-  created_at: string;
-  status: string;
   bk_biz_id: number;
+  cluster_type: string;
+  created_at: string;
   is_alter: boolean;
+  root_id: string;
+  status: string;
 
   constructor(payload = {} as UserSemanticTasks) {
-    this.root_id = payload.root_id;
-    this.node_id = payload.node_id;
-    this.created_at = payload.created_at;
-    this.status = payload.status;
     this.bk_biz_id = payload.bk_biz_id;
+    this.cluster_type = payload.cluster_type;
+    this.created_at = payload.created_at;
     this.is_alter = payload.is_alter;
+    this.status = payload.status;
+    this.root_id = payload.root_id;
   }
 
   get isSucceeded() {
