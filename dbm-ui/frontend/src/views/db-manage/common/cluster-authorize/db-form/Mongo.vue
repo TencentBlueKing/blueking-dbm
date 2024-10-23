@@ -11,9 +11,9 @@
       :cluster-types="clusterTypes"
       :data="selected" />
     <PermissionRules
-      v-model:rules="formData.rules"
-      v-model:user="formData.user"
-      :account-type="accountType" />
+      v-model="formData.mongo_users"
+      :account-type="accountType"
+      property="mongo_users" />
   </DbForm>
 </template>
 
@@ -63,15 +63,18 @@
   const formRef = ref();
   const formData = reactive({
     target_instances: [] as string[],
-    user: '',
-    rules: [] as PermissionRule['rules'][],
+    mongo_users: [] as { user: string; rules: PermissionRule['rules'] }[],
   });
 
   watch(
     () => [props.user, props.rules],
     () => {
-      formData.user = props.user;
-      formData.rules = [props.rules];
+      formData.mongo_users = [
+        {
+          user: props.user,
+          rules: props.rules,
+        },
+      ];
     },
     {
       immediate: true,
@@ -86,9 +89,9 @@
         params: {
           target_instances: formData.target_instances,
           cluster_type: targetInstancesRef.value!.getClusterType(),
-          mongo_users: formData.rules.map((rule) => ({
-            user: formData.user,
-            access_dbs: rule.map((mapItem) => mapItem.access_db),
+          mongo_users: formData.mongo_users.map((item) => ({
+            user: item.user,
+            access_dbs: item.rules.map((rule) => rule.access_db),
           })),
         },
       };

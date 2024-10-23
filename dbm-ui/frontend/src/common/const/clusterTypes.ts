@@ -39,6 +39,7 @@ export enum ClusterTypes {
 export enum ClusterTypes {
   MONGO_REPLICA_SET = 'MongoReplicaSet', // Mongo副本集群
   MONGO_SHARED_CLUSTER = 'MongoShardedCluster', // Mongo分片集群
+  MONGODB = 'mongodb',
 }
 // sqlserver
 export enum ClusterTypes {
