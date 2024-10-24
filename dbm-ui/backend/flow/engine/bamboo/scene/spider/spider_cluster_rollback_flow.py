@@ -16,6 +16,7 @@ from typing import Dict, Optional
 from django.utils.translation import ugettext as _
 
 from backend.configuration.constants import DBType
+from backend.constants import IP_PORT_DIVIDER
 from backend.db_meta.enums import InstanceStatus
 from backend.db_meta.models import Cluster
 from backend.db_services.mysql.fixpoint_rollback.handlers import FixPointRollbackHandler
@@ -178,8 +179,32 @@ class TenDBRollBackDataFlow(object):
                         )
                     ),
                 )
+                ins_sub_pipeline_list.append(
+                    spd_sub_pipeline.build_sub_process(sub_name=_("{} spider节点恢复".format(spider_node["instance"])))
+                )
+                # 恢复中控节点，有且只有1个中控
+                if spider_node["is_admin"]:
+                    if "tdbctl_node" not in backup_info:
+                        raise TendbGetBackupInfoFailedException(message=_("获取中控节点备份信息不存在"))
+                    if backup_info["tdbctl_node"] == "":
+                        raise TendbGetBackupInfoFailedException(message=_("获取中控节点备份信息为空"))
+                    ctl_sub_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(self.data))
+                    ctl_cluster = copy.deepcopy(spd_cluster)
+                    ctl_cluster["backupinfo"] = backup_info["tdbctl_node"]
+                    ctl_cluster["rollback_port"] = spider_node["admin_port"]
+                    ctl_cluster["file_target_path"] = f'{self.backup_target_path}/{spider_node["admin_port"]}'
+                    ctl_cluster["instance"] = f'{spider_node["ip"]}{IP_PORT_DIVIDER}{spider_node["admin_port"]}'
+                    ctl_cluster["init_command"] = "set tc_admin=0"
+                    ctl_cluster["enable_binlog"] = True
+                    ctl_sub_pipeline.add_sub_pipeline(
+                        sub_flow=spider_recover_sub_flow(
+                            root_id=self.root_id, ticket_data=copy.deepcopy(self.data), cluster=ctl_cluster
+                        )
+                    )
+                    ins_sub_pipeline_list.insert(
+                        0, ctl_sub_pipeline.build_sub_process(sub_name=_("{} 中控节点恢复".format(ctl_cluster["instance"])))
+                    )
 
-                ins_sub_pipeline_list.append(spd_sub_pipeline.build_sub_process(sub_name=_("恢复spider节点数据")))
             for shard_id, remote_node in clusters_info["shards"].items():
                 if int(shard_id) not in backup_info["remote_node"]:
                     raise TendbGetBackupInfoFailedException(message=_("获取remotedb分片 {} 的备份信息不存在".format(shard_id)))
@@ -255,7 +280,9 @@ class TenDBRollBackDataFlow(object):
                         )
                     ),
                 )
-                ins_sub_pipeline_list.append(ins_sub_pipeline.build_sub_process(sub_name=_("恢复remote节点数据")))
+                ins_sub_pipeline_list.append(
+                    ins_sub_pipeline.build_sub_process(sub_name=_("{} 分片主从恢复".format(shard_id)))
+                )
             tendb_rollback_pipeline.add_parallel_sub_pipeline(sub_flow_list=ins_sub_pipeline_list)
             tendb_rollback_list.append(
                 tendb_rollback_pipeline.build_sub_process(

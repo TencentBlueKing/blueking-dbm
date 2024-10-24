@@ -1029,12 +1029,8 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
         """
         MYSQL 定点回档恢复备份介质
         """
-        # if (
-        #     self.ticket_data["ticket_type"] == TicketType.TENDBCLUSTER_ROLLBACK_CLUSTER
-        #     or self.ticket_data["ticket_type"] == TicketType.MYSQL_ROLLBACK_CLUSTER
-        # ):
-        #     self.cluster["master_ip"] = ""
-        #     self.cluster["master_port"] = 0
+        init_command = self.cluster.get("init_command", "")
+        enable_binlog = self.cluster.get("enable_binlog", False)
         index_file = os.path.basename(self.cluster["backupinfo"]["index"]["file_name"])
         payload = {
             "db_type": DBActuatorTypeEnum.MySQL.value,
@@ -1062,6 +1058,8 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
                         "ignore_databases": self.cluster["databases_ignore"],
                         "ignore_tables": self.cluster["tables_ignore"],
                         "recover_binlog": self.cluster["recover_binlog"],
+                        "enable_binlog": enable_binlog,
+                        "init_command": init_command,
                     },
                     "src_instance": {"host": "", "port": 0},
                     "change_master": self.cluster["change_master"],
