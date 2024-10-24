@@ -45,6 +45,8 @@
   </tr>
 </template>
 <script lang="ts">
+  import { ProxyReplaceTypes } from '@views/db-manage/mysql/proxy-replace/pages/page1/components/common/const';
+
   import { random } from '@utils';
 
   export interface IDataRow {
@@ -232,6 +234,11 @@
         },
         ...relatedInstancesData,
         ...targetData,
+        display_info: {
+          type: ProxyReplaceTypes.HOST_REPLACE,
+          related_instances: rowData.value.relatedInstances.map((item) => item.instance),
+          related_clusters: rowData.value.relatedClusters.map((item) => item.domain),
+        },
       }));
     },
   });

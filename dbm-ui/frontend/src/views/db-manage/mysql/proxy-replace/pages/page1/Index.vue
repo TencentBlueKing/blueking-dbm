@@ -39,7 +39,7 @@
     </div>
     <KeepAlive>
       <Component
-        :is="renderComponent"
+        :is="comMap[replaceType]"
         ref="tableRef" />
     </KeepAlive>
     <div class="safe-action">
@@ -73,12 +73,6 @@
   </SmartAction>
 </template>
 
-<script lang="tsx">
-  export enum ProxyReplaceTypes {
-    INSTANCE_REPLACE = 'INSTANCE_REPLACE', // 实例替换
-    HOST_REPLACE = 'HOST_REPLACE', // 整机替换
-  }
-</script>
 <script setup lang="tsx">
   import { useI18n } from 'vue-i18n';
 
@@ -89,6 +83,8 @@
   import { TicketTypes } from '@common/const';
 
   import CardCheckbox from '@components/db-card-checkbox/CardCheckbox.vue';
+
+  import { ProxyReplaceTypes } from '@views/db-manage/mysql/proxy-replace/pages/page1/components/common/const';
 
   import ReplaceHost from './components/ReplaceHost/Index.vue';
   import ReplaceInstance from './components/ReplaceInstance/Index.vue';
@@ -101,12 +97,10 @@
   const force = ref(false);
   const isSubmitting = ref(false);
 
-  const ProxyReplaceMap = {
+  const comMap = {
     [ProxyReplaceTypes.INSTANCE_REPLACE]: ReplaceInstance,
     [ProxyReplaceTypes.HOST_REPLACE]: ReplaceHost,
   };
-
-  const renderComponent = computed(() => ProxyReplaceMap[replaceType.value]);
 
   useTicketCloneInfo({
     type: TicketTypes.MYSQL_PROXY_SWITCH,
@@ -121,9 +115,6 @@
     try {
       isSubmitting.value = true;
       const infos = await tableRef.value!.getValue();
-      infos[0].display_info = {
-        type: replaceType.value,
-      };
       await createTicket({
         bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
         ticket_type: TicketTypes.MYSQL_PROXY_SWITCH,
@@ -152,12 +143,6 @@
   const handleReset = () => {
     tableRef.value.reset();
   };
-
-  watch(replaceType, () => {
-    nextTick(() => {
-      tableRef.value.reset();
-    });
-  });
 </script>
 
 <style lang="less">
