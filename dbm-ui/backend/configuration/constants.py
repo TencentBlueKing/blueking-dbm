@@ -27,8 +27,17 @@ MYSQL8_VER_PARSE_NUM = 8000000
 
 
 class DBPrivSecurityType(str, StructuredEnum):
-    PASSWORD = EnumField("password", _("默认密码策略"))
-    REDIS_PASSWORD = EnumField("redis_password", _("redis密码策略"))
+    MYSQL_PASSWOR = EnumField("mysql_password", _("mysql密码策略"))
+    REDIS_PASSWORD = EnumField("redis_password_v2", _("redis密码策略"))
+    TENDBCLUSTER_PASSWORD = EnumField("tendbcluster_password", _("tendbcluster密码策略"))
+    ES_PASSWORD = EnumField("es_password", _("es密码策略"))
+    KAFKA_PASSWORD = EnumField("kafka_password", _("kafka密码策略"))
+    HDFS_PASSWORD = EnumField("hdfs_password", _("hdfs密码策略"))
+    PULSAR_PASSWORD = EnumField("pulsar_password", _("pulsar密码策略"))
+    INFLUXDB_PASSWORD = EnumField("influxdb_password", _("influxdb密码策略"))
+    SQLSERVER_PASSWORD = EnumField("sqlserver_password", _("sqlserver密码策略"))
+    MOGODB_PASSWORD = EnumField("mongodb_password", _("mongodb密码策略"))
+    DORIS_PASSWORD = EnumField("doris_password", _("doris密码策略"))
 
 
 class AdminPasswordRole(str, StructuredEnum):

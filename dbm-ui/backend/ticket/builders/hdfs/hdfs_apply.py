@@ -8,10 +8,11 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from django.utils.crypto import get_random_string
 from django.utils.translation import ugettext as _
 from rest_framework import serializers
 
+from backend.configuration.constants import DBPrivSecurityType
+from backend.configuration.handlers.password import DBPasswordHandler
 from backend.db_meta.enums import ClusterType
 from backend.db_services.dbbase.constants import HDFS_DEFAULT_HTTP_PORT, HDFS_DEFAULT_RPC_PORT, IpSource
 from backend.flow.engine.controller.hdfs import HdfsController
@@ -116,12 +117,12 @@ class HdfsApplyFlowParamBuilder(builders.FlowParamBuilder):
             "db_app_abbr": "blueking"
         }
         """
-        haproxy_passwd = get_random_string(8)
+        # haproxy_passwd = get_random_string(8)
         self.ticket_data.update(
             {
                 "http_port": HDFS_DEFAULT_HTTP_PORT,
                 "rpc_port": HDFS_DEFAULT_RPC_PORT,
-                "password": haproxy_passwd,
+                "password": DBPasswordHandler.get_random_password(security_type=DBPrivSecurityType.HDFS_PASSWORD),
                 "domain": f"hdfs.{self.ticket_data['cluster_name']}.{self.ticket_data['db_app_abbr']}.db",
             }
         )

@@ -14,6 +14,7 @@ from unittest.mock import patch
 
 import pytest
 from django.conf import settings
+from django.utils.crypto import get_random_string
 from rest_framework.test import APIClient
 
 from backend.db_meta.enums import ClusterType
@@ -59,7 +60,9 @@ class TestDorisApplyFlow(TestFlowBase, TestCase):
     """
 
     # DORIS apply: start --> itsm --> PAUSE --> RESOURC --> INNER_FLOW --> end
-    def test_doris_single_apply_flow(self):
+    @patch("backend.configuration.handlers.password.DBPasswordHandler.get_random_password")
+    def test_doris_single_apply_flow(self, mock_get_random_password):
+        mock_get_random_password.return_value = get_random_string(16)
         self.flow_test(client, DORIS_APPLY_TICKET_DATA)
 
     # DORIS disable: start --> itsm --> PAUSE --> INNER_FLOW --> end
@@ -109,6 +112,7 @@ class TestDorisApplyFlow(TestFlowBase, TestCase):
         mock_db_meta_patch = patch(
             "backend.ticket.builders.common.bigdata.BigDataDetailsSerializer.validate_hosts_not_in_db_meta"
         )
+
         # 启动新的patch并添加到self.mocks列表中以便随后可以停止它
         self.mocks.extend(
             [mock_resource_apply_patch.start(), mock_idle_pool_patch.start(), mock_db_meta_patch.start()]

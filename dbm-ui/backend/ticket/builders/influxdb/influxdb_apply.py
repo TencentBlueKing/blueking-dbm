@@ -14,7 +14,8 @@ from django.utils.crypto import get_random_string
 from django.utils.translation import ugettext as _
 from rest_framework import serializers
 
-from backend.configuration.constants import AffinityEnum
+from backend.configuration.constants import AffinityEnum, DBPrivSecurityType
+from backend.configuration.handlers.password import DBPasswordHandler
 from backend.db_meta.enums import ClusterType
 from backend.db_meta.models import Group
 from backend.db_services.dbbase.constants import IpSource
@@ -65,7 +66,7 @@ class InfluxDBApplyFlowParamBuilder(builders.FlowParamBuilder):
         self.ticket_data.update(
             {
                 "username": get_random_string(8),
-                "password": get_random_string(16),
+                "password": DBPasswordHandler.get_random_password(security_type=DBPrivSecurityType.INFLUXDB_PASSWORD),
                 "group_name": Group.objects.get(pk=self.ticket_data["group_id"]).name,
             }
         )

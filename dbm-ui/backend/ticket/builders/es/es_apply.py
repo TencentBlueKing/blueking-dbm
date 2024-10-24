@@ -14,6 +14,8 @@ from django.utils.crypto import get_random_string
 from django.utils.translation import ugettext_lazy as _
 from rest_framework import serializers
 
+from backend.configuration.constants import DBPrivSecurityType
+from backend.configuration.handlers.password import DBPasswordHandler
 from backend.db_meta.enums import ClusterType
 from backend.db_services.dbbase.constants import ES_DEFAULT_PORT
 from backend.flow.consts import ES_DEFAULT_INSTANCE_NUM
@@ -112,7 +114,7 @@ class EsApplyFlowParamBuilder(builders.FlowParamBuilder):
         self.ticket_data.update(
             {
                 "username": get_random_string(8),
-                "password": get_random_string(16),
+                "password": DBPasswordHandler.get_random_password(security_type=DBPrivSecurityType.ES_PASSWORD),
                 "domain": f"es.{self.ticket_data['cluster_name']}.{self.ticket_data['db_app_abbr']}.db",
             }
         )
