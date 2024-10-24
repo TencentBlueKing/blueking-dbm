@@ -19,6 +19,9 @@
     <InfoItem :label="t('忽略业务连接：')">
       {{ ticketDetails.details.force ? t('是') : t('否') }}
     </InfoItem>
+    <InfoItem :label="t('备份源：')">
+      {{ ticketDetails.details.backup_source === 'local' ? t('本地备份') : t('远程备份') }}
+    </InfoItem>
   </InfoList>
 </template>
 
@@ -54,10 +57,10 @@
       charSet: string;
       moduleName: string;
     },
-    ip: string;
+    ip: string[];
     old_master_slave: string;
-    old_readonly_slaves: string;
-    new_readonly_slaves: string;
+    old_readonly_slaves: string[];
+    new_readonly_slaves: string[];
   }
 
   interface Props {
@@ -71,12 +74,12 @@
   const dataList = ref<DataItem[]>([])
 
   const columns = [
-    {
-      label: t('集群ID'),
-      field: 'cluster_id',
-      width: 100,
-      render: ({ cell }: { cell: [] }) => <span>{cell || '--'}</span>,
-    },
+    // {
+    //   label: t('集群ID'),
+    //   field: 'cluster_id',
+    //   width: 100,
+    //   render: ({ cell }: { cell: [] }) => <span>{cell || '--'}</span>,
+    // },
     {
       label: t('集群名称'),
       field: 'immute_domain',
@@ -114,6 +117,7 @@
     {
       label: t('只读主机'),
       field: 'old_readonly_slaves',
+      render: ({ data }: { data: DataItem }) => data.old_readonly_slaves.length ? data.old_readonly_slaves.map(item => <p>{item}</p>) : '--'
     },
     {
       label: t('当前版本'),
@@ -128,13 +132,14 @@
       render: ({ data }: { data: DataItem }) => <VersionContent data={data.targetVersion} />
     },
     {
-      label: t('新从库主机'),
+      label: t('新主从主机'),
       field: 'ip',
-      render: ({ cell }: { cell: string }) => <span>{cell || '--'}</span>,
+      render: ({ data }: { data: DataItem }) => data.ip.map(item => <p>{item}</p>)
     },
     {
       label: t('新只读主机'),
       field: 'new_readonly_slaves',
+      render: ({ data }: { data: DataItem }) => data.new_readonly_slaves.length ? data.new_readonly_slaves.map(item => <p>{item}</p>) : '--'
     }
   ];
 
@@ -156,7 +161,7 @@
         new: []
       })
       list.push(Object.assign({
-        cluster_id: id,
+        // cluster_id: id,
         immute_domain: clusterData.immute_domain,
         name: clusterData.name,
         currentVersion: {
@@ -173,10 +178,10 @@
           charSet: item.display_info.charset,
           moduleName: item.display_info.target_module_name,
         },
-        ip: [item.new_master.ip, item.new_slave.ip].join(','),
+        ip: [item.new_master.ip, item.new_slave.ip],
         old_master_slave: item.display_info.old_master_slave || [],
-        old_readonly_slaves: readonlySlaveMap.old.join(',') || '--',
-        new_readonly_slaves: readonlySlaveMap.new.join(',') || '--'
+        old_readonly_slaves: readonlySlaveMap.old,
+        new_readonly_slaves: readonlySlaveMap.new
       }));
     });
   });
