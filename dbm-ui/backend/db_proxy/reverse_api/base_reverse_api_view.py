@@ -26,17 +26,17 @@ logger = logging.getLogger("root")
 
 class IPHasRegisteredPermission(permissions.BasePermission):
     def has_permission(self, request, view):
+        logger.info(
+            f"[checking reverse-api-perm] request path: {request.path},"
+            f"REMOTE_ADDR: {request.META.get('REMOTE_ADDR')},"
+            f"HTTP_X_FORWARDED_FOR: {request.META.get('HTTP_X_FORWARDED_FOR')}"
+        )
         try:
-            nginx_ip = get_nginx_ip(request)
-            logger.debug(f"nginx_ip: {nginx_ip}")
-
+            get_nginx_ip(request)
             bk_cloud_id = get_bk_cloud_id(request)
-            logger.debug(f"bk_cloud_id: {bk_cloud_id}")
-
             client_ip = get_client_ip(request)
             Machine.objects.get(ip=client_ip, bk_cloud_id=bk_cloud_id)
 
-            logger.debug(f"client_ip: {client_ip}")
         except Exception as e:  # noqa
             # if not found:
             raise Exception(_("访问受限，不存在于DBM平台 {}".format(e)))
