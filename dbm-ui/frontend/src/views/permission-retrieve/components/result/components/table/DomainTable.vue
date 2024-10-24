@@ -83,7 +83,7 @@
             field: 'user',
             width: 240,
             rowspan: ({ row }: { row: TableItem }) => {
-              const rowSpan = tableData.value.filter((item) => item.immute_domain === row.immute_domain).length;
+              const rowSpan = tableData.value.filter((item) => item.immute_domain === row.immute_domain && item.user === row.user).length;
               return rowSpan > 1 ? rowSpan : 1;
             },
           },
@@ -92,7 +92,7 @@
             field: 'match_ip',
             width: 240,
             rowspan: ({ row }: { row: TableItem }) => {
-              const rowSpan = tableData.value.filter((item) => item.immute_domain === row.immute_domain && item.match_ip === row.match_ip).length;
+              const rowSpan = tableData.value.filter((item) => item.immute_domain === row.immute_domain && item.user === row.user && item.match_ip === row.match_ip).length;
               return rowSpan > 1 ? rowSpan : 1;
             },
           },
