@@ -19,24 +19,22 @@
       :label-width="260"
       :model="formData"
       :rules="rules">
-      <DbCard
-        mode="collapse"
-        :title="t('密码组成设置')">
+      <DbCard :title="t('密码组成设置')">
         <BkFormItem
           :label="t('密码长度')"
           required>
           <BkInput
             v-model="formData.min_length"
             class="password-policy-number mr-6"
-            :max="defaultConfig.max_length"
-            :min="defaultConfig.min_length"
+            :max="formData.max_length"
+            :min="6"
             type="number" />
           <span class="password-policy-text">{{ t('至') }}</span>
           <BkInput
             v-model="formData.max_length"
             class="password-policy-number ml-6"
-            :max="defaultConfig.max_length"
-            :min="defaultConfig.min_length"
+            :max="48"
+            :min="formData.min_length"
             type="number" />
         </BkFormItem>
         <BkFormItem
@@ -103,7 +101,7 @@
               v-model="formData.weak_password"
               theme="primary" />
             <span class="ml-10">
-              {{ t('开启后，不允许超过 x 位连续字符，如出现以下示例密码将无法通过检测', { x: defaultConfig.repeats }) }}
+              {{ t('开启后，不允许超过 x 位连续字符，如出现以下示例密码将无法通过检测', { x: formData.repeats }) }}
             </span>
           </div>
           <ul class="password-policy-rules">
@@ -217,7 +215,6 @@
     ],
   };
 
-  const defaultConfig = reactive(initData());
   const formRef = ref();
   const formData = reactive(initData());
   const excludeContinuousRule = shallowRef({
@@ -237,7 +234,6 @@
       const { id, name, rule } = data;
       passwordPolicyData.id = id;
       passwordPolicyData.name = name;
-      Object.assign(defaultConfig, rule);
       Object.assign(formData, rule);
       const { repeats } = rule;
       excludeContinuousRule.value = {
@@ -298,7 +294,6 @@
   };
 
   const handleReset = () => {
-    Object.assign(formData, defaultConfig);
     handleSubmit(true);
   };
 </script>
