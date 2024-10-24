@@ -226,6 +226,7 @@ class CcManage(object):
         transfer_host_ids: List[int] = [
             host_id for host_id in bk_host_ids if host__idle_module[host_id] != biz_idle_module
         ]
+        transfer_host_ids = list(set(transfer_host_ids))
         if transfer_host_ids:
             resp = CCApi.transfer_host_to_idlemodule(
                 {"bk_biz_id": bk_biz_id, "bk_host_id": transfer_host_ids}, raw=True
@@ -263,6 +264,7 @@ class CcManage(object):
             # 有些角色允许为空，所以要忽略
             return
 
+        bk_host_ids = list(set(bk_host_ids))
         # 查询当前bk_hosts_ids的业务对应关系
         logger.info(f"transfer_host_module, bk_host_ids:{bk_host_ids}")
         hosts = CCApi.find_host_biz_relations({"bk_host_id": bk_host_ids})
@@ -323,6 +325,7 @@ class CcManage(object):
         转移到待回收模块
         转移主机后会自动删除服务实例，无需额外操作
         """
+        bk_host_ids = list(set(bk_host_ids))
         CCApi.transfer_host_to_recyclemodule(
             params={"bk_biz_id": self.hosting_biz_id, "bk_host_id": bk_host_ids}, use_admin=True
         )
