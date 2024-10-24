@@ -26,16 +26,17 @@ export const useSQLTaskNotify = () => {
   const router = useRouter();
 
   const handleGoTaskLog = (taskData: UserSemanticTaskModel) => {
-    router.push({
+    const { href } = router.resolve({
       name: taskData.cluster_type === DBTypes.MYSQL ? 'MySQLExecute' : 'spiderSqlExecute',
       params: {
         step: 'log',
-        bizId: taskData.bk_biz_id,
       },
       query: {
         rootId: taskData.root_id,
       },
     });
+
+    window.open(href);
   };
 
   const { cancel: cancelRequest } = useRequest(getUserSemanticTasks, {
