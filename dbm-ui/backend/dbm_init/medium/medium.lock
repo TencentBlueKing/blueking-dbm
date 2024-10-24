@@ -1,26 +1,26 @@
 cloud:
 - cloud-dbha:
     buildPath: /blueking-dbm/dbm-services/common/dbha/ha-module/build/dbha
-    commitDate: '202406251535'
-    commitId: 1674439623653cb9bbfc0e6f0d66fd4821130a04
+    commitDate: '202410111644'
+    commitId: a2fab904b30499a69f70efd4ab925221eeb80875
     name: dbha
-    version: 1.0.2
+    version: 1.0.3
 - cloud-dns-bind:
     buildPath: /toolkit/bind.tar.gz
     name: bind.tar.gz
     version: 1.0.0
 - cloud-dns-pullcrond:
     buildPath: /blueking-dbm/dbm-services/common/db-dns/dns-reload/build/pull-crond
-    commitDate: '202404241059'
-    commitId: daedb74dd9a3e2c81bee7aa069208ccc4456f53a
+    commitDate: '202407111942'
+    commitId: fd80f91be24635090a999f9444fb661ce9b2e8f1
     name: pull-crond
-    version: 1.0.2
+    version: 1.0.3
 - cloud-drs:
     buildPath: /blueking-dbm/dbm-services/mysql/db-remote-service/build/db-remote-service
-    commitDate: '202406121522'
-    commitId: 6b44a10004715d3bcde7fdaa7b7652d59e42cedd
+    commitDate: '202408191635'
+    commitId: 14dcaf2e12676f80e39beef669426ef1e6ceb14a
     name: db-remote-service
-    version: 1.0.2
+    version: 1.0.3
 - cloud-drs-tmysqlparse:
     buildPath: /toolkit/tmysqlparse
     name: tmysqlparse
@@ -32,187 +32,180 @@ cloud:
 es:
 - actuator:
     buildPath: /blueking-dbm/dbm-services/bigdata/db-tools/dbactuator/build/dbactuator
-    commitDate: '202406251536'
-    commitId: 7fa118a30171a55154958a376a81ff1830e9c247
+    commitDate: '202409130958'
+    commitId: 320f93c0f63feb429f287595401c1db077bb50c6
     name: dbactuator
-    version: 1.0.4
-# ---安装包文件---
+    version: 1.0.5
 - es:
     buildPath: /install/es/espack-7.10.2.tar.gz
+    installation: true
     name: espack-7.10.2.tar.gz
     version: 7.2.0
-    installation: true
 - exporter:
     buildPath: /install/es/dbm_elasticsearch_exporter.tgz
+    installation: true
     name: dbm_elasticsearch_exporter.tgz
     version: dbm_elasticsearch_exporter
-    installation: true
 hdfs:
 - actuator:
     buildPath: /blueking-dbm/dbm-services/bigdata/db-tools/dbactuator/build/dbactuator
-    commitDate: '202406251536'
-    commitId: 7fa118a30171a55154958a376a81ff1830e9c247
+    commitDate: '202409130958'
+    commitId: 320f93c0f63feb429f287595401c1db077bb50c6
     name: dbactuator
-    version: 1.0.4
-# ---安装包文件---
+    version: 1.0.5
 - hdfs:
     buildPath: /install/hdfs/hdfspack-2.6.0-cdh5.4.11-tendataV0.2.tar.gz
+    installation: true
     name: hdfspack-2.6.0-cdh5.4.11-tendataV0.2.tar.gz
     version: 2.6.0-cdh5.4.11-tendataV0.2
-    installation: true
 - exporter:
     buildPath: /install/hdfs/dbm_hdfs_exporter.tgz
+    installation: true
     name: dbm_hdfs_exporter.tgz
     version: dbm_hdfs_exporter
-    installation: true
 influxdb:
 - actuator:
     buildPath: /blueking-dbm/dbm-services/bigdata/db-tools/dbactuator/build/dbactuator
-    commitDate: '202406251536'
-    commitId: 7fa118a30171a55154958a376a81ff1830e9c247
+    commitDate: '202409130958'
+    commitId: 320f93c0f63feb429f287595401c1db077bb50c6
     name: dbactuator
-    version: 1.0.4
+    version: 1.0.5
 kafka:
-# ---介质文件---
 - actuator:
     buildPath: /blueking-dbm/dbm-services/bigdata/db-tools/dbactuator/build/dbactuator
-    commitDate: '202406251536'
-    commitId: 7fa118a30171a55154958a376a81ff1830e9c247
+    commitDate: '202409130958'
+    commitId: 320f93c0f63feb429f287595401c1db077bb50c6
     name: dbactuator
-    version: 1.0.4
-# ---安装包文件---
+    version: 1.0.5
 - kafka:
     buildPath: /install/kafka/kafkapack-2.4.0.tar.gz
+    installation: true
     name: kafkapack-2.4.0.tar.gz
     version: 2.4.0
-    installation: true
 - exporter:
     buildPath: /install/kafka/dbm_kafka_exporter.tgz
+    installation: true
     name: dbm_kafka_exporter.tgz
     version: dbm_kafka_exporter
-    installation: true
 - exporter:
     buildPath: /install/kafka/dbm_kafka_bkpull.tgz
+    installation: true
     name: dbm_kafka_bkpull.tgz
     version: dbm_kafka_bkpull
-    installation: true
 mongodb:
 - actuator:
     buildPath: /blueking-dbm/dbm-services/mongodb/db-tools/dbactuator/build/mongo-dbactuator
-    commitDate: '202406281653'
-    commitId: 23beed969b3ef7bafd207a16303fbb17c0958a33
+    commitDate: '202409132027'
+    commitId: cb7f60c19e7a6873624a49d5449f4cb2d08859f0
     name: mongo-dbactuator
-    version: 1.0.1
+    version: 1.0.2
 - dbmon:
     buildPath: /blueking-dbm/dbm-services/mongodb/db-tools/dbmon/build/bk-dbmon-mg.tar.gz
-    commitDate: '202406141720'
-    commitId: a3226da8f3796650898e6d393ae297da6e01b0b8
+    commitDate: '202409122129'
+    commitId: eda79060c5ff52357162685a280ba8275e5586b2
     name: bk-dbmon-mg.tar.gz
-    version: 1.0.1
+    version: 1.0.2
 - mongo-toolkit:
     buildPath: /blueking-dbm/dbm-services/mongodb/db-tools/mongo-toolkit-go/build/mongo-toolkit-go_Linux
-    commitDate: '202406141720'
-    commitId: a3226da8f3796650898e6d393ae297da6e01b0b8
+    commitDate: '202409122129'
+    commitId: eda79060c5ff52357162685a280ba8275e5586b2
     name: mongo-toolkit-go_Linux
-    version: 1.0.1
+    version: 1.0.2
 - dbtools:
     buildPath: /toolkit/mongotools.tar.gz
     name: mongotools.tar.gz
     version: 1.0.0
 mysql:
-# ----介质列表----
 - actuator:
     buildPath: /blueking-dbm/dbm-services/mysql/db-tools/dbactuator/build/dbactuator
-    commitDate: '202406272009'
-    commitId: 2bf305eab81fbdc4da897bf2b7b8d6634b57e946
+    commitDate: '202410231437'
+    commitId: cd202177b8aaa945ca48131f918eb4c75b623a90
     name: dbactuator
-    version: 1.0.5
+    version: 1.0.6
 - dbbackup:
     buildPath: /blueking-dbm/dbm-services/mysql/db-tools/mysql-dbbackup/build/dbbackup-go-community.tar.gz
-    commitDate: '202406121157'
-    commitId: 97be5317f0e85c4d2ef6fdd28be2fceb4c60e251
+    commitDate: '202410231032'
+    commitId: 77b622e804f088af15fdd8ab2a2863298e50b10d
     name: dbbackup-go-community.tar.gz
-    version: 1.0.4
+    version: 1.0.5
 - mysql-checksum:
     buildPath: /blueking-dbm/dbm-services/mysql/db-tools/mysql-table-checksum/build/mysql-checksum.tar.gz
-    commitDate: '202405151015'
-    commitId: 0f478ad649ddb815653ac0085a39d55a4f205c9a
+    commitDate: '202409092036'
+    commitId: 68a7181272b7f83210e95a3eed0c14f2c6ac8a0c
     name: mysql-checksum.tar.gz
-    version: 1.0.5
+    version: 1.0.6
 - mysql-crond:
     buildPath: /blueking-dbm/dbm-services/mysql/db-tools/mysql-crond/build/mysql-crond.tar.gz
-    commitDate: '202403251644'
-    commitId: 3a97258f2cf63b270674c9594d9b68d4e1cad075
+    commitDate: '202410181606'
+    commitId: 36b5e7b181b0225e79c6cbd571ccf77e1d5564ee
     name: mysql-crond.tar.gz
-    version: 1.0.5
+    version: 1.0.6
 - rotate-binlog:
     buildPath: /blueking-dbm/dbm-services/mysql/db-tools/mysql-rotatebinlog/build/mysql-rotatebinlog.tar.gz
-    commitDate: '202406121028'
-    commitId: 08fd8cea58e9a8bc96d860c80e6ab6a1e491d4ac
+    commitDate: '202409061418'
+    commitId: aca67e44576fb4bb79085fd9512ec075fc5fa08d
     name: mysql-rotatebinlog.tar.gz
-    version: 1.0.5
+    version: 1.0.6
 - mysql-monitor:
     buildPath: /blueking-dbm/dbm-services/mysql/db-tools/mysql-monitor/build/mysql-monitor.tar.gz
-    commitDate: '202406121523'
-    commitId: 0da798a86479c12422f1e030629c26cf16b15b28
+    commitDate: '202409141113'
+    commitId: 598486b9e9ac9b7d15e3c56f4bdcec0021c63032
     name: mysql-monitor.tar.gz
-    version: 1.0.5
+    version: 1.0.6
 - dba-toolkit:
     buildPath: /toolkit/dba-toolkit.tar.gz
     name: dba-toolkit.tar.gz
     version: 1.0.0
-# ----安装包列表----
 - mysql:
     buildPath: /install/mysql/mysql-5.7.20-linux-x86_64-tmysql-3.3-gcs.tar.gz
+    installation: true
     name: mysql-5.7.20-linux-x86_64-tmysql-3.3-gcs.tar.gz
     version: MySQL-5.7
-    installation: true
 - mysql:
     buildPath: /install/mysql/mysql-8.0.32-linux-glibc2.12-x86_64.tar.xz
+    installation: true
     name: mysql-8.0.32-linux-glibc2.12-x86_64.tar.xz
     version: MySQL-8.0
-    installation: true
 - mysql-proxy:
     buildPath: /install/mysql/mysql-proxy-0.82.15.tar.gz
+    installation: true
     name: mysql-proxy-0.82.15.tar.gz
     version: latest
-    installation: true
 - exporter:
     buildPath: /install/mysql/dbm_tbinlogdumper_exporter.tgz
+    installation: true
     name: dbm_tbinlogdumper_exporter.tgz
     version: dbm_tbinlogdumper_exporter
-    installation: true
 - exporter:
     buildPath: /install/mysql/dbm_mysqlproxy_exporter.tgz
+    installation: true
     name: dbm_mysqlproxy_exporter.tgz
     version: dbm_mysqlproxy_exporter
-    installation: true
 - exporter:
     buildPath: /install/mysql/dbm_mysqld_exporter.tgz
+    installation: true
     name: dbm_mysqld_exporter.tgz
     version: dbm_mysqld_exporter
-    installation: true
 pulsar:
 - actuator:
     buildPath: /blueking-dbm/dbm-services/bigdata/db-tools/dbactuator/build/dbactuator
-    commitDate: '202406251536'
-    commitId: 7fa118a30171a55154958a376a81ff1830e9c247
+    commitDate: '202409130958'
+    commitId: 320f93c0f63feb429f287595401c1db077bb50c6
     name: dbactuator
-    version: 1.0.4
+    version: 1.0.5
 redis:
-# ---介质列表---
 - actuator:
     buildPath: /blueking-dbm/dbm-services/redis/db-tools/dbactuator/build/dbactuator_redis
-    commitDate: '202406261537'
-    commitId: fa1cca4534e2fc6e55994003b66bca8467ea614b
+    commitDate: '202410231658'
+    commitId: 276307e606699a81a0d4e1506d6d93e4673e258e
     name: dbactuator_redis
-    version: 1.0.5
+    version: 1.0.6
 - dbmon:
     buildPath: /blueking-dbm/dbm-services/redis/db-tools/dbmon/build/bk-dbmon-*.tar.gz
-    commitDate: '202406251534'
-    commitId: 2120b0b1046c88417a141a7ece9e55a5952f2005
+    commitDate: '202410081628'
+    commitId: a84f9ea4f93d9810714a64e7abe686e647b2cf29
     name: dbmon
-    version: 1.0.5
+    version: 1.0.6
 - redis-dts:
     buildPath: /toolkit/redis_dts.tar.gz
     name: redis_dts.tar.gz
@@ -221,54 +214,53 @@ redis:
     buildPath: /toolkit/dbtools.tar.gz
     name: dbtools.tar.gz
     version: 1.0.0
-# ---安装包列表---
 - redis:
     buildPath: /install/redis/redis-5.0.14.tar.gz
+    installation: true
     name: redis-5.0.14.tar.gz
     version: Redis-5
-    installation: true
 - redis:
     buildPath: /install/redis/redis-6.2.14.tar.gz
+    installation: true
     name: redis-6.2.14.tar.gz
     version: Redis-6
-    installation: true
 - tendisplus:
     buildPath: /install/redis/tendisplus-2.7.3-rocksdb-v8.5.3.tgz
+    installation: true
     name: tendisplus-2.7.3-rocksdb-v8.5.3.tgz
     version: Tendisplus-2.7
-    installation: true
 - predixy:
     buildPath: /install/redis/predixy-1.4.3.tar.gz
+    installation: true
     name: predixy-1.4.3.tar.gz
     version: Predixy-latest
-    installation: true
 - exporter:
     buildPath: /install/redis/dbm_predixy_exporter.tgz
+    installation: true
     name: dbm_predixy_exporter.tgz
     version: dbm_predixy_exporter
-    installation: true
 - exporter:
     buildPath: /install/redis/dbm_redis_exporter.tgz
+    installation: true
     name: dbm_redis_exporter.tgz
     version: dbm_redis_exporter
-    installation: true
 riak:
 - actuator:
     buildPath: /blueking-dbm/dbm-services/riak/db-tools/dbactuator/build/dbactuator
-    commitDate: '202403041719'
-    commitId: f84f9b4c92225b25736315b5feaf8bb02796e40f
+    commitDate: '202408261709'
+    commitId: 61c2bde752e6233cea9d416537006300ae447194
     name: dbactuator
-    version: 1.0.1
+    version: 1.0.2
 - riak-monitor:
     buildPath: /blueking-dbm/dbm-services/riak/db-tools/riak-monitor/build/riak-monitor.tar.gz
-    commitDate: '202403261049'
-    commitId: 0d25107625b2ebef8735491b48e9601a599bc502
+    commitDate: '202407111942'
+    commitId: fd80f91be24635090a999f9444fb661ce9b2e8f1
     name: riak-monitor.tar.gz
-    version: 1.0.1
+    version: 1.0.2
 sqlserver:
 - actuator:
     buildPath: /blueking-dbm/dbm-services/sqlserver/db-tools/dbactuator/build/dbactuator.exe
-    commitDate: '202406251538'
-    commitId: 5ef190b024c7b5fe0862eb10c029cd7041056650
+    commitDate: '202410081300'
+    commitId: 4e3770b0cf2e20fbdba6af59b090379a0ffb57f2
     name: dbactuator.exe
-    version: 1.0.1
+    version: 1.0.2
