@@ -119,14 +119,14 @@
           class="mr-8"
           :loading="isSubmitting"
           theme="primary"
-          @click="handleSubmit()">
+          @click="handleSubmit">
           {{ t('保存') }}
         </AuthButton>
         <DbPopconfirm
           :confirm-handler="handleReset"
           :content="t('重置将会恢复默认设置的内容')"
           :title="t('确认重置')">
-          <BkButton :disabled="isSubmitting">
+          <BkButton :loading="isResetting">
             {{ t('重置') }}
           </BkButton>
         </DbPopconfirm>
@@ -224,7 +224,8 @@
     symbols: [] as string[],
     repeats: [] as string[],
   });
-  let message = '';
+  const isSubmitting = ref(false);
+  const isResetting = ref(false);
 
   const typeMaxCount = computed(() => Object.values(formData.include_rule).filter((item) => item).length);
 
@@ -252,15 +253,8 @@
     });
   };
 
-  const { run: updatePasswordPolicyRun, loading: isSubmitting } = useRequest(updatePasswordPolicy, {
+  const { runAsync: updatePasswordPolicyRunAsync } = useRequest(updatePasswordPolicy, {
     manual: true,
-    onSuccess: () => {
-      Message({
-        theme: 'success',
-        message,
-      });
-      fetchData();
-    },
   });
 
   watch(
@@ -275,26 +269,48 @@
     formRef.value.validate();
   };
 
-  const handleSubmit = async (reset = false) => {
-    if (!reset) {
+  const handleSubmit = async () => {
+    isSubmitting.value = true;
+    try {
       await formRef.value.validate();
-      message = t('保存成功');
-    } else {
-      message = t('重置成功');
-      formRef.value.clearValidate();
+      await updatePasswordPolicyRunAsync({
+        ...passwordPolicyData,
+        rule: {
+          ...formData,
+          symbols_allowed: _.uniq(formData.symbols_allowed.split('')).join(''),
+        },
+        reset: false,
+      });
+      Message({
+        theme: 'success',
+        message: t('保存成功'),
+      });
+      fetchData();
+    } finally {
+      isSubmitting.value = false;
     }
-    updatePasswordPolicyRun({
-      ...passwordPolicyData,
-      rule: {
-        ...formData,
-        symbols_allowed: _.uniq(formData.symbols_allowed.split('')).join(''),
-      },
-      reset,
-    });
   };
 
-  const handleReset = () => {
-    handleSubmit(true);
+  const handleReset = async () => {
+    isResetting.value = true;
+    try {
+      formRef.value.clearValidate();
+      await updatePasswordPolicyRunAsync({
+        ...passwordPolicyData,
+        rule: {
+          ...formData,
+          symbols_allowed: _.uniq(formData.symbols_allowed.split('')).join(''),
+        },
+        reset: true,
+      });
+      Message({
+        theme: 'success',
+        message: t('重置成功'),
+      });
+      fetchData();
+    } finally {
+      isResetting.value = false;
+    }
   };
 </script>
 
