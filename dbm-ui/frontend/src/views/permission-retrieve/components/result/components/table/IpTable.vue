@@ -98,7 +98,7 @@
             field: 'user',
             width: 240,
             rowspan: ({ row }: { row: TableItem }) => {
-              const rowSpan = tableData.value.filter((item) => _.isEqual(item.ip, row.ip) && _.isEqual(item.db, row.db) && item.immute_domain === row.immute_domain).length;
+              const rowSpan = tableData.value.filter((item) => _.isEqual(item.ip, row.ip) && _.isEqual(item.db, row.db) && item.immute_domain === row.immute_domain && item.user === row.user).length;
               return rowSpan > 1 ? rowSpan : 1;
             },
           },
@@ -107,7 +107,7 @@
             field: 'match_ip',
             width: 240,
             rowspan: ({ row }: { row: TableItem }) => {
-              const rowSpan = tableData.value.filter((item) => _.isEqual(item.ip, row.ip) && _.isEqual(item.db, row.db) && item.immute_domain === row.immute_domain).length;
+              const rowSpan = tableData.value.filter((item) => _.isEqual(item.ip, row.ip) && _.isEqual(item.db, row.db) && item.immute_domain === row.immute_domain && item.user === row.user).length;
               return rowSpan > 1 ? rowSpan : 1;
             },
           },
@@ -153,12 +153,6 @@
         label: t('访问的 DB'),
         field: 'db',
         width: 240,
-        renderHead: () => (
-          <>
-            <div class='custom-head-title'></div>
-            <div class='custom-head-sub-title'>{t('访问的 DB')}</div>
-          </>
-        ),
         rowspan: ({ row }: { row: TableItem }) => {
           const rowSpan = tableData.value.filter((item) => _.isEqual(item.ip, row.ip) && _.isEqual(item.db, row.db)).length;
           return rowSpan > 1 ? rowSpan : 1;
