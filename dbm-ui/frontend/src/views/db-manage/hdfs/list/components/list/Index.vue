@@ -120,7 +120,6 @@
 
   import HdfsModel from '@services/model/hdfs/hdfs';
   import {
-    getHdfsDetail,
     getHdfsInstanceList,
     getHdfsList,
   } from '@services/source/hdfs';
@@ -385,7 +384,7 @@
                   <span v-db-console="hdfs.clusterManage.modifyEntryConfiguration">
                     <EditEntryConfig
                       id={data.id}
-                      getDetailInfo={getHdfsDetail}
+                      bizId={data.bk_biz_id}
                       permission={data.permission.access_entry_edit}
                       resource={DBTypes.HDFS}
                       onSuccess={fetchTableData} />

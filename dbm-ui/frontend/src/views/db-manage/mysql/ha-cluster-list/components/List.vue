@@ -119,7 +119,6 @@
   import type { MySQLFunctions } from '@services/model/function-controller/functionController';
   import TendbhaModel from '@services/model/mysql/tendbha';
   import {
-    getTendbhaDetail,
     getTendbhaInstanceList,
     getTendbhaList,
   } from '@services/source/tendbha';
@@ -155,7 +154,7 @@
 
   import ClusterAuthorize from '@views/db-manage/common/cluster-authorize/Index.vue';
   import ClusterCapacityUsageRate from '@views/db-manage/common/cluster-capacity-usage-rate/Index.vue'
-  import EditEntryConfig, { type RowData } from '@views/db-manage/common/cluster-entry-config/Index.vue';
+  import EditEntryConfig, { type ClusterEntryInfo } from '@views/db-manage/common/cluster-entry-config/Index.vue';
   import ClusterExportData from '@views/db-manage/common/cluster-export-data/Index.vue'
   import ClusterIpCopy from '@views/db-manage/common/cluster-ip-copy/Index.vue';
   import DropdownExportExcel from '@views/db-manage/common/dropdown-export-excel/index.vue';
@@ -334,22 +333,6 @@
     return funControllerStore.funControllerData.mysql.children[currentKey];
   });
 
-
-  const renderEntry = (data: RowData) => {
-    if (data.role === 'master_entry') {
-      return (
-        <span>
-          <bk-tag size="small" theme="success">{ t('主') }</bk-tag>{ data.entry }
-        </span>
-      )
-    }
-    return (
-      <span>
-        <bk-tag size="small" theme="info">{ t('从') }</bk-tag>{ data.entry }
-      </span>
-    )
-  }
-
   const entrySort = (data: RowData[]) => data.sort(a => a.role === 'master_entry' ? -1 : 1);
 
   const columns = computed(() => [
@@ -418,12 +401,18 @@
                 <span v-db-console="mysql.haClusterList.modifyEntryConfiguration">
                   <EditEntryConfig
                     id={data.id}
-                    getDetailInfo={getTendbhaDetail}
+                    bizId={data.bk_biz_id}
                     permission={data.permission.access_entry_edit}
                     resource={DBTypes.MYSQL}
-                    renderEntry={renderEntry}
                     sort={entrySort}
-                    onSuccess={fetchData} />
+                    onSuccess={fetchData}>
+                      {{
+                        prepend: ({ data: cluster }: { data: ClusterEntryInfo } ) =>
+                          cluster.role === 'master_entry' ?
+                            <bk-tag size="small" theme="success">{ t('主') }</bk-tag>
+                            : <bk-tag size="small" theme="info">{ t('从') }</bk-tag>,
+                      }}
+                  </EditEntryConfig>
                 </span>
               </>
             ),
@@ -480,12 +469,18 @@
                 <span v-db-console="mysql.haClusterList.modifyEntryConfiguration">
                   <EditEntryConfig
                     id={data.id}
-                    getDetailInfo={getTendbhaDetail}
+                    bizId={data.bk_biz_id}
                     permission={data.permission.access_entry_edit}
                     resource={DBTypes.MYSQL}
-                    renderEntry={renderEntry}
                     sort={entrySort}
-                    onSuccess={fetchData} />
+                    onSuccess={fetchData}>
+                      {{
+                        prepend: ({ data: cluster }: { data: ClusterEntryInfo } ) =>
+                          cluster.role === 'master_entry' ?
+                            <bk-tag size="small" theme="success">{ t('主') }</bk-tag>
+                            : <bk-tag size="small" theme="info">{ t('从') }</bk-tag>,
+                      }}
+                  </EditEntryConfig>
                 </span>
               </>
             ),
@@ -578,12 +573,18 @@
               <span v-db-console="mysql.haClusterList.modifyEntryConfiguration">
                 <EditEntryConfig
                   id={data.id}
-                  getDetailInfo={getTendbhaDetail}
+                  bizId={data.bk_biz_id}
                   permission={data.permission.access_entry_edit}
                   resource={DBTypes.MYSQL}
-                  renderEntry={renderEntry}
                   sort={entrySort}
-                  onSuccess={fetchData} />
+                  onSuccess={fetchData}>
+                    {{
+                      prepend: ({ data: cluster }: { data: ClusterEntryInfo } ) =>
+                        cluster.role === 'master_entry' ?
+                          <bk-tag size="small" theme="success">{ t('主') }</bk-tag>
+                          : <bk-tag size="small" theme="info">{ t('从') }</bk-tag>,
+                    }}
+                </EditEntryConfig>
               </span>
             </>)
         }}

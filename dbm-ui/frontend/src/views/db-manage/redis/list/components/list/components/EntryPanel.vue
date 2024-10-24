@@ -55,6 +55,8 @@
 
   import { useGlobalBizs } from '@stores';
 
+  import type { ClusterTypes } from '@common/const';
+
   interface Props {
     entryType: 'clb' | 'polaris';
     clusterId: number;
@@ -104,7 +106,7 @@
 
   const isLongTitle = computed(() => props.entryType === 'polaris');
 
-  const { loading, run: runGetClusterEntries } = useRequest(getClusterEntries, {
+  const { loading, run: runGetClusterEntries } = useRequest(getClusterEntries<ClusterTypes.REDIS>, {
     manual: true,
     onSuccess: (res) => {
       if (props.entryType === 'clb') {
