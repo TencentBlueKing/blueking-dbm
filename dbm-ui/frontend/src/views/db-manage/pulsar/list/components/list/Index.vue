@@ -105,7 +105,6 @@
 
   import PulsarModel from '@services/model/pulsar/pulsar';
   import {
-    getPulsarDetail,
     getPulsarInstanceList,
     getPulsarList,
   } from '@services/source/pulsar';
@@ -302,7 +301,7 @@
                 <span v-db-console="pulsar.clusterManage.modifyEntryConfiguration">
                   <EditEntryConfig
                     id={data.id}
-                    getDetailInfo={getPulsarDetail}
+                    bizId={data.bk_biz_id}
                     permission={data.permission.access_entry_edit}
                     resource={DBTypes.PULSAR}
                     onSuccess={fetchTableData} />

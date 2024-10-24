@@ -104,7 +104,6 @@
 
   import TendbsingleModel from '@services/model/mysql/tendbsingle';
   import {
-    getTendbsingleDetail,
     getTendbsingleInstanceList,
     getTendbsingleList,
   } from '@services/source/tendbsingle';
@@ -358,7 +357,7 @@
                 <span v-db-console="mysql.singleClusterList.modifyEntryConfiguration">
                   <EditEntryConfig
                     id={data.id}
-                    getDetailInfo={getTendbsingleDetail}
+                    bizId={data.bk_biz_id}
                     permission={data.permission.access_entry_edit}
                     resource={DBTypes.MYSQL}
                     onSuccess={fetchData} />

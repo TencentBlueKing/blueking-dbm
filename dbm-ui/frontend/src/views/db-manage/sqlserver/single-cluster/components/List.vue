@@ -89,7 +89,6 @@
 
   import SqlServerSingleModel from '@services/model/sqlserver/sqlserver-single';
   import {
-    getSingleClusterDetail,
     getSingleClusterList,
     getSqlServerInstanceList,
   } from '@services/source/sqlserverSingleCluster';
@@ -361,7 +360,7 @@
                 <span v-db-console="sqlserver.singleClusterList.modifyEntryConfiguration">
                   <EditEntryConfig
                     id={data.id}
-                    getDetailInfo={getSingleClusterDetail}
+                    bizId={data.bk_biz_id}
                     permission={data.permission.access_entry_edit}
                     resource={DBTypes.SQLSERVER}
                     onSuccess={fetchData} />
