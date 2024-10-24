@@ -5,6 +5,9 @@
 export enum ClusterTypes {
   TENDBSINGLE = 'tendbsingle', // MySQL单节点
   TENDBHA = 'tendbha', // MySQL主从
+}
+// tendbcluster
+export enum ClusterTypes {
   TENDBCLUSTER = 'tendbcluster',
 }
 // redis
