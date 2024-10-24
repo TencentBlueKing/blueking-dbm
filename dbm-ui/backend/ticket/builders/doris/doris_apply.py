@@ -16,6 +16,8 @@ from django.utils.crypto import get_random_string
 from django.utils.translation import ugettext_lazy as _
 from rest_framework import serializers
 
+from backend.configuration.constants import DBPrivSecurityType
+from backend.configuration.handlers.password import DBPasswordHandler
 from backend.db_meta.enums import ClusterType
 from backend.db_services.dbbase.constants import DORIS_DEFAULT_HTTP_PORT, DORIS_DEFAULT_QUERY_PORT
 from backend.flow.consts import DORIS_DEFAULT_INSTANCE_NUM
@@ -88,7 +90,7 @@ class DorisApplyFlowParamBuilder(builders.FlowParamBuilder):
             {
                 # doris 用户名首位需要字母
                 "username": random.choice(string.ascii_letters) + get_random_string(7),
-                "password": get_random_string(16),
+                "password": DBPasswordHandler.get_random_password(security_type=DBPrivSecurityType.DORIS_PASSWORD),
                 "domain": f"doris.{self.ticket_data['cluster_name']}.{self.ticket_data['db_app_abbr']}.db",
             }
         )
