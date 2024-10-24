@@ -109,7 +109,6 @@
 
   import EsModel from '@services/model/es/es';
   import {
-    getEsDetail,
     getEsInstanceList,
     getEsList,
   } from '@services/source/es';
@@ -371,11 +370,11 @@
                 )}
                 <span v-db-console="es.clusterManage.modifyEntryConfiguration">
                   <EditEntryConfig
-                  id={data.id}
-                  getDetailInfo={getEsDetail}
-                  permission={data.permission.access_entry_edit}
-                  resource={DBTypes.ES}
-                  onSuccess={fetchTableData} />
+                    id={data.id}
+                    bizId={data.bk_biz_id}
+                    permission={data.permission.access_entry_edit}
+                    resource={DBTypes.ES}
+                    onSuccess={fetchTableData} />
                 </span>
               </>
             ),
