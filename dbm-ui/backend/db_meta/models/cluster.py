@@ -371,14 +371,18 @@ class Cluster(AuditedModel):
         ctl_address = "{}{}{}".format(spider_instance.machine.ip, IP_PORT_DIVIDER, spider_instance.port + 1000)
 
         logger.info("ctl address: {}".format(ctl_address))
-        res = DRSApi.short_rpc(
-            {
-                "addresses": [ctl_address],
-                "cmds": ["tdbctl get primary"],
-                "force": False,
-                "bk_cloud_id": self.bk_cloud_id,
-            }
-        )
+        try:
+            res = DRSApi.short_rpc(
+                {
+                    "addresses": [ctl_address],
+                    "cmds": ["tdbctl get primary"],
+                    "force": False,
+                    "bk_cloud_id": self.bk_cloud_id,
+                }
+            )
+        except (ApiError, Exception) as e:
+            logger.error(_("get primary failed: {}".format(e)))
+            return ""
 
         logger.info("tdbctl get primary res: {}".format(res))
 
@@ -465,7 +469,7 @@ class Cluster(AuditedModel):
                         "bk_cloud_id": bk_cloud_id,
                     }
                 )
-            except ApiError as e:
+            except (ApiError, Exception) as e:
                 logger.error(_("get primary failed: {}".format(e)))
                 continue
 
@@ -483,6 +487,7 @@ class Cluster(AuditedModel):
                     )
                 else:
                     cluster_id__primary_address_map[ctl_address__cluster_id_map[item["address"]]] = item["address"]
+
         return cluster_id__primary_address_map
 
 
