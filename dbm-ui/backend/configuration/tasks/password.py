@@ -77,15 +77,22 @@ def get_mysql_instance(cluster: Cluster):
     seven_days_before = timezone.now() - timedelta(days=7)
     instances = [
         _get_instances(
-            AdminPasswordRole.STORAGE.value, cluster.storageinstance_set.filter(create_at__lte=seven_days_before)
+            AdminPasswordRole.STORAGE.value,
+            [ins for ins in cluster.storageinstance_set.all() if ins.create_at < seven_days_before],
         )
     ]
     # spider节点和tdbctl节点修改密码指令不同，需区别
     if cluster.cluster_type == ClusterType.TenDBCluster:
-        spiders = cluster.proxyinstance_set.filter(create_at__lte=seven_days_before)
-        dbctls = cluster.proxyinstance_set.filter(
-            tendbclusterspiderext__spider_role=TenDBClusterSpiderRole.SPIDER_MASTER, create_at__lte=seven_days_before
-        )
+        spiders = []
+        dbctls = []
+        for ins in cluster.proxyinstance_set.all():
+            if ins.create_at > seven_days_before:
+                continue
+
+            spiders.append(ins)
+            if ins.tendbclusterspiderext.spider_role == TenDBClusterSpiderRole.SPIDER_MASTER:
+                dbctls.append(ins)
+
         instances.append(_get_instances(AdminPasswordRole.SPIDER.value, spiders))
         instances.append(_get_instances(AdminPasswordRole.TDBCTL.value, dbctls))
 
@@ -102,9 +109,13 @@ def get_all_mysql_clusters():
     获取mysql所有集群的实例信息
     """
     cluster_types = [ClusterType.TenDBCluster.value, ClusterType.TenDBHA.value, ClusterType.TenDBSingle.value]
-    clusters = Cluster.objects.prefetch_related("storageinstance_set", "proxyinstance_set").filter(
-        cluster_type__in=cluster_types
-    )
+    clusters = Cluster.objects.prefetch_related(
+        "storageinstance_set",
+        "storageinstance_set__machine",
+        "proxyinstance_set",
+        "proxyinstance_set__machine",
+        "proxyinstance_set__tendbclusterspiderext",
+    ).filter(cluster_type__in=cluster_types)
     cluster_infos = [get_mysql_instance(cluster) for cluster in clusters]
     return cluster_infos
 
