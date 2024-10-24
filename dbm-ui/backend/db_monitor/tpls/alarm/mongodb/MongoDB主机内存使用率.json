@@ -2,6 +2,7 @@
   "version": "v2",
   "bk_biz_id": 5005578,
   "name": "MongoDB主机内存使用率",
+  "db_type": "mongodb",
   "source": "bkmonitorv3",
   "scenario": "os",
   "type": "monitor",

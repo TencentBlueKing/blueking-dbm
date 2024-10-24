@@ -1,6 +1,7 @@
 {
   "version": "v2",
   "bk_biz_id": 5005578,
+  "db_type": "mongodb",
   "name": "MongoDB重启warning事件",
   "source": "bkmonitorv3",
   "scenario": "component",
