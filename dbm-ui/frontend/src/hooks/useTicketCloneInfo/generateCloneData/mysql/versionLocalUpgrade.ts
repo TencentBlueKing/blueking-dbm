@@ -31,7 +31,7 @@ export async function generateMysqlVersionLocalUpgradeCloneData(ticketData: Tick
     [ClusterTypes.TENDBHA]: getTendbhaList,
   };
   const clusterListResult = await apiMap[clusterType as keyof typeof apiMap]({
-    id: infos.map((item) => item.cluster_ids[0]).join(','),
+    cluster_ids: infos.map((item) => item.cluster_ids[0]),
   });
   const clusterListMap = clusterListResult.results.reduce(
     (obj, item) => {
