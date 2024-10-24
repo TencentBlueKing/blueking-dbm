@@ -11,7 +11,11 @@ import logging
 
 from backend.components import DBConfigApi
 from backend.components.dbconfig.constants import FormatType, LevelName
+from backend.core.encrypt.constants import AsymmetricCipherConfigType
+from backend.core.encrypt.handlers import AsymmetricHandler
 from backend.db_package.models import Package
+from backend.db_proxy.constants import ExtensionType
+from backend.db_proxy.models import DBExtension
 from backend.flow.consts import ConfigTypeEnum, DBActuatorActionEnum, DBActuatorTypeEnum, MediumEnum, NameSpaceEnum
 
 logger = logging.getLogger("flow")
@@ -21,6 +25,11 @@ class ProxyActPayload(object):
     """
     定义proxy不同执行类型，拼接不同的payload参数，对应不同的dict结构体.
     """
+
+    def __proxy_get_dbha_account_name(self, bk_cloud_id: int):
+        bk_cloud_name = AsymmetricCipherConfigType.get_cipher_cloud_name(bk_cloud_id)
+        dbha = DBExtension.get_latest_extension(bk_cloud_id=bk_cloud_id, extension_type=ExtensionType.DBHA)
+        return AsymmetricHandler.decrypt(name=bk_cloud_name, content=dbha.details["user"])
 
     @staticmethod
     def __get_proxy_account():
@@ -59,6 +68,7 @@ class ProxyActPayload(object):
         """
         拼接安装proxy的payload参数
         """
+
         proxy_pkg = Package.get_latest_package(version="latest", pkg_type=MediumEnum.MySQLProxy)
         return {
             "db_type": DBActuatorTypeEnum.Proxy.value,
@@ -71,6 +81,7 @@ class ProxyActPayload(object):
                     "pkg_md5": proxy_pkg.md5,
                     "ports": self.ticket_data.get("proxy_ports", []),
                     "proxy_configs": {"mysql-proxy": self.__get_proxy_config()},
+                    "dbha_account": self.__proxy_get_dbha_account_name(bk_cloud_id=kwargs["bk_cloud_id"]),
                 },
             },
         }
