@@ -23,6 +23,8 @@ import (
 
 	"dbm-services/common/go-pubpkg/mysqlcomm"
 
+	"github.com/samber/lo"
+
 	"dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/common/go-pubpkg/logger"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/core/cst"
@@ -42,16 +44,16 @@ type MySQLDumpOption struct {
 	DumpSchema bool
 	DumpData   bool
 	// NoData       bool
-	AddDropTable bool // 默认 false 代表添加 --skip-add-drop-table 选项
-	// NeedUseDb     bool
-	NoCreateDb     bool
-	NoCreateTb     bool
-	DumpRoutine    bool // 默认 false 代表添加不导出存储过程,True导出存储过程
-	DumpTrigger    bool // 默认 false 代表添加不导出触发器
-	DumpEvent      bool // 默认 false 导出 event
-	GtidPurgedOff  bool // --set-gtid-purged=OFF
-	Quick          bool
-	ExtendedInsert bool
+	AddDropTable            bool // 默认 false 代表添加 --skip-add-drop-table 选项
+	NoUseDbAndWirteCreateDb bool // 备份的sql文件中不会打印 "CREATE DATABASE ..." 语句和 "USE db_name;" 语句
+	NoCreateDb              bool
+	NoCreateTb              bool
+	DumpRoutine             bool // 默认 false 代表添加不导出存储过程,True导出存储过程
+	DumpTrigger             bool // 默认 false 代表添加不导出触发器
+	DumpEvent               bool // 默认 false 导出 event
+	GtidPurgedOff           bool // --set-gtid-purged=OFF
+	Quick                   bool
+	ExtendedInsert          bool
 }
 
 type runtimectx struct {
@@ -77,6 +79,15 @@ type MySQLDumper struct {
 	runtimectx
 }
 
+// GetDumpFileInfo 获取dump db 对应输出的文件信息
+func (m MySQLDumper) GetDumpFileInfo() map[string]string {
+	dumpMap := make(map[string]string)
+	for _, db := range m.DbNames {
+		dumpMap[db] = fmt.Sprintf("%s.sql", db)
+	}
+	return dumpMap
+}
+
 // Dump SplitByDb OneByOne 按照每个db 分别导出不同的文件，可控制并发
 //
 //	@receiver m
@@ -87,23 +98,18 @@ func (m MySQLDumper) Dump() (err error) {
 	var errs []error
 	errChan := make(chan error, 1)
 	concurrencyControl := make(chan struct{}, m.maxConcurrency)
-	go func() {
-		for err := range errChan {
-			logger.Error("dump db failed: %s", err.Error())
-			errs = append(errs, err)
-		}
-	}()
-	for _, db := range m.DbNames {
-		wg.Add(1)
-		concurrencyControl <- struct{}{}
+	dumpMap := m.GetDumpFileInfo()
+	for db, outputFileName := range dumpMap {
 		dumper := m
 		dumper.DbNames = []string{db}
-		go func(dump MySQLDumper, db string) {
+		outputFile := path.Join(m.DumpDir, outputFileName)
+		concurrencyControl <- struct{}{}
+		wg.Add(1)
+		go func(dump MySQLDumper, db string, outputFile string) {
 			defer func() {
 				wg.Done()
 				<-concurrencyControl
 			}()
-			outputFile := path.Join(dump.DumpDir, fmt.Sprintf("%s.sql", db))
 			errFile := path.Join(dump.DumpDir, fmt.Sprintf("%s.err", db))
 			dumpCmd := dump.getDumpCmd(outputFile, errFile, "")
 			logger.Info("mysqldump cmd:%s", mysqlcomm.RemovePassword(dumpCmd))
@@ -119,10 +125,16 @@ func (m MySQLDumper) Dump() (err error) {
 				errChan <- fmt.Errorf("%w\n errfile content:%s", err, string(errContent))
 				return
 			}
-		}(dumper, db)
+		}(dumper, db, outputFile)
 	}
-	wg.Wait()
-	close(errChan)
+	go func() {
+		wg.Wait()
+		close(errChan)
+	}()
+	for err := range errChan {
+		logger.Error("dump db failed: %s", err.Error())
+		errs = append(errs, err)
+	}
 	return errors.Join(errs...)
 }
 
@@ -225,6 +237,7 @@ DumpSchema 功能概述：
 -R $create_db_opt $old_db_name
 >/data/dbbak/$dump_file.$old_db_name 2>/data/dbbak/$dump_file.$old_db_name.$SUBJOB_ID.err;
 */
+// nolint
 func (m *MySQLDumper) getDumpCmd(outputFile, errFile, dumpOption string) (dumpCmd string) {
 
 	switch {
@@ -281,9 +294,6 @@ func (m *MySQLDumper) getDumpCmd(outputFile, errFile, dumpOption string) (dumpCm
 		m.Charset,
 		dumpOption,
 	)
-	if len(m.DbNames) > 0 {
-		dumpCmd += fmt.Sprintf(" --databases  %s", strings.Join(m.DbNames, " "))
-	}
 	if len(m.Tables) > 0 {
 		dumpCmd += fmt.Sprintf(" --tables  %s", strings.Join(m.Tables, " "))
 	}
@@ -298,6 +308,13 @@ func (m *MySQLDumper) getDumpCmd(outputFile, errFile, dumpOption string) (dumpCm
 		dumpCmd += ` --where='` + m.Where + `'`
 	}
 
+	if m.NoUseDbAndWirteCreateDb {
+		dumpCmd += fmt.Sprintf(" %s", strings.Join(m.DbNames, " "))
+	} else {
+		if len(m.DbNames) > 0 {
+			dumpCmd += fmt.Sprintf(" --databases  %s", strings.Join(m.DbNames, " "))
+		}
+	}
 	mysqlDumpCmd := fmt.Sprintf("%s > %s 2>%s", dumpCmd, outputFile, errFile)
 	return strings.ReplaceAll(mysqlDumpCmd, "\n", " ")
 }
@@ -342,6 +359,7 @@ type MyDumperOptions struct {
 	Threads   int
 	UseStream bool
 	Regex     string
+	Db        string
 }
 
 // buildCommand build command
@@ -361,8 +379,11 @@ func (m *MyDumper) buildCommand() (command string) {
 	if m.Options.Threads > 0 {
 		command += fmt.Sprintf(" --threads=%d ", m.Options.Threads)
 	}
-	if cmutil.IsNotEmpty(m.Options.Regex) {
+	if lo.IsNotEmpty(m.Options.Regex) {
 		command += fmt.Sprintf(` -x '%s'`, m.Options.Regex)
+	}
+	if lo.IsNotEmpty(m.Options.Db) {
+		command += fmt.Sprintf(" --database=%s ", m.Options.Db)
 	}
 	// logger.Info("mydumper command: %s", command)
 	return
@@ -386,6 +407,8 @@ type MyLoaderOptions struct {
 	UseStream      bool
 	Threads        int
 	DefaultsFile   string
+	SourceDb       string
+	TargetDb       string
 	OverWriteTable bool // Drop tables if they already exist
 }
 
@@ -393,6 +416,12 @@ func (m *MyLoader) buildCommand() (command string) {
 	command = fmt.Sprintf(`%s -h %s -P %d -u %s -p '%s' --set-names=%s `, m.BinPath, m.Host,
 		m.Port, m.User, m.Pwd, m.Charset)
 	command += " --enable-binlog --verbose=2 "
+	if lo.IsNotEmpty(m.Options.SourceDb) {
+		command += fmt.Sprintf(" -s %s ", m.Options.SourceDb)
+	}
+	if lo.IsNotEmpty(m.Options.TargetDb) {
+		command += fmt.Sprintf(" -B %s ", m.Options.TargetDb)
+	}
 	if m.Options.UseStream {
 		command += " --stream "
 	} else {
@@ -421,7 +450,8 @@ func (m *MyLoader) Loader() (err error) {
 		return
 	}
 	var stderr string
-	stderr, err = osutil.StandardShellCommand(false, m.buildCommand())
+	loadcmd := m.buildCommand()
+	stderr, err = osutil.StandardShellCommand(false, loadcmd)
 	if err != nil {
 		logger.Error("stderr %s", stderr)
 		return fmt.Errorf("stderr:%s,err:%w", stderr, err)
@@ -431,6 +461,22 @@ func (m *MyLoader) Loader() (err error) {
 
 // Dumper do mydumper dump data
 func (m *MyDumper) Dumper() (err error) {
+	m.BinPath = filepath.Join(cst.DbbackupGoInstallPath, "bin/mydumper")
+	if err = setEnv(); err != nil {
+		logger.Error("set env failed %s", err.Error())
+		return
+	}
+	var stderr string
+	stderr, err = osutil.StandardShellCommand(false, m.buildCommand())
+	if err != nil {
+		logger.Error("stderr %s", stderr)
+		return fmt.Errorf("stderr:%s,err:%w", stderr, err)
+	}
+	return nil
+}
+
+// DumperByEachDb do mydumper dump data by each db
+func (m *MyDumper) DumperByEachDb() (err error) {
 	m.BinPath = filepath.Join(cst.DbbackupGoInstallPath, "bin/mydumper")
 	if err = setEnv(); err != nil {
 		logger.Error("set env failed %s", err.Error())
@@ -625,9 +671,10 @@ func (m *OpenAreaDumper) getOpenAreaDumpCmd(dbName, outputFile, errFile, dumpOpt
 // DbbackupDumper 使用备份工具进行数据导出
 type DbbackupDumper interface {
 	DumpbackupLogical() error
-	//PhysicalBackup() error
+	// PhysicalBackup() error
 }
 
+// DbMigrateDumper TODO
 type DbMigrateDumper struct {
 	DumpDir         string
 	DbBackupUser    string
