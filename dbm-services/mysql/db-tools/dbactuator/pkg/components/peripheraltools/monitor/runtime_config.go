@@ -1,6 +1,7 @@
 package monitor
 
 import (
+	"context"
 	"dbm-services/common/go-pubpkg/logger"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/components"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/components/peripheraltools/internal"
@@ -11,6 +12,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
 	"gopkg.in/yaml.v2"
 )
@@ -21,6 +23,46 @@ func (c *MySQLMonitorComp) GenerateRuntimeConfig() (err error) {
 		if err != nil {
 			return err
 		}
+
+		if c.Params.MachineType == "backend" {
+			err = createUserListBackupTable(inst, &c.GeneralParam.RuntimeAccountParam)
+			if err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+func createUserListBackupTable(instance *internal.InstanceInfo, rtap *components.RuntimeAccountParam) (err error) {
+	db, err := sqlx.Connect(
+		"mysql",
+		fmt.Sprintf("%s:%s@tcp(%s:%d)/",
+			rtap.MonitorUser, rtap.MonitorPwd,
+			instance.Ip, instance.Port,
+		))
+	if err != nil {
+		return err
+	}
+	defer func() {
+		_ = db.Close()
+	}()
+
+	_, err = db.ExecContext(
+		context.Background(),
+		`CREATE TABLE IF NOT EXISTS infodba_schema.proxy_user_list(
+					proxy_ip varchar(32) NOT NULL,
+					username varchar(64) NOT NULL,
+					host varchar(32) NOT NULL,
+					create_at timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+					PRIMARY KEY (proxy_ip, username, host),
+					KEY IDX_USERNAME_HOST(username, host, create_at),
+					KEY IDX_HOST(host, create_at),
+					KEY IDX_IP_HOST(proxy_ip, host, create_at)
+				) ENGINE=InnoDB;`,
+	)
+	if err != nil {
+		return err
 	}
 	return nil
 }

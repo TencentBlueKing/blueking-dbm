@@ -104,5 +104,16 @@ CREATE TABLE IF NOT EXISTS infodba_schema.local_backup_report (
     PRIMARY KEY (backup_id,mysql_role,shard_value)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
+CREATE TABLE IF NOT EXISTS infodba_schema.proxy_user_list(
+    proxy_ip varchar(32) NOT NULL,
+    username varchar(64) NOT NULL,
+    host varchar(32) NOT NULL,
+    create_at timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (proxy_ip, username, host),
+    KEY IDX_USERNAME_HOST(username, host, create_at),
+    KEY IDX_HOST(host, create_at),
+    KEY IDX_IP_HOST(proxy_ip, host, create_at)
+) ENGINE=InnoDB;
+
 flush privileges;
 flush logs;
