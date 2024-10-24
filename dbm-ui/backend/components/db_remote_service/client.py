@@ -22,6 +22,7 @@ class _DRSApi(object):
     BASE_DOMAIN = DRS_APIGW_DOMAIN
     # mysql默认超时时间为1h TODO: 后续长耗时，改造到下发dbactuator执行更合理
     DRS_MYSQL_TIMEOUT = 60 * 60
+    DRS_SHORT_TIMEOUT = 10
 
     def __init__(self):
         ssl_flag = True
@@ -46,7 +47,9 @@ class _DRSApi(object):
             url="mysql/rpc",
             module=self.MODULE,
             ssl=ssl_flag,
-            description=_("DB 远程执行（短耗时）"),
+            description=_("DB 远程执行(短耗时)"),
+            default_timeout=self.DRS_SHORT_TIMEOUT,
+            max_retry_times=1,
         )
 
         self.proxyrpc = ProxyAPI(
