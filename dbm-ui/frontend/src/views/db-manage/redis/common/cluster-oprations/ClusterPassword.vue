@@ -134,6 +134,8 @@
 
   import { useGlobalBizs } from '@stores';
 
+  import type { ClusterTypes } from '@common/const';
+
   interface Props {
     title?: string;
     fetchParams: {
@@ -206,7 +208,7 @@
 
   const passwordText = computed(() => (isShowPassword.value ? state.data.password : '******'));
 
-  const { loading: clbLoading, run: runGetClusterEntries } = useRequest(getClusterEntries, {
+  const { loading: clbLoading, run: runGetClusterEntries } = useRequest(getClusterEntries<ClusterTypes.REDIS>, {
     manual: true,
     onSuccess: (res) => {
       res.forEach((item) => {

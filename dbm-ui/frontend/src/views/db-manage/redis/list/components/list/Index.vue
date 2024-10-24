@@ -176,7 +176,6 @@
 
     import RedisModel from '@services/model/redis/redis';
     import {
-      getRedisDetail,
       getRedisInstances,
       getRedisList,
     } from '@services/source/redis';
@@ -541,7 +540,7 @@
                 <span v-db-console="redis.clusterManage.modifyEntryConfiguration">
                   <EditEntryConfig
                     id={data.id}
-                    getDetailInfo={getRedisDetail}
+                    bizId={data.bk_biz_id}
                     permission={data.permission.access_entry_edit}
                     resource={DBTypes.REDIS}
                     onSuccess={fetchData} />

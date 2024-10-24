@@ -51,10 +51,11 @@
 <script lang="ts">
   import type { DBTypes } from '@common/const';
 
-  import type { RowData } from './Index.vue';
+  import type { ClusterEntryInfo } from './Index.vue';
 
   interface Props {
-    data: RowData;
+    id: number;
+    data: ClusterEntryInfo;
     resource: DBTypes;
     permission: boolean;
   }
@@ -81,10 +82,6 @@
   const props = defineProps<Props>();
 
   const emits = defineEmits<Emits>();
-
-  const modelValue = defineModel<number>({
-    default: 0,
-  });
 
   const { t } = useI18n();
 
@@ -127,7 +124,7 @@
 
   const executeUpdate = () => {
     const params = {
-      cluster_id: modelValue.value,
+      cluster_id: props.id,
       cluster_entry_details: [
         {
           cluster_entry_type: props.data.type,
