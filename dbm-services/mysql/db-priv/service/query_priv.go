@@ -317,7 +317,7 @@ func CombineUserWithGrant(user []GrantInfo, dbPriv map[string][]DbPriv, tendbhaM
 func SplitGrantSql(grants []UserGrant, dbs []string, tendbhaMasterDomain bool) map[string][]DbPriv {
 	userPriv := make(map[string][]DbPriv)
 	// 正则匹配授权语句，过滤出权限、db
-	re := regexp.MustCompile("GRANT (.*) ON ['`](.*)['`]\\.\\*")
+	re := regexp.MustCompile("GRANT (.*) ON (.*)\\.\\*")
 	var filterDb bool
 	if len(dbs) > 0 {
 		filterDb = true
@@ -335,7 +335,7 @@ func SplitGrantSql(grants []UserGrant, dbs []string, tendbhaMasterDomain bool) m
 				slog.Warn("msg", "not format grants", sql, "wrong regexp", split)
 				continue
 			}
-			db := split[2]
+			db := strings.Replace(strings.Replace(split[2], "'", "", -1), "`", "", -1)
 			priv := split[1]
 			// 全局权限
 			if split[2] == "*" {

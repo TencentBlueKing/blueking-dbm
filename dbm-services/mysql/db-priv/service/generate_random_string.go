@@ -13,13 +13,12 @@ import (
 const lowercase = "abcdefghijklmnopqrstuvwxyz"
 const uppercase = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 const number = "0123456789"
-const symbol = `!#%&()*+,-./;<=>?[]^_{|}~@:$` // 剔除 " ' ` \
 
 // 为密码池添加连续的字母序，数字序，特殊字符序和键盘序
 const continuousSymbols = "~!@#$%^&*()_+"
 
 var continuousKeyboardCol = []string{"1qaz", "2wsx", "3edc", "4rfv", "5tgb", "6yhn", "7ujm", "8ik,", "9ol.", "0p;/"}
-var continuousKeyboardRow = []string{"qwertyuiop[]\\", "asdfghjkl;'", "zxcvbnm,./"}
+var continuousKeyboardRow = []string{"qwertyuiop[]\\", "asdfghjkl;'", "zxcvbnm,./", "1234567890-="}
 
 // GenerateRandomStringPara 生成随机字符串的函数的入参
 type GenerateRandomStringPara struct {
@@ -34,14 +33,11 @@ type CheckPasswordPara struct {
 
 func GenerateRandomString(security SecurityRule) (string, error) {
 	var length int
-	if security.MaxLength == security.MinLength {
-		length = security.MaxLength
-	} else {
-		length = rand.Intn(security.MaxLength-security.MinLength) + security.MinLength
-	}
+	length = security.MaxLength
 	var str []byte
 	var vrange string
 	rand.Seed(time.Now().UnixNano())
+	symbol := security.SymbolsAllowed
 	if security.IncludeRule.Lowercase {
 		index := rand.Intn(len(lowercase))
 		str = append(str, lowercase[index])
@@ -93,8 +89,8 @@ func GenerateRandomString(security SecurityRule) (string, error) {
 
 func CheckPassword(security SecurityRule, password []byte) CheckPasswordComplexity {
 	check := CheckPasswordComplexity{IsStrength: true, PasswordVerifyInfo: PasswordVerifyInfo{true,
-		true, true, true, true, true,
-		true, true, true, true, true}}
+		true, "", true, true, true,
+		true, true, true, true}}
 	str := string(password)
 	strLower := strings.ToLower(str)
 	// check 默认每个检查项是true，检查不通过是false
@@ -106,49 +102,74 @@ func CheckPassword(security SecurityRule, password []byte) CheckPasswordComplexi
 		check.PasswordVerifyInfo.MinLengthValid = false
 		check.IsStrength = false
 	}
-	// 必须包含某些字符
-	if security.IncludeRule.Lowercase && !CheckStringChar(password, lowercase) {
-		check.PasswordVerifyInfo.LowercaseValid = false
+	// 包含的字符类型
+	var numberTypes int
+	// 允许的字符范围
+	var allCharAllowed string
+	if security.IncludeRule.Lowercase {
+		allCharAllowed = fmt.Sprintf("%s%s", allCharAllowed, lowercase)
+		if CheckStringChar(password, lowercase) {
+			numberTypes++
+		}
+	}
+	if security.IncludeRule.Uppercase {
+		allCharAllowed = fmt.Sprintf("%s%s", allCharAllowed, uppercase)
+		if CheckStringChar(password, uppercase) {
+			numberTypes++
+		}
+	}
+	if security.IncludeRule.Numbers {
+		allCharAllowed = fmt.Sprintf("%s%s", allCharAllowed, number)
+		if CheckStringChar(password, number) {
+			numberTypes++
+		}
+	}
+	if security.IncludeRule.Symbols {
+		allCharAllowed = fmt.Sprintf("%s%s", allCharAllowed, security.SymbolsAllowed)
+		if CheckStringChar(password, security.SymbolsAllowed) {
+			numberTypes++
+		}
+	}
+	if numberTypes < security.NumberOfTypes {
+		check.PasswordVerifyInfo.NumberOfTypesValid = false
 		check.IsStrength = false
 	}
-	if security.IncludeRule.Uppercase && !CheckStringChar(password, uppercase) {
-		check.PasswordVerifyInfo.UppercaseValid = false
+	// 超过范围的字符
+	var outOfRange string
+	for _, item := range password {
+		s := string(item)
+		if !strings.Contains(allCharAllowed, s) {
+			outOfRange = fmt.Sprintf("%s%s", outOfRange, s)
+		}
+	}
+	if outOfRange != "" {
+		check.PasswordVerifyInfo.AllowedValid = false
+		check.PasswordVerifyInfo.OutOfRange = outOfRange
 		check.IsStrength = false
 	}
-	if security.IncludeRule.Numbers && !CheckStringChar(password, number) {
-		check.PasswordVerifyInfo.NumbersValid = false
-		check.IsStrength = false
-	}
-	if security.IncludeRule.Symbols && !CheckStringChar(password, symbol) {
-		check.PasswordVerifyInfo.SymbolsValid = false
-		check.IsStrength = false
-	}
-
-	excludeContinuous := security.ExcludeContinuousRule
-	// 不能密码连续重复出现某字符
-	if excludeContinuous.Repeats && !CheckContinuousRepeats(
-		str, excludeContinuous.Limit) {
-		check.PasswordVerifyInfo.RepeatsValid = false
-		check.IsStrength = false
-	}
-	// 不能包含连续的某些字符(不区分大小写）
-	if excludeContinuous.Letters && FindLongestCommonSubstr(strLower, lowercase) >= excludeContinuous.Limit {
-		check.PasswordVerifyInfo.FollowLettersValid = false
-		check.IsStrength = false
-	}
-	if excludeContinuous.Numbers && FindLongestCommonSubstr(strLower, number) >= excludeContinuous.Limit {
-		check.PasswordVerifyInfo.FollowNumbersValid = false
-		check.IsStrength = false
-	}
-	if excludeContinuous.Symbols && FindLongestCommonSubstr(strLower, continuousSymbols) >= excludeContinuous.Limit {
-		check.PasswordVerifyInfo.FollowSymbolsValid = false
-		check.IsStrength = false
-	}
-	// 不能连续的键盘序
-	if excludeContinuous.Keyboards {
+	if security.WeakPassword {
+		// 不能密码连续重复出现某字符
+		if !CheckContinuousRepeats(str, security.Repeats) {
+			check.PasswordVerifyInfo.RepeatsValid = false
+			check.IsStrength = false
+		}
+		// 不能包含连续的某些字符(不区分大小写）
+		if FindLongestCommonSubstr(strLower, lowercase) >= security.Repeats {
+			check.PasswordVerifyInfo.FollowLettersValid = false
+			check.IsStrength = false
+		}
+		if FindLongestCommonSubstr(strLower, number) >= security.Repeats {
+			check.PasswordVerifyInfo.FollowNumbersValid = false
+			check.IsStrength = false
+		}
+		if FindLongestCommonSubstr(strLower, continuousSymbols) >= security.Repeats {
+			check.PasswordVerifyInfo.FollowSymbolsValid = false
+			check.IsStrength = false
+		}
+		// 不能连续的键盘序
 		keyboard := append(continuousKeyboardRow, continuousKeyboardCol...)
 		for _, v := range keyboard {
-			if FindLongestCommonSubstr(strLower, v) >= excludeContinuous.Limit {
+			if FindLongestCommonSubstr(strLower, v) >= security.Repeats {
 				check.PasswordVerifyInfo.FollowKeyboardsValid = false
 				check.IsStrength = false
 				break
@@ -168,7 +189,7 @@ func RandShuffle(slice *[]byte) {
 
 // FindLongestCommonSubstr 找出最长的公共字符串子串以及其长度
 func FindLongestCommonSubstr(s1, s2 string) int {
-	var max int
+	var vmax int
 	temp := make([][]int, len(s1)+1)
 	for i := range temp {
 		temp[i] = make([]int, len(s2)+1)
@@ -177,35 +198,36 @@ func FindLongestCommonSubstr(s1, s2 string) int {
 		for j := 0; j < len(s2); j++ {
 			if s1[i] == s2[j] {
 				temp[i+1][j+1] = temp[i][j] + 1
-				if temp[i+1][j+1] > max {
-					max = temp[i+1][j+1]
+				if temp[i+1][j+1] > vmax {
+					vmax = temp[i+1][j+1]
 				}
 			}
 		}
 	}
-	return max
+	return vmax
 }
 
 // CheckContinuousRepeats 字符连续重复出现的次数
 func CheckContinuousRepeats(str string, repeats int) bool {
 	str = strings.ToLower(str)
-	var max, j int
+	var vmax, j int
 	cnt := 1
 	for i := 1; i < len(str); i++ {
 		if str[i] == str[j] {
 			cnt++
 		}
 		if str[i] != str[j] || i == len(str)-1 {
-			if cnt > max {
-				max = cnt
+			if cnt > vmax {
+				vmax = cnt
 			}
 			j = i
 			cnt = 1
 		}
 	}
-	return max < repeats
+	return vmax < repeats
 }
 
+// CheckStringChar 字符串是否包含字符数组中的某个字符
 func CheckStringChar(str []byte, charRange string) bool {
 	for _, item := range str {
 		if strings.Contains(charRange, string(item)) {
