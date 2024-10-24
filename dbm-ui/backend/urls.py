@@ -62,7 +62,6 @@ api_patterns = [
     path("dbbase/", include("backend.db_services.dbbase.urls")),
     path("quick_search/", include("backend.db_services.quick_search.urls")),
     path("plugin/", include("backend.db_services.plugin.urls")),
-    path("reverse_api/", include("backend.db_services.reverse_api.urls")),
 ]
 
 urlpatterns = [
