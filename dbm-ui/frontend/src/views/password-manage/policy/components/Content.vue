@@ -19,24 +19,22 @@
       :label-width="260"
       :model="formData"
       :rules="rules">
-      <DbCard
-        mode="collapse"
-        :title="t('密码组成设置')">
+      <DbCard :title="t('密码组成设置')">
         <BkFormItem
           :label="t('密码长度')"
           required>
           <BkInput
             v-model="formData.min_length"
             class="password-policy-number mr-6"
-            :max="defaultConfig.max_length"
-            :min="defaultConfig.min_length"
+            :max="formData.max_length"
+            :min="6"
             type="number" />
           <span class="password-policy-text">{{ t('至') }}</span>
           <BkInput
             v-model="formData.max_length"
             class="password-policy-number ml-6"
-            :max="defaultConfig.max_length"
-            :min="defaultConfig.min_length"
+            :max="48"
+            :min="formData.min_length"
             type="number" />
         </BkFormItem>
         <BkFormItem
@@ -103,7 +101,7 @@
               v-model="formData.weak_password"
               theme="primary" />
             <span class="ml-10">
-              {{ t('开启后，不允许超过 x 位连续字符，如出现以下示例密码将无法通过检测', { x: defaultConfig.repeats }) }}
+              {{ t('开启后，不允许超过 x 位连续字符，如出现以下示例密码将无法通过检测', { x: formData.repeats }) }}
             </span>
           </div>
           <ul class="password-policy-rules">
@@ -121,14 +119,14 @@
           class="mr-8"
           :loading="isSubmitting"
           theme="primary"
-          @click="handleSubmit()">
+          @click="handleSubmit">
           {{ t('保存') }}
         </AuthButton>
         <DbPopconfirm
           :confirm-handler="handleReset"
           :content="t('重置将会恢复默认设置的内容')"
           :title="t('确认重置')">
-          <BkButton :disabled="isSubmitting">
+          <BkButton>
             {{ t('重置') }}
           </BkButton>
         </DbPopconfirm>
@@ -138,7 +136,6 @@
 </template>
 
 <script setup lang="ts">
-  import { Message } from 'bkui-vue';
   import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
@@ -146,6 +143,8 @@
   import { getPasswordPolicy, updatePasswordPolicy } from '@services/source/permission';
 
   import { DBTypes } from '@common/const';
+
+  import { messageSuccess } from '@utils';
 
   interface Props {
     dbType: DBTypes;
@@ -155,8 +154,8 @@
 
   const initData = () => ({
     repeats: 0,
-    max_length: 32,
-    min_length: 8,
+    max_length: 48,
+    min_length: 6,
     include_rule: {
       numbers: true,
       symbols: true,
@@ -217,7 +216,6 @@
     ],
   };
 
-  const defaultConfig = reactive(initData());
   const formRef = ref();
   const formData = reactive(initData());
   const excludeContinuousRule = shallowRef({
@@ -227,7 +225,7 @@
     symbols: [] as string[],
     repeats: [] as string[],
   });
-  let message = '';
+  const isSubmitting = ref(false);
 
   const typeMaxCount = computed(() => Object.values(formData.include_rule).filter((item) => item).length);
 
@@ -237,7 +235,6 @@
       const { id, name, rule } = data;
       passwordPolicyData.id = id;
       passwordPolicyData.name = name;
-      Object.assign(defaultConfig, rule);
       Object.assign(formData, rule);
       const { repeats } = rule;
       excludeContinuousRule.value = {
@@ -256,15 +253,8 @@
     });
   };
 
-  const { run: updatePasswordPolicyRun, loading: isSubmitting } = useRequest(updatePasswordPolicy, {
+  const { runAsync: updatePasswordPolicyRunAsync } = useRequest(updatePasswordPolicy, {
     manual: true,
-    onSuccess: () => {
-      Message({
-        theme: 'success',
-        message,
-      });
-      fetchData();
-    },
   });
 
   watch(
@@ -279,28 +269,37 @@
     formRef.value.validate();
   };
 
-  const handleSubmit = async (reset = false) => {
-    if (!reset) {
+  const handleSubmit = async () => {
+    isSubmitting.value = true;
+    try {
       await formRef.value.validate();
-      message = t('保存成功');
-    } else {
-      message = t('重置成功');
-      formRef.value.clearValidate();
+      await updatePasswordPolicyRunAsync({
+        ...passwordPolicyData,
+        rule: {
+          ...formData,
+          symbols_allowed: _.uniq(formData.symbols_allowed.split('')).join(''),
+        },
+        reset: false,
+      });
+      messageSuccess(t('保存成功'));
+      fetchData();
+    } finally {
+      isSubmitting.value = false;
     }
-    updatePasswordPolicyRun({
+  };
+
+  const handleReset = () =>
+    updatePasswordPolicyRunAsync({
       ...passwordPolicyData,
       rule: {
         ...formData,
         symbols_allowed: _.uniq(formData.symbols_allowed.split('')).join(''),
       },
-      reset,
+      reset: true,
+    }).then(() => {
+      messageSuccess(t('重置成功'));
+      fetchData();
     });
-  };
-
-  const handleReset = () => {
-    Object.assign(formData, defaultConfig);
-    handleSubmit(true);
-  };
 </script>
 
 <style lang="less" scoped>
