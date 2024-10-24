@@ -46,6 +46,8 @@
     type PanelListType,
   } from '@components/instance-selector/Index.vue';
 
+  import { ProxyReplaceTypes } from '../common/const';
+
   import RenderData from './components/RenderData/Index.vue';
   import RenderRow, { createRowData, type IDataRow } from './components/RenderData/Row.vue';
 
@@ -58,16 +60,18 @@
   useTicketCloneInfo({
     type: TicketTypes.MYSQL_PROXY_SWITCH,
     onSuccess(data) {
-      tableData.value = data.infos.map((item) =>
-        createRowData({
-          originProxy: {
-            ...item.origin_proxy,
-            instance_address: `${item.origin_proxy.ip}:${item.origin_proxy.port}`,
-          },
-          targetProxy: item.target_proxy,
-        }),
-      );
-      window.changeConfirm = true;
+      window.changeConfirm = false;
+      if (data.infos[0].display_info.type === ProxyReplaceTypes.INSTANCE_REPLACE) {
+        tableData.value = data.infos.map((item) =>
+          createRowData({
+            originProxy: {
+              ...item.origin_proxy,
+              instance_address: `${item.origin_proxy.ip}:${item.origin_proxy.port}`,
+            },
+            targetProxy: item.target_proxy,
+          }),
+        );
+      }
     },
   });
 

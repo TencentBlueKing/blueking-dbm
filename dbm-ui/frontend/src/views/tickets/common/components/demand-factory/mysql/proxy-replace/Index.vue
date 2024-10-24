@@ -35,7 +35,7 @@
   import type { MySQLProxySwitchDetails } from '@services/model/ticket/details/mysql';
   import TicketModel from '@services/model/ticket/ticket';
 
-  import { ProxyReplaceTypes } from '@views/db-manage/mysql/proxy-replace/pages/page1/Index.vue';
+  import { ProxyReplaceTypes } from '@views/db-manage/mysql/proxy-replace/pages/page1/components/common/const';
 
   import ReplaceHost from './components/ReplaceHost.vue';
   import ReplaceInstance from './components/ReplaceInstance.vue';

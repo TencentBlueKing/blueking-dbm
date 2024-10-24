@@ -22,7 +22,6 @@
 
   import type { MySQLProxySwitchDetails } from '@services/model/ticket/details/mysql';
   import TicketModel from '@services/model/ticket/ticket';
-  import { checkInstance } from '@services/source/dbbase';
 
   interface Props {
     ticketDetails: TicketModel<MySQLProxySwitchDetails>
@@ -59,29 +58,16 @@
     },
   ];
 
-  const relatedClusters = shallowRef<Record<string, string[]>>({});
   const tableData = shallowRef<RowData[]>([]);
 
   watch(
     () => props.ticketDetails.details,
     () => {
-      const instanceAddresses = props.ticketDetails.details.infos.map(item => `${item.origin_proxy.ip}:${item.origin_proxy.port}`);
-      checkInstance({
-        instance_addresses: instanceAddresses,
-        bk_biz_id: props.ticketDetails.bk_biz_id,
-      }).then((data) => {
-        data.forEach(item => {
-          relatedClusters.value[item.instance_address] = item.related_clusters.map(cluster => cluster.master_domain);
-        });
-        tableData.value = props.ticketDetails.details.infos.map(item => {
-          const instance = `${item.origin_proxy.ip}:${item.origin_proxy.port}`;
-          return {
-            originProxy: instance,
-            relatedClusters: relatedClusters.value[instance] || [],
-            targetProxy: item.target_proxy.ip,
-          }
-        });
-      })
+      tableData.value = props.ticketDetails.details.infos.map(item => ({
+        originProxy: item.origin_proxy.ip,
+        relatedClusters: item.display_info.related_clusters as string[],
+        targetProxy: item.target_proxy.ip,
+      }));
     },
     {
       immediate: true
