@@ -72,7 +72,7 @@
   import { createTag, validateTag } from '@services/source/tag';
   import type { BizItem } from '@services/types';
 
-  import useFormModel from '@/hooks/useFormModel';
+  import { useFormModel } from '@hooks';
 
   interface Props {
     biz: BizItem | undefined;

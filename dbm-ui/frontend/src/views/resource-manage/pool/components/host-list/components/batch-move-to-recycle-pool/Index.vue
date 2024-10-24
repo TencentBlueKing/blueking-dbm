@@ -15,10 +15,9 @@
   import { useRequest } from 'vue-request';
 
   import DbResourceModel from '@services/model/db-resource/DbResource';
+  import { removeResource } from '@services/source/dbresourceResource';
 
   import ReviewDataDialog from '@components/review-data-dialog/Index.vue';
-
-  import { removeResource } from '@/services/source/dbresourceResource';
 
   interface Props {
     selected: Array<DbResourceModel>;
