@@ -1037,7 +1037,7 @@ class MonitorPolicy(AuditedModel):
                         continue
 
                     # 如指定db_type，只同步指定db_type的策略(跳过非指定db_type的策略)
-                    if db_type is not None and template_dict["db_type"] != db_type:
+                    if db_type is not None and template_dict.get("db_type") != db_type:
                         continue
 
                     deleted = template_dict.pop("deleted", False)
