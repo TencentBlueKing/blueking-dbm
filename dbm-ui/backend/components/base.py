@@ -165,6 +165,7 @@ class DataAPI(object):
         use_admin=False,
         headers=None,
         current_retry_times=0,
+        retry_times=None,
     ):
         """
         调用传参
@@ -178,6 +179,7 @@ class DataAPI(object):
         if headers is None:
             headers = {}
         self.timeout = timeout or self.default_timeout
+        self.max_retry_times = retry_times or self.max_retry_times
         self.request_id = None
 
         try:
@@ -203,6 +205,7 @@ class DataAPI(object):
                 data=data,
                 raw=raw,
                 timeout=self.timeout + 30,
+                retry_times=self.max_retry_times,
                 raise_exception=raise_exception,
                 use_admin=use_admin,
                 headers=headers,
