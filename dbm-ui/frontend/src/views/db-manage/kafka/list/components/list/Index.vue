@@ -113,7 +113,6 @@
 
   import KafkaModel from '@services/model/kafka/kafka';
   import {
-    getKafkaDetail,
     getKafkaInstanceList,
     getKafkaList,
   } from '@services/source/kafka';
@@ -369,7 +368,7 @@
                 <span v-db-console="kafka.clusterManage.modifyEntryConfiguration">
                   <EditEntryConfig
                     id={data.id}
-                    getDetailInfo={getKafkaDetail}
+                    bizId={data.bk_biz_id}
                     permission={data.permission.access_entry_edit}
                     resource={DBTypes.KAFKA}
                     onSuccess={fetchTableData} />
