@@ -17,31 +17,28 @@ from django.utils.translation import ugettext as _
 from backend.db_meta.enums.cluster_type import ClusterType
 from backend.flow.consts import MongoDBClusterRole, MongoDBInstanceType, MongoDBManagerUser
 from backend.flow.engine.bamboo.scene.common.builder import SubBuilder
-from backend.flow.plugins.components.collections.mongodb.add_domain_to_dns import ExecAddDomainToDnsOperationComponent
 from backend.flow.plugins.components.collections.mongodb.add_password_to_db import (
     ExecAddPasswordToDBOperationComponent,
-)
-from backend.flow.plugins.components.collections.mongodb.delete_domain_from_dns import (
-    ExecDeleteDomainFromDnsOperationComponent,
 )
 from backend.flow.plugins.components.collections.mongodb.delete_password_from_db import (
     ExecDeletePasswordFromDBOperationComponent,
 )
 from backend.flow.plugins.components.collections.mongodb.exec_actuator_job import ExecuteDBActuatorJobComponent
-from backend.flow.plugins.components.collections.mongodb.mongodb_capcity_chgs_meta import MongoDBCapcityMetaComponent
+from backend.flow.plugins.components.collections.mongodb.instance_deinstall_ticket import (
+    ExecInstanceDeInstallTicketOperationComponent,
+)
 from backend.flow.utils.mongodb.mongodb_dataclass import ActKwargs
 
 
-def mongod_replace(
+def mongod_autofix(
     root_id: str,
     ticket_data: Optional[Dict],
     sub_sub_kwargs: ActKwargs,
     cluster_role: str,
     info: dict,
-    mongod_scale: bool,
 ) -> SubBuilder:
     """
-    mongod替换流程
+    mongod自愈流程
     """
 
     # 获取变量
@@ -56,22 +53,32 @@ def mongod_replace(
     sub_sub_get_kwargs.payload["app"] = sub_sub_get_kwargs.payload["bk_app_abbr"]
     sub_sub_get_kwargs.replicaset_info = {}
     sub_sub_get_kwargs.replicaset_info["port"] = sub_sub_get_kwargs.db_instance["port"]
-    force = True
-    if cluster_role:
-        sub_sub_get_kwargs.cluster_type = ClusterType.MongoShardedCluster.value
-        cluster_name = sub_sub_get_kwargs.db_instance["seg_range"]
-        sub_sub_get_kwargs.payload["cluster_type"] = ClusterType.MongoShardedCluster.value
-        sub_sub_get_kwargs.payload["set_id"] = sub_sub_get_kwargs.db_instance["seg_range"]
-        sub_sub_get_kwargs.payload["key_file"] = sub_sub_get_kwargs.get_conf(
-            cluster_name=sub_sub_get_kwargs.db_instance["cluster_name"]
-        )["key_file"]
-        sub_sub_get_kwargs.payload["config_nodes"] = []
-        sub_sub_get_kwargs.payload["shards_nodes"] = []
-        sub_sub_get_kwargs.payload["mongos_nodes"] = []
-        # 获取配置
-        conf = sub_sub_get_kwargs.get_conf(cluster_name=sub_sub_get_kwargs.db_instance["cluster_name"])
-        if cluster_role == MongoDBClusterRole.ConfigSvr.value:
-            sub_sub_get_kwargs.payload["config_nodes"] = [
+    sub_sub_get_kwargs.cluster_type = ClusterType.MongoShardedCluster.value
+    cluster_name = sub_sub_get_kwargs.db_instance["seg_range"]
+    sub_sub_get_kwargs.payload["cluster_type"] = ClusterType.MongoShardedCluster.value
+    sub_sub_get_kwargs.payload["set_id"] = sub_sub_get_kwargs.db_instance["seg_range"]
+    sub_sub_get_kwargs.payload["key_file"] = sub_sub_get_kwargs.get_conf(
+        cluster_name=sub_sub_get_kwargs.db_instance["cluster_name"]
+    )["key_file"]
+    sub_sub_get_kwargs.payload["config_nodes"] = []
+    sub_sub_get_kwargs.payload["shards_nodes"] = []
+    sub_sub_get_kwargs.payload["mongos_nodes"] = []
+    # 获取配置
+    conf = sub_sub_get_kwargs.get_conf(cluster_name=sub_sub_get_kwargs.db_instance["cluster_name"])
+    if cluster_role == MongoDBClusterRole.ConfigSvr.value:
+        sub_sub_get_kwargs.payload["config_nodes"] = [
+            {
+                "ip": info["ip"],
+                "domain": sub_sub_get_kwargs.db_instance.get("domain", ""),
+                "port": sub_sub_get_kwargs.db_instance["port"],
+                "bk_cloud_id": info["bk_cloud_id"],
+            }
+        ]
+        sub_sub_get_kwargs.replicaset_info["cacheSizeGB"] = conf["config_cacheSizeGB"]
+        sub_sub_get_kwargs.replicaset_info["oplogSizeMB"] = conf["config_oplogSizeMB"]
+    elif cluster_role == MongoDBClusterRole.ShardSvr.value:
+        shard_nodes = {
+            "nodes": [
                 {
                     "ip": info["ip"],
                     "domain": sub_sub_get_kwargs.db_instance.get("domain", ""),
@@ -79,31 +86,9 @@ def mongod_replace(
                     "bk_cloud_id": info["bk_cloud_id"],
                 }
             ]
-            sub_sub_get_kwargs.replicaset_info["cacheSizeGB"] = conf["config_cacheSizeGB"]
-            sub_sub_get_kwargs.replicaset_info["oplogSizeMB"] = conf["config_oplogSizeMB"]
-        elif cluster_role == MongoDBClusterRole.ShardSvr.value:
-            shard_nodes = {
-                "nodes": [
-                    {
-                        "ip": info["ip"],
-                        "domain": sub_sub_get_kwargs.db_instance.get("domain", ""),
-                        "port": sub_sub_get_kwargs.db_instance["port"],
-                        "bk_cloud_id": info["bk_cloud_id"],
-                    }
-                ]
-            }
-            sub_sub_get_kwargs.payload["shards_nodes"].append(shard_nodes)
-            # shard直接获取配置
-            sub_sub_get_kwargs.replicaset_info["cacheSizeGB"] = conf["cacheSizeGB"]
-            sub_sub_get_kwargs.replicaset_info["oplogSizeMB"] = conf["oplogSizeMB"]
-    else:
-        sub_sub_get_kwargs.cluster_type = ClusterType.MongoReplicaSet.value
-        cluster_name = sub_sub_get_kwargs.db_instance["cluster_name"]
-        sub_sub_get_kwargs.payload["cluster_type"] = ClusterType.MongoReplicaSet.value
-        sub_sub_get_kwargs.payload["set_id"] = cluster_name
-        # 副本集直接获取配置
-        conf = sub_sub_get_kwargs.get_conf(cluster_name=cluster_name)
-        sub_sub_get_kwargs.replicaset_info["key_file"] = conf["key_file"]
+        }
+        sub_sub_get_kwargs.payload["shards_nodes"].append(shard_nodes)
+        # shard直接获取配置
         sub_sub_get_kwargs.replicaset_info["cacheSizeGB"] = conf["cacheSizeGB"]
         sub_sub_get_kwargs.replicaset_info["oplogSizeMB"] = conf["oplogSizeMB"]
     sub_sub_get_kwargs.replicaset_info["set_id"] = cluster_name
@@ -121,6 +106,7 @@ def mongod_replace(
             "domain": sub_sub_get_kwargs.db_instance.get("domain", ""),
             "port": sub_sub_get_kwargs.db_instance["port"],
             "bk_cloud_id": info["bk_cloud_id"],
+            "role": MongoDBInstanceType.MongoD.value,
         }
     ]
     sub_sub_get_kwargs.payload["bk_cloud_id"] = info["bk_cloud_id"]
@@ -140,23 +126,6 @@ def mongod_replace(
         act_component_code=ExecuteDBActuatorJobComponent.code,
         kwargs=kwargs,
     )
-
-    # 更改dns
-    # 添加新的dns
-    if not cluster_role:
-        kwargs = sub_sub_get_kwargs.get_add_domain_to_dns_kwargs(cluster=False)
-        sub_sub_pipeline.add_act(
-            act_name=_("MongoDB-添加新实例的domain到dns"),
-            act_component_code=ExecAddDomainToDnsOperationComponent.code,
-            kwargs=kwargs,
-        )
-        # 删除老的dns
-        kwargs = sub_sub_get_kwargs.get_delete_domain_kwargs()
-        sub_sub_pipeline.add_act(
-            act_name=_("MongoDB-删除老实例的domain指向"),
-            act_component_code=ExecDeleteDomainFromDnsOperationComponent.code,
-            kwargs=kwargs,
-        )
 
     # 密码服务修改密码
     # 添加新实例密码
@@ -186,28 +155,17 @@ def mongod_replace(
         kwargs=kwargs,
     )
 
-    # 修改meta信息
-    if mongod_scale:
-        kwargs = sub_sub_get_kwargs.get_scale_change_meta(info=info, instance=sub_sub_get_kwargs.db_instance)
-        sub_sub_pipeline.add_act(
-            act_name=_("MongoDB-mongod修改meta"), act_component_code=MongoDBCapcityMetaComponent.code, kwargs=kwargs
-        )
-
-    if not down:
-        # 下架老实例
-        kwargs = sub_sub_get_kwargs.get_mongo_deinstall_kwargs(
-            node_info=sub_sub_get_kwargs.payload["nodes"][0],
-            instance_type=MongoDBInstanceType.MongoD.value,
-            nodes_info=sub_sub_get_kwargs.payload["nodes"],
-            force=force,
-            rename_dir=True,
-        )
-        sub_sub_pipeline.add_act(
-            act_name=_("MongoDB-老实例下架-{}:{}".format(info["ip"], str(sub_sub_get_kwargs.db_instance["port"]))),
-            act_component_code=ExecuteDBActuatorJobComponent.code,
-            kwargs=kwargs,
-        )
-    # 老实例提下架单 TODO
+    # 老实例提下架单
+    kwargs = {
+        "infos": sub_sub_get_kwargs.payload["nodes"],
+        "creator": sub_sub_get_kwargs.payload["created_by"],
+        "bk_biz_id": sub_sub_get_kwargs.payload["bk_biz_id"],
+    }
+    sub_sub_pipeline.add_act(
+        act_name=_("MongoDB-实例下架提单"),
+        act_component_code=ExecInstanceDeInstallTicketOperationComponent.code,
+        kwargs=kwargs,
+    )
     return sub_sub_pipeline.build_sub_process(
-        sub_name=_("MongoDB--mongod替换--{}:{}".format(info["ip"], str(sub_sub_get_kwargs.db_instance["port"])))
+        sub_name=_("MongoDB--mongod自愈--{}:{}".format(info["ip"], str(sub_sub_get_kwargs.db_instance["port"])))
     )

@@ -30,7 +30,7 @@ from backend.flow.consts import (
     ConfigTypeEnum,
     MediumEnum,
     MongoDBActuatorActionEnum,
-    MongoDBDfaultAuthDB,
+    MongoDBDefaultAuthDB,
     MongoDBInstanceType,
     MongoDBManagerUser,
     MongoDBTask,
@@ -713,7 +713,7 @@ class ActKwargs:
                     "password": "",
                     "adminUsername": "",
                     "adminPassword": "",
-                    "authDb": MongoDBDfaultAuthDB.AuthDB,
+                    "authDb": MongoDBDefaultAuthDB.AuthDB,
                     "dbsPrivileges": [
                         {
                             "db": "admin",
@@ -1820,6 +1820,68 @@ class ActKwargs:
                     "port": node_info["port"],
                     "instanceType": instance_type,
                     "auth": True,
+                },
+            },
+        }
+
+    def get_host_instance_deinstall(self):
+        """instance卸载获取host"""
+
+        hosts = []
+        host_bk_cloud_id_set = set()
+        for instance in self.payload["infos"]:
+            host_bk_cloud_id_set.add("{}#{}".format(instance["ip"], instance["bk_cloud_id"]))
+        for host_bk_cloud_id in host_bk_cloud_id_set:
+            info = host_bk_cloud_id.split("#")
+            hosts.append(
+                {
+                    "ip": info[0],
+                    "bk_cloud_id": info[1],
+                }
+            )
+        self.payload["hosts"] = hosts
+
+    def get_host_cluster_autofix(self, info: dict):
+        """cluster自愈获取host信息"""
+
+        plugin_hosts = []
+        plugin_hosts.append({"ip": info["target"]["ip"], "bk_cloud_id": info["target"]["bk_cloud_id"]})
+        # 获取参数
+        self.payload["hosts"] = plugin_hosts
+        self.payload["plugin_hosts"] = plugin_hosts
+
+    def get_change_config_ip_kwargs(self, info) -> dict:
+        """修改所有mongos的config的ip"""
+
+        # 获取信息
+        bk_cloud_id = info["target"]["bk_cloud_id"]
+        port = info["instances"][0]["port"]
+        username = MongoDBManagerUser.DbaUser.value
+        old_config_node = "{}:{}".format(info["ip"], port)
+        new_config_node = "{}:{}".format(info["target"]["ip"], port)
+        # 获取密码
+        password = self.get_password(ip=info["ip"], port=port, bk_cloud_id=bk_cloud_id, username=username)
+        return {
+            "set_trans_data_dataclass": CommonContext.__name__,
+            "get_trans_data_ip_var": None,
+            "bk_cloud_id": bk_cloud_id,
+            "exec_ip": [],
+            "all_mongos_change_configdb": True,
+            "cluster_id": info["instances"][0]["cluster_id"],
+            "db_act_template": {
+                "action": MongoDBActuatorActionEnum.MongoRestart,
+                "file_path": self.file_path,
+                "payload": {
+                    "ip": "0.0.0.0",
+                    "port": 0,
+                    "instanceType": MongoDBInstanceType.MongoS.value,
+                    "auth": True,
+                    "cacheSizeGB": 0,
+                    "mongoSConfDbOld": old_config_node,
+                    "mongoSConfDbNew": new_config_node,
+                    "adminUsername": username,
+                    "adminPassword": password,
+                    "onlyChangeParam": True,
                 },
             },
         }

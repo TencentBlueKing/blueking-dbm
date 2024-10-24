@@ -103,4 +103,6 @@ def is_support_redis_auotfix(cluster_type: str) -> bool:
         ClusterType.TendisPredixyTendisplusCluster.value,
         ClusterType.TendisPredixyRedisCluster.value,
         ClusterType.TendisRedisInstance.value,
+        ClusterType.MongoShardedCluster.value,
+        ClusterType.MongoReplicaSet.value,
     ]

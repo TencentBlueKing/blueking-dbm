@@ -1444,7 +1444,7 @@ class MongoDBInstanceType(str, StructuredEnum):
     MongoS = EnumField("mongos", _("mongos"))
 
 
-class MongoDBDfaultAuthDB(str, StructuredEnum):
+class MongoDBDefaultAuthDB(str, StructuredEnum):
     """mongodb 默认验证db"""
 
     AuthDB = EnumField("admin", _("admin"))
