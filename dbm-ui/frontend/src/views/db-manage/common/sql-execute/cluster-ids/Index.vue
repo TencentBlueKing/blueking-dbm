@@ -92,7 +92,7 @@
         const clusterNameMap = {
           [ClusterTypes.TENDBHA]: t('高可用'),
           [ClusterTypes.TENDBSINGLE]: t('单节点'),
-          [ClusterTypes.TENDBCLUSTER]: t('TenDB 集群'),
+          [ClusterTypes.TENDBCLUSTER]: t('Tendb Cluster'),
           [ClusterTypes.SQLSERVER_HA]: t('主从集群'),
           [ClusterTypes. SQLSERVER_SINGLE]: t('单节点集群'),
         }
