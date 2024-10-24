@@ -119,14 +119,14 @@
           class="mr-8"
           :loading="isSubmitting"
           theme="primary"
-          @click="handleSubmit()">
+          @click="handleSubmit">
           {{ t('保存') }}
         </AuthButton>
         <DbPopconfirm
           :confirm-handler="handleReset"
           :content="t('重置将会恢复默认设置的内容')"
           :title="t('确认重置')">
-          <BkButton :disabled="isSubmitting">
+          <BkButton>
             {{ t('重置') }}
           </BkButton>
         </DbPopconfirm>
@@ -136,7 +136,6 @@
 </template>
 
 <script setup lang="ts">
-  import { Message } from 'bkui-vue';
   import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
@@ -144,6 +143,8 @@
   import { getPasswordPolicy, updatePasswordPolicy } from '@services/source/permission';
 
   import { DBTypes } from '@common/const';
+
+  import { messageSuccess } from '@utils';
 
   interface Props {
     dbType: DBTypes;
@@ -153,8 +154,8 @@
 
   const initData = () => ({
     repeats: 0,
-    max_length: 32,
-    min_length: 8,
+    max_length: 48,
+    min_length: 6,
     include_rule: {
       numbers: true,
       symbols: true,
@@ -224,7 +225,7 @@
     symbols: [] as string[],
     repeats: [] as string[],
   });
-  let message = '';
+  const isSubmitting = ref(false);
 
   const typeMaxCount = computed(() => Object.values(formData.include_rule).filter((item) => item).length);
 
@@ -252,15 +253,8 @@
     });
   };
 
-  const { run: updatePasswordPolicyRun, loading: isSubmitting } = useRequest(updatePasswordPolicy, {
+  const { runAsync: updatePasswordPolicyRunAsync } = useRequest(updatePasswordPolicy, {
     manual: true,
-    onSuccess: () => {
-      Message({
-        theme: 'success',
-        message,
-      });
-      fetchData();
-    },
   });
 
   watch(
@@ -275,27 +269,37 @@
     formRef.value.validate();
   };
 
-  const handleSubmit = async (reset = false) => {
-    if (!reset) {
+  const handleSubmit = async () => {
+    isSubmitting.value = true;
+    try {
       await formRef.value.validate();
-      message = t('保存成功');
-    } else {
-      message = t('重置成功');
-      formRef.value.clearValidate();
+      await updatePasswordPolicyRunAsync({
+        ...passwordPolicyData,
+        rule: {
+          ...formData,
+          symbols_allowed: _.uniq(formData.symbols_allowed.split('')).join(''),
+        },
+        reset: false,
+      });
+      messageSuccess(t('保存成功'));
+      fetchData();
+    } finally {
+      isSubmitting.value = false;
     }
-    updatePasswordPolicyRun({
+  };
+
+  const handleReset = () =>
+    updatePasswordPolicyRunAsync({
       ...passwordPolicyData,
       rule: {
         ...formData,
         symbols_allowed: _.uniq(formData.symbols_allowed.split('')).join(''),
       },
-      reset,
+      reset: true,
+    }).then(() => {
+      messageSuccess(t('重置成功'));
+      fetchData();
     });
-  };
-
-  const handleReset = () => {
-    handleSubmit(true);
-  };
 </script>
 
 <style lang="less" scoped>
