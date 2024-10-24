@@ -42,7 +42,7 @@
 
   import { queryAllTypeCluster } from '@services/source/dbbase';
 
-  import { DBTypes } from '@common/const';
+  import { DBTypes, queryClusterTypes } from '@common/const';
 
   import useValidtor from '@components/render-table/hooks/useValidtor';
 
@@ -79,12 +79,6 @@
 
   const { message: errorMessage, validator } = useValidtor(rules);
 
-  const queryClusterTypes = {
-    [DBTypes.MYSQL]: 'tendbha,tendbsingle',
-    [DBTypes.TENDBCLUSTER]: 'tendbcluster',
-    [DBTypes.REDIS]: 'TwemproxyRedisInstance,PredixyTendisplusCluster,TwemproxyTendisSSDInstance,PredixyRedisCluster',
-  };
-
   const { run: fetchData, data: clusterList } = useRequest(queryAllTypeCluster, {
     manual: true,
   });
@@ -95,7 +89,7 @@
       if (props.bizId) {
         fetchData({
           bk_biz_id: props.bizId,
-          cluster_types: queryClusterTypes[props.dbType as keyof typeof queryClusterTypes],
+          cluster_types: queryClusterTypes[props.dbType as keyof typeof queryClusterTypes].join(','),
           phase: 'online',
           limit: -1,
         });

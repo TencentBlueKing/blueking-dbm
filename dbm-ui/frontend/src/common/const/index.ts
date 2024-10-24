@@ -11,6 +11,7 @@ export * from './machineTypes';
 export * from './occupiedInnerHeight';
 export * from './osTypes';
 export * from './pipelineStatus';
+export * from './queryClusterTypes';
 export * from './ticketTypeInfos';
 export * from './ticketTypes';
 export * from './userPersonalSettings';
