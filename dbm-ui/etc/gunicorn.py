@@ -30,6 +30,7 @@ timeout = 60
 keepalive = 2
 # The maximum number of requests a worker will process before restarting
 max_requests = 2000
+limit_request_line = 8190
 
 spew = False
 
