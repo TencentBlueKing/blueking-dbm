@@ -8,33 +8,20 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-import copy
-import json
 import logging
-import re
 from collections import defaultdict
-from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timedelta
-from typing import Any, Callable, Dict, List, Union
+from typing import Any, Dict, List, Union
 
-from django.conf import settings
-from django.db.models import Q
 from django.utils.translation import ugettext as _
-from jinja2 import Environment
 
-from backend import env
-from backend.components import JobApi
 from backend.components.bklog.handler import BKLogHandler
-from backend.db_meta.enums import ClusterType, InstanceInnerRole
-from backend.db_meta.models import StorageInstance
+from backend.db_meta.enums import ClusterType, InstanceInnerRole, InstanceStatus
 from backend.db_meta.models.cluster import Cluster
 from backend.db_services.mysql.fixpoint_rollback.constants import BACKUP_LOG_ROLLBACK_TIME_RANGE_DAYS
 from backend.exceptions import AppBaseException
-from backend.flow.consts import SUCCESS_LIST, DBActuatorActionEnum, DBActuatorTypeEnum, InstanceStatus, JobStatusEnum
 from backend.flow.engine.bamboo.scene.mysql.common.get_local_backup import get_local_backup_list
-from backend.flow.utils.script_template import dba_toolkit_actuator_template, fast_execute_script_common_kwargs
 from backend.ticket.builders.common.constants import MySQLBackupSource
-from backend.utils.string import base64_encode
 from backend.utils.time import compare_time, datetime2str, find_nearby_time
 
 logger = logging.getLogger("flow")
@@ -45,64 +32,19 @@ class FixPointRollbackHandler:
     封装定点回档相关接口
     """
 
-    def __init__(self, cluster_id: int):
+    def __init__(self, cluster_id: int, check_full_backup=False):
+        """
+        @param cluster_id: 集群ID
+        @param check_full_backup: 是否过滤为全备的记录
+        """
         self.cluster = Cluster.objects.get(id=cluster_id)
-
-    def _get_ip_list(self) -> List[Dict[str, Any]]:
-        """
-        获取集群的相关机器ip信息
-        """
-        storages: List[StorageInstance] = (
-            self.cluster.storageinstance_set.select_related("machine")
-            .filter(Q(instance_inner_role=InstanceInnerRole.SLAVE) | Q(instance_inner_role=InstanceInnerRole.MASTER))
-            .filter(status=InstanceStatus.RUNNING.value)
-        )
-        ip_list: List[Dict[str, Any]] = [
-            {"bk_cloud_id": storage.machine.bk_cloud_id, "ip": storage.machine.ip, "port": storage.port}
-            for storage in storages
-        ]
-        return ip_list
-
-    def _find_local_backup_script(self, port: int):
-        """
-        获取查询本地文件备份内容的脚本
-        :param port: 进程的Port
-        """
-        payload = json.dumps(
-            {
-                "extend": {
-                    "backup_dirs": ["/data/dbbak", "/data1/dbbak"],
-                    "tgt_instance": {"port": port},
-                }
-            }
-        )
-        render_params = {
-            "db_type": DBActuatorTypeEnum.MySQL.value,
-            "action": DBActuatorActionEnum.GetBackupFile.value,
-            "payload": f"'{payload}'",
-        }
-        jinja_env = Environment()
-        template = jinja_env.from_string(dba_toolkit_actuator_template)
-        return template.render(render_params)
-
-    @staticmethod
-    def _batch_make_job_requests(job_func: Callable, job_payloads: List[Dict]):
-        """
-        批量请求作业平台接口
-        :param job_payloads: 请求参数
-        """
-        tasks = []
-        with ThreadPoolExecutor(max_workers=min(len(job_payloads), settings.CONCURRENT_NUMBER)) as ex:
-            for job_payload in job_payloads:
-                tasks.append(ex.submit(job_func, job_payload))
-
-        task_results = []
-        for future in as_completed(tasks):
-            task_results.append(future.result())
-
-        return task_results
+        self.check_full_backup = check_full_backup
 
     def _check_data_schema_grant(self, log) -> bool:
+        # 全备记录看is_full_backup
+        if self.check_full_backup:
+            return log["is_full_backup"]
+        # 有效的备份记录看data_schema_grant
         if str(log["data_schema_grant"]).lower() == "all" or (
             "schema" in str(log["data_schema_grant"]).lower() and "data" in str(log["data_schema_grant"]).lower()
         ):
@@ -110,29 +52,11 @@ class FixPointRollbackHandler:
 
         return False
 
-    def _check_backup_log_task_id(self, log) -> bool:
+    @staticmethod
+    def _check_backup_log_task_id(log) -> bool:
         # task_id 不存在或者-1 时，是较老的备份程序产生的，不符合预期，这里做兼容处理
         task_ids = [str(file.get("task_id", "-1")) for file in log["file_list"]]
         return "-1" not in task_ids
-
-    def _format_job_backup_log(self, raw_backup_logs: List[str]) -> List[Dict[str, Any]]:
-        """
-        格式化本地备份记录日志
-        :param raw_backup_logs: 原始日志信息
-        """
-        pattern = re.compile(r"^<ctx>(.*?)</ctx>$")
-        backup_logs = []
-        for raw_log in raw_backup_logs:
-            backup_log_dict = json.loads(pattern.match(raw_log).group(1))["backups"]
-            for backup_id, log in backup_log_dict.items():
-                log["file_list"].append(log["index_file"].split("/")[-1])
-                log["mysql_role"] = log.pop("db_role")
-
-                # 过滤适用于定点回档的备份
-                if self._check_data_schema_grant(log):
-                    backup_logs.append(log)
-
-        return backup_logs
 
     @staticmethod
     def _get_log_from_bklog(collector: str, start_time: datetime, end_time: datetime, query_string="*") -> List[Dict]:
@@ -146,7 +70,10 @@ class FixPointRollbackHandler:
         valid_backup_logs: List[Dict[str, Any]] = []
         for log in backup_logs:
             # 过滤掉不合法的日志记录
-            if not self._check_data_schema_grant(log) or not self._check_backup_log_task_id(log):
+            if not self._check_backup_log_task_id(log):
+                continue
+
+            if not self._check_data_schema_grant(log):
                 continue
 
             file_list_infos = log.pop("file_list")
@@ -384,80 +311,6 @@ class FixPointRollbackHandler:
             binlog_record["file_list_details"].append(detail)
 
         return binlog_record
-
-    def execute_backup_log_script(self) -> List[int]:
-        """
-        通过下发脚本查询集群的备份记录
-        TODO: Deprecated，后续将废弃从job获取备份记录，转而通过DRS从备份表中查询
-        """
-
-        target_ip_infos = self._get_ip_list()
-        execute_body: Dict[str, Any] = {
-            "bk_biz_id": env.JOB_BLUEKING_BIZ_ID,
-            "task_name": _("查询集群{}的备份日志").format(self.cluster.immute_domain),
-            "script_content": base64_encode(self._find_local_backup_script(target_ip_infos[0]["port"])),
-            "script_language": 1,
-            "target_server": {
-                "ip_list": [
-                    {"bk_cloud_id": self.cluster.bk_cloud_id, "ip": ip_info["ip"]} for ip_info in target_ip_infos
-                ]
-            },
-        }
-        common_kwargs: Dict[str, str] = copy.deepcopy(fast_execute_script_common_kwargs)
-        job_payloads = {**common_kwargs, **execute_body}
-        job_result = JobApi.fast_execute_script(job_payloads, use_admin=True)
-
-        return job_result["job_instance_id"]
-
-    def query_backup_log_from_job(self, job_instance_id: int) -> Dict[str, Any]:
-        """
-        根据job_instance_id查询执行状态并在执行完成后返回结果
-        :param job_instance_id: job执行的实例id列表
-        TODO: Deprecated，后续将废弃从job获取备份记录，转而通过DRS从备份表中查询
-        """
-
-        job_status_payload = {
-            "bk_biz_id": env.JOB_BLUEKING_BIZ_ID,
-            "job_instance_id": job_instance_id,
-            "return_ip_result": True,
-        }
-        job_status = JobApi.get_job_instance_status(job_status_payload, use_admin=True)
-        # 当任务没有准备好，则认为集群的备份信息任务还需要轮询
-        if not job_status["finished"]:
-            return {
-                "backup_logs": [],
-                "job_status": JobStatusEnum.get_choice_label(JobStatusEnum.RUNNING.value),
-                "message": "job is running...",
-            }
-
-        # 如果任务执行失败，则认为当前备份查询失败
-        if job_status["job_instance"]["status"] not in SUCCESS_LIST:
-            return {
-                "backup_logs": [],
-                "job_status": JobStatusEnum.get_choice_label(job_status["job_instance"]["status"]),
-                "message": _("作业【{}】执行失败，job_instance_id: {}").format(
-                    job_status["job_instance"]["name"], job_status["job_instance"]["job_instance_id"]
-                ),
-            }
-
-        job_log_payload = {
-            "bk_biz_id": job_status["job_instance"]["bk_biz_id"],
-            "job_instance_id": job_status["job_instance"]["job_instance_id"],
-            "step_instance_id": job_status["step_instance_list"][0]["step_instance_id"],
-            "ip_list": [
-                {"bk_cloud_id": self.cluster.bk_cloud_id, "ip": ip_info["ip"]} for ip_info in self._get_ip_list()
-            ],
-        }
-        job_log_results = JobApi.batch_get_job_instance_ip_log(job_log_payload, use_admin=True)
-        local_backup_logs = []
-        for job_log in job_log_results["script_task_logs"]:
-            local_backup_logs.append(job_log["log_content"])
-
-        return {
-            "backup_logs": self._format_job_backup_log(local_backup_logs),
-            "job_status": JobStatusEnum.get_choice_label(JobStatusEnum.SUCCESS.value),
-            "message": "ok",
-        }
 
     def query_backup_log_from_local(self) -> List[Dict[str, Any]]:
         """
