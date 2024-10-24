@@ -18,8 +18,8 @@ from rest_framework import permissions
 
 from backend.bk_web.viewsets import SystemViewSet
 from backend.db_meta.models import Machine
-from backend.db_services.reverse_api.get_ip_from_request import get_bk_cloud_id, get_client_ip, get_nginx_ip
-from backend.db_services.reverse_api.serializers import ReverseApiParamSerializer
+from backend.db_proxy.reverse_api.get_ip_from_request import get_bk_cloud_id, get_client_ip, get_nginx_ip
+from backend.db_proxy.reverse_api.serializers import ReverseApiParamSerializer
 
 logger = logging.getLogger("root")
 

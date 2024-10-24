@@ -14,35 +14,9 @@ from functools import wraps
 from django.http import HttpRequest
 from rest_framework.decorators import action
 
-from backend.db_services.reverse_api.get_ip_from_request import get_bk_cloud_id, get_client_ip
+from backend.db_proxy.reverse_api.get_ip_from_request import get_bk_cloud_id, get_client_ip
 
 logger = logging.getLogger("root")
-
-
-# def reverse_api(func):
-#     @wraps(func)
-#     @action(
-#         methods=["GET"],
-#         detail=False,
-#     )
-#     def wrapped_func(obj, request: HttpRequest, *args, **kwargs):
-#         if not request.GET._mutable:
-#             request.GET._mutable = True
-#
-#         bk_cloud_id = get_bk_cloud_id(request)
-#         client_ip = get_client_ip(request)
-#
-#         for k, v in list(request.GET.items()):
-#             if k != "port":
-#                 request.GET.pop(key=k)
-#
-#         request.GET["bk_cloud_id"] = bk_cloud_id
-#         request.GET["ip"] = client_ip
-#         request.GET._mutable = False
-#
-#         return func(obj, request, *args, **kwargs)
-#
-#     return wrapped_func
 
 
 def reverse_api(url_path):

@@ -14,8 +14,8 @@ from django.utils.translation import ugettext_lazy as _
 
 from backend.bk_web.swagger import common_swagger_auto_schema
 from backend.db_proxy.models import DBCloudProxy
-from backend.db_services.reverse_api.base_reverse_api_view import BaseReverseApiView
-from backend.db_services.reverse_api.decorators import reverse_api
+from backend.db_proxy.reverse_api.base_reverse_api_view import BaseReverseApiView
+from backend.db_proxy.reverse_api.decorators import reverse_api
 
 
 class CommonReverseApiView(BaseReverseApiView):
