@@ -22,7 +22,7 @@ import { random } from '@utils';
 export async function generateMysqlVersionMigrateUpgradeCloneData(ticketData: TicketModel<MySQLMigrateUpgradeDetails>) {
   const { clusters, infos, backup_source: backupSource, force } = ticketData.details;
   const clusterListResult = await getTendbhaList({
-    id: infos.map((item) => item.cluster_ids[0]).join(','),
+    cluster_ids: infos.map((item) => item.cluster_ids[0]),
   });
   const clusterListMap = clusterListResult.results.reduce(
     (obj, item) => {
