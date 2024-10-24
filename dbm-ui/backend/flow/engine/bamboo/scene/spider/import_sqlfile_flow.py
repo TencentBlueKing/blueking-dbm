@@ -267,7 +267,8 @@ class ImportSQLFlow(object):
         major_version_set = set()
         for spider in proxy_list:
             major_version, sub_version = major_version_parse(spider.version)
-            major_version_set.add(major_version)
+            # 只判断spider1.x 和 spider 3.x 这样的差异性
+            major_version_set.add(int(major_version / 1000000))
             version.add(spider.version)
         if len(major_version_set) > 1:
             raise Exception(_("spider中存在多个大版本不一致的情况:{},请找DBA处理下").format(version))
