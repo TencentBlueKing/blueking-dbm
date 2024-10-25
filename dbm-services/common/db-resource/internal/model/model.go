@@ -66,6 +66,13 @@ func init() {
 	logger.Info("tb_rp_operation_info columns %v", TbRpOperationInfoColumns)
 }
 
+// func migration() {
+// 	err := DB.Self.AutoMigrate(&TbRpDailySnapShot{})
+// 	if err != nil {
+// 		logger.Error("auto migrate failed %v", err)
+// 	}
+// }
+
 func createSysDb() {
 	user := config.AppConfig.Db.UserName
 	pwd := config.AppConfig.Db.PassWord

@@ -36,6 +36,7 @@ import (
 	"go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin"
 
 	"dbm-services/common/db-resource/internal/middleware"
+	"dbm-services/common/db-resource/internal/model"
 	"dbm-services/common/db-resource/internal/routers"
 	"dbm-services/common/db-resource/internal/svr/task"
 	"dbm-services/common/go-pubpkg/logger"
@@ -148,6 +149,15 @@ func registerCrontab(localcron *cron.Cron) {
 			Func: func() {
 				if err := task.AsyncResourceHardInfo(); err != nil {
 					logger.Error("async machine hardinfo failed:%s", err.Error())
+				}
+			},
+		},
+		{
+			Name: "生成每日资源快照",
+			Spec: " 0 3 * * *",
+			Func: func() {
+				if err := model.SyncDbRpDailySnapShot(); err != nil {
+					logger.Error("async machine softinfo failed:%s", err.Error())
 				}
 			},
 		},
