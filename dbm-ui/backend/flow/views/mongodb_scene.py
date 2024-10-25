@@ -274,6 +274,18 @@ class MongoDBDisableClusterView(FlowTestView):
         return Response({"root_id": root_id})
 
 
+class MongoDBInstanceDeInstallView(FlowTestView):
+    """
+    instance卸载
+    """
+
+    @staticmethod
+    def post(request):
+        root_id = uuid.uuid1().hex
+        MongoDBController(root_id=root_id, ticket_data=request.data).instance_deinstall()
+        return Response({"root_id": root_id})
+
+
 class MongoDBClusterMigrateView(FlowTestView):
     """
     迁移mongodb元数据

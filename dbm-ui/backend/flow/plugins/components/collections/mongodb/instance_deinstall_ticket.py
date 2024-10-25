@@ -9,52 +9,39 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import logging
-from collections import defaultdict
 from typing import List
 
 from pipeline.component_framework.component import Component
 from pipeline.core.flow.activity import Service
 
-import backend.flow.utils.mongodb.mongodb_dataclass as flow_context
-from backend.flow.consts import MongoDBManagerUser
 from backend.flow.plugins.components.collections.common.base_service import BaseService
-from backend.flow.utils.mongodb.mongodb_repo import MongoNodeWithLabel
+from backend.flow.utils.mongodb.instance_deinstall_ticket import instance_deinstall_ticket
 
 logger = logging.getLogger("json")
 
 
-class ExecPrepareInstanceInfoOperation(BaseService):
+class ExecInstanceDeInstallTicketOperation(BaseService):
     """
-    PrepareInstanceInfo
+    InstanceDeInstallTicket服务
     """
 
     def _execute(self, data, parent_data) -> bool:
         """
-        执行创建名字服务功能的函数
+        实例下架提单功能的函数
         global_data 单据全局变量，格式字典
         kwargs 私有变量
         """
 
-        # trans_data = data.get_one_of_inputs("trans_data")
+        # 从流程节点中获取变量
         kwargs = data.get_one_of_inputs("kwargs")
 
-        # if trans_data is None or trans_data == "${trans_data}":
-        # 表示没有加载上下文内容，则在此添加
-        trans_data = getattr(flow_context, kwargs["set_trans_data_dataclass"])()
-
-        iplist = kwargs["trans_data_var"]["iplist"]
-        bk_cloud_id = int(kwargs["trans_data_var"]["bk_cloud_id"])
-        instances = MongoNodeWithLabel.from_hosts(iplist, bk_cloud_id=bk_cloud_id)
-        result = MongoNodeWithLabel.append_password(instances, MongoDBManagerUser.MonitorUser.value)
-        logger.debug("append_password result:{}".format(result))
-        # group by ip
-        instances_by_ip = defaultdict(list)
-        for instance in instances:
-            instances_by_ip[instance.ip].append(instance)
-
-        trans_data.set("instances_by_ip", instances_by_ip)
-        data.outputs["trans_data"] = trans_data
-        self.log_info("get instances {}".format(instances_by_ip))
+        # 实例下架提单
+        try:
+            instance_deinstall_ticket(infos=kwargs["infos"], creator=kwargs["creator"], bk_biz_id=kwargs["bk_biz_id"])
+        except Exception as e:
+            self.log_error("create instance deinstall ticket fail, error:{}".format(e))
+            return False
+        self.log_info("create instance deinstall ticket successfully")
         return True
 
     # 流程节点输入参数
@@ -65,11 +52,11 @@ class ExecPrepareInstanceInfoOperation(BaseService):
         ]
 
 
-class ExecPrepareInstanceInfoOperationComponent(Component):
+class ExecInstanceDeInstallTicketOperationComponent(Component):
     """
-    ExecPrepareInstanceInfoOperation组件 从meta中获得相关ip的instance信息
+    ExecInstanceDeInstallTicketOperation组件
     """
 
     name = __name__
-    code = "prepare_instance_info_operation"
-    bound_service = ExecPrepareInstanceInfoOperation
+    code = "instance_deinstall_ticket"
+    bound_service = ExecInstanceDeInstallTicketOperation

@@ -48,6 +48,12 @@ class ExecNameServiceOperation(BaseService):
         # clb创建
         if name_service_operation_type == "create_clb":
             res = clb.create_lb_and_register_target(cluster_id=cluster_id)
+        # clb绑定新ip
+        elif name_service_operation_type == "clb_register_part_target":
+            res = clb.operate_part_target(cluster_id=cluster_id, ips=kwargs["ips"], bind=True)
+        # clb解绑部分ip
+        elif name_service_operation_type == "clb_deregister_part_target":
+            res = clb.operate_part_target(cluster_id=cluster_id, ips=kwargs["ips"], bind=False)
         # polaris创建
         elif name_service_operation_type == "create_polaris":
             res = polaris.create_service_alias_bind_targets(cluster_id=cluster_id)

@@ -21,9 +21,10 @@ from django.utils.translation import ugettext_lazy as _
 from backend.configuration.constants import DBType
 from backend.configuration.models.dba import DBAdministrator
 from backend.db_meta.api.cluster.apis import query_cluster_by_hosts
-from backend.db_meta.enums import ClusterType, MachineType
+from backend.db_meta.enums import ClusterType, MachineType, MachineTypeInstanceRoleMap
 from backend.db_meta.models import Machine
 from backend.db_services.dbbase.constants import IpSource
+from backend.db_services.mongodb.autofix.mongodb_autofix_ticket import mongo_create_ticket
 from backend.db_services.redis.util import is_support_redis_auotfix
 from backend.ticket.builders import BuilderFactory
 from backend.ticket.constants import TicketStatus, TicketType
@@ -38,6 +39,7 @@ logger = logging.getLogger("root")
 
 
 def generate_autofix_ticket(fault_clusters: QuerySet):
+    """自愈创建单据"""
     for cluster in fault_clusters:
         # 目前仅支持这三种架构
         if not is_support_redis_auotfix(cluster.cluster_type):
@@ -53,13 +55,29 @@ def generate_autofix_ticket(fault_clusters: QuerySet):
             continue
 
         fault_machines = json.loads(cluster.fault_machines)
-        redis_proxies, redis_slaves, cluster_ids = [], [], [cluster.cluster_id]
+        mongos_list, mongod_list, redis_proxies, redis_slaves, cluster_ids = [], [], [], [], [cluster.cluster_id]
         for fault_machine in fault_machines:
             fault_ip = fault_machine["ip"]
             fault_obj = Machine.objects.filter(ip=fault_ip, bk_biz_id=cluster.bk_biz_id).get()
-            fault_info = {"ip": fault_ip, "spec_id": fault_obj.spec_id, "bk_sub_zone": fault_obj.bk_sub_zone}
+            fault_info = {
+                "ip": fault_ip,
+                "spec_id": fault_obj.spec_id,
+                "bk_sub_zone": fault_obj.bk_sub_zone,
+                "bk_sub_zone_id": fault_obj.bk_sub_zone_id,
+                "city": fault_obj.bk_city.logical_city.name,
+                "instance_type": fault_machine["instance_type"],
+                "spec_config": fault_obj.spec_config,
+                "cluster_type": cluster.cluster_type,
+            }
             if fault_machine["instance_type"] in [MachineType.TWEMPROXY.value, MachineType.PREDIXY.value]:
                 redis_proxies.append(fault_info)
+            elif fault_machine["instance_type"] == MachineType.MONGOS.value:
+                mongos_list.append(fault_info)
+            elif fault_machine["instance_type"] in MachineTypeInstanceRoleMap[MachineType.MONGODB]:
+                mongod_list.append(fault_info)
+                if cluster.cluster_type == ClusterType.MongoReplicaSet.value:
+                    clusters = query_cluster_by_hosts(hosts=[fault_ip])
+                    cluster_ids = [cls_obj["cluster_id"] for cls_obj in clusters]
             else:
                 if fault_obj.cluster_type == ClusterType.TendisRedisInstance.value:
                     clusters = query_cluster_by_hosts(hosts=[fault_ip])
@@ -72,10 +90,14 @@ def generate_autofix_ticket(fault_clusters: QuerySet):
                 cluster.immute_domain, redis_proxies, redis_slaves
             )
         )
+        if mongos_list or mongod_list:
+            mongo_create_ticket(cluster, cluster_ids, mongos_list, mongod_list)
+            return
         create_ticket(cluster, cluster_ids, redis_proxies, redis_slaves)
 
 
 def create_ticket(cluster: RedisAutofixCore, cluster_ids: list, redis_proxies: list, redis_slaves: list):
+    """redis自愈创建单据"""
     details = {
         "ip_source": IpSource.RESOURCE_POOL.value,
         "infos": [

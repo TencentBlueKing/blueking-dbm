@@ -125,15 +125,21 @@ class ExecuteDBActuatorJobService(BkJobService):
                 kwargs["db_act_template"]["payload"]["adminUsername"]
             ]
 
-        # 替换mongos安装新的mongos获取configDB配置
+        # 替换mongos安装新的mongos获取configDB配置  所有的mongos修改configDB参数
         mongos_replace_install = kwargs.get("mongos_replace_install", False)
-        if mongos_replace_install:
+        all_mongos_change_configdb = kwargs.get("all_mongos_change_configdb", False)
+        if mongos_replace_install or all_mongos_change_configdb:
             act_kwargs = ActKwargs()
             act_kwargs.payload = {}
             act_kwargs.get_cluster_info_deinstall(cluster_id=kwargs["cluster_id"])
-            config_db = ["{}:{}".format(node["ip"], str(node["port"])) for node in act_kwargs.payload["config_nodes"]]
             if mongos_replace_install:
+                config_db = [
+                    "{}:{}".format(node["ip"], str(node["port"])) for node in act_kwargs.payload["config_nodes"]
+                ]
                 kwargs["db_act_template"]["payload"]["configDB"] = config_db
+            elif all_mongos_change_configdb:
+                kwargs["exec_ip"] = [node["ip"] for node in act_kwargs.payload["mongos_nodes"]]
+                kwargs["db_act_template"]["payload"]["port"] = act_kwargs.payload["mongos_nodes"][0]["port"]
 
         # 拼接节点执行ip所需要的信息，ip信息统一用list处理拼接
         if kwargs["get_trans_data_ip_var"]:

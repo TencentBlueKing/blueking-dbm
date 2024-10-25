@@ -17,7 +17,7 @@ from backend.flow.engine.bamboo.scene.common.builder import SubBuilder
 from backend.flow.engine.bamboo.scene.mongodb.sub_task.base_subtask import BaseSubTask
 from backend.flow.plugins.components.collections.mongodb.exec_actuator_job2 import ExecJobComponent2
 from backend.flow.utils.mongodb.mongodb_dataclass import CommonContext
-from backend.flow.utils.mongodb.mongodb_repo import ReplicaSet, MongoNode
+from backend.flow.utils.mongodb.mongodb_repo import MongoNode, ReplicaSet
 from backend.flow.utils.mongodb.mongodb_util import MongoUtil
 
 

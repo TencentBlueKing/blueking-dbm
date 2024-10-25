@@ -12,7 +12,6 @@ from backend.flow.consts import MongoDBClusterRole
 from backend.flow.utils.mongodb import mongodb_password
 from backend.ticket.constants import InstanceType
 
-
 # entities
 # Node -> ReplicaSet -> Cluster[Rs,ShardedCluster]
 # MongoNodeWithLabel
