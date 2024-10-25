@@ -93,7 +93,7 @@ class TicketTask(object):
         """根据例行校验的结果自动创建修复单据"""
 
         # 例行时间校验默认间隔一天
-        now = datetime.now(timezone.utc)
+        now = datetime.now(timezone.utc).astimezone()
         start_time, end_time = now - timedelta(days=1), now
         # TODO: 目前这个esquery_search最多支持10000条查询，后续可以改造成scroll进行查询
         resp = BKLogApi.esquery_search(
