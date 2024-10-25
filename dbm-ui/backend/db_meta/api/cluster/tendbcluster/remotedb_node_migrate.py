@@ -139,6 +139,11 @@ class TenDBClusterMigrateRemoteDb:
         )
         storage_shard.storage_instance_tuple = target_tuple
         storage_shard.save()
+        cc_topo_operator = MysqlCCTopoOperator(cluster)
+        cc_topo_operator.is_bk_module_created = True
+        cc_topo_operator.transfer_instances_to_cluster_module(
+            instances=[target_master_obj, target_slave_obj], is_increment=True
+        )
 
     @classmethod
     @transaction.atomic

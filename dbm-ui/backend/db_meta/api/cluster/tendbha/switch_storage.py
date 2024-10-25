@@ -12,7 +12,7 @@ import logging
 
 from django.db import transaction
 
-from backend.db_meta.enums import InstanceRole, InstanceRoleInstanceInnerRoleMap, InstanceStatus
+from backend.db_meta.enums import InstanceRoleInstanceInnerRoleMap, InstanceStatus
 from backend.db_meta.models import Cluster, StorageInstance
 from backend.flow.utils.mysql.mysql_module_operate import MysqlCCTopoOperator
 
@@ -34,19 +34,19 @@ def switch_storage(cluster_id: int, target_storage_ip: str, origin_storage_ip: s
     )
     cluster.storageinstance_set.remove(origin_storage)
     target_storage.status = InstanceStatus.RUNNING.value
-    if role and target_storage.instance_role == InstanceRole.BACKEND_REPEATER.value:
+    # target实例需要继承source实例的is_standby特性
+    target_storage.is_stand_by = origin_storage.is_stand_by
+    if role:
         # 如果是REPEATER角色，改成传入的role变量
         target_storage.instance_role = role
         target_storage.instance_inner_role = InstanceRoleInstanceInnerRoleMap[role].value
-
+        target_storage.save()
         # 更新cmdb标签状态
         cc_topo_operator = MysqlCCTopoOperator(cluster)
         cc_topo_operator.is_bk_module_created = True
         cc_topo_operator.transfer_instances_to_cluster_module(instances=[target_storage], is_increment=True)
-
-    # target实例需要继承source实例的is_standby特性
-    target_storage.is_stand_by = origin_storage.is_stand_by
-    target_storage.save()
+    else:
+        target_storage.save()
 
 
 def change_proxy_storage_entry(cluster_id: int, master_ip: str, new_master_ip: str):
