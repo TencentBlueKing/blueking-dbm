@@ -10,6 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 
 from backend.db_meta.enums import ClusterType
+from backend.flow.engine.bamboo.scene.cloud.mysql_machine_clear_flow import ClearMysqlMachineFlow
 from backend.flow.engine.bamboo.scene.common.download_dbactor import DownloadDbactorFlow
 from backend.flow.engine.bamboo.scene.common.download_file import DownloadFileFlow
 from backend.flow.engine.bamboo.scene.common.transfer_cluster_to_other_biz import TransferMySQLClusterToOtherBizFlow
@@ -699,3 +700,10 @@ class MySQLController(BaseController):
         """
         flow = DestroyNonStanbySlaveMySQLFlow(root_id=self.root_id, ticket_data=self.ticket_data)
         flow.destroy()
+
+    def mysql_machine_clear_scene(self):
+        """
+        清理mysql机器
+        """
+        flow = ClearMysqlMachineFlow(root_id=self.root_id, data=self.ticket_data)
+        flow.run_flow()

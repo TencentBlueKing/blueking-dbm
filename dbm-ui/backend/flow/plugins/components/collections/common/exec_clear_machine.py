@@ -8,34 +8,29 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
-import json
 import logging
-import re
-from dataclasses import asdict, is_dataclass
 
-from django.conf import settings
 from django.utils.translation import ugettext as _
-from jinja2 import Environment
 from pipeline.component_framework.component import Component
 
 from backend import env
 from backend.components import JobApi
-from backend.flow.consts import WINDOW_SYSTEM_JOB_USER
 from backend.flow.models import FlowNode
 from backend.flow.plugins.components.collections.common.base_service import BkJobService
-from backend.flow.utils.script_template import sqlserver_actuator_template
-from backend.flow.utils.sqlserver.sqlserver_act_payload import SqlserverActPayload
+from backend.flow.utils.clear_machine_script import (
+    db_type_account_user_map,
+    db_type_script_map,
+    os_script_language_map,
+)
 from backend.utils.string import base64_encode
 
 logger = logging.getLogger("json")
-cpl = re.compile("<ctx>(?P<context>.+?)</ctx>")  # 非贪婪模式，只匹配第一次出现的自定义tag
 
 
-class SqlserverActuatorScriptService(BkJobService):
+class ClearMachineScriptService(BkJobService):
     """
     根据db-actuator组件，绑定fast_execute_script api接口访问。
-    目前只能兼容传入一个ip执行，如果传入多ip列表模块，会有可能影响payload的拼接情况
-    同时支持跨云管理，根据传入的 kwargs["bk_cloud_id"]来执行
+    同时支持跨云管理
     """
 
     def _execute(self, data, parent_data) -> bool:
@@ -48,68 +43,32 @@ class SqlserverActuatorScriptService(BkJobService):
            root_id:  db-actuator任务必须参数，做录入日志平台的条件
            node_id:  db-actuator任务必须参数，做录入日志平台的条件
            node_name: db-actuator任务必须参数，做录入日志平台的条件
-           get_mssql_payload_func : 表示获取执行 mssql的db-actuator 参数方法名称，对应MssqlActPayload类
-           exec_ips: 表示执行的ip节点列表, 列表元素: {ip:xxx, bk_cloud_id:xxx}
-           cluster: 操作的集群名称
-
         }
         """
         global_data = data.get_one_of_inputs("global_data")
-        trans_data = data.get_one_of_inputs("trans_data")
         kwargs = data.get_one_of_inputs("kwargs")
 
         root_id = kwargs["root_id"]
         node_name = kwargs["node_name"]
         node_id = kwargs["node_id"]
-
         exec_ips = kwargs["exec_ips"]
         if not exec_ips:
             self.log_error(_("该节点获取到执行ip信息为空，请联系系统管理员{}").format(exec_ips))
             return False
 
-        # 获取sqlserver actuator 组件所需要执行的参数
-        mssql_act_payload = SqlserverActPayload(global_data=global_data)
-        if is_dataclass(trans_data):
-            trans_data = asdict(trans_data)
-
-        db_act_template = getattr(mssql_act_payload, kwargs["get_payload_func"])(
-            ips=exec_ips, trans_data=trans_data, custom_params=kwargs.get("custom_params", {})
-        )
-        db_act_template.update(
-            {
-                "root_id": root_id,
-                "node_id": node_id,
-                "version_id": self._runtime_attrs.get("version"),
-                "uid": global_data["uid"],
-            }
-        )
-
-        # payload参数转换base64格式
-        db_act_template["payload"] = base64_encode(json.dumps(db_act_template["payload"]))
-
         # 更新节点信息
         FlowNode.objects.filter(root_id=root_id, node_id=node_id).update(hosts=exec_ips)
 
-        # 脚本内容
-        jinja_env = Environment()
-        template = jinja_env.from_string(sqlserver_actuator_template)
-
         body = {
             "timeout": kwargs.get("job_timeout", 3600),
-            "account_alias": WINDOW_SYSTEM_JOB_USER,
-            "is_param_sensitive": 1,
+            "account_alias": db_type_account_user_map[global_data["db_type"]],
             "bk_biz_id": env.JOB_BLUEKING_BIZ_ID,
             "task_name": f"DBM_{node_name}_{node_id}",
-            "script_content": base64_encode(template.render(db_act_template)),
-            "script_language": 5,
+            "script_content": base64_encode(db_type_script_map[global_data["db_type"]]),
+            "script_language": os_script_language_map[global_data["os_name"]],
             "target_server": {"ip_list": exec_ips},
-            "script_param": base64_encode(json.dumps(db_act_template["payload"])),
         }
         self.log_debug("[{}] ready start task with body {}".format(node_name, body))
-
-        if settings.DEBUG:
-            # debug模式下打开
-            body["is_param_sensitive"] = 0
 
         resp = JobApi.fast_execute_script(body, raw=True)
         self.log_debug(f"{node_name} fast execute script response: {resp}")
@@ -121,7 +80,7 @@ class SqlserverActuatorScriptService(BkJobService):
         return True
 
 
-class SqlserverActuatorScriptComponent(Component):
+class ClearMachineScriptComponent(Component):
     name = __name__
-    code = "sqlserver_db_actuator_execute"
-    bound_service = SqlserverActuatorScriptService
+    code = "common_clear_machine_execute"
+    bound_service = ClearMachineScriptService

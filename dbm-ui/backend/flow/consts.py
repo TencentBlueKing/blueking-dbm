@@ -794,6 +794,9 @@ MSSQL_ADMIN = SQLSERVER_ADMIN_USER
 # sqlserver自定义系统账号列表
 SQLSERVER_CUSTOM_SYS_USER = [MSSQL_EXPORTER, MSSQL_ADMIN, MSSQL_DBHA, MSSQL_DRS, "sa"]
 
+# window系统job账号
+WINDOW_SYSTEM_JOB_USER = "system"
+
 # tbinlogdumper连接kafka的global config的定义
 TBINLOGDUMPER_KAFKA_GLOBAL_CONF = {
     "sasl.mechanisms": "SCRAM-SHA-512",

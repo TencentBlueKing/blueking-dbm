@@ -146,6 +146,7 @@ class AddSpiderRoutingService(BaseService):
         ).format(tag, user, passwd, spider_ip, spider_port)
 
         rpc_params["cmds"] = cmds + [sql] + ["TDBCTL FLUSH ROUTING"]
+        self.log_info(f"exec add-node cmds:[{rpc_params['cmds']}]")
         res = DRSApi.rpc(rpc_params)
 
         if res[0]["error_msg"]:

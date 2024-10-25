@@ -56,6 +56,7 @@ class DropSpiderRoutingService(BaseService):
                 f"TDBCTL DROP NODE IF EXISTS {server_name}",
                 "TDBCTL FLUSH ROUTING",
             ]
+            self.log_info(f"exec drop node cmds: [{exec_sql}]")
             rpc_params["cmds"] = exec_sql
             res = DRSApi.rpc(rpc_params)
             if res[0]["error_msg"]:

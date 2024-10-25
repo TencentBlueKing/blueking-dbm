@@ -1077,3 +1077,9 @@ class MySQLDBMeta(object):
         with atomic():
             for cluster_id in self.cluster["cluster_ids"]:
                 Cluster.objects.filter(id=cluster_id).update(db_module_id=new_module_id, major_version=major_version)
+
+    def clear_machines(self):
+        """
+        清理机器信息
+        """
+        api.machine.clear_info_for_machine(machines=self.ticket_data["clear_hosts"])

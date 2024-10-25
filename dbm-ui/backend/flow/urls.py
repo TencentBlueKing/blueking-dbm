@@ -99,6 +99,7 @@ from backend.flow.views.mongodb_scene import (
     MongoRestoreApiView,
     MultiReplicasetInstallApiView,
 )
+from backend.flow.views.mysql import MysqlMachineClearApiView
 from backend.flow.views.mysql_add_slave import AddMysqlSlaveSceneApiView
 from backend.flow.views.mysql_add_slave_remote import AddMysqlSlaveRemoteSceneApiView
 from backend.flow.views.mysql_checksum import MysqlChecksumSceneApiView
@@ -455,6 +456,7 @@ urlpatterns = [
     url(r"^scene/fake_install_pulsar$", FakeInstallPulsarSceneApiView.as_view()),
     url(r"^scene/import_resource_init$", ImportResourceInitStepApiView.as_view()),
     url("^scene/mysql_data_migrate$", MysqlDataMigrateSceneApiView.as_view()),
+    url("^scene/mysql_machine_clear$", MysqlMachineClearApiView.as_view()),
     # spider
     url(r"^scene/add_spider_mnt$", AddSpiderMNTSceneApiView.as_view()),
     url(r"^scene/install_tendb_cluster$", InstallSpiderClusterSceneApiView.as_view()),

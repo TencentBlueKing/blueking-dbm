@@ -12,12 +12,14 @@ specific language governing permissions and limitations under the License.
 import logging
 from typing import List, Optional
 
+from django.core.exceptions import ObjectDoesNotExist
 from django.db import transaction
+from django.db.models import Q
 
 from backend.components import CCApi
 from backend.db_meta import request_validator
 from backend.db_meta.enums import MachineTypeAccessLayerMap, machine_type_to_cluster_type
-from backend.db_meta.models import BKCity, Machine
+from backend.db_meta.models import BKCity, Machine, ProxyInstance, StorageInstance, StorageInstanceTuple
 from backend.flow.utils.cc_manage import CcManage
 
 logger = logging.getLogger("root")
@@ -172,3 +174,33 @@ def update_system_info(bk_cloud_id: int, machines: Optional[List] = None):
             Machine.objects.filter(ip=machine["ip"], bk_cloud_id=bk_cloud_id).update(
                 system_info=machine["system_info"]
             )
+
+
+@transaction.atomic
+def clear_info_for_machine(machines: Optional[List]):
+    """
+    根据machine信息回收机器相关信息
+    """
+    for m in machines:
+        try:
+            machine = Machine.objects.get(ip=m["ip"], bk_cloud_id=m["bk_cloud_id"])
+        except ObjectDoesNotExist:
+            logger.warning(f"the machine [{m['bk_cloud_id']}:{m['ip']}] not exist ")
+            continue
+
+        proxys = ProxyInstance.objects.filter(machine=machine)
+        storages = StorageInstance.objects.filter(machine=machine)
+
+        # 清理proxy相关信息
+        for p in proxys:
+            p.tendbclusterspiderext.delete()
+            p.delete(keep_parents=True)
+
+        # 清理storage相关信息
+        for s in storages:
+            for info in StorageInstanceTuple.objects.filter(Q(ejector="Alice") | Q(receiver=s)):
+                # 先删除额外关联信息，否则会报ProtectedError 异常
+                info.tendbclusterstorageset.delete()
+                info.delete()
+            s.delete(keep_parents=True)
+        machine.delete(keep_parents=True)
