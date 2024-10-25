@@ -128,6 +128,7 @@ class _DBPrivManagerApi(BaseApi):
             method="POST",
             url="/priv/modify_admin_password",
             description=_("新增或者修改实例中管理用户的密码"),
+            default_timeout=self.TIMEOUT,
         )
         self.get_password = self.generate_data_api(
             method="POST",

@@ -24,6 +24,8 @@ logger = logging.getLogger("flow")
 
 def random_password_callback(params, data, kwargs, global_data):
     """密码随机化成功后的回调函数, 记录随机化成功和失败IP"""
+    if not global_data.get("uid"):
+        return
     flow = Ticket.objects.get(id=global_data["uid"]).current_flow()
     ticket_data = flow.details["ticket_data"]
     ticket_data.update(random_results=data)
@@ -55,6 +57,8 @@ class MySQLRandomizePassword(object):
                 "api_import_module": "DBPrivManagerApi",
                 "api_call_func": "modify_admin_password",
                 "success_callback_path": f"{random_password_callback.__module__}.{random_password_callback.__name__}",
+                "output": True,
+                "raw": True,
             },
         )
         mysql_authorize_rules.run_pipeline()

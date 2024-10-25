@@ -118,6 +118,7 @@ class ModifyAdminPasswordSerializer(serializers.Serializer):
     lock_hour = serializers.IntegerField(help_text=_("密码到期小时"))
     password = serializers.CharField(help_text=_("密码"))
     instance_list = serializers.ListSerializer(help_text=_("实例信息"), child=InstanceInfoSerializer())
+    is_async = serializers.BooleanField(help_text=_("是否异步执行"), required=False, default=False)
 
     def validate(self, attrs):
         # 校验密码中的特殊字符
@@ -131,6 +132,10 @@ class ModifyAdminPasswordSerializer(serializers.Serializer):
             raise serializers.ValidationError(_("一次只允许修改同种集群类型的密码"))
 
         return attrs
+
+
+class QueryAsyncModifyResultSerializer(serializers.Serializer):
+    root_id = serializers.CharField(help_text=_("任务ID"))
 
 
 class PasswordPolicySerializer(serializers.Serializer):

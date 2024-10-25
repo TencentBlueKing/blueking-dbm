@@ -459,6 +459,7 @@ class TicketType(str, StructuredEnum):
 
     # 资源池
     RESOURCE_IMPORT = EnumField("RESOURCE_IMPORT", _("资源池导入"))
+    ADMIN_PASSWORD_MODIFY = EnumField("ADMIN_PASSWORD_MODIFY", _("临时密码修改"))
     # fmt: on
 
     # VM

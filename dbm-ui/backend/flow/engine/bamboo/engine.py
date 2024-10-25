@@ -101,6 +101,10 @@ class BambooEngine:
         result = api.get_execution_data_inputs(runtime=BambooDjangoRuntime(), node_id=node_id)
         return result
 
+    def get_node_output_data(self, node_id: str) -> EngineAPIResult:
+        result = api.get_execution_data_outputs(runtime=BambooDjangoRuntime(), node_id=node_id)
+        return result
+
     def get_node_histories(self, node_id: str) -> EngineAPIResult:
         result = api.get_node_histories(runtime=BambooDjangoRuntime(), node_id=node_id)
         return result

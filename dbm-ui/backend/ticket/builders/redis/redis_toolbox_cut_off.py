@@ -18,7 +18,11 @@ from backend.db_meta.models import Cluster, StorageInstance
 from backend.db_services.dbbase.constants import IpSource
 from backend.flow.engine.controller.redis import RedisController
 from backend.ticket import builders
-from backend.ticket.builders.common.base import BaseOperateResourceParamBuilder, SkipToRepresentationMixin
+from backend.ticket.builders.common.base import (
+    BaseOperateResourceParamBuilder,
+    DisplayInfoSerializer,
+    SkipToRepresentationMixin,
+)
 from backend.ticket.builders.redis.base import BaseRedisTicketFlowBuilder, ClusterValidateMixin
 from backend.ticket.constants import TicketType
 
@@ -26,7 +30,7 @@ from backend.ticket.constants import TicketType
 class RedisClusterCutOffDetailSerializer(SkipToRepresentationMixin, ClusterValidateMixin, serializers.Serializer):
     """整机替换"""
 
-    class InfoSerializer(serializers.Serializer):
+    class InfoSerializer(DisplayInfoSerializer):
         class HostInfoSerializer(serializers.Serializer):
             ip = serializers.IPAddressField()
             spec_id = serializers.IntegerField()
@@ -97,13 +101,10 @@ class RedisClusterCutOffFlowBuilder(BaseRedisTicketFlowBuilder):
 
     def patch_ticket_detail(self):
         """redis_master -> backend_group"""
-
-        super().patch_ticket_detail()
-
-        resource_spec = {}
         cluster_ids = list(itertools.chain(*[infos["cluster_ids"] for infos in self.ticket.details["infos"]]))
         id__cluster = {cluster.id: cluster for cluster in Cluster.objects.filter(id__in=cluster_ids)}
         for info in self.ticket.details["infos"]:
+            resource_spec = {}
             # 取第一个cluster即可，即使是多集群，也是单机多实例的情况
             cluster = id__cluster[info["cluster_ids"][0]]
             for role in [
@@ -149,3 +150,4 @@ class RedisClusterCutOffFlowBuilder(BaseRedisTicketFlowBuilder):
             info["resource_spec"] = resource_spec
 
         self.ticket.save(update_fields=["details"])
+        super().patch_ticket_detail()

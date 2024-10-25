@@ -28,6 +28,7 @@ from backend.configuration.serializers import (
     ModifyAdminPasswordSerializer,
     ModifyMySQLPasswordRandomCycleSerializer,
     PasswordPolicySerializer,
+    QueryAsyncModifyResultSerializer,
     VerifyPasswordResponseSerializer,
     VerifyPasswordSerializer,
 )
@@ -157,3 +158,13 @@ class PasswordPolicyViewSet(viewsets.SystemViewSet):
         validated_data = self.params_validate(self.get_serializer_class())
         validated_data["operator"] = request.user.username
         return Response(DBPasswordHandler.modify_admin_password(**validated_data))
+
+    @common_swagger_auto_schema(
+        operation_summary=_("查询异步密码修改执行结果"),
+        request_body=QueryAsyncModifyResultSerializer(),
+        tags=[SWAGGER_TAG],
+    )
+    @action(methods=["POST"], detail=False, serializer_class=QueryAsyncModifyResultSerializer)
+    def query_async_modify_result(self, request, *args, **kwargs):
+        validated_data = self.params_validate(self.get_serializer_class())
+        return Response(DBPasswordHandler.query_async_modify_result(**validated_data))

@@ -24,7 +24,14 @@ from backend.db_meta.enums import ClusterType, InstanceInnerRole, InstanceRole, 
 from backend.db_meta.models import Machine
 from backend.db_periodic_task.models import DBPeriodicTask
 from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
-from backend.flow.consts import DEFAULT_INSTANCE
+from backend.db_services.taskflow.handlers import TaskFlowHandler
+from backend.flow.consts import DEFAULT_INSTANCE, FAILED_STATES, SUCCEED_STATES
+from backend.flow.engine.bamboo.engine import BambooEngine
+from backend.flow.engine.controller.mysql import MySQLController
+from backend.flow.models import FlowTree
+from backend.flow.plugins.components.collections.common.external_service import ExternalServiceComponent
+from backend.ticket.constants import TicketType
+from backend.utils.basic import generate_root_id
 from backend.utils.string import base64_decode, base64_encode
 
 logger = logging.getLogger("root")
@@ -132,13 +139,21 @@ class DBPasswordHandler(object):
         return admin_password_data
 
     @classmethod
-    def modify_admin_password(cls, operator: str, password: str, lock_hour: int, instance_list: List[Dict]):
+    def modify_admin_password(
+        cls,
+        operator: str,
+        password: str,
+        lock_hour: int,
+        instance_list: List[Dict],
+        is_async: bool = False,
+    ):
         """
         修改db的admin密码
         @param operator: 操作人
         @param password: 修改密码
         @param lock_hour: 锁定时长
         @param instance_list: 修改的实例列表
+        @param is_async: 是否异步执行
         """
         # 获取业务信息，任取一台machine查询
         machine = Machine.objects.get(bk_cloud_id=instance_list[0]["bk_cloud_id"], ip=instance_list[0]["ip"])
@@ -172,7 +187,7 @@ class DBPasswordHandler(object):
 
         # 填充参数，修改admin的密码
         db_type = db_type.pop()
-        modify_password_params = {
+        params = {
             # username固定是ADMIN，与DBM_MYSQL_ADMIN_USER保持一致
             "username": DB_ADMIN_USER_MAP[db_type],
             "component": db_type,
@@ -183,10 +198,36 @@ class DBPasswordHandler(object):
             "security_rule_name": DBM_PASSWORD_SECURITY_NAME,
             "async": False,
         }
-        data = DBPrivManagerApi.modify_admin_password(
-            params=modify_password_params, raw=True, timeout=DBPrivManagerApi.TIMEOUT
-        )["data"]
+
+        # 同步执行直接调用接口，异步执行则返回任务ID
+        if not is_async:
+            resp = DBPrivManagerApi.modify_admin_password(params=params, timeout=DBPrivManagerApi.TIMEOUT, raw=True)
+            data = resp["data"]
+        else:
+            data = root_id = generate_root_id()
+            params.update(ticket_type=TicketType.ADMIN_PASSWORD_MODIFY, bk_biz_id=bk_biz_id, created_by=operator)
+            MySQLController(root_id=root_id, ticket_data=params).mysql_randomize_password()
         return data
+
+    @classmethod
+    def query_async_modify_result(cls, root_id: str):
+        """
+        查询异步密码修改结果
+        @param root_id: 任务ID
+        """
+        flow_tree = FlowTree.objects.get(root_id=root_id)
+        # 任务未完成，退出
+        if flow_tree.status not in [*FAILED_STATES, *SUCCEED_STATES]:
+            return {"status": flow_tree.status, "data": ""}
+
+        # 查询修改密码的节点id
+        task_handler = TaskFlowHandler(root_id)
+        node_id = task_handler.get_node_id_by_component(flow_tree.tree, component_code=ExternalServiceComponent.code)[
+            0
+        ]
+        # 查询输出数据
+        resp = BambooEngine(root_id).get_node_output_data(node_id).data["resp"]
+        return {"status": flow_tree.status, "data": resp["data"]}
 
     @classmethod
     def _get_password_role(cls, cluster_type, role):

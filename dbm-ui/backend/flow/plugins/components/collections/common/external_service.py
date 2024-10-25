@@ -30,12 +30,14 @@ class ExternalService(BaseService):
         api_import_module: str = kwargs.get("api_import_module")
         api_call_func: str = kwargs.get("api_call_func")
         params: Dict[str, Any] = kwargs.get("params")
+        # 是否返回原始请求
+        raw = kwargs.get("raw", False)
 
         external_service: Callable = getattr(
             getattr(importlib.import_module(api_import_path), api_import_module), api_call_func
         )
         try:
-            resp = external_service(params)
+            resp = external_service(params, raw=raw)
             self.log_info(_("第三方接口: {} 请求成功! 返回参数为: {}").format(f"{api_import_path}.{api_call_func}", resp))
         except (ApiResultError, ApiRequestError) as e:
             self.log_info(_("第三方接口:{} 调用失败！错误信息为: {}").format(f"{api_import_path}.{api_call_func}", e))
@@ -47,10 +49,14 @@ class ExternalService(BaseService):
         # 成功时调用回调函数
         success_callback = kwargs.get("success_callback_path")
         if success_callback:
-            func_module, func_name = success_callback.rsplit(",", 1)
+            func_module, func_name = success_callback.rsplit(".", 1)
             getattr(importlib.import_module(func_module), func_name)(
                 params=params, data=resp, kwargs=kwargs, global_data=global_data
             )
+
+        # 存入返回响应data
+        if kwargs.get("output"):
+            data.outputs.resp = resp
 
         return True
 
