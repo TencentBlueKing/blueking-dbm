@@ -83,7 +83,7 @@
 
   import TicketRemark from '@components/ticket-remark/Index.vue';
 
-  import { switchToNormalRole } from '@utils';
+  import { random } from '@utils';
 
   import RenderData from './components/Index.vue';
   import InstanceSelector, { type InstanceSelectorValues } from './components/instance-selector/Index.vue';
@@ -101,6 +101,15 @@
     proxy: SpecItem[];
     redis_master: SpecItem[];
     redis_slave: SpecItem[];
+    display_info: {
+      data: {
+        ip: string;
+        role: string;
+        cluster_domain: string;
+        spec_id: number;
+        spec_name: string;
+      }[];
+    };
   }
 
   const { currentBizId } = useGlobalBizs();
@@ -131,8 +140,15 @@
   const totalNum = computed(() => tableData.value.filter((item) => Boolean(item.ip)).length);
   const inputedIps = computed(() => tableData.value.map((item) => item.ip));
 
+  // ip 是否已存在表格的映射表
+  let ipMemo = {} as Record<string, boolean>;
   // slave <-> master
   const slaveMasterMap: Record<string, string> = {};
+
+  // Master 批量选择
+  const handleShowMasterBatchSelector = () => {
+    isShowMasterInstanceSelector.value = true;
+  };
 
   // 检测列表是否为空
   const checkListEmpty = (list: Array<IDataRow>) => {
@@ -166,44 +182,52 @@
     });
   };
 
-  // Master 批量选择
-  const handleShowMasterBatchSelector = () => {
-    isShowMasterInstanceSelector.value = true;
-  };
+  // 表格排序，方便合并集群显示
+  const sortTableByCluster = () => {
+    const clusterMap = tableData.value.reduce<Record<string, IDataRow[]>>((acc, item) => {
+      const { domain } = item.cluster;
+      acc[domain] = acc[domain] || [];
+      acc[domain].push(item);
+      return acc;
+    }, {});
 
-  // ip 是否已存在表格的映射表
-  let ipMemo = {} as Record<string, boolean>;
+    tableData.value = Object.values(clusterMap).flatMap((sameArr) => {
+      const isGeneral = sameArr.length <= 1;
+      return sameArr.map((item, index) => ({
+        ...item,
+        cluster: {
+          ...item.cluster,
+          isStart: index === 0,
+          rowSpan: index === 0 ? sameArr.length : 1,
+          isGeneral,
+        },
+      }));
+    });
+  };
 
   // 批量选择
   const handelMasterProxyChange = async (data: InstanceSelectorValues) => {
     selected.value = data;
-    const dalaList = data.idleHosts;
+    const dataList = data.idleHosts;
     const listResult = await getRedisMachineList({
-      ip: dalaList.map((item) => item.ip).join(','),
+      ip: dataList.map((item) => item.ip).join(','),
       add_role_count: true,
     });
-    const machineIpMap = listResult.results.reduce(
-      (results, item) => {
-        Object.assign(results, {
-          [item.ip]: item,
-        });
-        return results;
-      },
-      {} as Record<string, ServiceReturnType<typeof getRedisMachineList>['results'][number]>,
-    );
-    const newList: IDataRow[] = [];
-    dalaList.forEach((item) => {
+
+    const machineIpMap = Object.fromEntries(listResult.results.map((item) => [item.ip, item]));
+
+    const newList = dataList.reduce<IDataRow[]>((acc, item) => {
       const { ip } = item;
       if (!ipMemo[ip]) {
-        newList.push({
-          rowKey: ip,
+        acc.push({
+          rowKey: random(),
           isLoading: false,
           ip,
           role: item.role,
-          clusterIds: machineIpMap[ip].related_clusters.map((item) => item.id),
+          clusterIds: machineIpMap[ip].related_clusters.map((cluster) => cluster.id),
           bkCloudId: item.bk_cloud_id,
           cluster: {
-            domain: machineIpMap[ip].related_clusters.map((item) => item.immute_domain).join(','),
+            domain: machineIpMap[ip].related_clusters.map((cluster) => cluster.immute_domain).join(','),
             isStart: false,
             isGeneral: true,
             rowSpan: 1,
@@ -212,12 +236,9 @@
         });
         ipMemo[ip] = true;
       }
-    });
-    if (checkListEmpty(tableData.value)) {
-      tableData.value = newList;
-    } else {
-      tableData.value = [...tableData.value, ...newList];
-    }
+      return acc;
+    }, []);
+    tableData.value = checkListEmpty(tableData.value) ? newList : [...tableData.value, ...newList];
     sortTableByCluster();
     updateSlaveMasterMap();
     window.changeConfirm = true;
@@ -226,39 +247,71 @@
   // 输入IP后查询详细信息
   const handleChangeHostIp = async (index: number, ip: string) => {
     if (!ip) {
-      const { ip } = tableData.value[index];
-      ipMemo[ip] = false;
+      const currentIp = tableData.value[index].ip;
+      ipMemo[currentIp] = false;
       tableData.value[index].ip = '';
       return;
     }
+
     tableData.value[index].isLoading = true;
     tableData.value[index].ip = ip;
-    const result = await getRedisMachineList({
-      ip,
-      add_role_count: true,
-    }).finally(() => {
+
+    try {
+      const result = await getRedisMachineList({ ip, add_role_count: true });
+      const data = result.results[0];
+      const relatedClusters = data.related_clusters;
+      const clusterDomain = relatedClusters.map((item) => item.immute_domain).join(',');
+
+      const row: IDataRow = {
+        rowKey: tableData.value[index].rowKey,
+        isLoading: false,
+        ip,
+        role: data.instance_role,
+        clusterIds: relatedClusters.map((item) => item.id),
+        bkCloudId: data.bk_cloud_id,
+        cluster: {
+          domain: clusterDomain,
+          isStart: false,
+          isGeneral: true,
+          rowSpan: 1,
+        },
+        spec: data.spec_config,
+      };
+      tableData.value[index] = row;
+
+      const appendItem = {
+        ip,
+        bk_host_id: data.bk_host_id,
+        bk_cloud_id: data.bk_cloud_id,
+        role: data.instance_role,
+        cluster_domain: clusterDomain,
+        spec_config: data.spec_config,
+      };
+      selected.value.idleHosts.push(appendItem);
+      ipMemo[ip] = true;
+      sortTableByCluster();
+      await updateSlaveMasterMap();
+
+      if (data.instance_role === 'redis_master') {
+        const slaveIp = slaveMasterMap[ip];
+        const slaveClusterInfo = {
+          role: 'redis_slave',
+          ip: slaveIp,
+        };
+        tableData.value[index + 1] = {
+          ...row,
+          rowKey: random(),
+          ...slaveClusterInfo,
+        };
+        selected.value.idleHosts.push({
+          ...appendItem,
+          ...slaveClusterInfo,
+        });
+        sortTableByCluster();
+      }
+    } finally {
       tableData.value[index].isLoading = false;
-    });
-    const data = result.results[0];
-    const obj: IDataRow = {
-      rowKey: tableData.value[index].rowKey,
-      isLoading: false,
-      ip,
-      role: switchToNormalRole(data.instance_role),
-      clusterIds: data.related_clusters.map((item) => item.id),
-      bkCloudId: data.bk_cloud_id,
-      cluster: {
-        domain: data.related_clusters.map((item) => item.immute_domain).join(','),
-        isStart: false,
-        isGeneral: true,
-        rowSpan: 1,
-      },
-      spec: data.spec_config,
-    };
-    tableData.value[index] = obj;
-    ipMemo[ip] = true;
-    sortTableByCluster();
-    updateSlaveMasterMap();
+    }
   };
 
   // 追加一个集群
@@ -314,17 +367,14 @@
 
   // 根据表格数据生成提交单据请求参数
   const generateRequestParam = () => {
-    const clusterMap: Record<string, IDataRow[]> = {};
-    tableData.value.forEach((item) => {
+    const clusterMap = tableData.value.reduce<Record<string, IDataRow[]>>((acc, item) => {
       if (item.ip) {
         const clusterName = item.cluster.domain;
-        if (!clusterMap[clusterName]) {
-          clusterMap[clusterName] = [item];
-        } else {
-          clusterMap[clusterName].push(item);
-        }
+        acc[clusterName] = acc[clusterName] || [];
+        acc[clusterName].push(item);
       }
-    });
+      return acc;
+    }, {});
     const domains = Object.keys(clusterMap);
     const infos = domains.map((domain) => {
       const sameArr = clusterMap[domain];
@@ -335,6 +385,9 @@
         proxy: [],
         redis_master: [],
         redis_slave: [],
+        display_info: {
+          data: [],
+        },
       };
       const needDeleteSlaves: string[] = [];
       sameArr.forEach((item) => {
@@ -357,6 +410,15 @@
       });
       // 当选择了master的时候，对应的slave不要传给后端
       infoItem.redis_slave = infoItem.redis_slave.filter((item) => !needDeleteSlaves.includes(item.ip));
+      infoItem.display_info = {
+        data: tableData.value.map((item) => ({
+          ip: item.ip,
+          role: item.role,
+          cluster_domain: item.cluster.domain,
+          spec_id: item.spec?.id ?? 0,
+          spec_name: item.spec?.name ?? '',
+        })),
+      };
       return infoItem;
     });
     return infos;
@@ -402,42 +464,6 @@
     selected.value.idleHosts = [];
     ipMemo = {};
     window.changeConfirm = false;
-  };
-
-  // 表格排序，方便合并集群显示
-  const sortTableByCluster = () => {
-    const arr = tableData.value;
-    const clusterMap: Record<string, IDataRow[]> = {};
-    arr.forEach((item) => {
-      const { domain } = item.cluster;
-      if (!clusterMap[domain]) {
-        clusterMap[domain] = [item];
-      } else {
-        clusterMap[domain].push(item);
-      }
-    });
-    const keys = Object.keys(clusterMap);
-    const retArr = [];
-    for (const key of keys) {
-      const sameArr = clusterMap[key];
-      let isFirst = true;
-      let isGeneral = true;
-      if (sameArr.length > 1) {
-        isGeneral = false;
-      }
-      for (const item of sameArr) {
-        if (isFirst) {
-          item.cluster.isStart = true;
-          item.cluster.rowSpan = sameArr.length;
-          isFirst = false;
-        } else {
-          item.cluster.isStart = false;
-        }
-        item.cluster.isGeneral = isGeneral;
-        retArr.push(item);
-      }
-    }
-    tableData.value = retArr;
   };
 </script>
 

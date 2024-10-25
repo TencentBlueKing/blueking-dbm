@@ -31,7 +31,7 @@
                 ref="treeRef"
                 children="children"
                 :data="treeData"
-                label="master_domain"
+                label="name"
                 :node-content-action="['click']"
                 :search="treeSearch"
                 selectable
@@ -46,7 +46,7 @@
                     <span
                       v-overflow-tips
                       class="custom-tree-node__name text-overflow">
-                      {{ item.master_domain }}
+                      {{ item.name }}
                     </span>
                     <span class="custom-tree-node__count">
                       {{ item.count }}
@@ -62,6 +62,7 @@
             <RenderContent
               :is-radio-mode="isRadioMode"
               :last-values="lastValues"
+              :master-slave-map="masterSlaveMap"
               :node="selectNode"
               :role="role"
               :table-settings="tableSettings"
@@ -75,13 +76,23 @@
 <script setup lang="ts">
   import type { Table } from 'bkui-vue';
 
-  import RedisModel from '@services/model/redis/redis';
   import { getRedisList } from '@services/source/redis';
+  import { queryMasterSlavePairs } from '@services/source/redisToolbox';
+
+  import { useGlobalBizs } from '@stores';
 
   import type { InstanceSelectorValues } from '../Index.vue';
 
   import type { PanelTypes } from './PanelTab.vue';
   import RenderRedisHost from './RenderRedisHost.vue';
+
+  interface TopoTreeData {
+    id: number;
+    name: string;
+    obj: 'biz' | 'cluster';
+    count: number;
+    children?: TopoTreeData[];
+  }
 
   interface Emits {
     (e: 'change', value: InstanceSelectorValues): void;
@@ -102,19 +113,31 @@
   });
   const emits = defineEmits<Emits>();
 
+  const { currentBizId, currentBizInfo } = useGlobalBizs();
+
   const isTreeDataLoading = ref(false);
   const treeRef = ref();
   const treeSearch = ref('');
   const selectNode = ref<{
     id: number;
     name: string;
-    clusterDomain: string;
   }>();
-  const treeData = shallowRef<RedisModel[]>([]);
+  const treeData = shallowRef<TopoTreeData[]>([]);
 
   const renderMap = { idleHosts: RenderRedisHost } as Record<string, any>;
 
   const RenderContent = computed(() => renderMap[props.activeTab as string]);
+
+  const masterSlaveMap: Record<string, ServiceReturnType<typeof queryMasterSlavePairs>[number]> = {};
+
+  const fetchMasterSlavePairs = (clusterIds: number[]) => {
+    const taskList = clusterIds.map((id) => queryMasterSlavePairs({ cluster_id: id }));
+    Promise.all(taskList).then((resultList) => {
+      resultList.flat().forEach((item) => {
+        masterSlaveMap[item.master_ip] = item;
+      });
+    });
+  };
 
   const fetchClusterTopo = () => {
     isTreeDataLoading.value = true;
@@ -123,20 +146,37 @@
       limit: -1,
     })
       .then((data) => {
-        const arr = data.results;
-        treeData.value = arr;
+        let total = 0;
+        const clusterIds: number[] = [];
+        const children = data.results.reduce<TopoTreeData[]>((acc, cluster) => {
+          total += cluster.count;
+          clusterIds.push(cluster.id);
+          return [
+            ...acc,
+            {
+              id: cluster.id,
+              name: cluster.cluster_name,
+              obj: 'cluster',
+              count: cluster.count,
+            },
+          ];
+        }, []);
+        treeData.value = [
+          {
+            name: currentBizInfo?.display_name || '--',
+            id: currentBizId,
+            obj: 'biz',
+            count: total,
+            children,
+          },
+        ];
+        fetchMasterSlavePairs(clusterIds);
         setTimeout(() => {
-          if (arr.length > 0) {
-            const [firstNode] = treeData.value;
+          if (data.results.length > 0) {
+            [selectNode.value] = treeData.value;
             const [firstRawNode] = treeRef.value.getData().data;
-            const node = {
-              id: firstNode.id,
-              name: firstNode.cluster_name,
-              clusterDomain: firstNode.master_domain,
-            };
             treeRef.value.setOpen(firstRawNode);
             treeRef.value.setSelect(firstRawNode);
-            selectNode.value = node;
           }
         });
       })
@@ -152,7 +192,7 @@
 
   // 选中topo节点，获取topo节点下面的所有主机
   const handleNodeClick = (
-    node: RedisModel,
+    node: TopoTreeData,
     info: unknown,
     {
       __is_open: isOpen,
@@ -164,12 +204,7 @@
     },
   ) => {
     const rawNode = treeRef.value.getData().data.find((item: { id: number }) => item.id === node.id);
-    const item = {
-      id: node.id,
-      name: node.cluster_name,
-      clusterDomain: node.master_domain,
-    };
-    selectNode.value = item;
+    selectNode.value = node;
     if (!isOpen && !isSelected) {
       treeRef.value.setNodeOpened(rawNode, true);
       treeRef.value.setSelect(rawNode, true);
