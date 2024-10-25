@@ -24,18 +24,7 @@
   import TicketModel from '@services/model/ticket/ticket';
 
   interface Props {
-    ticketDetails: TicketModel<RedisDBReplaceDetails>
-  }
-
-  interface RowData {
-    ip: string,
-    role: string,
-    clusterName: string,
-    clusterType: string,
-    sepc: {
-      id: number,
-      name: string,
-    },
+    ticketDetails: TicketModel<RedisDBReplaceDetails>;
   }
 
   const props = defineProps<Props>();
@@ -54,81 +43,17 @@
     },
     {
       label: t('所属集群'),
-      field: 'clusterName',
+      field: 'cluster_domain',
       showOverflowTooltip: true,
     },
     {
       label: t('规格需求'),
-      field: 'sepc',
+      field: 'spec_name',
       showOverflowTooltip: true,
-      render: ({ data }: {data: RowData}) => <span>{data.sepc.name}</span>,
     },
   ];
 
-  const tableData = computed(() => {
-    const {
-      clusters,
-      infos,
-      specs,
-    } = props.ticketDetails.details;
-
-    return infos.reduce((results, item) => {
-      if (item.proxy.length > 0) {
-        item.proxy.forEach((proxyItem) => {
-          const specInfo = specs[proxyItem.spec_id];
-          const obj = {
-            ip: proxyItem.ip,
-            role: 'Proxy',
-            clusterName: item.cluster_id
-              ? clusters[item.cluster_id].immute_domain // 兼容旧单据
-              : item.cluster_ids.map(id => clusters[id].immute_domain).join(','),
-            clusterType: clusters[item.cluster_ids[0]].cluster_type,
-            sepc: {
-              id: proxyItem.spec_id,
-              name: specInfo ? specInfo.name : '',
-            },
-          };
-          results.push(obj);
-        });
-      }
-      if (item.redis_master.length > 0) {
-        item.redis_master.forEach((masterItem) => {
-          const specInfo = specs[masterItem.spec_id];
-          const obj = {
-            ip: masterItem.ip,
-            role: 'Master',
-            clusterName: item.cluster_id
-              ? clusters[item.cluster_id].immute_domain // 兼容旧单据
-              : item.cluster_ids.map(id => clusters[id].immute_domain).join(','),
-            clusterType: clusters[item.cluster_ids[0]].cluster_type,
-            sepc: {
-              id: masterItem.spec_id,
-              name: specInfo ? specInfo.name : '',
-            },
-          };
-          results.push(obj);
-        });
-      }
-      if (item.redis_slave.length > 0) {
-        item.redis_slave.forEach((slaveItem) => {
-          const specInfo = specs[slaveItem.spec_id];
-          const obj = {
-            ip: slaveItem.ip,
-            role: 'Slave',
-            clusterName: item.cluster_id
-              ? clusters[item.cluster_id].immute_domain // 兼容旧单据
-              : item.cluster_ids.map(id => clusters[id].immute_domain).join(','),
-            clusterType: clusters[item.cluster_ids[0]].cluster_type,
-            sepc: {
-              id: slaveItem.spec_id,
-              name: specInfo ? specInfo.name : '',
-            },
-          };
-          results.push(obj);
-        });
-      }
-
-      return results;
-    }, [] as RowData[])
-  });
+  const tableData = computed(
+    () => props.ticketDetails.details.infos?.flatMap((info) => info.display_info?.data ?? []) ?? [],
+  );
 </script>

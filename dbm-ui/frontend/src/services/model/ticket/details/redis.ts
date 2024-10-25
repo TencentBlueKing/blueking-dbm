@@ -256,6 +256,15 @@ export interface RedisDBReplaceDetails extends DetailBase {
       ip: string;
       spec_id: number;
     }[];
+    display_info: {
+      data: {
+        ip: string;
+        role: string;
+        cluster_domain: string;
+        spec_id: number;
+        spec_name: string;
+      }[];
+    };
   }[];
   specs: DetailSpecs;
 }
