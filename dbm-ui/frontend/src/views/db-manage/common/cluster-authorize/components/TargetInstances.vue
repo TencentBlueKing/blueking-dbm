@@ -1,5 +1,6 @@
 <template>
   <BkFormItem
+    ref="formRef"
     v-model="targetInstances"
     class="cluster-authorize-bold"
     :label="t('目标集群')"
@@ -75,6 +76,7 @@
   const { t } = useI18n();
   const copy = useCopy();
 
+  const formRef = ref();
   const rules = [
     {
       trigger: 'change',
@@ -246,6 +248,7 @@
   };
 
   const updateTableData = (data: ResourceItem[]) => {
+    formRef.value.clearValidate();
     state.tableProps.data = data;
     state.tableProps.pagination.count = data.length;
     targetInstances.value = data.map(item => item.master_domain);

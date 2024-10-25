@@ -12,21 +12,23 @@
       :is-cloud-area-restrictions="false"
       :panel-list="['staticTopo', 'manualInput', 'dbmWhitelist']"
       service-mode="all"
-      @change="handleChangeIP" />
+      @change="handleChangeIP"
+      @change-whitelist="handleChangeWhitelist" />
   </DbFormItem>
 </template>
 
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
+  import { getWhitelist } from '@services/source/whitelist';
   import type { HostInfo } from '@services/types';
 
   import IpSelector from '@components/ip-selector/IpSelector.vue';
 
   export interface SourceIp {
     ip: string;
-    bk_host_id: number;
-    bk_biz_id: number;
+    bk_host_id?: number;
+    bk_biz_id?: number;
   }
 
   interface Exposes {
@@ -56,6 +58,14 @@
       bk_host_id: item.host_id,
       bk_biz_id: item.biz.id,
     }));
+  };
+
+  const handleChangeWhitelist = (data: ServiceReturnType<typeof getWhitelist>['results']) => {
+    // 避免与 handleChangeIP 同时修改 source_ips 参数
+    nextTick(() => {
+      const formatData = data.flatMap((item) => item.ips).map((ip) => ({ ip }));
+      sourceIps.value.push(...formatData);
+    });
   };
 
   defineExpose<Exposes>({
