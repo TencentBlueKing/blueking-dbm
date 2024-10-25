@@ -1,0 +1,214 @@
+{
+    "bk_biz_id": null,
+    "collector_config_name": "mysql_db_table_size",
+    "collector_config_name_en": "mysql_db_table_size",
+    "collector_scenario_id": "row",
+    "category_id": "host_process",
+    "etl_config": "bk_log_json",
+    "data_encoding": "UTF-8",
+    "retention": 7,
+    "es_shards": 3,
+    "target_object_type": "HOST",
+    "target_node_type": "TOPO",
+    "target_nodes": [],
+    "etl_params": {
+        "retain_original_text": true
+    },
+    "params": {
+        "paths": [
+            "/home/mysql/dbareport/mysql/dbsize/report.log.*"
+        ],
+        "conditions": {
+            "separator": "",
+            "separator_filters": [],
+            "type": "match",
+            "match_type": "include",
+            "match_content": ""
+        },
+        "tail_files": true,
+        "ignore_older": 2678400,
+        "max_bytes": 204800
+    },
+    "fields": [
+        {
+            "option": {
+                "time_zone": "",
+                "time_format": ""
+            },
+            "is_time": false,
+            "is_delete": false,
+            "alias_name": "appid",
+            "field_name": "bk_biz_id",
+            "field_type": "int",
+            "description": "",
+            "field_index": 0,
+            "is_analyzed": false,
+            "is_built_in": false,
+            "is_dimension": true,
+            "is_case_sensitive": false,
+            "tokenize_on_chars": ""
+        },
+        {
+            "option": {
+                "time_zone": "",
+                "time_format": ""
+            },
+            "is_time": false,
+            "is_delete": false,
+            "alias_name": "",
+            "field_name": "immute_domain",
+            "field_type": "string",
+            "description": "",
+            "field_index": 1,
+            "is_analyzed": false,
+            "is_built_in": false,
+            "is_dimension": true,
+            "is_case_sensitive": false,
+            "tokenize_on_chars": ""
+        },
+        {
+            "option": {
+                "time_zone": "",
+                "time_format": ""
+            },
+            "is_time": false,
+            "is_delete": false,
+            "alias_name": "db_ip",
+            "field_name": "ip",
+            "field_type": "string",
+            "description": "",
+            "field_index": 2,
+            "is_analyzed": false,
+            "is_built_in": false,
+            "is_dimension": true,
+            "is_case_sensitive": false,
+            "tokenize_on_chars": ""
+        },
+        {
+            "option": {
+                "time_zone": "",
+                "time_format": ""
+            },
+            "is_time": false,
+            "is_delete": false,
+            "alias_name": "",
+            "field_name": "port",
+            "field_type": "int",
+            "description": "",
+            "field_index": 3,
+            "is_analyzed": false,
+            "is_built_in": false,
+            "is_dimension": true,
+            "is_case_sensitive": false,
+            "tokenize_on_chars": ""
+        },
+        {
+            "option": {
+                "time_zone": "",
+                "time_format": ""
+            },
+            "is_time": false,
+            "is_delete": false,
+            "alias_name": "",
+            "field_name": "role",
+            "field_type": "string",
+            "description": "",
+            "field_index": 4,
+            "is_analyzed": false,
+            "is_built_in": false,
+            "is_dimension": true,
+            "is_case_sensitive": false,
+            "tokenize_on_chars": ""
+        },
+        {
+            "option": {
+                "time_zone": "",
+                "time_format": ""
+            },
+            "is_time": false,
+            "is_delete": false,
+            "alias_name": "",
+            "field_name": "original_db_name",
+            "field_type": "string",
+            "description": "",
+            "field_index": 5,
+            "is_analyzed": false,
+            "is_built_in": false,
+            "is_dimension": true,
+            "is_case_sensitive": false,
+            "tokenize_on_chars": ""
+        },
+        {
+            "option": {
+                "time_zone": "",
+                "time_format": ""
+            },
+            "is_time": false,
+            "is_delete": false,
+            "alias_name": "",
+            "field_name": "db_name",
+            "field_type": "string",
+            "description": "",
+            "field_index": 6,
+            "is_analyzed": false,
+            "is_built_in": false,
+            "is_dimension": true,
+            "is_case_sensitive": false,
+            "tokenize_on_chars": ""
+        },
+        {
+            "option": {
+                "time_zone": "",
+                "time_format": ""
+            },
+            "is_time": false,
+            "is_delete": false,
+            "alias_name": "",
+            "field_name": "db_size",
+            "field_type": "int",
+            "description": "",
+            "field_index": 7,
+            "is_analyzed": false,
+            "is_built_in": false,
+            "is_dimension": true,
+            "is_case_sensitive": false,
+            "tokenize_on_chars": ""
+        },
+        {
+            "option": {
+                "time_zone": "",
+                "time_format": ""
+            },
+            "is_time": false,
+            "is_delete": false,
+            "alias_name": "",
+            "field_name": "table_name",
+            "field_type": "string",
+            "description": "",
+            "field_index": 8,
+            "is_analyzed": false,
+            "is_built_in": false,
+            "is_dimension": true,
+            "is_case_sensitive": false,
+            "tokenize_on_chars": ""
+        },
+        {
+            "option": {
+                "time_zone": "",
+                "time_format": ""
+            },
+            "is_time": false,
+            "is_delete": false,
+            "alias_name": "",
+            "field_name": "table_size",
+            "field_type": "int",
+            "description": "",
+            "field_index": 9,
+            "is_analyzed": false,
+            "is_built_in": false,
+            "is_dimension": true,
+            "is_case_sensitive": false,
+            "tokenize_on_chars": ""
+        }
+    ]
+}
