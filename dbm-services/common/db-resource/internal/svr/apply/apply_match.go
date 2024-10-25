@@ -127,17 +127,21 @@ func (c *PickerObject) sortSubZoneNum(cross_subzone bool) []string {
 		if pq == nil || pq.Len() == 0 {
 			continue
 		}
+		var otherPriority int64
+		if v, ok := c.SubZonePrioritySumMap[key]; ok {
+			otherPriority = v
+		}
 		if cross_subzone {
 			if cmutil.ElementNotInArry(key, c.ExistSubZone) {
 				campusNice = append(campusNice, CampusNice{
 					Campus: key,
-					Count:  pq.Len(),
+					Count:  int64(pq.Len()*PriorityPMax) + otherPriority,
 				})
 			}
 		} else {
 			campusNice = append(campusNice, CampusNice{
 				Campus: key,
-				Count:  pq.Len(),
+				Count:  int64(pq.Len()*PriorityPMax) + otherPriority,
 			})
 		}
 	}
@@ -172,7 +176,6 @@ func (c *PickerObject) pickerOneByPriority(key string, cross_switch bool) bool {
 		}
 		c.ExistEquipmentIds = append(c.ExistEquipmentIds, v.Equipment)
 		c.SatisfiedHostIds = append(c.SatisfiedHostIds, v.BkHostId)
-		c.SelectedResources = append(c.SelectedResources, v.InsDetail)
 		c.ExistLinkNetdeviceIds = append(c.ExistLinkNetdeviceIds, v.LinkNetdeviceId...)
 		c.PickDistrbute[key]++
 		return true
@@ -181,16 +184,16 @@ func (c *PickerObject) pickerOneByPriority(key string, cross_switch bool) bool {
 }
 
 const (
+	// PriorityPMax 园区count 最大
+	PriorityPMax = 100000000
 	// PriorityP0 TODO
-	PriorityP0 = 100000
+	PriorityP0 = 10000
 	// PriorityP1 TODO
-	PriorityP1 = 10000
+	PriorityP1 = 1000
 	// PriorityP2 TODO
-	PriorityP2 = 1000
+	PriorityP2 = 100
 	// PriorityP3 TODO
-	PriorityP3 = 100
-	// PriorityP4 TODO
-	PriorityP4 = 10
+	PriorityP3 = 10
 )
 
 const (
@@ -199,7 +202,6 @@ const (
 )
 
 func (o *SearchContext) setResourcePriority(ins model.TbRpDetail, ele *Item) {
-
 	logger.Info("%v", ins.Storages)
 	if err := ins.UnmarshalDiskInfo(); err != nil {
 		logger.Error("%s umarshal disk failed %s", ins.IP, err.Error())
@@ -232,8 +234,10 @@ func (o *SearchContext) setResourcePriority(ins model.TbRpDetail, ele *Item) {
 
 // AnalysisResourcePriority 分析资源的优先级
 func (o *SearchContext) AnalysisResourcePriority(insList []model.TbRpDetail, israndom bool) (map[string]*PriorityQueue,
+	map[string]int64,
 	error) {
 	result := make(map[string]*PriorityQueue)
+	subZonePrioritySumMap := make(map[string]int64)
 	itemsMap := make(map[string][]Item)
 	for _, ins := range insList {
 		ele := Item{
@@ -252,6 +256,7 @@ func (o *SearchContext) AnalysisResourcePriority(insList []model.TbRpDetail, isr
 			itemsMap[RANDOM] = append(itemsMap[RANDOM], ele)
 		} else {
 			itemsMap[ins.SubZone] = append(itemsMap[ins.SubZone], ele)
+			subZonePrioritySumMap[ins.SubZone] += ele.Priority
 		}
 	}
 	logger.Info("items map %v", itemsMap)
@@ -263,9 +268,9 @@ func (o *SearchContext) AnalysisResourcePriority(insList []model.TbRpDetail, isr
 		for _, item := range items {
 			if err := result[subZoneName].Push(&item); err != nil {
 				logger.Error("push item failed %v", err)
-				return nil, err
+				return nil, subZonePrioritySumMap, err
 			}
 		}
 	}
-	return result, nil
+	return result, subZonePrioritySumMap, nil
 }

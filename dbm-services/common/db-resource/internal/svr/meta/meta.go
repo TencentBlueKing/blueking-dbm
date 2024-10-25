@@ -17,12 +17,13 @@ import (
 	"gorm.io/gorm/clause"
 )
 
-// MeasureRange TODO
+// MeasureRange measure range
 type MeasureRange struct {
 	Min int `json:"min"`
 	Max int `json:"max"`
 }
 
+// FloatMeasureRange float measure range
 type FloatMeasureRange struct {
 	Min float32 `json:"min"`
 	Max float32 `json:"max"`

@@ -66,7 +66,7 @@ func TestReserverCC(t *testing.T) {
 		RsType:  "MySQL",
 		Hosts:   hosts,
 	}
-	importResp, err := manage.Doimport(param)
+	importResp, err := manage.Doimport(param, "")
 	if err != nil {
 		t.Fatal(err)
 	}

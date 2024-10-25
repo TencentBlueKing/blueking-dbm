@@ -64,34 +64,59 @@ type TbRpDetail struct {
 	StorageDevice   json.RawMessage          `gorm:"column:storage_device;type:json;comment:'磁盘设备'" json:"storage_device"`
 	TotalStorageCap int                      `gorm:"column:total_storage_cap;type:int(11);comment:'磁盘总容量'" json:"total_storage_cap"`
 	Storages        map[string]bk.DiskDetail `gorm:"-" json:"-"`
+	//  操作系统类型 Liunx,Windows
 	/*Linux(1) Windows(2) AIX(3) Unix(4) Solaris(5) FreeBSD(7)*/
-	OsType      string            `gorm:"column:os_type;type:varchar(32);not null;comment:'操作系统类型'" json:"os_type"` //  操作系统类型 Liunx,Windows
-	OsBit       string            `gorm:"column:os_bit;type:varchar(32);not null;comment:'操作系统位数'" json:"os_bit"`
-	OsVerion    string            `gorm:"column:os_version;type:varchar(64);not null;comment:'操作系统版本'" json:"os_version"` //  操作系统版本
-	OsName      string            `gorm:"column:os_name;type:varchar(64);not null;comment:'操作系统名称'" json:"os_name"`       //  操作系统名称
-	Raid        string            `gorm:"column:raid;type:varchar(20);not null" json:"raid"`                              //  磁盘Raid
-	CityID      string            `gorm:"column:city_id;type:varchar(64);not null" json:"city_id"`                        //  实际城市ID
-	City        string            `gorm:"column:city;type:varchar(128);not null" json:"city"`                             //  实际城市名称
-	SubZone     string            `gorm:"column:sub_zone;type:varchar(32);not null" json:"sub_zone"`                      //  园区, 例如光明 cc_device_szone
-	SubZoneID   string            `gorm:"column:sub_zone_id;type:varchar(64);not null" json:"sub_zone_id"`                //  园区ID cc_device_szone_id
-	RackID      string            `gorm:"column:rack_id;type:varchar(64);not null" json:"rack_id"`                        //  存放机架ID,判断是否是同机架
-	NetDeviceID string            `gorm:"column:net_device_id;type:varchar(128)" json:"net_device_id"`                    //  网络设备ID, 判断是同交换机
-	Label       json.RawMessage   `gorm:"column:label;type:json" json:"label"`                                            //  标签
-	LabelMap    map[string]string `gorm:"-" json:"-"`
-	IsInit      int               `gorm:"column:is_init;type:int(11);comment:'是否初始化过'" json:"-"`  // 是否初始化过
-	IsIdle      int               `gorm:"column:is_idle;type:int(11);comment:'是否空闲检查过'" json:"-"` // 是否空闲检查过
-	Status      string            `gorm:"column:status;type:varchar(20);not null" json:"status"`  //  Unused: 未使用 Used: 已经售卖被使用: Preselected:预占用
-	BkAgentId   string            `gorm:"index:idx_bk_agent_id;column:bk_agent_id;type:varchar(64);not null" json:"bk_agent_id"`
+	OsType string `gorm:"column:os_type;type:varchar(32);not null;comment:'操作系统类型'" json:"os_type"`
+	OsBit  string `gorm:"column:os_bit;type:varchar(32);not null;comment:'操作系统位数'" json:"os_bit"`
+	//  操作系统版本
+	OsVerion string `gorm:"column:os_version;type:varchar(64);not null;comment:'操作系统版本'" json:"os_version"`
+	//  操作系统名称
+	OsName string `gorm:"column:os_name;type:varchar(64);not null;comment:'操作系统名称'" json:"os_name"`
+	//  磁盘Raid
+	Raid string `gorm:"column:raid;type:varchar(20);not null" json:"raid"`
+	//  实际城市ID
+	CityID string `gorm:"column:city_id;type:varchar(64);not null" json:"city_id"`
+	//  实际城市名称
+	City string `gorm:"column:city;type:varchar(128);not null" json:"city"`
+	//  园区, 例如光明 cc_device_szone
+	SubZone string `gorm:"column:sub_zone;type:varchar(32);not null" json:"sub_zone"`
+	//  园区ID cc_device_szone_id
+	SubZoneID string `gorm:"column:sub_zone_id;type:varchar(64);not null" json:"sub_zone_id"`
+	//  存放机架ID,判断是否是同机架
+	RackID string `gorm:"column:rack_id;type:varchar(64);not null" json:"rack_id"`
+	//  网络设备ID, 判断是同交换机
+	NetDeviceID string `gorm:"column:net_device_id;type:varchar(128)" json:"net_device_id"`
+	//  标签
+	Labels json.RawMessage `gorm:"column:labels;type:json" json:"labels"`
+	// 是否初始化过
+	IsInit int `gorm:"column:is_init;type:int(11);comment:'是否初始化过'" json:"-"`
+	// 是否空闲检查过
+	IsIdle int `gorm:"column:is_idle;type:int(11);comment:'是否空闲检查过'" json:"-"`
+	//  Unused: 未使用 Used: 已经售卖被使用: Preselected:预占用
+	Status    string `gorm:"column:status;type:varchar(20);not null" json:"status"`
+	BkAgentId string `gorm:"index:idx_bk_agent_id;column:bk_agent_id;type:varchar(64);not null" json:"bk_agent_id"`
 	// gse Agent当前运行状态码, -1:未知 0:初始安装 1:启动中 2:运行中 3:有损状态 4:繁忙状态 5:升级中 6:停止中 7:解除安装
 	AgentStatusCode int `gorm:"column:gse_agent_status_code;type:int(11);not null" json:"gse_agent_status_code"`
 	// agent status 最后一次更新时间
 	AgentStatusUpdateTime time.Time `gorm:"column:agent_status_update_time;type:timestamp;default:1970-01-01 08:00:01" json:"agent_status_update_time"`
-	ConsumeTime           time.Time `gorm:"column:consume_time;type:timestamp;default:1970-01-01 08:00:01" json:"consume_time"` // 消费时间
-	UpdateTime            time.Time `gorm:"column:update_time;type:timestamp;default:CURRENT_TIMESTAMP()" json:"update_time"`   // 最后修改时间
-	CreateTime            time.Time `gorm:"column:create_time;type:timestamp;default:CURRENT_TIMESTAMP()" json:"create_time"`   // 创建时间
+	// 消费时间
+	ConsumeTime time.Time `gorm:"column:consume_time;type:timestamp;default:1970-01-01 08:00:01" json:"consume_time"`
+	// 最后修改时间
+	UpdateTime time.Time `gorm:"column:update_time;type:timestamp;default:CURRENT_TIMESTAMP()" json:"update_time"`
+	// 创建时间
+	CreateTime time.Time `gorm:"column:create_time;type:timestamp;default:CURRENT_TIMESTAMP()" json:"create_time"`
 	// foreiginKey:关联表的结构字段 references:当前表的结构字段
 	// SubStorages []TbRpStorageItem `gorm:"foreignKey:BkHostID;references:BkHostID"`
 }
+
+const (
+	// LiunxOs linux
+	LiunxOs = "Linux"
+	// WindowsOs windows
+	WindowsOs = "Windows"
+	// UnixOs unix
+	UnixOs = "Unix"
+)
 
 // ConvertOsTypeToHuman 转换系统类型到可读字符
 //
@@ -99,27 +124,27 @@ type TbRpDetail struct {
 func ConvertOsTypeToHuman(osType string) string {
 	switch osType {
 	case "1":
-		return "Linux"
+		return LiunxOs
 	case "2":
-		return "Windows"
+		return WindowsOs
 	case "4":
-		return "Unix"
+		return UnixOs
 	default:
 		return "Unknown Operating System"
 	}
 }
 
-// TableName TODO
+// TableName table name
 func (TbRpDetail) TableName() string {
 	return TbRpDetailName()
 }
 
-// TbRpDetailName TODO
+// TbRpDetailName tbrp detail table name
 func TbRpDetailName() string {
 	return "tb_rp_detail"
 }
 
-// MatchDbmSpec 资源是否匹配dbm的规格
+// MatchDbmSpec whether the resource matches dbm specifications
 func (t TbRpDetail) MatchDbmSpec(spec dbmapi.DbmSpec) bool {
 	logger.Info("spec:%+v", spec)
 	logger.Info("cpu:%d,mem:%d,city:%s,disk:%s", t.CPUNum, t.DramCap, t.City, string(t.StorageDevice))
@@ -259,7 +284,7 @@ type BatchGetTbDetailResult struct {
 	Data []TbRpDetail `json:"data"`
 }
 
-// BatchGetSatisfiedByAssetIds 批量设置资源状态
+// BatchGetSatisfiedByAssetIds batch setting resource status
 func BatchGetSatisfiedByAssetIds(elements []BatchGetTbDetail, mode string) (result []BatchGetTbDetailResult,
 	err error) {
 	db := DB.Self.Begin()
@@ -272,20 +297,20 @@ func BatchGetSatisfiedByAssetIds(elements []BatchGetTbDetail, mode string) (resu
 	for _, v := range elements {
 		d, err = SetSatisfiedStatus(db, v.BkHostIds, mode)
 		if err != nil {
-			logger.Error(fmt.Sprintf("Item:%s,failed to obtain resource details!,Error is %s", v.Item, err.Error()))
+			logger.Error("Item:%s,failed to obtain resource details!,Error is %s", v.Item, err.Error())
 			return nil, err
 		}
 		result = append(result, BatchGetTbDetailResult{Item: v.Item, Data: d})
 	}
 	err = db.Commit().Error
 	if err != nil {
-		logger.Error(fmt.Sprintf("transaction commit failed: %s", err.Error()))
+		logger.Error("transaction commit failed: %v", err)
 		return nil, err
 	}
 	return
 }
 
-// SetSatisfiedStatus 获取满足条件的的资源,并更新状态
+// SetSatisfiedStatus get resources that meet the conditions and update status
 func SetSatisfiedStatus(tx *gorm.DB, bkhostIds []int, status string) (result []TbRpDetail, err error) {
 	err = tx.Exec("select * from tb_rp_detail where bk_host_id in (?) for update", bkhostIds).Error
 	if err != nil {
@@ -296,12 +321,12 @@ func SetSatisfiedStatus(tx *gorm.DB, bkhostIds []int, status string) (result []T
 		return nil, err
 	}
 	if len(bkhostIds) != len(result) {
-		logger.Error(fmt.Sprintf("Get TbRpDetail is %v", result))
+		logger.Error("Get TbRpDetail is %v", result)
 		return nil, fmt.Errorf("requried count is %d,But Only Get %d", len(bkhostIds), len(result))
 	}
 	rdb := tx.Exec("update tb_rp_detail set status=?,consume_time=now() where bk_host_id in ?", status, bkhostIds)
 	if rdb.Error != nil {
-		logger.Error(fmt.Sprintf("update status Failed,Error %v", rdb.Error))
+		logger.Error("update status Failed,Error %v", rdb.Error)
 		return nil, err
 	}
 	if int(rdb.RowsAffected) != len(bkhostIds) {

@@ -78,6 +78,23 @@ type RequestInputParam struct {
 	ActionInfo
 }
 
+// BuildMessage build apply message
+func (param RequestInputParam) BuildMessage() (msg string) {
+	var count int
+	groupMap := make(map[string]int)
+	groupCountMap := make(map[string]int)
+	for _, d := range param.Details {
+		groupMap[d.Affinity]++
+		groupCountMap[d.Affinity] += d.Count
+		count += d.Count
+	}
+	msg = fmt.Sprintf("此次申请分%d组申请%d个机器\n", len(param.Details), count)
+	for affinity, count := range groupMap {
+		msg += fmt.Sprintf("按照亲和性%s申请的资源分组%d,总共包含机器数量%d\n", affinity, count, groupCountMap[affinity])
+	}
+	return msg
+}
+
 // SortDetails 优先去匹配有明确需求的参数
 func (param RequestInputParam) SortDetails() ([]ObjectDetail, error) {
 	if len(param.Details) == 1 {
@@ -172,41 +189,61 @@ func (param RequestInputParam) LockKey() string {
 }
 
 const (
-	// SAME_SUBZONE_CROSS_SWTICH TODO
+	// SAME_SUBZONE_CROSS_SWTICH 同城同园区跨交换机跨机架
 	SAME_SUBZONE_CROSS_SWTICH = "SAME_SUBZONE_CROSS_SWTICH"
-	// SAME_SUBZONE TODO
+	// SAME_SUBZONE 同城同园区
 	SAME_SUBZONE = "SAME_SUBZONE"
-	// CROS_SUBZONE TODO
+	// CROS_SUBZONE 同城跨园区
 	CROS_SUBZONE = "CROS_SUBZONE"
-	// MAX_EACH_ZONE_EQUAL TODO
+	// MAX_EACH_ZONE_EQUAL 尽量每个zone分配数量相等
 	MAX_EACH_ZONE_EQUAL = "MAX_EACH_ZONE_EQUAL"
 	// CROSS_RACK 跨机架
 	CROSS_RACK = "CROSS_RACK"
-	// NONE TODO
+	// NONE 无亲和性
 	NONE = "NONE"
 )
 
-// ObjectDetail TODO
+// ObjectDetail 资源申请对象详情
+// 反亲和性 目前只有一种选项,当campus是空的时候，则此值生效
+// SAME_SUBZONE_CROSS_SWTICH: 同城同subzone跨交换机跨机架、
+// SAME_SUBZONE: 同城同subzone
+// CROS_SUBZONE：同城跨subzone
+// NONE: 无需亲和性处理
 type ObjectDetail struct {
-	BkCloudId int               `json:"bk_cloud_id"`
-	GroupMark string            `json:"group_mark" binding:"required" ` // 资源组标记
-	Labels    map[string]string `json:"labels"`                         // 标签
+	BkCloudId int      `json:"bk_cloud_id"`
+	Hosts     Hosts    `json:"hosts"`                          // 主机id
+	GroupMark string   `json:"group_mark" binding:"required" ` // 资源组标记
+	Labels    []string `json:"labels"`                         // 标签
 	// 通过机型规格 或者 资源规格描述来匹配资源
 	// 这两个条件是 || 关系
 	DeviceClass  []string          `json:"device_class"` // 机器类型 "IT5.8XLARGE128" "SA3.2XLARGE32"
 	Spec         meta.Spec         `json:"spec"`         // 规格描述
 	StorageSpecs []meta.DiskSpec   `json:"storage_spec"`
 	LocationSpec meta.LocationSpec `json:"location_spec"` // 地域区间
-	// 反亲和性 目前只有一种选项,当campus是空的时候，则此值生效
-	// SAME_SUBZONE_CROSS_SWTICH: 同城同subzone跨交换机跨机架、
-	// SAME_SUBZONE: 同城同subzone
-	// CROS_SUBZONE：同城跨subzone
-	// NONE: 无需亲和性处理
+
 	Affinity string `json:"affinity"`
 	// Windows,Linux
 	OsType  string   `json:"os_type"`
 	OsNames []string `json:"os_names"`
 	Count   int      `json:"count" binding:"required,min=1"` // 申请数量
+}
+
+// Hosts bk hosts
+type Hosts []Host
+
+// GetBkHostIds get bk host ids
+func (a Hosts) GetBkHostIds() []int {
+	var bkHostIds []int
+	for _, v := range a {
+		bkHostIds = append(bkHostIds, v.BkHostId)
+	}
+	return bkHostIds
+}
+
+// Host bk host
+type Host struct {
+	BkHostId int    `json:"bk_host_id"`
+	IP       string `json:"ip"`
 }
 
 // GetDiskMatchInfo get request disk message

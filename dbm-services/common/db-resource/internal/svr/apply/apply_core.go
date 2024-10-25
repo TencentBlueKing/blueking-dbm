@@ -34,17 +34,17 @@ type subzone = string
 
 // PickerObject TODO
 type PickerObject struct {
-	Item              string
-	Count             int
-	PickDistrbute     map[string]int
-	ExistSubZone      []subzone // 已存在的园区
-	SatisfiedHostIds  []int
-	SelectedResources []*model.TbRpDetail
-
+	Item          string
+	Count         int
+	PickDistrbute map[string]int
+	// 已存在的园区
+	ExistSubZone     []subzone
+	SatisfiedHostIds []int
+	// SelectedResources []*model.TbRpDetail
 	// 待选择实例
-	// PickeElements map[subzone][]InstanceObject
 	// 具备优先级的待选实例列表
-	PriorityElements map[subzone]*PriorityQueue
+	PriorityElements      map[subzone]*PriorityQueue
+	SubZonePrioritySumMap map[subzone]int64
 
 	// 资源请求在同园区的时候才生效
 	ExistEquipmentIds     []string // 已存在的设备Id
@@ -187,13 +187,13 @@ func (c *PickerObject) RollbackUnusedInstance() error {
 	return model.UpdateTbRpDetailStatusAtSelling(c.SatisfiedHostIds, model.Unused)
 }
 
-// CampusNice TODO
+// CampusNice build campus
 type CampusNice struct {
 	Campus string `json:"campus"`
-	Count  int    `json:"count"`
+	Count  int64  `json:"count"`
 }
 
-// CampusWrapper TODO
+// CampusWrapper 园区排序
 type CampusWrapper struct {
 	Campus []CampusNice
 	by     func(p, q *CampusNice) bool
@@ -243,4 +243,46 @@ func (c *PickerObject) InterSectForLinkNetDevice(linkDeviceIds []string) int {
 		}
 	}
 	return baseSet.Intersect(myset).Cardinality()
+}
+
+// InstanceObject instance object
+type InstanceObject struct {
+	BkHostId        int
+	Equipment       string
+	LinkNetdeviceId []string
+	Nice            int64
+	InsDetail       *model.TbRpDetail
+}
+
+// GetLinkNetDeviceIdsInterface getLinkNetDeviceIdsInterface
+func (c *InstanceObject) GetLinkNetDeviceIdsInterface() []interface{} {
+	var k []interface{}
+	for _, v := range c.LinkNetdeviceId {
+		k = append(k, v)
+	}
+	return k
+}
+
+// Wrapper Wrapper
+type Wrapper struct {
+	Instances []InstanceObject
+	by        func(p, q *InstanceObject) bool
+}
+
+// SortBy sortby
+type SortBy func(p, q *InstanceObject) bool
+
+// Len 用于排序
+func (pw Wrapper) Len() int { // 重写 Len() 方法
+	return len(pw.Instances)
+}
+
+// Swap 用于排序
+func (pw Wrapper) Swap(i, j int) { // 重写 Swap() 方法
+	pw.Instances[i], pw.Instances[j] = pw.Instances[j], pw.Instances[i]
+}
+
+// Less 用于排序
+func (pw Wrapper) Less(i, j int) bool { // 重写 Less() 方法
+	return pw.by(&pw.Instances[i], &pw.Instances[j])
 }

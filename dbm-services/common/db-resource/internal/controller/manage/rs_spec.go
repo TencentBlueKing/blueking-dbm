@@ -19,7 +19,6 @@ import (
 	"dbm-services/common/db-resource/internal/svr/bk"
 	"dbm-services/common/db-resource/internal/svr/dbmapi"
 	"dbm-services/common/db-resource/internal/svr/meta"
-	"dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/common/go-pubpkg/errno"
 	"dbm-services/common/go-pubpkg/logger"
 )
@@ -38,15 +37,15 @@ type SpecInfo struct {
 	GroupMark    string          `json:"group_mark" binding:"required" `
 	DeviceClass  []string        `json:"device_class"`
 	Spec         meta.Spec       `json:"spec"`
+	Labels       []string        `json:"labels"`
 	StorageSpecs []meta.DiskSpec `json:"storage_spec"`
 }
 
 // SpecSum TODO
 func (m MachineResourceHandler) SpecSum(r *gin.Context) {
 	var input SpecCheckInput
-	requestId := r.GetString("request_id")
 	if err := m.Prepare(r, &input); err != nil {
-		m.SendResponse(r, err, err.Error(), requestId)
+		m.SendResponse(r, err, err.Error())
 		return
 	}
 	rpdata := make(map[string]int64)
@@ -58,7 +57,7 @@ func (m MachineResourceHandler) SpecSum(r *gin.Context) {
 		idcCitys, err = dbmapi.GetIdcCityByLogicCity(input.LocationSpec.City)
 		if err != nil {
 			logger.Error("request real citys by logic city %s from bkdbm api failed:%v", input.LocationSpec.City, err)
-			m.SendResponse(r, err, err.Error(), requestId)
+			m.SendResponse(r, err, err.Error())
 			return
 		}
 	}
@@ -85,20 +84,18 @@ func (m MachineResourceHandler) SpecSum(r *gin.Context) {
 		if input.ForbizId > 0 {
 			db.Where("dedicated_biz in (?) ", []int{input.ForbizId, 0})
 		}
-		if cmutil.IsNotEmpty(input.ResourceType) {
-			db.Where("rs_type in (?) ", []string{input.ResourceType, model.PUBLIC_RESOURCE_DBTYEP})
-		} else {
-			db.Where("rs_type in (?) ", []string{model.PUBLIC_RESOURCE_DBTYEP})
-		}
+		s.MatchRsType(db)
 		s.MatchStorage(db)
 		s.MatchSpec(db)
 		s.MatchLocationSpec(db)
+		s.MatchLabels(db)
+		s.MatchOsType(db)
 		if err := db.Scan(&count).Error; err != nil {
 			logger.Error("query pre check count failed %s", err.Error())
-			m.SendResponse(r, errno.ErrDBQuery.AddErr(err), err.Error(), requestId)
+			m.SendResponse(r, errno.ErrDBQuery.AddErr(err), err.Error())
 			return
 		}
 		rpdata[item.GroupMark] = count
 	}
-	m.SendResponse(r, nil, rpdata, requestId)
+	m.SendResponse(r, nil, rpdata)
 }

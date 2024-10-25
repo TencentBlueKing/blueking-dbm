@@ -29,24 +29,24 @@ func (c *LableHandler) Edit(r *rf.Context) {
 		logger.Error(fmt.Sprintf("Preare Error %s", err.Error()))
 		return
 	}
-	requestId := r.GetString("request_id")
+	// requestId := r.GetString("request_id")
 	lableJson, err := cmutil.ConverMapToJsonStr(cmutil.CleanStrMap(input.Labels))
 	if err != nil {
 		logger.Error(fmt.Sprintf("ConverLableToJsonStr Failed,Error:%s", err.Error()))
-		c.SendResponse(r, err, nil, requestId)
+		c.SendResponse(r, err, nil)
 		return
 	}
 	if len(input.BkHostIds) == 0 {
-		c.SendResponse(r, nil, nil, requestId)
+		c.SendResponse(r, nil, nil)
 		return
 	}
-	err = model.DB.Self.Table(model.TbRpDetailName()).Where("bk_host_id in ? ", input.BkHostIds).Update("label",
+	err = model.DB.Self.Table(model.TbRpDetailName()).Where("bk_host_id in ? ", input.BkHostIds).Update("labels",
 		lableJson).
 		Error
 	if err != nil {
 		logger.Error(fmt.Sprintf("Update Lable Failed %s", err.Error()))
-		c.SendResponse(r, err, nil, requestId)
+		c.SendResponse(r, err, nil)
 		return
 	}
-	c.SendResponse(r, nil, nil, requestId)
+	c.SendResponse(r, nil, nil)
 }

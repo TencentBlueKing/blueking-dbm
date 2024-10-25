@@ -34,7 +34,7 @@ type MachineResourceGetterInputParam struct {
 	City         []string          `json:"city"`
 	SubZoneIds   []string          `json:"subzone_ids"`
 	DeviceClass  []string          `json:"device_class"`
-	Labels       map[string]string `json:"labels"`
+	Labels       []string          `json:"labels"`
 	Hosts        []string          `json:"hosts"`
 	BkCloudIds   []int             `json:"bk_cloud_ids"`
 	RsType       string            `json:"resource_type"`
@@ -62,18 +62,17 @@ func (c *MachineResourceHandler) List(r *rf.Context) {
 	if c.Prepare(r, &input) != nil {
 		return
 	}
-	requestId := r.GetString("request_id")
 	if err := input.paramCheck(); err != nil {
-		c.SendResponse(r, errno.ErrErrInvalidParam.AddErr(err), nil, requestId)
+		c.SendResponse(r, errno.ErrErrInvalidParam.AddErr(err), nil)
 		return
 	}
 	db := model.DB.Self.Table(model.TbRpDetailName())
 	if err := input.queryBs(db); err != nil {
-		c.SendResponse(r, err, requestId, err.Error())
+		c.SendResponse(r, err, err.Error())
 		return
 	}
 	if err := db.Count(&count).Error; err != nil {
-		c.SendResponse(r, err, requestId, err.Error())
+		c.SendResponse(r, err, err.Error())
 		return
 	}
 	if input.Limit > 0 {
@@ -81,10 +80,10 @@ func (c *MachineResourceHandler) List(r *rf.Context) {
 	}
 	var data []model.TbRpDetail
 	if err := db.Find(&data).Error; err != nil {
-		c.SendResponse(r, errno.ErrDBQuery.AddErr(err), requestId, err.Error())
+		c.SendResponse(r, errno.ErrDBQuery.AddErr(err), err.Error())
 		return
 	}
-	c.SendResponse(r, nil, map[string]interface{}{"details": data, "count": count}, requestId)
+	c.SendResponse(r, nil, map[string]interface{}{"details": data, "count": count})
 }
 
 func (c *MachineResourceGetterInputParam) paramCheck() (err error) {
@@ -193,7 +192,9 @@ func (c *MachineResourceGetterInputParam) queryBs(db *gorm.DB) (err error) {
 	if len(c.SubZoneIds) > 0 {
 		db.Where(" sub_zone_id in (?) ", c.SubZoneIds)
 	}
-
+	if len(c.Labels) > 0 {
+		db.Where(model.JSONQuery("labels").JointOrContains(c.Labels))
+	}
 	if cmutil.IsNotEmpty(c.OsType) {
 		db.Where("os_type = ?", c.OsType)
 	}
@@ -203,19 +204,19 @@ func (c *MachineResourceGetterInputParam) queryBs(db *gorm.DB) (err error) {
 
 // ListAll TODO
 func (c *MachineResourceHandler) ListAll(r *rf.Context) {
-	requestId := r.GetString("request_id")
+	// requestId := r.GetString("request_id")
 	var data []model.TbRpDetail
 	db := model.DB.Self.Table(model.TbRpDetailName()).Where("status in (?)", []string{model.Unused, model.Prepoccupied,
 		model.Preselected})
 	err := db.Scan(&data).Error
 	if err != nil {
-		c.SendResponse(r, err, requestId, err.Error())
+		c.SendResponse(r, err, err.Error())
 		return
 	}
 	var count int64
 	if err := db.Count(&count).Error; err != nil {
-		c.SendResponse(r, err, requestId, err.Error())
+		c.SendResponse(r, err, err.Error())
 		return
 	}
-	c.SendResponse(r, nil, map[string]interface{}{"details": data, "count": count}, requestId)
+	c.SendResponse(r, nil, map[string]interface{}{"details": data, "count": count})
 }

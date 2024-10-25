@@ -23,8 +23,10 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// BaseHandler TODO
-type BaseHandler struct{}
+// BaseHandler base handler
+type BaseHandler struct {
+	RequestId string
+}
 
 // Response http respone
 type Response struct {
@@ -39,12 +41,13 @@ func (c *BaseHandler) Prepare(r *gin.Context, schema interface{}) error {
 	requestId := r.GetString("request_id")
 	if cmutil.IsEmpty(requestId) {
 		err := fmt.Errorf("get request id error ~")
-		c.SendResponse(r, err, nil, requestId)
+		c.SendResponse(r, err, nil)
 		return err
 	}
+	c.RequestId = requestId
 	if err := r.ShouldBind(&schema); err != nil {
 		logger.Error("ShouldBind Failed %s", err.Error())
-		c.SendResponse(r, err, nil, requestId)
+		c.SendResponse(r, err, nil)
 		return err
 	}
 	logger.Info("param is %v", schema)
@@ -52,13 +55,13 @@ func (c *BaseHandler) Prepare(r *gin.Context, schema interface{}) error {
 }
 
 // SendResponse retrnurns a response
-func (c *BaseHandler) SendResponse(r *gin.Context, err error, data interface{}, requestId string) {
+func (c *BaseHandler) SendResponse(r *gin.Context, err error, data interface{}) {
 	code, message := errno.DecodeErr(err)
 	r.JSON(http.StatusOK, Response{
 		Code:      code,
 		Message:   message,
 		Data:      data,
-		RequestId: requestId,
+		RequestId: c.RequestId,
 	})
 }
 
@@ -76,13 +79,13 @@ func (c *BackStageHandler) RegisterRouter(engine *gin.Engine) {
 	}
 }
 
-// RunModuleCheck 运行模块检查
+// RunModuleCheck run module check
 func (c BackStageHandler) RunModuleCheck(r *gin.Context) {
 	err := task.InspectCheckResource()
 	if err != nil {
 		logger.Error("inspectCheckResource failed %v", err)
 	}
-	c.SendResponse(r, nil, "Check Success", "")
+	c.SendResponse(r, nil, "Check Success")
 }
 
 // RunAsyncCmdb async from cmdb
@@ -91,5 +94,5 @@ func (c BackStageHandler) RunAsyncCmdb(r *gin.Context) {
 	if err != nil {
 		logger.Error("asyncResourceHardInfo failed %v", err)
 	}
-	c.SendResponse(r, nil, "async success", "")
+	c.SendResponse(r, nil, "async success")
 }

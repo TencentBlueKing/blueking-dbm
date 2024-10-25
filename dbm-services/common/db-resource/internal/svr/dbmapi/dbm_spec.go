@@ -96,6 +96,7 @@ func (c *DbmClient) GetDbmSpec(queryParam map[string]string) (specData []DbmSpec
 	}
 	query.Set("limit", "-1")
 	u.RawQuery = query.Encode()
+	logger.Info("query url:%s", u.String())
 	request, err := http.NewRequest("GET", u.String(), nil)
 	if err != nil {
 		return nil, err
@@ -111,6 +112,7 @@ func (c *DbmClient) GetDbmSpec(queryParam map[string]string) (specData []DbmSpec
 		logger.Error("read respone body failed %s", err.Error())
 		return
 	}
+	logger.Info("GetDbmSpec respone:%s", string(body))
 	var rpdata DbmBaseResp
 	if err = json.Unmarshal(body, &rpdata); err != nil {
 		logger.Error("unmarshal respone body failed %s", err.Error())
@@ -119,6 +121,7 @@ func (c *DbmClient) GetDbmSpec(queryParam map[string]string) (specData []DbmSpec
 	if rpdata.Code != 0 {
 		return nil, fmt.Errorf("respone code:%d,message:%s", rpdata.Code, rpdata.Message)
 	}
+	logger.Debug("GetDbmSpec respone:%s", string(rpdata.Data))
 	var specRespData DbmSpecBaseResp
 	if err = json.Unmarshal(rpdata.Data, &specRespData); err != nil {
 		logger.Error("unmarshal  DbmBaseResp body failed %s", err.Error())

@@ -26,6 +26,7 @@ import (
 	"dbm-services/common/go-pubpkg/logger"
 
 	"github.com/gin-gonic/gin"
+	"github.com/samber/lo"
 )
 
 func init() {
@@ -65,33 +66,27 @@ func (c *ApplyHandler) ConfirmApply(r *gin.Context) {
 	if c.Prepare(r, &param) != nil {
 		return
 	}
-	requestId := r.GetString("request_id")
-	hostIds := cmutil.RemoveDuplicate(param.HostIds)
+	hostIds := lo.Uniq(param.HostIds)
 	var cnt int64
 	err := model.DB.Self.Table(model.TbRpApplyDetailLogName()).Where("request_id = ?", param.RequestId).Count(&cnt).Error
 	if err != nil {
 		logger.Error("use request id %s,query apply resouece failed %s", param.RequestId, err.Error())
-		c.SendResponse(r, fmt.Errorf("%w", err), "use request id search applyed resource failed", requestId)
 		return
 	}
 	if len(hostIds) != int(cnt) {
 		c.SendResponse(r, fmt.Errorf("need return resource count is %d,but use request id only found total count %d",
-			len(hostIds), cnt), requestId, "")
+			len(hostIds), cnt), "")
 		return
 	}
 	var rs []model.TbRpDetail
 	err = model.DB.Self.Table(model.TbRpDetailName()).Where(" bk_host_id in (?) and status != ? ", hostIds,
 		model.Prepoccupied).Find(&rs).Error
 	if err != nil {
-		c.SendResponse(r, err, err.Error(), requestId)
+		c.SendResponse(r, err, err.Error())
 		return
 	}
 	if len(rs) > 0 {
-		var errMsg string
-		for _, v := range rs {
-			errMsg += fmt.Sprintf("%s:%s\n", v.IP, v.Status)
-		}
-		c.SendResponse(r, fmt.Errorf("the following example:%s,abnormal state", errMsg), "", requestId)
+		c.SendResponse(r, fmt.Errorf("the following example:%s,abnormal state", buildErrMsg(rs)), "")
 		return
 	}
 	// update to used status
@@ -103,7 +98,7 @@ func (c *ApplyHandler) ConfirmApply(r *gin.Context) {
 		},
 	)
 	if err != nil {
-		c.SendResponse(r, err, err.Error(), requestId)
+		c.SendResponse(r, err, err.Error())
 		return
 	}
 	uerr := model.DB.Self.Table(model.TbRpOperationInfoTableName()).Where("request_id = ?",
@@ -112,7 +107,15 @@ func (c *ApplyHandler) ConfirmApply(r *gin.Context) {
 		logger.Warn("update tb_rp_operation_info failed %s ", uerr.Error())
 	}
 	archive(hostIds)
-	c.SendResponse(r, nil, "successful", requestId)
+	c.SendResponse(r, nil, "successful")
+}
+
+func buildErrMsg(abnormalRsList []model.TbRpDetail) string {
+	var errMsg string
+	for _, v := range abnormalRsList {
+		errMsg += fmt.Sprintf("%s:%s\n", v.IP, v.Status)
+	}
+	return errMsg
 }
 
 func archive(bkHostIds []int) {
@@ -151,20 +154,18 @@ func (c *ApplyHandler) ApplyBase(r *gin.Context, mode string) {
 	var param apply.RequestInputParam
 	var pickers []*apply.PickerObject
 	var err error
-	var requestId string
 	if c.Prepare(r, &param) != nil {
 		return
 	}
-	requestId = r.GetString("request_id")
 	if err = param.ParamCheck(); err != nil {
-		c.SendResponse(r, errno.ErrApplyResourceParamCheck.AddErr(err), err.Error(), requestId)
+		c.SendResponse(r, errno.ErrApplyResourceParamCheck.AddErr(err), err.Error())
 		return
 	}
 	// get the resource lock if it is dry run you do not need to acquire it
 	if !param.DryRun {
-		lock := newLocker(param.LockKey(), requestId)
+		lock := newLocker(param.LockKey(), c.RequestId)
 		if err = lock.Lock(); err != nil {
-			c.SendResponse(r, errno.ErrResourceLock.AddErr(err), err.Error(), requestId)
+			c.SendResponse(r, errno.ErrResourceLock.AddErr(err), err.Error())
 			return
 		}
 		defer func() {
@@ -175,27 +176,29 @@ func (c *ApplyHandler) ApplyBase(r *gin.Context, mode string) {
 		}()
 	}
 	defer func() {
-		apply.RollBackAllInstanceUnused(pickers)
+		if err != nil {
+			apply.RollBackAllInstanceUnused(pickers)
+		}
 	}()
 	pickers, err = apply.CycleApply(param)
 	if err != nil {
-		c.SendResponse(r, err, "", requestId)
+		c.SendResponse(r, errno.ErrResourceinsufficient.Add(param.BuildMessage()+"\n"+err.Error()), "")
 		return
 	}
 	if param.DryRun {
-		c.SendResponse(r, nil, map[string]interface{}{"check_success": true}, requestId)
+		c.SendResponse(r, nil, map[string]interface{}{"check_success": true})
 		return
 	}
 	data, err := apply.LockReturnPickers(pickers, mode)
 	if err != nil {
-		c.SendResponse(r, errno.ErresourceLockReturn.AddErr(err), nil, requestId)
+		c.SendResponse(r, errno.ErresourceLockReturn.AddErr(err), nil)
 		return
 	}
-	logger.Info(fmt.Sprintf("The %s, will return %d machines", requestId, len(data)))
+	logger.Info(fmt.Sprintf("The %s, will return %d machines", c.RequestId, len(data)))
 	task.ApplyResponeLogChan <- task.ApplyResponeLogItem{
-		RequestId: requestId,
+		RequestId: c.RequestId,
 		Data:      data,
 	}
-	task.RecordRsOperatorInfoChan <- param.GetOperationInfo(requestId, mode, data)
-	c.SendResponse(r, nil, data, requestId)
+	task.RecordRsOperatorInfoChan <- param.GetOperationInfo(c.RequestId, mode, data)
+	c.SendResponse(r, nil, data)
 }

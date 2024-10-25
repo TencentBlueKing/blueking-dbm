@@ -51,8 +51,6 @@ func (s *Handler) RegisterRouter(engine *gin.Engine) {
 	}
 }
 
-// CountGroupbyResourceType 按照资源类型统计
-
 // CountGroupbyResourceTypeResult 按照资源类型统计结果数据
 type CountGroupbyResourceTypeResult struct {
 	RsType string `json:"rs_type"`
@@ -67,34 +65,34 @@ func (s *Handler) CountGroupbyResourceType(c *gin.Context) {
 		Find(&data, "status = ? ", model.Unused).Error
 	if err != nil {
 		logger.Error("query failed %s", err.Error)
-		s.SendResponse(c, err, err.Error(), "")
+		s.SendResponse(c, err, err.Error())
 	}
-	s.SendResponse(c, nil, data, "")
+	s.SendResponse(c, nil, data)
 }
 
 // ResourDistributionParam 统计资源分布参数
 type ResourDistributionParam struct {
-	ForBiz         int          `json:"for_biz"`
-	City           string       `json:"city"`
-	SubZoneIds     []string     `json:"subzone_ids"`
-	GroupBy        string       `json:"group_by" binding:"required"`
-	SpecParam      DbmSpecParam `json:"spec_param" `
-	SetBizEmpty    bool         `json:"set_empty_biz"`
-	SetRsTypeEmpty bool         `json:"set_empty_resource_type"`
+	ForBiz     *int         `json:"for_biz,omitempty"`
+	City       string       `json:"city"`
+	SubZoneIds []string     `json:"subzone_ids"`
+	GroupBy    string       `json:"group_by" binding:"required"`
+	SpecParam  DbmSpecParam `json:"spec_param" `
 }
 
 // DbmSpecParam 规格参数
 type DbmSpecParam struct {
-	DbType      string `json:"db_type"`
-	MachineType string `json:"machine_type"`
-	ClusterType string `json:"cluster_type"`
-	SpecIdList  []int  `json:"spec_id_list"`
+	DbType      *string `json:"db_type,omitempty"`
+	MachineType string  `json:"machine_type"`
+	ClusterType string  `json:"cluster_type"`
+	SpecIdList  []int   `json:"spec_id_list"`
 }
 
 func (m DbmSpecParam) getQueryParam() map[string]string {
 	p := make(map[string]string)
-	if lo.IsNotEmpty(m.DbType) && m.DbType != model.PUBLIC_RESOURCE_DBTYEP {
-		p["spec_db_type"] = m.DbType
+	if m.DbType != nil {
+		if *m.DbType != model.PUBLIC_RESOURCE_DBTYEP {
+			p["spec_db_type"] = *m.DbType
+		}
 	}
 	if lo.IsNotEmpty(m.MachineType) {
 		p["spec_machine_type"] = m.MachineType
@@ -117,7 +115,7 @@ func (s *Handler) ResourceDistribution(c *gin.Context) {
 	var param ResourDistributionParam
 	if err := s.Prepare(c, &param); err != nil {
 		logger.Error("parse ResourDistributionParam failed: %v", err)
-		s.SendResponse(c, err, "Failed to parse parameters", "")
+		s.SendResponse(c, err, "Failed to parse parameters")
 		return
 	}
 
@@ -125,13 +123,13 @@ func (s *Handler) ResourceDistribution(c *gin.Context) {
 	specList, err := dbmClient.GetDbmSpec(param.SpecParam.getQueryParam())
 	if err != nil {
 		logger.Error("get dbm spec failed: %v", err)
-		s.SendResponse(c, err, "Failed to get DBM specifications", "")
+		s.SendResponse(c, err, "Failed to get DBM specifications")
 		return
 	}
 	allLogicCityInfos, err := dbmapi.GetAllLogicCityInfo()
 	if err != nil {
 		logger.Error("get all logic city info failed: %v", err)
-		s.SendResponse(c, err, "Failed to get logic city info", "")
+		s.SendResponse(c, err, "Failed to get logic city info")
 		return
 	}
 	cityMap := make(map[string]string)
@@ -140,14 +138,14 @@ func (s *Handler) ResourceDistribution(c *gin.Context) {
 	}
 	db := model.DB.Self.Table(model.TbRpDetailName())
 	if err := param.dbFilter(db); err != nil {
-		s.SendResponse(c, err, "Failed to apply database filter", "")
+		s.SendResponse(c, err, "Failed to apply database filter")
 		return
 	}
 
 	var rsListBefore, rsList []model.TbRpDetail
 	if err := db.Find(&rsListBefore).Error; err != nil {
 		logger.Error("query failed: %v", err)
-		s.SendResponse(c, err, "Failed to query resource list", "")
+		s.SendResponse(c, err, "Failed to query resource list")
 		return
 	}
 	for _, rs := range rsListBefore {
@@ -167,16 +165,16 @@ func (s *Handler) ResourceDistribution(c *gin.Context) {
 	default:
 		err := errors.New("unknown aggregation type")
 		msg := fmt.Sprintf("Unknown aggregation type: %s", param.GroupBy)
-		s.SendResponse(c, err, msg, "")
+		s.SendResponse(c, err, msg)
 		return
 	}
 
 	if processErr != nil {
-		s.SendResponse(c, processErr, "Failed to process data", "")
+		s.SendResponse(c, processErr, "Failed to process data")
 		return
 	}
 
-	s.SendResponse(c, nil, result, "")
+	s.SendResponse(c, nil, result)
 }
 
 func (s *Handler) processDeviceClassGroup(
@@ -184,6 +182,7 @@ func (s *Handler) processDeviceClassGroup(
 	specList []dbmapi.DbmSpec,
 	clusterType string,
 ) interface{} {
+
 	if lo.IsEmpty(clusterType) {
 		return groupByDeviceClass(rsList)
 	}
@@ -195,6 +194,7 @@ func (s *Handler) processDeviceClassGroup(
 				filteredList = append(filteredList, rs)
 				break
 			}
+
 		}
 	}
 	return groupByDeviceClass(filteredList)
@@ -213,19 +213,20 @@ func (r ResourDistributionParam) dbFilter(db *gorm.DB) (err error) {
 	if len(r.SubZoneIds) > 0 {
 		db.Where("sub_zone_id in (?)", r.SubZoneIds)
 	}
-	if !r.SetBizEmpty {
-		db.Where("dedicated_biz = ? ", r.ForBiz)
+	if r.ForBiz != nil {
+		db.Where("dedicated_biz = ? ", *r.ForBiz)
 	}
-	if !r.SetRsTypeEmpty {
-		db.Where("rs_type  = ?", r.SpecParam.DbType)
+	if r.SpecParam.DbType != nil {
+		db.Where("rs_type  = ?", *r.SpecParam.DbType)
+	}
+	db.Where("os_type = ? ", model.LiunxOs)
+	if strings.Contains(strings.ToLower(*r.SpecParam.DbType), "sqlserver") {
+		db.Where("os_type = ? ", model.WindowsOs)
 	}
 	return nil
 }
 
 func dealCity(city string) string {
-	// if lo.IsEmpty(city) {
-	// 	city = "无区域信息"
-	// }
 	return city
 }
 

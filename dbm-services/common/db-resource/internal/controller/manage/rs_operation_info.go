@@ -42,10 +42,9 @@ type GetOperationInfoParam struct {
 	Offset        int      `json:"offset"`
 }
 
-// OperationInfoList TODO
+// OperationInfoList returns the list of operation info
 func (o MachineResourceHandler) OperationInfoList(r *gin.Context) {
 	var input GetOperationInfoParam
-	requestId := r.GetString("request_id")
 	if err := o.Prepare(r, &input); err != nil {
 		logger.Error(fmt.Sprintf("Preare Error %s", err.Error()))
 		return
@@ -54,7 +53,7 @@ func (o MachineResourceHandler) OperationInfoList(r *gin.Context) {
 	input.query(db)
 	var count int64
 	if err := db.Count(&count).Error; err != nil {
-		o.SendResponse(r, errno.ErrDBQuery.AddErr(err), requestId, err.Error())
+		o.SendResponse(r, errno.ErrDBQuery.AddErr(err), err.Error())
 		return
 	}
 	var data []model.TbRpOperationInfo
@@ -62,11 +61,11 @@ func (o MachineResourceHandler) OperationInfoList(r *gin.Context) {
 		db = db.Offset(input.Offset).Limit(input.Limit)
 	}
 	if err := db.Scan(&data).Error; err != nil {
-		o.SendResponse(r, errno.ErrDBQuery.AddErr(err), err.Error(), requestId)
+		o.SendResponse(r, errno.ErrDBQuery.AddErr(err), err.Error())
 		return
 	}
 
-	o.SendResponse(r, nil, map[string]interface{}{"details": data, "count": count}, requestId)
+	o.SendResponse(r, nil, map[string]interface{}{"details": data, "count": count})
 }
 
 func (p GetOperationInfoParam) query(db *gorm.DB) {
@@ -134,12 +133,12 @@ func (o MachineResourceHandler) RecordImportResource(r *gin.Context) {
 	}
 	ipJsStr, err := json.Marshal(ipList)
 	if err != nil {
-		o.SendResponse(r, errno.ErrJSONMarshal.Add("input ips"), "failed", "")
+		o.SendResponse(r, errno.ErrJSONMarshal.Add("input ips"), "failed")
 		return
 	}
 	bkHostIdJsStr, err := json.Marshal(hostIdList)
 	if err != nil {
-		o.SendResponse(r, errno.ErrJSONMarshal.Add("input hostids"), "failed", "")
+		o.SendResponse(r, errno.ErrJSONMarshal.Add("input hostids"), "failed")
 	}
 	m := model.TbRpOperationInfo{
 		TotalCount:    len(ipList),
@@ -152,7 +151,7 @@ func (o MachineResourceHandler) RecordImportResource(r *gin.Context) {
 		CreateTime:    time.Now(),
 	}
 	if err := model.DB.Self.Table(model.TbRpOperationInfoTableName()).Create(&m).Error; err != nil {
-		o.SendResponse(r, fmt.Errorf("记录导入任务日志失败,%w", err), err.Error(), "")
+		o.SendResponse(r, fmt.Errorf("记录导入任务日志失败,%w", err), err.Error())
 	}
-	o.SendResponse(r, nil, "记录日志成功", "")
+	o.SendResponse(r, nil, "记录日志成功")
 }

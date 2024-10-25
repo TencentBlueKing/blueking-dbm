@@ -24,7 +24,6 @@ import (
 	"dbm-services/common/db-resource/internal/svr/task"
 	"dbm-services/common/db-resource/internal/svr/yunti"
 	"dbm-services/common/go-pubpkg/cc.v3"
-	"dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/common/go-pubpkg/errno"
 	"dbm-services/common/go-pubpkg/logger"
 
@@ -35,11 +34,13 @@ import (
 // ImportMachParam 资源导入请求参数
 type ImportMachParam struct {
 	// ForBizs 业务标签,表示这个资源将来给ForBizs这个业务使用
-	ForBiz  int               `json:"for_biz"`
-	RsType  string            `json:"resource_type"`
-	BkBizId int               `json:"bk_biz_id"  binding:"number"`
-	Hosts   []HostBase        `json:"hosts" binding:"gt=0,dive,required"`
-	Labels  map[string]string `json:"labels"`
+	ForBiz  int        `json:"for_biz"`
+	RsType  string     `json:"resource_type"`
+	BkBizId int        `json:"bk_biz_id"  binding:"number"`
+	Hosts   []HostBase `json:"hosts" binding:"gt=0,dive,required"`
+	Labels  []string   `json:"labels"`
+	// return_resource 如果为ture，则资源导入的时候 检查主机是否存在，存在的话  就把预占用标记改成空闲。 如果主机不存在  则正常导入
+	ReturnResource bool `json:"return_resource"`
 	apply.ActionInfo
 }
 
@@ -60,7 +61,7 @@ func (p ImportMachParam) getIps() []string {
 func (p ImportMachParam) getIpsByCloudId() (ipMap map[int][]string) {
 	ipMap = make(map[int][]string)
 	for _, v := range p.Hosts {
-		if !cmutil.IsEmpty(v.Ip) {
+		if lo.IsNotEmpty(v.Ip) {
 			ipMap[v.BkCloudId] = append(ipMap[v.BkCloudId], v.Ip)
 		}
 	}
@@ -82,10 +83,25 @@ func (p *ImportMachParam) existCheck() (err error) {
 			for _, r := range alreadyExistRs {
 				errMsg += fmt.Sprintf(" bk_cloud_id:%d,ip:%s \n", r.BkCloudID, r.IP)
 			}
-			return fmt.Errorf(errMsg)
+			return fmt.Errorf("%s", errMsg)
 		}
 	}
 	return nil
+}
+
+func (p *ImportMachParam) queryInDb(status string) (rs []model.TbRpDetail, err error) {
+	ipmap := p.getIpsByCloudId()
+	for cloudId, ips := range ipmap {
+		var tmpList []model.TbRpDetail
+		err = model.DB.Self.Table(model.TbRpDetailName()).Where("bk_cloud_id = ? and ip in (?) and status = ?  ", cloudId,
+			ips, status).
+			Scan(&tmpList).Error
+		if err != nil {
+			return nil, err
+		}
+		rs = append(rs, tmpList...)
+	}
+	return
 }
 
 // Import 导入主机资源
@@ -95,22 +111,23 @@ func (c *MachineResourceHandler) Import(r *rf.Context) {
 		logger.Error(fmt.Sprintf("Preare Error %s", err.Error()))
 		return
 	}
-	requestId := r.GetString("request_id")
-	if err := input.existCheck(); err != nil {
-		c.SendResponse(r, errno.RepeatedIpExistSystem.Add(err.Error()), requestId, err.Error())
-		return
+	if !input.ReturnResource {
+		if err := input.existCheck(); err != nil {
+			c.SendResponse(r, errno.RepeatedIpExistSystem.Add(err.Error()), err.Error())
+			return
+		}
 	}
-	resp, err := Doimport(input)
+	resp, err := Doimport(input, c.RequestId)
 	if err != nil {
 		logger.Error(fmt.Sprintf("ImportByIps failed %s", err.Error()))
-		c.SendResponse(r, err, requestId, err.Error())
+		c.SendResponse(r, err, err.Error())
 		return
 	}
 	if len(resp.NotFoundInCCHosts) == len(input.Hosts) {
-		c.SendResponse(r, fmt.Errorf("all machines failed to query cmdb information"), resp, requestId)
+		c.SendResponse(r, fmt.Errorf("all machines failed to query cmdb information"), resp)
 		return
 	}
-	c.SendResponse(r, err, resp, requestId)
+	c.SendResponse(r, err, resp)
 }
 
 // ImportHostResp 导入主机参数
@@ -121,8 +138,7 @@ type ImportHostResp struct {
 }
 
 func (p ImportMachParam) transParamToBytes() (lableJson json.RawMessage, err error) {
-	// lableJson = []byte("{}")
-	lableJson, err = json.Marshal(cmutil.CleanStrMap(p.Labels))
+	lableJson, err = json.Marshal(p.Labels)
 	if err != nil {
 		logger.Error(fmt.Sprintf("ConverLableToJsonStr Failed,Error:%s", err.Error()))
 		return
@@ -139,15 +155,97 @@ func (p ImportMachParam) getJobIpList() (ipList []bk.IPList) {
 	})
 }
 
-// Doimport 导入主机获取主机信息
-func Doimport(param ImportMachParam) (resp *ImportHostResp, err error) {
+// resetPrepoccupiedResource 重置选中确认的资源改成unused
+func resetPrepoccupiedResource(param ImportMachParam, requestId string) (resetIpList []string, err error) {
+	var allprepoccupiedRsList []model.TbRpDetail
+	allprepoccupiedRsList, err = param.queryInDb(model.Prepoccupied)
+	if len(allprepoccupiedRsList) == 0 {
+		logger.Info("resources without preoccupied status need to be processed")
+		return
+	}
+	defer func() {
+		var desc string
+		status := model.StatusSuccess
+		if err != nil {
+			status = model.StatusFailed
+			desc = fmt.Sprintf("failed to reset prepoccupied status, error:%s", err.Error())
+		}
+		ipListBytes, errx := json.Marshal(resetIpList)
+		if errx != nil {
+			desc += "failed to serialize ipList"
+			logger.Error("json marshal failed  %s", errx.Error())
+		}
+		// insert operation log
+		model.DB.Self.Table(model.TbRpOperationInfoTableName()).Create(&model.TbRpOperationInfo{
+			RequestID:     requestId,
+			TotalCount:    len(allprepoccupiedRsList),
+			IpList:        ipListBytes,
+			OperationType: "RESET_PREPOCUPED_TO_UNUSED",
+			Operator:      param.ActionInfo.Operator,
+			BillId:        param.ActionInfo.BillId,
+			Description:   desc,
+			Status:        status,
+			CreateTime:    time.Now(),
+			UpdateTime:    time.Now(),
+		})
+	}()
+	// get all primary key
+	ids := lo.Map(allprepoccupiedRsList, func(item model.TbRpDetail, _ int) int {
+		return item.ID
+	})
+	resetIpList = lo.Map(allprepoccupiedRsList, func(item model.TbRpDetail, _ int) string {
+		return item.IP
+	})
+	db := model.DB.Self.Table(model.TbRpDetailName()).Where("id in (?) and status = ? ", ids, model.Prepoccupied).
+		Update("status", model.Unused)
+	if err = db.Error; err != nil {
+		logger.Error("reset prepoccupied status failed %s", err.Error())
+		return
+	}
+	if db.RowsAffected != int64(len(allprepoccupiedRsList)) {
+		logger.Error("reset prepoccupied status failed %d rows affected", db.RowsAffected)
+		return
+	}
+	return
+}
+
+func filerUnusedRs(param ImportMachParam) (ret []string, err error) {
+	rsList, err := param.queryInDb(model.Unused)
+	if err != nil {
+		return nil, err
+	}
+	okRsIplist := lo.Map(rsList, func(item model.TbRpDetail, _ int) string {
+		return item.IP
+	})
+	ips := param.getIps()
+	ret, _ = lo.Difference(ips, okRsIplist)
+	return
+}
+
+// Doimport do import
+func Doimport(param ImportMachParam, requestId string) (resp *ImportHostResp, err error) {
 	var ccHostsInfo []*cc.Host
 	var derr error
 	var diskResp bk.GetDiskResp
 	var notFoundHosts, gseAgentIds []string
 	var elems []model.TbRpDetail
 	resp = &ImportHostResp{}
-	targetHosts := cmutil.RemoveDuplicate(param.getIps())
+	targetHosts := lo.Uniq(param.getIps())
+	if param.ReturnResource {
+		targetHosts, err = filerUnusedRs(param)
+		if err != nil {
+			return resp, err
+		}
+		resetIpList, errx := resetPrepoccupiedResource(param, requestId)
+		if errx != nil {
+			return resp, errx
+		}
+		subtargetHosts, _ := lo.Difference(targetHosts, resetIpList)
+		targetHosts = subtargetHosts
+	}
+	if len(targetHosts) == 0 {
+		return resp, nil
+	}
 	ccHostsInfo, notFoundHosts, derr = bk.BatchQueryHostsInfo(param.BkBizId, targetHosts)
 	if derr != nil {
 		logger.Error("query cc info from cmdb failed %s", derr.Error())
@@ -175,8 +273,6 @@ func Doimport(param ImportMachParam) (resp *ImportHostResp, err error) {
 	for _, emptyhost := range notFoundHosts {
 		delete(hostsMap, emptyhost)
 	}
-	logger.Info("yunti config  %v", config.AppConfig.Yunti)
-	// if yunti config is not empty
 	var cvmInfoMap map[string]yunti.InstanceDetail
 	if config.AppConfig.Yunti.IsNotEmpty() {
 		logger.Info("try to get machine info from yunti")
@@ -192,7 +288,7 @@ func Doimport(param ImportMachParam) (resp *ImportHostResp, err error) {
 		el.SetMore(h.InnerIP, diskResp.IpLogContentMap)
 		// gse agent 1.0的 agent 是用 cloudid:ip
 		gseAgentId := h.BkAgentId
-		if cmutil.IsEmpty(gseAgentId) {
+		if lo.IsEmpty(gseAgentId) {
 			gseAgentId = fmt.Sprintf("%d:%s", h.BkCloudId, h.InnerIP)
 		}
 		gseAgentIds = append(gseAgentIds, gseAgentId)
@@ -251,18 +347,18 @@ func getCvmMachList(hosts []*cc.Host) []string {
 // transHostInfoToDbModule 获取的到的主机信息赋值给db model
 func (p ImportMachParam) transHostInfoToDbModule(h *cc.Host, bkCloudId int, label []byte) model.TbRpDetail {
 	osType := h.BkOsType
-	if cmutil.IsEmpty(osType) {
+	if lo.IsEmpty(osType) {
 		osType = bk.OsLinux
 	}
 	return model.TbRpDetail{
 		DedicatedBiz:    p.ForBiz,
-		RsType:          p.RsType,
+		RsType:          dealEmptyRs(p.RsType),
 		BkCloudID:       bkCloudId,
 		BkBizId:         p.BkBizId,
 		AssetID:         h.AssetID,
 		BkHostID:        h.BKHostId,
 		IP:              h.InnerIP,
-		Label:           label,
+		Labels:          label,
 		DeviceClass:     h.DeviceClass,
 		DramCap:         h.BkMem,
 		CPUNum:          h.BkCpu,
@@ -285,4 +381,11 @@ func (p ImportMachParam) transHostInfoToDbModule(h *cc.Host, bkCloudId int, labe
 		UpdateTime:      time.Now(),
 		CreateTime:      time.Now(),
 	}
+}
+
+func dealEmptyRs(rsType string) string {
+	if lo.IsEmpty(rsType) {
+		return model.PUBLIC_RESOURCE_DBTYEP
+	}
+	return rsType
 }

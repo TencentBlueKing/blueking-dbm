@@ -8,7 +8,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-// Package assets TODO
+// Package assets assets
 package assets
 
 import (

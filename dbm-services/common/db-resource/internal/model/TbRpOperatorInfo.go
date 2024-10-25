@@ -22,6 +22,13 @@ const (
 	Imported = "imported"
 )
 
+const (
+	// StatusSuccess operator success
+	StatusSuccess = "success"
+	// StatusFailed failed
+	StatusFailed = "failed"
+)
+
 // TbRpOperationInfo 资源池操作记录表
 // nolint
 type TbRpOperationInfo struct {

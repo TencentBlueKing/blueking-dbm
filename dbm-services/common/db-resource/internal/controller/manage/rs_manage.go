@@ -23,7 +23,6 @@ import (
 	"dbm-services/common/go-pubpkg/logger"
 
 	rf "github.com/gin-gonic/gin"
-	"github.com/samber/lo"
 )
 
 // MachineResourceHandler 主机处理handler
@@ -55,6 +54,7 @@ func (c *MachineResourceHandler) RegisterRouter(engine *rf.Engine) {
 		r.POST("/operation/list", c.OperationInfoList)
 		r.POST("/operation/create", c.RecordImportResource)
 		r.POST("/spec/sum", c.SpecSum)
+		r.POST("/groupby/label/count", c.GroupByLabelCount)
 	}
 }
 
@@ -70,29 +70,24 @@ func (c *MachineResourceHandler) Delete(r *rf.Context) {
 		logger.Error("Preare Error %s", err.Error())
 		return
 	}
-	requestId := r.GetString("request_id")
 	affect_row, err := model.DeleteTbRpDetail(input.BkHostIds)
 	if err != nil {
 		logger.Error("failed to delete data:%s", err.Error())
-		c.SendResponse(r, err, nil, requestId)
+		c.SendResponse(r, err, nil)
 		return
 	}
 	if affect_row == 0 {
-		c.SendResponse(r, fmt.Errorf("no data was deleted"), nil, requestId)
+		c.SendResponse(r, fmt.Errorf("no data was deleted"), nil)
 		return
 	}
-	c.SendResponse(r, nil, requestId, "Delete Success")
+	c.SendResponse(r, nil, "Delete Success")
 }
 
 // BatchUpdateMachineInput 批量编辑主机信息请求参数
 type BatchUpdateMachineInput struct {
-	BkHostIds      []int                    `json:"bk_host_ids"  binding:"required,dive,gt=0" `
-	ForBiz         int                      `json:"for_biz"`
-	RsType         string                   `json:"resource_type"`
-	RackId         string                   `json:"rack_id"`
-	SetBizEmpty    bool                     `json:"set_empty_biz"`
-	SetRsTypeEmpty bool                     `json:"set_empty_resource_type"`
-	StorageDevice  map[string]bk.DiskDetail `json:"storage_device"`
+	BkHostIds []int  `json:"bk_host_ids"  binding:"required,dive,gt=0" `
+	RackId    string `json:"rack_id"`
+	UpdateRsMeta
 }
 
 const (
@@ -103,50 +98,31 @@ const (
 // BatchUpdate 批量编辑主机信息
 func (c *MachineResourceHandler) BatchUpdate(r *rf.Context) {
 	var input BatchUpdateMachineInput
-	requestId := r.GetString("request_id")
-	updateMap := make(map[string]interface{})
-
-	if err := c.Prepare(r, &input); err != nil {
+	var err error
+	if err = c.Prepare(r, &input); err != nil {
 		logger.Error("Preare Error %s", err.Error())
 		return
 	}
-
 	// update for biz
-	if input.ForBiz > 0 {
-		updateMap["dedicated_biz"] = input.ForBiz
+	updateMap, err := input.getUpdateMap()
+	if err != nil {
+		c.SendResponse(r, err, err.Error())
+		return
 	}
-
-	// update resource type
-	if lo.IsNotEmpty(input.RsType) {
-		updateMap["rs_type"] = input.RsType
-	}
-
-	// update disk
-	if len(input.StorageDevice) > 0 {
-		storageJson, err := json.Marshal(input.StorageDevice)
-		if err != nil {
-			logger.Error(fmt.Sprintf("conver resource types Failed,Error:%s", err.Error()))
-			c.SendResponse(r, err, requestId, err.Error())
-			return
-		}
-		updateMap["storage_device"] = storageJson
-	}
-
 	// update rack id
 	if cmutil.IsNotEmpty(input.RackId) {
 		updateMap["rack_id"] = input.RackId
 	}
-
 	// do update
-	err := model.DB.Self.Table(model.TbRpDetailName()).Select("dedicated_biz", "rs_type", "storage_device", "rack_id").
+	err = model.DB.Self.Table(model.TbRpDetailName()).Select("dedicated_biz", "rs_type", "storage_device", "rack_id",
+		"labels").
 		Where("bk_host_id in (?)", input.BkHostIds).Updates(updateMap).Error
 	if err != nil {
-		c.SendResponse(r, err, requestId, err.Error())
+		c.SendResponse(r, err, err.Error())
 		return
 	}
-
 	// return respone
-	c.SendResponse(r, nil, "ok", requestId)
+	c.SendResponse(r, nil, "ok")
 }
 
 // MachineResourceInputParam 多个不同的主句的编辑的不同的参数
@@ -156,17 +132,49 @@ type MachineResourceInputParam struct {
 
 // MachineResource 主机参数
 type MachineResource struct {
-	BkHostID      int                      `json:"bk_host_id" binding:"required"`
-	Labels        map[string]string        `json:"labels"`
-	ForBiz        int                      `json:"for_biz"`
-	RsType        string                   `json:"resource_type"`
+	BkHostID int `json:"bk_host_id" binding:"required"`
+	UpdateRsMeta
+}
+
+// UpdateRsMeta TODO
+type UpdateRsMeta struct {
+	Labels        *[]string                `json:"labels,omitempty"`
+	ForBiz        *int                     `json:"for_biz,omitempty"`
+	RsType        *string                  `json:"resource_type,omitempty"`
 	StorageDevice map[string]bk.DiskDetail `json:"storage_device"`
+}
+
+func (v UpdateRsMeta) getUpdateMap() (updateMap map[string]interface{}, err error) {
+	var lableJson, storageJson []byte
+	updateMap = make(map[string]interface{})
+	if v.Labels != nil {
+		lableJson, err = json.Marshal(*v.Labels)
+		if err != nil {
+			logger.Error(fmt.Sprintf("ConverLableToJsonStr Failed,Error:%s", err.Error()))
+			return updateMap, err
+		}
+		updateMap["labels"] = lableJson
+	}
+	if v.ForBiz != nil {
+		updateMap["dedicated_biz"] = v.ForBiz
+	}
+	if v.RsType != nil {
+		updateMap["rs_type"] = v.RsType
+	}
+	if len(v.StorageDevice) > 0 {
+		storageJson, err = json.Marshal(v.StorageDevice)
+		if err != nil {
+			logger.Error(fmt.Sprintf("conver resource types Failed,Error:%s", err.Error()))
+			return updateMap, err
+		}
+		updateMap["storage_device"] = storageJson
+	}
+	return updateMap, err
 }
 
 // Update 编辑主机信息
 func (c *MachineResourceHandler) Update(r *rf.Context) {
 	var input MachineResourceInputParam
-	requestId := r.GetString("request_id")
 	if err := c.Prepare(r, &input); err != nil {
 		logger.Error("Preare Error %s", err.Error())
 		return
@@ -174,93 +182,85 @@ func (c *MachineResourceHandler) Update(r *rf.Context) {
 	logger.Debug(fmt.Sprintf("get params %v", input.Data))
 	tx := model.DB.Self.Begin()
 	for _, v := range input.Data {
-		updateMap := make(map[string]interface{})
-		if len(v.Labels) > 0 {
-			l, err := cmutil.ConverMapToJsonStr(v.Labels)
-			if err != nil {
-				logger.Error(fmt.Sprintf("ConverMapToJsonStr Failed %s", err.Error()))
-			}
-			updateMap["lable"] = l
+		updateMap, err := v.getUpdateMap()
+		if err != nil {
+			logger.Error("conver resource types Failed,Error:%s", err.Error())
+			c.SendResponse(r, err, err.Error())
+			return
 		}
-		if v.ForBiz > 0 {
-			updateMap["dedicated_biz"] = v.ForBiz
-		}
-		if lo.IsNotEmpty(v.RsType) {
-			updateMap["rs_type"] = v.RsType
-		}
-		if len(v.StorageDevice) > 0 {
-			storageJson, err := json.Marshal(v.StorageDevice)
-			if err != nil {
-				logger.Error(fmt.Sprintf("conver resource types Failed,Error:%s", err.Error()))
-				c.SendResponse(r, err, requestId, err.Error())
-				return
-			}
-			updateMap["storage_device"] = storageJson
-		}
-		err := tx.Model(&model.TbRpDetail{}).Table(model.TbRpDetailName()).Select("dedicated_biz", "rs_type",
-			"label").Where("bk_host_id=?", v.BkHostID).Updates(updateMap).Error
+		err = tx.Model(&model.TbRpDetail{}).Table(model.TbRpDetailName()).Select("dedicated_biz", "rs_type",
+			"labels").Where("bk_host_id=?", v.BkHostID).Updates(updateMap).Error
 		if err != nil {
 			tx.Rollback()
 			logger.Error(fmt.Sprintf("conver resource types Failed,Error:%s", err.Error()))
-			c.SendResponse(r, err, requestId, err.Error())
+			c.SendResponse(r, err, err.Error())
 			return
 		}
 	}
 	if err := tx.Commit().Error; err != nil {
-		c.SendResponse(r, err, requestId, err.Error())
+		c.SendResponse(r, err, err.Error())
 		return
 	}
-	c.SendResponse(r, nil, requestId, "Save Success")
+	c.SendResponse(r, nil, "Save Success")
 }
 
 // GetMountPoints get disk mount points
 func (c MachineResourceHandler) GetMountPoints(r *rf.Context) {
-	db := model.DB.Self.Table(model.TbRpDetailName())
 	var rs []json.RawMessage
-	if err := db.Select("json_keys(storage_device)").Where("JSON_LENGTH(storage_device) > 0").Find(&rs).Error; err != nil {
+
+	if err := model.DB.Self.Table(model.TbRpDetailName()).Select("json_keys(storage_device)").
+		Where("JSON_LENGTH(storage_device) > 0").Find(&rs).Error; err != nil {
 		logger.Error("get mountpoints failed %s", err.Error())
-		c.SendResponse(r, err, err.Error(), "")
+		c.SendResponse(r, err, err.Error())
 		return
 	}
+
 	var mountpoints []string
 	for _, v := range rs {
 		var mp []string
 		if err := json.Unmarshal(v, &mp); err != nil {
 			logger.Error("unmarshal failed %s", err.Error())
-			c.SendResponse(r, err, err.Error(), "")
+			c.SendResponse(r, err, err.Error())
 			return
 		}
 		if len(mp) > 0 {
 			mountpoints = append(mountpoints, mp...)
 		}
 	}
-	c.SendResponse(r, nil, cmutil.RemoveDuplicate(mountpoints), r.GetString("request_id"))
+	c.SendResponse(r, nil, cmutil.RemoveDuplicate(mountpoints))
 }
 
 // GetDiskTypes get disk types
 func (c MachineResourceHandler) GetDiskTypes(r *rf.Context) {
-	db := model.DB.Self.Table(model.TbRpDetailName())
 	var rs []json.RawMessage
-	err := db.Select("json_extract(storage_device,'$.*.\"disk_type\"')").Where("JSON_LENGTH(storage_device) > 0").
+
+	err := model.DB.Self.Table(model.TbRpDetailName()).Select("json_extract(storage_device,'$.*.\"disk_type\"')").
+		Where("JSON_LENGTH(storage_device) > 0").
 		Find(&rs).Error
+
 	if err != nil {
 		logger.Error("get DiskType failed %s", err.Error())
-		c.SendResponse(r, err, err.Error(), "")
+		c.SendResponse(r, err, err.Error())
 		return
 	}
+
 	var diskTypes []string
+
 	for _, v := range rs {
 		var mp []string
+
 		if err := json.Unmarshal(v, &mp); err != nil {
 			logger.Error("unmarshal failed %s", err.Error())
-			c.SendResponse(r, err, err.Error(), "")
+			c.SendResponse(r, err, err.Error())
 			return
 		}
+
 		if len(mp) > 0 {
 			diskTypes = append(diskTypes, mp...)
 		}
 	}
-	c.SendResponse(r, nil, cmutil.RemoveDuplicate(diskTypes), r.GetString("request_id"))
+
+	c.SendResponse(r, nil, cmutil.RemoveDuplicate(diskTypes))
 }
 
 // GetSubZoneParam get subzones param
@@ -278,10 +278,10 @@ func (c MachineResourceHandler) GetSubZones(r *rf.Context) {
 	db := model.DB.Self.Table(model.TbRpDetailName())
 	err := db.Distinct("sub_zone").Where("city in ? ", input.LogicCitys).Find(&subZones).Error
 	if err != nil {
-		c.SendResponse(r, err, "", err.Error())
+		c.SendResponse(r, err, err.Error())
 		return
 	}
-	c.SendResponse(r, nil, subZones, r.GetString("request_id"))
+	c.SendResponse(r, nil, subZones)
 }
 
 // GetDeviceClass 获取机型
@@ -290,8 +290,35 @@ func (c MachineResourceHandler) GetDeviceClass(r *rf.Context) {
 	db := model.DB.Self.Table(model.TbRpDetailName())
 	err := db.Distinct("device_class").Where("device_class !=''").Find(&class).Error
 	if err != nil {
-		c.SendResponse(r, err, "", err.Error())
+		c.SendResponse(r, err, err.Error())
 		return
 	}
-	c.SendResponse(r, nil, class, r.GetString("request_id"))
+	c.SendResponse(r, nil, class)
+}
+
+// GroupByLabelCount group by label count
+func (c *MachineResourceHandler) GroupByLabelCount(r *rf.Context) {
+	var rs []model.TbRpDetail
+	err := model.DB.Self.Table(model.TbRpDetailName()).Find(&rs, "status = ?", model.Unused).Error
+	if err != nil {
+		c.SendResponse(r, err, err.Error())
+		return
+	}
+	logger.Info("rs len %d", len(rs))
+	ret := make(map[string]int)
+	for _, v := range rs {
+		var lables []string
+		logger.Info("labels %s", string(v.Labels))
+		if err := json.Unmarshal(v.Labels, &lables); err != nil {
+			logger.Error("unmarshal failed %s", err.Error())
+			c.SendResponse(r, err, err.Error())
+			return
+		}
+		if len(lables) > 0 {
+			for _, l := range lables {
+				ret[l]++
+			}
+		}
+	}
+	c.SendResponse(r, nil, ret)
 }

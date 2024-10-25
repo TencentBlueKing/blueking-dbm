@@ -65,10 +65,8 @@ func InspectCheckResource() (err error) {
 				// return err
 			}
 			for _, m := range resp.Data {
-				if m.BKModuleId == allowCCMouduleInfo.CC_IDLE_MODULE_ID {
-					continue
-				}
-				if m.BKSetId == allowCCMouduleInfo.CC_MANAGE_TOPO.SetId {
+				if m.BKModuleId == allowCCMouduleInfo.CC_IDLE_MODULE_ID ||
+					m.BKSetId == allowCCMouduleInfo.CC_MANAGE_TOPO.SetId {
 					continue
 				}
 				err = model.DB.Self.Table(model.TbRpDetailName()).Where("bk_biz_id = ? and bk_host_id = ? and  status = ? ",
