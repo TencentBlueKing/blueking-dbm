@@ -43,8 +43,8 @@
   }
 
   interface Emits {
-    (e: 'page-limit-change'): void;
-    (e: 'page-value-change'): void;
+    (e: 'page-limit-change', value: number): void;
+    (e: 'page-value-change', value: number): void;
   }
 
   const props = defineProps<Props>();
@@ -194,11 +194,11 @@
     return [];
   });
 
-  const handleTableLimitChange = () => {
-    emits('page-limit-change')
+  const handleTableLimitChange = (value: number) => {
+    emits('page-limit-change', value)
   }
 
-  const handleTableValueChange = () => {
-    emits('page-value-change')
+  const handleTableValueChange = (value: number) => {
+    emits('page-value-change', value)
   }
 </script>
