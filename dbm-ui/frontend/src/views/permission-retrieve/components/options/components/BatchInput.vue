@@ -17,10 +17,12 @@
       <BkInput
         v-model="modelValue"
         autosize
+        clearable
         :placeholder="t('请输入，多个英文逗号或换行分隔，最多n个', { n: maxCount })"
         :resize="false"
         type="textarea"
         @blur="handleBlur"
+        @change="handleChange"
         @focus="handleFocus">
       </BkInput>
     </div>
@@ -46,6 +48,7 @@
 
   interface Emits {
     (e: 'icon-click'): void;
+    (e: 'change', value: string): void;
   }
 
   defineProps<Props>();
@@ -66,11 +69,18 @@
 
   const handleBlur = () => {
     isFocused.value = false;
-    modelValue.value = modelValue.value.replace(batchSplitRegex, ' | ');
+    modelValue.value = modelValue.value
+      .split(batchSplitRegex)
+      .filter((item) => item)
+      .join(' | ');
   };
 
   const handleIconClick = () => {
     emits('icon-click');
+  };
+
+  const handleChange = (value: string) => {
+    emits('change', value);
   };
 </script>
 
@@ -90,6 +100,7 @@
 
       :deep(.bk-textarea) {
         border-radius: 2px 0 0 2px;
+        position: relative;
 
         textarea {
           height: 30px !important;
@@ -101,6 +112,12 @@
             max-height: 500px;
             min-height: 100px !important;
           }
+        }
+
+        .bk-textarea--clear-icon {
+          position: absolute;
+          right: 2px;
+          top: 8px;
         }
       }
     }
