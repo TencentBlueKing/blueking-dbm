@@ -19,47 +19,22 @@ import { random } from '@utils';
 export function generateRedisClusterCutoffCloneData(ticketData: TicketModel<RedisDBReplaceDetails>) {
   const { clusters, infos, specs } = ticketData.details;
   return Promise.resolve({
-    tableDataList: infos.reduce(
-      (dataList, item) => {
-        const roleList = ['proxy', 'redis_master', 'redis_slave'] as ['proxy', 'redis_master', 'redis_slave'];
-        const roleMap = {
-          redis_master: 'master',
-          redis_slave: 'slave',
-          proxy: 'proxy',
-        };
-        roleList.forEach((role) => {
-          if (item[role].length > 0) {
-            item[role].forEach((info) => {
-              dataList.push({
-                rowKey: random(),
-                isLoading: false,
-                ip: info.ip,
-                role: roleMap[role],
-                clusterIds: item.cluster_ids,
-                bkCloudId: item.bk_cloud_id,
-                cluster: {
-                  domain: item.cluster_ids.map((id) => clusters[id].immute_domain).join(','),
-                  isStart: false,
-                  isGeneral: true,
-                  rowSpan: 1,
-                },
-                spec: specs[info.spec_id],
-              });
-            });
-          }
-        });
-        return dataList;
-      },
-      [] as {
-        rowKey: string;
-        isLoading: boolean;
-        ip: string;
-        role: string;
-        clusterIds: number[];
-        bkCloudId: number;
-        cluster: any;
-        spec: any;
-      }[],
+    tableDataList: infos.flatMap((info) =>
+      info.display_info.data.map((curr) => ({
+        rowKey: random(),
+        isLoading: false,
+        ip: curr.ip,
+        role: curr.role,
+        clusterIds: info.cluster_ids,
+        bkCloudId: info.bk_cloud_id,
+        cluster: {
+          domain: info.cluster_ids.map((id) => clusters[id].immute_domain).join(','),
+          isStart: false,
+          isGeneral: true,
+          rowSpan: 1,
+        },
+        spec: specs[curr.spec_id],
+      })),
     ),
     remark: ticketData.remark,
   });

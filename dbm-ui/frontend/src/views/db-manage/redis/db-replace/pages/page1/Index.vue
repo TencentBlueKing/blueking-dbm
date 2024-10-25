@@ -83,8 +83,6 @@
 
   import TicketRemark from '@components/ticket-remark/Index.vue';
 
-  import { switchToNormalRole } from '@utils';
-
   import RenderData from './components/Index.vue';
   import InstanceSelector, { type InstanceSelectorValues } from './components/instance-selector/Index.vue';
   import RenderDataRow, { createRowData, type IDataRow } from './components/Row.vue';
@@ -101,6 +99,15 @@
     proxy: SpecItem[];
     redis_master: SpecItem[];
     redis_slave: SpecItem[];
+    display_info: {
+      data: {
+        ip: string;
+        role: string;
+        cluster_domain: string;
+        spec_id: number;
+        spec_name: string;
+      }[];
+    };
   }
 
   const { currentBizId } = useGlobalBizs();
@@ -244,7 +251,7 @@
       rowKey: tableData.value[index].rowKey,
       isLoading: false,
       ip,
-      role: switchToNormalRole(data.instance_role),
+      role: data.instance_role,
       clusterIds: data.related_clusters.map((item) => item.id),
       bkCloudId: data.bk_cloud_id,
       cluster: {
@@ -335,6 +342,9 @@
         proxy: [],
         redis_master: [],
         redis_slave: [],
+        display_info: {
+          data: [],
+        },
       };
       const needDeleteSlaves: string[] = [];
       sameArr.forEach((item) => {
@@ -357,6 +367,15 @@
       });
       // 当选择了master的时候，对应的slave不要传给后端
       infoItem.redis_slave = infoItem.redis_slave.filter((item) => !needDeleteSlaves.includes(item.ip));
+      infoItem.display_info = {
+        data: tableData.value.map((item) => ({
+          ip: item.ip,
+          role: item.role,
+          cluster_domain: item.cluster.domain,
+          spec_id: item.spec?.id ?? null,
+          spec_name: item.spec?.name ?? '',
+        })),
+      };
       return infoItem;
     });
     return infos;
