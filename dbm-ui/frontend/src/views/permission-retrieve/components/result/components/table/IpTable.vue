@@ -107,7 +107,7 @@
             field: 'match_ip',
             width: 240,
             rowspan: ({ row }: { row: TableItem }) => {
-              const rowSpan = tableData.value.filter((item) => _.isEqual(item.ip, row.ip) && _.isEqual(item.db, row.db) && item.immute_domain === row.immute_domain && item.user === row.user).length;
+              const rowSpan = tableData.value.filter((item) => _.isEqual(item.ip, row.ip) && _.isEqual(item.db, row.db) && item.immute_domain === row.immute_domain && item.user === row.user && item.match_ip === row.match_ip).length;
               return rowSpan > 1 ? rowSpan : 1;
             },
           },

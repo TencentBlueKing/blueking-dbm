@@ -36,6 +36,7 @@
           v-model="formData.immute_domains"
           icon-type="host-select"
           :max-count="20"
+          @change="handleDomainChange"
           @icon-click="() => (clusterSelectorShow = true)" />
       </BkFormItem>
       <BkFormItem
@@ -51,6 +52,7 @@
         property="dbs">
         <BkTagInput
           v-model="formData.dbs"
+          allow-auto-match
           allow-create
           collapse-tags
           has-delete-icon
@@ -72,7 +74,17 @@
         {{ t('重置') }}
       </BkButton>
     </div>
-    <InstanceSelector
+    <IpSelector
+      v-model:show-dialog="hostSelectorShow"
+      :biz-id="bizId"
+      button-text=""
+      :data="selectedHosts"
+      :is-cloud-area-restrictions="false"
+      :panel-list="['staticTopo', 'manualInput', 'dbmWhitelist']"
+      service-mode="all"
+      :show-view="false"
+      @change="handleChangeIP" />
+    <!-- <InstanceSelector
       v-model:is-show="hostSelectorShow"
       :cluster-types="accoutMap[accountType].hostSelectorTypes"
       :disable-dialog-submit-method="disableHostSubmitMethod"
@@ -97,7 +109,7 @@
           </span>
         </I18nT>
       </template>
-    </InstanceSelector>
+    </InstanceSelector> -->
     <ClusterSelector
       v-model:is-show="clusterSelectorShow"
       :cluster-types="accoutMap[accountType].clusterSelectorTypes"
@@ -136,16 +148,18 @@
   import TendbsingleModel from '@services/model/mysql/tendbsingle';
   import SpiderModel from '@services/model/tendbcluster/tendbcluster';
   import { getTendbhaList, getTendbhaSalveList } from '@services/source/tendbha';
+  import type { HostInfo } from '@services/types';
 
   import { AccountTypes, ClusterTypes } from '@common/const';
   import { batchSplitRegex, domainRegex, ipv4 } from '@common/regex';
 
   import ClusterSelector, { type TabConfig } from '@components/cluster-selector/Index.vue';
-  import InstanceSelector, {
-    type InstanceSelectorValues,
-    type IValue,
-    type PanelListType,
-  } from '@components/instance-selector/Index.vue';
+  // import InstanceSelector, {
+  //   type InstanceSelectorValues,
+  //   type IValue,
+  //   type PanelListType,
+  // } from '@components/instance-selector/Index.vue';
+  import IpSelector from '@components/ip-selector/IpSelector.vue';
 
   import BatchInput from './components/BatchInput.vue';
   import { accoutMap } from './components/common/config';
@@ -191,6 +205,7 @@
   const route = useRoute();
 
   const { accountType } = route.meta as { accountType: string };
+  const bizId = window.PROJECT_CONFIG.BIZ_ID;
 
   const clusterTabListConfig = {
     tendbhaSlave: {
@@ -213,54 +228,54 @@
     },
   } as unknown as Record<string, TabConfig>;
 
-  const hostTabListConfig = {
-    TendbSingleHost: [
-      {
-        topoConfig: {
-          countFunc: (clusterItem: TendbsingleModel) => {
-            const hostList = clusterItem.masters;
-            const ipList = hostList.map((hostItem) => hostItem.ip);
-            return new Set(ipList).size;
-          },
-        },
-      },
-    ],
-    TendbHaHost: [
-      {
-        topoConfig: {
-          countFunc: (clusterItem: TendbhaModel) => {
-            const hostList = [...clusterItem.masters, ...clusterItem.slaves, ...clusterItem.proxies];
-            const ipList = hostList.map((hostItem) => hostItem.ip);
-            return new Set(ipList).size;
-          },
-        },
-      },
-    ],
-    TendbClusterHost: [
-      {
-        topoConfig: {
-          countFunc: (clusterItem: SpiderModel) => {
-            const hostList = [
-              ...clusterItem.spider_master,
-              ...clusterItem.spider_slave,
-              ...clusterItem.spider_mnt,
-              ...clusterItem.remote_db,
-              ...clusterItem.remote_dr,
-            ];
-            const ipList = hostList.map((hostItem) => hostItem.ip);
-            return new Set(ipList).size;
-          },
-        },
-        tableConfig: {
-          firsrColumn: {
-            label: 'IP',
-            field: 'ip',
-            role: '',
-          },
-        },
-      },
-    ],
-  } as unknown as Record<ClusterTypes, PanelListType>;
+  // const hostTabListConfig = {
+  //   TendbSingleHost: [
+  //     {
+  //       topoConfig: {
+  //         countFunc: (clusterItem: TendbsingleModel) => {
+  //           const hostList = clusterItem.masters;
+  //           const ipList = hostList.map((hostItem) => hostItem.ip);
+  //           return new Set(ipList).size;
+  //         },
+  //       },
+  //     },
+  //   ],
+  //   TendbHaHost: [
+  //     {
+  //       topoConfig: {
+  //         countFunc: (clusterItem: TendbhaModel) => {
+  //           const hostList = [...clusterItem.masters, ...clusterItem.slaves, ...clusterItem.proxies];
+  //           const ipList = hostList.map((hostItem) => hostItem.ip);
+  //           return new Set(ipList).size;
+  //         },
+  //       },
+  //     },
+  //   ],
+  //   TendbClusterHost: [
+  //     {
+  //       topoConfig: {
+  //         countFunc: (clusterItem: SpiderModel) => {
+  //           const hostList = [
+  //             ...clusterItem.spider_master,
+  //             ...clusterItem.spider_slave,
+  //             ...clusterItem.spider_mnt,
+  //             ...clusterItem.remote_db,
+  //             ...clusterItem.remote_dr,
+  //           ];
+  //           const ipList = hostList.map((hostItem) => hostItem.ip);
+  //           return new Set(ipList).size;
+  //         },
+  //       },
+  //       tableConfig: {
+  //         firsrColumn: {
+  //           label: 'IP',
+  //           field: 'ip',
+  //           role: '',
+  //         },
+  //       },
+  //     },
+  //   ],
+  // } as unknown as Record<ClusterTypes, PanelListType>;
 
   const rules = {
     ips: [
@@ -311,8 +326,8 @@
     ],
   };
 
-  const getDefaultSelectedHosts = () =>
-    accoutMap[accountType].hostSelectorTypes.reduce((prevMap, type) => Object.assign({}, prevMap, { [type]: [] }), {});
+  // const getDefaultSelectedHosts = () =>
+  //   accoutMap[accountType].hostSelectorTypes.reduce((prevMap, type) => Object.assign({}, prevMap, { [type]: [] }), {});
 
   const getDefaultSelectedClusters = () =>
     accoutMap[accountType].clusterSelectorTypes.reduce(
@@ -324,22 +339,28 @@
   const userSelectRef = ref<InstanceType<typeof UserSelect>>();
   const hostSelectorShow = ref(false);
   const clusterSelectorShow = ref(false);
+  const selectedHosts = ref<HostInfo[]>([]);
 
-  const selectedHosts = shallowRef(getDefaultSelectedHosts());
+  // const selectedHosts = shallowRef(getDefaultSelectedHosts());
   const selectedClusters = shallowRef<{ [key: string]: Array<SelectorModelType> }>(getDefaultSelectedClusters());
 
-  const disableHostSubmitMethod = (hostList: string[]) => (hostList.length <= 50 ? false : t('至多n台', { n: 50 }));
+  // const disableHostSubmitMethod = (hostList: string[]) => (hostList.length <= 50 ? false : t('至多n台', { n: 50 }));
 
   const disableClusterSubmitMethod = (hostList: string[]) => (hostList.length <= 20 ? false : t('至多n台', { n: 20 }));
 
-  const handleHostSelectChange = (data: InstanceSelectorValues<IValue>) => {
+  const handleChangeIP = (data: HostInfo[]) => {
     selectedHosts.value = data;
-    const clusterList = Object.keys(data).reduce<string[]>(
-      (prevList, key) => prevList.concat(data[key].map((item) => item.ip)),
-      [],
-    );
-    formData.value.ips = clusterList.join(' | ');
+    formData.value.ips = data.map((item) => item.ip).join(' | ');
   };
+
+  // const handleHostSelectChange = (data: InstanceSelectorValues<IValue>) => {
+  //   selectedHosts.value = data;
+  //   const clusterList = Object.keys(data).reduce<string[]>(
+  //     (prevList, key) => prevList.concat(data[key].map((item) => item.ip)),
+  //     [],
+  //   );
+  //   formData.value.ips = clusterList.join(' | ');
+  // };
 
   const handleClusterSelectorChange = (selected: Record<string, Array<SelectorModelType>>) => {
     selectedClusters.value = selected;
@@ -348,6 +369,18 @@
       [],
     );
     formData.value.immute_domains = clusterList.join(',');
+  };
+
+  const handleDomainChange = (value: string) => {
+    const newDomainList = value.split(batchSplitRegex).filter((item) => item);
+    const domainMap = newDomainList.reduce<Record<string, string>>(
+      (prev, domain) => Object.assign({}, prev, { [domain]: domain }),
+      {},
+    );
+    Object.keys(selectedClusters.value).forEach((key) => {
+      const clusterList = selectedClusters.value[key];
+      selectedClusters.value[key] = clusterList.filter((clusterItem) => domainMap[clusterItem.master_domain]);
+    });
   };
 
   const handleSearch = () => {
