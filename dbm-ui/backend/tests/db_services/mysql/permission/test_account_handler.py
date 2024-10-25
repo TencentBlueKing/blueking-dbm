@@ -13,6 +13,7 @@ from unittest.mock import patch
 
 import pytest
 
+from backend.configuration.constants import DBPrivSecurityType
 from backend.configuration.handlers.password import DBPasswordHandler
 from backend.configuration.models.password_policy import PasswordPolicy
 from backend.core.encrypt.constants import AsymmetricCipherConfigType
@@ -81,6 +82,6 @@ class TestAccountHandler:
         password = AsymmetricHandler.encrypt(
             name=AsymmetricCipherConfigType.PASSWORD.value, content=password, need_salt=False
         )
-        check_result = DBPasswordHandler.verify_password_strength(password)
+        check_result = DBPasswordHandler.verify_password_strength(password, DBPrivSecurityType.MYSQL_PASSWORD)
         is_strength = check_result["is_strength"]
         assert is_strength

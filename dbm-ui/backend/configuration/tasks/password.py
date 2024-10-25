@@ -16,7 +16,7 @@ from django.utils import timezone
 from django.utils.translation import ugettext as _
 
 from backend.components import DBPrivManagerApi
-from backend.configuration.constants import DB_ADMIN_USER_MAP, DBM_PASSWORD_SECURITY_NAME, AdminPasswordRole, DBType
+from backend.configuration.constants import DB_ADMIN_USER_MAP, AdminPasswordRole, DBPrivSecurityType, DBType
 from backend.db_meta.enums import ClusterType, TenDBClusterSpiderRole
 from backend.db_meta.models import Cluster
 from backend.db_periodic_task.models import DBPeriodicTask
@@ -34,7 +34,7 @@ def randomize_admin_password(db_type: str, if_async: bool, range_type: str, clus
                 "username": DB_ADMIN_USER_MAP[db_type],  # 管理用户
                 "operator": range_type,
                 "clusters": clusters,
-                "security_rule_name": DBM_PASSWORD_SECURITY_NAME,  # 用于生成随机化密码的安全规则
+                "security_rule_name": DBPrivSecurityType.db_type_to_security_type(db_type),  # 用于生成随机化密码的安全规则
                 "async": if_async,  # 异步执行，避免占用资源
                 "range": range_type,  # 被锁定的密码到期，需要被随机化
             },

@@ -45,6 +45,7 @@ class PasswordPolicyViewSet(viewsets.SystemViewSet):
 
     action_permission_map = {
         ("get_password_policy", "verify_password_strength", "get_random_password", "query_random_cycle"): [],
+        ("query_async_modify_result",): [],
         ("modify_admin_password",): [ModifyClusterPasswordPermission()],
         ("query_admin_password",): [QueryClusterPasswordPermission()],
         ("update_password_policy", "modify_random_cycle"): [
@@ -59,7 +60,7 @@ class PasswordPolicyViewSet(viewsets.SystemViewSet):
     )
     @action(methods=["GET"], detail=False)
     def get_password_policy(self, request):
-        name = request.GET.get("name", DBPrivSecurityType.MYSQL_PASSWOR.value)
+        name = request.GET.get("name", DBPrivSecurityType.MYSQL_PASSWORD.value)
         if name not in DBPrivSecurityType.get_values():
             raise ValueError(_("不支持该name值！"))
         policy = DBPrivManagerApi.get_security_rule({"name": name})

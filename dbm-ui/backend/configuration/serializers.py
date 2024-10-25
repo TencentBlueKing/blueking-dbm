@@ -185,7 +185,7 @@ class GetRandomPasswordSerializer(serializers.Serializer):
         help_text=_("密码类型"),
         required=False,
         choices=DBPrivSecurityType.get_choices(),
-        default=DBPrivSecurityType.MYSQL_PASSWOR.value,
+        default=DBPrivSecurityType.MYSQL_PASSWORD.value,
     )
 
 
@@ -195,7 +195,7 @@ class VerifyPasswordSerializer(serializers.Serializer):
         help_text=_("密码类型"),
         required=False,
         choices=DBPrivSecurityType.get_choices(),
-        default=DBPrivSecurityType.MYSQL_PASSWOR.value,
+        default=DBPrivSecurityType.MYSQL_PASSWORD.value,
     )
 
 

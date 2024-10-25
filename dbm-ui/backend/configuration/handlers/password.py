@@ -16,7 +16,7 @@ from django.utils.translation import ugettext as _
 from django_celery_beat.schedulers import ModelEntry
 
 from backend.components import DBPrivManagerApi
-from backend.configuration.constants import DB_ADMIN_USER_MAP, DBM_PASSWORD_SECURITY_NAME, AdminPasswordRole
+from backend.configuration.constants import DB_ADMIN_USER_MAP, AdminPasswordRole, DBPrivSecurityType
 from backend.configuration.exceptions import PasswordPolicyBaseException
 from backend.core.encrypt.constants import AsymmetricCipherConfigType
 from backend.core.encrypt.handlers import AsymmetricHandler
@@ -41,7 +41,7 @@ class DBPasswordHandler(object):
     """密码策略相关处理"""
 
     @classmethod
-    def get_random_password(cls, security_type: str = DBM_PASSWORD_SECURITY_NAME):
+    def get_random_password(cls, security_type):
         """
         获取符合密码强度的字符串
         """
@@ -50,9 +50,7 @@ class DBPasswordHandler(object):
         return random_password
 
     @classmethod
-    def verify_password_strength(
-        cls, password: str, echo: bool = False, security_type: str = DBM_PASSWORD_SECURITY_NAME
-    ):
+    def verify_password_strength(cls, password: str, security_type: str, echo: bool = False):
         """
         校验密码强度
         @param password: 密码(这里是不加盐的)
@@ -195,7 +193,7 @@ class DBPasswordHandler(object):
             "lock_hour": lock_hour,
             "operator": operator,
             "clusters": cluster_infos,
-            "security_rule_name": DBM_PASSWORD_SECURITY_NAME,
+            "security_rule_name": DBPrivSecurityType.db_type_to_security_type(db_type),
             "async": False,
         }
 

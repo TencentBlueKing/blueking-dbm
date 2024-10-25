@@ -14,8 +14,6 @@ from blue_krill.data_types.enum import EnumField, StructuredEnum
 
 # 平台业务ID
 PLAT_BIZ_ID = 0
-# 密码服务策略名称
-DBM_PASSWORD_SECURITY_NAME = "password"
 # mysql的用户登录admin账号名称
 MYSQL_ADMIN_USER = "ADMIN"
 # sqlserver的用户登录admin账号名称
@@ -27,7 +25,7 @@ MYSQL8_VER_PARSE_NUM = 8000000
 
 
 class DBPrivSecurityType(str, StructuredEnum):
-    MYSQL_PASSWOR = EnumField("mysql_password", _("mysql密码策略"))
+    MYSQL_PASSWORD = EnumField("mysql_password", _("mysql密码策略"))
     REDIS_PASSWORD = EnumField("redis_password_v2", _("redis密码策略"))
     TENDBCLUSTER_PASSWORD = EnumField("tendbcluster_password", _("tendbcluster密码策略"))
     ES_PASSWORD = EnumField("es_password", _("es密码策略"))
@@ -36,8 +34,15 @@ class DBPrivSecurityType(str, StructuredEnum):
     PULSAR_PASSWORD = EnumField("pulsar_password", _("pulsar密码策略"))
     INFLUXDB_PASSWORD = EnumField("influxdb_password", _("influxdb密码策略"))
     SQLSERVER_PASSWORD = EnumField("sqlserver_password", _("sqlserver密码策略"))
-    MOGODB_PASSWORD = EnumField("mongodb_password", _("mongodb密码策略"))
+    MONGODB_PASSWORD = EnumField("mongodb_password", _("mongodb密码策略"))
     DORIS_PASSWORD = EnumField("doris_password", _("doris密码策略"))
+
+    @classmethod
+    def db_type_to_security_type(cls, db_type):
+        attr = f"{db_type.upper()}_PASSWORD"
+        if not hasattr(cls, attr):
+            raise ValueError(_("该组件类型{}没有对应的密码规则").format(db_type))
+        return getattr(cls, attr).value
 
 
 class AdminPasswordRole(str, StructuredEnum):

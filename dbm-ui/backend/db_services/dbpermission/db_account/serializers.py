@@ -14,6 +14,7 @@ import re
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
+from backend.configuration.constants import DBPrivSecurityType
 from backend.configuration.handlers.password import DBPasswordHandler
 from backend.db_services.dbpermission import constants
 from backend.db_services.dbpermission.constants import AccountType, PrivilegeType
@@ -39,8 +40,9 @@ class DBAccountBaseSerializer(serializers.Serializer):
             raise serializers.ValidationError(_("账号名称不符合过长，请不要超过31位"))
 
     @classmethod
-    def check_password_valid(cls, password):
-        verify_result = DBPasswordHandler.verify_password_strength(password, echo=True)
+    def check_password_valid(cls, password, account_type):
+        security_type = DBPrivSecurityType.db_type_to_security_type(account_type)
+        verify_result = DBPasswordHandler.verify_password_strength(password, security_type=security_type, echo=True)
         if not verify_result["is_strength"]:
             raise serializers.ValidationError(_("密码强度不符合要求，请重新输入密码。"))
         return verify_result["password"]
@@ -50,7 +52,7 @@ class DBAccountBaseSerializer(serializers.Serializer):
         if attrs.get("user"):
             self.check_username_valid(attrs["account_type"], attrs.get("user"))
         # 将密码进行解密并校验密码强度
-        attrs["password"] = self.check_password_valid(attrs["password"])
+        attrs["password"] = self.check_password_valid(attrs["password"], attrs["account_type"])
         return attrs
 
     class Meta:
