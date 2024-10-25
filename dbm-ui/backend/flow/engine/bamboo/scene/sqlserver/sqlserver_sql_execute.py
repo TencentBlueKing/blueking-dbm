@@ -20,7 +20,7 @@ from backend.configuration.constants import DBType
 from backend.db_meta.enums import InstanceRole
 from backend.db_meta.models import Cluster
 from backend.exceptions import ValidationError
-from backend.flow.consts import DEFAULT_SQLSERVER_PATH, SQlCmdFileFormatNOMap
+from backend.flow.consts import DBM_SQLSERVER_JOB_LONG_TIMEOUT, DEFAULT_SQLSERVER_PATH, SQlCmdFileFormatNOMap
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.engine.bamboo.scene.sqlserver.base_flow import BaseFlow
@@ -155,7 +155,7 @@ class SqlserverSQLExecuteFlow(BaseFlow):
                     ExecActuatorKwargs(
                         exec_ips=[Host(ip=master_instance.machine.ip, bk_cloud_id=cluster.bk_cloud_id)],
                         get_payload_func=SqlserverActPayload.get_execute_sql_payload.__name__,
-                        job_timeout=3 * 3600,
+                        job_timeout=DBM_SQLSERVER_JOB_LONG_TIMEOUT,
                     )
                 ),
             )

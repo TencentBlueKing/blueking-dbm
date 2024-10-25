@@ -14,7 +14,7 @@ from pipeline.component_framework.component import Component
 
 from backend import env
 from backend.components import JobApi
-from backend.flow.consts import MediumFileTypeEnum
+from backend.flow.consts import DBM_SQLSERVER_JOB_LONG_TIMEOUT, MediumFileTypeEnum
 from backend.flow.models import FlowNode
 from backend.flow.plugins.components.collections.common.base_service import BkJobService
 
@@ -68,10 +68,12 @@ class TransFileInWindowsService(BkJobService):
                 "file_type": MediumFileTypeEnum.Repo.value,
                 "file_source_code": env.APP_CODE,
             }
+        # 文件传输设置24小时超时
         payload = {
             "bk_biz_id": env.JOB_BLUEKING_BIZ_ID,
             "file_target_path": kwargs["file_target_path"],
             "transfer_mode": 2,
+            "timeout": DBM_SQLSERVER_JOB_LONG_TIMEOUT,
             "file_source_list": [file_source],
             "account_alias": "system",
             "target_server": {"ip_list": target_hosts},

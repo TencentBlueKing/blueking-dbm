@@ -19,7 +19,7 @@ from backend.configuration.constants import DBType
 from backend.db_meta.enums import InstanceRole
 from backend.db_meta.models import Cluster
 from backend.db_services.sqlserver.rollback.handlers import SQLServerRollbackHandler
-from backend.flow.consts import SqlserverRestoreDBStatus
+from backend.flow.consts import DBM_SQLSERVER_JOB_LONG_TIMEOUT, SqlserverRestoreDBStatus
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.engine.bamboo.scene.sqlserver.base_flow import BaseFlow
@@ -247,7 +247,7 @@ class SqlserverDataConstruct(BaseFlow):
                     ExecActuatorKwargs(
                         exec_ips=[Host(ip=target_master_instance.machine.ip, bk_cloud_id=target_cluster.bk_cloud_id)],
                         get_payload_func=SqlserverActPayload.get_restore_full_dbs_payload.__name__,
-                        job_timeout=3 * 3600,
+                        job_timeout=DBM_SQLSERVER_JOB_LONG_TIMEOUT,
                         custom_params={
                             "port": target_master_instance.port,
                             "restore_infos": restore_full_backup_infos,
@@ -269,7 +269,7 @@ class SqlserverDataConstruct(BaseFlow):
                                 Host(ip=target_master_instance.machine.ip, bk_cloud_id=target_cluster.bk_cloud_id)
                             ],
                             get_payload_func=SqlserverActPayload.get_restore_log_dbs_payload.__name__,
-                            job_timeout=3 * 3600,
+                            job_timeout=DBM_SQLSERVER_JOB_LONG_TIMEOUT,
                             custom_params={
                                 "port": target_master_instance.port,
                                 "restore_infos": restore_log_backup_infos,

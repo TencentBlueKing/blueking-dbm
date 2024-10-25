@@ -86,6 +86,8 @@ TDBCTL_USER = "spider"
 DBM_MYSQL_JOB_TMP_USER_PREFIX = "J_"
 # 定义sqlserver专属的匹配临时账号的正则
 DBM_JOB_TMP_USER_REGULAR = "J[_]%"
+# 定义sqlserverJob超长超时时间
+DBM_SQLSERVER_JOB_LONG_TIMEOUT = 24 * 3600
 
 # 数据量大小单位
 BYTE = 1

@@ -17,6 +17,7 @@ from django.utils.translation import ugettext as _
 from backend.configuration.constants import DBType
 from backend.db_meta.enums import InstanceRole
 from backend.db_meta.models import Cluster
+from backend.flow.consts import DBM_SQLSERVER_JOB_LONG_TIMEOUT
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.engine.bamboo.scene.sqlserver.base_flow import BaseFlow
@@ -115,7 +116,7 @@ class SqlserverBackupDBSFlow(BaseFlow):
                     ExecActuatorKwargs(
                         exec_ips=[Host(ip=master_instance.machine.ip, bk_cloud_id=cluster.bk_cloud_id)],
                         get_payload_func=SqlserverActPayload.get_backup_dbs_payload.__name__,
-                        job_timeout=3 * 3600,
+                        job_timeout=DBM_SQLSERVER_JOB_LONG_TIMEOUT,
                         custom_params={
                             "port": master_instance.port,
                             "file_tag": sub_flow_context["file_tag"],

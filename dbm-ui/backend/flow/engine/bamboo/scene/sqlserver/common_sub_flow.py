@@ -19,6 +19,7 @@ from backend.db_meta.enums import ClusterEntryType, ClusterType, InstanceRole
 from backend.db_meta.models import Cluster, StorageInstance
 from backend.db_meta.models.storage_set_dtl import SqlserverClusterSyncMode
 from backend.flow.consts import (
+    DBM_SQLSERVER_JOB_LONG_TIMEOUT,
     DEPENDENCIES_PLUGINS,
     WINDOW_ADMIN_USER_FOR_CHECK,
     SqlserverBackupFileTagEnum,
@@ -517,7 +518,7 @@ def sync_dbs_for_cluster_sub_flow(
             ExecActuatorKwargs(
                 exec_ips=[Host(ip=master_instance.machine.ip, bk_cloud_id=cluster.bk_cloud_id)],
                 get_payload_func=SqlserverActPayload.get_backup_dbs_payload.__name__,
-                job_timeout=3 * 3600,
+                job_timeout=DBM_SQLSERVER_JOB_LONG_TIMEOUT,
                 custom_params={
                     "port": master_instance.port,
                     "file_tag": SqlserverBackupFileTagEnum.DBFILE1M.value,
@@ -534,7 +535,7 @@ def sync_dbs_for_cluster_sub_flow(
             ExecActuatorKwargs(
                 exec_ips=[Host(ip=master_instance.machine.ip, bk_cloud_id=cluster.bk_cloud_id)],
                 get_payload_func=SqlserverActPayload.get_backup_dbs_payload.__name__,
-                job_timeout=3 * 3600,
+                job_timeout=DBM_SQLSERVER_JOB_LONG_TIMEOUT,
                 custom_params={
                     "port": master_instance.port,
                     "file_tag": SqlserverBackupFileTagEnum.INCREMENT_BACKUP.value,
@@ -571,7 +572,7 @@ def sync_dbs_for_cluster_sub_flow(
                         restore_mode=SqlserverRestoreMode.FULL.value,
                         exec_ips=[slave],
                         port=master_instance.port,
-                        job_timeout=3 * 3600,
+                        job_timeout=DBM_SQLSERVER_JOB_LONG_TIMEOUT,
                     )
                 ),
             }
@@ -592,7 +593,7 @@ def sync_dbs_for_cluster_sub_flow(
                         restore_mode=SqlserverRestoreMode.LOG.value,
                         exec_ips=[slave],
                         port=master_instance.port,
-                        job_timeout=3 * 3600,
+                        job_timeout=DBM_SQLSERVER_JOB_LONG_TIMEOUT,
                     )
                 ),
             }

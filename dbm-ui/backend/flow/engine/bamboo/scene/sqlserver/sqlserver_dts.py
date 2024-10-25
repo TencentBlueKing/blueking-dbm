@@ -17,6 +17,7 @@ from backend.db_meta.enums import InstanceRole
 from backend.db_meta.models import Cluster
 from backend.db_meta.models.sqlserver_dts import DtsStatus, SqlserverDtsInfo
 from backend.flow.consts import (
+    DBM_SQLSERVER_JOB_LONG_TIMEOUT,
     SqlserverBackupFileTagEnum,
     SqlserverBackupJobExecMode,
     SqlserverBackupMode,
@@ -149,7 +150,7 @@ class SqlserverDTSFlow(BaseFlow):
                     ExecActuatorKwargs(
                         exec_ips=[Host(ip=master_instance.machine.ip, bk_cloud_id=cluster.bk_cloud_id)],
                         get_payload_func=SqlserverActPayload.get_backup_dbs_payload.__name__,
-                        job_timeout=3 * 3600,
+                        job_timeout=DBM_SQLSERVER_JOB_LONG_TIMEOUT,
                         custom_params={
                             "port": master_instance.port,
                             "file_tag": SqlserverBackupFileTagEnum.DBFILE1M.value,
@@ -167,7 +168,7 @@ class SqlserverDTSFlow(BaseFlow):
                     ExecActuatorKwargs(
                         exec_ips=[Host(ip=master_instance.machine.ip, bk_cloud_id=cluster.bk_cloud_id)],
                         get_payload_func=SqlserverActPayload.get_backup_dbs_payload.__name__,
-                        job_timeout=3 * 3600,
+                        job_timeout=DBM_SQLSERVER_JOB_LONG_TIMEOUT,
                         custom_params={
                             "port": master_instance.port,
                             "file_tag": SqlserverBackupFileTagEnum.INCREMENT_BACKUP.value,
@@ -206,7 +207,7 @@ class SqlserverDTSFlow(BaseFlow):
                         restore_db_status=SqlserverRestoreDBStatus.NORECOVERY.value,
                         exec_ips=[Host(ip=target_master_instance.machine.ip, bk_cloud_id=target_cluster.bk_cloud_id)],
                         port=target_master_instance.port,
-                        job_timeout=3 * 3600,
+                        job_timeout=DBM_SQLSERVER_JOB_LONG_TIMEOUT,
                     )
                 ),
             )
@@ -229,7 +230,7 @@ class SqlserverDTSFlow(BaseFlow):
                         restore_db_status=restore_db_status,
                         exec_ips=[Host(ip=target_master_instance.machine.ip, bk_cloud_id=target_cluster.bk_cloud_id)],
                         port=target_master_instance.port,
-                        job_timeout=3 * 3600,
+                        job_timeout=DBM_SQLSERVER_JOB_LONG_TIMEOUT,
                     )
                 ),
             )
