@@ -124,6 +124,7 @@ class ExecuteDataStructureActuatorScriptService(BkJobService):
             "script_content": base64_encode(template.render(db_act_template)),
             "script_language": 1,
             "target_server": {"ip_list": target_ip_info},
+            "timeout": 86400,
         }
 
         self.log_info(

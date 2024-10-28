@@ -248,8 +248,8 @@ def backup_and_restore(
     act_kwargs.cluster["backup_instances"] = []
     act_kwargs.cluster["ssd_log_count"] = {
         "log-count": 600000,
-        "log-keep-count": 7650000,
-        "slave-log-keep-count": 7650000,
+        "log-keep-count": 20000000,
+        "slave-log-keep-count": 20000000,
     }
     act_kwargs.cluster["domain_name"] = act_kwargs.cluster["immute_domain"]
     for sync_direct in params["ins_link"]:
