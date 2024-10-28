@@ -15,10 +15,9 @@ from django.utils.translation import ugettext as _
 
 from backend.configuration.constants import DBType
 from backend.db_meta.enums import InstanceRole
-from backend.db_meta.models import Cluster, Machine
+from backend.db_meta.models import Cluster
 from backend.db_meta.models.extra_process import ExtraProcessInstance
 from backend.flow.consts import DBA_SYSTEM_USER
-from backend.flow.engine.bamboo.scene.common.atom_jobs.set_dns_sub_job import set_dns_atom_job
 from backend.flow.engine.bamboo.scene.common.builder import SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.engine.bamboo.scene.mysql.common.common_sub_flow import build_repl_by_manual_input_sub_flow
@@ -35,7 +34,6 @@ from backend.flow.plugins.components.collections.tbinlogdumper.stop_slave import
 from backend.flow.plugins.components.collections.tbinlogdumper.trans_backup_file import TBinlogDumperTransFileComponent
 from backend.flow.utils.mysql.mysql_act_dataclass import DownloadMediaKwargs, ExecActuatorKwargs, P2PFileKwargs
 from backend.flow.utils.mysql.mysql_act_playload import MysqlActPayload
-from backend.flow.utils.redis.redis_context_dataclass import ActKwargs
 from backend.flow.utils.tbinlogdumper.context_dataclass import StopSlaveKwargs, TBinlogDumperFullSyncDataKwargs
 from backend.flow.utils.tbinlogdumper.tbinlogdumper_act_payload import TBinlogDumperActPayload
 
@@ -82,15 +80,16 @@ def add_tbinlogdumper_sub_flow(
     # 声明子流程
     sub_pipeline = SubBuilder(root_id=root_id, data=parent_global_data)
 
-    # 初始化机器,为了安装tbinlogdumper
-    sub_pipeline.add_sub_pipeline(
-        sub_flow=init_machine_sub_flow(
-            root_id=root_id,
-            uid=uid,
-            init_machine=master.machine,
-            is_install_l5_agent=is_install_l5_agent,
+    # 初始化机器，判断是否需要安装L5 agent
+    if is_install_l5_agent:
+        sub_pipeline.add_act(
+            act_name=_("安装L5agent"),
+            act_component_code=L5AgentInstallComponent.code,
+            kwargs={
+                "ip": master.machine.ip,
+                "bk_host_id": master.machine.bk_host_id,
+            },
         )
-    )
 
     # 阶段1 并行分发安装文件
     sub_pipeline.add_act(
@@ -478,53 +477,3 @@ def full_sync_sub_flow(
     return sub_pipeline.build_sub_process(
         sub_name=_("实例TBinlogDumper[{}:{}]做全量同步".format(master.machine.ip, add_tbinlogdumper_conf["port"]))
     )
-
-
-def init_machine_sub_flow(
-    uid: str,
-    root_id: str,
-    init_machine: Machine,
-    is_install_l5_agent: bool,
-):
-    """
-    定义安装tbinlogdumper之前初始化内容
-    初始化内容：
-    1：安全初始化机器的dns_dbm域名解析（必选）
-    2：安装L5客户端（可选）
-    @param uid: 单据uid
-    @param root_id: 主流程的root_id
-    @param init_machine: 需要初始化的机器对象
-    @param is_install_l5_agent: 是否安装L5 agent
-    """
-
-    # 声明子流程
-    parent_global_data = {"uid": uid}
-    sub_pipeline = SubBuilder(root_id=root_id, data=parent_global_data)
-
-    if is_install_l5_agent:
-        sub_pipeline.add_act(
-            act_name=_("安装L5agent"),
-            act_component_code=L5AgentInstallComponent.code,
-            kwargs={
-                "ip": init_machine.ip,
-                "bk_host_id": init_machine.bk_host_id,
-            },
-        )
-
-    else:
-        sub_pipeline.add_sub_pipeline(
-            set_dns_atom_job(
-                root_id=root_id,
-                ticket_data=parent_global_data,
-                act_kwargs=ActKwargs(),
-                param={
-                    "force": False,
-                    "ip": init_machine.ip,
-                    "bk_biz_id": init_machine.bk_biz_id,
-                    "bk_cloud_id": init_machine.bk_cloud_id,
-                    "bk_city": init_machine.bk_city.logical_city.name,
-                },
-            )
-        )
-    # 返回子流程
-    return sub_pipeline.build_sub_process(sub_name=_("初始化tbinlogdumper机器"))

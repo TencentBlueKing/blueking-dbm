@@ -24,7 +24,6 @@ from backend.db_meta.models.extra_process import ExtraProcessInstance
 from backend.db_package.models import Package
 from backend.flow.consts import MediumEnum
 from backend.flow.engine.bamboo.scene.common.get_real_version import get_mysql_real_version, get_proxy_real_version
-from backend.flow.utils.base.cc_topo_operate import CCTopoOperator
 from backend.flow.utils.cc_manage import CcManage
 from backend.flow.utils.mysql.mysql_module_operate import MysqlCCTopoOperator
 from backend.flow.utils.tbinlogdumper.tbinlogdumper_module_operate import TBinlogDumperCCTopoOperator
@@ -243,7 +242,7 @@ class TenDBHAClusterHandler(ClusterHandler):
             inst.save()
 
             # 创建新的服务实例
-            CCTopoOperator(cluster=self.cluster).create_tbinlogdumper_instances(inst)
+            TBinlogDumperCCTopoOperator(cluster=self.cluster).create_tbinlogdumper_instances(inst)
 
     @classmethod
     @transaction.atomic()

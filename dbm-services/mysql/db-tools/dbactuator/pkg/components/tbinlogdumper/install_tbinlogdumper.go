@@ -265,14 +265,14 @@ func (i *InstallTbinlogDumperComp) DumperInstall() (err error) {
 
 		// mysql5.7.18以下版本初始化命令
 		initialMysql = fmt.Sprintf(
-			"su - mysql -c \"cd %s && ./scripts/mysql_install_db --defaults-file=%s --user=mysql --force &>%s\"",
-			i.MysqlInstallDir, myCnf, initialLogFile)
+			"su - mysql -c \"LD_LIBRARY_PATH=%s/lib:$LD_LIBRARY_PATH cd %s && ./scripts/mysql_install_db --defaults-file=%s --user=mysql --force &>%s\"",
+			i.MysqlInstallDir, i.MysqlInstallDir, myCnf, initialLogFile)
 
 		// mysql5.7.18以上的版本
 		if cmutil.MySQLVersionParse(i.Params.MysqlVersion) >= cmutil.MySQLVersionParse("5.7.18") {
 			initialMysql = fmt.Sprintf(
-				"su - mysql -c \"cd %s && ./bin/mysqld --defaults-file=%s --initialize-insecure --user=mysql &>%s\"",
-				i.MysqlInstallDir, myCnf, initialLogFile)
+				"su - mysql -c \"LD_LIBRARY_PATH=%s/lib:$LD_LIBRARY_PATH cd %s && ./bin/mysqld --defaults-file=%s --initialize-insecure --user=mysql &>%s\"",
+				i.MysqlInstallDir, i.MysqlInstallDir, myCnf, initialLogFile)
 		}
 		if output, err = osutil.ExecShellCommand(isSudo, initialMysql); err != nil {
 			logger.Error("%s execute failed, %s", initialMysql, output)
