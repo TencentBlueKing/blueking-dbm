@@ -188,6 +188,7 @@
                   ...params,
                   cluster_type: formData.clusterType,
                 }),
+              multiple: true,
             },
           },
           {

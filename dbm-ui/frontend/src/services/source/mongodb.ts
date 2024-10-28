@@ -149,7 +149,7 @@ export function getMongoInstancesList(params: {
 /**
  * 查询Mongo集群实例详情
  */
-export function getMongoInstanceDetail(params: {
+export function retrieveMongoInstanceDetail(params: {
   instance_address: string;
   cluster_id?: number;
   ip?: string;
