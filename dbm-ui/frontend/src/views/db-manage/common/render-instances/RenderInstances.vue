@@ -163,12 +163,14 @@
     data: T[];
     clusterId: number;
     dataSource: (params: Record<string, any>) => Promise<ListBase<T[]>>;
+    sort?: (data: T[]) => T[];
     highlightIps?: string[];
   }
 
   const props = withDefaults(defineProps<Props>(), {
     highlightIps: () => ([]),
     tagKeyConfig: () => ([]),
+    sort: (data: T[]) => data,
   });
 
   const copy = useCopy();
@@ -181,7 +183,7 @@
   const popRef = ref();
   const isCopyIconClicked = ref(false);
   const tableRef = ref();
-  const renderData = computed(() => props.data.slice(0, 10));
+  const renderData = shallowRef<T[]>([]);
   const hasMore = computed(() => props.data.length > 10);
 
   const dialogState = reactive({
@@ -189,6 +191,16 @@
     keyword: '',
     data: [] as T[],
   });
+
+  watch(
+    () => props.data,
+    () => {
+      renderData.value = props.sort(props.data).slice(0, 10);
+    },
+    {
+      immediate: true,
+    }
+  );
 
   const columns = [
     {
