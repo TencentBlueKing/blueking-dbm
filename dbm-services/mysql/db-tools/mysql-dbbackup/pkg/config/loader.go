@@ -46,10 +46,12 @@ type LogicalLoadMysqldump struct {
 }
 
 // PhysicalLoad the config of physical loading
+// works for innodb, rocksdb, tokudb
 type PhysicalLoad struct {
 	MysqlLoadDir  string `ini:"MysqlLoadDir" validate:"required"`
 	IndexFilePath string `ini:"IndexFilePath" validate:"required,file"`
 
+	// DefaultsFile the target instance's my.cnf, not from backup files
 	DefaultsFile string `ini:"DefaultsFile" validate:"required"`
 	Threads      int    `ini:"Threads"`
 	CopyBack     bool   `ini:"CopyBack"` // use copy-back or move-back

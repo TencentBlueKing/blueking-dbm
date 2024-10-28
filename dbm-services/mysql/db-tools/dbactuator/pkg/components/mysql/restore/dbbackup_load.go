@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/jinzhu/copier"
@@ -123,6 +124,7 @@ func (m *DBLoader) chooseDBBackupLoader() error {
 			MyloaderOpt: myloaderOpt,
 		}
 	} else if m.backupType == cst.BackupTypePhysical {
+		// include rocksdb, tokudb
 		m.dbLoader = &dbbackup_loader.PhysicalLoader{
 			LoaderUtil: m.dbLoaderUtil,
 			Xtrabackup: &dbbackup_loader.Xtrabackup{
@@ -130,6 +132,7 @@ func (m *DBLoader) chooseDBBackupLoader() error {
 				SrcBackupHost: m.dbLoaderUtil.IndexObj.BackupHost,
 				QpressTool:    m.Tools.MustGet(tools.ToolQPress),
 				LoaderDir:     m.targetDir,
+				StorageType:   strings.ToLower(m.indexObj.StorageEngine),
 			},
 		}
 	} else {
@@ -221,7 +224,7 @@ func (m *DBLoader) initDirs(removeOld bool) error {
 		}
 	}
 
-	m.taskDir = fmt.Sprintf("%s/doDr_%s/%d", m.WorkDir, m.WorkID, m.TgtInstance.Port)
+	m.taskDir = filepath.Join(m.WorkDir, fmt.Sprintf("doDr_%s/%d", m.WorkID, m.TgtInstance.Port))
 	if err := osutil.CheckAndMkdir("", m.taskDir); err != nil {
 		return err
 	}

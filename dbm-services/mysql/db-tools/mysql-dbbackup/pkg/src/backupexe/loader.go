@@ -47,10 +47,13 @@ func BuildLoader(cnf *config.BackupConfig, backupType string, backupTool string,
 		if err := validate.GoValidateStruct(cnf.PhysicalLoad, false, false); err != nil {
 			return nil, err
 		}
-
 		if cst.StorageEngineRocksdb == storageEngine {
 			loader = &PhysicalRocksdbLoader{
 				cfg: cnf,
+			}
+		} else if storageEngine == cst.StorageEngineTokudb || backupTool == "tokudb_back.pl" {
+			loader = &PhysicalTokudbLoader{
+				cnf: cnf,
 			}
 		} else {
 			loader = &PhysicalLoader{

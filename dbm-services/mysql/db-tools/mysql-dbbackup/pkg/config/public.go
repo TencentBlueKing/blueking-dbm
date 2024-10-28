@@ -139,7 +139,7 @@ func (c *Public) TargetName() string {
 	if c.targetName == "" {
 		currentTime := time.Now().Format("20060102150405")
 		c.targetName = fmt.Sprintf("%d_%d_%s_%d_%s_%s",
-			c.BkBizId, c.ClusterId, c.MysqlHost, c.MysqlPort, currentTime, c.BackupType)
+			c.BkBizId, c.ClusterId, c.MysqlHost, c.MysqlPort, currentTime, c.BackupType) // rocksdb/tokudb
 
 		logger.Log.Info("generate target name: ", c.targetName)
 	}

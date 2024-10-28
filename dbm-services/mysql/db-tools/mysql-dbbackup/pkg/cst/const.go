@@ -18,6 +18,7 @@ const (
 
 const (
 	StorageEngineRocksdb = "rocksdb"
+	StorageEngineTokudb  = "tokudb"
 )
 
 // backup role: dbm-services/mysql/db-tools/dbactuator/pkg/core/cst/mysql.go
@@ -121,4 +122,5 @@ const (
 	ToolXtrabackup       = "xtrabackup"
 	ToolTmysqldump       = "tmysqldump"
 	ToolMyrocksHotbackup = "myrocks_hotbackup"
+	ToolTokudbBackup     = "tokudb_back.pl"
 )

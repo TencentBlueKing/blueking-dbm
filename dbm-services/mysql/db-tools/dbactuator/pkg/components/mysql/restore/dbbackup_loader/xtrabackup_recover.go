@@ -29,6 +29,8 @@ type Xtrabackup struct {
 	dbWorker *native.DbWorker // TgtInstance
 	// 在 PreRun 时初始化，本地实例的配置文件
 	myCnf *util.CnfFile
+
+	StorageType string `json:"-"`
 }
 
 // PreRun 以下所有步骤必须可重试
@@ -36,7 +38,6 @@ type Xtrabackup struct {
 // replace my.cnf
 func (x *Xtrabackup) PreRun() error {
 	logger.Info("run xtrabackup preRun")
-
 	// 关闭本地mysql
 	inst := x.TgtInstance
 
@@ -97,9 +98,13 @@ func (x *Xtrabackup) PostRun() (err error) {
 
 	serverVersion, err := x.dbWorker.SelectVersion()
 	if err != nil {
-		//return errors.Wrapf(err, "get mysql version")
-		logger.Warn("get version failed: %s. set it to 5.7.20", err.Error())
-		serverVersion = "5.7.20" // fake
+		if x.StorageType == "tokudb" {
+			logger.Warn("get version failed: %s. set it to 5.6.20 for tokudb", err.Error())
+			serverVersion = "5.6.20" // fake
+		} else {
+			logger.Warn("get version failed: %s. set it to 5.7.20", err.Error())
+			serverVersion = "5.7.20" // fake
+		}
 	}
 	logger.Info("repair user 'ADMIN' host and password")
 	// 物理备份，ADMIN密码与 backup instance(cluster?) 相同，修复成
@@ -160,9 +165,14 @@ func (x *Xtrabackup) cleanXtraEnv() error {
 		"datadir",
 		"innodb_log_group_home_dir",
 		"innodb_data_home_dir",
+		"tokudb_log_dir",
+		"tokudb_data_dir",
 		"relay-log",
 		"log_bin",
 		"tmpdir",
+	}
+	if x.StorageType == "tokudb" {
+		dirs = []string{"tokudb_log_dir", "tokudb_data_dir", "tmpdir"}
 	}
 	return x.CleanEnv(dirs)
 }
@@ -172,12 +182,13 @@ func (x *Xtrabackup) cleanXtraEnv() error {
 // mysql 8.0.30 之后 redo_log 变成 innodb_redo_log_capacity 来控制
 func (x *Xtrabackup) doReplaceCnf() error {
 	items := []string{
+		"lower_case_table_names",
 		"innodb_data_file_path",
 		"innodb_log_files_in_group",
 		"innodb_log_file_size",
 		"innodb_page_size",
 		"tokudb_cache_size",
-		"lower_case_table_names",
+		"rocksdb_block_cache_size",
 
 		// mysql 8.0 xtrabackup
 		"innodb_checksum_algorithm",
@@ -204,6 +215,9 @@ func (x *Xtrabackup) changeDirOwner() error {
 		"tmpdir",
 		"log_bin",
 		"slow_query_log_file",
+
+		"tokudb_log_dir",
+		"tokudb_data_dir",
 	}
 	return x.ChangeDirOwner(dirs)
 }

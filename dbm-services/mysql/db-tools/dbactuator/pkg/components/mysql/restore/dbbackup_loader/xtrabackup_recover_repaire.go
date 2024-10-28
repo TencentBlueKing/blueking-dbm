@@ -244,8 +244,8 @@ func (x *Xtrabackup) CleanEnv(dirs []string) error {
 			}
 			reg := regexp.MustCompile(cst.RelayLogFileMatch)
 			if result := reg.FindStringSubmatch(val); len(result) == 2 {
-				relaylogdir := result[1]
-				dirArray = append(dirArray, "rm -rf "+relaylogdir+"/*")
+				relayLogDir := result[1]
+				dirArray = append(dirArray, "rm -rf "+relayLogDir+"/*")
 			}
 		case "log_bin", "log-bin":
 			val, err := x.myCnf.GetMySQLLogDir()
@@ -254,9 +254,9 @@ func (x *Xtrabackup) CleanEnv(dirs []string) error {
 			}
 			reg := regexp.MustCompile(cst.BinLogFileMatch)
 			if result := reg.FindStringSubmatch(val); len(result) == 2 {
-				binlogdir := result[1]
+				binlogDir := result[1]
 				// TODO 所有 rm -rf 的地方都应该要检查是否可能 rm -rf / binlog.xxx 这种误删可能
-				dirArray = append(dirArray, "rm -rf "+binlogdir+"/*")
+				dirArray = append(dirArray, "rm -rf "+binlogDir+"/*")
 			}
 		case "slow_query_log_file", "slow-query-log-file":
 			if val := x.myCnf.GetMyCnfByKeyWithDefault(util.MysqldSec, "slow_query_log_file", ""); val != "" {
