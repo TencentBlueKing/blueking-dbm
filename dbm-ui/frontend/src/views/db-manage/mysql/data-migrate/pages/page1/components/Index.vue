@@ -26,8 +26,8 @@
         </template>
       </RenderTableHeadColumn>
       <RenderTableHeadColumn
-        :min-width="180"
-        :width="220">
+        :min-width="250"
+        :width="300">
         {{ t('目标集群') }}
       </RenderTableHeadColumn>
       <RenderTableHeadColumn
@@ -36,18 +36,18 @@
         {{ t('克隆类型') }}
       </RenderTableHeadColumn>
       <RenderTableHeadColumn
-        :min-width="90"
+        :min-width="150"
         :width="210">
         {{ t('克隆DB名') }}
       </RenderTableHeadColumn>
       <RenderTableHeadColumn
-        :min-width="90"
+        :min-width="150"
         :required="false"
         :width="210">
         {{ t('忽略DB名') }}
       </RenderTableHeadColumn>
       <RenderTableHeadColumn
-        :min-width="90"
+        :min-width="150"
         :width="210">
         {{ t('最终DB') }}
       </RenderTableHeadColumn>

@@ -10,14 +10,14 @@
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
 -->
-
 <template>
   <tr>
     <FixedColumn fixed="left">
       <RenderOriginalProxyInst
         ref="originRef"
-        v-model="rowData.originProxy.instance_address"
-        @input-finish="handleOriginProxyInputFinish" />
+        :model-value="data.originProxy"
+        :tab-list-config="tabListConfig"
+        @instance-change="handleOriginProxyInputFinish" />
     </FixedColumn>
     <td style="padding: 0">
       <RenderRelatedItems
@@ -44,7 +44,8 @@
     rowKey: string;
     originProxy: {
       bk_biz_id: number;
-      bk_cloud_id: number | null;
+      cluster_id: number;
+      bk_cloud_id: number;
       bk_host_id: number;
       ip: string;
       port?: number;
@@ -56,7 +57,7 @@
     }[];
     targetProxy: {
       bk_biz_id: number;
-      bk_cloud_id: number | null;
+      bk_cloud_id: number;
       bk_host_id: number;
       ip: string;
       port?: number;
@@ -88,7 +89,7 @@
       data.originProxy ||
       ({
         ip: '',
-        bk_cloud_id: null,
+        bk_cloud_id: 0,
         bk_host_id: 0,
         bk_biz_id: 0,
         port: 0,
@@ -99,7 +100,7 @@
       data.targetProxy ||
       ({
         ip: '',
-        bk_cloud_id: null,
+        bk_cloud_id: 0,
         bk_host_id: 0,
         bk_biz_id: 0,
         port: 0,
@@ -108,23 +109,58 @@
 </script>
 <script setup lang="ts">
   import { ref } from 'vue';
+  import { useI18n } from 'vue-i18n';
+
+  import { ClusterTypes } from '@common/const';
 
   import FixedColumn from '@components/render-table/columns/fixed-column/index.vue';
   import OperateColumn from '@components/render-table/columns/operate-column/index.vue';
 
+  import RenderOriginalProxyInst, {
+    type InstanceBasicInfo,
+  } from '@views/db-manage/mysql/common/edit-field/InstanceWithSelector.vue';
   import RenderRelatedItems from '@views/db-manage/mysql/proxy-replace/pages/page1/components/common/RenderRelatedItems.vue';
   import RenderTargetProxy from '@views/db-manage/mysql/proxy-replace/pages/page1/components/common/RenderTargetProxy.vue';
-
-  import RenderOriginalProxyInst from '../RenderOriginalProxyInst.vue';
 
   const props = defineProps<Props>();
 
   const emits = defineEmits<Emits>();
 
+  const { t } = useI18n();
+
   const originRef = ref<InstanceType<typeof RenderOriginalProxyInst>>();
   const relatedClustersRef = ref<InstanceType<typeof RenderRelatedItems>>();
   const targetRef = ref<InstanceType<typeof RenderTargetProxy>>();
   const rowData = ref<IDataRow>(createRowData());
+
+  const tabListConfig = {
+    [ClusterTypes.TENDBHA]: [
+      {
+        id: ClusterTypes.TENDBHA,
+        name: t('目标实例'),
+        tableConfig: {
+          firsrColumn: {
+            label: t('Proxy 实例'),
+            field: 'instance_address',
+            role: 'proxy',
+          },
+          multiple: false,
+        },
+      },
+      {
+        id: 'manualInput',
+        name: t('手动输入'),
+        tableConfig: {
+          firsrColumn: {
+            label: t('Proxy 实例'),
+            field: 'instance_address',
+            role: 'proxy',
+          },
+          multiple: false,
+        },
+      },
+    ],
+  } as any;
 
   watch(
     () => props.data,
@@ -136,8 +172,23 @@
     },
   );
 
-  const handleOriginProxyInputFinish = (data: Omit<IDataRow, 'rowKey' | 'targetProxy'>) => {
-    rowData.value = Object.assign(rowData.value, data);
+  const handleOriginProxyInputFinish = (data: InstanceBasicInfo) => {
+    const originProxy = {
+      ip: data.ip,
+      bk_cloud_id: data.bk_cloud_id,
+      bk_host_id: data.bk_host_id,
+      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+      port: data.port,
+      instance_address: data.instance_address,
+    };
+    const relatedClusters = data.related_clusters!.map((item) => ({
+      cluster_id: item.id,
+      domain: item.master_domain,
+    }));
+    rowData.value = Object.assign(rowData.value, {
+      originProxy,
+      relatedClusters,
+    });
   };
 
   const handleAppend = () => {
@@ -158,7 +209,15 @@
         relatedClustersRef.value!.getValue(),
         targetRef.value!.getValue(),
       ]).then(([originData, relatedClustersData, targetData]) => ({
-        ...originData,
+        origin_proxy: {
+          cluster_id: originData.cluster_id,
+          ip: originData.ip,
+          bk_cloud_id: originData.bk_cloud_id,
+          bk_host_id: originData.bk_host_id,
+          bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+          port: originData.port,
+          instance_address: originData.instance_address,
+        },
         ...relatedClustersData,
         ...targetData,
       }));

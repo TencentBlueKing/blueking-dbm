@@ -60,12 +60,5 @@
       color: #c4c6cc;
       background: #fafbfd;
     }
-
-    .cluster-item {
-      width: 100%;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
   }
 </style>

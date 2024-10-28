@@ -75,8 +75,9 @@
   useTicketCloneInfo({
     type: TicketTypes.MYSQL_RESTORE_SLAVE,
     onSuccess(cloneData) {
-      const { tableDataList } = cloneData;
+      const { backupType: backupSouce, tableDataList } = cloneData;
       ticketType.value = TicketTypes.MYSQL_RESTORE_SLAVE;
+      backupType.value = backupSouce;
       dataList.value = tableDataList;
       remark.value = cloneData.remark;
       window.changeConfirm = true;

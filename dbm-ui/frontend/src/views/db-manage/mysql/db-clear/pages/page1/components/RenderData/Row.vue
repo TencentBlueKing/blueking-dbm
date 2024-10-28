@@ -19,7 +19,8 @@
         :cluster-types="clusterTypes"
         :model-value="data.clusterData"
         only-one-type
-        @id-change="handleClusterIdChange" />
+        tabs="both"
+        @cluster-change="handleClusterIdChange" />
     </FixedColumn>
     <td style="padding: 0">
       <RenderTruncateDataType
@@ -72,6 +73,12 @@
 
   import { random } from '@utils';
 
+  interface Props {
+    data: IDataRow;
+    removeable: boolean;
+    clusterTypes?: string[];
+  }
+
   export interface IDataRow {
     rowKey: string;
     clusterData?: {
@@ -102,17 +109,12 @@
 <script setup lang="ts">
   import FixedColumn from '@components/render-table/columns/fixed-column/index.vue';
 
-  import RenderCluster from '@views/db-manage/mysql/common/edit-field/ClusterName.vue';
+  import RenderCluster from '@views/db-manage/mysql/common/edit-field/ClusterNameWithSelector.vue';
   import RenderDbName from '@views/db-manage/mysql/common/edit-field/DbName.vue';
   import RenderTableName from '@views/db-manage/mysql/common/edit-field/TableName.vue';
 
   import RenderTruncateDataType from './RenderTruncateDataType.vue';
 
-  interface Props {
-    data: IDataRow;
-    removeable: boolean;
-    clusterTypes?: string[];
-  }
   interface Emits {
     (e: 'add', params: Array<IDataRow>): void;
     (e: 'remove'): void;
@@ -161,9 +163,9 @@
     ignoreTables.value = props.data.ignoreTables ?? [];
   });
 
-  const handleClusterIdChange = (clusterId: number) => {
-    localClusterId.value = clusterId;
-    emits('clusterInputFinish', clusterId);
+  const handleClusterIdChange = (info: { id: number }) => {
+    localClusterId.value = info.id;
+    emits('clusterInputFinish', info.id);
   };
 
   const handleTruncateDataTypeChange = (value: string) => {

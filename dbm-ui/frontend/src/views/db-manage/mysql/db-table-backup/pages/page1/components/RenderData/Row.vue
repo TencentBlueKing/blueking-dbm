@@ -17,7 +17,7 @@
       <RenderCluster
         ref="clusterRef"
         :model-value="data.clusterData"
-        @id-change="handleClusterIdChange" />
+        @cluster-change="handleClusterIdChange" />
     </FixedColumn>
     <td style="padding: 0">
       <RenderDbName
@@ -96,10 +96,9 @@
   import FixedColumn from '@components/render-table/columns/fixed-column/index.vue';
   import OperateColumn from '@components/render-table/columns/operate-column/index.vue';
 
+  import RenderCluster from '@views/db-manage/mysql/common/edit-field/ClusterNameWithSelector.vue';
   import RenderDbName from '@views/db-manage/mysql/common/edit-field/DbName.vue';
   import RenderTableName from '@views/db-manage/mysql/common/edit-field/TableName.vue';
-
-  import RenderCluster from './RenderCluster.vue';
 
   interface Emits {
     (e: 'add', params: Array<IDataRow>): void;
@@ -136,8 +135,8 @@
     },
   );
 
-  const handleClusterIdChange = (clusterId: number) => {
-    localClusterId.value = clusterId;
+  const handleClusterIdChange = (info: { id: number }) => {
+    localClusterId.value = info.id;
   };
 
   const handleAppend = () => {

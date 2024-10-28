@@ -19,7 +19,7 @@
       <span
         v-overflow-tips
         class="text-overflow">
-        {{ data.cluster_domain }}
+        {{ data.domain }}
       </span>
       <DbIcon
         ref="iconRef"
@@ -72,8 +72,8 @@
 
   export interface Props {
     data: {
-      cluster_domain: string;
-      cluster_id: number;
+      domain: string;
+      id: number;
       cluster_related: TendbhaModel[];
       checked_related: TendbhaModel[];
     };
@@ -102,7 +102,7 @@
   watch(
     () => props.data,
     () => {
-      isEdit.value = !props.data.cluster_id;
+      isEdit.value = !props.data.id;
     },
     { immediate: true, deep: true },
   );

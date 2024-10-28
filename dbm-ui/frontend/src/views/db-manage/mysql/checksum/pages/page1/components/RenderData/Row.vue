@@ -17,7 +17,7 @@
       <RenderCluster
         ref="clusterRef"
         :model-value="data.clusterData"
-        @id-change="handleClusterIdChange" />
+        @cluster-change="handleClusterIdChange" />
     </FixedColumn>
     <td style="padding: 0">
       <RenderText
@@ -124,6 +124,7 @@
       id: 0,
     },
     version: '',
+    is_stand_by: false,
   });
 
   export type IDataRowBatchKey = keyof Pick<IDataRow, 'dbPatterns' | 'ignoreDbs' | 'tablePatterns' | 'ignoreTables'>;
@@ -133,7 +134,7 @@
 
   import RenderText from '@components/render-table/columns/text-plain/index.vue';
 
-  import RenderCluster from '@views/db-manage/mysql/common/edit-field/ClusterName.vue';
+  import RenderCluster from '@views/db-manage/mysql/common/edit-field/ClusterNameWithSelector.vue';
   import RenderDbName from '@views/db-manage/mysql/common/edit-field/DbName.vue';
   import RenderTableName from '@views/db-manage/mysql/common/edit-field/TableName.vue';
 
@@ -188,9 +189,9 @@
     localRowData.value.ignoreDbs = value;
   };
 
-  const handleClusterIdChange = (clusterId: number) => {
-    emits('clusterInputFinish', clusterId);
-    localClusterId.value = clusterId;
+  const handleClusterIdChange = (info: { id: number }) => {
+    emits('clusterInputFinish', info.id);
+    localClusterId.value = info.id;
   };
 
   const handleRemove = () => {
