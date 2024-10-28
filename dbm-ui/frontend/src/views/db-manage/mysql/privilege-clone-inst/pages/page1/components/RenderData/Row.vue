@@ -16,11 +16,13 @@
     <FixedColumn fixed="left">
       <RenderSource
         ref="sourceRef"
-        v-model="localSource" />
+        v-model="localSource"
+        :cluster-types="[ClusterTypes.TENDBHA, ClusterTypes.TENDBSINGLE]"
+        :tab-list-config="tabListConfig" />
     </FixedColumn>
     <td style="padding: 0">
       <RenderText
-        :data="localSource?.masterDomain"
+        :data="localSource?.master_domain"
         :placeholder="t('输入源实例后自动生成')" />
     </td>
     <td style="padding: 0">
@@ -52,13 +54,15 @@
   export interface IDataRow {
     rowKey: string;
     source?: {
-      bkCloudId: number;
-      clusterId: number;
-      clusterType: string;
-      dbModuleId: number;
-      dbModuleName: string;
-      instanceAddress: string;
-      masterDomain: string;
+      bk_cloud_id: number;
+      cluster_id: number;
+      cluster_type: string;
+      db_module_id: number;
+      db_module_name: string;
+      instance_address: string;
+      master_domain: string;
+      ip: string;
+      port: number;
     };
     target?: IProxyData;
   }
@@ -73,11 +77,14 @@
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
+  import { ClusterTypes } from '@common/const';
+
   import FixedColumn from '@components/render-table/columns/fixed-column/index.vue';
   import OperateColumn from '@components/render-table/columns/operate-column/index.vue';
   import RenderText from '@components/render-table/columns/text-plain/index.vue';
 
-  import RenderSource from './RenderSource.vue';
+  import RenderSource from '@views/db-manage/mysql/common/edit-field/InstanceWithSelector.vue';
+
   import RenderTarget from './RenderTarget.vue';
 
   interface Props {
@@ -104,6 +111,23 @@
   const targetRef = ref<InstanceType<typeof RenderTarget>>();
 
   const localSource = ref<IDataRow['source']>();
+
+  const tabListConfig = {
+    [ClusterTypes.TENDBHA]: [
+      {
+        tableConfig: {
+          multiple: false,
+        },
+      },
+    ],
+    [ClusterTypes.TENDBSINGLE]: [
+      {
+        tableConfig: {
+          multiple: false,
+        },
+      },
+    ],
+  } as any;
 
   watch(
     () => props.data,
@@ -153,10 +177,10 @@
     getValue() {
       return Promise.all([sourceRef.value!.getValue(), targetRef.value!.getValue()]).then(
         ([sourceData, targetData]) => ({
-          ...sourceData,
+          source: sourceData.instance_address,
           ...targetData,
-          cluster_domain: localSource.value!.masterDomain,
-          bk_cloud_id: localSource.value!.bkCloudId,
+          cluster_domain: localSource.value!.master_domain,
+          bk_cloud_id: localSource.value!.bk_cloud_id,
         }),
       );
     },

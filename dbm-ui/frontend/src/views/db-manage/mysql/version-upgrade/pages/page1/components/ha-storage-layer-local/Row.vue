@@ -40,8 +40,6 @@
   </tr>
 </template>
 <script lang="ts">
-  import TendbhaModel from '@services/model/mysql/tendbha';
-
   import FixedColumn from '@components/render-table/columns/fixed-column/index.vue';
   import OperateColumn from '@components/render-table/columns/operate-column/index.vue';
 
@@ -50,6 +48,11 @@
   import RenderCluster from '../RenderClusterWithRelateCluster.vue';
   import RenderCurrentVersion from '../RenderCurrentVersion.vue';
   import RenderTargetVersion from '../RenderTargetVersion.vue';
+
+  interface Props {
+    data: IDataRow;
+    removeable: boolean;
+  }
 
   export interface IDataRow {
     rowKey: string;
@@ -71,24 +74,19 @@
     isLoading: false,
     clusterData,
   });
+</script>
 
-  interface Props {
-    data: IDataRow;
-    removeable: boolean;
-  }
-
+<script setup lang="ts">
   interface Emits {
     (e: 'add', params: Array<IDataRow>): void;
     (e: 'remove'): void;
-    (e: 'clusterInputFinish', value: TendbhaModel | null): void;
+    (e: 'clusterInputFinish', clusterId: number): void;
   }
 
   interface Exposes {
     getValue: () => Promise<any>;
   }
-</script>
 
-<script setup lang="ts">
   const props = defineProps<Props>();
 
   const emits = defineEmits<Emits>();
@@ -107,8 +105,8 @@
     return undefined;
   });
 
-  const handleClusterIdChange = (value: TendbhaModel | null) => {
-    emits('clusterInputFinish', value);
+  const handleClusterIdChange = (clusterId: number) => {
+    emits('clusterInputFinish', clusterId);
   };
 
   const handleModuleChange = (value: string) => {

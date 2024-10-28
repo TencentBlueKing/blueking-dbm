@@ -24,6 +24,7 @@ export async function generateMysqlVersionMigrateUpgradeCloneData(ticketData: Ti
   const clusterListResult = await getTendbhaList({
     cluster_ids: infos.map((item) => item.cluster_ids[0]),
   });
+
   const clusterListMap = clusterListResult.results.reduce(
     (obj, item) => {
       Object.assign(obj, {

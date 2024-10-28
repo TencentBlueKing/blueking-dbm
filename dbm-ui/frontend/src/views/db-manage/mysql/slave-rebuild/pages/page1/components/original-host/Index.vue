@@ -166,12 +166,12 @@
       if (!instanceMemo[instance]) {
         const row = createRowData({
           slave: {
-            bkCloudId: instanceData.bk_cloud_id,
-            bkHostId: instanceData.bk_host_id,
+            bk_cloud_id: instanceData.bk_cloud_id,
+            bk_host_id: instanceData.bk_host_id,
             ip: instanceData.ip,
             port: instanceData.port,
-            instanceAddress: instanceData.instance_address,
-            clusterId: instanceData.cluster_id,
+            instance_address: instanceData.instance_address,
+            cluster_id: instanceData.cluster_id,
           },
         });
         newList.push(row);
@@ -196,7 +196,7 @@
 
   // 删除一个行
   const handleRemove = (index: number) => {
-    const instanceAddress = tableData.value[index].slave?.instanceAddress;
+    const instanceAddress = tableData.value[index].slave?.instance_address;
     if (instanceAddress) {
       delete instanceMemo[instanceAddress];
       const clustersArr = selectedIntances.value[ClusterTypes.TENDBHA];

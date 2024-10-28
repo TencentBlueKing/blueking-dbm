@@ -17,7 +17,8 @@
       <RenderCluster
         ref="clusterRef"
         :model-value="clusterInfo"
-        @id-change="handleClusterIdChange" />
+        tabs="tendbsingle"
+        @cluster-change="handleClusterIdChange" />
     </FixedColumn>
     <td style="padding: 0">
       <RenderCurrentVersion
@@ -40,17 +41,15 @@
   </tr>
 </template>
 <script lang="ts">
-  import TendbSingleModel from '@services/model/mysql/tendbsingle';
-
   import FixedColumn from '@components/render-table/columns/fixed-column/index.vue';
   import OperateColumn from '@components/render-table/columns/operate-column/index.vue';
+
+  import RenderCluster from '@views/db-manage/mysql/common/edit-field/ClusterNameWithSelector.vue';
 
   import { random } from '@utils';
 
   import RenderCurrentVersion from '../RenderCurrentVersion.vue';
   import RenderTargetVersion from '../RenderTargetVersion.vue';
-
-  import RenderCluster from './RenderCluster.vue';
 
   export interface IDataRow {
     rowKey: string;
@@ -83,7 +82,7 @@
   interface Emits {
     (e: 'add', params: Array<IDataRow>): void;
     (e: 'remove'): void;
-    (e: 'clusterInputFinish', value: TendbSingleModel | null): void;
+    (e: 'clusterInputFinish', value: number): void;
   }
 
   interface Exposes {
@@ -108,8 +107,8 @@
     return undefined;
   });
 
-  const handleClusterIdChange = (value: TendbSingleModel | null) => {
-    emits('clusterInputFinish', value);
+  const handleClusterIdChange = (info: { id: number }) => {
+    emits('clusterInputFinish', info.id);
   };
 
   const handleModuleChange = (value: string) => {
@@ -140,7 +139,7 @@
           current_module_name: clusterInfo.moduleName,
         });
         return {
-          ...clusterData,
+          cluster_ids: [clusterData.cluster_id],
           ...targetVersionData,
         };
       });

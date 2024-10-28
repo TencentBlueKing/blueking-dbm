@@ -63,7 +63,7 @@
       }
       fetchCheckMysqlInstances({
         bizId: currentBizId,
-        instance_addresses: [props.slave.instanceAddress],
+        instance_addresses: [props.slave.instance_address],
       });
     },
     {

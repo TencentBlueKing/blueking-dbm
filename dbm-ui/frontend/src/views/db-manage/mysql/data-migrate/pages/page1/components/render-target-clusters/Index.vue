@@ -12,20 +12,11 @@
 -->
 
 <template>
-  <div class="render-host-box">
-    <TableEditInput
-      ref="editRef"
-      v-model="localValue"
-      :placeholder="t('请选择或输入')"
-      :rules="rules"
-      @click-seletor="handleOpenSeletor" />
-  </div>
-  <ClusterSelector
-    v-model:is-show="isShowSelector"
-    :cluster-types="[ClusterTypes.TENDBHA, ClusterTypes.TENDBSINGLE]"
-    :selected="selectedClusters"
-    :tab-list-config="tabListConfig"
-    @change="handelClusterChange" />
+  <TableEditInput
+    ref="editRef"
+    v-model="localValue"
+    :rules="rules"
+    :source-cluster-id="sourceClusterId" />
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
@@ -35,10 +26,7 @@
 
   import { useGlobalBizs } from '@stores';
 
-  import { ClusterTypes } from '@common/const';
   import { batchSplitRegex, domainRegex } from '@common/regex';
-
-  import ClusterSelector, { type TabConfig } from '@components/cluster-selector/Index.vue';
 
   import TableEditInput from './Input.vue';
 
@@ -82,46 +70,23 @@
   const { t } = useI18n();
   const { currentBizId } = useGlobalBizs();
 
-  const isShowSelector = ref(false);
   const localValue = ref(props.data);
   const editRef = ref();
   const localClusterIds = ref<number[]>([]);
-
-  const selectedClusters = shallowRef<{ [key: string]: Array<any> }>({
-    [ClusterTypes.TENDBHA]: [],
-    [ClusterTypes.TENDBSINGLE]: [],
-  });
-
-  const tabListConfig = {
-    [ClusterTypes.TENDBHA]: {
-      showPreviewResultTitle: true,
-      disabledRowConfig: [
-        {
-          handler: (data: TendbhaModel) => data.id === props.sourceClusterId,
-          tip: t('不能选择源集群'),
-        },
-      ],
-    },
-    [ClusterTypes.TENDBSINGLE]: {
-      showPreviewResultTitle: true,
-      disabledRowConfig: [
-        {
-          handler: (data: TendbhaModel) => data.id === props.sourceClusterId,
-          tip: t('不能选择源集群'),
-        },
-      ],
-    },
-  } as unknown as Record<string, TabConfig>;
 
   let ignoreEmitChange = false;
 
   const rules = [
     {
-      validator: (value: string) => value.split(',').every((domain) => Boolean(domain)),
+      validator: (value: string) =>
+        value
+          .trim()
+          .split('\n')
+          .every((domain) => Boolean(domain)),
       message: t('目标集群不能为空'),
     },
     {
-      validator: (value: string) => value.split(',').every((domain) => domainRegex.test(domain)),
+      validator: (value: string) => value.split('\n').every((domain) => domainRegex.test(domain)),
       message: t('目标集群输入格式有误'),
     },
     {
@@ -145,21 +110,6 @@
     },
   );
 
-  const handleOpenSeletor = () => {
-    isShowSelector.value = true;
-  };
-
-  // 批量选择
-  const handelClusterChange = (selected: { [key: string]: TendbhaModel[] }) => {
-    selectedClusters.value = selected;
-    const list = Object.keys(selected).reduce((list: TendbhaModel[], key) => list.concat(...selected[key]), []);
-    localValue.value = list.map((item) => item.master_domain).join(',');
-    window.changeConfirm = true;
-    setTimeout(() => {
-      editRef.value.getValue();
-    });
-  };
-
   defineExpose<Exposes>({
     getValue() {
       ignoreEmitChange = true;
@@ -170,18 +120,3 @@
     },
   });
 </script>
-<style lang="less" scoped>
-  .render-host-box {
-    position: relative;
-
-    // :deep(.is-error) {
-    //   .error-icon {
-    //     top: auto;
-    //     top: 50%;
-    //     right: auto;
-    //     // left: 50%;
-    //     transform: translate(-50%, -50%);
-    //   }
-    // }
-  }
-</style>

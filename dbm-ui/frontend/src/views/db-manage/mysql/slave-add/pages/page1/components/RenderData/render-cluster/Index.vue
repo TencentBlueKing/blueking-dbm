@@ -12,15 +12,14 @@
 -->
 
 <template>
-  <TableEditInput
-    v-if="isEdit"
-    ref="editRef"
-    v-model="relatedClusterDisplayInfo.cluster_domain"
-    :placeholder="t('请输入集群域名或从表头批量选择')"
-    :rules="rules"
-    @submit="handleInputFinish" />
+  <span v-show="isEdit">
+    <TableEditInput
+      ref="editRef"
+      :model-value="relatedClusterDisplayInfo"
+      @cluster-change="handleInputFinish" />
+  </span>
   <ClusterRelatedInput
-    v-else
+    v-if="!isEdit"
     v-model="isEdit"
     :data="relatedClusterDisplayInfo"
     :placeholder="t('请输入集群域名')"
@@ -33,10 +32,9 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import { filterClusters } from '@services/source/dbbase';
   import { findRelatedClustersByClusterIds } from '@services/source/mysqlCluster';
 
-  import TableEditInput from '@components/render-table/columns/input/index.vue';
+  import TableEditInput from '@views/db-manage/mysql/common/edit-field/ClusterNameWithSelector.vue';
 
   import { random } from '@utils';
 
@@ -53,7 +51,7 @@
   }
 
   interface Exposes {
-    getValue: () => Record<'cluster_ids', Array<number>>;
+    getValue: () => Promise<Record<'cluster_ids', Array<number>>>;
   }
 
   const props = defineProps<Props>();
@@ -69,8 +67,8 @@
   const isShowEdit = ref(true);
 
   const relatedClusterDisplayInfo = reactive<ClusterRelatedInputProps['data']>({
-    cluster_id: 0,
-    cluster_domain: '',
+    id: 0,
+    domain: '',
     cluster_related: [],
     checked_related: [],
   });
@@ -85,68 +83,13 @@
     },
   });
 
-  const rules = [
-    {
-      validator: (value: string) => {
-        if (value) {
-          return true;
-        }
-        return false;
-      },
-      message: t('目标集群不能为空'),
-    },
-    {
-      validator: (value: string) =>
-        filterClusters({
-          bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-          exact_domain: value,
-        }).then((data) => {
-          if (data.length > 0) {
-            relatedClusterDisplayInfo.cluster_domain = data[0].master_domain;
-            relatedClusterDisplayInfo.cluster_id = data[0].id;
-            emits('idChange', {
-              id: data[0].id,
-              cloudId: data[0].bk_cloud_id,
-            });
-            return true;
-          }
-          return false;
-        }),
-      message: t('目标集群不存在'),
-    },
-    {
-      validator: () => {
-        const currentClusterSelectMap = clusterIdMemo[instanceKey];
-        const otherClusterMemoMap = { ...clusterIdMemo };
-        delete otherClusterMemoMap[instanceKey];
-
-        const otherClusterIdMap = Object.values(otherClusterMemoMap).reduce(
-          (result, item) => ({
-            ...result,
-            ...item,
-          }),
-          {} as Record<string, boolean>,
-        );
-
-        const currentSelectClusterIdList = Object.keys(currentClusterSelectMap);
-        for (let i = 0; i < currentSelectClusterIdList.length; i++) {
-          if (otherClusterIdMap[currentSelectClusterIdList[i]]) {
-            return false;
-          }
-        }
-        return true;
-      },
-      message: t('目标集群重复'),
-    },
-  ];
-
   // 同步外部值
   watch(
     () => props.modelValue,
     () => {
       if (props.modelValue.clusterData) {
-        relatedClusterDisplayInfo.cluster_id = props.modelValue.clusterData.id;
-        relatedClusterDisplayInfo.cluster_domain = props.modelValue.clusterData.domain;
+        relatedClusterDisplayInfo.id = props.modelValue.clusterData.id;
+        relatedClusterDisplayInfo.domain = props.modelValue.clusterData.domain;
         isShowEdit.value = false;
       } else {
         isShowEdit.value = true;
@@ -159,9 +102,9 @@
 
   // 获取关联集群
   watch(
-    () => relatedClusterDisplayInfo.cluster_id,
+    () => relatedClusterDisplayInfo.id,
     () => {
-      const clusterId = relatedClusterDisplayInfo.cluster_id;
+      const clusterId = relatedClusterDisplayInfo.id;
       if (!clusterId) {
         return;
       }
@@ -185,12 +128,20 @@
     }
   });
 
-  const handleInputFinish = () => {
-    nextTick(() => {
-      if (relatedClusterDisplayInfo.cluster_domain) {
+  const handleInputFinish = (info: { id: number; domain: string; cloudId: number }) => {
+    console.log('info: ', info);
+    if (info.domain) {
+      relatedClusterDisplayInfo.domain = info.domain;
+      relatedClusterDisplayInfo.id = info.id;
+
+      emits('idChange', {
+        id: info.id,
+        cloudId: info.cloudId,
+      });
+      nextTick(() => {
         isEdit.value = false;
-      }
-    });
+      });
+    }
   };
 
   /**
@@ -208,12 +159,12 @@
 
   defineExpose<Exposes>({
     getValue() {
-      return {
+      return editRef.value!.getValue().then(() => ({
         cluster_ids: [
-          relatedClusterDisplayInfo.cluster_id,
+          relatedClusterDisplayInfo.id,
           ...relatedClusterDisplayInfo.checked_related.map((item) => item.id),
         ],
-      };
+      }));
     },
   });
 </script>

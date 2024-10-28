@@ -145,7 +145,6 @@
 </template>
 
 <script setup lang="tsx">
-  import { format } from 'date-fns';
   import { useI18n } from 'vue-i18n';
 
   import TendbhaModel from '@services/model/mysql/tendbha';
@@ -390,14 +389,14 @@
           remark: formdata.remark,
           details: {
             ...formdata,
-            timing: formatDateToUTC(format(new Date(formdata.timing), 'yyyy-MM-dd HH:mm:ss')),
+            timing: formatDateToUTC(formdata.timing.toISOString()),
             infos: data,
           },
         };
         return createTicket(params).then((data) => {
           window.changeConfirm = false;
           router.push({
-            name: 'spiderChecksum',
+            name: 'MySQLChecksum',
             params: {
               page: 'success',
             },

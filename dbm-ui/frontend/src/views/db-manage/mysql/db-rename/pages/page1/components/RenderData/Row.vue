@@ -19,7 +19,8 @@
         :cluster-types="clusterTypes"
         :model-value="data.clusterData"
         only-one-type
-        @id-change="handleClusterIdChange" />
+        tabs="both"
+        @cluster-change="handleClusterIdChange" />
     </FixedColumn>
     <td style="padding: 0">
       <RenderDbName
@@ -77,7 +78,7 @@
   import FixedColumn from '@components/render-table/columns/fixed-column/index.vue';
   import OperateColumn from '@components/render-table/columns/operate-column/index.vue';
 
-  import RenderCluster from '@views/db-manage/mysql/common/edit-field/ClusterName.vue';
+  import RenderCluster from '@views/db-manage/mysql/common/edit-field/ClusterNameWithSelector.vue';
 
   import RenderDbName from './RenderDbName.vue';
 
@@ -121,9 +122,9 @@
     },
   );
 
-  const handleClusterIdChange = (clusterId: number) => {
-    localClusterId.value = clusterId;
-    emits('clusterInputFinish', clusterId);
+  const handleClusterIdChange = (info: { id: number }) => {
+    localClusterId.value = info.id;
+    emits('clusterInputFinish', info.id);
   };
 
   const handleAppend = () => {
