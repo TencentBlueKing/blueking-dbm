@@ -91,7 +91,9 @@ class MongoDBRestoreClusterApplyFlowParamBuilder(builders.FlowParamBuilder):
         return super().build_controller_info()
 
     def format_ticket_data(self):
-        pass
+        bk_biz_id = self.ticket_data["bk_biz_id"]
+        self.ticket_data["bk_app_abbr"] = AppCache.objects.get(bk_biz_id=bk_biz_id).db_app_abbr
+        self.ticket_data.update(self.ticket_data.pop("apply_details"))
 
 
 class MongoDBRestoreFlowParamBuilder(builders.FlowParamBuilder):
@@ -193,7 +195,7 @@ class MongoDBRestoreApplyFlowBuilder(BaseMongoDBTicketFlowBuilder):
             replica_count=len(ticket_data["cluster_ids"]),
             # 每个副本集只有一个节点
             node_count=1,
-            spec_id=ticket_data["resource_spec"]["mongodb"],
+            spec_id=ticket_data["resource_spec"]["mongodb"]["spec_id"],
         )
         return apply_details
 

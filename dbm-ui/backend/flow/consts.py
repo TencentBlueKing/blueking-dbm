@@ -291,6 +291,8 @@ class MediumEnum(str, StructuredEnum):
     TBinlogDumper = EnumField("tbinlogdumper", _("tbinlogdumper实例"))
     Sqlserver = EnumField("sqlserver", _("sqlserver实例"))
     MongoDB = EnumField("mongodb", _("mongodb"))
+    MongoToolKit = EnumField("mongo-toolkit", _("Mongo 工具集"))
+    MongoMonitor = EnumField("mongo-monitor", _("Mongo 监控"))
     Doris = EnumField("doris", _("doris"))
     Vm = EnumField("vm", _("vm"))
 
