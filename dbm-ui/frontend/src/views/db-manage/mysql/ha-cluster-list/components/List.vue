@@ -701,6 +701,7 @@
           role="slave"
           clusterId={data.id}
           dataSource={getTendbhaInstanceList}
+          sort={(data: TendbhaModel['slaves'] = []) => data.sort((a, b) => Number(b.is_stand_by) - Number(a.is_stand_by))}
         >
           {{
             append: ({ data: instance }: { data: TendbhaModel['slaves'][number] }) =>
