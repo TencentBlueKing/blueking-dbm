@@ -45,11 +45,11 @@ def sqlserver_match_dbs(
     db_filter = DbTableFilter(
         include_db_patterns=db_patterns,
         include_table_patterns=[""],
-        exclude_db_patterns=ignore_db_patterns,
-        exclude_table_patterns=[""] if ignore_db_patterns else [],
+        exclude_db_patterns=ignore_db_patterns if ignore_db_patterns else [""],
+        exclude_table_patterns=[""],
     )
     db_filter.inject_system_dbs([SQLSERVER_CUSTOM_SYS_DB])
-    db_filter_pattern = re.compile(db_filter.db_filter_regexp())
+    db_filter_pattern = re.compile(db_filter.db_filter_regexp(), re.IGNORECASE)
 
     # 获取过滤后db
     real_dbs = [db_name for db_name in dbs if db_filter_pattern.match(db_name)]
@@ -106,7 +106,7 @@ def multi_get_dbs_for_drs(cluster_ids: List[int], db_list: list, ignore_db_list:
 
 def check_sqlserver_db_exist(cluster_id: int, check_dbs: list) -> list:
     """
-    根据存入的db名称，判断库名是否在集群存在
+    根据存入的db名称，判断库名是否在集群存在，这里判断是不区分大小写
     @param cluster_id: 对应的cluster_id
     @param check_dbs: 需要验证的check_dbs 列表
     """
@@ -134,11 +134,11 @@ def check_sqlserver_db_exist(cluster_id: int, check_dbs: list) -> list:
     )
     if ret[0]["error_msg"]:
         raise Exception(f"[{master_instance.ip_port}] check db failed: {ret[0]['error_msg']}")
-    # 判断库是否存在
+    # 判断库是否存在, 这里判断不区分大小写
     for db_name in check_dbs:
         is_exists = False
         for info in ret[0]["cmd_results"][0]["table_data"]:
-            if db_name == info["name"]:
+            if db_name.lower() == info["name"].lower():
                 is_exists = True
                 result.append({"name": db_name, "is_exists": is_exists})
                 break

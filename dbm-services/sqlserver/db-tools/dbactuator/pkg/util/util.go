@@ -436,14 +436,16 @@ func GetSysDBS() []string {
 	return []string{"msdb", "master", "model", "tempdb", "Monitor"}
 }
 
-// match 根据show databases 返回的实际db,匹配出dbname
+// match 根据show databases 返回的实际db,匹配出dbname, 不区分大小写
 //
 //	@receiver e
 //	@receiver regularDbNames
 //	@return matched
 func DbMatch(dbs, regularDbNames []string) (matched []string, err error) {
 	for _, regexpStr := range regularDbNames {
-		re, err := regexp.Compile(regexpStr)
+		// 转换成不区分大小写正则
+		realRegexpStr := fmt.Sprintf("(?i)%s", regexpStr)
+		re, err := regexp.Compile(realRegexpStr)
 		if err != nil {
 			logger.Error(" regexp.Compile(%s) failed:%s", regexpStr, err.Error())
 			return nil, err
