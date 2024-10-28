@@ -21,9 +21,22 @@ from backend.ticket.builders.mongodb.base import BaseMongoDBTicketFlowBuilder
 from backend.ticket.constants import TicketType
 
 
+class MongoDBAuthorizeInfoSerializer(serializers.Serializer):
+    username = serializers.CharField(help_text=_("授权账号"))
+    access_dbs = serializers.ListSerializer(child=serializers.CharField(), help_text=_("准入DB"))
+    account_id = serializers.CharField(help_text=_("账号ID"))
+    auth_db = serializers.CharField(help_text=_("认证用户"))
+    cluster_ids = serializers.ListSerializer(child=serializers.IntegerField(), help_text=_("目标集群ID"))
+    password = serializers.CharField(help_text=_("密码"))
+    rule_sets = serializers.ListSerializer(child=serializers.JSONField(), help_text=_("规则集"))
+    target_instances = serializers.ListSerializer(child=serializers.CharField(), help_text=_("目标集群域名"))
+
+
 class MongoDBAuthorizeRulesSerializer(serializers.Serializer):
     authorize_uid = serializers.CharField(help_text=_("授权数据缓存uid"))
-    authorize_data = serializers.ListSerializer(help_text=_("授权数据列表"), child=serializers.JSONField(), required=False)
+    authorize_data = serializers.ListSerializer(
+        help_text=_("授权数据列表"), child=MongoDBAuthorizeInfoSerializer(), required=False
+    )
 
     def validate(self, attrs):
         return attrs
