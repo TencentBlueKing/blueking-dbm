@@ -20,6 +20,7 @@ import { retrieveDorisInstance } from '@services/source/doris';
 import { retrieveEsInstance } from '@services/source/es';
 import { retrieveHdfsInstance } from '@services/source/hdfs';
 import { retrieveKafkaInstance } from '@services/source/kafka';
+import { retrieveMongoInstanceDetail } from '@services/source/mongodb';
 import { retrievePulsarInstance } from '@services/source/pulsar';
 import { retrieveRedisInstance } from '@services/source/redis';
 import { retrieveRiakInstance } from '@services/source/riak';
@@ -170,6 +171,7 @@ const apiMap: Record<string, (params: any) => Promise<any>> = {
   tendbcluster: getTendbclusterInstanceDetail,
   riak: retrieveRiakInstance,
   doris: retrieveDorisInstance,
+  mongodb: retrieveMongoInstanceDetail,
 };
 
 const entryTagMap: Record<string, string> = {
