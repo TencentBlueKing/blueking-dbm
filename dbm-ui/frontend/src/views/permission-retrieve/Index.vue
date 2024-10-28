@@ -12,38 +12,35 @@
 -->
 
 <template>
-  <BkLoading
-    :loading="loading"
-    :z-index="100">
-    <div class="permission-retrieve">
-      <BkCard
-        is-collapse
-        :title="t('查询条件')">
-        <Options
-          ref="optionsRef"
-          v-model="formData"
-          v-model:is-master="isMaster"
-          class="ml-8"
-          :loading
-          @reset="handleReset"
-          @search="handleSearch" />
-      </BkCard>
-      <BkCard
-        class="mt-16"
-        is-collapse
-        :title="t('查询结果')">
-        <Result
-          ref="resultRef"
-          v-model="formData.format_type"
-          class="ml-8"
-          :data="data"
-          :db-memo="dbMemo"
-          :is-master="isMaster"
-          @export="handleExport"
-          @search="handleSearch" />
-      </BkCard>
-    </div>
-  </BkLoading>
+  <div class="permission-retrieve">
+    <BkCard
+      is-collapse
+      :title="t('查询条件')">
+      <Options
+        ref="optionsRef"
+        v-model="formData"
+        v-model:is-master="isMaster"
+        class="ml-8"
+        :loading
+        @reset="handleReset"
+        @search="handleSearch" />
+    </BkCard>
+    <BkCard
+      class="mt-16"
+      is-collapse
+      :title="t('查询结果')">
+      <Result
+        ref="resultRef"
+        v-model="formData.format_type"
+        class="ml-8"
+        :data="data"
+        :db-memo="dbMemo"
+        :is-master="isMaster"
+        :loading="loading"
+        @export="handleExport"
+        @search="handleSearch" />
+    </BkCard>
+  </div>
 </template>
 
 <script setup lang="tsx">
@@ -153,6 +150,7 @@
   .permission-retrieve {
     .bk-card {
       border: none;
+      box-shadow: 0 2px 4px 0 #1919290d;
 
       :deep(.bk-card-head) {
         border-bottom: none;
