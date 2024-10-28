@@ -20,10 +20,10 @@
     multiple
     multiple-mode="tag">
     <BkOption
-      v-for="(item, index) in userList?.results"
-      :id="item"
-      :key="index"
-      :name="item" />
+      v-for="item in userOptionList"
+      :id="item.value"
+      :key="item.value"
+      :name="item.label" />
     <template #tag="{ selected }">
       <BkTag
         v-for="item in selected"
@@ -42,7 +42,9 @@
 
   import { getAccountUsers } from '@services/source/mysqlPermissionAccount';
 
-  import { accoutMap } from './common/config';
+  import type { AccountTypes } from '@common/const';
+
+  import accoutMap from './common/config';
 
   interface Expose {
     getUserList: (params: ServiceParameters<typeof getAccountUsers>) => void;
@@ -54,7 +56,7 @@
 
   const route = useRoute();
 
-  const { accountType } = route.meta as { accountType: string };
+  const { accountType } = route.meta as { accountType: AccountTypes };
 
   const userOptionList = computed(() =>
     (userList.value?.results || []).map((userItem) => ({
@@ -63,7 +65,7 @@
     })),
   );
 
-  const { data: userList, run: runGetUserList } = useRequest(accoutMap[accountType].ruleApi, {
+  const { data: userList, run: runGetUserList } = useRequest(accoutMap[accountType as keyof typeof accoutMap].ruleApi, {
     manual: true,
   });
 

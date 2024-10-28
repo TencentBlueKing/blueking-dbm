@@ -11,23 +11,11 @@
  * the specific language governing permissions and limitations under the License.
  */
 
-import type { ComponentProps } from 'vue-component-type-helpers';
-
 import { getAccountUsers } from '@services/source/mysqlPermissionAccount';
 
 import { AccountTypes, ClusterTypes } from '@common/const';
 
-import ClusterSelector from '@components/cluster-selector/Index.vue';
-import InstanceSelector from '@components/instance-selector/Index.vue';
-
-export const accoutMap: Record<
-  string,
-  {
-    hostSelectorTypes: ComponentProps<typeof InstanceSelector>['clusterTypes'];
-    clusterSelectorTypes: ComponentProps<typeof ClusterSelector>['clusterTypes'];
-    ruleApi: (params: any) => ReturnType<typeof getAccountUsers>;
-  }
-> = {
+export default {
   [AccountTypes.MYSQL]: {
     hostSelectorTypes: ['TendbSingleHost', 'TendbHaHost'],
     clusterSelectorTypes: [ClusterTypes.TENDBHA, 'tendbhaSlave', ClusterTypes.TENDBSINGLE],

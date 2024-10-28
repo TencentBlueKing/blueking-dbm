@@ -18,15 +18,19 @@
       :data="data"
       @export="handleExport"
       @search="handleSearch" />
-    <Component
-      :is="tableComponent"
-      :data="data"
-      :db-memo="dbMemo"
-      :is-master="isMaster"
-      :pagination="pagination"
-      :table-max-height="tableMaxHeight"
-      @page-limit-change="handleTableLimitChange"
-      @page-value-change="handleTablePageChange" />
+    <BkLoading
+      :loading="loading"
+      :z-index="100">
+      <Component
+        :is="tableComponent"
+        :data="data"
+        :db-memo="dbMemo"
+        :is-master="isMaster"
+        :pagination="pagination"
+        :table-max-height="tableMaxHeight"
+        @page-limit-change="handleTableLimitChange"
+        @page-value-change="handleTablePageChange" />
+    </BkLoading>
   </div>
 </template>
 
@@ -43,6 +47,7 @@
     data?: ServiceReturnType<typeof getAccountPrivs>;
     isMaster: boolean;
     dbMemo: string[];
+    loading: boolean;
   }
 
   interface Emits {
@@ -122,8 +127,8 @@
       .is-head-group {
         padding: 0 16px;
         font-weight: bolder;
-        background: #eaebf0;
         color: #313238;
+        background: #eaebf0;
 
         &:hover {
           background: #dcdee5;
