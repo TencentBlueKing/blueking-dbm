@@ -356,7 +356,7 @@ func SplitGrantSql(grants []UserGrant, dbs []string, tendbhaMasterDomain bool) m
 				// db权限
 				if filterDb {
 					// db模糊匹配，比如db%可以匹配db
-					reStr := strings.Replace(db, "%", ".*", -1)
+					reStr := fmt.Sprintf("^%s$", strings.Replace(db, "%", ".*", -1))
 					reDb := regexp.MustCompile(reStr)
 					for _, targetDb := range dbs {
 						if reDb.MatchString(targetDb) {
@@ -470,7 +470,7 @@ func MysqlUserList(address string, bkCloudId int64, hosts []string, usersInput [
 			continue
 		}
 		// ip模糊匹配，比如1.1.%可以匹配1.1.1.1
-		reStr := strings.Replace(strings.ReplaceAll(host, ".", "\\."), "%", ".*", -1)
+		reStr := fmt.Sprintf("^%s$", strings.Replace(strings.ReplaceAll(host, ".", "\\."), "%", ".*", -1))
 		re := regexp.MustCompile(reStr)
 		if len(usersInput) > 0 {
 			for _, u := range usersInput {
