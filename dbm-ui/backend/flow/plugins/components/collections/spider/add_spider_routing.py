@@ -47,14 +47,13 @@ class AddSpiderRoutingService(BaseService):
         res = DRSApi.rpc(
             {
                 "addresses": [f"{spider_ip}{IP_PORT_DIVIDER}{spider_port}"],
-                "cmds": [f"DROP USER  if exists '{TDBCTL_USER}'@'{primary_host}'"],
+                "cmds": [f"DROP USER '{TDBCTL_USER}'@'{primary_host}'"],
                 "force": False,
                 "bk_cloud_id": cluster.bk_cloud_id,
             }
         )
         if res[0]["error_msg"]:
-            self.log_error(f"drop user failed:[{res[0]['error_msg']}]")
-            return False
+            self.log_warning(f"drop user failed:[{res[0]['error_msg']}]")
         return True
 
     def _read_ctl_pass(self, ctl_master, bk_cloud_id):
@@ -182,8 +181,7 @@ class AddSpiderRoutingService(BaseService):
         admin_port = cluster.proxyinstance_set.first().admin_port
 
         for spider_ip in add_spiders:
-            if not self._drop_user(spider_ip=spider_ip["ip"], spider_port=spider_port, cluster=cluster):
-                return False
+            self._drop_user(spider_ip=spider_ip["ip"], spider_port=spider_port, cluster=cluster)
 
             content = {
                 "bk_cloud_id": cluster.bk_cloud_id,
