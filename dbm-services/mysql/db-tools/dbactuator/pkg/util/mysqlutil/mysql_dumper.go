@@ -254,6 +254,8 @@ func (m *MySQLDumper) getDumpCmd(outputFile, errFile, dumpOption string) (dumpCm
 		}
 	case m.DumpSchema:
 		dumpOption += " -d "
+	case !m.DumpData && !m.DumpSchema:
+		dumpOption += " --no-create-info --no-data --no-create-db "
 	}
 
 	if m.AddDropTable {
