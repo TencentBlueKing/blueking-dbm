@@ -8,6 +8,15 @@
         "target_object_type": "SERVICE",
         "target_node_type": "TOPO",
         "target_nodes": [],
+        "metric_relabel_configs": [
+            {
+                "source_labels": [
+                    "__name__"
+                ],
+                "action": "drop",
+                "regex": "^mysql_global_variables_[a-lnp-su-z].*|^mysql_global_status_tokudb.*|^mysql_global_status_mysqlx.*"
+            }
+        ],
         "params": {
             "collector": {
                 "period": 60,
