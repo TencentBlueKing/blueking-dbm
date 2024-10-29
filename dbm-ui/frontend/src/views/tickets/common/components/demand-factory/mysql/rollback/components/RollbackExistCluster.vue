@@ -20,7 +20,6 @@
 <script setup lang="tsx">
   import { useI18n } from 'vue-i18n';
 
-  import TendbhaModel from '@services/model/mysql/tendbha';
   import type { MySQLRollbackDetails } from '@services/model/ticket/details/mysql';
   import TicketModel from '@services/model/ticket/ticket';
   import { queryClusters } from '@services/source/mysqlCluster';
@@ -128,26 +127,30 @@
     },
   ];
 
-  const targetClusters = shallowRef<TendbhaModel[]>([]);
-
-  const tableData = computed(() => {
-    const { clusters, infos } = props.ticketDetails.details;
-    return (infos || []).map(item => ({
-      ...item,
-      cluster_name: clusters[item.cluster_id].immute_domain,
-      target_cluster_name: targetClusters.value.map(item => item.master_domain).join(',')
-    }));
-  })
+  const tableData = shallowRef<(MySQLRollbackDetails['infos'][number] & {
+    cluster_name: string;
+    target_cluster_name: string;
+  })[]>([]);
 
   watch(
     () => props.ticketDetails.details,
     () => {
-      const targetClusterIds = props.ticketDetails.details.infos.map(item => ({ id: item.target_cluster_id }));
+      const { clusters, infos } = props.ticketDetails.details;
+      const targetClusterIds = infos.map(item => ({ id: item.target_cluster_id }));
       queryClusters({
         cluster_filters: targetClusterIds,
         bk_biz_id: props.ticketDetails.bk_biz_id,
       }).then((data) => {
-        targetClusters.value = data
+        const targetClusters = data.reduce<Record<number, string>>((acc, cur) => ({
+            ...acc,
+            [cur.id]: cur.immute_domain,
+          }), {});
+
+        tableData.value = infos.map(item => ({
+          ...item,
+          cluster_name: clusters[item.cluster_id].immute_domain,
+          target_cluster_name: targetClusters[item.target_cluster_id]
+        }));
       })
     },
     {
