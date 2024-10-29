@@ -97,7 +97,7 @@ func GetProxyPasswdFromConfFlie(port int, role string) (password string, err err
 		if err != nil {
 			return
 		}
-		grepCmd = fmt.Sprintf(`grep -w "password" %s|grep -vE "#"|awk '{print $NF}'`, confFile)
+		grepCmd = fmt.Sprintf(`grep -w "password" %s|grep -vE "#\s*password" |awk '{print $NF}'`, confFile)
 	} else if role == consts.MetaRolePredixy {
 		confFile, err = GetPredixyLocalConfFile(port)
 		if err != nil {
