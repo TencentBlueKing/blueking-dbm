@@ -128,7 +128,7 @@
       const oldSlave = infoItem.slave || infoItem.old_slave
       return [...prevInfoList, {
         cluster_id: infoItem.cluster_id,
-        slave: oldSlave.ip,
+        slave: `${oldSlave.ip}:${oldSlave.port}`,
         new_slave: infoItem.new_slave?.ip || '',
         immute_domain: clusterItem.immute_domain,
         name: clusterItem.name,
