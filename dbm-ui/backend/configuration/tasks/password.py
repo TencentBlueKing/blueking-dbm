@@ -125,7 +125,7 @@ def get_all_sqlserver_clusters():
     获取sqlserver所有集群的实例信息
     """
     cluster_infos = []
-    clusters = Cluster.objects.filter(
+    clusters = Cluster.objects.prefetch_related("storageinstance_set", "storageinstance_set__machine").filter(
         cluster_type__in=[ClusterType.SqlserverHA.value, ClusterType.SqlserverSingle.value]
     )
     for cluster in clusters:
