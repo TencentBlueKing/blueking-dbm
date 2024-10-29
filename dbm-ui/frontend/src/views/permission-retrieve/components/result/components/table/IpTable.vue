@@ -33,7 +33,7 @@
   interface Props {
     data?: ServiceReturnType<typeof getAccountPrivs>;
     isMaster: boolean;
-    dbMemo: string[];
+    dbMemo: string;
     tableMaxHeight: number;
     pagination: {
       current: number,
@@ -148,7 +148,7 @@
       }
     ];
 
-    if (props.dbMemo.length > 0) {
+    if (props.dbMemo.length) {
       ipColums[0].children.push({
         label: t('访问的 DB'),
         field: 'db',
@@ -169,35 +169,38 @@
   });
 
   const tableData = computed(() => {
-    const {data} = props
+    const { data } = props;
     if (data && data.results.privs_for_ip) {
-      if (data.results.privs_for_ip) {
-        const privsForIp = data.results.privs_for_ip;
-        const result = privsForIp.reduce<TableItem[]>((acc, ipItem) => acc.concat(
-          ipItem.dbs.reduce<TableItem[]>((dbAcc, dbItem) => dbAcc.concat(
-            dbItem.domains.reduce<TableItem[]>((domainAcc, domainItem) => domainAcc.concat(
-              domainItem.users.reduce<TableItem[]>((userAcc, userItem) => userAcc.concat(
-                userItem.match_ips.reduce<TableItem[]>((matchIpAcc, matchIpItem) => matchIpAcc.concat(
-                  matchIpItem.match_dbs.map(matchDbItem => ({
-                  ip: [ipItem.ip],
-                  db: [dbItem.db],
-                  immute_domain: domainItem.immute_domain,
-                  user: userItem.user,
-                  match_ip: matchIpItem.match_ip,
-                  match_db: matchDbItem.match_db,
-                  priv: matchDbItem.priv.toLocaleLowerCase()
-                }))
-                ), [])
-              ), [])
-            ), [])
-          ), [])
-        ), []);
-        return result
-      }
+      const privsForIp = data.results.privs_for_ip;
+      const result: TableItem[] = [];
+
+      privsForIp.forEach(ipItem => {
+        ipItem.dbs.forEach(dbItem => {
+          dbItem.domains.forEach(domainItem => {
+            domainItem.users.forEach(userItem => {
+              userItem.match_ips.forEach(matchIpItem => {
+                matchIpItem.match_dbs.forEach(matchDbItem => {
+                  result.push({
+                    ip: [ipItem.ip],
+                    db: [dbItem.db],
+                    immute_domain: domainItem.immute_domain,
+                    user: userItem.user,
+                    match_ip: matchIpItem.match_ip,
+                    match_db: matchDbItem.match_db,
+                    priv: matchDbItem.priv.toLocaleLowerCase()
+                  });
+                });
+              });
+            });
+          });
+        });
+      });
+
+      return result;
     }
+
     return [];
   });
-
   const handleTableLimitChange = (value: number) => {
     emits('page-limit-change', value)
   }

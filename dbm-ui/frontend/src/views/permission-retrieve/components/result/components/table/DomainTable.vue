@@ -32,7 +32,7 @@
   interface Props {
     data?: ServiceReturnType<typeof getAccountPrivs>;
     isMaster: boolean;
-    dbMemo: string[];
+    dbMemo: string;
     tableMaxHeight: number;
     pagination: {
       current: number,
@@ -146,7 +146,7 @@
       }
     ];
 
-    if (props.dbMemo.length > 0) {
+    if (props.dbMemo.length) {
       domainColumns[1].children.push({
         label: t('访问的 DB'),
         field: 'db',
@@ -159,38 +159,35 @@
   });
 
   const tableData = computed(() => {
-    const {data} = props
+    const { data } = props;
     if (data && data.results.privs_for_cluster) {
-        const privsForCluster = data.results.privs_for_cluster;
-        const result = privsForCluster.reduce<TableItem[]>((acc, ipItem) => acc.concat(
-          ipItem.users.reduce<TableItem[]>((userAcc, userItem) => userAcc.concat(
-            userItem.match_ips.reduce<TableItem[]>((matchIpAcc, matchIpItem) => matchIpAcc.concat(
-              matchIpItem.match_dbs.map(matchDbItem => {
-                const ipDb = matchDbItem.ip_dbs.reduce<{
-                  ip: string[],
-                  db: string[]
-                }>((prevIpDb, ipDbItem) => ({
-                  ip: prevIpDb.ip.concat(ipDbItem.ip),
-                  db: prevIpDb.ip.concat(ipDbItem.db)
-                }), {
-                  ip: [],
-                  db: []
-                });
+      const privsForCluster = data.results.privs_for_cluster;
+      return privsForCluster.reduce<TableItem[]>((acc, ipItem) => {
+        ipItem.users.forEach(userItem => {
+          userItem.match_ips.forEach(matchIpItem => {
+            matchIpItem.match_dbs.forEach(({ ip_dbs: ipDbs, priv, ...rest }) => {
+              const ip = [];
+              const db = [];
+              for (const { ip: ipVal, db: dbVal } of ipDbs) {
+                ip.push(ipVal);
+                db.push(dbVal);
+              }
+              acc.push({
+                immute_domain: ipItem.immute_domain,
+                user: userItem.user,
+                match_ip: matchIpItem.match_ip,
+                priv: priv.toLocaleLowerCase(),
+                ip,
+                db,
+                ...rest
+              });
+            });
+          });
+        });
+        return acc;
+      }, []);
+    }
 
-                return {
-                  immute_domain: ipItem.immute_domain,
-                  user: userItem.user,
-                  match_ip: matchIpItem.match_ip,
-                  match_db: matchDbItem.match_db,
-                  priv: matchDbItem.priv.toLocaleLowerCase(),
-                  ...ipDb
-                }
-              })
-            ), [])
-          ), [])
-        ), []);
-        return result
-      }
     return [];
   });
 

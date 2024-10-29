@@ -44,7 +44,7 @@
 
   import type { AccountTypes } from '@common/const';
 
-  import accoutMap from './common/config';
+  import accoutMap from '../../../common/config';
 
   interface Expose {
     getUserList: (params: ServiceParameters<typeof getAccountUsers>) => void;

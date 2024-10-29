@@ -42,6 +42,7 @@
       </template>
       <BkRadioGroup
         v-model="formatType"
+        :disabled="loading"
         style="margin-left: auto"
         type="capsule"
         @change="handleFormatTypeChange">
@@ -63,6 +64,7 @@
 
   interface Props {
     data?: ServiceReturnType<typeof getAccountPrivs>;
+    loading: boolean;
   }
   interface Emits {
     (e: 'export'): void;
