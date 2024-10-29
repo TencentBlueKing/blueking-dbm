@@ -21,7 +21,6 @@
 <script setup lang="tsx">
   import { useI18n } from 'vue-i18n';
 
-  import type TendbclusterModel from '@services/model/tendbcluster/tendbcluster';
   import type { SpiderRollbackDetails } from '@services/model/ticket/details/spider';
   import TicketModel from '@services/model/ticket/ticket';
   import { getTendbclusterListByBizId } from '@services/source/tendbcluster';
@@ -129,27 +128,30 @@
     },
   ];
 
-  const targetClusters = shallowRef<TendbclusterModel[]>([]);
-
-  const tableData = computed(()=>{
-    const { clusters, infos } = props.ticketDetails.details;
-    return (infos || []).map(item => ({
-      ...item,
-      cluster_name: clusters[item.cluster_id].immute_domain,
-      target_cluster_name: targetClusters.value.map(item=>item.master_domain).join(','),
-      backup_source: item.rollback_type?.split('_AND_')[0].toLocaleLowerCase()
-    }));
-  })
+  const tableData = shallowRef<(SpiderRollbackDetails['infos'][number] & {
+    cluster_name: string;
+    target_cluster_name: string;
+  })[]>([]);
 
   watch(
-    ()=> props.ticketDetails.details,
+    () => props.ticketDetails.details,
     () => {
-      const targetClusterIds = props.ticketDetails.details.infos.map(item => item.target_cluster_id);
+      const { clusters, infos } = props.ticketDetails.details;
+      const targetClusterIds = infos.map(item => item.target_cluster_id);
       getTendbclusterListByBizId({
         cluster_ids: targetClusterIds,
         bk_biz_id: props.ticketDetails.bk_biz_id,
       }).then((data) => {
-        targetClusters.value = data.results;
+        const targetClusters = data.results.reduce<Record<number, string>>((acc, cur) => ({
+            ...acc,
+            [cur.id]: cur.master_domain,
+          }), {});
+
+        tableData.value = infos.map(item => ({
+          ...item,
+          cluster_name: clusters[item.cluster_id].immute_domain,
+          target_cluster_name: targetClusters[item.target_cluster_id]
+        }));
       })
     },
     {

@@ -61,6 +61,7 @@ export default class Tendbha {
   db_module_id: number;
   db_module_name: string;
   id: number;
+  immute_domain: string;
   major_version: string;
   master_domain: string;
   masters: ClusterListNode[];
@@ -102,6 +103,7 @@ export default class Tendbha {
     this.db_module_name = payload.db_module_name || '';
     this.db_module_id = payload.db_module_id || 0;
     this.id = payload.id || 0;
+    this.immute_domain = payload.immute_domain || '';
     this.master_domain = payload.master_domain || '';
     this.major_version = payload.major_version || '';
     this.masters = payload.masters || [];
