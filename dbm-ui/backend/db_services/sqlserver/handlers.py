@@ -16,7 +16,7 @@ from django.utils.translation import ugettext as _
 from backend.components import DRSApi
 from backend.db_services.mysql.remote_service.exceptions import RemoteServiceBaseException
 from backend.db_services.mysql.remote_service.handlers import RemoteServiceHandler
-from backend.flow.consts import SYSTEM_DBS
+from backend.flow.consts import SQLSERVER_SYSTEM_DBS
 
 
 class RemoteSqlserverServiceHandler(RemoteServiceHandler):
@@ -66,9 +66,9 @@ class RemoteSqlserverServiceHandler(RemoteServiceHandler):
                         "databases": [
                             data["name"]
                             for data in cmd_results[0].get("table_data", [])
-                            if data["name"] not in SYSTEM_DBS
+                            if data["name"] not in SQLSERVER_SYSTEM_DBS
                         ],
-                        "system_databases": SYSTEM_DBS,
+                        "system_databases": SQLSERVER_SYSTEM_DBS,
                     }
                 )
         return cluster_databases

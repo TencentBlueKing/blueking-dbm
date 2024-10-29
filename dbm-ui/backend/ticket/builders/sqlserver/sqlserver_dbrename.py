@@ -39,7 +39,7 @@ class SQLServerRenameSerializer(SQLServerBaseOperateDetailSerializer):
         # DB重命名校验，逻辑同mysql
         cluster_ids = [info["cluster_id"] for info in attrs["infos"]]
         cluster__databases = sqlserver_db_function.get_cluster_database(cluster_ids)
-        CommonValidate.validate_mysql_db_rename(attrs["infos"], cluster__databases)
+        CommonValidate.validate_mysql_db_rename(attrs["infos"], cluster__databases, True)
 
         return attrs
 

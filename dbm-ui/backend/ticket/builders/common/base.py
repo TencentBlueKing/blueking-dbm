@@ -269,6 +269,7 @@ class CommonValidate(object):
         ignore_tables: List,
         cluster_id,
         dbs_in_cluster_map: Dict[int, List],
+        is_ignore_case: bool = False,
     ) -> Tuple[bool, str]:
         """校验库表选择器中的单个数据是否合法"""
 
@@ -280,8 +281,15 @@ class CommonValidate(object):
             if ("%" in db_name) or ("?" in db_name) or ("*" in db_name):
                 continue
 
-            if db_name not in dbs_in_cluster_map.get(cluster_id, []):
-                return False, _("数据库{}不在所属集群{}中，请重新查验").format(db_name, cluster_id)
+            if is_ignore_case:
+                # 不区分大小写对比
+                if db_name.lower() not in [i.lower() for i in dbs_in_cluster_map.get(cluster_id, [])]:
+                    return False, _("数据库{}不在所属集群{}中，请重新查验[不区分大小写]").format(db_name, cluster_id)
+
+            else:
+                # 区分大小写对比
+                if db_name not in dbs_in_cluster_map.get(cluster_id, []):
+                    return False, _("数据库{}不在所属集群{}中，请重新查验").format(db_name, cluster_id)
 
         return True, ""
 
@@ -345,6 +353,7 @@ class CommonValidate(object):
                 ignore_tables=ignore_tables,
                 cluster_id=info["cluster_id"],
                 dbs_in_cluster_map=dbs_in_cluster_map,
+                is_ignore_case=True,
             )
             if not is_valid:
                 return is_valid, f"line {index}: {message}"
@@ -352,7 +361,9 @@ class CommonValidate(object):
         return True, ""
 
     @classmethod
-    def validate_mysql_db_rename(cls, infos: Dict, cluster__databases: Dict[int, List[str]]):
+    def validate_mysql_db_rename(
+        cls, infos: Dict, cluster__databases: Dict[int, List[str]], is_ignore_case: bool = False
+    ):
         """
         校验mysql db重命名逻辑
         1. 不允许包含通配符
@@ -363,6 +374,7 @@ class CommonValidate(object):
         6. 源DB必须在集群中，新DB必须不在集群中
         @param infos: 重命名信息 [{"cluster_id": 1, "from_database": "abc", "to_database": "cde"}]
         @param cluster__databases: 集群与业务库的映射
+        @param is_ignore_case: 是否区分大小写比较，默认不区分
         """
         cluster__db_name_map: Dict[int, Dict[str, List]] = defaultdict(
             lambda: {"from_database": [], "to_database": []}
@@ -378,14 +390,24 @@ class CommonValidate(object):
 
         # 校验在同一个集群内，源DB名必须唯一，新DB名必须唯一，且源DB名不能出现在新DB名中
         for cluster_id, name_info in cluster__db_name_map.items():
-            from_database_list = name_info["from_database"]
+            check_dbs = (
+                [i.lower() for i in cluster__databases[cluster_id]]
+                if is_ignore_case
+                else cluster__databases[cluster_id]
+            )
+            from_database_list = (
+                [i.lower() for i in name_info["from_database"]] if is_ignore_case else name_info["from_database"]
+            )
+            to_database_list = (
+                [i.lower() for i in name_info["to_database"]] if is_ignore_case else name_info["to_database"]
+            )
+
             for db_name in from_database_list:
-                if db_name not in cluster__databases[cluster_id]:
+                if db_name not in check_dbs:
                     raise serializers.ValidationError(_("数据库[{}]不存在于集群{}中").format(db_name, cluster_id))
 
-            to_database_list = name_info["to_database"]
             for db_name in to_database_list:
-                if db_name in cluster__db_name_map[cluster_id]:
+                if db_name in check_dbs:
                     raise serializers.ValidationError(_("重命名数据库[{}]已存在于集群{}中").format(db_name, cluster_id))
 
             if len(set(from_database_list)) != len(from_database_list):
