@@ -18,12 +18,9 @@
       :title="t('查询条件')">
       <Options
         ref="optionsRef"
-        v-model="formData"
-        v-model:is-master="isMaster"
         class="ml-8"
-        :loading
-        @reset="handleReset"
-        @search="handleSearch" />
+        :loading="loading"
+        @change="handleOptionsChange" />
     </BkCard>
     <BkCard
       class="mt-16"
@@ -31,118 +28,34 @@
       :title="t('查询结果')">
       <Result
         ref="resultRef"
-        v-model="formData.format_type"
         class="ml-8"
-        :data="data"
-        :db-memo="dbMemo"
-        :is-master="isMaster"
-        :loading="loading"
-        @export="handleExport"
-        @search="handleSearch" />
+        :options="options"
+        @loading-change="handleLoadingChange" />
     </BkCard>
   </div>
 </template>
 
 <script setup lang="tsx">
+  import type { ComponentEmit } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
-  import { useRequest } from 'vue-request';
-
-  import { getAccountPrivs, getDownloadPrivs } from '@services/source/mysqlPermissionAccount';
-
-  import { batchSplitRegex } from '@common/regex';
 
   import Options from './components/options/Index.vue';
   import Result from './components/result/Index.vue';
 
   const { t } = useI18n();
 
-  const getDefaultFormData = () => ({
-    ips: '',
-    immute_domains: '',
-    users: [] as string[],
-    dbs: [] as string[],
-    format_type: 'ip',
-  });
-
   const optionsRef = ref<InstanceType<typeof Options>>();
   const resultRef = ref<InstanceType<typeof Result>>();
-  const isMaster = ref(true);
+  const loading = ref<boolean>(false);
 
-  const dbMemo = shallowRef<string[]>([]);
+  const options = shallowRef<Parameters<ComponentEmit<typeof Options>>[1]>();
 
-  const formData = reactive(getDefaultFormData());
-
-  const {
-    run: runGetAccountPrivs,
-    data,
-    mutate,
-    loading,
-  } = useRequest(getAccountPrivs, {
-    manual: true,
-    onError() {
-      mutate({
-        match_ips_count: 0,
-        results: {
-          privs_for_ip: null,
-          privs_for_cluster: null,
-          has_priv: null,
-          no_priv: null,
-        },
-      });
-    },
-  });
-
-  watch(
-    () => [formData.ips, formData.immute_domains],
-    () => {
-      optionsRef.value!.getUserList();
-    },
-  );
-
-  const getApiParams = (pagination = false) => {
-    dbMemo.value = formData.dbs;
-    const params = {
-      ips: formData.ips.replace(batchSplitRegex, ','),
-      immute_domains: formData.immute_domains.replace(batchSplitRegex, ','),
-      users: formData.users.join(','),
-      format_type: formData.format_type,
-      ...optionsRef.value!.getTypes(),
-    };
-
-    if (formData.dbs.length) {
-      Object.assign(params, { dbs: formData.dbs.join(',') });
-    }
-
-    if (pagination) {
-      Object.assign(params, resultRef.value!.getPaginationParams());
-    }
-
-    return params;
+  const handleOptionsChange = (value: Parameters<ComponentEmit<typeof Options>>[1]) => {
+    options.value = value;
   };
 
-  const handleSearch = () => {
-    optionsRef.value!.validate().then(() => {
-      runGetAccountPrivs(getApiParams(true));
-    });
-  };
-
-  const handleReset = () => {
-    Object.assign(formData, getDefaultFormData());
-    resultRef.value!.resetPagination();
-    dbMemo.value = [];
-    mutate({
-      match_ips_count: 0,
-      results: {
-        privs_for_ip: null,
-        privs_for_cluster: null,
-        has_priv: null,
-        no_priv: null,
-      },
-    });
-  };
-
-  const handleExport = () => {
-    getDownloadPrivs(getApiParams());
+  const handleLoadingChange = (value: boolean) => {
+    loading.value = value;
   };
 </script>
 

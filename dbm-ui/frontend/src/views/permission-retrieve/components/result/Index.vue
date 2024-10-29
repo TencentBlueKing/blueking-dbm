@@ -16,6 +16,7 @@
     <ReusltHead
       v-model="formatType"
       :data="data"
+      :loading="loading"
       @export="handleExport"
       @search="handleSearch" />
     <BkLoading
@@ -35,41 +36,40 @@
 </template>
 
 <script setup lang="tsx">
-  import { getAccountPrivs } from '@services/source/mysqlPermissionAccount';
+  import { useRequest } from 'vue-request';
+
+  import { getAccountPrivs, getDownloadPrivs } from '@services/source/mysqlPermissionAccount';
 
   import { useTableMaxHeight } from '@hooks';
+
+  import { AccountTypes, ClusterTypes } from '@common/const';
 
   import ReusltHead from './components/head/Index.vue';
   import DomainTable from './components/table/DomainTable.vue';
   import IpTable from './components/table/IpTable.vue';
 
   interface Props {
-    data?: ServiceReturnType<typeof getAccountPrivs>;
-    isMaster: boolean;
-    dbMemo: string[];
-    loading: boolean;
+    options?: {
+      ips: string;
+      immute_domains: string;
+      users: string;
+      cluster_type: ClusterTypes;
+      account_type: AccountTypes;
+      dbs?: string;
+      is_master?: boolean;
+    };
   }
 
   interface Emits {
-    (e: 'search'): void;
-    (e: 'export'): void;
-  }
-
-  interface Expose {
-    getPaginationParams: () => {
-      limit: number;
-      offset: number;
-    };
-    resetPagination: () => void;
+    (e: 'loading-change', value: boolean): void;
   }
 
   const props = defineProps<Props>();
   const emits = defineEmits<Emits>();
-  const formatType = defineModel<string>({
-    default: '',
-  });
 
   const tableMaxHeight = useTableMaxHeight(530);
+
+  const formatType = ref('ip');
 
   const pagination = reactive({
     current: 1,
@@ -80,16 +80,90 @@
 
   const tableComponent = computed(() => (formatType.value === 'ip' ? IpTable : DomainTable));
 
+  const dbMemo = computed(() => props.options?.dbs || '');
+  const isMaster = computed(() => !!props.options?.is_master);
+
+  const {
+    run: runGetAccountPrivs,
+    data,
+    mutate,
+    loading,
+  } = useRequest(getAccountPrivs, {
+    manual: true,
+    onError() {
+      mutate({
+        match_ips_count: 0,
+        results: {
+          privs_for_ip: null,
+          privs_for_cluster: null,
+          has_priv: null,
+          no_priv: null,
+        },
+      });
+    },
+  });
+
   watch(
-    () => props.data?.match_ips_count,
+    () => props.options,
     () => {
-      pagination.count = props.data?.match_ips_count ?? 0;
+      if (props.options) {
+        runGetAccountPrivs(getApiParams());
+      } else {
+        mutate({
+          match_ips_count: 0,
+          results: {
+            privs_for_ip: null,
+            privs_for_cluster: null,
+            has_priv: null,
+            no_priv: null,
+          },
+        });
+        formatType.value = 'ip';
+        Object.assign(pagination, {
+          current: 1,
+          count: 0,
+        });
+      }
     },
   );
 
+  watch(data, () => {
+    pagination.count = data.value?.match_ips_count ?? 0;
+  });
+
+  watch(loading, () => {
+    emits('loading-change', loading.value);
+  });
+
+  const getApiParams = (isPagination = true) => {
+    const params = {
+      ...props.options!,
+      format_type: formatType.value,
+    };
+    if (isPagination) {
+      Object.assign(params, {
+        limit: pagination.limit,
+        offset: pagination.limit * (pagination.current - 1),
+      });
+    }
+
+    delete params.is_master;
+    if (!params.dbs) {
+      delete params.dbs;
+    }
+    return params;
+  };
+
+  const handleSearch = () => {
+    if (!props.options) {
+      return;
+    }
+    runGetAccountPrivs(getApiParams());
+  };
+
   const handleTablePageChange = (value: number) => {
     pagination.current = value;
-    emits('search');
+    handleSearch();
   };
 
   const handleTableLimitChange = (value: number) => {
@@ -97,28 +171,9 @@
     handleTablePageChange(1);
   };
 
-  const handleSearch = () => {
-    emits('search');
-  };
-
   const handleExport = () => {
-    emits('export');
+    getDownloadPrivs(getApiParams(false));
   };
-
-  defineExpose<Expose>({
-    getPaginationParams() {
-      return {
-        limit: pagination.limit,
-        offset: pagination.limit * (pagination.current - 1),
-      };
-    },
-    resetPagination() {
-      Object.assign(pagination, {
-        current: 1,
-        count: 0,
-      });
-    },
-  });
 </script>
 
 <style lang="less" scoped>
