@@ -87,7 +87,7 @@
       const clusterData = clusters[item.cluster_id];
       results.push({
         cluster_id: item.cluster_id,
-        slave: item.slave.ip,
+        slave: `${item.slave.ip}:${item.slave.port}`,
         backup_source,
         immute_domain: clusterData.immute_domain,
         name: clusterData.name,
