@@ -51,7 +51,7 @@ class MongoDBAuthorizeHandler(AuthorizeHandler):
             "cluster_ids": authorize.cluster_ids,
             "target_instances": authorize.target_instances,
             "access_dbs": authorize.access_dbs,
-            "account_id": user_info_map.get(username, {}).get("id"),
+            "account_id": user_info_map.get(authorize.user, {}).get("id"),
             "username": username,
             "password": "",
             "auth_db": auth_db,
