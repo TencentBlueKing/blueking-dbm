@@ -39,7 +39,9 @@ def scan_cluster(cluster: Cluster) -> Graphic:
 
     # redis proxy 都直接指向所有后端，因此只需要连一条 group 的线即可
     proxy_instance = cluster.proxyinstance_set.first()
-    dummy_proxy_instance_node, proxy_instance_group = graph.add_node(proxy_instance)
+    proxy_instance_group = None
+    for proxy_instance in cluster.proxyinstance_set.all():
+        dummy_proxy_instance_node, proxy_instance_group = graph.add_node(proxy_instance, proxy_instance_group)
     backend_instance = proxy_instance.storageinstance.first()
     backend_instance_grp = graph.get_or_create_group(*Group.generate_group_info(backend_instance))
     graph.add_line(source=proxy_instance_group, target=backend_instance_grp, label=LineLabel.Access)
