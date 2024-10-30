@@ -396,7 +396,7 @@ class MySQLStorageLocalUpgradeFlow(object):
                 DownloadMediaKwargs(
                     bk_cloud_id=bk_cloud_id,
                     exec_ip=ip,
-                    file_list=GetFileList(db_type=DBType.MySQL).mysql_upgrade_package(pkg_id=pkg_id),
+                    file_list=GetFileList(db_type=DBType.MySQL).mysql_upgrade_package(pkg_id=pkg_id, db_version=""),
                 )
             ),
         )

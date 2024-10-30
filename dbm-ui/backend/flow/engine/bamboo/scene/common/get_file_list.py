@@ -173,11 +173,13 @@ class GetFileList(object):
         """
         mysql 升级需要的安装包列表
         """
+        mysql_pkg = Package.objects.get(id=pkg_id, pkg_type=MediumEnum.MySQL)
+        if db_version == "":
+            db_version = mysql_pkg.version
         if env.MYSQL_BACKUP_PKG_MAP_ENABLE:
             db_backup_pkg_type = MysqlVersionToDBBackupForMap[db_version]
         else:
             db_backup_pkg_type = MediumEnum.DbBackup
-        mysql_pkg = Package.objects.get(id=pkg_id, pkg_type=MediumEnum.MySQL)
         db_backup_pkg = Package.get_latest_package(version=MediumEnum.Latest, pkg_type=db_backup_pkg_type)
         checksum_pkg = Package.get_latest_package(version=MediumEnum.Latest, pkg_type=MediumEnum.MySQLChecksum)
         dba_toolkit = Package.get_latest_package(version=MediumEnum.Latest, pkg_type=MediumEnum.MySQLToolKit)
