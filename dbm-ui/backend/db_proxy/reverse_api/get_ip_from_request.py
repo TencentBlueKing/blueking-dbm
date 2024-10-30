@@ -35,7 +35,11 @@ def get_bk_cloud_id(request):
     nginx_ip = get_nginx_ip(request)
     bk_cloud_id = request.GET.get("bk_cloud_id")
 
-    proxy = DBCloudProxy.objects.get(
-        Q(internal_address=nginx_ip, bk_cloud_id=bk_cloud_id) | Q(external_address=nginx_ip, bk_cloud_id=bk_cloud_id)
-    )
+    try:
+        proxy = DBCloudProxy.objects.get(
+            Q(internal_address=nginx_ip, bk_cloud_id=bk_cloud_id)
+            | Q(external_address=nginx_ip, bk_cloud_id=bk_cloud_id)
+        )
+    except DBCloudProxy.DoesNotExist:
+        raise DBCloudProxy.DoesNotExist(f"DBCloudProxy not found for ip {nginx_ip}, bk_cloud_id {bk_cloud_id}")
     return proxy.bk_cloud_id
