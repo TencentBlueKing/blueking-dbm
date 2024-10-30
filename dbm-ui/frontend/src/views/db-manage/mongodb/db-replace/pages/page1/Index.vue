@@ -175,6 +175,7 @@
       ({
         mongoCluster: [
           {
+            name: t('待替换的主机'),
             topoConfig: {
               getTopoList: (params: ServiceParameters<typeof getMongoTopoList>) =>
                 getMongoTopoList({
