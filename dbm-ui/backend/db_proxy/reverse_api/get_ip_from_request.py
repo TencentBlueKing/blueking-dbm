@@ -23,15 +23,19 @@ def get_client_ip(request):
 
 
 def get_nginx_ip(request):
-    ip = request.META.get("REMOTE_ADDR")
-    if ip:
+    x_forwarded_for = request.META.get("HTTP_X_FORWARDED_FOR")
+    if x_forwarded_for:
+        ip = x_forwarded_for.split(",")[1]
         return ip
     else:
-        raise Exception("nginx ip in REMOTE_ADDR not found")
+        raise Exception("nginx ip in HTTP_X_FORWARDED_FOR not found")
 
 
 def get_bk_cloud_id(request):
     nginx_ip = get_nginx_ip(request)
+    bk_cloud_id = request.GET.get("bk_cloud_id")
 
-    p = DBCloudProxy.objects.get(Q(internal_address=nginx_ip) | Q(external_address=nginx_ip))
-    return p.bk_cloud_id
+    proxy = DBCloudProxy.objects.get(
+        Q(internal_address=nginx_ip, bk_cloud_id=bk_cloud_id) | Q(external_address=nginx_ip, bk_cloud_id=bk_cloud_id)
+    )
+    return proxy.bk_cloud_id
