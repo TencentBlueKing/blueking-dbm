@@ -152,6 +152,10 @@
     selectTicketIdList.value = data;
   };
 
+  onActivated(() => {
+    ticketStatus.value = (route.params.status as string) || TicketModel.STATUS_APPROVE;
+  });
+
   onMounted(() => {
     const searchParams = getSearchParams();
     if (Number(searchParams.viewId)) {
