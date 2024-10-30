@@ -181,6 +181,7 @@ export const getRedisClusterList = async (params: { bk_biz_id: number; domain?: 
 export function getRedisMachineList(params: {
   limit?: number;
   offset?: number;
+  extra?: number;
   bk_host_id?: number;
   ip?: string;
   cluster_ids?: string;

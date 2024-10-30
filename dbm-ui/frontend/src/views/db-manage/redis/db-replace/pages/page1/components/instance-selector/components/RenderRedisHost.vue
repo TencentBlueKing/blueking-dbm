@@ -47,7 +47,6 @@
   import { useI18n } from 'vue-i18n';
 
   import { getRedisMachineList } from '@services/source/redis';
-  import { queryMasterSlavePairs } from '@services/source/redisToolbox';
 
   import { useLinkQueryColumnSerach } from '@hooks';
 
@@ -79,10 +78,11 @@
     node?: {
       id: number,
       name: string
-      clusterDomain: string
+      obj: 'biz' | 'cluster'
     },
     role?: string,
     isRadioMode?: boolean,
+    masterSlaveMap?: Record<string, string>,
   }
 
   interface Emits {
@@ -106,6 +106,7 @@
     node: undefined,
     role: '',
     isRadioMode: false,
+    masterSlaveMap: () => ({}),
   });
   const emits = defineEmits<Emits>();
 
@@ -164,8 +165,6 @@
 
   // 选中域名列表
   const selectedDomains = computed(() => Object.values(checkedMap.value).map(item => item.ip));
-
-  const masterSlaveMap: Record<string, string> = {};
 
   const columns = computed(() => [
     {
@@ -365,11 +364,13 @@
   };
 
   const generateParams = () => ({
-    cluster_ids: String(props.node!.id),
     limit: pagination.limit,
     offset: (pagination.current - 1) * pagination.limit,
     extra: 1,
     ...getSearchSelectorParams(searchValue.value),
+    ...(props.node?.obj === 'cluster' && {
+      cluster_ids: `${props.node.id}`,
+    }),
   })
 
   // 跨页全选
@@ -402,11 +403,6 @@
         .finally(() => {
           isTableDataLoading.value = false;
         });
-      queryMasterSlavePairs({
-        cluster_id: props.node.id,
-      }).then((data) => {
-        data.forEach(item => masterSlaveMap[item.master_ip] = item.slave_ip);
-      });
     }
   };
 
@@ -426,7 +422,7 @@
     bk_cloud_id: data?.host_info?.cloud_id || 0,
     ip: data.ip || '',
     role: data.instance_role,
-    cluster_domain: props.node?.clusterDomain ?? '',
+    cluster_domain: props.node?.name ?? '',
     spec_config: data.spec_config,
     slaveHost: {
       faults: data.unavailable_slave,
@@ -452,8 +448,8 @@
     if (checked) {
       lastCheckMap[data.ip] = formatValue(data);
       // master 与 slave 关联选择
-      if (data.instance_role === 'redis_master') {
-        const slaveIp = masterSlaveMap[data.ip];
+      if (Object.keys(props.masterSlaveMap).length > 0 && data.instance_role === 'redis_master') {
+        const slaveIp = props.masterSlaveMap[data.ip];
         const slaveNode = tableData.value.filter(item => item.ip === slaveIp)[0];
         lastCheckMap[slaveIp] = formatValue(slaveNode);
       }
