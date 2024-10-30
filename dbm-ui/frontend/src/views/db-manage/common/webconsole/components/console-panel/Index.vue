@@ -187,6 +187,7 @@
     }
 
     // 校验语句
+    cmd = cmd.substring(inputPlaceholder.length);
     if (consoleConfig.value.validate) {
       const validateResult = consoleConfig.value.validate(cmd);
       if (validateResult) {
@@ -202,7 +203,6 @@
     // 开始请求
     try {
       loading.value = true;
-      cmd = cmd.substring(inputPlaceholder.length);
       if (typeof props.raw === 'boolean') {
         baseParams = {
           ...baseParams,
