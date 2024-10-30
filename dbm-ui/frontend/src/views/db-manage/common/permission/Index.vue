@@ -187,6 +187,8 @@
   const tableSearch = ref([]);
   const clusterAuthorizeRef = ref<InstanceType<typeof ClusterAuthorize>>();
 
+  const isMysql = computed(() => props.accountType === AccountTypes.MYSQL || props.accountType === AccountTypes.TENDBCLUSTER);
+
   /**
    * search select 过滤参数
    */
@@ -386,13 +388,16 @@
                 onClick={(event: PointerEvent) => handleShowAuthorize(data, item, event)}>
                 {t('授权')}
               </bk-button>
-              <bk-button
-                theme="primary"
-                class="ml-8"
-                text
-                onClick={(event: PointerEvent) => handleShowEditRule(event, data, index)}>
-                {t('编辑')}
-              </bk-button>
+              {
+                isMysql.value &&
+                <bk-button
+                  theme="primary"
+                  class="ml-8"
+                  text
+                  onClick={(event: PointerEvent) => handleShowEditRule(event, data, index)}>
+                  {t('编辑')}
+                </bk-button>
+              }
             </div>
           ))
         );
