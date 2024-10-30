@@ -2,7 +2,7 @@
   <DbPopconfirm
     :confirm-handler="handleApproval"
     placement="bottom"
-    :title="t('单据审批')"
+    :title="t('单据执行确认')"
     trigger="click"
     :width="400">
     <BkButton
@@ -10,7 +10,7 @@
       :loading="isSubmitting"
       text
       theme="primary">
-      {{ t('通过') }}
+      {{ t('确认执行') }}
     </BkButton>
     <template #content>
       <div>
@@ -19,7 +19,7 @@
           size="small"
           theme="success"
           type="stroke">
-          {{ t('通过') }}
+          {{ t('确认执行') }}
         </BkTag>
         <span>{{ t('通过后，单据将继续往下流转') }}</span>
       </div>
@@ -43,7 +43,7 @@
   <DbPopconfirm
     :confirm-handler="handleTerminate"
     placement="bottom"
-    :title="t('单据审批')"
+    :title="t('单据执行确认')"
     trigger="click"
     :width="400">
     <BkButton
@@ -51,7 +51,7 @@
       :loading="isSubmitting"
       text
       theme="primary">
-      {{ t('拒绝') }}
+      {{ t('终止单据') }}
     </BkButton>
     <template #content>
       <div style="padding-bottom: 20px; font-size: 12px; color: #63656e">
@@ -61,7 +61,7 @@
             size="small"
             theme="danger"
             type="stroke">
-            {{ t('拒绝') }}
+            {{ t('终止单据') }}
           </BkTag>
           <span>{{ t('通过后，单据将继续往下流转') }}</span>
         </div>
@@ -105,8 +105,8 @@
 
   const props = defineProps<Props>();
 
-  const eventBus = useEventBus();
   const { t } = useI18n();
+  const eventBus = useEventBus();
 
   const approveForm = useTemplateRef('approveForm');
   const terminateForm = useTemplateRef('terminateForm');
@@ -131,8 +131,8 @@
         }),
       )
       .then(() => {
-        eventBus.emit('refreshTicketStatus');
         messageSuccess(t('操作成功'));
+        eventBus.emit('refreshTicketStatus');
       })
       .finally(() => {
         isSubmitting.value = false;
@@ -151,8 +151,8 @@
         }),
       )
       .then(() => {
-        eventBus.emit('refreshTicketStatus');
         messageSuccess(t('操作成功'));
+        eventBus.emit('refreshTicketStatus');
       })
       .finally(() => {
         isSubmitting.value = false;
