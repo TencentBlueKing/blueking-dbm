@@ -38,6 +38,7 @@ class ToolboxHandler:
     # 社区版本 pkg name: mysql-8.0.32-linux-glibc2.12-x86_64.tar.xz
 
     def query_higher_version_pkg_list(self, cluster_id: int, higher_major_version: bool):
+        higher_major_version = True
         cluster = Cluster.objects.filter(id=cluster_id).get()
         instance = StorageInstance.objects.filter(
             cluster=cluster,
