@@ -15,6 +15,8 @@
 
   import { getAccountPrivs } from '@services/source/mysqlPermissionAccount';
 
+  import { useTableMaxHeight } from '@hooks'
+
   import { AccountTypes } from '@common/const';
 
   import { isSensitivePriv } from './common/utils'
@@ -31,9 +33,11 @@
 
   interface Props {
     data?: ServiceReturnType<typeof getAccountPrivs>;
-    isMaster: boolean;
-    dbMemo: string;
-    tableMaxHeight: number;
+    options?: {
+      account_type: AccountTypes;
+      dbs?: string;
+      is_master?: boolean;
+    },
     pagination: {
       current: number,
       count: number,
@@ -51,10 +55,7 @@
   const emits = defineEmits<Emits>();
 
   const { t } = useI18n();
-
-  const route = useRoute()
-
-  const { accountType } = route.meta as { accountType: AccountTypes };
+  const tableMaxHeight = useTableMaxHeight(530);
 
   const columns = computed(() => {
     const domainColumns = [
@@ -72,7 +73,7 @@
             render: ({ row }: { row: TableItem }) => (
               <>
                 {
-                  props.isMaster ? <bk-tag theme="info">{t('主')}</bk-tag> : <bk-tag theme="success">{t('从')}</bk-tag>
+                  props.options?.is_master ? <bk-tag theme="info">{t('主')}</bk-tag> : <bk-tag theme="success">{t('从')}</bk-tag>
                 }
                 <span class="ml-4">{row.immute_domain}</span>
               </>
@@ -114,7 +115,7 @@
                 <>
                   { index !== 0 && <span>，</span> }
                   <span>{privItem}</span>
-                  { isSensitivePriv(accountType, privItem) && (
+                  { isSensitivePriv(props.options?.account_type || AccountTypes.MYSQL, privItem) && (
                     <bk-tag
                       size="small"
                       theme="warning"
@@ -146,7 +147,7 @@
       }
     ];
 
-    if (props.dbMemo.length) {
+    if (props.options?.dbs) {
       domainColumns[1].children.push({
         label: t('访问的 DB'),
         field: 'db',

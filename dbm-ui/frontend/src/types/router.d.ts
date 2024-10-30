@@ -11,15 +11,12 @@
  * the specific language governing permissions and limitations under the License.
  */
 
-import { AccountTypes } from '@common/const';
-
 import 'vue-router';
 
 declare module 'vue-router' {
   interface RouteMeta {
     navName?: string; // 用于设置面包屑 name
     fullscreen?: boolean; // 用于判断是否满屏幕
-    accoutType?: AccountTypes;
   }
 }
 

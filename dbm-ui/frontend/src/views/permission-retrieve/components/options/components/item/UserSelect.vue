@@ -15,10 +15,12 @@
   <BkSelect
     v-model="modelValue"
     allow-create
+    class="permission-user-select"
     collapse-tags
     filterable
     multiple
-    multiple-mode="tag">
+    multiple-mode="tag"
+    :placeholder="t('请选择或直接输入账号，Enter完成输入')">
     <BkOption
       v-for="item in userOptionList"
       :id="item.value"
@@ -38,25 +40,33 @@
 </template>
 
 <script setup lang="tsx">
+  import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import { getAccountUsers } from '@services/source/mysqlPermissionAccount';
+  import type { AccountTypes, ClusterTypes } from '@common/const';
+  import { batchSplitRegex } from '@common/regex';
 
-  import type { AccountTypes } from '@common/const';
+  import accoutMap from '../common/config';
 
-  import accoutMap from '../../../common/config';
-
-  interface Expose {
-    getUserList: (params: ServiceParameters<typeof getAccountUsers>) => void;
+  interface Props {
+    formData: {
+      ips: string;
+      immute_domains: string;
+      users: string[];
+      dbs: string[];
+      cluster_type: ClusterTypes;
+      account_type: AccountTypes;
+      is_master: boolean;
+    };
   }
+
+  const props = defineProps<Props>();
 
   const modelValue = defineModel<string[]>({
     required: true,
   });
 
-  const route = useRoute();
-
-  const { accountType } = route.meta as { accountType: AccountTypes };
+  const { t } = useI18n();
 
   const userOptionList = computed(() =>
     (userList.value?.results || []).map((userItem) => ({
@@ -65,9 +75,28 @@
     })),
   );
 
-  const { data: userList, run: runGetUserList } = useRequest(accoutMap[accountType as keyof typeof accoutMap].ruleApi, {
-    manual: true,
-  });
+  const { data: userList, run: runGetUserList } = useRequest(
+    accoutMap[props.formData.account_type as keyof typeof accoutMap].ruleApi,
+    {
+      manual: true,
+    },
+  );
+
+  watch(
+    () => [props.formData.ips, props.formData.immute_domains],
+    () => {
+      if (props.formData.ips && props.formData.immute_domains) {
+        runGetUserList({
+          ips: props.formData.ips.replace(batchSplitRegex, ','),
+          immute_domains: props.formData.immute_domains.replace(batchSplitRegex, ','),
+          cluster_type: props.formData.cluster_type,
+          account_type: props.formData.account_type,
+          limit: -1,
+          offset: 0,
+        });
+      }
+    },
+  );
 
   const handleUserClose = (value: string) => {
     const index = modelValue.value.findIndex((userItem) => userItem === value);
@@ -75,10 +104,12 @@
       modelValue.value.splice(index, 1);
     }
   };
-
-  defineExpose<Expose>({
-    getUserList(params) {
-      runGetUserList(params);
-    },
-  });
 </script>
+
+<style lang="less" scoped>
+  .permission-user-select {
+    :deep(.bk-select-tag-wrapper) {
+      flex: 1;
+    }
+  }
+</style>
