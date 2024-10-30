@@ -376,7 +376,7 @@
     .input-error {
       position: absolute;
       top: 50%;
-      left: 50%;
+      right: 28px;
       z-index: 99;
       padding-bottom: 3px;
       font-size: 14px;
