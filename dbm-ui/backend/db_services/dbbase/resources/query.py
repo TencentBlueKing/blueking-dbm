@@ -25,6 +25,7 @@ from backend.db_meta.models import (
     ClusterEntry,
     DBModule,
     Machine,
+    NosqlStorageSetDtl,
     ProxyInstance,
     StorageInstance,
     StorageInstanceTuple,
@@ -473,7 +474,7 @@ class ListRetrieveResource(BaseListRetrieveResource):
         storage_instance_queryset = StorageInstance.objects.prefetch_related(
             Prefetch(
                 "as_ejector",
-                queryset=StorageInstanceTuple.objects.filter(
+                queryset=StorageInstanceTuple.objects.select_related("receiver", "receiver__machine").filter(
                     ejector__in=storage_queryset.values_list("id", flat=True)
                 ),
                 to_attr="instance_tuples",
@@ -483,8 +484,16 @@ class ListRetrieveResource(BaseListRetrieveResource):
         cluster_list = cluster_queryset[offset : limit + offset].prefetch_related(
             Prefetch("proxyinstance_set", queryset=proxy_queryset.select_related("machine"), to_attr="proxies"),
             Prefetch("storageinstance_set", queryset=storage_queryset.select_related("machine"), to_attr="storages"),
-            Prefetch("storageinstance_set", queryset=storage_instance_queryset, to_attr="storage_instances"),
-            Prefetch("nosqlstoragesetdtl_set", to_attr="storage_set_dtl"),
+            Prefetch(
+                "storageinstance_set",
+                queryset=storage_instance_queryset.select_related("machine"),
+                to_attr="storage_instances",
+            ),
+            Prefetch(
+                "nosqlstoragesetdtl_set",
+                queryset=NosqlStorageSetDtl.objects.select_related("instance", "instance__machine"),
+                to_attr="storage_set_dtl",
+            ),
             Prefetch("clusterentry_set", to_attr="entries"),
             "tag_set",
         )
