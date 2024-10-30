@@ -13,6 +13,8 @@ import (
 	"strconv"
 	"sync"
 
+	"go.uber.org/zap/zapcore"
+
 	"github.com/pkg/errors"
 )
 
@@ -79,7 +81,8 @@ func (job *BackupJob) Run() {
 			svrItem.MetaRole == consts.MetaRoleShardsvrBackupNewName {
 			job.runOneServer(&svrItem)
 		} else {
-			mylog.Logger.Info(fmt.Sprintf("skip backup for %s", svrItem.MetaRole))
+			mylog.Logger.Info(fmt.Sprintf("skip backup for %s", svrItem.MetaRole),
+				zapcore.Field{Key: "port", Type: zapcore.Int64Type, Integer: int64(svrItem.Port)})
 		}
 	}
 

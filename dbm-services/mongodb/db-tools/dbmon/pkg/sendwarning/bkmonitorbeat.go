@@ -111,32 +111,12 @@ func (bm *BkMonitorEventSender) addDbMetaInfo(warnmsg string) string {
 	var ok bool
 	if len(bm.Data[0].Dimension) > 0 {
 		firstDimen := bm.Data[0].Dimension
-		if _, ok = firstDimen["bk_biz_id"]; ok {
-			ret.WriteString(fmt.Sprintf("bk_biz_id:%v\n", firstDimen["bk_biz_id"]))
-		}
-		if _, ok = firstDimen["bk_cloud_id"]; ok {
-			ret.WriteString(fmt.Sprintf("bk_cloud_id:%v\n", firstDimen["bk_cloud_id"]))
-		}
-		// if _, ok = firstDimen["app_id"]; ok {
-		// 	ret.WriteString(fmt.Sprintf("app_id:%v\n", firstDimen["app_id"]))
-		// }
-		if _, ok = firstDimen["app"]; ok {
-			ret.WriteString(fmt.Sprintf("app:%v\n", firstDimen["app"]))
-		}
-		if _, ok = firstDimen["app_name"]; ok {
-			ret.WriteString(fmt.Sprintf("app_name:%v\n", firstDimen["app_name"]))
-		}
-		if _, ok = firstDimen["cluster_domain"]; ok {
-			ret.WriteString(fmt.Sprintf("cluster_domain:%v\n", firstDimen["cluster_domain"]))
-		}
-		if _, ok = firstDimen["cluster_type"]; ok {
-			ret.WriteString(fmt.Sprintf("cluster_type:%v\n", firstDimen["cluster_type"]))
-		}
-		if _, ok = firstDimen["instance"]; ok {
-			ret.WriteString(fmt.Sprintf("instance:%v\n", firstDimen["instance"]))
-		}
-		if _, ok = firstDimen["instance_role"]; ok {
-			ret.WriteString(fmt.Sprintf("instance_role:%v\n", firstDimen["instance_role"]))
+		for _, field := range []string{"bk_biz_id", "bk_cloud_id", "app_id", "app", "app_name",
+			"cluster_domain", "cluster_type", "instance", "instance_role"} {
+			if _, ok = firstDimen[field]; !ok {
+				continue
+			}
+			ret.WriteString(fmt.Sprintf("%s:%v\n", field, firstDimen[field]))
 		}
 	}
 	ret.WriteString("message:" + warnmsg)
@@ -160,81 +140,65 @@ func (bm *BkMonitorEventSender) DeleteAllDimesion() *BkMonitorEventSender {
 
 // SetBkBizID set bk_biz_id
 func (bm *BkMonitorEventSender) SetBkBizID(bkBizID string) *BkMonitorEventSender {
-	bm.newDimenSion()
-	bm.Data[0].Dimension["bk_biz_id"] = bkBizID
-	bm.Data[0].Dimension["appid"] = bkBizID
-	return bm
+	return bm.set("bk_biz_id", bkBizID).set("appid", bkBizID)
 }
 
 // SetBkCloudID set bk_cloud_id
 func (bm *BkMonitorEventSender) SetBkCloudID(bkCloudID int64) *BkMonitorEventSender {
+	return bm.set("bk_cloud_id", bkCloudID)
+}
+
+// set key value
+func (bm *BkMonitorEventSender) set(key string, value interface{}) *BkMonitorEventSender {
 	bm.newDimenSion()
-	bm.Data[0].Dimension["bk_cloud_id"] = bkCloudID
+	bm.Data[0].Dimension[key] = value
 	return bm
 }
 
 // SetApp set app
 func (bm *BkMonitorEventSender) SetApp(app string) *BkMonitorEventSender {
-	bm.newDimenSion()
-	bm.Data[0].Dimension["app"] = app
-	return bm
+	return bm.set("app", app)
 }
 
 // SetAppName TODO
 // SetApp set app
 func (bm *BkMonitorEventSender) SetAppName(appname string) *BkMonitorEventSender {
-	bm.newDimenSion()
-	bm.Data[0].Dimension["app_name"] = appname
-	return bm
+	return bm.set("app_name", appname)
 }
 
 // SetClusterDomain set domain
-func (bm *BkMonitorEventSender) SetClusterDomain(domain string) *BkMonitorEventSender {
-	bm.newDimenSion()
-	bm.Data[0].Dimension["cluster_domain"] = domain
-	return bm
+func (bm *BkMonitorEventSender) SetClusterDomain(clusterDomain string) *BkMonitorEventSender {
+	return bm.set("cluster_domain", clusterDomain)
 }
 
 // SetClusterName set cluster name
 func (bm *BkMonitorEventSender) SetClusterName(clusterName string) *BkMonitorEventSender {
-	bm.newDimenSion()
-	bm.Data[0].Dimension["cluster_name"] = clusterName
-	return bm
+	return bm.set("cluster_name", clusterName)
 }
 
 // SetClusterType set cluster name
 func (bm *BkMonitorEventSender) SetClusterType(clusterType string) *BkMonitorEventSender {
-	bm.newDimenSion()
-	bm.Data[0].Dimension["cluster_type"] = clusterType
-	return bm
+	return bm.set("cluster_type", clusterType)
 }
 
 // SetInstanceRole set role
 func (bm *BkMonitorEventSender) SetInstanceRole(role string) *BkMonitorEventSender {
-	bm.newDimenSion()
-	bm.Data[0].Dimension["instance_role"] = role
-	return bm
+	return bm.set("instance_role", role)
 }
 
 // SetInstanceHost set server host
 func (bm *BkMonitorEventSender) SetInstanceHost(host string) *BkMonitorEventSender {
-	bm.newDimenSion()
-	bm.Data[0].Dimension["instance_host"] = host
-	return bm
+	return bm.set("instance_host", host)
 }
 
 // SetInstance set instance
 func (bm *BkMonitorEventSender) SetInstance(instance string) *BkMonitorEventSender {
-	bm.newDimenSion()
-	bm.Data[0].Dimension["instance"] = instance
-	return bm
+	return bm.set("instance", instance)
 }
 
 // SetEventCreateTime set instance
 func (bm *BkMonitorEventSender) SetEventCreateTime() *BkMonitorEventSender {
-	bm.newDimenSion()
-	bm.Data[0].Dimension["event_create_time"] = time.Now().Local().Format(consts.UnixtimeLayout)
-	return bm
+	return bm.set("event_create_time", time.Now().Local().Format(consts.UnixtimeLayout))
 }
 
 // ReplaceAllDimensions 用参数中dimensions替代 bm.Data[0].Dimension
@@ -248,7 +212,7 @@ func (bm *BkMonitorEventSender) ReplaceAllDimensions(dimensions map[string]inter
 func (bm *BkMonitorEventSender) AppendDimensions(dimensions map[string]interface{}) *BkMonitorEventSender {
 	bm.newDimenSion()
 	for key, val := range dimensions {
-		bm.Data[0].Dimension[key] = val
+		bm.set(key, val)
 	}
 	return bm
 }

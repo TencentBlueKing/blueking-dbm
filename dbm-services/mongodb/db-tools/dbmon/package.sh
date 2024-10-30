@@ -2,7 +2,7 @@
 
 repoVersion=0.0.1
 respGitHash=$(git rev-parse --short HEAD)
-respGitDate=202301010000
+respGitDate=$(date +"%Y%m%d%H%M%S")
 
 # 解析传入的 --version=xxx 和 --git-hash=xxx --git-date="yyyymmdd hhmmss"参数
 while [ $# -gt 0 ]; do

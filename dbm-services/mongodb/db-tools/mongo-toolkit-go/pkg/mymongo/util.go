@@ -15,8 +15,6 @@ import (
 	"context"
 	"strings"
 	"time"
-
-	"go.mongodb.org/mongo-driver/x/bsonx"
 )
 
 const (
@@ -76,11 +74,39 @@ func GetVersion(client *mongo.Client, timeoutSecond int64) (string, error) {
 	return fmt.Sprintf("%d.%d", out.VersionArray[0], out.VersionArray[1]), nil
 }
 
+// RunAdminCommand exec admin command
+func RunAdminCommand(client *mongo.Client, cmdVal bson.M, timeoutSecond int64, out interface{}) (err error) {
+	ctx, _ := context.WithTimeout(context.Background(), time.Duration(timeoutSecond)*time.Second)
+	ret := client.Database("admin").RunCommand(ctx, cmdVal)
+	// bsonVal, _ := ret.DecodeBytes()
+	// fmt.Printf("RunAdminCommand in: %+v out: %+v\n", cmdVal, bsonVal.String())
+	err = ret.Decode(out)
+	return
+}
+
+// RunAdminCommandD exec admin command
+func RunAdminCommandD(client *mongo.Client, cmdVal interface{}, timeoutSecond int64, out interface{}) (err error) {
+	ctx, _ := context.WithTimeout(context.Background(), time.Duration(timeoutSecond)*time.Second)
+	ret := client.Database("admin").RunCommand(ctx, cmdVal)
+	// bsonVal, _ := ret.DecodeBytes()
+	// fmt.Printf("RunAdminCommand in: %+v out: %+v\n", cmdVal, bsonVal.String())
+	err = ret.Decode(out)
+	return
+}
+
+// RunCommandWithVal Get Version
+func RunCommandWithVal(client *mongo.Client, db, cmd string, val interface{}, timeoutSecond int64, out interface{}) (err error) {
+	ctx, _ := context.WithTimeout(context.Background(), time.Duration(timeoutSecond)*time.Second)
+	ret := client.Database(db).RunCommand(ctx, bson.D{{cmd, val}})
+	// bsonVal, _ := ret.DecodeBytes()
+	// fmt.Printf("RunCommandWithVal %s in: %+v out: %+v\n", cmd, val, bsonVal.String())
+	err = ret.Decode(out)
+	return
+}
+
 // RunCommand Get Version
 func RunCommand(client *mongo.Client, db, cmd string, timeoutSecond int64, out interface{}) (err error) {
-	ctx, _ := context.WithTimeout(context.Background(), time.Duration(timeoutSecond)*time.Second)
-	err = client.Database(db).RunCommand(ctx, bsonx.Doc{{cmd, bsonx.Int32(1)}}).Decode(out)
-	return
+	return RunCommandWithVal(client, db, cmd, 1, timeoutSecond, out)
 }
 
 // InsertBackupHeartbeat Insert HeartBeat

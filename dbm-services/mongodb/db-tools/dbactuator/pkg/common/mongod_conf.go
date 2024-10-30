@@ -1,6 +1,8 @@
 package common
 
 import (
+	"os"
+
 	"gopkg.in/yaml.v2"
 )
 
@@ -15,11 +17,8 @@ type YamlMongoDBConf struct {
 			} `yaml:"engineConfig"`
 		} `yaml:"wiredTiger"`
 	} `yaml:"storage"`
-	Replication struct {
-		OplogSizeMB int    `yaml:"oplogSizeMB"`
-		ReplSetName string `yaml:"replSetName"`
-	} `yaml:"replication"`
-	SystemLog struct {
+	Replication *Replication `yaml:"replication,omitempty"`
+	SystemLog   struct {
 		LogAppend   bool   `yaml:"logAppend"`
 		Path        string `yaml:"path"`
 		Destination string `yaml:"destination"`
@@ -36,17 +35,51 @@ type YamlMongoDBConf struct {
 	OperationProfiling struct {
 		SlowOpThresholdMs int `yaml:"slowOpThresholdMs"`
 	} `yaml:"operationProfiling"`
-	Sharding struct {
-		ClusterRole string `yaml:"clusterRole,omitempty"`
-	} `yaml:"sharding,omitempty"`
-	Security struct {
-		KeyFile string `yaml:"keyFile,omitempty"`
-	} `yaml:"security,omitempty"`
+	Sharding *Sharding `yaml:"sharding,omitempty"`
+	Security *Security `yaml:"security,omitempty"`
+}
+
+func (y *YamlMongoDBConf) Write(filePath string) error {
+	content, err := y.GetConfContent()
+	if err != nil {
+		return err
+	}
+	return os.WriteFile(filePath, content, 0644)
+}
+
+type Security struct {
+	KeyFile string `yaml:"keyFile,omitempty"`
+}
+
+type Sharding struct {
+	ClusterRole string `yaml:"clusterRole,omitempty"`
+}
+type Replication struct {
+	OplogSizeMB int    `yaml:"oplogSizeMB"`
+	ReplSetName string `yaml:"replSetName"`
 }
 
 // NewYamlMongoDBConf 生成结构体
 func NewYamlMongoDBConf() *YamlMongoDBConf {
-	return &YamlMongoDBConf{}
+	var conf = YamlMongoDBConf{}
+	conf.Sharding = &Sharding{}
+	conf.Replication = &Replication{}
+	conf.Security = &Security{}
+	return &conf
+}
+
+// LoadMongoDBConfFromFile 从文件中加载配置
+func LoadMongoDBConfFromFile(filePath string) (*YamlMongoDBConf, error) {
+	content, err := os.ReadFile(filePath)
+	if err != nil {
+		return nil, err
+	}
+	var y YamlMongoDBConf
+	err = yaml.Unmarshal(content, &y)
+	if err != nil {
+		return nil, err
+	}
+	return &y, nil
 }
 
 // GetConfContent 获取配置文件内容

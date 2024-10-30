@@ -13,8 +13,8 @@ import (
 
 // meta role
 const (
-	MetaRoleShardsvrBackup        = "shardsvr-backup"
-	MetaRoleShardsvrBackupNewName = "mongo_backup"
+	MetaRoleShardsvrBackup        = "mongo_backup"
+	MetaRoleShardsvrBackupNewName = "backup"
 	MetaRoleMongos                = "mongos"
 )
 
@@ -90,6 +90,21 @@ func GetMongoBackupDir() string {
 			dataDir = Data1Path
 		} else {
 			dataDir = DataPath
+		}
+	}
+	return dataDir
+}
+
+// GetMongoDataDir 获得数据所在Dir
+func GetMongoDataDir(port string) string {
+	dataDir := os.Getenv("MONGO_DATA_DIR")
+	for _, dirName := range []string{dataDir, Data1Path, DataPath} {
+		if dirName == "" {
+			continue
+		}
+		if fileExists(filepath.Join(dirName, "mongodata", port, "mongo.conf")) {
+			dataDir = dirName
+			break
 		}
 	}
 	return dataDir

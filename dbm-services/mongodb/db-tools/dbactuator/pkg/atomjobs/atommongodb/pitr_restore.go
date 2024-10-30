@@ -2,6 +2,7 @@ package atommongodb
 
 import (
 	"context"
+	"dbm-services/mongodb/db-tools/dbactuator/pkg/common"
 	"dbm-services/mongodb/db-tools/dbactuator/pkg/consts"
 	"dbm-services/mongodb/db-tools/dbactuator/pkg/jobruntime"
 	"dbm-services/mongodb/db-tools/dbactuator/pkg/util"
@@ -72,6 +73,7 @@ func (s *pitrRecoverJob) Run() error {
 	for _, f := range []execFunc{
 		{"checkDstMongo", s.checkDstMongo},
 		//	{"checkSrcFileReady", s.checkSrcFileReady},
+		{"dropConfigDb", s.dropConfigDb},
 		{"doPitrRecover", s.doPitrRecover},
 	} {
 		s.runtime.Logger.Info("Run %s start", f.name)
@@ -81,6 +83,45 @@ func (s *pitrRecoverJob) Run() error {
 		}
 		s.runtime.Logger.Info("Run %s done", f.name)
 	}
+	return nil
+}
+
+func (s *pitrRecoverJob) dropConfigDb() error {
+	client, err := s.MongoInst.Connect()
+	if err != nil {
+		return errors.Wrap(err, "Connect")
+	}
+	inst := common.NewInstance(s.param.IP, s.param.Port, s.param.AdminUsername, s.param.AdminPassword, "")
+	rsOp := common.NewRsOp()
+	conf, err := rsOp.GetRsConf(inst)
+	if err != nil {
+		return errors.Wrap(err, "GetRsConf")
+	}
+
+	if !conf.Config.Configsvr {
+		s.runtime.Logger.Info("not configsvr, skip drop config")
+		return nil
+	}
+
+	// 流程的前面已经在mongos上检查上库表，这里可以不再检查
+	// 检查 configsvr是否为空 database 表为空 -> 表示没有库
+	n, err := client.Database("config").Collection("databases").CountDocuments(context.Background(), bson.M{})
+	if err != nil {
+		return errors.Wrap(err, "CountDocuments config.databases")
+	}
+	if n > 0 {
+		return errors.Errorf("config.databases not empty, count:%d", n)
+	}
+
+	// 也许还有其他表，这里只删除几个常见的表.
+	for _, col := range []string{"databases", "collections", "chunks", "changelog"} {
+		if err := client.Database("config").Collection(col).Drop(context.Background()); err != nil {
+			return errors.Wrap(err, fmt.Sprintf("Drop config.%s", col))
+		} else {
+			s.runtime.Logger.Info("Drop config.%s done", col)
+		}
+	}
+
 	return nil
 }
 

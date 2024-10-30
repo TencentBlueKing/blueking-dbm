@@ -330,6 +330,35 @@ func (job *installDbmonJob) startDbmon() error {
 	return nil
 }
 
+// stopDbmon dbmon.
+func (job *installDbmonJob) stopDbmon() error {
+	pid, err := dbmonIsRunning(consts.BkDbmonBin)
+	if err != nil {
+		return errors.Wrap(err, "dbmonIsRunning")
+	}
+	isRunning := pid > 0
+	if !isRunning {
+		job.runtime.Logger.Info("bk-dbmon is not running")
+		return nil
+	} else if isRunning {
+		if err := exec.Command("kill", "-9", strconv.Itoa(pid)).Run(); err != nil {
+			return errors.Wrap(err, "kill -9")
+		} else {
+			job.runtime.Logger.Info("kill -9 %d (bk-dbmon) success", pid)
+		}
+	}
+
+	pid, err = dbmonIsRunning(consts.BkDbmonBin)
+	if err != nil {
+		return errors.Wrap(err, "dbmonIsRunning")
+	}
+	isRunning = pid > 0
+	if isRunning {
+		return errors.New("bk-dbmon stop failed")
+	}
+	return nil
+}
+
 // untarMedia 更新dbtools和dbmon文件包的 逻辑
 // 制品传到 /data/install/mongo-dbtools.tar.gz
 // 上一个制品在 /data/dbbak/mongo-dbtools.tar.gz
@@ -394,6 +423,7 @@ func fileMd5Eq(file1, file2 string) bool {
 	return v1 == v2
 }
 
+// require root user or users process can access
 func getPIDByPort(port string) (string, error) {
 	cmd := exec.Command("lsof", "-i", ":"+port, "-t", "-sTCP:LISTEN")
 	output, err := cmd.Output()

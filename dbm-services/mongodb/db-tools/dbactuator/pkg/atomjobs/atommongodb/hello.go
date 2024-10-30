@@ -43,17 +43,6 @@ func (s *helloJob) Run() error {
 	return nil
 }
 
-// Retry 重试
-func (s *helloJob) Retry() uint {
-	// do nothing
-	return 2
-}
-
-// Rollback 回滚
-func (s *helloJob) Rollback() error {
-	return nil
-}
-
 // Init 初始化
 func (s *helloJob) Init(runtime *jobruntime.JobGenericRuntime) error {
 	// 获取安装参数
