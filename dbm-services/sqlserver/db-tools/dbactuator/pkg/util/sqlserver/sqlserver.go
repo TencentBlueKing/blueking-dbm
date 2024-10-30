@@ -238,15 +238,18 @@ func (h *DbWorker) CheckDBProcessExist(dbName string) bool {
 			logger.Warn("process:[%+v], kill this", info)
 			killCmd = append(killCmd, fmt.Sprintf("kill %d", info.Spid))
 		} else {
-			isNoErr = true
+			isNoErr = false
 			logger.Error("process:[%+v]", info)
 		}
+	}
+	if !isNoErr {
+		return false
 	}
 	if _, err := h.ExecMore(killCmd); err != nil {
 		logger.Error(fmt.Sprintf("kill process failed %v", err))
 		return false
 	}
-	return isNoErr
+	return true
 }
 
 // GetServerNameAndInstanceName 获取实例的相关信息
@@ -431,15 +434,19 @@ func ExecLocalSQLFile(sqlVersion string, dbName string, charsetNO int, filenames
 		return fmt.Errorf("this version [%s] is not supported", sqlVersion)
 	}
 	for _, filename := range filenames {
+		var ret string
+		var err error
 		cmd := fmt.Sprintf(
-			"& '%s' -S \"127.0.0.1,%d\" -C -d %s -f %d -b -i %s",
+			"& '%s' -S \"127.0.0.1,%d\" -C -I -d %s -f %d -b -i %s",
 			cmdSql, port, dbName, charsetNO, filename,
 		)
 		fmt.Println(cmd)
-		if ret, err := osutil.StandardPowerShellCommand(cmd); err != nil {
+		logger.Info("exec cmd: %s", cmd)
+		if ret, err = osutil.StandardPowerShellCommand(cmd); err != nil {
 			logger.Error("the db [%s] exec sql script failed %s, result: %s ", dbName, err.Error(), ret)
 			return err
 		}
+		logger.Info("exec result: %s", ret)
 		logger.Info("ths db [%s] exec sql script success  [%d:%s]", dbName, port, filename)
 	}
 

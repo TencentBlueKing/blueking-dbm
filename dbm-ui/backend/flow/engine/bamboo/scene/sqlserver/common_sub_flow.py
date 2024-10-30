@@ -9,6 +9,7 @@ specific language governing permissions and limitations under the License.
 """
 import copy
 from dataclasses import asdict
+from pathlib import PureWindowsPath
 from typing import List
 
 from django.utils.translation import ugettext as _
@@ -39,6 +40,9 @@ from backend.flow.plugins.components.collections.common.install_nodeman_plugin i
 )
 from backend.flow.plugins.components.collections.common.sa_idle_check import CheckMachineIdleComponent
 from backend.flow.plugins.components.collections.mysql.dns_manage import MySQLDnsManageComponent
+from backend.flow.plugins.components.collections.sqlserver.backup_path_file_trans import (
+    SqlserverTransBackupFileFor2P2Component,
+)
 from backend.flow.plugins.components.collections.sqlserver.check_no_sync_db import CheckNoSyncDBComponent
 from backend.flow.plugins.components.collections.sqlserver.exec_actuator_script import SqlserverActuatorScriptComponent
 from backend.flow.plugins.components.collections.sqlserver.exec_sqlserver_backup_job import (
@@ -60,8 +64,10 @@ from backend.flow.utils.sqlserver.sqlserver_act_dataclass import (
     InsertAppSettingKwargs,
     P2PFileForWindowKwargs,
     RestoreForDoDrKwargs,
+    SqlserverBackupIDContext,
 )
 from backend.flow.utils.sqlserver.sqlserver_act_payload import SqlserverActPayload
+from backend.flow.utils.sqlserver.sqlserver_db_function import get_backup_path
 from backend.flow.utils.sqlserver.sqlserver_host import Host
 from backend.flow.utils.sqlserver.validate import SqlserverCluster, SqlserverInstance
 
@@ -427,6 +433,7 @@ def sync_dbs_for_cluster_sub_flow(
     cluster: Cluster,
     sync_slaves: List[Host],
     sync_dbs: list,
+    clean_dbs: list = None,
     sub_flow_name: str = _("建立数据库同步子流程"),
 ):
     """
@@ -436,11 +443,19 @@ def sync_dbs_for_cluster_sub_flow(
     @param cluster: 关联的集群对象
     @param sync_slaves: 待同步的从实例
     @param sync_dbs: 待同步的db列表
+    @param clean_dbs: 这次清理的db列表，默认为空，则用sync_dbs列表作为清理db
     @param sub_flow_name: 子流程名称
     """
     # 获取当前master实例信息
     master_instance = cluster.storageinstance_set.get(instance_role=InstanceRole.BACKEND_MASTER)
-    backup_path = f"d:\\dbbak\\restore_dr_{root_id}_{master_instance.port}\\"
+    # 获取集群的备份路径
+    cluster_backup_path = get_backup_path(cluster.id)
+    if cluster_backup_path == "":
+        # 如果没有配置，则用默认路径
+        backup_path = str(PureWindowsPath("d:/") / "dbbak" / f"restore_dr_{root_id}_{master_instance.port}")
+    else:
+        backup_path = str(PureWindowsPath(cluster_backup_path) / f"restore_dr_{root_id}_{master_instance.port}")
+
     cluster_sync_mode = SqlserverClusterSyncMode.objects.get(cluster_id=cluster.id).sync_mode
     # 生成切换payload的字典
     sync_payload_func_map = {
@@ -462,7 +477,7 @@ def sync_dbs_for_cluster_sub_flow(
         "target_backup_dir": backup_path,
         "is_set_full_model": True,
         "job_id": f"restore_dr_{root_id}_{master_instance.port}",
-        "clean_dbs": sync_dbs,
+        "clean_dbs": clean_dbs if clean_dbs else sync_dbs,
         "clean_mode": SqlserverCleanMode.DROP_DBS.value,
         "clean_tables": ["*"],
         "ignore_clean_tables": [],
@@ -526,6 +541,7 @@ def sync_dbs_for_cluster_sub_flow(
                 },
             )
         ),
+        write_payload_var=SqlserverBackupIDContext.full_backup_id_var_name(),
     )
     # 执行数据库日志备份
     sub_pipeline.add_act(
@@ -543,17 +559,18 @@ def sync_dbs_for_cluster_sub_flow(
                 },
             )
         ),
+        write_payload_var=SqlserverBackupIDContext.log_backup_id_var_name(),
     )
     # 传送备份文件
     sub_pipeline.add_act(
         act_name=_("传送文件到目标机器"),
-        act_component_code=TransFileInWindowsComponent.code,
+        act_component_code=SqlserverTransBackupFileFor2P2Component.code,
         kwargs=asdict(
             P2PFileForWindowKwargs(
                 source_hosts=[Host(ip=master_instance.machine.ip, bk_cloud_id=cluster.bk_cloud_id)],
-                file_list=[f"{backup_path}*"],
                 target_hosts=sync_slaves,
                 file_target_path=backup_path,
+                cluster_id=cluster.id,
             ),
         ),
     )

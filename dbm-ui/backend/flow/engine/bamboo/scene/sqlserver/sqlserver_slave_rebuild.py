@@ -53,6 +53,7 @@ from backend.flow.utils.sqlserver.sqlserver_act_dataclass import (
     DropRandomJobUserKwargs,
     ExecActuatorKwargs,
     ExecLoginKwargs,
+    SqlserverBackupIDContext,
 )
 from backend.flow.utils.sqlserver.sqlserver_act_payload import SqlserverActPayload
 from backend.flow.utils.sqlserver.sqlserver_db_function import (
@@ -129,18 +130,6 @@ class SqlserverSlaveRebuildFlow(BaseFlow):
                 ),
             )
 
-            # 下发执行器
-            sub_pipeline.add_act(
-                act_name=_("下发执行器"),
-                act_component_code=TransFileInWindowsComponent.code,
-                kwargs=asdict(
-                    DownloadMediaKwargs(
-                        target_hosts=[Host(**info["slave_host"])],
-                        file_list=GetFileList(db_type=DBType.Sqlserver).get_db_actuator_package(),
-                    ),
-                ),
-            )
-
             if cluster_sync_mode == SqlserverSyncMode.ALWAYS_ON and not check_always_on_status(cluster, rebuild_slave):
                 # 表示这个从实例和可用组端口连接，需要重建可用组关系
                 sub_pipeline.add_act(
@@ -167,20 +156,7 @@ class SqlserverSlaveRebuildFlow(BaseFlow):
                 )
                 sync_dbs = get_dbs_for_drs(cluster_id=cluster.id, db_list=["*"], ignore_db_list=[])
 
-            # 在slave清理业务数据库
-            if len(sub_flow_context["clean_dbs"]) > 0:
-                sub_pipeline.add_act(
-                    act_name=_("清理slave实例数据库"),
-                    act_component_code=SqlserverActuatorScriptComponent.code,
-                    kwargs=asdict(
-                        ExecActuatorKwargs(
-                            exec_ips=[Host(**info["slave_host"])],
-                            get_payload_func=SqlserverActPayload.get_clean_dbs_payload.__name__,
-                            custom_params={"is_force": True},
-                        )
-                    ),
-                )
-
+            if len(sync_dbs) > 0:
                 # 在slave重新建立数据库级别主从关系
                 sub_pipeline.add_sub_pipeline(
                     sub_flow=sync_dbs_for_cluster_sub_flow(
@@ -189,6 +165,7 @@ class SqlserverSlaveRebuildFlow(BaseFlow):
                         cluster=cluster,
                         sync_slaves=[Host(**info["slave_host"])],
                         sync_dbs=sync_dbs,
+                        clean_dbs=sub_flow_context["clean_dbs"],
                     )
                 )
 
@@ -265,7 +242,7 @@ class SqlserverSlaveRebuildFlow(BaseFlow):
             )
 
         main_pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
-        main_pipeline.run_pipeline()
+        main_pipeline.run_pipeline(init_trans_data_class=SqlserverBackupIDContext())
 
     def slave_rebuild_in_new_slave_flow(self):
         """
@@ -560,7 +537,7 @@ class SqlserverSlaveRebuildFlow(BaseFlow):
             )
 
         main_pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
-        main_pipeline.run_pipeline()
+        main_pipeline.run_pipeline(init_trans_data_class=SqlserverBackupIDContext())
 
     def fix_slave_dns_sub_flow(
         self,

@@ -77,6 +77,10 @@ func (c *BackupDBSAct) Run() (err error) {
 			FunName: "检查备份文件是否存在",
 			Func:    c.BaseService.CheckBackupSuccess,
 		},
+		{
+			FunName: "输出backup_id",
+			Func:    c.BaseService.PrintBackupID,
+		},
 	}
 
 	if err := steps.Run(); err != nil {

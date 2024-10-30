@@ -32,6 +32,7 @@ from backend.flow.utils.sqlserver.sqlserver_act_dataclass import (
     CreateRandomJobUserKwargs,
     DBMetaOPKwargs,
     DropRandomJobUserKwargs,
+    SqlserverBackupIDContext,
 )
 from backend.flow.utils.sqlserver.sqlserver_db_function import (
     create_sqlserver_login_sid,
@@ -246,4 +247,4 @@ class SqlserverAddSlaveFlow(BaseFlow):
             )
 
         main_pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
-        main_pipeline.run_pipeline()
+        main_pipeline.run_pipeline(init_trans_data_class=SqlserverBackupIDContext())

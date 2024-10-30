@@ -163,17 +163,16 @@ def get_no_sync_dbs(cluster_id: int) -> list:
         # mirroring 模式
         check_sql = f"""select name from  master.sys.databases
 where state=0 and is_read_only=0 and database_id > 4
-and name != 'Monitor' and database_id in
+and name != '{SQLSERVER_CUSTOM_SYS_DB}' and database_id in
 (select database_id from master.sys.database_mirroring
 where mirroring_guid is null or mirroring_state<>4) and
-name not in (select name from {SQLSERVER_CUSTOM_SYS_DB}.dbo.MIRRORING_FILTER)"""
+name not in (select name from {SQLSERVER_CUSTOM_SYS_DB}.dbo.MIRRORING_FILTER(NOLOCK))"""
     elif sync_mode == SqlserverSyncMode.ALWAYS_ON:
         # always_on 模式
-        check_sql = f"""select name from master.sys.databases
-where state=0 and is_read_only=0 and  database_id>4 and name != 'Monitor'
-and database_id not in(SELECT database_id from sys.dm_hadr_database_replica_states
-where is_local=0 and synchronization_state=1) and
-name not in (select name from {SQLSERVER_CUSTOM_SYS_DB}.dbo.MIRRORING_FILTER)"""
+        check_sql = f"""SELECT name FROM master.sys.databases
+where database_id>4 and name not in ('{SQLSERVER_CUSTOM_SYS_DB}') and replica_id is null
+and state=0 and is_read_only=0 and recovery_model=1
+and name NOT IN (SELECT NAME FROM {SQLSERVER_CUSTOM_SYS_DB}.DBO.MIRRORING_FILTER(NOLOCK))"""
     else:
         raise Exception(f"sync-mode [{sync_mode}] not support")
 
@@ -296,42 +295,6 @@ def exec_instance_backup_jobs(cluster_id, backup_jobs_type: SqlserverBackupJobEx
         raise Exception(f"[{master_instance.ip_port}] exec backup-jobs failed: {ret[0]['error_msg']}")
 
     return True
-
-
-def get_backup_info_in_master(cluster_id: int, job_id: str, db_name: str, backup_type: str):
-    """
-    查询对应数据库的本地备份记录
-    @param cluster_id: 操作的集群id
-    @param job_id: 这次流程的备份id
-    @param db_name: db名称
-    @param backup_type: 备份类型
-    """
-    check_sql = f"""select top (1)
-b.database_name as name ,
-backup_finish_date ,
-a.physical_device_name as backup_file
-from msdb.dbo.backupmediafamily as a
-inner join msdb.dbo.backupset as b on a.media_set_id = b.media_set_id
-where a.physical_device_name like '%{job_id}%' and database_name = '{db_name}' and b.type = '{backup_type}'
-order by backup_finish_date desc"""
-
-    cluster = Cluster.objects.get(id=cluster_id)
-    master_instance = cluster.storageinstance_set.get(
-        instance_role__in=[InstanceRole.ORPHAN, InstanceRole.BACKEND_MASTER]
-    )
-
-    ret = DRSApi.sqlserver_rpc(
-        {
-            "bk_cloud_id": cluster.bk_cloud_id,
-            "addresses": [master_instance.ip_port],
-            "cmds": [check_sql],
-            "force": False,
-        }
-    )
-    if ret[0]["error_msg"]:
-        raise Exception(f"[{master_instance.ip_port}] get-backup_db failed: {ret[0]['error_msg']}")
-
-    return ret[0]["cmd_results"][0]["table_data"]
 
 
 def exec_instance_app_login(cluster: Cluster, exec_type: SqlserverLoginExecMode, instance: StorageInstance) -> bool:
@@ -566,6 +529,69 @@ def get_sync_filter_dbs(cluster_id: int):
         raise Exception(f"[{master_instance.ip_port}] get dbs failed: {ret[0]['error_msg']}")
     # 获取所有db名称
     return [i["name"] for i in ret[0]["cmd_results"][0]["table_data"]]
+
+
+def get_backup_path(cluster_id: int):
+    """
+    获取集群的备份路径配置
+    @param 集群id
+    """
+    cluster = Cluster.objects.get(id=cluster_id)
+    # 获取当前cluster的主节点,每个集群有且只有一个master/orphan 实例
+    master_instance = cluster.storageinstance_set.get(
+        instance_role__in=[InstanceRole.ORPHAN, InstanceRole.BACKEND_MASTER]
+    )
+    ret = DRSApi.sqlserver_rpc(
+        {
+            "bk_cloud_id": cluster.bk_cloud_id,
+            "addresses": [master_instance.ip_port],
+            "cmds": ["SELECT [FULL_BACKUP_PATH] FROM [Monitor].[dbo].[APP_SETTING](NOLOCK);"],
+            "force": False,
+        }
+    )
+    if ret[0]["error_msg"]:
+        raise Exception(f"[{master_instance.ip_port}] get dbs failed: {ret[0]['error_msg']}")
+    # 获取所有db名称
+    return ret[0]["cmd_results"][0]["table_data"][0]["FULL_BACKUP_PATH"]
+
+
+def get_backup_path_files(cluster_id: int, backup_id: str, db_name: str = None):
+    """
+    根据备份id列表获备份文件信息
+    @param cluster_id: 集群id
+    @param backup_id: 备份id
+    @param db_name: 数据库名称
+    """
+    cluster = Cluster.objects.get(id=cluster_id)
+    # 获取当前cluster的主节点,每个集群有且只有一个master/orphan 实例
+    master_instance = cluster.storageinstance_set.get(
+        instance_role__in=[InstanceRole.ORPHAN, InstanceRole.BACKEND_MASTER]
+    )
+    if db_name:
+        sql = (
+            f"SELECT [PATH],[FILENAME],[DBNAME] FROM [{SQLSERVER_CUSTOM_SYS_DB}].[dbo].[BACKUP_TRACE](NOLOCK) "
+            f"where [BACKUP_ID] = '{backup_id}' and [DBNAME]='{db_name}' ;"
+        )
+    else:
+        sql = (
+            f"SELECT [PATH],[FILENAME] FROM [{SQLSERVER_CUSTOM_SYS_DB}].[dbo].[BACKUP_TRACE](NOLOCK) "
+            f"where [BACKUP_ID] = '{backup_id}';"
+        )
+
+    ret = DRSApi.sqlserver_rpc(
+        {
+            "bk_cloud_id": cluster.bk_cloud_id,
+            "addresses": [master_instance.ip_port],
+            "cmds": [sql],
+            "force": False,
+        }
+    )
+    if ret[0]["error_msg"]:
+        raise Exception(f"[{master_instance.ip_port}] get dbs failed: {ret[0]['error_msg']}")
+
+    # 返回所有的file
+    # return [str(PureWindowsPath(i["PATH"]) / i["FILENAME"]) for i in ret[0]["cmd_results"][0]["table_data"]]
+    return ret[0]["cmd_results"][0]["table_data"]
 
 
 def insert_sqlserver_config(

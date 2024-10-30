@@ -1,3 +1,4 @@
+
 USE MASTER
 SET QUOTED_IDENTIFIER ON
 SET NOCOUNT ON
@@ -1355,6 +1356,8 @@ WHERE TYPE = 2
 AND SUCCESS = 0
 AND WRITETIME >= DATEADD(MI,-1,GETDATE()) and WRITETIME<getdate()
 
+IF EXISTS(SELECT 1 FROM [Monitor].[dbo].[APP_SETTING] where ROLE='master')
+BEGIN
 INSERT INTO #tmp_mssql_exporter
 SELECT 'mssql_job_fail',count(1),'job_fail',3
 FROM MSDB.DBO.SYSJOBHISTORY A,MSDB.DBO.SYSJOBS B
@@ -1362,6 +1365,15 @@ WHERE A.JOB_ID = B.JOB_ID
 AND A.RUN_DATE = CONVERT(CHAR(8),GETDATE(),112)
 AND RIGHT('000000'+LTRIM(A.RUN_TIME),6) >= LEFT(REPLACE(CONVERT(CHAR(30),DATEADD(MI,-1,GETDATE()),114),':',''),LEN(REPLACE(CONVERT(CHAR(30),DATEADD(MI,-1,GETDATE()),114),':',''))-3)
 AND A.RUN_STATUS = 0 AND EXISTS(select 1 from master.sys.database_mirroring where mirroring_guid is not null and mirroring_role=1)
+
+INSERT INTO #tmp_mssql_exporter
+SELECT 'mssql_snapshot_deploy',0,'snapshot_deploy',3
+
+END
+ELSE
+BEGIN
+INSERT INTO #tmp_mssql_exporter
+SELECT 'mssql_job_fail',0,'job_fail',3
 
 INSERT INTO #tmp_mssql_exporter
 SELECT 'mssql_snapshot_deploy',count(1),'snapshot_deploy',3
@@ -1372,6 +1384,8 @@ WHERE A.MIRRORING_STATE = 4
 AND A.MIRRORING_ROLE = 2
 AND (B.NAME IS NULL
 OR B.STATE = 4)
+
+END
 
 DECLARE @SQL varchar(1000)
 IF OBJECT_ID('TEMPDB.DBO.#tmp_is_alwayson','U') IS NOT NULL
@@ -1398,7 +1412,7 @@ IF @version>=869
 BEGIN
 	delete from #tmp111
 
-	IF EXISTS(SELECT 1 FROM [Monitor].[dbo].[APP_SETTING] WHERE SYNCHRONOUS_MODE='always_on')
+	IF EXISTS(SELECT 1 FROM [Monitor].[dbo].[APP_SETTING] WHERE SYNCHRONOUS_MODE='always_on') AND EXISTS(SELECT 1 FROM [Monitor].[dbo].[APP_SETTING] where ROLE='master')
 	BEGIN
 		delete from #tmp_mssql_exporter where metrics_name in('mssql_alwayson_delay','mssql_alwayson_deploy','mssql_alwayson_status')
 
@@ -1479,7 +1493,7 @@ SELECT 'mssql_mirroring_deploy',0,'mirroring_deploy',3
 UNION ALL 
 SELECT 'mssql_mirroring_status',0,'mirroring_status',3
 
-IF EXISTS(SELECT 1 FROM [Monitor].[dbo].[APP_SETTING] WHERE SYNCHRONOUS_MODE='mirroring')
+IF EXISTS(SELECT 1 FROM [Monitor].[dbo].[APP_SETTING] WHERE SYNCHRONOUS_MODE='mirroring') AND EXISTS(SELECT 1 FROM [Monitor].[dbo].[APP_SETTING] where ROLE='master')
 BEGIN
 	delete from #tmp_mssql_exporter where metrics_name in('mssql_mirroring_delay','mssql_mirroring_deploy','mssql_mirroring_status')
 
@@ -3036,7 +3050,7 @@ BEGIN
 	ELSE IF @TYPE = 3
 		SELECT @SUFFIX = '.diff'
 
-	UPDATE [Monitor].[dbo].[BACKUP_TRACE] SET UPLOADED=1 WHERE TYPE=@TYPE AND UPLOADED=0 AND STARTTIME< dateadd(dd,-@KEEP_BACKUP_DAYS,getdate()) 
+	UPDATE [Monitor].[dbo].[BACKUP_TRACE] SET UPLOADED=1 WHERE TYPE=@TYPE AND UPLOADED=0 AND STARTTIME<= dateadd(dd,-@KEEP_BACKUP_DAYS,dateadd(mi,2,getdate())) 
 	DECLARE @DEL_FILE VARCHAR(1000)
 	DECLARE list_cur cursor static forward_only Read_only for 
 	SELECT PATH+FILENAME FROM [Monitor].[dbo].[BACKUP_TRACE] WHERE TYPE=@TYPE AND UPLOADED=1
@@ -3452,12 +3466,12 @@ BEGIN
 DECLARE @SQL VARCHAR(8000)
 
 SELECT @SQL = ISNULL(@SQL+'','')+'EXEC ['+name+'].dbo.sp_changedbowner @loginame = N''sa'', @map = false;'
-from master.sys.databases where database_id>4 and name not in('Monitor') and state=0 and is_read_only=0 and is_distributor = 0  and owner_sid in(select sid from master.sys.sql_logins where sid<>0x01 and name like '%J_%')
+from master.sys.databases where database_id>4 and name not in('Monitor') and state=0 and is_read_only=0 and is_distributor = 0  and owner_sid in(select sid from master.sys.sql_logins where sid<>0x01 and name like 'J\_%' ESCAPE '\')
 --PRINT(@SQL)
 EXEC(@SQL)
 
 SELECT @SQL = ISNULL(@SQL+'','')+'EXEC msdb.dbo.sp_update_job @job_name=N'''+name+''', @owner_login_name=N''sa'';'
-from msdb.dbo.sysjobs where owner_sid in(select sid from master.sys.sql_logins where sid<>0x01 and name like '%J_%')
+from msdb.dbo.sysjobs where owner_sid in(select sid from master.sys.sql_logins where sid<>0x01 and name like 'J\_%' ESCAPE '\')
 --PRINT(@SQL)
 EXEC(@SQL)
 

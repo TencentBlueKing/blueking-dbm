@@ -59,13 +59,19 @@ class P2PFileForWindowKwargs(ValidateHandler):
     @attributes source_hosts 源机器host列表
     @attributes target_hosts 目标机器host列表
     @attributes file_type 传输模式
+    @attributes cluster_id 传输模式
+    @attributes is_trans_log_backup 是否自动查询日志备份
+    @attributes is_trans_full_backup 是否自动查询全量备份
     """
 
-    file_list: list
     source_hosts: List[Host] = field(metadata={"validate": validate_hosts})
     target_hosts: List[Host] = field(metadata={"validate": validate_hosts})
+    file_list: list = field(default_factory=list)
     file_target_path: str = DEFAULT_SQLSERVER_PATH
     file_type: Optional[MediumFileTypeEnum] = MediumFileTypeEnum.Server.value
+    cluster_id: int = 0
+    is_trans_log_backup: bool = True
+    is_trans_full_backup: bool = True
 
 
 @dataclass()
@@ -152,6 +158,7 @@ class RestoreForDtsKwargs:
     @attributes restore_infos 恢复列表。元素结构{"db_name": xx, "target_db_name": xx}
     @attributes restore_mode 恢复模式，分全量备份文件恢复以及日志备份恢复
     @attributes restore_db_status 恢复后的DB模式
+    @attributes restore_path 备份文件所在的目录位置
     @attributes exec_ips 操作机器
     @attributes job_timeout 操作超时时间
     """
@@ -162,6 +169,7 @@ class RestoreForDtsKwargs:
     restore_infos: list
     restore_mode: SqlserverRestoreMode
     restore_db_status: SqlserverRestoreDBStatus
+    restore_path: str
     exec_ips: List[Host] = field(metadata={"validate": validate_hosts})
     job_timeout: int = DEFAULT_JOB_TIMEOUT
 
@@ -238,6 +246,24 @@ class SqlserverDBConstructContext:
     @staticmethod
     def log_backup_infos_var_name() -> str:
         return "log_backup_infos"
+
+
+@dataclass()
+class SqlserverBackupIDContext:
+    """
+    定义数据备份的可交互上下文dataclass类
+    """
+
+    full_backup_id: dict = field(default_factory=dict)
+    log_backup_id: dict = field(default_factory=dict)
+
+    @staticmethod
+    def full_backup_id_var_name() -> str:
+        return "full_backup_id"
+
+    @staticmethod
+    def log_backup_id_var_name() -> str:
+        return "log_backup_id"
 
 
 @dataclass()

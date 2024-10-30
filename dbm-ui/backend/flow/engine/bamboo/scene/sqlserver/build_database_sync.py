@@ -20,7 +20,11 @@ from backend.flow.engine.bamboo.scene.sqlserver.base_flow import BaseFlow
 from backend.flow.engine.bamboo.scene.sqlserver.common_sub_flow import sync_dbs_for_cluster_sub_flow
 from backend.flow.plugins.components.collections.sqlserver.create_random_job_user import SqlserverAddJobUserComponent
 from backend.flow.plugins.components.collections.sqlserver.drop_random_job_user import SqlserverDropJobUserComponent
-from backend.flow.utils.sqlserver.sqlserver_act_dataclass import CreateRandomJobUserKwargs, DropRandomJobUserKwargs
+from backend.flow.utils.sqlserver.sqlserver_act_dataclass import (
+    CreateRandomJobUserKwargs,
+    DropRandomJobUserKwargs,
+    SqlserverBackupIDContext,
+)
 from backend.flow.utils.sqlserver.sqlserver_db_function import create_sqlserver_login_sid, get_no_sync_dbs
 from backend.flow.utils.sqlserver.sqlserver_host import Host
 
@@ -99,4 +103,4 @@ class SqlserverBuildDBSyncFlow(BaseFlow):
 
         # 内部检测sub_pipelines是否为空
         main_pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
-        main_pipeline.run_pipeline()
+        main_pipeline.run_pipeline(init_trans_data_class=SqlserverBackupIDContext())

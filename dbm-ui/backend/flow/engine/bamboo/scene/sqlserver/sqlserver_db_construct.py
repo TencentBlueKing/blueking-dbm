@@ -12,6 +12,7 @@ import copy
 import logging.config
 from dataclasses import asdict
 from datetime import datetime
+from pathlib import PureWindowsPath
 
 from django.utils.translation import ugettext as _
 
@@ -36,7 +37,7 @@ from backend.flow.utils.sqlserver.sqlserver_act_dataclass import (
     SqlserverDBConstructContext,
 )
 from backend.flow.utils.sqlserver.sqlserver_act_payload import SqlserverActPayload
-from backend.flow.utils.sqlserver.sqlserver_db_function import create_sqlserver_login_sid
+from backend.flow.utils.sqlserver.sqlserver_db_function import create_sqlserver_login_sid, get_backup_path
 from backend.flow.utils.sqlserver.sqlserver_host import Host
 from backend.utils.time import str2datetime, trans_time_zone
 
@@ -72,7 +73,7 @@ class SqlserverDataConstruct(BaseFlow):
                         {
                             "db_name": info["db_name"],
                             "target_db_name": info["target_db_name"],
-                            "bak_file": f"{target_path}{file_info['file_name']}",
+                            "bak_file": str(PureWindowsPath(target_path) / file_info["file_name"]),
                             "backup_full_start_time": file_info["backup_begin_time"],
                             "backup_full_end_time": file_info["backup_end_time"],
                             "checkpointlsn": file_info["checkpointlsn"],
@@ -123,7 +124,7 @@ class SqlserverDataConstruct(BaseFlow):
                 {
                     "db_name": full_info["db_name"],
                     "target_db_name": full_info["target_db_name"],
-                    "bak_file": [f"{target_path}{i['file_name']}" for i in log_backup_infos],
+                    "bak_file": [str(PureWindowsPath(target_path) / i["file_name"]) for i in log_backup_infos],
                 }
             )
         if len(err_infos) > 0:
@@ -154,8 +155,20 @@ class SqlserverDataConstruct(BaseFlow):
                 instance_role__in=[InstanceRole.ORPHAN, InstanceRole.BACKEND_MASTER]
             )
 
+            # 获取目标集群的备份路径
+            cluster_backup_path = get_backup_path(target_cluster.id)
+            if cluster_backup_path == "":
+                # 如果没有配置，则用默认路径
+                target_dir = str(
+                    PureWindowsPath("d:/") / "dbbak" / f"data_construct_{self.root_id}_{target_master_instance.port}"
+                )
+            else:
+                target_dir = str(
+                    PureWindowsPath(cluster_backup_path)
+                    / f"data_construct_{self.root_id}_{target_master_instance.port}"
+                )
+
             # 计算构造需要的一些信息
-            target_dir = f"d:\\dbbak\\data_construct_{self.root_id}\\"
             full_download_infos, restore_full_backup_infos = self._get_full_backup_infos(
                 restore_full_backup_files=info["restore_backup_file"]["logs"],
                 rename_infos=info["rename_infos"],

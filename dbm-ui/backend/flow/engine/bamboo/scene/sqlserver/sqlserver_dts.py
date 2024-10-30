@@ -9,6 +9,7 @@ specific language governing permissions and limitations under the License.
 """
 import copy
 from dataclasses import asdict
+from pathlib import PureWindowsPath
 
 from django.utils.translation import ugettext as _
 
@@ -28,6 +29,9 @@ from backend.flow.consts import (
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.engine.bamboo.scene.sqlserver.base_flow import BaseFlow
+from backend.flow.plugins.components.collections.sqlserver.backup_path_file_trans import (
+    SqlserverTransBackupFileFor2P2Component,
+)
 from backend.flow.plugins.components.collections.sqlserver.create_random_job_user import SqlserverAddJobUserComponent
 from backend.flow.plugins.components.collections.sqlserver.drop_random_job_user import SqlserverDropJobUserComponent
 from backend.flow.plugins.components.collections.sqlserver.exec_actuator_script import SqlserverActuatorScriptComponent
@@ -46,9 +50,10 @@ from backend.flow.utils.sqlserver.sqlserver_act_dataclass import (
     ExecBackupJobsKwargs,
     P2PFileForWindowKwargs,
     RestoreForDtsKwargs,
+    SqlserverBackupIDContext,
 )
 from backend.flow.utils.sqlserver.sqlserver_act_payload import SqlserverActPayload
-from backend.flow.utils.sqlserver.sqlserver_db_function import create_sqlserver_login_sid
+from backend.flow.utils.sqlserver.sqlserver_db_function import create_sqlserver_login_sid, get_backup_path
 from backend.flow.utils.sqlserver.sqlserver_db_meta import SqlserverDBMeta
 from backend.flow.utils.sqlserver.sqlserver_host import Host
 
@@ -93,12 +98,24 @@ class SqlserverDTSFlow(BaseFlow):
                 instance_role__in=[InstanceRole.ORPHAN, InstanceRole.BACKEND_MASTER]
             )
 
+            # 获取源集群的备份路径
+            cluster_backup_path = get_backup_path(cluster.id)
+            if cluster_backup_path == "":
+                # 如果没有配置，则用默认路径
+                target_backup_path = backup_path = str(
+                    PureWindowsPath("d:/") / "dbbak" / f"dts_full_{self.root_id}_{master_instance.port}"
+                )
+            else:
+                target_backup_path = backup_path = str(
+                    PureWindowsPath(cluster_backup_path) / f"dts_full_{self.root_id}_{master_instance.port}"
+                )
+
             # 拼接子流程，子流程并发执行
             sub_flow_context = copy.deepcopy(self.data)
             sub_flow_context.pop("infos")
             sub_flow_context.update(info)
             sub_flow_context["dts_infos"] = sub_flow_context.pop("rename_infos")
-            sub_flow_context["target_backup_dir"] = f"d:\\dbbak\\dts_full_{self.root_id}_{master_instance.port}\\"
+            sub_flow_context["target_backup_dir"] = backup_path
             sub_flow_context["job_id"] = f"dts_full_{self.root_id}_{master_instance.port}"
             sub_flow_context["backup_dbs"] = [i["db_name"] for i in info["rename_infos"]]
             sub_flow_context["is_set_full_model"] = False
@@ -158,6 +175,7 @@ class SqlserverDTSFlow(BaseFlow):
                         },
                     )
                 ),
+                write_payload_var=SqlserverBackupIDContext.full_backup_id_var_name(),
             )
 
             # 执行数据库日志备份
@@ -176,20 +194,33 @@ class SqlserverDTSFlow(BaseFlow):
                         },
                     )
                 ),
+                write_payload_var=SqlserverBackupIDContext.log_backup_id_var_name(),
             )
             if master_instance.machine.ip != target_master_instance.machine.ip:
                 # 源和目标不在同一台机器上，则利用job传输备份文件
+                # 这里计算出目标集群的恢复目录
+                # 获取源集群的备份路径
+                target_cluster_backup_path = get_backup_path(target_cluster.id)
+                if target_cluster_backup_path == "":
+                    # 如果没有配置，则用默认路径
+                    target_backup_path = str(
+                        PureWindowsPath("d:/") / "dbbak" / f"dts_full_{self.root_id}_{master_instance.port}"
+                    )
+                else:
+                    target_backup_path = str(
+                        PureWindowsPath(target_cluster_backup_path) / f"dts_full_{self.root_id}_{master_instance.port}"
+                    )
                 sub_pipeline.add_act(
                     act_name=_("传送文件到目标机器[{}]".format(target_master_instance.machine.ip)),
-                    act_component_code=TransFileInWindowsComponent.code,
+                    act_component_code=SqlserverTransBackupFileFor2P2Component.code,
                     kwargs=asdict(
                         P2PFileForWindowKwargs(
                             source_hosts=[Host(ip=master_instance.machine.ip, bk_cloud_id=cluster.bk_cloud_id)],
-                            file_list=[f"{sub_flow_context['target_backup_dir']}*"],
                             target_hosts=[
                                 Host(ip=target_master_instance.machine.ip, bk_cloud_id=target_cluster.bk_cloud_id)
                             ],
-                            file_target_path=sub_flow_context["target_backup_dir"],
+                            file_target_path=target_backup_path,
+                            cluster_id=cluster.id,
                         ),
                     ),
                 )
@@ -205,6 +236,7 @@ class SqlserverDTSFlow(BaseFlow):
                         restore_infos=sub_flow_context["dts_infos"],
                         restore_mode=SqlserverRestoreMode.FULL.value,
                         restore_db_status=SqlserverRestoreDBStatus.NORECOVERY.value,
+                        restore_path=target_backup_path,
                         exec_ips=[Host(ip=target_master_instance.machine.ip, bk_cloud_id=target_cluster.bk_cloud_id)],
                         port=target_master_instance.port,
                         job_timeout=DBM_SQLSERVER_JOB_LONG_TIMEOUT,
@@ -228,6 +260,7 @@ class SqlserverDTSFlow(BaseFlow):
                         restore_infos=sub_flow_context["dts_infos"],
                         restore_mode=SqlserverRestoreMode.LOG.value,
                         restore_db_status=restore_db_status,
+                        restore_path=target_backup_path,
                         exec_ips=[Host(ip=target_master_instance.machine.ip, bk_cloud_id=target_cluster.bk_cloud_id)],
                         port=target_master_instance.port,
                         job_timeout=DBM_SQLSERVER_JOB_LONG_TIMEOUT,
@@ -273,7 +306,7 @@ class SqlserverDTSFlow(BaseFlow):
             )
 
         main_pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
-        main_pipeline.run_pipeline()
+        main_pipeline.run_pipeline(init_trans_data_class=SqlserverBackupIDContext())
 
     def incr_dts_flow(self):
         """
@@ -305,13 +338,24 @@ class SqlserverDTSFlow(BaseFlow):
             target_master_instance = target_cluster.storageinstance_set.get(
                 instance_role__in=[InstanceRole.ORPHAN, InstanceRole.BACKEND_MASTER]
             )
+            # 获取集群的备份路径
+            cluster_backup_path = get_backup_path(cluster.id)
+            if cluster_backup_path == "":
+                # 如果没有配置，则用默认路径
+                target_backup_path = backup_path = str(
+                    PureWindowsPath("d:/") / "dbbak" / f"dts_incr_{self.root_id}_{master_instance.port}"
+                )
+            else:
+                target_backup_path = backup_path = str(
+                    PureWindowsPath(cluster_backup_path) / f"dts_incr_{self.root_id}_{master_instance.port}"
+                )
 
             # 拼接子流程，子流程并发执行
             sub_flow_context = copy.deepcopy(self.data)
             sub_flow_context.pop("infos")
             sub_flow_context.update(info)
             sub_flow_context["dts_infos"] = sub_flow_context.pop("rename_infos")
-            sub_flow_context["target_backup_dir"] = f"d:\\dbbak\\dts_incr_{self.root_id}_{master_instance.port}\\"
+            sub_flow_context["target_backup_dir"] = backup_path
             sub_flow_context["job_id"] = f"dts_incr_{self.root_id}_{master_instance.port}"
             sub_flow_context["backup_dbs"] = [i["db_name"] for i in info["rename_infos"]]
 
@@ -361,20 +405,35 @@ class SqlserverDTSFlow(BaseFlow):
                         },
                     )
                 ),
+                write_payload_var=SqlserverBackupIDContext.log_backup_id_var_name(),
             )
             if master_instance.machine.ip != target_master_instance.machine.ip:
                 # 源和目标不在同一台机器上，则利用job传输备份文件
+                # 这里计算出目标集群的恢复目录
+                # 获取源集群的备份路径
+                target_cluster_backup_path = get_backup_path(target_cluster.id)
+                if target_cluster_backup_path == "":
+                    # 如果没有配置，则用默认路径
+                    target_backup_path = str(
+                        PureWindowsPath("d:/") / "dbbak" / f"dts_incr_{self.root_id}_{master_instance.port}"
+                    )
+                else:
+                    target_backup_path = str(
+                        PureWindowsPath(target_cluster_backup_path) / f"dts_incr_{self.root_id}_{master_instance.port}"
+                    )
+
                 sub_pipeline.add_act(
                     act_name=_("传送文件到目标机器[{}]".format(target_master_instance.machine.ip)),
-                    act_component_code=TransFileInWindowsComponent.code,
+                    act_component_code=SqlserverTransBackupFileFor2P2Component.code,
                     kwargs=asdict(
                         P2PFileForWindowKwargs(
                             source_hosts=[Host(ip=master_instance.machine.ip, bk_cloud_id=cluster.bk_cloud_id)],
-                            file_list=[f"{sub_flow_context['target_backup_dir']}*"],
                             target_hosts=[
                                 Host(ip=target_master_instance.machine.ip, bk_cloud_id=target_cluster.bk_cloud_id)
                             ],
-                            file_target_path=sub_flow_context["target_backup_dir"],
+                            file_target_path=target_backup_path,
+                            cluster_id=cluster.id,
+                            is_trans_full_backup=False,
                         ),
                     ),
                 )
@@ -395,6 +454,7 @@ class SqlserverDTSFlow(BaseFlow):
                         restore_infos=sub_flow_context["dts_infos"],
                         restore_mode=SqlserverRestoreMode.LOG.value,
                         restore_db_status=restore_db_status,
+                        restore_path=target_backup_path,
                         exec_ips=[Host(ip=target_master_instance.machine.ip, bk_cloud_id=target_cluster.bk_cloud_id)],
                         port=target_master_instance.port,
                         job_timeout=3 * 3600,
@@ -441,7 +501,7 @@ class SqlserverDTSFlow(BaseFlow):
             )
 
         main_pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
-        main_pipeline.run_pipeline()
+        main_pipeline.run_pipeline(init_trans_data_class=SqlserverBackupIDContext())
 
     def termination_dts_flow(self):
         """

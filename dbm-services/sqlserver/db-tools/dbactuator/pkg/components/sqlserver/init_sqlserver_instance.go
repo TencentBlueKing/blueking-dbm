@@ -212,7 +212,7 @@ func (r *InitSqlserverInstanceComp) InitSysDB() error {
 		return err
 	}
 	// 继承相关配置
-	if len(r.BackupFilter) == 0 {
+	if len(r.BackupFilter) > 0 {
 		insertBackupFilterSQL := fmt.Sprintf(
 			"insert into [%s].[dbo].[BACKUP_FILTER] values ('%s')",
 			cst.SysDB,
@@ -222,7 +222,7 @@ func (r *InitSqlserverInstanceComp) InitSysDB() error {
 			return err
 		}
 	}
-	if len(r.MirroringFilter) == 0 {
+	if len(r.MirroringFilter) > 0 {
 		insertMirroringFilterSQL := fmt.Sprintf(
 			"insert into [%s].[dbo].[MIRRORING_FILTER] values ('%s')",
 			cst.SysDB,

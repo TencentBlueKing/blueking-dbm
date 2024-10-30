@@ -16,8 +16,10 @@ import (
 )
 
 // WrapperOutputString TODO
-func WrapperOutputString(output string) string {
-	return fmt.Sprintf(`<ctx>%s</ctx>`, output)
+func WrapperOutputString(output string) error {
+	ss := fmt.Sprintf(`<ctx>%s</ctx>`, output)
+	fmt.Println(ss)
+	return nil
 }
 
 // WrapperOutput TODO

@@ -9,19 +9,26 @@ specific language governing permissions and limitations under the License.
 """
 
 import logging
+from pathlib import PureWindowsPath
 
 from pipeline.component_framework.component import Component
 
 from backend.flow.consts import SqlserverRestoreMode
 from backend.flow.plugins.components.collections.sqlserver.exec_actuator_script import SqlserverActuatorScriptService
+from backend.flow.utils.sqlserver.sqlserver_act_dataclass import SqlserverBackupIDContext
 from backend.flow.utils.sqlserver.sqlserver_act_payload import SqlserverActPayload
-from backend.flow.utils.sqlserver.sqlserver_db_function import get_backup_info_in_master
+from backend.flow.utils.sqlserver.sqlserver_db_function import get_backup_path_files
 
 logger = logging.getLogger("flow")
 
 sync_payload_func_map = {
     SqlserverRestoreMode.FULL: SqlserverActPayload.get_restore_full_dbs_payload.__name__,
     SqlserverRestoreMode.LOG: SqlserverActPayload.get_restore_log_dbs_payload.__name__,
+}
+
+get_backup_id_map = {
+    SqlserverRestoreMode.FULL: SqlserverBackupIDContext.full_backup_id_var_name(),
+    SqlserverRestoreMode.LOG: SqlserverBackupIDContext.log_backup_id_var_name(),
 }
 
 
@@ -35,24 +42,29 @@ class RestoreForDtsService(SqlserverActuatorScriptService):
 
     def _execute(self, data, parent_data) -> bool:
         kwargs = data.get_one_of_inputs("kwargs")
+        trans_data = data.get_one_of_inputs("trans_data")
         restore_infos = []
+
+        backup_id = getattr(trans_data, get_backup_id_map[kwargs["restore_mode"]])["id"]
+        if not backup_id:
+            raise Exception(f"backup id is null: full_backup_id:{backup_id}")
 
         for info in kwargs["restore_infos"]:
             self.log_info(f"checking db:[{info['db_name']}]")
 
-            backup_info = get_backup_info_in_master(
+            backup_info = get_backup_path_files(
                 cluster_id=kwargs["cluster_id"],
-                job_id=kwargs["job_id"],
                 db_name=info["db_name"],
-                backup_type=kwargs["restore_mode"],
+                backup_id=backup_id,
             )
+
             if len(backup_info) == 0:
                 raise Exception(f"the database [{info['db_name']}] is not backup-infos ")
 
             if kwargs["restore_mode"] == SqlserverRestoreMode.LOG:
-                bak_file = [backup_info[0]["backup_file"]]
+                bak_file = [str(PureWindowsPath(kwargs["restore_path"]) / backup_info[0]["FILENAME"])]
             else:
-                bak_file = backup_info[0]["backup_file"]
+                bak_file = str(PureWindowsPath(kwargs["restore_path"]) / backup_info[0]["FILENAME"])
 
             restore_infos.append(
                 {"db_name": info["db_name"], "target_db_name": info["target_db_name"], "bak_file": bak_file}

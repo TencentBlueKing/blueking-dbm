@@ -278,3 +278,9 @@ func (b *BackupDBSComp) CheckBackupSuccess() error {
 	}
 	return nil
 }
+
+// 成功输出backup_id
+func (b *BackupDBSComp) PrintBackupID() error {
+	components.WrapperOutputString(fmt.Sprintf("{\"id\": \"%s\"}", b.BackupID))
+	return nil
+}
