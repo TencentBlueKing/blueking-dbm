@@ -32,7 +32,7 @@
   }
 
   export const validate = (cmd: string) => {
-    if (cmd.includes('use')) {
+    if (/^\s*use\s+.*$/.test(cmd)) {
       return t('暂不支持 use 语句，请使用 db.table 指定 database');
     }
     return '';

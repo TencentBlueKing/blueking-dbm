@@ -37,7 +37,7 @@
     queryResult: string;
     commandInputs: string[];
   }) => {
-    if (/select/i.test(cmd) && queryResult === 'OK') {
+    if (/^\s*select\s+.*$/.test(cmd) && queryResult === 'OK') {
       const newDbIndex = Number(cmd.substring('select '.length));
       setDbIndexByClusterId(clusterId, newDbIndex);
       const newCommandInputs = commandInputs.map((item) => item.replace(/\[(\d+)\]/, `[${newDbIndex}]`));
