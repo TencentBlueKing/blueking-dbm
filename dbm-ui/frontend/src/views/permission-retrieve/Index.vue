@@ -17,7 +17,7 @@
       is-collapse
       :title="t('查询条件')">
       <Options
-        ref="optionsRef"
+        :account-type="accountType"
         class="ml-8"
         :loading="loading"
         @change="handleOptionsChange" />
@@ -36,21 +36,28 @@
 </template>
 
 <script setup lang="tsx">
-  import type { ComponentEmit } from 'vue-component-type-helpers';
+  import type { ComponentProps } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
 
   import Options from './components/options/Index.vue';
   import Result from './components/result/Index.vue';
 
+  import type { AccountTypes } from '@/common/const';
+
+  interface Props {
+    accountType: AccountTypes;
+  }
+
+  defineProps<Props>();
+
   const { t } = useI18n();
 
-  const optionsRef = ref<InstanceType<typeof Options>>();
   const resultRef = ref<InstanceType<typeof Result>>();
   const loading = ref<boolean>(false);
 
-  const options = shallowRef<Parameters<ComponentEmit<typeof Options>>[1]>();
+  const options = shallowRef<ComponentProps<typeof Result>['options']>();
 
-  const handleOptionsChange = (value: Parameters<ComponentEmit<typeof Options>>[1]) => {
+  const handleOptionsChange = (value: ComponentProps<typeof Result>['options']) => {
     options.value = value;
   };
 

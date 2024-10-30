@@ -20,11 +20,29 @@
       <IpItem v-model="formData.ips" />
       <DomainItem
         ref="domainItemRef"
-        v-model="formData.immute_domains" />
-      <UserItem
-        ref="userRefItem"
-        v-model="formData.users" />
-      <DbItem v-model="formData.dbs" />
+        v-model="formData.immute_domains"
+        v-model:cluster-type="formData.cluster_type"
+        v-model:is-master="formData.is_master"
+        :account-type="accountType" />
+      <BkFormItem
+        :label="t('账号')"
+        property="users"
+        required>
+        <UserSelect
+          v-model="formData.users"
+          :form-data="formData" />
+      </BkFormItem>
+      <BkFormItem
+        :label="t('访问 DB')"
+        property="dbs">
+        <BkTagInput
+          v-model="formData.dbs"
+          allow-auto-match
+          allow-create
+          collapse-tags
+          has-delete-icon
+          :placeholder="t('请输入DB，支持%')" />
+      </BkFormItem>
     </BkForm>
     <div class="mb-24">
       <BkButton
@@ -46,19 +64,18 @@
 
 <script setup lang="tsx">
   import { Form } from 'bkui-vue';
-  import type { ComponentExposed } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
 
   import { AccountTypes, ClusterTypes } from '@common/const';
   import { batchSplitRegex } from '@common/regex';
 
-  import DbItem from './components/item/Db.vue';
   import DomainItem from './components/item/Domain.vue';
   import IpItem from './components/item/Ip.vue';
-  import UserItem from './components/item/user/Index.vue';
+  import UserSelect from './components/item/UserSelect.vue';
 
   interface Props {
     loading: boolean;
+    accountType: AccountTypes;
   }
 
   interface Emits {
@@ -76,53 +93,34 @@
     ): void;
   }
 
-  defineProps<Props>();
+  const props = defineProps<Props>();
   const emits = defineEmits<Emits>();
 
   const { t } = useI18n();
-  const route = useRoute();
 
   const getDefaultFormData = () => ({
     ips: '',
     immute_domains: '',
     users: [] as string[],
     dbs: [] as string[],
+    cluster_type: ClusterTypes.TENDBSINGLE,
+    account_type: props.accountType,
+    is_master: true,
   });
 
-  const { accountType } = route.meta as { accountType: AccountTypes };
-
-  const formRef = ref<ComponentExposed<typeof Form>>();
+  const formRef = ref<InstanceType<typeof Form>>();
   const domainItemRef = ref<InstanceType<typeof DomainItem>>();
-  const userRefItem = ref<InstanceType<typeof UserItem>>();
 
   const formData = reactive(getDefaultFormData());
-
-  watch(
-    () => [formData.ips, formData.immute_domains],
-    () => {
-      formRef.value!.validate(['ips', 'immute_domains']).then(() => {
-        userRefItem.value!.getUserList({
-          ips: formData.ips.replace(batchSplitRegex, ','),
-          immute_domains: formData.immute_domains.replace(batchSplitRegex, ','),
-          cluster_type: domainItemRef.value!.getClusterType(),
-          account_type: accountType as AccountTypes,
-          limit: -1,
-          offset: 0,
-        });
-      });
-    },
-  );
 
   const handleSearch = () => {
     formRef.value!.validate().then(() => {
       const params = {
+        ...formData,
         ips: formData.ips.replace(batchSplitRegex, ','),
         immute_domains: formData.immute_domains.replace(batchSplitRegex, ','),
         users: formData.users.join(','),
         dbs: formData.dbs.join(','),
-        cluster_type: domainItemRef.value!.getClusterType(),
-        account_type: accountType as AccountTypes,
-        is_master: domainItemRef.value!.isMaster(),
       };
       emits('change', params);
     });
@@ -132,6 +130,9 @@
     domainItemRef.value!.reset();
     Object.assign(formData, getDefaultFormData());
     emits('change');
+    nextTick(() => {
+      formRef.value!.clearValidate();
+    });
   };
 </script>
 

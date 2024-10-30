@@ -58,26 +58,33 @@
 
   type SelectorModelType = TendbhaModel | TendbsingleModel | SpiderModel;
 
+  interface Props {
+    accountType: AccountTypes;
+  }
+
   interface Expose {
-    getClusterType: () => ClusterTypes;
-    isMaster: () => boolean;
     reset: () => void;
   }
 
+  const props = defineProps<Props>();
+
   const { t } = useI18n();
-  const route = useRoute();
 
   const modelValue = defineModel<string>({
     required: true,
   });
+  const clusterType = defineModel<ClusterTypes>('clusterType', {
+    required: true,
+  });
+  const isMaster = defineModel<boolean>('isMaster', {
+    required: true,
+  });
 
   const getDefaultSelectedClusters = () =>
-    accoutMap[accountType as keyof typeof accoutMap].clusterSelectorTypes.reduce(
+    accoutMap[props.accountType as keyof typeof accoutMap].clusterSelectorTypes.reduce(
       (prevMap, type) => Object.assign({}, prevMap, { [type]: [] }),
       {},
     );
-
-  const { accountType } = route.meta as { accountType: AccountTypes };
 
   const clusterTabListConfig = {
     tendbhaSlave: {
@@ -131,11 +138,15 @@
 
   const handleClusterSelectorChange = (selected: Record<string, Array<SelectorModelType>>) => {
     selectedClusters.value = selected;
-    const clusterList = Object.keys(selected).reduce<string[]>(
+    const domainList = Object.keys(selected).reduce<string[]>(
       (prevList, key) => prevList.concat(selected[key].map((item) => item.master_domain)),
       [],
     );
-    modelValue.value = clusterList.join(',');
+    modelValue.value = domainList.join(',');
+
+    const clusterList = Object.values(selected).find((clusterList) => clusterList.length > 0);
+    clusterType.value = (clusterList?.[0].cluster_type || ClusterTypes.TENDBSINGLE) as ClusterTypes;
+    isMaster.value = !selectedClusters.value?.tendbhaSlave?.length;
   };
 
   const handleDomainChange = (value: string) => {
@@ -148,13 +159,6 @@
   };
 
   defineExpose<Expose>({
-    getClusterType() {
-      const clusterList = Object.values(selectedClusters.value).find((clusterList) => clusterList.length > 0);
-      return (clusterList?.[0].cluster_type || ClusterTypes.TENDBSINGLE) as ClusterTypes;
-    },
-    isMaster() {
-      return !selectedClusters.value?.tendbhaSlave?.length;
-    },
     reset() {
       selectedClusters.value = getDefaultSelectedClusters();
     },

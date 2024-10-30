@@ -280,8 +280,8 @@ const commonRouters: RouteRecordRaw[] = [
         path: 'permission-retrieve',
         meta: {
           navName: t('权限查询'),
-          accountType: AccountTypes.MYSQL,
         },
+        props: { accountType: AccountTypes.MYSQL },
         component: () => import('@views/permission-retrieve/Index.vue'),
       },
       {

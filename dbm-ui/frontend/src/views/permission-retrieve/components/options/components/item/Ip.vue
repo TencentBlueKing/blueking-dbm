@@ -98,7 +98,7 @@
     // 避免与 handleChangeIP 同时修改 source_ips 参数
     nextTick(() => {
       const ipList = data.flatMap((item) => item.ips).map((ip) => ip);
-      const prevIpList = modelValue.value.split(' | ');
+      const prevIpList = modelValue.value ? modelValue.value.split(' | ') : [];
       modelValue.value = [...prevIpList, ...ipList].map((item) => item).join(' | ');
     });
   };

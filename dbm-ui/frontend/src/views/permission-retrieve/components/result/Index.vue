@@ -25,8 +25,7 @@
       <Component
         :is="tableComponent"
         :data="data"
-        :db-memo="dbMemo"
-        :is-master="isMaster"
+        :options="options"
         :pagination="pagination"
         :table-max-height="tableMaxHeight"
         @page-limit-change="handleTableLimitChange"
@@ -80,8 +79,12 @@
 
   const tableComponent = computed(() => (formatType.value === 'ip' ? IpTable : DomainTable));
 
-  const dbMemo = computed(() => props.options?.dbs || '');
-  const isMaster = computed(() => !!props.options?.is_master);
+  watch(formatType, () => {
+    Object.assign(pagination, {
+      current: 1,
+      count: 0,
+    });
+  });
 
   const {
     run: runGetAccountPrivs,
@@ -90,17 +93,6 @@
     loading,
   } = useRequest(getAccountPrivs, {
     manual: true,
-    onError() {
-      mutate({
-        match_ips_count: 0,
-        results: {
-          privs_for_ip: null,
-          privs_for_cluster: null,
-          has_priv: null,
-          no_priv: null,
-        },
-      });
-    },
   });
 
   watch(
@@ -119,10 +111,6 @@
           },
         });
         formatType.value = 'ip';
-        Object.assign(pagination, {
-          current: 1,
-          count: 0,
-        });
       }
     },
   );
