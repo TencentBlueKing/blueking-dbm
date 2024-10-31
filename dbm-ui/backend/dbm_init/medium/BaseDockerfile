@@ -8,7 +8,7 @@ RUN set -ex && \
 
 ## 安装go import工具和wegt, yq等常用工具
 RUN set -ex && \
-    go install golang.org/x/tools/cmd/goimports@latest && \
+    go install golang.org/x/tools/cmd/goimports@v0.24.0 && \
     apt-get update && apt-get install -y --no-install-recommends wget && \
     wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 && \
     chmod a+x /usr/local/bin/yq && \
