@@ -40,12 +40,14 @@
   <PermissionRule
     v-model="modelValue"
     v-model:is-show="isShow"
-    :cluster-id="clusterId"
-    db-type="tendbcluster" />
+    :account-type="AccountTypes.TENDBCLUSTER"
+    :cluster-id="clusterId" />
 </template>
 <script setup lang="ts">
   import { ref } from 'vue';
   import { useI18n } from 'vue-i18n';
+
+  import { AccountTypes } from '@common/const';
 
   import PermissionRule from '@views/db-manage/common/add-permission-rule-dialog/Index.vue';
 
