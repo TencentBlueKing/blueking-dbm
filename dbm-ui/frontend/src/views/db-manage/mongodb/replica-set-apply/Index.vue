@@ -102,7 +102,7 @@
               v-model="formData.details.node_count"
               clearable
               :max="11"
-              :min="3"
+              :min="1"
               show-clear-only-hover
               :step="2"
               style="width: 185px"
@@ -269,9 +269,9 @@
   const rules = {
     'details.node_count': [
       {
-        message: t('节点数目前只支持xxx', ['3, 5, 7, 9, 11']),
+        message: t('节点数目前只支持xxx', ['1, 3, 5, 7, 9, 11']),
         trigger: 'change',
-        validator: (val: number) => [3, 5, 7, 9, 11].includes(val),
+        validator: (val: number) => [1, 3, 5, 7, 9, 11].includes(val),
       },
     ],
   };
