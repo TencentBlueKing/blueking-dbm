@@ -50,6 +50,10 @@ export interface PermissionRuleInfo {
   bk_biz_id: number;
   create_time: string;
   creator: string;
+  priv_ticket: {
+    action: 'delete' | 'change';
+    ticket_id: number;
+  };
   privilege: string;
   rule_id: number;
 }

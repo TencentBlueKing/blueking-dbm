@@ -220,6 +220,7 @@
       window.changeConfirm = false;
       handleClose();
       ticketMessage(data.id);
+      emits('success');
     },
     onAfter() {
       isSubmitting.value = false;
