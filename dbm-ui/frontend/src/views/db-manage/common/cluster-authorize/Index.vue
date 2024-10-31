@@ -64,7 +64,7 @@
       db_module_name?: string;
       isMaster?: boolean;
     }[];
-    clusterTypes?: ClusterTypes[];
+    clusterTypes?: ClusterTypes[] | string[];
     rules?: PermissionRule['rules'];
   }
 
