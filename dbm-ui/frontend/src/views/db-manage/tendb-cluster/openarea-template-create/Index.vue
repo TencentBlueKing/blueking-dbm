@@ -82,8 +82,8 @@
       <PermissionRule
         v-model="permissionRules"
         v-model:is-show="isShowPermissionRule"
+        :account-type="AccountTypes.TENDBCLUSTER"
         :cluster-id="formData.source_cluster_id"
-        db-type="tendbcluster"
         @submit="handleSelectedPermissionRule" />
       <template #action>
         <BkButton
@@ -125,7 +125,7 @@
 
   import { useGlobalBizs } from '@stores';
 
-  import { ClusterTypes } from '@common/const';
+  import { AccountTypes, ClusterTypes } from '@common/const';
 
   import ClusterSelector, { type TabConfig } from '@components/cluster-selector/Index.vue';
   import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';

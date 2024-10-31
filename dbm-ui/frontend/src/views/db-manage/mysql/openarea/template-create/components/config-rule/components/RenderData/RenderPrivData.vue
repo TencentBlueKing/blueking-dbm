@@ -26,7 +26,7 @@
         v-else
         keypath="已添加n个规则"
         tag="span">
-        <span style="font-weight: 700; padding: 0 5px">{{ modelValue.length }}</span>
+        <span style="padding: 0 5px; font-weight: 700">{{ modelValue.length }}</span>
       </I18nT>
     </BkButton>
     <div
@@ -40,11 +40,13 @@
   <PermissionRule
     v-model="modelValue"
     v-model:is-show="isShow"
-    :cluster-id="clusterId"
-    db-type="mysql" />
+    :account-type="AccountTypes.MYSQL"
+    :cluster-id="clusterId" />
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
+
+  import { AccountTypes } from '@common/const';
 
   import PermissionRule from '@views/db-manage/common/add-permission-rule-dialog/Index.vue';
 
