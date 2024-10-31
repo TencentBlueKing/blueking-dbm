@@ -16,6 +16,8 @@ import (
 	"github.com/pkg/errors"
 	"github.com/spf13/viper"
 
+	"github.com/spf13/cobra"
+
 	"dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/common/go-pubpkg/validate"
 	ma "dbm-services/mysql/db-tools/mysql-crond/api"
@@ -25,9 +27,6 @@ import (
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/dbareport"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/logger"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/precheck"
-	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/util"
-
-	"github.com/spf13/cobra"
 )
 
 func init() {
@@ -180,7 +179,6 @@ func backupData(cnf *config.BackupConfig) (err error) {
 		}
 		cnf.Public.EncryptOpt = encOpt
 	}
-	cnfPublic := cnf.Public
 
 	logReport, err := dbareport.NewBackupLogReport(cnf)
 	if err != nil {
@@ -205,19 +203,16 @@ func backupData(cnf *config.BackupConfig) (err error) {
 	}
 
 	// 备份权限 backup priv info
-	if cnf.Public.IfBackupGrant() {
+	// 注意：如果只备份权限，则走 backupexe.ExecuteBackup(cnf) 逻辑
+	//  如果还备份 schema/data，则走下面这个逻辑
+	if cnf.Public.IfBackupGrant() && !cnf.Public.IfBackupGrantOnly() {
 		logger.Log.Infof("backup grant for %d: begin", cnf.Public.MysqlPort)
-		if err := backupexe.BackupGrant(&cnfPublic); err != nil {
+		if err := backupexe.BackupGrant(&cnf.Public); err != nil {
 			logger.Log.Error("Failed to backup Grant information")
 			return err
 		}
 		logger.Log.Info("backup Grant information: end")
 	}
-	if !cnf.Public.IfBackupData() && !cnf.Public.IfBackupSchema() {
-		logger.Log.Info("no need to backup data or schema")
-		return nil
-	}
-
 	// long_slow_query
 	// check slave status
 
@@ -232,13 +227,6 @@ func backupData(cnf *config.BackupConfig) (err error) {
 	metaInfo, exeErr := backupexe.ExecuteBackup(cnf)
 	if exeErr != nil {
 		return exeErr
-	}
-
-	// check the integrity of backup
-	integrityErr := util.CheckIntegrity(&cnf.Public)
-	if integrityErr != nil {
-		logger.Log.Error("Failed to check the integrity of backup, error: ", integrityErr)
-		return integrityErr
 	}
 
 	// tar and split

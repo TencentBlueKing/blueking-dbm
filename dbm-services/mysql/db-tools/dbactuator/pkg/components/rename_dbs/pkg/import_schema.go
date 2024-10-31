@@ -18,7 +18,7 @@ func ImportDBSchema(ip string, port int, user, password, dbName, sqlFilePath str
 		Port:             port,
 		User:             user,
 		Password:         password,
-	}.ExcuteSqlByMySQLClientWithOutReport(
+	}.ExecuteSqlWithOutReport(
 		sqlFilePath, []string{dbName},
 	)
 

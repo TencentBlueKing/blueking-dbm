@@ -13,7 +13,7 @@ Flags:
       --charset string             User password, overwrite LogicalLoad.MysqlCharset
   -B, --databases string           Database to dump, default all
       --databases-drop string      database list to drop, overwrite LogicalLoad.DBListDropIfExists
-      --enable-binlog              threads for myloader, overwrite LogicalLoad.EnableBinlog
+      --enable-binlog              overwrite LogicalLoad.EnableBinlog
       --exclude-databases string   databases to dump, comma separated, default empty
       --exclude-tables string      tables to dump, comma separated, default empty
   -h, --host string                The host to connect to, overwrite LogicalLoad.MysqlHost (default "localhost")
@@ -29,7 +29,8 @@ Global Flags:
       --help                     help for this command
       --load-dir string          backup root path to save, overwrite LogicalLoad.MysqlLoadDir
   -i, --load-index-file string   backup index file, overwrite LogicalLoad.IndexFilePath, PhysicalLoad.IndexFilePath
-      --threads int              threads for myloader or xtrabackup, default CPU Cores
+      --log-dir string           log file path. default empty will log files to dir dbbackup/logs/
+      --threads int              threads for myloader or xtrabackup, default 8 (default 8)
 ```
 
 示例：

@@ -14,7 +14,7 @@ import (
 // ExecPartitionSQLAct TODO
 type ExecPartitionSQLAct struct {
 	*subcmd.BaseOptions
-	Payload mysql.ExcutePartitionSQLComp
+	Payload mysql.ExecutePartitionSQLComp
 }
 
 const (
@@ -68,7 +68,7 @@ func (d *ExecPartitionSQLAct) Run() (err error) {
 		},
 		{
 			FunName: "执行分区",
-			Func:    d.Payload.Excute,
+			Func:    d.Payload.Execute,
 		},
 	}
 

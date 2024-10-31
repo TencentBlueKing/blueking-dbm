@@ -256,7 +256,7 @@ func (c *OpenAreaImportSchemaComp) OpenAreaImportSchema() (err error) {
 			WorkDir:          c.dumpDir,
 			User:             c.GeneralParam.RuntimeAccountParam.AdminUser,
 			Password:         c.GeneralParam.RuntimeAccountParam.AdminPwd,
-		}.MyExcuteSqlByMySQLClientOne(schemaName, oneSchemaInfo.NewDB)
+		}.MyExecuteSqlByMySQLClientOne(schemaName, oneSchemaInfo.NewDB)
 		if err != nil {
 			logger.Error("执行%s文件失败！", schemaName)
 			return err
@@ -279,7 +279,7 @@ func (c *OpenAreaImportSchemaComp) OpenAreaImportData() (err error) {
 			WorkDir:          c.dumpDir,
 			User:             c.GeneralParam.RuntimeAccountParam.AdminUser,
 			Password:         c.GeneralParam.RuntimeAccountParam.AdminPwd,
-		}.MyExcuteSqlByMySQLClientOne(dataFileName, oneShemaInfo.NewDB)
+		}.MyExecuteSqlByMySQLClientOne(dataFileName, oneShemaInfo.NewDB)
 		if err != nil {
 			logger.Error("执行%s文件失败！", dataFileName)
 			return err
@@ -303,7 +303,7 @@ func (c *OpenAreaImportSchemaComp) MysqlDataMigrateImport() (err error) {
 				WorkDir:          c.dumpDir,
 				User:             c.GeneralParam.RuntimeAccountParam.AdminUser,
 				Password:         c.GeneralParam.RuntimeAccountParam.AdminPwd,
-			}.MyExcuteSqlByMySQLClientOne(dataFileName, db)
+			}.MyExecuteSqlByMySQLClientOne(dataFileName, db)
 			if err != nil {
 				logger.Error("执行%s文件失败！", dataFileName)
 				return err

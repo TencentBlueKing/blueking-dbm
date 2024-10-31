@@ -121,6 +121,14 @@ func (c *Public) IfBackupGrant() bool {
 		slices.Index(c.splitDataSchemaGrant(), cst.BackupGrant) >= 0
 }
 
+// IfBackupGrantOnly 是否只备份权限
+func (c *Public) IfBackupGrantOnly() bool {
+	if c.IfBackupGrant() && !c.IfBackupData() && !c.IfBackupSchema() {
+		return true
+	}
+	return false
+}
+
 func (c *Public) IfBackupAll() bool {
 	if slices.Index(c.splitDataSchemaGrant(), cst.BackupAll) >= 0 {
 		return true

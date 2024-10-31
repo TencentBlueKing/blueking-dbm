@@ -297,7 +297,7 @@ func (x *XLoad) doReplaceCnf() error {
 
 func (x *XLoad) importData() error {
 	reg := regexp.MustCompile(`^\s*(.*)/mysqldata/.*$`)
-	datadir, err := x.myCnf.GetMySQLDataDir()
+	datadir, err := x.myCnf.GetMySQLDataHomeDir()
 	if err != nil {
 		return err
 	}

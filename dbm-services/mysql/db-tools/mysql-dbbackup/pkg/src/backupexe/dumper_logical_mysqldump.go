@@ -17,6 +17,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -40,6 +41,9 @@ type LogicalDumperMysqldump struct {
 	dbbackupHome string
 	backupInfo   dbareport.IndexContent // for mysqldump backup
 	dbConn       *sqlx.Conn
+
+	masterStatus *dbareport.StatusInfo
+	slaveStatus  *dbareport.StatusInfo
 }
 
 // initConfig initializes the configuration for the logical dumper[mysqldump]
@@ -61,6 +65,14 @@ func (l *LogicalDumperMysqldump) buildArgsTableFilter() (args []string, err erro
 	tbList := strings.Split(l.cnf.LogicalBackup.Tables, ",")
 	dbListExclude := strings.Split(l.cnf.LogicalBackup.ExcludeDatabases, ",")
 	tbListExclude := strings.Split(l.cnf.LogicalBackup.ExcludeTables, ",")
+	// 把默认排除的系统库补充进去
+	var dbListExcludeNew []string
+	for _, db := range cst.SysDbsExcludeForFull {
+		if !slices.Contains(dbListExclude, db) {
+			dbListExcludeNew = append(dbListExcludeNew, db)
+		}
+	}
+	dbListExcludeNew = append(dbListExcludeNew, dbListExclude...)
 
 	var dbListFiltered []string
 	if filter, err := db_table_filter.NewFilter(dbList, tbList, dbListExclude, tbListExclude); err != nil {
@@ -246,6 +258,36 @@ func (l *LogicalDumperMysqldump) Execute(enableTimeOut bool) (err error) {
 	if err != nil {
 		return errors.Wrapf(err, "parse BackupBeginTime(mysqldump) %s", mysqldumpBeginTime)
 	}
+
+	db, err := mysqlconn.InitConn(&l.cnf.Public)
+	if err != nil {
+		logger.Log.Errorf("can not connect to the mysql, host:%s, port:%d, errmsg:%s",
+			l.cnf.Public.MysqlHost, l.cnf.Public.MysqlPort, err)
+		return err
+	}
+	defer func() {
+		_ = db.Close()
+	}()
+	if showMasterStatus, err := mysqlconn.ShowMysqlMasterStatus(false, db); err != nil {
+		return err
+	} else {
+		l.masterStatus = &dbareport.StatusInfo{
+			BinlogFile: showMasterStatus.File,
+			BinlogPos:  cast.ToString(showMasterStatus.Position),
+			Gtid:       showMasterStatus.ExecutedGtidSet,
+			MasterHost: l.cnf.Public.MysqlHost,
+			MasterPort: l.cnf.Public.MysqlPort,
+		}
+	}
+	masterHost, masterPort, err := mysqlconn.ShowMysqlSlaveStatus(db)
+	if err != nil {
+		return err
+	}
+	l.slaveStatus = &dbareport.StatusInfo{
+		MasterHost: masterHost,
+		MasterPort: masterPort,
+	}
+
 	err = cmd.Run()
 	if err != nil {
 		logger.Log.Error("run logical backup(with mysqldump) failed: ", err, stderr.String())
@@ -272,19 +314,24 @@ func (l *LogicalDumperMysqldump) PrepareBackupMetaInfo(cnf *config.BackupConfig)
 	metaInfo.BackupBeginTime = l.backupInfo.BackupBeginTime
 	metaInfo.BackupEndTime = l.backupInfo.BackupEndTime
 	metaInfo.BackupConsistentTime = metaInfo.BackupBeginTime
-	metaInfo.BinlogInfo.ShowMasterStatus = &dbareport.StatusInfo{
-		BinlogFile: metadata.MasterStatus["File"],
-		BinlogPos:  metadata.MasterStatus["Position"],
-		MasterHost: cnf.Public.MysqlHost, // use backup_host as local binlog file_pos host
-		MasterPort: cast.ToInt(cnf.Public.MysqlPort),
-	}
-	if strings.ToLower(cnf.Public.MysqlRole) == cst.RoleSlave {
+	if strings.ToLower(l.cnf.Public.MysqlRole) != cst.RoleSlave { // master / repeater
+		// 如果是 master, sql里面的 CHANGE MASTER TO 是本机位点
+		metaInfo.BinlogInfo.ShowMasterStatus = &dbareport.StatusInfo{
+			BinlogFile: metadata.MasterStatus["File"],
+			BinlogPos:  metadata.MasterStatus["Position"],
+			MasterHost: l.masterStatus.MasterHost,
+			MasterPort: l.masterStatus.MasterPort,
+		}
+	} else { // slave
+		// show_master_status
+		metaInfo.BinlogInfo.ShowMasterStatus = l.masterStatus
+		// show slave status
+		// 如果是 slave, sql里的 CHANGE MASTER TO 是 远端 master的位点。属于 slave status 信息
 		metaInfo.BinlogInfo.ShowSlaveStatus = &dbareport.StatusInfo{
-			BinlogFile: metadata.SlaveStatus["File"],
-			BinlogPos:  metadata.SlaveStatus["Position"],
-			//Gtid:       metadata.SlaveStatus["Executed_Gtid_Set"],
-			//MasterHost: metadata.SlaveStatus["Master_Host"],
-			//MasterPort: cast.ToInt(metadata.SlaveStatus["Master_Port"]),
+			BinlogFile: metadata.MasterStatus["File"],
+			BinlogPos:  metadata.MasterStatus["Position"],
+			MasterHost: l.slaveStatus.MasterHost,
+			MasterPort: l.slaveStatus.MasterPort,
 		}
 	}
 	metaInfo.JudgeIsFullBackup(&cnf.Public)

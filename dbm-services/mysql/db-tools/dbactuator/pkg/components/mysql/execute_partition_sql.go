@@ -29,15 +29,15 @@ import (
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util/osutil"
 )
 
-// ExcutePartitionSQLComp TODO
-type ExcutePartitionSQLComp struct {
-	GeneralParam                 *components.GeneralParam `json:"general"`
-	Params                       *ExcutePartitionSQLParam `json:"extend"`
-	ExcutePartitionSQLRunTimeCtx `json:"-"`
+// ExecutePartitionSQLComp TODO
+type ExecutePartitionSQLComp struct {
+	GeneralParam                  *components.GeneralParam  `json:"general"`
+	Params                        *ExecutePartitionSQLParam `json:"extend"`
+	ExecutePartitionSQLRunTimeCtx `json:"-"`
 }
 
-// ExcutePartitionSQLParam TODO
-type ExcutePartitionSQLParam struct {
+// ExecutePartitionSQLParam TODO
+type ExecutePartitionSQLParam struct {
 	Ip       string `json:"ip"  validate:"required,ip"` // 当前实例的主机地址
 	FilePath string `json:"file_path"`
 	Force    bool   `json:"force"`
@@ -77,8 +77,8 @@ type InitPartitionContent struct {
 	HasUniqueKey bool   `json:"has_unique_key"`
 }
 
-// ExcutePartitionSQLRunTimeCtx TODO
-type ExcutePartitionSQLRunTimeCtx struct {
+// ExecutePartitionSQLRunTimeCtx TODO
+type ExecutePartitionSQLRunTimeCtx struct {
 	WorkDir string
 }
 
@@ -90,9 +90,9 @@ type ReturnInfo struct {
 }
 
 // Example TODO
-func (e *ExcutePartitionSQLComp) Example() interface{} {
-	comp := ExcutePartitionSQLComp{
-		Params: &ExcutePartitionSQLParam{
+func (e *ExecutePartitionSQLComp) Example() interface{} {
+	comp := ExecutePartitionSQLComp{
+		Params: &ExecutePartitionSQLParam{
 			Ip:       "1.1.1.1",
 			FilePath: "/xxx/xxx/xxx.txt",
 			Force:    false,
@@ -102,14 +102,14 @@ func (e *ExcutePartitionSQLComp) Example() interface{} {
 }
 
 // Init TODO
-func (e *ExcutePartitionSQLComp) Init() (err error) {
+func (e *ExecutePartitionSQLComp) Init() (err error) {
 	e.WorkDir = fmt.Sprintf("%s/%s", cst.BK_PKG_INSTALL_PATH, "partition")
 	_ = os.MkdirAll(e.WorkDir, 0755)
 	return nil
 }
 
-// Excute TODO
-func (e *ExcutePartitionSQLComp) Excute() (err error) {
+// Execute TODO
+func (e *ExecutePartitionSQLComp) Execute() (err error) {
 	// 以单个执行目标为单位 execute_objects FilePartitionSQLObj
 	filePartitionSQLObjs, err := e.getPartitionInfo(e.Params.FilePath)
 	if err != nil {
@@ -134,7 +134,7 @@ func (e *ExcutePartitionSQLComp) Excute() (err error) {
 	return nil
 }
 
-func (e *ExcutePartitionSQLComp) excuteOneInstance(filePartitionSQLObj FilePartitionSQLObj,
+func (e *ExecutePartitionSQLComp) excuteOneInstance(filePartitionSQLObj FilePartitionSQLObj,
 ) (oneInsReturnInfo []ReturnInfo) {
 	// filePartitionSQLObj由文件中读取
 	var myInsInfo MyInstanceInfo
@@ -164,7 +164,7 @@ func (e *ExcutePartitionSQLComp) excuteOneInstance(filePartitionSQLObj FileParti
 	for _, eb := range filePartitionSQLObj.ExecuteObjects {
 		c <- struct{}{}
 		wg.Add(1)
-		// 并发执行ExcutePartitionSQLObj
+		// 并发执行ExecutePartitionSQLObj
 		go func(eb ExecutePartitionSQLObj) {
 			defer wg.Done()
 			// 每条分区config为一个单位，根据ConfigID生成一个对应的错误文件
@@ -249,7 +249,7 @@ func (e *ExcutePartitionSQLComp) excuteOneInstance(filePartitionSQLObj FileParti
 }
 
 // excuteOne 以执行目标为单位
-func (e *ExcutePartitionSQLComp) excuteOne(
+func (e *ExecutePartitionSQLComp) excuteOne(
 	dbw *sql.DB, partitionSQLSet []string,
 	connum int, myInsInfo MyInstanceInfo,
 ) (err error) {
@@ -277,7 +277,7 @@ func (e *ExcutePartitionSQLComp) excuteOne(
 				Socket:           myInsInfo.Socket,
 				User:             e.GeneralParam.RuntimeAccountParam.PartitionYwUser,
 				Password:         e.GeneralParam.RuntimeAccountParam.PartitionYwPwd,
-			}.ExcutePartitionByMySQLClient(dbw, partitionSQL, lock)
+			}.ExecutePartitionByMySQLClient(dbw, partitionSQL, lock)
 			if err != nil {
 				lockappend.Lock()
 				errs = append(errs, fmt.Sprintf("%s执行失败，报错：%s", partitionSQL, err.Error()))
@@ -309,7 +309,7 @@ func initDB(host string, port int, user string, pwd string) (dbw *sql.DB, err er
 	return SqlDB, nil
 }
 
-func (e *ExcutePartitionSQLComp) excuteInitSql(
+func (e *ExecutePartitionSQLComp) excuteInitSql(
 	partitionSQLSets []InitPartitionContent,
 	connum int, myInsInfo MyInstanceInfo,
 ) (err error) {
@@ -337,7 +337,7 @@ func (e *ExcutePartitionSQLComp) excuteInitSql(
 				Socket:           myInsInfo.Socket,
 				User:             e.GeneralParam.RuntimeAccountParam.PartitionYwPwd,
 				Password:         e.GeneralParam.RuntimeAccountParam.PartitionYwPwd,
-			}.ExcuteInitPartition(command)
+			}.ExecuteInitPartition(command)
 			if err != nil {
 				errs = append(errs, fmt.Sprintf("%s执行失败，报错：%s", command, err.Error()))
 			}
@@ -349,7 +349,7 @@ func (e *ExcutePartitionSQLComp) excuteInitSql(
 	return nil
 }
 
-func (e *ExcutePartitionSQLComp) precheck(needSize int64, myInsInfo MyInstanceInfo) (flag bool, err error) {
+func (e *ExecutePartitionSQLComp) precheck(needSize int64, myInsInfo MyInstanceInfo) (flag bool, err error) {
 	// (已用磁盘空间+3*表大小)/总容量<90%
 	// (可用磁盘空间+NeedSize)/总容量>10%
 	// 连接db
@@ -385,7 +385,7 @@ func (e *ExcutePartitionSQLComp) precheck(needSize int64, myInsInfo MyInstanceIn
 	return flag, nil
 }
 
-func (e *ExcutePartitionSQLComp) getPartitionInfo(filePath string) (epsos []FilePartitionSQLObj, err error) {
+func (e *ExecutePartitionSQLComp) getPartitionInfo(filePath string) (epsos []FilePartitionSQLObj, err error) {
 	f, err := os.ReadFile(filePath)
 	if err != nil {
 		return nil, errors.New(fmt.Sprintf("读取文件失败！--->%s", err.Error()))
@@ -398,11 +398,11 @@ func (e *ExcutePartitionSQLComp) getPartitionInfo(filePath string) (epsos []File
 }
 
 // replace 反引号进行转义 可在命令行中执行
-func (e *ExcutePartitionSQLComp) replace(partitionSQL string) string {
+func (e *ExecutePartitionSQLComp) replace(partitionSQL string) string {
 	return strings.Replace(partitionSQL, "`", "\\`", -1)
 }
 
-func (e *ExcutePartitionSQLComp) getInitPartitionSQL(initPartitions []InitPartitionContent) []string {
+func (e *ExecutePartitionSQLComp) getInitPartitionSQL(initPartitions []InitPartitionContent) []string {
 	var initPartitionSQL []string
 	for _, initPartition := range initPartitions {
 		initsql := fmt.Sprintf("%s;;;%s;", "set tc_admin=0", initPartition.Sql)
@@ -411,7 +411,7 @@ func (e *ExcutePartitionSQLComp) getInitPartitionSQL(initPartitions []InitPartit
 	return initPartitionSQL
 }
 
-func (e *ExcutePartitionSQLComp) getNewPartitionSQL(partitionSQLs []string) []string {
+func (e *ExecutePartitionSQLComp) getNewPartitionSQL(partitionSQLs []string) []string {
 	var newPartitionSQLs []string
 	for _, parsql := range partitionSQLs {
 		mysql := fmt.Sprintf("%s;;;%s;", "set tc_admin=0", parsql)
@@ -420,7 +420,7 @@ func (e *ExcutePartitionSQLComp) getNewPartitionSQL(partitionSQLs []string) []st
 	return newPartitionSQLs
 }
 
-func (e *ExcutePartitionSQLComp) initSQLClassify(initPartitions []InitPartitionContent) (
+func (e *ExecutePartitionSQLComp) initSQLClassify(initPartitions []InitPartitionContent) (
 	[]InitPartitionContent, []string) {
 	var hasUnikeyInit []InitPartitionContent
 	var hasNotUnikeyInit []string

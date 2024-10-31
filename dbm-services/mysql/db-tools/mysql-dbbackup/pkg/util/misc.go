@@ -104,11 +104,11 @@ func CheckIntegrity(publicConfig *config.Public) error {
 
 // CalServerDataSize Calculate the data size bytes of Mysql server
 func CalServerDataSize(port int) (uint64, error) {
-	datadir, err := common.GetDatadir(port)
+	datadir, err := common.GetDataHomeDir(port)
 	if err != nil {
 		return 0, err
 	}
-	cmdStr := "du -sb " + datadir + "/.."
+	cmdStr := "du -sb " + datadir
 	res, err := exec.Command("/bin/bash", "-c", cmdStr).CombinedOutput()
 	if err != nil {
 		return 0, errors.WithMessage(err, string(res))

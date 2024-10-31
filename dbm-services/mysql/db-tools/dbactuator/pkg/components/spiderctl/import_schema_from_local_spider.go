@@ -387,7 +387,7 @@ func (c *ImportSchemaFromLocalSpiderComp) loadSchema() (err error) {
 		User:             c.GeneralParam.RuntimeAccountParam.AdminUser,
 		Password:         c.GeneralParam.RuntimeAccountParam.AdminPwd,
 		WorkDir:          c.tmpDumpDir,
-	}.ExcuteSqlByMySQLClientOne(c.tmpDumpFile, "", true)
+	}.ExecuteSqlByMySQLClientOne(c.tmpDumpFile, "", true)
 	if err != nil {
 		logger.Error("执行导入schema文件:%s 失败:%s", c.tmpDumpFile, err.Error())
 		return err

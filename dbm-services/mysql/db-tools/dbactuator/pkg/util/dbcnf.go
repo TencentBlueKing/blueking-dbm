@@ -195,6 +195,15 @@ func (m *CnfFile) GetMySQLDataDir() (string, error) {
 	} else {
 		return "", fmt.Errorf("在配置中没找到datadir的配置项")
 	}
+	return datadir, nil
+}
+
+// GetMySQLDataHomeDir 获取实例的数据目录
+func (m *CnfFile) GetMySQLDataHomeDir() (string, error) {
+	datadir, err := m.GetMySQLDataDir()
+	if err != nil {
+		return "", err
+	}
 	// datadirName := filepath.Base(datadir)                               // "data"
 	datadirPath := filepath.Dir(datadir)                                // "/data1/mysqldata/20000" or "/data/mysqldata"
 	if _, err := strconv.Atoi(filepath.Base(datadirPath)); err != nil { // "/data/mysqldata"

@@ -78,44 +78,55 @@ func (e ExecuteSqlAtLocal) CreateLoadSQLCommand() (command string) {
 	)
 }
 
-// ExcuteSqlByMySQLClient TODO
-func (e ExecuteSqlAtLocal) ExcuteSqlByMySQLClient(sqlfile string, targetdbs []string) (err error) {
+// ExecuteSqlByMySQLClient TODO
+func (e ExecuteSqlAtLocal) ExecuteSqlByMySQLClient(sqlfile string, targetdbs []string) (err error) {
 	for _, db := range targetdbs {
-		if err = e.ExcuteSqlByMySQLClientOne(sqlfile, db, true); err != nil {
+		if err = e.ExecuteSqlByMySQLClientOne(sqlfile, db, true); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func (e ExecuteSqlAtLocal) ExcuteSqlByMySQLClientWithOutReport(sqlfile string, targetdbs []string) (err error) {
+func (e ExecuteSqlAtLocal) ExecuteSqlWithOutReport(sqlfile string, targetdbs []string) (err error) {
 	for _, db := range targetdbs {
-		if err = e.ExcuteSqlByMySQLClientOne(sqlfile, db, false); err != nil {
+		if err = e.ExecuteSqlByMySQLClientOne(sqlfile, db, false); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-// ExcuteSqlByMySQLClientOne 使用本地mysqlclient 去执行sql
+// ExecuteSqlByMySQLClientOne 使用本地mysqlclient 去执行sql
 //
 //	@receiver e
 //	@receiver sqlfile
 //	@receiver targetdbs
 //	@return err
-func (e ExecuteSqlAtLocal) ExcuteSqlByMySQLClientOne(sqlfile string, db string, report bool) (err error) {
+func (e ExecuteSqlAtLocal) ExecuteSqlByMySQLClientOne(sqlfile string, db string, report bool) (err error) {
 	command := e.CreateLoadSQLCommand()
 	command = command + " " + db + "<" + path.Join(e.WorkDir, sqlfile)
 	e.ErrFile = path.Join(e.WorkDir, fmt.Sprintf("%s.%s.err", sqlfile, db)) // 删除原有的时间戳方便调用方拼接
-	err = e.ExcuteCommand(command, report)
+	err = e.ExecuteCommand(command, report)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-// ExcuteCommand TODO
-func (e ExecuteSqlAtLocal) ExcuteCommand(command string, report bool) (err error) {
+func (e ExecuteSqlAtLocal) TestConnectionByMySQLClient(db string, report bool) (err error) {
+	command := e.CreateLoadSQLCommand()
+	command = fmt.Sprintf(`echo "select version()" | %s %s`, command, db)
+	e.ErrFile = path.Join(e.WorkDir, fmt.Sprintf("test_connection_%s.err", db)) // 删除原有的时间戳方便调用方拼接
+	err = e.ExecuteCommand(command, report)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// ExecuteCommand TODO
+func (e ExecuteSqlAtLocal) ExecuteCommand(command string, report bool) (err error) {
 	var stderrBuf bytes.Buffer
 	var errStdout, errStderr error
 	logger.Info("The Command Is %s", mysqlcomm.ClearSensitiveInformation(command))
@@ -173,8 +184,8 @@ func (e ExecuteSqlAtLocal) ExcuteCommand(command string, report bool) (err error
 	return nil
 }
 
-// ExcutePartitionByMySQLClient TODO
-func (e ExecuteSqlAtLocal) ExcutePartitionByMySQLClient(
+// ExecutePartitionByMySQLClient TODO
+func (e ExecuteSqlAtLocal) ExecutePartitionByMySQLClient(
 	dbw *sql.DB, partitionsql string,
 	lock *sync.Mutex,
 ) (err error) {
@@ -201,18 +212,18 @@ func (e ExecuteSqlAtLocal) ExcutePartitionByMySQLClient(
 	return nil
 }
 
-// ExcuteInitPartition TODO
-func (e ExecuteSqlAtLocal) ExcuteInitPartition(command string) (err error) {
+// ExecuteInitPartition TODO
+func (e ExecuteSqlAtLocal) ExecuteInitPartition(command string) (err error) {
 	// e.ErrFile = path.Join(e.WorkDir, e.ErrFile)
-	err = e.MyExcuteCommand(command)
+	err = e.MyExecuteCommand(command)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-// MyExcuteCommand TODO
-func (e ExecuteSqlAtLocal) MyExcuteCommand(command string) (err error) {
+// MyExecuteCommand TODO
+func (e ExecuteSqlAtLocal) MyExecuteCommand(command string) (err error) {
 	var stderrBuf bytes.Buffer
 	// var errStdout, errStderr error
 	logger.Info("The Command Is %s", mysqlcomm.ClearSensitiveInformation(command))
@@ -244,20 +255,20 @@ func (e ExecuteSqlAtLocal) MyExcuteCommand(command string) (err error) {
 	return nil
 }
 
-// MyExcuteSqlByMySQLClientOne 只输出错误到控制台，
-func (e ExecuteSqlAtLocal) MyExcuteSqlByMySQLClientOne(sqlfile string, db string) (err error) {
+// MyExecuteSqlByMySQLClientOne 只输出错误到控制台，
+func (e ExecuteSqlAtLocal) MyExecuteSqlByMySQLClientOne(sqlfile string, db string) (err error) {
 	command := e.CreateLoadSQLCommand()
 	command = command + " " + db + "<" + path.Join(e.WorkDir, sqlfile)
 	e.ErrFile = path.Join(e.WorkDir, fmt.Sprintf("%s.%s.%s.err", sqlfile, db, time.Now().Format(cst.TimeLayoutDir)))
-	err = e.ExcuteCommandIgnoreStdo(command)
+	err = e.ExecuteCommandIgnoreStdo(command)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-// ExcuteCommandIgnoreStdo 用于mysql数据迁移的的命令执行 只打印错误
-func (e ExecuteSqlAtLocal) ExcuteCommandIgnoreStdo(command string) (err error) {
+// ExecuteCommandIgnoreStdo 用于mysql数据迁移的的命令执行 只打印错误
+func (e ExecuteSqlAtLocal) ExecuteCommandIgnoreStdo(command string) (err error) {
 	var stderrBuf bytes.Buffer
 	var errStdout, errStderr error
 	logger.Info("The Command Is %s", mysqlcomm.ClearSensitiveInformation(command))

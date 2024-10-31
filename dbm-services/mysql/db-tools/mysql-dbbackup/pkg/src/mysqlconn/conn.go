@@ -268,6 +268,34 @@ func ShowMysqlSlaveStatus(db *sql.DB) (masterHost string, masterPort int, err er
 	return masterHost, masterPort, nil
 }
 
+type ShowMasterStatus struct {
+	File            string `db:"File"`
+	Position        int64  `db:"Position"`
+	ExecutedGtidSet string `db:"Executed_Gtid_Set"`
+	BinlogDoDB      string `db:"Binlog_Do_DB"`
+	BinlogIgnoreDB  string `db:"Binlog_Ignore_DB"`
+}
+
+func ShowMysqlMasterStatus(ftwrl bool, db *sql.DB) (status *ShowMasterStatus, err error) {
+	if ftwrl {
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		if _, err := db.ExecContext(ctx, "flush table with read lock"); err != nil {
+			return nil, errors.WithMessage(err, "flush table to get binlog position")
+		} else {
+			defer func() {
+				_, _ = db.ExecContext(ctx, "unlock tables", 5*time.Second)
+			}()
+		}
+	}
+	var result = ShowMasterStatus{}
+	dbx := sqlx.NewDb(db, "mysql")
+	if err := dbx.Get(&result, "show master status"); err != nil {
+		return nil, err
+	}
+	return &result, nil
+}
+
 func StartSlaveThreads(ioThread, sqlThread bool, db *sql.DB) error {
 	var err error
 	if ioThread {

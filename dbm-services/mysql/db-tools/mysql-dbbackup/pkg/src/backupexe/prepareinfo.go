@@ -25,12 +25,14 @@ type mydumperMetadata struct {
 	Tables       map[string]interface{}
 }
 
-func parseMysqldumpMetadata(metadataFile string) (*mydumperMetadata, error) {
-	metafile, err := os.Open(metadataFile)
+// parseMysqldumpMetadata 从 mysqldump sql 文件里解析 change master / change slave 命令
+// 命令被注释，在文件开头的前几行
+func parseMysqldumpMetadata(sqlFilePath string) (*mydumperMetadata, error) {
+	sqlFile, err := os.Open(sqlFilePath)
 	if err != nil {
 		return nil, err
 	}
-	defer metafile.Close()
+	defer sqlFile.Close()
 
 	var metadata = &mydumperMetadata{
 		MasterStatus: map[string]string{},
@@ -39,11 +41,11 @@ func parseMysqldumpMetadata(metadataFile string) (*mydumperMetadata, error) {
 	}
 
 	var l string // one line
-	buf := bufio.NewScanner(metafile)
-	reMaster := `CHANGE MASTER TO MASTER_LOG_FILE='([^']+)', MASTER_LOG_POS=(\d+)`
-	reSlave := `CHANGE SLAVE TO MASTER_LOG_FILE='([^']+)', MASTER_LOG_POS=(\d+)`
+	buf := bufio.NewScanner(sqlFile)
+	reMaster := `CHANGE MASTER TO MASTER_LOG_FILE='([^']+)', MASTER_LOG_POS=(\d+)` // 本机的位点
+	//reSlave := `CHANGE SLAVE TO MASTER_LOG_FILE='([^']+)', MASTER_LOG_POS=(\d+)`   // 本机的 远端master 的位点
 	reShowMaster := regexp.MustCompile(reMaster)
-	reShowSlave := regexp.MustCompile(reSlave)
+	//reShowSlave := regexp.MustCompile(reSlave)
 	for buf.Scan() {
 		l = buf.Text()
 		matches := reShowMaster.FindStringSubmatch(l)
@@ -52,12 +54,14 @@ func parseMysqldumpMetadata(metadataFile string) (*mydumperMetadata, error) {
 			metadata.MasterStatus["Position"] = matches[2]
 			break
 		}
-		matches2 := reShowSlave.FindStringSubmatch(l)
-		if len(matches2) == 3 {
-			metadata.SlaveStatus["File"] = matches2[1]
-			metadata.SlaveStatus["Position"] = matches2[2]
-			break
-		}
+		/*
+			matches2 := reShowSlave.FindStringSubmatch(l)
+			if len(matches2) == 3 {
+				metadata.SlaveStatus["File"] = matches2[1]
+				metadata.SlaveStatus["Position"] = matches2[2]
+				break
+			}
+		*/
 	}
 	return metadata, nil
 }

@@ -14,7 +14,7 @@ import (
 // ExecSQLFileAct TODO
 type ExecSQLFileAct struct {
 	*subcmd.BaseOptions
-	Payload mysql.ExcuteSQLFileComp
+	Payload mysql.ExecuteSQLFileComp
 }
 
 const (
@@ -83,7 +83,7 @@ func (d *ExecSQLFileAct) Run() (err error) {
 		},
 		{
 			FunName: "执行导入SQL文件",
-			Func:    d.Payload.Excute,
+			Func:    d.Payload.Execute,
 		},
 	}
 

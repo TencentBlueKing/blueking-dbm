@@ -156,7 +156,7 @@ func (i *UpgradeSpiderComp) CreateSpiderTable() (err error) {
 			User:     i.adminUser,
 			Password: i.adminPwd,
 			Socket:   socket,
-		}.ExcuteSqlByMySQLClientOne(path.Join(cst.MysqldInstallPath, "scripts/install_spider.sql"), "", true)
+		}.ExecuteSqlByMySQLClientOne(path.Join(cst.MysqldInstallPath, "scripts/install_spider.sql"), "", true)
 		if err != nil {
 			logger.Error("%d excute create spider table failed: %s", port, err.Error())
 			return err

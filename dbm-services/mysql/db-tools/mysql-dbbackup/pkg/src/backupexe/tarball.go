@@ -35,7 +35,7 @@ type PackageFile struct {
 	indexFilePath string
 }
 
-// MappingPackage Package multiple backup files
+// LogicalTarParts Package multiple backup files
 // sort file list
 // traverse file list
 // create new tar_writer
@@ -45,7 +45,7 @@ type PackageFile struct {
 // loop ...
 // write last file to tar package
 // will save index meta info to file
-func (p *PackageFile) MappingPackage() (string, error) {
+func (p *PackageFile) LogicalTarParts() (string, error) {
 	logger.Log.Infof("Tarball Package: src dir %s, iolimit %d MB/s", p.srcDir, p.cnf.Public.IOLimitMBPerSec)
 
 	var tarSize uint64 = 0
@@ -147,18 +147,12 @@ func (p *PackageFile) MappingPackage() (string, error) {
 	for _, tarFile := range tarFiles {
 		p.indexFile.FileList = append(p.indexFile.FileList, tarFile)
 	}
-	p.indexFile.AddPrivFileItem(p.dstDir)
-	if indexFilePath, err := p.indexFile.SaveIndexContent(&p.cnf.Public); err != nil {
-		return "", err
-	} else {
-		p.indexFilePath = indexFilePath
-		return p.indexFilePath, nil
-	}
+	return "", nil
 }
 
-// SplittingPackage Firstly, put all backup files into the tar file. Secondly, split the tar file to multiple parts
+// LogicalTarSplit Firstly, put all backup files into the tar file. Secondly, split the tar file to multiple parts
 // will save index meta info to file
-func (p *PackageFile) SplittingPackage() (string, error) {
+func (p *PackageFile) LogicalTarSplit() (string, error) {
 	// tar srcDir to tar
 	if err := p.tarballDir(); err != nil {
 		return "", err
@@ -173,7 +167,11 @@ func (p *PackageFile) SplittingPackage() (string, error) {
 	if err := p.splitTarFile(p.dstTarFile); err != nil {
 		return "", err
 	}
+	return "", nil
+}
 
+// SaveIndexFile add priv file and save .index to disk
+func (p *PackageFile) SaveIndexFile() (string, error) {
 	p.indexFile.AddPrivFileItem(p.dstDir)
 	if indexFilePath, err := p.indexFile.SaveIndexContent(&p.cnf.Public); err != nil {
 		return "", err
@@ -183,9 +181,9 @@ func (p *PackageFile) SplittingPackage() (string, error) {
 	}
 }
 
-// SplittingPackage2 Firstly, put all backup files into the tar file. Secondly, split the tar file to multiple parts
+// PhysicalTarSplit Firstly, put all backup files into the tar file. Secondly, split the tar file to multiple parts
 // will save index meta info to file
-func (p *PackageFile) SplittingPackage2() (string, error) {
+func (p *PackageFile) PhysicalTarSplit() (string, error) {
 	return p.tarAndSplit()
 
 	// tar -rf - /xxx | openssl... | split
@@ -310,14 +308,7 @@ func (p *PackageFile) tarAndSplit() (string, error) {
 		logger.Log.Error("failed to remove useless backup files")
 		return "", err
 	}
-
-	p.indexFile.AddPrivFileItem(p.dstDir)
-	if indexFilePath, err := p.indexFile.SaveIndexContent(&p.cnf.Public); err != nil {
-		return "", err
-	} else {
-		p.indexFilePath = indexFilePath
-		return p.indexFilePath, nil
-	}
+	return "", nil
 }
 
 // splitTarFile split Tar file into multiple part_file
@@ -401,27 +392,27 @@ func PackageBackupFiles(cnf *config.BackupConfig, metaInfo *dbareport.IndexConte
 		indexFile:  metaInfo,
 	}
 	logger.Log.Infof("Index BackupMetaInfo:%+v", metaInfo)
+	if cnf.Public.IfBackupGrantOnly() {
+		return packageFile.SaveIndexFile()
+	}
 
 	// package files, and produce the index file at the same time
 	if strings.ToLower(cnf.Public.BackupType) == cst.BackupLogical {
 		if cnf.LogicalBackup.UseMysqldump == cst.LogicalMysqldumpYes {
-			if indexFilePath, err = packageFile.SplittingPackage(); err != nil {
+			if indexFilePath, err = packageFile.LogicalTarSplit(); err != nil {
 				return "", err
 			}
 		} else {
-			if indexFilePath, err = packageFile.MappingPackage(); err != nil {
+			if indexFilePath, err = packageFile.LogicalTarParts(); err != nil {
 				return "", err
 			}
 		}
 	} else if strings.ToLower(cnf.Public.BackupType) == cst.BackupPhysical {
-		if indexFilePath, err = packageFile.SplittingPackage2(); err != nil {
+		if indexFilePath, err = packageFile.PhysicalTarSplit(); err != nil {
 			return "", err
 		}
 	}
-	// 把 index file 本身的信息，也记录到 file_list，用于文件上报
-	packageFile.indexFilePath = indexFilePath
-	//packageFile.indexFile.AddIndexFileItem(packageFile.dstDir)
-	return packageFile.indexFilePath, nil
+	return packageFile.SaveIndexFile()
 }
 
 // readUncompressSizeForZstd godoc

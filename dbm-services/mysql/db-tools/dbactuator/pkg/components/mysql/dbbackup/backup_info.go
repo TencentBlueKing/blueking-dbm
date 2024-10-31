@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -238,6 +239,7 @@ func (i *InfoFileDetail) UntarFiles(untarDir string) error {
 		return errors.Errorf("target untar path already exists %s", i.targetDir)
 	}
 	fullFileList := i.backupFiles[MYSQL_FULL_BACKUP]
+	sort.Strings(fullFileList)
 
 	if len(fullFileList) >= 2 {
 		cmd = fmt.Sprintf(

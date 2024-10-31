@@ -66,6 +66,9 @@ const (
 // INFODBA_SCHEMA TODO
 const INFODBA_SCHEMA = "infodba_schema"
 
+// SysDbsExcludeForFull we backup infodba_schema for full backup
+var SysDbsExcludeForFull = []string{"mysql", "sys", "test", "information_schema", "performance_schema", "db_infobase"}
+
 const (
 	// SpiderScheduleWaitTimeout TODO
 	SpiderScheduleWaitTimeout = 48 * time.Hour

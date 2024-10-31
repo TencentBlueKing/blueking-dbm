@@ -11,6 +11,7 @@ import (
 
 	"github.com/pkg/errors"
 
+	"dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/config"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/cst"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/dbareport"
@@ -111,9 +112,9 @@ func (p *PhysicalTokudbDumper) initConfig(mysqlVersion string) error {
 
 // Execute Perform data recovery operations.
 func (p *PhysicalTokudbDumper) Execute(enableTimeOut bool) error {
-	p.backupStartTime = time.Now()
+	p.backupStartTime = cmutil.TimeToSecondPrecision(time.Now())
 	defer func() {
-		p.backupEndTime = time.Now()
+		p.backupEndTime = cmutil.TimeToSecondPrecision(time.Now())
 	}()
 
 	// the storage engine must be tokudb
@@ -234,13 +235,13 @@ func (p *PhysicalTokudbDumper) PrepareBackupMetaInfo(cnf *config.BackupConfig) (
 		metaInfo.BackupBeginTime, _ = time.ParseInLocation("20060102_150405",
 			strings.TrimSpace(string(fileTokudbBegin)), time.Local)
 	} else {
-		metaInfo.BackupBeginTime, _ = time.Parse(time.DateTime, p.backupStartTime.Format(time.DateTime))
+		metaInfo.BackupBeginTime = p.backupStartTime
 	}
 	if fileTokudbEnd, err := os.ReadFile(filepath.Join(p.backupTargetPath, "TOKUDB.END")); err == nil {
 		metaInfo.BackupEndTime, _ = time.ParseInLocation("20060102_150405",
 			strings.TrimSpace(string(fileTokudbEnd)), time.Local)
 	} else {
-		metaInfo.BackupEndTime, _ = time.Parse(time.DateTime, p.backupEndTime.Format(time.DateTime))
+		metaInfo.BackupEndTime = p.backupEndTime
 	}
 	metaInfo.BackupConsistentTime = metaInfo.BackupEndTime
 

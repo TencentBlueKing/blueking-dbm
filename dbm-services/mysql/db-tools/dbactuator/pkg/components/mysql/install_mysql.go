@@ -1178,7 +1178,7 @@ func (i *InstallMySQLComp) createSpiderTable(socket string) (err error) {
 		Password: i.WorkPassword, // "",
 		Socket:   socket,
 		Charset:  i.Params.CharSet,
-	}.ExcuteSqlByMySQLClientOne(path.Join(i.MysqlInstallDir, "scripts/install_spider.sql"), "", true)
+	}.ExecuteSqlByMySQLClientOne(path.Join(i.MysqlInstallDir, "scripts/install_spider.sql"), "", true)
 }
 
 // CreateExporterCnf 根据mysql部署端口生成对应的exporter配置文件

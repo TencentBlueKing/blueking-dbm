@@ -23,7 +23,8 @@ func init() {
 	loadCmd.PersistentFlags().String("load-dir", "", "backup root path to save, overwrite LogicalLoad.MysqlLoadDir")
 	loadCmd.PersistentFlags().StringP("load-index-file", "i", "",
 		"backup index file, overwrite LogicalLoad.IndexFilePath, PhysicalLoad.IndexFilePath")
-	loadCmd.PersistentFlags().Int("threads", 4, "threads for myloader or xtrabackup, default 4")
+	loadCmd.PersistentFlags().Int("threads", 8, "threads for myloader or xtrabackup, "+
+		"default os logic cores")
 	viper.BindPFlag("LogicalLoad.MysqlLoadDir", loadCmd.PersistentFlags().Lookup("load-dir"))
 	viper.BindPFlag("LogicalLoad.IndexFilePath", loadCmd.PersistentFlags().Lookup("load-index-file"))
 	viper.BindPFlag("LogicalLoad.Threads", loadCmd.PersistentFlags().Lookup("threads"))

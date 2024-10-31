@@ -161,7 +161,7 @@ func (t *EnableTokudbEngineComp) ReWriteMyCnf() (err error) {
 			return err
 		}
 		tokudb_cache_size := fmt.Sprintf("%d%s", size/2, result[2])
-		datadir, err := cfg.GetMySQLDataDir()
+		datadir, err := cfg.GetMySQLDataHomeDir()
 		if err != nil {
 			logger.Error("get mysql datadir from my.cnf err:%v", err)
 			return err

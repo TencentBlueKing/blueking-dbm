@@ -29,7 +29,7 @@ import (
 type CleanMysqlComp struct {
 	GeneralParam *components.GeneralParam `json:"general"`
 	Params       CleanMysqlParam          `json:"extend"`
-	ctx
+	cleanMysqlCtx
 }
 
 // Example TODO
@@ -68,7 +68,7 @@ type CleanMysqlParam struct {
 	TgtInstance *native.Instance `json:"tgt_instance" validate:"required"`
 }
 
-type ctx struct {
+type cleanMysqlCtx struct {
 	sysUsers      []string
 	checkDuration time.Duration
 	myCnf         *util.CnfFile

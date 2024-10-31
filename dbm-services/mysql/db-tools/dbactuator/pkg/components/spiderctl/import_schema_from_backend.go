@@ -334,7 +334,7 @@ func (c *ImportSchemaFromBackendComp) migrateUseMysqlDump() (err error) {
 				errChan <- err
 				return
 			}
-			err = loader.ExcuteSqlByMySQLClientOne(dumpfile, db, true)
+			err = loader.ExecuteSqlByMySQLClientOne(dumpfile, db, true)
 			if err != nil {
 				logger.Error("执行导入schema文件:%s 失败:%s", dumpfile, err.Error())
 				errChan <- err
@@ -395,7 +395,7 @@ func (c *ImportSchemaFromBackendComp) MigrateRoutinesAndTriger() (err error) {
 		User:             c.GeneralParam.RuntimeAccountParam.AdminUser,
 		Password:         c.GeneralParam.RuntimeAccountParam.AdminPwd,
 		WorkDir:          c.tmpDumpDir,
-	}.ExcuteSqlByMySQLClientOne(c.tmpDumpFile, "", true)
+	}.ExecuteSqlByMySQLClientOne(c.tmpDumpFile, "", true)
 	if err != nil {
 		logger.Error("执行导入存储过程、触发器、event的SQL文件:%s 失败:%s", c.tmpDumpFile, err.Error())
 		return err

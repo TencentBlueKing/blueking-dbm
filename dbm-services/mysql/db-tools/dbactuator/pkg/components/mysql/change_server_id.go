@@ -94,7 +94,7 @@ func (c *ChangeServerIdComp) PreCheck() (err error) {
 		} else if err != nil {
 			return err
 		}
-		c.autoCnfFilePath[port] = filepath.Join(datadir, "data/auto.cnf") // check if exists when actually doing
+		c.autoCnfFilePath[port] = filepath.Join(datadir, "auto.cnf") // check if exists when actually doing
 	}
 	return nil
 }

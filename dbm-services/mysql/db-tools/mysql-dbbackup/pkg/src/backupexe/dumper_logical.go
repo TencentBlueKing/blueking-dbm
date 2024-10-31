@@ -28,6 +28,7 @@ import (
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/cst"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/dbareport"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/logger"
+	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/util"
 )
 
 // LogicalDumper TODO
@@ -163,6 +164,12 @@ func (l *LogicalDumper) Execute(enableTimeOut bool) error {
 	if err != nil {
 		logger.Log.Error("run logical backup failed: ", err, stderr.String())
 		return errors.WithMessage(err, stderr.String())
+	}
+	// check the integrity of backup
+	integrityErr := util.CheckIntegrity(&l.cnf.Public)
+	if integrityErr != nil {
+		logger.Log.Error("Failed to check the integrity of backup, error: ", integrityErr)
+		return integrityErr
 	}
 	return nil
 }

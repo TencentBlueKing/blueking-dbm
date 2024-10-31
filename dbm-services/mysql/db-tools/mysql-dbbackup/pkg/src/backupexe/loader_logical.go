@@ -140,7 +140,8 @@ func (l *LogicalLoader) Execute() (err error) {
 		"-h", l.cnf.LogicalLoad.MysqlHost,
 		"-P", strconv.Itoa(l.cnf.LogicalLoad.MysqlPort),
 		"-u", l.cnf.LogicalLoad.MysqlUser,
-		"-p", l.cnf.LogicalLoad.MysqlPasswd,
+		// "-p", l.cnf.LogicalLoad.MysqlPasswd,
+		fmt.Sprintf(`-p '%s'`, l.cnf.LogicalLoad.MysqlPasswd),
 		"-d", l.cnf.LogicalLoad.MysqlLoadDir,
 		fmt.Sprintf("--set-names=%s", l.cnf.LogicalLoad.MysqlCharset),
 	}
