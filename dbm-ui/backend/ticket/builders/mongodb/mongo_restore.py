@@ -216,6 +216,7 @@ class MongoDBRestoreApplyFlowBuilder(BaseMongoDBTicketFlowBuilder):
             shard_machine_group=int(shard_num / ticket_data["instance_per_host"]),
             shard_num=shard_num,
             resource_spec=ticket_data["resource_spec"],
+            proxy_port=cluster.access_port,
         )
         return apply_details
 
