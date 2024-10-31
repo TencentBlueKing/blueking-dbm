@@ -713,7 +713,8 @@ func (d *DbMigrateDumper) getBackupCmd() (backupCmd string) {
 
 // getBackupCmdOption 拼接数据备份参数选项
 func (d *DbMigrateDumper) getBackupCmdOption() (opt string) {
-	opt = fmt.Sprintf(" --data-schema-grant=%s --backup-dir=%s --cluster-domain=xx.xx --databases %s --tables \\*",
+	opt = fmt.Sprintf(" --nocheck-diskspace --data-schema-grant=%s "+
+		"--backup-dir=%s --cluster-domain=xx.xx --databases %s --tables \\*",
 		d.DataSchemaGrant, d.DumpDir, d.DbNames)
 	return opt
 }
