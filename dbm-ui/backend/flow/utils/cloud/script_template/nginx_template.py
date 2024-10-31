@@ -126,6 +126,11 @@ http {
         client_max_body_size 500M;
         proxy_connect;
         proxy_connect_allow 443 563;
+        set_real_ip_from 0.0.0.0/0;
+        real_ip_header X-Forwarded-For;
+        real_ip_recursive on;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
 
         location /apis/proxypass/ {
             # 重写上传接口的uri
