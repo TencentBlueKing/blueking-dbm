@@ -152,16 +152,23 @@ def RedisClusterSwitchAtomJob(root_id, data, act_kwargs: ActKwargs, sync_params:
         kwargs=asdict(swith_act),
     )
 
-    # 检查Proxy后端一致性
+    # 检查Proxy后端一致性;  精简一下传入参数，对于超大集群太多了
+    check_act = deepcopy(act_kwargs)
     if act_kwargs.cluster["cluster_type"] in [
         ClusterType.TwemproxyTendisSSDInstance,
         ClusterType.TendisTwemproxyRedisInstance,
     ]:
-        act_kwargs.get_redis_payload_func = RedisActPayload.redis_twemproxy_backends_4_scene.__name__
+        check_act.cluster = {
+            "bk_biz_id": act_kwargs.cluster["bk_biz_id"],
+            "cluster_id": act_kwargs.cluster["cluster_id"],
+            "cluster_type": act_kwargs.cluster["cluster_type"],
+            "immute_domain": act_kwargs.cluster["immute_domain"],
+        }
+        check_act.get_redis_payload_func = RedisActPayload.redis_twemproxy_backends_4_scene.__name__
         sub_pipeline.add_act(
             act_name=_("{}-检查切换状态").format(exec_ip),
             act_component_code=ExecuteDBActuatorScriptComponent.code,
-            kwargs=asdict(act_kwargs),
+            kwargs=asdict(check_act),
         )
 
     # 刷新DNS 主从版本需要

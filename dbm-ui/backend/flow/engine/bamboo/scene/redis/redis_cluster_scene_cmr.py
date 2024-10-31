@@ -397,7 +397,12 @@ class RedisClusterCMRSceneFlow(object):
         for cluster_replacement in self.data["infos"]:
             for cluster_id in cluster_replacement["cluster_ids"]:
                 try:
-                    cluster = Cluster.objects.get(id=cluster_id, bk_biz_id=self.data["bk_biz_id"])
+                    cluster = Cluster.objects.prefetch_related(
+                        "proxyinstance_set",
+                        "storageinstance_set",
+                        "proxyinstance_set__machine",
+                        "storageinstance_set__machine",
+                    ).get(id=cluster_id, bk_biz_id=self.data["bk_biz_id"])
                 except Cluster.DoesNotExist as e:
                     raise Exception("redis cluster does not exist,{}", e)
                 # check proxy
