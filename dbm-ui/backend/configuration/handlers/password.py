@@ -224,8 +224,9 @@ class DBPasswordHandler(object):
             0
         ]
         # 查询输出数据
-        resp = BambooEngine(root_id).get_node_output_data(node_id).data["resp"]
-        return {"status": flow_tree.status, "data": resp["data"]}
+        result = BambooEngine(root_id).get_node_output_data(node_id).data["resp"]["data"]
+        result.update(status=flow_tree.status)
+        return result
 
     @classmethod
     def _get_password_role(cls, cluster_type, role):
