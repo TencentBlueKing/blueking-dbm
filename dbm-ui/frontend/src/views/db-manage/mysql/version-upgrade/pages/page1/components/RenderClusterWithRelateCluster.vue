@@ -24,6 +24,7 @@
       :placeholder="t('请输入集群域名或从表头批量选择')"
       :rules="rules"
       @error="handleErrorMessageChange"
+      @focus="handleFocus"
       @submit="handleEditSubmit" />
     <div
       v-show="!isShowEdit"
@@ -46,22 +47,6 @@
 
 <script lang="ts">
   const clusterIdMemo: { [key: string]: Record<string, boolean> } = {};
-</script>
-
-<script setup lang="ts">
-  import _ from 'lodash';
-  import { useI18n } from 'vue-i18n';
-
-  import TendbhaModel from '@services/model/mysql/tendbha';
-  import { findRelatedClustersByClusterIds, queryClusters } from '@services/source/mysqlCluster';
-
-  import { useGlobalBizs } from '@stores';
-
-  import { ClusterTypes } from '@common/const';
-
-  import TableEditInput from '@components/render-table/columns/input/index.vue';
-
-  import { random } from '@utils';
 
   interface Props {
     modelValue?: {
@@ -71,12 +56,27 @@
   }
 
   interface Emits {
-    (e: 'idChange', value: TendbhaModel | null): void;
+    (e: 'idChange', value: number): void;
   }
 
   interface Exposes {
-    getValue: () => Array<number>;
+    getValue: (isSubmit?: boolean) => Array<number>;
   }
+</script>
+
+<script setup lang="ts">
+  import _ from 'lodash';
+  import { useI18n } from 'vue-i18n';
+
+  import { findRelatedClustersByClusterIds, queryClusters } from '@services/source/mysqlCluster';
+
+  import { useGlobalBizs } from '@stores';
+
+  import { ClusterTypes } from '@common/const';
+
+  import TableEditInput from '@components/render-table/columns/input/index.vue';
+
+  import { random } from '@utils';
 
   const props = defineProps<Props>();
   const emits = defineEmits<Emits>();
@@ -100,13 +100,14 @@
     }>
   >([]);
 
+  let isSkipInputFinish = false;
+
   const rules = [
     {
       validator: (value: string) => {
         if (value) {
           return true;
         }
-        emits('idChange', null);
         return false;
       },
       message: '目标集群不能为空',
@@ -124,10 +125,11 @@
         }).then((data) => {
           if (data.length > 0) {
             localClusterId.value = data[0].id;
-            emits('idChange', data[0]);
+            if (!isSkipInputFinish) {
+              emits('idChange', data[0].id);
+            }
             return true;
           }
-          emits('idChange', null);
           return false;
         }),
       message: '目标集群不存在',
@@ -227,12 +229,17 @@
     isShowEdit.value = isError;
   };
 
+  const handleFocus = () => {
+    isSkipInputFinish = false;
+  };
+
   onBeforeUnmount(() => {
     clusterIdMemo[instanceKey] = {};
   });
 
   defineExpose<Exposes>({
-    getValue() {
+    getValue(isSubmit = false) {
+      isSkipInputFinish = isSubmit;
       const result = {
         cluster_ids: _.uniq([localClusterId.value, ...relatedClusterList.value.map((listItem) => listItem.id)]),
       };
