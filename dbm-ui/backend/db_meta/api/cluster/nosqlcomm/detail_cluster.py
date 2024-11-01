@@ -13,6 +13,7 @@ import logging
 from django.utils.translation import gettext as _
 
 from backend.db_meta.api.cluster.base.graph import Graphic, Group, LineLabel
+from backend.db_meta.enums import ClusterEntryRole, InstanceInnerRole
 from backend.db_meta.models import Cluster, StorageInstanceTuple
 
 logger = logging.getLogger("root")
@@ -33,7 +34,7 @@ def scan_cluster(cluster: Cluster) -> Graphic:
     ).filter(receiver__cluster=cluster, ejector__cluster=cluster):
         ejector_instance = tr.ejector
         receiver_instance = tr.receiver
-        ejector_instance_node, ejector_instance_grp = graph.add_node(ejector_instance)
+        ejector_instance_node, ejector_instance_group = graph.add_node(ejector_instance)
         receiver_instance_node, receiver_instance_group = graph.add_node(receiver_instance)
         graph.add_line(source=ejector_instance_node, target=receiver_instance_node, label=LineLabel.Rep)
 
@@ -42,13 +43,26 @@ def scan_cluster(cluster: Cluster) -> Graphic:
     proxy_instance_group = None
     for proxy_instance in cluster.proxyinstance_set.all():
         dummy_proxy_instance_node, proxy_instance_group = graph.add_node(proxy_instance, proxy_instance_group)
-    backend_instance = proxy_instance.storageinstance.first()
-    backend_instance_grp = graph.get_or_create_group(*Group.generate_group_info(backend_instance))
-    graph.add_line(source=proxy_instance_group, target=backend_instance_grp, label=LineLabel.Access)
+    master_backend_instance = proxy_instance.storageinstance.first()
+    master_backend_instance_grp = graph.get_or_create_group(*Group.generate_group_info(master_backend_instance))
+    graph.add_line(source=proxy_instance_group, target=master_backend_instance_grp, label=LineLabel.Access)
 
     master_bind_entry_group = Group(node_id="master_bind_entry_group", group_name=_("访问入口（主）"))
-    for be in proxy_instance.bind_entry.all():
-        dummy_be_node, master_bind_entry_group = graph.add_node(be, to_group=master_bind_entry_group)
+    for bind_entry in proxy_instance.bind_entry.filter(role=ClusterEntryRole.MASTER_ENTRY.value):
+        dummy_be_node, master_bind_entry_group = graph.add_node(bind_entry, to_group=master_bind_entry_group)
         graph.add_line(source=master_bind_entry_group, target=proxy_instance_group, label=LineLabel.Bind)
+
+    # 存储层访问入口
+    nodes_bind_entry_group = Group(node_id="nodes_bind_entry_group", group_name=_("存储层访问入口"))
+    for bind_entry in master_backend_instance.bind_entry.filter(role=ClusterEntryRole.NODE_ENTRY.value):
+        dummy_be_node, nodes_bind_entry_group = graph.add_node(bind_entry, to_group=nodes_bind_entry_group)
+        graph.add_line(source=nodes_bind_entry_group, target=master_backend_instance_grp, label=LineLabel.Bind)
+
+    # slave 存储访问入口
+    slave_instance = cluster.storageinstance_set.filter(instance_inner_role=InstanceInnerRole.SLAVE.value).first()
+    slave_instance_group = graph.get_or_create_group(*Group.generate_group_info(slave_instance))
+    for bind_entry in master_backend_instance.bind_entry.filter(role=ClusterEntryRole.NODE_ENTRY.value):
+        dummy_be_node, nodes_bind_entry_group = graph.add_node(bind_entry, to_group=nodes_bind_entry_group)
+        graph.add_line(source=nodes_bind_entry_group, target=slave_instance_group, label=LineLabel.Bind)
 
     return graph
