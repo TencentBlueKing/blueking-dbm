@@ -130,11 +130,7 @@ class RedisClusterVersionUpdateOnline(object):
                         )
                 elif input_item["node_type"] == RedisVerUpdateNodeType.Backend:
                     redis_ver = get_cluster_redis_version(cluster_id)
-                    if redis_ver == input_item["target_version"]:
-                        err = _("集群{} storage当前版本{} == 目标版本:{},无需升级").format(
-                            cluster.immute_domain, redis_ver, input_item["target_version"]
-                        )
-                    elif version_ge(redis_ver, input_item["target_version"]):
+                    if version_ge(redis_ver, input_item["target_version"]):
                         err = _("集群{} storage当前版本{} > 目标版本:{},不支持降级").format(
                             cluster.immute_domain, redis_ver, input_item["target_version"]
                         )
