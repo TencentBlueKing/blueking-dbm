@@ -44,14 +44,42 @@
             <span>{{ t('目标版本') }}</span>
           </RenderTableHeadColumn>
           <RenderTableHeadColumn
-            :min-width="130"
+            :min-width="200"
             :width="300">
             <span>{{ t('新主从主机') }}</span>
+            <template #append>
+              <BatchEditColumn
+                v-model="isShowBatchEdit.masterHostData"
+                :placeholder="t('请按行输入IP，每行代表一个单元格的值。多个IP用逗号、空格、｜分隔')"
+                :title="t('新主从主机')"
+                title-prefix-type="entry"
+                type="textarea"
+                @change="(value: string | string[]) => handleBatchEdit(value as string, 'masterHostData')">
+                <BatchOperateIcon
+                  class="ml-4"
+                  type="entry"
+                  @click="() => handleShowBatchEdit('masterHostData')" />
+              </BatchEditColumn>
+            </template>
           </RenderTableHeadColumn>
           <RenderTableHeadColumn
             :min-width="200"
             :width="300">
             <span>{{ t('新只读主机') }}</span>
+            <template #append>
+              <BatchEditColumn
+                v-model="isShowBatchEdit.readonlyHostData"
+                :placeholder="t('请按行输入IP，每行代表一个单元格的值。多个IP用逗号、空格、｜分隔')"
+                :title="t('新只读主机')"
+                title-prefix-type="entry"
+                type="textarea"
+                @change="(value: string | string[]) => handleBatchEdit(value as string, 'readonlyHostData')">
+                <BatchOperateIcon
+                  class="ml-4"
+                  type="entry"
+                  @click="() => handleShowBatchEdit('readonlyHostData')" />
+              </BatchEditColumn>
+            </template>
           </RenderTableHeadColumn>
           <RenderTableHeadColumn
             fixed="right"
@@ -68,7 +96,7 @@
             :data="item"
             :removeable="tableData.length < 2"
             @add="(payload: Array<IDataRow>) => handleAppend(index, payload)"
-            @cluster-input-finish="(domainObj: TendbhaModel | null) => handleChangeCluster(index, domainObj)"
+            @cluster-input-finish="(clusterId) => handleChangeCluster(index, clusterId)"
             @remove="handleRemove(index)" />
         </template>
       </RenderTable>
@@ -122,23 +150,26 @@
 
   import TendbhaModel from '@services/model/mysql/tendbha';
   import { findRelatedClustersByClusterIds } from '@services/source/mysqlCluster';
+  import { getTendbhaList } from '@services/source/tendbha';
   import { createTicket } from '@services/source/ticket';
 
   import { useGlobalBizs } from '@stores';
 
   import { ClusterTypes, TicketTypes } from '@common/const';
+  import { batchInputSplitRegex } from '@common/regex';
 
   import ClusterSelector from '@components/cluster-selector/Index.vue';
   import RenderTableHeadColumn from '@components/render-table/HeadColumn.vue';
   import RenderTable from '@components/render-table/Index.vue';
   import TicketRemark from '@components/ticket-remark/Index.vue';
 
+  import BatchEditColumn from '@views/db-manage/common/batch-edit-column/Index.vue';
   import BatchOperateIcon from '@views/db-manage/common/batch-operate-icon/Index.vue';
   import type { InfoItem } from '@views/db-manage/redis/db-data-copy/pages/page1/Index.vue';
 
   import ForceAction from '../force-action/Index.vue';
 
-  import RenderDataRow, { createRowData, type IDataRow } from './Row.vue';
+  import RenderDataRow, { createRowData, type IDataRow, type IDataRowBatchKey } from './Row.vue';
 
   interface Props {
     tableList: IDataRow[];
@@ -164,6 +195,11 @@
   const localBackupSource = ref('local');
   const localRemark = ref('');
   const isForce = ref(false);
+
+  const isShowBatchEdit = reactive({
+    masterHostData: false,
+    readonlyHostData: false,
+  });
 
   const selectedClusters = shallowRef<{ [key: string]: Array<TendbhaModel> }>({ [ClusterTypes.TENDBHA]: [] });
 
@@ -206,6 +242,57 @@
 
   const handleShowMasterBatchSelector = () => {
     isShowClusterSelector.value = true;
+  };
+
+  const handleShowBatchEdit = (key: IDataRowBatchKey) => {
+    isShowBatchEdit[key] = !isShowBatchEdit[key];
+  };
+
+  const handleBatchEdit = (value: string, fieldName: IDataRowBatchKey) => {
+    if (checkListEmpty(tableData.value)) {
+      return;
+    }
+    const ipList = value.split('\n');
+
+    ipList.forEach((ipItem, index) => {
+      if (!tableData.value[index]) {
+        return;
+      }
+      const hostList = ipItem.split(batchInputSplitRegex);
+      if (fieldName === 'masterHostData') {
+        if (hostList.length > 0) {
+          Object.assign(tableData.value[index], {
+            masterHostData: {
+              bk_biz_id: 0,
+              bk_host_id: 0,
+              ip: hostList[0],
+              bk_cloud_id: 0,
+            },
+          });
+        }
+        if (hostList.length > 1) {
+          Object.assign(tableData.value[index], {
+            slaveHostData: {
+              bk_biz_id: 0,
+              bk_host_id: 0,
+              ip: hostList[1],
+              bk_cloud_id: 0,
+            },
+          });
+        }
+      } else {
+        if (tableData.value[index].clusterData?.readonlySlaveList.length) {
+          Object.assign(tableData.value[index], {
+            readonlyHostData: hostList.map((hostItem) => ({
+              bk_biz_id: 0,
+              bk_host_id: 0,
+              ip: hostItem,
+              bk_cloud_id: 0,
+            })),
+          });
+        }
+      }
+    });
   };
 
   // 追加一个集群
@@ -295,8 +382,13 @@
   };
 
   // 输入集群后查询集群信息并填充到table
-  const handleChangeCluster = async (index: number, domainObj: TendbhaModel | null) => {
-    if (domainObj) {
+  const handleChangeCluster = async (index: number, id: number) => {
+    tableData.value[index].isLoading = true;
+    const result = await getTendbhaList({ cluster_ids: [id] }).finally(() => {
+      tableData.value[index].isLoading = false;
+    });
+    if (result.results.length > 0) {
+      const domainObj = result.results[0];
       const row = generateTableRow(domainObj);
       tableData.value[index] = row;
       domainMemo[domainObj.master_domain] = true;

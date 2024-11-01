@@ -81,8 +81,6 @@
 <script lang="ts">
   import { useI18n } from 'vue-i18n';
 
-  import TendbhaModel from '@services/model/mysql/tendbha';
-
   import FixedColumn from '@components/render-table/columns/fixed-column/index.vue';
   import OperateColumn from '@components/render-table/columns/operate-column/index.vue';
   import RenderText from '@components/render-table/columns/text-plain/index.vue';
@@ -133,6 +131,8 @@
     ...data,
   });
 
+  export type IDataRowBatchKey = keyof Pick<IDataRow, 'masterHostData' | 'readonlyHostData'>;
+
   interface Props {
     data: IDataRow;
     removeable: boolean;
@@ -141,7 +141,7 @@
   interface Emits {
     (e: 'add', params: Array<IDataRow>): void;
     (e: 'remove'): void;
-    (e: 'clusterInputFinish', value: TendbhaModel | null): void;
+    (e: 'clusterInputFinish', value: number): void;
   }
 
   interface Exposes {
@@ -184,8 +184,8 @@
     return '';
   });
 
-  const handleClusterIdChange = (value: TendbhaModel | null) => {
-    emits('clusterInputFinish', value);
+  const handleClusterIdChange = (clusterId: number) => {
+    emits('clusterInputFinish', clusterId);
   };
 
   const handleModuleChange = (value: string) => {
@@ -206,7 +206,7 @@
   defineExpose<Exposes>({
     async getValue() {
       return await Promise.all([
-        clusterRef.value!.getValue(),
+        clusterRef.value!.getValue(true),
         targetVersionRef.value!.getValue(),
         masterSlaveHostRef.value!.getValue(),
         newReadonlySlaveHostRef.value!.getValue(),

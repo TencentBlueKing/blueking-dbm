@@ -39,8 +39,6 @@
 <script lang="ts">
   import { useI18n } from 'vue-i18n';
 
-  import TendbhaModel from '@services/model/mysql/tendbha';
-
   import FixedColumn from '@components/render-table/columns/fixed-column/index.vue';
   import OperateColumn from '@components/render-table/columns/operate-column/index.vue';
   import RenderText from '@components/render-table/columns/text-plain/index.vue';
@@ -69,9 +67,7 @@
     isLoading: false,
     ...data,
   });
-</script>
 
-<script setup lang="ts">
   interface Props {
     data: IDataRow;
     removeable: boolean;
@@ -80,13 +76,15 @@
   interface Emits {
     (e: 'add', params: Array<IDataRow>): void;
     (e: 'remove'): void;
-    (e: 'clusterInputFinish', value: TendbhaModel | null): void;
+    (e: 'clusterInputFinish', value: number): void;
   }
 
   interface Exposes {
     getValue: () => Promise<any>;
   }
+</script>
 
+<script setup lang="ts">
   const props = defineProps<Props>();
 
   const emits = defineEmits<Emits>();
@@ -106,8 +104,8 @@
     return undefined;
   });
 
-  const handleClusterIdChange = (value: TendbhaModel | null) => {
-    emits('clusterInputFinish', value);
+  const handleClusterIdChange = (clusterId: number) => {
+    emits('clusterInputFinish', clusterId);
   };
 
   const handleAppend = () => {
@@ -123,7 +121,7 @@
 
   defineExpose<Exposes>({
     getValue() {
-      return Promise.all([clusterRef.value!.getValue(), targetVersionRef.value!.getValue()]).then((data) => {
+      return Promise.all([clusterRef.value!.getValue(true), targetVersionRef.value!.getValue()]).then((data) => {
         const [clusterData, targetVersionData] = data;
         return {
           ...clusterData,

@@ -40,8 +40,6 @@
   </tr>
 </template>
 <script lang="ts">
-  import TendbSingleModel from '@services/model/mysql/tendbsingle';
-
   import FixedColumn from '@components/render-table/columns/fixed-column/index.vue';
   import OperateColumn from '@components/render-table/columns/operate-column/index.vue';
 
@@ -72,9 +70,7 @@
     isLoading: false,
     clusterData,
   });
-</script>
 
-<script setup lang="ts">
   interface Props {
     data: IDataRow;
     removeable: boolean;
@@ -83,15 +79,16 @@
   interface Emits {
     (e: 'add', params: Array<IDataRow>): void;
     (e: 'remove'): void;
-    (e: 'clusterInputFinish', value: TendbSingleModel | null): void;
+    (e: 'clusterInputFinish', value: number): void;
   }
 
   interface Exposes {
     getValue: () => Promise<any>;
   }
+</script>
 
+<script setup lang="ts">
   const props = defineProps<Props>();
-
   const emits = defineEmits<Emits>();
 
   const clusterRef = ref<InstanceType<typeof RenderCluster>>();
@@ -108,8 +105,8 @@
     return undefined;
   });
 
-  const handleClusterIdChange = (value: TendbSingleModel | null) => {
-    emits('clusterInputFinish', value);
+  const handleClusterIdChange = (clusterId: number) => {
+    emits('clusterInputFinish', clusterId);
   };
 
   const handleModuleChange = (value: string) => {
@@ -129,7 +126,7 @@
 
   defineExpose<Exposes>({
     async getValue() {
-      return await Promise.all([clusterRef.value!.getValue(), targetVersionRef.value!.getValue()]).then((data) => {
+      return await Promise.all([clusterRef.value!.getValue(true), targetVersionRef.value!.getValue()]).then((data) => {
         const [clusterData, targetVersionData] = data;
         const clusterInfo = props.data.clusterData!;
         Object.assign(targetVersionData.display_info, {
