@@ -10,6 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 import logging
 
+from django.core.cache import cache
 from django.db import models
 from django.db.models import Q
 from django.utils.translation import ugettext_lazy as _
@@ -70,11 +71,14 @@ class DBModule(AuditedModel):
             for dm in cls.objects.filter(q).all():
 
                 try:
-                    app = AppCache.objects.get(bk_biz_id=dm.bk_biz_id)
+                    appcache_dict = cache.get("appcache_dict")
+                    appcache = appcache_dict.get(str(dm.bk_biz_id))
                     db_module_choices.append(
                         (
                             dm.db_module_id,
-                            f"[{dm.db_module_id}]-[{dm.cluster_type}]-[app:{app.db_app_abbr}]-{dm.db_module_name}",
+                            f"[{dm.db_module_id}]-"
+                            f"[{dm.cluster_type}]-[app:{appcache['db_app_abbr']}]-"
+                            f"{dm.db_module_name}",
                         )
                     )
                 except AppCache.DoesNotExist:

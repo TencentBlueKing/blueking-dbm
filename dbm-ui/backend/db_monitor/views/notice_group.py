@@ -83,8 +83,11 @@ class MonitorNoticeGroupViewSet(viewsets.AuditedModelViewSet):
 
     def get_serializer_context(self):
         context = super().get_serializer_context()
-        notify_groups = MonitorPolicy.objects.exclude(notify_groups=[]).values_list("notify_groups", flat=True)
-        context["group_used"] = dict(Counter([item for group in notify_groups for item in group]))
+        context["group_used"] = {}
+        if "X-Requested-With" in self.request.META:
+            # 仅在实际API调用时执行查库逻辑。/swagger/文档API忽略查库
+            notify_groups = MonitorPolicy.objects.exclude(notify_groups=[]).values_list("notify_groups", flat=True)
+            context["group_used"] = dict(Counter([item for group in notify_groups for item in group]))
         return context
 
     def get_queryset(self):

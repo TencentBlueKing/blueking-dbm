@@ -13,6 +13,7 @@ import os.path
 from collections import defaultdict
 
 from django.conf import settings
+from django.core.cache import cache
 from django.utils.translation import ugettext as _
 
 from backend import env
@@ -20,6 +21,7 @@ from backend.components import CCApi, JobApi
 from backend.configuration.constants import DBType
 from backend.db_meta.enums import ClusterPhase, ClusterType
 from backend.db_meta.models import (
+    AppCache,
     Cluster,
     ClusterEntry,
     Machine,
@@ -201,3 +203,11 @@ def clean_cc_topo(bk_biz_id=env.DBA_APP_BK_BIZ_ID):
                 "bk_module_id": bk_module["bk_module_id"],
             }
         )
+
+
+def cache_appcache_data(sender, **kwargs):
+    data = AppCache.objects.all().values()
+    appcache_list = list(data) if data else []
+    appcache_dict = {app["bk_biz_id"]: app for app in data}
+    cache.set("appcache_list", appcache_list)
+    cache.set("appcache_dict", appcache_dict)

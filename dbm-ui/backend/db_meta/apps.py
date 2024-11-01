@@ -43,8 +43,11 @@ class DBMeta(AppConfig):
     name = "backend.db_meta"
 
     def ready(self):
-        from backend.db_meta.models import ProxyInstance, StorageInstance
+        from backend.db_meta.models import AppCache, ProxyInstance, StorageInstance
         from backend.db_meta.signals import update_cluster_status
+        from backend.db_meta.utils import cache_appcache_data
+
+        post_save.connect(cache_appcache_data, sender=AppCache)
 
         post_migrate.connect(init_db_meta, sender=self)
         # 当实例进行修改或者删除时，更新集群状态

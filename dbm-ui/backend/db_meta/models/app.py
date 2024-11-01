@@ -10,6 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 import logging
 
+from django.core.cache import cache
 from django.db import models
 from django.utils.translation import ugettext_lazy as _
 
@@ -94,7 +95,8 @@ class AppCache(AuditedModel):
     @classmethod
     def get_choices(cls):
         try:
-            biz_choices = [(biz.bk_biz_id, f"[{biz.bk_biz_id}]{biz.bk_biz_name}") for biz in cls.objects.all()]
+            appcache_data = cache.get("appcache_list")
+            biz_choices = [(app["bk_biz_id"], f"[{app['bk_biz_id']}]{app['bk_biz_name']}") for app in appcache_data]
         except Exception:  # pylint: disable=broad-except
             # 忽略出现的异常，此时可能因为表未初始化
             biz_choices = []
