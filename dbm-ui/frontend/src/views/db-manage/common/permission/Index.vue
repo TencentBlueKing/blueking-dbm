@@ -159,7 +159,7 @@
     },
     [AccountTypes.TENDBCLUSTER]: {
       ticketType: TicketTypes.TENDBCLUSTER_AUTHORIZE_RULES,
-      clusterTypes: [ClusterTypes.TENDBCLUSTER],
+      clusterTypes: [ClusterTypes.TENDBCLUSTER, 'tendbclusterSlave'],
       dbOperations: mysqlDbOperations[AccountTypes.TENDBCLUSTER].dbOperations,
       ddlSensitiveWords: mysqlDbOperations[AccountTypes.TENDBCLUSTER].ddlSensitiveWords,
       dataSource: getMysqlPermissionRules,
