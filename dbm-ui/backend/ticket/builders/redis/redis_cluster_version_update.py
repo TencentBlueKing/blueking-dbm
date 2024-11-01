@@ -30,12 +30,15 @@ class RedisVersionUpdateDetailSerializer(serializers.Serializer):
     def to_representation(self, details):
         return details
 
-    def validate(self, attrs):
+    def validate_version_update(self, attrs):
         for info in attrs["infos"]:
             # 校验当前版本不能和目标版本一致
             if info["target_version"] in info["current_versions"]:
                 raise serializers.ValidationError(_("当前版本不能和目标版本{}一致").format(info["current_versions"]))
 
+    def validate(self, attrs):
+        # 暂时去掉对版本校验，允许同版本升级
+        # self.validate_version_update(attrs)
         return attrs
 
 
