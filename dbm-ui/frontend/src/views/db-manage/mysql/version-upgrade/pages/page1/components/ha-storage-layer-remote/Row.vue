@@ -131,6 +131,8 @@
     ...data,
   });
 
+  export type IDataRowBatchKey = keyof Pick<IDataRow, 'masterHostData' | 'readonlyHostData'>;
+
   interface Props {
     data: IDataRow;
     removeable: boolean;
@@ -139,7 +141,7 @@
   interface Emits {
     (e: 'add', params: Array<IDataRow>): void;
     (e: 'remove'): void;
-    (e: 'clusterInputFinish', clusterId: number): void;
+    (e: 'clusterInputFinish', value: number): void;
   }
 
   interface Exposes {
@@ -204,7 +206,7 @@
   defineExpose<Exposes>({
     async getValue() {
       return await Promise.all([
-        clusterRef.value!.getValue(),
+        clusterRef.value!.getValue(true),
         targetVersionRef.value!.getValue(),
         masterSlaveHostRef.value!.getValue(),
         newReadonlySlaveHostRef.value!.getValue(),

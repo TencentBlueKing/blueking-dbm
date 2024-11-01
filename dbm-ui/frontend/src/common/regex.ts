@@ -65,6 +65,11 @@ export const dbRegex = /^[a-zA-Z0-9][-_a-zA-Z0-9]*([a-zA-Z0-9]|%)$/;
 export const batchSplitRegex = /\s*[｜|，,；;、\t\n/\s]\s*/g;
 
 /**
+ * 批量录入分隔符，支持 中英竖线、中英逗号、中英分号、顿号、制表符、斜线
+ */
+export const batchInputSplitRegex = /\s*[｜|，,；;、\t/\s]\s*/g;
+
+/**
  * 版本号正则，格式为 x.x.x 或 x.x
  */
 export const versionRegex = /\b(\d+\.\d+(\.\d+)?)\b/;

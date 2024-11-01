@@ -17,18 +17,20 @@
     :class="{
       'is-editing': isShowEdit,
     }">
-    <span v-show="isShowEdit">
-      <TableEditInput
-        ref="editRef"
-        :model-value="localClusterInfo"
-        @cluster-change="handleEditSubmit"
-        @error="handleErrorMessageChange" />
-    </span>
+    <TableEditInput
+      v-show="isShowEdit"
+      ref="editRef"
+      v-model="localDomain"
+      :placeholder="t('请输入集群域名或从表头批量选择')"
+      :rules="rules"
+      @error="handleErrorMessageChange"
+      @focus="handleFocus"
+      @submit="handleEditSubmit" />
     <div
       v-show="!isShowEdit"
       @click="handleShowEdit">
       <div class="render-cluster-domain">
-        <span>{{ localClusterInfo.domain }}</span>
+        <span>{{ localDomain }}</span>
       </div>
       <div
         v-if="relatedClusterList.length > 0"
@@ -44,6 +46,8 @@
 </template>
 
 <script lang="ts">
+  const clusterIdMemo: { [key: string]: Record<string, boolean> } = {};
+
   interface Props {
     modelValue?: {
       id: number;
@@ -51,27 +55,28 @@
     };
   }
 
-  const clusterIdMemo: { [key: string]: Record<string, boolean> } = {};
+  interface Emits {
+    (e: 'idChange', value: number): void;
+  }
+
+  interface Exposes {
+    getValue: (isSubmit?: boolean) => Array<number>;
+  }
 </script>
 
 <script setup lang="ts">
   import _ from 'lodash';
+  import { useI18n } from 'vue-i18n';
 
-  import { findRelatedClustersByClusterIds } from '@services/source/mysqlCluster';
+  import { findRelatedClustersByClusterIds, queryClusters } from '@services/source/mysqlCluster';
 
   import { useGlobalBizs } from '@stores';
 
-  import TableEditInput from '@views/db-manage/mysql/common/edit-field/ClusterNameWithSelector.vue';
+  import { ClusterTypes } from '@common/const';
+
+  import TableEditInput from '@components/render-table/columns/input/index.vue';
 
   import { random } from '@utils';
-
-  interface Emits {
-    (e: 'idChange', clusterId: number): void;
-  }
-
-  interface Exposes {
-    getValue: () => Array<number>;
-  }
 
   const props = defineProps<Props>();
   const emits = defineEmits<Emits>();
@@ -79,15 +84,13 @@
   const instanceKey = `render_cluster_instance_${random()}`;
   clusterIdMemo[instanceKey] = {};
 
+  const { t } = useI18n();
   const { currentBizId } = useGlobalBizs();
 
   const editRef = ref();
 
-  const localClusterInfo = ref({
-    id: 0,
-    domain: '',
-  });
-
+  const localClusterId = ref(0);
+  const localDomain = ref('');
   const isShowEdit = ref(true);
   const isRelateLoading = ref(false);
   const relatedClusterList = shallowRef<
@@ -97,11 +100,71 @@
     }>
   >([]);
 
+  let isSkipInputFinish = false;
+
+  const rules = [
+    {
+      validator: (value: string) => {
+        if (value) {
+          return true;
+        }
+        return false;
+      },
+      message: '目标集群不能为空',
+    },
+    {
+      validator: (value: string) =>
+        queryClusters({
+          cluster_filters: [
+            {
+              immute_domain: value,
+              cluster_type: ClusterTypes.TENDBHA,
+            },
+          ],
+          bk_biz_id: currentBizId,
+        }).then((data) => {
+          if (data.length > 0) {
+            localClusterId.value = data[0].id;
+            if (!isSkipInputFinish) {
+              emits('idChange', data[0].id);
+            }
+            return true;
+          }
+          return false;
+        }),
+      message: '目标集群不存在',
+    },
+    {
+      validator: () => {
+        const currentClusterSelectMap = clusterIdMemo[instanceKey];
+        const otherClusterMemoMap = { ...clusterIdMemo };
+        delete otherClusterMemoMap[instanceKey];
+
+        const otherClusterIdMap = Object.values(otherClusterMemoMap).reduce(
+          (result, item) => ({
+            ...result,
+            ...item,
+          }),
+          {} as Record<string, boolean>,
+        );
+
+        const currentSelectClusterIdList = Object.keys(currentClusterSelectMap);
+        for (let i = 0; i < currentSelectClusterIdList.length; i++) {
+          if (otherClusterIdMap[currentSelectClusterIdList[i]]) {
+            return false;
+          }
+        }
+        return true;
+      },
+      message: '目标集群重复',
+    },
+  ];
+
   // 通过 ID 获取关联集群
   const fetchRelatedClustersByClusterIds = () => {
     isRelateLoading.value = true;
     findRelatedClustersByClusterIds({
-      cluster_ids: [localClusterInfo.value.id],
+      cluster_ids: [localClusterId.value],
       bk_biz_id: currentBizId,
     })
       .then((data) => {
@@ -121,10 +184,8 @@
     () => props.modelValue,
     () => {
       const { id = 0, domain = '' } = props.modelValue || {};
-      localClusterInfo.value = {
-        id,
-        domain,
-      };
+      localClusterId.value = id;
+      localDomain.value = domain;
       isShowEdit.value = !id;
     },
     {
@@ -134,12 +195,12 @@
 
   // 获取关联集群
   watch(
-    () => localClusterInfo.value.id,
-    (clusterId) => {
-      if (!clusterId) {
+    localClusterId,
+    () => {
+      if (!localClusterId.value) {
         return;
       }
-      clusterIdMemo[instanceKey][clusterId] = true;
+      clusterIdMemo[instanceKey][localClusterId.value] = true;
       fetchRelatedClustersByClusterIds();
     },
     {
@@ -156,17 +217,11 @@
   };
 
   // 提交编辑
-  const handleEditSubmit = (info: { id: number; domain: string }) => {
-    if (!info.domain) {
+  const handleEditSubmit = (value: string) => {
+    if (!value) {
       return;
     }
 
-    const { id, domain } = info;
-    localClusterInfo.value = {
-      id,
-      domain,
-    };
-    emits('idChange', id);
     isShowEdit.value = false;
   };
 
@@ -174,24 +229,22 @@
     isShowEdit.value = isError;
   };
 
+  const handleFocus = () => {
+    isSkipInputFinish = false;
+  };
+
   onBeforeUnmount(() => {
     clusterIdMemo[instanceKey] = {};
   });
 
   defineExpose<Exposes>({
-    getValue() {
+    getValue(isSubmit = false) {
+      isSkipInputFinish = isSubmit;
       const result = {
-        cluster_ids: _.uniq([localClusterInfo.value.id, ...relatedClusterList.value.map((listItem) => listItem.id)]),
+        cluster_ids: _.uniq([localClusterId.value, ...relatedClusterList.value.map((listItem) => listItem.id)]),
       };
-      // 用户输入未完成验证
-      if (editRef.value) {
-        return editRef.value.getValue().then(() => result);
-      }
-      // 用户输入错误
-      if (!localClusterInfo.value.id) {
-        return Promise.reject();
-      }
-      return Promise.resolve(result);
+
+      return editRef.value.getValue().then(() => result);
     },
   });
 </script>

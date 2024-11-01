@@ -49,11 +49,6 @@
 
   import RenderTargetVersion from './RenderTargetVersion.vue';
 
-  interface Props {
-    data: IDataRow;
-    removeable: boolean;
-  }
-
   export interface IDataRow {
     rowKey: string;
     isLoading: boolean;
@@ -72,19 +67,24 @@
     isLoading: false,
     ...data,
   });
-</script>
 
-<script setup lang="ts">
+  interface Props {
+    data: IDataRow;
+    removeable: boolean;
+  }
+
   interface Emits {
     (e: 'add', params: Array<IDataRow>): void;
     (e: 'remove'): void;
-    (e: 'clusterInputFinish', clusterId: number): void;
+    (e: 'clusterInputFinish', value: number): void;
   }
 
   interface Exposes {
     getValue: () => Promise<any>;
   }
+</script>
 
+<script setup lang="ts">
   const props = defineProps<Props>();
 
   const emits = defineEmits<Emits>();
@@ -104,8 +104,8 @@
     return undefined;
   });
 
-  const handleClusterIdChange = (value: number) => {
-    emits('clusterInputFinish', value);
+  const handleClusterIdChange = (clusterId: number) => {
+    emits('clusterInputFinish', clusterId);
   };
 
   const handleAppend = () => {
@@ -121,7 +121,7 @@
 
   defineExpose<Exposes>({
     getValue() {
-      return Promise.all([clusterRef.value!.getValue(), targetVersionRef.value!.getValue()]).then((data) => {
+      return Promise.all([clusterRef.value!.getValue(true), targetVersionRef.value!.getValue()]).then((data) => {
         const [clusterData, targetVersionData] = data;
         return {
           ...clusterData,

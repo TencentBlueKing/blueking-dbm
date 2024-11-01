@@ -17,8 +17,7 @@
       <RenderCluster
         ref="clusterRef"
         :model-value="clusterInfo"
-        tabs="tendbsingle"
-        @cluster-change="handleClusterIdChange" />
+        @id-change="handleClusterIdChange" />
     </FixedColumn>
     <td style="padding: 0">
       <RenderCurrentVersion
@@ -44,12 +43,12 @@
   import FixedColumn from '@components/render-table/columns/fixed-column/index.vue';
   import OperateColumn from '@components/render-table/columns/operate-column/index.vue';
 
-  import RenderCluster from '@views/db-manage/mysql/common/edit-field/ClusterNameWithSelector.vue';
-
   import { random } from '@utils';
 
   import RenderCurrentVersion from '../RenderCurrentVersion.vue';
   import RenderTargetVersion from '../RenderTargetVersion.vue';
+
+  import RenderCluster from './RenderCluster.vue';
 
   export interface IDataRow {
     rowKey: string;
@@ -71,9 +70,7 @@
     isLoading: false,
     clusterData,
   });
-</script>
 
-<script setup lang="ts">
   interface Props {
     data: IDataRow;
     removeable: boolean;
@@ -88,9 +85,10 @@
   interface Exposes {
     getValue: () => Promise<any>;
   }
+</script>
 
+<script setup lang="ts">
   const props = defineProps<Props>();
-
   const emits = defineEmits<Emits>();
 
   const clusterRef = ref<InstanceType<typeof RenderCluster>>();
@@ -107,8 +105,8 @@
     return undefined;
   });
 
-  const handleClusterIdChange = (info: { id: number }) => {
-    emits('clusterInputFinish', info.id);
+  const handleClusterIdChange = (clusterId: number) => {
+    emits('clusterInputFinish', clusterId);
   };
 
   const handleModuleChange = (value: string) => {
@@ -128,7 +126,7 @@
 
   defineExpose<Exposes>({
     async getValue() {
-      return await Promise.all([clusterRef.value!.getValue(), targetVersionRef.value!.getValue()]).then((data) => {
+      return await Promise.all([clusterRef.value!.getValue(true), targetVersionRef.value!.getValue()]).then((data) => {
         const [clusterData, targetVersionData] = data;
         const clusterInfo = props.data.clusterData!;
         Object.assign(targetVersionData.display_info, {
@@ -139,7 +137,7 @@
           current_module_name: clusterInfo.moduleName,
         });
         return {
-          cluster_ids: [clusterData.cluster_id],
+          ...clusterData,
           ...targetVersionData,
         };
       });

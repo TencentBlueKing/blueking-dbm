@@ -149,6 +149,9 @@
         id: packageItem.pkg_id,
         name: packageItem.pkg_name,
       }));
+      if (versions.length) {
+        localPackage.value = versions[0].pkg_id;
+      }
     },
   });
 
