@@ -48,7 +48,7 @@
             :data="item"
             :removeable="tableData.length < 2"
             @add="(payload: Array<IDataRow>) => handleAppend(index, payload)"
-            @cluster-input-finish="(clusterId: number) => handleChangeCluster(index, clusterId)"
+            @cluster-input-finish="(clusterId) => handleChangeCluster(index, clusterId)"
             @remove="handleRemove(index)" />
         </template>
       </RenderTable>
@@ -236,7 +236,7 @@
   // 输入集群后查询集群信息并填充到table
   const handleChangeCluster = async (index: number, id: number) => {
     tableData.value[index].isLoading = true;
-    const result = await getTendbhaList({ id }).finally(() => {
+    const result = await getTendbhaList({ cluster_ids: [id] }).finally(() => {
       tableData.value[index].isLoading = false;
     });
     if (result.results.length > 0) {

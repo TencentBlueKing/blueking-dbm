@@ -254,11 +254,20 @@
         name: version,
       }));
 
+      if (versionSelectList.value.length) {
+        localVersion.value = versionSelectList.value[0].id as string;
+        fetchModuleList();
+      }
+
       if (localVersion.value) {
         packageSelectList.value = (versionMap[localVersion.value] || []).map((versionItem) => ({
           id: versionItem.pkg_id,
           name: versionItem.pkg_name,
         }));
+
+        if (packageSelectList.value.length) {
+          localPackage.value = packageSelectList.value[0].id as number;
+        }
       }
     },
   });
@@ -295,6 +304,10 @@
           }
         });
         moduleSelectList.value = moduleList;
+
+        if (moduleList.length === 1) {
+          localModule.value = moduleList[0].id as number;
+        }
       }
     },
   });
@@ -356,6 +369,10 @@
         id: versionItem.pkg_id,
         name: versionItem.pkg_name,
       }));
+
+      if (packageSelectList.value.length) {
+        localPackage.value = packageSelectList.value[0].id as number;
+      }
     }
   });
 

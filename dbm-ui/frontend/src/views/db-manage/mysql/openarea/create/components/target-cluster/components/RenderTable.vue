@@ -35,6 +35,7 @@
             v-model="showBatchEdit[variableName]"
             :placeholder="t('只能包含英文字母、数字，多个换行分隔')"
             :title="variableName"
+            title-prefix-type="entry"
             type="textarea"
             @change="(value: string) => handleBatchEdit(value, variableName)">
             <BatchOperateIcon

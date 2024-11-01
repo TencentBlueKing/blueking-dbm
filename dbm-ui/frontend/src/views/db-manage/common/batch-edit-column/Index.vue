@@ -9,7 +9,7 @@
     <slot />
     <template #content>
       <div class="batch-edit-column-select">
-        <div class="main-title">{{ t('统一设置') }}{{ title }}</div>
+        <div class="main-title">{{ titlePrefixTypeMap[titlePrefixType] }}{{ title }}</div>
         <slot
           v-if="slots.content"
           name="content" />
@@ -85,6 +85,7 @@
     type?: 'select' | 'textarea' | 'input' | 'taginput' | 'datetime' | 'number-input';
     placeholder?: string;
     disableFn?: (date?: Date | number) => boolean;
+    titlePrefixType?: 'edit' | 'entry';
   }
 
   interface Emits {
@@ -96,6 +97,7 @@
     type: 'select',
     placeholder: '',
     disableFn: () => false,
+    titlePrefixType: 'edit',
   });
 
   const emits = defineEmits<Emits>();
@@ -106,6 +108,11 @@
   const slots = useSlots();
 
   const { t } = useI18n();
+
+  const titlePrefixTypeMap = {
+    edit: t('统一设置'),
+    entry: t('批量录入'),
+  };
 
   const inputRef = ref();
   const localValue = ref<string | string[]>(props.type === 'taginput' ? [] : '');

@@ -48,7 +48,7 @@
               type="textarea"
               @change="(value: string) => handleBatchEdit(value)">
               <span
-                v-bk-tooltips="t('批量编辑：通过换行分隔，快速批量录入多个值')"
+                v-bk-tooltips="t('批量录入：按行录入，快速批量输入多个单元格的值')"
                 class="batch-edit-btn"
                 @click="handleShowBatchEdit">
                 <DbIcon type="piliangluru" />

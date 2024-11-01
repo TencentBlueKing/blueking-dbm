@@ -48,7 +48,7 @@
             :data="item"
             :removeable="tableData.length < 2"
             @add="(payload: Array<IDataRow>) => handleAppend(index, payload)"
-            @cluster-input-finish="(clusterId: number) => handleChangeCluster(index, clusterId)"
+            @cluster-input-finish="(clusterId) => handleChangeCluster(index, clusterId)"
             @remove="handleRemove(index)" />
         </template>
       </RenderTable>
@@ -88,7 +88,6 @@
   import { getTendbsingleList } from '@services/source/tendbsingle';
   import { createTicket } from '@services/source/ticket';
 
-  // import { useTicketCloneInfo } from '@hooks';
   import { useGlobalBizs } from '@stores';
 
   import { ClusterTypes, TicketTypes } from '@common/const';
@@ -216,7 +215,7 @@
   // 输入集群后查询集群信息并填充到table
   const handleChangeCluster = async (index: number, id: number) => {
     tableData.value[index].isLoading = true;
-    const result = await getTendbsingleList({ id }).finally(() => {
+    const result = await getTendbsingleList({ cluster_ids: [id] }).finally(() => {
       tableData.value[index].isLoading = false;
     });
     if (result.results.length > 0) {
