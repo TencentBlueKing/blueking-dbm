@@ -11,15 +11,15 @@
  * the specific language governing permissions and limitations under the License.
  */
 
-import type { ClusterEntryDetail } from '@services/types';
+import ClusterEntryDetailModel from '@services/model/cluster-entry/cluster-entry-details';
 
 import SqlserverHaModel from './sqlserver-ha';
 
 export default class SqlserverHaDetail extends SqlserverHaModel {
-  cluster_entry_details: ClusterEntryDetail[];
+  cluster_entry_details: ClusterEntryDetailModel[];
 
   constructor(payload = {} as SqlserverHaDetail) {
     super(payload);
-    this.cluster_entry_details = payload.cluster_entry_details;
+    this.cluster_entry_details = payload.cluster_entry_details.map((item) => new ClusterEntryDetailModel(item));
   }
 }

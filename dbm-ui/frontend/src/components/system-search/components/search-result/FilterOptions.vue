@@ -218,11 +218,12 @@
     }
 
     .bk-checkbox-group {
-      display: block;
+      display: flex;
+      flex-direction: column;
     }
 
     .bk-checkbox {
-      display: flex;
+      // display: flex;
       margin-left: 0 !important;
 
       & ~ .bk-checkbox {

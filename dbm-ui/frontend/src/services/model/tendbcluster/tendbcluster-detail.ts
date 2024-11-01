@@ -11,15 +11,15 @@
  * the specific language governing permissions and limitations under the License.
  */
 
-import type { ClusterEntryDetail } from '@services/types';
+import ClusterEntryDetailModel from '@services/model/cluster-entry/cluster-entry-details';
 
 import TendbclusterModel from './tendbcluster';
 
 export default class TendbclusterDetail extends TendbclusterModel {
-  cluster_entry_details: ClusterEntryDetail[];
+  cluster_entry_details: ClusterEntryDetailModel[];
 
   constructor(payload = {} as TendbclusterDetail) {
     super(payload);
-    this.cluster_entry_details = payload.cluster_entry_details;
+    this.cluster_entry_details = payload.cluster_entry_details.map((item) => new ClusterEntryDetailModel(item));
   }
 }
