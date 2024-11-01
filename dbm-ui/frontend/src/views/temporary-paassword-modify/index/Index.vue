@@ -14,25 +14,50 @@
 <template>
   <SmartAction :offset-target="getSmartActionOffsetTarget">
     <div class="password-temporary-modify">
-      <div
-        v-if="submitting"
-        class="submitting-mask">
-        <DbIcon
-          class="submitting-icon"
-          svg
-          type="sync-pending" />
-        <p class="submitting-text">
-          {{ t('密码正在修改中，请稍等') }}
-        </p>
-      </div>
-      <UpdateResult
-        v-else-if="submitted"
-        :password="formData.password"
-        :submit-length="submitLength"
-        :submit-res="submitRes"
-        :submit-role-map="submitRoleMap"
-        @refresh="handleRefresh"
-        @retry="handleSubmit" />
+      <template v-if="submitted">
+        <div
+          v-if="isActive"
+          class="submitting-mask">
+          <DbIcon
+            class="submitting-icon"
+            svg
+            type="sync-pending" />
+          <p class="submitting-text mt16">
+            {{ t('密码正在修改中，请稍等') }}
+          </p>
+          <RouterLink
+            class="mt16 mb16"
+            target="_blank"
+            :to="{
+              name: 'taskHistoryDetail',
+              params: {
+                root_id: rootId,
+              },
+            }">
+            {{ t('查看详情') }}
+          </RouterLink>
+        </div>
+        <UpdateResult
+          v-else
+          :password="formData.password"
+          :submit-length="submitLength"
+          :submit-res="modifyResult"
+          :submit-role-map="submitRoleMap"
+          @refresh="handleRefresh"
+          @retry="handleSubmit">
+          <RouterLink
+            class="mt16 mb16"
+            target="_blank"
+            :to="{
+              name: 'taskHistoryDetail',
+              params: {
+                root_id: rootId,
+              },
+            }">
+            {{ t('查看详情') }}
+          </RouterLink>
+        </UpdateResult>
+      </template>
       <DbForm
         v-else
         ref="formRef"
@@ -81,16 +106,20 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import { modifyAdminPassword } from '@services/source/permission';
+  import { modifyAdminPassword, queryAsyncModifyResult } from '@services/source/permission';
 
   import { ClusterTypes, DBTypes } from '@common/const';
 
   import PasswordInput from '@views/db-manage/common/password-input/Index.vue';
 
+  import { useTimeoutPoll } from '@vueuse/core';
+
   import InstanceList from './components/form-item/InstanceList.vue';
   import ValidDuration from './components/form-item/ValidDuration.vue';
   import RenderPasswordInstance from './components/render-passwrod-instance/Index.vue';
   import UpdateResult from './components/UpdateResult.vue';
+
+  type ModifyAdminPassword = ServiceReturnType<typeof modifyAdminPassword>;
 
   const { t } = useI18n();
 
@@ -130,15 +159,41 @@
     },
   );
 
-  const {
-    loading: submitting,
-    run: modifyAdminPasswordRun,
-    data: submitRes,
-  } = useRequest(modifyAdminPassword, {
+  const rootId = ref('');
+  const modifyResult = ref<ModifyAdminPassword>('');
+
+  // 轮询
+  const { isActive, resume, pause } = useTimeoutPoll(() => {
+    queryAsyncModifyResultRun({
+      root_id: rootId.value,
+    });
+  }, 2000);
+
+  const { run: queryAsyncModifyResultRun } = useRequest(queryAsyncModifyResult, {
     manual: true,
-    onSuccess() {
+    onSuccess({ data, status }) {
+      /**
+       * 设置轮询
+       * FINISHED: 完成态
+       * FAILED: 失败态
+       * REVOKED: 取消态
+       */
+      if (['FINISHED', 'FAILED', 'REVOKED'].includes(status)) {
+        modifyResult.value = data;
+        pause();
+      } else if (!isActive.value) {
+        resume();
+      }
+    },
+  });
+
+  const { run: modifyAdminPasswordRun, loading: submitting } = useRequest(modifyAdminPassword, {
+    manual: true,
+    onSuccess(data) {
       submitted.value = true;
       window.changeConfirm = false;
+      rootId.value = data as string;
+      resume();
     },
   });
 
@@ -146,7 +201,6 @@
 
   const submitValidator = async () => {
     await formRef.value.validate();
-
     handleSubmit(formData.instanceList);
   };
 
@@ -183,6 +237,7 @@
       lock_hour: lockHour,
       password: formData.password,
       instance_list: instanceListParam,
+      is_async: true,
     };
 
     submitLength.value = instanceListParam.length;
@@ -198,6 +253,10 @@
     handleReset();
     submitted.value = false;
   };
+
+  onBeforeUnmount(() => {
+    pause();
+  });
 </script>
 
 <style lang="less" scoped>
@@ -207,8 +266,10 @@
     border-radius: 2px;
 
     .submitting-mask {
+      display: flex;
       padding: 90px 0 138px;
-      text-align: center;
+      flex-direction: column;
+      align-items: center;
 
       .submitting-icon {
         font-size: 64px;
@@ -217,7 +278,6 @@
       }
 
       .submitting-text {
-        margin-top: 36px;
         font-size: 24px;
         color: #313238;
       }
