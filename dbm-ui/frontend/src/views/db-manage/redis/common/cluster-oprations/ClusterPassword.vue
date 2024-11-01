@@ -113,7 +113,6 @@
         </template>
       </div>
     </BkLoading>
-
     <template #footer>
       <BkButton @click="handleClose">
         {{ t('关闭') }}
@@ -184,6 +183,16 @@
         },
       ],
     },
+    nodes: {
+      title: t('存储层（Nodes）'),
+      list: [
+        {
+          title: t('域名'),
+          value: '',
+          shareLink: '',
+        },
+      ],
+    },
   });
 
   const initData = () => ({
@@ -217,6 +226,8 @@
           dataObj.value.polary.list[0].value = item.target_details.polaris_l5;
           dataObj.value.polary.list[0].shareLink = item.target_details.url;
           dataObj.value.polary.list[1].value = item.target_details.polaris_name;
+        } else if (item.role === 'node_entry') {
+          dataObj.value.nodes.list[0].value = item.entry;
         }
       });
     },
@@ -255,6 +266,10 @@
     if (dataObj.value.polary.list[0].value) {
       // 存在北极星
       content = `${content}CL5: ${dataObj.value.polary.list[0].value}\n${t('北极星服务名称')}: ${dataObj.value.polary.list[1].value}\n`;
+    }
+    if (dataObj.value.nodes.list[0].value) {
+      // 存在存储层（Nodes）
+      content = `${content}${t('存储层（Nodes）域名')}: ${dataObj.value.nodes.list[0].value}\n`;
     }
     copy(content);
   };
