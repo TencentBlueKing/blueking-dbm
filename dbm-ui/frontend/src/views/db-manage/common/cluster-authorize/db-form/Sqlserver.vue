@@ -30,10 +30,11 @@
     selected?: {
       master_domain: string;
       cluster_name: string;
+      cluster_type: ClusterTypes;
       db_module_name?: string;
       isMaster?: boolean;
     }[];
-    clusterTypes?: ClusterTypes[];
+    clusterTypes?: string[];
     rules?: PermissionRule['rules'];
   }
 
