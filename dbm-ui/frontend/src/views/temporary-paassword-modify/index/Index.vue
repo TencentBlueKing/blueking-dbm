@@ -14,25 +14,27 @@
 <template>
   <SmartAction :offset-target="getSmartActionOffsetTarget">
     <div class="password-temporary-modify">
-      <div
-        v-if="submitting"
-        class="submitting-mask">
-        <DbIcon
-          class="submitting-icon"
-          svg
-          type="sync-pending" />
-        <p class="submitting-text">
-          {{ t('密码正在修改中，请稍等') }}
-        </p>
-      </div>
-      <UpdateResult
-        v-else-if="submitted"
-        :password="formData.password"
-        :submit-length="submitLength"
-        :submit-res="submitRes"
-        :submit-role-map="submitRoleMap"
-        @refresh="handleRefresh"
-        @retry="handleSubmit" />
+      <template v-if="submitted">
+        <div
+          v-if="queryLoading"
+          class="submitting-mask">
+          <DbIcon
+            class="submitting-icon"
+            svg
+            type="sync-pending" />
+          <p class="submitting-text">
+            {{ t('密码正在修改中，请稍等') }}
+          </p>
+        </div>
+        <UpdateResult
+          v-else
+          :password="formData.password"
+          :submit-length="submitLength"
+          :submit-res="modifyResult"
+          :submit-role-map="submitRoleMap"
+          @refresh="handleRefresh"
+          @retry="handleSubmit" />
+      </template>
       <DbForm
         v-else
         ref="formRef"
@@ -81,16 +83,20 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import { modifyAdminPassword } from '@services/source/permission';
+  import { modifyAdminPassword, queryAsyncModifyResult } from '@services/source/permission';
 
   import { ClusterTypes, DBTypes } from '@common/const';
 
   import PasswordInput from '@views/db-manage/common/password-input/Index.vue';
 
+  import { useTimeoutPoll } from '@vueuse/core';
+
   import InstanceList from './components/form-item/InstanceList.vue';
   import ValidDuration from './components/form-item/ValidDuration.vue';
   import RenderPasswordInstance from './components/render-passwrod-instance/Index.vue';
   import UpdateResult from './components/UpdateResult.vue';
+
+  type ModifyAdminPassword = ServiceReturnType<typeof modifyAdminPassword>;
 
   const { t } = useI18n();
 
@@ -130,15 +136,40 @@
     },
   );
 
-  const {
-    loading: submitting,
-    run: modifyAdminPasswordRun,
-    data: submitRes,
-  } = useRequest(modifyAdminPassword, {
+  const currentScope = getCurrentScope();
+  const rootId = ref('');
+  const modifyResult = ref<ModifyAdminPassword>();
+
+  const { run: queryAsyncModifyResultRun, loading: queryLoading } = useRequest(queryAsyncModifyResult, {
     manual: true,
-    onSuccess() {
+    onSuccess({ data, status }) {
+      modifyResult.value = data;
+      // 设置轮询
+      if (currentScope?.active) {
+        !isActive.value && ['PENDING', 'RUNNING', 'FINISHED'].includes(status) && resume();
+      } else {
+        pause();
+      }
+    },
+    onError() {
+      modifyResult.value = {} as ModifyAdminPassword;
+    },
+  });
+
+  // 轮询
+  const { isActive, resume, pause } = useTimeoutPoll(() => {
+    queryAsyncModifyResultRun({
+      root_id: rootId.value,
+    });
+  }, 10000);
+
+  const { run: modifyAdminPasswordRun, loading: submitting } = useRequest(modifyAdminPassword, {
+    manual: true,
+    onSuccess(data) {
       submitted.value = true;
       window.changeConfirm = false;
+      rootId.value = data as string;
+      resume();
     },
   });
 
@@ -146,7 +177,6 @@
 
   const submitValidator = async () => {
     await formRef.value.validate();
-
     handleSubmit(formData.instanceList);
   };
 
@@ -183,6 +213,7 @@
       lock_hour: lockHour,
       password: formData.password,
       instance_list: instanceListParam,
+      is_async: true,
     };
 
     submitLength.value = instanceListParam.length;

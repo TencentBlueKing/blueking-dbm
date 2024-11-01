@@ -127,8 +127,8 @@
     },
   });
 
-  const { run: getPasswordPolicyRun } = useRequest(getPasswordPolicy, {
-    manual: true,
+  useRequest(getPasswordPolicy, {
+    defaultParams: [{ name: passwordParam.value }],
     onSuccess(data) {
       const {
         min_length: minLength,
@@ -197,6 +197,13 @@
       modelValue.value = data.password;
     },
   });
+
+  watch(
+    () => props.dbType,
+    () => {
+      modelValue.value = '';
+    },
+  );
 
   /**
    * 获取加密密码
@@ -286,18 +293,6 @@
   const handlePasswordBlur = () => {
     tippyInstance.hide();
   };
-
-  watch(modelValue, () => {
-    if (modelValue.value) {
-      debounceVerifyPassword();
-    }
-  });
-
-  onMounted(() => {
-    getPasswordPolicyRun({
-      name: passwordParam.value,
-    });
-  });
 
   onUnmounted(() => {
     tippyInstance.destroy();
