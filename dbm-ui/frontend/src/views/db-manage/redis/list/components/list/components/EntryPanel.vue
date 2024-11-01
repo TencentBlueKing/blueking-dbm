@@ -49,13 +49,14 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
+  import ClusterEntryDetailModel, {
+    type ClbPolarisTargetDetails,
+  } from '@services/model/cluster-entry/cluster-entry-details';
   import { getClusterEntries } from '@services/source/clusterEntry';
 
   import { useCopy } from '@hooks';
 
   import { useGlobalBizs } from '@stores';
-
-  import type { ClusterTypes } from '@common/const';
 
   interface Props {
     entryType: 'clb' | 'polaris';
@@ -106,16 +107,19 @@
 
   const isLongTitle = computed(() => props.entryType === 'polaris');
 
-  const { loading, run: runGetClusterEntries } = useRequest(getClusterEntries<ClusterTypes.REDIS>, {
+  const { loading, run: runGetClusterEntries } = useRequest(getClusterEntries, {
     manual: true,
     onSuccess: (res) => {
-      if (props.entryType === 'clb') {
-        dataObj.clb.list[0].value = res[0].target_details.clb_ip;
-        dataObj.clb.list[1].value = res[0].target_details.clb_domain;
-      } else if (props.entryType === 'polaris') {
-        dataObj.polaris.list[0].value = res[0].target_details.polaris_l5;
-        dataObj.polaris.list[1].value = res[0].target_details.polaris_name;
-        dataObj.polaris.list[0].shareLink = res[0].target_details.url;
+      const entryItem = res[0];
+      if (entryItem.isClb) {
+        const targetDetailItem = (entryItem as ClusterEntryDetailModel<ClbPolarisTargetDetails>).target_details[0];
+        dataObj.clb.list[0].value = targetDetailItem.clb_ip;
+        dataObj.clb.list[1].value = targetDetailItem.clb_domain;
+      } else if (entryItem.isPolaris) {
+        const targetDetailItem = (entryItem as ClusterEntryDetailModel<ClbPolarisTargetDetails>).target_details[0];
+        dataObj.polaris.list[0].value = targetDetailItem.polaris_l5;
+        dataObj.polaris.list[1].value = targetDetailItem.polaris_name;
+        dataObj.polaris.list[0].shareLink = targetDetailItem.url;
       }
     },
   });

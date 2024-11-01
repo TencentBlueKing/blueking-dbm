@@ -20,7 +20,6 @@
       v-model="modelValue"
       autosize
       class="search-input-textarea"
-      clearable
       :placeholder="t('请输入关键字， Shift + Enter 换行')"
       :resize="false"
       type="textarea"
@@ -235,8 +234,8 @@
       }
 
       .icon-close {
-        color: #c4c6cc;
         display: none;
+        color: #c4c6cc;
       }
     }
 

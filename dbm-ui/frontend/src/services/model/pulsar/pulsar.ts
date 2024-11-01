@@ -12,6 +12,8 @@
  */
 import { uniq } from 'lodash';
 
+import ClusterEntryDetailModel from '@services/model/cluster-entry/cluster-entry-details';
+
 import { isRecentDays, utcDisplayTime } from '@utils';
 
 import { t } from '@locales/index';
@@ -73,26 +75,7 @@ export default class Pulsar {
   cluster_type: string;
   cluster_type_name: string;
   cluster_time_zone: string;
-  cluster_entry_details: {
-    cluster_entry_type: string;
-    entry: string;
-    role: string;
-    target_details: {
-      app: string;
-      bk_cloud_iduid: number;
-      dns_str: string;
-      domain_name: string;
-      domain_typeuid: number;
-      ip: string;
-      last_change_time: string;
-      manager: string;
-      port: number;
-      remark: string;
-      start_time: string;
-      status: string;
-      uid: number;
-    }[];
-  }[];
+  cluster_entry_details: ClusterEntryDetailModel[];
   create_at: string;
   creator: string;
   domain: string;
@@ -139,7 +122,7 @@ export default class Pulsar {
     this.cluster_type = payload.cluster_type;
     this.cluster_type_name = payload.cluster_type_name;
     this.cluster_time_zone = payload.cluster_time_zone;
-    this.cluster_entry_details = payload.cluster_entry_details;
+    this.cluster_entry_details = payload.cluster_entry_details.map((item) => new ClusterEntryDetailModel(item));
     this.create_at = payload.create_at;
     this.creator = payload.creator;
     this.domain = payload.domain;
