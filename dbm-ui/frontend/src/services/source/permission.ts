@@ -40,29 +40,30 @@ interface AdminPasswordResultItem {
   }[];
 }
 
+const path = '/apis/conf/password_policy';
+
 /**
  * 查询密码安全策略
  */
 export const getPasswordPolicy = (params: { name: string }) =>
-  http.get<PasswordPolicy>('/apis/conf/password_policy/get_password_policy/', params);
+  http.get<PasswordPolicy>(`${path}/get_password_policy/`, params);
 
 /**
  * 更新密码安全策略
  */
 export const updatePasswordPolicy = (params: PasswordPolicy & { reset: boolean }) =>
-  http.post('/apis/conf/password_policy/update_password_policy/', params);
+  http.post(`${path}/update_password_policy/`, params);
 
 /**
  * 查询随机化周期
  */
 export const queryRandomCycle = (params = {}, payload = {} as IRequestPayload) =>
-  http.get<RamdomCycle>('/apis/conf/password_policy/query_random_cycle/', params, payload);
+  http.get<RamdomCycle>(`${path}/query_random_cycle/`, params, payload);
 
 /**
  * 更新随机化周期
  */
-export const modifyRandomCycle = (params: RamdomCycle) =>
-  http.post('/apis/conf/password_policy/modify_random_cycle/', params);
+export const modifyRandomCycle = (params: RamdomCycle) => http.post(`${path}/modify_random_cycle/`, params);
 
 /**
  * 获取符合密码强度的字符串
@@ -70,7 +71,7 @@ export const modifyRandomCycle = (params: RamdomCycle) =>
 export const getRandomPassword = (params?: { security_type: string }) =>
   http.get<{
     password: string;
-  }>('/apis/conf/password_policy/get_random_password/', params);
+  }>(`${path}/get_random_password/`, params);
 
 /**
  * 修改实例密码(admin)
@@ -85,11 +86,16 @@ export const modifyAdminPassword = (params: {
     cluster_type: ClusterTypes;
     role: string;
   }[];
+  // 是否异步
+  is_async?: boolean;
 }) =>
-  http.post<{
-    success: AdminPasswordResultItem[] | null;
-    fail: AdminPasswordResultItem[] | null;
-  }>('/apis/conf/password_policy/modify_admin_password/', params);
+  http.post<
+    | {
+        success: AdminPasswordResultItem[] | null;
+        fail: AdminPasswordResultItem[] | null;
+      }
+    | string // 异步修改时返回root_id
+  >(`${path}/modify_admin_password/`, params);
 
 /**
  * 查询生效实例密码(admin)
@@ -102,10 +108,22 @@ export const queryAdminPassword = (params: {
   instances?: string;
   db_type?: DBTypes;
 }) =>
-  http.post<ListBase<AdminPasswordModel[]>>('/apis/conf/password_policy/query_admin_password/', params).then((res) => ({
+  http.post<ListBase<AdminPasswordModel[]>>(`${path}/query_admin_password/`, params).then((res) => ({
     ...res,
     results: res.results.map((item) => new AdminPasswordModel(item)),
   }));
+
+/**
+ * 查询异步密码修改执行结果
+ */
+export const queryAsyncModifyResult = (params: { root_id: string }) =>
+  http.post<{
+    data: {
+      success: AdminPasswordResultItem[] | null;
+      fail: AdminPasswordResultItem[] | null;
+    };
+    status: string;
+  }>(`${path}/query_async_modify_result/`, params);
 
 /**
  * 获取公钥列表
@@ -123,4 +141,4 @@ export const getRSAPublicKeys = (params: { names: string[] }) =>
  * 校验密码强度
  */
 export const verifyPasswordStrength = (params: { security_type: string; password: string }) =>
-  http.post<PasswordStrength>('/apis/conf/password_policy/verify_password_strength/', params);
+  http.post<PasswordStrength>(`${path}/verify_password_strength/`, params);
