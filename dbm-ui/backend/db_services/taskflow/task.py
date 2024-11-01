@@ -49,13 +49,13 @@ logger = logging.getLogger("flow")
 
 
 @shared_task
-def retry_node(root_id: str, node_id: str, retry_times: int) -> Union[EngineAPIResult, Any]:
+def retry_node(root_id: str, flow_node: FlowNode, retry_times: int) -> Union[EngineAPIResult, Any]:
     """重试flow任务节点"""
 
     def send_flow_state(state, _root_id, _node_id, _version_id):
         post_set_state.send(
             sender=None,
-            node_id=node_id,
+            node_id=flow_node.node_id,
             to_state=state,
             version=flow_node.version_id,
             root_id=flow_node.root_id,
@@ -63,11 +63,9 @@ def retry_node(root_id: str, node_id: str, retry_times: int) -> Union[EngineAPIR
             loop=None,
         )
 
-    flow_node = FlowNode.objects.get(root_id=root_id, node_id=node_id)
-
     # 实例化一个Service实例用于捕获日志到日志平台
     service = BaseService()
-    service.setup_runtime_attrs(root_pipeline_id=root_id, id=node_id, version=flow_node.version_id)
+    service.setup_runtime_attrs(root_pipeline_id=root_id, id=flow_node.node_id, version=flow_node.version_id)
 
     # 限制最大重试次数
     if retry_times > MAX_AUTO_RETRY_TIMES:
@@ -99,14 +97,14 @@ def retry_node(root_id: str, node_id: str, retry_times: int) -> Union[EngineAPIR
             if retry_times == 1:
                 send_flow_state(StateType.RUNNING, root_id, flow_node.node_id, flow_node.version_id)
 
-            retry_node.apply_async((root_id, node_id, retry_times + 1), countdown=RETRY_INTERVAL)
+            retry_node.apply_async((root_id, flow_node, retry_times + 1), countdown=RETRY_INTERVAL)
             return EngineAPIResult(result=False, message=_("存在执行互斥将自动进行重试..."))
     except (Ticket.DoesNotExist, ValueError):
         # 如果单据不存在，则忽略校验
         pass
 
     # 进行重试操作
-    result = BambooEngine(root_id=root_id).retry_node(node_id=node_id)
+    result = BambooEngine(root_id=root_id).retry_node(node_id=flow_node.node_id)
     if not result.result:
         raise RetryNodeException(str(result.exc.args))
 

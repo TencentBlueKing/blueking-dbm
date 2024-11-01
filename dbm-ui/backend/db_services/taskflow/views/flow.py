@@ -143,7 +143,7 @@ class TaskFlowViewSet(viewsets.AuditedModelViewSet):
 
         root_id = kwargs["root_id"]
         validated_data = self.params_validate(self.get_serializer_class())
-        return Response(TaskFlowHandler(root_id=root_id).retry_node(node_id=validated_data["node_id"]).result)
+        return Response(TaskFlowHandler(root_id=root_id).retry_node(node=validated_data["node_id"]).result)
 
     @common_swagger_auto_schema(
         operation_summary=_("批量重试"),

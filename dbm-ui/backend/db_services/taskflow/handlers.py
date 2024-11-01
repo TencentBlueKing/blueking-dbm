@@ -75,16 +75,25 @@ class TaskFlowHandler:
 
         return result
 
-    def retry_node(self, node_id: str):
+    def retry_node(self, node: str):
         """重试节点"""
-        return task.retry_node(root_id=self.root_id, node_id=node_id, retry_times=1)
+        if isinstance(node, str):
+            flow_node = FlowNode.objects.get(root_id=self.root_id, node_id=node)
+        else:
+            flow_node = node
+        return task.retry_node(root_id=self.root_id, flow_node=flow_node, retry_times=1)
 
     def batch_retry_nodes(self):
         """批量重试节点"""
         node_ids = self.get_failed_node_ids()
+
+        flow_nodes = FlowNode.objects.filter(node_id__in=node_ids, root_id=self.root_id).all()
+        flow_node_dict = {node.node_id: node for node in flow_nodes}
+
         for node_id in node_ids:
+            flow_node = flow_node_dict.get(node_id)
             try:
-                self.retry_node(node_id)
+                self.retry_node(flow_node)
             except Exception as err:
                 logger.error(f"{node_id} retry failed, {err}")
 
