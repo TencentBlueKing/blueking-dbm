@@ -76,9 +76,11 @@ class MySQLRollbackDataFlow(object):
         for info in self.ticket_data["infos"]:
             self.data = copy.deepcopy(info)
             cluster_class = Cluster.objects.get(id=self.data["cluster_id"])
-            filters = Q(cluster_type=ClusterType.TenDBSingle.value, instance_inner_role=InstanceInnerRole.ORPHAN.value)
+            filters = Q(
+                cluster__cluster_type=ClusterType.TenDBSingle.value, instance_inner_role=InstanceInnerRole.ORPHAN.value
+            )
             filters = filters | Q(
-                cluster_type=ClusterType.TenDBHA.value, instance_inner_role=InstanceInnerRole.MASTER.value
+                cluster__cluster_type=ClusterType.TenDBHA.value, instance_inner_role=InstanceInnerRole.MASTER.value
             )
             master = cluster_class.storageinstance_set.get(filters)
             self.data["bk_biz_id"] = cluster_class.bk_biz_id
@@ -228,7 +230,13 @@ class MySQLRollbackDataFlow(object):
         for info in self.ticket_data["infos"]:
             self.data = copy.deepcopy(info)
             cluster_class = Cluster.objects.get(id=self.data["cluster_id"])
-            master = cluster_class.storageinstance_set.get(instance_inner_role=InstanceInnerRole.MASTER.value)
+            filters = Q(
+                cluster__cluster_type=ClusterType.TenDBSingle.value, instance_inner_role=InstanceInnerRole.ORPHAN.value
+            )
+            filters = filters | Q(
+                cluster__cluster_type=ClusterType.TenDBHA.value, instance_inner_role=InstanceInnerRole.MASTER.value
+            )
+            master = cluster_class.storageinstance_set.get(filters)
             self.data["bk_biz_id"] = cluster_class.bk_biz_id
             self.data["bk_cloud_id"] = cluster_class.bk_cloud_id
             self.data["db_module_id"] = cluster_class.db_module_id
@@ -413,7 +421,8 @@ class MySQLRollbackDataFlow(object):
                     )
 
             sub_pipeline.add_parallel_sub_pipeline(sub_flow_list=rollback_pipeline_list)
-            sub_pipeline.add_parallel_sub_pipeline(sub_flow_list=repl_pipeline_list)
+            if len(repl_pipeline_list) > 0:
+                sub_pipeline.add_parallel_sub_pipeline(sub_flow_list=repl_pipeline_list)
             sub_pipeline_list.append(
                 sub_pipeline.build_sub_process(sub_name=_("定点回档到{}".format(rollback_class.immute_domain)))
             )
