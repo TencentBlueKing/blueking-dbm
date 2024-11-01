@@ -40,7 +40,7 @@
       :biz-id="currentBizId"
       button-text=""
       :data="localHostList"
-      :os-types="[OSTypes.Linux]"
+      :only-alive-host="false"
       :panel-list="['staticTopo', 'dbmWhitelist', 'manualInput']"
       service-mode="all"
       :show-view="false"
@@ -56,7 +56,7 @@
   import TendbClusterModel from '@services/model/tendbcluster/tendbcluster';
   import type { HostInfo } from '@services/types';
 
-  import { ClusterTypes, OSTypes } from '@common/const';
+  import { ClusterTypes } from '@common/const';
 
   import ClusterSelector from '@components/cluster-selector/Index.vue';
   import IpSelector, { type IPSelectorResult } from '@components/ip-selector/IpSelector.vue';

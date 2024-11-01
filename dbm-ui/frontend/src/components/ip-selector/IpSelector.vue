@@ -152,6 +152,7 @@
     cloudInfo?: { id?: number | string; name?: string };
     disableDialogSubmitMethod?: (hostList: Array<any>) => string | boolean;
     disableHostMethod?: (...args: any) => string | boolean;
+    onlyAliveHost?: boolean;
     serviceMode?: 'all' | 'idle_only';
     panelList?: Array<'staticTopo' | 'manualInput' | 'dbmWhitelist'>;
     disableTips?: string;
@@ -178,6 +179,7 @@
     cloudInfo: () => ({}),
     disableDialogSubmitMethod: () => false,
     disableHostMethod: () => false,
+    onlyAliveHost: true,
     serviceMode: 'idle_only',
     panelList: () => ['staticTopo', 'manualInput'],
     disableTips: '',
@@ -283,7 +285,7 @@
   });
 
   const disableHostMethodHandler = (data: any, selected: any[]) => {
-    if (data.alive === 0) {
+    if (props.onlyAliveHost && data.alive !== 1) {
       return t('Agent异常无法使用');
     }
     if (props.osTypes.length > 0 && !props.osTypes.includes(Number(data.os_type))) {

@@ -83,7 +83,7 @@
       name: clusterData.bk_cloud_name,
     }"
     :data="localHostList"
-    :os-types="[OSTypes.Linux]"
+    :only-alive-host="false"
     :panel-list="['staticTopo', 'dbmWhitelist', 'manualInput']"
     service-mode="all"
     :show-view="false"
@@ -94,9 +94,7 @@
   import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
 
-  import type { HostInfo } from '@services/types/ip';
-
-  import { OSTypes } from '@common/const';
+  import type { HostInfo } from '@services/types';
 
   import IpSelector, { type IPSelectorResult } from '@components/ip-selector/IpSelector.vue';
   import RenderHost from '@components/render-table/columns/select-disable/index.vue';

@@ -185,33 +185,6 @@
   })
 
   /**
-   * 创建时检验是否已存在规则
-   */
-  const { run: preCheckAddAccountRuleRun } = useRequest(preCheckAddAccountRule, {
-    manual: true,
-    onSuccess: async ({ warning }) => {
-      if (warning) {
-        precheckWarnTip.value = (
-          <div class="pre-check-content">
-            {warning.split('\n').map(line => <div>{line}</div>)}
-          </div>
-        );
-        showPopConfirm.value = true;
-        return;
-      }
-      const params = await generateRequestParam();
-      createAccountRuleRun(params);
-    },
-    onError() {
-      messageError(t('提交失败'));
-    },
-    onAfter() {
-      isSubmitting.value = false;
-      handleClose();
-    }
-  });
-
-  /**
    * 规则变更（有权限被删除）时走单据
    */
   const { run: createTicketRun } = useRequest(createTicket, {
@@ -317,7 +290,22 @@
         });
       }
     } else {
-      preCheckAddAccountRuleRun(params)
+      preCheckAddAccountRule(params)
+        .then((result) => {
+          if (result.warning) {
+            precheckWarnTip.value = (
+              <div class="pre-check-content">
+                {result.warning.split('\n').map(line => <div>{line}</div>)}
+              </div>
+            );
+            showPopConfirm.value = true;
+            return;
+          }
+          createAccountRuleRun(params);
+        })
+        .finally(() => {
+          isSubmitting.value = false;
+        });
     }
   };
 </script>
