@@ -357,6 +357,11 @@ def tendbha_cluster_upgrade_subflow(
     sub_pipeline = SubBuilder(root_id=root_id, data=parent_global_data)
     old_ro_slave_ips = []
     new_ro_slave_ips = []
+
+    local_backup = False
+    if backup_source == MySQLBackupSource.LOCAL:
+        local_backup = True
+
     if len(ro_slaves) > 0:
         ro_sub_piplelines = []
         ro_switch_ro_sub_piplelines = []
