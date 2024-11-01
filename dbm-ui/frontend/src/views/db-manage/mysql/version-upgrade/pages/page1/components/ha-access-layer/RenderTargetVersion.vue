@@ -90,6 +90,10 @@
         }
         return prevList;
       }, [] as IListItem[]);
+
+      if (versionList.value.length) {
+        localValue.value = versionList.value[0].value as string;
+      }
     },
   });
 
