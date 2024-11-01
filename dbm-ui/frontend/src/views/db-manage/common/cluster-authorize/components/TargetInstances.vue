@@ -49,10 +49,11 @@
 
   interface Props {
     accountType: AccountTypes;
-    clusterTypes: ClusterTypes[];
+    clusterTypes: string[];
     data: {
       master_domain: string;
       cluster_name: string;
+      cluster_type: ClusterTypes;
       db_module_name?: string;
       isMaster?: boolean;
     }[];
@@ -239,11 +240,18 @@
   });
 
   watch(
-    () => [props.clusterTypes, props.data],
+    () => props.data,
     () => {
-      [state.clusterType] = props.clusterTypes;
-      updateTableData(props.data);
+      if (props.data.length > 0) {
+        state.clusterType = props.data[0].cluster_type;
+        nextTick(() => {
+          updateTableData(props.data);
+        })
+      }
     },
+    {
+      immediate: true,
+    }
   );
 
   const handleShowTargetCluster = () => {

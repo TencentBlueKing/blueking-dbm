@@ -18,7 +18,8 @@
     :is-show="isShow"
     :quick-close="false"
     :title="t('导入授权')"
-    :width="600">
+    :width="600"
+    @closed="handleCloseUpload">
     <div class="excel-authorize">
       <BkAlert
         class="mb-12"

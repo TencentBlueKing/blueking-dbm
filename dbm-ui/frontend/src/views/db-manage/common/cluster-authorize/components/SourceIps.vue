@@ -10,6 +10,7 @@
       button-text="添加 IP"
       :data="selected"
       :is-cloud-area-restrictions="false"
+      :only-alive-host="false"
       :panel-list="['staticTopo', 'manualInput', 'dbmWhitelist']"
       service-mode="all"
       @change="handleChangeIP"

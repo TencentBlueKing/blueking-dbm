@@ -91,7 +91,7 @@
   import { getResourceSpecList } from '@services/source/dbresourceSpec';
 
   // import { checkHost, getHostTopo } from '@services/source/ipchooser'
-  // import type { HostInfo } from '@services/types/ip';
+  // import type { HostInfo } from '@services/types';
   import { useGlobalBizs } from '@stores';
 
   import { ClusterTypes } from '@common/const';
