@@ -11,17 +11,17 @@
  * the specific language governing permissions and limitations under the License.
  */
 
-import type { ClusterEntryDetail } from '@services/types';
+import ClusterEntryDetailModel from '@services/model/cluster-entry/cluster-entry-details';
 
 import HdfsModel from './hdfs';
 
 export default class HdfsDetail extends HdfsModel {
-  cluster_entry_details: ClusterEntryDetail[];
+  cluster_entry_details: ClusterEntryDetailModel[];
   phase_name: string;
 
   constructor(payload = {} as HdfsDetail) {
     super(payload);
-    this.cluster_entry_details = payload.cluster_entry_details;
+    this.cluster_entry_details = payload.cluster_entry_details.map((item) => new ClusterEntryDetailModel(item));
     this.phase_name = payload.phase_name;
   }
 }

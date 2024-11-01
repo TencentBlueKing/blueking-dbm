@@ -3597,5 +3597,7 @@
     "CPU/内存": "CPU/内存",
     "添加机型": "添加机型",
     "TendisCache/RedisCluster/Redis主从 后端存储": "TendisCache/RedisCluster/Redis主从 后端存储",
+    "存储层（Nodes）": "存储层（Nodes）",
+    "存储层（Nodes）域名": "存储层（Nodes）域名",
     "这行勿动！新增翻译请在上一行添加！": ""
   }

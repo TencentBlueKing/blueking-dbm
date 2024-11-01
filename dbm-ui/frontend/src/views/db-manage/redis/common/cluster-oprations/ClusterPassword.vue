@@ -53,7 +53,7 @@
           </span>
         </div>
         <div class="cluster-password-item">
-          <span class="cluster-password-item-label">{{ t('Proxy密码') }}：</span>
+          <span class="cluster-password-item-label">{{ t('密码') }}：</span>
           <span class="cluster-password-item-value">
             <span>{{ passwordText }}</span>
             <span
@@ -113,7 +113,6 @@
         </template>
       </div>
     </BkLoading>
-
     <template #footer>
       <BkButton @click="handleClose">
         {{ t('关闭') }}
@@ -127,14 +126,16 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
+  import ClusterEntryDetailModel, {
+    type ClbPolarisTargetDetails,
+    type DnsTargetDetails,
+  } from '@services/model/cluster-entry/cluster-entry-details';
   import { getClusterEntries } from '@services/source/clusterEntry';
   import { getRedisPassword } from '@services/source/redis';
 
   import { useCopy } from '@hooks';
 
   import { useGlobalBizs } from '@stores';
-
-  import type { ClusterTypes } from '@common/const';
 
   interface Props {
     title?: string;
@@ -186,6 +187,16 @@
         },
       ],
     },
+    nodes: {
+      title: t('存储层（Nodes）'),
+      list: [
+        {
+          title: t('域名'),
+          value: '',
+          shareLink: '',
+        },
+      ],
+    },
   });
 
   const initData = () => ({
@@ -208,17 +219,24 @@
 
   const passwordText = computed(() => (isShowPassword.value ? state.data.password : '******'));
 
-  const { loading: clbLoading, run: runGetClusterEntries } = useRequest(getClusterEntries<ClusterTypes.REDIS>, {
+  const { loading: clbLoading, run: runGetClusterEntries } = useRequest(getClusterEntries, {
     manual: true,
     onSuccess: (res) => {
       res.forEach((item) => {
-        if (item.cluster_entry_type === 'clb') {
-          dataObj.value.clb.list[0].value = item.target_details.clb_ip;
-          dataObj.value.clb.list[1].value = item.target_details.clb_domain;
-        } else if (item.cluster_entry_type === 'polaris') {
-          dataObj.value.polary.list[0].value = item.target_details.polaris_l5;
-          dataObj.value.polary.list[0].shareLink = item.target_details.url;
-          dataObj.value.polary.list[1].value = item.target_details.polaris_name;
+        if (item.target_details.length) {
+          if (item.isClb) {
+            const targetDetailItem = (item as ClusterEntryDetailModel<ClbPolarisTargetDetails>).target_details[0];
+            dataObj.value.clb.list[0].value = `${targetDetailItem.clb_ip}:${targetDetailItem.port}`;
+            dataObj.value.clb.list[1].value = `${targetDetailItem.clb_domain}:${targetDetailItem.port}`;
+          } else if (item.isPolaris) {
+            const targetDetailItem = (item as ClusterEntryDetailModel<ClbPolarisTargetDetails>).target_details[0];
+            dataObj.value.polary.list[0].value = targetDetailItem.polaris_l5;
+            dataObj.value.polary.list[0].shareLink = targetDetailItem.url;
+            dataObj.value.polary.list[1].value = `${targetDetailItem.polaris_name}:${targetDetailItem.port}`;
+          } else if (item.isNodeEntry) {
+            const targetDetailItem = (item as ClusterEntryDetailModel<DnsTargetDetails>).target_details[0];
+            dataObj.value.nodes.list[0].value = `${item.entry}:${targetDetailItem.port}`;
+          }
         }
       });
     },
@@ -257,6 +275,10 @@
     if (dataObj.value.polary.list[0].value) {
       // 存在北极星
       content = `${content}CL5: ${dataObj.value.polary.list[0].value}\n${t('北极星服务名称')}: ${dataObj.value.polary.list[1].value}\n`;
+    }
+    if (dataObj.value.nodes.list[0].value) {
+      // 存在存储层（Nodes）
+      content = `${content}${t('存储层（Nodes）域名')}: ${dataObj.value.nodes.list[0].value}\n`;
     }
     copy(content);
   };

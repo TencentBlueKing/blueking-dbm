@@ -205,7 +205,7 @@ export class GraphData {
           return l.target === line.source;
         }),
     );
-    const roots = rootLines
+    let roots = rootLines
       .map((line) => {
         const group = groups.find((group) => group.node_id === line.source);
 
@@ -253,6 +253,16 @@ export class GraphData {
 
     if (dbType === DBTypes.MONGODB) {
       return [roots[0]];
+    }
+    if (dbType === DBTypes.REDIS) {
+      const rootMap = roots.reduce<Record<string, GraphNode>>((prevMap, rootItem) => {
+        if (prevMap[rootItem.id]) {
+          return prevMap;
+        }
+
+        return Object.assign({}, prevMap, { [rootItem.id]: rootItem });
+      }, {});
+      roots = Object.values(rootMap);
     }
     // 排序根节点
     roots.sort((a) => (a.children.find((node) => node.id === nodeId) ? -1 : 0));
