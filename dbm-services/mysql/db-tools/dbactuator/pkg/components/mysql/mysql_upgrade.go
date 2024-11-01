@@ -431,6 +431,7 @@ func (m *MysqlUpgradeComp) upgradeMycnf(port int) (err error) {
 		fallthrough
 	case m.newVersion.MysqlVersion > native.MYSQL_5P70:
 		cff.Cfg.Section(section).DeleteKey("secure_auth")
+		cff.Cfg.Section(section).DeleteKey("loose_secure_auth")
 		cff.Cfg.Section(section).DeleteKey("innodb_additional_mem_pool_size")
 		cff.Cfg.Section(section).DeleteKey("innodb_create_use_gcs_real_format")
 		cff.Cfg.Section(section).DeleteKey("thread_concurrency")
