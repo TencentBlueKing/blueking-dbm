@@ -24,7 +24,7 @@
           <BusinessItems
             v-model:app-abbr="formData.details.db_app_abbr"
             v-model:biz-id="formData.bk_biz_id"
-            perrmision-action-id="mongodb_apply"
+            perrmision-action-id="redis_cluster_apply"
             @change-biz="handleChangeBiz" />
           <CloudItem
             v-model="formData.details.bk_cloud_id"
