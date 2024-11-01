@@ -139,10 +139,12 @@ export type AccountRulePrivilegeKey = keyof AccountRulePrivilege;
  */
 export interface AuthorizePreCheckData {
   access_dbs: string[];
-  source_ips?: {
-    bk_host_id?: number;
-    ip: string;
-  }[];
+  source_ips?:
+    | {
+        bk_host_id?: number;
+        ip: string;
+      }[]
+    | string[];
   target_instances: string[];
   user: string;
   cluster_type: string;

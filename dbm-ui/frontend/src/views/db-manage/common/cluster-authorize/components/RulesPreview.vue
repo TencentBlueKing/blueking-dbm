@@ -55,11 +55,28 @@
         </template>
       </BkTableColumn>
       <BkTableColumn
+        :label="t('集群域名')"
+        :width="250">
+        <template #default="{ data }: { data: IDataRow }">
+          <div class="cell-cluster">
+            <p
+              v-for="(item, index) in data.clusterDomains"
+              :key="index">
+              {{ item }}
+              <DbIcon
+                v-if="index === 0"
+                type="copy"
+                @click="handleCopyDomains" />
+            </p>
+          </div>
+        </template>
+      </BkTableColumn>
+      <BkTableColumn
         :label="t('账号')"
         prop="account"
         :width="150" />
       <BkTableColumn
-        :label="t('访问的DB')"
+        :label="t('访问DB')"
         :width="150">
         <template #default="{ data }: { data: IDataRow }">
           <div>
@@ -83,23 +100,6 @@
               @click="() => (showAllDb = !showAllDb)">
               {{ showAllDb ? t('收起') : t('更多') }}
             </BkButton>
-          </div>
-        </template>
-      </BkTableColumn>
-      <BkTableColumn
-        :label="t('集群域名')"
-        :width="250">
-        <template #default="{ data }: { data: IDataRow }">
-          <div class="cell-cluster">
-            <p
-              v-for="(item, index) in data.clusterDomains"
-              :key="index">
-              {{ item }}
-              <DbIcon
-                v-if="index === 0"
-                type="copy"
-                @click="handleCopyDomains" />
-            </p>
           </div>
         </template>
       </BkTableColumn>

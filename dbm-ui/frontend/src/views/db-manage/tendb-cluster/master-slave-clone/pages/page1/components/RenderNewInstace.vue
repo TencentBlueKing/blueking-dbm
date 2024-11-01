@@ -132,7 +132,7 @@
   import { useI18n } from 'vue-i18n';
 
   import { checkHost, getHostTopoInfos } from '@services/source/ipchooser';
-  import type { HostInfo } from '@services/types/ip';
+  import type { HostInfo } from '@services/types';
 
   import { useGlobalBizs } from '@stores';
 
