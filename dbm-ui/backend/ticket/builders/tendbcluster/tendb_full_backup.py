@@ -38,10 +38,11 @@ class TendbFullBackUpDetailSerializer(TendbBaseOperateDetailSerializer):
         对备份位置进行提取，
         两种情况：remote/spider_mnt::127.0.0.1
         """
-        if info["backup_local"] != TenDBBackUpLocation.SPIDER_MNT:
+        divider = "::"
+        if divider not in info["backup_local"]:
             return info
 
-        backup_local, spider_mnt_address = info["backup_local"].split("::")
+        backup_local, spider_mnt_address = info["backup_local"].split(divider)
         info["backup_local"] = backup_local
         info["spider_mnt_address"] = spider_mnt_address
 
