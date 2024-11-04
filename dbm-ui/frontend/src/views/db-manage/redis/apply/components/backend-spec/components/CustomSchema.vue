@@ -20,7 +20,7 @@
       <BkInput
         v-model="modelValue.count"
         clearable
-        :min="1"
+        :min="countMin"
         show-clear-only-hover
         style="width: 314px"
         type="number" />
@@ -103,6 +103,16 @@
   const specSelectorRef = ref<ComponentExposed<typeof SpecSelector>>();
   const shardNum = ref(1);
 
+  const countMin = computed(() => {
+    if (
+      [ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER, ClusterTypes.PREDIXY_REDIS_CLUSTER].includes(
+        props.clusterType as ClusterTypes,
+      )
+    ) {
+      return 3;
+    }
+    return 1;
+  });
   const clusterShardNum = computed(() => modelValue.value.count * shardNum.value || '');
 
   const totalCapcity = computed(() => {
