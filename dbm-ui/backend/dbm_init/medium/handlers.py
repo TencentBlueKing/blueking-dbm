@@ -194,7 +194,7 @@ class MediumHandler:
                     print("sync info %s", json.dumps(package_params, indent=4))
 
         data = {"db_type": db_type, "sync_medium_infos": package_sync_params}
-        http.post(url="apis/packages/sync_medium/", data=data)
+        http.post(url="/apis/packages/sync_medium/", data=data)
 
     @classmethod
     def update_lock(cls, bkrepo_tmp_dir):

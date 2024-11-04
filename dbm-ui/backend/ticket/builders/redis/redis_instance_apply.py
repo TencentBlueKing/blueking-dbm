@@ -86,6 +86,7 @@ class RedisInstanceApplyFlowParamBuilder(builders.FlowParamBuilder):
             CommonValidate._validate_domain_valid(domain_name)
             # 在info里，补充每个主从集群的部署信息
             info.update(
+                disaster_tolerance_level=self.ticket_data.get("disaster_tolerance_level"),
                 city=self.ticket_data.get("city_code"),
                 city_code=self.ticket_data.get("city_code"),
                 db_version=self.ticket_data.get("db_version"),

@@ -14,6 +14,7 @@ import json
 import logging
 import os
 from typing import Any
+from urllib.parse import urljoin
 
 import curlify
 import requests
@@ -59,7 +60,7 @@ class HttpHandler:
     def _http_request(
         self, method, url, headers=None, data=None, verify=False, cert=None, timeout=None, cookies=None, **kwargs
     ):
-        url = f"{os.getenv('DBM_SAAS_URL')}{url}"
+        url = urljoin(os.getenv("DBM_SAAS_URL"), url)
         resp = requests.Response()
         try:
             if method == "GET":
