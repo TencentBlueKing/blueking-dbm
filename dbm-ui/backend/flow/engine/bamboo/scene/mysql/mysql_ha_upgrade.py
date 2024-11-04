@@ -391,9 +391,6 @@ def tendbha_cluster_upgrade_subflow(
             )
             ro_sub_pipleline.add_sub_pipeline(sub_flow=install_ro_slave_sub_pipeline)
             # 恢复主从数据
-            local_backup = False
-            if backup_source == MySQLBackupSource.LOCAL:
-                local_backup = True
             sync_data_sub_pipeline_list = build_sync_data_sub_pipelines(
                 root_id, parent_global_data, cluster_ids, new_ro_slave_ip, local_backup, charset
             )
@@ -471,8 +468,16 @@ def tendbha_cluster_upgrade_subflow(
     ms_sub_pipeline.add_sub_pipeline(sub_flow=install_ms_pair_subflow)
     new_master_ip = new_master["ip"]
     new_slave_ip = new_slave["ip"]
+    # 同步数据
     sync_data_sub_pipeline_list = build_ms_pair_sync_data_sub_pipelines(
-        root_id, parent_global_data, cluster_ids, new_master_ip, new_slave_ip, local_backup, charset
+        root_id=root_id,
+        parent_global_data=parent_global_data,
+        relation_cluster_ids=cluster_ids,
+        new_master_ip=new_master_ip,
+        new_slave_ip=new_slave_ip,
+        old_slave_ip=old_slave_ip,
+        local_backup=local_backup,
+        charset=charset,
     )
     ms_sub_pipeline.add_parallel_sub_pipeline(sub_flow_list=sync_data_sub_pipeline_list)
     ms_process = ms_sub_pipeline.build_sub_process(sub_name=_("安装主从节点,并同步数据"))
@@ -487,7 +492,6 @@ def tendbha_cluster_upgrade_subflow(
     logger.info(_("old_ro_slave ip list {}").format(old_ro_slave_ips))
     # 切换主从对
     ms_switch_subflows = build_ms_pair_switch_sub_pipelines(
-        uid=uid,
         root_id=root_id,
         parent_global_data=parent_global_data,
         relation_cluster_ids=cluster_ids,
@@ -1001,7 +1005,14 @@ def build_install_ms_pair_sub_pipeline(
 
 
 def build_ms_pair_sync_data_sub_pipelines(
-    root_id, parent_global_data, relation_cluster_ids, new_master_ip, new_slave_ip, local_backup: bool, charset: str
+    root_id,
+    parent_global_data,
+    relation_cluster_ids,
+    new_master_ip,
+    new_slave_ip,
+    old_slave_ip,
+    local_backup: bool,
+    charset: str,
 ):
     sync_data_sub_pipeline_list = []
     for cluster_id in relation_cluster_ids:
@@ -1021,10 +1032,10 @@ def build_ms_pair_sync_data_sub_pipelines(
             "new_slave_port": master_model.port,
             "cluster_type": cluster_model.cluster_type,
             "master_ip": master_model.machine.ip,
-            "slave_ip": "",
+            "slave_ip": old_slave_ip,
             "master_port": master_model.port,
-            "slave_port": "",
-            "mysql_port": "",
+            "slave_port": master_model.port,
+            "mysql_port": master_model.port,
             "file_target_path": f"/data/dbbak/{root_id}/{master_model.port}",
             "cluster_id": cluster_model.id,
             "bk_cloud_id": cluster_model.bk_cloud_id,
@@ -1065,7 +1076,7 @@ def build_ms_pair_sync_data_sub_pipelines(
             act_component_code=MySQLDBMetaComponent.code,
             kwargs=asdict(
                 DBMetaOPKwargs(
-                    db_meta_class_func=MySQLDBMeta.mysql_add_slave_info.__name__,
+                    db_meta_class_func=MySQLDBMeta.migrate_cluster_add_tuple.__name__,
                     cluster=cluster,
                     is_update_trans_data=True,
                 )
@@ -1078,7 +1089,6 @@ def build_ms_pair_sync_data_sub_pipelines(
 
 
 def build_ms_pair_switch_sub_pipelines(
-    uid: str,
     root_id: str,
     parent_global_data: dict,
     relation_cluster_ids: list,

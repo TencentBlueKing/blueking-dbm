@@ -744,18 +744,13 @@ def init_machine_sub_flow(
         )
 
     sub_pipeline = SubBuilder(root_id=root_id, data={"uid": uid})
-    # 并行执行空闲检查
+    # 执行空闲检查
     if env.SA_CHECK_TEMPLATE_ID and init_check_ips:
-        acts_list = []
-        for ip in init_check_ips:
-            acts_list.append(
-                {
-                    "act_name": _("空闲检查[{}]".format(ip)),
-                    "act_component_code": CheckMachineIdleComponent.code,
-                    "kwargs": asdict(InitCheckKwargs(ips=[ip], bk_cloud_id=bk_cloud_id)),
-                }
-            )
-        sub_pipeline.add_parallel_acts(acts_list=acts_list)
+        sub_pipeline.add_act(
+            act_name=_("空闲检查[{}]".format(init_check_ips)),
+            act_component_code=CheckMachineIdleComponent.code,
+            kwargs=asdict(InitCheckKwargs(ips=init_check_ips, bk_cloud_id=bk_cloud_id)),
+        )
 
     # 初始化机器
     if sys_init_ips:
