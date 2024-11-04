@@ -629,11 +629,16 @@
   };
 
   const handleChangeClusterType = () => {
+    const count = [ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER, ClusterTypes.PREDIXY_REDIS_CLUSTER].includes(
+      state.formdata.details.cluster_type,
+    )
+      ? 3
+      : 1;
     state.formdata.details.db_version = '';
     state.formdata.details.resource_spec.proxy.spec_id = '';
     state.formdata.details.resource_spec.backend_group = {
       ...state.formdata.details.resource_spec.backend_group,
-      count: 1,
+      count,
       spec_id: '',
       capacity: '',
       future_capacity: '',

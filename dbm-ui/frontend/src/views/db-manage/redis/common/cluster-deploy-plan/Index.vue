@@ -307,9 +307,9 @@
     }
     return true
   });
-  const isTendisCache = computed(() => props.data.clusterType === ClusterTypes.TWEMPROXY_REDIS_INSTANCE);
-  const targetCapacityTitle = computed(() => (isTendisCache.value ? t('目标集群容量需求(内存容量)') : t('目标集群容量需求(磁盘容量)')));
-  const futureCapacityTitle = computed(() => (isTendisCache.value ? t('未来集群容量需求(内存容量)') : t('未来集群容量需求(磁盘容量)')));
+  const isMemoryType = computed(() => [ClusterTypes.TWEMPROXY_REDIS_INSTANCE, ClusterTypes.PREDIXY_REDIS_CLUSTER].includes(props.data.clusterType));
+  const targetCapacityTitle = computed(() => (isMemoryType.value ? t('目标集群容量需求(内存容量)') : t('目标集群容量需求(磁盘容量)')));
+  const futureCapacityTitle = computed(() => (isMemoryType.value ? t('未来集群容量需求(内存容量)') : t('未来集群容量需求(磁盘容量)')));
 
   const currentSpec = computed(() => {
     if (props?.data) {
