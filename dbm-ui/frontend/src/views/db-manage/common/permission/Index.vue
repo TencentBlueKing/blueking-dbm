@@ -382,7 +382,7 @@
             .map(rule => (
               <div class="cell-row">
                 <bk-tag>{rule.access_db || '--'}</bk-tag>
-                <RenderActionTag data={rule.priv_ticket} />
+                { rule.priv_ticket && <RenderActionTag data={rule.priv_ticket} /> }
               </div>
             ))
         );
@@ -459,40 +459,43 @@
                 onClick={(event: PointerEvent) => handleShowAuthorize(data, item, event)}>
                 {t('授权')}
               </bk-button>
-              <OperationBtnStatusTips data={{
-                operationStatusText: t('权限规则_t_任务正在进行中', { t: actionMap[data.rules[index].priv_ticket.action] }),
-                operationTicketId: data.rules[index].priv_ticket.ticket_id,
-              }}>
-                {
-                  configMap[props.accountType].buttonController[ButtonTypes.EDIT_RULE] &&
-                  <bk-button
-                    theme="primary"
-                    class="ml-8"
-                    text
-                    disabled={data.rules[index].priv_ticket.ticket_id}
-                    onClick={(event: PointerEvent) => handleShowEditRule(event, data, index)}>
-                    {t('编辑')}
-                  </bk-button>
-                }
-                {
-                  configMap[props.accountType].buttonController[ButtonTypes.DELETE_RULE] &&
-                  <bk-pop-confirm
-                    width="288"
-                    content={t('删除操作将发起单据，单据获得审批后才会执行删除')}
-                    title={t('确认删除该规则？')}
-                    trigger="click"
-                    onConfirm={() => handleShowDeleteRule(data, index)}
-                  >
+              {
+                data.rules[index].priv_ticket &&
+                <OperationBtnStatusTips data={{
+                  operationStatusText: t('权限规则_t_任务正在进行中', { t: actionMap[data.rules[index].priv_ticket.action] }),
+                  operationTicketId: data.rules[index].priv_ticket.ticket_id,
+                }}>
+                  {
+                    configMap[props.accountType].buttonController[ButtonTypes.EDIT_RULE] &&
                     <bk-button
                       theme="primary"
                       class="ml-8"
+                      text
                       disabled={data.rules[index].priv_ticket.ticket_id}
-                      text>
-                      {t('删除')}
+                      onClick={(event: PointerEvent) => handleShowEditRule(event, data, index)}>
+                      {t('编辑')}
                     </bk-button>
-                  </bk-pop-confirm>
-                }
-              </OperationBtnStatusTips>
+                  }
+                  {
+                    configMap[props.accountType].buttonController[ButtonTypes.DELETE_RULE] &&
+                    <bk-pop-confirm
+                      width="288"
+                      content={t('删除操作将发起单据，单据获得审批后才会执行删除')}
+                      title={t('确认删除该规则？')}
+                      trigger="click"
+                      onConfirm={() => handleShowDeleteRule(data, index)}
+                    >
+                      <bk-button
+                        theme="primary"
+                        class="ml-8"
+                        disabled={data.rules[index].priv_ticket.ticket_id}
+                        text>
+                        {t('删除')}
+                      </bk-button>
+                    </bk-pop-confirm>
+                  }
+                </OperationBtnStatusTips>
+              }
             </div>
           ))
         );
