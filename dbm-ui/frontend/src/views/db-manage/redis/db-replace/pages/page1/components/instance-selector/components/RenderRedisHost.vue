@@ -47,6 +47,7 @@
   import { useI18n } from 'vue-i18n';
 
   import { getRedisMachineList } from '@services/source/redis';
+  import type { queryMasterSlavePairs } from '@services/source/redisToolbox';
 
   import { useLinkQueryColumnSerach } from '@hooks';
 
@@ -82,7 +83,7 @@
     },
     role?: string,
     isRadioMode?: boolean,
-    masterSlaveMap?: Record<string, string>,
+    masterSlaveMap?: Record<string, ServiceReturnType<typeof queryMasterSlavePairs>[number]>,
   }
 
   interface Emits {
@@ -141,7 +142,7 @@
   const isAnomalies = ref(false);
   const showMasterTip = ref(!showTipLocalValue);
   const isTableDataLoading = ref(false);
-  const tableData = ref<RedisHostModel []>([]);
+  const tableData = ref<RedisHostModel[]>([]);
 
   const checkedMap = shallowRef<Record<string, ChoosedItem>>({});
 
@@ -418,15 +419,15 @@
   };
 
   const formatValue = (data: RedisHostModel) => ({
-    bk_host_id: data.bk_host_id,
+    bk_host_id: data?.bk_host_id || 0,
     bk_cloud_id: data?.host_info?.cloud_id || 0,
-    ip: data.ip || '',
-    role: data.instance_role,
+    ip: data?.ip || '',
+    role: data?.instance_role || '',
     cluster_domain: props.node?.name ?? '',
-    spec_config: data.spec_config,
+    spec_config: data?.spec_config || null,
     slaveHost: {
-      faults: data.unavailable_slave,
-      total: data.total_slave,
+      faults: data?.unavailable_slave || 0,
+      total: data?.total_slave || 0,
     },
   });
 
@@ -443,15 +444,18 @@
     triggerChange();
   };
 
-  const handleTableSelectOne = (checked: boolean, data: RedisHostModel) => {
+  const handleTableSelectOne = async (checked: boolean, data: RedisHostModel) => {
     const lastCheckMap = isSingleSelect.value ? {} : { ...checkedMap.value };
     if (checked) {
       lastCheckMap[data.ip] = formatValue(data);
       // master 与 slave 关联选择
       if (Object.keys(props.masterSlaveMap).length > 0 && data.instance_role === 'redis_master') {
-        const slaveIp = props.masterSlaveMap[data.ip];
-        const slaveNode = tableData.value.filter(item => item.ip === slaveIp)[0];
-        lastCheckMap[slaveIp] = formatValue(slaveNode);
+        const {slave_ip: slaveIp, slaves } = props.masterSlaveMap[data.ip];
+        lastCheckMap[slaveIp] = {
+          ...formatValue(data),
+          ...slaves,
+          role: 'redis_slave',
+        };
       }
       if (isSingleSelect.value) {
         // 单选

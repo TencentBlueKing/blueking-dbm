@@ -128,13 +128,13 @@
 
   const RenderContent = computed(() => renderMap[props.activeTab as string]);
 
-  const masterSlaveMap: Record<string, string> = {};
+  const masterSlaveMap: Record<string, ServiceReturnType<typeof queryMasterSlavePairs>[number]> = {};
 
   const fetchMasterSlavePairs = (clusterIds: number[]) => {
     const taskList = clusterIds.map((id) => queryMasterSlavePairs({ cluster_id: id }));
     Promise.all(taskList).then((resultList) => {
       resultList.flat().forEach((item) => {
-        masterSlaveMap[item.master_ip] = item.slave_ip;
+        masterSlaveMap[item.master_ip] = item;
       });
     });
   };
