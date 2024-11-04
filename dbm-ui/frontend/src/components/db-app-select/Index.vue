@@ -183,6 +183,11 @@
       text-overflow: ellipsis;
       flex: 0 1 auto;
     }
+
+    .favor-btn {
+      opacity: 0%;
+      transition: all 0.1s;
+    }
   }
 
   .db-app-select-tooltips {
