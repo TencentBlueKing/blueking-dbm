@@ -533,6 +533,13 @@ class MySQLDBMeta(object):
                 bk_cloud_id=self.cluster["bk_cloud_id"],
                 port_list=[self.cluster["mysql_port"]],
             )
+            # 修改所有原主节点映射的slave到新的主节点
+            api.cluster.tendbha.storage_tuple.update_storage_tuple(
+                master_ip=self.cluster["old_master_ip"],
+                new_master_ip=self.cluster["new_master_ip"],
+                bk_cloud_id=self.cluster["bk_cloud_id"],
+                port_list=[self.cluster["mysql_port"]],
+            )
             # add new slave 对应关系
             if self.cluster.get("new_ro_slave_ips"):
                 for new_ro_slave_ip in self.cluster["new_ro_slave_ips"]:
