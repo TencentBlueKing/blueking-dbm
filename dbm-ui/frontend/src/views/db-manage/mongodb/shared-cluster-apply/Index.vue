@@ -87,7 +87,7 @@
                   :biz-id="formData.bk_biz_id"
                   :city="formData.details.city_code"
                   :cloud-id="formData.details.bk_cloud_id"
-                  :cluster-type="ClusterTypes.MONGO_SHARED_CLUSTER"
+                  :cluster-type="DBTypes.MONGODB"
                   :machine-type="MachineTypes.MONGO_CONFIG"
                   style="width: 314px" />
               </BkFormItem>
@@ -117,7 +117,7 @@
                   :biz-id="formData.bk_biz_id"
                   :city="formData.details.city_code"
                   :cloud-id="formData.details.bk_cloud_id"
-                  :cluster-type="ClusterTypes.MONGO_SHARED_CLUSTER"
+                  :cluster-type="DBTypes.MONGODB"
                   :machine-type="MachineTypes.MONGOS"
                   style="width: 314px" />
               </BkFormItem>

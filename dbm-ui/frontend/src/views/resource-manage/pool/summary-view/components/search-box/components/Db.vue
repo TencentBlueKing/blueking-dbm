@@ -24,13 +24,7 @@
   }
 
   interface Emits {
-    (e: 'change'): void;
-  }
-
-  interface Exposes {
-    getValue: () => {
-      db_type: string;
-    };
+    (e: 'change', value: { db_type: string }): void;
   }
 
   const props = defineProps<Props>();
@@ -71,12 +65,8 @@
   );
 
   const handleChange = () => {
-    emits('change');
-  };
-
-  defineExpose<Exposes>({
-    getValue: () => ({
+    emits('change', {
       db_type: localValue.value,
-    }),
-  });
+    });
+  };
 </script>

@@ -33,13 +33,23 @@
                 <span class="info-title">{{ t('可用主机数') }}：</span>
                 <span class="info-value">{{ item.count ?? 0 }}</span>
               </div>
-              <div class="info">
-                <span class="info-title">CPU：</span>
-                <span class="info-value">({{ item.cpu.min }} ~ {{ item.cpu.max }}) {{ t('核') }}</span>
-              </div>
-              <div class="info">
-                <span class="info-title">{{ t('内存') }}：</span>
-                <span class="info-value">({{ item.mem.min }} ~ {{ item.mem.max }}) G</span>
+              <template v-if="!item.device_class.length && item.cpu.max">
+                <div class="info">
+                  <span class="info-title">CPU：</span>
+                  <span class="info-value">({{ item.cpu.min }} ~ {{ item.cpu.max }}) {{ t('核') }}</span>
+                </div>
+                <div class="info">
+                  <span class="info-title">{{ t('内存') }}：</span>
+                  <span class="info-value">({{ item.mem.min }} ~ {{ item.mem.max }}) G</span>
+                </div>
+              </template>
+              <div
+                v-else
+                class="info">
+                <span class="info-title">{{ t('机型') }}：</span>
+                <span class="info-value">
+                  {{ item.device_class.length > 0 ? item.device_class.join('，') : t('无限制') }}
+                </span>
               </div>
               <div
                 class="info"
