@@ -65,6 +65,7 @@
   import OperateColumn from '@components/render-table/columns/operate-column/index.vue';
   import RenderText from '@components/render-table/columns/text-plain/index.vue';
 
+  import { specClusterMachineMap } from '@views/db-manage/redis/common/const';
   import RenderTargetCluster from '@views/db-manage/redis/common/edit-field/ClusterName.vue';
 
   import { random } from '@utils';
@@ -73,6 +74,12 @@
   import RenderTargetNumber from './RenderTargetNumber.vue';
   import type { SpecInfo } from './SpecPanel.vue';
   import type { IListItem } from './SpecSelect.vue';
+
+  interface Props {
+    data: IDataRow;
+    removeable: boolean;
+    inputedClusters?: string[];
+  }
 
   export interface IDataRow {
     rowKey: string;
@@ -116,13 +123,8 @@
     nodeType: '',
     cluster_type_name: '',
   });
-
-  interface Props {
-    data: IDataRow;
-    removeable: boolean;
-    inputedClusters?: string[];
-  }
-
+</script>
+<script setup lang="ts">
   interface Emits {
     (e: 'add', params: Array<IDataRow>): void;
     (e: 'remove'): void;
@@ -133,8 +135,7 @@
   interface Exposes {
     getValue: () => Promise<InfoItem>;
   }
-</script>
-<script setup lang="ts">
+
   const props = withDefaults(defineProps<Props>(), {
     inputedClusters: () => [],
   });
@@ -143,20 +144,12 @@
 
   // 查询集群对应的规格列表
   const querySpecList = async (item: RedisModel) => {
-    const proxyMachineMap: Record<string, string> = {
-      TwemproxyRedisInstance: 'twemproxy',
-      TwemproxyTendisSSDInstance: 'twemproxy',
-      PredixyTendisplusCluster: 'predixy',
-      PredixyRedisCluster: 'predixy',
-      RedisInstance: '',
-    };
-    const type = item.cluster_spec.spec_cluster_type;
-    const machineType = proxyMachineMap[type];
+    const clusterType = item.cluster_type;
     const specId = item.cluster_spec.spec_id;
     const specCount = item.proxy.length;
     const ret = await getResourceSpecList({
-      spec_cluster_type: type,
-      spec_machine_type: machineType,
+      spec_cluster_type: 'redis',
+      spec_machine_type: specClusterMachineMap[clusterType],
       limit: -1,
       offset: 0,
     });

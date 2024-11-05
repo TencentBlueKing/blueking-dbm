@@ -15,12 +15,16 @@
   <BkSelect
     filterable
     :input-search="false"
+    :loading="isLoading"
     :model-value="defaultValue"
     multiple
     :placeholder="t('请选择机型')"
-    @change="handleChange">
+    :remote-method="remoteMethod"
+    :scroll-height="384"
+    @change="handleChange"
+    @scroll-end="handleScrollEnd">
     <BkOption
-      v-for="(item, index) in data"
+      v-for="(item, index) in deviceList"
       :key="`${item}#${index}`"
       :label="item"
       :value="item">
@@ -52,9 +56,43 @@
 
   const { t } = useI18n();
 
-  const { data } = useRequest(fetchDeviceClass, {
-    initialData: [],
+  const deviceList = ref<string[]>([]);
+  const scrollLoading = ref(false);
+
+  const searchParams = {
+    offset: 0,
+    limit: 12,
+    name: '',
+  };
+
+  let isAppend = false;
+
+  const { loading: isLoading, run: getDeviceClassList } = useRequest(fetchDeviceClass, {
+    defaultParams: [searchParams],
+    onSuccess(data) {
+      const deviceClassList = data.results.map((item) => item.device_type);
+      if (isAppend) {
+        deviceList.value.push(...deviceClassList);
+        return;
+      }
+
+      deviceList.value = deviceClassList;
+    },
   });
+
+  const handleScrollEnd = () => {
+    scrollLoading.value = true;
+    isAppend = true;
+    searchParams.offset += searchParams.limit;
+    getDeviceClassList(searchParams);
+  };
+
+  const remoteMethod = (value: string) => {
+    isAppend = false;
+    searchParams.name = value;
+    searchParams.offset = 0;
+    getDeviceClassList(searchParams);
+  };
 
   const handleChange = (value: string[]) => {
     emits('change', value.join(','));

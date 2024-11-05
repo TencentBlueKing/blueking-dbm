@@ -6,7 +6,6 @@
       :label="t('所属业务')"
       required>
       <Biz
-        ref="bizRef"
         :model="searchParams"
         @change="handleSearch" />
     </BkFormItem>
@@ -14,19 +13,16 @@
       :label="t('所属DB类型')"
       required>
       <Db
-        ref="dbRef"
         :model="searchParams"
-        @change="handleSearch" />
+        @change="(data) => handleSearch(data, 'db')" />
     </BkFormItem>
     <BkFormItem :label="t('地域 - 园区')">
       <Region
-        ref="regionRef"
         :model="searchParams"
         @change="handleSearch" />
     </BkFormItem>
     <BkFormItem :label="t('规格')">
       <Spec
-        ref="specRef"
         :model="searchParams"
         @change="handleSearch" />
     </BkFormItem>
@@ -53,40 +49,41 @@
   const { t } = useI18n();
   const { getSearchParams, replaceSearchParams } = useUrlSearch();
 
-  const bizRef = ref<InstanceType<typeof Biz>>();
-  const dbRef = ref<InstanceType<typeof Db>>();
-  const regionRef = ref<InstanceType<typeof Region>>();
-  const specRef = ref<InstanceType<typeof Spec>>();
   const searchParams = ref(getSearchParams());
 
   const filterEmptyValues = (obj: any): any =>
     _.pickBy(obj, (value) => value !== '' && (!_.isArray(value) || !_.isEmpty(value)));
 
-  const handleSearch = () => {
-    Promise.all([
-      bizRef.value!.getValue(),
-      dbRef.value!.getValue(),
-      regionRef.value!.getValue(),
-      specRef.value!.getValue(),
-    ]).then(([biz, db, region, spec]) => {
-      const parmas = filterEmptyValues({
-        ...biz,
-        ...db,
-        ...region,
-        ...spec,
-      });
-      replaceSearchParams(parmas);
-      searchParams.value = parmas;
-      emits('search');
-    });
+  const handleSearch = (data = {} as Record<string, string | number>, type?: string, isInit = false) => {
+    let params = getSearchParams();
+    Object.assign(params, data);
+    if (params.db_type !== 'PUBLIC' && params.db_type !== params.cluster_type) {
+      params.cluster_type = params.db_type;
+      delete params.machine_type;
+      delete params.spec_id_list;
+    }
+    if ((type === 'db' && data.db_type === 'PUBLIC') || (isInit && params.db_type === 'PUBLIC')) {
+      delete params.cluster_type;
+      delete params.machine_type;
+      delete params.spec_id_list;
+    }
+    if (isInit) {
+      // 初始化一定要带db_type和业务id
+      params.db_type = params.db_type || 'PUBLIC';
+      params.for_biz = params.for_biz || '0';
+    }
+    params = filterEmptyValues(params);
+    replaceSearchParams(params);
+    searchParams.value = params;
+    emits('search');
   };
 
   onMounted(() => {
-    handleSearch();
+    handleSearch({}, '', true);
   });
 
   onActivated(() => {
-    handleSearch();
+    handleSearch({}, '', true);
   });
 </script>
 

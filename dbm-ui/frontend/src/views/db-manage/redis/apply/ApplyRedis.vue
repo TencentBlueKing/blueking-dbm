@@ -277,8 +277,8 @@
                       :biz-id="state.formdata.bk_biz_id"
                       :city="state.formdata.details.city_code"
                       :cloud-id="state.formdata.details.bk_cloud_id"
-                      :cluster-type="typeInfos.cluster_type"
-                      :machine-type="typeInfos.machine_type"
+                      :cluster-type="DBTypes.REDIS"
+                      machine-type="proxy"
                       style="width: 314px" />
                   </BkFormItem>
                   <BkFormItem
@@ -302,7 +302,7 @@
                   :biz-id="state.formdata.bk_biz_id"
                   :cloud-id="state.formdata.details.bk_cloud_id"
                   :cluster-type="typeInfos.cluster_type"
-                  :machine-type="typeInfos.backend_machine_type" />
+                  :machine-type="typeInfos.machine_type" />
               </BkFormItem>
               <BkFormItem
                 :label="t('访问端口')"
@@ -378,7 +378,7 @@
 
   import { useFunController } from '@stores';
 
-  import { ClusterTypes, DBTypes, OSTypes, TicketTypes } from '@common/const';
+  import { ClusterTypes, DBTypes, MachineTypes, OSTypes, TicketTypes } from '@common/const';
   import { nameRegx } from '@common/regex';
 
   import IpSelector from '@components/ip-selector/IpSelector.vue';
@@ -554,25 +554,25 @@
     const types = {
       [ClusterTypes.TWEMPROXY_REDIS_INSTANCE]: {
         cluster_type: ClusterTypes.TWEMPROXY_REDIS_INSTANCE,
-        machine_type: 'twemproxy',
+        machine_type: MachineTypes.REDIS_TENDIS_CACHE,
         backend_machine_type: 'tendiscache',
         pkg_type: 'redis',
       },
       [ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE]: {
         cluster_type: ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE,
-        machine_type: 'twemproxy',
+        machine_type: MachineTypes.REDIS_TENDIS_SSD,
         backend_machine_type: 'tendisssd',
         pkg_type: 'tendisssd',
       },
       [ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER]: {
         cluster_type: ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER,
-        machine_type: 'predixy',
+        machine_type: MachineTypes.REDIS_TENDIS_PLUS,
         backend_machine_type: 'tendisplus',
         pkg_type: 'tendisplus',
       },
       [ClusterTypes.PREDIXY_REDIS_CLUSTER]: {
         cluster_type: ClusterTypes.PREDIXY_REDIS_CLUSTER,
-        machine_type: 'predixy',
+        machine_type: MachineTypes.REDIS_TENDIS_CACHE,
         backend_machine_type: 'tendiscache',
         pkg_type: 'redis',
       },

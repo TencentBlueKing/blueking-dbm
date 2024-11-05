@@ -32,8 +32,31 @@ export function removeResource(params: { bk_host_ids: number[] }) {
 /**
  * 获取机型列表
  */
-export function fetchDeviceClass() {
-  return http.get<string[]>(`${path}/get_device_class/`);
+export function fetchDeviceClass(params: { offset?: number; limit?: number; name?: string }) {
+  return http.post<
+    ListBase<
+      {
+        capacity_flag: number; // 容量标志
+        comment: string; // 评论
+        cpu: number; // CPU 核心数
+        disk: number; // 磁盘大小 (GB)
+        enable_apply: boolean; // 是否启用申请
+        enable_capacity: boolean; // 是否启用容量
+        id: number; // 设备唯一标识
+        label: {
+          device_group: string; // 设备组
+          device_size: string; // 设备大小
+        };
+        mem: number; // 内存大小 (GB)
+        region: string; // 区域
+        require_type: number; // 需求类型
+        remark: string; // 备注
+        score: number; // 评分
+        zone: string; // 可用区
+        device_type: string; // 设备类型
+      }[]
+    >
+  >(`${path}/get_device_class/`, params);
 }
 
 /**

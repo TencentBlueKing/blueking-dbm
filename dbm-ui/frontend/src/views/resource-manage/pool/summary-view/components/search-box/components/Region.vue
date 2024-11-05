@@ -41,14 +41,13 @@
   }
 
   interface Emits {
-    (e: 'change'): void;
-  }
-
-  interface Exposes {
-    getValue: () => {
-      city: string;
-      subzone_ids: string;
-    };
+    (
+      e: 'change',
+      value: {
+        city: string;
+        subzone_ids: string;
+      },
+    ): void;
   }
 
   const props = defineProps<Props>();
@@ -85,21 +84,19 @@
     },
   );
 
+  const getLocalValue = () => ({
+    city: cityCode.value,
+    subzone_ids: subzoneIds.value.join(','),
+  });
+
   const handleChangeCity = () => {
     subzoneIds.value = [];
-    emits('change');
+    emits('change', getLocalValue());
   };
 
   const handleChangeSubzone = () => {
-    emits('change');
+    emits('change', getLocalValue());
   };
-
-  defineExpose<Exposes>({
-    getValue: () => ({
-      city: cityCode.value,
-      subzone_ids: subzoneIds.value.join(','),
-    }),
-  });
 </script>
 
 <style lang="less" scoped>

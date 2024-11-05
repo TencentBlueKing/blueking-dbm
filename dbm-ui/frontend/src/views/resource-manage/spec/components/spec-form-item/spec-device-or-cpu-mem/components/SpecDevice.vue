@@ -12,10 +12,7 @@
 -->
 
 <template>
-  <div class="spec-mem spec-form-item">
-    <div class="spec-form-item-label">
-      {{ t('机型') }}
-    </div>
+  <div class="spec-device spec-form-item">
     <div class="spec-form-item-content">
       <BkFormItem
         property="device_class"
@@ -24,17 +21,33 @@
         style="width: 100%">
         <BkSelect
           :allow-empty-values="['']"
+          class="device-class-select"
           :clearable="false"
+          :disabled="isEdit"
           filterable
           :input-search="false"
           :loading="isLoading"
           :model-value="modelValue"
           multiple
+          :popover-min-width="330"
           :remote-method="remoteMethod"
           :scroll-height="384"
           :scroll-loading="scrollLoading"
+          selected-style="checkbox"
           @change="handleSelectChange"
           @scroll-end="handleScrollEnd">
+          <template #trigger>
+            <BkButton
+              :disabled="isEdit"
+              style="font-size: 14px"
+              text
+              theme="primary">
+              <DbIcon
+                style="margin-right: 5px"
+                type="plus-fill" />
+              {{ t('添加机型') }}
+            </BkButton>
+          </template>
           <BkOption
             key="all"
             :label="t('无限制')"
@@ -42,9 +55,35 @@
           <BkOption
             v-for="item in deviceClassList"
             :key="item.value"
-            :label="item.label"
-            :value="item.value" />
+            :value="item.value">
+            <div class="device-list-item">
+              <span>
+                {{ item.label }}
+              </span>
+              <span style="color: #c4c6cc">{{ `${item.cpu}${t('核')}${item.mem}G` }}</span>
+            </div>
+          </BkOption>
         </BkSelect>
+        <div
+          v-bk-tooltips="{
+            content: t('不支持修改'),
+            disabled: !isEdit,
+          }">
+          <BkTag
+            v-for="(item, index) in modelValue"
+            :key="`${item}-${index}`"
+            closable
+            style="background-color: #fff"
+            @close="() => handleTagClose(index)">
+            {{
+              item === '-1'
+                ? t('无限制')
+                : deviceListMap[item]?.cpu
+                  ? `${item}（${deviceListMap[item]?.cpu}${t('核')}${deviceListMap[item]?.mem}G）`
+                  : `${item}`
+            }}
+          </BkTag>
+        </div>
       </BkFormItem>
     </div>
   </div>
@@ -56,18 +95,28 @@
 
   import { fetchDeviceClass } from '@services/source/dbresourceResource';
 
-  const { t } = useI18n();
+  interface Props {
+    isEdit: boolean;
+  }
 
-  const modelValue = defineModel<string[] | string>({
+  interface DeviceClassListItem {
+    cpu: number;
+    mem: number;
+    label: string;
+    value: string;
+  }
+
+  const props = withDefaults(defineProps<Props>(), {
+    isEdit: false,
+  });
+
+  const modelValue = defineModel<string[]>({
     default: () => [],
   });
 
-  const deviceClassList = ref<
-    {
-      label: string;
-      value: string;
-    }[]
-  >([]);
+  const { t } = useI18n();
+
+  const deviceClassList = ref<DeviceClassListItem[]>([]);
   const scrollLoading = ref(false);
 
   const searchParams = {
@@ -75,6 +124,14 @@
     limit: 12,
     name: '',
   };
+
+  const deviceListMap: Record<
+    string,
+    {
+      cpu: number;
+      mem: number;
+    }
+  > = {};
 
   const rules = [
     {
@@ -87,13 +144,23 @@
   let isAppend = false;
 
   const { loading: isLoading, run: getDeviceClassList } = useRequest(fetchDeviceClass, {
-    defaultParams: [searchParams],
+    manual: true,
     onSuccess(data) {
       scrollLoading.value = false;
-      const deviceList = data.results.map((item) => ({
-        label: `${item.device_type}(${item.cpu}${t('核')}${item.mem}G})`,
-        value: item.device_type,
-      }));
+      const deviceList: DeviceClassListItem[] = [];
+      data.results.forEach((item) => {
+        deviceListMap[item.device_type] = {
+          cpu: item.cpu,
+          mem: item.mem,
+        };
+
+        deviceList.push({
+          label: item.device_type,
+          cpu: item.cpu,
+          mem: item.mem,
+          value: item.device_type,
+        });
+      });
       if (isAppend) {
         deviceClassList.value.push(...deviceList);
         return;
@@ -102,6 +169,29 @@
       deviceClassList.value = deviceList;
     },
   });
+
+  watch(
+    () => modelValue.value,
+    () => {
+      if (modelValue.value.length > 0 && modelValue.value[0] !== '-1') {
+        // 批量查询已选中的机型
+        searchParams.name = modelValue.value.join(',');
+        getDeviceClassList(searchParams);
+        searchParams.name = '';
+        return;
+      }
+
+      getDeviceClassList(searchParams);
+    },
+    { immediate: true },
+  );
+
+  const handleTagClose = (index: number) => {
+    if (props.isEdit) {
+      return;
+    }
+    modelValue.value.splice(index, 1);
+  };
 
   const handleScrollEnd = () => {
     scrollLoading.value = true;
@@ -127,7 +217,7 @@
 
       if (list[list.length - 1] === '-1') {
         // 最后选的无限制，前面选过的都要去除
-        modelValue.value = '-1';
+        modelValue.value = ['-1'];
         return;
       }
     }
@@ -137,5 +227,24 @@
 </script>
 
 <style lang="less" scoped>
-  @import './specFormItem.less';
+  @import '../../specFormItem.less';
+
+  .spec-device {
+    padding: 0 !important;
+  }
+
+  .device-class-select {
+    max-width: 330px;
+  }
+</style>
+<style lang="less">
+  .bk-select-option {
+    padding-right: 12px !important;
+  }
+
+  .device-list-item {
+    display: flex;
+    width: 100%;
+    justify-content: space-between;
+  }
 </style>

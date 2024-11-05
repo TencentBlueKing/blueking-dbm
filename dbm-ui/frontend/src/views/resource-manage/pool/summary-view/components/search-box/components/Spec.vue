@@ -1,30 +1,31 @@
 <template>
   <BkComposeFormItem class="search-box-select-spec">
     <BkSelect
-      v-model="clusterType"
+      v-model="dbType"
+      :disabled="isDbTypeDisabled"
       style="width: 150px"
       @change="handleChangeCluster">
       <BkOption
-        v-for="item in clusterTypeList"
+        v-for="item in DBTypeInfos"
         :key="item.id"
         :label="item.name"
         :value="item.id" />
     </BkSelect>
     <BkSelect
-      :key="clusterType"
+      :key="dbType"
       v-model="machineType"
-      :disabled="!clusterType"
+      :disabled="!dbType"
       style="width: 150px"
       @change="handleChangeMachine">
       <BkOption
         v-for="item in clusterMachineList"
-        :key="item.id"
-        :label="item.name"
-        :value="item.id" />
+        :key="item.value"
+        :label="item.label"
+        :value="item.value" />
     </BkSelect>
     <BkSelect
       :key="machineType"
-      v-model:model-value="specIdList"
+      v-model="specIdList"
       collapse-tags
       :disabled="!machineType"
       :loading="isLoading"
@@ -46,36 +47,33 @@
 
   import { getResourceSpecList } from '@services/source/dbresourceSpec';
 
-  import { type ClusterTypeInfoItem, clusterTypeInfos, ClusterTypes } from '@common/const';
+  import { DBTypeInfos, DBTypes, type InfoItem } from '@common/const';
 
   interface Props {
     model: Record<string, string>;
   }
 
   interface Emits {
-    (e: 'change'): void;
-  }
-
-  interface Exposes {
-    getValue: () => {
-      cluster_type: string;
-      machine_type: string;
-      spec_id_list: string;
-    };
+    (
+      e: 'change',
+      value: {
+        cluster_type: string;
+        machine_type: string;
+        spec_id_list: string;
+      },
+    ): void;
   }
 
   const props = defineProps<Props>();
 
   const emits = defineEmits<Emits>();
 
-  const clusterType = ref('');
+  const dbType = ref('');
   const machineType = ref('');
   const specIdList = ref<string[]>([]);
-  const clusterMachineList = ref<ClusterTypeInfoItem['machineList']>([]);
+  const clusterMachineList = ref<InfoItem['machineList']>([]);
 
-  const clusterTypeList = computed(
-    () => Object.values(clusterTypeInfos).filter((item) => item.dbType === props.model.db_type) || [],
-  );
+  const isDbTypeDisabled = computed(() => !!props.model.db_type && props.model.db_type !== 'PUBLIC');
 
   const {
     loading: isLoading,
@@ -88,18 +86,29 @@
   watch(
     () => props.model,
     () => {
-      if (props.model.cluster_type) {
-        clusterType.value = props.model.cluster_type;
-        clusterMachineList.value = clusterTypeInfos[props.model.cluster_type as ClusterTypes]?.machineList || [];
+      const modelDbType = props.model.db_type;
+      if (!props.model.spec_id_list) {
+        specIdList.value = [];
       }
+      dbType.value = props.model.cluster_type || '';
+      machineType.value = props.model.machine_type || '';
+      clusterMachineList.value = dbType.value ? DBTypeInfos[dbType.value as DBTypes]?.machineList || [] : [];
+      if (modelDbType && modelDbType !== dbType.value && modelDbType !== 'PUBLIC') {
+        dbType.value = modelDbType;
+        machineType.value = '';
+        specIdList.value = [];
+        return;
+      }
+
       if (props.model.machine_type) {
         machineType.value = props.model.machine_type;
         fetchResourceSpecList({
-          spec_cluster_type: clusterType.value,
+          spec_cluster_type: dbType.value,
           spec_machine_type: props.model.machine_type,
           limit: -1,
         });
       }
+
       if (props.model.spec_id_list) {
         specIdList.value = props.model.spec_id_list.split(',');
       }
@@ -111,32 +120,28 @@
 
   const handleChange = (value: string[]) => {
     specIdList.value = value;
-    emits('change');
+    emits('change', {
+      cluster_type: dbType.value,
+      machine_type: machineType.value,
+      spec_id_list: specIdList.value.join(','),
+    });
   };
 
   const handleChangeMachine = (value: string) => {
     machineType.value = value;
     fetchResourceSpecList({
-      spec_cluster_type: clusterType.value,
+      spec_cluster_type: dbType.value,
       spec_machine_type: value,
       limit: -1,
     });
     handleChange([]);
   };
 
-  const handleChangeCluster = (value: string) => {
-    clusterMachineList.value = clusterTypeInfos[value as ClusterTypes]?.machineList || [];
-    clusterType.value = value;
+  const handleChangeCluster = (value: DBTypes) => {
+    clusterMachineList.value = DBTypeInfos[value]?.machineList || [];
+    dbType.value = value;
     handleChangeMachine('');
   };
-
-  defineExpose<Exposes>({
-    getValue: () => ({
-      cluster_type: clusterType.value,
-      machine_type: machineType.value,
-      spec_id_list: specIdList.value.join(','),
-    }),
-  });
 </script>
 
 <style lang="less" scoped>

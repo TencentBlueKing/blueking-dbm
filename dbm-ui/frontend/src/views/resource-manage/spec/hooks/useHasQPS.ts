@@ -20,11 +20,11 @@ const hasQPSClusterTypes = [
   // `${ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE}_tendisssd`,
   // `${ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER}_tendisplus`,
   `${ClusterTypes.TENDBCLUSTER}_remote`,
-  `${ClusterTypes.MONGODB}_shardSvr`,
+  // `${ClusterTypes.MONGODB}_shardSvr`,
 ];
 
-export const useHasQPS = (props: { clusterType: string; machineType: string }) => {
-  const hasQPS = computed(() => hasQPSClusterTypes.includes(`${props.clusterType}_${props.machineType}`));
+export const useHasQPS = (props: { dbType: string; machineType: string }) => {
+  const hasQPS = computed(() => hasQPSClusterTypes.includes(`${props.dbType}_${props.machineType}`));
 
   return { hasQPS };
 };

@@ -125,6 +125,10 @@
     handleSubmit();
   });
 
+  onDeactivated(() => {
+    searchParams.value = {};
+  });
+
   defineExpose<Expose>({
     clearValue() {
       searchParams.value = {};
