@@ -133,7 +133,8 @@
       label: 'IP',
       field: 'ip',
       fixed: 'left',
-      with: 120,
+      minWidth: 120,
+      with: 150,
     },
     {
       label: t('管控区域'),
@@ -207,6 +208,7 @@
     {
       label: t('操作'),
       field: 'id',
+      fixed: 'right',
       width: 100,
       render: ({ data }: {data: DbResourceModel}) => (
         <db-popconfirm

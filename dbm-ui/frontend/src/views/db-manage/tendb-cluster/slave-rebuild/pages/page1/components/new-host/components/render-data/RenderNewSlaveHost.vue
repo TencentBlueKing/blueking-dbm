@@ -269,7 +269,7 @@
           limit: -1,
           spec_name: newClusterData.specConfig.name,
           spec_cluster_type: ClusterTypes.TENDBCLUSTER,
-          spec_machine_type: 'spider',
+          spec_machine_type: 'proxy',
           enable: true,
         }).then((specResult) => {
           if (specResult.results.length) {

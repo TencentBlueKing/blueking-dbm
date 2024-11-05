@@ -127,7 +127,7 @@
               :biz-id="formData.bk_biz_id"
               :city="formData.details.city_code"
               :cloud-id="formData.details.bk_cloud_id"
-              :cluster-type="ClusterTypes.MONGO_REPLICA_SET"
+              :cluster-type="DBTypes.MONGODB"
               :machine-type="MachineTypes.MONGODB"
               style="width: 314px" />
             <span class="input-desc ml-32">

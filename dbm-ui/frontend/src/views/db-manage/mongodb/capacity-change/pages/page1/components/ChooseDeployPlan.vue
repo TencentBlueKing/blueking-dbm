@@ -40,9 +40,9 @@
               <span v-if="targetSepc">{{ targetSepc }}</span>
               <span
                 v-else
-                style="color: #c4c6cc"
-                >{{ t('请先选择部署方案') }}</span
-              >
+                style="color: #c4c6cc">
+                {{ t('请先选择部署方案') }}
+              </span>
             </div>
           </div>
         </div>
@@ -369,7 +369,7 @@
     if (capacityNeed.value > 0) {
       isTableLoading.value = true;
       const params = {
-        spec_cluster_type: 'MongoShardedCluster',
+        spec_cluster_type: 'mongodb',
         spec_machine_type: 'mongodb',
         capacity: capacityNeed.value,
         shard_num: props.data.shardNum,

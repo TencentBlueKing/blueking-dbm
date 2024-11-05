@@ -23,8 +23,8 @@
         v-model="moduleValue"
         :biz-id="3"
         :cloud-id="0"
-        :cluster-type="clusterType"
-        :machine-type="machineType"
+        cluster-type="mongodb"
+        machine-type="mongodb"
         :show-refresh="false" />
     </div>
   </DbFormItem>
@@ -33,8 +33,6 @@
   import { useI18n } from 'vue-i18n';
 
   import MongoDBModel from '@services/model/mongodb/mongodb';
-
-  import { ClusterTypes } from '@common/const';
 
   import RenderTargetSpec from '@views/db-manage/common/apply-items/SpecSelector.vue';
 
@@ -57,8 +55,6 @@
   const moduleValue = defineModel<number | string>({
     default: '',
   });
-
-  const machineType = computed(() => (props.clusterType === ClusterTypes.MONGO_REPLICA_SET ? 'mongos' : 'mongodb'));
 
   const rules = [
     {

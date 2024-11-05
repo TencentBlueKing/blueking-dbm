@@ -283,8 +283,8 @@
                   :biz-id="formdata.bk_biz_id"
                   :city="formdata.details.city_code"
                   :cloud-id="formdata.details.bk_cloud_id"
-                  :cluster-type="ClusterTypes.TENDBSINGLE"
-                  machine-type="single"
+                  cluster-type="mysql"
+                  machine-type="backend"
                   style="width: 435px" />
               </BkFormItem>
               <template v-else>
@@ -298,7 +298,7 @@
                     :biz-id="formdata.bk_biz_id"
                     :city="formdata.details.city_code"
                     :cloud-id="formdata.details.bk_cloud_id"
-                    :cluster-type="ClusterTypes.TENDBHA"
+                    cluster-type="mysql"
                     machine-type="proxy"
                     style="width: 435px" />
                 </BkFormItem>
@@ -312,7 +312,7 @@
                     :biz-id="formdata.bk_biz_id"
                     :city="formdata.details.city_code"
                     :cloud-id="formdata.details.bk_cloud_id"
-                    :cluster-type="ClusterTypes.TENDBHA"
+                    cluster-type="mysql"
                     machine-type="backend"
                     style="width: 435px" />
                 </BkFormItem>
@@ -390,7 +390,7 @@
 
   import { useApplyBase, useTicketCloneInfo } from '@hooks';
 
-  import { ClusterTypes, mysqlType, type MysqlTypeString, TicketTypes } from '@common/const';
+  import { mysqlType, type MysqlTypeString, TicketTypes } from '@common/const';
   import { OSTypes } from '@common/const';
   import { nameRegx } from '@common/regex';
 

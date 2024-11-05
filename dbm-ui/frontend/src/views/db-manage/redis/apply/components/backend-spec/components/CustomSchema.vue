@@ -9,7 +9,7 @@
         v-model="modelValue.spec_id"
         :biz-id="bizId"
         :cloud-id="cloudId"
-        :cluster-type="clusterType"
+        cluster-type="redis"
         :machine-type="machineType"
         style="width: 314px" />
     </DbFormItem>

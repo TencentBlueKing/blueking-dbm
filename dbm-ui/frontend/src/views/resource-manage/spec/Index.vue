@@ -13,9 +13,7 @@
 
 <template>
   <div class="resource-spec-list-page">
-    <ClusterTab
-      v-model="curTab"
-      :excludes="[ClusterTypes.SQLSERVER_SINGLE]" />
+    <DbTab v-model="curTab" />
     <div
       :key="curTab"
       class="wrapper">
@@ -24,13 +22,13 @@
         type="card">
         <BkTabPanel
           v-for="childTab of childrenTabs"
-          :key="childTab.id"
-          :label="childTab.name"
-          :name="childTab.id" />
+          :key="childTab.value"
+          :label="childTab.label"
+          :name="childTab.value" />
       </BkTab>
       <SpecList
-        :cluster-type="curTab"
-        :cluster-type-label="clusterTypeLabel"
+        :db-type="curTab"
+        :db-type-label="clusterTypeLabel"
         :machine-type="curChildTab"
         :machine-type-label="machineTypeLabel" />
     </div>
@@ -41,26 +39,26 @@
 
   import { useFunController } from '@stores';
 
-  import { clusterTypeInfos, ClusterTypes } from '@common/const';
+  import { DBTypeInfos, DBTypes } from '@common/const';
 
-  import ClusterTab from '@components/cluster-tab/Index.vue';
+  import DbTab from '@components/db-tab/Index.vue';
 
   import SpecList from './components/SpecList.vue';
 
   const route = useRoute();
   const funControllerStore = useFunController();
 
-  const curTab = ref<ClusterTypes>(ClusterTypes.TENDBSINGLE);
+  const curTab = ref<DBTypes>(DBTypes.MYSQL);
   const curChildTab = ref('');
 
   const renderTabs = computed(() =>
-    Object.values(clusterTypeInfos).filter((item) => {
+    Object.values(DBTypeInfos).filter((item) => {
       const data = funControllerStore.funControllerData[item.moduleId];
       if (!data) {
         return false;
       }
 
-      const childItem = (data.children as Record<ClusterTypes, ControllerBaseInfo>)[item.id];
+      const childItem = (data.children as Record<DBTypes, ControllerBaseInfo>)[item.id];
 
       // 若有对应的模块子功能，判断是否开启
       if (childItem) {
@@ -73,7 +71,9 @@
   );
   const childrenTabs = computed(() => renderTabs.value.find((item) => item.id === curTab.value)?.machineList || []);
   const clusterTypeLabel = computed(() => renderTabs.value.find((item) => item.id === curTab.value)?.name ?? '');
-  const machineTypeLabel = computed(() => childrenTabs.value.find((item) => item.id === curChildTab.value)?.name ?? '');
+  const machineTypeLabel = computed(
+    () => childrenTabs.value.find((item) => item.value === curChildTab.value)?.label ?? '',
+  );
 
   watch(curTab, (newVal, oldVal) => {
     if (oldVal !== newVal) {
@@ -84,7 +84,7 @@
   onMounted(() => {
     const { spec_cluster_type: clusterType } = route.query;
     if (clusterType) {
-      curTab.value = clusterType as ClusterTypes;
+      curTab.value = clusterType as DBTypes;
     }
   });
 </script>
