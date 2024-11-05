@@ -13,7 +13,6 @@ import io
 import zipfile
 from typing import Any, Dict, List
 
-import chardet
 from bkstorages.exceptions import RequestError as BKStorageError
 from django.http import StreamingHttpResponse
 from rest_framework.status import HTTP_200_OK
@@ -53,8 +52,8 @@ class StorageHandler(object):
         # 如果文件只有一个，则返回的是文件本身
         if len(file_path_list) == 1:
             file_path = file_path_list[0]
-            encoding = chardet.detect(zip_content[:100])["encoding"]
-            zip_content = zip_content.decode(encoding, errors="replace")
+            # encoding = chardet.detect(zip_content[:100])["encoding"]
+            zip_content = zip_content.decode("utf-8", errors="replace")
             return [{"path": file_path, "content": zip_content, "url": self.storage.url(file_path)}]
 
         # 如果是有多个文件，则制品库会打包文件，返回一个zip流

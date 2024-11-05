@@ -85,7 +85,7 @@ class MysqlSingleApplyDetailSerializer(serializers.Serializer):
         # 校验集群名是否重复
         for domain in attrs["domains"]:
             CommonValidate.validate_duplicate_cluster_name(
-                self.context["bk_biz_id"], self.context["ticket_type"], domain["key"]
+                self.context["bk_biz_id"], self.context["ticket_type"], domain["key"], attrs["db_module_id"]
             )
         # 校验域名是否重复
         # TODO 校验存量的域名是否存在重复

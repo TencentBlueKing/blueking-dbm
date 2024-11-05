@@ -47,7 +47,7 @@ class RiakApplyDetailSerializer(BigDataApplyDetailsSerializer):
     def validate(self, attrs):
         # 校验集群名是否重复
         CommonValidate.validate_duplicate_cluster_name(
-            self.context["bk_biz_id"], self.context["ticket_type"], attrs["cluster_name"]
+            self.context["bk_biz_id"], self.context["ticket_type"], attrs["cluster_name"], attrs["db_module_id"]
         )
         return attrs
 

@@ -26,7 +26,7 @@ from django.utils.translation import gettext as _
 from backend import env
 from backend.components import BKLogApi, ItsmApi
 from backend.components.cmsi.handler import CmsiHandler
-from backend.configuration.constants import PLAT_BIZ_ID
+from backend.configuration.constants import PLAT_BIZ_ID, DBType
 from backend.constants import DEFAULT_SYSTEM_USER
 from backend.db_meta.enums import ClusterType, InstanceInnerRole
 from backend.db_meta.models import AppCache, Cluster, StorageInstance
@@ -114,15 +114,19 @@ class TicketTask(object):
             checksum_log = json.loads(hit["_source"]["log"])
             cluster__checksum_logs_map[checksum_log["cluster_id"]].append(checksum_log)
 
+        cluster_map = {c.id: c for c in Cluster.objects.filter(id__in=list(cluster__checksum_logs_map.keys()))}
+        biz__db_type__repair_infos: Dict[int, Dict[DBType, List]] = defaultdict(lambda: defaultdict(list))
+
         # 为每个待修复的集群生成修复单据
         for cluster_id, checksum_logs in cluster__checksum_logs_map.items():
-            try:
-                cluster = Cluster.objects.get(id=cluster_id)
-            except Cluster.DoesNotExist:
-                # 忽略不在dbm meta信息中的集群
+            # 忽略不在dbm meta信息中的集群
+            if cluster_id not in cluster_map:
                 logger.error(_("无法在dbm meta中查询到集群{}的相关信息，请排查该集群的状态".format(cluster_id)))
                 continue
 
+            cluster = cluster_map[cluster_id]
+
+            # 根据logs获取ip:port和实例的映射
             inst_filter_list = [
                 (
                     Q(
@@ -197,34 +201,42 @@ class TicketTask(object):
                 logger.info(_("集群{}数据校验正确，不需要进行数据修复".format(cluster_id)))
                 continue
 
-            # 构造修复单据
-            ticket_details = {
-                # "非innodb表是否修复"这个参数与校验保持一致，默认为false
-                "is_sync_non_innodb": False,
-                "is_ticket_consistent": False,
-                "checksum_table": MYSQL_CHECKSUM_TABLE,
-                "trigger_type": MySQLDataRepairTriggerMode.ROUTINE.value,
-                "start_time": date2str(start_time),
-                "end_time": date2str(end_time),
-                "infos": [
-                    {
-                        "cluster_id": cluster_id,
-                        "master": data_info["master"],
-                        "slaves": data_info["slaves"],
-                    }
-                    for data_info in data_repair_infos
-                ],
-            }
-            ticket_type = TicketType.MYSQL_DATA_REPAIR
-            if cluster.cluster_type == ClusterType.TenDBCluster:
-                ticket_type = TicketType.TENDBCLUSTER_DATA_REPAIR
-            cls._create_ticket(
-                ticket_type=ticket_type,
-                creator=DEFAULT_SYSTEM_USER,
-                bk_biz_id=cluster.bk_biz_id,
-                remark=_("集群{}存在数据不一致，自动创建的数据修复单据").format(cluster.name),
-                details=ticket_details,
-            )
+            # 获取修复单据详情信息
+            ticket_infos = [
+                {"cluster_id": cluster_id, "master": data_info["master"], "slaves": data_info["slaves"]}
+                for data_info in data_repair_infos
+            ]
+            db_type = ClusterType.cluster_type_to_db_type(cluster.cluster_type)
+            biz__db_type__repair_infos[cluster.bk_biz_id][db_type].extend(ticket_infos)
+
+        # 构造修复单据
+        for biz, db_type__repair_infos in biz__db_type__repair_infos.items():
+            for db_type, repair_infos in db_type__repair_infos.items():
+                ticket_details = {
+                    # "非innodb表是否修复"这个参数与校验保持一致，默认为false
+                    "is_sync_non_innodb": False,
+                    "is_ticket_consistent": False,
+                    "checksum_table": MYSQL_CHECKSUM_TABLE,
+                    "trigger_type": MySQLDataRepairTriggerMode.ROUTINE.value,
+                    "start_time": date2str(start_time),
+                    "end_time": date2str(end_time),
+                    "infos": [
+                        {
+                            "cluster_id": data_info["cluster_id"],
+                            "master": data_info["master"],
+                            "slaves": data_info["slaves"],
+                        }
+                        for data_info in repair_infos
+                    ],
+                }
+                ticket_type = getattr(TicketType, f"{db_type.upper()}_DATA_REPAIR")
+                cls._create_ticket(
+                    ticket_type=ticket_type,
+                    creator=DEFAULT_SYSTEM_USER,
+                    bk_biz_id=biz,
+                    remark=_("集群存在数据不一致，自动创建的数据修复单据"),
+                    details=ticket_details,
+                )
 
     @classmethod
     def auto_clear_expire_flow(cls):

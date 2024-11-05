@@ -228,16 +228,16 @@ class CommonValidate(object):
         return inst["bk_host_id"] in intersected_host_ids
 
     @classmethod
-    def validate_duplicate_cluster_name(cls, bk_biz_id, ticket_type, cluster_name):
+    def validate_duplicate_cluster_name(cls, bk_biz_id, ticket_type, cluster_name, db_module_id=0):
         """校验是否存在重复集群名"""
 
         from backend.ticket.builders import BuilderFactory
 
         cluster_type = BuilderFactory.ticket_type__cluster_type.get(ticket_type, ticket_type)
-        if Cluster.objects.filter(bk_biz_id=bk_biz_id, cluster_type=cluster_type, name=cluster_name).exists():
-            raise serializers.ValidationError(
-                _("业务{}下已经存在同类型: {}, 同名: {} 集群，请重新命名").format(bk_biz_id, cluster_type, cluster_name)
-            )
+        if Cluster.objects.filter(
+            bk_biz_id=bk_biz_id, cluster_type=cluster_type, name=cluster_name, db_module_id=db_module_id
+        ).exists():
+            raise serializers.ValidationError(_("该业务下已经存在同类型同名集群，请重新命名").format(bk_biz_id))
 
     @classmethod
     def _validate_domain_valid(cls, domain):

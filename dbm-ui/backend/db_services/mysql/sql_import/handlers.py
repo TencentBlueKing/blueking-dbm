@@ -15,7 +15,6 @@ import tempfile
 import time
 from typing import Any, Dict, List, Optional, Union
 
-import chardet
 from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.utils.translation import ugettext as _
 
@@ -96,8 +95,8 @@ class SQLHandler(object):
                 else:
                     content_bytes = file.read()
                     # chardet.detect预测性非100%，这里非强制UnicodeDecodeError，选择replace模式忽略
-                    encoding = chardet.detect(content_bytes[:100])["encoding"]
-                    sql_content = content_bytes.decode(encoding=encoding, errors="replace")
+                    # encoding = chardet.detect(content_bytes[:100])["encoding"]
+                    sql_content = content_bytes.decode("utf-8", errors="replace")
 
                 sql_file_info.update(sql_path=sql_path, sql_content=sql_content, raw_file_name=file.name)
 

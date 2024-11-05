@@ -81,7 +81,7 @@ class TenDBClusterApplyDetailSerializer(serializers.Serializer):
         # TODO: spider集群部署校验
         # 校验集群名是否重复
         CommonValidate.validate_duplicate_cluster_name(
-            self.context["bk_biz_id"], self.context["ticket_type"], attrs["cluster_name"]
+            self.context["bk_biz_id"], self.context["ticket_type"], attrs["cluster_name"], attrs["db_module_id"]
         )
         # 校验分片数合法
         TendbBaseOperateDetailSerializer.validate_cluster_shard_num(attrs)
