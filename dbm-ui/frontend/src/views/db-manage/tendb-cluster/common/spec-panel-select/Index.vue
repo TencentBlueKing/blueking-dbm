@@ -31,12 +31,10 @@
   import { getSpecResourceCount } from '@services/source/dbresourceResource';
   import { getResourceSpecList } from '@services/source/dbresourceSpec';
 
-  // import type { SpecInfo } from './components/Panel.vue';
   import TableEditSelect, { type IListItem } from './components/Select.vue';
 
   interface Props {
     cloudId?: number;
-    clusterType?: string;
     data?: number;
     currentSpecIds?: number[];
   }
@@ -49,7 +47,6 @@
 
   const props = withDefaults(defineProps<Props>(), {
     cloudId: 0,
-    clusterType: '',
     data: undefined,
     currentSpecIds: () => [],
   });
@@ -78,37 +75,35 @@
     async (id) => {
       if (id !== undefined) {
         localValue.value = id;
-        if (props.clusterType) {
-          isLoading.value = true;
-          try {
-            const listResult = await getResourceSpecList({
-              spec_cluster_type: props.clusterType,
-              spec_machine_type: 'spider',
-              limit: -1,
-              offset: 0,
-            });
-            const specResultList = listResult.results;
-            const countResult = await getSpecResourceCount({
-              bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-              bk_cloud_id: props.cloudId,
-              spec_ids: specResultList.map((item) => item.spec_id),
-            });
-            specList.value = specResultList.map((item) => ({
-              id: item.spec_id,
+        isLoading.value = true;
+        try {
+          const listResult = await getResourceSpecList({
+            spec_cluster_type: 'tendbcluster',
+            spec_machine_type: 'proxy',
+            limit: -1,
+            offset: 0,
+          });
+          const specResultList = listResult.results;
+          const countResult = await getSpecResourceCount({
+            bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+            bk_cloud_id: props.cloudId,
+            spec_ids: specResultList.map((item) => item.spec_id),
+          });
+          specList.value = specResultList.map((item) => ({
+            id: item.spec_id,
+            name: item.spec_name,
+            isCurrent: false,
+            specData: {
               name: item.spec_name,
-              isCurrent: false,
-              specData: {
-                name: item.spec_name,
-                cpu: item.cpu,
-                id: item.spec_id,
-                mem: item.mem,
-                count: countResult[item.spec_id],
-                storage_spec: item.storage_spec,
-              },
-            }));
-          } finally {
-            isLoading.value = false;
-          }
+              cpu: item.cpu,
+              id: item.spec_id,
+              mem: item.mem,
+              count: countResult[item.spec_id],
+              storage_spec: item.storage_spec,
+            },
+          }));
+        } finally {
+          isLoading.value = false;
         }
       }
     },

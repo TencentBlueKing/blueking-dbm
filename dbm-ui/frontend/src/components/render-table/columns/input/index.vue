@@ -38,7 +38,7 @@
       @paste="handlePaste">
     </BkInput>
     <DbIcon
-      v-if="clearable && modelValue && type !== 'number'"
+      v-if="clearable && !disabled && modelValue && type !== 'number'"
       class="clear-icon"
       type="close-circle-shape"
       @click="handleClear" />
@@ -72,17 +72,19 @@
     pasteFn?: (value: string) => string;
   }
 
+  type ValueType = string | number;
+
   interface Emits {
-    (e: 'blur', value: string): void;
-    (e: 'input', value: string): void;
-    (e: 'submit', value: string): void;
+    (e: 'blur', value: ValueType): void;
+    (e: 'input', value: ValueType): void;
+    (e: 'submit', value: ValueType): void;
     (e: 'error', result: boolean): void;
     (e: 'focus'): void;
     (e: 'clear'): void;
   }
 
   interface Exposes {
-    getValue: () => Promise<string>;
+    getValue: () => Promise<ValueType>;
     validator: () => Promise<boolean>;
     focus: () => void;
   }
@@ -102,7 +104,7 @@
 
   const emits = defineEmits<Emits>();
 
-  const modelValue = defineModel<string>({
+  const modelValue = defineModel<ValueType>({
     default: '',
   });
 
@@ -111,7 +113,7 @@
 
   const isPassword = computed(() => props.type === 'password');
 
-  let oldInputText = '';
+  let oldInputText = '' as ValueType;
 
   const { message: errorMessage, validator } = useValidtor(props.rules);
 

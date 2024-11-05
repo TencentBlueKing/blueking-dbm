@@ -213,7 +213,7 @@
 
     isLoading.value = true;
     getFilterClusterSpec({
-      spec_cluster_type: props.clusterType,
+      spec_cluster_type: 'redis',
       spec_machine_type: props.machineType,
       capacity: Number(capacity),
       future_capacity: Number(futureCapacity),

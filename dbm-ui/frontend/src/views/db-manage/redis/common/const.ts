@@ -19,7 +19,7 @@ import {
   WriteModes,
 } from '@services/model/redis/redis-dst-history-job';
 
-import { ClusterTypes } from '@common/const';
+import { ClusterTypes, MachineTypes } from '@common/const';
 
 export const repairAndVerifyFrequencyList = [
   {
@@ -114,10 +114,11 @@ export const QueryKeyMap: Record<string, string> = {
   PredixyRedisCluster: 'redis',
 };
 
-export const ClusterMachineMap: Record<string, string> = {
-  [ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER]: 'tendisplus',
-  [ClusterTypes.PREDIXY_REDIS_CLUSTER]: 'tendiscache',
-  [ClusterTypes.REDIS_INSTANCE]: 'tendiscache',
-  [ClusterTypes.TWEMPROXY_REDIS_INSTANCE]: 'tendiscache',
-  [ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE]: 'tendisssd',
+// redis 规格有关的集群与机器类型映射，主要处理 RedisCluster 和 Redis主从 合入  TendisCache后端存储的情况
+export const specClusterMachineMap: Record<string, string> = {
+  [ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE]: MachineTypes.REDIS_TENDIS_SSD,
+  [ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER]: MachineTypes.REDIS_TENDIS_PLUS,
+  [ClusterTypes.PREDIXY_REDIS_CLUSTER]: MachineTypes.REDIS_TENDIS_CACHE,
+  [ClusterTypes.REDIS_INSTANCE]: MachineTypes.REDIS_TENDIS_CACHE,
+  [ClusterTypes.TWEMPROXY_REDIS_INSTANCE]: MachineTypes.REDIS_TENDIS_CACHE,
 };

@@ -22,13 +22,7 @@
   }
 
   interface Emits {
-    (e: 'change'): void;
-  }
-
-  interface Exposes {
-    getValue: () => {
-      for_biz: number;
-    };
+    (e: 'change', value: { for_biz: number }): void;
   }
 
   const props = defineProps<Props>();
@@ -70,12 +64,8 @@
   );
 
   const handleChange = () => {
-    emits('change');
-  };
-
-  defineExpose<Exposes>({
-    getValue: () => ({
+    emits('change', {
       for_biz: Number(localValue.value),
-    }),
-  });
+    });
+  };
 </script>

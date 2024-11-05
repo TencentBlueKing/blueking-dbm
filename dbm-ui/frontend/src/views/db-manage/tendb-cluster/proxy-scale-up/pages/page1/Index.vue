@@ -165,7 +165,7 @@
       cluster: item.master_domain,
       clusterId: item.id,
       bkCloudId: item.bk_cloud_id,
-      clusterType: item.cluster_spec.spec_cluster_type,
+      clusterType: item.cluster_type,
       nodeType: '',
       masterCount,
       slaveCount,

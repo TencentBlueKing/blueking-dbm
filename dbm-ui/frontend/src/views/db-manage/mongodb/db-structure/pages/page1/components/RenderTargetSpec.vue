@@ -23,7 +23,7 @@
         v-model="moduleValue"
         :biz-id="3"
         :cloud-id="0"
-        :cluster-type="clusterType"
+        cluster-type="mongodb"
         machine-type="mongodb"
         :show-refresh="false" />
     </div>

@@ -13,16 +13,13 @@
 
 <template>
   <div class="spec-mem spec-form-item">
-    <div class="spec-form-item-label">
-      {{ $t('内存') }}
-    </div>
     <div class="spec-form-item-content">
       <BkFormItem
         property="mem.min"
         required>
         <span
           v-bk-tooltips="{
-            content: $t('不支持修改'),
+            content: t('不支持修改'),
             disabled: !isEdit,
           }"
           class="inline-block">
@@ -38,13 +35,13 @@
             @change="handleLimitChange('min')" />
         </span>
       </BkFormItem>
-      <span class="spec-form-item-desc">{{ $t('至') }}</span>
+      <span class="spec-form-item-desc">{{ t('至') }}</span>
       <BkFormItem
         property="mem.max"
         required>
         <span
           v-bk-tooltips="{
-            content: $t('不支持修改'),
+            content: t('不支持修改'),
             disabled: !isEdit,
           }"
           class="inline-block">
@@ -66,6 +63,8 @@
 </template>
 
 <script setup lang="ts">
+  import { useI18n } from 'vue-i18n';
+
   interface ModelValue {
     max: number | string;
     min: number | string;
@@ -79,6 +78,8 @@
     isEdit: false,
   });
   const modelValue = defineModel<ModelValue>({ required: true });
+
+  const { t } = useI18n();
 
   const handleLimitChange = (type: 'min' | 'max') => {
     const minValue = Number(modelValue.value.min);
@@ -100,9 +101,11 @@
 </script>
 
 <style lang="less" scoped>
-  @import './specFormItem.less';
+  @import '../../specFormItem.less';
 
   .spec-mem {
+    padding: 0 !important;
+
     &::before {
       display: none;
     }

@@ -191,7 +191,7 @@
   import DbForm from '@components/db-form/index.vue'
 
   import ApplySchema, { APPLY_SCHEME } from '@views/db-manage/common/apply-schema/Index.vue';
-  import { ClusterMachineMap } from '@views/db-manage/redis/common/const'
+  import { specClusterMachineMap } from '@views/db-manage/redis/common/const';
 
   import CustomSchema from './CustomSchema.vue';
 
@@ -386,7 +386,7 @@
         bizId: window.PROJECT_CONFIG.BIZ_ID,
         cloudId: props.data.bkCloudId,
         clusterType: props.data.clusterType,
-        machineType: ClusterMachineMap[props.data.clusterType]
+        machineType: specClusterMachineMap[props.data.clusterType]
       })
     }
   }, {
@@ -427,8 +427,8 @@
       isTableLoading.value = true;
       const clusterType = props.data?.clusterType ?? ClusterTypes.TWEMPROXY_REDIS_INSTANCE;
       const params = {
-        spec_cluster_type: clusterType,
-        spec_machine_type: ClusterMachineMap[clusterType],
+        spec_cluster_type: 'redis',
+        spec_machine_type: specClusterMachineMap[clusterType],
         shard_num: props.data.shardNum === 0 ? undefined : props.data.shardNum,
         capacity: specInfo.capacityNeed,
         future_capacity: specInfo.capacityNeed <= specInfo.capacityFutureNeed ? specInfo.capacityFutureNeed : specInfo.capacityNeed,
