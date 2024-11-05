@@ -35,13 +35,13 @@
         </div>
         <div class="form-block-item">
           <div class="form-block-title">
-            <I18nT keypath="扩容至（当前n台）">
+            <I18nT keypath="扩容数量（当前n台）">
               {{ originalHostNums }}
             </I18nT>
             <span class="required-flag">*</span>
           </div>
           <BkInput
-            :min="originalHostNums"
+            :min="0"
             :model-value="machinePairCnt"
             type="number"
             @change="handleMachinePairCntChange" />
@@ -51,9 +51,17 @@
     <div
       v-if="estimateCapacity > 0"
       class="disk-tips mt-16">
-      <span style="padding-right: 4px"> {{ t('预估容量（以最小配置计算）') }}: </span>
-      <span class="number">{{ estimateCapacity + data.totalDisk }}</span>
-      <span>G</span>
+      <I18nT
+        keypath="当前容量：nG"
+        tag="span">
+        <span style="font-weight: bolder">{{ data.totalDisk }}</span>
+      </I18nT>
+      ，
+      <I18nT
+        keypath="扩容后预估：nG"
+        tag="span">
+        <span style="font-weight: bolder">{{ estimateCapacity + data.totalDisk }}</span>
+      </I18nT>
     </div>
   </div>
 </template>
@@ -82,17 +90,13 @@
     (e: 'change', value: TExpansionNode['resourceSpec'], expansionDisk: TExpansionNode['expansionDisk']): void;
   }
 
-  interface Exposes {
-    triggerLatestValue: () => void;
-  }
-
   const props = defineProps<Props>();
   const emits = defineEmits<Emits>();
 
   const { t } = useI18n();
 
   const specId = ref(props.data.resourceSpec.spec_id);
-  const machinePairCnt = ref(props.data.resourceSpec.count + props.data.originalHostList.length);
+  const machinePairCnt = ref(props.data.resourceSpec.count);
   const specCountMap = shallowRef<Record<number, number>>({});
 
   const originalHostNums = computed(() => props.data.originalHostList.length);
@@ -126,6 +130,9 @@
       },
     ],
     onSuccess(data) {
+      if (specId.value) {
+        triggerChange();
+      }
       fetchSpecResourceCount({
         bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
         bk_cloud_id: props.cloudInfo.id,
@@ -145,13 +152,12 @@
     onSuccess(recommendSpecList) {
       if (recommendSpecList.length > 0) {
         specId.value = recommendSpecList[0].spec_id;
-        handleSpecChange(recommendSpecList[0].spec_id);
       }
     },
   });
 
   const triggerChange = () => {
-    const count = Math.max(machinePairCnt.value - originalHostNums.value, 0);
+    const count = machinePairCnt.value;
     emits(
       'change',
       {
@@ -171,12 +177,6 @@
     machinePairCnt.value = Number(value);
     triggerChange();
   };
-
-  defineExpose<Exposes>({
-    triggerLatestValue() {
-      triggerChange();
-    },
-  });
 </script>
 <style lang="less">
   .expansion-resource-pool-selector {
@@ -204,6 +204,7 @@
     }
 
     .disk-tips {
+      font-size: 12px;
       color: #63656e;
     }
   }

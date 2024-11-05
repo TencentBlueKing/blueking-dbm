@@ -47,26 +47,6 @@
             {{ calcSelectHostDisk(hostTableData) }}
           </span>
         </I18nT>
-        <!-- <I18nT
-          v-if="targetMatchReal > 0"
-          class="ml-8"
-          keypath="较目标容量相差nG">
-          <span
-            class="number"
-            style="color: #ff9c01">
-            {{ targetMatchReal }}
-          </span>
-        </I18nT>
-        <I18nT
-          v-if="targetMatchReal < 0"
-          class="ml-8"
-          keypath="较目标容量超出nG">
-          <span
-            class="number"
-            style="color: #ff9c01">
-            {{ Math.abs(targetMatchReal) }}
-          </span>
-        </I18nT> -->
       </div>
       <BkTable
         :columns="tableColumns"

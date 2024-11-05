@@ -61,7 +61,6 @@
 
   import DorisModel from '@services/model/doris/doris';
   import DorisMachineModel from '@services/model/doris/doris-machine';
-  import DorisNodeModel from '@services/model/doris/doris-node';
   import { getDorisMachineList } from '@services/source/doris';
   import { createTicket } from '@services/source/ticket';
   import type { HostInfo } from '@services/types';
@@ -106,7 +105,7 @@
     [item.host_id]: true,
   }), {} as Record<number, boolean>);
 
-  const generateNodeInfo = (values: Pick<TDorisExpansionNode, 'label' | 'role' | 'specMachineType' | 'tagText' | 'mutexNodeTypes'>): TDorisExpansionNode => ({
+  const generateNodeInfo = (values: Pick<TDorisExpansionNode, 'label' | 'role' | 'specMachineType' | 'tagText' | 'mutexNodeTypes' | 'showCount'>): TDorisExpansionNode => ({
     ...values,
     clusterId: props.data.id,
     originalHostList: [],
@@ -162,6 +161,7 @@
       specMachineType: 'doris_observer',
       tagText: t('接入层'),
       mutexNodeTypes: ['hot', 'cold'],
+      showCount: true
     })
   });
 
@@ -242,19 +242,20 @@
 
       const renderSubTitle = () => {
         const renderExpansionDiskTips = () => Object.values(nodeInfoMap).map((nodeData) => {
-          if (nodeData.specMachineType === DorisNodeModel.ROLE_OBSERVER) {
-            if (nodeData.resourceSpec.count > 0)
+          if (nodeData.showCount) {
+            const expansionCount = ipSource.value === 'resource_pool' ? nodeData.resourceSpec.count : nodeData.hostList.length;
+            if (expansionCount) {
               return (
                 <div class='tips-item'>
                   {t('name容量从n台扩容至n台', {
                     name: nodeData.label,
                     hostNumBefore: nodeData.originalHostList.length,
-                    hostNumAfter: nodeData.resourceSpec.count + nodeData.originalHostList.length,
+                    hostNumAfter: expansionCount + nodeData.originalHostList.length,
                   })}
                 </div>
               );
             }
-          else {
+          } else {
             if (nodeData.expansionDisk) {
               return (
                 <div class='tips-item'>
