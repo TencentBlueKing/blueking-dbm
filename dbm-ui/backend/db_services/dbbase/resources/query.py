@@ -64,7 +64,7 @@ class CommonQueryResourceMixin(abc.ABC):
                     bk_biz_id=cluster_details["bk_biz_id"], bk_cloud_id=cluster_details["bk_cloud_id"]
                 ).get_domain(entry.entry)
             else:
-                target_details = entry.detail
+                target_details = [entry.detail]
 
             entry_details.append(
                 {
