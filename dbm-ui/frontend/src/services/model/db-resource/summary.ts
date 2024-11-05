@@ -11,7 +11,7 @@
  * the specific language governing permissions and limitations under the License.
  */
 
-import { clusterTypeInfos, ClusterTypes, MachineTypes } from '@common/const';
+import { DBTypeInfos, DBTypes, MachineTypes } from '@common/const';
 
 export default class Summary {
   dedicated_biz: number;
@@ -19,7 +19,7 @@ export default class Summary {
   city: string;
   spec_id?: number;
   spec_name?: string;
-  spec_cluster_type?: ClusterTypes;
+  spec_cluster_type?: DBTypes;
   spec_machine_type?: MachineTypes;
   device_class?: string;
   disk_summary?: {
@@ -66,9 +66,12 @@ export default class Summary {
     if (!this.spec_cluster_type || !this.spec_machine_type) {
       return '--';
     }
-    const { name, machineList } = clusterTypeInfos[this.spec_cluster_type];
-    const matchMachine = machineList.find(({ id }) => id === this.spec_machine_type);
-    return matchMachine ? `${name} - ${matchMachine.name}` : '--';
+    const { name, machineList } = DBTypeInfos[this.spec_cluster_type] || {
+      name: '',
+      machineList: [],
+    };
+    const matchMachine = machineList.find(({ value }) => value === this.spec_machine_type);
+    return matchMachine ? `${name} - ${matchMachine.label}` : '--';
   }
 
   get subzoneDetailDisplay() {

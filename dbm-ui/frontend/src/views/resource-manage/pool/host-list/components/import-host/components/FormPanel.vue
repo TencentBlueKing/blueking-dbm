@@ -95,7 +95,8 @@
         :model="formData">
         <BkFormItem
           :label="t('所属业务')"
-          property="for_biz">
+          property="for_biz"
+          required>
           <div class="com-input">
             <BkSelect
               v-model="formData.for_biz"
@@ -110,7 +111,8 @@
         </BkFormItem>
         <BkFormItem
           :label="t('所属DB类型')"
-          property="resource_type">
+          property="resource_type"
+          required>
           <div class="com-input">
             <BkSelect
               v-model="formData.resource_type"

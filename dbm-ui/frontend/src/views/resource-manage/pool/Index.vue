@@ -53,7 +53,7 @@
     },
   ];
 
-  const activeTab = useDebouncedRef(route.params.page);
+  const activeTab = useDebouncedRef(route.params.page as string);
 
   const renderComponentMap = {
     'summary-view': SummaryView,

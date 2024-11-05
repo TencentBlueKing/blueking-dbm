@@ -35,20 +35,18 @@
           {{ machineTypeLabel }}
         </div>
         <div class="machine-item-content">
-          <SpecCPU
-            v-model="formdata.cpu"
-            :is-edit="isEdit" />
-          <SpecMem
-            v-model="formdata.mem"
-            :is-edit="isEdit" />
-          <SpecDevice
-            v-model="formdata.device_class"
+          <SpecDeviceOrCpuMem
+            ref="specDeviceOrCpuMemRef"
+            v-model:cpu="formdata.cpu"
+            v-model:device-class="formdata.device_class"
+            v-model:mem="formdata.mem"
             :is-edit="isEdit" />
           <SpecStorage
-            v-model="formdata.storage_spec"
+            ref="specStorageRef"
+            :data="formdata.storage_spec"
             :is-edit="isEdit"
             :is-required="isRequired"
-            :machine-type="machineType" />
+            @table-value-change="handleTableValueChange" />
         </div>
       </div>
       <BkFormItem
@@ -129,15 +127,13 @@
   import type ResourceSpecModel from '@services/model/resource-spec/resourceSpec';
   import { createResourceSpec, updateResourceSpec, verifyDuplicatedSpecName } from '@services/source/dbresourceSpec';
 
-  import { ClusterTypes } from '@common/const';
+  import { ClusterTypes, DBTypes } from '@common/const';
 
   import { useHasQPS } from '../hooks/useHasQPS';
 
-  import SpecCPU from './spec-form-item/SpecCPU.vue';
-  import SpecDevice from './spec-form-item/SpecDevice.vue';
-  import SpecMem from './spec-form-item/SpecMem.vue';
+  import SpecDeviceOrCpuMem from './spec-form-item/spec-device-or-cpu-mem/Index.vue';
+  import SpecStorage from './spec-form-item/spec-storage/Index.vue';
   import SpecQps from './spec-form-item/SpecQPS.vue';
-  import SpecStorage from './spec-form-item/SpecStorage.vue';
 
   import { messageSuccess } from '@/utils';
 
@@ -147,11 +143,11 @@
   }
 
   interface Data extends Omit<ResourceSpecModel, 'device_class'> {
-    device_class: string[] | string;
+    device_class: string[];
   }
 
   interface Props {
-    clusterType: string;
+    dbType: string;
     machineType: string;
     machineTypeLabel: string;
     mode: string;
@@ -163,27 +159,28 @@
   const props = defineProps<Props>();
   const emits = defineEmits<Emits>();
 
+  const specDeviceOrCpuMemRef = ref<InstanceType<typeof SpecDeviceOrCpuMem>>();
+  const specStorageRef = ref<InstanceType<typeof SpecStorage>>();
+
   const notRequiredStorageList = [
-    `${ClusterTypes.TENDBHA}_proxy`,
-    `${ClusterTypes.TWEMPROXY_REDIS_INSTANCE}_twemproxy`,
-    `${ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE}_twemproxy`,
-    `${ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER}_predixy`,
-    `${ClusterTypes.ES}_es_client`,
-    `${ClusterTypes.PULSAR}_pulsar_broker`,
-    `${ClusterTypes.TENDBCLUSTER}_spider`,
+    `${DBTypes.MYSQL}_proxy`,
+    `${DBTypes.REDIS}_${ClusterTypes.TWEMPROXY_REDIS_INSTANCE}`,
+    `${DBTypes.REDIS}_${ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE}`,
+    `${DBTypes.REDIS}_${ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER}`,
+    `${DBTypes.ES}_es_client`,
+    `${DBTypes.PULSAR}_pulsar_broker`,
+    `${DBTypes.TENDBCLUSTER}_proxy`,
   ];
 
-  const isRequired = !notRequiredStorageList.includes(`${props.clusterType}_${props.machineType}`);
+  const isRequired = !notRequiredStorageList.includes(`${props.dbType}_${props.machineType}`);
 
-  const isSqlserver = [ClusterTypes.SQLSERVER_SINGLE, ClusterTypes.SQLSERVER_HA].includes(
-    props.clusterType as ClusterTypes,
-  );
+  const isSqlserver = computed(() => props.dbType === DBTypes.SQLSERVER);
 
   const initFormdata = () => {
     if (props.data) {
       const data = _.cloneDeep(props.data);
       if (data.device_class.length === 0) {
-        data.device_class = '-1';
+        data.device_class = ['-1'];
       }
       return data;
     }
@@ -220,11 +217,11 @@
         max: '' as string | number,
         min: '' as string | number,
       },
-      storage_spec: isSqlserver ? genSystemDriveStorageSpec() : genStorageSpec(),
-      device_class: '-1' as string[] | string,
+      storage_spec: isSqlserver.value ? genSystemDriveStorageSpec() : genStorageSpec(),
+      device_class: ['-1'],
       desc: '',
       enable: true,
-      spec_cluster_type: props.clusterType,
+      spec_cluster_type: props.dbType,
       spec_machine_type: props.machineType,
       spec_name: '',
       spec_id: undefined,
@@ -245,10 +242,10 @@
   const isLoading = ref(false);
   const isCustomInput = ref(false);
   const isShowSwitchTip = ref(false);
-
+  const isTableValueChange = ref(false);
   const initFormdataStringify = JSON.stringify(formdata.value);
 
-  const isChange = computed(() => JSON.stringify(formdata.value) !== initFormdataStringify);
+  const isChange = computed(() => JSON.stringify(formdata.value) !== initFormdataStringify || isTableValueChange.value);
 
   const nameRules = computed(() => [
     {
@@ -260,7 +257,7 @@
     {
       validator: (value: string) =>
         verifyDuplicatedSpecName({
-          spec_cluster_type: props.clusterType,
+          spec_cluster_type: props.dbType,
           spec_machine_type: props.machineType,
           spec_name: value,
           spec_id: props.mode === 'edit' ? formdata.value.spec_id : undefined,
@@ -280,6 +277,10 @@
     },
     { deep: true },
   );
+
+  const handleTableValueChange = () => {
+    isTableValueChange.value = true;
+  };
 
   const handleCancelSwitch = () => {
     isShowSwitchTip.value = false;
@@ -325,55 +326,62 @@
     isCustomInput.value = true;
   };
 
-  const submit = () => {
+  const submit = async () => {
     isLoading.value = true;
-    formRef.value
-      .validate()
-      .then(() => {
-        const params = Object.assign(_.cloneDeep(formdata.value), {
-          spec_id: (formdata.value as ResourceSpecModel).spec_id,
-          device_class: formdata.value.device_class === '-1' ? [] : formdata.value.device_class,
-          storage_spec: formdata.value.storage_spec.filter((item) => item.mount_point && item.size && item.type),
-        });
-        if (props.mode === 'edit') {
-          updateResourceSpec(params)
-            .then(() => {
-              messageSuccess(t('编辑成功'));
-              emits('successed');
-              window.changeConfirm = false;
-            })
-            .finally(() => {
-              isLoading.value = false;
-            });
-          return;
-        }
-
-        if (!props.hasInstance) {
-          delete params.instance_num;
-        }
-
-        if (hasQPS) {
-          params.qps = {
-            max: Number(params.qps?.max),
-            min: Number(params.qps?.min),
-          };
-        } else {
-          delete params.qps;
-        }
-
-        createResourceSpec(params)
-          .then(() => {
-            messageSuccess(t('新建成功'));
-            emits('successed');
-            window.changeConfirm = false;
-          })
-          .finally(() => {
-            isLoading.value = false;
-          });
-      })
-      .finally(() => {
-        isLoading.value = false;
+    try {
+      await formRef.value.validate();
+      const storageSpec = await specStorageRef.value!.getValue();
+      const params = Object.assign(_.cloneDeep(formdata.value), {
+        spec_id: (formdata.value as ResourceSpecModel).spec_id,
+        device_class: formdata.value.device_class[0] === '-1' ? [] : formdata.value.device_class,
+        storage_spec: storageSpec,
       });
+      const type = specDeviceOrCpuMemRef.value!.getCurrentType();
+      if (type === 'device_class') {
+        Object.assign(params, {
+          cpu: {
+            min: 0,
+            max: 0,
+          },
+          mem: {
+            min: 0,
+            max: 0,
+          },
+        });
+      } else {
+        params.device_class = [];
+      }
+
+      if (props.mode === 'edit') {
+        updateResourceSpec(params).then(() => {
+          messageSuccess(t('编辑成功'));
+          emits('successed');
+          window.changeConfirm = false;
+        });
+        return;
+      }
+
+      if (!props.hasInstance) {
+        delete params.instance_num;
+      }
+
+      if (hasQPS) {
+        params.qps = {
+          max: Number(params.qps?.max),
+          min: Number(params.qps?.min),
+        };
+      } else {
+        delete params.qps;
+      }
+
+      createResourceSpec(params).then(() => {
+        messageSuccess(t('新建成功'));
+        emits('successed');
+        window.changeConfirm = false;
+      });
+    } finally {
+      isLoading.value = false;
+    }
   };
 
   const cancel = () => {

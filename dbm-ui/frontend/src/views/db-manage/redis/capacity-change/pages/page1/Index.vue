@@ -77,7 +77,7 @@
 
   import { ClusterTypes, TicketTypes } from '@common/const';
 
-  import ClusterSelector, { type TabItem } from '@components/cluster-selector/Index.vue';
+  import ClusterSelector from '@components/cluster-selector/Index.vue';
   import TicketRemark from '@components/ticket-remark/Index.vue';
 
   import RenderData from './components/Index.vue';
@@ -124,7 +124,7 @@
           ...params,
         }),
     },
-  } as unknown as Record<ClusterTypes, TabItem>;
+  } as any;
 
   // 检测列表是否为空
   const checkListEmpty = (list: Array<IDataRow>) => {
@@ -149,7 +149,7 @@
     groupNum: data.machine_pair_cnt,
     machineCount: data.redis_master.length,
     version: data.major_version,
-    clusterType: data.cluster_spec.spec_cluster_type,
+    clusterType: data.cluster_type,
     currentCapacity: {
       used: 1,
       total: data.cluster_capacity,
