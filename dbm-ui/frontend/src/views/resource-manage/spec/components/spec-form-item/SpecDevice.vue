@@ -13,10 +13,10 @@
 
 <template>
   <div class="spec-mem spec-form-item">
-    <div class="spec-form-item__label">
+    <div class="spec-form-item-label">
       {{ t('机型') }}
     </div>
-    <div class="spec-form-item__content">
+    <div class="spec-form-item-content">
       <BkFormItem
         property="device_class"
         required
@@ -30,16 +30,20 @@
           :loading="isLoading"
           :model-value="modelValue"
           multiple
-          @change="handleSelectChange">
+          :remote-method="remoteMethod"
+          :scroll-height="384"
+          :scroll-loading="scrollLoading"
+          @change="handleSelectChange"
+          @scroll-end="handleScrollEnd">
           <BkOption
             key="all"
             :label="t('无限制')"
             value="-1" />
           <BkOption
             v-for="item in deviceClassList"
-            :key="item"
-            :label="item"
-            :value="item" />
+            :key="item.value"
+            :label="item.label"
+            :value="item.value" />
         </BkSelect>
       </BkFormItem>
     </div>
@@ -50,13 +54,27 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import { getDeviceClassList } from '@services/source/systemSettings';
+  import { fetchDeviceClass } from '@services/source/dbresourceResource';
 
   const { t } = useI18n();
 
   const modelValue = defineModel<string[] | string>({
     default: () => [],
   });
+
+  const deviceClassList = ref<
+    {
+      label: string;
+      value: string;
+    }[]
+  >([]);
+  const scrollLoading = ref(false);
+
+  const searchParams = {
+    offset: 0,
+    limit: 12,
+    name: '',
+  };
 
   const rules = [
     {
@@ -66,19 +84,52 @@
     },
   ];
 
-  const { loading: isLoading, data: deviceClassList } = useRequest(getDeviceClassList);
+  let isAppend = false;
+
+  const { loading: isLoading, run: getDeviceClassList } = useRequest(fetchDeviceClass, {
+    defaultParams: [searchParams],
+    onSuccess(data) {
+      scrollLoading.value = false;
+      const deviceList = data.results.map((item) => ({
+        label: `${item.device_type}(${item.cpu}${t('核')}${item.mem}G})`,
+        value: item.device_type,
+      }));
+      if (isAppend) {
+        deviceClassList.value.push(...deviceList);
+        return;
+      }
+
+      deviceClassList.value = deviceList;
+    },
+  });
+
+  const handleScrollEnd = () => {
+    scrollLoading.value = true;
+    isAppend = true;
+    searchParams.offset += searchParams.limit;
+    getDeviceClassList(searchParams);
+  };
+
+  const remoteMethod = (value: string) => {
+    isAppend = false;
+    searchParams.name = value;
+    searchParams.offset = 0;
+    getDeviceClassList(searchParams);
+  };
 
   const handleSelectChange = (list: string[]) => {
-    if (list[0] === '-1') {
-      // 先选的无限制，后续加选要去除无限制
-      modelValue.value = list.slice(1);
-      return;
-    }
+    if (list.length > 1) {
+      if (list[0] === '-1') {
+        // 先选的无限制，后续加选要去除无限制
+        modelValue.value = list.slice(1);
+        return;
+      }
 
-    if (list[list.length - 1] === '-1') {
-      // 最后选的无限制，前面选过的都要去除
-      modelValue.value = '-1';
-      return;
+      if (list[list.length - 1] === '-1') {
+        // 最后选的无限制，前面选过的都要去除
+        modelValue.value = '-1';
+        return;
+      }
     }
 
     modelValue.value = list;

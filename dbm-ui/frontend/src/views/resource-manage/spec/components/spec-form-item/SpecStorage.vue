@@ -17,10 +17,10 @@
     :class="{
       'not-required': !isRequired,
     }">
-    <div class="spec-form-item__label">
+    <div class="spec-form-item-label">
       {{ t('磁盘') }}
     </div>
-    <div class="spec-form-item__content">
+    <div class="spec-form-item-content">
       <BkButton
         v-if="tableData.length === 0"
         @click="handleAddFirstRow">

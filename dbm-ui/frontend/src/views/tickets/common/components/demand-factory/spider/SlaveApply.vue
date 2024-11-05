@@ -23,7 +23,6 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import ResourceSpecModel from '@services/model/resource-spec/resourceSpec';
   import type { SpiderSlaveApplyDetails } from '@services/model/ticket/details/spider';
   import TicketModel from '@services/model/ticket/ticket';
   import { getResourceSpecList } from '@services/source/dbresourceSpec';
@@ -46,7 +45,6 @@
 
   const { t } = useI18n();
 
-  // eslint-disable-next-line vue/no-setup-props-destructure
   const { infos } = props.ticketDetails.details;
   const tableData = ref<RowData[]>([]);
 
@@ -85,23 +83,13 @@
         } });
         return obj;
       }, {} as Record<number, {clusterName: string, clusterType: string}>);
-
-      // 避免重复查询
-      const clusterTypes = [...new Set(Object.values(clusterMap).map(item => item.clusterType))];
-      const sepcMap: Record<string, ResourceSpecModel[]> = {};
-
-      await Promise.all(clusterTypes.map(async (type) => {
-        const ret = await getResourceSpecList({
-          spec_cluster_type: type,
-          limit: -1,
-          offset: 0,
-        });
-        sepcMap[type] = ret.results;
-      }));
-      loading.value = false;
+      const specListResult = await getResourceSpecList({
+        spec_cluster_type: 'tendbcluster',
+        limit: -1,
+        offset: 0,
+      });
       tableData.value = infos.map((item) => {
-        const sepcList = sepcMap[clusterMap[item.cluster_id].clusterType];
-        const specInfo = sepcList.find(row => row.spec_id === item.resource_spec.spider_slave_ip_list.spec_id);
+        const specInfo = specListResult.results.find(row => row.spec_id === item.resource_spec.spider_slave_ip_list.spec_id);
         return {
           clusterName: clusterMap[item.cluster_id].clusterName,
           sepc: {

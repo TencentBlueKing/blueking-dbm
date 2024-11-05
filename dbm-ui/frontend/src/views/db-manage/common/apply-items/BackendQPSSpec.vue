@@ -108,7 +108,7 @@
           :biz-id="bizId"
           :cloud-id="cloudId"
           :cluster-type="ClusterTypes.TENDBCLUSTER"
-          machine-type="remote"
+          machine-type="backend"
           style="width: 314px" />
       </BkFormItem>
       <BkFormItem
@@ -193,7 +193,7 @@
   }
 
   interface Props {
-    clusterType: string,
+    dbType: string,
     machineType: string,
     bizId: number | string,
     cloudId: number | string,
@@ -315,7 +315,7 @@
     }
 
     queryQPSRange({
-      spec_cluster_type: props.clusterType,
+      spec_cluster_type: props.dbType,
       spec_machine_type: props.machineType,
       capacity: Number(capacity),
       future_capacity: Number(futureCapacity),
@@ -342,7 +342,7 @@
 
     isLoading.value = true;
     getFilterClusterSpec({
-      spec_cluster_type: props.clusterType,
+      spec_cluster_type: props.dbType,
       spec_machine_type: props.machineType,
       capacity: Number(capacity),
       future_capacity: Number(futureCapacity),

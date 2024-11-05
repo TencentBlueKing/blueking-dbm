@@ -253,7 +253,7 @@
         total: item.cluster_capacity,
       },
       currentSepc: `${item.cluster_capacity}G_${specConfig.qps.max}/s（${item.cluster_shard_num} 分片）`,
-      clusterType: item.cluster_spec.spec_cluster_type,
+      clusterType: item.cluster_type,
       currentShardNum: item.cluster_shard_num,
       groupNum: item.machine_pair_cnt,
       clusterTypeName: item.cluster_type_name,

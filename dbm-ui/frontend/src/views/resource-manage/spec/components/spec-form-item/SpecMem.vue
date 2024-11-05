@@ -13,10 +13,10 @@
 
 <template>
   <div class="spec-mem spec-form-item">
-    <div class="spec-form-item__label">
+    <div class="spec-form-item-label">
       {{ $t('内存') }}
     </div>
-    <div class="spec-form-item__content">
+    <div class="spec-form-item-content">
       <BkFormItem
         property="mem.min"
         required>
@@ -38,7 +38,7 @@
             @change="handleLimitChange('min')" />
         </span>
       </BkFormItem>
-      <span class="spec-form-item__desc">{{ $t('至') }}</span>
+      <span class="spec-form-item-desc">{{ $t('至') }}</span>
       <BkFormItem
         property="mem.max"
         required>
@@ -60,7 +60,7 @@
             @change="handleLimitChange('max')" />
         </span>
       </BkFormItem>
-      <span class="spec-form-item__desc">G</span>
+      <span class="spec-form-item-desc">G</span>
     </div>
   </div>
 </template>
@@ -107,8 +107,8 @@
       display: none;
     }
 
-    &::after {
-      content: 'OR' !important;
-    }
+    // &::after {
+    //   content: 'OR' !important;
+    // }
   }
 </style>

@@ -63,9 +63,9 @@
       </BkTag>
     </template>
     <PlanOperation
-      :cluster-type="clusterType"
+      cluster-type="redis"
       :data="operationData"
-      :machine-type="activeMachineType"
+      :machine-type="clusterType"
       @change="handlePlanOperationChange" />
   </DbSideslider>
 </template>
@@ -281,8 +281,8 @@
     margin: -24px;
 
     .header-tab {
-      padding: 0 24px;
       z-index: 99;
+      padding: 0 24px;
       background: #fff;
 
       .bk-tab-content {
