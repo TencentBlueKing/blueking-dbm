@@ -202,11 +202,11 @@
     immediate: true,
   });
 
-  // 全选（不能全部选中，留最后一个）
+  // 全选（不能全部选中，留最小数量）
   const handleSelectAll = (checked: boolean) => {
     const checkedMap = {} as Record<number, Props['modelValue'][0]>;
     if (checked) {
-      props.originalNodeList.slice(0, -props.minHost).forEach((nodeItem) => {
+      props.originalNodeList.slice(0, props.originalNodeList.length - props.minHost).forEach((nodeItem) => {
         checkedMap[nodeItem.bk_host_id] = nodeItem;
       });
     }

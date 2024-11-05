@@ -67,6 +67,21 @@
             :data="nodeTableData" />
         </div>
       </BkFormItem>
+      <div
+        v-if="nodeTableData.length"
+        class="mt-16">
+        <I18nT
+          keypath="当前容量：nG"
+          tag="span">
+          <span style="font-weight: bolder">{{ data.totalDisk }}</span>
+        </I18nT>
+        ，
+        <I18nT
+          keypath="缩容后预估：nG"
+          tag="span">
+          <span style="font-weight: bolder">{{ estimateCapacity }}</span>
+        </I18nT>
+      </div>
     </BkForm>
     <SelectOriginalHost
       v-model:is-show="isShowHostDialog"
@@ -162,6 +177,12 @@
       ),
     },
   ];
+
+  // 资源池预估容量
+  const estimateCapacity = computed(() => {
+    const { totalDisk, shrinkDisk } = props.data
+    return totalDisk - shrinkDisk
+  });
 
   const handleShowHostSelect = () => {
     isShowHostDialog.value = true;

@@ -25,7 +25,6 @@
       <BkFormItem>
         <ResourcePoolSelector
           v-if="ipSource === 'resource_pool'"
-          ref="resourcePoolSelectorRef"
           :cloud-info="cloudInfo"
           :data="data"
           @change="handleResourcePoolChange" />
@@ -100,8 +99,6 @@
   const expansionDisk = defineModel<TExpansionNode['expansionDisk']>('expansionDisk', {
     required: true,
   });
-
-  const resourcePoolSelectorRef = ref<InstanceType<typeof ResourcePoolSelector>>();
 
   const handleHoseSelectChange = (
     hostListValue: TExpansionNode['hostList'],

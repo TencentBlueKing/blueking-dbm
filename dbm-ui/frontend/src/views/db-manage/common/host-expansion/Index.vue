@@ -25,7 +25,6 @@
       <BkFormItem>
         <ResourcePoolSelector
           v-if="ipSource === 'resource_pool'"
-          ref="resourcePoolSelector"
           :cloud-info="cloudInfo"
           :data="data"
           @change="handleResourcePoolChange" />
@@ -80,6 +79,8 @@
     };
     // 节点类型 tag 文本
     tagText: string;
+    // 是否显示台数
+    showCount?: boolean;
   }
 
   interface Props {
@@ -103,8 +104,6 @@
   const expansionDisk = defineModel<TExpansionNode['expansionDisk']>('expansionDisk', {
     required: true,
   });
-
-  const resourcePoolSelector = ref<InstanceType<typeof ResourcePoolSelector>>();
 
   const handleHoseSelectChange = (
     hostListValue: TExpansionNode['hostList'],
