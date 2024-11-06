@@ -55,7 +55,9 @@
   import TendbhaModel from '@services/model/mysql/tendbha';
   import type { HostInfo } from '@services/types/ip';
 
-  import { ClusterTypes } from '@common/const';
+  import { useTicketCloneInfo } from '@hooks';
+
+  import { ClusterTypes, TicketTypes } from '@common/const';
 
   import ClusterSelector from '@components/cluster-selector/Index.vue';
   import IpSelector, { type IPSelectorResult } from '@components/ip-selector/IpSelector.vue';
@@ -74,6 +76,18 @@
   }
 
   const props = defineProps<Props>();
+
+  // 单据克隆
+  useTicketCloneInfo({
+    type: TicketTypes.MYSQL_OPEN_AREA,
+    onSuccess({ data }) {
+      data.forEach((item) => {
+        domainMemo[item.clusterData.master_domain] = true;
+        selectedClusters.value[props.clusterType].push(item.clusterData);
+      });
+      tableData.value = data;
+    },
+  });
 
   const { t } = useI18n();
 
@@ -156,6 +170,9 @@
 
   // 输入集群后查询集群信息并填充到table
   const handleInputCluster = async (index: number, item: TendbhaModel) => {
+    if (domainMemo[item.master_domain]) {
+      return;
+    }
     const row = createRowData({
       clusterData: {
         id: item.id,
@@ -215,6 +232,7 @@
       // delete domainMemo[domain];
       const clustersArr = selectedClusters.value[props.clusterType];
       selectedClusters.value[props.clusterType] = clustersArr.filter((item) => item.master_domain !== domain);
+      delete domainMemo[domain];
     }
     dataList.splice(index, 1);
     tableData.value = dataList;

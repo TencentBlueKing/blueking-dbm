@@ -34,7 +34,7 @@
   interface RowData {
     targetCluster: string;
     newDb: string;
-    ips: string[];
+    ips: string;
   }
 
   const props = defineProps<Props>();
@@ -43,22 +43,20 @@
   const copy = useCopy();
 
   const clustersMap = props.ticketDetails.details.clusters;
-  const rulesSetMap = props.ticketDetails.details.rules_set.reduce<Record<string, MysqlOpenAreaDetails['rules_set'][number]>>(
-    (results, item) => Object.assign(results, {
-      [item.target_instances[0]]: item
-    }),
-    {},
-  );
+  const clusterIpsMap = props.ticketDetails.details.rules_set.reduce<Record<string, string[]>>((acc, { target_instances: [cluster], source_ips }) => {
+    acc[cluster] = _.uniq((acc[cluster] || []).concat(source_ips));
+    return acc;
+  }, {});
 
   const tableData = computed(() =>
     _.flatMap(
       _.sortBy(
       props.ticketDetails.details.config_data.map((item) => {
-        const clusterName = clustersMap[item.cluster_id]?.immute_domain;
+        const cluster = clustersMap[item.cluster_id]?.immute_domain;
         return item.execute_objects.map((executeObject) => ({
-          targetCluster: clusterName,
+          targetCluster: cluster,
           newDb: executeObject.target_db,
-          ips: rulesSetMap[clusterName]?.source_ips ?? [],
+          ips: clusterIpsMap[cluster]?.join(',') || '',
         }));
       }), 'newDb')
     ),
@@ -85,14 +83,15 @@
     {
       label: t('授权的IP'),
       field: 'ips',
+      showOverflowTooltip: true,
       render: ({ data }: { data: RowData }) => (
         <span>
-          { data.ips.length > 0 ? data.ips.join(',') : '--' }
+          { data.ips || '--' }
           <db-icon
             is-show={data.ips.length > 0}
             class="copy-btn"
             type="copy"
-            onClick={() => copy(data.ips.join(','))} />
+            onClick={() => copy(data.ips.replace(/,/g, '\n'))} />
         </span>
       ),
     },
