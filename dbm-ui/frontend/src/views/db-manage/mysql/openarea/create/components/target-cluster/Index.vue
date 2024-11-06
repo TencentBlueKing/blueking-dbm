@@ -81,6 +81,10 @@
   useTicketCloneInfo({
     type: TicketTypes.MYSQL_OPEN_AREA,
     onSuccess({ data }) {
+      data.forEach((item) => {
+        domainMemo[item.clusterData.master_domain] = true;
+        selectedClusters.value[props.clusterType].push(item.clusterData);
+      });
       tableData.value = data;
     },
   });
@@ -166,6 +170,9 @@
 
   // 输入集群后查询集群信息并填充到table
   const handleInputCluster = async (index: number, item: TendbhaModel) => {
+    if (domainMemo[item.master_domain]) {
+      return;
+    }
     const row = createRowData({
       clusterData: {
         id: item.id,
@@ -225,6 +232,7 @@
       // delete domainMemo[domain];
       const clustersArr = selectedClusters.value[props.clusterType];
       selectedClusters.value[props.clusterType] = clustersArr.filter((item) => item.master_domain !== domain);
+      delete domainMemo[domain];
     }
     dataList.splice(index, 1);
     tableData.value = dataList;
