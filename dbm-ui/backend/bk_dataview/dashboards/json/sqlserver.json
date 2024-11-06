@@ -4687,7 +4687,7 @@
               "type": "range"
             }
           ],
-          "title": "数据文件大小(GB)",
+          "title": "数据库总大小(GB)",
           "type": "timeseries"
         },
         {
@@ -4816,7 +4816,7 @@
               "type": "range"
             }
           ],
-          "title": "日志文件大小(GB)",
+          "title": "数据库最大日志文件大小(GB)",
           "type": "timeseries"
         },
         {

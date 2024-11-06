@@ -230,7 +230,7 @@ func (b *BaseDetectDB) DoSSHForWindows(shellStr string) error {
 		User:            b.SshInfo.User,
 		HostKeyCallback: ssh.InsecureIgnoreHostKey(), // 这个可以， 但是不够安全
 		Config: ssh.Config{
-			Ciphers: []string{"arcfour"}, // 指定加密算法，目前利用sygwin联调
+			Ciphers: []string{"arcfour", "aes128-ctr", "aes192-ctr"}, // 指定加密算法，目前利用sygwin联调
 		},
 	}
 	conf.Auth = []ssh.AuthMethod{

@@ -84,8 +84,16 @@ INSTANCE_MONITOR_PLUGINS = {
         MachineType.MONOG_CONFIG: {"name": "mongo_config", "plugin_id": "dbm_mongodb_exporter", "func_name": "mongod"},
     },
     DBType.Sqlserver: {
-        MachineType.SQLSERVER_SINGLE: {"name": "sqlserver", "plugin_id": "dbm_mssql_exporter", "func_name": "mssql"},
-        MachineType.SQLSERVER_HA: {"name": "sqlserver", "plugin_id": "dbm_mssql_exporter", "func_name": "mssql"},
+        MachineType.SQLSERVER_SINGLE: {
+            "name": "sqlserver",
+            "plugin_id": "dbm_mssql_exporter",
+            "func_name": "sqlservr.exe",
+        },
+        MachineType.SQLSERVER_HA: {
+            "name": "sqlserver",
+            "plugin_id": "dbm_mssql_exporter",
+            "func_name": "sqlservr.exe",
+        },
     },
     DBType.Doris: {
         MachineType.DORIS_OBSERVER: {"name": "doris", "plugin_id": "dbm_doris_exporter", "func_name": "java"},

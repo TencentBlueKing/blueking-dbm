@@ -246,6 +246,7 @@ func (r *RestoreDBSForFullComp) DoRestoreForFullBackup() error {
 		}
 		// 如果在内层循环出错，则无需往下执行，跳过
 		if isErr {
+			isGlobalErr = false
 			continue
 		}
 		for _, f := range infoArr {
@@ -261,6 +262,9 @@ func (r *RestoreDBSForFullComp) DoRestoreForFullBackup() error {
 			case f.Type == "L":
 				// 代表是日志文件组，默认就有
 				newFileName = filepath.Join(r.RestoreLogPath, fmt.Sprintf("%s_%s.ldf", info.DBName, randStr))
+			case f.Type == "S":
+				// 代表内存文件组，可选
+				newFileName = filepath.Join(r.RestoreLogPath, fmt.Sprintf("%s_InMemory_%s", info.DBName, randStr))
 			default:
 				logger.Error(
 					"[%s] this FileGroupName [%s] and Type [%s] is not supported",
@@ -279,6 +283,7 @@ func (r *RestoreDBSForFullComp) DoRestoreForFullBackup() error {
 		}
 		// 如果在内层循环出错，则无需往下执行，跳过
 		if isErr {
+			isGlobalErr = false
 			continue
 		}
 

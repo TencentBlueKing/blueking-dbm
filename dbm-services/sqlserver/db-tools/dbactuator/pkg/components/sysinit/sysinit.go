@@ -242,11 +242,21 @@ func (s *SysInitParam) SysInitMachine() error {
 
 // CheckSSHForLocal 本地模拟ssh连接检测是否正常，模拟dbha做一次ssh校验
 func (s *SysInitParam) CheckSSHForLocal() error {
-	host, err := osutil.StandardPowerShellCommand(
+	var host string
+	var err error
+	host, err = osutil.StandardPowerShellCommand(
 		`(Get-NetIPAddress -InterfaceAlias "Ethernet" -AddressFamily IPv4).IPAddress`,
 	)
 	if err != nil {
 		return err
+	}
+	if strings.ReplaceAll(strings.ReplaceAll(host, "\r", ""), "\n", "") == "" {
+		host, err = osutil.StandardPowerShellCommand(
+			`(Get-NetIPAddress -InterfaceAlias "eth1" -AddressFamily IPv4).IPAddress`,
+		)
+		if err != nil {
+			return err
+		}
 	}
 	checkStr := fmt.Sprintf("echo 1 > %s", fmt.Sprintf("%s\\\\%s\\\\%s", cst.BASE_DATA_PATH, cst.MSSQL_DBHA_NAME, "test"))
 	conf := &ssh.ClientConfig{
@@ -254,7 +264,7 @@ func (s *SysInitParam) CheckSSHForLocal() error {
 		User:            s.OSMssqlUser,
 		HostKeyCallback: ssh.InsecureIgnoreHostKey(), // 这个可以， 但是不够安全
 		Config: ssh.Config{
-			Ciphers: []string{"arcfour"}, // 指定加密算法，目前利用sygwin联调
+			Ciphers: []string{"arcfour", "aes128-ctr", "aes192-ctr"}, // 指定加密算法，目前利用sygwin联调
 		},
 	}
 	conf.Auth = []ssh.AuthMethod{ssh.Password(s.OSMssqlPwd)}
