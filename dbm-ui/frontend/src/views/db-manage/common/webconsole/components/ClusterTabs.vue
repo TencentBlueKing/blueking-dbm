@@ -70,11 +70,11 @@
 
   import { queryAllTypeCluster } from '@services/source/dbbase';
 
-  import { DBTypes } from '@common/const';
+  import { DBTypes, queryClusterTypes } from '@common/const';
 
   import { messageWarn } from '@utils';
 
-  import type { ClusterItem } from '../Index.vue';
+  type ClusterItem = ServiceReturnType<typeof queryAllTypeCluster>[number];
 
   interface Props {
     dbType: DBTypes;
@@ -104,11 +104,6 @@
   const routeClusterId = route.query.clusterId;
   let clustersRaw: ClusterItem[] = [];
   let tippyIns: Instance | undefined;
-  const queryClusterTypesMap = {
-    [DBTypes.MYSQL]: 'tendbha,tendbsingle',
-    [DBTypes.TENDBCLUSTER]: 'tendbcluster',
-    [DBTypes.REDIS]: 'TwemproxyRedisInstance,PredixyTendisplusCluster,TwemproxyTendisSSDInstance,PredixyRedisCluster',
-  };
 
   const clutersRef = ref();
   const addTabRef = ref();
@@ -131,7 +126,7 @@
     defaultParams: [
       {
         bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-        cluster_types: queryClusterTypesMap[props.dbType as keyof typeof queryClusterTypesMap],
+        cluster_types: queryClusterTypes[props.dbType].join(','),
         phase: 'online',
       },
     ],
