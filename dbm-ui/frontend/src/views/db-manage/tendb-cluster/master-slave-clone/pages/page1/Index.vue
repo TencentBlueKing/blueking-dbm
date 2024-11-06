@@ -26,6 +26,7 @@
           :key="item.rowKey"
           ref="rowRefs"
           :data="item"
+          :inputed-ips="inputedIps"
           :removeable="tableData.length < 2"
           @add="(payload: Array<IDataRow>) => handleAppend(index, payload)"
           @clone="(payload: IDataRow) => handleClone(index, payload)"
@@ -129,6 +130,7 @@
 
   const selected = shallowRef({ TendbClusterHost: [] } as InstanceSelectorValues<IValue>);
 
+  const inputedIps = computed(() => tableData.value.map((item) => item.clusterData.ip));
   const totalNum = computed(() => tableData.value.filter((item) => Boolean(item.clusterData.ip)).length);
 
   // ip 是否已存在表格的映射表
@@ -222,6 +224,11 @@
       masterInstanceList: spiderMachineItem.related_instances,
     });
     ipMemo[ip] = true;
+    Object.keys(ipMemo).forEach((ip) => {
+      if (ipMemo[ip]) {
+        selected.value.TendbClusterHost.push({ ip } as IValue);
+      }
+    });
   };
 
   // 追加一个集群
@@ -264,7 +271,7 @@
   const handleSubmit = async () => {
     try {
       isSubmitting.value = true;
-      const rowDataList = await Promise.all(rowRefs.value!.map((item) => item.getValue()));
+      const infos = await Promise.all(rowRefs.value!.map((item) => item.getValue()));
       const params = {
         bk_biz_id: currentBizId,
         ticket_type: TicketTypes.TENDBCLUSTER_MIGRATE_CLUSTER,
@@ -272,24 +279,9 @@
         details: {
           ...formData,
           ip_source: 'manual_input',
-          infos: rowDataList.map((rowItem, rowIndex) => {
-            const { clusterData } = tableData.value[rowIndex];
-            return {
-              cluster_id: clusterData.clusterId,
-              new_master: rowItem.newInstaceList[0],
-              new_slave: rowItem.newInstaceList[1],
-              old_master: {
-                ip: clusterData.ip,
-                bk_cloud_id: clusterData.cloudId,
-                bk_host_id: clusterData.hostId,
-                bk_biz_id: currentBizId,
-              },
-              old_slave: rowItem.old_master,
-            };
-          }),
+          infos,
         },
       };
-
       await createTicket(params).then((data) => {
         window.changeConfirm = false;
         router.push({

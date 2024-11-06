@@ -13,12 +13,14 @@
 
 <template>
   <DbOriginalTable
-    class="details-migrate__table"
     :columns="columns"
-    :data="dataList" />
-  <DemandInfo
-    :config="config"
-    :data="ticketDetails" />
+    :data="tableData" />
+  <div class="ticket-details-item">
+    <span class="ticket-details-item-label">{{ t('备份源') }}：</span>
+    <span class="ticket-details-item-value">
+      {{ props.ticketDetails.details.backup_source === 'local' ? t('本地备份') : t('远程备份') }}
+    </span>
+  </div>
 </template>
 
 <script setup lang="tsx">
@@ -26,92 +28,107 @@
 
   import type { SpiderMigrateCluster } from '@services/model/ticket/details/spider';
   import TicketModel from '@services/model/ticket/ticket';
-
-  import DemandInfo, {
-    type DemandInfoConfig,
-  } from '../components/DemandInfo.vue';
+  import { checkInstance } from '@services/source/dbbase';
 
   interface Props {
     ticketDetails: TicketModel<SpiderMigrateCluster>
   }
 
-  type dataItem = {
-    clusterId: number,
-    newMasterIp: string,
-    newSlaveIp: string,
-    domain: string,
-    name: string,
+  interface IDataRow {
+    oldMasterIp: string,
+    oldMasterRelatedInstance: string[],
+    oldSlaveIp: string,
+    oldSlaveRelatedInstance: string[],
+    clusterDomain: string,
+    clusterName: string,
+    newIps: string
   }
 
   const props = defineProps<Props>();
 
   const { t } = useI18n();
 
-  const config: DemandInfoConfig[] = [
-    {
-      list: [
-        {
-          label: t('备份源'),
-          key: 'details.backup_source',
-          render: () => props.ticketDetails.details.backup_source === 'local' ? t('本地备份') : t('远程备份')
-        },
-      ],
-    },
-  ]
-
   const columns = [
     {
-      label: t('集群ID'),
-      field: 'clusterId',
+      label: t('目标主库主机'),
+      field: 'oldMasterIp',
       render: ({ cell }: { cell: string }) => <span>{cell || '--'}</span>,
     },
     {
+      label: t('主库主机关联实例'),
+      field: 'oldMasterRelatedInstance',
+      render: ({ data }: { data: IDataRow }) => data.oldMasterRelatedInstance.map((item: string) => <p class="mb-4">{item}</p>),
+    },
+    {
+      label: t('目标从库主机'),
+      field: 'oldSlaveIp',
+      render: ({ cell }: { cell: string }) => <span>{cell || '--'}</span>,
+    },
+    {
+      label: t('从库主机关联实例'),
+      field: 'oldSlaveRelatedInstance',
+      render: ({ data }: { data: IDataRow }) => data.oldSlaveRelatedInstance.map((item: string) => <p class="mb-4">{item}</p>),
+    },
+    {
       label: t('集群名称'),
-      field: 'immute_domain',
       showOverflowTooltip: false,
-      render: ({ data }: { data: dataItem }) => (
+      render: ({ data }: { data: IDataRow }) => (
         <div class="cluster-name text-overflow"
           v-overflow-tips={{
             content: `
-              <p>${t('域名')}：${data.domain}</p>
-              ${data.name ? `<p>${('集群别名')}：${data.name}</p>` : null}
-            `,
+                    <p>${t('域名')}：${data.clusterDomain}</p>
+                    ${data.clusterName ? `<p>${('集群别名')}：${data.clusterName}</p>` : null}
+                  `,
             allowHTML: true,
-        }}>
-          <span>{data.domain}</span><br />
-          <span class="cluster-name__alias">{data.name}</span>
+          }}>
+          <span>{data.clusterDomain}</span><br />
+          <span class="cluster-name__alias">{data.clusterName}</span>
         </div>
       ),
     },
     {
-      label: t('新主库IP'),
-      field: 'newMasterIp',
+      label: t('新实例'),
+      field: 'newIps',
       render: ({ cell }: { cell: string }) => <span>{cell || '--'}</span>,
     },
-    {
-      label: t('新从库IP'),
-      field: 'newSlaveIp',
-      render: ({ cell }: { cell: string }) => <span>{cell || '--'}</span>,
-    }
   ];
 
-  const dataList = computed(() => {
-    const { infos, clusters } = props.ticketDetails.details;
-    const result: dataItem[] = []
-    infos.forEach(infoItem => {
-      const clusterData = clusters[infoItem.cluster_id];
-      result.push({
-        clusterId: infoItem.cluster_id,
-        newMasterIp: infoItem.new_master.ip,
-        newSlaveIp: infoItem.new_slave.ip,
-        domain: clusterData.immute_domain,
-        name: clusterData.name,
-      })
-    })
-    return result;
-  });
+  const tableData = shallowRef<IDataRow[]>([]);
+
+  watch(
+    () => props.ticketDetails.details,
+    async () => {
+      const { infos, clusters } = props.ticketDetails.details;
+      const oldIps = infos.flatMap(info => [info.old_master.ip, info.old_slave.ip]);
+
+      const instanceList = await checkInstance({
+        instance_addresses: oldIps,
+        bk_biz_id: props.ticketDetails.bk_biz_id,
+      });
+
+      const instancesByIp = instanceList.reduce<Record<string, string[]>>((acc, { ip, instance_address }) => {
+        acc[ip] = acc[ip] || [];
+        acc[ip].push(instance_address);
+        return acc;
+      }, {});
+
+      tableData.value = infos.map(info => ({
+        oldMasterIp: info.old_master.ip,
+        oldMasterRelatedInstance: instancesByIp[info.old_master.ip],
+        oldSlaveIp: info.old_slave.ip,
+        oldSlaveRelatedInstance: instancesByIp[info.old_slave.ip],
+        clusterDomain: clusters[info.cluster_id].immute_domain,
+        clusterName: clusters[info.cluster_id].name,
+        newIps: `${info.new_master.ip}, ${info.new_slave.ip}`,
+      }));
+    },
+    {
+      immediate: true,
+    }
+  );
 </script>
 
 <style lang="less" scoped>
   @import '@views/tickets/common/styles/DetailsTable.less';
+  @import '@views/tickets/common/styles/ticketDetails.less';
 </style>
