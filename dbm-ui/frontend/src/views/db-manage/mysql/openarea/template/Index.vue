@@ -58,7 +58,8 @@
           id: cloneData.id,
         },
         query: {
-          from: route.name as string
+          from: route.name as string,
+          ticketId: route.query.ticketId,
         }
       })
     },
