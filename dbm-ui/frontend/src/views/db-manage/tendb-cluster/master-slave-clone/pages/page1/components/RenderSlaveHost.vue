@@ -40,12 +40,14 @@
     (e: 'change', value: string): void;
   }
 
-  interface Expose {
+  interface Exposes {
     getValue: () => Promise<{
-      ip: string;
-      bk_cloud_id: number;
-      bk_host_id: number;
-      bk_biz_id: number;
+      old_slave: {
+        bk_biz_id: number;
+        bk_cloud_id: number;
+        bk_host_id: number;
+        ip: string;
+      };
     }>;
   }
 
@@ -94,18 +96,16 @@
     },
   );
 
-  defineExpose<Expose>({
+  defineExpose<Exposes>({
     getValue() {
-      const slave = slaveInfo.value;
-      if (slave) {
-        return Promise.resolve({
-          ip: slave.ip,
-          bk_cloud_id: slave.bk_cloud_id,
-          bk_host_id: slave.bk_host_id,
-          bk_biz_id: slave.bk_biz_id,
-        });
-      }
-      return textRef.value!.getValue();
+      return textRef.value!.getValue().then(() => ({
+        old_slave: {
+          ip: slaveInfo.value?.ip,
+          bk_cloud_id: slaveInfo.value?.bk_cloud_id,
+          bk_host_id: slaveInfo.value?.bk_host_id,
+          bk_biz_id: slaveInfo.value?.bk_biz_id,
+        },
+      }));
     },
   });
 </script>

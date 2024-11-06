@@ -22,9 +22,6 @@
   </div>
 </template>
 
-<script lang="ts">
-  const hostsMemo: { [key: string]: Record<string, boolean> } = {};
-</script>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
@@ -36,10 +33,9 @@
 
   import TableEditInput from '@components/render-table/columns/input/index.vue';
 
-  import { random } from '@utils';
-
   interface Props {
     ip?: string;
+    inputedIps?: string[];
   }
 
   interface Emits {
@@ -47,22 +43,30 @@
   }
 
   interface Exposes {
-    getValue: () => Promise<string>;
+    getValue: () => Promise<{
+      cluster_id: number;
+      old_master: {
+        bk_biz_id: number;
+        bk_cloud_id: number;
+        bk_host_id: number;
+        ip: string;
+      };
+    }>;
   }
 
   const props = withDefaults(defineProps<Props>(), {
     ip: '',
+    inputedIps: () => [],
   });
-  const emits = defineEmits<Emits>();
 
-  const instanceKey = `render_host_${random()}`;
-  hostsMemo[instanceKey] = {};
+  const emits = defineEmits<Emits>();
 
   const { currentBizId } = useGlobalBizs();
   const { t } = useI18n();
 
   const localValue = ref(props.ip);
   const editRef = ref();
+  const hostInfo = ref<ServiceReturnType<typeof checkMysqlInstances>[number]>();
 
   const rules = [
     {
@@ -80,7 +84,9 @@
           instance_addresses: [value],
         });
         if (data.length > 0) {
+          [hostInfo.value] = data;
           localValue.value = data[0].ip;
+          emits('inputFinish', value);
           return true;
         }
         return false;
@@ -88,27 +94,7 @@
       message: t('目标主机不存在'),
     },
     {
-      validator: () => {
-        const currentClusterSelectMap = hostsMemo[instanceKey];
-        const otherClusterMemoMap = { ...hostsMemo };
-        delete otherClusterMemoMap[instanceKey];
-
-        const otherClusterIdMap = Object.values(otherClusterMemoMap).reduce(
-          (result, item) => ({
-            ...result,
-            ...item,
-          }),
-          {} as Record<string, boolean>,
-        );
-
-        const currentSelectClusterIdList = Object.keys(currentClusterSelectMap);
-        for (let i = 0; i < currentSelectClusterIdList.length; i++) {
-          if (otherClusterIdMap[currentSelectClusterIdList[i]]) {
-            return false;
-          }
-        }
-        return true;
-      },
+      validator: (value: string) => props.inputedIps.filter((item) => item === value).length < 2,
       message: t('目标主机重复'),
     },
   ];
@@ -116,9 +102,9 @@
   // 同步外部值
   watch(
     () => props.ip,
-    (newIp) => {
-      if (newIp) {
-        localValue.value = newIp;
+    () => {
+      if (props.ip) {
+        localValue.value = props.ip;
       }
     },
     {
@@ -130,7 +116,9 @@
     localValue,
     () => {
       if (localValue.value) {
-        hostsMemo[instanceKey][localValue.value] = true;
+        setTimeout(() => {
+          editRef.value!.getValue();
+        });
       }
     },
     {
@@ -139,20 +127,20 @@
   );
 
   const handleInputFinish = (value: string) => {
-    hostsMemo[instanceKey][localValue.value] = true;
-    emits('inputFinish', value);
+    localValue.value = value;
   };
-
-  onBeforeUnmount(() => {
-    delete hostsMemo[instanceKey];
-  });
 
   defineExpose<Exposes>({
     getValue() {
-      return editRef.value
-        .getValue()
-        .then(() => localValue.value)
-        .catch(() => Promise.reject(localValue.value));
+      return editRef.value!.getValue().then(() => ({
+        cluster_id: hostInfo.value?.cluster_id,
+        old_master: {
+          ip: hostInfo.value?.ip,
+          bk_cloud_id: hostInfo.value?.bk_cloud_id,
+          bk_host_id: hostInfo.value?.bk_host_id,
+          bk_biz_id: currentBizId,
+        },
+      }));
     },
   });
 </script>
