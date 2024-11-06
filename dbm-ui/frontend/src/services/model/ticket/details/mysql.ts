@@ -377,6 +377,11 @@ export interface MysqlOpenAreaDetails extends DetailBase {
     source_ips: string[];
     target_instances: string[];
     user: string;
+    privileges: {
+      priv: string;
+      user: string;
+      access_db: string;
+    }[];
   }[];
 }
 
