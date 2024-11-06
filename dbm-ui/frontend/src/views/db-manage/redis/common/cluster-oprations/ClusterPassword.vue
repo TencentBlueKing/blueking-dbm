@@ -53,7 +53,7 @@
           </span>
         </div>
         <div class="cluster-password-item">
-          <span class="cluster-password-item-label">{{ t('Proxy密码') }}：</span>
+          <span class="cluster-password-item-label">{{ t('密码') }}：</span>
           <span class="cluster-password-item-value">
             <span>{{ passwordText }}</span>
             <span
@@ -126,14 +126,13 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
+  import type { ClbPolarisTargetDetails, DnsTargetDetails } from '@services/model/cluster-entry/cluster-entry-details';
   import { getClusterEntries } from '@services/source/clusterEntry';
   import { getRedisPassword } from '@services/source/redis';
 
   import { useCopy } from '@hooks';
 
   import { useGlobalBizs } from '@stores';
-
-  import type { ClusterTypes } from '@common/const';
 
   interface Props {
     title?: string;
@@ -217,19 +216,24 @@
 
   const passwordText = computed(() => (isShowPassword.value ? state.data.password : '******'));
 
-  const { loading: clbLoading, run: runGetClusterEntries } = useRequest(getClusterEntries<ClusterTypes.REDIS>, {
+  const { loading: clbLoading, run: runGetClusterEntries } = useRequest(getClusterEntries, {
     manual: true,
     onSuccess: (res) => {
       res.forEach((item) => {
-        if (item.cluster_entry_type === 'clb') {
-          dataObj.value.clb.list[0].value = item.target_details.clb_ip;
-          dataObj.value.clb.list[1].value = item.target_details.clb_domain;
-        } else if (item.cluster_entry_type === 'polaris') {
-          dataObj.value.polary.list[0].value = item.target_details.polaris_l5;
-          dataObj.value.polary.list[0].shareLink = item.target_details.url;
-          dataObj.value.polary.list[1].value = item.target_details.polaris_name;
-        } else if (item.role === 'node_entry') {
-          dataObj.value.nodes.list[0].value = item.entry;
+        if (item.target_details.length) {
+          if (item.isClb) {
+            const targetDetailItem = item.target_details[0] as ClbPolarisTargetDetails;
+            dataObj.value.clb.list[0].value = `${targetDetailItem.clb_ip}:${targetDetailItem.port}`;
+            dataObj.value.clb.list[1].value = `${targetDetailItem.clb_domain}:${targetDetailItem.port}`;
+          } else if (item.isPolaris) {
+            const targetDetailItem = item.target_details[0] as ClbPolarisTargetDetails;
+            dataObj.value.polary.list[0].value = targetDetailItem.polaris_l5;
+            dataObj.value.polary.list[0].shareLink = targetDetailItem.url;
+            dataObj.value.polary.list[1].value = `${targetDetailItem.polaris_name}:${targetDetailItem.port}`;
+          } else if (item.isNodeEntry) {
+            const targetDetailItem = item.target_details[0] as DnsTargetDetails;
+            dataObj.value.nodes.list[0].value = `${item.entry}:${targetDetailItem.port}`;
+          }
         }
       });
     },
