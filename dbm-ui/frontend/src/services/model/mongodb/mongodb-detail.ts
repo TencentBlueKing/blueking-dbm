@@ -11,6 +11,7 @@
  * the specific language governing permissions and limitations under the License.
  */
 
+import ClusterEntryDetailModel from '@services/model/cluster-entry/cluster-entry-details';
 import type { ClusterListEntry } from '@services/types';
 
 import { TicketTypes } from '@common/const';
@@ -76,26 +77,7 @@ export default class MongodbDetail {
   cluster_access_port: number;
   cluster_alias: string;
   cluster_entry: ClusterListEntry[];
-  cluster_entry_details: {
-    cluster_entry_type: string;
-    role: string;
-    entry: string;
-    target_details: {
-      app: string;
-      bk_cloud_iduid: number;
-      dns_str: string;
-      domain_name: string;
-      domain_typeuid: number;
-      ip: string;
-      last_change_time: string;
-      manager: string;
-      port: number;
-      remark: string;
-      start_time: string;
-      status: string;
-      uid: number;
-    }[];
-  }[];
+  cluster_entry_details: ClusterEntryDetailModel[];
   cluster_id: number;
   cluster_name: string;
   cluster_type: string;
@@ -221,7 +203,7 @@ export default class MongodbDetail {
     this.cluster_alias = payload.cluster_alias;
     this.cluster_access_port = payload.cluster_access_port;
     this.cluster_entry = payload.cluster_entry || [];
-    this.cluster_entry_details = payload.cluster_entry_details;
+    this.cluster_entry_details = payload.cluster_entry_details.map((item) => new ClusterEntryDetailModel(item));
     this.cluster_id = payload.cluster_id;
     this.cluster_name = payload.cluster_name;
     this.cluster_type = payload.cluster_type;
