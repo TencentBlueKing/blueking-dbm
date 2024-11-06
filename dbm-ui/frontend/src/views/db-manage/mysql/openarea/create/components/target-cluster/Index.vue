@@ -55,7 +55,9 @@
   import TendbhaModel from '@services/model/mysql/tendbha';
   import type { HostInfo } from '@services/types/ip';
 
-  import { ClusterTypes } from '@common/const';
+  import { useTicketCloneInfo } from '@hooks';
+
+  import { ClusterTypes, TicketTypes } from '@common/const';
 
   import ClusterSelector from '@components/cluster-selector/Index.vue';
   import IpSelector, { type IPSelectorResult } from '@components/ip-selector/IpSelector.vue';
@@ -74,6 +76,14 @@
   }
 
   const props = defineProps<Props>();
+
+  // 单据克隆
+  useTicketCloneInfo({
+    type: TicketTypes.MYSQL_OPEN_AREA,
+    onSuccess({ data }) {
+      tableData.value = data;
+    },
+  });
 
   const { t } = useI18n();
 

@@ -72,8 +72,8 @@
         </span>
       </template>
       <PermissionRule
-        :cluster-type="templateDetail?.cluster_type"
-        :rule-ids="templateDetail?.related_authorize" />
+        :template-detail="templateDetail"
+        :ticket-details="ticketDetails" />
     </DbCard>
   </BkLoading>
 </template>
