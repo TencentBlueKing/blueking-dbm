@@ -784,6 +784,17 @@
       render: ({ data }: { data: RedisModel }) => {
         const getOperations = (theme = 'primary') => {
           const baseOperations = [
+            <auth-button
+              action-id="redis_webconsole"
+              resource={data.id}
+              permission={data.permission.redis_webconsole}
+              disabled={data.isOffline}
+              text
+              theme="primary"
+              class="mr-8"
+              onClick={() => handleGoWebconsole(data.id)}>
+              Webconsole
+            </auth-button>,
             <OperationBtnStatusTips
               v-db-console="redis.haClusterManage.backup"
               data={data}
@@ -1159,6 +1170,15 @@
     deleteKeyState.isShow = true;
     deleteKeyState.data = _.cloneDeep(data);
   };
+
+  const handleGoWebconsole = (clusterId: number) => {
+    router.push({
+      name: 'RedisWebconsole',
+      query: {
+        clusterId
+      }
+    });
+  }
 
   const handleShowBackup = (data: RedisModel[] = []) => {
     if (
