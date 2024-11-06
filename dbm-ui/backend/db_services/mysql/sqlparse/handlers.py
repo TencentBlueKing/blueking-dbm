@@ -105,17 +105,24 @@ class SQLParseHandler:
 
         def parse_show_desc_tokens(tokens):
             """允许特殊SQL语句"""
-            keyword = [token.value for token in tokens if token.is_keyword] or [""]
-            ids = [item.value.upper() for item in tokens if isinstance(item, sqlparse.sql.Identifier)]
-            # 允许desc，describe，use语句
-            if keyword[0].upper() in ["DESC", "DESCRIBE", "USE"]:
-                return True
-            # 允许show databases，show processlist、show slave status
-            if keyword[0].upper() == "SHOW" and ids and ids[0] in ["DATABASES", "PROCESSLIST", "SLAVE STATUS"]:
-                return True
-            # 允许show tables，show create
-            if len(keyword) > 1 and keyword[0].upper() == "SHOW" and keyword[1].upper() in ["TABLES", "CREATE"]:
-                return True
+            # sql语句白名单
+            allowed_statements = [
+                "status",
+                "desc",
+                "describe",
+                "use",
+                "show databases",
+                "show processlist",
+                "show slave status",
+                "show tables",
+                "show create table",
+                "show index",
+                "show variables",
+            ]
+            tokens = [token.value.lower() for token in tokens if not token.is_whitespace]
+            for allowed in allowed_statements:
+                if " ".join(tokens).startswith(allowed):
+                    return True
             return False
 
         def parse_select_tokens(statement, tokens):

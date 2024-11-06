@@ -18,8 +18,12 @@ from backend.flow.engine.controller.mysql import MySQLController
 from backend.ticket import builders
 from backend.ticket.builders.common.base import BaseOperateResourceParamBuilder, HostInfoSerializer
 from backend.ticket.builders.common.constants import MySQLBackupSource
-from backend.ticket.builders.mysql.base import BaseMySQLHATicketFlowBuilder, MySQLBaseOperateDetailSerializer
-from backend.ticket.constants import FlowRetryType, TicketType
+from backend.ticket.builders.mysql.base import MySQLBaseOperateDetailSerializer
+from backend.ticket.builders.mysql.mysql_master_slave_switch import (
+    MysqlMasterSlaveSwitchFlowBuilder,
+    MysqlMasterSlaveSwitchParamBuilder,
+)
+from backend.ticket.constants import TicketType
 
 
 class MysqlMigrateClusterDetailSerializer(MySQLBaseOperateDetailSerializer):
@@ -54,7 +58,7 @@ class MysqlMigrateClusterDetailSerializer(MySQLBaseOperateDetailSerializer):
         return attrs
 
 
-class MysqlMigrateClusterParamBuilder(builders.FlowParamBuilder):
+class MysqlMigrateClusterParamBuilder(MysqlMasterSlaveSwitchParamBuilder):
     controller = MySQLController.mysql_migrate_remote_scene
 
     def format_ticket_data(self):
@@ -78,9 +82,8 @@ class MysqlMigrateClusterResourceParamBuilder(BaseOperateResourceParamBuilder):
 
 
 @builders.BuilderFactory.register(TicketType.MYSQL_MIGRATE_CLUSTER, is_apply=True)
-class MysqlMigrateClusterFlowBuilder(BaseMySQLHATicketFlowBuilder):
+class MysqlMigrateClusterFlowBuilder(MysqlMasterSlaveSwitchFlowBuilder):
     serializer = MysqlMigrateClusterDetailSerializer
     inner_flow_builder = MysqlMigrateClusterParamBuilder
-    inner_flow_name = _("迁移主从执行")
+    inner_flow_name = TicketType.get_choice_label(TicketType.MYSQL_MIGRATE_CLUSTER)
     resource_batch_apply_builder = MysqlMigrateClusterResourceParamBuilder
-    retry_type = FlowRetryType.MANUAL_RETRY

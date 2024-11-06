@@ -60,6 +60,7 @@ class TendbFixPointRollbackDetailSerializer(TendbBaseOperateDetailSerializer):
         help_text=_("回档集群类型"), choices=RollbackBuildClusterType.get_choices()
     )
     infos = serializers.ListSerializer(help_text=_("回档信息"), child=RollbackInfoSerializer())
+    ignore_check_db = serializers.BooleanField(help_text=_("是否忽略业务库"), required=False, default=False)
 
     def validate(self, attrs):
         # 校验集群是否可用

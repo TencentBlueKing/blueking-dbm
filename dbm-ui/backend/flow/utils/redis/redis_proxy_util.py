@@ -426,16 +426,16 @@ def get_cluster_storage_versions_for_upgrade(cluster_id: int) -> list:
     online_redis_ver = get_cluster_redis_version(cluster_id=cluster_id)
     versions = []
     if is_redis_instance_type(cluster.cluster_type):
-        ret = Package.objects.filter(db_type=DBType.Redis.value, pkg_type=MediumEnum.Redis.value).values_list(
-            "name", flat=True
-        )
+        ret = Package.objects.filter(
+            db_type=DBType.Redis.value, pkg_type=MediumEnum.Redis.value, enable=True
+        ).values_list("name", flat=True)
         for version in ret:
             if version_ge(version, online_redis_ver):
                 versions.append(version)
     elif is_tendisplus_instance_type(cluster.cluster_type):
-        ret = Package.objects.filter(db_type=DBType.Redis.value, pkg_type=MediumEnum.TendisPlus.value).values_list(
-            "name", flat=True
-        )
+        ret = Package.objects.filter(
+            db_type=DBType.Redis.value, pkg_type=MediumEnum.TendisPlus.value, enable=True
+        ).values_list("name", flat=True)
         for version in ret:
             if version_ge(version, online_redis_ver):
                 versions.append(version)

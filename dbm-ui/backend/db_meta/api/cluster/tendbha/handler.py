@@ -229,7 +229,8 @@ class TenDBHAClusterHandler(ClusterHandler):
         切换TBinlogDumper实例的信息变更
         """
         master = self.cluster.storageinstance_set.get(instance_role=InstanceRole.BACKEND_MASTER)
-        for inst in ExtraProcessInstance.objects.filter(id__in=switch_ids):
+        instances = ExtraProcessInstance.objects.filter(id__in=switch_ids)
+        for inst in instances:
             # 删除旧的服务实例
             CcManage(bk_biz_id=inst.bk_biz_id, cluster_type=ClusterType.TenDBHA.value).delete_service_instance(
                 bk_instance_ids=[inst.bk_instance_id]
@@ -241,8 +242,8 @@ class TenDBHAClusterHandler(ClusterHandler):
             inst.extra_config["source_data_port"] = master.port
             inst.save()
 
-            # 创建新的服务实例
-            TBinlogDumperCCTopoOperator(cluster=self.cluster).create_tbinlogdumper_instances(inst)
+        # 创建新的服务实例
+        TBinlogDumperCCTopoOperator(cluster=self.cluster).create_tbinlogdumper_instances(instances)
 
     @classmethod
     @transaction.atomic()

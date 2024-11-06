@@ -952,11 +952,15 @@ class TestSQLParseHandler:
         """
         assert SQLParseHandler().parse_select_statement(desc_sql) is None
 
-        invalid_show_sql = """
+        show_var_sql1 = """
         SHOW VARIABLES;
         """
-        with pytest.raises(SQLParseBaseException):
-            SQLParseHandler().parse_select_statement(invalid_show_sql)
+        assert SQLParseHandler().parse_select_statement(show_var_sql1) is None
+
+        show_var_sql2 = """
+        SHOW VARIABLES LIKE %x;
+        """
+        assert SQLParseHandler().parse_select_statement(show_var_sql2) is None
 
         show_tables_sql = """
         SHOW TABLES FORM DBM;
@@ -974,6 +978,11 @@ class TestSQLParseHandler:
         assert SQLParseHandler().parse_select_statement(show_slave_sql) is None
 
         show_create_table_sql = """
-        SHOW CREATE TABLE TEST_DB;
+        SHOW CREATE TABLE TEST_DB.TEST_TABLE;
         """
         assert SQLParseHandler().parse_select_statement(show_create_table_sql) is None
+
+        show_index_sql = """
+        SHOW INDEX FROM TEST_DB.TEST_TABLE;
+        """
+        assert SQLParseHandler().parse_select_statement(show_index_sql) is None

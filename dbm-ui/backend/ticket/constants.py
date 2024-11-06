@@ -173,7 +173,7 @@ class TicketType(str, StructuredEnum):
     MYSQL_ADD_SLAVE = TicketEnumField("MYSQL_ADD_SLAVE", _("MySQL 添加从库"), _("集群维护"))
     MYSQL_RESTORE_SLAVE = TicketEnumField("MYSQL_RESTORE_SLAVE", _("MySQL Slave重建"), _("集群维护"))
     MYSQL_RESTORE_LOCAL_SLAVE = TicketEnumField("MYSQL_RESTORE_LOCAL_SLAVE", _("MySQL Slave原地重建"), _("集群维护"))
-    MYSQL_MIGRATE_CLUSTER = TicketEnumField("MYSQL_MIGRATE_CLUSTER", _("MySQL 迁移主从"), _("集群维护"))
+    MYSQL_MIGRATE_CLUSTER = TicketEnumField("MYSQL_MIGRATE_CLUSTER", _("MySQL 主从迁移"), _("集群维护"))
     MYSQL_MASTER_SLAVE_SWITCH = TicketEnumField("MYSQL_MASTER_SLAVE_SWITCH", _("MySQL 主从互换"), _("集群维护"))
     MYSQL_MASTER_FAIL_OVER = TicketEnumField("MYSQL_MASTER_FAIL_OVER", _("MySQL 主库故障切换"), _("集群维护"))
     MYSQL_HA_APPLY = TicketEnumField("MYSQL_HA_APPLY", _("MySQL 高可用部署"), register_iam=False)

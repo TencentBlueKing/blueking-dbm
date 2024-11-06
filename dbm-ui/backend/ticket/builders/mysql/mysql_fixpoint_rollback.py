@@ -48,6 +48,7 @@ class MySQLFixPointRollbackDetailSerializer(MySQLBaseOperateDetailSerializer):
     rollback_cluster_type = serializers.ChoiceField(
         help_text=_("回档集群类型"), choices=RollbackBuildClusterType.get_choices()
     )
+    ignore_check_db = serializers.BooleanField(help_text=_("是否忽略业务库"), required=False, default=False)
     infos = serializers.ListSerializer(help_text=_("定点构造信息"), child=FixPointRollbackSerializer())
 
     @classmethod

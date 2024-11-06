@@ -9,8 +9,6 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
-from django.utils.translation import ugettext_lazy as _
-
 from backend.flow.engine.controller.mysql import MySQLController
 from backend.ticket import builders
 from backend.ticket.builders.mysql.base import MySQLBasePauseParamBuilder
@@ -35,7 +33,7 @@ class MysqlMasterFailOverParamBuilder(MysqlMasterSlaveSwitchParamBuilder):
 class MysqlMasterFailOverFlowBuilder(MysqlMasterSlaveSwitchFlowBuilder):
     serializer = MysqlMasterFailOverDetailSerializer
     inner_flow_builder = MysqlMasterFailOverParamBuilder
-    inner_flow_name = _("主库故障切换执行")
+    inner_flow_name = TicketType.get_choice_label(TicketType.MYSQL_MASTER_FAIL_OVER)
     dumper_flow_builder = MysqlDumperMigrateParamBuilder
     retry_type = FlowRetryType.MANUAL_RETRY
     pause_node_builder = MySQLBasePauseParamBuilder

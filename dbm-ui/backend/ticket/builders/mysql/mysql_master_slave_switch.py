@@ -65,27 +65,28 @@ class MysqlMasterSlaveSwitchDetailSerializer(MySQLBaseOperateDetailSerializer):
 class MysqlMasterSlaveSwitchParamBuilder(builders.FlowParamBuilder):
     controller = MySQLController.mysql_ha_switch_scene
 
-    def post_callback(self):
-        # 如果当前流程并没有执行成功，则忽略
-        if self.ticket.current_flow().status != TicketFlowStatus.SUCCEEDED:
-            return
-
-        dumper_migrate_flow = self.ticket.next_flow()
+    @classmethod
+    def post_dumper_callback(cls, dumper_migrate_flow, ticket, ticket_data):
+        switch_infos = [info for info in ticket_data.get("switch_infos", []) if info["switch_instances"]]
         # 如果没有有效的切换信息，就跳过dumper切换流程
-        switch_infos = [info for info in self.ticket_data.get("switch_infos", []) if info["switch_instances"]]
         if not switch_infos:
-            flow_filter = Q(
-                ticket=self.ticket,
-                details__controller_info__func_name=MysqlDumperMigrateParamBuilder.controller.__name__,
-            )
+            dumper_ctl_name = MysqlDumperMigrateParamBuilder.controller.__name__
+            flow_filter = Q(ticket=ticket, details__controller_info__func_name=dumper_ctl_name)
             # 用save方法来触发ticket单据更新的信号
             for flow in Flow.objects.filter(flow_filter):
                 flow.status = TicketFlowStatus.SKIPPED
                 flow.save(update_fields=["status"])
             return
-
+        # 更新dump切换信息
         dumper_migrate_flow.details["ticket_data"]["infos"] = switch_infos
         dumper_migrate_flow.save(update_fields=["details"])
+
+    def post_callback(self):
+        # 如果当前流程并没有执行成功，则忽略
+        if self.ticket.current_flow().status != TicketFlowStatus.SUCCEEDED:
+            return
+        dumper_migrate_flow = self.ticket.next_flow()
+        self.post_dumper_callback(dumper_migrate_flow, self.ticket, self.ticket_data)
 
 
 class MysqlDumperMigrateParamBuilder(builders.FlowParamBuilder):
@@ -101,20 +102,20 @@ class MysqlDumperMigrateParamBuilder(builders.FlowParamBuilder):
 class MysqlMasterSlaveSwitchFlowBuilder(BaseMySQLHATicketFlowBuilder):
     serializer = MysqlMasterSlaveSwitchDetailSerializer
     inner_flow_builder = MysqlMasterSlaveSwitchParamBuilder
-    inner_flow_name = _("主从互换执行")
     dumper_flow_builder = MysqlDumperMigrateParamBuilder
     retry_type = FlowRetryType.MANUAL_RETRY
     pause_node_builder = MySQLBasePauseParamBuilder
 
-    def check_cluster_dumper_migrate(self):
-        cluster_ids = list(itertools.chain(*[info["cluster_ids"] for info in self.ticket.details["infos"]]))
+    @classmethod
+    def check_cluster_dumper_migrate(cls, ticket):
+        cluster_ids = list(itertools.chain(*[info["cluster_ids"] for info in ticket.details["infos"]]))
         dumper_instances = ExtraProcessInstance.objects.filter(
             cluster_id__in=cluster_ids, proc_type=ExtraProcessType.TBINLOGDUMPER
         )
         # 补充单据详情的dumper_instance_ids，用于dumper迁移状态查询
         if dumper_instances.exists():
             dumper_instance_ids = [dumper.id for dumper in dumper_instances]
-            self.ticket.update_details(dumper_instance_ids=dumper_instance_ids)
+            ticket.update_details(dumper_instance_ids=dumper_instance_ids)
         return dumper_instances.exists()
 
     def custom_ticket_flows(self):
@@ -129,13 +130,13 @@ class MysqlMasterSlaveSwitchFlowBuilder(BaseMySQLHATicketFlowBuilder):
             )
         ]
         # 如果存在dumper，则串dumper迁移流程
-        if self.check_cluster_dumper_migrate():
+        if self.check_cluster_dumper_migrate(self.ticket):
             flows.append(
                 Flow(
                     ticket=self.ticket,
                     flow_type=FlowType.INNER_FLOW.value,
                     details=self.dumper_flow_builder(self.ticket).get_params(),
-                    flow_alias=_("dumper 迁移"),
+                    flow_alias=_("Dumper 迁移"),
                     retry_type=self.retry_type,
                 )
             )

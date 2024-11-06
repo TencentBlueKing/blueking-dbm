@@ -29,7 +29,11 @@ from backend.ticket.builders.common.base import (
     fetch_cluster_ids,
 )
 from backend.ticket.builders.common.constants import MySQLBackupSource
-from backend.ticket.builders.mysql.base import BaseMySQLTicketFlowBuilder, MySQLBaseOperateDetailSerializer
+from backend.ticket.builders.mysql.base import MySQLBaseOperateDetailSerializer
+from backend.ticket.builders.mysql.mysql_master_slave_switch import (
+    MysqlMasterSlaveSwitchFlowBuilder,
+    MysqlMasterSlaveSwitchParamBuilder,
+)
 from backend.ticket.constants import TicketType
 
 
@@ -76,7 +80,7 @@ class MysqlMigrateUpgradeDetailSerializer(MySQLBaseOperateDetailSerializer):
         return attrs
 
 
-class MysqlMigrateUpgradeParamBuilder(builders.FlowParamBuilder):
+class MysqlMigrateUpgradeParamBuilder(MysqlMasterSlaveSwitchParamBuilder):
     controller = MySQLController.tendbha_upgrade_scene
 
     def format_ticket_data(self):
@@ -127,9 +131,10 @@ class MysqlMigrateUpgradeResourceParamBuilder(BaseOperateResourceParamBuilder):
 
 
 @builders.BuilderFactory.register(TicketType.MYSQL_MIGRATE_UPGRADE, is_apply=True)
-class MysqlMigrateUpgradeFlowBuilder(BaseMySQLTicketFlowBuilder):
+class MysqlMigrateUpgradeFlowBuilder(MysqlMasterSlaveSwitchFlowBuilder):
     serializer = MysqlMigrateUpgradeDetailSerializer
     inner_flow_builder = MysqlMigrateUpgradeParamBuilder
+    inner_flow_name = TicketType.get_choice_label(TicketType.MYSQL_MIGRATE_UPGRADE)
     resource_batch_apply_builder = MysqlMigrateUpgradeResourceParamBuilder
 
     def patch_ticket_detail(self):
