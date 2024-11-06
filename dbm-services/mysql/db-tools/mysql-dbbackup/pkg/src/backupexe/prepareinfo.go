@@ -4,11 +4,13 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
+	"io"
 	"os"
 	"regexp"
 	"strings"
 	"time"
 
+	"github.com/klauspost/compress/zstd"
 	"github.com/pkg/errors"
 
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/cst"
@@ -28,26 +30,42 @@ type mydumperMetadata struct {
 // parseMysqldumpMetadata 从 mysqldump sql 文件里解析 change master / change slave 命令
 // 命令被注释，在文件开头的前几行
 func parseMysqldumpMetadata(sqlFilePath string) (*mydumperMetadata, error) {
+
 	sqlFile, err := os.Open(sqlFilePath)
 	if err != nil {
 		return nil, err
 	}
 	defer sqlFile.Close()
-
 	var metadata = &mydumperMetadata{
 		MasterStatus: map[string]string{},
 		SlaveStatus:  map[string]string{},
 		Tables:       map[string]interface{}{},
 	}
 
-	var l string // one line
-	buf := bufio.NewScanner(sqlFile)
+	var bufScanner *bufio.Scanner
+	if strings.HasSuffix(sqlFilePath, cst.ZstdSuffix) {
+		var compressedBuf = make([]byte, 10240)
+		if _, err := sqlFile.Read(compressedBuf); err != nil && err != io.EOF {
+			return nil, errors.WithMessagef(err, "read first 10240 bytes from %s", sqlFilePath)
+		}
+		var textBuf = make([]byte, 10240)
+		dec, _ := zstd.NewReader(bytes.NewBuffer(compressedBuf), zstd.WithDecoderConcurrency(1))
+		defer dec.Close()
+		if _, err := dec.Read(textBuf); err != nil {
+			logger.Log.Warnf("zstd decode first 10240 bytes failed from %s, err:%s", sqlFilePath, err.Error())
+		}
+		bufScanner = bufio.NewScanner(bytes.NewBuffer(textBuf))
+	} else {
+		bufScanner = bufio.NewScanner(sqlFile)
+	}
+
+	var l string                                                                   // one line
 	reMaster := `CHANGE MASTER TO MASTER_LOG_FILE='([^']+)', MASTER_LOG_POS=(\d+)` // 本机的位点
 	//reSlave := `CHANGE SLAVE TO MASTER_LOG_FILE='([^']+)', MASTER_LOG_POS=(\d+)`   // 本机的 远端master 的位点
 	reShowMaster := regexp.MustCompile(reMaster)
 	//reShowSlave := regexp.MustCompile(reSlave)
-	for buf.Scan() {
-		l = buf.Text()
+	for bufScanner.Scan() {
+		l = bufScanner.Text()
 		matches := reShowMaster.FindStringSubmatch(l)
 		if len(matches) == 3 {
 			metadata.MasterStatus["File"] = matches[1]

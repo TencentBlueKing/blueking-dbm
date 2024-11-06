@@ -23,7 +23,7 @@ func SetDefaults() {
 	viper.SetDefault("Public.IOLimitMBPerSec", 300)
 	viper.SetDefault("Public.IOLimitMasterFactor", 0.5)
 	viper.SetDefault("Public.BackupDir", "/data/dbbak")
-	viper.SetDefault("Public.MysqlCharset", "binary")
+	//viper.SetDefault("Public.MysqlCharset", "binary")
 	viper.SetDefault("Public.BackupTimeOut", "09:00:01")
 
 	viper.SetDefault("PhysicalBackup.MaxMyisamTables", 10)

@@ -4,6 +4,8 @@ import (
 	"database/sql"
 	"strings"
 
+	"github.com/pkg/errors"
+
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/config"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/cst"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/common"
@@ -29,6 +31,16 @@ func CheckCharset(cnf *config.Public, dbh *sql.DB) error {
 		superCharset = "utf8"
 	} else {
 		superCharset = "utf8mb4"
+	}
+	if confCharset == "auto" || confCharset == "" {
+		// 如果 cnf.MysqlCharset 为空，则自动读取 character_set_server
+		serverCharset, err := mysqlconn.MysqlSingleColumnQuery("select @@character_set_server", dbh)
+		if err != nil {
+			logger.Log.Error("can't select mysql server charset , error :", err)
+			return errors.WithMessagef(err, "failed to get character_set_server from %d", cnf.MysqlPort)
+		}
+		cnf.MysqlCharset = serverCharset[0]
+		return nil
 	}
 	if confCharset != "binary" && confCharset != superCharset && strings.ToUpper(cnf.DataSchemaGrant) == "ALL" {
 		var goodCharset = []string{"latin1", "utf8", "utf8mb4"}

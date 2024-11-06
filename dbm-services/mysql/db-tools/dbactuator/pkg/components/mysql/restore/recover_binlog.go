@@ -423,19 +423,33 @@ func (r *RecoverBinlog) buildFilterOpts() error {
 	r.filterOpts = ""
 	if b.Flashback {
 		r.filterOpts += " --flashback"
+		if len(b.Databases) > 0 {
+			r.filterOpts += fmt.Sprintf(" --flashback-databases='%s'", strings.Join(b.Databases, ","))
+		}
+		if len(b.Tables) > 0 {
+			r.filterOpts += fmt.Sprintf(" --flashback-tables='%s'", strings.Join(b.Tables, ","))
+		}
+		if len(b.DatabasesIgnore) > 0 {
+			r.filterOpts += fmt.Sprintf(" --flashback-databases-ignore='%s'", strings.Join(b.DatabasesIgnore, ","))
+		}
+		if len(b.TablesIgnore) > 0 {
+			r.filterOpts += fmt.Sprintf(" --flashback-tables-ignore='%s'", strings.Join(b.TablesIgnore, ","))
+		}
+	} else {
+		if len(b.Databases) > 0 {
+			r.filterOpts += fmt.Sprintf(" --databases='%s'", strings.Join(b.Databases, ","))
+		}
+		if len(b.Tables) > 0 {
+			r.filterOpts += fmt.Sprintf(" --tables='%s'", strings.Join(b.Tables, ","))
+		}
+		if len(b.DatabasesIgnore) > 0 {
+			r.filterOpts += fmt.Sprintf(" --databases-ignore='%s'", strings.Join(b.DatabasesIgnore, ","))
+		}
+		if len(b.TablesIgnore) > 0 {
+			r.filterOpts += fmt.Sprintf(" --tables-ignore='%s'", strings.Join(b.TablesIgnore, ","))
+		}
 	}
-	if len(b.Databases) > 0 {
-		r.filterOpts += fmt.Sprintf(" --databases='%s'", strings.Join(b.Databases, ","))
-	}
-	if len(b.Tables) > 0 {
-		r.filterOpts += fmt.Sprintf(" --tables='%s'", strings.Join(b.Tables, ","))
-	}
-	if len(b.DatabasesIgnore) > 0 {
-		r.filterOpts += fmt.Sprintf(" --databases-ignore='%s'", strings.Join(b.DatabasesIgnore, ","))
-	}
-	if len(b.TablesIgnore) > 0 {
-		r.filterOpts += fmt.Sprintf(" --tables-ignore='%s'", strings.Join(b.TablesIgnore, ","))
-	}
+
 	if r.filterOpts == "" {
 		logger.Warn("quick_mode=true shall works with binlog-filter data import")
 	}

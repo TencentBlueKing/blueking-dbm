@@ -419,31 +419,10 @@ func PackageBackupFiles(cnf *config.BackupConfig, metaInfo *dbareport.IndexConte
 // Frames  Skips  Compressed  Uncompressed  Ratio  Check  Filename
 //
 //	1      0     187 MiB      1.20 GiB  6.606  XXH64  mysqldata.tar.zst
+//
+// zstd -l xx.zst may take too much time, skip
 func readUncompressSizeForZstd(zstdCmd string, fileName string) (int64, error) {
-	outStr, _, err := cmutil.ExecCommand(false, "", zstdCmd, "-l", fileName)
-	if err != nil {
-		return 0, errors.Wrapf(err, "zst command failed %s -l %s", zstdCmd, fileName)
-	}
-	outLines := strings.Split(outStr, "\n")
-	for i, line := range outLines {
-		if i == 0 {
-			if strings.Contains(line, "Uncompressed") {
-				continue
-			} else {
-				return 0, errors.Errorf("can not get Uncompressed for %s", fileName)
-			}
-		}
-		if i == 1 {
-			cols := strings.Fields(line)
-			readableBytes := strings.ReplaceAll(strings.ReplaceAll(cols[4]+cols[5], "i", ""), " ", "")
-			bytesNum, err := cmutil.ParseSizeInBytesE(readableBytes)
-			if err != nil {
-				return 0, errors.Wrapf(err, "fail to parse size %s for %s", readableBytes, fileName)
-			}
-			return bytesNum, nil
-		}
-	}
-	return 0, errors.Errorf("unknown error, zst -l %s output error", fileName)
+	return 0, nil
 }
 
 func tarBallWithEncrypt(tarFilename string, srcFilename string) error {

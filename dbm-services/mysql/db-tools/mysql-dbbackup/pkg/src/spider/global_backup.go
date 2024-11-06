@@ -171,7 +171,7 @@ func migrateBackupSchema(mysqlErr cmutil.MySQLError, db *sqlx.DB) error {
 	}
 	var sqlList []string
 	if isSpider { // strings.Contains(backupSchema, "PARTITION pt")
-		sqlList = append(sqlList, "set session ddl_execute_by_ctl=OFF;")
+		//sqlList = append(sqlList, "set session ddl_execute_by_ctl=OFF;")
 	}
 	if isTdbctl {
 		sqlList = append(sqlList, "set session tc_admin=0;")

@@ -25,6 +25,7 @@ import (
 
 	"dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/config"
+	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/cst"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/dbareport"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/logger"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/mysqlconn"
@@ -51,13 +52,9 @@ func (l *LogicalLoaderMysqldump) initConfig(metaInfo *dbareport.IndexContent) er
 	} else {
 		l.dbbackupHome = filepath.Dir(cmdPath)
 	}
-	if l.cnf.LogicalLoad.GetFilterType() != config.FilterTypeEmpty {
-		return errors.New("data sql1 files dumped by mysqldump cannot be filter databases or tables")
-	}
-	if (l.cnf.LogicalLoad.Databases != "" || l.cnf.LogicalLoad.Tables != "" ||
-		l.cnf.LogicalLoad.ExcludeDatabases != "" || l.cnf.LogicalLoad.ExcludeTables != "") ||
-		l.cnf.LogicalLoad.Regex != "" ||
-		l.cnf.LogicalLoad.TablesList != "" {
+	// mysqldump doesn't use Regex,TablesList
+	if l.cnf.LogicalLoad.Databases != "" || l.cnf.LogicalLoad.Tables != "" ||
+		l.cnf.LogicalLoad.ExcludeDatabases != "" || l.cnf.LogicalLoad.ExcludeTables != "" {
 		return errors.New("data sql2 files dumped by mysqldump cannot be filter databases or tables")
 	}
 	l.metaInfo = metaInfo
@@ -174,6 +171,7 @@ func (l *LogicalLoaderMysqldump) Execute() (err error) {
 	}
 
 	args := []string{
+		binPath,
 		"-h" + l.cnf.LogicalLoad.MysqlHost,
 		"-P" + strconv.Itoa(l.cnf.LogicalLoad.MysqlPort),
 		"-u" + l.cnf.LogicalLoad.MysqlUser,
@@ -199,7 +197,7 @@ func (l *LogicalLoaderMysqldump) Execute() (err error) {
 		}...)
 	}
 
-	sqlFiles, err := filepath.Glob(filepath.Join(l.cnf.LogicalLoad.MysqlLoadDir, "*_logical.sql"))
+	sqlFiles, err := filepath.Glob(filepath.Join(l.cnf.LogicalLoad.MysqlLoadDir, "*_logical.sql*"))
 	if err != nil {
 		return errors.WithMessagef(err, "get sql file from %s", l.cnf.LogicalLoad.MysqlLoadDir)
 	} else if len(sqlFiles) == 0 {
@@ -209,16 +207,21 @@ func (l *LogicalLoaderMysqldump) Execute() (err error) {
 	}
 	// 取第一个
 	dumpedSqlFile := sqlFiles[0]
-	args = append(args, "<", dumpedSqlFile)
+	if strings.HasSuffix(dumpedSqlFile, cst.ZstdSuffix) {
+		argsUncompress := []string{CmdZstd, "-d", "-c", dumpedSqlFile, "|"}
+		args = append(argsUncompress, args...)
+	} else {
+		args = append(args, "<", dumpedSqlFile)
+	}
 
 	pwd, _ := os.Getwd()
 	logfile := filepath.Join(pwd, "logs", fmt.Sprintf("mysqldump_load_%d.log", int(time.Now().Weekday())))
 	_ = os.MkdirAll(filepath.Dir(logfile), 0755)
 
 	args = append(args, ">>", logfile, "2>&1")
-	logger.Log.Info("load logical command:", binPath+" ", strings.Join(args, " "))
+	logger.Log.Info("load logical command:", strings.Join(args, " "))
 
-	outStr, errStr, err := cmutil.ExecCommand(true, "", binPath, args...)
+	outStr, errStr, err := cmutil.ExecCommand(true, "", args[0], args[1:]...)
 	if err != nil {
 		logger.Log.Error("mysqldump load backup failed: ", err, errStr)
 		// 尝试读取 mysqldump_load.log 里 CRITICAL 关键字

@@ -27,8 +27,8 @@ type TableFilter struct {
 	Regex string `ini:"Regex"`
 
 	// 是否备份实例所有业务db
-	isFullData bool
-	toolName   string
+	isAllDatabases bool
+	toolName       string
 }
 
 type FilterType string

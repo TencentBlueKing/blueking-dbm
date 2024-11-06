@@ -233,7 +233,7 @@ func (r *BackupLogReport) ExecuteBackupClient(fileName string) (taskid string, e
 // indexFilePath 是全路径
 // 内存是传进来的，不是内部读取 indexFilePath
 func (r *BackupLogReport) ReportToLocalBackup(indexFilePath string, metaInfo *IndexContent) error {
-	logger.Log.Infof("write backup result to local_backup_report")
+	logger.Log.Infof("write backup result to local_backup_report for %d", r.cfg.Public.MysqlPort)
 	db, err := mysqlconn.InitConn(&r.cfg.Public)
 	if err != nil {
 		return errors.WithMessage(err, "ReportBackupResult to db")
@@ -254,7 +254,7 @@ func (r *BackupLogReport) ReportToLocalBackup(indexFilePath string, metaInfo *In
 	defer conn.Close()
 	if isTspider {
 		if _, err = conn.ExecContext(ctx, "set session ddl_execute_by_ctl=OFF;"); err != nil {
-			return err
+			//return err  // spider 1.x has no this variables
 		}
 	} else if isTdbctl {
 		if _, err = conn.ExecContext(ctx, "set session tc_admin=0"); err != nil {
@@ -262,13 +262,11 @@ func (r *BackupLogReport) ReportToLocalBackup(indexFilePath string, metaInfo *In
 		}
 	}
 	row := conn.QueryRowContext(ctx, "select @@server_id")
-	if err != nil {
-		return err
-	}
 	var serverId string
 	if err = row.Scan(&serverId); err != nil {
 		return err
 	}
+
 	// 写入本地db的file_list字段，精简一下
 	fileList := make([]*TarFileItem, 0)
 	for _, tf := range metaInfo.FileList {
@@ -321,6 +319,7 @@ func (r *BackupLogReport) ReportToLocalBackup(indexFilePath string, metaInfo *In
 			return errors.Wrap(err, "write local_backup_report again")
 		}
 	}
+
 	// archive old items // 关闭 binlog. 注意关闭 binlog在 spider节点执行是无效的，并且可能还是会在 remote 上产生 binlog
 	_, _ = conn.ExecContext(ctx, "set session sql_log_bin=0;")
 	// 也不记录 binlog

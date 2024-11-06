@@ -20,18 +20,20 @@ import (
 // 删除就备份
 // 检查磁盘空间
 func BeforeDump(cnf *config.BackupConfig) error {
-	if err := CheckBackupType(cnf); err != nil {
-		return err
-	}
-	cnfPublic := &cnf.Public
-
-	dbh, err := mysqlconn.InitConn(cnfPublic)
+	dbh, err := mysqlconn.InitConn(&cnf.Public)
 	if err != nil {
 		return err
 	}
 	defer func() {
 		_ = dbh.Close()
 	}()
+	/*
+		if err := CheckBackupType(cnf); err != nil {
+			return err
+		}
+	*/
+	cnfPublic := &cnf.Public
+
 	/*
 		// check myisam tables
 		if err = CheckEngineTables(cnf, dbh); err != nil {
@@ -61,12 +63,17 @@ func BeforeDump(cnf *config.BackupConfig) error {
 }
 
 // CheckBackupType check and fix backup type
-func CheckBackupType(cnf *config.BackupConfig) error {
+func CheckBackupType(cnf *config.BackupConfig, engine string) error {
 	backupSize, err := util.CalServerDataSize(cnf.Public.MysqlPort)
 	if err != nil {
 		return err
 	}
 	if cnf.Public.BackupType == cst.BackupTypeAuto {
+		if engine == cst.StorageEngineTokudb || engine == cst.StorageEngineRocksdb {
+			logger.Log.Infof("BackupType auto with engine=%s, use physical", engine)
+			cnf.Public.BackupType = cst.BackupPhysical
+			return nil
+		}
 		// report 时需要用真实的 backup type
 		if backupSize > cst.BackupTypeAutoDataSizeGB*1024*1024*1024 {
 			logger.Log.Infof("data size %d for port %d is larger than %d GB, use physical",

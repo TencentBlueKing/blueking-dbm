@@ -73,7 +73,7 @@ func (l *LogicalDumperMysqldump) buildArgsTableFilter() (args []string, err erro
 		}
 	}
 	dbListExcludeNew = append(dbListExcludeNew, dbListExclude...)
-
+	dbListExclude = dbListExcludeNew
 	var dbListFiltered []string
 	if filter, err := db_table_filter.NewFilter(dbList, tbList, dbListExclude, tbListExclude); err != nil {
 		return nil, err
@@ -208,18 +208,24 @@ func (l *LogicalDumperMysqldump) Execute(enableTimeOut bool) (err error) {
 		}...)
 	}
 	filterType := l.cnf.LogicalBackup.GetFilterType()
-	if filterType == config.FilterTypeForm {
+	if filterType == config.FilterTypeRegex {
+		return errors.New("mysqldump does not support regex filter")
+	} else if filterType == config.FilterTypeForm {
 		if filterArgs, err := l.buildArgsTableFilter(); err != nil {
 			return err
 		} else {
 			args = append(args, filterArgs...)
 		}
 	} else if filterType == config.FilterTypeEmpty {
-		return errors.New("please give --databases / --exclude-databases to dump")
+		return errors.New("please give --databases / --exclude-databases for mysqldump")
 	}
-	args = append(args, "-r",
-		filepath.Join(l.cnf.Public.BackupDir, l.cnf.Public.TargetName(), l.cnf.Public.TargetName()+".sql"))
-
+	outSqlFile := filepath.Join(l.cnf.Public.BackupDir, l.cnf.Public.TargetName(), l.cnf.Public.TargetName()+".sql")
+	if l.cnf.LogicalBackupMysqldump.Compress {
+		args = append(args, "|", CmdZstd, "-f", "-q",
+			"-o", outSqlFile+cst.ZstdSuffix)
+	} else {
+		args = append(args, "-r", outSqlFile)
+	}
 	var cmd *exec.Cmd
 	if enableTimeOut {
 		timeDiffUnix, err := GetMaxRunningTime(l.cnf.Public.BackupTimeOut)
@@ -230,10 +236,10 @@ func (l *LogicalDumperMysqldump) Execute(enableTimeOut bool) (err error) {
 		defer cancel()
 
 		cmd = exec.CommandContext(ctx,
-			"sh", "-c",
+			"bash", "-c",
 			fmt.Sprintf(`%s %s`, binPath, strings.Join(args, " ")))
 	} else {
-		cmd = exec.Command("sh", "-c",
+		cmd = exec.Command("bash", "-c",
 			fmt.Sprintf(`%s %s`, binPath, strings.Join(args, " ")))
 	}
 
@@ -307,6 +313,9 @@ func (l *LogicalDumperMysqldump) Execute(enableTimeOut bool) (err error) {
 func (l *LogicalDumperMysqldump) PrepareBackupMetaInfo(cnf *config.BackupConfig) (*dbareport.IndexContent, error) {
 	var metaInfo = dbareport.IndexContent{BinlogInfo: dbareport.BinlogStatusInfo{}}
 	metaFileName := filepath.Join(cnf.Public.BackupDir, cnf.Public.TargetName(), cnf.Public.TargetName()+".sql")
+	if cnf.LogicalBackupMysqldump.Compress {
+		metaFileName += ".zst"
+	}
 	metadata, err := parseMysqldumpMetadata(metaFileName)
 	if err != nil {
 		return nil, errors.WithMessage(err, "parse mysqldump metadata")

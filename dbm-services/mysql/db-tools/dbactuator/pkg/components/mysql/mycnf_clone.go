@@ -63,6 +63,10 @@ var MycnfCloneItemsDefault = []string{
 	"replica_parallel_type",
 	"slave_exec_mode",
 	"sql_mode",
+
+	// tokudb
+	"tokudb_cache_size",
+	"tokudb_commit_sync",
 }
 
 // MycnfCloneParam godoc

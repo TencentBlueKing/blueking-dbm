@@ -32,7 +32,7 @@ func BuildDumper(cnf *config.BackupConfig, storageEngine string) (dumper Dumper,
 		}
 		return dumper, nil
 	}
-	if err = precheck.CheckBackupType(cnf); err != nil {
+	if err = precheck.CheckBackupType(cnf, storageEngine); err != nil {
 		return nil, err
 	}
 	if strings.ToLower(cnf.Public.BackupType) == cst.BackupLogical {
