@@ -204,6 +204,8 @@ class ListRetrieveResource(query.ListRetrieveResource):
             "machine__ip",
             "machine__bk_cloud_id",
             "machine__machine_type",
+            "machine__bk_sub_zone",
+            "machine__bk_sub_zone_id",
         ]
 
         # 获取remote实例的查询集

@@ -546,6 +546,7 @@ class ListRetrieveResource(BaseListRetrieveResource):
             "cluster_stats": cluster_stats_map.get(cluster.immute_domain, {}),
             "cluster_type": cluster.cluster_type,
             "cluster_type_name": ClusterType.get_choice_label(cluster.cluster_type),
+            "disaster_tolerance_level": cluster.disaster_tolerance_level,
             "master_domain": cluster_entry_map_value.get("master_domain", ""),
             "slave_domain": cluster_entry_map_value.get("slave_domain", ""),
             "cluster_entry": cluster_entry,
@@ -677,6 +678,8 @@ class ListRetrieveResource(BaseListRetrieveResource):
             "machine__bk_host_id",
             "machine__spec_config",
             "machine__machine_type",
+            "machine__bk_sub_zone",
+            "machine__bk_sub_zone_id",
         ]
         # 获取storage实例的查询集
         storage_queryset = (
@@ -724,6 +727,8 @@ class ListRetrieveResource(BaseListRetrieveResource):
             "db_module_name": db_module_names_map.get(instance["cluster__db_module_id"], ""),
             "bk_cloud_id": instance["machine__bk_cloud_id"],
             "bk_cloud_name": bk_cloud_name,
+            "bk_sub_zone": instance["machine__bk_sub_zone"],
+            "bk_sub_zone_id": instance["machine__bk_sub_zone_id"],
             "ip": instance["machine__ip"],
             "port": instance["port"],
             "instance_address": f"{instance['machine__ip']}{IP_PORT_DIVIDER}{instance['port']}",
