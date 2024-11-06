@@ -291,6 +291,10 @@ func (c *ImportSchemaFromBackendComp) migrateUseMysqlDump() (err error) {
 		DumpEvent:   false,
 	}
 
+	dumpCommandBinPath := "/home/mysql/dbbackup/mysqldump"
+	if !cmutil.FileExists(dumpCommandBinPath) {
+		dumpCommandBinPath = path.Join(cst.MysqldInstallPath, "bin", "mysqldump")
+	}
 	dumper := mysqlutil.MySQLDumper{
 		DumpDir:         c.tmpDumpDir,
 		Ip:              c.Params.BackendHost,
@@ -298,7 +302,7 @@ func (c *ImportSchemaFromBackendComp) migrateUseMysqlDump() (err error) {
 		DbBackupUser:    c.Params.TdbctlUser,
 		DbBackupPwd:     c.Params.TdbctlPass,
 		DbNames:         buildBackendDbNames(c.dumpDbs),
-		DumpCmdFile:     path.Join(cst.MysqldInstallPath, "bin", "mysqldump"),
+		DumpCmdFile:     dumpCommandBinPath,
 		Charset:         c.charset,
 		MySQLDumpOption: dumpOption,
 	}

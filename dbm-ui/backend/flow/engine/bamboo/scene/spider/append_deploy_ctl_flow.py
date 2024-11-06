@@ -215,6 +215,12 @@ class AppendDeployCTLFlow(object):
             slave_spiders = cluster_obj.proxyinstance_set.filter(
                 tendbclusterspiderext__spider_role=TenDBClusterSpiderRole.SPIDER_SLAVE.value
             )
+            mnt_spiders = cluster_obj.proxyinstance_set.filter(
+                tendbclusterspiderext__spider_role=TenDBClusterSpiderRole.SPIDER_MNT.value
+            )
+            mnt_slave_spiders = cluster_obj.proxyinstance_set.filter(
+                tendbclusterspiderext__spider_role=TenDBClusterSpiderRole.SPIDER_SLAVE_MNT.value
+            )
             shard0 = cluster_obj.tendbclusterstorageset_set.get(
                 shard_id=0, storage_instance_tuple__ejector__instance_inner_role=InstanceInnerRole.MASTER
             )
@@ -240,6 +246,16 @@ class AppendDeployCTLFlow(object):
             sub_flow_context["spider_ip_list"] = [
                 {"ip": value} for value in list(set([c.machine.ip for c in master_spiders]))
             ]
+            if len(mnt_spiders) > 0:
+                sub_flow_context["mnt_spider_ip_list"] = [
+                    {"ip": value} for value in list(set([c.machine.ip for c in mnt_spiders]))
+                ]
+                sub_flow_context["mnt_spider_port"] = mnt_spiders[0].port
+            if len(mnt_slave_spiders) > 0:
+                sub_flow_context["mnt_slave_spider_ip_list"] = [
+                    {"ip": value} for value in list(set([c.machine.ip for c in mnt_slave_spiders]))
+                ]
+                sub_flow_context["mnt_slave_spider_port"] = mnt_slave_spiders[0].port
             # 处理slave spider
             if len(slave_spiders) > 0:
                 sub_flow_context["slave_spider_ip_list"] = [

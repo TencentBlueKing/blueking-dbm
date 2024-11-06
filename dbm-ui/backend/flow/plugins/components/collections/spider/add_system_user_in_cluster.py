@@ -61,6 +61,19 @@ class AddSystemUserInClusterService(BaseService):
                 params["role"] = PrivRole.SPIDER.value
                 if not self.__add_priv(params=params):
                     return False
+        # 新集群部署，对所有的新的运维 spider节点授权, 迁移的集群可能端口不一致
+        if global_data.get("mnt_spider_ip_list"):
+            for spider_ip in global_data["mnt_spider_ip_list"]:
+                params["address"] = f'{spider_ip["ip"]}{IP_PORT_DIVIDER}{global_data["mnt_spider_port"]}'
+                params["role"] = PrivRole.SPIDER.value
+                if not self.__add_priv(params=params):
+                    return False
+        if global_data.get("mnt_slave_spider_ip_list"):
+            for spider_ip in global_data["mnt_slave_spider_ip_list"]:
+                params["address"] = f'{spider_ip["ip"]}{IP_PORT_DIVIDER}{global_data["mnt_slave_spider_port"]}'
+                params["role"] = PrivRole.SPIDER.value
+                if not self.__add_priv(params=params):
+                    return False
         #  新集群部署，对所有的新的ctl节点授权
         if is_append_deploy:
             for ctl_ip in global_data["tdbctl_ip_list"]:
