@@ -166,13 +166,14 @@
       name = ticketTypeRouteNameMap[props.data.ticket_type];
     }
     if (name) {
-      router.push({
+      const { href } = router.resolve({
         name,
         query: {
           ticketId: props.data.id,
           ticketType: props.data.ticket_type,
         },
       });
+      window.open(href.replace(/^\/(\d+)/, `${props.data.bk_biz_id}`));
     }
   };
 
