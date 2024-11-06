@@ -15,7 +15,7 @@
   <tr>
     <td style="padding: 0">
       <RenderMasterHost
-        ref="hostRef"
+        ref="masterRef"
         :ip="data.clusterData.ip"
         @input-finish="handleInputFinish" />
     </td>
@@ -26,7 +26,7 @@
     </td>
     <td style="padding: 0">
       <RenderSlaveHost
-        ref="slavaRef"
+        ref="slaveRef"
         :cloud-id="data.clusterData.cloudId"
         :ip="data.clusterData.ip"
         :placeholder="t('输入主机后自动生成')"
@@ -126,8 +126,9 @@
 
   interface Exposes {
     getValue: () => Promise<{
+      oldMasterIp: string;
+      oldSlave: HostItem;
       newInstaceList: HostItem[];
-      old_master: HostItem;
     }>;
   }
 
@@ -136,10 +137,10 @@
 
   const { t } = useI18n();
 
-  const hostRef = ref<InstanceType<typeof RenderMasterHost>>();
-  const instanceRef = ref<InstanceType<typeof RenderNewInstace>>();
-  const slavaRef = ref<InstanceType<typeof RenderSlaveHost>>();
+  const masterRef = ref<InstanceType<typeof RenderMasterHost>>();
+  const slaveRef = ref<InstanceType<typeof RenderSlaveHost>>();
   const slaveHost = ref('');
+  const instanceRef = ref<InstanceType<typeof RenderNewInstace>>();
 
   const masterInstanceList = computed(() =>
     props.data.masterInstanceList.map((instanceItem) => instanceItem.instance).join('\n'),
@@ -164,7 +165,7 @@
     emits('remove');
   };
 
-  const getRowData = () => [hostRef.value!.getValue(), instanceRef.value!.getValue(), slavaRef.value!.getValue()];
+  const getRowData = () => [masterRef.value!.getValue(), slaveRef.value!.getValue(), instanceRef.value!.getValue()];
 
   const handleClone = () => {
     Promise.allSettled(getRowData()).then((rowData) => {
@@ -189,10 +190,11 @@
   defineExpose<Exposes>({
     async getValue() {
       return Promise.all(getRowData()).then((data) => {
-        const [ip, newInstaceList, oldMaster] = data;
+        const [oldMasterIp, oldSlave, newInstaceList] = data;
         return {
+          oldMasterIp,
+          oldSlave,
           newInstaceList,
-          old_master: oldMaster,
         };
       });
     },

@@ -272,19 +272,20 @@
         details: {
           ...formData,
           ip_source: 'manual_input',
-          infos: rowDataList.map((rowItem, rowIndex) => {
-            const { clusterData } = tableData.value[rowIndex];
+          infos: tableData.value.map((row) => {
+            const { clusterData } = row;
+            const [{ oldSlave, newInstaceList }] = rowDataList.filter((item) => item.oldMasterIp === clusterData.ip);
             return {
               cluster_id: clusterData.clusterId,
-              new_master: rowItem.newInstaceList[0],
-              new_slave: rowItem.newInstaceList[1],
+              new_master: newInstaceList[0],
+              new_slave: newInstaceList[1],
               old_master: {
                 ip: clusterData.ip,
                 bk_cloud_id: clusterData.cloudId,
                 bk_host_id: clusterData.hostId,
                 bk_biz_id: currentBizId,
               },
-              old_slave: rowItem.old_master,
+              old_slave: oldSlave,
             };
           }),
         },
