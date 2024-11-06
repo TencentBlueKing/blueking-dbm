@@ -18,7 +18,10 @@ from django.utils.translation import ugettext as _
 from backend.components.bklog.handler import BKLogHandler
 from backend.db_meta.enums import ClusterType, InstanceInnerRole, InstanceStatus
 from backend.db_meta.models.cluster import Cluster
-from backend.db_services.mysql.fixpoint_rollback.constants import BACKUP_LOG_ROLLBACK_TIME_RANGE_DAYS
+from backend.db_services.mysql.fixpoint_rollback.constants import (
+    BACKUP_LOG_RANGE_DAYS,
+    BACKUP_LOG_ROLLBACK_TIME_RANGE_DAYS,
+)
 from backend.exceptions import AppBaseException
 from backend.flow.engine.bamboo.scene.mysql.common.get_local_backup import get_local_backup_list
 from backend.ticket.builders.common.constants import MySQLBackupSource
@@ -257,6 +260,61 @@ class FixPointRollbackHandler:
             return self.aggregate_tendbcluster_dbbackup_logs(backup_logs, shard_list)
         else:
             return self.aggregate_tendb_dbbackup_logs(backup_logs)
+
+    def query_instance_backup_logs(self, end_time: datetime, **kwargs) -> Dict:
+        """
+        通过日志平台查询集群实例一周内最近的权限备份日志
+        :param end_time: 结束时间
+        """
+
+        backup_logs = self._get_log_from_bklog(
+            collector="mysql_dbbackup_result",
+            start_time=end_time - timedelta(days=BACKUP_LOG_RANGE_DAYS),
+            end_time=end_time,
+            query_string=f'log: "cluster_id: \\"{self.cluster.id}\\""',
+        )
+        backup_instance_record: Dict[str, Any] = {}
+
+        def init_backup_record(log):
+            # 如果备份ID相同或者当前备份ID时间更接近，则忽略
+            if backup_instance_record.get("backup_id") == log["backup_id"]:
+                return
+            if backup_instance_record.get("backup_consistent_time", "") > log["backup_consistent_time"]:
+                return
+            # 保留聚合需要的通用字段
+            common_fields = [
+                "backup_id",
+                "backup_type",
+                "cluster_id",
+                "cluster_address",
+                "bill_id",
+                "bk_biz_id",
+                "mysql_version",
+                "backup_begin_time",
+                "backup_end_time",
+                "backup_consistent_time",
+                "bk_cloud_id",
+            ]
+            for field in common_fields:
+                backup_instance_record[field] = log[field]
+            # 初始化实例的file_list
+            backup_instance_record["file_list"]: Dict[str, str] = {}
+
+        def init_file_list(log):
+            # 找到备份日志的priv文件
+            priv_file = next((file for file in log["file_list"] if file["file_type"] == "priv"), None)
+            inst = f"{log['backup_host']}:{log['backup_port']}"
+            if not priv_file:
+                return
+            priv_file.update(mysql_role=log["mysql_role"])
+            # 覆盖更新，priv_file在同一个实例，同一个备份仅有一条记录的
+            backup_instance_record["file_list"][inst] = priv_file
+
+        for log in backup_logs:
+            init_backup_record(log)
+            init_file_list(log)
+
+        return backup_instance_record
 
     def query_binlog_from_bklog(
         self,
