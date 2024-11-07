@@ -23,87 +23,11 @@
           @click="handleApply">
           {{ t('申请实例') }}
         </AuthButton>
-        <BkDropdown
-          v-bk-tooltips="{
-            disabled: hasSelected,
-            content: t('请选择操作集群'),
-          }"
+        <ClusterBatchOperation
           v-db-console="'redis.clusterManage.batchOperation'"
-          class="cluster-dropdown mb-16"
+          class="ml-8 mb-16"
           :disabled="!hasSelected"
-          @click.stop
-          @hide="() => (isShowDropdown = false)"
-          @show="() => (isShowDropdown = true)">
-          <BkButton
-            class="ml-8"
-            :disabled="!hasSelected">
-            <span class="pr-4">{{ t('批量操作') }}</span>
-            <DbIcon
-              class="cluster-dropdown-icon"
-              :class="[{ 'cluster-dropdown-icon-active': isShowDropdown }]"
-              type="down-big " />
-          </BkButton>
-          <template #content>
-            <BkDropdownMenu>
-              <BkDropdownItem
-                v-db-console="'redis.clusterManage.extractKey'"
-                @click="handleShowExtract(selected)">
-                <BkButton
-                  v-bk-tooltips="{
-                    disabled: !hasDisabledRow,
-                    content: t('禁用的集群不支持提取 Key'),
-                    placement: 'right',
-                  }"
-                  :disabled="hasDisabledRow"
-                  text>
-                  {{ t('提取Key') }}
-                </BkButton>
-              </BkDropdownItem>
-              <BkDropdownItem
-                v-db-console="'redis.clusterManage.deleteKey'"
-                @click="handlShowDeleteKeys(selected)">
-                <BkButton
-                  v-bk-tooltips="{
-                    disabled: !hasDisabledRow,
-                    content: t('禁用的集群不支持删除 Key'),
-                    placement: 'right',
-                  }"
-                  :disabled="hasDisabledRow"
-                  text>
-                  {{ t('删除Key') }}
-                </BkButton>
-              </BkDropdownItem>
-              <BkDropdownItem
-                v-db-console="'redis.clusterManage.backup'"
-                @click="handleShowBackup(selected)">
-                <BkButton
-                  v-bk-tooltips="{
-                    disabled: !hasDisabledRow,
-                    content: t('禁用的集群不支持备份'),
-                    placement: 'right',
-                  }"
-                  :disabled="hasDisabledRow"
-                  text>
-                  {{ t('备份') }}
-                </BkButton>
-              </BkDropdownItem>
-              <BkDropdownItem
-                v-db-console="'redis.clusterManage.dbClear'"
-                @click="handleShowPurge(selected)">
-                <BkButton
-                  v-bk-tooltips="{
-                    disabled: !hasDisabledRow,
-                    content: t('禁用的集群不支持清档'),
-                    placement: 'right',
-                  }"
-                  :disabled="hasDisabledRow"
-                  text>
-                  {{ t('清档') }}
-                </BkButton>
-              </BkDropdownItem>
-            </BkDropdownMenu>
-          </template>
-        </BkDropdown>
+          :list="clusterBatchOperationList" />
         <DropdownExportExcel
           v-db-console="'redis.clusterManage.export'"
           :ids="selectedIds"
@@ -207,6 +131,7 @@
     import MoreActionExtend from '@components/more-action-extend/Index.vue';
     import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
 
+    import ClusterBatchOperation from '@views/db-manage/common/cluster-batch-opration/Index.vue'
     import ClusterCapacityUsageRate from '@views/db-manage/common/cluster-capacity-usage-rate/Index.vue'
     import EditEntryConfig from '@views/db-manage/common/cluster-entry-config/Index.vue';
     import ClusterIpCopy from '@views/db-manage/common/cluster-ip-copy/Index.vue';
@@ -324,135 +249,165 @@
     const disabledOperations: string[] = [TicketTypes.REDIS_DESTROY, TicketTypes.REDIS_PROXY_CLOSE];
 
   const tableRef = ref<InstanceType<typeof DbTable>>();
-  const isShowDropdown = ref(false);
   const selected = ref<RedisModel[]>([]);
 
-    /** 查看密码 */
-    const passwordState = reactive({
-      isShow: false,
-      fetchParams: {
-        cluster_id: -1,
-        bk_biz_id: globalBizsStore.currentBizId,
-        db_type: DBTypes.REDIS,
-        type: DBTypes.REDIS,
-      },
-    });
+  /** 查看密码 */
+  const passwordState = reactive({
+    isShow: false,
+    fetchParams: {
+      cluster_id: -1,
+      bk_biz_id: globalBizsStore.currentBizId,
+      db_type: DBTypes.REDIS,
+      type: DBTypes.REDIS,
+    },
+  });
 
-    /** 提取 key 功能 */
-    const extractState = reactive({
-      isShow: false,
-      data: [] as RedisModel[],
-    });
+  /** 提取 key 功能 */
+  const extractState = reactive({
+    isShow: false,
+    data: [] as RedisModel[],
+  });
 
-    /** 删除 key 功能 */
-    const deleteKeyState = reactive({
-      isShow: false,
-      data: [] as RedisModel[],
-    });
+  /** 删除 key 功能 */
+  const deleteKeyState = reactive({
+    isShow: false,
+    data: [] as RedisModel[],
+  });
 
-    /** 备份功能 */
-    const backupState = reactive({
-      isShow: false,
-      data: [] as RedisModel[],
-    });
+  /** 备份功能 */
+  const backupState = reactive({
+    isShow: false,
+    data: [] as RedisModel[],
+  });
 
-    /** 清档功能 */
-    const purgeState = reactive({
-      isShow: false,
-      data: [] as RedisModel[],
-    });
+  /** 清档功能 */
+  const purgeState = reactive({
+    isShow: false,
+    data: [] as RedisModel[],
+  });
 
-    const searchSelectData = computed(() => [
-      {
-        name: t('访问入口'),
-        id: 'domain',
-        multiple: true,
-      },
-      {
-        name: t('IP 或 IP:Port'),
-        id: 'instance',
-        multiple: true,
-      },
-      {
-        name: 'ID',
-        id: 'id',
-      },
-      {
-        name: t('集群名称'),
-        id: 'name',
-      },
-      {
-        name: t('管控区域'),
-        id: 'bk_cloud_id',
-        multiple: true,
-        children: searchAttrs.value.bk_cloud_id,
-      },
-      {
-        name: t('状态'),
-        id: 'status',
-        multiple: true,
-        children: [
-          {
-            id: 'normal',
-            name: t('正常'),
-          },
-          {
-            id: 'abnormal',
-            name: t('异常'),
-          },
-        ],
-      },
-      {
-        name: t('架构版本'),
-        id: 'cluster_type',
-        multiple: true,
-        children: searchAttrs.value.cluster_type,
-      },
-      {
-        name: t('版本'),
-        id: 'major_version',
-        multiple: true,
-        children: searchAttrs.value.major_version,
-      },
-      {
-        name: t('地域'),
-        id: 'region',
-        multiple: true,
-        children: searchAttrs.value.region,
-      },
-      {
-        name: t('创建人'),
-        id: 'creator',
-      },
-      {
-        name: t('时区'),
-        id: 'time_zone',
-        multiple: true,
-        children: searchAttrs.value.time_zone,
-      },
-    ]);
+  const clusterBatchOperationList = computed(() => [
+    {
+      dbConsole: 'redis.clusterManage.extractKey',
+      click: () => handleShowExtract(selected.value),
+      disabled: hasDisabledRow.value,
+      tooltips: t('仅已启用集群可以提取 Key'),
+      text: t('提取Key')
+    },
+    {
+      dbConsole: 'redis.clusterManage.deleteKey',
+      click: () => handlShowDeleteKeys(selected.value),
+      disabled: hasDisabledRow.value,
+      tooltips: t('仅已启用集群可以删除 Key'),
+      text: t('删除Key')
+    },
+    {
+      dbConsole: 'redis.clusterManage.backup',
+      click: () => handleShowBackup(selected.value),
+      disabled: hasDisabledRow.value,
+      tooltips: t('仅已启用集群可以备份'),
+      text: t('备份')
+    },
+    {
+      dbConsole: 'redis.clusterManage.dbClear',
+      click: () => handleShowPurge(selected.value),
+      disabled: hasDisabledRow.value,
+      tooltips: t('仅已启用集群可以清档'),
+      text: t('清档')
+    }
+  ]);
 
-    const paginationExtra = computed(() => {
-      if (isStretchLayoutOpen.value) {
-        return { small: false };
-      }
+  const searchSelectData = computed(() => [
+    {
+      name: t('访问入口'),
+      id: 'domain',
+      multiple: true,
+    },
+    {
+      name: t('IP 或 IP:Port'),
+      id: 'instance',
+      multiple: true,
+    },
+    {
+      name: 'ID',
+      id: 'id',
+    },
+    {
+      name: t('集群名称'),
+      id: 'name',
+    },
+    {
+      name: t('管控区域'),
+      id: 'bk_cloud_id',
+      multiple: true,
+      children: searchAttrs.value.bk_cloud_id,
+    },
+    {
+      name: t('状态'),
+      id: 'status',
+      multiple: true,
+      children: [
+        {
+          id: 'normal',
+          name: t('正常'),
+        },
+        {
+          id: 'abnormal',
+          name: t('异常'),
+        },
+      ],
+    },
+    {
+      name: t('架构版本'),
+      id: 'cluster_type',
+      multiple: true,
+      children: searchAttrs.value.cluster_type,
+    },
+    {
+      name: t('版本'),
+      id: 'major_version',
+      multiple: true,
+      children: searchAttrs.value.major_version,
+    },
+    {
+      name: t('地域'),
+      id: 'region',
+      multiple: true,
+      children: searchAttrs.value.region,
+    },
+    {
+      name: t('创建人'),
+      id: 'creator',
+    },
+    {
+      name: t('时区'),
+      id: 'time_zone',
+      multiple: true,
+      children: searchAttrs.value.time_zone,
+    },
+  ]);
 
-      return {
-        small: true,
-        align: 'left',
-        layout: ['total', 'limit', 'list'],
-      };
-    });
-    const hasSelected = computed(() => selected.value.length > 0);
-    const selectedIds = computed(() => selected.value.map(item => item.id));
-    const isCN = computed(() => locale.value === 'zh-cn');
-    const tableOperationWidth = computed(() => {
-      if (!isStretchLayoutOpen.value) {
-        return isCN.value ? 350 : 420;
-      }
-      return 60;
-    });
-    const hasDisabledRow = computed(() => selected.value.some((data) => disableSelectMethod(data)));
+  const paginationExtra = computed(() => {
+    if (isStretchLayoutOpen.value) {
+      return { small: false };
+    }
+
+    return {
+      small: true,
+      align: 'left',
+      layout: ['total', 'limit', 'list'],
+    };
+  });
+  const hasSelected = computed(() => selected.value.length > 0);
+  const selectedIds = computed(() => selected.value.map(item => item.id));
+  const isCN = computed(() => locale.value === 'zh-cn');
+  const tableOperationWidth = computed(() => {
+    if (!isStretchLayoutOpen.value) {
+      return isCN.value ? 350 : 420;
+    }
+    return 60;
+  });
+  const hasDisabledRow = computed(() => selected.value.some((data) => disableSelectMethod(data)));
 
   const columns = computed(() => [
     {
@@ -1050,7 +1005,7 @@
                       )
                     }
                     {
-                      !data.isOnline && (
+                      data.isOffline && (
                         <bk-dropdown-item v-db-console="redis.clusterManage.enable">
                           <OperationBtnStatusTips data={data}>
                             <auth-button
@@ -1067,24 +1022,24 @@
                         </bk-dropdown-item>
                       )
                     }
-                    {
-                      data.isOffline && (
-                        <bk-dropdown-item v-db-console="redis.clusterManage.delete">
-                          <OperationBtnStatusTips data={data}>
-                            <auth-button
-                              action-id="redis_destroy"
-                              resource={data.id}
-                              permission={data.permission.redis_destroy}
-                              style="width: 100%;height: 32px;"
-                              disabled={Boolean(data.operationTicketId)}
-                              text
-                              onClick={() => handleDeleteCluster(data)}>
-                              { t('删除') }
-                            </auth-button>
-                          </OperationBtnStatusTips>
-                        </bk-dropdown-item>
-                      )
-                    }
+                    <bk-dropdown-item v-db-console="redis.clusterManage.delete">
+                      <OperationBtnStatusTips data={data}>
+                        <auth-button
+                          v-bk-tooltips={{
+                            disabled: data.isOffline,
+                            content: t('请先禁用集群')
+                          }}
+                          action-id="redis_destroy"
+                          resource={data.id}
+                          permission={data.permission.redis_destroy}
+                          style="width: 100%;height: 32px;"
+                          disabled={data.isOnline || Boolean(data.operationTicketId)}
+                          text
+                          onClick={() => handleDeleteCluster(data)}>
+                          { t('删除') }
+                        </auth-button>
+                      </OperationBtnStatusTips>
+                    </bk-dropdown-item>
                   </>
                 }}
               </MoreActionExtend>
@@ -1504,20 +1459,6 @@
         max-width: 500px;
         min-width: 320px;
         margin-left: auto;
-      }
-
-      .cluster-dropdown {
-        margin-right: auto;
-
-        .cluster-dropdown-icon {
-          color: @gray-color;
-          transform: rotate(0);
-          transition: all 0.2s;
-        }
-
-        .cluster-dropdown-icon-active {
-          transform: rotate(-90deg);
-        }
       }
     }
 

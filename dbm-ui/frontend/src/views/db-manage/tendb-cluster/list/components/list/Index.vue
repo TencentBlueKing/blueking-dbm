@@ -21,6 +21,11 @@
           @click="handleApply">
           {{ t('申请实例') }}
         </AuthButton>
+        <ClusterBatchOperation
+          v-db-console="'tendbCluster.clusterManage.batchOperation'"
+          class="ml-8"
+          :disabled="!hasSelected"
+          :list="clusterBatchOperationList" />
         <span
           v-bk-tooltips="{
             disabled: hasSelected,
@@ -178,6 +183,7 @@
   import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
 
   import ClusterAuthorize from '@views/db-manage/common/cluster-authorize/Index.vue';
+  import ClusterBatchOperation from '@views/db-manage/common/cluster-batch-opration/Index.vue'
   import ClusterCapacityUsageRate from '@views/db-manage/common/cluster-capacity-usage-rate/Index.vue'
   import EditEntryConfig, { type ClusterEntryInfo } from '@views/db-manage/common/cluster-entry-config/Index.vue';
   import ClusterExportData from '@views/db-manage/common/cluster-export-data/Index.vue'
@@ -262,6 +268,7 @@
   const tableDataList = computed(() => tableRef.value?.getData<TendbClusterModel>() || [])
   const hasData = computed(() => tableDataList.value.length > 0);
   const isCN = computed(() => locale.value === 'zh-cn');
+
   const searchSelectData = computed(() => [
     {
       name: t('访问入口'),
@@ -345,6 +352,30 @@
     }
     return [];
   });
+
+  const clusterBatchOperationList = computed(() => [
+    {
+      dbConsole: 'tendbCluster.clusterManage.disable',
+      click: () => handleChangeClusterOnline(TicketTypes.TENDBCLUSTER_DISABLE, selected.value),
+      disabled: selected.value.some((data) => data.isOffline || data.operationDisabled),
+      tooltips: t('仅可禁用状态为“已启用”的集群'),
+      text: t('禁用')
+    },
+    {
+      dbConsole: 'tendbCluster.clusterManage.enable',
+      click: () => handleChangeClusterOnline(TicketTypes.TENDBCLUSTER_ENABLE, selected.value),
+      disabled: selected.value.some((data) => data.isOnline || data.isStarting),
+      tooltips: t('仅可启用状态为“已禁用”的集群'),
+      text: t('启用')
+    },
+    {
+      dbConsole: 'tendbCluster.clusterManage.delete',
+      click: () => handleDeleteCluster(selected.value),
+      disabled: selected.value.some((data) => data.isOnline || Boolean(data.operationTicketId)),
+      tooltips: t('仅可删除状态为“已禁用”的集群'),
+      text: t('删除')
+    }
+  ]);
 
   const entrySort = (data: ClusterEntryInfo[]) => data.sort(a => a.role === 'master_entry' ? -1 : 1);
 
@@ -944,83 +975,102 @@
           return operations;
         };
         const getDropdownOperations = () => {
-          const operations = [];
-          if (data.spider_mnt.length > 0) {
-            operations.push((
-              <bk-dropdown-item v-db-console="tendbCluster.clusterManage.removeMNTNode">
-                <auth-button
-                  action-id="tendbcluster_spider_mnt_destroy"
-                  permission={data.permission.tendbcluster_spider_mnt_destroy}
-                  resource={data.id}
-                  text
-                  class="mr-8"
-                  onClick={() => handleRemoveMNT(data)}>
-                  { t('下架运维节点') }
-                </auth-button>
-              </bk-dropdown-item>
-            ));
-          }
-          if (data.spider_slave.length > 0) {
-            operations.push((
-              <bk-dropdown-item v-db-console="tendbCluster.clusterManage.removeReadonlyNode">
-                <auth-button
-                  action-id="tendb_spider_slave_destroy"
-                  permission={data.permission.tendb_spider_slave_destroy}
-                  resource={data.id}
-                  text
-                  class="mr-8"
-                  onClick={() => handleDestroySlave(data)}>
-                  { t('下架只读集群') }
-                </auth-button>
-              </bk-dropdown-item>
-            ));
-          }
-          operations.push(...[
-            <bk-dropdown-item v-db-console="tendbCluster.clusterManage.disable">
-              <OperationBtnStatusTips data={data}>
-                <auth-button
-                  action-id="tendbcluster_enable_disable"
-                  permission={data.permission.tendbcluster_enable_disable}
-                  resource={data.id}
-                  text
-                  disabled={data.operationDisabled}
-                  class="mr-8"
-                  onClick={() => handleChangeClusterOnline(TicketTypes.TENDBCLUSTER_DISABLE, data)}>
-                  { t('禁用') }
-                </auth-button>
-              </OperationBtnStatusTips>
+          const operations = [
+            <bk-dropdown-item
+              v-db-console="tendbCluster.clusterManage.removeMNTNode"
+              v-bk-tooltips={{
+                disabled: data.spider_mnt.length > 0,
+                content: t('无运维节点')
+              }}>
+              <auth-button
+                action-id="tendbcluster_spider_mnt_destroy"
+                permission={data.permission.tendbcluster_spider_mnt_destroy}
+                resource={data.id}
+                disabled={data.spider_mnt.length === 0}
+                text
+                class="mr-8"
+                onClick={() => handleRemoveMNT(data)}>
+                { t('下架运维节点') }
+              </auth-button>
             </bk-dropdown-item>,
-            <bk-dropdown-item v-db-console="tendbCluster.clusterManage.enable">
-              <OperationBtnStatusTips data={data}>
-                <auth-button
-                  action-id="tendbcluster_enable_disable"
-                  permission={data.permission.tendbcluster_enable_disable}
-                  v-db-console="tendbCluster.clusterManage.enable"
-                  resource={data.id}
-                  text
-                  disabled={data.isStarting}
-                  class="mr-8"
-                  onClick={() => handleChangeClusterOnline(TicketTypes.TENDBCLUSTER_ENABLE, data)}>
-                  { t('启用') }
-                </auth-button>
-              </OperationBtnStatusTips>
-            </bk-dropdown-item>,
+            <bk-dropdown-item
+              v-db-console="tendbCluster.clusterManage.removeReadonlyNode"
+              v-bk-tooltips={{
+                disabled: data.spider_slave.length > 0,
+                content: t('无只读集群')
+              }}>
+              <auth-button
+                action-id="tendb_spider_slave_destroy"
+                permission={data.permission.tendb_spider_slave_destroy}
+                resource={data.id}
+                text
+                disabled={data.spider_slave.length === 0}
+                class="mr-8"
+                onClick={() => handleDestroySlave(data)}>
+                { t('下架只读集群') }
+              </auth-button>
+            </bk-dropdown-item>
+          ];
+
+          if (data.isOnline) {
+            operations.push(
+              <bk-dropdown-item v-db-console="tendbCluster.clusterManage.disable">
+                <OperationBtnStatusTips data={data}>
+                  <auth-button
+                    action-id="tendbcluster_enable_disable"
+                    permission={data.permission.tendbcluster_enable_disable}
+                    resource={data.id}
+                    text
+                    disabled={data.operationDisabled}
+                    class="mr-8"
+                    onClick={() => handleChangeClusterOnline(TicketTypes.TENDBCLUSTER_DISABLE, [data])}>
+                    { t('禁用') }
+                  </auth-button>
+                </OperationBtnStatusTips>
+              </bk-dropdown-item>
+            )
+          }
+          if (data.isOffline) {
+            operations.push(...[
+              <bk-dropdown-item v-db-console="tendbCluster.clusterManage.enable">
+                <OperationBtnStatusTips data={data}>
+                  <auth-button
+                    action-id="tendbcluster_enable_disable"
+                    permission={data.permission.tendbcluster_enable_disable}
+                    v-db-console="tendbCluster.clusterManage.enable"
+                    resource={data.id}
+                    text
+                    disabled={data.isStarting}
+                    class="mr-8"
+                    onClick={() => handleChangeClusterOnline(TicketTypes.TENDBCLUSTER_ENABLE, [data])}>
+                    { t('启用') }
+                  </auth-button>
+                </OperationBtnStatusTips>
+              </bk-dropdown-item>,
+            ]);
+          }
+
+          operations.push(
             <bk-dropdown-item v-db-console="tendbCluster.clusterManage.delete">
               <OperationBtnStatusTips data={data}>
                 <auth-button
+                  v-bk-tooltips={{
+                    disabled: data.isOffline,
+                    content: t('请先禁用集群')
+                  }}
                   action-id="tendbcluster_destroy"
                   permission={data.permission.tendbcluster_destroy}
                   v-db-console="tendbCluster.clusterManage.delete"
                   resource={data.id}
                   text
-                  disabled={Boolean(data.operationTicketId)}
+                  disabled={data.isOnline || Boolean(data.operationTicketId)}
                   class="mr-8"
-                  onClick={() => handleDeleteCluster(data)}>
+                  onClick={() => handleDeleteCluster([data])}>
                   { t('删除') }
                 </auth-button>
               </OperationBtnStatusTips>
             </bk-dropdown-item>
-          ]);
+          )
 
           return operations;
         };
@@ -1311,11 +1361,10 @@
   };
 
   // 集群启停
-  const handleChangeClusterOnline = (type: TicketTypesStrings, data: TendbClusterModel) => {
-    if (!type) return;
-
+  const handleChangeClusterOnline = (type: TicketTypesStrings, data: TendbClusterModel[]) => {
     const isOpen = type === TicketTypes.TENDBCLUSTER_ENABLE;
-    const title = isOpen ? t('确定启用该集群') : t('确定禁用该集群');
+    const title = isOpen ? t('确定启用集群') : t('确定禁用集群');
+    const name = data.map(dataItem => dataItem.cluster_name).join('，')
     InfoBox({
       type: 'warning',
       title,
@@ -1323,8 +1372,8 @@
         <div style="word-break: all;">
           {
             isOpen
-              ? <p>{t('集群【name】启用后将恢复访问', { name: data.cluster_name })}</p>
-              : <p>{t('集群【name】被禁用后将无法访问_如需恢复访问_可以再次「启用」', { name: data.cluster_name })}</p>
+              ? <p>{t('集群【name】启用后将恢复访问', { name })}</p>
+              : <p>{t('集群【name】被禁用后将无法访问_如需恢复访问_可以再次「启用」', { name })}</p>
           }
         </div>
       ),
@@ -1332,7 +1381,7 @@
         bk_biz_id: currentBizId,
         ticket_type: type,
         details: {
-          cluster_ids: [data.id],
+          cluster_ids: data.map(dataItem => dataItem.id),
         },
       })
         .then((res) => {
@@ -1343,8 +1392,8 @@
   };
 
   // 删除集群
-  const handleDeleteCluster = (data: TendbClusterModel) => {
-    const { cluster_name: name } = data;
+  const handleDeleteCluster = (data: TendbClusterModel[]) => {
+    const name = data.map(dataItem => dataItem.cluster_name).join('，')
     InfoBox({
       type: 'warning',
       title: t('确定删除该集群'),
@@ -1362,7 +1411,7 @@
         bk_biz_id: currentBizId,
         ticket_type: TicketTypes.TENDBCLUSTER_DESTROY,
         details: {
-          cluster_ids: [data.id],
+          cluster_ids:data.map(dataItem => dataItem.id),
         },
       })
         .then((res) => {

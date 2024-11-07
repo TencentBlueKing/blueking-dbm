@@ -22,49 +22,11 @@
           @click="handleApply">
           {{ t('申请实例') }}
         </AuthButton>
-        <BkDropdown
-          v-bk-tooltips="{
-            disabled: hasSelected,
-            content: t('请选择操作集群'),
-          }"
+        <ClusterBatchOperation
           v-db-console="'redis.haClusterManage.batchOperation'"
-          class="cluster-dropdown ml-8 mb-16"
+          class="ml-8 mb-16"
           :disabled="!hasSelected"
-          @click.stop
-          @hide="() => (isShowDropdown = false)"
-          @show="() => (isShowDropdown = true)">
-          <BkButton :disabled="!hasSelected">
-            <span class="pr-4">{{ t('批量操作') }}</span>
-            <DbIcon
-              class="cluster-dropdown-icon"
-              :class="[{ 'cluster-dropdown-icon-active': isShowDropdown }]"
-              type="down-big " />
-          </BkButton>
-          <template #content>
-            <BkDropdownMenu>
-              <BkDropdownItem
-                v-db-console="'redis.haClusterManage.extractKey'"
-                @click="handleShowExtract(selected)">
-                {{ t('提取Key') }}
-              </BkDropdownItem>
-              <BkDropdownItem
-                v-db-console="'redis.haClusterManage.deleteKey'"
-                @click="handlShowDeleteKeys(selected)">
-                {{ t('删除Key') }}
-              </BkDropdownItem>
-              <BkDropdownItem
-                v-db-console="'redis.haClusterManage.backup'"
-                @click="handleShowBackup(selected)">
-                {{ t('备份') }}
-              </BkDropdownItem>
-              <BkDropdownItem
-                v-db-console="'redis.haClusterManage.dbClear'"
-                @click="handleShowPurge(selected)">
-                {{ t('清档') }}
-              </BkDropdownItem>
-            </BkDropdownMenu>
-          </template>
-        </BkDropdown>
+          :list="clusterBatchOperationList" />
         <DropdownExportExcel
           :ids="selectedIds"
           type="redis" />
@@ -165,6 +127,7 @@
   import MoreActionExtend from '@components/more-action-extend/Index.vue';
   import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
 
+  import ClusterBatchOperation from '@views/db-manage/common/cluster-batch-opration/Index.vue'
   import ClusterCapacityUsageRate from '@views/db-manage/common/cluster-capacity-usage-rate/Index.vue'
   import EditEntryConfig from '@views/db-manage/common/cluster-entry-config/Index.vue';
   import ClusterIpCopy from '@views/db-manage/common/cluster-ip-copy/Index.vue';
@@ -270,7 +233,6 @@
     }
   });
 
-  const isShowDropdown = ref(false);
   const selected = shallowRef<RedisModel[]>([])
 
   /** 查看密码 */
@@ -307,6 +269,58 @@
     isShow: false,
     data: [] as RedisModel[],
   });
+
+  const clusterBatchOperationList = computed(() => [
+  {
+      dbConsole: 'redis.haClusterManage.extractKey',
+      click: () => handleShowExtract(selected.value),
+      disabled: hasDisabledRow.value,
+      tooltips: t('仅已启用集群可以提取 Key'),
+      text: t('提取Key')
+    },
+    {
+      dbConsole: 'redis.haClusterManage.deleteKey',
+      click: () => handlShowDeleteKeys(selected.value),
+      disabled: hasDisabledRow.value,
+      tooltips: t('仅已启用集群可以删除 Key'),
+      text: t('删除Key')
+    },
+    {
+      dbConsole: 'redis.haClusterManage.backup',
+      click: () => handleShowBackup(selected.value),
+      disabled: hasDisabledRow.value,
+      tooltips: t('仅已启用集群可以备份'),
+      text: t('备份')
+    },
+    {
+      dbConsole: 'redis.haClusterManage.dbClear',
+      click: () => handleShowPurge(selected.value),
+      disabled: hasDisabledRow.value,
+      tooltips: t('仅已启用集群可以清档'),
+      text: t('清档')
+    },
+    {
+      dbConsole: 'redis.haClusterManage.disable',
+      click: () => handleSwitchRedis(TicketTypes.REDIS_INSTANCE_PROXY_CLOSE,selected.value),
+      disabled: selected.value.some((data) => data.isOffline || data.operationDisabled),
+      tooltips: t('仅可禁用状态为“已启用”的集群'),
+      text: t('禁用')
+    },
+    {
+      dbConsole: 'redis.haClusterManage.enable',
+      click: () => handleSwitchRedis(TicketTypes.REDIS_INSTANCE_PROXY_OPEN, selected.value),
+      disabled: selected.value.some((data) => data.isOnline || data.isStarting),
+      tooltips: t('仅可启用状态为“已禁用”的集群'),
+      text: t('启用')
+    },
+    {
+      dbConsole: 'redis.haClusterManage.delete',
+      click: () => handleDeleteCluster(selected.value),
+      disabled: selected.value.some((data) => data.isOnline || Boolean(data.operationTicketId)),
+      tooltips: t('仅可删除状态为“已禁用”的集群'),
+      text: t('删除')
+    }
+  ]);
 
   const searchSelectData = computed(() => [
     {
@@ -393,6 +407,8 @@
     }
     return 60;
   });
+
+  const hasDisabledRow = computed(() => selected.value.some((data) => disableSelectMethod(data)));
 
   const columns = computed(() => [
     {
@@ -931,7 +947,7 @@
                             style="width: 100%;height: 32px;"
                             disabled={data.operationDisabled}
                             text
-                            onClick={() => handleSwitchRedis(TicketTypes.REDIS_INSTANCE_PROXY_CLOSE, data)}>
+                            onClick={() => handleSwitchRedis(TicketTypes.REDIS_INSTANCE_PROXY_CLOSE, [data])}>
                             { t('禁用') }
                           </auth-button>
                         </OperationBtnStatusTips>
@@ -939,7 +955,7 @@
                     )
                   }
                   {
-                    !data.isOnline && (
+                    data.isOffline && (
                       <bk-dropdown-item v-db-console="redis.haClusterManage.enable">
                         <OperationBtnStatusTips data={data}>
                           <auth-button
@@ -949,31 +965,31 @@
                             style="width: 100%;height: 32px;"
                             text
                             disabled={data.isStarting}
-                            onClick={() => handleSwitchRedis(TicketTypes.REDIS_INSTANCE_PROXY_OPEN, data)}>
+                            onClick={() => handleSwitchRedis(TicketTypes.REDIS_INSTANCE_PROXY_OPEN, [data])}>
                             { t('启用') }
                           </auth-button>
                         </OperationBtnStatusTips>
                       </bk-dropdown-item>
                     )
                   }
-                  {
-                    data.isOffline && (
-                      <bk-dropdown-item v-db-console="redis.haClusterManage.delete">
-                        <OperationBtnStatusTips data={data}>
-                          <auth-button
-                            action-id="redis_destroy"
-                            resource={data.id}
-                            permission={data.permission.redis_destroy}
-                            style="width: 100%;height: 32px;"
-                            disabled={Boolean(data.operationTicketId)}
-                            text
-                            onClick={() => handleDeleteCluster(data)}>
-                            { t('删除') }
-                          </auth-button>
-                        </OperationBtnStatusTips>
-                      </bk-dropdown-item>
-                    )
-                  }
+                  <bk-dropdown-item v-db-console="redis.haClusterManage.delete">
+                    <OperationBtnStatusTips data={data}>
+                      <auth-button
+                        v-bk-tooltips={{
+                          disabled: data.isOffline,
+                          content: t('请先禁用集群')
+                        }}
+                        action-id="redis_destroy"
+                        resource={data.id}
+                        permission={data.permission.redis_destroy}
+                        style="width: 100%;height: 32px;"
+                        disabled={data.isOnline || Boolean(data.operationTicketId)}
+                        text
+                        onClick={() => handleDeleteCluster([data])}>
+                        { t('删除') }
+                      </auth-button>
+                    </OperationBtnStatusTips>
+                  </bk-dropdown-item>
                 </>
               }}
             </MoreActionExtend>
@@ -1211,9 +1227,10 @@
   /**
    * 集群启停
    */
-  const handleSwitchRedis = (type: TicketTypesStrings, data: RedisModel) => {
+  const handleSwitchRedis = (type: TicketTypesStrings, data: RedisModel[]) => {
     const isOpen = type === TicketTypes.REDIS_INSTANCE_PROXY_OPEN;
-    const title = isOpen ? t('确定启用该集群') : t('确定禁用该集群');
+    const title = isOpen ? t('确定启用集群') : t('确定禁用集群');
+    const name = data.map(dataItem => dataItem.cluster_name).join('，')
     InfoBox({
       type: 'warning',
       title,
@@ -1221,8 +1238,8 @@
         <div style="word-break: all;">
           {
             isOpen
-              ? <p>{t('集群【name】启用后将恢复访问', { name: data.cluster_name })}</p>
-              : <p>{t('集群【name】被禁用后将无法访问_如需恢复访问_可以再次「启用」', { name: data.cluster_name })}</p>
+              ? <p>{t('集群【name】启用后将恢复访问', { name })}</p>
+              : <p>{t('集群【name】被禁用后将无法访问_如需恢复访问_可以再次「启用」', { name })}</p>
           }
         </div>
       ),
@@ -1231,7 +1248,7 @@
           bk_biz_id: globalBizsStore.currentBizId,
           ticket_type: type,
           details: {
-            cluster_ids: [data.id],
+            cluster_ids: data.map(dataItem => dataItem.id),
           },
         };
         await createTicket(params).then((res) => {
@@ -1244,11 +1261,11 @@
   /**
    * 删除集群
    */
-  const handleDeleteCluster = (data: RedisModel) => {
-    const { cluster_name: name } = data;
+  const handleDeleteCluster = (data: RedisModel[]) => {
+    const name = data.map(dataItem => dataItem.cluster_name).join('，')
     InfoBox({
       type: 'warning',
-      title: t('确定删除该集群'),
+      title: t('确定删除集群'),
       confirmText: t('删除'),
       confirmButtonTheme: 'danger',
       content: () => (
@@ -1262,9 +1279,9 @@
       onConfirm: async () => {
         const params = {
           bk_biz_id: globalBizsStore.currentBizId,
-          ticket_type: TicketTypes.REDIS_DESTROY,
+          ticket_type: TicketTypes.REDIS_INSTANCE_DESTROY,
           details: {
-            cluster_id: data.id,
+            cluster_ids: data.map(dataItem => dataItem.id),
           },
         };
         await createTicket(params).then((res) => {
@@ -1298,18 +1315,6 @@
         max-width: 500px;
         min-width: 320px;
         margin-left: auto;
-      }
-
-      .cluster-dropdown {
-        .cluster-dropdown-icon {
-          color: @gray-color;
-          transform: rotate(0);
-          transition: all 0.2s;
-        }
-
-        .cluster-dropdown-icon-active {
-          transform: rotate(-90deg);
-        }
       }
     }
 

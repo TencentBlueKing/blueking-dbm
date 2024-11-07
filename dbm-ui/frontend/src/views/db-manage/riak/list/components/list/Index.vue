@@ -426,81 +426,94 @@
       label: t('操作'),
       width: 300,
       fixed: 'right',
-      render: ({ data }: { data: RiakModel }) => (
-        data.isOnline
-          ? <>
-              <OperationBtnStatusTips data={data}>
-                <auth-button
-                  action-id="riak_cluster_scale_in"
-                  permission={data.permission.riak_cluster_scale_in}
-                  resource={data.id}
-                  text
-                  theme="primary"
-                  disabled={data.isOffline}
-                  onClick={() => handleAddNodes(data)}
-                >
-                  { t('添加节点') }
-                </auth-button>
-              </OperationBtnStatusTips>
-              <OperationBtnStatusTips data={data}>
-                <auth-button
-                  action-id="riak_cluster_scale_out"
-                  permission={data.permission.riak_cluster_scale_out}
-                  resource={data.id}
-                  text
-                  class="ml-16"
-                  theme="primary"
-                  disabled={data.isOffline}
-                  onClick={() => handleDeleteNodes(data)}
-                >
-                  { t('删除节点') }
-                </auth-button>
-              </OperationBtnStatusTips>
-              <OperationBtnStatusTips data={data}>
-                <auth-button
-                  action-id="riak_enable_disable"
-                  permissionn={data.permission.riak_enable_disable}
-                  resource={data.id}
-                  text
-                  class="ml-16"
-                  theme="primary"
-                  disabled={data.operationDisabled}
-                  onClick={() => handlDisabled(data)}
-                >
-                  { t('禁用') }
-                </auth-button>
-              </OperationBtnStatusTips>
-            </>
-          : <>
-              <OperationBtnStatusTips data={data}>
-                <auth-button
-                  action-id="riak_enable_disable"
-                  permissionn={data.permission.riak_enable_disable}
-                  resource={data.id}
-                  text
-                  theme="primary"
-                  disabled={data.isStarting}
-                  onClick={() => handleEnabled(data)}
-                >
-                  { t('启用') }
-                </auth-button>
-              </OperationBtnStatusTips>
-              <OperationBtnStatusTips data={data}>
-                <auth-button
-                  action-id="riak_cluster_destroy"
-                  permission={data.permission.riak_cluster_destroy}
-                  resource={data.id}
-                  text
-                  class="ml-16"
-                  theme="primary"
-                  disabled={Boolean(data.operationTicketId)}
-                  onClick={() => handleDelete(data)}
-                >
-                  { t('删除') }
-                </auth-button>
-              </OperationBtnStatusTips>
-            </>
-      ),
+      render: ({ data }: { data: RiakModel }) => {
+        const oprations = []
+
+        if (data.isOnline) {
+          oprations.push([
+            <OperationBtnStatusTips data={data}>
+              <auth-button
+                action-id="riak_cluster_scale_in"
+                permission={data.permission.riak_cluster_scale_in}
+                resource={data.id}
+                text
+                theme="primary"
+                disabled={data.isOffline}
+                onClick={() => handleAddNodes(data)}
+              >
+                { t('添加节点') }
+              </auth-button>
+            </OperationBtnStatusTips>,
+            <OperationBtnStatusTips data={data}>
+              <auth-button
+                action-id="riak_cluster_scale_out"
+                permission={data.permission.riak_cluster_scale_out}
+                resource={data.id}
+                text
+                class="ml-16"
+                theme="primary"
+                disabled={data.isOffline}
+                onClick={() => handleDeleteNodes(data)}
+              >
+                { t('删除节点') }
+              </auth-button>
+            </OperationBtnStatusTips>,
+            <OperationBtnStatusTips data={data}>
+              <auth-button
+                action-id="riak_enable_disable"
+                permissionn={data.permission.riak_enable_disable}
+                resource={data.id}
+                text
+                class="ml-16"
+                theme="primary"
+                disabled={data.operationDisabled}
+                onClick={() => handlDisabled(data)}
+              >
+                { t('禁用') }
+              </auth-button>
+            </OperationBtnStatusTips>
+          ])
+        } else {
+          oprations.push(
+            <OperationBtnStatusTips data={data}>
+              <auth-button
+                action-id="riak_enable_disable"
+                permissionn={data.permission.riak_enable_disable}
+                resource={data.id}
+                text
+                theme="primary"
+                disabled={data.isStarting}
+                onClick={() => handleEnabled(data)}
+              >
+                { t('启用') }
+              </auth-button>
+            </OperationBtnStatusTips>
+          )
+        }
+
+        oprations.push(
+          <OperationBtnStatusTips data={data}>
+            <auth-button
+              v-bk-tooltips={{
+                disabled: data.isOffline,
+                content: t('请先禁用集群')
+              }}
+              action-id="riak_cluster_destroy"
+              permission={data.permission.riak_cluster_destroy}
+              resource={data.id}
+              text
+              class="ml-16"
+              theme="primary"
+              disabled={data.isOnline || Boolean(data.operationTicketId)}
+              onClick={() => handleDelete(data)}
+            >
+              { t('删除') }
+            </auth-button>
+          </OperationBtnStatusTips>
+        )
+
+        return oprations
+      }
     },
   ]);
 
