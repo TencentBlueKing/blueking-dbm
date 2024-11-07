@@ -16,6 +16,7 @@
     <TableSeletorInput
       ref="editRef"
       v-model="localValue"
+      :disabled="!clusterData.id"
       :placeholder="placeholder"
       :rules="rules"
       :tooltip-content="t('选择主机')"
@@ -122,6 +123,9 @@
     localValue.value = data.map((item) => item.ip).join(',');
     localHostList.value = data;
     window.changeConfirm = true;
+    setTimeout(() => {
+      editRef.value!.getValue();
+    });
   };
 
   watch(
@@ -152,9 +156,9 @@
           bk_biz_id: item.biz?.id,
         }));
 
-      return Promise.resolve({
+      return editRef.value!.getValue().then(() => ({
         hosts: formatHost(localHostList.value),
-      });
+      }));
     },
   });
 </script>
