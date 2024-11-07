@@ -105,7 +105,10 @@
     db_module_id: data.db_module_id,
     db_module_name: data.db_module_name,
     master_domain: data.master_domain,
-    role: data.role
+    role: data.role,
+    spec_config: data.spec_config,
+    related_clusters: data.related_clusters,
+    version: data?.version || '',
   });
 
   const { t } = useI18n();
@@ -224,6 +227,7 @@
       field: 'instance_role',
       showOverflowTooltip: true,
       filter: props.roleFilterList,
+      render: ({ data }: DataRow) => data.instance_role || '--'
     },
     {
       label: t('实例状态'),

@@ -86,6 +86,7 @@
     db_module_id: data.db_module_id,
     db_module_name: data.db_module_name,
     master_domain: data.master_domain,
+    spec_config: data.spec_config
   });
 
   const { t } = useI18n();
