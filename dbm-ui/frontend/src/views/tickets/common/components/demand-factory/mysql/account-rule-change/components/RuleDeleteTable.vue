@@ -19,23 +19,15 @@
     </div>
   </div>
   <BkTable
-    :border="['col', 'outer']"
     :columns="columns"
     :data="tableData" />
 </template>
 
 <script setup lang="tsx">
-  import type { Column } from 'bkui-vue/lib/table/props';
   import { useI18n } from 'vue-i18n';
 
   import type { MySQLAccountRuleChangeDetails } from '@services/model/ticket/details/mysql';
   import TicketModel from '@services/model/ticket/ticket';
-
-  interface DataRow {
-    userName: string;
-    accessDb: string;
-    privileges: string;
-  }
 
   interface Props {
     ticketDetails: TicketModel<MySQLAccountRuleChangeDetails>;
@@ -45,9 +37,7 @@
 
   const { t } = useI18n();
 
-  const tableData = shallowRef<DataRow[]>([]);
-
-  const columns: Column[] = [
+  const columns = [
     {
       label: t('账户名称'),
       field: 'userName',
@@ -55,37 +45,19 @@
     },
     {
       label: t('访问DB'),
-      field: 'accessDb',
+      field: 'access_db',
       width: 100,
     },
     {
       label: t('权限'),
-      field: 'privileges',
+      field: 'privilege',
       width: 200,
       showOverflowTooltip: true,
+      render: ({ cell }: { cell: string }) => <span>{cell.replace(/,/g, '，') || '--'}</span>
     },
   ];
 
-  watch(
-    () => props.ticketDetails,
-    () => {
-      const { last_account_rules: lastAccountRules } = props.ticketDetails.details;
-      tableData.value = [
-        {
-          userName: lastAccountRules.userName || '--',
-          accessDb: lastAccountRules.access_db || '--',
-          privileges: [
-            ...(lastAccountRules.privilege.ddl || []),
-            ...(lastAccountRules.privilege.dml || []),
-            ...(lastAccountRules.privilege.glob || []),
-          ].join(','),
-        },
-      ];
-    },
-    {
-      immediate: true,
-    },
-  );
+  const tableData = computed(() => [props.ticketDetails.details.last_account_rules]);
 </script>
 
 <style lang="less" scoped>

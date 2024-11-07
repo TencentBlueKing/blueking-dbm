@@ -122,7 +122,7 @@ export interface PasswordPolicyIncludeRule {
  */
 export interface AccountRule {
   access_db: string;
-  privilege: AccountRulePrivilege;
+  privilege: AccountRulePrivilege | string;
   account_id: number | null;
   account_type?: AccountTypesValues;
 }
@@ -153,6 +153,11 @@ export interface AuthorizePreCheckData {
   user: string;
   cluster_type: string;
   cluster_ids?: number[];
+  privileges?: {
+    priv: string;
+    user: string;
+    access_db: string;
+  }[];
 }
 
 /**
