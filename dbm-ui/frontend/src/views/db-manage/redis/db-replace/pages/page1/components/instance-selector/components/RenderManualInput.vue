@@ -91,10 +91,12 @@
 </template>
 <script setup lang="ts">
   import type { Table } from 'bkui-vue';
+  import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
 
   import RedisClusterNodeByIpModel from '@services/model/redis/redis-cluster-node-by-ip';
   import { checkRedisInstances } from '@services/source/instances';
+  import { queryMasterSlavePairs } from '@services/source/redisToolbox';
   import type { InstanceInfos } from '@services/types';
 
   import { useGlobalBizs } from '@stores';
@@ -197,22 +199,51 @@
     errorState.format.count = count;
     errorState.format.selectionStart = 0;
     errorState.format.selectionEnd = formatErrorLines.join('\n').length;
-    // 检查 IP 是否存在
     inputState.isLoading = true;
-    const res = await checkRedisInstances({
+    // 检查 IP 是否存在
+    const queryResult = await checkRedisInstances({
       bizId: currentBizId,
       instance_addresses: availableLines,
     });
-    inputState.isLoading = false;
+    // 获取ip主从关系
+    const masterSlaveResult = await Promise.all(
+      queryResult.map((item) => queryMasterSlavePairs({ cluster_id: item.cluster_id })),
+    );
+    const masterSlaveMap = masterSlaveResult.flat().reduce<Record<string, string>>((acc, cur) => {
+      acc[cur.master_ip] = cur.slave_ip;
+      return acc;
+    }, {});
     const ipsSet = new Set(availableLines);
-    // 同ip不同端口，取任意一个即可
-    const legalInstances = res.reduce((result, item) => {
-      if (ipsSet.has(item.ip)) {
-        result.push(item);
-        ipsSet.delete(item.ip);
-      }
-      return result;
-    }, [] as InstanceItem[]);
+    const legalInstances = _.uniqBy(
+      queryResult.reduce<InstanceItem[]>((acc, cur) => {
+        if (ipsSet.has(cur.ip)) {
+          // 格式化实例角色
+          const roleMap = {
+            master: 'redis_master',
+            slave: 'redis_slave',
+            proxy: 'proxy',
+          };
+          acc.push({
+            ...cur,
+            role: roleMap[cur.role as keyof typeof roleMap],
+          });
+          // 如果是主ip则带出从ip
+          if (cur.role === 'master') {
+            const slaveIp = masterSlaveMap[cur.ip];
+            acc.push({
+              ...cur,
+              ip: slaveIp,
+              role: 'redis_slave',
+            });
+          }
+          ipsSet.delete(cur.ip);
+        }
+        return acc;
+      }, []),
+      'ip',
+    );
+    inputState.isLoading = false;
+    // 错误ip(未找到)
     const checkErrorLines = [...ipsSet];
 
     inputState.tableData.splice(0, inputState.tableData.length, ...legalInstances);

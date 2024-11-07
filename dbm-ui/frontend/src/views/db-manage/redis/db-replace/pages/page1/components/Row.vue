@@ -21,10 +21,9 @@
         @input-finish="handleInputFinish" />
     </td>
     <td style="padding: 0">
-      <RenderText
+      <RenderRole
         :data="data.role"
-        :is-loading="data.isLoading"
-        :placeholder="t('输入主机后自动生成')" />
+        :is-loading="data.isLoading" />
     </td>
     <!-- 跨行合并 -->
     <td
@@ -51,17 +50,16 @@
   </tr>
 </template>
 <script lang="ts">
-  import { useI18n } from 'vue-i18n';
-
   import OperateColumn from '@components/render-table/columns/operate-column/index.vue';
   import RenderSpec from '@components/render-table/columns/spec-display/Index.vue';
-  import RenderText from '@components/render-table/columns/text-plain/index.vue';
 
   import RenderHost from '@views/db-manage/redis/common/edit-field/HostName.vue';
   import RenderCluster from '@views/db-manage/redis/common/edit-field/RenderCluster.vue';
   import type { SpecInfo } from '@views/db-manage/redis/common/spec-panel/Index.vue';
 
   import { random } from '@utils';
+
+  import RenderRole from './RenderRole.vue';
 
   export interface IDataRow {
     rowKey: string;
@@ -118,8 +116,6 @@
   });
 
   const emits = defineEmits<Emits>();
-
-  const { t } = useI18n();
 
   const hostRef = ref<InstanceType<typeof RenderHost>>();
 
