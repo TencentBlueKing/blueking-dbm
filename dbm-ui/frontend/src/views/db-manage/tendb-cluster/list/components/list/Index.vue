@@ -617,16 +617,6 @@
     //   render: ({ data }: IColumn) => data.major_version,
     // },
     {
-      label: t('管控区域'),
-      width: 120,
-      field: 'bk_cloud_id',
-      filter: {
-        list: columnAttrs.value.bk_cloud_id,
-        checked: columnCheckedMap.value.bk_cloud_id,
-      },
-      render: ({ data }: IColumn) => <span>{data.bk_cloud_name ?? '--'}</span>,
-    },
-    {
       label: t('状态'),
       field: 'status',
       width: 100,
@@ -896,6 +886,13 @@
       render: ({ data }: IColumn) => <span>{data.major_version || '--'}</span>,
     },
     {
+        label: t('容灾要求'),
+        field: 'disaster_tolerance_level',
+        minWidth: 100,
+        render: ({ data }: IColumn) => data.disasterToleranceLevelName || '--',
+    },
+
+    {
       label: t('地域'),
       field: 'region',
       minWidth: 100,
@@ -904,6 +901,28 @@
         checked: columnCheckedMap.value.region,
       },
       render: ({ data }: IColumn) => <span>{data.region || '--'}</span>,
+    },
+    {
+        label: t('园区'),
+        field: 'bk_sub_zone',
+        minWidth: 100,
+        render: ({ data }: IColumn) => data.bk_sub_zone || '--',
+    },
+    {
+        label: t('规格'),
+        field: 'spec_name',
+        minWidth: 180,
+        render: ({ data }: IColumn) => data.cluster_spec.spec_name || '--',
+    },
+    {
+      label: t('管控区域'),
+      width: 120,
+      field: 'bk_cloud_id',
+      filter: {
+        list: columnAttrs.value.bk_cloud_id,
+        checked: columnCheckedMap.value.bk_cloud_id,
+      },
+      render: ({ data }: IColumn) => data.bk_cloud_name ? `${data.bk_cloud_name}[${data.bk_cloud_id}]` : '--',
     },
     {
       label: t('创建人'),
@@ -1186,7 +1205,11 @@
       'remote_db',
       'remote_dr',
       'major_version',
+      'disaster_tolerance_level',
       'region',
+      'bk_sub_zone',
+      'spec_name',
+      'bk_cloud_id',
     ],
     showLineHeight: false,
     trigger: 'manual' as const,

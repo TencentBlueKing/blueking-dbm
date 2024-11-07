@@ -240,6 +240,12 @@
         },
       },
       {
+        label: t('所在园区'),
+        field: 'bk_sub_zone',
+        width: 140,
+        render: ({ cell }: ColumnData) => cell || '--',
+      },
+      {
         label: t('所属集群'),
         field: 'master_domain',
         width: 260,

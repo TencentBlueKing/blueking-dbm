@@ -571,15 +571,6 @@
       ),
     },
     {
-      label: t('管控区域'),
-      field: 'bk_cloud_id',
-      filter: {
-        list: columnAttrs.value.bk_cloud_id,
-        checked: columnCheckedMap.value.bk_cloud_id,
-      },
-      render: ({ data }: ColumnRenderData) => <span>{data.bk_cloud_name ?? '--'}</span>,
-    },
-    {
       label: t('状态'),
       field: 'status',
       width: 100,
@@ -749,6 +740,12 @@
       render: ({ data }: ColumnRenderData) => data.major_version || '--',
     },
     {
+      label: t('容灾要求'),
+      field: 'disaster_tolerance_level',
+      minWidth: 100,
+      render: ({ data }: ColumnRenderData) => data.disasterToleranceLevelName || '--',
+    },
+    {
       label: t('地域'),
       field: 'region',
       minWidth: 100,
@@ -757,6 +754,21 @@
         checked: columnCheckedMap.value.region,
       },
       render: ({ data }: ColumnRenderData) => data.region || '--',
+    },
+    {
+      label: t('园区'),
+      field: 'bk_sub_zone',
+      minWidth: 100,
+      render: ({ data }: ColumnRenderData) => data.bk_sub_zone || '--',
+    },
+    {
+      label: t('管控区域'),
+      field: 'bk_cloud_id',
+      filter: {
+        list: columnAttrs.value.bk_cloud_id,
+        checked: columnCheckedMap.value.bk_cloud_id,
+      },
+      render: ({ data }: ColumnRenderData) => data.bk_cloud_name ? `${data.bk_cloud_name}[${data.bk_cloud_id}]` : '--',
     },
     {
       label: t('更新人'),
@@ -1062,7 +1074,9 @@
         ClusterNodeKeys.REDIS_SLAVE,
         'cluster_type_name',
         'major_version',
+        'disaster_tolerance_level',
         'region',
+        'spec_name',
       ],
       showLineHeight: false,
       trigger: 'manual' as const,
