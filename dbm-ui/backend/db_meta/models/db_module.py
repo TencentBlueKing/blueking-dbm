@@ -63,27 +63,22 @@ class DBModule(AuditedModel):
             if cluster_type:
                 q = Q(cluster_type=cluster_type)
 
-            # logger.info("get db module choices with filter: {}".format(q))
-
             db_module_choices = []
+            appcache_dict = AppCache.get_appcache(key="appcache_dict")
 
             for dm in cls.objects.filter(q).all():
-
-                try:
-                    appcache_dict = AppCache.get_appcache(key="appcache_dict")
-                    appcache = appcache_dict.get(str(dm.bk_biz_id))
-                    db_module_choices.append(
-                        (
-                            dm.db_module_id,
-                            f"[{dm.db_module_id}]-"
-                            f"[{dm.cluster_type}]-[app:{appcache['db_app_abbr']}]-"
-                            f"{dm.db_module_name}",
-                        )
+                appcache = appcache_dict.get(str(dm.bk_biz_id))
+                db_module_choices.append(
+                    (
+                        dm.db_module_id,
+                        f"[{dm.db_module_id}]-"
+                        f"[{dm.cluster_type}]-[app:{appcache['db_app_abbr']}]-"
+                        f"{dm.db_module_name}",
                     )
-                except AppCache.DoesNotExist:
-                    continue
+                )
 
-        except Exception:  # pylint: disable=broad-except
+        except Exception as err:  # pylint: disable=broad-except
             # 忽略出现的异常，此时可能因为表未初始化
+            logger.exception("DBModule get_choices_with_filter error, {}".format(err))
             db_module_choices = []
         return db_module_choices
