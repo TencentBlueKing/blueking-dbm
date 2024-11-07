@@ -13,7 +13,7 @@
 import TendbsingleInstanceModel from '@services/model/mysql/tendbha-instance';
 import TendbsingleModel from '@services/model/mysql/tendbsingle';
 import TendbsingleDetailModel from '@services/model/mysql/tendbsingle-detail';
-import TendbSingleMachineModel from '@services/model/mysql/tendbSingleMachine';
+import TendbSingleMachineModel from '@services/model/mysql/tendbSingle-machine';
 import type { ListBase, ResourceTopo } from '@services/types';
 
 import http from '../http';
