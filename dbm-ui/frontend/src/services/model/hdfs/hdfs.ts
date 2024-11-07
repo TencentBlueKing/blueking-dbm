@@ -16,7 +16,7 @@ import type { ClusterListEntry, ClusterListNode, ClusterListOperation, ClusterLi
 
 import { ClusterAffinityMap } from '@common/const';
 
-import { utcDisplayTime } from '@utils';
+import { isRecentDays, utcDisplayTime } from '@utils';
 
 import { t } from '@locales/index';
 
@@ -249,5 +249,9 @@ export default class Hdfs {
 
   get disasterToleranceLevelName() {
     return ClusterAffinityMap[this.disaster_tolerance_level];
+  }
+
+  get isNew() {
+    return isRecentDays(this.create_at, 24);
   }
 }

@@ -16,7 +16,7 @@ import type { ClusterListEntry, ClusterListNode, ClusterListOperation, ClusterLi
 
 import { ClusterAffinityMap } from '@common/const';
 
-import { utcDisplayTime } from '@utils';
+import { isRecentDays, utcDisplayTime } from '@utils';
 
 import { t } from '@locales/index';
 
@@ -239,6 +239,10 @@ export default class Es {
       tip: Es.operationTextMap[item.ticket_type],
       ticketId: item.ticket_id,
     }));
+  }
+
+  get isNew() {
+    return isRecentDays(this.create_at, 24);
   }
 
   initOperations(payload = [] as Es['operations']) {

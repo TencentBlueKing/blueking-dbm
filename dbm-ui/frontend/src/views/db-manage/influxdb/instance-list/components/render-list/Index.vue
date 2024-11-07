@@ -346,7 +346,12 @@
                   }
                   {
                     data.isNew && (
-                      <span class="glob-new-tag cluster-tag" data-text="NEW" />
+                      <bk-tag
+                        theme="success"
+                        size="small"
+                        class="ml-4">
+                        NEW
+                      </bk-tag>
                     )
                   }
                   <db-icon

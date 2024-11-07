@@ -257,7 +257,7 @@
   };
 
   const handleDisableCluster = () => {
-    disableCluster(data.value!);
+    disableCluster([data.value!]);
   };
 </script>
 

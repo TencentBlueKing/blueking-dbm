@@ -298,7 +298,7 @@
 
   const tableOperationWidth = computed(() => {
     if (!isStretchLayoutOpen.value) {
-      return isCN.value ? 270 : 420;
+      return isCN.value ? 300 : 420;
     }
     return 100;
   });
@@ -312,8 +312,7 @@
     {
       label: t('访问入口'),
       field: 'domain',
-      width: 280,
-      minWidth: 280,
+      minWidth: 320,
       fixed: 'left',
       renderHead: () => (
         <RenderHeadCopy
@@ -352,6 +351,28 @@
             ),
             append: () => (
               <>
+                {
+                  data.operationTagTips.map(item => <RenderOperationTag class="cluster-tag ml-4" data={item}/>)
+                }
+                {
+                  data.isOffline && !data.isStarting && (
+                    <bk-tag
+                      class="ml-4"
+                      size="small">
+                      {t('已禁用')}
+                    </bk-tag>
+                  )
+                }
+                {
+                  data.isNew && (
+                    <bk-tag
+                      theme="success"
+                      size="small"
+                      class="ml-4">
+                      NEW
+                    </bk-tag>
+                  )
+                }
                 {data.domain && (
                   <RenderCellCopy copyItems={
                     [
@@ -414,28 +435,6 @@
             ),
             append: () => (
               <>
-                {
-                  data.operationTagTips.map(item => <RenderOperationTag class="cluster-tag ml-4" data={item}/>)
-                }
-                {
-                  data.isOffline && !data.isStarting && (
-                    <bk-tag
-                      class="ml-4"
-                      size="small">
-                      {t('已禁用')}
-                    </bk-tag>
-                  )
-                }
-                {
-                  data.isNew && (
-                    <bk-tag
-                      theme="success"
-                      size="small"
-                      class="ml-4">
-                      NEW
-                    </bk-tag>
-                  )
-                }
                 <db-icon
                   v-bk-tooltips={t('复制集群名称')}
                   type="copy"
@@ -708,6 +707,26 @@
                 loading={tableDataActionLoadingMap.value[data.id]}
                 onClick={() => handlDisabled(data)}>
                 { t('禁用') }
+              </auth-button>
+            </OperationBtnStatusTips>,
+            <OperationBtnStatusTips
+              data={data}
+              v-db-console="kafka.clusterManage.delete">
+              <auth-button
+                v-bk-tooltips={{
+                  disabled: data.isOffline,
+                  content: t('请先禁用集群')
+                }}
+                text
+                theme="primary"
+                action-id="kafka_destroy"
+                permission={data.permission.kafka_destroy}
+                disabled={data.isOnline || Boolean(data.operationTicketId)}
+                resource={data.id}
+                class="mr8"
+                loading={tableDataActionLoadingMap.value[data.id]}
+                onClick={() => handleRemove(data)}>
+                { t('删除') }
               </auth-button>
             </OperationBtnStatusTips>,
             <a

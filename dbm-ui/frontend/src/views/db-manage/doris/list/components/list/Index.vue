@@ -301,8 +301,7 @@
     {
       label: t('访问入口'),
       field: 'domain',
-      width: 300,
-      minWidth: 300,
+      minWidth: 320,
       fixed: 'left',
       renderHead: () => (
         <RenderHeadCopy
@@ -341,6 +340,28 @@
             ),
             append: () => (
               <>
+                {
+                  data.operationTagTips.map(item => <RenderOperationTag class="cluster-tag ml-4" data={item}/>)
+                }
+                {
+                  data.isOffline && !data.isStarting && (
+                    <bk-tag
+                      class="ml-4"
+                      size="small">
+                      {t('已禁用')}
+                    </bk-tag>
+                  )
+                }
+                {
+                  data.isNew && (
+                    <bk-tag
+                      theme="success"
+                      size="small"
+                      class="ml-4">
+                      NEW
+                    </bk-tag>
+                  )
+                }
                 {
                   data.domain && (
                     <RenderCellCopy copyItems={
@@ -406,28 +427,6 @@
             ),
             append: () => (
               <>
-                {
-                  data.operationTagTips.map(item => <RenderOperationTag class="cluster-tag ml-4" data={item}/>)
-                }
-                {
-                  data.isOffline && !data.isStarting && (
-                    <bk-tag
-                      class="ml-4"
-                      size="small">
-                      {t('已禁用')}
-                    </bk-tag>
-                  )
-                }
-                {
-                  data.isNew && (
-                    <bk-tag
-                      theme="success"
-                      size="small"
-                      class="ml-4">
-                      NEW
-                    </bk-tag>
-                  )
-                }
                 <db-icon
                   v-bk-tooltips={t('复制集群名称')}
                   type="copy"
@@ -746,6 +745,25 @@
                         </auth-button>
                       </OperationBtnStatusTips>
                     </bk-dropdown-item>
+                    <bk-dropdown-item>
+                      <OperationBtnStatusTips data={data}>
+                        <auth-button
+                          v-bk-tooltips={{
+                            disabled: data.isOffline,
+                            content: t('请先禁用集群')
+                          }}
+                          text
+                          theme="primary"
+                          action-id="doris_destroy"
+                          disabled={data.isOnline}
+                          permission={data.permission.doris_destroy}
+                          resource={data.id}
+                          loading={tableDataActionLoadingMap.value[data.id]}
+                          onClick={() => handleRemove(data)}>
+                          { t('删除') }
+                        </auth-button>
+                      </OperationBtnStatusTips>,
+                    </bk-dropdown-item>
                   </>
                 )
               }}
@@ -753,27 +771,32 @@
           ];
         }
         return [
-          <auth-button
-            text
-            theme="primary"
-            action-id="doris_enable_disable"
-            permission={data.permission.doris_enable_disable}
-            resource={data.id}
-            class="mr-16"
-            loading={tableDataActionLoadingMap.value[data.id]}
-            onClick={() => handleEnable(data)}>
-            { t('启用') }
-          </auth-button>,
-          <auth-button
-            text
-            theme="primary"
-            action-id="doris_destroy"
-            permission={data.permission.doris_destroy}
-            resource={data.id}
-            loading={tableDataActionLoadingMap.value[data.id]}
-            onClick={() => handleRemove(data)}>
-            { t('删除') }
-          </auth-button>,
+          <OperationBtnStatusTips data={data}>
+            <auth-button
+              text
+              theme="primary"
+              action-id="doris_enable_disable"
+              permission={data.permission.doris_enable_disable}
+              resource={data.id}
+              class="mr-16"
+              loading={tableDataActionLoadingMap.value[data.id]}
+              onClick={() => handleEnable(data)}>
+              { t('启用') }
+            </auth-button>
+          </OperationBtnStatusTips>,
+          <OperationBtnStatusTips data={data}>
+            <auth-button
+              text
+              theme="primary"
+              action-id="doris_destroy"
+              permission={data.permission.doris_destroy}
+              resource={data.id}
+              disabled={Boolean(data.operationTicketId)}
+              loading={tableDataActionLoadingMap.value[data.id]}
+              onClick={() => handleRemove(data)}>
+              { t('删除') }
+            </auth-button>
+          </OperationBtnStatusTips>,
         ];
       },
     },

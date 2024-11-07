@@ -130,9 +130,12 @@
           <span>{data.id}</span>
           {
             data.isNew && (
-              <span
-                class="glob-new-tag cluster-tag ml-4"
-                data-text="NEW" />
+              <bk-tag
+                theme="success"
+                size="small"
+                class="ml-4">
+                NEW
+              </bk-tag>
             )
           }
           {
