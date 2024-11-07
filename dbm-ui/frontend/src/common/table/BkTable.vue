@@ -3,7 +3,13 @@
     <VxeTable
       ref="table"
       v-bind="realProps"
+      :row-config="rowConfig"
+      @cell-click="handleCellClick"
+      @cell-dblclick="handleCellDbclick"
+      @cell-mouseenter="handleCellMouseenter"
+      @cell-mouseleave="handleCellMouseleave"
       @filter-change="handleFilterChange"
+      @scroll="handleScroll"
       @sort-change="handleSortChange">
       <template v-if="isRowSelectEnable">
         <VxeColumn
@@ -31,15 +37,6 @@
           v-else
           v-bind="columnItem" />
       </template>
-      <VxeColumn
-        fixed="right"
-        :min-width="60"
-        :resizable="false"
-        :width="60">
-        <template #header>
-          <SettingColumn :get-table="getTable" />
-        </template>
-      </VxeColumn>
       <!-- @vue-ignore -->
       <template
         v-if="slots.prepend"
@@ -48,22 +45,33 @@
       </template>
       <!-- @vue-ignore -->
       <template
-        v-if="false"
+        v-if="showSettings"
         #settingColumn>
-        <SettingColumn :get-table="getTable" />
+        <SettingColumn
+          :get-table="getTable"
+          :is-show="showSettings"
+          :settings="settings"
+          @change="handleSettingChange">
+          <slot name="setting" />
+        </SettingColumn>
       </template>
       <template
         v-if="slots.empty"
         #empty>
         <slot name="empty" />
       </template>
+      <!-- @vue-ignore -->
+      <template
+        v-if="pagination"
+        #append>
+        <div class="bk-vxe-table-pagination-wrapper">
+          <Pagination
+            v-bind="paginationConfig"
+            @change="handlePaginationChange"
+            @limit-change="handlePaginationLimitChange" />
+        </div>
+      </template>
     </VxeTable>
-    <div class="bk-vxe-table-pagination-wrapper">
-      <Pagination
-        v-bind="paginationConfig"
-        @change="handlePaginationChange"
-        @limit-change="handlePaginationLimitChange" />
-    </div>
   </div>
 </template>
 <script setup lang="ts" generic="T extends Record<any, any>">
@@ -81,14 +89,14 @@
 
   import { tableConfig } from './adapter';
   import BkTableColumn from './BkTableColumn.vue';
-  import SettingColumn from './components/setting-column/Index.vue';
+  import SettingColumn, { type ISettings } from './components/setting-column/Index.vue';
 
   import '@blueking/vxe-table/lib/style.css';
   import 'vxe-pc-ui/lib/style.css';
   /* eslint-disable vue/no-unused-properties */
   interface Props {
-    isRowSelectEnable?: boolean;
     data: T[];
+    isRowSelectEnable?: boolean;
     pagination?: {
       current: number;
       count: number;
@@ -99,13 +107,24 @@
       align?: 'left' | 'center' | 'right';
       small?: boolean;
     };
+    showSettings?: boolean;
   }
 
   interface Emits {
-    (e: 'column-sort', params: { column: VxeGridPropTypes.Column; field: string; type: string | null }): void;
-    (e: 'sort-change', params: VxeTableDefines.SortChangeEventParams): void;
+    // vxe-table 支持的事件
+    (e: 'sort-change', params: VxeTableDefines.SortChangeEventParams<T>): void;
+    (e: 'filter-change', params: VxeTableDefines.FilterChangeEventParams<T>): void;
+    (e: 'cell-click', params: VxeTableDefines.CellClickEventParams<T>): void;
+    (e: 'cell-dbclick', params: VxeTableDefines.CellDblclickEventParams<T>): void;
+    (e: 'scroll', params: VxeTableDefines.ScrollEventParams<T>): void;
+    (e: 'cell-mouseenter', params: VxeTableDefines.CellMouseenterEventParams<T>): void;
+    (e: 'cell-mouseleave', params: VxeTableDefines.CellMouseleaveEventParams<T>): void;
+    // bk-table 自定义事件
+    (e: 'setting-change', params: ISettings): void;
+    (e: 'scroll-bottom'): void;
     (e: 'column-filter', params: { column: VxeGridPropTypes.Column; field: string; checked: string[] }): void;
-    (e: 'filter-change', params: VxeTableDefines.FilterChangeEventParams): void;
+    (e: 'column-sort', params: { column: VxeGridPropTypes.Column; field: string; type: string | null }): void;
+    (e: 'row-mouse-enter' | 'row-mouse-leave', params: { event: Event; row: T; index: number }): void;
     (e: 'page-limit-change', params: number): void;
     (e: 'page-value-change', params: number): void;
   }
@@ -114,11 +133,16 @@
     default?: () => VNode | VNode[];
     prepend?: () => VNode;
     empty?: () => VNode;
+    setting?: () => VNode;
   }
 
   const props = withDefaults(defineProps<Props & VxeGridProps<T>>(), {
+    // 自定义功能
     pagination: undefined,
     isRowSelectEnable: false,
+    showSettings: false,
+    settings: undefined,
+    // vxe table props 默认值
     align: 'left',
     animat: true,
     autoResize: true,
@@ -146,7 +170,7 @@
     highlightHoverColumn: undefined,
     highlightHoverRow: undefined,
     keepSource: undefined,
-    minHeight: undefined,
+    minHeight: 40,
     padding: true,
     round: false,
     rowConfig: () => ({
@@ -172,7 +196,14 @@
 
   const attrs = useAttrs();
 
+  const settings = defineModel<ISettings>('settings', {
+    default: undefined,
+    required: false,
+  });
+
   const tableRef = useTemplateRef('table');
+
+  const rowConfig = reactive({});
 
   const paginationConfig = reactive({
     layout: ['total', 'limit', 'list'],
@@ -208,6 +239,15 @@
     },
   );
 
+  const handleSettingChange = (payload: ISettings) => {
+    settings.value = payload;
+    emits('setting-change', {
+      checked: payload.checked,
+      fields: payload.fields,
+      size: payload.size,
+    });
+  };
+
   const handleSortChange = (payload: VxeTableDefines.SortChangeEventParams) => {
     emits('column-sort', {
       column: payload.column,
@@ -233,6 +273,39 @@
     emits('filter-change', payload);
   };
 
+  const handleCellClick = (payload: VxeTableDefines.CellClickEventParams) => {
+    emits('cell-click', payload);
+  };
+
+  const handleCellDbclick = (payload: VxeTableDefines.CellDblclickEventParams) => {
+    emits('cell-dbclick', payload);
+  };
+
+  const handleScroll = (payload: VxeTableDefines.ScrollEventParams) => {
+    emits('scroll', payload);
+    if (payload.bodyHeight + payload.scrollTop + 10 > payload.scrollHeight) {
+      emits('scroll-bottom');
+    }
+  };
+
+  const handleCellMouseenter = (payload: VxeTableDefines.CellMouseenterEventParams<T>) => {
+    emits('row-mouse-enter', {
+      event: payload.$event,
+      row: payload.row,
+      index: payload.rowIndex,
+    });
+    emits('cell-mouseenter', payload);
+  };
+
+  const handleCellMouseleave = (payload: VxeTableDefines.CellMouseleaveEventParams<T>) => {
+    emits('row-mouse-leave', {
+      event: payload.$event,
+      row: payload.row,
+      index: payload.rowIndex,
+    });
+    emits('cell-mouseleave', payload);
+  };
+
   const handlePaginationChange = (value: number) => {
     emits('page-value-change', value);
   };
@@ -244,11 +317,23 @@
 <style lang="less">
   @import './style/vxe-table-path.less';
 
+  .bk-vxe-table {
+    .vxe-table--body-wrapper,
+    .vxe-table--fixed-left-body-wrapper,
+    .vxe-table--fixed-right-body-wrapper {
+      &::-webkit-scrollbar {
+        width: 12px;
+        height: 12px;
+      }
+
+      &::-webkit-scrollbar-thumb {
+        border-radius: 6px;
+      }
+    }
+  }
+
   .bk-vxe-table-pagination-wrapper {
     padding: 14px 16px;
-    background: #fff;
-    border: 1px solid #e8eaec;
-    border-top: none;
 
     .bk-pagination-limit {
       margin-right: auto;

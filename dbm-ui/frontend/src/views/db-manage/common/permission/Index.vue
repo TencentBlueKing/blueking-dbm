@@ -52,7 +52,9 @@
         releate-url-query
         :row-class="setRowClass"
         row-hover="auto"
-        @clear-search="handleClearSearch" />
+        :show-overflow="false"
+        @clear-search="handleClearSearch"
+        @refresh="fetchData" />
     </div>
     <!-- 创建账户 -->
     <AccountCreate
@@ -303,8 +305,8 @@
     {
       label: t('账号名称'),
       field: 'user',
-      showOverflowTooltip: false,
-      width: 350,
+      minWidth: 200,
+      fixed: 'left',
       render: ({ data }: { data: PermissionRule }) => (
         <TextOverflowLayout>
           {{
@@ -358,7 +360,7 @@
     {
       label: t('访问的DB名'),
       field: 'access_db',
-      width: 350,
+      minWidth: 200,
       render: ({ data }: { data: PermissionRule }) => {
         if (data.rules.length === 0) {
           return (
@@ -391,7 +393,7 @@
     {
       label: t('权限'),
       field: 'privilege',
-      showOverflowTooltip: false,
+      minWidth: 200,
       render: ({ data }: { data: PermissionRule }) => (
         getRenderList(data).map((rule) => {
           const { privilege } = rule;
@@ -427,7 +429,8 @@
     },
     {
       label: t('操作'),
-      width: 150,
+      width: 100,
+      fixed: 'right',
       render: ({ data }: { data: PermissionRule }) => {
         if (data.rules.length === 0) {
           return (
