@@ -28,7 +28,7 @@
       <BkOption
         v-for="item in cloudList"
         :key="item.bk_cloud_id"
-        :label="item.bk_cloud_name"
+        :label="`${item.bk_cloud_name}[${item.bk_cloud_id}]`"
         :value="item.bk_cloud_id" />
     </BkSelect>
   </BkFormItem>

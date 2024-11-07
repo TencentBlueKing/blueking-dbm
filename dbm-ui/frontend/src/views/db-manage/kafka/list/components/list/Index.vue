@@ -447,15 +447,6 @@
       ),
     },
     {
-      label: t('管控区域'),
-      field: 'bk_cloud_id',
-      filter: {
-        list: columnAttrs.value.bk_cloud_id,
-        checked: columnCheckedMap.value.bk_cloud_id,
-      },
-      render: ({ data }: {data: KafkaModel}) => <span>{data.bk_cloud_name ?? '--'}</span>,
-    },
-    {
       label: t('状态'),
       field: 'status',
       filter: {
@@ -490,6 +481,13 @@
       },
     },
     {
+        label: t('容灾要求'),
+        field: 'disaster_tolerance_level',
+        minWidth: 100,
+        render: ({ data }: { data: KafkaModel }) => data.disasterToleranceLevelName || '--',
+    },
+
+    {
       label: t('地域'),
       field: 'region',
       minWidth: 100,
@@ -498,6 +496,21 @@
         checked: columnCheckedMap.value.region,
       },
       render: ({ data }: {data: KafkaModel}) => <span>{data?.region || '--'}</span>,
+    },
+    {
+        label: t('园区'),
+        field: 'bk_sub_zone',
+        minWidth: 100,
+        render: ({ data }: { data: KafkaModel }) => data.bk_sub_zone || '--',
+    },
+    {
+      label: t('管控区域'),
+      field: 'bk_cloud_id',
+      filter: {
+        list: columnAttrs.value.bk_cloud_id,
+        checked: columnCheckedMap.value.bk_cloud_id,
+      },
+      render: ({ data }: { data: KafkaModel }) =>  data.bk_cloud_name ? `${data.bk_cloud_name}[${data.bk_cloud_id}]` : '--',
     },
     {
       label: 'Zookeeper',
@@ -729,6 +742,7 @@
       'status',
       'cluster_stats',
       'major_version',
+      'disaster_tolerance_level',
       'region',
       'zookeeper',
       'broker',

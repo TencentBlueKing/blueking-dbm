@@ -436,15 +436,6 @@
       ),
     },
     {
-      label: t('管控区域'),
-      field: 'bk_cloud_id',
-      filter: {
-        list: columnAttrs.value.bk_cloud_id,
-        checked: columnCheckedMap.value.bk_cloud_id,
-      },
-      render: ({ data }: {data: EsModel}) => <span>{data.bk_cloud_name ?? '--'}</span>,
-    },
-    {
       label: t('状态'),
       field: 'status',
       minWidth: 100,
@@ -480,6 +471,18 @@
       },
     },
     {
+        label: t('容灾要求'),
+        field: 'disaster_tolerance_level',
+        minWidth: 100,
+        render: ({ data }: { data: EsModel }) => data.disasterToleranceLevelName || '--',
+    },
+    {
+        label: t('园区'),
+        field: 'bk_sub_zone',
+        minWidth: 100,
+        render: ({ data }: { data: EsModel }) => data.bk_sub_zone || '--',
+    },
+    {
       label: t('地域'),
       field: 'region',
       minWidth: 100,
@@ -488,6 +491,15 @@
         checked: columnCheckedMap.value.region,
       },
       render: ({ data }: {data: EsModel}) => <span>{data?.region || '--'}</span>,
+    },
+    {
+      label: t('管控区域'),
+      field: 'bk_cloud_id',
+      filter: {
+        list: columnAttrs.value.bk_cloud_id,
+        checked: columnCheckedMap.value.bk_cloud_id,
+      },
+      render: ({ data }: { data: EsModel }) =>  data.bk_cloud_name ? `${data.bk_cloud_name}[${data.bk_cloud_id}]` : '--',
     },
     {
       label: t('Master节点'),
@@ -783,6 +795,7 @@
       'cluster_stats',
       'major_version',
       'region',
+      'disaster_tolerance_level',
       'es_master',
       'es_client',
       'es_datanode_hot',
