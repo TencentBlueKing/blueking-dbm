@@ -71,6 +71,7 @@
         :row-class="setRowClass"
         selectable
         :settings="settings"
+        :show-overflow="false"
         @clear-search="clearSearchValue"
         @column-filter="columnFilterChange"
         @column-sort="columnSortChange"
@@ -359,8 +360,7 @@
       label: t('主访问入口'),
       field: 'master_domain',
       fixed: 'left',
-      minWidth: 320,
-      showOverflowTooltip: false,
+      minWidth: 280,
       renderHead: () => (
         <RenderHeadCopy
           hasSelected={hasSelected.value}
@@ -591,16 +591,6 @@
     //   width: 120,
     //   render: ({ data }: IColumn) => data.major_version,
     // },
-    {
-      label: t('管控区域'),
-      width: 120,
-      field: 'bk_cloud_id',
-      filter: {
-        list: columnAttrs.value.bk_cloud_id,
-        checked: columnCheckedMap.value.bk_cloud_id,
-      },
-      render: ({ data }: IColumn) => <span>{data.bk_cloud_name ?? '--'}</span>,
-    },
     {
       label: t('状态'),
       field: 'status',
@@ -871,6 +861,13 @@
       render: ({ data }: IColumn) => <span>{data.major_version || '--'}</span>,
     },
     {
+        label: t('容灾要求'),
+        field: 'disaster_tolerance_level',
+        minWidth: 100,
+        render: ({ data }: IColumn) => data.disasterToleranceLevelName || '--',
+    },
+
+    {
       label: t('地域'),
       field: 'region',
       minWidth: 100,
@@ -879,6 +876,22 @@
         checked: columnCheckedMap.value.region,
       },
       render: ({ data }: IColumn) => <span>{data.region || '--'}</span>,
+    },
+    {
+        label: t('规格'),
+        field: 'spec_name',
+        minWidth: 180,
+        render: ({ data }: IColumn) => data.cluster_spec.spec_name || '--',
+    },
+    {
+      label: t('管控区域'),
+      width: 120,
+      field: 'bk_cloud_id',
+      filter: {
+        list: columnAttrs.value.bk_cloud_id,
+        checked: columnCheckedMap.value.bk_cloud_id,
+      },
+      render: ({ data }: IColumn) => data.bk_cloud_name ? `${data.bk_cloud_name}[${data.bk_cloud_id}]` : '--',
     },
     {
       label: t('创建人'),
@@ -1162,7 +1175,10 @@
       'remote_db',
       'remote_dr',
       'major_version',
+      'disaster_tolerance_level',
       'region',
+      'spec_name',
+      'bk_cloud_id',
     ],
     showLineHeight: false,
     trigger: 'manual' as const,
@@ -1401,25 +1417,9 @@
 
     .table-wrapper {
       background-color: white;
-
-      .bk-table {
-        height: 100% !important;
-      }
-
-      :deep(.bk-table-body) {
-        max-height: calc(100% - 100px);
-      }
     }
 
-    .is-shrink-table {
-      :deep(.bk-table-body) {
-        overflow: hidden auto;
-      }
-    }
-
-    :deep(td .cell) {
-      line-height: normal !important;
-
+    :deep(td .vxe-cell) {
       .domain {
         display: flex;
         flex-wrap: wrap;
@@ -1487,7 +1487,7 @@
         color: @gray-color;
       }
 
-      .cell {
+      .vxe-cell {
         color: @disable-color;
       }
     }

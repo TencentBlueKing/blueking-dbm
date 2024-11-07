@@ -328,7 +328,7 @@
   .partition-dry-run {
     padding: 16px 24px;
 
-    .bk-table {
+    .bk-vxe-table {
       tr {
         &:hover {
           .copy-btn,

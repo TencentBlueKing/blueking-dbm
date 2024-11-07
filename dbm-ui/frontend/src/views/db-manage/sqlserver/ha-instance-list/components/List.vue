@@ -45,6 +45,7 @@
         :row-class="setRowClass"
         selectable
         :settings="settings"
+        :show-overflow="false"
         @clear-search="clearSearchValue"
         @column-filter="columnFilterChange"
         @column-sort="columnSortChange"
@@ -179,7 +180,6 @@
         field: 'instance_address',
         fixed: 'left',
         minWidth: 200,
-        showOverflowTooltip: false,
         render: ({ data }: { data: SqlServerHaInstanceModel }) => (
           <TextOverflowLayout>
             {{
@@ -212,7 +212,6 @@
         label: t('集群名称'),
         field: 'cluster_name',
         minWidth: 200,
-        showOverflowTooltip: false,
         render: ({ data }: { data: SqlServerHaInstanceModel }) => (
           <TextOverflowLayout>
             {{
@@ -304,6 +303,12 @@
           list: columnAttrs.value.role,
           checked: columnCheckedMap.value.role,
         },
+      },
+      {
+        label: t('所在园区'),
+        field: 'bk_sub_zone',
+        width: 140,
+        render:({ data }: { data: SqlServerHaInstanceModel }) => data.bk_sub_zone || '--',
       },
       {
         label: t('部署时间'),
@@ -439,7 +444,7 @@
     }
   }
 
-  :deep(.cell) {
+  :deep(.vxe-cell) {
     .db-icon-copy {
       display: none;
       margin-left: 4px;
@@ -456,19 +461,5 @@
 
   .table-wrapper {
     background-color: white;
-
-    .bk-table {
-      height: 100% !important;
-    }
-
-    :deep(.bk-table-body) {
-      max-height: calc(100% - 100px);
-    }
-  }
-
-  .is-shrink-table {
-    :deep(.bk-table-body) {
-      overflow: hidden auto;
-    }
   }
 </style>

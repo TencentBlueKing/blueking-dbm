@@ -12,6 +12,7 @@
  */
 
 import type { App } from 'vue';
+import { VxeTooltip } from 'vxe-pc-ui';
 
 import AuthButton from '@components/auth-component/button.vue';
 import AuthTemplate from '@components/auth-component/component.vue';
@@ -36,10 +37,10 @@ import SkeletonLoading from '@components/skeleton-loading/Index.vue';
 import SmartAction from '@components/smart-action/Index.vue';
 import { ipSelector } from '@components/vue2/ip-selector';
 
-// import { Table, TableColumn } from '@blueking/table';
+import { Table, TableColumn } from '@blueking/table';
 import UserSelector from '@patch/user-selector/selector.vue';
 
-// import('@blueking/table/vue3/vue3.css');
+import('@blueking/table/vue3/vue3.css');
 
 export const setGlobalComps = (app: App<Element>) => {
   app.component('DbCard', DbCard);
@@ -65,11 +66,14 @@ export const setGlobalComps = (app: App<Element>) => {
   app.component('AuthOption', AuthOption);
   app.component('AuthSwitcher', AuthSwitch);
   app.component('AuthRouterLink', AuthRouterLink);
+  setTimeout(() => {
+    // eslint-disable-next-line
+    delete app._context.components.BkTable;
+    // eslint-disable-next-line
+    delete app._context.components.BkTableColumn;
 
-  console.log('aapp = ', app);
-
-  // setTimeout(() => {
-  //   app.component('BkTable', Table);
-  //   app.component('BkTableColumn', TableColumn);
-  // });
+    app.component('BkTable', Table);
+    app.component('BkTableColumn', TableColumn);
+    app.component('VxeTooltip', VxeTooltip);
+  });
 };

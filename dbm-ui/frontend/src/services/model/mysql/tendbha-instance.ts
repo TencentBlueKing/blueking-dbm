@@ -18,7 +18,12 @@ import { utcDisplayTime } from '@utils';
 export default class TendbhaInstance {
   bk_cloud_id: number;
   bk_cloud_name: string;
+  bk_cpu: number;
+  db_version: string;
+  bk_disk: number;
   bk_host_id: number;
+  bk_mem: number;
+  bk_sub_zone: string;
   cluster_id: number;
   cluster_name: string;
   cluster_type: string;
@@ -45,13 +50,18 @@ export default class TendbhaInstance {
   constructor(payload = {} as TendbhaInstance) {
     this.bk_cloud_id = payload.bk_cloud_id || 0;
     this.bk_cloud_name = payload.bk_cloud_name || '';
+    this.bk_cpu = payload.bk_cpu || 0;
+    this.bk_disk = payload.bk_disk || 0;
     this.bk_host_id = payload.bk_host_id || 0;
+    this.bk_mem = payload.bk_mem || 0;
+    this.bk_sub_zone = payload.bk_sub_zone || '';
     this.cluster_id = payload.cluster_id || 0;
     this.cluster_name = payload.cluster_name || '';
     this.cluster_type = payload.cluster_type || '';
     this.create_at = payload.create_at || '';
     this.db_module_id = payload.db_module_id || 0;
     this.db_module_name = payload.db_module_name || '';
+    this.db_version = payload.db_version || '';
     this.host_info = payload.host_info || {};
     this.id = payload.id || 0;
     this.instance_address = payload.instance_address || '';

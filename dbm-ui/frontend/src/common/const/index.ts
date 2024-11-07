@@ -1,4 +1,5 @@
 export * from './accountTypes';
+export * from './clusterAffinity';
 export * from './clusterInsStatus';
 export * from './clusterTypeInfos';
 export * from './clusterTypes';

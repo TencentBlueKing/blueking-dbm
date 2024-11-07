@@ -136,9 +136,9 @@
     background-color: #fff;
     box-shadow: -1px 0 0 0 #dcdee5;
 
-    .bk-table {
-      .bk-table-body {
-        tr {
+    .bk-vxe-table {
+      .bk-vxe-table {
+        .vxe-body--row {
           .copy-btn {
             cursor: pointer;
             opacity: 0%;

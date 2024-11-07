@@ -513,13 +513,13 @@
 <style lang="less" scoped>
   .record-table {
     :deep(.normal-color) {
-      .cell {
+      .vxe-cell {
         color: #63656e;
       }
     }
 
     :deep(.disable-color) {
-      .cell {
+      .vxe-cell {
         color: #c4c6cc;
       }
     }

@@ -116,7 +116,10 @@ export default class Ticket<T extends unknown | DetailBase = unknown> {
     this.todo_operators = payload.todo_operators || [];
     this.update_at = payload.update_at;
     this.updater = payload.updater;
-    this.related_object = payload.related_object || {};
+    this.related_object = payload.related_object || {
+      objects: [],
+      title: '',
+    };
   }
 
   get statusText() {

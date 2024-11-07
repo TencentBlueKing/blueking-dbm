@@ -499,7 +499,7 @@
 
   .normal-color {
     td {
-      .cell {
+      .vxe-cell {
         color: #63656e !important;
       }
     }
@@ -507,7 +507,7 @@
 
   .disable-color {
     td {
-      .cell {
+      .vxe-cell {
         color: #c4c6cc !important;
       }
     }

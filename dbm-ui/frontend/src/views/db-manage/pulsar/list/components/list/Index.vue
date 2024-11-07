@@ -49,6 +49,7 @@
         :row-class="getRowClass"
         selectable
         :settings="tableSetting"
+        :show-overflow="false"
         @clear-search="clearSearchValue"
         @column-filter="columnFilterChange"
         @column-sort="columnSortChange"
@@ -247,9 +248,8 @@
     {
       label: t('访问入口'),
       field: 'domain',
-      minWidth: 320,
+      minWidth: 280,
       fixed: 'left',
-      showOverflowTooltip: false,
       renderHead: () => (
         <RenderHeadCopy
           hasSelected={hasSelected.value}
@@ -386,6 +386,12 @@
       },
     },
     {
+      label: t('容灾要求'),
+      field: 'disaster_tolerance_level',
+      minWidth: 100,
+      render: ({ data }: { data: PulsarModel }) => data.disasterToleranceLevelName || '--',
+    },
+    {
       label: t('地域'),
       field: 'region',
       minWidth: 100,
@@ -394,6 +400,11 @@
         checked: columnCheckedMap.value.region,
       },
       render: ({ data }: {data: PulsarModel}) => <span>{data?.region || '--'}</span>,
+    },
+    {
+      label: t('管控区域'),
+      field: 'bk_cloud_id',
+      render: ({ data }: { data: PulsarModel }) =>  data.bk_cloud_name ? `${data.bk_cloud_name}[${data.bk_cloud_id}]` : '--',
     },
     {
       label: t('状态'),
@@ -777,6 +788,7 @@
     checked: [
       'domain',
       'major_version',
+      'disaster_tolerance_level',
       'region',
       'status',
       'cluster_stats',
@@ -955,20 +967,6 @@
       .bk-nested-loading {
         height: 100%;
       }
-
-      .bk-table {
-        height: 100% !important;
-      }
-
-      .bk-table-body {
-        max-height: calc(100% - 100px);
-      }
-    }
-
-    .is-shrink-table {
-      .bk-table-body {
-        overflow: hidden auto;
-      }
     }
 
     .is-offline {
@@ -983,7 +981,7 @@
       }
     }
 
-    td div.cell .db-icon-copy {
+    td div.vxe-cell .db-icon-copy {
       display: none;
       margin-top: 2px;
       margin-left: 4px;
@@ -1020,9 +1018,7 @@
 </style>
 <style lang="less" scoped>
   .pulsar-list-page {
-    :deep(.cell) {
-      line-height: normal !important;
-
+    :deep(.vxe-cell) {
       .domain {
         display: flex;
         align-items: center;

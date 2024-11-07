@@ -49,6 +49,7 @@
         :row-class="getRowClass"
         selectable
         :settings="tableSetting"
+        :show-overflow="false"
         @clear-search="clearSearchValue"
         @column-filter="columnFilterChange"
         @column-sort="columnSortChange"
@@ -313,7 +314,7 @@
     {
       label: t('访问入口'),
       field: 'domain',
-      minWidth: 320,
+      minWidth: 280,
       fixed: 'left',
       renderHead: () => (
         <RenderHeadCopy
@@ -448,15 +449,6 @@
       ),
     },
     {
-      label: t('管控区域'),
-      field: 'bk_cloud_id',
-      filter: {
-        list: columnAttrs.value.bk_cloud_id,
-        checked: columnCheckedMap.value.bk_cloud_id,
-      },
-      render: ({ data }: {data: KafkaModel}) => <span>{data.bk_cloud_name ?? '--'}</span>,
-    },
-    {
       label: t('状态'),
       field: 'status',
       filter: {
@@ -491,6 +483,13 @@
       },
     },
     {
+        label: t('容灾要求'),
+        field: 'disaster_tolerance_level',
+        minWidth: 100,
+        render: ({ data }: { data: KafkaModel }) => data.disasterToleranceLevelName || '--',
+    },
+
+    {
       label: t('地域'),
       field: 'region',
       minWidth: 100,
@@ -499,6 +498,15 @@
         checked: columnCheckedMap.value.region,
       },
       render: ({ data }: {data: KafkaModel}) => <span>{data?.region || '--'}</span>,
+    },
+    {
+      label: t('管控区域'),
+      field: 'bk_cloud_id',
+      filter: {
+        list: columnAttrs.value.bk_cloud_id,
+        checked: columnCheckedMap.value.bk_cloud_id,
+      },
+      render: ({ data }: { data: KafkaModel }) =>  data.bk_cloud_name ? `${data.bk_cloud_name}[${data.bk_cloud_id}]` : '--',
     },
     {
       label: 'Zookeeper',
@@ -747,6 +755,7 @@
       'status',
       'cluster_stats',
       'major_version',
+      'disaster_tolerance_level',
       'region',
       'zookeeper',
       'broker',
@@ -914,20 +923,6 @@
       .bk-nested-loading {
         height: 100%;
       }
-
-      .bk-table {
-        height: 100% !important;
-      }
-
-      .bk-table-body {
-        max-height: calc(100% - 100px);
-      }
-    }
-
-    .is-shrink-table {
-      .bk-table-body {
-        overflow: hidden auto;
-      }
     }
 
     .is-offline {
@@ -942,7 +937,7 @@
       }
     }
 
-    td div.cell .db-icon-copy {
+    td div.vxe-cell .db-icon-copy {
       display: none;
       margin-top: 2px;
       margin-left: 4px;
@@ -979,9 +974,7 @@
 </style>
 <style lang="less" scoped>
   .kafka-list-page {
-    :deep(.cell) {
-      line-height: normal !important;
-
+    :deep(.vxe-cell) {
       .domain {
         display: flex;
         align-items: center;

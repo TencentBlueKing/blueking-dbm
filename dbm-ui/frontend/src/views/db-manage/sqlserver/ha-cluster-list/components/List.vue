@@ -51,6 +51,7 @@
         :row-class="setRowClass"
         selectable
         :settings="settings"
+        :show-overflow="false"
         show-overflow-tips
         @clear-search="clearSearchValue"
         @column-filter="columnFilterChange"
@@ -300,8 +301,7 @@
       label: t('主访问入口'),
       field: 'master_domain',
       fixed: 'left',
-      minWidth: 320,
-      showOverflowTooltip: false,
+      minWidth: 280,
       renderHead: () => (
         <RenderHeadCopy
           hasSelected={hasSelected.value}
@@ -435,16 +435,6 @@
           }}
         </TextOverflowLayout>
       ),
-    },
-    {
-      label: t('管控区域'),
-      field: 'bk_cloud_id',
-      filter: {
-        list: columnAttrs.value.bk_cloud_id,
-        checked: columnCheckedMap.value.bk_cloud_id,
-      },
-      width: 90,
-      render: ({ data }: { data: SqlServerHaModel }) => <span>{data.bk_cloud_name || '--'}</span>,
     },
     {
       label: t('状态'),
@@ -642,6 +632,12 @@
       render: ({ data }: { data: SqlServerHaModel }) => <span>{data.sync_mode || '--'}</span>,
     },
     {
+      label: t('容灾要求'),
+      field: 'disaster_tolerance_level',
+      minWidth: 100,
+      render: ({ data }: { data: SqlServerHaModel }) => data.disasterToleranceLevelName || '--',
+    },
+    {
       label: t('地域'),
       field: 'region',
       minWidth: 100,
@@ -650,6 +646,16 @@
         checked: columnCheckedMap.value.region,
       },
       render: ({ data }: { data: SqlServerHaModel }) => <span>{data.region || '--'}</span>,
+    },
+    {
+      label: t('管控区域'),
+      field: 'bk_cloud_id',
+      filter: {
+        list: columnAttrs.value.bk_cloud_id,
+        checked: columnCheckedMap.value.bk_cloud_id,
+      },
+      width: 90,
+      render: ({ data }: { data: SqlServerHaModel }) =>  data.bk_cloud_name ? `${data.bk_cloud_name}[${data.bk_cloud_id}]` : '--',
     },
     {
       label: t('创建人'),
@@ -772,7 +778,9 @@
       'slaves',
       'db_module_id',
       'major_version',
+      'disaster_tolerance_level',
       'region',
+      'spec_name',
     ],
     showLineHeight: false,
     trigger: 'manual' as const,
@@ -961,9 +969,7 @@
       }
     }
 
-    td .cell {
-      line-height: normal !important;
-
+    td .vxe-cell {
       .db-icon-copy,
       .db-icon-link,
       .db-icon-visible1 {
