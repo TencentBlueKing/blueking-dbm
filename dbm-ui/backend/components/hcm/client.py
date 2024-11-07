@@ -12,12 +12,12 @@ See the License for the specific language governing permissions and limitations 
 from django.utils.translation import ugettext_lazy as _
 
 from ..base import BaseApi
-from ..domains import HADB_APIGW_DOMAIN
+from ..domains import HCM_APIGW_DOMAIN
 
 
 class _HCMApi(BaseApi):
     MODULE = _("HCM海垒 服务")
-    BASE = HADB_APIGW_DOMAIN
+    BASE = HCM_APIGW_DOMAIN
 
     def __init__(self):
         self.list_cvm_device = self.generate_data_api(

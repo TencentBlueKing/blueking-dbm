@@ -12,7 +12,8 @@ specific language governing permissions and limitations under the License.
 from django.utils.translation import ugettext as _
 from rest_framework import serializers
 
-from backend.db_meta.enums import ClusterType, MachineType
+from backend.db_meta.enums import ClusterType
+from backend.db_meta.enums.spec import SpecClusterType, SpecMachineType
 from backend.db_meta.models import AppCache, DBModule, Spec
 
 
@@ -57,10 +58,10 @@ class TenDBHAMetadataImportSerializer(serializers.Serializer):
     bk_biz_id = BizChoiceField(help_text=_("业务"))
     db_module_id = MetadataImportDBModuleField(help_text=_("模块ID"), cluster_type=ClusterType.TenDBHA.value)
     proxy_spec_id = MetadataImportSpecField(
-        help_text=_("代理层规格ID"), cluster_type=ClusterType.TenDBHA.value, machine_type=MachineType.PROXY.value
+        help_text=_("代理层规格"), cluster_type=SpecClusterType.MySQL.value, machine_type=SpecMachineType.PROXY.value
     )
     storage_spec_id = MetadataImportSpecField(
-        help_text=_("存储层规格ID"), cluster_type=ClusterType.TenDBHA.value, machine_type=MachineType.BACKEND.value
+        help_text=_("存储层规格"), cluster_type=SpecClusterType.MySQL.value, machine_type=SpecMachineType.BACKEND.value
     )
 
     def validate(self, attrs):
@@ -88,10 +89,14 @@ class TenDBClusterMetadataImportSerializer(serializers.Serializer):
     bk_biz_id = BizChoiceField(help_text=_("业务"))
     db_module_id = MetadataImportDBModuleField(help_text=_("模块ID"), cluster_type=ClusterType.TenDBCluster.value)
     spider_spec_id = MetadataImportSpecField(
-        help_text=_("Spider规格ID"), cluster_type=ClusterType.TenDBCluster.value, machine_type=MachineType.SPIDER.value
+        help_text=_("Spider规格"),
+        cluster_type=SpecClusterType.TenDBCluster.value,
+        machine_type=SpecMachineType.PROXY.value,
     )
     remote_spec_id = MetadataImportSpecField(
-        help_text=_("Remote规格ID"), cluster_type=ClusterType.TenDBCluster.value, machine_type=MachineType.REMOTE.value
+        help_text=_("Remote规格"),
+        cluster_type=SpecClusterType.TenDBCluster.value,
+        machine_type=SpecMachineType.BACKEND.value,
     )
 
     def validate(self, attrs):
@@ -116,7 +121,7 @@ class TenDBSingleMetadataImportSerializer(serializers.Serializer):
     file = serializers.FileField(help_text=_("元数据json文件"))
     db_module_id = MetadataImportDBModuleField(help_text=_("模块ID"), cluster_type=ClusterType.TenDBSingle.value)
     storage_spec_id = MetadataImportSpecField(
-        help_text=_("存储机规格ID"), cluster_type=ClusterType.TenDBSingle.value, machine_type=MachineType.SINGLE.value
+        help_text=_("存储机规格"), cluster_type=SpecClusterType.MySQL.value, machine_type=SpecMachineType.BACKEND.value
     )
 
     def validate(self, attrs):
