@@ -210,7 +210,7 @@
       {
         label: t('所属集群'),
         field: 'master_domain',
-        width: 260,
+        minWidth: 260,
         showOverflowTooltip: false,
         render: ({ data }: {data: TendbInstanceModel}) => (
           <TextOverflowLayout>
@@ -229,7 +229,7 @@
       {
         label: t('集群名称'),
         field: 'cluster_name',
-        width: 180,
+        minWidth: 180,
         showOverflowTooltip: false,
         render: ({ data }: {data: TendbInstanceModel}) => (
           <TextOverflowLayout>
@@ -423,33 +423,19 @@
         height: 100%;
       }
 
-      .bk-table {
-        height: 100% !important;
-      }
-
-      .bk-table-body {
-        max-height: calc(100% - 100px);
-      }
-
       tr:hover {
         .db-icon-copy {
           display: inline-block !important;
         }
       }
 
-      .cell {
+      .vxe-cell {
         .db-icon-copy {
           display: none;
           margin-left: 4px;
           color: @primary-color;
           cursor: pointer;
         }
-      }
-    }
-
-    .is-shrink-table {
-      .bk-table-body {
-        overflow: hidden auto;
       }
     }
   }

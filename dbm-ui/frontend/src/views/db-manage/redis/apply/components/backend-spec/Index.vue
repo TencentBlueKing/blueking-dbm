@@ -325,17 +325,5 @@
         font-size: 12px;
       }
     }
-
-    .custom-edit-table {
-      :deep(.bk-table-body) {
-        .cell {
-          height: 42px !important;
-        }
-
-        tr:hover td {
-          background-color: #f5f7fa !important;
-        }
-      }
-    }
   }
 </style>

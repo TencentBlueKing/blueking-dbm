@@ -25,7 +25,7 @@
             color:
               highlightIps.includes(inst.ip) || highlightIps.includes(`${inst.ip}:${inst.port}`)
                 ? 'rgb(255 130 4)'
-                : '#63656e',
+                : '',
           }">
           <slot :data="inst"> {{ inst.ip }}:{{ inst.port }} </slot>
         </span>

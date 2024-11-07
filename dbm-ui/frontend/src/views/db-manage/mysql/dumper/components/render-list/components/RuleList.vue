@@ -289,7 +289,7 @@
         color: @gray-color;
       }
 
-      .cell {
+      .vxe-cell {
         color: @disable-color;
       }
     }

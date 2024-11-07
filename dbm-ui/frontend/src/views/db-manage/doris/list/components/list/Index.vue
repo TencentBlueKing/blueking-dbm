@@ -48,6 +48,7 @@
         :row-class="getRowClass"
         selectable
         :settings="tableSetting"
+        :show-overflow="false"
         @clear-search="clearSearchValue"
         @column-filter="columnFilterChange"
         @column-sort="columnSortChange"
@@ -1109,20 +1110,6 @@
       .bk-nested-loading {
         height: 100%;
       }
-
-      .bk-table {
-        height: 100% !important;
-      }
-
-      .bk-table-body {
-        max-height: calc(100% - 100px);
-      }
-    }
-
-    .is-shrink-table {
-      .bk-table-body {
-        overflow: hidden auto;
-      }
     }
 
     .db-icon-more {
@@ -1170,9 +1157,7 @@
 
 <style lang="less" scoped>
   .doris-list-page {
-    :deep(.cell) {
-      line-height: normal !important;
-
+    :deep(.vxe-cell) {
       .db-icon-edit {
         display: none;
         margin-left: 4px;

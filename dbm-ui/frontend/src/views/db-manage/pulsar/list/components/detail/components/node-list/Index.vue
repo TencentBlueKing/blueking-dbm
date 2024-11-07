@@ -677,7 +677,7 @@
   .pulsar-detail-node-list {
     padding: 24px 0;
 
-    .bk-table {
+    .bk-vxe-table {
       .bk-checkbox {
         vertical-align: middle;
       }

@@ -211,23 +211,6 @@
           }
         }
       }
-
-      .bk-table-body {
-        td {
-          border-bottom: 1px solid @border-disable;
-        }
-
-        tr:hover td {
-          background-color: transparent !important;
-        }
-
-        .cell {
-          height: auto !important;
-          padding: 12px !important;
-          line-height: normal !important;
-          border-bottom: none !important;
-        }
-      }
     }
 
     &__parameter {

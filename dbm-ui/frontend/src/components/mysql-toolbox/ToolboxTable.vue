@@ -117,7 +117,7 @@
       }
     }
 
-    :deep(.bk-table-body) {
+    :deep(.bk-vxe-table) {
       .opertaions {
         .bk-button {
           margin-left: 18px;
@@ -139,7 +139,7 @@
         }
       }
 
-      .cell {
+      .vxe-cell {
         padding: 0 !important;
 
         .placeholder {
