@@ -12,7 +12,9 @@
  */
 import { uniq } from 'lodash';
 
-import type { ClusterListEntry, ClusterListNode, ClusterListOperation } from '@services/types';
+import type { ClusterListEntry, ClusterListNode, ClusterListOperation, ClusterListSpec } from '@services/types';
+
+import { ClusterAffinityMap } from '@common/const/clusterAffinity';
 
 import { utcDisplayTime } from '@utils';
 
@@ -55,10 +57,12 @@ export default class Es {
   bk_biz_name: number;
   bk_cloud_id: number;
   bk_cloud_name: string;
+  bk_sub_zone: string;
   cluster_access_port: number;
   cluster_alias: string;
   cluster_entry: ClusterListEntry[];
   cluster_name: string;
+  cluster_spec: ClusterListSpec;
   cluster_stats: Record<'used' | 'total' | 'in_use', number>;
   cluster_time_zone: string;
   cluster_type: string;
@@ -67,6 +71,7 @@ export default class Es {
   creator: string;
   db_module_id: number;
   db_module_name: number;
+  disaster_tolerance_level: keyof typeof ClusterAffinityMap;
   domain: string;
   es_client: Array<ClusterListNode>;
   es_datanode_cold: Array<ClusterListNode>;
@@ -101,10 +106,12 @@ export default class Es {
     this.bk_biz_name = payload.bk_biz_name;
     this.bk_cloud_id = payload.bk_cloud_id;
     this.bk_cloud_name = payload.bk_cloud_name;
+    this.bk_sub_zone = payload.bk_sub_zone;
     this.cluster_access_port = payload.cluster_access_port;
     this.cluster_alias = payload.cluster_alias;
     this.cluster_entry = payload.cluster_entry;
     this.cluster_name = payload.cluster_name;
+    this.cluster_spec = payload.cluster_spec || {};
     this.cluster_stats = payload.cluster_stats || {};
     this.cluster_type = payload.cluster_type;
     this.cluster_type_name = payload.cluster_type_name;
@@ -113,6 +120,7 @@ export default class Es {
     this.creator = payload.creator;
     this.db_module_id = payload.db_module_id;
     this.db_module_name = payload.db_module_name;
+    this.disaster_tolerance_level = payload.disaster_tolerance_level;
     this.domain = payload.domain;
     this.es_datanode_cold = payload.es_datanode_cold;
     this.es_datanode_hot = payload.es_datanode_hot;
@@ -239,5 +247,9 @@ export default class Es {
     }
 
     return payload;
+  }
+
+  get disasterToleranceLevelName() {
+    return ClusterAffinityMap[this.disaster_tolerance_level];
   }
 }

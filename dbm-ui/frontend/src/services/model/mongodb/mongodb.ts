@@ -14,7 +14,9 @@
 import dayjs from 'dayjs';
 import { uniq } from 'lodash';
 
-import { PipelineStatus, TicketTypes } from '@common/const';
+import type { ClusterListEntry } from '@services/types';
+
+import { ClusterAffinityMap, PipelineStatus, TicketTypes } from '@common/const';
 
 import { utcDisplayTime } from '@utils';
 
@@ -79,8 +81,10 @@ export default class Mongodb {
   bk_biz_name: string;
   bk_cloud_id: number;
   bk_cloud_name: string;
+  bk_sub_zone: string;
   cluster_access_port: number;
   cluster_alias: string;
+  cluster_entry: ClusterListEntry[];
   cluster_name: string;
   cluster_stats: Record<'used' | 'total' | 'in_use', number>;
   cluster_time_zone: string;
@@ -90,7 +94,7 @@ export default class Mongodb {
   creator: string;
   db_module_id: number;
   db_module_name: string;
-  disaster_tolerance_level: string;
+  disaster_tolerance_level: keyof typeof ClusterAffinityMap;
   id: number;
   major_version: string;
   master_domain: string;
@@ -114,6 +118,7 @@ export default class Mongodb {
   phase_name: string;
   region: string;
   replicaset_machine_num: number;
+  seg_range: Record<string, string[]>;
   slave_domain: string;
   shard_node_count: number; // 分片节点数
   shard_num: number; // 分片数
@@ -131,11 +136,12 @@ export default class Mongodb {
     this.bk_biz_name = payload.bk_biz_name;
     this.bk_cloud_id = payload.bk_cloud_id;
     this.bk_cloud_name = payload.bk_cloud_name;
+    this.bk_sub_zone = payload.bk_sub_zone;
     this.db_module_id = payload.db_module_id;
     this.db_module_name = payload.db_module_name;
     this.cluster_access_port = payload.cluster_access_port;
     this.cluster_alias = payload.cluster_alias;
-    this.disaster_tolerance_level = payload.disaster_tolerance_level;
+    this.cluster_entry = payload.cluster_entry || [];
     this.cluster_name = payload.cluster_name;
     this.cluster_stats = payload.cluster_stats || {};
     this.cluster_time_zone = payload.cluster_time_zone;
@@ -143,6 +149,7 @@ export default class Mongodb {
     this.cluster_type_name = payload.cluster_type_name;
     this.create_at = payload.create_at;
     this.creator = payload.creator;
+    this.disaster_tolerance_level = payload.disaster_tolerance_level;
     this.id = payload.id;
     this.major_version = payload.major_version;
     this.master_domain = payload.master_domain;
@@ -158,6 +165,7 @@ export default class Mongodb {
     this.phase_name = payload.phase_name;
     this.region = payload.region;
     this.replicaset_machine_num = payload.replicaset_machine_num;
+    this.seg_range = payload.seg_range || {};
     this.slave_domain = payload.slave_domain;
     this.shard_node_count = payload.shard_node_count;
     this.shard_num = payload.shard_num;
@@ -312,5 +320,56 @@ export default class Mongodb {
 
   get updateAtDisplay() {
     return utcDisplayTime(this.update_at);
+  }
+
+  get entryDomain() {
+    if (this.isMongoReplicaSet) {
+      const domainList = this.cluster_entry.reduce<string[]>((prevDomainList, entryItem) => {
+        if (!entryItem.entry.includes('backup')) {
+          return prevDomainList.concat(`${entryItem.entry}:${this.cluster_access_port}`);
+        }
+        return prevDomainList;
+      }, []);
+      return domainList.join(',');
+    }
+    return `${this.master_domain}:${this.cluster_access_port}`;
+  }
+
+  get entryAccess() {
+    if (this.isMongoReplicaSet) {
+      return `mongodb://{username}:{password}@${this.entryDomain}/?replicaSet=${this.cluster_name}&authSource=admin`;
+    }
+    return `mongodb://{username}:{password}@${this.entryDomain}/?authSource=admin`;
+  }
+
+  get entryAccessClb() {
+    if (!this.isMongoReplicaSet) {
+      const clbItem = this.cluster_entry.find((entryItem) => entryItem.cluster_entry_type === 'clbDns');
+      if (clbItem) {
+        return `mongodb://{username}:{password}@${clbItem.entry}:${this.cluster_access_port}/?authSource=admin`;
+      }
+    }
+    return '';
+  }
+
+  get shardList() {
+    return Object.entries(this.seg_range).reduce<
+      {
+        shardName: string;
+        instanceList: string[];
+      }[]
+    >((prevList, [shardName, instanceList]) => {
+      if (!shardName.endsWith('conf')) {
+        return prevList.concat({
+          shardName,
+          instanceList,
+        });
+      }
+      return prevList;
+    }, []);
+  }
+
+  get disasterToleranceLevelName() {
+    return ClusterAffinityMap[this.disaster_tolerance_level];
   }
 }

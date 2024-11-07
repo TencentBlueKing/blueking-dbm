@@ -14,6 +14,8 @@ import { uniq } from 'lodash';
 
 import type { ClusterListEntry, ClusterListNode, ClusterListOperation } from '@services/types';
 
+import { ClusterAffinityMap } from '@common/const/clusterAffinity';
+
 import { utcDisplayTime } from '@utils';
 
 import { t } from '@locales/index';
@@ -48,6 +50,7 @@ export default class Tendbha {
   bk_biz_name: string;
   bk_cloud_id: number;
   bk_cloud_name: string;
+  bk_sub_zone: string;
   cluster_access_port: number;
   cluster_alias: string;
   cluster_entry: ClusterListEntry[];
@@ -60,6 +63,7 @@ export default class Tendbha {
   creator: string;
   db_module_id: number;
   db_module_name: string;
+  disaster_tolerance_level: keyof typeof ClusterAffinityMap;
   id: number;
   immute_domain: string;
   major_version: string;
@@ -90,6 +94,7 @@ export default class Tendbha {
     this.bk_biz_name = payload.bk_biz_name || '';
     this.bk_cloud_id = payload.bk_cloud_id || 0;
     this.bk_cloud_name = payload.bk_cloud_name || '';
+    this.bk_sub_zone = payload.bk_sub_zone;
     this.cluster_access_port = payload.cluster_access_port;
     this.cluster_alias = payload.cluster_alias;
     this.cluster_entry = payload.cluster_entry || [];
@@ -102,6 +107,7 @@ export default class Tendbha {
     this.creator = payload.creator || '';
     this.db_module_name = payload.db_module_name || '';
     this.db_module_id = payload.db_module_id || 0;
+    this.disaster_tolerance_level = payload.disaster_tolerance_level;
     this.id = payload.id || 0;
     this.immute_domain = payload.immute_domain || '';
     this.master_domain = payload.master_domain || '';
@@ -231,5 +237,9 @@ export default class Tendbha {
       tip: Tendbha.operationTextMap[item.ticket_type],
       ticketId: item.ticket_id,
     }));
+  }
+
+  get disasterToleranceLevelName() {
+    return ClusterAffinityMap[this.disaster_tolerance_level];
   }
 }

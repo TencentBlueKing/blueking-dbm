@@ -300,6 +300,12 @@
       //   ),
       // },
       {
+        label: t('所在园区'),
+        field: 'bk_sub_zone',
+        width: 140,
+        render: ({ data }: { data: RedisInstanceModel }) => data.bk_sub_zone || '--',
+      },
+      {
         label: t('部署角色'),
         field: 'role',
         width: 140,
