@@ -126,7 +126,10 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import type { ClbPolarisTargetDetails, DnsTargetDetails } from '@services/model/cluster-entry/cluster-entry-details';
+  import ClusterEntryDetailModel, {
+    type ClbPolarisTargetDetails,
+    type DnsTargetDetails,
+  } from '@services/model/cluster-entry/cluster-entry-details';
   import { getClusterEntries } from '@services/source/clusterEntry';
   import { getRedisPassword } from '@services/source/redis';
 
@@ -222,16 +225,16 @@
       res.forEach((item) => {
         if (item.target_details.length) {
           if (item.isClb) {
-            const targetDetailItem = item.target_details[0] as ClbPolarisTargetDetails;
+            const targetDetailItem = (item as ClusterEntryDetailModel<ClbPolarisTargetDetails>).target_details[0];
             dataObj.value.clb.list[0].value = `${targetDetailItem.clb_ip}:${targetDetailItem.port}`;
             dataObj.value.clb.list[1].value = `${targetDetailItem.clb_domain}:${targetDetailItem.port}`;
           } else if (item.isPolaris) {
-            const targetDetailItem = item.target_details[0] as ClbPolarisTargetDetails;
+            const targetDetailItem = (item as ClusterEntryDetailModel<ClbPolarisTargetDetails>).target_details[0];
             dataObj.value.polary.list[0].value = targetDetailItem.polaris_l5;
             dataObj.value.polary.list[0].shareLink = targetDetailItem.url;
             dataObj.value.polary.list[1].value = `${targetDetailItem.polaris_name}:${targetDetailItem.port}`;
           } else if (item.isNodeEntry) {
-            const targetDetailItem = item.target_details[0] as DnsTargetDetails;
+            const targetDetailItem = (item as ClusterEntryDetailModel<DnsTargetDetails>).target_details[0];
             dataObj.value.nodes.list[0].value = `${item.entry}:${targetDetailItem.port}`;
           }
         }

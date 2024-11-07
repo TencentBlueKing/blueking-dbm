@@ -43,13 +43,13 @@ export interface ClbPolarisTargetDetails {
   url: string;
 }
 
-export default class ClusterEntryDetail {
+export default class ClusterEntryDetail<T extends unknown | DnsTargetDetails | ClbPolarisTargetDetails = unknown> {
   cluster_entry_type: string; // 'dns' | 'clb' | 'polaris' | 'clbDns'
   entry: string;
   role: string;
-  target_details: (DnsTargetDetails | ClbPolarisTargetDetails)[];
+  target_details: T[];
 
-  constructor(payload = {} as ClusterEntryDetail) {
+  constructor(payload = {} as ClusterEntryDetail<T>) {
     this.cluster_entry_type = payload.cluster_entry_type;
     this.entry = payload.entry;
     this.role = payload.role;
