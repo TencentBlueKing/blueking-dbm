@@ -16,7 +16,7 @@
     <TableEditInput
       ref="editRef"
       v-model="localValue"
-      :placeholder="t('请输入IP（单个）')"
+      :placeholder="t('请输入或从表头批量选择')"
       :rules="rules"
       @focus="handleFocus" />
     <!-- <BkPopover

@@ -43,7 +43,7 @@ export default class RedisInstance {
   related_clusters: InstanceRelatedCluster[];
   role: string;
   slave_domain: string;
-  spce_config: InstanceListSpecConfig;
+  spec_config: InstanceListSpecConfig;
   status: ClusterInstStatus;
   version: string;
 
@@ -71,7 +71,7 @@ export default class RedisInstance {
     this.related_clusters = payload.related_clusters || [];
     this.role = payload.role || '';
     this.slave_domain = payload.slave_domain || '';
-    this.spce_config = payload.spce_config || {};
+    this.spec_config = payload.spec_config || {};
     this.status = payload.status || '';
     this.version = payload.version || '';
   }

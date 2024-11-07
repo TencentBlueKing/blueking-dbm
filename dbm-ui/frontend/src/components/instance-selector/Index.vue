@@ -148,6 +148,7 @@
     spec_id?: number;
     role: string;
     shard?: string;
+    version?: string;
   }
 
   export type InstanceSelectorValues<T> = Record<string, T[]>;

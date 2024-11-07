@@ -84,6 +84,15 @@ const redisDBReplaceRoute = {
   component: () => import('@views/db-manage/redis/db-replace/Index.vue'),
 };
 
+const redisMigrateRoute = {
+  name: 'RedisMigrate',
+  path: 'db-migrate/:page?',
+  meta: {
+    navName: t('迁移'),
+  },
+  component: () => import('@views/db-manage/redis/migrate/Index.vue'),
+};
+
 const redisClusterShardUpdateRoute = {
   name: 'RedisClusterShardUpdate',
   path: 'cluster-shard-update/:page?',
@@ -175,6 +184,7 @@ const toolboxDbConsoleRouteMap = {
   'redis.toolbox.slaveRebuild': redisDBCreateSlaveRoute,
   'redis.toolbox.masterSlaveSwap': redisMasterFailoverRoute,
   'redis.toolbox.dbReplace': redisDBReplaceRoute,
+  'redis.toolbox.migrate': redisMigrateRoute,
   'redis.toolbox.versionUpgrade': redisVersionUpgradeRoute,
   'redis.toolbox.rollback': redisDBStructureRoute,
   'redis.toolbox.rollbackRecord': redisStructureInstanceRoute,

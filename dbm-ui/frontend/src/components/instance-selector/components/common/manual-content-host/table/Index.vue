@@ -102,6 +102,7 @@
     cluster_type: '',
     master_domain: data.related_clusters[0].immute_domain,
     bk_cloud_name: data.bk_cloud_name,
+    related_clusters: data.related_clusters || [],
     related_instances: (data.related_instances || []).map(instanceItem => ({
       instance: instanceItem.instance,
       status: instanceItem.status
