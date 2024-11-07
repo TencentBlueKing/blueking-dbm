@@ -108,10 +108,11 @@ export const repairAndVerifyTypeList = [
 ];
 
 export const QueryKeyMap: Record<string, string> = {
-  TwemproxyRedisInstance: 'redis',
-  TwemproxyTendisSSDInstance: 'tendisssd',
-  PredixyTendisplusCluster: 'tendisplus',
-  PredixyRedisCluster: 'redis',
+  [ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE]: 'redis',
+  [ClusterTypes.TWEMPROXY_REDIS_INSTANCE]: 'tendisssd',
+  [ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER]: 'tendisplus',
+  [ClusterTypes.PREDIXY_REDIS_CLUSTER]: 'redis',
+  [ClusterTypes.REDIS_INSTANCE]: 'redis',
 };
 
 // redis 规格有关的集群与机器类型映射，主要处理 RedisCluster 和 Redis主从 合入  TendisCache后端存储的情况
