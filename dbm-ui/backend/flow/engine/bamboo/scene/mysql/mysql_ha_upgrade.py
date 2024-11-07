@@ -19,16 +19,19 @@ from django.utils.translation import gettext as _
 
 from backend.configuration.constants import DBType
 from backend.constants import IP_PORT_DIVIDER
-from backend.db_meta.enums import InstanceInnerRole, InstanceStatus
+from backend.db_meta.enums import ClusterType, InstanceInnerRole, InstanceStatus
 from backend.db_meta.exceptions import DBMetaException
 from backend.db_meta.models import Cluster, StorageInstance
 from backend.db_package.models import Package
 from backend.db_services.mysql.fixpoint_rollback.handlers import FixPointRollbackHandler
-from backend.flow.consts import MediumEnum
+from backend.flow.consts import MediumEnum, MysqlVersionToDBBackupForMap
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.engine.bamboo.scene.mysql.common.cluster_entrys import get_tendb_ha_entry
-from backend.flow.engine.bamboo.scene.mysql.common.common_sub_flow import install_mysql_in_cluster_sub_flow
+from backend.flow.engine.bamboo.scene.mysql.common.common_sub_flow import (
+    build_surrounding_apps_sub_flow,
+    install_mysql_in_cluster_sub_flow,
+)
 from backend.flow.engine.bamboo.scene.mysql.common.get_master_config import get_instance_config
 from backend.flow.engine.bamboo.scene.mysql.common.master_and_slave_switch import master_and_slave_switch
 from backend.flow.engine.bamboo.scene.mysql.common.mysql_resotre_data_sub_flow import (
@@ -58,6 +61,7 @@ from backend.flow.utils.mysql.mysql_act_dataclass import (
 from backend.flow.utils.mysql.mysql_act_playload import MysqlActPayload
 from backend.flow.utils.mysql.mysql_context_dataclass import ClusterInfoContext
 from backend.flow.utils.mysql.mysql_db_meta import MySQLDBMeta
+from backend.flow.utils.mysql.mysql_version_parse import mysql_version_parse
 from backend.ticket.builders.common.constants import MySQLBackupSource
 
 logger = logging.getLogger("flow")
@@ -452,6 +456,16 @@ def tendbha_cluster_upgrade_subflow(
     bk_host_ids = [new_master["bk_host_id"], new_slave["bk_host_id"]]
     master = cluster_cls.storageinstance_set.get(instance_inner_role=InstanceInnerRole.MASTER.value)
     db_config = get_instance_config(cluster_cls.bk_cloud_id, master.machine.ip, ports)
+    if mysql_version_parse(db_version) >= mysql_version_parse("5.7.0"):
+        will_del_keys = ["slave_parallel_type", "replica_parallel_type"]
+        # 如果不是tmysql的话，需要删除一些配置
+        if "tmysql" not in pkg.name:
+            will_del_keys.append("log_bin_compress")
+            will_del_keys.append("relay_log_uncompress")
+        for port in db_config:
+            for key in will_del_keys:
+                if db_config[port].get(key):
+                    del db_config[port][key]
     install_ms_pair_subflow = build_install_ms_pair_sub_pipeline(
         uid=uid,
         root_id=root_id,
@@ -503,6 +517,16 @@ def tendbha_cluster_upgrade_subflow(
         new_ro_slave_ips=new_ro_slave_ips,
     )
     sub_pipeline.add_parallel_sub_pipeline(sub_flow_list=ms_switch_subflows)
+    # 清理实例级别周边配置
+    uninstall_surrounding_sub_pipeline = build_uninstall_surrounding_sub_pipeline(
+        root_id=root_id,
+        parent_global_data=parent_global_data,
+        uninstall_ip_list=[old_master_ip, old_slave_ip],
+        relation_cluster_ids=cluster_ids,
+        ports=ports,
+        bk_cloud_id=cluster_cls.bk_cloud_id,
+    )
+    sub_pipeline.add_sub_pipeline(sub_flow=uninstall_surrounding_sub_pipeline)
     # 更新集群模块信息
     sub_pipeline.add_act(
         act_name=_("更新集群db模块信息"),
@@ -517,6 +541,23 @@ def tendbha_cluster_upgrade_subflow(
                 },
             )
         ),
+    )
+    # 重新安装备份,监控等
+    sub_pipeline.add_sub_pipeline(
+        sub_flow=build_surrounding_apps_sub_flow(
+            bk_cloud_id=cluster_cls.bk_cloud_id,
+            master_ip_list=[new_master_ip],
+            slave_ip_list=new_ro_slave_ips + [new_slave_ip],
+            root_id=root_id,
+            parent_global_data=copy.deepcopy(parent_global_data),
+            collect_sysinfo=True,
+            is_install_backup=True,
+            is_install_monitor=True,
+            is_install_rotate_binlog=True,
+            is_install_checksum=True,
+            cluster_type=ClusterType.TenDBHA.value,
+            db_backup_pkg_type=MysqlVersionToDBBackupForMap[db_version],
+        )
     )
     # 下架确认节点
     sub_pipeline.add_act(act_name=_("人工确认下架旧节点"), act_component_code=PauseComponent.code, kwargs={})
@@ -1145,3 +1186,43 @@ def build_ms_pair_switch_sub_pipelines(
             )
         )
     return switch_sub_pipeline_list
+
+
+def build_uninstall_surrounding_sub_pipeline(
+    root_id, parent_global_data, uninstall_ip_list, relation_cluster_ids, bk_cloud_id, ports
+):
+    sub_pipeline = SubBuilder(root_id=root_id, data=copy.deepcopy(parent_global_data))
+
+    sub_pipeline.add_act(
+        act_name=_("下发db-actor到节点{}".format(uninstall_ip_list)),
+        act_component_code=TransFileComponent.code,
+        kwargs=asdict(
+            DownloadMediaKwargs(
+                bk_cloud_id=bk_cloud_id,
+                exec_ip=uninstall_ip_list,
+                file_list=GetFileList(db_type=DBType.MySQL).get_db_actuator_package(),
+            )
+        ),
+    )
+    acts = []
+    for ip in uninstall_ip_list:
+        context = {"uninstall_ip": ip, "remote_port": ports, "backend_port": ports, "bk_cloud_id": bk_cloud_id}
+        act = {
+            "act_name": _("清理{}的实例级别周边配置".format(ip)),
+            "act_component_code": ExecuteDBActuatorScriptComponent.code,
+            "kwargs": asdict(
+                ExecActuatorKwargs(
+                    exec_ip=ip,
+                    cluster_type=ClusterType.TenDBHA,
+                    bk_cloud_id=bk_cloud_id,
+                    cluster=context,
+                    get_mysql_payload_func=MysqlActPayload.get_clear_surrounding_config_payload.__name__,
+                )
+            ),
+        }
+        acts.append(act)
+
+    sub_pipeline.add_parallel_acts(
+        acts_list=acts,
+    )
+    return sub_pipeline.build_sub_process(sub_name=_("清理实例级别周边配置"))
