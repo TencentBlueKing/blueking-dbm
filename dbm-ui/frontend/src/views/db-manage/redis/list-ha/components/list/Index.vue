@@ -404,7 +404,7 @@
   const isCN = computed(() => locale.value === 'zh-cn');
   const tableOperationWidth = computed(() => {
     if (!isStretchLayoutOpen.value) {
-      return isCN.value ? 330 : 410;
+      return isCN.value ? 330 : 350;
     }
     return 60;
   });

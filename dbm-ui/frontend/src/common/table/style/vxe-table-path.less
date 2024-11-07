@@ -39,6 +39,10 @@
     &.column--highlight .vxe-header--column:not(.col--seq):hover{
       background: var(--table-row-active-bg-color);
     }
+
+    .vxe-header--column.vxe-header--setting-wrapper{
+      padding: 0;
+    }
   }
 
   [class*='vxe-table-icon-'] {
@@ -51,6 +55,10 @@
 
   .vxe-table--filter-wrapper {
     min-width: 148px;
+
+    .vxe-table--filter-body{
+      max-height: 300px !important;
+    }
 
     .vxe-table--filter-option {
       padding-top: 8px;
@@ -113,10 +121,5 @@
         }
       }
     }
-  }
-
-  .vxe-table--body-prepend-wrapper{
-    position: relative;
-    z-index: 9;
   }
 }

@@ -28,6 +28,7 @@
         :pagination-height="60"
         :remote-pagination="remotePagination"
         show-overflow-tooltip
+        :show-settings="showSettings"
         v-bind="$attrs"
         @column-sort="handleColumnSortChange"
         @page-limit-change="handlePageLimitChange"
@@ -111,6 +112,7 @@
     // 是否允许行点击选中
     allowRowClickSelect?: boolean,
     remoteSort?: boolean,
+    showSettings?: boolean,
   }
 
   interface Emits {
@@ -145,6 +147,7 @@
     remotePagination: true,
     allowRowClickSelect: false,
     remoteSort: false,
+    showSettings: true,
   });
 
   const emits = defineEmits<Emits>();
@@ -533,7 +536,6 @@
   const handlePageValueChange = (pageValue:number) => {
     pagination.current = pageValue;
     fetchListData();
-    bkTableRef.value.scrollTo(0, 0);
   };
 
   // 情况搜索条件

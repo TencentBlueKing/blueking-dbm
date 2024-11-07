@@ -74,22 +74,33 @@ export const columnConfig = (bkColumnConfig: any) => {
 };
 
 export const tableConfig = (bkTableConfig: any) => {
-  const bkTableConfigMemo = _.cloneDeep(bkTableConfig);
+  const bkTableConfigMemo = { ...bkTableConfig };
   const vxeTableConfig = {
     ...bkTableConfig,
+    rowConfig: {},
   };
 
   if (bkTableConfigMemo.columns) {
     delete vxeTableConfig.columns;
   }
-  if (bkTableConfigMemo.rowClass) {
-    if (typeof bkTableConfigMemo.rowClass === 'string') {
+  if (bkTableConfigMemo['row-class']) {
+    if (typeof bkTableConfigMemo['row-class'] === 'string') {
       vxeTableConfig.rowClassName = bkTableConfigMemo.rowClas;
-    } else if (typeof bkTableConfigMemo.rowClass === 'function') {
-      const { rowClass } = bkTableConfigMemo;
+    } else if (typeof bkTableConfigMemo['row-class'] === 'function') {
+      const rowClass = bkTableConfigMemo['row-class'];
 
       vxeTableConfig.rowClassName = ({ row }: { row: any }) => rowClass(row);
     }
+  }
+
+  if (bkTableConfigMemo.rowHeight) {
+    Object.assign(vxeTableConfig.rowConfig, {
+      height: bkTableConfigMemo.rowHeight,
+    });
+  }
+
+  if (bkTableConfigMemo.settings && bkTableConfigMemo.settings.size) {
+    vxeTableConfig.size = bkTableConfigMemo.settings.size;
   }
 
   delete vxeTableConfig.style;
@@ -102,7 +113,10 @@ export const tableConfig = (bkTableConfig: any) => {
   delete vxeTableConfig['selection-key'];
   delete vxeTableConfig.settings;
   delete vxeTableConfig.spellcheck;
+  delete vxeTableConfig['row-height'];
   delete vxeTableConfig.isrowselectenable;
+  delete vxeTableConfig.settings;
+  delete vxeTableConfig.showSettings;
 
   return vxeTableConfig;
 };

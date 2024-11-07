@@ -15,7 +15,6 @@
   <BkTable
     :key="tableKey"
     :columns="columns"
-    :pagination-heihgt="60"
     show-overflow-tooltip
     v-bind="$attrs">
     <slot />
