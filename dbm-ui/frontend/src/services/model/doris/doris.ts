@@ -15,8 +15,7 @@ import { uniq } from 'lodash';
 
 import type { ClusterListNode, ClusterListOperation, ClusterListSpec } from '@services/types';
 
-import { TicketTypes } from '@common/const';
-import { ClusterAffinityMap } from '@common/const/clusterAffinity';
+import { ClusterAffinityMap, TicketTypes } from '@common/const';
 
 import { isRecentDays, utcDisplayTime } from '@utils';
 
