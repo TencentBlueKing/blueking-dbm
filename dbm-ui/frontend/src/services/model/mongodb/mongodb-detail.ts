@@ -15,6 +15,7 @@ import ClusterEntryDetailModel from '@services/model/cluster-entry/cluster-entry
 import type { ClusterListEntry } from '@services/types';
 
 import { TicketTypes } from '@common/const';
+import { ClusterAffinityMap } from '@common/const/clusterAffinity';
 
 import { utcDisplayTime } from '@utils';
 
@@ -85,6 +86,7 @@ export default class MongodbDetail {
   creator: string;
   db_module_id: number;
   db_module_name: string;
+  disaster_tolerance_level: keyof typeof ClusterAffinityMap;
   id: number;
   instances: {
     bk_cloud_id: number;
@@ -211,6 +213,7 @@ export default class MongodbDetail {
     this.creator = payload.creator;
     this.db_module_id = payload.db_module_id;
     this.db_module_name = payload.db_module_name;
+    this.disaster_tolerance_level = payload.disaster_tolerance_level;
     this.id = payload.id;
     this.instances = payload.instances;
     this.major_version = payload.major_version;
@@ -357,5 +360,9 @@ export default class MongodbDetail {
       }
     }
     return '';
+  }
+
+  get disasterToleranceLevelName() {
+    return ClusterAffinityMap[this.disaster_tolerance_level];
   }
 }

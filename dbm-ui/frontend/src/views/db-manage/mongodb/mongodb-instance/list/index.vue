@@ -294,6 +294,12 @@
 
       },
       {
+        label: t('所在园区'),
+        field: 'bk_sub_zone',
+        width: 140,
+        render: ({ data }: { data: MongodbInstanceModel }) => data.bk_sub_zone || '--',
+      },
+      {
         label: t('部署时间'),
         field: 'createAtDisplay',
         sort: true,

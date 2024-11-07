@@ -54,6 +54,11 @@
       {
         label: t('管控区域'),
         key: 'bk_cloud_name',
+        render: () => (props.data.bk_cloud_name ? `${props.data.bk_cloud_name}[${props.data.bk_cloud_id}]` : '--'),
+      },
+      {
+        label: t('容灾要求'),
+        key: 'disasterToleranceLevelName',
       },
     ],
     [
