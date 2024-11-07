@@ -20,6 +20,11 @@
         @click="handleApply">
         {{ t('申请实例') }}
       </BkButton>
+      <ClusterBatchOperation
+        v-db-console="'mongodb.sharedClusterList.batchOperation'"
+        class="ml-8 mb-8"
+        :disabled="!hasSelected"
+        :list="clusterBatchOperationList" />
       <BkButton
         class="ml-8 mb-8"
         :disabled="!hasSelected"
@@ -142,6 +147,7 @@
   import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
 
   import ClusterAuthorize from '@views/db-manage/common/cluster-authorize/Index.vue';
+  import ClusterBatchOperation from '@views/db-manage/common/cluster-batch-opration/Index.vue'
   import ClusterCapacityUsageRate from '@views/db-manage/common/cluster-capacity-usage-rate/Index.vue'
   import ClusterIpCopy from '@views/db-manage/common/cluster-ip-copy/Index.vue';
   import DropdownExportExcel from '@views/db-manage/common/dropdown-export-excel/index.vue';
@@ -291,6 +297,31 @@
   const hasData = computed(() => tableDataList.value.length > 0);
   const hasSelected = computed(() => selected.value.length > 0);
   const selectedIds = computed(() => selected.value.map(item => item.id));
+
+  const clusterBatchOperationList = computed(() => [
+    {
+      dbConsole: 'mongodb.sharedClusterList.disable',
+      click: () => handleDisableCluster(selected.value),
+      disabled: selected.value.some((data) => data.isOffline || data.operationDisabled),
+      tooltips: t('仅可禁用状态为“已启用”的集群'),
+      text: t('禁用')
+    },
+    {
+      dbConsole: 'mongodb.sharedClusterList.enable',
+      click: () => handleEnableCluster(selected.value),
+      disabled: selected.value.some((data) => data.isOnline || data.isStarting),
+      tooltips: t('仅可启用状态为“已禁用”的集群'),
+      text: t('启用')
+    },
+    {
+      dbConsole: 'mongodb.sharedClusterList.delete',
+      click: () => handleDeleteCluster(selected.value),
+      disabled: selected.value.some((data) => data.isOnline || Boolean(data.operationTicketId)),
+      tooltips: t('仅可删除状态为“已禁用”的集群'),
+      text: t('删除')
+    }
+  ]);
+
   const columns = computed(() => [
     {
       label: 'ID',
@@ -596,17 +627,20 @@
       width: 300,
       fixed: isStretchLayoutOpen.value ? false : 'right',
       render: ({ data }: { data: MongodbModel }) => {
-        const baseButtons = [
-        <bk-button
-          disabled={data.isOffline}
-          text
-          theme="primary"
-          onClick={() => handleShowAccessEntry(data)}>
-          { t('获取访问方式') }
-        </bk-button>,
+        const frontButtons = [
+          <bk-button
+            v-db-console="mongodb.sharedClusterList.getAccess"
+            disabled={data.isOffline}
+            text
+            theme="primary"
+            onClick={() => handleShowAccessEntry(data)}>
+            { t('获取访问方式') }
+          </bk-button>,
         ];
         const onlineButtons = [
-          <OperationBtnStatusTips data={data}>
+          <OperationBtnStatusTips
+            v-db-console="mongodb.sharedClusterList.capacityChange"
+            data={data}>
             <bk-button
               text
               theme="primary"
@@ -616,44 +650,57 @@
               { t('集群容量变更') }
             </bk-button>
           </OperationBtnStatusTips>,
-          <OperationBtnStatusTips data={data}>
+          <OperationBtnStatusTips
+            v-db-console="mongodb.sharedClusterList.diaable"
+            data={data}>
             <bk-button
               text
               theme="primary"
               class="ml-16"
               disabled={data.operationDisabled}
-              onclick={() => handleDisableCluster(data)}>
+              onclick={() => handleDisableCluster([data])}>
               { t('禁用') }
             </bk-button>
           </OperationBtnStatusTips>,
         ];
         const offlineButtons = [
-          <OperationBtnStatusTips data={data}>
+          <OperationBtnStatusTips
+            v-db-console="mongodb.sharedClusterList.enable"
+            data={data}>
             <bk-button
               text
               theme="primary"
               class="ml-16"
               disabled={data.isStarting}
-              onclick={() => handleEnableCluster(data)}>
+              onclick={() => handleEnableCluster([data])}>
               { t('启用') }
             </bk-button>
           </OperationBtnStatusTips>,
-          <OperationBtnStatusTips data={data}>
+
+        ];
+        const backButtons = [
+          <OperationBtnStatusTips
+            v-db-console="mongodb.sharedClusterList.delete"
+            data={data}>
             <bk-button
+              v-bk-tooltips={{
+                disabled: data.isOffline,
+                content: t('请先禁用集群')
+              }}
               text
               theme="primary"
               class="ml-16"
-              disabled={Boolean(data.operationTicketId)}
-              onclick={() => handleDeleteCluster(data)}>
+              disabled={data.isOnline || Boolean(data.operationTicketId)}
+              onclick={() => handleDeleteCluster([data])}>
               { t('删除') }
             </bk-button>
-          </OperationBtnStatusTips>,
-        ];
+          </OperationBtnStatusTips>
+        ]
 
         if (data.isOnline) {
-          return [...baseButtons, ...onlineButtons];
+          return [...frontButtons, ...onlineButtons, ...backButtons];
         }
-        return [...baseButtons, ...offlineButtons];
+        return [...frontButtons, ...offlineButtons, ...backButtons];
       },
     },
   ]);
@@ -792,15 +839,15 @@
     capacityChangeShow.value = true;
   };
 
-  const handleEnableCluster = (row: MongodbModel) => {
+  const handleEnableCluster = (data: MongodbModel[]) => {
     InfoBox({
       type: 'warning',
-      title: t('确定启用该集群'),
+      title: t('确定启用集群'),
       content: () => (
         <p>
           { t('集群') }：
           <span class='info-box-cluster-name'>
-            { row.cluster_name }
+            { data.map(dataItem => dataItem.cluster_name).join('，') }
           </span>
         </p>
       ),
@@ -810,7 +857,7 @@
           bk_biz_id: currentBizId,
           ticket_type: TicketTypes.MONGODB_ENABLE,
           details: {
-            cluster_ids: [row.id],
+            cluster_ids: data.map(dataItem => dataItem.id),
           },
         })
           .then((res) => {
@@ -820,15 +867,15 @@
     });
   };
 
-  const handleDisableCluster = (row: MongodbModel) => {
-    disableCluster(row);
+  const handleDisableCluster = (data: MongodbModel[]) => {
+    disableCluster(data);
   };
 
-  const handleDeleteCluster = (row: MongodbModel) => {
-    const { cluster_name: name } = row;
+  const handleDeleteCluster = (data: MongodbModel[]) => {
+    const name = data.map(dataItem => dataItem.cluster_name).join('，')
     InfoBox({
       type: 'warning',
-      title: t('确定删除该集群'),
+      title: t('确定删除集群'),
       confirmText: t('删除'),
       confirmButtonTheme: 'danger',
       contentAlign: 'left',
@@ -845,7 +892,7 @@
           bk_biz_id: currentBizId,
           ticket_type: TicketTypes.MONGODB_DESTROY,
           details: {
-            cluster_ids: [row.id],
+            cluster_ids: data.map(dataItem => dataItem.id),
           },
         })
           .then((res) => {

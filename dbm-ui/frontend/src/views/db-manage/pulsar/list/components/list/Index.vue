@@ -228,7 +228,7 @@
   });
   const tableOperationWidth = computed(() => {
     if (!isStretchLayoutOpen.value) {
-      return isCN.value ? 280 : 420;
+      return isCN.value ? 310 : 420;
     }
     return 100;
   });
@@ -559,6 +559,9 @@
           ];
           if (data.isOffline) {
             return [
+            <OperationBtnStatusTips
+              data={data}
+              v-db-console="pulsar.clusterManage.enable">
               <auth-button
                 text
                 theme="primary"
@@ -571,7 +574,11 @@
                 loading={tableDataActionLoadingMap.value[data.id]}
                 onClick={() => handleEnable(data)}>
                 { t('启用') }
-              </auth-button>,
+              </auth-button>
+            </OperationBtnStatusTips>,
+            <OperationBtnStatusTips
+              data={data}
+              v-db-console="pulsar.clusterManage.delete">
               <auth-button
                 text
                 theme="primary"
@@ -583,8 +590,9 @@
                 class="mr8"
                 loading={tableDataActionLoadingMap.value[data.id]}
                 onClick={() => handleRemove(data)}>
-                { t('删除') }
-              </auth-button>,
+                  { t('删除') }
+                </auth-button>
+              </OperationBtnStatusTips>,
               ...baseAction,
             ];
           }
@@ -633,6 +641,26 @@
                 loading={tableDataActionLoadingMap.value[data.id]}
                 onClick={() => handlDisabled(data)}>
                 { t('禁用') }
+              </auth-button>
+            </OperationBtnStatusTips>,
+            <OperationBtnStatusTips
+              data={data}
+              v-db-console="pulsar.clusterManage.delete">
+              <auth-button
+                v-bk-tooltips={{
+                  disabled: data.isOffline,
+                  content: t('请先禁用集群')
+                }}
+                text
+                theme="primary"
+                action-id="pulsar_destroy"
+                permission={data.permission.pulsar_destroy}
+                disabled={data.isOnline || Boolean(data.operationTicketId)}
+                resource={data.id}
+                class="mr8"
+                loading={tableDataActionLoadingMap.value[data.id]}
+                onClick={() => handleRemove(data)}>
+                { t('删除') }
               </auth-button>
             </OperationBtnStatusTips>,
             <a

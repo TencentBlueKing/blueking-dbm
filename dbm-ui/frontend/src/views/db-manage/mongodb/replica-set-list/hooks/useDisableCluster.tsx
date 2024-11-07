@@ -27,14 +27,15 @@ export const useDisableCluster = () => {
   const { currentBizId } = useGlobalBizs();
   const ticketMessage = useTicketMessage();
 
-  const diabledCluster = (data: { cluster_name: string; id: number }) => {
+  const diabledCluster = (data: { cluster_name: string; id: number }[]) => {
     InfoBox({
       type: 'warning',
-      title: t('确定禁用该集群'),
+      title: t('确定禁用集群'),
       content: () => (
         <>
           <p>
-            {t('集群')}：<span class='info-box-cluster-name'>{data.cluster_name}</span>
+            {t('集群')}：
+            <span class='info-box-cluster-name'>{data.map((dataItem) => dataItem.cluster_name).join('，')}</span>
           </p>
           <p>{t('被禁用后将无法访问，如需恢复访问，可以再次「启用」')}</p>
         </>
@@ -45,7 +46,7 @@ export const useDisableCluster = () => {
           bk_biz_id: currentBizId,
           ticket_type: TicketTypes.MONGODB_DISABLE,
           details: {
-            cluster_ids: [data.id],
+            cluster_ids: data.map((dataItem) => dataItem.id),
           },
         }).then((res) => {
           ticketMessage(res.id);

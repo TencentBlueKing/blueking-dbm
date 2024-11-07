@@ -21,6 +21,11 @@
         @click="handleApply">
         {{ t('申请实例') }}
       </AuthButton>
+      <ClusterBatchOperation
+        v-db-console="'mysql.singleClusterList.batchOperation'"
+        class="ml-8"
+        :disabled="!hasSelected"
+        :list="clusterBatchOperationList" />
       <span
         v-bk-tooltips="{
           disabled: hasSelected,
@@ -137,6 +142,7 @@
   import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
 
   import ClusterAuthorize from '@views/db-manage/common/cluster-authorize/Index.vue';
+  import ClusterBatchOperation from '@views/db-manage/common/cluster-batch-opration/Index.vue'
   import ClusterCapacityUsageRate from '@views/db-manage/common/cluster-capacity-usage-rate/Index.vue'
   import EditEntryConfig from '@views/db-manage/common/cluster-entry-config/Index.vue';
   import ClusterExportData from '@views/db-manage/common/cluster-export-data/Index.vue'
@@ -215,6 +221,31 @@
   const isCN = computed(() => locale.value === 'zh-cn');
   const hasSelected = computed(() => selected.value.length > 0);
   const selectedIds = computed(() => selected.value.map(item => item.id));
+
+  const clusterBatchOperationList = computed(() => [
+    {
+      dbConsole: 'mysql.singleClusterList.disable',
+      click: () => handleSwitchCluster(TicketTypes.MYSQL_SINGLE_DISABLE, selected.value),
+      disabled: selected.value.some((data) => data.isOffline || data.operationDisabled),
+      tooltips: t('仅可禁用状态为“已启用”的集群'),
+      text: t('禁用')
+    },
+    {
+      dbConsole: 'mysql.singleClusterList.enable',
+      click: () => handleSwitchCluster(TicketTypes.MYSQL_SINGLE_ENABLE, selected.value),
+      disabled: selected.value.some((data) => data.isOnline || data.isStarting),
+      tooltips: t('仅可启用状态为“已禁用”的集群'),
+      text: t('启用')
+    },
+    {
+      dbConsole: 'mysql.singleClusterList.delete',
+      click: () => handleDeleteCluster(selected.value),
+      disabled: selected.value.some((data) => data.isOnline || Boolean(data.operationTicketId)),
+      tooltips: t('仅可删除状态为“已禁用”的集群'),
+      text: t('删除')
+    }
+  ]);
+
   const searchSelectData = computed(() => [
     {
       name: t('访问入口'),
@@ -597,23 +628,26 @@
           <MoreActionExtend v-db-console="mysql.singleClusterList.moreOperation">
             {{
               default: () => <>
-                {data.isOnline ? (
-                  <bk-dropdown-item v-db-console="mysql.singleClusterList.disable">
-                    <OperationBtnStatusTips data={data}>
-                      <auth-button
-                        text
-                        class="mr-8"
-                        action-id="mysql_enable_disable"
-                        permission={data.permission.mysql_enable_disable}
-                        disabled={data.operationDisabled}
-                        resource={data.id}
-                        onClick={() => handleSwitchCluster(TicketTypes.MYSQL_SINGLE_DISABLE, data)}>
-                        { t('禁用') }
-                      </auth-button>
-                    </OperationBtnStatusTips>
-                  </bk-dropdown-item>
-                ) : (
-                  <>
+                {
+                  data.isOnline && (
+                    <bk-dropdown-item v-db-console="mysql.singleClusterList.disable">
+                      <OperationBtnStatusTips data={data}>
+                        <auth-button
+                          text
+                          class="mr-8"
+                          action-id="mysql_enable_disable"
+                          permission={data.permission.mysql_enable_disable}
+                          disabled={data.operationDisabled}
+                          resource={data.id}
+                          onClick={() => handleSwitchCluster(TicketTypes.MYSQL_SINGLE_DISABLE, [data])}>
+                          { t('禁用') }
+                        </auth-button>
+                      </OperationBtnStatusTips>
+                    </bk-dropdown-item>
+                  )
+                }
+                {
+                  data.isOffline && (
                     <bk-dropdown-item v-db-console="mysql.singleClusterList.enable">
                       <OperationBtnStatusTips data={data}>
                         <auth-button
@@ -623,27 +657,31 @@
                           permission={data.permission.mysql_enable_disable}
                           disabled={data.isStarting}
                           resource={data.id}
-                          onClick={() => handleSwitchCluster(TicketTypes.MYSQL_SINGLE_ENABLE, data)}>
+                          onClick={() => handleSwitchCluster(TicketTypes.MYSQL_SINGLE_ENABLE, [data])}>
                           { t('启用') }
                         </auth-button>
                       </OperationBtnStatusTips>
                     </bk-dropdown-item>
-                    <bk-dropdown-item v-db-console="mysql.singleClusterList.delete">
-                      <OperationBtnStatusTips data={data}>
-                        <auth-button
-                          text
-                          class="mr-8"
-                          action-id="mysql_destroy"
-                          permission={data.permission.mysql_destroy}
-                          disabled={Boolean(data.operationTicketId)}
-                          resource={data.id}
-                          onClick={() => handleDeleteCluster(data)}>
-                          { t('删除') }
-                        </auth-button>
-                      </OperationBtnStatusTips>
-                    </bk-dropdown-item>
-                  </>
-                )}
+                  )
+                }
+                <bk-dropdown-item v-db-console="mysql.singleClusterList.delete">
+                  <OperationBtnStatusTips data={data}>
+                    <auth-button
+                      v-bk-tooltips={{
+                        disabled: data.isOffline,
+                        content: t('请先禁用集群')
+                      }}
+                      text
+                      class="mr-8"
+                      action-id="mysql_destroy"
+                      permission={data.permission.mysql_destroy}
+                      disabled={data.isOnline || Boolean(data.operationTicketId)}
+                      resource={data.id}
+                      onClick={() => handleDeleteCluster([data])}>
+                      { t('删除') }
+                    </auth-button>
+                  </OperationBtnStatusTips>
+                </bk-dropdown-item>
               </>
             }}
           </MoreActionExtend>
@@ -823,11 +861,10 @@
   /**
    * 集群启停
    */
-  const handleSwitchCluster = (type: TicketTypesStrings, data: TendbsingleModel) => {
-    if (!type) return;
-
+  const handleSwitchCluster = (type: TicketTypesStrings, data: TendbsingleModel[]) => {
     const isOpen = type === TicketTypes.MYSQL_SINGLE_ENABLE;
-    const title = isOpen ? t('确定启用该集群') : t('确定禁用该集群');
+    const title = isOpen ? t('确定启用集群') : t('确定禁用集群');
+    const clusterName = data.map(dataItem => dataItem.cluster_name).join('，')
     InfoBox({
       type: 'warning',
       title,
@@ -835,8 +872,8 @@
         <div style="word-break: all;">
           {
             isOpen
-              ? <p>{t('集群【name】启用后将恢复访问', { name: data.cluster_name })}</p>
-              : <p>{t('集群【name】被禁用后将无法访问_如需恢复访问_可以再次「启用」', { name: data.cluster_name })}</p>
+              ? <p>{t('集群【name】启用后将恢复访问', { name: clusterName })}</p>
+              : <p>{t('集群【name】被禁用后将无法访问_如需恢复访问_可以再次「启用」', { name: clusterName })}</p>
           }
         </div>
       ),
@@ -845,7 +882,7 @@
           bk_biz_id: globalBizsStore.currentBizId,
           ticket_type: type,
           details: {
-            cluster_ids: [data.id],
+            cluster_ids: data.map(dataItem => dataItem.id),
           },
         };
         await createTicket(params).then((res) => {
@@ -859,18 +896,18 @@
   /**
    * 删除集群
    */
-  const handleDeleteCluster = (data: TendbsingleModel) => {
-    const { cluster_name: name } = data;
+  const handleDeleteCluster = (data: TendbsingleModel[]) => {
+    const clusterName = data.map(dataItem => dataItem.cluster_name).join('，')
     InfoBox({
       type: 'warning',
-      title: t('确定删除该集群'),
+      title: t('确定删除集群'),
       confirmText: t('删除'),
       confirmButtonTheme: 'danger',
       content: () => (
         <div style="word-break: all; text-align: left; padding-left: 16px;">
-          <p>{t('集群【name】被删除后_将进行以下操作', { name })}</p>
-          <p>{t('1_删除xx集群', { name })}</p>
-          <p>{t('2_删除xx实例数据_停止相关进程', { name })}</p>
+          <p>{t('集群【name】被删除后_将进行以下操作', { name: clusterName })}</p>
+          <p>{t('1_删除xx集群', { name: clusterName })}</p>
+          <p>{t('2_删除xx实例数据_停止相关进程', { name: clusterName })}</p>
           <p>3. {t('回收主机')}</p>
         </div>
       ),
@@ -879,7 +916,7 @@
           bk_biz_id: globalBizsStore.currentBizId,
           ticket_type: TicketTypes.MYSQL_SINGLE_DESTROY,
           details: {
-            cluster_ids: [data.id],
+            cluster_ids: data.map(dataItem => dataItem.id),
           },
         };
         await createTicket(params).then((res) => {
