@@ -17,6 +17,8 @@ export * from './instanceProxyOpen';
 export * from './keysDelete';
 export * from './keysExtract';
 export * from './masterSlaveSwitch';
+export * from './migrateCluster';
+export * from './migrateSingle';
 export * from './pluginCreateClb';
 export * from './pluginCreatePolaris';
 export * from './pluginDeleteClb';

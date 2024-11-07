@@ -14,7 +14,7 @@
 <template>
   <div
     v-bk-tooltips="{
-      disabled: !disabled,
+      disabled: !disabled || !disabledTooltips,
       content: disabledTooltips,
     }"
     class="card-checkbox"

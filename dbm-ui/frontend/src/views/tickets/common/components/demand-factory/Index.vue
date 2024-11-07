@@ -103,6 +103,8 @@
   import RedisHaClusterOperation from './redis/HaClusterOperation.vue';
   import RedisInstallModule from './redis/InstallModule.vue';
   import RedisMasterFailover from './redis/MasterFailover.vue';
+  import RedisClusterMigrate from './redis/migrate/ClusterMigrate.vue';
+  import RedisSingleMigrate from './redis/migrate/SingleMigrate.vue';
   import RedisOperation from './redis/Operation.vue';
   import RedisProxyScaleDown from './redis/ProxyScaleDown.vue';
   import RedisProxyScaleUp from './redis/ProxyScaleUp.vue';
@@ -373,6 +375,8 @@
     [TicketTypes.MYSQL_LOCAL_UPGRADE]: MySQLVerisonLocalUpgrade,
     [TicketTypes.MYSQL_MIGRATE_UPGRADE]: MySQLVerisonMigrateUpgrade,
     [TicketTypes.DORIS_APPLY]: DetailDoris,
+    [TicketTypes.REDIS_CLUSTER_INS_MIGRATE]: RedisClusterMigrate,
+    [TicketTypes.REDIS_SINGLE_INS_MIGRATE]: RedisSingleMigrate,
   };
 
   // 不同集群详情组件

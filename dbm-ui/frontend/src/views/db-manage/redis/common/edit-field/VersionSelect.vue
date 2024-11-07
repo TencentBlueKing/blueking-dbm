@@ -96,7 +96,7 @@
     manual: true,
     onSuccess(listResult) {
       if (!props.data) {
-        [[localValue.value]] = listResult;
+        [localValue.value] = listResult;
       }
       selectList.value = listResult.map((value) => ({
         value,
@@ -132,7 +132,10 @@
 
   defineExpose<Exposes>({
     getValue() {
-      return selectRef.value.getValue().then(() => localValue.value);
+      return selectRef.value
+        .getValue()
+        .then(() => localValue.value)
+        .catch(() => Promise.reject(localValue.value));
     },
   });
 </script>
