@@ -31,15 +31,15 @@
 
 <script setup lang="tsx">
   import type { Table } from 'bkui-vue';
+  import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
 
   import DbStatus from '@components/db-status/index.vue';
 
   import type { InstanceSelectorValues } from '../Index.vue';
 
-  import  type { InstanceItem } from './RenderManualInput.vue';
+  import type { InstanceItem } from './RenderManualInput.vue';
   import type { ChoosedItem } from './RenderRedisHost.vue';
-
 
   interface TableItem {
     data: InstanceItem
@@ -57,19 +57,10 @@
   }
 
   const props = defineProps<Props>();
+
   const emits = defineEmits<Emits>();
 
   const { t } = useI18n();
-
-  const formatValue = (data: InstanceItem) => ({
-    bk_host_id: data.bk_host_id,
-    cluster_id: data.cluster_id,
-    bk_cloud_id: data.host_info?.cloud_id || 0,
-    ip: data.ip || '',
-    role: data.role,
-    cluster_domain: data.master_domain,
-    spec_config: data.spec_config,
-  });
 
   const search = ref('');
 
@@ -128,9 +119,10 @@
       label: t('角色'),
       field: 'role',
       showOverflowTooltip: true,
-      filter: {
-        list: [{ text: 'master', value: 'master' }, { text: 'slave', value: 'slave' }, { text: 'proxy', value: 'proxy' }],
-      },
+      // filter: {
+      //   list: [{ text: 'master', value: 'master' }, { text: 'slave', value: 'slave' }, { text: 'proxy', value: 'proxy' }],
+      // },
+      render: ({ data } : TableItem) => <span>{_.upperFirst(data.role)}</span>,
     },
     {
       label: t('实例状态'),
@@ -205,6 +197,16 @@
       ...lastValues,
     });
   };
+
+  const formatValue = (data: InstanceItem) => ({
+    bk_host_id: data.bk_host_id,
+    cluster_id: data.cluster_id,
+    bk_cloud_id: data.host_info?.cloud_id || 0,
+    ip: data.ip || '',
+    role: data.role,
+    cluster_domain: data.master_domain,
+    spec_config: data.spec_config,
+  });
 
   const handleSelectPageAll = (checked: boolean) => {
     const lastCheckMap = { ...checkedMap.value };
