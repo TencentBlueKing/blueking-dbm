@@ -16,8 +16,7 @@ import { uniq } from 'lodash';
 
 import type { ClusterListEntry } from '@services/types';
 
-import { PipelineStatus, TicketTypes } from '@common/const';
-import { ClusterAffinityMap } from '@common/const/clusterAffinity';
+import { ClusterAffinityMap, PipelineStatus, TicketTypes } from '@common/const';
 
 import { utcDisplayTime } from '@utils';
 

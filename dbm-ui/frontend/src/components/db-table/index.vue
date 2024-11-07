@@ -25,7 +25,7 @@
         :data="tableData.results"
         :max-height="tableMaxHeight"
         :pagination="pagination"
-        :pagination-heihgt="60"
+        :pagination-height="60"
         :remote-pagination="remotePagination"
         show-overflow-tooltip
         v-bind="$attrs"
@@ -617,7 +617,7 @@
       justify-content: center;
     }
 
-    table tbody tr td .cell {
+    table tbody tr td .vxe-cell {
       line-height: unset !important;
     }
   }

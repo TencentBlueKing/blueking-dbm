@@ -66,7 +66,7 @@
           {
             label: t('源客户端 IP'),
             field: 'ip',
-            width: 240,
+            minWidth: 240,
             rowspan: ({ row }: { row: TableItem }) => {
               const rowSpan = tableData.value.filter((item) => _.isEqual(item.ip, row.ip)).length;
               return rowSpan > 1 ? rowSpan : 1;
@@ -81,7 +81,7 @@
           {
             label: t('集群域名'),
             field: 'immute_domain',
-            width: 240,
+            minWidth: 240,
             rowspan: ({ row }: { row: TableItem }) => {
               const rowSpan = tableData.value.filter((item) => _.isEqual(item.ip, row.ip) && _.isEqual(item.db, row.db) && item.immute_domain === row.immute_domain).length;
               return rowSpan > 1 ? rowSpan : 1;
@@ -154,7 +154,7 @@
       ipColums[0].children.push({
         label: t('访问的 DB'),
         field: 'db',
-        width: 240,
+        minWidth: 240,
         rowspan: ({ row }: { row: TableItem }) => {
           const rowSpan = tableData.value.filter((item) => _.isEqual(item.ip, row.ip) && _.isEqual(item.db, row.db)).length;
           return rowSpan > 1 ? rowSpan : 1;

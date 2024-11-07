@@ -14,8 +14,7 @@
 import ClusterEntryDetailModel from '@services/model/cluster-entry/cluster-entry-details';
 import type { ClusterListEntry } from '@services/types';
 
-import { TicketTypes } from '@common/const';
-import { ClusterAffinityMap } from '@common/const/clusterAffinity';
+import { ClusterAffinityMap, TicketTypes } from '@common/const';
 
 import { utcDisplayTime } from '@utils';
 

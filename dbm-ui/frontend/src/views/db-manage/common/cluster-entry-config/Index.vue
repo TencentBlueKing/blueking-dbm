@@ -152,13 +152,6 @@
   }
 </style>
 <style lang="less">
-  .entry-config-ips-column {
-    .cell {
-      padding: 0 !important;
-      line-height: normal !important;
-    }
-  }
-
   .entry-config-dialog {
     .bk-modal-footer {
       display: none;

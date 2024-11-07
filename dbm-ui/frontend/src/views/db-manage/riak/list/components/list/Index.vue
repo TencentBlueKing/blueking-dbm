@@ -47,6 +47,7 @@
       :row-class="setRowClass"
       selectable
       :settings="tableSetting"
+      :show-overflow="false"
       @clear-search="clearSearchValue"
       @column-filter="columnFilterChange"
       @column-sort="columnSortChange"
@@ -851,7 +852,7 @@
       }
 
       .is-offline {
-        .cell {
+        .vxe-cell {
           color: #c4c6cc !important;
         }
       }
@@ -866,7 +867,7 @@
         margin-left: 4px;
       }
 
-      td .cell .db-icon-copy {
+      td .vxe-cell .db-icon-copy {
         display: none;
       }
 

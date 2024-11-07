@@ -57,6 +57,7 @@
           :row-class="getRowClass"
           selectable
           :settings="settings"
+          :show-overflow="false"
           @clear-search="clearSearchValue"
           @column-filter="columnFilterChange"
           @column-sort="columnSortChange"
@@ -403,7 +404,7 @@
   const isCN = computed(() => locale.value === 'zh-cn');
   const tableOperationWidth = computed(() => {
     if (!isStretchLayoutOpen.value) {
-      return isCN.value ? 260 : 350;
+      return isCN.value ? 330 : 350;
     }
     return 60;
   });
@@ -415,7 +416,7 @@
       label: 'ID',
       field: 'id',
       fixed: 'left',
-      width: 60,
+      width: 100,
     },
     {
       label: t('主访问入口'),
@@ -1322,11 +1323,7 @@
       .table-wrapper {
         background-color: white;
 
-        .bk-table {
-          height: 100% !important;
-        }
-
-        :deep(td .cell) {
+        :deep(td .vxe-cell) {
           line-height: unset !important;
 
           .db-icon-copy,
@@ -1415,13 +1412,9 @@
             }
           }
 
-          .cell {
+          .vxe-cell {
             color: @disable-color;
           }
-        }
-
-        :deep(.bk-table-body) {
-          max-height: calc(100% - 100px);
         }
       }
     }

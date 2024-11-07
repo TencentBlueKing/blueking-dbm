@@ -15,7 +15,7 @@ import { uniq } from 'lodash';
 import ClusterEntryDetailModel from '@services/model/cluster-entry/cluster-entry-details';
 import type { ClusterListSpec } from '@services/types';
 
-import { ClusterAffinityMap } from '@common/const/clusterAffinity';
+import { ClusterAffinityMap } from '@common/const';
 
 import { isRecentDays, utcDisplayTime } from '@utils';
 

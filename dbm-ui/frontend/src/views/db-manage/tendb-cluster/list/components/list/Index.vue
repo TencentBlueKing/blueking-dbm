@@ -70,6 +70,7 @@
         :row-class="setRowClass"
         selectable
         :settings="settings"
+        :show-overflow="false"
         @clear-search="clearSearchValue"
         @column-filter="columnFilterChange"
         @column-sort="columnSortChange"
@@ -1504,25 +1505,9 @@
 
     .table-wrapper {
       background-color: white;
-
-      .bk-table {
-        height: 100% !important;
-      }
-
-      :deep(.bk-table-body) {
-        max-height: calc(100% - 100px);
-      }
     }
 
-    .is-shrink-table {
-      :deep(.bk-table-body) {
-        overflow: hidden auto;
-      }
-    }
-
-    :deep(td .cell) {
-      line-height: normal !important;
-
+    :deep(td .vxe-cell) {
       .domain {
         display: flex;
         flex-wrap: wrap;
@@ -1590,7 +1575,7 @@
         color: @gray-color;
       }
 
-      .cell {
+      .vxe-cell {
         color: @disable-color;
       }
     }
