@@ -649,7 +649,8 @@ func (task *RedisInsKeyPatternTask) getTargetKeysByPartten(db int) {
 	if grepPattern != "" && grepPattern != ".*" {
 		grepExtra = fmt.Sprintf(` %s | { grep -vE %q || true; }`, grepExtra, grepPattern)
 	}
-	grepCmd := fmt.Sprintf(`awk '{ print $3}' %s %s > %s`, task.KeysFile, grepExtra, task.ResultFile)
+	grepCmd := fmt.Sprintf(`awk '{for(i=3;i<=NF-3;++i) printf "%%s ", $i; print ""}' %s %s > %s`,
+		task.KeysFile, grepExtra, task.ResultFile)
 	_, err := util.RunLocalCmd("bash", []string{"-c", grepCmd}, "", nil, 48*time.Hour)
 	if err != nil {
 		task.Err = fmt.Errorf("grepCmd:%s err:%v", grepCmd, err)
