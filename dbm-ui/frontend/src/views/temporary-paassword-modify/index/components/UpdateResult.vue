@@ -23,6 +23,7 @@
         <span class="title-error">{{ errorListLength }}</span>
       </I18nT>
     </template>
+    <slot />
     <div class="password-display">
       {{ t('当前密码') }} : {{ passwordDisplay }}
       <BkButton
