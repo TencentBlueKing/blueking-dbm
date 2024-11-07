@@ -34,6 +34,7 @@
           <RenderCharset v-model="formData.charset" />
           <Backup v-model="formData.backup" />
           <TicketMode v-model="formData.ticket_mode" />
+          <TicketRemark v-model="remark" />
         </DbForm>
       </div>
       <template #action>
@@ -71,6 +72,8 @@
 
   import { ClusterTypes, DBTypes, TicketTypes } from '@common/const';
 
+  import TicketRemark from '@components/ticket-remark/Index.vue';
+
   import Backup from '@views/db-manage/common/sql-execute/backup/Index.vue';
   import RenderCharset from '@views/db-manage/common/sql-execute/charset/Index.vue';
   import ClusterIds from '@views/db-manage/common/sql-execute/cluster-ids/Index.vue';
@@ -100,6 +103,7 @@
   const isSubmitting = ref(false);
   const uploadFilePath = ref('');
   const clusterVersionList = ref<string[]>([]);
+  const remark = ref('');
 
   const formData = reactive(createDefaultData());
 
@@ -113,6 +117,7 @@
         backup: cloneData.backup,
         ticket_mode: cloneData.ticket_mode,
       });
+      remark.value = cloneData.remark;
       uploadFilePath.value = cloneData.path;
     },
   });
@@ -147,6 +152,7 @@
         createTicket({
           bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
           ticket_type: TicketTypes.SQLSERVER_IMPORT_SQLFILE,
+          remark: remark.value,
           details: {
             ...formData,
           },
