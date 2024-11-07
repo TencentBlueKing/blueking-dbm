@@ -55,6 +55,7 @@
     type IValue,
     type PanelListType,
   } from '../../../Index.vue';
+  import RenderInstance from '../../common/render-instance/Index.vue';
   import SerachBar from '../../common/SearchBar.vue';
 
   import { useTableData } from './useTableData';
@@ -91,12 +92,17 @@
     cluster_id: data.related_clusters[0].id,
     port: 0,
     instance_address: '',
-    cluster_type: '',
+    cluster_type: data.cluster_type,
     master_domain: data.related_clusters[0].immute_domain,
     bk_cloud_name: data.bk_cloud_name,
+    related_clusters: data.related_clusters || [],
     related_instances: (data.related_instances || []).map(instanceItem => ({
       instance: instanceItem.instance,
-      status: instanceItem.status
+      status: instanceItem.status,
+      bk_cloud_id: instanceItem.bk_cloud_id,
+      bk_host_id: instanceItem.bk_host_id,
+      ip: instanceItem.ip,
+      port: instanceItem.port,
     })),
     spec_config: data.spec_config,
     db_module_id: data.db_module_id,
@@ -213,6 +219,13 @@
       field: props.firsrColumn?.field ? props.firsrColumn.field : 'instance_address',
     },
     {
+      label: t('关联实例'),
+      field: 'related_instances',
+      showOverflowTooltip: true,
+      width: 200,
+      render: ({ data }: DataRow) => <RenderInstance data={data.related_instances || []}></RenderInstance>,
+    },
+    {
       minWidth: 100,
       label: t('云区域'),
       field: 'bk_cloud_id',
@@ -276,7 +289,7 @@
       field: item.field,
       disabled: firstColumnFieldId.value === item.field,
     })),
-    checked: [firstColumnFieldId.value, 'bk_cloud_id', 'role', 'status', 'cloud_area', 'alive', 'host_name', 'os_name'],
+    checked: [firstColumnFieldId.value, 'related_instances', 'bk_cloud_id', 'role', 'status', 'cloud_area', 'alive', 'host_name', 'os_name'],
   }))
 
 

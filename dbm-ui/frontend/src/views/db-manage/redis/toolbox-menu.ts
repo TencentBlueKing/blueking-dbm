@@ -57,6 +57,12 @@ export default [
             dbConsoleValue: 'redis.toolbox.dbReplace',
           },
           {
+            name: t('迁移'),
+            id: 'RedisMigrate',
+            parentId: 'common-manage',
+            dbConsoleValue: 'redis.toolbox.migrate',
+          },
+          {
             name: t('版本升级'),
             id: 'RedisVersionUpgrade',
             parentId: 'common-manage',

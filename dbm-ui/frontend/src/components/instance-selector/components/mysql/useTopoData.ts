@@ -66,7 +66,6 @@ export function useTopoData<T extends Record<string, any>>(filterClusterId: Comp
       .getTopoList(params)
       .then((data) => {
         const countFn = currentInstance.proxy?.countFunc;
-
         const formatData = data.map((item: T) => {
           let count = item.instance_count;
           if (role === 'slave') {
