@@ -52,6 +52,7 @@
         releate-url-query
         :row-class="setRowClass"
         row-hover="auto"
+        :show-overflow="false"
         @clear-search="handleClearSearch"
         @refresh="fetchData" />
     </div>
@@ -259,7 +260,8 @@
     {
       label: t('账号名称'),
       field: 'user',
-      showOverflowTooltip: false,
+      minWidth: 200,
+      fixed: 'left',
       render: ({ data }: { data: PermissionRule }) => (
         <TextOverflowLayout>
           {{
@@ -313,6 +315,7 @@
     {
       label: t('访问的DB名'),
       field: 'access_db',
+      minWidth: 200,
       render: ({ data }: { data: PermissionRule }) => {
         if (data.rules.length === 0) {
           return (
@@ -345,7 +348,7 @@
     {
       label: t('权限'),
       field: 'privilege',
-      showOverflowTooltip: false,
+      minWidth: 200,
       render: ({ data }: { data: PermissionRule }) => (
         getRenderList(data).map((rule) => {
           const { privilege } = rule;
@@ -362,6 +365,7 @@
     {
       label: t('操作'),
       width: 100,
+      fixed: 'right',
       render: ({ data }: { data: PermissionRule }) => {
         if (data.rules.length === 0) {
           return (
@@ -536,7 +540,7 @@
 
     :deep(.db-table) {
       .rules-table {
-        .cell {
+        .vxe-cell {
           padding: 0 !important;
         }
 
@@ -566,10 +570,10 @@
         }
 
         .cell-row {
-          height: calc(var(--row-height) - 4px);
+          height: 40px;
           padding: 0 16px;
           overflow: hidden;
-          line-height: calc(var(--row-height) - 4px);
+          line-height: 40px;
           text-overflow: ellipsis;
           white-space: nowrap;
 

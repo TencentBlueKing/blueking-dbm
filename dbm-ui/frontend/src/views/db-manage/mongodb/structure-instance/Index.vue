@@ -436,13 +436,13 @@
     padding-bottom: 20px;
 
     :deep(.normal-color) {
-      .cell {
+      .vxe-cell {
         color: #63656e;
       }
     }
 
     :deep(.disable-color) {
-      .cell {
+      .vxe-cell {
         color: #c4c6cc;
       }
     }
@@ -451,9 +451,7 @@
       cursor: pointer;
     }
 
-    :deep(.cell) {
-      line-height: normal !important;
-
+    :deep(.vxe-cell) {
       .db-icon-copy {
         display: none;
         margin-left: 4px;

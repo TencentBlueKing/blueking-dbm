@@ -39,6 +39,7 @@
         releate-url-query
         :row-class="setRowClass"
         :settings="settings"
+        :show-overflow="false"
         @clear-search="clearSearchValue"
         @column-filter="columnFilterChange"
         @column-sort="columnSortChange"
@@ -248,7 +249,7 @@
       {
         label: t('所属集群'),
         field: 'master_domain',
-        width: 260,
+        minWidth: 260,
         showOverflowTooltip: false,
         render: ({ cell }: ColumnData) => (
           <TextOverflowLayout>
@@ -268,7 +269,7 @@
       {
         label: t('集群名称'),
         field: 'cluster_name',
-        width: 180,
+        minWidth: 180,
         showOverflowTooltip: false,
         render: ({ cell, data }: ColumnData) => (
           <TextOverflowLayout>
@@ -403,7 +404,7 @@
     margin: 0 24px;
     overflow: hidden;
 
-    .cell {
+    .vxe-cell {
       .copy-btn {
         display: none;
         margin-left: 4px;
@@ -415,12 +416,6 @@
     tr:hover {
       .copy-btn {
         display: inline-block !important;
-      }
-    }
-
-    .is-shrink-table {
-      .bk-table-body {
-        overflow: hidden auto;
       }
     }
 

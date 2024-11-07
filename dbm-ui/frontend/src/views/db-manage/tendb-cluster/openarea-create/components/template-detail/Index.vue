@@ -187,7 +187,7 @@
       }
 
       .cell-privilege {
-        .cell {
+        .vxe-cell {
           padding: 0 !important;
           margin-left: -16px;
 

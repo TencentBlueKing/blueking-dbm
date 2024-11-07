@@ -1,0 +1,125 @@
+.bk-vxe-table {
+  --vxe-ui-table-column-padding-mini: 9px 0;
+  --vxe-ui-font-size-small: 12px;
+  --vxe-ui-table-cell-padding-left: 16px;
+  --vxe-ui-table-cell-padding-right: 16px;
+
+  .vxe-header--column {
+    font-weight: normal;
+    color: var(--table-head-font-color);
+
+    .vxe-resizable{
+      right: -5px;
+
+      &.is--line{
+        &:hover{
+          &::before{
+            background: var(--primary-color);
+          }
+        }
+
+        &::before{
+          width: 5px;
+          height: 100%;
+          background: transparent;
+        }
+      }
+    }
+  }
+
+  .vxe-table--render-default {
+    color: var(--table-body-font-color);
+
+    .vxe-table--resizable-bar {
+      &::before{
+        background: var(--primary-color);
+      }
+    }
+
+    &.column--highlight .vxe-header--column:not(.col--seq):hover{
+      background: var(--table-row-active-bg-color);
+    }
+
+    .vxe-header--column.vxe-header--setting-wrapper{
+      padding: 0;
+    }
+  }
+
+  [class*='vxe-table-icon-'] {
+    font-size: 12px;
+  }
+
+  .is--filter-active .vxe-cell--filter .vxe-filter--btn {
+    color: var(--primary-color);
+  }
+
+  .vxe-table--filter-wrapper {
+    min-width: 148px;
+
+    .vxe-table--filter-body{
+      max-height: 300px !important;
+    }
+
+    .vxe-table--filter-option {
+      padding-top: 8px;
+      padding-bottom: 8px;
+
+      &.is--checked {
+        color: var(--primary-color);
+      }
+
+      .vxe-checkbox--icon {
+        font-size: 16px;
+        color: var(--primary-color) !important;
+      }
+    }
+
+    .vxe-table--filter-footer {
+      button {
+        display: inline-flex;
+        height: var(--component-size-small);
+        padding: var(--component-size-small-padding);
+        font-size: var(--font-size-base);
+        color: var(--default-color);
+        text-decoration: none;
+        white-space: nowrap;
+        cursor: pointer;
+        background: var(--white-color);
+        border: 1px solid var(--light-gray);
+        border-radius: var(--border-radius-base);
+        outline: none;
+        box-sizing: border-box;
+        transition: background-color ease 0.3s;
+        appearance: none;
+        align-items: center;
+        justify-content: center;
+
+        &:first-child {
+          color: var(--white-color);
+          background: var(--primary-color);
+          border-color: var(--primary-color);
+
+          &:hover {
+            background: var(--button-primary-hover-color);
+            border-color: var(--button-primary-hover-color);
+          }
+
+          &.is--disabled {
+            color: var(--white-color);
+            background: var(--disable-color);
+            border-color: var(--disable-color);
+          }
+        }
+
+        & ~ button {
+          margin-left: 8px;
+
+          &:hover {
+            color: var(--default-color);
+            border-color: var(--button-default-hover-border-color);
+          }
+        }
+      }
+    }
+  }
+}

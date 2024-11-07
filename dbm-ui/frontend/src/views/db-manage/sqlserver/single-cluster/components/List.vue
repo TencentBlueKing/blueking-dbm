@@ -51,6 +51,7 @@
         :row-class="setRowClass"
         selectable
         :settings="settings"
+        :show-overflow="false"
         show-overflow-tips
         @clear-search="clearSearchValue"
         @column-filter="columnFilterChange"
@@ -894,9 +895,7 @@
       }
     }
 
-    td .cell {
-      line-height: normal !important;
-
+    td .vxe-cell {
       .db-icon-copy,
       .db-icon-link,
       .db-icon-visible1 {
