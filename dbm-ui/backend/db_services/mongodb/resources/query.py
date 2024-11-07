@@ -10,12 +10,12 @@ specific language governing permissions and limitations under the License.
 """
 from typing import Any, Callable, Dict, List
 
-from django.db.models import CharField, ExpressionWrapper, F, Q, QuerySet, Value
+from django.db.models import CharField, ExpressionWrapper, F, Prefetch, Q, QuerySet, Value
 from django.db.models.functions import Concat
 from django.utils.translation import ugettext_lazy as _
 
 from backend.db_meta.enums import ClusterType, MachineType
-from backend.db_meta.models import AppCache
+from backend.db_meta.models import AppCache, NosqlStorageSetDtl, StorageInstanceTuple
 from backend.db_meta.models.cluster import Cluster
 from backend.db_meta.models.instance import ProxyInstance, StorageInstance
 from backend.db_services.dbbase.resources import query
@@ -54,6 +54,58 @@ class MongoDBListRetrieveResource(query.ListRetrieveResource):
         }
         return super()._list_clusters(
             bk_biz_id, query_params, limit, offset, filter_params_map, filter_func_map, **kwargs
+        )
+
+    @classmethod
+    def _filter_cluster_hook(
+        cls,
+        bk_biz_id,
+        cluster_queryset: QuerySet,
+        proxy_queryset: QuerySet,
+        storage_queryset: QuerySet,
+        limit: int,
+        offset: int,
+        **kwargs,
+    ) -> ResourceList:
+        """
+        为查询的集群填充额外信息
+        @param bk_biz_id: 业务ID
+        @param cluster_queryset: 过滤集群查询集
+        @param proxy_queryset: 过滤的proxy查询集
+        @param storage_queryset: 过滤的storage查询集
+        @param limit: 分页限制
+        @param offset: 分页起始
+        """
+        storage_instance_queryset = StorageInstance.objects.prefetch_related(
+            Prefetch(
+                "as_ejector",
+                queryset=StorageInstanceTuple.objects.select_related("receiver", "receiver__machine").filter(
+                    ejector__in=storage_queryset.values_list("id", flat=True)
+                ),
+                to_attr="instance_tuples",
+            )
+        )
+        cluster_queryset = cluster_queryset.prefetch_related(
+            Prefetch(
+                "storageinstance_set",
+                queryset=storage_instance_queryset.select_related("machine"),
+                to_attr="storage_instances",
+            ),
+            Prefetch(
+                "nosqlstoragesetdtl_set",
+                queryset=NosqlStorageSetDtl.objects.select_related("instance", "instance__machine"),
+                to_attr="storage_set_dtl",
+            ),
+        )
+
+        return super()._filter_cluster_hook(
+            bk_biz_id,
+            cluster_queryset,
+            proxy_queryset,
+            storage_queryset,
+            limit,
+            offset,
+            **kwargs,
         )
 
     @classmethod
@@ -108,11 +160,39 @@ class MongoDBListRetrieveResource(query.ListRetrieveResource):
         )
         shard_spec = MongoDBShardSpecFilter.get_shard_spec(mongodb_spec, shard_num)
 
+        machine_list = [
+            (storage_set_dtl.seg_range, f"{storage_set_dtl.instance.machine.ip}:{storage_set_dtl.instance.port}")
+            for storage_set_dtl in cluster.storage_set_dtl
+        ]
+
+        machine_map = {}
+        for group_name, machine_ip_port in machine_list:
+            if not machine_map.get(group_name):
+                machine_map[group_name] = [machine_ip_port]
+            else:
+                machine_map[group_name].append(machine_ip_port)
+
+        master_slave_map = {}
+        for instance in cluster.storage_instances:
+            for instance_tuple in instance.instance_tuples:
+                key = f"{instance.machine.ip}:{instance.port}"
+                item = f"{instance_tuple.receiver.machine.ip}:{instance_tuple.receiver.port}"
+                if not master_slave_map.get(key):
+                    master_slave_map[key] = [item]
+                else:
+                    master_slave_map[key].append(item)
+
+        for k, v in master_slave_map.items():
+            for group_name, ip_port_list in machine_map.items():
+                if k in ip_port_list:
+                    machine_map[group_name].extend(v)
+
         cluster_extra_info = {
             "machine_instance_num": machine_instance_num,
             "mongodb_machine_pair": mongodb_machine_pair,
             "mongodb_machine_num": mongodb_machine_num,
             "shard_spec": shard_spec,
+            "seg_range": machine_map,
             "mongos": mongos,
             "mongodb": mongodb,
             "mongo_config": mongo_config,

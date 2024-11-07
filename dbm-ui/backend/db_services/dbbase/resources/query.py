@@ -19,17 +19,7 @@ from django.utils.translation import ugettext_lazy as _
 from backend.constants import IP_PORT_DIVIDER
 from backend.db_meta.enums import ClusterEntryType, ClusterType, InstanceRole
 from backend.db_meta.enums.comm import SystemTagEnum
-from backend.db_meta.models import (
-    AppCache,
-    Cluster,
-    ClusterEntry,
-    DBModule,
-    Machine,
-    NosqlStorageSetDtl,
-    ProxyInstance,
-    StorageInstance,
-    StorageInstanceTuple,
-)
+from backend.db_meta.models import AppCache, Cluster, ClusterEntry, DBModule, Machine, ProxyInstance, StorageInstance
 from backend.db_services.dbbase.instances.handlers import InstanceHandler
 from backend.db_services.dbbase.resources.query_base import (
     build_q_for_domain_by_cluster,
@@ -471,35 +461,16 @@ class ListRetrieveResource(BaseListRetrieveResource):
         if count == 0:
             return ResourceList(count=0, data=[])
 
-        storage_instance_queryset = StorageInstance.objects.prefetch_related(
-            Prefetch(
-                "as_ejector",
-                queryset=StorageInstanceTuple.objects.select_related("receiver", "receiver__machine").filter(
-                    ejector__in=storage_queryset.values_list("id", flat=True)
-                ),
-                to_attr="instance_tuples",
-            )
-        )
         # 预取proxy_queryset，storage_queryset，clusterentry_set,加块查询效率
         cluster_list = cluster_queryset[offset : limit + offset].prefetch_related(
             Prefetch("proxyinstance_set", queryset=proxy_queryset.select_related("machine"), to_attr="proxies"),
             Prefetch("storageinstance_set", queryset=storage_queryset.select_related("machine"), to_attr="storages"),
-            Prefetch(
-                "storageinstance_set",
-                queryset=storage_instance_queryset.select_related("machine"),
-                to_attr="storage_instances",
-            ),
-            Prefetch(
-                "nosqlstoragesetdtl_set",
-                queryset=NosqlStorageSetDtl.objects.select_related("instance", "instance__machine"),
-                to_attr="storage_set_dtl",
-            ),
             Prefetch("clusterentry_set", to_attr="entries"),
             "tag_set",
         )
         # 由于对 queryset 切片工作方式的模糊性，这里的values可能会获得非预期的排序，所以不要在切片后用values
         # cluster_ids = list(cluster_queryset.values_list("id", flat=True))
-        cluster_ids = [c.id for c in cluster_queryset]
+        cluster_ids = [c.id for c in cluster_list]
 
         # 获取集群与访问入口的映射
         cluster_entry_map = ClusterEntry.get_cluster_entry_map(cluster_ids)
@@ -562,33 +533,6 @@ class ListRetrieveResource(BaseListRetrieveResource):
         cluster_entry_map_value = cluster_entry_map.get(cluster.id, {})
         bk_cloud_name = cloud_info.get(str(cluster.bk_cloud_id), {}).get("bk_cloud_name", "")
 
-        machine_list = [
-            (storage_set_dtl.seg_range, f"{storage_set_dtl.instance.machine.ip}:{storage_set_dtl.instance.port}")
-            for storage_set_dtl in cluster.storage_set_dtl
-        ]
-
-        machine_map = {}
-        for group_name, machine_ip_port in machine_list:
-            if not machine_map.get(group_name):
-                machine_map[group_name] = [machine_ip_port]
-            else:
-                machine_map[group_name].append(machine_ip_port)
-
-        master_slave_map = {}
-        for instance in cluster.storage_instances:
-            for instance_tuple in instance.instance_tuples:
-                key = f"{instance.machine.ip}:{instance.port}"
-                item = f"{instance_tuple.receiver.machine.ip}:{instance_tuple.receiver.port}"
-                if not master_slave_map.get(key):
-                    master_slave_map[key] = [item]
-                else:
-                    master_slave_map[key].append(item)
-
-        for k, v in master_slave_map.items():
-            for group_name, ip_port_list in machine_map.items():
-                if k in ip_port_list:
-                    machine_map[group_name].extend(v)
-
         return {
             "id": cluster.id,
             "phase": cluster.phase,
@@ -611,7 +555,6 @@ class ListRetrieveResource(BaseListRetrieveResource):
             "bk_cloud_name": bk_cloud_name,
             "major_version": cluster.major_version,
             "region": cluster.region,
-            "seg_range": machine_map,
             "db_module_name": db_module_names_map.get(cluster.db_module_id, ""),
             "db_module_id": cluster.db_module_id,
             "creator": cluster.creator,
