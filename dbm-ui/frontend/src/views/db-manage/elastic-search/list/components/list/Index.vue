@@ -300,7 +300,7 @@
 
   const tableOperationWidth = computed(() => {
     if (!isStretchLayoutOpen.value) {
-      return isCN.value ? 270 : 420;
+      return isCN.value ? 300 : 420;
     }
     return 100;
   });
@@ -315,8 +315,7 @@
     {
       label: t('访问入口'),
       field: 'domain',
-      width: 300,
-      minWidth: 300,
+      minWidth: 320,
       fixed: 'left',
       renderHead: () => (
         <RenderHeadCopy
@@ -355,6 +354,28 @@
             ),
             append: () => (
               <>
+                {
+                  data.operationTagTips.map(item => <RenderOperationTag class="cluster-tag ml-4" data={item}/>)
+                }
+                {
+                  !data.isOnline && !data.isStarting && (
+                    <bk-tag
+                      class="ml-4"
+                      size="small">
+                      {t('已禁用')}
+                    </bk-tag>
+                  )
+                }
+                {
+                  data.isNew && (
+                    <bk-tag
+                      theme="success"
+                      size="small"
+                      class="ml-4">
+                      NEW
+                    </bk-tag>
+                  )
+                }
                 {data.domain && (
                   <RenderCellCopy copyItems={
                     [
@@ -412,22 +433,6 @@
             </span >
             <div style='color: #C4C6CC;'>{data.cluster_alias || '--'}</div>
           </div>
-          {
-            data.operationTagTips.map(item => <RenderOperationTag class="cluster-tag ml-4" data={item}/>)
-          }
-          {
-            !data.isOnline && !data.isStarting && (
-              <bk-tag
-                class="ml-4"
-                size="small">
-                {t('已禁用')}
-              </bk-tag>
-            )
-          }
-          {
-            isRecentDays(data.create_at, 24 * 3)
-            && <span class="glob-new-tag cluster-tag ml-4" data-text="NEW" />
-          }
           <db-icon
             v-bk-tooltips={t('复制集群名称')}
             type="copy"
@@ -760,6 +765,26 @@
                 loading={tableDataActionLoadingMap.value[data.id]}
                 onClick={() => handlDisabled(data)}>
                 { t('禁用') }
+              </auth-button>
+            </OperationBtnStatusTips>,
+            <OperationBtnStatusTips
+              v-db-console="es.clusterManage.delete"
+              data={data}>
+              <auth-button
+                v-bk-tooltips={{
+                  disabled: data.isOffline,
+                  content: t('请先禁用集群')
+                }}
+                text
+                theme="primary"
+                action-id="es_destroy"
+                class="mr8"
+                permission={data.permission.es_destroy}
+                disabled={data.isOnline || Boolean(data.operationTicketId)}
+                resource={data.id}
+                loading={tableDataActionLoadingMap.value[data.id]}
+                onClick={() => handleRemove(data)}>
+                { t('删除') }
               </auth-button>
             </OperationBtnStatusTips>,
             <a

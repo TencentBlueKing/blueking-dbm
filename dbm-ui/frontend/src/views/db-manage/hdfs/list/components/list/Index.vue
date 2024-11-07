@@ -313,7 +313,7 @@
 
   const tableOperationWidth = computed(() => {
     if (!isStretchLayoutOpen.value) {
-      return isCN.value ? 350 : 520;
+      return isCN.value ? 380 : 520;
     }
     return 100;
   });
@@ -328,8 +328,7 @@
     {
       label: t('访问入口'),
       field: 'domain',
-      width: 280,
-      minWidth: 280,
+      minWidth: 320,
       fixed: 'left',
       renderHead: () => (
         <RenderHeadCopy
@@ -368,6 +367,28 @@
               ),
               append: () => (
                 <>
+                  {
+                    data.operationTagTips.map(item => <RenderOperationTag class="cluster-tag ml-4" data={item}/>)
+                  }
+                  {
+                    data.isOffline && (
+                      <bk-tag
+                        class="ml-4"
+                        size="small">
+                        {t('已禁用')}
+                      </bk-tag>
+                    )
+                  }
+                  {
+                    data.isNew && (
+                      <bk-tag
+                        theme="success"
+                        size="small"
+                        class="ml-4">
+                        NEW
+                      </bk-tag>
+                    )
+                  }
                   {data.domain && (
                     <RenderCellCopy copyItems={
                       [
@@ -428,22 +449,6 @@
               {data.cluster_alias || '--'}
             </div>
           </div>
-          {
-            data.operationTagTips.map(item => <RenderOperationTag class="cluster-tag ml-4" data={item}/>)
-          }
-          {
-            data.isOffline && (
-              <bk-tag
-                class="ml-4"
-                size="small">
-                {t('已禁用')}
-              </bk-tag>
-            )
-          }
-          {
-            isRecentDays(data.create_at, 24 * 3)
-            && <span class="glob-new-tag cluster-tag ml-4" data-text="NEW" />
-          }
             <db-icon
               class="mt-2"
               v-bk-tooltips={t('复制集群名称')}
@@ -713,6 +718,9 @@
           ];
           if (data.isOffline) {
             return [
+            <OperationBtnStatusTips
+              v-db-console="hdfs.clusterManage.enable"
+              data={data}>
               <auth-button
                 text
                 theme="primary"
@@ -725,20 +733,25 @@
                 loading={tableDataActionLoadingMap.value[data.id]}
                 onClick={() => handleEnable(data)}>
                 { t('启用') }
-              </auth-button>,
-              <auth-button
-                text
-                theme="primary"
-                action-id="hdfs_destroy"
-                permission={data.permission.hdfs_destroy}
+              </auth-button>
+              </OperationBtnStatusTips>,
+              <OperationBtnStatusTips
                 v-db-console="hdfs.clusterManage.delete"
-                resource={data.id}
-                disabled={Boolean(data.operationTicketId)}
-                class="mr8"
-                loading={tableDataActionLoadingMap.value[data.id]}
-                onClick={() => handleRemove(data)}>
-                { t('删除') }
-              </auth-button>,
+                data={data} >
+                <auth-button
+                  text
+                  theme="primary"
+                  action-id="hdfs_destroy"
+                  permission={data.permission.hdfs_destroy}
+                  v-db-console="hdfs.clusterManage.delete"
+                  resource={data.id}
+                  disabled={Boolean(data.operationTicketId)}
+                  class="mr8"
+                  loading={tableDataActionLoadingMap.value[data.id]}
+                  onClick={() => handleRemove(data)}>
+                  { t('删除') }
+                </auth-button>
+              </OperationBtnStatusTips>,
               ...baseAction,
             ];
           }
@@ -784,6 +797,26 @@
                 loading={tableDataActionLoadingMap.value[data.id]}
                 onClick={() => handlDisabled(data)}>
                 { t('禁用') }
+              </auth-button>
+            </OperationBtnStatusTips>,
+            <OperationBtnStatusTips
+              v-db-console="hdfs.clusterManage.delete"
+              data={data} >
+              <auth-button
+                v-bk-tooltips={{
+                  disabled: data.isOffline,
+                  content: t('请先禁用集群')
+                }}
+                text
+                theme="primary"
+                action-id="hdfs_destroy"
+                permission={data.permission.hdfs_destroy}
+                resource={data.id}
+                disabled={data.isOnline || Boolean(data.operationTicketId)}
+                class="mr8"
+                loading={tableDataActionLoadingMap.value[data.id]}
+                onClick={() => handleRemove(data)}>
+                { t('删除') }
               </auth-button>
             </OperationBtnStatusTips>,
             <a

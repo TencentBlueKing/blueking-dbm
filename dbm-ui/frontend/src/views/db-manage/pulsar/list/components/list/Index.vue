@@ -229,7 +229,7 @@
   });
   const tableOperationWidth = computed(() => {
     if (!isStretchLayoutOpen.value) {
-      return isCN.value ? 280 : 420;
+      return isCN.value ? 310 : 420;
     }
     return 100;
   });
@@ -244,8 +244,7 @@
     {
       label: t('访问入口'),
       field: 'domain',
-      width: 280,
-      minWidth: 280,
+      minWidth: 320,
       fixed: 'left',
       showOverflowTooltip: false,
       renderHead: () => (
@@ -285,6 +284,28 @@
             ),
             append: () => (
               <>
+                {
+                  data.operationTagTips.map(item => <RenderOperationTag class="cluster-tag ml-4" data={item}/>)
+                }
+                {
+                  data.isOffline && (
+                    <bk-tag
+                      class="ml-4"
+                      size="small">
+                      {t('已禁用')}
+                    </bk-tag>
+                  )
+                }
+                {
+                  data.isNew && (
+                    <bk-tag
+                      theme="success"
+                      size="small"
+                      class="ml-4">
+                      NEW
+                    </bk-tag>
+                  )
+                }
                 {data.domain && (
                   <RenderCellCopy copyItems={
                     [
@@ -341,19 +362,6 @@
             <span>
               {data.cluster_name}
             </span>
-            {
-              data.operationTagTips.map(item => <RenderOperationTag class="cluster-tag ml-4" data={item}/>)
-            }
-            {
-              data.isOffline && (
-                <bk-tag
-                  class="ml-4"
-                  size="small">
-                  {t('已禁用')}
-                </bk-tag>
-              )
-            }
-            { data.isNew && <span class="glob-new-tag cluster-tag ml-4" data-text="NEW" /> }
             <db-icon
               type="copy"
               v-bk-tooltips={t('复制集群名称')}
@@ -577,6 +585,9 @@
           ];
           if (data.isOffline) {
             return [
+            <OperationBtnStatusTips
+              data={data}
+              v-db-console="pulsar.clusterManage.enable">
               <auth-button
                 text
                 theme="primary"
@@ -589,7 +600,11 @@
                 loading={tableDataActionLoadingMap.value[data.id]}
                 onClick={() => handleEnable(data)}>
                 { t('启用') }
-              </auth-button>,
+              </auth-button>
+            </OperationBtnStatusTips>,
+            <OperationBtnStatusTips
+              data={data}
+              v-db-console="pulsar.clusterManage.delete">
               <auth-button
                 text
                 theme="primary"
@@ -601,8 +616,9 @@
                 class="mr8"
                 loading={tableDataActionLoadingMap.value[data.id]}
                 onClick={() => handleRemove(data)}>
-                { t('删除') }
-              </auth-button>,
+                  { t('删除') }
+                </auth-button>
+              </OperationBtnStatusTips>,
               ...baseAction,
             ];
           }
@@ -651,6 +667,26 @@
                 loading={tableDataActionLoadingMap.value[data.id]}
                 onClick={() => handlDisabled(data)}>
                 { t('禁用') }
+              </auth-button>
+            </OperationBtnStatusTips>,
+            <OperationBtnStatusTips
+              data={data}
+              v-db-console="pulsar.clusterManage.delete">
+              <auth-button
+                v-bk-tooltips={{
+                  disabled: data.isOffline,
+                  content: t('请先禁用集群')
+                }}
+                text
+                theme="primary"
+                action-id="pulsar_destroy"
+                permission={data.permission.pulsar_destroy}
+                disabled={data.isOnline || Boolean(data.operationTicketId)}
+                resource={data.id}
+                class="mr8"
+                loading={tableDataActionLoadingMap.value[data.id]}
+                onClick={() => handleRemove(data)}>
+                { t('删除') }
               </auth-button>
             </OperationBtnStatusTips>,
             <a

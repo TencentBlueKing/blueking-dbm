@@ -7,19 +7,11 @@
           @click="handleApply">
           {{ t('申请实例') }}
         </BkButton>
-        <span
-          v-bk-tooltips="{
-            disabled: hasSelected,
-            content: t('请选择集群'),
-          }"
-          class="inline-block">
-          <BkButton
-            class="ml-8"
-            :disabled="!hasSelected"
-            @click="handleShowAuthorize(selected)">
-            {{ t('批量授权') }}
-          </BkButton>
-        </span>
+        <ClusterBatchOperation
+          v-db-console="'sqlserver.haClusterList.batchOperation'"
+          class="ml-8"
+          :disabled="!hasSelected"
+          :list="clusterBatchOperationList" />
         <BkButton
           class="ml-8"
           @click="handleShowExcelAuthorize">
@@ -121,6 +113,7 @@
   import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
 
   import ClusterAuthorize from '@views/db-manage/common/cluster-authorize/Index.vue';
+  import ClusterBatchOperation from '@views/db-manage/common/cluster-batch-opration/Index.vue'
   import ClusterCapacityUsageRate from '@views/db-manage/common/cluster-capacity-usage-rate/Index.vue'
   import EditEntryConfig, { type ClusterEntryInfo } from '@views/db-manage/common/cluster-entry-config/Index.vue';
   import ClusterIpCopy from '@views/db-manage/common/cluster-ip-copy/Index.vue';
@@ -136,7 +129,7 @@
   import {
     getMenuListSearch,
     getSearchSelectorParams,
-    isRecentDays
+    // isRecentDays
   } from '@utils';
 
   const haClusterData = defineModel<{
@@ -205,8 +198,38 @@
 
   const hasSelected = computed(() => selected.value.length > 0);
   const selectedIds = computed(() => selected.value.map(item => item.id));
-
   const isCN = computed(() => locale.value === 'zh-cn');
+
+  const clusterBatchOperationList = computed(() => [
+  {
+      dbConsole: 'sqlserver.haClusterList.batchAuthorize',
+      click: () => handleShowAuthorize(selected.value),
+      disabled: false,
+      tooltips: '',
+      text: t('批量授权')
+    },
+    {
+      dbConsole: 'sqlserver.haClusterList.disable',
+      click: () => handleSwitchCluster(TicketTypes.SQLSERVER_DISABLE, selected.value),
+      disabled: selected.value.some((data) => data.isOffline || data.operationDisabled),
+      tooltips: t('仅可禁用状态为“已启用”的集群'),
+      text: t('禁用')
+    },
+    {
+      dbConsole: 'sqlserver.haClusterList.enable',
+      click: () => handleSwitchCluster(TicketTypes.SQLSERVER_ENABLE, selected.value),
+      disabled: selected.value.some((data) => data.isOnline || data.isStarting),
+      tooltips: t('仅可启用状态为“已禁用”的集群'),
+      text: t('启用')
+    },
+    {
+      dbConsole: 'sqlserver.haClusterList.delete',
+      click: () => handleDeleteCluster(selected.value),
+      disabled: selected.value.some((data) => data.isOnline || Boolean(data.operationTicketId)),
+      tooltips: t('仅可删除状态为“已禁用”的集群'),
+      text: t('删除')
+    }
+  ]);
 
   const searchSelectData = computed(() => [
     {
@@ -282,7 +305,7 @@
 
   const tableOperationWidth = computed(() => {
     if (!isStretchLayoutOpen.value) {
-      return isCN.value ? 150 : 200;
+      return isCN.value ? 180 : 200;
     }
     return 100;
   });
@@ -307,8 +330,7 @@
       label: t('主访问入口'),
       field: 'master_domain',
       fixed: 'left',
-      width: 280,
-      minWidth: 280,
+      minWidth: 320,
       showOverflowTooltip: false,
       renderHead: () => (
         <RenderHeadCopy
@@ -354,6 +376,15 @@
                       data={item} />
                   ))
                 }
+                {
+                  data.isOffline && !data.isStarting && (
+                    <bk-tag
+                      class="ml-4"
+                      size="small">
+                      {t('已禁用')}
+                    </bk-tag>
+                  )
+                }
                 <RenderCellCopy copyItems={
                   [
                     {
@@ -368,9 +399,12 @@
                 }/>
                 {
                   data.isNew && (
-                    <span
-                      class="glob-new-tag cluster-tag ml-4"
-                      data-text="NEW"/>
+                    <bk-tag
+                      theme="success"
+                      size="small"
+                      class="ml-4">
+                      NEW
+                    </bk-tag>
                   )
                 }
                 <span v-db-console="sqlserver.haClusterList.modifyEntryConfiguration">
@@ -422,25 +456,6 @@
             default: () => data.cluster_name,
             append: () => (
               <>
-                {
-                  data.operationTagTips.map(item => <RenderOperationTag class="cluster-tag ml-4" data={item}/>)
-                }
-                {
-                  data.isOffline && !data.isStarting && (
-                    <bk-tag
-                      class="ml-4"
-                      size="small">
-                      {t('已禁用')}
-                    </bk-tag>
-                  )
-                }
-                {
-                  isRecentDays(data.create_at, 24 * 3) && (
-                    <span
-                      class="glob-new-tag cluster-tag ml-4"
-                      data-text="NEW" />
-                  )
-                }
                 <db-icon
                   v-bk-tooltips={t('复制集群名称')}
                   type="copy"
@@ -712,66 +727,73 @@
       field: '',
       width: tableOperationWidth.value,
       fixed: isStretchLayoutOpen.value ? false : 'right',
-      render: ({ data }: { data: SqlServerHaModel }) => (
-        <>
-          {
-            data.isOnline ? (
-              <>
-                <OperationBtnStatusTips data={ data }>
-                  <bk-button
-                    text
-                    theme="primary"
-                    onClick={ () => handleShowAuthorize([data]) }>
-                    { t('授权') }
-                  </bk-button>
-                </OperationBtnStatusTips>
-                <OperationBtnStatusTips data={ data }>
-                  <bk-button
-                    text
-                    theme="primary"
-                    class="ml-16"
-                    disabled={data.operationDisabled}
-                    onClick={() => handleSwitchCluster(TicketTypes.SQLSERVER_DISABLE, data)}>
-                    { t('禁用') }
-                  </bk-button>
-                </OperationBtnStatusTips>
-              </>
-            ) : (
-              <>
-                <OperationBtnStatusTips data={ data }>
-                  <bk-button
-                    text
-                    theme="primary"
-                    disabled={data.isStarting}
-                    onClick={ () => handleSwitchCluster(TicketTypes.SQLSERVER_ENABLE, data) }>
-                    { t('启用') }
-                  </bk-button>
-                </OperationBtnStatusTips>
-                <OperationBtnStatusTips data={ data }>
-                  <bk-button
-                    text
-                    theme="primary"
-                    class="ml-16"
-                    disabled={Boolean(data.operationTicketId)}
-                    onClick={() => handleResetCluster(data)}>
-                    { t('重置') }
-                  </bk-button>
-                </OperationBtnStatusTips>
-                <OperationBtnStatusTips data={ data }>
-                  <bk-button
-                    text
-                    theme="primary"
-                    class="ml-16"
-                    disabled={Boolean(data.operationTicketId)}
-                    onClick={() => handleDeleteCluster(data)}>
-                    { t('删除') }
-                  </bk-button>
-                </OperationBtnStatusTips>
-              </>
-            )
-          }
-       </>
-      ),
+      render: ({ data }: { data: SqlServerHaModel }) => {
+        const oprations = []
+
+        if (data.isOnline) {
+          oprations.push([
+            <OperationBtnStatusTips data={ data }>
+              <bk-button
+                text
+                theme="primary"
+                onClick={ () => handleShowAuthorize([data]) }>
+                { t('授权') }
+              </bk-button>
+            </OperationBtnStatusTips>,
+            <OperationBtnStatusTips data={ data }>
+              <bk-button
+                text
+                theme="primary"
+                class="ml-16"
+                disabled={data.operationDisabled}
+                onClick={() => handleSwitchCluster(TicketTypes.SQLSERVER_DISABLE, [data])}>
+                { t('禁用') }
+              </bk-button>
+            </OperationBtnStatusTips>
+          ])
+        } else {
+          oprations.push([
+            <OperationBtnStatusTips data={ data }>
+              <bk-button
+                text
+                theme="primary"
+                disabled={data.isStarting}
+                onClick={ () => handleSwitchCluster(TicketTypes.SQLSERVER_ENABLE, [data]) }>
+                { t('启用') }
+              </bk-button>
+            </OperationBtnStatusTips>,
+            <OperationBtnStatusTips data={ data }>
+              <bk-button
+                text
+                theme="primary"
+                class="ml-16"
+                disabled={Boolean(data.operationTicketId)}
+                onClick={() => handleResetCluster(data)}>
+                { t('重置') }
+              </bk-button>
+            </OperationBtnStatusTips>
+          ])
+        }
+
+        oprations.push(
+          <OperationBtnStatusTips data={ data }>
+            <bk-button
+              v-bk-tooltips={{
+                disabled: data.isOffline,
+                content: t('请先禁用集群')
+              }}
+              text
+              theme="primary"
+              class="ml-16"
+              disabled={data.isOnline || Boolean(data.operationTicketId)}
+              onClick={() => handleDeleteCluster([data])}>
+              { t('删除') }
+            </bk-button>
+          </OperationBtnStatusTips>
+        )
+
+        return oprations
+      }
     },
   ]);
 
@@ -892,17 +914,15 @@
    */
   const handleSwitchCluster = (
     type: TicketTypesStrings,
-    data: SqlServerHaModel,
+    data: SqlServerHaModel[],
   ) => {
-    if (!type) return;
-
     const isOpen = type === TicketTypes.SQLSERVER_ENABLE;
     InfoBox({
       type: 'warning',
-      title: isOpen ? t('确定启用该集群？') : t('确定禁用该集群？'),
+      title: isOpen ? t('确定启用集群？') : t('确定禁用集群？'),
       content: () => (
         <div style="word-break: all;">
-          <p style="color: #313238">{t('集群')} ：{data.cluster_name}</p>
+          <p style="color: #313238">{t('集群')} ：{data.map(dataItem => dataItem.cluster_name).join('，')}</p>
           {
             isOpen
               ? <p>{ t('启用后将恢复访问')}</p>
@@ -916,7 +936,7 @@
           bk_biz_id: currentBizId,
           ticket_type: type,
           details: {
-            cluster_ids: [data.id],
+            cluster_ids: data.map(dataItem => dataItem.id),
           },
         });
         return true;
@@ -927,8 +947,8 @@
   /**
    * 删除集群
    */
-  const handleDeleteCluster = (data: SqlServerHaModel) => {
-    const { cluster_name: name } = data;
+  const handleDeleteCluster = (data: SqlServerHaModel[]) => {
+    const name = data.map(dataItem => dataItem.cluster_name).join('，')
     InfoBox({
       type: 'warning',
       title: t('确定删除该集群'),
@@ -947,7 +967,7 @@
           bk_biz_id: currentBizId,
           ticket_type: TicketTypes.SQLSERVER_DESTROY,
           details: {
-            cluster_ids: [data.id],
+            cluster_ids: data.map(dataItem => dataItem.id),
           },
         });
         return false;

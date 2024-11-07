@@ -374,7 +374,16 @@
       render: ({ data }: {data: PulsarNodeModel}) => (
         <>
           <span>{data.ip}</span>
-          { data.isNew && <span class="glob-new-tag cluster-tag ml-4" data-text="NEW" /> }
+          {
+            data.isNew && (
+              <bk-tag
+                theme="success"
+                size="small"
+                class="ml-4">
+                NEW
+              </bk-tag>
+            )
+          }
         </>
       ),
     },
