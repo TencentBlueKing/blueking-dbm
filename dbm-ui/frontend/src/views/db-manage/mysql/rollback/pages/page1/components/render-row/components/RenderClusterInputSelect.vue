@@ -16,6 +16,7 @@
     <TableSeletorInput
       ref="editRef"
       v-model="localClusterDomain"
+      :disabled="!sourceClusterId"
       :rules="rules"
       @click-seletor="handleOpenSeletor" />
   </div>
@@ -40,6 +41,8 @@
   import ClusterSelector, { type TabConfig } from '@components/cluster-selector/Index.vue';
 
   import TableSeletorInput from '@views/db-manage/common/TableSeletorInput.vue';
+
+  import { messageWarn } from '@utils';
 
   interface Props {
     sourceClusterId: number;
@@ -110,6 +113,7 @@
           bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
         }).then((data) => {
           if (data.length === list.length) {
+            localClusterId.value = data[0].id;
             return true;
           }
           return false;
@@ -135,6 +139,10 @@
   };
 
   const handleOpenSeletor = () => {
+    if (!props.sourceClusterId) {
+      messageWarn(t('请先选择待回档集群'));
+      return;
+    }
     isShowSelector.value = true;
   };
 
