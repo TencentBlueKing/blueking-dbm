@@ -64,6 +64,7 @@
       :row-class="setRowClass"
       selectable
       :settings="tableSetting"
+      :show-overflow="false"
       show-overflow-tips
       @clear-search="clearSearchValue"
       @column-filter="columnFilterChange"
@@ -392,15 +393,6 @@
       ),
     },
     {
-      label: t('管控区域'),
-      field: 'bk_cloud_id',
-      filter: {
-        list: columnAttrs.value.bk_cloud_id,
-        checked: columnCheckedMap.value.bk_cloud_id,
-      },
-      render: ({ data }: { data: MongodbModel }) => <span>{data.bk_cloud_name || '--'}</span>,
-    },
-    {
       label: t('状态'),
       field: 'status',
       width: 100,
@@ -437,6 +429,12 @@
       render: ({ data }: { data: MongodbModel }) => <span>{data.major_version || '--'}</span>,
     },
     {
+        label: t('容灾要求'),
+        field: 'disaster_tolerance_level',
+        minWidth: 100,
+        render: ({ data }: { data: MongodbModel }) => data.disasterToleranceLevelName || '--',
+    },
+    {
       label: t('地域'),
       field: 'region',
       minWidth: 100,
@@ -445,6 +443,15 @@
         checked: columnCheckedMap.value.region,
       },
       render: ({ data }: { data: MongodbModel }) => <span>{data.bk_cloud_name || '--'}</span>,
+    },
+    {
+      label: t('管控区域'),
+      field: 'bk_cloud_id',
+      filter: {
+        list: columnAttrs.value.bk_cloud_id,
+        checked: columnCheckedMap.value.bk_cloud_id,
+      },
+      render: ({ data }: { data: MongodbModel }) =>  data.bk_cloud_name ? `${data.bk_cloud_name}[${data.bk_cloud_id}]` : '--',
     },
     {
       label: 'ConfigSvr',
@@ -682,6 +689,7 @@
       'status',
       'cluster_stats',
       'major_version',
+      'disaster_tolerance_level',
       'region',
       'mongo_config',
       'mongos',
@@ -902,7 +910,7 @@
       }
 
       .is-offline {
-        .cell {
+        .vxe-cell {
           color: #c4c6cc !important;
         }
       }
@@ -921,7 +929,7 @@
         color: #979ba5 !important;
       }
 
-      td div.cell .db-icon-copy {
+      td div.vxe-cell .db-icon-copy {
         display: none;
         margin-top: 2px;
         margin-left: 4px;

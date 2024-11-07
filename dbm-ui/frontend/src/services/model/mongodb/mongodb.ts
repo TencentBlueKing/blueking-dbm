@@ -16,7 +16,7 @@ import { uniq } from 'lodash';
 
 import type { ClusterListEntry } from '@services/types';
 
-import { PipelineStatus, TicketTypes } from '@common/const';
+import { ClusterAffinityMap, PipelineStatus, TicketTypes } from '@common/const';
 
 import { utcDisplayTime } from '@utils';
 
@@ -93,7 +93,7 @@ export default class Mongodb {
   creator: string;
   db_module_id: number;
   db_module_name: string;
-  disaster_tolerance_level: string;
+  disaster_tolerance_level: keyof typeof ClusterAffinityMap;
   id: number;
   major_version: string;
   master_domain: string;
@@ -365,5 +365,9 @@ export default class Mongodb {
       }
       return prevList;
     }, []);
+  }
+
+  get disasterToleranceLevelName() {
+    return ClusterAffinityMap[this.disaster_tolerance_level];
   }
 }

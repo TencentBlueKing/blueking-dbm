@@ -71,8 +71,8 @@
 </script>
 <style lang="less">
   .sqlserver-manage-rollback-rename-info-box {
-    .bk-table-body {
-      .cell {
+    .bk-vxe-table {
+      .vxe-cell {
         padding: 0 !important;
       }
 

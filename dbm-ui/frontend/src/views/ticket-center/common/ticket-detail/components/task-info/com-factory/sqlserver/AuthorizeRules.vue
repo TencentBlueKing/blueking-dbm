@@ -210,7 +210,7 @@
     transition: all 0.5s;
 
     td {
-      .cell {
+      .vxe-cell {
         padding: 0 !important;
       }
     }

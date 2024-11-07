@@ -54,6 +54,7 @@
       {
         label: t('管控区域'),
         key: 'bk_cloud_name',
+        render: () => (props.data.bk_cloud_name ? `${props.data.bk_cloud_name}[${props.data.bk_cloud_id}]` : '--'),
       },
       {
         label: t('创建人'),
@@ -62,6 +63,11 @@
       {
         label: t('创建时间'),
         key: 'create_at',
+      },
+      {
+        label: t('规格'),
+        key: 'spec_name',
+        render: () => props.data.cluster_spec.spec_name || '--',
       },
     ],
     [
@@ -94,6 +100,10 @@
         label: 'RemoteDR',
         key: 'remote_dr',
         render: () => props.data.remote_dr.map((item) => item.instance).join(','),
+      },
+      {
+        label: t('容灾要求'),
+        key: 'disasterToleranceLevelName',
       },
     ],
   ];

@@ -263,11 +263,5 @@
 <style lang="less">
   .selector-render-topo-host {
     padding: 0 26px 0 16px;
-
-    .bk-table-body {
-      tr {
-        cursor: pointer;
-      }
-    }
   }
 </style>

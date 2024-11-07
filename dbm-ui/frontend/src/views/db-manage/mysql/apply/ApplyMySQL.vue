@@ -937,10 +937,6 @@
 
   .service-table {
     max-width: 932px !important;
-
-    :deep(.bk-table-body) {
-      max-height: 350px;
-    }
   }
 
   .apply-form {

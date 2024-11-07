@@ -181,7 +181,7 @@
       th {
         border: none;
 
-        .cell {
+        .vxe-cell {
           background: #f0f1f5;
 
           &:hover {

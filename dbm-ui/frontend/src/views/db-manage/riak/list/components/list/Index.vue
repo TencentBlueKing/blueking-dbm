@@ -51,6 +51,7 @@
       :row-class="setRowClass"
       selectable
       :settings="tableSetting"
+      :show-overflow="false"
       @clear-search="clearSearchValue"
       @column-filter="columnFilterChange"
       @column-sort="columnSortChange"
@@ -342,6 +343,22 @@
       render: ({ data }: { data: RiakModel }) => <span>{data.db_module_name || '--'}</span>,
     },
     {
+        label: t('容灾要求'),
+        field: 'disaster_tolerance_level',
+        minWidth: 100,
+        render: ({ data }: { data: RiakModel }) => data.disasterToleranceLevelName || '--',
+    },
+    {
+      label: t('地域'),
+      field: 'region',
+      minWidth: 100,
+      filter: {
+        list: columnAttrs.value.region,
+        checked: columnCheckedMap.value.region,
+      },
+      render: ({ data }: { data: RiakModel }) => <span>{data.region || '--'}</span>,
+    },
+    {
       label: t('管控区域'),
       width: 120,
       field: 'bk_cloud_id',
@@ -349,7 +366,7 @@
         list: columnAttrs.value.bk_cloud_id,
         checked: columnCheckedMap.value.bk_cloud_id,
       },
-      render: ({ data }: { data: RiakModel }) => <span>{data.bk_cloud_name || '--'}</span>,
+      render: ({ data }: { data: RiakModel }) => data.bk_cloud_name ? `${data.bk_cloud_name}[${data.bk_cloud_id}]` : '--',
     },
     {
       label: t('状态'),
@@ -545,7 +562,9 @@
     checked: [
       'cluster_name',
       'major_version',
+      'disaster_tolerance_level',
       'region',
+      'bk_cloud_id',
       'db_module_id',
       'status',
       'cluster_stats',
@@ -748,7 +767,7 @@
       }
 
       .is-offline {
-        .cell {
+        .vxe-cell {
           color: #c4c6cc !important;
         }
       }
@@ -763,7 +782,7 @@
         margin-left: 4px;
       }
 
-      td .cell .db-icon-copy {
+      td .vxe-cell .db-icon-copy {
         display: none;
       }
 

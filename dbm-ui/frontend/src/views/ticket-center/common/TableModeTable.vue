@@ -9,11 +9,7 @@
         :pagination="pagination"
         remote-pagination
         :row-class="rowClass"
-        :show-overflow-tooltip="{
-          popoverOption: {
-            maxWidth: 500,
-          },
-        }"
+        :show-overflow="false"
         @page-limit-change="handlePageLimitChange"
         @page-value-change="handlePageValueChange">
         <template

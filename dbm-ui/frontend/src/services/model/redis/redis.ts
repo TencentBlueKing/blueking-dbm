@@ -14,6 +14,8 @@ import { uniq } from 'lodash';
 
 import type { ClusterListEntry, ClusterListNode, ClusterListOperation, ClusterListSpec } from '@services/types';
 
+import { ClusterAffinityMap } from '@common/const';
+
 import { isRecentDays, utcDisplayTime } from '@utils';
 
 import { t } from '@locales/index';
@@ -63,7 +65,7 @@ export default class Redis {
   creator: string;
   db_module_id: number;
   db_module_name: string;
-  disaster_tolerance_level: string;
+  disaster_tolerance_level: keyof typeof ClusterAffinityMap;
   dns_to_clb: boolean;
   id: number;
   machine_pair_cnt: number;
@@ -108,7 +110,7 @@ export default class Redis {
     this.cluster_entry = payload.cluster_entry || [];
     this.cluster_name = payload.cluster_name;
     this.cluster_shard_num = payload.cluster_shard_num;
-    this.cluster_spec = payload.cluster_spec;
+    this.cluster_spec = payload.cluster_spec || {};
     this.cluster_stats = payload.cluster_stats || {};
     this.cluster_time_zone = payload.cluster_time_zone;
     this.cluster_type = payload.cluster_type;
@@ -319,5 +321,9 @@ export default class Redis {
       tip: Redis.operationTextMap[item.ticket_type],
       ticketId: item.ticket_id,
     }));
+  }
+
+  get disasterToleranceLevelName() {
+    return ClusterAffinityMap[this.disaster_tolerance_level];
   }
 }

@@ -181,7 +181,6 @@
         field: 'instance_address',
         fixed: 'left',
         minWidth: 200,
-        showOverflowTooltip: false,
         render: ({ data }: { data: RedisInstanceModel }) => (
           <TextOverflowLayout>
             {{
@@ -212,7 +211,6 @@
         label: t('集群名称'),
         field: 'cluster_name',
         minWidth: 200,
-        showOverflowTooltip: false,
         render: ({ data }: { data: RedisInstanceModel }) => (
         <TextOverflowLayout>
           {{
@@ -291,6 +289,12 @@
           list: columnAttrs.value.role,
           checked: columnCheckedMap.value.role,
         },
+      },
+      {
+        label: t('所在园区'),
+        field: 'bk_sub_zone',
+        width: 140,
+        render: ({ data }: { data: RedisInstanceModel }) => data.bk_sub_zone || '--',
       },
       {
         label: t('部署时间'),
@@ -401,7 +405,7 @@
     margin: 0 24px;
     overflow: hidden;
 
-    .cell {
+    .vxe-cell {
       .copy-btn {
         display: none;
         margin-left: 4px;
@@ -413,12 +417,6 @@
     tr:hover {
       .copy-btn {
         display: inline-block !important;
-      }
-    }
-
-    .is-shrink-table {
-      .bk-table-body {
-        overflow: hidden auto;
       }
     }
 
