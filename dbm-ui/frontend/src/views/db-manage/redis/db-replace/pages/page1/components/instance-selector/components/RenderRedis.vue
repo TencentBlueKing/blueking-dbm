@@ -155,7 +155,7 @@
             ...acc,
             {
               id: cluster.id,
-              name: cluster.cluster_name,
+              name: cluster.master_domain,
               obj: 'cluster',
               count: cluster.count,
             },

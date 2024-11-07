@@ -395,6 +395,13 @@
           ip: item.ip,
           spec_id: item.spec?.id ?? 0,
         };
+        infoItem.display_info.data.push({
+          ip: item.ip,
+          role: item.role,
+          cluster_domain: item.cluster.domain,
+          spec_id: item.spec?.id ?? 0,
+          spec_name: item.spec?.name ?? '',
+        });
         if (item.role === 'redis_slave') {
           infoItem.redis_slave.push(specObj);
         } else if (item.role === 'redis_master') {
@@ -410,15 +417,6 @@
       });
       // 当选择了master的时候，对应的slave不要传给后端
       infoItem.redis_slave = infoItem.redis_slave.filter((item) => !needDeleteSlaves.includes(item.ip));
-      infoItem.display_info = {
-        data: tableData.value.map((item) => ({
-          ip: item.ip,
-          role: item.role,
-          cluster_domain: item.cluster.domain,
-          spec_id: item.spec?.id ?? 0,
-          spec_name: item.spec?.name ?? '',
-        })),
-      };
       return infoItem;
     });
     return infos;
