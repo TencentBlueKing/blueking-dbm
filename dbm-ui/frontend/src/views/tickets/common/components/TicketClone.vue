@@ -173,7 +173,7 @@
           ticketType: props.data.ticket_type,
         },
       });
-      window.open(href.replace(/^\/(\d+)/, `${props.data.bk_biz_id}`));
+      window.open(href.replace(/^\/(\d+)/, `/${props.data.bk_biz_id}`));
     }
   };
 
