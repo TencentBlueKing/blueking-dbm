@@ -67,7 +67,7 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import type { DnsTargetDetails } from '@services/model/cluster-entry/cluster-entry-details';
+  import ClusterEntryDetailModel, { type DnsTargetDetails } from '@services/model/cluster-entry/cluster-entry-details';
   import { getClusterEntries } from '@services/source/clusterEntry';
 
   import type { DBTypes } from '@common/const';
@@ -121,8 +121,10 @@
           type: item.cluster_entry_type,
           entry: item.entry,
           role: item.role,
-          ips: item.isDns ? (item.target_details as DnsTargetDetails[]).map((row) => row.ip).join('\n') : '',
-          port: item.target_details[0]?.port,
+          ips: item.isDns
+            ? (item as ClusterEntryDetailModel<DnsTargetDetails>).target_details.map((row) => row.ip).join('\n')
+            : '',
+          port: (item as ClusterEntryDetailModel<DnsTargetDetails>).target_details[0]?.port,
         })),
       );
     },
