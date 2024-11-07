@@ -45,6 +45,7 @@
         :row-class="setRowClass"
         selectable
         :settings="settings"
+        :show-overflow="false"
         @clear-search="clearSearchValue"
         @column-filter="columnFilterChange"
         @column-sort="columnSortChange"
@@ -445,7 +446,7 @@
     }
   }
 
-  :deep(.cell) {
+  :deep(.vxe-cell) {
     .db-icon-copy {
       display: none;
       margin-left: 4px;
@@ -462,19 +463,5 @@
 
   .table-wrapper {
     background-color: white;
-
-    .bk-table {
-      height: 100% !important;
-    }
-
-    :deep(.bk-table-body) {
-      max-height: calc(100% - 100px);
-    }
-  }
-
-  .is-shrink-table {
-    :deep(.bk-table-body) {
-      overflow: hidden auto;
-    }
   }
 </style>

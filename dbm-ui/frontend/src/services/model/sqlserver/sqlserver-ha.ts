@@ -15,7 +15,7 @@ import { uniq } from 'lodash';
 
 import type { ClusterListEntry, ClusterListNode, ClusterListOperation, ClusterListSpec } from '@services/types';
 
-import { ClusterAffinityMap } from '@common/const/clusterAffinity';
+import { ClusterAffinityMap } from '@common/const';
 
 import { t } from '@locales/index';
 

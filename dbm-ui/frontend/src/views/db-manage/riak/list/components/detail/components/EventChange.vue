@@ -164,11 +164,5 @@
   .riak-event-change {
     height: 100%;
     padding: 24px 0;
-
-    :deep(.riak-event-change-table) {
-      .bk-table-body {
-        max-height: unset !important;
-      }
-    }
   }
 </style>

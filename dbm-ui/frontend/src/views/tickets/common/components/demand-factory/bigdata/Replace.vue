@@ -154,15 +154,5 @@
     :deep(&__ip) {
       line-height: 30px;
     }
-
-    &__table {
-      :deep(.bk-table-body table tbody tr) {
-        td {
-          .cell {
-            padding: 0 !important;
-          }
-        }
-      }
-    }
   }
 </style>

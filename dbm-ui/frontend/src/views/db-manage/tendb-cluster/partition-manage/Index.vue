@@ -123,7 +123,8 @@
     {
       label: t('策略 ID'),
       field: 'id',
-      fixed: true,
+      fixed: 'left',
+      width: 100,
       render: ({ data }: {data: PartitionModel}) => (
         <div class="id-container">
           <span>{data.id}</span>

@@ -407,7 +407,7 @@
     margin: 0 24px;
     overflow: hidden;
 
-    .cell {
+    .vxe-cell {
       .copy-btn {
         display: none;
         margin-left: 4px;
@@ -419,12 +419,6 @@
     tr:hover {
       .copy-btn {
         display: inline-block !important;
-      }
-    }
-
-    .is-shrink-table {
-      .bk-table-body {
-        overflow: hidden auto;
       }
     }
 

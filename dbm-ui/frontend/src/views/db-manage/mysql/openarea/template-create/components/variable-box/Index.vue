@@ -135,20 +135,18 @@
     background-color: #fff;
     box-shadow: -1px 0 0 0 #dcdee5;
 
-    .bk-table {
-      .bk-table-body {
-        tr {
-          .copy-btn {
-            cursor: pointer;
-            opacity: 0%;
-          }
+    .bk-vxe-table {
+      .vxe-body--row {
+        .copy-btn {
+          cursor: pointer;
+          opacity: 0%;
+        }
 
-          &:hover {
-            .copy-btn {
-              color: #3a84ff;
-              opacity: 100%;
-              transition: 0.1s;
-            }
+        &:hover {
+          .copy-btn {
+            color: #3a84ff;
+            opacity: 100%;
+            transition: 0.1s;
           }
         }
       }
