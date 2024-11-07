@@ -14,6 +14,8 @@ import { uniq } from 'lodash';
 
 import type { ClusterListEntry, ClusterListNode, ClusterListOperation, ClusterListSpec } from '@services/types';
 
+import { ClusterAffinityMap } from '@common/const/clusterAffinity';
+
 import { isRecentDays, utcDisplayTime } from '@utils';
 
 import { t } from '@locales/index';
@@ -48,6 +50,7 @@ export default class Redis {
   bk_biz_name: string;
   bk_cloud_id: number;
   bk_cloud_name: string;
+  bk_sub_zone: string;
   cluster_access_port: number;
   cluster_alias: string;
   cluster_capacity: number;
@@ -63,6 +66,7 @@ export default class Redis {
   creator: string;
   db_module_id: number;
   db_module_name: string;
+  disaster_tolerance_level: keyof typeof ClusterAffinityMap;
   dns_to_clb: boolean;
   id: number;
   machine_pair_cnt: number;
@@ -100,13 +104,14 @@ export default class Redis {
     this.bk_biz_name = payload.bk_biz_name;
     this.bk_cloud_id = payload.bk_cloud_id;
     this.bk_cloud_name = payload.bk_cloud_name;
+    this.bk_sub_zone = payload.bk_sub_zone;
     this.cluster_access_port = payload.cluster_access_port;
     this.cluster_alias = payload.cluster_alias;
     this.cluster_capacity = payload.cluster_capacity;
     this.cluster_entry = payload.cluster_entry || [];
     this.cluster_name = payload.cluster_name;
     this.cluster_shard_num = payload.cluster_shard_num;
-    this.cluster_spec = payload.cluster_spec;
+    this.cluster_spec = payload.cluster_spec || {};
     this.cluster_stats = payload.cluster_stats || {};
     this.cluster_time_zone = payload.cluster_time_zone;
     this.cluster_type = payload.cluster_type;
@@ -115,6 +120,7 @@ export default class Redis {
     this.creator = payload.creator;
     this.db_module_id = payload.db_module_id;
     this.db_module_name = payload.db_module_name;
+    this.disaster_tolerance_level = payload.disaster_tolerance_level;
     this.dns_to_clb = payload.dns_to_clb;
     this.id = payload.id;
     this.machine_pair_cnt = payload.machine_pair_cnt;
@@ -315,5 +321,9 @@ export default class Redis {
       tip: Redis.operationTextMap[item.ticket_type],
       ticketId: item.ticket_id,
     }));
+  }
+
+  get disasterToleranceLevelName() {
+    return ClusterAffinityMap[this.disaster_tolerance_level];
   }
 }

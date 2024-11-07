@@ -374,6 +374,12 @@
       },
     },
     {
+      label: t('容灾要求'),
+      field: 'disaster_tolerance_level',
+      minWidth: 100,
+      render: ({ data }: { data: PulsarModel }) => data.disasterToleranceLevelName || '--',
+    },
+    {
       label: t('地域'),
       field: 'region',
       minWidth: 100,
@@ -382,6 +388,17 @@
         checked: columnCheckedMap.value.region,
       },
       render: ({ data }: {data: PulsarModel}) => <span>{data?.region || '--'}</span>,
+    },
+    {
+        label: t('园区'),
+        field: 'bk_sub_zone',
+        minWidth: 100,
+        render: ({ data }: { data: PulsarModel }) => data.bk_sub_zone || '--',
+    },
+    {
+      label: t('管控区域'),
+      field: 'bk_cloud_id',
+      render: ({ data }: { data: PulsarModel }) =>  data.bk_cloud_name ? `${data.bk_cloud_name}[${data.bk_cloud_id}]` : '--',
     },
     {
       label: t('状态'),
@@ -740,6 +757,7 @@
     checked: [
       'domain',
       'major_version',
+      'disaster_tolerance_level',
       'region',
       'status',
       'cluster_stats',
