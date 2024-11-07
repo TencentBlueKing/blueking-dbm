@@ -16,15 +16,26 @@
     <div class="password-temporary-modify">
       <template v-if="submitted">
         <div
-          v-if="queryLoading"
+          v-if="isActive"
           class="submitting-mask">
           <DbIcon
             class="submitting-icon"
             svg
             type="sync-pending" />
-          <p class="submitting-text">
+          <p class="submitting-text mt16">
             {{ t('密码正在修改中，请稍等') }}
           </p>
+          <RouterLink
+            class="mt16 mb16"
+            target="_blank"
+            :to="{
+              name: 'taskHistoryDetail',
+              params: {
+                root_id: rootId,
+              },
+            }">
+            {{ t('查看详情') }}
+          </RouterLink>
         </div>
         <UpdateResult
           v-else
@@ -33,7 +44,19 @@
           :submit-res="modifyResult"
           :submit-role-map="submitRoleMap"
           @refresh="handleRefresh"
-          @retry="handleSubmit" />
+          @retry="handleSubmit">
+          <RouterLink
+            class="mt16 mb16"
+            target="_blank"
+            :to="{
+              name: 'taskHistoryDetail',
+              params: {
+                root_id: rootId,
+              },
+            }">
+            {{ t('查看详情') }}
+          </RouterLink>
+        </UpdateResult>
       </template>
       <DbForm
         v-else
@@ -136,32 +159,33 @@
     },
   );
 
-  const currentScope = getCurrentScope();
   const rootId = ref('');
-  const modifyResult = ref<ModifyAdminPassword>();
-
-  const { run: queryAsyncModifyResultRun, loading: queryLoading } = useRequest(queryAsyncModifyResult, {
-    manual: true,
-    onSuccess({ data, status }) {
-      modifyResult.value = data;
-      // 设置轮询
-      if (currentScope?.active) {
-        !isActive.value && ['PENDING', 'RUNNING', 'FINISHED'].includes(status) && resume();
-      } else {
-        pause();
-      }
-    },
-    onError() {
-      modifyResult.value = {} as ModifyAdminPassword;
-    },
-  });
+  const modifyResult = ref<ModifyAdminPassword>('');
 
   // 轮询
   const { isActive, resume, pause } = useTimeoutPoll(() => {
     queryAsyncModifyResultRun({
       root_id: rootId.value,
     });
-  }, 10000);
+  }, 2000);
+
+  const { run: queryAsyncModifyResultRun } = useRequest(queryAsyncModifyResult, {
+    manual: true,
+    onSuccess({ data, status }) {
+      /**
+       * 设置轮询
+       * FINISHED: 完成态
+       * FAILED: 失败态
+       * REVOKED: 取消态
+       */
+      if (['FINISHED', 'FAILED', 'REVOKED'].includes(status)) {
+        modifyResult.value = data;
+        pause();
+      } else if (!isActive.value) {
+        resume();
+      }
+    },
+  });
 
   const { run: modifyAdminPasswordRun, loading: submitting } = useRequest(modifyAdminPassword, {
     manual: true,
@@ -229,6 +253,10 @@
     handleReset();
     submitted.value = false;
   };
+
+  onBeforeUnmount(() => {
+    pause();
+  });
 </script>
 
 <style lang="less" scoped>
@@ -238,8 +266,10 @@
     border-radius: 2px;
 
     .submitting-mask {
+      display: flex;
       padding: 90px 0 138px;
-      text-align: center;
+      flex-direction: column;
+      align-items: center;
 
       .submitting-icon {
         font-size: 64px;
@@ -248,7 +278,6 @@
       }
 
       .submitting-text {
-        margin-top: 36px;
         font-size: 24px;
         color: #313238;
       }
