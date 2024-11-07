@@ -13,5 +13,6 @@ export default async (ticketDetail: TicketModel<Sqlserver.ImportSqlFile>) => {
     force: details.force,
     path: details.path,
     ticket_mode: details.ticket_mode,
+    remark: ticketDetail.remark,
   };
 };
