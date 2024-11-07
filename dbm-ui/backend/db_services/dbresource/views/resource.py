@@ -318,10 +318,15 @@ class DBResourceViewSet(viewsets.SystemViewSet):
     def get_device_class(self, request):
         data = self.params_validate(self.get_serializer_class())
         page = {"start": data["offset"], "limit": data["limit"]}
-        # 默认过滤条件是支持申请的机型
-        dvc_filter = {"condition": "AND", "rules": [{"field": "enable_apply", "operator": "equal", "value": True}]}
+        # 默认过滤条件是支持申请的机型，且是常规项目
+        rules = [
+            {"field": "enable_apply", "operator": "equal", "value": True},
+            {"field": "require_type", "operator": "equal", "value": 1},
+        ]
+        # 如果有名称过滤，则加上
         if data.get("name"):
-            dvc_filter["rules"].append({"field": "device_type", "operator": "contains", "value": data["name"]})
+            rules.append({"field": "device_type", "operator": "contains", "value": data["name"]})
+        dvc_filter = {"condition": "AND", "rules": rules}
         # 请求hcm平台获取机型列表，若报错则忽略
         try:
             device_list = HCMApi.list_cvm_device(params={"filter": dvc_filter, "page": page})

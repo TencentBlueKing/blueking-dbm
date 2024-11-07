@@ -93,9 +93,19 @@ class AppCache(AuditedModel):
         return app_infos
 
     @classmethod
+    def get_appcache(cls, key):
+        if key not in ["appcache_list", "appcache_dict"]:
+            raise ValueError(_("缓存key不存在，请检查key是否为appcache_dict/appcache_list"))
+        if not cache.get(key):
+            from backend.db_meta.utils import cache_appcache_data
+
+            cache_appcache_data(cls)
+        return cache.get(key)
+
+    @classmethod
     def get_choices(cls):
         try:
-            appcache_data = cache.get("appcache_list")
+            appcache_data = cls.get_appcache("appcache_list")
             biz_choices = [(app["bk_biz_id"], f"[{app['bk_biz_id']}]{app['bk_biz_name']}") for app in appcache_data]
         except Exception:  # pylint: disable=broad-except
             # 忽略出现的异常，此时可能因为表未初始化

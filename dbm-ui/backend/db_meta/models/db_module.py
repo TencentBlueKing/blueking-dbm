@@ -10,7 +10,6 @@ specific language governing permissions and limitations under the License.
 """
 import logging
 
-from django.core.cache import cache
 from django.db import models
 from django.db.models import Q
 from django.utils.translation import ugettext_lazy as _
@@ -71,7 +70,7 @@ class DBModule(AuditedModel):
             for dm in cls.objects.filter(q).all():
 
                 try:
-                    appcache_dict = cache.get("appcache_dict")
+                    appcache_dict = AppCache.get_appcache(key="appcache_dict")
                     appcache = appcache_dict.get(str(dm.bk_biz_id))
                     db_module_choices.append(
                         (

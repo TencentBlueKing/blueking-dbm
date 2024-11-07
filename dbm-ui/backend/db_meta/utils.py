@@ -209,5 +209,7 @@ def cache_appcache_data(sender, **kwargs):
     data = AppCache.objects.all().values()
     appcache_list = list(data) if data else []
     appcache_dict = {app["bk_biz_id"]: app for app in data}
-    cache.set("appcache_list", appcache_list)
-    cache.set("appcache_dict", appcache_dict)
+    # 默认30min过期，稍微晚于周期同步cc拓扑的定时任务(20min)
+    timeout = 60 * 30
+    cache.set("appcache_list", appcache_list, timeout=timeout)
+    cache.set("appcache_dict", appcache_dict, timeout=timeout)
