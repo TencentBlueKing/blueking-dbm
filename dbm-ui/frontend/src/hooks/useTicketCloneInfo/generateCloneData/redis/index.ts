@@ -8,6 +8,8 @@ export * from './dataCopyCheckRepair';
 export * from './dataStructure';
 export * from './installModule';
 export * from './masterSlaveSwitch';
+export * from './migrateCluster';
+export * from './migrateSingle';
 export * from './operation';
 export * from './proxyScaleDown';
 export * from './proxyScaleUp';

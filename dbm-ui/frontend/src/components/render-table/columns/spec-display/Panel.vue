@@ -14,7 +14,7 @@
 <template>
   <BkPopover
     height="0"
-    placement="bottom"
+    :placement="placement"
     :popover-delay="[100, 200]"
     theme="light"
     width="514">
@@ -86,6 +86,8 @@
   </BkPopover>
 </template>
 <script setup lang="ts">
+  import { Popover } from 'bkui-vue';
+  import type { ComponentProps } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
 
   export interface SpecInfo {
@@ -114,6 +116,7 @@
   interface Props {
     data?: SpecInfo;
     hideQps?: boolean;
+    placement?: ComponentProps<typeof Popover>['placement'];
   }
 
   withDefaults(defineProps<Props>(), {
@@ -142,6 +145,7 @@
       ],
     }),
     hideQps: false,
+    placement: 'bottom',
   });
 
   const { t } = useI18n();

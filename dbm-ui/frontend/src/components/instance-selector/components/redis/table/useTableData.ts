@@ -80,7 +80,7 @@ export function useTableData<T>(
     }
     if (clusterId?.value && clusterId.value !== currentBizId) {
       Object.assign(params, {
-        cluster_ids: clusterId.value,
+        cluster_id: clusterId.value,
       });
     }
     return params;
