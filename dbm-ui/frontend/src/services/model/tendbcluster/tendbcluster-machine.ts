@@ -11,126 +11,21 @@
  * the specific language governing permissions and limitations under the License.
  */
 
+import type { HostInfo, MachineRelatedCluster, MachineRelatedInstance, MachineSpecConfig } from '@services/types';
+
 export default class SpiderMachine {
   bk_cloud_id: number;
   bk_cloud_name: string;
   bk_host_id: number;
   cluster_type: string;
   create_at: string;
-  host_info: {
-    agent_id: number;
-    alive: number;
-    biz: {
-      id: number;
-      name: string;
-    };
-    bk_cpu: number;
-    bk_cpu_architecture: string;
-    bk_cpu_module: string;
-    bk_disk: number;
-    bk_host_outerip: string;
-    bk_idc_id: string;
-    bk_idc_name: string;
-    bk_mem: number;
-    cloud_area: {
-      id: number;
-      name: string;
-    };
-    cloud_id: number;
-    cloud_vendor: string;
-    host_id: number;
-    host_name: string;
-    ip: string;
-    ipv6: string;
-    meta: {
-      bk_biz_id: number;
-      scope_id: number;
-      scope_type: string;
-    };
-    os_name: string;
-    os_type: number;
-  };
+  host_info: HostInfo;
   instance_role: string;
   ip: string;
   machine_type: string;
-  related_clusters: {
-    alias: string;
-    bk_biz_id: number;
-    bk_cloud_id: number;
-    // cluster_name: string;
-    cluster_type: string;
-    cluster_type_name: string;
-    creator: string;
-    db_module_id: number;
-    disaster_tolerance_level: string;
-    id: number;
-    immute_domain: string;
-    major_version: string;
-    phase: string;
-    region: string;
-    status: string;
-    time_zone: string;
-    updater: string;
-  }[];
-  related_instances: {
-    name: string;
-    ip: string;
-    port: number;
-    instance: string;
-    status: string;
-    phase: string;
-    bk_instance_id: number;
-    bk_host_id: number;
-    bk_cloud_id: number;
-    spec_config: {
-      id: number;
-      cpu: {
-        max: number;
-        min: number;
-      };
-      mem: {
-        max: number;
-        min: number;
-      };
-      qps: {
-        max: number;
-        min: number;
-      };
-      name: string;
-      count: number;
-      device_class: string[];
-      storage_spec: {
-        size: number;
-        type: string;
-        mount_point: string;
-      }[];
-    };
-    bk_biz_id: number;
-    admin_port: number;
-  }[];
-  spec_config: {
-    id: number;
-    cpu: {
-      max: number;
-      min: number;
-    };
-    mem: {
-      max: number;
-      min: number;
-    };
-    qps: {
-      max: number;
-      min: number;
-    };
-    name: string;
-    count: number;
-    device_class: string[];
-    storage_spec: {
-      size: number;
-      type: string;
-      mount_point: string;
-    }[];
-  };
+  related_clusters: MachineRelatedCluster[];
+  related_instances: MachineRelatedInstance[];
+  spec_config: MachineSpecConfig;
   spec_id: number;
 
   constructor(payload = {} as SpiderMachine) {
