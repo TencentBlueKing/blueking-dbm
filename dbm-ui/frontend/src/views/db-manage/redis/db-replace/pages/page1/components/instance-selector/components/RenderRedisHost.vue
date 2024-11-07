@@ -57,7 +57,6 @@
   import SerachBar from '@components/instance-selector/components/common/SearchBar.vue';
 
   import type { SpecInfo } from '@views/db-manage/redis/common/spec-panel/Index.vue';
-  import { firstLetterToUpper } from '@views/db-manage/redis/common/utils/index';
 
   import { getSearchSelectorParams } from '@utils';
 
@@ -266,7 +265,7 @@
       //   ],
       //   checked: columnCheckedMap.value.role,
       // },
-      render: ({ data } : TableItem) => <span>{firstLetterToUpper(data.instance_role)}</span>,
+      render: ({ data } : TableItem) => <span>{data.instance_role}</span>,
     },
     {
       label: t('实例状态'),

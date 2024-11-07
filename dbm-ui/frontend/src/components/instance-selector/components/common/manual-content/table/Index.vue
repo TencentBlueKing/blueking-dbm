@@ -32,8 +32,6 @@
 
   import DbStatus from '@components/db-status/index.vue';
 
-  import { firstLetterToUpper } from '@utils';
-
   import {
     type InstanceSelectorValues,
     type IValue,
@@ -42,6 +40,7 @@
   } from '../../../../Index.vue';
 
   type TableConfigType = Required<PanelListType[number]>['tableConfig'];
+  type ManualConfigType = Required<PanelListType[number]>['manualConfig'];
 
   interface DataRow {
     data: T,
@@ -55,6 +54,7 @@
     firsrColumn?: TableConfigType['firsrColumn'],
     roleFilterList?: TableConfigType['roleFilterList'],
     disabledRowConfig?: TableConfigType['disabledRowConfig'],
+    fieldFormat?: ManualConfigType['fieldFormat'];
     statusFilter?: TableConfigType['statusFilter'],
   }
 
@@ -68,6 +68,7 @@
     statusFilter: undefined,
     activePanelId: 'tendbcluster',
     disabledRowConfig: undefined,
+    fieldFormat: undefined,
     roleFilterList: undefined,
     getTableList: undefined,
   });
@@ -159,7 +160,7 @@
     {
       fixed: 'left',
       minWidth: 160,
-      label: props.firsrColumn?.label ? firstLetterToUpper(props.firsrColumn.label) : t('实例'),
+      label: props.firsrColumn?.label ? props.firsrColumn.label : t('实例'),
       field: props.firsrColumn?.field ? props.firsrColumn.field : 'instance_address',
     },
     {
@@ -167,6 +168,7 @@
       field: 'role',
       showOverflowTooltip: true,
       filter: props.roleFilterList,
+      render: ({ data }: DataRow) => <span>{props.fieldFormat?.role ? props.fieldFormat.role[data.role] : data.role}</span>
     },
     {
       label: t('实例状态'),

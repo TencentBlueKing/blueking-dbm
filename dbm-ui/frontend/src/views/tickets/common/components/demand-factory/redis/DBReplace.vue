@@ -27,6 +27,14 @@
     ticketDetails: TicketModel<RedisDBReplaceDetails>;
   }
 
+  interface IRowData {
+    ip: string;
+    role: string;
+    cluster_domain: string;
+    spec_id: number;
+    spec_name: string;
+  }
+
   const props = defineProps<Props>();
 
   const { t } = useI18n();
@@ -45,6 +53,10 @@
       label: t('所属集群'),
       field: 'cluster_domain',
       showOverflowTooltip: true,
+      rowspan: ({ row }: { row: IRowData }) => {
+        const rowSpan = tableData.value.filter((item) => item.cluster_domain === row.cluster_domain).length;
+        return rowSpan > 1 ? rowSpan : 1;
+      },
     },
     {
       label: t('规格需求'),

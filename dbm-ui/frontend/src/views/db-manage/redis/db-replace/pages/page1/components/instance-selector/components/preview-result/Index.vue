@@ -54,7 +54,7 @@
               v-overflow-tips
               class="text-overflow">
               {{ item.ip }}
-              <span class="result-item-role">({{ firstLetterToUpper(item.role!) }})</span>
+              <span class="result-item-role">({{ item.role }})</span>
             </span>
             <DbIcon
               type="close result-item-remove"
@@ -69,8 +69,6 @@
   import { useI18n } from 'vue-i18n';
 
   import { useCopy } from '@hooks';
-
-  import { firstLetterToUpper } from '@views/db-manage/redis/common/utils';
 
   import { messageWarn } from '@utils';
 

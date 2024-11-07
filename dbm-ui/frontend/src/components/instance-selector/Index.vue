@@ -287,6 +287,7 @@
       checkType: 'ip' | 'instance';
       checkKey: keyof IValue;
       activePanelId?: string;
+      fieldFormat?: Record<string, Record<string, string>>;
       checkInstances?: (params: any) => Promise<any[] | ListBase<any[]>>;
     };
     previewConfig?: {
@@ -369,7 +370,7 @@
             role: 'redis_master',
             field: 'ip',
           },
-          columnsChecked: ['ip', 'cloud_area', 'status', 'host_name', 'os_name'],
+          columnsChecked: ['ip', 'role', 'cloud_area', 'status', 'host_name', 'os_name'],
           statusFilter: (data: RedisHostModel) => !data.isMasterFailover,
           isRemotePagination: true,
         },
@@ -385,11 +386,11 @@
         tableConfig: {
           getTableList: getRedisMachineList,
           firsrColumn: {
-            label: 'master Ip',
+            label: 'IP',
             role: 'redis_master',
             field: 'ip',
           },
-          columnsChecked: ['ip', 'cloud_area', 'status', 'host_name', 'os_name'],
+          columnsChecked: ['ip', 'role', 'cloud_area', 'status', 'host_name', 'os_name'],
           statusFilter: (data: RedisHostModel) => !data.isMasterFailover,
           isRemotePagination: false,
         },
@@ -398,6 +399,15 @@
           checkType: 'ip',
           checkKey: 'ip',
           activePanelId: 'redis',
+          fieldFormat: {
+            // column绑定的field
+            role: {
+              // 接口返回值->展示值
+              master: 'redis_master',
+              slave: 'redis_slave',
+              proxy: 'proxy',
+            },
+          },
         },
         previewConfig: {
           displayKey: 'ip',
