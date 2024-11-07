@@ -18,6 +18,7 @@
 </template>
 
 <script setup lang="tsx">
+  import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
 
   import type { RedisDBReplaceDetails } from '@services/model/ticket/details/redis';
@@ -25,6 +26,14 @@
 
   interface Props {
     ticketDetails: TicketModel<RedisDBReplaceDetails>;
+  }
+
+  interface IRowData {
+    ip: string;
+    role: string;
+    cluster_domain: string;
+    spec_id: number;
+    spec_name: string;
   }
 
   const props = defineProps<Props>();
@@ -40,11 +49,16 @@
     {
       label: t('角色类型'),
       field: 'role',
+      render: ({ cell }: { cell: string }) => _.upperFirst(cell),
     },
     {
       label: t('所属集群'),
       field: 'cluster_domain',
       showOverflowTooltip: true,
+      rowspan: ({ row }: { row: IRowData }) => {
+        const rowSpan = tableData.value.filter((item) => item.cluster_domain === row.cluster_domain).length;
+        return rowSpan > 1 ? rowSpan : 1;
+      },
     },
     {
       label: t('规格需求'),
