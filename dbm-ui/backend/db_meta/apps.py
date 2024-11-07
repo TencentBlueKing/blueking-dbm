@@ -48,7 +48,7 @@ class DBMeta(AppConfig):
         from backend.db_meta.signals import update_cluster_status
         from backend.db_meta.utils import cache_appcache_data
 
-        post_migrate.connect(cache_appcache_data, sender=AppCache)
+        post_migrate.connect(cache_appcache_data, sender=self)
         post_save.connect(cache_appcache_data, sender=AppCache)
 
         post_migrate.connect(init_db_meta, sender=self)
