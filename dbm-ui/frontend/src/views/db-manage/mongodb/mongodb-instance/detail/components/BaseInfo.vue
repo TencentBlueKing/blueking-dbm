@@ -90,7 +90,7 @@
         key: 'idc_city_name',
       },
       {
-        label: t('所在机房'),
+        label: t('所在园区'),
         key: 'bk_idc_name',
       },
     ],
