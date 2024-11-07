@@ -4699,6 +4699,7 @@
                   "alias": "$tag_bk_target_ip",
                   "data_source_label": "bk_monitor",
                   "data_type_label": "time_series",
+                  "display": true,
                   "filter_dict": {},
                   "functions": [],
                   "group_by": [
@@ -4707,11 +4708,11 @@
                   "interval": 60,
                   "interval_unit": "s",
                   "method": "avg_without_time",
-                  "metric_field": "speed_sent",
+                  "metric_field": "speed_sent_bit",
                   "refId": "a",
                   "result_table_id": "dbm_system.net",
                   "result_table_label": "os",
-                  "time_field": "",
+                  "time_field": "time",
                   "where": [
                     {
                       "key": "app",
@@ -4740,7 +4741,7 @@
                 }
               ],
               "refId": "A",
-              "source": "avg by (bk_target_ip) (bkmonitor:dbm_system:net:speed_sent_bit{app=\"$app\",cluster_domain=\"$cluster_domain\",instance_role=\"broker\"})",
+              "source": "max by (bk_target_ip) (bkmonitor:dbm_system:net:speed_sent_bit{app=\"$app\",cluster_domain=\"$cluster_domain\",instance_role=\"broker\"})",
               "step": "",
               "type": "range"
             }
@@ -4844,6 +4845,7 @@
                   "alias": "$tag_bk_target_ip",
                   "data_source_label": "bk_monitor",
                   "data_type_label": "time_series",
+                  "display": true,
                   "filter_dict": {},
                   "functions": [],
                   "group_by": [
@@ -4851,12 +4853,12 @@
                   ],
                   "interval": 60,
                   "interval_unit": "s",
-                  "method": "avg_without_time",
-                  "metric_field": "speed_recv",
+                  "method": "max_without_time",
+                  "metric_field": "speed_recv_bit",
                   "refId": "a",
                   "result_table_id": "dbm_system.net",
                   "result_table_label": "os",
-                  "time_field": "",
+                  "time_field": "time",
                   "where": [
                     {
                       "key": "app",
@@ -4870,7 +4872,7 @@
                       "key": "cluster_domain",
                       "method": "eq",
                       "value": [
-                        "$cluser_domain"
+                        "$cluster_domain"
                       ]
                     },
                     {
@@ -4885,7 +4887,7 @@
                 }
               ],
               "refId": "A",
-              "source": "avg by (bk_target_ip) (bkmonitor:dbm_system:net:speed_recv_bit{app=\"$app\",cluster_domain=\"$cluster_domain\",instance_role=\"broker\"})",
+              "source": "max by (bk_target_ip) (bkmonitor:dbm_system:net:speed_recv_bit{app=\"$app\",cluster_domain=\"$cluster_domain\",instance_role=\"broker\"})",
               "step": "",
               "type": "range"
             }
@@ -5513,7 +5515,7 @@
                   "refId": "a",
                   "result_table_id": "dbm_system.disk",
                   "result_table_label": "os",
-                  "time_field": "",
+                  "time_field": "time",
                   "where": [
                     {
                       "key": "app",
@@ -5542,7 +5544,7 @@
                 }
               ],
               "refId": "A",
-              "source": "sum(bkmonitor:dbm_system:disk:used{app=\"$app\",cluster_domain=\"$cluster_domain\",instance_role=\"broker\"})",
+                    "source": "sum(bkmonitor:dbm_system:disk:used{app=\"$app\",cluster_domain=\"$cluster_domain\",instance_role=\"broker\",device_type=~\"ext|xfs\",mount_point!=\"/\",mount_point!=\"/usr/local\"})",
               "step": "",
               "type": "range"
             },
@@ -5574,7 +5576,7 @@
                   "refId": "a",
                   "result_table_id": "dbm_system.disk",
                   "result_table_label": "os",
-                  "time_field": "",
+                  "time_field": "time",
                   "where": [
                     {
                       "key": "app",
@@ -5603,7 +5605,7 @@
                 }
               ],
               "refId": "B",
-              "source": "sum(bkmonitor:dbm_system:disk:total{app=\"$app\",cluster_domain=\"$cluster_domain\",instance_role=\"broker\"})",
+                    "source": "sum(bkmonitor:dbm_system:disk:total{app=\"$app\",cluster_domain=\"$cluster_domain\",instance_role=\"broker\",device_type=~\"ext|xfs\",mount_point!=\"/\",mount_point!=\"/usr/local\"})",
               "step": "",
               "type": "range"
             }
