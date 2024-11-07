@@ -148,11 +148,6 @@
 
 <style lang="less" scoped>
   .recommend-architecture-table {
-    .table-content {
-      :deep(.bk-table-body) {
-        max-height: 100% !important;
-      }
-    }
     .table-head {
       display: flex;
       align-items: center;
@@ -257,7 +252,7 @@
     }
 
     :deep(.bk-table) {
-      .cell {
+      .vxe-cell {
         white-space: break-spaces;
         line-height: 20px;
         padding: 8px 16px;

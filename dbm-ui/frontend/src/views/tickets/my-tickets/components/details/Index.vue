@@ -166,18 +166,6 @@
     padding: 24px;
     font-size: 12px;
 
-    .bk-table {
-      .bk-table-body {
-        height: unset !important;
-        max-height: unset !important;
-      }
-
-      td {
-        height: unset !important;
-        min-height: 42px;
-      }
-    }
-
     .db-card {
       .db-card__content {
         padding-left: 82px;

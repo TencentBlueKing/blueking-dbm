@@ -168,10 +168,6 @@
     }
 
     .parameter-table {
-      .bk-table-body {
-        height: calc(var(--height) - 42px) !important;
-      }
-
       .locked-tag {
         &--app {
           color: @primary-color;

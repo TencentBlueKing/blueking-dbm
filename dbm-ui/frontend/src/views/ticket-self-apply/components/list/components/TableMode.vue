@@ -36,7 +36,6 @@
             width="100">
             <template #default="{ data }: { data: IRowData }">
               <BkButton
-                v-if="data"
                 text
                 theme="primary"
                 @click="() => handleShowDetail(data)">

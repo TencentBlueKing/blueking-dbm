@@ -136,7 +136,7 @@
   // 当元素被滚动出可视区域则关闭 popover
   const rangeInputRef = ref<HTMLDivElement>();
   onMounted(() => {
-    const targetParant = rangeInputRef.value?.closest?.('.bk-table-body');
+    const targetParant = rangeInputRef.value?.closest?.('.vxe-table--body');
     if (targetParant) {
       const intersectionObserver = new IntersectionObserver(
         () => {

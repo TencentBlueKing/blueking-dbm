@@ -175,12 +175,6 @@
         background: #f0f1f5;
         align-items: center;
       }
-
-      .bk-table {
-        th {
-          background: #f5f7fa;
-        }
-      }
     }
   }
 </style>

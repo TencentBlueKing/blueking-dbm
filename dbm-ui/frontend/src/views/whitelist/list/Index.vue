@@ -255,7 +255,7 @@
 
 <style lang="less">
   .whitelist-page {
-    .bk-table {
+    .bk-vxe-table {
       tr:hover {
         .copy-btn {
           display: inline-block;

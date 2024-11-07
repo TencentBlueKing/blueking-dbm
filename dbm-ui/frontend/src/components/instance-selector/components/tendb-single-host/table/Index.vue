@@ -328,11 +328,5 @@
 <style lang="less">
   .instance-selector-render-topo-host {
     padding: 0 24px;
-
-    .bk-table-body {
-      tr {
-        cursor: pointer;
-      }
-    }
   }
 </style>

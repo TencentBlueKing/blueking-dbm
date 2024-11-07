@@ -49,6 +49,7 @@
         :row-class="getRowClass"
         selectable
         :settings="tableSetting"
+        :show-overflow="false"
         @clear-search="clearSearchValue"
         @column-filter="columnFilterChange"
         @column-sort="columnSortChange"
@@ -1012,20 +1013,6 @@
       .bk-nested-loading {
         height: 100%;
       }
-
-      .bk-table {
-        height: 100% !important;
-      }
-
-      .bk-table-body {
-        max-height: calc(100% - 100px);
-      }
-    }
-
-    .is-shrink-table {
-      .bk-table-body {
-        overflow: hidden auto;
-      }
     }
 
     .is-offline {
@@ -1040,7 +1027,7 @@
       }
     }
 
-    td div.cell .db-icon-copy {
+    td div.vxe-cell .db-icon-copy {
       display: none;
       margin-top: 2px;
       margin-left: 4px;
@@ -1077,9 +1064,7 @@
 </style>
 <style lang="less" scoped>
   .kafka-list-page {
-    :deep(.cell) {
-      line-height: normal !important;
-
+    :deep(.vxe-cell) {
       .domain {
         display: flex;
         align-items: center;

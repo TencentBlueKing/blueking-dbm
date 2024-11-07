@@ -224,11 +224,7 @@
         align-items: center;
       }
 
-      .bk-table .bk-table-head table thead th {
-        background: #fafbfd;
-      }
-
-      .bk-table td .cell .table-name {
+      .bk-vxe-table td .vxe-cell .table-name {
         display: -webkit-box;
         overflow: hidden;
         text-overflow: ellipsis;

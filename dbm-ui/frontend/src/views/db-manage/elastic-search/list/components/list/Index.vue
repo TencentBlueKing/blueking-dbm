@@ -52,6 +52,7 @@
         :row-class="getRowClass"
         selectable
         :settings="tableSetting"
+        :show-overflow="false"
         @clear-search="clearSearchValue"
         @column-filter="columnFilterChange"
         @column-sort="columnSortChange"
@@ -1066,20 +1067,6 @@
       .bk-nested-loading {
         height: 100%;
       }
-
-      .bk-table {
-        height: 100% !important;
-      }
-
-      .bk-table-body {
-        max-height: calc(100% - 100px);
-      }
-    }
-
-    .is-shrink-table {
-      .bk-table-body {
-        overflow: hidden auto;
-      }
     }
 
     .db-icon-more {
@@ -1107,7 +1094,7 @@
       }
     }
 
-    td .cell .db-icon-copy {
+    td .vxe-cell .db-icon-copy {
       display: none;
       margin-top: 1px;
       margin-left: 4px;
@@ -1133,9 +1120,7 @@
 </style>
 <style lang="less" scoped>
   .es-list-page {
-    :deep(.cell) {
-      line-height: normal !important;
-
+    :deep(.vxe-cell) {
       .domain {
         display: flex;
         align-items: center;

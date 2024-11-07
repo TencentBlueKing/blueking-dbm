@@ -536,7 +536,7 @@
 
     :deep(.db-table) {
       .rules-table {
-        .cell {
+        .vxe-cell {
           padding: 0 !important;
         }
 
@@ -566,10 +566,10 @@
         }
 
         .cell-row {
-          height: calc(var(--row-height) - 4px);
+          height: 40px;
           padding: 0 16px;
           overflow: hidden;
-          line-height: calc(var(--row-height) - 4px);
+          line-height: 40px;
           text-overflow: ellipsis;
           white-space: nowrap;
 
