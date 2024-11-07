@@ -3665,5 +3665,8 @@
   "CPU/内存": "CPU/内存",
   "添加机型": "添加机型",
   "TendisCache/RedisCluster/Redis主从 后端存储": "TendisCache/RedisCluster/Redis主从 后端存储",
+  "变更类型": "变更类型",
+  "删除规则": "删除规则",
+  "账户名称": "账户名称",
   "这行勿动！新增翻译请在上一行添加！": ""
 }
