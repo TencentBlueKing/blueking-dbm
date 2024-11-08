@@ -168,7 +168,7 @@
       field: 'role',
       showOverflowTooltip: true,
       filter: props.roleFilterList,
-      render: ({ data }: DataRow) => <span>{props.fieldFormat?.role ? props.fieldFormat.role[data.role] : t('角色')}</span>
+      render: ({ data }: DataRow) => <span>{props.fieldFormat?.role ? props.fieldFormat.role[data.role] : data.role}</span>
     },
     {
       label: t('实例状态'),
