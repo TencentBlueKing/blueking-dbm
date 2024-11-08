@@ -15,6 +15,7 @@ from django.forms import model_to_dict
 from backend.components.dbresource.client import DBResourceApi
 from backend.db_meta.enums import ClusterType
 from backend.db_meta.models import Cluster, Machine, ProxyInstance, StorageInstance
+from backend.db_services.quick_search import constants
 from backend.db_services.quick_search.constants import FilterType, ResourceType
 from backend.flow.models import FlowTree
 from backend.ticket.constants import TicketType
@@ -28,7 +29,7 @@ class QSearchHandler(object):
         self.db_types = db_types
         self.resource_types = resource_types
         self.filter_type = filter_type
-        self.limit = limit or 10
+        self.limit = limit or constants.DEFAULT_LIMIT
 
         # db_type -> cluster_type
         self.cluster_types = []
@@ -39,10 +40,14 @@ class QSearchHandler(object):
     def search(self, keyword: str):
         result = {}
         target_resource_types = self.resource_types or ResourceType.get_values()
+        keyword_list = split_str_to_list(keyword)
+        # 当搜索关键字数量大于一定数量时，只允许精确搜索（模糊搜索查询效率太差）
+        if len(keyword_list) > constants.CONTAINS_SEARCH_MAX_SIZE:
+            self.filter_type = FilterType.EXACT.value
+
         for target_resource_type in target_resource_types:
             filter_func = getattr(self, f"filter_{target_resource_type}", None)
             if callable(filter_func):
-                keyword_list = split_str_to_list(keyword)
                 result[target_resource_type] = filter_func(keyword_list)
 
         return result
@@ -64,17 +69,20 @@ class QSearchHandler(object):
         为域名类型生成过滤函数
         """
         qs = Q()
+        domains = []
         for keyword in keyword_list:
             try:
                 domain, _ = keyword.split(":")
             except ValueError:
                 domain, _ = keyword, None
 
-            domain_filter_key = filter_key
             if self.filter_type == FilterType.EXACT.value:
-                qs |= Q(**{f"{domain_filter_key}": domain})
+                domains.append(domain)
             else:
-                qs |= Q(**{f"{domain_filter_key}__icontains": domain})
+                qs |= Q(**{f"{filter_key}__icontains": domain})
+
+        if self.filter_type == FilterType.EXACT.value:
+            qs = Q(**{f"{filter_key}__in": domains})
         return qs
 
     def generate_filter_for_ip_port(self, filter_key, keyword_list):
@@ -82,11 +90,15 @@ class QSearchHandler(object):
         为ip:port实例生成过滤函数
         """
         qs = Q()
+        ip_list = []
+        ports = []
         for keyword in keyword_list:
             try:
                 ip, port = keyword.split(":")
+                ports.append(port)
             except ValueError:
                 ip, port = keyword, None
+            ip_list.append(ip)
 
             ip_filter_key = filter_key
             port_filter_key = "port"
@@ -98,8 +110,12 @@ class QSearchHandler(object):
                     qs |= Q(**{ip_filter_key: ip, port_filter_key: port})
             else:
                 if self.filter_type == FilterType.CONTAINS.value:
-                    ip_filter_key += "__contains"
-                qs |= Q(**{ip_filter_key: ip})
+                    qs |= Q(**{f"{filter_key}__contains": ip})
+
+        # 精确搜索时，不用 Q | Q 的方式，查询效率较差
+        if not ports and self.filter_type == FilterType.EXACT.value:
+            qs = Q(**{f"{filter_key}__in": ip_list})
+
         return qs
 
     def common_filter(self, objs, return_type="list", fields=None, limit=None):

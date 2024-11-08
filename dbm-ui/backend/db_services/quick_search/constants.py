@@ -19,10 +19,17 @@ class ResourceType(str, StructuredEnum):
     INSTANCE = EnumField("instance", _("实例"))
     TICKET = EnumField("ticket", _("单号"))
     TASK = EnumField("task", _("任务"))
-    MACHINE = EnumField("machine", _("主机"))
+    # MACHINE = EnumField("machine", _("主机"))
     RESOURCE_POOL = EnumField("resource_pool", _("资源池主机"))
 
 
 class FilterType(str, StructuredEnum):
     CONTAINS = EnumField("CONTAINS", _("模糊"))
     EXACT = EnumField("EXACT", _("精确"))
+
+
+# 模糊匹配支持的最大数量
+CONTAINS_SEARCH_MAX_SIZE = 50
+
+# 默认分页大小
+DEFAULT_LIMIT = 10
