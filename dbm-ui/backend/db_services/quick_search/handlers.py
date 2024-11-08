@@ -180,8 +180,7 @@ class QSearchHandler(object):
 
     def filter_task(self, keyword_list: list):
         """过滤任务"""
-        qs = self.generate_filter_for_str("root_id", keyword_list)
-        objs = FlowTree.objects.filter(qs)
+        objs = FlowTree.objects.filter(root_id__in=keyword_list)
 
         if self.bk_biz_ids:
             objs = objs.filter(bk_biz_id__in=self.bk_biz_ids)
