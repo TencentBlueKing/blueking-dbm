@@ -91,19 +91,21 @@
         <span>{{ t('变更的 DB:') }}</span>
         <span class="ml-4">
           <BkTag
-            v-for="item in currentExecuteObject.dbnames"
+            v-for="item in currentExecuteObject.dbnames.slice(0, 3)"
             :key="item">
             {{ item }}
           </BkTag>
+          <BkTag v-if="currentExecuteObject.dbnames.length > 3">...</BkTag>
           <template v-if="currentExecuteObject.dbnames.length < 1">--</template>
         </span>
         <span class="ml-25">{{ t('忽略的 DB:') }}</span>
         <span class="ml-4">
           <BkTag
-            v-for="item in currentExecuteObject.ignore_dbnames"
+            v-for="item in currentExecuteObject.ignore_dbnames.slice(0, 3)"
             :key="item">
             {{ item }}
           </BkTag>
+          <BkTag v-if="currentExecuteObject.ignore_dbnames.length > 3">...</BkTag>
           <template v-if="currentExecuteObject.ignore_dbnames.length < 1">--</template>
         </span>
       </span>

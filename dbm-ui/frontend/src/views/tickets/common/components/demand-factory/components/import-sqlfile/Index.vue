@@ -36,7 +36,9 @@
     <InfoItem
       :label="t('目标集群:')"
       style="flex: 1 0 100%">
-      <BkTable :data="targetClusterData">
+      <BkTable
+        :data="targetClusterData"
+        :pagination="pagination">
         <BkTableColumn :label="t('集群')">
           <template #default="{ data }: { data: TargerCluster }">
             {{ ticketDetails.details.clusters[data.id].immute_domain }}
@@ -141,6 +143,8 @@
   const props = defineProps<Props>();
 
   const { t } = useI18n();
+
+  const pagination = { count: 11, limit: 10, current: 1 };
 
   const selectFileName = ref('');
   const currentExecuteObject = ref<Props['ticketDetails']['details']['execute_objects'][number]>();
