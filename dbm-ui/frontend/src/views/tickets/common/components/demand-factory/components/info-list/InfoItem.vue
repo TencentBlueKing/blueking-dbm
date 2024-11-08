@@ -23,7 +23,7 @@
   }
 
   .db-ticket-info-item-lable {
-    min-width: 100px;
+    min-width: 140px;
     padding-right: 4px;
     line-height: 32px;
     text-align: right;
