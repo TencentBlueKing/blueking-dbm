@@ -37,15 +37,16 @@
     }
 
     const reload = (targetPath: string) => {
+      const path = targetPath.replace(/^\/[\d]+/, pathRoot);
+
       setTimeout(() => {
-        const path = targetPath.replace(/^\/[\d]+/, pathRoot);
-        window.location.href = path;
+        window.open(path, '_self');
       }, 100);
     };
     // 1，当前路由不带参数，切换业务时停留在当前页面
     let currentRouteHasNotParams = true;
     Object.keys(route.params).forEach((paramKey) => {
-      if (route.params[paramKey] === undefined || route.params[paramKey] === null) {
+      if (route.params[paramKey] === undefined || route.params[paramKey] === null || route.params[paramKey] === '') {
         return;
       }
       currentRouteHasNotParams = false;
@@ -55,6 +56,7 @@
       return;
     }
     const { matched } = route;
+    console.log('matched = ', matched, route);
     // 2，当前路由带有请求参数，切换业务时则需要做回退处理
     // 路由只匹配到了一个
     if (matched.length < 2) {
@@ -63,7 +65,7 @@
       return;
     }
 
-    // 路由有多层嵌套
+    // // 路由有多层嵌套
     const { path, redirect } = matched[1];
     // 重定向到指定的路由path
     if (_.isString(redirect)) {
