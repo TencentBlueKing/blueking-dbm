@@ -11,26 +11,7 @@
  * the specific language governing permissions and limitations under the License.
  */
 
-export interface SpecConfig {
-  id: number;
-  cpu: {
-    max: number;
-    min: number;
-  };
-  mem: {
-    max: number;
-    min: number;
-  };
-  qps: unknown;
-  name: string;
-  count: number;
-  device_class: any[];
-  storage_spec: {
-    size: number;
-    type: string;
-    mount_point: string;
-  }[];
-}
+import type { HostInfo, MachineRelatedCluster, MachineRelatedInstance, MachineSpecConfig } from '@services/types';
 
 export default class TendbhaMachine {
   bk_cloud_id: number;
@@ -38,77 +19,13 @@ export default class TendbhaMachine {
   bk_host_id: number;
   cluster_type: string;
   create_at: string;
-  host_info: {
-    host_id: number;
-    ip: string;
-    ipv6: string;
-    bk_host_outerip: string;
-    cloud_id: number;
-    cloud_vendor?: any;
-    agent_id: string;
-    host_name: string;
-    os_name: string;
-    os_type: string;
-    alive: number;
-    cloud_area: {
-      id: number;
-      name: string;
-    };
-    bk_mem: number;
-    bk_disk: number;
-    bk_cpu: number;
-    bk_idc_name?: any;
-    bk_idc_id?: any;
-    bk_cpu_architecture: string;
-    bk_cpu_module: string;
-    meta: {
-      scope_type: string;
-      scope_id: string;
-      bk_biz_id: number;
-    };
-    biz: {
-      id: number;
-      name: string;
-    };
-  };
+  host_info: HostInfo;
   instance_role: string;
   ip: string;
   machine_type: string;
-  related_clusters: {
-    id: number;
-    creator: string;
-    updater: string;
-    name: string;
-    alias: string;
-    bk_biz_id: number;
-    cluster_type: string;
-    db_module_id: number;
-    immute_domain: string;
-    major_version: string;
-    phase: string;
-    status: string;
-    bk_cloud_id: number;
-    region: string;
-    disaster_tolerance_level: string;
-    time_zone: string;
-    cluster_type_name: string;
-    tag: any[];
-  }[];
-  related_instances: {
-    name: string;
-    ip: string;
-    port: number;
-    instance: string;
-    status: string;
-    phase: string;
-    bk_instance_id: number;
-    bk_host_id: number;
-    bk_cloud_id: number;
-    spec_config: SpecConfig;
-    bk_biz_id: number;
-    admin_port: number;
-  }[];
-  spec_config: SpecConfig;
+  related_clusters: MachineRelatedCluster[];
+  related_instances: MachineRelatedInstance[];
+  spec_config: MachineSpecConfig;
   spec_id: number;
 
   constructor(payload = {} as TendbhaMachine) {

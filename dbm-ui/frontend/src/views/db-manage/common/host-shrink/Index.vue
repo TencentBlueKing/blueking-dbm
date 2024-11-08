@@ -27,54 +27,6 @@
       </template>
     </BkAlert>
     <BkForm form-type="vertical">
-      <BkFormItem :label="t('目标容量')">
-        <div class="target-content-box">
-          <div class="content-label">
-            {{ t('缩容至') }}
-          </div>
-          <div class="content-value">
-            <div>
-              <BkInput
-                clearable
-                :disabled="isDisabled"
-                :max="data.totalDisk"
-                :min="1"
-                :model-value="localTargetDisk > 0 ? localTargetDisk : undefined"
-                :placeholder="t('请输入')"
-                style="width: 156px; margin-right: 8px"
-                type="number"
-                @change="handleTargetDiskChange" />
-              <span>GB</span>
-              <template v-if="localTargetDisk > 0">
-                <span> , {{ t('共缩容') }} </span>
-                <span
-                  class="strong-num"
-                  style="color: #2dcb56">
-                  {{ data.totalDisk - localTargetDisk }}
-                </span>
-                <span>GB</span>
-              </template>
-            </div>
-            <div class="content-tips">
-              <span>
-                {{ t('当前容量') }}:
-                <span class="strong-num">{{ data.totalDisk }}</span>
-                GB
-              </span>
-              <span style="margin-left: 65px">
-                <span>{{ t('缩容后') }}:</span>
-                <span v-if="data.targetDisk">
-                  <span class="strong-num">{{ localTargetDisk }}</span>
-                  GB
-                </span>
-                <span v-else>
-                  {{ t('请先设置期望容量') }}
-                </span>
-              </span>
-            </div>
-          </div>
-        </div>
-      </BkFormItem>
       <BkFormItem>
         <template #label>
           <span>{{ t('缩容的节点 IP') }}</span>
@@ -84,57 +36,25 @@
         </template>
         <div class="data-preview-table">
           <div class="data-preview-header">
-            <div v-if="!data.targetDisk">
-              {{ t('请先设置期望容量') }}
-            </div>
-            <template v-else>
-              <I18nT
-                v-if="data.targetDisk"
-                keypath="共n台，共nG">
-                <span
-                  class="number"
-                  style="color: #3a84ff">
-                  {{ nodeTableData.length }}
-                </span>
-                <span
-                  class="number"
-                  style="color: #2dcb56">
-                  {{ data.shrinkDisk }}
-                </span>
-              </I18nT>
-              <div
-                v-if="targetMatchReal"
-                class="ml-8">
-                <I18nT
-                  v-if="targetMatchReal > 0"
-                  class="ml-8"
-                  keypath="较目标容量相差nG">
-                  <span
-                    class="number"
-                    style="color: #ff9c01">
-                    {{ targetMatchReal }}
-                  </span>
-                </I18nT>
-                <I18nT
-                  v-if="targetMatchReal < 0"
-                  class="ml-8"
-                  keypath="较目标容量超出nG">
-                  <span
-                    class="number"
-                    style="color: #ff9c01">
-                    {{ Math.abs(targetMatchReal) }}
-                  </span>
-                </I18nT>
-              </div>
-              <BkButton
-                v-if="data.targetDisk"
-                size="small"
-                style="margin-left: auto"
-                @click="handleShowHostSelect">
-                <DbIcon type="add" />
-                {{ t('手动添加') }}
-              </BkButton>
-            </template>
+            <I18nT keypath="共n台，共nG">
+              <span
+                class="number"
+                style="color: #3a84ff">
+                {{ nodeTableData.length }}
+              </span>
+              <span
+                class="number"
+                style="color: #2dcb56">
+                {{ data.shrinkDisk }}
+              </span>
+            </I18nT>
+            <BkButton
+              size="small"
+              style="margin-left: auto"
+              @click="handleShowHostSelect">
+              <DbIcon type="add" />
+              {{ t('手动添加') }}
+            </BkButton>
           </div>
           <BkTable
             v-if="nodeTableData.length > 0"
@@ -142,13 +62,27 @@
             :data="nodeTableData" />
         </div>
       </BkFormItem>
+      <div
+        v-if="nodeTableData.length"
+        class="mt-16">
+        <I18nT
+          keypath="当前容量：nG"
+          tag="span">
+          <span style="font-weight: bolder">{{ data.totalDisk }}</span>
+        </I18nT>
+        ，
+        <I18nT
+          keypath="缩容后预估：nG"
+          tag="span">
+          <span style="font-weight: bolder">{{ estimateCapacity }}</span>
+        </I18nT>
+      </div>
     </BkForm>
     <SelectOriginalHost
       v-model:is-show="isShowHostDialog"
       :min-host="data.minHost"
       :model-value="data.nodeList"
       :original-node-list="data.originalNodeList"
-      :target-disk="data.totalDisk - localTargetDisk"
       @change="handleSelectChange" />
   </div>
 </template>
@@ -157,7 +91,6 @@
     computed,
     ref,
     shallowRef,
-    watch,
   } from 'vue';
   import { useI18n } from 'vue-i18n';
 
@@ -180,7 +113,7 @@
     // 原始磁盘大小
     totalDisk: number,
     // 缩容目标磁盘大小
-    targetDisk: number,
+    // targetDisk: number,
     // 选择节点后实际的缩容磁盘大小
     shrinkDisk: number,
     // 改节点所需的最少主机数
@@ -201,23 +134,11 @@
 
   const { t } = useI18n();
 
-  const localTargetDisk = ref(props.data.targetDisk);
+  // const localTargetDisk = ref(props.data.targetDisk);
   const nodeTableData = shallowRef<Props['data']['nodeList']>(props.data.nodeList || []);
   const isShowHostDialog = ref(false);
 
   const isDisabled = computed(() => props.data.originalNodeList.length <= props.data.minHost);
-
-  // 目标容量和实际容量误差
-  const targetMatchReal = computed(() => {
-    const {
-      totalDisk,
-      targetDisk,
-      shrinkDisk,
-    } = props.data;
-
-    const realTargetDisk = totalDisk - shrinkDisk;
-    return targetDisk - realTargetDisk;
-  });
 
   const tableColumns = [
     {
@@ -251,34 +172,11 @@
     },
   ];
 
-  // 调整目标容量时需要自动匹配
-  watch(localTargetDisk, () => {
-    const shrinkDisk = props.data.totalDisk - localTargetDisk.value;
-    let calcDisk = 0;
-    const nodeList: Props['data']['nodeList'] = [];
-    props.data.originalNodeList.forEach((hostItem) => {
-      // 不能全部缩容掉，需要留一台
-      if (nodeList.length >=  props.data.originalNodeList.length - props.data.minHost) {
-        return;
-      }
-      if (calcDisk >= shrinkDisk) {
-        return;
-      }
-      nodeList.push(hostItem);
-      calcDisk += hostItem.disk;
-    });
-
-    nodeTableData.value = nodeList.slice(0, props.data.minHost);
-
-    emits('change', nodeList);
+  // 资源池预估容量
+  const estimateCapacity = computed(() => {
+    const { totalDisk, shrinkDisk } = props.data
+    return totalDisk - shrinkDisk
   });
-
-  // 更新目标容量
-  const handleTargetDiskChange = (value: Props['data']['totalDisk']) => {
-    localTargetDisk.value = value;
-    window.changeConfirm = true;
-    emits('target-disk-change', value);
-  };
 
   const handleShowHostSelect = () => {
     isShowHostDialog.value = true;

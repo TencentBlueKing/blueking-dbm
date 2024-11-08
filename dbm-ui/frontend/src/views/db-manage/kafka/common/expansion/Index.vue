@@ -40,7 +40,6 @@
           v-model:expansion-disk="nodeInfoMap[nodeType].expansionDisk"
           v-model:host-list="nodeInfoMap[nodeType].hostList"
           v-model:resource-spec="nodeInfoMap[nodeType].resourceSpec"
-          v-model:target-disk="nodeInfoMap[nodeType].targetDisk"
           :cloud-info="{
             id: data.bk_cloud_id,
             name: data.bk_cloud_name,
@@ -60,7 +59,8 @@
   import { useI18n } from 'vue-i18n';
 
   import type KafkaModel from '@services/model/kafka/kafka';
-  import { getHostDetails } from '@services/source/ipchooser';
+  import kafkaMachineModel from '@services/model/kafka/kafka-machine';
+  import { getKafkaMachineList } from '@services/source/kafka';
   import { createTicket } from '@services/source/ticket';
 
   import { useTicketMessage } from '@hooks';
@@ -113,13 +113,13 @@
       ipSource: 'resource_pool',
       hostList: [],
       totalDisk: 0,
-      targetDisk: 0,
+      // targetDisk: 0,
       expansionDisk: 0,
       specClusterType: ClusterTypes.KAFKA,
       specMachineType: 'broker',
       resourceSpec: {
         spec_id: 0,
-        count: 1,
+        count: 0,
       },
     },
   });
@@ -131,37 +131,19 @@
 
   // 获取主机详情
   const fetchHostDetail = () => {
-    const brokerHostIdMap = props.data.broker.reduce((result, item) => ({
-      ...result,
-      [item.bk_host_id]: true,
-    }), {} as Record<number, boolean>);
-
-    const hostIdList = [
-      ...props.data.broker,
-    ].map(item => ({
-      host_id: item.bk_host_id,
-      meta: {
-        bk_biz_id: item.bk_biz_id,
-        scope_id: `${item.bk_biz_id}`,
-        scope_type: 'biz',
-      },
-    }));
-
     isLoading.value = true;
-    getHostDetails({
-      host_list: hostIdList,
-      scope_list: [{
-        scope_id: `${bizId}`,
-        scope_type: 'biz',
-      }],
+    getKafkaMachineList({
+      cluster_ids: String(props.data.id),
+      offset: 0,
+      limit: -1
     }).then((data) => {
-      const brokerOriginalHostList: ServiceReturnType<typeof getHostDetails> = [];
+      const brokerOriginalHostList: kafkaMachineModel[] = [];
 
       let brokerDiskTotal = 0;
 
-      data.forEach((hostItem) => {
-        if (brokerHostIdMap[hostItem.host_id]) {
-          brokerDiskTotal += ~~Number(hostItem.bk_disk);
+      data.results.forEach((hostItem) => {
+        if (hostItem.isBroker) {
+          brokerDiskTotal += Math.floor(Number(hostItem.host_info.bk_disk));
           brokerOriginalHostList.push(hostItem);
         }
       });
@@ -184,20 +166,6 @@
       }
 
       const renderSubTitle = () => {
-        const renderDiskTips = () => {
-          const isNotMatch = Object.values(nodeInfoMap)
-            .some(nodeData => nodeData.targetDisk > 0
-              && nodeData.totalDisk + nodeData.expansionDisk !== nodeData.targetDisk);
-          if (isNotMatch) {
-            return (
-              <>
-                <div>{t('目标容量与所选 IP 容量不一致，确认提交？')}</div>
-                <div>{t('继续提交将按照手动选择的 IP 容量进行')}</div>
-              </>
-            );
-          }
-          return null;
-        };
         const renderExpansionDiskTips = () => Object.values(nodeInfoMap).map((nodeData) => {
           if (nodeData.expansionDisk) {
             return (
@@ -215,7 +183,6 @@
 
         return (
           <div style="font-size: 14px; line-height: 28px; color: #63656E;">
-            {renderDiskTips()}
             {renderExpansionDiskTips()}
           </div>
         );
@@ -239,7 +206,7 @@
                 host_list: item.hostList,
                 total_hosts: item.originalHostList.length,
                 total_disk: item.totalDisk,
-                target_disk: item.targetDisk,
+                // target_disk: item.targetDisk,
                 expansion_disk: item.expansionDisk,
               };
               Object.assign(results, {

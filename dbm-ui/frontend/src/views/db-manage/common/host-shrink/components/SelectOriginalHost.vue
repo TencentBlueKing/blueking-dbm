@@ -24,7 +24,7 @@
     <template #footer>
       <I18nT
         class="mr-16"
-        keypath="已选n台_共nG_(目标容量:nG)"
+        keypath="已选n台_共nG"
         tag="span">
         <span
           class="number"
@@ -36,11 +36,11 @@
           style="color: #2dcb56">
           {{ selectNodeDiskTotal }}
         </span>
-        <span
+        <!-- <span
           class="number"
           style="color: #63656e">
           {{ targetDisk }}
-        </span>
+        </span> -->
       </I18nT>
       <BkButton
         style="width: 64px"
@@ -80,7 +80,6 @@
     modelValue: TShrinkNode<T>['nodeList'],
     isShow: boolean,
     originalNodeList: TShrinkNode<T>['nodeList'],
-    targetDisk: number,
     minHost: number
   }
 
@@ -199,11 +198,11 @@
     immediate: true,
   });
 
-  // 全选（不能全部选中，留最后一个）
+  // 全选（不能全部选中，留最小数量）
   const handleSelectAll = (checked: boolean) => {
     const checkedMap = {} as Record<number, Props['modelValue'][0]>;
     if (checked) {
-      props.originalNodeList.slice(0, -props.minHost).forEach((nodeItem) => {
+      props.originalNodeList.slice(0, props.originalNodeList.length - props.minHost).forEach((nodeItem) => {
         checkedMap[nodeItem.bk_host_id] = nodeItem;
       });
     }

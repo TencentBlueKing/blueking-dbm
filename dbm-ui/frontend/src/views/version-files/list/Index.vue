@@ -341,6 +341,24 @@
         },
       ],
     },
+    {
+      controller: {
+        moduleId: 'bigdata',
+        id: 'doris',
+      },
+      label: 'Doris',
+      name: DBTypes.DORIS,
+      children: [
+        {
+          label: 'Doris',
+          name: DBTypes.DORIS,
+        },
+        {
+          label: t('任务执行器'),
+          name: 'actuator',
+        },
+      ],
+    },
   ];
 
   const renderTabs = tabs.filter((item) => {

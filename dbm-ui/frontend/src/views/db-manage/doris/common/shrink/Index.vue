@@ -13,13 +13,13 @@
 
 <template>
   <BkLoading
-    class="es-cluster-shrink-box"
+    class="doris-cluster-shrink-box"
     :loading="isLoading">
     <BkAlert
       class="mb16"
       theme="warning"
-      :title="$t('热节点，冷节点，Client节点至少缩容一个类型')" />
-    <div class="wrapper">
+      :title="t('至少缩容一种类型')" />
+    <div class="box-wrapper">
       <NodeStatusList
         ref="nodeStatusListRef"
         v-model="nodeType"
@@ -35,23 +35,22 @@
     </div>
   </BkLoading>
 </template>
+
 <script setup lang="tsx">
   import { InfoBox } from 'bkui-vue';
-  import {
-    reactive,
-    ref,
-    watch,
-  } from 'vue';
+  import type { ComponentExposed } from 'vue-component-type-helpers'
   import { useI18n } from 'vue-i18n';
 
-  import type EsModel from '@services/model/es/es';
-  import type EsNodeModel from '@services/model/es/es-node';
-  import { getEsNodeList } from '@services/source/es';
+  import type DorisModel from '@services/model/doris/doris';
+  import type DorisNodeModel from '@services/model/doris/doris-node';
+  import { getDorisNodeList } from '@services/source/doris';
   import { createTicket } from '@services/source/ticket';
 
   import { useTicketMessage } from '@hooks';
 
   import { useGlobalBizs } from '@stores';
+
+  import { TicketTypes } from '@common/const';
 
   import HostShrink, {
     type TShrinkNode,
@@ -60,10 +59,10 @@
 
   import { messageError } from '@utils';
 
-  type TNodeInfo = TShrinkNode<EsNodeModel>
+  type TNodeInfo = TShrinkNode<DorisNodeModel>
 
   interface Props {
-    data: EsModel,
+    data: DorisModel,
     nodeList?: TNodeInfo['nodeList']
   }
 
@@ -80,6 +79,15 @@
   });
   const emits = defineEmits<Emits>();
 
+  const generateNodeInfo = (values: Pick<TNodeInfo, 'label' | 'minHost' | 'tagText'>): TNodeInfo => ({
+    ...values,
+    originalNodeList: [],
+    nodeList: [],
+    totalDisk: 0,
+    // targetDisk: 0,
+    shrinkDisk: 0,
+  })
+
   const { t } = useI18n();
   const globalBizsStore = useGlobalBizs();
   const ticketMessage = useTicketMessage();
@@ -89,47 +97,36 @@
   const nodeStatusList = [
     {
       key: 'cold',
-      label: '冷节点',
+      label: t('冷节点'),
     },
     {
       key: 'hot',
-      label: '热节点',
+      label: t('热节点'),
     },
     {
-      key: 'client',
-      label: 'Client',
+      key: 'observer',
+      label: 'Observer',
     },
   ];
 
-  const nodeStatusListRef = ref();
+  const nodeStatusListRef = ref<ComponentExposed<typeof NodeStatusList>>();
+
   const nodeInfoMap = reactive<Record<string, TNodeInfo>>({
-    hot: {
+    hot: generateNodeInfo({
       label: t('热节点'),
-      originalNodeList: [],
-      nodeList: [],
-      totalDisk: 0,
-      // targetDisk: 0,
-      shrinkDisk: 0,
       minHost: 0,
-    },
-    cold: {
+      tagText: t('存储层')
+    }),
+    cold: generateNodeInfo({
       label: t('冷节点'),
-      originalNodeList: [],
-      nodeList: [],
-      totalDisk: 0,
-      // targetDisk: 0,
-      shrinkDisk: 0,
       minHost: 0,
-    },
-    client: {
-      label: 'Client',
-      originalNodeList: [],
-      nodeList: [],
-      totalDisk: 0,
-      // targetDisk: 0,
-      shrinkDisk: 0,
+      tagText: t('存储层')
+    }),
+    observer: generateNodeInfo({
+      label: 'Observer',
       minHost: 0,
-    },
+      tagText: t('接入层')
+    }),
   });
 
   const isLoading = ref(false);
@@ -138,40 +135,41 @@
   const fetchListNode = () => {
     const hotOriginalNodeList: TNodeInfo['nodeList'] = [];
     const coldOriginalNodeList: TNodeInfo['nodeList'] = [];
-    const clientOriginalNodeList: TNodeInfo['nodeList'] = [];
+    const observerOriginalNodeList: TNodeInfo['nodeList'] = [];
 
     isLoading.value = true;
-    getEsNodeList({
+    getDorisNodeList({
       bk_biz_id: globalBizsStore.currentBizId,
       cluster_id: props.data.id,
       no_limit: 1,
-    }).then((data) => {
-      let hotDiskTotal = 0;
-      let coldDiskTotal = 0;
-      let clientDiskTotal = 0;
-
-      data.results.forEach((nodeItem) => {
-        if (nodeItem.isHot) {
-          hotDiskTotal += nodeItem.disk;
-          hotOriginalNodeList.push(nodeItem);
-        } else if (nodeItem.isCold) {
-          coldDiskTotal += nodeItem.disk;
-          coldOriginalNodeList.push(nodeItem);
-        } else if (nodeItem.isClient) {
-          clientDiskTotal += nodeItem.disk;
-          clientOriginalNodeList.push(nodeItem);
-        }
-      });
-
-      nodeInfoMap.hot.originalNodeList = hotOriginalNodeList;
-      nodeInfoMap.hot.totalDisk = hotDiskTotal;
-
-      nodeInfoMap.cold.originalNodeList = coldOriginalNodeList;
-      nodeInfoMap.cold.totalDisk = coldDiskTotal;
-
-      nodeInfoMap.client.originalNodeList = clientOriginalNodeList;
-      nodeInfoMap.client.totalDisk = clientDiskTotal;
     })
+      .then((data) => {
+        let hotDiskTotal = 0;
+        let coldDiskTotal = 0;
+        let observerDiskTotal = 0;
+
+        data.results.forEach((nodeItem) => {
+          if (nodeItem.isHot) {
+            hotDiskTotal += nodeItem.disk;
+            hotOriginalNodeList.push(nodeItem);
+          } else if (nodeItem.isCold) {
+            coldDiskTotal += nodeItem.disk;
+            coldOriginalNodeList.push(nodeItem);
+          } else if (nodeItem.isObserver) {
+            observerDiskTotal += nodeItem.disk;
+            observerOriginalNodeList.push(nodeItem);
+          }
+        });
+
+        nodeInfoMap.hot.originalNodeList = hotOriginalNodeList;
+        nodeInfoMap.hot.totalDisk = hotDiskTotal;
+
+        nodeInfoMap.cold.originalNodeList = coldOriginalNodeList;
+        nodeInfoMap.cold.totalDisk = coldDiskTotal;
+
+        nodeInfoMap.observer.originalNodeList = observerOriginalNodeList;
+        nodeInfoMap.observer.totalDisk = observerDiskTotal;
+      })
       .finally(() => {
         isLoading.value = false;
       });
@@ -183,11 +181,11 @@
   watch(() => props.nodeList, () => {
     const hotNodeList: TNodeInfo['nodeList'] = [];
     const coldNodeList: TNodeInfo['nodeList'] = [];
-    const clientNodeList: TNodeInfo['nodeList'] = [];
+    const observerNodeList: TNodeInfo['nodeList'] = [];
 
     let hotShrinkDisk = 0;
     let coldShrinkDisk = 0;
-    let clientShrinkDisk = 0;
+    let observerShrinkDisk = 0;
 
     props.nodeList.forEach((nodeItem) => {
       if (nodeItem.isHot) {
@@ -196,24 +194,24 @@
       } else if (nodeItem.isCold) {
         coldShrinkDisk += nodeItem.disk;
         coldNodeList.push(nodeItem);
-      } else if (nodeItem.isClient) {
-        clientShrinkDisk += nodeItem.disk;
-        clientNodeList.push(nodeItem);
+      } else if (nodeItem.isObserver) {
+        observerShrinkDisk += nodeItem.disk;
+        observerNodeList.push(nodeItem);
       }
     });
     nodeInfoMap.hot.nodeList = hotNodeList;
     nodeInfoMap.hot.shrinkDisk = hotShrinkDisk;
     nodeInfoMap.cold.nodeList = coldNodeList;
     nodeInfoMap.cold.shrinkDisk = coldShrinkDisk;
-    nodeInfoMap.client.nodeList = clientNodeList;
-    nodeInfoMap.client.shrinkDisk = clientShrinkDisk;
+    nodeInfoMap.observer.nodeList = observerNodeList;
+    nodeInfoMap.observer.shrinkDisk = observerShrinkDisk;
 
     if (coldNodeList.length) {
       nodeType.value = 'cold'
     } else if (hotNodeList.length) {
       nodeType.value = 'hot'
-    } else if (clientNodeList.length) {
-      nodeType.value = 'client'
+    } else if (observerNodeList) {
+      nodeType.value = 'observer'
     }
   }, {
     immediate: true,
@@ -224,12 +222,13 @@
     const shrinkDisk = nodeList.reduce((result, hostItem) => result + hostItem.disk, 0);
     nodeInfoMap[nodeType.value].nodeList = nodeList;
     nodeInfoMap[nodeType.value].shrinkDisk = shrinkDisk;
+
     if (nodeInfoMap.hot.nodeList.length === nodeInfoMap.hot.originalNodeList.length) {
-      // 热节点全缩容后，限制冷节点至少留1台
-      nodeInfoMap.cold.minHost = 1;
+      // 热节点全缩容后，限制冷节点至少留2台
+      nodeInfoMap.cold.minHost = 2;
     } else if (nodeInfoMap.cold.nodeList.length === nodeInfoMap.cold.originalNodeList.length) {
-      // 冷节点全缩容后，限制热节点至少留1台
-      nodeInfoMap.hot.minHost = 1;
+      // 冷节点全缩容后，限制热节点至少留2台
+      nodeInfoMap.hot.minHost = 2;
     } else {
       // 取消限制
       nodeInfoMap.cold.minHost = 0;
@@ -240,16 +239,27 @@
   defineExpose<Exposes>({
     submit() {
       return new Promise((resolve, reject) => {
-        if (!nodeStatusListRef.value.validate()) {
-          messageError(t('热节点，冷节点，Client节点至少缩容一个类型'));
+        if (!nodeStatusListRef.value!.validate()) {
+          messageError(t('至少缩容一种类型'));
           return reject();
         }
 
         const renderSubTitle = () => {
-          const renderShrinkDiskTips = () => Object.values(nodeInfoMap).map((nodeData) => {
+          const renderShrinkDiskTips = () => Object.entries(nodeInfoMap).map(([nodeType, nodeData]) => {
             if (nodeData.shrinkDisk) {
+              if (nodeType === 'observer') {
+                return (
+                  <div class='tips-item'>
+                    {t('name容量从n台缩容至n台', {
+                      name: nodeData.label,
+                      hostNumBefore: nodeData.originalNodeList.length,
+                      hostNumAfter: nodeData.originalNodeList.length - nodeData.nodeList.length,
+                    })}
+                  </div>
+                );
+              }
               return (
-                <div>
+                <div class='tips-item'>
                   {t('name容量从nG缩容至nG', {
                     name: nodeData.label,
                     totalDisk: nodeData.totalDisk,
@@ -262,9 +272,17 @@
           });
 
           return (
-          <div style="font-size: 14px; line-height: 28px; color: #63656E;">
-            {renderShrinkDiskTips()}
-          </div>
+            <div style="background-color: #F5F7FA; padding: 8px 16px;">
+              <div class='tips-item'>
+                {t('集群')} :
+                <span
+                  style="color: #313238"
+                  class="ml-8">
+                  {props.data.cluster_name}
+                </span>
+              </div>
+              {renderShrinkDiskTips()}
+            </div>
           );
         };
 
@@ -274,9 +292,10 @@
           confirmText: t('确认'),
           cancelText: t('取消'),
           headerAlign: 'center',
-          contentAlign: 'center',
+          contentAlign: 'left',
           footerAlign: 'center',
-          onCancel: () => reject(),
+          extCls: 'doris-shrink-modal',
+          onClose: () => reject(),
           onConfirm: () => {
             const fomatHost = (nodeList: TNodeInfo['nodeList'] = []) => nodeList.map(hostItem => ({
               ip: hostItem.ip,
@@ -301,10 +320,10 @@
                 [key]: obj,
               });
               return results;
-            }, {} as Record<string, any>);
+            }, {} as Record<string, TNodeInfo>);
 
-            return createTicket({
-              ticket_type: 'ES_SHRINK',
+            createTicket({
+              ticket_type: TicketTypes.DORIS_SHRINK,
               bk_biz_id: bizId,
               details: {
                 cluster_id: props.data.id,
@@ -312,7 +331,7 @@
                 nodes: {
                   hot: fomatHost(nodeInfoMap.hot.nodeList),
                   cold: fomatHost(nodeInfoMap.cold.nodeList),
-                  client: fomatHost(nodeInfoMap.client.nodeList),
+                  observer: fomatHost(nodeInfoMap.observer.nodeList),
                 },
                 ext_info: generateExtInfo(),
               },
@@ -321,21 +340,36 @@
               resolve('success');
               emits('change');
             })
+              .catch(() => {
+                reject();
+              });
           },
         });
       });
     },
   });
 </script>
+
 <style lang="less">
-  .es-cluster-shrink-box {
+  .doris-shrink-modal {
+    .bk-modal-content div {
+      font-size: 14px;
+    }
+
+    .tips-item {
+      padding: 2px 0;
+    }
+  }
+</style>
+<style lang="less">
+  .doris-cluster-shrink-box {
     padding: 18px 43px 18px 37px;
     font-size: 12px;
     line-height: 20px;
     color: #63656e;
     background: #f5f7fa;
 
-    .wrapper {
+    .box-wrapper {
       display: flex;
       background: #fff;
       border-radius: 2px;

@@ -43,7 +43,6 @@
           v-model:expansion-disk="nodeInfoMap[nodeType].expansionDisk"
           v-model:host-list="nodeInfoMap[nodeType].hostList"
           v-model:resource-spec="nodeInfoMap[nodeType].resourceSpec"
-          v-model:target-disk="nodeInfoMap[nodeType].targetDisk"
           :cloud-info="{
             id: data.bk_cloud_id,
             name: data.bk_cloud_name,
@@ -63,10 +62,10 @@
   } from 'vue';
   import { useI18n } from 'vue-i18n';
 
-  import type PulsarModel from '@services/model/pulsar/pulsar';
-  import { getHostDetails } from '@services/source/ipchooser';
+  import PulsarModel from '@services/model/pulsar/pulsar';
+  import PulsarMachineModel from '@services/model/pulsar/pulsar-machine'
+  import { getPulsarMachineList } from '@services/source/pulsar';
   import { createTicket } from '@services/source/ticket';
-  import type { HostInfo } from '@services/types';
 
   import { useTicketMessage } from '@hooks';
 
@@ -127,13 +126,13 @@
       ipSource: 'resource_pool',
       hostList: [],
       totalDisk: 0,
-      targetDisk: 0,
+      // targetDisk: 0,
       expansionDisk: 0,
       specClusterType: ClusterTypes.PULSAR,
       specMachineType: 'pulsar_broker',
       resourceSpec: {
         spec_id: 0,
-        count: 1,
+        count: 0,
       },
     },
     bookkeeper: {
@@ -144,13 +143,13 @@
       ipSource: 'resource_pool',
       hostList: [],
       totalDisk: 0,
-      targetDisk: 0,
+      // targetDisk: 0,
       expansionDisk: 0,
       specClusterType: ClusterTypes.PULSAR,
       specMachineType: 'pulsar_bookkeeper',
       resourceSpec: {
         spec_id: 0,
-        count: 1,
+        count: 0,
       },
     },
   });
@@ -162,48 +161,24 @@
 
   // 获取主机详情
   const fetchHostDetail = () => {
-    const bookkeeperHostIdMap = props.data.pulsar_bookkeeper.reduce((result, item) => ({
-      ...result,
-      [item.bk_host_id]: true,
-    }), {} as Record<number, boolean>);
-    const brokerHostIdMap = props.data.pulsar_broker.reduce((result, item) => ({
-      ...result,
-      [item.bk_host_id]: true,
-    }), {} as Record<number, boolean>);
-
-    const hostIdList = [
-      ...props.data.pulsar_bookkeeper,
-      ...props.data.pulsar_broker,
-    ].map(item => ({
-      host_id: item.bk_host_id,
-      meta: {
-        bk_biz_id: item.bk_biz_id,
-        scope_id: `${item.bk_biz_id}`,
-        scope_type: 'biz',
-      },
-    }));
-
     isLoading.value = true;
-    getHostDetails({
-      host_list: hostIdList,
-      scope_list: [{
-        scope_id: `${bizId}`,
-        scope_type: 'biz',
-      }],
+    getPulsarMachineList({
+      cluster_ids: String(props.data.id),
+      offset: 0,
+      limit: -1
     }).then((data) => {
-      const bookkeeperOriginalHostList: HostInfo[] = [];
-      const brokerOriginalHostList: HostInfo[] = [];
+      const bookkeeperOriginalHostList: PulsarMachineModel[] = [];
+      const brokerOriginalHostList: PulsarMachineModel[] = [];
 
       let bookkeeperDiskTotal = 0;
       let brokerDiskTotal = 0;
 
-      data.forEach((hostItem) => {
-        if (bookkeeperHostIdMap[hostItem.host_id]) {
-          bookkeeperDiskTotal += ~~Number(hostItem.bk_disk);
+      data.results.forEach((hostItem) => {
+        if (hostItem.isBookKeeper) {
+          bookkeeperDiskTotal += Math.floor(Number(hostItem.host_info.bk_disk));
           bookkeeperOriginalHostList.push(hostItem);
-        }
-        if (brokerHostIdMap[hostItem.host_id]) {
-          brokerDiskTotal += ~~Number(hostItem.bk_disk);
+        } else if (hostItem.isBroker) {
+          brokerDiskTotal += Math.floor(Number(hostItem.host_info.bk_disk));
           brokerOriginalHostList.push(hostItem);
         }
       });
@@ -256,21 +231,6 @@
       }
 
       const renderSubTitle = () => {
-        const renderDiskTips = () => {
-          const isNotMatch = Object.values(nodeInfoMap)
-            .some(nodeData => nodeData.targetDisk > 0
-              && nodeData.totalDisk + nodeData.expansionDisk !== nodeData.targetDisk);
-
-          if (isNotMatch) {
-            return (
-              <>
-                <div>{t('目标容量与所选 IP 容量不一致，确认提交？')}</div>
-                <div>{t('继续提交将按照手动选择的 IP 容量进行')}</div>
-              </>
-            );
-          }
-          return null;
-        };
         const renderExpansionDiskTips = () => Object.values(nodeInfoMap).map((nodeData) => {
           if (nodeData.expansionDisk) {
             return (
@@ -288,7 +248,6 @@
 
         return (
           <div style="font-size: 14px; line-height: 28px; color: #63656E;">
-            {renderDiskTips()}
             {renderExpansionDiskTips()}
           </div>
         );
@@ -312,7 +271,7 @@
                 host_list: item.hostList,
                 total_hosts: item.originalHostList.length,
                 total_disk: item.totalDisk,
-                target_disk: item.targetDisk,
+                // target_disk: item.targetDisk,
                 expansion_disk: item.expansionDisk,
               };
               Object.assign(results, {

@@ -33,11 +33,11 @@
         <div class="ticket-details-item">
           <span class="ticket-details-item-label">{{ isScaleUp ? t('扩容容量') : t('缩容容量') }}：</span>
           <span class="ticket-details-item-value">
-            {{ isScaleUp ? item.targetDisk : item.shrinkDisk }}GB （{{
+            {{
               isScaleUp
                 ? t('当前m_G_扩容后预估n_G', { m: item.totalDisk, n: item.expectDisk })
                 : t('当前m_G_缩容后预估n_G', { m: item.totalDisk, n: item.totalDisk - item.shrinkDisk })
-            }}）
+            }}
           </span>
         </div>
         <template v-if="isFromResourcePool">
@@ -143,27 +143,36 @@
         {} as Record<string, string>,
       );
 
-      const generateDataRow = (key: string, id: number, count: number) =>
+      const generateDataRow = (key: string, id?: number, count = 0) =>
         ({
           clusterId,
           count,
           title: nodeTypeText[key],
           clusterName: clusterInfo?.immute_domain ?? '--',
           totalDisk: extInfo[key].total_disk,
-          targetDisk: extInfo[key].target_disk,
+          // targetDisk: extInfo[key].target_disk,
           expectDisk: extInfo[key].expansion_disk,
           shrinkDisk: extInfo[key].shrink_disk,
           totalHost: extInfo[key].total_hosts,
           hostList: extInfo[key].host_list,
-          specName: specListMap[id],
+          specName: id ? specListMap[id] : '',
         }) as unknown as RowData;
 
-      const targetObj = isFromResourcePool
-        ? props.ticketDetails.details.resource_spec
-        : props.ticketDetails.details.nodes;
-      dataList.value = Object.entries(targetObj).map(([key, item]) => ({
-        ...generateDataRow(key, item.spec_id, item.count),
-      }));
+      if (isFromResourcePool) {
+        dataList.value = Object.entries(props.ticketDetails.details.resource_spec).map(([key, item]) =>
+          generateDataRow(key, item.spec_id, item.count),
+        );
+      } else {
+        dataList.value = Object.entries(props.ticketDetails.details.nodes).reduce<RowData[]>(
+          (prevList, [key, item]) => {
+            if (item.length) {
+              return prevList.concat(generateDataRow(key));
+            }
+            return prevList;
+          },
+          [],
+        );
+      }
     },
   });
 </script>

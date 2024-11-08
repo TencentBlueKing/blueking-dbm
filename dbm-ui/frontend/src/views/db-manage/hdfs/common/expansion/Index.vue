@@ -40,7 +40,6 @@
           v-model:expansion-disk="nodeInfoMap[nodeType].expansionDisk"
           v-model:host-list="nodeInfoMap[nodeType].hostList"
           v-model:resource-spec="nodeInfoMap[nodeType].resourceSpec"
-          v-model:target-disk="nodeInfoMap[nodeType].targetDisk"
           :cloud-info="{
             id: data.bk_cloud_id,
             name: data.bk_cloud_name,
@@ -59,8 +58,9 @@
   } from 'vue';
   import { useI18n } from 'vue-i18n';
 
-  import type HdfsModel from '@services/model/hdfs/hdfs';
-  import { getHostDetails  } from '@services/source/ipchooser';
+  import HdfsModel from '@services/model/hdfs/hdfs';
+  import HdfsMachineModel from '@services/model/hdfs/hdfs-machine';
+  import { getHdfsMachineList } from '@services/source/hdfs';
   import { createTicket } from '@services/source/ticket';
 
   import { useTicketMessage } from '@hooks';
@@ -113,13 +113,13 @@
       ipSource: 'resource_pool',
       hostList: [],
       totalDisk: 0,
-      targetDisk: 0,
+      // targetDisk: 0,
       expansionDisk: 0,
       specClusterType: ClusterTypes.HDFS,
       specMachineType: 'hdfs_datanode',
       resourceSpec: {
         spec_id: 0,
-        count: 1,
+        count: 0,
       },
     },
   });
@@ -131,35 +131,19 @@
 
   // 获取主机详情
   const fetchHostDetail = () => {
-    const datanodeHostIdMap = props.data.hdfs_datanode.reduce((result, item) => ({
-      ...result,
-      [item.bk_host_id]: true,
-    }), {} as Record<number, boolean>);
-
-    const hostIdList = props.data.hdfs_datanode.map(item => ({
-      host_id: item.bk_host_id,
-      meta: {
-        bk_biz_id: item.bk_biz_id,
-        scope_id: `${item.bk_biz_id}`,
-        scope_type: 'biz',
-      },
-    }));
-
     isLoading.value = true;
-    getHostDetails({
-      host_list: hostIdList,
-      scope_list: [{
-        scope_id: `${bizId}`,
-        scope_type: 'biz',
-      }],
+    getHdfsMachineList({
+      cluster_ids: String(props.data.id),
+      offset: 0,
+      limit: -1
     }).then((data) => {
-      const datanodeOriginalHostList: ServiceReturnType<typeof getHostDetails> = [];
+      const datanodeOriginalHostList: HdfsMachineModel[] = [];
 
       let datanodeDiskTotal = 0;
 
-      data.forEach((hostItem) => {
-        if (datanodeHostIdMap[hostItem.host_id]) {
-          datanodeDiskTotal += ~~Number(hostItem.bk_disk);
+      data.results.forEach((hostItem) => {
+        if (hostItem.isDataNode) {
+          datanodeDiskTotal += Math.floor(Number(hostItem.host_info.bk_disk));
           datanodeOriginalHostList.push(hostItem);
         }
       });
@@ -182,20 +166,6 @@
       }
 
       const renderSubTitle = () => {
-        const renderDiskTips = () => {
-          const isNotMatch = Object.values(nodeInfoMap)
-            .some(nodeData => nodeData.targetDisk > 0
-              && nodeData.totalDisk + nodeData.expansionDisk !== nodeData.targetDisk);
-          if (isNotMatch) {
-            return (
-              <>
-                <div>{t('目标容量与所选 IP 容量不一致，确认提交？')}</div>
-                <div>{t('继续提交将按照手动选择的 IP 容量进行')}</div>
-              </>
-            );
-          }
-          return null;
-        };
         const renderExpansionDiskTips = () => Object.values(nodeInfoMap).map((nodeData) => {
           if (nodeData.expansionDisk) {
             return (
@@ -213,7 +183,6 @@
 
         return (
           <div style="font-size: 14px; line-height: 28px; color: #63656E;">
-            {renderDiskTips()}
             {renderExpansionDiskTips()}
           </div>
         );
@@ -237,7 +206,7 @@
                 host_list: item.hostList,
                 total_hosts: item.originalHostList.length,
                 total_disk: item.totalDisk,
-                target_disk: item.targetDisk,
+                // target_disk: item.targetDisk,
                 expansion_disk: item.expansionDisk,
               };
               Object.assign(results, {
