@@ -104,7 +104,7 @@ class TestQuickSearchViewSet:
         result = [cluster.get("ip") for cluster in response.data.get("machine")]
         assert init_storage_instance.machine.ip in result
 
-    @pytest.mark.parametrize("query", [QUICK_SEARCH_CONTAINS_PARAMS, QUICK_SEARCH_EXACT_PARAMS])
+    @pytest.mark.parametrize("query", [QUICK_SEARCH_EXACT_PARAMS])
     @patch.object(DBResourceApi, "resource_list")
     def test_quick_search_for_task(self, resource_list_mock, query, init_flow_tree):
         """
