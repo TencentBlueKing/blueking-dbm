@@ -123,16 +123,32 @@
 </template>
 
 <script lang="ts">
+  import { checkHost, getHostTopoInfos } from '@services/source/ipchooser';
+  import type { HostInfo } from '@services/types';
+
+  import type { HostItem, IDataRow } from './Row.vue';
+
   const singleHostSelectMemo: { [key: string]: Record<string, boolean> } = {};
+
+  type HostTopoInfo = ServiceReturnType<typeof getHostTopoInfos>['hosts_topo_info'][number];
+
+  interface Props {
+    clusterData: IDataRow['clusterData'];
+    newHostList: IDataRow['newHostList'];
+  }
+
+  interface Exposes {
+    getValue: () => Promise<{
+      new_master: HostItem;
+      new_slave: HostItem;
+    }>;
+  }
 </script>
 
 <script setup lang="ts">
   import _ from 'lodash';
   import tippy, { type Instance, type SingleTarget } from 'tippy.js';
   import { useI18n } from 'vue-i18n';
-
-  import { checkHost, getHostTopoInfos } from '@services/source/ipchooser';
-  import type { HostInfo } from '@services/types';
 
   import { useGlobalBizs } from '@stores';
 
@@ -144,26 +160,6 @@
   import TableEditInput from '@views/db-manage/tendb-cluster/common/edit/Input.vue';
 
   import { random } from '@utils';
-
-  import type { IDataRow } from './Row.vue';
-
-  type HostTopoInfo = ServiceReturnType<typeof getHostTopoInfos>['hosts_topo_info'][number];
-
-  interface Props {
-    clusterData: IDataRow['clusterData'];
-    newHostList: IDataRow['newHostList'];
-  }
-
-  interface Exposes {
-    getValue: () => Promise<
-      {
-        ip: string;
-        bk_cloud_id: number;
-        bk_host_id: number;
-        bk_biz_id: number;
-      }[]
-    >;
-  }
 
   const props = defineProps<Props>();
 
@@ -303,7 +299,12 @@
   watch(
     () => props.newHostList,
     () => {
-      localValue.value = props.newHostList.join(',');
+      if (props.newHostList.length > 0) {
+        localValue.value = props.newHostList.join(',');
+        setTimeout(() => {
+          inputRef.value!.getValue();
+        });
+      }
     },
     {
       immediate: true,
@@ -351,6 +352,9 @@
   const handleHostChange = (hostList: HostInfo[]) => {
     localHostList.value = hostList;
     localValue.value = hostList.map((hostItem) => hostItem.ip).join(',');
+    setTimeout(() => {
+      inputRef.value!.getValue();
+    });
   };
 
   const handleConflictHostChange = (hostData: HostTopoInfo, checked: boolean) => {
@@ -381,10 +385,10 @@
         bk_host_id: hostItem.host_id,
         bk_biz_id: hostItem.biz.id,
       }));
-      return inputRef
-        .value!.getValue()
-        .then(() => Promise.resolve(hostList))
-        .catch(() => Promise.reject(hostList));
+      return inputRef.value!.getValue().then(() => ({
+        new_master: hostList[0],
+        new_slave: hostList[1],
+      }));
     },
   });
 </script>

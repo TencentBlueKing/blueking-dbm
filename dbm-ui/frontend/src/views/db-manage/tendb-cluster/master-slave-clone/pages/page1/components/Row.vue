@@ -16,6 +16,7 @@
     <td style="padding: 0">
       <RenderMasterHost
         ref="masterRef"
+        :inputed-ips="inputedIps"
         :ip="data.clusterData.ip"
         @input-finish="handleInputFinish" />
     </td>
@@ -102,12 +103,11 @@
     masterInstanceList: [] as IDataRow['masterInstanceList'],
     newHostList: [],
   });
-</script>
 
-<script setup lang="ts">
   interface Props {
     data: IDataRow;
     removeable: boolean;
+    inputedIps: string[];
   }
 
   interface Emits {
@@ -117,22 +117,27 @@
     (e: 'hostInputFinish', value: string): void;
   }
 
-  interface HostItem {
-    ip: string;
+  export interface HostItem {
+    bk_biz_id: number;
     bk_cloud_id: number;
     bk_host_id: number;
-    bk_biz_id: number;
+    ip: string;
   }
 
   interface Exposes {
     getValue: () => Promise<{
-      oldMasterIp: string;
-      oldSlave: HostItem;
-      newInstaceList: HostItem[];
+      cluster_id: number;
+      old_master: HostItem;
+      old_slave: HostItem;
+      new_master: HostItem;
+      new_slave: HostItem;
     }>;
   }
+</script>
 
+<script setup lang="ts">
   const props = defineProps<Props>();
+
   const emits = defineEmits<Emits>();
 
   const { t } = useI18n();
@@ -165,38 +170,35 @@
     emits('remove');
   };
 
-  const getRowData = () => [masterRef.value!.getValue(), slaveRef.value!.getValue(), instanceRef.value!.getValue()];
-
   const handleClone = () => {
-    Promise.allSettled(getRowData()).then((rowData) => {
-      const [ip, newInstaceList] = rowData.map((item) => (item.status === 'fulfilled' ? item.value : item.reason));
+    Promise.all([masterRef.value!.getValue(), instanceRef.value!.getValue()]).then(([masterData, instanceData]) => {
       emits('clone', {
         rowKey: random(),
         isLoading: false,
         clusterData: {
-          ip,
-          clusterId: 0,
+          ip: masterData.old_master.ip,
+          clusterId: masterData.cluster_id,
           domain: '',
-          cloudId: 0,
+          cloudId: masterData.old_master.bk_cloud_id,
           cloudName: '',
-          hostId: 0,
+          hostId: masterData.old_master.bk_host_id,
         },
         masterInstanceList: [],
-        newHostList: newInstaceList.map((item: { ip: string }) => item.ip),
+        newHostList: [instanceData.new_master.ip, instanceData.new_slave.ip],
       });
     });
   };
 
   defineExpose<Exposes>({
-    async getValue() {
-      return Promise.all(getRowData()).then((data) => {
-        const [oldMasterIp, oldSlave, newInstaceList] = data;
-        return {
-          oldMasterIp,
-          oldSlave,
-          newInstaceList,
-        };
-      });
+    getValue() {
+      return Promise.all([masterRef.value!.getValue(), slaveRef.value!.getValue(), instanceRef.value!.getValue()]).then(
+        ([masterData, slaveData, instanceData]) =>
+          ({
+            ...masterData,
+            ...slaveData,
+            ...instanceData,
+          }) as ServiceReturnType<Exposes['getValue']>,
+      );
     },
   });
 </script>
