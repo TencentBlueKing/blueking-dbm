@@ -13,6 +13,7 @@ import (
 	"github.com/pkg/errors"
 
 	"dbm-services/common/go-pubpkg/cmutil"
+	"dbm-services/mysql/db-tools/dbactuator/pkg/util/db_table_filter"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/config"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/dbareport"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/logger"
@@ -62,45 +63,59 @@ func (l *LogicalLoader) preExecute() error {
 	// handle DBListDropIfExists
 	// 如果有设置这个选项，会在运行前执行 drop database if exists 命令，来清理脏库
 	if strings.TrimSpace(dbListDrop) != "" {
-		logger.Log.Info("load logical DBListDropIfExists:", dbListDrop)
-		if strings.Contains(dbListDrop, "`") {
-			return errors.Errorf("DBListDropIfExists has invalid character %s", dbListDrop)
+		if err := dropDatabasesBeforeLoad(dbListDrop, &l.cnf.LogicalLoad, l.dbConn); err != nil {
+			return err
 		}
-		SysDBs := []string{"mysql", "sys", "information_schema", "performance_schema", "test"}
-		dblist := strings.Split(dbListDrop, ",")
-		dblistNew := []string{}
-		for _, dbName := range dblist {
-			dbName = strings.TrimSpace(dbName)
-			if dbName == "" {
-				continue
-			} else if cmutil.StringsHas(SysDBs, dbName) {
-				return errors.Errorf("DBListDropIfExists should not contain sys db: %s", dbListDrop)
-			} else {
-				dblistNew = append(dblistNew, dbName)
-			}
-		}
+	}
+	return nil
+}
 
-		ctx := context.Background()
-		dbConn, _ := l.dbConn.Conn(ctx)
-		defer dbConn.Close()
-		if !l.cnf.LogicalLoad.EnableBinlog {
-			if _, err := dbConn.ExecContext(ctx, "set session sql_log_bin=off"); err != nil {
-				return errors.WithMessage(err, "disable log_bin for LogicalLoad connection")
-			}
+func dropDatabasesBeforeLoad(dbListToDropStr string, cnf *config.LogicalLoad, dbConn *sql.DB) error {
+	logger.Log.Info("load logical DBListDropIfExists:", dbListToDropStr)
+	if strings.Contains(dbListToDropStr, "`") || strings.Contains(dbListToDropStr, ";") {
+		return errors.Errorf("DBListDropIfExists has invalid character %s", dbListToDropStr)
+	}
+	SysDBs := []string{"mysql", "sys", "information_schema", "performance_schema", "test"}
+
+	dbListToDrop := strings.Split(dbListToDropStr, ",")
+	dbListToDropNew := []string{}
+	for _, dbName := range dbListToDrop {
+		dbName = strings.TrimSpace(dbName)
+		if dbName == "" {
+			continue
+		} else if cmutil.StringsHas(SysDBs, dbName) {
+			return errors.Errorf("DBListDropIfExists should not contain sys db: %s", dbListToDropStr)
+		} else {
+			dbListToDropNew = append(dbListToDropNew, dbName)
 		}
-		if l.cnf.LogicalLoad.InitCommand != "" {
-			if _, err := dbConn.ExecContext(ctx, l.cnf.LogicalLoad.InitCommand); err != nil {
-				return errors.WithMessage(err, "init command for LogicalLoad connection")
-			}
+	}
+	dbListToDropFilter, _ := db_table_filter.NewFilter(dbListToDropNew, []string{"*"}, SysDBs, []string{})
+	dbListToDropFiltered, err := dbListToDropFilter.GetDbsByConnRaw(dbConn)
+	if err != nil {
+		return errors.WithMessage(err, "failed to filter db list to drop")
+	} else {
+		logger.Log.Info("filtered database list to drop:", dbListToDropFiltered)
+	}
+
+	ctx := context.Background()
+	db, _ := dbConn.Conn(ctx)
+	defer dbConn.Close()
+	if !cnf.EnableBinlog {
+		if _, err := db.ExecContext(ctx, "set session sql_log_bin=off"); err != nil {
+			return errors.WithMessage(err, "disable log_bin for LogicalLoad connection")
 		}
-		for _, dbName := range dblistNew {
-			dropDbSql := fmt.Sprintf("DROP DATABASE IF EXISTS `%s`", dbName)
-			logger.Log.Warn("DBListDropIfExists sql:", dropDbSql)
-			if _, err := dbConn.ExecContext(ctx, dropDbSql); err != nil {
-				return errors.Wrap(err, "DBListDropIfExists err")
-			}
+	}
+	if cnf.InitCommand != "" {
+		if _, err := db.ExecContext(ctx, cnf.InitCommand); err != nil {
+			return errors.WithMessage(err, "init command for LogicalLoad connection")
 		}
-		return nil
+	}
+	for _, dbName := range dbListToDropFiltered {
+		dropDbSql := fmt.Sprintf("DROP DATABASE IF EXISTS `%s`", dbName)
+		logger.Log.Warn("DBListDropIfExists sql:", dropDbSql)
+		if _, err := db.ExecContext(ctx, dropDbSql); err != nil {
+			return errors.Wrap(err, "DBListDropIfExists err")
+		}
 	}
 	return nil
 }

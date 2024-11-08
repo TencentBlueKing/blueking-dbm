@@ -49,6 +49,4 @@ type LogicalBackupMysqldump struct {
 	BinPath string `ini:"BinPath"` // the binary path of mysqldump
 	// ExtraOpt for mysqldump
 	ExtraOpt string `ini:"ExtraOpt"` // other mysqldump options string to be appended
-	// Compress if true, will use zstd compress
-	Compress bool `ini:"Compress"`
 }

@@ -2,6 +2,7 @@ package db_table_filter
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 
 	_ "github.com/go-sql-driver/mysql" // mysql 驱动
@@ -31,6 +32,14 @@ func (c *DbTableFilter) GetDbs(ip string, port int, user string, password string
 	return c.GetDbsByConn(conn)
 }
 
+func (c *DbTableFilter) GetDbsByConnRaw(db *sql.DB) ([]string, error) {
+	dbx := sqlx.NewDb(db, "mysql")
+	connx, err := dbx.Connx(context.Background())
+	if err != nil {
+		return nil, err
+	}
+	return c.GetDbsByConn(connx)
+}
 func (c *DbTableFilter) GetDbsByConn(conn *sqlx.Conn) ([]string, error) {
 	pattern, err := regexp2.Compile(c.DbFilterRegex(), regexp2.None)
 	if err != nil {

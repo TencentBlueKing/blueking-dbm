@@ -220,11 +220,10 @@ func (l *LogicalDumperMysqldump) Execute(enableTimeOut bool) (err error) {
 		return errors.New("please give --databases / --exclude-databases for mysqldump")
 	}
 	outSqlFile := filepath.Join(l.cnf.Public.BackupDir, l.cnf.Public.TargetName(), l.cnf.Public.TargetName()+".sql")
-	if l.cnf.LogicalBackupMysqldump.Compress {
-		args = append(args, "|", CmdZstd, "-f", "-q",
-			"-o", outSqlFile+cst.ZstdSuffix)
-	} else {
+	if l.cnf.LogicalBackup.DisableCompress {
 		args = append(args, "-r", outSqlFile)
+	} else {
+		args = append(args, "|", CmdZstd, "-q", "-f", "-o", outSqlFile+cst.ZstdSuffix)
 	}
 	var cmd *exec.Cmd
 	if enableTimeOut {
@@ -313,7 +312,7 @@ func (l *LogicalDumperMysqldump) Execute(enableTimeOut bool) (err error) {
 func (l *LogicalDumperMysqldump) PrepareBackupMetaInfo(cnf *config.BackupConfig) (*dbareport.IndexContent, error) {
 	var metaInfo = dbareport.IndexContent{BinlogInfo: dbareport.BinlogStatusInfo{}}
 	metaFileName := filepath.Join(cnf.Public.BackupDir, cnf.Public.TargetName(), cnf.Public.TargetName()+".sql")
-	if cnf.LogicalBackupMysqldump.Compress {
+	if !cnf.LogicalBackup.DisableCompress {
 		metaFileName += ".zst"
 	}
 	metadata, err := parseMysqldumpMetadata(metaFileName)

@@ -144,7 +144,10 @@ func SetEnv(backupType string, mysqlVersionStr string) error {
 	}
 	// xtrabackup --decompress 需要找到 qpress 命令
 	binPath = append(binPath, filepath.Join(ExecuteHome, "bin"))
-	CmdZstd = filepath.Join(ExecuteHome, "bin/zstd")
+	CmdZstd = filepath.Join(ExecuteHome, "bin/gozstd")
+	if !cmutil.FileExists(CmdZstd) {
+		CmdZstd = filepath.Join(ExecuteHome, "bin/zstd")
+	}
 	CmdQpress = filepath.Join(ExecuteHome, "bin/qpress")
 
 	logger.Log.Info(fmt.Sprintf("export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:%s", strings.Join(libPath, ":")))

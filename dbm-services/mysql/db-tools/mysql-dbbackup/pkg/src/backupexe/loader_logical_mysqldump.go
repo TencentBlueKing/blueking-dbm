@@ -11,7 +11,6 @@
 package backupexe
 
 import (
-	"context"
 	"database/sql"
 	"fmt"
 	"os"
@@ -59,7 +58,9 @@ func (l *LogicalLoaderMysqldump) initConfig(metaInfo *dbareport.IndexContent) er
 	}
 	l.metaInfo = metaInfo
 	if l.cnf.LogicalLoad.MysqlCharset == "" {
-		l.cnf.LogicalLoad.MysqlCharset = metaInfo.BackupCharset
+		if metaInfo.BackupCharset != "binary" {
+			l.cnf.LogicalLoad.MysqlCharset = metaInfo.BackupCharset
+		}
 	}
 	return nil
 }
@@ -83,45 +84,11 @@ func (l *LogicalLoaderMysqldump) preExecute() error {
 	// handle DBListDropIfExists
 	// 如果有设置这个选项，会在运行前执行 drop database if exists 命令，来清理脏库
 	if strings.TrimSpace(dbListDrop) != "" {
-		logger.Log.Info("load logical DBListDropIfExists:", dbListDrop)
-		if strings.Contains(dbListDrop, "`") {
-			return errors.Errorf("DBListDropIfExists has invalid character %s", dbListDrop)
-		}
-		SysDBs := []string{"mysql", "sys", "information_schema", "performance_schema", "test"}
-		dblist := strings.Split(dbListDrop, ",")
-		dblistNew := []string{}
-		for _, dbName := range dblist {
-			dbName = strings.TrimSpace(dbName)
-			if dbName == "" {
-				continue
-			} else if cmutil.StringsHas(SysDBs, dbName) {
-				return errors.Errorf("DBListDropIfExists should not contain sys db: %s", dbListDrop)
-			} else {
-				dblistNew = append(dblistNew, dbName)
+		if strings.TrimSpace(dbListDrop) != "" {
+			if err := dropDatabasesBeforeLoad(dbListDrop, &l.cnf.LogicalLoad, l.dbConn); err != nil {
+				return err
 			}
 		}
-
-		ctx := context.Background()
-		dbConn, _ := l.dbConn.Conn(ctx)
-		defer dbConn.Close()
-		if !l.cnf.LogicalLoad.EnableBinlog {
-			if _, err := dbConn.ExecContext(ctx, "set session sql_log_bin=off"); err != nil {
-				return errors.WithMessage(err, "disable log_bin for LogicalLoad connection")
-			}
-		}
-		if l.cnf.LogicalLoad.InitCommand != "" {
-			if _, err := dbConn.ExecContext(ctx, l.cnf.LogicalLoad.InitCommand); err != nil {
-				return errors.WithMessage(err, "init command for LogicalLoad connection")
-			}
-		}
-		for _, dbName := range dblistNew {
-			dropDbSql := fmt.Sprintf("DROP DATABASE IF EXISTS `%s`", dbName)
-			logger.Log.Warn("DBListDropIfExists sql:", dropDbSql)
-			if _, err := dbConn.ExecContext(ctx, dropDbSql); err != nil {
-				return errors.Wrap(err, "DBListDropIfExists err")
-			}
-		}
-		return nil
 	}
 	return nil
 }
@@ -177,7 +144,9 @@ func (l *LogicalLoaderMysqldump) Execute() (err error) {
 		"-u" + l.cnf.LogicalLoad.MysqlUser,
 		"-p" + l.cnf.LogicalLoad.MysqlPasswd,
 		"--max_allowed_packet=1073741824 ",
-		fmt.Sprintf("--default-character-set=%s", l.cnf.LogicalLoad.MysqlCharset),
+	}
+	if l.cnf.LogicalLoad.MysqlCharset != "" {
+		args = append(args, fmt.Sprintf("--default-character-set=%s", l.cnf.LogicalLoad.MysqlCharset))
 	}
 	var initCommand []string
 	if !l.cnf.LogicalLoad.EnableBinlog {

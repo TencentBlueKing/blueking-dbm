@@ -17,7 +17,8 @@ type LogicalLoad struct {
 	MysqlUser     string `ini:"MysqlUser" validate:"required"`
 	MysqlPasswd   string `ini:"MysqlPasswd"`
 	MysqlCharset  string `ini:"MysqlCharset"`
-	EnableBinlog  bool   `ini:"EnableBinlog"`
+	// EnableBinlog default false means disable writing binlog
+	EnableBinlog bool `ini:"EnableBinlog"`
 	// InitCommand set global xxx=y;
 	// for myloader, no native --init-command option, will set variables to --defaults-file
 	// for mysqldump, will append --init-command to mysql cli
