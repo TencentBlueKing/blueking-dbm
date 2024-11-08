@@ -91,6 +91,7 @@
 </template>
 <script setup lang="ts">
   import type { Table } from 'bkui-vue';
+  import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
 
   import RedisClusterNodeByIpModel from '@services/model/redis/redis-cluster-node-by-ip';
@@ -213,31 +214,34 @@
       return acc;
     }, {});
     const ipsSet = new Set(availableLines);
-    const legalInstances = queryResult.reduce<InstanceItem[]>((acc, cur) => {
-      if (ipsSet.has(cur.ip)) {
-        // 格式化实例角色
-        const roleMap = {
-          master: 'redis_master',
-          slave: 'redis_slave',
-          proxy: 'proxy',
-        };
-        acc.push({
-          ...cur,
-          role: roleMap[cur.role as keyof typeof roleMap],
-        });
-        // 如果是主ip则带出从ip
-        if (cur.role === 'master') {
-          const slaveIp = masterSlaveMap[cur.ip];
+    const legalInstances = _.uniqBy(
+      queryResult.reduce<InstanceItem[]>((acc, cur) => {
+        if (ipsSet.has(cur.ip)) {
+          // 格式化实例角色
+          const roleMap = {
+            master: 'redis_master',
+            slave: 'redis_slave',
+            proxy: 'proxy',
+          };
           acc.push({
             ...cur,
-            ip: slaveIp,
-            role: 'redis_slave',
+            role: roleMap[cur.role as keyof typeof roleMap],
           });
+          // 如果是主ip则带出从ip
+          if (cur.role === 'master') {
+            const slaveIp = masterSlaveMap[cur.ip];
+            acc.push({
+              ...cur,
+              ip: slaveIp,
+              role: 'redis_slave',
+            });
+          }
+          ipsSet.delete(cur.ip);
         }
-        ipsSet.delete(cur.ip);
-      }
-      return acc;
-    }, []);
+        return acc;
+      }, []),
+      'ip',
+    );
     inputState.isLoading = false;
     // 错误ip(未找到)
     const checkErrorLines = [...ipsSet];

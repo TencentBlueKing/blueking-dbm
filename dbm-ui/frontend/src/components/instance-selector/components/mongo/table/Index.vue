@@ -50,8 +50,6 @@
   } from '@components/instance-selector/Index.vue';
   import { activePanelInjectionKey } from '@components/instance-selector/Index.vue';
 
-  import { firstLetterToUpper } from '@utils';
-
   import { useTableData } from './useTableData';
 
   type TableConfigType = Required<PanelListType[number]>['tableConfig'];
@@ -194,7 +192,7 @@
     {
       fixed: 'left',
       minWidth: 160,
-      label: props.firsrColumn?.label ? firstLetterToUpper(props.firsrColumn.label) : t('实例'),
+      label: props.firsrColumn?.label ? props.firsrColumn.label : t('实例'),
       field: props.firsrColumn?.field ? props.firsrColumn.field : 'instance_address',
     },
     // {

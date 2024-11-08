@@ -31,7 +31,6 @@
 
 <script setup lang="tsx">
   import type { Table } from 'bkui-vue';
-  import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
 
   import DbStatus from '@components/db-status/index.vue';
@@ -122,7 +121,7 @@
       // filter: {
       //   list: [{ text: 'master', value: 'master' }, { text: 'slave', value: 'slave' }, { text: 'proxy', value: 'proxy' }],
       // },
-      render: ({ data } : TableItem) => <span>{_.upperFirst(data.role)}</span>,
+      render: ({ data } : TableItem) => <span>{data.role}</span>,
     },
     {
       label: t('实例状态'),
