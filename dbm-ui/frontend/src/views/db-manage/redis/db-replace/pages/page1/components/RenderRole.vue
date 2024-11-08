@@ -20,13 +20,11 @@
         style="color: #c4c6cc">
         {{ $t('输入主机后自动生成') }}
       </span>
-      <span v-else>{{ firstLetterToUpper(data) }}</span>
+      <span v-else>{{ data }}</span>
     </div>
   </BkLoading>
 </template>
 <script setup lang="ts">
-  import { firstLetterToUpper } from '@views/db-manage/redis/common/utils';
-
   import type { IDataRow } from './Row.vue';
 
   interface Props {

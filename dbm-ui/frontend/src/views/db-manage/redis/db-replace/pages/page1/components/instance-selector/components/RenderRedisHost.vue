@@ -44,7 +44,6 @@
 </template>
 <script setup lang="tsx">
   import type { Table } from 'bkui-vue';
-  import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
 
   import { getRedisMachineList } from '@services/source/redis';
@@ -266,7 +265,7 @@
       //   ],
       //   checked: columnCheckedMap.value.role,
       // },
-      render: ({ data } : TableItem) => <span>{_.upperFirst(data.instance_role)}</span>,
+      render: ({ data } : TableItem) => <span>{data.instance_role}</span>,
     },
     {
       label: t('实例状态'),

@@ -80,6 +80,7 @@
         <BkLoading :loading="inputState.isLoading">
           <RenderManualHost
             :active-panel-id="manualConfig.activePanelId"
+            :field-format="manualConfig.fieldFormat"
             :firsr-column="firsrColumn"
             is-manul
             :last-values="lastValues"
@@ -93,6 +94,7 @@
   </div>
 </template>
 <script setup lang="ts" generic="T extends IValue">
+  import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
 
   import { useGlobalBizs } from '@stores';
@@ -131,7 +133,10 @@
 
   const inputState = reactive({
     values: '',
-    placeholder: t('请输入IP_Port_如_1_1_1_1_10000_多个可使用换行_空格或_分隔'),
+    placeholder:
+      props.manualConfig.checkType === 'instance'
+        ? t('请输入IP_Port_如_1_1_1_1_10000_多个可使用换行_空格或_分隔')
+        : t('请输入IP_如_1_1_1_1_多个可使用换行_空格或_分隔'),
     isLoading: false,
     tableData: [] as T[],
   });
@@ -222,12 +227,19 @@
       //   });
       // }
       const res = await (props.manualConfig.checkInstances as (params: any) => Promise<any[]>)(params);
+      // 去重
+      let uniqRes = _.uniqBy(res, props.manualConfig.checkKey);
+      if (props.manualConfig.checkType === 'instance') {
+        // 接口实例有两种字段
+        uniqRes = _.uniqBy(res, 'instance_address');
+      }
+
       const legalInstances = [];
       for (let i = lines.length - 1; i >= 0; i--) {
         const item = lines[i];
-        const infos = res[i];
+        const infos = uniqRes[i];
         const remove = lines.splice(i, 1);
-        const isExisted = res.find((existItem) => existItem[props.manualConfig.checkKey] === item);
+        const isExisted = uniqRes.find((existItem) => existItem[props.manualConfig.checkKey] === item);
         if (!isExisted) {
           newLines.push(...remove);
         } else {
