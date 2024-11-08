@@ -15,22 +15,14 @@ from django.utils.translation import ugettext as _
 from pipeline.component_framework.component import Component
 
 from backend.components.mysql_priv_manager.client import DBPrivManagerApi
-from backend.db_meta.enums import ClusterType, InstanceStatus
+from backend.db_meta.enums import InstanceStatus
 from backend.db_meta.exceptions import ClusterNotExistException
 from backend.db_meta.models import Cluster
-from backend.flow.consts import MachinePrivRoleMap, PrivRole
 from backend.flow.plugins.components.collections.common.base_service import BaseService
+from backend.flow.utils.mysql.common.random_job_with_ticket_map import get_instance_with_random_job
 from backend.flow.utils.mysql.get_mysql_sys_user import generate_mysql_tmp_user
-from backend.ticket.constants import TicketType
 
 logger = logging.getLogger("flow")
-
-# 定义控制节点的异常控制，理论上所有单据执行这个活动节点应该所有实例权限成功才能显示成功，但是部分单据不一定完全成功地，比如故障替换场景。
-allow_list = [
-    TicketType.MYSQL_MASTER_FAIL_OVER.value,
-    TicketType.MYSQL_RESTORE_SLAVE.value,
-    TicketType.TENDBCLUSTER_MASTER_FAIL_OVER.value,
-]
 
 
 class AddTempUserForClusterService(BaseService):
@@ -52,41 +44,6 @@ class AddTempUserForClusterService(BaseService):
             return False
 
         return True
-
-    @staticmethod
-    def _get_instance_for_cluster(cluster: Cluster) -> list:
-        """
-        根据cluster对象获取所有的cluster需要实例信息
-        """
-        inst_list = []
-        for inst in cluster.storageinstance_set.all():
-            inst_list.append(
-                {
-                    "instance": inst.ip_port,
-                    "priv_role": MachinePrivRoleMap.get(inst.machine_type),
-                    "cmdb_status": inst.status,
-                }
-            )
-        if cluster.cluster_type == ClusterType.TenDBCluster:
-            # 获取tendb cluster集群所有spider实例
-            for inst in cluster.proxyinstance_set.all():
-                inst_list.append(
-                    {
-                        "instance": inst.ip_port,
-                        "priv_role": MachinePrivRoleMap.get(inst.machine_type),
-                        "cmdb_status": inst.status,
-                    }
-                )
-            # 获取tendb cluster集群所有tdbctl实例,只给中控primary授权，权限同步到每个节点
-            inst_list.append(
-                {
-                    "instance": cluster.tendbcluster_ctl_primary_address(),
-                    "priv_role": PrivRole.TDBCTL.value,
-                    "cmdb_status": InstanceStatus.RUNNING.value,
-                }
-            )
-
-        return inst_list
 
     def _execute(self, data, parent_data, callback=None) -> bool:
         kwargs = data.get_one_of_inputs("kwargs")
@@ -121,7 +78,9 @@ class AddTempUserForClusterService(BaseService):
             common_param["bk_cloud_id"] = cluster.bk_cloud_id
 
             # 获取每套集群的所有需要添加临时的账号
-            instance_list = self._get_instance_for_cluster(cluster=cluster)
+            instance_list = get_instance_with_random_job(
+                cluster=cluster, ticket_type=global_data.get("ticket_type", "test")
+            )
 
             # 开始遍历集群每个实例，添加临时账号
             for inst in instance_list:

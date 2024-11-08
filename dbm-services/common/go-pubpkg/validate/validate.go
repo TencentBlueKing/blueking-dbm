@@ -156,7 +156,9 @@ func translate(ut ut.Translator, fe validator.FieldError) string {
 
 func validCharSet(f validator.FieldLevel) bool {
 	v := f.Field().String()
-	return cmutil.HasElem(v, []string{"default", "utf8mb4", "utf8", "latin1", "gb2312", "gbk", "binary", "gb18030"})
+	return cmutil.HasElem(
+		v, []string{"default", "utf8mb4", "utf8", "latin1", "gb2312", "gbk", "binary", "gb18030", "utf8mb3"},
+	)
 }
 
 // validateCrontabExpr 验证Liunx crontab表达式

@@ -70,6 +70,8 @@ class SqlserverSwitchFlow(BaseFlow):
         # 定义主流程
         main_pipeline = Builder(root_id=self.root_id, data=self.data)
         sub_pipelines = []
+        # 定义切换名称
+        sub_name = _("集群主故障切换") if self.data["force"] else _("集群互切")
 
         for info in self.data["infos"]:
             # 声明子流程
@@ -199,7 +201,7 @@ class SqlserverSwitchFlow(BaseFlow):
                     kwargs=asdict(DropRandomJobUserKwargs(cluster_ids=[cluster.id])),
                 )
 
-                act_list.append(cluster_pipeline.build_sub_process(sub_name=_("{}集群互切".format(cluster.name))))
+                act_list.append(cluster_pipeline.build_sub_process(sub_name=_("{}{}".format(cluster.name, sub_name))))
 
             # 拼接集群维度的子流程
             sub_pipeline.add_parallel_sub_pipeline(sub_flow_list=act_list)
@@ -222,7 +224,7 @@ class SqlserverSwitchFlow(BaseFlow):
                     root_id=self.root_id,
                     bk_biz_id=int(self.data["bk_biz_id"]),
                     bk_cloud_id=0,
-                    master_host=[Host(**info["master"])],
+                    master_host=[] if self.data["force"] else [Host(**info["master"])],
                     slave_host=[Host(**info["slave"])],
                     cluster_domain_list=[i.immute_domain for i in Cluster.objects.filter(id__in=info["cluster_ids"])],
                     is_install_backup_client=False,

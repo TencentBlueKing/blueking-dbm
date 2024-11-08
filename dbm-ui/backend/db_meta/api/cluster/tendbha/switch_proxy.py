@@ -72,6 +72,10 @@ def reduce_proxy(cluster_ids: list, origin_proxy_ip: str):
     """
     clusters = Cluster.objects.filter(id__in=cluster_ids)
     for cluster in clusters:
+        # 先对同机的proxy实例加锁, 避免多单据执行出现脏读情况
+        ProxyInstance.objects.select_for_update().filter(
+            machine__bk_cloud_id=cluster.bk_cloud_id, machine__ip=origin_proxy_ip
+        )
         proxy = cluster.proxyinstance_set.get(machine__ip=origin_proxy_ip)
         # 删除实例元数据
         proxy.delete(keep_parents=True)

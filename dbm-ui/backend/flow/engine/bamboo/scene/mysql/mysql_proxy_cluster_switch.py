@@ -133,6 +133,16 @@ class MySQLProxyClusterSwitchFlow(object):
             sub_flow_context["proxy_ports"] = self.__get_proxy_install_ports(cluster_ids=info["cluster_ids"])
             sub_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(sub_flow_context))
 
+            # 初始化同机替换的proxy集群信息
+            clusters = [
+                self.__get_switch_cluster_info(
+                    cluster_id=cluster_id,
+                    origin_proxy_ip=info["origin_proxy_ip"]["ip"],
+                    target_proxy_ip=info["target_proxy_ip"]["ip"],
+                )
+                for cluster_id in info["cluster_ids"]
+            ]
+
             # 拼接执行原子任务活动节点需要的通用的私有参数结构体, 减少代码重复率，但引用时注意内部参数值传递的问题
             exec_act_kwargs = ExecActuatorKwargs(
                 cluster_type=ClusterType.TenDBHA,
@@ -180,23 +190,14 @@ class MySQLProxyClusterSwitchFlow(object):
                 act_component_code=ExecuteDBActuatorScriptComponent.code,
                 kwargs=asdict(exec_act_kwargs),
             )
-            # 后续流程需要在这里加一个暂停节点，让用户在合适的时间执行切换
-            sub_pipeline.add_act(act_name=_("人工确认"), act_component_code=PauseComponent.code, kwargs={})
 
             # 阶段2 根据需要替换的proxy的集群，依次添加
-            switch_proxy_sub_list = []
-            for cluster_id in info["cluster_ids"]:
+            add_proxy_sub_list = []
+            for cluster in clusters:
 
                 # 拼接子流程需要全局参数
                 sub_sub_flow_context = copy.deepcopy(self.data)
                 sub_sub_flow_context.pop("infos")
-
-                # 获取集群的实例信息
-                cluster = self.__get_switch_cluster_info(
-                    cluster_id=cluster_id,
-                    target_proxy_ip=info["target_proxy_ip"]["ip"],
-                    origin_proxy_ip=info["origin_proxy_ip"]["ip"],
-                )
 
                 # 针对集群维度声明替换子流程
                 switch_proxy_sub_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(sub_sub_flow_context))
@@ -252,6 +253,28 @@ class MySQLProxyClusterSwitchFlow(object):
                     )
                 switch_proxy_sub_pipeline.add_parallel_acts(acts_list=acts_list)
 
+                add_proxy_sub_list.append(
+                    switch_proxy_sub_pipeline.build_sub_process(sub_name=_("{}集群添加proxy实例").format(cluster["name"]))
+                )
+
+            sub_pipeline.add_parallel_sub_pipeline(sub_flow_list=add_proxy_sub_list)
+
+            # 后续流程需要在这里加一个暂停节点，让用户在合适的时间执行切换
+            sub_pipeline.add_act(act_name=_("人工确认"), act_component_code=PauseComponent.code, kwargs={})
+
+            # 阶段3 根据集群维度切换域名
+            switch_dns_sub_list = []
+            for cluster in clusters:
+
+                # 拼接子流程需要全局参数
+                sub_sub_flow_context = copy.deepcopy(self.data)
+                sub_sub_flow_context.pop("infos")
+
+                # 针对集群维度声明替换子流程
+                switch_cluster_dns_pipeline = SubBuilder(
+                    root_id=self.root_id, data=copy.deepcopy(sub_sub_flow_context)
+                )
+
                 acts_list = []
                 for dns_name in cluster["add_domain_list"]:
                     # 这里的添加域名的方式根据目前集群对应proxy dns域名进行循环添加，这样保证某个域名添加异常时其他域名添加成功
@@ -269,9 +292,9 @@ class MySQLProxyClusterSwitchFlow(object):
                             ),
                         }
                     )
-                switch_proxy_sub_pipeline.add_parallel_acts(acts_list=acts_list)
+                switch_cluster_dns_pipeline.add_parallel_acts(acts_list=acts_list)
 
-                switch_proxy_sub_pipeline.add_act(
+                switch_cluster_dns_pipeline.add_act(
                     act_name=_("回收旧proxy集群映射"),
                     act_component_code=MySQLDnsManageComponent.code,
                     kwargs=asdict(
@@ -283,11 +306,11 @@ class MySQLProxyClusterSwitchFlow(object):
                     ),
                 )
 
-                switch_proxy_sub_list.append(
-                    switch_proxy_sub_pipeline.build_sub_process(sub_name=_("{}集群替换proxy实例").format(cluster["name"]))
+                switch_dns_sub_list.append(
+                    switch_cluster_dns_pipeline.build_sub_process(sub_name=_("{}集群切换proxy域名").format(cluster["name"]))
                 )
 
-            sub_pipeline.add_parallel_sub_pipeline(sub_flow_list=switch_proxy_sub_list)
+            sub_pipeline.add_parallel_sub_pipeline(sub_flow_list=switch_dns_sub_list)
 
             # 先把新的节点数据写入
             sub_pipeline.add_act(

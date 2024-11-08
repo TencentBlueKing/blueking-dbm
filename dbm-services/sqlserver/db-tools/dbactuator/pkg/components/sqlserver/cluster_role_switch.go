@@ -57,13 +57,12 @@ func (c *ClusterRoleSwitchComp) Init() error {
 		c.Params.MasterPort,
 	); err != nil {
 		// 如果主实例连接失败，且不属于强制切换，则退出异常
-		if c.Params.Force {
+		if !c.Params.Force {
 			return fmt.Errorf("connenct by [%s:%d] failed,err:%s",
 				c.Params.MasterHost, c.Params.MasterPort, err.Error())
 		}
 		logger.Warn("connenct by [%s:%d] failed,err:%s",
 			c.Params.MasterHost, c.Params.MasterPort, err.Error())
-		return err
 	}
 	if SdbWork, err = sqlserver.NewDbWorker(
 		c.GeneralParam.RuntimeAccountParam.SAUser,
@@ -104,19 +103,20 @@ func (c *ClusterRoleSwitchComp) PreCheck() error {
 	if c.Params.SyncMode != cst.MIRRORING && c.Params.SyncMode != cst.ALWAYSON {
 		return fmt.Errorf("the sync-mode [%d] is not supported", c.Params.SyncMode)
 	}
-	// 检查是否空实例（没有业务数据库）
-	var checkDBS []string
-	if err := c.MasterDB.Queryx(&checkDBS, cst.GET_BUSINESS_DATABASE); err != nil {
-		return fmt.Errorf("get db list failed %v", err)
-	}
-	if len(checkDBS) == 0 {
-		// 空时候代表不需要进行下面逻辑，打tag
-		c.isEmpty = true
-		logger.Warn("this cluster is an empty cluster")
-		return nil
-	}
 	// 检验逻辑,不同数据同步模式检测方式不一样，分开处理, 强制切换不做检测处理
-	if c.Params.Force {
+	if !c.Params.Force {
+		// 检查是否空实例（没有业务数据库）
+		var checkDBS []string
+		if err := c.MasterDB.Queryx(&checkDBS, cst.GET_BUSINESS_DATABASE); err != nil {
+			return fmt.Errorf("get db list failed %v", err)
+		}
+		if len(checkDBS) == 0 {
+			// 空时候代表不需要进行下面逻辑，打tag
+			c.isEmpty = true
+			logger.Warn("this cluster is an empty cluster")
+			return nil
+		}
+
 		switch c.Params.SyncMode {
 		case cst.MIRRORING:
 			c.MirroringPreCheck()
