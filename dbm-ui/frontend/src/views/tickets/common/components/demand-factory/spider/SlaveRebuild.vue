@@ -13,9 +13,20 @@
 
 <template>
   <DbOriginalTable
+    v-if="ticketDetails.ticket_type === TicketTypes.TENDBCLUSTER_RESTORE_LOCAL_SLAVE"
     class="details-slave__table"
-    :columns="renderColumns"
-    :data="dataList" />
+    :columns="localSlaveColumns"
+    :data="ticketDetails.details.infos" />
+  <DbOriginalTable
+    v-else
+    class="details-slave__table"
+    :columns="addSlaveColumns"
+    :data="ticketDetails.details.infos" />
+  <InfoList>
+    <InfoItem :label="t('备份源：')">
+      {{ ticketDetails.details.backup_source === 'remote' ? t('远程备份') : t('本地备份') }}
+    </InfoItem>
+  </InfoList>
 </template>
 
 <script setup lang="tsx">
@@ -26,118 +37,69 @@
 
   import { TicketTypes } from '@common/const';
 
+  import InfoList, {
+    Item as InfoItem,
+  } from '@views/tickets/common/components/demand-factory/components/info-list/Index.vue';
+
   interface Props {
-    ticketDetails: TicketModel<SpiderSlaveRebuid>
+    ticketDetails: TicketModel<SpiderSlaveRebuid>;
   }
 
   const props = defineProps<Props>();
 
   const { t } = useI18n();
 
+  type RowData = Props['ticketDetails']['details']['infos'][number];
+
   type dataItem = {
-    cluster_id: number,
-    slave: string,
+    cluster_id: number;
+    slave: string;
     new_slave: string;
-    immute_domain: string,
-    name: string,
-    backup_source: string
-  }
+    immute_domain: string;
+    name: string;
+    backup_source: string;
+  };
 
   // 原地重建
   const localSlaveColumns = [
     {
-      label: t('集群ID'),
-      field: 'cluster_id',
-      render: ({ data }: { data: dataItem }) => <span>{data.cluster_id || '--'}</span>,
-    },
-    {
-      label: t('集群名称'),
-      field: 'immute_domain',
-      showOverflowTooltip: false,
-      render: ({ data }: { data: dataItem }) => (
-        <div class="cluster-name text-overflow"
-          v-overflow-tips={{
-            content: `
-              <p>${t('域名')}：${data.immute_domain}</p>
-              ${data.name ? `<p>${('集群别名')}：${data.name}</p>` : null}
-            `,
-            allowHTML: true,
-        }}>
-          <span>{data.immute_domain}</span><br />
-          <span class="cluster-name__alias">{data.name}</span>
-        </div>
-      ),
-    },
-    {
       label: t('目标从库实例'),
       field: 'slave',
-      render: ({ data }: { data: dataItem }) => <span>{data.slave || '--'}</span>,
+      render: ({ data }: { data: dataItem }) => `${data.slave.ip}:${data.slave.port}`,
     },
     {
-      label: t('备份源'),
+      label: t('所属集群'),
       field: 'backup_source',
-      render: ({ data }: { data: dataItem }) => <span>{data.backup_source === 'local' ? t('本地备份') : '--'}</span>,
-    }
+      render: ({ data }: { data: RowData }) => props.ticketDetails.details.clusters[data.cluster_id].immute_domain,
+    },
   ];
-
 
   const addSlaveColumns = [
     {
-      label: t('集群ID'),
+      label: t('目标从库主机'),
       field: 'cluster_id',
-      render: ({ data }: { data: dataItem }) => <span>{data.cluster_id || '--'}</span>,
+      render: ({ data }: { data: RowData }) => data.old_slave.ip,
     },
     {
-      label: t('集群名称'),
+      label: t('从库主机关联实例'),
       field: 'immute_domain',
       showOverflowTooltip: false,
-      render: ({ data }: { data: dataItem }) => (
-        <div class="cluster-name text-overflow"
-          v-overflow-tips={{
-            content: `
-              <p>${t('域名')}：${data.immute_domain}</p>
-              ${data.name ? `<p>${('集群别名')}：${data.name}</p>` : null}
-            `,
-            allowHTML: true,
-        }}>
-          <span>{data.immute_domain}</span><br />
-          <span class="cluster-name__alias">{data.name}</span>
-        </div>
-      ),
+      render: () => '--',
+    },
+    {
+      label: t('同机关联集群'),
+      field: 'cluster_id',
+      render: ({ data }: { data: RowData }) => props.ticketDetails.details.clusters[data.cluster_id].immute_domain,
+    },
+    {
+      label: t('当前资源规格'),
+      field: 'resource_spec',
+      render: ({ data }: { data: RowData }) => data.resource_spec.new_slave.name,
     },
     {
       label: t('新从库主机'),
-      field: 'new_slave',
-      render: ({ data }: { data: dataItem }) => <span>{data.new_slave || '--'}</span>,
-    },
-    {
-      label: t('备份源'),
       field: 'backup_source',
-      render: ({ data }: { data: dataItem }) => <span>{data.backup_source === 'local' ? t('本地备份') : '--'}</span>,
-    }
+      render: () => t('资源池自动匹配'),
+    },
   ];
-
-  const renderColumns = props.ticketDetails.ticket_type === TicketTypes.TENDBCLUSTER_RESTORE_LOCAL_SLAVE ? localSlaveColumns : addSlaveColumns;
-
-  const dataList = computed(() => {
-    const infosList = props.ticketDetails.details.infos;
-    const clusterMap = props.ticketDetails.details.clusters;
-    const backupSource = props.ticketDetails.details.backup_source
-    return infosList.reduce((prevInfoList, infoItem) => {
-      const clusterItem = clusterMap[infoItem.cluster_id]
-      const oldSlave = infoItem.slave || infoItem.old_slave
-      return [...prevInfoList, {
-        cluster_id: infoItem.cluster_id,
-        slave: `${oldSlave.ip}:${oldSlave.port}`,
-        new_slave: infoItem.new_slave?.ip || '',
-        immute_domain: clusterItem.immute_domain,
-        name: clusterItem.name,
-        backup_source: backupSource
-      }]
-    }, [] as dataItem[]);
-  });
 </script>
-
-<style lang="less" scoped>
-  @import '@views/tickets/common/styles/DetailsTable.less';
-</style>
