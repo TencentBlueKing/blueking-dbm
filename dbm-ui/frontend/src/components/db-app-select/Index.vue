@@ -134,11 +134,13 @@
       * {
         color: #70737a !important;
       }
+
       .db-app-select-name {
         color: #c4c6cc;
       }
     }
   }
+
   .db-app-select-item {
     display: flex;
     align-items: center;
@@ -162,30 +164,30 @@
       padding-right: 12px;
       overflow: hidden;
     }
+
     .db-app-select-name {
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
     }
+
     .db-app-select-desc {
       display: flex;
-      white-space: nowrap;
+      overflow: hidden;
       color: #979ba5;
-      overflow: hidden;
+      white-space: nowrap;
     }
+
     .db-app-select-en-name {
-      flex: 0 1 auto;
-      text-overflow: ellipsis;
       overflow: hidden;
-    }
-    .favor-btn {
-      opacity: 0%;
-      transition: all 0.1s;
+      text-overflow: ellipsis;
+      flex: 0 1 auto;
     }
   }
+
   .db-app-select-tooltips {
-    white-space: nowrap;
     z-index: 1000000 !important;
+    white-space: nowrap;
   }
 
   .tippy-box[data-theme='bk-app-select-menu'] {
