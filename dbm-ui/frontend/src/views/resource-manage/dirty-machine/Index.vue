@@ -192,7 +192,7 @@
     {
       label: 'IP',
       field: 'ip',
-      fixed: true,
+      fixed: 'left',
       render: ({ data }: {data: DirtyMachinesModel}) => (
         <TextOverflowLayout>
           {{

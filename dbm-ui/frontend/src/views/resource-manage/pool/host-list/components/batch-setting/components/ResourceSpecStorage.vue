@@ -259,15 +259,8 @@
 </script>
 <style lang="less">
   .resource-spec-storage-box {
-    .bk-table-body {
-      // stylelint-disable-next-line selector-class-pattern
-      &.__is-empty {
-        .bk-table-body-content {
-          padding-bottom: 0;
-        }
-      }
-
-      .cell {
+    .bk-vxe-table {
+      .vxe-cell {
         padding: 0 !important;
 
         .large-size {

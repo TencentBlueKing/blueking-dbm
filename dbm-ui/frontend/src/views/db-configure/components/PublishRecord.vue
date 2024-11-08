@@ -252,10 +252,6 @@
     .bk-nested-loading {
       height: 100%;
     }
-
-    .bk-table {
-      height: var(--height);
-    }
   }
 
   :deep(.db-card) {

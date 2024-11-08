@@ -135,6 +135,7 @@
           :row-class="getRowClass"
           selectable
           :settings="settings"
+          :show-overflow="false"
           @clear-search="clearSearchValue"
           @column-filter="columnFilterChange"
           @column-sort="columnSortChange"
@@ -1542,11 +1543,11 @@
       .table-wrapper {
         background-color: white;
 
-        .bk-table {
+        .vxe-table {
           height: 100% !important;
         }
 
-        :deep(td .cell) {
+        :deep(td .vxe-cell) {
           line-height: unset !important;
 
           .db-icon-copy,
@@ -1635,13 +1636,9 @@
             }
           }
 
-          .cell {
+          .vxe-cell {
             color: @disable-color;
           }
-        }
-
-        :deep(.bk-table-body) {
-          max-height: calc(100% - 100px);
         }
       }
     }

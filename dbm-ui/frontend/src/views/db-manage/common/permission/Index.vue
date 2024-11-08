@@ -536,7 +536,7 @@
 
     :deep(.db-table) {
       .rules-table {
-        .cell {
+        .vxe-cell {
           padding: 0 !important;
         }
 

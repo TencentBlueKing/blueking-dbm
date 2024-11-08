@@ -634,7 +634,7 @@
   }
 
   .version-files-table {
-    :deep(.bk-table-body) {
+    :deep(.bk-vxe-table) {
       .md-five {
         display: flex;
 

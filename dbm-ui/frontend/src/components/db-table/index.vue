@@ -617,7 +617,7 @@
       justify-content: center;
     }
 
-    table tbody tr td .cell {
+    table tbody tr td .vxe-cell {
       line-height: unset !important;
     }
   }

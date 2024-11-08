@@ -252,7 +252,7 @@
         }
 
         .cell-privilege {
-          .cell {
+          .vxe-cell {
             padding: 0;
 
             div {
@@ -268,7 +268,7 @@
         .cell-privilege[data-id^='delete_'] {
           background-color: #ffeeeee6;
 
-          .cell {
+          .vxe-cell {
             color: #f8b4b4;
             text-decoration: line-through;
           }
