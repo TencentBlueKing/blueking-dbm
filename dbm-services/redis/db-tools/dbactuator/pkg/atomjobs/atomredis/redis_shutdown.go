@@ -163,11 +163,11 @@ func (job *RedisShutdown) Shutdown(port int) bool {
 		}
 
 		// 先通过stop脚本去停止，如果停止失败再尝试用redis-client的方式去shutdown
-		_, err = util.RunLocalCmd("su", []string{
+		rst, err := util.RunLocalCmd("su", []string{
 			consts.MysqlAaccount, "-c", stopScript + "  " + strconv.Itoa(port) + " " + pwd}, "",
 			nil, 10*time.Second)
-		if err != nil {
-			job.runtime.Logger.Warn(err.Error())
+		if err != nil || rst != "" {
+			job.runtime.Logger.Warn("shutdwon failed by call bash . %s:%+v", rst, err)
 			job.runtime.Logger.Info("shuwdown redis port[%d] count[%d/10] try use redis-client to shutdown", port, i)
 			job.ShutdownByClient(port, pwd)
 		}
