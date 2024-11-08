@@ -27,7 +27,7 @@
             :key="item">
             {{ item }}
           </BkTag>
-          <BkTag v-if="executeObject.dbnames.length > 3">...</BkTag>
+          <BkTag v-if="executeObject.ignore_dbnames.length > 3">...</BkTag>
           <template v-if="executeObject.ignore_dbnames.length < 1">--</template>
         </span>
       </span>
