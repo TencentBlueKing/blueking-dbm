@@ -267,6 +267,40 @@ class ActKwargs:
             )
         return result["password"]
 
+    def get_app_dba_monitor_pwd(self):
+        """获取appdba与appmonitor密码"""
+
+        for user in [MongoDBManagerUser.AppDbaUser.value, MongoDBManagerUser.AppMonitorUser.value]:
+            result = MongoDBPassword().get_password_from_db(
+                ip=str(self.payload["bk_biz_id"]), port=0, bk_cloud_id=0, username=user
+            )
+            if result["password"] is None:
+                raise ValueError("user:{} get password fail from db, error:{}".format(user, result["info"]))
+            # 不存在密码则获取密码并保存
+            else:
+                if result["password"] == "":
+                    get_password = MongoDBPassword().create_user_password()
+                    if get_password["password"] is None:
+                        raise ValueError("user:{} get password fail, error:{}".format(user, get_password["info"]))
+                    self.payload[user] = get_password["password"]
+                    # 保存密码
+                    info = MongoDBPassword().save_password_to_db(
+                        instances=[
+                            {
+                                "ip": str(self.payload["bk_biz_id"]),
+                                "port": 0,
+                                "bk_cloud_id": 0,
+                            }
+                        ],
+                        username=user,
+                        password=get_password["password"],
+                        operator="admin",
+                    )
+                    if info != "":
+                        raise ValueError("user:{} save password to db fail, error:{}".format(user, info))
+                else:
+                    self.payload[user] = result["password"]
+
     def get_send_media_kwargs(self, media_type: str) -> dict:
         """
         介质下发的kwargs
@@ -455,14 +489,18 @@ class ActKwargs:
         instances = [
             "{}:{}".format(node["ip"], str(self.replicaset_info["port"])) for node in self.replicaset_info["nodes"]
         ]
+        node_count = self.payload["node_count"]
         for index, instance in enumerate(instances):
-            if index == len(instances) - 1:
-                priority[instance] = 0
-                hidden[instance] = True
-            else:
+            if node_count == 1:
                 priority[instance] = 1
                 hidden[instance] = False
-
+            elif node_count > 1:
+                if index == len(instances) - 1:
+                    priority[instance] = 0
+                    hidden[instance] = True
+                else:
+                    priority[instance] = 1
+                    hidden[instance] = False
         return {
             "set_trans_data_dataclass": CommonContext.__name__,
             "get_trans_data_ip_var": None,
@@ -509,16 +547,8 @@ class ActKwargs:
             info["storages"] = []
             if len(replicaset_info["nodes"]) <= 11:
                 for index, node in enumerate(replicaset_info["nodes"]):
-                    if index == len(replicaset_info["nodes"]) - 1:
-                        info["storages"].append(
-                            {
-                                "role": self.instance_role[-1],
-                                "ip": node["ip"],
-                                "port": replicaset_info["port"],
-                                "domain": node["domain"],
-                            }
-                        )
-                    else:
+                    # 只有一个副本
+                    if self.payload["node_count"] == 1:
                         info["storages"].append(
                             {
                                 "role": self.instance_role[index],
@@ -527,6 +557,25 @@ class ActKwargs:
                                 "domain": node["domain"],
                             }
                         )
+                    elif self.payload["node_count"] > 1:
+                        if index == len(replicaset_info["nodes"]) - 1:
+                            info["storages"].append(
+                                {
+                                    "role": self.instance_role[-1],
+                                    "ip": node["ip"],
+                                    "port": replicaset_info["port"],
+                                    "domain": node["domain"],
+                                }
+                            )
+                        else:
+                            info["storages"].append(
+                                {
+                                    "role": self.instance_role[index],
+                                    "ip": node["ip"],
+                                    "port": replicaset_info["port"],
+                                    "domain": node["domain"],
+                                }
+                            )
         elif self.payload["cluster_type"] == ClusterType.MongoShardedCluster.value:
             info["cluster_type"] = ClusterType.MongoShardedCluster.value
             info["name"] = self.payload["cluster_id"]
@@ -731,7 +780,13 @@ class ActKwargs:
             set_name = self.replicaset_info["set_id"]
         else:
             set_name = ""
-        return {"set_trans_data_dataclass": CommonContext.__name__, "set_name": set_name, "users": self.manager_users}
+        return {
+            "set_trans_data_dataclass": CommonContext.__name__,
+            "set_name": set_name,
+            "users": self.manager_users,
+            "appdba": self.payload[MongoDBManagerUser.AppDbaUser.value],
+            "appmonitor": self.payload[MongoDBManagerUser.AppMonitorUser.value],
+        }
 
     def get_add_password_to_db_kwargs(self, usernames: list, info: dict) -> dict:
         """添加密码到db"""

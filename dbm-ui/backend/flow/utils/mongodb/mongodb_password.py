@@ -93,6 +93,8 @@ class MongoDBPassword(object):
         result = self.get_nodes_password_from_db(nodes, username)
         if result["password"] is None:
             return {"password": None, "info": result["info"]}
+        if not result["password"]:
+            return {"password": "", "info": ""}
         return {"password": result["password"][0].get("password"), "info": None}
 
     def get_nodes_password_from_db(self, instances, username: str) -> list:

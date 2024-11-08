@@ -19,7 +19,7 @@ from backend.configuration.handlers.dba import DBAdministratorHandler
 from backend.db_meta.enums import ClusterEntryType
 from backend.db_meta.enums.cluster_type import ClusterType
 from backend.db_meta.models import CLBEntryDetail, Cluster, ClusterEntry
-from backend.flow.consts import DEFAULT_CONFIG_CONFIRM, DEFAULT_DB_MODULE_ID
+from backend.flow.consts import DEFAULT_CONFIG_CONFIRM, DEFAULT_DB_MODULE_ID, MongoDBManagerUser
 from backend.flow.utils import dns_manage
 from backend.flow.utils.mongodb.mongodb_password import MongoDBPassword
 
@@ -108,6 +108,31 @@ class MongoDBMigrateMeta(object):
         """更新dba"""
 
         DBAdministratorHandler.upsert_biz_admins(self.info["bk_biz_id"], self.info["db_admins"])
+
+    def save_app_password(self):
+        """保存appdba appmonitor密码到密码服务"""
+
+        for user in [MongoDBManagerUser.AppDbaUser.value, MongoDBManagerUser.AppMonitorUser.value]:
+            result = MongoDBPassword().get_password_from_db(
+                ip=str(self.info["bk_biz_id"]), port=0, bk_cloud_id=0, username=user
+            )
+            if result["password"] is None:
+                logger.error("user:{} get password fail from db, error:{}".format(user, result["info"]))
+            if not result["password"] == "":
+                info = MongoDBPassword().save_password_to_db(
+                    instances=[
+                        {
+                            "ip": str(self.info["bk_biz_id"]),
+                            "port": 0,
+                            "bk_cloud_id": 0,
+                        }
+                    ],
+                    username=user,
+                    password=self.info[user],
+                    operator="admin",
+                )
+                if info != "":
+                    logger.error("user:{} save password to db fail, error:{}".format(user, info))
 
     def save_password(self):
         """保存密码到密码服务"""

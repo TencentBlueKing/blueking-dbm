@@ -245,7 +245,9 @@ class MigrateActKwargs:
             "region": self.source_cluster_info.get("region"),
             "db_module_id": DEFAULT_DB_MODULE_ID,
             "cluster_type": self.source_cluster_info.get("cluster_type"),
-            "disaster_tolerance_level": self.source_cluster_info.get("disaster_tolerance_level"),
+            # "disaster_tolerance_level": self.source_cluster_info.get("disaster_tolerance_level"),
+            # 亲和性默认为跨园区CROS_SUBZONE
+            "disaster_tolerance_level": "CROS_SUBZONE",
         }
         if self.source_cluster_info.get("cluster_type") == ClusterType.MongoReplicaSet.value:
             # role转换
@@ -314,6 +316,20 @@ class MigrateActKwargs:
                 }
             )
         return info
+
+    def get_save_app_password_info(self) -> dict:
+        """获取业务的appdba appmonitor密码信息"""
+
+        info = {
+            "bk_biz_id": self.bk_biz_id,
+            "meta_func_name": MongoDBMigrateMeta.save_app_password.__name__,
+        }
+        if self.source_cluster_info.get("cluster_type") == ClusterType.MongoReplicaSet.value:
+            info["appdba"] = self.source_cluster_info.get("password").get("appdba")
+            info["appmonitor"] = self.source_cluster_info.get("password").get("appmonitor")
+        elif self.source_cluster_info.get("cluster_type") == ClusterType.MongoShardedCluster.value:
+            info["appdba"] = self.source_cluster_info.get("proxies_password").get("appdba")
+            info["appmonitor"] = self.source_cluster_info.get("proxies_password").get("appmonitor")
 
     def get_save_password_info(self) -> dict:
         """获取保存密码信息"""

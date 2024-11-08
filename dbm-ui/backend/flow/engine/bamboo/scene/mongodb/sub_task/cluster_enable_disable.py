@@ -17,6 +17,9 @@ from django.utils.translation import ugettext as _
 from backend.db_meta.enums.cluster_type import ClusterType
 from backend.flow.consts import MongoDBInstanceType
 from backend.flow.engine.bamboo.scene.common.builder import SubBuilder
+from backend.flow.plugins.components.collections.mongodb.change_instance_status import (
+    ChangeInstanceStatusOperationComponent,
+)
 from backend.flow.plugins.components.collections.mongodb.enable_disable_mongodb import (
     EnableDisableMongoDBOperationComponent,
 )
@@ -39,16 +42,26 @@ def cluster_enable_disable(
 
     # 设置参数
     sub_get_kwargs.payload["app"] = sub_get_kwargs.payload["bk_app_abbr"]
+    cluster_type = sub_get_kwargs.payload["cluster_type"]
 
     # 获取集群信息
     sub_get_kwargs.get_cluster_info_deinstall(cluster_id=cluster_id)
 
+    # 修改实例状态
+    kwargs = {
+        "cluster_id": cluster_id,
+        "cluster_type": cluster_type,
+        "enable": enable,
+    }
+    sub_pipeline.add_act(
+        act_name=_("MongoDB--修改实例状态"), act_component_code=ChangeInstanceStatusOperationComponent.code, kwargs=kwargs
+    )
+
     acts_list = []
-    name = ""
     # 启用
     if enable:
         name = "enable"
-        if sub_get_kwargs.payload["cluster_type"] == ClusterType.MongoReplicaSet.value:
+        if cluster_type == ClusterType.MongoReplicaSet.value:
             for node in sub_get_kwargs.payload["nodes"]:
                 kwargs = sub_get_kwargs.get_mongo_start_kwargs(
                     node_info=node,
@@ -61,7 +74,7 @@ def cluster_enable_disable(
                         "kwargs": kwargs,
                     }
                 )
-        elif sub_get_kwargs.payload["cluster_type"] == ClusterType.MongoShardedCluster.value:
+        elif cluster_type == ClusterType.MongoShardedCluster.value:
             for mongos in sub_get_kwargs.payload["mongos_nodes"]:
                 kwargs = sub_get_kwargs.get_mongo_start_kwargs(
                     node_info=mongos,
@@ -77,7 +90,7 @@ def cluster_enable_disable(
     # 禁用
     else:
         name = "disable"
-        if sub_get_kwargs.payload["cluster_type"] == ClusterType.MongoReplicaSet.value:
+        if cluster_type == ClusterType.MongoReplicaSet.value:
             for node in sub_get_kwargs.payload["nodes"]:
                 kwargs = sub_get_kwargs.get_mongo_deinstall_kwargs(
                     node_info=node,
@@ -93,10 +106,8 @@ def cluster_enable_disable(
                         "kwargs": kwargs,
                     }
                 )
-        elif sub_get_kwargs.payload["cluster_type"] == ClusterType.MongoShardedCluster.value:
+        elif cluster_type == ClusterType.MongoShardedCluster.value:
             for mongos in sub_get_kwargs.payload["mongos_nodes"]:
-                print("=" * 100)
-                print(mongos)
                 kwargs = sub_get_kwargs.get_mongo_deinstall_kwargs(
                     node_info=mongos,
                     instance_type=MongoDBInstanceType.MongoS.value,

@@ -14,6 +14,7 @@ from typing import List
 from pipeline.component_framework.component import Component
 from pipeline.core.flow.activity import Service
 
+from backend.flow.consts import MongoDBManagerUser
 from backend.flow.plugins.components.collections.common.base_service import BaseService
 from backend.flow.utils.mongodb.mongodb_password import MongoDBPassword
 
@@ -35,14 +36,15 @@ class ExecGetPasswordOperation(BaseService):
         # 从流程节点中获取变量
         kwargs = data.get_one_of_inputs("kwargs")
         trans_data = data.get_one_of_inputs("trans_data")
-        #
-        # if trans_data is None or trans_data == "${trans_data}":
-        #     # 表示没有加载上下文内容，则在此添加
-        #     trans_data = getattr(flow_context, kwargs["set_trans_data_dataclass"])()
 
         # 从密码服务获取密码
         user_password = {}
         for user in kwargs["users"]:
+            # 同一业务所有集群的appdba与appmonitor一样
+            if user in [MongoDBManagerUser.AppDbaUser.value, MongoDBManagerUser.AppMonitorUser.value]:
+                user_password[user] = kwargs[user]
+                continue
+            # 其他管理用户获取密码
             result = MongoDBPassword().create_user_password()
             if result["password"] is None:
                 self.log_error("user:{} get password fail, error:{}".format(user, result["info"]))

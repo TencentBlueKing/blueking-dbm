@@ -66,6 +66,9 @@ def replicase_calc(payload: dict, payload_clusters: dict, app: str, domain_prefi
     # 获取复制集实例
     sets = []
     node_replica_count = payload["node_replica_count"]
+    node_count = payload["node_count"]
+    # 一个副本集的副本数量
+    payload_clusters["node_count"] = node_count
     port = payload["start_port"]
     oplog_percent = payload["oplog_percent"] / 100
     data_disk = "/data1"
@@ -96,10 +99,15 @@ def replicase_calc(payload: dict, payload_clusters: dict, app: str, domain_prefi
                 skip_machine = False
             nodes = []
             for machine_index, machine in enumerate(machines):
-                if machine_index == len(machines) - 1:
-                    domain = "{}.{}.{}.db".format(domain_prefix[-1], replica_set["set_id"], app)
-                else:
+                # 副本集node count等于1
+                if node_count == 1:
                     domain = "{}.{}.{}.db".format(domain_prefix[machine_index], replica_set["set_id"], app)
+                elif node_count > 1:
+                    # 副本集node count大于1
+                    if machine_index == len(machines) - 1:
+                        domain = "{}.{}.{}.db".format(domain_prefix[-1], replica_set["set_id"], app)
+                    else:
+                        domain = "{}.{}.{}.db".format(domain_prefix[machine_index], replica_set["set_id"], app)
                 nodes.append({"ip": machine["ip"], "bk_cloud_id": machine["bk_cloud_id"], "domain": domain})
             set_id_key_file = "{}-{}".format(app, replica_set["set_id"])
             sets.append(
@@ -132,6 +140,9 @@ def cluster_calc(payload: dict, payload_clusters: dict, app: str) -> dict:
     config_port = MongoDBClusterDefaultPort.CONFIG_PORT.value  # 设置常量
     shard_port = MongoDBClusterDefaultPort.SHARD_START_PORT.value  # 以这个27001开始
     shard_port_not_use = [payload["proxy_port"], config_port]
+    node_count = len(payload["nodes"]["mongodb"][0])
+    # 一个副本集的副本数量
+    payload_clusters["node_count"] = node_count
 
     # 计算configCacheSizeGB，shardCacheSizeGB，oplogSizeMB
     shard_avg_mem_size_gb = get_cache_size(

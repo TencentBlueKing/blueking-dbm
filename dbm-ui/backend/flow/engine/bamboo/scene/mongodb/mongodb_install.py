@@ -76,6 +76,9 @@ class MongoDBInstallFlow(object):
         准备工作
         """
 
+        # 获取appdba和appmonitor密码
+        self.get_kwargs.get_app_dba_monitor_pwd()
+
         # 安装蓝鲸插件
         install_plugin(pipeline=pipeline, get_kwargs=self.get_kwargs, new_cluster=True)
 

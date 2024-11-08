@@ -22,6 +22,7 @@ from backend.db_services.redis.autofix.enums import AutofixStatus
 from backend.db_services.redis.autofix.models import RedisAutofixCore
 from backend.ticket.constants import TicketType
 from backend.ticket.models import Ticket
+from backend.ticket.tasks.ticket_tasks import send_msg_for_flow
 from backend.utils.time import datetime2str
 
 logger = logging.getLogger("root")
@@ -31,26 +32,14 @@ def get_resource_spec(mongos_list: list, mongod_list: list) -> dict:
     """获取申请机器规格信息，采用故障机与新机器园区相对应"""
 
     resource_spec = {}
-    for mongos in mongos_list:
+    for host in mongos_list + mongod_list:
         resource_spec.update(
             {
-                mongos["ip"]: {
-                    "spec_id": mongos["spec_id"],
+                host["ip"]: {
+                    "spec_id": host["spec_id"],
                     "count": 1,
-                    "spec_config": mongos["spec_config"],
-                    "Location_spec": {"city": mongos["city"], "sub_zone_ids": [mongos["bk_sub_zone_id"]]},
-                }
-            }
-        )
-    # mongod自愈
-    for mongod in mongod_list:
-        resource_spec.update(
-            {
-                mongod["ip"]: {
-                    "spec_id": mongod["spec_id"],
-                    "count": 1,
-                    "spec_config": mongod["spec_config"],
-                    "Location_spec": {"city": mongod["city"], "sub_zone_ids": [mongod["bk_sub_zone_id"]]},
+                    "spec_config": host["spec_config"],
+                    "Location_spec": {"city": host["city"], "sub_zone_ids": [host["bk_sub_zone_id"]]},
                 }
             }
         )
@@ -97,6 +86,23 @@ def mongo_create_ticket(cluster: RedisAutofixCore, cluster_ids: list, mongos_lis
         remark=_("自动发起-自愈任务-{}".format(cluster.immute_domain)),
         details=details,
     )
+
+    # 发送自愈消息提醒
+    ip_list = []
+    for host in mongos_list + mongod_list:
+        ip_list.append(host["ip"])
+    send_msg_for_flow.apply_async(
+        kwargs={
+            "flow_id": ticket.id,
+            "flow_msg_type": _("通知"),
+            "flow_status": _("开始执行"),
+            "processor": ",".join(mongodb_dba),
+            "receiver": ",".join(mongodb_dba),
+            "detail_address": _("自愈ip:[{}]".format(",".join(ip_list))),
+        }
+    )
+
+    # 回写tb_tendis_autofix_core表
     cluster.ticket_id = ticket.id
     cluster.status_version = get_random_string(12)
     cluster.deal_status = AutofixStatus.AF_WFLOW.value

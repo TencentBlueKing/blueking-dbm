@@ -27,7 +27,7 @@ def cluster_migrate(
     root_id: str, ticket_data: Optional[Dict], sub_kwargs: MigrateActKwargs, cluster: bool
 ) -> SubBuilder:
     """
-    单个replicaset迁移元数
+    集群迁移元数
     """
 
     # 获取变量
@@ -68,6 +68,12 @@ def cluster_migrate(
         act_name=_("迁移meta"),
         act_component_code=ExecAddRelationshipOperationComponent.code,
         kwargs=kwargs,
+    )
+
+    # 相同业务的appdba appmonitor是一致的，以业务为维度保存appdba appmonitor密码到密码服务
+    kwargs = sub_get_kwargs.get_save_app_password_info()
+    sub_pipeline.add_act(
+        act_name=_("保存appdba appmonitor密码"), act_component_code=MongoDBMigrateMetaComponent.code, kwargs=kwargs
     )
 
     # node保存密码到密码服务
