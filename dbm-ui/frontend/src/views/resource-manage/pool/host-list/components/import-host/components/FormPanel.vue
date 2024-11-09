@@ -161,7 +161,7 @@
   const formRef = ref();
   const isShowHostActionPop = ref(false);
   const formData = reactive({
-    for_biz: '',
+    for_biz: '0',
     resource_type: '',
   });
   const bizList = shallowRef<
