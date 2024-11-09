@@ -116,34 +116,40 @@
 
   const currentTitle = computed(() => (currentType.value === 'device_class' ? titleList[0].title : titleList[1].title));
 
-  watch(
-    [deviceClassModelValue, cpuModelValue],
-    () => {
-      const [firstDeviceClass] = deviceClassModelValue.value;
-      if (firstDeviceClass !== '-1' || (firstDeviceClass === '-1' && !cpuModelValue.value.max)) {
-        // 优先展示机型
-        currentType.value = titleList[0].value;
-        return;
-      }
-
-      currentType.value = titleList[1].value;
-    },
-    {
-      immediate: true,
-    },
-  );
-
   const handleTogglePopover = (isShow: boolean) => {
     isRotate.value = isShow;
   };
 
-  const handleChooseType = (value: string) => {
-    if (currentType.value === value) {
+  const handleChooseType = (type: string) => {
+    if (type === 'device_class') {
+      cpuModelValue.value = {
+        min: 0,
+        max: 0,
+      };
+      memModelValue.value = {
+        min: 0,
+        max: 0,
+      };
+    } else {
+      deviceClassModelValue.value = [];
+    }
+
+    if (currentType.value === type) {
       return;
     }
 
-    currentType.value = value;
+    currentType.value = type;
   };
+
+  onMounted(() => {
+    if (deviceClassModelValue.value.length > 0 || (!deviceClassModelValue.value.length && !cpuModelValue.value.max)) {
+      // 优先展示机型
+      currentType.value = titleList[0].value;
+      return;
+    }
+
+    currentType.value = titleList[1].value;
+  });
 
   defineExpose<Exposes>({
     getCurrentType() {

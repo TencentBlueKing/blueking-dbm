@@ -179,7 +179,7 @@
   const initFormdata = () => {
     if (props.data) {
       const data = _.cloneDeep(props.data);
-      if (data.device_class.length === 0) {
+      if (data.device_class.length === 0 && !props.data.mem.max) {
         data.device_class = ['-1'];
       }
       return data;
@@ -218,7 +218,7 @@
         min: '' as string | number,
       },
       storage_spec: isSqlserver.value ? genSystemDriveStorageSpec() : genStorageSpec(),
-      device_class: ['-1'],
+      device_class: [],
       desc: '',
       enable: true,
       spec_cluster_type: props.dbType,
