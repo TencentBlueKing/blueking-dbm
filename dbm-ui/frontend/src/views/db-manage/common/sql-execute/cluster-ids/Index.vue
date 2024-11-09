@@ -48,6 +48,8 @@
 
   import TendbhaModel from '@services/model/mysql/tendbha';
   import TendbsingleModel from '@services/model/mysql/tendbsingle';
+  import SqlServerHaClusterModel from '@services/model/sqlserver/sqlserver-ha';
+  import SqlServerSingleClusterModel from '@services/model/sqlserver/sqlserver-single';
   import { filterClusters } from '@services/source/dbbase';
 
   import { ClusterTypes } from '@common/const';
@@ -67,6 +69,8 @@
   interface Props {
     clusterTypeList: ClusterTypes[]
   }
+
+  type SelectorRowDataType = TendbhaModel | TendbsingleModel | SqlServerHaClusterModel | SqlServerSingleClusterModel
 
   defineProps<Props>();
 
@@ -135,9 +139,11 @@
   const isLoading = ref(false);
   const isShowClusterSelector = ref(false);
   const formItemRef = ref();
-  const clusterSelectorValue = shallowRef<Record<string, TendbhaModel[] | TendbsingleModel[]>>({
+  const clusterSelectorValue = shallowRef<Record<string, SelectorRowDataType[]>>({
     [ClusterTypes.TENDBHA]: [] as TendbhaModel[],
     [ClusterTypes.TENDBSINGLE]: [] as TendbsingleModel[],
+    [ClusterTypes.SQLSERVER_HA]: [] as SqlServerHaClusterModel[],
+    [ClusterTypes.SQLSERVER_SINGLE]: [] as SqlServerSingleClusterModel[],
   });
   const targetClusterList = shallowRef<Array<IClusterData>>([]);
 
@@ -167,6 +173,8 @@
         }, {
           [ClusterTypes.TENDBHA]: [] as TendbhaModel[],
           [ClusterTypes.TENDBSINGLE]: [] as TendbsingleModel[],
+          [ClusterTypes.SQLSERVER_HA]: [] as SqlServerHaClusterModel[],
+          [ClusterTypes.SQLSERVER_SINGLE]: [] as SqlServerSingleClusterModel[],
         })
       })
       .finally(() => {
@@ -204,7 +212,7 @@
     triggerChange();
   };
 
-  const handelClusterChange = (selected: Record<string, TendbhaModel[] | TendbsingleModel[]>) => {
+  const handelClusterChange = (selected: Record<string, SelectorRowDataType[]>) => {
     targetClusterList.value = _.flatten(Object.values(selected))
     formItemRef.value.clearValidate();
     clusterSelectorValue.value = selected;
