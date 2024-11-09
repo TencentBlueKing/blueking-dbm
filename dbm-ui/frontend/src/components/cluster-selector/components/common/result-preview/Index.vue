@@ -23,12 +23,12 @@
       v-for="(tabSelected, tabKey) in selectedMap"
       :key="tabKey">
       <CollapseMini
-        v-if="Object.keys(tabSelected).length > 0"
+        v-if="tabSelected.list.length > 0"
         collapse
-        :count="Object.keys(tabSelected).length"
-        :title="getTabInfo(tabKey)">
+        :count="tabSelected.list.length"
+        :title="getTabInfo(tabKey as string)">
         <div
-          v-for="clusterItem in tabSelected"
+          v-for="clusterItem in tabSelected.list"
           :key="clusterItem.id"
           class="result-item">
           <span
@@ -38,7 +38,7 @@
           </span>
           <i
             class="db-icon-close result-remove"
-            @click="handleDeleteItem(clusterItem, false)" />
+            @click="handleDeleteItem(clusterItem, tabKey as string)" />
         </div>
       </CollapseMini>
     </template>
@@ -47,19 +47,21 @@
 <script setup lang="tsx" generic="T extends Record<string, any>">
   import _ from 'lodash';
 
+  import type { SelectMapValueType } from '../../../Index.vue';
+
   import CollapseMini from './CollapseMini.vue';
 
   type Selected = Record<string, T[]>;
 
   interface Props {
     tabList: { name: string; id: string }[];
-    selectedMap: Record<string, Record<string, ValueOf<Selected>[0]>>;
+    selectedMap: SelectMapValueType<T>;
     showTitle?: boolean;
     displayKey?: string;
   }
 
   interface Emits {
-    (e: 'delete-item', value: T, status: boolean): void;
+    (e: 'delete', value: T, tabKey: string): void;
   }
 
   const props = withDefaults(defineProps<Props>(), {
@@ -70,13 +72,13 @@
   const emits = defineEmits<Emits>();
 
   // 选中结果是否为空
-  const isEmpty = computed(() => _.every(Object.values(props.selectedMap), (item) => Object.keys(item).length < 1));
+  const isEmpty = computed(() => _.every(Object.values(props.selectedMap), (item) => item.list.length === 0));
 
   // 获取 tab 信息
   const getTabInfo = (key: string) => (props.showTitle ? props.tabList.find((tab) => tab.id === key)?.name : '');
 
-  const handleDeleteItem = (data: ValueOf<Selected>[0], value: boolean) => {
-    emits('delete-item', data, value);
+  const handleDeleteItem = (data: ValueOf<Selected>[0], tabKey: string) => {
+    emits('delete', data, tabKey);
   };
 </script>
 
