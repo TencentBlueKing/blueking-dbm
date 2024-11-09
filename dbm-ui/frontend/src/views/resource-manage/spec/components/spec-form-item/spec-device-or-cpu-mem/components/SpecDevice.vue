@@ -23,7 +23,6 @@
           :allow-empty-values="['']"
           class="device-class-select"
           :clearable="false"
-          :disabled="isEdit"
           filterable
           :input-search="false"
           :loading="isLoading"
@@ -38,7 +37,6 @@
           @scroll-end="handleScrollEnd">
           <template #trigger>
             <BkButton
-              :disabled="isEdit"
               style="font-size: 14px"
               text
               theme="primary">
@@ -64,26 +62,26 @@
             </div>
           </BkOption>
         </BkSelect>
-        <div
+        <!-- <div
           v-bk-tooltips="{
             content: t('不支持修改'),
             disabled: !isEdit,
-          }">
-          <BkTag
-            v-for="(item, index) in modelValue"
-            :key="`${item}-${index}`"
-            closable
-            style="background-color: #fff"
-            @close="() => handleTagClose(index)">
-            {{
-              item === '-1'
-                ? t('无限制')
-                : deviceListMap[item]?.cpu
-                  ? `${item}（${deviceListMap[item]?.cpu}${t('核')}${deviceListMap[item]?.mem}G）`
-                  : `${item}`
-            }}
-          </BkTag>
-        </div>
+          }"> -->
+        <BkTag
+          v-for="(item, index) in modelValue"
+          :key="`${item}-${index}`"
+          closable
+          style="background-color: #fff"
+          @close="() => handleTagClose(index)">
+          {{
+            item === '-1'
+              ? t('无限制')
+              : deviceListMap[item]?.cpu
+                ? `${item}（${deviceListMap[item]?.cpu}${t('核')}${deviceListMap[item]?.mem}G）`
+                : `${item}`
+          }}
+        </BkTag>
+        <!-- </div> -->
       </BkFormItem>
     </div>
   </div>
@@ -95,9 +93,9 @@
 
   import { fetchDeviceClass } from '@services/source/dbresourceResource';
 
-  interface Props {
-    isEdit: boolean;
-  }
+  // interface Props {
+  //   isEdit: boolean;
+  // }
 
   interface DeviceClassListItem {
     cpu: number;
@@ -106,9 +104,9 @@
     value: string;
   }
 
-  const props = withDefaults(defineProps<Props>(), {
-    isEdit: false,
-  });
+  // const props = withDefaults(defineProps<Props>(), {
+  //   isEdit: false,
+  // });
 
   const modelValue = defineModel<string[]>({
     default: () => [],
@@ -187,9 +185,9 @@
   );
 
   const handleTagClose = (index: number) => {
-    if (props.isEdit) {
-      return;
-    }
+    // if (props.isEdit) {
+    //   return;
+    // }
     modelValue.value.splice(index, 1);
   };
 
