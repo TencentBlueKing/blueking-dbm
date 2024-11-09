@@ -40,7 +40,6 @@
   </BkLoading>
 </template>
 <script setup lang="tsx">
-  import { shallowRef } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import { useLinkQueryColumnSerach } from '@hooks';
@@ -49,7 +48,7 @@
 
   import DbStatus from '@components/db-status/index.vue';
 
-  import { getSearchSelectorParams,makeMap } from '@utils';
+  import { getSearchSelectorParams } from '@utils';
 
   import type { TabItem } from '../../Index.vue';
   import SerachBar from '../common/SearchBar.vue';
@@ -59,7 +58,7 @@
 
   interface Props {
     activeTab: ClusterTypes,
-    selected: Record<string, any[]>,
+    selected: any[],
     // 多选模式
     multiple: TabItem['multiple'],
     getResourceList: NonNullable<TabItem['getResourceList']>,
@@ -70,17 +69,37 @@
     checkboxHoverTip?: TabItem['checkboxHoverTip'],
   }
 
-  type ResourceItem = ValueOf<SelectedMap>[0];
-
   interface Emits {
-    (e: 'change', value: Record<string, Record<string, ResourceItem>>): void,
+    (e: 'change', value: ResourceItem[]): void,
   }
 
   type SelectedMap = Props['selected'];
 
+  type ResourceItem = ValueOf<SelectedMap>[0];
+
   const props = defineProps<Props>();
 
   const emits = defineEmits<Emits>();
+
+  const checkSelectedAll = () => {
+    if (tableData.value.filter(data => props.disabledRowConfig.find(item => item.handler(data))).length > 0) {
+      isSelectedAll.value = false;
+      return;
+    }
+
+    if (!selectedList.value.length) {
+      isSelectedAll.value = false;
+      return;
+    }
+
+    for (let i = 0; i < tableData.value.length; i++) {
+      if (!selectedMap.value[tableData.value[i].id]) {
+        isSelectedAll.value = false;
+        return;
+      }
+    }
+    isSelectedAll.value = true;
+  };
 
   const { t } = useI18n();
 
@@ -106,7 +125,29 @@
     }
   });
 
-  const columns = [
+  const {
+    isLoading,
+    pagination,
+    isAnomalies,
+    data: tableData,
+    searchSelectValue,
+    fetchResources,
+    handleChangePage,
+    handeChangeLimit,
+  } = useClusterData<ResourceItem>(searchValue);
+
+  const activeTab = ref(props.activeTab);
+  const selectedList = ref<ResourceItem[]>([]);
+  const isSelectedAll = ref(false);
+
+  const selectedMap = computed(() => selectedList.value.reduce<Record<string, ResourceItem>>((results, item) => {
+    Object.assign(results, {
+      [item.id]: item,
+    })
+    return results;
+  }, {}))
+
+  const columns = computed(() => [
     {
       minWidth: 60,
       label: () => props.multiple && (
@@ -163,13 +204,13 @@
                 default: () => props.multiple ? (
                   <bk-checkbox
                     style="vertical-align: middle;"
-                    model-value={Boolean(selectedDomainMap.value[data.id])}
+                    model-value={Boolean(selectedMap.value[data.id])}
                     label={true}
                     onChange={(value: boolean) => handleSelecteRow(data, value)}
                   />
                   ) : (
                   <bk-radio-group
-                    model-value={Boolean(selectedDomainMap.value[data.id])}
+                    model-value={Boolean(selectedMap.value[data.id])}
                     onChange={(value: boolean) => handleSelecteRow(data, value)}
                   >
                     <bk-radio label={true}/>
@@ -253,66 +294,33 @@
       },
       render: ({ data }: { data: ResourceItem }) => <span>{data.bk_cloud_name}</span>,
     },
-  ];
+  ]);
 
-  // const isSelectedAllReal = false;
-
-  const activeTab = ref(props.activeTab);
-  const selectedMap = shallowRef<Record<string, Record<string, ResourceItem>>>({});
-  const isSelectedAll = ref(false);
-
-  const {
-    isLoading,
-    pagination,
-    isAnomalies,
-    data: tableData,
-    searchSelectValue,
-    fetchResources,
-    handleChangePage,
-    handeChangeLimit,
-  } = useClusterData<ResourceItem>(searchValue);
-
-  // 选中域名列表
-  const selectedDomainMap = computed(() => Object.values(selectedMap.value)
-    .reduce((result, selectItem) => {
-      const masterDomainMap  = makeMap(Object.keys(selectItem));
-      return Object.assign({}, result, masterDomainMap);
-    }, {} as Record<string, boolean>));
-
-  const isIndeterminate = computed(() => !isSelectedAll.value
-    && selectedMap.value[activeTab.value] && Object.keys(selectedMap.value[activeTab.value]).length > 0);
+  const isIndeterminate = computed(() => !isSelectedAll.value && selectedList.value.length > 0);
 
   const mainSelectDisable = computed(() => tableData.value.filter(data => props.disabledRowConfig
     .find(item => item.handler(data))).length === tableData.value.length);
 
   const generatedColumns = computed(() => {
     if (props.customColums) {
-      return [columns[0], ...props.customColums];
+      return [columns.value[0], ...props.customColums];
     }
-    return columns;
+    return columns.value;
   });
 
   watch(() => [props.activeTab, props.selected], () => {
     if (props.activeTab) {
       activeTab.value = props.activeTab;
-      if (!props.selected[props.activeTab] || !props.selected) {
-        return;
-      }
-      const tabSelectMap = props.selected[props.activeTab].reduce((selectResult, selectItem) => ({
-        ...selectResult,
-        [selectItem.id]: selectItem,
-      }), {} as Record<string, ResourceItem>);
-      selectedMap.value = {
-        [props.activeTab]: tabSelectMap,
-      };
+      selectedList.value = props.selected;
+      checkSelectedAll();
     }
   }, {
     immediate: true,
     deep: true,
   });
 
-  watch(activeTab, (tab) => {
-    if (tab) {
+  watch(activeTab, () => {
+    if (activeTab.value) {
       searchSelectValue.value = [];
     }
   });
@@ -351,51 +359,28 @@
     }
   };
 
-  const checkSelectedAll = () => {
-    if (tableData.value.filter(data => props.disabledRowConfig.find(item => item.handler(data))).length > 0) {
-      nextTick(() => {
-        isSelectedAll.value = false;
-      });
-      return;
-    }
-    const currentSelected = selectedMap.value[activeTab.value];
-    if (!currentSelected || Object.keys(currentSelected).length < 1) {
-      isSelectedAll.value = false;
-      return;
-    }
-    for (let i = 0; i < tableData.value.length; i++) {
-      if (!currentSelected[tableData.value[i].id]) {
-        isSelectedAll.value = false;
-        return;
-      }
-    }
-    isSelectedAll.value = true;
-  };
-
   /**
    * 选择当行数据
    */
-  const handleSelecteRow = (data: ResourceItem, value: boolean) => {
-    const selectedMapMemo = props.multiple ? { ...selectedMap.value } : {};
-    if (!selectedMapMemo[activeTab.value]) {
-      selectedMapMemo[activeTab.value] = {};
+   const handleSelecteRow = (data: ResourceItem, value: boolean) => {
+    if (!props.multiple) {
+      selectedList.value = [];
     }
-    if (value) {
-      selectedMapMemo[activeTab.value][data.id] = data;
+    if (value && !selectedMap.value[data.id]) {
+      selectedList.value.push(data);
     } else {
-      delete selectedMapMemo[activeTab.value][data.id];
+      selectedList.value = selectedList.value.filter((item) => item.id !== data.id);
     }
-    selectedMap.value = selectedMapMemo;
-    emits('change', selectedMap.value);
+    emits('change', selectedList.value);
     checkSelectedAll();
   };
 
-  const handleRowClick = (row:any, data: ResourceItem) => {
+  const handleRowClick = (_: any, data: ResourceItem) => {
     if (props.disabledRowConfig.find(item => item.handler(data))) {
       return;
     }
-    const currentSelected = selectedMap.value[activeTab.value];
-    const isChecked = !!(currentSelected && currentSelected[data.id]);
+
+    const isChecked = !!selectedMap.value[data.id];
     handleSelecteRow(data, !isChecked);
   };
 

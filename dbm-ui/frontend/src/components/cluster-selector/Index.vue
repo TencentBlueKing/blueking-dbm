@@ -52,7 +52,7 @@
             :selected-map="selectedMap"
             :show-title="activePanelObj.showPreviewResultTitle"
             :tab-list="tabList"
-            @delete-item="handleSelecteRow" />
+            @delete="handleDeleteItem" />
         </div>
       </template>
       <template #main>
@@ -95,7 +95,7 @@
             :get-resource-list="activePanelObj.getResourceList"
             :multiple="activePanelObj.multiple"
             :search-select-list="activePanelObj.searchSelectList"
-            :selected="selectedArr"
+            :selected="selectedMap[activeTab].list"
             @change="handleSelectTable" />
         </div>
       </template>
@@ -202,6 +202,13 @@
   export type TabItem = TabListType[number];
 
   export type TabConfig = Omit<TabItem, 'tableContent' | 'resultContent'>;
+
+  export interface SelectMapValueType<T> {
+    [key: string]: {
+      map: Record<string, T>;
+      list: T[];
+    };
+  }
 
   interface Props {
     selected: Record<string, T[]>;
@@ -377,7 +384,7 @@
   const activeTab = ref(ClusterTypes.TENDBCLUSTER as string);
   const showTabTips = ref(false);
   const isSelectedAll = ref(false);
-  const selectedMap = ref<Record<string, Record<string, T>>>({});
+  const selectedMap = ref<SelectMapValueType<T>>({});
 
   const activePanelObj = shallowRef(tabListMap[ClusterTypes.TENDBCLUSTER]);
 
@@ -413,12 +420,6 @@
     props.clusterTypes ? props.clusterTypes.map((type) => clusterTabListMap.value[type]) : [],
   );
 
-  const selectedArr = computed(() =>
-    activeTab.value && selectedMap.value[activeTab.value] && Object.keys(selectedMap.value).length > 0
-      ? { [activeTab.value]: Object.values(selectedMap.value[activeTab.value]) }
-      : {},
-  );
-
   // 显示切换 tab tips
   // const showSwitchTabTips = computed(() => showTabTips.value && tabList.value.length > 1);
   // 选中结果是否为空
@@ -426,7 +427,7 @@
 
   const selectedClusterList = computed(() =>
     Object.values(selectedMap.value).reduce<string[]>((prevList, selectedItem) => {
-      const clusterList = Object.values(selectedItem).map((clusterItem) => clusterItem.master_domain);
+      const clusterList = selectedItem.list.map((clusterItem) => clusterItem.master_domain);
       prevList.push(...clusterList);
       return prevList;
     }, []),
@@ -473,34 +474,44 @@
     },
   );
 
-  watch(isShow, (show) => {
-    if (show && tabList.value) {
+  watch(isShow, () => {
+    if (isShow.value && tabList.value) {
       selectedMap.value = tabList.value
         .map((item) => item.id)
-        .reduce(
-          (result, tabKey) => {
-            if (!props.selected[tabKey]) {
-              return result;
-            }
-            const tabSelectMap = props.selected[tabKey].reduce(
+        .reduce((result, tabKey) => {
+          if (!props.selected[tabKey]) {
+            return result;
+          }
+          const tabSelectMap = {
+            map: props.selected[tabKey].reduce(
               (selectResult, selectItem) => ({
                 ...selectResult,
                 [selectItem.id]: selectItem,
               }),
               {} as Record<string, T>,
-            );
-            return {
-              ...result,
-              [tabKey]: tabSelectMap,
-            };
-          },
-          {} as Record<string, Record<string, T>>,
-        );
+            ),
+            list: props.selected[tabKey],
+          };
+          return {
+            ...result,
+            [tabKey]: tabSelectMap,
+          };
+        }, {} as SelectMapValueType<T>);
       showTabTips.value = true;
-
-      console.log('watch = ', selectedMap.value, tabList.value);
     }
   });
+
+  const initSelectedMap = () => {
+    selectedMap.value = Object.keys(selectedMap.value).reduce<SelectMapValueType<T>>((results, id) => {
+      Object.assign(results, {
+        [id]: {
+          map: {},
+          list: [],
+        },
+      });
+      return results;
+    }, {});
+  };
 
   /**
    * 切换 tab
@@ -515,12 +526,7 @@
       activePanelObj.value = currentTab;
     }
     if (props.onlyOneType) {
-      selectedMap.value = Object.keys(selectedMap.value).reduce<Record<string, Record<string, any>>>((results, id) => {
-        Object.assign(results, {
-          [id]: {},
-        });
-        return results;
-      }, {});
+      initSelectedMap();
     }
   };
 
@@ -540,7 +546,7 @@
    * 清空选中项
    */
   const handleClearSelected = () => {
-    selectedMap.value = {};
+    initSelectedMap();
     isSelectedAll.value = false;
   };
 
@@ -549,7 +555,7 @@
    */
   const handleCopyCluster = () => {
     const copyValues = Object.values(selectedMap.value).reduce((result, selectItem) => {
-      result.push(...Object.values(selectItem).map((item) => item.master_domain));
+      result.push(...selectItem.list.map((item) => item.master_domain));
       return result;
     }, [] as string[]);
 
@@ -565,7 +571,7 @@
     const result = Object.keys(selectedMap.value).reduce(
       (result, tabKey) => ({
         ...result,
-        [tabKey]: Object.values(selectedMap.value[tabKey]),
+        [tabKey]: selectedMap.value[tabKey].list,
       }),
       {},
     );
@@ -580,39 +586,25 @@
   /**
    * 选择当行数据
    */
-  const handleSelecteRow = (data: T, value: boolean) => {
-    const selectedMapMemo = { ...selectedMap.value };
-    if (!selectedMapMemo[activeTab.value]) {
-      selectedMapMemo[activeTab.value] = {};
-    }
-    if (value) {
-      selectedMapMemo[activeTab.value][data.id] = data;
-    } else {
-      delete selectedMapMemo[activeTab.value][data.id];
-    }
-    selectedMap.value = selectedMapMemo;
+  const handleDeleteItem = (data: T, tabKey: string) => {
+    delete selectedMap.value[tabKey].map[data.id];
+    selectedMap.value[tabKey].list = selectedMap.value[tabKey].list.filter((item) => item.id !== data.id);
   };
 
-  const handleSelectTable = (selected: Record<string, Record<string, T>>) => {
-    if (!activePanelObj.value.multiple) {
-      selectedMap.value = selected;
-      return;
-    }
+  const handleSelectTable = (selected: T[]) => {
     // 如果只允许选一种集群类型, 则清空非当前集群类型的选中列表
-    // 如果是勾选的取消全选，则忽略
-    if (props.onlyOneType && Object.keys(Object.values(selected)[0]).length > 0) {
+    if (props.onlyOneType && selected.length > 0) {
       // 只会有一个key
-      const [currentKey] = Object.keys(selected);
       Object.keys(selectedMap.value).forEach((key) => {
-        if (key !== currentKey) {
-          selectedMap.value[key] = {};
-        } else {
-          selectedMap.value[key] = selected[key];
+        if (key !== activeTab.value) {
+          selectedMap.value[key] = {
+            map: {},
+            list: [],
+          };
         }
       });
-      return;
     }
-    Object.assign(selectedMap.value, selected);
+    selectedMap.value[activeTab.value].list = selected;
   };
 </script>
 
