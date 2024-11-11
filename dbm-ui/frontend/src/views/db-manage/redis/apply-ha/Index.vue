@@ -153,7 +153,7 @@
               :city="formData.details.city_code"
               :cloud-id="formData.details.bk_cloud_id"
               :cluster-type="DBTypes.REDIS"
-              :machine-type="ClusterTypes.REDIS_INSTANCE"
+              :machine-type="MachineTypes.REDIS_TENDIS_CACHE"
               style="width: 314px" />
           </BkFormItem>
           <BkFormItem
@@ -219,7 +219,7 @@
 
   import { useApplyBase } from '@hooks';
 
-  import { ClusterTypes, DBTypes, TicketTypes } from '@common/const';
+  import { ClusterTypes, DBTypes, MachineTypes, TicketTypes } from '@common/const';
 
   import DbForm from '@components/db-form/index.vue';
 
