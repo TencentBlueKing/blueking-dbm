@@ -50,6 +50,7 @@
   import TendbsingleModel from '@services/model/mysql/tendbsingle';
   import SqlServerHaClusterModel from '@services/model/sqlserver/sqlserver-ha';
   import SqlServerSingleClusterModel from '@services/model/sqlserver/sqlserver-single';
+  import TendbclusterModel from '@services/model/tendbcluster/tendbcluster';
   import { filterClusters } from '@services/source/dbbase';
 
   import { ClusterTypes } from '@common/const';
@@ -70,7 +71,7 @@
     clusterTypeList: ClusterTypes[]
   }
 
-  type SelectorRowDataType = TendbhaModel | TendbsingleModel | SqlServerHaClusterModel | SqlServerSingleClusterModel
+  type SelectorRowDataType = TendbhaModel | TendbsingleModel | SqlServerHaClusterModel | SqlServerSingleClusterModel | TendbclusterModel;
 
   defineProps<Props>();
 
@@ -142,6 +143,7 @@
   const clusterSelectorValue = shallowRef<Record<string, SelectorRowDataType[]>>({
     [ClusterTypes.TENDBHA]: [] as TendbhaModel[],
     [ClusterTypes.TENDBSINGLE]: [] as TendbsingleModel[],
+    [ClusterTypes.TENDBCLUSTER]: [] as TendbclusterModel[],
     [ClusterTypes.SQLSERVER_HA]: [] as SqlServerHaClusterModel[],
     [ClusterTypes.SQLSERVER_SINGLE]: [] as SqlServerSingleClusterModel[],
   });
