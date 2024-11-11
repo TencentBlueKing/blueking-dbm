@@ -57,7 +57,7 @@ export default class Es {
   bk_cloud_name: string;
   cluster_access_port: number;
   cluster_alias: string;
-  cluster_entry: ClusterListEntry;
+  cluster_entry: ClusterListEntry[];
   cluster_name: string;
   cluster_stats: Record<'used' | 'total' | 'in_use', number>;
   cluster_time_zone: string;
