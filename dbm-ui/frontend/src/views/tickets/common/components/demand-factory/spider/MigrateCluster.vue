@@ -13,12 +13,14 @@
 
 <template>
   <DbOriginalTable
-    class="details-migrate__table"
     :columns="columns"
     :data="tableData" />
-  <DemandInfo
-    :config="config"
-    :data="ticketDetails" />
+  <div class="ticket-details-item">
+    <span class="ticket-details-item-label">{{ t('备份源') }}：</span>
+    <span class="ticket-details-item-value">
+      {{ props.ticketDetails.details.backup_source === 'local' ? t('本地备份') : t('远程备份') }}
+    </span>
+  </div>
 </template>
 
 <script setup lang="tsx">
@@ -27,10 +29,6 @@
   import type { SpiderMigrateCluster } from '@services/model/ticket/details/spider';
   import TicketModel from '@services/model/ticket/ticket';
   import { checkInstance } from '@services/source/dbbase';
-
-  import DemandInfo, {
-    type DemandInfoConfig,
-  } from '../components/DemandInfo.vue';
 
   interface Props {
     ticketDetails: TicketModel<SpiderMigrateCluster>
@@ -49,18 +47,6 @@
   const props = defineProps<Props>();
 
   const { t } = useI18n();
-
-  const config: DemandInfoConfig[] = [
-    {
-      list: [
-        {
-          label: t('备份源'),
-          key: 'details.backup_source',
-          render: () => props.ticketDetails.details.backup_source === 'local' ? t('本地备份') : t('远程备份')
-        },
-      ],
-    },
-  ]
 
   const columns = [
     {
@@ -144,4 +130,5 @@
 
 <style lang="less" scoped>
   @import '@views/tickets/common/styles/DetailsTable.less';
+  @import '@views/tickets/common/styles/ticketDetails.less';
 </style>
