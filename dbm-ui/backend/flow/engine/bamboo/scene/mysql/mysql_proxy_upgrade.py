@@ -22,6 +22,7 @@ from backend.db_meta.models import Cluster, ProxyInstance
 from backend.db_package.models import Package
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
+from backend.flow.engine.bamboo.scene.mysql.common.common_sub_flow import check_sub_flow
 from backend.flow.plugins.components.collections.common.pause import PauseComponent
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
 from backend.flow.plugins.components.collections.mysql.mysql_db_meta import MySQLDBMetaComponent
@@ -58,10 +59,12 @@ class MySQLProxyLocalUpgradeFlow(object):
         self.data = data
         self.uid = data["uid"]
         self.upgrade_cluster_list = data["infos"]
+        self.force_upgrade = data.get("force", True)
 
     def upgrade_mysql_proxy_flow(self):
         proxy_upgrade_pipeline = Builder(root_id=self.root_id, data=self.data)
         sub_pipelines = []
+        # 统一下发文件
         # 声明子流程
         for upgrade_info in self.upgrade_cluster_list:
             cluster_ids = upgrade_info["cluster_ids"]
@@ -77,7 +80,8 @@ class MySQLProxyLocalUpgradeFlow(object):
             sub_flow_context = copy.deepcopy(self.data)
             sub_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(sub_flow_context))
             ports_map = defaultdict(list)
-
+            proxy_ips = []
+            # 元数据版本检查
             for proxy_instance in proxies:
                 current_version = proxy_version_parse(proxy_instance.version)
                 if current_version >= new_proxy_version_num:
@@ -88,6 +92,40 @@ class MySQLProxyLocalUpgradeFlow(object):
                     )
                     raise DBMetaException(message=_("待升级版本大于等于新版本，请确认升级的版本"))
                 ports_map[proxy_instance.machine.ip].append(proxy_instance.port)
+                proxy_ips.append(proxy_instance.machine.ip)
+            # 切换前做预检测
+            if not self.force_upgrade:
+                check_db_connect_sub_flow_list = []
+                for cluster_id in cluster_ids:
+                    cluster_obj = Cluster.objects.get(id=cluster_id)
+                    ps = ProxyInstance.objects.filter(cluster=cluster_obj)
+                    proxy_ins = []
+                    for p in ps:
+                        admin_port = p.port + 1000
+                        proxy_ins.append(f"{p.machine.ip}:{admin_port}")
+                    sub_build = check_sub_flow(
+                        uid=self.uid,
+                        root_id=self.root_id,
+                        cluster=cluster_obj,
+                        is_check_client_conn=not self.force_upgrade,
+                        is_proxy=True,
+                        check_client_conn_inst=proxy_ins,
+                    )
+                check_db_connect_sub_flow_list.append(sub_build)
+                if len(check_db_connect_sub_flow_list) > 0:
+                    sub_pipeline.add_parallel_sub_pipeline(check_db_connect_sub_flow_list)
+            # 提前下发文件
+            sub_pipeline.add_act(
+                act_name=_("下发升级的安装包"),
+                act_component_code=TransFileComponent.code,
+                kwargs=asdict(
+                    DownloadMediaKwargs(
+                        bk_cloud_id=bk_cloud_id,
+                        exec_ip=proxy_ips,
+                        file_list=GetFileList(db_type=DBType.MySQL).mysql_proxy_upgrade_package(pkg_id=pkg_id),
+                    )
+                ),
+            )
             for index, (proxy_ip, ports) in enumerate(ports_map.items()):
                 sub_pipeline.add_sub_pipeline(
                     sub_flow=self.upgrade_mysql_proxy_subflow(
@@ -96,6 +134,7 @@ class MySQLProxyLocalUpgradeFlow(object):
                         pkg_id=pkg_id,
                         proxy_version=get_sub_version_by_pkg_name(proxy_pkg.name),
                         proxy_ports=ports,
+                        force_upgrade=False,
                     )
                 )
                 # 最后一个节点无需再确认
@@ -114,25 +153,13 @@ class MySQLProxyLocalUpgradeFlow(object):
         pkg_id: int,
         proxy_version: str,
         proxy_ports: list = None,
+        force_upgrade: bool = True,
     ):
         """
         定义upgrade mysql proxy 的flow
         """
         sub_pipeline = SubBuilder(root_id=self.root_id, data=self.data)
-
-        sub_pipeline.add_act(
-            act_name=_("下发升级的安装包"),
-            act_component_code=TransFileComponent.code,
-            kwargs=asdict(
-                DownloadMediaKwargs(
-                    bk_cloud_id=bk_cloud_id,
-                    exec_ip=ip,
-                    file_list=GetFileList(db_type=DBType.MySQL).mysql_proxy_upgrade_package(pkg_id=pkg_id),
-                )
-            ),
-        )
-
-        cluster = {"proxy_ports": proxy_ports, "pkg_id": pkg_id}
+        cluster = {"proxy_ports": proxy_ports, "pkg_id": pkg_id, "force_upgrade": force_upgrade}
         exec_act_kwargs = ExecActuatorKwargs(cluster=cluster, bk_cloud_id=bk_cloud_id)
         exec_act_kwargs.exec_ip = ip
         exec_act_kwargs.get_mysql_payload_func = ProxyActPayload.get_proxy_upgrade_payload.__name__

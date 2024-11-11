@@ -664,6 +664,7 @@ def check_sub_flow(
     check_client_conn_inst: list = None,
     is_verify_checksum: bool = False,
     verify_checksum_tuples: list = None,
+    is_proxy: bool = False,
 ):
     """
     设计预检测的公共子流程，主要服务于切换类的流程，做前置检查，方便管控
@@ -689,8 +690,7 @@ def check_sub_flow(
                 "act_component_code": CheckClientConnComponent.code,
                 "kwargs": asdict(
                     CheckClientConnKwargs(
-                        bk_cloud_id=cluster.bk_cloud_id,
-                        check_instances=check_client_conn_inst,
+                        bk_cloud_id=cluster.bk_cloud_id, check_instances=check_client_conn_inst, is_proxy=is_proxy
                     )
                 ),
             }

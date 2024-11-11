@@ -88,7 +88,7 @@ class ProxyActPayload(object):
                 "extend": {
                     "host": kwargs["ip"],
                     "ports": self.cluster["proxy_ports"],
-                    "force": self.ticket_data["force"],
+                    "force": self.cluster["force_upgrade"],
                     "pkg": proxy_pkg.name,
                     "pkg_md5": proxy_pkg.md5,
                 },
