@@ -420,8 +420,7 @@
     {
       label: t('主访问入口'),
       field: 'master_domain',
-      width: 280,
-      minWidth: 280,
+      minWidth: 320,
       fixed: 'left',
       renderHead: () => (
         <RenderHeadCopy
@@ -460,6 +459,27 @@
             ),
             append: () => (
               <>
+                {
+                  data.operationTagTips.map(item => <RenderOperationTag class="cluster-tag" data={item} />)
+                }
+                {
+                  !data.isOnline && !data.isStarting && (
+                    <bk-tag
+                      class="ml-4"
+                      size="small">
+                      {t('已禁用')}
+                    </bk-tag>
+                  )
+                }
+                {
+                  data.isNew && (
+                    <bk-tag
+                      size="small"
+                      theme="success">
+                      NEW
+                    </bk-tag>
+                  )
+                }
                 {data.master_domain && (
                   <RenderCellCopy copyItems={
                     [
@@ -523,29 +543,6 @@
             <p class="cluster-name-alias">
               {data.cluster_alias || '--'}
             </p>
-          </div>
-          <div class="cluster-tags">
-            {
-              data.operationTagTips.map(item => <RenderOperationTag class="cluster-tag" data={item} />)
-            }
-            {
-              !data.isOnline && !data.isStarting && (
-                <bk-tag
-                  class="ml-4"
-                  size="small">
-                  {t('已禁用')}
-                </bk-tag>
-              )
-            }
-            {
-              data.isNew && (
-                <bk-tag
-                  size="small"
-                  theme="success">
-                  NEW
-                </bk-tag>
-              )
-            }
           </div>
           <db-icon
             v-bk-tooltips={t('复制集群名称')}
