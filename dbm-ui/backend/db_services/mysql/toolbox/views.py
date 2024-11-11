@@ -75,15 +75,16 @@ class TendbHaSlaveInstanceAddDomainSet(viewsets.SystemViewSet):
         domain = data["domain_name"]
         slave_ip = data["slave_ip"]
         slave_port = data["slave_port"]
-        if ClusterEntry.objects.filter(cluster_entry_type=ClusterEntryType.DNS.value, entry=domain).exists():
-            return Response({"result": False, "message": _("{}域名已经存在".format(domain))})
         cluster_obj = Cluster.objects.get(id=cluster_id)
-        cluster_entry = ClusterEntry.objects.create(
-            cluster=cluster_obj,
-            cluster_entry_type=ClusterEntryType.DNS.value,
-            entry=domain,
-            role=ClusterEntryRole.SLAVE_ENTRY.value,
-        )
+        if ClusterEntry.objects.filter(cluster_entry_type=ClusterEntryType.DNS.value, entry=domain).exists():
+            cluster_entry = ClusterEntry.objects.get(cluster_id=cluster_id, entry=domain)
+        else:
+            cluster_entry = ClusterEntry.objects.create(
+                cluster=cluster_obj,
+                cluster_entry_type=ClusterEntryType.DNS.value,
+                entry=domain,
+                role=ClusterEntryRole.SLAVE_ENTRY.value,
+            )
         dns_manage = DnsManage(bk_biz_id=cluster_obj.bk_biz_id, bk_cloud_id=cluster_obj.bk_cloud_id)
         slave_ins = cluster_obj.storageinstance_set.filter(
             instance_inner_role=InstanceInnerRole.SLAVE.value, machine__ip=slave_ip, port=slave_port
