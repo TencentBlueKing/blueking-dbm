@@ -19,6 +19,7 @@ from datetime import datetime
 
 import yaml
 from bkstorages.backends.bkrepo import TIMEOUT_THRESHOLD, BKGenericRepoClient, BKRepoStorage, urljoin
+from dateutil.parser import parse as time_parse
 
 logger = logging.getLogger("root")
 
@@ -185,9 +186,9 @@ class MediumHandler:
                         "path": media["fullPath"],
                         "size": media["size"],
                         "md5": media["md5"],
-                        "create_at": str(datetime.strptime(media["createdDate"], "%Y-%m-%dT%H:%M:%S.%f")),
+                        "create_at": time_parse(media["createdDate"]).isoformat(),
                         "creator": "system",
-                        "update_at": str(datetime.strptime(media["lastModifiedDate"], "%Y-%m-%dT%H:%M:%S.%f")),
+                        "update_at": time_parse(media["lastModifiedDate"]).isoformat(),
                         "updater": "system",
                     }
                     package_sync_params.append(package_params)

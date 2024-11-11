@@ -29,6 +29,9 @@ class RiakShrinkDetailSerializer(BigDataSingleClusterOpsDetailsSerializer):
     cluster_id = serializers.IntegerField(help_text=_("集群ID"))
     nodes = serializers.ListSerializer(help_text=_("缩容节点"), child=HostInfoSerializer())
 
+    def validate(self, attrs):
+        return attrs
+
 
 class RiakShrinkFlowParamBuilder(builders.FlowParamBuilder):
     controller = RiakController.riak_cluster_scale_in_scene
