@@ -9,8 +9,8 @@
         v-model="modelValue.specId"
         :biz-id="clusterInfo.bizId"
         :cloud-id="clusterInfo.cloudId"
-        :cluster-type="clusterInfo.clusterType"
-        :machine-type="clusterInfo.machineType"
+        cluster-type="redis"
+        :machine-type="specClusterMachineMap[clusterInfo.clusterType]"
         style="width: 314px" />
     </DbFormItem>
     <DbFormItem
@@ -72,6 +72,8 @@
   import { ClusterTypes } from '@common/const';
 
   import SpecSelector from '@views/db-manage/common/apply-items/SpecSelector.vue';
+
+  import { specClusterMachineMap } from '../const';
 
   interface Props {
     clusterInfo: {
