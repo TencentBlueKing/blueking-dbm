@@ -96,7 +96,6 @@
       }"
       :data="localHostList"
       :disable-dialog-submit-method="disableDialogSubmitMethod"
-      :disable-host-method="disableHostMethod"
       :os-types="[OSTypes.Linux]"
       service-mode="idle_only"
       :show-view="false"
@@ -345,9 +344,7 @@
     isShowIpSelector.value = true;
   };
 
-  const disableDialogSubmitMethod = (hostList: HostInfo[]) => (hostList.length === 2 ? false : t('需n台', { n: 2 }));
-
-  const disableHostMethod = (data: HostInfo, list: HostInfo[]) => (list.length >= 2 ? t('仅需n台', { n: 2 }) : false);
+  const disableDialogSubmitMethod = (hostList: HostInfo[]) => (hostList.length === 2 ? false : t('仅需n台', { n: 2 }));
 
   const handleHostChange = (hostList: HostInfo[]) => {
     localHostList.value = hostList;

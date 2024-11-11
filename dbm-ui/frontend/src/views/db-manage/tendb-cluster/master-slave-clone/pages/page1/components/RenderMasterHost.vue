@@ -115,9 +115,11 @@
   watch(
     localValue,
     () => {
-      setTimeout(() => {
-        editRef.value!.getValue();
-      });
+      if (localValue.value) {
+        setTimeout(() => {
+          editRef.value!.getValue();
+        });
+      }
     },
     {
       immediate: true,
