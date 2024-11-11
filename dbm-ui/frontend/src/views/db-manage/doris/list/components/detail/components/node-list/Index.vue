@@ -183,7 +183,7 @@
 <script setup lang="tsx">
   import { useI18n } from 'vue-i18n';
 
-  import DorisModel from '@services/model/doris/doris';
+  import DorisDetailModel from '@services/model/doris/doris-detail';
   import DorisNodeModel from '@services/model/doris/doris-node';
   import {
     getDorisDetail,
@@ -280,7 +280,7 @@
   const isShowDetail = ref(false);
   const isLoading = ref(true);
   const isCopyDropdown = ref(false);
-  const operationData = shallowRef<DorisModel>();
+  const operationData = shallowRef<DorisDetailModel>();
   const operationNodeData = shallowRef<DorisNodeModel>();
   const operationNodeList = shallowRef<Array<DorisNodeModel>>([]);
   const tableData = shallowRef<DorisNodeModel[]>([]);
