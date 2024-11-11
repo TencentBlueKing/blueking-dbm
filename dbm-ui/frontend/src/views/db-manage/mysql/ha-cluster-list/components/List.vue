@@ -554,18 +554,18 @@
           {t('从访问入口')}
         </RenderHeadCopy>
       ),
-      render: ({ data }: ColumnData) => <RenderEntries data={data.slaveEntryList}>
+      render: ({ data }: ColumnData) => <RenderEntries data={data.slaveEntryDisplayList}>
         {{
           append: ({ index }: { index: number }) => index === 0 && (
             <>
               <RenderCellCopy copyItems={
                 [
                   {
-                    value: data.slave_domain,
+                    value: data.slaveEntryList.join('\n'),
                     label: t('域名')
                   },
                   {
-                    value: data.slaveDomainDisplayName,
+                    value: data.slaveEntryDisplayList.join('\n'),
                     label: t('域名:端口')
                   }
                 ]
