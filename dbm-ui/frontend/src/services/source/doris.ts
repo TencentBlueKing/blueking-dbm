@@ -12,6 +12,7 @@
  */
 
 import DorisModel from '@services/model/doris/doris';
+import DorisDetailModel from '@services/model/doris/doris-detail';
 import DorisInstanceModel from '@services/model/doris/doris-instance';
 import DorisMachineModel from '@services/model/doris/doris-machine';
 import DorisNodeModel from '@services/model/doris/doris-node';
@@ -84,7 +85,7 @@ export function retrieveDorisInstance(params: { bk_biz_id: number }) {
  * 获取集群详情
  */
 export function getDorisDetail(params: { id: number }) {
-  return http.get<DorisModel>(`${getRootPath()}/${params.id}/`).then((data) => new DorisModel(data));
+  return http.get<DorisDetailModel>(`${getRootPath()}/${params.id}/`).then((data) => new DorisDetailModel(data));
 }
 
 /**
