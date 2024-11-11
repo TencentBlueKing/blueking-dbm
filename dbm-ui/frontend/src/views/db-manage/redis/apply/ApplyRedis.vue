@@ -301,8 +301,8 @@
                   v-model="state.formdata.details.resource_spec.backend_group"
                   :biz-id="state.formdata.bk_biz_id"
                   :cloud-id="state.formdata.details.bk_cloud_id"
-                  :cluster-type="DBTypes.REDIS"
-                  :machine-type="specClusterMachineMap[typeInfos.cluster_type]" />
+                  :cluster-type="typeInfos.cluster_type"
+                  :machine-type="typeInfos.machine_type" />
               </BkFormItem>
               <BkFormItem
                 :label="t('访问端口')"
@@ -394,8 +394,6 @@
   import PasswordInput from '@views/db-manage/common/password-input/Index.vue';
 
   import { generateId } from '@utils';
-
-  import { specClusterMachineMap } from '../common/const';
 
   import { redisClusterTypes, redisIpSources } from './common/const';
   import BackendQPSSpec from './components/backend-spec/Index.vue';
