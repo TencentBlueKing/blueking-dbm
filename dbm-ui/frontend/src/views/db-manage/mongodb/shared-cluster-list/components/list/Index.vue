@@ -25,12 +25,6 @@
         class="ml-8 mb-8"
         :disabled="!hasSelected"
         :list="clusterBatchOperationList" />
-      <BkButton
-        class="ml-8 mb-8"
-        :disabled="!hasSelected"
-        @click="handleShowClusterAuthorize">
-        {{ t('批量授权') }}
-      </BkButton>
       <span
         v-bk-tooltips="{
           disabled: hasData,
@@ -142,7 +136,6 @@
 
   import RenderClusterStatus from '@components/cluster-status/Index.vue';
   import DbTable from '@components/db-table/index.vue';
-  import MiniTag from '@components/mini-tag/index.vue';
   import RenderTextEllipsisOneLine from '@components/text-ellipsis-one-line/index.vue';
   import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
 
@@ -300,6 +293,13 @@
 
   const clusterBatchOperationList = computed(() => [
     {
+      dbConsole: 'mongodb.sharedClusterList.batchAuthorize',
+      click: () => handleShowClusterAuthorize(),
+      disabled: false,
+      tooltips: '',
+      text: t('批量授权')
+    },
+    {
       dbConsole: 'mongodb.sharedClusterList.disable',
       click: () => handleDisableCluster(selected.value),
       disabled: selected.value.some((data) => data.isOffline || data.operationDisabled),
@@ -335,55 +335,23 @@
       minWidth: 200,
       fixed: 'left',
       showOverflowTooltip: false,
-      render: ({ data }: { data: MongodbModel }) => {
-        const content = (
-          <>
-            {
-              data.isNew && (
-              <MiniTag
-                content='NEW'
-                theme='success' />
-              )
-            }
-            {
-              data.operationTagTips.map(item => (
-                <RenderOperationTag
-                  class="ml-4"
-                  data={item} />
-              ))
-            }
-            {
-              data.isOffline && (
-                <bk-tag
-                  class="ml-4"
-                  size="small">
-                  {t('已禁用')}
-                </bk-tag>
-              )
-            }
-          </>
-        );
-
-        return (
-          <div>
-            <RenderTextEllipsisOneLine
-              text={data.cluster_name}
-              textStyle={{
-                fontWeight: '700',
-              }}
-              onClick={() => handleToDetails(data.id)}>
-              {content}
-            </RenderTextEllipsisOneLine>
-            <span class="cluster-alias">{ data.cluster_alias }</span>
-          </div>
-        );
-      },
+      render: ({ data }: { data: MongodbModel }) => (
+        <div>
+          <RenderTextEllipsisOneLine
+            text={data.cluster_name}
+            textStyle={{
+              fontWeight: '700',
+            }}
+            onClick={() => handleToDetails(data.id)}>
+          </RenderTextEllipsisOneLine>
+          <span class="cluster-alias">{ data.cluster_alias }</span>
+        </div>
+      ),
     },
     {
       label: t('主域名'),
       field: 'master_domain',
-      width: 280,
-      minWidth: 280,
+      minWidth: 320,
       renderHead: () => (
         <RenderHeadCopy
           hasSelected={hasSelected.value}
@@ -409,6 +377,32 @@
             ),
             append: () => (
               <>
+                {
+                  data.isNew && (
+                    <bk-tag
+                      theme="success"
+                      size="small"
+                      class="ml-4">
+                      NEW
+                    </bk-tag>
+                  )
+                }
+                {
+                  data.operationTagTips.map(item => (
+                    <RenderOperationTag
+                      class="ml-4"
+                      data={item} />
+                  ))
+                }
+                {
+                  data.isOffline && (
+                    <bk-tag
+                      class="ml-4"
+                      size="small">
+                      {t('已禁用')}
+                    </bk-tag>
+                  )
+                }
                 <RenderCellCopy copyItems={
                   [
                     {

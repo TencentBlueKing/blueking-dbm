@@ -25,12 +25,6 @@
         class="ml-8 mb-8"
         :disabled="!hasSelected"
         :list="clusterBatchOperationList" />
-      <BkButton
-        class="ml-8 mb-8"
-        :disabled="!hasSelected"
-        @click="handleShowClusterAuthorize">
-        {{ t('批量授权') }}
-      </BkButton>
       <span
         v-bk-tooltips="{
           disabled: hasData,
@@ -142,7 +136,6 @@
 
   import RenderClusterStatus from '@components/cluster-status/Index.vue';
   import DbTable from '@components/db-table/index.vue';
-  import MiniTag from '@components/mini-tag/index.vue';
   import RenderTextEllipsisOneLine from '@components/text-ellipsis-one-line/index.vue';
   import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
 
@@ -297,6 +290,13 @@
   const selectedIds = computed(() => selected.value.map(item => item.id));
 
   const clusterBatchOperationList = computed(() => [
+  {
+      dbConsole: 'mongodb.replicaSetList.batchAuthorize',
+      click: () => handleShowClusterAuthorize(),
+      disabled: false,
+      tooltips: '',
+      text: t('批量授权')
+    },
     {
       dbConsole: 'mongodb.replicaSetList.disable',
       click: () => handleDisableCluster(selected.value),
@@ -330,22 +330,12 @@
     {
       label: t('集群名称'),
       field: 'cluster_name',
-      width: 280,
-      minWidth: 280,
+      minWidth: 320,
       fixed: 'left',
       showOverflowTooltip: false,
       render: ({ data }: { data: MongodbModel }) => {
         const content = (
           <>
-            {
-              data.isNew && (
-                <MiniTag
-                  content='NEW'
-                  class="new-tag"
-                  theme='success'>
-                </MiniTag>
-              )
-            }
             {
               data.isStructCluster && (
                 <bk-popover
@@ -381,22 +371,6 @@
                     ),
                   }}
                 </bk-popover>
-              )
-            }
-            {
-              data.operationTagTips.map(item => (
-                <RenderOperationTag
-                  class="cluster-tag ml-4"
-                  data={item}/>
-              ))
-            }
-            {
-              data.isOffline && (
-                <bk-tag
-                  class="ml-4"
-                  size="small">
-                  {t('已禁用')}
-                </bk-tag>
               )
             }
           </>
@@ -448,6 +422,32 @@
             ),
             append: () => (
               <>
+                {
+                  data.isNew && (
+                    <bk-tag
+                      theme="success"
+                      size="small"
+                      class="ml-4">
+                      NEW
+                    </bk-tag>
+                  )
+                }
+                {
+                  data.operationTagTips.map(item => (
+                    <RenderOperationTag
+                      class="cluster-tag ml-4"
+                      data={item}/>
+                  ))
+                }
+                {
+                  data.isOffline && (
+                    <bk-tag
+                      class="ml-4"
+                      size="small">
+                      {t('已禁用')}
+                    </bk-tag>
+                  )
+                }
                 <RenderCellCopy copyItems={
                   [
                     {

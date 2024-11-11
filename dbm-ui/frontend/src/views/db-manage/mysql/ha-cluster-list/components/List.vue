@@ -26,34 +26,6 @@
         class="ml-8"
         :disabled="!hasSelected"
         :list="clusterBatchOperationList" />
-      <span
-        v-bk-tooltips="{
-          disabled: hasSelected,
-          content: t('请选择集群'),
-        }"
-        v-db-console="'mysql.haClusterList.batchSubscription'"
-        class="inline-block">
-        <BkButton
-          class="ml-8"
-          :disabled="!hasSelected"
-          @click="() => handleShowCreateSubscribeRuleSlider()">
-          {{ t('批量订阅') }}
-        </BkButton>
-      </span>
-      <span
-        v-bk-tooltips="{
-          disabled: hasSelected,
-          content: t('请选择集群'),
-        }"
-        v-db-console="'mysql.haClusterList.batchAuthorize'"
-        class="inline-block">
-        <BkButton
-          class="ml-8"
-          :disabled="!hasSelected"
-          @click="handleShowAuthorize(selected)">
-          {{ t('批量授权') }}
-        </BkButton>
-      </span>
       <BkButton
         v-db-console="'mysql.haClusterList.importAuthorize'"
         class="ml-8"
@@ -259,6 +231,20 @@
 
   const clusterBatchOperationList = computed(() => [
     {
+      dbConsole: 'mysql.haClusterList.batchSubscription',
+      click: () => handleShowCreateSubscribeRuleSlider(),
+      disabled: false,
+      tooltips: '',
+      text: t('批量订阅')
+    },
+    {
+      dbConsole: 'mysql.haClusterList.batchAuthorize',
+      click: () => handleShowAuthorize(selected.value),
+      disabled: false,
+      tooltips: '',
+      text: t('批量授权')
+    },
+    {
       dbConsole: 'mysql.haClusterList.disable',
       click: () => handleSwitchCluster(TicketTypes.MYSQL_HA_DISABLE, selected.value),
       disabled: selected.value.some((data) => data.isOffline || data.operationDisabled),
@@ -376,8 +362,7 @@
       label: t('主访问入口'),
       field: 'master_domain',
       fixed: 'left',
-      width: 280,
-      minWidth: 280,
+      minWidth: 320,
       showOverflowTooltip: false,
       renderHead: () => (
         <RenderHeadCopy
@@ -416,6 +401,28 @@
             ),
             append: () => (
               <>
+                {
+                  data.operationTagTips.map(item => <RenderOperationTag class="cluster-tag ml-4" data={item}/>)
+                }
+                {
+                  data.isOffline && !data.isStarting && (
+                    <bk-tag
+                      class="ml-4"
+                      size="small">
+                      {t('已禁用')}
+                    </bk-tag>
+                  )
+                }
+                {
+                  data.isNew && (
+                    <bk-tag
+                      theme="success"
+                      size="small"
+                      class="ml-4">
+                      NEW
+                    </bk-tag>
+                  )
+                }
                 <RenderCellCopy copyItems={
                   [
                     {
@@ -477,25 +484,6 @@
             default: () => data.cluster_name,
             append: () => (
               <>
-                {
-                  data.operationTagTips.map(item => <RenderOperationTag class="cluster-tag ml-4" data={item}/>)
-                }
-                {
-                  data.isOffline && !data.isStarting && (
-                    <bk-tag
-                      class="ml-4"
-                      size="small">
-                      {t('已禁用')}
-                    </bk-tag>
-                  )
-                }
-                {
-                  isRecentDays(data.create_at, 24 * 3) && (
-                    <span
-                      class="glob-new-tag cluster-tag ml-4"
-                      data-text="NEW" />
-                  )
-                }
                 <span v-db-console="mysql.haClusterList.modifyEntryConfiguration">
                   <EditEntryConfig
                     id={data.id}

@@ -26,20 +26,6 @@
         class="ml-8"
         :disabled="!hasSelected"
         :list="clusterBatchOperationList" />
-      <span
-        v-bk-tooltips="{
-          disabled: hasSelected,
-          content: t('请选择集群'),
-        }"
-        v-db-console="'mysql.singleClusterList.batchAuthorize'"
-        class="inline-block">
-        <BkButton
-          class="ml-8"
-          :disabled="!hasSelected"
-          @click="handleShowAuthorize(selected)">
-          {{ t('批量授权') }}
-        </BkButton>
-      </span>
       <BkButton
         v-db-console="'mysql.singleClusterList.importAuthorize'"
         class="ml-8"
@@ -224,6 +210,13 @@
 
   const clusterBatchOperationList = computed(() => [
     {
+      dbConsole: 'mysql.singleClusterList.batchAuthorize',
+      click: () => handleShowAuthorize(selected.value),
+      disabled: false,
+      tooltips: '',
+      text: t('批量授权')
+    },
+    {
       dbConsole: 'mysql.singleClusterList.disable',
       click: () => handleSwitchCluster(TicketTypes.MYSQL_SINGLE_DISABLE, selected.value),
       disabled: selected.value.some((data) => data.isOffline || data.operationDisabled),
@@ -334,8 +327,7 @@
       label: t('访问入口'),
       field: 'master_domain',
       fixed: 'left',
-      width: 280,
-      minWidth: 280,
+      minWidth: 320,
       renderHead: () => (
         <RenderHeadCopy
           hasSelected={hasSelected.value}
@@ -373,6 +365,28 @@
             ),
             append: () => (
               <>
+                {
+                  data.operationTagTips.map(item => <RenderOperationTag class="cluster-tag ml-4" data={item}/>)
+                }
+                {
+                  data.isOffline && !data.isStarting && (
+                    <bk-tag
+                      class="ml-4"
+                      size="small">
+                      {t('已禁用')}
+                    </bk-tag>
+                  )
+                }
+                {
+                  data.isNew && (
+                    <bk-tag
+                      theme="success"
+                      size="small"
+                      class="ml-4">
+                      NEW
+                    </bk-tag>
+                  )
+                }
                 <RenderCellCopy copyItems={
                   [
                     {
@@ -426,25 +440,6 @@
             default: () => data.cluster_name,
             append: () => (
               <>
-                {
-                  data.operationTagTips.map(item => <RenderOperationTag class="cluster-tag ml-4" data={item}/>)
-                }
-                {
-                  data.isOffline && !data.isStarting && (
-                    <bk-tag
-                      class="ml-4"
-                      size="small">
-                      {t('已禁用')}
-                    </bk-tag>
-                  )
-                }
-                {
-                  isRecentDays(data.create_at, 24 * 3) && (
-                    <span
-                      class="glob-new-tag cluster-tag ml-4"
-                      data-text="NEW" />
-                  )
-                }
                 <db-icon
                   v-bk-tooltips={t('复制集群名称')}
                   type="copy"
