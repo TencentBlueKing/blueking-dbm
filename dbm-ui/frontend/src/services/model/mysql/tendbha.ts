@@ -213,6 +213,10 @@ export default class Tendbha {
   }
 
   get slaveEntryList() {
+    return this.cluster_entry.filter((item) => item.role === 'slave_entry').map((item) => item.entry);
+  }
+
+  get slaveEntryDisplayList() {
     const port = this.slaves[0]?.port;
     return this.cluster_entry.filter((item) => item.role === 'slave_entry').map((item) => `${item.entry}:${port}`);
   }

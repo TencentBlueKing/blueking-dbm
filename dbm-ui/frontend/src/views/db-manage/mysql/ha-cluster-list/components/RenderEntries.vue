@@ -49,7 +49,7 @@
   const itemRef = ref();
   const width = ref(0);
   let tippyIns: Instance | undefined;
-  const overflowMaxCount = 3;
+  const overflowMaxCount = 10;
 
   onMounted(() => {
     if (itemRef.value) {

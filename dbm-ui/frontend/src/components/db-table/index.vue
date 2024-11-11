@@ -533,6 +533,7 @@
   const handlePageValueChange = (pageValue:number) => {
     pagination.current = pageValue;
     fetchListData();
+    bkTableRef.value.scrollTo(0, 0);
   };
 
   // 情况搜索条件
