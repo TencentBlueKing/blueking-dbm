@@ -13,16 +13,15 @@
 <template>
   <div class="delete-nodes">
     <NodeNumber :id="data.id" />
-    <BkAlert
+    <!-- <BkAlert
       v-if="normalCount <= 3"
       theme="warning"
-      :title="t('当前正常的节点数量少于n ，不能删除节点，请先添加节点', [3])" />
+      :title="t('当前正常的节点数量少于n ，不能删除节点，请先添加节点', [3])" /> -->
     <DbTable
       ref="tableRef"
       class="mt-16"
       :columns="columns"
-      :data-source="getRiakNodeList"
-      :is-row-select-enable="isRowSelectEnable" />
+      :data-source="getRiakNodeList" />
   </div>
 </template>
 
@@ -97,15 +96,15 @@
 
   const tableRef = ref();
 
-  const nodeList = computed<RiakNodeModel[]>(() => tableRef.value?.getData() || []);
-  const normalCount = computed(() => nodeList.value.filter(nodeItem => nodeItem.isNodeNormal).length);
+  // const nodeList = computed<RiakNodeModel[]>(() => tableRef.value?.getData() || []);
+  // const normalCount = computed(() => nodeList.value.filter(nodeItem => nodeItem.isNodeNormal).length);
 
-  const isRowSelectEnable = ({ row }: { row: RiakNodeModel }) => {
-    if (normalCount.value > 3) {
-      return row.isNodeNormal;
-    }
-    return false;
-  };
+  // const isRowSelectEnable = ({ row }: { row: RiakNodeModel }) => {
+  //   if (normalCount.value > 3) {
+  //     return row.isNodeNormal;
+  //   }
+  //   return false;
+  // };
 
   const fetchData = () => {
     tableRef.value.fetchData({}, {
