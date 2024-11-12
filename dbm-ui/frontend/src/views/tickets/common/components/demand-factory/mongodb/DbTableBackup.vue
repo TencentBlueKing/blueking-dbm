@@ -18,10 +18,8 @@
     :data="dataList" />
   <div class="ticket-details-list">
     <div class="ticket-details-item">
-      <span class="ticket-details-item-label">{{ t('备份文件保存时间') }}：</span>
-      <span class="ticket-details-item-value">{{
-        fileTag === 'normal_backup' ? t('常规备份（25天）') : t('长期备份（3年）')
-      }}</span>
+      <span class="ticket-details-item-label">{{ t('备份保存时间') }}：</span>
+      <span class="ticket-details-item-value">{{ fileTagText }}</span>
     </div>
     <div
       v-if="backupType"
@@ -164,6 +162,15 @@
     ignore_tables: item.ns_filter.ignore_tables,
     table_patterns: item.ns_filter.table_patterns,
   }));
+
+  const fileTagMap: Record<string, string> = {
+    normal_backup: t('25天'),
+    half_year_backup: t('6 个月'),
+    a_year_backup: t('1 年'),
+    forever_backup: t('3 年'),
+  };
+
+  const fileTagText = fileTagMap[fileTag];
 </script>
 
 <style lang="less" scoped>

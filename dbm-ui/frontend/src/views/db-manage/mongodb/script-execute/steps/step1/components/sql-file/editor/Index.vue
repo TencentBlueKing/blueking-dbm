@@ -142,7 +142,7 @@
 
   onMounted(() => {
     editor = monaco.editor.create(editorRef.value, {
-      language: 'js',
+      language: 'javascript',
       theme: 'vs-dark',
       readOnly: props.readonly,
       minimap: {

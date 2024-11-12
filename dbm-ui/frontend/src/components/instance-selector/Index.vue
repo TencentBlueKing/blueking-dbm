@@ -50,6 +50,7 @@
           :is-remote-pagination="activePanelObj?.tableConfig?.isRemotePagination"
           :last-values="lastValues"
           :manual-config="activePanelObj?.manualConfig"
+          :multiple="activePanelObj?.tableConfig?.multiple"
           :role-filter-list="activePanelObj?.tableConfig?.roleFilterList"
           :status-filter="activePanelObj?.tableConfig?.statusFilter"
           :table-setting="tableSettings"
@@ -146,6 +147,7 @@
     spec_config?: TendbclusterMachineModel['spec_config'];
     spec_id?: number;
     role: string;
+    shard?: string;
   }
 
   export type InstanceSelectorValues<T> = Record<string, T[]>;

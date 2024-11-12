@@ -41,7 +41,6 @@
             {{ t('忽略表名') }}
           </RenderTableHeadColumn>
         </template>
-
         <template #data>
           <RenderDataRow
             v-for="item in tableData"

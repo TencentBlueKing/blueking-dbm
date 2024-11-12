@@ -141,6 +141,7 @@
               v-model="formData.details.resource_spec.mongodb"
               :biz-id="formData.bk_biz_id"
               :cloud-id="formData.details.bk_cloud_id"
+              :cluster-type="ClusterTypes.MONGO_SHARED_CLUSTER"
               :properties="{
                 capacity: 'details.resource_spec.mongodb.capacity',
                 specId: 'details.resource_spec.mongodb.spec_id',
@@ -202,7 +203,6 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import ClusterSpecModel from '@services/model/resource-spec/cluster-sepc';
   import { getVersions } from '@services/source/version';
   import type { BizItem } from '@services/types';
 
@@ -220,7 +220,7 @@
   import ClusterName from '@views/db-manage/common/apply-items/ClusterName.vue';
   import RegionItem from '@views/db-manage/common/apply-items/RegionItem.vue';
   import SpecSelector from '@views/db-manage/common/apply-items/SpecSelector.vue';
-  import MongoConfigSpec from '@views/db-manage/mongodb/components/MongoConfigSpec.vue';
+  import MongoConfigSpec, { type MongoConfigSpecRow } from '@views/db-manage/mongodb/components/MongoConfigSpec.vue';
 
   const initData = () => ({
     bk_biz_id: '' as number | '',
@@ -266,15 +266,7 @@
   const mongoCofigSpecRef = ref<InstanceType<typeof SpecSelector>>();
   const mongosSpecRef = ref<InstanceType<typeof SpecSelector>>();
   const mongoConfigSpecRef = ref<InstanceType<typeof MongoConfigSpec>>();
-  const mongoConfigSpec = ref<
-    ClusterSpecModel & {
-      shard_node_num: number;
-      shard_num: number;
-      shard_node_spec: string;
-      machine_num: number;
-      count: number;
-    }
-  >();
+  const mongoConfigSpec = ref<MongoConfigSpecRow>();
   const cloudInfo = ref({
     id: '' as number | string,
     name: '',
@@ -320,7 +312,7 @@
     cloudInfo.value = info;
   };
 
-  const handleMongoConfigSpecChange = (value: typeof mongoConfigSpec.value) => {
+  const handleMongoConfigSpecChange = (value?: MongoConfigSpecRow) => {
     mongoConfigSpec.value = value;
   };
 

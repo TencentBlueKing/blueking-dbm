@@ -31,20 +31,30 @@
       <RenderDropIndex ref="dropIndexRef" />
     </td>
     <td style="padding: 0">
-      <RenderDbName ref="dbPatternsRef" />
+      <RenderDbName
+        ref="dbPatternsRef"
+        :data="data.dbPatterns" />
     </td>
     <td style="padding: 0">
       <RenderDbName
         ref="ignoreDbsRef"
-        :required="false" />
+        :compare-data="localTablesIgnore"
+        :data="localDatabasesIgnore"
+        :required="false"
+        @change="handleDatabasesIgnoreChange" />
     </td>
     <td style="padding: 0">
-      <RenderTableName ref="tablePatternsRef" />
+      <RenderTableName
+        ref="tablePatternsRef"
+        :data="data.tablePatterns" />
     </td>
     <td style="padding: 0">
       <RenderTableName
         ref="ignoreTablesRef"
-        :required="false" />
+        :compare-data="localDatabasesIgnore"
+        :data="localTablesIgnore"
+        :required="false"
+        @change="handleTablesIgnoreChange" />
     </td>
     <OperateColumn
       :removeable="removeable"
@@ -129,6 +139,25 @@
   const ignoreTablesRef = ref<InstanceType<typeof RenderTableName>>();
   const localClusterId = ref(0);
 
+  const localDatabasesIgnore = ref<string[]>([]);
+  const localTablesIgnore = ref<string[]>([]);
+
+  watchEffect(() => {
+    localDatabasesIgnore.value = props.data.ignoreDbs || [];
+  });
+
+  watchEffect(() => {
+    localTablesIgnore.value = props.data.ignoreTables || [];
+  });
+
+  const handleDatabasesIgnoreChange = (value: string[]) => {
+    localDatabasesIgnore.value = value;
+  };
+
+  const handleTablesIgnoreChange = (value: string[]) => {
+    localTablesIgnore.value = value;
+  };
+
   watch(
     () => props.data,
     () => {
@@ -165,8 +194,8 @@
         dropIndexRef.value!.getValue(),
         dbPatternsRef.value!.getValue('db_patterns'),
         tablePatternsRef.value!.getValue('table_patterns'),
-        ignoreDbsRef.value!.getValue('ignore_dbs'),
-        ignoreTablesRef.value!.getValue('ignore_tables'),
+        ignoreDbsRef.value!.getValue('ignore_dbs', true),
+        ignoreTablesRef.value!.getValue('ignore_tables', true),
       ]).then(
         ([
           clusterId,

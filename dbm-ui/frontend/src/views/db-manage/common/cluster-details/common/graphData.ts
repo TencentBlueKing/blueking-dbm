@@ -91,6 +91,11 @@ export const nodeTypes = {
   TENDBCLUSTER_SLAVE: 'spider_slave',
   TENDBCLUSTER_CONTROLLER: 'controller_group',
   TENDBCLUSTER_MNT: 'spider_mnt',
+  MONGODB_M1: 'mongodb::m1',
+  MONGODB_M2: 'mongodb::m2',
+  MONGODB_BACKUP: 'mongodb::backup',
+  MONGODB_MONGOS: 'mongos',
+  MONGODB_CONFIG: 'mongo_config::m1',
 };
 
 // 特殊逻辑：控制节点水平对齐
@@ -102,6 +107,8 @@ const sameSources = [
   nodeTypes.PULSAR_BROKER,
   nodeTypes.TENDBCLUSTER_REMOTE_MASTER,
   nodeTypes.TENDBCLUSTER_MASTER,
+  nodeTypes.MONGODB_M1,
+  nodeTypes.MONGODB_MONGOS,
 ];
 const sameTargets = [
   nodeTypes.SLAVE,
@@ -111,6 +118,8 @@ const sameTargets = [
   nodeTypes.PULSAR_ZOOKEEPER,
   nodeTypes.TENDBCLUSTER_REMOTE_SLAVE,
   nodeTypes.TENDBCLUSTER_SLAVE,
+  nodeTypes.MONGODB_M2,
+  nodeTypes.MONGODB_CONFIG,
 ];
 
 export class GraphData {
@@ -157,8 +166,8 @@ export class GraphData {
       const [firstRoot] = rootGroups;
       this.calcNodeLocations(firstRoot, groups, groupLines);
 
-      // es hdfs 集群特殊逻辑
-      if (([ClusterTypes.ES, ClusterTypes.HDFS] as string[]).includes(this.clusterType)) {
+      // es hdfs mongo 集群特殊逻辑
+      if (([ClusterTypes.ES, ClusterTypes.HDFS, ClusterTypes.MONGODB] as string[]).includes(this.clusterType)) {
         this.calcHorizontalAlignLocations(groups);
       } else if (this.clusterType === ClusterTypes.TENDBCLUSTER) {
         this.calcSpiderNodeLocations(rootGroups, groups);
@@ -171,7 +180,6 @@ export class GraphData {
       );
       this.calcLines(lines, locations);
     }
-
     this.graphData = {
       locations,
       lines,
@@ -491,7 +499,7 @@ export class GraphData {
   }
 
   /**
-   * 单独处理 es master、cold、hot || hdfs hournal、zookeeper、datanode 节点水平排列
+   * 单独处理 es master、cold、hot || hdfs hournal、zookeeper、datanode || mongo分片 节点水平排列
    * @param nodes 节点列表
    */
   calcHorizontalAlignLocations(nodes: GraphNode[] = []) {
@@ -503,7 +511,7 @@ export class GraphData {
       nodeTypes.HDFS_MASTER_HOURNALNODE,
       nodeTypes.HDFS_MASTER_ZOOKEEPER,
     ];
-    const targetNodes = nodes.filter((node) => targetNodeIds.includes(node.id));
+    const targetNodes = nodes.filter((node) => targetNodeIds.includes(node.id) || node.id.includes('分片'));
 
     const [referenceNode] = targetNodes;
     const moveNodes = targetNodes.slice(1);

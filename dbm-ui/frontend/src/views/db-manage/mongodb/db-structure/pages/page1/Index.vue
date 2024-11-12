@@ -93,7 +93,7 @@
   </SmartAction>
 </template>
 <script setup lang="tsx">
-  import { InfoBox } from 'bkui-vue';
+  import type { ComponentExposed } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
   import { useRouter } from 'vue-router';
 
@@ -116,7 +116,7 @@
   const { t } = useI18n();
 
   const formRef = ref();
-  const targetClusterRef = ref<InstanceType<typeof TargetCluster>>();
+  const targetClusterRef = ref<ComponentExposed<typeof TargetCluster>>();
   const targetSpecRef = ref<InstanceType<typeof RenderTargetSpec>>();
   const dbTableRef = ref<InstanceType<typeof RenderDbTable>>();
   const isSubmitting = ref(false);
@@ -154,64 +154,58 @@
   };
 
   const handleSubmit = async () => {
-    await formRef.value.validate();
-    const targetClusters = await targetClusterRef.value!.getValue();
-    const targetClusterInfo = isBackupRecordType.value
-      ? targetClusters.reduce(
-          (results: { backupinfo: any }, item: any) => {
-            Object.assign(results.backupinfo, item);
-            return results;
-          },
-          {
-            backupinfo: {},
-          },
-        )
-      : targetClusters[0];
-    const dbTables = await dbTableRef.value?.getValue();
-    const specInfo = targetSpecRef.value!.getValue();
-    const params = {
-      bk_biz_id: currentBizId,
-      ticket_type: TicketTypes.MONGODB_RESTORE,
-      remark: '',
-      details: {
-        instance_per_host: formData.value.shardNum,
-        cluster_ids: formData.value.clusterIds,
-        ...targetClusterInfo,
-        ...specInfo,
-      },
-    };
-    if (dbTables) {
-      Object.assign(params.details, {
-        ns_filter: {
-          ...dbTables,
+    try {
+      isSubmitting.value = true;
+      await formRef.value.validate();
+      const targetClusters = await targetClusterRef.value!.getValue();
+      const targetClusterInfo = isBackupRecordType.value
+        ? targetClusters.reduce<{
+            backupinfo: ReturnType<ComponentExposed<typeof TargetCluster>['getValue']>;
+          }>(
+            (results, item) => {
+              Object.assign(results.backupinfo, item);
+              return results;
+            },
+            {
+              backupinfo: {} as ReturnType<ComponentExposed<typeof TargetCluster>['getValue']>,
+            },
+          )
+        : targetClusters[0];
+      const dbTables = await dbTableRef.value?.getValue();
+      const specInfo = targetSpecRef.value!.getValue();
+      const params = {
+        bk_biz_id: currentBizId,
+        ticket_type: TicketTypes.MONGODB_RESTORE,
+        remark: '',
+        details: {
+          instance_per_host: formData.value.shardNum,
+          cluster_ids: formData.value.clusterIds,
+          ...targetClusterInfo,
+          ...specInfo,
         },
+      };
+      if (dbTables) {
+        Object.assign(params.details, {
+          ns_filter: {
+            ...dbTables,
+          },
+        });
+      }
+      await createTicket(params).then((data) => {
+        window.changeConfirm = false;
+        router.push({
+          name: 'MongoDBStructure',
+          params: {
+            page: 'success',
+          },
+          query: {
+            ticketId: data.id,
+          },
+        });
       });
+    } finally {
+      isSubmitting.value = false;
     }
-
-    InfoBox({
-      title: t('确认定点构造n个集群', { n: formData.value.clusterIds.length }),
-      subTitle: t('集群上的数据将会全部构造至指定的新机器'),
-      width: 500,
-      onConfirm: () => {
-        isSubmitting.value = true;
-        createTicket(params)
-          .then((data) => {
-            window.changeConfirm = false;
-            router.push({
-              name: 'MongoDBStructure',
-              params: {
-                page: 'success',
-              },
-              query: {
-                ticketId: data.id,
-              },
-            });
-          })
-          .finally(() => {
-            isSubmitting.value = false;
-          });
-      },
-    });
   };
 
   const handleReset = () => {
