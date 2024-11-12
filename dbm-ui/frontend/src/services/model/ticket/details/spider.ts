@@ -191,14 +191,24 @@ export interface SpiderTableBackupDetails {
 
 // Spider TenDBCluster 全备单据
 export interface SpiderFullBackupDetails {
-  infos: {
-    backup_type: 'logical' | 'physical';
-    file_tag: 'MYSQL_FULL_BACKUP' | 'LONGDAY_DBFILE_3Y';
-    clusters: {
-      cluster_id: number;
-      backup_local: string; // spider_mnt:: 127.0.0.1: 8000
-    }[];
-  };
+  // 新版协议
+  backup_type: 'logical' | 'physical';
+  file_tag: 'MYSQL_FULL_BACKUP' | 'LONGDAY_DBFILE_3Y';
+  infos:
+    | {
+        // 旧版协议
+        backup_type: 'logical' | 'physical';
+        file_tag: 'MYSQL_FULL_BACKUP' | 'LONGDAY_DBFILE_3Y';
+        clusters: {
+          cluster_id: number;
+          backup_local: string; // spider_mnt:: 127.0.0.1: 8000
+        }[];
+      }
+    | {
+        // 新版协议
+        cluster_id: number;
+        backup_local: string; // spider_mnt:: 127.0.0.1: 8000
+      }[];
   clusters: DetailClusters;
 }
 

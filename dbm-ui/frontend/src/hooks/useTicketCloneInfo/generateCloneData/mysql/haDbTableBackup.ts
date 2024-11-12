@@ -13,6 +13,8 @@
 import type { MySQLTableBackupDetails } from '@services/model/ticket/details/mysql';
 import TicketModel from '@services/model/ticket/ticket';
 
+import { ClusterTypes } from '@common/const';
+
 import { random } from '@utils';
 
 // Mysql 库表备份
@@ -24,6 +26,7 @@ export function generateMysqlDbTableBackupCloneData(ticketData: TicketModel<MySQ
       id: item.cluster_id,
       domain: clusters[item.cluster_id].immute_domain,
     },
+    backupLocal: item.backup_on || clusters[item.cluster_id].cluster_type === ClusterTypes.TENDBHA ? 'Slave' : 'Master',
     dbPatterns: item.db_patterns,
     tablePatterns: item.table_patterns,
     ignoreDbs: item.ignore_dbs,

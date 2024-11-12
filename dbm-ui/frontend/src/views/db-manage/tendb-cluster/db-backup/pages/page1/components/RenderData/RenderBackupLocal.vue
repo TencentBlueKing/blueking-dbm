@@ -55,11 +55,11 @@
   const baseList = [
     {
       value: 'master',
-      label: 'master',
+      label: 'RemoteDB',
     },
     {
       value: 'slave',
-      label: 'slave',
+      label: 'RemoteDR',
     },
   ];
 
@@ -97,7 +97,7 @@
     () => {
       if (props.clusterData) {
         fetchClusterList({
-          cluster_ids: props.clusterData.id,
+          cluster_ids: [props.clusterData.id],
         });
       }
     },

@@ -29,7 +29,7 @@
           :removeable="tableData.length < 2"
           @add="(payload: Array<IDataRow>) => handleAppend(index, payload)"
           @clone="(payload: IDataRow) => handleClone(index, payload)"
-          @input-cluster-finish="(item: IDataRow) => handleInputCluster(index, item)"
+          @cluster-input-finish="(clusterId: number) => handleChangeCluster(index, clusterId)"
           @remove="handleRemove(index)" />
       </RenderData>
       <DbForm
@@ -74,7 +74,7 @@
       <TicketRemark v-model="formData.remark" />
       <ClusterSelector
         v-model:is-show="isShowBatchSelector"
-        :cluster-types="[ClusterTypes.TENDBHA]"
+        :cluster-types="[ClusterTypes.TENDBHA, ClusterTypes.TENDBSINGLE]"
         :selected="selectedClusters"
         @change="handelClusterChange" />
     </div>
@@ -105,6 +105,8 @@
   import { useRouter } from 'vue-router';
 
   import TendbhaModel from '@services/model/mysql/tendbha';
+  import TendbsingleModel from '@services/model/mysql/tendbsingle';
+  import { queryClusters } from '@services/source/mysqlCluster';
   import { createTicket } from '@services/source/ticket';
 
   import { useTicketCloneInfo } from '@hooks';
@@ -149,7 +151,10 @@
   const formData = reactive(createDefaultData());
 
   const tableData = ref<Array<IDataRow>>([createRowData({})]);
-  const selectedClusters = shallowRef<{ [key: string]: Array<TendbhaModel> }>({ [ClusterTypes.TENDBHA]: [] });
+  const selectedClusters = shallowRef<{ [key: string]: Array<TendbhaModel | TendbsingleModel> }>({
+    [ClusterTypes.TENDBHA]: [],
+    [ClusterTypes.TENDBSINGLE]: [],
+  });
 
   // 集群域名是否已存在表格的映射表
   let domainMemo: Record<string, boolean> = {};
@@ -174,28 +179,32 @@
     }
     tableData.value.forEach((row) => {
       Object.assign(row, {
-        backupLocal: value,
+        backupLocal: !row.clusterData || row.clusterData.type === ClusterTypes.TENDBSINGLE ? 'master' : value,
       });
     });
   };
 
   // 批量选择
-  const handelClusterChange = (selected: Record<string, Array<TendbhaModel>>) => {
+  const handelClusterChange = (selected: Record<string, Array<TendbhaModel | TendbsingleModel>>) => {
     selectedClusters.value = selected;
-    const newList = selected[ClusterTypes.TENDBHA].reduce((results, clusterData) => {
-      const domain = clusterData.master_domain;
-      if (!domainMemo[domain]) {
-        const row = createRowData({
-          clusterData: {
-            id: clusterData.id,
-            domain: clusterData.master_domain,
-          },
-        });
-        results.push(row);
-        domainMemo[domain] = true;
-      }
-      return results;
-    }, [] as IDataRow[]);
+    const newList = [...selected[ClusterTypes.TENDBHA], ...selected[ClusterTypes.TENDBSINGLE]].reduce(
+      (results, clusterData) => {
+        const domain = clusterData.master_domain;
+        if (!domainMemo[domain]) {
+          const row = createRowData({
+            clusterData: {
+              id: clusterData.id,
+              domain: clusterData.master_domain,
+              type: clusterData.cluster_type,
+            },
+          });
+          results.push(row);
+          domainMemo[domain] = true;
+        }
+        return results;
+      },
+      [] as IDataRow[],
+    );
 
     if (checkListEmpty(tableData.value)) {
       tableData.value = newList;
@@ -206,8 +215,34 @@
   };
 
   // 输入一个集群
-  const handleInputCluster = (index: number, item: IDataRow) => {
-    tableData.value[index] = item;
+  const handleChangeCluster = async (index: number, clusterId: number) => {
+    if (tableData.value[index].clusterData?.id === clusterId) {
+      return;
+    }
+
+    const resultList = await queryClusters({
+      cluster_filters: [
+        {
+          id: clusterId,
+        },
+      ],
+      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+    });
+    if (resultList.length < 1) {
+      return;
+    }
+    const item = resultList[0];
+    const domain = item.master_domain;
+    const row = createRowData({
+      clusterData: {
+        id: item.id,
+        domain,
+        type: item.cluster_type,
+      },
+    });
+    tableData.value[index] = row;
+    domainMemo[domain] = true;
+    selectedClusters.value[item.cluster_type].push(item);
   };
 
   // 追加集群
@@ -225,8 +260,10 @@
     tableData.value = dataList;
     if (domain) {
       delete domainMemo[domain];
-      const clustersArr = selectedClusters.value[ClusterTypes.TENDBHA];
-      selectedClusters.value[ClusterTypes.TENDBHA] = clustersArr.filter((item) => item.master_domain !== domain);
+      const haList = selectedClusters.value[ClusterTypes.TENDBHA];
+      selectedClusters.value[ClusterTypes.TENDBHA] = haList.filter((item) => item.master_domain !== domain);
+      const singleList = selectedClusters.value[ClusterTypes.TENDBSINGLE];
+      selectedClusters.value[ClusterTypes.TENDBSINGLE] = singleList.filter((item) => item.master_domain !== domain);
     }
   };
 
@@ -250,10 +287,9 @@
         ticket_type: 'MYSQL_HA_FULL_BACKUP',
         remark: formData.remark,
         details: {
-          infos: {
-            ...formData,
-            clusters: infos,
-          },
+          backup_type: formData.backup_type,
+          file_tag: formData.file_tag,
+          infos,
         },
       }).then((data) => {
         window.changeConfirm = false;
@@ -276,6 +312,7 @@
     tableData.value = [createRowData()];
     Object.assign(formData, createDefaultData());
     selectedClusters.value[ClusterTypes.TENDBHA] = [];
+    selectedClusters.value[ClusterTypes.TENDBSINGLE] = [];
     domainMemo = {};
     window.changeConfirm = false;
   };

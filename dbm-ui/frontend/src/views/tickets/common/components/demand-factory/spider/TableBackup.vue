@@ -99,11 +99,14 @@
         },
         {} as Record<number, string>,
       );
+      const backupLocalMap: Record<string, string> = {
+        remote: 'RemoteDR',
+      };
 
       tableData.value = infos.reduce((results, item) => {
         const obj = {
           clusterName: clusterMap[item.cluster_id],
-          position: item.backup_local,
+          position: backupLocalMap[item.backup_local] || item.backup_local,
           dbName: item.db_patterns.join(','),
           tableName: item.table_patterns.join(','),
           ignoreDbName: item.ignore_dbs.join(','),
