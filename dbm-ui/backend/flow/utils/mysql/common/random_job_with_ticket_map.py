@@ -40,7 +40,9 @@ class RuleDict:
 # 定义的单据类型对哪些实例角色来添加随机账号
 random_job_with_ticket_map = {
     # mysql 变更SQL执行添加账号规则
-    TicketType.MYSQL_IMPORT_SQLFILE: RuleDict(exec_storage_instance_role_list=[InstanceRole.BACKEND_MASTER]),
+    TicketType.MYSQL_IMPORT_SQLFILE: RuleDict(
+        exec_storage_instance_role_list=[InstanceRole.BACKEND_MASTER, InstanceRole.ORPHAN]
+    ),
     # tendb_cluster集群SQL执行添加账号规则
     TicketType.TENDBCLUSTER_IMPORT_SQLFILE: RuleDict(is_tdbctl_primary_add=True),
 }
