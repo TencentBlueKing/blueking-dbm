@@ -15,18 +15,44 @@
   <TableTagInput
     ref="tagRef"
     :model-value="localValue"
-    :placeholder="t('请输入DB 名称，支持通配符“%”，含通配符的仅支持单个')"
+    :placeholder="t('请输入DB 名称，支持通配符“*”')"
     :rules="rules"
     :single="single"
-    @change="handleChange" />
+    @blur="handleBlur"
+    @change="handleChange"
+    @focus="handleFocus">
+    <template #tip>
+      <div class="db-table-tag-tip">
+        <div style="font-weight: 700">{{ t('库表输入说明') }}：</div>
+        <div>
+          <div class="circle-dot"></div>
+          <span>{{ t('不允许输入系统库和特殊库，如admin、config、local') }}</span>
+        </div>
+        <div>
+          <div class="circle-dot"></div>
+          <span>{{ t('DB名、表名不允许为空，忽略DB名、忽略表名要么同时为空, 要么同时不为空') }}</span>
+        </div>
+        <div>
+          <div class="circle-dot"></div>
+          <span>{{ t('支持通配符 *（指代任意长度字符串）') }}</span>
+        </div>
+        <div>
+          <div class="circle-dot"></div>
+          <span>{{ t('单元格可同时输入多个对象，使用换行，空格或；，｜分隔，按 Enter 或失焦完成内容输入') }}</span>
+        </div>
+      </div>
+    </template>
+  </TableTagInput>
 </template>
 <script setup lang="ts">
   import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
 
-  import TableTagInput from '@components/render-table/columns/db-table-name/Index.vue';
+  import TableTagInput from '@components/render-table/columns/tag-input/index.vue';
 
   interface Props {
+    data?: string[];
+    compareData?: string[];
     required?: boolean;
     single?: boolean;
     rules?: {
@@ -40,13 +66,14 @@
   }
 
   interface Exposes {
-    getValue: (field: string) => Promise<Record<string, string[]>>;
+    getValue: (field: string, isSubmit?: boolean) => Promise<Record<string, string[]>>;
   }
 
   const props = withDefaults(defineProps<Props>(), {
+    data: () => [],
+    compareData: undefined,
     required: true,
     single: false,
-    remoteExist: false,
     checkExist: false,
     rules: undefined,
   });
@@ -54,6 +81,8 @@
   const emits = defineEmits<Emits>();
 
   const { t } = useI18n();
+
+  let isSubmitting = false;
 
   const tagRef = ref();
   const localValue = ref<string[]>([]);
@@ -83,7 +112,29 @@
         message: t('输入格式有误'),
         trigger: 'change',
       },
+      {
+        validator: (value: string[]) => _.every(value, (item) => !['admin', 'config', 'local'].includes(item)),
+        message: t('不允许输入系统库和特殊库'),
+      },
+      {
+        validator: (value: string[]) => {
+          if (!isSubmitting) {
+            return true;
+          }
+          const { compareData } = props;
+          if (compareData) {
+            return (value.length === 0 && compareData.length === 0) || (value.length > 0 && compareData.length > 0);
+          }
+          return true;
+        },
+        message: t('忽略DB名、忽略表名要么同时为空, 要么同时不为空'),
+        trigger: 'change',
+      },
     ];
+  });
+
+  watchEffect(() => {
+    localValue.value = props.data;
   });
 
   const handleChange = (value: string[]) => {
@@ -91,8 +142,20 @@
     emits('change', value);
   };
 
+  const handleFocus = () => {
+    isSubmitting = false;
+  };
+
+  const handleBlur = () => {
+    const { compareData } = props;
+    if (compareData) {
+      tagRef.value.getValue();
+    }
+  };
+
   defineExpose<Exposes>({
-    getValue(field: string) {
+    getValue(field: string, submit = false) {
+      isSubmitting = submit;
       return tagRef.value.getValue().then(() => {
         if (!localValue.value) {
           return Promise.reject();
@@ -104,3 +167,26 @@
     },
   });
 </script>
+
+<style lang="less" scoped>
+  .db-table-tag-tip {
+    display: flex;
+    padding: 3px 7px;
+    line-height: 24px;
+    flex-direction: column;
+
+    div {
+      display: flex;
+      align-items: center;
+
+      .circle-dot {
+        display: inline-block;
+        width: 4px;
+        height: 4px;
+        margin-right: 6px;
+        background-color: #63656e;
+        border-radius: 50%;
+      }
+    }
+  }
+</style>

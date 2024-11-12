@@ -335,8 +335,8 @@
 
       .check-all {
         position: relative;
-        width: 48px;
-        margin-right: 48px;
+        width: 50px;
+        margin-right: 50px;
 
         :deep(.bk-checkbox-label) {
           font-weight: bold;

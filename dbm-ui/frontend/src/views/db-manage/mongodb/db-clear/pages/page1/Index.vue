@@ -58,14 +58,15 @@
             content: t('如忽略_有连接的情况下也会执行'),
             theme: 'dark',
           }"
-          class="ml-6 force-switch"
-          >{{ t('忽略业务连接') }}</span
-        >
+          class="ml-6 force-switch">
+          {{ t('忽略业务连接') }}
+        </span>
       </div>
     </div>
     <template #action>
       <BkButton
         class="w-88"
+        :disabled="totalNum === 0"
         :loading="isSubmitting"
         theme="primary"
         @click="handleSubmit">
@@ -90,8 +91,6 @@
   </SmartAction>
 </template>
 <script setup lang="tsx">
-  import { InfoBox } from 'bkui-vue';
-  import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
   import { useRouter } from 'vue-router';
 
@@ -223,47 +222,33 @@
   };
 
   const handleSubmit = async () => {
-    const infos = await Promise.all<any>(
-      rowRefs.value.map((item: { getValue: () => Promise<any> }) => item.getValue()),
-    );
-    const replicaSetCounts = _.flatMap(infos.map((item) => item.cluster_ids)).length;
-    const params = {
-      bk_biz_id: currentBizId,
-      ticket_type: TicketTypes.MONGODB_REMOVE_NS,
-      remark: '',
-      details: {
-        is_safe: !isIgnoreBusinessAccess.value,
-        infos,
-      },
-    };
-
-    const title = isShardCluster.value
-      ? t('确认清档n个分片式集群', { n: totalNum.value })
-      : t('确认清档n个副本集集群', { n: replicaSetCounts });
-    InfoBox({
-      title,
-      subTitle: t('集群上的数据将会被清除掉'),
-      width: 480,
-      onConfirm: () => {
-        isSubmitting.value = true;
-        createTicket(params)
-          .then((data) => {
-            window.changeConfirm = false;
-            router.push({
-              name: 'MongoDbClear',
-              params: {
-                page: 'success',
-              },
-              query: {
-                ticketId: data.id,
-              },
-            });
-          })
-          .finally(() => {
-            isSubmitting.value = false;
-          });
-      },
-    });
+    try {
+      isSubmitting.value = true;
+      const infos = await Promise.all(rowRefs.value.map((item: { getValue: () => Promise<any> }) => item.getValue()));
+      const params = {
+        bk_biz_id: currentBizId,
+        ticket_type: TicketTypes.MONGODB_REMOVE_NS,
+        remark: '',
+        details: {
+          is_safe: !isIgnoreBusinessAccess.value,
+          infos,
+        },
+      };
+      await createTicket(params).then((data) => {
+        window.changeConfirm = false;
+        router.push({
+          name: 'MongoDbClear',
+          params: {
+            page: 'success',
+          },
+          query: {
+            ticketId: data.id,
+          },
+        });
+      });
+    } finally {
+      isSubmitting.value = false;
+    }
   };
 
   const handleReset = () => {

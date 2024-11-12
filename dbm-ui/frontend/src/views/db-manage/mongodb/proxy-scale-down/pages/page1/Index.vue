@@ -40,9 +40,9 @@
             content: t('如忽略_有连接的情况下也会执行'),
             theme: 'dark',
           }"
-          class="ml-6 force-switch"
-          >{{ t('忽略业务连接') }}</span
-        >
+          class="ml-6 force-switch">
+          {{ t('忽略业务连接') }}
+        </span>
       </div>
     </div>
     <template #action>
@@ -75,7 +75,6 @@
 </template>
 
 <script setup lang="ts">
-  import { InfoBox } from 'bkui-vue';
   import { useI18n } from 'vue-i18n';
   import { useRouter } from 'vue-router';
 
@@ -121,8 +120,8 @@
     [ClusterTypes.MONGO_SHARED_CLUSTER]: {
       disabledRowConfig: [
         {
-          handler: (data: MongoDBModel) => data.mongos.length < 3,
-          tip: t('Proxy数量不足，至少 3 台'),
+          handler: (data: MongoDBModel) => data.mongos.length < 2,
+          tip: t('Proxy数量不足，至少 2 台'),
         },
       ],
     },
@@ -146,7 +145,7 @@
     machineNum: item.replicaset_machine_num,
     currentSpec: {
       ...item.mongos[0].spec_config,
-      count: item.shard_node_count,
+      count: item.mongos.length,
     },
     reduceIpList: item.mongos.map((item) => ({
       label: item.ip,
@@ -220,39 +219,32 @@
 
   // 点击提交按钮
   const handleSubmit = async () => {
-    const infos = await Promise.all(rowRefs.value.map((item: { getValue: () => Promise<any> }) => item.getValue()));
-    const params = {
-      bk_biz_id: currentBizId,
-      ticket_type: TicketTypes.MONGODB_REDUCE_MONGOS,
-      details: {
-        is_safe: !isIgnoreBusinessAccess.value,
-        infos,
-      },
-    };
-
-    InfoBox({
-      title: t('确认缩容n个集群', { n: totalNum.value }),
-      width: 400,
-      onConfirm: () => {
-        isSubmitting.value = true;
-        createTicket(params)
-          .then((data) => {
-            window.changeConfirm = false;
-            router.push({
-              name: 'MongoProxyScaleDown',
-              params: {
-                page: 'success',
-              },
-              query: {
-                ticketId: data.id,
-              },
-            });
-          })
-          .finally(() => {
-            isSubmitting.value = false;
-          });
-      },
-    });
+    try {
+      isSubmitting.value = true;
+      const infos = await Promise.all(rowRefs.value.map((item: { getValue: () => Promise<any> }) => item.getValue()));
+      const params = {
+        bk_biz_id: currentBizId,
+        ticket_type: TicketTypes.MONGODB_REDUCE_MONGOS,
+        details: {
+          is_safe: !isIgnoreBusinessAccess.value,
+          infos,
+        },
+      };
+      await createTicket(params).then((data) => {
+        window.changeConfirm = false;
+        router.push({
+          name: 'MongoProxyScaleDown',
+          params: {
+            page: 'success',
+          },
+          query: {
+            ticketId: data.id,
+          },
+        });
+      });
+    } finally {
+      isSubmitting.value = false;
+    }
   };
 
   // 重置
