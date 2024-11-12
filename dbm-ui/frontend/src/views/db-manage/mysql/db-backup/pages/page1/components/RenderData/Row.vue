@@ -17,7 +17,7 @@
       <RenderCluster
         ref="clusterRef"
         :model-value="data.clusterData"
-        @input-cluster-finish="handleInputFinish" />
+        @id-change="handleClusterIdChange" />
     </FixedColumn>
     <td style="padding: 0">
       <RenderBackupLocal
@@ -44,6 +44,7 @@
     clusterData?: {
       id: number;
       domain: string;
+      type: string;
     };
     backupLocal: string;
   }
@@ -56,8 +57,9 @@
   });
 </script>
 <script setup lang="ts">
+  import RenderCluster from '@views/db-manage/mysql/common/edit-field/ClusterName.vue';
+
   import RenderBackupLocal from './RenderBackupLocal.vue';
-  import RenderCluster from './RenderCluster.vue';
 
   interface Props {
     data: IDataRow;
@@ -67,7 +69,7 @@
     (e: 'add', params: Array<IDataRow>): void;
     (e: 'remove'): void;
     (e: 'clone', value: IDataRow): void;
-    (e: 'inputClusterFinish', value: IDataRow): void;
+    (e: 'clusterInputFinish', value: number): void;
   }
 
   interface Exposes {
@@ -81,16 +83,8 @@
   const clusterRef = ref();
   const backupLocalRef = ref();
 
-  const handleInputFinish = (domain: string) => {
-    emits(
-      'inputClusterFinish',
-      createRowData({
-        clusterData: {
-          id: 0,
-          domain,
-        },
-      }),
-    );
+  const handleClusterIdChange = (clusterId: number) => {
+    emits('clusterInputFinish', clusterId);
   };
 
   const handleAppend = () => {

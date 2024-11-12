@@ -18,9 +18,7 @@
   <div class="ticket-details-list">
     <div class="ticket-details-item">
       <span class="ticket-details-item-label">{{ t('备份类型') }}：</span>
-      <span class="ticket-details-item-value">{{
-        infos.backup_type === 'physical' ? t('物理备份') : t('逻辑备份')
-      }}</span>
+      <span class="ticket-details-item-value">{{ backupType === 'physical' ? t('物理备份') : t('逻辑备份') }}</span>
     </div>
     <div class="ticket-details-item">
       <span class="ticket-details-item-label">{{ t('备份保存时间') }}：</span>
@@ -53,6 +51,7 @@
   const { t } = useI18n();
 
   const { infos } = props.ticketDetails.details;
+  const isNewProtocol = Array.isArray(infos);
 
   const fileTagMap: Record<string, string> = {
     DBFILE1M: t('1个月'),
@@ -78,7 +77,7 @@
 
   // 备份保存时间
   const backupTime = computed(() => {
-    const fileTag = props.ticketDetails.details.infos.file_tag;
+    const fileTag = isNewProtocol ? props.ticketDetails.details.file_tag : infos.file_tag;
     if (!fileTagMap[fileTag]) {
       // 兼容旧单据
       if (fileTag === 'LONGDAY_DBFILE_3Y') {
@@ -88,6 +87,8 @@
     }
     return fileTagMap[fileTag];
   });
+
+  const backupType = isNewProtocol ? props.ticketDetails.details.backup_type : infos.backup_type;
 
   useRequest(getTendbclusterListByBizId, {
     defaultParams: [
@@ -105,10 +106,14 @@
         Object.assign(obj, { [item.id]: item.master_domain });
         return obj;
       }, {});
-      tableData.value = infos.clusters.reduce<RowData[]>((results, item) => {
+      const backupLocalMap: Record<string, string> = {
+        master: 'RemoteDB',
+        slave: 'RemoteDR',
+      };
+      tableData.value = (isNewProtocol ? infos : infos.clusters).reduce<RowData[]>((results, item) => {
         const obj = {
           clusterName: clusterMap[item.cluster_id],
-          position: item.backup_local,
+          position: backupLocalMap[item.backup_local] || item.backup_local,
         };
         results.push(obj);
         return results;

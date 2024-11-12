@@ -56,13 +56,16 @@
     cluster_id:number,
   }
 
+  const { infos } = props.ticketDetails.details;
+  const isNewProtocol = Array.isArray(infos);
+
   // MySQL 全库备份
   const columns = [
-    {
-      label: t('集群ID'),
-      field: 'cluster_id',
-      render: ({ cell }: { cell: number }) => <span>{cell || '--'}</span>,
-    },
+    // {
+    //   label: t('集群ID'),
+    //   field: 'cluster_id',
+    //   render: ({ cell }: { cell: number }) => <span>{cell || '--'}</span>,
+    // },
     {
       label: t('集群名称'),
       field: 'immute_domain',
@@ -96,9 +99,8 @@
   }
 
   const dataList = computed(() => {
-    const infosData = props.ticketDetails.details.infos || {};
     const clusters = props.ticketDetails.details.clusters || {};
-    return infosData?.clusters?.reduce((results, item) => {
+    return (isNewProtocol ? infos : infos.clusters).reduce((results, item) => {
       const clusterData = clusters[item.cluster_id];
       results.push(Object.assign({
         immute_domain: clusterData?.immute_domain,
@@ -112,7 +114,8 @@
 
   // 备份选项
   const backupOptions = computed(() => {
-    if (props.ticketDetails.details.infos.online) {
+    const online = isNewProtocol ? props.ticketDetails.details.online : infos.online;
+    if (online) {
       return t('在线备份');
     }
     return t('停机备份');
@@ -120,7 +123,8 @@
 
   // 备份类型
   const backupType = computed(() => {
-    if (props.ticketDetails.details.infos.backup_type === 'logical') {
+    const value = isNewProtocol ? props.ticketDetails.details.backup_type : infos.backup_type;
+    if (value === 'logical') {
       return t('逻辑备份');
     }
     return t('物理备份');
@@ -128,7 +132,7 @@
 
   // 备份保存时间
   const backupTime = computed(() => {
-    const fileTag = props.ticketDetails.details.infos.file_tag;
+    const fileTag = isNewProtocol ? props.ticketDetails.details.file_tag : infos.file_tag;
     if (!fileTagMap[fileTag]) {
       // 兼容旧单据
       if (fileTag === 'LONGDAY_DBFILE_3Y') {

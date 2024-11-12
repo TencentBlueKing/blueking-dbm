@@ -286,15 +286,26 @@ export interface MySQLFlashback extends DetailBase {
  */
 export interface MySQLFullBackupDetails extends DetailBase {
   clusters: DetailClusters;
-  infos: {
-    backup_type: string;
-    clusters: {
-      backup_local: string;
-      cluster_id: number;
-    }[];
-    file_tag: string;
-    online: boolean;
-  };
+  // 新版协议
+  backup_type: string;
+  file_tag: string;
+  online: boolean;
+  infos:
+    | {
+        // 旧版协议
+        backup_type: string;
+        clusters: {
+          backup_local: string;
+          cluster_id: number;
+        }[];
+        file_tag: string;
+        online: boolean;
+      }
+    | {
+        // 新版协议
+        backup_local: string;
+        cluster_id: number;
+      }[];
 }
 
 /**
