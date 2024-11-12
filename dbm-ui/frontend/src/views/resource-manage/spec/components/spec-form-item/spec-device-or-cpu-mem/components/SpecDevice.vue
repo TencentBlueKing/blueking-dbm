@@ -88,14 +88,15 @@
 </template>
 
 <script setup lang="ts">
+  import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
   import { fetchDeviceClass } from '@services/source/dbresourceResource';
 
-  // interface Props {
-  //   isEdit: boolean;
-  // }
+  interface Props {
+    isEdit: boolean;
+  }
 
   interface DeviceClassListItem {
     cpu: number;
@@ -104,9 +105,9 @@
     value: string;
   }
 
-  // const props = withDefaults(defineProps<Props>(), {
-  //   isEdit: false,
-  // });
+  const props = withDefaults(defineProps<Props>(), {
+    isEdit: false,
+  });
 
   const modelValue = defineModel<string[]>({
     default: () => [],
@@ -140,6 +141,7 @@
   ];
 
   let isAppend = false;
+  let oldData: string[] = [];
 
   const { loading: isLoading, run: getDeviceClassList } = useRequest(fetchDeviceClass, {
     manual: true,
@@ -172,6 +174,7 @@
     () => modelValue.value,
     () => {
       if (modelValue.value.length > 0 && modelValue.value[0] !== '-1') {
+        oldData = _.cloneDeep(modelValue.value);
         // 批量查询已选中的机型
         searchParams.name = modelValue.value.join(',');
         getDeviceClassList(searchParams);
@@ -185,9 +188,12 @@
   );
 
   const handleTagClose = (index: number) => {
-    // if (props.isEdit) {
-    //   return;
-    // }
+    if (props.isEdit) {
+      const value = modelValue.value[index];
+      if (oldData.includes(value)) {
+        return;
+      }
+    }
     modelValue.value.splice(index, 1);
   };
 
