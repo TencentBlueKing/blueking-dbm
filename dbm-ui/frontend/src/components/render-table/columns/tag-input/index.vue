@@ -30,6 +30,7 @@
         :max-data="single ? 1 : -1"
         :paste-fn="tagInputPasteFn"
         :placeholder="placeholder"
+        @blur="handleBlur"
         @change="handleChange"
         @focus="handleFocus" />
       <div
@@ -67,6 +68,8 @@
   interface Emits {
     (e: 'change', value: string[]): void;
     (e: 'update:modelValue', value: string[]): void;
+    (e: 'focus'): void;
+    (e: 'blur'): void;
   }
 
   interface Exposes {
@@ -130,6 +133,11 @@
 
   const handleFocus = () => {
     isFocus.value = true;
+    emits('focus');
+  };
+
+  const handleBlur = () => {
+    emits('blur');
   };
 
   onMounted(() => {

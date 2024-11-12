@@ -324,4 +324,38 @@ export default class MongodbDetail {
   get createAtDisplay() {
     return utcDisplayTime(this.create_at);
   }
+
+  get isMongoReplicaSet() {
+    return this.cluster_type === 'MongoReplicaSet';
+  }
+
+  get entryDomain() {
+    if (this.isMongoReplicaSet) {
+      const domainList = this.cluster_entry.reduce<string[]>((prevDomainList, entryItem) => {
+        if (!entryItem.entry.includes('backup')) {
+          return prevDomainList.concat(`${entryItem.entry}:${this.cluster_access_port}`);
+        }
+        return prevDomainList;
+      }, []);
+      return domainList.join(',');
+    }
+    return `${this.master_domain}:${this.cluster_access_port}`;
+  }
+
+  get entryAccess() {
+    if (this.isMongoReplicaSet) {
+      return `mongodb://{username}:{password}@${this.entryDomain}/?replicaSet=${this.cluster_name}&authSource=admin`;
+    }
+    return `mongodb://{username}:{password}@${this.entryDomain}/?authSource=admin`;
+  }
+
+  get entryAccessClb() {
+    if (!this.isMongoReplicaSet) {
+      const clbItem = this.cluster_entry.find((entryItem) => entryItem.cluster_entry_type === 'clbDns');
+      if (clbItem) {
+        return `mongodb://{username}:{password}@${clbItem.entry}:${this.cluster_access_port}/?authSource=admin`;
+      }
+    }
+    return '';
+  }
 }

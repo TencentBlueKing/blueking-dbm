@@ -28,22 +28,22 @@
         :is-loading="data.isLoading" />
     </td>
     <td style="padding: 0">
-      <RenderTargetNumber
-        ref="targetNumRef"
-        :data="data.targetNum"
-        :disabled="!data.clusterName"
-        :is-loading="data.isLoading"
-        :max="data.currentSpec?.count"
-        @change="handleReduceNumChange" />
-    </td>
-    <td style="padding: 0">
       <RenderIpSelect
         ref="selectRef"
-        :disabled="!data.clusterName || !reduceNum"
+        :count="data.currentSpec?.count || 2"
+        :disabled="!data.clusterName"
         :is-check-affinity="data.affinity === 'CROS_SUBZONE'"
         :is-loading="data.isLoading"
-        :max="reduceNum"
-        :select-list="data.reduceIpList" />
+        :select-list="data.reduceIpList"
+        @change="handleIpSelectChange" />
+    </td>
+    <td style="padding: 0">
+      <RenderTargetNumber
+        ref="targetNumRef"
+        :count="data.currentSpec?.count || 2"
+        :data="localTargetNum"
+        disabled
+        :is-loading="data.isLoading" />
     </td>
     <OperateColumn
       :removeable="removeable"
@@ -121,19 +121,24 @@
   const clusterRef = ref<InstanceType<typeof RenderTargetCluster>>();
   const targetNumRef = ref<InstanceType<typeof RenderTargetNumber>>();
   const selectRef = ref<InstanceType<typeof RenderIpSelect>>();
+  const localTargetNum = ref<string>();
 
-  const reduceNum = ref<number>();
-
-  const handleReduceNumChange = (value: number) => {
-    if (props.data.currentSpec?.count) {
-      reduceNum.value = props.data.currentSpec.count - value;
-      return;
-    }
-    reduceNum.value = value;
-  };
+  watch(
+    () => props.data.targetNum,
+    () => {
+      localTargetNum.value = props.data.targetNum;
+    },
+    {
+      immediate: true,
+    },
+  );
 
   const handleInputFinish = (value: string) => {
     emits('clusterInputFinish', value);
+  };
+
+  const handleIpSelectChange = (value: number) => {
+    localTargetNum.value = String(value);
   };
 
   const handleAppend = () => {

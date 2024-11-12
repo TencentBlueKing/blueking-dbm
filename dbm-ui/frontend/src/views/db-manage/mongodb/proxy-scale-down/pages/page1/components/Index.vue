@@ -44,15 +44,15 @@
           <span>{{ t('当前规格') }}</span>
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
-          :min-width="100"
-          :width="300">
-          <span>{{ t('缩容至(台)') }}</span>
-        </RenderTableHeadColumn>
-        <RenderTableHeadColumn
           :min-width="120"
           :required="false"
           :width="200">
           <span>{{ t('缩容的IP') }}</span>
+        </RenderTableHeadColumn>
+        <RenderTableHeadColumn
+          :min-width="100"
+          :width="300">
+          <span>{{ t('缩容数量（台）') }}</span>
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
           fixed="right"

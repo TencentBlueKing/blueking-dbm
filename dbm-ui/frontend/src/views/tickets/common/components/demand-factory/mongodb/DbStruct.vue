@@ -48,6 +48,8 @@
 
   import type { TicketDetails } from '@services/types/ticket';
 
+  import { ClusterTypes } from '@common/const';
+
   import { utcDisplayTime } from '@utils';
 
   interface DbStructDeatils  {
@@ -293,8 +295,8 @@
 
   const tableData = computed(() => clusterIds.map(id => ({
     immute_domain: clusters[id].immute_domain,
-    struct_type: backupinfo ? t('备份记录') : t('回档至指定时间 '),
-    backup_file: backupinfo ? `${backupinfo[id].role_type}${utcDisplayTime(backupinfo[id].end_time)}` : '',
+    struct_type: backupinfo ? t('备份记录') : t('回档至指定时间'),
+    backup_file: backupinfo ? `${clusters[id].cluster_type === ClusterTypes.MONGO_SHARED_CLUSTER ? backupinfo[id].set_name : ''}-${backupinfo[id].role_type}-${utcDisplayTime(backupinfo[id].end_time)}` : '',
     target_time: rollbackTime ? utcDisplayTime(rollbackTime) : '',
   }))
   )
