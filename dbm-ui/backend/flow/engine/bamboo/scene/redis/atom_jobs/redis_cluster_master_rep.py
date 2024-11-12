@@ -221,6 +221,44 @@ def TwemproxyClusterMasterReplaceJob(
                 kwargs=asdict(act_kwargs),
             )
 
+    # 这里高版本的Redis Slave 还需要重新同步一下数据
+    if act_kwargs.cluster["cluster_type"] in [
+        ClusterType.TendisRedisInstance.value,
+        ClusterType.TendisTwemproxyRedisInstance.value,
+    ]:
+        sub_pipelines, resync_args = [], deepcopy(act_kwargs)
+        resync_args.cluster = {
+            "bk_biz_id": int(act_kwargs.cluster["bk_biz_id"]),
+            "cluster_id": int(act_kwargs.cluster["cluster_id"]),
+            "cluster_type": act_kwargs.cluster["cluster_type"],
+            "immute_domain": act_kwargs.cluster["immute_domain"],
+            "bk_cloud_id": int(act_kwargs.cluster["bk_cloud_id"]),
+            "instances": [],
+        }
+        for sync_link in sync_relations:
+            one_resync_args = deepcopy(resync_args)
+            new_master, new_slave = sync_link["sync_dst1"], sync_link["sync_dst2"]
+            for instances in sync_link["ins_link"]:
+                master_port, slave_port = instances["sync_dst1"], instances["sync_dst2"]
+                one_resync_args.cluster["instances"].append(
+                    {
+                        "master_ip": new_master,
+                        "master_port": int(master_port),
+                        "slave_ip": new_slave,
+                        "slave_port": int(slave_port),
+                    }
+                )
+            one_resync_args.exec_ip = new_slave
+            one_resync_args.get_redis_payload_func = RedisActPayload.redis_local_redo_dr.__name__
+            sub_pipelines.append(
+                {
+                    "act_name": _("{}-本地重建Slave").format(new_slave),
+                    "act_component_code": ExecuteDBActuatorScriptComponent.code,
+                    "kwargs": asdict(one_resync_args),
+                }
+            )
+        redis_pipeline.add_parallel_acts(acts_list=sub_pipelines)
+
     # #### 下架旧实例 #############################################################################
     sub_pipelines, shutdown_kwargs = [], deepcopy(act_kwargs)
     for replace_info in master_replace_detail:

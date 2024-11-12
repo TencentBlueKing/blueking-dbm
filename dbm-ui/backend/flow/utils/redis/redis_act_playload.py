@@ -1310,6 +1310,22 @@ class RedisActPayload(object):
             "payload": {"replica_pairs": params["replica_pairs"]},
         }
 
+    # redis批量建立主从关系（本地强制重建slave）
+    def redis_local_redo_dr(self, **kwargs) -> dict:
+        """
+        适用场景：
+            1. 整机替换
+            2. 扩缩容
+            3. 故障复用
+        """
+        params = kwargs["params"]
+
+        return {
+            "db_type": DBActuatorTypeEnum.Redis.value,
+            "action": DBActuatorTypeEnum.Redis.value + "_" + RedisActuatorActionEnum.LocalReDoDR.value,
+            "payload": params,
+        }
+
     # redis批量建立主从关系 (兼容单实例)
     def get_redis_batch_replicate(self, **kwargs) -> dict:
         """

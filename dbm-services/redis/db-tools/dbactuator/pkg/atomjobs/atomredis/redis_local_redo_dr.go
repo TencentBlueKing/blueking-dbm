@@ -30,6 +30,17 @@ type RedisLocalDoDR struct {
 	runtime   *jobruntime.JobGenericRuntime
 }
 
+/*{
+	"bk_biz_id":0,
+	"cluster_id":111,
+	"cluster_type":"TwemproxyRedisInstance",
+	"immute_domain":"x.1.x.db",
+	"instances":[
+		"master_ip":"","master_port":30000,
+		"slave_ip":"","slave_port":30000,
+	]
+}*/
+
 // Init implements jobruntime.JobRunner.
 func (r *RedisLocalDoDR) Init(runtime *jobruntime.JobGenericRuntime) error {
 	// 获取安装参数
@@ -70,7 +81,7 @@ func (r *RedisLocalDoDR) Init(runtime *jobruntime.JobGenericRuntime) error {
 */
 // Run implements jobruntime.JobRunner.
 func (r *RedisLocalDoDR) Run() error {
-	if r.params.ClusterType != consts.TendisTypeTwemproxyRedisInstance ||
+	if r.params.ClusterType != consts.TendisTypeTwemproxyRedisInstance &&
 		r.params.ClusterType != consts.TendisTypeRedisInstance {
 		r.runtime.Logger.Error("Unexpected clustertype <%s>", r.params.ClusterType)
 		return fmt.Errorf("X-%s-X", r.params.ClusterType)
@@ -309,7 +320,7 @@ func NewRedisLocalDoDR() jobruntime.JobRunner {
 
 // Name implements jobruntime.JobRunner.
 func (r *RedisLocalDoDR) Name() string {
-	return "redis_local_do_dr"
+	return "redis_local_redo_dr"
 }
 
 // Retry implements jobruntime.JobRunner.
