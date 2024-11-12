@@ -14,7 +14,7 @@ from backend.components.dbconfig.constants import OpType
 from backend.configuration.constants import DBType
 from backend.db_meta.enums.cluster_type import ClusterType
 from backend.db_meta.enums.instance_role import InstanceRole
-from backend.db_meta.enums.machine_type import MachineType
+from backend.db_meta.enums.spec import SpecClusterType, SpecMachineType
 from backend.db_meta.models import Machine
 from backend.db_meta.models.spec import Spec
 from backend.flow.consts import DEFAULT_DB_MODULE_ID, ConfigTypeEnum, MongoDBManagerUser
@@ -56,19 +56,19 @@ class MigrateActKwargs:
         ]
         # 目标环境副本集mongodb机型规格
         self.dest_replicaset_machine_spec: dict = self.get_mongodb_spec_info(
-            cluster_type=ClusterType.MongoReplicaSet.value, machine_type=MachineType.MONGODB.value
+            cluster_type=SpecClusterType.MongoDB.value, machine_type=SpecMachineType.MONGODB.value
         )
         # 目标环境cluster mongos机型规格
         self.dest_mongos_machine_spec: dict = self.get_mongodb_spec_info(
-            cluster_type=ClusterType.MongoShardedCluster.value, machine_type=MachineType.MONGOS.value
+            cluster_type=SpecClusterType.MongoDB.value, machine_type=SpecMachineType.MONGOS.value
         )
         # 目标环境cluster config机型规格
         self.dest_config_machine_spec: dict = self.get_mongodb_spec_info(
-            cluster_type=ClusterType.MongoShardedCluster.value, machine_type=MachineType.MONOG_CONFIG.value
+            cluster_type=SpecClusterType.MongoDB.value, machine_type=SpecMachineType.MONOG_CONFIG.value
         )
         # 目标环境cluster mongodb机型规格
         self.dest_mongodb_machine_spec: dict = self.get_mongodb_spec_info(
-            cluster_type=ClusterType.MongoShardedCluster.value, machine_type=MachineType.MONGODB.value
+            cluster_type=SpecClusterType.MongoDB.value, machine_type=SpecMachineType.MONGODB.value
         )
         # 副本集源环境机器映射目标环境机器规格
         self.replicaset_machine_spec: dict = None
