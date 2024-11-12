@@ -41,7 +41,7 @@
       <TicketRemark v-model="remark" />
       <ClusterSelector
         v-model:is-show="isShowBatchSelector"
-        :cluster-types="[ClusterTypes.TENDBHA]"
+        :cluster-types="[ClusterTypes.TENDBHA, ClusterTypes.TENDBSINGLE]"
         :selected="selectedClusters"
         @change="handelClusterChange" />
       <BatchEntry
@@ -75,6 +75,7 @@
   import { useRouter } from 'vue-router';
 
   import TendbhaModel from '@services/model/mysql/tendbha';
+  import TendbsingleModel from '@services/model/mysql/tendbsingle';
   import { createTicket } from '@services/source/ticket';
 
   import { useTicketCloneInfo } from '@hooks';
@@ -128,7 +129,10 @@
   const tableData = ref<Array<IDataRow>>([createRowData({})]);
   const remark = ref('');
 
-  const selectedClusters = shallowRef<{ [key: string]: Array<TendbhaModel> }>({ [ClusterTypes.TENDBHA]: [] });
+  const selectedClusters = shallowRef<{ [key: string]: Array<TendbhaModel | TendbsingleModel> }>({
+    [ClusterTypes.TENDBHA]: [],
+    [ClusterTypes.TENDBSINGLE]: [],
+  });
 
   // 集群域名是否已存在表格的映射表
   let domainMemo: Record<string, boolean> = {};
@@ -152,22 +156,25 @@
     isShowBatchSelector.value = true;
   };
   // 批量选择
-  const handelClusterChange = (selected: Record<string, Array<TendbhaModel>>) => {
+  const handelClusterChange = (selected: Record<string, Array<TendbhaModel | TendbsingleModel>>) => {
     selectedClusters.value = selected;
-    const newList = selected[ClusterTypes.TENDBHA].reduce((results, clusterData) => {
-      const domain = clusterData.master_domain;
-      if (!domainMemo[domain]) {
-        const row = createRowData({
-          clusterData: {
-            id: clusterData.id,
-            domain: clusterData.master_domain,
-          },
-        });
-        results.push(row);
-        domainMemo[domain] = true;
-      }
-      return results;
-    }, [] as IDataRow[]);
+    const newList = [...selected[ClusterTypes.TENDBHA], ...selected[ClusterTypes.TENDBSINGLE]].reduce(
+      (results, clusterData) => {
+        const domain = clusterData.master_domain;
+        if (!domainMemo[domain]) {
+          const row = createRowData({
+            clusterData: {
+              id: clusterData.id,
+              domain: clusterData.master_domain,
+            },
+          });
+          results.push(row);
+          domainMemo[domain] = true;
+        }
+        return results;
+      },
+      [] as IDataRow[],
+    );
 
     if (checkListEmpty(tableData.value)) {
       tableData.value = newList;
@@ -201,8 +208,10 @@
     const domain = dataList[index].clusterData?.domain;
     if (domain) {
       delete domainMemo[domain];
-      const clustersArr = selectedClusters.value[ClusterTypes.TENDBHA];
-      selectedClusters.value[ClusterTypes.TENDBHA] = clustersArr.filter((item) => item.master_domain !== domain);
+      const haList = selectedClusters.value[ClusterTypes.TENDBHA];
+      selectedClusters.value[ClusterTypes.TENDBHA] = haList.filter((item) => item.master_domain !== domain);
+      const singleList = selectedClusters.value[ClusterTypes.TENDBSINGLE];
+      selectedClusters.value[ClusterTypes.TENDBSINGLE] = singleList.filter((item) => item.master_domain !== domain);
     }
     dataList.splice(index, 1);
     tableData.value = dataList;
@@ -250,6 +259,7 @@
     tableData.value = [createRowData()];
     remark.value = '';
     selectedClusters.value[ClusterTypes.TENDBHA] = [];
+    selectedClusters.value[ClusterTypes.TENDBSINGLE] = [];
     domainMemo = {};
     window.changeConfirm = false;
   };
