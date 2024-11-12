@@ -37,6 +37,7 @@ from backend.flow.engine.bamboo.scene.mysql.common.master_and_slave_switch impor
 from backend.flow.engine.bamboo.scene.mysql.common.mysql_resotre_data_sub_flow import (
     mysql_restore_master_slave_sub_flow,
 )
+from backend.flow.engine.bamboo.scene.mysql.common.recover_slave_instance import priv_recover_sub_flow
 from backend.flow.engine.bamboo.scene.mysql.common.uninstall_instance import uninstall_instance_sub_flow
 from backend.flow.engine.bamboo.scene.spider.common.exceptions import TendbGetBackupInfoFailedException
 from backend.flow.engine.bamboo.scene.spider.spider_remote_node_migrate import remote_instance_migrate_sub_flow
@@ -278,6 +279,14 @@ class MySQLMigrateClusterRemoteFlow(object):
                             root_id=self.root_id, ticket_data=copy.deepcopy(self.data), cluster_info=cluster
                         )
                     )
+                    priv_sub_flow = priv_recover_sub_flow(
+                        root_id=self.root_id,
+                        ticket_data=copy.deepcopy(self.data),
+                        cluster_info=cluster,
+                        ips=[self.data["new_master_ip"], self.data["new_slave_ip"]],
+                    )
+                    if priv_sub_flow:
+                        sync_data_sub_pipeline.add_sub_pipeline(sub_flow=priv_sub_flow)
 
                 sync_data_sub_pipeline.add_act(
                     act_name=_("数据恢复完毕,写入新主节点和旧主节点的关系链元数据"),

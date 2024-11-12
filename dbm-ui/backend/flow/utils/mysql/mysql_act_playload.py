@@ -2059,6 +2059,28 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
         }
         return payload
 
+    def tendb_restore_priv_payload(self, **kwargs):
+        """
+        tendb 恢复权限
+        """
+        payload = {
+            "db_type": DBActuatorTypeEnum.MySQL.value,
+            "action": DBActuatorActionEnum.FastExecuteSqlFile.value,
+            "payload": {
+                "general": {"runtime_account": self.account},
+                "extend": {
+                    "socket": "",
+                    "host": kwargs["ip"],
+                    "port": self.cluster["port"],
+                    "database": "information_schema",
+                    "force": self.cluster["force"],
+                    "file_dir": self.cluster["file_target_path"],
+                    "sql_files": self.cluster["sql_files"],
+                },
+            },
+        }
+        return payload
+
     def tendb_grant_remotedb_repl_user(self, **kwargs) -> dict:
         """
         拼接创建repl账号的payload参数(在master节点执行)

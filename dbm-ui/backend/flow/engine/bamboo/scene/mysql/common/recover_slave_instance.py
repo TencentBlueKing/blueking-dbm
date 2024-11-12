@@ -10,6 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 import copy
 import logging
+import os.path
 from dataclasses import asdict
 from datetime import datetime
 
@@ -18,6 +19,7 @@ from django.utils.translation import ugettext as _
 
 from backend.configuration.constants import MYSQL_DATA_RESTORE_TIME, MYSQL_USUAL_JOB_TIME, DBType
 from backend.db_meta.enums import ClusterType
+from backend.db_meta.models import Cluster
 from backend.db_services.mysql.fixpoint_rollback.handlers import FixPointRollbackHandler
 from backend.flow.consts import MysqlChangeMasterType
 from backend.flow.engine.bamboo.scene.common.builder import SubBuilder
@@ -169,3 +171,82 @@ def slave_recover_sub_flow(root_id: str, ticket_data: dict, cluster_info: dict):
     return sub_pipeline.build_sub_process(
         sub_name=_("{}:{}从节点重建".format(cluster["new_slave_ip"], cluster["new_slave_port"]))
     )
+
+
+def priv_recover_sub_flow(root_id: str, ticket_data: dict, cluster_info: dict, ips: list):
+    """
+    tendb privilege recover 指定实例权限恢复。
+    @param root_id:  flow流程的root_id
+    @param ticket_data: 关联单据 ticket对象
+    @param cluster_info:  关联的cluster对象
+    @param ips: 实例ip
+    """
+    cluster_model = Cluster.objects.get(id=cluster_info["cluster_id"])
+    sub_pipeline = SubBuilder(root_id=root_id, data=ticket_data)
+    # 查询备份
+    rollback_time = datetime.now(timezone.utc)
+    rollback_handler = FixPointRollbackHandler(cluster_id=cluster_model.id)
+    backup_info = rollback_handler.query_instance_backup_priv_logs(rollback_time)
+    if backup_info is None:
+        return None
+        # 查询不到权限备份，则不添加权限备份节点。
+        # logger.error("cluster {} backup privilege not exists".format(cluster_model.id))
+        # raise TendbGetBackupInfoFailedException(message=_("获取集群 {} 的权限备份信息失败".format(cluster_model.id)))
+
+    priv_file_task_ids = [file["task_id"] for file in backup_info["file_list"].values()]
+    priv_files = [os.path.basename(file["file_name"]) for file in backup_info["file_list"].values()]
+    storages = cluster_model.storageinstance_set.filter(machine__ip__in=ips)
+    priv_sub_pipeline_list = []
+    for storage in storages:
+        priv_sub_pipeline = SubBuilder(root_id=root_id, data=ticket_data)
+        cluster = {
+            "cluster_id": cluster_model.id,
+            "file_target_path": f"/data/dbbak/{root_id}/{storage.port}",
+            "sql_files": priv_files,
+            "port": storage.port,
+            "force": False,
+        }
+        exec_act_kwargs = ExecActuatorKwargs(
+            bk_cloud_id=cluster_model.bk_cloud_id,
+            cluster_type=cluster_model.cluster_type,
+            cluster=copy.deepcopy(cluster),
+        )
+        exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.mysql_mkdir_dir.__name__
+        exec_act_kwargs.exec_ip = storage.machine.ip
+        sub_pipeline.add_act(
+            act_name=_("创建目录 {}".format(cluster["file_target_path"])),
+            act_component_code=ExecuteDBActuatorScriptComponent.code,
+            kwargs=asdict(exec_act_kwargs),
+        )
+
+        download_kwargs = DownloadBackupFileKwargs(
+            bk_cloud_id=cluster_model.bk_cloud_id,
+            task_ids=priv_file_task_ids,
+            dest_ip=storage.machine.ip,
+            dest_dir=cluster["file_target_path"],
+            reason="privilege recover",
+        )
+
+        priv_sub_pipeline.add_act(
+            act_name=_("下载权限备份介质到 {}".format(storage.machine.ip)),
+            act_component_code=MySQLDownloadBackupfileComponent.code,
+            kwargs=asdict(download_kwargs),
+        )
+
+        exec_act_kwargs.job_timeout = MYSQL_USUAL_JOB_TIME
+        exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.tendb_restore_priv_payload.__name__
+        priv_sub_pipeline.add_act(
+            act_name=_("权限恢复 {}".format(storage.ip_port)),
+            act_component_code=ExecuteDBActuatorScriptComponent.code,
+            kwargs=asdict(exec_act_kwargs),
+        )
+        priv_sub_pipeline_list.append(
+            priv_sub_pipeline.build_sub_process(sub_name=_(_("{}权限恢复").format(storage.ip_port)))
+        )
+
+    if len(priv_sub_pipeline_list) > 0:
+        sub_pipeline.add_parallel_sub_pipeline(sub_flow_list=priv_sub_pipeline_list)
+        return sub_pipeline.build_sub_process(sub_name=_("{}恢复权限".format(cluster_model.id)))
+    else:
+        return None
+    #  如果流程未空，如何？

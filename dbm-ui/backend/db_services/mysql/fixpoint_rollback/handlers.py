@@ -261,7 +261,7 @@ class FixPointRollbackHandler:
         else:
             return self.aggregate_tendb_dbbackup_logs(backup_logs)
 
-    def query_instance_backup_logs(self, end_time: datetime, **kwargs) -> Dict:
+    def query_instance_backup_priv_logs(self, end_time: datetime, **kwargs) -> Dict:
         """
         通过日志平台查询集群实例一周内最近的权限备份日志
         :param end_time: 结束时间

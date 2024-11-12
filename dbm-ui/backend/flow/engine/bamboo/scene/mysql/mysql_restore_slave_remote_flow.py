@@ -30,7 +30,10 @@ from backend.flow.engine.bamboo.scene.mysql.common.common_sub_flow import (
 )
 from backend.flow.engine.bamboo.scene.mysql.common.get_master_config import get_instance_config
 from backend.flow.engine.bamboo.scene.mysql.common.mysql_resotre_data_sub_flow import mysql_restore_data_sub_flow
-from backend.flow.engine.bamboo.scene.mysql.common.recover_slave_instance import slave_recover_sub_flow
+from backend.flow.engine.bamboo.scene.mysql.common.recover_slave_instance import (
+    priv_recover_sub_flow,
+    slave_recover_sub_flow,
+)
 from backend.flow.engine.bamboo.scene.mysql.common.slave_recover_switch import slave_migrate_switch_sub_flow
 from backend.flow.engine.bamboo.scene.mysql.common.uninstall_instance import uninstall_instance_sub_flow
 from backend.flow.plugins.components.collections.common.download_backup_client import DownloadBackupClientComponent
@@ -236,6 +239,15 @@ class MySQLRestoreSlaveRemoteFlow(object):
                             root_id=self.root_id, ticket_data=copy.deepcopy(self.data), cluster_info=cluster
                         )
                     )
+
+                    priv_sub_flow = priv_recover_sub_flow(
+                        root_id=self.root_id,
+                        ticket_data=copy.deepcopy(self.data),
+                        cluster_info=cluster,
+                        ips=[self.data["new_slave_ip"]],
+                    )
+                    if priv_sub_flow:
+                        sync_data_sub_pipeline.add_sub_pipeline(sub_flow=priv_sub_flow)
 
                 sync_data_sub_pipeline.add_act(
                     act_name=_("同步完毕,写入主从关系,设置节点为running状态"),
@@ -544,6 +556,14 @@ class MySQLRestoreSlaveRemoteFlow(object):
                         root_id=self.root_id, ticket_data=copy.deepcopy(self.data), cluster_info=cluster
                     )
                 )
+                priv_sub_flow = priv_recover_sub_flow(
+                    root_id=self.root_id,
+                    ticket_data=copy.deepcopy(self.data),
+                    cluster_info=cluster,
+                    ips=[target_slave.machine.ip],
+                )
+                if priv_sub_flow:
+                    tendb_migrate_pipeline.add_sub_pipeline(sub_flow=priv_sub_flow)
 
             # 卸载流程人工确认
             tendb_migrate_pipeline.add_act(act_name=_("人工确认"), act_component_code=PauseComponent.code, kwargs={})
