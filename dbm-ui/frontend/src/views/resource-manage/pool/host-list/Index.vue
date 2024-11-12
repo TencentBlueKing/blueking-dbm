@@ -278,6 +278,7 @@
     fetchList({
       offset: 0,
       limit: -1,
+      ...searchParams,
     }).then((data) => {
       const ipList = data.results.map(item => item.ip);
       execCopy(ipList.join('\n'), `${t('复制成功n个IP', { n: ipList.length })}\n`);
