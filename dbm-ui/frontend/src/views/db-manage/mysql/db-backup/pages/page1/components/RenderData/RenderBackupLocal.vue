@@ -12,22 +12,19 @@
 -->
 
 <template>
-  <BkLoading :loading="isListLoading">
-    <TableEditSelect
-      ref="editSelectRef"
-      :disabled="!clusterData"
-      :list="backupList"
-      :model-value="modelValue"
-      :placeholder="t('请选择xx', [t('备份位置')])"
-      :rules="rules"
-      @change="(value) => handleChange(value as string)" />
-  </BkLoading>
+  <TableEditSelect
+    ref="editSelectRef"
+    :disabled="!clusterData"
+    :list="baseList"
+    :model-value="localValue"
+    :placeholder="t('请选择xx', [t('备份位置')])"
+    :rules="rules"
+    @change="(value) => handleChange(value as string)" />
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
-  import { useRequest } from 'vue-request';
 
-  import { getTendbClusterList } from '@services/source/tendbcluster';
+  import { ClusterTypes } from '@common/const';
 
   import TableEditSelect from '@components/render-table/columns/select/index.vue';
 
@@ -52,53 +49,36 @@
     },
   ];
 
-  const baseList = [
-    {
-      value: 'master',
-      label: 'master',
-    },
-    {
-      value: 'slave',
-      label: 'slave',
-    },
-  ];
-
   const editSelectRef = ref();
   const localValue = ref('');
-  const backupList = shallowRef<Record<'label' | 'value', string>[]>([]);
 
-  const { run: fetchClusterList, loading: isListLoading } = useRequest(getTendbClusterList, {
-    onSuccess(data) {
-      if (data.results.length < 1) {
-        backupList.value = [...baseList];
-        return;
-      }
-      const mntList = data.results[0].spider_mnt.map((item) => ({
-        label: `运维节点(${item.ip}#${item.port})`,
-        value: `spider_mnt::${item.instance}`,
-      }));
-      backupList.value = [...baseList, ...mntList];
-    },
-    manual: true,
+  const baseList = computed(() => {
+    const list: Record<'label' | 'value', string>[] = [
+      {
+        value: 'master',
+        label: 'Master',
+      },
+    ];
+
+    if (props.clusterData?.type === ClusterTypes.TENDBHA) {
+      list.push({
+        value: 'slave',
+        label: 'Slave',
+      });
+    }
+
+    return list;
+  });
+
+  watchEffect(() => {
+    localValue.value = props.modelValue || 'master';
   });
 
   watch(
-    () => props.modelValue,
+    () => props.clusterData?.type,
     () => {
-      localValue.value = props.modelValue;
-    },
-    {
-      immediate: true,
-    },
-  );
-
-  watch(
-    () => props.clusterData,
-    () => {
-      if (props.clusterData) {
-        fetchClusterList({
-          cluster_ids: props.clusterData.id,
-        });
+      if (props.clusterData?.type === ClusterTypes.TENDBSINGLE) {
+        localValue.value = 'master';
       }
     },
     {

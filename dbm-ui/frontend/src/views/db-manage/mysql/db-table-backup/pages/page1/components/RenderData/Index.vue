@@ -28,6 +28,11 @@
       {{ t('备份源') }}
     </RenderTableHeadColumn> -->
     <RenderTableHeadColumn
+      :required="false"
+      :width="60">
+      {{ t('备份位置') }}
+    </RenderTableHeadColumn>
+    <RenderTableHeadColumn
       :min-width="240"
       :width="240">
       {{ t('备份DB名') }}

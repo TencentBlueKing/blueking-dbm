@@ -20,6 +20,11 @@
         @id-change="handleClusterIdChange" />
     </FixedColumn>
     <td style="padding: 0">
+      <RenderText
+        :data="data.backupLocal"
+        :placeholder="t('输入集群后自动生成')" />
+    </td>
+    <td style="padding: 0">
       <RenderDbName
         ref="dbPatternsRef"
         check-not-exist
@@ -57,6 +62,10 @@
   </tr>
 </template>
 <script lang="ts">
+  import { useI18n } from 'vue-i18n';
+
+  import RenderText from '@components/render-table/columns/text-plain/index.vue';
+
   import { random } from '@utils';
 
   interface Props {
@@ -71,19 +80,21 @@
       domain: string;
     };
     // backupOn: string,
+    backupLocal: string;
     dbPatterns?: string[];
     tablePatterns?: string[];
     ignoreDbs?: string[];
     ignoreTables?: string[];
   }
 
-  export type IDataRowBatchKey = keyof Omit<IDataRow, 'rowKey' | 'clusterData'>;
+  export type IDataRowBatchKey = keyof Omit<IDataRow, 'rowKey' | 'clusterData' | 'backupLocal'>;
 
   // 创建表格数据
   export const createRowData = (data = {} as Partial<IDataRow>): IDataRow => ({
     rowKey: random(),
     clusterData: data.clusterData,
     // backupOn: data.backupOn || '',
+    backupLocal: data.backupLocal || 'Slave',
     dbPatterns: data.dbPatterns,
     tablePatterns: data.tablePatterns,
     ignoreDbs: data.ignoreDbs,
@@ -114,6 +125,8 @@
   const props = defineProps<Props>();
 
   const emits = defineEmits<Emits>();
+
+  const { t } = useI18n();
 
   const clusterRef = ref();
   // const backupSourceRef = ref();
@@ -168,6 +181,7 @@
         createRowData({
           rowKey: random(),
           clusterData: props.data.clusterData,
+          backupLocal: props.data.backupLocal,
           dbPatterns: rowInfo[1].db_patterns,
           tablePatterns: rowInfo[2].table_patterns,
           ignoreDbs: rowInfo[3].ignore_dbs,

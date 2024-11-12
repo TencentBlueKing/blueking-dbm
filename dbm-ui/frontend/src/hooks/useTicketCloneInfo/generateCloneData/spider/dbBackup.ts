@@ -19,7 +19,8 @@ import { random } from '@utils';
 // Spider TenDBCluster 全备单据
 export function generateSpiderDbBackupCloneData(ticketData: TicketModel<SpiderFullBackupDetails>) {
   const { infos, clusters } = ticketData.details;
-  const tableDataList = infos.clusters.map((item) => {
+  const isNewProtocol = Array.isArray(infos);
+  const tableDataList = (isNewProtocol ? infos : infos.clusters).map((item) => {
     const clusterItem = clusters[item.cluster_id];
 
     return {
@@ -35,8 +36,8 @@ export function generateSpiderDbBackupCloneData(ticketData: TicketModel<SpiderFu
   return Promise.resolve({
     tableDataList,
     form: {
-      backup_type: infos.backup_type,
-      file_tag: infos.file_tag,
+      backup_type: isNewProtocol ? ticketData.details.backup_type : infos.backup_type,
+      file_tag: isNewProtocol ? ticketData.details.file_tag : infos.file_tag,
       remark: ticketData.remark,
     },
   });

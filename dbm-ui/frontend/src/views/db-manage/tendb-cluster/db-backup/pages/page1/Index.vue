@@ -256,10 +256,9 @@
         ticket_type: TicketTypes.TENDBCLUSTER_FULL_BACKUP,
         remark: formData.remark,
         details: {
-          infos: {
-            ...formData,
-            clusters: data,
-          },
+          backup_type: formData.backup_type,
+          file_tag: formData.file_tag,
+          infos: data,
         },
       }).then((data) => {
         window.changeConfirm = false;

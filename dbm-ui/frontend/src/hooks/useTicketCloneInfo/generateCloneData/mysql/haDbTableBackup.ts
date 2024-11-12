@@ -24,6 +24,7 @@ export function generateMysqlDbTableBackupCloneData(ticketData: TicketModel<MySQ
       id: item.cluster_id,
       domain: clusters[item.cluster_id].immute_domain,
     },
+    backUpLocation: 'slave',
     dbPatterns: item.db_patterns,
     tablePatterns: item.table_patterns,
     ignoreDbs: item.ignore_dbs,
