@@ -330,6 +330,7 @@ class MigrateActKwargs:
         elif self.source_cluster_info.get("cluster_type") == ClusterType.MongoShardedCluster.value:
             info["appdba"] = self.source_cluster_info.get("proxies_password").get("appdba")
             info["appmonitor"] = self.source_cluster_info.get("proxies_password").get("appmonitor")
+        return info
 
     def get_save_password_info(self) -> dict:
         """获取保存密码信息"""
