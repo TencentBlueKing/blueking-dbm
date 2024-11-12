@@ -88,6 +88,7 @@ func (e ExecuteSqlAtLocal) ExecuteSqlByMySQLClient(sqlfile string, targetdbs []s
 	return nil
 }
 
+// ExecuteSqlWithOutReport TODO
 func (e ExecuteSqlAtLocal) ExecuteSqlWithOutReport(sqlfile string, targetdbs []string) (err error) {
 	for _, db := range targetdbs {
 		if err = e.ExecuteSqlByMySQLClientOne(sqlfile, db, false); err != nil {
@@ -114,6 +115,7 @@ func (e ExecuteSqlAtLocal) ExecuteSqlByMySQLClientOne(sqlfile string, db string,
 	return nil
 }
 
+// TestConnectionByMySQLClient TODO
 func (e ExecuteSqlAtLocal) TestConnectionByMySQLClient(db string, report bool) (err error) {
 	command := e.CreateLoadSQLCommand()
 	command = fmt.Sprintf(`echo "select version()" | %s %s`, command, db)
@@ -144,7 +146,7 @@ func (e ExecuteSqlAtLocal) ExecuteCommand(command string, report bool) (err erro
 	defer ef.Sync()
 	// 标准输出复制一份到错误文件中
 	stdout := io.MultiWriter(os.Stdout)
-	//stdout := io.MultiWriter(os.Stdout, ef)
+	// stdout := io.MultiWriter(os.Stdout, ef)
 	// 错误不输出控制台 去掉os.Stderr
 	// stderr := io.MultiWriter(os.Stderr, &stderrBuf, ef)
 	stderr := io.MultiWriter(&stderrBuf, ef)

@@ -279,6 +279,7 @@ func (c *ImportSchemaFromBackendComp) migrateUseMydumper() (err error) {
 }
 
 // migrateUseMysqlDump 运行备份表结构
+// nolint
 func (c *ImportSchemaFromBackendComp) migrateUseMysqlDump() (err error) {
 	dumpOption := mysqlutil.MySQLDumpOption{
 		DumpSchema:              true,
@@ -306,11 +307,21 @@ func (c *ImportSchemaFromBackendComp) migrateUseMysqlDump() (err error) {
 		Charset:         c.charset,
 		MySQLDumpOption: dumpOption,
 	}
-	if err := dumper.Dump(); err != nil {
+	if err = dumper.Dump(); err != nil {
 		logger.Error("dump failed: %s", err.Error())
 		return err
 	}
 	logger.Info("备份表结构成功,开始导入表结构到中控")
+	_, err = c.tdbctlConn.Exec("set global tc_admin=0;")
+	if err != nil {
+		return err
+	}
+	defer func() {
+		_, err = c.tdbctlConn.Exec("set global tc_admin=1;")
+		if err != nil {
+			logger.Error("set global tc_admin=1 failed %s,请手动配置成tc_admin = 1", err.Error())
+		}
+	}()
 	dumpfileInfo := dumper.GetDumpFileInfo()
 	loader := mysqlutil.ExecuteSqlAtLocal{
 		IsForce:          false,
