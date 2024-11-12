@@ -11,7 +11,7 @@ specific language governing permissions and limitations under the License.
 # fast_execute_script接口固定参数
 # 这里独立出来，遇到过全局变量被其他db修改，导致用户错乱的问题
 redis_fast_execute_script_common_kwargs = {
-    "timeout": 3600,
+    "timeout": 10800,
     "account_alias": "root",
     "is_param_sensitive": 0,
 }

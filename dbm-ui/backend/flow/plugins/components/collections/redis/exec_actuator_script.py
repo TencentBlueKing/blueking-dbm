@@ -8,6 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import copy
 import json
 import logging
 import re
@@ -118,11 +119,13 @@ class ExecuteDBActuatorScriptService(BkJobService):
             "target_server": {"ip_list": target_ip_info},
             "timeout": 86400,
         }
+        # 外边可以指定执行账户，不指定则采用默认账户Root
+        common_kwargs = copy.deepcopy(redis_fast_execute_script_common_kwargs)
+        if kwargs["cluster"].get("run_as_system_user"):
+            common_kwargs["account_alias"] = kwargs["cluster"]["run_as_system_user"]
 
-        self.log_info(
-            "[{}] ready start task with body {} {}".format(node_name, redis_fast_execute_script_common_kwargs, body)
-        )
-        resp = JobApi.fast_execute_script({**redis_fast_execute_script_common_kwargs, **body}, raw=True)
+        self.log_info("[{}] ready start task with body {} {}".format(node_name, common_kwargs, body))
+        resp = JobApi.fast_execute_script({**common_kwargs, **body}, raw=True)
 
         # 传入调用结果，并单调监听任务状态
         data.outputs.ext_result = resp

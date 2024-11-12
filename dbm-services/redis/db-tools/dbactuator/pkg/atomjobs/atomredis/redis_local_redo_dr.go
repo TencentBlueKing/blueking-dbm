@@ -46,7 +46,7 @@ func (r *RedisLocalDoDR) Init(runtime *jobruntime.JobGenericRuntime) error {
 	// 获取安装参数
 	r.DataDir = consts.GetRedisDataDir()
 	r.runtime = runtime
-	r.runtime.Logger.Info("start to redis local do dr .")
+	r.runtime.Logger.Info("start to redis local do dr . with dir :%s", r.DataDir)
 
 	// 加载参数
 	if err := json.Unmarshal([]byte(r.runtime.PayloadDecoded), &r.params); err != nil {
@@ -87,10 +87,12 @@ func (r *RedisLocalDoDR) Run() error {
 		return fmt.Errorf("X-%s-X", r.params.ClusterType)
 	}
 
+	r.runtime.Logger.Warn("first stop dbmon.")
 	if rst, err := util.RunBashCmd("/home/mysql/bk-dbmon/stop.sh", "", nil, 10*time.Second); err != nil {
 		r.runtime.Logger.Warn("try stop dbmon failed %s:+%+v", rst, err)
 	}
 	defer func() {
+		r.runtime.Logger.Warn("finally start dbmon.")
 		if rst, err := util.RunBashCmd("/home/mysql/bk-dbmon/start.sh", "", nil, 10*time.Second); err != nil {
 			r.runtime.Logger.Error("try start dbmon failed %s:+%+v", rst, err)
 		}
@@ -116,11 +118,11 @@ func (r *RedisLocalDoDR) Run() error {
 		if err := r.backupFiles(addr, instance); err != nil {
 			return err
 		}
-		// start , slaveof ,wait,rewirte
+		// start , slaveof ,==,rewirte
 		if err := r.startAndWaitLinkUp(addr, password, idx, instance); err != nil {
 			return err
 		}
-		r.runtime.Logger.Info("done local redo dr %d:%s", idx, addr)
+		r.runtime.Logger.Info("done local redo dr %d:%s ^_^ \n", idx, addr)
 	}
 	return nil
 }
@@ -128,7 +130,7 @@ func (r *RedisLocalDoDR) Run() error {
 // start-redis.sh
 // slaveof master xxx xx
 // config rewite
-// wating for link up .
+// == for link up .
 func (r *RedisLocalDoDR) startAndWaitLinkUp(addr, pass string, idx int, instance ReplicaItem) error {
 	if rst, err := util.RunBashCmd(fmt.Sprintf("/usr/local/redis/bin/start-redis.sh %d",
 		instance.SlavePort), "", nil, 10*time.Second); err != nil || rst != "" {
@@ -191,11 +193,11 @@ func (r *RedisLocalDoDR) WaitMasterLinkUp(rConn *myredis.RedisClient, addr strin
 }
 
 func (r *RedisLocalDoDR) backupFiles(addr string, instance ReplicaItem) error {
-	bashPath := filepath.Join(r.DataDir, strconv.Itoa(instance.SlavePort))
+	bashPath := filepath.Join(r.DataDir, "redis", strconv.Itoa(instance.SlavePort))
 
 	rdbFile, aofFile := filepath.Join(bashPath, "data", "dump.rdb"), filepath.Join(bashPath, "data", "appendonly.aof")
-	bkRdb := filepath.Join("/data/dbbak", fmt.Sprintf("backup.%s.%d.dump.rdb", r.runtime.UID, r.startTime))
-	bkAof := filepath.Join("/data/dbbak", fmt.Sprintf("backup.%s.%d.appendonly.aof", r.runtime.UID, r.startTime))
+	bkRdb := filepath.Join("/data/dbbak", fmt.Sprintf("backup.%s.%d.%d.dump.rdb", r.runtime.UID, r.startTime, instance.SlavePort))
+	bkAof := filepath.Join("/data/dbbak", fmt.Sprintf("backup.%s.%d.%d.appendonly.aof", r.runtime.UID, r.startTime, instance.SlavePort))
 	if err := r.tryBackupData(aofFile, bkAof, addr); err != nil {
 		return err
 	}
@@ -221,7 +223,8 @@ func (r *RedisLocalDoDR) tryCommentSlaveOf(cnf, addr string) error {
 		return nil
 	}
 
-	if rst, err := util.RunBashCmd(fmt.Sprintf("sed -i 's/slaveof /#slaveof /g' %s", cnf),
+	// replicaof slaveof
+	if rst, err := util.RunBashCmd(fmt.Sprintf("sed -i 's/slaveof /#slaveof /g; s/replicaof /#replicaof /g' %s", cnf),
 		"", nil, 10*time.Second); err != nil || rst != "" {
 		r.runtime.Logger.Error("backup file %s ,failed:%s:%+v", cnf, rst, err)
 		return fmt.Errorf("failed by mv %s:%+v", rst, err)
@@ -239,7 +242,7 @@ func (r *RedisLocalDoDR) tryBackupData(src, dst, addr string) error {
 		r.runtime.Logger.Error("backup file %s ,failed:%s:%+v", src, rst, err)
 		return fmt.Errorf("failed by mv %s:%+v", rst, err)
 	}
-	r.runtime.Logger.Info("%s rdb[%s] and aof[%s] backuped succ ^_^", addr, src, dst)
+	r.runtime.Logger.Info("backup %s [%s] 2-> [%s] succ ^_^", addr, src, dst)
 	return nil
 }
 

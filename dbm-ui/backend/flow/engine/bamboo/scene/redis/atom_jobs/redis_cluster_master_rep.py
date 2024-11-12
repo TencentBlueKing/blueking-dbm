@@ -228,6 +228,7 @@ def TwemproxyClusterMasterReplaceJob(
     ]:
         sub_pipelines, resync_args = [], deepcopy(act_kwargs)
         resync_args.cluster = {
+            "run_as_system_user": "mysql",
             "bk_biz_id": int(act_kwargs.cluster["bk_biz_id"]),
             "cluster_id": int(act_kwargs.cluster["cluster_id"]),
             "cluster_type": act_kwargs.cluster["cluster_type"],
