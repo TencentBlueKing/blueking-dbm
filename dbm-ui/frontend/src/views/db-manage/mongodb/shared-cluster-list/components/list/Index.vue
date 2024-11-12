@@ -96,8 +96,13 @@
     </template>
     <CapacityChange
       v-model:is-change="isCapacityChange"
+      :cluster-type="ClusterTypes.MONGO_SHARED_CLUSTER"
       :data="detailData" />
   </DbSideslider>
+  <AccessEntry
+    v-if="accessEntryInfo"
+    v-model:is-show="accessEntryInfoShow"
+    :data="accessEntryInfo" />
 </template>
 
 <script setup lang="tsx">
@@ -146,6 +151,8 @@
   import RenderHeadCopy from '@views/db-manage/common/render-head-copy/Index.vue';
   import RenderInstances from '@views/db-manage/common/render-instances/RenderInstances.vue';
   import RenderOperationTag from '@views/db-manage/common/RenderOperationTagNew.vue';
+  import AccessEntry from '@views/db-manage/mongodb/components/AccessEntry.vue';
+  import CapacityChange from '@views/db-manage/mongodb/components/CapacityChange.vue';
 
   import {
     getMenuListSearch,
@@ -153,7 +160,8 @@
   } from '@utils';
 
   import { useDisableCluster } from '../../hooks/useDisableCluster';
-  import CapacityChange from '../components/CapacityChange.vue';
+
+  import RenderShard from './components/render-shard/Index.vue'
 
   const clusterId = defineModel<number>('clusterId');
 
@@ -276,6 +284,8 @@
   const clusterAuthorizeShow = ref(false);
   const excelAuthorizeShow = ref(false);
   const selected = ref<MongodbModel[]>([])
+  const accessEntryInfoShow = ref(false);
+  const accessEntryInfo = ref<MongodbModel | undefined>();
 
   const tableDataList = computed(() => tableRef.value?.getData<MongodbModel>() || [])
   const hasData = computed(() => tableDataList.value.length > 0);
@@ -516,7 +526,7 @@
     {
       label: 'ShardSvr',
       field: 'mongodb',
-      width: 180,
+      width: 300,
       showOverflowTooltip: false,
       renderHead: () => (
         <RenderHeadCopy
@@ -540,13 +550,10 @@
         </RenderHeadCopy>
       ),
       render: ({ data }: { data: MongodbModel }) => (
-        <RenderInstances
-          highlightIps={batchSearchIpInatanceList.value}
-          data={data.mongodb}
+        <RenderShard
+          data={data.shardList}
           title={`【${data.master_domain}】ShardSvr`}
-          role="mongodb"
-          clusterId={data.id}
-          dataSource={getMongoInstancesList}/>
+          instanceList={data.mongodb} />
       ),
     },
     {
@@ -590,12 +597,13 @@
       fixed: isStretchLayoutOpen.value ? false : 'right',
       render: ({ data }: { data: MongodbModel }) => {
         const baseButtons = [
-          <bk-button
-            text
-            theme="primary"
-            onclick={() => handleCopyMasterDomainDisplayName(data)}>
-            { t('复制访问地址') }
-          </bk-button>,
+        <bk-button
+          disabled={data.isOffline}
+          text
+          theme="primary"
+          onClick={() => handleShowAccessEntry(data)}>
+          { t('获取访问方式') }
+        </bk-button>,
         ];
         const onlineButtons = [
           <OperationBtnStatusTips data={data}>
@@ -746,8 +754,9 @@
     selected.value = [];
   };
 
-  const handleCopyMasterDomainDisplayName = (row: MongodbModel) => {
-    copy(row.masterDomainDisplayName);
+  const handleShowAccessEntry = (data: MongodbModel) => {
+    accessEntryInfo.value = data;
+    accessEntryInfoShow.value = true
   };
 
   const handleToDetails = (id: number) => {
