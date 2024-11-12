@@ -168,7 +168,7 @@
   const selectList = [
     {
       value: 'remote',
-      label: 'remote',
+      label: 'RemoteDR',
     },
   ];
 

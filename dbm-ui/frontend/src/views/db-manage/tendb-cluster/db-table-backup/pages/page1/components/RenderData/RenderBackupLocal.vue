@@ -53,10 +53,12 @@
     },
   ];
 
-  const remoteValue = {
-    value: 'remote',
-    label: 'remote',
-  };
+  const baseList = [
+    {
+      value: 'remote',
+      label: 'RemoteDR',
+    },
+  ];
 
   const editSelectRef = ref();
   const localValue = ref('');
@@ -65,14 +67,14 @@
   const { run: fetchClusterList, loading: isListLoading } = useRequest(getTendbClusterList, {
     onSuccess(data) {
       if (data.results.length < 1) {
-        backupList.value = [remoteValue];
+        backupList.value = [...baseList];
         return;
       }
       const mntList = data.results[0].spider_mnt.map((item) => ({
         label: `${item.ip}:${item.port}`,
         value: `spider_mnt::${item.instance}`,
       }));
-      backupList.value = [remoteValue, ...mntList];
+      backupList.value = [...baseList, ...mntList];
     },
     manual: true,
   });
@@ -92,7 +94,7 @@
     () => {
       if (props.clusterData) {
         fetchClusterList({
-          cluster_ids: props.clusterData.id,
+          cluster_ids: [props.clusterData.id],
         });
       }
     },
