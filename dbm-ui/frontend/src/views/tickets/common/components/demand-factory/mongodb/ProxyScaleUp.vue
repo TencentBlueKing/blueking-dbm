@@ -12,18 +12,14 @@
 -->
 
 <template>
-  <BkLoading :loading="loading">
-    <DbOriginalTable
-      :columns="columns"
-      :data="tableData" />
-  </BkLoading>
+  <DbOriginalTable
+    :columns="columns"
+    :data="tableData" />
 </template>
 
 <script setup lang="tsx">
   import { useI18n } from 'vue-i18n';
-  import { useRequest } from 'vue-request';
 
-  import { getMongoList } from '@services/source/mongodb';
   import type { TicketDetails } from '@services/types/ticket';
 
   interface ProxyScaleUpDetails {
@@ -119,33 +115,15 @@
       showOverflowTooltip: true,
     },
     {
-      label: t('扩容至(台)'),
+      label: t('扩容数量（台）'),
       field: 'add_shard_num',
     },
   ];
 
-  const { loading, run: fetchMongoList } = useRequest(getMongoList, {
-    manual: true,
-    onSuccess(result) {
-      const shardNumMap = result.results.reduce(
-        (results, item) => {
-          Object.assign(results, {
-            [item.id]: item.shard_num,
-          });
-          return results;
-        },
-        {} as Record<number, number>,
-      );
-      tableData.value = infos.map((item) => ({
-        immute_domain: clusters[item.cluster_id].immute_domain,
-        node_type: 'mongos',
-        sepc_name: specs[item.resource_spec.mongos.spec_id].name,
-        add_shard_num: shardNumMap[item.cluster_id] + item.resource_spec.mongos.count,
-      }));
-    },
-  });
-
-  fetchMongoList({
-    domains: props.ticketDetails.details.infos.map((item) => clusters[item.cluster_id].immute_domain).join(','),
-  });
+  tableData.value = infos.map((item) => ({
+    immute_domain: clusters[item.cluster_id].immute_domain,
+    node_type: 'mongos',
+    sepc_name: specs[item.resource_spec.mongos.spec_id].name,
+    add_shard_num: item.resource_spec.mongos.count,
+  }));
 </script>

@@ -71,20 +71,6 @@
         </DbCard>
         <DbCard :title="t('部署需求')">
           <BkFormItem
-            :label="t('主从节点数')"
-            property="details.node_count"
-            required>
-            <BkInput
-              v-model="formData.details.node_count"
-              clearable
-              :max="11"
-              :min="3"
-              show-clear-only-hover
-              :step="2"
-              style="width: 185px"
-              type="number" />
-          </BkFormItem>
-          <BkFormItem
             :label="t('部署副本集数量')"
             property="details.replica_count"
             required>
@@ -97,7 +83,7 @@
               type="number" />
           </BkFormItem>
           <BkFormItem
-            :label="t('每台主机部署副本集数量')"
+            :label="t('每组主机部署副本集数量')"
             property="details.node_replica_count"
             required>
             <BkInput
@@ -105,6 +91,20 @@
               clearable
               :min="1"
               show-clear-only-hover
+              style="width: 185px"
+              type="number" />
+          </BkFormItem>
+          <BkFormItem
+            :label="t('Shard 节点数')"
+            property="details.node_count"
+            required>
+            <BkInput
+              v-model="formData.details.node_count"
+              clearable
+              :max="11"
+              :min="1"
+              show-clear-only-hover
+              :step="2"
               style="width: 185px"
               type="number" />
           </BkFormItem>
@@ -146,7 +146,7 @@
             <div style="display: none">
               <div id="calculate_rule_content">
                 <span style="font-weight: bolder">{{ t('所需主机数量') }}</span>
-                = ( {{ t('部署副本集数量') }} / {{ t('每台主机部署副本集数量') }} ) * {{ t('主从节点数') }}
+                = ( {{ t('部署副本集数量') }} / {{ t('每组主机部署副本集数量') }} ) * {{ t('Shard 节点数') }}
               </div>
             </div>
           </BkFormItem>
@@ -269,9 +269,9 @@
   const rules = {
     'details.node_count': [
       {
-        message: t('节点数目前只支持xxx', ['3, 5, 7, 9, 11']),
+        message: t('节点数目前只支持xxx', ['1, 3, 5, 7, 9, 11']),
         trigger: 'change',
-        validator: (val: number) => [3, 5, 7, 9, 11].includes(val),
+        validator: (val: number) => [1, 3, 5, 7, 9, 11].includes(val),
       },
     ],
   };
@@ -283,7 +283,7 @@
       node_replica_count: setNumberPerHost,
     } = formData.details;
 
-    return (setNumber / setNumberPerHost) * nodesNumber;
+    return Math.ceil((setNumber / setNumberPerHost) * nodesNumber);
   });
 
   const estimatedCapacity = computed(() => {

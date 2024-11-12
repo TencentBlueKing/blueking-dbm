@@ -24,7 +24,7 @@
           :key="resetFormKey"
           ref="sqlFileRef"
           v-model="formData.execute_sqls"
-          v-model:importMode="formData.import_mode" />
+          v-model:import-mode="formData.import_mode" />
       </DbForm>
     </div>
     <template #action>
@@ -50,7 +50,6 @@
   </SmartAction>
 </template>
 <script setup lang="ts">
-  import { InfoBox } from 'bkui-vue';
   import { useI18n } from 'vue-i18n';
 
   import { createTicket } from '@services/source/ticket';
@@ -86,42 +85,34 @@
 
   const isAbleSubmit = computed(() => formData.cluster_ids.length > 0 && formData.execute_sqls.length > 0);
 
-  const handleSubmit = () => {
-    formRef.value.validate();
-    const executeInfo = sqlFileRef.value.getValue();
-    const params = {
-      bk_biz_id: currentBizId,
-      details: {
-        cluster_ids: formData.cluster_ids,
-        ...executeInfo,
-      },
-      ticket_type: TicketTypes.MONGODB_EXEC_SCRIPT_APPLY,
-    };
-
-    InfoBox({
-      title: t('确认执行变更脚本任务'),
-      subTitle: t('该操作将会修改对应DB的数据，请谨慎操作'),
-      width: 400,
-      onConfirm: () => {
-        isSubmitting.value = true;
-        createTicket(params)
-          .then((data) => {
-            window.changeConfirm = false;
-            router.push({
-              name: 'MongoScriptExecute',
-              params: {
-                step: 'success',
-              },
-              query: {
-                ticketId: data.id,
-              },
-            });
-          })
-          .finally(() => {
-            isSubmitting.value = false;
-          });
-      },
-    });
+  const handleSubmit = async () => {
+    try {
+      isSubmitting.value = true;
+      await formRef.value.validate();
+      const executeInfo = sqlFileRef.value.getValue();
+      const params = {
+        bk_biz_id: currentBizId,
+        details: {
+          cluster_ids: formData.cluster_ids,
+          ...executeInfo,
+        },
+        ticket_type: TicketTypes.MONGODB_EXEC_SCRIPT_APPLY,
+      };
+      await createTicket(params).then((data) => {
+        window.changeConfirm = false;
+        router.push({
+          name: 'MongoScriptExecute',
+          params: {
+            step: 'success',
+          },
+          query: {
+            ticketId: data.id,
+          },
+        });
+      });
+    } finally {
+      isSubmitting.value = false;
+    }
   };
 
   const handleReset = () => {

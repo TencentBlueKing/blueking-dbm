@@ -34,8 +34,7 @@
         ref="numRef"
         :data="data.targetNum"
         :disabled="!data.clusterName"
-        :is-loading="data.isLoading"
-        :min="data.mongosNum" />
+        :is-loading="data.isLoading" />
     </td>
     <OperateColumn
       :removeable="removeable"
@@ -63,7 +62,7 @@
     clusterId: number;
     shardNum: number;
     machineNum: number;
-    mongosNum: number;
+    // mongosNum: number;
     currentSpec?: SpecInfo;
     targetNum?: string;
   }
@@ -87,7 +86,7 @@
     shardNum: 0,
     machineNum: 0,
     clusterId: 0,
-    mongosNum: 0,
+    // mongosNum: 0,
   });
 </script>
 <script setup lang="ts">
@@ -141,7 +140,7 @@
           resource_spec: {
             mongos: {
               spec_id: specId,
-              count: targetNum - props.data.mongosNum,
+              count: targetNum,
             },
           },
         };

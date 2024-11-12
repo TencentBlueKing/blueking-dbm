@@ -40,9 +40,9 @@
             content: t('如忽略_有连接的情况下也会执行'),
             theme: 'dark',
           }"
-          class="ml-6 force-switch"
-          >{{ t('忽略业务连接') }}</span
-        >
+          class="ml-6 force-switch">
+          {{ t('忽略业务连接') }}
+        </span>
       </div>
     </div>
     <template #action>
@@ -75,7 +75,6 @@
 </template>
 
 <script setup lang="ts">
-  import { InfoBox } from 'bkui-vue';
   import { useI18n } from 'vue-i18n';
   import { useRouter } from 'vue-router';
 
@@ -221,41 +220,34 @@
 
   // 点击提交按钮
   const handleSubmit = async () => {
-    const infos = await Promise.all(
-      rowRefs.value.map((item: { getValue: () => Promise<InfoItem> }) => item.getValue()),
-    );
-    const params = {
-      bk_biz_id: currentBizId,
-      ticket_type: TicketTypes.MONGODB_ADD_SHARD_NODES,
-      details: {
-        is_safe: !isIgnoreBusinessAccess.value,
-        infos,
-      },
-    };
-
-    InfoBox({
-      title: t('确认扩容n个集群的Shard节点数', { n: totalNum.value }),
-      width: 400,
-      onConfirm: () => {
-        isSubmitting.value = true;
-        createTicket(params)
-          .then((data) => {
-            window.changeConfirm = false;
-            router.push({
-              name: 'MongoShardScaleUp',
-              params: {
-                page: 'success',
-              },
-              query: {
-                ticketId: data.id,
-              },
-            });
-          })
-          .finally(() => {
-            isSubmitting.value = false;
-          });
-      },
-    });
+    try {
+      isSubmitting.value = true;
+      const infos = await Promise.all(
+        rowRefs.value.map((item: { getValue: () => Promise<InfoItem> }) => item.getValue()),
+      );
+      const params = {
+        bk_biz_id: currentBizId,
+        ticket_type: TicketTypes.MONGODB_ADD_SHARD_NODES,
+        details: {
+          is_safe: !isIgnoreBusinessAccess.value,
+          infos,
+        },
+      };
+      await createTicket(params).then((data) => {
+        window.changeConfirm = false;
+        router.push({
+          name: 'MongoShardScaleUp',
+          params: {
+            page: 'success',
+          },
+          query: {
+            ticketId: data.id,
+          },
+        });
+      });
+    } finally {
+      isSubmitting.value = false;
+    }
   };
 
   // 重置

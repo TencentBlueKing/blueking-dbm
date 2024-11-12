@@ -28,7 +28,7 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import { getMongoInstanceDetail } from '@services/source/mongodb';
+  import { retrieveMongoInstanceDetail } from '@services/source/mongodb';
 
   import BaseInfo from './components/BaseInfo.vue';
   import Config from './components/Config.vue';
@@ -50,7 +50,7 @@
     loading: isLoading,
     run: fetchInstDetails,
     data,
-  } = useRequest(getMongoInstanceDetail, {
+  } = useRequest(retrieveMongoInstanceDetail, {
     manual: true,
   });
 
