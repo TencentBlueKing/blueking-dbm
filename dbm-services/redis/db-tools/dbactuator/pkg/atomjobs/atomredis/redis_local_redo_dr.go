@@ -119,7 +119,7 @@ func (r *RedisLocalDoDR) Run() error {
 			return err
 		}
 		// start , slaveof ,==,rewirte
-		if err := r.startAndWaitLinkUp(addr, password, idx, instance); err != nil {
+		if err := r.startAndWetLinkUp(addr, password, idx, instance); err != nil {
 			return err
 		}
 		r.runtime.Logger.Info("done local redo dr %d:%s ^_^ \n", idx, addr)
@@ -131,7 +131,7 @@ func (r *RedisLocalDoDR) Run() error {
 // slaveof master xxx xx
 // config rewite
 // == for link up .
-func (r *RedisLocalDoDR) startAndWaitLinkUp(addr, pass string, idx int, instance ReplicaItem) error {
+func (r *RedisLocalDoDR) startAndWetLinkUp(addr, pass string, idx int, instance ReplicaItem) error {
 	if rst, err := util.RunBashCmd(fmt.Sprintf("/usr/local/redis/bin/start-redis.sh %d",
 		instance.SlavePort), "", nil, 10*time.Second); err != nil || rst != "" {
 		r.runtime.Logger.Error("start redis failed ?? %d:%s:%s:%+v", idx, addr, rst, err)
@@ -196,8 +196,10 @@ func (r *RedisLocalDoDR) backupFiles(addr string, instance ReplicaItem) error {
 	bashPath := filepath.Join(r.DataDir, "redis", strconv.Itoa(instance.SlavePort))
 
 	rdbFile, aofFile := filepath.Join(bashPath, "data", "dump.rdb"), filepath.Join(bashPath, "data", "appendonly.aof")
-	bkRdb := filepath.Join("/data/dbbak", fmt.Sprintf("backup.%s.%d.%d.dump.rdb", r.runtime.UID, r.startTime, instance.SlavePort))
-	bkAof := filepath.Join("/data/dbbak", fmt.Sprintf("backup.%s.%d.%d.appendonly.aof", r.runtime.UID, r.startTime, instance.SlavePort))
+	bkRdb := filepath.Join("/data/dbbak", fmt.Sprintf("backup.%s.%d.%d.dump.rdb",
+		r.runtime.UID, r.startTime, instance.SlavePort))
+	bkAof := filepath.Join("/data/dbbak", fmt.Sprintf("backup.%s.%d.%d.appendonly.aof",
+		r.runtime.UID, r.startTime, instance.SlavePort))
 	if err := r.tryBackupData(aofFile, bkAof, addr); err != nil {
 		return err
 	}
