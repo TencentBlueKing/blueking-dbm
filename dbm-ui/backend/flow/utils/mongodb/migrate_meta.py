@@ -118,7 +118,7 @@ class MongoDBMigrateMeta(object):
             )
             if result["password"] is None:
                 logger.error("user:{} get password fail from db, error:{}".format(user, result["info"]))
-            if not result["password"] == "":
+            if result["password"] == "":
                 info = MongoDBPassword().save_password_to_db(
                     instances=[
                         {
