@@ -22,6 +22,7 @@ from backend.db_meta.enums import ClusterType, InstanceInnerRole, TenDBClusterSp
 from backend.db_meta.exceptions import ClusterNotExistException, DBMetaException
 from backend.db_meta.models import Cluster
 from backend.db_services.mysql.sql_import.constants import BKREPO_SQLFILE_PATH
+from backend.flow.consts import LONG_JOB_TIMEOUT
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.plugins.components.collections.mysql.authorize_rules import AuthorizeRulesComponent
@@ -237,6 +238,7 @@ class MysqlOpenAreaFlow(object):
                     cluster_type=source_cluster_schema["cluster_type"],
                     cluster=source_cluster_schema,
                     exec_ip=source_cluster_schema["ip"],
+                    job_timeout=LONG_JOB_TIMEOUT,
                     get_mysql_payload_func=MysqlActPayload.get_open_area_dump_schema_payload.__name__,
                 )
             ),
@@ -274,6 +276,7 @@ class MysqlOpenAreaFlow(object):
                         cluster_type=target_cluster["cluster_type"],
                         cluster=target_cluster,
                         exec_ip=target_cluster["ip"],
+                        job_timeout=LONG_JOB_TIMEOUT,
                         get_mysql_payload_func=MysqlActPayload.get_open_area_import_schema_payload.__name__,
                     )
                 ),
