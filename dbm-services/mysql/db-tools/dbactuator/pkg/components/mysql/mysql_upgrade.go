@@ -73,7 +73,7 @@ type upgradeRtx struct {
 }
 
 // Example subcommand example input
-func (c *MysqlUpgradeComp) Example() interface{} {
+func (m *MysqlUpgradeComp) Example() interface{} {
 	comp := MysqlUpgradeComp{
 		Params: MysqlUpgradeParam{
 			Host:  "127.0.0.1",
@@ -191,7 +191,7 @@ func (current *VersionInfo) canUpgrade(newVersion VersionInfo) (err error) {
 	case newVersion.TmysqlVersion < native.TMYSQL_1P1:
 		return fmt.Errorf("don't allow to upgrade to NON-TMYSQL: current version: %s, new version: %s", current.Version,
 			newVersion.Version)
-	case int32(newVersion.TmysqlVersion/1000000)-int32(current.TmysqlVersion/100000) > 1:
+	case (newVersion.TmysqlVersion/1000000)-(current.TmysqlVersion/1000000) > 1:
 		return fmt.Errorf("don't allow to upgrade across big versin: current version: %s, new version: %s",
 			current.Version, newVersion.Version)
 	case newVersion.TmysqlVersion >= native.TMYSQL_1 && current.MysqlVersion < native.MYSQL_5P1P24:
@@ -215,7 +215,7 @@ func (current *VersionInfo) canUpgrade(newVersion VersionInfo) (err error) {
 		newVersion.Version)
 }
 
-// MysqlUpgradeCheck TODO
+// MysqlUpgradeCheck mysql upgrade check
 func (m *MysqlUpgradeComp) MysqlUpgradeCheck() (err error) {
 	for port, conn := range m.dbConns {
 		currentVer := m.verMap[port]
@@ -243,7 +243,7 @@ func (m *MysqlUpgradeComp) MysqlUpgradeCheck() (err error) {
 	return
 }
 
-// Upgrade TODO
+// Upgrade do upgrade
 func (m *MysqlUpgradeComp) Upgrade() (err error) {
 	for port, conn := range m.dbConns {
 		logger.Info("do upgrade and replace my.cnf for %d", port)
@@ -329,7 +329,8 @@ func (m *MysqlUpgradeComp) Upgrade() (err error) {
 
 func (m *MysqlUpgradeComp) relinkMysql() (err error) {
 	// tar mysql new version  packege
-	if stderr, err := osutil.StandardShellCommand(false, fmt.Sprintf("tar -axf %s -C %s", m.Params.GetAbsolutePath(),
+	var stderr, oldlink string
+	if stderr, err = osutil.StandardShellCommand(false, fmt.Sprintf("tar -axf %s -C %s", m.Params.GetAbsolutePath(),
 		cst.UsrLocal)); err != nil {
 		logger.Error("tar mysql new version packege failed %s,stderr%s", err.Error(), stderr)
 		return err
@@ -348,7 +349,7 @@ func (m *MysqlUpgradeComp) relinkMysql() (err error) {
 			cst.UsrLocal, bakdir, newlink)
 		logger.Info("move mysql dir to %s", bakdir)
 	case mode&os.ModeSymlink != 0:
-		oldlink, err := os.Readlink(cst.MysqldInstallPath)
+		oldlink, err = os.Readlink(cst.MysqldInstallPath)
 		if err != nil {
 			logger.Error("get old mysql link failed %s", err.Error())
 			return err
@@ -359,7 +360,7 @@ func (m *MysqlUpgradeComp) relinkMysql() (err error) {
 	default:
 		return fmt.Errorf("file %s is not a dir or symlink", cst.MysqldInstallPath)
 	}
-	if stderr, err := osutil.StandardShellCommand(false, sc); err != nil {
+	if stderr, err = osutil.StandardShellCommand(false, sc); err != nil {
 		logger.Error("tar mysql new version packege failed %s,stderr%s", err.Error(), stderr)
 		return err
 	}
@@ -367,107 +368,176 @@ func (m *MysqlUpgradeComp) relinkMysql() (err error) {
 }
 
 func (m *MysqlUpgradeComp) upgradeMycnf(port int) (err error) {
+	// 获取配置文件路径
 	cf := util.GetMyCnfFileName(port)
 	cff, err := util.LoadMyCnfForFile(cf)
 	if err != nil {
-		logger.Error("local %s file failed %s", cf, err.Error())
+		logger.Error("load %s file failed: %s", cf, err.Error())
 		return err
 	}
+
+	// 创建新的配置文件
 	newfile := fmt.Sprintf("./my.cnf.%d.new", port)
-	if cmutil.FileExists(newfile) {
-		if err = os.Remove(newfile); err != nil {
-			logger.Error("remove exist tmp my.cnf failed %s", err.Error())
-			return err
-		}
+	if err = prepareNewConfigFile(newfile); err != nil {
+		return err
 	}
+
+	// 获取socket路径
 	sck, err := cff.GetMySQLSocket()
 	if err != nil {
-		logger.Error("get mysql socket failed %s", err.Error())
+		logger.Error("get mysql socket failed: %s", err.Error())
 		return err
 	}
 	m.socketMaps[port] = sck
 	cff.FileName = newfile
-	section := util.MysqldSec
-	// tmysql 版本的相关的配置替换
-	if m.newVersion.TmysqlVersion > native.TMYSQL_1 {
-		switch {
-		case m.newVersion.TmysqlVersion < native.TMYSQL_3:
-			cff.ReplaceValue(section, "innodb_create_use_gcs_real_format", true, "")
-			fallthrough
-		case m.newVersion.TmysqlVersion >= native.TMYSQL_1P4:
-			cff.ReplaceValue(section, "userstat", false, "ON")
-			cff.ReplaceValue(section, "query_response_time_stats", false, "ON")
-			fallthrough
-		case m.newVersion.TmysqlVersion >= native.TMYSQL_2P1:
-			cff.ReplaceKeyName(section, "table_cache", "table_open_cache")
-			cff.ReplaceValue(section, "performance_schema", false, "OFF")
-			cff.Cfg.Section(section).DeleteKey("alter_query_log")
-			cff.ReplaceValue(section, "secure_auth", false, "OFF")
-		}
-	}
-	switch {
-	case m.newVersion.MysqlVersion > native.MYSQL_5P1P46:
-		cff.ReplaceValue(section, "skip-name-resolve", true, "")
-		fallthrough
-	case m.newVersion.MysqlVersion > native.MYSQL_5P5P11:
-		cff.ReplaceValue(section, "slow_query_log", false, "1")
-		fallthrough
-	case m.newVersion.MysqlVersion > native.MYSQL_5P5P5:
-		cff.ReplaceValue(section, "innodb_file_format", false, "Barracuda")
-		fallthrough
-	case m.newVersion.MysqlVersion > native.MYSQL_5P5P1:
-		cff.ReplaceKeyName(section, "default-character-set", "character-set-server")
-		cff.ReplaceKeyName(section, "log_bin_trust_routine_creators", "log_bin_trust_function_creators")
-		cff.Cfg.Section(section).DeleteKey("skip-locking")
-		cff.Cfg.Section(section).DeleteKey("log-long-format")
-		cff.Cfg.Section(section).DeleteKey("log-update")
-		cff.Cfg.Section(section).DeleteKey("safe-show-database")
-		fallthrough
-	case m.newVersion.MysqlVersion > native.MYSQL_5P1P29:
-		cff.ReplaceKeyName(section, "default-collation", "collation_server")
-		cff.ReplaceKeyName(section, "default-table-type", "default_storage_engine")
-		cff.ReplaceKeyName(section, "warnings", "log_warnings")
-		cff.Cfg.Section(section).DeleteKey("delay-key-write-for-all-tables")
-		fallthrough
-	case m.newVersion.MysqlVersion > native.MYSQL_5P70:
-		cff.Cfg.Section(section).DeleteKey("secure_auth")
-		cff.Cfg.Section(section).DeleteKey("loose_secure_auth")
-		cff.Cfg.Section(section).DeleteKey("innodb_additional_mem_pool_size")
-		cff.Cfg.Section(section).DeleteKey("innodb_create_use_gcs_real_format")
-		cff.Cfg.Section(section).DeleteKey("thread_concurrency")
-		cff.Cfg.Section(section).DeleteKey("storage_engine")
-		cff.Cfg.Section(section).DeleteKey("old_passwords")
-		cff.Cfg.Section(section).DeleteKey("innodb_file_io_threads")
-		cff.ReplaceKeyName(section, "thread_cache", "thread_cache_size")
-		cff.ReplaceKeyName(section, "key_buffer", "key_buffer_size")
-		cff.ReplaceKeyName(section, "log_warnings", "log_error_verbosity")
-		cff.ReplaceValue(section, "log_error_verbosity", false, "1")
-		cff.ReplaceValue(section, "show_compatibility_56", false, "on")
-		cff.ReplaceValue(section, "secure_file_priv", false, "")
-		cff.ReplaceValue(section, "sync_binlog", false, "0")
-		fallthrough
-	case m.newVersion.MysqlVersion > native.MYSQL_8P0:
-		cff.Cfg.Section(section).DeleteKey("innodb_file_format")
-		cff.Cfg.Section(section).DeleteKey("query_cache_size")
-		cff.Cfg.Section(section).DeleteKey("query_cache_type")
-		cff.Cfg.Section(section).DeleteKey("show_compatibility_56")
-		cff.Cfg.Section(section).DeleteKey("userstat")
-		cff.Cfg.Section(section).DeleteKey("query_response_time_stats")
-		cff.ReplaceValue(section, "thread_handling", false, "2")
-		cff.ReplaceValue(section, "performance_schema", false, "ON")
-		cff.ReplaceValue(section, "explicit_defaults_for_timestamp", false, "OFF")
-		cff.ReplaceValue(section, "default_authentication_plugin", false, "mysql_native_password")
-	}
 
-	if err = cff.SafeSaveFile(false); err != nil {
-		logger.Error("write %s failed %s", newfile, err.Error())
+	// 更新配置
+	section := util.MysqldSec
+	if err = m.updateTmysqlConfig(cff, section); err != nil {
 		return err
 	}
+	if err = m.updateMysqlConfig(cff, section); err != nil {
+		return err
+	}
+
+	// 保存新配置文件
+	if err = cff.SafeSaveFile(false); err != nil {
+		logger.Error("write %s failed: %s", newfile, err.Error())
+		return err
+	}
+
+	// 备份并替换原配置文件
+	return m.backupAndReplaceConfig(cf, newfile)
+}
+
+func prepareNewConfigFile(newfile string) error {
+	if cmutil.FileExists(newfile) {
+		if err := os.Remove(newfile); err != nil {
+			logger.Error("remove exist tmp my.cnf failed: %s", err.Error())
+			return err
+		}
+	}
+	return nil
+}
+
+func (m *MysqlUpgradeComp) updateTmysqlConfig(cff *util.CnfFile, section string) error {
+	if m.newVersion.TmysqlVersion <= native.TMYSQL_1 {
+		return nil
+	}
+
+	if m.newVersion.TmysqlVersion < native.TMYSQL_3 {
+		cff.ReplaceValue(section, "innodb_create_use_gcs_real_format", true, "")
+	}
+
+	if m.newVersion.TmysqlVersion >= native.TMYSQL_1P4 {
+		cff.ReplaceValue(section, "userstat", false, "ON")
+		cff.ReplaceValue(section, "query_response_time_stats", false, "ON")
+	}
+
+	if m.newVersion.TmysqlVersion >= native.TMYSQL_2P1 {
+		cff.ReplaceKeyName(section, "table_cache", "table_open_cache")
+		cff.ReplaceValue(section, "performance_schema", false, "OFF")
+		cff.Cfg.Section(section).DeleteKey("alter_query_log")
+		cff.ReplaceValue(section, "secure_auth", false, "OFF")
+	}
+
+	return nil
+}
+
+func (m *MysqlUpgradeComp) updateMysqlConfig(cff *util.CnfFile, section string) error {
+	if m.newVersion.MysqlVersion > native.MYSQL_5P1P46 {
+		cff.ReplaceValue(section, "skip-name-resolve", true, "")
+	}
+
+	if m.newVersion.MysqlVersion > native.MYSQL_5P5P11 {
+		cff.ReplaceValue(section, "slow_query_log", false, "1")
+	}
+
+	if m.newVersion.MysqlVersion > native.MYSQL_5P5P5 {
+		cff.ReplaceValue(section, "innodb_file_format", false, "Barracuda")
+	}
+
+	if m.newVersion.MysqlVersion > native.MYSQL_5P5P1 {
+		m.updateMysql551Config(cff, section)
+	}
+
+	if m.newVersion.MysqlVersion > native.MYSQL_5P1P29 {
+		m.updateMysql5129Config(cff, section)
+	}
+
+	if m.newVersion.MysqlVersion > native.MYSQL_5P70 {
+		m.updateMysql57Config(cff, section)
+	}
+
+	if m.newVersion.MysqlVersion > native.MYSQL_8P0 {
+		m.updateMysql80Config(cff, section)
+	}
+
+	return nil
+}
+
+func (m *MysqlUpgradeComp) updateMysql551Config(cff *util.CnfFile, section string) {
+	cff.ReplaceKeyName(section, "default-character-set", "character-set-server")
+	cff.ReplaceKeyName(section, "log_bin_trust_routine_creators", "log_bin_trust_function_creators")
+	cff.Cfg.Section(section).DeleteKey("skip-locking")
+	cff.Cfg.Section(section).DeleteKey("log-long-format")
+	cff.Cfg.Section(section).DeleteKey("log-update")
+	cff.Cfg.Section(section).DeleteKey("safe-show-database")
+}
+
+func (m *MysqlUpgradeComp) updateMysql5129Config(cff *util.CnfFile, section string) {
+	cff.ReplaceKeyName(section, "default-collation", "collation_server")
+	cff.ReplaceKeyName(section, "default-table-type", "default_storage_engine")
+	cff.ReplaceKeyName(section, "warnings", "log_warnings")
+	cff.Cfg.Section(section).DeleteKey("delay-key-write-for-all-tables")
+}
+
+func (m *MysqlUpgradeComp) updateMysql57Config(cff *util.CnfFile, section string) {
+	// Delete deprecated options
+	deprecatedKeys := []string{
+		"secure_auth", "loose_secure_auth", "innodb_additional_mem_pool_size",
+		"innodb_create_use_gcs_real_format", "thread_concurrency", "storage_engine",
+		"old_passwords", "innodb_file_io_threads",
+	}
+	for _, key := range deprecatedKeys {
+		cff.Cfg.Section(section).DeleteKey(key)
+	}
+
+	// Replace key names
+	cff.ReplaceKeyName(section, "thread_cache", "thread_cache_size")
+	cff.ReplaceKeyName(section, "key_buffer", "key_buffer_size")
+	cff.ReplaceKeyName(section, "log_warnings", "log_error_verbosity")
+
+	// Set new values
+	cff.ReplaceValue(section, "log_error_verbosity", false, "1")
+	cff.ReplaceValue(section, "show_compatibility_56", false, "on")
+	cff.ReplaceValue(section, "secure_file_priv", false, "")
+	cff.ReplaceValue(section, "sync_binlog", false, "0")
+}
+
+func (m *MysqlUpgradeComp) updateMysql80Config(cff *util.CnfFile, section string) {
+	// Delete deprecated options
+	deprecatedKeys := []string{
+		"innodb_file_format", "query_cache_size", "query_cache_type",
+		"show_compatibility_56", "userstat", "query_response_time_stats",
+	}
+	for _, key := range deprecatedKeys {
+		cff.Cfg.Section(section).DeleteKey(key)
+	}
+
+	// Set new values
+	cff.ReplaceValue(section, "thread_handling", false, "2")
+	cff.ReplaceValue(section, "performance_schema", false, "ON")
+	cff.ReplaceValue(section, "explicit_defaults_for_timestamp", false, "OFF")
+	cff.ReplaceValue(section, "default_authentication_plugin", false, "mysql_native_password")
+}
+
+func (m *MysqlUpgradeComp) backupAndReplaceConfig(cf, newfile string) error {
 	bakcnf := cf + "." + time.Now().Format(cst.TimeLayoutDir)
 	script := fmt.Sprintf("cp %s %s && cp %s %s", cf, bakcnf, newfile, cf)
 	stderr, err := osutil.StandardShellCommand(false, script)
 	if err != nil {
-		logger.Error("replace my.cnf failed,stderr:%s,err:%s", stderr, err.Error())
+		logger.Error("replace my.cnf failed, stderr: %s, err: %s", stderr, err.Error())
 		return err
 	}
 	return nil
@@ -524,25 +594,25 @@ func (m MysqlUpgradeComp) mysqlUpgrade(conn *native.DbWorker, port int) (err err
 		return fmt.Errorf("get %d version from runtime ctx failed", port)
 	}
 	// safe big version, ignore mysqlcheck
-	if int32(m.newVersion.TmysqlVersion/1000000)-int32(currentVersion.TmysqlVersion/100000) == 0 {
+	if (m.newVersion.TmysqlVersion / 1000000) == (currentVersion.TmysqlVersion / 100000) {
 		logger.Info("same big tmysql version, ignore mysqlupgrade")
 		return nil
 	}
 	// open general_log
-	// if err = m.openGeneralLog(conn); err != nil {
-	// 	logger.Error("set global general_log=on failed %s", err.Error())
-	// 	return err
-	// }
+	if errx := m.openGeneralLog(conn); err != nil {
+		logger.Warn("set global general_log=on failed %s", errx.Error())
+	}
 	upgradeScript := ""
-	if m.newVersion.TmysqlVersion > native.TMYSQL_1P2 && m.newVersion.TmysqlVersion < native.TMYSQL_2 {
+	switch {
+	case m.newVersion.TmysqlVersion > native.TMYSQL_1P2 && m.newVersion.TmysqlVersion < native.TMYSQL_2:
 		upgradeScript = fmt.Sprintf(
 			"cd /usr/local/mysql && ./bin/mysql_upgrade -h%s --skip-write-binlog -i --grace-print  -P%d -u%s -p%s",
 			m.Params.Host, port, m.adminUser, m.adminPwd)
-	} else if currentVersion.MysqlVersion < native.MYSQL_5P70 && m.newVersion.MysqlVersion > native.MYSQL_5P70 {
+	case currentVersion.MysqlVersion < native.MYSQL_5P70 && m.newVersion.MysqlVersion > native.MYSQL_5P70:
 		upgradeScript = fmt.Sprintf(
 			"cd /usr/local/mysql && ./bin/mysql_upgrade -h%s --skip-write-binlog --grace-print  -P%d -u%s -p%s",
 			m.Params.Host, port, m.adminUser, m.adminPwd)
-	} else {
+	default:
 		upgradeScript = fmt.Sprintf("cd /usr/local/mysql && ./bin/mysql_upgrade -h%s -P%d --skip-write-binlog -u%s -p%s",
 			m.Params.Host, port, m.adminUser, m.adminPwd)
 	}
@@ -556,13 +626,14 @@ func (m MysqlUpgradeComp) mysqlUpgrade(conn *native.DbWorker, port int) (err err
 		Logger:      true,
 	}
 	alreadyUpgradeNum := 0
+	var lines []string
 	if err = c.Run(); err != nil {
-		l, err := m.alreadyUpgradedLines(upgradelog)
+		lines, err = m.alreadyUpgradedLines(upgradelog)
 		if err != nil {
 			logger.Error("analysis upgradelog  failed %s", err.Error())
 			return err
 		}
-		alreadyUpgradeNum = len(l)
+		alreadyUpgradeNum = len(lines)
 		if alreadyUpgradeNum <= 0 {
 			return fmt.Errorf("failed to mysqlupgrade,please refer to the log for details %s,err is %w", upgradelog, err)
 		}
@@ -692,7 +763,7 @@ func (m MysqlUpgradeComp) mysqlCheck(conn *native.DbWorker, port int) (err error
 		return fmt.Errorf("get %d version from runtime ctx failed", port)
 	}
 	// safe big version, ignore mysqlcheck
-	if int32(m.newVersion.TmysqlVersion/1000000)-int32(currentVersion.TmysqlVersion/100000) == 0 {
+	if (m.newVersion.TmysqlVersion/1000000)-(currentVersion.TmysqlVersion/100000) == 0 {
 		logger.Info("same big tmysql version, ignore mysqlcheck")
 		return nil
 	}
@@ -738,14 +809,16 @@ func (m MysqlUpgradeComp) mysqlCheck(conn *native.DbWorker, port int) (err error
 		return err
 	}
 	var regs []*regexp.Regexp
+	mysql_schema := regexp.MustCompile("^mysql")
 	performance_schema := regexp.MustCompile("^performance_schema")
 	information_schema := regexp.MustCompile("^information_schema")
 	regs = append(regs, regexp.MustCompile("OK$"))
 	regs = append(regs, performance_schema)
 	regs = append(regs, information_schema)
+	regs = append(regs, mysql_schema)
 	if m.newVersion.TmysqlVersion > native.TMYSQL_1P2 {
 		regs = append(regs, regexp.MustCompile("collate_upgrade"))
-		regs = append(regs, regexp.MustCompile("REPAIR TABLE"))
+		regs = append(regs, regexp.MustCompile(`(?i)REPAIR TABLE`))
 	}
 	l, err := m.analysisMySQLCheckLog(mysqlchecklog, regs)
 	if err != nil {
