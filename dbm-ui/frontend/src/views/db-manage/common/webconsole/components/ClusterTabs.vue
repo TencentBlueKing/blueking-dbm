@@ -74,7 +74,7 @@
 
   import { messageWarn } from '@utils';
 
-  type ClusterItem = ServiceReturnType<typeof queryAllTypeCluster>[number];
+  export type ClusterItem = ServiceReturnType<typeof queryAllTypeCluster>[number];
 
   interface Props {
     dbType: DBTypes;

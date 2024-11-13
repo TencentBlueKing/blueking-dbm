@@ -13,9 +13,7 @@
           <span :class="{ 'error-text': item.type === 'error' }">{{ item.message }}</span>
         </div>
         <template v-else>
-          <Component
-            :is="consoleConfig.renderMessage"
-            :data="item.message" />
+          <slot :message="item.message" />
         </template>
       </template>
     </div>
@@ -36,43 +34,12 @@
     </div>
   </div>
 </template>
-<script setup lang="ts">
-  import _ from 'lodash';
+<script lang="ts">
+  // 未执行的命令
+  const noExecuteCommand: Record<number, string> = {};
+  // 已执行过的命令
+  const executedCommands: Record<number, string[]> = {};
 
-  import { queryAllTypeCluster, queryWebconsole } from '@services/source/dbbase';
-
-  import { DBTypes } from '@common/const';
-
-  import { downloadText } from '@utils';
-
-  import RenderMysqlMessage, { validate } from './components/RenderMysqlMessage.vue';
-  import RenderRedisMessage, {
-    getInputPlaceholder as getRedisPlaceholder,
-    switchDbIndex,
-  } from './components/RenderRedisMessage.vue';
-
-  type ClusterItem = ServiceReturnType<typeof queryAllTypeCluster>[number];
-
-  interface Props {
-    modelValue: ClusterItem;
-    dbType: DBTypes;
-    raw?: boolean;
-  }
-
-  interface Expose {
-    clearCurrentScreen: (id?: number) => void;
-    export: () => void;
-    isInputed: (id?: number) => boolean;
-  }
-
-  const props = defineProps<Props>();
-
-  const command = ref('');
-  const consolePanelRef = ref();
-  const loading = ref(false);
-  const isFrozenTextarea = ref(false);
-  const inputRef = ref();
-  const realHeight = ref('52px');
   const panelInputMap = reactive<
     Record<
       number,
@@ -82,65 +49,64 @@
       }>
     >
   >({});
+</script>
+<script setup lang="ts">
+  import _ from 'lodash';
 
-  const commandInputMap: Record<number, string[]> = {};
-  const noExecuteCommand: Record<number, string> = {};
-  let currentCommandIndex = 0;
-  let inputPlaceholder = '';
-  let baseParams: {
-    cluster_id: number;
-    cmd?: string;
-    [key: string]: unknown;
-  };
-  const configMap: Record<
-    string,
-    {
-      renderMessage: any;
-      validate?: (cmd: string) => string;
-      getInputPlaceholder?: (clusterId: number, domain: string) => string;
-      switchDbIndex?: (params: { clusterId: number; cmd: string; queryResult: string; commandInputs: string[] }) => {
-        dbIndex: number;
-        commandInputs: string[];
-      };
-    }
-  > = {
-    [DBTypes.MYSQL]: {
-      renderMessage: RenderMysqlMessage,
-      validate,
-    },
-    [DBTypes.TENDBCLUSTER]: {
-      renderMessage: RenderMysqlMessage,
-      validate,
-    },
-    [DBTypes.REDIS]: {
-      renderMessage: RenderRedisMessage,
-      getInputPlaceholder: getRedisPlaceholder,
-      switchDbIndex,
-    },
-  };
+  import { queryAllTypeCluster, queryWebconsole } from '@services/source/dbbase';
 
-  const clusterId = computed(() => props.modelValue.id);
-  const consoleConfig = computed(() => configMap[props.dbType as keyof typeof configMap]);
+  import { downloadText } from '@utils';
+
+  export interface Props {
+    cluster: ServiceReturnType<typeof queryAllTypeCluster>[number];
+    placeholder?: string;
+    extParams?: Record<string, unknown>;
+    preCheck?: (value: string) => string;
+  }
+
+  interface Emits {
+    (e: 'success', cmd: string, message: ServiceReturnType<typeof queryWebconsole>['query'], ...args: unknown[]): void;
+  }
+
+  interface Expose {
+    updateCommand: () => void;
+    export: () => void;
+    isInputed: (id?: number) => boolean;
+    clearCurrentScreen: (id?: number) => void;
+  }
+
+  const props = withDefaults(defineProps<Props>(), {
+    placeholder: '',
+    extParams: () => ({}),
+    preCheck: () => '',
+  });
+
+  const emits = defineEmits<Emits>();
+
+  const command = ref('');
+  const consolePanelRef = ref();
+  const loading = ref(false);
+  const isFrozenTextarea = ref(false);
+  const inputRef = ref();
+  const realHeight = ref('52px');
+
+  // 用于查找命令的索引
+  let commandIndex = 0;
+
+  const clusterId = computed(() => props.cluster.id);
+  const localPlaceholder = computed(() => props.placeholder || `${props.cluster.immute_domain} > `);
 
   watch(
     clusterId,
     () => {
       if (clusterId.value) {
-        const domain = props.modelValue.immute_domain;
-        inputPlaceholder = consoleConfig.value.getInputPlaceholder
-          ? consoleConfig.value.getInputPlaceholder(clusterId.value, domain)
-          : `${domain} > `;
-        baseParams = {
-          ...baseParams,
-          cluster_id: clusterId.value,
-        };
-        command.value = noExecuteCommand[clusterId.value] ?? inputPlaceholder;
+        command.value = localPlaceholder.value + (noExecuteCommand[clusterId.value] ?? '');
 
-        if (!commandInputMap[clusterId.value]) {
-          commandInputMap[clusterId.value] = [];
-          currentCommandIndex = 0;
+        if (!executedCommands[clusterId.value]) {
+          executedCommands[clusterId.value] = [];
+          commandIndex = 0;
         } else {
-          currentCommandIndex = commandInputMap[clusterId.value].length;
+          commandIndex = executedCommands[clusterId.value].length;
         }
 
         if (!panelInputMap[clusterId.value]) {
@@ -172,45 +138,43 @@
   // 回车输入指令
   const handleClickSendCommand = async (e: any) => {
     // 输入预处理
-    let cmd = e.target.value.trim() as string;
-    const isInputed = cmd.length > inputPlaceholder.length;
+    const inputValue = e.target.value.trim() as string;
+    const isInputed = inputValue.length > localPlaceholder.value.length;
+
+    // 截取输入的命令
+    const cmd = inputValue.substring(localPlaceholder.value.length);
+    executedCommands[clusterId.value].push(cmd);
+    commandIndex = executedCommands[clusterId.value].length;
+    command.value = localPlaceholder.value;
+
+    // 命令行渲染
     const commandLine = {
-      message: isInputed ? cmd : inputPlaceholder,
+      message: isInputed ? inputValue : localPlaceholder.value,
       type: 'command',
     };
-    commandInputMap[clusterId.value].push(cmd);
-    currentCommandIndex = commandInputMap[clusterId.value].length;
     panelInputMap[clusterId.value].push(commandLine);
-    command.value = inputPlaceholder;
+
     if (!isInputed) {
       return;
     }
 
-    // 校验语句
-    cmd = cmd.substring(inputPlaceholder.length);
-    if (consoleConfig.value.validate) {
-      const validateResult = consoleConfig.value.validate(cmd);
-      if (validateResult) {
-        const errorLine = {
-          message: validateResult,
-          type: 'error',
-        };
-        panelInputMap[clusterId.value].push(errorLine);
-        return;
-      }
+    // 语句预检
+    const preCheckResult = props.preCheck(cmd);
+    if (preCheckResult) {
+      const errorLine = {
+        message: preCheckResult,
+        type: 'error',
+      };
+      panelInputMap[clusterId.value].push(errorLine);
+      return;
     }
 
     // 开始请求
     try {
       loading.value = true;
-      if (typeof props.raw === 'boolean') {
-        baseParams = {
-          ...baseParams,
-          raw: props.raw,
-        };
-      }
       const executeResult = await queryWebconsole({
-        ...baseParams,
+        ...props.extParams,
+        cluster_id: clusterId.value,
         cmd,
       });
 
@@ -230,24 +194,7 @@
         };
         panelInputMap[clusterId.value].push(normalLine);
 
-        // 切换数据库、修改行前缀
-        const config = consoleConfig.value;
-        if (config.switchDbIndex) {
-          const { dbIndex, commandInputs } = config.switchDbIndex({
-            clusterId: clusterId.value,
-            cmd,
-            queryResult: executeResult.query as string,
-            commandInputs: commandInputMap[clusterId.value],
-          });
-          baseParams = {
-            ...baseParams,
-            db_num: dbIndex,
-          };
-          commandInputMap[clusterId.value] = commandInputs;
-          if (config.getInputPlaceholder) {
-            command.value = config.getInputPlaceholder(clusterId.value, props.modelValue.immute_domain);
-          }
-        }
+        emits('success', cmd, executeResult.query);
       }
     } finally {
       loading.value = false;
@@ -263,21 +210,21 @@
     const recentOnceInput = command.value;
     command.value = '';
     nextTick(() => {
-      command.value = isRestore ? recentOnceInput : inputPlaceholder;
+      command.value = isRestore ? recentOnceInput : localPlaceholder.value;
     });
     setTimeout(() => {
-      const cursorIndex = inputPlaceholder.length;
+      const cursorIndex = localPlaceholder.value.length;
       inputRef.value.setSelectionRange(cursorIndex, cursorIndex);
     });
   };
 
   // 输入
   const handleInputChange = (e: any) => {
-    if (inputRef.value.selectionStart === inputPlaceholder.length - 1) {
+    if (inputRef.value.selectionStart === localPlaceholder.value.length - 1) {
       restoreInput();
       return;
     }
-    if (inputRef.value.selectionStart < inputPlaceholder.length) {
+    if (inputRef.value.selectionStart < localPlaceholder.value.length) {
       restoreInput(false);
       return;
     }
@@ -290,35 +237,32 @@
 
   // 当前tab有未执行的command暂存，切换回来回显
   const handleInputBlur = () => {
-    if (command.value.length > inputPlaceholder.length) {
-      noExecuteCommand[clusterId.value] = command.value;
+    if (command.value.length > localPlaceholder.value.length) {
+      noExecuteCommand[clusterId.value] = command.value.substring(localPlaceholder.value.length);
     }
   };
 
   // 键盘 ↑ 键
   const handleClickUpBtn = () => {
-    if (commandInputMap[clusterId.value].length === 0 || currentCommandIndex === 0) {
+    if (executedCommands[clusterId.value].length === 0 || commandIndex === 0) {
       checkCursorPosition(true);
       return;
     }
 
-    currentCommandIndex = currentCommandIndex - 1;
-    command.value = commandInputMap[clusterId.value][currentCommandIndex];
+    commandIndex = commandIndex - 1;
+    command.value = localPlaceholder.value + executedCommands[clusterId.value][commandIndex];
     const cursorIndex = command.value.length;
     inputRef.value.setSelectionRange(cursorIndex, cursorIndex);
   };
 
   // 键盘 ↓ 键
   const handleClickDownBtn = () => {
-    if (
-      commandInputMap[clusterId.value].length === 0 ||
-      currentCommandIndex === commandInputMap[clusterId.value].length
-    ) {
+    if (executedCommands[clusterId.value].length === 0 || commandIndex === executedCommands[clusterId.value].length) {
       return;
     }
 
-    currentCommandIndex = currentCommandIndex + 1;
-    command.value = commandInputMap[clusterId.value][currentCommandIndex] ?? inputPlaceholder;
+    commandIndex = commandIndex + 1;
+    command.value = localPlaceholder.value + (executedCommands[clusterId.value][commandIndex] ?? '');
   };
 
   // 键盘 ← 键
@@ -328,19 +272,17 @@
 
   // 校正光标位置
   const checkCursorPosition = (isStartToTextEnd = false) => {
-    if (inputRef.value.selectionStart <= inputPlaceholder.length) {
-      const cursorIndex = isStartToTextEnd ? command.value.length : inputPlaceholder.length;
+    if (inputRef.value.selectionStart <= localPlaceholder.value.length) {
+      const cursorIndex = isStartToTextEnd ? command.value.length : localPlaceholder.value.length;
       inputRef.value.setSelectionRange(cursorIndex, cursorIndex);
     }
   };
 
   defineExpose<Expose>({
-    clearCurrentScreen(id?: number) {
-      const currentClusterId = id ?? clusterId.value;
-      panelInputMap[currentClusterId] = [];
-      commandInputMap[currentClusterId] = [];
-      noExecuteCommand[currentClusterId] = '';
-      command.value = inputPlaceholder;
+    updateCommand() {
+      nextTick(() => {
+        command.value = localPlaceholder.value;
+      });
     },
     export() {
       const lines = panelInputMap[clusterId.value].map((item) => item.message);
@@ -366,15 +308,19 @@
         }
       });
 
-      const fileName = `${props.modelValue.immute_domain}.txt`;
+      const fileName = `${props.cluster.immute_domain}.txt`;
       downloadText(fileName, exportTxt);
     },
     isInputed(id?: number) {
       const currentClusterId = id ?? clusterId.value;
-      return (
-        commandInputMap[currentClusterId]?.some((cmd) => cmd.length > inputPlaceholder.length) ||
-        noExecuteCommand[currentClusterId]?.substring(inputPlaceholder.length).length > 0
-      );
+      return executedCommands[currentClusterId]?.some(Boolean) || noExecuteCommand[currentClusterId]?.length > 0;
+    },
+    clearCurrentScreen(id?: number) {
+      const currentClusterId = id ?? clusterId.value;
+      panelInputMap[currentClusterId] = [];
+      executedCommands[currentClusterId] = [];
+      noExecuteCommand[currentClusterId] = '';
+      command.value = localPlaceholder.value;
     },
   });
 </script>
