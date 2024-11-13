@@ -709,6 +709,7 @@
               permission={data.permission.doris_access_entry_view}
               resource={data.id}
               class="ml-16"
+              disabled={data.isOffline}
               onClick={() => handleShowPassword(data)}>
               {t('获取访问方式')}
             </auth-button>,

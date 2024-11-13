@@ -344,8 +344,8 @@
     {
       dbConsole: 'tendbCluster.clusterManage.batchAuthorize',
       click: () => handleShowAuthorize(selected.value),
-      disabled: false,
-      tooltips: '',
+      disabled: selected.value.some((data) => data.isOffline),
+      tooltips: t('仅可授权状态为“已启用”的集群'),
       text: t('批量授权')
     },
     {
@@ -961,6 +961,7 @@
               text
               theme="primary"
               class="mr-8"
+              disabled={data.isOffline}
               onClick={() => handleShowAuthorize([data])}>
               { t('授权') }
             </bk-button>,
@@ -1003,7 +1004,7 @@
                 action-id="tendbcluster_spider_mnt_destroy"
                 permission={data.permission.tendbcluster_spider_mnt_destroy}
                 resource={data.id}
-                disabled={data.spider_mnt.length === 0}
+                disabled={data.spider_mnt.length === 0 || data.isOffline}
                 text
                 class="mr-8"
                 onClick={() => handleRemoveMNT(data)}>
@@ -1021,7 +1022,7 @@
                 permission={data.permission.tendb_spider_slave_destroy}
                 resource={data.id}
                 text
-                disabled={data.spider_slave.length === 0}
+                disabled={data.spider_slave.length === 0 || data.isOffline}
                 class="mr-8"
                 onClick={() => handleDestroySlave(data)}>
                 { t('下架只读集群') }

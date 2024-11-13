@@ -618,6 +618,7 @@
               permission={data.permission.kafka_access_entry_view}
               v-db-console="kafka.clusterManage.getAccess"
               resource={data.id}
+              disabled={data.isOffline}
               class="mr8"
               onClick={() => handleShowPassword(data)}>
               { t('获取访问方式') }
