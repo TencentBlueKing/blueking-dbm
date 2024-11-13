@@ -11,8 +11,7 @@
         @remove-tab="handleClickClearScreen" />
       <RawSwitcher
         v-if="dbType === DBTypes.REDIS"
-        v-model="isRaw"
-        :db-type="dbType" />
+        v-model="isRaw" />
       <ClearScreen @change="handleClickClearScreen" />
       <ExportData @export="handleClickExport" />
       <UsageHelp
@@ -30,12 +29,12 @@
     </div>
     <div class="content-main">
       <KeepAlive>
-        <ConsolePanel
+        <Component
+          :is="consolePanelMap[dbType]"
           v-if="clusterInfo"
           :key="clusterInfo.id"
           ref="consolePanelRef"
-          v-model="clusterInfo"
-          :db-type="dbType"
+          :cluster="clusterInfo"
           :raw="isRaw"
           :style="currentFontConfig" />
       </KeepAlive>
@@ -59,13 +58,12 @@
   import screenfull from 'screenfull';
   import { useI18n } from 'vue-i18n';
 
-  import { queryAllTypeCluster } from '@services/source/dbbase';
-
   import { DBTypes } from '@common/const';
 
   import ClearScreen from './components/ClearScreen.vue';
-  import ClusterTabs from './components/ClusterTabs.vue';
-  import ConsolePanel from './components/console-panel/Index.vue';
+  import ClusterTabs, { type ClusterItem } from './components/ClusterTabs.vue';
+  import MysqlConsolePanel from './components/console-panel/mysql/Index.vue';
+  import RedisConsolePanel from './components/console-panel/redis/Index.vue';
   import ExportData from './components/ExportData.vue';
   import FontSetting from './components/FontSetting.vue';
   import FullScreen from './components/FullScreen.vue';
@@ -76,17 +74,21 @@
     dbType?: DBTypes;
   }
 
-  type ClusterItem = ServiceReturnType<typeof queryAllTypeCluster>[number];
-
   const props = withDefaults(defineProps<Props>(), {
     dbType: DBTypes.MYSQL,
   });
 
   const { t } = useI18n();
 
+  const consolePanelMap = {
+    [DBTypes.MYSQL]: MysqlConsolePanel,
+    [DBTypes.TENDBCLUSTER]: MysqlConsolePanel,
+    [DBTypes.REDIS]: RedisConsolePanel,
+  } as Record<DBTypes, any>;
+
   const rootRef = ref();
   const clusterTabsRef = ref();
-  const consolePanelRef = ref<InstanceType<typeof ConsolePanel>>();
+  const consolePanelRef = ref<InstanceType<typeof MysqlConsolePanel>>();
   const clusterInfo = ref<ClusterItem>();
   const currentFontConfig = ref({
     fontSize: '12px',
