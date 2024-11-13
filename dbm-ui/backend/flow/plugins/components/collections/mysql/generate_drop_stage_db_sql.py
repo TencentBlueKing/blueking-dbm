@@ -8,6 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+from datetime import datetime, timedelta
 
 from django.db.transaction import atomic
 from django.utils.translation import gettext as _
@@ -16,8 +17,9 @@ from pipeline.component_framework.component import Component
 from backend.db_services.mysql.sql_import.constants import BKREPO_SQLFILE_PATH, SQLCharset, SQLExecuteTicketMode
 from backend.flow.plugins.components.collections.common.base_service import BaseService
 from backend.ticket.builders.common.base import fetch_cluster_ids
-from backend.ticket.constants import TicketType
-from backend.ticket.models import Ticket
+from backend.ticket.constants import FlowType, TicketType
+from backend.ticket.models import Flow, Ticket
+from backend.utils.time import datetime2str
 
 
 class GenerateDropStageDBSqlService(BaseService):
@@ -57,27 +59,40 @@ class GenerateDropStageDBSqlService(BaseService):
         bk_biz_id, cluster_ids = global_data["bk_biz_id"], fetch_cluster_ids(global_data["infos"])
 
         drop_sql_content = ";".join(ticket.details["drop_stage_db_cmds"])
+        ticket_mode = ticket.details.get("clear_mode", {"mode": SQLExecuteTicketMode.MANUAL.value})
+        if ticket_mode["mode"] == SQLExecuteTicketMode.TIMER:
+            trigger_time = datetime.now().astimezone() + timedelta(days=ticket_mode["days"])
+            ticket_mode["trigger_time"] = datetime2str(trigger_time)
+
         details = {
             "bk_biz_id": bk_biz_id,
             "cluster_ids": cluster_ids,
             "backup": [],
             "path": BKREPO_SQLFILE_PATH.format(biz=bk_biz_id),
             "charset": SQLCharset.DEFAULT.value,
-            "ticket_mode": {"mode": SQLExecuteTicketMode.MANUAL.value},
+            "ticket_mode": ticket_mode,
             "execute_objects": [{"dbnames": ["test"], "ignore_dbnames": [], "sql_content": drop_sql_content}],
         }
 
         if ticket.ticket_type == TicketType.TENDBCLUSTER_TRUNCATE_DATABASE:
-            ticket_type = TicketType.TENDBCLUSTER_FORCE_IMPORT_SQLFILE.value
+            ticket_type = TicketType.TENDBCLUSTER_DELETE_CLEAR_DB.value
         else:
-            ticket_type = TicketType.MYSQL_FORCE_IMPORT_SQLFILE.value
+            ticket_type = TicketType.MYSQL_DELETE_CLEAR_DB.value
 
-        Ticket.create_ticket(
+        # 创建删除备份库单据
+        clear_ticket = Ticket.create_ticket(
             ticket_type=ticket_type,
             creator=global_data["created_by"],
             bk_biz_id=bk_biz_id,
-            remark=_("清档自动发起的变更SQL单据\n关联单据：{}").format(ticket.url),
+            remark=_("清档完成后自动发起的删除清档备份库单据\n关联单据：{}").format(ticket.url),
             details=details,
+        )
+        # 原单据创建flow，关联清档单据
+        Flow.objects.create(
+            ticket=ticket,
+            flow_type=FlowType.DELIVERY.value,
+            details={"related_ticket": clear_ticket.id},
+            flow_alias=_("关联删除清档备份库单据"),
         )
 
 

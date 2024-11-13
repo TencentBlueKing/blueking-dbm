@@ -13,6 +13,7 @@ from django.utils.translation import ugettext_lazy as _
 from rest_framework import serializers
 
 from backend.db_meta.enums import ClusterType
+from backend.db_services.mysql.sql_import.constants import SQLExecuteTicketMode
 from backend.flow.consts import TruncateDataTypeEnum
 from backend.flow.engine.controller.mysql import MySQLController
 from backend.ticket import builders
@@ -34,7 +35,12 @@ class MySQLHaClearDetailSerializer(MySQLBaseOperateDetailSerializer):
         truncate_data_type = serializers.ChoiceField(help_text=_("清档类型"), choices=TruncateDataTypeEnum.get_choices())
         force = serializers.BooleanField(help_text=_("是否强制执行"), default=False)
 
+    class ClearImportModeSerializer(serializers.Serializer):
+        mode = serializers.ChoiceField(help_text=_("单据执行模式"), choices=SQLExecuteTicketMode.get_choices())
+        days = serializers.IntegerField(help_text=_("执行删除延迟天数"), required=False, default=15)
+
     infos = serializers.ListSerializer(help_text=_("清档信息列表"), child=TruncateDataInfoSerializer())
+    clear_mode = ClearImportModeSerializer(help_text=_("删除备份库模式"), required=False)
 
     def validate(self, attrs):
         """校验库表选择器信息是否正确"""
