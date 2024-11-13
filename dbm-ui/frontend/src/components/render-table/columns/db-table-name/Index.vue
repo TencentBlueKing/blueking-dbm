@@ -42,7 +42,7 @@
         </div>
         <div>
           <div class="circle-dot"></div>
-          <span>{{ t('包含通配符时, 每一单元格只允许输入单个对象。% ? 不能独立使用， * 只能单独使用') }}</span>
+          <span>{{ t('% ? 不能独立使用， * 只能单独使用') }}</span>
         </div>
       </div>
     </template>
