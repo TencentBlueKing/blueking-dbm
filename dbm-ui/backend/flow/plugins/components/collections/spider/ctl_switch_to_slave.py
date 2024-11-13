@@ -12,12 +12,12 @@ from time import sleep
 from django.utils.translation import ugettext_lazy as _
 from pipeline.component_framework.component import Component
 
-from backend.components import DBConfigApi, DBPrivManagerApi, DRSApi
+from backend.components import DBConfigApi, DRSApi
 from backend.components.dbconfig.constants import FormatType, LevelName
 from backend.constants import IP_PORT_DIVIDER
 from backend.db_meta.enums import TenDBClusterSpiderRole
 from backend.db_meta.models import Cluster
-from backend.flow.consts import TDBCTL_USER, ConfigTypeEnum, NameSpaceEnum, PrivRole
+from backend.flow.consts import TDBCTL_USER, ConfigTypeEnum, NameSpaceEnum
 from backend.flow.engine.bamboo.scene.spider.common.exceptions import CtlSwitchToSlaveFailedException
 from backend.flow.plugins.components.collections.common.base_service import BaseService
 
@@ -114,7 +114,7 @@ class CtlSwitchToSlaveService(BaseService):
             "bk_cloud_id": cluster.bk_cloud_id,
         }
         for ctl in ctl_set:
-            self.log_info(f"exec stop slave in instance[{ctl.machine.ip}{IP_PORT_DIVIDER}{ctl.admin_port}")
+            self.log_info(f"exec stop slave in instance[{ctl.machine.ip}{IP_PORT_DIVIDER}{ctl.admin_port}]")
             rpc_params["addresses"] = [f"{ctl.machine.ip}{IP_PORT_DIVIDER}{ctl.admin_port}"]
             res = DRSApi.rpc(rpc_params)
 
@@ -189,24 +189,6 @@ class CtlSwitchToSlaveService(BaseService):
                 "format": FormatType.MAP,
             }
         )["content"]
-
-        # 远程授权
-        DBPrivManagerApi.add_priv_without_account_rule(
-            {
-                "bk_cloud_id": cluster.bk_cloud_id,
-                "bk_biz_id": cluster.bk_biz_id,
-                "operator": "",
-                "user": data["repl_user"],
-                "psw": data["repl_pwd"],
-                "hosts": [slave.machine.ip for slave in other_secondary],
-                "dbname": "%",
-                "dml_ddl_priv": "",
-                "global_priv": "REPLICATION SLAVE, REPLICATION CLIENT",
-                "address": new_primary,
-                "role": PrivRole.TDBCTL.value,
-            }
-        )
-        self.log_info(_("在[{}]创建添加同步账号成功").format(new_primary))
 
         # 基于GTID建立同步
         for secondary in other_secondary:

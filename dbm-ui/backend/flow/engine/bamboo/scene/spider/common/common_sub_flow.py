@@ -16,7 +16,7 @@ from backend.configuration.constants import DBType
 from backend.constants import IP_PORT_DIVIDER
 from backend.db_meta.enums import ClusterType, InstanceStatus, MachineType, TenDBClusterSpiderRole
 from backend.db_meta.models import Cluster
-from backend.flow.consts import AUTH_ADDRESS_DIVIDER, DBA_ROOT_USER, TDBCTL_USER
+from backend.flow.consts import AUTH_ADDRESS_DIVIDER, DBA_ROOT_USER, TDBCTL_USER, PrivRole
 from backend.flow.engine.bamboo.scene.common.builder import SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.engine.bamboo.scene.mysql.common.common_sub_flow import (
@@ -30,12 +30,14 @@ from backend.flow.plugins.components.collections.mysql.clear_machine import MySQ
 from backend.flow.plugins.components.collections.mysql.clone_user import CloneUserComponent
 from backend.flow.plugins.components.collections.mysql.dns_manage import MySQLDnsManageComponent
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
+from backend.flow.plugins.components.collections.mysql.sync_master import SyncMasterComponent
 from backend.flow.plugins.components.collections.mysql.trans_flies import TransFileComponent
 from backend.flow.plugins.components.collections.spider.add_spider_routing import AddSpiderRoutingComponent
 from backend.flow.plugins.components.collections.spider.ctl_drop_routing import CtlDropRoutingComponent
 from backend.flow.plugins.components.collections.spider.ctl_switch_to_slave import CtlSwitchToSlaveComponent
 from backend.flow.plugins.components.collections.spider.remote_migrate_cut_over import RemoteMigrateCutOverComponent
 from backend.flow.plugins.components.collections.spider.spider_db_meta import SpiderDBMetaComponent
+from backend.flow.utils.base.base_dataclass import Instance
 from backend.flow.utils.common_act_dataclass import DownloadBackupClientKwargs
 from backend.flow.utils.mysql.mysql_act_dataclass import (
     CreateDnsKwargs,
@@ -44,6 +46,7 @@ from backend.flow.utils.mysql.mysql_act_dataclass import (
     DownloadMediaKwargs,
     ExecActuatorKwargs,
     InstanceUserCloneKwargs,
+    MysqlSyncMasterKwargs,
 )
 from backend.flow.utils.mysql.mysql_act_playload import MysqlActPayload
 from backend.flow.utils.spider.get_spider_incr import get_spider_master_incr
@@ -91,6 +94,7 @@ def add_spider_slaves_sub_flow(
 
     # 机器系统初始化
     exec_ips = [ip_info["ip"] for ip_info in add_spider_slaves]
+    bk_host_ids = [ip_info["bk_host_id"] for ip_info in add_spider_slaves]
     # 初始新机器
     sub_pipeline.add_sub_pipeline(
         sub_flow=init_machine_sub_flow(
@@ -100,6 +104,7 @@ def add_spider_slaves_sub_flow(
             sys_init_ips=exec_ips,
             init_check_ips=exec_ips,
             yum_install_perl_ips=exec_ips,
+            bk_host_ids=bk_host_ids,
         )
     )
 
@@ -239,6 +244,7 @@ def add_spider_masters_sub_flow(
     # 机器系统初始化
 
     exec_ips = [ip_info["ip"] for ip_info in add_spider_masters]
+    bk_host_ids = [ip_info["bk_host_id"] for ip_info in add_spider_masters]
     # 初始新机器
     sub_pipeline.add_sub_pipeline(
         sub_flow=init_machine_sub_flow(
@@ -248,6 +254,7 @@ def add_spider_masters_sub_flow(
             sys_init_ips=exec_ips,
             init_check_ips=exec_ips,
             yum_install_perl_ips=exec_ips,
+            bk_host_ids=bk_host_ids,
         )
     )
     # 阶段1 下发spider安装介质包
@@ -356,15 +363,26 @@ def add_spider_masters_sub_flow(
 
     if not is_add_spider_mnt:
         # 阶段8 待添加中控实例建立主从数据同步关系
-        sub_pipeline.add_sub_pipeline(
-            sub_flow=build_ctl_replication_with_gtid(
-                root_id=root_id,
-                parent_global_data=parent_global_data,
-                bk_cloud_id=cluster.bk_cloud_id,
-                ctl_primary=cluster.tendbcluster_ctl_primary_address(),
-                ctl_secondary_list=add_spider_masters,
-            )
+        ctl_master = cluster.tendbcluster_ctl_primary_address()
+        ctl_master_ip = ctl_master.split(IP_PORT_DIVIDER)[0]
+        ctl_master_port = ctl_master.split(IP_PORT_DIVIDER)[1]
+        sub_pipeline.add_act(
+            act_name=_("构建spider中控集群同步"),
+            act_component_code=SyncMasterComponent.code,
+            kwargs=asdict(
+                MysqlSyncMasterKwargs(
+                    bk_biz_id=cluster.bk_biz_id,
+                    bk_cloud_id=cluster.bk_cloud_id,
+                    priv_role=PrivRole.TDBCTL.value,
+                    master=Instance(host=ctl_master_ip, port=ctl_master_port),
+                    slaves=[Instance(host=s["ip"], port=ctl_master_port) for s in add_spider_masters],
+                    is_gtid=True,
+                    is_add_any=True,
+                    is_master_add_priv=False,
+                )
+            ),
         )
+
         # 阶段8 添加域名映射关系
         sub_pipeline.add_act(
             act_name=_("添加集群域名"),

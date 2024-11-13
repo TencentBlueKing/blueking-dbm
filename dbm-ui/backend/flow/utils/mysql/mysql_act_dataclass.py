@@ -10,7 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 
 from dataclasses import dataclass, field
-from typing import Any, Optional
+from typing import Any, List, Optional
 
 from backend import env
 from backend.env import BACKUP_DOWNLOAD_USER, BACKUP_DOWNLOAD_USER_PWD
@@ -20,7 +20,9 @@ from backend.flow.consts import (
     DEFAULT_JOB_TIMEOUT,
     DnsOpType,
     MediumFileTypeEnum,
+    PrivRole,
 )
+from backend.flow.utils.base.base_dataclass import Instance
 from backend.flow.utils.mysql.mysql_act_playload import MysqlActPayload
 
 """
@@ -484,3 +486,27 @@ class IpKwargs:
     """
 
     ip: str
+
+
+@dataclass
+class MysqlSyncMasterKwargs:
+    """
+    定义mysql_sync_master活动节点的私有变量结构体
+    @attributes bk_biz_id: 业务ID
+    @attributes bk_cloud_id: 云区域ID
+    @attributes priv_role: 授权角色
+    @attributes master: 同步数据源实例
+    @attributes slaves: 同步数据目标实例列表
+    @attributes is_gtid: 是否开启GTID模式，默认不开启
+    @attributes is_add_any: 是否对同步账号开启%授权，默认不开启
+    @attributes is_master_add_priv: 是否对master添加同步账号，默认添加，只有is_add_any=True时参数才生效
+    """
+
+    bk_biz_id: int
+    bk_cloud_id: int
+    priv_role: PrivRole
+    master: Instance
+    slaves: List[Instance]
+    is_gtid: bool = False
+    is_add_any: bool = False
+    is_master_add_priv: bool = True

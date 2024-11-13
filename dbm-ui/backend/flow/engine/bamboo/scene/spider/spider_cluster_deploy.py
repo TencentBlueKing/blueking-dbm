@@ -17,9 +17,8 @@ from django.utils.crypto import get_random_string
 from django.utils.translation import ugettext as _
 
 from backend.configuration.constants import DBType
-from backend.constants import IP_PORT_DIVIDER
 from backend.db_meta.enums import ClusterType, TenDBClusterSpiderRole
-from backend.flow.consts import TDBCTL_USER
+from backend.flow.consts import TDBCTL_USER, PrivRole
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.engine.bamboo.scene.mysql.common.common_sub_flow import (
@@ -27,23 +26,23 @@ from backend.flow.engine.bamboo.scene.mysql.common.common_sub_flow import (
     build_surrounding_apps_sub_flow,
     init_machine_sub_flow,
 )
-from backend.flow.engine.bamboo.scene.spider.common.common_sub_flow import (
-    build_apps_for_spider_sub_flow,
-    build_ctl_replication_with_gtid,
-)
+from backend.flow.engine.bamboo.scene.spider.common.common_sub_flow import build_apps_for_spider_sub_flow
 from backend.flow.plugins.components.collections.mysql.dns_manage import MySQLDnsManageComponent
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
+from backend.flow.plugins.components.collections.mysql.sync_master import SyncMasterComponent
 from backend.flow.plugins.components.collections.mysql.trans_flies import TransFileComponent
 from backend.flow.plugins.components.collections.spider.add_system_user_in_cluster import (
     AddSystemUserInClusterComponent,
 )
 from backend.flow.plugins.components.collections.spider.spider_db_meta import SpiderDBMetaComponent
+from backend.flow.utils.base.base_dataclass import Instance
 from backend.flow.utils.mysql.mysql_act_dataclass import (
     AddSpiderSystemUserKwargs,
     CreateDnsKwargs,
     DBMetaOPKwargs,
     DownloadMediaKwargs,
     ExecActuatorKwargs,
+    MysqlSyncMasterKwargs,
 )
 from backend.flow.utils.mysql.mysql_act_playload import MysqlActPayload
 from backend.flow.utils.mysql.mysql_context_dataclass import SpiderApplyManualContext
@@ -341,15 +340,20 @@ class TenDBClusterApplyFlow(object):
             )
         deploy_pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_flow_list)
 
-        # 阶段5 构建spider中控集群
-        deploy_pipeline.add_sub_pipeline(
-            sub_flow=build_ctl_replication_with_gtid(
-                root_id=self.root_id,
-                parent_global_data=self.data,
-                bk_cloud_id=int(self.data["bk_cloud_id"]),
-                ctl_primary=f"{ctl_master['ip']}{IP_PORT_DIVIDER}{self.data['ctl_port']}",
-                ctl_secondary_list=ctl_slaves,
-            )
+        deploy_pipeline.add_act(
+            act_name=_("构建spider中控集群同步"),
+            act_component_code=SyncMasterComponent.code,
+            kwargs=asdict(
+                MysqlSyncMasterKwargs(
+                    bk_biz_id=int(self.data["bk_biz_id"]),
+                    bk_cloud_id=int(self.data["bk_cloud_id"]),
+                    priv_role=PrivRole.TDBCTL.value,
+                    master=Instance(host=ctl_master["ip"], port=self.data["ctl_port"]),
+                    slaves=[Instance(host=s["ip"], port=self.data["ctl_port"]) for s in ctl_slaves],
+                    is_gtid=True,
+                    is_add_any=True,
+                )
+            ),
         )
 
         # 阶段6 内部集群节点之间授权
