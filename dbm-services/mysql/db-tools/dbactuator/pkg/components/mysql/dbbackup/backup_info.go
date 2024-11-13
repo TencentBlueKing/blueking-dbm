@@ -7,7 +7,6 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
-	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -217,8 +216,7 @@ func (i *InfoFileDetail) getFullFileListFromInfo(checkMD5 bool) error {
 	if i.backupFiles == nil {
 		i.backupFiles = make(map[string][]string)
 	}
-	i.backupFiles[MYSQL_FULL_BACKUP] = fullFileNames
-	// sort.Strings(fullFileList)
+	i.backupFiles[MYSQL_FULL_BACKUP] = util.SortSplitPartFiles(fullFileNames, ".")
 	return nil
 }
 
@@ -239,7 +237,6 @@ func (i *InfoFileDetail) UntarFiles(untarDir string) error {
 		return errors.Errorf("target untar path already exists %s", i.targetDir)
 	}
 	fullFileList := i.backupFiles[MYSQL_FULL_BACKUP]
-	sort.Strings(fullFileList)
 
 	if len(fullFileList) >= 2 {
 		cmd = fmt.Sprintf(

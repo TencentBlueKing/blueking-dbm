@@ -189,7 +189,7 @@ func (m *DBLoader) PostCheck() error {
 	sqlStr := fmt.Sprintf(`update infodba_schema.global_backup SET BackupStatus ='%s' where Host ='%s' and Port =%d`,
 		spider.StatusQuit, m.TgtInstance.Host, m.TgtInstance.Port)
 	if _, err = dbWorker.ExecMore([]string{"set session sql_log_bin=off", sqlStr}); err != nil {
-		logger.Warn("fail to repair data for table global_backup. ignore", err.Error())
+		logger.Warn("fail to repair data for table global_backup. ignore %s", err.Error())
 	}
 	return nil
 }

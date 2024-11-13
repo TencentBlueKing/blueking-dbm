@@ -180,13 +180,13 @@ func (r *RestoreDRComp) ChooseType() error {
 		return err
 	}
 	b.backupType = strings.ToLower(b.backupType) // 一律转成小写来判断
-	if b.backupType == cst.TypeXTRA {
+	if b.indexObj.BackupTool == cst.TypeXTRA || b.backupType == cst.TypeXTRA {
 		xload := XLoad{
 			RestoreParam: &r.Params,
 		}
 		r.restore = &xload
 		logger.Info("choose recover type [%s], infoObj.BackupType=%s", b.backupType, b.infoObj.BackupType)
-	} else if b.backupType == cst.TypeGZTAB {
+	} else if b.indexObj.BackupTool == cst.TypeGZTAB || b.backupType == cst.TypeGZTAB {
 		mload := MLoad{
 			RestoreParam: &r.Params,
 		}

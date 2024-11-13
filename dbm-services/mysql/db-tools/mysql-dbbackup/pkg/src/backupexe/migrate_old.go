@@ -39,18 +39,22 @@ func MigrateInstanceBackupInfo(infoFilePath string, cnf *config.BackupConfig) (s
 	if err != nil {
 		return "", nil, err
 	}
-
 	backupInfoDir := filepath.Dir(infoFilePath)
 	targetName := strings.TrimSuffix(filepath.Base(infoFilePath), ".info")
 	gztabBeginFile := filepath.Join(backupInfoDir, targetName+".DUMP.BEGIN.sql.gz")
 	xtraInfoFile := filepath.Join(backupInfoDir, targetName+".xtrabackup_info")
 
 	var backupTime time.Time
+	var backupType, backupTool string
 	if infoObj.BackupType == "gztab" {
+		backupType = "logical"
 		backupTime = beginTime
-	} else {
+	} else if infoObj.BackupType == "xtra" {
+		backupType = "physical"
 		backupTime = endTime
 	}
+	backupTool = infoObj.BackupType
+
 	var isFullBackup bool
 	if infoObj.DataOrGrant == "ALL" {
 		isFullBackup = true
@@ -117,7 +121,7 @@ func MigrateInstanceBackupInfo(infoFilePath string, cnf *config.BackupConfig) (s
 			ClusterId:            cnf.Public.ClusterId,
 			BkBizId:              cnf.Public.BkBizId,
 			ClusterAddress:       cnf.Public.ClusterAddress,
-			BackupType:           infoObj.BackupType,
+			BackupType:           backupType,
 			BackupHost:           infoObj.BackupHost,
 			BackupPort:           infoObj.BackupPort,
 			MysqlRole:            infoObj.BackupRole,
@@ -133,6 +137,7 @@ func MigrateInstanceBackupInfo(infoFilePath string, cnf *config.BackupConfig) (s
 			BkCloudId:     0,
 			BackupCharset: infoObj.Charset,
 			StorageEngine: storageEngine,
+			BackupTool:    backupTool,
 		},
 		BinlogInfo: dbareport.BinlogStatusInfo{
 			ShowMasterStatus: nil,
@@ -143,12 +148,12 @@ func MigrateInstanceBackupInfo(infoFilePath string, cnf *config.BackupConfig) (s
 
 	// 补齐  show master status, show slave status 信息
 	var masterStatus, slaveStatus *dbareport.StatusInfo
-	if infoObj.BackupType == "gztab" {
+	if backupTool == "gztab" {
 		if masterStatus, slaveStatus, err = MLoadGetBackupSlaveStatus(gztabBeginFile); err != nil {
 			return "", nil, err
 		}
 	}
-	if infoObj.BackupType == "xtra" {
+	if backupTool == "xtra" {
 		if masterStatus, slaveStatus, err = XLoadGetBackupSlaveStatus(xtraInfoFile); err != nil {
 			return "", nil, err
 		}
@@ -174,7 +179,7 @@ func MigrateInstanceBackupInfo(infoFilePath string, cnf *config.BackupConfig) (s
 	// 使用新的 index 名
 	newTargetName := fmt.Sprintf("%d_%d_%s_%d_%s_%s",
 		cnf.Public.BkBizId, cnf.Public.ClusterId, cnf.Public.MysqlHost, cnf.Public.MysqlPort,
-		beginTime.Format("20060102150405"), infoObj.BackupType)
+		beginTime.Format("20060102150405"), backupTool)
 	cnf.Public.SetTargetName(newTargetName)
 	indexFilePath, err := indexObj.SaveIndexContent(&cnf.Public)
 	if err != nil {

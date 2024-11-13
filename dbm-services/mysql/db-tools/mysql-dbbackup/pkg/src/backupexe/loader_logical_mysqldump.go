@@ -84,10 +84,8 @@ func (l *LogicalLoaderMysqldump) preExecute() error {
 	// handle DBListDropIfExists
 	// 如果有设置这个选项，会在运行前执行 drop database if exists 命令，来清理脏库
 	if strings.TrimSpace(dbListDrop) != "" {
-		if strings.TrimSpace(dbListDrop) != "" {
-			if err := dropDatabasesBeforeLoad(dbListDrop, &l.cnf.LogicalLoad, l.dbConn); err != nil {
-				return err
-			}
+		if err := dropDatabasesBeforeLoad(dbListDrop, &l.cnf.LogicalLoad, l.dbConn); err != nil {
+			return err
 		}
 	}
 	return nil
@@ -113,7 +111,6 @@ func (l *LogicalLoaderMysqldump) Execute() (err error) {
 	if err = l.preExecute(); err != nil {
 		return err
 	}
-
 	defer func() {
 		if l.initConnect != "" {
 			logger.Log.Info("set global init_connect back:", l.initConnect)
@@ -136,7 +133,6 @@ func (l *LogicalLoaderMysqldump) Execute() (err error) {
 			}
 		}
 	}
-
 	args := []string{
 		binPath,
 		"-h" + l.cnf.LogicalLoad.MysqlHost,
@@ -158,22 +154,18 @@ func (l *LogicalLoaderMysqldump) Execute() (err error) {
 	if len(initCommand) > 0 {
 		args = append(args, fmt.Sprintf(`--init-command='%s'`, strings.Join(initCommand, ";")))
 	}
-
 	// ExtraOpt is to freely add command line arguments
 	if l.cnf.LogicalLoadMysqldump.ExtraOpt != "" {
-		args = append(args, []string{
-			fmt.Sprintf(`%s`, l.cnf.LogicalLoadMysqldump.ExtraOpt),
-		}...)
+		args = append(args, l.cnf.LogicalLoadMysqldump.ExtraOpt)
 	}
 
-	sqlFiles, err := filepath.Glob(filepath.Join(l.cnf.LogicalLoad.MysqlLoadDir, "*_logical.sql*"))
-	if err != nil {
-		return errors.WithMessagef(err, "get sql file from %s", l.cnf.LogicalLoad.MysqlLoadDir)
-	} else if len(sqlFiles) == 0 {
-		return errors.WithMessagef(err, "no sql file found from %s", l.cnf.LogicalLoad.MysqlLoadDir)
+	sqlFiles, err := filepath.Glob(filepath.Join(l.cnf.LogicalLoad.MysqlLoadDir, "*.sql*"))
+	if len(sqlFiles) == 0 {
+		return errors.Errorf("no sql file found from %s", l.cnf.LogicalLoad.MysqlLoadDir)
 	} else {
 		logger.Log.Info("found sql files:", sqlFiles)
 	}
+
 	// 取第一个
 	dumpedSqlFile := sqlFiles[0]
 	if strings.HasSuffix(dumpedSqlFile, cst.ZstdSuffix) {

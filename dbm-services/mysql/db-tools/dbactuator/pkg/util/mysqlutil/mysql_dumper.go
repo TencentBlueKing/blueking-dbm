@@ -286,14 +286,16 @@ func (m *MySQLDumper) getDumpCmd(outputFile, errFile, dumpOption string) (dumpCm
 	if m.Quick {
 		dumpOption += " --quick "
 	}
+	if m.Charset != "" { // charset 可能为空
+		dumpOption += " --default-character-set=" + m.Charset
+	}
 	dumpCmd = fmt.Sprintf(
-		`%s -h%s -P%d  -u%s  -p%s --skip-opt --create-options --single-transaction --max-allowed-packet=1G -q --no-autocommit --default-character-set=%s %s`,
+		`%s -h%s -P%d  -u%s  -p%s --skip-opt --create-options --single-transaction --max-allowed-packet=1G -q --no-autocommit %s`,
 		m.DumpCmdFile,
 		m.Ip,
 		m.Port,
 		m.DbBackupUser,
 		m.DbBackupPwd,
-		m.Charset,
 		dumpOption,
 	)
 	if len(m.Tables) > 0 {

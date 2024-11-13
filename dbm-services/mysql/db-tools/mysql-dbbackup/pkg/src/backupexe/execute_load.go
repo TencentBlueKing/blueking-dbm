@@ -1,9 +1,10 @@
 package backupexe
 
 import (
+	"strings"
+
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/config"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/dbareport"
-	"strings"
 )
 
 // ExecuteLoad execute load backup command

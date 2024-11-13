@@ -6,11 +6,11 @@ import (
 	"strings"
 	"time"
 
+	"github.com/pkg/errors"
+
 	"dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/common/go-pubpkg/logger"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/components/mysql/dbbackup"
-
-	"github.com/pkg/errors"
 )
 
 // BackupInfo backup file info
@@ -82,7 +82,7 @@ func (b *BackupInfo) GetBackupMetaFile(fileType string) error {
 		}
 	}
 
-	if cmutil.StringsHas([]string{"gztab", "xtra"}, b.backupType) {
+	if b.indexObj != nil && cmutil.StringsHas([]string{"gztab", "xtra"}, b.indexObj.BackupTool) {
 		indexInfoFile := ""
 		for _, fileItem := range b.indexObj.FileList {
 			if fileItem.FileType == "index" {
@@ -106,6 +106,13 @@ func (b *BackupInfo) GetBackupMetaFile(fileType string) error {
 			b.backupHost = b.infoObj.BackupHost
 			b.backupPort = b.infoObj.BackupPort
 			logger.Info("GetBackupMetaFile infoObj:%+v", b.infoObj)
+			b.indexObj = &dbbackup.BackupIndexFile{}
+			b.indexObj.BackupTool = b.infoObj.BackupType
+			if infoObj.BackupType == "gztab" {
+				b.indexObj.BackupType = "logical"
+			} else if infoObj.BackupType == "xtra" {
+				b.indexObj.BackupType = "physical"
+			}
 		}
 	}
 	logger.Info("backupType=%s, backupHost=%s, backupPort=%d", b.backupType, b.backupHost, b.backupPort)

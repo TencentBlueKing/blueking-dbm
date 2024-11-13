@@ -1,12 +1,13 @@
 package pkg
 
 import (
-	"dbm-services/mysql/db-tools/dbactuator/pkg/core/cst"
-	"dbm-services/mysql/db-tools/dbactuator/pkg/util/mysqlutil"
-	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/config"
 	"fmt"
 	"os"
 	"path/filepath"
+
+	"dbm-services/mysql/db-tools/dbactuator/pkg/core/cst"
+	"dbm-services/mysql/db-tools/dbactuator/pkg/util/mysqlutil"
+	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/config"
 
 	"gopkg.in/ini.v1"
 )
@@ -17,7 +18,8 @@ func DumpDBSchema(ip string, port int, user, password, dbName string, uid string
 		mysqldumpBasePath = cst.TdbctlInstallPath
 	}
 
-	backupCharset, backupDir, err := readBackupConfig(port)
+	backupCharset := "utf8" // mysql 表结构编码都是用 utf8，可能跟表数据编码不一样
+	_, backupDir, err := readBackupConfig(port)
 	if err != nil {
 		return "", err
 	}
