@@ -29,7 +29,7 @@ class RiakApplyDetailSerializer(BigDataApplyDetailsSerializer):
 
     # display fields
     bk_cloud_name = serializers.SerializerMethodField(help_text=_("云区域"))
-    db_module_name = serializers.SerializerMethodField(help_text=_("DB模块名"))
+    db_module_name = serializers.SerializerMethodField(help_text=_("DB模块名(别名)"))
     city_name = serializers.SerializerMethodField(help_text=_("城市名"))
 
     def get_bk_cloud_name(self, obj):

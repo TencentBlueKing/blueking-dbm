@@ -82,8 +82,9 @@ class ClusterResourceProvider(BaseModelResourceProvider):
         queryset = data_source.objects.filter(**condition)[page.slice_from : page.slice_to]
         results = []
         for cluster in queryset:
-            cluster_type_label = cluster_type__label.get(cluster.cluster_type, cluster.cluster_type)
-            results.append({"id": cluster.id, "display_name": f"[{cluster_type_label}]{cluster.immute_domain}"})
+            # cluster_type_label = cluster_type__label.get(cluster.cluster_type, cluster.cluster_type)
+            # 暂时去掉对label的渲染，iam这里会有名字校验
+            results.append({"id": cluster.id, "display_name": f"{cluster.immute_domain}"})
         return ListResult(results=results, count=len(results))
 
 

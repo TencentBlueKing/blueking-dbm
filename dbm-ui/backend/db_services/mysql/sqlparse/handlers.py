@@ -107,7 +107,6 @@ class SQLParseHandler:
             """允许特殊SQL语句"""
             # sql语句白名单
             allowed_statements = [
-                "status",
                 "desc",
                 "describe",
                 "use",
@@ -118,6 +117,7 @@ class SQLParseHandler:
                 "show create table",
                 "show index",
                 "show variables",
+                "explain",
             ]
             tokens = [token.value.lower() for token in tokens if not token.is_whitespace]
             for allowed in allowed_statements:

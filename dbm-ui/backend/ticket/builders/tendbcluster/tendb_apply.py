@@ -49,7 +49,7 @@ class TenDBClusterApplyDetailSerializer(serializers.Serializer):
     bk_cloud_name = serializers.SerializerMethodField(help_text=_("云区域"))
     charset = serializers.SerializerMethodField(help_text=_("字符集"))
     version = serializers.SerializerMethodField(help_text=_("数据库版本"))
-    db_module_name = serializers.SerializerMethodField(help_text=_("DB模块名"))
+    db_module_name = serializers.SerializerMethodField(help_text=_("DB模块名(别名)"))
     city_name = serializers.SerializerMethodField(help_text=_("城市名"))
     machine_pair_cnt = serializers.SerializerMethodField(help_text=_("机器组数"))
 

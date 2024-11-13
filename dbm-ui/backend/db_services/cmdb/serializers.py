@@ -51,6 +51,7 @@ class ListModulesSLZ(serializers.Serializer):
 
 class CreateModuleSLZ(serializers.Serializer):
     db_module_name = serializers.CharField(help_text=_("DB模块名"))
+    alias_name = serializers.CharField(help_text=_("DB模块别名"), required=False, default="")
     cluster_type = serializers.ChoiceField(help_text=_("集群类型"), choices=ClusterType.get_choices())
 
     def validate(self, attrs):

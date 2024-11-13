@@ -83,6 +83,7 @@ def list_modules_by_biz(bk_biz_id: int, cluster_type: str) -> List[Dict]:
             "bk_biz_id": module.bk_biz_id,
             "db_module_id": module.db_module_id,
             "name": module.db_module_name,
+            "alias_name": module.alias_name,
             "db_module_info": module_infos[index][1],
         }
         for index, module in enumerate(modules)

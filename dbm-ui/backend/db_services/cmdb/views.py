@@ -81,7 +81,8 @@ class CMDBViewSet(viewsets.SystemViewSet):
         validated_data = self.params_validate(self.get_serializer_class())
         cluster_type = validated_data["cluster_type"]
         db_module_name = validated_data["db_module_name"]
-        return Response(db_module.apis.create(bk_biz_id, db_module_name, cluster_type))
+        alias_name = validated_data["alias_name"]
+        return Response(db_module.apis.create(bk_biz_id, db_module_name, cluster_type, alias_name))
 
     @common_swagger_auto_schema(
         operation_summary=_("设置业务英文缩写"),

@@ -27,5 +27,5 @@ class TicketContext:
         self.app_abbr_map = {biz.bk_biz_id: biz.db_app_abbr for biz in bizs}
 
         db_modules = list(DBModule.objects.all())
-        self.db_module_map = {module.db_module_id: module.db_module_name for module in db_modules}
+        self.db_module_map = {module.db_module_id: module.alias_name for module in db_modules}
         self.db_module_id__biz_id_map = {module.db_module_id: module.bk_biz_id for module in db_modules}

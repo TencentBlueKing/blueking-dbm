@@ -21,19 +21,18 @@ logger = logging.getLogger("root")
 
 
 @transaction.atomic
-def create(bk_biz_id: int, name: str, cluster_type: str, creator: str = ""):
+def create(bk_biz_id: int, name: str, cluster_type: str, alias: str = "", creator: str = ""):
     """创建DB模块
     说明：这里的模块与cc无任何关系，仅用于关联配置文件，相当于场景化配置模板，比如gamedb,logdb等
     """
     bk_biz_id = request_validator.validated_integer(bk_biz_id, min_value=0)
     name = request_validator.validated_str(name)
+    alias_name = alias or name
     cluster_type = request_validator.validated_str(cluster_type)
 
     try:
         db_module = DBModule.objects.create(
-            bk_biz_id=bk_biz_id,
-            cluster_type=cluster_type,
-            db_module_name=name,
+            bk_biz_id=bk_biz_id, cluster_type=cluster_type, db_module_name=name, alias_name=alias_name
         )
     except IntegrityError:
         raise DbModuleExistException(db_module_name=name)

@@ -271,6 +271,7 @@ class MediumEnum(str, StructuredEnum):
     Pulsar = EnumField("pulsar", _("pulsar"))
     Influxdb = EnumField("influxdb", _("influxdb"))
     DbMon = EnumField("dbmon", _("dbmon"))
+    DBTools = EnumField("dbtools", _("db工具包"))
     MySQLChecksum = EnumField("mysql-checksum", _("mysql-checksum"))
     MySQLRotateBinlog = EnumField("rotate-binlog", _("Binlog 滚动备份工具"))
     MySQLToolKit = EnumField("dba-toolkit", _("DBA 工具集"))
