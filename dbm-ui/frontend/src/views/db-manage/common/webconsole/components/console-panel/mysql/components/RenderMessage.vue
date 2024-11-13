@@ -24,21 +24,11 @@
     </table>
   </div>
 </template>
-<script lang="ts">
-  import { t } from '@locales/index';
-
+<script setup lang="ts">
   interface Props {
     data: Record<string, string>[];
   }
 
-  export const validate = (cmd: string) => {
-    if (/^\s*use\s+.*$/.test(cmd)) {
-      return t('暂不支持 use 语句，请使用 db.table 指定 database');
-    }
-    return '';
-  };
-</script>
-<script setup lang="ts">
   const props = defineProps<Props>();
 
   const headColumnList = computed(() => (props.data ? Object.keys(props.data[0]) : []));

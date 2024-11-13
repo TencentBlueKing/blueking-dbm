@@ -17,14 +17,6 @@
 <script lang="ts" setup>
   import { useI18n } from 'vue-i18n';
 
-  import { DBTypes } from '@common/const';
-
-  interface Props {
-    dbType: DBTypes;
-  }
-
-  const props = defineProps<Props>();
-
   const { t } = useI18n();
 
   const modelValue = defineModel<boolean | undefined>({
@@ -32,7 +24,7 @@
   });
 
   const handleRawSwitch = (value: boolean) => {
-    modelValue.value = props.dbType === DBTypes.REDIS ? value : undefined;
+    modelValue.value = value;
   };
 </script>
 
