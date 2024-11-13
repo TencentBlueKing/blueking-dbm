@@ -42,6 +42,7 @@
           :placeholder="t('账号名称_DB名称_权限名称')"
           style="width: 500px"
           unique-select
+          value-behavior="need-key"
           @change="handleSearchChange" />
       </div>
       <DbTable
@@ -484,7 +485,7 @@
                     configMap[props.accountType].buttonController[ButtonTypes.DELETE_RULE] &&
                     <bk-pop-confirm
                       width="288"
-                      content={t('删除操作将发起单据，单据获得审批后才会执行删除')}
+                      content={t('删除规则会创建单据，需此规则所有过往调用方审批后才执行删除。')}
                       title={t('确认删除该规则？')}
                       trigger="click"
                       onConfirm={() => handleShowDeleteRule(data, index)}
