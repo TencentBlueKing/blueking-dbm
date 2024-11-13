@@ -700,6 +700,7 @@
             permission={data.permission.hdfs_access_entry_view}
             v-db-console="hdfs.clusterManage.getAccess"
             resource={data.id}
+            disabled={data.isOffline}
             class="mr8"
             onClick={() => handleShowPassword(data)}>
             { t('获取访问方式') }
@@ -711,6 +712,7 @@
             permission={data.permission.hdfs_view}
             v-db-console="hdfs.clusterManage.viewAccessConfiguration"
             resource={data.id}
+            disabled={data.isOffline}
             class="mr8"
             onClick={() => handleShowSettings(data)}>
             { t('查看访问配置') }

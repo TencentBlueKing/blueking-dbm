@@ -204,8 +204,8 @@
   {
       dbConsole: 'sqlserver.haClusterList.batchAuthorize',
       click: () => handleShowAuthorize(selected.value),
-      disabled: false,
-      tooltips: '',
+      disabled: selected.value.some((data) => data.isOffline),
+      tooltips: t('仅可授权状态为“已启用”的集群'),
       text: t('批量授权')
     },
     {
