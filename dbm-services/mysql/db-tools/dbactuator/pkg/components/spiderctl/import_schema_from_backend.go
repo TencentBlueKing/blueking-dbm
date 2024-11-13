@@ -334,7 +334,7 @@ func (c *ImportSchemaFromBackendComp) migrateUseMysqlDump() (err error) {
 		Password:         c.GeneralParam.RuntimeAccountParam.AdminPwd,
 		WorkDir:          c.tmpDumpDir,
 	}
-	errChan := make(chan error, 1)
+	errChan := make(chan error)
 	wg := sync.WaitGroup{}
 	ctrChan := make(chan struct{}, c.maxThreads)
 	for _, db := range c.dumpDbs {
