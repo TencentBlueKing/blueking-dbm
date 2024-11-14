@@ -78,6 +78,7 @@
         ref="tableRef"
         :columns="columns"
         :data-source="getTendbhaList"
+        :line-height="80"
         releate-url-query
         :row-class="setRowClass"
         selectable

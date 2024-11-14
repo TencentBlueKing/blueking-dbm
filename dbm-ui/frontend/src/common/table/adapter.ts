@@ -77,7 +77,9 @@ export const tableConfig = (bkTableConfig: any) => {
   const bkTableConfigMemo = { ...bkTableConfig };
   const vxeTableConfig = {
     ...bkTableConfig,
-    rowConfig: {},
+    rowConfig: {
+      isHover: true,
+    },
   };
 
   if (bkTableConfigMemo.columns) {
@@ -93,9 +95,9 @@ export const tableConfig = (bkTableConfig: any) => {
     }
   }
 
-  if (bkTableConfigMemo.rowHeight) {
+  if (bkTableConfigMemo['row-height']) {
     Object.assign(vxeTableConfig.rowConfig, {
-      height: bkTableConfigMemo.rowHeight,
+      height: bkTableConfigMemo['row-height'],
     });
   }
 
@@ -117,6 +119,8 @@ export const tableConfig = (bkTableConfig: any) => {
   delete vxeTableConfig.isrowselectenable;
   delete vxeTableConfig.settings;
   delete vxeTableConfig.showSettings;
+
+  console.log('vxeTableConfigvxeTableConfig = ', vxeTableConfig);
 
   return vxeTableConfig;
 };

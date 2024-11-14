@@ -25,9 +25,8 @@
         :data="tableData.results"
         :max-height="tableMaxHeight"
         :pagination="pagination"
-        :pagination-height="60"
         :remote-pagination="remotePagination"
-        show-overflow-tooltip
+        show-overflow
         :show-settings="showSettings"
         v-bind="$attrs"
         @column-sort="handleColumnSortChange"
@@ -97,8 +96,8 @@
     fixedPagination?: boolean,
     clearSelection?: boolean,
     paginationExtra?: {
-    small?: boolean;
-  },
+      small?: boolean;
+    },
     selectable?: boolean,
     disableSelectMethod?: (data: any) => boolean|string,
     // data 数据的主键
@@ -527,6 +526,10 @@
 
   // 切换每页条数
   const handlePageLimitChange = (pageLimit: number) => {
+  console.log('pagination.limit = ', pagination.limit,pageLimit )
+  if (pagination.limit === pageLimit){
+    return
+  }
     pagination.limit = pageLimit;
     pagination.current = 1;
     fetchListData();
@@ -534,7 +537,12 @@
 
   // 切换页码
   const handlePageValueChange = (pageValue:number) => {
+    if (pagination.current === pageValue) {
+      return
+    }
     pagination.current = pageValue;
+
+    console.log('pagination.current = ', pagination.current, pageValue, pagination )
     fetchListData();
   };
 
