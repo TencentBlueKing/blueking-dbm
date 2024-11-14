@@ -16,6 +16,7 @@ from .bklog import *  # pylint: disable=wildcard-import
 from .bkrepo import *  # pylint: disable=wildcard-import
 from .dev import *  # pylint: disable=wildcard-import
 from .nameservice import *  # pylint: disable=wildcard-import
+from .sync_meta import *  # pylint: disable=wildcard-import
 
 APP_CODE = get_type_env(key="APP_ID", default="bk-dbm", _type=str)
 SECRET_KEY = get_type_env(key="APP_TOKEN", default="xxxx", _type=str)
