@@ -813,36 +813,6 @@
               onClick={() => handleGoWebconsole(data.id)}>
               Webconsole
             </auth-button>,
-            <OperationBtnStatusTips
-              v-db-console="redis.haClusterManage.backup"
-              data={data}
-              disabled={!data.isOffline}>
-              <auth-button
-                action-id="redis_backup"
-                resource={data.id}
-                permission={data.permission.redis_backup}
-                disabled={data.isOffline}
-                text
-                theme={theme}
-                onClick={() => handleShowBackup([data])}>
-                { t('备份') }
-              </auth-button>
-            </OperationBtnStatusTips>,
-            <OperationBtnStatusTips
-              v-db-console="redis.haClusterManage.dbClear"
-              data={data}
-              disabled={!data.isOffline}>
-              <auth-button
-                action-id="redis_purge"
-                resource={data.id}
-                permission={data.permission.redis_purge}
-                disabled={data.isOffline}
-                text
-                theme={theme}
-                onClick={() => handleShowPurge([data])}>
-                { t('清档') }
-              </auth-button>
-            </OperationBtnStatusTips>,
           ];
           if (data.bk_cloud_id > 0) {
             return [
@@ -918,10 +888,42 @@
               class="ml-8">
               {{
                 default: () => <>
+                  <bk-dropdown-item v-db-console="redis.haClusterManage.backup">
+                    <OperationBtnStatusTips
+                      data={data}
+                      disabled={!data.isOffline}>
+                      <auth-button
+                        action-id="redis_backup"
+                        resource={data.id}
+                        permission={data.permission.redis_backup}
+                        disabled={data.isOffline}
+                        text
+                        style="width: 100%;height: 32px;"
+                        onClick={() => handleShowBackup([data])}>
+                        { t('备份') }
+                      </auth-button>
+                    </OperationBtnStatusTips>
+                  </bk-dropdown-item>
+                  <bk-dropdown-item v-db-console="redis.haClusterManage.dbClear">
+                    <OperationBtnStatusTips
+                      data={data}
+                      disabled={!data.isOffline}>
+                      <auth-button
+                        action-id="redis_purge"
+                        resource={data.id}
+                        permission={data.permission.redis_purge}
+                        disabled={data.isOffline}
+                        text
+                        style="width: 100%;height: 32px;"
+                        onClick={() => handleShowPurge([data])}>
+                        { t('清档') }
+                      </auth-button>
+                    </OperationBtnStatusTips>
+                  </bk-dropdown-item>
                   <bk-dropdown-item v-db-console="redis.haClusterManage.getAccess">
                     <OperationBtnStatusTips
-                    data={data}
-                    disabled={!data.isOffline}>
+                      data={data}
+                      disabled={!data.isOffline}>
                       <auth-button
                         action-id="redis_access_entry_view"
                         resource={data.id}
