@@ -240,7 +240,7 @@ func (job *RedisShutdown) BackupDir(port int) {
 	}
 	job.runtime.Logger.Info("redis port[%d] backup dir to doing....", port)
 	mvCmd := fmt.Sprintf("mv %s/%d %s/shutdown_%d_%s", job.RealDataDir, port,
-		job.RedisBackupDir, port, time.Now().Format("20060102150405"))
+		job.RealDataDir, port, time.Now().Format("20060102150405"))
 	job.runtime.Logger.Info(mvCmd)
 	cmd := []string{"su", consts.MysqlAaccount, "-c", mvCmd}
 	_, err := util.RunLocalCmd(cmd[0], cmd[1:], "",
