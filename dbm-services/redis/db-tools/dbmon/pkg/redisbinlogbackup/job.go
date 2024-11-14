@@ -76,9 +76,14 @@ func (job *Job) Run() {
 	}
 	defer job.closeDB()
 
+	// 设置默认值，兼容老配置文件
+	if job.Conf.RedisBinlogBackup.BackupFileTag == "" {
+		job.Conf.RedisBinlogBackup.BackupFileTag = consts.RedisBinlogTAG
+	}
+
 	// job.backupClient = backupsys.NewIBSBackupClient(consts.IBSBackupClient, consts.RedisBinlogTAG)
 	job.backupClient, job.Err = backupsys.NewCosBackupClient(consts.COSBackupClient,
-		consts.COSInfoFile, consts.RedisBinlogTAG, job.Conf.BackupClientStrorageType)
+		consts.COSInfoFile, job.Conf.RedisBinlogBackup.BackupFileTag, job.Conf.BackupClientStrorageType)
 	if job.Err != nil {
 		if strings.HasPrefix(job.Err.Error(), "backup_client path not found") {
 			mylog.Logger.Debug(fmt.Sprintf("backup_client path:%s not found", consts.COSBackupClient))
@@ -172,7 +177,7 @@ func (job *Job) createTasks() {
 				taskBackupDir, svrItem.ServerShards[instStr],
 				job.Conf.RedisBinlogBackup.OldFileLeftDay,
 				job.Reporter,
-				job.Conf.BackupClientStrorageType,
+				job.Conf.BackupClientStrorageType, job.Conf.RedisBinlogBackup.BackupFileTag,
 				job.sqdb)
 			if job.Err != nil {
 				return

@@ -116,7 +116,7 @@ type BackupTask struct {
 func NewFullBackupTask(bkBizID string, bkCloudID int64, domain, ip string, port int, password,
 	toBackupSys, backupType, cacheBackupMode, backupDir string, tarSplit bool,
 	tarSplitSize, shardValue string,
-	reporter report.Reporter, storageType string,
+	reporter report.Reporter, storageType string, backupFileTag string,
 	sqdb *gorm.DB) (ret *BackupTask, err error) {
 	ret = &BackupTask{
 		Password:         password,
@@ -139,13 +139,13 @@ func NewFullBackupTask(bkBizID string, bkCloudID int64, domain, ip string, port 
 		BackupDir:    backupDir,
 		BackupTaskID: "",
 		BackupMD5:    "",
-		BackupTag:    consts.RedisFullBackupTAG,
+		BackupTag:    backupFileTag,
 		TimeZone:     timeZone,
 		ShardValue:   shardValue,
 	}
 	// ret.backupClient = backupsys.NewIBSBackupClient(consts.IBSBackupClient, consts.RedisFullBackupTAG)
 	ret.backupClient, err = backupsys.NewCosBackupClient(consts.COSBackupClient,
-		consts.COSInfoFile, consts.RedisFullBackupTAG, storageType)
+		consts.COSInfoFile, backupFileTag, storageType)
 	if err != nil && strings.HasPrefix(err.Error(), "backup_client path not found") {
 		ret.backupClient = nil
 		err = nil

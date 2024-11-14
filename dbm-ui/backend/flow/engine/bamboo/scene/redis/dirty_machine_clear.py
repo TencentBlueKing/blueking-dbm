@@ -12,7 +12,8 @@ import logging.config
 from typing import Dict, Optional
 
 from backend.configuration.constants import DBType
-from backend.db_meta.models import ProxyInstance, StorageInstance
+from backend.db_meta.enums import AccessLayer
+from backend.db_meta.models import Machine, ProxyInstance, StorageInstance
 from backend.flow.engine.bamboo.scene.common.builder import Builder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.engine.bamboo.scene.redis.atom_jobs import DirtyProxyMachineClear, DirtyRedisMachineClear
@@ -86,6 +87,9 @@ class DirtyMachineClearFlow(Builder):
             ]
         }
         """
+        # 加个前置检查，以免误删。
+        self.precheck_4_clean()
+
         redis_pipeline = Builder(root_id=self.root_id, data=self.data)
         trans_files = GetFileList(db_type=DBType.Redis)
         act_kwargs = ActKwargs()
@@ -102,10 +106,10 @@ class DirtyMachineClearFlow(Builder):
                 "only_clear_dbmeta": self.data.get("only_clear_dbmeta", False),
             }
             proxy_inst = ProxyInstance.objects.filter(
-                machine__ip=ip, machine__bk_cloud_id=self.data["bk_cloud_id"]
+                machine__ip=ip, machine__bk_cloud_id=self.data["bk_cloud_id"], bk_biz_id=self.data["bk_biz_id"]
             ).first()
             storage_inst = StorageInstance.objects.filter(
-                machine__ip=ip, machine__bk_cloud_id=self.data["bk_cloud_id"]
+                machine__ip=ip, machine__bk_cloud_id=self.data["bk_cloud_id"], bk_biz_id=self.data["bk_biz_id"]
             ).first()
             if proxy_inst:
                 sub_builder = DirtyProxyMachineClear(
@@ -120,3 +124,27 @@ class DirtyMachineClearFlow(Builder):
         if sub_pipelines:
             redis_pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
         redis_pipeline.run_pipeline()
+
+    def precheck_4_clean(self):
+        """
+        元数据前置检查：
+        1. 不能属于任何集群
+        2. 必须传入正确的 bizID 和 IP
+        """
+        for ip in self.data["infos"]:
+            try:
+                host_obj = Machine.objects.get(
+                    ip=ip, bk_cloud_id=self.data["bk_cloud_id"], bk_biz_id=self.data["bk_biz_id"]
+                )
+                if host_obj.access_layer == AccessLayer.PROXY:
+                    for proxy_obj in ProxyInstance.objects.filter(machine=host_obj).all():
+                        if proxy_obj.cluster.count() > 0:
+                            raise Exception("proxy {} in cluster , can't do this .".format(proxy_obj))
+                elif host_obj.access_layer == AccessLayer.STORAGE:
+                    for inst_obj in StorageInstance.objects.filter(machine=host_obj).all():
+                        if inst_obj.cluster.count() > 0:
+                            raise Exception("storage {} in cluster , can't do this .".format(inst_obj))
+            except Machine.DoesNotExist:
+                logger.log.info("{} host does not exists , ignore ".format(ip))
+            except Exception as e:
+                raise Exception("unkown exception... bugs {}:{}".format(ip, e))

@@ -144,7 +144,7 @@ const (
 
 	RedisFullBackupTAG    = "REDIS_FULL"
 	RedisBinlogTAG        = "REDIS_BINLOG"
-	RedisForeverBackupTAG = "DBFILE"
+	RedisForeverBackupTAG = "DBFILE3Y"
 
 	RedisFullBackupReportType   = "redis_fullbackup"
 	RedisBinlogBackupReportType = "redis_binlogbackup"

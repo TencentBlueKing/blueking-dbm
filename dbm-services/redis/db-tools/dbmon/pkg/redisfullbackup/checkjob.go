@@ -68,7 +68,7 @@ func (job *CheckJob) Run() {
 
 	// job.backupClient = backupsys.NewIBSBackupClient(consts.IBSBackupClient, consts.RedisFullBackupTAG)
 	job.backupClient, job.Err = backupsys.NewCosBackupClient(consts.COSBackupClient,
-		consts.COSInfoFile, consts.RedisFullBackupTAG, job.Conf.BackupClientStrorageType)
+		consts.COSInfoFile, job.Conf.RedisFullBackup.BackupFileTag, job.Conf.BackupClientStrorageType)
 	if job.Err != nil && !strings.HasPrefix(job.Err.Error(), "backup_client path not found") {
 		return
 	}

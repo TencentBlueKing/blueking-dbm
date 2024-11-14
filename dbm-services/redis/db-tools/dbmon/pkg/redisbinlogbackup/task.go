@@ -116,7 +116,7 @@ type Task struct {
 // NewBinlogBackupTask new binlog backup task
 func NewBinlogBackupTask(bkBizID string, bkCloudID int64, domain, ip string, port int,
 	password, toBackupSys, backupDir, shardValue string, oldFileLeftDay int,
-	reporter report.Reporter, storageType string,
+	reporter report.Reporter, storageType string, backupFileTag string,
 	sqdb *gorm.DB) (ret *Task, err error) {
 
 	timeZone, _ := time.Now().Local().Zone()
@@ -135,13 +135,13 @@ func NewBinlogBackupTask(bkBizID string, bkCloudID int64, domain, ip string, por
 		ServerIP:   ip,
 		ServerPort: port,
 		BackupDir:  backupDir,
-		BackupTag:  consts.RedisBinlogTAG,
+		BackupTag:  backupFileTag,
 		ShardValue: shardValue,
 		TimeZone:   timeZone,
 	}
 	// ret.backupClient = backupsys.NewIBSBackupClient(consts.IBSBackupClient, consts.RedisBinlogTAG)
 	ret.backupClient, err = backupsys.NewCosBackupClient(consts.COSBackupClient,
-		consts.COSInfoFile, consts.RedisBinlogTAG, storageType)
+		consts.COSInfoFile, backupFileTag, storageType)
 	if err != nil && strings.HasPrefix(err.Error(), "backup_client path not found") {
 		ret.backupClient = nil
 		err = nil

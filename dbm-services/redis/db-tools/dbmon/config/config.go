@@ -29,7 +29,9 @@ type ConfServerItem struct {
 
 // ConfRedisFullBackup 全备配置
 type ConfRedisFullBackup struct {
-	ToBackupSystem   string `json:"to_backup_system" mapstructure:"to_backup_system"`
+	BackupFileTag  string `json:"backup_file_tag" mapstructure:"backup_file_tag"`
+	ToBackupSystem string `json:"to_backup_system" mapstructure:"to_backup_system"`
+
 	Cron             string `json:"cron" mapstructure:"cron"`
 	OldFileLeftDay   int    `json:"old_file_left_day" mapstructure:"old_file_left_day"`
 	TarSplit         bool   `json:"tar_split" mapstructure:"tar_split"`
@@ -38,7 +40,9 @@ type ConfRedisFullBackup struct {
 
 // ConfRedisBinlogBackup binlog备份配置
 type ConfRedisBinlogBackup struct {
+	BackupFileTag  string `json:"backup_file_tag" mapstructure:"backup_file_tag"`
 	ToBackupSystem string `json:"to_backup_system" mapstructure:"to_backup_system"`
+
 	Cron           string `json:"cron" mapstructure:"cron"`
 	OldFileLeftDay int    `json:"old_file_left_day" mapstructure:"old_file_left_day"`
 }
