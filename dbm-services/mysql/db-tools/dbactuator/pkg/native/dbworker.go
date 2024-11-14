@@ -15,6 +15,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -501,17 +502,23 @@ func (h *DbWorker) SetSingleGlobalVarAndReturnOrigin(varName, varValue string) (
 	if err != nil {
 		return "", err
 	}
-	sqlstr := fmt.Sprintf("SET GLOBAL %s='%s'", varName, varValue)
-	if err = h.ExecuteAdminSql(sqlstr); err != nil {
+	if err = h.SetSingleGlobalVar(varName, varValue); err != nil {
 		return "", err
 	}
 	return originValue, nil
 }
 
-// SetSingleGlobalVar set global
+// SetSingleGlobalVar set global, 会自动识别数字/bool/string
 func (h *DbWorker) SetSingleGlobalVar(varName, varValue string) error {
-	sqlstr := fmt.Sprintf("SET GLOBAL %s='%s'", varName, varValue)
-	if err := h.ExecuteAdminSql(sqlstr); err != nil {
+	var setSqlStr string
+	if valLower := strings.ToLower(varValue); slices.Contains([]string{"on", "off"}, valLower) {
+		setSqlStr = fmt.Sprintf("SET GLOBAL %s=%s", varName, valLower)
+	} else if varInt, err := cast.ToInt64E(varValue); err == nil {
+		setSqlStr = fmt.Sprintf("SET GLOBAL %s=%d", varName, varInt)
+	} else {
+		setSqlStr = fmt.Sprintf("SET GLOBAL %s='%s'", varName, varValue)
+	}
+	if err := h.ExecuteAdminSql(setSqlStr); err != nil {
 		return err
 	}
 	return nil

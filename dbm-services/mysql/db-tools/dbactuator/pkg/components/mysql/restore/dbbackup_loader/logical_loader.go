@@ -79,26 +79,10 @@ func (l *LogicalLoader) CreateConfigFile() error {
 // PreLoad 在解压之前做的事情
 // 检查实例连通性
 func (l *LogicalLoader) PreLoad() error {
-	if err := l.buildFilter(); err != nil {
-		return err
-	}
-
-	dbWorker, err := l.TgtInstance.Conn()
+	err := l.buildFilter()
 	if err != nil {
-		return errors.Wrap(err, "目标实例连接失败")
-	}
-	defer dbWorker.Stop()
-	if _, err = dbWorker.Exec("set global init_connect=''"); err != nil { // 禁用 init_connect，这里为了兼容跑一次置空
 		return err
 	}
-	/*
-		if len(l.Databases) == 1 && l.Databases[0] == "*" { // 如果全库导入，删掉 infodba_schema 库（确保备份会导出 infodba_schema）
-			if _, err = dbWorker.ExecMore([]string{"set session sql_log_bin=off",
-				fmt.Sprintf("DROP DATABASE IF EXISTS %s", native.INFODBA_SCHEMA)}); err != nil {
-				return errors.WithMessage(err, "fail to run drop database if exists infodba_schema")
-			}
-		}
-	*/
 	return nil
 }
 
@@ -109,6 +93,22 @@ func (l *LogicalLoader) Load() error {
 		return err
 	}
 
+	// set variables
+	dbWorker, err := l.TgtInstance.Conn()
+	if err != nil {
+		return errors.Wrap(err, "目标实例连接失败")
+	}
+	defer dbWorker.Stop()
+	if _, err = dbWorker.Exec("set global init_connect=''"); err != nil { // 禁用 init_connect，这里为了兼容跑一次置空
+		logger.Warn("failed to set global init_connect='' for %d. ignore %s", l.TgtInstance.Port, err.Error())
+	}
+	// 关闭慢查询
+	originalValue, err := dbWorker.SetSingleGlobalVarAndReturnOrigin("slow_query_log", "off")
+	if err != nil {
+		logger.Warn("failed to set global slow_query_log=off for %d. ignore %s", l.TgtInstance.Port, err.Error())
+	} else {
+		defer dbWorker.SetSingleGlobalVar("slow_query_log", originalValue)
+	}
 	if err := l.loadBackup(); err != nil {
 		return err
 	}

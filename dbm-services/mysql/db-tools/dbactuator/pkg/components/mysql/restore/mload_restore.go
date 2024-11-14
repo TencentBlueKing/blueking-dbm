@@ -112,6 +112,13 @@ func (m *MLoad) Start() error {
 	if cmutil.FileExists(filepath.Join(m.targetDir, native.INFODBA_SCHEMA)) {
 		m.mloadUtil.IgnoreDatabases = append(m.mloadUtil.IgnoreDatabases, native.INFODBA_SCHEMA)
 	}
+	// 关闭慢查询
+	originalValue, err := m.dbWorker.SetSingleGlobalVarAndReturnOrigin("slow_query_log", "off")
+	if err != nil {
+		logger.Warn("failed to set global slow_query_log=off for %d. ignore %s", m.TgtInstance.Port, err.Error())
+	} else {
+		defer m.dbWorker.SetSingleGlobalVar("slow_query_log", originalValue)
+	}
 	if err := m.mloadUtil.Run(); err != nil {
 		return errors.Wrap(err, "mloadData failed")
 	}
