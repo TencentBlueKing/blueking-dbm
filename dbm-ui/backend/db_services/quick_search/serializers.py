@@ -29,5 +29,12 @@ class QuickSearchSerializer(serializers.Serializer):
         allow_empty=True,
     )
     filter_type = serializers.ChoiceField(help_text=_("检索类型"), choices=FilterType.get_choices(), required=False)
-    keyword = serializers.CharField(help_text=_("关键字过滤"), required=True)
-    limit = serializers.IntegerField(help_text=_("分页大小"), required=False, default=10, min_value=1, max_value=1000)
+    keyword = serializers.CharField(help_text=_("关键字过滤"), required=False)
+    short_code = serializers.CharField(help_text=_("短码"), required=False)
+    limit = serializers.IntegerField(help_text=_("分页大小"), required=False, default=10)
+
+    def validate(self, attrs):
+        # keyword 和 short_code 不能同时为空
+        if not attrs.get("keyword") and not attrs.get("short_code"):
+            raise serializers.ValidationError(_("keyword 和 short_code 不能同时为空"))
+        return attrs

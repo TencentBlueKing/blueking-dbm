@@ -9,7 +9,9 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import logging
+from hashlib import md5
 
+from django.core.cache import cache
 from django.utils.translation import ugettext_lazy as _
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -35,6 +37,15 @@ class QuickSearchViewSet(viewsets.SystemViewSet):
     @action(methods=["POST"], detail=False, serializer_class=QuickSearchSerializer)
     def search(self, request, *args, **kwargs):
         params = self.params_validate(self.get_serializer_class())
-        keyword = params.pop("keyword")
+        keyword = params.pop("keyword", "")
+        short_code = params.pop("short_code", "")
+        # 优先使用短码
+        if short_code:
+            keyword = cache.get(f"shot_code_{short_code}")
+        else:
+            short_code = md5(keyword.encode("utf-8")).hexdigest()
+            cache.set(f"shot_code_{short_code}", keyword, 60 * 60 * 24)
+
         result = QSearchHandler(**params).search(keyword)
+        result.update({"short_code": short_code, "keyword": keyword})
         return Response(result)
