@@ -145,7 +145,7 @@
     verifyPartitionField,
   } from '@services/source/partitionManage';
 
-  import { dbSysExclude } from '@common/const';
+  import { DBClusterTypes, dbSysExclude, DBTypes } from '@common/const';
   import { dbRegex } from '@common/regex';
 
   interface Props {
@@ -316,7 +316,7 @@
         offset: 0,
         limit: -1,
         bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-        cluster_types: 'tendbha,tendbsingle',
+        cluster_types: DBClusterTypes[DBTypes.MYSQL].join(','),
       },
     ],
   });

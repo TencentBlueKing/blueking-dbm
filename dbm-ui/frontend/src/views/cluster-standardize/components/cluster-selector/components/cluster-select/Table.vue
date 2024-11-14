@@ -36,10 +36,10 @@
     </BkLoading>
   </div>
 </template>
-<script setup lang="tsx" generic="T extends ServiceReturnType<typeof queryAllTypeCluster>['results'][number]">
+<script setup lang="tsx">
   import { useI18n } from 'vue-i18n';
 
-  import type { queryAllTypeCluster } from '@services/source/dbbase';
+  import type { ClusterInfo } from '@services/types';
 
   import { useLinkQueryColumnSerach } from '@hooks';
 
@@ -51,12 +51,12 @@
   import type { TopoTreeNode } from './hooks/useTopoData';
 
   interface DataRow {
-    data: T,
+    data: ClusterInfo,
   }
 
   interface Props {
+    lastValues: Record<string, ClusterInfo[]>;
     activePanelId: string;
-    lastValues: Record<string, T[]>;
     selectedTreeNode?: TopoTreeNode;
   }
 
@@ -112,10 +112,10 @@
   } = useLinkQueryColumnSerach({
     searchType: props.activePanelId,
     fetchDataFn: () => fetchResources(),
-    isQueryAttrs: false
+    isQueryAttrs: false,
   });
 
-  const checkedMap = shallowRef({} as Record<string, T>);
+  const checkedMap = shallowRef({} as Record<string, ClusterInfo>);
 
   const params = computed<{ cluster_types: string; bk_biz_id?: number; db_module_id?: number }>(() => {
     const base = {
@@ -263,12 +263,12 @@
   }, { immediate: true, deep: true });
 
   const triggerChange = () => {
-    const result = Object.values(checkedMap.value).reduce((result, item) => {
+    const result = Object.values(checkedMap.value).reduce<ClusterInfo[]>((result, item) => {
       result.push({
         ...item,
       });
       return result;
-    }, [] as T[]);
+    }, []);
 
     if (props.activePanelId) {
       emits('change', {
@@ -278,7 +278,7 @@
     }
   };
 
-  const handleTableSelectOne = (checked: boolean, data: T) => {
+  const handleTableSelectOne = (checked: boolean, data: ClusterInfo) => {
     const lastCheckMap = { ...checkedMap.value };
     if (checked) {
       lastCheckMap[data.immute_domain] = data;

@@ -39,10 +39,3 @@ export function getClusterList(params: {
 }) {
   return http.post<ListBase<TendbhaModel[]>>(`/apis/mysql/query_clusters/`, params);
 }
-
-/**
- * 根据用户手动输入的域名列表查询
- */
-export function checkDomains(params: { domains: Array<string> }) {
-  return http.post<Array<TendbhaModel>>(`/apis/mysql/check_domains/`, params);
-}

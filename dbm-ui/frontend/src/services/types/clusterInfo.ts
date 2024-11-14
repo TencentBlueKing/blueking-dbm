@@ -11,13 +11,22 @@
  * the specific language governing permissions and limitations under the License.
  */
 
-export * from './bizItem';
-export * from './clusterInfo';
-export * from './common';
-export * from './db';
-export * from './hostInfo';
-export * from './hostNode';
-export * from './instanceInfos';
-export * from './listBase';
-export * from './permission';
-export * from './resourceTopo';
+/**
+ * 通用集群信息
+ */
+export interface ClusterInfo {
+  alias: string;
+  bk_biz_id: number;
+  bk_cloud_id: number;
+  bk_cloud_name: string;
+  cluster_type: string;
+  db_module_id: number;
+  db_module_name: string;
+  id: number;
+  immute_domain: string;
+  major_version: string;
+  name: string;
+  phase: string;
+  region: string;
+  status: string;
+}

@@ -11,7 +11,7 @@
  * the specific language governing permissions and limitations under the License.
  */
 
-import type { InstanceInfos, ListBase } from '@services/types';
+import type { ClusterInfo, InstanceInfos, ListBase } from '@services/types';
 
 import { ClusterTypes } from '@common/const';
 
@@ -106,6 +106,28 @@ export function checkInstance<T extends InstanceInfos>(params: { instance_addres
 
 // 查询全集群信息
 export function queryAllTypeCluster(params: {
+  bk_biz_id: number;
+  cluster_types?: string;
+  immute_domain?: string;
+  phase?: string;
+  limit?: number;
+  offset?: number;
+}) {
+  return http.get<
+    {
+      bk_cloud_id: number;
+      cluster_type: string;
+      id: number;
+      immute_domain: string;
+      major_version: string;
+      name: string;
+      region: string;
+    }[]
+  >(`${path}/simple_query_cluster/`, params);
+}
+
+// 全集群列表
+export function queryAllTypeClusterList(params: {
   bk_biz_id?: number; // 业务id
   cluster_types?: string; // 集群类型(逗号间隔)
   immute_domain?: string; // 集群域名
@@ -121,24 +143,12 @@ export function queryAllTypeCluster(params: {
   limit?: number;
   offset?: number;
 }) {
-  return http.get<
-    ListBase<
-      {
-        alias: string;
-        bk_biz_id: number;
-        bk_cloud_id: number;
-        bk_cloud_name: string;
-        cluster_type: string;
-        db_module_id: number;
-        db_module_name: string;
-        id: number;
-        immute_domain: string;
-        major_version: string;
-        name: string;
-        phase: string;
-        region: string;
-        status: string;
-      }[]
-    >
-  >(`${path}/simple_query_cluster/`, params);
+  return http.get<ListBase<ClusterInfo[]>>(`${path}/simple_query_cluster_v2/`, params);
+}
+
+/**
+ * 根据用户手动输入的域名列表查询
+ */
+export function checkDomains(params: { domains: string[] }) {
+  return http.post<ClusterInfo[]>(`${path}/check_domains/`, params);
 }

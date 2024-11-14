@@ -54,7 +54,7 @@
     </template>
     <ClusterSelector
       v-model:is-show="isShowBatchSelector"
-      :db-type="DBTypes.MYSQL"
+      :db-type="DBTypes.TENDBCLUSTER"
       :selected="selected"
       @change="handelClusterChange" />
   </SmartAction>
@@ -84,8 +84,7 @@
   const isShowBatchSelector = ref(false);
   const tableData = ref<IDataRow[]>([createRowData()]);
   const selected = shallowRef<Record<string, ClusterInfo[]>>({
-    [ClusterTypes.TENDBHA]: [],
-    [ClusterTypes.TENDBSINGLE]: [],
+    [ClusterTypes.TENDBCLUSTER]: [],
   });
 
   const totalNum = computed(() => tableData.value.filter((item) => Boolean(item.clusterType)).length);
@@ -171,8 +170,7 @@
   const handleSubmit = async () => {
     const clusters = Object.values(selected.value).flat();
     const ticketTypeMap = {
-      [ClusterTypes.TENDBHA]: TicketTypes.MYSQL_HA_STANDARDIZE,
-      [ClusterTypes.TENDBSINGLE]: TicketTypes.TENDBSINGLE_STANDARDIZE,
+      [ClusterTypes.TENDBCLUSTER]: TicketTypes.TENDBCLUSTER_STANDARDIZE,
     };
     createTicketRun({
       ticket_type: ticketTypeMap[clusters[0].cluster_type as keyof typeof ticketTypeMap],
@@ -190,8 +188,7 @@
   const handleReset = () => {
     tableData.value = [createRowData()];
     selected.value = {
-      [ClusterTypes.TENDBHA]: [],
-      [ClusterTypes.TENDBSINGLE]: [],
+      [ClusterTypes.TENDBCLUSTER]: [],
     };
     domainMemo = {};
     window.changeConfirm = false;

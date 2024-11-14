@@ -12,9 +12,10 @@
  */
 
 import type { ISearchValue } from 'bkui-vue/lib/search-select/utils';
+import _ from 'lodash';
 import { useRequest } from 'vue-request';
 
-import { queryAllTypeCluster } from '@services/source/dbbase';
+import { type ClusterInfo, queryAllTypeClusterList } from '@services/source/dbbase';
 
 import { getSearchSelectorParams } from '@utils';
 
@@ -29,7 +30,7 @@ export function useTableData(
     db_module_id?: number;
   }>,
 ) {
-  const tableData = shallowRef<ServiceReturnType<typeof queryAllTypeCluster>['results']>([]);
+  const tableData = shallowRef<ClusterInfo[]>([]);
   const pagination = reactive({
     count: 0,
     current: 1,
@@ -39,15 +40,21 @@ export function useTableData(
     layout: ['total', 'limit', 'list'],
   });
 
-  const searchParams = computed(() => ({
-    limit: pagination.limit,
-    offset: (pagination.current - 1) * pagination.limit,
-    extra: 1,
-    ...getSearchSelectorParams(searchSelectValue.value),
-    ...params.value,
-  }));
+  const searchParams = computed(() => {
+    const comParams = getSearchSelectorParams(searchSelectValue.value);
+    const cloneParams = _.cloneDeep(comParams);
+    delete cloneParams.domain;
+    return {
+      limit: pagination.limit,
+      offset: (pagination.current - 1) * pagination.limit,
+      extra: 1,
+      immute_domain: comParams.domain,
+      ...cloneParams,
+      ...params.value,
+    };
+  });
 
-  const { run: fetchDataFn, loading: isLoading } = useRequest(queryAllTypeCluster, {
+  const { run: fetchDataFn, loading: isLoading } = useRequest(queryAllTypeClusterList, {
     manual: true,
     onSuccess(data) {
       tableData.value = data.results;

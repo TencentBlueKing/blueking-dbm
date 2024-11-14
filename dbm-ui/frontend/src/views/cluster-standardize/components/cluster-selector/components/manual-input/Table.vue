@@ -27,20 +27,20 @@
       :settings="tableSettings" />
   </div>
 </template>
-<script setup lang="tsx" generic="T extends ServiceReturnType<typeof queryAllTypeCluster>['results'][number]">
+<script setup lang="tsx">
   import { useI18n } from 'vue-i18n';
 
-  import type { queryAllTypeCluster } from '@services/source/dbbase';
+  import type { ClusterInfo } from '@services/types';
 
   import DbStatus from '@components/db-status/index.vue';
 
   interface DataRow {
-    data: T,
+    data: ClusterInfo,
   }
 
   interface Props {
+    lastValues: Record<string, ClusterInfo[]>;
     activePanelId: string;
-    lastValues: Record<string, T[]>;
   }
 
   interface Emits {
@@ -63,9 +63,9 @@
     layout: ['total', 'limit', 'list'],
   });
 
-  const checkedMap = shallowRef({} as Record<string, T>);
+  const checkedMap = shallowRef({} as Record<string, ClusterInfo>);
 
-  const tableData = shallowRef<T[]>([]);
+  const tableData = shallowRef<ClusterInfo[]>([]);
 
   const isSelectedAll = computed(() => (tableData.value.length > 0
     // eslint-disable-next-line max-len
@@ -214,12 +214,12 @@
   }, { immediate: true, deep: true });
 
   const triggerChange = () => {
-    const result = Object.values(checkedMap.value).reduce((result, item) => {
+    const result = Object.values(checkedMap.value).reduce<ClusterInfo[]>((result, item) => {
       result.push({
         ...item,
       });
       return result;
-    }, [] as T[]);
+    }, []);
 
     if (props.activePanelId) {
       emits('change', {
@@ -229,7 +229,7 @@
     }
   };
 
-  const handleTableSelectOne = (checked: boolean, data: T) => {
+  const handleTableSelectOne = (checked: boolean, data: ClusterInfo) => {
     const lastCheckMap = { ...checkedMap.value };
     if (checked) {
       lastCheckMap[data.immute_domain] = data;

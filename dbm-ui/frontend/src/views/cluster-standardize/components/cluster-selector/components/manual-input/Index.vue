@@ -79,7 +79,8 @@
       <template #main>
         <BkLoading :loading="inputState.isLoading">
           <Table
-            :checked="checkedMap"
+            :active-panel-id="activePanelId"
+            :last-values="lastValues"
             :table-data="tableData"
             @change="handleChange" />
         </BkLoading>
@@ -87,39 +88,38 @@
     </BkResizeLayout>
   </div>
 </template>
-<script setup lang="ts" generic="T extends TendbhaModel">
+<script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
-  import type TendbhaModel from '@services/model/mysql/tendbha';
-  import { checkDomains } from '@services/source/mysql';
+  import { checkDomains } from '@services/source/dbbase';
+  import type { ClusterInfo } from '@services/types';
 
   import { domainRegex } from '@common/regex';
 
   import Table from './Table.vue';
 
   interface Props {
-    checked: Record<string, T>;
-    checkKey?: string;
+    lastValues: Record<string, ClusterInfo[]>;
+    activePanelId: string;
   }
 
   interface Emits {
-    (e: 'change', value: Props['checked']): void;
+    (e: 'change', value: Props['lastValues']): void;
   }
-  const props = withDefaults(defineProps<Props>(), {
-    checkKey: 'master_domain',
-  });
+
+  const props = defineProps<Props>();
+
   const emits = defineEmits<Emits>();
 
   const { t } = useI18n();
   const inputRef = ref();
-  const checkedMap = computed(() => props.checked);
 
   const inputState = reactive({
     values: '',
     placeholder: t('请输入访问入口_多个可使用换行_空格或_分隔'),
     isLoading: false,
   });
-  const tableData = shallowRef<T[]>([]);
+  const tableData = shallowRef<ClusterInfo[]>([]);
   const errorState = reactive({
     format: {
       show: false,
@@ -135,7 +135,7 @@
     },
   });
 
-  const handleChange = (checked: Props['checked']) => {
+  const handleChange = (checked: Props['lastValues']) => {
     emits('change', checked);
   };
 
@@ -193,16 +193,16 @@
         domains: lines,
       };
       const results = await checkDomains(params);
-      const legalDomains: T[] = [];
+      const legalDomains: ClusterInfo[] = [];
       for (let i = lines.length - 1; i >= 0; i--) {
         const item = lines[i];
         const infos = results[i];
         const remove = lines.splice(i, 1);
-        const isExisted = results.find((existItem) => existItem[props.checkKey as keyof TendbhaModel] === item);
+        const isExisted = results.find((existItem) => existItem.immute_domain === item);
         if (!isExisted) {
           legalLines.push(...remove);
         } else {
-          legalDomains.push(infos as T);
+          legalDomains.push(infos as ClusterInfo);
         }
       }
       tableData.value.splice(0, tableData.value.length, ...legalDomains);
@@ -212,12 +212,24 @@
       errorState.domain.selectionEnd = legalLines.join('\n').length;
 
       // 解析完成后选中
-      const checked = { ...props.checked };
+      const lastValues = { ...props.lastValues };
       for (const item of tableData.value) {
-        const domain = item.master_domain;
-        checked[domain] = item as T;
+        const clusterType = props.activePanelId;
+        if (!lastValues[clusterType]) {
+          lastValues[clusterType] = [];
+        }
+        const list = lastValues[clusterType];
+        const isExisted =
+          list.length > 0 &&
+          list.find((i) => `${i.immute_domain}_${i.bk_cloud_id}` === `${item.immute_domain}_${item.bk_cloud_id}`);
+        if (!isExisted) {
+          lastValues[clusterType].push(item);
+        }
       }
-      emits('change', checked);
+      emits('change', {
+        ...props.lastValues,
+        ...lastValues,
+      });
     } catch (_) {
       console.error(_);
     }

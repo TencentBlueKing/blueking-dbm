@@ -78,10 +78,10 @@
     </div>
   </BkLoading>
 </template>
-<script setup lang="ts" generic="T extends ServiceReturnType<typeof queryAllTypeCluster>['results'][number]">
+<script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
-  import type { queryAllTypeCluster } from '@services/source/dbbase';
+  import type { ClusterInfo } from '@services/types';
 
   import { ClusterTypes } from '@common/const';
 
@@ -89,8 +89,8 @@
   import Table from './Table.vue';
 
   interface Props {
-    lastValues: Record<string, T[]>;
-    activePanelId?: string;
+    lastValues: Record<string, ClusterInfo[]>;
+    activePanelId: string;
   }
 
   interface Emits {

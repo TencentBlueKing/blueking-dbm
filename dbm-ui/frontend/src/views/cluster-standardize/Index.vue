@@ -28,14 +28,16 @@
 
   import Mysql from './components/mysql/Index.vue';
   import Success from './components/Success.vue';
+  import Tendbcluster from './components/tendbcluster/Index.vue';
 
   const router = useRouter();
   const route = useRoute();
 
-  const exclude = Object.values(DBTypes).filter((type) => type !== DBTypes.MYSQL);
+  const exclude = Object.values(DBTypes).filter((type) => ![DBTypes.TENDBCLUSTER, DBTypes.MYSQL].includes(type));
 
   const comMap = {
     [DBTypes.MYSQL]: Mysql,
+    [DBTypes.TENDBCLUSTER]: Tendbcluster,
   } as Record<string, any>;
 
   const active = ref(DBTypes.MYSQL);

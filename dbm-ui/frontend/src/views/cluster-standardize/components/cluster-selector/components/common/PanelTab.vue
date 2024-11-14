@@ -44,11 +44,15 @@
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
+  import { ClusterTypes, DBTypes } from '@common/const';
+
+  interface TabItem {
+    id: string;
+    name: string;
+  }
+
   interface Props {
-    tabList: {
-      id: string;
-      name: string;
-    }[];
+    dbType: DBTypes;
   }
 
   const props = defineProps<Props>();
@@ -61,15 +65,43 @@
 
   const tabTipsRef = ref();
 
+  const tabListMap = {
+    [DBTypes.MYSQL]: [
+      {
+        id: ClusterTypes.TENDBHA,
+        name: t('MySQL主从'),
+      },
+      {
+        id: ClusterTypes.TENDBSINGLE,
+        name: t('MySQL单节点'),
+      },
+    ],
+    [DBTypes.TENDBCLUSTER]: [
+      {
+        id: ClusterTypes.TENDBCLUSTER,
+        name: t('TenDB集群'),
+      },
+    ],
+  } as Record<DBTypes, TabItem[]>;
+
   const panelList = computed(() => [
-    ...props.tabList,
+    ...tabListMap[props.dbType],
     // {
     //   id: 'manual',
     //   name: t('手动输入'),
     // },
   ]);
 
-  const handleClick = (tab: Props['tabList'][number]) => {
+  watch(
+    () => props.dbType,
+    () => {
+      if (props.dbType) {
+        modelValue.value = tabListMap[props.dbType][0].id;
+      }
+    },
+  );
+
+  const handleClick = (tab: TabItem) => {
     if (modelValue.value === tab.id) {
       return;
     }

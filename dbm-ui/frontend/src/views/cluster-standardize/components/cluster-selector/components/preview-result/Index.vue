@@ -63,10 +63,10 @@
     </div>
   </div>
 </template>
-<script setup lang="ts" generic="T extends ServiceReturnType<typeof queryAllTypeCluster>['results'][number]">
+<script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
-  import type { queryAllTypeCluster } from '@services/source/dbbase';
+  import type { ClusterInfo } from '@services/types';
 
   import { useCopy } from '@hooks';
 
@@ -77,11 +77,9 @@
   import CollapseMini from './CollapseMini.vue';
 
   interface Props {
-    lastValues: Record<string, T[]>;
-    activePanelId?: string;
+    lastValues: Record<string, ClusterInfo[]>;
+    activePanelId: string;
   }
-
-  type Keys = keyof Props['lastValues'];
 
   interface Emits {
     (e: 'change', value: Props['lastValues']): void;
@@ -95,7 +93,7 @@
   const { t } = useI18n();
   const copy = useCopy();
 
-  const keys = computed(() => Object.keys(props.lastValues) as Keys[]);
+  const keys = computed(() => Object.keys(props.lastValues));
   const isEmpty = computed(() => keys.value.every((key) => props.lastValues[key].length < 1));
 
   const handleClear = () => {
@@ -104,7 +102,7 @@
     });
   };
 
-  const handleRemove = (key: Keys, index: number) => {
+  const handleRemove = (key: string, index: number) => {
     const target = props.lastValues[key];
     target.splice(index, 1);
     emits('change', {
@@ -122,7 +120,7 @@
       return;
     }
 
-    const clusters: T[] = [];
+    const clusters: ClusterInfo[] = [];
     for (const key of keys.value) {
       clusters.push(...props.lastValues[key]);
     }

@@ -4,7 +4,7 @@ import { DBTypes } from './dbTypes';
 /**
  * db类型关联集群类型集合映射关系
  */
-export const queryClusterTypes = {
+export const DBClusterTypes = {
   [DBTypes.MYSQL]: [ClusterTypes.TENDBSINGLE, ClusterTypes.TENDBHA],
   [DBTypes.TENDBCLUSTER]: [ClusterTypes.TENDBCLUSTER],
   [DBTypes.REDIS]: [

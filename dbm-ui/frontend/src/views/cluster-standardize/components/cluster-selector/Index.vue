@@ -31,9 +31,9 @@
       <template #main>
         <PanelTab
           v-model="panelTabActive"
-          :tab-list="tabListMap[dbType]" />
+          :db-type="dbType" />
         <Component
-          :is="renderCom"
+          :is="ClusterSelect"
           :key="panelTabActive"
           :active-panel-id="panelTabActive"
           :last-values="lastValues"
@@ -68,34 +68,39 @@
     </template>
   </BkDialog>
 </template>
-
 <script lang="ts">
-  import type { queryAllTypeCluster } from '@services/source/dbbase';
+  import type { ClusterInfo } from '@services/types';
 
-  export type ICluster = ServiceReturnType<typeof queryAllTypeCluster>['results'][number];
+  import { ClusterTypes, DBTypes } from '@common/const';
+
+  interface SelectedMap {
+    [DBTypes.MYSQL]: {
+      [ClusterTypes.TENDBHA]?: ClusterInfo[];
+      [ClusterTypes.TENDBSINGLE]?: ClusterInfo[];
+    };
+    [DBTypes.TENDBCLUSTER]: {
+      [ClusterTypes.TENDBCLUSTER]?: ClusterInfo[];
+    };
+  }
+</script>
+<script setup lang="ts" generic="T extends keyof SelectedMap">
+  import { useI18n } from 'vue-i18n';
+
+  import ClusterSelect from './components/cluster-select/Index.vue';
+  import PanelTab from './components/common/PanelTab.vue';
+  // import ManualInput from './components/manual-input/Index.vue';
+  import PreviewResult from './components/preview-result/Index.vue';
 
   interface Props {
-    dbType: DBTypes;
-    selected: Record<string, ICluster[]>;
+    dbType: T;
+    selected: SelectedMap[T];
   }
 
   interface Emits {
     (e: 'change', value: Props['selected']): void;
   }
-</script>
-<script setup lang="ts">
-  import { ClusterTypes, DBTypes } from '@common/const';
 
-  import { t } from '@locales/index';
-
-  import ClusterSelect from './components/cluster-select/Index.vue';
-  import PanelTab from './components/common/PanelTab.vue';
-  import ManualInput from './components/manual-input/Index.vue';
-  import PreviewResult from './components/preview-result/Index.vue';
-
-  const props = withDefaults(defineProps<Props>(), {
-    selected: () => ({}),
-  });
+  const props = defineProps<Props>();
 
   const emits = defineEmits<Emits>();
 
@@ -103,28 +108,19 @@
     default: false,
   });
 
-  const tabListMap = {
-    [DBTypes.MYSQL]: [
-      {
-        id: ClusterTypes.TENDBHA,
-        name: t('MySQL主从'),
-      },
-      {
-        id: ClusterTypes.TENDBSINGLE,
-        name: t('MySQL单节点'),
-      },
-    ],
-  } as Record<DBTypes, { id: string; name: string }[]>;
+  const { t } = useI18n();
 
-  const panelTabActive = ref(tabListMap[props.dbType][0].id);
-  const lastValues = reactive<NonNullable<Props['selected']>>({});
+  const panelTabActive = ref();
+  const lastValues = reactive<Props['selected']>({});
 
-  const renderCom = computed(() => {
-    if (panelTabActive.value === 'manual') {
-      return ManualInput;
-    }
-    return ClusterSelect;
-  });
+  // const renderCom = computed(
+  //   () => {
+  //     if (panelTabActive.value === 'manual') {
+  //       return ManualInput;
+  //     }
+  //     return ClusterSelect;
+  //   }
+  // );
   const isEmpty = computed(() => Object.values(lastValues).every((values) => values.length < 1));
 
   watch(
@@ -149,10 +145,12 @@
   );
 
   watch(panelTabActive, (_, oldValue) => {
-    lastValues[oldValue] = [];
+    Object.assign(lastValues, {
+      [oldValue]: [],
+    });
   });
 
-  const handleChange = (values: Props['selected']) => {
+  const handleChange = (values: Record<string, ClusterInfo[]>) => {
     Object.assign(lastValues, values);
   };
 

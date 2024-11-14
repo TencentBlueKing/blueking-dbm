@@ -42,7 +42,7 @@
 
   import { queryAllTypeCluster } from '@services/source/dbbase';
 
-  import { DBTypes, queryClusterTypes } from '@common/const';
+  import { DBClusterTypes, DBTypes } from '@common/const';
 
   import useValidtor from '@components/render-table/hooks/useValidtor';
 
@@ -89,7 +89,7 @@
       if (props.bizId) {
         fetchData({
           bk_biz_id: props.bizId,
-          cluster_types: queryClusterTypes[props.dbType as keyof typeof queryClusterTypes].join(','),
+          cluster_types: DBClusterTypes[props.dbType].join(','),
           phase: 'online',
           limit: -1,
         });
