@@ -24,6 +24,7 @@
     "@blueking/login-modal": "^1.0.5",
     "@blueking/notice-component": "2.0.5",
     "@blueking/sub-saas": "0.0.0-beta.6",
+    "@blueking/table": "^0.0.1-beta.10",
     "@blueking/vxe-table": "^4.8.0-beta.7.4",
     "@icon-cool/bk-icon-bk-biz-components": "0.0.4",
     "@vueuse/core": "^11.0.3",

@@ -3,7 +3,6 @@
     <VxeTable
       ref="table"
       v-bind="realProps"
-      :row-config="rowConfig"
       @cell-click="handleCellClick"
       @cell-dblclick="handleCellDbclick"
       @cell-mouseenter="handleCellMouseenter"
@@ -184,6 +183,7 @@
     size: 'small',
     sortConfig: () => ({
       remote: true,
+      trigger: 'cell',
     }),
     stripe: false,
   });
@@ -202,8 +202,6 @@
   });
 
   const tableRef = useTemplateRef('table');
-
-  const rowConfig = reactive({});
 
   const paginationConfig = reactive({
     layout: ['total', 'limit', 'list'],
