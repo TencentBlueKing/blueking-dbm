@@ -221,6 +221,7 @@ def mysql_rollback_data_sub_flow(
 
     if is_rollback_binlog:
         backup_time = str2datetime(backup_info["backup_time"], "%Y-%m-%d %H:%M:%S")
+        cluster["backup_time"] = backup_time
         binlog_result = get_backup_binlog(
             cluster_id=cluster_model.id,
             start_time=backup_time,
