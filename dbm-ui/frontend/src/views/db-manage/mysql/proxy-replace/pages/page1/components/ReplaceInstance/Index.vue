@@ -131,7 +131,6 @@
       if (!instanceMemo[instance]) {
         const row = createRowData({
           originProxy: {
-            cluster_id: item.cluster_id,
             ip: item.ip,
             bk_cloud_id: item.bk_cloud_id,
             bk_host_id: item.bk_host_id,
@@ -139,10 +138,12 @@
             port: item.port,
             instance_address: instance,
           },
-          relatedClusters: item.related_clusters.map((item) => ({
-            cluster_id: item.id,
-            domain: item.master_domain,
-          })),
+          relatedClusters: [
+            {
+              cluster_id: item.cluster_id,
+              domain: item.master_domain,
+            },
+          ],
         });
         results.push(row);
         instanceMemo[instance] = true;
