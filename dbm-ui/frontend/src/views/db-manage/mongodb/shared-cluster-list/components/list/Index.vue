@@ -20,12 +20,12 @@
         @click="handleApply">
         {{ t('申请实例') }}
       </BkButton>
-      <BkButton
-        class="ml-8 mb-8"
-        :disabled="!hasSelected"
-        @click="handleShowClusterAuthorize">
-        {{ t('批量授权') }}
-      </BkButton>
+      <ClusterBatchOperation
+        v-db-console="'mongodb.sharedClusterList.batchOperation'"
+        class="ml-8"
+        :cluster-type="ClusterTypes.MONGO_SHARED_CLUSTER"
+        :selected="selected"
+        @success="handleBatchOperationSuccess" />
       <span
         v-bk-tooltips="{
           disabled: hasData,
@@ -106,7 +106,7 @@
 </template>
 
 <script setup lang="tsx">
-  import { InfoBox, Message } from 'bkui-vue';
+  import { Message } from 'bkui-vue';
   import type { ISearchItem } from 'bkui-vue/lib/search-select/utils';
   import { useI18n } from 'vue-i18n';
 
@@ -115,7 +115,6 @@
     getMongoInstancesList,
     getMongoList,
   } from '@services/source/mongodb';
-  import { createTicket } from '@services/source/ticket';
   import { getUserList } from '@services/source/user';
 
   import {
@@ -123,7 +122,6 @@
     useLinkQueryColumnSerach,
     useStretchLayout,
     useTableSettings,
-    useTicketMessage,
   } from '@hooks';
 
   import { useGlobalBizs } from '@stores';
@@ -137,15 +135,16 @@
 
   import RenderClusterStatus from '@components/cluster-status/Index.vue';
   import DbTable from '@components/db-table/index.vue';
-  import MiniTag from '@components/mini-tag/index.vue';
   import RenderTextEllipsisOneLine from '@components/text-ellipsis-one-line/index.vue';
   import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
 
   import ClusterAuthorize from '@views/db-manage/common/cluster-authorize/Index.vue';
+  import ClusterBatchOperation from '@views/db-manage/common/cluster-batch-opration/Index.vue'
   import ClusterCapacityUsageRate from '@views/db-manage/common/cluster-capacity-usage-rate/Index.vue'
   import ClusterIpCopy from '@views/db-manage/common/cluster-ip-copy/Index.vue';
   import DropdownExportExcel from '@views/db-manage/common/dropdown-export-excel/index.vue';
   import ExcelAuthorize from '@views/db-manage/common/ExcelAuthorize.vue';
+  import { useOperateClusterBasic } from '@views/db-manage/common/hooks';
   import OperationBtnStatusTips from '@views/db-manage/common/OperationBtnStatusTips.vue';
   import RenderCellCopy from '@views/db-manage/common/render-cell-copy/Index.vue';
   import RenderHeadCopy from '@views/db-manage/common/render-head-copy/Index.vue';
@@ -159,8 +158,6 @@
     getSearchSelectorParams ,
   } from '@utils';
 
-  import { useDisableCluster } from '../../hooks/useDisableCluster';
-
   import RenderShard from './components/render-shard/Index.vue'
 
   const clusterId = defineModel<number>('clusterId');
@@ -170,12 +167,16 @@
   const route = useRoute();
   const router = useRouter();
   const { currentBizId } = useGlobalBizs();
-  const ticketMessage = useTicketMessage();
+  const { handleDisableCluster, handleEnableCluster, handleDeleteCluster } = useOperateClusterBasic(
+    ClusterTypes.MONGODB,
+    {
+      onSuccess: () => fetchData(),
+    },
+  );
   const {
     isOpen: isStretchLayoutOpen,
     splitScreen: stretchLayoutSplitScreen,
   } = useStretchLayout();
-  const disableCluster = useDisableCluster();
   const {
     columnAttrs,
     searchAttrs,
@@ -291,6 +292,7 @@
   const hasData = computed(() => tableDataList.value.length > 0);
   const hasSelected = computed(() => selected.value.length > 0);
   const selectedIds = computed(() => selected.value.map(item => item.id));
+
   const columns = computed(() => [
     {
       label: 'ID',
@@ -304,55 +306,23 @@
       minWidth: 200,
       fixed: 'left',
       showOverflowTooltip: false,
-      render: ({ data }: { data: MongodbModel }) => {
-        const content = (
-          <>
-            {
-              data.isNew && (
-              <MiniTag
-                content='NEW'
-                theme='success' />
-              )
-            }
-            {
-              data.operationTagTips.map(item => (
-                <RenderOperationTag
-                  class="ml-4"
-                  data={item} />
-              ))
-            }
-            {
-              data.isOffline && (
-                <bk-tag
-                  class="ml-4"
-                  size="small">
-                  {t('已禁用')}
-                </bk-tag>
-              )
-            }
-          </>
-        );
-
-        return (
-          <div>
-            <RenderTextEllipsisOneLine
-              text={data.cluster_name}
-              textStyle={{
-                fontWeight: '700',
-              }}
-              onClick={() => handleToDetails(data.id)}>
-              {content}
-            </RenderTextEllipsisOneLine>
-            <span class="cluster-alias">{ data.cluster_alias }</span>
-          </div>
-        );
-      },
+      render: ({ data }: { data: MongodbModel }) => (
+        <div>
+          <RenderTextEllipsisOneLine
+            text={data.cluster_name}
+            textStyle={{
+              fontWeight: '700',
+            }}
+            onClick={() => handleToDetails(data.id)}>
+          </RenderTextEllipsisOneLine>
+          <span class="cluster-alias">{ data.cluster_alias }</span>
+        </div>
+      ),
     },
     {
       label: t('主域名'),
       field: 'master_domain',
-      width: 280,
-      minWidth: 280,
+      minWidth: 320,
       renderHead: () => (
         <RenderHeadCopy
           hasSelected={hasSelected.value}
@@ -378,6 +348,32 @@
             ),
             append: () => (
               <>
+                {
+                  data.isNew && (
+                    <bk-tag
+                      theme="success"
+                      size="small"
+                      class="ml-4">
+                      NEW
+                    </bk-tag>
+                  )
+                }
+                {
+                  data.operationTagTips.map(item => (
+                    <RenderOperationTag
+                      class="ml-4"
+                      data={item} />
+                  ))
+                }
+                {
+                  data.isOffline && (
+                    <bk-tag
+                      class="ml-4"
+                      size="small">
+                      {t('已禁用')}
+                    </bk-tag>
+                  )
+                }
                 <RenderCellCopy copyItems={
                   [
                     {
@@ -596,17 +592,20 @@
       width: 300,
       fixed: isStretchLayoutOpen.value ? false : 'right',
       render: ({ data }: { data: MongodbModel }) => {
-        const baseButtons = [
-        <bk-button
-          disabled={data.isOffline}
-          text
-          theme="primary"
-          onClick={() => handleShowAccessEntry(data)}>
-          { t('获取访问方式') }
-        </bk-button>,
+        const frontButtons = [
+          <bk-button
+            v-db-console="mongodb.sharedClusterList.getAccess"
+            disabled={data.isOffline}
+            text
+            theme="primary"
+            onClick={() => handleShowAccessEntry(data)}>
+            { t('获取访问方式') }
+          </bk-button>,
         ];
         const onlineButtons = [
-          <OperationBtnStatusTips data={data}>
+          <OperationBtnStatusTips
+            v-db-console="mongodb.sharedClusterList.capacityChange"
+            data={data}>
             <bk-button
               text
               theme="primary"
@@ -616,44 +615,57 @@
               { t('集群容量变更') }
             </bk-button>
           </OperationBtnStatusTips>,
-          <OperationBtnStatusTips data={data}>
+          <OperationBtnStatusTips
+            v-db-console="mongodb.sharedClusterList.diaable"
+            data={data}>
             <bk-button
               text
               theme="primary"
               class="ml-16"
               disabled={data.operationDisabled}
-              onclick={() => handleDisableCluster(data)}>
+              onclick={() => handleDisableCluster([data])}>
               { t('禁用') }
             </bk-button>
           </OperationBtnStatusTips>,
         ];
         const offlineButtons = [
-          <OperationBtnStatusTips data={data}>
+          <OperationBtnStatusTips
+            v-db-console="mongodb.sharedClusterList.enable"
+            data={data}>
             <bk-button
               text
               theme="primary"
               class="ml-16"
               disabled={data.isStarting}
-              onclick={() => handleEnableCluster(data)}>
+              onclick={() => handleEnableCluster([data])}>
               { t('启用') }
             </bk-button>
           </OperationBtnStatusTips>,
-          <OperationBtnStatusTips data={data}>
+
+        ];
+        const backButtons = [
+          <OperationBtnStatusTips
+            v-db-console="mongodb.sharedClusterList.delete"
+            data={data}>
             <bk-button
+              v-bk-tooltips={{
+                disabled: data.isOffline,
+                content: t('请先禁用集群')
+              }}
               text
               theme="primary"
               class="ml-16"
-              disabled={Boolean(data.operationTicketId)}
-              onclick={() => handleDeleteCluster(data)}>
+              disabled={data.isOnline || Boolean(data.operationTicketId)}
+              onclick={() => handleDeleteCluster([data])}>
               { t('删除') }
             </bk-button>
-          </OperationBtnStatusTips>,
-        ];
+          </OperationBtnStatusTips>
+        ]
 
         if (data.isOnline) {
-          return [...baseButtons, ...onlineButtons];
+          return [...frontButtons, ...onlineButtons, ...backButtons];
         }
-        return [...baseButtons, ...offlineButtons];
+        return [...frontButtons, ...offlineButtons, ...backButtons];
       },
     },
   ]);
@@ -742,9 +754,9 @@
     selected.value = list as MongodbModel[];
   };
 
-  const handleShowClusterAuthorize = () => {
-    clusterAuthorizeShow.value = true;
-  };
+  // const handleShowClusterAuthorize = () => {
+  //   clusterAuthorizeShow.value = true;
+  // };
 
   const handleShowExcelAuthorize = () => {
     excelAuthorizeShow.value = true;
@@ -790,69 +802,6 @@
       shardNodeCount
     };
     capacityChangeShow.value = true;
-  };
-
-  const handleEnableCluster = (row: MongodbModel) => {
-    InfoBox({
-      type: 'warning',
-      title: t('确定启用该集群'),
-      content: () => (
-        <p>
-          { t('集群') }：
-          <span class='info-box-cluster-name'>
-            { row.cluster_name }
-          </span>
-        </p>
-      ),
-      confirmText: t('启用'),
-      onConfirm: async () => {
-        await createTicket({
-          bk_biz_id: currentBizId,
-          ticket_type: TicketTypes.MONGODB_ENABLE,
-          details: {
-            cluster_ids: [row.id],
-          },
-        })
-          .then((res) => {
-            ticketMessage(res.id);
-          });
-      },
-    });
-  };
-
-  const handleDisableCluster = (row: MongodbModel) => {
-    disableCluster(row);
-  };
-
-  const handleDeleteCluster = (row: MongodbModel) => {
-    const { cluster_name: name } = row;
-    InfoBox({
-      type: 'warning',
-      title: t('确定删除该集群'),
-      confirmText: t('删除'),
-      confirmButtonTheme: 'danger',
-      contentAlign: 'left',
-      content: () => (
-        <div class="cluster-delete-content">
-          <p>{t('集群【name】被删除后_将进行以下操作', { name })}</p>
-          <p>{t('1_删除xx集群', { name })}</p>
-          <p>{t('2_删除xx实例数据_停止相关进程', { name })}</p>
-          <p>3. {t('回收主机')}</p>
-        </div>
-      ),
-      onConfirm: async () => {
-        await createTicket({
-          bk_biz_id: currentBizId,
-          ticket_type: TicketTypes.MONGODB_DESTROY,
-          details: {
-            cluster_ids: [row.id],
-          },
-        })
-          .then((res) => {
-            ticketMessage(res.id);
-          });
-      },
-    });
   };
 
   let isInit = true;
@@ -903,6 +852,11 @@
       return;
     }
     handleCopy(allData as T[], field)
+  }
+
+  const handleBatchOperationSuccess = () => {
+    tableRef.value!.clearSelected();
+    fetchData();
   }
 </script>
 

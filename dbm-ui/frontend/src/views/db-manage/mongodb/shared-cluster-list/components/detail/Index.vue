@@ -48,7 +48,7 @@
                 <BkButton
                   :disabled="data.operationDisabled"
                   text
-                  @click="handleDisableCluster">
+                  @click="handleDisableCluster([data])">
                   {{ t('禁用集群') }}
                 </BkButton>
               </BkDropdownItem>
@@ -140,10 +140,9 @@
   import ClusterTopo from '@views/db-manage/common/cluster-details/ClusterTopo.vue';
   import ClusterEventChange from '@views/db-manage/common/cluster-event-change/EventChange.vue';
   import MonitorDashboard from '@views/db-manage/common/cluster-monitor/MonitorDashboard.vue';
+  import { useOperateClusterBasic } from '@views/db-manage/common/hooks';
   import AccessEntry from '@views/db-manage/mongodb/components/AccessEntry.vue';
   import CapacityChange from '@views/db-manage/mongodb/components/CapacityChange.vue';
-
-  import { useDisableCluster } from '../../hooks/useDisableCluster';
 
   import BaseInfo from './BaseInfo.vue';
 
@@ -156,8 +155,9 @@
   const { t } = useI18n();
   const { currentBizId } = useGlobalBizs();
   const { isOpen: isStretchLayoutOpen } = useStretchLayout();
-
-  const disableCluster = useDisableCluster();
+  const { handleDisableCluster } = useOperateClusterBasic(ClusterTypes.MONGODB, {
+    onSuccess: () => fetchResourceDetails({ cluster_id: props.clusterId }),
+  });
 
   const capacityChangeShow = ref(false);
   const isCapacityChange = ref(false);
@@ -255,10 +255,6 @@
 
   const handleCapacityChange = () => {
     capacityChangeShow.value = true;
-  };
-
-  const handleDisableCluster = () => {
-    disableCluster(data.value!);
   };
 </script>
 

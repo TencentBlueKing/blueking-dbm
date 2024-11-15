@@ -110,7 +110,7 @@
   </div>
 </template>
 <script setup lang="tsx">
-  import { InfoBox, Message } from 'bkui-vue';
+  import { Message } from 'bkui-vue';
   import type { ISearchItem } from 'bkui-vue/lib/search-select/utils';
   import { useI18n } from 'vue-i18n';
   import {
@@ -123,7 +123,6 @@
     getHdfsInstanceList,
     getHdfsList,
   } from '@services/source/hdfs';
-  import { createTicket  } from '@services/source/ticket';
   import { getUserList } from '@services/source/user';
 
   import {
@@ -131,7 +130,6 @@
     useLinkQueryColumnSerach,
     useStretchLayout,
     useTableSettings,
-    useTicketMessage,
   } from '@hooks';
 
   import { useGlobalBizs } from '@stores';
@@ -150,6 +148,7 @@
   import EditEntryConfig from '@views/db-manage/common/cluster-entry-config/Index.vue';
   import ClusterIpCopy from '@views/db-manage/common/cluster-ip-copy/Index.vue';
   import DropdownExportExcel from '@views/db-manage/common/dropdown-export-excel/index.vue';
+  import { useOperateClusterBasic } from '@views/db-manage/common/hooks';
   import OperationBtnStatusTips from '@views/db-manage/common/OperationBtnStatusTips.vue';
   import RenderCellCopy from '@views/db-manage/common/render-cell-copy/Index.vue';
   import RenderHeadCopy from '@views/db-manage/common/render-head-copy/Index.vue';
@@ -171,12 +170,16 @@
 
   const route = useRoute();
   const { t, locale } = useI18n();
+  const { handleDisableCluster, handleEnableCluster, handleDeleteCluster } = useOperateClusterBasic(
+    ClusterTypes.HDFS,
+    {
+      onSuccess: () => fetchTableData(),
+    },
+  );
   const {
     isOpen: isStretchLayoutOpen,
     splitScreen: stretchLayoutSplitScreen,
   } = useStretchLayout();
-
-  const ticketMessage = useTicketMessage();
 
   const copy = useCopy();
   const { currentBizId } = useGlobalBizs();
@@ -212,7 +215,6 @@
   const dataSource = getHdfsList;
 
   const tableRef = ref<InstanceType<typeof DbTable>>();
-  const tableDataActionLoadingMap = shallowRef<Record<number, boolean>>({});
 
   const isShowExpandsion = ref(false);
   const isShowShrink = ref(false);
@@ -312,7 +314,7 @@
 
   const tableOperationWidth = computed(() => {
     if (!isStretchLayoutOpen.value) {
-      return isCN.value ? 350 : 520;
+      return isCN.value ? 380 : 520;
     }
     return 100;
   });
@@ -327,8 +329,7 @@
     {
       label: t('访问入口'),
       field: 'domain',
-      width: 280,
-      minWidth: 280,
+      minWidth: 320,
       fixed: 'left',
       renderHead: () => (
         <RenderHeadCopy
@@ -367,6 +368,28 @@
               ),
               append: () => (
                 <>
+                  {
+                    data.operationTagTips.map(item => <RenderOperationTag class="cluster-tag ml-4" data={item}/>)
+                  }
+                  {
+                    data.isOffline && (
+                      <bk-tag
+                        class="ml-4"
+                        size="small">
+                        {t('已禁用')}
+                      </bk-tag>
+                    )
+                  }
+                  {
+                    data.isNew && (
+                      <bk-tag
+                        theme="success"
+                        size="small"
+                        class="ml-4">
+                        NEW
+                      </bk-tag>
+                    )
+                  }
                   {data.domain && (
                     <RenderCellCopy copyItems={
                       [
@@ -427,22 +450,6 @@
               {data.cluster_alias || '--'}
             </div>
           </div>
-          {
-            data.operationTagTips.map(item => <RenderOperationTag class="cluster-tag ml-4" data={item}/>)
-          }
-          {
-            data.isOffline && (
-              <bk-tag
-                class="ml-4"
-                size="small">
-                {t('已禁用')}
-              </bk-tag>
-            )
-          }
-          {
-            isRecentDays(data.create_at, 24 * 3)
-            && <span class="glob-new-tag cluster-tag ml-4" data-text="NEW" />
-          }
             <db-icon
               class="mt-2"
               v-bk-tooltips={t('复制集群名称')}
@@ -682,6 +689,7 @@
             permission={data.permission.hdfs_access_entry_view}
             v-db-console="hdfs.clusterManage.getAccess"
             resource={data.id}
+            disabled={data.isOffline}
             class="mr8"
             onClick={() => handleShowPassword(data)}>
             { t('获取访问方式') }
@@ -693,6 +701,7 @@
             permission={data.permission.hdfs_view}
             v-db-console="hdfs.clusterManage.viewAccessConfiguration"
             resource={data.id}
+            disabled={data.isOffline}
             class="mr8"
             onClick={() => handleShowSettings(data)}>
             { t('查看访问配置') }
@@ -700,6 +709,9 @@
           ];
           if (data.isOffline) {
             return [
+            <OperationBtnStatusTips
+              v-db-console="hdfs.clusterManage.enable"
+              data={data}>
               <auth-button
                 text
                 theme="primary"
@@ -709,23 +721,26 @@
                 v-db-console="hdfs.clusterManage.enable"
                 resource={data.id}
                 class="mr8"
-                loading={tableDataActionLoadingMap.value[data.id]}
-                onClick={() => handleEnable(data)}>
+                onClick={() => handleEnableCluster([data])}>
                 { t('启用') }
-              </auth-button>,
-              <auth-button
-                text
-                theme="primary"
-                action-id="hdfs_destroy"
-                permission={data.permission.hdfs_destroy}
+              </auth-button>
+              </OperationBtnStatusTips>,
+              <OperationBtnStatusTips
                 v-db-console="hdfs.clusterManage.delete"
-                resource={data.id}
-                disabled={Boolean(data.operationTicketId)}
-                class="mr8"
-                loading={tableDataActionLoadingMap.value[data.id]}
-                onClick={() => handleRemove(data)}>
-                { t('删除') }
-              </auth-button>,
+                data={data} >
+                <auth-button
+                  text
+                  theme="primary"
+                  action-id="hdfs_destroy"
+                  permission={data.permission.hdfs_destroy}
+                  v-db-console="hdfs.clusterManage.delete"
+                  resource={data.id}
+                  disabled={Boolean(data.operationTicketId)}
+                  class="mr8"
+                  onClick={() => handleDeleteCluster([data])}>
+                  { t('删除') }
+                </auth-button>
+              </OperationBtnStatusTips>,
               ...baseAction,
             ];
           }
@@ -768,9 +783,27 @@
                 v-db-console="hdfs.clusterManage.disable"
                 resource={data.id}
                 disabled={data.operationDisabled}
-                loading={tableDataActionLoadingMap.value[data.id]}
-                onClick={() => handlDisabled(data)}>
+                onClick={() => handleDisableCluster([data])}>
                 { t('禁用') }
+              </auth-button>
+            </OperationBtnStatusTips>,
+            <OperationBtnStatusTips
+              v-db-console="hdfs.clusterManage.delete"
+              data={data} >
+              <auth-button
+                v-bk-tooltips={{
+                  disabled: data.isOffline,
+                  content: t('请先禁用集群')
+                }}
+                text
+                theme="primary"
+                action-id="hdfs_destroy"
+                permission={data.permission.hdfs_destroy}
+                resource={data.id}
+                disabled={data.isOnline || Boolean(data.operationTicketId)}
+                class="mr8"
+                onClick={() => handleDeleteCluster([data])}>
+                { t('删除') }
               </auth-button>
             </OperationBtnStatusTips>,
             <a
@@ -930,110 +963,6 @@
   const handleShowShrink = (clusterData: HdfsModel) => {
     isShowShrink.value = true;
     operationData.value = clusterData;
-  };
-
-  // 禁用
-  const handlDisabled =  (clusterData: HdfsModel) => {
-    InfoBox({
-      title: t('确认禁用【name】集群', { name: clusterData.cluster_name }),
-      subTitle: '',
-      confirmText: t('确认'),
-      cancelText: t('取消'),
-      headerAlign: 'center',
-      contentAlign: 'center',
-      footerAlign: 'center',
-      onConfirm: () => {
-        tableDataActionLoadingMap.value = {
-          ...tableDataActionLoadingMap.value,
-          [clusterData.id]: true,
-        };
-        createTicket({
-          bk_biz_id: currentBizId,
-          ticket_type: 'HDFS_DISABLE',
-          details: {
-            cluster_id: clusterData.id,
-          },
-        })
-          .then((data) => {
-            tableDataActionLoadingMap.value = {
-              ...tableDataActionLoadingMap.value,
-              [clusterData.id]: false,
-            };
-            fetchTableData();
-            ticketMessage(data.id);
-          })
-        ;
-      },
-    });
-  };
-
-  const handleEnable =  (clusterData: HdfsModel) => {
-    InfoBox({
-      title: t('确认启用【name】集群', { name: clusterData.cluster_name }),
-      subTitle: '',
-      confirmText: t('确认'),
-      cancelText: t('取消'),
-      headerAlign: 'center',
-      contentAlign: 'center',
-      footerAlign: 'center',
-      onConfirm: () => {
-        tableDataActionLoadingMap.value = {
-          ...tableDataActionLoadingMap.value,
-          [clusterData.id]: true,
-        };
-        createTicket({
-          bk_biz_id: currentBizId,
-          ticket_type: 'HDFS_ENABLE',
-          details: {
-            cluster_id: clusterData.id,
-          },
-        })
-          .then((data) => {
-            tableDataActionLoadingMap.value = {
-              ...tableDataActionLoadingMap.value,
-              [clusterData.id]: false,
-            };
-            fetchTableData();
-            ticketMessage(data.id);
-          })
-        ;
-      },
-    });
-  };
-
-  const handleRemove =  (clusterData: HdfsModel) => {
-    InfoBox({
-      title: t('确认删除【name】集群', { name: clusterData.cluster_name }),
-      subTitle: '',
-      confirmText: t('确认'),
-      cancelText: t('取消'),
-      headerAlign: 'center',
-      contentAlign: 'center',
-      footerAlign: 'center',
-      onConfirm: () => {
-        tableDataActionLoadingMap.value = {
-          ...tableDataActionLoadingMap.value,
-          [clusterData.id]: true,
-        };
-        createTicket({
-          bk_biz_id: currentBizId,
-          ticket_type: 'HDFS_DESTROY',
-          details: {
-            cluster_id: clusterData.id,
-          },
-        })
-          .then((data) => {
-            tableDataActionLoadingMap.value = {
-              ...tableDataActionLoadingMap.value,
-              [clusterData.id]: false,
-            };
-
-            fetchTableData();
-            ticketMessage(data.id);
-          })
-        ;
-      },
-    });
   };
 
   const handleShowPassword = (clusterData: HdfsModel) => {

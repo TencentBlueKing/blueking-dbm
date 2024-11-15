@@ -109,7 +109,7 @@
 
   import { generateId } from '@utils';
 
-  import BatchEditKeys from './BatchEditKeys.vue';
+  import BatchEditKeys from '../RedisBatchEditKeys.vue';
 
   interface DataItem extends RedisModel {
     white_regex: string,
