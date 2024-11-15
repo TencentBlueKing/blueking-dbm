@@ -128,6 +128,8 @@
   const { t } = useI18n();
   const { bizs: bizList } = useGlobalBizs();
 
+  let isRedirectSearch = true;
+
   const comMap = {
     cluster_domain: ClusterDomain,
     cluster_name: ClusterName,
@@ -142,9 +144,10 @@
     {} as Record<number, string>,
   );
 
-  const keyword = ref((route.query.keyword as string) || '');
+  // const keyword = ref((route.query.keyword as string) || '');
+  const keyword = ref('');
   const isTableSearching = ref(false);
-  const dataMap = ref<Omit<ServiceReturnType<typeof quickSearch>, 'machine'>>({
+  const dataMap = ref<Omit<ServiceReturnType<typeof quickSearch>, 'machine' | 'keyword' | 'short_code'>>({
     cluster_name: [],
     cluster_domain: [],
     instance: [],
@@ -219,6 +222,9 @@
   } = useRequest(quickSearch, {
     manual: true,
     onSuccess(data) {
+      if (isRedirectSearch) {
+        keyword.value = data.keyword;
+      }
       Object.assign(dataMap.value, {
         cluster_domain: data.cluster_domain,
         cluster_name: data.cluster_name,
@@ -238,6 +244,9 @@
       if (panelItem) {
         activeTab.value = panelItem.name;
       }
+    },
+    onAfter() {
+      isRedirectSearch = false;
     },
   });
 
@@ -280,17 +289,27 @@
   };
 
   const handleSearch = () => {
-    if (!keyword.value) {
+    if (!keyword.value && !isRedirectSearch) {
       clearData();
       return;
     }
 
     isTableSearching.value = true;
-    quickSearchRun({
+
+    const params = {
       ...formData.value,
-      keyword: keyword.value.replace(batchSplitRegex, ' '),
       limit: 1000,
-    });
+    };
+    if (isRedirectSearch) {
+      Object.assign(params, {
+        short_code: route.query.short_code as string,
+      });
+    } else {
+      Object.assign(params, {
+        keyword: keyword.value.replace(batchSplitRegex, ' '),
+      });
+    }
+    quickSearchRun(params);
   };
 
   watch(
