@@ -983,8 +983,9 @@ func configCluster(cmak CmakConfig, noSecurity int) (err error) {
 
 	zookeeperIPList := strings.Split(cmak.ZookeeperIP, ",")
 	zkHosts := fmt.Sprintf("%s:2181,%s:2181,%s:2181/", zookeeperIPList[0], zookeeperIPList[1], zookeeperIPList[2])
-	jaasConfig := fmt.Sprintf("%s required username=%s  password=%s ;",
-		"org.apache.kafka.common.security.scram.ScramLoginModule", cmak.Username, cmak.Password)
+	jaasConfig := fmt.Sprintf(
+		`org.apache.kafka.common.security.scram.ScramLoginModule required username="%s" password="%s" ;`, cmak.Username,
+		cmak.Password)
 	postData := url.Values{}
 	postData.Add("name", cmak.ClusterName)
 	postData.Add("zkHosts", zkHosts)
