@@ -90,10 +90,23 @@
     tendbhaSlave: {
       name: t('MySQL主从-从域名'),
       showPreviewResultTitle: true,
-      getResourceList: (params: any) => {
-        params.slave_domain = params.domain;
-        delete params.domain;
-        return getTendbhaSalveList(params)
+      getResourceList: (params: ServiceParameters<typeof getTendbhaSalveList>) => {
+        const realParams = { ...params }
+        realParams.slave_domain = realParams.domain;
+        delete realParams.domain;
+        return getTendbhaSalveList(realParams).then(data => ({
+          ...data,
+          results: data.results.reduce<ServiceReturnType<typeof getTendbhaSalveList>['results']>((result, item) => {
+            item.cluster_entry.forEach(entryItem => {
+              if (entryItem.role === 'slave_entry') {
+                result.push(Object.assign({}, item, {
+                  master_domain: entryItem.entry
+                }))
+              }
+            })
+            return result
+          }, [])
+        }))
       }
     },
     [ClusterTypes.TENDBCLUSTER]: {
@@ -112,10 +125,11 @@
     [ClusterTypes.TENDBHA]: {
       name: t('MySQL主从-主域名'),
       showPreviewResultTitle: true,
-      getResourceList: (params: any) => {
-        params.master_domain = params.domain;
-        delete params.domain;
-        return getTendbhaList(params)
+      getResourceList: (params: ServiceParameters<typeof getTendbhaList>) => {
+        const realParams = { ...params }
+        realParams.master_domain = params.domain;
+        delete realParams.domain;
+        return getTendbhaList(realParams)
       }
     },
     [ClusterTypes.TENDBSINGLE]: {
