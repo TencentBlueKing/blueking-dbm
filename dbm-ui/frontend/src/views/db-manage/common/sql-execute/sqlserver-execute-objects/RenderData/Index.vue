@@ -19,7 +19,7 @@
       :width="400">
       {{ t('变更的DB') }}
       <span style="font-size: 12px; font-weight: normal; color: #8a8f99">
-        ({{ t('如果变更 SQL 是“create database ...”，这个请填写 test') }})
+        ({{ t('如果变更 SQL 是“create database ...”，这个请填写 master') }})
       </span>
     </RenderTableHeadColumn>
     <RenderTableHeadColumn
