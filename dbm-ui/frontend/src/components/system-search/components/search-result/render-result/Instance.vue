@@ -5,16 +5,19 @@
       :key="item.id"
       class="result-item"
       @click="handleGo(item)">
-      <div class="value-text">
-        <HightLightText
-          :key-word="keyWord"
-          :text="getMatchText(item)" />
-        <div class="intro">
-          ({{ t('实例') }}
-          <span v-if="item.cluster_domain"> , {{ item.cluster_domain }} </span>
-          )
+      <TextOverflowLayout>
+        <div class="value-text">
+          <HightLightText
+            class="keyword-highlight"
+            :key-word="keyWord"
+            :text="getMatchText(item)" />
+          <div
+            v-if="item.cluster_domain"
+            class="intro">
+            （{{ item.cluster_domain }}）
+          </div>
         </div>
-      </div>
+      </TextOverflowLayout>
       <div class="biz-text">
         {{ bizIdNameMap[item.bk_biz_id] }}
       </div>
@@ -22,11 +25,10 @@
   </div>
 </template>
 <script setup lang="ts">
-  import { useI18n } from 'vue-i18n';
-
   import { systemSearchCache } from '@common/cache';
 
   import { useRedirect } from '@components/system-search/hooks/useRedirect';
+  import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
 
   import HightLightText from './components/HightLightText.vue';
 
@@ -47,7 +49,6 @@
 
   const props = defineProps<Props>();
 
-  const { t } = useI18n();
   const handleRedirect = useRedirect();
 
   const getMatchText = (data: Props['data'][number]) => {
