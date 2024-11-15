@@ -5,12 +5,15 @@
       :key="item.name"
       class="result-item"
       @click="handleGo(item)">
-      <div class="value-text">
-        <HightLightText
-          :key-word="keyWord"
-          :text="item.name" />
-        <div class="intro">({{ t('集群名') }}, {{ item.immute_domain }})</div>
-      </div>
+      <TextOverflowLayout>
+        <div class="value-text">
+          <HightLightText
+            class="keyword-highlight"
+            :key-word="keyWord"
+            :text="item.name" />
+          <div class="intro">（{{ item.immute_domain }}）</div>
+        </div>
+      </TextOverflowLayout>
       <div class="biz-text">
         {{ bizIdNameMap[item.bk_biz_id] }}
       </div>
@@ -18,11 +21,10 @@
   </div>
 </template>
 <script setup lang="ts">
-  import { useI18n } from 'vue-i18n';
-
   import { systemSearchCache } from '@common/cache';
 
   import { useRedirect } from '@components/system-search/hooks/useRedirect';
+  import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
 
   import HightLightText from './components/HightLightText.vue';
 
@@ -40,7 +42,6 @@
 
   defineProps<Props>();
 
-  const { t } = useI18n();
   const handleRedirect = useRedirect();
 
   const handleGo = (data: Props['data'][number]) => {

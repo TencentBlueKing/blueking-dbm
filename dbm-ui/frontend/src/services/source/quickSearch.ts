@@ -23,13 +23,16 @@ import http from '../http';
 
 /**
  * 全局搜索
+ *
+ * keyword 和 short_code 二选一, 不能同时为空
  */
 export function quickSearch(params: {
   bk_biz_ids: number[];
   db_types: string[];
   resource_types: string[];
   filter_type: string;
-  keyword: string;
+  keyword?: string;
+  short_code?: string;
   limit?: number;
 }) {
   return http
@@ -41,8 +44,11 @@ export function quickSearch(params: {
       resource_pool: DbResourceModel[];
       task: TaskFlowModel[];
       ticket: TicketModel<unknown>[];
+      keyword: string;
+      short_code: string;
     }>('/apis/quick_search/search/', params)
     .then((res) => ({
+      ...res,
       cluster_domain: (res.cluster_domain || []).map((item) => new QuickSearchClusterDomainModel(item)),
       cluster_name: (res.cluster_name || []).map((item) => new QuickSearchClusterNameModel(item)),
       instance: (res.instance || []).map((item) => new QuickSearchInstanceModel(item)),
