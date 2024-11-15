@@ -131,7 +131,7 @@ func (job *RedisCapturer) Monitor(port int) {
 	var err error
 	running, err := job.IsRedisRunning(port)
 	if err != nil || !running {
-		job.errChan <- fmt.Errorf("port[%d] is not running", port)
+		// 如果端口运行异常，那没必要去做抓包，直接返回
 		return
 	}
 

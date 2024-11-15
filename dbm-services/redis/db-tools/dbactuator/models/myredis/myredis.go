@@ -30,14 +30,7 @@ func GetRedisLoccalConfFile(port int) (confFile string, err error) {
 	return
 }
 
-// GetRedisPasswdFromConfFile (从配置文件中)获取本地redis实例密码
-func GetRedisPasswdFromConfFile(port int) (password string, err error) {
-	confFile, err := GetRedisLoccalConfFile(port)
-	if err != nil {
-		err = fmt.Errorf("get redis local config file failed,err:%v,port:%d", err, port)
-		mylog.Logger.Error(err.Error())
-		return
-	}
+func GetRedisPasswd(confFile string) (password string, err error) {
 	cmd01 := fmt.Sprintf(`grep -E '^requirepass' %s|awk '{print $2}'|head -1`, confFile)
 	password, err = util.RunBashCmd(cmd01, "", nil, 10*time.Second)
 	if err != nil {
@@ -47,6 +40,57 @@ func GetRedisPasswdFromConfFile(port int) (password string, err error) {
 	password = strings.TrimSuffix(password, "\"")
 	return
 }
+
+// GetRedisPasswdFromConfFile (从配置文件中)获取本地redis实例密码
+func GetRedisPasswdFromConfFile(port int) (password string, err error) {
+	// config rewrite的时候，重写的东西是写进redis.conf, 原来的实现方式如果存在instance.conf，就会获取到老的配置。
+	// 默认先从redis.conf中获取密码
+	dataDir := consts.GetRedisDataDir()
+	redisConf := filepath.Join(dataDir, "redis", strconv.Itoa(port), "redis.conf")
+	instConf := filepath.Join(dataDir, "redis", strconv.Itoa(port), "instance.conf")
+	if util.FileExists(redisConf) {
+		password, err = GetRedisPasswd(redisConf)
+		if err == nil && password != "" {
+			mylog.Logger.Info(fmt.Sprintf("get pwd success from redis.conf"))
+			return
+		}
+	}
+	// 尝试从instance.conf中获取密码
+	if util.FileExists(instConf) {
+		password, err = GetRedisPasswd(instConf)
+		if err == nil && password != "" {
+			mylog.Logger.Info(fmt.Sprintf("get pwd success from instance.conf"))
+			return
+		}
+	}
+	//	文件都不存在
+	if !util.FileExists(instConf) && !util.FileExists(redisConf) {
+		err = fmt.Errorf("[%s,%s] not exists", instConf, redisConf)
+		mylog.Logger.Error(err.Error())
+		return
+	}
+	// 有可能存在redis实例密码确实为空的情况。。
+	mylog.Logger.Info(fmt.Sprintf("get pwd success. but pwd is empty"))
+	return
+}
+
+// GetRedisPasswdFromConfFile (从配置文件中)获取本地redis实例密码
+//func GetRedisPasswdFromConfFile(port int) (password string, err error) {
+//	confFile, err := GetRedisLoccalConfFile(port)
+//	if err != nil {
+//		err = fmt.Errorf("get redis local config file failed,err:%v,port:%d", err, port)
+//		mylog.Logger.Error(err.Error())
+//		return
+//	}
+//	cmd01 := fmt.Sprintf(`grep -E '^requirepass' %s|awk '{print $2}'|head -1`, confFile)
+//	password, err = util.RunBashCmd(cmd01, "", nil, 10*time.Second)
+//	if err != nil {
+//		return
+//	}
+//	password = strings.TrimPrefix(password, "\"")
+//	password = strings.TrimSuffix(password, "\"")
+//	return
+//}
 
 // GetTwemproxyLocalConfFile 本地获取twemproxy实例配置文件
 func GetTwemproxyLocalConfFile(port int) (confFile string, err error) {
