@@ -14,7 +14,7 @@ import { uniq } from 'lodash';
 
 import type { ClusterListEntry, ClusterListNode, ClusterListOperation } from '@services/types';
 
-import { utcDisplayTime } from '@utils';
+import { isRecentDays, utcDisplayTime } from '@utils';
 
 import { t } from '@locales/index';
 
@@ -209,5 +209,9 @@ export default class Tendbsingle {
       tip: Tendbsingle.operationTextMap[item.ticket_type],
       ticketId: item.ticket_id,
     }));
+  }
+
+  get isNew() {
+    return isRecentDays(this.create_at, 24);
   }
 }

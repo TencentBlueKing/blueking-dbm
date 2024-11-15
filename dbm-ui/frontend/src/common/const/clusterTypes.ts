@@ -43,6 +43,7 @@ export enum ClusterTypes {
 }
 // sqlserver
 export enum ClusterTypes {
+  SQLSERVER = 'sqlserver',
   SQLSERVER_SINGLE = 'sqlserver_single', // SQLServer单节点版
   SQLSERVER_HA = 'sqlserver_ha', // SQLServer主从版
 }

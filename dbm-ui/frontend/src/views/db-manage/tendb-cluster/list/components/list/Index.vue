@@ -21,20 +21,12 @@
           @click="handleApply">
           {{ t('申请实例') }}
         </AuthButton>
-        <span
-          v-bk-tooltips="{
-            disabled: hasSelected,
-            content: t('请选择集群'),
-          }"
-          v-db-console="'tendbCluster.clusterManage.batchAuthorize'"
-          class="inline-block">
-          <BkButton
-            class="ml-8"
-            :disabled="!hasSelected"
-            @click="handleShowAuthorize(selected)">
-            {{ t('批量授权') }}
-          </BkButton>
-        </span>
+        <ClusterBatchOperation
+          v-db-console="'tendbCluster.clusterManage.batchOperation'"
+          class="ml-8"
+          :cluster-type="ClusterTypes.TENDBCLUSTER"
+          :selected="selected"
+          @success="handleBatchOperationSuccess" />
         <span
           v-bk-tooltips="{
             disabled: hasData,
@@ -168,7 +160,6 @@
     ClusterTypes,
     DBTypes,
     TicketTypes,
-    type TicketTypesStrings,
     UserPersonalSettings,
   } from '@common/const';
 
@@ -178,12 +169,14 @@
   import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
 
   import ClusterAuthorize from '@views/db-manage/common/cluster-authorize/Index.vue';
+  import ClusterBatchOperation from '@views/db-manage/common/cluster-batch-opration/Index.vue'
   import ClusterCapacityUsageRate from '@views/db-manage/common/cluster-capacity-usage-rate/Index.vue'
   import EditEntryConfig, { type ClusterEntryInfo } from '@views/db-manage/common/cluster-entry-config/Index.vue';
   import ClusterExportData from '@views/db-manage/common/cluster-export-data/Index.vue'
   import ClusterIpCopy from '@views/db-manage/common/cluster-ip-copy/Index.vue';
   import DropdownExportExcel from '@views/db-manage/common/dropdown-export-excel/index.vue';
   import ExcelAuthorize from '@views/db-manage/common/ExcelAuthorize.vue';
+  import { useOperateClusterBasic } from '@views/db-manage/common/hooks';
   import OperationBtnStatusTips from '@views/db-manage/common/OperationBtnStatusTips.vue';
   import RenderCellCopy from '@views/db-manage/common/render-cell-copy/Index.vue';
   import RenderHeadCopy from '@views/db-manage/common/render-head-copy/Index.vue';
@@ -211,6 +204,12 @@
   const { currentBizId } = useGlobalBizs();
   const copy = useCopy();
   const ticketMessage = useTicketMessage();
+  const { handleDisableCluster, handleEnableCluster, handleDeleteCluster } = useOperateClusterBasic(
+    ClusterTypes.TENDBCLUSTER,
+    {
+      onSuccess: () => fetchTableData(),
+    },
+  );
 
   const {
     columnAttrs,
@@ -262,6 +261,7 @@
   const tableDataList = computed(() => tableRef.value?.getData<TendbClusterModel>() || [])
   const hasData = computed(() => tableDataList.value.length > 0);
   const isCN = computed(() => locale.value === 'zh-cn');
+
   const searchSelectData = computed(() => [
     {
       name: t('访问入口'),
@@ -359,8 +359,7 @@
       label: t('主访问入口'),
       field: 'master_domain',
       fixed: 'left',
-      width: 280,
-      minWidth: 280,
+      minWidth: 320,
       showOverflowTooltip: false,
       renderHead: () => (
         <RenderHeadCopy
@@ -399,6 +398,28 @@
             ),
             append: () => (
               <>
+                {
+                  data.operationTagTips.map(item => <RenderOperationTag class="cluster-tag ml-4" data={item}/>)
+                }
+                {
+                  data.isOffline && !data.isStarting && (
+                    <bk-tag
+                      class="ml-4"
+                      size="small">
+                      {t('已禁用')}
+                    </bk-tag>
+                 )
+                }
+                {
+                  data.isNew && (
+                    <bk-tag
+                      theme="success"
+                      size="small"
+                      class="ml-4">
+                      NEW
+                    </bk-tag>
+                  )
+                }
                 {data.master_domain && (
                   <RenderCellCopy copyItems={
                     [
@@ -491,23 +512,6 @@
                         ),
                       }}
                     </bk-popover>
-                  )
-                }
-                {
-                  data.operationTagTips.map(item => <RenderOperationTag class="cluster-tag ml-4" data={item}/>)
-                }
-                {
-                  data.isOffline && !data.isStarting && (
-                    <bk-tag
-                      class="ml-4"
-                      size="small">
-                      {t('已禁用')}
-                    </bk-tag>
-                 )
-                }
-                {
-                  data.isNew && (
-                    <span class="glob-new-tag cluster-tag" data-text="NEW" />
                   )
                 }
                 <db-icon
@@ -912,6 +916,7 @@
               text
               theme="primary"
               class="mr-8"
+              disabled={data.isOffline}
               onClick={() => handleShowAuthorize([data])}>
               { t('授权') }
             </bk-button>,
@@ -943,83 +948,102 @@
           return operations;
         };
         const getDropdownOperations = () => {
-          const operations = [];
-          if (data.spider_mnt.length > 0) {
-            operations.push((
-              <bk-dropdown-item v-db-console="tendbCluster.clusterManage.removeMNTNode">
-                <auth-button
-                  action-id="tendbcluster_spider_mnt_destroy"
-                  permission={data.permission.tendbcluster_spider_mnt_destroy}
-                  resource={data.id}
-                  text
-                  class="mr-8"
-                  onClick={() => handleRemoveMNT(data)}>
-                  { t('下架运维节点') }
-                </auth-button>
-              </bk-dropdown-item>
-            ));
-          }
-          if (data.spider_slave.length > 0) {
-            operations.push((
-              <bk-dropdown-item v-db-console="tendbCluster.clusterManage.removeReadonlyNode">
-                <auth-button
-                  action-id="tendb_spider_slave_destroy"
-                  permission={data.permission.tendb_spider_slave_destroy}
-                  resource={data.id}
-                  text
-                  class="mr-8"
-                  onClick={() => handleDestroySlave(data)}>
-                  { t('下架只读集群') }
-                </auth-button>
-              </bk-dropdown-item>
-            ));
-          }
-          operations.push(...[
-            <bk-dropdown-item v-db-console="tendbCluster.clusterManage.disable">
-              <OperationBtnStatusTips data={data}>
-                <auth-button
-                  action-id="tendbcluster_enable_disable"
-                  permission={data.permission.tendbcluster_enable_disable}
-                  resource={data.id}
-                  text
-                  disabled={data.operationDisabled}
-                  class="mr-8"
-                  onClick={() => handleChangeClusterOnline(TicketTypes.TENDBCLUSTER_DISABLE, data)}>
-                  { t('禁用') }
-                </auth-button>
-              </OperationBtnStatusTips>
+          const operations = [
+            <bk-dropdown-item
+              v-db-console="tendbCluster.clusterManage.removeMNTNode"
+              v-bk-tooltips={{
+                disabled: data.spider_mnt.length > 0,
+                content: t('无运维节点')
+              }}>
+              <auth-button
+                action-id="tendbcluster_spider_mnt_destroy"
+                permission={data.permission.tendbcluster_spider_mnt_destroy}
+                resource={data.id}
+                disabled={data.spider_mnt.length === 0 || data.isOffline}
+                text
+                class="mr-8"
+                onClick={() => handleRemoveMNT(data)}>
+                { t('下架运维节点') }
+              </auth-button>
             </bk-dropdown-item>,
-            <bk-dropdown-item v-db-console="tendbCluster.clusterManage.enable">
-              <OperationBtnStatusTips data={data}>
-                <auth-button
-                  action-id="tendbcluster_enable_disable"
-                  permission={data.permission.tendbcluster_enable_disable}
-                  v-db-console="tendbCluster.clusterManage.enable"
-                  resource={data.id}
-                  text
-                  disabled={data.isStarting}
-                  class="mr-8"
-                  onClick={() => handleChangeClusterOnline(TicketTypes.TENDBCLUSTER_ENABLE, data)}>
-                  { t('启用') }
-                </auth-button>
-              </OperationBtnStatusTips>
-            </bk-dropdown-item>,
+            <bk-dropdown-item
+              v-db-console="tendbCluster.clusterManage.removeReadonlyNode"
+              v-bk-tooltips={{
+                disabled: data.spider_slave.length > 0,
+                content: t('无只读集群')
+              }}>
+              <auth-button
+                action-id="tendb_spider_slave_destroy"
+                permission={data.permission.tendb_spider_slave_destroy}
+                resource={data.id}
+                text
+                disabled={data.spider_slave.length === 0 || data.isOffline}
+                class="mr-8"
+                onClick={() => handleDestroySlave(data)}>
+                { t('下架只读集群') }
+              </auth-button>
+            </bk-dropdown-item>
+          ];
+
+          if (data.isOnline) {
+            operations.push(
+              <bk-dropdown-item v-db-console="tendbCluster.clusterManage.disable">
+                <OperationBtnStatusTips data={data}>
+                  <auth-button
+                    action-id="tendbcluster_enable_disable"
+                    permission={data.permission.tendbcluster_enable_disable}
+                    resource={data.id}
+                    text
+                    disabled={data.operationDisabled}
+                    class="mr-8"
+                    onClick={() => handleDisableCluster([data])}>
+                    { t('禁用') }
+                  </auth-button>
+                </OperationBtnStatusTips>
+              </bk-dropdown-item>
+            )
+          }
+          if (data.isOffline) {
+            operations.push(...[
+              <bk-dropdown-item v-db-console="tendbCluster.clusterManage.enable">
+                <OperationBtnStatusTips data={data}>
+                  <auth-button
+                    action-id="tendbcluster_enable_disable"
+                    permission={data.permission.tendbcluster_enable_disable}
+                    v-db-console="tendbCluster.clusterManage.enable"
+                    resource={data.id}
+                    text
+                    disabled={data.isStarting}
+                    class="mr-8"
+                    onClick={() => handleEnableCluster([data])}>
+                    { t('启用') }
+                  </auth-button>
+                </OperationBtnStatusTips>
+              </bk-dropdown-item>,
+            ]);
+          }
+
+          operations.push(
             <bk-dropdown-item v-db-console="tendbCluster.clusterManage.delete">
               <OperationBtnStatusTips data={data}>
                 <auth-button
+                  v-bk-tooltips={{
+                    disabled: data.isOffline,
+                    content: t('请先禁用集群')
+                  }}
                   action-id="tendbcluster_destroy"
                   permission={data.permission.tendbcluster_destroy}
                   v-db-console="tendbCluster.clusterManage.delete"
                   resource={data.id}
                   text
-                  disabled={Boolean(data.operationTicketId)}
+                  disabled={data.isOnline || Boolean(data.operationTicketId)}
                   class="mr-8"
-                  onClick={() => handleDeleteCluster(data)}>
+                  onClick={() => handleDeleteCluster([data])}>
                   { t('删除') }
                 </auth-button>
               </OperationBtnStatusTips>
             </bk-dropdown-item>
-          ]);
+          )
 
           return operations;
         };
@@ -1309,68 +1333,6 @@
     });
   };
 
-  // 集群启停
-  const handleChangeClusterOnline = (type: TicketTypesStrings, data: TendbClusterModel) => {
-    if (!type) return;
-
-    const isOpen = type === TicketTypes.TENDBCLUSTER_ENABLE;
-    const title = isOpen ? t('确定启用该集群') : t('确定禁用该集群');
-    InfoBox({
-      type: 'warning',
-      title,
-      content: () => (
-        <div style="word-break: all;">
-          {
-            isOpen
-              ? <p>{t('集群【name】启用后将恢复访问', { name: data.cluster_name })}</p>
-              : <p>{t('集群【name】被禁用后将无法访问_如需恢复访问_可以再次「启用」', { name: data.cluster_name })}</p>
-          }
-        </div>
-      ),
-      onConfirm: () => createTicket({
-        bk_biz_id: currentBizId,
-        ticket_type: type,
-        details: {
-          cluster_ids: [data.id],
-        },
-      })
-        .then((res) => {
-          ticketMessage(res.id);
-          fetchTableData();
-        })
-    });
-  };
-
-  // 删除集群
-  const handleDeleteCluster = (data: TendbClusterModel) => {
-    const { cluster_name: name } = data;
-    InfoBox({
-      type: 'warning',
-      title: t('确定删除该集群'),
-      confirmText: t('删除'),
-      confirmButtonTheme: 'danger',
-      content: () => (
-        <div style="word-break: all; text-align: left; padding-left: 16px;">
-          <p>{t('集群【name】被删除后_将进行以下操作', { name })}</p>
-          <p>{t('1_删除xx集群', { name })}</p>
-          <p>{t('2_删除xx实例数据_停止相关进程', { name })}</p>
-          <p>3. {t('回收主机')}</p>
-        </div>
-      ),
-      onConfirm: () => createTicket({
-        bk_biz_id: currentBizId,
-        ticket_type: TicketTypes.TENDBCLUSTER_DESTROY,
-        details: {
-          cluster_ids: [data.id],
-        },
-      })
-        .then((res) => {
-          ticketMessage(res.id);
-          fetchTableData();
-        })
-    });
-  };
-
   // 申请实例
   const handleApply = () => {
     router.push({
@@ -1404,6 +1366,11 @@
   const handleShowExcelAuthorize = () => {
     excelAuthorizeShow.value = true;
   };
+
+  const handleBatchOperationSuccess = () => {
+    tableRef.value!.clearSelected();
+    fetchTableData();
+  }
 
   onMounted(() => {
     if (!clusterId.value && route.query.id) {

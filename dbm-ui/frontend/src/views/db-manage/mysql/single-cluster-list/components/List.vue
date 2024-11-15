@@ -21,20 +21,12 @@
         @click="handleApply">
         {{ t('申请实例') }}
       </AuthButton>
-      <span
-        v-bk-tooltips="{
-          disabled: hasSelected,
-          content: t('请选择集群'),
-        }"
-        v-db-console="'mysql.singleClusterList.batchAuthorize'"
-        class="inline-block">
-        <BkButton
-          class="ml-8"
-          :disabled="!hasSelected"
-          @click="handleShowAuthorize(selected)">
-          {{ t('批量授权') }}
-        </BkButton>
-      </span>
+      <ClusterBatchOperation
+        v-db-console="'mysql.singleClusterList.batchOperation'"
+        class="ml-8"
+        :cluster-type="ClusterTypes.TENDBSINGLE"
+        :selected="selected"
+        @success="handleBatchOperationSuccess" />
       <BkButton
         v-db-console="'mysql.singleClusterList.importAuthorize'"
         class="ml-8"
@@ -94,7 +86,7 @@
 </template>
 
 <script setup lang="tsx">
-  import { InfoBox, Message } from 'bkui-vue';
+  import { Message } from 'bkui-vue';
   import type { ISearchItem } from 'bkui-vue/lib/search-select/utils';
   import { useI18n } from 'vue-i18n';
   import {
@@ -107,7 +99,6 @@
     getTendbsingleInstanceList,
     getTendbsingleList,
   } from '@services/source/tendbsingle';
-  import { createTicket } from '@services/source/ticket';
   import { getUserList } from '@services/source/user';
 
   import {
@@ -115,7 +106,6 @@
     useLinkQueryColumnSerach,
     useStretchLayout,
     useTableSettings,
-    useTicketMessage
   } from '@hooks';
 
   import {
@@ -127,7 +117,6 @@
     ClusterTypes,
     DBTypes,
     TicketTypes,
-    type TicketTypesStrings,
     UserPersonalSettings,
   } from '@common/const';
 
@@ -137,12 +126,14 @@
   import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
 
   import ClusterAuthorize from '@views/db-manage/common/cluster-authorize/Index.vue';
+  import ClusterBatchOperation from '@views/db-manage/common/cluster-batch-opration/Index.vue'
   import ClusterCapacityUsageRate from '@views/db-manage/common/cluster-capacity-usage-rate/Index.vue'
   import EditEntryConfig from '@views/db-manage/common/cluster-entry-config/Index.vue';
   import ClusterExportData from '@views/db-manage/common/cluster-export-data/Index.vue'
   import ClusterIpCopy from '@views/db-manage/common/cluster-ip-copy/Index.vue';
   import DropdownExportExcel from '@views/db-manage/common/dropdown-export-excel/index.vue';
   import ExcelAuthorize from '@views/db-manage/common/ExcelAuthorize.vue';
+  import { useOperateClusterBasic } from '@views/db-manage/common/hooks';
   import OperationBtnStatusTips from '@views/db-manage/common/OperationBtnStatusTips.vue';
   import RenderCellCopy from '@views/db-manage/common/render-cell-copy/Index.vue';
   import RenderHeadCopy from '@views/db-manage/common/render-head-copy/Index.vue';
@@ -167,7 +158,12 @@
   const globalBizsStore = useGlobalBizs();
   const copy = useCopy();
   const { t, locale } = useI18n();
-  const ticketMessage = useTicketMessage();
+  const { handleDisableCluster, handleEnableCluster, handleDeleteCluster } = useOperateClusterBasic(
+    ClusterTypes.TENDBSINGLE,
+    {
+      onSuccess: () => fetchData(),
+    },
+  );
   const {
     isOpen: isStretchLayoutOpen,
     splitScreen: stretchLayoutSplitScreen,
@@ -215,6 +211,7 @@
   const isCN = computed(() => locale.value === 'zh-cn');
   const hasSelected = computed(() => selected.value.length > 0);
   const selectedIds = computed(() => selected.value.map(item => item.id));
+
   const searchSelectData = computed(() => [
     {
       name: t('访问入口'),
@@ -303,8 +300,7 @@
       label: t('访问入口'),
       field: 'master_domain',
       fixed: 'left',
-      width: 280,
-      minWidth: 280,
+      minWidth: 320,
       renderHead: () => (
         <RenderHeadCopy
           hasSelected={hasSelected.value}
@@ -342,6 +338,28 @@
             ),
             append: () => (
               <>
+                {
+                  data.operationTagTips.map(item => <RenderOperationTag class="cluster-tag ml-4" data={item}/>)
+                }
+                {
+                  data.isOffline && !data.isStarting && (
+                    <bk-tag
+                      class="ml-4"
+                      size="small">
+                      {t('已禁用')}
+                    </bk-tag>
+                  )
+                }
+                {
+                  data.isNew && (
+                    <bk-tag
+                      theme="success"
+                      size="small"
+                      class="ml-4">
+                      NEW
+                    </bk-tag>
+                  )
+                }
                 <RenderCellCopy copyItems={
                   [
                     {
@@ -395,25 +413,6 @@
             default: () => data.cluster_name,
             append: () => (
               <>
-                {
-                  data.operationTagTips.map(item => <RenderOperationTag class="cluster-tag ml-4" data={item}/>)
-                }
-                {
-                  data.isOffline && !data.isStarting && (
-                    <bk-tag
-                      class="ml-4"
-                      size="small">
-                      {t('已禁用')}
-                    </bk-tag>
-                  )
-                }
-                {
-                  isRecentDays(data.create_at, 24 * 3) && (
-                    <span
-                      class="glob-new-tag cluster-tag ml-4"
-                      data-text="NEW" />
-                  )
-                }
                 <db-icon
                   v-bk-tooltips={t('复制集群名称')}
                   type="copy"
@@ -567,6 +566,7 @@
             text
             theme="primary"
             class="mr-8"
+            disabled={data.isOffline}
             onClick={() => handleShowAuthorize([data])}>
             { t('授权') }
           </bk-button>
@@ -597,23 +597,26 @@
           <MoreActionExtend v-db-console="mysql.singleClusterList.moreOperation">
             {{
               default: () => <>
-                {data.isOnline ? (
-                  <bk-dropdown-item v-db-console="mysql.singleClusterList.disable">
-                    <OperationBtnStatusTips data={data}>
-                      <auth-button
-                        text
-                        class="mr-8"
-                        action-id="mysql_enable_disable"
-                        permission={data.permission.mysql_enable_disable}
-                        disabled={data.operationDisabled}
-                        resource={data.id}
-                        onClick={() => handleSwitchCluster(TicketTypes.MYSQL_SINGLE_DISABLE, data)}>
-                        { t('禁用') }
-                      </auth-button>
-                    </OperationBtnStatusTips>
-                  </bk-dropdown-item>
-                ) : (
-                  <>
+                {
+                  data.isOnline && (
+                    <bk-dropdown-item v-db-console="mysql.singleClusterList.disable">
+                      <OperationBtnStatusTips data={data}>
+                        <auth-button
+                          text
+                          class="mr-8"
+                          action-id="mysql_enable_disable"
+                          permission={data.permission.mysql_enable_disable}
+                          disabled={data.operationDisabled}
+                          resource={data.id}
+                          onClick={() => handleDisableCluster([data])}>
+                          { t('禁用') }
+                        </auth-button>
+                      </OperationBtnStatusTips>
+                    </bk-dropdown-item>
+                  )
+                }
+                {
+                  data.isOffline && (
                     <bk-dropdown-item v-db-console="mysql.singleClusterList.enable">
                       <OperationBtnStatusTips data={data}>
                         <auth-button
@@ -623,27 +626,31 @@
                           permission={data.permission.mysql_enable_disable}
                           disabled={data.isStarting}
                           resource={data.id}
-                          onClick={() => handleSwitchCluster(TicketTypes.MYSQL_SINGLE_ENABLE, data)}>
+                          onClick={() => handleEnableCluster([data])}>
                           { t('启用') }
                         </auth-button>
                       </OperationBtnStatusTips>
                     </bk-dropdown-item>
-                    <bk-dropdown-item v-db-console="mysql.singleClusterList.delete">
-                      <OperationBtnStatusTips data={data}>
-                        <auth-button
-                          text
-                          class="mr-8"
-                          action-id="mysql_destroy"
-                          permission={data.permission.mysql_destroy}
-                          disabled={Boolean(data.operationTicketId)}
-                          resource={data.id}
-                          onClick={() => handleDeleteCluster(data)}>
-                          { t('删除') }
-                        </auth-button>
-                      </OperationBtnStatusTips>
-                    </bk-dropdown-item>
-                  </>
-                )}
+                  )
+                }
+                <bk-dropdown-item v-db-console="mysql.singleClusterList.delete">
+                  <OperationBtnStatusTips data={data}>
+                    <auth-button
+                      v-bk-tooltips={{
+                        disabled: data.isOffline,
+                        content: t('请先禁用集群')
+                      }}
+                      text
+                      class="mr-8"
+                      action-id="mysql_destroy"
+                      permission={data.permission.mysql_destroy}
+                      disabled={data.isOnline || Boolean(data.operationTicketId)}
+                      resource={data.id}
+                      onClick={() => handleDeleteCluster([data])}>
+                      { t('删除') }
+                    </auth-button>
+                  </OperationBtnStatusTips>
+                </bk-dropdown-item>
               </>
             }}
           </MoreActionExtend>
@@ -820,75 +827,10 @@
     selected.value = list;
   };
 
-  /**
-   * 集群启停
-   */
-  const handleSwitchCluster = (type: TicketTypesStrings, data: TendbsingleModel) => {
-    if (!type) return;
-
-    const isOpen = type === TicketTypes.MYSQL_SINGLE_ENABLE;
-    const title = isOpen ? t('确定启用该集群') : t('确定禁用该集群');
-    InfoBox({
-      type: 'warning',
-      title,
-      content: () => (
-        <div style="word-break: all;">
-          {
-            isOpen
-              ? <p>{t('集群【name】启用后将恢复访问', { name: data.cluster_name })}</p>
-              : <p>{t('集群【name】被禁用后将无法访问_如需恢复访问_可以再次「启用」', { name: data.cluster_name })}</p>
-          }
-        </div>
-      ),
-      onConfirm: async () => {
-        const params = {
-          bk_biz_id: globalBizsStore.currentBizId,
-          ticket_type: type,
-          details: {
-            cluster_ids: [data.id],
-          },
-        };
-        await createTicket(params).then((res) => {
-          ticketMessage(res.id);
-          fetchData();
-        });
-      },
-    });
-  };
-
-  /**
-   * 删除集群
-   */
-  const handleDeleteCluster = (data: TendbsingleModel) => {
-    const { cluster_name: name } = data;
-    InfoBox({
-      type: 'warning',
-      title: t('确定删除该集群'),
-      confirmText: t('删除'),
-      confirmButtonTheme: 'danger',
-      content: () => (
-        <div style="word-break: all; text-align: left; padding-left: 16px;">
-          <p>{t('集群【name】被删除后_将进行以下操作', { name })}</p>
-          <p>{t('1_删除xx集群', { name })}</p>
-          <p>{t('2_删除xx实例数据_停止相关进程', { name })}</p>
-          <p>3. {t('回收主机')}</p>
-        </div>
-      ),
-      onConfirm: async () => {
-        const params = {
-          bk_biz_id: globalBizsStore.currentBizId,
-          ticket_type: TicketTypes.MYSQL_SINGLE_DESTROY,
-          details: {
-            cluster_ids: [data.id],
-          },
-        };
-        await createTicket(params).then((res) => {
-          ticketMessage(res.id);
-          fetchData();
-        });
-      },
-    });
-  };
+  const handleBatchOperationSuccess = () => {
+    tableRef.value!.clearSelected();
+    fetchData();
+  }
 
   onMounted(() => {
     if (!clusterId.value && route.query.id) {

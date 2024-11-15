@@ -215,7 +215,7 @@
     placeholder: '',
   });
 
-  const selectedClusters = shallowRef<{ [key: string]: Array<TendbhaModel> }>({ [ClusterTypes.TENDBCLUSTER]: [] });
+  const selectedClusters = shallowRef<{ [key: string]: Array<TendbhaModel> }>({ [ClusterTypes.TENDBHA]: [] });
 
   // 集群域名是否已存在表格的映射表
   const domainMemo: Record<string, boolean> = {};

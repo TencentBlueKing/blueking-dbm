@@ -597,7 +597,8 @@
     getAllData: fetchAllData,
     // 清空选择
     clearSelected() {
-      bkTableRef.value?.clearSelection();
+      // bkTableRef.value?.clearSelection();
+      handleClearWholeSelect();
     },
     updateTableKey() {
       tableKey.value = Date.now().toString();

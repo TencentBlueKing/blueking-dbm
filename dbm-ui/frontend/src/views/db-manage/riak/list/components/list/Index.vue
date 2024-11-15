@@ -75,7 +75,7 @@
 </template>
 
 <script setup lang="tsx">
-  import { InfoBox, Message } from 'bkui-vue';
+  import { Message } from 'bkui-vue';
   import type { ISearchItem } from 'bkui-vue/lib/search-select/utils';
   import dayjs from 'dayjs';
   import { useI18n } from 'vue-i18n';
@@ -86,7 +86,6 @@
     getRiakInstanceList,
     getRiakList,
   } from '@services/source/riak';
-  import { createTicket } from '@services/source/ticket';
   import { getUserList } from '@services/source/user';
 
   import {
@@ -94,12 +93,11 @@
     useLinkQueryColumnSerach,
     useStretchLayout,
     useTableSettings,
-    useTicketMessage,
   } from '@hooks';
 
   import { useGlobalBizs } from '@stores';
 
-  import { ClusterTypes, TicketTypes, UserPersonalSettings } from '@common/const';
+  import { ClusterTypes, UserPersonalSettings } from '@common/const';
 
   import RenderClusterStatus from '@components/cluster-status/Index.vue';
   import DbTable from '@components/db-table/index.vue';
@@ -109,6 +107,7 @@
   import ClusterCapacityUsageRate from '@views/db-manage/common/cluster-capacity-usage-rate/Index.vue'
   import ClusterIpCopy from '@views/db-manage/common/cluster-ip-copy/Index.vue';
   import DropdownExportExcel from '@views/db-manage/common/dropdown-export-excel/index.vue';
+  import { useOperateClusterBasic } from '@views/db-manage/common/hooks';
   import OperationBtnStatusTips from '@views/db-manage/common/OperationBtnStatusTips.vue';
   import RenderHeadCopy from '@views/db-manage/common/render-head-copy/Index.vue';
   import RenderNodeInstance from '@views/db-manage/common/RenderNodeInstance.vue';
@@ -142,7 +141,12 @@
     isOpen: isStretchLayoutOpen,
     splitScreen: stretchLayoutSplitScreen,
   } = useStretchLayout();
-  const ticketMessage = useTicketMessage();
+  const { handleDisableCluster, handleEnableCluster, handleDeleteCluster } = useOperateClusterBasic(
+    ClusterTypes.RIAK,
+    {
+      onSuccess: () => fetchData(),
+    },
+  );
   const {
     columnAttrs,
     searchAttrs,
@@ -426,81 +430,94 @@
       label: t('操作'),
       width: 300,
       fixed: 'right',
-      render: ({ data }: { data: RiakModel }) => (
-        data.isOnline
-          ? <>
-              <OperationBtnStatusTips data={data}>
-                <auth-button
-                  action-id="riak_cluster_scale_in"
-                  permission={data.permission.riak_cluster_scale_in}
-                  resource={data.id}
-                  text
-                  theme="primary"
-                  disabled={data.isOffline}
-                  onClick={() => handleAddNodes(data)}
-                >
-                  { t('添加节点') }
-                </auth-button>
-              </OperationBtnStatusTips>
-              <OperationBtnStatusTips data={data}>
-                <auth-button
-                  action-id="riak_cluster_scale_out"
-                  permission={data.permission.riak_cluster_scale_out}
-                  resource={data.id}
-                  text
-                  class="ml-16"
-                  theme="primary"
-                  disabled={data.isOffline}
-                  onClick={() => handleDeleteNodes(data)}
-                >
-                  { t('删除节点') }
-                </auth-button>
-              </OperationBtnStatusTips>
-              <OperationBtnStatusTips data={data}>
-                <auth-button
-                  action-id="riak_enable_disable"
-                  permissionn={data.permission.riak_enable_disable}
-                  resource={data.id}
-                  text
-                  class="ml-16"
-                  theme="primary"
-                  disabled={data.operationDisabled}
-                  onClick={() => handlDisabled(data)}
-                >
-                  { t('禁用') }
-                </auth-button>
-              </OperationBtnStatusTips>
-            </>
-          : <>
-              <OperationBtnStatusTips data={data}>
-                <auth-button
-                  action-id="riak_enable_disable"
-                  permissionn={data.permission.riak_enable_disable}
-                  resource={data.id}
-                  text
-                  theme="primary"
-                  disabled={data.isStarting}
-                  onClick={() => handleEnabled(data)}
-                >
-                  { t('启用') }
-                </auth-button>
-              </OperationBtnStatusTips>
-              <OperationBtnStatusTips data={data}>
-                <auth-button
-                  action-id="riak_cluster_destroy"
-                  permission={data.permission.riak_cluster_destroy}
-                  resource={data.id}
-                  text
-                  class="ml-16"
-                  theme="primary"
-                  disabled={Boolean(data.operationTicketId)}
-                  onClick={() => handleDelete(data)}
-                >
-                  { t('删除') }
-                </auth-button>
-              </OperationBtnStatusTips>
-            </>
-      ),
+      render: ({ data }: { data: RiakModel }) => {
+        const oprations = []
+
+        if (data.isOnline) {
+          oprations.push([
+            <OperationBtnStatusTips data={data}>
+              <auth-button
+                action-id="riak_cluster_scale_in"
+                permission={data.permission.riak_cluster_scale_in}
+                resource={data.id}
+                text
+                theme="primary"
+                disabled={data.isOffline}
+                onClick={() => handleAddNodes(data)}
+              >
+                { t('添加节点') }
+              </auth-button>
+            </OperationBtnStatusTips>,
+            <OperationBtnStatusTips data={data}>
+              <auth-button
+                action-id="riak_cluster_scale_out"
+                permission={data.permission.riak_cluster_scale_out}
+                resource={data.id}
+                text
+                class="ml-16"
+                theme="primary"
+                disabled={data.isOffline}
+                onClick={() => handleDeleteNodes(data)}
+              >
+                { t('删除节点') }
+              </auth-button>
+            </OperationBtnStatusTips>,
+            <OperationBtnStatusTips data={data}>
+              <auth-button
+                action-id="riak_enable_disable"
+                permissionn={data.permission.riak_enable_disable}
+                resource={data.id}
+                text
+                class="ml-16"
+                theme="primary"
+                disabled={data.operationDisabled}
+                onClick={() => handleDisableCluster([data])}
+              >
+                { t('禁用') }
+              </auth-button>
+            </OperationBtnStatusTips>
+          ])
+        } else {
+          oprations.push(
+            <OperationBtnStatusTips data={data}>
+              <auth-button
+                action-id="riak_enable_disable"
+                permissionn={data.permission.riak_enable_disable}
+                resource={data.id}
+                text
+                theme="primary"
+                disabled={data.isStarting}
+                onClick={() => handleEnableCluster([data])}
+              >
+                { t('启用') }
+              </auth-button>
+            </OperationBtnStatusTips>
+          )
+        }
+
+        oprations.push(
+          <OperationBtnStatusTips data={data}>
+            <auth-button
+              v-bk-tooltips={{
+                disabled: data.isOffline,
+                content: t('请先禁用集群')
+              }}
+              action-id="riak_cluster_destroy"
+              permission={data.permission.riak_cluster_destroy}
+              resource={data.id}
+              text
+              class="ml-16"
+              theme="primary"
+              disabled={data.isOnline || Boolean(data.operationTicketId)}
+              onClick={() => handleDeleteCluster([data])}
+            >
+              { t('删除') }
+            </auth-button>
+          </OperationBtnStatusTips>
+        )
+
+        return oprations
+      }
     },
   ]);
 
@@ -603,102 +620,6 @@
   const handleDeleteNodes = (data: RiakModel) => {
     detailData.value = data;
     deleteNodeShow.value = true;
-  };
-
-  const handlDisabled = (data: RiakModel) => {
-    InfoBox({
-      title: t('确定禁用该集群', { name: data.cluster_name }),
-      subTitle: (
-        <>
-          <p>{ t('集群') }：<span class='info-box-cluster-name'>{ data.cluster_name }</span></p>
-          <p>{ t('被禁用后将无法访问，如需恢复访问，可以再次「启用」') }</p>
-        </>
-      ),
-      infoType: 'warning',
-      confirmText: t('禁用'),
-      cancelText: t('取消'),
-      headerAlign: 'center',
-      contentAlign: 'center',
-      footerAlign: 'center',
-      onConfirm: () => {
-        createTicket({
-          bk_biz_id: currentBizId,
-          ticket_type: TicketTypes.RIAK_CLUSTER_DISABLE,
-          details: {
-            cluster_id: data.id,
-          },
-        })
-          .then((createTicketResult) => {
-            fetchData();
-            ticketMessage(createTicketResult.id);
-          });
-      },
-    });
-  };
-
-  const handleEnabled = (data: RiakModel) => {
-    InfoBox({
-      title: t('确定启用该集群'),
-      subTitle: (
-        <>
-          <p>{ t('集群') }：<span class='info-box-cluster-name'>{ data.cluster_name }</span></p>
-          <p>{ t('启用后将恢复访问') }</p>
-        </>
-      ),
-      infoType: 'warning',
-      confirmText: t('启用'),
-      cancelText: t('取消'),
-      headerAlign: 'center',
-      contentAlign: 'center',
-      footerAlign: 'center',
-      onConfirm: () => {
-        createTicket({
-          bk_biz_id: currentBizId,
-          ticket_type: TicketTypes.RIAK_CLUSTER_ENABLE,
-          details: {
-            cluster_id: data.id,
-          },
-        })
-          .then((createTicketResult) => {
-            fetchData();
-            ticketMessage(createTicketResult.id);
-          });
-      },
-    });
-  };
-
-  const handleDelete = (data: RiakModel) => {
-    InfoBox({
-      title: t('确定删除该集群'),
-      subTitle: (
-        <>
-          <p>{ t('集群') } ：<span class='info-box-cluster-name'>{ data.cluster_name }</span> , { t('被删除后将进行以下操作') }</p>
-          <p>1. { t('删除xx集群', [data.cluster_name]) }</p>
-          <p>2. { t('删除xx实例数据，停止相关进程', [data.cluster_name]) }</p>
-          <p>3. { t('回收主机') }</p>
-        </>
-      ),
-      infoType: 'warning',
-      theme: 'danger',
-      confirmText: t('删除'),
-      cancelText: t('取消'),
-      headerAlign: 'center',
-      contentAlign: 'left',
-      footerAlign: 'center',
-      onConfirm: () => {
-        createTicket({
-          bk_biz_id: currentBizId,
-          ticket_type: TicketTypes.RIAK_CLUSTER_DESTROY,
-          details: {
-            cluster_id: data.id,
-          },
-        })
-          .then((createTicketResult) => {
-            fetchData();
-            ticketMessage(createTicketResult.id);
-          });
-      },
-    });
   };
 
   const fetchData = (otherParamas: {
