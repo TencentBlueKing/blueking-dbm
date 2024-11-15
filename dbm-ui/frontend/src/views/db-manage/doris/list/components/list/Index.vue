@@ -89,7 +89,7 @@
 </template>
 
 <script setup lang="tsx">
-  import { InfoBox, Message } from 'bkui-vue';
+  import { Message } from 'bkui-vue';
   import type { ISearchItem } from 'bkui-vue/lib/search-select/utils';
   import { useI18n } from 'vue-i18n';
 
@@ -98,7 +98,6 @@
    getDorisInstanceList,
    getDorisList
   } from '@services/source/doris';
-  import { createTicket } from '@services/source/ticket';
   import { getUserList } from '@services/source/user';
 
   import {
@@ -106,7 +105,6 @@
     useLinkQueryColumnSerach,
     useStretchLayout,
     useTableSettings,
-    useTicketMessage,
   } from '@hooks';
 
   import { useGlobalBizs } from '@stores';
@@ -114,7 +112,6 @@
   import {
     ClusterTypes,
     DBTypes,
-    TicketTypes,
     UserPersonalSettings,
   } from '@common/const';
 
@@ -126,6 +123,7 @@
   import EditEntryConfig from '@views/db-manage/common/cluster-entry-config/Index.vue';
   import ClusterIpCopy from '@views/db-manage/common/cluster-ip-copy/Index.vue';
   import DropdownExportExcel from '@views/db-manage/common/dropdown-export-excel/index.vue';
+  import { useOperateClusterBasic } from '@views/db-manage/common/hooks';
   import OperationBtnStatusTips from '@views/db-manage/common/OperationBtnStatusTips.vue';
   import RenderCellCopy from '@views/db-manage/common/render-cell-copy/Index.vue';
   import RenderHeadCopy from '@views/db-manage/common/render-head-copy/Index.vue';
@@ -145,9 +143,14 @@
   const route = useRoute();
   const router = useRouter();
   const { currentBizId } = useGlobalBizs();
-  const ticketMessage = useTicketMessage();
   const copy = useCopy();
   const { t, locale } = useI18n();
+  const { handleDisableCluster, handleEnableCluster, handleDeleteCluster } = useOperateClusterBasic(
+    ClusterTypes.DORIS,
+    {
+      onSuccess: () => fetchTableData(),
+    },
+  );
   const {
     isOpen: isStretchLayoutOpen,
     splitScreen: stretchLayoutSplitScreen,
@@ -189,7 +192,6 @@
 
   const selected = shallowRef<DorisModel[]>([]);
   const operationData = shallowRef<DorisModel>();
-  const tableDataActionLoadingMap = shallowRef<Record<number, boolean>>({});
 
   const serachData = computed(() => [
     {
@@ -300,8 +302,7 @@
     {
       label: t('访问入口'),
       field: 'domain',
-      width: 300,
-      minWidth: 300,
+      minWidth: 320,
       fixed: 'left',
       renderHead: () => (
         <RenderHeadCopy
@@ -340,6 +341,28 @@
             ),
             append: () => (
               <>
+                {
+                  data.operationTagTips.map(item => <RenderOperationTag class="cluster-tag ml-4" data={item}/>)
+                }
+                {
+                  data.isOffline && !data.isStarting && (
+                    <bk-tag
+                      class="ml-4"
+                      size="small">
+                      {t('已禁用')}
+                    </bk-tag>
+                  )
+                }
+                {
+                  data.isNew && (
+                    <bk-tag
+                      theme="success"
+                      size="small"
+                      class="ml-4">
+                      NEW
+                    </bk-tag>
+                  )
+                }
                 {
                   data.domain && (
                     <RenderCellCopy copyItems={
@@ -405,28 +428,6 @@
             ),
             append: () => (
               <>
-                {
-                  data.operationTagTips.map(item => <RenderOperationTag class="cluster-tag ml-4" data={item}/>)
-                }
-                {
-                  data.isOffline && !data.isStarting && (
-                    <bk-tag
-                      class="ml-4"
-                      size="small">
-                      {t('已禁用')}
-                    </bk-tag>
-                  )
-                }
-                {
-                  data.isNew && (
-                    <bk-tag
-                      theme="success"
-                      size="small"
-                      class="ml-4">
-                      NEW
-                    </bk-tag>
-                  )
-                }
                 <db-icon
                   v-bk-tooltips={t('复制集群名称')}
                   type="copy"
@@ -697,6 +698,7 @@
               permission={data.permission.doris_access_entry_view}
               resource={data.id}
               class="ml-16"
+              disabled={data.isOffline}
               onClick={() => handleShowPassword(data)}>
               {t('获取访问方式')}
             </auth-button>,
@@ -727,11 +729,28 @@
                           permission={data.permission.doris_enable_disable}
                           resource={data.id}
                           disabled={data.operationDisabled}
-                          loading={tableDataActionLoadingMap.value[data.id]}
-                          onClick={() => handlDisabled(data)}>
+                          onClick={() => handleDisableCluster([data])}>
                           { t('禁用') }
                         </auth-button>
                       </OperationBtnStatusTips>
+                    </bk-dropdown-item>
+                    <bk-dropdown-item>
+                      <OperationBtnStatusTips data={data}>
+                        <auth-button
+                          v-bk-tooltips={{
+                            disabled: data.isOffline,
+                            content: t('请先禁用集群')
+                          }}
+                          text
+                          theme="primary"
+                          action-id="doris_destroy"
+                          disabled={data.isOnline}
+                          permission={data.permission.doris_destroy}
+                          resource={data.id}
+                          onClick={() => handleDeleteCluster([data])}>
+                          { t('删除') }
+                        </auth-button>
+                      </OperationBtnStatusTips>,
                     </bk-dropdown-item>
                   </>
                 )
@@ -740,27 +759,30 @@
           ];
         }
         return [
-          <auth-button
-            text
-            theme="primary"
-            action-id="doris_enable_disable"
-            permission={data.permission.doris_enable_disable}
-            resource={data.id}
-            class="mr-16"
-            loading={tableDataActionLoadingMap.value[data.id]}
-            onClick={() => handleEnable(data)}>
-            { t('启用') }
-          </auth-button>,
-          <auth-button
-            text
-            theme="primary"
-            action-id="doris_destroy"
-            permission={data.permission.doris_destroy}
-            resource={data.id}
-            loading={tableDataActionLoadingMap.value[data.id]}
-            onClick={() => handleRemove(data)}>
-            { t('删除') }
-          </auth-button>,
+          <OperationBtnStatusTips data={data}>
+            <auth-button
+              text
+              theme="primary"
+              action-id="doris_enable_disable"
+              permission={data.permission.doris_enable_disable}
+              resource={data.id}
+              class="mr-16"
+              onClick={() => handleEnableCluster([data])}>
+              { t('启用') }
+            </auth-button>
+          </OperationBtnStatusTips>,
+          <OperationBtnStatusTips data={data}>
+            <auth-button
+              text
+              theme="primary"
+              action-id="doris_destroy"
+              permission={data.permission.doris_destroy}
+              resource={data.id}
+              disabled={Boolean(data.operationTicketId)}
+              onClick={() => handleDeleteCluster([data])}>
+              { t('删除') }
+            </auth-button>
+          </OperationBtnStatusTips>,
         ];
       },
     },
@@ -904,154 +926,6 @@
     operationData.value = data;
   };
 
-  // 禁用
-  const handlDisabled =  (clusterData: DorisModel) => {
-    const subTitle = (
-      <div style="background-color: #F5F7FA; padding: 8px 16px;">
-        <div>
-          {t('集群')} :
-          <span
-            style="color: #313238"
-            class="ml-8">
-            {clusterData.cluster_name}
-          </span>
-        </div>
-        <div class='mt-4'>{t('被禁用后将无法访问，如需恢复访问，可以再次「启用」')}</div>
-      </div>
-    )
-    InfoBox({
-      title: t('确认禁用该集群？'),
-      subTitle,
-      infoType: 'warning',
-      theme: 'danger',
-      confirmText: t('禁用'),
-      cancelText: t('取消'),
-      headerAlign: 'center',
-      contentAlign: 'left',
-      footerAlign: 'center',
-      onConfirm: () => {
-        tableDataActionLoadingMap.value = {
-          ...tableDataActionLoadingMap.value,
-          [clusterData.id]: true,
-        };
-        createTicket({
-          bk_biz_id: currentBizId,
-          ticket_type: TicketTypes.DORIS_DISABLE,
-          details: {
-            cluster_id: clusterData.id,
-          },
-        })
-          .then((data) => {
-            tableDataActionLoadingMap.value = {
-              ...tableDataActionLoadingMap.value,
-              [clusterData.id]: false,
-            };
-            fetchTableData();
-            ticketMessage(data.id);
-          })
-        ;
-      },
-    });
-  };
-
-  const handleEnable =  (clusterData: DorisModel) => {
-    const subTitle = (
-      <div style="background-color: #F5F7FA; padding: 8px 16px;">
-        <div>
-          {t('集群')} :
-          <span
-            style="color: #313238"
-            class="ml-8">
-            {clusterData.cluster_name}
-          </span>
-        </div>
-        <div class='mt-4'>{t('启用后，将会恢复访问')}</div>
-      </div>
-    )
-    InfoBox({
-      title: t('确认启用该集群？'),
-      subTitle,
-      confirmText: t('启用'),
-      cancelText: t('取消'),
-      headerAlign: 'center',
-      contentAlign: 'left',
-      footerAlign: 'center',
-      onConfirm: () => {
-        tableDataActionLoadingMap.value = {
-          ...tableDataActionLoadingMap.value,
-          [clusterData.id]: true,
-        };
-        createTicket({
-          bk_biz_id: currentBizId,
-          ticket_type: TicketTypes.DORIS_ENABLE,
-          details: {
-            cluster_id: clusterData.id,
-          },
-        })
-          .then((data) => {
-            tableDataActionLoadingMap.value = {
-              ...tableDataActionLoadingMap.value,
-              [clusterData.id]: false,
-            };
-            fetchTableData();
-            ticketMessage(data.id);
-          })
-        ;
-      },
-    });
-  };
-
-  const handleRemove =  (clusterData: DorisModel) => {
-    const subTitle = (
-      <div style="background-color: #F5F7FA; padding: 8px 16px;">
-        <div>
-          {t('集群')} :
-          <span
-            style="color: #313238"
-            class="ml-8">
-            {clusterData.cluster_name}
-          </span>
-        </div>
-        <div class='mt-4'>{t('删除后将产生以下影响')}：</div>
-        <div class='mt-4'>1. {t('删除xxx集群', [clusterData.cluster_name])}</div>
-        <div class='mt-4'>2. {t('删除xxx实例数据，停止相关进程', [clusterData.cluster_name])}</div>
-        <div class='mt-4'>3. {t('回收主机')}：</div>
-      </div>
-    )
-    InfoBox({
-      title: t('确认删除【name】集群', { name: clusterData.cluster_name }),
-      subTitle,
-      infoType: 'warning',
-      theme: 'danger',
-      confirmText: t('删除'),
-      cancelText: t('取消'),
-      headerAlign: 'center',
-      contentAlign: 'left',
-      footerAlign: 'center',
-      onConfirm: () => {
-        tableDataActionLoadingMap.value = {
-          ...tableDataActionLoadingMap.value,
-          [clusterData.id]: true,
-        };
-        createTicket({
-          bk_biz_id: currentBizId,
-          ticket_type: TicketTypes.DORIS_DESTROY,
-          details: {
-            cluster_id: clusterData.id,
-          },
-        })
-          .then((data) => {
-            tableDataActionLoadingMap.value = {
-              ...tableDataActionLoadingMap.value,
-              [clusterData.id]: false,
-            };
-            fetchTableData();
-            ticketMessage(data.id);
-          })
-        ;
-      },
-    });
-  };
 
   const handleShowPassword = (clusterData: DorisModel) => {
     operationData.value = clusterData;

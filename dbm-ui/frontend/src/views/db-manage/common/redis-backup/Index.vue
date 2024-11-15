@@ -88,7 +88,7 @@
 
   import { generateId } from '@utils';
 
-  import BatchEdit from './BatchEdit.vue';
+  import BatchEdit from './components/BatchEdit.vue';
 
   interface DataItem extends RedisModel {
     target: string,

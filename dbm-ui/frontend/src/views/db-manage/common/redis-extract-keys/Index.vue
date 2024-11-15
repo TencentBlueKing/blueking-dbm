@@ -108,7 +108,7 @@
 
   import { generateId } from '@utils';
 
-  import BatchEditKeys from './BatchEditKeys.vue';
+  import BatchEditKeys from '../RedisBatchEditKeys.vue';
 
   interface ExtractItem extends RedisModel {
     white_regex: string,
