@@ -85,7 +85,7 @@
         </BkCheckboxGroup>
       </div>
     </div>
-    <div class="filter-item">
+    <!-- <div class="filter-item">
       <div class="filter-title">
         {{ t('检索类型') }}
       </div>
@@ -97,7 +97,7 @@
           {{ t('精确') }}
         </BkRadio>
       </BkRadioGroup>
-    </div>
+    </div> -->
   </div>
 </template>
 <script setup lang="ts">

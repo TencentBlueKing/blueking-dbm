@@ -2,11 +2,26 @@
   <div class="system-serach-box">
     <div class="result-list">
       <slot>
+        <BkAlert
+          v-if="showAlert"
+          closable
+          style="margin: 0 12px"
+          theme="info">
+          <template #title>
+            <span>{{ t('每个分类最多显示 10 条记录，点击搜索可查看全部记录。') }}</span>
+            <BkButton
+              text
+              theme="primary"
+              @click="handleUnsubscribe">
+              {{ t('不再提示') }}
+            </BkButton>
+          </template>
+        </BkAlert>
         <BkException
           v-if="isSearchEmpty"
           :description="t('暂无搜索内容，换个关键词试一试')"
           scene="part"
-          style="padding-top: 145px"
+          style="padding-top: 100px"
           type="search-empty">
           <BkButton
             text
@@ -15,7 +30,9 @@
             {{ t('清空输入内容') }}
           </BkButton>
         </BkException>
-        <ScrollFaker v-else>
+        <ScrollFaker
+          v-else
+          style="height: calc(100% - 16px)">
           <div v-if="serachResult">
             <template
               v-for="resultType in serachResultKeyList"
@@ -46,7 +63,7 @@
 </template>
 <script setup lang="ts">
   import _ from 'lodash';
-  import { computed, watch } from 'vue';
+  import { computed, type UnwrapRef, watch } from 'vue';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
@@ -62,13 +79,17 @@
 
   interface Props {
     showOptions?: boolean;
+    filterType: string;
   }
 
   interface Expose {
-    getFilterOptions: () => typeof formData.value;
+    getFilterOptions: () => {
+      formData: UnwrapRef<typeof formData>;
+      keyword: string;
+    };
   }
 
-  withDefaults(defineProps<Props>(), {
+  const props = withDefaults(defineProps<Props>(), {
     showOptions: true,
   });
   const modelValue = defineModel<string>({
@@ -79,6 +100,8 @@
 
   const { t } = useI18n();
   useKeyboard();
+
+  const QUICK_SEARCH_NO_LONGER_PROMPT = 'QUICK_SEARCH_NO_LONGER_PROMPT';
 
   const resultTypeTextMap: Record<string, string> = {
     cluster_domain: t('域名'),
@@ -95,8 +118,10 @@
     bk_biz_ids: [] as number[],
     db_types: [] as string[],
     resource_types: [] as string[],
-    filter_type: 'CONTAINS',
+    filter_type: props.filterType,
   });
+  const showUnsubscribeButton = ref(localStorage.getItem(QUICK_SEARCH_NO_LONGER_PROMPT) !== 'true');
+  const firstSearch = ref(true);
 
   const bizIdNameMap = computed(() =>
     bizList.reduce((result, item) => Object.assign(result, { [item.bk_biz_id]: item.name }), {}),
@@ -109,10 +134,21 @@
     return Object.keys(serachResult.value) as (keyof typeof serachResult.value)[];
   });
 
+  const showAlert = computed(() => showUnsubscribeButton.value && !firstSearch.value && !isDataEmpty.value);
+
+  const isDataEmpty = computed(() => {
+    const dataItemList = Object.values(serachResult.value || {}).filter((item) => Array.isArray(item));
+    return _.every(Object.values(dataItemList), (item) => item.length < 1);
+  });
+
   const { data: serachResult, run: handleSerach } = useRequest(quickSearch, {
     manual: true,
     onSuccess(data) {
-      isSearchEmpty.value = _.every(Object.values(data), (item) => item.length < 1);
+      const dataItemList = Object.values(data).filter((item) => Array.isArray(item));
+      isSearchEmpty.value = _.every(dataItemList, (item) => item.length < 1);
+      if (firstSearch.value) {
+        firstSearch.value = false;
+      }
     },
   });
 
@@ -128,7 +164,6 @@
       }
 
       serachResult.value = {} as ServiceReturnType<typeof quickSearch>;
-
       if (!modelValue.value) {
         return;
       }
@@ -144,14 +179,29 @@
     },
   );
 
+  watch(
+    () => props.filterType,
+    () => {
+      formData.value.filter_type = props.filterType;
+    },
+    {
+      immediate: true,
+    },
+  );
+
   const handleClearSearch = () => {
     modelValue.value = '';
+  };
+
+  const handleUnsubscribe = () => {
+    localStorage.setItem(QUICK_SEARCH_NO_LONGER_PROMPT, 'true');
+    showUnsubscribeButton.value = false;
   };
 
   defineExpose<Expose>({
     getFilterOptions() {
       return {
-        ...formData.value,
+        formData: formData.value,
         keyword: modelValue.value,
       };
     },
@@ -179,9 +229,10 @@
       .result-item {
         display: flex;
         height: 32px;
-        padding: 0 12px 0 24px;
+        padding: 0 12px;
         cursor: pointer;
         align-items: center;
+        justify-content: space-between;
 
         &:hover,
         &.active {
@@ -191,12 +242,17 @@
         .value-text {
           display: flex;
           height: 32px;
-          padding: 0 8px;
           cursor: pointer;
           align-items: center;
 
           &:hover {
             background: #f5f7fa;
+          }
+
+          .keyword-highlight {
+            display: inline;
+            width: fit-content;
+            overflow: unset;
           }
 
           .value-text {
@@ -212,16 +268,17 @@
               color: #c4c6cc;
             }
           }
+        }
 
-          .biz-text {
-            flex: 0 0 auto;
-            padding-left: 24px;
-            margin-left: auto;
-            color: #979ba5;
-          }
+        .biz-text {
+          flex: 0 0 auto;
+          padding-left: 12px;
+          margin-left: auto;
+          color: #979ba5;
         }
       }
     }
+
     .filter-wrapper {
       padding: 10px 12px;
       border-left: 1px solid #dcdee5;

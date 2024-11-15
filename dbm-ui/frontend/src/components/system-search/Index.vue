@@ -23,11 +23,18 @@
       v-model="serach"
       class="search-input"
       clearable
-      :placeholder="t('全站搜索 Ctrl + K')"
+      :placeholder="t('全站搜索，支持多对象，Enter开启搜索')"
       :type="isFocused ? 'text' : 'search'"
       @enter="handleEnter"
       @focus="handleFocus"
       @paste="handlePaste">
+      <template #prefix>
+        <FilterTypeSelect
+          v-model="filterType"
+          icon-type="down-big"
+          title-color="#fff"
+          trigger-class-name="system-search-top-filter-type-select" />
+      </template>
       <template
         v-if="isFocused"
         #suffix>
@@ -52,7 +59,8 @@
     <SearchResult
       v-if="isPopMenuShow"
       ref="searchResultRef"
-      v-model="serach">
+      v-model="serach"
+      :filter-type="filterType">
       <SearchHistory
         v-if="!serach"
         v-model="serach" />
@@ -61,11 +69,14 @@
 </template>
 <script setup lang="ts">
   import tippy, { type Instance, type SingleTarget } from 'tippy.js';
-  import { computed, onBeforeUnmount, ref } from 'vue';
+  import { computed, onBeforeUnmount, ref, type UnwrapRef } from 'vue';
   import { useI18n } from 'vue-i18n';
+
+  import { quickSearch } from '@services/source/quickSearch';
 
   import { batchSplitRegex } from '@common/regex';
 
+  import FilterTypeSelect, { FilterType } from './components/FilterTypeSelect.vue';
   import SearchResult from './components/search-result/Index.vue';
   import SearchHistory from './components/SearchHistory.vue';
   import useKeyboard from './hooks/useKeyboard';
@@ -74,21 +85,22 @@
   const route = useRoute();
   const router = useRouter();
 
+  let tippyIns: Instance | undefined;
+
   const serach = ref('');
   const rootRef = ref<HTMLElement>();
   const popRef = ref();
-  const searchResultRef = ref();
+  const searchResultRef = ref<InstanceType<typeof SearchResult>>();
   const isFocused = ref(false);
   const popContentStyle = ref({});
   const isPopMenuShow = ref(false);
+  const filterType = ref(FilterType.EXACT);
 
   const styles = computed(() => ({
     flex: isFocused.value ? '1' : '0 0 auto',
   }));
 
   const { activeIndex } = useKeyboard(rootRef, popRef);
-
-  let tippyIns: Instance | undefined;
 
   const handlePaste = () => {
     setTimeout(() => {
@@ -137,28 +149,39 @@
   };
 
   const handleSearch = () => {
-    // 页面跳转参数处理
-    const options = searchResultRef.value.getFilterOptions();
-    const query = Object.keys(options).reduce((prevQuery, optionKey) => {
-      const optionItem = options[optionKey];
+    const getQuery = (options: UnwrapRef<typeof formData> & { short_code?: string }) =>
+      Object.keys(options).reduce((prevQuery, optionKey) => {
+        const optionItem = options[optionKey as keyof typeof options];
 
-      if (optionItem !== '' && !(Array.isArray(optionItem) && optionItem.length === 0)) {
-        if (Array.isArray(optionItem)) {
+        if (optionItem !== '' && !(Array.isArray(optionItem) && optionItem.length === 0)) {
           return {
             ...prevQuery,
-            [optionKey]: optionItem.join(','),
+            [optionKey]: Array.isArray(optionItem) ? optionItem.join(',') : optionItem,
           };
         }
 
-        return {
-          ...prevQuery,
-          [optionKey]: optionItem,
+        return prevQuery;
+      }, {});
+
+    // 页面跳转参数处理
+    const { formData, keyword } = searchResultRef.value!.getFilterOptions();
+    if (keyword) {
+      quickSearch({
+        ...formData,
+        keyword,
+      }).then((quickSearchResult) => {
+        const options = {
+          ...formData,
+          short_code: quickSearchResult.short_code,
         };
-      }
+        handleRedirect(getQuery(options));
+      });
+    } else {
+      handleRedirect(getQuery(formData));
+    }
+  };
 
-      return prevQuery;
-    }, {});
-
+  const handleRedirect = (query = {}) => {
     const url = router.resolve({
       name: 'QuickSearch',
       query: {
@@ -222,6 +245,36 @@
     @media screen and (max-width: 1450px) {
       flex: 1 !important;
       width: auto !important;
+    }
+
+    .system-search-top-filter-type-select {
+      display: flex;
+      width: 80px;
+      height: 30px;
+      color: #fff;
+      cursor: pointer;
+      background: #3b4b68;
+      align-items: center;
+      justify-content: space-around;
+
+      .label-content {
+        position: relative;
+
+        .more-icon {
+          display: inline-block;
+          font-size: 14px;
+          transform: rotate(0deg);
+          transition: all 0.5s;
+        }
+
+        .more-icon-active {
+          transform: rotate(-180deg);
+        }
+
+        .icon-disabled {
+          color: #c4c6cc;
+        }
+      }
     }
 
     .search-input {
