@@ -14,7 +14,7 @@ import { uniq } from 'lodash';
 
 import type { ClusterListEntry, ClusterListNode, ClusterListOperation } from '@services/types';
 
-import { utcDisplayTime } from '@utils';
+import { isRecentDays, utcDisplayTime } from '@utils';
 
 import { t } from '@locales/index';
 
@@ -237,5 +237,9 @@ export default class Hdfs {
 
   get isStarting() {
     return Boolean(this.operations.find((item) => item.ticket_type === Hdfs.HDFS_ENABLE));
+  }
+
+  get isNew() {
+    return isRecentDays(this.create_at, 24);
   }
 }

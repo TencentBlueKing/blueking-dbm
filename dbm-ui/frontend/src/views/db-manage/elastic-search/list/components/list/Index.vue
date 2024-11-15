@@ -99,7 +99,7 @@
   </div>
 </template>
 <script setup lang="tsx">
-  import { InfoBox, Message } from 'bkui-vue';
+  import { Message } from 'bkui-vue';
   import type { ISearchItem } from 'bkui-vue/lib/search-select/utils';
   import { useI18n } from 'vue-i18n';
   import {
@@ -112,7 +112,6 @@
     getEsInstanceList,
     getEsList,
   } from '@services/source/es';
-  import { createTicket  } from '@services/source/ticket';
   import { getUserList } from '@services/source/user';
 
   import {
@@ -120,7 +119,6 @@
     useLinkQueryColumnSerach,
     useStretchLayout,
     useTableSettings,
-    useTicketMessage,
   } from '@hooks';
 
   import {
@@ -141,6 +139,7 @@
   import EditEntryConfig from '@views/db-manage/common/cluster-entry-config/Index.vue';
   import ClusterIpCopy from '@views/db-manage/common/cluster-ip-copy/Index.vue';
   import DropdownExportExcel from '@views/db-manage/common/dropdown-export-excel/index.vue';
+  import { useOperateClusterBasic } from '@views/db-manage/common/hooks';
   import OperationBtnStatusTips from '@views/db-manage/common/OperationBtnStatusTips.vue';
   import RenderCellCopy from '@views/db-manage/common/render-cell-copy/Index.vue';
   import RenderHeadCopy from '@views/db-manage/common/render-head-copy/Index.vue';
@@ -162,7 +161,12 @@
   const router = useRouter();
   const { t, locale } = useI18n();
   const { currentBizId } = useGlobalBizs();
-  const ticketMessage = useTicketMessage();
+  const { handleDisableCluster, handleEnableCluster, handleDeleteCluster } = useOperateClusterBasic(
+    ClusterTypes.ES,
+    {
+      onSuccess: () => fetchTableData(),
+    },
+  );
   const {
     isOpen: isStretchLayoutOpen,
     splitScreen: stretchLayoutSplitScreen,
@@ -269,7 +273,6 @@
   const isInit = ref(true);
   const selected = ref<EsModel[]>([])
   const operationData = shallowRef<EsModel>();
-  const tableDataActionLoadingMap = shallowRef<Record<number, boolean>>({});
 
   const hasSelected = computed(() => selected.value.length > 0);
   const selectedIds = computed(() => selected.value.map(item => item.id));
@@ -299,7 +302,7 @@
 
   const tableOperationWidth = computed(() => {
     if (!isStretchLayoutOpen.value) {
-      return isCN.value ? 270 : 420;
+      return isCN.value ? 300 : 420;
     }
     return 100;
   });
@@ -314,8 +317,7 @@
     {
       label: t('访问入口'),
       field: 'domain',
-      width: 300,
-      minWidth: 300,
+      minWidth: 320,
       fixed: 'left',
       renderHead: () => (
         <RenderHeadCopy
@@ -354,6 +356,28 @@
             ),
             append: () => (
               <>
+                {
+                  data.operationTagTips.map(item => <RenderOperationTag class="cluster-tag ml-4" data={item}/>)
+                }
+                {
+                  !data.isOnline && !data.isStarting && (
+                    <bk-tag
+                      class="ml-4"
+                      size="small">
+                      {t('已禁用')}
+                    </bk-tag>
+                  )
+                }
+                {
+                  data.isNew && (
+                    <bk-tag
+                      theme="success"
+                      size="small"
+                      class="ml-4">
+                      NEW
+                    </bk-tag>
+                  )
+                }
                 {data.domain && (
                   <RenderCellCopy copyItems={
                     [
@@ -411,22 +435,6 @@
             </span >
             <div style='color: #C4C6CC;'>{data.cluster_alias || '--'}</div>
           </div>
-          {
-            data.operationTagTips.map(item => <RenderOperationTag class="cluster-tag ml-4" data={item}/>)
-          }
-          {
-            !data.isOnline && !data.isStarting && (
-              <bk-tag
-                class="ml-4"
-                size="small">
-                {t('已禁用')}
-              </bk-tag>
-            )
-          }
-          {
-            isRecentDays(data.create_at, 24 * 3)
-            && <span class="glob-new-tag cluster-tag ml-4" data-text="NEW" />
-          }
           <db-icon
             v-bk-tooltips={t('复制集群名称')}
             type="copy"
@@ -666,6 +674,7 @@
               permission={data.permission.es_access_entry_view}
               v-db-console="es.clusterManage.getAccess"
               resource={data.id}
+              disabled={data.isOffline}
               class="mr8"
               onClick={() => handleShowPassword(data)}>
               { t('获取访问方式') }
@@ -682,8 +691,7 @@
                 v-db-console="es.clusterManage.enable"
                 resource={data.id}
                 class="mr8"
-                loading={tableDataActionLoadingMap.value[data.id]}
-                onClick={() => handleEnable(data)}>
+                onClick={() => handleEnableCluster([data])}>
                 { t('启用') }
               </auth-button>,
               <auth-button
@@ -695,8 +703,7 @@
                 v-db-console="es.clusterManage.delete"
                 disabled={Boolean(data.operationTicketId)}
                 resource={data.id}
-                loading={tableDataActionLoadingMap.value[data.id]}
-                onClick={() => handleRemove(data)}>
+                onClick={() => handleDeleteCluster([data])}>
                 { t('删除') }
               </auth-button>,
               ...baseAction,
@@ -744,9 +751,27 @@
                 permission={data.permission.es_enable_disable}
                 resource={data.id}
                 disabled={data.operationDisabled}
-                loading={tableDataActionLoadingMap.value[data.id]}
-                onClick={() => handlDisabled(data)}>
+                onClick={() => handleDisableCluster([data])}>
                 { t('禁用') }
+              </auth-button>
+            </OperationBtnStatusTips>,
+            <OperationBtnStatusTips
+              v-db-console="es.clusterManage.delete"
+              data={data}>
+              <auth-button
+                v-bk-tooltips={{
+                  disabled: data.isOffline,
+                  content: t('请先禁用集群')
+                }}
+                text
+                theme="primary"
+                action-id="es_destroy"
+                class="mr8"
+                permission={data.permission.es_destroy}
+                disabled={data.isOnline || Boolean(data.operationTicketId)}
+                resource={data.id}
+                onClick={() => handleDeleteCluster([data])}>
+                { t('删除') }
               </auth-button>
             </OperationBtnStatusTips>,
             <a
@@ -906,109 +931,6 @@
   const handleShowShrink = (data: EsModel) => {
     isShowShrink.value = true;
     operationData.value = data;
-  };
-
-  // 禁用
-  const handlDisabled =  (clusterData: EsModel) => {
-    InfoBox({
-      title: t('确认禁用【name】集群', { name: clusterData.cluster_name }),
-      subTitle: '',
-      confirmText: t('确认'),
-      cancelText: t('取消'),
-      headerAlign: 'center',
-      contentAlign: 'center',
-      footerAlign: 'center',
-      onConfirm: () => {
-        tableDataActionLoadingMap.value = {
-          ...tableDataActionLoadingMap.value,
-          [clusterData.id]: true,
-        };
-        createTicket({
-          bk_biz_id: currentBizId,
-          ticket_type: 'ES_DISABLE',
-          details: {
-            cluster_id: clusterData.id,
-          },
-        })
-          .then((data) => {
-            tableDataActionLoadingMap.value = {
-              ...tableDataActionLoadingMap.value,
-              [clusterData.id]: false,
-            };
-            fetchTableData();
-            ticketMessage(data.id);
-          })
-        ;
-      },
-    });
-  };
-
-  const handleEnable =  (clusterData: EsModel) => {
-    InfoBox({
-      title: t('确认启用【name】集群', { name: clusterData.cluster_name }),
-      subTitle: '',
-      confirmText: t('确认'),
-      cancelText: t('取消'),
-      headerAlign: 'center',
-      contentAlign: 'center',
-      footerAlign: 'center',
-      onConfirm: () => {
-        tableDataActionLoadingMap.value = {
-          ...tableDataActionLoadingMap.value,
-          [clusterData.id]: true,
-        };
-        createTicket({
-          bk_biz_id: currentBizId,
-          ticket_type: 'ES_ENABLE',
-          details: {
-            cluster_id: clusterData.id,
-          },
-        })
-          .then((data) => {
-            tableDataActionLoadingMap.value = {
-              ...tableDataActionLoadingMap.value,
-              [clusterData.id]: false,
-            };
-            fetchTableData();
-            ticketMessage(data.id);
-          })
-        ;
-      },
-    });
-  };
-
-  const handleRemove =  (clusterData: EsModel) => {
-    InfoBox({
-      title: t('确认删除【name】集群', { name: clusterData.cluster_name }),
-      subTitle: '',
-      confirmText: t('确认'),
-      cancelText: t('取消'),
-      headerAlign: 'center',
-      contentAlign: 'center',
-      footerAlign: 'center',
-      onConfirm: () => {
-        tableDataActionLoadingMap.value = {
-          ...tableDataActionLoadingMap.value,
-          [clusterData.id]: true,
-        };
-        createTicket({
-          bk_biz_id: currentBizId,
-          ticket_type: 'ES_DESTROY',
-          details: {
-            cluster_id: clusterData.id,
-          },
-        })
-          .then((data) => {
-            tableDataActionLoadingMap.value = {
-              ...tableDataActionLoadingMap.value,
-              [clusterData.id]: false,
-            };
-            fetchTableData();
-            ticketMessage(data.id);
-          })
-        ;
-      },
-    });
   };
 
   const handleShowPassword = (clusterData: EsModel) => {
