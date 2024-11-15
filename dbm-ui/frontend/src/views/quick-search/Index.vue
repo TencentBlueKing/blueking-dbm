@@ -12,6 +12,7 @@
         <div class="quick-search-search">
           <SearchInput
             v-model="keyword"
+            v-model:filter-type="formData.filter_type"
             @search="handleSearch" />
           <!-- <BkDropdown class="ml-8">
                 <BkButton
@@ -82,7 +83,6 @@
 </template>
 
 <script setup lang="ts">
-  import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
@@ -92,6 +92,7 @@
 
   import { batchSplitRegex } from '@common/regex';
 
+  import { FilterType } from '@components/system-search/components/FilterTypeSelect.vue';
   import FilterOptions from '@components/system-search/components/search-result/FilterOptions.vue';
 
   import ClusterDomain from './components/ClusterDomain.vue';
@@ -104,7 +105,7 @@
 
   const formatRouteQuery = () => {
     const {
-      filter_type,
+      filter_type: filterType,
       bk_biz_ids: bkBizIds,
       db_types: dbTypes,
       resource_types: resourceTypes,
@@ -119,7 +120,7 @@
       bk_biz_ids: bkBizIds ? bkBizIds.split(',').map((bizId) => Number(bizId)) : [],
       db_types: dbTypes ? dbTypes.split(',') : [],
       resource_types: resourceTypes ? resourceTypes.split(',') : [],
-      filter_type,
+      filter_type: filterType || FilterType.EXACT,
     };
   };
 
@@ -127,6 +128,8 @@
   const router = useRouter();
   const { t } = useI18n();
   const { bizs: bizList } = useGlobalBizs();
+
+  let isRedirectSearch = true;
 
   const comMap = {
     cluster_domain: ClusterDomain,
@@ -142,9 +145,9 @@
     {} as Record<number, string>,
   );
 
-  const keyword = ref((route.query.keyword as string) || '');
-  const isTableSearching = ref(false);
-  const dataMap = ref<Omit<ServiceReturnType<typeof quickSearch>, 'machine'>>({
+  // const keyword = ref((route.query.keyword as string) || '');
+  const keyword = ref('');
+  const dataMap = ref<Omit<ServiceReturnType<typeof quickSearch>, 'machine' | 'keyword' | 'short_code'>>({
     cluster_name: [],
     cluster_domain: [],
     instance: [],
@@ -188,7 +191,7 @@
     },
   ]);
 
-  const isSearching = computed(() => isTableSearching.value && !!keyword.value);
+  const isSearching = computed(() => loading.value && !!keyword.value);
 
   const renderComponent = computed(() => {
     if (loading.value) {
@@ -219,6 +222,10 @@
   } = useRequest(quickSearch, {
     manual: true,
     onSuccess(data) {
+      if (isRedirectSearch) {
+        keyword.value = data.keyword;
+        handleSearch();
+      }
       Object.assign(dataMap.value, {
         cluster_domain: data.cluster_domain,
         cluster_name: data.cluster_name,
@@ -239,6 +246,9 @@
         activeTab.value = panelItem.name;
       }
     },
+    onAfter() {
+      isRedirectSearch = false;
+    },
   });
 
   watch(
@@ -251,16 +261,16 @@
     },
   );
 
-  watch(keyword, (newKeyword, oldKeyword) => {
-    const newKeywordArr = newKeyword.split(batchSplitRegex);
-    const oldKeywordArr = (oldKeyword || '').split(batchSplitRegex);
-    if (_.isEqual(newKeywordArr, oldKeywordArr)) {
-      return;
-    }
+  // watch(keyword, (newKeyword, oldKeyword) => {
+  //   const newKeywordArr = newKeyword.split(batchSplitRegex);
+  //   const oldKeywordArr = (oldKeyword || '').split(batchSplitRegex);
+  //   if (_.isEqual(newKeywordArr, oldKeywordArr)) {
+  //     return;
+  //   }
 
-    isTableSearching.value = false;
-    clearData();
-  });
+  //   isTableSearching.value = false;
+  //   clearData();
+  // });
 
   const clearData = () => {
     Object.assign(dataMap.value, {
@@ -285,7 +295,6 @@
       return;
     }
 
-    isTableSearching.value = true;
     quickSearchRun({
       ...formData.value,
       keyword: keyword.value.replace(batchSplitRegex, ' '),
@@ -293,20 +302,20 @@
     });
   };
 
-  watch(
-    keyword,
-    (newKeyword, oldKeyword) => {
-      const newKeywordArr = newKeyword.split(batchSplitRegex);
-      const oldKeywordArr = (oldKeyword || '').split(batchSplitRegex);
+  // watch(
+  //   keyword,
+  //   (newKeyword, oldKeyword) => {
+  //     const newKeywordArr = newKeyword.split(batchSplitRegex);
+  //     const oldKeywordArr = (oldKeyword || '').split(batchSplitRegex);
 
-      if (!_.isEqual(newKeywordArr, oldKeywordArr) && !newKeyword.endsWith('\n')) {
-        handleSearch();
-      }
-    },
-    {
-      immediate: true,
-    },
-  );
+  //     if (!_.isEqual(newKeywordArr, oldKeywordArr) && !newKeyword.endsWith('\n')) {
+  //       handleSearch();
+  //     }
+  //   },
+  //   {
+  //     immediate: true,
+  //   },
+  // );
 
   watch(
     formData,
@@ -331,7 +340,13 @@
   };
 
   // 初始化查询
-  handleSearch();
+  if (route.query.short_code) {
+    quickSearchRun({
+      ...formData.value,
+      short_code: route.query.short_code as string,
+      limit: 1000,
+    });
+  }
 
   defineExpose({
     routerBack() {

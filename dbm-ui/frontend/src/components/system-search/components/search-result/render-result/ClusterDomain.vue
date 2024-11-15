@@ -5,12 +5,13 @@
       :key="item.immute_domain"
       class="result-item"
       @click="handleGo(item)">
-      <div class="value-text">
-        <HightLightText
-          :key-word="formattedKeyword"
-          :text="item.immute_domain" />
-        <div class="intro">({{ t('域名') }})</div>
-      </div>
+      <TextOverflowLayout>
+        <div class="value-text">
+          <HightLightText
+            :key-word="formattedKeyword"
+            :text="item.immute_domain" />
+        </div>
+      </TextOverflowLayout>
       <div class="biz-text">
         {{ bizIdNameMap[item.bk_biz_id] }}
       </div>
@@ -18,12 +19,11 @@
   </div>
 </template>
 <script setup lang="ts">
-  import { useI18n } from 'vue-i18n';
-
   import { systemSearchCache } from '@common/cache';
   import { batchSplitRegex } from '@common/regex';
 
   import { useRedirect } from '@components/system-search/hooks/useRedirect';
+  import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
 
   import HightLightText from './components/HightLightText.vue';
 
@@ -41,7 +41,6 @@
 
   const props = defineProps<Props>();
 
-  const { t } = useI18n();
   const handleRedirect = useRedirect();
 
   const formattedKeyword = computed(() =>
