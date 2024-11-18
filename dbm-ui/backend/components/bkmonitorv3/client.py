@@ -163,7 +163,12 @@ class _BKMonitorV3Api(BaseApi):
         self.search_event = self.generate_data_api(
             method="POST",
             url="search_event/",
-            description=_("查询事件"),
+            description=_("查询事件（老）"),
+        )
+        self.search_alert = self.generate_data_api(
+            method="POST",
+            url="search_alert/",
+            description=_("查询事件（新）"),
         )
         self.unify_query = self.generate_data_api(
             method="POST",
@@ -189,6 +194,31 @@ class _BKMonitorV3Api(BaseApi):
             method="POST",
             url="edit_action_config/",
             description=_("编辑处理套餐"),
+        )
+        self.add_shield = self.generate_data_api(
+            method="POST",
+            url="add_shield/",
+            description=_("新增告警屏蔽"),
+        )
+        self.disable_shield = self.generate_data_api(
+            method="POST",
+            url="disable_shield/",
+            description=_("解除告警屏蔽"),
+        )
+        self.edit_shield = self.generate_data_api(
+            method="POST",
+            url="edit_shield/",
+            description=_("编辑告警屏蔽"),
+        )
+        self.list_shield = self.generate_data_api(
+            method="POST",
+            url="list_shield/",
+            description=_("获取告警屏蔽列表"),
+        )
+        self.get_shield = self.generate_data_api(
+            method="GET",
+            url="get_shield/",
+            description=_("获取告警屏蔽详情"),
         )
 
 

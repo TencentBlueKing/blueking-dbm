@@ -97,6 +97,23 @@ class AlertLevelEnum(int, StructuredEnum):
     LOW = EnumField(3, _("提醒"))
 
 
+class AlertStageEnum(str, StructuredEnum):
+    """告警处理阶段"""
+
+    IS_HANDLED = EnumField("is_handled", _("已通知"))
+    IS_ACK = EnumField("is_ack", _("已确认"))
+    IS_SHIELDED = EnumField("is_shielded", _("已屏蔽"))
+    IS_BLOCKED = EnumField("is_blocked", _("已流控"))
+
+
+class AlertStatusEnum(str, StructuredEnum):
+    """告警状态"""
+
+    ABNORMAL = EnumField("ABNORMAL", _("未恢复"))
+    RECOVERED = EnumField("RECOVERED", _("已恢复"))
+    CLOSED = EnumField("CLOSED", _("已失效"))
+
+
 class AlertSourceEnum(str, StructuredEnum):
     """告警数据来源"""
 

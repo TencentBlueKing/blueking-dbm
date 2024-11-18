@@ -11,9 +11,11 @@ specific language governing permissions and limitations under the License.
 from rest_framework.routers import DefaultRouter
 
 from backend.db_monitor.views.duty_rule import MonitorDutyRuleViewSet
+from backend.db_monitor.views.event import AlertView
 from backend.db_monitor.views.grafana import MonitorGrafanaViewSet
 from backend.db_monitor.views.notice_group import MonitorNoticeGroupViewSet
 from backend.db_monitor.views.policy import MonitorPolicyViewSet
+from backend.db_monitor.views.shield import AlarmShieldView
 
 routers = DefaultRouter(trailing_slash=True)
 
@@ -21,5 +23,7 @@ routers.register(r"grafana", MonitorGrafanaViewSet, basename="grafana")
 routers.register(r"policy", MonitorPolicyViewSet, basename="policy")
 routers.register(r"notice_group", MonitorNoticeGroupViewSet, basename="notice_group")
 routers.register(r"duty_rule", MonitorDutyRuleViewSet, basename="duty_rule")
+routers.register(r"alarm_shield", AlarmShieldView, basename="alarm_shield")
+routers.register(r"event", AlertView, basename="event")
 
 urlpatterns = routers.urls

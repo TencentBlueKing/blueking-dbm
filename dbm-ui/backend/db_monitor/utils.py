@@ -217,3 +217,10 @@ def create_bklog_collector(startswith: str = ""):
             logger.error(_("采集项创建失败，请联系管理员。错误信息：{err}").format(err=err))
 
     return True
+
+
+def format_shield_description(bk_biz_id, description=""):
+    prefix = f"[dbm:appid={bk_biz_id}]"
+    # 先删后补，避免出现多个前缀
+    description.replace(prefix, "").strip()
+    return f"{prefix}{description}"

@@ -722,7 +722,138 @@ CREATE_POLICY_DETAILS = {
         "user_groups": [20],
     },
 }
+
 CREATE_POLICY = [
     {"name": "influxDB-n6hfH", "target_priority": 0, "details": CREATE_POLICY_DETAILS},
     {"name": "MySql123", "target_priority": 1, "details": CREATE_POLICY_DETAILS},
+]
+
+# 范围屏蔽（主机）
+CREATE_ALARM_SHIELD_FOR_IP_SCOPE = {
+    "category": "scope",
+    "begin_time": "2024-11-21 00:00:00",
+    "end_time": "2024-11-21 23:59:59",
+    "cycle_config": {"begin_time": "", "end_time": "", "day_list": [], "week_list": [], "type": 1},
+    "shield_notice": False,
+    "notice_config": {},
+    "description": "xxxx",
+    "dimension_config": {"scope_type": "ip", "target": [{"bk_host_id": 1, "ip": "127.0.0.1", "bk_cloud_id": 0}]},
+    "bk_biz_id": 3,
+}
+
+# 维度屏蔽
+CREATE_ALARM_SHIELD_FOR_DIMENSION = {
+    "category": "dimension",
+    "begin_time": "2024-11-21 00:00:00",
+    "end_time": "2024-11-21 23:59:59",
+    "cycle_config": {"begin_time": "", "end_time": "", "day_list": [], "week_list": [], "type": 1},
+    "shield_notice": False,
+    "notice_config": {},
+    "description": "test",
+    "dimension_config": {
+        "dimension_conditions": [
+            {"condition": "and", "key": "appid", "method": "eq", "value": ["100706"], "name": "appid"}
+        ],
+        "strategy_id": "",
+    },
+    "bk_biz_id": 3,
+}
+
+# 策略屏蔽
+CREATE_ALARM_SHIELD_FOR_STRATEGY = {
+    "category": "strategy",
+    "begin_time": "2024-11-21 00:00:00",
+    "end_time": "2024-11-21 23:59:59",
+    "cycle_config": {"begin_time": "", "end_time": "", "day_list": [], "week_list": [], "type": 1},
+    "shield_notice": False,
+    "notice_config": {},
+    "description": "xxxx",
+    "dimension_config": {
+        "id": [98043],
+        "level": [2],
+        "dimension_conditions": [
+            {"condition": "and", "key": "appid", "method": "eq", "value": ["11111111"], "name": "dbm_meta app id"}
+        ],
+    },
+    "level": [2],
+    "bk_biz_id": 3,
+}
+
+
+# 更新策略屏蔽
+UPDATE_ALARM_SHIELD = {"begin_time": "2024-11-21 00:00:00", "end_time": "2024-12-21 23:59:59", "description": "update"}
+
+LIST_ALARM_SHIELD = {"bk_biz_id": 3}
+
+LIST_ALARM_SHIELD_RESPONSE = [
+    {
+        "id": 769279,
+        "bk_biz_id": 5005578,
+        "category": "strategy",
+        "status": 1,
+        "begin_time": "2024-11-21 00:00:00",
+        "end_time": "2024-11-21 23:59:59",
+        "failure_time": "2024-11-21 23:59:59",
+        "is_enabled": True,
+        "scope_type": "",
+        "dimension_config": {
+            "strategy_id": [98043],
+            "level": [2],
+            "dimension_conditions": [
+                {"key": "appid", "value": ["11111111"], "method": "eq", "condition": "and", "name": "dbm_meta app id"}
+            ],
+        },
+        "content": "",
+        "cycle_config": {"type": 1, "week_list": [], "day_list": [], "begin_time": "", "end_time": ""},
+        "shield_notice": False,
+        "notice_config": "{}",
+        "description": "xxxx",
+        "source": "",
+        "update_user": "admin",
+    },
+    {
+        "id": 769271,
+        "bk_biz_id": 5005578,
+        "category": "dimension",
+        "status": 1,
+        "begin_time": "2024-11-21 00:00:00",
+        "end_time": "2024-11-21 23:59:59",
+        "failure_time": "2024-11-21 23:59:59",
+        "is_enabled": True,
+        "scope_type": "",
+        "dimension_config": {
+            "dimension_conditions": [
+                {"key": "appid", "value": ["100706"], "method": "eq", "condition": "and", "name": "appid"}
+            ],
+            "_strategy_id": 0,
+        },
+        "content": "",
+        "cycle_config": {"type": 1, "week_list": [], "day_list": [], "begin_time": "", "end_time": ""},
+        "shield_notice": False,
+        "notice_config": "{}",
+        "description": "test",
+        "source": "",
+        "update_user": "admin",
+    },
+    {
+        "id": 769270,
+        "bk_biz_id": 5005578,
+        "category": "scope",
+        "status": 1,
+        "begin_time": "2024-11-21 00:00:00",
+        "end_time": "2024-11-21 23:59:59",
+        "failure_time": "2024-11-21 23:59:59",
+        "is_enabled": True,
+        "scope_type": "ip",
+        "dimension_config": {
+            "bk_target_ip": [{"bk_host_id": 1, "bk_target_ip": "127.0.0.1", "bk_target_cloud_id": 0}]
+        },
+        "content": "",
+        "cycle_config": {"type": 1, "week_list": [], "day_list": [], "begin_time": "", "end_time": ""},
+        "shield_notice": False,
+        "notice_config": "{}",
+        "description": "xxxx",
+        "source": "",
+        "update_user": "admin",
+    },
 ]

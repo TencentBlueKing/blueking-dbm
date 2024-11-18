@@ -18,7 +18,14 @@ from backend.bk_web.serializers import AuditedSerializer
 from backend.configuration.constants import DBType
 from backend.db_meta.enums import ClusterType
 from backend.db_monitor import mock_data
-from backend.db_monitor.constants import AlertLevelEnum, DetectAlgEnum, OperatorEnum, TargetLevel
+from backend.db_monitor.constants import (
+    AlertLevelEnum,
+    AlertStageEnum,
+    AlertStatusEnum,
+    DetectAlgEnum,
+    OperatorEnum,
+    TargetLevel,
+)
 from backend.db_monitor.exceptions import AutofixException
 from backend.db_monitor.mock_data import CALLBACK_REQUEST
 from backend.db_monitor.models import CollectTemplate, MonitorPolicy, NoticeGroup, RuleTemplate
@@ -256,3 +263,81 @@ class AlarmCallBackDataSerializer(serializers.Serializer):
 
         data.update({"ticket_types": ticket_types, "creator": "bkmonitor"})
         return data
+
+
+class ListAlertSerializer(serializers.Serializer):
+    bk_biz_id = serializers.IntegerField(help_text=_("业务ID"), required=False)
+    self_manage = serializers.BooleanField(help_text=_("是否待我处理"), default=False)
+    self_assist = serializers.BooleanField(help_text=_("是否待我协助"), default=False)
+    db_types = serializers.ListSerializer(help_text=_("数据库类型"), child=serializers.CharField(), required=False)
+    severity = serializers.ChoiceField(help_text=_("告警级别"), choices=AlertLevelEnum.get_choices(), required=False)
+    stage = serializers.ChoiceField(help_text=_("处理阶段"), choices=AlertStageEnum.get_choices(), required=False)
+    status = serializers.ChoiceField(help_text=_("状态"), choices=AlertStatusEnum.get_choices(), required=False)
+    page = serializers.IntegerField(help_text=_("页码"), default=1)
+    page_size = serializers.IntegerField(help_text=_("每页数量"), default=100)
+    start_time = serializers.DateTimeField(help_text=_("开始时间"))
+    end_time = serializers.DateTimeField(help_text=_("结束时间"))
+
+    class Meta:
+        swagger_schema_fields = {
+            "example": {
+                "bk_biz_id": 101068,
+                "self_manage": True,
+                "self_assist": False,
+                "start_time": None,
+                "end_time": None,
+            }
+        }
+
+
+class CreateAlarmShieldSerializer(serializers.Serializer):
+    category = serializers.CharField(help_text=_("屏蔽类型"))
+    bk_biz_id = serializers.IntegerField(help_text=_("业务ID"), required=True)
+    dimension_config = serializers.DictField(help_text=_("屏蔽维度配置"))
+    shield_notice = serializers.BaseSerializer(help_text=_("告警屏蔽通知"), default=False)
+    begin_time = serializers.CharField(help_text=_("开始时间"))
+    end_time = serializers.CharField(help_text=_("结束时间"))
+    description = serializers.CharField(help_text=_("屏蔽原因"))
+
+    def to_internal_value(self, data):
+        return data
+
+    def validate(self, attrs):
+        # 取维度中的 appid 维度作为业务，这里要求屏蔽策略的维度一定要有业务
+        for condition in attrs["dimension_config"]["dimension_conditions"]:
+            if condition["key"] == "appid":
+                attrs["bk_biz_id"] = condition["value"][0]
+        if "bk_biz_id" not in attrs:
+            raise serializers.ValidationError(_("维度配置中必须包含业务ID"))
+        return attrs
+
+    class Meta:
+        swagger_schema_fields = {"example": mock_data.CREATE_ALARM_SHIELD_FOR_DIMENSION}
+
+
+class UpdateAlarmShieldSerializer(serializers.Serializer):
+    begin_time = serializers.CharField(help_text=_("开始时间"))
+    end_time = serializers.CharField(help_text=_("结束时间"))
+    description = serializers.CharField(help_text=_("屏蔽原因"))
+    cycle_config = serializers.DictField(help_text=_("屏蔽周期"))
+    shield_notice = serializers.BooleanField(help_text=_("是否有屏蔽通知"), default=False)
+
+    class Meta:
+        swagger_schema_fields = {"example": mock_data.UPDATE_ALARM_SHIELD}
+
+
+class DisableAlarmShieldSerializer(serializers.Serializer):
+    id = serializers.IntegerField(help_text=_("屏蔽 ID"))
+
+
+class ListAlarmShieldSerializer(serializers.Serializer):
+    bk_biz_id = serializers.IntegerField(help_text=_("业务ID"))
+    is_active = serializers.BooleanField(help_text=_("是否生效"), default=True)
+    time_range = serializers.CharField(help_text=_("时间范围"), required=False)
+    page = serializers.IntegerField(help_text=_("页码"), default=1)
+    page_size = serializers.IntegerField(help_text=_("每页数量"), default=10)
+    category = serializers.CharField(help_text=_("屏蔽类型"), required=False)
+    conditions = serializers.ListSerializer(help_text=_("查询条件"), child=serializers.DictField(), required=False)
+
+    class Meta:
+        swagger_schema_fields = {"example": mock_data.LIST_ALARM_SHIELD}

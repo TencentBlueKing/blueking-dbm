@@ -74,7 +74,10 @@ class GenericMixin:
         data.setdefault("bk_username", bk_username)
         data.setdefault("bk_app_code", bk_app_code)
 
-        serializer = self.serializer_class or self.get_serializer_class()
+        if self.serializer_class and self.serializer_class is not serializers.Serializer:
+            serializer = self.serializer_class
+        else:
+            serializer = self.get_serializer_class()
         return self.params_validate(serializer, data)
 
     def params_validate(self, slz_cls, context: Optional[Dict] = None, init_params: Optional[Dict] = None, **kwargs):
