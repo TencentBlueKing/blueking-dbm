@@ -526,9 +526,9 @@ func (m *ModifyAdminUserPasswordPara) ModifyAdminPasswordForMysql(
 			if !(*cluster.ClusterType == tendbcluster && role == machineTypeSpider) &&
 				MySQLVersionParse(mysqlVersion, "") >=
 					MySQLVersionParse("8.0.0", "") {
-				userLocalhost = fmt.Sprintf("ALTER USER IF EXISTS '%s'@'localhost' "+
+				userLocalhost = fmt.Sprintf("ALTER USER '%s'@'localhost' "+
 					"IDENTIFIED WITH mysql_native_password BY '%s'", m.UserName, psw)
-				userIp = fmt.Sprintf("ALTER USER IF EXISTS '%s'@'%s' "+
+				userIp = fmt.Sprintf("ALTER USER '%s'@'%s' "+
 					"IDENTIFIED WITH mysql_native_password BY '%s'", m.UserName, address.Ip, psw)
 			}
 			sqls = append(sqls, userLocalhost, userIp, setBinlogOn, flushPriv)
