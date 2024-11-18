@@ -21,7 +21,7 @@ query_cmds = """show global variables where Variable_name in ('binlog_format','b
 'lower_case_table_names','max_allowed_packet','max_binlog_size','max_connections',
 'net_buffer_length','relay_log_uncompress','replica_parallel_type','replica_parallel_workers',
 'slave_exec_mode','slave_parallel_type','slave_parallel_workers','sql_mode','table_definition_cache',
-'table_open_cache','wait_timeout','time_zone')"""
+'table_open_cache','wait_timeout','time_zone','group_concat_max_len')"""
 
 
 def get_cluster_config(cluster: Cluster) -> dict:

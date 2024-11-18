@@ -55,7 +55,12 @@ def get_backup_binlog(
                 binlog_info["show_master_status"]["master_host"]
             )
             return result
-    result["binlog_task_ids"] = [i["task_id"] for i in backup_binlog["file_list_details"]]
-    binlog_files = [i["file_name"] for i in backup_binlog["file_list_details"]]
+    file_list_details = backup_binlog.get("file_list_details", [])
+    if len(file_list_details) == 0:
+        result["query_binlog_error"] = _("获取不到binlog文件 {}").format(backup_binlog)
+        return result
+
+    result["binlog_task_ids"] = [i["task_id"] for i in file_list_details]
+    binlog_files = [i["file_name"] for i in file_list_details]
     result["binlog_files"] = ",".join(binlog_files)
     return result

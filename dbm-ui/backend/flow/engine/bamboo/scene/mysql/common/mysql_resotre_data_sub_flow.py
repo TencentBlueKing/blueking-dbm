@@ -221,7 +221,7 @@ def mysql_rollback_data_sub_flow(
 
     if is_rollback_binlog:
         backup_time = str2datetime(backup_info["backup_time"], "%Y-%m-%d %H:%M:%S")
-        cluster["backup_time"] = backup_time
+        cluster["backup_time"] = backup_info["backup_time"]
         binlog_result = get_backup_binlog(
             cluster_id=cluster_model.id,
             start_time=backup_time,
@@ -230,6 +230,7 @@ def mysql_rollback_data_sub_flow(
         )
         if "query_binlog_error" in binlog_result.keys():
             raise TendbGetBinlogFailedException(message=binlog_result["query_binlog_error"])
+
         cluster.update(binlog_result)
 
         download_kwargs = DownloadBackupFileKwargs(
