@@ -15,10 +15,16 @@ from typing import Dict, Optional
 from django.utils.translation import ugettext as _
 
 from backend.db_meta.enums.cluster_type import ClusterType
+from backend.flow.consts import DEPENDENCIES_PLUGINS
 from backend.flow.engine.bamboo.scene.common.builder import SubBuilder
+from backend.flow.engine.bamboo.scene.mongodb.mongodb_install_dbmon import add_install_dbmon
+from backend.flow.plugins.components.collections.common.install_nodeman_plugin import (
+    InstallNodemanPluginServiceComponent,
+)
 from backend.flow.plugins.components.collections.mongodb.add_relationship_to_meta import (
     ExecAddRelationshipOperationComponent,
 )
+from backend.flow.plugins.components.collections.mongodb.exec_actuator_job import ExecuteDBActuatorJobComponent
 from backend.flow.plugins.components.collections.mongodb.migrate_meta import MongoDBMigrateMetaComponent
 from backend.flow.utils.mongodb.mongodb_migrate_dataclass import MigrateActKwargs
 
@@ -103,6 +109,37 @@ def cluster_migrate(
     else:
         name = "replicaset"
         cluster_name = sub_get_kwargs.source_cluster_info["replsetname"]
+
+    # 安装蓝鲸插件
+    acts_list = []
+    for plugin_name in DEPENDENCIES_PLUGINS:
+        acts_list.append(
+            {
+                "act_name": _("安装[{}]插件".format(plugin_name)),
+                "act_component_code": InstallNodemanPluginServiceComponent.code,
+                "kwargs": sub_get_kwargs.get_install_plugin_info(plugin_name=plugin_name),
+            }
+        )
+    sub_pipeline.add_parallel_acts(acts_list=acts_list)
+
+    # os初始化
+    kwargs = sub_get_kwargs.get_os_init_info()
+    sub_pipeline.add_act(
+        act_name=_("MongoDB-机器初始化"), act_component_code=ExecuteDBActuatorJobComponent.code, kwargs=kwargs
+    )
+
+    # 关闭老的dbmon
+    kwargs = sub_get_kwargs.get_stop_old_dbmon_info()
+    sub_pipeline.add_act(
+        act_name=_("MongoDB-关闭老dbmon"), act_component_code=ExecuteDBActuatorJobComponent.code, kwargs=kwargs
+    )
+
+    # 安装新的dbmon
+    ip_list = sub_get_kwargs.hosts
+    exec_ips = [host["ip"] for host in ip_list]
+    add_install_dbmon(
+        root_id, sub_get_kwargs.payload, sub_pipeline, exec_ips, sub_get_kwargs.bk_cloud_id, allow_empty_instance=True
+    )
 
     return sub_pipeline.build_sub_process(
         sub_name=_("MongoDB--{}-meta迁移-{}-{}".format(name, sub_get_kwargs.payload["app"], cluster_name))

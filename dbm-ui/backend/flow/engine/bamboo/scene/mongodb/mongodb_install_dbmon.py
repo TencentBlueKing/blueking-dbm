@@ -56,7 +56,7 @@ def get_pkg_info():
     }
 
 
-def add_install_dbmon(flow, flow_data, pipeline, iplist, bk_cloud_id, allow_empty_instance=False):
+def add_install_dbmon(root_id, flow_data, pipeline, iplist, bk_cloud_id, allow_empty_instance=False):
     """
     allow_empty_instance 上架流程中，允许ip没有实例. allow_empty_instance = True
     """
@@ -87,7 +87,7 @@ def add_install_dbmon(flow, flow_data, pipeline, iplist, bk_cloud_id, allow_empt
     for ip in iplist:
         nodes = instances_by_ip[ip]
         sub_pl, sub_bk_host_list = InstallDBMonSubTask.process_server(
-            root_id=flow.root_id,
+            root_id=root_id,
             flow_data=flow_data,
             ip=ip,
             bk_cloud_id=bk_cloud_id,

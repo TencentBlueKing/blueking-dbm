@@ -155,3 +155,17 @@ echo return code $?
 chown -R {} {}
 echo return code $?"""
     return script.format(dest_dir, "mysql", dest_dir)
+
+
+# 关闭老的dbmon
+mongodb_stop_old_dbmon_script = """
+source /home/mysql/.bash_profile
+/home/mysql/dbmon/stop.sh
+/home/mysql/filebeat-deploy/remove
+/home/mysql/filebeat-deploy/stop_watcher
+/home/mysql/filebeat-deploy/stop_filebeat
+num=`pgrep prome_exporter_manager |wc -l`
+if [[ $num > 0 ]]; then
+killall -9 prome_exporter_manager
+fi
+"""

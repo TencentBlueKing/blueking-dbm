@@ -10,15 +10,25 @@ specific language governing permissions and limitations under the License.
 """
 from dataclasses import dataclass
 
-from backend.components.dbconfig.constants import OpType
+from backend.components import DBConfigApi
+from backend.components.dbconfig.constants import FormatType, LevelName, OpType
 from backend.configuration.constants import DBType
 from backend.db_meta.enums.cluster_type import ClusterType
 from backend.db_meta.enums.instance_role import InstanceRole
 from backend.db_meta.enums.spec import SpecClusterType, SpecMachineType
 from backend.db_meta.models import Machine
 from backend.db_meta.models.spec import Spec
-from backend.flow.consts import DEFAULT_DB_MODULE_ID, ConfigTypeEnum, MongoDBManagerUser
+from backend.flow.consts import (
+    DEFAULT_DB_MODULE_ID,
+    ConfigFileEnum,
+    ConfigTypeEnum,
+    MongoDBActuatorActionEnum,
+    MongoDBManagerUser,
+    NameSpaceEnum,
+)
 from backend.flow.utils.mongodb.migrate_meta import MongoDBMigrateMeta
+from backend.flow.utils.mongodb.mongodb_dataclass import CommonContext
+from backend.flow.utils.mongodb.mongodb_password import MongoDBPassword
 
 
 @dataclass()
@@ -81,6 +91,10 @@ class MigrateActKwargs:
             MongoDBManagerUser.MonitorUser.value,
             MongoDBManagerUser.AppMonitorUser.value,
         ]
+        # 集群的主机
+        self.hosts: list = None
+        # 集群bk_cloud_id
+        self.bk_cloud_id: int = None
 
     def skip_machine(self):
         """副本集机器复用"""
@@ -346,6 +360,7 @@ class MigrateActKwargs:
                 {"ip": node.get("ip"), "port": node.get("port"), "bk_cloud_id": node.get("bk_cloud_id")}
                 for node in self.source_cluster_info.get("storages")
             ]
+            self.hosts = nodes
             info["password_infos"].append(
                 {
                     "nodes": nodes,
@@ -370,12 +385,23 @@ class MigrateActKwargs:
                 {"nodes": config_nodes, "password": self.source_cluster_info.get("configsvr").get("password")}
             )
             # shard
+            storages_hosts_set = set()
             for shard in self.source_cluster_info.get("storages"):
                 nodes = [
                     {"ip": node.get("ip"), "port": node.get("port"), "bk_cloud_id": node.get("bk_cloud_id")}
                     for node in shard.get("nodes")
                 ]
+                for node in nodes:
+                    storages_hosts_set.add(node["ip"])
                 info["password_infos"].append({"nodes": nodes, "password": shard.get("password")})
+            storages_hosts_list = [
+                {
+                    "ip": host.get("ip"),
+                    "bk_cloud_id": self.source_cluster_info.get("storages")[0]["nodes"][0]["bk_cloud_id"],
+                }
+                for host in storages_hosts_set
+            ]
+            self.hosts = proxie_nodes + config_nodes + storages_hosts_list
         return info
 
     def get_change_dns_app_info(self) -> dict:
@@ -438,4 +464,71 @@ class MigrateActKwargs:
             "region": self.source_cluster_info.get("region"),
             "created_by": self.source_cluster_info.get("mongodb_dbas").split(",")[0],
             "meta_func_name": MongoDBMigrateMeta.add_clb_domain.__name__,
+        }
+
+    def get_os_init_info(self) -> dict:
+        """进行host初始化"""
+
+        # 获取os配置
+        os_conf = DBConfigApi.query_conf_item(
+            params={
+                "bk_biz_id": self.bk_biz_id,
+                "level_name": LevelName.APP,
+                "level_value": self.bk_biz_id,
+                "conf_file": ConfigFileEnum.OsConf.value,
+                "conf_type": ConfigTypeEnum.Config.value,
+                "namespace": NameSpaceEnum.MongoDBCommon.value,
+                "format": FormatType.MAP.value,
+            }
+        )["content"]
+        user = os_conf["user"]
+        file_path = os_conf["file_path"]
+        self.bk_cloud_id = self.hosts[0]["bk_cloud_id"]
+        # 获取os user密码
+        password = MongoDBPassword().get_password_from_db(
+            ip="0.0.0.0", port=0, bk_cloud_id=self.bk_cloud_id, username=user
+        )["password"]
+        return {
+            "init_flag": True,
+            "set_trans_data_dataclass": CommonContext.__name__,
+            "get_trans_data_ip_var": None,
+            "bk_cloud_id": self.bk_cloud_id,
+            "exec_ip": self.hosts,
+            "file_target_path": file_path + "/install",
+            "db_act_template": {
+                "action": MongoDBActuatorActionEnum.OsInit,
+                "file_path": file_path,
+                "user": user,
+                "group": os_conf["group"],
+                "data_dir": os_conf["install_dir"],
+                "backup_dir": os_conf["backup_dir"],
+                "payload": {
+                    "user": user,
+                    "password": password,
+                },
+            },
+        }
+
+    def get_stop_old_dbmon_info(self) -> dict:
+        """关闭集群老的dbmon"""
+
+        return {
+            "stop_old_dbmon": True,
+            "set_trans_data_dataclass": CommonContext.__name__,
+            "get_trans_data_ip_var": None,
+            "bk_cloud_id": self.bk_cloud_id,
+            "exec_ip": self.hosts,
+            "db_act_template": {
+                "payload": {},
+            },
+        }
+
+    def get_install_plugin_info(self, plugin_name: str) -> dict:
+        """安装蓝鲸插件"""
+
+        ips = [host["ip"] for host in self.hosts]
+        return {
+            "plugin_name": plugin_name,
+            "ips": ips,
+            "bk_cloud_id": self.bk_cloud_id,
         }

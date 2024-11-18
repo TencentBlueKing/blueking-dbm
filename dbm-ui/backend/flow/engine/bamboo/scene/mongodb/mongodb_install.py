@@ -107,7 +107,7 @@ class MongoDBInstallFlow(object):
         ip_list = self.get_kwargs.payload["hosts"]
         exec_ips = [host["ip"] for host in ip_list]
         bk_cloud_id = ip_list[0]["bk_cloud_id"]
-        add_install_dbmon(self, data, pipeline, exec_ips, bk_cloud_id, allow_empty_instance=True)
+        add_install_dbmon(self.root_id, data, pipeline, exec_ips, bk_cloud_id, allow_empty_instance=True)
 
     def multi_replicaset_install_flow(self):
         """

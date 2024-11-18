@@ -27,10 +27,11 @@ from backend.flow.models import FlowNode
 from backend.flow.plugins.components.collections.common.base_service import BkJobService
 from backend.flow.utils.mongodb.mongodb_dataclass import ActKwargs
 from backend.flow.utils.mongodb.mongodb_script_template import (
+    make_script_common_kwargs,
     mongodb_actuator_template,
     mongodb_create_actuator_dir_template,
-    mongodb_fast_execute_script_common_kwargs,
     mongodb_os_init_actuator_template,
+    mongodb_stop_old_dbmon_script,
 )
 
 logger = logging.getLogger("json")
@@ -170,11 +171,15 @@ class ExecuteDBActuatorJobService(BkJobService):
 
         # 脚本内容
         jinja_env = Environment()
+        exec_account = "root"
         template = jinja_env.from_string(mongodb_actuator_template)
         if kwargs.get("init_flag", False):
             template = jinja_env.from_string(mongodb_os_init_actuator_template)
         elif kwargs.get("create_dir", False):
             template = jinja_env.from_string(mongodb_create_actuator_dir_template)
+        elif kwargs.get("stop_old_dbmon", False):
+            template = jinja_env.from_string(mongodb_stop_old_dbmon_script)
+            exec_account = "mysql"
         body = {
             "bk_biz_id": env.JOB_BLUEKING_BIZ_ID,
             "task_name": f"DBM_{node_name}_{node_id}",
@@ -184,9 +189,11 @@ class ExecuteDBActuatorJobService(BkJobService):
         }
 
         self.log_info(
-            "[{}] ready start task with body {} {}".format(node_name, mongodb_fast_execute_script_common_kwargs, body)
+            "[{}] ready start task with body {} {}".format(
+                node_name, make_script_common_kwargs(exec_account=exec_account), body
+            )
         )
-        resp = JobApi.fast_execute_script({**mongodb_fast_execute_script_common_kwargs, **body}, raw=True)
+        resp = JobApi.fast_execute_script({**make_script_common_kwargs(exec_account=exec_account), **body}, raw=True)
 
         # 传入调用结果，并单调监听任务状态
         data.outputs.ext_result = resp
