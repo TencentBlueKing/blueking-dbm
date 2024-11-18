@@ -96,9 +96,9 @@ INSTANCE_MONITOR_PLUGINS = {
         },
     },
     DBType.Doris: {
-        MachineType.DORIS_OBSERVER: {"name": "doris", "plugin_id": "dbm_doris_exporter", "func_name": "java"},
-        MachineType.DORIS_FOLLOWER: {"name": "doris", "plugin_id": "dbm_doris_exporter", "func_name": "java"},
-        MachineType.DORIS_BACKEND: {"name": "doris", "plugin_id": "dbm_doris_exporter", "func_name": "doris"},
+        MachineType.DORIS_OBSERVER: {"name": "doris", "plugin_id": "dbm_doris_bkpull", "func_name": "java"},
+        MachineType.DORIS_FOLLOWER: {"name": "doris", "plugin_id": "dbm_doris_bkpull", "func_name": "java"},
+        MachineType.DORIS_BACKEND: {"name": "doris", "plugin_id": "dbm_doris_bkpull", "func_name": "doris"},
     },
     DBType.Vm: {
         MachineType.VM_STORAGE: {
