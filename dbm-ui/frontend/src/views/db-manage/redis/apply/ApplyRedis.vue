@@ -301,7 +301,7 @@
                   v-model="state.formdata.details.resource_spec.backend_group"
                   :biz-id="state.formdata.bk_biz_id"
                   :cloud-id="state.formdata.details.bk_cloud_id"
-                  :cluster-type="DBTypes.REDIS"
+                  :cluster-type="typeInfos.cluster_type"
                   :machine-type="specClusterMachineMap[typeInfos.cluster_type]" />
               </BkFormItem>
               <BkFormItem
