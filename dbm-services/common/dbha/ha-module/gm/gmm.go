@@ -69,7 +69,7 @@ func (gmm *GMM) Process(instance DoubleCheckInstanceInfo) {
 		{ // machine level switch never satisfy this condition, agent only report ssh failed instance.
 			ip, port := instance.db.GetAddress()
 			// no switch in machine level switch
-			gmm.HaDBClient.ReportHaLog(
+			gmm.HaDBClient.ReportHaLogRough(
 				gmIP,
 				instance.db.GetApp(),
 				ip,
@@ -86,7 +86,7 @@ func (gmm *GMM) Process(instance DoubleCheckInstanceInfo) {
 				err := doubleCheckInstance.db.Detection()
 				switch doubleCheckInstance.db.GetStatus() {
 				case constvar.DBCheckSuccess:
-					gmm.HaDBClient.ReportHaLog(
+					gmm.HaDBClient.ReportHaLogRough(
 						gmIP,
 						doubleCheckInstance.db.GetApp(),
 						ip,
@@ -97,7 +97,7 @@ func (gmm *GMM) Process(instance DoubleCheckInstanceInfo) {
 				case constvar.SSHCheckSuccess:
 					{
 						// no switch in machine level switch
-						gmm.HaDBClient.ReportHaLog(
+						gmm.HaDBClient.ReportHaLogRough(
 							gmIP,
 							doubleCheckInstance.db.GetApp(),
 							ip,
@@ -108,8 +108,8 @@ func (gmm *GMM) Process(instance DoubleCheckInstanceInfo) {
 					}
 				case constvar.SSHCheckFailed, constvar.SSHAuthFailed:
 					{
-						content := fmt.Sprintf("double check failed: ssh check failed. sshcheck err:%s", err)
-						gmm.HaDBClient.ReportHaLog(
+						content := fmt.Sprintf("double check failed: ssh check failed. sshcheck err:%s", err.Error())
+						checkId, err := gmm.HaDBClient.ReportHaLog(
 							gmIP,
 							doubleCheckInstance.db.GetApp(),
 							ip,
@@ -117,6 +117,11 @@ func (gmm *GMM) Process(instance DoubleCheckInstanceInfo) {
 							"gmm",
 							content,
 						)
+						if err != nil {
+							log.Logger.Errorf(fmt.Sprintf("insert ha logs failed:%s", err.Error()))
+							return
+						}
+						doubleCheckInstance.CheckID = checkId
 						// ssh auth failed, report event also
 						if doubleCheckInstance.db.GetStatus() == constvar.SSHAuthFailed {
 							monitor.MonitorSendDetect(
@@ -136,7 +141,7 @@ func (gmm *GMM) Process(instance DoubleCheckInstanceInfo) {
 					{
 						content := fmt.Sprintf("database authenticate failed, err:%s", err.Error())
 						log.Logger.Errorf(content)
-						gmm.HaDBClient.ReportHaLog(
+						gmm.HaDBClient.ReportHaLogRough(
 							gmIP,
 							doubleCheckInstance.db.GetApp(),
 							ip,

@@ -23,7 +23,7 @@ type MongosSwitch struct {
 // # switch operation
 // # step 1, check if mongos can switch
 // # step 2, mark the current inst as can switch in sw_queue
-// # step 3, mark the current inst to in_switch status in tb_mon_switch_queue
+// # step 3, mark the current inst to in_switch status in ha_switch_queue
 // # step 5, delete the instance from that dns, print the instances number before/after switch
 // # step 6, update the dns_param table to make the dns change take affect
 // # step 7, return

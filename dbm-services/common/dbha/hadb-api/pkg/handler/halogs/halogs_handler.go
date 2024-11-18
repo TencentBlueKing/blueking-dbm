@@ -88,5 +88,8 @@ func PutHALogs(ctx *fasthttp.RequestCtx, setParam interface{}) {
 		return
 	}
 
-	response.Data = map[string]interface{}{api.RowsAffect: db.RowsAffected}
+	response.Data = map[string]interface{}{
+		api.RowsAffect: db.RowsAffected,
+		"uid":          input.Uid,
+	}
 }

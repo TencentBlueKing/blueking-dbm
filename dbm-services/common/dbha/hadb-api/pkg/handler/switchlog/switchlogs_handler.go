@@ -21,8 +21,8 @@ const (
 
 // SwitchLogsApi TODO
 type SwitchLogsApi struct {
-	UID      uint   `json:"uid"`
-	SwitchID uint   `json:"sw_id"`
+	UID      int64  `json:"uid"`
+	SwitchID int64  `json:"sw_id"`
 	App      string `json:"app"`
 	IP       string `json:"ip"`
 	Result   string `json:"result"`

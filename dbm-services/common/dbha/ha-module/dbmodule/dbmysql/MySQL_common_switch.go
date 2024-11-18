@@ -681,8 +681,10 @@ func (ins *MySQLCommonSwitch) ResetSlaveExtend(slaveIp string, slavePort int) (s
 		return "", 0, fmt.Errorf("reset slave failed. err:%s", err.Error())
 	}
 	log.Logger.Infof("executed %s on %s:%d successed", resetSql, slaveIp, slavePort)
-	ins.SetInfo(constvar.BinlogFile, masterStatus.File)
-	ins.SetInfo(constvar.BinlogPos, masterStatus.Position)
+	ins.SetInfo(constvar.NewMasterBinlogFile, masterStatus.File)
+	ins.SetInfo(constvar.NewMasterBinlogPos, masterStatus.Position)
+	ins.SetInfo(constvar.NewMasterHost, slaveIp)
+	ins.SetInfo(constvar.NewMasterPort, slavePort)
 
 	return masterStatus.File, masterStatus.Position, nil
 }

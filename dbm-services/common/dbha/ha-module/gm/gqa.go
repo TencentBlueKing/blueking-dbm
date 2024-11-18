@@ -77,7 +77,7 @@ func (gqa *GQA) PreProcess(instance DoubleCheckInstanceInfo) []dbutil.DataBaseSw
 	if err != nil {
 		errInfo := fmt.Sprintf("get idc failed. err:%s", err.Error())
 		log.Logger.Errorf(errInfo)
-		gqa.HaDBClient.ReportHaLog(gqa.Conf.GMConf.LocalIP, instance.db.GetApp(), ip, port, "gqa", errInfo)
+		gqa.HaDBClient.ReportHaLogRough(gqa.Conf.GMConf.LocalIP, instance.db.GetApp(), ip, port, "gqa", errInfo)
 		return nil
 	}
 	return cmdbInfos
@@ -111,9 +111,9 @@ func (gqa *GQA) Process(cmdbInfos []dbutil.DataBaseSwitch) {
 				if err != nil {
 					errInfo := fmt.Sprintf("delay switch failed. err:%s", err.Error())
 					log.Logger.Errorf(errInfo)
-					gqa.HaDBClient.ReportHaLog(gmIP, instanceInfo.GetApp(), ip, port, "gqa", errInfo)
+					gqa.HaDBClient.ReportHaLogRough(gmIP, instanceInfo.GetApp(), ip, port, "gqa", errInfo)
 				} else {
-					gqa.HaDBClient.ReportHaLog(gmIP, instanceInfo.GetApp(), ip, port, "gqa",
+					gqa.HaDBClient.ReportHaLogRough(gmIP, instanceInfo.GetApp(), ip, port, "gqa",
 						"single IDC switch too much, delay switch")
 				}
 				continue
@@ -122,7 +122,7 @@ func (gqa *GQA) Process(cmdbInfos []dbutil.DataBaseSwitch) {
 
 		// check status
 		if instanceInfo.GetStatus() != constvar.RUNNING && instanceInfo.GetStatus() != constvar.AVAILABLE {
-			gqa.HaDBClient.ReportHaLog(gmIP, instanceInfo.GetApp(), ip, port, "gqa",
+			gqa.HaDBClient.ReportHaLogRough(gmIP, instanceInfo.GetApp(), ip, port, "gqa",
 				fmt.Sprintf("status:%s not equal RUNNING or AVAILABLE", instanceInfo.GetStatus()))
 			continue
 		}
@@ -132,11 +132,11 @@ func (gqa *GQA) Process(cmdbInfos []dbutil.DataBaseSwitch) {
 		if err != nil {
 			errInfo := fmt.Sprintf("query single total failed. err:%s", err.Error())
 			log.Logger.Errorf(errInfo)
-			gqa.HaDBClient.ReportHaLog(gmIP, instanceInfo.GetApp(), ip, port, "gqa", errInfo)
+			gqa.HaDBClient.ReportHaLogRough(gmIP, instanceInfo.GetApp(), ip, port, "gqa", errInfo)
 			continue
 		}
 		if singleTotal >= gqa.SingleSwitchLimit {
-			gqa.HaDBClient.ReportHaLog(gmIP, instanceInfo.GetApp(), ip, port, "gqa", "reached single total.")
+			gqa.HaDBClient.ReportHaLogRough(gmIP, instanceInfo.GetApp(), ip, port, "gqa", "reached single total.")
 			continue
 		}
 
@@ -145,7 +145,7 @@ func (gqa *GQA) Process(cmdbInfos []dbutil.DataBaseSwitch) {
 		if err != nil {
 			errInfo := fmt.Sprintf("query interval total failed. err:%s", err.Error())
 			log.Logger.Errorf(errInfo)
-			gqa.HaDBClient.ReportHaLog(gmIP, instanceInfo.GetApp(), ip, port, "gqa", errInfo)
+			gqa.HaDBClient.ReportHaLogRough(gmIP, instanceInfo.GetApp(), ip, port, "gqa", errInfo)
 			continue
 		}
 		if intervalTotal >= gqa.AllSwitchLimit {
@@ -153,9 +153,9 @@ func (gqa *GQA) Process(cmdbInfos []dbutil.DataBaseSwitch) {
 			if err != nil {
 				errInfo := fmt.Sprintf("delay switch failed. err:%s", err.Error())
 				log.Logger.Errorf(errInfo)
-				gqa.HaDBClient.ReportHaLog(gmIP, instanceInfo.GetApp(), ip, port, "gqa", errInfo)
+				gqa.HaDBClient.ReportHaLogRough(gmIP, instanceInfo.GetApp(), ip, port, "gqa", errInfo)
 			} else {
-				gqa.HaDBClient.ReportHaLog(gmIP, instanceInfo.GetApp(), ip, port, "gqa",
+				gqa.HaDBClient.ReportHaLogRough(gmIP, instanceInfo.GetApp(), ip, port, "gqa",
 					"dbha switch too much, delay switch")
 			}
 			continue
@@ -168,7 +168,7 @@ func (gqa *GQA) Process(cmdbInfos []dbutil.DataBaseSwitch) {
 		if err != nil {
 			errInfo := fmt.Sprintf("query single idc failed. err:%s", err.Error())
 			log.Logger.Errorf(errInfo)
-			gqa.HaDBClient.ReportHaLog(gmIP, instanceInfo.GetApp(), ip, port, "gqa", errInfo)
+			gqa.HaDBClient.ReportHaLogRough(gmIP, instanceInfo.GetApp(), ip, port, "gqa", errInfo)
 			continue
 		}
 		if idcTotal >= gqa.SingleSwitchIDCLimit {
@@ -180,9 +180,9 @@ func (gqa *GQA) Process(cmdbInfos []dbutil.DataBaseSwitch) {
 			if err != nil {
 				errInfo := fmt.Sprintf("delay switch failed. err:%s", err.Error())
 				log.Logger.Errorf(errInfo)
-				gqa.HaDBClient.ReportHaLog(gmIP, instanceInfo.GetApp(), ip, port, "gqa", errInfo)
+				gqa.HaDBClient.ReportHaLogRough(gmIP, instanceInfo.GetApp(), ip, port, "gqa", errInfo)
 			} else {
-				gqa.HaDBClient.ReportHaLog(gmIP, instanceInfo.GetApp(), ip, port, "gqa",
+				gqa.HaDBClient.ReportHaLogRough(gmIP, instanceInfo.GetApp(), ip, port, "gqa",
 					"single IDC switch too much, delay switch")
 			}
 			continue
@@ -230,6 +230,7 @@ func (gqa *GQA) getAllInstanceFromCMDB(
 	log.Logger.Errorf("need process instances detail:%#v", ret)
 
 	for _, sins := range ret {
+		sins.SetDoubleCheckId(instance.CheckID)
 		sins.SetInfo(constvar.DoubleCheckInfoKey, instance.ResultInfo)
 		sins.SetInfo(constvar.DoubleCheckTimeKey, instance.ConfirmTime)
 	}

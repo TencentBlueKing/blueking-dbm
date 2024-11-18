@@ -14,8 +14,8 @@ import "time"
 
 // HASwitchLogs TODO
 type HASwitchLogs struct {
-	UID      uint       `gorm:"column:uid;type:bigint;primaryKey;autoIncrement" json:"uid,omitempty"`
-	SwitchID uint       `gorm:"column:sw_id;type:bigint;index:idx_sw_id" json:"sw_id,omitempty"`
+	UID      int64      `gorm:"column:uid;type:bigint;primaryKey;autoIncrement" json:"uid,omitempty"`
+	SwitchID int64      `gorm:"column:sw_id;type:bigint;index:idx_sw_id" json:"sw_id,omitempty"`
 	App      string     `gorm:"column:app;type:varchar(32);NOT NULL" json:"app,omitempty"`
 	IP       string     `gorm:"column:ip;type:varchar(32);index:idx_ip_port" json:"ip,omitempty"`
 	Port     int        `gorm:"column:port;type:int(11);index:idx_ip_port" json:"port,omitempty"`

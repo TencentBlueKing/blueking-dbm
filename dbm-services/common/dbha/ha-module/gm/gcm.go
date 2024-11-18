@@ -79,7 +79,7 @@ func (gcm *GCM) DoSwitchSingle(switchInstance dbutil.DataBaseSwitch) {
 		return
 	}
 
-	log.Logger.Infof("insert tb_mon_switch_queue. info:{%s}", switchInstance.ShowSwitchInstanceInfo())
+	log.Logger.Infof("insert ha_switch_queue. info:{%s}", switchInstance.ShowSwitchInstanceInfo())
 	err = gcm.InsertSwitchQueue(switchInstance)
 	if err != nil {
 		log.Logger.Errorf("insert switch queue failed. err:%s, info{%s}", err.Error(),
@@ -171,7 +171,7 @@ func (gcm *GCM) DoSwitchSingle(switchInstance dbutil.DataBaseSwitch) {
 	}
 }
 
-// InsertSwitchQueue insert switch info to tb_mon_switch_queue
+// InsertSwitchQueue insert switch info to ha_switch_queue
 func (gcm *GCM) InsertSwitchQueue(instance dbutil.DataBaseSwitch) error {
 	log.Logger.Debugf("switch instance info:%#v", instance)
 	ip, port := instance.GetAddress()
@@ -192,6 +192,7 @@ func (gcm *GCM) InsertSwitchQueue(instance dbutil.DataBaseSwitch) error {
 		BKCloudID:    gcm.Conf.GetCloudId(),
 		Name:         constvar.InsertSwitchQueue,
 		SetArgs: &model.HASwitchQueue{
+			CheckID:          instance.GetDoubleCheckId(),
 			IP:               ip,
 			Port:             port,
 			IdcID:            instance.GetIdcID(),

@@ -76,8 +76,8 @@ type SwitchQueueRequest struct {
 
 // SwitchQueueResponse switch queue response
 type SwitchQueueResponse struct {
-	RowsAffected int  `json:"rowsAffected"`
-	Uid          uint `json:"uid"`
+	RowsAffected int   `json:"rowsAffected"`
+	Uid          int64 `json:"uid"`
 }
 
 // HaLogsRequest request ha_logs table
@@ -91,7 +91,8 @@ type HaLogsRequest struct {
 
 // HaLogsResponse response for ha_logs
 type HaLogsResponse struct {
-	RowsAffected int `json:"rowsAffected"`
+	RowsAffected int   `json:"rowsAffected"`
+	Uid          int64 `json:"uid"`
 }
 
 // SwitchLogRequest request switch log
@@ -238,9 +239,14 @@ func (c *HaDBClient) ReportDBStatus(app, agentIp, ip string, port int, dbType, s
 	return nil
 }
 
+// ReportHaLogRough report ha logs
+func (c *HaDBClient) ReportHaLogRough(monIP, app, ip string, port int, module, comment string) {
+	_, _ = c.ReportHaLog(monIP, app, ip, port, module, comment)
+}
+
 // ReportHaLog report ha logs
-func (c *HaDBClient) ReportHaLog(monIP, app, ip string, port int, module, comment string) {
-	var result HaLogsRequest
+func (c *HaDBClient) ReportHaLog(monIP, app, ip string, port int, module, comment string) (int64, error) {
+	var result HaLogsResponse
 	log.Logger.Infof("reporter log. ip:%s, port:%d, module:%s, comment:%s",
 		ip, port, module, comment)
 
@@ -264,18 +270,17 @@ func (c *HaDBClient) ReportHaLog(monIP, app, ip string, port int, module, commen
 	response, err := c.DoNew(http.MethodPost,
 		c.SpliceUrlByPrefix(c.Conf.UrlPre, constvar.HaLogsUrl, ""), req, nil)
 	if err != nil {
-		log.Logger.Errorf("reporter log failed. err:%s", err.Error())
-		return
+		return 0, fmt.Errorf("reporter ha log failed. err:%s", err.Error())
 	}
 	if response.Code != 0 {
-		err = fmt.Errorf("%s failed, return code:%d, msg:%s", util.AtWhere(), response.Code, response.Msg)
-		log.Logger.Errorf("reporter log failed. err:%s", err.Error())
-		return
+		return 0, fmt.Errorf("%s failed, return code:%d, msg:%s", util.AtWhere(), response.Code, response.Msg)
 	}
 	err = json.Unmarshal(response.Data, &result)
 	if err != nil {
-		log.Logger.Errorf("reporter log failed. err:%s", err.Error())
+		return 0, fmt.Errorf("reporter ha log failed. err:%s", err.Error())
 	}
+
+	return result.Uid, err
 }
 
 // RegisterDBHAInfo register agent info to ha_status table
@@ -612,7 +617,7 @@ func (c *HaDBClient) UpdateTimeDelay(ip string, port int, app string) error {
 }
 
 // InsertSwitchQueue insert pre-switch instance to switch queue
-func (c *HaDBClient) InsertSwitchQueue(reqInfo *SwitchQueueRequest) (uint, error) {
+func (c *HaDBClient) InsertSwitchQueue(reqInfo *SwitchQueueRequest) (int64, error) {
 	var result SwitchQueueResponse
 
 	log.Logger.Debugf("InsertSwitchQueue param:%#v", util.GraceStructString(reqInfo))
@@ -685,7 +690,7 @@ func (c *HaDBClient) UpdateSwitchQueue(reqInfo *SwitchQueueRequest) error {
 }
 
 // InsertSwitchLog insert switch log to hadb
-func (c *HaDBClient) InsertSwitchLog(swId uint, ip string, port int, app, result,
+func (c *HaDBClient) InsertSwitchLog(swId int64, ip string, port int, app, result,
 	comment string, switchFinishTime time.Time) error {
 	var res SwitchLogResponse
 	req := SwitchLogRequest{

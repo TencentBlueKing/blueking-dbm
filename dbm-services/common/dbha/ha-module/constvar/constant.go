@@ -396,7 +396,7 @@ const (
 	SuccessResult = "success"
 )
 
-// status in tb_mon_switch_queue(status field)
+// status in ha_switch_queue(status field)
 const (
 	SwitchStart   = "doing"
 	SwitchFailed  = "failed"
@@ -414,10 +414,14 @@ const (
 	SlaveIpKey = "slave_ip"
 	// SlavePortKey use to set slave port
 	SlavePortKey = "slave_port"
-	//BinlogFile consistent switch binlog file
-	BinlogFile = "binlog_file"
-	//BinlogPos consistent switch binlog pos
-	BinlogPos = "binlog_pos"
+	//NewMasterBinlogFile consistent switch binlog file
+	NewMasterBinlogFile = "new_master_binlog_file"
+	//NewMasterBinlogPos consistent switch binlog pos
+	NewMasterBinlogPos = "new_master_binlog_pos"
+	//NewMasterHost new master's host
+	NewMasterHost = "new_master_host"
+	//NewMasterPort new master's port
+	NewMasterPort = "new_master_port"
 )
 
 // checksum sql

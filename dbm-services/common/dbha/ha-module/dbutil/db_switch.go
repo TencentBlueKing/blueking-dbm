@@ -26,11 +26,13 @@ type DataBaseSwitch interface {
 	GetApp() string
 	GetClusterType() string
 	GetMetaType() string
-	GetSwitchUid() uint
+	GetSwitchUid() int64
+	GetDoubleCheckId() int64
 	GetRole() string // proxy没有role
 	GetCluster() string
 
-	SetSwitchUid(uint)
+	SetSwitchUid(int64)
+	SetDoubleCheckId(int64)
 	SetInfo(infoKey string, infoValue interface{})
 	GetInfo(infoKey string) (bool, interface{})
 	ReportLogs(result string, comment string) bool
@@ -46,7 +48,7 @@ type PolarisInfo struct {
 	BindPort int      `json:"bind_port"`
 }
 
-// CLBInfo clb detail info, response by cmdb api
+// ClbInfo clb detail info, response by cmdb api
 type ClbInfo struct {
 	Region        string `json:"clb_region"`
 	LoadBalanceId string `json:"clb_id"`
@@ -91,8 +93,10 @@ type BaseSwitch struct {
 	App         string
 	ClusterType string
 	//machine type in cmdb api response
-	MetaType  string
-	SwitchUid uint
+	MetaType string
+	//double check id
+	CheckID   int64
+	SwitchUid int64
 	//cluster domain
 	Cluster    string
 	ClusterId  int
@@ -136,13 +140,23 @@ func (ins *BaseSwitch) GetMetaType() string {
 }
 
 // GetSwitchUid TODO
-func (ins *BaseSwitch) GetSwitchUid() uint {
+func (ins *BaseSwitch) GetSwitchUid() int64 {
 	return ins.SwitchUid
 }
 
 // SetSwitchUid TODO
-func (ins *BaseSwitch) SetSwitchUid(uid uint) {
+func (ins *BaseSwitch) SetSwitchUid(uid int64) {
 	ins.SwitchUid = uid
+}
+
+// GetDoubleCheckId get gmm double check id
+func (ins *BaseSwitch) GetDoubleCheckId() int64 {
+	return ins.CheckID
+}
+
+// SetDoubleCheckId set gmm double check id
+func (ins *BaseSwitch) SetDoubleCheckId(uid int64) {
+	ins.CheckID = uid
 }
 
 // GetRole TODO

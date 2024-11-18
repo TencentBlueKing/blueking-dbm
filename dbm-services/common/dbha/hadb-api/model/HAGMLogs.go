@@ -7,7 +7,7 @@ import (
 
 // HaGMLogs gm logs
 type HaGMLogs struct {
-	Uid      uint       `gorm:"column:uid;primary_key;type:bigint;AUTO_INCREMENT" json:"uid,omitempty"`
+	Uid      int64      `gorm:"column:uid;primary_key;type:bigint;AUTO_INCREMENT" json:"uid,omitempty"`
 	App      string     `gorm:"column:app;type:varchar(32);index:idx_ins;NOT NULL" json:"app,omitempty"`
 	IP       string     `gorm:"column:ip;type:varchar(32);index:idx_ins;NOT NULL" json:"ip,omitempty"`
 	Port     int        `gorm:"column:port;type:int(11);index:idx_ins;NOT NULL" json:"port,omitempty"`

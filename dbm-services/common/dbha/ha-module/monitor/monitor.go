@@ -16,16 +16,24 @@ import (
 
 // SwitchMonitor switch monitor information
 type SwitchMonitor struct {
-	ServerIp       string
-	ServerPort     int
-	Bzid           string
-	MachineType    string
-	Role           string
-	Status         string
-	Cluster        string
-	IDC            string
-	BinlogFile     string
-	BinlogPosition uint64
+	ServerIp    string
+	ServerPort  int
+	Bzid        string
+	MachineType string
+	Role        string
+	Status      string
+	Cluster     string
+	IDC         string
+	//gmm double check id in ha_gm_logs
+	CheckID int64
+	//after MySQL switch, new master's host
+	NewMasterHost string
+	//after MySQL switch, new master's port
+	NewMasterPort int
+	//after MySQL switch, new master's binlog_file
+	NewMasterBinlogFile string
+	//after MySQL switch, new master's binlog_pos
+	NewMasterBinlogPosition uint64
 }
 
 // DetectMonitor detect monitor information
@@ -109,11 +117,15 @@ func MonitorSend(content string, info MonitorInfo) error {
 		addDimension["cluster"] = info.Switch.Cluster
 		addDimension["machine_type"] = info.Switch.MachineType
 		addDimension["idc"] = info.Switch.IDC
+		addDimension["double_check_id"] = info.Switch.CheckID
+
 		if info.EventName == constvar.DBHAEventMysqlSwitchSucc &&
 			(info.Switch.Role == constvar.TenDBStorageMaster ||
 				info.Switch.Role == constvar.TenDBClusterStorageMaster) {
-			addDimension["binlog_file"] = info.Switch.BinlogFile
-			addDimension["binlog_pos"] = info.Switch.BinlogPosition
+			addDimension[constvar.NewMasterBinlogFile] = info.Switch.NewMasterBinlogFile
+			addDimension[constvar.NewMasterBinlogPos] = info.Switch.NewMasterBinlogPosition
+			addDimension[constvar.NewMasterHost] = info.Switch.NewMasterHost
+			addDimension[constvar.NewMasterPort] = info.Switch.NewMasterPort
 		}
 	} else if info.MonitorInfoType == constvar.MonitorInfoDetect {
 		// detect monitor information dimension add
@@ -153,6 +165,7 @@ func GetMonitorInfoBySwitch(ins dbutil.DataBaseSwitch, succ bool) MonitorInfo {
 			Status:      ins.GetStatus(),
 			Cluster:     ins.GetCluster(),
 			IDC:         strconv.Itoa(ins.GetIdcID()),
+			CheckID:     ins.GetDoubleCheckId(),
 		},
 	}
 
@@ -176,11 +189,17 @@ func GetMonitorInfoBySwitch(ins dbutil.DataBaseSwitch, succ bool) MonitorInfo {
 			eventName = constvar.DBHAEventMysqlSwitchSucc
 			if ins.GetRole() == constvar.TenDBStorageMaster ||
 				ins.GetRole() == constvar.TenDBClusterStorageMaster {
-				if ok, file := ins.GetInfo(constvar.BinlogFile); ok {
-					monInfo.Switch.BinlogFile = file.(string)
+				if ok, file := ins.GetInfo(constvar.NewMasterBinlogFile); ok {
+					monInfo.Switch.NewMasterBinlogFile = file.(string)
 				}
-				if ok, pos := ins.GetInfo(constvar.BinlogPos); ok {
-					monInfo.Switch.BinlogPosition = pos.(uint64)
+				if ok, pos := ins.GetInfo(constvar.NewMasterBinlogPos); ok {
+					monInfo.Switch.NewMasterBinlogPosition = pos.(uint64)
+				}
+				if ok, masterHost := ins.GetInfo(constvar.NewMasterHost); ok {
+					monInfo.Switch.NewMasterHost = masterHost.(string)
+				}
+				if ok, masterPort := ins.GetInfo(constvar.NewMasterPort); ok {
+					monInfo.Switch.NewMasterPort = masterPort.(int)
 				}
 			}
 		} else {

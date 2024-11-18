@@ -16,7 +16,8 @@ import (
 
 // HASwitchQueue TODO
 type HASwitchQueue struct {
-	Uid                uint       `gorm:"column:uid;type:bigint;primary_key;AUTO_INCREMENT" json:"uid,omitempty"`
+	Uid                int64      `gorm:"column:uid;type:bigint;primary_key;AUTO_INCREMENT" json:"uid,omitempty"`
+	CheckID            int64      `gorm:"column:check_id;type:bigint;" json:"check_id,omitempty"`
 	App                string     `gorm:"column:app;type:varchar(32);index:idx_app_ip_port" json:"app,omitempty"`
 	IP                 string     `gorm:"column:ip;type:varchar(32);index:idx_app_ip_port;NOT NULL" json:"ip,omitempty"`
 	Port               int        `gorm:"column:port;type:int(11);index:idx_app_ip_port;NOT NULL" json:"port,omitempty"`

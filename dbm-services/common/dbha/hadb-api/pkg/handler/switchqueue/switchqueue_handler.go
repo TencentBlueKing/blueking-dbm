@@ -31,7 +31,7 @@ const (
 
 // TbMonSwitchQueueApi TODO
 type TbMonSwitchQueueApi struct {
-	Uid                uint   `json:"uid"`
+	Uid                int64  `json:"uid"`
 	IP                 string `json:"ip"`
 	Port               int    `json:"port"`
 	ConfirmCheckTime   string `json:"confirm_check_time,omitempty"`

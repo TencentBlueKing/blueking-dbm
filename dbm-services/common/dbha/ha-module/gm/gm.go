@@ -26,6 +26,8 @@ type DoubleCheckInstanceInfo struct {
 	ConfirmTime  time.Time
 	//double check result
 	ResultInfo string
+	//gmm double check id
+	CheckID int64
 }
 
 // ModuleReportInfo module info
