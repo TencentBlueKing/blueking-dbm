@@ -49,16 +49,10 @@ func (p *PhysicalRocksdbDumper) buildArgs() []string {
 		fmt.Sprintf("--port=%d", p.cfg.Public.MysqlPort),
 		fmt.Sprintf("--checkpoint_dir=%s", p.checkpointDir),
 		fmt.Sprintf("--backup_dir=%s", targetPath),
+		"--slave_info",
+		"--master_info",
 		"--stream=disabled",
 	}
-
-	//if strings.ToLower(p.cfg.Public.MysqlRole) == cst.RoleSlave {
-	args = append(args, "--slave_info")
-	//}
-
-	//if strings.ToLower(p.cfg.Public.MysqlRole) == cst.RoleMaster {
-	args = append(args, "--master_info")
-	//}
 
 	return args
 }
