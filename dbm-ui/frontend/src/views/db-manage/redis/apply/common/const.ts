@@ -69,7 +69,7 @@ export const redisClusterTypes = {
     image: TendisClusterImg,
     tipContent: {
       img: TendisClusterImg,
-      title: 'Tendisplus',
+      title: 'Redis Cluster',
       desc: t('原生 Redis Cluster'),
     },
   },
