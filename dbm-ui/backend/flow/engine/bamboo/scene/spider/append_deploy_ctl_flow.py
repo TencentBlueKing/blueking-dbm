@@ -22,19 +22,21 @@ from backend.constants import IP_PORT_DIVIDER
 from backend.db_meta.enums import ClusterType, InstanceInnerRole, TenDBClusterSpiderRole
 from backend.db_meta.exceptions import ClusterNotExistException
 from backend.db_meta.models import Cluster, StorageInstance
-from backend.flow.consts import LONG_JOB_TIMEOUT
+from backend.flow.consts import LONG_JOB_TIMEOUT, PrivRole
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
-from backend.flow.engine.bamboo.scene.spider.common.common_sub_flow import build_ctl_replication_with_gtid
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
+from backend.flow.plugins.components.collections.mysql.sync_master import SyncMasterComponent
 from backend.flow.plugins.components.collections.mysql.trans_flies import TransFileComponent
 from backend.flow.plugins.components.collections.spider.add_system_user_in_cluster import (
     AddSystemUserInClusterComponent,
 )
+from backend.flow.utils.base.base_dataclass import Instance
 from backend.flow.utils.mysql.mysql_act_dataclass import (
     AddSpiderSystemUserKwargs,
     DownloadMediaKwargs,
     ExecActuatorKwargs,
+    MysqlSyncMasterKwargs,
 )
 from backend.flow.utils.mysql.mysql_act_playload import MysqlActPayload
 
@@ -329,14 +331,20 @@ class AppendDeployCTLFlow(object):
 
             migrate_pipeline.add_parallel_acts(acts_list=acts_list)
             # 构建spider中控集群
-            migrate_pipeline.add_sub_pipeline(
-                sub_flow=build_ctl_replication_with_gtid(
-                    root_id=self.root_id,
-                    parent_global_data=self.data,
-                    bk_cloud_id=int(self.data["bk_cloud_id"]),
-                    ctl_primary=f"{primary_ctl_ip}{IP_PORT_DIVIDER}{ctl_port}",
-                    ctl_secondary_list=[{"ip": value} for value in slave_ctp_ips],
-                )
+            migrate_pipeline.add_act(
+                act_name=_("构建spider中控集群同步"),
+                act_component_code=SyncMasterComponent.code,
+                kwargs=asdict(
+                    MysqlSyncMasterKwargs(
+                        bk_biz_id=int(self.data["bk_biz_id"]),
+                        bk_cloud_id=int(self.data["bk_cloud_id"]),
+                        priv_role=PrivRole.TDBCTL.value,
+                        master=Instance(host=primary_ctl_ip, port=ctl_port),
+                        slaves=[Instance(host=slave_ip, port=ctl_port) for slave_ip in slave_ctp_ips],
+                        is_gtid=True,
+                        is_add_any=True,
+                    )
+                ),
             )
             # 内部集群节点之间授权
             migrate_pipeline.add_act(
