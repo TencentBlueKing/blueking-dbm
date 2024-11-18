@@ -15,6 +15,7 @@ from typing import Any, Dict, List, Union
 
 import openpyxl
 from django.http.response import HttpResponse, StreamingHttpResponse
+from django.utils.encoding import escape_uri_path
 from openpyxl import Workbook
 from openpyxl.styles import Alignment, PatternFill
 from openpyxl.worksheet.worksheet import Worksheet
@@ -159,7 +160,7 @@ class ExcelHandler:
             content=save_virtual_workbook(wb),
             content_type="application/octet-stream",
         )
-        response["Content-Disposition"] = f"attachment;filename={excel_name}"
+        response["Content-Disposition"] = f"attachment;filename={escape_uri_path(excel_name)}"
         response["Access-Control-Expose-Headers"] = "content-disposition"
         return response
 
