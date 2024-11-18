@@ -46,6 +46,7 @@
       <BkOption
         v-for="(item, index) in list"
         :key="index"
+        :disabled="item.disabled"
         :label="item.label"
         :value="item.value"
         @click="handleOptionClick(item.value)">
@@ -64,6 +65,7 @@
   export interface IListItem {
     value: IKey;
     label: string;
+    disabled?: boolean;
     [x: string]: any;
   }
 </script>

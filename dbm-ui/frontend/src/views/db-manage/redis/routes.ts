@@ -21,6 +21,15 @@ import { checkDbConsole } from '@utils';
 
 import { t } from '@locales/index';
 
+const redisInstallModuleRoute = {
+  name: 'RedisInstallModule',
+  path: 'install-module/:page?',
+  meta: {
+    navName: t('安装 Module'),
+  },
+  component: () => import('@views/db-manage/redis/install-module/Index.vue'),
+};
+
 const redisCapacityChangeRoute = {
   name: 'RedisCapacityChange',
   path: 'capacity-change/:page?',
@@ -157,6 +166,7 @@ const redisWebconsoleRoute = {
 };
 
 const toolboxDbConsoleRouteMap = {
+  'redis.toolbox.installModule': redisInstallModuleRoute,
   'redis.toolbox.capacityChange': redisCapacityChangeRoute,
   'redis.toolbox.proxyScaleUp': redisProxyScaleUpRoute,
   'redis.toolbox.proxyScaleDown': redisProxyScaleDownRoute,
