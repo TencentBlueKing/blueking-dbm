@@ -491,12 +491,6 @@
       render: ({ data }: {data: DorisModel}) => <span>{data?.region || '--'}</span>,
     },
     {
-        label: t('园区'),
-        field: 'bk_sub_zone',
-        minWidth: 100,
-        render: ({ data }: { data: DorisModel }) => data.bk_sub_zone || '--',
-    },
-    {
       label: t('管控区域'),
       field: 'bk_cloud_id',
       filter: {

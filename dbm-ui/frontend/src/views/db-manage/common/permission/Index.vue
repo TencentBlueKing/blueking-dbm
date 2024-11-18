@@ -348,7 +348,7 @@
     {
       label: t('权限'),
       field: 'privilege',
-      minWidth: 200,
+      minWidth: 250,
       render: ({ data }: { data: PermissionRule }) => (
         getRenderList(data).map((rule) => {
           const { privilege } = rule;
@@ -364,7 +364,7 @@
     },
     {
       label: t('操作'),
-      width: 100,
+      minWidth: 100,
       fixed: 'right',
       render: ({ data }: { data: PermissionRule }) => {
         if (data.rules.length === 0) {

@@ -82,6 +82,7 @@
         display: block;
         width: 100%;
         overflow: hidden;
+        line-height: 1.2;
         text-overflow: ellipsis;
         white-space: nowrap;
       }

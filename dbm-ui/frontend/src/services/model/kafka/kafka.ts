@@ -57,7 +57,6 @@ export default class Kafka {
   bk_biz_name: number;
   bk_cloud_id: number;
   bk_cloud_name: string;
-  bk_sub_zone: string;
   broker: Array<ClusterListNode>;
   cluster_access_port: number;
   cluster_alias: string;
@@ -103,7 +102,6 @@ export default class Kafka {
     this.bk_biz_name = payload.bk_biz_name;
     this.bk_cloud_id = payload.bk_cloud_id;
     this.bk_cloud_name = payload.bk_cloud_name;
-    this.bk_sub_zone = payload.bk_sub_zone;
     this.broker = payload.broker;
     this.cluster_access_port = payload.cluster_access_port;
     this.cluster_alias = payload.cluster_alias;

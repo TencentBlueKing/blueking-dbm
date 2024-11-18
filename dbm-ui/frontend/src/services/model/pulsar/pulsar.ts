@@ -71,7 +71,6 @@ export default class Pulsar {
   bk_biz_name: string;
   bk_cloud_name: string;
   bk_cloud_id: number;
-  bk_sub_zone: string;
   cap_usage: number;
   cluster_alias: string;
   cluster_name: string;
@@ -121,7 +120,6 @@ export default class Pulsar {
     this.bk_biz_name = payload.bk_biz_name;
     this.bk_cloud_id = payload.bk_cloud_id;
     this.bk_cloud_name = payload.bk_cloud_name;
-    this.bk_sub_zone = payload.bk_sub_zone;
     this.cap_usage = payload.cap_usage;
     this.cluster_alias = payload.cluster_alias;
     this.cluster_name = payload.cluster_name;

@@ -739,12 +739,6 @@
       render: ({ cell }: ColumnData) => <span>{cell || '--'}</span>,
     },
     {
-        label: t('园区'),
-        field: 'bk_sub_zone',
-        minWidth: 100,
-        render: ({ data }: ColumnData) => data.bk_sub_zone || '--',
-    },
-    {
       label: t('管控区域'),
       field: 'bk_cloud_id',
       filter: {
@@ -906,7 +900,6 @@
       'major_version',
       'disaster_tolerance_level',
       'region',
-      'bk_sub_zone',
       'bk_cloud_id'
     ],
     showLineHeight: false,

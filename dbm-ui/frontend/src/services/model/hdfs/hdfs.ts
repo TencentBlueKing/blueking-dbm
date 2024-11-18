@@ -57,7 +57,6 @@ export default class Hdfs {
   bk_biz_name: string;
   bk_cloud_id: number;
   bk_cloud_name: string;
-  bk_sub_zone: string;
   cluster_access_port: number;
   cluster_alias: string;
   cluster_entry: ClusterListEntry[];
@@ -105,7 +104,6 @@ export default class Hdfs {
     this.bk_biz_name = payload.bk_biz_name;
     this.bk_cloud_id = payload.bk_cloud_id;
     this.bk_cloud_name = payload.bk_cloud_name;
-    this.bk_sub_zone = payload.bk_sub_zone;
     this.cluster_access_port = payload.cluster_access_port;
     this.cluster_alias = payload.cluster_alias;
     this.cluster_entry = payload.cluster_entry;

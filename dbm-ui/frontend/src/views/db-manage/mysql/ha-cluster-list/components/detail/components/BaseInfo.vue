@@ -86,8 +86,9 @@
         key: 'create_at',
       },
       {
-        label: t('园区'),
-        key: 'bk_sub_zone',
+        label: t('规格'),
+        key: 'spec_name',
+        render: () => props.data.cluster_spec.spec_name || '--',
       },
     ],
   ];

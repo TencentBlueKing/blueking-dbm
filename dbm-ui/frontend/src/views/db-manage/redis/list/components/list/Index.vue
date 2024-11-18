@@ -805,12 +805,6 @@
       render: ({ data }: ColumnRenderData) => data.region || '--',
     },
     {
-      label: t('园区'),
-      field: 'bk_sub_zone',
-      minWidth: 100,
-      render: ({ data }: ColumnRenderData) => data.bk_sub_zone || '--',
-    },
-    {
       label: t('管控区域'),
       field: 'bk_cloud_id',
       filter: {

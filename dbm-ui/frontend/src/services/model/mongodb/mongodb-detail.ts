@@ -12,7 +12,7 @@
  */
 
 import ClusterEntryDetailModel from '@services/model/cluster-entry/cluster-entry-details';
-import type { ClusterListEntry } from '@services/types';
+import type { ClusterListEntry, ClusterListSpec } from '@services/types';
 
 import { ClusterAffinityMap, TicketTypes } from '@common/const';
 
@@ -80,6 +80,7 @@ export default class MongodbDetail {
   cluster_entry_details: ClusterEntryDetailModel[];
   cluster_id: number;
   cluster_name: string;
+  cluster_spec: ClusterListSpec;
   cluster_type: string;
   create_at: string;
   creator: string;
@@ -207,6 +208,7 @@ export default class MongodbDetail {
     this.cluster_entry_details = payload.cluster_entry_details.map((item) => new ClusterEntryDetailModel(item));
     this.cluster_id = payload.cluster_id;
     this.cluster_name = payload.cluster_name;
+    this.cluster_spec = payload.cluster_spec;
     this.cluster_type = payload.cluster_type;
     this.create_at = payload.create_at;
     this.creator = payload.creator;
