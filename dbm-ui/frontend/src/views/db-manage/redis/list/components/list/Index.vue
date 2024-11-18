@@ -740,6 +740,12 @@
       render: ({ data }: ColumnRenderData) => data.major_version || '--',
     },
     {
+      label: 'Modules',
+      field: 'module_names',
+      minWidth: 100,
+      render: ({ data }: ColumnRenderData) => data.module_names.length ? data.module_names.map(item=><p class="mb-4">{item}</p>) : '--',
+    },
+    {
       label: t('容灾要求'),
       field: 'disaster_tolerance_level',
       minWidth: 100,
@@ -1070,6 +1076,7 @@
         ClusterNodeKeys.REDIS_SLAVE,
         'cluster_type_name',
         'major_version',
+        'module_names',
         'disaster_tolerance_level',
         'region',
         'spec_name',
