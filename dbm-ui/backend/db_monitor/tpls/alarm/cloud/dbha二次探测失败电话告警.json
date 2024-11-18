@@ -34,7 +34,10 @@
             "agg_dimension": [
               "cluster_type",
               "appid",
-              "cluster"
+              "cluster",
+              "server_ip",
+              "server_port",
+              "machine_type"
             ],
             "agg_condition": [],
             "custom_event_name": "dbha_doublecheck_ssh_fail",
@@ -246,7 +249,7 @@
   },
   "is_enabled": true,
   "monitor_indicator": "COUNT(dbha_doublecheck_ssh_fail-dbm_report_channel)",
-  "version": 2,
+  "version": 3,
   "alert_source": "event",
   "custom_conditions": [],
   "export_at": "2024-08-13T15:24:37+08:00"
