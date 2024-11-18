@@ -469,8 +469,8 @@ func (i *InstallSqlServerComp) InitInstanceBuffer() error {
 	// 计算每个实例分配到内存
 	var secondUsedMem float32 = 0
 	usedMem := float32(mem.Total) * (float32(i.Params.BufferPercent) / 100)
-	if usedMem > float32(i.Params.MaxRemainMemGB*1024*1024*1024) {
-		secondUsedMem = usedMem - float32(i.Params.MaxRemainMemGB*1024*1024*1024)
+	if (float32(mem.Total) - usedMem) > float32(i.Params.MaxRemainMemGB*1024*1024*1024) {
+		secondUsedMem = (float32(mem.Total) - usedMem) - float32(i.Params.MaxRemainMemGB*1024*1024*1024)
 	}
 	instMemMB := (usedMem + secondUsedMem) / float32(len(i.InsPorts)) / 1024 / 1024
 	logger.Info("%d", int(instMemMB))
