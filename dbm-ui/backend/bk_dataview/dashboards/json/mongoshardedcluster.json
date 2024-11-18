@@ -57,7 +57,7 @@
       "collapsed": false,
       "datasource": {
         "type": "bkmonitor-timeseries-datasource",
-        "uid": "HVlyYOe4z"
+        "uid": "bkmonitor_timeseries"
       },
       "gridPos": {
         "h": 1,
@@ -71,7 +71,7 @@
         {
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "HVlyYOe4z"
+            "uid": "bkmonitor_timeseries"
           },
           "refId": "A"
         }
@@ -82,7 +82,7 @@
     {
       "datasource": {
         "type": "bkmonitor-timeseries-datasource",
-        "uid": "HVlyYOe4z"
+        "uid": "bkmonitor_timeseries"
       },
       "fieldConfig": {
         "defaults": {
@@ -160,7 +160,7 @@
     {
       "datasource": {
         "type": "bkmonitor-timeseries-datasource",
-        "uid": "HVlyYOe4z"
+        "uid": "bkmonitor_timeseries"
       },
       "fieldConfig": {
         "defaults": {
@@ -238,7 +238,7 @@
     {
       "datasource": {
         "type": "bkmonitor-timeseries-datasource",
-        "uid": "HVlyYOe4z"
+        "uid": "bkmonitor_timeseries"
       },
       "fieldConfig": {
         "defaults": {
@@ -315,7 +315,7 @@
     {
       "datasource": {
         "type": "bkmonitor-timeseries-datasource",
-        "uid": "HVlyYOe4z"
+        "uid": "bkmonitor_timeseries"
       },
       "fieldConfig": {
         "defaults": {
@@ -407,7 +407,7 @@
     {
       "datasource": {
         "type": "bkmonitor-timeseries-datasource",
-        "uid": "HVlyYOe4z"
+        "uid": "bkmonitor_timeseries"
       },
       "fieldConfig": {
         "defaults": {
@@ -484,7 +484,7 @@
     {
       "datasource": {
         "type": "bkmonitor-timeseries-datasource",
-        "uid": "HVlyYOe4z"
+        "uid": "bkmonitor_timeseries"
       },
       "fieldConfig": {
         "defaults": {
@@ -561,7 +561,7 @@
     {
       "datasource": {
         "type": "bkmonitor-timeseries-datasource",
-        "uid": "HVlyYOe4z"
+        "uid": "bkmonitor_timeseries"
       },
       "fieldConfig": {
         "defaults": {
@@ -649,7 +649,7 @@
     {
       "datasource": {
         "type": "bkmonitor-timeseries-datasource",
-        "uid": "HVlyYOe4z"
+        "uid": "bkmonitor_timeseries"
       },
       "fieldConfig": {
         "defaults": {
@@ -726,7 +726,7 @@
     {
       "datasource": {
         "type": "bkmonitor-timeseries-datasource",
-        "uid": "HVlyYOe4z"
+        "uid": "bkmonitor_timeseries"
       },
       "fieldConfig": {
         "defaults": {
@@ -804,7 +804,7 @@
       "collapsed": true,
       "datasource": {
         "type": "bkmonitor-timeseries-datasource",
-        "uid": "HVlyYOe4z"
+        "uid": "bkmonitor_timeseries"
       },
       "gridPos": {
         "h": 1,
@@ -817,7 +817,7 @@
         {
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "HVlyYOe4z"
+            "uid": "bkmonitor_timeseries"
           },
           "description": "实例所在硬件的cpu核数和内存，要注意有些实例是部署在同一个IP上的。",
           "fieldConfig": {
@@ -1081,7 +1081,7 @@
         {
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "HVlyYOe4z"
+            "uid": "bkmonitor_timeseries"
           },
           "refId": "A"
         }
@@ -1093,7 +1093,7 @@
       "collapsed": true,
       "datasource": {
         "type": "bkmonitor-timeseries-datasource",
-        "uid": "HVlyYOe4z"
+        "uid": "bkmonitor_timeseries"
       },
       "gridPos": {
         "h": 1,
@@ -1106,7 +1106,7 @@
         {
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "HVlyYOe4z"
+            "uid": "bkmonitor_timeseries"
           },
           "fieldConfig": {
             "defaults": {
@@ -2292,7 +2292,7 @@
         {
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "HVlyYOe4z"
+            "uid": "bkmonitor_timeseries"
           },
           "refId": "A"
         }
@@ -2304,7 +2304,7 @@
       "collapsed": false,
       "datasource": {
         "type": "bkmonitor-timeseries-datasource",
-        "uid": "HVlyYOe4z"
+        "uid": "bkmonitor_timeseries"
       },
       "gridPos": {
         "h": 1,
@@ -2319,7 +2319,7 @@
         {
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "HVlyYOe4z"
+            "uid": "bkmonitor_timeseries"
           },
           "refId": "A"
         }
@@ -3844,7 +3844,7 @@
       "collapsed": true,
       "datasource": {
         "type": "bkmonitor-timeseries-datasource",
-        "uid": "HVlyYOe4z"
+        "uid": "bkmonitor_timeseries"
       },
       "gridPos": {
         "h": 1,
@@ -4420,7 +4420,7 @@
         {
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "HVlyYOe4z"
+            "uid": "bkmonitor_timeseries"
           },
           "refId": "A"
         }
@@ -4432,7 +4432,7 @@
       "collapsed": false,
       "datasource": {
         "type": "bkmonitor-timeseries-datasource",
-        "uid": "HVlyYOe4z"
+        "uid": "bkmonitor_timeseries"
       },
       "gridPos": {
         "h": 1,
@@ -4446,7 +4446,7 @@
         {
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "HVlyYOe4z"
+            "uid": "bkmonitor_timeseries"
           },
           "refId": "A"
         }
@@ -4752,7 +4752,7 @@
       "collapsed": true,
       "datasource": {
         "type": "bkmonitor-timeseries-datasource",
-        "uid": "HVlyYOe4z"
+        "uid": "bkmonitor_timeseries"
       },
       "gridPos": {
         "h": 1,
@@ -5278,7 +5278,7 @@
         {
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "HVlyYOe4z"
+            "uid": "bkmonitor_timeseries"
           },
           "refId": "A"
         }
@@ -5304,7 +5304,7 @@
         },
         "datasource": {
           "type": "bkmonitor-timeseries-datasource",
-          "uid": "HVlyYOe4z"
+          "uid": "bkmonitor_timeseries"
         },
         "definition": "- Blueking Monitor - 维度",
         "hide": 2,

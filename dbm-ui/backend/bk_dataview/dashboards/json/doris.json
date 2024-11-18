@@ -21612,7 +21612,7 @@
   "revision": 1,
   "schemaVersion": 37,
   "style": "dark",
-  "tags": [],
+  "tags": ["doris"],
   "templating": {
     "list": [
       {

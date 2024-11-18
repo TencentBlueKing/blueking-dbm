@@ -53,7 +53,7 @@
       "collapsed": false,
       "datasource": {
         "type": "bkmonitor-timeseries-datasource",
-        "uid": "HVlyYOe4z"
+        "uid": "bkmonitor_timeseries"
       },
       "gridPos": {
         "h": 1,
@@ -67,7 +67,7 @@
         {
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "HVlyYOe4z"
+            "uid": "bkmonitor_timeseries"
           },
           "refId": "A"
         }
@@ -78,7 +78,7 @@
     {
       "datasource": {
         "type": "bkmonitor-timeseries-datasource",
-        "uid": "HVlyYOe4z"
+        "uid": "bkmonitor_timeseries"
       },
       "description": "Version",
       "fieldConfig": {
@@ -134,7 +134,7 @@
           "cluster": [],
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "HVlyYOe4z"
+            "uid": "bkmonitor_timeseries"
           },
           "expressionList": [],
           "format": "time_series",
@@ -184,7 +184,7 @@
     {
       "datasource": {
         "type": "bkmonitor-timeseries-datasource",
-        "uid": "HVlyYOe4z"
+        "uid": "bkmonitor_timeseries"
       },
       "description": "Shows the storage engine used on the instance",
       "fieldConfig": {
@@ -262,7 +262,7 @@
     {
       "datasource": {
         "type": "bkmonitor-timeseries-datasource",
-        "uid": "HVlyYOe4z"
+        "uid": "bkmonitor_timeseries"
       },
       "description": "Shows the number of members in the replica set",
       "fieldConfig": {
@@ -339,7 +339,7 @@
     {
       "datasource": {
         "type": "bkmonitor-timeseries-datasource",
-        "uid": "HVlyYOe4z"
+        "uid": "bkmonitor_timeseries"
       },
       "description": "Shows the number of members in the replica set",
       "fieldConfig": {
@@ -416,7 +416,7 @@
     {
       "datasource": {
         "type": "bkmonitor-timeseries-datasource",
-        "uid": "HVlyYOe4z"
+        "uid": "bkmonitor_timeseries"
       },
       "description": "Shows the current replication lag for the selected member",
       "fieldConfig": {
@@ -494,7 +494,7 @@
     {
       "datasource": {
         "type": "bkmonitor-timeseries-datasource",
-        "uid": "HVlyYOe4z"
+        "uid": "bkmonitor_timeseries"
       },
       "description": "Shows how long ago the last election occurred",
       "fieldConfig": {
@@ -586,7 +586,7 @@
     {
       "datasource": {
         "type": "bkmonitor-timeseries-datasource",
-        "uid": "HVlyYOe4z"
+        "uid": "bkmonitor_timeseries"
       },
       "description": "Host cpu",
       "fieldConfig": {
@@ -732,7 +732,7 @@
     {
       "datasource": {
         "type": "bkmonitor-timeseries-datasource",
-        "uid": "HVlyYOe4z"
+        "uid": "bkmonitor_timeseries"
       },
       "description": "bkmonitor:dbm_system:mem:pct_used",
       "fieldConfig": {
@@ -891,7 +891,7 @@
     {
       "datasource": {
         "type": "bkmonitor-timeseries-datasource",
-        "uid": "HVlyYOe4z"
+        "uid": "bkmonitor_timeseries"
       },
       "description": "Operations",
       "fieldConfig": {
@@ -1059,7 +1059,7 @@
     {
       "datasource": {
         "type": "bkmonitor-timeseries-datasource",
-        "uid": "HVlyYOe4z"
+        "uid": "bkmonitor_timeseries"
       },
       "description": "",
       "fieldConfig": {
@@ -1170,7 +1170,7 @@
     {
       "datasource": {
         "type": "bkmonitor-timeseries-datasource",
-        "uid": "HVlyYOe4z"
+        "uid": "bkmonitor_timeseries"
       },
       "description": "State",
       "fieldConfig": {
@@ -1335,7 +1335,7 @@
     {
       "datasource": {
         "type": "bkmonitor-timeseries-datasource",
-        "uid": "HVlyYOe4z"
+        "uid": "bkmonitor_timeseries"
       },
       "description": "",
       "fieldConfig": {
@@ -1446,7 +1446,7 @@
     {
       "datasource": {
         "type": "bkmonitor-timeseries-datasource",
-        "uid": "HVlyYOe4z"
+        "uid": "bkmonitor_timeseries"
       },
       "description": "",
       "fieldConfig": {
@@ -1556,7 +1556,7 @@
     {
       "datasource": {
         "type": "bkmonitor-timeseries-datasource",
-        "uid": "HVlyYOe4z"
+        "uid": "bkmonitor_timeseries"
       },
       "description": "Shows the time range in the oplog and the oldest backed up operation.",
       "fieldConfig": {
@@ -1685,7 +1685,7 @@
     {
       "datasource": {
         "type": "bkmonitor-timeseries-datasource",
-        "uid": "HVlyYOe4z"
+        "uid": "bkmonitor_timeseries"
       },
       "description": "",
       "fieldConfig": {
@@ -1796,7 +1796,7 @@
     {
       "datasource": {
         "type": "bkmonitor-timeseries-datasource",
-        "uid": "HVlyYOe4z"
+        "uid": "bkmonitor_timeseries"
       },
       "description": "Shows the delay between an operation occurring on the primary and that same operation getting applied on the selected member",
       "fieldConfig": {
@@ -1907,7 +1907,7 @@
     {
       "datasource": {
         "type": "bkmonitor-timeseries-datasource",
-        "uid": "HVlyYOe4z"
+        "uid": "bkmonitor_timeseries"
       },
       "description": "du  -s  {datadir}，数据会有10分钟的延迟",
       "fieldConfig": {
@@ -2019,7 +2019,7 @@
       "collapsed": false,
       "datasource": {
         "type": "bkmonitor-timeseries-datasource",
-        "uid": "HVlyYOe4z"
+        "uid": "bkmonitor_timeseries"
       },
       "gridPos": {
         "h": 1,
@@ -2033,7 +2033,7 @@
         {
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "HVlyYOe4z"
+            "uid": "bkmonitor_timeseries"
           },
           "refId": "A"
         }
@@ -2921,7 +2921,7 @@
         },
         "datasource": {
           "type": "bkmonitor-timeseries-datasource",
-          "uid": "HVlyYOe4z"
+          "uid": "bkmonitor_timeseries"
         },
         "definition": "- Blueking Monitor - 维度",
         "hide": 2,
@@ -2978,7 +2978,7 @@
         },
         "datasource": {
           "type": "bkmonitor-timeseries-datasource",
-          "uid": "HVlyYOe4z"
+          "uid": "bkmonitor_timeseries"
         },
         "definition": "- Blueking Monitor - 维度",
         "description": "instance_role",
