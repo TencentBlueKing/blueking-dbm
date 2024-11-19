@@ -43,7 +43,9 @@ from backend.flow.utils.tbinlogdumper.context_dataclass import LinkTBinlogDumper
 logger = logging.getLogger("flow")
 
 
-def master_and_slave_switch(root_id: str, ticket_data: dict, cluster: Cluster, cluster_info: dict):
+def master_and_slave_switch(
+    root_id: str, ticket_data: dict, cluster: Cluster, cluster_info: dict, check_client_conn=True
+):
     """
     定义成对迁移完成，做成对切换的子流程(子流程是已集群维度做成对切换)
     成对切换更多解决一主一从的集群机器裁撤场景；对于一主多从的集群，
@@ -81,7 +83,7 @@ def master_and_slave_switch(root_id: str, ticket_data: dict, cluster: Cluster, c
         uid=ticket_data["uid"],
         root_id=root_id,
         cluster=cluster,
-        is_check_client_conn=True,
+        is_check_client_conn=check_client_conn,
         is_verify_checksum=True,
         check_client_conn_inst=[
             f"{cluster_info['old_master_ip']}{IP_PORT_DIVIDER}{cluster_info['mysql_port']}",
