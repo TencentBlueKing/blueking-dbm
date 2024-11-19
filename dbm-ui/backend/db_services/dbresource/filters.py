@@ -12,6 +12,7 @@ specific language governing permissions and limitations under the License.
 from django.utils.translation import ugettext_lazy as _
 from django_filters import rest_framework as filters
 
+from backend.db_meta.models.machine import DeviceClass
 from backend.db_meta.models.spec import Spec
 
 
@@ -47,3 +48,11 @@ class SpecListFilter(filters.FilterSet):
             "spec_db_type",
             "spec_ids",
         ]
+
+
+class DeviceClassFilter(filters.FilterSet):
+    device_type = filters.CharFilter(field_name="device_type", lookup_expr="icontains", label=_("机型名称"))
+
+    class Meta:
+        model = DeviceClass
+        fields = ["device_type"]

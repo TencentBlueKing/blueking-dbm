@@ -18,6 +18,7 @@ from backend.constants import INT_MAX
 from backend.db_meta.enums import InstanceRole
 from backend.db_meta.enums.spec import SpecClusterType, SpecMachineType
 from backend.db_meta.models import Spec
+from backend.db_meta.models.machine import DeviceClass
 from backend.db_services.dbresource import mock
 from backend.db_services.dbresource.constants import ResourceGroupByEnum, ResourceOperation
 from backend.db_services.dbresource.mock import (
@@ -191,7 +192,7 @@ class ResourceUpdateSerializer(serializers.Serializer):
     bk_host_ids = serializers.ListField(help_text=_("主机ID列表"), child=serializers.IntegerField())
     labels = serializers.DictField(help_text=_("Labels"), required=False)
     for_biz = serializers.IntegerField(help_text=_("专用业务ID"), required=False)
-    resource_type = serializers.CharField(help_text=_("专属DB"), allow_blank=True, allow_null=True)
+    resource_type = serializers.CharField(help_text=_("专属DB"), allow_blank=True, allow_null=True, required=False)
     storage_device = serializers.JSONField(help_text=_("磁盘挂载点信息"), required=False)
     rack_id = serializers.CharField(help_text=_("机架ID"), required=False, allow_null=True, allow_blank=True)
 
@@ -431,14 +432,10 @@ class SpecCountResourceResponseSerializer(serializers.Serializer):
         swagger_schema_fields = {"example": {"spec1": 10, "spec2": 10}}
 
 
-class ListCvmDeviceClassSerializer(serializers.Serializer):
-    offset = serializers.IntegerField(help_text=_("起始位置"), required=False, default=0)
-    limit = serializers.IntegerField(help_text=_("分页限制"), required=False, default=10, max_value=200)
-    name = serializers.CharField(help_text=_("名称"), required=False, default="", allow_null=True, allow_blank=True)
-
-
-class ListCvmDeviceClassResponseSerializer(serializers.Serializer):
+class ListCvmDeviceClassSerializer(serializers.ModelSerializer):
     class Meta:
+        model = DeviceClass
+        fields = "__all__"
         swagger_schema_fields = {"example": mock.DEVICE_CLASS_DATA}
 
 

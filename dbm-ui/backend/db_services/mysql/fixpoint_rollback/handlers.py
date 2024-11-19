@@ -276,25 +276,10 @@ class FixPointRollbackHandler:
         backup_instance_record: Dict[str, Any] = {}
 
         def init_backup_record(log):
-            # 如果备份ID相同或者当前备份ID时间更接近，则忽略
-            if backup_instance_record.get("backup_id") == log["backup_id"]:
-                return
-            if backup_instance_record.get("backup_consistent_time", "") > log["backup_consistent_time"]:
+            if backup_instance_record:
                 return
             # 保留聚合需要的通用字段
-            common_fields = [
-                "backup_id",
-                "backup_type",
-                "cluster_id",
-                "cluster_address",
-                "bill_id",
-                "bk_biz_id",
-                "mysql_version",
-                "backup_begin_time",
-                "backup_end_time",
-                "backup_consistent_time",
-                "bk_cloud_id",
-            ]
+            common_fields = ["cluster_id", "cluster_address", "bk_biz_id", "bk_cloud_id"]
             for field in common_fields:
                 backup_instance_record[field] = log[field]
             # 初始化实例的file_list
@@ -303,15 +288,22 @@ class FixPointRollbackHandler:
         def init_file_list(log):
             # 找到备份日志的priv文件
             priv_file = next((file for file in log["file_list"] if file["file_type"] == "priv"), None)
-            inst = f"{log['backup_host']}:{log['backup_port']}"
             if not priv_file:
                 return
-            priv_file.update(mysql_role=log["mysql_role"])
-            # 覆盖更新，priv_file在同一个实例，同一个备份仅有一条记录的
-            backup_instance_record["file_list"][inst] = priv_file
+            inst = f"{log['backup_host']}:{log['backup_port']}"
+            priv_file.update(mysql_role=log["mysql_role"], backup_consistent_time=log["backup_consistent_time"])
+            # 更新实例的priv备份记录，如果有重复，则取时间更近的一份
+            file_list = backup_instance_record["file_list"]
+            if inst not in file_list or log["backup_consistent_time"] > file_list[inst]["backup_consistent_time"]:
+                backup_instance_record["file_list"][inst] = priv_file
 
+        # 不存在权限备份记录，返回为空
+        if not backup_logs:
+            return backup_instance_record
+
+        # 初始化权限备份记录数据结构，填充priv文件列表
+        init_backup_record(backup_logs[0])
         for log in backup_logs:
-            init_backup_record(log)
             init_file_list(log)
 
         return backup_instance_record

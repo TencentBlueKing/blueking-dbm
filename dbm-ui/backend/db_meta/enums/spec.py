@@ -51,6 +51,10 @@ class SpecMachineType(str, StructuredEnum):
     MONGODB = EnumField("mongodb", _("mongodb"))
     MONOG_CONFIG = EnumField("mongo_config", _("mongo_config"))
 
+    DORIS_FOLLOWER = EnumField("doris_follower", _("doris_follower"))
+    DORIS_OBSERVER = EnumField("doris_observer", _("doris_observer"))
+    DORIS_BACKEND = EnumField("doris_backend", _("doris_backend"))
+
 
 # TODO: 规格迁移脚本函数，迁移完成后删除
 def migrate_spec():

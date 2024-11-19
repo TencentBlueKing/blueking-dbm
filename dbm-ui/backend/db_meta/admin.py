@@ -126,6 +126,12 @@ class MachineAdmin(admin.ModelAdmin):
     search_fields = ("ip", "db_module_id")
 
 
+@admin.register(models.machine.DeviceClass)
+class DeviceClassAdmin(admin.ModelAdmin):
+    list_display = ("device_type", "cpu", "mem", "disk")
+    search_fields = ("device_type",)
+
+
 @admin.register(models.storage_instance_tuple.StorageInstanceTuple)
 class StorageInstanceTupleAdmin(DynamicRawIDMixin, admin.ModelAdmin):
     list_display = (

@@ -20,25 +20,26 @@ from rest_framework.response import Response
 
 from backend import env
 from backend.bk_web import viewsets
+from backend.bk_web.pagination import AuditedLimitOffsetPagination
 from backend.bk_web.swagger import common_swagger_auto_schema
 from backend.components import CCApi
 from backend.components.dbresource.client import DBResourceApi
-from backend.components.hcm.client import HCMApi
 from backend.components.uwork.client import UWORKApi
 from backend.configuration.constants import SystemSettingsEnum
 from backend.configuration.models import SystemSettings
 from backend.db_meta.models import AppCache
+from backend.db_meta.models.machine import DeviceClass
 from backend.db_services.dbresource.constants import (
     GSE_AGENT_RUNNING_CODE,
     RESOURCE_IMPORT_EXPIRE_TIME,
     RESOURCE_IMPORT_TASK_FIELD,
     SWAGGER_TAG,
 )
+from backend.db_services.dbresource.filters import DeviceClassFilter
 from backend.db_services.dbresource.handlers import ResourceHandler
 from backend.db_services.dbresource.serializers import (
     GetDiskTypeResponseSerializer,
     GetMountPointResponseSerializer,
-    ListCvmDeviceClassResponseSerializer,
     ListCvmDeviceClassSerializer,
     ListDBAHostsSerializer,
     ListSubzonesSerializer,
@@ -63,7 +64,6 @@ from backend.db_services.ipchooser.handlers.host_handler import HostHandler
 from backend.db_services.ipchooser.handlers.topo_handler import TopoHandler
 from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
 from backend.db_services.ipchooser.types import ScopeList
-from backend.exceptions import ApiRequestError
 from backend.flow.consts import FAILED_STATES, SUCCEED_STATES
 from backend.flow.engine.controller.base import BaseController
 from backend.flow.models import FlowTree
@@ -97,6 +97,8 @@ class DBResourceViewSet(viewsets.SystemViewSet):
         ("query_operation_list",): [ResourceActionPermission([ActionEnum.RESOURCE_OPERATION_VIEW])],
     }
     default_permission_class = [ResourceActionPermission([ActionEnum.RESOURCE_MANAGE])]
+    filter_class = None
+    pagination_class = None
 
     @common_swagger_auto_schema(
         operation_summary=_("资源池资源列表"),
@@ -312,31 +314,20 @@ class DBResourceViewSet(viewsets.SystemViewSet):
 
     @common_swagger_auto_schema(
         operation_summary=_("获取机型列表"),
-        request_body=ListCvmDeviceClassSerializer(),
-        responses={status.HTTP_200_OK: ListCvmDeviceClassResponseSerializer()},
         tags=[SWAGGER_TAG],
     )
-    @action(detail=False, methods=["POST"], serializer_class=ListCvmDeviceClassSerializer)
+    @action(
+        detail=False,
+        methods=["GET"],
+        serializer_class=ListCvmDeviceClassSerializer,
+        filter_class=DeviceClassFilter,
+        pagination_class=AuditedLimitOffsetPagination,
+        queryset=DeviceClass.objects.all(),
+    )
     def get_device_class(self, request):
-        data = self.params_validate(self.get_serializer_class())
-        page = {"start": data["offset"], "limit": data["limit"]}
-        # 默认过滤条件是支持申请的机型，且是常规项目
-        rules = [
-            {"field": "enable_apply", "operator": "equal", "value": True},
-            {"field": "require_type", "operator": "equal", "value": 1},
-        ]
-        # 如果有名称过滤，则加上
-        if data.get("name"):
-            rules.append({"field": "device_type", "operator": "contains", "value": data["name"]})
-        dvc_filter = {"condition": "AND", "rules": rules}
-        # 请求hcm平台获取机型列表，若报错则忽略
-        try:
-            device_list = HCMApi.list_cvm_device(params={"filter": dvc_filter, "page": page})
-            device_list["results"] = device_list.pop("info")
-        except (Exception, ApiRequestError):
-            device_list = {"count": 0, "results": []}
-
-        return Response(device_list)
+        page_device_qs = self.paginate_queryset(self.filter_queryset(self.get_queryset()))
+        page_device_data = self.serializer_class(instance=page_device_qs, many=True).data
+        return self.paginator.get_paginated_response(data=page_device_data)
 
     @common_swagger_auto_schema(
         operation_summary=_("资源预申请"),

@@ -19,10 +19,13 @@ from django.utils.translation import ugettext_lazy as _
 
 from backend.bk_web.models import AuditedModel
 from backend.components import CCApi
+from backend.components.hcm.client import HCMApi
 from backend.constants import CommonHostDBMeta
 from backend.db_meta.enums import AccessLayer, ClusterType, MachineType
 from backend.db_meta.exceptions import HostDoseNotExistInCmdbException
 from backend.db_meta.models import AppCache, BKCity
+from backend.exceptions import ApiRequestError
+from backend.utils.batch_request import batch_request
 from backend.utils.string import base64_encode
 
 
@@ -185,3 +188,39 @@ class Machine(AuditedModel):
     @property
     def simple_desc(self):
         return model_to_dict(self)
+
+
+class DeviceClass(models.Model):
+    device_type = models.CharField(max_length=128, help_text=_("机型类型"))
+    cpu = models.IntegerField(default=0, help_text=_("机型cpu"))
+    mem = models.IntegerField(default=0, help_text=_("机型内存"))
+    disk = models.IntegerField(default=0, help_text=_("机型磁盘"))
+
+    class Meta:
+        verbose_name = verbose_name_plural = _("机型(DeviceClass)")
+
+    def __str__(self):
+        return f"{self.device_type}({self.cpu}C{self.mem}G)"
+
+    @classmethod
+    def sync_device_from_hcm(cls):
+        """从hcm同步机型，仅适用于内部环境"""
+
+        # 默认过滤条件是支持申请的机型，且是常规项目
+        rules = [
+            {"field": "enable_apply", "operator": "equal", "value": True},
+            {"field": "require_type", "operator": "equal", "value": 1},
+        ]
+        dvc_filter = {"condition": "AND", "rules": rules}
+        # 全量请求hcm平台获取机型列表，若报错则忽略
+        try:
+            device_class_list = batch_request(func=HCMApi.list_cvm_device, params={"filter": dvc_filter})
+        except (Exception, ApiRequestError):
+            device_class_list = []
+
+        # 过滤不重复的机型，并且更新到数据库
+        device_class_dict = {
+            d["device_type"]: cls(device_type=d["device_type"], cpu=d["cpu"], mem=d["mem"], disk=d["disk"])
+            for d in device_class_list
+        }
+        cls.objects.bulk_create(list(device_class_dict.values()))
