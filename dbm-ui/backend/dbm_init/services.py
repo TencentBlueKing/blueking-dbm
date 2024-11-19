@@ -55,7 +55,6 @@ class Services:
 
         project_key = env.BK_ITSM_PROJECT_KEY
         dbm_catalog_name = "bk_dbm"
-        dbm_service_name = "BK_DBM"
 
         try:
             with open("backend/dbm_init/json_files/itsm/itsm_dbm.json", "r") as f:
@@ -81,14 +80,16 @@ class Services:
         # 对服务进行创建/更新
         dbm_service_json["project_key"] = project_key
         dbm_service_json["catalog_id"] = dbm_catalog_id
-        dbm_service_json["name"] = dbm_service_name
+        dbm_service_name = dbm_service_json["name"]
+        for_update = dbm_service_json.pop("for_update", False)
+        dbm_service_id = 0
 
         try:
             if dbm_service_name not in children_services_map.keys():
                 # 服务不存在则创建服务
                 dbm_service_id = ItsmApi.import_service(params=dbm_service_json, use_admin=True)["id"]
                 logger.info("itsm服务创建成功，服务id为: %s", dbm_service_id)
-            else:
+            elif for_update:
                 # 服务存在则更新服务
                 dbm_service_id = children_services_map[dbm_service_name]
                 dbm_service_json["id"] = dbm_service_id
@@ -98,8 +99,13 @@ class Services:
             raise Exception("服务创建/更新失败，请联系管理员。错误信息: %s", e)
 
         # 更新到系统配置中
-        SystemSettings.insert_setting_value(key=SystemSettingsEnum.BK_ITSM_SERVICE_ID.value, value=str(dbm_service_id))
-        logger.info("服务创建/更新成功")
+        if dbm_service_id:
+            SystemSettings.insert_setting_value(
+                key=SystemSettingsEnum.BK_ITSM_SERVICE_ID.value, value=str(dbm_service_id)
+            )
+            logger.info("服务创建/更新成功")
+        else:
+            logger.info("本次更新跳过...")
         return dbm_service_id
 
     @staticmethod

@@ -1,6 +1,6 @@
 {
   "key": "request",
-  "name": "BK-DBM",
+  "name": "BK_DBM_V2",
   "desc": "bk-dbm\u5ba1\u6279\u5355\u636e",
   "workflow": {
     "is_deleted": false,
@@ -1397,5 +1397,6 @@
   "display_type": "OPEN",
   "display_role": "",
   "source": "custom",
-  "project_key": "bk_dbm_dev"
+  "project_key": "bk_dbm_dev",
+  "for_update": false
 }

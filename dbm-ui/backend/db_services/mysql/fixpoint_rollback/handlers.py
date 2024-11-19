@@ -341,7 +341,7 @@ class FixPointRollbackHandler:
             # 时间范围前后放大避免日志平台上传延迟
             start_time=start_time - timedelta(minutes=minute_range),
             end_time=end_time + timedelta(minutes=minute_range),
-            query_string=f"host: {host_ip} AND port: {port}",
+            query_string=f"host: {host_ip} AND port: {port} AND cluster_id: {self.cluster.id}",
         )
 
         if not binlogs:
