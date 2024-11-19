@@ -452,6 +452,7 @@ class RedisActuatorActionEnum(str, StructuredEnum):
     Install = EnumField("install", _("install"))
     REPLICA_BATCH = EnumField("replica_batch", _("replica_batch"))
     Replicaof = EnumField("replicaof", _("replicaof"))
+    LocalReDoDR = EnumField("local_redo_dr", _("local_redo_dr"))
     CLUSTER_MEET = EnumField("clustermeet_slotsassign", _("clustermeet_slotsassign"))
     KEYS_PATTERN = EnumField("keyspattern", _("keyspattern"))
     KEYS_DELETE_REGEX = EnumField("keysdelete_regex", _("keysdelete_regex"))
