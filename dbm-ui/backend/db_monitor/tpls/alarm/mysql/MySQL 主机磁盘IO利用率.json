@@ -47,7 +47,7 @@
               {
                 "key": "db_type",
                 "value": [
-                  "mysql"
+                  "mysql", "tendbcluster"
                 ],
                 "method": "eq",
                 "condition": "and",
@@ -264,7 +264,7 @@
   },
   "is_enabled": true,
   "monitor_indicator": "AVG(I/O使用率)",
-  "version": 23,
+  "version": 24,
   "alert_source": "time_series",
   "custom_conditions": []
 }
