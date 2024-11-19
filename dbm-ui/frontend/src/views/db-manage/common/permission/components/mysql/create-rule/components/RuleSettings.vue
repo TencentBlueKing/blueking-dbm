@@ -213,10 +213,15 @@
       },
       {
         trigger: 'blur',
+        message: t('不允许 *'),
+        validator: (value: string) => !/\*/.test(value),
+      },
+      {
+        trigger: 'blur',
         message: t('DB名称支持通配符_如Data_区分大小写_多个使用英文逗号_分号或换行分隔'),
         validator: (value: string) => {
           const dbs = value.split(/[\n;,]/);
-          return _.every(dbs, (item) => (!item ? true : /^[0-9a-zA-Z][0-9a-zA-Z%]*$/.test(item)));
+          return _.every(dbs, (item) => (!item ? true : /^[0-9a-zA-Z%][0-9a-zA-Z_%]*$/.test(item)));
         },
       },
       {
