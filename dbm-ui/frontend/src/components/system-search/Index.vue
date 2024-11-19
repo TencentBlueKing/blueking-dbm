@@ -23,7 +23,7 @@
       v-model="serach"
       class="search-input"
       clearable
-      :placeholder="t('全站搜索 Ctrl + K')"
+      :placeholder="t('全站搜索，支持多对象搜索，Enter搜索')"
       :type="isFocused ? 'text' : 'search'"
       @enter="handleEnter"
       @focus="handleFocus"
@@ -69,7 +69,7 @@
 </template>
 <script setup lang="ts">
   import tippy, { type Instance, type SingleTarget } from 'tippy.js';
-  import { computed, onBeforeUnmount, ref } from 'vue';
+  import { computed, onBeforeUnmount, ref, type UnwrapRef } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import { quickSearch } from '@services/source/quickSearch';
@@ -94,7 +94,7 @@
   const isFocused = ref(false);
   const popContentStyle = ref({});
   const isPopMenuShow = ref(false);
-  const filterType = ref(FilterType.CONTAINS);
+  const filterType = ref(FilterType.EXACT);
 
   const styles = computed(() => ({
     flex: isFocused.value ? '1' : '0 0 auto',
@@ -149,17 +149,8 @@
   };
 
   const handleSearch = () => {
-    // 页面跳转参数处理
-    const { formData, keyword } = searchResultRef.value!.getFilterOptions();
-    quickSearch({
-      ...formData,
-      keyword,
-    }).then((quickSearchResult) => {
-      const options = {
-        ...formData,
-        short_code: quickSearchResult.short_code,
-      };
-      const query = Object.keys(options).reduce((prevQuery, optionKey) => {
+    const getQuery = (options: UnwrapRef<typeof formData> & { short_code?: string }) =>
+      Object.keys(options).reduce((prevQuery, optionKey) => {
         const optionItem = options[optionKey as keyof typeof options];
 
         if (optionItem !== '' && !(Array.isArray(optionItem) && optionItem.length === 0)) {
@@ -172,15 +163,33 @@
         return prevQuery;
       }, {});
 
-      const url = router.resolve({
-        name: 'QuickSearch',
-        query: {
-          ...query,
-          from: route.name as string,
-        },
+    // 页面跳转参数处理
+    const { formData, keyword } = searchResultRef.value!.getFilterOptions();
+    if (keyword) {
+      quickSearch({
+        ...formData,
+        keyword,
+      }).then((quickSearchResult) => {
+        const options = {
+          ...formData,
+          short_code: quickSearchResult.short_code,
+        };
+        handleRedirect(getQuery(options));
       });
-      window.open(url.href, '_blank');
+    } else {
+      handleRedirect(getQuery(formData));
+    }
+  };
+
+  const handleRedirect = (query = {}) => {
+    const url = router.resolve({
+      name: 'QuickSearch',
+      query: {
+        ...query,
+        from: route.name as string,
+      },
     });
+    window.open(url.href, '_blank');
   };
 
   const handleEnter = () => {
