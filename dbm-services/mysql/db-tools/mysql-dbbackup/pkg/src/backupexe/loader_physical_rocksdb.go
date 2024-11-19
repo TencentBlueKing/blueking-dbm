@@ -1,7 +1,6 @@
 package backupexe
 
 import (
-	"bufio"
 	"fmt"
 	"os"
 	"os/exec"
@@ -11,6 +10,7 @@ import (
 	"time"
 
 	"dbm-services/common/go-pubpkg/cmutil"
+	"dbm-services/mysql/db-tools/dbactuator/pkg/util"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/config"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/cst"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/dbareport"
@@ -173,59 +173,17 @@ func (p *PhysicalRocksdbLoader) initConfig(indexContent *dbareport.IndexContent)
 		return fmt.Errorf("the default file no exist, config file:%s", p.cfg.PhysicalLoad.DefaultsFile)
 	}
 
-	file, err := os.Open(p.cfg.PhysicalLoad.DefaultsFile)
-	if err != nil {
-		return fmt.Errorf("can not open the default file, config file:%s", p.cfg.PhysicalLoad.DefaultsFile)
+	cnfFile := &util.CnfFile{FileName: p.cfg.PhysicalLoad.DefaultsFile}
+	if err := cnfFile.Load(); err != nil {
+		return errors.WithMessagef(err, "fail to parse %s", p.cfg.PhysicalLoad.DefaultsFile)
 	}
-
-	defer file.Close()
-
-	// extract parameters from the configuration file.
-	scanner := bufio.NewScanner(file)
-	for scanner.Scan() {
-		line := scanner.Text()
-		if strings.HasPrefix(line, "datadir=") {
-			p.dataDir = strings.TrimPrefix(line, "datadir=")
-			p.dataDir = strings.TrimSpace(p.dataDir)
-			continue
-		}
-
-		if strings.HasPrefix(line, "innodb_log_group_home_dir=") {
-			p.innodbLogGroupHomeDir = strings.TrimPrefix(line, "innodb_log_group_home_dir=")
-			p.innodbLogGroupHomeDir = strings.TrimSpace(p.innodbLogGroupHomeDir)
-			continue
-		}
-
-		if strings.HasPrefix(line, "innodb_data_home_dir=") {
-			p.innodbDataHomeDir = strings.TrimPrefix(line, "innodb_data_home_dir=")
-			p.innodbDataHomeDir = strings.TrimSpace(p.innodbDataHomeDir)
-			continue
-		}
-
-		if strings.HasPrefix(line, "log_bin=") {
-			p.logbinDir = filepath.Dir(strings.TrimPrefix(line, "log_bin="))
-			p.logbinDir = strings.TrimSpace(p.logbinDir)
-			continue
-		}
-
-		if strings.HasPrefix(line, "relay-log=") {
-			p.relaylogDir = filepath.Dir(strings.TrimPrefix(line, "relay-log="))
-			p.relaylogDir = strings.TrimSpace(p.relaylogDir)
-			continue
-		}
-
-		if strings.HasPrefix(line, "slow_query_log_file=") {
-			p.slowQueryLogFile = filepath.Dir(strings.TrimPrefix(line, "slow_query_log_file="))
-			p.slowQueryLogFile = strings.TrimSpace(p.slowQueryLogFile)
-			continue
-		}
-
-		if strings.HasPrefix(line, "tmpdir=") {
-			p.tmpDir = strings.TrimPrefix(line, "tmpdir=")
-			p.tmpDir = strings.TrimSpace(p.tmpDir)
-			continue
-		}
-	}
+	p.dataDir, err = cnfFile.GetMySQLDataDir()
+	p.innodbLogGroupHomeDir, err = cnfFile.GetMysqldKeyVaule("innodb_log_group_home_dir")
+	p.innodbDataHomeDir, err = cnfFile.GetMysqldKeyVaule("innodb_data_home_dir")
+	p.relaylogDir, err = cnfFile.GetRelayLogDir()
+	p.logbinDir, _, err = cnfFile.GetBinLogDir()
+	p.tmpDir, err = cnfFile.GetMysqldKeyVaule("tmpdir")
+	p.slowQueryLogFile, err = cnfFile.GetMysqldKeyVaule("slow_query_log_file")
 
 	// store the base parameters
 	p.dbbackupHome = filepath.Dir(cmdPath)

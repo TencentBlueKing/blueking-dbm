@@ -211,7 +211,7 @@ func (l *LogicalLoader) Execute() (err error) {
 	if err != nil {
 		logger.Log.Error("myloader load backup failed: ", err, errStr)
 		// 尝试读取 myloader.log 里 CRITICAL 关键字
-		grepError := []string{"grep", "-E", "CRITICAL", logfile, "|", "tail", "-5"}
+		grepError := []string{"cat", logfile, "|", "grep -Ei 'CRITICAL|not found|error|fatal'", "|", "tail", "-5"}
 		errStrPrefix := fmt.Sprintf("tail 5 error from %s", logfile)
 		errStrDetail, _, _ := cmutil.ExecCommand(true, "", grepError[0], grepError[1:]...)
 		if len(strings.TrimSpace(errStr)) > 0 {
