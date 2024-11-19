@@ -77,8 +77,12 @@ class DBRuleActionLog(models.Model):
     def get_notifiers(cls, rule_id):
         """获取通知人列表，目前只过滤有授权记录的人"""
         users = cls.objects.filter(rule_id=rule_id, action_type=RuleActionType.AUTH).values_list("operator", flat=True)
+        if not users:
+            return []
         # 过滤离职的和虚拟账户
         virtual_users = SystemSettings.get_setting_value(key=SystemSettingsEnum.VIRTUAL_USERS, default=[])
-        real_users = UserManagerApi.list_users({"fields": "username", "exact_lookups": ",".join(users)})["results"]
+        real_users = UserManagerApi.list_users(
+            {"fields": "username", "exact_lookups": ",".join(users), "no_page": True}
+        )
         real_users = [user["username"] for user in real_users]
         return list(set(real_users) - set(virtual_users))
