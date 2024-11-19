@@ -13,7 +13,6 @@
 
 <template>
   <div
-    ref="rootRef"
     class="search-input"
     data-role="quick-search-result">
     <FilterTypeSelect
@@ -21,13 +20,15 @@
       icon-type="down-big"
       title-color="#4d4f56"
       trigger-class-name="system-search-result-filter-type-select" />
-    <div class="input-box">
+    <div
+      ref="rootRef"
+      class="input-box">
       <BkInput
         v-model="modelValue"
         autosize
         class="search-input-textarea"
         clearable
-        :placeholder="t('请输入关键字， Shift + Enter 换行')"
+        :placeholder="t('全站搜索，支持多对象搜索，Shift + Enter 换行，Enter搜索')"
         :resize="false"
         type="textarea"
         @blur="handleBlur"
@@ -69,7 +70,7 @@
 
   import { batchSplitRegex } from '@common/regex';
 
-  import FilterTypeSelect, { FilterType } from '@components/system-search/components/FilterTypeSelect.vue';
+  import FilterTypeSelect from '@components/system-search/components/FilterTypeSelect.vue';
   import SearchResult from '@components/system-search/components/search-result/Index.vue';
   import SearchHistory from '@components/system-search/components/SearchHistory.vue';
   import useKeyboard from '@components/system-search/hooks/useKeyboard';
@@ -82,6 +83,9 @@
   const modelValue = defineModel<string>({
     default: '',
   });
+  const filterType = defineModel<string>('filter-type', {
+    default: '',
+  });
 
   const { t } = useI18n();
 
@@ -91,7 +95,6 @@
   const popRef = ref<HTMLElement>();
   const popContentStyle = ref({});
   const isPopMenuShow = ref(false);
-  const filterType = ref(FilterType.CONTAINS);
   const isFocused = ref(false);
 
   useKeyboard(rootRef, popRef, 'textarea');
@@ -137,7 +140,7 @@
     const { width } = rootRef.value!.getBoundingClientRect();
     if (tippyIns) {
       popContentStyle.value = {
-        width: `${Math.max(width - 91, 600)}px`,
+        width: `${Math.max(width - 91, 712)}px`,
       };
       tippyIns.show();
     }

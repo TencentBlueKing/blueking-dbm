@@ -32,8 +32,8 @@
 
 <script lang="ts">
   export enum FilterType {
-    CONTAINS = 'CONTAINS',
     EXACT = 'EXACT',
+    CONTAINS = 'CONTAINS',
   }
 </script>
 <script setup lang="ts">
@@ -55,19 +55,19 @@
 
   const dropdownList = [
     {
-      label: t('模糊搜索'),
-      value: FilterType.CONTAINS,
-    },
-    {
       label: t('精确搜索'),
       value: FilterType.EXACT,
+    },
+    {
+      label: t('模糊搜索'),
+      value: FilterType.CONTAINS,
     },
   ];
 
   const isRotate = ref(false);
 
   const currentTitle = computed(() =>
-    modelValue.value === 'CONTAINS' ? dropdownList[0].label : dropdownList[1].label,
+    modelValue.value === FilterType.EXACT ? dropdownList[0].label : dropdownList[1].label,
   );
 
   const handleChooseType = (type: string) => {

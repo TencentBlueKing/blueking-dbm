@@ -164,7 +164,6 @@
       }
 
       serachResult.value = {} as ServiceReturnType<typeof quickSearch>;
-
       if (!modelValue.value) {
         return;
       }
