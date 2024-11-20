@@ -143,6 +143,7 @@ export type AccountRulePrivilegeKey = keyof AccountRulePrivilege;
  */
 export interface AuthorizePreCheckData {
   access_dbs: string[];
+  bk_biz_id?: number;
   source_ips?:
     | {
         bk_host_id?: number;
