@@ -26,6 +26,7 @@ from backend.flow.consts import (
     MongoDBManagerUser,
     NameSpaceEnum,
 )
+from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.utils.mongodb.migrate_meta import MongoDBMigrateMeta
 from backend.flow.utils.mongodb.mongodb_dataclass import CommonContext
 from backend.flow.utils.mongodb.mongodb_password import MongoDBPassword
@@ -95,6 +96,8 @@ class MigrateActKwargs:
         self.hosts: list = None
         # 集群bk_cloud_id
         self.bk_cloud_id: int = None
+        # os配置
+        self.os_conf: dict = None
 
     def skip_machine(self):
         """副本集机器复用"""
@@ -402,6 +405,7 @@ class MigrateActKwargs:
                 for host in storages_hosts_set
             ]
             self.hosts = proxie_nodes + config_nodes + storages_hosts_list
+        self.bk_cloud_id = self.hosts[0]["bk_cloud_id"]
         return info
 
     def get_change_dns_app_info(self) -> dict:
@@ -466,12 +470,12 @@ class MigrateActKwargs:
             "meta_func_name": MongoDBMigrateMeta.add_clb_domain.__name__,
         }
 
-    def get_os_init_info(self) -> dict:
-        """进行host初始化"""
+    def get_send_media_info(self) -> dict:
+        """下发介质"""
 
         # 获取os配置
         str_bk_biz_id = str(self.bk_biz_id)
-        os_conf = DBConfigApi.query_conf_item(
+        self.os_conf = DBConfigApi.query_conf_item(
             params={
                 "bk_biz_id": str_bk_biz_id,
                 "level_name": LevelName.APP,
@@ -482,9 +486,33 @@ class MigrateActKwargs:
                 "format": FormatType.MAP.value,
             }
         )["content"]
-        user = os_conf["user"]
-        file_path = os_conf["file_path"]
-        self.bk_cloud_id = self.hosts[0]["bk_cloud_id"]
+        return {
+            "file_list": GetFileList(db_type=DBType.MongoDB).mongodb_actuator_pkg(),
+            "ip_list": self.hosts,
+            "exec_ips": [host["ip"] for host in self.hosts],
+            "file_target_path": self.os_conf["file_path"] + "/install",
+        }
+
+    def get_create_dir_info(self) -> dict:
+        """创建dbactuator执行目录"""
+
+        return {
+            "create_dir": True,
+            "set_trans_data_dataclass": CommonContext.__name__,
+            "get_trans_data_ip_var": None,
+            "bk_cloud_id": self.bk_cloud_id,
+            "exec_ip": self.hosts,
+            "db_act_template": {
+                "file_path": self.os_conf["file_path"],
+                "payload": {},
+            },
+        }
+
+    def get_os_init_info(self) -> dict:
+        """进行host初始化"""
+
+        user = self.os_conf["user"]
+        file_path = self.os_conf["file_path"]
         # 获取os user密码
         password = MongoDBPassword().get_password_from_db(
             ip="0.0.0.0", port=0, bk_cloud_id=self.bk_cloud_id, username=user
@@ -500,9 +528,9 @@ class MigrateActKwargs:
                 "action": MongoDBActuatorActionEnum.OsInit,
                 "file_path": file_path,
                 "user": user,
-                "group": os_conf["group"],
-                "data_dir": os_conf["install_dir"],
-                "backup_dir": os_conf["backup_dir"],
+                "group": self.os_conf["group"],
+                "data_dir": self.os_conf["install_dir"],
+                "backup_dir": self.os_conf["backup_dir"],
                 "payload": {
                     "user": user,
                     "password": password,

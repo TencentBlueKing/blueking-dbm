@@ -26,6 +26,7 @@ from backend.flow.plugins.components.collections.mongodb.add_relationship_to_met
 )
 from backend.flow.plugins.components.collections.mongodb.exec_actuator_job import ExecuteDBActuatorJobComponent
 from backend.flow.plugins.components.collections.mongodb.migrate_meta import MongoDBMigrateMetaComponent
+from backend.flow.plugins.components.collections.mongodb.send_media import ExecSendMediaOperationComponent
 from backend.flow.utils.mongodb.mongodb_migrate_dataclass import MigrateActKwargs
 
 
@@ -121,6 +122,18 @@ def cluster_migrate(
             }
         )
     sub_pipeline.add_parallel_acts(acts_list=acts_list)
+
+    # 分发介质
+    kwargs = sub_get_kwargs.get_send_media_info()
+    sub_pipeline.add_act(
+        act_name=_("MongoDB-介质下发"), act_component_code=ExecSendMediaOperationComponent.code, kwargs=kwargs
+    )
+
+    # 创建原子任务执行目录
+    kwargs = sub_get_kwargs.get_create_dir_info()
+    sub_pipeline.add_act(
+        act_name=_("MongoDB-创建原子任务执行目录"), act_component_code=ExecuteDBActuatorJobComponent.code, kwargs=kwargs
+    )
 
     # os初始化
     kwargs = sub_get_kwargs.get_os_init_info()
