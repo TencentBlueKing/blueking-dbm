@@ -36,10 +36,6 @@
           @change="handleSelectChange"
           @scroll-end="handleScrollEnd">
           <BkOption
-            key="all"
-            :label="t('无限制')"
-            value="-1" />
-          <BkOption
             v-for="item in deviceClassList"
             :key="item.value"
             :label="item.label"
@@ -73,7 +69,7 @@
   const searchParams = {
     offset: 0,
     limit: 12,
-    name: '',
+    device_type: '',
   };
 
   const rules = [
@@ -112,26 +108,12 @@
 
   const remoteMethod = (value: string) => {
     isAppend = false;
-    searchParams.name = value;
+    searchParams.device_type = value;
     searchParams.offset = 0;
     getDeviceClassList(searchParams);
   };
 
   const handleSelectChange = (list: string[]) => {
-    if (list.length > 1) {
-      if (list[0] === '-1') {
-        // 先选的无限制，后续加选要去除无限制
-        modelValue.value = list.slice(1);
-        return;
-      }
-
-      if (list[list.length - 1] === '-1') {
-        // 最后选的无限制，前面选过的都要去除
-        modelValue.value = '-1';
-        return;
-      }
-    }
-
     modelValue.value = list;
   };
 </script>
