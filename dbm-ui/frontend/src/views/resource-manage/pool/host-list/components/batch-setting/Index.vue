@@ -19,8 +19,7 @@
           :model="formData">
           <DbFormItem
             :label="t('所属业务')"
-            property="for_biz"
-            required>
+            property="for_biz">
             <div class="com-input">
               <BkSelect
                 v-model="formData.for_biz"
@@ -35,8 +34,7 @@
           </DbFormItem>
           <DbFormItem
             :label="t('所属DB类型')"
-            property="resource_type"
-            required>
+            property="resource_type">
             <div class="com-input">
               <BkSelect
                 v-model="formData.resource_type"
@@ -167,13 +165,18 @@
           }),
           {} as Record<string, { size: number; disk_type: string }>,
         );
-        return updateResource({
+        const params = {
           bk_host_ids: props.data.map((item) => ~~item),
-          for_biz: Number(formData.for_biz),
           rack_id: formData.rack_id,
-          resource_type: formData.resource_type,
           storage_device: storageDevice,
-        }).then(() => {
+        };
+        if (formData.for_biz !== '') {
+          Object.assign(params, { for_biz: Number(formData.for_biz) });
+        }
+        if (formData.resource_type !== '') {
+          Object.assign(params, { resource_type: formData.resource_type });
+        }
+        return updateResource(params).then(() => {
           window.changeConfirm = false;
           emits('change');
           handleCancel();
