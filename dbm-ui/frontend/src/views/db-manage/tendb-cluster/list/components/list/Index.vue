@@ -385,8 +385,7 @@
       label: t('主访问入口'),
       field: 'master_domain',
       fixed: 'left',
-      minWidth: 320,
-      showOverflowTooltip: false,
+      minWidth: 280,
       renderHead: () => (
         <RenderHeadCopy
           hasSelected={hasSelected.value}

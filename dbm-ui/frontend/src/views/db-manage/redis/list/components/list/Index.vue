@@ -420,7 +420,7 @@
     {
       label: t('访问入口'),
       field: 'master_domain',
-      minWidth: 320,
+      minWidth: 280,
       fixed: 'left',
       renderHead: () => (
         <RenderHeadCopy
@@ -531,7 +531,6 @@
       label: t('集群名称'),
       field: 'cluster_name',
       minWidth: 200,
-      showOverflowTooltip: false,
       renderHead: () => (
         <RenderHeadCopy
           hasSelected={hasSelected.value}

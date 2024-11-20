@@ -421,7 +421,7 @@
     {
       label: t('主访问入口'),
       field: 'master_domain',
-      minWidth: 320,
+      minWidth: 280,
       fixed: 'left',
       renderHead: () => (
         <RenderHeadCopy

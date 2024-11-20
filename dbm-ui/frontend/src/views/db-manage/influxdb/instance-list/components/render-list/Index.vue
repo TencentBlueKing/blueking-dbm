@@ -306,7 +306,6 @@
       {
         label: t('实例'),
         minWidth: 300,
-        width: 300,
         fixed: 'left',
         field: 'instance',
         showOverflowTooltip: false,
