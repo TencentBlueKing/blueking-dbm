@@ -95,7 +95,13 @@
             :key="item">
             {{ item }}
           </BkTag>
-          <BkTag v-if="currentExecuteObject.dbnames.length > 3">...</BkTag>
+          <BkTag
+            v-if="currentExecuteObject.dbnames.length > 3"
+            v-bk-tooltips="{
+              content: currentExecuteObject.dbnames.join('\n'),
+            }">
+            ...
+          </BkTag>
           <template v-if="currentExecuteObject.dbnames.length < 1">--</template>
         </span>
         <span class="ml-25">{{ t('忽略的 DB:') }}</span>
@@ -105,7 +111,13 @@
             :key="item">
             {{ item }}
           </BkTag>
-          <BkTag v-if="currentExecuteObject.ignore_dbnames.length > 3">...</BkTag>
+          <BkTag
+            v-if="currentExecuteObject.ignore_dbnames.length > 3"
+            v-bk-tooltips="{
+              content: currentExecuteObject.ignore_dbnames.join('\n'),
+            }">
+            ...
+          </BkTag>
           <template v-if="currentExecuteObject.ignore_dbnames.length < 1">--</template>
         </span>
       </span>
