@@ -96,7 +96,8 @@
   const { loading: isUpdating, run: runUpdate } = useRequest(updateResource, {
     manual: true,
     onSuccess() {
-      handleCancel();
+      emits('refresh');
+      isShow.value = false;
       messageSuccess('设置成功');
     },
   });
@@ -125,7 +126,6 @@
   };
 
   const handleCancel = () => {
-    emits('refresh');
     isShow.value = false;
   };
 </script>
