@@ -23,7 +23,7 @@
       v-model="serach"
       class="search-input"
       clearable
-      :placeholder="t('全站搜索，支持多对象搜索，Enter搜索')"
+      :placeholder="t('全站搜索，支持多对象，Enter开启搜索')"
       :type="isFocused ? 'text' : 'search'"
       @enter="handleEnter"
       @focus="handleFocus"

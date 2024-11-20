@@ -28,7 +28,7 @@
         autosize
         class="search-input-textarea"
         clearable
-        :placeholder="t('全站搜索，支持多对象搜索，Shift + Enter 换行，Enter搜索')"
+        :placeholder="t('全站搜索，支持多对象，Shift + Enter 换行，Enter键开启搜索')"
         :resize="false"
         type="textarea"
         @blur="handleBlur"
