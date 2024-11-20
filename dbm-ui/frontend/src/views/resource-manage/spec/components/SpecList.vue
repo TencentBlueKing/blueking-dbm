@@ -210,7 +210,7 @@
             {{
               default: () => (
                 <div class="machine-info text-overflow">
-                  {data.device_class.length === 0 && data.cpu.min > 0 && <>
+                  {data.cpu.min > 0 && data.device_class.length === 0 && <>
                     <bk-tag class="machine-info-cpu">
                       CPU = {`${data.cpu.min} ~ ${data.cpu.max}`} {t('核')}
                     </bk-tag>
@@ -224,9 +224,9 @@
                       AND
                     </bk-tag>
                   </>}
-                  {((data.device_class.length === 0 && data.cpu.min === 0) || data.device_class.length > 0) && <>
+                  {data.device_class.length > 0 && <>
                     <bk-tag class="machine-info-device">
-                      {t('机型')} = {data.device_class.join(',') || t('无限制')}
+                      {t('机型')} = {data.device_class.join(',')}
                     </bk-tag>
                     <bk-tag class="machine-info-condition" theme="info">
                       AND
@@ -243,7 +243,7 @@
               ),
               content: () => (
                 <div class="resource-machine-info-tips">
-                  {data.device_class.length === 0 && data.cpu.min > 0 && <>
+                  {data.cpu.min > 0 && data.device_class.length === 0 && <>
                     <strong>CPU: </strong>
                     <div class="resource-machine-info__values mb-10">
                       <bk-tag>{`${data.cpu.min} ~ ${data.cpu.max}`} {t('核')}</bk-tag>
@@ -253,13 +253,11 @@
                       <bk-tag>{`${data.mem.min} ~ ${data.mem.max}`} G</bk-tag>
                     </div>
                   </>}
-                  {((data.device_class.length === 0 && data.cpu.min === 0) || data.device_class.length > 0) && <>
+                  {data.device_class.length > 0 && <>
                     <strong>{t('机型')}: </strong>
                     <div class="resource-machine-info__values mb-10">
                       {
-                        data.device_class.length
-                          ? data.device_class.map(item => <bk-tag>{item}</bk-tag>)
-                          : <bk-tag>{t('无限制')}</bk-tag>
+                        data.device_class.map(item => <bk-tag>{item}</bk-tag>)
                       }
                     </div>
                   </>}

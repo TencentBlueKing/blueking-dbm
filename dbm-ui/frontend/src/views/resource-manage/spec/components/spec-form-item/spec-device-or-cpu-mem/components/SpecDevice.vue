@@ -47,10 +47,6 @@
             </BkButton>
           </template>
           <BkOption
-            key="all"
-            :label="t('无限制')"
-            value="-1" />
-          <BkOption
             v-for="item in deviceClassList"
             :key="item.value"
             :value="item.value">
@@ -74,11 +70,9 @@
           style="background-color: #fff"
           @close="() => handleTagClose(index)">
           {{
-            item === '-1'
-              ? t('无限制')
-              : deviceListMap[item]?.cpu
-                ? `${item}（${deviceListMap[item]?.cpu}${t('核')}${deviceListMap[item]?.mem}G）`
-                : `${item}`
+            deviceListMap[item]?.cpu
+              ? `${item}（${deviceListMap[item]?.cpu}${t('核')}${deviceListMap[item]?.mem}G）`
+              : `${item}`
           }}
         </BkTag>
         <!-- </div> -->
@@ -94,8 +88,14 @@
 
   import { fetchDeviceClass } from '@services/source/dbresourceResource';
 
+  export type DeviceClassCpuMemType = typeof selectedCpuMem;
+
   interface Props {
     isEdit: boolean;
+  }
+
+  interface Exposes {
+    getDeviceClassCpuMem: () => DeviceClassCpuMemType;
   }
 
   interface DeviceClassListItem {
@@ -121,7 +121,7 @@
   const searchParams = {
     offset: 0,
     limit: 12,
-    name: '',
+    device_type: '',
   };
 
   const deviceListMap: Record<
@@ -131,6 +131,17 @@
       mem: number;
     }
   > = {};
+
+  const selectedCpuMem = {
+    cpu: {
+      min: Number.MAX_SAFE_INTEGER,
+      max: -Number.MAX_SAFE_INTEGER,
+    },
+    mem: {
+      min: Number.MAX_SAFE_INTEGER,
+      max: -Number.MAX_SAFE_INTEGER,
+    },
+  };
 
   const rules = [
     {
@@ -173,13 +184,8 @@
   watch(
     () => modelValue.value,
     () => {
-      if (modelValue.value.length > 0 && modelValue.value[0] !== '-1') {
+      if (modelValue.value.length > 0) {
         oldData = _.cloneDeep(modelValue.value);
-        // 批量查询已选中的机型
-        searchParams.name = modelValue.value.join(',');
-        getDeviceClassList(searchParams);
-        searchParams.name = '';
-        return;
       }
 
       getDeviceClassList(searchParams);
@@ -206,28 +212,27 @@
 
   const remoteMethod = (value: string) => {
     isAppend = false;
-    searchParams.name = value;
+    searchParams.device_type = value;
     searchParams.offset = 0;
     getDeviceClassList(searchParams);
   };
 
   const handleSelectChange = (list: string[]) => {
-    if (list.length > 1) {
-      if (list[0] === '-1') {
-        // 先选的无限制，后续加选要去除无限制
-        modelValue.value = list.slice(1);
-        return;
-      }
-
-      if (list[list.length - 1] === '-1') {
-        // 最后选的无限制，前面选过的都要去除
-        modelValue.value = ['-1'];
-        return;
-      }
-    }
-
+    list.forEach((item) => {
+      const itemInfo = deviceListMap[item];
+      selectedCpuMem.cpu.min = itemInfo.cpu < selectedCpuMem.cpu.min ? itemInfo.cpu : selectedCpuMem.cpu.min;
+      selectedCpuMem.cpu.max = itemInfo.cpu > selectedCpuMem.cpu.max ? itemInfo.cpu : selectedCpuMem.cpu.max;
+      selectedCpuMem.mem.min = itemInfo.mem < selectedCpuMem.mem.min ? itemInfo.mem : selectedCpuMem.mem.min;
+      selectedCpuMem.mem.max = itemInfo.mem > selectedCpuMem.mem.max ? itemInfo.mem : selectedCpuMem.mem.max;
+    });
     modelValue.value = list;
   };
+
+  defineExpose<Exposes>({
+    getDeviceClassCpuMem() {
+      return selectedCpuMem;
+    },
+  });
 </script>
 
 <style lang="less" scoped>

@@ -217,7 +217,20 @@ const bigdata: InfoType = {
     id: DBTypes.DORIS,
     name: 'Doris',
     moduleId: 'bigdata',
-    machineList: [],
+    machineList: [
+      {
+        label: t('Follower节点'),
+        value: MachineTypes.DORIS_FOLLOWER,
+      },
+      {
+        label: t('Observer节点'),
+        value: MachineTypes.DORIS_OBSERVER,
+      },
+      {
+        label: t('冷/热节点'),
+        value: MachineTypes.DORIS_BACKEND,
+      },
+    ],
   },
 };
 export const DBTypeInfos = {
