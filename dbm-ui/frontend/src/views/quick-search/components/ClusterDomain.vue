@@ -94,7 +94,8 @@
   const settingChangeKey = ref(1);
   const pagination = ref<{
     count: number,
-    limit: number
+    limit: number,
+    remote: false
   }[]>([]);
 
   const formattedKeyword = computed(() => props.keyword
@@ -126,7 +127,7 @@
           {
             label: t('主访问入口'),
             field: 'immute_domain',
-            width: 160,
+            width: 240,
             render: ({ data }: { data: QuickSearchClusterDomainModel }) => (
               <TextOverflowLayout>
                 {{
@@ -199,7 +200,7 @@
           {
             label: t('创建时间'),
             field: 'create_at',
-            width: 150,
+            width: 240,
             sort: true,
             render: ({ data }: { data: QuickSearchClusterDomainModel }) => data.createAtDisplay || '--',
           },
@@ -241,6 +242,8 @@
     pagination.value = newRenderData.dataList.map(dataItem => ({
       count: dataItem.dataList.length,
       limit: 10,
+      current: 1,
+      remote: false,
     }));
   }, {
     immediate: true,

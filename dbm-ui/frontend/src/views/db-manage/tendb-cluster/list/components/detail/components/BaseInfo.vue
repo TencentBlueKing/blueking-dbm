@@ -105,10 +105,6 @@
         label: t('容灾要求'),
         key: 'disasterToleranceLevelName',
       },
-      {
-        label: t('园区'),
-        key: 'bk_sub_zone',
-      },
     ],
   ];
 </script>

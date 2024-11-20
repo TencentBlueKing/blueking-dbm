@@ -21,6 +21,8 @@ import { isRecentDays, utcDisplayTime } from '@utils';
 
 import { t } from '@locales/index';
 
+import type ClusterSpec from '../resource-spec/cluster-sepc';
+
 export default class Riak {
   static RIAK_CLUSTER_SCALE_OUT = 'RIAK_CLUSTER_SCALE_OUT';
   static RIAK_CLUSTER_SCALE_IN = 'RIAK_CLUSTER_SCALE_IN';
@@ -57,6 +59,7 @@ export default class Riak {
   cluster_alias: string;
   cluster_entry: ClusterListEntry[];
   cluster_name: string;
+  cluster_spec: ClusterSpec;
   cluster_stats: Record<'used' | 'total' | 'in_use', number>;
   cluster_time_zone: string;
   cluster_type: string;
@@ -101,6 +104,7 @@ export default class Riak {
     this.cluster_alias = payload.cluster_alias;
     this.cluster_entry = payload.cluster_entry || [];
     this.cluster_name = payload.cluster_name || '';
+    this.cluster_spec = payload.cluster_spec || {};
     this.cluster_stats = payload.cluster_stats || {};
     this.cluster_type = payload.cluster_type || '';
     this.cluster_type_name = payload.cluster_type_name || '';

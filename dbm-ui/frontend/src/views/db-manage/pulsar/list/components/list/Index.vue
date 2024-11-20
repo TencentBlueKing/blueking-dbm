@@ -399,12 +399,6 @@
       render: ({ data }: {data: PulsarModel}) => <span>{data?.region || '--'}</span>,
     },
     {
-        label: t('园区'),
-        field: 'bk_sub_zone',
-        minWidth: 100,
-        render: ({ data }: { data: PulsarModel }) => data.bk_sub_zone || '--',
-    },
-    {
       label: t('管控区域'),
       field: 'bk_cloud_id',
       render: ({ data }: { data: PulsarModel }) =>  data.bk_cloud_name ? `${data.bk_cloud_name}[${data.bk_cloud_id}]` : '--',

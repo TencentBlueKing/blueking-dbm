@@ -89,6 +89,11 @@
         label: t('创建时间'),
         key: 'createAtDisplay',
       },
+      {
+        label: t('规格'),
+        key: 'spec_name',
+        render: () => props.data.cluster_spec.spec_name || '--',
+      },
     ],
   ];
 </script>
