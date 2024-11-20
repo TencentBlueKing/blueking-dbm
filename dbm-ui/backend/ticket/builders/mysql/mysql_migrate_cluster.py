@@ -8,6 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import itertools
 
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
@@ -88,14 +89,18 @@ class MysqlMigrateClusterParamBuilder(MysqlMasterSlaveSwitchParamBuilder):
 
 class MysqlMigrateClusterResourceParamBuilder(BaseOperateResourceParamBuilder):
     def format(self):
-        self.patch_info_affinity_location(roles=["backend_group"])
+        self.patch_info_affinity_location()
 
     def post_callback(self):
         next_flow = self.ticket.next_flow()
         ticket_data = next_flow.details["ticket_data"]
         for info in ticket_data["infos"]:
-            backend = info.pop("backend_group")[0]
-            info["bk_new_master"], info["bk_new_slave"] = backend["master"], backend["slave"]
+            # 兼容资源池手动选择和自动匹配的协议
+            if "backend_group" in info:
+                backend = info.pop("backend_group")[0]
+                info["bk_new_master"], info["bk_new_slave"] = backend["master"], backend["slave"]
+            else:
+                info["bk_new_master"], info["bk_new_slave"] = info.pop("new_master")[0], info.pop("new_slave")[0]
             info["new_master_ip"], info["new_slave_ip"] = info["bk_new_master"]["ip"], info["bk_new_slave"]["ip"]
         next_flow.save(update_fields=["details"])
 
@@ -109,17 +114,18 @@ class MysqlMigrateClusterFlowBuilder(MysqlMasterSlaveSwitchFlowBuilder):
     need_patch_recycle_host_details = True
 
     @staticmethod
-    def get_old_master_slave_host(info):
-        # 同机关联情况下，任取一台集群
-        cluster = Cluster.objects.get(id=info["cluster_ids"][0])
-        master = cluster.storageinstance_set.get(instance_inner_role=InstanceInnerRole.MASTER)
-        slave = cluster.storageinstance_set.get(instance_inner_role=InstanceInnerRole.SLAVE, is_stand_by=True)
-        # 补充下架的机器信息
-        info["old_nodes"] = {"old_master": [master.machine.simple_desc], "old_slave": [slave.machine.simple_desc]}
-        return info
+    def get_old_master_slave_host(infos, cluster_map):
+        for info in infos:
+            # 同机关联情况下，任取一台集群
+            insts = cluster_map[info["cluster_ids"][0]].storageinstance_set.all()
+            master = next(i for i in insts if i.instance_inner_role == InstanceInnerRole.MASTER)
+            slave = next(i for i in insts if i.instance_inner_role == InstanceInnerRole.SLAVE and i.is_stand_by)
+            # 补充下架的机器信息
+            info["old_nodes"] = {"old_master": [master.machine.simple_desc], "old_slave": [slave.machine.simple_desc]}
 
     def patch_ticket_detail(self):
+        cluster_ids = list(itertools.chain(*[infos["cluster_ids"] for infos in self.ticket.details["infos"]]))
+        cluster_map = Cluster.objects.prefetch_related("storageinstance_set").in_bulk(cluster_ids, field_name="id")
         # mysql主从迁移会下架掉master和slave(stand by)
-        for info in self.ticket.details["infos"]:
-            self.get_old_master_slave_host(info)
+        self.get_old_master_slave_host(self.ticket.details["infos"], cluster_map)
         super().patch_ticket_detail()

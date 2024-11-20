@@ -37,7 +37,7 @@ class HdfsShrinkDetailSerializer(BigDataSingleClusterOpsDetailsSerializer):
         super().validate(attrs)
 
         role_hash = {
-            InstanceRole.HDFS_DATA_NODE: attrs["nodes"]["datanode"],
+            InstanceRole.HDFS_DATA_NODE: attrs["old_nodes"]["datanode"],
         }
 
         cluster = Cluster.objects.get(id=attrs["cluster_id"])

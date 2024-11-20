@@ -46,7 +46,7 @@ class SQLServerRestoreSlaveDetailSerializer(SQLServerBaseOperateDetailSerializer
     ip_source = serializers.ChoiceField(
         help_text=_("主机来源"), choices=IpSource.get_choices(), default=IpSource.RESOURCE_POOL
     )
-    ip_recycle = HostRecycleSerializer(help_text=_("主机回收信息"), default=HostRecycleSerializer.DEFAULT)
+    ip_recycle = HostRecycleSerializer(help_text=_("主机回收信息"), default=HostRecycleSerializer.FAULT_DEFAULT)
 
     def validate(self, attrs):
         # 校验实例的角色为slave

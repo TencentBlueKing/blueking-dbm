@@ -100,4 +100,7 @@ class RedisTypeUpdateFlowBuilder(BaseRedisTicketFlowBuilder):
     inner_flow_builder = RedisTypeUpdateParamBuilder
     inner_flow_name = _("Redis 集群类型变更")
     resource_batch_apply_builder = RedisTypeUpdateResourceParamBuilder
-    need_patch_recycle_cluster_details = True
+    need_patch_cluster_details = True
+
+    def patch_recycle_cluster_details(self):
+        super().patch_recycle_cluster_details(role="backend")

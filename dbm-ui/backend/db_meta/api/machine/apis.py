@@ -193,14 +193,16 @@ def clear_info_for_machine(machines: Optional[List]):
 
         # 清理proxy相关信息
         for p in proxys:
-            p.tendbclusterspiderext.delete()
+            if hasattr(p, "tendbclusterspiderext"):
+                p.tendbclusterspiderext.delete()
             p.delete(keep_parents=True)
 
         # 清理storage相关信息
         for s in storages:
             for info in StorageInstanceTuple.objects.filter(Q(ejector=s) | Q(receiver=s)):
                 # 先删除额外关联信息，否则会报ProtectedError 异常
-                info.tendbclusterstorageset.delete()
+                if hasattr(info, "tendbclusterstorageset"):
+                    info.tendbclusterstorageset.delete()
                 info.delete()
             s.delete(keep_parents=True)
         machine.delete(keep_parents=True)

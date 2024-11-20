@@ -14,14 +14,17 @@ from collections import defaultdict
 from typing import Any, Dict, List, Union
 
 from django.db import models, transaction
+from django.db.models import Q
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 
 from backend import env
 from backend.bk_web.constants import LEN_L_LONG, LEN_LONG, LEN_NORMAL, LEN_SHORT
 from backend.bk_web.models import AuditedModel
-from backend.configuration.constants import PLAT_BIZ_ID, DBType, SystemSettingsEnum
+from backend.configuration.constants import SystemSettingsEnum
 from backend.configuration.models import SystemSettings
+from backend.configuration.constants import PLAT_BIZ_ID, DBType
+from backend.db_meta.enums import InstancePhase
 from backend.db_monitor.exceptions import AutofixException
 from backend.db_services.dbbase.constants import IpDest
 from backend.ticket.constants import (
@@ -242,38 +245,50 @@ class Ticket(AuditedModel):
         return ticket
 
     @classmethod
-    def create_recycle_ticket(cls, ticket_id: int, ip_dest: IpDest):
+    def create_recycle_ticket(cls, revoke_ticket_id: int):
         """
         从一个终止单据派生产生另一个清理单据
-        :param ticket_id: 终止单据ID
-        :param ip_dest: 机器流向
+        :param revoke_ticket_id: 终止单据ID
         """
         from backend.ticket.builders import BuilderFactory
 
-        ticket = cls.objects.get(id=ticket_id)
+        revoke_ticket = cls.objects.get(id=revoke_ticket_id)
         # 忽略非回收单据
-        if ticket.ticket_type not in BuilderFactory.apply_ticket_type:
+        if revoke_ticket.ticket_type not in BuilderFactory.apply_ticket_type:
             return None
 
-        # 创建回收单据流程
+        # 获取回收机器，
+        # 判定是否允许回收：主机的实例的phase不能是online
+        from backend.db_meta.models import Machine
         from backend.ticket.builders.common.base import fetch_apply_hosts
 
+        recycle_hosts = fetch_apply_hosts(revoke_ticket.details)
+        if not recycle_hosts:
+            return
+
+        host_ids = [host["bk_host_id"] for host in recycle_hosts]
+        online_filter = Q(storageinstance__phase=InstancePhase.ONLINE) | Q(proxyinstance__phase=InstancePhase.ONLINE)
+        if Machine.objects.filter(online_filter, bk_host_id__in=host_ids).count():
+            return
+
+        # 创建回收单据流程，SQLServer暂时回收到故障池
+        ip_dest = IpDest.Fault if revoke_ticket.group == DBType.Sqlserver else IpDest.Resource
         details = {
-            "recycle_hosts": fetch_apply_hosts(ticket.details),
-            "ip_recycle": {"ip_dest": ip_dest, "for_biz": ticket.bk_biz_id},
-            "group": ticket.group,
+            "recycle_hosts": recycle_hosts,
+            "ip_recycle": {"ip_dest": ip_dest, "for_biz": revoke_ticket.bk_biz_id},
+            "group": revoke_ticket.group,
         }
         recycle_ticket = cls.create_ticket(
             ticket_type=TicketType.RECYCLE_HOST,
-            creator=ticket.creator,
-            bk_biz_id=ticket.bk_biz_id,
-            remark=_("单据{}终止后自动发起清理机器单据").format(ticket.id),
+            creator=revoke_ticket.creator,
+            bk_biz_id=revoke_ticket.bk_biz_id,
+            remark=_("单据{}终止后自动发起清理机器单据").format(revoke_ticket.id),
             details=details,
         )
 
         # 对原单据动态插入一个描述flow，关联这个回收单
         Flow.objects.create(
-            ticket=ticket,
+            ticket=revoke_ticket,
             flow_type=FlowType.DELIVERY.value,
             details={"recycle_ticket": recycle_ticket.id},
             flow_alias=_("申请主机清理释放"),

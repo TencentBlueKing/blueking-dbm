@@ -95,7 +95,7 @@ class MysqlRestoreSlaveResourceParamBuilder(BaseOperateResourceParamBuilder):
         # TODO: 后续改造为，尽量与原slave一致，不一致再满足亲和性
         slave_host_ids = [s["bk_host_id"] for info in ticket_data["infos"] for s in info["old_nodes"]["old_slave"]]
         slaves = StorageInstance.objects.prefetch_related("as_receiver__ejector__machine", "machine").filter(
-            machine__bk_host_id__in=slave_host_ids, cluster_type=ClusterType.TenDBHA
+            machine__bk_host_id__in=slave_host_ids
         )
         slave_host_map = {slave.machine.bk_host_id: slave for slave in slaves}
         for info in ticket_data["infos"]:

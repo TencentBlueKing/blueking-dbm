@@ -6,7 +6,7 @@ from django.db import migrations
 class Migration(migrations.Migration):
 
     dependencies = [
-        ("db_meta", "0043_auto_20241014_1042"),
+        ("db_meta", "0044_deviceclass"),
         ("db_meta", "0043_auto_20241015_2128"),
     ]
 

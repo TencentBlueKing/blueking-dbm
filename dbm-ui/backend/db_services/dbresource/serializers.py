@@ -20,7 +20,7 @@ from backend.db_dirty.constants import MachineEventType
 from backend.db_meta.enums import InstanceRole
 from backend.db_meta.enums.spec import SpecClusterType, SpecMachineType
 from backend.db_meta.models import Spec
-from backend.db_meta.models.machine import DeviceClass
+from backend.db_meta.models.machine import DeviceClass, Machine
 from backend.db_services.dbresource import mock
 from backend.db_services.dbresource.constants import ResourceGroupByEnum, ResourceOperation
 from backend.db_services.dbresource.mock import (
@@ -47,6 +47,13 @@ class ResourceImportSerializer(serializers.Serializer):
     bk_biz_id = serializers.IntegerField(help_text=_("机器当前所属的业务id	"), default=env.DBA_APP_BK_BIZ_ID)
     hosts = serializers.ListSerializer(help_text=_("主机"), child=HostInfoSerializer())
     labels = serializers.ListField(help_text=_("标签"), child=serializers.CharField(), required=False)
+
+    def validate(self, attrs):
+        # 如果主机存在源数据，则拒绝导入
+        host_ids = [host["host_id"] for host in attrs["hosts"]]
+        exist_hosts = list(Machine.objects.filter(bk_host_id__in=host_ids).values_list("ip", flat=True))
+        if exist_hosts:
+            raise serializers.ValidationError(_("导入主机{}存在元数据，请检查后重新导入").format(exist_hosts))
 
 
 class ResourceApplySerializer(serializers.Serializer):

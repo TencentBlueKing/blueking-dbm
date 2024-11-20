@@ -38,7 +38,7 @@ class KafkaShrinkDetailSerializer(BigDataSingleClusterOpsDetailsSerializer):
         super().validate(attrs)
 
         role_hash = {
-            InstanceRole.BROKER: attrs["nodes"]["broker"],
+            InstanceRole.BROKER: attrs["old_nodes"]["broker"],
         }
 
         cluster = Cluster.objects.get(id=attrs["cluster_id"])

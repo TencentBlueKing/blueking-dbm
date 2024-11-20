@@ -20,7 +20,7 @@ from backend.ticket.constants import FlowRetryType, TicketType
 
 
 class SQLServerDestroyDetailSerializer(SQLServerTakeDownDetailsSerializer):
-    ip_recycle = HostRecycleSerializer(help_text=_("主机回收信息"), default=HostRecycleSerializer.DEFAULT)
+    ip_recycle = HostRecycleSerializer(help_text=_("主机回收信息"), default=HostRecycleSerializer.FAULT_DEFAULT)
 
 
 class SQLServerDestroyFlowParamBuilder(builders.FlowParamBuilder):

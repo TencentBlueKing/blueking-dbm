@@ -18,6 +18,7 @@ from backend.db_meta.models import Tag
 class TagListFilter(filters.FilterSet):
     key = filters.CharFilter(field_name="key", lookup_expr="icontains", label=_("键"))
     value = filters.CharFilter(field_name="value", lookup_expr="icontains", label=_("值"))
+    ids = filters.CharFilter(field_name="ids", method="filter_ids", label=_("tag id列表"))
 
     class Meta:
         model = Tag
@@ -25,3 +26,7 @@ class TagListFilter(filters.FilterSet):
             "bk_biz_id": ["exact"],
             "type": ["exact"],
         }
+
+    def filter_ids(self, queryset, name, value):
+        ids = list(map(int, value.split(",")))
+        return queryset.filter(id__in=ids)

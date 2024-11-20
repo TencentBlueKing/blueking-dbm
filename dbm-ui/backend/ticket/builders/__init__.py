@@ -269,8 +269,18 @@ class RecycleParamBuilder(FlowParamBuilder):
     """
 
     controller_map = {
-        DBType.MySQL.value: "MySQLController.mysql_machine_clear_scene",
-        DBType.TenDBCluster.value: "MySQLController.mysql_machine_clear_scene",
+        DBType.MySQL.value: "mysql.MySQLController.mysql_machine_clear_scene",
+        DBType.TenDBCluster.value: "spider.SpiderController.tendbcluster_machine_clear_scene",
+        DBType.Doris.value: "doris.DorisController.doris_machine_clear_scene",
+        DBType.Kafka.value: "kafka.KafkaController.kafka_machine_clear_scene",
+        DBType.Es.value: "es.EsController.es_machine_clear_scene",
+        DBType.Hdfs.value: "hdfs.HdfsController.hdfs_machine_clear_scene",
+        DBType.Pulsar.value: "pulsar.PulsarController.pulsar_machine_clear_scene",
+        DBType.Vm.value: "vm.VmController.vm_machine_clear_scene",
+        # TODO redis，sqlserver，mongo清理流程暂时没有
+        DBType.Redis.value: "",
+        DBType.Sqlserver.value: "",
+        DBType.MongoDB.value: "",
     }
 
     def __init__(self, ticket: Ticket):
@@ -280,9 +290,13 @@ class RecycleParamBuilder(FlowParamBuilder):
 
     def build_controller_info(self) -> dict:
         db_type = self.ticket_data["db_type"]
-        class_name, flow_name = self.controller_map[db_type].split(".")
-        module = importlib.import_module(f"backend.flow.engine.controller.{db_type}")
+        # TODO: 暂时兼容没有清理流程的组件，默认用mysql
+        clear_db_type = db_type if self.controller_map.get(db_type) else DBType.MySQL.value
+
+        file_name, class_name, flow_name = self.controller_map[clear_db_type].split(".")
+        module = importlib.import_module(f"backend.flow.engine.controller.{file_name}")
         self.controller = getattr(getattr(module, class_name), flow_name)
+
         return super().build_controller_info()
 
     def format_ticket_data(self):

@@ -8,7 +8,6 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-import itertools
 import operator
 from functools import reduce
 
@@ -54,8 +53,6 @@ class RedisDataStructureTaskDeleteDetailSerializer(SkipToRepresentationMixin, se
 
             # 填写域名
             attr["prod_cluster"] = prod_cluster.immute_domain
-            # 填写构造任务，patch函数用
-            attr["datastruct_tasks"] = tasks
             return attr
 
     infos = serializers.ListField(help_text=_("批量操作参数列表"), child=InfoSerializer())
@@ -77,18 +74,22 @@ class RedisDataStructureTaskDeleteFlowBuilder(BaseRedisTicketFlowBuilder):
     def patch_datastruct_delete_nodes(self):
         drop_machine_filters = []
         for info in self.ticket.details["infos"]:
-            tasks = info.pop("datastruct_tasks")
-            instances = itertools.chain(*[task.temp_instance_range for task in tasks])
+            # 获取销毁任务
+            task = TbTendisRollbackTasks.objects.get(
+                related_rollback_bill_id=info.get("related_rollback_bill_id"),
+                prod_cluster=info["prod_cluster"],
+                bk_cloud_id=info.get("bk_cloud_id"),
+                destroyed_status=DestroyedStatus.NOT_DESTROYED,
+            )
+            # 过滤销毁实例的主机
             filters = [
-                Q(bk_biz_id=tasks[0].bk_biz_id, bk_cloud_id=tasks[0].bk_cloud_id, ip=instance.split(":")[0])
-                for instance in instances
+                Q(bk_biz_id=task.bk_biz_id, bk_cloud_id=task.bk_cloud_id, ip=instance.split(":")[0])
+                for instance in task.temp_instance_range
             ]
             drop_machine_filters.extend(filters)
 
-        drop_machines = Machine.objects.filter(reduce(operator.or_, drop_machine_filters))
-        self.ticket.details["old_nodes"]["datastruct_hosts"] = [
-            {"ip": host.ip, "bk_host_id": host.bk_host_id} for host in drop_machines
-        ]
+        old_nodes = Machine.objects.filter(reduce(operator.or_, drop_machine_filters)).values("ip", "bk_host_id")
+        self.ticket.details["old_nodes"] = {"datastruct_hosts": list(old_nodes)}
 
     def patch_ticket_detail(self):
         self.patch_datastruct_delete_nodes()

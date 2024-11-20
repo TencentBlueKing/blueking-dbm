@@ -57,7 +57,6 @@ class RedisClusterCutOffParamBuilder(builders.FlowParamBuilder):
     controller = RedisController.redis_cluster_cutoff_scene
 
     def format_ticket_data(self):
-        self.ticket_data.pop("old_nodes")
         super().format_ticket_data()
 
 

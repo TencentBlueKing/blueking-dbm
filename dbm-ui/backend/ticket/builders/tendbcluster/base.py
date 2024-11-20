@@ -103,10 +103,14 @@ class TendbBaseOperateDetailSerializer(MySQLBaseOperateDetailSerializer):
                 Q(tendbclusterspiderext__spider_role=TenDBClusterSpiderRole.SPIDER_MASTER)
                 | Q(tendbclusterspiderext__spider_role=TenDBClusterSpiderRole.SPIDER_MNT)
             ).count()
-            if self.context["ticket_type"] == TicketType.TENDBCLUSTER_SPIDER_ADD_NODES:
-                new_add_count = info["resource_spec"]["spider_ip_list"]["count"]
-            else:
+            # 获取扩容的spider数量
+            if "spider_ip_list" in info:
                 new_add_count = len(info["spider_ip_list"])
+            else:
+                spider_ip_list = info["resource_spec"]["spider_ip_list"]
+                if "count" not in info["resource_spec"]["spider_ip_list"]:
+                    spider_ip_list["count"] = len(spider_ip_list["hosts"])
+                new_add_count = spider_ip_list["count"]
 
             if spider_master_mnt_count + new_add_count > MAX_SPIDER_MASTER_COUNT:
                 raise serializers.ValidationError(_("【{}】请保证集群部署的接入层主节点和运维节点的总和小于37").format(cluster.name))
@@ -122,7 +126,7 @@ class TendbBaseOperateDetailSerializer(MySQLBaseOperateDetailSerializer):
             ).count()
 
             if not info.get("spider_reduced_to_count"):
-                info["spider_reduced_to_count"] = spider_node_count - len(info["spider_reduced_hosts"])
+                info["spider_reduced_to_count"] = spider_node_count - len(info["old_nodes"]["spider_reduced_hosts"])
 
             spider_reduced_to_count = info["spider_reduced_to_count"]
             if spider_reduced_to_count >= spider_node_count:

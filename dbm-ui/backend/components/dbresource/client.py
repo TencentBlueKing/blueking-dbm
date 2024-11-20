@@ -106,6 +106,9 @@ class _DBResourceApi(BaseApi):
         self.resource_summary = self.generate_data_api(
             method="POST", url="/statistic/summary", description=_("按照条件聚合资源统计")
         )
+        self.resource_label_count = self.generate_data_api(
+            method="POST", url="/groupby/label/count", description=_("按照标签统计资源数量")
+        )
 
 
 DBResourceApi = _DBResourceApi()

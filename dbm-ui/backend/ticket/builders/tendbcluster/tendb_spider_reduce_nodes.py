@@ -45,7 +45,7 @@ class TendbSpiderReduceNodesFlowParamBuilder(builders.FlowParamBuilder):
     controller = SpiderController.reduce_spider_nodes_scene
 
     def format_ticket_data(self):
-        for info in self.ticket_data:
+        for info in self.ticket_data["infos"]:
             info["spider_reduced_hosts"] = info.pop("old_nodes")["spider_reduced_hosts"]
 
 
@@ -68,10 +68,12 @@ class TendbSpiderReduceNodesFlowBuilder(BaseTendbTicketFlowBuilder):
 
             cluster = cluster_map[info["cluster_id"]]
             reduce_spider_role = info["reduce_spider_role"]
+            info["old_nodes"] = {}
+
             # 获取目标角色的spider
             spider_set = [
                 proxy
-                for proxy in cluster.proxyinstance_set
+                for proxy in cluster.proxyinstance_set.all()
                 if proxy.tendbclusterspiderext.spider_role == reduce_spider_role
             ]
             spider_count = len(spider_set)
@@ -82,7 +84,7 @@ class TendbSpiderReduceNodesFlowBuilder(BaseTendbTicketFlowBuilder):
             except_reduce_spiders = [spider for spider in spider_set if spider.machine.ip != ctl_primary_ip]
             info["old_nodes"]["spider_reduced_hosts"] = [
                 {"ip": s.machine.ip, "bk_host_id": s.machine.bk_host_id}
-                for s in except_reduce_spiders[: spider_count - reduce_spider_role]
+                for s in except_reduce_spiders[: spider_count - info["spider_reduced_to_count"]]
             ]
 
     def patch_ticket_detail(self):

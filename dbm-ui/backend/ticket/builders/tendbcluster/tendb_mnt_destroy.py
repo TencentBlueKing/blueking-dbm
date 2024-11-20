@@ -14,7 +14,7 @@ from rest_framework import serializers
 
 from backend.flow.engine.controller.spider import SpiderController
 from backend.ticket import builders
-from backend.ticket.builders.common.base import HostRecycleSerializer
+from backend.ticket.builders.common.base import HostInfoSerializer, HostRecycleSerializer
 from backend.ticket.builders.tendbcluster.base import BaseTendbTicketFlowBuilder, TendbBaseOperateDetailSerializer
 from backend.ticket.constants import TicketType
 
@@ -22,7 +22,7 @@ from backend.ticket.constants import TicketType
 class TendbMNTDestroyDetailSerializer(TendbBaseOperateDetailSerializer):
     class MNTDestroySerializer(serializers.Serializer):
         class OldMNTSerializer(serializers.Serializer):
-            spider_ip_list = serializers.ListField(child=serializers.DictField())
+            spider_ip_list = serializers.ListField(child=HostInfoSerializer())
 
         cluster_id = serializers.IntegerField(help_text=_("集群ID"))
         old_nodes = OldMNTSerializer(help_text=_("运维节点信息"))
@@ -38,6 +38,10 @@ class TendbMNTDestroyDetailSerializer(TendbBaseOperateDetailSerializer):
 
 class TendbMNTDestroyParamBuilder(builders.FlowParamBuilder):
     controller = SpiderController.reduce_spider_mnt_scene
+
+    def format_ticket_data(self):
+        for info in self.ticket_data["infos"]:
+            info["spider_ip_list"] = info.pop("old_nodes")["spider_ip_list"]
 
 
 @builders.BuilderFactory.register(TicketType.TENDBCLUSTER_SPIDER_MNT_DESTROY, is_recycle=True)

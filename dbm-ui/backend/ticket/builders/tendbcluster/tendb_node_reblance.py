@@ -94,3 +94,6 @@ class TendbMNTApplyFlowBuilder(BaseTendbTicketFlowBuilder):
     resource_batch_apply_builder = TendbNodeRebalanceResourceParamBuilder
     inner_flow_name = _("TendbCluster 集群容量变更")
     need_patch_recycle_cluster_details = True
+
+    def patch_recycle_cluster_details(self):
+        super().patch_recycle_cluster_details(role="backend")

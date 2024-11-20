@@ -40,9 +40,9 @@ class DorisShrinkDetailSerializer(BigDataSingleClusterOpsDetailsSerializer):
         super().validate(attrs)
 
         role_hash = {
-            InstanceRole.DORIS_BACKEND_HOT: attrs["nodes"]["hot"],
-            InstanceRole.DORIS_BACKEND_COLD: attrs["nodes"]["cold"],
-            InstanceRole.DORIS_OBSERVER: attrs["nodes"]["observer"],
+            InstanceRole.DORIS_BACKEND_HOT: attrs["old_nodes"]["hot"],
+            InstanceRole.DORIS_BACKEND_COLD: attrs["old_nodes"]["cold"],
+            InstanceRole.DORIS_OBSERVER: attrs["old_nodes"]["observer"],
         }
 
         cluster = Cluster.objects.get(id=attrs["cluster_id"])

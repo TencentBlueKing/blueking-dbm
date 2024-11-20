@@ -90,12 +90,37 @@ class MysqlMigrateUpgradeParamBuilder(MysqlMasterSlaveSwitchParamBuilder):
 
 
 class MysqlMigrateUpgradeResourceParamBuilder(BaseOperateResourceParamBuilder):
+    def auto_patch_info(self, info, info_index, nodes, cluster):
+        info["new_master"] = nodes[f"{info_index}_backend_group"][0]["master"]
+        info["new_slave"] = nodes[f"{info_index}_backend_group"][0]["slave"]
+        info["ro_slaves"] = [
+            {
+                "old_ro_slave": {
+                    "bk_cloud_id": slave.machine.bk_cloud_id,
+                    "bk_host_id": slave.machine.bk_host_id,
+                    "ip": slave.machine.ip,
+                },
+                "new_ro_slave": nodes[f"{info_index}_{slave.machine.bk_host_id}"][0],
+            }
+            for slave in cluster.storageinstance_set.all()
+            if slave.instance_role == InstanceRole.BACKEND_SLAVE and not slave.is_stand_by
+        ]
+
+    def manual_patch_info(self, info, info_index, cluster, nodes):
+        info["new_master"] = info["new_master"][0]
+        info["new_slave"] = info["new_slave"][0]
+        info["ro_slaves"] = [
+            {"old_ro_slave": slave["old_slave"], "new_ro_slave": slave["new_slave"]}
+            for slave in info.pop("read_only_slaves", [])
+        ]
+        # 弹出read_only_new_slave，这个key仅作资源池申请
+        info.pop("read_only_new_slave")
+
     def post_callback(self):
         # 通过资源池获取到的节点
         nodes = self.ticket_data.pop("nodes", [])
 
         cluster_ids = list(itertools.chain(*[infos["cluster_ids"] for infos in self.ticket.details["infos"]]))
-
         id_cluster_map = Cluster.objects.prefetch_related(
             "storageinstance_set", "storageinstance_set__machine"
         ).in_bulk(cluster_ids, field_name="id")
@@ -105,21 +130,10 @@ class MysqlMigrateUpgradeResourceParamBuilder(BaseOperateResourceParamBuilder):
 
         ticket_data = next_flow.details["ticket_data"]
         for info_index, info in enumerate(ticket_data["infos"]):
+            # 兼容资源池手动输入和自动匹配的协议
             cluster = id_cluster_map[info["cluster_ids"][0]]
-            info["new_master"] = nodes[f"{info_index}_backend_group"][0]["master"]
-            info["new_slave"] = nodes[f"{info_index}_backend_group"][0]["slave"]
-            info["ro_slaves"] = [
-                {
-                    "old_ro_slave": {
-                        "bk_cloud_id": slave.machine.bk_cloud_id,
-                        "bk_host_id": slave.machine.bk_host_id,
-                        "ip": slave.machine.ip,
-                    },
-                    "new_ro_slave": nodes[f"{info_index}_{slave.machine.bk_host_id}"][0],
-                }
-                for slave in cluster.storageinstance_set.all()
-                if slave.instance_role == InstanceRole.BACKEND_SLAVE and not slave.is_stand_by
-            ]
+            # self.auto_patch_info(info, info_index, nodes, cluster)
+            self.manual_patch_info(info, info_index, cluster, nodes)
             ticket_data["infos"][info_index] = info
 
         next_flow.save(update_fields=["details"])
@@ -134,21 +148,12 @@ class MysqlMigrateUpgradeFlowBuilder(MysqlMasterSlaveSwitchFlowBuilder):
     resource_batch_apply_builder = MysqlMigrateUpgradeResourceParamBuilder
     need_patch_recycle_host_details = True
 
-    def patch_ticket_detail(self):
-        """mysql_master -> backend_group"""
-        # 主从构成 backend group
-        # 只读从库（非 standby） 各自单独成组
-        super().patch_ticket_detail()
-
+    def patch_auto_match_resource_spec(self, id_cluster_map):
+        # 自动匹配补充规格信息
         resource_spec = {}
-        cluster_ids = list(itertools.chain(*[infos["cluster_ids"] for infos in self.ticket.details["infos"]]))
-        id_cluster_map = Cluster.objects.prefetch_related(
-            "storageinstance_set", "storageinstance_set__machine"
-        ).in_bulk(cluster_ids, field_name="id")
-
         for info in self.ticket.details["infos"]:
-            cluster = id_cluster_map[info["cluster_ids"][0]]
             # 主从规格
+            cluster = id_cluster_map[info["cluster_ids"][0]]
             ins = cluster.storageinstance_set.first()
             resource_spec["backend_group"] = {
                 "spec_id": ins.machine.spec_id,
@@ -165,8 +170,33 @@ class MysqlMigrateUpgradeFlowBuilder(MysqlMasterSlaveSwitchFlowBuilder):
                         "location_spec": {"city": cluster.region, "sub_zone_ids": [ins.machine.bk_sub_zone_id]},
                         "affinity": AffinityEnum.NONE.value,
                     }
+                    info["old_nodes"]["old_slave"].append(ins.machine.simple_desc)
+            # 覆写resource_spec
             info["resource_spec"] = resource_spec
-            # 补充下架机器的信息
-            MysqlMigrateClusterFlowBuilder.get_old_master_slave_host(info)
 
-        self.ticket.save(update_fields=["details"])
+    def patch_manual_match_resource_spec(self, id_cluster_map):
+        # 手动匹配补充规格信息
+        for info in self.ticket.details["infos"]:
+            read_only_new_slave = [slave["new_slave"] for slave in info["read_only_slaves"]]
+            read_only_old_slave = [slave["old_slave"] for slave in info["read_only_slaves"]]
+            info["old_nodes"]["old_slave"].extend(read_only_old_slave)
+            info["resource_spec"]["read_only_new_slave"] = {"spec_id": 0, "hosts": read_only_new_slave}
+
+    def patch_ticket_detail(self):
+        """mysql_master -> backend_group"""
+        # 主从构成 backend group
+        # 只读从库（非 standby） 各自单独成组
+
+        cluster_ids = list(itertools.chain(*[infos["cluster_ids"] for infos in self.ticket.details["infos"]]))
+        id_cluster_map = Cluster.objects.prefetch_related(
+            "storageinstance_set", "storageinstance_set__machine"
+        ).in_bulk(cluster_ids, field_name="id")
+
+        # 补充下架机器的信息
+        MysqlMigrateClusterFlowBuilder.get_old_master_slave_host(self.ticket.details["infos"], id_cluster_map)
+        # 补充自动匹配的资源池信息
+        # self.patch_auto_match_resource_spec(id_cluster_map)
+        # 兼容方案，先走资源池手动匹配协议
+        self.patch_manual_match_resource_spec(id_cluster_map)
+        # 补充通用单据信息
+        super().patch_ticket_detail()

@@ -57,7 +57,9 @@ class MySQLFixPointRollbackDetailSerializer(MySQLBaseOperateDetailSerializer):
     @classmethod
     def validate_rollback_info(cls, rollback_cluster_type, info, now):
         # 校验回档集群类型参数
-        if rollback_cluster_type == RollbackBuildClusterType.BUILD_INTO_NEW_CLUSTER and not info.get("rollback_host"):
+        if rollback_cluster_type == RollbackBuildClusterType.BUILD_INTO_NEW_CLUSTER and not (
+            info.get("rollback_host") or info.get("resource_spec")
+        ):
             raise serializers.ValidationError(_("请提供部署新集群的机器信息"))
 
         if rollback_cluster_type != RollbackBuildClusterType.BUILD_INTO_NEW_CLUSTER and not info.get(
@@ -102,8 +104,9 @@ class MySQLFixPointRollbackFlowParamBuilder(builders.FlowParamBuilder):
             info["rollback_type"] = f"{info['backup_source'].upper()}_AND_{op_type}"
             # 格式化定点回档部署的信息
             if rollback_cluster_type == RollbackBuildClusterType.BUILD_INTO_NEW_CLUSTER:
-                info["rollback_ip"] = info["rollback_host"]["ip"]
-                info["bk_rollback"] = info.pop("rollback_host")
+                if self.ticket_data["ip_source"] == IpSource.MANUAL_INPUT:
+                    info["rollback_ip"] = info["rollback_host"]["ip"]
+                    info["bk_rollback"] = info.pop("rollback_host")
             else:
                 info["rollback_cluster_id"] = info.pop("target_cluster_id")
 
@@ -122,12 +125,12 @@ class MysqlFixPointRollbackResourceParamBuilder(BaseOperateResourceParamBuilder)
     def post_callback(self):
         next_flow = self.ticket.next_flow()
         for info in next_flow.details["ticket_data"]["infos"]:
-            info["rollback_ip"] = info["rollback_host"]["ip"]
-            info["bk_rollback"] = info.pop("rollback_host")
+            info["rollback_ip"] = info["rollback_host"][0]["ip"]
+            info["bk_rollback"] = info.pop("rollback_host")[0]
         next_flow.save(update_fields=["details"])
 
 
-@builders.BuilderFactory.register(TicketType.MYSQL_ROLLBACK_CLUSTER)
+@builders.BuilderFactory.register(TicketType.MYSQL_ROLLBACK_CLUSTER, is_apply=True)
 class MysqlFixPointRollbackFlowBuilder(BaseMySQLTicketFlowBuilder):
     serializer = MySQLFixPointRollbackDetailSerializer
     inner_flow_builder = MySQLFixPointRollbackFlowParamBuilder

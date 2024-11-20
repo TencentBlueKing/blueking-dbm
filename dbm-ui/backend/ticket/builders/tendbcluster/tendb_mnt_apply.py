@@ -25,7 +25,7 @@ class TendbMNTApplyDetailSerializer(TendbBaseOperateDetailSerializer):
     class MNTApplySerializer(serializers.Serializer):
         cluster_id = serializers.IntegerField(help_text=_("集群ID"))
         bk_cloud_id = serializers.IntegerField(help_text=_("云区域ID"))
-        spider_ip_list = serializers.ListField(help_text=_("运维节点信息"), child=serializers.DictField())
+        spider_ip_list = serializers.ListField(help_text=_("运维节点信息"), child=serializers.DictField(), required=False)
         resource_spec = serializers.JSONField(help_text=_("资源规格参数"), required=False)
 
     infos = serializers.ListField(help_text=_("添加spider运维节点信息"), child=MNTApplySerializer())

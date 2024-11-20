@@ -22,7 +22,7 @@ from backend.db_services.redis.constants import KeyDeleteType
 from backend.ticket import builders
 from backend.ticket.builders import TicketFlowBuilder
 from backend.ticket.builders.common.base import RedisTicketFlowBuilderPatchMixin, SkipToRepresentationMixin
-from backend.ticket.constants import CheckRepairFrequencyType, DataCheckRepairSettingType
+from backend.ticket.constants import CheckRepairFrequencyType, DataCheckRepairSettingType, FlowType
 
 KEY_FILE_PREFIX = "/redis/keyfiles/{biz}"
 
@@ -122,6 +122,7 @@ class DataCheckRepairSettingSerializer(serializers.Serializer):
 class RedisUpdateApplyResourceParamBuilder(builders.ResourceApplyParamBuilder):
     def post_callback(self):
         next_flow = self.ticket.next_flow()
+        drop_proxy_hosts = []
         for info in next_flow.details["ticket_data"]["infos"]:
             group_num = info["resource_spec"]["backend_group"]["count"]
             shard_num = info["cluster_shard_num"]
@@ -141,7 +142,21 @@ class RedisUpdateApplyResourceParamBuilder(builders.ResourceApplyParamBuilder):
                 # 分片数
                 shard_num=shard_num,
             )
+            # 新proxy也会下架，这里需要加入到old_nodes里面
+            drop_proxy_hosts.extend(info["proxy"])
+
         next_flow.save(update_fields=["details"])
+
+        # 将下架的新proxy更新到清理流程中
+        recycle_flow = self.ticket.flows.get(flow_type=FlowType.HOST_RECYCLE)
+        recycle_flow.details["ticket_data"]["clear_hosts"].extend(drop_proxy_hosts)
+        recycle_flow.save(update_fields=["details"])
+
+        # 如果有导入资源池流程，则将新proxy加入
+        resource_flow = self.ticket.flows.filter(flow_type=FlowType.HOST_IMPORT_RESOURCE).first()
+        if resource_flow:
+            resource_flow.details["ticket_data"]["hosts"].extend(drop_proxy_hosts)
+            resource_flow.save(update_fields=["details"])
 
 
 class ClusterValidateMixin(object):

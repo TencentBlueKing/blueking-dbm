@@ -111,7 +111,7 @@ class SpiderDBMeta(object):
             "domain": domain,
             "add_spiders": self.global_data["spider_ip_list"],
             "spider_role": spider_role,
-            "resource_spec": self.global_data.get("resource_spec", default_spider_spec),
+            "resource_spec": self.global_data.get("resource_spec") or default_spider_spec,
             "is_slave_cluster_create": False,
         }
         TenDBClusterClusterHandler.add_spiders(**kwargs)

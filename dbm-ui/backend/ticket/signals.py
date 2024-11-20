@@ -8,8 +8,9 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+from backend.ticket.constants import FlowType, TicketFlowStatus
 from backend.ticket.flow_manager.manager import TicketFlowManager
-from backend.ticket.models import Flow
+from backend.ticket.models import Flow, Ticket
 
 
 def update_ticket_status(sender, instance: Flow, **kwargs):
@@ -18,4 +19,9 @@ def update_ticket_status(sender, instance: Flow, **kwargs):
     """
     if not instance.pk:
         return
+
+    # 如果是inner flow的终止，要联动回收主机
+    if instance.flow_type == FlowType.INNER_FLOW and instance.status == TicketFlowStatus.TERMINATED:
+        Ticket.create_recycle_ticket(revoke_ticket_id=instance.ticket.id)
+
     TicketFlowManager(instance.ticket).update_ticket_status()

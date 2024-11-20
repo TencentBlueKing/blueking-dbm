@@ -32,15 +32,15 @@ class PulsarShrinkDetailSerializer(BigDataSingleClusterOpsDetailsSerializer):
         broker = serializers.ListField(help_text=_("broker信息列表"), child=serializers.DictField())
         bookkeeper = serializers.ListField(help_text=_("bookkeeper信息列表"), child=serializers.DictField())
 
-    old_nodes = serializers.JSONField(help_text=_("节点列表信息"), required=False)
+    old_nodes = NodesSerializer(help_text=_("下架节点信息"))
     ip_recycle = HostRecycleSerializer(help_text=_("主机回收信息"), default=HostRecycleSerializer.DEFAULT)
 
     def validate(self, attrs):
         super().validate(attrs)
 
         role_hash = {
-            InstanceRole.PULSAR_BROKER: attrs["nodes"]["broker"],
-            InstanceRole.PULSAR_BOOKKEEPER: attrs["nodes"]["bookkeeper"],
+            InstanceRole.PULSAR_BROKER: attrs["old_nodes"]["broker"],
+            InstanceRole.PULSAR_BOOKKEEPER: attrs["old_nodes"]["bookkeeper"],
         }
 
         at_least = {

@@ -82,7 +82,10 @@ class Cluster(AuditedModel):
 
     def to_dict(self):
         """将集群所有字段转为字段"""
-        return {**model_to_dict(self), "cluster_type_name": str(ClusterType.get_choice_label(self.cluster_type))}
+        return {
+            **model_to_dict(self, exclude=["tags"]),
+            "cluster_type_name": str(ClusterType.get_choice_label(self.cluster_type)),
+        }
 
     @property
     def simple_desc(self):
@@ -402,16 +405,18 @@ class Cluster(AuditedModel):
         self.refresh_from_db()
 
     @classmethod
-    def get_cluster_related_machines(cls, cluster_ids: List[int]) -> List:
+    def get_cluster_related_machines(cls, cluster_ids: List[int], role: str = None) -> List:
         """
         通过集群id查询集群关联的所有主机信息，即实例所在的主机
         """
         from backend.db_meta.models import Machine
 
         clusters = Cluster.objects.filter(id__in=cluster_ids)
-        host_ids = set(clusters.values_list("storageinstance__machine__bk_host_id", flat=True)) | set(
-            clusters.values_list("proxyinstance__machine__bk_host_id", flat=True)
-        )
+        host_ids = set()
+        if not role or role == "backend":
+            host_ids |= set(clusters.values_list("storageinstance__machine__bk_host_id", flat=True))
+        if not role or role == "proxy":
+            host_ids |= set(clusters.values_list("proxyinstance__machine__bk_host_id", flat=True))
         machines = Machine.objects.filter(bk_host_id__in=host_ids)
         return machines
 

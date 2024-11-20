@@ -137,7 +137,8 @@ class InstanceInfoSerializer(HostInfoSerializer):
 class HostRecycleSerializer(serializers.Serializer):
     """主机回收信息"""
 
-    DEFAULT = {"for_biz": PLAT_BIZ_ID, "ip_dest": IpDest.Resource}
+    DEFAULT = {"for_biz": PLAT_BIZ_ID, "ip_dest": IpDest.Resource.value}
+    FAULT_DEFAULT = {"for_biz": PLAT_BIZ_ID, "ip_dest": IpDest.Fault.value}
 
     for_biz = serializers.IntegerField(help_text=_("目标业务"), required=False, default=PLAT_BIZ_ID)
     ip_dest = serializers.ChoiceField(help_text=_("机器流向"), choices=IpDest.get_choices(), default=IpDest.Fault)
@@ -507,10 +508,10 @@ class BaseTicketFlowBuilderPatchMixin(object):
             return
         self.ticket.details["recycle_hosts"] = ResourceHandler.standardized_resource_host(recycle_hosts, bk_biz_id)
 
-    def patch_recycle_cluster_details(self):
+    def patch_recycle_cluster_details(self, role=None):
         """补充集群下架后回收主机信息，在下架类单据一定调用此方法"""
         bk_biz_id = self.ticket.bk_biz_id
-        recycle_hosts = Cluster.get_cluster_related_machines(fetch_cluster_ids(self.ticket.details))
+        recycle_hosts = Cluster.get_cluster_related_machines(fetch_cluster_ids(self.ticket.details), role)
         recycle_hosts = [{"bk_host_id": host.bk_host_id} for host in recycle_hosts]
         self.ticket.details["recycle_hosts"] = ResourceHandler.standardized_resource_host(recycle_hosts, bk_biz_id)
 

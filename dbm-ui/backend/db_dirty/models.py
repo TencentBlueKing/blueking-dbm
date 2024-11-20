@@ -59,15 +59,18 @@ class DirtyMachine(AuditedModel):
         host_ids = [host["bk_host_id"] for host in hosts]
 
         # 主机转入污点/故障池，说明第一次被纳管到池
-        if pool in [PoolType.Fault, PoolType.Dirty]:
-            hosts_pool = [
-                cls(bk_biz_id=bk_biz_id, pool=pool, ticket=ticket, creator=operator, updater=operator, **host)
-                for host in hosts
-            ]
-            cls.objects.bulk_create(hosts_pool)
-        # 待回收只会从故障池转移
-        elif pool == PoolType.Recycle:
-            cls.objects.filter(bk_host_id__in=host_ids).update(pool=pool, ticket=ticket)
+        # 待回收会从故障池、资源池转移
+        # 因此这里判断主机不存在就创建，否则更新
+        if pool in [PoolType.Fault, PoolType.Dirty, PoolType.Recycle]:
+            handle_hosts = cls.objects.filter(bk_host_id__in=host_ids)
+            if handle_hosts.count() == len(host_ids):
+                handle_hosts.update(pool=pool, ticket=ticket)
+            else:
+                handle_hosts = [
+                    cls(bk_biz_id=bk_biz_id, pool=pool, ticket=ticket, creator=operator, updater=operator, **host)
+                    for host in hosts
+                ]
+                cls.objects.bulk_create(handle_hosts)
         # 回收机器只能从待回收转移，删除池纳管记录
         # 重导入回资源池，删除池纳管记录
         elif pool in [PoolType.Recycled, PoolType.Resource]:

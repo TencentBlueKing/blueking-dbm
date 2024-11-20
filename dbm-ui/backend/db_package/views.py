@@ -33,6 +33,7 @@ from backend.db_package.serializers import (
     SyncMediumSerializer,
     UploadPackageSerializer,
 )
+from backend.exceptions import ApiRequestError
 from backend.flow.consts import MediumEnum
 from backend.iam_app.dataclass import ResourceEnum
 from backend.iam_app.dataclass.actions import ActionEnum
@@ -168,7 +169,10 @@ class DBPackageViewSet(viewsets.AuditedModelViewSet):
     )
     def destroy(self, request, *args, **kwargs):
         # 删除制品库文件
-        StorageHandler().delete_file(self.get_object().path)
+        try:
+            StorageHandler().delete_file(self.get_object().path)
+        except ApiRequestError as e:
+            logger.error(_("文件删除异常，错误信息: {}").format(e))
         # 删除本地记录
         super().destroy(request, *args, **kwargs)
         return Response()

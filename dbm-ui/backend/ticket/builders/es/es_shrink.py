@@ -39,9 +39,9 @@ class EsShrinkDetailSerializer(BigDataSingleClusterOpsDetailsSerializer):
         super().validate(attrs)
 
         role_hash = {
-            InstanceRole.ES_DATANODE_HOT: attrs["nodes"]["hot"],
-            InstanceRole.ES_DATANODE_COLD: attrs["nodes"]["cold"],
-            InstanceRole.ES_CLIENT: attrs["nodes"]["client"],
+            InstanceRole.ES_DATANODE_HOT: attrs["old_nodes"]["hot"],
+            InstanceRole.ES_DATANODE_COLD: attrs["old_nodes"]["cold"],
+            InstanceRole.ES_CLIENT: attrs["old_nodes"]["client"],
         }
 
         cluster = Cluster.objects.get(id=attrs["cluster_id"])

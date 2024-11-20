@@ -26,7 +26,6 @@ from django.utils.translation import gettext as _
 from backend import env
 from backend.bk_web.constants import LogLevelName
 from backend.components import BKLogApi
-from backend.db_services.dbbase.constants import IpDest
 from backend.db_services.taskflow import task
 from backend.db_services.taskflow.constants import LOG_START_STRIP_PATTERN
 from backend.db_services.taskflow.exceptions import (
@@ -38,7 +37,6 @@ from backend.db_services.taskflow.exceptions import (
 from backend.flow.consts import PENDING_STATES, StateType
 from backend.flow.engine.bamboo.engine import BambooEngine
 from backend.flow.models import FlowNode, FlowTree
-from backend.ticket.models import Ticket
 from backend.utils.string import format_json_string
 from backend.utils.time import calculate_cost_time, datetime2str
 
@@ -70,12 +68,6 @@ class TaskFlowHandler:
             for node_id in running_node_ids:
                 bamboo_engine.runtime.set_state(node_id=node_id, to_state=StateType.REVOKED)
 
-        # 非单据类任务，直接返回
-        if not tree.uid:
-            return result
-
-        # 回收单据涉及的新机到资源池
-        Ticket.create_recycle_ticket(ticket_id=tree.uid, ip_dest=IpDest.Resource)
         return result
 
     def retry_node(self, node: str):
