@@ -348,7 +348,6 @@
 
   const entrySort = (data: ClusterEntryInfo[]) => data.sort(a => a.role === 'master_entry' ? -1 : 1);
 
-
   const columns = computed(() => [
     {
       label: 'ID',

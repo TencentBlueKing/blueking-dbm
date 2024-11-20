@@ -333,7 +333,7 @@
     return funControllerStore.funControllerData.mysql.children[currentKey];
   });
 
-  const entrySort = (data: RowData[]) => data.sort(a => a.role === 'master_entry' ? -1 : 1);
+  const entrySort = (data: ClusterEntryInfo[]) => data.sort(a => a.role === 'master_entry' ? -1 : 1);
 
   const columns = computed(() => [
     {
