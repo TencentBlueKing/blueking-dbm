@@ -98,9 +98,7 @@
 </script>
 <style lang="less">
   .slave-rebuild-page {
-    height: 100%;
     padding-bottom: 20px;
-    overflow: hidden;
 
     .slave-rebuild-types {
       margin-top: 24px;
