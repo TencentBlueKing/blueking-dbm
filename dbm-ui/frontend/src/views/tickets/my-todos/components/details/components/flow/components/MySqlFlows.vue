@@ -108,18 +108,32 @@
         <span>{{ t('变更的 DB:') }}</span>
         <span class="ml-4">
           <BkTag
-            v-for="item in currentFileExecuteObject.dbnames"
+            v-for="item in currentFileExecuteObject.dbnames.slice(0, 3)"
             :key="item">
             {{ item }}
+          </BkTag>
+          <BkTag
+            v-if="currentFileExecuteObject.dbnames.length > 3"
+            v-bk-tooltips="{
+              content: currentFileExecuteObject.dbnames.join('\n'),
+            }">
+            ...
           </BkTag>
           <template v-if="currentFileExecuteObject.dbnames.length < 1">--</template>
         </span>
         <span class="ml-25">{{ t('忽略的 DB:') }}</span>
         <span class="ml-4">
           <BkTag
-            v-for="item in currentFileExecuteObject.ignore_dbnames"
+            v-for="item in currentFileExecuteObject.ignore_dbnames.slice(0, 3)"
             :key="item">
             {{ item }}
+          </BkTag>
+          <BkTag
+            v-if="currentFileExecuteObject.ignore_dbnames.length > 3"
+            v-bk-tooltips="{
+              content: currentFileExecuteObject.ignore_dbnames.join('\n'),
+            }">
+            ...
           </BkTag>
           <template v-if="currentFileExecuteObject.ignore_dbnames.length < 1">--</template>
         </span>
