@@ -43,7 +43,8 @@
   const { loading: isRemoving, run: runDelete } = useRequest(removeResource, {
     manual: true,
     onSuccess() {
-      handleCancel();
+      emits('refresh');
+      isShow.value = false;
       messageSuccess(t('设置成功'));
     },
   });
@@ -56,7 +57,6 @@
   };
 
   const handleCancel = () => {
-    emits('refresh');
     isShow.value = false;
   };
 </script>

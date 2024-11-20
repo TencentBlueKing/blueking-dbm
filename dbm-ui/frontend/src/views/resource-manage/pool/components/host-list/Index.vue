@@ -30,13 +30,10 @@
         <ImportHostBtn
           class="w-88"
           @export-host="handleImportHost" />
-        <BkDropdown
-          :is-show="isBatchOperationShow"
-          trigger="manual">
+        <BkDropdown>
           <BkButton
             class="ml-8"
-            :disabled="selectionHostIdList.length < 1"
-            @click="() => handleBatchOperationShow(true)">
+            :disabled="selectionHostIdList.length < 1">
             {{ t('批量操作') }}
             <DbIcon type="down-big" />
           </BkButton>
@@ -202,9 +199,8 @@
   const isShowBatchConvertToBusiness = ref(false);
   const isShowBatchAssign = ref(false);
   const isShowUpdateAssign = ref(false);
-  const curEditData = ref<DbResourceModel>();
+  const curEditData = ref<DbResourceModel>({} as DbResourceModel);
   const isSelectedSameBiz = ref(false);
-  const isBatchOperationShow = ref(false);
 
   const curBizId = computed(() => {
     let bizId = undefined;
@@ -410,7 +406,6 @@
   // 批量设置
   const handleShowBatchSetting = () => {
     isShowBatchSetting.value = true;
-    handleBatchOperationShow(false);
   };
 
   // 复制所有主机
@@ -474,34 +469,28 @@
 
   const handleShowBatchCovertToPublic = () => {
     isShowBatchCovertToPublic.value = true;
-    handleBatchOperationShow(false);
   }
 
   const handleShowBatchMoveToRecyclePool = () => {
     isShowBatchMoveToRecyclePool.value = true;
-    handleBatchOperationShow(false);
   };
 
   const handleShowBatchMoveToFaultPool = () => {
     isShowBatchMoveToFaultPool.value = true;
-    handleBatchOperationShow(false);
   }
 
   const handleShowBatchUndoImport = () => {
     isShowBatchUndoImport.value = true;
-    handleBatchOperationShow(false);
   };
 
   const handleShowBatchConvertToBusiness = () => {
     isShowBatchConvertToBusiness.value = true;
-    handleBatchOperationShow(false);
   }
 
   const handleShowBatchAssign = () => {
     if (isSelectedSameBiz.value) {
       isShowBatchAssign.value = true;
     }
-    handleBatchOperationShow(false);
   }
 
   const handleEdit = (data: DbResourceModel) => {
@@ -514,11 +503,8 @@
     Object.values(selectionHostIdList.value).forEach((hostId) => {
       tableRef.value.removeSelectByKey(hostId);
     });
+    selectionListWholeDataMemo = [];
     selectionHostIdList.value = [];
-  }
-
-  const handleBatchOperationShow = (val: boolean) => {
-    isBatchOperationShow.value = val;
   }
 
   onMounted(() => {
