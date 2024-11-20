@@ -1031,6 +1031,7 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
         """
         MYSQL 定点回档恢复备份介质
         """
+        logger.info(self.cluster["backupinfo"])
         init_command = self.cluster.get("init_command", "")
         enable_binlog = self.cluster.get("enable_binlog", False)
         index_file = os.path.basename(self.cluster["backupinfo"]["index"]["file_name"])
@@ -2028,6 +2029,7 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
         """
         tendb 恢复remote实例
         """
+        logger.info(self.cluster["backupinfo"])
         index_file = os.path.basename(self.cluster["backupinfo"]["index"]["file_name"])
         payload = {
             "db_type": DBActuatorTypeEnum.MySQL.value,
@@ -2088,6 +2090,7 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
             bin_file = kwargs["trans_data"]["change_master_info"]["master_log_file"]
             bin_position = int(kwargs["trans_data"]["change_master_info"]["master_log_pos"])
         bin_file = bin_file.strip().strip("'")
+        logger.info("CHANGE MASTER TO MASTER_LOG_FILE='{}', MASTER_LOG_POS={}".format(bin_file, bin_position))
         return {
             "db_type": DBActuatorTypeEnum.MySQL.value,
             "action": DBActuatorActionEnum.ChangeMaster.value,
@@ -2111,6 +2114,10 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
         """
         MYSQL 实例 前滚binglog
         """
+        logger.info(self.cluster["binlog_files"])
+        logger.info(
+            "backup_time: {} ~ stop_time: {} ".format(self.cluster["backup_time"], self.cluster["rollback_time"])
+        )
         binlog_files = self.cluster["binlog_files"]
         backup_time = self.cluster["backup_time"]
         binlog_files_list = binlog_files.split(",")

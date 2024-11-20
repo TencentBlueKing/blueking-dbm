@@ -40,6 +40,7 @@ class MySQLDownloadBackupfile(BkJobService):
             "login_passwd": kwargs["login_passwd"],
         }
         self.log_debug(params)
+        self.log_info(_("下载 {} 到 {}").format(kwargs["task_ids"], kwargs["dest_ip"]))
         response = MysqlBackupApi.download(params=params)
         backup_bill_id = response.get("bill_id", -1)
         if backup_bill_id > 0:
