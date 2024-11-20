@@ -179,9 +179,6 @@
   const initFormdata = () => {
     if (props.data) {
       const data = _.cloneDeep(props.data);
-      if (data.device_class.length === 0 && !props.data.mem.max) {
-        data.device_class = ['-1'];
-      }
       return data;
     }
 
@@ -338,16 +335,8 @@
       });
       const type = specDeviceOrCpuMemRef.value!.getCurrentType();
       if (type === 'device_class') {
-        Object.assign(params, {
-          cpu: {
-            min: 0,
-            max: 0,
-          },
-          mem: {
-            min: 0,
-            max: 0,
-          },
-        });
+        const deviceClassCpuMem = specDeviceOrCpuMemRef.value!.getDeviceClassCpuMem();
+        Object.assign(params, deviceClassCpuMem);
       } else {
         params.device_class = [];
       }
