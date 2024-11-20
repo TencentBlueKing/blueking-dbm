@@ -119,6 +119,8 @@ func (k *DbPodSets) getCreateClusterSqls() []string {
 	return ss
 }
 
+// getClusterPodContanierSpec create cluster pod container spec
+// nolint
 func (k *DbPodSets) getClusterPodContanierSpec() []v1.Container {
 	return []v1.Container{
 		{
@@ -135,6 +137,8 @@ func (k *DbPodSets) getClusterPodContanierSpec() []v1.Container {
 				"--log_bin_trust_function_creators",
 				"--port=20000",
 				"--max_allowed_packet=1073741824",
+				"--default-authentication-plugin=mysql_native_password",
+				"--sql-mode=",
 				fmt.Sprintf("--character-set-server=%s",
 					k.BaseInfo.Charset),
 				"--user=mysql"},
@@ -351,7 +355,11 @@ func (k *DbPodSets) gettdbctlResourceLimit() v1.ResourceRequirements {
 
 // CreateMySQLPod create mysql pod
 func (k *DbPodSets) CreateMySQLPod() (err error) {
-	startArgs := []string{"--defaults-file=/etc/my.cnf", "--skip-log-bin", "--max_allowed_packet=1073741824",
+	startArgs := []string{
+		"--defaults-file=/etc/my.cnf",
+		"--skip-log-bin",
+		"--max_allowed_packet=1073741824",
+		"--default-authentication-plugin=mysql_native_password",
 		fmt.Sprintf("--character-set-server=%s", k.BaseInfo.Charset)}
 	startArgs = append(startArgs, k.BaseInfo.Args...)
 	startArgs = append(startArgs, "--user=mysql")
