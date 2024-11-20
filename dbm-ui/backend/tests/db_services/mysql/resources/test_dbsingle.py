@@ -39,7 +39,7 @@ class TestDBSingleResources:
         data = response.data
         assert data["count"] == 1
         assert set([m["ip"] for m in data["results"][0]["masters"]]) == set(dbsingle_machine_ip_list)
-        assert data["results"][0]["db_module_name"] == dbsingle_module.db_module_name
+        assert data["results"][0]["db_module_name"] == dbsingle_module.alias_name
 
         all_fields = set([field["key"] for field in views.DBSingleViewSet.query_class.fields])
         result_fields = set(data["results"][0])
@@ -66,7 +66,7 @@ class TestDBSingleResources:
         response = view(request, bk_biz_id=bk_biz_id, cluster_id=dbsingle_cluster.id)
         data = response.data
         assert set([m["ip"] for m in data["masters"]]) == set(dbsingle_machine_ip_list)
-        assert data["db_module_name"] == dbsingle_module.db_module_name
+        assert data["db_module_name"] == dbsingle_module.alias_name
 
     @patch("backend.db_services.ipchooser.query.resource.CCApi", CCApiMock())
     @patch.object(views.DBSingleViewSet, "get_permissions", lambda x: [])

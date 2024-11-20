@@ -20,7 +20,7 @@ from backend.bk_web.viewsets import ReadOnlyAuditedModelViewSet
 from backend.components import DBConfigApi
 from backend.components.dbconfig.constants import FormatType, LevelName
 from backend.db_meta.enums import ClusterType, DestroyedStatus
-from backend.db_meta.models import Cluster, StorageInstanceTuple
+from backend.db_meta.models import Cluster, Machine, StorageInstanceTuple
 from backend.exceptions import AppBaseException
 from backend.flow.consts import DEFAULT_DB_MODULE_ID, ConfigTypeEnum
 from backend.utils.time import str2datetime
@@ -67,6 +67,20 @@ class RollbackViewSet(ReadOnlyAuditedModelViewSet):
             queryset = queryset.filter(bk_biz_id=bk_biz_id)
 
         return queryset
+
+    @common_swagger_auto_schema(
+        operation_summary=_("构造实例列表"),
+        tags=[constants.RESOURCE_TAG],
+    )
+    def list(self, request, *args, **kwargs):
+        resp = super().list(request, *args, **kwargs)
+        # 补充构造实例的主机信息
+        ip_list = [inst.split(":")[0] for data in resp.data["results"] for inst in data["temp_instance_range"]]
+        machine_map = {m.ip: m for m in Machine.objects.filter(ip__in=ip_list)}
+        for data in resp.data["results"]:
+            ips = set([inst.split(":")[0] for inst in data["temp_instance_range"]])
+            data["rollback_hosts"] = [machine_map[ip].simple_desc for ip in ips if ip in machine_map]
+        return resp
 
     @common_swagger_auto_schema(
         operation_summary=_("构造时间合法性检查"),

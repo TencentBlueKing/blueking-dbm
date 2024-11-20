@@ -94,7 +94,7 @@ class ClusterServiceHandler(BaseClusterServiceHandler):
         )
         cluster_db_module_ids: List[int] = [cluster.db_module_id for cluster in clusters]
         db_module_names: Dict[int, str] = {
-            module.db_module_id: module.db_module_name
+            module.db_module_id: module.alias_name
             for module in DBModule.objects.filter(db_module_id__in=cluster_db_module_ids)
         }
 

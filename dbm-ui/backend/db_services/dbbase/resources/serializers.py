@@ -11,7 +11,15 @@ specific language governing permissions and limitations under the License.
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
-from backend.db_meta.enums import ClusterStatus, ClusterType, InstanceStatus, MachineType, TenDBClusterSpiderRole
+from backend.db_meta.enums import (
+    ClusterEntryRole,
+    ClusterEntryType,
+    ClusterStatus,
+    ClusterType,
+    InstanceStatus,
+    MachineType,
+    TenDBClusterSpiderRole,
+)
 from backend.db_meta.models.cluster import Cluster
 from backend.db_services.dbbase.constants import IP_PORT_DIVIDER
 from backend.flow.consts import SqlserverSyncMode
@@ -155,3 +163,11 @@ class ListTendbClusterMachineResourceSLZ(ListMachineSLZ):
     spider_role = serializers.ChoiceField(
         help_text=_("spider角色"), choices=TenDBClusterSpiderRole.get_choices(), required=False
     )
+
+
+class ListClusterEntriesSLZ(serializers.Serializer):
+    instance = serializers.CharField(required=False)
+    domain = serializers.CharField(required=False)
+    role = serializers.ChoiceField(required=False, choices=ClusterEntryRole.get_choices())
+    cluster_entry_type = serializers.ChoiceField(required=False, choices=ClusterEntryType.get_choices())
+    cluster_name = serializers.CharField(required=False)

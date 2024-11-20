@@ -70,7 +70,7 @@ class RiakMigrateFlowBuilder(BaseRiakTicketFlowBuilder):
 
     def patch_ticket_detail(self):
         details = self.ticket.details
-        db_module_name = DBModule.objects.get(db_module_id=details["db_module_id"]).db_module_name
+        db_module_name = DBModule.objects.get(db_module_id=details["db_module_id"]).alias_name
         riak_cluster_name = riak_domain = f"{details['cluster_name']}.{db_module_name}"
         details.update(
             db_module_name=db_module_name,

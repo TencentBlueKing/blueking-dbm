@@ -294,7 +294,6 @@ class MediumEnum(str, StructuredEnum):
     MongoDB = EnumField("mongodb", _("mongodb"))
     MongoToolKit = EnumField("mongo-toolkit", _("Mongo 工具集"))
     MongoMonitor = EnumField("mongo-monitor", _("Mongo 监控"))
-    DBTools = EnumField("dbtools", _("工具包"))
     Doris = EnumField("doris", _("doris"))
     Vm = EnumField("vm", _("vm"))
 

@@ -197,7 +197,7 @@ class DBBaseViewSet(viewsets.SystemViewSet):
         if "db_module_id" in cluster_attrs:
             db_modules = DBModule.objects.filter(bk_biz_id=data["bk_biz_id"], cluster_type__in=data["cluster_type"])
             if db_modules:
-                db_module_names_map = {module.db_module_id: module.db_module_name for module in db_modules}
+                db_module_names_map = {module.db_module_id: module.alias_name for module in db_modules}
                 cluster_attrs["db_module_id"] = [
                     {"value": module, "text": db_module_names_map.get(module, "--")}
                     for module in existing_values["db_module_id"]

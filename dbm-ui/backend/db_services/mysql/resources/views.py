@@ -77,7 +77,7 @@ class ResourceTreeViewSet(SystemViewSet):
                 "obj_id": ResourceNodeType.MODULE.value,
                 "obj_name": ResourceNodeType.MODULE.name,
                 "instance_id": db_module.db_module_id,
-                "instance_name": db_module.db_module_name,
+                "instance_name": db_module.alias_name,
                 "children": module_clusters[db_module.db_module_id],
                 "extra": {},
             }

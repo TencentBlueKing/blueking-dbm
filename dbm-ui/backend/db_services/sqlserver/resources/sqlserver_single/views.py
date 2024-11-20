@@ -13,6 +13,7 @@ from rest_framework import status
 
 from backend.bk_web.swagger import common_swagger_auto_schema
 from backend.db_services.dbbase.resources import serializers
+from backend.db_services.dbbase.resources.yasg_slz import PaginatedEntryResourceSLZ, PaginatedMachineResourceSLZ
 from backend.db_services.sqlserver.resources import constants
 from backend.db_services.sqlserver.resources.sqlserver_single import yasg_slz
 from backend.db_services.sqlserver.resources.sqlserver_single.query import ListRetrieveResource
@@ -53,7 +54,15 @@ from backend.db_services.sqlserver.resources.views import BaseSQLServerViewSet
     name="list_machines",
     decorator=common_swagger_auto_schema(
         query_serializer=serializers.ListMachineSLZ(),
-        responses={status.HTTP_200_OK: yasg_slz.PaginatedMachineResourceSLZ()},
+        responses={status.HTTP_200_OK: PaginatedMachineResourceSLZ()},
+        tags=[constants.RESOURCE_TAG],
+    ),
+)
+@method_decorator(
+    name="list_cluster_entries",
+    decorator=common_swagger_auto_schema(
+        query_serializer=serializers.ListClusterEntriesSLZ(),
+        responses={status.HTTP_200_OK: PaginatedEntryResourceSLZ()},
         tags=[constants.RESOURCE_TAG],
     ),
 )

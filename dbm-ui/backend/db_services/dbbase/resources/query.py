@@ -310,6 +310,12 @@ class BaseListRetrieveResource(CommonQueryResourceMixin):
         return resource_list
 
     @classmethod
+    def list_cluster_entries(cls, bk_biz_id: int, query_params: Dict, limit: int, offset: int) -> ResourceList:
+        """查询域名列表"""
+        resource_list = cls._list_cluster_entries(bk_biz_id, query_params, limit, offset)
+        return resource_list
+
+    @classmethod
     @abc.abstractmethod
     def _list_machines(
         cls,
@@ -321,6 +327,20 @@ class BaseListRetrieveResource(CommonQueryResourceMixin):
         **kwargs,
     ) -> ResourceList:
         """查询机器列表. 具体方法在子类中实现"""
+        raise NotImplementedError
+
+    @classmethod
+    @abc.abstractmethod
+    def _list_cluster_entries(
+        cls,
+        bk_biz_id: int,
+        query_params: Dict,
+        limit: int,
+        offset: int,
+        filter_params_map: Dict[str, Q] = None,
+        **kwargs,
+    ) -> ResourceList:
+        """查询域名列表(适用于域名选择器)，具体方法在子类中实现"""
         raise NotImplementedError
 
     @classmethod
@@ -631,7 +651,7 @@ class ListRetrieveResource(BaseListRetrieveResource):
         cloud = ResourceQueryHelper.search_cc_cloud(get_cache=True)
         # 获取DB模块的映射信息
         db_module_names_map = {
-            module.db_module_id: module.db_module_name
+            module.db_module_id: module.alias_name
             for module in DBModule.objects.filter(bk_biz_id=bk_biz_id, cluster_type__in=cls.cluster_types)
         }
         # 将实例的查询结果序列化为实例字典信息
@@ -901,3 +921,110 @@ class ListRetrieveResource(BaseListRetrieveResource):
             "related_instances": instances,
             "related_clusters": related_clusters_map.values(),
         }
+
+    @classmethod
+    def _list_cluster_entries(
+        cls,
+        bk_biz_id: int,
+        query_params: Dict,
+        limit: int,
+        offset: int,
+        filter_params_map: Dict[str, Q] = None,
+        **kwargs,
+    ) -> ResourceList:
+        """
+        查询域名信息
+        @param bk_biz_id: 业务 ID
+        @param query_params: 查询条件. 通过 .serializers.ListResourceSLZ 完成数据校验
+        @param limit: 分页查询, 每页展示的数目
+        @param offset: 分页查询, 当前页的偏移数
+        @param filter_params_map: 过滤参数map
+        """
+        query_filters = Q(cluster__bk_biz_id=bk_biz_id, cluster__cluster_type__in=cls.cluster_types)
+
+        # 实例筛选
+        def filter_instance_func(query_params):
+            """实例过滤ip:port 以及 ip 两种情况"""
+            f = build_q_for_instance_filter(query_params) & Q(bk_biz_id=bk_biz_id, cluster_type__in=cls.cluster_types)
+            inst_q = Q(cluster__storageinstance__in=StorageInstance.objects.filter(f)) | Q(
+                cluster__proxyinstance__in=ProxyInstance.objects.filter(f)
+            )
+            return inst_q
+
+        # 定义内置的过滤参数map
+        filter_params_map = filter_params_map or {}
+        inner_filter_params_map = {
+            "cluster_entry_type": Q(cluster_entry_type=query_params.get("cluster_entry_type")),
+            "role": Q(role=query_params.get("role")),
+            "domain": (
+                Q(entry__icontains=query_params.get("domain")) | Q(entry__in=query_params.get("domain", "").split(","))
+            ),
+            "cluster_name": Q(cluster__name=query_params.get("cluster_name")),
+            "instance": filter_instance_func(query_params),
+        }
+        filter_params_map = {**inner_filter_params_map, **filter_params_map}
+
+        # 通过基础过滤参数进行cluster过滤
+        for param in filter_params_map:
+            if query_params.get(param):
+                query_filters &= filter_params_map[param]
+
+        entry_queryset = ClusterEntry.objects.filter(query_filters).distinct()
+        entry_infos = cls._filter_entry_hook(bk_biz_id, entry_queryset, limit, offset, **kwargs)
+        return entry_infos
+
+    @classmethod
+    def _filter_entry_hook(
+        cls,
+        bk_biz_id,
+        entry_queryset: QuerySet,
+        limit: int,
+        offset: int,
+        **kwargs,
+    ) -> ResourceList:
+        """
+        为查询的域名填充额外信息, 子类可继承此方法实现其他回调
+        @param bk_biz_id: 业务ID
+        @param machine_queryset: 过滤机器查询集
+        @param limit: 分页限制
+        @param offset: 分页起始
+        """
+
+        count = entry_queryset.count()
+        limit = count if limit == -1 else limit
+        if count == 0:
+            return ResourceList(count=0, data=[])
+
+        # 预取proxy_queryset，storage_queryset，加块查询效率
+        entry_queryset = entry_queryset.order_by("-create_at")[offset : limit + offset].prefetch_related(
+            "cluster__storageinstance_set__machine", "cluster__proxyinstance_set__machine"
+        )
+
+        # 将集群的查询结果序列化为集群字典信息
+        entry_infos: List[Dict[str, Any]] = []
+        for entry in entry_queryset:
+            entry_infos.append(cls._to_entry_representation(entry, **kwargs))
+
+        return ResourceList(count=count, data=entry_infos)
+
+    @classmethod
+    def _to_entry_representation(
+        cls,
+        entry: ClusterEntry,
+        **kwargs,
+    ) -> Dict[str, Any]:
+        """
+        将域名对象转为可序列化的 dict 结构
+        @param entry: model ClusterEntry 对象, 增加了 storages 和 proxies 属性
+        """
+        storage_list = [inst.ip_port for inst in entry.cluster.storageinstance_set.all()]
+        proxy_list = [inst.ip_port for inst in entry.cluster.proxyinstance_set.all()]
+        entry_info = {
+            "domain": entry.entry,
+            "role": entry.role,
+            "cluster_entry_type": entry.cluster_entry_type,
+            "cluster_name": entry.cluster.name,
+            "cluster_status": entry.cluster.status,
+            "instances": storage_list + proxy_list,
+        }
+        return entry_info

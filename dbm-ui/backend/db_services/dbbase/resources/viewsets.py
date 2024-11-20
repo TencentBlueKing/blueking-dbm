@@ -40,6 +40,8 @@ class ResourceViewSet(SystemViewSet):
     retrieve_instances_slz = serializers.RetrieveInstancesSerializer
     # 机器列表serializer
     list_machine_slz = serializers.ListMachineSLZ
+    # 域名列表serializer
+    list_entry_slz = serializers.ListClusterEntriesSLZ
     # 分页
     pagination_class = ResourceLimitOffsetPagination
 
@@ -102,6 +104,13 @@ class ResourceViewSet(SystemViewSet):
         return Response(
             self.query_class.retrieve_instance(bk_biz_id, query_params.get("cluster_id"), query_params["instance"])
         )
+
+    @action(methods=["GET"], detail=False, url_path="list_cluster_entries")
+    def list_cluster_entries(self, request, bk_biz_id: int):
+        """查询机器列表"""
+        query_params = self.params_validate(self.list_entry_slz)
+        data = self.paginator.paginate_list(request, bk_biz_id, self.query_class.list_cluster_entries, query_params)
+        return self.get_paginated_response(data)
 
     @action(methods=["GET"], detail=False, url_path="list_machines")
     def list_machines(self, request, bk_biz_id: int):

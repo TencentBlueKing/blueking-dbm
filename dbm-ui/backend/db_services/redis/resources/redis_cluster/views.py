@@ -19,6 +19,7 @@ from backend.bk_web.swagger import common_swagger_auto_schema
 from backend.configuration.constants import DBType
 from backend.db_meta.models import Cluster
 from backend.db_services.dbbase.resources import serializers, viewsets
+from backend.db_services.dbbase.resources.yasg_slz import PaginatedEntryResourceSLZ, PaginatedMachineResourceSLZ
 from backend.db_services.redis.resources import constants
 from backend.flow.utils.base.payload_handler import PayloadHandler
 from backend.iam_app.dataclass import ResourceEnum
@@ -79,7 +80,15 @@ from .query import RedisListRetrieveResource
     name="list_machines",
     decorator=common_swagger_auto_schema(
         query_serializer=serializers.ListRedisMachineResourceSLZ(),
-        responses={status.HTTP_200_OK: yasg_slz.PaginatedMachineResourceSLZ()},
+        responses={status.HTTP_200_OK: PaginatedMachineResourceSLZ()},
+        tags=[constants.RESOURCE_TAG],
+    ),
+)
+@method_decorator(
+    name="list_cluster_entries",
+    decorator=common_swagger_auto_schema(
+        query_serializer=serializers.ListClusterEntriesSLZ(),
+        responses={status.HTTP_200_OK: PaginatedEntryResourceSLZ()},
         tags=[constants.RESOURCE_TAG],
     ),
 )

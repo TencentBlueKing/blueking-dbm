@@ -10,8 +10,6 @@ specific language governing permissions and limitations under the License.
 """
 from rest_framework import serializers
 
-from backend.db_services.dbbase.resources.yasg_slz import paginated_machine_resource_example
-
 REF_NAME = "mongodb"
 
 paginated_resource_example = {
@@ -140,12 +138,6 @@ class ResourceInstanceSLZ(serializers.Serializer):
     class Meta:
         swagger_schema_fields = {"example": paginated_instance_resource_example["results"][0]}
         ref_name = f"{REF_NAME}_ResourceInstanceSLZ"
-
-
-class PaginatedMachineResourceSLZ(serializers.Serializer):
-    class Meta:
-        swagger_schema_fields = {"example": paginated_machine_resource_example}
-        ref_name = f"{REF_NAME}_PaginatedMachineResourceSLZ"
 
 
 class ResourceTopoGraphSLZ(serializers.Serializer):

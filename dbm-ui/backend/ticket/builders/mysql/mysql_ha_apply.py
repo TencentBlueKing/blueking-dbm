@@ -83,7 +83,7 @@ class MysqlHAApplyFlowParamBuilder(MysqlSingleApplyFlowParamBuilder):
     controller = MySQLController.mysql_ha_apply_scene
 
     def format_cluster_domains(self) -> List[Dict[str, str]]:
-        db_module_name = DBModule.objects.get(db_module_id=self.ticket_data["db_module_id"]).db_module_name
+        db_module_name = DBModule.objects.get(db_module_id=self.ticket_data["db_module_id"]).alias_name
         db_app_abbr = AppCache.get_app_attr(self.ticket_data["bk_biz_id"])
         return [
             {

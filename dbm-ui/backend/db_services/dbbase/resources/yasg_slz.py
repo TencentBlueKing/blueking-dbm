@@ -76,3 +76,15 @@ class ResourceTreeSLZ(serializers.Serializer):
                 }
             ]
         }
+
+
+class PaginatedMachineResourceSLZ(serializers.Serializer):
+    class Meta:
+        swagger_schema_fields = {"example": paginated_machine_resource_example}
+        ref_name = "PaginatedMachineResourceSLZ"
+
+
+class PaginatedEntryResourceSLZ(serializers.Serializer):
+    class Meta:
+        swagger_schema_fields = {"example": paginated_machine_resource_example}
+        ref_name = "PaginatedEntryResourceSLZ"

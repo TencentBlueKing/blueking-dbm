@@ -24,7 +24,11 @@ from backend.db_services.dbbase.resources import serializers
 from backend.db_services.dbbase.resources.constants import ResourceNodeType
 from backend.db_services.dbbase.resources.serializers import SearchResourceTreeSLZ
 from backend.db_services.dbbase.resources.viewsets import ResourceViewSet
-from backend.db_services.dbbase.resources.yasg_slz import ResourceTreeSLZ
+from backend.db_services.dbbase.resources.yasg_slz import (
+    PaginatedEntryResourceSLZ,
+    PaginatedMachineResourceSLZ,
+    ResourceTreeSLZ,
+)
 from backend.db_services.mongodb.resources import constants, yasg_slz
 from backend.db_services.mongodb.resources.query import MongoDBListRetrieveResource
 from backend.iam_app.dataclass.actions import ActionEnum
@@ -72,7 +76,15 @@ from backend.iam_app.handlers.drf_perm.base import DBManagePermission
     name="list_machines",
     decorator=common_swagger_auto_schema(
         query_serializer=serializers.ListMachineSLZ(),
-        responses={status.HTTP_200_OK: yasg_slz.PaginatedMachineResourceSLZ()},
+        responses={status.HTTP_200_OK: PaginatedMachineResourceSLZ()},
+        tags=[constants.RESOURCE_TAG],
+    ),
+)
+@method_decorator(
+    name="list_cluster_entries",
+    decorator=common_swagger_auto_schema(
+        query_serializer=serializers.ListClusterEntriesSLZ(),
+        responses={status.HTTP_200_OK: PaginatedEntryResourceSLZ()},
         tags=[constants.RESOURCE_TAG],
     ),
 )
