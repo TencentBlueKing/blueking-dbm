@@ -150,7 +150,6 @@
         field: 'instance',
         fixed: 'left',
         width: 200,
-        showOverflowTooltip: false,
         render: ({ data }: IColumn) => (
           <TextOverflowLayout>
             {{

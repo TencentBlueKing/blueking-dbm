@@ -181,7 +181,6 @@
         field: 'instance_address',
         fixed: 'left',
         minWidth: 200,
-        showOverflowTooltip: false,
         render: ({ data }: { data: RedisInstanceModel }) => (
           <TextOverflowLayout>
             {{
@@ -212,7 +211,6 @@
         label: t('集群名称'),
         field: 'cluster_name',
         minWidth: 200,
-        showOverflowTooltip: false,
         render: ({ data }: { data: RedisInstanceModel }) => (
         <TextOverflowLayout>
           {{

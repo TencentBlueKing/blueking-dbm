@@ -183,7 +183,7 @@
         label: t('实例'),
         field: 'instance_address',
         fixed: 'left',
-        width: 200,
+        minWidth: 200,
         showOverflowTooltip: false,
         render: ({ cell, data }: ColumnData) => (
           <TextOverflowLayout>

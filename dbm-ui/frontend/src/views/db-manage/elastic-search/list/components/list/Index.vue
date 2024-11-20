@@ -315,7 +315,7 @@
     {
       label: t('访问入口'),
       field: 'domain',
-      minWidth: 320,
+      minWidth: 300,
       fixed: 'left',
       renderHead: () => (
         <RenderHeadCopy
