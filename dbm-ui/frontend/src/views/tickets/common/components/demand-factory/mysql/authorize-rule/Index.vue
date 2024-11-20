@@ -66,7 +66,17 @@
     }
 
     if (props.ticketDetails.ticket_type === TicketTypes.MYSQL_AUTHORIZE_RULES) {
-      const { authorize_data: authorizeData } = props.ticketDetails.details;
+      const { authorize_data: authorizeData, authorize_plugin_infos: authorizePluginInfos } =
+        props.ticketDetails.details;
+      if (authorizePluginInfos) {
+        return authorizePluginInfos.map((item) => ({
+          ips: item.source_ips as string[],
+          user: item.user,
+          accessDbs: item.access_dbs,
+          clusterDomains: item.target_instances,
+          privileges: item.privileges,
+        }));
+      }
       return [
         {
           ips: (authorizeData.source_ips as { ip: string }[]).map((item) => item.ip),
