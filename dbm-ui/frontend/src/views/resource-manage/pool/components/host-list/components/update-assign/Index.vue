@@ -104,7 +104,7 @@
   watch(
     () => props.editData,
     () => {
-      if (!props.editData) {
+      if (!Object.keys(props.editData).length) {
         return;
       }
       formData.for_biz = props.editData.for_biz.bk_biz_id;
