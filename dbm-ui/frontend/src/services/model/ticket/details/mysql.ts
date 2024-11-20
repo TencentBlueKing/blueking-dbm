@@ -27,10 +27,13 @@ export interface MysqlIpItem extends DetailBase {
  */
 export interface MysqlAuthorizationDetails extends DetailBase {
   authorize_uid: string;
+  // 普通授权
   authorize_data: AuthorizePreCheckData;
   // 批量导入
   excel_url: string;
   authorize_data_list: AuthorizePreCheckData[];
+  // 插件授权
+  authorize_plugin_infos: AuthorizePreCheckData[];
 }
 
 export interface MySQLForceImportSQLFileExecuteSqlFiles {
