@@ -52,6 +52,7 @@
     </div>
     <SpecDevice
       v-if="currentType === 'device_class'"
+      ref="specDeviceRef"
       v-model="deviceClassModelValue"
       :is-edit="isEdit" />
     <div
@@ -71,7 +72,7 @@
   import { useI18n } from 'vue-i18n';
 
   import SpecCPU from './components/SpecCPU.vue';
-  import SpecDevice from './components/SpecDevice.vue';
+  import SpecDevice, { type DeviceClassCpuMemType } from './components/SpecDevice.vue';
   import SpecMem from './components/SpecMem.vue';
 
   interface Props {
@@ -80,6 +81,7 @@
 
   interface Exposes {
     getCurrentType: () => string;
+    getDeviceClassCpuMem: () => DeviceClassCpuMemType;
   }
 
   withDefaults(defineProps<Props>(), {
@@ -113,6 +115,7 @@
 
   const isRotate = ref(false);
   const currentType = ref(titleList[0].value);
+  const specDeviceRef = ref<typeof SpecDevice>();
 
   const currentTitle = computed(() => (currentType.value === 'device_class' ? titleList[0].title : titleList[1].title));
 
@@ -154,6 +157,9 @@
   defineExpose<Exposes>({
     getCurrentType() {
       return currentType.value;
+    },
+    getDeviceClassCpuMem() {
+      return specDeviceRef.value?.getDeviceClassCpuMem();
     },
   });
 </script>

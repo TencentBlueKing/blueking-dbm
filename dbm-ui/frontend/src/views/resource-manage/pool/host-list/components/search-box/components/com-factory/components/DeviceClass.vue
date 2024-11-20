@@ -62,7 +62,7 @@
   const searchParams = {
     offset: 0,
     limit: 12,
-    name: '',
+    device_type: '',
   };
 
   let isAppend = false;
@@ -89,7 +89,7 @@
 
   const remoteMethod = (value: string) => {
     isAppend = false;
-    searchParams.name = value;
+    searchParams.device_type = value;
     searchParams.offset = 0;
     getDeviceClassList(searchParams);
   };
