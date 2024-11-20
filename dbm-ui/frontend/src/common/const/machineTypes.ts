@@ -68,7 +68,7 @@ export enum MachineTypes {
 }
 // doris
 export enum MachineTypes {
-  DORIS_FOLLOWER = 'doris_follower',
-  DORIS_OBSERVER = 'doris_observer',
-  DORIS_BACKEND = 'doris_backend',
+  DORIS_FOLLOWER = 'doris_follower', // Follower节点
+  DORIS_OBSERVER = 'doris_observer', // Observer节点
+  DORIS_BACKEND = 'doris_backend', // 冷/热节点
 }
