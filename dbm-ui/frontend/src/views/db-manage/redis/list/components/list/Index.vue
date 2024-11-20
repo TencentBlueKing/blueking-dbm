@@ -741,12 +741,6 @@
       render: ({ data }: ColumnRenderData) => data.major_version || '--',
     },
     {
-      label: 'Modules',
-      field: 'module_names',
-      minWidth: 100,
-      render: ({ data }: ColumnRenderData) => data.module_names.length ? data.module_names.map(item=><p class="mb-4">{item}</p>) : '--',
-    },
-    {
       label: t('容灾要求'),
       field: 'disaster_tolerance_level',
       minWidth: 100,
@@ -761,12 +755,6 @@
         checked: columnCheckedMap.value.region,
       },
       render: ({ data }: ColumnRenderData) => data.region || '--',
-    },
-    {
-      label: t('园区'),
-      field: 'bk_sub_zone',
-      minWidth: 100,
-      render: ({ data }: ColumnRenderData) => data.bk_sub_zone || '--',
     },
     {
       label: t('管控区域'),
@@ -1083,7 +1071,6 @@
         ClusterNodeKeys.REDIS_SLAVE,
         'cluster_type_name',
         'major_version',
-        'module_names',
         'disaster_tolerance_level',
         'region',
         'spec_name',

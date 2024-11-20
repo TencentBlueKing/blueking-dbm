@@ -53,7 +53,7 @@
         releate-url-query
         :row-class="setRowClass"
         row-hover="auto"
-        :show-overflow="false"
+        :show-settgings="false"
         @clear-search="handleClearSearch"
         @refresh="fetchData" />
     </div>
@@ -306,7 +306,7 @@
     {
       label: t('账号名称'),
       field: 'user',
-      minWidth: 200,
+      width: 200,
       fixed: 'left',
       render: ({ data }: { data: PermissionRule }) => (
         <TextOverflowLayout>
@@ -394,7 +394,7 @@
     {
       label: t('权限'),
       field: 'privilege',
-      minWidth: 200,
+      width: 400,
       render: ({ data }: { data: PermissionRule }) => (
         getRenderList(data).map((rule) => {
           const { privilege } = rule;

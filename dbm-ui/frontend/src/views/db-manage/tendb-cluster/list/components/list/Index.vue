@@ -904,12 +904,6 @@
       render: ({ data }: IColumn) => <span>{data.region || '--'}</span>,
     },
     {
-        label: t('园区'),
-        field: 'bk_sub_zone',
-        minWidth: 100,
-        render: ({ data }: IColumn) => data.bk_sub_zone || '--',
-    },
-    {
         label: t('规格'),
         field: 'spec_name',
         minWidth: 180,
@@ -1209,7 +1203,6 @@
       'major_version',
       'disaster_tolerance_level',
       'region',
-      'bk_sub_zone',
       'spec_name',
       'bk_cloud_id',
     ],

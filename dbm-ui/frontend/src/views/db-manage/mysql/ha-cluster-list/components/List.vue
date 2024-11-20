@@ -21,11 +21,34 @@
         @click="handleApply">
         {{ t('申请实例') }}
       </AuthButton>
-      <ClusterBatchOperation
-        v-db-console="'mysql.haClusterList.batchOperation'"
-        class="ml-8"
-        :disabled="!hasSelected"
-        :list="clusterBatchOperationList" />
+      <span
+        v-bk-tooltips="{
+          disabled: hasSelected,
+          content: t('请选择集群'),
+        }"
+        v-db-console="'mysql.haClusterList.batchSubscription'"
+        class="inline-block">
+        <BkButton
+          class="ml-8"
+          :disabled="!hasSelected"
+          @click="() => handleShowCreateSubscribeRuleSlider()">
+          {{ t('批量订阅') }}
+        </BkButton>
+      </span>
+      <span
+        v-bk-tooltips="{
+          disabled: hasSelected,
+          content: t('请选择集群'),
+        }"
+        v-db-console="'mysql.haClusterList.batchAuthorize'"
+        class="inline-block">
+        <BkButton
+          class="ml-8"
+          :disabled="!hasSelected"
+          @click="handleShowAuthorize(selected)">
+          {{ t('批量授权') }}
+        </BkButton>
+      </span>
       <BkButton
         v-db-console="'mysql.haClusterList.importAuthorize'"
         class="ml-8"
@@ -55,6 +78,7 @@
         ref="tableRef"
         :columns="columns"
         :data-source="getTendbhaList"
+        :line-height="80"
         releate-url-query
         :row-class="setRowClass"
         selectable
@@ -131,7 +155,6 @@
   import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
 
   import ClusterAuthorize from '@views/db-manage/common/cluster-authorize/Index.vue';
-  import ClusterBatchOperation from '@views/db-manage/common/cluster-batch-opration/Index.vue'
   import ClusterCapacityUsageRate from '@views/db-manage/common/cluster-capacity-usage-rate/Index.vue'
   import EditEntryConfig, { type ClusterEntryInfo } from '@views/db-manage/common/cluster-entry-config/Index.vue';
   import ClusterExportData from '@views/db-manage/common/cluster-export-data/Index.vue'
@@ -230,44 +253,6 @@
   const hasSelected = computed(() => selected.value.length > 0);
   const selectedIds = computed(() => selected.value.map(item => item.id));
 
-  const clusterBatchOperationList = computed(() => [
-    {
-      dbConsole: 'mysql.haClusterList.batchSubscription',
-      click: () => handleShowCreateSubscribeRuleSlider(),
-      disabled: selected.value.some((data) => data.isOffline),
-      tooltips: t('仅可订阅状态为“已启用”的集群'),
-      text: t('批量订阅')
-    },
-    {
-      dbConsole: 'mysql.haClusterList.batchAuthorize',
-      click: () => handleShowAuthorize(selected.value),
-      disabled: selected.value.some((data) => data.isOffline),
-      tooltips: t('仅可授权状态为“已启用”的集群'),
-      text: t('批量授权')
-    },
-    {
-      dbConsole: 'mysql.haClusterList.disable',
-      click: () => handleSwitchCluster(TicketTypes.MYSQL_HA_DISABLE, selected.value),
-      disabled: selected.value.some((data) => data.isOffline || data.operationDisabled),
-      tooltips: t('仅可禁用状态为“已启用”的集群'),
-      text: t('禁用')
-    },
-    {
-      dbConsole: 'mysql.haClusterList.enable',
-      click: () => handleSwitchCluster(TicketTypes.MYSQL_HA_ENABLE,selected.value),
-      disabled: selected.value.some((data) => data.isOnline || data.isStarting),
-      tooltips: t('仅可启用状态为“已禁用”的集群'),
-      text: t('启用')
-    },
-    {
-      dbConsole: 'mysql.haClusterList.delete',
-      click: () => handleDeleteCluster(selected.value),
-      disabled: selected.value.some((data) => data.isOnline || Boolean(data.operationTicketId)),
-      tooltips: t('仅可删除状态为“已禁用”的集群'),
-      text: t('删除')
-    }
-  ]);
-
   const searchSelectData = computed(() => [
     {
       name: t('访问入口'),
@@ -350,7 +335,7 @@
     return funControllerStore.funControllerData.mysql.children[currentKey];
   });
 
-  const entrySort = (data: ClusterEntryInfo[]) => data.sort(a => a.role === 'master_entry' ? -1 : 1);
+  const entrySort = (data: RowData[]) => data.sort(a => a.role === 'master_entry' ? -1 : 1);
 
   const columns = computed(() => [
     {
@@ -363,7 +348,8 @@
       label: t('主访问入口'),
       field: 'master_domain',
       fixed: 'left',
-      minWidth: 320,
+      width: 280,
+      minWidth: 280,
       showOverflowTooltip: false,
       renderHead: () => (
         <RenderHeadCopy
@@ -402,28 +388,6 @@
             ),
             append: () => (
               <>
-                {
-                  data.operationTagTips.map(item => <RenderOperationTag class="cluster-tag ml-4" data={item}/>)
-                }
-                {
-                  data.isOffline && !data.isStarting && (
-                    <bk-tag
-                      class="ml-4"
-                      size="small">
-                      {t('已禁用')}
-                    </bk-tag>
-                  )
-                }
-                {
-                  data.isNew && (
-                    <bk-tag
-                      theme="success"
-                      size="small"
-                      class="ml-4">
-                      NEW
-                    </bk-tag>
-                  )
-                }
                 <RenderCellCopy copyItems={
                   [
                     {
@@ -485,6 +449,25 @@
             default: () => data.cluster_name,
             append: () => (
               <>
+                {
+                  data.operationTagTips.map(item => <RenderOperationTag class="cluster-tag ml-4" data={item}/>)
+                }
+                {
+                  data.isOffline && !data.isStarting && (
+                    <bk-tag
+                      class="ml-4"
+                      size="small">
+                      {t('已禁用')}
+                    </bk-tag>
+                  )
+                }
+                {
+                  isRecentDays(data.create_at, 24 * 3) && (
+                    <span
+                      class="glob-new-tag cluster-tag ml-4"
+                      data-text="NEW" />
+                  )
+                }
                 <span v-db-console="mysql.haClusterList.modifyEntryConfiguration">
                   <EditEntryConfig
                     id={data.id}
@@ -756,22 +739,6 @@
       render: ({ cell }: ColumnData) => <span>{cell || '--'}</span>,
     },
     {
-        label: t('园区'),
-        field: 'bk_sub_zone',
-        minWidth: 100,
-        render: ({ data }: ColumnData) => data.bk_sub_zone || '--',
-    },
-    {
-      label: t('管控区域'),
-      field: 'bk_cloud_id',
-      filter: {
-        list: columnAttrs.value.bk_cloud_id,
-        checked: columnCheckedMap.value.bk_cloud_id,
-      },
-      width: 90,
-      render: ({ data }: ColumnData) =>  data.bk_cloud_name ? `${data.bk_cloud_name}[${data.bk_cloud_id}]` : '--',
-    },
-    {
       label: t('创建人'),
       field: 'creator',
       width: 140,
@@ -807,7 +774,6 @@
             text
             theme="primary"
             class="mr-8"
-            disabled={data.isOffline}
             onClick={() => handleShowAuthorize([data])}>
             { t('授权') }
           </bk-button>
@@ -843,7 +809,6 @@
                     <auth-button
                       action-id="tbinlogdumper_install"
                       resource={data.id}
-                      disabled={data.isOffline}
                       permission={data.permission.tbinlogdumper_install}
                       text
                       class="mr-8"
@@ -857,50 +822,48 @@
                     <OperationBtnStatusTips data={data}>
                       <auth-button
                         text
-                        disabled={data.operationDisabled}
+                        disabled={Boolean(data.operationTicketId)}
                         class="mr-8"
                         action-id="mysql_enable_disable"
                         permission={data.permission.mysql_enable_disable}
                         resource={data.id}
-                        onClick={() => handleSwitchCluster(TicketTypes.MYSQL_HA_DISABLE, [data])}>
+                        onClick={() => handleSwitchCluster(TicketTypes.MYSQL_HA_DISABLE, data)}>
                         { t('禁用') }
                       </auth-button>
                     </OperationBtnStatusTips>
                   </bk-dropdown-item>
                 ) : (
-                  <bk-dropdown-item v-db-console="mysql.haClusterList.enable">
-                    <OperationBtnStatusTips data={data}>
-                      <auth-button
-                        text
-                        disabled={data.isStarting}
-                        class="mr-8"
-                        action-id="mysql_enable_disable"
-                        permission={data.permission.mysql_enable_disable}
-                        resource={data.id}
-                        onClick={() => handleSwitchCluster(TicketTypes.MYSQL_HA_ENABLE, [data])}>
-                        { t('启用') }
-                      </auth-button>
-                    </OperationBtnStatusTips>
-                  </bk-dropdown-item>
+                  <>
+                    <bk-dropdown-item v-db-console="mysql.haClusterList.enable">
+                      <OperationBtnStatusTips data={data}>
+                        <auth-button
+                          text
+                          disabled={data.isStarting}
+                          class="mr-8"
+                          action-id="mysql_enable_disable"
+                          permission={data.permission.mysql_enable_disable}
+                          resource={data.id}
+                          onClick={() => handleSwitchCluster(TicketTypes.MYSQL_HA_ENABLE, data)}>
+                          { t('启用') }
+                        </auth-button>
+                      </OperationBtnStatusTips>
+                    </bk-dropdown-item>
+                    <bk-dropdown-item v-db-console="mysql.haClusterList.delete">
+                      <OperationBtnStatusTips data={data}>
+                        <auth-button
+                          text
+                          disabled={Boolean(data.operationTicketId)}
+                          class="mr-8"
+                          action-id="mysql_destroy"
+                          permission={data.permission.mysql_destroy}
+                          resource={data.id}
+                          onClick={() => handleDeleteCluster(data)}>
+                          { t('删除') }
+                        </auth-button>
+                      </OperationBtnStatusTips>
+                    </bk-dropdown-item>
+                  </>
                 )}
-                <bk-dropdown-item v-db-console="mysql.haClusterList.delete">
-                  <OperationBtnStatusTips data={data}>
-                    <auth-button
-                      v-bk-tooltips={{
-                        disabled: data.isOffline,
-                        content: t('请先禁用集群')
-                      }}
-                      text
-                      disabled={data.isOnline || Boolean(data.operationTicketId)}
-                      class="mr-8"
-                      action-id="mysql_destroy"
-                      permission={data.permission.mysql_destroy}
-                      resource={data.id}
-                      onClick={() => handleDeleteCluster([data])}>
-                      { t('删除') }
-                    </auth-button>
-                  </OperationBtnStatusTips>
-                </bk-dropdown-item>
               </>
             }}
           </MoreActionExtend>
@@ -927,7 +890,6 @@
       'major_version',
       'disaster_tolerance_level',
       'region',
-      'bk_sub_zone',
       'bk_cloud_id'
     ],
     showLineHeight: false,
@@ -1068,12 +1030,11 @@
   /**
    * 集群启停
    */
-  const handleSwitchCluster = (type: TicketTypesStrings, data: TendbhaModel[]) => {
+  const handleSwitchCluster = (type: TicketTypesStrings, data: TendbhaModel) => {
     if (!type) return;
 
     const isOpen = type === TicketTypes.MYSQL_HA_ENABLE;
-    const title = isOpen ? t('确定启用集群') : t('确定禁用集群');
-    const name = data.map(dataItem => dataItem.cluster_name).join('，')
+    const title = isOpen ? t('确定启用该集群') : t('确定禁用该集群');
     InfoBox({
       type: 'warning',
       title,
@@ -1081,8 +1042,8 @@
         <div style="word-break: all;">
           {
             isOpen
-              ? <p>{t('集群【name】启用后将恢复访问', { name })}</p>
-              : <p>{t('集群【name】被禁用后将无法访问_如需恢复访问_可以再次「启用」', { name })}</p>
+              ? <p>{t('集群【name】启用后将恢复访问', { name: data.cluster_name })}</p>
+              : <p>{t('集群【name】被禁用后将无法访问_如需恢复访问_可以再次「启用」', { name: data.cluster_name })}</p>
           }
         </div>
       ),
@@ -1091,7 +1052,7 @@
           bk_biz_id: globalBizsStore.currentBizId,
           ticket_type: type,
           details: {
-            cluster_ids: data.map(dataItem => dataItem.id),
+            cluster_ids: [data.id],
           },
         };
         await createTicket(params).then((res) => {
@@ -1105,8 +1066,8 @@
   /**
    * 删除集群
    */
-  const handleDeleteCluster = (data: TendbhaModel[]) => {
-    const name = data.map(dataItem => dataItem.cluster_name).join('，')
+  const handleDeleteCluster = (data: TendbhaModel) => {
+    const { cluster_name: name } = data;
     InfoBox({
       type: 'warning',
       title: t('确定删除该集群'),
@@ -1125,7 +1086,7 @@
           bk_biz_id: globalBizsStore.currentBizId,
           ticket_type: TicketTypes.MYSQL_HA_DESTROY,
           details: {
-            cluster_ids: data.map(dataItem => dataItem.id)
+            cluster_ids: [data.id],
           },
         };
         await createTicket(params).then((res) => {

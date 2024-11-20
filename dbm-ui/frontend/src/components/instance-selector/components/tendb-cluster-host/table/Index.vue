@@ -243,6 +243,30 @@
       showOverflowTooltip: true,
       render: ({ data }: DataRow) => data.host_info?.agent_id || '--',
     },
+    {
+      label: t('园区'),
+      field: 'bk_sub_zone',
+      showOverflowTooltip: true,
+      render: ({ data }: DataRow) => data.host_info.bk_sub_zone || '--',
+    },
+    {
+      label: t('CPU'),
+      field: 'bk_cpu',
+      showOverflowTooltip: true,
+      render: ({ data }: DataRow) => data.host_info.bk_cpu || '--',
+    },
+    {
+      label: t('内存'),
+      field: 'bk_mem',
+      showOverflowTooltip: true,
+      render: ({ data }: DataRow) => data.host_info.bk_mem || '--',
+    },
+    {
+      label: t('磁盘'),
+      field: 'bk_disk',
+      showOverflowTooltip: true,
+      render: ({ data }: DataRow) => data.host_info.bk_disk || '--',
+    },
   ];
 
   watch(() => props.lastValues, () => {

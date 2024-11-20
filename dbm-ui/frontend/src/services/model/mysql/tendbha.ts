@@ -12,7 +12,7 @@
  */
 import { uniq } from 'lodash';
 
-import type { ClusterListEntry, ClusterListNode, ClusterListOperation } from '@services/types';
+import type { ClusterListEntry, ClusterListNode, ClusterListOperation, ClusterListSpec } from '@services/types';
 
 import { ClusterAffinityMap } from '@common/const';
 
@@ -55,6 +55,7 @@ export default class Tendbha {
   cluster_alias: string;
   cluster_entry: ClusterListEntry[];
   cluster_name: string;
+  cluster_spec: ClusterListSpec;
   cluster_stats: Record<'used' | 'total' | 'in_use', number>;
   cluster_time_zone: string;
   cluster_type: string;
@@ -99,6 +100,7 @@ export default class Tendbha {
     this.cluster_alias = payload.cluster_alias;
     this.cluster_entry = payload.cluster_entry || [];
     this.cluster_name = payload.cluster_name || '';
+    this.cluster_spec = payload.cluster_spec || {};
     this.cluster_stats = payload.cluster_stats || {};
     this.cluster_type = payload.cluster_type || '';
     this.cluster_type_name = payload.cluster_type_name || '';

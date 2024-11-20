@@ -483,12 +483,6 @@
         render: ({ data }: { data: EsModel }) => data.disasterToleranceLevelName || '--',
     },
     {
-        label: t('园区'),
-        field: 'bk_sub_zone',
-        minWidth: 100,
-        render: ({ data }: { data: EsModel }) => data.bk_sub_zone || '--',
-    },
-    {
       label: t('地域'),
       field: 'region',
       minWidth: 100,
