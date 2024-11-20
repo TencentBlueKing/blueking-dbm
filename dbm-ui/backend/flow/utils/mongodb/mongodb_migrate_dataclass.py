@@ -470,11 +470,12 @@ class MigrateActKwargs:
         """进行host初始化"""
 
         # 获取os配置
+        str_bk_biz_id = str(self.bk_biz_id)
         os_conf = DBConfigApi.query_conf_item(
             params={
-                "bk_biz_id": self.bk_biz_id,
+                "bk_biz_id": str_bk_biz_id,
                 "level_name": LevelName.APP,
-                "level_value": self.bk_biz_id,
+                "level_value": str_bk_biz_id,
                 "conf_file": ConfigFileEnum.OsConf.value,
                 "conf_type": ConfigTypeEnum.Config.value,
                 "namespace": NameSpaceEnum.MongoDBCommon.value,
