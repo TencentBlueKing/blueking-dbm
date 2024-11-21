@@ -52,7 +52,7 @@
   const handleRedirect = useRedirect();
 
   const getMatchText = (data: Props['data'][number]) => {
-    if (data.name.indexOf(props.keyWord) > -1) {
+    if (data.name?.indexOf(props.keyWord) > -1) {
       return data.name;
     }
     return `${data.ip}:${data.port}`;
