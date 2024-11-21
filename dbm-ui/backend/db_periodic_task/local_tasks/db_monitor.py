@@ -33,11 +33,17 @@ def update_local_notice_group():
     """同步告警组"""
     dba_ids = DBAdministrator.objects.values_list("id", flat=True)
     count = len(dba_ids)
+    # 同步 DBA 内置告警组
     for index, dba_id in enumerate(dba_ids):
         countdown = calculate_countdown(count=count, index=index, duration=6 * TimeUnit.HOUR)
         logger.info("dba_id({}) update notice group will be run after {} seconds.".format(dba_id, countdown))
         with start_new_span(update_dba_notice_group):
             update_dba_notice_group.apply_async(kwargs={"dba_id": dba_id}, countdown=countdown)
+
+    # 同步非内置的，包含 CC 角色的告警组
+    groups = NoticeGroup.objects.filter(receivers__contains=[{"type": "group"}], is_built_in=False)
+    for group in groups:
+        group.save_monitor_group()
 
 
 @app.task

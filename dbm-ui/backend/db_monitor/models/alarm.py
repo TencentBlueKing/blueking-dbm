@@ -55,6 +55,7 @@ from backend.db_monitor.utils import (
     get_dbm_autofix_action_id,
     render_promql_sql,
 )
+from backend.db_services.cmdb.biz import list_cc_obj_user
 from backend.exceptions import ApiError
 
 __all__ = ["NoticeGroup", "AlertRule", "RuleTemplate", "DispatchGroup", "MonitorPolicy", "DutyRule"]
@@ -105,6 +106,23 @@ class NoticeGroup(AuditedModel):
     def get_groups(cls, bk_biz_id, id_name="monitor_group_id") -> dict:
         """业务内置"""
         return dict(cls.objects.filter(bk_biz_id=bk_biz_id, is_built_in=True).values_list("db_type", id_name))
+
+    def transfer_receivers(self):
+        """转换接收人，主要是把 cc 角色用户打散为具体用户"""
+        receivers = []
+        obj_id_members = None
+        for receiver in self.receivers:
+            # 针对 cc 角色，需要转成真实业务的人员
+            if receiver.get("type") == "group":
+                if obj_id_members is None:
+                    biz_obj_user = list_cc_obj_user(self.bk_biz_id)
+                    obj_id_members = {obj_user["id"]: obj_user["members"] for obj_user in biz_obj_user}
+                members = obj_id_members.get(receiver["id"]) or []
+                for member in members:
+                    receivers.append({"id": member, "type": "user"})
+            else:
+                receivers.append(receiver)
+        return receivers
 
     def save_monitor_group(self) -> int:
         # 深拷贝保存用户组的模板
@@ -165,7 +183,8 @@ class NoticeGroup(AuditedModel):
                 save_monitor_group_params["duty_arranges"][0]["users"] = self.receivers
 
         else:
-            save_monitor_group_params["duty_arranges"][0]["users"] = self.receivers
+            receivers = self.transfer_receivers()
+            save_monitor_group_params["duty_arranges"][0]["users"] = receivers
 
         if self.monitor_group_id:
             save_monitor_group_params["id"] = self.monitor_group_id

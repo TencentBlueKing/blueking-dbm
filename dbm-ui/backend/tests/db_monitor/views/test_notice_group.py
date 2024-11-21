@@ -19,6 +19,7 @@ from rest_framework.test import APIClient
 from backend.db_monitor.mock_data import CREATE_NOTICE_GROUP
 from backend.db_monitor.models import NoticeGroup
 from backend.db_monitor.views.notice_group import MonitorNoticeGroupViewSet
+from backend.tests.mock_data.components.cc import CCApiMock
 from backend.tests.mock_data.db_monitor.bkmonitorv3 import BKMonitorV3MockApi
 from backend.tests.mock_data.iam_app.permission import PermissionMock
 
@@ -38,6 +39,7 @@ def set_empty_middleware():
 @patch.object(MonitorNoticeGroupViewSet, "permission_classes", [AllowAny])
 @patch.object(MonitorNoticeGroupViewSet, "get_permissions", lambda x: [])
 @patch("backend.db_monitor.models.alarm.BKMonitorV3Api", BKMonitorV3MockApi)
+@patch("backend.db_services.cmdb.biz.CCApi", CCApiMock())
 def add_notice_group(db):
     notice_group = NoticeGroup.objects.create(**CREATE_NOTICE_GROUP[0])
     return notice_group
@@ -47,6 +49,7 @@ class TestMonitorNoticeGroupViewSet:
     @patch.object(MonitorNoticeGroupViewSet, "permission_classes", [AllowAny])
     @patch.object(MonitorNoticeGroupViewSet, "get_permissions", lambda x: [])
     @patch("backend.db_monitor.models.alarm.BKMonitorV3Api", BKMonitorV3MockApi)
+    @patch("backend.db_services.cmdb.biz.CCApi", CCApiMock())
     def test_create_notice_group(self, add_notice_group):
         response = client.post("/apis/monitor/notice_group/", data=CREATE_NOTICE_GROUP[1])
         assert response.status_code == 201
@@ -64,6 +67,7 @@ class TestMonitorNoticeGroupViewSet:
     @patch.object(MonitorNoticeGroupViewSet, "permission_classes", [AllowAny])
     @patch.object(MonitorNoticeGroupViewSet, "get_permissions", lambda x: [])
     @patch("backend.db_monitor.models.alarm.BKMonitorV3Api", BKMonitorV3MockApi)
+    @patch("backend.db_services.cmdb.biz.CCApi", CCApiMock())
     def test_update_notice_group(self, add_notice_group):
         add_notice_group_id = add_notice_group.pk
         url = f"/apis/monitor/notice_group/{add_notice_group_id}/"
