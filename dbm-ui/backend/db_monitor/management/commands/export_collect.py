@@ -19,6 +19,7 @@ from typing import List
 from django.core.management.base import BaseCommand
 from django.utils import timezone
 
+from backend import env
 from backend.components import BKMonitorV3Api
 from backend.configuration.constants import DBType
 from backend.db_monitor.constants import TPLS_COLLECT_DIR
@@ -97,7 +98,9 @@ class Command(BaseCommand):
 
         # 批量获取策略
         for collect_id in collect_list:
-            instance = BKMonitorV3Api.query_collect_config_detail({"id": str(collect_id)})
+            instance = BKMonitorV3Api.query_collect_config_detail(
+                {"bk_biz_id": env.DBA_APP_BK_BIZ_ID, "id": str(collect_id)}
+            )
             # 策略转模板
             plugin_id = instance["plugin_info"]["plugin_id"]
             template = self.to_template(instance)

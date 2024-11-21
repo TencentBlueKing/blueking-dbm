@@ -1,0 +1,50 @@
+{
+  "bk_biz_id": 0,
+  "name": "dbm_mongodb_exporter",
+  "details": {
+    "name": "dbm_mongodb_exporter",
+    "collect_type": "Exporter",
+    "label": "component",
+    "target_object_type": "SERVICE",
+    "target_node_type": "TOPO",
+    "target_nodes": [],
+    "metric_relabel_configs": [{
+      "source_labels": ["__name__"],
+      "action": "drop",
+      "regex": "^mongodb_sys_|^mongodb_ss_metrics_|^mongodb_connPoolStats_"
+    }],
+    "params": {
+      "collector": {
+        "period": 60,
+        "timeout": 60,
+        "host": "127.0.0.1",
+        "port": "10000",
+        "metric_relabel_configs": []
+      },
+      "plugin": {
+        "-addr": "{{ target.host.bk_host_innerip }}:{{ target.service.labels[\"instance_port\"] }}",
+        "-bind": "${host}:${port}",
+        "-password-file": "/home/mysql/.exporter/{{ target.service.labels[\"instance_port\"] }}.conf",
+        "\u670d\u52a1\u5b9e\u4f8b\u7ef4\u5ea6\u6ce8\u5165": {
+          "cluster_domain": "cluster_domain",
+          "cluster_type": "cluster_type",
+          "cluster_name": "cluster_name",
+          "app": "app",
+          "instance": "instance",
+          "instance_role": "instance_role",
+          "instance_host": "instance_host",
+          "instance_port": "instance_port",
+          "appid": "appid"
+        }
+      },
+      "target_node_type": "TOPO",
+      "target_object_type": "SERVICE"
+    },
+    "plugin_id": "dbm_mongodb_exporter"
+  },
+  "db_type": "mongodb",
+  "version": 1,
+  "machine_types": [],
+  "plugin_id": "dbm_mongodb_exporter",
+  "export_at": "2024-11-21T15:24:01+08:00"
+}
