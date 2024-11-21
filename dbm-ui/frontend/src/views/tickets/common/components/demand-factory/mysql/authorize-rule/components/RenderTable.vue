@@ -49,8 +49,8 @@
       </template>
     </BkTableColumn>
     <BkTableColumn
-      :label="t('账号')"
-      prop="user" />
+      field="user"
+      :label="t('账号')" />
     <BkTableColumn
       :label="t('访问DB')"
       :width="150">
