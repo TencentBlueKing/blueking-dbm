@@ -87,7 +87,7 @@ func createSysDb() {
 	if err != nil {
 		log.Fatalf("init create db failed:%s", err.Error())
 	}
-	err = assets.DoMigrateFromEmbed(user, addr, pwd, dbname, 3306)
+	err = assets.DoMigrateFromEmbed(user, addr, pwd, dbname)
 	if err != nil {
 		log.Fatalf("init migrate from embed failed:%s", err.Error())
 	}

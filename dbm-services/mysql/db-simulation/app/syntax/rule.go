@@ -22,6 +22,7 @@ import (
 
 	"dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/common/go-pubpkg/logger"
+	"dbm-services/mysql/db-simulation/app"
 	"dbm-services/mysql/db-simulation/app/config"
 	"dbm-services/mysql/db-simulation/model"
 )
@@ -65,7 +66,7 @@ func init() {
 	}
 	// 是否从db中加载配置覆盖配置文件
 	if config.GAppConfig.LoadRuleFromdb {
-		if err = traverseLoadRule(*R); err != nil {
+		if err = traverseLoadRule(app.MySQL, *R); err != nil {
 			logger.Error("load rule from database failed %s", err.Error())
 		}
 	}
@@ -201,7 +202,7 @@ type DmlRule struct {
 	DmlNotHasWhere *RuleItem `yaml:"DmlNotHasWhere"`
 }
 
-func traverseLoadRule(rulepointer interface{}) error {
+func traverseLoadRule(dbType string, rulepointer interface{}) error {
 	tv := reflect.TypeOf(rulepointer)
 	v := reflect.ValueOf(rulepointer)
 	var groupname, rulename string
@@ -211,7 +212,7 @@ func traverseLoadRule(rulepointer interface{}) error {
 			structField := v.Field(i).Type()
 			for j := 0; j < structField.NumField(); j++ {
 				rulename = structField.Field(j).Name
-				drule, err := model.GetRuleByName(groupname, rulename)
+				drule, err := model.GetRuleByName(groupname, dbType, rulename)
 				if err != nil {
 					if err == gorm.ErrRecordNotFound {
 						logger.Warn("not found group:%s,rule:%s rules in databases", groupname, rulename)

@@ -23,6 +23,7 @@ import (
 	"gorm.io/gorm/logger"
 
 	"dbm-services/mysql/db-simulation/app/config"
+	"dbm-services/mysql/db-simulation/assets"
 )
 
 // DB TODO
@@ -32,10 +33,10 @@ func init() {
 	user := config.GAppConfig.DbConf.User
 	pwd := config.GAppConfig.DbConf.Pwd
 	addr := fmt.Sprintf("%s:%d", config.GAppConfig.DbConf.Host, config.GAppConfig.DbConf.Port)
-	db := config.GAppConfig.DbConf.Name
+	dbName := config.GAppConfig.DbConf.Name
 	log.Printf("connect to %s", addr)
 	testConn := openDB(user, pwd, addr, "")
-	err := testConn.Exec(fmt.Sprintf("create database IF NOT EXISTS `%s`;", db)).Error
+	err := testConn.Exec(fmt.Sprintf("create database IF NOT EXISTS `%s`;", dbName)).Error
 	if err != nil {
 		log.Fatalf("init create db failed:%s", err.Error())
 	}
@@ -43,16 +44,13 @@ func init() {
 	if err != nil {
 		log.Fatalf("init create db failed:%s", err.Error())
 	}
+	log.Println("make dbeug dbname", dbName)
+	err = assets.DoMigrateFromEmbed(user, addr, pwd, dbName)
+	if err != nil {
+		log.Fatalf("init migrate from embed failed:%s", err.Error())
+	}
 	sqldb.Close()
-	DB = openDB(user, pwd, addr, db)
-	Migration()
-}
-
-// Migration TODO
-func Migration() {
-	//nolint
-	DB.AutoMigrate(&TbSimulationTask{}, &TbRequestRecord{}, &TbSyntaxRule{}, &TbContainerRecord{},
-		&TbSqlFileSimulationInfo{}, &TbSimulationImgCfg{})
+	DB = openDB(user, pwd, addr, dbName)
 }
 
 func openDB(username, password, addr, name string) *gorm.DB {

@@ -46,6 +46,7 @@ func RegisterRouter(engine *gin.Engine) {
 	r.POST("/manage", handler.ManageRule)
 	r.GET("/getall", handler.GetAllRule)
 	r.POST("/update", handler.UpdateRule)
+	r.POST("/reload", handler.ReloadRule)
 	// spider
 	sp := engine.Group("/spider")
 	sp.POST("/simulation", handler.TendbClusterSimulation)

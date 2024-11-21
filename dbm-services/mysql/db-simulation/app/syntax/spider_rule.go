@@ -17,6 +17,7 @@ import (
 
 	"dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/common/go-pubpkg/logger"
+	"dbm-services/mysql/db-simulation/app"
 	"dbm-services/mysql/db-simulation/app/config"
 )
 
@@ -64,10 +65,8 @@ func init() {
 		logger.Fatal("yaml Unmarshal failed %s", err.Error())
 		return
 	}
-	if config.GAppConfig.LoadRuleFromdb {
-		if err = traverseLoadRule(*SR); err != nil {
-			logger.Error("load rule from database failed %s", err.Error())
-		}
+	if err = traverseLoadRule(app.Spider, *SR); err != nil {
+		logger.Error("load rule from database failed %s", err.Error())
 	}
 	var initCompiles = []*RuleItem{}
 	initCompiles = append(initCompiles, traverseRule(SR.CommandRule)...)
@@ -78,4 +77,39 @@ func init() {
 			return
 		}
 	}
+}
+
+// ReloadRuleFromDb reload rule from db
+func ReloadRuleFromDb() (err error) {
+	logger.Info("reload mysql rule from db")
+	if err = traverseLoadRule(app.Spider, *R); err != nil {
+		logger.Error("load rule from database failed %s", err.Error())
+		return err
+	}
+	var initCompiles = []*RuleItem{}
+	initCompiles = append(initCompiles, traverseRule(R.CommandRule)...)
+	initCompiles = append(initCompiles, traverseRule(R.CreateTableRule)...)
+	initCompiles = append(initCompiles, traverseRule(R.AlterTableRule)...)
+	initCompiles = append(initCompiles, traverseRule(R.DmlRule)...)
+	for _, c := range initCompiles {
+		if err = c.compile(); err != nil {
+			logger.Error("compile rule failed %s", err.Error())
+			return err
+		}
+	}
+	logger.Info("reload spider rule from db success")
+	if err = traverseLoadRule(app.Spider, *SR); err != nil {
+		logger.Error("load rule from database failed %s", err.Error())
+		return err
+	}
+	initCompiles = []*RuleItem{}
+	initCompiles = append(initCompiles, traverseRule(SR.CommandRule)...)
+	initCompiles = append(initCompiles, traverseRule(SR.SpiderCreateTableRule)...)
+	for _, c := range initCompiles {
+		if err = c.compile(); err != nil {
+			logger.Error("compile rule failed %s", err.Error())
+			return err
+		}
+	}
+	return nil
 }

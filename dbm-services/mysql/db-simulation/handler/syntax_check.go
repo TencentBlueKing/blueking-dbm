@@ -14,6 +14,7 @@ import (
 	"os"
 	"path"
 	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/spf13/viper"
@@ -77,6 +78,11 @@ func SyntaxCheckSQL(r *gin.Context) {
 
 	sqlContext := strings.Join(param.Sqls, "\n")
 	fileName := "ce_" + cmutil.RandStr(10) + ".sql"
+	workdir = path.Join(workdir, time.Now().Format("20060102150405"))
+	if err := os.MkdirAll(workdir, 0755); err != nil {
+		SendResponse(r, err, err.Error(), requestID)
+		return
+	}
 	f := path.Join(workdir, fileName)
 	err := os.WriteFile(f, []byte(sqlContext), 0600)
 	if err != nil {

@@ -14,6 +14,8 @@ import (
 	"errors"
 	"fmt"
 
+	"dbm-services/mysql/db-simulation/app/syntax"
+
 	"github.com/gin-gonic/gin"
 
 	"dbm-services/common/go-pubpkg/logger"
@@ -128,4 +130,15 @@ func errReturn(r *gin.Context, tsr *model.TbSyntaxRule) {
 	err := fmt.Errorf("%s type required", tsr.ItemType)
 	logger.Error("Item type error: %s", err)
 	SendResponse(r, err, nil, "")
+}
+
+// ReloadRule  trigger reload rule
+func ReloadRule(c *gin.Context) {
+	err := syntax.ReloadRuleFromDb()
+	if err != nil {
+		logger.Error("reload rule from db failed %s", err.Error())
+		SendResponse(c, err, nil, "")
+		return
+	}
+	SendResponse(c, nil, "ok", "")
 }
