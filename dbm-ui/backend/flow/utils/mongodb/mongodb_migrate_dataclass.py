@@ -399,7 +399,7 @@ class MigrateActKwargs:
                 info["password_infos"].append({"nodes": nodes, "password": shard.get("password")})
             storages_hosts_list = [
                 {
-                    "ip": host.get("ip"),
+                    "ip": host,
                     "bk_cloud_id": self.source_cluster_info.get("storages")[0]["nodes"][0]["bk_cloud_id"],
                 }
                 for host in storages_hosts_set
