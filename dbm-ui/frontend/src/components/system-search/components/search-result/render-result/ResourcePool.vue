@@ -42,6 +42,9 @@
 
     location({
       name: 'resourcePool',
+      params: {
+        page: 'host-list',
+      },
       query: {
         hosts: data.ip,
       },

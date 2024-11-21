@@ -36,8 +36,10 @@
 
 <script setup lang="tsx">
   import { useI18n } from 'vue-i18n';
+  import { useRequest } from 'vue-request';
 
   import DbResourceModel from '@services/model/db-resource/DbResource';
+  import { fetchDbTypeList } from '@services/source/infras';
 
   import {
     useCopy,
@@ -79,20 +81,18 @@
   });
 
   const filterMap = computed(() => {
-    const currentBizNameMap = props.bizIdNameMap;
+    const currentBizNameMap: Props['bizIdNameMap'] = {
+      0: t('公共资源池'),
+      ...props.bizIdNameMap
+    };
     const bizNameMap: Props['bizIdNameMap'] = {};
-    const resourceTypesSet = new Set<string>();
+
     const deviceClassSet = new Set<string>();
 
     props.data.forEach((dataItem) => {
       if (!bizNameMap[dataItem.for_biz.bk_biz_id]) {
-          bizNameMap[dataItem.for_biz.bk_biz_id] = currentBizNameMap[dataItem.for_biz.bk_biz_id];
-        }
-
-      if(dataItem.resource_type) {
-        resourceTypesSet.add(dataItem.resource_type);
+        bizNameMap[dataItem.for_biz.bk_biz_id] = currentBizNameMap[dataItem.for_biz.bk_biz_id];
       }
-
       if (dataItem.device_class) {
         deviceClassSet.add(dataItem.device_class);
       }
@@ -100,10 +100,24 @@
 
     return {
       bizNameMap,
-      resourceTypesSet,
       deviceClassSet,
     };
   });
+
+  const resourceTypeMap = computed(() => {
+    const currentTypeMap: Record<string, string> = {}
+    const typeList = [{
+      id: 'PUBLIC',
+      name: t('通用'),
+    }].concat(dbTypeList.value || [])
+    const originMap = typeList.reduce<Record<string, string>>((prev, dbTypeItem) => Object.assign({}, prev, { [dbTypeItem.id]: dbTypeItem.name }), {});
+    props.data.forEach((dataItem) => {
+      if (!currentTypeMap[dataItem.resource_type]) {
+        currentTypeMap[dataItem.resource_type] = originMap[dataItem.resource_type];
+      }
+    });
+    return currentTypeMap
+  })
 
   const columns = computed(() => [
     {
@@ -137,31 +151,19 @@
       ),
     },
     {
-      label: t('云区域'),
-      field: 'bk_cloud_id',
-      render: ({ data }: { data: DbResourceModel }) => data.bk_cloud_id || '--',
+      label: t('管控区域'),
+      field: 'bk_cloud_name',
+      with: 120,
     },
     {
-      label: t('Agent状态'),
+      label: t('Agent 状态'),
       field: 'agent_status',
-      width: 100,
-      filter: {
-        list: [
-          {
-            value: 0,
-            text: t('异常'),
-          },
-          {
-            value: 1,
-            text: t('正常'),
-          },
-        ],
-      },
-      render: ({ data }: { data: DbResourceModel }) => <HostAgentStatus data={data.agent_status} />,
+      with: 100,
+      render: ({ data }: {data: DbResourceModel}) => <HostAgentStatus data={data.agent_status} />,
     },
     {
       label: t('所属业务'),
-      field: 'for_biz',
+      field: 'forBizDisplay',
       width: 100,
       filter: {
         list: Object.entries(filterMap.value.bizNameMap).map(bizItem => ({
@@ -175,15 +177,16 @@
           return checked.some(checkedItem => row.for_biz.bk_biz_id === checkedItem);
         },
       },
-      render: ({ data }: { data: DbResourceModel }) => data.for_biz.bk_biz_id ? <bk-tag>{data.for_biz.bk_biz_name}</bk-tag> : t('无限制'),
+      render: ({ data }: {data: DbResourceModel}) => data.forBizDisplay || '--',
     },
     {
       label: t('所属DB类型'),
-      field: 'resource_type',
+      field: 'resourceTypeDisplay',
+      minWidth: 150,
       filter: {
-        list: Array.from(filterMap.value.resourceTypesSet).map(resourceTypeItem => ({
-          value: resourceTypeItem,
-          text: resourceTypeItem,
+        list: Object.entries(resourceTypeMap.value).map(resourceTypeItem => ({
+          value: resourceTypeItem[0],
+          text: resourceTypeItem[1],
         })),
         filterFn: (checked: string[], row: DbResourceModel) => {
           if (checked.length === 0) {
@@ -192,7 +195,12 @@
           return checked.some(checkedItem => row.resource_type === checkedItem);
         },
       },
-      render: ({ data }: { data: DbResourceModel }) => data.resource_type ? <bk-tag>{data.resource_type}</bk-tag> : t('无限制'),
+      render: ({ data }: {data: DbResourceModel}) => data.resourceTypeDisplay || '--',
+    },
+    {
+      label: t('机架'),
+      field: 'rack_id',
+      render: ({ data }: {data: DbResourceModel}) => data.rack_id || '--',
     },
     {
       label: t('机型'),
@@ -203,33 +211,37 @@
           text: ticketTypeItem,
         })),
       },
-      render: ({ data }: { data: DbResourceModel }) => data.device_class || '--',
+      render: ({ data }: {data: DbResourceModel}) => data.device_class || '--',
+    },
+    {
+      label: t('操作系统类型'),
+      field: 'os_type',
+      render: ({ data }: {data: DbResourceModel}) => data.os_type || '--',
     },
     {
       label: t('地域'),
       field: 'city',
-      render: ({ data }: { data: DbResourceModel }) => data.city || '--',
+      render: ({ data }: {data: DbResourceModel}) => data.city || '--',
     },
     {
       label: t('园区'),
       field: 'sub_zone',
-      render: ({ data }: { data: DbResourceModel }) => data.sub_zone || '--',
+      render: ({ data }: {data: DbResourceModel}) => data.sub_zone || '--',
     },
     {
       label: t('CPU(核)'),
       field: 'bk_cpu',
-      render: ({ data }: { data: DbResourceModel }) => data.bk_cpu || '--',
     },
     {
-      label: t('内存(G)'),
+      label: t('内存'),
       field: 'bkMemText',
-      render: ({ data }: { data: DbResourceModel }) => data.bkMemText || '0 M',
+      render: ({ data }: {data: DbResourceModel}) => data.bkMemText || '0 M',
     },
     {
       label: t('磁盘容量(G)'),
       field: 'bk_disk',
-      width: 100,
-      render: ({ data }: { data: DbResourceModel }) => (
+      minWidth: 120,
+      render: ({ data }: {data: DbResourceModel}) => (
         <DiskPopInfo data={data.storage_device}>
           <span style="line-height: 40px; color: #3a84ff;">
             {data.bk_disk}
@@ -239,26 +251,31 @@
     },
   ]);
 
+  const { data: dbTypeList } = useRequest(fetchDbTypeList);
+
   // 设置用户个人表头信息
   const defaultSettings = {
     fields: (columns.value || []).filter(item => item.field).map(item => ({
       label: item.label,
       field: item.field,
-      disabled: item.field === 'id',
+      disabled: ['ip', 'forBizDisplay', 'resource_type'].includes(item.field)
     })),
     checked: [
       'ip',
-      'bk_cloud_id',
+      'bk_cloud_name',
       'agent_status',
-      'for_biz',
-      'resource_type',
+      'forBizDisplay',
+      'resourceTypeDisplay',
+      'rack_id',
       'device_class',
       'city',
       'sub_zone',
       'bk_cpu',
-      'bkMemText',
+      'bk_mem',
       'bk_disk',
+      'os_type',
     ],
+    trigger: 'manual' as const,
   };
 
   const {
