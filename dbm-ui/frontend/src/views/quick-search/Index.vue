@@ -88,6 +88,8 @@
 
   import { quickSearch } from '@services/source/quickSearch';
 
+  import { useUrlSearch } from '@hooks';
+
   import { useGlobalBizs } from '@stores';
 
   import { batchSplitRegex } from '@common/regex';
@@ -103,33 +105,18 @@
   import Task from './components/Task.vue';
   import Ticket from './components/Ticket.vue';
 
-  const formatRouteQuery = () => {
-    const {
-      filter_type: filterType,
-      bk_biz_ids: bkBizIds,
-      db_types: dbTypes,
-      resource_types: resourceTypes,
-    } = route.query as unknown as {
-      filter_type: string;
-      bk_biz_ids?: string;
-      db_types?: string;
-      resource_types?: string;
-    };
-
-    return {
-      bk_biz_ids: bkBizIds ? bkBizIds.split(',').map((bizId) => Number(bizId)) : [],
-      db_types: dbTypes ? dbTypes.split(',') : [],
-      resource_types: resourceTypes ? resourceTypes.split(',') : [],
-      filter_type: filterType || FilterType.EXACT,
-    };
+  type MapArrayToString<T> = {
+    [K in keyof T]: T[K] extends Array<string | number> ? string : T[K];
   };
 
   const route = useRoute();
   const router = useRouter();
   const { t } = useI18n();
   const { bizs: bizList } = useGlobalBizs();
+  const { getSearchParams, replaceSearchParams } = useUrlSearch();
 
   let isRedirectSearch = true;
+  let routeParamsMemo = {};
 
   const comMap = {
     cluster_domain: ClusterDomain,
@@ -147,7 +134,7 @@
 
   // const keyword = ref((route.query.keyword as string) || '');
   const keyword = ref('');
-  const dataMap = ref<Omit<ServiceReturnType<typeof quickSearch>, 'machine' | 'keyword' | 'short_code'>>({
+  const dataMap = ref<Omit<ServiceReturnType<typeof quickSearch>, 'keyword' | 'short_code'>>({
     cluster_name: [],
     cluster_domain: [],
     instance: [],
@@ -156,7 +143,12 @@
     ticket: [],
   });
 
-  const formData = ref(formatRouteQuery());
+  const formData = ref({
+    bk_biz_ids: [] as number[],
+    db_types: [] as string[],
+    resource_types: [] as string[],
+    filter_type: FilterType.EXACT,
+  });
   const activeTab = ref('cluster_domain');
   const panelList = reactive([
     {
@@ -221,9 +213,9 @@
     run: quickSearchRun,
   } = useRequest(quickSearch, {
     manual: true,
-    onSuccess(data) {
+    onSuccess(data, params) {
       if (isRedirectSearch) {
-        keyword.value = data.keyword;
+        keyword.value = data.keyword.replace(batchSplitRegex, '|');
         handleSearch();
       }
       Object.assign(dataMap.value, {
@@ -245,6 +237,26 @@
       if (panelItem) {
         activeTab.value = panelItem.name;
       }
+
+      const serachParams = Object.entries(params[0]).reduce<Record<string, MapArrayToString<(typeof params)[0]>>>(
+        (prev, [key, value]) => {
+          if (Array.isArray(value)) {
+            return Object.assign(prev, { [key]: value.join(',') });
+          }
+          return Object.assign(prev, { [key]: value });
+        },
+        {},
+      );
+      Object.assign(serachParams, {
+        short_code: data.short_code,
+      });
+      delete serachParams.keyword;
+      routeParamsMemo = {
+        ...routeParamsMemo,
+        ...serachParams,
+      };
+
+      replaceSearchParams(routeParamsMemo);
     },
     onAfter() {
       isRedirectSearch = false;
@@ -340,13 +352,35 @@
   };
 
   // 初始化查询
-  if (route.query.short_code) {
-    quickSearchRun({
-      ...formData.value,
-      short_code: route.query.short_code as string,
-      limit: 1000,
-    });
-  }
+  const initRetrieve = () => {
+    const formatRouteQuery = (initParams: Record<string, string>) => {
+      const {
+        filter_type: filterType,
+        bk_biz_ids: bkBizIds,
+        db_types: dbTypes,
+        resource_types: resourceTypes,
+      } = initParams;
+
+      return {
+        bk_biz_ids: bkBizIds ? bkBizIds.split(',').map((bizId) => Number(bizId)) : [],
+        db_types: dbTypes ? dbTypes.split(',') : [],
+        resource_types: resourceTypes ? resourceTypes.split(',') : [],
+        filter_type: (filterType as FilterType) || FilterType.EXACT,
+      };
+    };
+    const initParams = getSearchParams();
+    routeParamsMemo = initParams;
+    formData.value = formatRouteQuery(initParams);
+    const shortCode = initParams?.short_code || initParams?.keyword;
+    if (shortCode) {
+      quickSearchRun({
+        ...formData.value,
+        short_code: shortCode,
+        limit: 1000,
+      });
+    }
+  };
+  initRetrieve();
 
   defineExpose({
     routerBack() {

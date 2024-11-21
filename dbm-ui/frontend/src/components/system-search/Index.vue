@@ -76,6 +76,8 @@
 
   import { batchSplitRegex } from '@common/regex';
 
+  import { buildURLParams } from '@utils';
+
   import FilterTypeSelect, { FilterType } from './components/FilterTypeSelect.vue';
   import SearchResult from './components/search-result/Index.vue';
   import SearchHistory from './components/SearchHistory.vue';
@@ -149,8 +151,10 @@
   };
 
   const handleSearch = () => {
-    const getQuery = (options: UnwrapRef<typeof formData> & { short_code?: string }) =>
-      Object.keys(options).reduce((prevQuery, optionKey) => {
+    // 页面跳转参数处理
+    const { formData, keyword } = searchResultRef.value!.getFilterOptions();
+    const getURLParams = (options: UnwrapRef<typeof formData> & { from: string; short_code?: string }) => {
+      const query = Object.keys(options).reduce((prevQuery, optionKey) => {
         const optionItem = options[optionKey as keyof typeof options];
 
         if (optionItem !== '' && !(Array.isArray(optionItem) && optionItem.length === 0)) {
@@ -163,8 +167,9 @@
         return prevQuery;
       }, {});
 
-    // 页面跳转参数处理
-    const { formData, keyword } = searchResultRef.value!.getFilterOptions();
+      return buildURLParams(query);
+    };
+
     if (keyword) {
       quickSearch({
         ...formData,
@@ -173,23 +178,25 @@
         const options = {
           ...formData,
           short_code: quickSearchResult.short_code,
+          from: route.name as string,
         };
-        handleRedirect(getQuery(options));
+        handleRedirect(getURLParams(options));
       });
     } else {
-      handleRedirect(getQuery(formData));
+      handleRedirect(
+        getURLParams({
+          ...formData,
+          from: route.name as string,
+        }),
+      );
     }
   };
 
-  const handleRedirect = (query = {}) => {
+  const handleRedirect = (query: string) => {
     const url = router.resolve({
       name: 'QuickSearch',
-      query: {
-        ...query,
-        from: route.name as string,
-      },
     });
-    window.open(url.href, '_blank');
+    window.open(`${url.href}?${query}`, '_blank');
   };
 
   const handleEnter = () => {
