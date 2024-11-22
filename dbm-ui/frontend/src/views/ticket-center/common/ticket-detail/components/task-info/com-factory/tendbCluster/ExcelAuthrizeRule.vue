@@ -9,7 +9,7 @@
   import AuthorizeRule from '../common/mysql-authorize-rules/Index.vue';
 
   interface Props {
-    ticketDetails: TicketModel<TendbCluster.ExcelAuthorizeRules>;
+    ticketDetails: TicketModel<TendbCluster.AuthorizeRules>;
   }
 
   defineProps<Props>();
