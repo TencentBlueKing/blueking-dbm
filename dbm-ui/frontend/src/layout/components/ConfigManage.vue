@@ -62,6 +62,18 @@
               {{ t('单据免审批设置') }}
             </span>
           </BkMenuItem>
+          <BkMenuItem
+            key="TicketCooperationSetting"
+            v-db-console="'bizConfigManage.ticketCooperationSetting'">
+            <template #icon>
+              <DbIcon type="lianxi" />
+            </template>
+            <span
+              v-overflow-tips.right
+              class="text-overflow">
+              {{ t('单据协作设置') }}
+            </span>
+          </BkMenuItem>
         </BkMenuGroup>
         <BkMenuGroup :name="t('设置')">
           <BkMenuItem

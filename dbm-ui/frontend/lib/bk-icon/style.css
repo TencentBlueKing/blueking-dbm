@@ -143,6 +143,9 @@ url("fonts/iconcool.eot?#iefix") format("embedded-opentype");
 .db-icon-qiyeweixin:before {
 	content: "\e1d9";
 }
+.db-icon-lianxi:before {
+	content: "\e209";
+}
 .db-icon-sql:before {
 	content: "\e1cb";
 }

@@ -80,6 +80,7 @@ interface ControllerData {
   'bizConfigManage.dbConfigure': ControllerItem<string>;
   'bizConfigManage.StaffManage': ControllerItem<string>;
   'bizConfigManage.ticketFlowSetting': ControllerItem<string>;
+  'bizConfigManage.ticketCooperationSetting': ControllerItem<string>;
   databaseManage: ControllerItem<string>;
   'databaseManage.missionManage': ControllerItem<string>;
   'databaseManage.whitelistManage': ControllerItem<string>;
@@ -222,6 +223,7 @@ export default class FunctionController {
   'bizConfigManage.dbConfigure': ControllerItem<string>;
   'bizConfigManage.StaffManage': ControllerItem<string>;
   'bizConfigManage.ticketFlowSetting': ControllerItem<string>;
+  'bizConfigManage.ticketCooperationSetting': ControllerItem<string>;
   databaseManage: ControllerItem<string>;
   'databaseManage.missionManage': ControllerItem<string>;
   'databaseManage.whitelistManage': ControllerItem<string>;
