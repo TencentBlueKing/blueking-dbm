@@ -1,10 +1,10 @@
 import type { DetailBase, DetailClusters } from '../common';
 
 /**
- * MySQL 高可用清档
+ * MySQL 清档
  */
 
-export interface HaTeuncateData extends DetailBase {
+export interface TruncateData extends DetailBase {
   clusters: DetailClusters;
   infos: {
     cluster_id: number;

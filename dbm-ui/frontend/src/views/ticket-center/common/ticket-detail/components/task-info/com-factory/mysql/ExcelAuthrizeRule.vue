@@ -9,7 +9,7 @@
   import AuthorizeRule from '../common/mysql-authorize-rules/Index.vue';
 
   interface Props {
-    ticketDetails: TicketModel<Mysql.ExcelAuthorizeRules>;
+    ticketDetails: TicketModel<Mysql.AuthorizeRules>;
   }
 
   defineProps<Props>();

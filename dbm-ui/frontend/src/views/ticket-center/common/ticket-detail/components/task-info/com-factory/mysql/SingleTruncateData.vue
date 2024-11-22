@@ -1,21 +1,21 @@
 <template>
-  <DBRename :ticket-details="ticketDetails" />
+  <TruncateData :ticket-details="ticketDetails" />
 </template>
 <script setup lang="ts">
   import TicketModel, { type Mysql } from '@services/model/ticket/ticket';
 
-  import DBRename from './common/DBRename.vue';
+  import TruncateData from '../common/mysql-truncate-data/Index.vue';
 
   import { TicketTypes } from '@/common/const';
 
   interface Props {
-    ticketDetails: TicketModel<Mysql.HaRenameDatabase>;
+    ticketDetails: TicketModel<Mysql.TruncateData>;
   }
 
   defineProps<Props>();
 
   defineOptions({
-    name: TicketTypes.MYSQL_SINGLE_RENAME_DATABASE,
+    name: TicketTypes.MYSQL_SINGLE_TRUNCATE_DATA,
     inheritAttrs: false,
   });
 </script>
