@@ -62,7 +62,7 @@ class InsertAppSettingService(BaseService):
         # 配置数据
         if insert_sqlserver_config(
             cluster=cluster,
-            storages=storages,
+            storages=list(storages),
             charset=charset,
             backup_config=backup_config,
             alarm_config=alarm_config,

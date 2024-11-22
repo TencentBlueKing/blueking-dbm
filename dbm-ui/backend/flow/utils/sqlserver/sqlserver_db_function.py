@@ -8,6 +8,7 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import copy
+import logging.config
 import re
 import secrets
 from collections import defaultdict
@@ -28,6 +29,19 @@ from backend.flow.consts import (
 )
 from backend.flow.utils.mysql.db_table_filter import DbTableFilter
 from backend.flow.utils.mysql.get_mysql_sys_user import generate_mysql_tmp_user
+
+logger = logging.getLogger("flow")
+
+
+def base_sqlserver_drs(instances: list, bk_cloud_id: int, sqls: list):
+    return DRSApi.sqlserver_rpc(
+        {
+            "bk_cloud_id": bk_cloud_id,
+            "addresses": instances,
+            "cmds": sqls,
+            "force": False,
+        }
+    )
 
 
 def sqlserver_match_dbs(
@@ -596,7 +610,7 @@ def get_backup_path_files(cluster_id: int, backup_id: str, db_name: str = None):
 
 def insert_sqlserver_config(
     cluster: Cluster,
-    storages: QuerySet,
+    storages: List[StorageInstance],
     backup_config: dict,
     charset: str,
     alarm_config: dict,
@@ -758,3 +772,108 @@ values(
             raise Exception(f"[{storage.ip_port}] insert app_setting failed: {ret[0]['error_msg']}")
 
     return True
+
+
+def get_app_setting_data(instance: StorageInstance, bk_cloud_id: int):
+    """
+    根据实例查询app_setting表的结果
+    """
+    sql = f"select * from [{SQLSERVER_CUSTOM_SYS_DB}].[dbo].[APP_SETTING]"
+    ret = base_sqlserver_drs(bk_cloud_id=bk_cloud_id, instances=[instance.ip_port], sqls=[sql])
+    if ret[0]["error_msg"]:
+        return None, f"select app_setting failed: {ret[0]['error_msg']}"
+
+    if len(ret[0]["cmd_results"][0]["table_data"]) == 0:
+        # 如果返回没有数据，则需要重新导入
+        return {}, "app_setting_table is null, check"
+
+    return ret[0]["cmd_results"][0]["table_data"][0], ""
+
+
+def fix_app_setting_data(cluster: Cluster, instance: StorageInstance, sync_mode: str, master: StorageInstance):
+    """
+    以dbm数据为准，更新实例的app_setting数据
+    """
+    sql = f"""use [{SQLSERVER_CUSTOM_SYS_DB}] update [dbo].[APP_SETTING]
+ SET [APP] = {cluster.bk_biz_id},
+[CLUSTER_ID] = {cluster.id},
+[CLUSTER_DOMAIN] = '{cluster.immute_domain}',
+[IP] = '{instance.machine.ip}',
+[PORT] = {instance.port},
+[BK_BIZ_ID]= {cluster.bk_biz_id},
+[BK_CLOUD_ID] = {cluster.bk_cloud_id},
+[ROLE] = '{instance.instance_inner_role}',
+[SYNCHRONOUS_MODE] = '{sync_mode}',
+[MASTER_IP] = '{master.machine.ip}',
+[MASTER_PORT]= {master.port}
+"""
+    ret = base_sqlserver_drs(bk_cloud_id=cluster.bk_cloud_id, instances=[instance.ip_port], sqls=[sql])
+    if ret[0]["error_msg"]:
+        return False, f"fix app_setting failed: {ret[0]['error_msg']}"
+
+    return True, "fix successfully"
+
+
+def check_sys_job_status(cluster: Cluster, instance: StorageInstance):
+    """
+    获取实例的系统JOB状态信息
+    """
+    sql = "select name, enabled from msdb.dbo.sysjobs where name like 'TC_%'"
+    ret = base_sqlserver_drs(bk_cloud_id=cluster.bk_cloud_id, instances=[instance.ip_port], sqls=[sql])
+    msg = ""
+    if ret[0]["error_msg"]:
+        msg = f"[{instance.ip_port}] select sys job failed: {ret[0]['error_msg']}"
+        logger.error(f"[{instance.ip_port}] select sys job failed: {ret[0]['error_msg']}")
+        return False, msg
+
+    if len(ret[0]["cmd_results"][0]["table_data"]) == 0:
+        # 如果返回没有数据，证明没有系统JOB
+        return False, f"[{instance.ip_port}] sys-job is null,check "
+
+    for info in ret[0]["cmd_results"][0]["table_data"]:
+        if int(info["enabled"]) == 0:
+            msg += f"[{info['name']}] is disable;\n"
+    if msg:
+        return False, msg
+    return True, msg
+
+
+def check_ha_config(
+    master_instance: StorageInstance, slave_instance: StorageInstance, bk_cloud_id: int, check_tag: str
+):
+    """
+    检查传入的源和目的的实例的业务账号是否一致
+    """
+    # 获取系统账号
+    sys_users = SQLSERVER_CUSTOM_SYS_USER
+    sys_users_str = ",".join([f"'{i}'" for i in sys_users])
+
+    check_sql_map = {
+        "user": f"""select a.sid as sid
+        from master.sys.sql_logins a left join master.sys.syslogins b
+        on a.name=b.name where principal_id>4 and a.name not in({sys_users_str}) and a.name not like '#%'
+        and a.name not like 'J_%'
+    """,
+        "job": "select name from msdb.dbo.sysjobs where name not like 'TC_%' and enabled = 1",
+        "link_server": "SELECT name FROM master.sys.servers WHERE is_linked = 1",
+    }
+
+    # 查询所有的业务账号名称，这里会隐藏过滤掉job的临时账号
+
+    ret = base_sqlserver_drs(
+        bk_cloud_id=bk_cloud_id,
+        instances=[master_instance.ip_port, slave_instance.ip_port],
+        sqls=[check_sql_map[check_tag]],
+    )
+
+    if ret[0]["error_msg"] or ret[1]["error_msg"]:
+        return False, f"get user failed: {ret[0]['error_msg']}/{ret[1]['error_msg']}"
+
+    list_0 = [str(value) for d in ret[0]["cmd_results"][0]["table_data"] for value in d.values()]
+    list_1 = [str(value) for d in ret[1]["cmd_results"][0]["table_data"] for value in d.values()]
+    if sorted(list_0) != sorted(list_1):
+        return (
+            False,
+            f"[{slave_instance.ip_port}]-{check_tag} configuration is not equal to master[{master_instance.ip_port}]",
+        )
+    return True, ""
