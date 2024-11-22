@@ -169,7 +169,7 @@ class MongoInstallDBMonFlow(MongoBaseFlow):
         # parse iplist
         iplist = self.get_iplist(self.payload["infos"], bk_cloud_id=self.payload["bk_cloud_id"])
 
-        add_install_dbmon(self, self.payload, pipeline, iplist, self.payload["bk_cloud_id"])
+        add_install_dbmon(self.root_id, self.payload, pipeline, iplist, self.payload["bk_cloud_id"])
         # 运行流程
         pipeline.run_pipeline()
 

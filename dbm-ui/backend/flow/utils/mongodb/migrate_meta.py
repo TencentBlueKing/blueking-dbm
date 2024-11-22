@@ -132,7 +132,8 @@ class MongoDBMigrateMeta(object):
                     operator="admin",
                 )
                 if info != "":
-                    logger.error("user:{} save password to db fail, error:{}".format(user, info))
+                    logger.error("user:{} save password:{} to db fail, error:{}".format(user, self.info[user], info))
+                    return False
 
     def save_password(self):
         """保存密码到密码服务"""
@@ -146,7 +147,12 @@ class MongoDBMigrateMeta(object):
                     operator=self.info["operator"],
                 )
                 if result:
-                    logger.error("save password fail, error: {}".format(result))
+                    logger.error(
+                        "nodes:{} save user:{} password:{} fail, error: {}".format(
+                            password_info["nodes"], username, password_info["password"][username], result
+                        )
+                    )
+                    return False
 
     def change_domain_app(self):
         """修改dns的app字段"""
