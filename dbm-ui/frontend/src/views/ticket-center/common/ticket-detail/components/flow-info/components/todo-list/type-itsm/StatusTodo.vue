@@ -7,6 +7,14 @@
         :start-time="utcTimeToSeconds(flowData.start_time)"
         :value="data.cost_time" />
     </I18nT>
+    <template v-if="flowData.url">
+      <span> ，</span>
+      <a
+        :href="flowData.url"
+        target="_blank">
+        {{ t('查看详情') }}
+      </a>
+    </template>
     <div style="margin-top: 10px; color: #979ba5">{{ utcDisplayTime(data.done_at) }}</div>
     <template v-if="data.operators.includes(username)">
       <ProcessPass :todo-data="data">

@@ -1,6 +1,6 @@
 import dayjs from 'dayjs';
 import { computed, ref } from 'vue';
-import { onBeforeRouteUpdate, useRoute } from 'vue-router';
+import { onBeforeRouteLeave } from 'vue-router';
 
 import { useUrlSearch } from '@hooks';
 
@@ -8,10 +8,8 @@ interface IPicker {
   value: () => [Date, Date];
 }
 
-const value = ref<[Date, Date] | [string, string]>(['', '']);
-
-export default () => {
-  const currentRoute = useRoute();
+const create = () => {
+  const value = ref<[Date, Date] | [string, string]>(['', '']);
   const { getSearchParams } = useUrlSearch();
 
   const searchParams = getSearchParams();
@@ -68,18 +66,23 @@ export default () => {
     return {};
   });
 
-  onBeforeRouteUpdate((route) => {
-    setTimeout(() => {
-      if (currentRoute.name === route.name) {
-        return;
-      }
-      value.value = ['', ''];
-    });
-  });
-
   return {
     value,
     formatValue,
     shortcutsRange,
   };
+};
+
+let context: ReturnType<typeof create> | undefined;
+
+export default () => {
+  if (!context) {
+    context = create();
+  }
+
+  onBeforeRouteLeave(() => {
+    context = undefined;
+  });
+
+  return context;
 };

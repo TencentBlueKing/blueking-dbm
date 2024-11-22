@@ -17,7 +17,7 @@
 
   interface Props {
     data: FlowMode;
-    ticketDetail: TicketModel<unknown>;
+    ticketDetail: TicketModel;
   }
 
   const props = defineProps<Props>();
