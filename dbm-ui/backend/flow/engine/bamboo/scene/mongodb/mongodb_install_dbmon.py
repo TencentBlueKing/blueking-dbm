@@ -18,7 +18,7 @@ from rest_framework import serializers
 from backend import env
 from backend.configuration.constants import DBType
 from backend.db_package.models import Package
-from backend.flow.consts import MediumEnum, MongoDBManagerUser
+from backend.flow.consts import MediumEnum
 from backend.flow.engine.bamboo.scene.common.builder import Builder
 from backend.flow.engine.bamboo.scene.mongodb.base_flow import MongoBaseFlow
 from backend.flow.engine.bamboo.scene.mongodb.sub_task.install_dbmon_sub import (
@@ -77,8 +77,8 @@ def add_install_dbmon(root_id, flow_data, pipeline, iplist, bk_cloud_id, allow_e
     if not allow_empty_instance and not instances:
         raise Exception("no instance found, ip_list:{}".format(iplist))
 
-    result = MongoNodeWithLabel.append_password(instances, MongoDBManagerUser.MonitorUser.value)
-    logger.debug("append_password result:{}".format(result))
+    # result = MongoNodeWithLabel.append_password(instances, MongoDBManagerUser.MonitorUser.value)
+    # logger.debug("append_password result:{}".format(result))
     # group by ip
     instances_by_ip = defaultdict(list)
     for instance in instances:
