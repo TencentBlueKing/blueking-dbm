@@ -23,6 +23,9 @@ url("fonts/iconcool.eot?#iefix") format("embedded-opentype");
   -moz-osx-font-smoothing: grayscale;
 }
 
+.db-icon-tags:before {
+	content: "\e206";
+}
 .db-icon-check-circle-fill:before {
 	content: "\e1a7";
 }
@@ -139,6 +142,9 @@ url("fonts/iconcool.eot?#iefix") format("embedded-opentype");
 }
 .db-icon-qiyeweixin:before {
 	content: "\e1d9";
+}
+.db-icon-lianxi:before {
+	content: "\e209";
 }
 .db-icon-sql:before {
 	content: "\e1cb";
@@ -497,6 +503,9 @@ url("fonts/iconcool.eot?#iefix") format("embedded-opentype");
 .db-icon-backup-2:before {
 	content: "\e1af";
 }
+.db-icon-loading-tubiao:before {
+	content: "\e208";
+}
 .db-icon-host-select:before {
 	content: "\e1b0";
 }
@@ -556,6 +565,9 @@ url("fonts/iconcool.eot?#iefix") format("embedded-opentype");
 }
 .db-icon-dirty-host:before {
 	content: "\e1ca";
+}
+.db-icon-tag-3:before {
+	content: "\e207";
 }
 .db-icon-saoba:before {
 	content: "\e1f4";

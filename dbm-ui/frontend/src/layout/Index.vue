@@ -143,6 +143,7 @@
       'DBMonitorAlarmGroup',
       'StaffManage',
       'TicketFlowSetting',
+      'TicketCooperationSetting',
     ],
     [menuEnum.resourceManage]: ['ResourceSpec', 'resourceManage', 'resourcePoolDirtyMachines'],
     [menuEnum.platformManage]: [
