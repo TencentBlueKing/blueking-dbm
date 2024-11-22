@@ -40,13 +40,6 @@
       :data="item"
       href-target="_blank" />
   </template>
-  <!-- 人工确认 -->
-  <template v-else-if="content.status === 'PENDING' && content.flow_type === 'PAUSE'">
-    <I18nT keypath="等待C确认是否执行T">
-      <span>{{ ticketData.creator === 'system' ? content.details.operators?.join(' , ') : ticketData.creator }}</span>
-      <span>{{ manualNexFlowDisaply }}</span>
-    </I18nT>
-  </template>
   <template v-else-if="isPause && isTodos === false">
     <div
       v-for="(todosItem, index) in content.todos"
@@ -255,7 +248,6 @@
   interface Props {
     ticketData: TicketModel<unknown>;
     content: FlowItem;
-    flows?: FlowItem[];
     isTodos?: boolean;
   }
 
@@ -272,16 +264,6 @@
   const btnState = reactive({
     terminateLoading: false,
     retryLoading: false,
-  });
-
-  const manualNexFlowDisaply = computed(() => {
-    if (props.flows.length > 0) {
-      const manualIndex = props.flows.findIndex((item) => item.flow_type === 'PAUSE');
-      if (manualIndex > -1) {
-        return props.flows[manualIndex + 1].flow_type_display;
-      }
-    }
-    return '';
   });
 
   const isPause = computed(() => {
