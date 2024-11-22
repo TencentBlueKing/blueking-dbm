@@ -1,7 +1,7 @@
 import { computed, shallowRef } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRequest } from 'vue-request';
-import { onBeforeRouteLeave, useRoute } from 'vue-router';
+import { onBeforeRouteLeave } from 'vue-router';
 
 import TicketModel from '@services/model/ticket/ticket';
 import { getTicketTypes } from '@services/source/ticket';
@@ -16,8 +16,7 @@ const value = ref<SearchValue[]>([]);
 
 const ticketTypeList = shallowRef<{ id: string; name: string }[]>([]);
 
-export default (options = {} as { exclude: string[] }) => {
-  const route = useRoute();
+const create = (options = {} as { exclude: string[] }) => {
   const { t } = useI18n();
   const globalBizsStore = useGlobalBizs();
 
@@ -88,19 +87,24 @@ export default (options = {} as { exclude: string[] }) => {
     },
   });
 
-  onBeforeRouteLeave((currentRoute) => {
-    setTimeout(() => {
-      if (currentRoute.name === route.name) {
-        return;
-      }
-      value.value = [];
-    });
-  });
-
   return {
     ticketTypeList,
     value,
     searchSelectData,
     formatSearchValue,
   };
+};
+
+let context: ReturnType<typeof create> | undefined;
+
+export default (...args: Parameters<typeof create>) => {
+  if (!context) {
+    context = create(...args);
+  }
+
+  onBeforeRouteLeave(() => {
+    context = undefined;
+  });
+
+  return context;
 };

@@ -301,6 +301,8 @@
       pagination.current = 1;
     }
 
+    console.log('from watch fetchdata = ', window.location.href)
+
     fetchData();
   });
 
