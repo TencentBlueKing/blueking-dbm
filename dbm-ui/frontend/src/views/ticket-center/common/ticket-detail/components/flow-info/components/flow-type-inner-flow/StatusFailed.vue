@@ -18,24 +18,26 @@
           {{ t('去处理') }}
         </a>
       </template>
-      <div
-        v-if="data.err_msg || [0, 2].includes(data.err_code)"
-        class="mt-12">
-        <ProcessRetry :data="ticketDetail">
-          <BkButton
-            class="w-88"
-            theme="primary">
-            {{ t('重试') }}
-          </BkButton>
-        </ProcessRetry>
-        <ProcessTerminate :data="ticketDetail">
-          <BkButton
-            class="ml-8 w-88"
-            theme="danger">
-            {{ t('终止') }}
-          </BkButton>
-        </ProcessTerminate>
-      </div>
+      <template v-if="isSuperuser || ticketDetail.todo_operators.includes(username)">
+        <div
+          v-if="data.err_msg || [0, 2].includes(data.err_code)"
+          class="mt-12">
+          <ProcessRetry :data="ticketDetail">
+            <BkButton
+              class="w-88"
+              theme="primary">
+              {{ t('重试') }}
+            </BkButton>
+          </ProcessRetry>
+          <ProcessTerminate :data="ticketDetail">
+            <BkButton
+              class="ml-8 w-88"
+              theme="danger">
+              {{ t('终止') }}
+            </BkButton>
+          </ProcessTerminate>
+        </div>
+      </template>
     </template>
   </StatusFailed>
 </template>
@@ -44,6 +46,8 @@
 
   import FlowMode from '@services/model/ticket/flow';
   import TicketModel from '@services/model/ticket/ticket';
+
+  import { useUserProfile } from '@stores';
 
   import CostTimer from '@components/cost-timer/CostTimer.vue';
 
@@ -66,4 +70,5 @@
   });
 
   const { t } = useI18n();
+  const { username, isSuperuser } = useUserProfile();
 </script>
