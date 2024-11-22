@@ -30,4 +30,5 @@ export * from './spiderMntDestroy';
 export * from './spiderReduceNodes';
 export * from './spiderSlaveApply';
 export * from './spiderSlaveDestroy';
+export * from './truncateData';
 export * from './truncateDataBase';
