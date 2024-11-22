@@ -117,13 +117,6 @@
 
   const deviceClassList = ref<DeviceClassListItem[]>([]);
   const scrollLoading = ref(false);
-
-  const searchParams = {
-    offset: 0,
-    limit: 12,
-    device_type: '',
-  };
-
   const deviceListMap = ref<
     Record<
       string,
@@ -133,6 +126,12 @@
       }
     >
   >({});
+
+  const searchParams = {
+    offset: 0,
+    limit: 12,
+    device_type: '',
+  };
 
   const selectedCpuMem = {
     cpu: {
