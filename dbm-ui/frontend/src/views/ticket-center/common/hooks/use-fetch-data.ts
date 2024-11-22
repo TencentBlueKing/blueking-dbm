@@ -1,6 +1,6 @@
 import { reactive, ref } from 'vue';
 import { useRequest } from 'vue-request';
-import { onBeforeRouteLeave, useRoute } from 'vue-router';
+import { onBeforeRouteLeave } from 'vue-router';
 
 import TicketModel from '@services/model/ticket/ticket';
 import { getTicketStatus, getTodoTickets } from '@services/source/ticket';
@@ -9,28 +9,22 @@ import { useEventBus, useUrlSearch } from '@hooks';
 
 import { useTimeoutFn } from '@vueuse/core';
 
-const isLoading = ref(false);
-const dataList = ref<TicketModel<unknown>[]>([]);
-const pagination = reactive({
-  offset: 0,
-  limit: 10,
-  current: 1,
-  count: 0,
-  limitList: [10, 20, 50, 100, 500],
-});
-const tableMaxHeight = ref<number | 'auto'>('auto');
-
-let isMounted = false;
-
-export default (
-  dataSource: typeof getTodoTickets,
-  options?: { onSuccess?: (data: TicketModel<unknown>[]) => void },
-) => {
-  const route = useRoute();
+const create = (dataSource: typeof getTodoTickets, options?: { onSuccess?: (data: TicketModel[]) => void }) => {
   const eventBus = useEventBus();
   const { replaceSearchParams, getSearchParams } = useUrlSearch();
 
   const searchParams = getSearchParams();
+
+  const isLoading = ref(false);
+  const dataList = ref<TicketModel[]>([]);
+  const pagination = reactive({
+    offset: 0,
+    limit: 10,
+    current: 1,
+    count: 0,
+    limitList: [10, 20, 50, 100, 500],
+  });
+  const tableMaxHeight = ref<number | 'auto'>('auto');
 
   if (searchParams.limit && searchParams.current) {
     pagination.limit = Number(searchParams.limit);
@@ -96,25 +90,8 @@ export default (
 
   eventBus.on('refreshTicketStatus', fetchTicketStatus);
 
-  onMounted(() => {
-    if (isMounted) {
-      return;
-    }
-    isMounted = true;
-  });
-
   onBeforeUnmount(() => {
     eventBus.off('refreshTicketStatus', fetchTicketStatus);
-  });
-
-  onBeforeRouteLeave((currentRoute) => {
-    setTimeout(() => {
-      if (currentRoute.name === route.name) {
-        return;
-      }
-      isMounted = false;
-      pagination.current = 1;
-    });
   });
 
   return {
@@ -124,4 +101,18 @@ export default (
     pagination,
     fetchTicketList,
   };
+};
+
+let context: ReturnType<typeof create> | undefined;
+
+export default (...args: Parameters<typeof create>) => {
+  if (!context) {
+    context = create(...args);
+  }
+
+  onBeforeRouteLeave(() => {
+    context = undefined;
+  });
+
+  return context;
 };

@@ -15,7 +15,7 @@
         <a
           :href="data.url"
           target="_blank">
-          {{ t('查看详情') }}
+          {{ t('去处理') }}
         </a>
       </template>
       <div

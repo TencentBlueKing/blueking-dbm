@@ -4,7 +4,7 @@
     text
     theme="primary"
     @click="handleGoProcess">
-    {{ t('去确认') }}
+    {{ t('去处理') }}
   </BkButton>
   <BkButton
     class="ml-8"
