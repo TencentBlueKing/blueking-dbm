@@ -3,6 +3,7 @@ export * from './addSlava';
 export * from './authorizeRules';
 export * from './checkSum';
 export * from './clientCloneRules';
+export * from './clusterSwitch';
 export * from './dataMigrate';
 export * from './dumpData';
 export * from './excelAuthorizeRules';
