@@ -124,13 +124,15 @@
     device_type: '',
   };
 
-  const deviceListMap: Record<
-    string,
-    {
-      cpu: number;
-      mem: number;
-    }
-  > = {};
+  const deviceListMap = ref<
+    Record<
+      string,
+      {
+        cpu: number;
+        mem: number;
+      }
+    >
+  >({});
 
   const selectedCpuMem = {
     cpu: {
@@ -154,17 +156,29 @@
   let isAppend = false;
   let oldData: string[] = [];
 
+  useRequest(fetchDeviceClass, {
+    defaultParams: [
+      {
+        offset: 0,
+        limit: -1,
+      },
+    ],
+    onSuccess(data) {
+      data.results.forEach((item) => {
+        deviceListMap.value[item.device_type] = {
+          cpu: item.cpu,
+          mem: item.mem,
+        };
+      });
+    },
+  });
+
   const { loading: isLoading, run: getDeviceClassList } = useRequest(fetchDeviceClass, {
     manual: true,
     onSuccess(data) {
       scrollLoading.value = false;
       const deviceList: DeviceClassListItem[] = [];
       data.results.forEach((item) => {
-        deviceListMap[item.device_type] = {
-          cpu: item.cpu,
-          mem: item.mem,
-        };
-
         deviceList.push({
           label: item.device_type,
           cpu: item.cpu,
@@ -219,7 +233,7 @@
 
   const handleSelectChange = (list: string[]) => {
     list.forEach((item) => {
-      const itemInfo = deviceListMap[item];
+      const itemInfo = deviceListMap.value[item];
       selectedCpuMem.cpu.min = itemInfo.cpu < selectedCpuMem.cpu.min ? itemInfo.cpu : selectedCpuMem.cpu.min;
       selectedCpuMem.cpu.max = itemInfo.cpu > selectedCpuMem.cpu.max ? itemInfo.cpu : selectedCpuMem.cpu.max;
       selectedCpuMem.mem.min = itemInfo.mem < selectedCpuMem.mem.min ? itemInfo.mem : selectedCpuMem.mem.min;
