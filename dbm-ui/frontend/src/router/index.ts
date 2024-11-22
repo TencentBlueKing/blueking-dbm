@@ -32,6 +32,7 @@ import getServiceApplyRoutes from '@views/service-apply/routes';
 import getStaffManageRoutes from '@views/staff-manage/routes';
 import getTaskHistoryRoutes from '@views/task-history/routes';
 import getTemporaryPasswordModify from '@views/temporary-paassword-modify/routes';
+import getTicketCooperationSettingRoutes from '@views/ticket-cooperation-setting/routes';
 import getTicketFlowSettingBizRoutes from '@views/ticket-flow-setting-biz/routes';
 import getTicketFlowSettingGlobalRoutes from '@views/ticket-flow-setting-global/routes';
 import getTicketManageRoutes from '@views/ticket-manage/routes';
@@ -126,6 +127,7 @@ export default () => {
         ...getTicketManageRoutes(),
         ...getTemporaryPasswordModify(),
         ...getTicketFlowSettingBizRoutes(),
+        ...getTicketCooperationSettingRoutes(),
         ...getTicketFlowSettingGlobalRoutes(),
       ],
     },
