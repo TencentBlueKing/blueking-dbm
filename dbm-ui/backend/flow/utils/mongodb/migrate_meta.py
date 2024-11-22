@@ -140,7 +140,7 @@ class MongoDBMigrateMeta(object):
 
         for username in self.info["usernames"]:
             for password_info in self.info["password_infos"]:
-                result = MongoDBPassword().save_password_to_db(
+                result = MongoDBPassword().save_password_to_db2(
                     instances=password_info["nodes"],
                     username=username,
                     password=password_info["password"][username],

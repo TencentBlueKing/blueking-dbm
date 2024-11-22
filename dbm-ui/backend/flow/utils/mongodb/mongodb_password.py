@@ -67,6 +67,25 @@ class MongoDBPassword(object):
         else:
             return ""
 
+    def save_password_to_db2(self, instances: list, username: str, password: str, operator: str) -> str:
+        """不使用密码规则把密码保存到db中"""
+
+        result = DBPrivManagerApi.modify_password(
+            {
+                "instances": instances,
+                "username": username,
+                "component": self.component,
+                "password": self.base64_encode(password),
+                "operator": operator,
+                "security_rule_name": "",
+            },
+            raw=True,
+        )
+        if result["code"] != RequestResultCode.Success.value:
+            return result["message"]
+        else:
+            return ""
+
     def delete_password_from_db(self, instances: list, usernames: list) -> str:
         """
         从db中删除密码
