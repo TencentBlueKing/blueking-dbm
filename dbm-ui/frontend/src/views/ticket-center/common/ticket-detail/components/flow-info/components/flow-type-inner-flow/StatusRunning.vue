@@ -3,7 +3,16 @@
     <template #content>
       <span>
         <I18nT keypath="m_耗时_t">
-          <span style="color: #3a84ff">{{ t('执行中') }}</span>
+          <span
+            v-if="isTicketStatusInnerTodo"
+            style="color: #e38b02">
+            {{ t('待继续') }}
+          </span>
+          <span
+            v-else
+            style="color: #3a84ff">
+            {{ t('执行中') }}
+          </span>
           <CostTimer
             is-timing
             :start-time="utcTimeToSeconds(data.start_time)"
@@ -14,7 +23,7 @@
           <a
             :href="data.url"
             target="_blank">
-            {{ ticketDetail.status === TicketModel.STATUS_INNER_TODO ? t('去处理') : t('查看详情') }}
+            {{ isTicketStatusInnerTodo ? t('去处理') : t('查看详情') }}
           </a>
         </template>
       </span>
@@ -38,11 +47,13 @@
     ticketDetail: TicketModel;
   }
 
-  defineProps<Props>();
+  const props = defineProps<Props>();
 
   defineOptions({
     name: FlowMode.STATUS_RUNNING,
   });
 
   const { t } = useI18n();
+
+  const isTicketStatusInnerTodo = computed(() => props.ticketDetail.status === TicketModel.STATUS_INNER_TODO);
 </script>

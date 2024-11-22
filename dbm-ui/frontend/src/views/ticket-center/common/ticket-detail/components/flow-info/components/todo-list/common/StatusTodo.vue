@@ -18,7 +18,7 @@
       </template>
     </div>
     <div style="margin-top: 10px; color: #979ba5">{{ utcDisplayTime(data.done_at) }}</div>
-    <template v-if="globalManage || data.operators.includes(username)">
+    <template v-if="isSuperuser || data.operators.includes(username)">
       <ProcessApproveExce :todo-data="data">
         <BkButton
           class="w-88"
@@ -62,5 +62,5 @@
   });
 
   const { t } = useI18n();
-  const { username, globalManage } = useUserProfile();
+  const { username, isSuperuser } = useUserProfile();
 </script>
