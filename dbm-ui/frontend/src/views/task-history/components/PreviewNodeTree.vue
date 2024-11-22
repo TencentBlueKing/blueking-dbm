@@ -71,9 +71,11 @@
 
   import { getTaskflowDetails } from '@services/source/taskflow';
 
+  type NodeType = ServiceReturnType<typeof getTaskflowDetails>['activities'][string];
+
   interface Props {
     nodesCount: number;
-    nodesTreeData: ServiceReturnType<typeof getTaskflowDetails>['activities'][string][];
+    nodesTreeData: Array<NodeType & { failedChildren?: NodeType[] }>;
     statusKeypath: string;
     titleKeypath: string;
     tooltips: string;
@@ -83,7 +85,7 @@
   }
 
   interface Emits {
-    (e: 'node-click', value: Props['nodesTreeData'][number], refValue: typeof treeRef): void;
+    (e: 'node-click', value: Props['nodesTreeData'][number], refValue: typeof treeRef, isShowLog: boolean): void;
     (e: 'after-show', value: typeof treeRef): void;
   }
 
@@ -112,7 +114,8 @@
   };
 
   const handleNodeClick = (node: Props['nodesTreeData'][number]) => {
-    emits('node-click', node, treeRef);
+    const iShowLog = !node.failedChildren;
+    emits('node-click', node, treeRef, iShowLog);
   };
 
   const handleNodePanelSwich = () => {
