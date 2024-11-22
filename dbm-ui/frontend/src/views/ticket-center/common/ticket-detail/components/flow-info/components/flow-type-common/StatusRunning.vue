@@ -22,7 +22,7 @@
           <I18nT keypath="m_耗时_t">
             <span style="color: #3a84ff">{{ t('执行中') }}</span>
             <CostTimer
-              :is-timing="false"
+              is-timing
               :start-time="utcTimeToSeconds(data.start_time)"
               :value="data.cost_time" />
           </I18nT>

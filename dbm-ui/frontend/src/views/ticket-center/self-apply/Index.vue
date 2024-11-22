@@ -40,10 +40,10 @@
 
   import StretchLayout from '@components/stretch-layout/StretchLayout.vue';
 
-  import useUrlRedirect from '@views/ticket-center/common/hooks/use-url-redirect';
   import Detail from '@views/ticket-center/common/ticket-detail/Index.vue';
 
   import List from './components/list/Index.vue';
+  import useUrlRedirect from './hooks/use-url-redirect';
 
   const router = useRouter();
   const route = useRoute();

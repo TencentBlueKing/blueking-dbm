@@ -12,25 +12,21 @@
 -->
 
 <template>
-  <BkLoading
-    :loading="isLoading"
-    style="height: 100%">
-    <StretchLayout
-      :left-width="400"
-      :min-left-width="300"
-      name="ticketList"
-      style="background: #fff"
-      @change="handleStretchLayoutChange">
-      <template #list>
-        <List />
-      </template>
-      <template
-        v-if="ticketId"
-        #right>
-        <Detail :ticket-id="ticketId" />
-      </template>
-    </StretchLayout>
-  </BkLoading>
+  <StretchLayout
+    :left-width="400"
+    :min-left-width="300"
+    name="ticketList"
+    style="background: #fff"
+    @change="handleStretchLayoutChange">
+    <template #list>
+      <List />
+    </template>
+    <template
+      v-if="ticketId"
+      #right>
+      <Detail :ticket-id="ticketId" />
+    </template>
+  </StretchLayout>
 </template>
 <script setup lang="ts">
   import { computed } from 'vue';
@@ -40,7 +36,6 @@
 
   import StretchLayout from '@components/stretch-layout/StretchLayout.vue';
 
-  import useUrlRedirect from '@views/ticket-center/common/hooks/use-url-redirect';
   import Detail from '@views/ticket-center/common/ticket-detail/Index.vue';
 
   import List from './components/list/Index.vue';
@@ -50,8 +45,6 @@
   const { getSearchParams } = useUrlSearch();
 
   const ticketId = computed(() => Number(route.params.ticketId) || 0);
-
-  const { loading: isLoading } = useUrlRedirect(ticketId.value);
 
   const handleStretchLayoutChange = (value: boolean) => {
     if (!value) {
