@@ -69,14 +69,6 @@ def cluster_migrate(
     kwargs = sub_get_kwargs.get_dba_info()
     sub_pipeline.add_act(act_name=_("更新dba"), act_component_code=MongoDBMigrateMetaComponent.code, kwargs=kwargs)
 
-    # 迁移数据
-    kwargs = sub_get_kwargs.get_migrate_info()
-    sub_pipeline.add_act(
-        act_name=_("迁移meta"),
-        act_component_code=ExecAddRelationshipOperationComponent.code,
-        kwargs=kwargs,
-    )
-
     # 相同业务的appdba appmonitor是一致的，以业务为维度保存appdba appmonitor密码到密码服务
     kwargs = sub_get_kwargs.get_save_app_password_info()
     sub_pipeline.add_act(
@@ -86,6 +78,14 @@ def cluster_migrate(
     # node保存密码到密码服务
     kwargs = sub_get_kwargs.get_save_password_info()
     sub_pipeline.add_act(act_name=_("保存密码"), act_component_code=MongoDBMigrateMetaComponent.code, kwargs=kwargs)
+
+    # 迁移数据
+    kwargs = sub_get_kwargs.get_migrate_info()
+    sub_pipeline.add_act(
+        act_name=_("迁移meta"),
+        act_component_code=ExecAddRelationshipOperationComponent.code,
+        kwargs=kwargs,
+    )
 
     # 修改dns的app字段
     kwargs = sub_get_kwargs.get_change_dns_app_info()

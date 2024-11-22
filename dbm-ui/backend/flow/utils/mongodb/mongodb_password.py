@@ -63,7 +63,7 @@ class MongoDBPassword(object):
             raw=True,
         )
         if result["code"] != RequestResultCode.Success.value:
-            return result["message"] + " " + result["data"]
+            return result["message"]
         else:
             return ""
 
