@@ -25,17 +25,19 @@
             {{ t('查看详情') }}
           </a>
         </template>
-        <div
-          v-if="[0, 2].includes(data.err_code)"
-          class="mt-12">
-          <ProcessRetry :data="ticketDetail">
-            <BkButton
-              class="w-88"
-              theme="primary">
-              {{ t('重试') }}
-            </BkButton>
-          </ProcessRetry>
-        </div>
+        <template v-if="isSuperuser || ticketDetail.todo_operators.includes(username)">
+          <div
+            v-if="[0, 2].includes(data.err_code)"
+            class="mt-12">
+            <ProcessRetry :data="ticketDetail">
+              <BkButton
+                class="w-88"
+                theme="primary">
+                {{ t('重试') }}
+              </BkButton>
+            </ProcessRetry>
+          </div>
+        </template>
       </slot>
       <div
         v-if="data.err_msg"
@@ -64,6 +66,8 @@
   import FlowMode from '@services/model/ticket/flow';
   import TicketModel from '@services/model/ticket/ticket';
 
+  import { useUserProfile } from '@stores';
+
   import CostTimer from '@components/cost-timer/CostTimer.vue';
 
   import ProcessRetry from '@views/ticket-center/common/action-confirm/ProcessRetry.vue';
@@ -89,4 +93,5 @@
   });
 
   const { t } = useI18n();
+  const { username, isSuperuser } = useUserProfile();
 </script>
