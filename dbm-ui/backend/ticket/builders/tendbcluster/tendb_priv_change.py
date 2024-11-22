@@ -8,7 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-
+from backend.db_services.dbpermission.db_authorize.models import DBRuleActionLog
 from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
 from backend.ticket.builders.mysql.mysql_priv_change import (
@@ -40,3 +40,8 @@ class TendbAccountRuleChangeFlowBuilder(BaseTendbTicketFlowBuilder):
     inner_flow_builder = TendbAccountRuleChangeFlowParamBuilder
     itsm_flow_builder = TendbAccountRuleChangeItsmFlowParamBuilder
     retry_type = FlowRetryType.MANUAL_RETRY
+
+    @property
+    def need_itsm(self):
+        approver_list = DBRuleActionLog.get_notifiers(self.ticket.details["rule_id"])
+        return bool(approver_list)
