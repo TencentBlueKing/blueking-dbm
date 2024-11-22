@@ -13,6 +13,7 @@ from backend.flow.engine.bamboo.scene.pulsar.pulsar_destroy_flow import PulsarDe
 from backend.flow.engine.bamboo.scene.pulsar.pulsar_disable_flow import PulsarDisableFlow
 from backend.flow.engine.bamboo.scene.pulsar.pulsar_enable_flow import PulsarEnableFlow
 from backend.flow.engine.bamboo.scene.pulsar.pulsar_fake_apply_flow import PulsarFakeApplyFlow
+from backend.flow.engine.bamboo.scene.pulsar.pulsar_machine_clear_flow import ClearPulsarMachineFlow
 from backend.flow.engine.bamboo.scene.pulsar.pulsar_reboot_flow import PulsarRebootFlow
 from backend.flow.engine.bamboo.scene.pulsar.pulsar_replace_flow import PulsarReplaceFlow
 from backend.flow.engine.bamboo.scene.pulsar.pulsar_scale_up_flow import PulsarScaleUpFlow
@@ -87,3 +88,10 @@ class PulsarController(BaseController):
         """
         flow = PulsarFakeApplyFlow(root_id=self.root_id, data=self.ticket_data)
         flow.fake_deploy_pulsar_flow()
+
+    def pulsar_machine_clear_scene(self):
+        """
+        pulsar清理机器
+        """
+        flow = ClearPulsarMachineFlow(root_id=self.root_id, data=self.ticket_data)
+        flow.run_flow()

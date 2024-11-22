@@ -53,7 +53,7 @@ class PulsarDBMeta(object):
         self.role_port_dict = {
             PulsarRoleEnum.ZooKeeper.value: PULSAR_ZOOKEEPER_SERVICE_PORT,
             PulsarRoleEnum.BookKeeper.value: PULSAR_BOOKKEEPER_SERVICE_PORT,
-            PulsarRoleEnum.Broker.value: self.ticket_data["port"],
+            PulsarRoleEnum.Broker.value: self.ticket_data.get("port", 0),
         }
 
     def __get_node_ips_by_role(self, role: str) -> list:
@@ -211,3 +211,9 @@ class PulsarDBMeta(object):
             )
 
         return True
+
+    def clear_machines(self):
+        """
+        清理机器信息
+        """
+        api.cluster.pulsar.clear_machine(machines=self.ticket_data["clear_hosts"])

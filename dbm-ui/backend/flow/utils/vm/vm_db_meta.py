@@ -55,10 +55,10 @@ class VmDBMeta(object):
             VmRoleEnum.VMSELECT.value: InstanceRole.VM_SELECT.value,
         }
         self.role_port_dict = {
-            VmRoleEnum.VMAUTH.value: ticket_data["vminsert_port"],
+            VmRoleEnum.VMAUTH.value: ticket_data.get("vminsert_port", 0),
             VmRoleEnum.VMSTORAGE.value: VMINSERT_STORAGE_PORT,
-            VmRoleEnum.VMINSERT.value: ticket_data["vminsert_port"],
-            VmRoleEnum.VMSELECT.value: ticket_data["vmselect_port"],
+            VmRoleEnum.VMINSERT.value: ticket_data.get("vminsert_port", 0),
+            VmRoleEnum.VMSELECT.value: ticket_data.get("vmselect_port", 0),
         }
 
     def __get_node_ips_by_role(self, role: str) -> list:
@@ -168,3 +168,9 @@ class VmDBMeta(object):
             storages=storage_instances,
         )
         return True
+
+    def clear_machines(self):
+        """
+        清理机器信息
+        """
+        api.cluster.vm.clear_machine(machines=self.ticket_data["clear_hosts"])

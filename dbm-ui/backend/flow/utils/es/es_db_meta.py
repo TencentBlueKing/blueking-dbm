@@ -163,3 +163,9 @@ class EsDBMeta(object):
             storages=storage_instances,
         )
         return True
+
+    def clear_machines(self):
+        """
+        清理机器信息
+        """
+        api.cluster.es.clear_machine(machines=self.ticket_data["clear_hosts"])

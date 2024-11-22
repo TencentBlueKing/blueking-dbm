@@ -56,8 +56,8 @@ class DorisDBMeta(object):
         self.role_port_dict = {
             DorisRoleEnum.HOT.value: DEFAULT_BE_WEB_PORT,
             DorisRoleEnum.COLD.value: DEFAULT_BE_WEB_PORT,
-            DorisRoleEnum.FOLLOWER.value: ticket_data["query_port"],
-            DorisRoleEnum.OBSERVER.value: ticket_data["query_port"],
+            DorisRoleEnum.FOLLOWER.value: ticket_data.get("query_port", 0),
+            DorisRoleEnum.OBSERVER.value: ticket_data.get("query_port", 0),
         }
 
     def __get_node_ips_by_role(self, role: str) -> list:
@@ -166,3 +166,9 @@ class DorisDBMeta(object):
             storages=storage_instances,
         )
         return True
+
+    def clear_machines(self):
+        """
+        清理机器信息
+        """
+        api.cluster.doris.clear_machine(machines=self.ticket_data["clear_hosts"])

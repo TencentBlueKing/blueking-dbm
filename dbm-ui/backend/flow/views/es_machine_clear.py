@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 TencentBlueKing is pleased to support the open source community by making 蓝鲸智云-DB管理系统(BlueKing-BK-DBM) available.
 Copyright (C) 2017-2023 THL A29 Limited, a Tencent company. All rights reserved.
@@ -8,11 +7,25 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from .clear_machine import clear_machine
-from .create import create
-from .destroy import destroy
-from .disable import disable
-from .enable import enable
-from .replace import replace
-from .scale_up import scale_up
-from .shrink import shrink
+import logging
+
+from rest_framework.response import Response
+
+from backend.flow.engine.controller.es import EsController
+from backend.flow.views.base import FlowTestView
+from backend.utils.basic import generate_root_id
+
+logger = logging.getLogger("root")
+
+
+class EsMachineClearApiView(FlowTestView):
+    """
+    api: /apis/v1/flow/scene/es_machine_clear
+    params:
+    """
+
+    def post(self, request):
+        root_id = generate_root_id()
+        flow = EsController(root_id=root_id, ticket_data=request.data)
+        flow.es_machine_clear_scene()
+        return Response({"root_id": root_id})

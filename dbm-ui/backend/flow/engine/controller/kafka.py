@@ -14,6 +14,7 @@ from backend.flow.engine.bamboo.scene.kafka.kafka_destroy_flow import KafkaDestr
 from backend.flow.engine.bamboo.scene.kafka.kafka_disable_flow import KafkaDisableFlow
 from backend.flow.engine.bamboo.scene.kafka.kafka_enable_flow import KafkaEnableFlow
 from backend.flow.engine.bamboo.scene.kafka.kafka_fake_apply_flow import KafkaFakeApplyFlow
+from backend.flow.engine.bamboo.scene.kafka.kafka_machine_clear_flow import ClearKafkaMachineFlow
 from backend.flow.engine.bamboo.scene.kafka.kafka_reboot_flow import KafkaRebootFlow
 from backend.flow.engine.bamboo.scene.kafka.kafka_replace_flow import KafkaReplaceFlow
 from backend.flow.engine.bamboo.scene.kafka.kafka_scale_up_flow import KafkaScaleUpFlow
@@ -88,3 +89,10 @@ class KafkaController(BaseController):
         """
         flow = KafkaFakeApplyFlow(root_id=self.root_id, data=self.ticket_data)
         flow.fake_deploy_kafka_flow()
+
+    def kafka_machine_clear_scene(self):
+        """
+        kafka清理机器
+        """
+        flow = ClearKafkaMachineFlow(root_id=self.root_id, data=self.ticket_data)
+        flow.run_flow()

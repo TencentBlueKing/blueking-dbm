@@ -14,6 +14,7 @@ from backend.flow.engine.bamboo.scene.vm.vm_apply_flow import VmApplyFlow
 from backend.flow.engine.bamboo.scene.vm.vm_destroy_flow import VmDestroyFlow
 from backend.flow.engine.bamboo.scene.vm.vm_disable_flow import VmDisableFlow
 from backend.flow.engine.bamboo.scene.vm.vm_enable_flow import VmEnableFlow
+from backend.flow.engine.bamboo.scene.vm.vm_machine_clear_flow import ClearVmMachineFlow
 from backend.flow.engine.bamboo.scene.vm.vm_reboot_flow import VmRebootFlow
 from backend.flow.engine.bamboo.scene.vm.vm_replace_flow import VmReplaceFlow
 from backend.flow.engine.bamboo.scene.vm.vm_scale_up_flow import VmScaleUpFlow
@@ -83,3 +84,10 @@ class VmController(BaseController):
         """
         flow = VmRebootFlow(root_id=self.root_id, data=self.ticket_data)
         flow.reboot_vm_flow()
+
+    def vm_machine_clear_scene(self):
+        """
+        vm清理机器
+        """
+        flow = ClearVmMachineFlow(root_id=self.root_id, data=self.ticket_data)
+        flow.run_flow()

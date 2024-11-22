@@ -13,6 +13,7 @@ from backend.flow.engine.bamboo.scene.hdfs.hdfs_destroy_flow import HdfsDestroyF
 from backend.flow.engine.bamboo.scene.hdfs.hdfs_disable_flow import HdfsDisableFlow
 from backend.flow.engine.bamboo.scene.hdfs.hdfs_enable_flow import HdfsEnableFlow
 from backend.flow.engine.bamboo.scene.hdfs.hdfs_fake_apply_flow import HdfsFakeApplyFlow
+from backend.flow.engine.bamboo.scene.hdfs.hdfs_machine_clear_flow import ClearHdfsMachineFlow
 from backend.flow.engine.bamboo.scene.hdfs.hdfs_reboot_flow import HdfsRebootFlow
 from backend.flow.engine.bamboo.scene.hdfs.hdfs_replace_flow import HdfsReplaceFlow
 from backend.flow.engine.bamboo.scene.hdfs.hdfs_scale_up_flow import HdfsScaleUpFlow
@@ -87,3 +88,10 @@ class HdfsController(BaseController):
         """
         flow = HdfsFakeApplyFlow(root_id=self.root_id, data=self.ticket_data)
         flow.fake_deploy_hdfs_flow()
+
+    def hdfs_machine_clear_scene(self):
+        """
+        hdfs清理机器
+        """
+        flow = ClearHdfsMachineFlow(root_id=self.root_id, data=self.ticket_data)
+        flow.run_flow()

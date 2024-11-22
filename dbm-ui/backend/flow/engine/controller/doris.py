@@ -14,6 +14,7 @@ from backend.flow.engine.bamboo.scene.doris.doris_apply_flow import DorisApplyFl
 from backend.flow.engine.bamboo.scene.doris.doris_destroy_flow import DorisDestroyFlow
 from backend.flow.engine.bamboo.scene.doris.doris_disable_flow import DorisDisableFlow
 from backend.flow.engine.bamboo.scene.doris.doris_enable_flow import DorisEnableFlow
+from backend.flow.engine.bamboo.scene.doris.doris_machine_clear_flow import ClearDorisMachineFlow
 from backend.flow.engine.bamboo.scene.doris.doris_reboot_flow import DorisRebootFlow
 from backend.flow.engine.bamboo.scene.doris.doris_replace_flow import DorisReplaceFlow
 from backend.flow.engine.bamboo.scene.doris.doris_scale_up_flow import DorisScaleUpFlow
@@ -83,3 +84,10 @@ class DorisController(BaseController):
         """
         flow = DorisRebootFlow(root_id=self.root_id, data=self.ticket_data)
         flow.reboot_doris_flow()
+
+    def doris_machine_clear_scene(self):
+        """
+        doris清理机器
+        """
+        flow = ClearDorisMachineFlow(root_id=self.root_id, data=self.ticket_data)
+        flow.run_flow()

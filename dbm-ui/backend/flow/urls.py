@@ -25,6 +25,7 @@ from backend.flow.views.doris_apply import InstallDorisSceneApiView
 from backend.flow.views.doris_destroy import DestroyDorisSceneApiView
 from backend.flow.views.doris_disable import DisableDorisSceneApiView
 from backend.flow.views.doris_enable import EnableDorisSceneApiView
+from backend.flow.views.doris_machine_clear import DorisMachineClearApiView
 from backend.flow.views.doris_reboot import RebootDorisSceneApiView
 from backend.flow.views.doris_replace import ReplaceDorisSceneApiView
 from backend.flow.views.doris_scale_up import ScaleUpDorisSceneApiView
@@ -35,6 +36,7 @@ from backend.flow.views.es_apply import InstallEsSceneApiView
 from backend.flow.views.es_destroy import DestroyEsSceneApiView
 from backend.flow.views.es_disable import DisableEsSceneApiView
 from backend.flow.views.es_enable import EnableEsSceneApiView
+from backend.flow.views.es_machine_clear import EsMachineClearApiView
 from backend.flow.views.es_reboot import RebootEsSceneApiView
 from backend.flow.views.es_replace import ReplaceEsSceneApiView
 from backend.flow.views.es_scale_up import ScaleUpEsSceneApiView
@@ -43,6 +45,7 @@ from backend.flow.views.hdfs_apply import InstallHdfsSceneApiView
 from backend.flow.views.hdfs_destroy import DestroyHdfsSceneApiView
 from backend.flow.views.hdfs_disable import DisableHdfsSceneApiView
 from backend.flow.views.hdfs_enable import EnableHdfsSceneApiView
+from backend.flow.views.hdfs_machine_clear import HdfsMachineClearApiView
 from backend.flow.views.hdfs_reboot import RebootHdfsSceneApiView
 from backend.flow.views.hdfs_replace import ReplaceHdfsSceneApiView
 from backend.flow.views.hdfs_scale_up import ScaleUpHdfsSceneApiView
@@ -59,6 +62,7 @@ from backend.flow.views.kafka_apply import InstallKafkaSceneApiView
 from backend.flow.views.kafka_destroy import DestroyKafkaSceneApiView
 from backend.flow.views.kafka_disable import DisableKafkaSceneApiView
 from backend.flow.views.kafka_enable import EnableKafkaSceneApiView
+from backend.flow.views.kafka_machine_clear import KafkaMachineClearApiView
 from backend.flow.views.kafka_reboot import RebootKafkaSceneApiView
 from backend.flow.views.kafka_replace import ReplaceKafkaSceneApiView
 from backend.flow.views.kafka_scale_up import ScaleUpKafkaSceneApiView
@@ -160,6 +164,7 @@ from backend.flow.views.pulsar_apply import InstallPulsarSceneApiView
 from backend.flow.views.pulsar_destroy import DestroyPulsarSceneApiView
 from backend.flow.views.pulsar_disable import DisablePulsarSceneApiView
 from backend.flow.views.pulsar_enable import EnablePulsarSceneApiView
+from backend.flow.views.pulsar_machine_clear import PulsarMachineClearApiView
 from backend.flow.views.pulsar_reboot import RebootPulsarSceneApiView
 from backend.flow.views.pulsar_replace import ReplacePulsarSceneApiView
 from backend.flow.views.pulsar_scale_up import ScaleUpPulsarSceneApiView
@@ -269,6 +274,7 @@ from backend.flow.views.vm_apply import InstallVmSceneApiView
 from backend.flow.views.vm_destroy import DestroyVmSceneApiView
 from backend.flow.views.vm_disable import DisableVmSceneApiView
 from backend.flow.views.vm_enable import EnableVmSceneApiView
+from backend.flow.views.vm_machine_clear import VmMachineClearApiView
 from backend.flow.views.vm_reboot import RebootVmSceneApiView
 from backend.flow.views.vm_replace import ReplaceVmSceneApiView
 from backend.flow.views.vm_scale_up import ScaleUpVmSceneApiView
@@ -390,6 +396,7 @@ urlpatterns = [
     url(r"^scene/shrink_kafka$", ShrinkKafkaSceneApiView.as_view()),
     url(r"^scene/replace_kafka$", ReplaceKafkaSceneApiView.as_view()),
     url(r"^scene/reboot_kafka$", RebootKafkaSceneApiView.as_view()),
+    url(r"^scene/kafka_machine_clear$", KafkaMachineClearApiView.as_view()),
     url(r"^scene/install_es$", InstallEsSceneApiView.as_view()),
     url(r"^scene/fake_install_es$", FakeInstallEsSceneApiView.as_view()),
     url(r"^scene/scale_up_es$", ScaleUpEsSceneApiView.as_view()),
@@ -399,6 +406,7 @@ urlpatterns = [
     url(r"^scene/destroy_es$", DestroyEsSceneApiView.as_view()),
     url(r"^scene/reboot_es$", RebootEsSceneApiView.as_view()),
     url(r"^scene/replace_es$", ReplaceEsSceneApiView.as_view()),
+    url(r"^scene/es_machine_clear$", EsMachineClearApiView.as_view()),
     url(r"^scene/redis_keys_delete$", RedisKeysDeleteSceneApiView.as_view()),
     url(r"^scene/sql_semantic_check$", SqlSemanticCheckSceneApiView.as_view()),
     url(r"^scene/tendbha_rename_database", MySQLHARenameDatabaseView.as_view()),
@@ -432,6 +440,7 @@ urlpatterns = [
     url(r"^scene/reboot_hdfs$", RebootHdfsSceneApiView.as_view()),
     url(r"^scene/replace_hdfs$", ReplaceHdfsSceneApiView.as_view()),
     url(r"^scene/fake_install_hdfs$", FakeInstallHdfsSceneApiView.as_view()),
+    url(r"^scene/hdfs_machine_clear$", HdfsMachineClearApiView.as_view()),
     url(r"^scene/switch_mysql_ha$", MySQLHASwitchSceneApiView.as_view()),
     url(r"^scene/master_ha_master_fail_over$", MySQLHAMasterFailOverApiView.as_view()),
     url(r"^scene/master_pt_table_sync$", MySQLPtTableSyncApiView.as_view()),
@@ -454,6 +463,7 @@ urlpatterns = [
     url(r"^scene/replace_pulsar$", ReplacePulsarSceneApiView.as_view()),
     url(r"^scene/shrink_pulsar$", ShrinkPulsarSceneApiView.as_view()),
     url(r"^scene/fake_install_pulsar$", FakeInstallPulsarSceneApiView.as_view()),
+    url(r"^scene/pulsar_machine_clear$", PulsarMachineClearApiView.as_view()),
     url(r"^scene/import_resource_init$", ImportResourceInitStepApiView.as_view()),
     url("^scene/mysql_data_migrate$", MysqlDataMigrateSceneApiView.as_view()),
     url("^scene/mysql_machine_clear$", MysqlMachineClearApiView.as_view()),
@@ -546,6 +556,7 @@ urlpatterns = [
     url("^scene/mysql_data_migrate$", MysqlDataMigrateSceneApiView.as_view()),
     url("^scene/download_dbactor$", DownloadDbactorApiView.as_view()),
     url("^scene/download_file$", DownloadFileApiView.as_view()),
+    url("^scene/doris_machine_clear$", DorisMachineClearApiView.as_view()),
     # vm
     url(r"^scene/install_vm$", InstallVmSceneApiView.as_view()),
     url(r"^scene/scale_up_vm$", ScaleUpVmSceneApiView.as_view()),
@@ -555,4 +566,5 @@ urlpatterns = [
     url(r"^scene/reboot_vm$", RebootVmSceneApiView.as_view()),
     url(r"^scene/shrink_vm$", ShrinkVmSceneApiView.as_view()),
     url(r"^scene/replace_vm$", ReplaceVmSceneApiView.as_view()),
+    url("^scene/vm_machine_clear$", VmMachineClearApiView.as_view()),
 ]

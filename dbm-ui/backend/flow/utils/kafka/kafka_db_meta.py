@@ -44,7 +44,7 @@ class KafkaMeta(object):
         }
         self.role_port_dict = {
             "zookeeper": 2181,
-            "broker": self.ticket_data["port"],
+            "broker": ticket_data.get("port", 0),
         }
 
     def __get_node_ips_by_role(self, role: str) -> list:
@@ -298,6 +298,12 @@ class KafkaMeta(object):
             )
             KafkaCCTopoOperator(cluster, self.ticket_data).transfer_instances_to_cluster_module(storage_objs)
         return True
+
+    def clear_machines(self):
+        """
+        清理机器信息
+        """
+        api.cluster.kafka.clear_machine(machines=self.ticket_data["clear_hosts"])
 
 
 def check_machines_duplicate(machines: list, ip: str) -> bool:

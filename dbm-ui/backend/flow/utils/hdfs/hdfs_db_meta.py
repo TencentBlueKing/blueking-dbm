@@ -366,3 +366,9 @@ class HdfsDBMeta(object):
                         {"ip": zk_ip, "bk_biz_id": bk_biz_id, "machine_type": MachineType.HDFS_MASTER.value}
                     )
         return machines
+
+    def clear_machines(self):
+        """
+        清理机器信息
+        """
+        api.cluster.hdfs.clear_machine(machines=self.ticket_data["clear_hosts"])
