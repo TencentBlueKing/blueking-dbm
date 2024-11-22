@@ -129,7 +129,7 @@
                 title-keypath="人工确认节点（n）"
                 :tooltips="t('人工确认节点列表')"
                 @after-show="(treeRef: Ref) => handleToolNodeTreeAfterShow(treeRef, false)"
-                @node-click="(node: TaskflowList[number], treeRef: Ref) => handleTreeNodeClick(node, treeRef, false)" />
+                @node-click="handleTreeNodeClick" />
               <PreviewNodeTree
                 v-if="flowState.details.flow_info?.status === 'FAILED'"
                 ref="failedToolPreviewNodeTreeRef"
@@ -140,7 +140,7 @@
                 title-keypath="失败节点（n）"
                 :tooltips="t('失败节点列表')"
                 @after-show="(treeRef: Ref) => handleToolNodeTreeAfterShow(treeRef)"
-                @node-click="(node: TaskflowList[number], treeRef: Ref) => handleTreeNodeClick(node, treeRef)" />
+                @node-click="handleTreeNodeClick" />
               <i
                 v-bk-tooltips="t('放大')"
                 class="flow-tools-icon db-icon-plus-circle"
@@ -276,7 +276,7 @@
               title-keypath="失败节点（n）"
               :tooltips="t('失败节点列表')"
               @after-show="(treeRef: Ref) => handleNodeTreeAfterShow(treeRef)"
-              @node-click="(node: TaskflowList[number], treeRef: Ref) => handleTreeNodeClick(node, treeRef)" />
+              @node-click="handleTreeNodeClick" />
             <PreviewNodeTree
               v-else-if="todoNodesCount > 0"
               ref="failedTopPreviewNodeTreeRef"
@@ -288,7 +288,7 @@
               title-keypath="人工确认节点（n）"
               :tooltips="t('人工确认节点列表')"
               @after-show="(treeRef: Ref) => handleNodeTreeAfterShow(treeRef, false)"
-              @node-click="(node: TaskflowList[number], treeRef: Ref) => handleTreeNodeClick(node, treeRef, false)" />
+              @node-click="handleTreeNodeClick" />
             <BkTag
               v-else
               :theme="getStatusTheme(true)">
