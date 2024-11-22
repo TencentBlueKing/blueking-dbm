@@ -114,9 +114,8 @@
   };
 
   const handleNodeClick = (node: Props['nodesTreeData'][number]) => {
-    const isNoShowLog = !!node.failedChildren && node.failedChildren.length > 0;
-    console.log('isNoShowLog: ', isNoShowLog);
-    emits('node-click', node, treeRef, !isNoShowLog);
+    const iShowLog = !node.failedChildren;
+    emits('node-click', node, treeRef, iShowLog);
   };
 
   const handleNodePanelSwich = () => {
