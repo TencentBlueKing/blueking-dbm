@@ -9,7 +9,7 @@
   import { TicketTypes } from '@/common/const';
 
   interface Props {
-    ticketDetails: TicketModel<Mysql.DataMigrate>;
+    ticketDetails: TicketModel<Mysql.HaRenameDatabase>;
   }
 
   defineProps<Props>();
