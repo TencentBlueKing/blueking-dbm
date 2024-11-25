@@ -17,7 +17,6 @@
       <BkSelect
         v-model="currentDbType"
         :clearable="false"
-        :disabled="isDbTypeDisabled"
         filterable
         :input-search="false"
         style="width: 150px"
@@ -102,7 +101,7 @@
   const currentMachine = ref('');
   const clusterMachineList = shallowRef<InfoItem['machineList']>([]);
 
-  const isDbTypeDisabled = computed(() => props.model.resource_type && props.model.resource_type !== 'PUBLIC');
+  // const isDbTypeDisabled = computed(() => props.model.resource_type && props.model.resource_type === 'PUBLIC');
 
   const { loading: isResourceSpecLoading, run: fetchResourceSpecDetail } = useRequest(getResourceSpec, {
     manual: true,
