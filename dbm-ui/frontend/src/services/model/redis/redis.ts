@@ -63,6 +63,7 @@ export default class Redis {
   creator: string;
   db_module_id: number;
   db_module_name: string;
+  disaster_tolerance_level: string;
   dns_to_clb: boolean;
   id: number;
   machine_pair_cnt: number;
@@ -115,6 +116,7 @@ export default class Redis {
     this.creator = payload.creator;
     this.db_module_id = payload.db_module_id;
     this.db_module_name = payload.db_module_name;
+    this.disaster_tolerance_level = payload.disaster_tolerance_level || '';
     this.dns_to_clb = payload.dns_to_clb;
     this.id = payload.id;
     this.machine_pair_cnt = payload.machine_pair_cnt;

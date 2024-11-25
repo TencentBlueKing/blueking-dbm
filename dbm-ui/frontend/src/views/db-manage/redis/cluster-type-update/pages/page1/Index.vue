@@ -155,7 +155,6 @@
     type: TicketTypes.REDIS_CLUSTER_TYPE_UPDATE,
     onSuccess(cloneData) {
       const { tableList, type, frequency } = cloneData;
-
       tableData.value = tableList;
       repairAndVerifyType.value = type;
       repairAndVerifyFrequency.value = frequency;
@@ -258,6 +257,7 @@
     clusterType: item.cluster_type,
     machineType: item.cluster_spec.spec_machine_type,
     currentShardNum: item.cluster_shard_num,
+    disasterToleranceLevel: item.disaster_tolerance_level,
     groupNum: item.machine_pair_cnt,
     dbVersion: item.major_version,
     specConfig: {
