@@ -31,7 +31,7 @@ interface State {
 /**
  * 获取参数管理基本信息
  */
-export const useBaseDetails = (immediateFetch = true) => {
+export const useBaseDetails = (immediateFetch = true, confName = 'db_version') => {
   const getFetchParams = (versionKey: 'version' | 'proxy_version', confType = 'dbconf') => {
     if (treeNode === undefined) {
       return {} as ServiceParameters<typeof getLevelConfig>;
@@ -115,7 +115,7 @@ export const useBaseDetails = (immediateFetch = true) => {
     getLevelConfig(params)
       .then((res) => {
         res.conf_items.forEach((item) => {
-          if (item.conf_name === 'db_version') {
+          if (item.conf_name === confName) {
             state.version = item.conf_value ?? '';
           } else if (item.conf_name === 'charset') {
             state.data.charset = item.conf_value ?? '';

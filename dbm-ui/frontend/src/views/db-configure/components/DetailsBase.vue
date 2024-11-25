@@ -39,7 +39,23 @@
           class="details-base__table"
           :data="configItems"
           :level="level"
-          :sticky-top="stickyTop" />
+          :sticky-top="stickyTop">
+          <template
+            v-if="tabs.length > 1"
+            #prefix>
+            <BkRadioGroup
+              v-model="clusterType"
+              type="capsule">
+              <BkRadioButton
+                v-for="tab of tabs"
+                :key="tab"
+                :label="tab"
+                style="width: 200px">
+                {{ tab }} {{ t('参数配置') }}
+              </BkRadioButton>
+            </BkRadioGroup>
+          </template>
+        </ReadonlyTable>
       </DbCard>
       <DbCard
         v-for="card of extraParametersCards"
@@ -76,6 +92,7 @@
 
   import EditInfo, { type EditEmitData } from '@components/editable-info/index.vue';
 
+  import { useBaseDetails } from '../business/list/components/hooks/useBaseDetails';
   import type { ExtraConfListItem } from '../common/types';
 
   import ReadonlyTable from './ReadonlyTable.vue';
@@ -117,11 +134,25 @@
   const { t } = useI18n();
   const router = useRouter();
   const route = useRoute();
+  const { state } = useBaseDetails(true, 'spider_version');
 
+  const clusterType = ref(props.data.version);
+
+  const tabs = computed(() => {
+    if (!state.version) {
+      return [props.data.version];
+    }
+    return [props.data.version, state.data.version];
+  });
   const cardTitle = computed(() => props.title || t('参数配置'));
   // 是否为平台级别配置
   const isPlat = computed(() => ConfLevels.PLAT === props.level);
-  const configItems = computed(() => props.data?.conf_items || []);
+  const configItems = computed(() => {
+    if (clusterType.value === props.data.version) {
+      return props.data.conf_items;
+    }
+    return state.data.conf_items;
+  });
   const isShowCharset = computed(() => !!props.data.charset);
   const baseInfoColumns = computed(() => {
     const baseColumns = [
@@ -161,6 +192,14 @@
     return baseColumns;
   });
 
+  watch(
+    () => props.data.version,
+    () => {
+      clusterType.value = props.data.version;
+    },
+    { immediate: true },
+  );
+
   /**
    * 基础信息编辑
    */
@@ -193,7 +232,12 @@
     const name = isPlat.value ? 'PlatformDbConfigureEdit' : 'DbConfigureEdit';
     router.push({
       name,
-      params: { ...route.params, ...props.routeParams, ...extra },
+      params: {
+        ...route.params,
+        ...props.routeParams,
+        ...extra,
+        version: clusterType.value,
+      },
     });
   };
 </script>
