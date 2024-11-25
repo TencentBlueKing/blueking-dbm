@@ -10,11 +10,11 @@
         :title="t('模块信息')">
         <BkFormItem
           :label="t('模块名称')"
-          property="module_name"
+          property="alias_name"
           required
-          :rules="rules.module_name">
+          :rules="rules.alias_name">
           <BkInput
-            v-model="formData.module_name"
+            v-model="formData.alias_name"
             :placeholder="t('由英文字母_数字_连字符_组成')" />
           <span class="belong-business ml-16"> {{ t('所属业务') }} : {{ bizInfo.name }} </span>
         </BkFormItem>
@@ -209,7 +209,7 @@
   const bizInfo = bizs.find((info) => info.bk_biz_id === bizId) || { name: '' };
 
   const rules = {
-    module_name: [
+    alias_name: [
       {
         required: true,
         message: t('模块名称不能为空'),
@@ -227,7 +227,7 @@
    * 获取表单基础信息
    */
   const getFormData = () => ({
-    module_name: '',
+    alias_name: '',
     version: '',
     camelCase: '', // 数据库配置
     character_set: 'Chinese_PRC_CI_AS', // 字符集
@@ -355,7 +355,8 @@
       await formRef.value.validate();
       // 创建模块
       await runCreateModules({
-        db_module_name: formData.module_name,
+        alias_name: formData.alias_name,
+        db_module_name: formData.alias_name,
         cluster_type: ticketInfo.type,
         biz_id: bizId,
       });

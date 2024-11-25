@@ -32,7 +32,7 @@
                 :key="item.db_module_id"
                 action-id="dbconfig_view"
                 :biz-id="formData.bk_biz_id"
-                :label="item.name"
+                :label="item.alias_name"
                 :permission="item.permission.dbconfig_view"
                 resource="sqlserver"
                 :value="item.db_module_id" />
@@ -150,7 +150,7 @@
               v-model:domains="formData.details.domains"
               :db-app-abbr="formData.details.db_app_abbr"
               :is-sqlserver-single="isSingleType"
-              :module-name="moduleName" />
+              :module-alias-name="moduleAliasName" />
           </BkFormItem>
           <BkFormItem
             :label="t('服务器选择')"
@@ -365,7 +365,7 @@
 
   const formRef = ref();
   const backendRef = ref();
-  const moduleName = ref('');
+  const moduleAliasName = ref('');
   const moduleRef = ref();
   const isBindModule = ref(false);
   const isShowPreview = ref(false);
@@ -434,7 +434,7 @@
   );
 
   const tableData = computed(() => {
-    if (moduleName.value && formData.details.db_app_abbr) {
+    if (moduleAliasName.value && formData.details.db_app_abbr) {
       return formData.details.domains;
     }
     return [];
@@ -445,8 +445,8 @@
       (accumulator, { key }) => [
         ...accumulator,
         {
-          domain: `${moduleName.value}db.${key}.${formData.details.db_app_abbr}.db`,
-          slaveDomain: `${moduleName.value}db.${key}.${formData.details.db_app_abbr}.db`,
+          domain: `${moduleAliasName.value}db.${key}.${formData.details.db_app_abbr}.db`,
+          slaveDomain: `${moduleAliasName.value}db.${key}.${formData.details.db_app_abbr}.db`,
           disasterDefence: t('同城跨园区'),
           deployStructure: isSingleType ? t('单节点部署') : t('主从部署'),
           version: dbVersion.value,
@@ -540,7 +540,7 @@
     (newDbModuleId) => {
       if (newDbModuleId) {
         const module = (moduleList.value || []).find((item) => item.db_module_id === formData.details.db_module_id);
-        moduleName.value = module ? module.name : '';
+        moduleAliasName.value = module ? module.alias_name : '';
 
         fetchModulesDetails({
           bk_biz_id: Number(formData.bk_biz_id),

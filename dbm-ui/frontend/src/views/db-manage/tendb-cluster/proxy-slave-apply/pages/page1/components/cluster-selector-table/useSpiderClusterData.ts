@@ -96,7 +96,7 @@ export function useClusterData<T>(activeTab: Ref<string>, searchParams: Ref<ISea
     }).then((res) => {
       dbModuleList.value = res.map((item) => ({
         id: item.db_module_id,
-        name: item.name,
+        name: item.alias_name,
       }));
       return dbModuleList.value;
     });
