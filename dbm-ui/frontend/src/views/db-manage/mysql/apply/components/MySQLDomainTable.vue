@@ -58,7 +58,7 @@
     key: string
   }
   interface Props {
-    moduleName: string,
+    moduleAliasName: string,
     formdata: IFormdata,
     ticketType: string
   }
@@ -74,11 +74,11 @@
   const isMysqlSingle = computed(() => props.ticketType === TicketTypes.MYSQL_SINGLE_APPLY);
   /**
    * 表单展示数据
-   * 没有 moduleName 和 appName 则不展示 table 数据
+   * 没有 moduleAliasName 和 appName 则不展示 table 数据
    */
   const tableData = computed(() => {
-    const { moduleName, formdata } = props;
-    if (moduleName && (formdata.details.db_app_abbr)) {
+    const { moduleAliasName, formdata } = props;
+    if (moduleAliasName && (formdata.details.db_app_abbr)) {
       return formdata.details.domains;
     }
     return [];
@@ -130,7 +130,7 @@
               ? null
               : <BatchEdit
                   v-bk-tooltips={t('快捷编辑_可通过换行分隔_快速编辑多个域名')}
-                  moduleName={props.moduleName}
+                  moduleAliasName={props.moduleAliasName}
                   appName={props.formdata.details.db_app_abbr}
                   onChange={handleBatchEditDomains} />
           }
@@ -186,7 +186,7 @@
   function renderDomain(rowIndex: number, isMain = false) {
     return (
       <div class="domain-address">
-        <span>{props.moduleName}{isMain ? 'db.' : 'dr.'}</span>
+        <span>{props.moduleAliasName}{isMain ? 'db.' : 'dr.'}</span>
         {
           isMain
             ? (

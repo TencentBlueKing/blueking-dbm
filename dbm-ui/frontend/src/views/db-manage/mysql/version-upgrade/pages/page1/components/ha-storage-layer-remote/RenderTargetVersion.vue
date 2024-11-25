@@ -277,7 +277,7 @@
     onSuccess(modules) {
       const moduleList: IListItem[] = [];
       const { moduleName } = props.data!;
-      const currentModule = modules.find((moduleItem) => moduleItem.name === moduleName);
+      const currentModule = modules.find((moduleItem) => moduleItem.alias_name === moduleName);
       if (currentModule) {
         const currentCharset = currentModule.db_module_info.conf_items.find(
           (confItem) => confItem.conf_name === 'charset',
@@ -299,7 +299,7 @@
             moduleList.push({
               ...moduleItem,
               id: moduleItem.db_module_id,
-              name: moduleItem.name,
+              name: moduleItem.alias_name,
             });
           }
         });

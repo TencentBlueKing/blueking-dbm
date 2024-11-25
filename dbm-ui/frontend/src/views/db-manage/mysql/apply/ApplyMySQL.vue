@@ -46,7 +46,7 @@
                 :key="item.db_module_id"
                 action-id="dbconfig_view"
                 :biz-id="formdata.bk_biz_id"
-                :name="item.name"
+                :name="item.alias_name"
                 :permission="item.permission.dbconfig_view"
                 resource="mysql" />
               <template
@@ -191,7 +191,7 @@
             <DomainTable
               v-model:domains="formdata.details.domains"
               :formdata="formdata"
-              :module-name="moduleName"
+              :module-alias-name="moduleAliasName"
               :ticket-type="dbType" />
           </BkFormItem>
           <BkFormItem
@@ -573,12 +573,12 @@
   });
   const hostSpecInfo = computed(() => fetchState.hostSpecs.find((info) => info.spec === formdata.details.spec));
   const typeInfo = computed(() => mysqlType[dbType as MysqlTypeString]);
-  const moduleName = computed(() => {
+  const moduleAliasName = computed(() => {
     const item = fetchState.moduleList.find((item) => item.db_module_id === formdata.details.db_module_id);
-    return item?.name ?? '';
+    return item?.alias_name ?? '';
   });
   const tableData = computed(() => {
-    if (moduleName.value && formdata.details.db_app_abbr) {
+    if (moduleAliasName.value && formdata.details.db_app_abbr) {
       return formdata.details.domains;
     }
     return [];
@@ -738,8 +738,8 @@
   }));
   const previewData = computed(() =>
     tableData.value.map(({ key }: { key: string }) => ({
-      domain: `${moduleName.value}db.${key}.${formdata.details.db_app_abbr}.db`,
-      slaveDomain: `${moduleName.value}db.${key}.${formdata.details.db_app_abbr}.db`,
+      domain: `${moduleAliasName.value}db.${key}.${formdata.details.db_app_abbr}.db`,
+      slaveDomain: `${moduleAliasName.value}db.${key}.${formdata.details.db_app_abbr}.db`,
       disasterDefence: t('同城跨园区'),
       deployStructure: typeInfo.value.name,
       version: leveConfig.db_version,
@@ -873,10 +873,10 @@
       return;
     }
     const moduleInfo = fetchState.moduleList.find((item) => item.db_module_id === formdata.details.db_module_id);
-    const moduleName = moduleInfo?.name ?? '';
-    const moduleNameQuery = moduleName
+    const moduleAliasName = moduleInfo?.alias_name ?? '';
+    const moduleAliasNameQuery = moduleAliasName
       ? {
-          module_name: moduleName,
+          alias_name: moduleAliasName,
         }
       : {};
     isBindModule.value = true;
@@ -888,7 +888,7 @@
         db_module_id: formdata.details.db_module_id,
       },
       query: {
-        ...moduleNameQuery,
+        ...moduleAliasNameQuery,
       },
     });
     window.open(url.href, '_blank');

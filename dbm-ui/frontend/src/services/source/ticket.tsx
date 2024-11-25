@@ -389,16 +389,16 @@ export const createAppAbbr = (params: { db_app_abbr: string; id: number }) =>
 /**
  * 创建模块
  */
-export const createModules = (params: { db_module_name: string; cluster_type: string; id: number }) =>
-  http.post<{
-    db_module_id: number;
-    db_module_name: string;
-    cluster_type: string;
-    bk_biz_id: number;
-    bk_set_id: number;
-    bk_modules: { bk_module_name: string; bk_module_id: string }[];
-    name: string;
-  }>(`/apis/cmdb/${params.id}/create_module/`, params);
+// export const createModules = (params: { db_module_name: string; cluster_type: string; id: number }) =>
+//   http.post<{
+//     db_module_id: number;
+//     db_module_name: string;
+//     cluster_type: string;
+//     bk_biz_id: number;
+//     bk_set_id: number;
+//     bk_modules: { bk_module_name: string; bk_module_id: string }[];
+//     name: string;
+//   }>(`/apis/cmdb/${params.id}/create_module/`, params);
 
 /**
  * 保存模块配置
