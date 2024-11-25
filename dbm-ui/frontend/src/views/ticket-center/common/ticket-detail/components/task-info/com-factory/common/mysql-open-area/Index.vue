@@ -71,11 +71,7 @@
           </I18nT>
         </span>
       </template>
-      <!-- prettier-ignore -->
       <PermissionRule
-        v-if="templateDetail"
-        :cluster-type="(templateDetail.cluster_type as ClusterTypes)"
-        :rule-ids="templateDetail.related_authorize"
         :template-detail="templateDetail"
         :ticket-details="ticketDetails" />
     </DbCard>
@@ -89,7 +85,7 @@
   import TicketModel, { type Mysql } from '@services/model/ticket/ticket';
   import { getDetail } from '@services/source/openarea';
 
-  import { ClusterTypes, TicketTypes } from '@common/const';
+  import { TicketTypes } from '@common/const';
 
   import CloneRule from './components/CloneRule.vue';
   import PermissionRule from './components/PermissionRule.vue';

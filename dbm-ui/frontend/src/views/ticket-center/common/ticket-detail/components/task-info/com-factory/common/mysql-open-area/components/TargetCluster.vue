@@ -47,7 +47,6 @@
     return acc;
   }, {});
 
-
   const tableData = computed(() =>
     _.flatMap(
       _.sortBy(

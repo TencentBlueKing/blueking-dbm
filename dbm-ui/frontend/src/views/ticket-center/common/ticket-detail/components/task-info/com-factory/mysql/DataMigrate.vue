@@ -12,7 +12,9 @@
 -->
 
 <template>
-  <BkTable :data="ticketDetails.details.infos">
+  <BkTable
+    :data="ticketDetails.details.infos"
+    show-overflow-tooltip>
     <BkTableColumn :label="t('源集群')">
       <template #default="{ data }: { data: RowData }">
         {{ ticketDetails.details.clusters[data.source_cluster].immute_domain }}
@@ -33,8 +35,8 @@
       <template #default="{ data }: { data: RowData }">
         {{ data?.db_list?.join(',') }}
       </template>
-    </BkTableColumn></BkTable
-  >
+    </BkTableColumn>
+  </BkTable>
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';

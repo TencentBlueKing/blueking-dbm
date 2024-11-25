@@ -12,19 +12,26 @@
 -->
 
 <template>
-  <BkLoading :loading="loading">
-    <DbOriginalTable
-      :columns="columns"
-      :data="tableData" />
-  </BkLoading>
+  <BkTable
+    :data="ticketDetails.details.infos"
+    show-overflow-tooltip>
+    <BkTableColumn :label="t('集群')">
+      <template #default="{ data }: { data: RowData }">
+        {{ ticketDetails.details.clusters[data.cluster_id].immute_domain }}
+      </template>
+    </BkTableColumn>
+    <BkTableColumn :label="t('节点IP')">
+      <template #default="{ data }: { data: RowData }">
+        {{ data.spider_ip_list.map((item) => item.ip).join(', ') }}
+      </template>
+    </BkTableColumn>
+  </BkTable>
 </template>
 
 <script setup lang="tsx">
   import { useI18n } from 'vue-i18n';
-  import { useRequest } from 'vue-request';
 
   import TicketModel, { type TendbCluster } from '@services/model/ticket/ticket';
-  import { getTendbclusterListByBizId } from '@services/source/tendbcluster';
 
   import { TicketTypes } from '@common/const';
 
@@ -32,12 +39,9 @@
     ticketDetails: TicketModel<TendbCluster.SpiderMntDestroy>;
   }
 
-  interface RowData {
-    clusterName: string;
-    ip: string;
-  }
+  type RowData = Props['ticketDetails']['details']['infos'][number];
 
-  const props = defineProps<Props>();
+  defineProps<Props>();
 
   defineOptions({
     name: TicketTypes.TENDBCLUSTER_SPIDER_MNT_DESTROY,
@@ -45,54 +49,4 @@
   });
 
   const { t } = useI18n();
-
-  // eslint-disable-next-line vue/no-setup-props-destructure
-  const { infos } = props.ticketDetails.details;
-  const tableData = ref<RowData[]>([]);
-  const columns = [
-    {
-      label: t('集群'),
-      field: 'clusterName',
-      showOverflowTooltip: true,
-    },
-    {
-      label: t('节点IP'),
-      field: 'ip',
-      showOverflowTooltip: true,
-    },
-  ];
-
-  const { loading } = useRequest(getTendbclusterListByBizId, {
-    defaultParams: [
-      {
-        bk_biz_id: props.ticketDetails.bk_biz_id,
-        offset: 0,
-        limit: -1,
-      },
-    ],
-    onSuccess: (r) => {
-      if (r.results.length < 1) {
-        return;
-      }
-      const clusterMap = r.results.reduce(
-        (obj, item) => {
-          Object.assign(obj, { [item.id]: item.master_domain });
-          return obj;
-        },
-        {} as Record<number, string>,
-      );
-
-      tableData.value = infos.reduce((results, item) => {
-        item.spider_ip_list.forEach((row) => {
-          const obj = {
-            clusterName: clusterMap[item.cluster_id],
-            ip: row.ip,
-          };
-          results.push(obj);
-        });
-
-        return results;
-      }, [] as RowData[]);
-    },
-  });
 </script>

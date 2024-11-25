@@ -12,16 +12,14 @@
 -->
 
 <template>
-  <div class="ticket-details-list">
-    <div class="ticket-details-item">
-      <span class="ticket-details-item-label">{{ t('变更类型') }}：</span>
-      <span class="ticket-details-item-value">{{ t('变更规则') }}</span>
-    </div>
-    <div class="ticket-details-item">
-      <span class="ticket-details-item-label">{{ t('账户名称') }}：</span>
-      <span class="ticket-details-item-value">{{ ticketDetails.details.last_account_rules.userName }}</span>
-    </div>
-  </div>
+  <InfoList>
+    <InfoItem :label="t('变更类型:')">
+      {{ t('变更规则') }}
+    </InfoItem>
+    <InfoItem :label="t('账户名称:')">
+      {{ ticketDetails.details.last_account_rules.userName }}
+    </InfoItem>
+  </InfoList>
   <div class="preview-diff">
     <DbCard
       v-model:collapse="collapseActive.accessDb"
@@ -68,6 +66,8 @@
   import { AccountTypes } from '@common/const';
 
   import configMap from '@views/db-manage/common/permission/components/mysql/config';
+
+  import InfoList, { Item as InfoItem } from '../../../components/info-list/Index.vue';
 
   interface PrivilegeRow {
     privilegeKey: string;
@@ -144,8 +144,8 @@
   );
 
   const getPrivilegeData = (key: AccountRulePrivilegeKey) => {
-    const beforeList = rulesFormData.beforeChange.privilege[key] || [];
-    const afterList = rulesFormData.afterChange.privilege[key] || [];
+    const beforeList = (rulesFormData.beforeChange.privilege as Record<AccountRulePrivilegeKey, string[]>)[key] || [];
+    const afterList = (rulesFormData.afterChange.privilege as Record<AccountRulePrivilegeKey, string[]>)[key] || [];
     const diffMap = diffArray(beforeList, afterList);
     const sensitiveWordMap = getSensitiveWordMap();
     return Object.entries(diffMap).reduce<PrivilegeRow[]>((acc, [privilege, diffType]) => [...acc, {
