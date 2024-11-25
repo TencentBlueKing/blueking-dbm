@@ -47,8 +47,8 @@
               :key="item.db_module_id"
               action-id="dbconfig_view"
               :biz-id="formData.bk_biz_id"
-              :label="item.name"
-              :name="item.name"
+              :label="item.alias_name"
+              :name="item.alias_name"
               :permission="item.permission.dbconfig_view"
               resource="riak"
               :value="item.db_module_id" />
@@ -348,7 +348,7 @@
         ...formData,
         details: {
           ...formData.details,
-          db_module_name: moduleListValue[moduleIndex].name,
+          db_module_name: moduleListValue[moduleIndex].alias_name,
         },
       };
 

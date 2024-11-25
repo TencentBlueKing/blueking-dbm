@@ -373,7 +373,7 @@
 
   .spider-apply-instance-page {
     .item-input {
-      width: 462px;
+      width: 435px;
     }
 
     .input-desc {

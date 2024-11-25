@@ -414,7 +414,7 @@
     }
 
     :deep(.item-input) {
-      width: 462px;
+      width: 435px;
     }
 
     .resource-pool-item {
