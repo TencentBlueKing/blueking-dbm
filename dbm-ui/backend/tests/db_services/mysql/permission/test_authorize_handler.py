@@ -69,6 +69,7 @@ class TestAuthorizeHandler:
 
     @patch("backend.db_services.mysql.permission.authorize.handlers.GcsApi", GcsApiMock)
     @patch("backend.db_services.mysql.permission.authorize.handlers.ScrApi", ScrApiMock)
+    @patch("backend.db_services.dbpermission.db_account.handlers.DBPrivManagerApi", DBPrivManagerApiMock)
     def test_authorize_apply(self, init_cluster, bk_user, init_app):
         request = RequestFactory().post("")
         request.user = bk_user

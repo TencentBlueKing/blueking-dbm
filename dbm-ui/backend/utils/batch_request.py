@@ -154,13 +154,14 @@ def sync_batch_request(func, params, get_data=lambda x: x["info"], limit=500, st
     return data
 
 
-def request_multi_thread(func, params_list, get_data=lambda x: [], in_order=False):
+def request_multi_thread(func, params_list, get_data=lambda x: [], in_order=False, workers=settings.CONCURRENT_NUMBER):
     """
     并发请求接口，每次按不同参数请求最后叠加请求结果
     :param func: 请求方法
     :param params_list: 参数列表
     :param get_data: 获取数据函数，通常CMDB的批量接口应该设置为 get_data=lambda x: x["info"]，其它场景视情况而定
     :param in_order: 按顺序处理线程结果，默认和请求参数有关，因此get_data要同时处理请求参数和结果
+    :param workers: 最大并发数
     :return: 请求结果累计
     """
 
@@ -170,7 +171,7 @@ def request_multi_thread(func, params_list, get_data=lambda x: [], in_order=Fals
             params["params"]["_request"] = local.request
 
     result = []
-    with ThreadPoolExecutor(max_workers=settings.CONCURRENT_NUMBER) as ex:
+    with ThreadPoolExecutor(max_workers=workers) as ex:
         tasks = [ex.submit(RespectsLanguage(language=get_language())(func), **params) for params in params_list]
 
     if in_order:

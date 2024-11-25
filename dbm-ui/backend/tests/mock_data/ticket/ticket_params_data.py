@@ -37,12 +37,10 @@ MYSQL_AUTHORIZE_FLOW_PARAMS = {
 
 MYSQL_CLONE_FLOW_PARAMS = {
     **BASE_FLOW_PARAMS,
+    "operator": "admin",
     "clone_cluster_type": CloneClusterType.MYSQL,
     "ticket_type": TicketType.MYSQL_CLIENT_CLONE_RULES.value,
-    "clone_data": [
-        {"source": "127.0.0.1:", "target": "127.0.1.1", "bk_cloud_id": 0},
-        {"source": "127.0.0.2", "target": "127.0.1.1", "bk_cloud_id": 0},
-        {"source": "127.0.0.3", "target": "127.0.1.1", "bk_cloud_id": 0},
-    ],
+    "clone_data": {"source": "127.0.0.1:", "target": "127.0.1.1", "bk_cloud_id": 0},
     "clone_type": "client",
+    "inst_machine_type_map": {},
 }

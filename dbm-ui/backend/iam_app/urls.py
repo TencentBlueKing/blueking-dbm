@@ -23,6 +23,7 @@ from backend.iam_app.views.account_provider import (
     TendbClusterAccountResourceProvider,
 )
 from backend.iam_app.views.cluster_provider import (
+    DorisClusterResourceProvider,
     EsClusterResourceProvider,
     HdfsClusterResourceProvider,
     KafkaClusterResourceProvider,
@@ -50,9 +51,11 @@ dispatcher = DjangoBasicResourceApiDispatcher(Permission.get_iam_client(), env.B
 
 dispatcher.register(r"flow", FlowResourceProvider())
 dispatcher.register(r"ticket", TicketResourceProvider())
+dispatcher.register(r"dbtype", DBTypeResourceProvider())
+dispatcher.register(r"ticket_group", TicketGroupResourceProvider())
+
 dispatcher.register(r"openarea_config", OpenareaConfigResourceProvider())
 dispatcher.register(r"dumper_subscribe_config", DumperSubscribeConfigResourceProvider())
-
 dispatcher.register(r"mysql", MySQLResourceProvider())
 dispatcher.register(r"tendbcluster", TendbClusterResourceProvider())
 dispatcher.register(r"redis", RedisClusterResourceProvider())
@@ -62,8 +65,7 @@ dispatcher.register(r"es", EsClusterResourceProvider())
 dispatcher.register(r"hdfs", HdfsClusterResourceProvider())
 dispatcher.register(r"kafka", KafkaClusterResourceProvider())
 dispatcher.register(r"pulsar", PulsarClusterResourceProvider())
-dispatcher.register(r"dbtype", DBTypeResourceProvider())
-dispatcher.register(r"ticket_group", TicketGroupResourceProvider())
+dispatcher.register(r"doris", DorisClusterResourceProvider())
 dispatcher.register(r"mongodb", MongoDBClusterResourceProvider())
 dispatcher.register(r"sqlserver", SQLServerClusterResourceProvider())
 

@@ -12,7 +12,7 @@ import logging.config
 from dataclasses import asdict
 from typing import List, Optional
 
-from django.utils.translation import gettext as _
+from django.utils.translation import ugettext as _
 
 from backend import env
 from backend.components import DBConfigApi
@@ -20,6 +20,8 @@ from backend.components.dbconfig.constants import FormatType, LevelName
 from backend.configuration.constants import DBType
 from backend.db_meta.enums import ClusterType, InstanceInnerRole
 from backend.db_meta.models import Cluster, StorageInstance
+from backend.db_services.dbpermission.db_account.handlers import AccountHandler
+from backend.db_services.mysql.permission.clone.handlers import CloneHandler
 from backend.flow.consts import (
     DBA_ROOT_USER,
     DEPENDENCIES_PLUGINS,
@@ -34,7 +36,9 @@ from backend.flow.plugins.components.collections.common.install_nodeman_plugin i
     InstallNodemanPluginServiceComponent,
 )
 from backend.flow.plugins.components.collections.common.sa_idle_check import CheckMachineIdleComponent
+from backend.flow.plugins.components.collections.mysql.authorize_rules import AuthorizeRulesComponent
 from backend.flow.plugins.components.collections.mysql.check_client_connections import CheckClientConnComponent
+from backend.flow.plugins.components.collections.mysql.clone_rules import CloneRulesComponent
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
 from backend.flow.plugins.components.collections.mysql.mysql_db_meta import MySQLDBMetaComponent
 from backend.flow.plugins.components.collections.mysql.mysql_os_init import (
@@ -46,7 +50,9 @@ from backend.flow.plugins.components.collections.mysql.trans_flies import TransF
 from backend.flow.plugins.components.collections.mysql.verify_checksum import VerifyChecksumComponent
 from backend.flow.utils.common_act_dataclass import DownloadBackupClientKwargs, InstallNodemanPluginKwargs
 from backend.flow.utils.mysql.mysql_act_dataclass import (
+    AuthorizeKwargs,
     CheckClientConnKwargs,
+    CloneRuleKwargs,
     DBMetaOPKwargs,
     DownloadMediaKwargs,
     ExecActuatorKwargs,
@@ -871,3 +877,77 @@ def sync_mycnf_item_sub_flow(
         )
     sub_pipeline.add_parallel_acts(acts_list=act_lists)
     return sub_pipeline.build_sub_process(sub_name=_("同步修改my.cnf配置"))
+
+
+def clone_rules_sub_flow(
+    root_id: str,
+    uid: str,
+    bk_biz_id: int,
+    operator: str,
+    clone_type: str,
+    clone_cluster_type: str,
+    clone_data_list: list,
+):
+    """
+    权限克隆子流程，通过并行网关并发请求权限克隆
+    """
+    sub_pipeline = SubBuilder(root_id=root_id, data={"uid": uid})
+
+    # 如果是实例克隆，则提前获得ip:port与机器信息的字典
+    handler = CloneHandler(bk_biz_id, operator, clone_type, clone_cluster_type)
+    inst_machine_type_map = {
+        inst: machine.machine_type for inst, machine in handler.get_address__machine_map(clone_data_list).items()
+    }
+    # 构造克隆并行网关流程
+    act_lists = []
+    for clone_data in clone_data_list:
+        act = {
+            "act_name": _("权限克隆:{}->{}".format(clone_data["source"], clone_data["target"])),
+            "act_component_code": CloneRulesComponent.code,
+            "kwargs": asdict(
+                CloneRuleKwargs(
+                    uid=uid,
+                    bk_biz_id=bk_biz_id,
+                    operator=operator,
+                    clone_type=clone_type,
+                    clone_cluster_type=clone_cluster_type,
+                    clone_data=clone_data,
+                    inst_machine_type_map=inst_machine_type_map,
+                )
+            ),
+        }
+        act_lists.append(act)
+    sub_pipeline.add_parallel_acts(acts_list=act_lists)
+    return sub_pipeline.build_sub_process(sub_name=_("权限克隆"))
+
+
+def authorize_sub_flow(root_id: str, uid: str, bk_biz_id: int, operator: str, rules_set: list):
+    """
+    授权子流程，通过并行网关并发请求授权
+    """
+    sub_pipeline = SubBuilder(root_id=root_id, data={"uid": uid})
+
+    # 获得用户规则字典
+    db_type = ClusterType.cluster_type_to_db_type(rules_set[0]["cluster_type"])
+    user_db_rules_map = AccountHandler.aggregate_user_db_rules(bk_biz_id, db_type, rule_key="")
+    # 构造授权并行网关流程
+    act_lists = []
+    for authorize_data in rules_set:
+        act = {
+            "act_name": _("{} 进行授权".format(authorize_data["user"])),
+            "act_component_code": AuthorizeRulesComponent.code,
+            "kwargs": asdict(
+                AuthorizeKwargs(
+                    uid=uid,
+                    root_id=root_id,
+                    bk_biz_id=bk_biz_id,
+                    operator=operator,
+                    db_type=db_type,
+                    authorize_data=authorize_data,
+                    user_db_rules_map=dict(user_db_rules_map),
+                )
+            ),
+        }
+        act_lists.append(act)
+    sub_pipeline.add_parallel_acts(acts_list=act_lists)
+    return sub_pipeline.build_sub_process(sub_name=_("权限克隆"))

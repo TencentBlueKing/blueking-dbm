@@ -29,6 +29,7 @@ from django.utils import translation
 from django.utils.translation import ugettext as _
 from pipeline.eri.runtime import BambooDjangoRuntime
 
+from backend.flow.engine.exceptions import PipelineError
 from backend.flow.models import FlowNode, FlowTree, StateType
 from backend.flow.plugins.components.collections.common.create_random_job_user import AddTempUserForClusterComponent
 from backend.flow.plugins.components.collections.common.drop_random_job_user import DropTempUserForClusterComponent
@@ -234,9 +235,9 @@ class Builder(object):
             db_type=TicketType.get_db_type_by_ticket(self.data["ticket_type"]),
         )
 
-        if not api.run_pipeline(runtime=BambooDjangoRuntime(), pipeline=pipeline).result:
-            logger.error(_("部署bamboo流程任务创建失败，任务结束"))
-            return False
+        result = api.run_pipeline(runtime=BambooDjangoRuntime(), pipeline=pipeline)
+        if not result.result:
+            raise PipelineError(_("部署bamboo流程任务创建失败: {}").format(result.exc_trace))
 
         return True
 

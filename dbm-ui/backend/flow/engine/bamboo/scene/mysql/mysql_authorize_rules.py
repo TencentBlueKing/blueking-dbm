@@ -11,11 +11,8 @@ specific language governing permissions and limitations under the License.
 import logging
 from typing import Dict, Optional
 
-from django.utils.translation import ugettext as _
-
 from backend.flow.engine.bamboo.scene.common.builder import Builder
-from backend.flow.plugins.components.collections.mysql.authorize_rules import AuthorizeRulesComponent
-from backend.flow.plugins.components.collections.mysql.clone_rules import CloneRulesComponent
+from backend.flow.engine.bamboo.scene.mysql.common.common_sub_flow import authorize_sub_flow, clone_rules_sub_flow
 
 logger = logging.getLogger("flow")
 
@@ -23,7 +20,6 @@ logger = logging.getLogger("flow")
 class MySQLAuthorizeRulesFlows(object):
     """
     授权mysql权限的流程抽象类
-    todo 后续需要兼容跨云管理 bk_cloud_id
     """
 
     def __init__(self, root_id: str, data: Optional[Dict]):
@@ -39,16 +35,30 @@ class MySQLAuthorizeRulesFlows(object):
         """定义mysql授权流程"""
 
         mysql_authorize_rules = Builder(root_id=self.root_id, data=self.data)
-        mysql_authorize_rules.add_act(
-            act_name=_("添加mysql规则授权"), act_component_code=AuthorizeRulesComponent.code, kwargs=self.data
+        mysql_authorize_rules.add_sub_pipeline(
+            sub_flow=authorize_sub_flow(
+                root_id=self.root_id,
+                uid=self.data["uid"],
+                bk_biz_id=self.data["bk_biz_id"],
+                operator=self.data["created_by"],
+                rules_set=self.data["rules_set"],
+            )
         )
         mysql_authorize_rules.run_pipeline()
 
     def clone_mysql_rules(self):
-        """定义mysql授权流程"""
+        """定义mysql权限克隆流程"""
 
         mysql_clone_rules = Builder(root_id=self.root_id, data=self.data)
-        mysql_clone_rules.add_act(
-            act_name=_("添加mysql权限克隆"), act_component_code=CloneRulesComponent.code, kwargs=self.data
+        mysql_clone_rules.add_sub_pipeline(
+            sub_flow=clone_rules_sub_flow(
+                root_id=self.root_id,
+                bk_biz_id=self.data["bk_biz_id"],
+                uid=self.data["uid"],
+                clone_type=self.data["clone_type"],
+                clone_data_list=self.data["clone_data"],
+                clone_cluster_type=self.data["clone_cluster_type"],
+                operator=self.data["created_by"],
+            )
         )
         mysql_clone_rules.run_pipeline()

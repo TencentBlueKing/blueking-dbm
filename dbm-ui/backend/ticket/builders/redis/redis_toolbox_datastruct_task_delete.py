@@ -17,7 +17,7 @@ from backend.db_meta.models import Cluster
 from backend.db_services.redis.rollback.models import TbTendisRollbackTasks
 from backend.flow.engine.controller.redis import RedisController
 from backend.ticket import builders
-from backend.ticket.builders.common.base import SkipToRepresentationMixin
+from backend.ticket.builders.common.base import DisplayInfoSerializer, SkipToRepresentationMixin
 from backend.ticket.builders.redis.base import BaseRedisTicketFlowBuilder, RedisBasePauseParamBuilder
 from backend.ticket.constants import TicketType
 
@@ -25,7 +25,7 @@ from backend.ticket.constants import TicketType
 class RedisDataStructureTaskDeleteDetailSerializer(SkipToRepresentationMixin, serializers.Serializer):
     """数据构造与实例销毁"""
 
-    class InfoSerializer(serializers.Serializer):
+    class InfoSerializer(DisplayInfoSerializer):
         related_rollback_bill_id = serializers.CharField(help_text=_("关联单据ID"))
         cluster_id = serializers.IntegerField(help_text=_("集群ID"))
         bk_cloud_id = serializers.IntegerField(help_text=_("云区域ID"))

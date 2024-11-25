@@ -510,3 +510,47 @@ class MysqlSyncMasterKwargs:
     is_gtid: bool = False
     is_add_any: bool = False
     is_master_add_priv: bool = True
+
+
+@dataclass
+class CloneRuleKwargs:
+    """
+    定义权限克隆的私有变量结构体
+    @attributes uid: 单据ID,
+    @attributes bk_biz_id: 业务ID,
+    @attributes operator: 操作者,
+    @attributes clone_type: 克隆类型client/instance,
+    @attributes clone_cluster_type: 克隆集群类型,
+    @attributes clone_data: 克隆详情数据
+    @attributes inst_machine_type_map: ip:port与机器信息的字典(适用于实例克隆)
+    """
+
+    uid: str
+    bk_biz_id: int
+    operator: str
+    clone_type: str
+    clone_cluster_type: str
+    clone_data: dict
+    inst_machine_type_map: dict
+
+
+@dataclass
+class AuthorizeKwargs:
+    """
+    定义授权的私有变量结构体
+    @attributes root_id: 流程ID,
+    @attributes uid: 单据ID,
+    @attributes bk_biz_id: 业务ID,
+    @attributes operator: 操作者,
+    @attributes db_type: 组件类型
+    @attributes authorize_data: 授权数据
+    @attributes user_db_rules_map: 用户名与db的规则字典
+    """
+
+    root_id: str
+    uid: str
+    bk_biz_id: int
+    db_type: str
+    operator: str
+    authorize_data: list
+    user_db_rules_map: dict

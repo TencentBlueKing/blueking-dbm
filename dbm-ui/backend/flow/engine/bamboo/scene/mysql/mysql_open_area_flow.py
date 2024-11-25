@@ -25,7 +25,7 @@ from backend.db_services.mysql.sql_import.constants import BKREPO_SQLFILE_PATH
 from backend.flow.consts import LONG_JOB_TIMEOUT
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
-from backend.flow.plugins.components.collections.mysql.authorize_rules import AuthorizeRulesComponent
+from backend.flow.engine.bamboo.scene.mysql.common.common_sub_flow import authorize_sub_flow
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
 from backend.flow.plugins.components.collections.mysql.trans_flies import TransFileComponent
 from backend.flow.plugins.components.collections.mysql.upload_file import UploadFileServiceComponent
@@ -292,8 +292,14 @@ class MysqlOpenAreaFlow(object):
 
         # 判断是否对开区的集群进行授权
         if self.data.get("rules_set"):
-            pipeline.add_act(
-                act_name=_("添加mysql规则授权"), act_component_code=AuthorizeRulesComponent.code, kwargs=self.data
+            pipeline.add_sub_pipeline(
+                sub_flow=authorize_sub_flow(
+                    root_id=self.root_id,
+                    uid=self.data["uid"],
+                    bk_biz_id=self.data["bk_biz_id"],
+                    operator=self.data["created_by"],
+                    rules_set=self.data["rules_set"],
+                )
             )
 
         pipeline.run_pipeline(is_drop_random_user=True)

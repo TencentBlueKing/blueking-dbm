@@ -127,11 +127,11 @@ class BaseService(Service, ServiceLogMixin, metaclass=ABCMeta):
         """
         # 序列化
         try:
+            flow_cache_key, flow_sensitive_key = f"{root_id}_list", f"{root_id}_is_sensitive"
             data = json.dumps({key: value})
         except TypeError:
             self.log_exception(_("该数据{}:{}无法被序列化，跳过此次缓存").format(key, value))
             return
-        flow_cache_key, flow_sensitive_key = f"{root_id}_list", f"{root_id}_is_sensitive"
 
         # 用list原语缓存数据，不会出现竞态
         RedisConn.lpush(flow_cache_key, data)

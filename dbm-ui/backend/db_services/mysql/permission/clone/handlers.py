@@ -53,6 +53,9 @@ class CloneHandler(object):
 
     def get_address__machine_map(self, clone_instance_list) -> Dict[str, Machine]:
         """根据克隆数据得到address/ip_port与机器信息的字典关系"""
+        # 如果是客户端克隆，则忽略
+        if self.clone_type != CloneType.INSTANCE:
+            return {}
         # 如果不存在相应的数据和键，则直接返回
         if not clone_instance_list or "source" not in clone_instance_list[0]:
             return {}

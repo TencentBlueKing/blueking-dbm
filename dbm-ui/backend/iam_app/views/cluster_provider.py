@@ -126,6 +126,11 @@ class PulsarClusterResourceProvider(ClusterResourceProvider):
     cluster_types: ClusterType = [ClusterType.Pulsar]
 
 
+class DorisClusterResourceProvider(ClusterResourceProvider):
+    resource_meta: ResourceMeta = ResourceEnum.DORIS
+    cluster_types: ClusterType = [ClusterType.Doris]
+
+
 class RiakClusterResourceProvider(ClusterResourceProvider):
     resource_meta: ResourceMeta = ResourceEnum.RIAK
     cluster_types: ClusterType = [ClusterType.Riak]

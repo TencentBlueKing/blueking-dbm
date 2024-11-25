@@ -18,7 +18,7 @@ class CloneClusterType(str, StructuredEnum):
     """克隆的集群类型"""
 
     MYSQL = EnumField("mysql", _("MySQL"))
-    TENDB = EnumField("tendbcluster", _("TendbCluster"))
+    TendbCluster = EnumField("tendbcluster", _("TendbCluster"))
 
 
 class CloneType(str, StructuredEnum):

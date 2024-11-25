@@ -38,4 +38,4 @@ class TestCloneRulesComponent(MySQLComponentBaseTest, TestCase):
         return CloneRulesComponent
 
     def tearDown(self) -> Union[Any, NoReturn]:
-        assert MySQLPermissionCloneRecord.objects.filter(status=True).count() == 3
+        assert MySQLPermissionCloneRecord.objects.filter(status=True).count() == 1

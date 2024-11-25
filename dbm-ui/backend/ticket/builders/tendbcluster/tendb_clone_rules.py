@@ -26,7 +26,7 @@ from backend.ticket.constants import TicketType
 
 class TendbClusterCloneRulesSerializer(MySQLCloneRulesSerializer):
     clone_cluster_type = serializers.ChoiceField(
-        help_text=_("克隆集群类型"), choices=ClusterType.get_choices(), required=False, default=CloneClusterType.TENDB
+        help_text=_("克隆集群类型"), choices=ClusterType.get_choices(), required=False, default=CloneClusterType.TendbCluster
     )
 
 
