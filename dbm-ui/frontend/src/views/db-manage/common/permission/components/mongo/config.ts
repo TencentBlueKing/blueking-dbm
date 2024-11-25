@@ -14,4 +14,5 @@ export default {
     'dbOwner',
     'root',
   ],
+  special_account: ['dba', 'apppdba', 'monitor', 'appmonitor'],
 };
