@@ -39,11 +39,13 @@
 
   import { messageSuccess } from '@utils';
 
+  import { useGlobalBizs } from '@/stores';
+
   interface Props {
     title: string;
     tip: string;
     data: DbResourceModel;
-    type: ServiceParameters<typeof removeResource>['event'] | 'public';
+    type: ServiceParameters<typeof removeResource>['event'] | 'to_biz' | 'to_public';
   }
 
   interface Emits {
@@ -55,6 +57,7 @@
   const emits = defineEmits<Emits>();
 
   const { t } = useI18n();
+  const globalBizsStore = useGlobalBizs();
 
   const { run: runRemove } = useRequest(removeResource, {
     manual: true,
@@ -73,10 +76,10 @@
   });
 
   const handleConfirm = () => {
-    if (props.type === 'public') {
+    if (['to_public', 'to_biz'].includes(props.type)) {
       convertToPublic({
         bk_host_ids: [props.data.bk_host_id],
-        for_biz: props.data.bk_biz_id,
+        for_biz: props.type === 'to_biz' ? globalBizsStore.currentBizId : 0,
         rack_id: '',
         resource_type: props.data.resource_type,
         storage_device: {},

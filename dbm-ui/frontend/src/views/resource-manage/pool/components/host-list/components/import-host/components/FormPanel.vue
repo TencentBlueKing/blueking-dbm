@@ -101,6 +101,7 @@
             <BkSelect
               v-model="formData.for_biz"
               :allow-empty-values="[0]"
+              :disabled="isBusiness"
               filterable>
               <BkOption
                 v-for="bizItem in bizList"
@@ -151,6 +152,8 @@
 
   import { useCopy } from '@hooks';
 
+  import { useGlobalBizs } from '@stores';
+
   import TagSelector from '@views/resource-manage/pool/components/tag-selector/Index.vue';
 
   import { messageWarn } from '@utils';
@@ -170,11 +173,13 @@
 
   const copy = useCopy();
   const { t } = useI18n();
+  const route = useRoute();
+  const globalBizsStore = useGlobalBizs();
 
   const formRef = ref();
   const isShowHostActionPop = ref(false);
   const formData = reactive({
-    for_biz: 0,
+    for_biz: globalBizsStore.currentBizId,
     resource_type: '',
     labels: [],
   });
@@ -182,6 +187,8 @@
   const bizList = shallowRef<ServiceReturnType<typeof getBizs>>([]);
   const dbTypeList = shallowRef<ServiceReturnType<typeof fetchDbTypeList>>([]);
   const tagList = shallowRef<ServiceReturnType<typeof listTag>['results']>([]);
+
+  const isBusiness = route.name === 'BizResourcePool';
 
   useRequest(getBizs, {
     onSuccess(data) {

@@ -4,7 +4,7 @@
     :width="800"
     @update:is-show="handleCancel">
     <template #header>
-      <span>{{ t('设置业务专用') }}</span>
+      <span>{{ t('设置主机属性') }}</span>
       <span style="margin-left: 12px; font-size: 12px; color: #63656e">
         <I18nT keypath="已选:n台主机">
           <span class="number">{{ data.length }}</span>
@@ -13,41 +13,74 @@
     </template>
     <div class="resource-pool-batch-setting">
       <div class="mb-36">
+        <BkSelect
+          v-model="selectedOptions"
+          class="mb-16 setting-item-selector"
+          multiple>
+          <template #trigger>
+            <BkButton
+              text
+              theme="primary">
+              <DbIcon type="plus-circle" />添加条件
+            </BkButton>
+          </template>
+          <BkOption
+            v-for="item in SETTING_OPTIONS"
+            :key="item.value"
+            :label="item.label"
+            :value="item.value" />
+        </BkSelect>
         <DbForm
           ref="formRef"
           form-type="vertical"
           :model="formData">
-          <DbFormItem
-            :label="t('所属业务')"
-            property="for_biz">
-            <div class="com-input">
-              <BkSelect
-                v-model="formData.for_biz"
-                :allow-empty-values="[0]"
-                filterable>
-                <BkOption
-                  v-for="bizItem in bizList"
-                  :key="bizItem.bk_biz_id"
-                  :label="bizItem.display_name"
-                  :value="bizItem.bk_biz_id" />
-              </BkSelect>
-            </div>
-          </DbFormItem>
-          <DbFormItem
-            :label="t('所属DB类型')"
-            property="resource_type">
-            <div class="com-input">
-              <BkSelect
-                v-model="formData.resource_type"
-                filterable>
-                <BkOption
-                  v-for="item in dbTypeList"
-                  :key="item.id"
-                  :label="item.name"
-                  :value="item.id" />
-              </BkSelect>
-            </div>
-          </DbFormItem>
+          <div
+            v-if="selectedOptions.includes('for_biz')"
+            class="mb-16 setting-item">
+            <DbIcon
+              class="close-icon"
+              type="close"
+              @click.stop="() => handleDelete('for_biz')" />
+            <DbFormItem
+              :label="t('所属业务')"
+              property="for_biz">
+              <div class="com-input">
+                <BkSelect
+                  v-model="formData.for_biz"
+                  :allow-empty-values="[0]"
+                  filterable>
+                  <BkOption
+                    v-for="bizItem in bizList"
+                    :key="bizItem.bk_biz_id"
+                    :label="bizItem.display_name"
+                    :value="bizItem.bk_biz_id" />
+                </BkSelect>
+              </div>
+            </DbFormItem>
+          </div>
+          <div
+            v-if="selectedOptions.includes('resource_type')"
+            class="mb-16 setting-item">
+            <DbIcon
+              class="close-icon"
+              type="close"
+              @click.stop="() => handleDelete('resource_type')" />
+            <DbFormItem
+              :label="t('所属DB类型')"
+              property="resource_type">
+              <div class="com-input">
+                <BkSelect
+                  v-model="formData.resource_type"
+                  filterable>
+                  <BkOption
+                    v-for="item in dbTypeList"
+                    :key="item.id"
+                    :label="item.name"
+                    :value="item.id" />
+                </BkSelect>
+              </div>
+            </DbFormItem>
+          </div>
           <DbFormItem :label="t('磁盘')">
             <ResourceSpecStorage v-model="formData.storage_spec" />
           </DbFormItem>
@@ -74,7 +107,7 @@
   </DbSideslider>
 </template>
 <script setup lang="ts">
-  import { computed, reactive, ref } from 'vue';
+  import { reactive, ref } from 'vue';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
@@ -99,6 +132,7 @@
   }
 
   const props = defineProps<Props>();
+
   const emits = defineEmits<Emits>();
 
   const { t } = useI18n();
@@ -115,11 +149,24 @@
   const bizList = shallowRef<ServiceReturnType<typeof getBizs>>([]);
   const dbTypeList = shallowRef<ServiceReturnType<typeof fetchDbTypeList>>([]);
 
+  const selectedOptions = ref<string[]>([]);
+
   const formData = reactive(genDefaultData());
 
   const isSubmitDisabled = computed(
-    () => !(formData.for_biz !== '' || formData.resource_type || formData.storage_spec.length > 0),
+    () => !(formData.for_biz !== undefined || formData.resource_type || formData.storage_spec.length > 0),
   );
+
+  const SETTING_OPTIONS = [
+    {
+      label: t('所属业务'),
+      value: 'for_biz',
+    },
+    {
+      label: t('所属DB类型'),
+      value: 'resource_type',
+    },
+  ];
 
   useRequest(getBizs, {
     onSuccess(data) {
@@ -171,6 +218,11 @@
         if (formData.resource_type !== '') {
           Object.assign(params, { resource_type: formData.resource_type });
         }
+        Object.assign(params, {
+          resource_type: selectedOptions.value.includes('resource_type') ? formData.resource_type : undefined,
+          for_biz: selectedOptions.value.includes('for_biz') ? formData.for_biz : undefined,
+        });
+
         return updateResource(params).then(() => {
           window.changeConfirm = false;
           emits('change');
@@ -180,6 +232,11 @@
       .finally(() => {
         isSubmiting.value = false;
       });
+  };
+
+  const handleDelete = (value: 'for_biz' | 'resource_type') => {
+    selectedOptions.value = selectedOptions.value.filter((item) => item !== value);
+    formData[value] = undefined;
   };
 
   const handleCancel = () => {
@@ -202,6 +259,32 @@
 
       .bk-select {
         flex: 1;
+      }
+    }
+
+    .setting-item-selector {
+      width: 352px;
+    }
+
+    .setting-item {
+      position: relative;
+
+      .close-icon {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        visibility: hidden;
+      }
+
+      &:hover {
+        padding: 6px;
+        background-color: #f0f1f5;
+
+        .close-icon {
+          z-index: 99;
+          cursor: pointer;
+          visibility: visible;
+        }
       }
     }
   }
