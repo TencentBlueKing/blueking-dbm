@@ -106,16 +106,22 @@
     },
   });
 
+  const { runAsync: asyncListTag } = useRequest(listTag, {
+    manual: true,
+  });
+
   const { run: runCreate } = useRequest(createTag, {
     manual: true,
-    onSuccess() {
-      if (pagination.count === tagList.value.length) {
-        runListTag({
-          bk_biz_id: props.bkBizId,
-          offset: tagList.value.length,
-          ordering: 'create_at',
-        });
-      }
+    async onSuccess() {
+      const data = await asyncListTag({
+        bk_biz_id: props.bkBizId,
+        offset: pagination.count,
+        limit: 1,
+        ordering: 'create_at',
+      });
+      tagList.value = uniqBy([...tagList.value, ...data.results], 'value');
+      pagination.count = data.count;
+      modelValue.value = [...modelValue.value, data.results[0].id];
       handleClose();
       messageSuccess(t('新建成功'));
     },

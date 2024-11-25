@@ -5,6 +5,7 @@
     :model-value="selected"
     multiple
     multiple-mode="tag"
+    :remote-method="handleSearch"
     :scroll-loading="isLoading"
     selected-style="checkbox"
     @change="handleChange"
@@ -37,6 +38,7 @@
 
   const emits = defineEmits<Emits>();
 
+  const searchVal = ref('');
   const tagList = ref<ServiceReturnType<typeof listTag>['results']>([]);
   const selected = ref<DbResource['labels'][number]['id'][]>([]);
   const pagination = reactive({
@@ -66,16 +68,33 @@
     },
   );
 
+  watch(searchVal, () => {
+    pagination.offset = 0;
+    pagination.count = 0;
+    tagList.value = [];
+    runList({
+      ...pagination,
+      value: searchVal.value,
+    });
+  });
+
   const loadMore = () => {
     if (tagList.value.length >= pagination.count || isLoading.value) {
       return;
     }
     pagination.offset += pagination.limit;
-    runList(pagination);
+    runList({
+      ...pagination,
+      value: searchVal.value,
+    });
   };
 
   const handleChange = (value: string[]) => {
     emits('change', value.join(','));
+  };
+
+  const handleSearch = (val: string) => {
+    searchVal.value = val;
   };
 
   onMounted(() => {

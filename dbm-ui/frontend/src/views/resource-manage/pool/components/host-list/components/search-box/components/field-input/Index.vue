@@ -75,7 +75,6 @@
             :model="localValueMemo"
             name="labels"
             @change="handleChange" />
-          <div style="flex: 1" />
         </div>
         <div class="row">
           <ComFactory
