@@ -16,7 +16,7 @@ import traceback
 from django.db.models import QuerySet
 from django.utils import timezone
 from django.utils.crypto import get_random_string
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import ugettext as _
 
 from backend.configuration.constants import DBType
 from backend.configuration.models.dba import DBAdministrator
