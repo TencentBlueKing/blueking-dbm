@@ -145,6 +145,7 @@
     bkCloudId: data.bk_cloud_id,
     clusterTypeName: data.cluster_type_name,
     clusterStats: data.cluster_stats,
+    disasterToleranceLevel: data.disaster_tolerance_level,
     shardNum: data.cluster_shard_num,
     groupNum: data.machine_pair_cnt,
     machineCount: data.redis_master.length,
@@ -223,7 +224,6 @@
           infos,
         },
       };
-
       await createTicket(params).then((data) => {
         window.changeConfirm = false;
         router.push({

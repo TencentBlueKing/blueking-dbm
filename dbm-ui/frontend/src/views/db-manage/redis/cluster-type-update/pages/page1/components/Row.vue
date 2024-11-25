@@ -106,6 +106,7 @@
     currentShardNum: number;
     groupNum: number;
     clusterTypeName: string;
+    disasterToleranceLevel: string;
     specConfig: {
       cpu: {
         max: number;
@@ -181,6 +182,7 @@
     groupNum: 0,
     clusterTypeName: '',
     currentSepc: '',
+    disasterToleranceLevel: '',
     specConfig: {
       cpu: {
         max: 0,
@@ -313,7 +315,7 @@
             backend_group: {
               spec_id: deployData.spec_id,
               count: deployData.count, // 机器组数
-              affinity: AffinityType.CROS_SUBZONE, // 暂时固定 'CROS_SUBZONE',
+              affinity: props.data.disasterToleranceLevel || AffinityType.CROS_SUBZONE, // 暂时固定 'CROS_SUBZONE',
             },
           },
         };
