@@ -102,6 +102,10 @@
 
   import PasswordInput from '@views/db-manage/common/password-input/Index.vue';
 
+  import MongoConfig from '../mongo/config';
+  import MysqlConfig from '../mysql/config';
+  import SqlserverConfig from '../sqlserver/config';
+
   interface Props {
     accountType: AccountTypes;
   }
@@ -135,12 +139,15 @@
   const passwordRef = ref<InstanceType<typeof PasswordInput>>();
 
   const defaultUserPlaceholder = t('由_1_~_32_位字母_数字_下划线(_)_点(.)_减号(-)字符组成以字母或数字开头');
+  let validValue = '';
+
   const userPlaceholder = computed(() => {
     if (props.accountType === AccountTypes.MONGODB) {
       return t('格式为：(库名).（名称）_如 admin.linda');
     }
     return defaultUserPlaceholder;
   });
+
   const rules = computed(() => ({
     user: [
       {
@@ -155,6 +162,20 @@
             validator: (value: string) => /^([a-zA-Z0-9_]+)\.([a-zA-Z0-9_]+)$/g.test(value),
           }
         : {},
+      {
+        trigger: 'change',
+        validator: (value: string) => {
+          const specialAccountMap = {
+            [AccountTypes.MYSQL]: MysqlConfig[AccountTypes.MYSQL].special_account,
+            [AccountTypes.TENDBCLUSTER]: MysqlConfig[AccountTypes.TENDBCLUSTER].special_account,
+            [AccountTypes.MONGODB]: MongoConfig.special_account,
+            [AccountTypes.SQLSERVER]: SqlserverConfig.special_account,
+          };
+          validValue = props.accountType === AccountTypes.MONGODB ? value.split('.')[1] : value;
+          return !specialAccountMap[props.accountType].includes(validValue);
+        },
+        message: () => t('不允许使用特殊账号名称n', { n: validValue }),
+      },
     ],
     password: [
       {
