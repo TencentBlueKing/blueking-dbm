@@ -11,6 +11,7 @@ import (
 
 	"github.com/pkg/errors"
 
+	"dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/config"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/cst"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/dbareport"
@@ -114,9 +115,9 @@ func (p *PhysicalRocksdbDumper) initConfig(mysqlVersion string) error {
 
 // Execute Perform data recovery operations.
 func (p *PhysicalRocksdbDumper) Execute(enableTimeOut bool) error {
-	p.backupStartTime = time.Now()
+	p.backupStartTime = cmutil.TimeToSecondPrecision(time.Now())
 	defer func() {
-		p.backupEndTime = time.Now()
+		p.backupEndTime = cmutil.TimeToSecondPrecision(time.Now())
 	}()
 
 	// the storage engine must be rocksdb
@@ -196,32 +197,41 @@ func (p *PhysicalRocksdbDumper) Execute(enableTimeOut bool) error {
 
 // PrepareBackupMetaInfo generate the metadata of database backup
 func (p *PhysicalRocksdbDumper) PrepareBackupMetaInfo(cnf *config.BackupConfig) (*dbareport.IndexContent, error) {
-
-	// parse the binglog position
-	xtrabackupBinlogInfoFileName := filepath.Join(cnf.Public.BackupDir, cnf.Public.TargetName(), "xtrabackup_binlog_info")
-	xtrabackupSlaveInfoFileName := filepath.Join(cnf.Public.BackupDir, cnf.Public.TargetName(), "xtrabackup_slave_info")
-
-	tmpFileName := filepath.Join(cnf.Public.BackupDir, cnf.Public.TargetName(), "tmp_dbbackup_go.txt")
+	backupTargetDir := filepath.Join(cnf.Public.BackupDir, cnf.Public.TargetName())
+	xtrabackupBinlogInfoFileName := filepath.Join(backupTargetDir, "xtrabackup_binlog_info")
+	xtrabackupSlaveInfoFileName := filepath.Join(backupTargetDir, "xtrabackup_slave_info")
+	xtrabackupTimestampFileName := filepath.Join(backupTargetDir, "xtrabackup_timestamp_info")
+	tmpFileName := filepath.Join(backupTargetDir, "tmp_dbbackup_go.txt")
 
 	// obtain the qpress command path
 	exepath, err := os.Executable()
 	if err != nil {
 		return nil, err
 	}
-
 	exepath = filepath.Dir(exepath)
 	qpressPath := filepath.Join(exepath, "bin", "qpress")
-
 	var metaInfo = dbareport.IndexContent{
 		BinlogInfo: dbareport.BinlogStatusInfo{},
+		BackupMetaFileBase: dbareport.BackupMetaFileBase{
+			BackupBeginTime: p.backupStartTime,
+			BackupEndTime:   p.backupEndTime,
+		},
 	}
 
+	// parse xtrabackup_timestamp_info
+	if err := parseXtraTimestamp(qpressPath, xtrabackupTimestampFileName, tmpFileName, &metaInfo); err != nil {
+		// 此时刚备份完成，还没有开始打包，这里把当前时间认为是 consistent_time，不完善！
+		logger.Log.Warnf("xtrabackup_timestamp_info file not found, "+
+			"use current time as Consistent Time, err: %s", err.Error())
+		metaInfo.BackupConsistentTime = metaInfo.BackupEndTime
+	}
 	// parse the binlog
 	masterStatus, err := parseXtraBinlogInfo(qpressPath, xtrabackupBinlogInfoFileName, tmpFileName)
 	if err != nil {
-		logger.Log.Errorf("do not parse xtrabackup binlog file, file name:%s, errmsg:%s",
-			xtrabackupBinlogInfoFileName, err)
-		return nil, err
+		logger.Log.Errorf("can not parse xtrabackup_binlog_info, errmsg:%s", err)
+	} else {
+		logger.Log.Infof("xtrabackup_binlog_info binlog file:%s pos:%s",
+			masterStatus.BinlogFile, masterStatus.BinlogPos)
 	}
 
 	// save the master node status

@@ -2,6 +2,7 @@
 package backupexe
 
 import (
+	"database/sql"
 	"fmt"
 	"strings"
 
@@ -12,6 +13,7 @@ import (
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/cst"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/dbareport"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/logger"
+	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/mysqlconn"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/precheck"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/util"
 )
@@ -24,7 +26,7 @@ type Dumper interface {
 }
 
 // BuildDumper return logical or physical dumper
-func BuildDumper(cnf *config.BackupConfig, storageEngine string) (dumper Dumper, err error) {
+func BuildDumper(cnf *config.BackupConfig, db *sql.DB) (dumper Dumper, err error) {
 	if cnf.Public.IfBackupGrantOnly() {
 		logger.Log.Infof("only backup grants for %d", cnf.Public.MysqlPort)
 		cnf.Public.BackupType = cst.BackupLogical
@@ -32,6 +34,10 @@ func BuildDumper(cnf *config.BackupConfig, storageEngine string) (dumper Dumper,
 			cnf: cnf,
 		}
 		return dumper, nil
+	}
+	storageEngine, err := mysqlconn.GetStorageEngine(db)
+	if err != nil {
+		return nil, err
 	}
 	if err = precheck.CheckBackupType(cnf, storageEngine); err != nil {
 		return nil, err

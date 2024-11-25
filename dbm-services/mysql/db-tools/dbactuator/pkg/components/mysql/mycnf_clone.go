@@ -56,6 +56,7 @@ var MycnfCloneItemsDefault = []string{
 	"table_definition_cache",
 	"long_query_time",
 	"max_connections",
+	"group_concat_max_len",
 
 	"slave_parallel_workers",
 	"slave_parallel_type",

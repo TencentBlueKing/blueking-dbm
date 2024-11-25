@@ -35,7 +35,7 @@ func generateRuntimeConfigIns(mcp *MySQLChecksumParam, instance *instanceInfo, r
 	cfg := NewRuntimeConfig(
 		instance.BkBizId, instance.ClusterId, instance.Port,
 		instance.Role, instance.Schedule, instance.ImmuteDomain, instance.Ip,
-		rtap.MonitorUser, rtap.MonitorPwd, mcp.ApiUrl, logDir, 2, tl)
+		rtap.MonitorUser, rtap.MonitorPwd, mcp.ApiUrl, logDir, tl)
 	cfg.SetFilter(nil, ignoreDbs, nil, nil)
 
 	b, err := yaml.Marshal(&cfg)

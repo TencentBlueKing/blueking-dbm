@@ -24,9 +24,12 @@ import (
 
 // DiskStatus The usage information of Disk
 type DiskStatus struct {
-	Total uint64
-	Used  uint64
-	Free  uint64
+	Total      uint64 // total device block size, include reserved by os filesystem
+	Free       uint64 // free size include reserved by os filesystem
+	Used       uint64 // actually used
+	Avail      uint64 // available size
+	TotalAvail uint64 // available total size (total - reserved)
+	Reserved   uint64 // reserved by os filesystem
 }
 
 // FileExist check whether the file exist
@@ -143,8 +146,11 @@ func DiskUsage(path string) (disk DiskStatus, err error) {
 			return disk, err
 		}
 		disk.Total = fs.Blocks * uint64(fs.Bsize)
-		disk.Free = fs.Bfree * uint64(fs.Bsize)
+		disk.Free = fs.Bfree * uint64(fs.Bsize)   // free include reserved (free = avail + reserved)
+		disk.Avail = fs.Bavail * uint64(fs.Bsize) // avail is little than free usually
 		disk.Used = disk.Total - disk.Free
+		disk.Reserved = disk.Free - disk.Avail
+		disk.TotalAvail = disk.Avail + disk.Used // equal disk.Total - disk.Reserved
 	default:
 		return disk, fmt.Errorf("unsupported operating system: %s", runtime.GOOS)
 	}
@@ -165,12 +171,12 @@ func CheckDiskSpace(backupDir string, mysqlPort int, backupSize uint64) (sizeLef
 	}
 	logger.Log.Infof("backupDir %s disk info: %+v", backupDir, diskSpaceInfo)
 	expectSize := backupSize*1 + 5*1024*1024*1024 // 预计备份需要多少实际空间
-	expectSizeLeft := float64(diskSpaceInfo.Free) - float64(expectSize)
+	expectSizeLeft := float64(diskSpaceInfo.Avail) - float64(expectSize)
 	if expectSizeLeft < 0 {
 		err = errors.New("free space is not enough")
 		return int64(expectSizeLeft), err
 	}
-	sizeLeft = int64(expectSizeLeft - 0.06*float64(diskSpaceInfo.Total))
+	sizeLeft = int64(expectSizeLeft - 0.06*float64(diskSpaceInfo.TotalAvail))
 	if sizeLeft < 0 { // 为负，说明expectSize用掉后，空间可能会超过 94%
 		err = errors.New("disk space usage may be over 94%")
 		return sizeLeft, err

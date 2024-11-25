@@ -181,8 +181,29 @@ func openXtrabackupFile(binpath string, fileName string, tmpFileName string) (*b
 	return bytes.NewBuffer(content), nil
 }
 
-// parseXtraInfo get start_time / end_time from xtrabackup_info
+// parseXtraInfo get start_time / end_time / binlog pos from xtrabackup_info
 // return startTime,endTime,error
+/*
+uuid = xx-4347-11ef-8de0-xxxxxxxxx
+name =
+tool_name = xtrabackup_57
+tool_command = --defaults-file=/etc/my.cnf.3306 --host=x.x.x.x --port=3306 --user=xx --password=...
+tool_version = 2.4.11
+ibbackup_version = 2.4.11
+server_version = 5.7.20-tmysql-3.3-log
+start_time = 2024-07-16 15:44:13
+end_time = 2024-07-16 15:44:20
+lock_time = 0
+binlog_pos = filename 'binlog20000.000353', position '181942'
+innodb_from_lsn = 0
+innodb_to_lsn = 980247078
+partial = N
+incremental = N
+format = file
+compact = N
+compressed = compressed
+encrypted = N
+*/
 func parseXtraInfo(qpress string, fileName string, tmpFileName string, metaInfo *dbareport.IndexContent) error {
 	fileBytes, err := openXtrabackupFile(qpress, fileName, tmpFileName)
 	if err != nil {
@@ -193,18 +214,27 @@ func parseXtraInfo(qpress string, fileName string, tmpFileName string, metaInfo 
 	var startTimeStr, endTimeStr string
 	for scanner.Scan() {
 		line := scanner.Text()
-		if strings.HasPrefix(line, "start_time = ") {
+		if strings.HasPrefix(line, "start_time = ") { // start_time = 2024-07-16 15:44:13
 			startTimeStr = strings.TrimPrefix(line, "start_time = ")
 			metaInfo.BackupBeginTime, err = time.ParseInLocation(cst.XtrabackupTimeLayout, startTimeStr, time.Local)
 			if err != nil {
 				return errors.Wrapf(err, "parse BackupBeginTime %s", startTimeStr)
 			}
 		}
-		if strings.HasPrefix(line, "end_time = ") {
+		if strings.HasPrefix(line, "end_time = ") { // end_time = 2024-07-16 15:44:20
 			endTimeStr = strings.TrimPrefix(line, "end_time = ")
 			metaInfo.BackupEndTime, err = time.ParseInLocation(cst.XtrabackupTimeLayout, endTimeStr, time.Local)
 			if err != nil {
 				return errors.Wrapf(err, "parse BackupEndTime %s", endTimeStr)
+			}
+		}
+		if strings.HasPrefix(line, "binlog_pos =") { // binlog_pos = filename 'binlog20000.000353', position '181942'
+			regBinlogPos := regexp.MustCompile(`.* filename '(.+\.\d+)', position '(\d+)'`)
+			if matches := regBinlogPos.FindStringSubmatch(line); len(matches) == 3 {
+				metaInfo.BinlogInfo.ShowMasterStatus = &dbareport.StatusInfo{
+					BinlogFile: matches[1],
+					BinlogPos:  matches[2],
+				}
 			}
 		}
 	}
@@ -212,6 +242,9 @@ func parseXtraInfo(qpress string, fileName string, tmpFileName string, metaInfo 
 }
 
 // parseXtraTimestamp get consistentTime from xtrabackup_timestamp_info(if exists)
+/*
+20240716_154420
+*/
 func parseXtraTimestamp(qpress string, fileName string, tmpFileName string, metaInfo *dbareport.IndexContent) error {
 	fileBytes, err := openXtrabackupFile(qpress, fileName, tmpFileName)
 
@@ -230,7 +263,10 @@ func parseXtraTimestamp(qpress string, fileName string, tmpFileName string, meta
 	return nil
 }
 
-// parseXtraBinlogInfo parse xtrabackup_binlog_info to get master info
+// parseXtraBinlogInfo parse xtrabackup_binlog_info / xtrabackup_binlog_pos_innodb to get master info
+/*
+binlog20000.000353      181942
+*/
 func parseXtraBinlogInfo(qpress string, fileName string, tmpFileName string) (*dbareport.StatusInfo, error) {
 	fileBytes, err := openXtrabackupFile(qpress, fileName, tmpFileName)
 	if err != nil {
@@ -255,6 +291,9 @@ func parseXtraBinlogInfo(qpress string, fileName string, tmpFileName string) (*d
 }
 
 // parseXtraSlaveInfo parse xtrabackup_slave_info to get slave info
+/*
+CHANGE MASTER TO MASTER_LOG_FILE='binlog20000.009159', MASTER_LOG_POS=6488;
+*/
 func parseXtraSlaveInfo(qpress string, fileName string, tmpFileName string) (*dbareport.StatusInfo, error) {
 	fileBytes, err := openXtrabackupFile(qpress, fileName, tmpFileName)
 	if err != nil {

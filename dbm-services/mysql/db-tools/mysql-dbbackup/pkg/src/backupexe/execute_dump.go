@@ -34,16 +34,10 @@ func ExecuteBackup(cnf *config.BackupConfig) (*dbareport.IndexContent, error) {
 		return nil, err
 	}
 
-	storageEngine, err := mysqlconn.GetStorageEngine(db)
-	if err != nil {
-		return nil, err
-	}
-	storageEngine = strings.ToLower(storageEngine)
-
 	mysqlVersion, isOfficial := util.VersionParser(versionStr)
 	XbcryptBin = GetXbcryptBin(mysqlVersion, isOfficial)
 
-	dumper, err := BuildDumper(cnf, storageEngine) // 会在里面确定备份方式
+	dumper, err := BuildDumper(cnf, db) // 会在里面确定备份方式
 	if err != nil {
 		return nil, err
 	}

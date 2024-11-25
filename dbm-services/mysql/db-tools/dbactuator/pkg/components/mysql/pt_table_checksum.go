@@ -131,7 +131,7 @@ func (c *PtTableChecksumComp) GenerateConfigFile() (err error) {
 		c.Params.BkBizId, c.Params.ClusterId, c.Params.MasterPort,
 		c.Params.InnerRole, "", c.Params.ImmuteDomain, c.Params.MasterIp,
 		c.GeneralParam.RuntimeAccountParam.MonitorUser, c.GeneralParam.RuntimeAccountParam.MonitorPwd,
-		"http://127.0.0.1:9999", logDir, c.Params.RuntimeHour, c.tools)
+		"http://127.0.0.1:9999", logDir, c.tools)
 
 	cfg.PtChecksum.Replicate = c.Params.ReplicateTable
 

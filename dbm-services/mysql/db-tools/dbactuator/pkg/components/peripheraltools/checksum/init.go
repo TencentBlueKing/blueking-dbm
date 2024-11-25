@@ -48,7 +48,6 @@ type instanceInfo struct {
 func NewRuntimeConfig(
 	bkBizId, clusterId, port int,
 	role, schedule, immuteDomain, ip, user, password, apiUrl, logDir string,
-	runtimeHour int,
 	tl *tools.ToolSet) *config.Config {
 	cfg := config.Config{
 		BkBizId: bkBizId,
@@ -72,7 +71,7 @@ func NewRuntimeConfig(
 			Args: []map[string]interface{}{
 				{
 					"name":  "run-time",
-					"value": fmt.Sprintf("%dh", runtimeHour),
+					"value": "2h",
 				},
 			},
 			Replicate: fmt.Sprintf("%s.checksum", native.INFODBA_SCHEMA),
