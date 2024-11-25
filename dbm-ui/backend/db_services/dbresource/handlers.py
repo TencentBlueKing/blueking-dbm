@@ -16,9 +16,11 @@ from django.forms import model_to_dict
 from django.utils.translation import ugettext as _
 
 from backend.components.dbresource.client import DBResourceApi
+from backend.components.gse.client import GseApi
 from backend.db_meta.enums.spec import SpecClusterType, SpecMachineType
-from backend.db_meta.models import Spec
+from backend.db_meta.models import Spec, AppCache
 from backend.db_services.dbresource.exceptions import SpecOperateException
+from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
 
 
 class ClusterSpecFilter(object):
@@ -411,3 +413,40 @@ class ResourceHandler(object):
         spec_apply_count = DBResourceApi.apply_count(params=spec_count_params)
         spec_apply_count = {k.split("_")[0]: v for k, v in spec_apply_count.items()}
         return spec_apply_count
+
+    @staticmethod
+    def resource_list(params):
+        def _format_resource_fields(data, _cloud_info, _biz_infos):
+            data.update(
+                {
+                    "bk_cloud_name": _cloud_info[str(data["bk_cloud_id"])]["bk_cloud_name"],
+                    "bk_host_innerip": data["ip"],
+                    "bk_mem": data.pop("dram_cap"),
+                    "bk_cpu": data.pop("cpu_num"),
+                    "bk_disk": data.pop("total_storage_cap"),
+                    "resource_type": data.pop("rs_type"),
+                    "for_biz": {
+                        "bk_biz_id": data["dedicated_biz"],
+                        "bk_biz_name": _biz_infos.get(data["dedicated_biz"]),
+                    },
+                    "agent_status": int(
+                        (data.pop("gse_agent_status_code") == GseApi.Constants.GSE_AGENT_RUNNING_CODE)
+                    ),
+                }
+            )
+            return data
+
+        resource_data = DBResourceApi.resource_list(params=params)
+        if not resource_data["details"]:
+            return {"count": 0, "results": []}
+
+        # 获取云区域信息和业务信息
+        cloud_info = ResourceQueryHelper.search_cc_cloud(get_cache=True)
+        for_biz_ids = [data["dedicated_biz"] for data in resource_data["details"] if data["dedicated_biz"]]
+        for_biz_infos = AppCache.batch_get_app_attr(bk_biz_ids=for_biz_ids, attr_name="bk_biz_name")
+        # 格式化资源池字段信息
+        for data in resource_data.get("details") or []:
+            _format_resource_fields(data, cloud_info, for_biz_infos)
+
+        resource_data["results"] = resource_data.pop("details")
+        return resource_data

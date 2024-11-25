@@ -12,9 +12,9 @@ from django.db.models import CharField, F, Q, Value
 from django.db.models.functions import Concat
 from django.forms import model_to_dict
 
-from backend.components.dbresource.client import DBResourceApi
 from backend.db_meta.enums import ClusterType
 from backend.db_meta.models import Cluster, Machine, ProxyInstance, StorageInstance
+from backend.db_services.dbresource.handlers import ResourceHandler
 from backend.db_services.quick_search import constants
 from backend.db_services.quick_search.constants import FilterType, ResourceType
 from backend.flow.models import FlowTree
@@ -285,4 +285,4 @@ class QSearchHandler(object):
         return results
 
     def filter_resource_pool(self, keyword_list: list):
-        return DBResourceApi.resource_list({"hosts": keyword_list, "limit": self.limit, "offset": 0})["details"]
+        return ResourceHandler().resource_list({"hosts": keyword_list, "limit": self.limit, "offset": 0})["results"]

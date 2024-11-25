@@ -27,8 +27,6 @@ SWAGGER_TAG = _("资源池")
 RESOURCE_IMPORT_TASK_FIELD = "{user}_resource_import_task_field"
 RESOURCE_IMPORT_EXPIRE_TIME = 7 * 24 * 60 * 60
 
-# gse正常的状态码为2
-GSE_AGENT_RUNNING_CODE = 2
 
 # 集群对应的规格筛选类
 SPEC_FILTER_FACTORY = {

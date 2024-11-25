@@ -19,6 +19,9 @@ class _GseApi(BaseApi):
     MODULE = _("管控平台")
     BASE = GSE_APIGW_DOMAIN
 
+    class Constants:
+        GSE_AGENT_RUNNING_CODE = 2
+
     def __init__(self):
         self.get_agent_status = self.generate_data_api(
             method="POST",

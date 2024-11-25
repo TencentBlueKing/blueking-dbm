@@ -30,7 +30,6 @@ from backend.configuration.models import SystemSettings
 from backend.db_meta.models import AppCache
 from backend.db_meta.models.machine import DeviceClass
 from backend.db_services.dbresource.constants import (
-    GSE_AGENT_RUNNING_CODE,
     RESOURCE_IMPORT_EXPIRE_TIME,
     RESOURCE_IMPORT_TASK_FIELD,
     SWAGGER_TAG,
@@ -115,38 +114,7 @@ class DBResourceViewSet(viewsets.SystemViewSet):
         resource_meta=None,
     )
     def resource_list(self, request):
-        def _format_resource_fields(data, _cloud_info, _biz_infos):
-            data.update(
-                {
-                    "bk_cloud_name": _cloud_info[str(data["bk_cloud_id"])]["bk_cloud_name"],
-                    "bk_host_innerip": data["ip"],
-                    "bk_mem": data.pop("dram_cap"),
-                    "bk_cpu": data.pop("cpu_num"),
-                    "bk_disk": data.pop("total_storage_cap"),
-                    "resource_type": data.pop("rs_type"),
-                    "for_biz": {
-                        "bk_biz_id": data["dedicated_biz"],
-                        "bk_biz_name": _biz_infos.get(data["dedicated_biz"]),
-                    },
-                    "agent_status": int((data.pop("gse_agent_status_code") == GSE_AGENT_RUNNING_CODE)),
-                }
-            )
-            return data
-
-        resource_data = DBResourceApi.resource_list(params=self.params_validate(self.get_serializer_class()))
-        if not resource_data["details"]:
-            return Response({"count": 0, "results": []})
-
-        # 获取云区域信息和业务信息
-        cloud_info = ResourceQueryHelper.search_cc_cloud(get_cache=True)
-        for_biz_ids = [data["dedicated_biz"] for data in resource_data["details"] if data["dedicated_biz"]]
-        for_biz_infos = AppCache.batch_get_app_attr(bk_biz_ids=for_biz_ids, attr_name="bk_biz_name")
-        # 格式化资源池字段信息
-        for data in resource_data.get("details") or []:
-            _format_resource_fields(data, cloud_info, for_biz_infos)
-
-        resource_data["results"] = resource_data.pop("details")
-        return Response(resource_data)
+        return Response(ResourceHandler.resource_list(self.params_validate(self.get_serializer_class())))
 
     @common_swagger_auto_schema(
         operation_summary=_("获取DBA业务下的主机信息"),
