@@ -20,6 +20,7 @@
       <DetailsBase
         class="config-details-content"
         :data="data"
+        :deploy-info="deployInfo"
         :fetch-params="fetchParams"
         :level="ConfLevels.MODULE"
         :loading="false"
@@ -38,20 +39,24 @@
   import DetailsBase from '@views/db-configure/components/DetailsBase.vue';
 
   type PlatConfDetailsParams = ServiceParameters<typeof getConfigBaseDetails>;
+  type DetailData = ServiceReturnType<typeof getLevelConfig>;
 
   interface Props {
-    data?: ServiceReturnType<typeof getLevelConfig>;
+    data?: Partial<DetailData>;
+    deployInfo?: Partial<DetailData>;
     loading?: boolean;
     fetchParams?: PlatConfDetailsParams | ServiceParameters<typeof getLevelConfig>;
   }
 
   const props = withDefaults(defineProps<Props>(), {
-    data: () =>
-      ({
-        conf_items: [] as NonNullable<Props['data']>['conf_items'],
-      }) as NonNullable<Props['data']>,
+    data: () => ({
+      conf_items: [] as DetailData['conf_items'],
+    }),
     loading: false,
     fetchParams: () => ({}) as PlatConfDetailsParams,
+    deployInfo: () => ({
+      conf_items: [] as DetailData['conf_items'],
+    }),
   });
 
   const route = useRoute();

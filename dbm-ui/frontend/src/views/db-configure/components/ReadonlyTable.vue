@@ -13,9 +13,11 @@
 
 <template>
   <div class="db-configure-readonly-parameters-table">
-    <div class="mb-16">
+    <div class="mb-16 operation-box">
+      <slot name="prefix" />
       <BkInput
         v-model="search"
+        class="search-input"
         clearable
         :placeholder="$t('请输入参数项')"
         style="width: 320px" />
@@ -160,6 +162,14 @@
 
   .db-configure-readonly-parameters-table {
     width: 100%;
+
+    .operation-box {
+      display: flex;
+
+      .search-input {
+        margin-left: auto;
+      }
+    }
 
     .config-name-box {
       display: inline-block;

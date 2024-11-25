@@ -197,6 +197,10 @@
           type: ticketTypeMap[clusterType.value],
           bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
         },
+        query: {
+          from: String(route.name),
+          clusterType: clusterType.value,
+        },
       });
     } else if ([ClusterTypes.SQLSERVER_SINGLE, ClusterTypes.SQLSERVER_HA].includes(clusterType.value)) {
       router.push({
@@ -205,12 +209,20 @@
           ticketType: ticketTypeMap[clusterType.value],
           bizId: window.PROJECT_CONFIG.BIZ_ID,
         },
+        query: {
+          from: String(route.name),
+          clusterType: clusterType.value,
+        },
       });
     } else {
       router.push({
         name: 'createSpiderModule',
         params: {
           bizId: window.PROJECT_CONFIG.BIZ_ID,
+        },
+        query: {
+          from: String(route.name),
+          clusterType: clusterType.value,
         },
       });
     }
