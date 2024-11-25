@@ -11,6 +11,7 @@ export * from './haApply';
 export * from './importSqlFile';
 export * from './masterFailOver';
 export * from './masterSlaveSwitch';
+export * from './modifyStatus';
 export * from './reset';
 export * from './restoreLocalSlave';
 export * from './restoreSlave';
