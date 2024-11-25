@@ -147,8 +147,8 @@
       name: t('单据'),
     },
     {
-      id: 'machine',
-      name: t('主机'),
+      id: 'resource_pool',
+      name: t('资源池主机'),
     },
   ];
 
@@ -189,6 +189,18 @@
     {
       id: 'tendbcluster',
       name: 'Tendb Cluster',
+    },
+    {
+      id: 'sqlserver',
+      name: 'SqlServer',
+    },
+    {
+      id: 'mongodb',
+      name: 'MongoDB',
+    },
+    {
+      id: 'doris',
+      name: 'Doris',
     },
   ];
 

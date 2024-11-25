@@ -9,7 +9,6 @@
   import RenderClusterDomain from './ClusterDomain.vue';
   import RenderClusterName from './ClusterName.vue';
   import RenderInstance from './Instance.vue';
-  import RenderMachine from './Machine.vue';
   import ResourcePool from './ResourcePool.vue';
   import RenderTask from './Task.vue';
   import RenderTicket from './Ticket.vue';
@@ -26,7 +25,6 @@
     cluster_domain: RenderClusterDomain,
     cluster_name: RenderClusterName,
     instance: RenderInstance,
-    machine: RenderMachine,
     task: RenderTask,
     ticket: RenderTicket,
     resource_pool: ResourcePool,
