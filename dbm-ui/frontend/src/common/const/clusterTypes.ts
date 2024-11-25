@@ -25,8 +25,9 @@ export enum ClusterTypes {
   TENDIS_PLUS_CLUSTER = 'TendisplusCluster', // TendisplusCluster集群
   DBMON = 'dbmon', // redis监控
 }
-// bigdata
+
 export enum ClusterTypes {
+  // bigdata
   ES = 'es',
   KAFKA = 'kafka',
   HDFS = 'hdfs',
@@ -34,15 +35,11 @@ export enum ClusterTypes {
   PULSAR = 'pulsar',
   RIAK = 'riak',
   DORIS = 'doris',
-}
-// mongo
-export enum ClusterTypes {
+  // mongo
   MONGO_REPLICA_SET = 'MongoReplicaSet', // Mongo副本集群
   MONGO_SHARED_CLUSTER = 'MongoShardedCluster', // Mongo分片集群
   MONGODB = 'mongodb',
-}
-// sqlserver
-export enum ClusterTypes {
+  // sqlserver
   SQLSERVER_SINGLE = 'sqlserver_single', // SQLServer单节点版
   SQLSERVER_HA = 'sqlserver_ha', // SQLServer主从版
 }
