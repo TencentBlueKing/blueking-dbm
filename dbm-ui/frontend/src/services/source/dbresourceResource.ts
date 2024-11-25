@@ -96,7 +96,7 @@ export function fetchList(params: Record<string, any>, payload = {} as IRequestP
 /**
  * 获取DBA业务下的主机信息
  */
-export function fetchListDbaHost(params: { limit: number; offset: number; search_content: string }) {
+export function fetchListDbaHost(params: { limit: number; offset: number; search_content: string; bk_biz_id: number }) {
   return http
     .get<{
       total: number;
@@ -105,6 +105,7 @@ export function fetchListDbaHost(params: { limit: number; offset: number; search
       search_content: params.search_content,
       start: params.offset,
       page_size: params.limit,
+      bk_biz_id: params.bk_biz_id,
     })
     .then((data) => ({
       count: data.total,
@@ -212,6 +213,7 @@ export function getSummaryList(params: {
     machine_type?: string;
     cluster_type?: string;
     spec_id_list?: number[];
+    enable_spec?: boolean;
   };
 }) {
   return http.get<SummaryModel[]>(`${path}/resource_summary/`, params).then((data) => ({

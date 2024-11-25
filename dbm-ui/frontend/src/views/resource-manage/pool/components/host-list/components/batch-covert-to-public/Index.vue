@@ -66,8 +66,8 @@
       bk_host_ids: props.selected.map((item) => item.bk_host_id),
       for_biz: 0,
       rack_id: '',
-      resource_type: 'PUBLIC',
       storage_device: {},
+      labels: [],
     });
   };
 

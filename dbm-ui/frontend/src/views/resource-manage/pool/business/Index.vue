@@ -14,18 +14,13 @@
   <div class="pool-container">
     <Teleport to="#dbContentTitleAppend">
       <BkTag
-        class="ml-8"
+        class="ml-8 mr-8"
         theme="info">
         {{ t('业务') }}
       </BkTag>
-      <BkButton
-        v-show="activeTab === ResourcePool.public"
-        class="ml-8"
-        theme="primary"
-        @click="linkToBusiness">
-        <DbIcon type="add" />
-        {{ t('导入主机') }}
-      </BkButton>
+      <ImportHostBtn
+        class="w-88"
+        @export-host="handleImportHost" />
     </Teleport>
     <BkTab
       v-model:active="activeTab"
@@ -44,6 +39,7 @@
         ref="listRef"
         :type="activeTab" />
     </div>
+    <ImportHost v-model:is-show="isShowImportHost" />
   </div>
 </template>
 
@@ -52,6 +48,8 @@
 
   import { useDebouncedRef } from '@hooks';
 
+  import ImportHost from '../components/host-list/components/import-host/Index.vue';
+  import ImportHostBtn from '../components/host-list/components/ImportHostBtn.vue';
   import HostList from '../components/host-list/Index.vue';
   import { ResourcePool } from '../type';
 
@@ -60,6 +58,8 @@
   const router = useRouter();
   const activeTab = useDebouncedRef(route.params.page as ResourcePool);
   const listRef = useTemplateRef('listRef');
+
+  const isShowImportHost = ref(false);
 
   const panels = [
     {
@@ -80,11 +80,9 @@
     });
   };
 
-  const linkToBusiness = () => {
-    activeTab.value = ResourcePool.business;
-    setTimeout(() => {
-      listRef.value?.handleImportHost();
-    }, 1000);
+  // 导入主机
+  const handleImportHost = () => {
+    isShowImportHost.value = true;
   };
 </script>
 
