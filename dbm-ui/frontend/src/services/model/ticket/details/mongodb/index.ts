@@ -9,6 +9,7 @@ export * from './enable';
 export * from './excelAuthorize';
 export * from './execScriptApply';
 export * from './fullBackup';
+export * from './instanceDeinstall';
 export * from './reduceMongos';
 export * from './reduceShardNodes';
 export * from './removeNs';
