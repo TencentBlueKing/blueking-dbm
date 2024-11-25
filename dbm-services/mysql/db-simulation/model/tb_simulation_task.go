@@ -48,6 +48,8 @@ const (
 	PhaseLoadSchema = "SchemaLoading"
 	// PhaseRunning TODO
 	PhaseRunning = "Running"
+	// PhaseReloading 重载任务
+	PhaseReloading = "Reloading"
 	// PhaseDone TODO
 	PhaseDone = "Done"
 )
@@ -72,11 +74,9 @@ func CompleteTask(task_id, version, status, stderr, stdout, syserrMsg string) (e
 }
 
 // UpdateHeartbeat update task heartbeat
-func UpdateHeartbeat(taskid, stderr, stdout string) {
+func UpdateHeartbeat(taskid string) {
 	err := DB.Model(TbSimulationTask{}).Where("task_id = ?", taskid).Updates(
 		TbSimulationTask{
-			Stdout:        stdout,
-			Stderr:        stderr,
 			HeartbeatTime: time.Now(),
 		}).Error
 	if err != nil {
@@ -108,11 +108,12 @@ func CreateTask(taskid, requestid, version string, billTaskId string) (err error
 		return err
 	}
 	return DB.Create(&TbSimulationTask{
-		TaskId:       taskid,
-		RequestID:    requestid,
-		BillTaskId:   billTaskId,
-		MySQLVersion: version,
-		Phase:        PhaseWaitting,
-		CreateTime:   time.Now(),
+		TaskId:        taskid,
+		RequestID:     requestid,
+		BillTaskId:    billTaskId,
+		MySQLVersion:  version,
+		Phase:         PhaseWaitting,
+		HeartbeatTime: time.Now(),
+		CreateTime:    time.Now(),
 	}).Error
 }

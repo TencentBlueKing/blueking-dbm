@@ -37,6 +37,7 @@ type AppConfig struct {
 	TdbctlPodResource     TdbctlPodResource `yaml:"tdbctlPodResource"`
 	SimulationNodeLables  []LabelItem       `yaml:"simulationNodeLables"`
 	SimulationtaintLables []LabelItem       `yaml:"simulationtaintLables"`
+	Redis                 RedisDb           `yaml:"redis"`
 }
 
 // BkRepoConfig bkrepo config
@@ -104,6 +105,12 @@ type PodResource struct {
 type ImgConfig struct {
 	Version string `yaml:"version"`
 	Image   string `yaml:"image"`
+}
+
+// RedisDb redis
+type RedisDb struct {
+	Addr     string `yaml:"addr"`
+	Password string `yaml:"password"`
 }
 
 func init() {

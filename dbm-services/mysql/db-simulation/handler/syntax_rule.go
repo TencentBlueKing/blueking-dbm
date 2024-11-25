@@ -14,11 +14,10 @@ import (
 	"errors"
 	"fmt"
 
-	"dbm-services/mysql/db-simulation/app/syntax"
-
 	"github.com/gin-gonic/gin"
 
 	"dbm-services/common/go-pubpkg/logger"
+	"dbm-services/mysql/db-simulation/app/syntax"
 	"dbm-services/mysql/db-simulation/model"
 )
 

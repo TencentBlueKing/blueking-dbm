@@ -14,14 +14,11 @@ package handler
 import (
 	"fmt"
 	"net/http"
-	"regexp"
 	"strings"
 
 	"github.com/gin-gonic/gin"
-	"github.com/samber/lo"
 
 	"dbm-services/common/go-pubpkg/logger"
-	"dbm-services/mysql/db-simulation/app/config"
 	"dbm-services/mysql/db-simulation/app/service"
 	"dbm-services/mysql/db-simulation/model"
 )
@@ -57,13 +54,13 @@ func CreateTmpSpiderPodCluster(r *gin.Context) {
 		Charset: "utf8mb4",
 	}
 	var err error
-	ps.DbImage, err = getImgFromMySQLVersion(param.BackendVersion)
+	ps.DbImage, err = service.GetImgFromMySQLVersion(param.BackendVersion)
 	if err != nil {
 		logger.Error(err.Error())
 		return
 	}
-	ps.SpiderImage, ps.TdbCtlImage = getSpiderAndTdbctlImg(param.SpiderVersion, LatestVersion)
-	if err := ps.CreateClusterPod("MySQL-5.7"); err != nil {
+	ps.SpiderImage, ps.TdbCtlImage = service.GetSpiderAndTdbctlImg(param.SpiderVersion, service.LatestVersion)
+	if err := ps.CreateClusterPod(""); err != nil {
 		logger.Error(err.Error())
 		return
 	}
@@ -147,56 +144,4 @@ func SendResponse(r *gin.Context, err error, data interface{}, requestid string)
 		Data:      data,
 		RequestID: requestid,
 	})
-}
-
-// getImgFromMySQLVersion 根据版本获取模拟执行运行的镜像配置
-func getImgFromMySQLVersion(version string) (img string, err error) {
-	img, errx := model.GetImageName("mysql", version)
-	if errx == nil {
-		logger.Info("get image from db img config: %s", img)
-		return img, nil
-	}
-	switch {
-	case regexp.MustCompile("5.5").MatchString(version):
-		return config.GAppConfig.Image.Tendb55Img, nil
-	case regexp.MustCompile("5.6").MatchString(version):
-		return config.GAppConfig.Image.Tendb56Img, nil
-	case regexp.MustCompile("5.7").MatchString(version):
-		return config.GAppConfig.Image.Tendb57Img, nil
-	case regexp.MustCompile("8.0").MatchString(version):
-		return config.GAppConfig.Image.Tendb80Img, nil
-	default:
-		return "", fmt.Errorf("not match any version")
-	}
-}
-
-func getSpiderAndTdbctlImg(spiderVersion, tdbctlVersion string) (spiderImg, tdbctlImg string) {
-	return getSpiderImg(spiderVersion), getTdbctlImg(tdbctlVersion)
-}
-
-const (
-	// LatestVersion latest version
-	LatestVersion = "latest"
-)
-
-func getSpiderImg(version string) (img string) {
-	if lo.IsEmpty(version) {
-		version = LatestVersion
-	}
-	img, errx := model.GetImageName("spider", version)
-	if errx == nil {
-		return img
-	}
-	return config.GAppConfig.Image.SpiderImg
-}
-
-func getTdbctlImg(version string) (img string) {
-	if lo.IsEmpty(version) {
-		version = LatestVersion
-	}
-	img, errx := model.GetImageName("tdbctl", version)
-	if errx == nil {
-		return img
-	}
-	return config.GAppConfig.Image.TdbCtlImg
 }

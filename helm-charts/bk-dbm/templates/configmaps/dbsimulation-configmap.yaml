@@ -58,6 +58,9 @@ data:
       name: "{{ $dbsimulationDB.name }}"
       host: "{{ $dbsimulationDB.host }}"
       port: "{{ $dbsimulationDB.port }}"
+    redis:
+      addr:  "{{ .Values.externalRedis.host }}:{{ .Values.externalRedis.port }}"
+      password: {{ .Values.externalRedis.password }}
     debug: false
     {{- if index .Values "db-simulation" "tdbctlPodResource" }}
     tdbctlPodResource:
