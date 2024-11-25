@@ -44,6 +44,7 @@ export async function generateRedisScaleUpdownCloneData(ticketData: TicketModel<
     bkCloudId: item.bk_cloud_id,
     clusterTypeName: clusterListMap[item.cluster_id].cluster_type_name,
     clusterStats: clusterListMap[item.cluster_id].cluster_stats,
+    disasterToleranceLevel: clusterListMap[item.cluster_id].disaster_tolerance_level,
     shardNum: clusterListMap[item.cluster_id].cluster_shard_num,
     groupNum: clusterListMap[item.cluster_id].machine_pair_cnt,
     version: item.db_version,

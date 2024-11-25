@@ -56,6 +56,7 @@ export async function generateRedisClusterTypeUpdateCloneData(ticketData: Ticket
       groupNum: currentClusterInfo.machine_pair_cnt,
       clusterTypeName: currentClusterInfo.cluster_type_name,
       currentSpecId: currentClusterInfo.cluster_spec.spec_id,
+      disasterToleranceLevel: currentClusterInfo.disaster_tolerance_level,
       dbVersion: item.db_version,
       specConfig: {
         cpu: currentClusterInfo.cluster_spec.cpu,
