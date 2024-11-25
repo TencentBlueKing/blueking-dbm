@@ -259,6 +259,7 @@
       clusterTypeName: item.cluster_type_name,
       currentSpecId: item.cluster_spec.spec_id,
       dbVersion: item.major_version,
+      disasterToleranceLevel: item.disaster_tolerance_level,
       specConfig: {
         cpu: item.cluster_spec.cpu,
         id: item.cluster_spec.spec_id,

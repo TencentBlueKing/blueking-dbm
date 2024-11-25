@@ -86,6 +86,7 @@
     currentSpecId: number;
     clusterTypeName: string;
     dbVersion: string;
+    disasterToleranceLevel: string;
     specConfig: {
       cpu: {
         max: number;
@@ -157,6 +158,7 @@
     groupNum: 0,
     currentSpecId: 0,
     dbVersion: '',
+    disasterToleranceLevel: '',
     specConfig: {
       cpu: {
         max: 0,
@@ -254,12 +256,12 @@
               proxy: {
                 spec_id: props.data.proxy.id,
                 count: props.data.proxy.count,
-                affinity: AffinityType.CROS_SUBZONE,
+                affinity: props.data.disasterToleranceLevel || AffinityType.CROS_SUBZONE,
               },
               backend_group: {
                 spec_id: deployData.spec_id,
                 count: deployData.count, // 机器组数
-                affinity: AffinityType.CROS_SUBZONE, // 暂时固定 'CROS_SUBZONE',
+                affinity: props.data.disasterToleranceLevel || AffinityType.CROS_SUBZONE, // 暂时固定 'CROS_SUBZONE',
               },
             },
           };
