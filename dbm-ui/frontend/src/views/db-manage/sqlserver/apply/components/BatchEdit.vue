@@ -21,7 +21,7 @@
           class="batch-edit-domain"
           :style="{ '--offset': `${stateOffsetWidth}px` }">
           <p class="batch-edit-domain-name">
-            <span ref="moduleNameRef"> {{ moduleName }}db. </span>
+            <span ref="moduleNameRef"> {{ moduleAliasName }}db. </span>
             <span class="batch-edit-domain-underline" />
             .{{ appName }}.db
           </p>
@@ -63,7 +63,7 @@
   import { nameRegx } from '@common/regex';
 
   interface Props {
-    moduleName: string;
+    moduleAliasName: string;
     appName: string;
   }
 
@@ -72,7 +72,7 @@
   }
 
   withDefaults(defineProps<Props>(), {
-    moduleName: '',
+    moduleAliasName: '',
     appName: '',
   });
   const emits = defineEmits<Emits>();

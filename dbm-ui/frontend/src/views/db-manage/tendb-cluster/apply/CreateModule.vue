@@ -23,11 +23,11 @@
         :title="t('模块信息')">
         <BkFormItem
           :label="t('模块名称')"
-          property="module_name"
+          property="alias_name"
           required
-          :rules="rules.module_name">
+          :rules="rules.alias_name">
           <BkInput
-            v-model="formdata.module_name"
+            v-model="formdata.alias_name"
             :placeholder="t('由英文字母_数字_连字符_组成')"
             :readonly="isReadonly" />
           <span class="belong-business">{{ t('所属业务') }} : {{ bizInfo.name }}</span>
@@ -147,7 +147,7 @@
   import { messageError } from '@/utils';
 
   const getFormData = () => ({
-    module_name: (route.query.module_name ?? '') as string,
+    alias_name: (route.query.alias_name ?? '') as string,
     version: '',
     spider_version: '',
     character_set: '',
@@ -203,7 +203,7 @@
     },
   ];
   const rules = {
-    module_name: [
+    alias_name: [
       {
         required: true,
         message: t('模块名称不能为空'),
@@ -226,9 +226,12 @@
 
   // 创建模块
   const newModule = () => {
+    // aliasname-spiderversion-mysqlversion-charset
+    const dbModuleName = `${formdata.alias_name}-${formdata.spider_version}-${formdata.version}-${formdata.character_set}`;
     const params = {
       biz_id: bizId.value,
-      db_module_name: formdata.module_name,
+      alias_name: formdata.alias_name,
+      db_module_name: dbModuleName,
       cluster_type: 'tendbcluster',
     };
 

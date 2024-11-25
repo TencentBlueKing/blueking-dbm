@@ -15,7 +15,7 @@
       <BkOption
         v-for="item in moduleList"
         :key="item.db_module_id"
-        :label="item.name"
+        :label="item.alias_name"
         :value="item.db_module_id" />
       <template #extension>
         <p
@@ -160,7 +160,7 @@
   //   }
   //   const moduleInfo = fetchState.moduleList.find(item => item.db_module_id ===  formdata.details.db_module_id);
   //   const moduleName = moduleInfo?.name ?? '';
-  //   const moduleNameQuery = moduleName ? { module_name: moduleName } : {};
+  //   const moduleNameQuery = moduleName ? { alias_name: moduleName } : {};
   //   isBindModule.value = true;
   //   const url = router.resolve({
   //     name: 'SelfServiceBindDbModule',

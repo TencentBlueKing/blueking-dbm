@@ -23,11 +23,11 @@
         :title="t('模块信息')">
         <BkFormItem
           :label="t('模块名称')"
-          property="module_name"
+          property="alias_name"
           required
-          :rules="rules.module_name">
+          :rules="rules.alias_name">
           <BkInput
-            v-model="formData.module_name"
+            v-model="formData.alias_name"
             :placeholder="t('由英文字母_数字_连字符_组成')"
             :readonly="isReadonly" />
           <span class="belong-business">{{ t('所属业务') }} : {{ bizInfo.name }}</span>
@@ -158,7 +158,7 @@
    * 获取表单基础信息
    */
   const getFormData = () => ({
-    module_name: (route.query.module_name ?? '') as string,
+    alias_name: (route.query.alias_name ?? '') as string,
     mysql_type: ticketType,
     version: '',
     character_set: '',
@@ -191,7 +191,7 @@
     submit: false,
   });
   const rules = {
-    module_name: [
+    alias_name: [
       {
         required: true,
         message: t('模块名称不能为空'),
@@ -367,9 +367,12 @@
 
       // 新建模块或已经新建成功则不执行创建
       if (!isReadonly.value) {
+        // aliasname-version-charset
+        const dbModuleName = `${formData.alias_name}-${formData.version}-${formData.character_set}`;
         const createResult = await createModules({
           biz_id: bizId,
-          db_module_name: formData.module_name,
+          alias_name: formData.alias_name,
+          db_module_name: dbModuleName,
           cluster_type: ticketInfo.type,
         });
         moduleId.value = createResult.db_module_id;
@@ -409,7 +412,7 @@
       });
 
       await updateBusinessConfig({
-        name: formData.module_name,
+        name: formData.alias_name,
         conf_items: confItems,
         description: '',
         publish_description: '',

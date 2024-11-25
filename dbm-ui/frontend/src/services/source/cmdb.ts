@@ -45,7 +45,12 @@ export function getBizs(params = {} as { action: string }) {
 /**
  * 创建数据库模块
  */
-export function createModules(params: { db_module_name: string; cluster_type: string; biz_id: number }) {
+export function createModules(params: {
+  db_module_name: string;
+  alias_name: string;
+  cluster_type: string;
+  biz_id: number;
+}) {
   return http.post<{
     db_module_id: number;
     db_module_name: string;
@@ -82,6 +87,7 @@ export function getUserGroupList(params: { bk_biz_id: number }) {
 export function getModules(params: { bk_biz_id: number; cluster_type: string }) {
   return http.get<
     {
+      alias_name: string;
       bk_biz_id: number;
       db_module_id: number;
       name: string;

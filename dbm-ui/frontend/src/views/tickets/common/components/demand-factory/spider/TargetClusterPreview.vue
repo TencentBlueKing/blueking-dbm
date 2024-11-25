@@ -145,7 +145,7 @@
     onSuccess(res) {
       listState.dbModuleList = res.map(item => ({
         id: item.db_module_id,
-        name: item.name,
+        name: item.alias_name,
       }));
     },
   });

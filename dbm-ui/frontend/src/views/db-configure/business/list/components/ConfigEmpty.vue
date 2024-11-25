@@ -63,7 +63,7 @@
         bk_biz_id: globalBizsStore.currentBizId,
         db_module_id: id,
       },
-      query: { module_name: name },
+      query: { alias_name: name },
     });
   };
 </script>
