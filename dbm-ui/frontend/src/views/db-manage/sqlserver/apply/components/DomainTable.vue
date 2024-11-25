@@ -18,7 +18,7 @@
   import BatchEdit from './BatchEdit.vue';
 
   interface Props {
-    moduleName: string,
+    moduleAliasName: string,
     dbAppAbbr: string,
     isSqlserverSingle: boolean,
   }
@@ -33,14 +33,14 @@
 
   /**
    * 表单展示数据
-   * 没有 moduleName 和 appName 则不展示 table 数据
+   * 没有 moduleAliasName 和 appName 则不展示 table 数据
    */
   const tableData = computed(() => {
     const {
-      moduleName,
+      moduleAliasName,
       dbAppAbbr,
     } = props;
-    if (moduleName && dbAppAbbr) {
+    if (moduleAliasName && dbAppAbbr) {
       return domains.value;
     }
     return [];
@@ -88,7 +88,7 @@
               tableData.value.length !== 0 && (
                 <span v-bk-tooltips={t('快捷编辑_可通过换行分隔_快速编辑多个域名')}>
                   <BatchEdit
-                    moduleName={props.moduleName}
+                    moduleAliasName={props.moduleAliasName}
                     appName={props.dbAppAbbr}
                     onChange={handleBatchEditDomains} />
                 </span>
@@ -101,7 +101,7 @@
         render: ({ index }: { index: number }) => (
           <div class="domain-address">
             <span>
-              {props.moduleName}db.
+              {props.moduleAliasName}db.
             </span>
             <bk-form-item
               errorDisplayType="tooltips"
@@ -136,7 +136,7 @@
         render: ({ index }: { index: number }) => (
           <div class="domain-address">
             <span>
-              {props.moduleName}dr.
+              {props.moduleAliasName}dr.
             </span>
             <span >
               {domains.value[index]?.key}

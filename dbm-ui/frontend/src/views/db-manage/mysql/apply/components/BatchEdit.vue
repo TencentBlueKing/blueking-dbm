@@ -32,7 +32,7 @@
           class="batch-edit__domain"
           :style="{ '--offset': `${state.offsetWidth}px` }">
           <p class="batch-edit__domain-name">
-            <span ref="moduleNameRef">{{ moduleName }}db.</span>
+            <span ref="moduleAliasNameRef">{{ moduleAliasName }}db.</span>
             <span class="batch-edit__domain-underline" />.{{ appName }}.db
           </p>
           <BkInput
@@ -73,7 +73,7 @@
   import { nameRegx } from '@common/regex';
 
   interface Props {
-    moduleName?: string;
+    moduleAliasName?: string;
     appName?: string;
   }
 
@@ -82,7 +82,7 @@
   }
 
   withDefaults(defineProps<Props>(), {
-    moduleName: '',
+    moduleAliasName: '',
     appName: '',
   });
   const emits = defineEmits<Emits>();
@@ -116,13 +116,13 @@
   /**
    * 获取输入框 arrow 偏移量
    */
-  const moduleNameRef = ref<HTMLSpanElement>();
+  const moduleAliasNameRef = ref<HTMLSpanElement>();
   watch(
     () => state.isShow,
     (show) => {
       nextTick(() => {
-        if (moduleNameRef.value) {
-          state.offsetWidth = moduleNameRef.value.offsetWidth + 22;
+        if (moduleAliasNameRef.value) {
+          state.offsetWidth = moduleAliasNameRef.value.offsetWidth + 22;
         }
       });
       if (show === false) {
