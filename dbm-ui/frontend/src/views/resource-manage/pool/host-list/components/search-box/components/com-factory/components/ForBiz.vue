@@ -13,17 +13,21 @@
 
 <template>
   <BkSelect
+    display-key="display_name"
+    enable-virtual-render
     filterable
+    id-key="bk_biz_id"
     :input-search="false"
+    :list="bizList"
     :model-value="defaultValue"
     :placeholder="t('请选择所属业务')"
     show-selected-icon
     @change="handleChange">
-    <BkOption
+    <!-- <BkOption
       v-for="bizItem in bizList"
       :key="bizItem.bk_biz_id"
       :label="bizItem.display_name"
-      :value="bizItem.bk_biz_id" />
+      :value="bizItem.bk_biz_id" /> -->
     <template
       v-if="simple"
       #extension>
