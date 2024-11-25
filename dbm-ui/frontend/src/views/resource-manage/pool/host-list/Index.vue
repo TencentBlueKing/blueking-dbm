@@ -126,7 +126,7 @@
   const isShowBatchSetting = ref(false);
   const isShowImportHost = ref(false);
 
-  let searchParams = {};
+  let searchParams: Record<string, any> = {};
   let selectionListWholeDataMemo: DbResourceModel[] = [];
   const tableColumn = [
     {
