@@ -33,6 +33,7 @@
           <template v-if="tab.name !== 'publish' && configParams !== null">
             <ConfigDetails
               :data="state.data"
+              :deploy-info="state.deployInfo"
               :fetch-params="configParams"
               :loading="state.loadingDetails" />
           </template>

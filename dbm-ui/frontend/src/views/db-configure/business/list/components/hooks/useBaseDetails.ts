@@ -21,17 +21,20 @@ import { notModuleClusters } from '@views/db-configure/common/const';
 
 import type { TreeData } from '../types';
 
+type LevelConfigDetail = ServiceReturnType<typeof getLevelConfig> & { charset?: string };
+
 interface State {
   loading: boolean;
   loadingDetails: boolean;
   isEmpty: boolean;
   version: string;
-  data: ServiceReturnType<typeof getLevelConfig> & { charset?: string };
+  data: LevelConfigDetail;
+  deployInfo: LevelConfigDetail;
 }
 /**
  * 获取参数管理基本信息
  */
-export const useBaseDetails = (immediateFetch = true) => {
+export const useBaseDetails = (immediateFetch = true, confName = 'db_version') => {
   const getFetchParams = (versionKey: 'version' | 'proxy_version', confType = 'dbconf') => {
     if (treeNode === undefined) {
       return {} as ServiceParameters<typeof getLevelConfig>;
@@ -77,6 +80,13 @@ export const useBaseDetails = (immediateFetch = true) => {
       description: '',
       charset: '',
     },
+    deployInfo: {
+      conf_items: [],
+      version: '',
+      name: '',
+      description: '',
+      charset: '',
+    },
   });
 
   const fetchParams = computed(() => getFetchParams('version'));
@@ -113,9 +123,10 @@ export const useBaseDetails = (immediateFetch = true) => {
 
     state.loading = true;
     getLevelConfig(params)
-      .then((res) => {
-        res.conf_items.forEach((item) => {
-          if (item.conf_name === 'db_version') {
+      .then((result) => {
+        state.deployInfo = result;
+        result.conf_items.forEach((item) => {
+          if (item.conf_name === confName) {
             state.version = item.conf_value ?? '';
           } else if (item.conf_name === 'charset') {
             state.data.charset = item.conf_value ?? '';
