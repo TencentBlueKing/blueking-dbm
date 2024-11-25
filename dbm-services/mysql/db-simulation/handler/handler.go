@@ -63,7 +63,7 @@ func CreateTmpSpiderPodCluster(r *gin.Context) {
 		return
 	}
 	ps.SpiderImage, ps.TdbCtlImage = getSpiderAndTdbctlImg(param.SpiderVersion, LatestVersion)
-	if err := ps.CreateClusterPod(); err != nil {
+	if err := ps.CreateClusterPod("MySQL-5.7"); err != nil {
 		logger.Error(err.Error())
 		return
 	}

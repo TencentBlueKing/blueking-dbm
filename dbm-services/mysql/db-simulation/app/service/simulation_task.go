@@ -180,9 +180,9 @@ func run(task SimulationTask, tkType string) {
 func createPod(task SimulationTask, tkType string) (err error) {
 	switch tkType {
 	case app.MySQL:
-		return task.CreateMySQLPod()
+		return task.CreateMySQLPod(task.BaseParam.MySQLVersion)
 	case app.TdbCtl:
-		return task.DbPodSets.CreateClusterPod()
+		return task.DbPodSets.CreateClusterPod(task.BaseParam.MySQLVersion)
 	}
 	return
 }

@@ -121,7 +121,19 @@ func (k *DbPodSets) getCreateClusterSqls() []string {
 
 // getClusterPodContanierSpec create cluster pod container spec
 // nolint
-func (k *DbPodSets) getClusterPodContanierSpec() []v1.Container {
+func (k *DbPodSets) getClusterPodContanierSpec(mysqlVersion string) []v1.Container {
+	mysqldStartArgs := []string{"mysqld",
+		"--defaults-file=/etc/my.cnf",
+		"--log_bin_trust_function_creators",
+		"--port=20000",
+		"--max_allowed_packet=1073741824",
+		"--sql-mode=",
+		fmt.Sprintf("--character-set-server=%s",
+			k.BaseInfo.Charset),
+		"--user=mysql"}
+	if cmutil.MySQLVersionParse(mysqlVersion) >= cmutil.MySQLVersionParse("8.0.0") {
+		mysqldStartArgs = append(mysqldStartArgs, "--default-authentication-plugin=mysql_native_password")
+	}
 	return []v1.Container{
 		{
 			Name: "backend",
@@ -132,16 +144,7 @@ func (k *DbPodSets) getClusterPodContanierSpec() []v1.Container {
 			Resources:       k.getResourceLimit(),
 			ImagePullPolicy: v1.PullIfNotPresent,
 			Image:           k.DbImage,
-			Args: []string{"mysqld",
-				"--defaults-file=/etc/my.cnf",
-				"--log_bin_trust_function_creators",
-				"--port=20000",
-				"--max_allowed_packet=1073741824",
-				"--default-authentication-plugin=mysql_native_password",
-				"--sql-mode=",
-				fmt.Sprintf("--character-set-server=%s",
-					k.BaseInfo.Charset),
-				"--user=mysql"},
+			Args:            mysqldStartArgs,
 			ReadinessProbe: &v1.Probe{
 				ProbeHandler: v1.ProbeHandler{
 					Exec: &v1.ExecAction{
@@ -206,7 +209,7 @@ func (k *DbPodSets) getClusterPodContanierSpec() []v1.Container {
 }
 
 // CreateClusterPod create tendbcluster simulation pod
-func (k *DbPodSets) CreateClusterPod() (err error) {
+func (k *DbPodSets) CreateClusterPod(mySQLVersion string) (err error) {
 	c := &v1.Pod{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Pod",
@@ -223,7 +226,7 @@ func (k *DbPodSets) CreateClusterPod() (err error) {
 					item.Value
 			}),
 			Tolerations: k.getToleration(),
-			Containers:  k.getClusterPodContanierSpec(),
+			Containers:  k.getClusterPodContanierSpec(mySQLVersion),
 		},
 	}
 	if err = k.createpod(c, 26000); err != nil {
@@ -354,13 +357,15 @@ func (k *DbPodSets) gettdbctlResourceLimit() v1.ResourceRequirements {
 }
 
 // CreateMySQLPod create mysql pod
-func (k *DbPodSets) CreateMySQLPod() (err error) {
+func (k *DbPodSets) CreateMySQLPod(mysqlVersion string) (err error) {
 	startArgs := []string{
 		"--defaults-file=/etc/my.cnf",
 		"--skip-log-bin",
 		"--max_allowed_packet=1073741824",
-		"--default-authentication-plugin=mysql_native_password",
 		fmt.Sprintf("--character-set-server=%s", k.BaseInfo.Charset)}
+	if cmutil.MySQLVersionParse(mysqlVersion) >= cmutil.MySQLVersionParse("8.0.0") {
+		startArgs = append(startArgs, "--default-authentication-plugin=mysql_native_password")
+	}
 	startArgs = append(startArgs, k.BaseInfo.Args...)
 	startArgs = append(startArgs, "--user=mysql")
 	logger.Info("start pod args %v", startArgs)
