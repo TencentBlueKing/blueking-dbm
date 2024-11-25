@@ -42,7 +42,7 @@
 
   interface Props {
     ticketDetails: TicketModel<Mysql.OpenArea>;
-    templateDetail: OpenareaTemplateModel;
+    templateDetail?: OpenareaTemplateModel;
   }
 
   const props = defineProps<Props>();

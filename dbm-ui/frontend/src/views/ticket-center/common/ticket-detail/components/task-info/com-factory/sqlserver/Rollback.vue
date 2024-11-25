@@ -17,7 +17,9 @@
       {{ ticketDetails.details.is_local ? t('原地定点构造') : t('定点构造到其他集群') }}
     </InfoItem>
   </InfoList>
-  <BkTable :data="ticketDetails.details.infos">
+  <BkTable
+    :data="ticketDetails.details.infos"
+    show-overflow-tooltip>
     <BkTableColumn
       fixed="left"
       :label="t('待回档集群')"

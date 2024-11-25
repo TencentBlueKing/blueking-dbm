@@ -1,6 +1,10 @@
 import type { AccountRule, AccountRulePrivilege } from '@services/types/permission';
 
-export interface AccountRuleChange {
+import type { DetailBase } from '../common';
+/**
+ * MySQL 权限规则变更
+ */
+export interface AccountRuleChange extends DetailBase {
   last_account_rules: AccountRule & {
     userName: string;
   };

@@ -24,6 +24,8 @@
   import TicketModel, {type Mysql} from '@services/model/ticket/ticket';
   import { getPackages } from '@services/source/package';
 
+  import { TicketTypes } from '@common/const';
+
   import VersionContent from './components/VersionContent.vue'
 
   interface DataItem {
@@ -140,4 +142,9 @@
       }))
     }
   })
+
+  defineOptions({
+    name: TicketTypes.MYSQL_LOCAL_UPGRADE,
+    inheritAttrs: false,
+  });
 </script>

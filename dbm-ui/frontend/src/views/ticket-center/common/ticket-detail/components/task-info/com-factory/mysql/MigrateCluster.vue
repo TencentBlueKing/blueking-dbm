@@ -17,7 +17,9 @@
       {{ ticketDetails.details.backup_source === 'local' ? t('本地备份') : t('远程备份') }}
     </InfoItem>
   </InfoList>
-  <BkTable :data="ticketDetails.details.infos">
+  <BkTable
+    :data="ticketDetails.details.infos"
+    show-overflow-tooltip>
     <BkTableColumn :label="t('目标集群')">
       <template #default="{ data }: { data: RowData }">
         <div

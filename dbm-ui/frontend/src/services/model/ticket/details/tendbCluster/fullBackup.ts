@@ -6,11 +6,9 @@ import type { DetailBase, DetailClusters } from '../common';
 export interface FullBackup extends DetailBase {
   clusters: DetailClusters;
   infos: {
-    backup_type: string;
-    clusters: {
-      backup_local: string;
-      cluster_id: number;
-    }[];
-    file_tag: string;
-  };
+    backup_local: string;
+    cluster_id: number;
+  }[];
+  file_tag: string;
+  backup_type: string;
 }

@@ -12,77 +12,36 @@
 -->
 
 <template>
-  <div class="ticket-details-list">
-    <div class="ticket-details-item">
-      <span class="ticket-details-item-label">{{ t('变更类型') }}：</span>
-      <span class="ticket-details-item-value">{{ t('删除规则') }}</span>
-    </div>
-  </div>
-  <BkTable
-    :border="['col', 'outer']"
-    :columns="columns"
-    :data="tableData" />
+  <InfoList>
+    <InfoItem :label="t('变更类型:')">
+      {{ t('删除规则') }}
+    </InfoItem>
+  </InfoList>
+  <BkTable :data="[ticketDetails.details.last_account_rules]">
+    <BkTableColumn
+      field="userName"
+      :label="t('账户名称')" />
+    <BkTableColumn
+      field="access_db"
+      :label="t('访问DB')" />
+    <BkTableColumn
+      field="privilege"
+      :label="t('权限')" />
+  </BkTable>
 </template>
 
 <script setup lang="tsx">
-  import type { Column } from 'bkui-vue/lib/table/props';
   import { useI18n } from 'vue-i18n';
 
   import TicketModel, { type Mysql } from '@services/model/ticket/ticket';
 
-  interface DataRow {
-    userName: string;
-    accessDb: string;
-    privileges: string;
-  }
+  import InfoList, { Item as InfoItem } from '../../../components/info-list/Index.vue';
 
   interface Props {
     ticketDetails: TicketModel<Mysql.AccountRuleChange>;
   }
 
-  const props = defineProps<Props>();
+  defineProps<Props>();
 
   const { t } = useI18n();
-
-  const tableData = shallowRef<DataRow[]>([]);
-
-  const columns: Column[] = [
-    {
-      label: t('账户名称'),
-      field: 'userName',
-      width: 100,
-    },
-    {
-      label: t('访问DB'),
-      field: 'accessDb',
-      width: 100,
-    },
-    {
-      label: t('权限'),
-      field: 'privileges',
-      width: 200,
-      showOverflowTooltip: true,
-    },
-  ];
-
-  watch(
-    () => props.ticketDetails,
-    () => {
-      const { last_account_rules: lastAccountRules } = props.ticketDetails.details;
-      tableData.value = [
-        {
-          userName: lastAccountRules.userName || '--',
-          accessDb: lastAccountRules.access_db || '--',
-          privileges: [
-            ...(lastAccountRules.privilege.ddl || []),
-            ...(lastAccountRules.privilege.dml || []),
-            ...(lastAccountRules.privilege.glob || []),
-          ].join(','),
-        },
-      ];
-    },
-    {
-      immediate: true,
-    },
-  );
 </script>
