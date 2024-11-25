@@ -243,7 +243,7 @@
           backend_group: {
             spec_id: localValue.spec_id,
             count: targetObj.value!.requireMachineGroupNum, // 机器实际需要申请的组数
-            affinity: AffinityType.CROS_SUBZONE, // 暂时固定 'CROS_SUBZONE',
+            affinity: props.rowData?.disasterToleranceLevel || AffinityType.CROS_SUBZONE, // 暂时固定 'CROS_SUBZONE',
           },
         },
       });

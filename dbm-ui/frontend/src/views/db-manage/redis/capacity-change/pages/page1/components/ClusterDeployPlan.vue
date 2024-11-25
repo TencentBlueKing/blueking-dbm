@@ -85,7 +85,7 @@
               <span
                 v-else
                 style="color: #c4c6cc">
-                {{ t('--') }}
+                --
               </span>
             </div>
           </div>
@@ -110,7 +110,7 @@
               <span
                 v-else
                 style="color: #c4c6cc">
-                {{ t('--') }}
+                --
               </span>
             </div>
           </div>
@@ -135,7 +135,7 @@
               <span
                 v-else
                 style="color: #c4c6cc">
-                {{ t('--') }}
+                --
               </span>
             </div>
           </div>
@@ -160,7 +160,7 @@
               <span
                 v-else
                 style="color: #c4c6cc">
-                {{ t('--') }}
+                --
               </span>
             </div>
           </div>
@@ -176,7 +176,7 @@
               <span
                 v-else
                 style="color: #c4c6cc">
-                {{ t('--') }}
+                --
               </span>
             </div>
           </div>

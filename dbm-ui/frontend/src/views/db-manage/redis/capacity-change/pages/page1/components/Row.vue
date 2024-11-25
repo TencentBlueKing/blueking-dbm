@@ -89,6 +89,7 @@
     bkCloudId: number;
     clusterTypeName: string;
     clusterStats: RedisModel['cluster_stats'];
+    disasterToleranceLevel: string;
     shardNum?: number;
     groupNum?: number;
     currentSepc?: string;
@@ -134,6 +135,7 @@
     bkCloudId: 0,
     clusterTypeName: '',
     clusterStats: {} as IDataRow['clusterStats'],
+    disasterToleranceLevel: '',
   });
 
   interface Props {
