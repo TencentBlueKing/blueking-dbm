@@ -12,45 +12,34 @@
 -->
 
 <template>
-  <BkTable
-    :data="ticketDetails.details.infos"
-    show-overflow-tooltip>
-    <BkTableColumn :label="t('目标集群')">
-      <template #default="{ data }: { data: RowData }">
-        {{ ticketDetails.details.clusters[data.cluster_id].immute_domain }}
-        <div class="cluster-name__alias">{{ ticketDetails.details.clusters[data.cluster_id].name }}</div>
+  <RenderTableBase :ticket-details="ticketDetails">
+    <BkTableColumn :label="t('主机来源')">
+      <template #default>
+        {{ t('业务空闲机') }}
       </template>
     </BkTableColumn>
-    <BkTableColumn :label="t('运维节点 IP')">
+    <BkTableColumn :label="t('回档新主机')">
       <template #default="{ data }: { data: RowData }">
-        <div
-          v-for="item in data.spider_ip_list"
-          :key="item.bk_host_id">
-          {{ item.ip }}
-        </div>
+        {{ data.rollback_host.ip }}
       </template>
     </BkTableColumn>
-  </BkTable>
+  </RenderTableBase>
 </template>
-<script setup lang="ts">
+
+<script setup lang="tsx">
   import { useI18n } from 'vue-i18n';
 
-  import TicketModel, { type TendbCluster } from '@services/model/ticket/ticket';
+  import TicketModel, { type Mysql } from '@services/model/ticket/ticket';
 
-  import { TicketTypes } from '@common/const';
+  import RenderTableBase from './RenderTableBase.vue';
 
   interface Props {
-    ticketDetails: TicketModel<TendbCluster.SpiderMntApply>;
+    ticketDetails: TicketModel<Mysql.RollbackCluster>;
   }
 
   type RowData = Props['ticketDetails']['details']['infos'][number];
 
   defineProps<Props>();
-
-  defineOptions({
-    name: TicketTypes.TENDBCLUSTER_SPIDER_MNT_APPLY,
-    inheritAttrs: false,
-  });
 
   const { t } = useI18n();
 </script>

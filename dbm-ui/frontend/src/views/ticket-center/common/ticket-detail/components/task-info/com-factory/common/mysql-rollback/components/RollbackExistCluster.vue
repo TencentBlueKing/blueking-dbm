@@ -12,45 +12,54 @@
 -->
 
 <template>
-  <BkTable
-    :data="ticketDetails.details.infos"
-    show-overflow-tooltip>
+  <RenderTableBase :ticket-details="ticketDetails">
     <BkTableColumn :label="t('目标集群')">
       <template #default="{ data }: { data: RowData }">
-        {{ ticketDetails.details.clusters[data.cluster_id].immute_domain }}
-        <div class="cluster-name__alias">{{ ticketDetails.details.clusters[data.cluster_id].name }}</div>
+        {{ targetClusters[data.target_cluster_id] }}
       </template>
     </BkTableColumn>
-    <BkTableColumn :label="t('运维节点 IP')">
-      <template #default="{ data }: { data: RowData }">
-        <div
-          v-for="item in data.spider_ip_list"
-          :key="item.bk_host_id">
-          {{ item.ip }}
-        </div>
-      </template>
-    </BkTableColumn>
-  </BkTable>
+  </RenderTableBase>
 </template>
-<script setup lang="ts">
+
+<script setup lang="tsx">
   import { useI18n } from 'vue-i18n';
 
-  import TicketModel, { type TendbCluster } from '@services/model/ticket/ticket';
+  import TicketModel, { type Mysql } from '@services/model/ticket/ticket';
+  import { queryClusters } from '@services/source/mysqlCluster';
 
-  import { TicketTypes } from '@common/const';
+  import RenderTableBase from './RenderTableBase.vue';
 
   interface Props {
-    ticketDetails: TicketModel<TendbCluster.SpiderMntApply>;
+    ticketDetails: TicketModel<Mysql.RollbackCluster>;
   }
 
   type RowData = Props['ticketDetails']['details']['infos'][number];
 
-  defineProps<Props>();
-
-  defineOptions({
-    name: TicketTypes.TENDBCLUSTER_SPIDER_MNT_APPLY,
-    inheritAttrs: false,
-  });
+  const props = defineProps<Props>();
 
   const { t } = useI18n();
+
+  const targetClusters = ref<Record<string, string>>({});
+
+  watch(
+    () => props.ticketDetails.details,
+    () => {
+      const targetClusterIds = props.ticketDetails.details.infos.map((item) => ({ id: item.target_cluster_id }));
+      queryClusters({
+        cluster_filters: targetClusterIds,
+        bk_biz_id: props.ticketDetails.bk_biz_id,
+      }).then((data) => {
+        targetClusters.value = data.reduce<Record<number, string>>(
+          (acc, cur) => ({
+            ...acc,
+            [cur.id]: cur.immute_domain,
+          }),
+          {},
+        );
+      });
+    },
+    {
+      immediate: true,
+    },
+  );
 </script>

@@ -12,34 +12,30 @@
 -->
 
 <template>
-  <BkLoading :loading="loading">
-    <BkTable :data="tableData">
-      <BkTableColumn :label="t('目标集群')">
-        <template #default="{ data }: { data: RowData }">
-          {{ data.clusterName }}
-        </template>
-      </BkTableColumn>
-      <BkTableColumn :label="t('规格')">
-        <template #default="{ data }: { data: RowData }">
-          {{ data.sepcName }}
-        </template>
-      </BkTableColumn>
-      <BkTableColumn :label="t('部署台数')">
-        <template #default="{ data }: { data: RowData }">
-          {{ data.targetNum }}
-        </template>
-      </BkTableColumn>
-    </BkTable>
-  </BkLoading>
+  <BkTable
+    :data="ticketDetails.details.infos"
+    show-overflow-tooltip>
+    <BkTableColumn :label="t('目标集群')">
+      <template #default="{ data }: { data: RowData }">
+        {{ ticketDetails.details.clusters[data.cluster_id].immute_domain }}
+      </template>
+    </BkTableColumn>
+    <BkTableColumn :label="t('规格')">
+      <template #default="{ data }: { data: RowData }">
+        {{ ticketDetails.details.specs[data.resource_spec.spider_slave_ip_list.spec_id].name }}
+      </template>
+    </BkTableColumn>
+    <BkTableColumn :label="t('部署台数')">
+      <template #default="{ data }: { data: RowData }">
+        {{ data.resource_spec.spider_slave_ip_list.count }}
+      </template>
+    </BkTableColumn>
+  </BkTable>
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
-  import { useRequest } from 'vue-request';
 
-  import ResourceSpecModel from '@services/model/resource-spec/resourceSpec';
   import TicketModel, { type TendbCluster } from '@services/model/ticket/ticket';
-  import { getResourceSpecList } from '@services/source/dbresourceSpec';
-  import { getTendbclusterListByBizId } from '@services/source/tendbcluster';
 
   import { TicketTypes } from '@common/const';
 
@@ -47,7 +43,9 @@
     ticketDetails: TicketModel<TendbCluster.SpiderSlaveApply>;
   }
 
-  const props = defineProps<Props>();
+  type RowData = Props['ticketDetails']['details']['infos'][number];
+
+  defineProps<Props>();
 
   defineOptions({
     name: TicketTypes.TENDBCLUSTER_SPIDER_SLAVE_APPLY,
@@ -55,65 +53,4 @@
   });
 
   const { t } = useI18n();
-
-  const { infos } = props.ticketDetails.details;
-  interface RowData {
-    clusterName: string;
-    sepcName: string;
-    targetNum: number;
-  }
-
-  const tableData = ref<RowData[]>([]);
-
-  const { loading } = useRequest(getTendbclusterListByBizId, {
-    defaultParams: [
-      {
-        bk_biz_id: props.ticketDetails.bk_biz_id,
-        offset: 0,
-        limit: -1,
-      },
-    ],
-    onSuccess: async (r) => {
-      if (r.results.length < 1) {
-        return;
-      }
-      const clusterMap = r.results.reduce(
-        (obj, item) => {
-          Object.assign(obj, {
-            [item.id]: {
-              clusterName: item.master_domain,
-              clusterType: item.cluster_spec.spec_cluster_type,
-            },
-          });
-          return obj;
-        },
-        {} as Record<number, { clusterName: string; clusterType: string }>,
-      );
-
-      // 避免重复查询
-      const clusterTypes = [...new Set(Object.values(clusterMap).map((item) => item.clusterType))];
-      const sepcMap: Record<string, ResourceSpecModel[]> = {};
-
-      await Promise.all(
-        clusterTypes.map(async (type) => {
-          const ret = await getResourceSpecList({
-            spec_cluster_type: type,
-            limit: -1,
-            offset: 0,
-          });
-          sepcMap[type] = ret.results;
-        }),
-      );
-      loading.value = false;
-      tableData.value = infos.map((item) => {
-        const sepcList = sepcMap[clusterMap[item.cluster_id].clusterType];
-        const specInfo = sepcList.find((row) => row.spec_id === item.resource_spec.spider_slave_ip_list.spec_id);
-        return {
-          clusterName: clusterMap[item.cluster_id].clusterName,
-          sepcName: specInfo ? specInfo.spec_name : '',
-          targetNum: item.resource_spec.spider_slave_ip_list.count,
-        };
-      });
-    },
-  });
 </script>
