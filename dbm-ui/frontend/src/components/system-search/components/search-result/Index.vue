@@ -107,7 +107,6 @@
     cluster_domain: t('域名'),
     cluster_name: t('集群名'),
     instance: t('实例'),
-    machine: t('主机'),
     task: t('任务ID'),
     ticket: t('单据'),
     resource_pool: t('资源池主机'),

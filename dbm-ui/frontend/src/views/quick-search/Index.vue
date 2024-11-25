@@ -134,7 +134,7 @@
 
   // const keyword = ref((route.query.keyword as string) || '');
   const keyword = ref('');
-  const dataMap = ref<Omit<ServiceReturnType<typeof quickSearch>, 'machine' | 'keyword' | 'short_code'>>({
+  const dataMap = ref<Omit<ServiceReturnType<typeof quickSearch>, 'keyword' | 'short_code'>>({
     cluster_name: [],
     cluster_domain: [],
     instance: [],
