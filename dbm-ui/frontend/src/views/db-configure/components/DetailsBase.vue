@@ -23,7 +23,7 @@
         :title="$t('基础信息')">
         <EditInfo
           :columns="baseInfoColumns"
-          :data="data"
+          :data="detailData"
           @save="handleSaveEditInfo" />
       </DbCard>
       <DbCard
@@ -39,7 +39,23 @@
           class="details-base__table"
           :data="configItems"
           :level="level"
-          :sticky-top="stickyTop" />
+          :sticky-top="stickyTop">
+          <template
+            v-if="tabs.length > 1"
+            #prefix>
+            <BkRadioGroup
+              v-model="clusterType"
+              type="capsule">
+              <BkRadioButton
+                v-for="tab of tabs"
+                :key="tab"
+                :label="tab"
+                style="width: 200px">
+                {{ tab }} {{ t('参数配置') }}
+              </BkRadioButton>
+            </BkRadioGroup>
+          </template>
+        </ReadonlyTable>
       </DbCard>
       <DbCard
         v-for="card of extraParametersCards"
@@ -62,7 +78,7 @@
   </div>
 </template>
 
-<script setup lang="ts">
+<script setup lang="tsx">
   import { useI18n } from 'vue-i18n';
 
   import {
@@ -72,18 +88,20 @@
     updatePlatformConfig,
   } from '@services/source/configs';
 
-  import { ConfLevels, type ConfLevelValues } from '@common/const';
+  import { ClusterTypes, ConfLevels, type ConfLevelValues } from '@common/const';
 
   import EditInfo, { type EditEmitData } from '@components/editable-info/index.vue';
 
+  import { useBaseDetails } from '../business/list/components/hooks/useBaseDetails';
   import type { ExtraConfListItem } from '../common/types';
 
   import ReadonlyTable from './ReadonlyTable.vue';
 
   type PlatConfDetailsParams = ServiceParameters<typeof getConfigBaseDetails>;
+  type DetailData = ServiceReturnType<typeof getLevelConfig> & { charset?: string };
 
   interface Props {
-    data?: ServiceReturnType<typeof getLevelConfig> & { charset?: string };
+    data?: Partial<DetailData>;
     loading?: boolean;
     fetchParams?: PlatConfDetailsParams | ServiceParameters<typeof getLevelConfig>;
     stickyTop?: number;
@@ -91,6 +109,7 @@
     title?: string;
     extraParametersCards?: ExtraConfListItem[];
     routeParams?: Record<string, any>;
+    deployInfo?: Partial<DetailData>;
   }
 
   interface Emits {
@@ -110,6 +129,10 @@
     title: '',
     extraParametersCards: () => [],
     routeParams: () => ({}),
+    deployInfo: () =>
+    ({
+      conf_items: [] as DetailData['conf_items'],
+    }),
   });
 
   const emits = defineEmits<Emits>();
@@ -117,11 +140,28 @@
   const { t } = useI18n();
   const router = useRouter();
   const route = useRoute();
+  const { state } = useBaseDetails(true, 'spider_version');
 
+  const clusterType = ref(props.data.version);
+
+  const isSqlServer = computed(() =>
+    [ClusterTypes.SQLSERVER_SINGLE, ClusterTypes.SQLSERVER_HA].includes(props.routeParams.clusterType),
+  );
+  const tabs = computed(() => {
+    if (!state.version) {
+      return [props.data.version];
+    }
+    return [props.data.version, state.data.version];
+  });
   const cardTitle = computed(() => props.title || t('参数配置'));
   // 是否为平台级别配置
   const isPlat = computed(() => ConfLevels.PLAT === props.level);
-  const configItems = computed(() => props.data?.conf_items || []);
+  const configItems = computed(() => {
+    if (clusterType.value === props.data.version) {
+      return props.data.conf_items;
+    }
+    return state.data.conf_items;
+  });
   const isShowCharset = computed(() => !!props.data.charset);
   const baseInfoColumns = computed(() => {
     const baseColumns = [
@@ -158,8 +198,65 @@
         key: 'charset',
       });
     }
+    if (isSqlServer.value) {
+      baseColumns[0].push(
+        ...[
+          {
+            label: t('实际内存分配比率'),
+            key: 'buffer_percent',
+          },
+          {
+            label: t('主从方式'),
+            key: 'sync_type',
+            render: () => <span> {
+              detailData.value.sync_type === 'mirroring'
+                ? t('镜像')
+                : detailData.value.sync_type
+            } </span>
+          },
+        ],
+      );
+      baseColumns[1].push(
+        ...[
+          {
+            label: t('最大系统保留内存'),
+            key: 'max_remain_mem_gb',
+          },
+          {
+            label: t('操作系统版本'),
+            key: 'system_version',
+          },
+        ],
+      );
+    }
+    if (state.version) {
+      baseColumns[0].push({
+        label: t('Spider版本'),
+        render: () => state.data.version,
+      });
+    }
     return baseColumns;
   });
+  const detailData = computed(() => {
+    if (isSqlServer.value) {
+      return {
+        ...props.data,
+        ...props.deployInfo.conf_items!.reduce<Record<string, string>>((acc, item) => {
+          acc[item.conf_name] = item.conf_value!;
+          return acc;
+        }, {}),
+      };
+    }
+    return props.data;
+  });
+
+  watch(
+    () => props.data.version,
+    () => {
+      clusterType.value = props.data.version;
+    },
+    { immediate: true },
+  );
 
   /**
    * 基础信息编辑
@@ -193,7 +290,12 @@
     const name = isPlat.value ? 'PlatformDbConfigureEdit' : 'DbConfigureEdit';
     router.push({
       name,
-      params: { ...route.params, ...props.routeParams, ...extra },
+      params: {
+        ...route.params,
+        ...props.routeParams,
+        ...extra,
+        version: clusterType.value,
+      },
     });
   };
 </script>

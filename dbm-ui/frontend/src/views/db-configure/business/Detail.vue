@@ -118,6 +118,9 @@
       if (!route.query.form) {
         router.push({
           name: 'DbConfigureList',
+          params: {
+            clusterType: props.clusterType,
+          },
         });
         return;
       }
