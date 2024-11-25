@@ -1,5 +1,7 @@
 <template>
-  <BkTable :data="ticketDetails.details.infos">
+  <BkTable
+    :data="ticketDetails.details.infos"
+    show-overflow-tooltip>
     <BkTableColumn :label="t('目标集群')">
       <template #default="{ data }: { data: RowData }">
         {{ ticketDetails.details.clusters[data.cluster_id].immute_domain }}

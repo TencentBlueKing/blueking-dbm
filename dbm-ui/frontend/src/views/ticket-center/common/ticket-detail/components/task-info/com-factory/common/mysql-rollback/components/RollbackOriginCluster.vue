@@ -12,40 +12,19 @@
 -->
 
 <template>
-  <BkTable
-    :data="ticketDetails.details.infos"
-    show-overflow-tooltip>
-    <BkTableColumn :label="t('目标Proxy')">
-      <template #default="{ data }: { data: RowData }">
-        {{ data.origin_proxy.ip }}
-      </template>
-    </BkTableColumn>
-    <BkTableColumn :label="t('新Proxy主机')">
-      <template #default="{ data }: { data: RowData }">
-        {{ data.target_proxy.ip }}
-      </template>
-    </BkTableColumn>
-  </BkTable>
+  <RenderTableBase
+    :show-db-name="false"
+    :ticket-details="ticketDetails" />
 </template>
-<script setup lang="ts">
-  import { useI18n } from 'vue-i18n';
 
+<script setup lang="tsx">
   import TicketModel, { type Mysql } from '@services/model/ticket/ticket';
 
-  import { TicketTypes } from '@common/const';
+  import RenderTableBase from './RenderTableBase.vue';
 
   interface Props {
-    ticketDetails: TicketModel<Mysql.ProxySwitch>;
+    ticketDetails: TicketModel<Mysql.RollbackCluster>;
   }
 
-  type RowData = Props['ticketDetails']['details']['infos'][number];
-
   defineProps<Props>();
-
-  defineOptions({
-    name: TicketTypes.MYSQL_PROXY_SWITCH,
-    inheritAttrs: false,
-  });
-
-  const { t } = useI18n();
 </script>

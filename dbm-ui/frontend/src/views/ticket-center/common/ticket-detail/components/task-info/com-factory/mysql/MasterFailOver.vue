@@ -12,7 +12,9 @@
 -->
 
 <template>
-  <BkTable :data="ticketDetails.details.infos">
+  <BkTable
+    :data="ticketDetails.details.infos"
+    show-overflow-tooltip>
     <BkTableColumn :label="t('故障主库主机')">
       <template #default="{ data }: { data: RowData }">
         {{ data.master_ip.ip }}

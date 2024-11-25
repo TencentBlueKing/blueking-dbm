@@ -17,7 +17,9 @@
       {{ ticketDetails.details.backup_source === 'local' ? t('本地备份') : '--' }}
     </InfoItem>
   </InfoList>
-  <BkTable :data="ticketDetails.details.infos">
+  <BkTable
+    :data="ticketDetails.details.infos"
+    show-overflow-tooltip>
     <BkTableColumn :label="t('待重建从库主机')">
       <template #default="{ data }: { data: RowData }">
         {{ data.old_slave.ip }}

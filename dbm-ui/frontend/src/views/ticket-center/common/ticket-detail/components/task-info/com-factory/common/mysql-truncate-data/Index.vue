@@ -12,13 +12,14 @@
 -->
 
 <template>
-  <div class="ticket-details-list">
-    <div class="ticket-details-item">
-      <span class="ticket-details-item-label">{{ t('安全模式') }}：</span>
-      <span class="ticket-details-item-value">{{ !ticketDetails.details.infos[0].force ? t('是') : t('否') }}</span>
-    </div>
-  </div>
-  <BkTable :data="ticketDetails.details.infos">
+  <InfoList>
+    <InfoItem :label="t('安全模式:')">
+      {{ !ticketDetails.details.infos[0].force ? t('是') : t('否') }}
+    </InfoItem>
+  </InfoList>
+  <BkTable
+    :data="ticketDetails.details.infos"
+    show-overflow-tooltip>
     <BkTableColumn :label="t('集群')">
       <template #default="{ data }: { data: RowData }">
         {{ ticketDetails.details.clusters[data.cluster_id].immute_domain }}
@@ -72,6 +73,8 @@
   import { useI18n } from 'vue-i18n';
 
   import TicketModel, { type Mysql } from '@services/model/ticket/ticket';
+
+  import InfoList, { Item as InfoItem } from '../../components/info-list/Index.vue';
 
   interface Props {
     ticketDetails: TicketModel<Mysql.TruncateData>;
