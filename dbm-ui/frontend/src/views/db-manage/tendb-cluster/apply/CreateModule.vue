@@ -355,8 +355,17 @@
 
   defineExpose({
     routerBack() {
+      if (!route.query.from) {
+        router.push({
+          name: 'serviceApply',
+        });
+        return;
+      }
       router.push({
-        name: 'DbConfigureList',
+        name: String(route.query.from),
+        params: {
+          clusterType: route.query.clusterType as string,
+        },
       });
     },
   });

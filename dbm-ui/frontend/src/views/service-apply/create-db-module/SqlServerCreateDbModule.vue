@@ -383,6 +383,9 @@
       }
       router.push({
         name: String(route.query.from),
+        params: {
+          clusterType: route.query.clusterType as string,
+        },
       });
     },
   });
