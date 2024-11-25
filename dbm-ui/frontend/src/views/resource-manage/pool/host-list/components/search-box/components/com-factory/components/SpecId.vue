@@ -17,7 +17,6 @@
       <BkSelect
         v-model="currentDbType"
         :clearable="false"
-        :disabled="isDbTypeDisabled"
         filterable
         :input-search="false"
         style="width: 150px"
@@ -102,8 +101,6 @@
   const currentMachine = ref('');
   const clusterMachineList = shallowRef<InfoItem['machineList']>([]);
 
-  const isDbTypeDisabled = computed(() => props.model.resource_type && props.model.resource_type !== 'PUBLIC');
-
   const { loading: isResourceSpecLoading, run: fetchResourceSpecDetail } = useRequest(getResourceSpec, {
     manual: true,
     onSuccess(data) {
@@ -157,14 +154,13 @@
     () => props.model,
     () => {
       const dbType = props.model.resource_type;
-      if (dbType && currentDbType.value && dbType !== currentDbType.value && dbType !== 'PUBLIC') {
+      if (dbType && dbType !== currentDbType.value) {
         currentDbType.value = dbType;
         clusterMachineList.value = DBTypeInfos[dbType as DBTypes]?.machineList || [];
         currentMachine.value = '';
         defaultValue.value = '';
         return;
       }
-      defaultValue.value = props.model.spec_id;
     },
     {
       immediate: true,
@@ -181,6 +177,10 @@
     defaultValue.value = value;
     emits('change', value);
   };
+
+  onMounted(() => {
+    defaultValue.value = props.model.spec_id || '';
+  });
 
   defineExpose<Expose>({
     reset() {

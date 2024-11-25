@@ -13,13 +13,11 @@
 
 <template>
   <div class="resource-pool-search-box">
-    <KeepAlive>
-      <Component
-        :is="renderCom"
-        :key="renderKey"
-        v-model="searchParams"
-        @submit="handleSubmit" />
-    </KeepAlive>
+    <Component
+      :is="renderCom"
+      :key="renderKey"
+      v-model="searchParams"
+      @submit="handleSubmit" />
     <div
       class="toggle-btn"
       @click="handleToggle">
@@ -28,6 +26,7 @@
   </div>
 </template>
 <script setup lang="ts">
+  import _ from 'lodash';
   import { computed, onMounted, ref } from 'vue';
 
   import fieldConfig from './components/field-config';
@@ -56,6 +55,8 @@
   const renderKey = ref(0);
 
   const renderCom = computed(() => comMap[renderStatus.value]);
+
+  let localSearchParams: Record<string, any> = {};
 
   // 切换搜索展示样式
   const handleToggle = () => {
@@ -107,7 +108,14 @@
 
       return acc;
     }, {});
-
+    if (
+      localSearchParams.resource_type &&
+      searchParams.value?.resource_type &&
+      localSearchParams.resource_type !== searchParams.value.resource_type
+    ) {
+      delete params.spec_id;
+    }
+    localSearchParams = _.cloneDeep(params);
     emits('change', params);
   };
 
