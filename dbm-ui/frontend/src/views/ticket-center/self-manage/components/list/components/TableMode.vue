@@ -43,12 +43,9 @@
           :label="t('操作')"
           width="120">
           <template #default="{ data }: { data: IRowData }">
-            <BkButton
-              text
-              theme="primary"
-              @click="() => handleShowDetail(data)">
-              {{ t('查看详情') }}
-            </BkButton>
+            <TicketDetailLink
+              v-if="data"
+              :data="data" />
           </template>
         </BkTableColumn>
       </template>
@@ -68,6 +65,7 @@
   import useDatePicker from '@views/ticket-center/common/hooks/use-date-picker';
   import useSearchSelect from '@views/ticket-center/common/hooks/use-search-select';
   import TableModeTable from '@views/ticket-center/common/TableModeTable.vue';
+  import TicketDetailLink from '@views/ticket-center/common/TicketDetailLink.vue';
 
   type IRowData = TicketModel<unknown>;
 

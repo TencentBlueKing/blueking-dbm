@@ -6,13 +6,9 @@
     @click="handleGoProcess">
     {{ t('去处理') }}
   </BkButton>
-  <BkButton
+  <TicketDetailLink
     class="ml-8"
-    text
-    theme="primary"
-    @click="handleGoDetail">
-    {{ t('查看详情') }}
-  </BkButton>
+    :data="data" />
 </template>
 <script setup lang="ts">
   import { ref } from 'vue';
@@ -22,8 +18,10 @@
   import TicketModel from '@services/model/ticket/ticket';
   import { getInnerFlowInfo } from '@services/source/ticketFlow';
 
+  import TicketDetailLink from '@views/ticket-center/common/TicketDetailLink.vue';
+
   interface Props {
-    data: TicketModel<unknown>;
+    data: TicketModel;
   }
 
   interface Emits {
@@ -63,9 +61,5 @@
       .finally(() => {
         isProcessing.value = false;
       });
-  };
-
-  const handleGoDetail = () => {
-    emits('go-ticket-detail', props.data);
   };
 </script>

@@ -18,7 +18,7 @@
         unique-select />
     </div>
     <div style="height: calc(100% - 112px)">
-      <CardModeList :data-source="getTickets" />
+      <CardModeList :data-source="dataSource" />
     </div>
   </div>
 </template>
@@ -35,6 +35,12 @@
 
   const { value: datePickerValue, shortcutsRange } = useDatePicker();
   const { value: searachSelectValue, searchSelectData } = useSearchSelect();
+
+  const dataSource = (params: ServiceParameters<typeof getTickets>) =>
+    getTickets({
+      ...params,
+      self_manage: 1,
+    });
 </script>
 <style lang="less">
   .ticket-list-card-mode {

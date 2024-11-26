@@ -13,6 +13,7 @@
 
 <template>
   <StretchLayout
+    v-if="!isPreChecking"
     :left-width="400"
     :min-left-width="300"
     name="ticketList"
@@ -39,12 +40,19 @@
   import Detail from '@views/ticket-center/common/ticket-detail/Index.vue';
 
   import List from './components/list/Index.vue';
+  import usePreCheck from './hooks/use-pre-check';
 
   const router = useRouter();
   const route = useRoute();
   const { getSearchParams } = useUrlSearch();
 
-  const ticketId = computed(() => Number(route.params.ticketId) || 0);
+  // params.ticketId 会运行中改变，需要要响应变化
+  const ticketId = computed(() => {
+    console.log('route.params.ticketId = ', route.params.ticketId);
+    return Number(route.params.ticketId) || 0;
+  });
+
+  const isPreChecking = usePreCheck(ticketId.value);
 
   const handleStretchLayoutChange = (value: boolean) => {
     if (!value) {

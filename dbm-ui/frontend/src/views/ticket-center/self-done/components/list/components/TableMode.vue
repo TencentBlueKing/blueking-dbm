@@ -1,5 +1,5 @@
 <template>
-  <div class="ticket-list-table-mode">
+  <div class="ticket-self-done-list-table-mode">
     <div class="header-action-box">
       <BkDatePicker
         v-model="datePickerValue"
@@ -43,12 +43,9 @@
           :label="t('操作')"
           width="120">
           <template #default="{ data }: { data: IRowData }">
-            <BkButton
-              text
-              theme="primary"
-              @click="() => handleShowDetail(data)">
-              {{ t('查看详情') }}
-            </BkButton>
+            <TicketDetailLink
+              v-if="data"
+              :data="data" />
           </template>
         </BkTableColumn>
       </template>
@@ -68,6 +65,7 @@
   import useDatePicker from '@views/ticket-center/common/hooks/use-date-picker';
   import useSearchSelect from '@views/ticket-center/common/hooks/use-search-select';
   import TableModeTable from '@views/ticket-center/common/TableModeTable.vue';
+  import TicketDetailLink from '@views/ticket-center/common/TicketDetailLink.vue';
 
   type IRowData = TicketModel<unknown>;
 
@@ -118,7 +116,7 @@
   });
 </script>
 <style lang="less">
-  .ticket-list-table-mode {
+  .ticket-self-done-list-table-mode {
     padding: 16px 24px;
 
     .header-action-box {

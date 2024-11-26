@@ -14,13 +14,9 @@
       {{ t('终止单据') }}
     </BkButton>
   </ProcessTerminate>
-  <BkButton
+  <TicketDetailLink
     class="ml-8"
-    text
-    theme="primary"
-    @click="handleGoDetail">
-    {{ t('查看详情') }}
-  </BkButton>
+    :data="data" />
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
@@ -29,21 +25,13 @@
 
   import ProcessRetry from '@views/ticket-center/common/action-confirm/ProcessRetry.vue';
   import ProcessTerminate from '@views/ticket-center/common/action-confirm/ProcessTerminate.vue';
+  import TicketDetailLink from '@views/ticket-center/common/TicketDetailLink.vue';
 
   interface Props {
-    data: TicketModel<unknown>;
+    data: TicketModel;
   }
 
-  interface Emits {
-    (e: 'go-ticket-detail', params: TicketModel): void;
-  }
-
-  const props = defineProps<Props>();
-  const emits = defineEmits<Emits>();
+  defineProps<Props>();
 
   const { t } = useI18n();
-
-  const handleGoDetail = () => {
-    emits('go-ticket-detail', props.data);
-  };
 </script>
