@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"path/filepath"
+	"regexp"
 	"strconv"
 	"strings"
 	"sync"
@@ -20,6 +21,20 @@ import (
 	"dbm-services/redis/db-tools/dbmon/pkg/report"
 	"dbm-services/redis/db-tools/dbmon/util"
 )
+
+const (
+	MaxAllowedLogCountPerDuration = 100
+)
+
+var (
+	twemproxyLogStart *regexp.Regexp
+	logLimiter        *util.FixedWindowLimiter
+)
+
+func init() {
+	twemproxyLogStart = regexp.MustCompile(`^\[\d{4}-\d{2}-\d{2}`)
+	logLimiter = util.NewFixedWindowLimiter(MaxAllowedLogCountPerDuration, time.Minute)
+}
 
 // BaseSchema schema
 type BaseSchema struct {
@@ -255,6 +270,14 @@ func (task *TailTask) BackgroundTailLog() {
 					continue
 				}
 				if !task.filterLogLine(line.Text) {
+					continue
+				}
+				// twemproxy resp 格式 多行，，，[2024-11-26 16:45:25.582]
+				if task.Role == consts.MetaRoleTwemproxy && !twemproxyLogStart.MatchString(line.Text) {
+					continue
+				}
+				// 限流，每分钟 最多允许上报N条日志
+				if !logLimiter.TryAcquire() {
 					continue
 				}
 				recordItem.CreateTime = line.Time.Local().Format(time.RFC3339)
