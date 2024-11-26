@@ -12,23 +12,34 @@
 -->
 
 <template>
-  <ClusterOperation :ticket-details="ticketDetails" />
+  <BatchClusterOperation :ticket-details="ticketDetails" />
+  <InfoList>
+    <InfoItem :label="t('强制实例下架：')">
+      {{ ticketDetails.details.force ? t('是') : t('否') }}
+    </InfoItem>
+  </InfoList>
 </template>
+
 <script setup lang="ts">
-  import TicketModel, { type Hdfs } from '@services/model/ticket/ticket';
+  import { useI18n } from 'vue-i18n';
+
+  import TicketModel, { type TendbCluster } from '@services/model/ticket/ticket';
 
   import { TicketTypes } from '@common/const';
 
-  import ClusterOperation from '../common/ClusterOperation.vue';
+  import BatchClusterOperation from '../common/BatchClusterOperation.vue';
+  import InfoList, { Item as InfoItem } from '../components/info-list/Index.vue';
 
   interface Props {
-    ticketDetails: TicketModel<Hdfs.Enable>;
+    ticketDetails: TicketModel<TendbCluster.Destroy>;
   }
 
   defineProps<Props>();
 
   defineOptions({
-    name: TicketTypes.HDFS_ENABLE,
+    name: TicketTypes.TENDBCLUSTER_DESTROY,
     inheritAttrs: false,
   });
+
+  const { t } = useI18n();
 </script>

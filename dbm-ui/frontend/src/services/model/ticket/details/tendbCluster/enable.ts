@@ -1,6 +1,9 @@
-import type { DetailBase } from '../common';
+import type { DetailBase, DetailClusters } from '../common';
 
 export interface Enable extends DetailBase {
-  is_only_add_slave_domain: boolean;
+  clusters: DetailClusters;
   cluster_ids: number[];
+  force: boolean;
+  is_only_add_slave_domain: boolean;
+  is_only_delete_slave_domain: boolean;
 }

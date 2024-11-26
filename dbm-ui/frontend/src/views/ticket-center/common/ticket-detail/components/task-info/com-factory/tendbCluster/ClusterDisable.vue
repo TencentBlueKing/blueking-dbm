@@ -12,23 +12,24 @@
 -->
 
 <template>
-  <ClusterOperation :ticket-details="ticketDetails" />
+  <BatchClusterOperation :ticket-details="ticketDetails" />
 </template>
+
 <script setup lang="ts">
-  import TicketModel, { type Hdfs } from '@services/model/ticket/ticket';
+  import TicketModel, { type TendbCluster } from '@services/model/ticket/ticket';
 
   import { TicketTypes } from '@common/const';
 
-  import ClusterOperation from '../common/ClusterOperation.vue';
+  import BatchClusterOperation from '../common/BatchClusterOperation.vue';
 
   interface Props {
-    ticketDetails: TicketModel<Hdfs.Enable>;
+    ticketDetails: TicketModel<TendbCluster.Disable>;
   }
 
   defineProps<Props>();
 
   defineOptions({
-    name: TicketTypes.HDFS_ENABLE,
+    name: TicketTypes.TENDBCLUSTER_DISABLE,
     inheritAttrs: false,
   });
 </script>

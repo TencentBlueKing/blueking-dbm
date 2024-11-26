@@ -12,7 +12,9 @@
 -->
 
 <template>
-  <BkTable :data="tableData">
+  <BkTable
+    :data="tableData"
+    show-overflow-tooltip>
     <BkTableColumn
       field="cluster_ids"
       :label="t('集群ID')">
@@ -24,7 +26,22 @@
       field="immute_domain"
       :label="t('集群名称')">
       <template #default="{ data }: { data: RowData }">
-        {{ ticketDetails.details.clusters[data.id].immute_domain }}
+        <div
+          v-bk-tooltips="{
+            content: `${t('域名')}：${ticketDetails.details.clusters[data.id].immute_domain}
+            ${ticketDetails.details.clusters[data.id].name ? `${'集群别名'}：${ticketDetails.details.clusters[data.id].name}` : null}
+          `,
+            allowHTML: true,
+          }"
+          class="cluster-name">
+          <span>{{ ticketDetails.details.clusters[data.id].immute_domain }}</span>
+          <br />
+          <span
+            v-if="ticketDetails.details.clusters[data.id].name"
+            class="cluster-name-alias">
+            {{ ticketDetails.details.clusters[data.id].name }}
+          </span>
+        </div>
       </template>
     </BkTableColumn>
     <BkTableColumn
@@ -37,14 +54,18 @@
   </BkTable>
 </template>
 
-<script setup lang="tsx">
+<script setup lang="ts">
   import { type UnwrapRef } from 'vue';
   import { useI18n } from 'vue-i18n';
 
-  import TicketModel, { type Sqlserver } from '@services/model/ticket/ticket';
+  import type { DetailClusters } from '@services/model/ticket/details/common';
+  import TicketModel from '@services/model/ticket/ticket';
 
   interface Props {
-    ticketDetails: TicketModel<Sqlserver.Enable | Sqlserver.Destroy | Sqlserver.Disable>;
+    ticketDetails: TicketModel<{
+      clusters: DetailClusters;
+      cluster_ids: number[];
+    }>;
   }
 
   const props = defineProps<Props>();
@@ -55,3 +76,14 @@
 
   type RowData = UnwrapRef<typeof tableData>[number];
 </script>
+
+<style lang="less" scoped>
+  .cluster-name {
+    padding: 8px 0;
+    line-height: 16px;
+
+    .cluster-name-alias {
+      color: @light-gray;
+    }
+  }
+</style>

@@ -19,7 +19,7 @@
 
   import { TicketTypes } from '@common/const';
 
-  import ClusterOperation from '../common/bigdata/ClusterOperation.vue';
+  import ClusterOperation from '../common/ClusterOperation.vue';
 
   interface Props {
     ticketDetails: TicketModel<Es.Disable>;
