@@ -45,7 +45,7 @@
       width: 220,
     },
     {
-      label: t('同机关联集群'),
+      label: t('关联集群'),
       field: 'relatedClusters',
       width: 220,
       render: ({ data }: { data: RowData }) => data.relatedClusters.map((item) => <p>{item}</p>),
@@ -64,7 +64,7 @@
     () => props.ticketDetails.details,
     () => {
       tableData.value = props.ticketDetails.details.infos.map(item => ({
-        originProxy: item.origin_proxy.ip,
+        originProxy: `${item.origin_proxy.ip}:${item.origin_proxy.port}`,
         relatedClusters: item.display_info.related_clusters as string[],
         targetProxy: item.target_proxy.ip,
       }));

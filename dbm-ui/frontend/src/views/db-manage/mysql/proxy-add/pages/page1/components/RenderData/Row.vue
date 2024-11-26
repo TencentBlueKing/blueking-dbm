@@ -85,7 +85,15 @@
   }
 
   interface Exposes {
-    getValue: () => Promise<any>;
+    getValue: () => Promise<{
+      cluster_ids: number[];
+      new_proxy: {
+        bk_biz_id: number;
+        bk_host_id: number;
+        bk_cloud_id: number;
+        ip: string;
+      };
+    }>;
   }
 
   const props = defineProps<Props>();
@@ -128,7 +136,7 @@
     emits('remove');
   };
 
-  const getRowData = () => [clusterRef.value.getValue(), proxyRef.value.getValue()];
+  const getRowData = () => [clusterRef.value!.getValue(), proxyRef.value!.getValue()];
 
   const handleClone = () => {
     Promise.allSettled(getRowData()).then((rowData) => {
