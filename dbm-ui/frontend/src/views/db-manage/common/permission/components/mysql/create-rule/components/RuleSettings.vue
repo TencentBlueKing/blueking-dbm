@@ -216,7 +216,7 @@
         message: t('DB名称不允许 * ，支持通配符 %，如 Data%，区分大小写，多个对象请使用英文逗号、分号或换行分隔'),
         validator: (value: string) => {
           const dbs = value.split(/[\n;,]/);
-          return _.every(dbs, (item) => (!item ? true : /^[_a-zA-Z0-9]/.test(item) && !/\*/.test(value)));
+          return _.every(dbs, (item) => (!item ? true : !/\*/.test(value)));
         },
       },
       {
