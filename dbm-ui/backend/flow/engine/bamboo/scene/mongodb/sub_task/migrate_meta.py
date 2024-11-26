@@ -39,9 +39,6 @@ def cluster_migrate(
     # 创建子流程
     sub_pipeline = SubBuilder(root_id=root_id, data=ticket_data)
 
-    # 获取副本集机器是否复用
-    sub_get_kwargs.skip_machine()
-
     # 检查 是否已经迁移 从目标环境检查迁移ip是否复用
     kwargs = sub_get_kwargs.get_check_dest_cluster_info(
         cluster_name=sub_get_kwargs.source_cluster_info.get("replsetname")
