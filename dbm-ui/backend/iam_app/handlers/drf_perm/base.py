@@ -276,3 +276,26 @@ class IsAuthenticatedPermission(permissions.BasePermission):
 
     def has_permission(self, request, view):
         return permissions.IsAuthenticated().has_permission(request, view)
+
+
+class ListResourcePermission(ResourceActionPermission):
+    """
+    业务相关动作的鉴权
+    """
+
+    def __init__(
+        self, actions: List[ActionMeta] = None, resource_meta: ResourceMeta = None, bk_biz_id: int = None
+    ) -> None:
+        self.bk_biz_id = bk_biz_id
+        if not self.bk_biz_id:
+            self.actions = ActionEnum.GLOBAL_MANAGE
+            self.resource_meta = None
+        else:
+            self.actions = actions or [ActionEnum.DB_MANAGE]
+            self.resource_meta = resource_meta or ResourceEnum.BUSINESS
+        super().__init__(self.actions, self.resource_meta, instance_ids_getter=self.instance_biz_id_getter)
+
+    def instance_biz_id_getter(self, request, view):
+        if not self.resource_meta:
+            return []
+        return self.get_key_id(request, view, self.resource_meta.id, many=True)

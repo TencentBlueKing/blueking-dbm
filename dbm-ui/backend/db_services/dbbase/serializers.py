@@ -17,7 +17,9 @@ from backend.components import CCApi
 from backend.configuration.constants import DBType
 from backend.db_dirty.models import DirtyMachine
 from backend.db_meta.enums import ClusterPhase, ClusterType
+from backend.db_meta.models import DBModule
 from backend.db_services.dbbase.constants import ResourceType
+from backend.db_services.dbbase.resources.query_base import build_q_for_domain_by_cluster
 from backend.db_services.dbbase.resources.serializers import ListResourceSLZ
 from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
 from backend.db_services.redis.resources.redis_cluster.query import RedisListRetrieveResource
@@ -53,6 +55,83 @@ class QueryAllTypeClusterSerializer(serializers.Serializer):
         if attr.get("phase"):
             conditions["phase"] = attr["phase"]
         return conditions
+
+
+class QueryAllTypeClusterSerializerV2(serializers.Serializer):
+    bk_biz_id = serializers.IntegerField(help_text=_("业务ID"), required=False)
+    cluster_types = serializers.CharField(help_text=_("集群类型(逗号分隔)"), required=False)
+    immute_domain = serializers.CharField(help_text=_("集群域名"), required=False)
+    # 额外过滤参数
+    phase = serializers.ChoiceField(help_text=_("集群阶段状态"), required=False, choices=ClusterPhase.get_choices())
+    name = serializers.CharField(help_text=_("集群英文名"), required=False)
+    alias = serializers.CharField(help_text=_("集群别名"), required=False)
+    db_module_id = serializers.IntegerField(help_text=_("模块id"), required=False)
+    major_version = serializers.CharField(help_text=_("主版本号"), required=False)
+    status = serializers.CharField(help_text=_("状态"), required=False)
+    bk_cloud_id = serializers.IntegerField(help_text=_("云区域 ID"), required=False)
+    region = serializers.CharField(help_text=_("地域"), required=False)
+    db_module_name = serializers.CharField(help_text=_("模块名"), required=False)
+    cluster_type = serializers.CharField(help_text=_("集群类型"), required=False)
+    id = serializers.IntegerField(help_text=_("集群ID"), required=False)
+
+    _db_module_id_name_map = None
+    _db_module_name_id_map = None
+    _cloud_info = None
+
+    @property
+    def db_module_id_name_map(self):
+        if self._db_module_id_name_map is None:
+            self._db_module_id_name_map = DBModule.db_module_map()
+        return self._db_module_id_name_map
+
+    @property
+    def db_module_name_id_map(self):
+        if self._db_module_name_id_map is None:
+            self._db_module_name_id_map = {
+                module_name: module_id for module_id, module_name in self.db_module_id_name_map
+            }
+        return self._db_module_name_id_map
+
+    @property
+    def cloud_info(self):
+        if self._cloud_info is None:
+            self._cloud_info = ResourceQueryHelper.search_cc_cloud(get_cache=True)
+        return self._cloud_info
+
+    def get_conditions(self, attr):
+        conditions = Q()
+
+        if attr.get("cluster_types"):
+            conditions &= Q(cluster_type__in=attr["cluster_types"].split(","))
+            attr.pop("cluster_types")
+
+        if attr.get("db_module_name"):
+            db_module_id = self.db_module_name_id_map.get(attr["db_module_name"])
+            if db_module_id is not None:
+                conditions &= Q(db_module_id=db_module_id)
+            attr.pop("db_module_name")
+
+        if attr.get("immute_domain"):
+            # 支持从域名查询
+            conditions &= build_q_for_domain_by_cluster(domains=attr.get("immute_domain", "").split(","))
+            attr.pop("immute_domain")
+
+        for field in self.fields.keys():
+            if field in attr:
+                conditions &= Q(**{field: attr[field]})
+
+        return conditions
+
+    def to_representation(self, instance):
+        representation = super().to_representation(instance)
+        db_module_id = representation.get("db_module_id")
+        representation["db_module_name"] = self.db_module_id_name_map.get(db_module_id, "")
+        try:
+            representation["bk_cloud_name"] = self.cloud_info[str(representation["bk_cloud_id"])]["bk_cloud_name"]
+        except Exception:
+            representation["bk_cloud_name"] = ""
+
+        return representation
 
 
 class QueryAllTypeClusterResponseSerializer(serializers.Serializer):

@@ -50,10 +50,11 @@ class TenDBSingleStandardizeFlow(object):
 
     def standardize(self):
         cluster_ids = self.data["infos"]["cluster_ids"]
-        bk_biz_id = self.data["bk_biz_id"]
+        # 支持跨业务
+        # bk_biz_id = self.data["bk_biz_id"]
 
         cluster_objects = Cluster.objects.filter(
-            pk__in=cluster_ids, bk_biz_id=bk_biz_id, cluster_type=ClusterType.TenDBSingle.value
+            pk__in=cluster_ids, cluster_type=ClusterType.TenDBSingle.value
         ).prefetch_related("storageinstance_set", "storageinstance_set__machine")
         if cluster_objects.count() != len(cluster_ids):
             raise DBMetaException(

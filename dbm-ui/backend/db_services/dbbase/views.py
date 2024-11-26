@@ -38,6 +38,7 @@ from backend.db_services.dbbase.serializers import (
     IsClusterDuplicatedSerializer,
     QueryAllTypeClusterResponseSerializer,
     QueryAllTypeClusterSerializer,
+    QueryAllTypeClusterSerializerV2,
     QueryBizClusterAttrsResponseSerializer,
     QueryBizClusterAttrsSerializer,
     ResourceAdministrationSerializer,
@@ -45,7 +46,7 @@ from backend.db_services.dbbase.serializers import (
     WebConsoleSerializer,
 )
 from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
-from backend.iam_app.handlers.drf_perm.base import DBManagePermission
+from backend.iam_app.handlers.drf_perm.base import DBManagePermission, ListResourcePermission
 from backend.iam_app.handlers.drf_perm.cluster import ClusterWebconsolePermission
 
 SWAGGER_TAG = _("集群通用接口")
@@ -60,11 +61,9 @@ class DBBaseViewSet(viewsets.SystemViewSet):
 
     action_permission_map = {
         ("verify_duplicated_cluster_name",): [],
-        (
-            "simple_query_cluster",
-            "common_query_cluster",
-        ): [DBManagePermission()],
+        ("common_query_cluster",): [DBManagePermission()],
         ("webconsole",): [ClusterWebconsolePermission()],
+        ("simple_query_cluster", "simple_query_cluster_v2"): [ListResourcePermission()],
     }
     default_permission_class = [DBManagePermission()]
 
@@ -95,6 +94,27 @@ class DBBaseViewSet(viewsets.SystemViewSet):
         cluster_queryset = Cluster.objects.filter(**conditions)
         cluster_infos = [cluster.simple_desc for cluster in cluster_queryset]
         return Response(cluster_infos)
+
+    @common_swagger_auto_schema(
+        operation_summary=_("查询业务集群简略信息"),
+        auto_schema=ResponseSwaggerAutoSchema,
+        query_serializer=QueryAllTypeClusterSerializerV2(),
+        responses={status.HTTP_200_OK: QueryAllTypeClusterResponseSerializer()},
+        tags=[SWAGGER_TAG],
+    )
+    @action(methods=["GET"], detail=False, serializer_class=QueryAllTypeClusterSerializerV2)
+    def simple_query_cluster_v2(self, request, *args, **kwargs):
+        data = self.params_validate(self.get_serializer_class())
+        conditions = self.get_serializer().get_conditions(data)
+        cluster_queryset = Cluster.objects.filter(conditions)
+
+        page = self.paginate_queryset(cluster_queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+
+        serializer = self.get_serializer(cluster_queryset, many=True)
+        return Response(serializer.data)
 
     @common_swagger_auto_schema(
         operation_summary=_("查询业务下集群通用信息"),
