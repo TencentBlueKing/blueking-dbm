@@ -31,6 +31,7 @@
             "metric_id": "bk_monitor.exporter_dbm_mysqld_exporter.__default__.mysql_slave_status_slave_io_running",
             "functions": [],
             "result_table_id": "exporter_dbm_mysqld_exporter.__default__",
+            "data_label": "exporter_dbm_mysqld_exporter",
             "agg_method": "AVG",
             "agg_interval": 60,
             "agg_dimension": [
@@ -62,6 +63,7 @@
             "metric_id": "bk_monitor.exporter_dbm_mysqld_exporter.__default__.mysql_slave_status_slave_sql_running",
             "functions": [],
             "result_table_id": "exporter_dbm_mysqld_exporter.__default__",
+            "data_label": "exporter_dbm_mysqld_exporter",
             "agg_method": "AVG",
             "agg_interval": 60,
             "agg_dimension": [
@@ -90,7 +92,7 @@
         "algorithms": [
           {
             "type": "Threshold",
-            "level": 1,
+            "level": 2,
             "config": [
               [
                 {
@@ -107,7 +109,7 @@
     ],
     "detects": [
       {
-        "level": 1,
+        "level": 2,
         "expression": "",
         "trigger_config": {
           "count": 1,
@@ -115,12 +117,12 @@
             "calendars": [],
             "time_ranges": [
               {
-                  "end": "23:59",
-                  "start": "06:00"
+                "end": "23:59",
+                "start": "06:00"
               },
               {
-                  "end": "02:59",
-                  "start": "00:00"
+                "end": "02:59",
+                "start": "00:00"
               }
             ]
           },
@@ -137,9 +139,10 @@
     "notice": {
       "config_id": 40791,
       "user_groups": [],
+      "user_type": "main",
       "signal": [
-        "no_data",
-        "abnormal"
+        "abnormal",
+        "no_data"
       ],
       "options": {
         "end_time": "23:59:59",
@@ -201,47 +204,11 @@
           "timedelta": 60,
           "is_enabled": true,
           "converge_func": "collect",
-          "need_biz_converge": false,
-          "sub_converge_config": {
-            "timedelta": 60,
-            "count": 2,
-            "condition": [
-              {
-                "dimension": "bk_biz_id",
-                "value": [
-                  "self"
-                ]
-              },
-              {
-                "dimension": "notice_receiver",
-                "value": [
-                  "self"
-                ]
-              },
-              {
-                "dimension": "notice_way",
-                "value": [
-                  "self"
-                ]
-              },
-              {
-                "dimension": "alert_level",
-                "value": [
-                  "self"
-                ]
-              },
-              {
-                "dimension": "signal",
-                "value": [
-                  "self"
-                ]
-              }
-            ],
-            "converge_func": "collect_alarm"
-          }
+          "need_biz_converge": false
         },
         "chart_image_enabled": true,
         "exclude_notice_ways": {
+          "ack": [],
           "closed": [],
           "recovered": []
         },
@@ -261,7 +228,7 @@
       "relate_type": "NOTICE",
       "config": {
         "need_poll": true,
-        "notify_interval": 7200,
+        "notify_interval": 14400,
         "interval_notify_mode": "standard",
         "template": [
           {
@@ -290,14 +257,16 @@
     "app": "",
     "path": "",
     "priority": 0,
-    "priority_group_key": "9ab99d24223710b8",
+    "priority_group_key": "",
+    "edit_allowed": true,
     "metric_type": "time_series",
     "data_source_type": "监控采集指标",
     "is_enabled": true
   },
   "is_enabled": true,
   "monitor_indicator": "AVG(mysql_slave_status_slave_io_running) + AVG(mysql_slave_status_slave_sql_running)",
-  "version": 22,
+  "version": 23,
   "alert_source": "time_series",
-  "custom_conditions": []
+  "custom_conditions": [],
+  "export_at": "2024-11-26T16:26:58+08:00"
 }

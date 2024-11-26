@@ -31,6 +31,7 @@
             "metric_id": "bk_monitor.exporter_dbm_mysqld_exporter.__default__.mysql_slave_status_seconds_behind_master",
             "functions": [],
             "result_table_id": "exporter_dbm_mysqld_exporter.__default__",
+            "data_label": "exporter_dbm_mysqld_exporter",
             "agg_method": "AVG",
             "agg_interval": 60,
             "agg_dimension": [
@@ -50,12 +51,12 @@
         "algorithms": [
           {
             "type": "Threshold",
-            "level": 2,
+            "level": 1,
             "config": [
               [
                 {
                   "method": "gte",
-                  "threshold": 120
+                  "threshold": 21600
                 }
               ]
             ],
@@ -63,12 +64,25 @@
           },
           {
             "type": "Threshold",
-            "level": 1,
+            "level": 2,
             "config": [
               [
                 {
                   "method": "gte",
-                  "threshold": 3600
+                  "threshold": 300
+                }
+              ]
+            ],
+            "unit_prefix": ""
+          },
+          {
+            "type": "Threshold",
+            "level": 3,
+            "config": [
+              [
+                {
+                  "method": "gte",
+                  "threshold": 60
                 }
               ]
             ],
@@ -80,7 +94,7 @@
     ],
     "detects": [
       {
-        "level": 2,
+        "level": 1,
         "expression": "",
         "trigger_config": {
           "count": 1,
@@ -88,12 +102,8 @@
             "calendars": [],
             "time_ranges": [
               {
-                  "end": "23:59",
-                  "start": "07:00"
-              },
-              {
-                  "end": "02:59",
-                  "start": "00:00"
+                "end": "23:10",
+                "start": "10:10"
               }
             ]
           },
@@ -106,7 +116,7 @@
         "connector": "and"
       },
       {
-        "level": 1,
+        "level": 2,
         "expression": "",
         "trigger_config": {
           "count": 1,
@@ -114,12 +124,30 @@
             "calendars": [],
             "time_ranges": [
               {
-                  "end": "23:59",
-                  "start": "06:00"
-              },
+                "end": "23:10",
+                "start": "10:10"
+              }
+            ]
+          },
+          "check_window": 5
+        },
+        "recovery_config": {
+          "check_window": 5,
+          "status_setter": "recovery"
+        },
+        "connector": "and"
+      },
+      {
+        "level": 3,
+        "expression": "",
+        "trigger_config": {
+          "count": 1,
+          "uptime": {
+            "calendars": [],
+            "time_ranges": [
               {
-                  "end": "02:59",
-                  "start": "00:00"
+                "end": "23:10",
+                "start": "10:10"
               }
             ]
           },
@@ -136,9 +164,10 @@
     "notice": {
       "config_id": 40754,
       "user_groups": [],
+      "user_type": "main",
       "signal": [
-        "no_data",
-        "abnormal"
+        "abnormal",
+        "no_data"
       ],
       "options": {
         "end_time": "23:59:59",
@@ -200,47 +229,11 @@
           "timedelta": 60,
           "is_enabled": true,
           "converge_func": "collect",
-          "need_biz_converge": false,
-          "sub_converge_config": {
-            "timedelta": 60,
-            "count": 2,
-            "condition": [
-              {
-                "dimension": "bk_biz_id",
-                "value": [
-                  "self"
-                ]
-              },
-              {
-                "dimension": "notice_receiver",
-                "value": [
-                  "self"
-                ]
-              },
-              {
-                "dimension": "notice_way",
-                "value": [
-                  "self"
-                ]
-              },
-              {
-                "dimension": "alert_level",
-                "value": [
-                  "self"
-                ]
-              },
-              {
-                "dimension": "signal",
-                "value": [
-                  "self"
-                ]
-              }
-            ],
-            "converge_func": "collect_alarm"
-          }
+          "need_biz_converge": false
         },
         "chart_image_enabled": true,
         "exclude_notice_ways": {
+          "ack": [],
           "closed": [],
           "recovered": []
         },
@@ -261,7 +254,7 @@
       "relate_type": "NOTICE",
       "config": {
         "need_poll": true,
-        "notify_interval": 7200,
+        "notify_interval": 21600,
         "interval_notify_mode": "standard",
         "template": [
           {
@@ -290,14 +283,16 @@
     "app": "",
     "path": "",
     "priority": 0,
-    "priority_group_key": "1b1679b9980b72de",
+    "priority_group_key": "",
+    "edit_allowed": true,
     "metric_type": "time_series",
     "data_source_type": "监控采集指标",
     "is_enabled": true
   },
   "is_enabled": true,
   "monitor_indicator": "AVG(mysql_slave_status_seconds_behind_master)",
-  "version": 23,
+  "version": 24,
   "alert_source": "time_series",
-  "custom_conditions": []
+  "custom_conditions": [],
+  "export_at": "2024-11-26T16:26:58+08:00"
 }
