@@ -37,22 +37,21 @@
 
   import StretchLayout from '@components/stretch-layout/StretchLayout.vue';
 
+  import useDetailPreCheck from '@views/ticket-center/common/hooks/use-detail-precheck';
   import Detail from '@views/ticket-center/common/ticket-detail/Index.vue';
 
   import List from './components/list/Index.vue';
-  import usePreCheck from './hooks/use-pre-check';
 
   const router = useRouter();
   const route = useRoute();
   const { getSearchParams } = useUrlSearch();
 
   // params.ticketId 会运行中改变，需要要响应变化
-  const ticketId = computed(() => {
-    console.log('route.params.ticketId = ', route.params.ticketId);
-    return Number(route.params.ticketId) || 0;
-  });
+  const ticketId = computed(() => Number(route.params.ticketId) || 0);
 
-  const isPreChecking = usePreCheck(ticketId.value);
+  const isPreChecking = useDetailPreCheck({
+    id: ticketId.value,
+  });
 
   const handleStretchLayoutChange = (value: boolean) => {
     if (!value) {

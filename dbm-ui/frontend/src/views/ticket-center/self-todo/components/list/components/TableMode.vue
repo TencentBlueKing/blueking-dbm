@@ -93,9 +93,10 @@
   const router = useRouter();
 
   const { t } = useI18n();
-  const statusList = useStatusList();
   const eventBus = useEventBus();
   const currentInstance = getCurrentInstance();
+
+  const { list: statusList, defaultStatus } = useStatusList();
 
   const { getSearchParams, removeSearchParam } = useUrlSearch();
   const { splitScreen: stretchLayoutSplitScreen } = useStretchLayout();
@@ -117,7 +118,7 @@
     });
 
   const dataTableRef = useTemplateRef('dataTable');
-  const ticketStatus = ref((route.params.status as string) || TicketModel.STATUS_APPROVE);
+  const ticketStatus = ref(defaultStatus.value);
   const selectTicketIdList = shallowRef<TicketModel[]>([]);
   const isShowBatchOperation = ref(false);
   const selectTicketId = ref(0);
@@ -155,7 +156,7 @@
   eventBus.on('refreshTicketStatus', handleRefreshTable);
 
   onActivated(() => {
-    ticketStatus.value = (route.params.status as string) || TicketModel.STATUS_APPROVE;
+    ticketStatus.value = defaultStatus.value;
     selectTicketId.value = Number(route.query.selectId);
     removeSearchParam('selectId');
   });
@@ -167,6 +168,7 @@
       }
       router.replace({
         params: {
+          status: ticketStatus.value,
           ticketId: selectTicketId.value,
         },
         query: getSearchParams(),

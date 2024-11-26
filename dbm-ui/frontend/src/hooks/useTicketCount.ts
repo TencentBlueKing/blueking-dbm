@@ -5,7 +5,7 @@ import { getTicketCount } from '@services/source/ticketFlow';
 
 import { useEventBus } from '@hooks';
 
-export const useTicketCount = () => {
+const run = () => {
   const data = ref<ServiceReturnType<typeof getTicketCount>>({
     MY_APPROVE: 0,
     APPROVE: 0,
@@ -17,9 +17,9 @@ export const useTicketCount = () => {
     SELF_MANAGE: 0,
   });
 
-  const { run } = useRequest(getTicketCount, {
+  const { loading, run } = useRequest(getTicketCount, {
     cacheKey: 'ticketCount',
-    cacheTime: 1000,
+    cacheTime: 10000,
     onSuccess(result) {
       data.value = result;
     },
@@ -34,6 +34,16 @@ export const useTicketCount = () => {
   });
 
   return {
+    loading,
     data,
   };
+};
+
+let context: ReturnType<typeof run>;
+
+export const useTicketCount = () => {
+  if (!context) {
+    context = run();
+  }
+  return context;
 };
