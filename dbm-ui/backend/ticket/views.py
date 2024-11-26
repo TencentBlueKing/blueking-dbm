@@ -645,12 +645,16 @@ class TicketViewSet(viewsets.AuditedModelViewSet):
         validated_data = self.params_validate(self.get_serializer_class())
         act = validated_data["action"]
 
+        # 批量查询待办事项
+        todo_ids = [operation["todo_id"] for operation in validated_data["operations"]]
+        todos = {todo.id: todo for todo in Todo.objects.filter(id__in=todo_ids)}
+
         # 批量处理待办操作
         results = []
         for operation in validated_data["operations"]:
             todo_id = operation["todo_id"]
             params = operation["params"]
-            todo = Todo.objects.get(id=todo_id)
+            todo = todos[todo_id]
             TodoActorFactory.actor(todo).process(request.user.username, act, params)
             results.append(todo)
 
