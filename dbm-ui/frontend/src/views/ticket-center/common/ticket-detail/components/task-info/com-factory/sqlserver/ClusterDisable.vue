@@ -12,15 +12,15 @@
 -->
 
 <template>
-  <Disable :ticket-details="ticketDetails" />
+  <BatchClusterOperation :ticket-details="ticketDetails" />
 </template>
 
-<script setup lang="tsx">
+<script setup lang="ts">
   import TicketModel, { type Sqlserver } from '@services/model/ticket/ticket';
 
   import { TicketTypes } from '@common/const';
 
-  import Disable from './common/Disabled&enable&destroy.vue';
+  import BatchClusterOperation from '../common/BatchClusterOperation.vue';
 
   interface Props {
     ticketDetails: TicketModel<Sqlserver.Disable>;

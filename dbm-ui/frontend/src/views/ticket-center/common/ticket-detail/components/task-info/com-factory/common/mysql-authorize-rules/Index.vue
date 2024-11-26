@@ -15,17 +15,12 @@
   <RenderTable
     v-bind="props"
     :data="data" />
-  <div
-    v-if="ticketDetails.details.excel_url"
-    class="ticket-details-list">
-    <div class="ticket-details-item">
-      <span class="ticket-details-item-label">{{ t('Excel文件') }}：</span>
-      <span class="ticket-details-item-value">
-        <i class="db-icon-excel" />
-        <a :href="ticketDetails.details.excel_url">{{ t('批量授权文件') }} <i class="db-icon-import" /></a>
-      </span>
-    </div>
-  </div>
+  <InfoList v-if="ticketDetails.details.excel_url">
+    <InfoItem :label="t('Excel文件：')">
+      <i class="db-icon-excel" />
+      <a :href="ticketDetails.details.excel_url">{{ t('批量授权文件') }} <i class="db-icon-import" /></a>
+    </InfoItem>
+  </InfoList>
 </template>
 
 <script setup lang="ts">
@@ -34,6 +29,8 @@
   import TicketModel, { type Mysql } from '@services/model/ticket/ticket';
 
   import { AccountTypes } from '@common/const';
+
+  import InfoList, { Item as InfoItem } from '../../components/info-list/Index.vue';
 
   import RenderTable from './components/RenderTable.vue';
 
