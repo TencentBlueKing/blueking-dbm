@@ -12,8 +12,7 @@
  */
 import { uniq } from 'lodash';
 
-import ClusterEntryDetailModel from '@services/model/cluster-entry/cluster-entry-details';
-import type { ClusterListSpec } from '@services/types';
+import type { ClusterListEntry, ClusterListSpec } from '@services/types';
 
 import { ClusterAffinityMap } from '@common/const';
 
@@ -74,13 +73,13 @@ export default class Pulsar {
   bk_sub_zone: string;
   cap_usage: number;
   cluster_alias: string;
+  cluster_entry: ClusterListEntry[];
   cluster_name: string;
   cluster_spec: ClusterListSpec;
   cluster_stats: Record<'used' | 'total' | 'in_use', number>;
   cluster_type: string;
   cluster_type_name: string;
   cluster_time_zone: string;
-  cluster_entry_details: ClusterEntryDetailModel[];
   create_at: string;
   creator: string;
   disaster_tolerance_level: keyof typeof ClusterAffinityMap;
@@ -124,13 +123,13 @@ export default class Pulsar {
     this.bk_sub_zone = payload.bk_sub_zone;
     this.cap_usage = payload.cap_usage;
     this.cluster_alias = payload.cluster_alias;
+    this.cluster_entry = payload.cluster_entry;
     this.cluster_name = payload.cluster_name;
     this.cluster_spec = payload.cluster_spec || {};
     this.cluster_stats = payload.cluster_stats || {};
     this.cluster_type = payload.cluster_type;
     this.cluster_type_name = payload.cluster_type_name;
     this.cluster_time_zone = payload.cluster_time_zone;
-    this.cluster_entry_details = payload.cluster_entry_details.map((item) => new ClusterEntryDetailModel(item));
     this.create_at = payload.create_at;
     this.creator = payload.creator;
     this.disaster_tolerance_level = payload.disaster_tolerance_level;
