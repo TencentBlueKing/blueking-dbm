@@ -16,9 +16,11 @@ from django.utils.translation import ugettext as _
 from backend.components import DBConfigApi, DnsApi
 from backend.components.dbconfig.constants import LevelName, ReqType
 from backend.configuration.handlers.dba import DBAdministratorHandler
+from backend.db_meta.api.cluster.mongocluster import pkg_create_mongo_cluster
+from backend.db_meta.api.cluster.mongorepset import pkg_create_mongoset
 from backend.db_meta.enums import ClusterEntryType
 from backend.db_meta.enums.cluster_type import ClusterType
-from backend.db_meta.models import CLBEntryDetail, Cluster, ClusterEntry
+from backend.db_meta.models import CLBEntryDetail, Cluster, ClusterEntry, Machine
 from backend.flow.consts import DEFAULT_CONFIG_CONFIRM, DEFAULT_DB_MODULE_ID, MongoDBManagerUser
 from backend.flow.utils import dns_manage
 from backend.flow.utils.mongodb.mongodb_password import MongoDBPassword
@@ -153,6 +155,57 @@ class MongoDBMigrateMeta(object):
                         )
                     )
                     return False
+
+    def migrate_cluster(self):
+        """迁移集群"""
+
+        # 副本集判断机器是否复用
+        if self.info["cluster_type"] == ClusterType.MongoReplicaSet.value:
+            for node in self.info["replicaset_storages"]:
+                if Machine.objects.filter(ip=node["ip"], bk_cloud_id=node["bk_cloud_id"]).count() > 0:
+                    self.info["skip_machine"] = True
+                    break
+        # 写入meta
+        try:
+            if self.info["cluster_type"] == ClusterType.MongoReplicaSet.value:
+                pkg_create_mongoset(
+                    bk_biz_id=self.info["bk_biz_id"],
+                    name=self.info["name"],
+                    immute_domain=self.info["immute_domain"],
+                    alias=self.info["alias"],
+                    major_version=self.info["major_version"],
+                    storages=self.info["storages"],
+                    creator=self.info["creator"],
+                    bk_cloud_id=self.info["bk_cloud_id"],
+                    db_module_id=self.info["db_module_id"],
+                    region=self.info["region"],
+                    skip_machine=self.info["skip_machine"],
+                    spec_id=self.info["spec_id"],
+                    spec_config=self.info["spec_config"],
+                    disaster_tolerance_level=self.info.get("disaster_tolerance_level", "NONE"),
+                )
+            elif self.info["cluster_type"] == ClusterType.MongoShardedCluster.value:
+                pkg_create_mongo_cluster(
+                    bk_biz_id=self.info["bk_biz_id"],
+                    name=self.info["name"],
+                    immute_domain=self.info["immute_domain"],
+                    alias=self.info["alias"],
+                    db_module_id=self.info["db_module_id"],
+                    major_version=self.info["major_version"],
+                    proxies=self.info["proxies"],
+                    configs=self.info["configs"],
+                    storages=self.info["storages"],
+                    creator=self.info["creator"],
+                    bk_cloud_id=self.info["bk_cloud_id"],
+                    region=self.info["region"],
+                    machine_specs=self.info["machine_specs"],
+                    disaster_tolerance_level=self.info.get("disaster_tolerance_level", "NONE"),
+                )
+        except Exception as e:
+            logger.error("add relationship to meta fail, error:{}".format(str(e)))
+            return False
+        logger.info("add mongodb relationship to meta successfully")
+        return True
 
     def change_domain_app(self):
         """修改dns的app字段"""

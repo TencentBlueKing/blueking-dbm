@@ -21,9 +21,6 @@ from backend.flow.engine.bamboo.scene.mongodb.mongodb_install_dbmon import add_i
 from backend.flow.plugins.components.collections.common.install_nodeman_plugin import (
     InstallNodemanPluginServiceComponent,
 )
-from backend.flow.plugins.components.collections.mongodb.add_relationship_to_meta import (
-    ExecAddRelationshipOperationComponent,
-)
 from backend.flow.plugins.components.collections.mongodb.exec_actuator_job import ExecuteDBActuatorJobComponent
 from backend.flow.plugins.components.collections.mongodb.migrate_meta import MongoDBMigrateMetaComponent
 from backend.flow.plugins.components.collections.mongodb.send_media import ExecSendMediaOperationComponent
@@ -83,7 +80,7 @@ def cluster_migrate(
     kwargs = sub_get_kwargs.get_migrate_info()
     sub_pipeline.add_act(
         act_name=_("迁移meta"),
-        act_component_code=ExecAddRelationshipOperationComponent.code,
+        act_component_code=MongoDBMigrateMetaComponent.code,
         kwargs=kwargs,
     )
 

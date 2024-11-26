@@ -16,7 +16,6 @@ from backend.configuration.constants import DBType
 from backend.db_meta.enums.cluster_type import ClusterType
 from backend.db_meta.enums.instance_role import InstanceRole
 from backend.db_meta.enums.spec import SpecClusterType, SpecMachineType
-from backend.db_meta.models import Machine
 from backend.db_meta.models.spec import Spec
 from backend.flow.consts import (
     DEFAULT_DB_MODULE_ID,
@@ -98,17 +97,6 @@ class MigrateActKwargs:
         self.bk_cloud_id: int = None
         # os配置
         self.os_conf: dict = None
-
-    def skip_machine(self):
-        """副本集机器复用"""
-
-        if self.source_cluster_info.get("cluster_type") == ClusterType.MongoReplicaSet.value:
-            for node in self.source_cluster_info.get("storages"):
-                if Machine.objects.filter(ip=node["ip"], bk_cloud_id=node["bk_cloud_id"]).count() > 0:
-                    self.source_cluster_info["skip_machine"] = True
-                    break
-                else:
-                    self.source_cluster_info["skip_machine"] = False
 
     @staticmethod
     def get_mongodb_spec_info(cluster_type: str, machine_type: str) -> dict:
@@ -256,6 +244,7 @@ class MigrateActKwargs:
         """获取迁移信息"""
 
         info = {
+            "meta_func_name": MongoDBMigrateMeta.migrate_cluster.__name__,
             "bk_biz_id": self.bk_biz_id,
             "major_version": self.source_cluster_info.get("major_version"),
             "creator": self.source_cluster_info.get("mongodb_dbas").split(",")[0],
@@ -290,7 +279,8 @@ class MigrateActKwargs:
                     storages[index]["role"] = self.instance_role[index]
             info.update(
                 {
-                    "skip_machine": self.source_cluster_info.get("skip_machine"),
+                    "replicaset_storages": self.source_cluster_info.get("storages"),
+                    "skip_machine": False,
                     "immute_domain": immute_domain,
                     "name": self.source_cluster_info.get("replsetname"),
                     "alias": self.source_cluster_info.get("replsetname"),

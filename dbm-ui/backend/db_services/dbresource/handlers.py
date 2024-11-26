@@ -18,7 +18,7 @@ from django.utils.translation import ugettext as _
 from backend.components.dbresource.client import DBResourceApi
 from backend.components.gse.client import GseApi
 from backend.db_meta.enums.spec import SpecClusterType, SpecMachineType
-from backend.db_meta.models import Spec, AppCache
+from backend.db_meta.models import AppCache, Spec
 from backend.db_services.dbresource.exceptions import SpecOperateException
 from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
 
