@@ -950,4 +950,4 @@ def authorize_sub_flow(root_id: str, uid: str, bk_biz_id: int, operator: str, ru
         }
         act_lists.append(act)
     sub_pipeline.add_parallel_acts(acts_list=act_lists)
-    return sub_pipeline.build_sub_process(sub_name=_("权限克隆"))
+    return sub_pipeline.build_sub_process(sub_name=_("授权执行"))

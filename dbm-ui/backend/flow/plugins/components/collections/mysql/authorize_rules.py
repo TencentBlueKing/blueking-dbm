@@ -24,7 +24,6 @@ from backend.db_services.dbpermission.constants import RuleActionType
 from backend.db_services.dbpermission.db_authorize.models import DBRuleActionLog
 from backend.flow.engine.bamboo.engine import BambooEngine
 from backend.flow.plugins.components.collections.common.base_service import BaseService
-from backend.ticket.constants import TicketType
 
 logger = logging.getLogger("flow")
 
@@ -88,12 +87,12 @@ class AuthorizeRules(BaseService):
         ticket_id = kwargs["uid"]
         bk_biz_id = kwargs["bk_biz_id"]
         # TODO: 参数兼容，后续去掉
-        db_type = kwargs.get("db_type") or TicketType.get_db_type_by_ticket(kwargs["ticket_type"])
+        db_type = kwargs.get("db_type")
         user_db_rules_map = kwargs.get("user_db_rules_map")
-        operator = kwargs.get("operator") or kwargs.get("created_by")
+        operator = kwargs.get("operator")
         # authorize_data, 格式为：
         # {"user": xx, "source_ip": [...], "target_instances": [...], "access_db": [...]}
-        authorize_data = kwargs.get("authorize_data") or kwargs["rules_set"][0]
+        authorize_data = kwargs.get("authorize_data")
 
         # 授权规则记录
         self._generate_rule_logs(bk_biz_id, db_type, operator, authorize_data, user_db_rules_map)

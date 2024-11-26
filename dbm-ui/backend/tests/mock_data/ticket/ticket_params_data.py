@@ -8,11 +8,13 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+from backend.configuration.constants import DBType
 from backend.db_services.mysql.permission.constants import CloneClusterType
 from backend.ticket.constants import TicketType
 
 BASE_FLOW_PARAMS = {
     "uid": 1,
+    "root_id": "4146d614abf011",
     "ticket_type": "",
     "created_by": "admin",
     "bk_biz_id": 1,
@@ -20,19 +22,19 @@ BASE_FLOW_PARAMS = {
 
 MYSQL_AUTHORIZE_FLOW_PARAMS = {
     **BASE_FLOW_PARAMS,
+    "db_type": DBType.MySQL.value,
     "ticket_type": TicketType.MYSQL_AUTHORIZE_RULES.value,
-    "rules_set": [
-        {
-            "bk_biz_id": 1,
-            "operator": "admin",
-            "user": "admin",
-            "access_dbs": ["datamain"],
-            "account_rules": [{"dbname": "datamain", "bk_biz_id": 1}],
-            "source_ips": ["127.0.0.1", "127.0.0.2"],
-            "target_instances": ["gamedb.privtest55.blueking.db"],
-            "cluster_type": "tendbha",
-        }
-    ],
+    "operator": "admin",
+    "authorize_data": {
+        "bk_biz_id": 1,
+        "operator": "admin",
+        "user": "admin",
+        "access_dbs": ["datamain"],
+        "account_rules": [{"dbname": "datamain", "bk_biz_id": 1}],
+        "source_ips": ["127.0.0.1", "127.0.0.2"],
+        "target_instances": ["gamedb.privtest55.blueking.db"],
+        "cluster_type": "tendbha",
+    },
 }
 
 MYSQL_CLONE_FLOW_PARAMS = {
