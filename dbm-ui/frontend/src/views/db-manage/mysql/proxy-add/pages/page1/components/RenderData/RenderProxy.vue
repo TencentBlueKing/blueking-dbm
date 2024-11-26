@@ -43,7 +43,14 @@
   }
 
   interface Exposes {
-    getValue: () => Promise<Array<string>>;
+    getValue: () => Promise<{
+      new_proxy: {
+        bk_biz_id: number;
+        bk_host_id: number;
+        bk_cloud_id: number;
+        ip: string;
+      };
+    }>;
   }
 
   const props = defineProps<Props>();

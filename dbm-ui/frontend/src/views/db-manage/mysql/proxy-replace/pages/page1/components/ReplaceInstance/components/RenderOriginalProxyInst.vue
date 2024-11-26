@@ -94,13 +94,14 @@
             port: currentData.port,
             instance_address: currentData.instance_address,
           };
-          const relatedClusters = currentData.related_clusters.map((item) => ({
-            cluster_id: item.id,
-            domain: item.master_domain,
-          }));
           emits('inputFinish', {
             originProxy,
-            relatedClusters,
+            relatedClusters: [
+              {
+                cluster_id: currentData.cluster_id,
+                domain: currentData.master_domain,
+              },
+            ],
           });
           return true;
         }),
