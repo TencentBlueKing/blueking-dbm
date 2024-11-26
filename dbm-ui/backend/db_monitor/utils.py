@@ -159,6 +159,8 @@ def create_bklog_collector(startswith: str = ""):
                 bklog_params = JsonConfigFormat.format(bklog_params, JsonConfigFormat.format_redis.__name__)
             elif "mssql" in filename:
                 bklog_params = JsonConfigFormat.format(bklog_params, JsonConfigFormat.format_mssql.__name__)
+            elif "mongo" in filename:
+                bklog_params = JsonConfigFormat.format(bklog_params, JsonConfigFormat.format_mongo.__name__)
             else:
                 logger.warning(_("格式化函数{log_name}不存在(如果无需格式化json可忽略)").format(log_name=log_name))
 

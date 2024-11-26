@@ -123,6 +123,10 @@ class JsonConfigFormat:
         return cls.get_db_set_ctx(DBType.Sqlserver.value)
 
     @classmethod
+    def format_mongo(cls):
+        return cls.get_db_set_ctx(DBType.MongoDB.value)
+
+    @classmethod
     def custom_modify_mysql_slowlog(cls, params):
         """
         mysql 慢查询日志，需要添加 option 进行清洗
