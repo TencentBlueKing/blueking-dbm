@@ -212,7 +212,6 @@
         bk_biz_id: currentBizId,
       }).then((data) => {
         window.changeConfirm = false;
-
         router.push({
           name: 'MySQLProxyAdd',
           params: {
