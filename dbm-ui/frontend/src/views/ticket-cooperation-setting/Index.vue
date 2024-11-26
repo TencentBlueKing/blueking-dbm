@@ -1,12 +1,5 @@
 <template>
   <div class="ticket-cooperation-setting">
-    <Teleport to="#dbContentTitleAppend">
-      <BkTag
-        class="ml-8"
-        theme="info">
-        {{ t('业务配置') }}
-      </BkTag>
-    </Teleport>
     <DbCard
       mode="collapse"
       :title="t('单据协助')">
