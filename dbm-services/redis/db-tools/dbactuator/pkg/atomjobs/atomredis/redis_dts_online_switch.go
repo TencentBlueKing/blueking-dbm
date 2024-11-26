@@ -142,6 +142,11 @@ func (job *RedisDtsOnlineSwitch) Run() (err error) {
 	if err != nil {
 		return err
 	}
+	// 先Stop dbmon，防止中途被拉起，导致端口冲突
+	err = util.StopBkDbmon()
+	if err != nil {
+		return err
+	}
 	err = job.RestartProxyAndCheckBackends()
 	if err != nil {
 		return err
@@ -689,11 +694,11 @@ func (job *RedisDtsOnlineSwitch) RestartDbMon() (err error) {
 			return
 		}
 	}
-	// 重启 dbmon
-	err = util.StopBkDbmon()
-	if err != nil {
-		return err
-	}
+	// // 重启 dbmon
+	// err = util.StopBkDbmon()
+	// if err != nil {
+	// 	return err
+	// }
 	err = util.StartBkDbmon()
 	if err != nil {
 		return err
