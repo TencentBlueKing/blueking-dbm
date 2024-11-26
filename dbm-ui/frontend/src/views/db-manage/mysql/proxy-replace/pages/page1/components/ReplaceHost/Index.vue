@@ -52,7 +52,18 @@
   import RenderDataRow, { createRowData, type IDataRow } from './components/RenderData/Row.vue';
 
   interface Exposes {
-    getValue(): Promise<any>;
+    getValue(): Promise<
+      {
+        cluster_ids: number[];
+        origin_proxy: IDataRow['originProxy'];
+        target_proxy: IDataRow['targetProxy'];
+        display_info: {
+          type: string;
+          related_instances: string[];
+          related_clusters: string[];
+        };
+      }[]
+    >;
     reset(): void;
   }
 

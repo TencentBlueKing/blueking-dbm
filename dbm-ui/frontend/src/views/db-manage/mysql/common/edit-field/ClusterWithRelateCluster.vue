@@ -121,7 +121,9 @@
   }
 
   interface Exposes {
-    getValue: () => Array<number>;
+    getValue: () => {
+      cluster_ids: number[];
+    };
   }
 
   interface IClusterData {

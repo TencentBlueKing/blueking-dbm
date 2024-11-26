@@ -31,7 +31,7 @@
       :min-width="200"
       :required="false"
       :width="240">
-      {{ t('同机关联集群') }}
+      {{ t('关联集群') }}
     </RenderTableHeadColumn>
     <RenderTableHeadColumn
       :min-width="200"

@@ -202,7 +202,25 @@
   const handleSubmit = async () => {
     try {
       isSubmitting.value = true;
-      const infos = await Promise.all(rowRefs.value.map((item: { getValue: () => Promise<any> }) => item.getValue()));
+      const rows = await Promise.all(rowRefs.value.map((item: { getValue: () => Promise<any> }) => item.getValue()));
+      // 新ip一致，聚合clusterid
+      const clusterIdsSet: Record<string, Set<number>> = {};
+      rows.forEach(
+        (item: {
+          cluster_ids: number[];
+          new_proxy: {
+            ip: string;
+          };
+        }) => {
+          const key = item.new_proxy.ip;
+          clusterIdsSet[key] = clusterIdsSet[key] || new Set();
+          item.cluster_ids.forEach((id) => clusterIdsSet[key].add(id));
+        },
+      );
+      const infos = rows.map((item) => ({
+        ...item,
+        cluster_ids: Array.from(clusterIdsSet[item.new_proxy.ip]),
+      }));
       await createTicket({
         ticket_type: 'MYSQL_PROXY_ADD',
         remark: remark.value,

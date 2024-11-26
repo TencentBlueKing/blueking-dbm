@@ -64,7 +64,7 @@
     () => props.ticketDetails.details,
     () => {
       tableData.value = props.ticketDetails.details.infos.map(item => ({
-        originProxy: item.origin_proxy.ip,
+        originProxy: `${item.origin_proxy.ip}:${item.origin_proxy.port}`,
         relatedClusters: item.display_info.related_clusters as string[],
         targetProxy: item.target_proxy.ip,
       }));
