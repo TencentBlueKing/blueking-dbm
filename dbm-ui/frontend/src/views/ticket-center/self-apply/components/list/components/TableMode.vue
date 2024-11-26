@@ -44,12 +44,9 @@
           :label="t('操作')"
           width="160">
           <template #default="{ data }: { data: IRowData }">
-            <BkButton
-              text
-              theme="primary"
-              @click="() => handleShowDetail(data)">
-              {{ t('查看详情') }}
-            </BkButton>
+            <TicketDetailLink
+              v-if="data"
+              :data="data" />
             <TicketClone
               v-if="data"
               class="ml-8"
@@ -74,6 +71,7 @@
   import useSearchSelect from '@views/ticket-center/common/hooks/use-search-select';
   import TableModeTable from '@views/ticket-center/common/TableModeTable.vue';
   import TicketClone from '@views/ticket-center/common/TicketClone.vue';
+  import TicketDetailLink from '@views/ticket-center/common/TicketDetailLink.vue';
 
   type IRowData = TicketModel<unknown>;
 
@@ -92,7 +90,7 @@
   const dataSource = (params: ServiceParameters<typeof getTickets>) =>
     getTickets({
       ...params,
-      self_manage: 0,
+      self_manage: 1,
     });
 
   const selectTicketId = ref(0);

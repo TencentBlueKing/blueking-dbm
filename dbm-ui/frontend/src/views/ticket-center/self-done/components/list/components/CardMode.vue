@@ -1,7 +1,7 @@
 <template>
   <div
     ref="root"
-    class="ticket-list-card-mode">
+    class="ticket-self-done-list-card-mode">
     <div class="action-box">
       <BkDatePicker
         v-model="datePickerValue"
@@ -43,7 +43,7 @@
     });
 </script>
 <style lang="less">
-  .ticket-list-card-mode {
+  .ticket-self-done-list-card-mode {
     position: relative;
     z-index: 100;
     height: calc(100vh - var(--notice-height) - 104px);

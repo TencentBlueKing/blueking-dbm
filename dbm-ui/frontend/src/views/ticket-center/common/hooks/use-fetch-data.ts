@@ -3,13 +3,13 @@ import { useRequest } from 'vue-request';
 import { onBeforeRouteLeave } from 'vue-router';
 
 import TicketModel from '@services/model/ticket/ticket';
-import { getTicketStatus, getTodoTickets } from '@services/source/ticket';
+import { getTickets, getTicketStatus } from '@services/source/ticket';
 
 import { useEventBus, useUrlSearch } from '@hooks';
 
 import { useTimeoutFn } from '@vueuse/core';
 
-const create = (dataSource: typeof getTodoTickets, options?: { onSuccess?: (data: TicketModel[]) => void }) => {
+const create = (dataSource: typeof getTickets, options?: { onSuccess?: (data: TicketModel[]) => void }) => {
   const eventBus = useEventBus();
   const { replaceSearchParams, getSearchParams } = useUrlSearch();
 
@@ -60,7 +60,7 @@ const create = (dataSource: typeof getTodoTickets, options?: { onSuccess?: (data
     fetchTicketStatus();
   }, 1000000);
 
-  const fetchTicketList = (params: ServiceParameters<typeof getTodoTickets>) => {
+  const fetchTicketList = (params: ServiceParameters<typeof getTickets>) => {
     isLoading.value = true;
     dataSource({
       limit: pagination.limit,
