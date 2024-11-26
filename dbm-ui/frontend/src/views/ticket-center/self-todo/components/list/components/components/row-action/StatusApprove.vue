@@ -33,5 +33,9 @@
 
   defineProps<Props>();
 
+  defineOptions({
+    inheritAttrs: false,
+  });
+
   const { t } = useI18n();
 </script>

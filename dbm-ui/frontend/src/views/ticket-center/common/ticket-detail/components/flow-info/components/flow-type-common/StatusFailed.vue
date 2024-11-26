@@ -10,8 +10,9 @@
     </template>
     <template #content>
       <slot name="content">
-        <I18nT keypath="m_耗时_t">
+        <I18nT keypath="m_处理人_p_耗时_t">
           <span style="color: #ea3636">{{ t('执行失败') }}</span>
+          <span>{{ ticketDetail.todo_operators.join(',') }}</span>
           <CostTimer
             :is-timing="false"
             :start-time="utcTimeToSeconds(data.start_time)"
@@ -25,19 +26,17 @@
             {{ t('查看详情') }}
           </a>
         </template>
-        <template v-if="isSuperuser || ticketDetail.todo_operators.includes(username)">
-          <div
-            v-if="[0, 2].includes(data.err_code)"
-            class="mt-12">
-            <ProcessRetry :data="ticketDetail">
-              <BkButton
-                class="w-88"
-                theme="primary">
-                {{ t('重试') }}
-              </BkButton>
-            </ProcessRetry>
-          </div>
-        </template>
+        <div
+          v-if="isCanOperation && isNeedOperation"
+          class="mt-12">
+          <ProcessRetry :data="ticketDetail">
+            <BkButton
+              class="w-88"
+              theme="primary">
+              {{ t('重试') }}
+            </BkButton>
+          </ProcessRetry>
+        </div>
       </slot>
       <div
         v-if="data.err_msg"
@@ -81,7 +80,7 @@
     ticketDetail: TicketModel<unknown>;
   }
 
-  defineProps<Props>();
+  const props = defineProps<Props>();
 
   defineSlots<{
     title: () => VNode;
@@ -94,4 +93,7 @@
 
   const { t } = useI18n();
   const { username, isSuperuser } = useUserProfile();
+
+  const isCanOperation = computed(() => isSuperuser || props.ticketDetail.todo_operators.includes(username));
+  const isNeedOperation = computed(() => [0, 2].includes(props.data.err_code));
 </script>

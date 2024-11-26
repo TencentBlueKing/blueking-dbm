@@ -13,6 +13,7 @@
 
 <template>
   <StretchLayout
+    v-if="!isPreChecking && !isTicketCountLoading"
     :left-width="400"
     :min-left-width="300"
     name="ticketList"
@@ -32,10 +33,11 @@
   import { computed } from 'vue';
   import { useRoute, useRouter } from 'vue-router';
 
-  import { useUrlSearch } from '@hooks';
+  import { useTicketCount, useUrlSearch } from '@hooks';
 
   import StretchLayout from '@components/stretch-layout/StretchLayout.vue';
 
+  import useDetailPreCheck from '@views/ticket-center/common/hooks/use-detail-precheck';
   import Detail from '@views/ticket-center/common/ticket-detail/Index.vue';
 
   import List from './components/list/Index.vue';
@@ -45,6 +47,14 @@
   const { getSearchParams } = useUrlSearch();
 
   const ticketId = computed(() => Number(route.params.ticketId) || 0);
+
+  const isPreChecking = useDetailPreCheck({
+    id: ticketId.value,
+    todo: 'running',
+    self_manage: 1,
+  });
+
+  const { loading: isTicketCountLoading } = useTicketCount();
 
   const handleStretchLayoutChange = (value: boolean) => {
     if (!value) {

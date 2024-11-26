@@ -44,9 +44,8 @@
 <script setup lang="ts">
   import { computed, useTemplateRef } from 'vue';
   import { useI18n } from 'vue-i18n';
-  import { useRoute, useRouter } from 'vue-router';
+  import { useRouter } from 'vue-router';
 
-  import TicketModel from '@services/model/ticket/ticket';
   import { getTickets } from '@services/source/ticket';
 
   import CardModeList from '@views/ticket-center/common/CardModeList.vue';
@@ -57,10 +56,9 @@
 
   const { t } = useI18n();
 
-  const route = useRoute();
   const router = useRouter();
 
-  const statusList = useStatusList();
+  const { list: statusList, defaultStatus } = useStatusList();
 
   const { value: datePickerValue, shortcutsRange } = useDatePicker();
   const { value: searachSelectValue, searchSelectData } = useSearchSelect({
@@ -69,7 +67,7 @@
 
   const dataTableRef = useTemplateRef('list');
 
-  const ticketStatus = ref((route.params.status as string) || TicketModel.STATUS_APPROVE);
+  const ticketStatus = ref(defaultStatus.value);
 
   const ticektStatusName = computed(() => statusList.value.find((item) => item.id === ticketStatus.value)?.name);
 
@@ -91,7 +89,7 @@
   });
 
   onActivated(() => {
-    ticketStatus.value = (route.params.status as string) || TicketModel.STATUS_TODO;
+    ticketStatus.value = defaultStatus.value;
   });
 </script>
 <style lang="less">
