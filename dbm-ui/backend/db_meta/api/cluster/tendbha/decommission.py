@@ -28,8 +28,6 @@ logger = logging.getLogger("root")
 def decommission(cluster: Cluster):
     cc_manage = CcManage(cluster.bk_biz_id, cluster.cluster_type)
     for proxy in cluster.proxyinstance_set.all():
-        # 先做加锁处理，避免出现同机器同时回收实例出现判断异常的问题
-        proxy.machine.proxyinstance_set.select_for_update().all()
 
         proxy.delete(keep_parents=True)
         if not proxy.machine.proxyinstance_set.exists():
@@ -41,8 +39,6 @@ def decommission(cluster: Cluster):
             cc_manage.delete_service_instance(bk_instance_ids=[proxy.bk_instance_id])
 
     for storage in cluster.storageinstance_set.all():
-        # 先做加锁处理，避免出现同机器同时回收实例出现判断异常的问题
-        storage.machine.proxyinstance_set.select_for_update().all()
 
         # 删除存储在密码服务的密码元信息
         DBPrivManagerApi.delete_password(

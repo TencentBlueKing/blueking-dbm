@@ -65,10 +65,6 @@ func (g *CloneClineGrantAct) Run() (err error) {
 			FunName: "克隆client权限",
 			Func:    g.Service.CloneTargetClientPriv,
 		},
-		{
-			FunName: "回收旧client权限",
-			Func:    g.Service.DropOriginClientPriv,
-		},
 	}
 
 	if err := steps.Run(); err != nil {

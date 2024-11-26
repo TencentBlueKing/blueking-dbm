@@ -42,10 +42,22 @@ class MySQLClearMachineService(ExecuteDBActuatorScriptService):
         # 检测机器列表是否还有实例注册
         target_ip_list = copy.deepcopy(exec_ips)
         for ip in exec_ips:
-            if Machine.objects.filter(ip=ip, bk_cloud_id=kwargs["bk_cloud_id"]).exists():
+            machines = Machine.objects.filter(ip=ip, bk_cloud_id=kwargs["bk_cloud_id"]).prefetch_related(
+                "proxyinstance_set", "storageinstance_set"
+            )
+            if not machines.exists():
+                continue
+
+            # ip+bk_cloud_id是唯一值，如果存在只有一行数据
+            if machines[0].proxyinstance_set.exists() or machines[0].storageinstance_set.exists():
+                # 如果注册到Instance上，才算有空余的注册内容，跳过不清理
                 self.log_info(_("机器还在系统中注册，暂不用清理[{}]").format(ip))
                 target_ip_list.remove(ip)
-                continue
+            else:
+                # 如果只有machine表注册，可以认为脏数据，可能并发下架引起的，这里可以做一次清理
+                self.log_info(_("机器还在machine表存在残留数据，执行machine数据清理[{}]").format(ip))
+                machines[0].delete(keep_parents=True)
+
         if not target_ip_list:
             # 表示没有机器可以清理回收
             self.log_info(_("本次操作没有机器可以清理，提前结束活动节点"))

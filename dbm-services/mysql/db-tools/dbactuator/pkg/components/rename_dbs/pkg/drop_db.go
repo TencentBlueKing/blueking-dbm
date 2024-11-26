@@ -2,9 +2,10 @@ package pkg
 
 import (
 	"context"
-	"dbm-services/common/go-pubpkg/logger"
 	"fmt"
 	"time"
+
+	"dbm-services/common/go-pubpkg/logger"
 
 	"github.com/jmoiron/sqlx"
 )
@@ -18,7 +19,7 @@ func DropDB(conn *sqlx.Conn, dbName, to string, onlyStageTable bool) error {
 		return fmt.Errorf(`db "%s" is not trans clean`, dbName)
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()
 
 	_, err = conn.ExecContext(

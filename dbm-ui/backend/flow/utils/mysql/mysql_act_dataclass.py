@@ -554,3 +554,46 @@ class AuthorizeKwargs:
     operator: str
     authorize_data: list
     user_db_rules_map: dict
+
+
+@dataclass
+class SetBackendInProxyKwargs:
+    """
+    定义set_backend_in_proxy活动节点的私有变量结构体
+    """
+
+    proxys: List[str]
+    bk_cloud_id: int
+    backend_host: str
+    backend_port: int
+
+
+@dataclass
+class CloneProxyUsersKwargs:
+    """
+    定义clone_proxy_users_in_cluster活动节点的私有变量结构体
+    """
+
+    cluster_id: int
+    target_proxy_host: str
+
+
+@dataclass
+class CloneProxyClientInBackendKwargs:
+    """
+    定义clone_proxy_client_in_backend活动节点的私有变量结构体
+    """
+
+    cluster_id: int
+    target_proxy_host: str
+    origin_proxy_host: str
+
+
+@dataclass
+class DropProxyUsersInBackendKwargs:
+    """
+    定义drop_proxy_users_in_backend活动节点的私有变量结构体
+    """
+
+    cluster_id: int
+    origin_proxy_host: str
