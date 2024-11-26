@@ -12,6 +12,7 @@
  */
 
 import PulsarModel from '@services/model/pulsar/pulsar';
+import PulsarDetailModel from '@services/model/pulsar/pulsar-detail';
 import PulsarInstanceModel from '@services/model/pulsar/pulsar-instance';
 import PulsarMachineModel from '@services/model/pulsar/pulsar-machine';
 import PulsarNodeModel from '@services/model/pulsar/pulsar-node';
@@ -71,7 +72,7 @@ export function retrievePulsarInstance(params: { bk_biz_id: number }) {
  * 获取集群详情
  */
 export function getPulsarDetail(params: { id: number }) {
-  return http.get<PulsarModel>(`${path}/${params.id}/`).then((data) => new PulsarModel(data));
+  return http.get<PulsarDetailModel>(`${path}/${params.id}/`).then((data) => new PulsarDetailModel(data));
 }
 
 /**
