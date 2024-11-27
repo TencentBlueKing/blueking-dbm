@@ -45,7 +45,7 @@
       width: 220,
     },
     {
-      label: t('同机关联集群'),
+      label: t('关联集群'),
       field: 'relatedClusters',
       width: 220,
       render: ({ data }: { data: RowData }) => data.relatedClusters.map((item) => <p>{item}</p>),
