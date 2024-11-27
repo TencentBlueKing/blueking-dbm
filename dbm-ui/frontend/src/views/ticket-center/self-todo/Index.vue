@@ -22,10 +22,10 @@
     <template #list>
       <List />
     </template>
-    <template
-      v-if="ticketId"
-      #right>
-      <Detail :ticket-id="ticketId" />
+    <template #right>
+      <Detail
+        v-if="ticketId"
+        :ticket-id="ticketId" />
     </template>
   </StretchLayout>
 </template>

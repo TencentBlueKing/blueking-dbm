@@ -37,9 +37,9 @@ export default () => {
       count: ticketCount.value.FAILED,
     },
     {
-      id: TicketModel.STATUS_RUNNING,
-      name: `${t('待继续')}(${ticketCount.value.RUNNING})`,
-      count: ticketCount.value.RUNNING,
+      id: TicketModel.STATUS_INNER_TODO,
+      name: `${t('待继续')}(${ticketCount.value.INNER_TODO})`,
+      count: ticketCount.value.INNER_TODO,
     },
   ]);
 

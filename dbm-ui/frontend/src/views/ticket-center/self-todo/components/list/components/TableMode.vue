@@ -79,7 +79,7 @@
   import TicketModel from '@services/model/ticket/ticket';
   import { getTickets } from '@services/source/ticket';
 
-  import { useEventBus, useStretchLayout, useUrlSearch } from '@hooks';
+  import { useStretchLayout, useUrlSearch } from '@hooks';
 
   import useDatePicker from '@views/ticket-center/common/hooks/use-date-picker';
   import useSearchSelect from '@views/ticket-center/common/hooks/use-search-select';
@@ -93,7 +93,6 @@
   const router = useRouter();
 
   const { t } = useI18n();
-  const eventBus = useEventBus();
   const currentInstance = getCurrentInstance();
 
   const { list: statusList, defaultStatus } = useStatusList();
@@ -139,11 +138,6 @@
     });
   });
 
-  const handleRefreshTable = () => {
-    dataTableRef.value!.fetchData();
-    dataTableRef.value!.resetSelection();
-  };
-
   const handleShowDetail = (data: TicketModel) => {
     stretchLayoutSplitScreen();
     selectTicketId.value = data.id;
@@ -152,8 +146,6 @@
   const handleSelection = (data: TicketModel[]) => {
     selectTicketIdList.value = data;
   };
-
-  eventBus.on('refreshTicketStatus', handleRefreshTable);
 
   onActivated(() => {
     ticketStatus.value = defaultStatus.value;
@@ -174,10 +166,6 @@
         query: getSearchParams(),
       });
     });
-  });
-
-  onBeforeUnmount(() => {
-    eventBus.off('refreshTicketStatus', handleRefreshTable);
   });
 </script>
 <style lang="less">

@@ -44,10 +44,10 @@
           :label="t('操作')"
           width="160">
           <template #default="{ data }: { data: IRowData }">
-            <TicketDetailLink
+            <TicketClone
               v-if="data"
               :data="data" />
-            <TicketClone
+            <TicketDetailLink
               v-if="data"
               class="ml-8"
               :data="data" />
@@ -90,7 +90,7 @@
   const dataSource = (params: ServiceParameters<typeof getTickets>) =>
     getTickets({
       ...params,
-      self_manage: 1,
+      self_manage: 0,
     });
 
   const selectTicketId = ref(0);

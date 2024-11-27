@@ -183,7 +183,7 @@
   import { getTickets } from '@services/source/ticket';
   import {getInnerFlowInfo} from '@services/source/ticketFlow'
 
-  import { useStretchLayout } from '@hooks';
+  import { useEventBus, useStretchLayout  } from '@hooks';
 
   import EmptyStatus from '@components/empty-status/EmptyStatus.vue';
   import TicketStatusTag from '@components/ticket-status-tag/Index.vue';
@@ -218,6 +218,7 @@
   }>()
 
   const { t } = useI18n();
+  const eventBus = useEventBus();
   const { isSplited: isStretchLayoutOpen } = useStretchLayout();
 
   let isInited = false;
@@ -300,8 +301,6 @@
     } else {
       pagination.current = 1;
     }
-
-    console.log('from watch fetchdata = ', window.location.href)
 
     fetchData();
   });
@@ -390,17 +389,21 @@
   }
 
   const fetchRefresh = () => {
+    rowSelectMemo.value = {}
+    triggerSelection();
     fetchData();
   }
 
   onActivated(() => {
     resumeFetchData();
     resumeFetchInnerFlowInfo();
+    eventBus.on('refreshTicketStatus', fetchRefresh);
   })
 
   onDeactivated(() => {
     pauseFetchData();
     pauseFetchInnerFlowInfo();
+    eventBus.off('refreshTicketStatus', fetchRefresh);
   })
 
   onMounted(() => {

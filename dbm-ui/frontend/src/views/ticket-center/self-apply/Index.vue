@@ -50,7 +50,7 @@
 
   const isPreChecking = useDetailPreCheck({
     id: ticketId.value,
-    self_manage: 1,
+    self_manage: 0,
   });
 
   const handleStretchLayoutChange = (value: boolean) => {

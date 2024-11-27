@@ -13,9 +13,9 @@
           class="mr-4"
           theme="success"
           type="stroke">
-          {{ t('重试') }}
+          {{ t('确认执行') }}
         </BkTag>
-        <span>{{ t('重试后，单据将再次尝试继续执行') }}</span>
+        <span>{{ t('重试后，单据将再次尝试申请资源') }}</span>
       </div>
     </template>
   </DbPopconfirm>
@@ -26,15 +26,15 @@
 
   import FlowMode from '@services/model/ticket/flow';
   import TicketModel from '@services/model/ticket/ticket';
-  import { retryFlow } from '@services/source/ticketFlow';
+  import { batchProcessTicket, batchProcessTodo } from '@services/source/ticketFlow';
 
   import { useEventBus } from '@hooks';
 
   import { messageSuccess } from '@utils';
 
   interface Props {
-    data: TicketModel;
-    flowData: FlowMode;
+    data?: TicketModel;
+    todoData?: FlowMode['todos'][number];
   }
 
   const props = defineProps<Props>();
@@ -46,13 +46,27 @@
 
   const handleApproval = () => {
     isSubmitting.value = true;
+
     return Promise.resolve()
-      .then(() =>
-        retryFlow({
-          id: props.data.id,
-          flow_id: props.flowData.id,
-        }),
-      )
+      .then(() => {
+        if (props.data) {
+          return batchProcessTicket({
+            action: 'APPROVE',
+            ticket_ids: [props.data.id],
+          });
+        }
+        if (props.todoData) {
+          return batchProcessTodo({
+            action: 'APPROVE',
+            operations: [
+              {
+                todo_id: props.todoData.id,
+              },
+            ],
+          });
+        }
+        return Promise.reject();
+      })
       .then(() => {
         messageSuccess(t('操作成功'));
         eventBus.emit('refreshTicketStatus');

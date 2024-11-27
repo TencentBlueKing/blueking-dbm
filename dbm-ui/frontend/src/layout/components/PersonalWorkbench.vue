@@ -92,7 +92,7 @@
       ticketCount.value.APPROVE +
       ticketCount.value.FAILED +
       ticketCount.value.RESOURCE_REPLENISH +
-      ticketCount.value.RUNNING +
+      ticketCount.value.INNER_TODO +
       ticketCount.value.TODO
     );
   });
