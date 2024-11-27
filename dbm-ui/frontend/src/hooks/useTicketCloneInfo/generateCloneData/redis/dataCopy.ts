@@ -28,8 +28,8 @@ export function generateRedisDataCopyCloneData(ticketData: TicketModel<RedisData
     clusterType: item.src_cluster_type,
     targetCluster: clusters[item.dst_cluster].immute_domain,
     targetClusterId: item.dst_cluster,
-    includeKey: item.key_white_regex ? item.key_white_regex.split(',') : [],
-    excludeKey: item.key_black_regex ? item.key_black_regex.split(',') : [],
+    includeKey: item.key_white_regex ? item.key_white_regex.split('\n') : [],
+    excludeKey: item.key_black_regex ? item.key_black_regex.split('\n') : [],
     targetBusines: item.dst_bk_biz_id,
     password: item.src_cluster_password,
   }));
