@@ -144,7 +144,7 @@
       return {
         spec_name: specData?.spec_name || '',
         machine_pair: modelValue.value.count,
-        cluster_shard_num: shardNum.value,
+        cluster_shard_num: Number(clusterShardNum.value),
         cluster_capacity: totalCapcity.value || 0,
       };
     },
