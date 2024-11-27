@@ -103,7 +103,7 @@ export default [
     ],
   },
   {
-    name: t('运维 Spider 管理'),
+    name: t('运维节点管理'),
     id: 'spider_mnt',
     icon: 'db-icon-jiankong',
     children: [
