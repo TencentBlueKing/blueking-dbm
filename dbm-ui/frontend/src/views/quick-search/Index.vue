@@ -215,7 +215,7 @@
     manual: true,
     onSuccess(data, params) {
       if (isRedirectSearch) {
-        keyword.value = data.keyword;
+        keyword.value = data.keyword.replace(batchSplitRegex, '|');
         handleSearch();
       }
       Object.assign(dataMap.value, {
