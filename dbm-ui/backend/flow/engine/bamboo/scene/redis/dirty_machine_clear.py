@@ -37,7 +37,8 @@ class DirtyMachineClearFlow(Builder):
         self.precheck()
 
     def precheck(self):
-        for ip in self.data["infos"]:
+        for host in self.data["clear_hosts"]:
+            ip = host["ip"]
             proxy_inst = ProxyInstance.objects.filter(
                 machine__ip=ip, machine__bk_cloud_id=self.data["bk_cloud_id"]
             ).first()
@@ -81,9 +82,8 @@ class DirtyMachineClearFlow(Builder):
             "bk_cloud_id":0,
             "only_clear_dbmeta":True/False,
             "force": True/False,
-            "infos":[
-                "a.a.a.a",
-                "b.b.b.b"
+            "clear_hosts":[
+                {"ip":"a.a.a.a"},
             ]
         }
         """
@@ -99,7 +99,8 @@ class DirtyMachineClearFlow(Builder):
         act_kwargs.bk_cloud_id = self.data["bk_cloud_id"]
 
         sub_pipelines = []
-        for ip in self.data["infos"]:
+        for host in self.data["clear_hosts"]:
+            ip = host["ip"]
             params = {
                 "ip": ip,
                 "force": self.data.get("force", False),
@@ -131,7 +132,8 @@ class DirtyMachineClearFlow(Builder):
         1. 不能属于任何集群
         2. 必须传入正确的 bizID 和 IP
         """
-        for ip in self.data["infos"]:
+        for host in self.data["clear_hosts"]:
+            ip = host["ip"]
             try:
                 host_obj = Machine.objects.get(
                     ip=ip, bk_cloud_id=self.data["bk_cloud_id"], bk_biz_id=self.data["bk_biz_id"]
