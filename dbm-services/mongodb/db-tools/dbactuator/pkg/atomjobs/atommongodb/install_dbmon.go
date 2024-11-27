@@ -127,7 +127,7 @@ func loadConfigFile(configFile string) (*config.Configuration, error) {
 	}
 
 	conf := config.Configuration{
-		LoadTime: time.Now().Format(time.RFC3339),
+		LoadTime: time.Now(),
 	}
 	v := viper.New()
 	v.SetConfigFile(configFile)
@@ -183,10 +183,17 @@ func (job *installDbmonJob) updateConfigFile() error {
 	conf.BkMonitorBeat = job.params.BkMonitorBeat
 	conf.Servers = job.params.Servers
 
-	// 如果文件存在，对比文件内容，如果不一样，就更新文件.
-	oldConf, err := loadConfigFile(configFile)
+	var err error
+	dbmonConf, err := config.NewDbMonConfig(configFile)
 	if err != nil {
-		job.runtime.Logger.Warn("loadConfigFile %s failed, err:%v", configFile, err)
+		return errors.Wrap(err, "NewDbMonConfig")
+	}
+
+	// 如果文件存在，对比文件内容，如果不一样，就更新文件.
+	var oldConf *config.Configuration
+	if err = dbmonConf.LoadAndWatchConfig(false, nil); err == nil {
+		oldConf = dbmonConf.Config
+		job.runtime.Logger.Info("loadConfigFile %s success", configFile)
 	}
 
 	if oldConf != nil {
@@ -224,7 +231,7 @@ func (job *installDbmonJob) updateConfigFile() error {
 		}
 	}
 
-	if err := config.WriteConfig(configFile, &conf); err != nil {
+	if err := dbmonConf.WriteFile(&conf); err != nil {
 		return errors.Wrap(err, "WriteConfig")
 	}
 	job.configChangedFlag = true
@@ -433,7 +440,6 @@ func getPIDByPort(port string) (string, error) {
 
 	re := regexp.MustCompile(`\d+`)
 	pid := re.FindString(string(output))
-
 	return pid, nil
 }
 

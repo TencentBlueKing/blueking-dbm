@@ -666,6 +666,7 @@ func (db *RedisClient) IsTendisplusBackupInProgress() (ret bool, err error) {
 // TendisplusBackupAndWaitForDone 执行backup命令并等待结束
 func (db *RedisClient) TendisplusBackupAndWaitForDone(targetDir string) (err error) {
 	_, err = db.TendisplusBackup(targetDir)
+	mylog.Logger.Info(fmt.Sprintf("tendisplus:%s backup start, ret: %v", db.Addr, err))
 	if err != nil {
 		return err
 	}
@@ -680,13 +681,14 @@ func (db *RedisClient) TendisplusBackupAndWaitForDone(targetDir string) (err err
 			return err
 		}
 		if inProgress == false {
-			msg = fmt.Sprintf("tendisplus:%s backup success", db.Addr)
+			msg = fmt.Sprintf("tendisplus:%s backup success, count=%d", db.Addr, count)
 			mylog.Logger.Info(msg)
 			return nil
 		}
 		count++
+		// 每分钟输出一次日志
 		if (count % 12) == 0 {
-			msg = fmt.Sprintf("tendisplus:%s backup is still running ...", db.Addr)
+			msg = fmt.Sprintf("tendisplus:%s backup is still running ..., count=%d", db.Addr, count)
 			mylog.Logger.Info(msg)
 		}
 	}

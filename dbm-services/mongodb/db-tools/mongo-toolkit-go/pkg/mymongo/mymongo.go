@@ -69,7 +69,7 @@ func NewMongoHost(host, port, authdb, user, pass, name, nodeip string) *MongoHos
 func (h *MongoHost) Connect() (*mongo.Client, error) {
 	cli, err := Connect(h.Host, h.Port, h.User, h.Pass, h.AuthDb, 30*time.Second)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("connect to %s failed err:%s", h.String(), err.Error())
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()

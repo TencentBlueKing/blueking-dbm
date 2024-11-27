@@ -24,13 +24,12 @@ endif
 
 GOVERSION=$(shell go  env GOVERSION)
 
-MODULE="dbm-services/mongo/db-tools/mongo-toolkit-go/pkg/buildinfo"
+MODULE="dbm-services/mongodb/db-tools/mongo-toolkit-go/pkg/buildinfo"
 BUILD_FLAG = -ldflags " -extldflags '-static'  -X '${MODULE}.version=${VERSION}' -X '${MODULE}.githash=${GITHASH}' -X '${MODULE}.buildstamp=${BUILDSTAMP}' -X '${MODULE}.goversion=${GOVERSION}' "
 TRIMPATH = -gcflags="all=-trimpath=${PWD}" -asmflags="all=-trimpath=${PWD}"
 .DEFAULT_GOAL := build
 
 
-LDFLAGS=-ldflags "-X 'main.VERSION=${VERSION}' -X 'main.BuildDate=${BUILD}' -X 'main.CommitSha1=${COMMIT_SHA1}' -X 'main.GoVersion=${GO_VERSION}'"
 all: check build
 	@echo "all"
 check:
@@ -45,4 +44,4 @@ build:
 
 local:
 	@echo "  >  Building $(OS)  binary..."
-	go build -v $(LDFLAGS) -o target/$(toolkit) cmd/mongo-toolkit-go/main.go
+	go build -v $(BUILD_FLAG) -o target/$(toolkit) cmd/mongo-toolkit-go/main.go

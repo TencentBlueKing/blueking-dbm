@@ -149,8 +149,7 @@ func GetTaskStatus(taskid uint64) (status TaskStatus, err error) {
 	scanner := bufio.NewScanner(strings.NewReader(cmdRet))
 	scanner.Split(bufio.ScanLines)
 	for scanner.Scan() {
-		line := scanner.Text()
-		line = strings.TrimSpace(line)
+		line := strings.TrimSpace(scanner.Text())
 		if line == "" {
 			continue
 		}
@@ -168,64 +167,45 @@ func GetTaskStatus(taskid uint64) (status TaskStatus, err error) {
 		case "host":
 			status.Host = second
 		case "sendup datetime":
-			if second == "0000-00-00 00:00:00" {
-				status.SednupDateTime = time.Time{} // "0000-01-00 00:00:00"
-				break
-			}
-			status.SednupDateTime, err = time.ParseInLocation(consts.UnixtimeLayout, second, time.Local)
-			if err != nil {
+			if status.SednupDateTime, err = parseTime(second); err != nil {
 				err = fmt.Errorf("time.Parse 'sendup datetime' failed,err:%v,value:%s,cmd:%s", err, second, bkCmd)
-				mylog.Logger.Error(err.Error())
 				return
 			}
 		case "status":
 			status.Status, err = strconv.Atoi(second)
 			if err != nil {
 				err = fmt.Errorf("strconv.Atoi failed,err:%v,value:%s,cmd:%s", err, second, bkCmd)
-				mylog.Logger.Error(err.Error())
 				return
 			}
 		case "status info":
 			status.StatusInfo = second
 		case "start_time":
-			if second == "0000-00-00 00:00:00" {
-				status.StartTime = time.Time{} // "0000-01-00 00:00:00"
-				break
-			}
-			status.StartTime, err = time.ParseInLocation(consts.UnixtimeLayout, second, time.Local)
-			if err != nil {
+			if status.StartTime, err = parseTime(second); err != nil {
 				err = fmt.Errorf("time.Parse start_time failed,err:%v,value:%s,cmd:%s", err, second, bkCmd)
-				mylog.Logger.Error(err.Error())
 				return
 			}
 		case "complete_time":
-			if second == "0000-00-00 00:00:00" {
-				status.CompleteTime = time.Time{} // "0000-01-00 00:00:00"
-				break
-			}
-			status.CompleteTime, err = time.ParseInLocation(consts.UnixtimeLayout, second, time.Local)
-			if err != nil {
+			if status.CompleteTime, err = parseTime(second); err != nil {
 				err = fmt.Errorf("time.Parse complete_time failed,err:%v,value:%s,cmd:%s", err, second, bkCmd)
-				mylog.Logger.Error(err.Error())
 				return
 			}
 		case "expire_time":
-			if second == "0000-00-00 00:00:00" {
-				status.ExpireTime = time.Time{} // "0000-01-00 00:00:00"
-				break
-			}
-			status.ExpireTime, err = time.ParseInLocation(consts.UnixtimeLayout, second, time.Local)
-			if err != nil {
+			if status.ExpireTime, err = parseTime(second); err != nil {
 				err = fmt.Errorf("time.Parse expire_time failed,err:%v,value:%s,cmd:%s", err, second, bkCmd)
-				mylog.Logger.Error(err.Error())
 				return
 			}
 		}
 	}
 	if err = scanner.Err(); err != nil {
 		err = fmt.Errorf("scanner.Scan failed,err:%v,cmd:%s", err, cmdRet)
-		mylog.Logger.Error(err.Error())
 		return
 	}
 	return
+}
+
+func parseTime(str string) (time.Time, error) {
+	if str == "0000-00-00 00:00:00" {
+		return time.Time{}, nil
+	}
+	return time.ParseInLocation(consts.UnixtimeLayout, str, time.Local)
 }

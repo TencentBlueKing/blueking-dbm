@@ -12,11 +12,11 @@ var goversion string
 func VersionInfo() string {
 	return fmt.Sprintf(`Version: %s
 Githash: %s
-Buildstamp:%s
+Buildstamp: %s
 GoVersion: %s`, version, githash, buildstamp, goversion)
 }
 
 // VersionInfoOneLine return version info in one line
 func VersionInfoOneLine() string {
-	return fmt.Sprintf(`Version: %s Githash: %s Buildstamp:%s GoVersion: %s`, version, githash, buildstamp, goversion)
+	return fmt.Sprintf(`Version: %s Githash: %s Buildstamp: %s GoVersion: %s`, version, githash, buildstamp, goversion)
 }

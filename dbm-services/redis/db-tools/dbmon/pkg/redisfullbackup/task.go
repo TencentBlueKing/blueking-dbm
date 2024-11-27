@@ -239,6 +239,7 @@ func (task *BackupTask) BakcupToLocal() {
 		task.RedisInstanceBackup()
 	} else if task.DbType == consts.TendisTypeTendisplusInsance {
 		task.TendisplusInstanceBackup()
+
 	} else if task.DbType == consts.TendisTypeTendisSSDInsance {
 		task.TendisSSDInstanceBackup()
 		if task.Err != nil {
@@ -246,6 +247,8 @@ func (task *BackupTask) BakcupToLocal() {
 		}
 		task.TendisSSDSetLougCount()
 	}
+	mylog.Logger.Info(fmt.Sprintf("redis(%s) dbType:%s start backup...", task.Addr(), task.DbType))
+
 	if task.Err != nil {
 		return
 	}

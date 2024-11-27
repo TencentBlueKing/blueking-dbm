@@ -21,7 +21,7 @@ endif
 
 GOVERSION=$(shell go  env GOVERSION)
 
-MODULE="dbm-services/mongo/db-tools/mongo-toolkit-go/pkg/buildinfo"
+MODULE="dbm-services/mongodb/db-tools/mongo-toolkit-go/pkg/buildinfo"
 BUILD_FLAG = -ldflags "-X '${MODULE}.version=${VERSION}' -X '${MODULE}.githash=${GITHASH}' -X '${MODULE}.buildstamp=${BUILDSTAMP}' -X '${MODULE}.goversion=${GOVERSION}' "
 TRIMPATH = -gcflags="all=-trimpath=${PWD}" -asmflags="all=-trimpath=${PWD}"
 .DEFAULT_GOAL := build

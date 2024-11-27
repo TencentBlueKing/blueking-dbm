@@ -2,9 +2,7 @@
 package util
 
 import (
-	"bufio"
 	"crypto/md5"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -279,31 +277,4 @@ func LockFileOnStart(lockfile string, doneCh chan struct{}) {
 		}
 	TagEnd:
 	}(fh)
-}
-
-// GetFileLines GetFileLines
-func GetFileLines(f string) (int64, error) {
-	var cnt int64
-	fp, err := os.Open(f)
-	if err != nil {
-		mylog.Logger.Warn(fmt.Sprintf("open failed %s:%+v", f, err)) // 打开文件错误
-		return 0, err
-	}
-	defer fp.Close()
-	buf := bufio.NewScanner(fp)
-	for {
-		if !buf.Scan() {
-			break // 文件读完了,退出for
-		}
-		cnt++
-		_ = buf.Text() // 获取每一行
-		// fmt.Println(line)
-	}
-	return cnt, nil
-}
-
-// ToString string
-func ToString(param interface{}) string {
-	ret, _ := json.Marshal(param)
-	return string(ret)
 }

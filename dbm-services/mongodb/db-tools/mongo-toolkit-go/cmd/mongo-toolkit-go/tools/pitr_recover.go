@@ -61,7 +61,7 @@ func recoverMain() {
 	// todo test dst is empty db
 
 	// use local mongorestore mongorestore.100.7
-	depList := []string{"mongorestore.100", "mongo"}
+	depList := []string{"mongorestore", "mongo"}
 	depOk := true
 	for _, dep := range depList {
 		if !pitr.CommandExists(dep) {
