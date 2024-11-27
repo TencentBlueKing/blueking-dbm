@@ -29,11 +29,13 @@
         <div
           v-if="isCanOperation && isNeedOperation"
           class="mt-12">
-          <ProcessRetry :data="ticketDetail">
+          <ProcessRetry
+            :data="ticketDetail"
+            :flow-data="data">
             <BkButton
               class="w-88"
               theme="primary">
-              {{ t('重试') }}
+              {{ t('失败重试') }}
             </BkButton>
           </ProcessRetry>
         </div>

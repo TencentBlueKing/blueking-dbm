@@ -43,10 +43,10 @@
           :label="t('操作')"
           width="160">
           <template #default="{ data }: { data: IRowData }">
-            <TicketDetailLink
+            <TicketClone
               v-if="data"
               :data="data" />
-            <TicketClone
+            <TicketDetailLink
               v-if="data"
               class="ml-8"
               :data="data" />

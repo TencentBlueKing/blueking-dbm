@@ -72,7 +72,7 @@
   import TicketModel from '@services/model/ticket/ticket';
   import { getTickets } from '@services/source/ticket';
 
-  import { useStretchLayout, useUrlSearch } from '@hooks';
+  import { useEventBus, useStretchLayout, useUrlSearch } from '@hooks';
 
   import EmptyStatus from '@components/empty-status/EmptyStatus.vue';
   import RenderRow from '@components/render-row/index.vue';
@@ -96,6 +96,7 @@
   const router = useRouter();
   const { t } = useI18n();
   const { getSearchParams } = useUrlSearch();
+  const eventBus = useEventBus();
   const { splitScreen: stretchLayoutSplitScreen } = useStretchLayout();
 
   const { formatValue: formatDateValue } = useDatePicker();
@@ -186,12 +187,14 @@
     });
   };
 
-  onDeactivated(() => {
-    pauseFetchData();
-  });
-
   onActivated(() => {
     currentTicketScrollToTop();
+    eventBus.on('refreshTicketStatus', fetchData);
+  });
+
+  onDeactivated(() => {
+    pauseFetchData();
+    eventBus.off('refreshTicketStatus', fetchData);
   });
 
   onMounted(() => {

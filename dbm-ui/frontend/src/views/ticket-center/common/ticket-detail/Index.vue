@@ -36,18 +36,17 @@
               mode="collapse"
               :title="t('实施进度')">
               <FlowInfos :data="ticketData" />
-              <!-- <FlowInfo
-                :data="ticketData"
-                @refresh="handleRefreshTicketData" /> -->
             </DbCard>
           </template>
           <template
             v-if="ticketData"
             #action>
             <TicketClone
+              class="mr-8"
               :data="ticketData"
               :text="false"
               theme="" />
+            <TicketRevoke :data="ticketData" />
           </template>
         </SmartAction>
       </PermissionCatch>
@@ -66,6 +65,7 @@
   import PermissionCatch from '@components/apply-permission/Catch.vue';
 
   import TicketClone from '@views/ticket-center/common/TicketClone.vue';
+  import TicketRevoke from '@views/ticket-center/common/TicketRevoke.vue';
 
   import { useTimeoutFn } from '@vueuse/core';
 
@@ -85,7 +85,7 @@
   const getOffsetTarget = () => document.body.querySelector('.ticket-details-page .db-card');
 
   const isLoading = ref(true);
-  const ticketData = shallowRef<TicketModel<unknown>>();
+  const ticketData = shallowRef<TicketModel>();
 
   const { runAsync: fetchTicketDetails } = useRequest(
     (params: ServiceParameters<typeof getTicketDetails>) =>
@@ -104,13 +104,12 @@
   );
 
   const refreshTicketData = () => {
-    console.log('refreshTicketDatarefreshTicketDatarefreshTicketData');
     fetchTicketDetails({
       id: props.ticketId,
     });
   };
 
-  const { start: loopFetchTicketDetails } = useTimeoutFn(refreshTicketData, 1000000);
+  const { start: loopFetchTicketDetails } = useTimeoutFn(refreshTicketData, 10000);
 
   watch(
     () => props.ticketId,

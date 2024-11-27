@@ -7,7 +7,7 @@
         ticketId: data.id,
       },
     }">
-    {{ t('查看详情') }}
+    {{ t('新窗口打开') }}
   </RouterLink>
 </template>
 <script setup lang="ts">

@@ -36,6 +36,8 @@
 
   import { ClusterTypes, TicketTypes } from '@common/const';
 
+  import { getBusinessHref } from '@utils';
+
   interface Props {
     data: TicketModel<unknown>;
   }
@@ -178,7 +180,7 @@
           ticketType: props.data.ticket_type,
         },
       });
-      window.open(href, '_blank');
+      window.open(getBusinessHref(href, props.data.bk_biz_id), '_blank');
     }
   };
 </script>

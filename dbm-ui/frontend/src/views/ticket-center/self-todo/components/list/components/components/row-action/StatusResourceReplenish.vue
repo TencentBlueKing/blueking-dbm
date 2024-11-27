@@ -1,11 +1,11 @@
 <template>
-  <ProcessRetry :data="data">
+  <ProcessResourceReplenish :data="data">
     <BkButton
       text
       theme="primary">
       {{ t('重试') }}
     </BkButton>
-  </ProcessRetry>
+  </ProcessResourceReplenish>
   <ProcessTerminate :data="data">
     <BkButton
       class="ml-8"
@@ -23,7 +23,7 @@
 
   import TicketModel from '@services/model/ticket/ticket';
 
-  import ProcessRetry from '@views/ticket-center/common/action-confirm/ProcessRetry.vue';
+  import ProcessResourceReplenish from '@views/ticket-center/common/action-confirm/ProcessResourceReplenish.vue';
   import ProcessTerminate from '@views/ticket-center/common/action-confirm/ProcessTerminate.vue';
   import TicketDetailLink from '@views/ticket-center/common/TicketDetailLink.vue';
 

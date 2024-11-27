@@ -25,6 +25,4 @@
     [FlowMode.TODO_STATUS_TODO]: StatusTodo,
     [FlowMode.TODO_STATUS_DONE_FAILED]: StatusDoneFailed,
   })[props.data.status];
-
-  console.log('from type itesm = ', props.data);
 </script>

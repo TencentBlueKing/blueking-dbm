@@ -42,7 +42,6 @@ const create = (dataSource: typeof getTickets, options?: { onSuccess?: (data: Ti
     },
     {
       manual: true,
-      debounceInterval: 100,
       onSuccess(data) {
         dataList.value.forEach((ticketData) => {
           if (data[ticketData.id]) {
@@ -58,7 +57,7 @@ const create = (dataSource: typeof getTickets, options?: { onSuccess?: (data: Ti
 
   const { start: loopFetchTicketStatus } = useTimeoutFn(() => {
     fetchTicketStatus();
-  }, 1000000);
+  }, 10000);
 
   const fetchTicketList = (params: ServiceParameters<typeof getTickets>) => {
     isLoading.value = true;
@@ -90,7 +89,7 @@ const create = (dataSource: typeof getTickets, options?: { onSuccess?: (data: Ti
 
   eventBus.on('refreshTicketStatus', fetchTicketStatus);
 
-  onBeforeUnmount(() => {
+  onBeforeRouteLeave(() => {
     eventBus.off('refreshTicketStatus', fetchTicketStatus);
   });
 
