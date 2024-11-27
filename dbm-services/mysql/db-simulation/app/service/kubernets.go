@@ -19,6 +19,7 @@ import (
 	"net/url"
 	"os"
 	"path"
+	"regexp"
 	"strings"
 	"time"
 
@@ -76,6 +77,8 @@ type ClusterPodSets struct {
 	DbPodSets
 }
 
+var startArgsSplitRe *regexp.Regexp
+
 func init() {
 	logger.Info("start init bcs client ")
 	Kcs.RestConfig = &rest.Config{
@@ -94,6 +97,7 @@ func init() {
 	}
 	Kcs.Cli = clientSet
 	Kcs.Namespace = config.GAppConfig.Bcs.NameSpace
+	startArgsSplitRe = regexp.MustCompile(` |,`)
 }
 
 // NewDbPodSets new db pod sets
@@ -122,18 +126,6 @@ func (k *DbPodSets) getCreateClusterSqls() []string {
 // getClusterPodContanierSpec create cluster pod container spec
 // nolint
 func (k *DbPodSets) getClusterPodContanierSpec(mysqlVersion string) []v1.Container {
-	mysqldStartArgs := []string{"mysqld",
-		"--defaults-file=/etc/my.cnf",
-		"--log_bin_trust_function_creators",
-		"--port=20000",
-		"--max_allowed_packet=1073741824",
-		"--sql-mode=",
-		fmt.Sprintf("--character-set-server=%s",
-			k.BaseInfo.Charset),
-		"--user=mysql"}
-	if cmutil.MySQLVersionParse(mysqlVersion) >= cmutil.MySQLVersionParse("8.0.0") {
-		mysqldStartArgs = append(mysqldStartArgs, "--default-authentication-plugin=mysql_native_password")
-	}
 	return []v1.Container{
 		{
 			Name: "backend",
@@ -144,7 +136,7 @@ func (k *DbPodSets) getClusterPodContanierSpec(mysqlVersion string) []v1.Contain
 			Resources:       k.getResourceLimit(),
 			ImagePullPolicy: v1.PullIfNotPresent,
 			Image:           k.DbImage,
-			Args:            mysqldStartArgs,
+			Args:            k.getbackendStartArgs(mysqlVersion),
 			ReadinessProbe: &v1.Probe{
 				ProbeHandler: v1.ProbeHandler{
 					Exec: &v1.ExecAction{
@@ -163,14 +155,7 @@ func (k *DbPodSets) getClusterPodContanierSpec(mysqlVersion string) []v1.Contain
 			Resources:       k.getResourceLimit(),
 			ImagePullPolicy: v1.PullIfNotPresent,
 			Image:           k.SpiderImage,
-			Args: []string{"mysqld",
-				"--defaults-file=/etc/my.cnf",
-				"--log_bin_trust_function_creators",
-				"--port=25000",
-				"--max_allowed_packet=1073741824",
-				fmt.Sprintf("--character-set-server=%s",
-					k.BaseInfo.Charset),
-				"--user=mysql"},
+			Args:            k.getSpiderStartArgs(),
 			ReadinessProbe: &v1.Probe{
 				ProbeHandler: v1.ProbeHandler{
 					Exec: &v1.ExecAction{
@@ -190,11 +175,7 @@ func (k *DbPodSets) getClusterPodContanierSpec(mysqlVersion string) []v1.Contain
 			Resources:       k.gettdbctlResourceLimit(),
 			ImagePullPolicy: v1.PullIfNotPresent,
 			Image:           k.TdbCtlImage,
-			Args: []string{"mysqld", "--defaults-file=/etc/my.cnf", "--port=26000", "--tc-admin=1",
-				"--dbm-allow-standalone-primary",
-				fmt.Sprintf("--character-set-server=%s",
-					k.BaseInfo.Charset),
-				"--user=mysql"},
+			Args:            k.getTdbctlStartArgs(),
 			ReadinessProbe: &v1.Probe{
 				ProbeHandler: v1.ProbeHandler{
 					Exec: &v1.ExecAction{
@@ -206,6 +187,77 @@ func (k *DbPodSets) getClusterPodContanierSpec(mysqlVersion string) []v1.Contain
 			},
 		},
 	}
+}
+
+func (k *DbPodSets) getTdbctlStartArgs() (args []string) {
+	args = []string{"mysqld",
+		"--defaults-file=/etc/my.cnf",
+		"--port=26000",
+		"--tc-admin=1",
+		"--dbm-allow-standalone-primary",
+		"--max_allowed_packet=1073741824",
+		fmt.Sprintf("--character-set-server=%s",
+			k.BaseInfo.Charset),
+		"--user=mysql"}
+	dbArgs, err := model.GetStartArsg("tdbctl", LatestVersion)
+	if err != nil {
+		logger.Warn("get tdbctl start args failed %s", err.Error())
+		return
+	}
+	for _, arg := range startArgsSplitRe.Split(dbArgs, -1) {
+		if lo.IsNotEmpty(arg) {
+			args = append(args, strings.TrimSpace(arg))
+		}
+	}
+	return
+}
+
+func (k *DbPodSets) getSpiderStartArgs() (args []string) {
+	args = []string{"mysqld",
+		"--defaults-file=/etc/my.cnf",
+		"--log_bin_trust_function_creators",
+		"--port=25000",
+		"--max_allowed_packet=1073741824",
+		fmt.Sprintf("--character-set-server=%s",
+			k.BaseInfo.Charset),
+		"--user=mysql"}
+	dbArgs, err := model.GetStartArsg("spider", LatestVersion)
+	if err != nil {
+		logger.Warn("get spider start args failed %s", err.Error())
+		return
+	}
+	for _, arg := range startArgsSplitRe.Split(dbArgs, -1) {
+		if lo.IsNotEmpty(arg) {
+			args = append(args, strings.TrimSpace(arg))
+		}
+	}
+	return
+}
+
+func (k *DbPodSets) getbackendStartArgs(mysqlVersion string) (args []string) {
+	args = []string{"mysqld",
+		"--defaults-file=/etc/my.cnf",
+		"--log_bin_trust_function_creators",
+		"--port=20000",
+		"--max_allowed_packet=1073741824",
+		"--sql-mode=",
+		fmt.Sprintf("--character-set-server=%s",
+			k.BaseInfo.Charset),
+		"--user=mysql"}
+	if cmutil.MySQLVersionParse(mysqlVersion) >= cmutil.MySQLVersionParse("8.0.0") {
+		args = append(args, "--default-authentication-plugin=mysql_native_password")
+	}
+	dbArgs, err := model.GetStartArsg("mysql", mysqlVersion)
+	if err != nil {
+		logger.Warn("get mysql start args failed %s", err.Error())
+		return
+	}
+	for _, arg := range startArgsSplitRe.Split(dbArgs, -1) {
+		if lo.IsNotEmpty(arg) {
+			args = append(args, strings.TrimSpace(arg))
+		}
+	}
+	return
 }
 
 // CreateClusterPod create tendbcluster simulation pod
@@ -356,16 +408,32 @@ func (k *DbPodSets) gettdbctlResourceLimit() v1.ResourceRequirements {
 	return v1.ResourceRequirements{}
 }
 
-// CreateMySQLPod create mysql pod
-func (k *DbPodSets) CreateMySQLPod(mysqlVersion string) (err error) {
-	startArgs := []string{
+func (k *DbPodSets) getTendbhaPodStartArgs(mysqlVersion string) (args []string) {
+	args = []string{
+		"mysqld",
 		"--defaults-file=/etc/my.cnf",
 		"--skip-log-bin",
 		"--max_allowed_packet=1073741824",
 		fmt.Sprintf("--character-set-server=%s", k.BaseInfo.Charset)}
 	if cmutil.MySQLVersionParse(mysqlVersion) >= cmutil.MySQLVersionParse("8.0.0") {
-		startArgs = append(startArgs, "--default-authentication-plugin=mysql_native_password")
+		args = append(args, "--default-authentication-plugin=mysql_native_password")
 	}
+	dbArgs, err := model.GetStartArsg("mysql", mysqlVersion)
+	if err != nil {
+		logger.Warn("get mysql start args failed %s", err.Error())
+		return
+	}
+	for _, arg := range startArgsSplitRe.Split(dbArgs, -1) {
+		if lo.IsNotEmpty(arg) {
+			args = append(args, strings.TrimSpace(arg))
+		}
+	}
+	return
+}
+
+// CreateMySQLPod create mysql pod
+func (k *DbPodSets) CreateMySQLPod(mysqlVersion string) (err error) {
+	startArgs := k.getTendbhaPodStartArgs(mysqlVersion)
 	startArgs = append(startArgs, k.BaseInfo.Args...)
 	startArgs = append(startArgs, "--user=mysql")
 	logger.Info("start pod args %v", startArgs)
