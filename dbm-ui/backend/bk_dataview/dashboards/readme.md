@@ -41,24 +41,12 @@ ___________________________________
 "tags": ["tendbsingle", "tendbha", "tendbcluster", "慢查询"],
 ```
 
-# 刷新监控数据源ID：bkmonitor_timeseries
+# 替换下钻仪表盘的地址为占位符
 ```
 cd backend/bk_dataview/dashboards/json
-find . -type f -name "*.json" -exec sed -i '' -e 's#${DS_蓝鲸监控_-_指标数据}#bkmonitor_timeseries#g' {} \;
-find . -type f -name "*.json" -exec sed -i '' -e 's#${DS_蓝鲸监控_- 指标数据}#bkmonitor_timeseries#g' {} \;
-find . -type f -name "*.json" -exec sed -i '' -e 's#"editable": true#"editable": false#g' {} \;
-find . -type f -name "*.json" -exec sed -i '' -e 's#bkmonitor:system:#bkmonitor:dbm_system:#g' {} \;
-```
-# 批量替换基础指标来源：system -> dbm_system
-```
-find . -type f -name "*.json" -exec sed -i '' -e 's#bkmonitor:system:#bkmonitor:dbm_system:#g' {} \;
-find . -type f -name "*.json" -exec sed -i '' -e 's#"result_table_id": "system.#"result_table_id": "dbm_system.#g' {} \;
+find . -type f -name "*.json" -exec sed -i '' -e 's#"url": "\(.*\)/grafana/\(.*\)orgId=[0-9]*\(.*\)"#"url": "{BK_SAAS_HOST}/grafana/\2orgId=1\3"#' {} \;
 ```
 
-# 批量替换 id 为 null: 「"id": 123,」 -> 「"id": null,」
-```
-find . -type f -name "*.json" -exec sed -i '' -e 's#"id": [0-9]*,#"id": null,#g' {} \;
-```
 
 # 这里按需隐藏变量，不暴露所有变量
 templating.list.hide 设置为 2，这里一般把需暴露出来的变量设置为 0，不暴露的设置为 2

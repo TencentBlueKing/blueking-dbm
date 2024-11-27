@@ -308,7 +308,7 @@ grafana:
   image:
     registry: "mirrors.tencent.com"
     repository: "build/blueking/bk-monitor-grafana"
-    tag: 3.7.348
+    tag: 3.9.365
   admin:
     user: admin
     password: admin

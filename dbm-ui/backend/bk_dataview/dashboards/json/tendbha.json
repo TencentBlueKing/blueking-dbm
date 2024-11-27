@@ -21,10 +21,10 @@
       }
     ]
   },
-  "editable": false,
+  "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": null,
+  "id": 29813,
   "links": [],
   "liveNow": false,
   "panels": [
@@ -36,7 +36,7 @@
         "x": 0,
         "y": 0
       },
-      "id": null,
+      "id": 22,
       "panels": [],
       "title": "Summary ($dbrole)",
       "type": "row"
@@ -44,7 +44,7 @@
     {
       "datasource": {
         "type": "bkmonitor-timeseries-datasource",
-        "uid": "bkmonitor_timeseries"
+        "uid": "P3XSxkgSz"
       },
       "fieldConfig": {
         "defaults": {
@@ -76,9 +76,11 @@
         "y": 1
       },
       "hideTimeOverride": true,
-      "id": null,
+      "id": 14,
       "interval": "1h",
       "options": {
+        "minVizHeight": 75,
+        "minVizWidth": 75,
         "orientation": "auto",
         "reduceOptions": {
           "calcs": [
@@ -88,16 +90,18 @@
           "values": false
         },
         "showThresholdLabels": false,
-        "showThresholdMarkers": true
+        "showThresholdMarkers": true,
+        "sizing": "auto"
       },
-      "pluginVersion": "9.1.0",
+      "pluginVersion": "10.4.10",
       "targets": [
         {
           "cluster": [],
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "bkmonitor_timeseries"
+            "uid": "P3XSxkgSz"
           },
+          "enableDownSampling": true,
           "expressionList": [],
           "format": "time_series",
           "host": [],
@@ -114,7 +118,7 @@
               "filter_dict": {},
               "functions": [],
               "group_by": [],
-              "interval": "auto",
+              "interval": 7200,
               "interval_unit": "s",
               "method": "MAX",
               "metric_field": "mysql_datadir_df_usage",
@@ -154,7 +158,7 @@
     {
       "datasource": {
         "type": "bkmonitor-timeseries-datasource",
-        "uid": "bkmonitor_timeseries"
+        "uid": "P3XSxkgSz"
       },
       "description": "",
       "fieldConfig": {
@@ -163,6 +167,7 @@
             "mode": "palette-classic"
           },
           "custom": {
+            "axisBorderShow": false,
             "axisCenteredZero": false,
             "axisColorMode": "text",
             "axisLabel": "",
@@ -176,6 +181,7 @@
               "tooltip": false,
               "viz": false
             },
+            "insertNulls": false,
             "lineInterpolation": "linear",
             "lineWidth": 1,
             "pointSize": 5,
@@ -215,7 +221,7 @@
         "x": 3,
         "y": 1
       },
-      "id": null,
+      "id": 55,
       "options": {
         "legend": {
           "calcs": [],
@@ -285,21 +291,22 @@
           "type": "range"
         }
       ],
-      "title": "CPU Usage",
+      "title": "Backend CPU Usage",
       "type": "timeseries"
     },
     {
       "datasource": {
         "type": "bkmonitor-timeseries-datasource",
-        "uid": "bkmonitor_timeseries"
+        "uid": "P3XSxkgSz"
       },
-      "description": "select|insert|update|delete|replace|commit",
+      "description": "",
       "fieldConfig": {
         "defaults": {
           "color": {
             "mode": "palette-classic"
           },
           "custom": {
+            "axisBorderShow": false,
             "axisCenteredZero": false,
             "axisColorMode": "text",
             "axisLabel": "",
@@ -313,6 +320,696 @@
               "tooltip": false,
               "viz": false
             },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 8,
+        "x": 9,
+        "y": 1
+      },
+      "id": 99,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "pluginVersion": "9.1.0",
+      "targets": [
+        {
+          "cluster": [],
+          "datasource": {
+            "type": "bkmonitor-timeseries-datasource",
+            "uid": "bkmonitor_timeseries"
+          },
+          "expressionList": [],
+          "format": "time_series",
+          "hide": false,
+          "host": [],
+          "mode": "ui",
+          "module": [],
+          "promqlAlias": "",
+          "query_configs": [
+            {
+              "alias": "",
+              "data_source_label": "bk_monitor",
+              "data_type_label": "time_series",
+              "display": true,
+              "filter_dict": {},
+              "functions": [],
+              "group_by": [
+                "bk_target_ip"
+              ],
+              "interval": "auto",
+              "interval_unit": "s",
+              "method": "AVG",
+              "metric_field": "usage",
+              "refId": "a",
+              "result_table_id": "dbm_system.cpu_summary",
+              "result_table_label": "os",
+              "time_field": "time",
+              "where": [
+                {
+                  "key": "cluster_domain",
+                  "method": "eq",
+                  "value": [
+                    "$cluster_domain"
+                  ]
+                },
+                {
+                  "condition": "and",
+                  "key": "instance_role",
+                  "method": "eq",
+                  "value": [
+                    "proxy"
+                  ]
+                }
+              ]
+            }
+          ],
+          "refId": "C",
+          "source": "",
+          "step": "",
+          "type": "range"
+        }
+      ],
+      "title": "Proxy CPU Usage",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "bkmonitor-timeseries-datasource",
+        "uid": "P3XSxkgSz"
+      },
+      "description": "",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "ms"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 7,
+        "x": 17,
+        "y": 1
+      },
+      "id": 56,
+      "options": {
+        "legend": {
+          "calcs": [
+            "last",
+            "max"
+          ],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "cluster": [],
+          "datasource": {
+            "type": "bkmonitor-timeseries-datasource",
+            "uid": "P3XSxkgSz"
+          },
+          "expressionList": [
+            {
+              "active": true,
+              "alias": "Time",
+              "expression": "(a / b) * 1000",
+              "functions": []
+            }
+          ],
+          "format": "time_series",
+          "hide": false,
+          "host": [],
+          "mode": "ui",
+          "module": [],
+          "promqlAlias": "$tag_command",
+          "query_configs": [
+            {
+              "alias": "",
+              "data_label": "exporter_dbm_mysqld_exporter",
+              "data_source_label": "bk_monitor",
+              "data_type_label": "time_series",
+              "display": false,
+              "filter_dict": {},
+              "functions": [
+                {
+                  "id": "rate",
+                  "params": [
+                    {
+                      "id": "window",
+                      "value": "2m"
+                    }
+                  ]
+                }
+              ],
+              "group_by": [],
+              "interval": 60,
+              "interval_unit": "s",
+              "method": "AVG",
+              "metric_field": "mysql_info_schema_query_response_time_seconds_sum",
+              "refId": "a",
+              "result_table_id": "exporter_dbm_mysqld_exporter.__default__",
+              "result_table_label": "component",
+              "time_field": "time",
+              "where": [
+                {
+                  "key": "cluster_domain",
+                  "method": "eq",
+                  "value": [
+                    "$cluster_domain"
+                  ]
+                },
+                {
+                  "condition": "and",
+                  "key": "instance_role",
+                  "method": "eq",
+                  "value": [
+                    "$dbrole"
+                  ]
+                }
+              ]
+            },
+            {
+              "alias": "",
+              "data_label": "exporter_dbm_mysqld_exporter",
+              "data_source_label": "bk_monitor",
+              "data_type_label": "time_series",
+              "display": false,
+              "filter_dict": {},
+              "functions": [
+                {
+                  "id": "rate",
+                  "params": [
+                    {
+                      "id": "window",
+                      "value": "2m"
+                    }
+                  ]
+                }
+              ],
+              "group_by": [],
+              "interval": "auto",
+              "interval_unit": "s",
+              "method": "AVG",
+              "metric_field": "mysql_info_schema_query_response_time_seconds_count",
+              "refId": "b",
+              "result_table_id": "exporter_dbm_mysqld_exporter.__default__",
+              "result_table_label": "component",
+              "time_field": "time",
+              "where": [
+                {
+                  "key": "cluster_domain",
+                  "method": "eq",
+                  "value": [
+                    "$cluster_domain"
+                  ]
+                },
+                {
+                  "condition": "and",
+                  "key": "instance_role",
+                  "method": "eq",
+                  "value": [
+                    "$dbrole"
+                  ]
+                }
+              ]
+            }
+          ],
+          "refId": "B",
+          "source": "sum(rate(bkmonitor:exporter_dbm_mysqld_exporter:__default__:mysql_global_status_created_tmp_tables{cluster_domain=\"$cluster_domain\",instance_role=\"$dbrole\"}[2m]))",
+          "step": "",
+          "type": "range"
+        }
+      ],
+      "title": "Average Query Response Time",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "bkmonitor-timeseries-datasource",
+        "uid": "P3XSxkgSz"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "decimals": 1,
+          "mappings": [],
+          "max": 1,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "decmbytes"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 3,
+        "x": 0,
+        "y": 5
+      },
+      "id": 88,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "pluginVersion": "10.4.10",
+      "targets": [
+        {
+          "cluster": [],
+          "datasource": {
+            "type": "bkmonitor-timeseries-datasource",
+            "uid": "bkmonitor_timeseries"
+          },
+          "enableDownSampling": true,
+          "expressionList": [],
+          "format": "time_series",
+          "hide": false,
+          "host": [],
+          "mode": "ui",
+          "module": [],
+          "promqlAlias": "",
+          "query_configs": [
+            {
+              "alias": "",
+              "data_label": "exporter_dbm_mysqld_exporter",
+              "data_source_label": "bk_monitor",
+              "data_type_label": "time_series",
+              "display": true,
+              "filter_dict": {},
+              "functions": [],
+              "group_by": [],
+              "interval": 7200,
+              "interval_unit": "s",
+              "method": "AVG",
+              "metric_field": "mysql_datadir_du_used_mb",
+              "refId": "a",
+              "result_table_id": "exporter_dbm_mysqld_exporter.__default__",
+              "result_table_label": "component",
+              "time_field": "time",
+              "where": [
+                {
+                  "key": "cluster_domain",
+                  "method": "eq",
+                  "value": [
+                    "$cluster_domain"
+                  ]
+                },
+                {
+                  "condition": "and",
+                  "key": "instance_role",
+                  "method": "eq",
+                  "value": [
+                    "$dbrole"
+                  ]
+                }
+              ]
+            }
+          ],
+          "refId": "A",
+          "source": "",
+          "step": "",
+          "type": "range"
+        }
+      ],
+      "title": "Data Size",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "bkmonitor-timeseries-datasource",
+        "uid": "P3XSxkgSz"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "decimals": 1,
+          "mappings": [],
+          "max": 1,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 80
+              },
+              {
+                "color": "red",
+                "value": 90
+              }
+            ]
+          },
+          "unit": "percentunit"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 3,
+        "x": 3,
+        "y": 5
+      },
+      "id": 85,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "pluginVersion": "10.4.10",
+      "targets": [
+        {
+          "cluster": [],
+          "datasource": {
+            "type": "bkmonitor-timeseries-datasource",
+            "uid": "bkmonitor_timeseries"
+          },
+          "expressionList": [],
+          "format": "time_series",
+          "hide": false,
+          "host": [],
+          "mode": "ui",
+          "module": [],
+          "promqlAlias": "",
+          "query_configs": [
+            {
+              "alias": "",
+              "data_label": "exporter_dbm_mysqld_exporter",
+              "data_source_label": "bk_monitor",
+              "data_type_label": "time_series",
+              "display": true,
+              "filter_dict": {},
+              "functions": [],
+              "group_by": [],
+              "interval": "auto",
+              "interval_unit": "s",
+              "method": "AVG",
+              "metric_field": "mysql_global_status_connection_used_percent",
+              "refId": "a",
+              "result_table_id": "exporter_dbm_mysqld_exporter.__default__",
+              "result_table_label": "component",
+              "time_field": "time",
+              "where": [
+                {
+                  "key": "cluster_domain",
+                  "method": "eq",
+                  "value": [
+                    "$cluster_domain"
+                  ]
+                },
+                {
+                  "condition": "and",
+                  "key": "instance_role",
+                  "method": "eq",
+                  "value": [
+                    "$dbrole"
+                  ]
+                }
+              ]
+            }
+          ],
+          "refId": "A",
+          "source": "",
+          "step": "",
+          "type": "range"
+        }
+      ],
+      "title": "Connection used",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "bkmonitor-timeseries-datasource",
+        "uid": "P3XSxkgSz"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "decimals": 2,
+          "mappings": [],
+          "max": 1,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "green",
+                "value": 0.998
+              }
+            ]
+          },
+          "unit": "percentunit"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 3,
+        "x": 6,
+        "y": 5
+      },
+      "id": 86,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "pluginVersion": "10.4.10",
+      "targets": [
+        {
+          "cluster": [],
+          "datasource": {
+            "type": "bkmonitor-timeseries-datasource",
+            "uid": "P3XSxkgSz"
+          },
+          "expressionList": [],
+          "format": "time_series",
+          "hide": false,
+          "host": [],
+          "mode": "ui",
+          "module": [],
+          "promqlAlias": "",
+          "query_configs": [
+            {
+              "alias": "",
+              "data_label": "exporter_dbm_mysqld_exporter",
+              "data_source_label": "bk_monitor",
+              "data_type_label": "time_series",
+              "display": true,
+              "filter_dict": {},
+              "functions": [],
+              "group_by": [],
+              "interval": "auto",
+              "interval_unit": "s",
+              "method": "AVG",
+              "metric_field": "mysql_global_status_innodb_buffer_pool_hit_ratio",
+              "refId": "a",
+              "result_table_id": "exporter_dbm_mysqld_exporter.__default__",
+              "result_table_label": "component",
+              "time_field": "time",
+              "where": [
+                {
+                  "key": "cluster_domain",
+                  "method": "eq",
+                  "value": [
+                    "$cluster_domain"
+                  ]
+                },
+                {
+                  "condition": "and",
+                  "key": "instance_role",
+                  "method": "eq",
+                  "value": [
+                    "$dbrole"
+                  ]
+                }
+              ]
+            }
+          ],
+          "refId": "A",
+          "source": "",
+          "step": "",
+          "type": "range"
+        }
+      ],
+      "title": "Innodb Buffer Pool Hits",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "bkmonitor-timeseries-datasource",
+        "uid": "P3XSxkgSz"
+      },
+      "description": "select|insert|update|delete|replace|commit",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
             "lineInterpolation": "linear",
             "lineWidth": 1,
             "pointSize": 5,
@@ -351,9 +1048,9 @@
         "h": 6,
         "w": 8,
         "x": 9,
-        "y": 1
+        "y": 7
       },
-      "id": null,
+      "id": 33,
       "options": {
         "legend": {
           "calcs": [
@@ -475,15 +1172,15 @@
     {
       "datasource": {
         "type": "bkmonitor-timeseries-datasource",
-        "uid": "bkmonitor_timeseries"
+        "uid": "P3XSxkgSz"
       },
-      "description": "",
       "fieldConfig": {
         "defaults": {
           "color": {
             "mode": "palette-classic"
           },
           "custom": {
+            "axisBorderShow": false,
             "axisCenteredZero": false,
             "axisColorMode": "text",
             "axisLabel": "",
@@ -497,700 +1194,7 @@
               "tooltip": false,
               "viz": false
             },
-            "lineInterpolation": "linear",
-            "lineWidth": 1,
-            "pointSize": 5,
-            "scaleDistribution": {
-              "type": "linear"
-            },
-            "showPoints": "auto",
-            "spanNulls": false,
-            "stacking": {
-              "group": "A",
-              "mode": "none"
-            },
-            "thresholdsStyle": {
-              "mode": "off"
-            }
-          },
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "red",
-                "value": 80
-              }
-            ]
-          },
-          "unit": "ms"
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 6,
-        "w": 7,
-        "x": 17,
-        "y": 1
-      },
-      "id": null,
-      "options": {
-        "legend": {
-          "calcs": [
-            "last",
-            "max"
-          ],
-          "displayMode": "table",
-          "placement": "bottom",
-          "showLegend": true
-        },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "none"
-        }
-      },
-      "targets": [
-        {
-          "cluster": [],
-          "datasource": {
-            "type": "bkmonitor-timeseries-datasource",
-            "uid": "bkmonitor_timeseries"
-          },
-          "expressionList": [
-            {
-              "active": true,
-              "alias": "Time",
-              "expression": "(a / b) * 1000",
-              "functions": []
-            }
-          ],
-          "format": "time_series",
-          "hide": false,
-          "host": [],
-          "mode": "ui",
-          "module": [],
-          "promqlAlias": "$tag_command",
-          "query_configs": [
-            {
-              "alias": "",
-              "data_label": "exporter_dbm_mysqld_exporter",
-              "data_source_label": "bk_monitor",
-              "data_type_label": "time_series",
-              "display": false,
-              "filter_dict": {},
-              "functions": [
-                {
-                  "id": "rate",
-                  "params": [
-                    {
-                      "id": "window",
-                      "value": "2m"
-                    }
-                  ]
-                }
-              ],
-              "group_by": [],
-              "interval": 60,
-              "interval_unit": "s",
-              "method": "AVG",
-              "metric_field": "mysql_info_schema_query_response_time_seconds_sum",
-              "refId": "a",
-              "result_table_id": "exporter_dbm_mysqld_exporter.__default__",
-              "result_table_label": "component",
-              "time_field": "time",
-              "where": [
-                {
-                  "key": "cluster_domain",
-                  "method": "eq",
-                  "value": [
-                    "$cluster_domain"
-                  ]
-                },
-                {
-                  "condition": "and",
-                  "key": "instance_role",
-                  "method": "eq",
-                  "value": [
-                    "$dbrole"
-                  ]
-                }
-              ]
-            },
-            {
-              "alias": "",
-              "data_label": "exporter_dbm_mysqld_exporter",
-              "data_source_label": "bk_monitor",
-              "data_type_label": "time_series",
-              "display": false,
-              "filter_dict": {},
-              "functions": [
-                {
-                  "id": "rate",
-                  "params": [
-                    {
-                      "id": "window",
-                      "value": "2m"
-                    }
-                  ]
-                }
-              ],
-              "group_by": [],
-              "interval": "auto",
-              "interval_unit": "s",
-              "method": "AVG",
-              "metric_field": "mysql_info_schema_query_response_time_seconds_count",
-              "refId": "b",
-              "result_table_id": "exporter_dbm_mysqld_exporter.__default__",
-              "result_table_label": "component",
-              "time_field": "time",
-              "where": [
-                {
-                  "key": "cluster_domain",
-                  "method": "eq",
-                  "value": [
-                    "$cluster_domain"
-                  ]
-                },
-                {
-                  "condition": "and",
-                  "key": "instance_role",
-                  "method": "eq",
-                  "value": [
-                    "$dbrole"
-                  ]
-                }
-              ]
-            }
-          ],
-          "refId": "B",
-          "source": "sum(rate(bkmonitor:exporter_dbm_mysqld_exporter:__default__:mysql_global_status_created_tmp_tables{cluster_domain=\"$cluster_domain\",instance_role=\"$dbrole\"}[2m]))",
-          "step": "",
-          "type": "range"
-        }
-      ],
-      "title": "Average Query Response Time",
-      "transformations": [],
-      "type": "timeseries"
-    },
-    {
-      "datasource": {
-        "type": "bkmonitor-timeseries-datasource",
-        "uid": "bkmonitor_timeseries"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "thresholds"
-          },
-          "decimals": 1,
-          "mappings": [],
-          "max": 1,
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              }
-            ]
-          },
-          "unit": "decmbytes"
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 4,
-        "w": 3,
-        "x": 0,
-        "y": 5
-      },
-      "id": null,
-      "options": {
-        "colorMode": "value",
-        "graphMode": "area",
-        "justifyMode": "auto",
-        "orientation": "auto",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "textMode": "auto"
-      },
-      "pluginVersion": "9.1.0",
-      "targets": [
-        {
-          "cluster": [],
-          "datasource": {
-            "type": "bkmonitor-timeseries-datasource",
-            "uid": "bkmonitor_timeseries"
-          },
-          "expressionList": [],
-          "format": "time_series",
-          "hide": false,
-          "host": [],
-          "mode": "ui",
-          "module": [],
-          "promqlAlias": "",
-          "query_configs": [
-            {
-              "alias": "",
-              "data_label": "exporter_dbm_mysqld_exporter",
-              "data_source_label": "bk_monitor",
-              "data_type_label": "time_series",
-              "display": true,
-              "filter_dict": {},
-              "functions": [],
-              "group_by": [],
-              "interval": "auto",
-              "interval_unit": "s",
-              "method": "AVG",
-              "metric_field": "mysql_datadir_du_used_mb",
-              "refId": "a",
-              "result_table_id": "exporter_dbm_mysqld_exporter.__default__",
-              "result_table_label": "component",
-              "time_field": "time",
-              "where": [
-                {
-                  "key": "cluster_domain",
-                  "method": "eq",
-                  "value": [
-                    "$cluster_domain"
-                  ]
-                },
-                {
-                  "condition": "and",
-                  "key": "instance_role",
-                  "method": "eq",
-                  "value": [
-                    "$dbrole"
-                  ]
-                }
-              ]
-            }
-          ],
-          "refId": "A",
-          "source": "",
-          "step": "",
-          "type": "range"
-        }
-      ],
-      "title": "Data Size",
-      "type": "stat"
-    },
-    {
-      "datasource": {
-        "type": "bkmonitor-timeseries-datasource",
-        "uid": "bkmonitor_timeseries"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "thresholds"
-          },
-          "decimals": 1,
-          "mappings": [],
-          "max": 1,
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "yellow",
-                "value": 80
-              },
-              {
-                "color": "red",
-                "value": 90
-              }
-            ]
-          },
-          "unit": "percentunit"
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 4,
-        "w": 3,
-        "x": 3,
-        "y": 5
-      },
-      "id": null,
-      "options": {
-        "colorMode": "value",
-        "graphMode": "area",
-        "justifyMode": "auto",
-        "orientation": "auto",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "textMode": "auto"
-      },
-      "pluginVersion": "9.1.0",
-      "targets": [
-        {
-          "cluster": [],
-          "datasource": {
-            "type": "bkmonitor-timeseries-datasource",
-            "uid": "bkmonitor_timeseries"
-          },
-          "expressionList": [],
-          "format": "time_series",
-          "hide": false,
-          "host": [],
-          "mode": "ui",
-          "module": [],
-          "promqlAlias": "",
-          "query_configs": [
-            {
-              "alias": "",
-              "data_label": "exporter_dbm_mysqld_exporter",
-              "data_source_label": "bk_monitor",
-              "data_type_label": "time_series",
-              "display": true,
-              "filter_dict": {},
-              "functions": [],
-              "group_by": [],
-              "interval": "auto",
-              "interval_unit": "s",
-              "method": "AVG",
-              "metric_field": "mysql_global_status_connection_used_percent",
-              "refId": "a",
-              "result_table_id": "exporter_dbm_mysqld_exporter.__default__",
-              "result_table_label": "component",
-              "time_field": "time",
-              "where": [
-                {
-                  "key": "cluster_domain",
-                  "method": "eq",
-                  "value": [
-                    "$cluster_domain"
-                  ]
-                },
-                {
-                  "condition": "and",
-                  "key": "instance_role",
-                  "method": "eq",
-                  "value": [
-                    "$dbrole"
-                  ]
-                }
-              ]
-            }
-          ],
-          "refId": "A",
-          "source": "",
-          "step": "",
-          "type": "range"
-        }
-      ],
-      "title": "Connection used",
-      "type": "stat"
-    },
-    {
-      "datasource": {
-        "type": "bkmonitor-timeseries-datasource",
-        "uid": "bkmonitor_timeseries"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "thresholds"
-          },
-          "decimals": 2,
-          "mappings": [],
-          "max": 1,
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "red",
-                "value": null
-              },
-              {
-                "color": "green",
-                "value": 0.998
-              }
-            ]
-          },
-          "unit": "percentunit"
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 4,
-        "w": 3,
-        "x": 6,
-        "y": 5
-      },
-      "id": null,
-      "options": {
-        "colorMode": "value",
-        "graphMode": "area",
-        "justifyMode": "auto",
-        "orientation": "auto",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "textMode": "auto"
-      },
-      "pluginVersion": "9.1.0",
-      "targets": [
-        {
-          "cluster": [],
-          "datasource": {
-            "type": "bkmonitor-timeseries-datasource",
-            "uid": "bkmonitor_timeseries"
-          },
-          "expressionList": [],
-          "format": "time_series",
-          "hide": false,
-          "host": [],
-          "mode": "ui",
-          "module": [],
-          "promqlAlias": "",
-          "query_configs": [
-            {
-              "alias": "",
-              "data_label": "exporter_dbm_mysqld_exporter",
-              "data_source_label": "bk_monitor",
-              "data_type_label": "time_series",
-              "display": true,
-              "filter_dict": {},
-              "functions": [],
-              "group_by": [],
-              "interval": "auto",
-              "interval_unit": "s",
-              "method": "AVG",
-              "metric_field": "mysql_global_status_innodb_buffer_pool_hit_ratio",
-              "refId": "a",
-              "result_table_id": "exporter_dbm_mysqld_exporter.__default__",
-              "result_table_label": "component",
-              "time_field": "time",
-              "where": [
-                {
-                  "key": "cluster_domain",
-                  "method": "eq",
-                  "value": [
-                    "$cluster_domain"
-                  ]
-                },
-                {
-                  "condition": "and",
-                  "key": "instance_role",
-                  "method": "eq",
-                  "value": [
-                    "$dbrole"
-                  ]
-                }
-              ]
-            }
-          ],
-          "refId": "A",
-          "source": "",
-          "step": "",
-          "type": "range"
-        }
-      ],
-      "title": "Innodb Buffer Pool Hits",
-      "type": "stat"
-    },
-    {
-      "datasource": {
-        "type": "bkmonitor-timeseries-datasource",
-        "uid": "bkmonitor_timeseries"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "palette-classic"
-          },
-          "custom": {
-            "axisCenteredZero": false,
-            "axisColorMode": "text",
-            "axisLabel": "",
-            "axisPlacement": "auto",
-            "barAlignment": 0,
-            "drawStyle": "line",
-            "fillOpacity": 0,
-            "gradientMode": "none",
-            "hideFrom": {
-              "legend": false,
-              "tooltip": false,
-              "viz": false
-            },
-            "lineInterpolation": "linear",
-            "lineWidth": 1,
-            "pointSize": 5,
-            "scaleDistribution": {
-              "type": "linear"
-            },
-            "showPoints": "auto",
-            "spanNulls": false,
-            "stacking": {
-              "group": "A",
-              "mode": "none"
-            },
-            "thresholdsStyle": {
-              "mode": "off"
-            }
-          },
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "red",
-                "value": 80
-              }
-            ]
-          }
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 6,
-        "w": 8,
-        "x": 9,
-        "y": 7
-      },
-      "id": null,
-      "options": {
-        "legend": {
-          "calcs": [
-            "last",
-            "max"
-          ],
-          "displayMode": "list",
-          "placement": "bottom",
-          "showLegend": true
-        },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "desc"
-        }
-      },
-      "targets": [
-        {
-          "cluster": [],
-          "datasource": {
-            "type": "bkmonitor-timeseries-datasource",
-            "uid": "bkmonitor_timeseries"
-          },
-          "expressionList": [
-            {
-              "active": true,
-              "alias": "",
-              "expression": "",
-              "functions": []
-            }
-          ],
-          "format": "time_series",
-          "hide": false,
-          "host": [],
-          "mode": "ui",
-          "module": [],
-          "promqlAlias": "Com_$tag_command",
-          "query_configs": [
-            {
-              "alias": "slow_queries",
-              "data_source_label": "bk_monitor",
-              "data_type_label": "time_series",
-              "display": true,
-              "filter_dict": {},
-              "functions": [
-                {
-                  "id": "rate",
-                  "params": [
-                    {
-                      "id": "window",
-                      "value": "2m"
-                    }
-                  ]
-                }
-              ],
-              "group_by": [],
-              "interval": 60,
-              "interval_unit": "s",
-              "method": "SUM",
-              "metric_field": "mysql_global_status_slow_queries",
-              "refId": "a",
-              "result_table_id": "exporter_dbm_mysqld_exporter.__default__",
-              "result_table_label": "component",
-              "time_field": "",
-              "where": [
-                {
-                  "key": "cluster_domain",
-                  "method": "eq",
-                  "value": [
-                    "$cluster_domain"
-                  ]
-                },
-                {
-                  "condition": "and",
-                  "key": "instance_role",
-                  "method": "eq",
-                  "value": [
-                    "$dbrole"
-                  ]
-                }
-              ]
-            }
-          ],
-          "refId": "B",
-          "source": "sum by(command) (rate(bkmonitor:exporter_dbm_mysqld_exporter:__default__:mysql_global_status_commands_total{cluster_domain=\"$cluster_domain\",instance_role=\"$dbrole\"}[2m]) > 0)",
-          "step": "",
-          "type": "range"
-        }
-      ],
-      "title": "Slow Queries",
-      "type": "timeseries"
-    },
-    {
-      "datasource": {
-        "type": "bkmonitor-timeseries-datasource",
-        "uid": "bkmonitor_timeseries"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "palette-classic"
-          },
-          "custom": {
-            "axisCenteredZero": false,
-            "axisColorMode": "text",
-            "axisLabel": "",
-            "axisPlacement": "auto",
-            "barAlignment": 0,
-            "drawStyle": "line",
-            "fillOpacity": 0,
-            "gradientMode": "none",
-            "hideFrom": {
-              "legend": false,
-              "tooltip": false,
-              "viz": false
-            },
+            "insertNulls": false,
             "lineInterpolation": "linear",
             "lineWidth": 1,
             "pointSize": 5,
@@ -1231,7 +1235,7 @@
         "x": 17,
         "y": 7
       },
-      "id": null,
+      "id": 83,
       "options": {
         "legend": {
           "calcs": [],
@@ -1303,7 +1307,7 @@
     {
       "datasource": {
         "type": "bkmonitor-timeseries-datasource",
-        "uid": "bkmonitor_timeseries"
+        "uid": "P3XSxkgSz"
       },
       "description": "",
       "fieldConfig": {
@@ -1331,7 +1335,7 @@
         "x": 0,
         "y": 9
       },
-      "id": null,
+      "id": 15,
       "options": {
         "colorMode": "value",
         "graphMode": "none",
@@ -1344,10 +1348,12 @@
           "fields": "",
           "values": false
         },
+        "showPercentChange": false,
         "text": {},
-        "textMode": "auto"
+        "textMode": "auto",
+        "wideLayout": true
       },
-      "pluginVersion": "9.1.0",
+      "pluginVersion": "10.4.10",
       "targets": [
         {
           "cluster": [],
@@ -1409,7 +1415,7 @@
     {
       "datasource": {
         "type": "bkmonitor-timeseries-datasource",
-        "uid": "bkmonitor_timeseries"
+        "uid": "P3XSxkgSz"
       },
       "fieldConfig": {
         "defaults": {
@@ -1418,7 +1424,9 @@
           },
           "custom": {
             "align": "auto",
-            "displayMode": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
             "inspect": false
           },
           "mappings": [],
@@ -1445,10 +1453,12 @@
         "y": 9
       },
       "hideTimeOverride": true,
-      "id": null,
+      "id": 10,
       "interval": "1h",
       "options": {
+        "cellHeight": "sm",
         "footer": {
+          "countRows": false,
           "fields": "",
           "reducer": [
             "sum"
@@ -1457,13 +1467,13 @@
         },
         "showHeader": true
       },
-      "pluginVersion": "9.1.0",
+      "pluginVersion": "10.4.10",
       "targets": [
         {
           "cluster": [],
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "bkmonitor_timeseries"
+            "uid": "P3XSxkgSz"
           },
           "expressionList": [],
           "format": "table",
@@ -1531,7 +1541,7 @@
     {
       "datasource": {
         "type": "bkmonitor-timeseries-datasource",
-        "uid": "bkmonitor_timeseries"
+        "uid": "P3XSxkgSz"
       },
       "fieldConfig": {
         "defaults": {
@@ -1550,11 +1560,11 @@
       },
       "gridPos": {
         "h": 6,
-        "w": 17,
+        "w": 9,
         "x": 0,
         "y": 13
       },
-      "id": null,
+      "id": 90,
       "options": {
         "calculate": false,
         "cellGap": 1,
@@ -1562,6 +1572,7 @@
           "exponent": 0.5,
           "fill": "dark-orange",
           "mode": "scheme",
+          "reverse": false,
           "scale": "exponential",
           "scheme": "Oranges",
           "steps": 30
@@ -1579,7 +1590,8 @@
           "layout": "auto"
         },
         "tooltip": {
-          "show": true,
+          "mode": "single",
+          "showColorScale": false,
           "yHistogram": false
         },
         "yAxis": {
@@ -1587,7 +1599,7 @@
           "reverse": false
         }
       },
-      "pluginVersion": "9.1.0",
+      "pluginVersion": "10.4.10",
       "targets": [
         {
           "cluster": [],
@@ -1673,15 +1685,15 @@
     {
       "datasource": {
         "type": "bkmonitor-timeseries-datasource",
-        "uid": "bkmonitor_timeseries"
+        "uid": "P3XSxkgSz"
       },
-      "description": "**Max Connections** is the maximum permitted number of simultaneous client connections. This is the value of the ``max_connections`` variable.\n\n**Max Used Connections** is the maximum number of connections that have been in use simultaneously since the server was started.\n\n**Connections** is the number of connection attempts (successful or not) to the MySQL server.",
       "fieldConfig": {
         "defaults": {
           "color": {
             "mode": "palette-classic"
           },
           "custom": {
+            "axisBorderShow": false,
             "axisCenteredZero": false,
             "axisColorMode": "text",
             "axisLabel": "",
@@ -1695,6 +1707,167 @@
               "tooltip": false,
               "viz": false
             },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 8,
+        "x": 9,
+        "y": 13
+      },
+      "id": 32,
+      "options": {
+        "legend": {
+          "calcs": [
+            "last",
+            "max"
+          ],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "cluster": [],
+          "datasource": {
+            "type": "bkmonitor-timeseries-datasource",
+            "uid": "bkmonitor_timeseries"
+          },
+          "enableDownSampling": true,
+          "expressionList": [
+            {
+              "active": true,
+              "alias": "",
+              "expression": "",
+              "functions": []
+            }
+          ],
+          "format": "time_series",
+          "hide": false,
+          "host": [],
+          "mode": "ui",
+          "module": [],
+          "promqlAlias": "Com_$tag_command",
+          "query_configs": [
+            {
+              "alias": "slow_queries",
+              "data_label": "exporter_dbm_mysqld_exporter",
+              "data_source_label": "bk_monitor",
+              "data_type_label": "time_series",
+              "display": true,
+              "filter_dict": {},
+              "functions": [
+                {
+                  "id": "increase",
+                  "params": [
+                    {
+                      "id": "window",
+                      "value": "1m"
+                    }
+                  ]
+                }
+              ],
+              "group_by": [],
+              "interval": 60,
+              "interval_unit": "s",
+              "method": "SUM",
+              "metric_field": "mysql_global_status_slow_queries",
+              "refId": "a",
+              "result_table_id": "exporter_dbm_mysqld_exporter.__default__",
+              "result_table_label": "component",
+              "time_field": "time",
+              "where": [
+                {
+                  "key": "cluster_domain",
+                  "method": "eq",
+                  "value": [
+                    "$cluster_domain"
+                  ]
+                },
+                {
+                  "condition": "and",
+                  "key": "instance_role",
+                  "method": "eq",
+                  "value": [
+                    "$dbrole"
+                  ]
+                }
+              ]
+            }
+          ],
+          "refId": "B",
+          "source": "sum by(command) (rate(bkmonitor:exporter_dbm_mysqld_exporter:__default__:mysql_global_status_commands_total{cluster_domain=\"$cluster_domain\",instance_role=\"$dbrole\"}[2m]) > 0)",
+          "step": "",
+          "type": "range"
+        }
+      ],
+      "title": "Slow Queries(1m SUM)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "bkmonitor-timeseries-datasource",
+        "uid": "P3XSxkgSz"
+      },
+      "description": "**Max Connections** is the maximum permitted number of simultaneous client connections. This is the value of the ``max_connections`` variable.\n\n**Max Used Connections** is the maximum number of connections that have been in use simultaneously since the server was started.\n\n**Connections** is the number of connection attempts (successful or not) to the MySQL server.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
             "lineInterpolation": "linear",
             "lineWidth": 1,
             "pointSize": 5,
@@ -1734,7 +1907,7 @@
         "x": 17,
         "y": 13
       },
-      "id": null,
+      "id": 91,
       "options": {
         "legend": {
           "calcs": [
@@ -1848,481 +2021,310 @@
       "type": "timeseries"
     },
     {
-      "collapsed": false,
+      "collapsed": true,
       "gridPos": {
         "h": 1,
         "w": 24,
         "x": 0,
         "y": 19
       },
-      "id": null,
-      "panels": [],
-      "title": "Command, Handlers",
+      "id": 82,
+      "panels": [
+        {
+          "datasource": {
+            "type": "bkmonitor-timeseries-datasource",
+            "uid": "P3XSxkgSz"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "",
+                "axisPlacement": "auto",
+                "barAlignment": 0,
+                "drawStyle": "line",
+                "fillOpacity": 0,
+                "gradientMode": "none",
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                },
+                "lineInterpolation": "linear",
+                "lineWidth": 1,
+                "pointSize": 5,
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "showPoints": "auto",
+                "spanNulls": false,
+                "stacking": {
+                  "group": "A",
+                  "mode": "none"
+                },
+                "thresholdsStyle": {
+                  "mode": "off"
+                }
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green"
+                  },
+                  {
+                    "color": "red",
+                    "value": 80
+                  }
+                ]
+              },
+              "unit": "dtdurations"
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 0,
+            "y": 4
+          },
+          "id": 79,
+          "options": {
+            "legend": {
+              "calcs": [],
+              "displayMode": "table",
+              "placement": "bottom",
+              "showLegend": true
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "none"
+            }
+          },
+          "targets": [
+            {
+              "cluster": [],
+              "datasource": {
+                "type": "bkmonitor-timeseries-datasource",
+                "uid": "bkmonitor_timeseries"
+              },
+              "expressionList": [],
+              "format": "time_series",
+              "host": [],
+              "mode": "ui",
+              "module": [],
+              "promqlAlias": "",
+              "query_configs": [
+                {
+                  "alias": "slave=$tag_instance,  master_serverid=$tag_master_server_id, $tag_channel_name",
+                  "data_label": "exporter_dbm_mysqld_exporter",
+                  "data_source_label": "bk_monitor",
+                  "data_type_label": "time_series",
+                  "display": true,
+                  "filter_dict": {},
+                  "functions": [],
+                  "group_by": [
+                    "instance",
+                    "master_uuid",
+                    "channel_name",
+                    "master_server_id"
+                  ],
+                  "interval": "auto",
+                  "interval_unit": "s",
+                  "method": "AVG",
+                  "metric_field": "mysql_slave_status_seconds_behind_master",
+                  "refId": "a",
+                  "result_table_id": "exporter_dbm_mysqld_exporter.__default__",
+                  "result_table_label": "component",
+                  "time_field": "time",
+                  "where": [
+                    {
+                      "key": "cluster_domain",
+                      "method": "eq",
+                      "value": [
+                        "$cluster_domain"
+                      ]
+                    }
+                  ]
+                }
+              ],
+              "refId": "A",
+              "source": "",
+              "step": "",
+              "type": "range"
+            }
+          ],
+          "title": "Seconds Behind Master",
+          "type": "timeseries"
+        },
+        {
+          "datasource": {
+            "type": "bkmonitor-timeseries-datasource",
+            "uid": "P3XSxkgSz"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "",
+                "axisPlacement": "auto",
+                "barAlignment": 0,
+                "drawStyle": "line",
+                "fillOpacity": 0,
+                "gradientMode": "none",
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                },
+                "lineInterpolation": "linear",
+                "lineWidth": 1,
+                "pointSize": 5,
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "showPoints": "auto",
+                "spanNulls": false,
+                "stacking": {
+                  "group": "A",
+                  "mode": "none"
+                },
+                "thresholdsStyle": {
+                  "mode": "off"
+                }
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green"
+                  },
+                  {
+                    "color": "red",
+                    "value": 80
+                  }
+                ]
+              },
+              "unit": "dtdurations"
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 12,
+            "y": 4
+          },
+          "id": 80,
+          "options": {
+            "legend": {
+              "calcs": [],
+              "displayMode": "table",
+              "placement": "bottom",
+              "showLegend": true
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "none"
+            }
+          },
+          "targets": [
+            {
+              "cluster": [],
+              "datasource": {
+                "type": "bkmonitor-timeseries-datasource",
+                "uid": "bkmonitor_timeseries"
+              },
+              "expressionList": [],
+              "format": "time_series",
+              "host": [],
+              "mode": "ui",
+              "module": [],
+              "promqlAlias": "",
+              "query_configs": [
+                {
+                  "alias": "heartbeat_delay_sec, master=$tag_master_server_id",
+                  "data_label": "exporter_dbm_mysqld_exporter",
+                  "data_source_label": "bk_monitor",
+                  "data_type_label": "time_series",
+                  "display": true,
+                  "filter_dict": {},
+                  "functions": [],
+                  "group_by": [
+                    "master_uuid",
+                    "master_server_id"
+                  ],
+                  "interval": "auto",
+                  "interval_unit": "s",
+                  "method": "AVG",
+                  "metric_field": "mysql_infodba_schema_heartbeat_delay_sec",
+                  "refId": "a",
+                  "result_table_id": "exporter_dbm_mysqld_exporter.__default__",
+                  "result_table_label": "component",
+                  "time_field": "time",
+                  "where": [
+                    {
+                      "key": "cluster_domain",
+                      "method": "eq",
+                      "value": [
+                        "$cluster_domain"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "alias": "heartbeat_beat_sec, master=$tag_master_server_id",
+                  "data_label": "exporter_dbm_mysqld_exporter",
+                  "data_source_label": "bk_monitor",
+                  "data_type_label": "time_series",
+                  "display": true,
+                  "filter_dict": {},
+                  "functions": [],
+                  "group_by": [
+                    "master_uuid",
+                    "master_server_id"
+                  ],
+                  "interval": "auto",
+                  "interval_unit": "s",
+                  "method": "AVG",
+                  "metric_field": "mysql_infodba_schema_heartbeat_beat_sec",
+                  "refId": "b",
+                  "result_table_id": "exporter_dbm_mysqld_exporter.__default__",
+                  "result_table_label": "component",
+                  "time_field": "time",
+                  "where": [
+                    {
+                      "key": "cluster_domain",
+                      "method": "eq",
+                      "value": [
+                        "$cluster_domain"
+                      ]
+                    }
+                  ]
+                }
+              ],
+              "refId": "A",
+              "source": "",
+              "step": "",
+              "type": "range"
+            }
+          ],
+          "title": "Master Slave Heartbeat Delay",
+          "type": "timeseries"
+        }
+      ],
+      "title": "Replication",
       "type": "row"
-    },
-    {
-      "datasource": {
-        "type": "bkmonitor-timeseries-datasource",
-        "uid": "bkmonitor_timeseries"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "palette-classic"
-          },
-          "custom": {
-            "axisCenteredZero": false,
-            "axisColorMode": "text",
-            "axisLabel": "",
-            "axisPlacement": "auto",
-            "barAlignment": 0,
-            "drawStyle": "line",
-            "fillOpacity": 0,
-            "gradientMode": "none",
-            "hideFrom": {
-              "legend": false,
-              "tooltip": false,
-              "viz": false
-            },
-            "lineInterpolation": "linear",
-            "lineWidth": 1,
-            "pointSize": 5,
-            "scaleDistribution": {
-              "type": "linear"
-            },
-            "showPoints": "auto",
-            "spanNulls": false,
-            "stacking": {
-              "group": "A",
-              "mode": "none"
-            },
-            "thresholdsStyle": {
-              "mode": "off"
-            }
-          },
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "red",
-                "value": 80
-              }
-            ]
-          }
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 0,
-        "y": 20
-      },
-      "id": null,
-      "options": {
-        "legend": {
-          "calcs": [
-            "last",
-            "max"
-          ],
-          "displayMode": "table",
-          "placement": "right",
-          "showLegend": true
-        },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "desc"
-        }
-      },
-      "targets": [
-        {
-          "cluster": [],
-          "datasource": {
-            "type": "bkmonitor-timeseries-datasource",
-            "uid": "bkmonitor_timeseries"
-          },
-          "expressionList": [],
-          "format": "time_series",
-          "hide": false,
-          "host": [],
-          "mode": "code",
-          "module": [],
-          "promqlAlias": "Com_$tag_command",
-          "query_configs": [
-            {
-              "alias": "Com_$tag_command",
-              "data_source_label": "bk_monitor",
-              "data_type_label": "time_series",
-              "display": true,
-              "filter_dict": {},
-              "functions": [
-                {
-                  "id": "rate",
-                  "params": [
-                    {
-                      "id": "window",
-                      "value": "2m"
-                    }
-                  ]
-                }
-              ],
-              "group_by": [
-                "command"
-              ],
-              "interval": 60,
-              "interval_unit": "s",
-              "method": "sum_without_time",
-              "metric_field": "mysql_global_status_commands_total",
-              "refId": "a",
-              "result_table_id": "exporter_dbm_mysqld_exporter.__default__",
-              "result_table_label": "component",
-              "time_field": "",
-              "where": [
-                {
-                  "key": "cluster_domain",
-                  "method": "eq",
-                  "value": [
-                    "$cluster_domain"
-                  ]
-                },
-                {
-                  "condition": "and",
-                  "key": "instance_role",
-                  "method": "eq",
-                  "value": [
-                    "$dbrole"
-                  ]
-                }
-              ]
-            }
-          ],
-          "refId": "B",
-          "source": "sum by(command) (rate(bkmonitor:exporter_dbm_mysqld_exporter:__default__:mysql_global_status_commands_total{cluster_domain=\"$cluster_domain\",instance_role=\"$dbrole\"}[2m]) > 0)",
-          "step": "",
-          "type": "range"
-        }
-      ],
-      "title": "Top Command Counters",
-      "type": "timeseries"
-    },
-    {
-      "datasource": {
-        "type": "bkmonitor-timeseries-datasource",
-        "uid": "bkmonitor_timeseries"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "palette-classic"
-          },
-          "custom": {
-            "axisCenteredZero": false,
-            "axisColorMode": "text",
-            "axisLabel": "",
-            "axisPlacement": "auto",
-            "barAlignment": 0,
-            "drawStyle": "line",
-            "fillOpacity": 0,
-            "gradientMode": "none",
-            "hideFrom": {
-              "legend": false,
-              "tooltip": false,
-              "viz": false
-            },
-            "lineInterpolation": "linear",
-            "lineWidth": 1,
-            "pointSize": 5,
-            "scaleDistribution": {
-              "type": "linear"
-            },
-            "showPoints": "auto",
-            "spanNulls": false,
-            "stacking": {
-              "group": "A",
-              "mode": "none"
-            },
-            "thresholdsStyle": {
-              "mode": "off"
-            }
-          },
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "red",
-                "value": 80
-              }
-            ]
-          }
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 6,
-        "x": 12,
-        "y": 20
-      },
-      "id": null,
-      "options": {
-        "legend": {
-          "calcs": [
-            "last",
-            "max"
-          ],
-          "displayMode": "table",
-          "placement": "bottom",
-          "showLegend": true
-        },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "desc"
-        }
-      },
-      "targets": [
-        {
-          "cluster": [],
-          "datasource": {
-            "type": "bkmonitor-timeseries-datasource",
-            "uid": "bkmonitor_timeseries"
-          },
-          "expressionList": [
-            {
-              "active": true,
-              "alias": "",
-              "expression": "",
-              "functions": []
-            }
-          ],
-          "format": "time_series",
-          "hide": false,
-          "host": [],
-          "mode": "code",
-          "module": [],
-          "promqlAlias": "$tag_handler",
-          "query_configs": [
-            {
-              "alias": "$tag_handler",
-              "data_source_label": "bk_monitor",
-              "data_type_label": "time_series",
-              "display": true,
-              "filter_dict": {},
-              "functions": [
-                {
-                  "id": "rate",
-                  "params": [
-                    {
-                      "id": "window",
-                      "value": "2m"
-                    }
-                  ]
-                }
-              ],
-              "group_by": [
-                "handler"
-              ],
-              "interval": 60,
-              "interval_unit": "s",
-              "method": "sum_without_time",
-              "metric_field": "mysql_global_status_handlers_total",
-              "refId": "a",
-              "result_table_id": "exporter_dbm_mysqld_exporter.__default__",
-              "result_table_label": "component",
-              "time_field": "",
-              "where": [
-                {
-                  "key": "cluster_domain",
-                  "method": "eq",
-                  "value": [
-                    "$cluster_domain"
-                  ]
-                },
-                {
-                  "condition": "and",
-                  "key": "instance_role",
-                  "method": "eq",
-                  "value": [
-                    "$dbrole"
-                  ]
-                }
-              ]
-            }
-          ],
-          "refId": "B",
-          "source": "sum by(handler) (rate(bkmonitor:exporter_dbm_mysqld_exporter:__default__:mysql_global_status_handlers_total{cluster_domain=\"$cluster_domain\",instance_role=\"$dbrole\",handler!~\"commit|rollback|savepoint.*|prepare\"}[2m]))",
-          "step": "",
-          "type": "range"
-        }
-      ],
-      "title": "MySQL Handlers",
-      "type": "timeseries"
-    },
-    {
-      "datasource": {
-        "type": "bkmonitor-timeseries-datasource",
-        "uid": "bkmonitor_timeseries"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "palette-classic"
-          },
-          "custom": {
-            "axisCenteredZero": false,
-            "axisColorMode": "text",
-            "axisLabel": "",
-            "axisPlacement": "auto",
-            "barAlignment": 0,
-            "drawStyle": "line",
-            "fillOpacity": 0,
-            "gradientMode": "none",
-            "hideFrom": {
-              "legend": false,
-              "tooltip": false,
-              "viz": false
-            },
-            "lineInterpolation": "linear",
-            "lineWidth": 1,
-            "pointSize": 5,
-            "scaleDistribution": {
-              "type": "linear"
-            },
-            "showPoints": "auto",
-            "spanNulls": false,
-            "stacking": {
-              "group": "A",
-              "mode": "none"
-            },
-            "thresholdsStyle": {
-              "mode": "off"
-            }
-          },
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "red",
-                "value": 80
-              }
-            ]
-          }
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 6,
-        "x": 18,
-        "y": 20
-      },
-      "id": null,
-      "options": {
-        "legend": {
-          "calcs": [
-            "last",
-            "max"
-          ],
-          "displayMode": "table",
-          "placement": "bottom",
-          "showLegend": true
-        },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "desc"
-        }
-      },
-      "targets": [
-        {
-          "cluster": [],
-          "datasource": {
-            "type": "bkmonitor-timeseries-datasource",
-            "uid": "bkmonitor_timeseries"
-          },
-          "expressionList": [
-            {
-              "active": true,
-              "alias": "",
-              "expression": "",
-              "functions": []
-            }
-          ],
-          "format": "time_series",
-          "hide": false,
-          "host": [],
-          "mode": "code",
-          "module": [],
-          "promqlAlias": "$tag_handler",
-          "query_configs": [
-            {
-              "alias": "$tag_handler",
-              "data_source_label": "bk_monitor",
-              "data_type_label": "time_series",
-              "display": true,
-              "filter_dict": {},
-              "functions": [
-                {
-                  "id": "rate",
-                  "params": [
-                    {
-                      "id": "window",
-                      "value": "2m"
-                    }
-                  ]
-                }
-              ],
-              "group_by": [
-                "handler"
-              ],
-              "interval": 60,
-              "interval_unit": "s",
-              "method": "sum_without_time",
-              "metric_field": "mysql_global_status_handlers_total",
-              "refId": "a",
-              "result_table_id": "exporter_dbm_mysqld_exporter.__default__",
-              "result_table_label": "component",
-              "time_field": "",
-              "where": [
-                {
-                  "key": "cluster_domain",
-                  "method": "eq",
-                  "value": [
-                    "$cluster_domain"
-                  ]
-                },
-                {
-                  "condition": "and",
-                  "key": "instance_role",
-                  "method": "eq",
-                  "value": [
-                    "$dbrole"
-                  ]
-                }
-              ]
-            }
-          ],
-          "refId": "B",
-          "source": "sum by(handler) (rate(bkmonitor:exporter_dbm_mysqld_exporter:__default__:mysql_global_status_handlers_total{cluster_domain=\"$cluster_domain\",instance_role=\"$dbrole\",handler=~\"commit|rollback|savepoint.*|prepare\"}[2m]))",
-          "step": "",
-          "type": "range"
-        }
-      ],
-      "title": "MySQL Transaction Handlers",
-      "type": "timeseries"
     },
     {
       "collapsed": true,
@@ -2330,14 +2332,14 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 28
+        "y": 20
       },
-      "id": null,
+      "id": 24,
       "panels": [
         {
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "bkmonitor_timeseries"
+            "uid": "P3XSxkgSz"
           },
           "fieldConfig": {
             "defaults": {
@@ -2394,9 +2396,486 @@
             "h": 8,
             "w": 12,
             "x": 0,
-            "y": 3
+            "y": 20
           },
-          "id": null,
+          "id": 25,
+          "options": {
+            "legend": {
+              "calcs": [
+                "last",
+                "max"
+              ],
+              "displayMode": "table",
+              "placement": "right",
+              "showLegend": true
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "desc"
+            }
+          },
+          "targets": [
+            {
+              "cluster": [],
+              "datasource": {
+                "type": "bkmonitor-timeseries-datasource",
+                "uid": "bkmonitor_timeseries"
+              },
+              "expressionList": [],
+              "format": "time_series",
+              "hide": false,
+              "host": [],
+              "mode": "code",
+              "module": [],
+              "promqlAlias": "Com_$tag_command",
+              "query_configs": [
+                {
+                  "alias": "Com_$tag_command",
+                  "data_source_label": "bk_monitor",
+                  "data_type_label": "time_series",
+                  "display": true,
+                  "filter_dict": {},
+                  "functions": [
+                    {
+                      "id": "rate",
+                      "params": [
+                        {
+                          "id": "window",
+                          "value": "2m"
+                        }
+                      ]
+                    }
+                  ],
+                  "group_by": [
+                    "command"
+                  ],
+                  "interval": 60,
+                  "interval_unit": "s",
+                  "method": "sum_without_time",
+                  "metric_field": "mysql_global_status_commands_total",
+                  "refId": "a",
+                  "result_table_id": "exporter_dbm_mysqld_exporter.__default__",
+                  "result_table_label": "component",
+                  "time_field": "",
+                  "where": [
+                    {
+                      "key": "cluster_domain",
+                      "method": "eq",
+                      "value": [
+                        "$cluster_domain"
+                      ]
+                    },
+                    {
+                      "condition": "and",
+                      "key": "instance_role",
+                      "method": "eq",
+                      "value": [
+                        "$dbrole"
+                      ]
+                    }
+                  ]
+                }
+              ],
+              "refId": "B",
+              "source": "sum by(command) (rate(bkmonitor:exporter_dbm_mysqld_exporter:__default__:mysql_global_status_commands_total{cluster_domain=\"$cluster_domain\",instance_role=\"$dbrole\"}[2m]) > 0)",
+              "step": "",
+              "type": "range"
+            }
+          ],
+          "title": "Top Command Counters",
+          "type": "timeseries"
+        },
+        {
+          "datasource": {
+            "type": "bkmonitor-timeseries-datasource",
+            "uid": "P3XSxkgSz"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "",
+                "axisPlacement": "auto",
+                "barAlignment": 0,
+                "drawStyle": "line",
+                "fillOpacity": 0,
+                "gradientMode": "none",
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                },
+                "lineInterpolation": "linear",
+                "lineWidth": 1,
+                "pointSize": 5,
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "showPoints": "auto",
+                "spanNulls": false,
+                "stacking": {
+                  "group": "A",
+                  "mode": "none"
+                },
+                "thresholdsStyle": {
+                  "mode": "off"
+                }
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green"
+                  },
+                  {
+                    "color": "red",
+                    "value": 80
+                  }
+                ]
+              }
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 6,
+            "x": 12,
+            "y": 20
+          },
+          "id": 26,
+          "options": {
+            "legend": {
+              "calcs": [
+                "last",
+                "max"
+              ],
+              "displayMode": "table",
+              "placement": "bottom",
+              "showLegend": true
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "desc"
+            }
+          },
+          "targets": [
+            {
+              "cluster": [],
+              "datasource": {
+                "type": "bkmonitor-timeseries-datasource",
+                "uid": "bkmonitor_timeseries"
+              },
+              "expressionList": [
+                {
+                  "active": true,
+                  "alias": "",
+                  "expression": "",
+                  "functions": []
+                }
+              ],
+              "format": "time_series",
+              "hide": false,
+              "host": [],
+              "mode": "code",
+              "module": [],
+              "promqlAlias": "$tag_handler",
+              "query_configs": [
+                {
+                  "alias": "$tag_handler",
+                  "data_source_label": "bk_monitor",
+                  "data_type_label": "time_series",
+                  "display": true,
+                  "filter_dict": {},
+                  "functions": [
+                    {
+                      "id": "rate",
+                      "params": [
+                        {
+                          "id": "window",
+                          "value": "2m"
+                        }
+                      ]
+                    }
+                  ],
+                  "group_by": [
+                    "handler"
+                  ],
+                  "interval": 60,
+                  "interval_unit": "s",
+                  "method": "sum_without_time",
+                  "metric_field": "mysql_global_status_handlers_total",
+                  "refId": "a",
+                  "result_table_id": "exporter_dbm_mysqld_exporter.__default__",
+                  "result_table_label": "component",
+                  "time_field": "",
+                  "where": [
+                    {
+                      "key": "cluster_domain",
+                      "method": "eq",
+                      "value": [
+                        "$cluster_domain"
+                      ]
+                    },
+                    {
+                      "condition": "and",
+                      "key": "instance_role",
+                      "method": "eq",
+                      "value": [
+                        "$dbrole"
+                      ]
+                    }
+                  ]
+                }
+              ],
+              "refId": "B",
+              "source": "sum by(handler) (rate(bkmonitor:exporter_dbm_mysqld_exporter:__default__:mysql_global_status_handlers_total{cluster_domain=\"$cluster_domain\",instance_role=\"$dbrole\",handler!~\"commit|rollback|savepoint.*|prepare\"}[2m]))",
+              "step": "",
+              "type": "range"
+            }
+          ],
+          "title": "MySQL Handlers",
+          "type": "timeseries"
+        },
+        {
+          "datasource": {
+            "type": "bkmonitor-timeseries-datasource",
+            "uid": "P3XSxkgSz"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "",
+                "axisPlacement": "auto",
+                "barAlignment": 0,
+                "drawStyle": "line",
+                "fillOpacity": 0,
+                "gradientMode": "none",
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                },
+                "lineInterpolation": "linear",
+                "lineWidth": 1,
+                "pointSize": 5,
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "showPoints": "auto",
+                "spanNulls": false,
+                "stacking": {
+                  "group": "A",
+                  "mode": "none"
+                },
+                "thresholdsStyle": {
+                  "mode": "off"
+                }
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green"
+                  },
+                  {
+                    "color": "red",
+                    "value": 80
+                  }
+                ]
+              }
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 6,
+            "x": 18,
+            "y": 20
+          },
+          "id": 27,
+          "options": {
+            "legend": {
+              "calcs": [
+                "last",
+                "max"
+              ],
+              "displayMode": "table",
+              "placement": "bottom",
+              "showLegend": true
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "desc"
+            }
+          },
+          "targets": [
+            {
+              "cluster": [],
+              "datasource": {
+                "type": "bkmonitor-timeseries-datasource",
+                "uid": "bkmonitor_timeseries"
+              },
+              "expressionList": [
+                {
+                  "active": true,
+                  "alias": "",
+                  "expression": "",
+                  "functions": []
+                }
+              ],
+              "format": "time_series",
+              "hide": false,
+              "host": [],
+              "mode": "code",
+              "module": [],
+              "promqlAlias": "$tag_handler",
+              "query_configs": [
+                {
+                  "alias": "$tag_handler",
+                  "data_source_label": "bk_monitor",
+                  "data_type_label": "time_series",
+                  "display": true,
+                  "filter_dict": {},
+                  "functions": [
+                    {
+                      "id": "rate",
+                      "params": [
+                        {
+                          "id": "window",
+                          "value": "2m"
+                        }
+                      ]
+                    }
+                  ],
+                  "group_by": [
+                    "handler"
+                  ],
+                  "interval": 60,
+                  "interval_unit": "s",
+                  "method": "sum_without_time",
+                  "metric_field": "mysql_global_status_handlers_total",
+                  "refId": "a",
+                  "result_table_id": "exporter_dbm_mysqld_exporter.__default__",
+                  "result_table_label": "component",
+                  "time_field": "",
+                  "where": [
+                    {
+                      "key": "cluster_domain",
+                      "method": "eq",
+                      "value": [
+                        "$cluster_domain"
+                      ]
+                    },
+                    {
+                      "condition": "and",
+                      "key": "instance_role",
+                      "method": "eq",
+                      "value": [
+                        "$dbrole"
+                      ]
+                    }
+                  ]
+                }
+              ],
+              "refId": "B",
+              "source": "sum by(handler) (rate(bkmonitor:exporter_dbm_mysqld_exporter:__default__:mysql_global_status_handlers_total{cluster_domain=\"$cluster_domain\",instance_role=\"$dbrole\",handler=~\"commit|rollback|savepoint.*|prepare\"}[2m]))",
+              "step": "",
+              "type": "range"
+            }
+          ],
+          "title": "MySQL Transaction Handlers",
+          "type": "timeseries"
+        }
+      ],
+      "title": "Command, Handlers",
+      "type": "row"
+    },
+    {
+      "collapsed": true,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 21
+      },
+      "id": 8,
+      "panels": [
+        {
+          "datasource": {
+            "type": "bkmonitor-timeseries-datasource",
+            "uid": "P3XSxkgSz"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "axisBorderShow": false,
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "",
+                "axisPlacement": "auto",
+                "barAlignment": 0,
+                "drawStyle": "line",
+                "fillOpacity": 0,
+                "gradientMode": "none",
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                },
+                "insertNulls": false,
+                "lineInterpolation": "linear",
+                "lineWidth": 1,
+                "pointSize": 5,
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "showPoints": "auto",
+                "spanNulls": false,
+                "stacking": {
+                  "group": "A",
+                  "mode": "none"
+                },
+                "thresholdsStyle": {
+                  "mode": "off"
+                }
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green"
+                  },
+                  {
+                    "color": "red",
+                    "value": 80
+                  }
+                ]
+              }
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 0,
+            "y": 22
+          },
+          "id": 2,
           "options": {
             "legend": {
               "calcs": [
@@ -2484,7 +2963,7 @@
         {
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "bkmonitor_timeseries"
+            "uid": "P3XSxkgSz"
           },
           "description": "**Peak Threads Connected**  is number of peak number of connections MySQL had in the period of time\n\n**Peak Threads Running** is the peak number of threads considered \"Running\" by MySQL, not Sleeping or Waiting on Table level locks which can be indicative for workload spikes\n\n**Avg Threads Running** is the average number of Threads running over interval which can be indicative of sustained load",
           "fieldConfig": {
@@ -2493,6 +2972,7 @@
                 "mode": "palette-classic"
               },
               "custom": {
+                "axisBorderShow": false,
                 "axisCenteredZero": false,
                 "axisColorMode": "text",
                 "axisLabel": "",
@@ -2506,6 +2986,7 @@
                   "tooltip": false,
                   "viz": false
                 },
+                "insertNulls": false,
                 "lineInterpolation": "linear",
                 "lineWidth": 1,
                 "pointSize": 5,
@@ -2542,9 +3023,9 @@
             "h": 8,
             "w": 12,
             "x": 12,
-            "y": 3
+            "y": 22
           },
-          "id": null,
+          "id": 4,
           "options": {
             "legend": {
               "calcs": [
@@ -2659,7 +3140,7 @@
         {
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "bkmonitor_timeseries"
+            "uid": "P3XSxkgSz"
           },
           "description": "**Max Connections** is the maximum permitted number of simultaneous client connections. This is the value of the ``max_connections`` variable.\n\n**Max Used Connections** is the maximum number of connections that have been in use simultaneously since the server was started.\n\n**Connections** is the number of connection attempts (successful or not) to the MySQL server.",
           "fieldConfig": {
@@ -2668,6 +3149,7 @@
                 "mode": "palette-classic"
               },
               "custom": {
+                "axisBorderShow": false,
                 "axisCenteredZero": false,
                 "axisColorMode": "text",
                 "axisLabel": "",
@@ -2681,6 +3163,7 @@
                   "tooltip": false,
                   "viz": false
                 },
+                "insertNulls": false,
                 "lineInterpolation": "linear",
                 "lineWidth": 1,
                 "pointSize": 5,
@@ -2717,9 +3200,9 @@
             "h": 8,
             "w": 12,
             "x": 0,
-            "y": 11
+            "y": 30
           },
-          "id": null,
+          "id": 5,
           "options": {
             "legend": {
               "calcs": [
@@ -2834,7 +3317,7 @@
         {
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "bkmonitor_timeseries"
+            "uid": "P3XSxkgSz"
           },
           "description": "**Thread Cache Size** is the value of the [thread_cache_size](https://dev.mysql.com/doc/refman/5.7/en/server-system-variables.html#sysvar_thread_cache_size) system variable that defines how many threads the server should cache for reuse. When a client disconnects, the client's threads are put in the cache (unless it is full). As of MySQL 5.6.8, default thread cache size depends on the value of [max_connections](https://dev.mysql.com/doc/refman/5.7/en/server-system-variables.html#sysvar_max_connections) and is capped at 100 threads. Requests for threads are satisfied by reusing threads taken from the cache if possible, and only when the cache is empty is a new thread created.\n",
           "fieldConfig": {
@@ -2843,6 +3326,7 @@
                 "mode": "palette-classic"
               },
               "custom": {
+                "axisBorderShow": false,
                 "axisCenteredZero": false,
                 "axisColorMode": "text",
                 "axisLabel": "",
@@ -2856,6 +3340,7 @@
                   "tooltip": false,
                   "viz": false
                 },
+                "insertNulls": false,
                 "lineInterpolation": "linear",
                 "lineWidth": 1,
                 "pointSize": 5,
@@ -2892,9 +3377,9 @@
             "h": 8,
             "w": 12,
             "x": 12,
-            "y": 11
+            "y": 30
           },
-          "id": null,
+          "id": 6,
           "options": {
             "legend": {
               "calcs": [
@@ -3016,320 +3501,14 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 29
+        "y": 22
       },
-      "id": null,
+      "id": 59,
       "panels": [
         {
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "bkmonitor_timeseries"
-          },
-          "fieldConfig": {
-            "defaults": {
-              "color": {
-                "mode": "palette-classic"
-              },
-              "custom": {
-                "axisCenteredZero": false,
-                "axisColorMode": "text",
-                "axisLabel": "",
-                "axisPlacement": "auto",
-                "barAlignment": 0,
-                "drawStyle": "line",
-                "fillOpacity": 0,
-                "gradientMode": "none",
-                "hideFrom": {
-                  "legend": false,
-                  "tooltip": false,
-                  "viz": false
-                },
-                "lineInterpolation": "linear",
-                "lineWidth": 1,
-                "pointSize": 5,
-                "scaleDistribution": {
-                  "type": "linear"
-                },
-                "showPoints": "auto",
-                "spanNulls": false,
-                "stacking": {
-                  "group": "A",
-                  "mode": "none"
-                },
-                "thresholdsStyle": {
-                  "mode": "off"
-                }
-              },
-              "mappings": [],
-              "thresholds": {
-                "mode": "absolute",
-                "steps": [
-                  {
-                    "color": "green"
-                  },
-                  {
-                    "color": "red",
-                    "value": 80
-                  }
-                ]
-              },
-              "unit": "dtdurations"
-            },
-            "overrides": []
-          },
-          "gridPos": {
-            "h": 8,
-            "w": 12,
-            "x": 0,
-            "y": 4
-          },
-          "id": null,
-          "options": {
-            "legend": {
-              "calcs": [],
-              "displayMode": "table",
-              "placement": "bottom",
-              "showLegend": true
-            },
-            "tooltip": {
-              "mode": "multi",
-              "sort": "none"
-            }
-          },
-          "targets": [
-            {
-              "cluster": [],
-              "datasource": {
-                "type": "bkmonitor-timeseries-datasource",
-                "uid": "bkmonitor_timeseries"
-              },
-              "expressionList": [],
-              "format": "time_series",
-              "host": [],
-              "mode": "ui",
-              "module": [],
-              "promqlAlias": "",
-              "query_configs": [
-                {
-                  "alias": "slave=$tag_instance,  master_serverid=$tag_master_server_id, $tag_channel_name",
-                  "data_label": "exporter_dbm_mysqld_exporter",
-                  "data_source_label": "bk_monitor",
-                  "data_type_label": "time_series",
-                  "display": true,
-                  "filter_dict": {},
-                  "functions": [],
-                  "group_by": [
-                    "instance",
-                    "master_uuid",
-                    "channel_name",
-                    "master_server_id"
-                  ],
-                  "interval": "auto",
-                  "interval_unit": "s",
-                  "method": "AVG",
-                  "metric_field": "mysql_slave_status_seconds_behind_master",
-                  "refId": "a",
-                  "result_table_id": "exporter_dbm_mysqld_exporter.__default__",
-                  "result_table_label": "component",
-                  "time_field": "time",
-                  "where": [
-                    {
-                      "key": "cluster_domain",
-                      "method": "eq",
-                      "value": [
-                        "$cluster_domain"
-                      ]
-                    }
-                  ]
-                }
-              ],
-              "refId": "A",
-              "source": "",
-              "step": "",
-              "type": "range"
-            }
-          ],
-          "title": "Seconds Behind Master",
-          "type": "timeseries"
-        },
-        {
-          "datasource": {
-            "type": "bkmonitor-timeseries-datasource",
-            "uid": "bkmonitor_timeseries"
-          },
-          "fieldConfig": {
-            "defaults": {
-              "color": {
-                "mode": "palette-classic"
-              },
-              "custom": {
-                "axisCenteredZero": false,
-                "axisColorMode": "text",
-                "axisLabel": "",
-                "axisPlacement": "auto",
-                "barAlignment": 0,
-                "drawStyle": "line",
-                "fillOpacity": 0,
-                "gradientMode": "none",
-                "hideFrom": {
-                  "legend": false,
-                  "tooltip": false,
-                  "viz": false
-                },
-                "lineInterpolation": "linear",
-                "lineWidth": 1,
-                "pointSize": 5,
-                "scaleDistribution": {
-                  "type": "linear"
-                },
-                "showPoints": "auto",
-                "spanNulls": false,
-                "stacking": {
-                  "group": "A",
-                  "mode": "none"
-                },
-                "thresholdsStyle": {
-                  "mode": "off"
-                }
-              },
-              "mappings": [],
-              "thresholds": {
-                "mode": "absolute",
-                "steps": [
-                  {
-                    "color": "green"
-                  },
-                  {
-                    "color": "red",
-                    "value": 80
-                  }
-                ]
-              },
-              "unit": "dtdurations"
-            },
-            "overrides": []
-          },
-          "gridPos": {
-            "h": 8,
-            "w": 12,
-            "x": 12,
-            "y": 4
-          },
-          "id": null,
-          "options": {
-            "legend": {
-              "calcs": [],
-              "displayMode": "table",
-              "placement": "bottom",
-              "showLegend": true
-            },
-            "tooltip": {
-              "mode": "multi",
-              "sort": "none"
-            }
-          },
-          "targets": [
-            {
-              "cluster": [],
-              "datasource": {
-                "type": "bkmonitor-timeseries-datasource",
-                "uid": "bkmonitor_timeseries"
-              },
-              "expressionList": [],
-              "format": "time_series",
-              "host": [],
-              "mode": "ui",
-              "module": [],
-              "promqlAlias": "",
-              "query_configs": [
-                {
-                  "alias": "heartbeat_delay_sec, master=$tag_master_server_id",
-                  "data_label": "exporter_dbm_mysqld_exporter",
-                  "data_source_label": "bk_monitor",
-                  "data_type_label": "time_series",
-                  "display": true,
-                  "filter_dict": {},
-                  "functions": [],
-                  "group_by": [
-                    "master_uuid",
-                    "master_server_id"
-                  ],
-                  "interval": "auto",
-                  "interval_unit": "s",
-                  "method": "AVG",
-                  "metric_field": "mysql_infodba_schema_heartbeat_delay_sec",
-                  "refId": "a",
-                  "result_table_id": "exporter_dbm_mysqld_exporter.__default__",
-                  "result_table_label": "component",
-                  "time_field": "time",
-                  "where": [
-                    {
-                      "key": "cluster_domain",
-                      "method": "eq",
-                      "value": [
-                        "$cluster_domain"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "alias": "heartbeat_beat_sec, master=$tag_master_server_id",
-                  "data_label": "exporter_dbm_mysqld_exporter",
-                  "data_source_label": "bk_monitor",
-                  "data_type_label": "time_series",
-                  "display": true,
-                  "filter_dict": {},
-                  "functions": [],
-                  "group_by": [
-                    "master_uuid",
-                    "master_server_id"
-                  ],
-                  "interval": "auto",
-                  "interval_unit": "s",
-                  "method": "AVG",
-                  "metric_field": "mysql_infodba_schema_heartbeat_beat_sec",
-                  "refId": "b",
-                  "result_table_id": "exporter_dbm_mysqld_exporter.__default__",
-                  "result_table_label": "component",
-                  "time_field": "time",
-                  "where": [
-                    {
-                      "key": "cluster_domain",
-                      "method": "eq",
-                      "value": [
-                        "$cluster_domain"
-                      ]
-                    }
-                  ]
-                }
-              ],
-              "refId": "A",
-              "source": "",
-              "step": "",
-              "type": "range"
-            }
-          ],
-          "title": "Master Slave Heartbeat Delay",
-          "type": "timeseries"
-        }
-      ],
-      "title": "Replication",
-      "type": "row"
-    },
-    {
-      "collapsed": true,
-      "gridPos": {
-        "h": 1,
-        "w": 24,
-        "x": 0,
-        "y": 30
-      },
-      "id": null,
-      "panels": [
-        {
-          "datasource": {
-            "type": "bkmonitor-timeseries-datasource",
-            "uid": "bkmonitor_timeseries"
+            "uid": "P3XSxkgSz"
           },
           "description": "",
           "fieldConfig": {
@@ -3338,6 +3517,7 @@
                 "mode": "palette-classic"
               },
               "custom": {
+                "axisBorderShow": false,
                 "axisCenteredZero": false,
                 "axisColorMode": "text",
                 "axisLabel": "",
@@ -3351,6 +3531,7 @@
                   "tooltip": false,
                   "viz": false
                 },
+                "insertNulls": false,
                 "lineInterpolation": "linear",
                 "lineWidth": 1,
                 "pointSize": 5,
@@ -3388,9 +3569,9 @@
             "h": 6,
             "w": 12,
             "x": 0,
-            "y": 5
+            "y": 39
           },
-          "id": null,
+          "id": 57,
           "options": {
             "legend": {
               "calcs": [
@@ -3458,13 +3639,12 @@
             }
           ],
           "title": "Proxy Conn",
-          "transformations": [],
           "type": "timeseries"
         },
         {
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "bkmonitor_timeseries"
+            "uid": "P3XSxkgSz"
           },
           "description": "",
           "fieldConfig": {
@@ -3473,6 +3653,7 @@
                 "mode": "palette-classic"
               },
               "custom": {
+                "axisBorderShow": false,
                 "axisCenteredZero": false,
                 "axisColorMode": "text",
                 "axisLabel": "",
@@ -3486,6 +3667,7 @@
                   "tooltip": false,
                   "viz": false
                 },
+                "insertNulls": false,
                 "lineInterpolation": "linear",
                 "lineWidth": 1,
                 "pointSize": 5,
@@ -3522,9 +3704,9 @@
             "h": 6,
             "w": 12,
             "x": 12,
-            "y": 5
+            "y": 39
           },
-          "id": null,
+          "id": 60,
           "options": {
             "legend": {
               "calcs": [],
@@ -3602,7 +3784,7 @@
         {
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "bkmonitor_timeseries"
+            "uid": "P3XSxkgSz"
           },
           "description": "",
           "fieldConfig": {
@@ -3611,6 +3793,7 @@
                 "mode": "palette-classic"
               },
               "custom": {
+                "axisBorderShow": false,
                 "axisCenteredZero": false,
                 "axisColorMode": "text",
                 "axisLabel": "",
@@ -3624,6 +3807,7 @@
                   "tooltip": false,
                   "viz": false
                 },
+                "insertNulls": false,
                 "lineInterpolation": "linear",
                 "lineWidth": 1,
                 "pointSize": 5,
@@ -3661,9 +3845,9 @@
             "h": 6,
             "w": 12,
             "x": 0,
-            "y": 11
+            "y": 45
           },
-          "id": null,
+          "id": 94,
           "options": {
             "legend": {
               "calcs": [],
@@ -3800,7 +3984,7 @@
         {
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "bkmonitor_timeseries"
+            "uid": "P3XSxkgSz"
           },
           "description": "",
           "fieldConfig": {
@@ -3809,6 +3993,7 @@
                 "mode": "palette-classic"
               },
               "custom": {
+                "axisBorderShow": false,
                 "axisCenteredZero": false,
                 "axisColorMode": "text",
                 "axisLabel": "",
@@ -3822,6 +4007,7 @@
                   "tooltip": false,
                   "viz": false
                 },
+                "insertNulls": false,
                 "lineInterpolation": "linear",
                 "lineWidth": 1,
                 "pointSize": 5,
@@ -3859,9 +4045,9 @@
             "h": 6,
             "w": 12,
             "x": 12,
-            "y": 11
+            "y": 45
           },
-          "id": null,
+          "id": 96,
           "options": {
             "legend": {
               "calcs": [],
@@ -3972,13 +4158,12 @@
             }
           ],
           "title": "MySQL Network Traffic",
-          "transformations": [],
           "type": "timeseries"
         },
         {
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "bkmonitor_timeseries"
+            "uid": "P3XSxkgSz"
           },
           "description": "磁盘空间使用率",
           "fieldConfig": {
@@ -3987,6 +4172,7 @@
                 "mode": "palette-classic"
               },
               "custom": {
+                "axisBorderShow": false,
                 "axisCenteredZero": false,
                 "axisColorMode": "text",
                 "axisLabel": "",
@@ -4000,6 +4186,7 @@
                   "tooltip": false,
                   "viz": false
                 },
+                "insertNulls": false,
                 "lineInterpolation": "linear",
                 "lineWidth": 1,
                 "pointSize": 5,
@@ -4036,9 +4223,9 @@
             "h": 6,
             "w": 12,
             "x": 0,
-            "y": 17
+            "y": 51
           },
-          "id": null,
+          "id": 95,
           "options": {
             "legend": {
               "calcs": [],
@@ -4125,7 +4312,7 @@
         {
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "bkmonitor_timeseries"
+            "uid": "P3XSxkgSz"
           },
           "description": "磁盘io使用率",
           "fieldConfig": {
@@ -4134,6 +4321,7 @@
                 "mode": "palette-classic"
               },
               "custom": {
+                "axisBorderShow": false,
                 "axisCenteredZero": false,
                 "axisColorMode": "text",
                 "axisLabel": "",
@@ -4147,6 +4335,7 @@
                   "tooltip": false,
                   "viz": false
                 },
+                "insertNulls": false,
                 "lineInterpolation": "linear",
                 "lineWidth": 1,
                 "pointSize": 5,
@@ -4183,9 +4372,9 @@
             "h": 6,
             "w": 12,
             "x": 12,
-            "y": 17
+            "y": 51
           },
-          "id": null,
+          "id": 97,
           "options": {
             "legend": {
               "calcs": [],
@@ -4270,14 +4459,14 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 31
+        "y": 23
       },
-      "id": null,
+      "id": 49,
       "panels": [
         {
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "bkmonitor_timeseries"
+            "uid": "P3XSxkgSz"
           },
           "description": "",
           "fieldConfig": {
@@ -4335,9 +4524,9 @@
             "h": 5,
             "w": 8,
             "x": 0,
-            "y": 6
+            "y": 24
           },
-          "id": null,
+          "id": 50,
           "options": {
             "legend": {
               "calcs": [],
@@ -4415,7 +4604,7 @@
         {
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "bkmonitor_timeseries"
+            "uid": "P3XSxkgSz"
           },
           "description": "",
           "fieldConfig": {
@@ -4474,9 +4663,9 @@
             "h": 5,
             "w": 8,
             "x": 8,
-            "y": 6
+            "y": 24
           },
-          "id": null,
+          "id": 52,
           "options": {
             "legend": {
               "calcs": [],
@@ -4590,7 +4779,7 @@
         {
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "bkmonitor_timeseries"
+            "uid": "P3XSxkgSz"
           },
           "description": "",
           "fieldConfig": {
@@ -4649,9 +4838,9 @@
             "h": 5,
             "w": 8,
             "x": 16,
-            "y": 6
+            "y": 24
           },
-          "id": null,
+          "id": 54,
           "options": {
             "legend": {
               "calcs": [],
@@ -4815,7 +5004,7 @@
         {
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "bkmonitor_timeseries"
+            "uid": "P3XSxkgSz"
           },
           "description": "磁盘空间使用率",
           "fieldConfig": {
@@ -4873,9 +5062,9 @@
             "h": 5,
             "w": 8,
             "x": 0,
-            "y": 11
+            "y": 29
           },
-          "id": null,
+          "id": 11,
           "options": {
             "legend": {
               "calcs": [],
@@ -4961,9 +5150,9 @@
         {
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "bkmonitor_timeseries"
+            "uid": "P3XSxkgSz"
           },
-          "description": "磁盘空间使用率",
+          "description": "",
           "fieldConfig": {
             "defaults": {
               "color": {
@@ -5011,7 +5200,8 @@
                     "value": 80
                   }
                 ]
-              }
+              },
+              "unit": "KBs"
             },
             "overrides": []
           },
@@ -5019,14 +5209,14 @@
             "h": 5,
             "w": 8,
             "x": 8,
-            "y": 11
+            "y": 29
           },
-          "id": null,
+          "id": 98,
           "options": {
             "legend": {
               "calcs": [],
-              "displayMode": "list",
-              "placement": "bottom",
+              "displayMode": "table",
+              "placement": "right",
               "showLegend": true
             },
             "tooltip": {
@@ -5048,21 +5238,59 @@
               "host": [],
               "mode": "ui",
               "module": [],
-              "promqlAlias": "",
+              "promqlAlias": "ioutil",
               "query_configs": [
                 {
-                  "alias": "ioutil",
+                  "alias": "$tag_device_name : readBytes",
                   "data_source_label": "bk_monitor",
                   "data_type_label": "time_series",
                   "display": true,
                   "filter_dict": {},
                   "functions": [],
-                  "group_by": [],
-                  "interval": "auto",
+                  "group_by": [
+                    "device_name"
+                  ],
+                  "interval": 60,
                   "interval_unit": "s",
                   "method": "MAX",
-                  "metric_field": "util",
+                  "metric_field": "rkb_s",
                   "refId": "a",
+                  "result_table_id": "dbm_system.io",
+                  "result_table_label": "os",
+                  "time_field": "time",
+                  "where": [
+                    {
+                      "key": "cluster_domain",
+                      "method": "eq",
+                      "value": [
+                        "$cluster_domain"
+                      ]
+                    },
+                    {
+                      "condition": "and",
+                      "key": "instance_role",
+                      "method": "eq",
+                      "value": [
+                        "$dbrole"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "alias": "$tag_device_name : writeBytes",
+                  "data_source_label": "bk_monitor",
+                  "data_type_label": "time_series",
+                  "display": true,
+                  "filter_dict": {},
+                  "functions": [],
+                  "group_by": [
+                    "device_name"
+                  ],
+                  "interval": 60,
+                  "interval_unit": "s",
+                  "method": "MAX",
+                  "metric_field": "wkb_s",
+                  "refId": "b",
                   "result_table_id": "dbm_system.io",
                   "result_table_label": "os",
                   "time_field": "time",
@@ -5086,18 +5314,18 @@
                 }
               ],
               "refId": "C",
-              "source": "",
+              "source": "max(max_over_time(bkmonitor:dbm_system:io:w_s{bk_target_ip=\"$host\"}[1m]))",
               "step": "",
               "type": "range"
             }
           ],
-          "title": "IO util",
+          "title": "Disk IO Throughput per Device",
           "type": "timeseries"
         },
         {
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "bkmonitor_timeseries"
+            "uid": "P3XSxkgSz"
           },
           "description": "",
           "fieldConfig": {
@@ -5156,9 +5384,9 @@
             "h": 5,
             "w": 8,
             "x": 16,
-            "y": 11
+            "y": 29
           },
-          "id": null,
+          "id": 53,
           "options": {
             "legend": {
               "calcs": [],
@@ -5272,7 +5500,7 @@
         {
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "bkmonitor_timeseries"
+            "uid": "P3XSxkgSz"
           },
           "description": "磁盘空间使用率",
           "fieldConfig": {
@@ -5330,9 +5558,9 @@
             "h": 5,
             "w": 8,
             "x": 0,
-            "y": 16
+            "y": 34
           },
-          "id": null,
+          "id": 89,
           "options": {
             "legend": {
               "calcs": [],
@@ -5466,7 +5694,143 @@
         {
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "bkmonitor_timeseries"
+            "uid": "P3XSxkgSz"
+          },
+          "description": "磁盘空间使用率",
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "",
+                "axisPlacement": "auto",
+                "barAlignment": 0,
+                "drawStyle": "line",
+                "fillOpacity": 0,
+                "gradientMode": "none",
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                },
+                "lineInterpolation": "linear",
+                "lineWidth": 1,
+                "pointSize": 5,
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "showPoints": "auto",
+                "spanNulls": false,
+                "stacking": {
+                  "group": "A",
+                  "mode": "none"
+                },
+                "thresholdsStyle": {
+                  "mode": "off"
+                }
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green"
+                  },
+                  {
+                    "color": "red",
+                    "value": 80
+                  }
+                ]
+              }
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 5,
+            "w": 8,
+            "x": 8,
+            "y": 34
+          },
+          "id": 51,
+          "options": {
+            "legend": {
+              "calcs": [],
+              "displayMode": "list",
+              "placement": "bottom",
+              "showLegend": true
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "none"
+            }
+          },
+          "pluginVersion": "9.1.0",
+          "targets": [
+            {
+              "cluster": [],
+              "datasource": {
+                "type": "bkmonitor-timeseries-datasource",
+                "uid": "bkmonitor_timeseries"
+              },
+              "expressionList": [],
+              "format": "time_series",
+              "hide": false,
+              "host": [],
+              "mode": "ui",
+              "module": [],
+              "promqlAlias": "",
+              "query_configs": [
+                {
+                  "alias": "ioutil",
+                  "data_source_label": "bk_monitor",
+                  "data_type_label": "time_series",
+                  "display": true,
+                  "filter_dict": {},
+                  "functions": [],
+                  "group_by": [],
+                  "interval": "auto",
+                  "interval_unit": "s",
+                  "method": "MAX",
+                  "metric_field": "util",
+                  "refId": "a",
+                  "result_table_id": "dbm_system.io",
+                  "result_table_label": "os",
+                  "time_field": "time",
+                  "where": [
+                    {
+                      "key": "cluster_domain",
+                      "method": "eq",
+                      "value": [
+                        "$cluster_domain"
+                      ]
+                    },
+                    {
+                      "condition": "and",
+                      "key": "instance_role",
+                      "method": "eq",
+                      "value": [
+                        "$dbrole"
+                      ]
+                    }
+                  ]
+                }
+              ],
+              "refId": "C",
+              "source": "",
+              "step": "",
+              "type": "range"
+            }
+          ],
+          "title": "IO util",
+          "type": "timeseries"
+        },
+        {
+          "datasource": {
+            "type": "bkmonitor-timeseries-datasource",
+            "uid": "P3XSxkgSz"
           },
           "description": "",
           "fieldConfig": {
@@ -5523,11 +5887,11 @@
           },
           "gridPos": {
             "h": 5,
-            "w": 16,
-            "x": 8,
-            "y": 16
+            "w": 8,
+            "x": 16,
+            "y": 34
           },
-          "id": null,
+          "id": 77,
           "options": {
             "legend": {
               "calcs": [],
@@ -5663,14 +6027,14 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 32
+        "y": 24
       },
-      "id": null,
+      "id": 70,
       "panels": [
         {
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "bkmonitor_timeseries"
+            "uid": "P3XSxkgSz"
           },
           "fieldConfig": {
             "defaults": {
@@ -5678,6 +6042,7 @@
                 "mode": "palette-classic"
               },
               "custom": {
+                "axisBorderShow": false,
                 "axisCenteredZero": false,
                 "axisColorMode": "text",
                 "axisLabel": "",
@@ -5691,6 +6056,7 @@
                   "tooltip": false,
                   "viz": false
                 },
+                "insertNulls": false,
                 "lineInterpolation": "linear",
                 "lineStyle": {
                   "fill": "solid"
@@ -5731,9 +6097,9 @@
             "h": 9,
             "w": 12,
             "x": 0,
-            "y": 37
+            "y": 25
           },
-          "id": null,
+          "id": 65,
           "interval": "2h",
           "options": {
             "legend": {
@@ -5756,6 +6122,7 @@
                 "type": "bkmonitor-timeseries-datasource",
                 "uid": "bkmonitor_timeseries"
               },
+              "enableDownSampling": true,
               "expressionList": [],
               "format": "time_series",
               "host": [],
@@ -5776,7 +6143,7 @@
                     "instance",
                     "instance_role"
                   ],
-                  "interval": "auto",
+                  "interval": 7200,
                   "interval_unit": "s",
                   "method": "AVG",
                   "metric_field": "mysql_datadir_du_used_mb",
@@ -5807,7 +6174,7 @@
         {
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "bkmonitor_timeseries"
+            "uid": "P3XSxkgSz"
           },
           "fieldConfig": {
             "defaults": {
@@ -5815,6 +6182,7 @@
                 "mode": "palette-classic"
               },
               "custom": {
+                "axisBorderShow": false,
                 "axisCenteredZero": false,
                 "axisColorMode": "text",
                 "axisLabel": "",
@@ -5828,6 +6196,7 @@
                   "tooltip": false,
                   "viz": false
                 },
+                "insertNulls": false,
                 "lineInterpolation": "linear",
                 "lineWidth": 1,
                 "pointSize": 5,
@@ -5865,10 +6234,10 @@
             "h": 9,
             "w": 12,
             "x": 12,
-            "y": 37
+            "y": 25
           },
-          "id": null,
-          "interval": "1h",
+          "id": 84,
+          "interval": "2h",
           "options": {
             "legend": {
               "calcs": [
@@ -5890,6 +6259,7 @@
                 "type": "bkmonitor-timeseries-datasource",
                 "uid": "bkmonitor_timeseries"
               },
+              "enableDownSampling": true,
               "expressionList": [],
               "format": "time_series",
               "host": [],
@@ -5910,7 +6280,7 @@
                     "instance_host",
                     "mount_point"
                   ],
-                  "interval": "auto",
+                  "interval": 7200,
                   "interval_unit": "s",
                   "method": "AVG",
                   "metric_field": "mysql_datadir_df_used_mb",
@@ -5941,7 +6311,7 @@
                     "instance_host",
                     "mount_point"
                   ],
-                  "interval": "auto",
+                  "interval": 7200,
                   "interval_unit": "s",
                   "method": "AVG",
                   "metric_field": "mysql_datadir_df_total_mb",
@@ -5971,8 +6341,8 @@
         },
         {
           "datasource": {
-            "type": "bkmonitor-timeseries-datasource",
-            "uid": "bkmonitor_timeseries"
+            "type": "bk_log_datasource",
+            "uid": "hHrSbzgIk"
           },
           "fieldConfig": {
             "defaults": {
@@ -5980,6 +6350,7 @@
                 "mode": "palette-classic"
               },
               "custom": {
+                "axisBorderShow": false,
                 "axisCenteredZero": false,
                 "axisColorMode": "text",
                 "axisLabel": "",
@@ -5993,6 +6364,7 @@
                   "tooltip": false,
                   "viz": false
                 },
+                "insertNulls": false,
                 "lineInterpolation": "linear",
                 "lineWidth": 1,
                 "pointSize": 5,
@@ -6030,9 +6402,9 @@
             "h": 9,
             "w": 12,
             "x": 0,
-            "y": 46
+            "y": 34
           },
-          "id": null,
+          "id": 100,
           "interval": "24h",
           "options": {
             "legend": {
@@ -6052,52 +6424,106 @@
           },
           "targets": [
             {
-              "cluster": [],
-              "datasource": {
-                "type": "bkmonitor-timeseries-datasource",
-                "uid": "bkmonitor_timeseries"
-              },
-              "expressionList": [],
-              "format": "time_series",
-              "host": [],
-              "mode": "ui",
-              "module": [],
-              "promqlAlias": "",
-              "query_configs": [
-                {
-                  "alias": "$tag_database_name",
-                  "data_label": "dbm_report_channel",
-                  "data_source_label": "custom",
-                  "data_type_label": "time_series",
-                  "display": true,
-                  "filter_dict": {},
-                  "functions": [],
-                  "group_by": [
-                    "database_name"
-                  ],
-                  "interval": "auto",
-                  "interval_unit": "s",
-                  "method": "AVG",
-                  "metric_field": "mysql_database_size",
-                  "refId": "a",
-                  "result_table_id": "bkmonitor_time_series_553410.__default__",
-                  "result_table_label": "component",
-                  "time_field": "time",
-                  "where": [
+              "data": {
+                "alias": "$tag_database_name",
+                "conditions": [
+                  [
                     {
-                      "key": "cluster_domain",
-                      "method": "eq",
+                      "key": "vpcy9x58nk",
+                      "list": [
+                        {
+                          "id": "cluster_domain",
+                          "name": "cluster_domain"
+                        }
+                      ],
+                      "open": false,
+                      "type": "key",
+                      "value": "cluster_domain"
+                    },
+                    {
+                      "key": "tpjzn5m2d1",
+                      "list": [
+                        {
+                          "id": "is",
+                          "name": "is"
+                        },
+                        {
+                          "id": "is one of",
+                          "name": "is one of"
+                        },
+                        {
+                          "id": "is not",
+                          "name": "is not"
+                        },
+                        {
+                          "id": "is not one of",
+                          "name": "is not one of"
+                        },
+                        {
+                          "id": "gt",
+                          "name": ">"
+                        },
+                        {
+                          "id": "gte",
+                          "name": ">="
+                        },
+                        {
+                          "id": "lt",
+                          "name": "<"
+                        },
+                        {
+                          "id": "lte",
+                          "name": "<="
+                        }
+                      ],
+                      "type": "method",
+                      "value": "is"
+                    },
+                    {
+                      "key": "jaz8ohp0lx",
+                      "list": [],
+                      "type": "value",
                       "value": [
                         "$cluster_domain"
                       ]
                     }
                   ]
+                ],
+                "dimensions": [
+                  "database_name"
+                ],
+                "index": {
+                  "id": [
+                    "host_process",
+                    16118
+                  ],
+                  "labels": [
+                    "进程",
+                    "[采集项]mysql_db_table_size"
+                  ]
+                },
+                "indexSetString": "",
+                "method": "max",
+                "metric": "database_size",
+                "period": 86400,
+                "periodUnitSet": {
+                  "periodUnit": "min",
+                  "timeNum": 1440
+                },
+                "queryString": "",
+                "size": 50,
+                "target": {
+                  "expandKeys": [],
+                  "realValues": [],
+                  "treeData": [],
+                  "values": []
                 }
-              ],
-              "refId": "A",
-              "source": "",
-              "step": "",
-              "type": "range"
+              },
+              "datasource": {
+                "type": "bk_log_datasource",
+                "uid": "hHrSbzgIk"
+              },
+              "refId": "A"
             }
           ],
           "timeFrom": "7d",
@@ -6106,8 +6532,8 @@
         },
         {
           "datasource": {
-            "type": "bkmonitor-timeseries-datasource",
-            "uid": "bkmonitor_timeseries"
+            "type": "bk_log_datasource",
+            "uid": "hHrSbzgIk"
           },
           "fieldConfig": {
             "defaults": {
@@ -6115,6 +6541,7 @@
                 "mode": "palette-classic"
               },
               "custom": {
+                "axisBorderShow": false,
                 "axisCenteredZero": false,
                 "axisColorMode": "text",
                 "axisLabel": "",
@@ -6128,6 +6555,7 @@
                   "tooltip": false,
                   "viz": false
                 },
+                "insertNulls": false,
                 "lineInterpolation": "linear",
                 "lineWidth": 1,
                 "pointSize": 5,
@@ -6165,9 +6593,9 @@
             "h": 9,
             "w": 12,
             "x": 12,
-            "y": 46
+            "y": 34
           },
-          "id": null,
+          "id": 101,
           "interval": "24h",
           "options": {
             "legend": {
@@ -6187,67 +6615,111 @@
           },
           "targets": [
             {
-              "cluster": [],
-              "datasource": {
-                "type": "bkmonitor-timeseries-datasource",
-                "uid": "bkmonitor_timeseries"
-              },
-              "expressionList": [],
-              "format": "time_series",
-              "host": [],
-              "mode": "ui",
-              "module": [],
-              "promqlAlias": "",
-              "query_configs": [
-                {
-                  "alias": "$tag_database_name.$tag_table_name",
-                  "data_label": "dbm_report_channel",
-                  "data_source_label": "custom",
-                  "data_type_label": "time_series",
-                  "display": true,
-                  "filter_dict": {},
-                  "functions": [
+              "data": {
+                "alias": "$tag_database_name . $tag_table_name",
+                "conditions": [
+                  [
                     {
-                      "id": "topk",
-                      "params": [
+                      "key": "vffqcs8tyr",
+                      "list": [
                         {
-                          "id": "k",
-                          "value": "30"
+                          "id": "cluster_domain",
+                          "name": "cluster_domain"
                         }
-                      ]
-                    }
-                  ],
-                  "group_by": [
-                    "database_name",
-                    "table_name"
-                  ],
-                  "interval": "auto",
-                  "interval_unit": "s",
-                  "method": "AVG",
-                  "metric_field": "mysql_table_size",
-                  "refId": "a",
-                  "result_table_id": "bkmonitor_time_series_553410.__default__",
-                  "result_table_label": "component",
-                  "time_field": "time",
-                  "where": [
+                      ],
+                      "open": false,
+                      "type": "key",
+                      "value": "cluster_domain"
+                    },
                     {
-                      "key": "cluster_domain",
-                      "method": "eq",
+                      "key": "eeg1fc2lno",
+                      "list": [
+                        {
+                          "id": "is",
+                          "name": "is"
+                        },
+                        {
+                          "id": "is one of",
+                          "name": "is one of"
+                        },
+                        {
+                          "id": "is not",
+                          "name": "is not"
+                        },
+                        {
+                          "id": "is not one of",
+                          "name": "is not one of"
+                        },
+                        {
+                          "id": "gt",
+                          "name": ">"
+                        },
+                        {
+                          "id": "gte",
+                          "name": ">="
+                        },
+                        {
+                          "id": "lt",
+                          "name": "<"
+                        },
+                        {
+                          "id": "lte",
+                          "name": "<="
+                        }
+                      ],
+                      "type": "method",
+                      "value": "is"
+                    },
+                    {
+                      "key": "g2ggfn8s0i",
+                      "list": [],
+                      "type": "value",
                       "value": [
                         "$cluster_domain"
                       ]
                     }
                   ]
+                ],
+                "dimensions": [
+                  "database_name",
+                  "table_name"
+                ],
+                "index": {
+                  "id": [
+                    "host_process",
+                    16118
+                  ],
+                  "labels": [
+                    "进程",
+                    "[采集项]mysql_db_table_size"
+                  ]
+                },
+                "indexSetString": "",
+                "method": "max",
+                "metric": "table_size",
+                "period": 86400,
+                "periodUnitSet": {
+                  "periodUnit": "min",
+                  "timeNum": 1440
+                },
+                "queryString": "",
+                "size": 50,
+                "target": {
+                  "expandKeys": [],
+                  "realValues": [],
+                  "treeData": [],
+                  "values": []
                 }
-              ],
-              "refId": "A",
-              "source": "",
-              "step": "",
-              "type": "range"
+              },
+              "datasource": {
+                "type": "bk_log_datasource",
+                "uid": "hHrSbzgIk"
+              },
+              "refId": "A"
             }
           ],
           "timeFrom": "7d",
-          "title": "Table Size Top 30 (ibd)",
+          "title": "Table Size Top 50 (ibd)",
           "type": "timeseries"
         }
       ],
@@ -6260,14 +6732,14 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 33
+        "y": 25
       },
-      "id": null,
+      "id": 19,
       "panels": [
         {
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "bkmonitor_timeseries"
+            "uid": "P3XSxkgSz"
           },
           "fieldConfig": {
             "defaults": {
@@ -6328,7 +6800,7 @@
             "x": 0,
             "y": 6
           },
-          "id": null,
+          "id": 30,
           "options": {
             "legend": {
               "calcs": [
@@ -6511,7 +6983,7 @@
         {
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "bkmonitor_timeseries"
+            "uid": "P3XSxkgSz"
           },
           "fieldConfig": {
             "defaults": {
@@ -6572,7 +7044,7 @@
             "x": 12,
             "y": 6
           },
-          "id": null,
+          "id": 31,
           "options": {
             "legend": {
               "calcs": [
@@ -6762,14 +7234,14 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 34
+        "y": 26
       },
-      "id": null,
+      "id": 41,
       "panels": [
         {
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "bkmonitor_timeseries"
+            "uid": "P3XSxkgSz"
           },
           "description": "",
           "fieldConfig": {
@@ -6829,7 +7301,7 @@
             "x": 0,
             "y": 35
           },
-          "id": null,
+          "id": 42,
           "options": {
             "legend": {
               "calcs": [
@@ -7006,7 +7478,7 @@
         {
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "bkmonitor_timeseries"
+            "uid": "P3XSxkgSz"
           },
           "description": "Shows how many selects were done without indexes. Such operations can impact performance.",
           "fieldConfig": {
@@ -7066,7 +7538,7 @@
             "x": 12,
             "y": 35
           },
-          "id": null,
+          "id": 43,
           "options": {
             "legend": {
               "calcs": [
@@ -7199,7 +7671,7 @@
         {
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "bkmonitor_timeseries"
+            "uid": "P3XSxkgSz"
           },
           "description": "",
           "fieldConfig": {
@@ -7259,7 +7731,7 @@
             "x": 0,
             "y": 40
           },
-          "id": null,
+          "id": 36,
           "options": {
             "legend": {
               "calcs": [
@@ -7348,7 +7820,7 @@
         {
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "bkmonitor_timeseries"
+            "uid": "P3XSxkgSz"
           },
           "description": "",
           "fieldConfig": {
@@ -7409,7 +7881,7 @@
             "x": 12,
             "y": 40
           },
-          "id": null,
+          "id": 37,
           "options": {
             "legend": {
               "calcs": [
@@ -7596,7 +8068,7 @@
         {
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "bkmonitor_timeseries"
+            "uid": "P3XSxkgSz"
           },
           "description": "",
           "fieldConfig": {
@@ -7657,7 +8129,7 @@
             "x": 0,
             "y": 45
           },
-          "id": null,
+          "id": 38,
           "options": {
             "legend": {
               "calcs": [
@@ -7844,7 +8316,7 @@
         {
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "bkmonitor_timeseries"
+            "uid": "P3XSxkgSz"
           },
           "description": "",
           "fieldConfig": {
@@ -7905,7 +8377,7 @@
             "x": 12,
             "y": 45
           },
-          "id": null,
+          "id": 39,
           "options": {
             "legend": {
               "calcs": [
@@ -8045,14 +8517,14 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 35
+        "y": 27
       },
-      "id": null,
+      "id": 45,
       "panels": [
         {
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "bkmonitor_timeseries"
+            "uid": "P3XSxkgSz"
           },
           "description": "",
           "fieldConfig": {
@@ -8112,7 +8584,7 @@
             "x": 0,
             "y": 7
           },
-          "id": null,
+          "id": 46,
           "options": {
             "legend": {
               "calcs": [
@@ -8203,7 +8675,7 @@
         {
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "bkmonitor_timeseries"
+            "uid": "P3XSxkgSz"
           },
           "description": "",
           "fieldConfig": {
@@ -8264,7 +8736,7 @@
             "x": 16,
             "y": 7
           },
-          "id": null,
+          "id": 47,
           "options": {
             "legend": {
               "calcs": [
@@ -8411,14 +8883,14 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 36
+        "y": 28
       },
-      "id": null,
+      "id": 72,
       "panels": [
         {
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "bkmonitor_timeseries"
+            "uid": "P3XSxkgSz"
           },
           "fieldConfig": {
             "defaults": {
@@ -8478,7 +8950,7 @@
             "x": 0,
             "y": 37
           },
-          "id": null,
+          "id": 62,
           "options": {
             "legend": {
               "calcs": [
@@ -8591,7 +9063,7 @@
         {
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "bkmonitor_timeseries"
+            "uid": "P3XSxkgSz"
           },
           "fieldConfig": {
             "defaults": {
@@ -8651,7 +9123,7 @@
             "x": 12,
             "y": 37
           },
-          "id": null,
+          "id": 63,
           "options": {
             "legend": {
               "calcs": [],
@@ -8727,7 +9199,7 @@
         {
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "bkmonitor_timeseries"
+            "uid": "P3XSxkgSz"
           },
           "description": "",
           "fieldConfig": {
@@ -8737,7 +9209,9 @@
               },
               "custom": {
                 "align": "auto",
-                "displayMode": "auto",
+                "cellOptions": {
+                  "type": "auto"
+                },
                 "filterable": false,
                 "inspect": false
               },
@@ -8804,7 +9278,7 @@
             "x": 0,
             "y": 42
           },
-          "id": null,
+          "id": 13,
           "options": {
             "footer": {
               "fields": "",
@@ -8941,7 +9415,7 @@
         {
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "bkmonitor_timeseries"
+            "uid": "P3XSxkgSz"
           },
           "fieldConfig": {
             "defaults": {
@@ -9001,7 +9475,7 @@
             "x": 12,
             "y": 42
           },
-          "id": null,
+          "id": 67,
           "options": {
             "legend": {
               "calcs": [],
@@ -9084,14 +9558,14 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 37
+        "y": 29
       },
-      "id": null,
+      "id": 76,
       "panels": [
         {
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "bkmonitor_timeseries"
+            "uid": "P3XSxkgSz"
           },
           "fieldConfig": {
             "defaults": {
@@ -9151,7 +9625,7 @@
             "x": 0,
             "y": 38
           },
-          "id": null,
+          "id": 73,
           "interval": "5m",
           "options": {
             "legend": {
@@ -9233,7 +9707,7 @@
         {
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "bkmonitor_timeseries"
+            "uid": "P3XSxkgSz"
           },
           "fieldConfig": {
             "defaults": {
@@ -9293,7 +9767,7 @@
             "x": 12,
             "y": 38
           },
-          "id": null,
+          "id": 74,
           "interval": "5m",
           "options": {
             "legend": {
@@ -9376,8 +9850,7 @@
       "type": "row"
     }
   ],
-  "schemaVersion": 37,
-  "style": "dark",
+  "schemaVersion": 39,
   "tags": [
     "tendbha"
   ],
@@ -9391,10 +9864,10 @@
         },
         "datasource": {
           "type": "bkmonitor-timeseries-datasource",
-          "uid": "bkmonitor_timeseries"
+          "uid": "P3XSxkgSz"
         },
         "definition": "- Blueking Monitor - 维度",
-        "hide": 2,
+        "hide": 0,
         "includeAll": false,
         "label": "app",
         "multi": false,
@@ -9422,12 +9895,12 @@
       {
         "current": {
           "selected": false,
-          "text": "",
-          "value": ""
+          "text": "gamedb.odatadb0.spiderpub.db",
+          "value": "gamedb.odatadb0.spiderpub.db"
         },
         "datasource": {
           "type": "bkmonitor-timeseries-datasource",
-          "uid": "bkmonitor_timeseries"
+          "uid": "P3XSxkgSz"
         },
         "definition": "- Blueking Monitor - 维度",
         "hide": 0,
@@ -9492,9 +9965,14 @@
             "selected": false,
             "text": "backend_slave",
             "value": "backend_slave"
+          },
+          {
+            "selected": false,
+            "text": "backend_repeater",
+            "value": "backend_repeater"
           }
         ],
-        "query": "backend_master,backend_slave",
+        "query": "backend_master,backend_slave,backend_repeater",
         "queryValue": "",
         "refresh": 1,
         "skipUrlSync": false,
@@ -9502,13 +9980,10 @@
       },
       {
         "current": {
-          "selected": false,
-          "text": "",
-          "value": ""
         },
         "datasource": {
           "type": "bkmonitor-timeseries-datasource",
-          "uid": "bkmonitor_timeseries"
+          "uid": "P3XSxkgSz"
         },
         "definition": "- Blueking Monitor - 维度",
         "description": "host",
@@ -9562,7 +10037,7 @@
         },
         "datasource": {
           "type": "bkmonitor-timeseries-datasource",
-          "uid": "bkmonitor_timeseries"
+          "uid": "P3XSxkgSz"
         },
         "definition": "- Blueking Monitor - 维度",
         "hide": 2,
@@ -9616,6 +10091,6 @@
   "timezone": "default",
   "title": "MySQL-HA",
   "uid": "8wWk5T64z",
-  "version": 14,
+  "version": 23,
   "weekStart": ""
 }

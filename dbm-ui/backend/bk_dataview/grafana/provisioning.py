@@ -93,18 +93,92 @@ class SimpleProvisioning(BaseProvisioning):
                     for ds in conf["datasources"]:
                         yield Datasource(**ds)
 
+    @staticmethod
+    def replace_file_content(file_content: str, bkm_dbm_report: dict) -> str:
+        """替换文件内容"""
+
+        # 全局变量替换
+        file_content = file_content.replace("{event_data_id}", str(bkm_dbm_report["event"]["data_id"]))
+        file_content = file_content.replace("{metric_data_id}", str(bkm_dbm_report["metric"]["data_id"]))
+        file_content = file_content.replace("{BK_SAAS_HOST}", env.BK_SAAS_HOST)
+
+        # 刷新监控数据源ID：bkmonitor_timeseries
+        file_content = file_content.replace("${DS_蓝鲸监控_-_指标数据}", "bkmonitor_timeseries")
+        file_content = file_content.replace("${DS_蓝鲸监控_- 指标数据}", "bkmonitor_timeseries")
+        file_content = file_content.replace('"editable": true', '"editable": false')
+
+        # 批量替换基础指标来源：system -> dbm_system
+        file_content = file_content.replace("bkmonitor:system:", "bkmonitor:dbm_system:")
+        file_content = file_content.replace('"result_table_id": "system.', '"result_table_id": "dbm_system.')
+        return file_content
+
+    @staticmethod
+    def get_obj_datasource_type_uid(obj) -> tuple:
+        datasource_type = obj.get("datasource", {}).get("type")
+        if datasource_type == "bkmonitor-timeseries-datasource":
+            uid = "bkmonitor_timeseries"
+        elif datasource_type == "bk_log_datasource":
+            uid = "bklog"
+        else:
+            uid = "unknown"
+        return datasource_type, uid
+
+    @classmethod
+    def replace_dashboard(cls, dashboard: dict, used_index_name: list, index_name_id_map: dict):
+        """
+        调整仪表盘的一些参数
+        """
+
+        # 使用到日志数据源的，需要替换填充索引集ID
+        for panel_index, panel in enumerate(dashboard["panels"]):
+            # 递归处理所有 panel
+            if "panels" in panel:
+                dashboard["panels"][panel_index] = cls.replace_dashboard(panel, used_index_name, index_name_id_map)
+            datasource_type, panel_uid = cls.get_obj_datasource_type_uid(panel)
+            if datasource_type == "bkmonitor-timeseries-datasource":
+                dashboard["panels"][panel_index]["datasource"]["uid"] = panel_uid
+            if datasource_type == "bk_log_datasource":
+                dashboard["panels"][panel_index]["datasource"]["uid"] = panel_uid
+                for target_index, target in enumerate(panel["targets"]):
+                    for label in target["data"]["index"].get("labels", []):
+                        for index_name in used_index_name:
+                            if index_name in label:
+                                index_set_id = index_name_id_map.get(index_name, 0)
+                                dashboard["panels"][panel_index]["targets"][target_index]["data"]["index"]["id"][
+                                    1
+                                ] = index_set_id
+            # 处理 targets 的 datasource uid
+            for target_index, target in enumerate(panel.get("targets", [])):
+                datasource_type, target_uid = cls.get_obj_datasource_type_uid(target)
+                if datasource_type:
+                    dashboard["panels"][panel_index]["targets"][target_index]["datasource"]["uid"] = target_uid
+
+        for tpl_index, tpl in enumerate(dashboard.get("templating", {}).get("list", [])):
+            datasource_type, tpl_uid = cls.get_obj_datasource_type_uid(tpl)
+            if datasource_type:
+                dashboard["templating"]["list"][tpl_index]["datasource"]["uid"] = tpl_uid
+
+        return dashboard
+
     def dashboards(self, request, org_name: str, org_id: int) -> List[Dashboard]:
         """固定目录下的json文件, 自动注入"""
 
         bkm_dbm_report = SystemSettings.get_setting_value(key=SystemSettingsEnum.BKM_DBM_REPORT.value)
         index_set = BKLogApi.search_index_set({"space_uid": f"bkcc__{env.DBA_APP_BK_BIZ_ID}"})
-        mysql_slow_log_index_set_id = 0
-        redis_slow_log_index_set_id = 0
+        index_name_id_map = {}
+        # 在 grafana 中被使用的索引名
+        used_index_name = [
+            "mysql_slowlog",
+            "mysql_db_table_size",
+            "redis_slowlog",
+            "redis_hotkey",
+            "redis_bigkey",
+            "redis_keymod",
+        ]
         for index in index_set:
-            if "mysql_slowlog" in index["index_set_name"]:
-                mysql_slow_log_index_set_id = index["index_set_id"]
-            if "redis_slowlog" in index["index_set_name"]:
-                redis_slow_log_index_set_id = index["index_set_id"]
+            for name in used_index_name:
+                if name in index["index_set_name"]:
+                    index_name_id_map[name] = index["index_set_id"]
 
         with os_env(ORG_NAME=org_name, ORG_ID=org_id):
             for suffix in self.file_suffix:
@@ -115,35 +189,16 @@ class SimpleProvisioning(BaseProvisioning):
                         for path in glob.glob(paths):
                             with open(path, "rb") as fh:
                                 file_content = fh.read().decode()
+                                file_content = self.replace_file_content(file_content, bkm_dbm_report)
 
-                                # 全局变量替换
-                                file_content = file_content.replace(
-                                    "{event_data_id}", str(bkm_dbm_report["event"]["data_id"])
-                                )
-                                file_content = file_content.replace(
-                                    "{metric_data_id}", str(bkm_dbm_report["metric"]["data_id"])
-                                )
-                                file_content = file_content.replace("{BK_SAAS_HOST}", env.BK_SAAS_HOST)
                                 try:
                                     dashboard = json.loads(file_content)
                                 except JSONDecodeError as err:
                                     logger.error(f"Failed to load {os.path.basename(path)}")
                                     raise err
 
-                                # 慢查询特殊处理，补充索引集ID
-                                if "mysql-slowlog.json" in path:
-                                    for panel_index, panel in enumerate(dashboard["panels"]):
-                                        for target_index, target in enumerate(panel["targets"]):
-                                            dashboard["panels"][panel_index]["targets"][target_index]["data"]["index"][
-                                                "id"
-                                            ].append(mysql_slow_log_index_set_id)
-                                if "postgres-slowlog.json" in path:
-                                    for panel_index, panel in enumerate(dashboard["panels"]):
-                                        for target_index, target in enumerate(panel["targets"]):
-                                            dashboard["panels"][panel_index]["targets"][target_index]["data"]["index"][
-                                                "id"
-                                            ].append(redis_slow_log_index_set_id)
-
+                                dashboard["id"] = None
+                                dashboard = self.replace_dashboard(dashboard, used_index_name, index_name_id_map)
                                 title = dashboard.get("title")
                                 if not title:
                                     continue

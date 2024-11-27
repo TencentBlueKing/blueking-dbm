@@ -2050,7 +2050,7 @@
         "uid": "dba_mongo_proxy"
       },
       "description": "This can show a correlation with the replication lag value",
-      "editable": true,
+      "editable": false,
       "error": false,
       "fieldConfig": {
         "defaults": {
@@ -2168,7 +2168,7 @@
       "datasource": {
         "uid": "dba_mongo_proxy"
       },
-      "editable": true,
+      "editable": false,
       "error": false,
       "fieldConfig": {
         "defaults": {
@@ -2287,7 +2287,7 @@
         "uid": "dba_mongo_proxy"
       },
       "description": "Elections happen when a primary becomes unavailable. Look at this graph over longer periods (weeks or months) to determine patterns and correlate elections with other events.",
-      "editable": true,
+      "editable": false,
       "error": false,
       "fieldConfig": {
         "defaults": {
@@ -2403,7 +2403,7 @@
         "uid": "dba_mongo_proxy"
       },
       "description": "Shows the heartbeat return times sent by the current member to other members in the replica set.",
-      "editable": true,
+      "editable": false,
       "error": false,
       "fieldConfig": {
         "defaults": {
@@ -2522,7 +2522,7 @@
       "datasource": {
         "uid": "dba_mongo_proxy"
       },
-      "editable": true,
+      "editable": false,
       "error": false,
       "fieldConfig": {
         "defaults": {
@@ -2651,7 +2651,7 @@
       "datasource": {
         "uid": "dba_mongo_proxy"
       },
-      "editable": true,
+      "editable": false,
       "error": false,
       "fieldConfig": {
         "defaults": {
@@ -2768,7 +2768,7 @@
       "datasource": {
         "uid": "dba_mongo_proxy"
       },
-      "editable": true,
+      "editable": false,
       "error": false,
       "fieldConfig": {
         "defaults": {

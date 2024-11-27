@@ -1749,7 +1749,7 @@
             "uid": "dba_mongo_proxy"
           },
           "description": "mongodb datasize  du -sk $datadir of  one member",
-          "editable": true,
+          "editable": false,
           "error": false,
           "fieldConfig": {
             "defaults": {
@@ -2335,7 +2335,7 @@
       "datasource": {
         "uid": "dba_mongo_proxy"
       },
-      "editable": true,
+      "editable": false,
       "error": false,
       "fieldConfig": {
         "defaults": {
@@ -2470,7 +2470,7 @@
       "datasource": {
         "uid": "dba_mongo_proxy"
       },
-      "editable": true,
+      "editable": false,
       "error": false,
       "fieldConfig": {
         "defaults": {
@@ -2605,7 +2605,7 @@
       "datasource": {
         "uid": "dba_mongo_proxy"
       },
-      "editable": true,
+      "editable": false,
       "error": false,
       "fieldConfig": {
         "defaults": {
@@ -2738,7 +2738,7 @@
       "datasource": {
         "uid": "dba_mongo_proxy"
       },
-      "editable": true,
+      "editable": false,
       "error": false,
       "fieldConfig": {
         "defaults": {
@@ -2859,7 +2859,7 @@
       "datasource": {
         "uid": "dba_mongo_proxy"
       },
-      "editable": true,
+      "editable": false,
       "error": false,
       "fieldConfig": {
         "defaults": {
@@ -2967,7 +2967,7 @@
       "datasource": {
         "uid": "dba_mongo_proxy"
       },
-      "editable": true,
+      "editable": false,
       "error": false,
       "fieldConfig": {
         "defaults": {
@@ -3106,7 +3106,7 @@
       "datasource": {
         "uid": "dba_mongo_proxy"
       },
-      "editable": true,
+      "editable": false,
       "error": false,
       "fieldConfig": {
         "defaults": {
@@ -3232,7 +3232,7 @@
         "uid": "dba_mongo_proxy"
       },
       "description": "increase $interval mongodb_mongod_connections_metrics_created_total",
-      "editable": true,
+      "editable": false,
       "error": false,
       "fieldConfig": {
         "defaults": {
@@ -3342,7 +3342,7 @@
       "datasource": {
         "uid": "dba_mongo_proxy"
       },
-      "editable": true,
+      "editable": false,
       "error": false,
       "fieldConfig": {
         "defaults": {
@@ -3449,7 +3449,7 @@
       "datasource": {
         "uid": "dba_mongo_proxy"
       },
-      "editable": true,
+      "editable": false,
       "error": false,
       "fieldConfig": {
         "defaults": {
@@ -3582,7 +3582,7 @@
       "datasource": {
         "uid": "dba_mongo_proxy"
       },
-      "editable": true,
+      "editable": false,
       "error": false,
       "fieldConfig": {
         "defaults": {
@@ -3715,7 +3715,7 @@
       "datasource": {
         "uid": "dba_mongo_proxy"
       },
-      "editable": true,
+      "editable": false,
       "error": false,
       "fieldConfig": {
         "defaults": {
@@ -3862,7 +3862,7 @@
           "datasource": {
             "uid": "dba_mongo_proxy"
           },
-          "editable": true,
+          "editable": false,
           "error": false,
           "fieldConfig": {
             "defaults": {
@@ -3969,7 +3969,7 @@
           "datasource": {
             "uid": "dba_mongo_proxy"
           },
-          "editable": true,
+          "editable": false,
           "error": false,
           "fieldConfig": {
             "defaults": {
@@ -4074,7 +4074,7 @@
           "datasource": {
             "uid": "dba_mongo_proxy"
           },
-          "editable": true,
+          "editable": false,
           "error": false,
           "fieldConfig": {
             "defaults": {
@@ -4179,7 +4179,7 @@
           "datasource": {
             "uid": "dba_mongo_proxy"
           },
-          "editable": true,
+          "editable": false,
           "error": false,
           "fieldConfig": {
             "defaults": {
@@ -4288,7 +4288,7 @@
           "datasource": {
             "uid": "dba_mongo_proxy"
           },
-          "editable": true,
+          "editable": false,
           "error": false,
           "fieldConfig": {
             "defaults": {
@@ -4770,7 +4770,7 @@
           "datasource": {
             "uid": "dba_mongo_proxy"
           },
-          "editable": true,
+          "editable": false,
           "error": false,
           "fieldConfig": {
             "defaults": {},
@@ -4873,7 +4873,7 @@
             "uid": "dba_mongo_proxy"
           },
           "decimals": 0,
-          "editable": true,
+          "editable": false,
           "error": false,
           "fieldConfig": {
             "defaults": {},
@@ -4975,7 +4975,7 @@
           "datasource": {
             "uid": "dba_mongo_proxy"
           },
-          "editable": true,
+          "editable": false,
           "error": false,
           "fieldConfig": {
             "defaults": {},
@@ -5078,7 +5078,7 @@
           "datasource": {
             "uid": "dba_mongo_proxy"
           },
-          "editable": true,
+          "editable": false,
           "error": false,
           "fieldConfig": {
             "defaults": {},

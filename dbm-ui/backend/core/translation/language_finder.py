@@ -276,11 +276,14 @@ class LanguageFinder:
             "config",
             "mock.py",
             "mock_data.py",
+            "backend/bk_dataview/grafana",
         }
         if exclude_dir_or_file_list:
             _exclude_dir_or_file_list.update(set(exclude_dir_or_file_list))
         # 因为在项目中过滤的文件可能过多，因此支持在文件外直接写入对应的忽略文件名或文件夹名
         _exclude_dir_or_file_list.update(ALL_EXCLUDE_DIRS)
+        print(exclude_dir_or_file_list)
+        print(_exclude_dir_or_file_list)
 
         self.path = path
         self.suffix = suffix

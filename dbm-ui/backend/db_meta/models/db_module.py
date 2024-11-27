@@ -79,6 +79,6 @@ class DBModule(AuditedModel):
 
         except Exception as err:  # pylint: disable=broad-except
             # 忽略出现的异常，此时可能因为表未初始化
-            logger.exception("DBModule get_choices_with_filter error, {}".format(err))
+            logger.warning("DBModule get_choices_with_filter error, {}".format(err))
             db_module_choices = []
         return db_module_choices
