@@ -134,6 +134,14 @@ class MysqlMasterSlaveSwitchFlowBuilder(BaseMySQLHATicketFlowBuilder):
             flows.append(
                 Flow(
                     ticket=self.ticket,
+                    flow_type=FlowType.PAUSE.value,
+                    details=self.pause_node_builder(self.ticket).get_params(),
+                    flow_alias=_("人工确认"),
+                ),
+            )
+            flows.append(
+                Flow(
+                    ticket=self.ticket,
                     flow_type=FlowType.INNER_FLOW.value,
                     details=self.dumper_flow_builder(self.ticket).get_params(),
                     flow_alias=_("Dumper 迁移"),

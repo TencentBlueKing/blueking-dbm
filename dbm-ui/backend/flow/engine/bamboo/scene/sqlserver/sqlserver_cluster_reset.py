@@ -108,7 +108,7 @@ class SqlserverResetFlow(BaseFlow):
 
             # 创建随机账号
             sub_pipeline.add_act(
-                act_name=_("create job user"),
+                act_name=_("create temp job account"),
                 act_component_code=SqlserverAddJobUserComponent.code,
                 kwargs=asdict(
                     CreateRandomJobUserKwargs(
@@ -257,7 +257,7 @@ class SqlserverResetFlow(BaseFlow):
 
             # 删除随机账号
             sub_pipeline.add_act(
-                act_name=_("drop job user"),
+                act_name=_("remove temp job account"),
                 act_component_code=SqlserverDropJobUserComponent.code,
                 kwargs=asdict(DropRandomJobUserKwargs(cluster_ids=[cluster.id])),
             )

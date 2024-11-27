@@ -86,7 +86,7 @@ class Builder(object):
         流程串联添加临时账号的活动节点
         """
         act = self.add_act(
-            act_name="create job user",
+            act_name="create temp job account",
             act_component_code=AddTempUserForClusterComponent.code,
             kwargs={"cluster_ids": self.need_random_pass_cluster_ids},
         )

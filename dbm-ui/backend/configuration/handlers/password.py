@@ -25,7 +25,7 @@ from backend.db_meta.models import Machine
 from backend.db_periodic_task.models import DBPeriodicTask
 from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
 from backend.db_services.taskflow.handlers import TaskFlowHandler
-from backend.flow.consts import DEFAULT_INSTANCE, FAILED_STATES, SUCCEED_STATES
+from backend.flow.consts import DEFAULT_INSTANCE, SUCCEED_STATES
 from backend.flow.engine.bamboo.engine import BambooEngine
 from backend.flow.engine.controller.mysql import MySQLController
 from backend.flow.models import FlowTree
@@ -214,8 +214,8 @@ class DBPasswordHandler(object):
         @param root_id: 任务ID
         """
         flow_tree = FlowTree.objects.get(root_id=root_id)
-        # 任务未完成，退出
-        if flow_tree.status not in [*FAILED_STATES, *SUCCEED_STATES]:
+        # 任务未完成或失败，退出
+        if flow_tree.status not in [*SUCCEED_STATES]:
             return {"status": flow_tree.status, "data": ""}
 
         # 查询修改密码的节点id
@@ -224,8 +224,8 @@ class DBPasswordHandler(object):
             0
         ]
         # 查询输出数据
-        result = BambooEngine(root_id).get_node_output_data(node_id).data["resp"]["data"]
-        result.update(status=flow_tree.status)
+        resp = BambooEngine(root_id).get_node_output_data(node_id).data["resp"]
+        result = {"status": flow_tree.status, "error": resp["message"], "data": resp["data"], "result": resp["result"]}
         return result
 
     @classmethod
