@@ -15,7 +15,7 @@
   <RenderTableBase :ticket-details="ticketDetails">
     <BkTableColumn :label="t('目标集群')">
       <template #default="{ data }: { data: RowData }">
-        {{ targetClusters[data.target_cluster_id] }}
+        {{ ticketDetails.details.clusters[data.target_cluster_id].immute_domain }}
       </template>
     </BkTableColumn>
   </RenderTableBase>
@@ -25,7 +25,6 @@
   import { useI18n } from 'vue-i18n';
 
   import TicketModel, { type Mysql } from '@services/model/ticket/ticket';
-  import { queryClusters } from '@services/source/mysqlCluster';
 
   import RenderTableBase from './RenderTableBase.vue';
 
@@ -35,31 +34,7 @@
 
   type RowData = Props['ticketDetails']['details']['infos'][number];
 
-  const props = defineProps<Props>();
+  defineProps<Props>();
 
   const { t } = useI18n();
-
-  const targetClusters = ref<Record<string, string>>({});
-
-  watch(
-    () => props.ticketDetails.details,
-    () => {
-      const targetClusterIds = props.ticketDetails.details.infos.map((item) => ({ id: item.target_cluster_id }));
-      queryClusters({
-        cluster_filters: targetClusterIds,
-        bk_biz_id: props.ticketDetails.bk_biz_id,
-      }).then((data) => {
-        targetClusters.value = data.reduce<Record<number, string>>(
-          (acc, cur) => ({
-            ...acc,
-            [cur.id]: cur.immute_domain,
-          }),
-          {},
-        );
-      });
-    },
-    {
-      immediate: true,
-    },
-  );
 </script>
