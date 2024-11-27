@@ -12,9 +12,21 @@
 -->
 
 <template>
-  <DbOriginalTable
-    :columns="columns"
-    :data="ticketDetails.details.infos" />
+  <BkTable
+    :data="ticketDetails.details.infos"
+    show-overflow-tooltip>
+    <BkTableColumn :label="t('构造产物访问入口')">
+      <template #default="{ row }">
+        {{ row.display_info.temp_cluster_proxy }}
+      </template>
+    </BkTableColumn>
+    <BkTableColumn
+      field="prod_cluster"
+      :label="t('源集群')" />
+    <BkTableColumn
+      field="related_rollback_bill_id"
+      :label="t('关联单据')" />
+  </BkTable>
 </template>
 
 <script setup lang="tsx">
@@ -30,16 +42,4 @@
   defineProps<Props>();
 
   const { t } = useI18n();
-
-  const columns = [
-    {
-      label: t('目标集群'),
-      field: 'prod_cluster',
-      showOverflowTooltip: true,
-    },
-    {
-      label: t('关联单据'),
-      field: 'related_rollback_bill_id',
-    },
-  ];
 </script>

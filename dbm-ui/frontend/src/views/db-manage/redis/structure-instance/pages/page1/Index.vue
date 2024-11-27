@@ -407,6 +407,9 @@
           related_rollback_bill_id,
           cluster_id: item.prod_cluster_id,
           bk_cloud_id,
+          display_info: {
+            temp_cluster_proxy: item.temp_cluster_proxy,
+          },
         };
         return obj;
       });
@@ -417,6 +420,9 @@
         related_rollback_bill_id: rowData.related_rollback_bill_id,
         cluster_id: rowData.prod_cluster_id,
         bk_cloud_id: rowData.bk_cloud_id,
+        display_info: {
+          temp_cluster_proxy: rowData.temp_cluster_proxy,
+        },
       },
     ];
   };

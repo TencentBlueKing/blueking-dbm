@@ -402,6 +402,9 @@ export interface RedisStructureDeleteDetails extends DetailBase {
     related_rollback_bill_id: number;
     prod_cluster: string;
     bk_cloud_id: number;
+    display_info: {
+      temp_cluster_proxy: string;
+    };
   }[];
 }
 
