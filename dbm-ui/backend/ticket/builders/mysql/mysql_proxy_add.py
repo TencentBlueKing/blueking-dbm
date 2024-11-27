@@ -52,12 +52,25 @@ class MysqlProxyAddDetailSerializer(MySQLBaseOperateDetailSerializer):
 class MysqlProxyAddParamBuilder(builders.FlowParamBuilder):
     controller = MySQLController.mysql_proxy_add_scene
 
+    @classmethod
+    def merge_same_proxy_clusters(cls, infos):
+        """聚合增加相同的proxy的集群"""
+        add_proxy_cluster_map = {}
+        for info in infos:
+            proxy = info["proxy_ip"]
+            if proxy["bk_host_id"] not in add_proxy_cluster_map:
+                add_proxy_cluster_map[proxy["bk_host_id"]] = {**info, "cluster_ids": []}
+            add_proxy_cluster_map[proxy["bk_host_id"]]["cluster_ids"].extend(info["cluster_ids"])
+        return list(add_proxy_cluster_map.values())
+
     def format_ticket_data(self):
         if self.ticket_data["ip_source"] == IpSource.RESOURCE_POOL:
             return
-
         for info in self.ticket_data["infos"]:
             info["proxy_ip"] = info["new_proxy"]
+        # 聚合集群
+        infos = self.merge_same_proxy_clusters(self.ticket_data["infos"])
+        self.ticket_data["infos"] = infos
 
 
 class MysqlProxyAddResourceParamBuilder(BaseOperateResourceParamBuilder):
@@ -67,7 +80,9 @@ class MysqlProxyAddResourceParamBuilder(BaseOperateResourceParamBuilder):
         for info in ticket_data["infos"]:
             info["new_proxy"] = info.pop("new_proxy")[0]
             info["proxy_ip"] = info["new_proxy"]
-
+        # 聚合集群
+        infos = MysqlProxyAddParamBuilder.merge_same_proxy_clusters(ticket_data["infos"])
+        next_flow.details["ticket_data"]["infos"] = infos
         next_flow.save(update_fields=["details"])
 
 
@@ -75,5 +90,4 @@ class MysqlProxyAddResourceParamBuilder(BaseOperateResourceParamBuilder):
 class MysqlProxyAddFlowBuilder(BaseMySQLHATicketFlowBuilder):
     serializer = MysqlProxyAddDetailSerializer
     inner_flow_builder = MysqlProxyAddParamBuilder
-    inner_flow_name = _("添加PROXY执行")
     resource_batch_apply_builder = MysqlProxyAddResourceParamBuilder

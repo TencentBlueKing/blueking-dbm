@@ -72,11 +72,26 @@ class MysqlProxySwitchDetailSerializer(MySQLBaseOperateDetailSerializer):
 class MysqlProxySwitchParamBuilder(builders.FlowParamBuilder):
     controller = MySQLController.mysql_proxy_switch_scene
 
+    @classmethod
+    def merge_same_proxy_clusters(cls, infos):
+        """聚合替换相同的proxy的集群"""
+        switch_proxy_cluster_map = {}
+        for info in infos:
+            switch_key = f"{info['origin_proxy_ip']['bk_host_id']}--{info['target_proxy_ip']['bk_host_id']}"
+            if switch_key not in switch_proxy_cluster_map:
+                switch_proxy_cluster_map[switch_key] = {**info, "cluster_ids": []}
+            switch_proxy_cluster_map[switch_key]["cluster_ids"].extend(info["cluster_ids"])
+        return list(switch_proxy_cluster_map.values())
+
     def format_ticket_data(self):
         for info in self.ticket_data["infos"]:
             info["origin_proxy_ip"] = info["origin_proxy"]
             if self.ticket_data["ip_source"] == IpSource.MANUAL_INPUT:
                 info["target_proxy_ip"] = info["target_proxy"]
+        # 聚合集群
+        if self.ticket_data["ip_source"] == IpSource.MANUAL_INPUT:
+            infos = self.merge_same_proxy_clusters(self.ticket_data["infos"])
+            self.ticket_data["infos"] = infos
 
 
 class MysqlProxySwitchResourceParamBuilder(BaseOperateResourceParamBuilder):
@@ -86,7 +101,9 @@ class MysqlProxySwitchResourceParamBuilder(BaseOperateResourceParamBuilder):
         for info in ticket_data["infos"]:
             info["target_proxy"] = info.pop("target_proxy")[0]
             info["target_proxy_ip"] = info["target_proxy"]
-
+        # 聚合集群
+        infos = MysqlProxySwitchParamBuilder.merge_same_proxy_clusters(ticket_data["infos"])
+        next_flow.details["ticket_data"]["infos"] = infos
         next_flow.save(update_fields=["details"])
 
 
@@ -94,7 +111,6 @@ class MysqlProxySwitchResourceParamBuilder(BaseOperateResourceParamBuilder):
 class MysqlProxySwitchFlowBuilder(BaseMySQLHATicketFlowBuilder):
     serializer = MysqlProxySwitchDetailSerializer
     inner_flow_builder = MysqlProxySwitchParamBuilder
-    inner_flow_name = _("替换PROXY执行")
     resource_batch_apply_builder = MysqlProxySwitchResourceParamBuilder
     retry_type = FlowRetryType.MANUAL_RETRY
     pause_node_builder = MySQLBasePauseParamBuilder
