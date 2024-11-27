@@ -114,38 +114,7 @@
   const handleSubmit = async () => {
     try {
       isSubmitting.value = true;
-      const rows = await tableRef.value!.getValue();
-      // 原ip和新ip一致，聚合clusterid
-      const clusterIdsSet: Record<string, Set<number>> = {};
-      rows.forEach(
-        (item: {
-          cluster_ids: number[];
-          origin_proxy: {
-            ip: string;
-          };
-          target_proxy: {
-            ip: string;
-          };
-        }) => {
-          const key = `${item.origin_proxy.ip}#${item.target_proxy.ip}`;
-          clusterIdsSet[key] = clusterIdsSet[key] || new Set();
-          item.cluster_ids.forEach((id) => clusterIdsSet[key].add(id));
-        },
-      );
-      const infos = rows.map(
-        (item: {
-          cluster_ids: number[];
-          origin_proxy: {
-            ip: string;
-          };
-          target_proxy: {
-            ip: string;
-          };
-        }) => ({
-          ...item,
-          cluster_ids: Array.from(clusterIdsSet[`${item.origin_proxy.ip}#${item.target_proxy.ip}`]),
-        }),
-      );
+      const infos = await tableRef.value!.getValue();
       await createTicket({
         bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
         ticket_type: TicketTypes.MYSQL_PROXY_SWITCH,

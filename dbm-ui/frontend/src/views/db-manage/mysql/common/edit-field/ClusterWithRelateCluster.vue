@@ -23,6 +23,8 @@
       v-model="localDomain"
       :placeholder="t('请输入集群域名或从表头批量选择')"
       :rules="rules"
+      @blur="handleEditBlur"
+      @clear="handleEditClear"
       @submit="handleEditSubmit" />
     <div v-show="!isShowEdit">
       <div
@@ -335,16 +337,28 @@
     });
   };
 
+  const handleEditBlur = () => {
+    editRef.value.getValue().then(() => {
+      isShowEdit.value = false;
+      nextTick(() => {
+        initRelateClusterPopover();
+      });
+    });
+  };
+
+  const handleEditClear = () => {
+    clusterIdMemo[instanceKey] = {};
+    realateCheckedMap.value = {};
+    selectRelateClusterList.value = [];
+  };
+
   // 提交编辑
   const handleEditSubmit = (value: string) => {
     if (!value) {
+      handleEditClear();
       return;
     }
-
-    isShowEdit.value = false;
-    nextTick(() => {
-      initRelateClusterPopover();
-    });
+    handleEditBlur();
   };
 
   // 显示管理集群列表
@@ -382,6 +396,8 @@
       };
       // 用户输入未完成验证
       if (editRef.value) {
+        // 先切回编辑态才能正常校验
+        handleShowEdit();
         return editRef.value.getValue().then(() => result);
       }
       // 用户输入错误
