@@ -71,6 +71,10 @@
     buttonDisabledTip?: string;
   }
 
+  interface Emits {
+    (e: 'verifyResult', isPass: boolean): void;
+  }
+
   interface Exposes {
     getEncyptPassword: () => string;
     validate: () => Promise<boolean>;
@@ -82,11 +86,13 @@
     buttonDisabledTip: '',
   });
 
-  const { t } = useI18n();
+  const emits = defineEmits<Emits>();
 
   const modelValue = defineModel<string>('modelValue', {
     default: '',
   });
+
+  const { t } = useI18n();
 
   let tippyInstance: Instance;
   let publicKey = '';
@@ -256,6 +262,7 @@
       password: getEncyptPassword(),
     });
     tippyInstance.show();
+    emits('verifyResult', isStrength);
     return isStrength;
   };
   const debounceVerifyPassword = _.debounce(verifyPassword, 300);
@@ -293,6 +300,10 @@
   const handlePasswordBlur = () => {
     tippyInstance.hide();
   };
+
+  watch(modelValue, () => {
+    debounceVerifyPassword();
+  });
 
   onUnmounted(() => {
     tippyInstance.destroy();
