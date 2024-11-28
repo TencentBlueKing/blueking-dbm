@@ -163,10 +163,12 @@
   watch(
     filenameList,
     () => {
-      localList.value = filenameList.value.map((fileName) => ({
-        id: fileName,
-        name: fileName,
-      }));
+      if (filenameList.value.length) {
+        localList.value = filenameList.value.map((fileName) => ({
+          id: fileName,
+          name: fileName,
+        }));
+      }
     },
     {
       immediate: true,
@@ -182,6 +184,7 @@
   };
 
   const handleRemove = (filename: string) => {
+    modelValue.value = filename;
     const lastesfilenameList = [...filenameList.value];
     _.remove(lastesfilenameList, (item) => item === filename);
     filenameList.value = lastesfilenameList;
@@ -208,18 +211,18 @@
 
   .sql-execute-render-file-list {
     height: 100%;
-    border-right: 1px solid #3d3d40;
     background: #2e2e2e;
+    border-right: 1px solid #3d3d40;
 
     .file-list-header {
+      display: flex;
       height: 40px;
       padding: 0 16px;
+      margin-bottom: 16px;
       font-weight: bold;
       line-height: 16px;
       color: #fff;
-      display: flex;
       align-items: center;
-      margin-bottom: 16px;
     }
 
     .file-list-wrapper {
