@@ -241,7 +241,6 @@ func (r *RedisLocalDoDR) tryBackupData(src, dst, addr string) error {
 		r.runtime.Logger.Info("ignore backup file %s:%s:%+v", addr, src, err)
 		return nil
 	}
-	// _, err = RunLocalCmd( []string{consts.MysqlAaccount, "-c", "nohup sh " + startScript + " &"},		"", nil, 1*time.Minute)
 	if rst, err := util.RunLocalCmd("su", []string{
 		consts.MysqlAaccount, "-c", fmt.Sprintf("mv %s %s", src, dst)}, "", nil, time.Minute); err != nil || rst != "" {
 		r.runtime.Logger.Error("backup file %s ,failed:%s:%+v", src, rst, err)
