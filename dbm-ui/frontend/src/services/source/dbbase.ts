@@ -27,7 +27,7 @@ export function verifyDuplicatedClusterName(params: { cluster_type: string; name
 }
 
 /**
- * 根据过滤条件查询集群详细信息
+ * 根据过滤条件查询集群详细信息，返回的字段和集群列表接口相同
  */
 export function filterClusters<
   T extends {

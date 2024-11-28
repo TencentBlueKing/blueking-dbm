@@ -12,34 +12,51 @@
 -->
 
 <template>
-  <BkSelect
-    v-model="modelValue"
-    allow-create
-    class="permission-user-select"
-    collapse-tags
-    filterable
-    multiple
-    multiple-mode="tag"
-    :placeholder="t('请选择或直接输入账号，Enter完成输入')">
-    <BkOption
-      v-for="item in userOptionList"
-      :id="item.value"
-      :key="item.value"
-      :name="item.label" />
-    <template #tag="{ selected }">
-      <BkTag
-        v-for="item in selected"
+  <div class="permission-retrieve-user-select">
+    <BkSelect
+      v-model="modelValue"
+      allow-create
+      class="permission-user-select"
+      collapse-tags
+      filterable
+      :loading="loading"
+      multiple
+      multiple-mode="tag"
+      :placeholder="t('请选择或直接输入账号，Enter完成输入')">
+      <BkOption
+        v-for="item in userOptionList"
+        :id="item.value"
         :key="item.value"
-        closable
-        :theme="userOptionList.findIndex((userOptionItem) => userOptionItem.value === item.value) > -1 ? '' : 'warning'"
-        @close="(event: Event) => handleUserClose(item.value)">
-        {{ item.value }}
-      </BkTag>
-    </template>
-  </BkSelect>
+        :name="item.label" />
+      <template #tag="{ selected }">
+        <BkTag
+          v-for="item in selected"
+          :key="item.value"
+          closable
+          :theme="
+            userOptionList.findIndex((userOptionItem) => userOptionItem.value === item.value) > -1 ? '' : 'warning'
+          "
+          @close="(event: Event) => handleUserClose(item.value)">
+          {{ item.value }}
+        </BkTag>
+      </template>
+    </BkSelect>
+    <span
+      v-bk-tooltips.top="t('刷新获取最新账号')"
+      class="ml-8">
+      <BkButton
+        :disabled="loading"
+        text
+        theme="primary"
+        @click="handleRetrieve">
+        <DbIcon type="refresh" />
+      </BkButton>
+    </span>
+  </div>
 </template>
 
 <script setup lang="tsx">
+  import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
@@ -58,6 +75,11 @@
       account_type: AccountTypes;
       is_master: boolean;
     };
+    validateFunc: () => Promise<boolean>;
+  }
+
+  interface Expose {
+    getUserList: () => void;
   }
 
   const props = defineProps<Props>();
@@ -75,18 +97,20 @@
     })),
   );
 
-  const { data: userList, run: runGetUserList } = useRequest(
-    accoutMap[props.formData.account_type as keyof typeof accoutMap].ruleApi,
-    {
-      manual: true,
-    },
-  );
+  const {
+    data: userList,
+    run: runGetUserList,
+    loading,
+  } = useRequest(accoutMap[props.formData.account_type as keyof typeof accoutMap].ruleApi, {
+    manual: true,
+  });
 
-  watch(
-    () => [props.formData.ips, props.formData.immute_domains],
-    () => {
-      if (props.formData.ips && props.formData.immute_domains) {
-        runGetUserList({
+  const runGetUserListDebounce = _.debounce(runGetUserList);
+
+  const handleRetrieve = () => {
+    props.validateFunc().then((result) => {
+      if (result) {
+        runGetUserListDebounce({
           ips: props.formData.ips.replace(batchSplitRegex, ','),
           immute_domains: props.formData.immute_domains.replace(batchSplitRegex, ','),
           cluster_type: props.formData.cluster_type,
@@ -95,8 +119,8 @@
           offset: 0,
         });
       }
-    },
-  );
+    });
+  };
 
   const handleUserClose = (value: string) => {
     const index = modelValue.value.findIndex((userItem) => userItem === value);
@@ -104,12 +128,24 @@
       modelValue.value.splice(index, 1);
     }
   };
+
+  defineExpose<Expose>({
+    getUserList() {
+      handleRetrieve();
+    },
+  });
 </script>
 
 <style lang="less" scoped>
-  .permission-user-select {
-    :deep(.bk-select-tag-wrapper) {
+  .permission-retrieve-user-select {
+    display: flex;
+
+    .permission-user-select {
       flex: 1;
+
+      :deep(.bk-select-tag-wrapper) {
+        flex: 1;
+      }
     }
   }
 </style>
