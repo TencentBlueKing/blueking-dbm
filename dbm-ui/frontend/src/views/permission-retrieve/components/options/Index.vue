@@ -17,20 +17,25 @@
       ref="formRef"
       form-type="vertical"
       :model="formData">
-      <IpItem v-model="formData.ips" />
+      <IpItem
+        v-model="formData.ips"
+        @change="getUserList" />
       <DomainItem
         ref="domainItemRef"
         v-model="formData.immute_domains"
         v-model:cluster-type="formData.cluster_type"
         v-model:is-master="formData.is_master"
-        :account-type="accountType" />
+        :account-type="accountType"
+        @change="getUserList" />
       <BkFormItem
         :label="t('账号')"
         property="users"
         required>
         <UserSelect
+          ref="userSelectRef"
           v-model="formData.users"
-          :form-data="formData" />
+          :form-data="formData"
+          :validate-func="userSelectValidateFunc" />
       </BkFormItem>
       <BkFormItem
         :label="t('访问 DB')"
@@ -110,6 +115,7 @@
 
   const formRef = ref<InstanceType<typeof Form>>();
   const domainItemRef = ref<InstanceType<typeof DomainItem>>();
+  const userSelectRef = ref<InstanceType<typeof UserSelect>>();
 
   const formData = reactive(getDefaultFormData());
 
@@ -133,6 +139,16 @@
     nextTick(() => {
       formRef.value!.clearValidate();
     });
+  };
+
+  const userSelectValidateFunc = () =>
+    formRef
+      .value!.validate(['ips', 'immute_domains'])
+      .then(() => true)
+      .catch(() => false);
+
+  const getUserList = () => {
+    userSelectRef.value!.getUserList();
   };
 </script>
 

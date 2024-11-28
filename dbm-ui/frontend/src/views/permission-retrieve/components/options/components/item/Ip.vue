@@ -8,6 +8,7 @@
       v-model="modelValue"
       icon-type="batch-host-select"
       :max-count="50"
+      @change="handleChange"
       @icon-click="() => (hostSelectorShow = true)" />
   </BkFormItem>
   <IpSelector
@@ -54,11 +55,16 @@
 
   import BatchInput from './components/BatchInput.vue';
 
-  const { t } = useI18n();
+  interface Emits {
+    (e: 'change'): void;
+  }
 
+  const emits = defineEmits<Emits>();
   const modelValue = defineModel<string>({
     required: true,
   });
+
+  const { t } = useI18n();
 
   const bizId = window.PROJECT_CONFIG.BIZ_ID;
 
@@ -89,6 +95,10 @@
 
   const disableHostSubmitMethod = (hostList: HostInfo[]) => (hostList.length <= 50 ? false : t('至多n台', { n: 50 }));
 
+  const handleChange = () => {
+    emits('change');
+  };
+
   const handleChangeIP = (data: HostInfo[]) => {
     selectedHosts.value = data;
     modelValue.value = data.map((item) => item.ip).join(' | ');
@@ -100,6 +110,7 @@
       const ipList = data.flatMap((item) => item.ips).map((ip) => ip);
       const prevIpList = modelValue.value ? modelValue.value.split(' | ') : [];
       modelValue.value = [...prevIpList, ...ipList].map((item) => item).join(' | ');
+      emits('change');
     });
   };
 </script>
