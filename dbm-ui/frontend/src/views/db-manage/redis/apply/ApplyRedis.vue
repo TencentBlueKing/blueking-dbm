@@ -97,7 +97,8 @@
             <PasswordInput
               ref="passwordRef"
               v-model="state.formdata.details.proxy_pwd"
-              :db-type="DBTypes.REDIS" />
+              :db-type="DBTypes.REDIS"
+              @verify-result="verifyResult" />
           </BkFormItem>
           <BkFormItem
             :label="t('服务器选择')"
@@ -334,7 +335,12 @@
     </div>
     <template #action>
       <BkButton
+        v-bk-tooltips="{
+          content: t('密码不符合规则'),
+          disabled: !Boolean(state.formdata.details.proxy_pwd) || passwordIsPass,
+        }"
         class="w-88"
+        :disabled="!passwordIsPass"
         :loading="baseState.isSubmitting"
         theme="primary"
         @click="handleSubmit">
@@ -487,6 +493,7 @@
     id: '' as number | string,
     name: '',
   });
+  const passwordIsPass = ref(false);
 
   const state = reactive({
     formdata: initData(),
@@ -582,6 +589,10 @@
     return types[state.formdata.details.cluster_type as keyof typeof types];
   });
   // const isDefaultCity = computed(() => state.formdata.details.city_code === 'default');
+
+  const verifyResult = (isPass: boolean) => {
+    passwordIsPass.value = isPass;
+  };
 
   const getSmartActionOffsetTarget = () => document.querySelector('.bk-form-content');
 

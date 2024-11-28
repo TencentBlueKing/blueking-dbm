@@ -73,7 +73,8 @@
             v-model="formData.password"
             :button-disabled="!instanceDbType"
             :button-disabled-tip="t('请先添加实例')"
-            :db-type="instanceDbType" />
+            :db-type="instanceDbType"
+            @verify-result="verifyResult" />
         </BkFormItem>
         <ValidDuration
           v-model="formData.validDuration"
@@ -84,7 +85,12 @@
       v-if="!submitting && !submitted"
       #action>
       <BkButton
+        v-bk-tooltips="{
+          content: t('密码不符合规则'),
+          disabled: !Boolean(formData.password) || passwordIsPass,
+        }"
         class="w-88"
+        :disabled="!passwordIsPass"
         theme="primary"
         @click="submitValidator">
         {{ t('提交') }}
@@ -130,12 +136,15 @@
     validDurationType: 'day',
   });
 
+  const passwordIsPass = ref(false);
   const submitted = ref(false);
   const submitLength = ref(0);
   const formRef = ref();
   const submitRoleMap = shallowRef<Record<string, string>>({});
   const formData = reactive(createDefaultData());
   const instanceDbType = ref<DBTypes>();
+  const rootId = ref('');
+  const modifyResult = ref<ModifyAdminPassword>('');
 
   watch(
     formData,
@@ -158,9 +167,6 @@
       deep: true,
     },
   );
-
-  const rootId = ref('');
-  const modifyResult = ref<ModifyAdminPassword>('');
 
   // 轮询
   const { isActive, resume, pause } = useTimeoutPoll(() => {
@@ -202,6 +208,10 @@
   const submitValidator = async () => {
     await formRef.value.validate();
     handleSubmit(formData.instanceList);
+  };
+
+  const verifyResult = (isPass: boolean) => {
+    passwordIsPass.value = isPass;
   };
 
   const handleSubmit = (
