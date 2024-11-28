@@ -54,7 +54,8 @@
         <PasswordInput
           ref="passwordRef"
           v-model="state.formdata.password"
-          :db-type="accountType" />
+          :db-type="dbTypeMap[accountType]"
+          @verify-result="verifyResult" />
         <p style="color: #ff9c01">
           {{ t('平台不会保存密码，请自行保管好。') }}
           <BkButton
@@ -74,7 +75,12 @@
     </BkForm>
     <template #footer>
       <BkButton
+        v-bk-tooltips="{
+          content: t('密码不符合要求'),
+          disabled: !Boolean(state.formdata.password) || passwordIsPass,
+        }"
         class="mr-8"
+        :disabled="!passwordIsPass"
         :loading="state.isLoading"
         theme="primary"
         @click="handleSubmit">
@@ -98,7 +104,7 @@
 
   import { useCopy } from '@hooks';
 
-  import { AccountTypes } from '@common/const';
+  import { AccountTypes, DBTypes } from '@common/const';
 
   import PasswordInput from '@views/db-manage/common/password-input/Index.vue';
 
@@ -127,6 +133,13 @@
 
   const { t } = useI18n();
 
+  const dbTypeMap = {
+    [AccountTypes.MYSQL]: DBTypes.MYSQL,
+    [AccountTypes.TENDBCLUSTER]: DBTypes.TENDBCLUSTER,
+    [AccountTypes.SQLSERVER]: DBTypes.SQLSERVER,
+    [AccountTypes.MONGODB]: DBTypes.MONGODB,
+  };
+
   const state = reactive({
     formdata: {
       password: '',
@@ -137,6 +150,7 @@
   });
   const accountRef = ref();
   const passwordRef = ref<InstanceType<typeof PasswordInput>>();
+  const passwordIsPass = ref(false);
 
   const defaultUserPlaceholder = t('由_1_~_32_位字母_数字_下划线(_)_点(.)_减号(-)字符组成以字母或数字开头');
   let validValue = '';
@@ -196,6 +210,10 @@
    */
   const handleCopyPassword = () => {
     copy(state.formdata.password);
+  };
+
+  const verifyResult = (isPass: boolean) => {
+    passwordIsPass.value = isPass;
   };
 
   /**
