@@ -45,6 +45,8 @@ type GoFlashback struct {
 	WorkID  string `json:"work_id"`
 	// ParseConcurrency 解析binlog并发度
 	ParseConcurrency int `json:"parse_concurrency"`
+	// DirectWriteBack 直接回写原 db
+	DirectWriteBack bool `json:"direct_write_back"`
 
 	// binlog 下载到哪个目录
 	binlogSaveDir string

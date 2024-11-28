@@ -4,16 +4,17 @@ import (
 	"bufio"
 	"bytes"
 	"context"
-	"dbm-services/mysql/db-tools/dbactuator/pkg/components"
-	"dbm-services/mysql/db-tools/dbactuator/pkg/components/mysql/common"
-	rpkg "dbm-services/mysql/db-tools/dbactuator/pkg/components/rename_dbs/pkg"
-	"dbm-services/mysql/db-tools/dbactuator/pkg/components/truncate/pkg"
 	"encoding/json"
 	"fmt"
 	"os"
 	"os/exec"
 	"strings"
 	"time"
+
+	"dbm-services/mysql/db-tools/dbactuator/pkg/components"
+	"dbm-services/mysql/db-tools/dbactuator/pkg/components/mysql/common"
+	rpkg "dbm-services/mysql/db-tools/dbactuator/pkg/components/rename_dbs/pkg"
+	"dbm-services/mysql/db-tools/dbactuator/pkg/components/truncate/pkg"
 
 	"dbm-services/common/go-pubpkg/logger"
 
@@ -309,7 +310,15 @@ func (c *OnMySQLComponent) instanceDropSourceDBs(port int) error {
 func (c *OnMySQLComponent) instanceRecreateSourceTables(port int) error {
 	for db := range c.dbTablesMap {
 		stageDBName := generateStageDBName(c.Param.StageDBHeader, c.Param.FlowTimeStr, db)
-		for _, table := range c.dbTablesMap[db] {
+		stageTables, err := rpkg.ListDBTables(c.dbConn, stageDBName)
+		if err != nil {
+			logger.Error("list stage db tables on instance %d from %s failed: %s", port, stageDBName, err.Error())
+			return err
+		}
+
+		// 这里改成从 stage 库拿表列表, 在重试的时候才能幂等
+		//for _, table := range c.dbTablesMap[db] {
+		for _, table := range stageTables {
 			err := c.instanceRecreateSourceTable(port, db, stageDBName, table)
 			if err != nil {
 				logger.Error(
@@ -328,25 +337,25 @@ func (c *OnMySQLComponent) instanceRecreateSourceTables(port int) error {
 }
 
 func (c *OnMySQLComponent) instanceRecreateSourceTable(port int, dbName, stageDBName, tableName string) error {
-	yes, err := rpkg.IsTableExistsIn(c.dbConn, tableName, stageDBName)
-	if err != nil {
-		logger.Error("check table %s exists in %s failed: %s", tableName, stageDBName, err.Error())
-		return err
-	}
-
-	if !yes {
-		err := fmt.Errorf("%s.%s not found", stageDBName, tableName)
-		logger.Error("re create source table on instance %d failed: ", port, err.Error())
-		return err
-	}
-	logger.Info("source table found in stage db on instance %d, try to truncate", port)
+	//yes, err := rpkg.IsTableExistsIn(c.dbConn, tableName, stageDBName)
+	//if err != nil {
+	//	logger.Error("check table %s exists in %s failed: %s", tableName, stageDBName, err.Error())
+	//	return err
+	//}
+	//
+	//if !yes {
+	//	err := fmt.Errorf("%s.%s not found", stageDBName, tableName)
+	//	logger.Error("re create source table on instance %d failed: ", port, err.Error())
+	//	return err
+	//}
+	//logger.Info("source table found in stage db on instance %d, try to truncate", port)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
-	_, err = c.dbConn.ExecContext(
+	_, err := c.dbConn.ExecContext(
 		ctx,
 		fmt.Sprintf(
-			"CREATE TABLE `%s`.`%s` LIKE `%s`.`%s`",
+			"CREATE TABLE IF NOT EXISTS `%s`.`%s` LIKE `%s`.`%s`",
 			dbName, tableName, stageDBName, tableName,
 		),
 	)

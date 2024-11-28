@@ -1,13 +1,14 @@
 package checksum
 
 import (
+	"fmt"
+	"path/filepath"
+
 	"dbm-services/common/go-pubpkg/logger"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/components"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/components/peripheraltools/internal"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/core/cst"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/tools"
-	"fmt"
-	"path/filepath"
 
 	"gopkg.in/yaml.v2"
 )
@@ -35,7 +36,7 @@ func generateRuntimeConfigIns(mcp *MySQLChecksumParam, instance *instanceInfo, r
 	cfg := NewRuntimeConfig(
 		instance.BkBizId, instance.ClusterId, instance.Port,
 		instance.Role, instance.Schedule, instance.ImmuteDomain, instance.Ip,
-		rtap.MonitorUser, rtap.MonitorPwd, mcp.ApiUrl, logDir, tl)
+		rtap.MonitorUser, rtap.MonitorPwd, mcp.ApiUrl, logDir, 2, tl)
 	cfg.SetFilter(nil, ignoreDbs, nil, nil)
 
 	b, err := yaml.Marshal(&cfg)

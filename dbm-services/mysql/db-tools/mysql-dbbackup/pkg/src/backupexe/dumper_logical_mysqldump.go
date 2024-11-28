@@ -273,6 +273,7 @@ func (l *LogicalDumperMysqldump) Execute(enableTimeOut bool) (err error) {
 	defer func() {
 		_ = db.Close()
 	}()
+	// 屏蔽本地 mysql-monitor slave-status 监控
 	if showMasterStatus, err := mysqlconn.ShowMysqlMasterStatus(false, db); err != nil {
 		return err
 	} else {

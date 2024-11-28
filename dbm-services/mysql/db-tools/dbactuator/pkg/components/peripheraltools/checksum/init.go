@@ -1,6 +1,9 @@
 package checksum
 
 import (
+	"fmt"
+	"path/filepath"
+
 	"dbm-services/common/go-pubpkg/logger"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/components"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/components/peripheraltools/internal"
@@ -8,8 +11,6 @@ import (
 	"dbm-services/mysql/db-tools/dbactuator/pkg/native"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/tools"
 	"dbm-services/mysql/db-tools/mysql-table-checksum/pkg/config"
-	"fmt"
-	"path/filepath"
 )
 
 type MySQLChecksumComp struct {
@@ -48,6 +49,7 @@ type instanceInfo struct {
 func NewRuntimeConfig(
 	bkBizId, clusterId, port int,
 	role, schedule, immuteDomain, ip, user, password, apiUrl, logDir string,
+	runtimeHour int,
 	tl *tools.ToolSet) *config.Config {
 	cfg := config.Config{
 		BkBizId: bkBizId,
@@ -71,7 +73,7 @@ func NewRuntimeConfig(
 			Args: []map[string]interface{}{
 				{
 					"name":  "run-time",
-					"value": "2h",
+					"value": fmt.Sprintf("%dh", runtimeHour),
 				},
 			},
 			Replicate: fmt.Sprintf("%s.checksum", native.INFODBA_SCHEMA),
