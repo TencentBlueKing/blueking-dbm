@@ -160,9 +160,11 @@
     }
 
     isInnerChange = true;
-    modelValue.value = uploadFileNameList.value.map(
-      (localFileName) => uploadFileDataMap.value[localFileName].realFilePath,
-    );
+    if (uploadFileNameList.value.length) {
+      modelValue.value = uploadFileNameList.value.map(
+        (localFileName) => uploadFileDataMap.value[localFileName].realFilePath,
+      );
+    }
 
     emits('grammar-check', true, true);
   };
@@ -279,7 +281,7 @@
     delete lastUploadFileDataMap[fileName];
     uploadFileDataMap.value = lastUploadFileDataMap;
 
-    // 如果删除的是当前选中的文件，则重新选择第一个文件
+    // // 如果删除的是当前选中的文件，则重新选择第一个文件
     if (fileName === selectFileName.value && uploadFileNameList.value.length > 0) {
       [selectFileName.value] = uploadFileNameList.value;
     } else {
