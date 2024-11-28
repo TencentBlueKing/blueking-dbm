@@ -344,7 +344,9 @@ class TicketType(str, StructuredEnum):
     REDIS_CLUSTER_RENAME_DOMAIN = TicketEnumField("REDIS_CLUSTER_RENAME_DOMAIN", _("Redis集群域名重命名"), _("集群维护"))
     REDIS_CLUSTER_MAXMEMORY_SET = TicketEnumField("REDIS_CLUSTER_MAXMEMORY_SET", _("Redis 集群设置maxmemory"))  # noqa
     REDIS_CLUSTER_LOAD_MODULES = TicketEnumField("REDIS_CLUSTER_LOAD_MODULES", _("Redis 集群加载modules"))  # noqa
-    REDIS_TENDISPLUS_LIGHTNING_DATA= TicketEnumField("REDIS_TENDISPLUS_LIGHTNING_DATA", _("Tendisplus闪电导入数据"), _("集群维护"))  # noqa
+    REDIS_TENDISPLUS_LIGHTNING_DATA = TicketEnumField("REDIS_TENDISPLUS_LIGHTNING_DATA", _("Tendisplus闪电导入数据"), _("集群维护"))  # noqa
+    REDIS_CLUSTER_INS_MIGRATE = TicketEnumField("REDIS_CLUSTER_INS_MIGRATE", _("Redis 集群指定实例迁移"), _("集群管理"))
+    REDIS_SINGLE_INS_MIGRATE = TicketEnumField("REDIS_SINGLE_INS_MIGRATE", _("Redis 主从指定实例迁移"), _("集群管理"))
 
     # 大数据
     KAFKA_APPLY = TicketEnumField("KAFKA_APPLY", _("Kafka 集群部署"), register_iam=False)

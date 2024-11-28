@@ -169,7 +169,7 @@ class RedisSingleInsMigrateFlow(object):
                 self.data,
                 act_kwargs,
                 install_master_redis_params,
-                dbmon_install=True,
+                to_install_dbmon=True,
                 to_trans_files=False,
                 to_install_puglins=False,
             )
@@ -192,7 +192,7 @@ class RedisSingleInsMigrateFlow(object):
                 self.data,
                 act_kwargs,
                 install_slave_redis_params,
-                dbmon_install=True,
+                to_install_dbmon=True,
                 to_trans_files=False,
                 to_install_puglins=False,
             )

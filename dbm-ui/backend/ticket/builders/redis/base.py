@@ -40,6 +40,8 @@ class BaseRedisInstanceTicketFlowBuilder(RedisTicketFlowBuilderPatchMixin, Ticke
         ClusterType.TendisTwemproxyRedisInstance.value,
         ClusterType.TwemproxyTendisSSDInstance.value,
         ClusterType.TendisRedisInstance.value,
+        ClusterType.RedisCluster.value,
+        ClusterType.RedisInstance.value,
     ]
 
 
