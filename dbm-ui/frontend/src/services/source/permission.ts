@@ -88,14 +88,7 @@ export const modifyAdminPassword = (params: {
   }[];
   // 是否异步
   is_async?: boolean;
-}) =>
-  http.post<
-    | {
-        success: AdminPasswordResultItem[] | null;
-        fail: AdminPasswordResultItem[] | null;
-      }
-    | string // 异步修改时返回root_id
-  >(`${path}/modify_admin_password/`, params);
+}) => http.post<string>(`${path}/modify_admin_password/`, params);
 
 /**
  * 查询生效实例密码(admin)
@@ -118,11 +111,11 @@ export const queryAdminPassword = (params: {
  */
 export const queryAsyncModifyResult = (params: { root_id: string }) =>
   http.post<{
-    data: {
-      success: AdminPasswordResultItem[] | null;
-      fail: AdminPasswordResultItem[] | null;
-    };
     status: string;
+    error?: string;
+    success?: AdminPasswordResultItem[];
+    fail?: AdminPasswordResultItem[];
+    result?: boolean;
   }>(`${path}/query_async_modify_result/`, params);
 
 /**

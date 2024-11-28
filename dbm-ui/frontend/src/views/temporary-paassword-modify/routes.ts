@@ -21,20 +21,7 @@ const routes = [
     meta: {
       navName: t('临时密码修改'),
     },
-    redirect: {
-      name: 'DBPasswordTemporaryModifyIndex',
-    },
     component: () => import('@views/temporary-paassword-modify/Index.vue'),
-    children: [
-      {
-        name: 'DBPasswordTemporaryModifyIndex',
-        path: 'index',
-        meta: {
-          navName: t('临时密码修改'),
-        },
-        component: () => import('@views/temporary-paassword-modify/index/Index.vue'),
-      },
-    ],
   },
 ];
 

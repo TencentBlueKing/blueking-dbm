@@ -117,7 +117,8 @@
             <PasswordInput
               ref="passwordRef"
               v-model="formData.details.redis_pwd"
-              :db-type="DBTypes.REDIS" />
+              :db-type="DBTypes.REDIS"
+              @verify-result="verifyResult" />
           </BkFormItem>
           <BkFormItem
             v-if="!isAppend"
@@ -184,7 +185,12 @@
     </div>
     <template #action>
       <BkButton
+        v-bk-tooltips="{
+          content: t('密码不符合要求'),
+          disabled: !Boolean(formData.details.redis_pwd) || passwordIsPass,
+        }"
         class="w-88"
+        :disabled="!passwordIsPass"
         :loading="baseState.isSubmitting"
         theme="primary"
         @click="handleSubmit">
@@ -277,6 +283,7 @@
     cityCode: '',
     cityName: '',
   });
+  const passwordIsPass = ref(false);
 
   const formData = reactive(initData());
 
@@ -368,6 +375,10 @@
       immediate: true,
     },
   );
+
+  const verifyResult = (isPass: boolean) => {
+    passwordIsPass.value = isPass;
+  };
 
   const getSmartActionOffsetTarget = () => document.querySelector('.bk-form-content');
 
