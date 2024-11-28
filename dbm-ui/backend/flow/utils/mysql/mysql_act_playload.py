@@ -1213,7 +1213,7 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
         return self.__flashback_payload(databases, tables, **kwargs)
 
     def __flashback_payload(self, databases: List, tables: List, **kwargs) -> dict:
-        return {
+        payload = {
             "db_type": DBActuatorTypeEnum.MySQL.value,
             "action": DBActuatorActionEnum.FlashBackBinlog.value,
             "payload": {
@@ -1247,6 +1247,16 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
                 },
             },
         }
+        # 如果指定了行级别的回档,需添加4个参数,使用GoFlashBackBinlog工具回档
+        rows_filter = self.cluster.get(["rows_filter"], "").strip()
+        direct_write_back = self.cluster.get("direct_write_back", True)
+        if rows_filter != "":
+            payload["action"] = DBActuatorActionEnum.GoFlashBackBinlog.value
+            payload["payload"]["extend"]["recover_opt"]["rows_event_type"] = ""
+            payload["payload"]["extend"]["recover_opt"]["conv_rows_update_to_write"] = False
+            payload["payload"]["extend"]["recover_opt"]["rows_filter"] = rows_filter
+            payload["payload"]["extend"]["recover_opt"]["direct_write_back"] = direct_write_back
+        return payload
 
     def get_install_mysql_checksum_payload(self, **kwargs) -> dict:
         checksum_pkg = Package.get_latest_package(version=MediumEnum.Latest, pkg_type=MediumEnum.MySQLChecksum)

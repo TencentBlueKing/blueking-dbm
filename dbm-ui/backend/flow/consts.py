@@ -402,6 +402,7 @@ class DBActuatorActionEnum(str, StructuredEnum):
     IbsRecver = EnumField("ibs-recover", _("ibs-recover"))
     PtTableSync = EnumField("pt-table-sync", _("数据修复指令"))
     FlashBackBinlog = EnumField("flashback-binlog", _("flashback-binlog"))
+    GoFlashBackBinlog = EnumField("goflashback-binlog", _("goflashback-binlog"))
     FullBackup = EnumField("full-backup", _("full-backup"))
     DeployMySQLChecksum = EnumField("install-checksum", _("install-checksum"))
     MysqlEditConfig = EnumField("mycnf-change", _("mycnf-change"))
