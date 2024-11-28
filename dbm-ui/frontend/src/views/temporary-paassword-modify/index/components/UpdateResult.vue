@@ -61,25 +61,35 @@
         </BkButton>
       </div>
       <div
-        v-if="errorListLength"
+        v-if="errorListLength || errorMessage"
         class="list-box">
-        <div class="list-box-head">
-          <span> {{ t('失败的实例') }}({{ errorListLength }}) </span>
-          <BkButton
-            text
-            theme="primary"
-            @click="handleCopy">
-            <DbIcon type="copy" />
-          </BkButton>
-        </div>
-        <div class="list-box-content">
-          <span
-            v-for="(item, index) in errorList"
-            :key="index"
-            class="list-box-content-item">
-            {{ item.ip }}:{{ item.port }}
-          </span>
-        </div>
+        <template v-if="errorMessage">
+          <div class="list-box-head">
+            {{ t('错误日志') }}
+          </div>
+          <div class="list-box-content mb-12">
+            {{ errorMessage }}
+          </div>
+        </template>
+        <template v-if="errorListLength">
+          <div class="list-box-head">
+            {{ t('失败的实例') }}({{ errorListLength }})
+            <BkButton
+              text
+              theme="primary"
+              @click="handleCopy">
+              <DbIcon type="copy" />
+            </BkButton>
+          </div>
+          <div class="list-box-content">
+            <span
+              v-for="(item, index) in errorList"
+              :key="index"
+              class="list-box-content-item">
+              {{ item.ip }}:{{ item.port }}
+            </span>
+          </div>
+        </template>
       </div>
     </template>
   </RenderSuccess>
@@ -87,15 +97,13 @@
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
-  import { modifyAdminPassword } from '@services/source/permission';
+  import { queryAsyncModifyResult } from '@services/source/permission';
 
   import { useCopy } from '@hooks';
 
   import type { ClusterTypes } from '@common/const';
 
   import RenderSuccess from '@components/ticket-success/Index.vue';
-
-  type ModifyAdminPassword = ServiceReturnType<typeof modifyAdminPassword>;
 
   interface RetryItem {
     ip: string;
@@ -106,7 +114,7 @@
   }
 
   interface Props {
-    submitRes?: ModifyAdminPassword;
+    submitResult?: ServiceReturnType<typeof queryAsyncModifyResult>;
     submitLength: number;
     submitRoleMap: Record<string, string>;
     password: string;
@@ -125,8 +133,14 @@
   const isShowPassword = ref(false);
 
   const passwordDisplay = computed(() => (isShowPassword.value ? props.password : '********'));
+  const errorMessage = computed(() => {
+    if (props?.submitResult?.status === 'FINISHED' && !props.submitResult?.result) {
+      return props.submitResult?.error;
+    }
+    return '';
+  });
   const errorList = computed(() =>
-    (props?.submitRes?.fail || []).reduce((errorPrev, errorItem) => {
+    (props?.submitResult?.data?.fail || []).reduce((errorPrev, errorItem) => {
       const { bk_cloud_id, cluster_type } = errorItem;
       const roleMap = props.submitRoleMap;
       const retryItems = errorItem.instances.reduce((retryItemsPrev, instanceItem) => {

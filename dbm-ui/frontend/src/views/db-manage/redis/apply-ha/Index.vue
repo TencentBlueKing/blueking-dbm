@@ -186,7 +186,7 @@
     <template #action>
       <BkButton
         v-bk-tooltips="{
-          content: t('密码不符合规则'),
+          content: t('密码不符合要求'),
           disabled: !Boolean(formData.details.redis_pwd) || passwordIsPass,
         }"
         class="w-88"

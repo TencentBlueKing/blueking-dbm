@@ -118,11 +118,13 @@ export const queryAdminPassword = (params: {
  */
 export const queryAsyncModifyResult = (params: { root_id: string }) =>
   http.post<{
+    status: string;
+    error?: string;
     data: {
       success: AdminPasswordResultItem[] | null;
       fail: AdminPasswordResultItem[] | null;
     };
-    status: string;
+    result?: boolean;
   }>(`${path}/query_async_modify_result/`, params);
 
 /**

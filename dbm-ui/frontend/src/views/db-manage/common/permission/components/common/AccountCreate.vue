@@ -76,7 +76,7 @@
     <template #footer>
       <BkButton
         v-bk-tooltips="{
-          content: t('密码不符合规则'),
+          content: t('密码不符合要求'),
           disabled: !Boolean(state.formdata.password) || passwordIsPass,
         }"
         class="mr-8"
