@@ -41,7 +41,7 @@
           v-else
           :password="formData.password"
           :submit-length="submitLength"
-          :submit-res="modifyResult"
+          :submit-result="submitResult"
           :submit-role-map="submitRoleMap"
           @refresh="handleRefresh"
           @retry="handleSubmit">
@@ -86,7 +86,7 @@
       #action>
       <BkButton
         v-bk-tooltips="{
-          content: t('密码不符合规则'),
+          content: t('密码不符合要求'),
           disabled: !Boolean(formData.password) || passwordIsPass,
         }"
         class="w-88"
@@ -125,8 +125,6 @@
   import RenderPasswordInstance from './components/render-passwrod-instance/Index.vue';
   import UpdateResult from './components/UpdateResult.vue';
 
-  type ModifyAdminPassword = ServiceReturnType<typeof modifyAdminPassword>;
-
   const { t } = useI18n();
 
   const createDefaultData = () => ({
@@ -144,7 +142,7 @@
   const formData = reactive(createDefaultData());
   const instanceDbType = ref<DBTypes>();
   const rootId = ref('');
-  const modifyResult = ref<ModifyAdminPassword>('');
+  const submitResult = ref<ServiceReturnType<typeof queryAsyncModifyResult>>();
 
   watch(
     formData,
@@ -177,15 +175,15 @@
 
   const { run: queryAsyncModifyResultRun } = useRequest(queryAsyncModifyResult, {
     manual: true,
-    onSuccess({ data, status }) {
+    onSuccess(data) {
       /**
        * 设置轮询
        * FINISHED: 完成态
        * FAILED: 失败态
        * REVOKED: 取消态
        */
-      if (['FINISHED', 'FAILED', 'REVOKED'].includes(status)) {
-        modifyResult.value = data;
+      if (['FINISHED', 'FAILED', 'REVOKED'].includes(data.status)) {
+        submitResult.value = data;
         pause();
       } else if (!isActive.value) {
         resume();
