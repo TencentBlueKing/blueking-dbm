@@ -88,13 +88,14 @@ func (r *RedisLocalDoDR) Run() error {
 	}
 
 	r.runtime.Logger.Warn("first stop dbmon.")
-	if rst, err := util.RunBashCmd("/home/mysql/bk-dbmon/stop.sh", "", nil, 10*time.Second); err != nil {
-		r.runtime.Logger.Warn("try stop dbmon failed %s:+%+v", rst, err)
+
+	if err := util.StopBkDbmon(); err != nil {
+		r.runtime.Logger.Warn("try stop dbmon failed:%+v", err)
 	}
 	defer func() {
 		r.runtime.Logger.Warn("finally start dbmon.")
-		if rst, err := util.RunBashCmd("/home/mysql/bk-dbmon/start.sh", "", nil, 10*time.Second); err != nil {
-			r.runtime.Logger.Error("try start dbmon failed %s:+%+v", rst, err)
+		if err := util.StartBkDbmon(); err != nil {
+			r.runtime.Logger.Error("try start dbmon failed:%+v", err)
 		}
 	}()
 
@@ -132,8 +133,9 @@ func (r *RedisLocalDoDR) Run() error {
 // config rewite
 // == for link up .
 func (r *RedisLocalDoDR) startAndWetLinkUp(addr, pass string, idx int, instance ReplicaItem) error {
-	if rst, err := util.RunBashCmd(fmt.Sprintf("/usr/local/redis/bin/start-redis.sh %d",
-		instance.SlavePort), "", nil, 10*time.Second); err != nil || rst != "" {
+	if rst, err := util.RunLocalCmd("su", []string{
+		consts.MysqlAaccount, "-c", fmt.Sprintf("/usr/local/redis/bin/start-redis.sh %d",
+			instance.SlavePort)}, "", nil, 10*time.Second); err != nil || rst != "" {
 		r.runtime.Logger.Error("start redis failed ?? %d:%s:%s:%+v", idx, addr, rst, err)
 		return fmt.Errorf("r:%s:e:%+v", rst, err)
 	}
@@ -239,8 +241,9 @@ func (r *RedisLocalDoDR) tryBackupData(src, dst, addr string) error {
 		r.runtime.Logger.Info("ignore backup file %s:%s:%+v", addr, src, err)
 		return nil
 	}
-	if rst, err := util.RunBashCmd(fmt.Sprintf("mv %s %s", src, dst),
-		"", nil, 10*time.Second); err != nil || rst != "" {
+	// _, err = RunLocalCmd( []string{consts.MysqlAaccount, "-c", "nohup sh " + startScript + " &"},		"", nil, 1*time.Minute)
+	if rst, err := util.RunLocalCmd("su", []string{
+		consts.MysqlAaccount, "-c", fmt.Sprintf("mv %s %s", src, dst)}, "", nil, time.Minute); err != nil || rst != "" {
 		r.runtime.Logger.Error("backup file %s ,failed:%s:%+v", src, rst, err)
 		return fmt.Errorf("failed by mv %s:%+v", rst, err)
 	}

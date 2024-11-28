@@ -131,6 +131,8 @@ func (m *JobGenericManager) RunAtomJobs() (err error) {
 		lockFile = filepath.Join(consts.PackageSavePath, lockFile)
 		locked, flockP = m.tryFileLock(lockFile, 7*24*time.Hour)
 		if !locked {
+			// 获取Lock 失败，流程需要失败
+			err = fmt.Errorf("get lock failed :%+v", locked)
 			return
 		}
 	}
