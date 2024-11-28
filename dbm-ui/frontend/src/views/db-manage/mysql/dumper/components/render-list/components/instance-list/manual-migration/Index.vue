@@ -199,12 +199,12 @@
         is_safe: true,
         infos: [
           {
-            cluster_id: props.data.source_cluster.id,
+            cluster_id: props.data.cluster_id,
             switch_instances: [
               {
                 dumper_instance_id: props.data.id,
-                host: props.data.source_cluster.master_ip,
-                port: props.data.source_cluster.master_port,
+                host: props.data.ip,
+                port: props.data.listen_port,
                 repl_binlog_file: formModel.binlog_file,
                 repl_binlog_pos: formModel.binlog_pos,
               },
