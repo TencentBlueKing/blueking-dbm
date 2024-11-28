@@ -1,195 +1,162 @@
 {
-  "version": "v2",
-  "bk_biz_id": 5005578,
+  "bk_biz_id": 0,
   "name": "MongoDB主机CPU使用率",
   "db_type": "mongodb",
-  "source": "bkmonitorv3",
-  "scenario": "os",
-  "type": "monitor",
-  "items": [
-    {
-      "id": 109127,
-      "name": "主机CPU使用率",
-      "no_data_config": {
-        "level": 2,
-        "continuous": 10,
-        "is_enabled": false,
-        "agg_dimension": []
-      },
-      "target": [
-        []
-      ],
-      "expression": "a",
-      "functions": [],
-      "origin_sql": "max by (app,cluster_domain,bk_target_ip,instance_role,cluster_type,bk_target_cloud_id,appid) (max_over_time(bkmonitor:dbm_system:cpu_summary:usage{cluster_type=~\"MongoReplicaSet|MongoShardedCluster\",instance_role!=\"backup\"}[1m]))",
-      "query_configs": [
-        {
-          "data_source_label": "prometheus",
-          "data_type_label": "time_series",
-          "alias": "a",
-          "metric_id": "",
-          "id": 113840,
-          "functions": [],
-          "promql": "max by (app,cluster_domain,bk_target_ip,instance_role,cluster_type,bk_target_cloud_id,appid) (max_over_time(bkmonitor:dbm_system:cpu_summary:usage{cluster_type=~\"MongoReplicaSet|MongoShardedCluster\",instance_role!=\"backup\"}[1m]))",
-          "agg_interval": 60
-        }
-      ],
-      "algorithms": [
-        {
-          "id": 115892,
-          "type": "Threshold",
-          "level": 1,
-          "config": [
-            [
-              {
-                "method": "gte",
-                "threshold": 90
-              }
-            ]
-          ],
-          "unit_prefix": ""
-        },
-        {
-          "id": 115892,
-          "type": "Threshold",
+  "details": {
+    "bk_biz_id": "",
+    "name": "MongoDB主机CPU使用率",
+    "source": "dbm",
+    "scenario": "os",
+    "type": "monitor",
+    "items": [
+      {
+        "name": "主机CPU使用率",
+        "no_data_config": {
           "level": 2,
-          "config": [
-            [
-              {
-                "method": "gte",
-                "threshold": 60
-              }
-            ]
-          ],
-          "unit_prefix": ""
-        }
-      ],
-      "metric_type": "time_series"
-    }
-  ],
-  "detects": [
-    {
-      "id": 113813,
-      "level": 1,
-      "expression": "",
-      "trigger_config": {
-        "count": 2,
-        "uptime": {
-          "calendars": [],
-          "time_ranges": [
-            {
-              "end": "23:59",
-              "start": "00:00"
-            }
-          ]
+          "continuous": 10,
+          "is_enabled": false,
+          "agg_dimension": []
         },
-        "check_window": 5
-      },
-      "recovery_config": {
-        "check_window": 5,
-        "status_setter": "recovery"
-      },
-      "connector": "and"
-    },
-    {
-      "id": 113814,
-      "level": 2,
-      "expression": "",
-      "trigger_config": {
-        "count": 2,
-        "uptime": {
-          "calendars": [],
-          "time_ranges": [
-            {
-              "end": "23:59",
-              "start": "00:00"
-            }
-          ]
-        },
-        "check_window": 5
-      },
-      "recovery_config": {
-        "check_window": 5,
-        "status_setter": "recovery"
-      },
-      "connector": "and"
-    }
-  ],
-  "actions": [],
-  "notice": {
-    "id": 128732,
-    "config_id": 106278,
-    "user_groups": [],
-    "user_type": "main",
-    "signal": [
-      "abnormal",
-      "no_data"
-    ],
-    "options": {
-      "end_time": "23:59:59",
-      "start_time": "00:00:00",
-      "assign_mode": [
-        "by_rule"
-      ],
-      "upgrade_config": {
-        "is_enabled": false,
-        "user_groups": [],
-        "upgrade_interval": 1440
-      },
-      "converge_config": {
-        "count": 1,
-        "condition": [
+        "target": [],
+        "expression": "a",
+        "functions": [],
+        "origin_sql": "",
+        "query_configs": [
           {
-            "dimension": "strategy_id",
-            "value": [
-              "self"
-            ]
-          },
-          {
-            "dimension": "dimensions",
-            "value": [
-              "self"
-            ]
-          },
-          {
-            "dimension": "alert_level",
-            "value": [
-              "self"
-            ]
-          },
-          {
-            "dimension": "signal",
-            "value": [
-              "self"
-            ]
-          },
-          {
-            "dimension": "bk_biz_id",
-            "value": [
-              "self"
-            ]
-          },
-          {
-            "dimension": "notice_receiver",
-            "value": [
-              "self"
-            ]
-          },
-          {
-            "dimension": "notice_way",
-            "value": [
-              "self"
-            ]
+            "data_source_label": "prometheus",
+            "data_type_label": "time_series",
+            "alias": "a",
+            "metric_id": "",
+            "functions": [],
+            "promql": "max by (app,cluster_domain,bk_target_ip,instance_role,cluster_type,bk_target_cloud_id,appid) (max_over_time(bkmonitor:dbm_system:cpu_summary:usage{cluster_type=~\"MongoReplicaSet|MongoShardedCluster\",instance_role!=\"backup\"}[1m]))",
+            "agg_interval": 60,
+            "name": ""
           }
         ],
-        "timedelta": 60,
-        "is_enabled": true,
-        "converge_func": "collect",
-        "need_biz_converge": true,
-        "sub_converge_config": {
-          "timedelta": 60,
+        "algorithms": [
+          {
+            "type": "Threshold",
+            "level": 1,
+            "config": [
+              [
+                {
+                  "method": "gte",
+                  "threshold": 90
+                }
+              ]
+            ],
+            "unit_prefix": ""
+          },
+          {
+            "type": "Threshold",
+            "level": 2,
+            "config": [
+              [
+                {
+                  "method": "gte",
+                  "threshold": 60
+                }
+              ]
+            ],
+            "unit_prefix": ""
+          }
+        ],
+        "metric_type": "time_series"
+      }
+    ],
+    "detects": [
+      {
+        "level": 1,
+        "expression": "",
+        "trigger_config": {
           "count": 2,
+          "uptime": {
+            "calendars": [],
+            "time_ranges": [
+              {
+                "end": "23:59",
+                "start": "00:00"
+              }
+            ]
+          },
+          "check_window": 5
+        },
+        "recovery_config": {
+          "check_window": 5,
+          "status_setter": "recovery"
+        },
+        "connector": "and"
+      },
+      {
+        "level": 2,
+        "expression": "",
+        "trigger_config": {
+          "count": 2,
+          "uptime": {
+            "calendars": [],
+            "time_ranges": [
+              {
+                "end": "23:59",
+                "start": "00:00"
+              }
+            ]
+          },
+          "check_window": 5
+        },
+        "recovery_config": {
+          "check_window": 5,
+          "status_setter": "recovery"
+        },
+        "connector": "and"
+      }
+    ],
+    "actions": [],
+    "notice": {
+      "config_id": 144769,
+      "user_groups": [],
+      "user_type": "main",
+      "signal": [
+        "no_data",
+        "abnormal"
+      ],
+      "options": {
+        "end_time": "23:59:59",
+        "start_time": "00:00:00",
+        "assign_mode": [
+          "by_rule"
+        ],
+        "upgrade_config": {
+          "is_enabled": false,
+          "user_groups": [],
+          "upgrade_interval": 1440
+        },
+        "converge_config": {
+          "count": 1,
           "condition": [
+            {
+              "dimension": "strategy_id",
+              "value": [
+                "self"
+              ]
+            },
+            {
+              "dimension": "dimensions",
+              "value": [
+                "self"
+              ]
+            },
+            {
+              "dimension": "alert_level",
+              "value": [
+                "self"
+              ]
+            },
+            {
+              "dimension": "signal",
+              "value": [
+                "self"
+              ]
+            },
             {
               "dimension": "bk_biz_id",
               "value": [
@@ -207,86 +174,105 @@
               "value": [
                 "self"
               ]
-            },
-            {
-              "dimension": "alert_level",
-              "value": [
-                "self"
-              ]
-            },
-            {
-              "dimension": "signal",
-              "value": [
-                "self"
-              ]
             }
           ],
-          "converge_func": "collect_alarm"
+          "timedelta": 60,
+          "is_enabled": true,
+          "converge_func": "collect",
+          "need_biz_converge": true,
+          "sub_converge_config": {
+            "timedelta": 60,
+            "count": 2,
+            "condition": [
+              {
+                "dimension": "bk_biz_id",
+                "value": [
+                  "self"
+                ]
+              },
+              {
+                "dimension": "notice_receiver",
+                "value": [
+                  "self"
+                ]
+              },
+              {
+                "dimension": "notice_way",
+                "value": [
+                  "self"
+                ]
+              },
+              {
+                "dimension": "alert_level",
+                "value": [
+                  "self"
+                ]
+              },
+              {
+                "dimension": "signal",
+                "value": [
+                  "self"
+                ]
+              }
+            ],
+            "converge_func": "collect_alarm"
+          }
+        },
+        "chart_image_enabled": true,
+        "exclude_notice_ways": {
+          "ack": [],
+          "closed": [],
+          "recovered": []
+        },
+        "noise_reduce_config": {
+          "unit": "percent",
+          "count": 10,
+          "timedelta": 5,
+          "dimensions": [],
+          "is_enabled": false
         }
       },
-      "chart_image_enabled": true,
-      "exclude_notice_ways": {
-        "ack": [],
-        "closed": [],
-        "recovered": []
-      },
-      "noise_reduce_config": {
-        "unit": "percent",
-        "count": 10,
-        "timedelta": 5,
-        "dimensions": [],
-        "is_enabled": false
+      "relate_type": "NOTICE",
+      "config": {
+        "need_poll": true,
+        "notify_interval": 1800,
+        "interval_notify_mode": "standard",
+        "template": [
+          {
+            "signal": "abnormal",
+            "message_tmpl": "{{content.level}}\n{{content.begin_time}}\n{{content.time}}\n{{content.duration}}\n{{content.target_type}}\n{{content.data_source}}\n{{content.content}}\n{{content.current_value}}\n{{content.biz}}\n{{content.target}}\n{{content.dimension}}\n{{content.detail}}\n通知人:{{alarm.receivers}}\n{{content.related_info}}",
+            "title_tmpl": "{{business.bk_biz_name}} - {{alarm.name}}{{alarm.display_type}}"
+          },
+          {
+            "signal": "recovered",
+            "message_tmpl": "{{content.level}}\n{{content.begin_time}}\n{{content.time}}\n{{content.duration}}\n{{content.target_type}}\n{{content.data_source}}\n{{content.content}}\n{{content.current_value}}\n{{content.biz}}\n{{content.target}}\n{{content.dimension}}\n{{content.detail}}\n通知人:{{alarm.receivers}}\n{{content.related_info}}",
+            "title_tmpl": "{{business.bk_biz_name}} - {{alarm.name}}{{alarm.display_type}}"
+          },
+          {
+            "signal": "closed",
+            "message_tmpl": "{{content.level}}\n{{content.begin_time}}\n{{content.time}}\n{{content.duration}}\n{{content.target_type}}\n{{content.data_source}}\n{{content.content}}\n{{content.current_value}}\n{{content.biz}}\n{{content.target}}\n{{content.dimension}}\n{{content.detail}}\n通知人:{{alarm.receivers}}\n{{content.related_info}}",
+            "title_tmpl": "{{business.bk_biz_name}} - {{alarm.name}}{{alarm.display_type}}"
+          }
+        ]
       }
     },
-    "relate_type": "NOTICE",
-    "config": {
-      "need_poll": true,
-      "notify_interval": 1800,
-      "interval_notify_mode": "standard",
-      "template": [
-        {
-          "signal": "abnormal",
-          "message_tmpl": "{{content.level}}\n{{content.begin_time}}\n{{content.time}}\n{{content.duration}}\n{{content.target_type}}\n{{content.data_source}}\n{{content.content}}\n{{content.current_value}}\n{{content.biz}}\n{{content.target}}\n{{content.dimension}}\n{{content.detail}}\n通知人:{{alarm.receivers}}\n{{content.related_info}}",
-          "title_tmpl": "{{business.bk_biz_name}} - {{alarm.name}}{{alarm.display_type}}"
-        },
-        {
-          "signal": "recovered",
-          "message_tmpl": "{{content.level}}\n{{content.begin_time}}\n{{content.time}}\n{{content.duration}}\n{{content.target_type}}\n{{content.data_source}}\n{{content.content}}\n{{content.current_value}}\n{{content.biz}}\n{{content.target}}\n{{content.dimension}}\n{{content.detail}}\n通知人:{{alarm.receivers}}\n{{content.related_info}}",
-          "title_tmpl": "{{business.bk_biz_name}} - {{alarm.name}}{{alarm.display_type}}"
-        },
-        {
-          "signal": "closed",
-          "message_tmpl": "{{content.level}}\n{{content.begin_time}}\n{{content.time}}\n{{content.duration}}\n{{content.target_type}}\n{{content.data_source}}\n{{content.content}}\n{{content.current_value}}\n{{content.biz}}\n{{content.target}}\n{{content.dimension}}\n{{content.detail}}\n通知人:{{alarm.receivers}}\n{{content.related_info}}",
-          "title_tmpl": "{{business.bk_biz_name}} - {{alarm.name}}{{alarm.display_type}}"
-        }
-      ]
-    },
-    "user_group_list": []
+    "labels": [
+      "DBM",
+      "DBM_MONGODB"
+    ],
+    "app": "",
+    "path": "",
+    "priority": 0,
+    "priority_group_key": "2b95689264908e00",
+    "edit_allowed": true,
+    "metric_type": "time_series",
+    "data_source_type": "Prometheus",
+    "is_enabled": true
   },
   "is_enabled": true,
-  "is_invalid": false,
-  "invalid_type": "",
-  "update_time": "2024-07-23 10:07:34+0800",
-  "update_user": "",
-  "create_time": "2023-12-11 15:20:06+0800",
-  "create_user": "admin",
-  "labels": [
-    "DBM_MONGODB",
-    "DBM"
-  ],
-  "app": "",
-  "path": "",
-  "priority": 0,
-  "priority_group_key": "",
-  "edit_allowed": true,
-  "metric_type": "time_series",
-  "config_source": "UI",
-  "alert_count": 37,
-  "shield_alert_count": 0,
-  "shield_info": {
-    "is_shielded": false,
-    "shield_ids": []
-  },
-  "add_allowed": false,
-  "data_source_type": "Prometheus"
+  "monitor_indicator": "主机CPU使用率",
+  "version": 2,
+  "alert_source": "time_series",
+  "custom_conditions": [],
+  "export_at": "2024-11-28T17:51:39+08:00"
 }

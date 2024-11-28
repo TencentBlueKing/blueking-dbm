@@ -1,196 +1,164 @@
 {
-  "version": "v2",
-  "bk_biz_id": 5005578,
-  "db_type": "mongodb",
+  "bk_biz_id": 0,
   "name": "MongoDB登录失败critical事件",
-  "source": "bkmonitorv3",
-  "scenario": "component",
-  "type": "monitor",
-  "items": [
-    {
-      "id": 124647,
-      "name": "COUNT(mongo_login-dbm_report_channel)",
-      "no_data_config": {
-        "level": 2,
-        "continuous": 10,
-        "is_enabled": false,
-        "agg_dimension": []
-      },
-      "target": [
-        []
-      ],
-      "expression": "a",
-      "functions": [],
-      "origin_sql": "",
-      "query_configs": [
-        {
-          "data_source_label": "custom",
-          "data_type_label": "event",
-          "alias": "a",
-          "metric_id": "custom.event.bkmonitor_event_1572877.mongo_login",
-          "id": 107408,
-          "functions": [],
-          "result_table_id": "bkmonitor_event_1572877",
-          "agg_method": "COUNT",
-          "agg_interval": 60,
-          "agg_dimension": [
-            "app",
-            "app_name",
-            "cluster_domain",
-            "cluster_type",
-            "bk_target_ip",
-            "instance",
-            "instance_role",
-            "warn_level",
-            "bk_biz_id",
-            "bk_cloud_id",
-            "appid"
-          ],
-          "agg_condition": [
-            {
-              "key": "warn_level",
-              "value": [
-                "error",
-                "critical"
-              ],
-              "method": "eq",
-              "condition": "and",
-              "dimension_name": "warn_level"
-            },
-            {
-              "key": "cluster_type",
-              "value": [
-                "MongoReplicaSet",
-                "MongoShardedCluster"
-              ],
-              "method": "eq",
-              "condition": "and",
-              "dimension_name": "cluster_type"
-            }
-          ],
-          "custom_event_name": "mongo_login",
-          "name": "mongo_login"
-        }
-      ],
-      "algorithms": [
-        {
-          "id": 134272,
-          "type": "Threshold",
-          "level": 1,
-          "config": [
-            [
-              {
-                "method": "gte",
-                "threshold": 1
-              }
-            ]
-          ],
-          "unit_prefix": ""
-        }
-      ],
-      "metric_type": "event"
-    }
-  ],
-  "detects": [
-    {
-      "id": 131908,
-      "level": 1,
-      "expression": "",
-      "trigger_config": {
-        "count": 1,
-        "uptime": {
-          "calendars": [],
-          "time_ranges": [
-            {
-              "end": "23:59",
-              "start": "00:00"
-            }
-          ]
+  "db_type": "mongodb",
+  "details": {
+    "bk_biz_id": "",
+    "name": "MongoDB登录失败critical事件",
+    "source": "dbm",
+    "scenario": "component",
+    "type": "monitor",
+    "items": [
+      {
+        "name": "COUNT(mongo_login-dbm_report_channel)",
+        "no_data_config": {
+          "level": 2,
+          "continuous": 10,
+          "is_enabled": false,
+          "agg_dimension": []
         },
-        "check_window": 5
-      },
-      "recovery_config": {
-        "check_window": 5,
-        "status_setter": "recovery"
-      },
-      "connector": "and"
-    }
-  ],
-  "actions": [],
-  "notice": {
-    "id": 149972,
-    "config_id": 122285,
-    "user_groups": [],
-    "user_type": "main",
-    "signal": [
-      "no_data",
-      "abnormal"
-    ],
-    "options": {
-      "end_time": "23:59:59",
-      "start_time": "00:00:00",
-      "assign_mode": [
-        "by_rule"
-      ],
-      "upgrade_config": {
-        "is_enabled": false,
-        "user_groups": [],
-        "upgrade_interval": 1440
-      },
-      "converge_config": {
-        "count": 1,
-        "condition": [
+        "target": [],
+        "expression": "a",
+        "functions": [],
+        "origin_sql": "",
+        "query_configs": [
           {
-            "dimension": "strategy_id",
-            "value": [
-              "self"
-            ]
-          },
-          {
-            "dimension": "dimensions",
-            "value": [
-              "self"
-            ]
-          },
-          {
-            "dimension": "alert_level",
-            "value": [
-              "self"
-            ]
-          },
-          {
-            "dimension": "signal",
-            "value": [
-              "self"
-            ]
-          },
-          {
-            "dimension": "bk_biz_id",
-            "value": [
-              "self"
-            ]
-          },
-          {
-            "dimension": "notice_receiver",
-            "value": [
-              "self"
-            ]
-          },
-          {
-            "dimension": "notice_way",
-            "value": [
-              "self"
-            ]
+            "data_source_label": "custom",
+            "data_type_label": "event",
+            "alias": "a",
+            "metric_id": "custom.event.bkmonitor_event_{event_data_id}.mongo_login",
+            "functions": [],
+            "result_table_id": "bkmonitor_event_{event_data_id}",
+            "agg_method": "COUNT",
+            "agg_interval": 60,
+            "agg_dimension": [
+              "app",
+              "app_name",
+              "cluster_domain",
+              "cluster_type",
+              "bk_target_ip",
+              "instance",
+              "instance_role",
+              "warn_level",
+              "bk_biz_id",
+              "bk_cloud_id",
+              "appid"
+            ],
+            "agg_condition": [
+              {
+                "key": "warn_level",
+                "value": [
+                  "error",
+                  "critical"
+                ],
+                "method": "eq",
+                "condition": "and",
+                "dimension_name": "warn_level"
+              },
+              {
+                "key": "cluster_type",
+                "value": [
+                  "MongoReplicaSet",
+                  "MongoShardedCluster"
+                ],
+                "method": "eq",
+                "condition": "and",
+                "dimension_name": "cluster_type"
+              }
+            ],
+            "custom_event_name": "mongo_login",
+            "name": "mongo_login"
           }
         ],
-        "timedelta": 60,
-        "is_enabled": true,
-        "converge_func": "collect",
-        "need_biz_converge": true,
-        "sub_converge_config": {
-          "timedelta": 60,
-          "count": 2,
+        "algorithms": [
+          {
+            "type": "Threshold",
+            "level": 1,
+            "config": [
+              [
+                {
+                  "method": "gte",
+                  "threshold": 1
+                }
+              ]
+            ],
+            "unit_prefix": ""
+          }
+        ],
+        "metric_type": "event"
+      }
+    ],
+    "detects": [
+      {
+        "level": 1,
+        "expression": "",
+        "trigger_config": {
+          "count": 1,
+          "uptime": {
+            "calendars": [],
+            "time_ranges": [
+              {
+                "end": "23:59",
+                "start": "00:00"
+              }
+            ]
+          },
+          "check_window": 5
+        },
+        "recovery_config": {
+          "check_window": 5,
+          "status_setter": "recovery"
+        },
+        "connector": "and"
+      }
+    ],
+    "actions": [],
+    "notice": {
+      "config_id": 144772,
+      "user_groups": [],
+      "user_type": "main",
+      "signal": [
+        "no_data",
+        "abnormal"
+      ],
+      "options": {
+        "end_time": "23:59:59",
+        "start_time": "00:00:00",
+        "assign_mode": [
+          "by_rule"
+        ],
+        "upgrade_config": {
+          "is_enabled": false,
+          "user_groups": [],
+          "upgrade_interval": 1440
+        },
+        "converge_config": {
+          "count": 1,
           "condition": [
+            {
+              "dimension": "strategy_id",
+              "value": [
+                "self"
+              ]
+            },
+            {
+              "dimension": "dimensions",
+              "value": [
+                "self"
+              ]
+            },
+            {
+              "dimension": "alert_level",
+              "value": [
+                "self"
+              ]
+            },
+            {
+              "dimension": "signal",
+              "value": [
+                "self"
+              ]
+            },
             {
               "dimension": "bk_biz_id",
               "value": [
@@ -208,92 +176,105 @@
               "value": [
                 "self"
               ]
-            },
-            {
-              "dimension": "alert_level",
-              "value": [
-                "self"
-              ]
-            },
-            {
-              "dimension": "signal",
-              "value": [
-                "self"
-              ]
             }
           ],
-          "converge_func": "collect_alarm"
+          "timedelta": 60,
+          "is_enabled": true,
+          "converge_func": "collect",
+          "need_biz_converge": true,
+          "sub_converge_config": {
+            "timedelta": 60,
+            "count": 2,
+            "condition": [
+              {
+                "dimension": "bk_biz_id",
+                "value": [
+                  "self"
+                ]
+              },
+              {
+                "dimension": "notice_receiver",
+                "value": [
+                  "self"
+                ]
+              },
+              {
+                "dimension": "notice_way",
+                "value": [
+                  "self"
+                ]
+              },
+              {
+                "dimension": "alert_level",
+                "value": [
+                  "self"
+                ]
+              },
+              {
+                "dimension": "signal",
+                "value": [
+                  "self"
+                ]
+              }
+            ],
+            "converge_func": "collect_alarm"
+          }
+        },
+        "chart_image_enabled": true,
+        "exclude_notice_ways": {
+          "ack": [],
+          "closed": [],
+          "recovered": []
+        },
+        "noise_reduce_config": {
+          "unit": "percent",
+          "count": 10,
+          "timedelta": 5,
+          "dimensions": [],
+          "is_enabled": false
         }
       },
-      "chart_image_enabled": true,
-      "exclude_notice_ways": {
-        "ack": [],
-        "closed": [],
-        "recovered": []
-      },
-      "noise_reduce_config": {
-        "unit": "percent",
-        "count": 10,
-        "timedelta": 5,
-        "dimensions": [],
-        "is_enabled": false
+      "relate_type": "NOTICE",
+      "config": {
+        "need_poll": true,
+        "notify_interval": 1800,
+        "interval_notify_mode": "standard",
+        "template": [
+          {
+            "signal": "abnormal",
+            "message_tmpl": "{{content.level}}\n{{content.begin_time}}\n{{content.time}}\n{{content.duration}}\n{{content.target_type}}\n{{content.data_source}}\n{{content.content}}\n{{content.current_value}}\n{{content.biz}}\n{{content.target}}\n{{content.dimension}}\n{{content.detail}}\n通知人:{{alarm.receivers}}\n{{content.related_info}}",
+            "title_tmpl": "{{business.bk_biz_name}} - {{alarm.name}}{{alarm.display_type}}"
+          },
+          {
+            "signal": "recovered",
+            "message_tmpl": "{{content.level}}\n{{content.begin_time}}\n{{content.time}}\n{{content.duration}}\n{{content.target_type}}\n{{content.data_source}}\n{{content.content}}\n{{content.current_value}}\n{{content.biz}}\n{{content.target}}\n{{content.dimension}}\n{{content.detail}}\n通知人:{{alarm.receivers}}\n{{content.related_info}}",
+            "title_tmpl": "{{business.bk_biz_name}} - {{alarm.name}}{{alarm.display_type}}"
+          },
+          {
+            "signal": "closed",
+            "message_tmpl": "{{content.level}}\n{{content.begin_time}}\n{{content.time}}\n{{content.duration}}\n{{content.target_type}}\n{{content.data_source}}\n{{content.content}}\n{{content.current_value}}\n{{content.biz}}\n{{content.target}}\n{{content.dimension}}\n{{content.detail}}\n通知人:{{alarm.receivers}}\n{{content.related_info}}",
+            "title_tmpl": "{{business.bk_biz_name}} - {{alarm.name}}{{alarm.display_type}}"
+          }
+        ]
       }
     },
-    "relate_type": "NOTICE",
-    "config": {
-      "need_poll": true,
-      "notify_interval": 1800,
-      "interval_notify_mode": "standard",
-      "template": [
-        {
-          "signal": "abnormal",
-          "message_tmpl": "{{content.level}}\n{{content.begin_time}}\n{{content.time}}\n{{content.duration}}\n{{content.target_type}}\n{{content.data_source}}\n{{content.content}}\n{{content.current_value}}\n{{content.biz}}\n{{content.target}}\n{{content.dimension}}\n{{content.detail}}\n通知人:{{alarm.receivers}}\n{{content.related_info}}",
-          "title_tmpl": "{{business.bk_biz_name}} - {{alarm.name}}{{alarm.display_type}}"
-        },
-        {
-          "signal": "recovered",
-          "message_tmpl": "{{content.level}}\n{{content.begin_time}}\n{{content.time}}\n{{content.duration}}\n{{content.target_type}}\n{{content.data_source}}\n{{content.content}}\n{{content.current_value}}\n{{content.biz}}\n{{content.target}}\n{{content.dimension}}\n{{content.detail}}\n通知人:{{alarm.receivers}}\n{{content.related_info}}",
-          "title_tmpl": "{{business.bk_biz_name}} - {{alarm.name}}{{alarm.display_type}}"
-        },
-        {
-          "signal": "closed",
-          "message_tmpl": "{{content.level}}\n{{content.begin_time}}\n{{content.time}}\n{{content.duration}}\n{{content.target_type}}\n{{content.data_source}}\n{{content.content}}\n{{content.current_value}}\n{{content.biz}}\n{{content.target}}\n{{content.dimension}}\n{{content.detail}}\n通知人:{{alarm.receivers}}\n{{content.related_info}}",
-          "title_tmpl": "{{business.bk_biz_name}} - {{alarm.name}}{{alarm.display_type}}"
-        }
-      ]
-    },
-    "user_group_list": []
+    "labels": [
+      "DBM",
+      "DBM_MONGODB"
+    ],
+    "app": "",
+    "path": "",
+    "priority": 0,
+    "priority_group_key": "6cb1ee2cf2b16697",
+    "edit_allowed": true,
+    "metric_type": "event",
+    "data_source_type": "自定义事件",
+    "is_enabled": true
   },
   "is_enabled": true,
-  "is_invalid": false,
-  "invalid_type": "",
-  "update_time": "2024-07-23 14:52:27+0800",
-  "update_user": "admin",
-  "create_time": "2024-07-10 16:53:55+0800",
-  "create_user": "admin",
-  "labels": [
-    "DBM_MONGODB",
-    "DBM"
-  ],
-  "app": "",
-  "path": "",
-  "priority": 0,
-  "priority_group_key": "",
-  "edit_allowed": true,
-  "metric_type": "event",
-  "config_source": "UI",
-  "alert_count": 0,
-  "shield_alert_count": 0,
-  "shield_info": {
-    "is_shielded": false,
-    "shield_ids": []
-  },
-  "add_allowed": false,
-  "data_source_type": [
-    "自",
-    "定",
-    "义",
-    "事",
-    "件"
-  ]
+  "monitor_indicator": "COUNT(mongo_login-dbm_report_channel)",
+  "version": 2,
+  "alert_source": "event",
+  "custom_conditions": [],
+  "export_at": "2024-11-28T17:51:39+08:00"
 }

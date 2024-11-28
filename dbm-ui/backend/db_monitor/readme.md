@@ -58,6 +58,8 @@ python manage.py export_alarm riak 39904 39905 39909 39903 39899 39902 39906
 python manage.py export_alarm cloud 46288
 python manage.py export_alarm sqlserver 46653 46660 46659 46665 46664 46663 46662 46661 46658 46657 46656 46655 46654 46652 46649 46651
 python manage.py export_alarm tbinlogdumper 46679 46680
+python manage.py export_alarm mongodb 144012 144013 144014 144015 144016 144017 144018
+
 ```
 
 prod 策略:
