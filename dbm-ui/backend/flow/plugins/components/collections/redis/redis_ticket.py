@@ -10,7 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 from typing import List
 
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import ugettext as _
 from pipeline.component_framework.component import Component
 from pipeline.core.flow.activity import Service
 
