@@ -45,6 +45,7 @@
   import TendbhaModel from '@services/model/mysql/tendbha';
   import TendbsingleModel from '@services/model/mysql/tendbsingle';
   import SpiderModel from '@services/model/tendbcluster/tendbcluster';
+  import { filterClusters } from '@services/source/dbbase';
   import { getTendbhaList, getTendbhaSalveList } from '@services/source/tendbha';
 
   import { AccountTypes, ClusterTypes } from '@common/const';
@@ -62,13 +63,16 @@
     accountType: AccountTypes;
   }
 
+  interface Emits {
+    (e: 'change'): void;
+  }
+
   interface Expose {
     reset: () => void;
   }
 
   const props = defineProps<Props>();
-
-  const { t } = useI18n();
+  const emits = defineEmits<Emits>();
 
   const modelValue = defineModel<string>({
     required: true,
@@ -79,6 +83,8 @@
   const isMaster = defineModel<boolean>('isMaster', {
     required: true,
   });
+
+  const { t } = useI18n();
 
   const getDefaultSelectedClusters = () =>
     accoutMap[props.accountType as keyof typeof accoutMap].clusterSelectorTypes.reduce(
@@ -147,15 +153,107 @@
     const clusterList = Object.values(selected).find((clusterList) => clusterList.length > 0);
     clusterType.value = (clusterList?.[0].cluster_type || ClusterTypes.TENDBSINGLE) as ClusterTypes;
     isMaster.value = !selectedClusters.value?.tendbhaSlave?.length;
+
+    emits('change');
+  };
+
+  const getDomainDiffInfo = (
+    oldDomains: string[],
+    newDomains: string[],
+  ): {
+    added?: string[];
+    deleted?: string[];
+    unchanged?: string[];
+  } => {
+    // 使用 Set 提高性能
+    const oldSet = new Set(oldDomains);
+    const newSet = new Set(newDomains);
+
+    // 初始化结果数组
+    const result: { domain: string; status: 'added' | 'deleted' | 'unchanged' }[] = [];
+
+    // 遍历新域名集合，检查每个域名的状态
+    for (const domain of newSet) {
+      if (oldSet.has(domain)) {
+        result.push({ domain, status: 'unchanged' });
+      } else {
+        result.push({ domain, status: 'added' });
+      }
+    }
+
+    // 遍历旧域名集合，检查每个域名的状态
+    for (const domain of oldSet) {
+      if (!newSet.has(domain)) {
+        result.push({ domain, status: 'deleted' });
+      }
+    }
+
+    // 按状态分类结果
+    const classifiedResult = result.reduce<Record<string, string[]>>((acc, item) => {
+      if (!acc[item.status]) {
+        acc[item.status] = [];
+      }
+      acc[item.status].push(item.domain);
+      return acc;
+    }, {});
+
+    // 输出分类结果
+    return classifiedResult;
   };
 
   const handleDomainChange = (value: string) => {
+    // 减少或增加，需要与选择器联动
     const newDomainList = value.split(batchSplitRegex).filter((item) => item);
-    const domainSet = new Set(newDomainList);
-    Object.keys(selectedClusters.value).forEach((key) => {
-      const clusterList = selectedClusters.value[key];
-      selectedClusters.value[key] = clusterList.filter((clusterItem) => domainSet.has(clusterItem.master_domain));
-    });
+    const newValidDomainList = newDomainList.filter((item) => domainRegex.test(item));
+    const selectDomainList = Object.values(selectedClusters.value).flatMap((item) => item);
+
+    const diffResult = getDomainDiffInfo(
+      selectDomainList.map((item) => item.master_domain),
+      newValidDomainList,
+    );
+
+    const addList = diffResult.added || [];
+    const deleteList = diffResult.deleted || [];
+    const deleteSet = new Set(deleteList);
+
+    if (addList.length) {
+      filterClusters({
+        bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+        exact_domain: addList.join(','),
+      }).then((clusterResultList) => {
+        // 删除时，删去已选集群
+        deleteSelectedCluster(deleteSet);
+
+        // 新增时，查询集群信息，同步已选集群
+        const selected = selectedClusters.value;
+        clusterResultList.forEach((clusterItem) => {
+          selected[clusterItem.cluster_type] = selected[clusterItem.cluster_type].concat(clusterItem);
+        });
+        selectedClusters.value = selected;
+
+        const clusterList = Object.values(selected).find((clusterList) => clusterList.length > 0);
+        clusterType.value = (clusterList?.[0].cluster_type || ClusterTypes.TENDBSINGLE) as ClusterTypes;
+        isMaster.value = !selectedClusters.value?.tendbhaSlave?.length;
+
+        nextTick(() => {
+          emits('change');
+        });
+      });
+    } else {
+      // 删除时，删去已选集群
+      deleteSelectedCluster(deleteSet);
+
+      emits('change');
+    }
+  };
+
+  const deleteSelectedCluster = (deleteSet: Set<string>) => {
+    if (deleteSet.size) {
+      Object.keys(selectedClusters.value).forEach((key) => {
+        const clusterList = selectedClusters.value[key];
+        selectedClusters.value[key] = clusterList.filter((clusterItem) => !deleteSet.has(clusterItem.master_domain));
+      });
+    }
   };
 
   defineExpose<Expose>({
