@@ -357,7 +357,7 @@
 
   import {
     batchRetryNodes,
-    forceFailflowNode,
+    // forceFailflowNode,
     getTaskflowDetails,
     retryTaskflowNode,
     revokePipeline,
@@ -695,7 +695,7 @@
   watch(todoNodesCount, () => {
     // isFindFirstLeafTodoNode = false
     expandTodoNodeObjects = []
-    const todoNodeIdList = getTodoNodeIdList(flowState.details)
+    const todoNodeIdList = getTodoNodeIdList(flowState.details);
     todoNodesTreeData.value = todoNodeIdList.length ? generateTodoNodesTree(flowState.details.activities, todoNodeIdList) : [];
 
     setTreeOpen([
@@ -832,16 +832,17 @@
   const handleTreeNodeClick = (node: TaskflowList[number], treeRef: Ref, showLog = true, theme: 'error' | 'warning') => {
     // eslint-disable-next-line no-underscore-dangle
     const { scale } = flowState.instance.flowInstance._diagramInstance._canvasTransform;
+    const isErrorTree = theme === 'error';
 
     expandRetractNodes(node, treeRef, showLog)
 
     setTimeout(() => {
       const graphNode = flowState.instance.graphData.locations.find((item: GraphNode) => item.data.id === node.id);
-      if (showLog) {
+      if (showLog && isErrorTree) {
         handleShowLog(graphNode);
       }
 
-      const children = theme === 'error' ? node.failedChildren : node.todoChildren;
+      const children = isErrorTree ? node.failedChildren : node.todoChildren;
       if (!children) {
         const x = ((flowRef.value!.clientWidth / 2) - graphNode.x) * scale;
         const y = ((flowRef.value!.clientHeight / 2) - graphNode.y - 128) * scale;
@@ -1017,13 +1018,29 @@
    * 强制失败节点
    */
   const handleForceFail = (node: GraphNode) => {
-    forceFailflowNode({
-      root_id: rootId.value,
-      node_id: node.data.id,
-    }).then(() => {
-      renderNodes();
-      fetchTaskflowDetails();
-    });
+    const todoItem = flowState.details.todos!.find(todoItem => todoItem.context.node_id === node.id)
+    if (todoItem) {
+      ticketBatchProcessTodo({
+        action: "TERMINATE",
+        operations: [
+          {
+            todo_id: todoItem.id,
+            params: {}
+          }
+        ]})
+        .then(() => {
+          renderNodes();
+          fetchTaskflowDetails();
+          messageSuccess(t('强制失败节点成功'));
+        })
+    }
+    // forceFailflowNode({
+    //   root_id: rootId.value,
+    //   node_id: node.data.id,
+    // }).then(() => {
+    //   renderNodes();
+    //   fetchTaskflowDetails();
+    // });
   };
 
   const handleTodoAllPipeline = () => {
