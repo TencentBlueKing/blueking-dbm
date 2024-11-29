@@ -30,11 +30,11 @@
         <RenderTableHeadColumn
           :min-width="100"
           :width="400">
-          {{ t('源 DB 名') }}
+          {{ t('原 DB 名') }}
           <template #append>
             <BatchEditColumn
               v-model="batchEditShow.fromDatabase"
-              :title="t('源 DB 名')"
+              :title="t('原 DB 名')"
               type="input"
               @change="(value) => handleBatchEditChange(value, 'fromDatabase')">
               <span

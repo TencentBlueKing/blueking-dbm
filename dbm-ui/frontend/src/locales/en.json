@@ -1602,12 +1602,12 @@
   "迁移主从": "Migrate master-slave",
   "访问入口": "Access Entry",
   "部署只读接入层": "Deploy read-only proxy",
-  "运维spider管理": "运维节点管理/O&M Node Management",
+  "运维节点管理": "O&M Node",
   "添加运维节点": "Add O&M nodes",
   "克隆开区": "Clone and open a zone",
   "开区模版": "Template for Opening a zone",
   "数据查询": "Data Query",
-  "DB 重命名": "database rename",
+  "DB 重命名": "DB Rename",
   "原 DB 名": "Original DB Name",
   "新 DB 名": "New DB Name",
   "主从互切：主机级别操作，即同机所有集群均会完成主从关系互切": "It is an operation at the host level, all clusters on the same machine will complete the mutual switchover of the master-slave relationship.",
@@ -1643,5 +1643,6 @@
   "副本集": "ReplicaSet",
   "分片集群": "Sharded Cluster",
   "主从管理": "HA Management",
+  "DB 重命名：database 重命名": "DB Rename：database rename",
   "这行勿动！新增翻译请在上一行添加！": ""
 }
