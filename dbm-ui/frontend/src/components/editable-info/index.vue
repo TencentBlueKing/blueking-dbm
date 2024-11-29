@@ -64,7 +64,7 @@
                 v-overflow-tips
                 class="base-info__value text-overflow">
                 <Component
-                  :is="config.render(data)"
+                  :is="config.render"
                   v-if="config.render" />
                 <template v-else>{{ data[config.key] || '--' }}</template>
               </span>
