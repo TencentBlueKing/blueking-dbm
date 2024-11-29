@@ -19,4 +19,5 @@ urlpatterns = [
     path("bizs/<int:bk_biz_id>/pulsar/", include("backend.db_services.bigdata.pulsar.urls")),
     path("bizs/<int:bk_biz_id>/influxdb/", include("backend.db_services.bigdata.influxdb.urls")),
     path("bizs/<int:bk_biz_id>/riak/", include("backend.db_services.bigdata.riak.urls")),
+    path("bizs/<int:bk_biz_id>/vm/", include("backend.db_services.bigdata.vm.urls")),
 ]

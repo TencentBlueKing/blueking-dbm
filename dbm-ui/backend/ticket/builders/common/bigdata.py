@@ -278,6 +278,11 @@ class BaseDorisTicketFlowBuilder(BigDataTicketFlowBuilderPatchMixin, TicketFlowB
     cluster_types = [ClusterType.Doris.value]
 
 
+class BaseVmTicketFlowBuilder(BigDataTicketFlowBuilderPatchMixin, TicketFlowBuilder):
+    group = DBType.Vm.value
+    cluster_types = [ClusterType.Vm.value]
+
+
 class BaseHdfsTicketFlowBuilder(BigDataTicketFlowBuilderPatchMixin, TicketFlowBuilder):
     group = DBType.Hdfs.value
     cluster_types = [ClusterType.Hdfs.value]

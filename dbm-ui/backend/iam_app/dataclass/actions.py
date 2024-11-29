@@ -1026,6 +1026,29 @@ class ActionEnum:
         common_labels=[CommonActionLabel.BIZ_READ_ONLY, CommonActionLabel.BIZ_MAINTAIN, CommonActionLabel.ES_ACCESS],
     )
 
+    VM_APPLY = ActionMeta(
+        id="vm_apply",
+        name=_("VM 集群部署"),
+        name_en="vm_apply",
+        type="execute",
+        related_actions=[DB_MANAGE.id],
+        related_resource_types=[ResourceEnum.BUSINESS],
+        group=_("VM"),
+        subgroup=_("集群管理"),
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
+    )
+
+    VM_VIEW = ActionMeta(
+        id="vm_view",
+        name=_("VictoriaMetrics 集群详情查看"),
+        name_en="vm_view",
+        type="view",
+        related_actions=[DB_MANAGE.id],
+        related_resource_types=[ResourceEnum.VM],
+        group=_("VM"),
+        subgroup=_("集群管理"),
+    )
+
     ES_ACCESS_ENTRY_VIEW = ActionMeta(
         id="es_access_entry_view",
         name=_("ES 获取访问方式"),
@@ -1048,6 +1071,17 @@ class ActionEnum:
         group=_("ES"),
         subgroup=_("集群管理"),
         common_labels=[CommonActionLabel.BIZ_MAINTAIN],
+    )
+
+    VM_ENABLE_DISABLE = ActionMeta(
+        id="vm_enable_disable",
+        name=_("VictoriaMetrics 集群禁用/启用"),
+        name_en="vm_enable_disable",
+        type="execute",
+        related_actions=[VM_VIEW.id],
+        related_resource_types=[ResourceEnum.VM],
+        group=_("VictoriaMetrics"),
+        subgroup=_("集群管理")
     )
 
     DORIS_APPLY = ActionMeta(
