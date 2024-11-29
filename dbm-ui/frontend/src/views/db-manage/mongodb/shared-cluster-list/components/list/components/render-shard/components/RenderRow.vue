@@ -25,8 +25,7 @@
         v-for="(item, index) in data"
         :key="index"
         class="render-row-item">
-        <span v-if="index !== 0">，</span>
-        {{ item }}
+        <span v-if="index !== 0">，</span>{{ item }}
       </span>
     </p>
     <p class="visible-content">
@@ -35,8 +34,7 @@
         v-for="(item, index) in visibleData"
         :key="index"
         class="visible-item">
-        <span v-if="index !== 0">，</span>
-        {{ item }}
+        <span v-if="index !== 0">，</span>{{ item }}
       </span>
       <BkPopover
         v-if="overflowData.length > 0"
