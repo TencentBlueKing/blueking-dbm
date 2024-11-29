@@ -13,7 +13,7 @@ export enum ClusterTypes {
 // redis
 export enum ClusterTypes {
   REDIS = 'redis', // Redis
-  PREDIXY_REDIS_CLUSTER = 'PredixyRedisCluster', // Redis集群
+  PREDIXY_REDIS_CLUSTER = 'PredixyRedisCluster', // RedisCluster集群
   PREDIXY_TENDISPLUS_CLUSTER = 'PredixyTendisplusCluster', // Tendisplus存储版集群
   TWEMPROXY_REDIS_INSTANCE = 'TwemproxyRedisInstance', // TendisCache集群
   TWEMPROXY_TENDIS_SSD_INSTANCE = 'TwemproxyTendisSSDInstance', // TendisSSD集群
