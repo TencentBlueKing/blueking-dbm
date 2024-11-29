@@ -213,8 +213,8 @@ class TaskFlowHandler:
             flow_node = FlowNode.objects.get(root_id=self.root_id, node_id=node_id)
         except FlowNode.DoesNotExist:
             return [self.generate_log_record(message=_("节点尚未运行，请稍后查看"))]
-        if flow_node.updated_at < timezone.now() - timedelta(days=7):
-            return [self.generate_log_record(message=_("节点日志仅保留7天"))]
+        if flow_node.updated_at < timezone.now() - timedelta(days=env.BKLOG_DEFAULT_RETENTION):
+            return [self.generate_log_record(message=_("节点日志仅保留{}天").format(env.BKLOG_DEFAULT_RETENTION))]
 
         start_time = datetime2str(flow_node.started_at)
         end_time = datetime2str(flow_node.updated_at + timedelta(days=7))
