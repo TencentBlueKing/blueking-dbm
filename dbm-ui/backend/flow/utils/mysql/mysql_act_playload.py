@@ -890,6 +890,7 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
                     "port": self.cluster["port"],
                     "charset": self.ticket_data["charset"],
                     "backup_file_name": f"{self.cluster['semantic_dump_schema_file_name']}",
+                    "backup_file_name_suffix": f"{self.cluster['semantic_dump_schema_file_name_suffix']}",
                     "backup_dir": BK_PKG_INSTALL_PATH,
                     "fileserver": {
                         "url": get_bk_repo_url(bk_cloud_id),

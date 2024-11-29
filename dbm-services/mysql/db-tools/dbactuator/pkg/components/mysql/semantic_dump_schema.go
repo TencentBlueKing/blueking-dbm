@@ -40,10 +40,14 @@ type SemanticDumpSchemaComp struct {
 
 // DumpSchemaParam TODO
 type DumpSchemaParam struct {
-	Host            string `json:"host"  validate:"required,ip"`                // 当前实例的主机地址
-	Port            int    `json:"port"  validate:"required,lt=65536,gte=3306"` // 当前实例的端口
-	CharSet         string `json:"charset" validate:"required,checkCharset"`    // 字符集参数
-	CompressPkgName string `json:"com"`
+	// 当前实例的主机地址
+	Host string `json:"host"  validate:"required,ip"`
+	// 当前实例的端口
+	Port int `json:"port"  validate:"required,lt=65536,gte=3306"`
+	// 字符集参数
+	CharSet string `json:"charset" validate:"required,checkCharset"`
+	// 备份文件名后缀,清理相关文件
+	BackupFileNameSuffix string `json:"backup_file_name_suffix" validate:"required"`
 	UploadBkRepoParam
 }
 
@@ -74,6 +78,7 @@ type DumpSchemaRunTimeCtx struct {
 	useTmysqldump bool     // 使用自研的mysqldump 并发导出
 	isSpider      bool     // 是否spider中控
 	ignoreTables  []string // 忽略的表集合
+	gtidPurgedOff bool     // 对于开启了gtid模式的实例，在导出时设置 --set-gtid-purged=OFF
 }
 
 // Example godoc
@@ -88,12 +93,29 @@ func (c *SemanticDumpSchemaComp) Example() interface{} {
 	}
 	return comp
 }
+func (c *SemanticDumpSchemaComp) cleanHistorySchemaFile() {
+	if c.Params.BackupFileNameSuffix == "" || c.Params.BackupDir == "" {
+		return
+	}
+	cleanCmd := fmt.Sprintf(`find %s -name "*%s.sql*" -type f -mtime +3 -delete `, c.Params.BackupDir,
+		c.Params.BackupFileNameSuffix)
+	logger.Warn("delete before 7 days dump schema file")
+	logger.Warn("will execute: %s", cleanCmd)
+	out, err := osutil.StandardShellCommand(false, cleanCmd)
+	if err != nil {
+		logger.Error("clean schema file failed:%s,out:%s", err.Error(), out)
+		return
+	}
+	logger.Warn("clean schema file success")
+}
 
 // Init init
 //
 //	@receiver c
 //	@return err
 func (c *SemanticDumpSchemaComp) Init() (err error) {
+	// 1. clean history schema file
+	c.cleanHistorySchemaFile()
 	conn, err := native.InsObject{
 		Host: c.Params.Host,
 		Port: c.Params.Port,
@@ -120,6 +142,9 @@ func (c *SemanticDumpSchemaComp) Init() (err error) {
 		logger.Error("获取version failed %s", err.Error())
 		return err
 	}
+	if cmutil.MySQLVersionParse(version) > cmutil.MySQLVersionParse("5.6.9") {
+		c.gtidPurgedOff = true
+	}
 	c.isSpider = strings.Contains(version, "tdbctl")
 	// 临时方案
 	if cmutil.FileExists("/home/mysql/dbbackup/mysqldump_x86_64") {
@@ -135,6 +160,7 @@ func (c *SemanticDumpSchemaComp) Init() (err error) {
 	}
 	finaldbs := []string{}
 	reg := regexp.MustCompile(`^bak_cbs`)
+	newBackupDbreg := regexp.MustCompile(`^stage_truncate`)
 	ignoreDBs := computil.GetGcsSystemDatabasesIgnoreTest(version)
 	if c.isSpider {
 		// test 库里面的这些表没有主键，导入中控会失败
@@ -142,6 +168,9 @@ func (c *SemanticDumpSchemaComp) Init() (err error) {
 	}
 	for _, db := range util.FilterOutStringSlice(alldbs, ignoreDBs) {
 		if reg.MatchString(db) {
+			continue
+		}
+		if newBackupDbreg.MatchString(db) {
 			continue
 		}
 		finaldbs = append(finaldbs, db)
@@ -183,12 +212,13 @@ func (c *SemanticDumpSchemaComp) Precheck() (err error) {
 func (c *SemanticDumpSchemaComp) DumpSchema() (err error) {
 	var dumper mysqlutil.Dumper
 	dumpOption := mysqlutil.MySQLDumpOption{
-		DumpSchema:   true,
-		AddDropTable: true,
-		DumpRoutine:  true,
-		DumpTrigger:  false,
-		DumpEvent:    true,
-		Quick:        true,
+		DumpSchema:    true,
+		AddDropTable:  true,
+		DumpRoutine:   true,
+		DumpTrigger:   false,
+		DumpEvent:     true,
+		Quick:         true,
+		GtidPurgedOff: c.gtidPurgedOff,
 	}
 	if c.isSpider {
 		dumpOption.GtidPurgedOff = true

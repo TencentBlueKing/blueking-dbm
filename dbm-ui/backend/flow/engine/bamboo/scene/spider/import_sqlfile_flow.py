@@ -56,8 +56,8 @@ class ImportSQLFlow(object):
         self.uid = self.data["uid"]
 
         # 定义好每次语义检测的库表备份文件名称
-        self.semantic_dump_schema_file_name = f"{self.root_id}_semantic_dump_schema.sql"
-
+        self.semantic_dump_schema_file_name_suffix = "_semantic_dump_schema"
+        self.semantic_dump_schema_file_name = f"{self.root_id}{self.semantic_dump_schema_file_name_suffix}.sql"
         # 定义SQL文件的下发位置
         self.sql_path = os.path.join(consts.BK_PKG_INSTALL_PATH, f"sqlfile_{self.uid}") + "/"
         self.data["sql_path"] = self.sql_path
@@ -174,7 +174,7 @@ class ImportSQLFlow(object):
                 )
             ),
         )
-
+        cluster["semantic_dump_schema_file_name_suffix"] = self.semantic_dump_schema_file_name_suffix
         semantic_check_pipeline.add_act(
             act_name=_("备份测试库表结构"),
             act_component_code=ExecuteDBActuatorScriptComponent.code,

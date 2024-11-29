@@ -541,14 +541,14 @@ class MySQLDBMeta(object):
                 port_list=[self.cluster["mysql_port"]],
             )
             # add new slave 对应关系
-            if self.cluster.get("new_ro_slave_ips"):
-                for new_ro_slave_ip in self.cluster["new_ro_slave_ips"]:
-                    api.cluster.tendbha.storage_tuple.add_storage_tuple(
-                        master_ip=self.cluster["new_master_ip"],
-                        slave_ip=new_ro_slave_ip,
-                        bk_cloud_id=self.cluster["bk_cloud_id"],
-                        port_list=[self.cluster["master_port"]],
-                    )
+            # if self.cluster.get("new_ro_slave_ips"):
+            #     for new_ro_slave_ip in self.cluster["new_ro_slave_ips"]:
+            #         api.cluster.tendbha.storage_tuple.add_storage_tuple(
+            #             master_ip=self.cluster["new_master_ip"],
+            #             slave_ip=new_ro_slave_ip,
+            #             bk_cloud_id=self.cluster["bk_cloud_id"],
+            #             port_list=[self.cluster["master_port"]],
+            #         )
 
     def mysql_migrate_cluster_add_tuple(self):
         """
