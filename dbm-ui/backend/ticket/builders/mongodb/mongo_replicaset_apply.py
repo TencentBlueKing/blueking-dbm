@@ -13,6 +13,7 @@ from rest_framework import serializers
 
 from backend.configuration.constants import AffinityEnum
 from backend.db_meta.enums import ClusterType
+from backend.db_meta.models import Spec
 from backend.db_services.dbbase.constants import IpSource
 from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
 from backend.flow.engine.controller.mongodb import MongoDBController
@@ -107,6 +108,7 @@ class MongoReplicaSetApplyFlowBuilder(BaseMongoReplicaSetTicketFlowBuilder):
     @classmethod
     def get_replicaset_resource_spec(cls, ticket_data):
         """获取副本集部署的资源池规格信息"""
+        spec = Spec.objects.get(spec_id=ticket_data["spec_id"])
         # infos的组数 = 副本集数量 / 单机部署副本集数
         groups = int(ticket_data["replica_count"] / ticket_data["node_replica_count"])
         infos = [
@@ -114,6 +116,7 @@ class MongoReplicaSetApplyFlowBuilder(BaseMongoReplicaSetTicketFlowBuilder):
                 "bk_cloud_id": ticket_data["bk_cloud_id"],
                 "resource_spec": {
                     "mongo_machine_set": {
+                        **spec.get_spec_info(),
                         "affinity": ticket_data["disaster_tolerance_level"],
                         "location_spec": {"city": ticket_data["city_code"], "sub_zone_ids": []},
                         # 副本集的亲和性要求至少跨两个机房

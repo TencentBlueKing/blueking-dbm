@@ -225,7 +225,7 @@ class DBPasswordHandler(object):
         ]
         # 查询输出数据
         resp = BambooEngine(root_id).get_node_output_data(node_id).data["resp"]
-        result = {"status": flow_tree.status, "error": resp["message"], "data": resp["data"], "result": resp["result"]}
+        result = {"status": flow_tree.status, "error": resp["message"], "result": resp["result"], **resp["data"]}
         return result
 
     @classmethod
