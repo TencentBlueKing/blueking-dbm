@@ -23,7 +23,7 @@
         :title="$t('基础信息')">
         <EditInfo
           :columns="baseInfoColumns"
-          :data="data"
+          :data="detailData"
           @save="handleSaveEditInfo" />
       </DbCard>
       <DbCard
@@ -78,7 +78,7 @@
   </div>
 </template>
 
-<script setup lang="ts">
+<script setup lang="tsx">
   import { useI18n } from 'vue-i18n';
 
   import {
@@ -88,7 +88,7 @@
     updatePlatformConfig,
   } from '@services/source/configs';
 
-  import { ConfLevels, type ConfLevelValues } from '@common/const';
+  import { ClusterTypes, ConfLevels, type ConfLevelValues } from '@common/const';
 
   import EditInfo, { type EditEmitData } from '@components/editable-info/index.vue';
 
@@ -98,9 +98,10 @@
   import ReadonlyTable from './ReadonlyTable.vue';
 
   type PlatConfDetailsParams = ServiceParameters<typeof getConfigBaseDetails>;
+  type DetailData = ServiceReturnType<typeof getLevelConfig> & { charset?: string };
 
   interface Props {
-    data?: ServiceReturnType<typeof getLevelConfig> & { charset?: string };
+    data?: Partial<DetailData>;
     loading?: boolean;
     fetchParams?: PlatConfDetailsParams | ServiceParameters<typeof getLevelConfig>;
     stickyTop?: number;
@@ -108,6 +109,7 @@
     title?: string;
     extraParametersCards?: ExtraConfListItem[];
     routeParams?: Record<string, any>;
+    deployInfo?: Partial<DetailData>;
   }
 
   interface Emits {
@@ -127,6 +129,10 @@
     title: '',
     extraParametersCards: () => [],
     routeParams: () => ({}),
+    deployInfo: () =>
+      ({
+        conf_items: [] as DetailData['conf_items'],
+      }),
   });
 
   const emits = defineEmits<Emits>();
@@ -138,6 +144,9 @@
 
   const clusterType = ref(props.data.version);
 
+  const isSqlServer = computed(() =>
+    [ClusterTypes.SQLSERVER_SINGLE, ClusterTypes.SQLSERVER_HA].includes(props.routeParams.clusterType),
+  );
   const tabs = computed(() => {
     if (!state.version) {
       return [props.data.version];
@@ -189,7 +198,46 @@
         key: 'charset',
       });
     }
+    if (isSqlServer.value) {
+      baseColumns[0].push(
+        ...[
+          {
+            label: t('实际内存分配比率'),
+            key: 'buffer_percent',
+          },
+          {
+            label: t('主从方式'),
+            key: 'sync_type',
+            render: (data) => <span> {data.sync_type === 'mirroring' ? t('镜像') : data.sync_type} </span>
+          },
+        ],
+      );
+      baseColumns[1].push(
+        ...[
+          {
+            label: t('最大系统保留内存'),
+            key: 'max_remain_mem_gb',
+          },
+          {
+            label: t('操作系统版本'),
+            key: 'system_version',
+          },
+        ],
+      );
+    }
     return baseColumns;
+  });
+  const detailData = computed(() => {
+    if (isSqlServer.value) {
+      return {
+        ...props.data,
+        ...props.deployInfo.conf_items.reduce<Record<string, string>>((acc, item) => {
+          acc[item.conf_name] = item.conf_value!;
+          return acc;
+        }, {}),
+      };
+    }
+    return props.data;
   });
 
   watch(
