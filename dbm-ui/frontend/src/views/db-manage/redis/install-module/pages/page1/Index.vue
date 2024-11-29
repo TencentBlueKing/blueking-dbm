@@ -132,6 +132,7 @@
             ClusterTypes.PREDIXY_REDIS_CLUSTER,
             ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER,
             ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE,
+            ClusterTypes.REDIS_INSTANCE,
           ].join(','),
           ...params,
         }),
