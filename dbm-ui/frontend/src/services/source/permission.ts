@@ -91,8 +91,8 @@ export const modifyAdminPassword = (params: {
 }) =>
   http.post<
     | {
-        success: AdminPasswordResultItem[] | null;
-        fail: AdminPasswordResultItem[] | null;
+        success: AdminPasswordResultItem[];
+        fail: AdminPasswordResultItem[];
       }
     | string // 异步修改时返回root_id
   >(`${path}/modify_admin_password/`, params);
@@ -121,8 +121,8 @@ export const queryAsyncModifyResult = (params: { root_id: string }) =>
     status: string;
     error?: string;
     data: {
-      success: AdminPasswordResultItem[] | null;
-      fail: AdminPasswordResultItem[] | null;
+      success: AdminPasswordResultItem[];
+      fail: AdminPasswordResultItem[];
     };
     result?: boolean;
   }>(`${path}/query_async_modify_result/`, params);

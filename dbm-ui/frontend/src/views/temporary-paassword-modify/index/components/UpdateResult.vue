@@ -95,6 +95,7 @@
   </RenderSuccess>
 </template>
 <script setup lang="ts">
+  import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
 
   import { queryAsyncModifyResult } from '@services/source/permission';
@@ -134,31 +135,36 @@
 
   const passwordDisplay = computed(() => (isShowPassword.value ? props.password : '********'));
   const errorMessage = computed(() => {
-    if (props?.submitResult?.status === 'FINISHED' && !props.submitResult?.result) {
+    if (props.submitResult?.status === 'FINISHED' && !props.submitResult?.result) {
       return props.submitResult?.error;
     }
     return '';
   });
   const errorList = computed(() =>
-    (props?.submitResult?.data?.fail || []).reduce((errorPrev, errorItem) => {
-      const { bk_cloud_id, cluster_type } = errorItem;
+    _.flatMap(props.submitResult?.data?.fail || [], (item) => {
+      const { bk_cloud_id, cluster_type } = item;
       const roleMap = props.submitRoleMap;
-      const retryItems = errorItem.instances.reduce((retryItemsPrev, instanceItem) => {
-        const newInstanceItem = instanceItem.addresses.map((addressItem) => ({
+      return _.flatMap(item.instances, (insItem) =>
+        insItem.addresses.map((addressItem) => ({
           ...addressItem,
           bk_cloud_id,
           cluster_type,
           role: roleMap[`${addressItem.ip}:${addressItem.port}`],
-        }));
-
-        return [...retryItemsPrev, ...newInstanceItem];
-      }, [] as RetryItem[]);
-
-      return [...errorPrev, ...retryItems];
-    }, [] as RetryItem[]),
+        })),
+      );
+    }),
   );
-  const errorListLength = computed(() => errorList.value.length);
-  const successListLength = computed(() => props.submitLength - errorListLength.value);
+  const successListLength = computed(() =>
+    _.sumBy(props.submitResult?.data?.success, (item) =>
+      _.sumBy(item.instances, (insItem) => insItem.addresses.length),
+    ),
+  );
+  const errorListLength = computed(
+    () =>
+      _.sumBy(props.submitResult?.data?.fail, (item) =>
+        _.sumBy(item.instances, (insItem) => insItem.addresses.length),
+      ) || props.submitLength - successListLength.value,
+  );
 
   const handleShowPassword = () => {
     isShowPassword.value = !isShowPassword.value;
@@ -169,7 +175,7 @@
   };
 
   const handleCopy = () => {
-    const copyList = errorList.value.map((errorItem) => `${errorItem.ip}:${errorItem.port}`);
+    const copyList = errorList.value.map((item) => `${item.ip}:${item.port}`);
     copy(copyList.join('\n'));
   };
 
