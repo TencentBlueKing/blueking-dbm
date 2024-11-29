@@ -71,22 +71,18 @@ func sendmsgCmdMain() {
 		msgTargetIp = server.IP
 	}
 	beatConfig := &config.GlobalConf.BkMonitorBeat
+	msgH, err := mongojob.GetBkMonitorBeatSender(beatConfig, &server)
+	if err != nil {
+		fmt.Printf("fatal err %s", err)
+		os.Exit(1)
+	}
 	if msgType == "event" {
-		msgH, err := mongojob.GetBkMonitorEventSender(beatConfig, &server)
-		if err != nil {
-			fmt.Printf("fatal err %s", err)
-			os.Exit(1)
-		}
 		msgH.SendEventMsg(
 			beatConfig.EventConfig.DataID,
 			beatConfig.EventConfig.Token,
 			msgEventName, msgEventMsg, msgEventLevel, msgTargetIp)
 	} else if msgType == "ts" {
-		msgH, err := mongojob.GetBkMonitorMetricSender(beatConfig, &server)
-		if err != nil {
-			fmt.Printf("fatal err %s", err)
-			os.Exit(1)
-		}
+
 		msgH.SendTimeSeriesMsg(
 			beatConfig.MetricConfig.DataID,
 			beatConfig.MetricConfig.Token,

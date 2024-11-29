@@ -2,13 +2,12 @@
 package dbmonheartbeat
 
 import (
+	"dbm-services/mongodb/db-tools/dbmon/cmd/mongojob"
 	"fmt"
-	"strconv"
 	"sync"
 
 	"dbm-services/mongodb/db-tools/dbmon/config"
 	"dbm-services/mongodb/db-tools/dbmon/mylog"
-	"dbm-services/mongodb/db-tools/dbmon/pkg/sendwarning"
 )
 
 const MongoDbmonHeartBeatMetricName = "mongo_dbmon_heart_beat"
@@ -53,25 +52,11 @@ func (job *Job) Run() {
 
 // SendHeartBeat 发送心跳
 func SendHeartBeat(conf *config.BkMonitorBeatConfig, serverConf *config.ConfServerItem) error {
-	msgH, err := sendwarning.NewBkMonitorEventSender(
-		conf.BeatPath,
-		conf.AgentAddress,
-	)
+	msgH, err := mongojob.GetBkMonitorBeatSender(conf, serverConf)
 	if err != nil {
 		return err
 	}
-	return msgH.SetBkBizID(strconv.Itoa(serverConf.BkBizID)).
-		SetBkCloudID(serverConf.BkCloudID).
-		SetApp(serverConf.App).
-		SetAppName(serverConf.AppName).
-		SetClusterDomain(serverConf.ClusterDomain).
-		SetClusterName(serverConf.ClusterName).
-		SetClusterType(serverConf.ClusterType).
-		SetInstanceRole(serverConf.MetaRole).
-		SendTimeSeriesMsg(conf.MetricConfig.DataID,
-			conf.MetricConfig.Token,
-			serverConf.IP,
-			MongoDbmonHeartBeatMetricName,
-			1)
+	return msgH.SendTimeSeriesMsg(conf.MetricConfig.DataID, conf.MetricConfig.Token,
+		serverConf.IP, MongoDbmonHeartBeatMetricName, 1)
 
 }

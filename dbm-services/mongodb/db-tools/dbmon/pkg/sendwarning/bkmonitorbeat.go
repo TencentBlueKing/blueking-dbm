@@ -57,7 +57,8 @@ func NewBkMonitorEventSender(beatPath, agentAddress string) (ret *BkMonitorEvent
 }
 
 // SendEventMsg 发送告警消息
-func (bm *BkMonitorEventSender) SendEventMsg(dataId int64, token string, eventName, warnmsg, warnLevel, targetIP string) (err error) {
+func (bm *BkMonitorEventSender) SendEventMsg(dataId int64, token string, eventName,
+	warnmsg, warnLevel, targetIP string) (err error) {
 	bm.newDimenSion()
 	bm.DataID = dataId
 	bm.AccessToken = token
@@ -82,7 +83,8 @@ func (bm *BkMonitorEventSender) SendEventMsg(dataId int64, token string, eventNa
 }
 
 // SendTimeSeriesMsg dbmon心跳上报. "mongo_dbmon_heart_beat"
-func (bm *BkMonitorEventSender) SendTimeSeriesMsg(dataId int64, token string, targetIP string, metricName string, val float64) (err error) {
+func (bm *BkMonitorEventSender) SendTimeSeriesMsg(dataId int64, token string, targetIP string,
+	metricName string, val float64) (err error) {
 	bm.newDimenSion()
 	bm.DataID = dataId
 	bm.AccessToken = token
@@ -145,7 +147,7 @@ func (bm *BkMonitorEventSender) SetBkBizID(bkBizID string) *BkMonitorEventSender
 
 // SetBkCloudID set bk_cloud_id
 func (bm *BkMonitorEventSender) SetBkCloudID(bkCloudID int64) *BkMonitorEventSender {
-	return bm.set("bk_cloud_id", bkCloudID)
+	return bm.set("bk_cloud_id", bkCloudID).set("bk_target_cloud_id", bkCloudID)
 }
 
 // set key value
@@ -160,8 +162,12 @@ func (bm *BkMonitorEventSender) SetApp(app string) *BkMonitorEventSender {
 	return bm.set("app", app)
 }
 
+// SetBkTargetIp TODO
+func (bm *BkMonitorEventSender) SetBkTargetIp(bkTargetIp string) *BkMonitorEventSender {
+	return bm.set("bk_target_ip", bkTargetIp)
+}
+
 // SetAppName TODO
-// SetApp set app
 func (bm *BkMonitorEventSender) SetAppName(appname string) *BkMonitorEventSender {
 	return bm.set("app_name", appname)
 }

@@ -4,13 +4,16 @@ import (
 	"fmt"
 	"strconv"
 
+	"github.com/pkg/errors"
+
 	"dbm-services/mongodb/db-tools/dbmon/config"
 	"dbm-services/mongodb/db-tools/dbmon/mylog"
 	"dbm-services/mongodb/db-tools/dbmon/pkg/sendwarning"
 )
 
-// GetBkMonitorEventSender Retrun a BkMonitorEventSender instance
-func GetBkMonitorEventSender(beatConf *config.BkMonitorBeatConfig, serverConf *config.ConfServerItem) (msgH *sendwarning.BkMonitorEventSender, err error) {
+// GetBkMonitorBeatSender Retrun a BkMonitorEventSender instance
+func GetBkMonitorBeatSender(beatConf *config.BkMonitorBeatConfig, serverConf *config.ConfServerItem) (
+	msgH *sendwarning.BkMonitorEventSender, err error) {
 	msgH, err = sendwarning.NewBkMonitorEventSender(
 		beatConf.BeatPath,
 		beatConf.AgentAddress,
@@ -20,33 +23,14 @@ func GetBkMonitorEventSender(beatConf *config.BkMonitorBeatConfig, serverConf *c
 	}
 	msgH.SetBkBizID(strconv.Itoa(serverConf.BkBizID)).
 		SetBkCloudID(serverConf.BkCloudID).
+		SetBkTargetIp(serverConf.IP).
 		SetApp(serverConf.App).
 		SetAppName(serverConf.AppName).
 		SetClusterDomain(serverConf.ClusterDomain).
 		SetClusterName(serverConf.ClusterName).
 		SetClusterType(serverConf.ClusterType).
-		SetInstanceRole(serverConf.MetaRole)
-	return
-}
-
-// GetBkMonitorMetricSender Retrun a BkMonitorMetricSender instance
-func GetBkMonitorMetricSender(conf *config.BkMonitorBeatConfig, serverConf *config.ConfServerItem) (
-	msgH *sendwarning.BkMonitorEventSender, err error) {
-	msgH, err = sendwarning.NewBkMonitorEventSender(
-		conf.BeatPath,
-		conf.AgentAddress,
-	)
-	if err != nil {
-		return
-	}
-	msgH.SetBkBizID(strconv.Itoa(serverConf.BkBizID)).
-		SetBkCloudID(serverConf.BkCloudID).
-		SetApp(serverConf.App).
-		SetAppName(serverConf.AppName).
-		SetClusterDomain(serverConf.ClusterDomain).
-		SetClusterName(serverConf.ClusterName).
-		SetClusterType(serverConf.ClusterType).
-		SetInstanceRole(serverConf.MetaRole)
+		SetInstanceRole(serverConf.MetaRole).
+		SetInstance(serverConf.Addr())
 	return
 }
 
@@ -54,24 +38,15 @@ func GetBkMonitorMetricSender(conf *config.BkMonitorBeatConfig, serverConf *conf
 func SendEvent(conf *config.BkMonitorBeatConfig, serverConf *config.ConfServerItem,
 	eventName, warnLevel, warnMsg string) error {
 
-	msgH, err := sendwarning.NewBkMonitorEventSender(
-		conf.BeatPath,
-		conf.AgentAddress,
-	)
-
-	if msgH != nil && err == nil {
-		err = msgH.SetBkBizID(strconv.Itoa(serverConf.BkBizID)).
-			SetBkCloudID(serverConf.BkCloudID).
-			SetApp(serverConf.App).
-			SetAppName(serverConf.AppName).
-			SetClusterDomain(serverConf.ClusterDomain).
-			SetClusterName(serverConf.ClusterName).
-			SetClusterType(serverConf.ClusterType).
-			SetInstanceRole(serverConf.MetaRole).SendEventMsg(
-			conf.EventConfig.DataID,
-			conf.EventConfig.Token,
-			eventName, warnMsg, warnLevel, serverConf.IP)
+	msgH, err := GetBkMonitorBeatSender(conf, serverConf)
+	if err != nil {
+		return errors.Wrap(err, "NewBkMonitorEventSender failed")
 	}
+
+	err = msgH.SendEventMsg(
+		conf.EventConfig.DataID,
+		conf.EventConfig.Token,
+		eventName, warnMsg, warnLevel, serverConf.IP)
 
 	if err != nil {
 		mylog.Logger.Warn(

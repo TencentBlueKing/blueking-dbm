@@ -16,7 +16,6 @@ import (
 	"time"
 
 	"dbm-services/mongodb/db-tools/dbmon/mylog"
-	"dbm-services/mongodb/db-tools/dbmon/pkg/consts"
 
 	"golang.org/x/sys/unix"
 )
@@ -198,23 +197,6 @@ func IsExecAny(mode os.FileMode) bool {
 // IsExecAll owner/grouper/other 全部可执行
 func IsExecAll(mode os.FileMode) bool {
 	return mode&0111 == 0111
-}
-
-// LocalDirChownMysql 改变localDir的属主为mysql
-func LocalDirChownMysql(localDir string) (err error) {
-	if !strings.HasSuffix(localDir, "/") {
-		localDir += string(filepath.Separator)
-	}
-	cmd := fmt.Sprintf("chown -R %s.%s %s", consts.MysqlAaccount, consts.MysqlGroup, localDir)
-	_, err = RunBashCmd(cmd, "", nil, 1*time.Hour)
-	return
-}
-
-// LocalFileChmodAllRead 改变localFile的权限为所有人可读
-func LocalFileChmodAllRead(localFile string) (err error) {
-	cmd := fmt.Sprintf("chmod a+r %s", localFile)
-	_, err = RunBashCmd(cmd, "", nil, 1*time.Hour)
-	return
 }
 
 // HostDiskUsage 本地路径所在磁盘使用情况
