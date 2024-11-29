@@ -115,11 +115,24 @@
     },
   ]);
 
+  const { run: getPermissionRulesRun, loading: isLoading } = useRequest(getPermissionRules, {
+    manual: true,
+    onSuccess({ results }) {
+      tableData.value = results.map((item) => ({
+        user: item.account.user,
+        rules: item.rules.map((rule) => ({
+          priv: rule.privilege,
+          access_db: rule.access_db,
+        })),
+      }));
+    },
+  });
+
   watch(
     () => props.ticketDetails,
     () => {
       // 有权限快照返回直接渲染
-      if (props.ticketDetails.details.rules_set?.[0].privileges?.length) {
+      if (props.ticketDetails.details.rules_set?.[0]?.privileges?.length) {
         const rulesMemo: Record<string, boolean> = {}
         tableData.value = props.ticketDetails.details.rules_set.reduce<IDataRow[]>((acc, cur) => {
           if (!rulesMemo[cur.user]) {
@@ -142,7 +155,7 @@
     () => props.templateDetail,
     () => {
       // 无权限返回则现查
-      if (props.templateDetail && tableData.value.length === 0) {
+      if (props.templateDetail.related_authorize.length && tableData.value.length === 0) {
         const accountTypeMap = {
           [ClusterTypes.TENDBHA]: AccountTypes.MYSQL,
           [ClusterTypes.TENDBSINGLE]: AccountTypes.MYSQL,
@@ -158,19 +171,6 @@
       }
     },
   );
-
-  const { run: getPermissionRulesRun, loading: isLoading } = useRequest(getPermissionRules, {
-    manual: true,
-    onSuccess({ results }) {
-      tableData.value = results.map((item) => ({
-        user: item.account.user,
-        rules: item.rules.map((rule) => ({
-          priv: rule.privilege,
-          access_db: rule.access_db,
-        })),
-      }));
-    },
-  });
 
   const handleToogleExpand = (user: string) => {
     rowFlodMap.value[user] = !rowFlodMap.value[user];
