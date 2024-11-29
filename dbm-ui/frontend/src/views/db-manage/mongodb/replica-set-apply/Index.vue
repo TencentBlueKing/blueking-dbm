@@ -360,7 +360,7 @@
         ...details,
         spec_id: details.resource_spec.spec_id,
         resource_spec: {
-          mongodb: {
+          mongo_machine_set: {
             count: details.node_count,
             spec_id: details.resource_spec.spec_id,
             ...specRef.value!.getData(),
