@@ -20,7 +20,7 @@
         class="mb-4"
         :data="item.instanceList">
         <template #prefix>
-          <span>{{ item.shardName }} : /</span>
+          <span>{{ item.shardName }}:/</span>
         </template>
       </RenderRow>
     </div>
