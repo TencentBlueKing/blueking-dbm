@@ -18,6 +18,7 @@ from backend.configuration.constants import AffinityEnum
 from backend.db_meta.enums import ClusterType
 from backend.db_meta.models import Cluster, Machine
 from backend.db_services.dbbase.constants import IpSource
+from backend.db_services.ipchooser.constants import BkOsType
 from backend.flow.engine.controller.sqlserver import SqlserverController
 from backend.flow.utils.sqlserver.sqlserver_bk_config import get_module_infos
 from backend.ticket import builders
@@ -91,40 +92,41 @@ class SQLServerRestoreSlaveResourceParamBuilder(SQLServerBaseOperateResourcePara
         # 提取master
         master_hosts = [entry["master_host_id"] for entry in slave_master_mapping]
         # 处理映射 {slave_host_id:master_host_id}
-        formatted_dict = {item["slave_host_id"]: item["master_host_id"] for item in slave_master_mapping}
+        slave__master_host_map = {item["slave_host_id"]: item["master_host_id"] for item in slave_master_mapping}
 
         id__machine = {
             machine.bk_host_id: machine
-            for machine in Machine.objects.prefetch_related("bk_city__logical_city").filter(
-                bk_host_id__in=master_hosts
-            )
+            for machine in Machine.objects.prefetch_related("bk_city__logical_city").filter(bk_host_id__in=master_hosts)
         }
         cluster_ids = list(itertools.chain(*[infos["cluster_ids"] for infos in self.ticket.details["infos"]]))
         id__cluster = {cluster.id: cluster for cluster in Cluster.objects.filter(id__in=cluster_ids)}
 
         for info in self.ticket_data["infos"]:
             cluster = id__cluster[info["cluster_ids"][0]]
+
             # 申请新的slave, 需要和当前集群中的master处于不同机房;
-            master_machine = id__machine[formatted_dict[info["old_slave_host"]["bk_host_id"]]]
+            old_slave_host = info["old_nodes"]["old_slave_host"][0]
+            master_machine = id__machine[slave__master_host_map[old_slave_host["bk_host_id"]]]
             info.update(bk_cloud_id=master_machine.bk_cloud_id)
-            # TODO: 还有补充操作系统
-            info["resource_spec"]["sqlserver_ha"]["location_spec"] = {
-                "city": master_machine.bk_city.logical_city.name,
-                "sub_zone_ids": [],
-            }
-            info["resource_spec"]["sqlserver_ha"].update(affinity=cluster.disaster_tolerance_level)
+
+            # 补充操作系统、亲和性和城市信息
+            info["resource_params"] = {"os_type": BkOsType.WINDOWS.value}
+            info["resource_spec"]["sqlserver_ha"].update(
+                affinity=cluster.disaster_tolerance_level,
+                location_spec={"city": master_machine.bk_city.logical_city.name, "sub_zone_ids": []}
+            )
+
+            # 根据亲和性补充园区信息
             if cluster.disaster_tolerance_level == AffinityEnum.CROS_SUBZONE:
                 info["resource_spec"]["sqlserver_ha"]["location_spec"].update(
                     sub_zone_ids=[master_machine.bk_sub_zone_id], include_or_exclue=False
                 )
-
-            elif cluster.disaster_tolerance_level in [
-                AffinityEnum.SAME_SUBZONE,
-                AffinityEnum.SAME_SUBZONE_CROSS_SWTICH,
-            ]:
+            elif cluster.disaster_tolerance_level in [AffinityEnum.SAME_SUBZONE, AffinityEnum.SAME_SUBZONE_CROSS_SWTICH]:
                 info["resource_spec"]["sqlserver_ha"]["location_spec"].update(
                     sub_zone_ids=[master_machine.bk_sub_zone_id], include_or_exclue=True
                 )
+
+        self.ticket.save(update_fields=["details"])
 
     def post_callback(self):
         next_flow = self.ticket.next_flow()
@@ -154,7 +156,7 @@ class SQLServerRestoreSlaveFlowBuilder(BaseSQLServerHATicketFlowBuilder):
             )
             # 校验配置是否存在
             if not db_config.get("db_version") or not db_config.get("charset") or not db_config.get("sync_type"):
-                raise TicketParamsVerifyException(_("获取数据库字符集或版本失败，请检查获取参数, db_config: {}").format(db_config))
+                raise TicketParamsVerifyException(_("获取数据库字符集或版本失败，请检查获取参数: {}").format(db_config))
 
             info["system_version"] = db_config["system_version"].split(",")
 

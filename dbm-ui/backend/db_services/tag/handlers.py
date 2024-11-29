@@ -14,6 +14,7 @@ from typing import Dict, List
 from django.db.models import ManyToManyRel
 from django.utils.translation import gettext_lazy as _
 
+from backend.components.dbresource.client import DBResourceApi
 from backend.db_meta.models import Tag
 from backend.db_services.tag.constants import TAG_RELATED_RESOURCE_DISPLAY_FIELD, TagResourceType
 from backend.exceptions import ValidationError
@@ -79,7 +80,8 @@ class TagHandler:
 
         if resource_type == TagResourceType.DB_RESOURCE.value:
             # 资源池根据标签聚合数量
-            data = [{"id": tag_id, "ip_count": 0} for tag_id in ids]
+            label_count_map = DBResourceApi.resource_label_count()
+            data = [{"id": tag_id, "ip_count": label_count_map.get(str(tag_id), 0)} for tag_id in ids]
 
         return data
 

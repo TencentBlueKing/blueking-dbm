@@ -499,7 +499,7 @@ class ResourceHandler(object):
     def standardized_resource_host(cls, hosts, bk_biz_id=None):
         """标准化主机信息，将cc字段统一成资源池字段"""
         host_ids = [host["bk_host_id"] for host in hosts]
-        hosts = ResourceQueryHelper.search_cc_hosts(role_host_ids=host_ids, bk_biz_id=bk_biz_id)
+        hosts = ResourceQueryHelper.search_cc_hosts(role_host_ids=host_ids)
         for host in hosts:
             host.update(
                 bk_biz_id=bk_biz_id,

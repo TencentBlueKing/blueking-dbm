@@ -55,6 +55,8 @@ class ResourceImportSerializer(serializers.Serializer):
         if exist_hosts:
             raise serializers.ValidationError(_("导入主机{}存在元数据，请检查后重新导入").format(exist_hosts))
 
+        return attrs
+
 
 class ResourceApplySerializer(serializers.Serializer):
     class HostDetailSerializer(serializers.Serializer):
