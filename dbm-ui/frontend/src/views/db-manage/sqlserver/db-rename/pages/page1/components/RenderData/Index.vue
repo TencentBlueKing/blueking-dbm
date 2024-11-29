@@ -31,7 +31,7 @@
         <RenderTableHeadColumn
           :min-width="100"
           :width="400">
-          {{ t('源 DB 名') }}
+          {{ t('原 DB 名') }}
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
           :min-width="100"

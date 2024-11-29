@@ -20,7 +20,7 @@
     </BkTableColumn>
     <BkTableColumn
       field="from_database"
-      :label="t('源 DB 名')">
+      :label="t('原 DB 名')">
       <template #default="{ data }: { data: RowData }">
         <BkTag v-if="data">
           {{ data.from_database }}
