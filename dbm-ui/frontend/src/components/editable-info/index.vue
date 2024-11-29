@@ -64,7 +64,7 @@
                 v-overflow-tips
                 class="base-info__value text-overflow">
                 <Component
-                  :is="config.render"
+                  :is="config.render(data)"
                   v-if="config.render" />
                 <template v-else>{{ data[config.key] || '--' }}</template>
               </span>
@@ -100,7 +100,7 @@
     isEdit?: boolean;
     isCopy?: boolean;
     isRequired?: boolean;
-    render?: () => VNode | string | null;
+    render?: (data: Record<string, any>) => VNode | string | null;
   };
 
   export type EditEmitData = {
