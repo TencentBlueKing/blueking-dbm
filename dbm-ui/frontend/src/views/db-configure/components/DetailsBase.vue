@@ -130,9 +130,9 @@
     extraParametersCards: () => [],
     routeParams: () => ({}),
     deployInfo: () =>
-      ({
-        conf_items: [] as DetailData['conf_items'],
-      }),
+    ({
+      conf_items: [] as DetailData['conf_items'],
+    }),
   });
 
   const emits = defineEmits<Emits>();
@@ -208,7 +208,11 @@
           {
             label: t('主从方式'),
             key: 'sync_type',
-            render: (data) => <span> {data.sync_type === 'mirroring' ? t('镜像') : data.sync_type} </span>
+            render: () => <span> {
+              detailData.value.sync_type === 'mirroring'
+                ? t('镜像')
+                : detailData.value.sync_type
+            } </span>
           },
         ],
       );
@@ -231,7 +235,7 @@
     if (isSqlServer.value) {
       return {
         ...props.data,
-        ...props.deployInfo.conf_items.reduce<Record<string, string>>((acc, item) => {
+        ...props.deployInfo.conf_items!.reduce<Record<string, string>>((acc, item) => {
           acc[item.conf_name] = item.conf_value!;
           return acc;
         }, {}),
