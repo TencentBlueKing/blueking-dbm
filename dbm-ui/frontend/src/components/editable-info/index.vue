@@ -100,7 +100,7 @@
     isEdit?: boolean;
     isCopy?: boolean;
     isRequired?: boolean;
-    render?: (data: Record<string, any>) => VNode | string | null;
+    render?: () => VNode | string | null;
   };
 
   export type EditEmitData = {
