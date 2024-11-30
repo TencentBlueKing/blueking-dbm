@@ -14,7 +14,9 @@
             {{ t('集群视图') }}
           </span>
         </BkMenuItem>
-        <BkMenuItem key="SqlServerHaInstanceList">
+        <BkMenuItem
+          key="SqlServerHaInstanceList"
+          v-db-console="'sqlserver.haInstanceList'">
           <span
             v-overflow-tips.right
             class="text-overflow">
@@ -22,7 +24,9 @@
           </span>
         </BkMenuItem>
       </BkSubmenu>
-      <BkMenuItem key="SqlServerSingle">
+      <BkMenuItem
+        key="SqlServerSingle"
+        v-db-console="'sqlserver.singleClusterList'">
         <template #icon>
           <DbIcon type="node" />
         </template>
@@ -34,6 +38,7 @@
       </BkMenuItem>
       <BkSubmenu
         key="sqlserver-permission"
+        v-db-console="'sqlserver.permissionManage'"
         :title="t('权限管理')">
         <template #icon>
           <DbIcon type="history" />

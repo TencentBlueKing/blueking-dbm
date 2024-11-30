@@ -1,8 +1,9 @@
 <template>
   <div class="sqlserver-single-cluster-list">
-    <div class="header-action">
-      <div class="mb-16">
+    <div class="header-action mb-16">
+      <div>
         <BkButton
+          v-db-console="'sqlserver.singleClusterList.instanceApply'"
           theme="primary"
           @click="handleApply">
           {{ t('申请实例') }}
@@ -14,16 +15,20 @@
           :selected="selected"
           @success="handleBatchOperationSuccess" />
         <BkButton
+          v-db-console="'sqlserver.singleClusterList.importAuthorize'"
           class="ml-8"
           @click="handleShowExcelAuthorize">
           {{ t('导入授权') }}
         </BkButton>
         <DropdownExportExcel
+          v-db-console="'sqlserver.singleClusterList.export'"
           export-type="cluster"
           :has-selected="hasSelected"
           :ids="selectedIds"
           type="sqlserver_single" />
-        <ClusterIpCopy :selected="selected" />
+        <ClusterIpCopy
+          v-db-console="'sqlserver.singleClusterList.batchCopy'"
+          :selected="selected" />
       </div>
       <DbSearchSelect
         class="header-select"
@@ -557,15 +562,16 @@
 
         if (data.isOnline) {
           oprations.push([
-            <OperationBtnStatusTips data={ data }>
-              <bk-button
-                text
-                theme="primary"
-                onClick={ () => handleShowAuthorize([data]) }>
-                { t('授权') }
-              </bk-button>
-            </OperationBtnStatusTips>,
-            <OperationBtnStatusTips data={ data }>
+            <bk-button
+              v-db-console="sqlserver.singleClusterList.authorize"
+              text
+              theme="primary"
+              onClick={ () => handleShowAuthorize([data]) }>
+              { t('授权') }
+            </bk-button>,
+            <OperationBtnStatusTips
+              data={ data }
+              v-db-console="sqlserver.singleClusterList.disable">
               <bk-button
                 text
                 theme="primary"
@@ -578,7 +584,9 @@
           ])
         } else {
           oprations.push([
-            <OperationBtnStatusTips data={ data }>
+            <OperationBtnStatusTips
+              data={ data }
+              v-db-console="sqlserver.singleClusterList.enable">
               <bk-button
                 text
                 theme="primary"
@@ -587,7 +595,9 @@
                 { t('启用') }
               </bk-button>
             </OperationBtnStatusTips>,
-            <OperationBtnStatusTips data={ data }>
+            <OperationBtnStatusTips
+              data={ data }
+              v-db-console="sqlserver.singleClusterList.reset">
               <bk-button
                 text
                 theme="primary"
@@ -601,7 +611,9 @@
         }
 
         oprations.push(
-          <OperationBtnStatusTips data={ data }>
+          <OperationBtnStatusTips
+            data={ data }
+            v-db-console="sqlserver.singleClusterList.delete">
             <bk-button
               v-bk-tooltips={{
                 disabled: data.isOffline,
