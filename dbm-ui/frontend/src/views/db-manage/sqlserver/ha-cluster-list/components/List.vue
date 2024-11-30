@@ -3,6 +3,7 @@
     <div class="header-action">
       <div class="mb-16">
         <BkButton
+          v-db-console="'sqlserver.haClusterList.instanceApply'"
           theme="primary"
           @click="handleApply">
           {{ t('申请实例') }}
@@ -14,16 +15,20 @@
           :selected="selected"
           @success="handleBatchOperationSuccess" />
         <BkButton
+          v-db-console="'sqlserver.haClusterList.importAuthorize'"
           class="ml-8"
           @click="handleShowExcelAuthorize">
           {{ t('导入授权') }}
         </BkButton>
         <DropdownExportExcel
+          v-db-console="'sqlserver.haClusterList.export'"
           export-type="cluster"
           :has-selected="hasSelected"
           :ids="selectedIds"
           type="sqlserver_ha" />
-        <ClusterIpCopy :selected="selected" />
+        <ClusterIpCopy
+          v-db-console="'sqlserver.haClusterList.batchCopy'"
+          :selected="selected" />
       </div>
       <DbSearchSelect
         class="header-select mb-16"
@@ -679,15 +684,16 @@
 
         if (data.isOnline) {
           oprations.push([
-            <OperationBtnStatusTips data={ data }>
-              <bk-button
-                text
-                theme="primary"
-                onClick={ () => handleShowAuthorize([data]) }>
-                { t('授权') }
-              </bk-button>
-            </OperationBtnStatusTips>,
-            <OperationBtnStatusTips data={ data }>
+            <bk-button
+              v-db-console="sqlserver.haClusterList.authorize"
+              text
+              theme="primary"
+              onClick={ () => handleShowAuthorize([data]) }>
+              { t('授权') }
+            </bk-button>,
+            <OperationBtnStatusTips
+              data={ data }
+              v-db-console="sqlserver.haClusterList.disable">
               <bk-button
                 text
                 theme="primary"
@@ -700,7 +706,9 @@
           ])
         } else {
           oprations.push([
-            <OperationBtnStatusTips data={ data }>
+            <OperationBtnStatusTips
+              data={ data }
+              v-db-console="sqlserver.haClusterList.enable">
               <bk-button
                 text
                 theme="primary"
@@ -709,7 +717,9 @@
                 { t('启用') }
               </bk-button>
             </OperationBtnStatusTips>,
-            <OperationBtnStatusTips data={ data }>
+            <OperationBtnStatusTips
+              data={ data }
+              v-db-console="sqlserver.haClusterList.reset">
               <bk-button
                 text
                 theme="primary"
@@ -723,7 +733,9 @@
         }
 
         oprations.push(
-          <OperationBtnStatusTips data={ data }>
+          <OperationBtnStatusTips
+            data={ data }
+            v-db-console="sqlserver.haClusterList.delete">
             <bk-button
               v-bk-tooltips={{
                 disabled: data.isOffline,
