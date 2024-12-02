@@ -102,7 +102,7 @@
   const rules = [
     {
       validator: (value: string) => Boolean(value),
-      message: t('目标集群不能为空'),
+      message: t('源集群不能为空'),
     },
     {
       validator: (value: string) =>
@@ -124,7 +124,7 @@
           modelValue.value = undefined;
           return false;
         }),
-      message: t('目标集群不存在'),
+      message: t('源集群不存在'),
     },
     {
       validator: () => {
@@ -135,7 +135,7 @@
         }
         return true;
       },
-      message: t('目标集群重复'),
+      message: t('源集群重复'),
     },
   ];
 
