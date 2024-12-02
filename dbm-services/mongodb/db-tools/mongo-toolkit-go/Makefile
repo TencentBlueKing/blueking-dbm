@@ -41,7 +41,7 @@ check:
 build:
 	@echo "  >  Building Linux binary..."
 	# go build -v $(LDFLAGS) -o target/$(toolkit)_$(OS) cmd/mongo-toolkit-go/main.go
-	GOOS=linux GOARCH=amd64 go build $(TRIMPATH) -v $(BUILD_FLAG) -o ./build/$(SRV_NAME)_Linux cmd/$(SRV_NAME)/main.go
+	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build $(TRIMPATH) -v $(BUILD_FLAG) -o ./build/$(SRV_NAME)_Linux cmd/$(SRV_NAME)/main.go
 
 local:
 	@echo "  >  Building $(OS)  binary..."
