@@ -76,6 +76,7 @@ func (c *BackStageHandler) RegisterRouter(engine *gin.Engine) {
 	{
 		r.POST("/cc/module/check", c.RunModuleCheck)
 		r.POST("/cc/async", c.RunAsyncCmdb)
+		r.POST("/cc/sync/os/info", c.SyncOsInfo)
 	}
 }
 
@@ -93,6 +94,15 @@ func (c BackStageHandler) RunAsyncCmdb(r *gin.Context) {
 	err := task.AsyncResourceHardInfo()
 	if err != nil {
 		logger.Error("asyncResourceHardInfo failed %v", err)
+	}
+	c.SendResponse(r, nil, "async success")
+}
+
+// SyncOsInfo sync os info
+func (c BackStageHandler) SyncOsInfo(r *gin.Context) {
+	err := task.SyncOsNameInfo()
+	if err != nil {
+		logger.Error("SyncOsNameInfo failed %v", err)
 	}
 	c.SendResponse(r, nil, "async success")
 }

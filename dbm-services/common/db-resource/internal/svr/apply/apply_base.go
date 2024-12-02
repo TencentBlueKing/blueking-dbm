@@ -223,9 +223,10 @@ type ObjectDetail struct {
 
 	Affinity string `json:"affinity"`
 	// Windows,Linux
-	OsType  string   `json:"os_type"`
-	OsNames []string `json:"os_names"`
-	Count   int      `json:"count" binding:"required,min=1"` // 申请数量
+	OsType        string   `json:"os_type"`
+	OsNames       []string `json:"os_names"`
+	ExcludeOsName bool     `json:"exclude_os_name"`
+	Count         int      `json:"count" binding:"required,min=1"` // 申请数量
 }
 
 // Hosts bk hosts

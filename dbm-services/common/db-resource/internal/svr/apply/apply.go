@@ -27,7 +27,6 @@ import (
 
 	"github.com/samber/lo"
 	"gorm.io/gorm"
-	"gorm.io/gorm/clause"
 )
 
 // SearchContext TODO
@@ -298,23 +297,29 @@ func (o *SearchContext) MatchOsType(db *gorm.DB) {
 	db.Where("os_type = ? ", osType)
 }
 
-// MatchOsName TODO
+// MatchOsName match os name os_name = "tlinux-1.2"
 func (o *SearchContext) MatchOsName(db *gorm.DB) {
 	// match os name  like  Windows Server 2012
-	if len(o.ObjectDetail.OsNames) > 0 {
-		conditions := []clause.Expression{}
-		for _, osname := range o.ObjectDetail.OsNames {
-			conditions = append(conditions, clause.Like{
-				Column: "os_name",
-				Value:  "%" + strings.TrimSpace(strings.ToLower(osname)) + "%",
-			})
-		}
-		if len(conditions) == 1 {
-			db.Clauses(clause.AndConditions{Exprs: conditions})
-		} else {
-			// 有多个条件，使用or，才会被用（）包括起来所有的or条件
-			db.Clauses(clause.OrConditions{Exprs: conditions})
-		}
+	// conditions := []clause.Expression{}
+	// for _, osname := range o.ObjectDetail.OsNames {
+	// 	conditions = append(conditions, clause.Like{
+	// 		Column: "os_name",
+	// 		Value:  "%" + strings.TrimSpace(strings.ToLower(osname)) + "%",
+	// 	})
+	// }
+	// if len(conditions) == 1 {
+	// 	db.Clauses(clause.AndConditions{Exprs: conditions})
+	// } else {
+	// 	// 有多个条件，使用or，才会被用（）包括起来所有的or条件
+	// 	db.Clauses(clause.OrConditions{Exprs: conditions})
+	// }
+	if len(o.ObjectDetail.OsNames) == 0 {
+		return
+	}
+	if o.ObjectDetail.ExcludeOsName {
+		db.Where("os_name not in (?)", o.ObjectDetail.OsNames)
+	} else {
+		db.Where("os_name in (?)", o.ObjectDetail.OsNames)
 	}
 }
 

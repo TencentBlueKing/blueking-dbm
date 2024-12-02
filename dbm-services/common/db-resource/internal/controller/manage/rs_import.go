@@ -23,6 +23,7 @@ import (
 	"dbm-services/common/db-resource/internal/svr/bk"
 	"dbm-services/common/db-resource/internal/svr/task"
 	"dbm-services/common/db-resource/internal/svr/yunti"
+	"dbm-services/common/db-resource/internal/util"
 	"dbm-services/common/go-pubpkg/cc.v3"
 	"dbm-services/common/go-pubpkg/errno"
 	"dbm-services/common/go-pubpkg/logger"
@@ -377,7 +378,7 @@ func (p ImportMachParam) transHostInfoToDbModule(h *cc.Host, bkCloudId int, labe
 		OsType:          model.ConvertOsTypeToHuman(osType),
 		OsBit:           h.BkOsBit,
 		OsVerion:        h.BkOsVersion,
-		OsName:          strings.TrimSpace(strings.ToLower(strings.ReplaceAll(h.OSName, " ", ""))),
+		OsName:          util.CleanOsName(h.OSName),
 		UpdateTime:      time.Now(),
 		CreateTime:      time.Now(),
 	}
