@@ -142,16 +142,20 @@ func (c *SemanticDumpSchemaComp) Init() (err error) {
 		logger.Error("获取version failed %s", err.Error())
 		return err
 	}
-	if cmutil.MySQLVersionParse(version) > cmutil.MySQLVersionParse("5.6.9") {
-		c.gtidPurgedOff = true
+	enableGtid, err := conn.IsEnableGtid()
+	if err != nil {
+		logger.Warn("获取gtid模式失败 %s", err.Error())
+		enableGtid = true
 	}
+	c.gtidPurgedOff = enableGtid
+
 	c.isSpider = strings.Contains(version, "tdbctl")
-	// 临时方案
-	if cmutil.FileExists("/home/mysql/dbbackup/mysqldump_x86_64") {
+	c.dumpCmd = path.Join(cst.MysqldInstallPath, "bin", "mysqldump")
+	if c.gtidPurgedOff {
+		c.useTmysqldump = false
+	} else if cmutil.FileExists("/home/mysql/dbbackup/mysqldump_x86_64") {
 		c.dumpCmd = "/home/mysql/dbbackup/mysqldump_x86_64"
 		c.useTmysqldump = true
-	} else {
-		c.dumpCmd = path.Join(cst.MysqldInstallPath, "bin", "mysqldump")
 	}
 	// to export the table structure from the central control
 	// you need to use the mysqldump that comes with the central control

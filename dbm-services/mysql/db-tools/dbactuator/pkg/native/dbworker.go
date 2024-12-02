@@ -351,6 +351,15 @@ func (h *DbWorker) SelectVersion() (version string, err error) {
 	return
 }
 
+// IsEnableGtid just enable gtid
+func (h *DbWorker) IsEnableGtid() (enables bool, err error) {
+	val, err := h.GetSingleGlobalVar("gtid_mode")
+	if err != nil {
+		return false, err
+	}
+	return strings.ToUpper(strings.TrimSpace(val)) == "ON", err
+}
+
 // HasTokudb 判断是否安装tokudb引擎
 func (h *DbWorker) HasTokudb() (has bool, err error) {
 	var engine string
@@ -598,6 +607,7 @@ type TableColumnDef struct {
 	ColType string
 }
 
+// TableColumnInfo TODO
 type TableColumnInfo map[string]TableColumnDef
 
 // TableSchema TODO
