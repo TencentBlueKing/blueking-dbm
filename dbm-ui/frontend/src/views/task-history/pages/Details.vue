@@ -357,7 +357,7 @@
 
   import {
     batchRetryNodes,
-    forceFailflowNode,
+    // forceFailflowNode,
     getTaskflowDetails,
     retryTaskflowNode,
     revokePipeline,
@@ -509,8 +509,8 @@
     node: {} as GraphNode,
   });
 
-  let isFindFirstLeafFailNode = false;
-  let isFindFirstLeafTodoNode = false;
+  // let isFindFirstLeafFailNode = false;
+  // const isFindFirstLeafTodoNode = false;
 
   const rootId = computed(() => route.params.root_id as string);
 
@@ -681,7 +681,7 @@
   })
 
   watch(failNodesCount, () => {
-    isFindFirstLeafFailNode = false;
+    // isFindFirstLeafFailNode = false;
     failLeafNodes.value = []
     expandFailedNodeObjects = []
     failNodesTreeData.value = flowState.details.flow_info?.status === 'FAILED' ? generateFailNodesTree(flowState.details.activities) : [];
@@ -693,9 +693,9 @@
   })
 
   watch(todoNodesCount, () => {
-    isFindFirstLeafTodoNode = false
+    // isFindFirstLeafTodoNode = false
     expandTodoNodeObjects = []
-    const todoNodeIdList = getTodoNodeIdList(flowState.details)
+    const todoNodeIdList = getTodoNodeIdList(flowState.details);
     todoNodesTreeData.value = todoNodeIdList.length ? generateTodoNodesTree(flowState.details.activities, todoNodeIdList) : [];
 
     setTreeOpen([
@@ -734,16 +734,16 @@
     Object.values(activities).forEach(item  => {
       if (item.status === 'FAILED') {
         flowList.push(item);
-        if (!isFindFirstLeafFailNode) {
+        // if (!isFindFirstLeafFailNode) {
           expandNodes.push(item.id);
           expandFailedNodeObjects.push(item);
-        }
+        // }
         if (item.pipeline) {
           Object.assign(item, {
             failedChildren: generateFailNodesTree(item.pipeline.activities),
           });
         } else {
-          isFindFirstLeafFailNode = true;
+          // isFindFirstLeafFailNode = true;
           // failNodesCount.value = failNodesCount.value + 1;
           failLeafNodes.value.push({ data: _.cloneDeep(item) } as GraphNode)
         }
@@ -762,11 +762,11 @@
         });
         if (activityChildren.length > 0) {
           flowList.push(activityItem)
-          if (!isFindFirstLeafTodoNode) {
-            isFindFirstLeafTodoNode = true
+          // if (!isFindFirstLeafTodoNode) {
+          //   isFindFirstLeafTodoNode = true
             expandNodes.push(activityItem.id);
             expandTodoNodeObjects.push(activityItem);
-          }
+          // }
         }
       } else {
         if (nodeList.includes(activityItem.id)) {
@@ -797,9 +797,9 @@
   const handleNodeTreeAfterShow = (treeRef: Ref, isFailed = true) => {
     setTimeout(() => {
       const expandNodeObjects = isFailed ? expandFailedNodeObjects : expandTodoNodeObjects
-      expandNodeObjects.forEach(node => {
-        treeRef.value.setOpen(node);
-      });
+      // expandNodeObjects.forEach(node => {
+      //   treeRef.value.setOpen(node);
+      // });
 
       const leafNode = expandNodeObjects[expandNodeObjects.length - 1];
       treeRef.value.setSelect(leafNode);
@@ -829,19 +829,20 @@
   }
 
   // 点击父节点展开，点击叶子节点定位
-  const handleTreeNodeClick = (node: TaskflowList[number], treeRef: Ref, showLog = true) => {
+  const handleTreeNodeClick = (node: TaskflowList[number], treeRef: Ref, showLog = true, theme: 'error' | 'warning') => {
     // eslint-disable-next-line no-underscore-dangle
     const { scale } = flowState.instance.flowInstance._diagramInstance._canvasTransform;
+    const isErrorTree = theme === 'error';
 
     expandRetractNodes(node, treeRef, showLog)
 
     setTimeout(() => {
       const graphNode = flowState.instance.graphData.locations.find((item: GraphNode) => item.data.id === node.id);
-      if (showLog) {
+      if (showLog && isErrorTree) {
         handleShowLog(graphNode);
       }
 
-      const children = showLog ? node.failedChildren : node.todoChildren
+      const children = isErrorTree ? node.failedChildren : node.todoChildren;
       if (!children) {
         const x = ((flowRef.value!.clientWidth / 2) - graphNode.x) * scale;
         const y = ((flowRef.value!.clientHeight / 2) - graphNode.y - 128) * scale;
@@ -1017,13 +1018,29 @@
    * 强制失败节点
    */
   const handleForceFail = (node: GraphNode) => {
-    forceFailflowNode({
-      root_id: rootId.value,
-      node_id: node.data.id,
-    }).then(() => {
-      renderNodes();
-      fetchTaskflowDetails();
-    });
+    const todoItem = flowState.details.todos!.find(todoItem => todoItem.context.node_id === node.id)
+    if (todoItem) {
+      ticketBatchProcessTodo({
+        action: "TERMINATE",
+        operations: [
+          {
+            todo_id: todoItem.id,
+            params: {}
+          }
+        ]})
+        .then(() => {
+          renderNodes();
+          fetchTaskflowDetails();
+          messageSuccess(t('强制失败节点成功'));
+        })
+    }
+    // forceFailflowNode({
+    //   root_id: rootId.value,
+    //   node_id: node.data.id,
+    // }).then(() => {
+    //   renderNodes();
+    //   fetchTaskflowDetails();
+    // });
   };
 
   const handleTodoAllPipeline = () => {

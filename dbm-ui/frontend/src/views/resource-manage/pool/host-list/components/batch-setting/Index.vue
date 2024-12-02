@@ -167,9 +167,13 @@
         );
         const params = {
           bk_host_ids: props.data.map((item) => ~~item),
-          rack_id: formData.rack_id,
-          storage_device: storageDevice,
         };
+        if (formData.rack_id !== '') {
+          Object.assign(params, { rack_id: formData.rack_id });
+        }
+        if (Object.values(storageDevice).length > 0) {
+          Object.assign(params, { storage_device: storageDevice });
+        }
         if (formData.for_biz !== '') {
           Object.assign(params, { for_biz: Number(formData.for_biz) });
         }

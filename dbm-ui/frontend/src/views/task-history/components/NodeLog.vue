@@ -310,7 +310,7 @@
    * 设置日志
    */
   const handleSetLog = (data: NodeLog[] = []) => {
-    logRef.value.handleLogAdd(data);
+    logRef.value?.handleLogAdd(data);
   };
 
   /** 当前选中日志版本的信息 */

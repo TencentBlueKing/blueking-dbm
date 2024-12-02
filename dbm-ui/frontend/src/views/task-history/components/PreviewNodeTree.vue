@@ -25,6 +25,7 @@
         :children="children"
         class="tree-node-tree-main"
         :data="nodesTreeData"
+        expand-all
         label="name"
         node-key="id"
         selectable
@@ -75,7 +76,12 @@
 
   interface Props {
     nodesCount: number;
-    nodesTreeData: Array<NodeType & { failedChildren?: NodeType[] }>;
+    nodesTreeData: Array<
+      NodeType & {
+        failedChildren?: NodeType[];
+        todoChildren?: NodeType[];
+      }
+    >;
     statusKeypath: string;
     titleKeypath: string;
     tooltips: string;
@@ -85,7 +91,13 @@
   }
 
   interface Emits {
-    (e: 'node-click', value: Props['nodesTreeData'][number], refValue: typeof treeRef, isShowLog: boolean): void;
+    (
+      e: 'node-click',
+      value: Props['nodesTreeData'][number],
+      refValue: typeof treeRef,
+      isShowLog: boolean,
+      theme: NonNullable<Props['theme']>,
+    ): void;
     (e: 'after-show', value: typeof treeRef): void;
   }
 
@@ -95,7 +107,7 @@
     isOpen: () => boolean;
   }
 
-  withDefaults(defineProps<Props>(), {
+  const props = withDefaults(defineProps<Props>(), {
     theme: 'error',
     children: 'children',
     marginRight: false,
@@ -114,8 +126,8 @@
   };
 
   const handleNodeClick = (node: Props['nodesTreeData'][number]) => {
-    const iShowLog = !node.failedChildren;
-    emits('node-click', node, treeRef, iShowLog);
+    const iShowLog = !node.failedChildren && !node.todoChildren;
+    emits('node-click', node, treeRef, iShowLog, props.theme);
   };
 
   const handleNodePanelSwich = () => {
