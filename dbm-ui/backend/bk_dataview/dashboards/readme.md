@@ -47,12 +47,9 @@ cd backend/bk_dataview/dashboards/json
 find . -type f -name "*.json" -exec sed -i '' -e 's#"url": "\(.*\)/grafana/\(.*\)orgId=[0-9]*\(.*\)"#"url": "{BK_SAAS_HOST}/grafana/\2orgId=1\3"#' {} \;
 ```
 
-
 # 这里按需隐藏变量，不暴露所有变量
 templating.list.hide 设置为 2，这里一般把需暴露出来的变量设置为 0，不暴露的设置为 2
-
-# 替换 datasource 为 bkmonitor_timeseries 或者 bklog
-templating.list.datasource.uid 设置为 bkmonitor_timeseries 或者 bklog
+同步程序会自动把 app 变量隐藏
 
 
 # 导入监控的方法，还原模板后导入
