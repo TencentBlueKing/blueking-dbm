@@ -28,14 +28,14 @@ from backend.db_periodic_task.utils import TimeUnit, calculate_countdown
 logger = logging.getLogger("celery")
 
 
-@register_periodic_task(run_every=crontab(hour="*/6", minute="0"))
+@register_periodic_task(run_every=crontab(hour="0", minute="0"))
 def update_local_notice_group():
     """同步告警组"""
     dba_ids = DBAdministrator.objects.values_list("id", flat=True)
     count = len(dba_ids)
     # 同步 DBA 内置告警组
     for index, dba_id in enumerate(dba_ids):
-        countdown = calculate_countdown(count=count, index=index, duration=6 * TimeUnit.HOUR)
+        countdown = calculate_countdown(count=count, index=index, duration=8 * TimeUnit.HOUR)
         logger.info("dba_id({}) update notice group will be run after {} seconds.".format(dba_id, countdown))
         with start_new_span(update_dba_notice_group):
             update_dba_notice_group.apply_async(kwargs={"dba_id": dba_id}, countdown=countdown)
@@ -81,7 +81,7 @@ def sync_plat_monitor_policy(action_id=None, db_type=None, force=False):
     MonitorPolicy.sync_plat_monitor_policy(action_id=action_id, db_type=db_type, force=force)
 
 
-@register_periodic_task(run_every=crontab(minute=0, hour="*/1"))
+@register_periodic_task(run_every=crontab(minute=0, hour="*/2"))
 def sync_plat_dispatch_policy():
     """同步平台分派通知策略
     按照app_id->db_type来拆分策略：
@@ -94,7 +94,7 @@ def sync_plat_dispatch_policy():
     count = len(biz_ids)
     # 同步平台/业务分派策略
     for index, bk_biz_id in enumerate(biz_ids):
-        countdown = calculate_countdown(count=count, index=index, duration=TimeUnit.HOUR)
+        countdown = calculate_countdown(count=count, index=index, duration=2 * TimeUnit.HOUR)
         logger.info("biz({}) sync dispatch policy will be run after {} seconds.".format(bk_biz_id, countdown))
         with start_new_span(sync_biz_dispatch_policy):
             sync_biz_dispatch_policy.apply_async(kwargs={"bk_biz_id": bk_biz_id}, countdown=countdown)
