@@ -112,6 +112,7 @@
       currentVersion: string;
       packageVersion: string;
       moduleName: string;
+      moduleId: number;
       cloudId: number;
       masterSlaveList: IHostData[];
       readonlySlaveList: IHostData[];
