@@ -19,6 +19,7 @@
       multi-input
       :placeholder="t('请输入集群_使用换行分割一次可输入多个')"
       :rules="rules"
+      @focus="handleFocus"
       @multi-input="handleMultiInput" />
   </div>
 </template>
@@ -47,7 +48,7 @@
   }
 
   interface Exposes {
-    getValue: () => Record<string, number>;
+    getValue: (isSubmit?: boolean) => Record<string, number>;
   }
 
   const props = defineProps<Props>();
@@ -59,6 +60,8 @@
   // clusterIdMemo[instanceKey] = {};
 
   const { currentBizId } = useGlobalBizs();
+
+  let isSkipInputFinish = false;
 
   const editRef = ref();
 
@@ -72,7 +75,7 @@
         if (value) {
           return true;
         }
-        emits('idChange', 0);
+        // emits('idChange', 0);
         return false;
       },
       message: t('目标集群不能为空'),
@@ -89,6 +92,9 @@
         }).then((data) => {
           if (data.length > 0) {
             localClusterId.value = data[0].id;
+            if (!isSkipInputFinish) {
+              emits('idChange', localClusterId.value);
+            }
             return true;
           }
           return false;
@@ -158,12 +164,17 @@
     emits('inputCreate', list);
   };
 
+  const handleFocus = () => {
+    isSkipInputFinish = false;
+  };
+
   // onBeforeUnmount(() => {
   //   delete clusterIdMemo[instanceKey];
   // });
 
   defineExpose<Exposes>({
-    getValue() {
+    getValue(isSubmit = false) {
+      isSkipInputFinish = isSubmit;
       return editRef.value
         .getValue()
         .then(() => ({

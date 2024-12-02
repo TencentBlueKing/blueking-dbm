@@ -30,6 +30,7 @@
           :removeable="tableData.length < 2"
           @add="(payload: Array<IDataRow>) => handleAppend(index, payload)"
           @clone="(payload: IDataRow) => handleClone(index, payload)"
+          @id-change="(clusterId: number) => handleChangeCluster(index, clusterId)"
           @remove="handleRemove(index)" />
       </RenderData>
       <TicketRemark v-model="remark" />
@@ -66,6 +67,7 @@
   import { useRouter } from 'vue-router';
 
   import TendbClusterModel from '@services/model/tendbcluster/tendbcluster';
+  import { getTendbClusterList } from '@services/source/tendbcluster';
   import { createTicket } from '@services/source/ticket';
 
   import { useTicketCloneInfo } from '@hooks';
@@ -161,6 +163,31 @@
       tableData.value = [...tableData.value, ...newList];
     }
     window.changeConfirm = true;
+  };
+
+  // 输入集群后查询集群信息并填充到table
+  const handleChangeCluster = async (index: number, clusterId: number) => {
+    if (tableData.value[index].clusterData?.id === clusterId) {
+      return;
+    }
+
+    const resultList = await getTendbClusterList({
+      cluster_ids: [clusterId],
+    });
+    if (resultList.results.length < 1) {
+      return;
+    }
+    const item = resultList.results[0];
+    const domain = item.master_domain;
+    const row = createRowData({
+      clusterData: {
+        id: item.id,
+        domain: item.master_domain,
+      },
+    });
+    tableData.value[index] = row;
+    domainMemo[domain] = true;
+    selectedClusters.value[item.cluster_type].push(item);
   };
 
   // 追加一个集群
