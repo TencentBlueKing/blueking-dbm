@@ -84,6 +84,7 @@ def add_spider_slaves_sub_flow(
 
     # 获取到集群对应的spider端口，作为这次的安装
     parent_global_data["spider_ports"] = [cluster.proxyinstance_set.first().port]
+    parent_global_data["db_module_id"] = cluster.db_module_id
     sub_pipeline = SubBuilder(root_id=root_id, data=parent_global_data)
 
     # 拼接执行原子任务活动节点需要的通用的私有参数结构体, 减少代码重复率，但引用时注意内部参数值传递的问题
@@ -234,6 +235,7 @@ def add_spider_masters_sub_flow(
     # 获取到集群对应的spider端口，作为这次的安装
     parent_global_data["spider_ports"] = [cluster.proxyinstance_set.first().port]
     parent_global_data["ctl_port"] = cluster.proxyinstance_set.first().admin_port
+    parent_global_data["db_module_id"] = cluster.db_module_id
     sub_pipeline = SubBuilder(root_id=root_id, data=parent_global_data)
 
     # 拼接执行原子任务活动节点需要的通用的私有参数结构体, 减少代码重复率，但引用时注意内部参数值传递的问题

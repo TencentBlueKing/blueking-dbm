@@ -69,6 +69,11 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
         生成并获取mysql实例配置,集群级别配置
         spider/spider-ctl/spider-mysql实例统一用这里拿去配置
         """
+        if db_version != "Tdbctl" and self.db_module_id == 0:
+            # 这里做一层判断，对传入的db_module_id值判断，非Tdbctl实例，传入的db_module_id必须是合理且存在的值，否则抛出异常
+            raise Exception(
+                f"The db_module_id parameter is illegal, db_module_id:{self.db_module_id}, db_version:{db_version}"
+            )
         data = DBConfigApi.get_or_generate_instance_config(
             {
                 "bk_biz_id": str(self.ticket_data["bk_biz_id"]),

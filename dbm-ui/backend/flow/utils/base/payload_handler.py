@@ -55,6 +55,8 @@ class PayloadHandler(object):
         # todo 后面可能优化这个问题
         if self.ticket_data.get("module"):
             self.db_module_id = self.ticket_data["module"]
+        elif self.ticket_data.get("db_module_id"):
+            self.db_module_id = self.ticket_data["db_module_id"]
         elif self.cluster and self.cluster.get("db_module_id"):
             self.db_module_id = self.cluster["db_module_id"]
         else:
