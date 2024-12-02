@@ -1249,7 +1249,7 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
             },
         }
         # 如果指定了行级别的回档,需添加4个参数,使用GoFlashBackBinlog工具回档
-        rows_filter = self.cluster.get(["rows_filter"], "").strip()
+        rows_filter = self.cluster.get("rows_filter", "").strip()
         direct_write_back = self.cluster.get("direct_write_back", True)
         if rows_filter != "":
             payload["action"] = DBActuatorActionEnum.GoFlashBackBinlog.value
