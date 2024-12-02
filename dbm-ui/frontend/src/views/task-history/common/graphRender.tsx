@@ -230,7 +230,16 @@ export default class GraphRender {
 
           {flowInfo.status !== 'REVOKED' && node.children === undefined && (
             <div class='node-ractangle__operations'>
-              {!node.isTodoNode && status === 'RUNNING' && (
+              {node.isTodoNode ? (
+                <i
+                  class='operation-icon db-icon-check  mr-5'
+                  v-bk-tooltips={t('人工确认')}
+                  data-evt-type='todo'
+                />
+              ) : (
+                ''
+              )}
+              {status === 'RUNNING' && (
                 <i
                   class='operation-icon db-icon-qiangzhizhongzhi'
                   v-bk-tooltips={t('强制失败')}
@@ -251,15 +260,6 @@ export default class GraphRender {
                   class='operation-icon db-icon-refresh-2 mr-4'
                   v-bk-tooltips={t('失败重试')}
                   data-evt-type='refresh'
-                />
-              ) : (
-                ''
-              )}
-              {node.isTodoNode ? (
-                <i
-                  class='operation-icon db-icon-check'
-                  v-bk-tooltips={t('人工确认')}
-                  data-evt-type='todo'
                 />
               ) : (
                 ''

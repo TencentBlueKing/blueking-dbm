@@ -176,9 +176,9 @@ export function getSpecResourceCount(params: {
 export function updateResource(params: {
   bk_host_ids: number[];
   for_biz?: number;
-  rack_id: string;
+  rack_id?: string;
   resource_type?: string;
-  storage_device: Record<string, { size: number; disk_type: string }>;
+  storage_device?: Record<string, { size: number; disk_type: string }>;
 }) {
   return http.post(`${path}/update/`, params);
 }
