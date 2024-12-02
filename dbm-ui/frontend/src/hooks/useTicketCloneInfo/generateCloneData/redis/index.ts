@@ -6,6 +6,7 @@ export * from './clusterTypeUpdate';
 export * from './dataCopy';
 export * from './dataCopyCheckRepair';
 export * from './dataStructure';
+export * from './installModule';
 export * from './masterSlaveSwitch';
 export * from './operation';
 export * from './proxyScaleDown';

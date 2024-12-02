@@ -101,6 +101,7 @@
   import DetailsRedis from './redis/Details.vue';
   import DetailsRedisHa from './redis/DetailsHa.vue';
   import RedisHaClusterOperation from './redis/HaClusterOperation.vue';
+  import RedisInstallModule from './redis/InstallModule.vue';
   import RedisMasterFailover from './redis/MasterFailover.vue';
   import RedisOperation from './redis/Operation.vue';
   import RedisProxyScaleDown from './redis/ProxyScaleDown.vue';
@@ -328,6 +329,7 @@
     [TicketTypes.REDIS_DATACOPY_CHECK_REPAIR]: RedisDataCheckAndRepair,
     [TicketTypes.REDIS_CLUSTER_ROLLBACK_DATA_COPY]: RedisRollbackDataCopy,
     [TicketTypes.REDIS_VERSION_UPDATE_ONLINE]: RedisVersionUpgrade,
+    [TicketTypes.REDIS_CLUSTER_LOAD_MODULES]: RedisInstallModule,
     [TicketTypes.TENDBCLUSTER_APPLY]: DetailsSpider,
     [TicketTypes.TENDBCLUSTER_SPIDER_ADD_NODES]: SpiderAddNodes,
     [TicketTypes.TENDBCLUSTER_CHECKSUM]: SpiderCheckSum,
