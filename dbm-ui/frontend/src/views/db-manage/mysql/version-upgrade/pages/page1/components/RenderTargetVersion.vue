@@ -94,6 +94,7 @@
       clusterType: string;
       currentVersion: string;
       moduleName: string;
+      moduleId: number;
     };
     targetVersion?: string;
     targetPackage?: number;
@@ -159,8 +160,8 @@
     manual: true,
     onSuccess(modules) {
       // const moduleList: IListItem[] = [];
-      const { moduleName } = props.data!;
-      const currentModule = modules.find((moduleItem) => moduleItem.alias_name === moduleName);
+      const { moduleId } = props.data!;
+      const currentModule = modules.find((moduleItem) => moduleItem.db_module_id === moduleId);
       if (currentModule) {
         const currentCharset = currentModule.db_module_info.conf_items.find(
           (confItem) => confItem.conf_name === 'charset',
