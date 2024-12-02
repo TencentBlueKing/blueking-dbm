@@ -12,18 +12,51 @@
 -->
 
 <template>
+  <div
+    v-if="isActive"
+    class="submitting-mask">
+    <DbIcon
+      class="submitting-icon"
+      svg
+      type="sync-pending" />
+    <p class="submitting-text mt16">
+      {{ t('密码正在修改中，请稍等') }}
+    </p>
+    <RouterLink
+      class="mt16 mb16"
+      target="_blank"
+      :to="{
+        name: 'taskHistoryDetail',
+        params: {
+          root_id: rootId,
+        },
+      }">
+      {{ t('查看详情') }}
+    </RouterLink>
+  </div>
   <RenderSuccess
-    class="password-temporary-modify-success"
+    v-else
+    class="modify-success"
     :steps="[]">
     <template #title>
       <I18nT
         keypath="密码修改完成，成功n个，失败n个"
         tag="span">
-        <span class="title-success">{{ successListLength }}</span>
-        <span class="title-error">{{ errorListLength }}</span>
+        <span class="title-success">{{ successList.length }}</span>
+        <span class="title-error">{{ errorList.length }}</span>
       </I18nT>
     </template>
-    <slot />
+    <RouterLink
+      class="mt16 mb16"
+      target="_blank"
+      :to="{
+        name: 'taskHistoryDetail',
+        params: {
+          root_id: rootId,
+        },
+      }">
+      {{ t('查看详情') }}
+    </RouterLink>
     <div class="password-display">
       {{ t('当前密码') }} : {{ passwordDisplay }}
       <BkButton
@@ -49,7 +82,7 @@
     <template #action>
       <div>
         <BkButton
-          :disabled="!errorListLength"
+          :disabled="!errorList.length"
           theme="primary"
           @click="handleRetry">
           {{ t('失败重试') }}
@@ -61,7 +94,7 @@
         </BkButton>
       </div>
       <div
-        v-if="errorListLength || errorMessage"
+        v-if="errorList.length || errorMessage"
         class="list-box">
         <template v-if="errorMessage">
           <div class="list-box-head">
@@ -71,9 +104,9 @@
             {{ errorMessage }}
           </div>
         </template>
-        <template v-if="errorListLength">
+        <template v-if="errorList.length">
           <div class="list-box-head">
-            {{ t('失败的实例') }}({{ errorListLength }})
+            {{ t('失败的实例') }}({{ errorList.length }})
             <BkButton
               text
               theme="primary"
@@ -86,7 +119,7 @@
               v-for="(item, index) in errorList"
               :key="index"
               class="list-box-content-item">
-              {{ item.ip }}:{{ item.port }}
+              {{ item }}
             </span>
           </div>
         </template>
@@ -95,75 +128,95 @@
   </RenderSuccess>
 </template>
 <script setup lang="ts">
-  import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
+  import { useRequest } from 'vue-request';
 
-  import { queryAsyncModifyResult } from '@services/source/permission';
+  import { modifyAdminPassword, queryAsyncModifyResult } from '@services/source/permission';
 
   import { useCopy } from '@hooks';
 
-  import type { ClusterTypes } from '@common/const';
-
   import RenderSuccess from '@components/ticket-success/Index.vue';
 
-  interface RetryItem {
-    ip: string;
-    port: number;
-    bk_cloud_id: number;
-    cluster_type: ClusterTypes;
-    role: string;
-  }
+  import { useTimeoutPoll } from '@vueuse/core';
 
   interface Props {
-    submitResult?: ServiceReturnType<typeof queryAsyncModifyResult>;
-    submitLength: number;
-    submitRoleMap: Record<string, string>;
+    instanceList: ServiceParameters<typeof modifyAdminPassword>['instance_list'];
     password: string;
+    rootId: string;
   }
 
   interface Emits {
-    (e: 'retry', value: RetryItem[]): void;
+    (e: 'retry', value: Props['instanceList']): void;
     (e: 'refresh'): void;
   }
 
   const props = defineProps<Props>();
+
   const emits = defineEmits<Emits>();
 
   const { t } = useI18n();
   const copy = useCopy();
+
   const isShowPassword = ref(false);
+  const successList = ref<string[]>([]);
+  const errorList = ref<string[]>([]);
+  const errorMessage = ref('');
 
   const passwordDisplay = computed(() => (isShowPassword.value ? props.password : '********'));
-  const errorMessage = computed(() => {
-    if (props.submitResult?.status === 'FINISHED' && !props.submitResult?.result) {
-      return props.submitResult?.error;
-    }
-    return '';
+
+  // 轮询
+  const { isActive, resume, pause } = useTimeoutPoll(() => {
+    queryAsyncModifyResultRun({
+      root_id: props.rootId,
+    });
+  }, 2000);
+
+  const getInstanceList = (list: ServiceReturnType<typeof queryAsyncModifyResult>['success'] = []) => {
+    const arr: string[] = [];
+    list.forEach((item) => {
+      item.instances.forEach((insItem) => {
+        insItem.addresses.forEach((addressItem) => {
+          arr.push(`${addressItem.ip}:${addressItem.port}`);
+        });
+      });
+    });
+    return arr;
+  };
+
+  const { run: queryAsyncModifyResultRun } = useRequest(queryAsyncModifyResult, {
+    manual: true,
+    onSuccess(data) {
+      /**
+       * 设置轮询
+       * FINISHED: 完成态
+       * FAILED: 失败态
+       * REVOKED: 取消态
+       */
+      if (['FINISHED', 'FAILED', 'REVOKED'].includes(data.status)) {
+        pause();
+      } else if (!isActive.value) {
+        resume();
+      }
+      if (data.status === 'FINISHED') {
+        errorMessage.value = data.error as string;
+        successList.value = data.success ? getInstanceList(data.success) : [];
+        errorList.value = data.fail
+          ? getInstanceList(data.fail)
+          : props.instanceList.map((item) => `${item.ip}:${item.port}`);
+      }
+    },
   });
-  const errorList = computed(() =>
-    _.flatMap(props.submitResult?.data?.fail || [], (item) => {
-      const { bk_cloud_id, cluster_type } = item;
-      const roleMap = props.submitRoleMap;
-      return _.flatMap(item.instances, (insItem) =>
-        insItem.addresses.map((addressItem) => ({
-          ...addressItem,
-          bk_cloud_id,
-          cluster_type,
-          role: roleMap[`${addressItem.ip}:${addressItem.port}`],
-        })),
-      );
-    }),
-  );
-  const successListLength = computed(() =>
-    _.sumBy(props.submitResult?.data?.success, (item) =>
-      _.sumBy(item.instances, (insItem) => insItem.addresses.length),
-    ),
-  );
-  const errorListLength = computed(
-    () =>
-      _.sumBy(props.submitResult?.data?.fail, (item) =>
-        _.sumBy(item.instances, (insItem) => insItem.addresses.length),
-      ) || props.submitLength - successListLength.value,
+
+  watch(
+    () => props.rootId,
+    () => {
+      if (props.rootId && !isActive.value) {
+        resume();
+      }
+    },
+    {
+      immediate: true,
+    },
   );
 
   const handleShowPassword = () => {
@@ -175,21 +228,55 @@
   };
 
   const handleCopy = () => {
-    const copyList = errorList.value.map((item) => `${item.ip}:${item.port}`);
-    copy(copyList.join('\n'));
+    copy(errorList.value.join('\n'));
   };
 
   const handleRetry = () => {
-    emits('retry', errorList.value);
+    emits(
+      'retry',
+      props.instanceList.filter((item) => !successList.value.includes(`${item.ip}:${item.port}`)),
+    );
   };
 
   const handleGoBack = () => {
     emits('refresh');
   };
+
+  onBeforeUnmount(() => {
+    pause();
+  });
 </script>
 
 <style lang="less" scoped>
-  .password-temporary-modify-success {
+  .submitting-mask {
+    display: flex;
+    padding: 90px 0 138px;
+    flex-direction: column;
+    align-items: center;
+
+    .submitting-icon {
+      font-size: 64px;
+      color: @primary-color;
+      animation: rotate 2s linear infinite;
+    }
+
+    .submitting-text {
+      font-size: 24px;
+      color: #313238;
+    }
+
+    @keyframes rotate {
+      0% {
+        transform: rotate(0deg);
+      }
+
+      100% {
+        transform: rotate(-360deg);
+      }
+    }
+  }
+
+  .modify-success {
     padding: 60px 0;
     background-color: #fff;
 
