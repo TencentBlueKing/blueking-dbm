@@ -86,6 +86,7 @@
         }).then((data) => {
           if (data.length > 0) {
             localClusterId.value = data[0].id;
+            emits('idChange', localClusterId.value);
             return true;
           }
           return false;
