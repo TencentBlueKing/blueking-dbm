@@ -29,7 +29,7 @@ from backend.db_meta.models import (
 )
 from backend.db_meta.models.cluster_monitor import INSTANCE_MONITOR_PLUGINS
 from backend.exceptions import ValidationError
-from backend.flow.utils.cc_manage import CcManage
+from backend.flow.utils.cc_manage import CcManage, trigger_operate_collector
 
 logger = logging.getLogger("flow")
 
@@ -109,6 +109,7 @@ class CCTopoOperator:
 
         for machine_type, ins_list in machine_type_instances_map.items():
             bk_host_ids = list(set([ins.machine.bk_host_id for ins in ins_list]))
+
             bk_module_ids = list(
                 ClusterMonitorTopo.objects.filter(cluster_id__in=cluster_ids, machine_type=machine_type).values_list(
                     "bk_module_id", flat=True
@@ -118,7 +119,8 @@ class CCTopoOperator:
             for cluster_type in cluster_types_list:
                 CcManage(self.bk_biz_id, cluster_type).transfer_host_module(bk_host_ids, bk_module_ids, is_increment)
             # 创建 CMDB 服务实例
-            self.init_instances_service(machine_type, ins_list)
+            bk_instance_ids = self.init_instances_service(machine_type, ins_list)
+            trigger_operate_collector(self.db_type, machine_type, bk_instance_ids)
 
     def init_instances_service(self, machine_type, instances=None):
         """
@@ -126,6 +128,7 @@ class CCTopoOperator:
         """
         cluster_module_id_map = {}
         func_name = INSTANCE_MONITOR_PLUGINS[self.db_type][machine_type]["func_name"]
+        bk_instance_ids = []
         for ins in instances:
             cluster = ins.cluster.first()
             # 查询实例对应的模块 ID
@@ -137,13 +140,15 @@ class CCTopoOperator:
                 cluster_module_id_map[cluster.id] = bk_module_id
 
             # 写入服务实例
-            self.init_instance_service(
+            bk_instance_id = self.init_instance_service(
                 cluster=cluster,
                 ins=ins,
                 bk_module_id=bk_module_id,
                 instance_role=self.generate_ins_instance_role(ins),
                 func_name=func_name,
             )
+            bk_instance_ids.append(bk_instance_id)
+        return bk_instance_ids
 
     def init_unique_service(self, machine_type):
         """
@@ -237,6 +242,7 @@ class CCTopoOperator:
         # 保存到数据库
         ins.bk_instance_id = bk_instance_id
         ins.save(update_fields=["bk_instance_id"])
+        return bk_instance_id
 
     def create_tbinlogdumper_instances(self, instances: List[ExtraProcessInstance]):
         """

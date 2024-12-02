@@ -10,16 +10,18 @@ specific language governing permissions and limitations under the License.
 """
 import json
 import logging
+import time
 from collections import defaultdict
 from typing import Any, Dict, List
 
+from blueapps.core.celery.celery import app
 from django.db import transaction
 
 from backend import env
-from backend.components import CCApi
+from backend.components import BKMonitorV3Api, CCApi
 from backend.configuration.models import BizSettings, DBAdministrator
 from backend.db_meta.enums import ClusterType, ClusterTypeMachineTypeDefine
-from backend.db_meta.models import AppMonitorTopo, Cluster, ClusterMonitorTopo, Machine, StorageInstance
+from backend.db_meta.models import AppMonitorTopo, Cluster, ClusterMonitorTopo, Machine, ProxyInstance, StorageInstance
 from backend.db_meta.models.cluster_monitor import INSTANCE_MONITOR_PLUGINS, SET_NAME_TEMPLATE
 from backend.db_monitor.models import CollectInstance, MonitorPolicy
 from backend.db_monitor.utils import create_bklog_collector
@@ -29,8 +31,11 @@ from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
 from backend.dbm_init.constants import CC_HOST_DBM_ATTR
 from backend.dbm_init.services import Services
 from backend.exceptions import ApiError
+from backend.utils.redis import RedisConn
 
 logger = logging.getLogger("flow")
+
+OPERATE_COLLECTOR_COUNTDOWN = 30
 
 
 class CcManage(object):
@@ -417,6 +422,7 @@ class CcManage(object):
                 },
                 use_admin=True,
             )
+            trigger_operate_collector(bk_instance_ids=bk_instance_ids)
 
     def delete_service_instance(self, bk_instance_ids: List[int]):
         # 这里因为id不存在会导致接口异常退出，这里暂时接收所有错误，不让它直接退出
@@ -488,3 +494,95 @@ class CcManage(object):
         @param cluster_type： 集群类型
         """
         self.delete_cc_module(db_type, cluster_type, instance_id=ins.id)
+
+
+def format_operate_collector_cache_key(db_type, machine_type, suffix="") -> str:
+    """
+    生成操作采集器缓存key
+    """
+    cache_key = f"operate_collector_{db_type}_{machine_type}"
+    if suffix:
+        cache_key = f"{cache_key}_{suffix}"
+    return cache_key
+
+
+@app.task
+def operate_collector(db_type: str, machine_type: str, bk_instance_ids: list, action="install"):
+    """
+    操作采集器
+    调用监控 API，针对本次变更的范围进行下发
+
+    """
+    cache_key = format_operate_collector_cache_key(db_type, machine_type)
+    trigger_time_key = format_operate_collector_cache_key(db_type, machine_type, "trigger_time")
+    trigger_time = RedisConn.get(trigger_time_key)
+
+    # 通过触发时间，加上延迟窗口，来实现滚动窗口，避免串行调用节点管理
+    if trigger_time is None or time.time() - float(trigger_time) > OPERATE_COLLECTOR_COUNTDOWN:
+        bk_instance_ids = [int(bk_inst_id) for bk_inst_id in RedisConn.lrange(cache_key, 0, -1)]
+        if not bk_instance_ids:
+            return
+
+        RedisConn.delete(cache_key)
+        RedisConn.delete(trigger_time_key)
+        logger.error(
+            "operate_collector: {db_type} {machine_type} {bk_instance_ids} {action}".format(
+                db_type=db_type, machine_type=machine_type, bk_instance_ids=bk_instance_ids, action=action
+            )
+        )
+    plugin_id = INSTANCE_MONITOR_PLUGINS[db_type][machine_type]["plugin_id"]
+    collect_instances = CollectInstance.objects.filter(db_type=db_type, plugin_id=plugin_id)
+    for collect_ins in collect_instances:
+        if machine_type in collect_ins.machine_types or not collect_ins.machine_types:
+            try:
+                BKMonitorV3Api.run_collect_config(
+                    {
+                        "bk_biz_id": env.DBA_APP_BK_BIZ_ID,
+                        "id": collect_ins.collect_id,
+                        "scope": {
+                            "node_type": "INSTANCE",
+                            "nodes": [{"id": bk_instance_id} for bk_instance_id in bk_instance_ids],
+                        },
+                        "action": action,
+                    }
+                )
+            except ApiError as err:
+                logger.error(f"[run_collect_config] id:{collect_ins.collect_id} error: {err}")
+
+
+def trigger_operate_collector(
+    db_type: str = None, machine_type: str = None, bk_instance_ids: list = None, action="install"
+):
+    """
+    触发操作采集器
+    """
+    # 监控某些场景下，不传入 db_type 和 machine_type 的情况，例如 dbha 切换后，仅更新标签
+    if db_type is None and machine_type is None and bk_instance_ids is not None:
+        ins = (
+            StorageInstance.objects.filter(bk_instance_id__in=bk_instance_ids).first()
+            or ProxyInstance.objects.filter(bk_instance_id__in=bk_instance_ids).first()
+        )
+        if ins is None:
+            return
+        machine_type = ins.machine_type
+        db_type = ClusterType.cluster_type_to_db_type(ins.cluster_type)
+
+    cache_key = format_operate_collector_cache_key(db_type, machine_type)
+    trigger_time_key = format_operate_collector_cache_key(db_type, machine_type, "trigger_time")
+    trigger_time = RedisConn.get(trigger_time_key)
+
+    # 设置触发时间， 以 OPERATE_COLLECTOR_COUNTDOWN 作为一个滚动窗口来执行采集器操作
+    if not trigger_time:
+        trigger_time = time.time()
+        logger.error(f"trigger_operate_collector trigger_timer: {trigger_time}")
+        RedisConn.set(trigger_time_key, trigger_time, ex=OPERATE_COLLECTOR_COUNTDOWN)
+    RedisConn.lpush(cache_key, *bk_instance_ids)
+    operate_collector.apply_async(
+        kwargs={
+            "db_type": db_type,
+            "machine_type": machine_type,
+            "bk_instance_ids": bk_instance_ids,
+            "action": action,
+        },
+        countdown=OPERATE_COLLECTOR_COUNTDOWN,
+    )

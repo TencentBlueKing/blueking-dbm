@@ -95,6 +95,11 @@ class _BKMonitorV3Api(BaseApi):
             url="save_collect_config/",
             description=_("保存采集策略"),
         )
+        self.run_collect_config = self.generate_data_api(
+            method="POST",
+            url="run_collect_config/",
+            description=_("执行采集配置部分实例"),
+        )
         self.query_collect_config = self.generate_data_api(
             method="POST",
             url="query_collect_config/",
