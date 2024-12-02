@@ -274,18 +274,8 @@ func (job *Job) DeleteTooOldBinlogbackup(port int) {
 	Days15Ago := time.Now().Local().AddDate(0, 0, -15)
 	mylog.Logger.Debug(fmt.Sprintf("port:%d start DeleteTooOldBinlogbackup", port))
 
-	// 15 天以前的,本地文件已删除的,记录直接删除
-	job.Err = job.sqdb.Where("start_time<=? and local_file_removed=?", Days15Ago, 1).
-		Delete(&RedisBinlogHistorySchema{}).Error
-	if job.Err != nil {
-		job.Err = fmt.Errorf(
-			"DeleteTooOldBinlogbackup gorm delete fail,err:%v,start_time:(%s) local_file_removed:%d",
-			job.Err, Days15Ago, 1)
-		mylog.Logger.Error(job.Err.Error())
-		return
-	}
 	// OldFileLeftDay天以以前的,本地文件未删除的,remove本地文件,并记录下该行为
-	job.Err = job.sqdb.Where("start_time<=? and local_file_removed=?", NDaysAgo, 0).Find(&toDoRows).Error
+	job.Err = job.sqdb.Where("end_time<=? and local_file_removed=?", NDaysAgo, 0).Find(&toDoRows).Error
 	if job.Err != nil && job.Err != gorm.ErrRecordNotFound {
 		job.Err = fmt.Errorf("DeleteTooOldBinlogbackup gorm find fail,err:%v", job.Err)
 		mylog.Logger.Error(job.Err.Error())
@@ -293,6 +283,7 @@ func (job *Job) DeleteTooOldBinlogbackup(port int) {
 	}
 	job.Err = nil
 	for _, row := range toDoRows {
+		mylog.Logger.Info(fmt.Sprintf("begin delete old file:%s,4 ModfyTime:%s", row.BackupFile, row.EndTime.GoString()))
 		removeOK = true
 		if util.FileExists(row.BackupFile) {
 			err = os.Remove(row.BackupFile)
@@ -311,5 +302,16 @@ func (job *Job) DeleteTooOldBinlogbackup(port int) {
 			job.Err = fmt.Errorf("gorm save fail,err:%v", job.Err)
 			mylog.Logger.Error(job.Err.Error())
 		}
+	}
+
+	// 15 天以前的,本地文件已删除的,记录直接删除
+	job.Err = job.sqdb.Where("end_time<=? and local_file_removed=?", Days15Ago, 1).
+		Delete(&RedisBinlogHistorySchema{}).Error
+	if job.Err != nil {
+		job.Err = fmt.Errorf(
+			"DeleteTooOldBinlogbackup gorm delete fail,err:%v,start_time:(%s) local_file_removed:%d",
+			job.Err, Days15Ago, 1)
+		mylog.Logger.Error(job.Err.Error())
+		return
 	}
 }
