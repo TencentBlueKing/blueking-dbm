@@ -62,6 +62,12 @@ export default [
             parentId: 'common-manage',
             dbConsoleValue: 'redis.toolbox.versionUpgrade',
           },
+          {
+            name: t('安装 Module'),
+            id: 'RedisInstallModule',
+            parentId: 'cluster-manage',
+            dbConsoleValue: 'redis.toolbox.installModule',
+          },
         ],
       },
       {
@@ -134,12 +140,6 @@ export default [
         icon: 'db-icon-cluster',
         children: [
           {
-            name: t('集群容量变更'),
-            id: 'RedisCapacityChange',
-            parentId: 'cluster-manage',
-            dbConsoleValue: 'redis.toolbox.capacityChange',
-          },
-          {
             name: t('扩容接入层'),
             id: 'RedisProxyScaleUp',
             parentId: 'cluster-manage',
@@ -150,6 +150,12 @@ export default [
             id: 'RedisProxyScaleDown',
             parentId: 'cluster-manage',
             dbConsoleValue: 'redis.toolbox.proxyScaleDown',
+          },
+          {
+            name: t('集群容量变更'),
+            id: 'RedisCapacityChange',
+            parentId: 'cluster-manage',
+            dbConsoleValue: 'redis.toolbox.capacityChange',
           },
           {
             name: t('集群分片变更'),

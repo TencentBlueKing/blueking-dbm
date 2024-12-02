@@ -418,3 +418,14 @@ export interface RedisVersionUpgrade extends DetailBase {
     target_version: string;
   }[];
 }
+
+// redis 安装Module
+export interface RedisInstallModuleDetails extends DetailBase {
+  bk_cloud_id: number;
+  clusters: DetailClusters;
+  infos: {
+    cluster_id: number;
+    db_version: string;
+    load_modules: string[];
+  }[];
+}

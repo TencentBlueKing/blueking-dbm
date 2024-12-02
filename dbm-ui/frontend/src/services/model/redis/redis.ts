@@ -69,6 +69,7 @@ export default class Redis {
   machine_pair_cnt: number;
   major_version: string;
   master_domain: string;
+  module_names: string[];
   operations: ClusterListOperation[];
   permission: {
     access_entry_edit: boolean;
@@ -122,6 +123,7 @@ export default class Redis {
     this.machine_pair_cnt = payload.machine_pair_cnt;
     this.major_version = payload.major_version;
     this.master_domain = payload.master_domain;
+    this.module_names = payload.module_names || [];
     this.operations = payload.operations || [];
     this.permission = payload.permission || {};
     this.phase = payload.phase;

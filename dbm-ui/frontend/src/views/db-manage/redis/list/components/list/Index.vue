@@ -709,6 +709,12 @@
       render: ({ data }: ColumnRenderData) => data.major_version || '--',
     },
     {
+      label: 'Modules',
+      field: 'module_names',
+      minWidth: 100,
+      render: ({ data }: ColumnRenderData) => data.module_names.length ? data.module_names.map(item=><p class="mb-4">{item}</p>) : '--',
+    },
+    {
       label: t('地域'),
       field: 'region',
       minWidth: 100,
@@ -1024,6 +1030,7 @@
         ClusterNodeKeys.REDIS_SLAVE,
         'cluster_type_name',
         'major_version',
+        'module_names',
         'region',
       ],
       showLineHeight: false,

@@ -39,6 +39,7 @@ import {
   generateRedisDataCopyCheckRepairCloneData,
   generateRedisDataCopyCloneData,
   generateRedisDataStructureCloneData,
+  generateRedisInstallModule,
   generateRedisMasterSlaveSwitchCloneData,
   generateRedisOperationCloneData,
   generateRedisProxyScaleDownCloneData,
@@ -91,6 +92,7 @@ export const generateCloneDataHandlerMap = {
   [TicketTypes.REDIS_KEYS_DELETE]: generateRedisOperationCloneData, // Redis 删除Key
   [TicketTypes.REDIS_BACKUP]: generateRedisOperationCloneData, // Redis 集群备份
   [TicketTypes.REDIS_PURGE]: generateRedisOperationCloneData,
+  [TicketTypes.REDIS_CLUSTER_LOAD_MODULES]: generateRedisInstallModule, // Redis 安装Module
   [TicketTypes.MYSQL_AUTHORIZE_RULES]: generateMysqlAuthorizeRuleCloneData, // Mysql 集群授权
   [TicketTypes.MYSQL_IMPORT_SQLFILE]: generateMysqlImportSqlFileCloneData, // Mysql SQL变更执行
   [TicketTypes.MYSQL_CHECKSUM]: generateMysqlChecksumCloneData, // Mysql 数据校验
