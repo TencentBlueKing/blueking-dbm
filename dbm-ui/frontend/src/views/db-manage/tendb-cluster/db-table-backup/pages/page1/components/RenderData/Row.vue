@@ -109,7 +109,6 @@
     (e: 'add', params: Array<IDataRow>): void;
     (e: 'remove'): void;
     (e: 'clone', value: IDataRow): void;
-    (e: 'idChange', value: number): void;
   }
 
   interface Exposes {
@@ -142,7 +141,7 @@
   );
 
   const handleClusterIdChange = (clusterId: number) => {
-    emits('idChange', clusterId);
+    localClusterId.value = clusterId;
   };
 
   const handleCreate = (list: Array<string>) => {
@@ -171,7 +170,7 @@
   };
 
   const getRowData = () => [
-    clusterRef.value!.getValue(true),
+    clusterRef.value!.getValue(),
     backupLocalRef.value!.getValue(),
     dbPatternsRef.value!.getValue('db_patterns'),
     tablePatternsRef.value!.getValue('table_patterns'),
