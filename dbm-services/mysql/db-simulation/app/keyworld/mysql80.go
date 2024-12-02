@@ -25,7 +25,6 @@ var Keywords80 = []Keyword{
 	{"ALL", false},
 	{"ALTER", true},
 	{"ALWAYS", false},
-	{"ANALYSE", false},
 	{"ANALYZE", false},
 	{"AND", false},
 	{"ANY", false},

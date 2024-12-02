@@ -301,7 +301,10 @@ func (tf *TmysqlParseFile) UploadDdlTblMapFile() (err error) {
 }
 
 func getSQLParseResultFile(fileName, version string) string {
-	return fmt.Sprintf("%s-%s.json", version, fileName)
+	if lo.IsNotEmpty(version) {
+		return fmt.Sprintf("%s-%s.json", version, fileName)
+	}
+	return fileName + ".json"
 }
 
 // getCommand generates the command string for running TmysqlParse

@@ -21,7 +21,6 @@ var Keywords56 = []Keyword{
 	{"ALGORITHM", false},
 	{"ALL", false},
 	{"ALTER", false},
-	{"ANALYSE", false},
 	{"ANALYZE", false},
 	{"AND", false},
 	{"ANY", false},

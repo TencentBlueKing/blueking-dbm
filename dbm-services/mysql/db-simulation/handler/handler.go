@@ -14,13 +14,12 @@ package handler
 import (
 	"fmt"
 	"net/http"
-	"strings"
 
 	"github.com/gin-gonic/gin"
 
+	"dbm-services/common/go-pubpkg/cmutil"
+	"dbm-services/common/go-pubpkg/errno"
 	"dbm-services/common/go-pubpkg/logger"
-	"dbm-services/mysql/db-simulation/app/service"
-	"dbm-services/mysql/db-simulation/model"
 )
 
 // Response response data define
@@ -31,117 +30,36 @@ type Response struct {
 	Code      int         `json:"code"`
 }
 
-// CreateClusterParam 创建临时的spider的集群参数
-type CreateClusterParam struct {
-	Pwd            string `json:"pwd"`
-	PodName        string `json:"podname"`
-	SpiderVersion  string `json:"spider_version"`
-	BackendVersion string `json:"backend_version"`
+// BaseHandler base handler
+type BaseHandler struct {
+	RequestId string
 }
 
-// CreateTmpSpiderPodCluster 创建临时的spider的集群,多用于测试，debug
-func CreateTmpSpiderPodCluster(r *gin.Context) {
-	var param CreateClusterParam
-	if err := r.ShouldBindJSON(&param); err != nil {
-		logger.Error("ShouldBind failed %s", err)
-		SendResponse(r, err, "failed to deserialize parameters", "")
-		return
-	}
-	ps := service.NewDbPodSets()
-	ps.BaseInfo = &service.MySQLPodBaseInfo{
-		PodName: param.PodName,
-		RootPwd: param.Pwd,
-		Charset: "utf8mb4",
-	}
-	var err error
-	ps.DbImage, err = service.GetImgFromMySQLVersion(param.BackendVersion)
-	if err != nil {
-		logger.Error(err.Error())
-		return
-	}
-	ps.SpiderImage, ps.TdbCtlImage = service.GetSpiderAndTdbctlImg(param.SpiderVersion, service.LatestVersion)
-	if err := ps.CreateClusterPod(""); err != nil {
-		logger.Error(err.Error())
-		return
-	}
-	SendResponse(r, nil, "ok", "")
-}
-
-func replaceUnderSource(str string) string {
-	return strings.ReplaceAll(str, "_", "-")
-}
-
-// T 请求查询模拟执行整体任务的执行状态参数
-type T struct {
-	TaskID string `json:"task_id"`
-}
-
-// QueryTask 查询模拟执行整体任务的执行状态
-func QueryTask(c *gin.Context) {
-	var param T
-	if err := c.ShouldBindJSON(&param); err != nil {
-		logger.Error("ShouldBind failed %s", err)
-		SendResponse(c, err, map[string]interface{}{"stderr": "failed to deserialize parameters"}, "")
-		return
-	}
-	logger.Info("get task_id is %s", param.TaskID)
-	var tasks []model.TbSimulationTask
-	if err := model.DB.Where(&model.TbSimulationTask{TaskId: param.TaskID}).Find(&tasks).Error; err != nil {
-		logger.Error("query task failed %s", err.Error())
-		SendResponse(c, err, map[string]interface{}{"stderr": err.Error()}, "")
-		return
-	}
-	allSuccessful := false
-	for _, task := range tasks {
-		if task.Phase != model.PhaseDone {
-			c.JSON(http.StatusOK, Response{
-				Code:    2,
-				Message: fmt.Sprintf("task current phase is %s", task.Phase),
-				Data:    "",
-			})
-			return
-		}
-		switch task.Status {
-		case model.TaskFailed:
-			allSuccessful = false
-			SendResponse(c, fmt.Errorf("%s", task.SysErrMsg), map[string]interface{}{
-				"simulation_version": task.MySQLVersion,
-				"stdout":             task.Stdout,
-				"stderr":             task.Stderr,
-				"errmsg":             fmt.Sprintf("the program has been run with abnormal status:%s", task.Status)},
-				"")
-
-		case model.TaskSuccess:
-			allSuccessful = true
-		default:
-			allSuccessful = false
-			SendResponse(c, fmt.Errorf("unknown transition state"), map[string]interface{}{
-				"stdout": task.Stdout,
-				"stderr": task.Stderr,
-				"errmsg": fmt.Sprintf("the program has been run with abnormal status:%s", task.Status)},
-				"")
-		}
-	}
-	if allSuccessful {
-		SendResponse(c, nil, map[string]interface{}{"stdout": "all ok", "stderr": "all ok"}, "")
-	}
-}
-
-// SendResponse return response data to http client
-func SendResponse(r *gin.Context, err error, data interface{}, requestid string) {
-	if err != nil {
-		r.JSON(http.StatusOK, Response{
-			Code:      1,
-			Message:   err.Error(),
-			Data:      data,
-			RequestID: requestid,
-		})
-		return
-	}
+// SendResponse retrnurns a response
+func (c *BaseHandler) SendResponse(r *gin.Context, err error, data interface{}) {
+	code, message := errno.DecodeErr(err)
 	r.JSON(http.StatusOK, Response{
-		Code:      0,
-		Message:   "successfully",
+		Code:      code,
+		Message:   message,
 		Data:      data,
-		RequestID: requestid,
+		RequestID: c.RequestId,
 	})
+}
+
+// Prepare before request prepared
+func (c *BaseHandler) Prepare(r *gin.Context, schema interface{}) error {
+	requestId := r.GetString("request_id")
+	if cmutil.IsEmpty(requestId) {
+		err := fmt.Errorf("get request id error ~")
+		c.SendResponse(r, err, nil)
+		return err
+	}
+	c.RequestId = requestId
+	if err := r.ShouldBind(&schema); err != nil {
+		logger.Error("ShouldBind Failed %s", err.Error())
+		c.SendResponse(r, err, nil)
+		return err
+	}
+	logger.Info("param is %v", schema)
+	return nil
 }

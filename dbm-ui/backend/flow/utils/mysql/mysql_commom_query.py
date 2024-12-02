@@ -14,6 +14,7 @@ from typing import List
 from django.utils.translation import gettext as _
 
 from backend.components.db_remote_service.client import DRSApi
+from backend.components.sql_import.client import SQLSimulationApi
 from backend.constants import IP_PORT_DIVIDER
 from backend.db_meta.models import StorageInstance
 from backend.flow.utils.mysql.mysql_version_parse import mysql_version_parse
@@ -136,3 +137,38 @@ def check_backend_in_proxy(proxys: List[str], bk_cloud_id: int):
             is_pass = False
 
     return is_pass
+
+
+def parse_db_from_sqlfile(path: str, files: List[str]):
+    """
+    从变更sql文件中解析出变更相关的DB
+    respone data is :
+        {
+            "data": {
+                "create_dbs": [
+                    "xxx"
+                ],
+                "dbs": null,
+                "dump_all": false,
+                "timestamp": 1733734571
+            },
+            "request_id": "9faaf67f-1b09-4575-8974-472677b2db5b",
+            "msg": "",
+            "code": 0
+        }
+    create_dbs:  create database
+    dbs:  need dump database
+    dump_all:  是否需要dump所有数据库
+    """
+    payload = {}
+    payload["path"] = path
+    payload["files"] = files
+    try:
+        resp = SQLSimulationApi.query_relation_dbs_from_sqlfile(payload, raw=True)
+        if resp["code"] != 0:
+            logger.error(_("从SQL文件解析变更相关DB失败: {}").format(resp))
+            return None
+        return resp["data"]
+    except Exception as e:
+        logger.error(f"parse db from sqlfile failed: [{e}]")
+        return None

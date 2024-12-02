@@ -27,30 +27,16 @@ func RegisterRouter(engine *gin.Engine) {
 		context.String(http.StatusOK, "pong")
 	})
 	engine.POST("/app/debug", TurnOnDebug)
-
-	// query simulation task status info
-	t := engine.Group("/simulation")
-	t.POST("/task/file", handler.QuerySimulationFileResult)
-	t.POST("/task", handler.QueryTask)
-	// mysql
-	g := engine.Group("/mysql")
-	g.POST("/simulation", handler.TendbSimulation)
-	g.POST("/task", handler.QueryTask)
 	// syntax
-	s := engine.Group("/syntax")
-	s.POST("/check/file", handler.SyntaxCheckFile)
-	s.POST("/check/sql", handler.SyntaxCheckSQL)
-	s.POST("/upload/ddl/tbls", handler.CreateAndUploadDDLTblListFile)
+	syntaxHandler := handler.SyntaxHandler{}
+	syntaxHandler.RegisterRouter(engine)
+	// simulation
+	simulationHandler := handler.SimulationHandler{}
+	simulationHandler.RegisterRouter(engine)
 	// rule
-	r := engine.Group("/rule")
-	r.POST("/manage", handler.ManageRule)
-	r.GET("/getall", handler.GetAllRule)
-	r.POST("/update", handler.UpdateRule)
-	r.POST("/reload", handler.ReloadRule)
-	// spider
-	sp := engine.Group("/spider")
-	sp.POST("/simulation", handler.TendbClusterSimulation)
-	sp.POST("/create", handler.CreateTmpSpiderPodCluster)
+	manageRuleHandler := handler.ManageRuleHandler{}
+	manageRuleHandler.RegisterRouter(engine)
+
 }
 
 // TurnOnDebug turn on debug,not del simulation pod

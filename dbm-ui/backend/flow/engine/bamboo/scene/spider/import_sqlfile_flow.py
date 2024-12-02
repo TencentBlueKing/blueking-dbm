@@ -8,6 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import itertools
 import logging.config
 import os
 from dataclasses import asdict
@@ -32,6 +33,7 @@ from backend.flow.plugins.components.collections.mysql.semantic_check import Sem
 from backend.flow.plugins.components.collections.mysql.trans_flies import TransFileComponent
 from backend.flow.utils.mysql.mysql_act_dataclass import DownloadMediaKwargs, ExecActuatorKwargs
 from backend.flow.utils.mysql.mysql_act_playload import MysqlActPayload
+from backend.flow.utils.mysql.mysql_commom_query import parse_db_from_sqlfile
 from backend.flow.utils.mysql.mysql_version_parse import major_version_parse
 from backend.flow.utils.spider.spider_bk_config import get_spider_version_and_charset
 from backend.ticket.constants import TicketType
@@ -174,6 +176,18 @@ class ImportSQLFlow(object):
                 )
             ),
         )
+        # parse db from sqlfile
+        sqlfile_list = itertools.chain(*[set(obj["sql_files"]) for obj in self.data["execute_objects"]])
+        path = self.data["path"]
+        resp = parse_db_from_sqlfile(path=path, files=list(sqlfile_list))
+        if resp is None:
+            logger.warning("root id:[{}]parse db from sqlfile resp is None,set dump_all to True.".format(self.root_id))
+        else:
+            logger.info(f"resp: {resp}")
+            cluster["dump_all"] = resp.get("dump_all")
+            cluster["parse_need_dump_dbs"] = resp.get("dbs")
+            cluster["parse_create_dbs"] = resp.get("create_dbs")
+        cluster["execute_objects"] = self.data["execute_objects"]
         cluster["semantic_dump_schema_file_name_suffix"] = self.semantic_dump_schema_file_name_suffix
         semantic_check_pipeline.add_act(
             act_name=_("备份测试库表结构"),

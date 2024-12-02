@@ -43,6 +43,8 @@ const (
 	SQLTypeDelete = "delete"
 	// SQLTypeUpdate is update sql
 	SQLTypeUpdate = "update"
+	// SQLTypeUseDb is use db sql
+	SQLTypeUseDb = "change_db"
 )
 
 // ColDef mysql column definition

@@ -45,6 +45,11 @@ class _SQLSimulationApi(BaseApi):
             url="/simulation/task/file",
             description=_("查询语义执行结果"),
         )
+        self.query_relation_dbs_from_sqlfile = self.generate_data_api(
+            method="POST",
+            url="/syntax/parse/file/relation/db",
+            description=_("查询语义执行结果"),
+        )
 
 
 SQLSimulationApi = _SQLSimulationApi()

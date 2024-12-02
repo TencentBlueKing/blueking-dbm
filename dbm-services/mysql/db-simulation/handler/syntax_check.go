@@ -28,6 +28,9 @@ import (
 var tmysqlParserBin string
 var workdir string
 
+// ForceDumpAll 是否强制 dump 所有库表
+var ForceDumpAll bool
+
 func init() {
 	tmysqlParserBin = strings.TrimSpace(viper.GetString("tmysqlparser_bin"))
 	// 容器环境会把 tmysqlparse 打包进来
@@ -44,10 +47,27 @@ func init() {
 		}
 		workdir = "/"
 	}
+	ForceDumpAll = false
 }
 
 // SyntaxHandler 语法检查 handler
-type SyntaxHandler struct{}
+type SyntaxHandler struct {
+	BaseHandler
+}
+
+// RegisterRouter 注册路由信息
+func (s *SyntaxHandler) RegisterRouter(engine *gin.Engine) {
+	r := engine.Group("/syntax")
+	{
+		// syntax
+		r.POST("/check/file", s.SyntaxCheckFile)
+		r.POST("/check/sql", s.SyntaxCheckSQL)
+		r.POST("/upload/ddl/tbls", s.CreateAndUploadDDLTblListFile)
+		r.POST("/parse/file/relation/db", s.ParseSQLFileRelationDb)
+		r.POST("/parse/sql/relation/db", s.ParseSQLRelationDb)
+		r.POST("/parse/set/dumpall", s.SetDumpAll)
+	}
+}
 
 // CheckSQLStringParam sql string 语法检查参数
 type CheckSQLStringParam struct {
@@ -56,16 +76,20 @@ type CheckSQLStringParam struct {
 	Sqls        []string `json:"sqls" binding:"gt=0,dive,required"`
 }
 
+// SetDumpAll set dump all
+func (s *SyntaxHandler) SetDumpAll(r *gin.Context) {
+	ForceDumpAll = !ForceDumpAll
+	logger.Info("ForceDumpAll is: %v", ForceDumpAll)
+}
+
 // SyntaxCheckSQL 语法检查入参SQL string
-func SyntaxCheckSQL(r *gin.Context) {
-	requestID := r.GetString("request_id")
+func (s *SyntaxHandler) SyntaxCheckSQL(r *gin.Context) {
 	var param CheckSQLStringParam
 	var data map[string]*syntax.CheckInfo
 	var versions []string
 	// 将request中的数据按照json格式直接解析到结构体中
-	if err := r.ShouldBindJSON(&param); err != nil {
-		logger.Error("ShouldBind failed %s", err)
-		SendResponse(r, err, nil, requestID)
+	if err := s.Prepare(r, &param); err != nil {
+		logger.Error("Preare Error %s", err.Error())
 		return
 	}
 
@@ -78,22 +102,22 @@ func SyntaxCheckSQL(r *gin.Context) {
 
 	sqlContext := strings.Join(param.Sqls, "\n")
 	fileName := "ce_" + cmutil.RandStr(10) + ".sql"
-	workdir = path.Join(workdir, time.Now().Format("20060102150405"))
-	if err := os.MkdirAll(workdir, 0755); err != nil {
-		SendResponse(r, err, err.Error(), requestID)
+	tpWorkdir := path.Join(workdir, time.Now().Format("20060102150405"))
+	if err := os.MkdirAll(tpWorkdir, 0755); err != nil {
+		s.SendResponse(r, err, err.Error())
 		return
 	}
-	f := path.Join(workdir, fileName)
+	f := path.Join(tpWorkdir, fileName)
 	err := os.WriteFile(f, []byte(sqlContext), 0600)
 	if err != nil {
-		SendResponse(r, err, err.Error(), requestID)
+		s.SendResponse(r, err, err.Error())
 		return
 	}
 
 	check := &syntax.TmysqlParseFile{
 		TmysqlParse: syntax.TmysqlParse{
 			TmysqlParseBinPath: tmysqlParserBin,
-			BaseWorkdir:        workdir,
+			BaseWorkdir:        tpWorkdir,
 		},
 		IsLocalFile: true,
 		Param: syntax.CheckSQLFileParam{
@@ -114,10 +138,10 @@ func SyntaxCheckSQL(r *gin.Context) {
 	}
 
 	if err != nil {
-		SendResponse(r, err, data, requestID)
+		s.SendResponse(r, err, data)
 		return
 	}
-	SendResponse(r, nil, data, requestID)
+	s.SendResponse(r, nil, data)
 }
 
 // CheckFileParam 语法检查请求参数
@@ -129,16 +153,14 @@ type CheckFileParam struct {
 }
 
 // SyntaxCheckFile 运行语法检查
-func SyntaxCheckFile(r *gin.Context) {
-	requestID := r.GetString("request_id")
+func (s *SyntaxHandler) SyntaxCheckFile(r *gin.Context) {
 	var param CheckFileParam
 	var data map[string]*syntax.CheckInfo
 	var err error
 	var versions []string
 	// 将request中的数据按照json格式直接解析到结构体中
-	if err = r.ShouldBindJSON(&param); err != nil {
+	if err = s.Prepare(r, &param); err != nil {
 		logger.Error("ShouldBind failed %s", err)
-		SendResponse(r, err, nil, requestID)
 		return
 	}
 
@@ -170,20 +192,18 @@ func SyntaxCheckFile(r *gin.Context) {
 	}
 
 	if err != nil {
-		SendResponse(r, err, data, requestID)
+		s.SendResponse(r, err, data)
 		return
 	}
-	SendResponse(r, nil, data, requestID)
+	s.SendResponse(r, nil, data)
 }
 
 // CreateAndUploadDDLTblListFile 分析变更SQL DDL操作的表，并将文件上传到制品库
-func CreateAndUploadDDLTblListFile(r *gin.Context) {
-	requestID := r.GetString("request_id")
+func (s *SyntaxHandler) CreateAndUploadDDLTblListFile(r *gin.Context) {
 	var param CheckFileParam
 	// 将request中的数据按照json格式直接解析到结构体中
-	if err := r.ShouldBindJSON(&param); err != nil {
+	if err := s.Prepare(r, &param); err != nil {
 		logger.Error("ShouldBind failed %s", err)
-		SendResponse(r, err, nil, requestID)
 		return
 	}
 	check := &syntax.TmysqlParseFile{
@@ -197,10 +217,97 @@ func CreateAndUploadDDLTblListFile(r *gin.Context) {
 		},
 	}
 	if err := check.CreateAndUploadDDLTblFile(); err != nil {
-		SendResponse(r, err, nil, requestID)
+		s.SendResponse(r, err, nil)
 		return
 	}
-	SendResponse(r, nil, "ok", requestID)
+	s.SendResponse(r, nil, "ok")
+}
+
+// ParseSQLFileRelationDb 解析SQL文件中涉及到需要变更的数据库
+func (s SyntaxHandler) ParseSQLFileRelationDb(r *gin.Context) {
+	if ForceDumpAll {
+		s.SendResponse(r, nil, gin.H{
+			"create_dbs": []string{},
+			"dbs":        []string{},
+			"dump_all":   true,
+			"timestamp":  time.Now().Unix(),
+			"desc":       "force dump all",
+		})
+		return
+	}
+	var param CheckFileParam
+	// 将request中的数据按照json格式直接解析到结构体中
+	if err := s.Prepare(r, &param); err != nil {
+		logger.Error("ShouldBind failed %s", err)
+		return
+	}
+	p := &syntax.TmysqlParseFile{
+		TmysqlParse: syntax.TmysqlParse{
+			TmysqlParseBinPath: tmysqlParserBin,
+			BaseWorkdir:        workdir,
+		},
+		Param: syntax.CheckSQLFileParam{
+			BkRepoBasePath: param.Path,
+			FileNames:      param.Files,
+		},
+	}
+	createDbs, dbs, dumpall, err := p.DoParseRelationDbs("")
+	if err != nil {
+		s.SendResponse(r, err, nil)
+		return
+	}
+	s.SendResponse(r, nil, gin.H{
+		"create_dbs": createDbs,
+		"dbs":        dbs,
+		"dump_all":   dumpall,
+		"timestamp":  time.Now().Unix(),
+	})
+}
+
+// ParseSQLRelationDb  语法检查入参SQL string
+func (s *SyntaxHandler) ParseSQLRelationDb(r *gin.Context) {
+	var param CheckSQLStringParam
+	// 将request中的数据按照json格式直接解析到结构体中
+	if err := s.Prepare(r, &param); err != nil {
+		logger.Error("Preare Error %s", err.Error())
+		return
+	}
+	sqlContext := strings.Join(param.Sqls, "\n")
+	fileName := "ce_" + cmutil.RandStr(10) + ".sql"
+	tmpWorkdir := path.Join(workdir, time.Now().Format("20060102150405"))
+	if err := os.MkdirAll(tmpWorkdir, 0755); err != nil {
+		s.SendResponse(r, err, err.Error())
+		return
+	}
+	f := path.Join(tmpWorkdir, fileName)
+	err := os.WriteFile(f, []byte(sqlContext), 0600)
+	if err != nil {
+		s.SendResponse(r, err, err.Error())
+		return
+	}
+
+	p := &syntax.TmysqlParseFile{
+		TmysqlParse: syntax.TmysqlParse{
+			TmysqlParseBinPath: tmysqlParserBin,
+			BaseWorkdir:        tmpWorkdir,
+		},
+		IsLocalFile: true,
+		Param: syntax.CheckSQLFileParam{
+			BkRepoBasePath: "",
+			FileNames:      []string{fileName},
+		},
+	}
+	createDbs, dbs, dumpall, err := p.DoParseRelationDbs("")
+	if err != nil {
+		s.SendResponse(r, err, nil)
+		return
+	}
+	s.SendResponse(r, nil, gin.H{
+		"create_dbs": createDbs,
+		"dbs":        dbs,
+		"dump_all":   dumpall,
+		"timestamp":  time.Now().Unix(),
+	})
 }
 
 // rebuildVersion  tmysql 需要指定特殊的version

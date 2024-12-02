@@ -19,6 +19,8 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/samber/lo"
+
 	"dbm-services/common/go-pubpkg/bkrepo"
 	"dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/common/go-pubpkg/logger"
@@ -48,6 +50,14 @@ type DumpSchemaParam struct {
 	CharSet string `json:"charset" validate:"required,checkCharset"`
 	// 备份文件名后缀,清理相关文件
 	BackupFileNameSuffix string `json:"backup_file_name_suffix" validate:"required"`
+
+	DumpAll          bool     `json:"dump_all"`
+	ParseNeedDumpDbs []string `json:"parse_need_dump_dbs"`
+	// SQL 语句中解析出来的create database dbs
+	// 需要导出的原因是复现 create database 是否已经存在的错误
+	ParseCreateDbs []string            `json:"parse_create_dbs"`
+	ExecuteObjects []ExecuteSQLFileObj `json:"execute_objects"`
+
 	UploadBkRepoParam
 }
 
@@ -153,28 +163,22 @@ func (c *SemanticDumpSchemaComp) Init() (err error) {
 	if c.isSpider {
 		c.dumpCmd = path.Join(cst.TdbctlInstallPath, "bin", "mysqldump")
 	}
-	finaldbs := []string{}
-	reg := regexp.MustCompile(`^bak_cbs`)
-	newBackupDbreg := regexp.MustCompile(`^stage_truncate`)
-	ignoreDBs := computil.GetGcsSystemDatabasesIgnoreTest(version)
+
 	if c.isSpider {
 		// test 库里面的这些表没有主键，导入中控会失败
 		c.ignoreTables = []string{"test.conn_log", "test.free_space"}
 	}
-	for _, db := range util.FilterOutStringSlice(alldbs, ignoreDBs) {
-		if reg.MatchString(db) {
-			continue
-		}
-		if newBackupDbreg.MatchString(db) {
-			continue
-		}
-		finaldbs = append(finaldbs, db)
-	}
 
+	finaldbs, err := c.getDumpdbs(alldbs, version)
+	if err != nil {
+		logger.Error("calculate the dbs to dump failed:%s", err.Error())
+		return err
+	}
 	if len(finaldbs) == 0 {
 		return fmt.Errorf("变更实例排除系统库后，再也没有可以变更的库")
 	}
-	c.dbs = finaldbs
+
+	c.dbs = lo.Uniq(finaldbs)
 	c.charset = c.Params.CharSet
 	if c.Params.CharSet == "default" {
 		if c.charset, err = conn.ShowServerCharset(); err != nil {
@@ -183,6 +187,65 @@ func (c *SemanticDumpSchemaComp) Init() (err error) {
 		}
 	}
 	return err
+}
+
+func (c *SemanticDumpSchemaComp) getDumpdbs(alldbs []string, version string) (realexcutedbs []string, err error) {
+	finaldbs := []string{}
+	dbsExcluesysdbs := util.FilterOutStringSlice(alldbs, computil.GetGcsSystemDatabasesIgnoreTest(version))
+	if c.Params.DumpAll {
+		logger.Info("param is dump all")
+		reg := regexp.MustCompile(`^bak_cbs`)
+		newBackupDbreg := regexp.MustCompile(`^stage_truncate`)
+		for _, db := range dbsExcluesysdbs {
+			if reg.MatchString(db) {
+				continue
+			}
+			if newBackupDbreg.MatchString(db) {
+				continue
+			}
+			finaldbs = append(finaldbs, db)
+		}
+	} else {
+		if len(lo.Intersect(alldbs, c.Params.ParseCreateDbs)) > 0 {
+			err = fmt.Errorf("create dbs %v,已经存在目标实例中", c.Params.ParseCreateDbs)
+			return nil, err
+		}
+		for _, f := range c.Params.ExecuteObjects {
+			var realexcutedbs []string
+			// 获得目标库 因为是通配符 所以需要获取完整名称
+			intentionDbs, err := match(dbsExcluesysdbs, f.parseDbParamRe())
+			if err != nil {
+				return nil, err
+			}
+			// 获得忽略库
+			ignoreDbs, err := match(dbsExcluesysdbs, f.parseIgnoreDbParamRe())
+			if err != nil {
+				return nil, err
+			}
+			// 获取最终需要执行的库
+			realexcutedbs = util.FilterOutStringSlice(intentionDbs, ignoreDbs)
+			finaldbs = append(finaldbs, realexcutedbs...)
+		}
+		finaldbs = append(finaldbs, c.Params.ParseNeedDumpDbs...)
+	}
+	logger.Info("dump dbs:%v", finaldbs)
+	return finaldbs, nil
+}
+
+func match(dbsExculeSysdb, regularDbNames []string) (matched []string, err error) {
+	for _, regexpStr := range regularDbNames {
+		re, err := regexp.Compile(regexpStr)
+		if err != nil {
+			logger.Error(" regexp.Compile(%s) failed:%s", regexpStr, err.Error())
+			return nil, err
+		}
+		for _, db := range dbsExculeSysdb {
+			if re.MatchString(db) {
+				matched = append(matched, db)
+			}
+		}
+	}
+	return
 }
 
 // Precheck 预检查

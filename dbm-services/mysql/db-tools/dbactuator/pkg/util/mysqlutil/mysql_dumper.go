@@ -189,6 +189,15 @@ func (m *MySQLDumperTogether) Dump() (err error) {
 	if m.UseTMySQLDump {
 		dumpOption = m.getTMySQLDumpOption()
 	}
+	defer func() {
+		if err != nil {
+			errFileContext, e1 := osutil.ReadFileString(errFile)
+			if e1 != nil {
+				logger.Error("read errFile failed %s", e1.Error())
+			}
+			logger.Error("errFile:%s", errFileContext)
+		}
+	}()
 	dumpCmd := m.getDumpCmd(outputFile, errFile, dumpOption)
 	logger.Info("mysqldump cmd:%s", mysqlcomm.ClearSensitiveInformation(dumpCmd))
 	output, err := osutil.StandardShellCommand(false, dumpCmd)
