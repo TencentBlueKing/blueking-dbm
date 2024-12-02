@@ -81,7 +81,6 @@
     render-directive="if"
     :title="t('执行SQL变更_内容详情')"
     :width="960"
-    :z-index="99999"
     @closed="handleClose">
     <template
       v-if="currentExecuteObject"
@@ -162,18 +161,20 @@
     ticketDetails: TicketModel<MySQLImportSQLFileDetails>
   }
 
-  const props = defineProps<Props>();
-
   type backupDBItem = {
     backup_on: string,
     db_patterns: [],
     table_patterns: [],
   }
 
+  type RowData = MySQLImportSQLFileDetails['execute_objects'][number];
+
+  const props = defineProps<Props>();
+
   const { t } = useI18n();
 
   const selectFileName = ref('');
-  const currentExecuteObject = ref<MySQLImportSQLFileDetails['execute_objects'][number]>();
+  const currentExecuteObject = ref<RowData>();
   const fileContentMap = shallowRef<Record<string, string>>({});
   const isShow = ref(false);
 
@@ -232,8 +233,13 @@
     {
       label: t('变更的DB'),
       field: 'dbnames',
-      showOverflowTooltip: false,
-      render: ({ data }: { data: MySQLImportSQLFileDetails['execute_objects'][number] }) => (
+      showOverflowTooltip: {
+        content: (_: unknown, rowData: RowData) => rowData.ignore_dbnames.join(', '),
+        popoverOption: {
+          maxWidth: 1000,
+        }
+      },
+      render: ({ data }: { data: RowData }) => (
         <>
           {data.dbnames.map(item => (
             <bk-tag key={item}>
@@ -246,8 +252,13 @@
     {
       label: t('忽略的DB'),
       field: 'ignore_dbnames',
-      showOverflowTooltip: false,
-      render: ({ data }: { data: MySQLImportSQLFileDetails['execute_objects'][number] }) => data.ignore_dbnames.length > 0 ? (
+      showOverflowTooltip: {
+        content: (_: unknown, rowData: RowData) => rowData.ignore_dbnames.join(', '),
+        popoverOption: {
+          maxWidth: 1000,
+        }
+      },
+      render: ({ data }: { data: RowData }) => data.ignore_dbnames.length > 0 ? (
         <>
           {data.ignore_dbnames.map(item => (
             <bk-tag key={item}>
@@ -260,8 +271,8 @@
     {
       label: t('执行的 SQL'),
       field: 'sql_files',
-      showOverflowTooltip: false,
-      render: ({ data }: { data: MySQLImportSQLFileDetails['execute_objects'][number] }) => {
+      showOverflowTooltip: true,
+      render: ({ data }: { data: RowData }) => {
         const firstFileName = data.sql_files[0];
         const fileTotal = data.sql_files.length;
 
@@ -374,7 +385,7 @@
       }, {});
     }
   })
-  const handleSelectFile = (filename: string, executeObject: MySQLImportSQLFileDetails['execute_objects'][number]) => {
+  const handleSelectFile = (filename: string, executeObject: RowData) => {
     if (_.isEmpty(fileContentMap.value)){
       runBatchFetchFile();
     }
