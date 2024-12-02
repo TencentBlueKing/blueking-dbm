@@ -16,6 +16,7 @@ from django.utils.translation import ugettext as _
 
 from backend.flow.engine.bamboo.scene.common.builder import SubBuilder
 from backend.flow.engine.bamboo.scene.mongodb.mongodb_install import install_plugin
+from backend.flow.engine.bamboo.scene.mongodb.mongodb_install_dbmon import add_install_dbmon
 from backend.flow.plugins.components.collections.mongodb.add_domain_to_dns import ExecAddDomainToDnsOperationComponent
 from backend.flow.plugins.components.collections.mongodb.exec_actuator_job import ExecuteDBActuatorJobComponent
 from backend.flow.plugins.components.collections.mongodb.mongos_scale_4_meta import MongosScaleMetaComponent
@@ -108,6 +109,18 @@ def increase_mongos(root_id: str, ticket_data: Optional[Dict], sub_kwargs: ActKw
         act_name=_("MongoDB--修改meta"),
         act_component_code=MongosScaleMetaComponent.code,
         kwargs=kwargs,
+    )
+
+    # 安装dbmon
+    ip_list = sub_get_kwargs.payload["plugin_hosts"]
+    exec_ips = [host["ip"] for host in ip_list]
+    add_install_dbmon(
+        root_id=root_id,
+        flow_data=ticket_data,
+        pipeline=sub_pipeline,
+        iplist=exec_ips,
+        bk_cloud_id=ip_list[0]["bk_cloud_id"],
+        allow_empty_instance=True,
     )
 
     return sub_pipeline.build_sub_process(sub_name=_("MongoDB--{}增加mongos".format(cluster_name)))

@@ -42,10 +42,10 @@ def cluster_enable_disable(
 
     # 设置参数
     sub_get_kwargs.payload["app"] = sub_get_kwargs.payload["bk_app_abbr"]
-    cluster_type = sub_get_kwargs.payload["cluster_type"]
 
     # 获取集群信息
     sub_get_kwargs.get_cluster_info_deinstall(cluster_id=cluster_id)
+    cluster_type = sub_get_kwargs.payload["cluster_type"]
 
     # 修改实例状态
     kwargs = {

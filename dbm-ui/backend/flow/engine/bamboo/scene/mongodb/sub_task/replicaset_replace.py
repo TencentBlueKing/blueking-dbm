@@ -18,6 +18,7 @@ from backend.db_meta.enums.cluster_type import ClusterType
 from backend.flow.consts import MongoDBClusterRole
 from backend.flow.engine.bamboo.scene.common.builder import SubBuilder
 from backend.flow.engine.bamboo.scene.mongodb.mongodb_install import install_plugin
+from backend.flow.engine.bamboo.scene.mongodb.mongodb_install_dbmon import add_install_dbmon
 from backend.flow.plugins.components.collections.mongodb.exec_actuator_job import ExecuteDBActuatorJobComponent
 from backend.flow.plugins.components.collections.mongodb.mongodb_cmr_4_meta import CMRMongoDBMetaComponent
 from backend.flow.plugins.components.collections.mongodb.send_media import ExecSendMediaOperationComponent
@@ -92,6 +93,17 @@ def replicaset_replace(
                 act_name=_("MongoDB-mongod修改meta-port:{}".format(str(mongodb_instance["port"]))),
                 act_component_code=CMRMongoDBMetaComponent.code,
                 kwargs=kwargs,
+            )
+            # 安装dbmon 副本集
+            ip_list = sub_get_kwargs.payload["plugin_hosts"]
+            exec_ips = [host["ip"] for host in ip_list]
+            add_install_dbmon(
+                root_id=root_id,
+                flow_data=ticket_data,
+                pipeline=sub_pipeline,
+                iplist=exec_ips,
+                bk_cloud_id=ip_list[0]["bk_cloud_id"],
+                allow_empty_instance=True,
             )
     else:
         if cluster_role == MongoDBClusterRole.ShardSvr.value:

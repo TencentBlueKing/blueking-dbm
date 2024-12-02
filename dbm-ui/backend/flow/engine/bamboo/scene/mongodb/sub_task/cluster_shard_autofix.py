@@ -17,6 +17,7 @@ from django.utils.translation import ugettext as _
 from backend.flow.consts import MongoDBClusterRole
 from backend.flow.engine.bamboo.scene.common.builder import SubBuilder
 from backend.flow.engine.bamboo.scene.mongodb.mongodb_install import install_plugin
+from backend.flow.engine.bamboo.scene.mongodb.mongodb_install_dbmon import add_install_dbmon
 from backend.flow.plugins.components.collections.mongodb.exec_actuator_job import ExecuteDBActuatorJobComponent
 from backend.flow.plugins.components.collections.mongodb.mongodb_cmr_4_meta import CMRMongoDBMetaComponent
 from backend.flow.plugins.components.collections.mongodb.send_media import ExecSendMediaOperationComponent
@@ -97,4 +98,17 @@ def shard_autofix(
     sub_pipeline.add_act(
         act_name=_("MongoDB-mongod修改meta"), act_component_code=CMRMongoDBMetaComponent.code, kwargs=kwargs
     )
+
+    # 安装dbmon
+    ip_list = sub_get_kwargs.payload["plugin_hosts"]
+    exec_ips = [host["ip"] for host in ip_list]
+    add_install_dbmon(
+        root_id=root_id,
+        flow_data=ticket_data,
+        pipeline=sub_sub_pipeline,
+        iplist=exec_ips,
+        bk_cloud_id=ip_list[0]["bk_cloud_id"],
+        allow_empty_instance=True,
+    )
+
     return sub_pipeline.build_sub_process(sub_name=_("MongoDB--{}自愈--ip:{}".format(name, info["ip"])))

@@ -20,6 +20,7 @@ from backend.db_meta.enums.cluster_type import ClusterType
 from backend.flow.consts import MongoDBInstanceType, MongoDBManagerUser
 from backend.flow.engine.bamboo.scene.common.builder import SubBuilder
 from backend.flow.engine.bamboo.scene.mongodb.mongodb_install import install_plugin
+from backend.flow.engine.bamboo.scene.mongodb.mongodb_install_dbmon import add_install_dbmon
 from backend.flow.plugins.components.collections.mongodb.add_domain_to_dns import ExecAddDomainToDnsOperationComponent
 from backend.flow.plugins.components.collections.mongodb.add_password_to_db import (
     ExecAddPasswordToDBOperationComponent,
@@ -227,6 +228,18 @@ def mongos_autofix(root_id: str, ticket_data: Optional[Dict], sub_sub_kwargs: Ac
         act_name=_("MongoDB-删除老实例的dba用户及额外管理用户密码"),
         act_component_code=ExecDeletePasswordFromDBOperationComponent.code,
         kwargs=kwargs,
+    )
+
+    # 安装dbmon
+    ip_list = sub_sub_get_kwargs.payload["plugin_hosts"]
+    exec_ips = [host["ip"] for host in ip_list]
+    add_install_dbmon(
+        root_id=root_id,
+        flow_data=ticket_data,
+        pipeline=sub_sub_pipeline,
+        iplist=exec_ips,
+        bk_cloud_id=ip_list[0]["bk_cloud_id"],
+        allow_empty_instance=True,
     )
 
     # 老实例提下架单
