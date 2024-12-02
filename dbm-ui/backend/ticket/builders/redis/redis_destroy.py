@@ -56,7 +56,7 @@ class RedisInstanceDestroyDetailSerializer(SkipToRepresentationMixin, serializer
 
 
 class RedisInstanceDestroyFlowParamBuilder(builders.FlowParamBuilder):
-    controller = RedisController.fake_scene
+    controller = RedisController.redis_ins_shutdown
 
 
 @builders.BuilderFactory.register(TicketType.REDIS_INSTANCE_DESTROY, phase=ClusterPhase.DESTROY)

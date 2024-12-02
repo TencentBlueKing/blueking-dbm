@@ -117,6 +117,7 @@ class MongoReplicaSetApplyFlowBuilder(BaseMongoReplicaSetTicketFlowBuilder):
                 "resource_spec": {
                     "mongo_machine_set": {
                         **spec.get_spec_info(),
+                        "spec_name": spec.spec_name,
                         "affinity": ticket_data["disaster_tolerance_level"],
                         "location_spec": {"city": ticket_data["city_code"], "sub_zone_ids": []},
                         # 副本集的亲和性要求至少跨两个机房

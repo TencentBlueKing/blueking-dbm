@@ -256,6 +256,7 @@ class ResourceSummarySerializer(serializers.Serializer):
         help_text=_("集群类型"), choices=SpecClusterType.get_choices(), required=False, default=""
     )
     spec_id_list = serializers.CharField(help_text=_("规格ID"), required=False, default="")
+    enable_spec = serializers.BooleanField(help_text=_("仅聚合启用规格"), required=False, default=False)
 
     for_biz = serializers.IntegerField(help_text=_("专用业务ID"), required=False, default=0)
     city = serializers.CharField(help_text=_("城市名"), required=False, allow_blank=True)

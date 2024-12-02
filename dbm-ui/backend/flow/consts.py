@@ -24,7 +24,6 @@ BACKEND_HOST = "backend_host"
 DEPENDENCIES_PLUGINS = ["bkmonitorbeat", "bkunifylogbeat"]
 BIGDATA_DEPEND_PLUGINS = ["bkmonitorbeat"]
 
-
 # 默认flow缓存数据过期时间：7天
 DEFAULT_FLOW_CACHE_EXPIRE_TIME = 7 * 24 * 60 * 60
 
@@ -175,8 +174,9 @@ class StateType(str, StructuredEnum):
     EXPIRED = EnumField("EXPIRED", _("已过期"))
 
 
+PENDING_STATES = [StateType.CREATED.value, StateType.READY.value]
 FAILED_STATES = [StateType.FAILED.value, StateType.REVOKED.value]
-SUCCEED_STATES = [StateType.FINISHED]
+SUCCEED_STATES = [StateType.FINISHED.value]
 
 # 备份系统文件TAG
 BACKUP_TAG = (

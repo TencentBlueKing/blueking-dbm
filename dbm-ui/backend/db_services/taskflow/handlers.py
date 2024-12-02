@@ -34,7 +34,7 @@ from backend.db_services.taskflow.exceptions import (
     RevokePipelineException,
     SkipNodeException,
 )
-from backend.flow.consts import StateType
+from backend.flow.consts import PENDING_STATES, StateType
 from backend.flow.engine.bamboo.engine import BambooEngine
 from backend.flow.models import FlowNode, FlowTree
 from backend.utils.string import format_json_string
@@ -52,7 +52,7 @@ class TaskFlowHandler:
 
         # 如果当前的pipeline未被创建，则直接更新FlowTree的状态为撤销态
         tree = FlowTree.objects.get(root_id=self.root_id)
-        if tree.status in [StateType.CREATED, StateType.READY]:
+        if tree.status in PENDING_STATES:
             tree.status = StateType.REVOKED
             tree.save()
             return EngineAPIResult(result=True, message=_("pipeline未创建，仅更新FlowTree"))
@@ -209,15 +209,20 @@ class TaskFlowHandler:
 
     def get_version_logs(self, node_id: str, version_id: str) -> List[Dict[str, Dict[str, str]]]:
         """获取节点的日志信息"""
-        try:
-            flow_node = FlowNode.objects.get(root_id=self.root_id, node_id=node_id)
-        except FlowNode.DoesNotExist:
+        if not FlowNode.objects.filter(root_id=self.root_id, node_id=node_id).count():
             return [self.generate_log_record(message=_("节点尚未运行，请稍后查看"))]
-        if flow_node.updated_at < timezone.now() - timedelta(days=env.BKLOG_DEFAULT_RETENTION):
+
+        try:
+            node_histories_map = {h["version"]: h for h in self.get_node_histories(node_id)}
+            history = node_histories_map[version_id]
+        except KeyError:
+            return [self.generate_log_record(message=_("无法找到当前版本{}的节点日志").format(version_id))]
+
+        if history["finished_time"] < timezone.now() - timedelta(days=env.BKLOG_DEFAULT_RETENTION):
             return [self.generate_log_record(message=_("节点日志仅保留{}天").format(env.BKLOG_DEFAULT_RETENTION))]
 
-        start_time = datetime2str(flow_node.started_at)
-        end_time = datetime2str(flow_node.updated_at + timedelta(days=7))
+        start_time = datetime2str(history["started_time"])
+        end_time = datetime2str(history["finished_time"] + timedelta(days=1))
         dbm_logs = self.bklog_esquery_search(
             indices=f"{env.DBA_APP_BK_BIZ_ID}_bklog.dbm_log",
             query_string=f"({self.root_id} AND {node_id} AND {version_id})"
