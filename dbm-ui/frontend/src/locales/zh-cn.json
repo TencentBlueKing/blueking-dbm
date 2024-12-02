@@ -3662,5 +3662,11 @@
   "源集群不能为空": "源集群不能为空",
   "源集群不存在": "源集群不存在",
   "源集群重复": "源集群重复",
+  "为集群安装扩展 Module，仅 RedisCluster、Redis 主从 支持安装 Module。": "为集群安装扩展 Module，仅 RedisCluster、Redis 主从 支持安装 Module。",
+  "安装 Module": "安装 Module",
+  "已安装": "已安装",
+  "请选择Module": "请选择Module",
+  "安装 Module任务提交成功": "安装 Module任务提交成功",
+  "仅允许同一管控区域的集群一起安装module": "仅允许同一管控区域的集群一起安装module",
   "这行勿动！新增翻译请在上一行添加！": ""
 }

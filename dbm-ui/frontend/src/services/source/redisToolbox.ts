@@ -124,3 +124,12 @@ export function getRedisClusterCapacityUpdateInfo(params: {
     err_msg: string;
   }>(`${getRootPath()}/get_cluster_capacity_update_info/`, params);
 }
+
+/**
+ * 查询集群模块信息
+ */
+export function getRedisClusterModuleInfo(params: { cluster_id: number; version: string }) {
+  return http.get<{
+    results: Record<string, boolean>;
+  }>(`${getRootPath()}/get_cluster_module_info/`, params);
+}
