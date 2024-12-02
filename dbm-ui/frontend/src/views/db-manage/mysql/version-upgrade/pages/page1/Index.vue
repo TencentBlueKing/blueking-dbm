@@ -107,14 +107,16 @@
   useTicketCloneInfo({
     type: TicketTypes.MYSQL_LOCAL_UPGRADE,
     onSuccess(cloneData) {
-      tableList.value = cloneData.tableList;
-      force.value = cloneData.force;
-      remark.value = cloneData.remark;
-      window.changeConfirm = true;
-
       const isSingle = cloneData.tableList[0].clusterData.clusterType === ClusterTypes.TENDBSINGLE;
       formData.roleType = isSingle ? 'singleStorageLayer' : 'haStorageLayer';
       formData.updateType = 'local';
+
+      nextTick(() => {
+        tableList.value = cloneData.tableList;
+        force.value = cloneData.force;
+        remark.value = cloneData.remark;
+        window.changeConfirm = true;
+      });
     },
   });
 

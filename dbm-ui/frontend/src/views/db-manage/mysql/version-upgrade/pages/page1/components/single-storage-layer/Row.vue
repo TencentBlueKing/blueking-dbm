@@ -60,6 +60,7 @@
       currentVersion: string;
       packageVersion: string;
       moduleName: string;
+      moduleId: number;
     };
     targetPackage?: number;
   }

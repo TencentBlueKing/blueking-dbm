@@ -188,6 +188,7 @@
       currentVersion: item.major_version,
       packageVersion: item.masters[0].version,
       moduleName: item.db_module_name,
+      moduleId: item.db_module_id,
       cloudId: item.bk_cloud_id,
     },
   });
