@@ -195,7 +195,8 @@
   };
 
   const handelClusterChange = (selected: { [key: string]: Array<SqlServerSingleModel | SqlServerHaModel> }) => {
-    const [clusterData] = Object.values(selected)[0];
+    const list = Object.values(selected).filter((item) => item.length > 0);
+    const [clusterData] = list[0];
     modelValue.value = {
       id: clusterData.id,
       cloudId: clusterData.bk_cloud_id,
