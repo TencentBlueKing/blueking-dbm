@@ -124,10 +124,16 @@
           // IP 有效
           singleHostSelectMemo[instanceKey] = {};
           slaveHostMemo = [];
-          data.hosts_topo_info.forEach((item) => {
-            if (ipList.includes(item.ip) && item.bk_cloud_id === props.cloudId) {
-              slaveHostMemo.push(item);
-              singleHostSelectMemo[instanceKey][genHostKey(item)] = true;
+          // 新只读主机和旧只读主机是对应关系，需要按输入的顺序提单
+          const topoHostMap = data.hosts_topo_info.reduce<Record<string, (typeof data.hosts_topo_info)[number]>>(
+            (prev, item) => Object.assign({}, prev, { [item.ip]: item }),
+            {},
+          );
+          ipList.forEach((inputIpItem) => {
+            const topoHostItem = topoHostMap[inputIpItem];
+            if (topoHostItem) {
+              slaveHostMemo.push(topoHostItem);
+              singleHostSelectMemo[instanceKey][genHostKey(topoHostItem)] = true;
             }
           });
           return true;
