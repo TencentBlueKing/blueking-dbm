@@ -25,6 +25,9 @@ func SetDefaults() {
 	viper.SetDefault("Public.BackupDir", "/data/dbbak")
 	//viper.SetDefault("Public.MysqlCharset", "binary")
 	viper.SetDefault("Public.BackupTimeOut", "09:00:01")
+	viper.SetDefault("Public.KillLongQueryTime", 0)
+	viper.SetDefault("Public.FtwrlWaitTimeout", 120)
+	viper.SetDefault("Public.AcquireLockWaitTimeout", 10)
 
 	viper.SetDefault("PhysicalBackup.MaxMyisamTables", 10)
 	viper.SetDefault("PhysicalBackup.DisableSlaveMultiThread", false)

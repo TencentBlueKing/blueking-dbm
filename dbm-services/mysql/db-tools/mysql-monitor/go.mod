@@ -7,6 +7,7 @@ require (
 	github.com/go-playground/validator/v10 v10.15.4
 	github.com/go-sql-driver/mysql v1.6.0
 	github.com/jmoiron/sqlx v1.3.5
+	github.com/juju/fslock v0.0.0-20160525022230-4d5c94c67b4b
 	github.com/juju/ratelimit v1.0.2
 	github.com/olekukonko/tablewriter v0.0.5
 	github.com/pingcap/errors v0.11.4

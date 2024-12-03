@@ -1,34 +1,38 @@
 package ibdstatistic
 
 import (
-	"dbm-services/mysql/db-tools/mysql-monitor/pkg/config"
-	"dbm-services/mysql/db-tools/mysql-monitor/pkg/internal/cst"
-	"encoding/json"
-	"fmt"
 	"log/slog"
 	"os"
 	"path/filepath"
 	"slices"
 	"time"
 
+	"dbm-services/common/go-pubpkg/cmutil"
+	"dbm-services/common/go-pubpkg/reportlog"
+	"dbm-services/mysql/db-tools/mysql-monitor/pkg/config"
+	"dbm-services/mysql/db-tools/mysql-monitor/pkg/internal/cst"
+
 	"github.com/pkg/errors"
 )
 
 type tableSizeStruct struct {
-	BkCloudId         int    `json:"bk_cloud_id"`
-	BkBizId           int    `json:"bk_biz_id"`
-	ImmuteDomain      string `json:"cluster_domain"`
-	DBModule          int    `json:"db_module"`
-	MachineType       string `json:"machine_type"`
-	Ip                string `json:"instance_host"`
-	Port              int    `json:"instance_port"`
-	Role              string `json:"instance_role"`
-	ServiceInstanceId int64  `json:"bk_target_service_instance_id"`
-	OriginalDBName    string `json:"original_database_name"`
-	DBName            string `json:"database_name"`
-	DBSize            int64  `json:"database_size"`
-	TableName         string `json:"table_name"`
-	TableSize         int64  `json:"table_size"`
+	// ReportTime time.RFC3339, format like 024-11-29T11:19:02+08:00
+	ReportTime        time.Time `json:"report_time"`
+	BkCloudId         int       `json:"bk_cloud_id"`
+	BkBizId           int       `json:"bk_biz_id"`
+	ImmuteDomain      string    `json:"cluster_domain"`
+	DBModule          int       `json:"db_module"`
+	MachineType       string    `json:"machine_type"`
+	Ip                string    `json:"instance_host"`
+	Port              int       `json:"instance_port"`
+	Role              string    `json:"instance_role"`
+	ServiceInstanceId int64     `json:"bk_target_service_instance_id"`
+	// OriginalDBName original DBName for spider remote(with shard_id suffix)
+	OriginalDBName string `json:"original_database_name"`
+	DBName         string `json:"database_name"`
+	DBSize         int64  `json:"database_size"`
+	TableName      string `json:"table_name"`
+	TableSize      int64  `json:"table_size"`
 }
 
 func reportLog(result map[string]map[string]int64) error {
@@ -38,26 +42,11 @@ func reportLog(result map[string]map[string]int64) error {
 		slog.Error("failed to create database size reports directory", slog.String("error", err.Error()))
 		return errors.Wrap(err, "failed to create database size reports directory")
 	}
-
-	filePath := filepath.Join(
-		dbsizeReportBaseDir,
-		fmt.Sprintf(`report.log.%d`, time.Now().Weekday()),
-	)
-	err = os.RemoveAll(filePath)
+	resultReport, err := reportlog.NewReporter(dbsizeReportBaseDir, "report.log", nil)
 	if err != nil {
-		slog.Error("failed to remove database size reports directory", slog.String("error", err.Error()))
-		return errors.Wrap(err, "failed to remove database size reports directory")
+		return err
 	}
-
-	f, err := os.OpenFile(filePath, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0666)
-	if err != nil {
-		slog.Error("failed to open log file", "file", filePath)
-		return errors.Wrap(err, "failed to open file")
-	}
-	defer func() {
-		_ = f.Close()
-	}()
-
+	reportTs := cmutil.TimeToSecondPrecision(time.Now())
 	for originalDBName, dbInfo := range result {
 		// 根据 dbm 枚举约定, remote 是 tendbcluster 的存储机器类型
 		dbName := originalDBName
@@ -98,18 +87,11 @@ func reportLog(result map[string]map[string]int64) error {
 
 		for _, row := range tablesInfo {
 			row.DBSize = dbSize
-			b, err := json.Marshal(row)
-			if err != nil {
-				slog.Error("ibd-statistic report", slog.String("error", err.Error()))
-				return errors.Wrap(err, "failed to marshal row")
+			row.ReportTime = reportTs
+			if slices.Index(systemDBs, row.DBName) >= 0 {
+				continue
 			}
-
-			b = append(b, '\n')
-			_, err = f.Write(b)
-			if err != nil {
-				slog.Error("ibd-statistic report", slog.String("error", err.Error()))
-				return errors.Wrap(err, "failed to write row")
-			}
+			resultReport.Println(row)
 		}
 	}
 	return nil

@@ -65,15 +65,29 @@ func (l *LogicalDumper) Execute(enableTimeOut bool) error {
 		"-u", l.cnf.Public.MysqlUser,
 		"-p", l.cnf.Public.MysqlPasswd,
 		"-o", filepath.Join(l.cnf.Public.BackupDir, l.cnf.Public.TargetName()),
+		"--trx-consistency-only",
+		"--long-query-retry-interval=10",
 		fmt.Sprintf("--long-query-retries=%d", l.cnf.LogicalBackup.FlushRetryCount),
 		fmt.Sprintf("--set-names=%s", l.cnf.Public.MysqlCharset),
 		fmt.Sprintf("--chunk-filesize=%d", l.cnf.LogicalBackup.ChunkFilesize),
 		fmt.Sprintf("--threads=%d", l.cnf.LogicalBackup.Threads),
-		"--trx-consistency-only",
-		"--long-query-retry-interval=10",
 		// "--disk-limits=1GB:5GB",
 	}
-
+	if l.cnf.Public.KillLongQueryTime > 0 {
+		args = append(args, "--kill-long-queries",
+			fmt.Sprintf("--long-query-guard=%d", l.cnf.Public.KillLongQueryTime))
+	} else {
+		if l.cnf.Public.FtwrlWaitTimeout > 0 {
+			args = append(args, fmt.Sprintf("--long-query-guard=%d", l.cnf.Public.FtwrlWaitTimeout))
+		} else {
+			args = append(args, "--long-query-guard=999999") // 不退出
+		}
+	}
+	/*
+		if l.cnf.Public.AcquireLockWaitTimeout > 0 {
+			args = append(args, fmt.Sprintf("--lock-wait-timeout=%d", l.cnf.Public.AcquireLockWaitTimeout))
+		}
+	*/
 	if !l.cnf.LogicalBackup.DisableCompress {
 		args = append(args, "--compress")
 	}
@@ -124,7 +138,11 @@ func (l *LogicalDumper) Execute(enableTimeOut bool) error {
 			}...)
 		}
 	}
-	// ToDo extropt
+	/*
+		if l.cnf.LogicalBackup.ExtraOpt != "" {
+			args = append(args, l.cnf.LogicalBackup.ExtraOpt)
+		}
+	*/
 
 	var cmd *exec.Cmd
 	if enableTimeOut {

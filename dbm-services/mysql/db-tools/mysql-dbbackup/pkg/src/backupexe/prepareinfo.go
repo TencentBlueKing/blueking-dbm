@@ -43,25 +43,17 @@ func parseMysqldumpMetadata(sqlFilePath string) (*mydumperMetadata, error) {
 
 	var bufScanner *bufio.Scanner
 	if strings.HasSuffix(sqlFilePath, cst.ZstdSuffix) {
-		/*
-			var compressedBuf = make([]byte, 2048)
-			if _, err := sqlFile.Read(compressedBuf); err != nil && err != io.EOF {
-				return nil, errors.WithMessagef(err, "read first 10240 bytes from %s", sqlFilePath)
-			}
-			var textBuf = make([]byte, 2048)
-			dec, _ := zstd.NewReader(bytes.NewBuffer(compressedBuf), zstd.WithDecoderConcurrency(1))
-			defer dec.Close()
-			if _, err := dec.Read(textBuf); err != nil {
-				logger.Log.Warnf("zstd decode first 10240 bytes failed from %s, err:%s", sqlFilePath, err.Error())
-			}
-			bufScanner = bufio.NewScanner(bytes.NewBuffer(textBuf))
-		*/
-		cmds := []string{"cut", "-b", "-2048", sqlFilePath, "|", CmdZstd, "-d", "-c"}
+		cmds := []string{"cut", "-b", "-4096", sqlFilePath, "|", CmdZstd, "-d", "-c"}
 		outBuf, _, err := cmutil.ExecCommandReturnBytes(true, "", cmds[0], cmds[1:]...)
+
+		if len(outBuf) < 100 { // 返回小于这个长度，肯定非法了，重试一遍
+			cmds = []string{"cut", "-b", "-10240", sqlFilePath, "|", CmdZstd, "-d", "-c"}
+			outBuf, _, err = cmutil.ExecCommandReturnBytes(true, "", cmds[0], cmds[1:]...)
+		}
 		if err != nil {
 			logger.Log.Warnf("zstd decode first 2048 bytes failed from %s, err:%s", sqlFilePath, err.Error())
 		}
-		if len(outBuf) < 100 { // 返回小于这个长度，肯定非法了
+		if len(outBuf) < 100 { // 返回小于这个长度，非法报错
 			return nil, errors.Errorf("failed to get binlog position from zst file %s", sqlFilePath)
 		}
 		bufScanner = bufio.NewScanner(bytes.NewBuffer(outBuf))

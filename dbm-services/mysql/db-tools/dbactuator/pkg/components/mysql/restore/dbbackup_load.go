@@ -133,6 +133,7 @@ func (m *DBLoader) chooseDBBackupLoader() error {
 				QpressTool:    m.Tools.MustGet(tools.ToolQPress),
 				LoaderDir:     m.targetDir,
 				StorageType:   strings.ToLower(m.indexObj.StorageEngine),
+				MySQLVersion:  m.BackupInfo.indexObj.MysqlVersion,
 			},
 		}
 	} else {

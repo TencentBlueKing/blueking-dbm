@@ -320,3 +320,30 @@ CopyBack = false
 IndexFilePath = xx
 DefaultsFile = /etc/my.cnf.3306
 ```
+
+## 参数解释
+### Public
+- Public.KillLongQueryTime
+ 发起备份前检查长 sql，如果超过这个时间则马上自动 kill。需要备份账号有 super 权限
+ 默认为 0 则不 kill，对 mydumper / xtrabackup 有效
+
+- Public.FtwrlWaitTimeout
+  发起备份前检查长 sql，(如果不自动 kill/ kill失败) 则等待长 sql 多久后，放弃 ftwrl，放弃备份。
+  此时还未发起 `FLUSH TABLE WITH READ LOCK` 命令
+  默认 120s，对 mydumper / xtrabackup 有效
+
+- Public.AcquireLockWaitTimeout
+  备份加锁超时，比如 `LOCK TABLES FOR BACKUP` / `FLUSH TABLE WITH READ LOCK`，相当于 `set session lock-wait-timeout=xxx`
+  默认 10s 超时，对 mydumper / xtrabackup 有效
+
+- Public.BackupTimeOut
+  备份超时结束时间，只对 master 有效，用于保护 master 不被备份影响。
+  默认`09:00:00`，即备份执行到这个时间点还未结束，则退出
+
+- Public.OldFileLeftDay
+  备份文件本地最大保留时间天数，每次备份之前会先清理旧的备份。如果备份空间不足，可能会继续清理备份文件，优先保证备份成功
+
+- Public.IOLimitMasterFactor
+  master机器专用限速因子，因为备份速度可能有多个选项来控制
+  - master 文件io打包限速: `Public.IOLimitMBPerSec * IOLimitMasterFactor`
+  - 物理备份限速: `PhysicalBackup.Throttle * IOLimitMasterFactor`

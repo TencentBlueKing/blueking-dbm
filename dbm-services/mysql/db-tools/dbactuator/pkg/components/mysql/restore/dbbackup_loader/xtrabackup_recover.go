@@ -30,7 +30,8 @@ type Xtrabackup struct {
 	// 在 PreRun 时初始化，本地实例的配置文件
 	myCnf *util.CnfFile
 
-	StorageType string `json:"-"`
+	StorageType  string `json:"-"`
+	MySQLVersion string `json:"-"`
 }
 
 // PreRun 以下所有步骤必须可重试
@@ -79,7 +80,7 @@ func (x *Xtrabackup) PostRun() (err error) {
 		return err
 	}
 
-	logger.Info("start local mysqld with skip-grant-tables")
+	logger.Info("start local mysqld with --skip-grant-tables --skip-slave-start")
 	// 启动mysql-修复权限
 	startParam := computil.StartMySQLParam{
 		MediaDir:        cst.MysqldInstallPath,
@@ -88,6 +89,7 @@ func (x *Xtrabackup) PostRun() (err error) {
 		MySQLPwd:        x.TgtInstance.Pwd,
 		Socket:          x.TgtInstance.Socket,
 		SkipGrantTables: true, // 以 skip-grant-tables 启动来修复 ADMIN
+		SkipSlaveFlag:   true,
 	}
 	if _, err = startParam.StartMysqlInstance(); err != nil {
 		return errors.WithMessage(err, "start mysqld after xtrabackup")
@@ -106,6 +108,11 @@ func (x *Xtrabackup) PostRun() (err error) {
 			serverVersion = "5.7.20" // fake
 		}
 	}
+	if _, err = x.dbWorker.Exec("reset slave all"); err != nil {
+		logger.Warn("failed to reset slave all, err", err.Error())
+	}
+
+	//return nil
 	logger.Info("repair user 'ADMIN' host and password")
 	// 物理备份，ADMIN密码与 backup instance(cluster?) 相同，修复成
 	// 修复ADMIN用户，而不是 x.TgtInstance.User，主要是修复 host，密码修复成临时用户 DBM_JOB_xxx 的密码
@@ -130,10 +137,12 @@ func (x *Xtrabackup) PostRun() (err error) {
 	logger.Info("restart local mysqld %d", x.TgtInstance.Port)
 	// 重启mysql（去掉 skip-grant-tables）
 	startParam.SkipGrantTables = false
+	startParam.SkipSlaveFlag = false
 	startParam.MySQLUser = native.DBUserAdmin
 	if _, err := startParam.RestartMysqlInstance(); err != nil {
 		return errors.WithMessage(err, "RestartMysqlInstance")
 	}
+
 	logger.Info("reconnect use ADMIN and temp_job_user pwd(already repaired) %d", x.TgtInstance.Port)
 	tmpAdminPassInst := deepcopy.Copy(x.TgtInstance).(native.InsObject)
 	tmpAdminPassInst.User = native.DBUserAdmin

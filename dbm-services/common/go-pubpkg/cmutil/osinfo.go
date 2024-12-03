@@ -2,6 +2,7 @@ package cmutil
 
 import (
 	"path/filepath"
+	"regexp"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -154,4 +155,19 @@ func IsSameTopLevelDir(dir1, dir2 string) (bool, error) {
 		return false, err2
 	}
 	return topDir1 == topDir2, nil
+}
+
+// GetGlibcVersion get os glibc version using ExeCommand("ldd --version |grep libc")
+func GetGlibcVersion() (string, error) {
+	outStr, errStr, err := ExecCommand(false, "",
+		"/usr/bin/ldd", "--version", "|", "grep", "libc")
+	if err != nil {
+		return "", errors.WithMessage(err, errStr)
+	}
+	verMatch := regexp.MustCompile(`ldd \(.*\) (\d+\.\d+)`)
+	ms := verMatch.FindStringSubmatch(outStr)
+	if len(ms) == 2 {
+		return ms[1], nil
+	}
+	return "", errors.New("ldd --version | grep glibc fail to get glibc version")
 }

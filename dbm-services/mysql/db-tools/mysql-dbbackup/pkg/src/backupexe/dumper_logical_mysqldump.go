@@ -189,7 +189,7 @@ func (l *LogicalDumperMysqldump) Execute(enableTimeOut bool) (err error) {
 		"--single-transaction", "--master-data=2",
 		"--max-allowed-packet=1G", "--no-autocommit",
 		"--hex-blob",
-		// "--set-gtid-purged=off", // 5.7 需要
+		// "--set-gtid-purged=off", // 5.7 需要 如果支持
 	}
 	args = append(args, "--default-character-set", l.cnf.Public.MysqlCharset)
 	if l.cnf.Public.MysqlRole == cst.RoleSlave {

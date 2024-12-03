@@ -152,14 +152,13 @@ func (p *PhysicalLoader) apply() error {
 	if err != nil {
 		logger.Log.Error("physical apply failed: ", err, errStr)
 		// 尝试读取 xtrabackup.log 里 ERROR 关键字
-		grepError := []string{"grep", "-Ei", "ERROR|fatal", logfile, "|", "tail", "-5"}
 		errStrPrefix := fmt.Sprintf("tail 5 error from %s", logfile)
-		errStrDetail, _, _ := cmutil.ExecCommand(true, "", grepError[0], grepError[1:]...)
-		if len(strings.TrimSpace(errStrDetail)) > 0 {
+		errStrDetail, _ := util.GrepLinesFromFile(logfile, []string{"ERROR", "fatal"}, 5, false, true)
+		if len(errStrDetail) > 0 {
 			logger.Log.Info(errStrPrefix)
 			logger.Log.Error(errStrDetail)
 		} else {
-			logger.Log.Warn("can not find more detail error message from ", logfile)
+			logger.Log.Warn("tail can not find more detail error message from ", logfile)
 		}
 		return errors.WithMessagef(err, fmt.Sprintf("%s: %s\n%s", errStr, errStrPrefix, errStrDetail))
 	}
@@ -217,16 +216,15 @@ func (p *PhysicalLoader) load() error {
 	if err != nil {
 		logger.Log.Error("xtrabackup copy data failed: ", err, errStr)
 		// 尝试读取 xtrabackup.log 里 ERROR 关键字
-		grepError := []string{"grep", "-Ei", "ERROR|fatal", logfile, "|", "tail", "-5"}
 		errStrPrefix := fmt.Sprintf("tail 5 error from %s", logfile)
-		errStrDetail, _, _ := cmutil.ExecCommand(true, "", grepError[0], grepError[1:]...)
-		if len(strings.TrimSpace(errStrDetail)) > 0 {
+		errStrDetail, _ := util.GrepLinesFromFile(logfile, []string{"ERROR", "fatal"}, 5, false, true)
+		if len(errStrDetail) > 0 {
 			logger.Log.Info(errStrPrefix)
 			logger.Log.Error(errStrDetail)
 		} else {
-			logger.Log.Warn("can not find more detail error message from ", logfile)
+			logger.Log.Warn("tail can not find more detail error message from ", logfile)
 		}
-		return errors.WithMessagef(err, fmt.Sprintf("%s: %s\n%s", errStr, errStrPrefix, errStrDetail))
+		return errors.WithMessagef(err, fmt.Sprintf("%s\n%s", errStrPrefix, errStrDetail))
 	}
 	logger.Log.Info("xtrabackup recover success: ", outStr)
 	return nil

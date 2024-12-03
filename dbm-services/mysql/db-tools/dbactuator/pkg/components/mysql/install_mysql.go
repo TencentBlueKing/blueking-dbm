@@ -264,6 +264,7 @@ func (i *InstallMySQLComp) InitDefaultParam() (err error) {
 	i.Checkfunc = append(i.Checkfunc, i.precheckMysqlDir)
 	i.Checkfunc = append(i.Checkfunc, i.precheckMysqlProcess)
 	i.Checkfunc = append(i.Checkfunc, i.precheckMysqlPackageBitOS)
+	i.Checkfunc = append(i.Checkfunc, i.precheckGlibcVersion)
 	i.Checkfunc = append(i.Checkfunc, i.Params.Medium.Check)
 	i.Params.PartitionYWAccount.AccessHosts = []string{
 		i.Params.Host,
@@ -357,6 +358,19 @@ func (i *InstallMySQLComp) precheckMysqlPackageBitOS() error {
 	}
 	if mysqlBits != cst.OSBits {
 		return fmt.Errorf("mysql 安装包的和系统不匹配,当前系统是%d", cst.OSBits)
+	}
+	return nil
+}
+
+func (i *InstallMySQLComp) precheckGlibcVersion() error {
+	glibcVer, err := cmutil.GetGlibcVersion()
+	if err != nil {
+		logger.Error("failed to glibc version, err:%s", err.Error())
+		return err
+	}
+	// mysql 8.0 不安装在 tlinux1.2上 (mysqld能运行，但周边 xtrabackup 8.0 依赖 glibc>=2.14)
+	if cmutil.MySQLVersionParse(i.Params.MysqlVersion) >= cmutil.MySQLVersionParse("8.0.0") && glibcVer < "2.14" {
+		return errors.Errorf("glibc version %s it not allowed to install %s", glibcVer, i.Params.MysqlVersion)
 	}
 	return nil
 }

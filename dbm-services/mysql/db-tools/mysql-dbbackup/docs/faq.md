@@ -78,3 +78,5 @@ IOLimitMBPerSec = 300
 
 1. log copying being too slow
 it looks like InnoDB log has wrapped around before xtrabackup could process all records due to either log copying being too slow, or  log files being too small.
+ 实例写入速度比备份速度快，可能是刚刚备份时间段有大批量 DML 操作，修改备份开始时间，或者加快备份速度: 
+  - 调大 PhysicalBackup.Throttle, 调大 PhysicalBackup.Threads

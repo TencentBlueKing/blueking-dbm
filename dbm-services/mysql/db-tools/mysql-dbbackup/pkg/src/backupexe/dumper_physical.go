@@ -1,7 +1,6 @@
 package backupexe
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"os"
@@ -90,17 +89,6 @@ func (p *PhysicalDumper) buildArgs() []string {
 		fmt.Sprintf("--password=%s", p.cnf.Public.MysqlPasswd),
 		"--compress",
 	}
-
-	targetPath := filepath.Join(p.cnf.Public.BackupDir, p.cnf.Public.TargetName())
-	if strings.Compare(p.mysqlVersion, "005007000") < 0 {
-		args = append(args, targetPath)
-	} else {
-		args = append(args,
-			fmt.Sprintf("--target-dir=%s", targetPath),
-			"--backup", "--lock-ddl",
-		)
-	}
-
 	if p.cnf.PhysicalBackup.Threads > 0 {
 		args = append(args, []string{
 			fmt.Sprintf("--compress-threads=%d", p.cnf.PhysicalBackup.Threads),
@@ -108,32 +96,55 @@ func (p *PhysicalDumper) buildArgs() []string {
 		}...)
 	}
 
+	targetPath := filepath.Join(p.cnf.Public.BackupDir, p.cnf.Public.TargetName())
+	if strings.Compare(p.mysqlVersion, "005007000") < 0 {
+		args = append(args, targetPath)
+	} else {
+		args = append(args, fmt.Sprintf("--target-dir=%s", targetPath), "--backup")
+	}
+	if strings.Compare(p.mysqlVersion, "005007000") > 0 {
+		args = append(args, "--lock-ddl")
+		if p.cnf.Public.AcquireLockWaitTimeout > 0 {
+			args = append(args, fmt.Sprintf("--lock-ddl-timeout=%d", p.cnf.Public.AcquireLockWaitTimeout))
+		}
+		if p.cnf.Public.FtwrlWaitTimeout > 0 {
+			args = append(args, fmt.Sprintf("--ftwrl-wait-timeout=%d", p.cnf.Public.FtwrlWaitTimeout))
+		}
+		if strings.Compare(p.mysqlVersion, "008000000") < 0 {
+			args = append(args, "--binlog-info=ON") // ver >=5.7 and ver < 8.0
+		}
+	}
+	if strings.Compare(p.mysqlVersion, "005006000") > 0 {
+		if p.cnf.Public.KillLongQueryTime > 0 {
+			args = append(args, fmt.Sprintf("--kill-long-queries-timeout=%d", p.cnf.Public.KillLongQueryTime))
+		}
+	}
+
 	if p.cnf.PhysicalBackup.Throttle > 0 {
-		args = append(args, []string{
-			fmt.Sprintf("--throttle=%d", p.cnf.PhysicalBackup.Throttle),
-		}...)
+		args = append(args, fmt.Sprintf("--throttle=%d", p.cnf.PhysicalBackup.Throttle))
 	}
 
 	if strings.ToLower(p.cnf.Public.MysqlRole) == cst.RoleSlave {
-		args = append(args, []string{
-			"--slave-info",
-			//"--safe-slave-backup",
-		}...)
+		// --safe-slave-backup
+		args = append(args, "--slave-info")
 	}
 
 	if strings.Compare(p.mysqlVersion, "008000000") >= 0 {
 		if p.isOfficial {
 			args = append(args, "--skip-strict")
 		}
+		if p.cnf.Public.AcquireLockWaitTimeout > 0 {
+			args = append(args, fmt.Sprintf("--backup-lock-timeout=%d", p.cnf.Public.AcquireLockWaitTimeout))
+		}
 	} else { // xtrabackup_80 has no this args, and will report errors
 		args = append(args, "--no-timestamp", "--lazy-backup-non-innodb", "--wait-last-flush=2")
 		args = append(args, fmt.Sprintf("--ibbackup=%s", filepath.Join(p.dbbackupHome, p.innodbCmd.xtrabackupBin)))
-		if strings.Compare(p.mysqlVersion, "005007000") > 0 {
-			args = append(args, "--binlog-info=ON")
-		}
 	}
-
-	// ToDo extropt
+	/*
+		if p.cnf.PhysicalBackup.ExtraOpt != "" {
+			args = append(args, p.cnf.PhysicalBackup.ExtraOpt)
+		}
+	*/
 	return args
 }
 
@@ -191,8 +202,9 @@ func (p *PhysicalDumper) Execute(enableTimeOut bool) error {
 			fmt.Sprintf(`%s %s`, binPath, strings.Join(args, " ")))
 	}
 
-	outFile, err := os.Create(filepath.Join(logger.GetLogDir(),
-		fmt.Sprintf("xtrabackup_%d_%d.log", p.cnf.Public.MysqlPort, int(time.Now().Weekday()))))
+	xtrabackupLogFile := filepath.Join(logger.GetLogDir(),
+		fmt.Sprintf("xtrabackup_%d_%d.log", p.cnf.Public.MysqlPort, int(time.Now().Weekday())))
+	outFile, err := os.OpenFile(xtrabackupLogFile, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0644)
 	if err != nil {
 		logger.Log.Error("create log file failed: ", err)
 		return err
@@ -202,15 +214,21 @@ func (p *PhysicalDumper) Execute(enableTimeOut bool) error {
 	}()
 
 	cmd.Stdout = outFile
-	//cmd.Stderr = outFile
-	var stderr bytes.Buffer
-	cmd.Stderr = &stderr
+	cmd.Stderr = outFile // xtrabackup 的运行日志都是打印在 stderr ... unbelievable
 	logger.Log.Info("xtrabackup command: ", cmd.String())
 
 	err = cmd.Run()
 	if err != nil {
-		logger.Log.Error("run physical backup failed: ", err, stderr.String())
-		return errors.WithMessage(err, stderr.String())
+		errStrPrefix := fmt.Sprintf("tail 10 error from %s", xtrabackupLogFile)
+		errStrDetail, _ := util.GrepLinesFromFile(xtrabackupLogFile, []string{"ERROR", "fatal"}, 10, false, true)
+		if len(errStrDetail) > 0 {
+			logger.Log.Info(errStrPrefix)
+			logger.Log.Error(errStrDetail)
+		} else {
+			logger.Log.Warn("tail can not find more detail error message from ", xtrabackupLogFile)
+		}
+		logger.Log.Error("run physical backup failed", err, p.cnf.Public.MysqlPort)
+		return errors.WithMessagef(err, fmt.Sprintf("%s\n%s", errStrPrefix, errStrDetail))
 	}
 	return nil
 }

@@ -75,6 +75,19 @@ type Public struct {
 	// EncryptOpt backup files encrypt options
 	EncryptOpt *cmutil.EncryptOpt `ini:"EncryptOpt"`
 
+	// KillLongQueryTime 如果有长 sql，则等待长 sql 多久后，kill掉长 sql. if 0 not kill. Default 0
+	// mydumper --kill-long-queries --long-query-guard xx
+	// xtrabackup --kill-long-queries-timeout
+	KillLongQueryTime int `ini:"KillLongQueryTime"`
+	// FtwrlWaitTimeout 如果有长 sql，则等待长 sql 多久后，放弃 ftwrl，放弃备份(FTWRL 还没运行). Default 120s
+	// xtrabackup --ftwrl-wait-timeout
+	// mydumper --long-query-guard
+	FtwrlWaitTimeout int `ini:"FtwrlWaitTimeout"`
+	// AcquireLockWaitTimeout If LOCK TABLES FOR BACKUP does not return within given timeout, abort the backup.
+	// issue lock to mysqld: default 10s
+	//  lock-ddl-timeout(xtrabackup57), backup-lock-timeout(xtrabackup80) --lock-wait-timeout(mydumper)
+	AcquireLockWaitTimeout int `ini:"AcquireLockWaitTimeout"`
+
 	cnfFilename string
 	targetName  string
 	// isFullBackup 1: true, -1: false, 0: unknown

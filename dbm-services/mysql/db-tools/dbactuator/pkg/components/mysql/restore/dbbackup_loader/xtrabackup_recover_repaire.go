@@ -185,8 +185,8 @@ func (x *Xtrabackup) RepairPrivileges() error {
 
 	var batchSQLs []string
 	// delete src host's ADMIN/sync user
-	sql1 := fmt.Sprintf("DELETE FROM mysql.user WHERE `user` IN (%s) AND `host` = %s;", myUsersUnsafe, srcHostUnsafe)
-	batchSQLs = append(batchSQLs, sql1)
+	batchSQLs = append(batchSQLs,
+		fmt.Sprintf("DELETE FROM mysql.user WHERE `user` IN (%s) AND `host` = %s;", myUsersUnsafe, srcHostUnsafe))
 
 	// update src host to new, but not ADMIN/sync/repl
 	sql2s := []string{
@@ -203,16 +203,15 @@ func (x *Xtrabackup) RepairPrivileges() error {
 			tgtHostUnsafe, srcHostUnsafe, myUsersUnsafe,
 		),
 	}
+	if cmutil.MySQLVersionParse(x.MySQLVersion) >= cmutil.MySQLVersionParse("8.0.0") {
+		// mysql 8.0 的 BACKUP_ADMIN 权限记录在 mysql.global_grants 中
+		sql2s = append(sql2s, fmt.Sprintf(
+			"UPDATE mysql.global_grants SET `HOST`=%s WHERE `HOST`=%s AND User NOT IN (%s);",
+			tgtHostUnsafe, srcHostUnsafe, myUsersUnsafe,
+		))
+	}
+
 	batchSQLs = append(batchSQLs, sql2s...)
-
-	/*
-		// delete src host users, but not localhost
-		sql3 := fmt.Sprintf(
-			"DELETE FROM mysql.user WHERE `host` IN(%s);", srcHostUnsafe,
-		)
-		batchSQLs = append(batchSQLs, sql3)
-	*/
-
 	// flush
 	sql4 := fmt.Sprintf("flush privileges;")
 	batchSQLs = append(batchSQLs, sql4)

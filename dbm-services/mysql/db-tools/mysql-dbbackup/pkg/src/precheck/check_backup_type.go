@@ -11,6 +11,7 @@
 package precheck
 
 import (
+	"dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/config"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/cst"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/logger"
@@ -37,7 +38,7 @@ func CheckBackupType(cnf *config.BackupConfig, storageEngine string) error {
 		} else {
 			cnf.Public.BackupType = cst.BackupLogical
 		}
-		if glibcVer, err := util.GetGlibcVersion(); err != nil {
+		if glibcVer, err := cmutil.GetGlibcVersion(); err != nil {
 			logger.Log.Warn("failed to glibc version, err:", err)
 		} else if glibcVer < "2.14" {
 			// mydumper need glibc version >= 2.14
