@@ -94,7 +94,13 @@ class ToolboxViewSet(BaseClusterViewSet):
     def get_cluster_capacity_update_info(self, request, bk_biz_id, **kwargs):
         data = self.params_validate(self.get_serializer_class())
         update_info = get_cluster_capacity_update_required_info(**data)
-        update_fields = ["capacity_update_type", "require_spec_id", "require_machine_group_num", "err_msg"]
+        update_fields = [
+            "capacity_update_type",
+            "require_spec_id",
+            "require_machine_group_num",
+            "err_msg",
+            "old_machine_info",
+        ]
         return Response(dict(zip(update_fields, update_info)))
 
     @common_swagger_auto_schema(
