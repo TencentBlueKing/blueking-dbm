@@ -18,7 +18,13 @@ from django.db import transaction
 
 from backend.db_meta.api import common
 from backend.db_meta.api.cluster.nosqlcomm.create_cluster import update_cluster_type
-from backend.db_meta.enums import AccessLayer, ClusterMachineAccessTypeDefine, InstanceInnerRole
+from backend.db_meta.enums import (
+    AccessLayer,
+    ClusterEntryRole,
+    ClusterMachineAccessTypeDefine,
+    ClusterType,
+    InstanceInnerRole,
+)
 from backend.db_meta.models import Cluster, ProxyInstance
 from backend.flow.utils.cc_manage import CcManage
 from backend.flow.utils.redis.redis_module_operate import RedisCCTopoOperator
@@ -64,8 +70,19 @@ def add_proxies(cluster: Cluster, proxies: List[Dict]):
         cluster.proxyinstance_set.add(*proxy_objs)
         logger.info("cluster {} add proxyinstance {}".format(cluster.immute_domain, proxy_objs))
 
-        # 修改表 db_meta_proxyinstance_bind_entry
+        # 修改表 db_meta_proxyinstance_bind_entry # 这里要去掉node 域名。
         for cluster_entry_obj in cluster.clusterentry_set.all():
+            if cluster.cluster_type in [
+                ClusterType.TendisPredixyRedisCluster,
+                ClusterType.TendisPredixyTendisplusCluster,
+            ]:
+                if cluster_entry_obj.role == ClusterEntryRole.NODE_ENTRY:
+                    logger.info(
+                        "cluster {} entry {} ignore add proxyinstance {}".format(
+                            cluster.immute_domain, cluster_entry_obj.entry, proxy_objs
+                        )
+                    )
+                    continue
             cluster_entry_obj.proxyinstance_set.add(*proxy_objs)
             logger.info(
                 "cluster {} entry {} add proxyinstance {}".format(

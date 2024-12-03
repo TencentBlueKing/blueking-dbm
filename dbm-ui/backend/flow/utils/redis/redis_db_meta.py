@@ -859,25 +859,16 @@ class RedisDBMeta(object):
                     bk_biz_id=self.cluster["bk_biz_id"],
                 )
 
-                # 修改 proxy backend
-                temp_proxy_set = list(ins1.proxyinstance_set.all())
-                ins1.proxyinstance_set.clear()
-                ins1.proxyinstance_set.add(*ins2.proxyinstance_set.all())
-                ins2.proxyinstance_set.clear()
-                ins2.proxyinstance_set.add(*temp_proxy_set)
                 # 变更同步关系
                 StorageInstanceTuple.objects.get(ejector=ins1, receiver=ins2).delete(keep_parents=True)
                 StorageInstanceTuple.objects.create(ejector=ins2, receiver=ins1)
 
                 # 变更角色
-                temp_instance_role = ins1.instance_role
-                tmep_instance_inner_role = ins1.instance_inner_role
+                ins1.instance_role = InstanceRole.REDIS_SLAVE.value
+                ins1.instance_inner_role = InstanceInnerRole.SLAVE.value
 
-                ins1.instance_role = ins2.instance_role
-                ins1.instance_inner_role = ins2.instance_inner_role
-
-                ins2.instance_role = temp_instance_role
-                ins2.instance_inner_role = tmep_instance_inner_role
+                ins2.instance_role = InstanceRole.REDIS_MASTER.value
+                ins2.instance_inner_role = InstanceInnerRole.MASTER.value
 
                 ins1.save(update_fields=["instance_role", "instance_inner_role"])
                 ins2.save(update_fields=["instance_role", "instance_inner_role"])

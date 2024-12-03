@@ -112,6 +112,11 @@ def redo_slaves(cluster: Cluster, tendisss: List[Dict], created_by: str = ""):
         # 修改表 db_meta_storageinstance_cluster
         cluster.storageinstance_set.add(*receiver_objs)
 
+        # 修改表 db_meta_storageinstance_proxyinstance
+        proxy_objs = cluster.proxyinstance_set.all()
+        for rece_obj in receiver_objs:
+            rece_obj.proxyinstance_set.add(*proxy_objs)
+
         # 更新 nodes. 域名对应的 cluster_entry信息
         cluster_entry = cluster.clusterentry_set.filter(role=ClusterEntryRole.NODE_ENTRY.value).first()
         if cluster_entry and cluster_entry.entry.startswith("nodes."):
