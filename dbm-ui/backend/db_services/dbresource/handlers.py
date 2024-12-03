@@ -90,10 +90,14 @@ class ClusterSpecFilter(object):
         pass
 
     def get_target_specs(self):
+        if not self.specs:
+            return []
+
         self.calc_machine_pair()
         self.calc_cluster_shard_num()
         self.system_filter()
         self.custom_filter()
+
         return self.specs
 
 
@@ -195,6 +199,11 @@ class RedisClusterSpecFilter(RedisSpecFilter):
     BASE_SINGLE_CAPCITY = 6
     # 支持简单阔缩容倍数（非DTS方式/Slot迁移扩容方式）
     SCALE_MULITPLE = 4
+
+    def __init__(self, capacity, future_capacity, spec_cluster_type, spec_machine_type, qps=None, shard_num=0):
+        # 这里的规格类型要转为tendis cache, redis cluster的规格类型同cache
+        spec_machine_type = SpecMachineType.TendisTwemproxyRedisInstance
+        super().__init__(capacity, future_capacity, spec_cluster_type, spec_machine_type, qps, shard_num)
 
     def calc_machine_pair(self):
         """计算每种规格所需的机器组数和集群总容量: 目标容量 / 规格容量"""
