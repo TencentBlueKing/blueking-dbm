@@ -20,15 +20,20 @@
       class="content-tabs"
       type="card-tab">
       <BkTabPanel
+        v-if="checkDbConsole('riak.clusterManage.clusterTopo')"
         :label="t('集群拓扑')"
         name="topo" />
       <BkTabPanel
+        v-if="checkDbConsole('riak.clusterManage.nodeList')"
         :label="t('节点列表')"
         name="nodeList" />
       <BkTabPanel
+        v-if="checkDbConsole('riak.clusterManage.baseInfo')"
         :label="t('基本信息')"
         name="info" />
-      <BkTabPanel name="record">
+      <BkTabPanel
+        v-if="checkDbConsole('riak.clusterManage.changeLog')"
+        name="record">
         <template #label>
           <div>
             <span>{{ t('变更记录') }}</span>
@@ -94,6 +99,8 @@
 
   import ClusterTopo from '@views/db-manage/common/cluster-details/ClusterTopo.vue';
   import MonitorDashboard from '@views/db-manage/common/cluster-monitor/MonitorDashboard.vue';
+
+  import { checkDbConsole } from '@utils';
 
   import BaseInfo from './components/BaseInfo.vue';
   import ClusterEventChange from './components/EventChange.vue';
