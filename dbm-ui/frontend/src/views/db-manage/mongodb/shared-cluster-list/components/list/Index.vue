@@ -96,7 +96,6 @@
     </template>
     <CapacityChange
       v-model:is-change="isCapacityChange"
-      :cluster-type="ClusterTypes.MONGO_SHARED_CLUSTER"
       :data="detailData" />
   </DbSideslider>
   <AccessEntry
