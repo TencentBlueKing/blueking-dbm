@@ -235,18 +235,11 @@ class ExternalProxyViewSet(viewsets.ViewSet):
         ):
             data = re.sub(IP_RE, "*.*.*.*", response.content.decode("utf-8"))
             return Response(json.loads(data))
-        # for path in [
-        #     "/timeseries/time_series/unify_query/",
-        #     "/timeseries/graph_promql_query/",
-        #     "/timeseries/grafana/query/",
-        #     "/timeseries/grafana/query_log/",
-        # ]:
-        #     if request.path.endswith(path):
-        #         # 外部 API 转发请求，把 IP 替换为 *.*.*.*
-        #         data = re.sub(IP_RE, "*.*.*.*", response.content.decode("utf-8"))
-        #         return Response(json.loads(data))
 
-        return HttpResponse(response)
+        # 按原样补充响应头
+        content_type = response.headers.get("Content-Type", "")
+        http_response = HttpResponse(response.content, status=response.status_code, content_type=content_type)
+        return http_response
 
     def external_proxy(self, request, *args, **kwargs):
         params = request.data or request.query_params
