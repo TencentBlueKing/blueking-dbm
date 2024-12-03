@@ -7,13 +7,15 @@
       class="content-tabs"
       type="card-tab">
       <BkTabPanel
-        key="集群拓扑"
+        v-if="checkDbConsole('sqlserver.singleClusterList.clusterTopo')"
         :label="t('集群拓扑')"
         name="topo" />
       <BkTabPanel
+        v-if="checkDbConsole('sqlserver.singleClusterList.basicInfo')"
         :label="t('基本信息')"
         name="info" />
       <BkTabPanel
+        v-if="checkDbConsole('sqlserver.singleClusterList.changeLog')"
         :label="t('变更记录')"
         name="record" />
       <BkTabPanel
@@ -54,6 +56,8 @@
   import ClusterTopo from '@views/db-manage/common/cluster-details/ClusterTopo.vue';
   import ClusterEventChange from '@views/db-manage/common/cluster-event-change/EventChange.vue';
   import MonitorDashboard from '@views/db-manage/common/cluster-monitor/MonitorDashboard.vue';
+
+  import { checkDbConsole } from '@utils';
 
   import BaseInfo from './BaseInfo.vue';
 

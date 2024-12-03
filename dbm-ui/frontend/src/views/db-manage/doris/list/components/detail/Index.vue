@@ -20,15 +20,19 @@
       class="detail-tab"
       type="card-tab">
       <BkTabPanel
+        v-if="checkDbConsole('doris.clusterManage.clusterTopo')"
         :label="t('集群拓扑')"
         name="topo" />
       <BkTabPanel
+        v-if="checkDbConsole('doris.clusterManage.nodeList')"
         :label="t('节点列表')"
         name="nodeList" />
       <BkTabPanel
+        v-if="checkDbConsole('doris.clusterManage.baseInfo')"
         :label="t('基本信息')"
         name="baseInfo" />
       <BkTabPanel
+        v-if="checkDbConsole('doris.clusterManage.changeLog')"
         :label="t('变更记录')"
         name="record" />
       <BkTabPanel
@@ -74,6 +78,8 @@
   import ClusterTopo from '@views/db-manage/common/cluster-details/ClusterTopo.vue';
   import ClusterEventChange from '@views/db-manage/common/cluster-event-change/EventChange.vue';
   import MonitorDashboard from '@views/db-manage/common/cluster-monitor/MonitorDashboard.vue';
+
+  import { checkDbConsole } from '@utils';
 
   import BaseInfo from './components/BaseInfo.vue';
   import NodeList from './components/node-list/Index.vue';
