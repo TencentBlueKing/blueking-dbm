@@ -1,6 +1,8 @@
 import type RedisModel from '@services/model/redis/redis';
 import type { OnlineSwitchType } from '@services/types';
 
+import type { AffinityType } from '@views/db-manage/redis/common/types';
+
 import type { DetailBase, DetailClusters, DetailSpecs } from '../common';
 
 export interface ScaleUpdown extends DetailBase {
@@ -20,7 +22,7 @@ export interface ScaleUpdown extends DetailBase {
       backend_group: {
         spec_id: number;
         count: number; // 机器组数
-        affinity: 'CROS_SUBZONE';
+        affinity: AffinityType;
       };
     };
     display_info: Pick<

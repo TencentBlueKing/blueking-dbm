@@ -279,8 +279,6 @@
     const newList = list.reduce((result, item) => {
       const domain = item.master_domain;
       if (!domainMemo[domain]) {
-        console.log(item, 'item');
-
         const row = generateTableRow(item);
         result.push(row);
         domainMemo[domain] = true;

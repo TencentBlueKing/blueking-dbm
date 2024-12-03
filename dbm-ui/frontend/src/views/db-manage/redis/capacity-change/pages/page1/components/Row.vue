@@ -67,12 +67,12 @@
   import { useI18n } from 'vue-i18n';
 
   import RedisModel from '@services/model/redis/redis';
+  import { type Redis } from '@services/model/ticket/ticket';
 
   import OperateColumn from '@components/render-table/columns/operate-column/index.vue';
   import RenderText from '@components/render-table/columns/text-plain/index.vue';
 
   import RenderTargetCluster from '@views/db-manage/redis/common/edit-field/ClusterName.vue';
-  import { AffinityType } from '@views/db-manage/redis/common/types';
 
   import { random } from '@utils';
 
@@ -108,27 +108,7 @@
     spec?: RedisModel['cluster_spec'];
   }
 
-  export interface InfoItem {
-    cluster_id: number;
-    bk_cloud_id: number;
-    db_version: string;
-    shard_num: number;
-    group_num: number;
-    online_switch_type: OnlineSwitchType;
-    capacity: number;
-    future_capacity: number;
-    resource_spec: {
-      backend_group: {
-        spec_id: number;
-        count: number; // 机器组数
-        affinity: AffinityType; // 暂时固定 'CROS_SUBZONE',
-      };
-    };
-    display_info: Pick<
-      RedisModel,
-      'cluster_stats' | 'cluster_spec' | 'cluster_shard_num' | 'cluster_capacity' | 'machine_pair_cnt'
-    >;
-  }
+  export type InfoItem = Redis.ScaleUpdown['infos'][number];
 
   // 创建表格数据
   export const createRowData = (): IDataRow => ({

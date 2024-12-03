@@ -16,6 +16,7 @@
     <TableEditSelect
       ref="selectRef"
       v-model="localValue"
+      :disabled="!data.clusterId"
       :list="targetVersionList"
       :placeholder="t('请选择')"
       :rules="rules"
