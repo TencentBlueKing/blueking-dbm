@@ -38,7 +38,7 @@
     <BkTableColumn :label="t('校验从库')">
       <template #default="{ data }: { data: RowData }">
         <div
-          v-for="(item, index) in data?.slaves"
+          v-for="(item, index) in data.slaves"
           :key="index">
           <p class="pt-2 pb-2">{{ item.ip }}: {{ item.port }}</p>
         </div>
