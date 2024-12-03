@@ -13,7 +13,7 @@
 
 <template>
   <ComFactory
-    class="ticket-detail-task-info"
+    class="ticket-details-page"
     :data="data" />
 </template>
 
@@ -33,3 +33,75 @@
     name: 'TicketTaskInfo',
   });
 </script>
+
+<style lang="less">
+  @import '@styles/mixins.less';
+
+  .ticket-details-page {
+    .ticket-details-info {
+      padding-left: 82px;
+      font-size: @font-size-mini;
+
+      .ticket-details-info-title {
+        color: @title-color;
+      }
+    }
+
+    .ticket-details-info-no-title {
+      padding-left: 0;
+    }
+
+    .ticket-details-list {
+      .flex-center();
+
+      max-width: 1000px;
+      padding: 8px 0 16px;
+      flex-wrap: wrap;
+    }
+
+    .ticket-details-item {
+      .flex-center();
+
+      overflow: hidden;
+      line-height: 32px;
+      flex: 0 0 50%;
+      align-items: flex-start;
+
+      .ticket-details-item-label {
+        flex-shrink: 0;
+        min-width: 160px;
+        text-align: right;
+      }
+
+      .ticket-details-item-value {
+        overflow: hidden;
+        color: @title-color;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        flex: 1;
+
+        .host-nums {
+          cursor: pointer;
+
+          a {
+            font-weight: bold;
+          }
+        }
+      }
+
+      &.whole {
+        align-items: flex-start;
+        flex: 0 0 100%;
+      }
+
+      &.table {
+        align-items: flex-start;
+        flex: 0 0 100%;
+
+        .ticket-details-item-value {
+          padding-top: 8px;
+        }
+      }
+    }
+  }
+</style>

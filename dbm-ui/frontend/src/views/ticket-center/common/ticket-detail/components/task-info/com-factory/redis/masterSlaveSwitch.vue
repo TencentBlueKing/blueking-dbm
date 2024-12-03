@@ -12,85 +12,60 @@
 -->
 
 <template>
-  <DbOriginalTable
-    :columns="columns"
-    :data="tableData" />
-  <div class="ticket-details-list">
-    <div class="ticket-details-item">
-      <span class="ticket-details-item-label">{{ t('是否强制切换') }}：</span>
-      <span class="ticket-details-item-value">
-        {{ ticketDetails.details.force ? t('是') : t('否') }}
-      </span>
-    </div>
-  </div>
+  <BkTable :data="ticketDetails.details.infos">
+    <BkTableColumn :label="t('主库主机')">
+      <template #default="{ data }: { data: RowData }">
+        {{ data.pairs[0].redis_master }}
+      </template>
+    </BkTableColumn>
+    <BkTableColumn :label="t('所属集群')">
+      <template #default="{ data }: { data: RowData }">
+        <p
+          v-for="item in data.cluster_ids"
+          :key="item">
+          {{ ticketDetails.details.clusters[item].immute_domain }}
+        </p>
+      </template>
+    </BkTableColumn>
+    <BkTableColumn :label="t('待切换的从库主机')">
+      <template #default="{ data }: { data: RowData }">
+        {{ data.pairs[0].redis_slave }}
+      </template>
+    </BkTableColumn>
+    <BkTableColumn :label="t('切换模式')">
+      <template #default="{ data }: { data: RowData }">
+        {{ data.online_switch_type === 'user_confirm' ? t('需人工确认') : t('无需确认') }}
+      </template>
+    </BkTableColumn>
+  </BkTable>
+  <InfoList>
+    <InfoItem :label="t('是否强制切换:')">
+      {{ ticketDetails.details.force ? t('是') : t('否') }}
+    </InfoItem>
+  </InfoList>
 </template>
 
 <script setup lang="tsx">
   import { useI18n } from 'vue-i18n';
 
-  import TicketModel,  {type Redis} from '@services/model/ticket/ticket';
+  import TicketModel, { type Redis } from '@services/model/ticket/ticket';
 
   import { TicketTypes } from '@common/const';
 
+  import InfoList, { Item as InfoItem } from '../components/info-list/Index.vue';
+
   interface Props {
-    ticketDetails: TicketModel<Redis.MasterSlaveSwitch>
+    ticketDetails: TicketModel<Redis.MasterSlaveSwitch>;
   }
 
-  interface RowData {
-    masterIp: string,
-    slaveIp: string,
-    clusterName: string,
-    switchMode: string,
-  }
+  type RowData = Props['ticketDetails']['details']['infos'][number];
 
-  const props = defineProps<Props>();
+  defineProps<Props>();
 
   defineOptions({
     name: TicketTypes.REDIS_MASTER_SLAVE_SWITCH,
-    inheritAttrs: false
-  })
+    inheritAttrs: false,
+  });
 
   const { t } = useI18n();
-
-  const columns = [
-    {
-      label: t('主库主机'),
-      field: 'masterIp',
-      showOverflowTooltip: true,
-    },
-    {
-      label: t('所属集群'),
-      field: 'clusterName',
-      showOverflowTooltip: true,
-    },
-    {
-      label: t('待切换的从库主机'),
-      field: 'slaveIp',
-      showOverflowTooltip: true,
-    },
-    {
-      label: t('切换模式'),
-      field: 'switchMode',
-      showOverflowTooltip: true,
-      render: ({ data }: {data: RowData}) => <span>{data.switchMode === 'user_confirm' ? t('需人工确认') : t('无需确认')}</span>,
-    },
-  ];
-
-  const tableData = computed(() => {
-    const { infos, clusters } = props.ticketDetails.details;
-    return infos.reduce<RowData[]>((results, item) => {
-      item.pairs.forEach((pair) => {
-        const obj = {
-          clusterName: item.cluster_id
-            ? clusters[item.cluster_id].immute_domain // 兼容旧单据
-            : item.cluster_ids.map(id => clusters[id].immute_domain).join(','),
-          masterIp: pair.redis_master,
-          slaveIp: pair.redis_slave,
-          switchMode: item.online_switch_type,
-        };
-        results.push(obj);
-      });
-      return results;
-    }, [])
-  });
 </script>
