@@ -30,7 +30,6 @@
         v-model="specInfo"
         :biz-id="data.bizId"
         :cloud-id="data.cloudId"
-        :cluster-type="clusterType"
         :is-apply="false"
         :origin-spec-id="originSpecId"
         :properties="{
@@ -46,7 +45,6 @@
 
 <script setup lang="tsx">
   import { InfoBox } from 'bkui-vue';
-  import { type ComponentProps } from 'vue-component-type-helpers'
   import { useI18n } from 'vue-i18n';
 
   import { createTicket } from '@services/source/ticket';
@@ -68,7 +66,6 @@
       shardNum: number;
       shardNodeCount: number;
     },
-    clusterType: ComponentProps<typeof MongoConfigSpec>['clusterType']
   }
 
   const props = defineProps<Props>();
@@ -120,7 +117,7 @@
                     shards_num: currentSpecData!.shard_num,
                     resource_spec: {
                       mongodb: {
-                        spec_id: props.data.specId,
+                        spec_id: specInfo.spec_id,
                         count: currentSpecData!.machine_num,
                       },
                     },

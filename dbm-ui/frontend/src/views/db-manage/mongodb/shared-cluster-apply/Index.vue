@@ -141,7 +141,6 @@
               v-model="formData.details.resource_spec.mongodb"
               :biz-id="formData.bk_biz_id"
               :cloud-id="formData.details.bk_cloud_id"
-              :cluster-type="ClusterTypes.MONGO_SHARED_CLUSTER"
               :properties="{
                 capacity: 'details.resource_spec.mongodb.capacity',
                 specId: 'details.resource_spec.mongodb.spec_id',

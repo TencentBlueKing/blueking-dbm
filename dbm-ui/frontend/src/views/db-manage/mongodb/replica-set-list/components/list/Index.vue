@@ -95,7 +95,6 @@
       </template>
       <CapacityChange
         v-model:is-change="isCapacityChange"
-        :cluster-type="ClusterTypes.MONGO_REPLICA_SET"
         :data="detailData" />
     </DbSideslider>
     <AccessEntry
