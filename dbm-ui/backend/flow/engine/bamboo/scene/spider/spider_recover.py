@@ -8,13 +8,14 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import copy
 from dataclasses import asdict
 
 from django.utils.translation import ugettext as _
 
-from backend.configuration.constants import MYSQL_DATA_RESTORE_TIME
+from backend.configuration.constants import MYSQL_DATA_RESTORE_TIME, MYSQL_USUAL_JOB_TIME
 from backend.db_meta.enums import ClusterType
-from backend.flow.consts import RollbackType
+from backend.flow.consts import MySQLBackupTypeEnum, MysqlChangeMasterType, RollbackType
 from backend.flow.engine.bamboo.scene.common.builder import SubBuilder
 from backend.flow.engine.bamboo.scene.mysql.common.get_binlog_backup import get_backup_binlog
 from backend.flow.engine.bamboo.scene.spider.common.exceptions import TendbGetBinlogFailedException
@@ -22,7 +23,8 @@ from backend.flow.plugins.components.collections.mysql.exec_actuator_script impo
 from backend.flow.plugins.components.collections.mysql.mysql_download_backupfile import (
     MySQLDownloadBackupfileComponent,
 )
-from backend.flow.utils.mysql.mysql_act_dataclass import DownloadBackupFileKwargs, ExecActuatorKwargs
+from backend.flow.plugins.components.collections.mysql.mysql_rds_execute import MySQLExecuteRdsComponent
+from backend.flow.utils.mysql.mysql_act_dataclass import DownloadBackupFileKwargs, ExecActuatorKwargs, ExecuteRdsKwargs
 from backend.flow.utils.mysql.mysql_act_playload import MysqlActPayload
 from backend.utils.time import str2datetime
 
@@ -126,14 +128,26 @@ def remote_node_rollback(root_id: str, ticket_data: dict, cluster: dict):
     sub_pipeline_all = SubBuilder(root_id=root_id, data=ticket_data)
     sub_pipeline_all_list = []
     instance_check_list = []
+    backup_info = cluster["backupinfo"]
+    if cluster["new_master"]["instance"] != cluster["new_slave"]["instance"]:
+        sub_pipeline_all.add_act(
+            act_name=_("从库stop slave {}").format(cluster["new_slave"]["instance"]),
+            act_component_code=MySQLExecuteRdsComponent.code,
+            kwargs=asdict(
+                ExecuteRdsKwargs(
+                    bk_cloud_id=int(cluster["bk_cloud_id"]),
+                    instance_ip=cluster["new_slave"]["ip"],
+                    instance_port=cluster["new_slave"]["port"],
+                    sqls=["stop slave"],
+                )
+            ),
+        )
     for node in [cluster["new_master"], cluster["new_slave"]]:
         if node["instance"] in instance_check_list:
             continue
-
         instance_check_list.append(node["instance"])
         cluster["rollback_ip"] = node["ip"]
         cluster["rollback_port"] = node["port"]
-        backup_info = cluster["backupinfo"]
         cluster["backup_time"] = backup_info["backup_time"]
         if cluster["rollback_type"] == RollbackType.REMOTE_AND_TIME.value:
             cluster["recover_binlog"] = True
@@ -142,7 +156,9 @@ def remote_node_rollback(root_id: str, ticket_data: dict, cluster: dict):
 
         sub_pipeline = SubBuilder(root_id=root_id, data=ticket_data)
         exec_act_kwargs = ExecActuatorKwargs(
-            bk_cloud_id=int(cluster["bk_cloud_id"]), cluster_type=ClusterType.TenDBCluster, cluster=cluster
+            bk_cloud_id=int(cluster["bk_cloud_id"]),
+            cluster_type=ClusterType.TenDBCluster,
+            cluster=copy.deepcopy(cluster),
         )
         exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.mysql_mkdir_dir.__name__
         exec_act_kwargs.exec_ip = cluster["rollback_ip"]
@@ -210,7 +226,56 @@ def remote_node_rollback(root_id: str, ticket_data: dict, cluster: dict):
         sub_pipeline_all_list.append(
             sub_pipeline.build_sub_process(sub_name=_("定点恢复 {}:{}".format(node["ip"], node["port"])))
         )
+        # 针对slave repeater角色的从库。建立复制链路。重置slave>添加复制账号和获取位点>建立主从关系
     sub_pipeline_all.add_parallel_sub_pipeline(sub_pipeline_all_list)
+    backup_type = backup_info.get("backup_type", "")
+    # backup_type = MySQLBackupTypeEnum.PHYSICAL.value
+    if cluster["new_master"]["instance"] != cluster["new_slave"]["instance"]:
+        if backup_type == MySQLBackupTypeEnum.PHYSICAL.value:
+            repl_cluster = {
+                "target_ip": cluster["new_master"]["ip"],
+                "target_port": cluster["new_master"]["port"],
+                "repl_ip": cluster["new_slave"]["ip"],
+                "repl_port": cluster["new_slave"]["port"],
+                "change_master_type": MysqlChangeMasterType.MASTERSTATUS.value,
+                "change_master_force": True,
+            }
+            repl_exec_act_kwargs = ExecActuatorKwargs(
+                bk_cloud_id=cluster["bk_cloud_id"],
+                cluster_type=ClusterType.TenDBCluster,
+                cluster=copy.deepcopy(repl_cluster),
+                job_timeout=MYSQL_USUAL_JOB_TIME,
+            )
+            repl_exec_act_kwargs.exec_ip = cluster["new_master"]["ip"]
+            repl_exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.tendb_grant_remotedb_repl_user.__name__
+            sub_pipeline_all.add_act(
+                act_name=_("新增repl帐户{}".format(repl_exec_act_kwargs.exec_ip)),
+                act_component_code=ExecuteDBActuatorScriptComponent.code,
+                kwargs=asdict(repl_exec_act_kwargs),
+                write_payload_var="show_master_status_info",
+            )
+            #  启动，或者建立组从关系
+            repl_exec_act_kwargs.exec_ip = cluster["new_slave"]["ip"]
+            repl_exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.tendb_remotedb_change_master.__name__
+            sub_pipeline_all.add_act(
+                act_name=_("建立原主从关系{}".format(cluster["new_slave"]["instance"])),
+                act_component_code=ExecuteDBActuatorScriptComponent.code,
+                kwargs=asdict(repl_exec_act_kwargs),
+            )
+
+        elif backup_type == MySQLBackupTypeEnum.LOGICAL.value:
+            sub_pipeline_all.add_act(
+                act_name=_("从库start slave {}").format(cluster["new_slave"]["instance"]),
+                act_component_code=MySQLExecuteRdsComponent.code,
+                kwargs=asdict(
+                    ExecuteRdsKwargs(
+                        bk_cloud_id=cluster["bk_cloud_id"],
+                        instance_ip=cluster["new_slave"]["ip"],
+                        instance_port=cluster["new_slave"]["port"],
+                        sqls=["start slave"],
+                    )
+                ),
+            )
     return sub_pipeline_all.build_sub_process(
         sub_name=_(
             "Remote node {} 恢复: 主 {} 从 {} ".format(

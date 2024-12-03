@@ -29,10 +29,11 @@ from backend.flow.engine.bamboo.scene.spider.common.exceptions import (
     TendbGetBackupInfoFailedException,
 )
 from backend.flow.engine.bamboo.scene.spider.spider_recover import remote_node_rollback, spider_recover_sub_flow
+from backend.flow.plugins.components.collections.mysql.mysql_crond_control import MysqlCrondMonitorControlComponent
 from backend.flow.plugins.components.collections.mysql.trans_flies import TransFileComponent
 from backend.flow.plugins.components.collections.spider.spider_db_meta import SpiderDBMetaComponent
 from backend.flow.utils.mysql.common.mysql_cluster_info import get_version_and_charset
-from backend.flow.utils.mysql.mysql_act_dataclass import DBMetaOPKwargs, DownloadMediaKwargs
+from backend.flow.utils.mysql.mysql_act_dataclass import CrondMonitorKwargs, DBMetaOPKwargs, DownloadMediaKwargs
 from backend.flow.utils.mysql.mysql_context_dataclass import ClusterInfoContext
 from backend.flow.utils.spider.spider_db_meta import SpiderDBMeta
 from backend.flow.utils.spider.tendb_cluster_info import get_rollback_clusters_info
@@ -149,6 +150,17 @@ class TenDBRollBackDataFlow(object):
                     "change_master": False,
                 }
                 spd_sub_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(self.data))
+                spd_sub_pipeline.add_act(
+                    act_name=_("屏蔽监控 {}").format(spider_node["instance"]),
+                    act_component_code=MysqlCrondMonitorControlComponent.code,
+                    kwargs=asdict(
+                        CrondMonitorKwargs(
+                            bk_cloud_id=target_cluster.bk_cloud_id,
+                            exec_ips=[spider_node["ip"]],
+                            port=spider_node["port"],
+                        )
+                    ),
+                )
                 cluster = {"proxy_status": InstanceStatus.RESTORING.value, "proxy_ids": [target_spider.id]}
                 spd_sub_pipeline.add_act(
                     act_name=_("写入初始化实例的db_meta元信息"),
@@ -176,6 +188,18 @@ class TenDBRollBackDataFlow(object):
                             db_meta_class_func=SpiderDBMeta.tendb_modify_proxy_status.__name__,
                             cluster=cluster,
                             is_update_trans_data=False,
+                        )
+                    ),
+                )
+                spd_sub_pipeline.add_act(
+                    act_name=_("解除监控屏蔽 {}").format(spider_node["instance"]),
+                    act_component_code=MysqlCrondMonitorControlComponent.code,
+                    kwargs=asdict(
+                        CrondMonitorKwargs(
+                            bk_cloud_id=target_cluster.bk_cloud_id,
+                            exec_ips=[spider_node["ip"]],
+                            port=spider_node["port"],
+                            enable=True,
                         )
                     ),
                 )
@@ -259,6 +283,18 @@ class TenDBRollBackDataFlow(object):
                         )
                     ),
                 )
+                # 屏蔽监控
+                ins_sub_pipeline.add_act(
+                    act_name=_("屏蔽监控 {}").format(shard_id),
+                    act_component_code=MysqlCrondMonitorControlComponent.code,
+                    kwargs=asdict(
+                        CrondMonitorKwargs(
+                            bk_cloud_id=target_cluster.bk_cloud_id,
+                            exec_ips=[remote_node["new_master"]["ip"], remote_node["new_slave"]["ip"]],
+                            port=remote_node["new_master"]["port"],
+                        )
+                    ),
+                )
 
                 ins_sub_pipeline.add_sub_pipeline(
                     sub_flow=remote_node_rollback(
@@ -277,6 +313,18 @@ class TenDBRollBackDataFlow(object):
                             db_meta_class_func=SpiderDBMeta.tendb_modify_storage_status.__name__,
                             cluster=cluster,
                             is_update_trans_data=False,
+                        )
+                    ),
+                )
+                ins_sub_pipeline.add_act(
+                    act_name=_("解除监控屏蔽 {}").format(shard_id),
+                    act_component_code=MysqlCrondMonitorControlComponent.code,
+                    kwargs=asdict(
+                        CrondMonitorKwargs(
+                            bk_cloud_id=target_cluster.bk_cloud_id,
+                            exec_ips=[remote_node["new_master"]["ip"], remote_node["new_slave"]["ip"]],
+                            port=remote_node["new_master"]["port"],
+                            enable=True,
                         )
                     ),
                 )
