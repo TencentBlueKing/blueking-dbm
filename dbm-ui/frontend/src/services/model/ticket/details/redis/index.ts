@@ -28,8 +28,6 @@ export * from './proxyOpen';
 export * from './proxyScaleDown';
 export * from './proxyScaleUp';
 export * from './purge';
-export * from './scaleDown';
-export * from './scaleUp';
 export * from './scaleUpdown';
 export * from './slotsMigrate';
 export * from './versionUpdateOnline';

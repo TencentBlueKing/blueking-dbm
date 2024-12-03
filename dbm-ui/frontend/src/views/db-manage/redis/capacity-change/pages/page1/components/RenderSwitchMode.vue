@@ -41,7 +41,7 @@
   }
 
   interface Exposes {
-    getValue: () => Promise<string>;
+    getValue: () => Promise<OnlineSwitchType>;
   }
 
   const props = withDefaults(defineProps<Props>(), {
