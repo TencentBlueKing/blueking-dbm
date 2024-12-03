@@ -12,57 +12,56 @@
 -->
 
 <template>
-  <BkLoading :loading="loading">
-    <BkTable
-      :data="tableData"
-      show-overflow-tooltip>
-      <BkTableColumn
-        field="master_domain"
-        :label="t('目标集群')">
-      </BkTableColumn>
-      <BkTableColumn
-        field="cluster_type_name"
-        :label="t('架构版本')">
-      </BkTableColumn>
-      <BkTableColumn
-        field="db_version"
-        :label="t('Redis版本')">
-      </BkTableColumn>
-      <BkTableColumn
-        :label="t('当前容量')"
-        :min-width="240">
-        <template #default="{ data }: { data: RowData }">
-          <TableGroupContent
-            v-if="data"
-            :columns="getCurrentColunms(data)" />
-        </template>
-      </BkTableColumn>
-      <BkTableColumn
-        :label="t('目标容量')"
-        :min-width="370">
-        <template #default="{ data }: { data: RowData }">
-          <TableGroupContent
-            v-if="data"
-            :columns="getTargetColunms(data)" />
-        </template>
-      </BkTableColumn>
-      <BkTableColumn :label="t('切换模式')">
-        <template #default="{ data }: { data: RowData }">
-          {{ data.online_switch_type === 'user_confirm' ? t('需人工确认') : t('无需确认') }}
-        </template>
-      </BkTableColumn>
-    </BkTable>
-  </BkLoading>
+  <BkTable
+    :data="ticketDetails.details.infos"
+    show-overflow-tooltip>
+    <BkTableColumn
+      :label="t('源集群')"
+      :min-width="180">
+      <template #default="{ data }: { data: RowData }">
+        {{ ticketDetails.details.clusters[data.cluster_id].immute_domain }}
+      </template>
+    </BkTableColumn>
+    <BkTableColumn :label="t('架构版本')">
+      <template #default="{ data }: { data: RowData }">
+        {{ ticketDetails.details.clusters[data.cluster_id].cluster_type_name }}
+      </template>
+    </BkTableColumn>
+    <BkTableColumn
+      field="db_version"
+      :label="t('Redis版本')">
+    </BkTableColumn>
+    <BkTableColumn
+      :label="t('当前容量')"
+      :min-width="240">
+      <template #default="{ data }: { data: RowData }">
+        <TableGroupContent
+          v-if="data"
+          :columns="getCurrentColunms(data)" />
+      </template>
+    </BkTableColumn>
+    <BkTableColumn
+      :label="t('目标容量')"
+      :min-width="370">
+      <template #default="{ data }: { data: RowData }">
+        <TableGroupContent
+          v-if="data"
+          :columns="getTargetColunms(data)" />
+      </template>
+    </BkTableColumn>
+    <BkTableColumn :label="t('切换模式')">
+      <template #default="{ data }: { data: RowData }">
+        {{ data.online_switch_type === 'user_confirm' ? t('需人工确认') : t('无需确认') }}
+      </template>
+    </BkTableColumn>
+  </BkTable>
 </template>
 
 <script setup lang="tsx">
   import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
-  import { useRequest } from 'vue-request';
 
-  import RedisModel from '@services/model/redis/redis';
-  import TicketModel, {type Redis} from '@services/model/ticket/ticket';
-  import { getRedisList } from '@services/source/redis';
+  import TicketModel, { type Redis } from '@services/model/ticket/ticket';
 
   import { TicketTypes } from '@common/const';
 
@@ -79,53 +78,29 @@
     ticketDetails: TicketModel<Redis.ScaleUpdown>
   }
 
-  type RowData = RedisModel & Props['ticketDetails']['details']['infos'][number]
+  type RowData = Props['ticketDetails']['details']['infos'][number];
 
   const props = defineProps<Props>();
 
   defineOptions({
     name: TicketTypes.REDIS_SCALE_UPDOWN,
-    inheritAttrs: false
-  })
+    inheritAttrs: false,
+  });
 
   const { t } = useI18n();
-
-  const tableData = ref<RowData[]>([]);
-
-  const { infos, specs } = props.ticketDetails.details;
-
-  const { loading } = useRequest(getRedisList, {
-    defaultParams: [{
-      cluster_ids: infos.map((item) => item.cluster_id).join(','),
-    }],
-    onSuccess(clustersResult) {
-      const clusterInfo = clustersResult.results.reduce<Record<number, RedisModel>>((results, item) => {
-        Object.assign(results, {
-          [item.id]: item,
-        });
-        return results;
-      }, {})
-      tableData.value = infos.map((infoItem) =>
-        Object.assign(
-          {},
-          clusterInfo[infoItem.cluster_id],
-          infoItem,
-        ));
-    }
-  })
 
   const getCurrentColunms = (data: RowData) => [
     {
       title: t('当前容量'),
-      render: () => <ClusterCapacityUsageRate clusterStats={data.cluster_stats} />
+      render: () => <ClusterCapacityUsageRate clusterStats={data.display_info.cluster_stats} />
     },
     {
       title: t('资源规格'),
       render: () => {
         const currentSpec = {
-          ...data.cluster_spec,
-          id: data.cluster_spec.spec_id,
-          name: data.cluster_spec.spec_name,
+          ...data.display_info.cluster_spec,
+          id: data.display_info.cluster_spec.spec_id,
+          name: data.display_info.cluster_spec.spec_name,
         }
         return (
           <RenderSpec
@@ -137,15 +112,15 @@
     },
     {
       title: t('机器组数'),
-      render: () => data.machine_pair_cnt
+      render: () => data.display_info.machine_pair_cnt
     },
     {
       title: t('机器数量'),
-      render: () => data.machine_pair_cnt * 2
+      render: () => data.display_info.machine_pair_cnt * 2
     },
     {
       title: t('分片数'),
-      render: () => data.cluster_shard_num
+      render: () => data.display_info.cluster_shard_num
     },
   ]
 
@@ -153,12 +128,12 @@
     {
       title: t('目标容量'),
       render: () => {
-        const { used = 0, total = 0 } = data.cluster_stats;
+        const { used = 0, total = 0 } = data.display_info.cluster_stats;
         const targetTotal = convertStorageUnits(data.future_capacity, 'GB', 'B')
-        const currentValue = data.cluster_capacity || convertStorageUnits(total, 'B', 'GB')
+        const currentValue = data.display_info.cluster_capacity || convertStorageUnits(total, 'B', 'GB')
 
         let stats = {}
-        if (!_.isEmpty(data.cluster_stats)) {
+        if (!_.isEmpty(data.display_info.cluster_stats)) {
           stats = {
             used,
             total: targetTotal,
@@ -180,7 +155,7 @@
     {
       title: t('资源规格'),
       render: () => {
-        const targetSpec = specs[data.resource_spec.backend_group.spec_id]
+        const targetSpec = props.ticketDetails.details.specs[data.resource_spec.backend_group.spec_id]
         return (
           <RenderSpec
             data={targetSpec}
@@ -197,7 +172,7 @@
           <>
             <span>{targetValue}</span>
             <ValueDiff
-              currentValue={data.machine_pair_cnt}
+              currentValue={data.display_info.machine_pair_cnt}
               show-rate={false}
               targetValue={targetValue} />
           </>
@@ -212,7 +187,7 @@
           <>
             <span>{targetValue}</span>
             <ValueDiff
-              currentValue={data.machine_pair_cnt * 2}
+              currentValue={data.display_info.machine_pair_cnt * 2}
               show-rate={false}
               targetValue={targetValue} />
           </>
@@ -225,7 +200,7 @@
         <>
           <span>{data.shard_num}</span>
           <ValueDiff
-            currentValue={data.cluster_shard_num}
+            currentValue={data.display_info.cluster_shard_num}
             show-rate={false}
             targetValue={data.shard_num} />
         </>
