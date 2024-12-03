@@ -133,6 +133,16 @@
         return ipList.length <= 20;
       },
     },
+    {
+      message: t('主域名，从域名，单节点必须分开查询'),
+      validator: () => {
+        if (props.accountType === AccountTypes.MYSQL) {
+          const nonEmptyList = Object.values(selectedClusters.value).filter((selectItem) => selectItem.length > 0);
+          return nonEmptyList.length <= 1;
+        }
+        return true;
+      },
+    },
   ];
 
   const clusterSelectorShow = ref(false);
@@ -142,6 +152,12 @@
   const disableClusterSubmitMethod = (clusterList: string[]) =>
     clusterList.length <= 20 ? false : t('至多n台', { n: 20 });
 
+  const updateClusterInfo = () => {
+    const clusterList = Object.values(selectedClusters.value).find((clusterList) => clusterList.length > 0);
+    clusterType.value = (clusterList?.[0].cluster_type || ClusterTypes.TENDBSINGLE) as ClusterTypes;
+    isMaster.value = !selectedClusters.value?.tendbhaSlave?.length;
+  };
+
   const handleClusterSelectorChange = (selected: Record<string, Array<SelectorModelType>>) => {
     selectedClusters.value = selected;
     const domainList = Object.keys(selected).reduce<string[]>(
@@ -149,10 +165,7 @@
       [],
     );
     modelValue.value = domainList.join(',');
-
-    const clusterList = Object.values(selected).find((clusterList) => clusterList.length > 0);
-    clusterType.value = (clusterList?.[0].cluster_type || ClusterTypes.TENDBSINGLE) as ClusterTypes;
-    isMaster.value = !selectedClusters.value?.tendbhaSlave?.length;
+    updateClusterInfo();
 
     emits('change');
   };
@@ -217,9 +230,9 @@
     const deleteSet = new Set(deleteList);
 
     if (addList.length) {
-      filterClusters({
+      filterClusters<SelectorModelType>({
         bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-        exact_domain: addList.join(','),
+        domain: addList.join(','),
       }).then((clusterResultList) => {
         // 删除时，删去已选集群
         deleteSelectedCluster(deleteSet);
@@ -230,10 +243,7 @@
           selected[clusterItem.cluster_type] = selected[clusterItem.cluster_type].concat(clusterItem);
         });
         selectedClusters.value = selected;
-
-        const clusterList = Object.values(selected).find((clusterList) => clusterList.length > 0);
-        clusterType.value = (clusterList?.[0].cluster_type || ClusterTypes.TENDBSINGLE) as ClusterTypes;
-        isMaster.value = !selectedClusters.value?.tendbhaSlave?.length;
+        updateClusterInfo();
 
         nextTick(() => {
           emits('change');
@@ -253,6 +263,7 @@
         const clusterList = selectedClusters.value[key];
         selectedClusters.value[key] = clusterList.filter((clusterItem) => !deleteSet.has(clusterItem.master_domain));
       });
+      updateClusterInfo();
     }
   };
 
