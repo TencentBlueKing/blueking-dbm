@@ -381,7 +381,8 @@ def tendbha_cluster_upgrade_subflow(
             bk_host_ids = [new_slave["bk_host_id"]]
             old_ro_slave_ip = old_ro_slave["ip"]
             old_ro_slave_ips.append(old_ro_slave_ip)
-            db_config = get_instance_config(cluster_cls.bk_cloud_id, old_ro_slave_ip, ports=ports)
+            origin_config = get_instance_config(cluster_cls.bk_cloud_id, old_ro_slave_ip, ports=ports)
+            db_config = deal_mycnf(pkg.name, db_version, origin_config)
             install_ro_slave_sub_pipeline = build_install_slave_sub_pipeline(
                 uid,
                 root_id,
@@ -458,17 +459,8 @@ def tendbha_cluster_upgrade_subflow(
     ms_sub_pipeline = SubBuilder(root_id=root_id, data=parent_global_data)
     bk_host_ids = [new_master["bk_host_id"], new_slave["bk_host_id"]]
     master = cluster_cls.storageinstance_set.get(instance_inner_role=InstanceInnerRole.MASTER.value)
-    db_config = get_instance_config(cluster_cls.bk_cloud_id, master.machine.ip, ports)
-    if mysql_version_parse(db_version) >= mysql_version_parse("5.7.0"):
-        will_del_keys = ["slave_parallel_type", "replica_parallel_type"]
-        # 如果不是tmysql的话，需要删除一些配置
-        if "tmysql" not in pkg.name:
-            will_del_keys.append("log_bin_compress")
-            will_del_keys.append("relay_log_uncompress")
-        for port in db_config:
-            for key in will_del_keys:
-                if db_config[port].get(key):
-                    del db_config[port][key]
+    origin_config = get_instance_config(cluster_cls.bk_cloud_id, master.machine.ip, ports)
+    db_config = deal_mycnf(pkg.name, db_version, origin_config)
     install_ms_pair_subflow = build_install_ms_pair_sub_pipeline(
         uid=uid,
         root_id=root_id,
@@ -581,6 +573,26 @@ def tendbha_cluster_upgrade_subflow(
         )
     sub_pipeline.add_parallel_sub_pipeline(sub_flow_list=uninstall_flows)
     return sub_pipeline.build_sub_process(sub_name=_("{}:整体迁移升级").format(cluster_cls.immute_domain))
+
+
+def deal_mycnf(pkg_name, db_version: str, db_config: dict):
+    if mysql_version_parse(db_version) >= ("5.7.0"):
+        will_del_keys = ["slave_parallel_type", "replica_parallel_type"]
+        # 如果不是tmysql的话，需要删除一些配置
+        if "tmysql" not in pkg_name:
+            will_del_keys.append("log_bin_compress")
+            will_del_keys.append("relay_log_uncompress")
+        for port in db_config:
+            for key in will_del_keys:
+                if db_config[port].get(key):
+                    del db_config[port][key]
+    if mysql_version_parse(db_version) >= ("8.0.0"):
+        will_del_keys = ["innodb_large_prefix"]
+        for port in db_config:
+            for key in will_del_keys:
+                if db_config[port].get(key):
+                    del db_config[port][key]
+    return db_config
 
 
 def non_standby_slaves_upgrade_subflow(

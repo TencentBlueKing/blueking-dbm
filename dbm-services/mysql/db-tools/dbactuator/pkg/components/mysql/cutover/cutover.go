@@ -23,7 +23,7 @@ import (
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util"
 )
 
-// CutOverParam TODO
+// CutOverParam cutover 参数
 type CutOverParam struct {
 	Host    string              `json:"host"  validate:"required,ip"`
 	Cluster *MySQLClusterDetail `json:"cluster"`
@@ -182,11 +182,12 @@ func (m *CutOverToSlaveComp) Example() interface{} {
 func (m *CutOverToSlaveComp) PreCheck() (err error) {
 	// 以下是强制检查的内容
 	// 检查下proxy backend 是不是 源Master
-	if err := m.cluster.CheckBackends(m.cluster.MasterIns.Host, m.cluster.MasterIns.Port); err != nil {
+	if err = m.cluster.CheckBackends(m.cluster.MasterIns.Host, m.cluster.MasterIns.Port); err != nil {
+		logger.Error("proxy backend is not %s:%d", m.cluster.MasterIns.Host, m.cluster.MasterIns.Port)
 		return err
 	}
 	// 检查alt Slave repl 的地址不是 cluster.MasterIns
-	if err := m.cluster.CheckAltSlaveMasterAddr(); err != nil {
+	if err = m.cluster.CheckAltSlaveMasterAddr(); err != nil {
 		return err
 	}
 
@@ -203,10 +204,10 @@ func (m *CutOverToSlaveComp) PreCheck() (err error) {
 	}
 	// 客户端连接检查
 	if m.Params.ClientConnCheck {
-		prcsls, err := m.cluster.AltSlaveIns.dbConn.ShowApplicationProcesslist(m.sysUsers)
-		if err != nil {
-			logger.Error("show processlist failed %s", err.Error())
-			return err
+		prcsls, errx := m.cluster.AltSlaveIns.dbConn.ShowApplicationProcesslist(m.sysUsers)
+		if errx != nil {
+			logger.Error("show processlist failed %s", errx.Error())
+			return errx
 		}
 		if len(prcsls) > 0 {
 			return fmt.Errorf("there is a connection for non system users %v", prcsls)
@@ -224,7 +225,7 @@ func (m *CutOverToSlaveComp) PreCheck() (err error) {
 	if err = m.cluster.AltSlaveIns.dbConn.CheckSlaveReplStatus(func() (resp native.ShowSlaveStatusResp, err error) {
 		return m.cluster.AltSlaveIns.dbConn.ShowSlaveStatus()
 	}); err != nil {
-		logger.Error("检查主从同步状态出错: %s", err.Error())
+		logger.Error("检查从实例[%s:%d]同步状态出错: %s", m.cluster.AltSlaveIns.Host, m.cluster.AltSlaveIns.Port, err.Error())
 		return err
 	}
 
@@ -232,6 +233,8 @@ func (m *CutOverToSlaveComp) PreCheck() (err error) {
 		if err = m.cluster.AltSlaveIns.Slave.dbConn.CheckSlaveReplStatus(func() (resp native.ShowSlaveStatusResp, err error) {
 			return m.cluster.AltSlaveIns.Slave.dbConn.ShowSlaveStatus()
 		}); err != nil {
+			logger.Error("检查从实例[%s:%d]同步状态出错: %s", m.cluster.AltSlaveIns.Slave.Host, m.cluster.AltSlaveIns.Slave.Port,
+				err.Error())
 			return err
 		}
 	}
@@ -259,7 +262,10 @@ func (m *CutOverToSlaveComp) PreCheck() (err error) {
 func (m *CutOverToSlaveComp) CutOver() (binPos string, err error) {
 	defer func() {
 		if m.Params.LockedSwitch {
-			m.cluster.MasterIns.UnlockTables()
+			errx := m.cluster.MasterIns.UnlockTables()
+			if errx != nil {
+				logger.Error("unlock tables failed %s", errx.Error())
+			}
 		}
 		if err != nil {
 			e := m.cluster.UpdateProxiesBackend(m.cluster.MasterIns.Host, m.cluster.MasterIns.Port)

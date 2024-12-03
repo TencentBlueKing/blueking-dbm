@@ -43,7 +43,6 @@ const (
 // Ins tance  TODO
 type Ins struct {
 	native.Instance
-	dbConn *native.DbWorker `json:"-"`
 }
 
 // Proxies TODO
@@ -202,7 +201,7 @@ func (m *MySQLClusterDetail) CheckAltSlaveMasterAddr() (err error) {
 			m.MasterIns.Addr(),
 		)
 		logger.Error(msg)
-		return fmt.Errorf(msg)
+		return errors.New(msg)
 	}
 	return err
 }
@@ -257,7 +256,7 @@ func (c *MasterInfo) LockTablesPreCheck(backupUser string) (err error) {
 
 // FlushTablesWithReadLock 执行flush table with read  lock
 func (c *MasterInfo) FlushTablesWithReadLock() (err error) {
-	if _, err := c.lockConn.ExecContext(context.Background(), "set lock_wait_timeout = 10;"); err != nil {
+	if _, err = c.lockConn.ExecContext(context.Background(), "set lock_wait_timeout = 10;"); err != nil {
 		return err
 	}
 	err = util.Retry(
@@ -302,7 +301,7 @@ func (c *MasterInfo) KillBackupUserProcesslist(backupUser string) (err error) {
 	if err != nil {
 		return err
 	}
-	if len(processLists) <= 0 {
+	if len(processLists) == 0 {
 		logger.Info("没有发现关于备份用户[%s]相关的processlist~", backupUser)
 		return nil
 	}
@@ -321,11 +320,11 @@ func (c *MasterInfo) FindLongQuery() (err error) {
 	if err != nil {
 		return err
 	}
-	if len(activeProcessLists) <= 0 {
+	if len(activeProcessLists) == 0 {
 		return nil
 	}
 	var errs []error
-	errs = []error{errors.New("active processlist exist:\n")}
+	errs = []error{errors.New("active processlist exist")}
 	for _, p := range activeProcessLists {
 		errs = append(
 			errs, fmt.Errorf(
@@ -364,7 +363,7 @@ func realVal(v sql.NullString) string {
 // 	return
 // }
 
-// RecordBinPos 记录切换时候的bin postion
+// RecordBinPos 记录切换时候的bin position
 func (s *AltSlaveInfo) RecordBinPos() (binPosJsonStr string, err error) {
 	pos, _ := s.dbConn.ShowMasterStatus()
 	logger.Info("show master status on %s,detail: File:%s,Pos:%d", s.Addr(), pos.File, pos.Position)
