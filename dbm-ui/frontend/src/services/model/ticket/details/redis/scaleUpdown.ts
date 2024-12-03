@@ -1,3 +1,4 @@
+import type RedisModel from '@services/model/redis/redis';
 import type { OnlineSwitchType } from '@services/types';
 
 import type { DetailBase, DetailClusters, DetailSpecs } from '../common';
@@ -22,6 +23,10 @@ export interface ScaleUpdown extends DetailBase {
         affinity: 'CROS_SUBZONE';
       };
     };
+    display_info: Pick<
+      RedisModel,
+      'cluster_stats' | 'cluster_spec' | 'cluster_shard_num' | 'cluster_capacity' | 'machine_pair_cnt'
+    >;
   }[];
   specs: DetailSpecs;
 }
