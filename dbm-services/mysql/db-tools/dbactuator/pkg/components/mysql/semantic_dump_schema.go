@@ -144,9 +144,7 @@ func (c *SemanticDumpSchemaComp) Init() (err error) {
 	}
 	c.dumpCmd = path.Join(cst.MysqldInstallPath, "bin", "mysqldump")
 	c.isSpider = strings.Contains(version, "tdbctl")
-	if strings.Contains(version, "tmysql") {
-		c.useTmysqldump = true
-	}
+
 	if cmutil.MySQLVersionParse(version) > cmutil.MySQLVersionParse("5.6.9") {
 		c.gtidPurgedOff = true
 	}
