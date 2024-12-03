@@ -576,7 +576,7 @@ def tendbha_cluster_upgrade_subflow(
 
 
 def deal_mycnf(pkg_name, db_version: str, db_config: dict):
-    if mysql_version_parse(db_version) >= ("5.7.0"):
+    if mysql_version_parse(db_version) >= mysql_version_parse("5.7.0"):
         will_del_keys = ["slave_parallel_type", "replica_parallel_type"]
         # 如果不是tmysql的话，需要删除一些配置
         if "tmysql" not in pkg_name:
@@ -586,7 +586,7 @@ def deal_mycnf(pkg_name, db_version: str, db_config: dict):
             for key in will_del_keys:
                 if db_config[port].get(key):
                     del db_config[port][key]
-    if mysql_version_parse(db_version) >= ("8.0.0"):
+    if mysql_version_parse(db_version) >= mysql_version_parse("8.0.0"):
         will_del_keys = ["innodb_large_prefix"]
         for port in db_config:
             for key in will_del_keys:
