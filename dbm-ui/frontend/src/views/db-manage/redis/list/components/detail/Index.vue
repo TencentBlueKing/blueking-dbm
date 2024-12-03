@@ -24,6 +24,7 @@
         :label="t('集群拓扑')"
         name="topo" />
       <BkTabPanel
+        v-if="checkDbConsole('redis.clusterManage.baseInfo')"
         :label="t('基本信息')"
         name="info" />
       <BkTabPanel

@@ -15,6 +15,7 @@
   <div class="doris-list-page">
     <div class="header-action">
       <AuthButton
+        v-db-console="'doris.clusterManage.instanceApply'"
         action-id="doris_apply"
         class="mb16"
         theme="primary"
@@ -22,10 +23,13 @@
         {{ t('申请实例') }}
       </AuthButton>
       <DropdownExportExcel
+        v-db-console="'doris.clusterManage.batchOperation'"
         :has-selected="hasSelected"
         :ids="selectedIds"
         type="doris" />
-      <ClusterIpCopy :selected="selected" />
+      <ClusterIpCopy
+        v-db-console="'doris.clusterManage.batchCopy'"
+        :selected="selected" />
       <DbSearchSelect
         class="mb16"
         :data="serachData"
@@ -667,7 +671,9 @@
       render: ({ data }: { data: DorisModel }) => {
         if (data.isOnline) {
           return [
-            <OperationBtnStatusTips data={data}>
+            <OperationBtnStatusTips
+              data={data}
+              v-db-console="doris.clusterManage.scaleUp">
               <auth-button
                 text
                 theme="primary"
@@ -679,7 +685,9 @@
                 { t('扩容') }
               </auth-button>
             </OperationBtnStatusTips>,
-            <OperationBtnStatusTips data={data}>
+            <OperationBtnStatusTips
+              data={data}
+              v-db-console="doris.clusterManage.scaleDown">
               <auth-button
                 text
                 theme="primary"
@@ -696,6 +704,7 @@
               text
               theme="primary"
               action-id="doris_access_entry_view"
+              v-db-console="doris.clusterManage.getAccess"
               permission={data.permission.doris_access_entry_view}
               resource={data.id}
               class="ml-16"
@@ -714,14 +723,14 @@
                 ),
                 content: () => (
                   <>
-                    <bk-dropdown-item>
+                    <bk-dropdown-item v-db-console="doris.clusterManage.manage">
                       <a
                         href={data.access_url}
                         target="_blank">
                         {t('管理')}
                       </a>,
                     </bk-dropdown-item>
-                    <bk-dropdown-item>
+                    <bk-dropdown-item v-db-console="doris.clusterManage.disable">
                       <OperationBtnStatusTips data={data}>
                         <auth-button
                           text
@@ -735,7 +744,7 @@
                         </auth-button>
                       </OperationBtnStatusTips>
                     </bk-dropdown-item>
-                    <bk-dropdown-item>
+                    <bk-dropdown-item v-db-console="doris.clusterManage.delete">
                       <OperationBtnStatusTips data={data}>
                         <auth-button
                           v-bk-tooltips={{
@@ -760,7 +769,9 @@
           ];
         }
         return [
-          <OperationBtnStatusTips data={data}>
+          <OperationBtnStatusTips
+            data={data}
+            v-db-console="doris.clusterManage.enable">
             <auth-button
               text
               theme="primary"
@@ -772,7 +783,9 @@
               { t('启用') }
             </auth-button>
           </OperationBtnStatusTips>,
-          <OperationBtnStatusTips data={data}>
+          <OperationBtnStatusTips
+            data={data}
+            v-db-console="doris.clusterManage.delete">
             <auth-button
               text
               theme="primary"

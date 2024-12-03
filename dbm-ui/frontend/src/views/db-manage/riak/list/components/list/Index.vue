@@ -15,15 +15,19 @@
   <div class="riak-list-container">
     <div class="header-action">
       <AuthButton
+        v-db-console="'riak.clusterManage.instanceApply'"
         action-id="riak_cluster_apply"
         theme="primary"
         @click="toApply">
         {{ t('申请实例') }}
       </AuthButton>
       <DropdownExportExcel
+        v-db-console="'riak.clusterManage.export'"
         :ids="selectedIds"
         type="riak" />
-      <ClusterIpCopy :selected="selected" />
+      <ClusterIpCopy
+        v-db-console="'riak.clusterManage.batchCopy'"
+        :selected="selected" />
       <DbSearchSelect
         :data="serachData"
         :get-menu-list="getMenuList"
@@ -435,7 +439,9 @@
 
         if (data.isOnline) {
           oprations.push([
-            <OperationBtnStatusTips data={data}>
+            <OperationBtnStatusTips
+              data={data}
+              v-db-console="riak.clusterManage.addNodes">
               <auth-button
                 action-id="riak_cluster_scale_in"
                 permission={data.permission.riak_cluster_scale_in}
@@ -448,7 +454,9 @@
                 { t('添加节点') }
               </auth-button>
             </OperationBtnStatusTips>,
-            <OperationBtnStatusTips data={data}>
+            <OperationBtnStatusTips
+              data={data}
+              v-db-console="riak.clusterManage.deleteNodes">
               <auth-button
                 action-id="riak_cluster_scale_out"
                 permission={data.permission.riak_cluster_scale_out}
@@ -462,7 +470,9 @@
                 { t('删除节点') }
               </auth-button>
             </OperationBtnStatusTips>,
-            <OperationBtnStatusTips data={data}>
+            <OperationBtnStatusTips
+              data={data}
+              v-db-console="riak.clusterManage.disable">
               <auth-button
                 action-id="riak_enable_disable"
                 permissionn={data.permission.riak_enable_disable}
@@ -479,7 +489,9 @@
           ])
         } else {
           oprations.push(
-            <OperationBtnStatusTips data={data}>
+            <OperationBtnStatusTips
+              data={data}
+              v-db-console="riak.clusterManage.enable">
               <auth-button
                 action-id="riak_enable_disable"
                 permissionn={data.permission.riak_enable_disable}
@@ -496,7 +508,9 @@
         }
 
         oprations.push(
-          <OperationBtnStatusTips data={data}>
+          <OperationBtnStatusTips
+            data={data}
+            v-db-console="riak.clusterManage.delete">
             <auth-button
               v-bk-tooltips={{
                 disabled: data.isOffline,

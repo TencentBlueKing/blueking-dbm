@@ -24,6 +24,7 @@
         :label="t('集群拓扑')"
         name="topo" />
       <BkTabPanel
+        v-if="checkDbConsole('tendbCluster.clusterManage.basicInfo')"
         :label="t('基本信息')"
         name="info" />
       <BkTabPanel

@@ -66,12 +66,15 @@
       class="content-tabs"
       type="card-tab">
       <BkTabPanel
+        v-if="checkDbConsole('mongodb.replicaSetList.clusterTopo')"
         :label="t('集群拓扑')"
         name="topo" />
       <BkTabPanel
+        v-if="checkDbConsole('mongodb.replicaSetList.basicInfo')"
         :label="t('基本信息')"
         name="info" />
       <BkTabPanel
+        v-if="checkDbConsole('mongodb.replicaSetList.changeLog')"
         :label="t('变更记录')"
         name="record" />
       <BkTabPanel
@@ -143,6 +146,8 @@
   import { useOperateClusterBasic } from '@views/db-manage/common/hooks';
   import AccessEntry from '@views/db-manage/mongodb/components/AccessEntry.vue';
   import CapacityChange from '@views/db-manage/mongodb/components/CapacityChange.vue';
+
+  import { checkDbConsole } from '@utils';
 
   import BaseInfo from './BaseInfo.vue';
 

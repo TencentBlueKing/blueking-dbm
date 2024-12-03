@@ -24,9 +24,11 @@
         :label="t('集群拓扑')"
         name="topo" />
       <BkTabPanel
+        v-if="checkDbConsole('hdfs.clusterManage.nodeList')"
         :label="t('节点列表')"
         name="nodeList" />
       <BkTabPanel
+        v-if="checkDbConsole('hdfs.clusterManage.baseInfo')"
         :label="t('基本信息')"
         name="baseInfo" />
       <BkTabPanel
