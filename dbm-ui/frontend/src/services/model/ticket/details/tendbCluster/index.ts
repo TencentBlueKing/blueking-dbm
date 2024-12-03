@@ -3,6 +3,7 @@ export * from './apply';
 export * from './authorizeRules';
 export * from './checkSum';
 export * from './clientCloneRules';
+export * from './dataRepair';
 export * from './dbTableBackup';
 export * from './destroy';
 export * from './destroy';

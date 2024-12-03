@@ -28,7 +28,7 @@ export interface CheckSum extends DetailBase {
       bk_host_id: number;
       ip: string;
       port?: number;
-    };
+    }[];
     table_patterns: string[];
   }[];
   is_sync_non_innodb: boolean;
