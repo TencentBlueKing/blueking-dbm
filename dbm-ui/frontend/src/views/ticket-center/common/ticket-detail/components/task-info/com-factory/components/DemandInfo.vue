@@ -75,7 +75,7 @@
 <style lang="less" scoped>
   @import '@styles/mixins.less';
 
-  .ticket-details {
+  .ticket-details-page {
     .ticket-details-info {
       padding-left: 82px;
       font-size: @font-size-mini;

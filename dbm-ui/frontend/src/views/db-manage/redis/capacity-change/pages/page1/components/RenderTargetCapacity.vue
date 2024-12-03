@@ -144,6 +144,7 @@
           affinity: AffinityType;
         };
       };
+      update_mode: string;
     }>;
   }
 

@@ -155,7 +155,6 @@
     type: TicketTypes.REDIS_CLUSTER_TYPE_UPDATE,
     onSuccess(cloneData) {
       const { tableList, type, frequency } = cloneData;
-
       tableData.value = tableList;
       repairAndVerifyType.value = type;
       repairAndVerifyFrequency.value = frequency;
@@ -279,8 +278,6 @@
     const newList = list.reduce((result, item) => {
       const domain = item.master_domain;
       if (!domainMemo[domain]) {
-        console.log(item, 'item');
-
         const row = generateTableRow(item);
         result.push(row);
         domainMemo[domain] = true;
