@@ -302,7 +302,7 @@
                   :biz-id="state.formdata.bk_biz_id"
                   :cloud-id="state.formdata.details.bk_cloud_id"
                   :cluster-type="typeInfos.cluster_type"
-                  :machine-type="specClusterMachineMap[typeInfos.cluster_type]" />
+                  :machine-type="backendMachineType" />
               </BkFormItem>
               <BkFormItem
                 :label="t('访问端口')"
@@ -581,6 +581,12 @@
     };
     return types[state.formdata.details.cluster_type as keyof typeof types];
   });
+
+  const backendMachineType = computed(() =>
+    typeInfos.value.cluster_type === ClusterTypes.PREDIXY_REDIS_CLUSTER
+      ? ClusterTypes.PREDIXY_REDIS_CLUSTER
+      : specClusterMachineMap[typeInfos.value.cluster_type],
+  );
   // const isDefaultCity = computed(() => state.formdata.details.city_code === 'default');
 
   const getSmartActionOffsetTarget = () => document.querySelector('.bk-form-content');
