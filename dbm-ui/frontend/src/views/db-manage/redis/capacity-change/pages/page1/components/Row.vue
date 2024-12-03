@@ -124,6 +124,10 @@
         affinity: AffinityType; // 暂时固定 'CROS_SUBZONE',
       };
     };
+    display_info: Pick<
+      RedisModel,
+      'cluster_stats' | 'cluster_spec' | 'cluster_shard_num' | 'cluster_capacity' | 'machine_pair_cnt'
+    >;
   }
 
   // 创建表格数据
@@ -168,6 +172,13 @@
   const targetCapacityRef = ref<InstanceType<typeof RenderTargetCapacity>>();
   const switchModeRef = ref<InstanceType<typeof RenderSwitchMode>>();
   const localTargetVersion = ref<string>('');
+  const displayInfo = ref<InfoItem['display_info']>({
+    cluster_stats: {},
+    cluster_spec: {},
+    cluster_shard_num: 0,
+    cluster_capacity: 0,
+    machine_pair_cnt: 0,
+  } as InfoItem['display_info']);
 
   const handleTargetVersionChange = (value: string) => {
     localTargetVersion.value = value;
@@ -175,6 +186,13 @@
 
   const handleInputFinish = (value: RedisModel) => {
     emits('clusterInputFinish', value);
+    displayInfo.value = {
+      cluster_stats: value.cluster_stats,
+      cluster_spec: value.cluster_spec,
+      cluster_shard_num: value.cluster_shard_num,
+      cluster_capacity: value.cluster_capacity,
+      machine_pair_cnt: value.machine_pair_cnt,
+    };
   };
 
   const handleAppend = () => {
@@ -187,7 +205,7 @@
 
   defineExpose<Exposes>({
     async getValue() {
-      await clusterRef.value!.getValue(true);
+      await clusterRef.value!.getValue();
       return Promise.all([
         versionRef.value!.getValue(),
         switchModeRef.value!.getValue(),
@@ -200,6 +218,7 @@
           bk_cloud_id: props.data.bkCloudId,
           online_switch_type: switchMode,
           ...targetCapacity,
+          display_info: displayInfo.value,
         };
       });
     },

@@ -12,162 +12,99 @@
 -->
 
 <template>
-  <div
-    class="ticket-details-item"
-    style="align-items: flex-start">
-    <span class="ticket-details-item-label">{{ t('变更信息') }}：</span>
-    <span class="ticket-details-item-value">
-      <BkLoading :loading="loading">
-        <DbOriginalTable
-          :columns="columns"
-          :data="tableData" />
-      </BkLoading>
-    </span>
-  </div>
-
-  <div class="ticket-details-list">
-    <div class="ticket-details-item">
-      <span class="ticket-details-item-label">{{ t('校验与修复类型') }}：</span>
-      <span class="ticket-details-item-value">
-        {{ repairAndVerifyTypesMap[ticketDetails.details.data_check_repair_setting.type] }}
-      </span>
-    </div>
-    <div
+  <BkTable
+    :data="ticketDetails.details.infos"
+    show-overflow-tooltip>
+    <BkTableColumn
+      :label="t('源集群')"
+      :min-width="180">
+      <template #default="{ data }: { data: RowData }">
+        {{ ticketDetails.details.clusters[data.src_cluster].immute_domain }}
+      </template>
+    </BkTableColumn>
+    <BkTableColumn :label="t('架构版本')">
+      <template #default="{ data }: { data: RowData }">
+        {{ ticketDetails.details.clusters[data.src_cluster].cluster_type_name }}
+      </template>
+    </BkTableColumn>
+    <BkTableColumn
+      :label="t('当前集群容量/QPS')"
+      :min-width="150">
+      <template #default="{ data }: { data: RowData }">
+        {{
+          `${data.capacity}G_${ticketDetails.details.specs[data.resource_spec.backend_group.spec_id].qps.max}/s(${data.current_shard_num}片)`
+        }}
+      </template>
+    </BkTableColumn>
+    <BkTableColumn
+      field="capacity"
+      :label="t('当前容量需求')" />
+    <BkTableColumn
+      field="future_capacity"
+      :label="t('未来容量需求')" />
+    <BkTableColumn
+      :label="t('部署方案')"
+      :min-width="150">
+      <template #default="{ data }: { data: RowData }">
+        {{ ticketDetails.details.specs[data.resource_spec.backend_group.spec_id].name }}
+      </template>
+    </BkTableColumn>
+    <BkTableColumn
+      field="db_version"
+      :label="t('版本')" />
+    <BkTableColumn :label="t('切换模式')">
+      <template #default="{ data }: { data: RowData }">
+        {{ data.online_switch_type === 'user_confirm' ? t('需人工确认') : t('无需确认') }}
+      </template>
+    </BkTableColumn>
+  </BkTable>
+  <InfoList>
+    <InfoItem :label="t('校验与修复类型:')">
+      {{ repairAndVerifyTypesMap[ticketDetails.details.data_check_repair_setting.type] }}
+    </InfoItem>
+    <InfoItem
       v-if="ticketDetails.details.data_check_repair_setting.type !== 'no_check_no_repair'"
-      class="ticket-details-item">
-      <span class="ticket-details-item-label">{{ t('校验与修复类型') }}：</span>
-      <span class="ticket-details-item-value">
-        {{ repairAndVerifyFrequencyMap[ticketDetails.details.data_check_repair_setting.execution_frequency] }}
-      </span>
-    </div>
-  </div>
+      :label="t('校验与修复频率设置:')">
+      {{ repairAndVerifyFrequencyMap[ticketDetails.details.data_check_repair_setting.execution_frequency] }}
+    </InfoItem>
+  </InfoList>
 </template>
 
-<script setup lang="tsx">
+<script setup lang="ts">
   import { useI18n } from 'vue-i18n';
-  import { useRequest } from 'vue-request';
 
-  import RedisModel from '@services/model/redis/redis';
   import TicketModel, { type Redis } from '@services/model/ticket/ticket';
-  import { getRedisListByBizId } from '@services/source/redis';
 
   import { TicketTypes } from '@common/const';
 
   import { repairAndVerifyFrequencyList, repairAndVerifyTypeList } from '@views/db-manage/redis/common/const';
 
+  import InfoList, { Item as InfoItem } from '../components/info-list/Index.vue';
+
   interface Props {
-    ticketDetails: TicketModel<Redis.ClusterShardNumUpdate>
+    ticketDetails: TicketModel<Redis.ClusterShardNumUpdate>;
   }
 
-  interface RowData {
-    deployPlan: string,
-    capacity: number,
-    futureCapacity: number,
-    dbVersion: string,
-    switchMode: string,
-  }
+  type RowData = Props['ticketDetails']['details']['infos'][number];
 
-  const props = defineProps<Props>();
+  defineProps<Props>();
 
   defineOptions({
     name: TicketTypes.REDIS_CLUSTER_SHARD_NUM_UPDATE,
-    inheritAttrs: false
-  })
+    inheritAttrs: false,
+  });
 
   const { t } = useI18n();
-
-  const tableData = ref<RowData[]>([]);
-
-  const { infos } = props.ticketDetails.details;
-
-  const columns = [
-    {
-      label: t('源集群'),
-      field: 'clusterName',
-      showOverflowTooltip: true,
-    },
-    {
-      label: t('架构版本'),
-      field: 'clusterTypeName',
-      showOverflowTooltip: true,
-    },
-    {
-      label: t('当前集群容量/QPS'),
-      field: 'currentSepc',
-      showOverflowTooltip: true,
-    },
-    {
-      label: t('当前容量需求'),
-      field: 'capacity',
-      showOverflowTooltip: true,
-      render: ({ data }: {data: RowData}) => <span>{data.capacity}G</span>,
-    },
-    {
-      label: t('未来容量需求'),
-      field: 'futureCapacity',
-      showOverflowTooltip: true,
-      render: ({ data }: {data: RowData}) => <span>{data.futureCapacity}G</span>,
-    },
-    {
-      label: t('部署方案'),
-      field: 'deployPlan',
-      showOverflowTooltip: true,
-    },
-    {
-      label: t('版本'),
-      field: 'dbVersion',
-      showOverflowTooltip: true,
-    },
-    {
-      label: t('切换模式'),
-      field: 'switchMode',
-      showOverflowTooltip: true,
-      render: ({ data }: {data: RowData}) => <span>{data.switchMode === 'user_confirm' ? t('需人工确认') : t('无需确认')}</span>,
-    },
-  ];
 
   const repairAndVerifyTypesMap = generateMap(repairAndVerifyTypeList);
 
   const repairAndVerifyFrequencyMap = generateMap(repairAndVerifyFrequencyList);
 
-  const { loading } = useRequest(getRedisListByBizId, {
-    defaultParams: [{
-      bk_biz_id: props.ticketDetails.bk_biz_id,
-      offset: 0,
-      limit: -1,
-    }],
-    onSuccess: async (result) => {
-      if (result.results.length < 1) {
-        return;
-      }
-
-      const clusterMap = result.results.reduce((obj, item) => {
-        Object.assign(obj, { [item.id]: item });
-        return obj;
-      }, {} as Record<string, RedisModel>);
-      tableData.value = infos.map((item) => {
-        const currentCluster = clusterMap[item.src_cluster];
-        const specConfig = currentCluster.cluster_spec;
-        return ({
-          clusterName: currentCluster.master_domain,
-          clusterType: currentCluster.cluster_spec.spec_cluster_type,
-          clusterTypeName: currentCluster.cluster_type_name,
-          currentSepc: `${currentCluster.cluster_capacity}G_${specConfig.qps.max}/s（${item.current_shard_num} 分片）`,
-          deployPlan: `${item.cluster_shard_num} 分片`,
-          dbVersion: item.db_version,
-          switchMode: item.online_switch_type,
-          capacity: item.capacity,
-          futureCapacity: item.future_capacity,
-        });
-      });
-    },
-  });
-
   // 生成映射表
-  function generateMap(arr: { label: string, value: string}[]) {
-    return arr.reduce((obj, item) => {
+  function generateMap(arr: { label: string; value: string }[]) {
+    return arr.reduce<Record<string, string>>((obj, item) => {
       Object.assign(obj, { [item.value]: item.label });
       return obj;
-    }, {} as Record<string, string>);
+    }, {});
   }
 </script>
