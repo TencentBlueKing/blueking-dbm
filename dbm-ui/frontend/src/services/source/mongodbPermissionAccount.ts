@@ -32,21 +32,21 @@ export function addAccountRule(params: {
   account_id: number | null;
   account_type: AccountTypesValues;
 }) {
-  return http.post<null>(`${getRootPath()}/add_account_rule/`, params);
+  return http.post(`${getRootPath()}/add_account_rule/`, params);
 }
 
 /**
  * 创建账号
  */
 export function createAccount(params: { user: string; password: string; account_type?: AccountTypesValues }) {
-  return http.post<null>(`${getRootPath()}/create_account/`, params);
+  return http.post(`${getRootPath()}/create_account/`, params);
 }
 
 /**
  * 删除账号
  */
 export function deleteAccount(params: { bizId: number; account_id: number; account_type?: AccountTypesValues }) {
-  return http.delete<null>(`${getRootPath()}/delete_account/`, params);
+  return http.delete(`${getRootPath()}/delete_account/`, params);
 }
 
 /**
@@ -81,4 +81,11 @@ export function queryAccountRules(params: { user: string; access_dbs: string[]; 
       ...res,
       results: res.results.map((item) => new MongodbPermissonAccountModel(item)),
     }));
+}
+
+/**
+ * 删除规则
+ */
+export function deleteAccountRule(params: { account_id: number; account_type: AccountTypesValues; rule_id: number }) {
+  return http.delete(`${getRootPath()}/delete_account_rule/`, params);
 }
