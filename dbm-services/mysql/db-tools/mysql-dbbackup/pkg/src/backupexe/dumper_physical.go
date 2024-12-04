@@ -104,19 +104,27 @@ func (p *PhysicalDumper) buildArgs() []string {
 	}
 	if strings.Compare(p.mysqlVersion, "005007000") > 0 {
 		args = append(args, "--lock-ddl")
-		if p.cnf.Public.AcquireLockWaitTimeout > 0 {
-			args = append(args, fmt.Sprintf("--lock-ddl-timeout=%d", p.cnf.Public.AcquireLockWaitTimeout))
-		}
-		if p.cnf.Public.FtwrlWaitTimeout > 0 {
-			args = append(args, fmt.Sprintf("--ftwrl-wait-timeout=%d", p.cnf.Public.FtwrlWaitTimeout))
-		}
-		if strings.Compare(p.mysqlVersion, "008000000") < 0 {
-			args = append(args, "--binlog-info=ON") // ver >=5.7 and ver < 8.0
+		if strings.Compare(p.mysqlVersion, "008000000") < 0 { // ver >=5.7 and ver < 8.0
+			args = append(args, "--binlog-info=ON")
 		}
 	}
-	if strings.Compare(p.mysqlVersion, "005006000") > 0 {
-		if p.cnf.Public.KillLongQueryTime > 0 {
-			args = append(args, fmt.Sprintf("--kill-long-queries-timeout=%d", p.cnf.Public.KillLongQueryTime))
+
+	if p.cnf.Public.KillLongQueryTime > 0 { // all version support
+		args = append(args, fmt.Sprintf("--kill-long-queries-timeout=%d", p.cnf.Public.KillLongQueryTime))
+	}
+	if p.cnf.Public.FtwrlWaitTimeout > 0 {
+		if strings.Compare(p.mysqlVersion, "005007000") >= 0 {
+			args = append(args, fmt.Sprintf("--ftwrl-wait-timeout=%d", p.cnf.Public.FtwrlWaitTimeout))
+		} else { // 5.5, 5.6
+			args = append(args, fmt.Sprintf("--lock-wait-timeout=%d", p.cnf.Public.FtwrlWaitTimeout))
+		}
+	}
+	if p.cnf.Public.AcquireLockWaitTimeout > 0 {
+		if strings.Compare(p.mysqlVersion, "005007000") > 0 {
+			args = append(args, fmt.Sprintf("--lock-ddl-timeout=%d", p.cnf.Public.AcquireLockWaitTimeout))
+		}
+		if strings.Compare(p.mysqlVersion, "008000000") >= 0 {
+			args = append(args, fmt.Sprintf("--backup-lock-timeout=%d", p.cnf.Public.AcquireLockWaitTimeout))
 		}
 	}
 
@@ -133,18 +141,13 @@ func (p *PhysicalDumper) buildArgs() []string {
 		if p.isOfficial {
 			args = append(args, "--skip-strict")
 		}
-		if p.cnf.Public.AcquireLockWaitTimeout > 0 {
-			args = append(args, fmt.Sprintf("--backup-lock-timeout=%d", p.cnf.Public.AcquireLockWaitTimeout))
-		}
 	} else { // xtrabackup_80 has no this args, and will report errors
 		args = append(args, "--no-timestamp", "--lazy-backup-non-innodb", "--wait-last-flush=2")
 		args = append(args, fmt.Sprintf("--ibbackup=%s", filepath.Join(p.dbbackupHome, p.innodbCmd.xtrabackupBin)))
 	}
-	/*
-		if p.cnf.PhysicalBackup.ExtraOpt != "" {
-			args = append(args, p.cnf.PhysicalBackup.ExtraOpt)
-		}
-	*/
+	if p.cnf.PhysicalBackup.ExtraOpt != "" {
+		args = append(args, p.cnf.PhysicalBackup.ExtraOpt)
+	}
 	return args
 }
 
@@ -219,8 +222,9 @@ func (p *PhysicalDumper) Execute(enableTimeOut bool) error {
 
 	err = cmd.Run()
 	if err != nil {
-		errStrPrefix := fmt.Sprintf("tail 10 error from %s", xtrabackupLogFile)
-		errStrDetail, _ := util.GrepLinesFromFile(xtrabackupLogFile, []string{"ERROR", "fatal"}, 10, false, true)
+		errStrPrefix := fmt.Sprintf("tail 5 error from %s", xtrabackupLogFile)
+		errStrDetail, _ := util.GrepLinesFromFile(xtrabackupLogFile, []string{"ERROR", "fatal", "unknown"},
+			5, false, true)
 		if len(errStrDetail) > 0 {
 			logger.Log.Info(errStrPrefix)
 			logger.Log.Error(errStrDetail)

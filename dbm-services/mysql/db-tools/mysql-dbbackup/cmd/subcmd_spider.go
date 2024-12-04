@@ -93,9 +93,9 @@ func findSpiderBackupConfigFile(cnfFiles []string) (string, error) {
 
 var spiderScheduleCmd = &cobra.Command{
 	Use:          "schedule",
-	SilenceUsage: true,
 	Short:        "spiderbackup schedule",
 	Long:         `Start spider global backup. Will initialize backup tasks using one backup-id on spider master`,
+	SilenceUsage: true,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if err := logger.InitLog("dbbackup_spider.log"); err != nil {
 			return err
@@ -125,9 +125,10 @@ var spiderScheduleCmd = &cobra.Command{
 }
 
 var spiderCheckCmd = &cobra.Command{
-	Use:   "check",
-	Short: "spiderbackup check",
-	Long:  `Check or run backup todo tasks`,
+	Use:          "check",
+	Short:        "spiderbackup check",
+	Long:         `Check or run backup todo tasks`,
+	SilenceUsage: true,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if err := logger.InitLog("dbbackup_spider.log"); err != nil {
 			return err
@@ -136,7 +137,11 @@ var spiderCheckCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		publicConfigs, err := batchParseCnfFiles(cnfFiles)
+		configFile, err := findSpiderBackupConfigFile(cnfFiles)
+		if err != nil {
+			return err
+		}
+		publicConfigs, err := batchParseCnfFiles([]string{configFile})
 		if err != nil {
 			return err
 		}
@@ -150,9 +155,10 @@ var spiderCheckCmd = &cobra.Command{
 }
 
 var spiderQueryCmd = &cobra.Command{
-	Use:   "query",
-	Short: "spiderbackup query",
-	Long:  `Query spider backup task status, only run on spider master`,
+	Use:          "query",
+	Short:        "spiderbackup query",
+	Long:         `Query spider backup task status, only run on spider master`,
+	SilenceUsage: true,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if err := logger.InitLog("dbbackup_spider.log"); err != nil {
 			return err

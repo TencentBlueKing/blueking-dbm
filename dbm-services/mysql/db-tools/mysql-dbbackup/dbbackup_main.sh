@@ -92,8 +92,8 @@ errPorts=""
 okPorts=""
 for conf_file in $configFiles
 do
-    #port=`echo $conf_file |awk -F. '{print $(NF-1)}'`
-    port=`grep MysqlPort $conf_file |grep -Ev "#|MysqlPort = 0" |head -1 | cut -d= -f2`
+    port=`grep -Ei 'MysqlPort|\[Public\]' $conf_file |grep -v '^#' | grep -A1 'Public' |grep 'MysqlPort'`
+    port=$(echo `echo $port |head -1 | cut -d= -f2`)
     echo "now doing dbbackup for config file=$conf_file port=$port"
     echo "${scriptDir}/dbbackup dumpbackup --config=$conf_file $dbbackupOpt 2>&1 >> $logfile"
     ${scriptDir}/dbbackup dumpbackup --config=$conf_file $dbbackupOpt 2>&1 >> $logfile
@@ -104,7 +104,7 @@ do
     fi
 done
 # 输出可用于判断哪些 ports 成功，哪些失败
-echo "okPorts:$okPorts,errPorts:$errPorts"
+echo "okPorts:$okPorts, errPorts:$errPorts"
 if [ -n "$errPorts" ];then
   echo "ports backup failed: $errPorts" >&2
   exit 1

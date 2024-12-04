@@ -156,7 +156,7 @@ func (b GlobalBackupModel) queryBackupTasks(retries int, db *sqlx.DB) (backupTas
 	if err != nil {
 		return nil, err
 	}
-	logger.Log.Infof("queryBackupTasks port=%d, sqlStr:%s, sqlArgs:%v", b.Port, sqlStr, sqlArgs)
+	logger.Log.Infof("queryBackupTasks for port=%d, sqlStr:%s, sqlArgs:%v", b.Port, sqlStr, sqlArgs)
 
 	if err = db.Select(&backupTasks, sqlStr, sqlArgs...); err != nil {
 		logger.Log.Warnf("fail to queryBackupTasks: %s, retries %d", err.Error(), retries)

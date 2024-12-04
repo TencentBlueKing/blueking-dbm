@@ -74,9 +74,40 @@ IOLimitMBPerSec = 300
 
 ### 6. 关于 tendbcluster 集群备份，请参考 [spider](spiderbackup.md)
 
-### 常见备份失败处理
+### 7. 关于逻辑备份字符集说明
 
-1. log copying being too slow
-it looks like InnoDB log has wrapped around before xtrabackup could process all records due to either log copying being too slow, or  log files being too small.
- 实例写入速度比备份速度快，可能是刚刚备份时间段有大批量 DML 操作，修改备份开始时间，或者加快备份速度: 
-  - 调大 PhysicalBackup.Throttle, 调大 PhysicalBackup.Threads
+
+### 8. 常见备份失败处理
+
+#### 1. log copying being too slow
+> it looks like InnoDB log has wrapped around before xtrabackup could process all records due to either log copying being too slow, or  log files being too small.
+
+实例写入速度比备份速度快，可能是刚刚备份时间段有大批量 DML 操作，修改备份开始时间，或者加快备份速度: 
+
+调大 PhysicalBackup.Throttle, 调大 PhysicalBackup.Threads
+
+#### 2. mydumper 不支持 centos 6.x
+> mydumper: error while loading shared libraries: libpcre.so
+> 
+> /lib64/libc.so.6: version `GLIBC_2.14' not found (required by xxx)
+
+mydumper / myloader 依赖 glibc>=2.14, centos 6.x(or tlinux 1.2) 是 glibc 2.12，可能会报如上错误。查看 glibc 版本`ldd --version |grep libc`。
+
+如果必须使用逻辑备份，可以设置
+```
+[LogicalBackup]
+UseMysqldump = auto
+Databases = *
+Tables = *
+
+[Public]
+BackupType = logical
+```
+使用 mysqldump 备份 slave 数据，会短暂停止同步 sql thread来获取一致性 binlog 位点，可能会触发告警。备份结束(成功/失败)会自动恢复 sql thread（非 kill 掉的情况）
+
+#### 3. xtrabackup 8.0 不支持 centos 6.x
+> xtrabackup: error while loading shared libraries: libsystemd.so.0: cannot open shared object file: No such file or directory
+>
+> /usr/lib64/libstdc++.so.6: version `GLIBCXX_3.4.15' not found (required by xxx)
+
+mysql 8.0 的物理备份工具 xtrabackup 也依赖 glibc>=2.14 版本，可能会看到如上报错。

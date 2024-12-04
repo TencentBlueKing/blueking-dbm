@@ -21,6 +21,7 @@ import (
 	"github.com/pkg/errors"
 
 	"dbm-services/common/go-pubpkg/cmutil"
+	"dbm-services/common/go-pubpkg/mysqlcomm"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/config"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/dbareport"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/logger"
@@ -74,8 +75,9 @@ func BackupGrant(cfg *config.Public) error {
 	defer func() {
 		_ = db.Close()
 	}()
-
-	rows, err := db.Query("select user, host from mysql.user where user not in ('ADMIN','yw','dba_bak_all_sel')")
+	usersExclude := []string{"ADMIN", "yw", "dba_bak_all_sel", "mysql.infoschema", "mysql.session", "mysql.sys"}
+	rows, err := db.Query(fmt.Sprintf("select `user`, `host` from `mysql`.`user` where `user` not in (%s)",
+		mysqlcomm.UnsafeIn(usersExclude, "'")))
 	if err != nil {
 		logger.Log.Errorf("can't send query to Mysql server %v\n", err)
 		return err

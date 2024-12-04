@@ -279,7 +279,7 @@ func GrepLinesFromFile(logFilePath string, keywords []string, linesRet int, sens
 	var grepCommand []string
 	lineNum := "-" + cast.ToString(linesRet)
 	if len(keywords) > 0 {
-		grepExpr := strings.Join(keywords, "|")
+		grepExpr := "'" + strings.Join(keywords, "|") + "'"
 		if sensitive {
 			grepCommand = append(grepCommand, "grep", "-E")
 		} else {

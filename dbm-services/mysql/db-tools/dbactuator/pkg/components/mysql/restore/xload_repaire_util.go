@@ -12,6 +12,7 @@ import (
 	"dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/common/go-pubpkg/logger"
 	"dbm-services/common/go-pubpkg/mysqlcomm"
+	"dbm-services/mysql/db-tools/dbactuator/pkg/components/mysql/restore/dbbackup_loader"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/core/cst"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/native"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util"
@@ -167,7 +168,7 @@ func (x *XLoad) CleanEnv(dirs []string) error {
 		return fmt.Errorf("port %d is still opened", x.TgtInstance.Port)
 	}
 
-	var dirArray []string
+	var pathsToReset []string
 	for _, v := range dirs {
 		if strings.TrimSpace(x.myCnf.GetMyCnfByKeyWithDefault(util.MysqldSec, v, "")) == "" {
 			logger.Warn(fmt.Sprintf("my.cnf %s is Emtpty!!", v))
@@ -182,7 +183,7 @@ func (x *XLoad) CleanEnv(dirs []string) error {
 			reg := regexp.MustCompile(cst.RelayLogFileMatch)
 			if result := reg.FindStringSubmatch(val); len(result) == 2 {
 				relaylogdir := result[1]
-				dirArray = append(dirArray, "rm -rf "+relaylogdir+"/*")
+				pathsToReset = append(pathsToReset, relaylogdir)
 			}
 		case "log_bin", "log-bin":
 			val, err := x.myCnf.GetMySQLLogDir()
@@ -193,26 +194,21 @@ func (x *XLoad) CleanEnv(dirs []string) error {
 			if result := reg.FindStringSubmatch(val); len(result) == 2 {
 				binlogdir := result[1]
 				// TODO 所有 rm -rf 的地方都应该要检查是否可能 rm -rf / binlog.xxx 这种误删可能
-				dirArray = append(dirArray, "rm -rf "+binlogdir+"/*")
+				pathsToReset = append(pathsToReset, binlogdir)
 			}
 		case "slow_query_log_file", "slow-query-log-file":
 			if val := x.myCnf.GetMyCnfByKeyWithDefault(util.MysqldSec, "slow_query_log_file", ""); val != "" {
-				dirArray = append(dirArray, "rm -f "+val)
+				pathsToReset = append(pathsToReset, val)
 			}
 		default:
 			val := x.myCnf.GetMyCnfByKeyWithDefault(util.MysqldSec, v, "")
 			if strings.TrimSpace(val) != "" && strings.TrimSpace(val) != "/" {
-				dirArray = append(dirArray, "rm -rf "+val+"/*")
+				pathsToReset = append(pathsToReset, val)
 			}
 		}
 	}
-	scripts := strings.Join(dirArray, "\n")
-	logger.Info("CleanEnv: %s", scripts)
-	// run with mysql os user
-	if _, err := osutil.ExecShellCommand(false, scripts); err != nil {
-		return err
-	}
-	return nil
+
+	return dbbackup_loader.ResetPath(pathsToReset)
 }
 
 // ReplaceMycnf godoc

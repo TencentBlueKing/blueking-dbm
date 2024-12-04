@@ -13,6 +13,7 @@ package dbbackup_loader
 import (
 	"database/sql"
 	"fmt"
+	"os"
 	"path"
 	"path/filepath"
 	"regexp"
@@ -229,7 +230,7 @@ func (x *Xtrabackup) CleanEnv(dirs []string) error {
 		return fmt.Errorf("port %d is still opened", x.TgtInstance.Port)
 	}
 
-	var dirArray []string
+	var pathsToReset []string
 	for _, v := range dirs {
 		if strings.TrimSpace(x.myCnf.GetMyCnfByKeyWithDefault(util.MysqldSec, v, "")) == "" {
 			logger.Warn(fmt.Sprintf("my.cnf %s is Emtpty!!", v))
@@ -244,7 +245,7 @@ func (x *Xtrabackup) CleanEnv(dirs []string) error {
 			reg := regexp.MustCompile(cst.RelayLogFileMatch)
 			if result := reg.FindStringSubmatch(val); len(result) == 2 {
 				relayLogDir := result[1]
-				dirArray = append(dirArray, "rm -rf "+relayLogDir+"/*")
+				pathsToReset = append(pathsToReset, relayLogDir)
 			}
 		case "log_bin", "log-bin":
 			val, err := x.myCnf.GetMySQLLogDir()
@@ -255,26 +256,20 @@ func (x *Xtrabackup) CleanEnv(dirs []string) error {
 			if result := reg.FindStringSubmatch(val); len(result) == 2 {
 				binlogDir := result[1]
 				// TODO 所有 rm -rf 的地方都应该要检查是否可能 rm -rf / binlog.xxx 这种误删可能
-				dirArray = append(dirArray, "rm -rf "+binlogDir+"/*")
+				pathsToReset = append(pathsToReset, binlogDir)
 			}
 		case "slow_query_log_file", "slow-query-log-file":
 			if val := x.myCnf.GetMyCnfByKeyWithDefault(util.MysqldSec, "slow_query_log_file", ""); val != "" {
-				dirArray = append(dirArray, "rm -f "+val)
+				pathsToReset = append(pathsToReset, val)
 			}
 		default:
 			val := x.myCnf.GetMyCnfByKeyWithDefault(util.MysqldSec, v, "")
 			if strings.TrimSpace(val) != "" && strings.TrimSpace(val) != "/" {
-				dirArray = append(dirArray, "rm -rf "+val+"/*")
+				pathsToReset = append(pathsToReset, val)
 			}
 		}
 	}
-	scripts := strings.Join(dirArray, "\n")
-	logger.Info("CleanEnv: %s", scripts)
-	// run with mysql os user
-	if _, err := osutil.ExecShellCommand(false, scripts); err != nil {
-		return err
-	}
-	return nil
+	return ResetPath(pathsToReset)
 }
 
 // ReplaceMycnf godoc
@@ -337,4 +332,32 @@ func (x *Xtrabackup) getBackupCnfName() string {
 func (x *Xtrabackup) getSocketName() string {
 	sock := x.myCnf.GetMyCnfByKeyWithDefault(util.MysqldSec, "socket", "/tmp/mysql.sock")
 	return sock
+}
+
+// ResetPath clean files
+// if filepath is dir, clean all files in it (file permission and owner is NOT preserved)
+// if filepath is file, remove it
+// this function is used to avoid "/bin/rm: Argument list too long" when using rm -rf /xxx/path/*
+func ResetPath(paths []string) error {
+	for _, pa := range paths {
+		if strings.TrimSpace(pa) == "/" {
+			return errors.Errorf("path %s is not allowed to clean", pa)
+		}
+		if cmutil.IsDirectory(pa) {
+			logger.Info("Clean Dir: %s", pa)
+			if err := os.RemoveAll(pa); err != nil {
+				return errors.WithMessage(err, "clean dir")
+			} else { // recreate dir
+				if err = os.MkdirAll(pa, 0755); err != nil {
+					return errors.WithMessage(err, "recreate dir")
+				}
+			}
+		} else {
+			logger.Info("Remove File: %s", pa)
+			if err := os.RemoveAll(pa); err != nil {
+				return errors.WithMessage(err, "remove file")
+			}
+		}
+	}
+	return nil
 }

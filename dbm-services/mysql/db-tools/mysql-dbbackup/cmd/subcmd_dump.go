@@ -91,6 +91,7 @@ var dumpCmd = &cobra.Command{
 			}{}
 			body.Name = "dbbackup-by-host"
 			body.Content = fmt.Sprintf("run dbbackup failed %s", err.Error())
+			body.Dimension = map[string]interface{}{}
 			if sendErr := manager.SendEvent(body.Name, body.Content, body.Dimension); sendErr != nil {
 				logger.Log.Error("SendEvent failed", sendErr.Error())
 			}

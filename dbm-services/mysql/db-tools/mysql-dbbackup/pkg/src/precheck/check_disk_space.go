@@ -53,9 +53,9 @@ func DeleteOldBackup(cnf *config.Public, expireDays int) error {
 
 	for _, fi := range dir {
 		fileMatchOld := fmt.Sprintf("%s_%s", hostName, cnf.MysqlHost)
-		filePrefix := fmt.Sprintf("%d_%d_%s", cnf.BkBizId, cnf.ClusterId, cnf.MysqlHost)
+		fileMatch := fmt.Sprintf("_%d_%s", cnf.ClusterId, cnf.MysqlHost) // cnf.BkBizId 转业务了历史的也要删除
 		if fi.ModTime().Compare(expireTime) <= 0 {
-			if strings.HasPrefix(fi.Name(), filePrefix) || strings.Contains(fi.Name(), fileMatchOld) {
+			if strings.Contains(fi.Name(), fileMatch) || strings.Contains(fi.Name(), fileMatchOld) {
 				fileName := filepath.Join(cnf.BackupDir, fi.Name())
 				if fi.Size() > 4*1024*1024*1024 {
 					logger.Log.Infof("remove old backup file %s limit %dMB/s ", fileName, cnf.IOLimitMBPerSec)

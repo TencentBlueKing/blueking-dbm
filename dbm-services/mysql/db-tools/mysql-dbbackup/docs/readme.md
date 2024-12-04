@@ -324,8 +324,13 @@ DefaultsFile = /etc/my.cnf.3306
 ## 参数解释
 ### Public
 - Public.KillLongQueryTime
- 发起备份前检查长 sql，如果超过这个时间则马上自动 kill。需要备份账号有 super 权限
- 默认为 0 则不 kill，对 mydumper / xtrabackup 有效
+ 这个参数对逻辑备份和物理备份作用不同
+ - 逻辑备份 mydumper
+  相当于`--kill-long-queries --long-query-guard xx`: 发出 FTWRL 之前如果发现有超过这个时间的长 sql，则 kill 掉
+ - 物理备份 xtrabackup
+   相当于`--kill-long-queries-timeout=xx`: 发出 FTWRL 之后如果被阻塞，则等待多久之后把引起阻塞的长 sql kill 掉
+
+需要备份账号有 super 权限。默认为 0 则不 kill。
 
 - Public.FtwrlWaitTimeout
   发起备份前检查长 sql，(如果不自动 kill/ kill失败) 则等待长 sql 多久后，放弃 ftwrl，放弃备份。

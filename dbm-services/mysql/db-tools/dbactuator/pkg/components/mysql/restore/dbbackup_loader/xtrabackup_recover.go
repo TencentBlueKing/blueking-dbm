@@ -54,7 +54,7 @@ func (x *Xtrabackup) PreRun() error {
 		return err
 	}
 
-	logger.Info("clean local mysqld data dirs")
+	logger.Info("start to clean local mysqld data dirs")
 	// 清理本地目录
 	if err := x.cleanXtraEnv(); err != nil {
 		return err
@@ -174,14 +174,13 @@ func (x *Xtrabackup) cleanXtraEnv() error {
 		"datadir",
 		"innodb_log_group_home_dir",
 		"innodb_data_home_dir",
-		"tokudb_log_dir",
-		"tokudb_data_dir",
 		"relay-log",
 		"log_bin",
 		"tmpdir",
 	}
 	if x.StorageType == "tokudb" {
-		dirs = []string{"tokudb_log_dir", "tokudb_data_dir", "tmpdir"}
+		dirs = []string{"tokudb_log_dir", "tokudb_data_dir", "tmpdir", "relay-log",
+			"innodb_log_group_home_dir", "innodb_data_home_dir"} // replace ibdata1
 	}
 	return x.CleanEnv(dirs)
 }
