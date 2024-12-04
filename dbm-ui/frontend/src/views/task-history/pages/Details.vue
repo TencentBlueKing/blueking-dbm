@@ -357,7 +357,7 @@
 
   import {
     batchRetryNodes,
-    // forceFailflowNode,
+    forceFailflowNode,
     getTaskflowDetails,
     retryTaskflowNode,
     revokePipeline,
@@ -1032,15 +1032,16 @@
           renderNodes();
           fetchTaskflowDetails();
           messageSuccess(t('强制失败节点成功'));
-        })
+        });
+      return
     }
-    // forceFailflowNode({
-    //   root_id: rootId.value,
-    //   node_id: node.data.id,
-    // }).then(() => {
-    //   renderNodes();
-    //   fetchTaskflowDetails();
-    // });
+    forceFailflowNode({
+      root_id: rootId.value,
+      node_id: node.data.id,
+    }).then(() => {
+      renderNodes();
+      fetchTaskflowDetails();
+    });
   };
 
   const handleTodoAllPipeline = () => {
