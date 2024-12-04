@@ -90,7 +90,7 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import { deleteAccount as deleteMongodbAccount, getPermissionRules as getMongodbPermissionRules } from '@services/source/mongodbPermissionAccount';
+  import { deleteAccount as deleteMongodbAccount, deleteAccountRule as deleteMongodbAccountRule, getPermissionRules as getMongodbPermissionRules } from '@services/source/mongodbPermissionAccount';
   import { deleteAccount as deleteMysqlAccount, getPermissionRules as getMysqlPermissionRules } from '@services/source/mysqlPermissionAccount';
   import { deleteAccount as deleteSqlserverAccount, getPermissionRules as getSqlserverPermissionRules } from '@services/source/sqlserverPermissionAccount';
   import { createTicket } from '@services/source/ticket';
@@ -141,7 +141,6 @@
    * dbOperations 权限配置
    * ddlSensitiveWords 敏感词
    * dataSource 数据源
-   * deleteAccount 删除账号api
    * createRuleComponent 创建规则组件
    */
   const configMap = {
@@ -151,7 +150,6 @@
       dbOperations: mysqlDbOperations[AccountTypes.MYSQL].dbOperations,
       ddlSensitiveWords: mysqlDbOperations[AccountTypes.MYSQL].ddlSensitiveWords,
       dataSource: getMysqlPermissionRules,
-      deleteAccount: deleteMysqlAccount,
       createRuleComponent: MysqlCreateRule,
       buttonController: {
         [ButtonTypes.EDIT_RULE]: true,
@@ -164,7 +162,6 @@
       dbOperations: mysqlDbOperations[AccountTypes.TENDBCLUSTER].dbOperations,
       ddlSensitiveWords: mysqlDbOperations[AccountTypes.TENDBCLUSTER].ddlSensitiveWords,
       dataSource: getMysqlPermissionRules,
-      deleteAccount: deleteMysqlAccount,
       createRuleComponent: MysqlCreateRule,
       buttonController: {
         [ButtonTypes.EDIT_RULE]: true,
@@ -177,7 +174,6 @@
       dbOperations: sqlserverDbOperations,
       ddlSensitiveWords: [],
       dataSource: getSqlserverPermissionRules,
-      deleteAccount: deleteSqlserverAccount,
       createRuleComponent: SqlserverCreateRule,
       buttonController: {
         [ButtonTypes.EDIT_RULE]: false,
@@ -190,11 +186,10 @@
       dbOperations: mongoDbOperations,
       ddlSensitiveWords: [],
       dataSource: getMongodbPermissionRules,
-      deleteAccount: deleteMongodbAccount,
       createRuleComponent: MongoCreateRule,
       buttonController: {
         [ButtonTypes.EDIT_RULE]: false,
-        [ButtonTypes.DELETE_RULE]: false,
+        [ButtonTypes.DELETE_RULE]: true,
       }
     },
   };
@@ -262,6 +257,8 @@
       acc[item] = true;
       return acc;
     }, {}));
+
+  const skipApproval = computed(() => props.accountType === AccountTypes.MONGODB);
 
   /**
    * search select 过滤参数
@@ -482,10 +479,10 @@
                     configMap[props.accountType].buttonController[ButtonTypes.DELETE_RULE] &&
                     <bk-pop-confirm
                       width="288"
-                      content={t('删除规则会创建单据，需此规则所有过往调用方审批后才执行删除。')}
+                      content={skipApproval.value ? t('删除规则后将不能恢复，请谨慎操作') : t('删除规则会创建单据，需此规则所有过往调用方审批后才执行删除。')}
                       title={t('确认删除该规则？')}
                       trigger="click"
-                      onConfirm={() => handleShowDeleteRule(data, index)}
+                      onConfirm={() => handleDeleteRule(data, index)}
                     >
                       <bk-button
                         theme="primary"
@@ -508,10 +505,24 @@
   /**
    * 规则变更走单据
    */
-   const { run: createTicketRun } = useRequest(createTicket, {
+  const { run: createTicketRun } = useRequest(createTicket, {
     manual: true,
     onSuccess(data) {
       ticketMessage(data.id);
+      fetchData();
+    },
+  })
+
+  /**
+   * 删除规则（不走审批）
+   */
+  const { run: deleteAccountRuleRun } = useRequest(deleteMongodbAccountRule, {
+    manual: true,
+    onSuccess() {
+      Message({
+        message: t('删除成功'),
+        theme: 'success',
+      });
       fetchData();
     },
   })
@@ -577,13 +588,19 @@
    * 删除账号
    */
   const handleDeleteAccount = (row: PermissionRule) => {
+    const apiMap = {
+      [AccountTypes.MYSQL]: deleteMysqlAccount,
+      [AccountTypes.TENDBCLUSTER]: deleteMysqlAccount,
+      [AccountTypes.SQLSERVER]: deleteSqlserverAccount,
+      [AccountTypes.MONGODB]: deleteMongodbAccount,
+    }
     InfoBox({
       type: 'warning',
       title: t('确认删除该账号'),
       content: t('即将删除账号xx_删除后将不能恢复', { name: row.account.user }),
       onConfirm: async () => {
         try {
-          await configMap[props.accountType].deleteAccount({
+          await apiMap[props.accountType]({
             bizId: window.PROJECT_CONFIG.BIZ_ID,
             account_id: row.account.account_id,
             account_type: props.accountType,
@@ -636,7 +653,15 @@
   /**
    * 删除规则
    */
-  const handleShowDeleteRule = (row: PermissionRule, index: number) => {
+  const handleDeleteRule = (row: PermissionRule, index: number) => {
+    if (skipApproval.value) {
+      deleteAccountRuleRun({
+        account_id: row.account.account_id,
+        account_type: props.accountType,
+        rule_id: row.rules[index].rule_id,
+      });
+      return;
+    }
     const ticketTypeMap = {
       [AccountTypes.MYSQL]: TicketTypes.MYSQL_ACCOUNT_RULE_CHANGE,
       [AccountTypes.TENDBCLUSTER]: TicketTypes.TENDBCLUSTER_ACCOUNT_RULE_CHANGE,
