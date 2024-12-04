@@ -20,9 +20,10 @@
           v-model="formData.account_id"
           :clearable="false"
           filterable
-          :input-search="false">
+          :input-search="false"
+          :loading="getPermissionRulesLoading">
           <BkOption
-            v-for="item of accoutList"
+            v-for="item of accounts"
             :key="item.account_id"
             :label="item.user"
             :value="item.account_id" />
@@ -35,14 +36,17 @@
         :rules="rules.access_db">
         <BkInput
           v-model="formData.access_db"
-          :placeholder="t('请输入DB名称_可以使用通配符_如Data_区分大小写_多个使用英文逗号_分号或换行分隔')"
-          :rows="3"
+          :maxlength="100"
+          :placeholder="
+            t('请输入访问DB名_以字母开头_支持 % 通配符 或 % 单独使用代表ALL_多个使用英文逗号_分号或换行分隔')
+          "
+          :rows="4"
           type="textarea" />
       </BkFormItem>
       <BkFormItem
         class="rule-form-item"
         :label="t('权限设置')"
-        property="auth">
+        property="privilege">
         <div class="rule-setting-box">
           <BkFormItem :label="t('数据库读写权限(DML)')">
             <div class="rule-form-row">
@@ -54,7 +58,9 @@
                 }"
                 class="check-all"
                 :disabled="checkAllPrivileges"
-                :indeterminate="!!formData.privilege.length && formData.privilege.length !== dbOperations.dml.length"
+                :indeterminate="
+                  !!formData.privilege.length && formData.privilege.length !== dbOperations.sqlserver_dml.length
+                "
                 @change="(value: boolean) => handleSelectedAll(value)">
                 {{ t('全选') }}
               </BkCheckbox>
@@ -62,7 +68,7 @@
                 v-model="formData.privilege"
                 class="rule-form-checkbox-group">
                 <BkCheckbox
-                  v-for="dmlItem of dbOperations.dml"
+                  v-for="dmlItem of dbOperations.sqlserver_dml"
                   :key="dmlItem"
                   v-bk-tooltips="{
                     content: t('你已选择所有权限'),
@@ -109,20 +115,22 @@
 </template>
 
 <script setup lang="ts">
-  import InfoBox from 'bkui-vue/lib/info-box';
   import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
   import { addAccountRule, getPermissionRules, queryAccountRules } from '@services/source/sqlserverPermissionAccount';
+  import type { PermissionRuleAccount } from '@services/types/permission';
+
+  import { useBeforeClose } from '@hooks';
+
+  import { AccountTypes } from '@common/const';
 
   import DbForm from '@components/db-form/index.vue';
 
   import { messageSuccess } from '@utils';
 
   import dbOperations from './config';
-
-  import { AccountTypes } from '@/common/const';
 
   interface Props {
     accountId: number;
@@ -143,11 +151,15 @@
     default: false,
   });
 
+  const { t } = useI18n();
+  const handleBeforeClose = useBeforeClose();
+
   const formRef = ref<InstanceType<typeof DbForm>>();
+  const accounts = ref<PermissionRuleAccount[]>([]);
   const checkAllPrivileges = ref(false);
   const existDBs = ref<string[]>([]);
 
-  const { t } = useI18n();
+  const replaceReg = /[,;\r\n]/g;
 
   /**
    * 初始化表单数据
@@ -159,7 +171,7 @@
   });
 
   const rules = {
-    auth: [
+    privilege: [
       {
         trigger: 'change',
         message: t('请设置权限'),
@@ -170,35 +182,37 @@
       {
         required: true,
         trigger: 'blur',
-        message: t('访问DB不能为空'),
-        validator: (value: string) => !!value && !!value.trim(),
-      },
-      {
-        trigger: 'blur',
-        message: t('DB名称不允许 * ，支持通配符 %，如 Data%，区分大小写，多个对象请使用英文逗号、分号或换行分隔'),
+        message: t('访问 DB 不能为空'),
         validator: (value: string) => {
           const dbs = value.split(/[\n;,]/);
-          return _.every(dbs, (item) => (!item ? true : !/\*/.test(value)));
+          return _.every(dbs, (item) => !!item.trim());
         },
       },
       {
+        required: true,
         trigger: 'blur',
-        message: () => t('该账号下已存在xx规则', [existDBs.value.join('，')]),
+        message: t('请输入访问DB名_以字母开头_支持 % 通配符 或 % 单独使用代表ALL_多个使用英文逗号_分号或换行分隔'),
+        validator: (value: string) => {
+          const dbs = value.split(/[\n;,]/);
+          return _.every(dbs, (item) => (!item ? true : /^(?:[a-zA-Z].*|%$)/.test(item)));
+        },
+      },
+      {
+        required: true,
+        trigger: 'blur',
+        message: () => t('该账号下已存在xx规则', [existDBs.value.join(',')]),
         validator: () => {
           existDBs.value = [];
-
-          const userInfo = accoutList.value.find((item) => item.account_id === formData.account_id);
+          const user = accounts.value.find((item) => item.account_id === formData.account_id)?.user;
           const dbs = formData.access_db
-            .replace(/\n|;/g, ',')
+            .replace(replaceReg, ',')
             .split(',')
-            .filter((db) => db);
-
-          if (!userInfo || dbs.length === 0) {
+            .filter((db) => db !== '');
+          if (!user || dbs.length === 0) {
             return false;
           }
-
           return queryAccountRules({
-            user: userInfo.user,
+            user,
             access_dbs: dbs,
             account_type: AccountTypes.SQLSERVER,
           }).then((res) => {
@@ -213,16 +227,13 @@
 
   const formData = reactive(initFormdata());
 
-  const allChecked = computed(() => formData.privilege.length === dbOperations.dml.length);
-  const accoutList = computed(() =>
-    (sqlPermissonRules.value?.results || []).map((permissionItem) => ({
-      account_id: permissionItem.account.account_id,
-      user: permissionItem.account.user,
-    })),
-  );
+  const allChecked = computed(() => formData.privilege.length === dbOperations.sqlserver_dml.length);
 
-  const { data: sqlPermissonRules, run: getPermissionRulesRun } = useRequest(getPermissionRules, {
+  const { run: getPermissionRulesRun, loading: getPermissionRulesLoading } = useRequest(getPermissionRules, {
     manual: true,
+    onSuccess(permissionRules) {
+      accounts.value = permissionRules.results.map((item) => item.account);
+    },
   });
 
   const { loading: isSubmitting, run: addSqlserverAccountRuleRun } = useRequest(addAccountRule, {
@@ -258,29 +269,11 @@
 
   const handleSelectedAll = (value: boolean) => {
     if (value) {
-      formData.privilege = dbOperations.dml;
+      formData.privilege = dbOperations.sqlserver_dml;
       return;
     }
 
     formData.privilege = [];
-  };
-
-  const handleBeforeClose = () => {
-    if (window.changeConfirm) {
-      return new Promise<boolean>((resolve) => {
-        InfoBox({
-          title: t('确认离开当前页'),
-          content: t('离开将会导致未保存信息丢失'),
-          confirmText: t('离开'),
-          onConfirm: () => {
-            window.changeConfirm = false;
-            resolve(true);
-            return true;
-          },
-        });
-      });
-    }
-    return true;
   };
 
   const handleClose = async () => {
@@ -301,7 +294,7 @@
   const handleSubmit = async () => {
     await formRef.value!.validate();
     const params = {
-      access_db: formData.access_db.replace(/\n|;/g, ','), // 统一分隔符
+      access_db: formData.access_db.replace(replaceReg, ','), // 统一分隔符
       privilege: {},
       account_id: formData.account_id,
       account_type: AccountTypes.SQLSERVER,

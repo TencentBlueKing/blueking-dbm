@@ -47,14 +47,15 @@
       :rules="rules.access_db">
       <BkInput
         v-model="formData.access_db"
-        :placeholder="t('请输入DB名称_可以使用通配符_如Data_区分大小写_多个使用英文逗号_分号或换行分隔')"
-        :rows="3"
+        :maxlength="100"
+        :placeholder="t('请输入访问DB名_支持 % 通配符_多个使用英文逗号_分号或换行分隔')"
+        :rows="4"
         type="textarea" />
     </BkFormItem>
     <BkFormItem
       class="rule-form-item"
       :label="t('权限设置')"
-      property="auth">
+      property="privilege">
       <template #label>
         {{ t('权限设置') }}
         <BkCheckbox
@@ -182,7 +183,7 @@
   const { t } = useI18n();
 
   const formRef = ref();
-  const formData = ref<AccountRule>({
+  const formData = reactive<AccountRule>({
     account_id: null,
     access_db: '',
     privilege: {
@@ -192,16 +193,31 @@
     },
   });
   const accounts = ref<PermissionRuleAccount[]>([]);
+  const existDBs = ref<string[]>([]);
 
   const rules = {
+    privilege: [
+      {
+        trigger: 'change',
+        message: t('请设置权限'),
+        validator: () => {
+          const { ddl, dml, glob } = formData.privilege;
+          return ddl.length !== 0 || dml.length !== 0 || glob.length !== 0;
+        },
+      },
+    ],
     access_db: [
       {
         required: true,
         trigger: 'blur',
-        message: t('访问DB不能为空'),
-        validator: (value: string) => !!value,
+        message: t('访问 DB 不能为空'),
+        validator: (value: string) => {
+          const dbs = value.split(/[\n;,]/);
+          return _.every(dbs, (item) => !!item.trim());
+        },
       },
       {
+        required: true,
         trigger: 'blur',
         message: t('编辑时只能单个，且不能有分隔符'),
         validator: (value: string) => {
@@ -212,22 +228,47 @@
         },
       },
       {
+        required: true,
         trigger: 'blur',
-        message: t('DB名称不允许 * ，支持通配符 %，如 Data%，区分大小写，多个对象请使用英文逗号、分号或换行分隔'),
+        message: t('不允许为 *'),
         validator: (value: string) => {
           const dbs = value.split(/[\n;,]/);
-          return _.every(dbs, (item) => (!item ? true : !/\*/.test(value)));
+          return _.every(dbs, (item) => (!item ? true : !/^\*$/.test(item)));
         },
       },
       {
+        required: true,
         trigger: 'blur',
-        message: () => t('账号下已存在该规则'),
+        message: t('% 不能单独使用'),
+        validator: (value: string) => {
+          const dbs = value.split(/[\n;,]/);
+          return _.every(dbs, (item) => (!item ? true : /^(?!%$).+$/.test(item)));
+        },
+      },
+      {
+        required: true,
+        trigger: 'blur',
+        message: t('访问 DB 名必须合法'),
+        validator: (value: string) => {
+          const dbs = value.split(/[\n;,]/);
+          return _.every(dbs, (item) =>
+            !item
+              ? true
+              : /^[a-zA-Z0-9%]([a-zA-Z0-9_%-])*[a-zA-Z0-9%]$/.test(item) && /^(?!stage_truncate).*/.test(item),
+          );
+        },
+      },
+      {
+        required: true,
+        trigger: 'blur',
+        message: () => t('该账号下已存在xx规则', [existDBs.value.join(',')]),
         validator: async () => {
-          const user = accounts.value.find((item) => item.account_id === formData.value.account_id)?.user;
-          if (props.rulesFormData.beforeChange.access_db === formData.value.access_db) {
+          existDBs.value = [];
+          const user = accounts.value.find((item) => item.account_id === formData.account_id)?.user;
+          if (props.rulesFormData.beforeChange.access_db === formData.access_db) {
             return true;
           }
-          const dbs = formData.value.access_db
+          const dbs = formData.access_db
             .replace(/\n|;/g, ',')
             .split(',')
             .filter((db) => db);
@@ -245,6 +286,7 @@
             results
               .find((item) => item.account.user === user)
               ?.rules.filter((ruleItem) => dbs.includes(ruleItem.access_db)) || [];
+          existDBs.value = intersection.map((item) => item.access_db);
           return !intersection.length;
         },
       },
@@ -252,15 +294,15 @@
   };
 
   const getAllCheckedboxValue = (key: AccountRulePrivilegeKey) =>
-    formData.value.privilege[key]?.length === props.ruleSettingsConfig.dbOperations[key].length;
+    formData.privilege[key].length === props.ruleSettingsConfig.dbOperations[key].length;
 
   const topAllCheckedboxValue = computed(() =>
     (['ddl', 'dml', 'glob'] as AccountRulePrivilegeKey[]).every(getAllCheckedboxValue),
   );
 
   const getAllCheckedboxIndeterminate = (key: AccountRulePrivilegeKey) =>
-    formData.value.privilege[key]?.length > 0 &&
-    formData.value.privilege[key]?.length !== props.ruleSettingsConfig.dbOperations[key].length;
+    formData.privilege[key].length > 0 &&
+    formData.privilege[key].length !== props.ruleSettingsConfig.dbOperations[key].length;
 
   const topAllCheckedboxIndeterminate = computed(() =>
     (['ddl', 'dml', 'glob'] as AccountRulePrivilegeKey[]).some(getAllCheckedboxIndeterminate),
@@ -276,21 +318,20 @@
   watch(
     () => props.rulesFormData,
     () => {
-      formData.value = _.cloneDeep(
-        props.rulesFormData.afterChange.account_id ? props.rulesFormData.afterChange : props.rulesFormData.beforeChange,
-      );
+      const sourceData = props.rulesFormData.afterChange.account_id
+        ? props.rulesFormData.afterChange
+        : props.rulesFormData.beforeChange;
+      _.merge(formData, _.cloneDeep(sourceData));
     },
     { immediate: true },
   );
 
   const handleSelectedAll = (key: AccountRulePrivilegeKey, value: boolean) => {
-    formData.value.privilege[key] = value ? [...props.ruleSettingsConfig.dbOperations[key]] : [];
+    formData.privilege[key] = value ? [...props.ruleSettingsConfig.dbOperations[key]] : [];
   };
 
   const handleTopSelectedAll = (value: boolean) => {
-    formData.value.privilege = value
-      ? _.cloneDeep(props.ruleSettingsConfig.dbOperations)
-      : { ddl: [], dml: [], glob: [] };
+    formData.privilege = value ? _.cloneDeep(props.ruleSettingsConfig.dbOperations) : { ddl: [], dml: [], glob: [] };
   };
 
   getPermissionRulesRun({
@@ -301,13 +342,11 @@
   });
 
   defineExpose<Exposes>({
-    getValue: async () => {
-      await formRef.value.validate();
-      return {
-        userName: accounts.value.find((item) => item.account_id === formData.value.account_id)?.user || '',
-        accountRule: formData.value,
-      };
-    },
+    getValue: () =>
+      formRef.value.validate().then(() => ({
+        userName: accounts.value.find((item) => item.account_id === formData.account_id)?.user || '',
+        accountRule: formData,
+      })),
   });
 </script>
 
