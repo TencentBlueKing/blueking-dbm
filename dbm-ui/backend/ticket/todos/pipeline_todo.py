@@ -16,7 +16,7 @@ from django.utils.translation import gettext as _
 from backend.constants import DEFAULT_SYSTEM_USER
 from backend.flow.engine.bamboo.engine import BambooEngine
 from backend.ticket import todos
-from backend.ticket.constants import TodoType
+from backend.ticket.constants import TodoStatus, TodoType
 from backend.ticket.exceptions import TodoWrongOperatorException
 from backend.ticket.models import TodoHistory
 from backend.ticket.todos import ActionType, BaseTodoContext
@@ -44,7 +44,7 @@ class PipelineTodo(todos.TodoActor):
         engine = BambooEngine(root_id=root_id)
 
         if action == ActionType.TERMINATE:
-            self.todo.set_terminated(username, action)
+            self.todo.set_status(username, TodoStatus.DONE_FAILED)
             # 终止时，直接将流程设置为失败
             engine.force_fail_pipeline(node_id)
             return
