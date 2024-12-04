@@ -14,7 +14,7 @@
   import { useI18n } from 'vue-i18n';
 
   import TicketModel from '@services/model/ticket/ticket';
-  import { revokeTicket } from '@services/source/ticketFlow';
+  import { batchProcessTicket } from '@services/source/ticketFlow';
 
   import { useEventBus } from '@hooks';
 
@@ -34,7 +34,8 @@
   const isCan = computed(() => props.data.status === TicketModel.STATUS_APPROVE && props.data.creator === username);
 
   const handleRevoke = () =>
-    revokeTicket({
+    batchProcessTicket({
+      action: 'TERMINATE',
       ticket_ids: [props.data.id],
     }).then(() => {
       eventBus.emit('refreshTicketStatus');
