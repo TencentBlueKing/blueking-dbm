@@ -21,7 +21,7 @@
   import { useUserProfile } from '@stores';
 
   interface Props {
-    data: TicketModel<unknown>;
+    data: TicketModel;
   }
 
   const props = defineProps<Props>();
@@ -31,9 +31,7 @@
   const { t } = useI18n();
   const eventBus = useEventBus();
 
-  const isCan = computed(
-    () => props.data.status === TicketModel.STATUS_APPROVE && props.data.todo_operators.includes(username),
-  );
+  const isCan = computed(() => props.data.status === TicketModel.STATUS_APPROVE && props.data.creator === username);
 
   const handleRevoke = () =>
     revokeTicket({

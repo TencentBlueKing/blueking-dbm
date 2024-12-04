@@ -22,7 +22,7 @@
           <template v-if="ticketData">
             <BaseInfo :ticket-data="ticketData" />
             <DbCard
-              :collapse="false"
+              v-model:collapse="isTaskInfoCardCollapse"
               mode="collapse"
               :title="t('需求信息')">
               <TaskInfo :data="ticketData" />
@@ -67,7 +67,7 @@
   import TicketClone from '@views/ticket-center/common/TicketClone.vue';
   import TicketRevoke from '@views/ticket-center/common/TicketRevoke.vue';
 
-  import { useTimeoutFn } from '@vueuse/core';
+  import { useStorage, useTimeoutFn } from '@vueuse/core';
 
   import BaseInfo from './components/BaseInfo.vue';
   import FlowInfos from './components/flow-info/Index.vue';
@@ -83,6 +83,8 @@
   const { t } = useI18n();
 
   const getOffsetTarget = () => document.body.querySelector('.ticket-details-page .db-card');
+
+  const isTaskInfoCardCollapse = useStorage('ticketTaskInfo', false);
 
   const isLoading = ref(true);
   const ticketData = shallowRef<TicketModel>();
