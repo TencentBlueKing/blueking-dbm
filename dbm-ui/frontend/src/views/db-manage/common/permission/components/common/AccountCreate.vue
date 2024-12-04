@@ -188,7 +188,7 @@
           validValue = props.accountType === AccountTypes.MONGODB ? value.split('.')[1] : value;
           return !specialAccountMap[props.accountType].includes(validValue);
         },
-        message: t('不允许使用特殊账号名称n', { n: validValue }),
+        message: () => t('不允许使用特殊账号名称n', { n: validValue }),
       },
     ],
     password: [
