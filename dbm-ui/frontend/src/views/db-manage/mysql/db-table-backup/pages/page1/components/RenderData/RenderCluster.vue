@@ -17,7 +17,8 @@
       ref="editRef"
       v-model="localDomain"
       :placeholder="t('请输入集群域名或从表头批量选择')"
-      :rules="rules" />
+      :rules="rules"
+      @focus="handleFocus" />
   </div>
 </template>
 <!-- <script lang="ts">
@@ -57,6 +58,8 @@
 
   const { currentBizId } = useGlobalBizs();
 
+  let isSkipInputFinish = false;
+
   const editRef = ref();
 
   const localClusterId = ref(0);
@@ -86,7 +89,9 @@
         }).then((data) => {
           if (data.length > 0) {
             localClusterId.value = data[0].id;
-            emits('idChange', localClusterId.value);
+            if (!isSkipInputFinish) {
+              emits('idChange', data[0].id);
+            }
             return true;
           }
           return false;
@@ -152,12 +157,17 @@
   //   },
   // );
 
+  const handleFocus = () => {
+    isSkipInputFinish = false;
+  };
+
   // onBeforeUnmount(() => {
   //   delete clusterIdMemo[instanceKey];
   // });
 
   defineExpose<Exposes>({
-    getValue() {
+    getValue(isSubmit = false) {
+      isSkipInputFinish = isSubmit;
       return editRef.value
         .getValue()
         .then(() => ({

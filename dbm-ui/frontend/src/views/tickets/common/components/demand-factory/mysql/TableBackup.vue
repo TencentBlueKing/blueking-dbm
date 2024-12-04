@@ -23,6 +23,8 @@
   import type { MySQLTableBackupDetails } from '@services/model/ticket/details/mysql';
   import TicketModel from '@services/model/ticket/ticket';
 
+  import { ClusterTypes } from '@common/const';
+
   interface Props {
     ticketDetails: TicketModel<MySQLTableBackupDetails>
   }
@@ -131,7 +133,7 @@
       const clusterData = clusterIds[item.cluster_id];
       list.push(Object.assign({
         cluster_id: item.cluster_id,
-        backup_on: item.backup_on || 'Slave',
+        backup_on: item.backup_on || clusterData.cluster_type === ClusterTypes.TENDBHA ? 'Slave' : 'Master',
         db_patterns: item.db_patterns,
         ignore_dbs: item.ignore_dbs,
         ignore_tables: item.ignore_tables,

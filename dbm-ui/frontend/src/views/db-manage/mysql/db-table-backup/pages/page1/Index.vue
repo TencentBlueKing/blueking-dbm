@@ -36,6 +36,7 @@
           :removeable="tableData.length < 2"
           @add="(payload: Array<IDataRow>) => handleAppend(index, payload)"
           @clone="(payload: IDataRow) => handleClone(index, payload)"
+          @id-change="(clusterId: number) => handleChangeCluster(index, clusterId)"
           @remove="handleRemove(index)" />
       </RenderData>
       <TicketRemark v-model="remark" />
@@ -76,6 +77,7 @@
 
   import TendbhaModel from '@services/model/mysql/tendbha';
   import TendbsingleModel from '@services/model/mysql/tendbsingle';
+  import { filterClusters } from '@services/source/dbbase';
   import { createTicket } from '@services/source/ticket';
 
   import { useTicketCloneInfo } from '@hooks';
@@ -167,6 +169,7 @@
               id: clusterData.id,
               domain: clusterData.master_domain,
             },
+            backupLocal: clusterData.cluster_type === ClusterTypes.TENDBHA ? 'Slave' : 'Master',
           });
           results.push(row);
           domainMemo[domain] = true;
@@ -182,6 +185,33 @@
       tableData.value = [...tableData.value, ...newList];
     }
     window.changeConfirm = true;
+  };
+
+  // 输入集群后查询集群信息并填充到table
+  const handleChangeCluster = async (index: number, clusterId: number) => {
+    if (tableData.value[index].clusterData?.id === clusterId) {
+      return;
+    }
+
+    const resultList = await filterClusters<TendbhaModel | TendbsingleModel>({
+      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+      cluster_ids: String(clusterId),
+    });
+    if (resultList.length < 1) {
+      return;
+    }
+    const item = resultList[0];
+    const domain = item.master_domain;
+    const row = createRowData({
+      clusterData: {
+        id: item.id,
+        domain,
+      },
+      backupLocal: item.cluster_type === ClusterTypes.TENDBHA ? 'Slave' : 'Master',
+    });
+    tableData.value[index] = row;
+    domainMemo[domain] = true;
+    selectedClusters.value[item.cluster_type].push(item);
   };
 
   const handleBatchEditColumn = (value: string | string[], filed: IDataRowBatchKey) => {
