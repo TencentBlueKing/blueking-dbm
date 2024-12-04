@@ -38,6 +38,17 @@ class SqlserverActPayload(PayloadHandler):
             "payload": {**self.get_init_system_account(), **payload},
         }
 
+    @staticmethod
+    def check_mssql_service_payload(self, **kwargs) -> dict:
+        """
+        测试实例是否注册存在的payload
+        """
+        return {
+            "db_type": DBActuatorTypeEnum.Sqlserver_check.value,
+            "action": SqlserverActuatorActionEnum.MssqlServiceCheck.value,
+            "payload": {},
+        }
+
     def get_install_sqlserver_payload(self, **kwargs) -> dict:
         """
         拼接安装sqlserver的payload参数, 分别兼容集群申请、集群实例重建、集群实例添加单据的获取方式
@@ -159,6 +170,11 @@ class SqlserverActPayload(PayloadHandler):
         """
         执行数据库备份的payload
         """
+        if self.global_data.get("is_recalc_sync_dbs", False):
+            backup_dbs = kwargs["trans_data"]["sync_dbs"]
+        else:
+            backup_dbs = self.global_data["backup_dbs"]
+
         return {
             "db_type": DBActuatorTypeEnum.Sqlserver.value,
             "action": SqlserverActuatorActionEnum.BackupDBS.value,
@@ -167,7 +183,7 @@ class SqlserverActPayload(PayloadHandler):
                 "extend": {
                     "host": kwargs["ips"][0]["ip"],
                     "port": kwargs["custom_params"]["port"],
-                    "backup_dbs": self.global_data["backup_dbs"],
+                    "backup_dbs": backup_dbs,
                     "backup_type": kwargs["custom_params"]["backup_type"],
                     "job_id": self.global_data["job_id"],
                     "file_tag": kwargs["custom_params"]["file_tag"],
@@ -198,8 +214,12 @@ class SqlserverActPayload(PayloadHandler):
 
     def get_clean_dbs_payload(self, **kwargs) -> dict:
         """
-        执行数据库重命名的payload
+        执行数据库清档的payload
         """
+        if self.global_data.get("is_recalc_clean_dbs", False):
+            clean_dbs = kwargs["trans_data"]["clean_dbs"]
+        else:
+            clean_dbs = self.global_data["clean_dbs"]
         return {
             "db_type": DBActuatorTypeEnum.Sqlserver.value,
             "action": SqlserverActuatorActionEnum.CleanDBS.value,
@@ -208,7 +228,7 @@ class SqlserverActPayload(PayloadHandler):
                 "extend": {
                     "host": kwargs["ips"][0]["ip"],
                     "port": self.global_data["port"],
-                    "clean_dbs": self.global_data["clean_dbs"],
+                    "clean_dbs": clean_dbs,
                     "sync_mode": self.global_data["sync_mode"],
                     "clean_mode": self.global_data["clean_mode"],
                     "slaves": self.global_data["slaves"],
@@ -370,6 +390,11 @@ class SqlserverActPayload(PayloadHandler):
         """
         建立数据库级别镜像关系的payload
         """
+        if self.global_data.get("is_recalc_sync_dbs", False):
+            sync_dbs = kwargs["trans_data"]["sync_dbs"]
+        else:
+            sync_dbs = kwargs["custom_params"]["dbs"]
+
         return {
             "db_type": DBActuatorTypeEnum.Sqlserver.value,
             "action": SqlserverActuatorActionEnum.BuildDBMirroring.value,
@@ -380,7 +405,7 @@ class SqlserverActPayload(PayloadHandler):
                     "port": self.global_data["port"],
                     "dr_host": kwargs["custom_params"]["dr_host"],
                     "dr_port": kwargs["custom_params"]["dr_port"],
-                    "dbs": kwargs["custom_params"]["dbs"],
+                    "dbs": sync_dbs,
                 },
             },
         }
@@ -389,6 +414,11 @@ class SqlserverActPayload(PayloadHandler):
         """
         建立数据库加入always_on可用组的payload
         """
+        if self.global_data.get("is_recalc_sync_dbs", False):
+            sync_dbs = kwargs["trans_data"]["sync_dbs"]
+        else:
+            sync_dbs = kwargs["custom_params"]["dbs"]
+
         return {
             "db_type": DBActuatorTypeEnum.Sqlserver.value,
             "action": SqlserverActuatorActionEnum.AddDBSInAlwaysOn.value,
@@ -398,7 +428,7 @@ class SqlserverActPayload(PayloadHandler):
                     "host": kwargs["ips"][0]["ip"],
                     "port": self.global_data["port"],
                     "add_slaves": kwargs["custom_params"]["add_slaves"],
-                    "dbs": kwargs["custom_params"]["dbs"],
+                    "dbs": sync_dbs,
                 },
             },
         }

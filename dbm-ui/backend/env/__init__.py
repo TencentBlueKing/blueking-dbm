@@ -120,6 +120,8 @@ SA_INIT_TEMPLATE_ID = get_type_env(key="SA_INIT_TEMPLATE_ID", _type=int)
 SA_L5_AGENT_TEMPLATE_ID = get_type_env(key="SA_L5_AGENT_TEMPLATE_ID", _type=int)
 # 标准运维项目 ID
 BK_SOPS_PROJECT_ID = get_type_env(key="BK_SOPS_PROJECT_ID", _type=int, default=1)
+# 标准运维更新window机器的模板ID
+UPDATE_WINDOW_GSE_CONFIG = get_type_env(key="UPDATE_WINDOW_GSE_CONFIG", _type=int, default=1)
 
 # Bamboo
 ENABLE_CLEAN_EXPIRED_BAMBOO_TASK = get_type_env(key="ENABLE_CLEAN_EXPIRED_BAMBOO_TASK", _type=bool, default=False)

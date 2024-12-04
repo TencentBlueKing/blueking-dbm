@@ -10,14 +10,17 @@ specific language governing permissions and limitations under the License.
 """
 import copy
 import logging
-from typing import Any, Dict, Optional
+from dataclasses import dataclass
+from typing import Any, Dict, List, Optional
 
 from bamboo_engine import api, builder
 from bamboo_engine.builder import (
+    ConditionalParallelGateway,
     ConvergeGateway,
     Data,
     EmptyEndEvent,
     EmptyStartEvent,
+    NodeOutput,
     ParallelGateway,
     Params,
     RewritableNodeOutput,
@@ -33,9 +36,16 @@ from backend.flow.engine.exceptions import PipelineError
 from backend.flow.models import FlowNode, FlowTree, StateType
 from backend.flow.plugins.components.collections.common.create_random_job_user import AddTempUserForClusterComponent
 from backend.flow.plugins.components.collections.common.drop_random_job_user import DropTempUserForClusterComponent
+from backend.flow.plugins.components.collections.common.empty_node import EmptyNodeComponent
 from backend.ticket.constants import TicketType
 
 logger = logging.getLogger("json")
+
+
+@dataclass
+class Conditions:
+    act_object: Any
+    express: str
 
 
 class Builder(object):
@@ -76,6 +86,9 @@ class Builder(object):
 
         # 定义流程数据上下文参数trans_data
         self.rewritable_node_source_keys = []
+
+        # 定义条件网关的上下文参数
+        self.node_output_list = []
 
         # 判断是否添加临时账号的流程逻辑
         if self.need_random_pass_cluster_ids:
@@ -203,6 +216,35 @@ class Builder(object):
         cg = ConvergeGateway()
         self.pipe = self.pipe.extend(pg).connect(*sub_flow_list).to(pg).converge(cg)
 
+    def add_conditional_subs(self, source_act, conditions: List[Conditions], name: str, conditions_param: str):
+        """
+        add_conditional_subs：给流程添加条件分支节点，控制执行节点或者子流程
+        @param source_act: 控制添加源节点
+        @param conditions: 表达式
+        @param name: 表达式名称
+        @param conditions_param: 表达式变量名称
+        """
+        real_conditions = {}
+        connect_list = []
+        for index, info in enumerate(conditions):
+            real_conditions[index] = f"${{{conditions_param}}} {info.express}"
+            connect_list.append(info.act_object)
+
+        # 添你默认节点
+        connect_list.append(
+            self.add_act(act_name="default_node", act_component_code=EmptyNodeComponent.code, kwargs={}, extend=False)
+        )
+        real_conditions[len(connect_list) - 1] = "1==1"
+
+        cpg = ConditionalParallelGateway(
+            conditions=real_conditions, name=name, default_condition_outgoing=len(connect_list) - 1
+        )
+        cg = ConvergeGateway()
+        self.pipe = self.pipe.extend(source_act).extend(cpg).connect(*connect_list).to(cpg).converge(cg)
+
+        # 拼接有可能条件网关需要的上下文变量
+        self.node_output_list.append({"conditions_param": conditions_param, "source_act_id": source_act.id})
+
     def run_pipeline(self, init_trans_data_class: Optional[Any] = None, is_drop_random_user: bool = True) -> bool:
         """
         开始运行 pipeline
@@ -218,6 +260,11 @@ class Builder(object):
         self.global_data.inputs["${trans_data}"] = RewritableNode(
             source_act=self.rewritable_node_source_keys, type=Var.SPLICE, value=init_trans_data_class
         )
+        # 声明NodeOutput变量
+        for i in self.node_output_list:
+            self.global_data.inputs[f"${{{i['conditions_param']}}}"] = NodeOutput(
+                type=Var.SPLICE, source_act=i["source_act_id"], source_key=f"{i['conditions_param']}"
+            )
         self.pipe.extend(self.end_act)
         pipeline = builder.build_tree(self.start_act, id=self.root_id, data=self.global_data)
         pipeline_copy = copy.deepcopy(pipeline)
@@ -272,7 +319,11 @@ class SubBuilder(Builder):
         sub_data.inputs["${trans_data}"] = RewritableNode(
             source_act=self.rewritable_node_source_keys, type=Var.SPLICE, value=None
         )
-        # sub_data.inputs['${trans_data}'] = DataInput(type=Var.SPLICE, value='${trans_data}')
+        # 声明NodeOutput变量
+        for i in self.node_output_list:
+            sub_data.inputs[f"${{{i['conditions_param']}}}"] = NodeOutput(
+                type=Var.SPLICE, source_act=i["source_act_id"], source_key=f"{i['conditions_param']}"
+            )
         sub_params = Params({"${trans_data}": Var(type=Var.SPLICE, value="${trans_data}")})
         self.pipe.extend(self.end_act)
         return SubProcess(start=self.start_act, data=sub_data, params=sub_params, name=sub_name)

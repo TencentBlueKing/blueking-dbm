@@ -8,7 +8,7 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import copy
-import logging.config
+import logging
 import re
 import secrets
 from collections import defaultdict
@@ -360,11 +360,12 @@ and a.name not like 'J_%'
     return True
 
 
-def get_group_name(master_instance: StorageInstance, bk_cloud_id: int):
+def get_group_name(master_instance: StorageInstance, bk_cloud_id: int, is_check_group: bool = False):
     """
     获取集群group_name名称
     @param master_instance: master实例
     @param bk_cloud_id: 云区域id
+    @param is_check_group 默认False，表示如果查询group_name为空则异常，反之True为返回空，不报错
     """
     ret = DRSApi.sqlserver_rpc(
         {
@@ -378,7 +379,11 @@ def get_group_name(master_instance: StorageInstance, bk_cloud_id: int):
         raise Exception(f"[{master_instance.ip_port}] get_group_name failed: {ret[0]['error_msg']}")
 
     if len(ret[0]["cmd_results"][0]["table_data"]) == 0:
+        if is_check_group:
+            # 如果设置True则正常返回空字符串
+            return ""
         raise Exception(f"[{master_instance.ip_port}] get_group_name is null")
+
     return ret[0]["cmd_results"][0]["table_data"][0]["name"]
 
 
@@ -877,3 +882,27 @@ def check_ha_config(
             f"[{slave_instance.ip_port}]-{check_tag} configuration is not equal to master[{master_instance.ip_port}]",
         )
     return True, ""
+
+
+def exec_resume_sp(slave_instances: List[StorageInstance], master_host: str, master_port: int, bk_cloud_id: int):
+    """
+    执行尝试修复数据同步状态
+    @param slave_instances: 待修复从库列表
+    @param master_host: 待连接的master_host
+    @param master_port: 待连接的master_port
+    @param bk_cloud_id: 云区域ID
+    """
+    cmd = f"use {SQLSERVER_CUSTOM_SYS_DB}; exec DBO.Sys_AutoSwitch_Resume '{master_host}','{master_port}', null"
+    logger.info(cmd)
+    ret = DRSApi.sqlserver_rpc(
+        {
+            "bk_cloud_id": bk_cloud_id,
+            "addresses": [storage.ip_port for storage in slave_instances],
+            "cmds": [cmd],
+            "force": False,
+        }
+    )
+
+    if ret[0]["error_msg"]:
+        raise Exception(f"Sys_AutoSwitch_Resume exec failed: {ret[0]['error_msg']}")
+    return True

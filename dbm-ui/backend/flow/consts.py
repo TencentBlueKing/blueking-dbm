@@ -652,6 +652,7 @@ class SqlserverActuatorActionEnum(str, StructuredEnum):
     ClearConfig = EnumField("ClearConfig", _("清理实例周边配置。目前支持清理job、linkserver"))
     RemoteDr = EnumField("RemoteDr", _("将一些dr移除可用组"))
     Init = EnumField("init", _("部署后需要初始化实例的步骤"))
+    MssqlServiceCheck = EnumField("MssqlServiceCheck", _("检测进程是否注册"))
 
 
 class DorisActuatorActionEnum(str, StructuredEnum):
