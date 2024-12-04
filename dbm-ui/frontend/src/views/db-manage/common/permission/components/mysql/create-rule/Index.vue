@@ -57,6 +57,7 @@
         @confirm="handleVerifyConfirm">
         <BkButton
           class="w-88 mr-8 ml-8"
+          :loading="isSubmitting"
           theme="primary"
           @click="handleSubmit">
           {{ t('提交') }}
@@ -267,54 +268,55 @@
   };
 
   const handleSubmit = async () => {
-    isSubmitting.value = true;
-    const params = await generateRequestParam();
-    if (isEdit.value && previewDiffRef.value) {
-      const { changed } = previewDiffRef.value;
-      const isAccessDbChanged = changed.accessDb;
-      const isHasDelete = changed.privilege.deleteCount > 0;
-      if (isAccessDbChanged || isHasDelete) {
-        const ticketTypeMap = {
-          [AccountTypes.MYSQL]: TicketTypes.MYSQL_ACCOUNT_RULE_CHANGE,
-          [AccountTypes.TENDBCLUSTER]: TicketTypes.TENDBCLUSTER_ACCOUNT_RULE_CHANGE,
-        }
-        createTicketRun({
-          bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-          ticket_type: ticketTypeMap[props.accountType],
-          remark: '',
-          details: {
-            last_account_rules: {
-              userName,
-              ...rulesFormData.beforeChange
+    try {
+      isSubmitting.value = true;
+      const params = await generateRequestParam();
+      if (isEdit.value && previewDiffRef.value) {
+        const { changed } = previewDiffRef.value;
+        const isAccessDbChanged = changed.accessDb;
+        const isHasDelete = changed.privilege.deleteCount > 0;
+        if (isAccessDbChanged || isHasDelete) {
+          const ticketTypeMap = {
+            [AccountTypes.MYSQL]: TicketTypes.MYSQL_ACCOUNT_RULE_CHANGE,
+            [AccountTypes.TENDBCLUSTER]: TicketTypes.TENDBCLUSTER_ACCOUNT_RULE_CHANGE,
+          }
+          createTicketRun({
+            bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+            ticket_type: ticketTypeMap[props.accountType],
+            remark: '',
+            details: {
+              last_account_rules: {
+                userName,
+                ...rulesFormData.beforeChange
+              },
+              action: 'change',
+              ...params,
+              rule_id: props.ruleObj!.rule_id,
             },
-            action: 'change',
+          });
+        } else {
+          modifyAccountRuleRun({
             ...params,
             rule_id: props.ruleObj!.rule_id,
-          },
-        });
+          });
+        }
       } else {
-        modifyAccountRuleRun({
-          ...params,
-          rule_id: props.ruleObj!.rule_id,
-        });
+        preCheckAddAccountRule(params)
+          .then((result) => {
+            if (result.warning) {
+              precheckWarnTip.value = (
+                <div class="pre-check-content">
+                  {result.warning.split('\n').map(line => <div>{line}</div>)}
+                </div>
+              );
+              showPopConfirm.value = true;
+              return;
+            }
+            createAccountRuleRun(params);
+          })
       }
-    } else {
-      preCheckAddAccountRule(params)
-        .then((result) => {
-          if (result.warning) {
-            precheckWarnTip.value = (
-              <div class="pre-check-content">
-                {result.warning.split('\n').map(line => <div>{line}</div>)}
-              </div>
-            );
-            showPopConfirm.value = true;
-            return;
-          }
-          createAccountRuleRun(params);
-        })
-        .finally(() => {
-          isSubmitting.value = false;
-        });
+    } finally {
+      isSubmitting.value = false;
     }
   };
 </script>

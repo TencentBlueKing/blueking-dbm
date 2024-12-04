@@ -118,16 +118,6 @@ export interface PasswordPolicyIncludeRule {
 }
 
 /**
- * 新增账号规则
- */
-export interface AccountRule {
-  access_db: string;
-  privilege: AccountRulePrivilege | string;
-  account_id: number | null;
-  account_type?: AccountTypesValues;
-}
-
-/**
  * 新增账号规则 - 权限信息
  */
 export interface AccountRulePrivilege {
@@ -137,6 +127,16 @@ export interface AccountRulePrivilege {
 }
 
 export type AccountRulePrivilegeKey = keyof AccountRulePrivilege;
+
+/**
+ * 新增账号规则
+ */
+export interface AccountRule {
+  access_db: string;
+  privilege: AccountRulePrivilege;
+  account_id: number | null;
+  account_type?: AccountTypesValues;
+}
 
 /**
  * 规则授权前置检查信息
