@@ -95,7 +95,7 @@
   const { t } = useI18n();
   const currentInstance = getCurrentInstance();
 
-  const { list: statusList, defaultStatus } = useStatusList();
+  const { list: statusList, defaultStatus: ticketStatus } = useStatusList();
 
   const { getSearchParams, removeSearchParam } = useUrlSearch();
   const { splitScreen: stretchLayoutSplitScreen } = useStretchLayout();
@@ -117,7 +117,7 @@
     });
 
   const dataTableRef = useTemplateRef('dataTable');
-  const ticketStatus = ref(defaultStatus.value);
+  // const ticketStatus = ref(defaultStatus.value);
   const selectTicketIdList = shallowRef<TicketModel[]>([]);
   const isShowBatchOperation = ref(false);
   const selectTicketId = ref(0);
@@ -128,7 +128,7 @@
     ),
   );
 
-  watch(ticketStatus, () => {
+  const { pause: pauseTicketStatus, resume: resumeTicketStatus } = watch(ticketStatus, () => {
     dataTableRef.value!.fetchData();
     dataTableRef.value!.resetSelection();
     router.replace({
@@ -148,12 +148,14 @@
   };
 
   onActivated(() => {
-    ticketStatus.value = defaultStatus.value;
+    // ticketStatus.value = defaultStatus.value;
     selectTicketId.value = Number(route.query.selectId);
     removeSearchParam('selectId');
+    resumeTicketStatus();
   });
 
   onDeactivated(() => {
+    pauseTicketStatus();
     setTimeout(() => {
       if (currentInstance!.isUnmounted) {
         return;

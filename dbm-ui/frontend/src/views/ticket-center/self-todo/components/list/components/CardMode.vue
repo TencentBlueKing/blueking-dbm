@@ -58,7 +58,7 @@
 
   const router = useRouter();
 
-  const { list: statusList, defaultStatus } = useStatusList();
+  const { list: statusList, defaultStatus: ticketStatus } = useStatusList();
 
   const { value: datePickerValue, shortcutsRange } = useDatePicker();
   const { value: searachSelectValue, searchSelectData } = useSearchSelect({
@@ -67,7 +67,7 @@
 
   const dataTableRef = useTemplateRef('list');
 
-  const ticketStatus = ref(defaultStatus.value);
+  // const ticketStatus = ref(defaultStatus.value);
 
   const ticektStatusName = computed(() => statusList.value.find((item) => item.id === ticketStatus.value)?.name);
 
@@ -79,7 +79,7 @@
       status: ticketStatus.value,
     });
 
-  watch(ticketStatus, () => {
+  const { pause: pauseTicketStatus, resume: resumeTicketStatus } = watch(ticketStatus, () => {
     dataTableRef.value!.fetchData();
     router.replace({
       params: {
@@ -89,7 +89,12 @@
   });
 
   onActivated(() => {
-    ticketStatus.value = defaultStatus.value;
+    // ticketStatus.value = defaultStatus.value;
+    resumeTicketStatus();
+  });
+
+  onDeactivated(() => {
+    pauseTicketStatus();
   });
 </script>
 <style lang="less">

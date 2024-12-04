@@ -1,5 +1,5 @@
 import _ from 'lodash';
-import { computed, watchEffect } from 'vue';
+import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRoute } from 'vue-router';
 
@@ -7,7 +7,7 @@ import TicketModel from '@services/model/ticket/ticket';
 
 import { useTicketCount } from '@hooks';
 
-export default () => {
+const create = () => {
   const { t } = useI18n();
   const { data: ticketCount } = useTicketCount();
 
@@ -43,17 +43,24 @@ export default () => {
     },
   ]);
 
-  watchEffect(() => {
-    const routeParamsStatus = String(route.params.status);
-    if (routeParamsStatus && _.find(list.value, (item) => item.id === routeParamsStatus)) {
-      defaultStatus.value = routeParamsStatus;
-    } else {
-      defaultStatus.value = _.find(list.value, (item) => item.count > 0)?.id ?? TicketModel.STATUS_APPROVE;
-    }
-  });
+  const routeParamsStatus = String(route.params.status);
+  if (routeParamsStatus && _.find(list.value, (item) => item.id === routeParamsStatus)) {
+    defaultStatus.value = routeParamsStatus;
+  } else {
+    defaultStatus.value = _.find(list.value, (item) => item.count > 0)?.id ?? TicketModel.STATUS_APPROVE;
+  }
 
   return {
     list,
     defaultStatus,
   };
+};
+
+let context: ReturnType<typeof create> | undefined;
+export default () => {
+  if (!context) {
+    context = create();
+  }
+
+  return context;
 };

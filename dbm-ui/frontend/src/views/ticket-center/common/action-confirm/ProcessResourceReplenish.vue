@@ -13,7 +13,7 @@
           class="mr-4"
           theme="success"
           type="stroke">
-          {{ t('确认执行') }}
+          {{ t('重试') }}
         </BkTag>
         <span>{{ t('重试后，单据将再次尝试申请资源') }}</span>
       </div>
@@ -53,6 +53,9 @@
           return batchProcessTicket({
             action: 'APPROVE',
             ticket_ids: [props.data.id],
+            params: {
+              remark: '确认补货',
+            },
           });
         }
         if (props.todoData) {
@@ -61,6 +64,9 @@
             operations: [
               {
                 todo_id: props.todoData.id,
+                params: {
+                  remark: '确认补货',
+                },
               },
             ],
           });
