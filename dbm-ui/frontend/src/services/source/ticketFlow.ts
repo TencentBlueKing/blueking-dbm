@@ -31,14 +31,14 @@ export function revokeTicket(params: { ticket_ids: number[] }) {
   return http.post(`${path}/revoke_ticket/`, params);
 }
 
-// 单据流程重试
-export function retryFlow(params: { id: number; flow_id: number }) {
-  return http.post(`${path}/${params.id}/retry_flow/`, { flow_id: params.flow_id });
-}
-
 // 单据流程终止
 export function revokeFlow(params: { id: number; flow_id: number }) {
   return http.post(`${path}/${params.id}/revoke_flow/`, { flow_id: params.flow_id });
+}
+
+// 单据流程重试
+export function retryFlow(params: { id: number; flow_id: number }) {
+  return http.post(`${path}/${params.id}/retry_flow/`, { flow_id: params.flow_id });
 }
 
 export function processTodo(params: { id: number; todo_id: number; action: string; params: Record<string, any> }) {

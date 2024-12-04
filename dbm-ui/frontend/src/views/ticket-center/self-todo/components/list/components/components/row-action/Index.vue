@@ -8,13 +8,13 @@
 
   import StatusApprove from './StatusApprove.vue';
   import StatusFailed from './StatusFailed.vue';
+  import StatusInnerTodo from './StatusInnerTodo.vue';
   import StatusResourceReplenish from './StatusResourceReplenish.vue';
-  import StatusRunning from './StatusRunning.vue';
   import StatusTodo from './StatusTodo.vue';
 
   interface Props {
     ticketStatus: string;
-    data: TicketModel<unknown>;
+    data: TicketModel;
   }
 
   const props = defineProps<Props>();
@@ -24,7 +24,7 @@
     [TicketModel.STATUS_APPROVE]: StatusApprove,
     [TicketModel.STATUS_RESOURCE_REPLENISH]: StatusResourceReplenish,
     [TicketModel.STATUS_FAILED]: StatusFailed,
-    [TicketModel.STATUS_RUNNING]: StatusRunning,
+    [TicketModel.STATUS_INNER_TODO]: StatusInnerTodo,
   };
 
   const renderCom = comMap[props.ticketStatus];
