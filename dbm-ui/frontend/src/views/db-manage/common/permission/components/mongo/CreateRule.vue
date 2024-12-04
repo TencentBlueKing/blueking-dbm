@@ -43,15 +43,26 @@
       </BkFormItem>
       <BkFormItem
         :label="t('访问DB')"
+        required>
+        <BkRadioGroup
+          v-model="accessDBType"
+          @change="handleAccessDBTypeChange">
+          <BkRadio label="admin" />
+          <BkRadio label="not_admin">{{ t('非 admin') }}</BkRadio>
+        </BkRadioGroup>
+      </BkFormItem>
+      <BkFormItem
+        v-if="accessDBType === 'not_admin'"
+        :label="t('DB 名')"
         property="access_db"
         required
         :rules="rules.access_db">
-        <DbTextarea
-          ref="textareaRef"
+        <BkInput
           v-model="formdata.access_db"
-          :max-height="400"
-          :placeholder="t('请输入DB名称_可以使用通配符_如Data_区分大小写_多个使用英文逗号_分号或换行分隔')"
-          :teleport-to-body="false" />
+          :maxlength="100"
+          :placeholder="t('请输入访问DB名_以字母开头_支持字母_数字_下划线')"
+          :rows="4"
+          type="textarea" />
       </BkFormItem>
       <BkFormItem
         class="form-item privilege"
@@ -74,7 +85,7 @@
                 v-model="formdata.privilege.mongo_user"
                 class="checkbox-group">
                 <BkCheckbox
-                  v-for="option of dbOperations.mongo_user"
+                  v-for="option of mongoUserDbOperations"
                   :key="option"
                   :label="option">
                   {{ option }}
@@ -83,6 +94,7 @@
             </div>
           </BkFormItem>
           <BkFormItem
+            v-if="accessDBType === 'admin'"
             :label="t('管理权限')"
             required>
             <div class="rule-form-row">
@@ -162,7 +174,7 @@
 
   const initFormdata = () => ({
     account_id: -1,
-    access_db: '',
+    access_db: 'admin',
     privilege: {
       mongo_user: [] as string[],
       mongo_manager: [] as string[],
@@ -201,6 +213,7 @@
   const formdata = ref(initFormdata());
   const accounts = ref<PermissionRuleAccount[]>([]);
   const existDBs = ref<string[]>([]);
+  const accessDBType = ref<'admin' | 'not_admin'>('admin');
 
   const rules = {
     auth: [
@@ -217,7 +230,7 @@
       {
         required: true,
         trigger: 'blur',
-        message: t('访问DB不能为空'),
+        message: t('访问 DB 不能为空'),
         validator: (value: string) => !!value,
       },
       {
@@ -225,10 +238,25 @@
         message: () => t('该账号下已存在xx规则', [existDBs.value.join('，')]),
         validator: verifyAccountRulesExits,
       },
+      {
+        required: true,
+        trigger: 'blur',
+        message: t('访问 DB 名不允许为 admin'),
+        validator: (value: string) => /^(?!admin$).*/.test(value),
+      },
+      {
+        required: true,
+        trigger: 'blur',
+        message: t('您输入的访问 DB 名不符合要求_访问 DB 名应以字母开头_且仅包含字母_数字和下划线'),
+        validator: (value: string) => /^[A-Za-z][A-Za-z0-9_]*$/.test(value),
+      },
     ],
   };
 
   const selectedUserInfo = computed(() => accounts.value.find((item) => item.account_id === formdata.value.account_id));
+  const mongoUserDbOperations = computed(() =>
+    accessDBType.value === 'not_admin' ? ['read', 'readWrite'] : dbOperations.mongo_user,
+  );
 
   const { loading: isSubmitting, run: addMongodbAccountRuleRun } = useRequest(addAccountRule, {
     manual: true,
@@ -275,6 +303,12 @@
     formdata.value.privilege[key] = [];
   };
 
+  const handleAccessDBTypeChange = (value: 'admin' | 'not_admin') => {
+    formdata.value.access_db = value === 'admin' ? 'admin' : '';
+    formdata.value.privilege.mongo_user = [];
+    formdata.value.privilege.mongo_manager = [];
+  };
+
   const handleClose = async () => {
     const result = await handleBeforeClose();
 
@@ -284,6 +318,7 @@
 
     isShow.value = false;
     formdata.value = initFormdata();
+    accessDBType.value = 'admin';
     existDBs.value = [];
     window.changeConfirm = false;
   };

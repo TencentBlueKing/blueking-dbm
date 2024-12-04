@@ -57,6 +57,7 @@
         @confirm="handleVerifyConfirm">
         <BkButton
           class="w-88 mr-8 ml-8"
+          :loading="isSubmitting"
           theme="primary"
           @click="handleSubmit">
           {{ t('提交') }}
