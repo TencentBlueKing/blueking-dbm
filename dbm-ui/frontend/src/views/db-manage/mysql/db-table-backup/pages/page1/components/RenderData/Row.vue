@@ -80,7 +80,7 @@
       domain: string;
     };
     // backupOn: string,
-    backupLocal: string;
+    backupLocal?: string;
     dbPatterns?: string[];
     tablePatterns?: string[];
     ignoreDbs?: string[];
@@ -94,7 +94,7 @@
     rowKey: random(),
     clusterData: data.clusterData,
     // backupOn: data.backupOn || '',
-    backupLocal: data.backupLocal || 'Slave',
+    backupLocal: data.backupLocal,
     dbPatterns: data.dbPatterns,
     tablePatterns: data.tablePatterns,
     ignoreDbs: data.ignoreDbs,
@@ -116,6 +116,7 @@
     (e: 'add', params: Array<IDataRow>): void;
     (e: 'remove'): void;
     (e: 'clone', value: IDataRow): void;
+    (e: 'idChange', value: number): void;
   }
 
   interface Exposes {
@@ -150,7 +151,7 @@
   );
 
   const handleClusterIdChange = (clusterId: number) => {
-    localClusterId.value = clusterId;
+    emits('idChange', clusterId);
   };
 
   const handleAppend = () => {
@@ -165,7 +166,7 @@
   };
 
   const getRowData = () => [
-    clusterRef.value.getValue(),
+    clusterRef.value.getValue(true),
     // backupSourceRef.value.getValue('backup_on'),
     dbPatternsRef.value.getValue('db_patterns'),
     tablePatternsRef.value.getValue('table_patterns'),
