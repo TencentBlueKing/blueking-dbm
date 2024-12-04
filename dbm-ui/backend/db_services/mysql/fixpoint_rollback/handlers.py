@@ -151,6 +151,7 @@ class FixPointRollbackHandler:
                 _backup_node["host"], _backup_node["port"] = _log["backup_host"], _log["backup_port"]
                 _backup_node["file_list_details"] = []
                 _backup_node["binlog_info"] = _log.get("binlog_info")
+                _backup_node["backup_type"] = _log["backup_type"]
 
             # 更新备份时间，并插入文件列表信息
             insert_time_field(_backup_node, _log)

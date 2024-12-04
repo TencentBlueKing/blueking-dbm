@@ -63,7 +63,7 @@ class PrivilegeType:
 
     class MongoDB:
         class USER(str, StructuredEnum):
-            READ = EnumField("Read", _("Read"))
+            READ = EnumField("read", _("Read"))
             READ_write = EnumField("readWrite", _("readWrite"))
             READ_ANY_DATABASE = EnumField("readAnyDatabase", _("readAnyDatabase"))
             READ_WRITE_ANY_DATABASE = EnumField("readWriteAnyDatabase", _("readWriteAnyDatabase"))
