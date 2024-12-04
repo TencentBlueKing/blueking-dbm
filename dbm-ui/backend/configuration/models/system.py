@@ -33,7 +33,7 @@ class AbstractSettings(AuditedModel):
     desc = models.CharField(_("描述"), max_length=LEN_LONG)
 
     @classmethod
-    def get_setting_value(cls, key: dict, default: Optional[Any] = None) -> Union[str, Dict]:
+    def get_setting_value(cls, key: dict, default: Optional[Any] = None) -> Union[str, Dict, List]:
         """插入一条配置记录"""
         try:
             setting_value = cls.objects.get(**key).value
@@ -103,7 +103,7 @@ class SystemSettings(AbstractSettings):
                 setattr(settings, system_setting.key, system_setting.value)
 
     @classmethod
-    def get_setting_value(cls, key: str, default: Optional[Any] = None) -> Union[str, Dict]:
+    def get_setting_value(cls, key: str, default: Optional[Any] = None) -> Union[str, Dict, List]:
         return super().get_setting_value(key={"key": key}, default=default)
 
     @classmethod
@@ -115,6 +115,15 @@ class SystemSettings(AbstractSettings):
             user=user,
             desc=constants.SystemSettingsEnum.get_choice_label(key),
         )
+
+    @classmethod
+    def get_external_whitelist_cluster_ids(cls) -> List[int]:
+        return [
+            conf["cluster_id"]
+            for conf in cls.get_setting_value(
+                key=constants.SystemSettingsEnum.EXTERNAL_WHITELIST_CLUSTER_IDS.value, default=[]
+            )
+        ]
 
 
 class BizSettings(AbstractSettings):

@@ -27,3 +27,9 @@ class ExternalUserNotExistException(ExternalProxyBaseException):
 class ExternalRouteInvalidException(ExternalProxyBaseException):
     ERROR_CODE = "002"
     MESSAGE = _("转发路由非法")
+
+
+class ExternalClusterIdInvalidException(ExternalProxyBaseException):
+    ERROR_CODE = "003"
+    MESSAGE = _("转发集群请求非法")
+    MESSAGE_TPL = _("转发集群[{cluster_id}]请求非法")

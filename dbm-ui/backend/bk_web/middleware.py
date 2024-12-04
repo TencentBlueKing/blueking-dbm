@@ -30,8 +30,14 @@ from backend.bk_web.constants import (
     NON_EXTERNAL_PROXY_ROUTING,
     ROUTING_WHITELIST_PATTERNS,
 )
-from backend.bk_web.exceptions import ExternalProxyBaseException, ExternalRouteInvalidException
+from backend.bk_web.exceptions import (
+    ExternalClusterIdInvalidException,
+    ExternalProxyBaseException,
+    ExternalRouteInvalidException,
+)
 from backend.bk_web.handlers import _error
+from backend.configuration.models import SystemSettings
+from backend.db_services.dbbase.views import DBBaseViewSet
 from backend.ticket.views import TicketViewSet
 from backend.utils.local import local
 from backend.utils.string import str2bool
@@ -166,6 +172,8 @@ class ExternalProxyMiddleware(MiddlewareMixin):
             # 目前只放开数据导出
             if data["ticket_type"] not in EXTERNAL_TICKET_TYPE_WHITELIST:
                 raise ExternalRouteInvalidException(_("单据类型[{}]非法，未开通白名单").format(data["ticket_type"]))
+            if data["details"]["cluster_id"] not in SystemSettings.get_external_whitelist_cluster_ids():
+                raise ExternalClusterIdInvalidException(cluster_id=data["cluster_id"])
 
         # 单据过滤校验函数
         def check_list_ticket():
@@ -174,9 +182,16 @@ class ExternalProxyMiddleware(MiddlewareMixin):
             data["ticket_type__in"] = ",".join(EXTERNAL_TICKET_TYPE_WHITELIST)
             request.GET = data
 
+        def check_webconsole():
+            data = json.loads(request.body.decode("utf-8"))
+            # 校验集群是否在白名单中
+            if data["cluster_id"] not in SystemSettings.get_external_whitelist_cluster_ids():
+                raise ExternalClusterIdInvalidException(cluster_id=data["cluster_id"])
+
         check_action_func_map = {
             f"{TicketViewSet.__name__}.{TicketViewSet.create.__name__}": check_create_ticket,
             f"{TicketViewSet.__name__}.{TicketViewSet.list.__name__}": check_list_ticket,
+            f"{DBBaseViewSet.__name__}.{DBBaseViewSet.webconsole.__name__}": check_webconsole,
         }
         # 根据请求的视图 + 动作判断是否特殊接口，以及接口参数是否合法
         try:
