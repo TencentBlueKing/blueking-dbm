@@ -260,6 +260,8 @@
       return acc;
     }, {}));
 
+  const skipApproval = computed(() => props.accountType === AccountTypes.MONGODB);
+
   /**
    * search select 过滤参数
    */
@@ -479,17 +481,15 @@
                     configMap[props.accountType].buttonController[ButtonTypes.DELETE_RULE] &&
                     <bk-pop-confirm
                       width="288"
-                      content={t('删除规则会创建单据，需此规则所有过往调用方审批后才执行删除。')}
+                      content={skipApproval.value ? t('删除规则后将不能恢复，请谨慎操作') : t('删除规则会创建单据，需此规则所有过往调用方审批后才执行删除。')}
                       title={t('确认删除该规则？')}
                       trigger="click"
-                      disabled={props.accountType === AccountTypes.MONGODB}
-                      onConfirm={() => handlePopDeleteRule(data, index)}
+                      onConfirm={() => handleDeleteRule(data, index)}
                     >
                       <bk-button
                         theme="primary"
                         class="ml-8"
                         disabled={data.rules[index].priv_ticket?.ticket_id}
-                        onClick={() => handleDeleteRule(data, index)}
                         text>
                         {t('删除')}
                       </bk-button>
@@ -655,7 +655,15 @@
   /**
    * 删除规则
    */
-  const handlePopDeleteRule = (row: PermissionRule, index: number) => {
+  const handleDeleteRule = (row: PermissionRule, index: number) => {
+    if (skipApproval.value) {
+      deleteAccountRuleRun({
+        account_id: row.account.account_id,
+        account_type: props.accountType,
+        rule_id: row.rules[index].rule_id,
+      });
+      return;
+    }
     const ticketTypeMap = {
       [AccountTypes.MYSQL]: TicketTypes.MYSQL_ACCOUNT_RULE_CHANGE,
       [AccountTypes.TENDBCLUSTER]: TicketTypes.TENDBCLUSTER_ACCOUNT_RULE_CHANGE,
@@ -674,17 +682,6 @@
         account_id: row.account.account_id,
         rule_id: row.rules[index].rule_id,
       },
-    });
-  };
-
-  /**
-   * 删除规则(不需要审批)
-   */
-  const handleDeleteRule = (row: PermissionRule, index: number) => {
-    deleteAccountRuleRun({
-      account_id: row.account.account_id,
-      account_type: props.accountType,
-      rule_id: row.rules[index].rule_id,
     });
   };
 </script>
