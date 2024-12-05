@@ -12,6 +12,7 @@ import logging
 
 from django.core.management.base import BaseCommand
 
+from backend.configuration.constants import DBType
 from backend.db_monitor.models import CollectInstance
 
 logger = logging.getLogger("root")
@@ -25,7 +26,7 @@ class Command(BaseCommand):
         parser.add_argument(
             "-d",
             "--dbtype",
-            choices=["mysql", "redis", "es", "hdfs", "kafka", "pulsar", "influxdb", "all"],
+            choices=[*DBType.get_values(), "all"],
             type=str,
             help="db类型",
         )

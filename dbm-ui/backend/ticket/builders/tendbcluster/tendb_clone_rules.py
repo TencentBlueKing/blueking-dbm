@@ -13,7 +13,6 @@ from django.utils.translation import ugettext_lazy as _
 from rest_framework import serializers
 
 from backend.configuration.constants import DBType
-from backend.db_meta.enums import ClusterType
 from backend.db_services.mysql.permission.constants import CloneClusterType
 from backend.ticket import builders
 from backend.ticket.builders.mysql.mysql_clone_rules import (
@@ -26,7 +25,10 @@ from backend.ticket.constants import TicketType
 
 class TendbClusterCloneRulesSerializer(MySQLCloneRulesSerializer):
     clone_cluster_type = serializers.ChoiceField(
-        help_text=_("克隆集群类型"), choices=ClusterType.get_choices(), required=False, default=CloneClusterType.TendbCluster
+        help_text=_("集群类型"),
+        choices=CloneClusterType.get_choices(),
+        required=False,
+        default=CloneClusterType.TendbCluster,
     )
 
 
