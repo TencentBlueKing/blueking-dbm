@@ -157,6 +157,13 @@ def make_sync(cluster: Cluster, tendisss: List[Dict]):
         cluster.storageinstance_set.add(*receiver_objs)
         logger.info("cluster {} add storageinstance {}".format(cluster.immute_domain, receiver_objs))
 
+        # db_meta_proxyinstance_storageinstance ; 页面展示用
+        proxy_objs = cluster.proxyinstance_set.all()
+        for receiver in receiver_objs:
+            receiver.proxyinstance_set.add(*proxy_objs)
+        for receiver in new_recevers_objs:
+            receiver.proxyinstance_set.add(*proxy_objs)
+
         # 修改表 db_meta_storageinstance_cluster ; (仅仅为了DBHA能获取密码！)
         cluster.storageinstance_set.add(*new_recevers_objs)
         logger.info("cluster {} add storageinstance {}".format(cluster.immute_domain, new_recevers_objs))

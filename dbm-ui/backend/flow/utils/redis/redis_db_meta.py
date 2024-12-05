@@ -836,7 +836,7 @@ class RedisDBMeta(object):
 
     def redis_role_swap_4_scene(self) -> bool:
         """
-        主从互切
+        主从互切 [仅RedisCluster 类型]
                 act_kwargs.cluster["role_swap_host"].append({"new_ejector":new_host_master,"new_receiver":old_master})
         """
         # 获取cluster
