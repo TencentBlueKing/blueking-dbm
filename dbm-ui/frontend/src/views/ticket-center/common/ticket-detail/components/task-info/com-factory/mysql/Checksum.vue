@@ -19,7 +19,10 @@
       {{ utcDisplayTime(ticketDetails?.details?.timing) || '--' }}
     </InfoItem>
     <InfoItem :label="t('自动修复:')">
-      {{ isRepair }}
+      {{ ticketDetails?.details?.data_repair.is_repair ? t('是') : t('否') }}
+    </InfoItem>
+    <InfoItem :label="t('全局超时时间:')">
+      {{ ticketDetails?.details?.runtime_hour || '--' }}
     </InfoItem>
   </InfoList>
   <BkTable
@@ -103,7 +106,7 @@
 
   type RowData = Props['ticketDetails']['details']['infos'][number];
 
-  const props = defineProps<Props>();
+  defineProps<Props>();
 
   defineOptions({
     name: TicketTypes.MYSQL_CHECKSUM,
@@ -111,7 +114,4 @@
   });
 
   const { t } = useI18n();
-
-  // 修复数据
-  const isRepair = computed(() => (props.ticketDetails?.details?.data_repair.is_repair ? t('是') : t('否')));
 </script>

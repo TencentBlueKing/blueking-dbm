@@ -15,38 +15,12 @@
   <BkTable
     :data="tableData"
     show-overflow-tooltip>
-    <BkTableColumn
-      field="cluster_ids"
-      :label="t('集群ID')">
+    <BkTableColumn :label="t('集群')">
       <template #default="{ data }: { data: RowData }">
-        {{ data.id }}
+        {{ ticketDetails.details.clusters[data.id].immute_domain }}
       </template>
     </BkTableColumn>
-    <BkTableColumn
-      field="immute_domain"
-      :label="t('集群名称')">
-      <template #default="{ data }: { data: RowData }">
-        <div
-          v-bk-tooltips="{
-            content: `${t('域名')}：${ticketDetails.details.clusters[data.id].immute_domain}
-            ${ticketDetails.details.clusters[data.id].name ? `${'集群别名'}：${ticketDetails.details.clusters[data.id].name}` : null}
-          `,
-            allowHTML: true,
-          }"
-          class="cluster-name">
-          <span>{{ ticketDetails.details.clusters[data.id].immute_domain }}</span>
-          <br />
-          <span
-            v-if="ticketDetails.details.clusters[data.id].name"
-            class="cluster-name-alias">
-            {{ ticketDetails.details.clusters[data.id].name }}
-          </span>
-        </div>
-      </template>
-    </BkTableColumn>
-    <BkTableColumn
-      field="cluster_type_name"
-      :label="t('集群类型')">
+    <BkTableColumn :label="t('集群类型')">
       <template #default="{ data }: { data: RowData }">
         {{ ticketDetails.details.clusters[data.id].cluster_type_name }}
       </template>
@@ -76,14 +50,3 @@
 
   type RowData = UnwrapRef<typeof tableData>[number];
 </script>
-
-<style lang="less" scoped>
-  .cluster-name {
-    padding: 8px 0;
-    line-height: 16px;
-
-    .cluster-name-alias {
-      color: @light-gray;
-    }
-  }
-</style>

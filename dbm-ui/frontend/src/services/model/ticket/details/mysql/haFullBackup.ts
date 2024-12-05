@@ -6,11 +6,9 @@ import type { DetailBase, DetailClusters } from '../common';
 export interface HaFullBackup extends DetailBase {
   clusters: DetailClusters;
   infos: {
-    backup_type: string;
-    clusters: {
-      backup_local: string;
-      cluster_id: number;
-    }[];
-    file_tag: string;
-  };
+    cluster_id: number;
+    backup_local: 'master' | 'slave';
+  }[];
+  file_tag: 'DBFILE1M' | 'DBFILE6M' | 'DBFILE1Y' | 'DBFILE3Y';
+  backup_type: 'logical' | 'physical';
 }

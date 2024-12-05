@@ -46,7 +46,9 @@
   }
 
   interface Exposes {
-    getValue: () => Array<number>;
+    getValue: () => Promise<{
+      cluster_id: number;
+    }>;
   }
 
   const props = defineProps<Props>();

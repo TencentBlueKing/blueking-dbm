@@ -15,7 +15,7 @@
   <BkTable
     :data="ticketDetails.details.infos"
     show-overflow-tooltip>
-    <BkTableColumn :label="t('集群名称')">
+    <BkTableColumn :label="t('集群')">
       <template #default="{ data }: { data: RowData }">
         {{ ticketDetails.details.clusters[data.cluster_id].immute_domain }}
       </template>

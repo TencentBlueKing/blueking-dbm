@@ -39,7 +39,9 @@
   }
 
   interface Exposes {
-    getValue: () => Promise<Record<string, string>>;
+    getValue: () => Promise<{
+      backup_local: string;
+    }>;
   }
 
   const props = defineProps<Props>();
@@ -97,7 +99,7 @@
     () => {
       if (props.clusterData) {
         fetchClusterList({
-          cluster_ids: props.clusterData.id,
+          cluster_ids: [props.clusterData.id],
         });
       }
     },

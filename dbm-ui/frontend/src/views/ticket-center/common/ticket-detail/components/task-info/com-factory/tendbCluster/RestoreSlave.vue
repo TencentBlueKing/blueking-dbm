@@ -12,9 +12,25 @@
 -->
 
 <template>
-  <DbOriginalTable
-    :columns="columns"
-    :data="dataList" />
+  <BkTable
+    :data="ticketDetails.details.infos"
+    show-overflow-tooltip>
+    <BkTableColumn :label="t('集群')">
+      <template #default="{ data }: { data: RowData }">
+        {{ ticketDetails.details.clusters[data.cluster_id].immute_domain }}
+      </template>
+    </BkTableColumn>
+    <BkTableColumn :label="t('从库主机')">
+      <template #default="{ data }: { data: RowData }">
+        {{ data.old_slave.ip }}
+      </template>
+    </BkTableColumn>
+    <BkTableColumn :label="t('备份源')">
+      <template #default>
+        {{ backupSourceMap[ticketDetails.details.backup_source] }}
+      </template>
+    </BkTableColumn>
+  </BkTable>
 </template>
 
 <script setup lang="tsx">
@@ -25,10 +41,12 @@
   import { TicketTypes } from '@common/const';
 
   interface Props {
-    ticketDetails: TicketModel<TendbCluster.RestoreSlave>
+    ticketDetails: TicketModel<TendbCluster.RestoreSlave>;
   }
 
-  const props = defineProps<Props>();
+  type RowData = Props['ticketDetails']['details']['infos'][number];
+
+  defineProps<Props>();
 
   defineOptions({
     name: TicketTypes.TENDBCLUSTER_RESTORE_SLAVE,
@@ -37,50 +55,8 @@
 
   const { t } = useI18n();
 
-  type dataItem = {
-    cluster_id: number,
-    new_slave: string;
-    immute_domain: string,
-    backup_source: string
-  }
-
-
-  const columns = [
-    {
-      label: t('集群ID'),
-      field: 'cluster_id',
-      render: ({ data }: { data: dataItem }) => <span>{data.cluster_id || '--'}</span>,
-    },
-    {
-      label: t('集群名称'),
-      field: 'immute_domain',
-    },
-    {
-      label: t('新从库主机'),
-      field: 'new_slave',
-      render: ({ data }: { data: dataItem }) => <span>{data.new_slave || '--'}</span>,
-    },
-    {
-      label: t('备份源'),
-      field: 'backup_source',
-      render: ({ data }: { data: dataItem }) => <span>{data.backup_source === 'local' ? t('本地备份') : '--'}</span>,
-    }
-  ];
-
-  const dataList = computed(() => {
-    const infosList = props.ticketDetails.details.infos;
-    const clusterMap = props.ticketDetails.details.clusters;
-    const backupSource = props.ticketDetails.details.backup_source
-    return infosList.reduce((prevInfoList, infoItem) => {
-      const clusterItem = clusterMap[infoItem.cluster_id]
-      const oldSlave = infoItem.old_slave
-      return [...prevInfoList, {
-        cluster_id: infoItem.cluster_id,
-        new_slave: oldSlave.ip,
-        immute_domain: clusterItem.immute_domain,
-        name: clusterItem.name,
-        backup_source: backupSource
-      }]
-    }, [] as dataItem[]);
-  });
+  const backupSourceMap = {
+    local: t('本地备份'),
+    remote: t('远程备份'),
+  };
 </script>

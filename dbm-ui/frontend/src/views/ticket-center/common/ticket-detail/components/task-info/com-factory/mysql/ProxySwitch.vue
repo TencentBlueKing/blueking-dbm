@@ -12,12 +12,37 @@
 -->
 
 <template>
+  <InfoList>
+    <InfoItem :label="t('替换类型：')">
+      {{ displayInfoTypeMap[ticketDetails.details.infos[0].display_info.type] }}
+    </InfoItem>
+  </InfoList>
   <BkTable
     :data="ticketDetails.details.infos"
     show-overflow-tooltip>
     <BkTableColumn :label="t('目标Proxy')">
       <template #default="{ data }: { data: RowData }">
         {{ data.origin_proxy.ip }}
+      </template>
+    </BkTableColumn>
+    <BkTableColumn
+      v-if="isHostReplace"
+      :label="t('关联实例')">
+      <template #default="{ data }: { data: RowData }">
+        <p
+          v-for="item in data.display_info.related_instances"
+          :key="item">
+          {{ item }}
+        </p>
+      </template>
+    </BkTableColumn>
+    <BkTableColumn :label="t('关联集群')">
+      <template #default="{ data }: { data: RowData }">
+        <p
+          v-for="item in data.display_info.related_clusters"
+          :key="item">
+          {{ item }}
+        </p>
       </template>
     </BkTableColumn>
     <BkTableColumn :label="t('新Proxy主机')">
@@ -34,13 +59,15 @@
 
   import { TicketTypes } from '@common/const';
 
+  import InfoList, { Item as InfoItem } from '../components/info-list/Index.vue';
+
   interface Props {
     ticketDetails: TicketModel<Mysql.ProxySwitch>;
   }
 
   type RowData = Props['ticketDetails']['details']['infos'][number];
 
-  defineProps<Props>();
+  const props = defineProps<Props>();
 
   defineOptions({
     name: TicketTypes.MYSQL_PROXY_SWITCH,
@@ -48,4 +75,11 @@
   });
 
   const { t } = useI18n();
+
+  const displayInfoTypeMap = {
+    INSTANCE_REPLACE: t('实例替换'),
+    HOST_REPLACE: t('整机替换'),
+  };
+
+  const isHostReplace = computed(() => props.ticketDetails.details.infos[0].display_info.type === 'HOST_REPLACE');
 </script>

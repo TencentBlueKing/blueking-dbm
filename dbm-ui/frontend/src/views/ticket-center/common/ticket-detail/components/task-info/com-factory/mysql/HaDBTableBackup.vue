@@ -29,16 +29,6 @@
         <span v-if="data.db_patterns.length < 1">--</span>
       </template>
     </BkTableColumn>
-    <BkTableColumn :label="t('备份表名')">
-      <template #default="{ data }: { data: RowData }">
-        <BkTag
-          v-for="item in data.table_patterns"
-          :key="item">
-          {{ item }}
-        </BkTag>
-        <span v-if="data.table_patterns.length < 1">--</span>
-      </template>
-    </BkTableColumn>
     <BkTableColumn :label="t('忽略DB名')">
       <template #default="{ data }: { data: RowData }">
         <BkTag
@@ -47,6 +37,16 @@
           {{ item }}
         </BkTag>
         <span v-if="data.ignore_dbs.length < 1">--</span>
+      </template>
+    </BkTableColumn>
+    <BkTableColumn :label="t('备份表名')">
+      <template #default="{ data }: { data: RowData }">
+        <BkTag
+          v-for="item in data.table_patterns"
+          :key="item">
+          {{ item }}
+        </BkTag>
+        <span v-if="data.table_patterns.length < 1">--</span>
       </template>
     </BkTableColumn>
     <BkTableColumn :label="t('忽略表名')">

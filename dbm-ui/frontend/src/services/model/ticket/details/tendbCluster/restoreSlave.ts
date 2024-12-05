@@ -3,9 +3,8 @@ import type { DetailBase, DetailClusters } from '../common';
 /**
  * TenDB Cluster Slave重建
  */
-
 export interface RestoreSlave extends DetailBase {
-  backup_source: string;
+  backup_source: 'local' | 'remote';
   clusters: DetailClusters;
   infos: {
     cluster_id: number;

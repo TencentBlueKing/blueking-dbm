@@ -12,82 +12,63 @@
 -->
 
 <template>
-  <DbOriginalTable
-    :columns="columns"
-    :data="dataList" />
+  <BkTable
+    :data="tableData"
+    show-overflow-tooltip>
+    <BkTableColumn :label="t('集群')">
+      <template #default="{ data }: { data: RowData }">
+        {{ ticketDetails.details.clusters[data.id].immute_domain }}
+      </template>
+    </BkTableColumn>
+    <BkTableColumn :label="t('集群类型')">
+      <template #default="{ data }: { data: RowData }">
+        {{ ticketDetails.details.clusters[data.id].cluster_type_name }}
+      </template>
+    </BkTableColumn>
+    <BkTableColumn :label="t('节点IP')">
+      <template #default="{ data }: { data: RowData }">
+        {{ data.node_ip.join(',') }}
+      </template>
+    </BkTableColumn>
+  </BkTable>
 </template>
 
 <script setup lang="tsx">
+  import type { UnwrapRef } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import TicketModel, { type Doris } from '@services/model/ticket/ticket';
 
-  import { useCopy } from '@hooks';
-
   import { TicketTypes } from '@common/const';
 
   interface Props {
-    ticketDetails: TicketModel<Doris.Reboot>
+    ticketDetails: TicketModel<Doris.Reboot>;
   }
 
   const props = defineProps<Props>();
 
   defineOptions({
     name: TicketTypes.DORIS_REBOOT,
-    inheritAttrs: false
-  })
-
-  const copy = useCopy();
+    inheritAttrs: false,
+  });
 
   const { t } = useI18n();
 
-  /**
-   * 实例重启
-   */
-
-  const columns = [{
-    label: t('集群ID'),
-    field: 'cluster_id',
-    render: ({ cell }: { cell: string }) => <span>{cell || '--'}</span>,
-  }, {
-    label: t('集群名称'),
-    field: 'immute_domain',
-    showOverflowTooltip: false,
-    render: ({ data }: { data: any }) => (
-      <div class="cluster-name text-overflow"
-        v-overflow-tips={{
-          content: `
-            <p>${t('域名')}：${data.immute_domain}</p>
-            ${data.name ? `<p>${('集群别名')}：${data.name}</p>` : null}
-          `,
-          allowHTML: true,
-      }}>
-        <span>{data.immute_domain}</span><br />
-        <span class="cluster-name__alias">{data.name}</span>
-      </div>
-    ),
-  }, {
-    label: t('集群类型'),
-    field: 'cluster_type_name',
-    render: ({ cell }: { cell: string }) => <span>{cell || '--'}</span>,
-  }, {
-    label: t('节点IP'),
-    field: 'node_ip',
-    render: ({ cell }: { cell: [] }) => cell.map((ip, index) => <p class="pt-2 pb-2">{ip}
-      { index === 0
-        ? <i v-bk-tooltips={t('复制IP')} class="db-icon-copy" onClick={() => copy(cell.join('\n'))} />
-        : '' }
-    </p>),
-  }];
-
-  const dataList = computed(() => {
-    const list: any = [];
-    const clusterId = props.ticketDetails?.details?.cluster_id;
-    const clusters = props.ticketDetails?.details?.clusters?.[clusterId] || {};
-    const nodeIp = props.ticketDetails?.details?.instance_list.map(k => k.ip) || [] ;
-    list.push(Object.assign({
-      cluster_id: clusterId, node_ip: nodeIp,
-    }, clusters));
-    return list;
+  const tableData = computed(() => {
+    const {
+      cluster_id: clusterId,
+      clusters = {},
+      instance_list: instanceList = [],
+    } = props.ticketDetails?.details || {};
+    const nodeIp = instanceList.map((k) => k.ip);
+    return [
+      {
+        cluster_id: clusterId,
+        node_ip: nodeIp,
+        ...clusters[clusterId],
+      },
+    ];
   });
+
+  type RowData = UnwrapRef<typeof tableData>[number];
 </script>

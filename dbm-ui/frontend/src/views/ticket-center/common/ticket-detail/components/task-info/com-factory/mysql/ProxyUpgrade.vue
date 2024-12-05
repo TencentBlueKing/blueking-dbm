@@ -12,9 +12,29 @@
 -->
 
 <template>
-  <DbOriginalTable
-    :columns="columns"
-    :data="dataList" />
+  <BkTable
+    :data="ticketDetails.details.infos"
+    show-overflow-tooltip>
+    <BkTableColumn :label="t('目标集群')">
+      <template #default="{ data }: { data: RowData }">
+        <p
+          v-for="item in data.cluster_ids"
+          :key="item">
+          {{ ticketDetails.details.clusters[item].immute_domain }}
+        </p>
+      </template>
+    </BkTableColumn>
+    <BkTableColumn :label="t('当前版本')">
+      <template #default="{ data }: { data: RowData }">
+        {{ data.display_info.current_version || '--' }}
+      </template>
+    </BkTableColumn>
+    <BkTableColumn :label="t('目标版本')">
+      <template #default="{ data }: { data: RowData }">
+        {{ packageMap[data.pkg_id] || '--' }}
+      </template>
+    </BkTableColumn>
+  </BkTable>
 </template>
 
 <script setup lang="tsx">
@@ -26,93 +46,32 @@
 
   import { TicketTypes } from '@common/const';
 
-  interface DataItem {
-    cluster_id: number,
-    immute_domain: string,
-    name: string,
-    current_version: string,
-    pkg_id: number,
-    target_version: string,
-  }
-
   interface Props {
-    ticketDetails: TicketModel<Mysql.ProxyUpgrade>
+    ticketDetails: TicketModel<Mysql.ProxyUpgrade>;
   }
 
-  const props = defineProps<Props>();
+  type RowData = Props['ticketDetails']['details']['infos'][number];
+
+  defineProps<Props>();
 
   defineOptions({
     name: TicketTypes.MYSQL_PROXY_UPGRADE,
-    inheritAttrs: false
-  })
+    inheritAttrs: false,
+  });
 
   const { t } = useI18n();
 
-  const dataList = ref<DataItem[]>([])
+  const packageMap = ref<Record<string, string>>({});
 
-  const columns = [
-    {
-      label: t('集群ID'),
-      field: 'cluster_id',
-      width: 100,
-      render: ({ cell }: { cell: [] }) => <span>{cell || '--'}</span>,
+  const { run: fetchClusterVersions } = useRequest(getPackages, {
+    manual: true,
+    onSuccess(versions) {
+      packageMap.value = Object.fromEntries(versions.results.map(({ id, name }) => [id, name]));
     },
-    {
-      label: t('集群名称'),
-      field: 'immute_domain',
-      showOverflowTooltip: false,
-      render: ({ data }: { data: any }) => (
-        <div class="cluster-name text-overflow"
-          v-overflow-tips={{
-            content: `
-              <p>${t('域名')}：${data.immute_domain}</p>
-              ${data.name ? `<p>${('集群别名')}：${data.name}</p>` : null}
-            `,
-            allowHTML: true,
-          }}>
-          <span>{data.immute_domain}</span><br />
-          <span class="cluster-name__alias">{data.name}</span>
-        </div>
-      ),
-    },
-    {
-      label: t('当前版本'),
-      field: 'current_version',
-      render: ({ cell }: { cell: [] }) => <span>{cell || '--'}</span>,
-    },
-    {
-      label: t('目标版本'),
-      field: 'target_version',
-      render: ({ cell }: { cell: [] }) => <span>{cell || '--'}</span>,
-    }
-  ];
-
-  const list: DataItem[] = [];
-  const infosData = props.ticketDetails?.details?.infos || [];
-  const clusterIds = props.ticketDetails?.details?.clusters || {};
-  infosData.forEach((item) => {
-    item.cluster_ids.forEach((id) => {
-      const clusterData = clusterIds[id];
-      list.push(Object.assign({
-        cluster_id: id,
-        immute_domain: clusterData.immute_domain,
-        name: clusterData.name,
-        current_version: item.display_info.current_version,
-        pkg_id: item.pkg_id,
-        target_version: '',
-      }));
-    });
   });
-  dataList.value = list
 
-  useRequest(getPackages, {
-    defaultParams: [{
-      pkg_type: 'mysql-proxy',
-      db_type: 'mysql'
-    }],
-    onSuccess(packageResult) {
-      const packageMap = packageResult.results.reduce((prev, item) => Object.assign(prev, { [item.id]: item.name }), {} as Record<number, string>)
-      dataList.value = dataList.value.map(item => Object.assign(item, { target_version: packageMap[item.pkg_id] }))
-    }
-  })
+  fetchClusterVersions({
+    pkg_type: 'mysql-proxy',
+    db_type: 'mysql',
+  });
 </script>

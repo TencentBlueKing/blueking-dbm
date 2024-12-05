@@ -12,9 +12,25 @@
 -->
 
 <template>
-  <DbOriginalTable
-    :columns="localSlaveColumns"
-    :data="dataList" />
+  <BkTable
+    :data="ticketDetails.details.infos"
+    show-overflow-tooltip>
+    <BkTableColumn :label="t('目标集群')">
+      <template #default="{ data }: { data: RowData }">
+        {{ ticketDetails.details.clusters[data.cluster_id].immute_domain }}
+      </template>
+    </BkTableColumn>
+    <BkTableColumn :label="t('目标从库实例')">
+      <template #default="{ data }: { data: RowData }">
+        {{ `${data.slave.ip}:${data.slave.port}` }}
+      </template>
+    </BkTableColumn>
+    <BkTableColumn :label="t('备份源')">
+      <template #default>
+        {{ backupSourceMap[ticketDetails.details.backup_source] }}
+      </template>
+    </BkTableColumn>
+  </BkTable>
 </template>
 
 <script setup lang="tsx">
@@ -25,80 +41,22 @@
   import { TicketTypes } from '@common/const';
 
   interface Props {
-    ticketDetails: TicketModel<Mysql.RestoreLocalSlave>
+    ticketDetails: TicketModel<Mysql.RestoreLocalSlave>;
   }
 
-  interface RowData {
-    cluster_id: number,
-    backup_source: string,
-    immute_domain: string,
-    name: string,
-    slave: string,
-  }
+  type RowData = Props['ticketDetails']['details']['infos'][number];
 
-  const props = defineProps<Props>();
+  defineProps<Props>();
 
   defineOptions({
     name: TicketTypes.MYSQL_RESTORE_LOCAL_SLAVE,
-    inheritAttrs: false
-  })
+    inheritAttrs: false,
+  });
 
   const { t } = useI18n();
 
-  // MySQL Slave 原地重建
-  const localSlaveColumns = [
-    {
-      label: t('集群ID'),
-      field: 'cluster_id',
-      render: ({ cell }: { cell: number }) => <span>{cell || '--'}</span>,
-    },
-    {
-      label: t('集群名称'),
-      field: 'immute_domain',
-      showOverflowTooltip: false,
-      render: ({ data }: { data: RowData }) => (
-      <div class="cluster-name text-overflow"
-        v-overflow-tips={{
-          content: `
-            <p>${t('域名')}：${data.immute_domain}</p>
-            ${data.name ? `<p>${('集群别名')}：${data.name}</p>` : null}
-          `,
-          allowHTML: true,
-      }}>
-        <span>{data.immute_domain}</span><br />
-        <span class="cluster-name__alias">{data.name}</span>
-      </div>
-    ),
-    },
-    {
-      label: t('目标从库实例'),
-      field: 'slave',
-      render: ({ cell }: { cell: string }) => <span>{cell || '--'}</span>,
-    },
-    {
-      label: t('备份源'),
-      field: 'backup_source',
-      render: ({ cell }: { cell: string }) => <span>{cell === 'local' ? t('本地备份') : t('远程备份')}</span>,
-    }
-  ];
-
-  const dataList = computed(() => {
-    const {
-      clusters,
-      backup_source,
-      infos,
-    } = props.ticketDetails.details;
-
-    return infos.reduce((results, item) => {
-      const clusterData = clusters[item.cluster_id];
-      results.push({
-        cluster_id: item.cluster_id,
-        slave: item.slave.ip,
-        backup_source,
-        immute_domain: clusterData.immute_domain,
-        name: clusterData.name,
-      });
-      return results;
-    }, [] as RowData[]);
-  });
+  const backupSourceMap = {
+    local: t('本地备份'),
+    remote: t('远程备份'),
+  };
 </script>

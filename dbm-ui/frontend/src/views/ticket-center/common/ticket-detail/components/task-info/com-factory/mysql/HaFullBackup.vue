@@ -11,21 +11,7 @@
  * the specific language governing permissions and limitations under the License.
 -->
 <template>
-  <InfoList>
-    <InfoItem :label="t('所属业务:')">
-      {{ ticketDetails?.bk_biz_name || '--' }}
-    </InfoItem>
-    <InfoItem :label="t('备份选项:')">
-      {{ backupOptions }}
-    </InfoItem>
-    <InfoItem :label="t('备份类型:')">
-      {{ backupType }}
-    </InfoItem>
-    <InfoItem :label="t('备份保存时间:')">
-      {{ backupTime }}
-    </InfoItem>
-  </InfoList>
-  <BkTable :data="ticketDetails.details.infos.clusters">
+  <BkTable :data="ticketDetails.details.infos">
     <BkTableColumn :label="t('目标集群')">
       <template #default="{ data }: { data: RowData }">
         {{ ticketDetails.details.clusters[data.cluster_id].immute_domain }}
@@ -37,6 +23,14 @@
       </template>
     </BkTableColumn>
   </BkTable>
+  <InfoList>
+    <InfoItem :label="t('备份类型:')">
+      {{ backupTypeMap[ticketDetails.details.backup_type] }}
+    </InfoItem>
+    <InfoItem :label="t('备份保存时间:')">
+      {{ fileTagMap[ticketDetails.details.file_tag] }}
+    </InfoItem>
+  </InfoList>
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
@@ -53,7 +47,7 @@
 
   type RowData = Props['ticketDetails']['details']['infos'][number];
 
-  const props = defineProps<Props>();
+  defineProps<Props>();
 
   defineOptions({
     name: TicketTypes.MYSQL_HA_FULL_BACKUP,
@@ -62,38 +56,17 @@
 
   const { t } = useI18n();
 
-  // 备份选项
-  const backupOptions = computed(() => {
-    if (props.ticketDetails.details.infos.online) {
-      return t('在线备份');
-    }
-    return t('停机备份');
-  });
-
   // 备份类型
-  const backupType = computed(() => {
-    if (props.ticketDetails.details.infos.backup_type === 'logical') {
-      return t('逻辑备份');
-    }
-    return t('物理备份');
-  });
+  const backupTypeMap = {
+    logical: t('逻辑备份'),
+    physical: t('物理备份'),
+  };
 
+  // 备份保存时间
   const fileTagMap: Record<string, string> = {
     DBFILE1M: t('1个月'),
     DBFILE6M: t('6个月'),
     DBFILE1Y: t('1年'),
     DBFILE3Y: t('3年'),
   };
-  // 备份保存时间
-  const backupTime = computed(() => {
-    const fileTag = props.ticketDetails.details.infos.file_tag;
-    if (!fileTagMap[fileTag]) {
-      // 兼容旧单据
-      if (fileTag === 'LONGDAY_DBFILE_3Y') {
-        return t('3年');
-      }
-      return t('30天');
-    }
-    return fileTagMap[fileTag];
-  });
 </script>
