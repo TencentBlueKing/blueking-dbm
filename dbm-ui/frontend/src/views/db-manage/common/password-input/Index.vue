@@ -261,7 +261,6 @@
       security_type: passwordParam.value,
       password: getEncyptPassword(),
     });
-    tippyInstance.show();
     emits('verifyResult', isStrength);
     return isStrength;
   };
@@ -291,7 +290,7 @@
    * 密码框获取焦点
    */
   const handlePasswordFocus = () => {
-    debounceVerifyPassword();
+    tippyInstance.show();
   };
 
   /**

@@ -139,6 +139,7 @@
 
 <script setup lang="ts">
   import { Message } from 'bkui-vue';
+  import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
@@ -247,8 +248,11 @@
       {
         required: true,
         trigger: 'blur',
-        message: t('您输入的访问 DB 名不符合要求_访问 DB 名应以字母开头_且仅包含字母_数字和下划线'),
-        validator: (value: string) => /^[A-Za-z][A-Za-z0-9_]*$/.test(value),
+        message: t('请输入访问DB名_以字母开头_支持字母_数字_下划线_多个使用英文逗号_分号或换行分隔'),
+        validator: (value: string) => {
+          const dbs = value.split(/[\n;,]/);
+          return _.every(dbs, (item) => (!item ? true : /^[_a-zA-Z0-9]/.test(item) && !/\*/.test(value)));
+        },
       },
     ],
   };
