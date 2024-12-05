@@ -17,6 +17,7 @@
       <TableEditSelect
         ref="selectRef"
         v-model="localValue"
+        :disabled="disabled"
         :list="selectList"
         :placeholder="$t('请选择')"
         :rules="rules"
@@ -37,6 +38,7 @@
 
   interface Props {
     data?: string;
+    disabled?: boolean;
     isLoading?: boolean;
   }
 
@@ -46,6 +48,7 @@
 
   const props = withDefaults(defineProps<Props>(), {
     data: OnlineSwitchType.USER_CONFIRM,
+    disabled: false,
     isLoading: false,
   });
 

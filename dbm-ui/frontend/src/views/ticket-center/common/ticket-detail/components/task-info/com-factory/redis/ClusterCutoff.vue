@@ -12,7 +12,9 @@
 -->
 
 <template>
-  <BkTable :data="tableData">
+  <BkTable
+    :data="tableData"
+    show-overflow-tooltip>
     <BkTableColumn
       field="ip"
       :label="t('待替换的主机')" />
@@ -28,7 +30,7 @@
   </BkTable>
 </template>
 
-<script setup lang="tsx">
+<script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
   import TicketModel, { type Redis } from '@services/model/ticket/ticket';
@@ -43,6 +45,7 @@
 
   defineOptions({
     name: TicketTypes.REDIS_CLUSTER_CUTOFF,
+    inheritAttrs: false,
   });
 
   const { t } = useI18n();

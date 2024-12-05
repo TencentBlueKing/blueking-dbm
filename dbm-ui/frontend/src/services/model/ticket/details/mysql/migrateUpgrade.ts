@@ -1,7 +1,7 @@
 import type { DetailBase, DetailClusters } from '../common';
 
 export interface MigrateUpgrade extends DetailBase {
-  backup_source: string;
+  backup_source: 'local' | 'remote';
   clusters: DetailClusters;
   force: boolean;
   infos: {
@@ -30,7 +30,22 @@ export interface MigrateUpgrade extends DetailBase {
       charset: string;
       current_module_name: string;
       target_module_name: string;
+      old_master_slave: string[];
     };
+    read_only_slaves: {
+      old_slave: {
+        bk_biz_id: number;
+        bk_host_id: number;
+        ip: string;
+        bk_cloud_id: number;
+      };
+      new_slave: {
+        bk_biz_id: number;
+        bk_host_id: number;
+        ip: string;
+        bk_cloud_id: number;
+      };
+    }[];
   }[];
   ip_source: string;
   nodes: Record<

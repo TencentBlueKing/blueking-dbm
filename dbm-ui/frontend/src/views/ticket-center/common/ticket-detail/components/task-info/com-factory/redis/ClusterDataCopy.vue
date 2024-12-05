@@ -12,65 +12,102 @@
 -->
 
 <template>
-  <div
-    class="ticket-details-item"
-    style="align-items: flex-start">
-    <span class="ticket-details-item-label">{{ t('复制信息') }}：</span>
-    <span class="ticket-details-item-value">
-      <BkLoading :loading="loading">
-        <DbOriginalTable
-          :columns="columns"
-          :data="tableData" />
-      </BkLoading>
-    </span>
-  </div>
-
-  <div class="ticket-details-list">
-    <div class="ticket-details-item">
-      <span class="ticket-details-item-label">{{ t('复制类型') }}：</span>
-      <span class="ticket-details-item-value">{{ copyTypesMap[ticketDetails.details.dts_copy_type] }}</span>
-    </div>
-    <div class="ticket-details-item">
-      <span class="ticket-details-item-label">{{ t('写入类型') }}：</span>
-      <span class="ticket-details-item-value">{{ writeTypesMap[ticketDetails.details.write_mode] }}</span>
-    </div>
-    <div class="ticket-details-item">
-      <span class="ticket-details-item-label">{{ t('断开设置') }}：</span>
-      <span class="ticket-details-item-value">
-        {{ disconnectTypesMap[ticketDetails.details.sync_disconnect_setting.type] }}
-      </span>
-    </div>
-    <template v-if="ticketDetails.details.sync_disconnect_setting.type !== 'auto_disconnect_after_replication'">
-      <div class="ticket-details-item">
-        <span class="ticket-details-item-label">{{ t('提醒频率') }}：</span>
-        <span class="ticket-details-item-value">
-          {{ remindFrequencyTypesMap[ticketDetails.details.sync_disconnect_setting.reminder_frequency] }}
-        </span>
-      </div>
-      <div class="ticket-details-item">
-        <span class="ticket-details-item-label">{{ t('校验与修复类型') }}：</span>
-        <span class="ticket-details-item-value">
-          {{ repairAndVerifyTypesMap[ticketDetails.details.data_check_repair_setting.type] }}
-        </span>
-      </div>
-      <div
-        v-if="ticketDetails.details.data_check_repair_setting.type !== 'no_check_no_repair'"
-        class="ticket-details-item">
-        <span class="ticket-details-item-label">{{ t('校验与修复频率设置') }}：</span>
-        <span class="ticket-details-item-value">
-          {{ repairAndVerifyFrequencyTypesMap[ticketDetails.details.data_check_repair_setting.execution_frequency] }}
-        </span>
-      </div>
-    </template>
-  </div>
+  <BkTable
+    :data="ticketDetails.details.infos"
+    show-overflow-tooltip>
+    <BkTableColumn
+      :label="t('源集群')"
+      :min-width="180">
+      <template #default="{ data }: { data: RowData }">
+        {{ ticketDetails.details.clusters[data.src_cluster].immute_domain }}
+      </template>
+    </BkTableColumn>
+    <BkTableColumn
+      v-if="ticketDetails.details.dts_copy_type === 'user_built_to_dbm'"
+      :label="t('集群类型')">
+      <template #default="{ data }: { data: RowData }">
+        {{ data.src_cluster_type === 'RedisInstance' ? t('主从版') : t('集群版') }}
+      </template>
+    </BkTableColumn>
+    <BkTableColumn
+      v-else
+      :label="t('架构版本')">
+      <template #default="{ data }: { data: RowData }">
+        {{ ticketDetails.details.clusters[data.src_cluster].cluster_type_name }}
+      </template>
+    </BkTableColumn>
+    <BkTableColumn
+      v-if="ticketDetails.details.dts_copy_type === 'diff_app_diff_cluster'"
+      :label="t('目标业务')">
+      <template #default="{ data }: { data: RowData }">
+        {{ bizsMap[data.dst_bk_biz_id] }}
+      </template>
+    </BkTableColumn>
+    <BkTableColumn
+      :label="t('目标集群')"
+      :min-width="180">
+      <template #default="{ data }: { data: RowData }">
+        {{ ticketDetails.details.clusters[data.dst_cluster].immute_domain }}
+      </template>
+    </BkTableColumn>
+    <BkTableColumn
+      :label="t('包含 Key')"
+      :min-width="240">
+      <template #default="{ data }: { data: RowData }">
+        <BkTag
+          v-for="item in generateSplitList(data.key_white_regex)"
+          :key="item">
+          {{ item }}
+        </BkTag>
+      </template>
+    </BkTableColumn>
+    <BkTableColumn
+      :label="t('排除 Key')"
+      :min-width="370">
+      <template #default="{ data }: { data: RowData }">
+        <BkTag
+          v-for="item in generateSplitList(data.key_black_regex)"
+          :key="item">
+          {{ item }}
+        </BkTag>
+      </template>
+    </BkTableColumn>
+  </BkTable>
+  <InfoList>
+    <InfoItem :label="t('复制类型：')">
+      {{ copyTypesMap[ticketDetails.details.dts_copy_type] }}
+    </InfoItem>
+    <InfoItem :label="t('写入类型：')">
+      {{ writeTypesMap[ticketDetails.details.write_mode] }}
+    </InfoItem>
+    <InfoItem :label="t('断开设置：')">
+      {{ disconnectTypesMap[ticketDetails.details.sync_disconnect_setting.type] }}
+    </InfoItem>
+    <InfoItem
+      v-if="ticketDetails.details.sync_disconnect_setting.type !== 'auto_disconnect_after_replication'"
+      :label="t('提醒频率：')">
+      {{ remindFrequencyTypesMap[ticketDetails.details.sync_disconnect_setting.reminder_frequency] }}
+    </InfoItem>
+    <InfoItem
+      v-if="ticketDetails.details.sync_disconnect_setting.type !== 'auto_disconnect_after_replication'"
+      :label="t('校验与修复类型：')">
+      {{ repairAndVerifyTypesMap[ticketDetails.details.data_check_repair_setting.type] }}
+    </InfoItem>
+    <InfoItem
+      v-if="
+        ticketDetails.details.sync_disconnect_setting.type !== 'auto_disconnect_after_replication' &&
+        ticketDetails.details.data_check_repair_setting.type !== 'no_check_no_repair'
+      "
+      :label="t('校验与修复频率设置：')">
+      {{ repairAndVerifyFrequencyTypesMap[ticketDetails.details.data_check_repair_setting.execution_frequency] }}
+    </InfoItem>
+  </InfoList>
 </template>
 
-<script setup lang="tsx">
+<script setup lang="ts">
   import { useI18n } from 'vue-i18n';
-  import { useRequest } from 'vue-request';
 
   import TicketModel, { type Redis } from '@services/model/ticket/ticket';
-  import { getRedisListByBizId } from '@services/source/redis';
 
   import { useGlobalBizs } from '@stores';
 
@@ -85,94 +122,35 @@
     writeTypeList,
   } from '@views/db-manage/redis/common/const';
 
+  import InfoList, { Item as InfoItem } from '../components/info-list/Index.vue';
+
   interface Props {
-    ticketDetails: TicketModel<Redis.ClusterDataCopy>
+    ticketDetails: TicketModel<Redis.ClusterDataCopy>;
   }
 
-  const props = defineProps<Props>();
+  type RowData = Props['ticketDetails']['details']['infos'][number];
+
+  defineProps<Props>();
+
   defineOptions({
     name: TicketTypes.REDIS_CLUSTER_DATA_COPY,
-    inheritAttrs: false
-  })
-
-  type RawRowData = Props['ticketDetails']['details']['infos'][0]
-
-  interface RowData {
-    srcClusterName: string,
-    srcClusterType: string,
-    srcClusterTypeName: string,
-    dstClusterName: string,
-    dstDiz: string,
-    includeKeys: string[],
-    excludeKeys: string[],
-  }
-
-  // 生成行数据
-  function generateTableRowData(copyType: string, clusterMap: Record<string, string>, item: RawRowData) {
-    let obj: RowData = {
-      srcClusterName: '',
-      dstClusterName: '',
-      srcClusterType: clusters[item.src_cluster]?.cluster_type_name,
-      srcClusterTypeName: '',
-      dstDiz: '',
-      includeKeys: item.key_white_regex === '' ? [] : item.key_white_regex.split('\n'),
-      excludeKeys: item.key_black_regex === '' ? [] : item.key_black_regex.split('\n'),
-    };
-    switch (copyType) {
-    case 'diff_app_diff_cluster':
-      // 跨业务
-      obj = {
-        ...obj,
-        srcClusterName: clusterMap[item.src_cluster],
-        dstClusterName: clusterMap[item.dst_cluster],
-        dstDiz: bizsMap[item.dst_bk_biz_id],
-      };
-      break;
-    case 'copy_to_other_system':
-      // 至第三方
-      obj = {
-        ...obj,
-        srcClusterName: clusterMap[item.src_cluster],
-        dstClusterName: `${item.dst_cluster}`,
-      };
-      break;
-    case 'one_app_diff_cluster':
-      // 业务内
-      obj = {
-        ...obj,
-        srcClusterName: clusterMap[item.src_cluster],
-        dstClusterName: clusterMap[item.dst_cluster],
-      };
-
-      break;
-    case 'user_built_to_dbm':
-      // 自建集群至业务内
-      obj = {
-        ...obj,
-        srcClusterName: `${item.src_cluster}`,
-        srcClusterType: item.src_cluster_type,
-        dstClusterName: clusterMap[item.dst_cluster],
-      };
-      break;
-    default:
-      break;
-    }
-    return obj;
-  }
-
-  // 生成映射表
-  function generateMap(arr: { label: string, value: string}[]) {
-    return arr.reduce((obj, item) => {
-      Object.assign(obj, { [item.value]: item.label });
-      return obj;
-    }, {} as Record<string, string>);
-  }
+    inheritAttrs: false,
+  });
 
   const { t } = useI18n();
+
   const { bizs } = useGlobalBizs();
 
-  const { clusters, infos } = props.ticketDetails.details;
-  const tableData = ref<RowData[]>([]);
+  // 生成映射表
+  function generateMap(arr: { label: string; value: string }[]) {
+    return arr.reduce(
+      (obj, item) => {
+        Object.assign(obj, { [item.value]: item.label });
+        return obj;
+      },
+      {} as Record<string, string>,
+    );
+  }
 
   const copyTypesMap = generateMap(copyTypeList);
 
@@ -186,102 +164,7 @@
 
   const writeTypesMap = generateMap(writeTypeList);
 
-  const basicColumns = [
-    {
-      label: t('源集群'),
-      field: 'srcClusterName',
-      showOverflowTooltip: true,
-    },
-    {
-      label: t('架构版本'),
-      field: 'srcClusterTypeName',
-      showOverflowTooltip: true,
-    },
-    {
-      label: t('目标集群'),
-      field: 'dstClusterName',
-      showOverflowTooltip: true,
-    },
-    {
-      label: t('包含 Key'),
-      field: 'targetNum',
-      showOverflowTooltip: true,
-      render: ({ data }: {data: RowData}) => {
-        if (data.includeKeys.length > 0) {
-          return data.includeKeys.map((key, index) => <bk-tag key={index} type="stroke">{key}</bk-tag>);
-        }
-        return <span>--</span>;
-      },
-    },
-    {
-      label: t('排除 Key'),
-      field: 'time',
-      showOverflowTooltip: true,
-      render: ({ data }: {data: RowData}) => {
-        if (data.excludeKeys.length > 0) {
-          return data.excludeKeys.map((key, index) => <bk-tag key={index} type="stroke">{key}</bk-tag>);
-        }
-        return <span>--</span>;
-      },
-    },
-  ];
+  const bizsMap = generateMap(bizs.map((item) => ({ label: item.name, value: item.bk_biz_id.toString() })));
 
-  const bizCloumn = {
-    label: t('目标业务'),
-    field: 'dstDiz',
-    showOverflowTooltip: true,
-  };
-
-  const clusterTypeColum = {
-    label: t('集群类型'),
-    field: 'dstDiz',
-    showOverflowTooltip: true,
-    render: ({ data }: {data: RowData}) => <span>{data.dstDiz === 'RedisInstance' ? t('主从版') : t('集群版')}</span>,
-  };
-
-  const columns = computed(() => {
-    const newColumns = [...basicColumns];
-    switch (props.ticketDetails.details.dts_copy_type) {
-    case 'copy_to_other_system':
-      return newColumns;
-    case 'diff_app_diff_cluster':
-      newColumns.splice(1, 0, bizCloumn);
-      return newColumns;
-    case 'one_app_diff_cluster':
-      return newColumns;
-    case 'user_built_to_dbm':
-      newColumns.splice(1, 0, clusterTypeColum);
-      return newColumns;
-    default:
-      return [];
-    }
-  });
-
-  const bizsMap = bizs.reduce((obj, item) => {
-    Object.assign({ bk_biz_id: item.name }, obj);
-    return obj;
-  }, {} as Record<string, string>);
-
-  const { loading } = useRequest(getRedisListByBizId, {
-    defaultParams: [{
-      bk_biz_id: props.ticketDetails.bk_biz_id,
-      offset: 0,
-      limit: -1,
-    }],
-    onSuccess: async (result) => {
-      if (result.results.length < 1) {
-        return;
-      }
-      const clusterMap = result.results.reduce((obj, item) => {
-        Object.assign(obj, { [item.id]: item.master_domain });
-        return obj;
-      }, {} as Record<string, string>);
-
-      tableData.value = infos.reduce((results, item) => {
-        const obj = generateTableRowData(props.ticketDetails.details.dts_copy_type, clusterMap, item);
-        results.push(obj);
-        return results;
-      }, [] as RowData[]);
-    },
-  });
+  const generateSplitList = (str: string) => (str ? str.split('\n') : []);
 </script>

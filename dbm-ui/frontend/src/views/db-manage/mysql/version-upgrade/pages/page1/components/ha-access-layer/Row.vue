@@ -123,12 +123,12 @@
     getValue() {
       return Promise.all([clusterRef.value!.getValue(true), targetVersionRef.value!.getValue()]).then((data) => {
         const [clusterData, targetVersionData] = data;
+        Object.assign(targetVersionData.display_info, {
+          current_version: props.data.clusterData?.currentVersion,
+        });
         return {
           ...clusterData,
           ...targetVersionData,
-          display_info: {
-            current_version: props.data.clusterData?.currentVersion,
-          },
         };
       });
     },

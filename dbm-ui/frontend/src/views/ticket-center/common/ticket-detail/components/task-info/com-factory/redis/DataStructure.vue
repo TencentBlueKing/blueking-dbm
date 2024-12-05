@@ -12,93 +12,69 @@
 -->
 
 <template>
-  <DbOriginalTable
-    :columns="columns"
-    :data="tableData" />
+  <BkTable
+    :data="ticketDetails.details.infos"
+    show-overflow-tooltip>
+    <BkTableColumn
+      :label="t('待构造的集群')"
+      :min-width="180">
+      <template #default="{ data }: { data: RowData }">
+        {{ ticketDetails.details.clusters[data.cluster_id].immute_domain }}
+      </template>
+    </BkTableColumn>
+    <BkTableColumn :label="t('架构版本')">
+      <template #default="{ data }: { data: RowData }">
+        {{ ticketDetails.details.clusters[data.cluster_id].cluster_type_name }}
+      </template>
+    </BkTableColumn>
+    <BkTableColumn :label="t('待构造的实例')">
+      <template #default="{ data }: { data: RowData }">
+        <p
+          v-for="item in data.master_instances"
+          :key="item">
+          {{ item }}
+        </p>
+      </template>
+    </BkTableColumn>
+    <BkTableColumn :label="t('规格需求')">
+      <template #default="{ data }: { data: RowData }">
+        {{ ticketDetails.details.specs[data.resource_spec.redis.spec_id].name }}
+      </template>
+    </BkTableColumn>
+    <BkTableColumn :label="t('构造主机数量')">
+      <template #default="{ data }: { data: RowData }">
+        {{ data.resource_spec.redis.count }}
+      </template>
+    </BkTableColumn>
+    <BkTableColumn :label="t('构造到指定时间')">
+      <template #default="{ data }: { data: RowData }">
+        {{ utcDisplayTime(data.recovery_time_point) }}
+      </template>
+    </BkTableColumn>
+  </BkTable>
 </template>
 
 <script setup lang="tsx">
   import { useI18n } from 'vue-i18n';
 
-  import TicketModel, {type Redis} from '@services/model/ticket/ticket';
+  import TicketModel, { type Redis } from '@services/model/ticket/ticket';
 
   import { TicketTypes } from '@common/const';
 
   import { utcDisplayTime } from '@utils';
 
   interface Props {
-    ticketDetails: TicketModel<Redis.DataStructure>
+    ticketDetails: TicketModel<Redis.DataStructure>;
   }
 
-  interface RowData {
-    clusterName: string,
-    clusterType: string,
-    clusterTypeName: string;
-    instances: string[],
-    time: string,
-    sepc: {
-      id: number,
-      name: string,
-    },
-    targetNum: number,
-  }
+  type RowData = Props['ticketDetails']['details']['infos'][number];
 
-
-  const props = defineProps<Props>();
+  defineProps<Props>();
 
   defineOptions({
     name: TicketTypes.REDIS_DATA_STRUCTURE,
-    inheritAttrs: false
-  })
+    inheritAttrs: false,
+  });
 
   const { t } = useI18n();
-
-  const { clusters, infos, specs } = props.ticketDetails.details;
-
-  const columns = [
-    {
-      label: t('待构造的集群'),
-      field: 'clusterName',
-      showOverflowTooltip: true,
-    },
-    {
-      label: t('架构版本'),
-      field: 'clusterTypeName',
-      showOverflowTooltip: true,
-    },
-    {
-      label: t('待构造的实例'),
-      field: 'instances',
-      showOverflowTooltip: true,
-      render: ({ data }: {data: RowData}) => <span>{data.instances.join(',')}</span>,
-    },
-    {
-      label: t('规格需求'),
-      field: 'sepc',
-      showOverflowTooltip: true,
-      render: ({ data }: {data: RowData}) => <span>{data.sepc.name}</span>,
-    },
-    {
-      label: t('构造主机数量'),
-      field: 'targetNum',
-    },
-    {
-      label: t('构造到指定时间'),
-      field: 'time',
-      showOverflowTooltip: true,
-    },
-  ];
-
-  const tableData = infos.map((item) => ({
-    clusterName: clusters[item.cluster_id].immute_domain,
-    clusterType: clusters[item.cluster_id].cluster_type,
-    clusterTypeName: clusters[item.cluster_id].cluster_type_name,
-    instances: item.master_instances,
-    time: utcDisplayTime(item.recovery_time_point),
-    sepc: {
-      id: item.resource_spec.redis.spec_id,
-      name: specs[item.resource_spec.redis.spec_id].name,
-    },
-    targetNum: item.resource_spec.redis.count,
-  }));
 </script>
