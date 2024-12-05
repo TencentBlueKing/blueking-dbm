@@ -17,12 +17,12 @@ from django.utils.translation import ugettext_lazy as _
 
 from backend.configuration.constants import DBType
 from backend.configuration.models.dba import DBAdministrator
+from backend.core import notify
 from backend.db_services.dbbase.constants import IpSource
 from backend.db_services.redis.autofix.enums import AutofixStatus
 from backend.db_services.redis.autofix.models import RedisAutofixCore
 from backend.ticket.constants import TicketType
 from backend.ticket.models import Ticket
-from backend.ticket.tasks.ticket_tasks import send_msg_for_flow
 from backend.utils.time import datetime2str
 
 logger = logging.getLogger("root")
@@ -91,16 +91,7 @@ def mongo_create_ticket(cluster: RedisAutofixCore, cluster_ids: list, mongos_lis
     ip_list = []
     for host in mongos_list + mongod_list:
         ip_list.append(host["ip"])
-    send_msg_for_flow.apply_async(
-        kwargs={
-            "flow_id": ticket.id,
-            "flow_msg_type": _("通知"),
-            "flow_status": _("开始执行"),
-            "processor": ",".join(mongodb_dba),
-            "receiver": ",".join(mongodb_dba),
-            "detail_address": _("自愈ip:[{}]".format(",".join(ip_list))),
-        }
-    )
+    notify.send_msg.apply_async(args=(ticket.id,))
 
     # 回写tb_tendis_autofix_core表
     cluster.ticket_id = ticket.id

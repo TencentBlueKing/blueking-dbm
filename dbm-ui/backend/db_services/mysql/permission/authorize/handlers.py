@@ -16,7 +16,6 @@ from django.conf import settings
 from django.utils.translation import ugettext_lazy as _
 
 from backend import env
-from backend.components import CmsiApi
 from backend.components.gcs.client import GcsApi, GcsDirectApi
 from backend.components.mysql_priv_manager.client import DBPrivManagerApi
 from backend.components.scr.client import ScrApi
@@ -211,8 +210,8 @@ class MySQLAuthorizeHandler(AuthorizeHandler):
                 creator=operator or self.operator,
                 remark=_("第三方请求授权"),
                 details=authorize_info_slz.validated_data,
-                # 自动授权单，不发送通知
-                send_msg_config={"msg_type": [CmsiApi.MsgType.UNKNOWN.value]},
+                # 自动授权单，成功/失败不发送通知
+                send_msg_config={TicketStatus.SUCCEEDED.value: {}, TicketStatus.FAILED.value: {}},
             )
             task_id = str(ticket.id)
             return {"task_id": task_id, "platform": "dbm", "job_id": task_id}

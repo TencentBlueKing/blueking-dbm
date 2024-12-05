@@ -19,8 +19,8 @@ from rest_framework.response import Response
 from backend.bk_web import viewsets
 from backend.bk_web.pagination import AuditedLimitOffsetPagination
 from backend.bk_web.swagger import common_swagger_auto_schema
-from backend.components import CmsiApi
 from backend.configuration.constants import PLAT_BIZ_ID
+from backend.core.notify import NotifyAdapter
 from backend.db_monitor import serializers
 from backend.db_monitor.models import MonitorPolicy, NoticeGroup
 from backend.db_monitor.serializers import NoticeGroupSerializer
@@ -132,7 +132,7 @@ class MonitorNoticeGroupViewSet(viewsets.AuditedModelViewSet):
     @common_swagger_auto_schema(operation_summary=_("查询通知类型"), tags=[SWAGGER_TAG])
     @action(methods=["GET"], detail=False)
     def get_msg_type(self, request, *args, **kwargs):
-        return Response(CmsiApi.get_msg_type())
+        return Response(NotifyAdapter.get_support_msg_types())
 
     @common_swagger_auto_schema(operation_summary=_("查询告警组名称"), tags=[SWAGGER_TAG])
     @action(methods=["GET"], detail=False)

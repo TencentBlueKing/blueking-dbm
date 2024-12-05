@@ -16,10 +16,9 @@ from django.utils.translation import gettext as _
 from backend.components import ItsmApi
 from backend.components.itsm.constants import ItsmTicketStatus
 from backend.exceptions import ApiResultError
-from backend.ticket.constants import FlowMsgStatus, FlowMsgType, TicketFlowStatus, TicketStatus, TodoStatus, TodoType
+from backend.ticket.constants import TicketFlowStatus, TicketStatus, TodoStatus, TodoType
 from backend.ticket.flow_manager.base import BaseTicketFlow
 from backend.ticket.models import Flow, Todo
-from backend.ticket.tasks.ticket_tasks import send_msg_for_flow
 from backend.ticket.todos.itsm_todo import ItsmTodoContext
 from backend.utils.time import datetime2str, standardized_time_str
 
@@ -124,7 +123,6 @@ class ItsmFlow(BaseTicketFlow):
         return ""
 
     def _run(self) -> str:
-        itsm_fields = {f["key"]: f["value"] for f in self.flow_obj.details["fields"]}
         Todo.objects.create(
             name=_("【{}】单据等待审批").format(self.ticket.get_ticket_type_display()),
             flow=self.flow_obj,
@@ -134,16 +132,6 @@ class ItsmFlow(BaseTicketFlow):
         )
         # 创建单据
         data = ItsmApi.create_ticket(self.flow_obj.details)
-        # 异步发送待审批消息
-        send_msg_for_flow.apply_async(
-            kwargs={
-                "flow_id": self.flow_obj.id,
-                "flow_msg_type": FlowMsgType.TODO.value,
-                "flow_status": FlowMsgStatus.PENDING.value,
-                "processor": itsm_fields["approver"],
-                "receiver": self.ticket.creator,
-            }
-        )
         return data["sn"]
 
     def _revoke(self, operator) -> Any:

@@ -19,15 +19,7 @@ from backend.bk_web.constants import LEN_MIDDLE, LEN_SHORT
 from backend.bk_web.models import AuditedModel
 from backend.configuration.models import BizSettings, DBAdministrator
 from backend.ticket.builders import BuilderFactory
-from backend.ticket.constants import (
-    TODO_RUNNING_STATUS,
-    FlowMsgStatus,
-    FlowMsgType,
-    TicketFlowStatus,
-    TodoStatus,
-    TodoType,
-)
-from backend.ticket.tasks.ticket_tasks import send_msg_for_flow
+from backend.ticket.constants import TODO_RUNNING_STATUS, TicketFlowStatus, TodoStatus, TodoType
 
 logger = logging.getLogger("root")
 
@@ -65,15 +57,6 @@ class TodoManager(models.Manager):
         operators = self.get_operators(kwargs["type"], kwargs["ticket"], kwargs.get("operators", []))
         kwargs["operators"] = operators
         todo = super().create(**kwargs)
-        send_msg_for_flow.apply_async(
-            kwargs={
-                "flow_id": todo.flow.id,
-                "flow_msg_type": FlowMsgType.TODO.value,
-                "flow_status": FlowMsgStatus.UNCONFIRMED.value,
-                "processor": ",".join(todo.operators),
-                "receiver": todo.creator,
-            }
-        )
         return todo
 
 

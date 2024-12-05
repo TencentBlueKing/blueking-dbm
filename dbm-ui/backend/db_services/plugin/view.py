@@ -8,28 +8,18 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import logging
 
-from django.utils.translation import ugettext_lazy as _
+from backend.bk_web import viewsets
+from backend.iam_app.handlers.drf_perm.base import RejectPermission
 
-from ..base import BaseApi
-from ..domains import CMSI_APIGW_DOMAIN
-
-
-class _CmsiApi(BaseApi):
-    MODULE = _("消息管理")
-    BASE = CMSI_APIGW_DOMAIN
-
-    def __init__(self):
-        self.send_msg = self.generate_data_api(
-            method="POST",
-            url="send_msg/",
-            description=_("通用消息发送"),
-        )
-        self.get_msg_type = self.generate_data_api(
-            method="GET",
-            url="get_msg_type/",
-            description=_("查询通知类型"),
-        )
+logger = logging.getLogger("root")
 
 
-CmsiApi = _CmsiApi()
+class BaseOpenAPIViewSet(viewsets.SystemViewSet):
+    """openapi 视图基类"""
+
+    def get_default_permission_class(self) -> list:
+        # 默认访问openapi的客户端都通过了网关jwt认证
+        permission_class = [] if self.request.is_bk_jwt() else [RejectPermission()]
+        return permission_class

@@ -29,7 +29,6 @@ from backend.ticket.constants import (
     INNER_FLOW_TODO_STATUS_MAP,
     FlowCallbackType,
     FlowErrCode,
-    FlowMsgType,
     TicketFlowStatus,
     TicketType,
     TodoStatus,
@@ -186,18 +185,6 @@ class InnerFlow(BaseTicketFlow):
             )
             # 处理互斥异常和非预期的异常
             self.run_error_status_handler(err)
-            # 发送创建任务失败通知
-            from backend.ticket.tasks.ticket_tasks import send_msg_for_flow
-
-            send_msg_for_flow.apply_async(
-                kwargs={
-                    "flow_id": self.flow_obj.id,
-                    "flow_msg_type": FlowMsgType.DONE.value,
-                    "flow_status": TicketFlowStatus.get_choice_label(self.flow_obj.status),
-                    "processor": self.ticket.creator,
-                    "receiver": self.ticket.creator,
-                }
-            )
             return
         else:
             # 记录inner flow的集群动作和实例动作

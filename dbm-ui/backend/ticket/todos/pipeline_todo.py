@@ -11,12 +11,14 @@ specific language governing permissions and limitations under the License.
 import logging
 from dataclasses import dataclass
 
+from django.db import transaction
 from django.utils.translation import ugettext as _
 
+from backend.core import notify
 from backend.flow.engine.bamboo.engine import BambooEngine
 from backend.ticket import todos
 from backend.ticket.constants import TodoStatus, TodoType
-from backend.ticket.models import TodoHistory
+from backend.ticket.models import Flow, TodoHistory
 from backend.ticket.todos import ActionType, BaseTodoContext
 
 logger = logging.getLogger("root")
@@ -66,11 +68,18 @@ class PipelineTodo(todos.TodoActor):
     def create(cls, ticket, flow, root_id, node_id):
         from backend.ticket.models import Todo
 
-        # 创建一条代办
-        Todo.objects.create(
-            name=_("【{}】流程待确认,是否继续？").format(ticket.get_ticket_type_display()),
-            flow=flow,
-            ticket=ticket,
-            type=TodoType.INNER_APPROVE,
-            context=PipelineTodoContext(flow.id, ticket.id, root_id, node_id).to_dict(),
-        )
+        # 创建一条代办，避免同时创建代办导致重复发送通知，用事务进行提交
+        with transaction.atomic():
+            flow = Flow.objects.select_for_update().get(id=flow.id)
+
+            # 当前不存在待确认的todo，则发送通知
+            if not flow.todo_of_flow.filter(type=TodoType.INNER_APPROVE).count():
+                notify.send_msg(ticket.id, flow.id)
+
+            Todo.objects.create(
+                name=_("【{}】流程待确认,是否继续？").format(ticket.get_ticket_type_display()),
+                flow=flow,
+                ticket=ticket,
+                type=TodoType.INNER_APPROVE,
+                context=PipelineTodoContext(flow.id, ticket.id, root_id, node_id).to_dict(),
+            )

@@ -93,6 +93,8 @@ BK_SAAS_HOST = get_type_env(key="BK_SAAS_HOST", _type=str, default="http://bk-db
 BK_SAAS_CALLBACK_URL = get_type_env(key="BK_SAAS_CALLBACK_URL", _type=str, default="") or BK_SAAS_HOST.replace(
     "https", "http"
 )
+# DBM网关地址
+BK_DBM_APIGATEWAY = get_type_env(key="BK_DBM_APIGATEWAY", _type=str, default="http://bk-dbm")
 
 # 其他系统访问地址
 BK_DOMAIN = get_type_env(key="BK_DOMAIN", _type=str, default=".example.com")

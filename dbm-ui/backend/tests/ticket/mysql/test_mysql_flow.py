@@ -118,7 +118,7 @@ class TestTicketFlow:
     @patch.object(TicketViewSet, "get_permissions", lambda x: [])
     @patch("backend.ticket.flow_manager.itsm.ItsmApi", ItsmApiMock())
     @patch("backend.db_services.cmdb.biz.CCApi", CCApiMock())
-    @patch("backend.components.cmsi.handler.CmsiHandler.send_msg", lambda msg: "有一条MySQL 高可用部署待办需要您处理")
+    @patch("backend.core.notify.send_msg.apply_async", lambda *args, **kwargs: "有一条MySQL 高可用部署待办需要您处理")
     @patch("backend.db_services.cmdb.biz.Permission", PermissionMock)
     @patch("backend.ticket.builders.mysql.mysql_single_apply.DBConfigApi", DBConfigApiMock)
     def test_mysql_single_apply_flow(
@@ -174,7 +174,7 @@ class TestTicketFlow:
     @patch.object(TicketViewSet, "get_permissions", lambda x: [])
     @patch("backend.ticket.flow_manager.itsm.ItsmApi", ItsmApiMock())
     @patch("backend.db_services.cmdb.biz.CCApi", CCApiMock())
-    @patch("backend.components.cmsi.handler.CmsiHandler.send_msg", lambda msg: "有一条MySQL 高可用部署待办需要您处理")
+    @patch("backend.core.notify.send_msg.apply_async", lambda *args, **kwargs: "有一条MySQL 高可用部署待办需要您处理")
     @patch(
         "backend.ticket.flow_manager.resource.ResourceApplyFlow.apply_resource",
         lambda resource_request_id, node_infos: (1, APPLY_RESOURCE_RETURN_DATA),

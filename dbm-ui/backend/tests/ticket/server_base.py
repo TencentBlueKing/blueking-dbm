@@ -27,7 +27,7 @@ class TestFlowBase:
         patch.object(TicketViewSet, "get_permissions"),
         patch("backend.ticket.flow_manager.itsm.ItsmApi", ItsmApiMock()),
         patch("backend.db_services.cmdb.biz.CCApi", CCApiMock()),
-        patch("backend.components.cmsi.handler.CmsiHandler.send_msg", lambda msg: "有一条待办事项需要您处理"),
+        patch("backend.core.notify.send_msg.apply_async", lambda *args, **kwargs: "有一条待办事项需要您处理"),
         patch("backend.db_services.cmdb.biz.Permission", PermissionMock),
     ]
 

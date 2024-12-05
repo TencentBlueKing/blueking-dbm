@@ -29,6 +29,7 @@ from backend.ticket.builders.common.base import fetch_cluster_ids, fetch_instanc
 from backend.ticket.constants import (
     FLOW_FINISHED_STATUS,
     RUNNING_FLOW__TICKET_STATUS,
+    TODO_RUNNING_STATUS,
     FlowType,
     FlowTypeConfig,
     OperateNodeActionType,
@@ -295,6 +296,25 @@ class TicketHandler:
             TodoActorFactory.actor(todo).process(user, action, params)
             results.append(todo)
         return TodoSerializer(results, many=True).data
+
+    @classmethod
+    def batch_process_ticket(cls, username, action, ticket_ids, params):
+        """
+        批量操作单据的todo
+        @param username 用户
+        @param action 动作
+        @param ticket_ids 单据ID列表
+        @param params 操作额外参数
+        """
+
+        tickets = Ticket.objects.prefetch_related("todo_of_ticket").filter(id__in=ticket_ids)
+        # 找到单据第一个代办（排除INNER_APPROVE，这是任务流程的人工确认节点产生的，不允许在单据维度操作）
+        running_todos = [
+            ticket.todo_of_ticket.exclude(type=TodoType.INNER_APPROVE).filter(status__in=TODO_RUNNING_STATUS).first()
+            for ticket in tickets
+        ]
+        operations = [{"todo_id": todo.id, "params": params} for todo in running_todos if todo]
+        return TicketHandler.batch_process_todo(user=username, action=action, operations=operations)
 
     @classmethod
     def create_ticket_flow_config(cls, bk_biz_id, cluster_ids, ticket_types, configs, operator):

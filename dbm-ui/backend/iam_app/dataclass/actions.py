@@ -101,6 +101,14 @@ class ActionMeta(Action):
         content["related_resource_types"] = related_resource_types
         return content
 
+    def __hash__(self):
+        return hash((self.id, self.name))
+
+    def __eq__(self, other):
+        if not isinstance(other, ActionMeta):
+            return False
+        return other.id == self.id
+
 
 # fmt: off
 class ActionEnum:
@@ -177,6 +185,17 @@ class ActionEnum:
         id="biz_assistance_vars_config",
         name=_("单据协助设置"),
         name_en="biz_assistance_vars_config",
+        type="edit",
+        related_actions=[DB_MANAGE.id],
+        related_resource_types=[ResourceEnum.BUSINESS],
+        group=_("业务配置"),
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
+    )
+
+    BIZ_NOTIFY_CONFIG = ActionMeta(
+        id="biz_notify_config",
+        name=_("单据通知设置"),
+        name_en="biz_notify_config",
         type="edit",
         related_actions=[DB_MANAGE.id],
         related_resource_types=[ResourceEnum.BUSINESS],

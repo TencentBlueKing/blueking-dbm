@@ -11,7 +11,6 @@ specific language governing permissions and limitations under the License.
 import json
 import logging
 import operator
-import textwrap
 from collections import defaultdict
 from datetime import datetime, timedelta
 from functools import reduce
@@ -24,23 +23,20 @@ from django.utils import timezone
 from django.utils.translation import gettext as _
 
 from backend import env
-from backend.components import BKLogApi, ItsmApi
-from backend.components.cmsi.handler import CmsiHandler
+from backend.components import BKLogApi
 from backend.configuration.constants import PLAT_BIZ_ID, DBType
 from backend.constants import DEFAULT_SYSTEM_USER
 from backend.db_meta.enums import ClusterType, InstanceInnerRole
-from backend.db_meta.models import AppCache, Cluster, StorageInstance
+from backend.db_meta.models import Cluster, StorageInstance
 from backend.ticket.builders.common.constants import MYSQL_CHECKSUM_TABLE, MySQLDataRepairTriggerMode
 from backend.ticket.constants import (
     TICKET_EXPIRE_DEFAULT_CONFIG,
     TODO_RUNNING_STATUS,
     FlowErrCode,
-    FlowMsgType,
     FlowType,
     FlowTypeConfig,
     TicketExpireType,
     TicketFlowStatus,
-    TicketStatus,
     TicketType,
     TodoType,
 )
@@ -320,74 +316,3 @@ def apply_ticket_task(
             raise TicketTaskTriggerException(_("不支持的定时类型: {}").format(eta))
 
     return res
-
-
-@shared_task
-def send_msg_for_flow(
-    flow_id: int,
-    flow_msg_type: str,
-    flow_status: str,
-    processor: str,
-    receiver: str = "",
-    detail_address: str = None,
-):
-    """
-    异步发送消息通知
-    @param flow_id: 流程ID
-    @param flow_msg_type: 流程类型
-    @param flow_status: 流程状态展示
-    @param receiver: 通知人(多个处理人用,分割)
-    @param processor: 处理人(多个处理人用,分割)
-    @param detail_address: 查看详情链接
-    """
-    flow = Flow.objects.get(id=flow_id)
-    ticket = flow.ticket
-    receiver = receiver or ticket.creator
-    ticket_type = ticket.get_ticket_type_display()
-    biz_name = AppCache.get_biz_name(ticket.bk_biz_id)
-
-    # 通知模板
-    content = _(
-        """\
-        单据类型：{ticket_type}
-        所属业务：{biz_name}
-        提单人：{creator}
-        提单时间：{submit_time}
-        处理人：{processor}
-        执行情况：{flow_status}
-        查看详情：{detail_address}\
-        """
-    ).format(
-        ticket_type=ticket_type,
-        biz_name=biz_name,
-        creator=ticket.creator,
-        submit_time=ticket.create_at.astimezone(),
-        processor=processor,
-        flow_status=flow_status,
-        detail_address=detail_address or ticket.url,
-    )
-    content = textwrap.dedent(content)
-
-    if flow.flow_type == FlowType.BK_ITSM.value:
-        # 调用ITSM接口查询审批状态
-        data = ItsmApi.ticket_approval_result({"sn": [flow.flow_obj_id]}, use_admin=True)
-        try:
-            approval_address = data[0]["ticket_url"]
-        except IndexError:
-            approval_address = ""
-        content += _("\n审批链接：{approval_address}").format(approval_address=approval_address)
-
-    if flow_msg_type == FlowMsgType.DONE.value:
-        flow_msg_type = TicketStatus.get_choice_label(ticket.status)
-
-    # 通知人 = 额外通知人 + 处理人 + 提单人
-    receiver__username = set(f"{receiver},{processor},{ticket.creator}".split(","))
-    msg = ticket.send_msg_config or {}
-    msg.update(
-        {
-            "receiver__username": ",".join(receiver__username),
-            "title": _("【数据库管理】 {flow_msg_type}通知").format(flow_msg_type=flow_msg_type),
-            "content": content,
-        }
-    )
-    CmsiHandler.send_msg(msg)

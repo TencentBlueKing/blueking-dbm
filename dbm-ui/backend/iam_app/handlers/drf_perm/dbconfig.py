@@ -57,28 +57,36 @@ class GlobalConfigPermission(ResourceActionPermission):
         return BizDBConfigPermission.instance_dbtype_getter(request, view)
 
 
-class BizAssistancePermission(ResourceActionPermission):
+class BizSettingsPermission(ResourceActionPermission):
     """
-    业务单据协作相关鉴权
+    业务配置相关鉴权
     """
+
+    config_action_map = {
+        BizSettingsEnum.BIZ_ASSISTANCE_VARS: ActionEnum.BIZ_ASSISTANCE_VARS_CONFIG,
+        BizSettingsEnum.NOTIFY_CONFIG: ActionEnum.BIZ_NOTIFY_CONFIG,
+        BizSettingsEnum.BIZ_ASSISTANCE_SWITCH: ActionEnum.BIZ_ASSISTANCE_VARS_CONFIG,
+    }
 
     def inst_ids_getter(self, request, view):
-        data = request.data
-        valid_keys = {BizSettingsEnum.BIZ_ASSISTANCE_VARS.value, BizSettingsEnum.BIZ_ASSISTANCE_SWITCH.value}
-        try:
-            # 检查 data["settings"] 中的任意一个字典的 "key" 是否在 valid_keys 中
-            if any(setting["key"] in valid_keys for setting in data.get("settings", [])):
-                # 如果有至少一个 key 在 valid_keys 中
-                self.actions = [getattr(ActionEnum, "BIZ_ASSISTANCE_VARS_CONFIG")]
-            else:
-                # 如果所有的 key 都不在 valid_keys 中
-                self.actions = []
-
-            self.resource_meta = ResourceEnum.BUSINESS
-        except AttributeError:
-            raise NotImplementedError
-
-        return [data["bk_biz_id"]]
+        action = self.config_action_map.get(request.data["key"])
+        self.actions = [action] if action else []
+        self.resource_meta = ResourceEnum.BUSINESS
+        return [request.data["bk_biz_id"]]
 
     def __init__(self):
         super().__init__(actions=None, resource_meta=None, instance_ids_getter=self.inst_ids_getter)
+
+
+class BizBatchSettingsPermission(BizSettingsPermission):
+    """
+    业务配置批量更新鉴权
+    """
+
+    def inst_ids_getter(self, request, view):
+        actions = [
+            self.config_action_map[s["key"]] for s in request.data["settings"] if s["key"] in self.config_action_map
+        ]
+        self.actions = list(set(actions))
+        self.resource_meta = ResourceEnum.BUSINESS
+        return [request.data["bk_biz_id"]]

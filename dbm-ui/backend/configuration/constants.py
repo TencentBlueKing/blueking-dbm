@@ -126,11 +126,12 @@ class BizSettingsEnum(str, StructuredEnum):
 
     OPEN_AREA_VARS = EnumField("OPEN_AREA_VARS", _("开区模板的渲染变量"))
     INDEPENDENT_HOSTING_DB_TYPES = EnumField("INDEPENDENT_HOSTING_DB_TYPES", _("独立托管机器的数据库类型"))
-    # TODO: 后续待删除
+    # TODO: SKIP_GRAMMAR_CHECK 后续待删除
     SKIP_GRAMMAR_CHECK = EnumField("SKIP_GRAMMAR_CHECK", _("是否跳过语义检查"))
     SQL_IMPORT_FORCE_ITSM = EnumField("SQL_IMPORT_FORCE_ITSM", _("是否变更SQL强制需要审批流"))
     BIZ_ASSISTANCE_VARS = EnumField("BIZ_ASSISTANCE_VARS", _("业务协助人员变量"))
     BIZ_ASSISTANCE_SWITCH = EnumField("BIZ_ASSISTANCE_SWITCH", _("业务协助开关"))
+    NOTIFY_CONFIG = EnumField("NOTIFY_CONFIG", _("业务通知渠道配置"))
 
 
 DEFAULT_DB_ADMINISTRATORS = ["admin"]

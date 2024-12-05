@@ -9,27 +9,11 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
+from rest_framework import serializers
 
-from ..base import BaseApi
-from ..domains import CMSI_APIGW_DOMAIN
-
-
-class _CmsiApi(BaseApi):
-    MODULE = _("消息管理")
-    BASE = CMSI_APIGW_DOMAIN
-
-    def __init__(self):
-        self.send_msg = self.generate_data_api(
-            method="POST",
-            url="send_msg/",
-            description=_("通用消息发送"),
-        )
-        self.get_msg_type = self.generate_data_api(
-            method="GET",
-            url="get_msg_type/",
-            description=_("查询通知类型"),
-        )
+from backend.ticket.serializers import BatchTicketOperateSerializer
 
 
-CmsiApi = _CmsiApi()
+class OpenAPIBatchTicketOperateSerializer(BatchTicketOperateSerializer):
+    username = serializers.CharField(help_text=_("操作者"))

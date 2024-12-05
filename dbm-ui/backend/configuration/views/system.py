@@ -32,7 +32,7 @@ from backend.db_services.ipchooser.constants import IDLE_HOST_MODULE
 from backend.flow.utils.cc_manage import CcManage
 from backend.iam_app.dataclass.actions import ActionEnum
 from backend.iam_app.handlers.drf_perm.base import DBManagePermission, RejectPermission, ResourceActionPermission
-from backend.iam_app.handlers.drf_perm.dbconfig import BizAssistancePermission
+from backend.iam_app.handlers.drf_perm.dbconfig import BizBatchSettingsPermission, BizSettingsPermission
 
 tags = [_("系统设置")]
 
@@ -134,7 +134,8 @@ class BizSettingsViewSet(viewsets.AuditedModelViewSet):
     queryset = BizSettings.objects.all()
 
     action_permission_map = {
-        ("batch_update_settings",): [BizAssistancePermission()],
+        ("batch_update_settings",): [BizBatchSettingsPermission()],
+        ("update_settings",): [BizSettingsPermission()],
     }
     default_permission_class = [DBManagePermission()]
 

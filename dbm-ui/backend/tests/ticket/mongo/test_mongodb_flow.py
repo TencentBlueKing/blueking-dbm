@@ -98,7 +98,7 @@ class TestMangodbFlow:
     @patch.object(TicketViewSet, "get_permissions", lambda x: [])
     @patch("backend.ticket.flow_manager.itsm.ItsmApi", ItsmApiMock())
     @patch("backend.db_services.cmdb.biz.CCApi", CCApiMock())
-    @patch("backend.components.cmsi.handler.CmsiHandler.send_msg", lambda msg: "有一条MANGOS 扩容接入层待办需要您处理")
+    @patch("backend.core.notify.send_msg.apply_async", lambda *args, **kwargs: "有一条MANGOS 扩容接入层待办需要您处理")
     @patch(
         "backend.ticket.flow_manager.resource.ResourceApplyFlow.apply_resource",
         lambda resource_request_id, node_infos: (1, MANGOS_ADD_SOURCE_DATA),
@@ -138,7 +138,7 @@ class TestMangodbFlow:
     @patch.object(TicketViewSet, "get_permissions", lambda x: [])
     @patch("backend.ticket.flow_manager.itsm.ItsmApi", ItsmApiMock())
     @patch("backend.db_services.cmdb.biz.CCApi", CCApiMock())
-    @patch("backend.components.cmsi.handler.CmsiHandler.send_msg", lambda msg: "有一条MANGOS 缩容接入层待办需要您处理")
+    @patch("backend.core.notify.send_msg.apply_async", lambda *args, **kwargs: "有一条MANGOS 缩容接入层待办需要您处理")
     @patch("backend.db_services.cmdb.biz.Permission", PermissionMock)
     def test_mango_reduce_mangos_flow(
         self, mock_pause_status, mocked_status, mocked__run, mocked_permission_classes, query_fixture, db
@@ -173,7 +173,7 @@ class TestMangodbFlow:
     @patch.object(TicketViewSet, "get_permissions", lambda x: [])
     @patch("backend.ticket.flow_manager.itsm.ItsmApi", ItsmApiMock())
     @patch("backend.db_services.cmdb.biz.CCApi", CCApiMock())
-    @patch("backend.components.cmsi.handler.CmsiHandler.send_msg", lambda msg: "有一条MANGODB 集群下架待办需要您处理")
+    @patch("backend.core.notify.send_msg.apply_async", lambda *args, **kwargs: "有一条MANGODB 集群下架待办需要您处理")
     @patch("backend.db_services.cmdb.biz.Permission", PermissionMock)
     def test_mangodb_destroy_flow(
         self, mock_pause_status, mocked_status, mocked__run, mocked_permission_classes, query_fixture, db
@@ -208,7 +208,7 @@ class TestMangodbFlow:
     @patch.object(TicketViewSet, "get_permissions", lambda x: [])
     @patch("backend.ticket.flow_manager.itsm.ItsmApi", ItsmApiMock())
     @patch("backend.db_services.cmdb.biz.CCApi", CCApiMock())
-    @patch("backend.components.cmsi.handler.CmsiHandler.send_msg", lambda msg: "有一条MANGO 整机替换待办需要您处理")
+    @patch("backend.core.notify.send_msg.apply_async", lambda *args, **kwargs: "有一条MANGO 整机替换待办需要您处理")
     @patch(
         "backend.ticket.flow_manager.resource.ResourceApplyFlow.apply_resource",
         lambda resource_request_id, node_infos: (1, MANGODB_SOURCE_APPLICATION_DATA),
@@ -248,7 +248,7 @@ class TestMangodbFlow:
     @patch.object(TicketViewSet, "get_permissions", lambda x: [])
     @patch("backend.ticket.flow_manager.itsm.ItsmApi", ItsmApiMock())
     @patch("backend.db_services.cmdb.biz.CCApi", CCApiMock())
-    @patch("backend.components.cmsi.handler.CmsiHandler.send_msg", lambda msg: "有一条MONGODB 集群清档待办需要您处理")
+    @patch("backend.core.notify.send_msg.apply_async", lambda *args, **kwargs: "有一条MONGODB 集群清档待办需要您处理")
     @patch("backend.db_services.cmdb.biz.Permission", PermissionMock)
     def test_mongo_remove_ns(
         self,

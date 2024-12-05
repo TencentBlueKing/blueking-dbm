@@ -11,8 +11,9 @@ specific language governing permissions and limitations under the License.
 import logging
 
 from backend import env
+from backend.core import notify
 from backend.ticket import constants
-from backend.ticket.constants import FLOW_FINISHED_STATUS, FlowType
+from backend.ticket.constants import FLOW_FINISHED_STATUS, FlowType, TicketStatus
 from backend.ticket.flow_manager.delivery import DeliveryFlow, DescribeTaskFlow
 from backend.ticket.flow_manager.inner import IgnoreResultInnerFlow, InnerFlow, QuickInnerFlow
 from backend.ticket.flow_manager.itsm import ItsmFlow
@@ -115,5 +116,14 @@ class TicketFlowManager(object):
             return
 
         if self.ticket.status != target_status:
+            origin_status = self.ticket.status
             self.ticket.status = target_status
             self.ticket.save(update_fields=["status", "update_at"])
+            self.ticket_status_trigger(origin_status, target_status)
+
+    def ticket_status_trigger(self, origin_status, target_status):
+        """单据状态更新后的钩子函数"""
+
+        # 单据状态变更后，发送通知。忽略running
+        if target_status != TicketStatus.RUNNING:
+            notify.send_msg.apply_async(args=(self.ticket.id,))

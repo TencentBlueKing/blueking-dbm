@@ -26,11 +26,13 @@ from backend.db_monitor.exceptions import AutofixException
 from backend.ticket.constants import (
     EXCLUSIVE_TICKET_EXCEL_PATH,
     TICKET_RUNNING_STATUS_SET,
+    FlowErrCode,
     FlowRetryType,
     FlowType,
     TicketFlowStatus,
     TicketStatus,
     TicketType,
+    TodoStatus,
 )
 from backend.utils.excel import ExcelHandler
 from backend.utils.time import calculate_cost_time
@@ -132,6 +134,31 @@ class Ticket(AuditedModel):
         if self.status in [TicketStatus.PENDING, *TICKET_RUNNING_STATUS_SET]:
             return calculate_cost_time(timezone.now(), self.create_at)
         return calculate_cost_time(self.update_at, self.create_at)
+
+    def get_terminate_reason(self):
+        # 获取单据终止原因
+        if self.status != TicketStatus.TERMINATED:
+            return ""
+
+        flow = self.current_flow()
+        # 系统终止
+        if flow.err_code == FlowErrCode.SYSTEM_TERMINATED_ERROR:
+            return _("系统自动终止")
+        # 用户终止，获取所有失败的todo，拿到里面的备注
+        fail_todo = flow.todo_of_flow.filter(status=TodoStatus.DONE_FAILED).first()
+        if not fail_todo:
+            return ""
+        # 格式化终止文案
+        remark = fail_todo.context.get("remark", "")
+        reason = _("{}已处理（人工终止，备注: {}）").format(fail_todo.done_by, remark)
+        return reason
+
+    def get_current_operators(self):
+        # 获取当前流程处理人
+        running_todo = self.todo_of_ticket.filter(status=TodoStatus.TODO).first()
+        if not running_todo:
+            return []
+        return running_todo.operators
 
     def update_details(self, **kwargs):
         self.details.update(kwargs)

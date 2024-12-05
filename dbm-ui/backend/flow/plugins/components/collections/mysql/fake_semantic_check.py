@@ -25,6 +25,8 @@ class FakeSemanticCheck(BaseService):
         kwargs = data.get_one_of_inputs("kwargs")
         root_id = kwargs.get("root_id")
 
+        time.sleep(3600)
+
         # 测试报错
         if kwargs.get("is_error"):
             logging.error("test error....")

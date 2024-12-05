@@ -12,9 +12,11 @@ from rest_framework.routers import DefaultRouter
 
 from .bf.views import BFPluginViewSet
 from .mysql.authorize.views import AuthorizePluginViewSet
+from .ticket.views import TicketViewSet
 
 routers = DefaultRouter(trailing_slash=True)
 routers.register("mysql/authorize", AuthorizePluginViewSet, basename="authorize")
 routers.register("bf", BFPluginViewSet, basename="bfplugin")
+routers.register("ticket", TicketViewSet, basename="ticket")
 
 urlpatterns = routers.urls

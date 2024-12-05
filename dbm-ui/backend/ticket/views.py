@@ -49,7 +49,6 @@ from backend.ticket.constants import (
     CountType,
     FlowType,
     TicketType,
-    TodoType,
 )
 from backend.ticket.contexts import TicketContext
 from backend.ticket.exceptions import TicketDuplicationException
@@ -606,17 +605,7 @@ class TicketViewSet(viewsets.AuditedModelViewSet):
         根据todo的类型可以触发不同的factor函数
         """
         data = self.params_validate(self.get_serializer_class())
-        user = request.user.username
-
-        tickets = Ticket.objects.prefetch_related("todo_of_ticket").filter(id__in=data["ticket_ids"])
-        # 找到单据第一个代办（排除INNER_APPROVE，这是任务流程的人工确认节点产生的，不允许在单据维度操作）
-        running_todos = [
-            ticket.todo_of_ticket.exclude(type=TodoType.INNER_APPROVE).filter(status__in=TODO_RUNNING_STATUS).first()
-            for ticket in tickets
-        ]
-        operations = [{"todo_id": todo.id, "params": data["params"]} for todo in running_todos if todo]
-
-        return Response(TicketHandler.batch_process_todo(user=user, action=data["action"], operations=operations))
+        return Response(TicketHandler.batch_process_ticket(username=request.user.username, **data))
 
     @swagger_auto_schema(
         operation_summary=_("获取单据关联任务流程信息"),
