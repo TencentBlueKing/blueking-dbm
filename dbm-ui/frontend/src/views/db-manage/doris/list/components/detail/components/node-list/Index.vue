@@ -181,6 +181,7 @@
   </div>
 </template>
 <script setup lang="tsx">
+  import _ from 'lodash'
   import { useI18n } from 'vue-i18n';
 
   import DorisDetailModel from '@services/model/doris/doris-detail';
@@ -273,6 +274,8 @@
     },
   ];
 
+  let totalTableData: DorisNodeModel[] = [];
+
   const isAnomalies = ref(false);
   const isShowReplace = ref(false);
   const isShowExpandsion = ref(false);
@@ -342,6 +345,7 @@
       label: t('类型'),
       field: 'node_type',
       filter: {
+        filterFn: () => true,
         list: [
           {
             value: 'doris_backend_hot',
@@ -470,7 +474,7 @@
     let hotNodeNum = 0;
     let coldNodeNumTotal = 0;
     let coldNodeNum = 0;
-    tableData.value.forEach((nodeItem) => {
+    totalTableData.forEach((nodeItem) => {
       if (nodeItem.isObserver) {
         observerNumTotal = observerNumTotal + 1;
       } else if (nodeItem.isHot) {
@@ -539,6 +543,9 @@
       .then((data) => {
         tableData.value = data.results;
         isAnomalies.value = false;
+        if (searchValue.value.length === 0) {
+          totalTableData = _.cloneDeep(tableData.value);
+        }
       })
       .catch(() => {
         tableData.value = [];
