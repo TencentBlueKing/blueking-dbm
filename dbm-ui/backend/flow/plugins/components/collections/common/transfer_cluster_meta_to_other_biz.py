@@ -45,6 +45,9 @@ class TransferClusterMetaToOtherBiz(BaseService):
             Machine.objects.filter(storageinstance__cluster__immute_domain__in=cluster_domain_list).update(
                 bk_biz_id=target_biz_id, db_module_id=db_module_id
             )
+            Machine.objects.filter(proxyinstance__cluster__immute_domain__in=cluster_domain_list).update(
+                bk_biz_id=target_biz_id, db_module_id=db_module_id
+            )
         self.log_info("transfer cluster meta to other biz success")
         return True
 

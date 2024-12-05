@@ -83,7 +83,7 @@ func SyncDbRpDailySnapShot() (err error) {
 			city,
 			sub_zone,
 			sub_zone_id,
-			label,
+			labels,
 			status,
 			update_time,
 			create_time
