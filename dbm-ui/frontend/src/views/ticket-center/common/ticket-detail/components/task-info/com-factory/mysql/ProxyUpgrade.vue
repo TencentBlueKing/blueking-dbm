@@ -31,7 +31,7 @@
     </BkTableColumn>
     <BkTableColumn :label="t('目标版本')">
       <template #default="{ data }: { data: RowData }">
-        {{ packageMap[data.pkg_id] || '--' }}
+        {{ data.display_info.target_package || '--' }}
       </template>
     </BkTableColumn>
   </BkTable>
@@ -39,10 +39,8 @@
 
 <script setup lang="tsx">
   import { useI18n } from 'vue-i18n';
-  import { useRequest } from 'vue-request';
 
   import TicketModel, { type Mysql } from '@services/model/ticket/ticket';
-  import { getPackages } from '@services/source/package';
 
   import { TicketTypes } from '@common/const';
 
@@ -60,18 +58,4 @@
   });
 
   const { t } = useI18n();
-
-  const packageMap = ref<Record<string, string>>({});
-
-  const { run: fetchClusterVersions } = useRequest(getPackages, {
-    manual: true,
-    onSuccess(versions) {
-      packageMap.value = Object.fromEntries(versions.results.map(({ id, name }) => [id, name]));
-    },
-  });
-
-  fetchClusterVersions({
-    pkg_type: 'mysql-proxy',
-    db_type: 'mysql',
-  });
 </script>

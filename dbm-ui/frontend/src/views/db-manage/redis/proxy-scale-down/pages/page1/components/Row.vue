@@ -62,6 +62,7 @@
       <RenderSwitchMode
         ref="switchRef"
         :data="data.switchMode"
+        :disabled="!data.cluster || currentHostSelectType === HostSelectType.MANUAL"
         :is-loading="data.isLoading" />
     </td>
     <OperateColumn

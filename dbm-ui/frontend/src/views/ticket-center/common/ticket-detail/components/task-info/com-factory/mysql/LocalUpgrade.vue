@@ -12,139 +12,71 @@
 -->
 
 <template>
-  <DbOriginalTable
-    :columns="columns"
-    :data="dataList" />
+  <BkTable
+    :data="ticketDetails.details.infos"
+    show-overflow-tooltip>
+    <BkTableColumn :label="t('目标集群')">
+      <template #default="{ data }: { data: RowData }">
+        <p
+          v-for="item in data.cluster_ids"
+          :key="item">
+          {{ ticketDetails.details.clusters[item].immute_domain }}
+        </p>
+      </template>
+    </BkTableColumn>
+    <BkTableColumn :label="t('当前版本')">
+      <template #default="{ data }: { data: RowData }">
+        <VersionContent
+          :data="{
+            version: data.display_info.current_version,
+            package: data.display_info.current_package,
+            charSet: data.display_info.charset,
+            moduleName: data.display_info.current_module_name,
+          }" />
+      </template>
+    </BkTableColumn>
+    <BkTableColumn :label="t('目标版本')">
+      <template #default="{ data }: { data: RowData }">
+        <VersionContent
+          :data="{
+            version: data.display_info.current_version,
+            package: data.display_info.target_package,
+            charSet: data.display_info.charset,
+            moduleName: data.display_info.current_module_name,
+          }" />
+      </template>
+    </BkTableColumn>
+  </BkTable>
+  <InfoList>
+    <InfoItem :label="t('忽略业务连接：')">
+      {{ ticketDetails.details.force ? t('是') : t('否') }}
+    </InfoItem>
+  </InfoList>
 </template>
 
 <script setup lang="tsx">
   import { useI18n } from 'vue-i18n';
-  import { useRequest } from 'vue-request';
 
-  import TicketModel, {type Mysql} from '@services/model/ticket/ticket';
-  import { getPackages } from '@services/source/package';
+  import TicketModel, { type Mysql } from '@services/model/ticket/ticket';
 
   import { TicketTypes } from '@common/const';
 
-  import VersionContent from './components/VersionContent.vue'
+  import InfoList, { Item as InfoItem } from '../components/info-list/Index.vue';
 
-  interface DataItem {
-    cluster_id: number,
-    immute_domain: string,
-    name: string,
-    currentVersion: {
-      version: string;
-      package: string;
-      charSet: string;
-      moduleName: string;
-    }
-    targetVersion: {
-      pkg_id: number,
-      version: string;
-      package: string;
-      charSet: string;
-      moduleName: string;
-    },
-  }
+  import VersionContent from './components/VersionContent.vue';
 
   interface Props {
-    ticketDetails: TicketModel<Mysql.LocalUpgrade>
+    ticketDetails: TicketModel<Mysql.LocalUpgrade>;
   }
 
-  const props = defineProps<Props>();
+  type RowData = Props['ticketDetails']['details']['infos'][number];
 
-  const { t } = useI18n();
-
-  const dataList = ref<DataItem[]>([])
-
-  const columns = [
-    {
-      label: t('集群ID'),
-      field: 'cluster_id',
-      width: 100,
-      render: ({ cell }: { cell: [] }) => <span>{cell || '--'}</span>,
-    },
-    {
-      label: t('集群名称'),
-      field: 'immute_domain',
-      showOverflowTooltip: false,
-      render: ({ data }: { data: any }) => (
-        <div class="cluster-name text-overflow"
-          v-overflow-tips={{
-            content: `
-              <p>${t('域名')}：${data.immute_domain}</p>
-              ${data.name ? `<p>${('集群别名')}：${data.name}</p>` : null}
-            `,
-            allowHTML: true,
-          }}>
-          <span>{data.immute_domain}</span>
-        </div>
-      ),
-    },
-    {
-      label: t('当前版本'),
-      field: 'new_master',
-      render: ({ data }: { data: DataItem }) => <VersionContent data={data.currentVersion} />
-    },
-    {
-      label: t('目标版本'),
-      field: 'new_version',
-      render: ({ data }: { data: DataItem }) => <VersionContent data={data.targetVersion} />
-    }
-  ];
-
-  const list: DataItem[] = [];
-  const infosData = props.ticketDetails?.details?.infos || [];
-  const clusterIds = props.ticketDetails?.details?.clusters || {};
-  infosData.forEach((item) => {
-    item.cluster_ids.forEach((id) => {
-      const clusterData = clusterIds[id];
-      list.push(Object.assign({
-        cluster_id: id,
-        immute_domain: clusterData.immute_domain,
-        name: clusterData.name,
-        currentVersion: {
-          version: item.display_info.current_version,
-          package: item.display_info.current_package,
-          charSet: item.display_info.charset,
-          moduleName: item.display_info.current_module_name
-        },
-        targetVersion: {
-          pkg_id: item.pkg_id,
-          version: item.display_info.current_version,
-          package: '',
-          charSet: item.display_info.charset,
-          moduleName: item.display_info.current_module_name,
-        },
-      }));
-    });
-  });
-  dataList.value = list
-
-  useRequest(getPackages, {
-    defaultParams: [{
-      pkg_type: 'mysql',
-      db_type: 'mysql'
-    }],
-    onSuccess(packageResult) {
-      const packageMap = packageResult.results.reduce((prev, item) => Object.assign(prev, { [item.id]: {
-        name: item.name,
-        version: item.version
-      } }), {} as Record<number, {
-        name: string,
-        version: string
-      }>)
-      dataList.value = dataList.value.map(item => Object.assign(item, {
-        targetVersion: {
-          ...item.targetVersion,
-          package: packageMap[item.targetVersion.pkg_id].name
-        }
-      }))
-    }
-  })
+  defineProps<Props>();
 
   defineOptions({
     name: TicketTypes.MYSQL_LOCAL_UPGRADE,
     inheritAttrs: false,
   });
+
+  const { t } = useI18n();
 </script>

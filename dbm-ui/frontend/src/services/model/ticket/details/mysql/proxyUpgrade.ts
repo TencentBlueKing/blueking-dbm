@@ -7,6 +7,7 @@ export interface ProxyUpgrade extends DetailBase {
     cluster_ids: number[];
     display_info: {
       current_version: string;
+      target_package: string;
     };
   }[];
   force: boolean;

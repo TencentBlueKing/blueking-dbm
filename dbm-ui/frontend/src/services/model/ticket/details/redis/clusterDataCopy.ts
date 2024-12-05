@@ -2,7 +2,7 @@ import type { DetailBase, DetailClusters } from '../common';
 
 export interface ClusterDataCopy extends DetailBase {
   clusters: DetailClusters;
-  dts_copy_type: string;
+  dts_copy_type: 'copy_to_other_system' | 'diff_app_diff_cluster' | 'one_app_diff_cluster' | 'user_built_to_dbm';
   write_mode: string;
   sync_disconnect_setting: {
     type: string;

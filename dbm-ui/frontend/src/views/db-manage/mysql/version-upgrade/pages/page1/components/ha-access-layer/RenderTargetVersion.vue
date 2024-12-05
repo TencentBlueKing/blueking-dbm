@@ -57,7 +57,12 @@
   }
 
   interface Exposes {
-    getValue: () => Promise<Record<'pkg_id', string>>;
+    getValue: () => Promise<{
+      pkg_id: string;
+      display_info: {
+        target_package: string;
+      };
+    }>;
   }
 
   const props = defineProps<Props>();
@@ -124,7 +129,12 @@
 
   defineExpose<Exposes>({
     getValue() {
-      return selectRef.value!.getValue().then(() => ({ pkg_id: localValue.value }));
+      return selectRef.value!.getValue().then(() => ({
+        pkg_id: localValue.value,
+        display_info: {
+          target_package: versionList.value.find((item) => item.value === localValue.value)?.label || '',
+        },
+      }));
     },
   });
 </script>
