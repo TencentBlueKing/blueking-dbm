@@ -27,33 +27,11 @@
           v-model:biz-id="formData.bk_biz_id"
           perrmision-action-id="riak_cluster_apply"
           @change-biz="handleChangeBiz" />
-        <BkFormItem
-          ref="moduleRef"
-          class="is-required"
-          :description="t('表示DB的用途')"
-          :label="t('DB模块名')"
-          property="details.db_module_id"
-          required>
-          <BkSelect
-            v-model="formData.details.db_module_id"
-            class="item-input"
-            :clearable="false"
-            filterable
-            :input-search="false"
-            :loading="getModulesLoading"
-            :placeholder="t('请选择xx', [t('DB模块名')])">
-            <AuthOption
-              v-for="item in moduleList"
-              :key="item.db_module_id"
-              action-id="dbconfig_view"
-              :biz-id="formData.bk_biz_id"
-              :label="item.alias_name"
-              :name="item.alias_name"
-              :permission="item.permission.dbconfig_view"
-              resource="riak"
-              :value="item.db_module_id" />
-          </BkSelect>
-        </BkFormItem>
+        <ModuleItem
+          v-model="formData.details.db_module_id"
+          v-model:module-alias-name="moduleAliasName"
+          :biz-id="formData.bk_biz_id"
+          :cluster-type="ClusterTypes.RIAK" />
         <ClusterName v-model="formData.details.cluster_name" />
         <ClusterAlias
           v-model="formData.details.cluster_alias"
@@ -211,9 +189,7 @@
 <script setup lang="ts">
   import InfoBox from 'bkui-vue/lib/info-box';
   import { useI18n } from 'vue-i18n';
-  import { useRequest } from 'vue-request';
 
-  import { getModules } from '@services/source/cmdb';
   import type { BizItem, HostInfo } from '@services/types';
 
   import { useApplyBase } from '@hooks';
@@ -226,6 +202,7 @@
   import CloudItem from '@views/db-manage/common/apply-items/CloudItem.vue';
   import ClusterAlias from '@views/db-manage/common/apply-items/ClusterAlias.vue';
   import ClusterName from '@views/db-manage/common/apply-items/ClusterName.vue';
+  import ModuleItem from '@views/db-manage/common/apply-items/ModuleItem.vue';
   import RegionItem from '@views/db-manage/common/apply-items/RegionItem.vue';
   import SpecSelector from '@views/db-manage/common/apply-items/SpecSelector.vue';
 
@@ -242,7 +219,7 @@
       bk_cloud_id: 0,
       db_app_abbr: '',
       ip_source: 'resource_pool',
-      db_module_id: '' as number | '',
+      db_module_id: null as number | null,
       cluster_name: '',
       cluster_alias: '',
       city_code: '',
@@ -264,25 +241,8 @@
     id: '' as number | string,
     name: '',
   });
+  const moduleAliasName = ref('');
   const formData = reactive(genDefaultFormData());
-
-  const {
-    data: moduleList,
-    run: getModulesRun,
-    loading: getModulesLoading,
-  } = useRequest(getModules, {
-    manual: true,
-  });
-
-  watch(
-    () => formData.bk_biz_id,
-    (value) => {
-      if (value) {
-        formData.details.db_module_id = '';
-        fetchModules(value);
-      }
-    },
-  );
 
   const formRules = {
     nodes_num: [
@@ -309,17 +269,6 @@
     bizState.hasEnglishName = !!info.english_name;
   };
 
-  const fetchModules = (bizId: number | null) => {
-    if (!bizId) {
-      return;
-    }
-
-    getModulesRun({
-      bk_biz_id: bizId,
-      cluster_type: ClusterTypes.RIAK,
-    });
-  };
-
   const handleChangeCloud = (info: { id: number | string; name: string }) => {
     cloudInfo.value = info;
 
@@ -340,15 +289,11 @@
     formRef.value.validate().then(() => {
       baseState.isSubmitting = true;
 
-      const { db_module_id: moduleId } = formData.details;
-      const moduleListValue = moduleList.value || [];
-      const moduleIndex = moduleListValue.findIndex((moduleItem) => Number(moduleItem.db_module_id) === moduleId);
-
       const params = {
         ...formData,
         details: {
           ...formData.details,
-          db_module_name: moduleListValue[moduleIndex].alias_name,
+          db_module_name: moduleAliasName.value,
         },
       };
 
