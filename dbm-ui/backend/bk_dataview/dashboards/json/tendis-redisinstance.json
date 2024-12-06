@@ -6033,10 +6033,10 @@
             "include": {
               "names": [
                 "ip",
-                "Value 1",
-                "Value 2",
-                "Value 3",
-                "Value 4"
+                "Value #A",
+                "Value #B",
+                "Value #C",
+                "Value #D"
               ]
             }
           }
@@ -6047,10 +6047,10 @@
             "excludeByName": {},
             "indexByName": {},
             "renameByName": {
-              "Value 1": "TotalMemory",
-              "Value 2": "UsedMemory",
-              "Value 3": "UsedPct%",
-              "Value 4": "ShardNum",
+              "Value #A": "TotalMemory",
+              "Value #B": "UsedMemory",
+              "Value #C": "UsedPct%",
+              "Value #D": "ShardNum",
               "ip": ""
             }
           }
@@ -6440,10 +6440,10 @@
             "include": {
               "names": [
                 "instance",
-                "Value 1",
-                "Value 2",
-                "Value 3",
-                "Value 4"
+                "Value #A",
+                "Value #B",
+                "Value #C",
+                "Value #D"
               ]
             }
           }
@@ -6453,10 +6453,10 @@
           "options": {
             "alias": "MemUsedRate",
             "binary": {
-              "left": "Value 1",
+              "left": "Value #A",
               "operator": "/",
               "reducer": "sum",
-              "right": "Value 3"
+              "right": "Value #C"
             },
             "mode": "binary",
             "reduce": {
@@ -6472,10 +6472,10 @@
             "indexByName": {},
             "renameByName": {
               "MemUsedRate": "",
-              "Value 1": "MemUsed",
-              "Value 2": "MemUsedRss",
-              "Value 3": "MaxMemory",
-              "Value 4": "MaxMemoryPolicy",
+              "Value #A": "MemUsed",
+              "Value #B": "MemUsedRss",
+              "Value #C": "MaxMemory",
+              "Value #D": "MaxMemoryPolicy",
               "instance": ""
             }
           }
