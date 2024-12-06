@@ -22,13 +22,14 @@
         </BkFormItem>
       </BkForm>
     </DbCard>
-    <BkButton
+    <AuthButton
+      action-id="biz_assistance_vars_config"
       class="submit-btn"
       :loading="isUpdating"
       theme="primary"
       @click="handleSubmit">
       {{ t('保存') }}
-    </BkButton>
+    </AuthButton>
   </div>
 </template>
 
