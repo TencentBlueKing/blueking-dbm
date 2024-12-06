@@ -229,6 +229,12 @@
         ],
       );
     }
+    if (state.version) {
+      baseColumns[0].push({
+        label: t('Spider版本'),
+        render: () => state.data.version,
+      });
+    }
     return baseColumns;
   });
   const detailData = computed(() => {

@@ -80,6 +80,14 @@ const routes: RouteRecordRaw[] = [
         },
         component: () => import('@views/db-manage/tendb-cluster/apply/CreateModule.vue'),
       },
+      {
+        name: 'SqlServerCreateDbModule',
+        path: 'sqlserver-create-db-module/:ticketType/:bizId/',
+        meta: {
+          navName: t('新建模块'),
+        },
+        component: () => import('@views/service-apply/create-db-module/SqlServerCreateDbModule.vue'),
+      },
     ],
   },
 ];
