@@ -13,7 +13,7 @@
 
 <template>
   <BkTable :data="ticketDetails.details.infos">
-    <BkTableColumn :label="t('集群域名')">
+    <BkTableColumn :label="t('集群')">
       <template #default="{ data }">
         {{ ticketDetails.details.clusters[data.cluster_id].immute_domain }}
       </template>

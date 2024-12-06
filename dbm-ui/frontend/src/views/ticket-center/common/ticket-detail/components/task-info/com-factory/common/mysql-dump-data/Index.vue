@@ -12,11 +12,9 @@
 -->
 
 <template>
-  <div class="export-data-details">
-    <DemandInfo
-      :config="config"
-      :data="ticketDetails" />
-  </div>
+  <DemandInfo
+    :config="config"
+    :data="ticketDetails" />
 </template>
 
 <script setup lang="tsx">
