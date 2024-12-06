@@ -85,7 +85,7 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import { getAlarmGroupList, insertAlarmGroup, updateAlarmGroup } from '@services/source/monitorNoticeGroup';
+  import { getAlarmGroupList, insertAlarmGroup, patchAlarmGroup } from '@services/source/monitorNoticeGroup';
 
   import { useBeforeClose } from '@hooks';
 
@@ -145,7 +145,7 @@
     receivers: [] as string[],
   });
 
-  const loading = computed(() => insertLoading.value || updateLoading.value);
+  const loading = computed(() => insertLoading.value || patchLoading.value);
   const editDisabled = computed(() => props.type === 'edit' && props.detailData.is_built_in);
 
   const sidesliderTitle = computed(() => `${titleMap[props.type]}`);
@@ -157,7 +157,7 @@
     },
   });
 
-  const { loading: updateLoading, run: updateAlarmGroupRun } = useRequest(updateAlarmGroup, {
+  const { loading: patchLoading, run: patchAlarmGroupRun } = useRequest(patchAlarmGroup, {
     manual: true,
     onSuccess() {
       runSuccess(t('编辑成功'));
@@ -190,7 +190,7 @@
     };
 
     if (props.type === 'edit') {
-      updateAlarmGroupRun({
+      patchAlarmGroupRun({
         ...params,
         id: props.detailData.id,
       });
