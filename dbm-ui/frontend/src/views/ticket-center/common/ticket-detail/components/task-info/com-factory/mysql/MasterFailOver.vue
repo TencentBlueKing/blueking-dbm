@@ -36,6 +36,17 @@
       </template>
     </BkTableColumn>
   </BkTable>
+  <InfoList>
+    <InfoItem :label="t('检查业务来源的连接：')">
+      {{ ticketDetails.details.is_check_process ? t('是') : t('否') }}
+    </InfoItem>
+    <InfoItem :label="t('检查主从同步延迟：')">
+      {{ ticketDetails.details.is_check_delay ? t('是') : t('否') }}
+    </InfoItem>
+    <InfoItem :label="t('检查主从数据校验结果：')">
+      {{ ticketDetails.details.is_verify_checksum ? t('是') : t('否') }}
+    </InfoItem>
+  </InfoList>
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
@@ -43,6 +54,8 @@
   import TicketModel, { type Mysql } from '@services/model/ticket/ticket';
 
   import { TicketTypes } from '@common/const';
+
+  import InfoList, { Item as InfoItem } from '../components/info-list/Index.vue';
 
   interface Props {
     ticketDetails: TicketModel<Mysql.MasterFailOver>;

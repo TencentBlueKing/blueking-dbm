@@ -1,28 +1,28 @@
 <template>
-  <div class="ticket-details-page">
+  <div class="demand-info">
     <div
       v-for="(dataItem, dataKey) in config"
       :key="dataKey"
-      class="ticket-details-info"
-      :class="{ 'ticket-details-info-no-title': !dataItem.title }">
+      class="demand-info-info"
+      :class="{ 'demand-info-info-no-title': !dataItem.title }">
       <strong
         v-if="dataItem.title"
-        class="ticket-details-info-title">
+        class="demand-info-info-title">
         {{ dataItem.title }}
       </strong>
-      <div class="ticket-details-list">
+      <div class="demand-info-list">
         <template
           v-for="(listItem, listKey) in dataItem.list"
           :key="listKey">
           <div
             v-if="!listItem.isHidden && (listItem.key || listItem.render)"
-            class="ticket-details-item"
+            class="demand-info-item"
             :class="{
               whole: listItem.iswhole,
               table: listItem.isTable,
             }">
-            <span class="ticket-details-item-label">{{ listItem.label }}：</span>
-            <span class="ticket-details-item-value">
+            <span class="demand-info-item-label">{{ listItem.label }}：</span>
+            <span class="demand-info-item-value">
               <Component
                 :is="listItem.render"
                 v-if="listItem.render" />
@@ -75,21 +75,21 @@
 <style lang="less" scoped>
   @import '@styles/mixins.less';
 
-  .ticket-details-page {
-    .ticket-details-info {
+  .demand-info {
+    .demand-info-info {
       padding-left: 82px;
       font-size: @font-size-mini;
 
-      .ticket-details-info-title {
+      .demand-info-info-title {
         color: @title-color;
       }
     }
 
-    .ticket-details-info-no-title {
+    .demand-info-info-no-title {
       padding-left: 0;
     }
 
-    .ticket-details-list {
+    .demand-info-list {
       .flex-center();
 
       max-width: 1000px;
@@ -97,7 +97,7 @@
       flex-wrap: wrap;
     }
 
-    .ticket-details-item {
+    .demand-info-item {
       .flex-center();
 
       overflow: hidden;
@@ -105,13 +105,13 @@
       flex: 0 0 50%;
       align-items: flex-start;
 
-      .ticket-details-item-label {
+      .demand-info-item-label {
         flex-shrink: 0;
         min-width: 160px;
         text-align: right;
       }
 
-      .ticket-details-item-value {
+      .demand-info-item-value {
         overflow: hidden;
         color: @title-color;
         text-overflow: ellipsis;
@@ -136,7 +136,7 @@
         align-items: flex-start;
         flex: 0 0 100%;
 
-        .ticket-details-item-value {
+        .demand-info-item-value {
           padding-top: 8px;
         }
       }
