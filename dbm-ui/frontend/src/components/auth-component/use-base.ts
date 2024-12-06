@@ -70,6 +70,7 @@ const withBizActionList = [
   'sqlserver_account_rules_view',
   'biz_ticket_config_set',
   'doris_apply',
+  'biz_assistance_vars_config',
 ];
 
 export default function (props: Props) {
