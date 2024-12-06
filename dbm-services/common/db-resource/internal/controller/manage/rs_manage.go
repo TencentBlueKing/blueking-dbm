@@ -23,6 +23,7 @@ import (
 	"dbm-services/common/go-pubpkg/logger"
 
 	rf "github.com/gin-gonic/gin"
+	"github.com/samber/lo"
 )
 
 // MachineResourceHandler 主机处理handler
@@ -45,6 +46,7 @@ func (c *MachineResourceHandler) RegisterRouter(engine *rf.Engine) {
 		r.POST("/list/all", c.ListAll)
 		r.POST("/update", c.Update)
 		r.POST("/batch/update", c.BatchUpdate)
+		r.POST("/append/labels", c.AddLabels)
 		r.POST("/delete", c.Delete)
 		r.POST("/import", c.Import)
 		r.POST("/mountpoints", c.GetMountPoints)
@@ -307,15 +309,15 @@ func (c *MachineResourceHandler) GroupByLabelCount(r *rf.Context) {
 	logger.Info("rs len %d", len(rs))
 	ret := make(map[string]int)
 	for _, v := range rs {
-		var lables []string
+		var labels []string
 		logger.Info("labels %s", string(v.Labels))
-		if err := json.Unmarshal(v.Labels, &lables); err != nil {
+		if err := json.Unmarshal(v.Labels, &labels); err != nil {
 			logger.Error("unmarshal failed %s", err.Error())
 			c.SendResponse(r, err, err.Error())
 			return
 		}
-		if len(lables) > 0 {
-			for _, l := range lables {
+		if len(labels) > 0 {
+			for _, l := range lo.Uniq(labels) {
 				ret[l]++
 			}
 		}
