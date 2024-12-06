@@ -46,7 +46,7 @@
         {
           label: t('目标集群'),
           render: () => (
-            <TextOverflowLayout class="detail-item">
+            <TextOverflowLayout>
               {{
                 default: () => domain,
                 append: () => (
@@ -65,12 +65,10 @@
         {
           label: t('目标 DB'),
           render: () => (
-            <div class="detail-item">
-              <div class="target-dbs">
-                {
-                  databases.map((database) => <bk-tag class="mb-4">{database}</bk-tag>)
-                }
-              </div>
+            <div>
+              {
+                databases.map((database) => <bk-tag class="mb-4">{database}</bk-tag>)
+              }
               <bk-button
                 class="ml-4"
                 theme="primary"
@@ -84,7 +82,7 @@
         {
           label: t('目标表名'),
           render: () => (
-            <TextOverflowLayout class="detail-item">
+            <TextOverflowLayout>
               {{
                 default: () => tables.join(','),
                 append: () => (
@@ -103,7 +101,7 @@
         {
           label: t('忽略表名'),
           render: () => (
-            <TextOverflowLayout class="detail-item">
+            <TextOverflowLayout>
               {{
                 default: () => tableIgnore.join(',') || '--',
                 append: () => (
@@ -126,8 +124,8 @@
           iswhole: true,
           render: () => (
             where ? (
-              <div class="detail-item">
-                <div class="where-box">{where}</div>
+              <div>
+                { where }
                 <bk-button
                   class="ml-4"
                   theme="primary"

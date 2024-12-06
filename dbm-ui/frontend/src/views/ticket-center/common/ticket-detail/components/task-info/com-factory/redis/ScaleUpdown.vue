@@ -92,11 +92,19 @@
   const getCurrentColunms = (data: RowData) => [
     {
       title: t('当前容量'),
-      render: () => <ClusterCapacityUsageRate clusterStats={data.display_info.cluster_stats} />
+      render: () => {
+        if (_.isEmpty(data.display_info?.cluster_stats)) {
+          return '--'
+        }
+        return <ClusterCapacityUsageRate clusterStats={data.display_info.cluster_stats} />
+      }
     },
     {
       title: t('资源规格'),
       render: () => {
+        if (_.isEmpty(data.display_info?.cluster_spec)) {
+          return '--'
+        }
         const currentSpec = {
           ...data.display_info.cluster_spec,
           id: data.display_info.cluster_spec.spec_id,
@@ -112,15 +120,15 @@
     },
     {
       title: t('机器组数'),
-      render: () => data.display_info.machine_pair_cnt
+      render: () => data.display_info?.machine_pair_cnt || '--'
     },
     {
       title: t('机器数量'),
-      render: () => data.display_info.machine_pair_cnt * 2
+      render: () => data.display_info?.machine_pair_cnt ? data.display_info.machine_pair_cnt * 2 : '--'
     },
     {
       title: t('分片数'),
-      render: () => data.display_info.cluster_shard_num
+      render: () => data.display_info?.cluster_shard_num || '--'
     },
   ]
 
@@ -128,19 +136,17 @@
     {
       title: t('目标容量'),
       render: () => {
+        if (_.isEmpty(data.display_info?.cluster_stats)) {
+          return '--'
+        }
         const { used = 0, total = 0 } = data.display_info.cluster_stats;
         const targetTotal = convertStorageUnits(data.future_capacity, 'GB', 'B')
         const currentValue = data.display_info.cluster_capacity || convertStorageUnits(total, 'B', 'GB')
-
-        let stats = {}
-        if (!_.isEmpty(data.display_info.cluster_stats)) {
-          stats = {
-            used,
-            total: targetTotal,
-            in_use: Number((used / targetTotal * 100).toFixed(2))
-          }
+        const stats = {
+          used,
+          total: targetTotal,
+          in_use: Number((used / targetTotal * 100).toFixed(2))
         }
-
         return (
           <>
             <ClusterCapacityUsageRate clusterStats={stats} />
@@ -167,14 +173,16 @@
     {
       title: t('机器组数'),
       render: () => {
-        const targetValue = data.group_num
+        if (_.isEmpty(data.display_info?.machine_pair_cnt)) {
+          return '--'
+        }
         return (
           <>
-            <span>{targetValue}</span>
+            <span>{data.group_num}</span>
             <ValueDiff
               currentValue={data.display_info.machine_pair_cnt}
               show-rate={false}
-              targetValue={targetValue} />
+              targetValue={data.group_num} />
           </>
         )
       }
@@ -182,6 +190,9 @@
     {
       title: t('机器数量'),
       render: () => {
+        if (_.isEmpty(data.display_info?.machine_pair_cnt)) {
+          return '--'
+        }
         const targetValue = data.group_num * 2
         return (
           <>
@@ -196,15 +207,20 @@
     },
     {
       title: t('分片数'),
-      render: () => (
-        <>
-          <span>{data.shard_num}</span>
-          <ValueDiff
-            currentValue={data.display_info.cluster_shard_num}
-            show-rate={false}
-            targetValue={data.shard_num} />
-        </>
-      )
+      render: () => {
+        if (_.isEmpty(data.display_info?.cluster_shard_num)) {
+          return '--'
+        }
+        return (
+          <>
+            <span>{data.shard_num}</span>
+            <ValueDiff
+              currentValue={data.display_info.cluster_shard_num}
+              show-rate={false}
+              targetValue={data.shard_num} />
+          </>
+        )
+      }
     },
     {
       title: t('变更方式'),

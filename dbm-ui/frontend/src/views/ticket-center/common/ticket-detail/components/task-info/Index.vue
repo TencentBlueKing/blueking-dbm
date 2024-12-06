@@ -12,12 +12,16 @@
 -->
 
 <template>
-  <ComFactory
-    class="ticket-details-page"
-    :data="data" />
+  <ComFactory :data="data" />
+  <div class="ticket-details-item">
+    <span class="ticket-details-item-label">{{ t('备注') }}：</span>
+    <span class="ticket-details-item-value">{{ data.remark || '--' }}</span>
+  </div>
 </template>
 
 <script setup lang="ts">
+  import { useI18n } from 'vue-i18n';
+
   import TicketModel from '@services/model/ticket/ticket';
 
   import ComFactory from './com-factory/Index.vue';
@@ -32,6 +36,8 @@
   defineOptions({
     name: 'TicketTaskInfo',
   });
+
+  const { t } = useI18n();
 </script>
 
 <style lang="less">

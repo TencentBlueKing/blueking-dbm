@@ -17,7 +17,7 @@
     show-overflow-tooltip>
     <BkTableColumn :label="t('构造产物访问入口')">
       <template #default="{ row }">
-        {{ row.display_info.temp_cluster_proxy }}
+        {{ row.display_info?.temp_cluster_proxy || '--' }}
       </template>
     </BkTableColumn>
     <BkTableColumn

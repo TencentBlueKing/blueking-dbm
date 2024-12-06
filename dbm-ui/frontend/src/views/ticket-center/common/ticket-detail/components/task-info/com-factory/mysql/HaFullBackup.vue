@@ -11,7 +11,7 @@
  * the specific language governing permissions and limitations under the License.
 -->
 <template>
-  <BkTable :data="ticketDetails.details.infos">
+  <BkTable :data="tableData">
     <BkTableColumn :label="t('目标集群')">
       <template #default="{ data }: { data: RowData }">
         {{ ticketDetails.details.clusters[data.cluster_id].immute_domain }}
@@ -25,14 +25,15 @@
   </BkTable>
   <InfoList>
     <InfoItem :label="t('备份类型:')">
-      {{ backupTypeMap[ticketDetails.details.backup_type] }}
+      {{ backupType }}
     </InfoItem>
     <InfoItem :label="t('备份保存时间:')">
-      {{ fileTagMap[ticketDetails.details.file_tag] }}
+      {{ fileTag }}
     </InfoItem>
   </InfoList>
 </template>
 <script setup lang="ts">
+  import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
 
   import TicketModel, { type Mysql } from '@services/model/ticket/ticket';
@@ -47,7 +48,13 @@
 
   type RowData = Props['ticketDetails']['details']['infos'][number];
 
-  defineProps<Props>();
+  interface OldInfo {
+    clusters: RowData[];
+    file_tag: Mysql.HaFullBackup['file_tag'];
+    backup_type: Mysql.HaFullBackup['backup_type'];
+  }
+
+  const props = defineProps<Props>();
 
   defineOptions({
     name: TicketTypes.MYSQL_HA_FULL_BACKUP,
@@ -56,6 +63,10 @@
 
   const { t } = useI18n();
 
+  const tableData = ref<RowData[]>([]);
+  const backupType = ref('--');
+  const fileTag = ref('--');
+
   // 备份类型
   const backupTypeMap = {
     logical: t('逻辑备份'),
@@ -63,10 +74,25 @@
   };
 
   // 备份保存时间
-  const fileTagMap: Record<string, string> = {
+  const fileTagMap = {
     DBFILE1M: t('1个月'),
     DBFILE6M: t('6个月'),
     DBFILE1Y: t('1年'),
     DBFILE3Y: t('3年'),
   };
+
+  watchEffect(() => {
+    // 兼容老数据
+    if (_.isObject(props.ticketDetails.details.infos)) {
+      const oldInfo = props.ticketDetails.details.infos as unknown as OldInfo;
+      tableData.value = oldInfo.clusters;
+      backupType.value = backupTypeMap[oldInfo.backup_type];
+      fileTag.value = fileTagMap[oldInfo.file_tag];
+    }
+    if (Array.isArray(props.ticketDetails.details.infos)) {
+      tableData.value = props.ticketDetails.details.infos;
+      backupType.value = backupTypeMap[props.ticketDetails.details.backup_type];
+      fileTag.value = fileTagMap[props.ticketDetails.details.file_tag];
+    }
+  });
 </script>

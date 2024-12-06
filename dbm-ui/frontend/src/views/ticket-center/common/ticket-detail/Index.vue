@@ -26,10 +26,6 @@
               mode="collapse"
               :title="t('需求信息')">
               <TaskInfo :data="ticketData" />
-              <div class="ticket-details-item">
-                <span class="ticket-details-item-label">{{ t('备注') }}：</span>
-                <span class="ticket-details-item-value">{{ ticketData.remark || '--' }}</span>
-              </div>
             </DbCard>
             <DbCard
               class="ticket-flows"

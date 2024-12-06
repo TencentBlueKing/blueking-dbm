@@ -11,7 +11,7 @@ export interface Backup extends DetailBase {
     white_regex: string;
     create_at: string;
     target: string;
-    backup_type: string;
+    backup_type: 'normal_backup' | 'forever_backup';
   }[];
   clusters: DetailClusters;
 }

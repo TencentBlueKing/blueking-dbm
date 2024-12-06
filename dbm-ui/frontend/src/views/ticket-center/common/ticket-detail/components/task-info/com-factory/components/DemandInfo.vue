@@ -1,36 +1,34 @@
 <template>
-  <div class="demand-info">
-    <div
-      v-for="(dataItem, dataKey) in config"
-      :key="dataKey"
-      class="demand-info-info"
-      :class="{ 'demand-info-info-no-title': !dataItem.title }">
-      <strong
-        v-if="dataItem.title"
-        class="demand-info-info-title">
-        {{ dataItem.title }}
-      </strong>
-      <div class="demand-info-list">
-        <template
-          v-for="(listItem, listKey) in dataItem.list"
-          :key="listKey">
-          <div
-            v-if="!listItem.isHidden && (listItem.key || listItem.render)"
-            class="demand-info-item"
-            :class="{
-              whole: listItem.iswhole,
-              table: listItem.isTable,
-            }">
-            <span class="demand-info-item-label">{{ listItem.label }}：</span>
-            <span class="demand-info-item-value">
-              <Component
-                :is="listItem.render"
-                v-if="listItem.render" />
-              <template v-else>{{ getValue(listItem.key as string) }} </template>
-            </span>
-          </div>
-        </template>
-      </div>
+  <div
+    v-for="(dataItem, dataKey) in config"
+    :key="dataKey"
+    class="demand-info"
+    :class="{ 'demand-info-no-title': !dataItem.title }">
+    <strong
+      v-if="dataItem.title"
+      class="demand-info-title">
+      {{ dataItem.title }}
+    </strong>
+    <div class="demand-info-list">
+      <template
+        v-for="(listItem, listKey) in dataItem.list"
+        :key="listKey">
+        <div
+          v-if="!listItem.isHidden && (listItem.key || listItem.render)"
+          class="demand-info-item"
+          :class="{
+            whole: listItem.iswhole,
+            table: listItem.isTable,
+          }">
+          <span class="demand-info-item-label">{{ listItem.label }}：</span>
+          <span class="demand-info-item-value">
+            <Component
+              :is="listItem.render"
+              v-if="listItem.render" />
+            <template v-else>{{ getValue(listItem.key as string) }} </template>
+          </span>
+        </div>
+      </template>
     </div>
   </div>
 </template>
@@ -76,16 +74,13 @@
   @import '@styles/mixins.less';
 
   .demand-info {
-    .demand-info-info {
-      padding-left: 82px;
-      font-size: @font-size-mini;
+    font-size: @font-size-mini;
 
-      .demand-info-info-title {
-        color: @title-color;
-      }
+    .demand-info-title {
+      color: @title-color;
     }
 
-    .demand-info-info-no-title {
+    .demand-info-no-title {
       padding-left: 0;
     }
 
@@ -112,6 +107,7 @@
       }
 
       .demand-info-item-value {
+        display: ruby;
         overflow: hidden;
         color: @title-color;
         text-overflow: ellipsis;
