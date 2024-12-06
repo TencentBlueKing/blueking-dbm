@@ -36,6 +36,7 @@ from backend.db_services.dbresource.exceptions import ResourceReturnException
 from backend.db_services.dbresource.filters import DeviceClassFilter
 from backend.db_services.dbresource.handlers import ResourceHandler
 from backend.db_services.dbresource.serializers import (
+    AppendHostLabelSerializer,
     GetDiskTypeResponseSerializer,
     GetMountPointResponseSerializer,
     ListCvmDeviceClassSerializer,
@@ -480,3 +481,13 @@ class DBResourceViewSet(viewsets.SystemViewSet):
         results = UWORKApi.uwork_list(params={"serverIpList": ip_list})
         uwork_list = [result["serverIp"] for result in results]
         return Response({"results": uwork_list})
+
+    @common_swagger_auto_schema(
+        operation_summary=_("追加主机标签"),
+        request_body=AppendHostLabelSerializer(),
+        tags=[SWAGGER_TAG],
+    )
+    @action(detail=False, methods=["POST"], serializer_class=AppendHostLabelSerializer)
+    def append_labels(self, request):
+        append_params = self.params_validate(self.get_serializer_class())
+        return Response(DBResourceApi.resource_append_labels(append_params))

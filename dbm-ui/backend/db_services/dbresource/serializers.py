@@ -466,3 +466,8 @@ class UworkIpsSerializer(serializers.Serializer):
 
     def validate_ip_list(self, value):
         return value.split(",")
+
+
+class AppendHostLabelSerializer(serializers.Serializer):
+    bk_host_ids = serializers.ListField(help_text=_("主机ID列表"), child=serializers.IntegerField())
+    labels = serializers.ListField(help_text=_("追加标签列表"), child=serializers.CharField())

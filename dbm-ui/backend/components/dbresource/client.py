@@ -109,6 +109,11 @@ class _DBResourceApi(BaseApi):
         self.resource_label_count = self.generate_data_api(
             method="POST", url="/resource/groupby/label/count", description=_("按照标签统计资源数量")
         )
+        self.resource_append_labels = self.generate_data_api(
+            method="POST",
+            url="/resource/append/labels",
+            description=_("追加标签"),
+        )
 
 
 DBResourceApi = _DBResourceApi()

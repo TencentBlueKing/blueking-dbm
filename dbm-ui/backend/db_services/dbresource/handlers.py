@@ -460,7 +460,7 @@ class ResourceHandler(object):
         for_biz_infos = AppCache.batch_get_app_attr(bk_biz_ids=for_biz_ids, attr_name="bk_biz_name")
         # 获取标签信息
         label_ids = itertools.chain(*[data["labels"] for data in resource_data["details"] if data["labels"]])
-        label_ids = [int(id) for id in label_ids if id.isdigit()]
+        label_ids = [int(id) for id in label_ids if isinstance(id, int) or id.isdigit()]
         tag_infos = {tag.id: tag.value for tag in Tag.objects.filter(id__in=label_ids)}
         # 格式化资源池字段信息
         for data in resource_data.get("details") or []:
