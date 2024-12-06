@@ -26,91 +26,13 @@
             v-model:biz-id="formdata.bk_biz_id"
             perrmision-action-id="mysql_apply"
             @change-biz="handleChangeBiz" />
-          <BkFormItem
-            ref="moduleRef"
-            class="is-required"
-            :description="t('DB 参数模块是一个管理单元，用于标识一组使用了相同数据库配置（版本、字符集等）的集群')"
-            :label="t('DB参数模块')"
-            property="details.db_module_id">
-            <BkSelect
-              v-model="formdata.details.db_module_id"
-              class="item-input"
-              :clearable="false"
-              filterable
-              :input-search="false"
-              :loading="loading.modules"
-              style="display: inline-block">
-              <AuthOption
-                v-for="item in fetchState.moduleList"
-                :id="item.db_module_id"
-                :key="item.db_module_id"
-                action-id="dbconfig_view"
-                :biz-id="formdata.bk_biz_id"
-                :name="item.alias_name"
-                :permission="item.permission.dbconfig_view"
-                resource="mysql" />
-              <template
-                v-if="formdata.bk_biz_id"
-                #extension>
-                <div
-                  :key="formdata.bk_biz_id"
-                  v-bk-tooltips.top="{
-                    content: t('请先选择所属业务'),
-                    disabled: !!formdata.bk_biz_id,
-                  }"
-                  style="padding: 0 12px">
-                  <AuthButton
-                    action-id="dbconfig_edit"
-                    :biz-id="formdata.bk_biz_id"
-                    class="create-module"
-                    :disabled="!formdata.bk_biz_id"
-                    resource="mysql"
-                    text
-                    @click="handleCreateModule">
-                    <DbIcon type="plus-circle" />
-                    {{ t('新建模块') }}
-                  </AuthButton>
-                </div>
-              </template>
-            </BkSelect>
-            <span
-              v-if="formdata.bk_biz_id"
-              v-bk-tooltips.top="t('刷新获取最新DB模块名')"
-              class="refresh-module"
-              @click="fetchModules(Number(formdata.bk_biz_id))">
-              <i class="db-icon-refresh" />
-            </span>
-            <div
-              v-if="formdata.details.db_module_id"
-              class="apply-form__database">
-              <BkLoading :loading="loading.levelConfigs">
-                <div v-if="fetchState.levelConfigList.length">
-                  <div
-                    v-for="(item, index) in fetchState.levelConfigList"
-                    :key="index"
-                    class="apply-form__database-item">
-                    <span class="apply-form__database-label">{{ item.description || item.conf_name }}:</span>
-                    <span class="apply-form__database-value">{{ item.conf_value }}</span>
-                  </div>
-                </div>
-                <div
-                  v-else
-                  class="no-items">
-                  {{ t('该模块暂未绑定数据库相关配置') }}
-                  <span
-                    class="bind-module"
-                    @click="handleBindConfig">
-                    {{ isBindModule ? t('已完成') : t('去绑定') }}
-                  </span>
-                </div>
-                <div
-                  v-if="!fetchState.levelConfigList.length"
-                  class="bk-form-error mt-10">
-                  {{ t('需要绑定数据库相关配置') }}
-                </div>
-              </BkLoading>
-            </div>
-          </BkFormItem>
+          <ModuleItem
+            ref="moduleItemRef"
+            v-model="formdata.details.db_module_id"
+            v-model:module-alias-name="moduleAliasName"
+            v-model:module-level-config="moduleLevelConfig"
+            :biz-id="formdata.bk_biz_id"
+            :cluster-type="typeInfo.type" />
           <CloudItem
             v-model="formdata.details.bk_cloud_id"
             @change="handleChangeCloud" />
@@ -399,6 +321,7 @@
   import AffinityItem from '@views/db-manage/common/apply-items/AffinityItem.vue';
   import BusinessItems from '@views/db-manage/common/apply-items/BusinessItems.vue';
   import CloudItem from '@views/db-manage/common/apply-items/CloudItem.vue';
+  import ModuleItem from '@views/db-manage/common/apply-items/ModuleItem.vue';
   import RegionItem from '@views/db-manage/common/apply-items/RegionItem.vue';
   import SpecSelector from '@views/db-manage/common/apply-items/SpecSelector.vue';
 
@@ -504,14 +427,20 @@
   const isSingleType = route.name === 'SelfServiceApplySingle';
   const dbType: string = isSingleType ? TicketTypes.MYSQL_SINGLE_APPLY : TicketTypes.MYSQL_HA_APPLY;
 
+  const moduleItemRef = ref<InstanceType<typeof ModuleItem>>();
   const specProxyRef = ref();
   const specBackendRef = ref();
   const specSingleRef = ref();
   const backendRef = ref();
   const proxyRef = ref();
   const moduleRef = ref();
-  const isBindModule = ref(false);
   const regionItemRef = ref();
+  const moduleAliasName = ref('');
+  const moduleLevelConfig = ref({
+    charset: '',
+    dbVersion: '',
+    systemVersionList: [] as string[],
+  });
 
   const cloudInfo = reactive({
     id: '' as number | string,
@@ -523,18 +452,6 @@
         message: t('以小写英文字母开头_且只能包含英文字母_数字_连字符'),
         trigger: 'blur',
         validator: (val: string) => nameRegx.test(val),
-      },
-    ],
-    'details.db_module_id': [
-      {
-        message: t('请先选择所属业务'),
-        trigger: 'blur',
-        validator: () => !!formdata.bk_biz_id,
-      },
-      {
-        message: t('DB模块名不能为空'),
-        trigger: 'blur',
-        validator: (val: number) => !!val,
       },
     ],
     'details.nodes.proxy': [
@@ -573,10 +490,6 @@
   });
   const hostSpecInfo = computed(() => fetchState.hostSpecs.find((info) => info.spec === formdata.details.spec));
   const typeInfo = computed(() => mysqlType[dbType as MysqlTypeString]);
-  const moduleAliasName = computed(() => {
-    const item = fetchState.moduleList.find((item) => item.db_module_id === formdata.details.db_module_id);
-    return item?.alias_name ?? '';
-  });
   const tableData = computed(() => {
     if (moduleAliasName.value && formdata.details.db_app_abbr) {
       return formdata.details.domains;
@@ -596,8 +509,7 @@
   // const isDefaultCity = computed(() => formdata.details.city_code === 'default');
 
   // 获取基础数据信息
-  const { formdata, fetchState, loading, leveConfig, handleResetFormdata, fetchModules, fetchLevelConfig } =
-    useMysqlData(dbType);
+  const { formdata, fetchState, handleResetFormdata } = useMysqlData(dbType);
 
   function handleChangeClusterCount(value: number) {
     if (value && formdata.details.inst_num > value) {
@@ -714,20 +626,20 @@
   }
 
   /** 获取版本、字符集信息 */
-  watch(
-    () => fetchState.levelConfigList,
-    (value) => {
-      value.forEach((item) => {
-        Object.keys(leveConfig).forEach((key) => {
-          if (key === item.conf_name) {
-            if (item.conf_value !== undefined) {
-              leveConfig[key as keyof typeof leveConfig] = item.conf_value;
-            }
-          }
-        });
-      });
-    },
-  );
+  // watch(
+  //   () => fetchState.levelConfigList,
+  //   (value) => {
+  //     value.forEach((item) => {
+  //       Object.keys(leveConfig).forEach((key) => {
+  //         if (key === item.conf_name) {
+  //           if (item.conf_value !== undefined) {
+  //             leveConfig[key as keyof typeof leveConfig] = item.conf_value;
+  //           }
+  //         }
+  //       });
+  //     });
+  //   },
+  // );
 
   /**
    * 预览功能
@@ -736,17 +648,18 @@
     proxy: formatNodes(formdata.details.nodes.proxy),
     backend: formatNodes(formdata.details.nodes.backend),
   }));
-  const previewData = computed(() =>
-    tableData.value.map(({ key }: { key: string }) => ({
+  const previewData = computed(() => {
+    const { dbVersion, charset } = moduleLevelConfig.value;
+    return tableData.value.map(({ key }: { key: string }) => ({
       domain: `${moduleAliasName.value}db.${key}.${formdata.details.db_app_abbr}.db`,
       slaveDomain: `${moduleAliasName.value}db.${key}.${formdata.details.db_app_abbr}.db`,
       disasterDefence: t('同城跨园区'),
       deployStructure: typeInfo.value.name,
-      version: leveConfig.db_version,
-      charset: leveConfig.charset,
+      version: dbVersion,
+      charset,
       spec: hostSpecInfo.value ? `${hostSpecInfo.value.cpu}/${hostSpecInfo.value.mem}` : '',
-    })),
-  );
+    }));
+  });
   const isShowPreview = ref(false);
   const handleShowPreview = () => {
     isShowPreview.value = true;
@@ -773,7 +686,7 @@
       ?.validate()
       .then(() => true)
       .catch(() => false);
-    if (validate && fetchState.levelConfigList.length) {
+    if (validate) {
       baseState.isSubmitting = true;
 
       const getDetails = () => {
@@ -848,50 +761,6 @@
       // 如果英文名为空新增业务英文名称接口，创建单据
       bizState.hasEnglishName ? handleCreateTicket(params) : handleCreateAppAbbr(params);
     }
-  };
-
-  /**
-   * 新建模块
-   */
-  const handleCreateModule = () => {
-    const url = router.resolve({
-      name: 'SelfServiceCreateDbModule',
-      params: {
-        type: dbType,
-        bk_biz_id: formdata.bk_biz_id,
-      },
-      query: {
-        from: route.name as string,
-      },
-    });
-    window.open(url.href, '_blank');
-  };
-
-  const handleBindConfig = () => {
-    if (isBindModule.value) {
-      fetchLevelConfig(formdata.details.db_module_id as number);
-      return;
-    }
-    const moduleInfo = fetchState.moduleList.find((item) => item.db_module_id === formdata.details.db_module_id);
-    const moduleAliasName = moduleInfo?.alias_name ?? '';
-    const moduleAliasNameQuery = moduleAliasName
-      ? {
-          alias_name: moduleAliasName,
-        }
-      : {};
-    isBindModule.value = true;
-    const url = router.resolve({
-      name: 'SelfServiceBindDbModule',
-      params: {
-        type: dbType,
-        bk_biz_id: formdata.bk_biz_id,
-        db_module_id: formdata.details.db_module_id,
-      },
-      query: {
-        ...moduleAliasNameQuery,
-      },
-    });
-    window.open(url.href, '_blank');
   };
 
   defineExpose({
