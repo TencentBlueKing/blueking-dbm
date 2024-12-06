@@ -276,6 +276,19 @@ const bigdata: InfoType = {
       },
     ],
   },
+  [ClusterTypes.RIAK]: {
+    id: ClusterTypes.RIAK,
+    name: 'riak',
+    specClusterName: 'riak',
+    dbType: DBTypes.RIAK,
+    moduleId: 'bigdata',
+    machineList: [
+      {
+        id: MachineTypes.RIAK,
+        name: t('后端存储'),
+      },
+    ],
+  },
 };
 
 const mongodb: InfoType = {
