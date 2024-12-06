@@ -1,16 +1,16 @@
 {
   "bk_biz_id": 0,
-  "name": "MySQL Slave 同步异常",
+  "name": "Tendbcluster tdbctl 中控 get primary 异常",
   "db_type": "mysql",
   "details": {
     "bk_biz_id": "",
-    "name": "MySQL Slave 同步异常",
+    "name": "Tendbcluster tdbctl 中控 get primary 异常",
     "source": "dbm",
     "scenario": "component",
     "type": "monitor",
     "items": [
       {
-        "name": "COUNT(slave-status-dbm_report_channel)",
+        "name": "COUNT(get-ctl-primary-dbm_report_channel)",
         "no_data_config": {
           "level": 2,
           "continuous": 10,
@@ -26,24 +26,21 @@
             "data_source_label": "custom",
             "data_type_label": "event",
             "alias": "a",
-            "metric_id": "custom.event.bkmonitor_event_{event_data_id}.slave-status",
+            "metric_id": "custom.event.bkmonitor_event_{event_data_id}.get-ctl-primary",
             "functions": [],
             "result_table_id": "bkmonitor_event_{event_data_id}",
             "agg_method": "COUNT",
             "agg_interval": 60,
             "agg_dimension": [
               "appid",
-              "bk_cloud_id",
               "cluster_domain",
-              "machine_type",
-              "instance_port",
-              "instance_role",
               "instance_host",
-              "bk_target_service_instance_id"
+              "instance_port"
             ],
             "agg_condition": [],
-            "custom_event_name": "slave-status",
-            "name": "slave-status"
+            "custom_event_name": "get-ctl-primary",
+            "query_string": "*",
+            "name": "get-ctl-primary"
           }
         ],
         "algorithms": [
@@ -75,11 +72,7 @@
             "time_ranges": [
               {
                 "end": "23:59",
-                "start": "08:00"
-              },
-              {
-                "end": "01:00",
-                "start": "00:00"
+                "start": "11:00"
               }
             ]
           },
@@ -94,12 +87,12 @@
     ],
     "actions": [],
     "notice": {
-      "config_id": 40812,
+      "config_id": 145173,
       "user_groups": [],
       "user_type": "main",
       "signal": [
-        "no_data",
-        "abnormal"
+        "abnormal",
+        "no_data"
       ],
       "options": {
         "end_time": "23:59:59",
@@ -161,7 +154,44 @@
           "timedelta": 60,
           "is_enabled": true,
           "converge_func": "collect",
-          "need_biz_converge": false
+          "need_biz_converge": true,
+          "sub_converge_config": {
+            "timedelta": 60,
+            "count": 2,
+            "condition": [
+              {
+                "dimension": "bk_biz_id",
+                "value": [
+                  "self"
+                ]
+              },
+              {
+                "dimension": "notice_receiver",
+                "value": [
+                  "self"
+                ]
+              },
+              {
+                "dimension": "notice_way",
+                "value": [
+                  "self"
+                ]
+              },
+              {
+                "dimension": "alert_level",
+                "value": [
+                  "self"
+                ]
+              },
+              {
+                "dimension": "signal",
+                "value": [
+                  "self"
+                ]
+              }
+            ],
+            "converge_func": "collect_alarm"
+          }
         },
         "chart_image_enabled": true,
         "exclude_notice_ways": {
@@ -180,22 +210,22 @@
       "relate_type": "NOTICE",
       "config": {
         "need_poll": true,
-        "notify_interval": 14400,
+        "notify_interval": 21600,
         "interval_notify_mode": "standard",
         "template": [
           {
             "signal": "abnormal",
-            "message_tmpl": "{{content.level}}\n{{content.begin_time}}\n{{content.time}}\n{{content.duration}}\n{{content.target_type}}\n{{content.data_source}}\n{{content.content}}\n{{content.current_value}}\n{{content.biz}}\n通知人:{{alarm.receivers}}\n{{content.target}}\n{{content.dimension}}\n{{content.detail}}\n{{content.assign_detail}}\n{{content.related_info}}",
+            "message_tmpl": "{{content.level}}\n{{content.begin_time}}\n{{content.time}}\n{{content.duration}}\n{{content.target_type}}\n{{content.data_source}}\n{{content.content}}\n{{content.current_value}}\n{{content.biz}}\n{{content.target}}\n{{content.dimension}}\n{{content.detail}}\n{{content.assign_detail}}\n通知人:{{alarm.receivers}}\n{{content.related_info}}",
             "title_tmpl": "{{business.bk_biz_name}} - {{alarm.name}}{{alarm.display_type}}"
           },
           {
             "signal": "recovered",
-            "message_tmpl": "{{content.level}}\n{{content.begin_time}}\n{{content.time}}\n{{content.duration}}\n{{content.target_type}}\n{{content.data_source}}\n{{content.content}}\n{{content.current_value}}\n{{content.biz}}\n通知人:{{alarm.receivers}}\n{{content.target}}\n{{content.dimension}}\n{{content.detail}}\n{{content.assign_detail}}\n{{content.related_info}}",
+            "message_tmpl": "{{content.level}}\n{{content.begin_time}}\n{{content.time}}\n{{content.duration}}\n{{content.target_type}}\n{{content.data_source}}\n{{content.content}}\n{{content.current_value}}\n{{content.biz}}\n{{content.target}}\n{{content.dimension}}\n{{content.detail}}\n{{content.assign_detail}}\n通知人:{{alarm.receivers}}\n{{content.related_info}}",
             "title_tmpl": "{{business.bk_biz_name}} - {{alarm.name}}{{alarm.display_type}}"
           },
           {
             "signal": "closed",
-            "message_tmpl": "{{content.level}}\n{{content.begin_time}}\n{{content.time}}\n{{content.duration}}\n{{content.target_type}}\n{{content.data_source}}\n{{content.content}}\n{{content.current_value}}\n{{content.biz}}\n通知人:{{alarm.receivers}}\n{{content.target}}\n{{content.dimension}}\n{{content.detail}}\n{{content.assign_detail}}\n{{content.related_info}}",
+            "message_tmpl": "{{content.level}}\n{{content.begin_time}}\n{{content.time}}\n{{content.duration}}\n{{content.target_type}}\n{{content.data_source}}\n{{content.content}}\n{{content.current_value}}\n{{content.biz}}\n{{content.target}}\n{{content.dimension}}\n{{content.detail}}\n{{content.assign_detail}}\n通知人:{{alarm.receivers}}\n{{content.related_info}}",
             "title_tmpl": "{{business.bk_biz_name}} - {{alarm.name}}{{alarm.display_type}}"
           }
         ]
@@ -203,21 +233,22 @@
     },
     "labels": [
       "DBM",
-      "DBM_MYSQL"
+      "DBM_MYSQL",
+      "MySQL"
     ],
     "app": "",
     "path": "",
     "priority": 0,
-    "priority_group_key": "894a024869ba958d",
+    "priority_group_key": "",
     "edit_allowed": true,
     "metric_type": "event",
     "data_source_type": "自定义事件",
     "is_enabled": true
   },
   "is_enabled": true,
-  "monitor_indicator": "COUNT(slave-status-dbm_report_channel)",
-  "version": 25,
+  "monitor_indicator": "COUNT(get-ctl-primary-dbm_report_channel)",
+  "version": 1,
   "alert_source": "event",
   "custom_conditions": [],
-  "export_at": "2024-12-06T15:52:08+08:00"
+  "export_at": "2024-12-06T15:54:01+08:00"
 }

@@ -100,8 +100,8 @@
       "user_groups": [],
       "user_type": "main",
       "signal": [
-        "no_data",
-        "abnormal"
+        "abnormal",
+        "no_data"
       ],
       "options": {
         "end_time": "23:59:59",
@@ -211,7 +211,7 @@
     "app": "",
     "path": "",
     "priority": 0,
-    "priority_group_key": "",
+    "priority_group_key": "f8605997f317d4ba",
     "edit_allowed": true,
     "metric_type": "time_series",
     "data_source_type": "监控采集指标",
@@ -219,8 +219,8 @@
   },
   "is_enabled": true,
   "monitor_indicator": "AVG(mysql_up)",
-  "version": 23,
+  "version": 24,
   "alert_source": "time_series",
   "custom_conditions": [],
-  "export_at": "2024-11-26T16:26:58+08:00"
+  "export_at": "2024-12-06T15:52:08+08:00"
 }

@@ -1,21 +1,23 @@
 {
   "bk_biz_id": 0,
-  "name": "MySQL Slave 同步异常",
+  "name": "MySQL 进程发生重启",
   "db_type": "mysql",
   "details": {
     "bk_biz_id": "",
-    "name": "MySQL Slave 同步异常",
+    "name": "MySQL 进程发生重启",
     "source": "dbm",
     "scenario": "component",
     "type": "monitor",
     "items": [
       {
-        "name": "COUNT(slave-status-dbm_report_channel)",
+        "name": "AVG(mysql_global_status_uptime)",
         "no_data_config": {
           "level": 2,
           "continuous": 10,
           "is_enabled": false,
-          "agg_dimension": []
+          "agg_dimension": [
+            "bk_target_service_instance_id"
+          ]
         },
         "target": [],
         "expression": "a",
@@ -23,50 +25,50 @@
         "origin_sql": "",
         "query_configs": [
           {
-            "data_source_label": "custom",
-            "data_type_label": "event",
+            "data_source_label": "bk_monitor",
+            "data_type_label": "time_series",
             "alias": "a",
-            "metric_id": "custom.event.bkmonitor_event_{event_data_id}.slave-status",
+            "metric_id": "bk_monitor.exporter_dbm_mysqld_exporter.__default__.mysql_global_status_uptime",
             "functions": [],
-            "result_table_id": "bkmonitor_event_{event_data_id}",
-            "agg_method": "COUNT",
+            "result_table_id": "exporter_dbm_mysqld_exporter.__default__",
+            "data_label": "exporter_dbm_mysqld_exporter",
+            "agg_method": "AVG",
             "agg_interval": 60,
             "agg_dimension": [
-              "appid",
-              "bk_cloud_id",
+              "bk_target_service_instance_id",
+              "app",
               "cluster_domain",
-              "machine_type",
-              "instance_port",
               "instance_role",
-              "instance_host",
-              "bk_target_service_instance_id"
+              "instance",
+              "appid"
             ],
             "agg_condition": [],
-            "custom_event_name": "slave-status",
-            "name": "slave-status"
+            "metric_field": "mysql_global_status_uptime",
+            "unit": "",
+            "name": "mysql_global_status_uptime"
           }
         ],
         "algorithms": [
           {
             "type": "Threshold",
-            "level": 1,
+            "level": 2,
             "config": [
               [
                 {
-                  "method": "gte",
-                  "threshold": 1
+                  "method": "lt",
+                  "threshold": 60
                 }
               ]
             ],
             "unit_prefix": ""
           }
         ],
-        "metric_type": "event"
+        "metric_type": "time_series"
       }
     ],
     "detects": [
       {
-        "level": 1,
+        "level": 2,
         "expression": "",
         "trigger_config": {
           "count": 1,
@@ -75,10 +77,6 @@
             "time_ranges": [
               {
                 "end": "23:59",
-                "start": "08:00"
-              },
-              {
-                "end": "01:00",
                 "start": "00:00"
               }
             ]
@@ -94,7 +92,7 @@
     ],
     "actions": [],
     "notice": {
-      "config_id": 40812,
+      "config_id": 40762,
       "user_groups": [],
       "user_type": "main",
       "signal": [
@@ -180,7 +178,7 @@
       "relate_type": "NOTICE",
       "config": {
         "need_poll": true,
-        "notify_interval": 14400,
+        "notify_interval": 7200,
         "interval_notify_mode": "standard",
         "template": [
           {
@@ -203,21 +201,22 @@
     },
     "labels": [
       "DBM",
-      "DBM_MYSQL"
+      "DBM_MYSQL",
+      "MySQL"
     ],
     "app": "",
     "path": "",
     "priority": 0,
-    "priority_group_key": "894a024869ba958d",
+    "priority_group_key": "",
     "edit_allowed": true,
-    "metric_type": "event",
-    "data_source_type": "自定义事件",
+    "metric_type": "time_series",
+    "data_source_type": "监控采集指标",
     "is_enabled": true
   },
   "is_enabled": true,
-  "monitor_indicator": "COUNT(slave-status-dbm_report_channel)",
-  "version": 25,
-  "alert_source": "event",
+  "monitor_indicator": "AVG(mysql_global_status_uptime)",
+  "version": 1,
+  "alert_source": "time_series",
   "custom_conditions": [],
   "export_at": "2024-12-06T15:52:08+08:00"
 }

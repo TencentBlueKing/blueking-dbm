@@ -33,7 +33,7 @@
             "functions": [],
             "result_table_id": "dbm_system.disk",
             "agg_method": "AVG",
-            "agg_interval": 60,
+            "agg_interval": 300,
             "agg_dimension": [
               "appid",
               "app",
@@ -47,11 +47,12 @@
               {
                 "key": "db_type",
                 "value": [
-                  "mysql", "tendbcluster"
+                  "mysql",
+                  "tendbcluster"
                 ],
                 "method": "eq",
                 "condition": "and",
-                "dimension_name": "db_type"
+                "dimension_name": "dbm db type"
               }
             ],
             "metric_field": "in_use",
@@ -68,6 +69,10 @@
                 {
                   "method": "gte",
                   "threshold": 95
+                },
+                {
+                  "method": "lt",
+                  "threshold": 98
                 }
               ]
             ],
@@ -95,7 +100,7 @@
         "level": 1,
         "expression": "",
         "trigger_config": {
-          "count": 1,
+          "count": 2,
           "uptime": {
             "calendars": [],
             "time_ranges": [
@@ -105,10 +110,10 @@
               }
             ]
           },
-          "check_window": 5
+          "check_window": 3
         },
         "recovery_config": {
-          "check_window": 5,
+          "check_window": 2,
           "status_setter": "recovery"
         },
         "connector": "and"
@@ -117,7 +122,7 @@
         "level": 2,
         "expression": "",
         "trigger_config": {
-          "count": 1,
+          "count": 2,
           "uptime": {
             "calendars": [],
             "time_ranges": [
@@ -127,10 +132,10 @@
               }
             ]
           },
-          "check_window": 5
+          "check_window": 3
         },
         "recovery_config": {
-          "check_window": 5,
+          "check_window": 2,
           "status_setter": "recovery"
         },
         "connector": "and"
@@ -140,6 +145,7 @@
     "notice": {
       "config_id": 40811,
       "user_groups": [],
+      "user_type": "main",
       "signal": [
         "no_data",
         "abnormal"
@@ -204,44 +210,7 @@
           "timedelta": 60,
           "is_enabled": true,
           "converge_func": "collect",
-          "need_biz_converge": false,
-          "sub_converge_config": {
-            "timedelta": 60,
-            "count": 2,
-            "condition": [
-              {
-                "dimension": "bk_biz_id",
-                "value": [
-                  "self"
-                ]
-              },
-              {
-                "dimension": "notice_receiver",
-                "value": [
-                  "self"
-                ]
-              },
-              {
-                "dimension": "notice_way",
-                "value": [
-                  "self"
-                ]
-              },
-              {
-                "dimension": "alert_level",
-                "value": [
-                  "self"
-                ]
-              },
-              {
-                "dimension": "signal",
-                "value": [
-                  "self"
-                ]
-              }
-            ],
-            "converge_func": "collect_alarm"
-          }
+          "need_biz_converge": false
         },
         "chart_image_enabled": true,
         "exclude_notice_ways": {
@@ -260,7 +229,7 @@
       "relate_type": "NOTICE",
       "config": {
         "need_poll": true,
-        "notify_interval": 7200,
+        "notify_interval": 21600,
         "interval_notify_mode": "standard",
         "template": [
           {
@@ -289,14 +258,16 @@
     "app": "",
     "path": "",
     "priority": 0,
-    "priority_group_key": "ba5f279a6c53b7c2",
+    "priority_group_key": "",
+    "edit_allowed": true,
     "metric_type": "time_series",
     "data_source_type": "监控采集指标",
     "is_enabled": true
   },
   "is_enabled": true,
   "monitor_indicator": "AVG(磁盘空间使用率)",
-  "version": 24,
+  "version": 25,
   "alert_source": "time_series",
-  "custom_conditions": []
+  "custom_conditions": [],
+  "export_at": "2024-12-06T15:52:08+08:00"
 }

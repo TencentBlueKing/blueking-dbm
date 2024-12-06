@@ -293,7 +293,7 @@
     "app": "",
     "path": "",
     "priority": 0,
-    "priority_group_key": "",
+    "priority_group_key": "a47ba1274c93c964",
     "edit_allowed": true,
     "metric_type": "time_series",
     "data_source_type": "监控采集指标",
@@ -301,8 +301,8 @@
   },
   "is_enabled": true,
   "monitor_indicator": "AVG(mysql_global_status_slow_queries)",
-  "version": 1,
+  "version": 2,
   "alert_source": "time_series",
   "custom_conditions": [],
-  "export_at": "2024-11-26T16:26:58+08:00"
+  "export_at": "2024-12-06T15:52:08+08:00"
 }
