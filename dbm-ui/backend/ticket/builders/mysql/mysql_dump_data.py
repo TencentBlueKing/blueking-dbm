@@ -22,7 +22,7 @@ from backend.ticket.builders.mysql.base import (
     DBTableField,
     MySQLBaseOperateDetailSerializer,
 )
-from backend.ticket.constants import TicketType
+from backend.ticket.constants import TicketFlowStatus, TicketType
 
 
 class MySQLDumpDataDetailSerializer(MySQLBaseOperateDetailSerializer):
@@ -59,6 +59,9 @@ class MySQLDumpDataFlowParamBuilder(builders.FlowParamBuilder):
 
     def post_callback(self):
         flow = self.ticket.current_flow()
+        # 如果流程树运行不为成功，则忽略
+        if flow.status != TicketFlowStatus.SUCCEEDED:
+            return
         # 往flow的detail中写入制品库的下载链接
         dump_file_name = f"{flow.details['ticket_data']['dump_file_name']}.zip"
         flow.details["ticket_data"].update(

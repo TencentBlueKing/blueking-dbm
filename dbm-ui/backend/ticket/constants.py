@@ -261,7 +261,7 @@ class TicketType(str, StructuredEnum):
     TENDBSINGLE_STANDARDIZE = TicketEnumField("TENDBSINGLE_STANDARDIZE", _("TenDB Single 集群标准化"), register_iam=False)  # noqa
     TENDBCLUSTER_DATA_MIGRATE = TicketEnumField("TENDBCLUSTER_DATA_MIGRATE", _("TenDB Cluster DB克隆"), _("数据处理"))
     TENDBCLUSTER_DUMP_DATA = TicketEnumField("TENDBCLUSTER_DUMP_DATA", _("TenDB Cluster 数据导出"), _("数据处理"))
-    TENDBCLUSTER_ACCOUNT_RULE_CHANGE = TicketEnumField("TENDBCLUSTER_ACCOUNT_RULE_CHANGE", _("TenDB Cluster 账号规则变更"), register_iam=False)  # noqa
+    TENDBCLUSTER_ACCOUNT_RULE_CHANGE = TicketEnumField("TENDBCLUSTER_ACCOUNT_RULE_CHANGE", _("TenDB Cluster 授权规则变更"), register_iam=False)  # noqa
 
     # Tbinlogdumper
     TBINLOGDUMPER_INSTALL = TicketEnumField("TBINLOGDUMPER_INSTALL", _("TBINLOGDUMPER 上架"), register_iam=False)
