@@ -80,3 +80,21 @@ class ListNodesSerializer(TopoSerializer):
     page = serializers.IntegerField(help_text=_("页数"))
     module_id = serializers.IntegerField(help_text=_("模块ID"), required=False)
     set_id = serializers.IntegerField(help_text=_("集群ID"), required=False)
+
+
+class ListBIZModulesSLZ(serializers.Serializer):
+    cluster_types = serializers.CharField(help_text=_("集群类型(逗号分隔)"))
+    bk_biz_name = serializers.CharField(help_text=_("业务名称"), required=False)
+    module_name = serializers.CharField(help_text=_("模块名称"), required=False)
+
+
+class BIZModuleSLZ(serializers.Serializer):
+    class ModuleClusterCountSLZ(serializers.Serializer):
+        module_name = serializers.CharField(help_text=_("模块名"))
+        module_id = serializers.IntegerField(help_text=_("模块ID"))
+        count = serializers.IntegerField(help_text=_("集群数量"))
+
+    bk_biz_name = serializers.CharField(help_text=_("业务名"))
+    bk_biz_id = serializers.IntegerField(help_text=_("业务ID"))
+    count = serializers.IntegerField(help_text=_("集群数量"))
+    modules = serializers.ListField(help_text=_("模块信息"), child=ModuleClusterCountSLZ())

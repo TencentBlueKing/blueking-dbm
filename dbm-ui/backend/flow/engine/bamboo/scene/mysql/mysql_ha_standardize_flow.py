@@ -63,10 +63,11 @@ class MySQLHAStandardizeFlow(object):
         增加单据临时ADMIN账号的添加和删除逻辑
         """
         cluster_ids = self.data["infos"]["cluster_ids"]
-        bk_biz_id = self.data["bk_biz_id"]
+        # 支持跨业务
+        # bk_biz_id = self.data["bk_biz_id"]
 
         cluster_objects = Cluster.objects.filter(
-            pk__in=cluster_ids, bk_biz_id=bk_biz_id, cluster_type=ClusterType.TenDBHA.value
+            pk__in=cluster_ids, cluster_type=ClusterType.TenDBHA.value
         ).prefetch_related(
             "proxyinstance_set", "storageinstance_set", "proxyinstance_set__machine", "storageinstance_set__machine"
         )

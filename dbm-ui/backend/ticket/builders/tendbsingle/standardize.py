@@ -12,7 +12,7 @@ from django.utils.translation import ugettext_lazy as _
 from rest_framework import serializers
 
 from backend.db_meta.enums import ClusterType
-from backend.db_meta.models import AppCache, Cluster
+from backend.db_meta.models import Cluster
 from backend.flow.engine.controller.tendbsingle import TenDBSingleController
 from backend.ticket import builders
 from backend.ticket.builders.mysql.base import BaseMySQLTicketFlowBuilder, MySQLBaseOperateDetailSerializer
@@ -23,7 +23,8 @@ class TenDBSingleStandardizeDetailSerializer(MySQLBaseOperateDetailSerializer):
     class InnerDetailSerializer(serializers.Serializer):
         cluster_ids = serializers.ListField(help_text=_("集群ID列表"))
 
-    bk_biz_id = serializers.IntegerField(help_text=_("业务ID"))
+    # 支持跨业务区域，不需要传bk_biz_id
+    # bk_biz_id = serializers.IntegerField(help_text=_("业务ID"))
     infos = InnerDetailSerializer(help_text=_("标准化信息"))
 
     def validate(self, attrs):
@@ -32,7 +33,7 @@ class TenDBSingleStandardizeDetailSerializer(MySQLBaseOperateDetailSerializer):
 
     @staticmethod
     def __validate_clusters(attrs):
-        AppCache.objects.get(bk_biz_id=attrs["bk_biz_id"])
+        # AppCache.objects.get(bk_biz_id=attrs["bk_biz_id"])
 
         for cluster_obj in Cluster.objects.filter(pk__in=attrs["infos"]["cluster_ids"]).all():
             if cluster_obj.cluster_type != ClusterType.TenDBSingle.value:

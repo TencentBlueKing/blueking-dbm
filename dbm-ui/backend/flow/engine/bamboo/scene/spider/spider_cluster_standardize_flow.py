@@ -61,10 +61,11 @@ class SpiderClusterStandardizeFlow(object):
         }
         """
         cluster_ids = self.data["infos"]["cluster_ids"]
-        bk_biz_id = self.data["bk_biz_id"]
+        # 支持跨业务
+        # bk_biz_id = self.data["bk_biz_id"]
 
         cluster_objects = Cluster.objects.filter(
-            pk__in=cluster_ids, bk_biz_id=bk_biz_id, cluster_type=ClusterType.TenDBCluster.value
+            pk__in=cluster_ids, cluster_type=ClusterType.TenDBCluster.value
         ).prefetch_related(
             "proxyinstance_set",
             "storageinstance_set",
