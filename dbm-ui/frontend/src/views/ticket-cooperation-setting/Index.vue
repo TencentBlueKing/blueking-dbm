@@ -36,7 +36,7 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import { getBizSettingList, updateBizSetting } from '@services/source/bizSetting';
+  import { batchUpdateBizSetting, getBizSettingList } from '@services/source/bizSetting';
 
   import { useGlobalBizs } from '@stores';
 
@@ -81,7 +81,7 @@
     ],
   });
 
-  const { runAsync: runUpdate, loading: isUpdating } = useRequest(updateBizSetting, {
+  const { run: runUpdate, loading: isUpdating } = useRequest(batchUpdateBizSetting, {
     manual: true,
     onSuccess: () => {
       messageSuccess(t('保存成功'));
@@ -92,18 +92,19 @@
     if (isCooperationOpen.value) {
       await formRef.value!.validate();
     }
-    Promise.all([
-      runUpdate({
-        bk_biz_id: globalBizsStore.currentBizId,
-        key: 'BIZ_ASSISTANCE_SWITCH',
-        value: isCooperationOpen.value,
-      }),
-      runUpdate({
-        bk_biz_id: globalBizsStore.currentBizId,
-        key: 'BIZ_ASSISTANCE_VARS',
-        value: formModel.members,
-      }),
-    ]);
+    runUpdate({
+      bk_biz_id: globalBizsStore.currentBizId,
+      settings: [
+        {
+          key: 'BIZ_ASSISTANCE_SWITCH',
+          value: isCooperationOpen.value,
+        },
+        {
+          key: 'BIZ_ASSISTANCE_VARS',
+          value: formModel.members,
+        },
+      ],
+    });
   };
 </script>
 
