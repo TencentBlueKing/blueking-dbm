@@ -43,5 +43,5 @@ export const batchUpdateBizSetting = function (params: {
   bk_biz_id: number;
   settings: { key: string; value: any; value_type?: string }[];
 }) {
-  return http.post(`${path}/batch_update_setting/`, params);
+  return http.post(`${path}/batch_update_settings/`, params);
 };
