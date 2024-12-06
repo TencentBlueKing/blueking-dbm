@@ -56,15 +56,28 @@ export function insertAlarmGroup(params: {
 }
 
 /**
- * 编辑告警组
+ * 编辑告警组(全量)
  */
 export function updateAlarmGroup(params: {
   name: string;
+  bk_biz_id: number;
   receivers: NoticGroupModel['receivers'][];
   details: NoticGroupModel['details'];
   id: number;
 }) {
   return http.put(`${path}/${params.id}/`, params);
+}
+
+/**
+ * 编辑告警组(部分)
+ */
+export function patchAlarmGroup(params: {
+  name: string;
+  receivers: NoticGroupModel['receivers'][];
+  details: NoticGroupModel['details'];
+  id: number;
+}) {
+  return http.patch(`${path}/${params.id}/`, params);
 }
 
 /**
