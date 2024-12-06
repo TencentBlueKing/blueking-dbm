@@ -275,26 +275,19 @@ const bigdata: InfoType = {
         name: t('冷_热节点规格'),
       },
     ],
-    [ClusterTypes.DORIS]: {
-      id: ClusterTypes.DORIS,
-      name: 'Doris',
-      dbType: DBTypes.DORIS,
-      moduleId: 'bigdata',
-      machineList: [
-        {
-          id: MachineTypes.DORIS_FOLLOWER,
-          name: t('Follower节点规格'),
-        },
-        {
-          id: MachineTypes.DORIS_OBSERVER,
-          name: t('Observer节点规格'),
-        },
-        {
-          id: MachineTypes.DORIS_BACKEND,
-          name: t('冷_热节点规格'),
-        },
-      ],
-    },
+  },
+  [ClusterTypes.RIAK]: {
+    id: ClusterTypes.RIAK,
+    name: 'Riak',
+    specClusterName: 'Riak',
+    dbType: DBTypes.RIAK,
+    moduleId: 'bigdata',
+    machineList: [
+      {
+        id: MachineTypes.RIAK,
+        name: t('后端存储'),
+      },
+    ],
   },
 };
 

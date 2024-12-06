@@ -43,7 +43,8 @@
         <DbCard :title="t('部署需求')">
           <ModuleItem
             v-model="formdata.details.db_module_id"
-            :biz-id="formdata.bk_biz_id" />
+            :biz-id="formdata.bk_biz_id"
+            :cluster-type="ClusterTypes.TENDBCLUSTER" />
           <BkFormItem
             :label="t('接入层Master')"
             required>
@@ -144,7 +145,7 @@
 
   import { useApplyBase, useTicketCloneInfo } from '@hooks';
 
-  import { TicketTypes } from '@common/const';
+  import { ClusterTypes, TicketTypes } from '@common/const';
   import { nameRegx } from '@common/regex';
 
   import AffinityItem from '@views/db-manage/common/apply-items/AffinityItem.vue';
@@ -153,10 +154,9 @@
   import CloudItem from '@views/db-manage/common/apply-items/CloudItem.vue';
   import ClusterAlias from '@views/db-manage/common/apply-items/ClusterAlias.vue';
   import ClusterName from '@views/db-manage/common/apply-items/ClusterName.vue';
+  import ModuleItem from '@views/db-manage/common/apply-items/ModuleItem.vue';
   import RegionItem from '@views/db-manage/common/apply-items/RegionItem.vue';
   import SpecSelector from '@views/db-manage/common/apply-items/SpecSelector.vue';
-
-  import ModuleItem from './components/ModuleItem.vue';
 
   const route = useRoute();
   const router = useRouter();
@@ -325,7 +325,7 @@
       return {
         ...details,
         cluster_shard_num: Number(specInfo.cluster_shard_num),
-        remote_shard_num: specInfo.cluster_shard_num / specInfo.machine_pair,
+        remote_shard_num: Number(specInfo.cluster_shard_num) / specInfo.machine_pair,
         disaster_tolerance_level: details.resource_spec.backend_group.affinity,
         resource_spec: {
           spider: {

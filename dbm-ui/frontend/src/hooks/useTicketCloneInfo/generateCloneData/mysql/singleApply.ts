@@ -28,7 +28,7 @@ export function generateMysqlSingleApplyCloneData(ticketData: TicketModel<MySQLD
     instNum: details.inst_num,
     ipSource: details.ip_source,
     nodes: details.nodes,
-    singleSpecId: details.resource_spec?.single.spec_id,
+    singleSpecId: details.resource_spec?.backend.spec_id,
     remark: ticketData.remark,
     startMysqlPort: details.start_mysql_port,
   });
