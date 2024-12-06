@@ -15,18 +15,13 @@ import InfoBox from 'bkui-vue/lib/info-box';
 import _ from 'lodash';
 import { useI18n } from 'vue-i18n';
 
-import { getModules } from '@services/source/cmdb';
-import { getLevelConfig } from '@services/source/configs';
 import { getInfrasHostSpecs } from '@services/source/infras';
-import { createTicket } from '@services/source/ticket';
 import type { HostInfo } from '@services/types';
 
-import { mysqlType, type MysqlTypeString } from '@common/const';
+import { type MysqlTypeString } from '@common/const';
 
 type FetchState = {
   hostSpecs: ServiceReturnType<typeof getInfrasHostSpecs>;
-  moduleList: ServiceReturnType<typeof getModules>;
-  levelConfigList: ServiceReturnType<typeof getLevelConfig>['conf_items'];
 };
 
 const getFormData = (type: string) => ({
@@ -86,17 +81,6 @@ export const useMysqlData = (type: string) => {
   // 接口数据
   const fetchState = reactive<FetchState>({
     hostSpecs: [],
-    moduleList: [],
-    levelConfigList: [],
-  });
-  const loading = reactive({
-    hostSpecs: false,
-    modules: false,
-    levelConfigs: false,
-  });
-  const leveConfig = reactive({
-    charset: '',
-    db_version: '',
   });
 
   /**
@@ -120,39 +104,39 @@ export const useMysqlData = (type: string) => {
     },
   );
 
-  /**
-   * 获取配置详情下拉展示
-   */
-  const fetchLevelConfig = (moduleId: number) => {
-    const params = {
-      bk_biz_id: formdata.bk_biz_id as number,
-      conf_type: 'deploy',
-      level_name: 'module',
-      level_value: moduleId,
-      meta_cluster_type: mysqlType[ticketType].type,
-      version: 'deploy_info',
-    };
-    loading.levelConfigs = true;
-    getLevelConfig(params)
-      .then((res) => {
-        fetchState.levelConfigList = res.conf_items;
-      })
-      .finally(() => {
-        loading.levelConfigs = false;
-      });
-  };
+  // /**
+  //  * 获取配置详情下拉展示
+  //  */
+  // const fetchLevelConfig = (moduleId: number) => {
+  //   const params = {
+  //     bk_biz_id: formdata.bk_biz_id as number,
+  //     conf_type: 'deploy',
+  //     level_name: 'module',
+  //     level_value: moduleId,
+  //     meta_cluster_type: mysqlType[ticketType].type,
+  //     version: 'deploy_info',
+  //   };
+  //   loading.levelConfigs = true;
+  //   getLevelConfig(params)
+  //     .then((res) => {
+  //       fetchState.levelConfigList = res.conf_items;
+  //     })
+  //     .finally(() => {
+  //       loading.levelConfigs = false;
+  //     });
+  // };
 
   /**
    * 查询层级（业务、模块、集群）配置详情
    */
-  watch(
-    () => formdata.details.db_module_id,
-    (value) => {
-      if (value) {
-        fetchLevelConfig(value);
-      }
-    },
-  );
+  // watch(
+  //   () => formdata.details.db_module_id,
+  //   (value) => {
+  //     if (value) {
+  //       fetchLevelConfig(value);
+  //     }
+  //   },
+  // );
 
   /**
    * 获取服务器规格列表
@@ -167,45 +151,40 @@ export const useMysqlData = (type: string) => {
     },
   );
   const fetchInfrasHostSpecs = () => {
-    loading.hostSpecs = true;
-    getInfrasHostSpecs()
-      .then((res) => {
-        fetchState.hostSpecs = res || [];
-      })
-      .finally(() => {
-        loading.hostSpecs = false;
-      });
+    getInfrasHostSpecs().then((res) => {
+      fetchState.hostSpecs = res || [];
+    });
   };
 
-  /**
-   * 获取模块列表
-   */
-  watch(
-    () => formdata.bk_biz_id,
-    (value) => {
-      if (value) {
-        fetchModules(value);
-      }
-    },
-  );
-  const fetchModules = (bizId: number | null) => {
-    if (!bizId) {
-      return;
-    }
+  // /**
+  //  * 获取模块列表
+  //  */
+  // watch(
+  //   () => formdata.bk_biz_id,
+  //   (value) => {
+  //     if (value) {
+  //       fetchModules(value);
+  //     }
+  //   },
+  // );
+  // const fetchModules = (bizId: number | null) => {
+  //   if (!bizId) {
+  //     return;
+  //   }
 
-    loading.modules = true;
-    const params = {
-      bk_biz_id: bizId,
-      cluster_type: mysqlType[ticketType].type,
-    };
-    getModules(params)
-      .then((res) => {
-        fetchState.moduleList = res || [];
-      })
-      .finally(() => {
-        loading.modules = false;
-      });
-  };
+  //   loading.modules = true;
+  //   const params = {
+  //     bk_biz_id: bizId,
+  //     cluster_type: mysqlType[ticketType].type,
+  //   };
+  //   getModules(params)
+  //     .then((res) => {
+  //       fetchState.moduleList = res || [];
+  //     })
+  //     .finally(() => {
+  //       loading.modules = false;
+  //     });
+  // };
 
   /**
    * reset formdata
@@ -228,16 +207,16 @@ export const useMysqlData = (type: string) => {
   /**
    * 创建单据
    */
-  const submitTicket = () => createTicket(formdata);
+  // const submitTicket = () => createTicket(formdata);
 
   return {
     formdata,
     fetchState,
-    loading,
-    leveConfig,
-    submitTicket,
+    // loading,
+    // leveConfig,
+    // submitTicket,
     handleResetFormdata,
-    fetchModules,
-    fetchLevelConfig,
+    // fetchModules,
+    // fetchLevelConfig,
   };
 };
