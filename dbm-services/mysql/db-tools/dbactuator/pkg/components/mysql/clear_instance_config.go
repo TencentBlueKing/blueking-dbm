@@ -10,6 +10,7 @@ import (
 	"path"
 	"strings"
 
+	"dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/common/go-pubpkg/logger"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/components"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/core/cst"
@@ -191,6 +192,10 @@ func (c *ClearInstanceConfigComp) clearRotateBinlog() (err error) {
 	binPath := path.Join(installPath, string(tools.ToolMysqlRotatebinlog))
 	configFile := path.Join(installPath, "config.yaml")
 
+	if !cmutil.FileExists(binPath) {
+		logger.Info("%s not exists, skip", binPath)
+		return nil
+	}
 	clearPortString := strings.Replace(strings.Trim(fmt.Sprint(c.Params.ClearPorts), "[]"), " ", ",", -1)
 	cmd := fmt.Sprintf(
 		`%s -c %s --removeConfig %s`, binPath, configFile, clearPortString,

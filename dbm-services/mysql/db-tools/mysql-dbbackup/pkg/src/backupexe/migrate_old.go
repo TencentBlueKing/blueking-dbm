@@ -75,7 +75,7 @@ func MigrateInstanceBackupInfo(infoFilePath string, cnf *config.BackupConfig) (s
 	fileList := make([]*dbareport.TarFileItem, 0)
 	for fName, _ := range infoObj.FileInfo {
 		if uploadInfo, err := readIedBackupUploadInfo(fName); err != nil {
-			fmt.Println(err)
+			fmt.Printf("%+v\n", err)
 			fileList = append(fileList, &dbareport.TarFileItem{FileName: fName})
 		} else {
 			fileType := ""
@@ -150,7 +150,7 @@ func MigrateInstanceBackupInfo(infoFilePath string, cnf *config.BackupConfig) (s
 	var masterStatus, slaveStatus *dbareport.StatusInfo
 	if backupTool == "gztab" {
 		if masterStatus, slaveStatus, err = MLoadGetBackupSlaveStatus(gztabBeginFile); err != nil {
-			return "", nil, err
+			return "", nil, errors.WithStack(err)
 		}
 	}
 	if backupTool == "xtra" {
@@ -196,7 +196,7 @@ func MLoadGetBackupSlaveStatus(gztabBeginFile string) (*dbareport.StatusInfo,
 	cmd := fmt.Sprintf("zcat %s |grep 'CHANGE '", gztabBeginFile)
 	out, err := cmutil.ExecShellCommand(false, cmd)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, errors.WithMessagef(err, "zcat meta %s: %s", gztabBeginFile, out)
 	}
 	changeSqls := cmutil.SplitAnyRune(out, "\n")
 

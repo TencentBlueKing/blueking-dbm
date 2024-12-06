@@ -28,6 +28,7 @@ import (
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/dbareport"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/logger"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/mysqlconn"
+	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/util"
 )
 
 // LogicalLoaderMysqldump this logical loader is used to load logical backup with mysql(client)
@@ -139,7 +140,6 @@ func (l *LogicalLoaderMysqldump) Execute() (err error) {
 		"-P" + strconv.Itoa(l.cnf.LogicalLoad.MysqlPort),
 		"-u" + l.cnf.LogicalLoad.MysqlUser,
 		"-p" + l.cnf.LogicalLoad.MysqlPasswd,
-		"--max_allowed_packet=1073741824 ",
 	}
 	if l.cnf.LogicalLoad.MysqlCharset != "" {
 		args = append(args, fmt.Sprintf("--default-character-set=%s", l.cnf.LogicalLoad.MysqlCharset))
@@ -147,6 +147,9 @@ func (l *LogicalLoaderMysqldump) Execute() (err error) {
 	var initCommand []string
 	if !l.cnf.LogicalLoad.EnableBinlog {
 		initCommand = append(initCommand, "set session sql_log_bin=off")
+	}
+	if !strings.Contains(l.cnf.LogicalLoad.InitCommand, "max_allowed_packet") {
+		args = append(args, "--max-allowed-packet=1073741824")
 	}
 	if l.cnf.LogicalLoad.InitCommand != "" {
 		initCommand = append(initCommand, l.cnf.LogicalLoad.InitCommand)
@@ -186,16 +189,15 @@ func (l *LogicalLoaderMysqldump) Execute() (err error) {
 	if err != nil {
 		logger.Log.Error("mysqldump load backup failed: ", err, errStr)
 		// 尝试读取 mysqldump_load.log 里 CRITICAL 关键字
-		grepError := []string{"grep", "-E", "ERROR", logfile, "|", "tail", "-5"}
 		errStrPrefix := fmt.Sprintf("tail 5 error from %s", logfile)
-		errStrDetail, _, _ := cmutil.ExecCommand(true, "", grepError[0], grepError[1:]...)
-		if len(strings.TrimSpace(errStr)) > 0 {
+		errStrDetail, _ := util.GrepLinesFromFile(logfile, []string{"ERROR", "unknown", " No such"}, 5, false, true)
+		if len(errStrDetail) > 0 {
 			logger.Log.Info(errStrPrefix)
 			logger.Log.Error(errStrDetail)
 		} else {
-			logger.Log.Warn("can not find more detail error message from ", logfile)
+			logger.Log.Warn("tail can not find more detail error message from ", logfile)
 		}
-		return errors.WithMessagef(err, fmt.Sprintf("%s: %s\n%s", errStr, errStrPrefix, errStrDetail))
+		return errors.WithMessagef(err, fmt.Sprintf("%s\n%s", errStrPrefix, errStrDetail))
 	}
 	logger.Log.Info("load backup success: ", outStr)
 	return nil

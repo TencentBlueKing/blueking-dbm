@@ -18,6 +18,7 @@ import (
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/dbareport"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/logger"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/mysqlconn"
+	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/util"
 )
 
 // LogicalLoader this is used to load logical backup
@@ -160,6 +161,9 @@ func (l *LogicalLoader) Execute() (err error) {
 		"-d", l.cnf.LogicalLoad.MysqlLoadDir,
 		fmt.Sprintf("--set-names=%s", l.cnf.LogicalLoad.MysqlCharset),
 	}
+	if !strings.Contains(l.cnf.LogicalLoad.InitCommand, "max_allowed_packet") {
+		l.cnf.LogicalLoad.InitCommand += ";set global max_allowed_packet=1073741824"
+	}
 	if l.cnf.LogicalLoad.InitCommand != "" {
 		// https://github.com/mydumper/mydumper/blob/master/README.md#defaults-file
 		// [myloader_session_variables]
@@ -211,16 +215,16 @@ func (l *LogicalLoader) Execute() (err error) {
 	if err != nil {
 		logger.Log.Error("myloader load backup failed: ", err, errStr)
 		// 尝试读取 myloader.log 里 CRITICAL 关键字
-		grepError := []string{"cat", logfile, "|", "grep -Ei 'CRITICAL|not found|error|fatal'", "|", "tail", "-5"}
 		errStrPrefix := fmt.Sprintf("tail 5 error from %s", logfile)
-		errStrDetail, _, _ := cmutil.ExecCommand(true, "", grepError[0], grepError[1:]...)
-		if len(strings.TrimSpace(errStr)) > 0 {
+		errStrDetail, _ := util.GrepLinesFromFile(logfile,
+			[]string{"CRITICAL", "not found", "error", "fatal"}, 5, false, true)
+		if len(errStrDetail) > 0 {
 			logger.Log.Info(errStrPrefix)
 			logger.Log.Error(errStrDetail)
 		} else {
-			logger.Log.Warn("can not find more detail error message from ", logfile)
+			logger.Log.Warn("tail can not find more detail error message from ", logfile)
 		}
-		return errors.WithMessagef(err, fmt.Sprintf("%s: %s\n%s", errStr, errStrPrefix, errStrDetail))
+		return errors.WithMessagef(err, fmt.Sprintf("%s\n%s", errStrPrefix, errStrDetail))
 	}
 	logger.Log.Info("load backup success: ", outStr)
 	return nil

@@ -40,6 +40,9 @@ type LogicalBackup struct {
 
 	// UseMysqldump yes means used, no means disabled, auto depends on glibc version. The default value is no
 	UseMysqldump string `ini:"UseMysqldump"`
+	// TrxConsistencyOnly --trx-consistency-only(mydumper) --single-transaction(mysqldump)
+	// default true
+	TrxConsistencyOnly *bool `ini:"TrxConsistencyOnly"`
 
 	TableFilter `ini:"LogicalBackup" mapstructure:",squash"`
 }

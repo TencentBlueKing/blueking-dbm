@@ -38,9 +38,9 @@ import (
 // LogicalDumperMysqldump logical dumper using mysqldump tool
 type LogicalDumperMysqldump struct {
 	cnf          *config.BackupConfig
-	dbbackupHome string
 	backupInfo   dbareport.IndexContent // for mysqldump backup
 	dbConn       *sqlx.Conn
+	dbbackupHome string
 
 	masterStatus *dbareport.StatusInfo
 	slaveStatus  *dbareport.StatusInfo
@@ -158,6 +158,19 @@ func (l *LogicalDumperMysqldump) buildArgsObjectFilter() (args []string) {
 	return args
 }
 
+// MysqldumpHasOption check mysqldump has --xxx or not
+func MysqldumpHasOption(bin string, option string) (bool, error) {
+	_, cmdStderr, err := cmutil.ExecCommand(false, "", bin, option, "--help")
+	if err == nil {
+		return true, nil
+	}
+	if strings.Contains(cmdStderr, "unknown option") {
+		return false, nil
+	} else {
+		return false, err
+	}
+}
+
 // Execute excute dumping backup with logical backup tool[mysqldump]
 func (l *LogicalDumperMysqldump) Execute(enableTimeOut bool) (err error) {
 	var binPath string
@@ -186,10 +199,15 @@ func (l *LogicalDumperMysqldump) Execute(enableTimeOut bool) (err error) {
 		"-u" + l.cnf.Public.MysqlUser,
 		"-p" + l.cnf.Public.MysqlPasswd,
 		"--skip-opt", "--create-options", "--extended-insert", "--quick",
-		"--single-transaction", "--master-data=2",
+		"--master-data=2",
 		"--max-allowed-packet=1G", "--no-autocommit",
 		"--hex-blob",
-		// "--set-gtid-purged=off", // 5.7 需要 如果支持
+	}
+	if *l.cnf.LogicalBackup.TrxConsistencyOnly {
+		args = append(args, "--single-transaction")
+	}
+	if ok, _ := MysqldumpHasOption(binPath, "--set-gtid-purged"); ok { // // 5.7 需要off 如果支持
+		args = append(args, "--set-gtid-purged=off")
 	}
 	args = append(args, "--default-character-set", l.cnf.Public.MysqlCharset)
 	if l.cnf.Public.MysqlRole == cst.RoleSlave {

@@ -11,7 +11,6 @@
 package backupexe
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"os"
@@ -65,13 +64,15 @@ func (l *LogicalDumper) Execute(enableTimeOut bool) error {
 		"-u", l.cnf.Public.MysqlUser,
 		"-p", l.cnf.Public.MysqlPasswd,
 		"-o", filepath.Join(l.cnf.Public.BackupDir, l.cnf.Public.TargetName()),
-		"--trx-consistency-only",
 		"--long-query-retry-interval=10",
 		fmt.Sprintf("--long-query-retries=%d", l.cnf.LogicalBackup.FlushRetryCount),
 		fmt.Sprintf("--set-names=%s", l.cnf.Public.MysqlCharset),
 		fmt.Sprintf("--chunk-filesize=%d", l.cnf.LogicalBackup.ChunkFilesize),
 		fmt.Sprintf("--threads=%d", l.cnf.LogicalBackup.Threads),
 		// "--disk-limits=1GB:5GB",
+	}
+	if *l.cnf.LogicalBackup.TrxConsistencyOnly {
+		args = append(args, "--trx-consistency-only")
 	}
 	if l.cnf.Public.KillLongQueryTime > 0 {
 		args = append(args, "--kill-long-queries",
@@ -83,11 +84,9 @@ func (l *LogicalDumper) Execute(enableTimeOut bool) error {
 			args = append(args, "--long-query-guard=999999") // 不退出
 		}
 	}
-	/*
-		if l.cnf.Public.AcquireLockWaitTimeout > 0 {
-			args = append(args, fmt.Sprintf("--lock-wait-timeout=%d", l.cnf.Public.AcquireLockWaitTimeout))
-		}
-	*/
+	if l.cnf.Public.AcquireLockWaitTimeout > 0 {
+		args = append(args, fmt.Sprintf("--lock-wait-timeout=%d", l.cnf.Public.AcquireLockWaitTimeout))
+	}
 	if !l.cnf.LogicalBackup.DisableCompress {
 		args = append(args, "--compress")
 	}
@@ -138,11 +137,9 @@ func (l *LogicalDumper) Execute(enableTimeOut bool) error {
 			}...)
 		}
 	}
-	/*
-		if l.cnf.LogicalBackup.ExtraOpt != "" {
-			args = append(args, l.cnf.LogicalBackup.ExtraOpt)
-		}
-	*/
+	if l.cnf.LogicalBackup.ExtraOpt != "" {
+		args = append(args, l.cnf.LogicalBackup.ExtraOpt)
+	}
 
 	var cmd *exec.Cmd
 	if enableTimeOut {
@@ -163,9 +160,9 @@ func (l *LogicalDumper) Execute(enableTimeOut bool) error {
 
 	logger.Log.Info("logical dump command: ", cmd.String())
 
-	outFile, err := os.Create(
-		filepath.Join(logger.GetLogDir(),
-			fmt.Sprintf("mydumper_%d_%d.log", l.cnf.Public.MysqlPort, int(time.Now().Weekday()))))
+	mydumperLogFile := filepath.Join(logger.GetLogDir(),
+		fmt.Sprintf("mydumper_%d_%d.log", l.cnf.Public.MysqlPort, int(time.Now().Weekday())))
+	outFile, err := os.OpenFile(mydumperLogFile, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0644)
 	if err != nil {
 		logger.Log.Error("create log file failed: ", err)
 		return err
@@ -175,13 +172,20 @@ func (l *LogicalDumper) Execute(enableTimeOut bool) error {
 	}()
 
 	cmd.Stdout = outFile
-	//cmd.Stderr = outFile
-	var stderr bytes.Buffer
-	cmd.Stderr = &stderr
+	cmd.Stderr = outFile
 	err = cmd.Run()
 	if err != nil {
-		logger.Log.Error("run logical backup failed: ", err, stderr.String())
-		return errors.WithMessage(err, stderr.String())
+		errStrPrefix := fmt.Sprintf("tail 5 error from %s", mydumperLogFile)
+		errStrDetail, _ := util.GrepLinesFromFile(mydumperLogFile, []string{"ERROR", "fatal", "critical"},
+			5, false, true)
+		if len(errStrDetail) > 0 {
+			logger.Log.Info(errStrPrefix)
+			logger.Log.Error(errStrDetail)
+		} else {
+			logger.Log.Warn("tail can not find more detail error message from ", mydumperLogFile)
+		}
+		logger.Log.Error("run logical backup failed", err, l.cnf.Public.MysqlPort)
+		return errors.WithMessagef(err, fmt.Sprintf("%s\n%s", errStrPrefix, errStrDetail))
 	}
 	// check the integrity of backup
 	integrityErr := util.CheckIntegrity(&l.cnf.Public)

@@ -72,9 +72,18 @@ IOLimitMBPerSec = 300
 ```
 参数 `Public.IOLimitMasterFactor = 0.5` 可进一步限制在 master 上备份的限速，表示的是限速因子，比如 0.5 表示实际限速为 `IOLimitMBPerSec * 0.5`, `Throttle * 0.5`
 
-### 6. 关于 tendbcluster 集群备份，请参考 [spider](spiderbackup.md)
+### 6. 关于逻辑备份字符集说明
+首先，mysql 的表结构上的 comment 注释，mysqld 内部都是以 utf8 来编码的，它与表结构定义的 charset 和 表里面数据的字符集 都么有关系。mysqldump 导出表结构时，可以看到都设置为了 utf8，能正确处理。
 
-### 7. 关于逻辑备份字符集说明
+mydumper 的处理比较粗暴，表结构，表数据 都是以指定的 `--set-names` 来导出，并且把指定的这个字符集写到导出结果文件里。
+
+所以不论是 mysqldump 还是 mydumper，数据恢复回去时，都可以不用指定字符集。
+
+对于备份来说，指定逻辑备份的字符集选项 `Public.MysqlCharset`，留空时会读取 mysqld `character_set_server`，效果等同于 `Public.MysqlCharset=auto`。
+
+也可以指定为具体的字符集，但最好与表写入的字符集或者定义的字符集相同，否则导出数据可能错乱。也可以指定为 binary，但这也要求表定义的 comment上没有一些乱码等不可识别的字符，否则结果无法导入（数据可以导入）。
+
+### 7. 关于 tendbcluster 集群备份，请参考 [spider](spiderbackup.md)
 
 
 ### 8. 常见备份失败处理
@@ -111,3 +120,24 @@ BackupType = logical
 > /usr/lib64/libstdc++.so.6: version `GLIBCXX_3.4.15' not found (required by xxx)
 
 mysql 8.0 的物理备份工具 xtrabackup 也依赖 glibc>=2.14 版本，可能会看到如上报错。
+
+#### 4. There are queries in PROCESSLIST running longer than xx
+> ** (mydumper:27337): CRITICAL **: 15:01:07.879: There are queries in PROCESSLIST running longer than 120s, aborting dump,
+use --long-query-guard to change the guard value, kill queries (--kill-long-queries) or use different server for dump
+
+mydumper 备份发起的时候，当前实例有运行超过 120s的慢查询（`--long-query-guard=120`），在经历时间 `--long-query-retry-interval`\*`--long-query-retries` 之后慢查询还没结束，所以备份退出。
+
+处理方法：
+- 如果想自动 kill 掉这类长 sql，可以设置 `Public.KillLongQueryTime=120`，即超过 120s 的 sql会杀掉。
+- 如果不想 kill，仅仅想设置更长的时间等待长 sql执行完成，可以设置 `Public.FtwrlWaitTimeout=3600`。
+- 调整备份时间段
+
+> ** (mydumper:11132): CRITICAL **: 15:25:09.638: Flush tables failed, we are continuing anyways: Lock wait timeout exceeded; try restarting transaction
+
+mydumper 备份发起的时候，检测到长 sql 执行中（但还没超过`--long-query-guard=120`）,mydumper 会立即发出 FLUSH TABLE 操作，等待慢查询结束，默认等待 10s 之后 flush table 获取所锁失败，退出看到以上错误信息。
+
+`FLUSH NO_WRITE_TO_BINLOG TABLES` 或者 `FLUSH TABLE WITH READ LOCK` 被锁住，如果有其它读写请求则会被全部阻塞住。
+
+处理方法;
+- 可通过调整 `Public.AcquireLockWaitTimeout` 来调整 mydumper `--lock-wait-timeout` 值。
+- 调整备份时间段

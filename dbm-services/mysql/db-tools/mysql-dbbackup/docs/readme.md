@@ -336,6 +336,11 @@ DefaultsFile = /etc/my.cnf.3306
   发起备份前检查长 sql，(如果不自动 kill/ kill失败) 则等待长 sql 多久后，放弃 ftwrl，放弃备份。
   此时还未发起 `FLUSH TABLE WITH READ LOCK` 命令
   默认 120s，对 mydumper / xtrabackup 有效
+  - 逻辑备份 mydumper
+    相当于 `--long-query-guard xx` 且不 kill
+  - 物理备份 xtrabackup
+    5.5, 5.6 : `--lock-wait-timeout`
+    5.7, 8.0 : `--ftwrl-wait-timeout`
 
 - Public.AcquireLockWaitTimeout
   备份加锁超时，比如 `LOCK TABLES FOR BACKUP` / `FLUSH TABLE WITH READ LOCK`，相当于 `set session lock-wait-timeout=xxx`

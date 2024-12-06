@@ -16,6 +16,8 @@ import (
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/cst"
 )
 
+var TruePtr = true
+
 // SetDefaults vip set defaults
 func SetDefaults() {
 	viper.SetDefault("Public.OldFileLeftDay", 2)
@@ -34,4 +36,5 @@ func SetDefaults() {
 	viper.SetDefault("LogicalBackup.Threads", 4)
 	viper.SetDefault("LogicalBackup.InsertMode", "insert")
 	viper.SetDefault("LogicalBackup.UseMysqldump", cst.LogicalMysqldumpAuto)
+	viper.SetDefault("LogicalBackup.TrxConsistencyOnly", &TruePtr)
 }

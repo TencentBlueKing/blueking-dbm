@@ -79,6 +79,10 @@ func SetVariablesToConfigIni(s string) (map[string]interface{}, map[string]inter
 	var sessionVars = make(map[string]interface{})
 	var globalVars = make(map[string]interface{})
 	for _, setVar := range setVars {
+		setVar = strings.TrimSpace(setVar)
+		if setVar == "" {
+			continue
+		}
 		if m := reSetSession.FindStringSubmatch(setVar); len(m) == 4 {
 			sessionVars[m[2]] = m[3]
 		} else if m := reSet.FindStringSubmatch(setVar); len(m) == 4 {

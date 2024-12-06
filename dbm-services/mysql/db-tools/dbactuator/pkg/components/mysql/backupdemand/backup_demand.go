@@ -12,7 +12,6 @@ import (
 	"bufio"
 	"encoding/json"
 	"fmt"
-	"math/rand"
 	"os"
 	"path/filepath"
 	"slices"
@@ -24,7 +23,6 @@ import (
 	"github.com/pkg/errors"
 
 	"dbm-services/common/go-pubpkg/cmutil"
-	"dbm-services/common/go-pubpkg/mysqlcomm"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/components"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/core/cst"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/tools"
@@ -38,9 +36,10 @@ import (
 )
 
 type Component struct {
-	Params  *Param `json:"extend"`
-	tools   *tools.ToolSet
-	context `json:"-"`
+	GeneralParam *components.GeneralParam `json:"general"`
+	Params       *Param                   `json:"extend"`
+	tools        *tools.ToolSet
+	context      `json:"-"`
 }
 
 type Param struct {
@@ -62,14 +61,13 @@ type Param struct {
 }
 
 type context struct {
-	backupConfigPaths map[int]string
-	now               time.Time
-	randString        string
-	//resultReportPath  string
+	backupConfigPath string
+	now              time.Time
 	statusReportPath string
 	reportPath       string
-	backupPort       []int  // 当在 spider master备份时, 会有 [25000, 26000] 两个端口
+	backupPort       int    // 当在 spider master备份时, 会有 [25000, 26000] 两个端口
 	backupDir        string //只是兼容tbinlogdumper的备份日志输出，存储备份目录信息，没有任何处理逻辑
+	db               *native.DbWorker
 }
 
 type Report struct {
@@ -87,129 +85,123 @@ func (c *Component) Init() (err error) {
 	}
 
 	c.now = time.Now()
-	rand.Seed(c.now.UnixNano())
-	c.randString = fmt.Sprintf("%d%d", c.now.UnixNano(), rand.Intn(100))
-
-	c.backupConfigPaths = make(map[int]string)
-
-	c.backupPort = append(c.backupPort, c.Params.Port)
-	c.backupConfigPaths[c.Params.Port] = filepath.Join(
+	c.backupPort = c.Params.Port
+	c.backupConfigPath = filepath.Join(
 		cst.BK_PKG_INSTALL_PATH,
 		fmt.Sprintf("dbactuator-%s", c.Params.BillId),
-		fmt.Sprintf("dbbackup.%d.%s.ini", c.Params.Port, c.randString),
+		fmt.Sprintf("dbbackup.%d.%s.ini", c.Params.Port, c.Params.BackupId),
 	)
 
-	if c.Params.Role == cst.BackupRoleSpiderMaster {
-		tdbctlPort := mysqlcomm.GetTdbctlPortBySpider(c.Params.Port)
-		c.backupPort = append(c.backupPort, tdbctlPort)
-
-		c.backupConfigPaths[tdbctlPort] = filepath.Join(
-			cst.BK_PKG_INSTALL_PATH,
-			fmt.Sprintf("dbactuator-%s", c.Params.BillId),
-			fmt.Sprintf("dbbackup.%d.%s.ini", tdbctlPort, c.randString),
-		)
+	c.db, err = native.InsObject{
+		Host: c.Params.Host,
+		Port: c.backupPort,
+		User: c.GeneralParam.RuntimeAccountParam.MonitorUser,
+		Pwd:  c.GeneralParam.RuntimeAccountParam.MonitorPwd,
+	}.Conn()
+	if err != nil {
+		logger.Error("init db connection failed: %s", err.Error())
+		return err
 	}
 
 	return nil
 }
 
 func (c *Component) GenerateBackupConfig() error {
-	for _, port := range c.backupPort {
-		dailyBackupConfigPath := filepath.Join(
-			cst.DbbackupGoInstallPath,
-			fmt.Sprintf("dbbackup.%d.ini", port),
-		)
+	dailyBackupConfigPath := filepath.Join(
+		cst.DbbackupGoInstallPath,
+		fmt.Sprintf("dbbackup.%d.ini", c.backupPort),
+	)
 
-		dailyBackupConfigFile, err := ini.LoadSources(ini.LoadOptions{
-			PreserveSurroundedQuote: true,
-			IgnoreInlineComment:     true,
-			AllowBooleanKeys:        true,
-			AllowShadows:            true,
-		}, dailyBackupConfigPath)
-		if err != nil {
-			logger.Error("load %s failed: %s", dailyBackupConfigPath, err.Error())
-			return err
-		}
-
-		var backupConfig config.BackupConfig
-		err = dailyBackupConfigFile.MapTo(&backupConfig)
-		if err != nil {
-			logger.Error("map %s to struct failed: %s", dailyBackupConfigPath, err.Error())
-			return err
-		}
-
-		backupConfig.Public.BackupType = c.Params.BackupType
-		backupConfig.Public.BackupTimeOut = ""
-		backupConfig.Public.BillId = c.Params.BillId
-		backupConfig.Public.BackupId = c.Params.BackupId
-		backupConfig.Public.DataSchemaGrant = strings.Join(c.Params.BackupGSD, ",")
-		backupConfig.Public.ShardValue = c.Params.ShardID
-		if backupConfig.BackupClient.Enable && c.Params.BackupFileTag != "" {
-			backupConfig.BackupClient.FileTag = c.Params.BackupFileTag
-		}
-
-		backupConfig.LogicalBackup.Regex = ""
-		if c.Params.BackupType == "logical" {
-			backupConfig.LogicalBackup.UseMysqldump = "auto"
-			ignoreDbs := slices.DeleteFunc(native.DBSys, func(s string) bool {
-				return s == "infodba_schema"
-			})
-			ignoreDbs = append(ignoreDbs, c.Params.IgnoreDbs...)
-			backupConfig.LogicalBackup.Databases = strings.Join(c.Params.DbPatterns, ",")
-			backupConfig.LogicalBackup.ExcludeDatabases = strings.Join(ignoreDbs, ",")
-			backupConfig.LogicalBackup.Tables = strings.Join(c.Params.TablePatterns, ",")
-			backupConfig.LogicalBackup.ExcludeTables = strings.Join(c.Params.IgnoreTables, ",")
-
-			tf, err := db_table_filter.NewFilter(
-				c.Params.DbPatterns, c.Params.TablePatterns,
-				ignoreDbs, c.Params.IgnoreTables,
-			)
-			if err != nil {
-				logger.Error("create table filter failed: %s", err.Error())
-				return err
-			}
-			backupConfig.LogicalBackup.Regex = tf.TableFilterRegex()
-		}
-
-		if c.Params.CustomBackupDir != "" {
-			backupConfig.Public.BackupDir = filepath.Join(
-				backupConfig.Public.BackupDir,
-				fmt.Sprintf("%s_%s_%d_%s",
-					c.Params.CustomBackupDir,
-					c.now.Format("20060102150405"),
-					port,
-					c.randString))
-
-			err := os.Mkdir(backupConfig.Public.BackupDir, 0755)
-			if err != nil {
-				logger.Error("mkdir %s failed: %s", backupConfig.Public.BackupDir, err.Error())
-				return err
-			}
-
-		}
-		// 增加为tbinlogdumper做库表备份的日志输出，保存流程上下文
-		c.backupDir = backupConfig.Public.BackupDir
-
-		backupConfigFile := ini.Empty()
-		err = backupConfigFile.ReflectFrom(&backupConfig)
-		if err != nil {
-			logger.Error("reflect backup config failed: %s", err.Error())
-			return err
-		}
-
-		backupConfigPath := c.backupConfigPaths[port]
-		err = backupConfigFile.SaveTo(backupConfigPath)
-		if err != nil {
-			logger.Error("write backup config to %s failed: %s",
-				backupConfigPath, err.Error())
-			return err
-		}
-
-		c.statusReportPath = filepath.Join(
-			backupConfig.Public.StatusReportPath,
-			fmt.Sprintf("dbareport_status_%d.log", c.Params.Port),
-		)
+	dailyBackupConfigFile, err := ini.LoadSources(ini.LoadOptions{
+		PreserveSurroundedQuote: true,
+		IgnoreInlineComment:     true,
+		AllowBooleanKeys:        true,
+		AllowShadows:            true,
+	}, dailyBackupConfigPath)
+	if err != nil {
+		logger.Error("load %s failed: %s", dailyBackupConfigPath, err.Error())
+		return err
 	}
+
+	var backupConfig config.BackupConfig
+	err = dailyBackupConfigFile.MapTo(&backupConfig)
+	if err != nil {
+		logger.Error("map %s to struct failed: %s", dailyBackupConfigPath, err.Error())
+		return err
+	}
+
+	backupConfig.Public.BackupType = c.Params.BackupType
+	backupConfig.Public.BackupTimeOut = ""
+	backupConfig.Public.BillId = c.Params.BillId
+	backupConfig.Public.BackupId = c.Params.BackupId
+	backupConfig.Public.DataSchemaGrant = strings.Join(c.Params.BackupGSD, ",")
+	backupConfig.Public.ShardValue = c.Params.ShardID
+	if backupConfig.BackupClient.Enable && c.Params.BackupFileTag != "" {
+		backupConfig.BackupClient.FileTag = c.Params.BackupFileTag
+	}
+
+	backupConfig.LogicalBackup.Regex = ""
+	if c.Params.BackupType == "logical" {
+		backupConfig.LogicalBackup.UseMysqldump = "auto"
+		ignoreDbs := slices.DeleteFunc(native.DBSys, func(s string) bool {
+			return s == "infodba_schema"
+		})
+		ignoreDbs = append(ignoreDbs, c.Params.IgnoreDbs...)
+		backupConfig.LogicalBackup.Databases = strings.Join(c.Params.DbPatterns, ",")
+		backupConfig.LogicalBackup.ExcludeDatabases = strings.Join(ignoreDbs, ",")
+		backupConfig.LogicalBackup.Tables = strings.Join(c.Params.TablePatterns, ",")
+		backupConfig.LogicalBackup.ExcludeTables = strings.Join(c.Params.IgnoreTables, ",")
+
+		tf, err := db_table_filter.NewFilter(
+			c.Params.DbPatterns, c.Params.TablePatterns,
+			ignoreDbs, c.Params.IgnoreTables,
+		)
+		if err != nil {
+			logger.Error("create table filter failed: %s", err.Error())
+			return err
+		}
+		backupConfig.LogicalBackup.Regex = tf.TableFilterRegex()
+	}
+
+	if c.Params.CustomBackupDir != "" {
+		backupConfig.Public.BackupDir = filepath.Join(
+			backupConfig.Public.BackupDir,
+			fmt.Sprintf("%s_%s_%d_%s",
+				c.Params.CustomBackupDir,
+				c.now.Format("20060102150405"),
+				c.backupPort,
+				c.Params.BackupId))
+
+		err := os.Mkdir(backupConfig.Public.BackupDir, 0755)
+		if err != nil {
+			logger.Error("mkdir %s failed: %s", backupConfig.Public.BackupDir, err.Error())
+			return err
+		}
+
+	}
+	// 增加为tbinlogdumper做库表备份的日志输出，保存流程上下文
+	c.backupDir = backupConfig.Public.BackupDir
+
+	backupConfigFile := ini.Empty()
+	err = backupConfigFile.ReflectFrom(&backupConfig)
+	if err != nil {
+		logger.Error("reflect backup config failed: %s", err.Error())
+		return err
+	}
+
+	//backupConfigPath := c.backupConfigPath[port]
+	err = backupConfigFile.SaveTo(c.backupConfigPath)
+	if err != nil {
+		logger.Error("write backup config to %s failed: %s",
+			c.backupConfigPath, err.Error())
+		return err
+	}
+
+	c.statusReportPath = filepath.Join(
+		backupConfig.Public.StatusReportPath,
+		fmt.Sprintf("dbareport_status_%d.log", c.Params.Port),
+	)
+	//}
 
 	return nil
 }
@@ -219,22 +211,50 @@ func (c *Component) ActuatorWorkDir() string {
 	return filepath.Dir(executable)
 }
 
-func (c *Component) DoBackup() error {
-	for _, port := range c.backupPort {
-		backupConfigPath := c.backupConfigPaths[port]
-		cmdArgs := []string{c.tools.MustGet(tools.ToolDbbackupGo), "dumpbackup", "--config", backupConfigPath}
-		cmdArgs = append(cmdArgs, "--log-dir", filepath.Join(c.ActuatorWorkDir(), "logs"))
-		logger.Info("backup command: %s", strings.Join(cmdArgs, " "))
+// KillLegacyBackup
+// 尽力而为尝试去结束残留的备份连接
+func (c *Component) KillLegacyBackup() error {
+	defer func() {
+		_ = c.db.Close
+	}()
 
-		_, errStr, err := cmutil.ExecCommand(false, "",
-			cmdArgs[0], cmdArgs[1:]...)
+	processList, err := c.db.SelectProcesslist([]string{c.GeneralParam.RuntimeAccountParam.DbBackupUser})
+	if err != nil {
+		logger.Error("get process list failed: %s", err.Error())
+		return err
+	}
 
+	logger.Info("backup process %v found", processList)
+	if len(processList) == 0 {
+		return nil
+	}
+
+	for _, process := range processList {
+		_, err := c.db.Exec(`KILL ?`, process.ID)
 		if err != nil {
-			logger.Error("execute %s failed: %s, msg:%s", cmdArgs, err.Error(), errStr)
+			logger.Error("kill %s failed: %s", process.ID, err.Error())
 			return err
 		}
-		logger.Info("backup success with %s", backupConfigPath)
+		logger.Info("kill %v successfully", process)
 	}
+
+	return nil
+}
+
+func (c *Component) DoBackup() error {
+	cmdArgs := []string{c.tools.MustGet(tools.ToolDbbackupGo), "dumpbackup", "--config", c.backupConfigPath}
+	cmdArgs = append(cmdArgs, "--log-dir", filepath.Join(c.ActuatorWorkDir(), "logs"))
+	logger.Info("backup command: %s", strings.Join(cmdArgs, " "))
+
+	_, errStr, err := cmutil.ExecCommand(false, "",
+		cmdArgs[0], cmdArgs[1:]...)
+
+	if err != nil {
+		logger.Error("execute %s failed: %s, msg:%s", cmdArgs, err.Error(), errStr)
+		return err
+	}
+	logger.Info("backup success with %s", c.backupConfigPath)
+	//}
 	return nil
 }
 

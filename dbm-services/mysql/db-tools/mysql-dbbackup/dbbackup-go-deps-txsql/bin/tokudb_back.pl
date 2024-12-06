@@ -56,6 +56,7 @@ if(defined $ARGV[1] and $ARGV[1]=~ /\s*(\d+)\s*/){
 mkdir("$backdir/mysql_data");
 mkdir("$backdir/tokudb_data");
 mkdir("$backdir/tokudb_log");
+mkdir("$backdir/innodb_data");
 
 if ($sock =~ /.+\/(\d+)\// ) {
     $port = $1;
@@ -64,26 +65,40 @@ if ($sock =~ /.+\/(\d+)\// ) {
 my $data_dir        = undef;
 my $tokudb_data_dir = undef;
 my $tokudb_log_dir  = undef;
+my $innodb_home_dir      = undef;
+my $innodb_log_dir      = undef;
 my $myconf = ($port == 3306)? "/etc/my.cnf" : "/etc/my.cnf.$port";
 
 open( my $my_cnf_fp, "< $myconf" ) or die "$myconf open error" ;
 while ( my $line = <$my_cnf_fp> ) {
     chomp $line;
     if ( not defined $data_dir ) {
-        if ( $line =~ /\s*datadir\s*=([\S]+)/ ) {
+        if ( $line =~ /\s*datadir\s*=\s*([\S]+)/ ) {
             $data_dir = $1;
             next;
         }
     }
     if ( not defined $tokudb_data_dir ) {
-        if ( $line =~ /\s*tokudb_data_dir\s*=([\S]+)/ ) {
+        if ( $line =~ /\s*tokudb_data_dir\s*=\s*([\S]+)/ ) {
             $tokudb_data_dir = $1;
             next;
         }
     }
     if ( not defined $tokudb_log_dir ) {
-        if ( $line =~ /\s*tokudb_log_dir\s*=([\S]+)/ ) {
+        if ( $line =~ /\s*tokudb_log_dir\s*=\s*([\S]+)/ ) {
         $tokudb_log_dir = $1;
+        next;
+        }
+    }
+    if ( not defined $innodb_home_dir ) {
+        if ( $line =~ /\s*innodb_data_home_dir\s*=\s*([\S]+)/ ) {
+        $innodb_home_dir = $1;
+        next;
+        }
+    }
+    if ( not defined $innodb_log_dir ) {
+        if ( $line =~ /\s*innodb_log_group_home_dir\s*=\s*([\S]+)/ ) {
+        $innodb_log_dir = $1;
         next;
         }
     }
@@ -92,7 +107,8 @@ close($my_cnf_fp);
 
 unless (defined $data_dir &&
         defined $tokudb_data_dir &&
-        defined $tokudb_log_dir )
+        defined $tokudb_log_dir &&
+        defined $innodb_home_dir )
 {
     die "some key in $myconf lost";
 }
@@ -112,7 +128,7 @@ system("echo $date >> $backdir/TOKUDB.BEGIN");
 my $tname=( split(/\//,$ARGV[0]) )[-1];
 my $dir;
 if($ARGV[0] =~ /(.+)\/${tname}$/){
-    $dir=$1;
+    $dir=$1;   
 }else{
     die "failed while parsing backdir";
 }
@@ -152,17 +168,17 @@ if($tmysql_ver ge tmysql_version_parser("tmysql-2.1.3")){
     print $debug_log "get metadata lock ok\n\n";
 }
 
-my @white_databases=qw(information_schema db_infobase mysql performance_schema test sys);
+my @white_databases=qw(information_schema db_infobase mysql performance_schema test sys infodba_schema);
 my @backup_databases;
 my @other_engines;
 eval{
-    local $SIG{__DIE__} = "";
+    local $SIG{__DIE__} = "";           
     $sql="show databases";
     my $select=$dbh->prepare($sql);
     $select->execute();
     while(my $result=($select->fetchrow_array)[0]){
         if(not grep(/$result/,@white_databases)){
-            push(@backup_databases,$result);
+            push(@backup_databases,$result);   
         }
     }
     if(@backup_databases){
@@ -173,7 +189,7 @@ eval{
         while(my @row_array=$select->fetchrow_array){
             my ($engine)=@row_array;
             if(not $engine eq 'TokuDB'){
-                push(@other_engines,$engine);
+                push(@other_engines,$engine);   
             }
         }
     }
@@ -184,7 +200,7 @@ if($@){
 
 
 my $metadata_before_backup=qx(ls -l $data_dir $tokudb_log_dir/*);
-##### STEP 3. get checkpoint lock
+##### STEP 3. get checkpoint lock 
 #set tokudb_checkpoint_lock=on:let dml only change redo log
 $row_ref=$dbh->selectrow_arrayref("select * from information_schema.global_variables where variable_name='tokudb_checkpoint_lock'");
 print $debug_log "global:$row_ref->[0]:$row_ref->[1]\n";
@@ -199,7 +215,7 @@ print $debug_log "session:$row_ref->[0]:$row_ref->[1]\n";
 print $debug_log "set tokudb_checkpoint_lock=on ok\n\n";
 
 
-##### STEP 4. Copy tokudb.* and redo log, and get binlog position in a blocking-binlog or stopping-slave;
+##### STEP 4. Copy tokudb.* and redo log, and get binlog position in a blocking-binlog or stopping-slave; 
 if(defined $dump_slave){
     $dbh->do("set \@old_rpl_stop_slave_timeout=\@\@rpl_stop_slave_timeout;") or die("failed to get the value of rpl_stop_slave_timeout");
     print($debug_log "rpl_stop_slave_timeout:".(($dbh->selectrow_arrayref("select \@\@rpl_stop_slave_timeout"))->[0])."\n");
@@ -216,7 +232,7 @@ if(defined $dump_slave){
         system("rm -rf $backdir/mysql_data")==0 or die "failed:$!";
         close $debug_log;
         close $backed_debug_log;
-        exit(223);
+        exit(223); 
     }
     print $debug_log qx(date);
     print $debug_log "stop slave ok\n\n";
@@ -249,7 +265,7 @@ my $select_file=$dbh->prepare("select distinct internal_file_name from informati
 $select_file->execute();
 while(my @tokudb_files=$select_file->fetchrow_array){
     push(@tokudb_data_files,$tokudb_files[0]);
-    printf(FILELIST "$tokudb_files[0]\n");
+    printf(FILELIST "$tokudb_files[0]\n"); 
 }
 close FILELIST;
 
@@ -294,13 +310,20 @@ if(defined $dump_slave){
 
 
 ##### STEP 5. Copy frm
+## no flush table with read lock ???
 print $debug_log qx(date);
 print $debug_log "copy mysql data dir: $data_dir/ ...";
 system("ls $data_dir| xargs -I '{}' cp -r $data_dir/{}  $backdir/mysql_data")==0 or die "failed:$!";
+
+print $debug_log qx(date);
+print $debug_log "copy innodb ibdata1 in: $innodb_home_dir ...";
+system("cp -r $innodb_home_dir $backdir/innodb_data/")==0 or die "failed:$!\n";
+system("cp -r $innodb_log_dir $backdir/innodb_data/")==0 or die "failed:$!\n";
+
 print $debug_log "\tdone.\n";
 print $debug_log qx(date)."\n";
 
-##### STEP 6. recovery tokudb_commit_sync;
+##### STEP 6. recovery tokudb_commit_sync; 
 #$ret=$dbh->do("set global tokudb_commit_sync=$old_global_tokudb_commit_sync");
 #die "unable to restore tokudb_commit_sync" if not defined $ret or $ret<0;
 ##sleep(100);
@@ -308,7 +331,7 @@ print $debug_log qx(date)."\n";
 #print "enable tokudb redo log buffer ok\n\n";
 #
 #goto SKIP;
-##### STEP 7. copy data or increment data
+##### STEP 7. copy data or increment data 
 if(is_low_space("$Bin/history_backup_size","$Bin/last_backup_size",$backdir,0.96,$debug_log)){
     push(@tokudb_backup_warnings,"SMS#low space,previous file for port:${port} will be deleted,and a fully backup will be done today");
     #delete old file
@@ -341,7 +364,7 @@ if(is_low_space("$Bin/history_backup_size","$Bin/last_backup_size",$backdir,0.96
         opendir (DIR,$dir) or die "can't open the directory $dir";
         my @dirs=readdir DIR;
         close DIR;
-
+        
         #my $fully_backup_port=$wday;
         #while($fully_backup_port<$port){$fully_backup_port+=7;}
         #my $days_since_fully=$fully_backup_port-$port;
@@ -355,7 +378,7 @@ if(is_low_space("$Bin/history_backup_size","$Bin/last_backup_size",$backdir,0.96
         my $i;
         my $fully_stamp_and_name={};
         for($i=0;$i<7;$i++){
-            my $fullyday=strftime("%Y%m%d", localtime($fully_stamp-$i*24*3600));
+            my $fullyday=strftime("%Y%m%d", localtime($fully_stamp-$i*24*3600)); 
             #print "\$port:$port \$fully_backup_port:$fully_backup_port \$days_since_fully:$days_since_fully \$fullyday:$fullyday\n";
             #print "now begin to exam ".(scalar @dirs)." file\n";
             foreach my $file(@dirs){
@@ -375,7 +398,7 @@ if(is_low_space("$Bin/history_backup_size","$Bin/last_backup_size",$backdir,0.96
                     }
                     close INFO;
                     if(defined $tmpstamp and defined $tmpname and $tmpname eq $current_name){#find fully backup info file
-                        $fully_stamp_and_name->{$tmpstamp}=$tmpname;
+                        $fully_stamp_and_name->{$tmpstamp}=$tmpname;                
                     }
                     $tmpstamp=undef;
                     $tmpname=undef;#for multi fully backup one day
@@ -398,7 +421,7 @@ if(is_low_space("$Bin/history_backup_size","$Bin/last_backup_size",$backdir,0.96
                     system("cp  $tokudb_data_dir/$file  $backdir/tokudb_data") ==0 or die "failed:$!";
                     #printf("copied $file\n");
                 }
-            }
+            } 
         }else{  #previous backup failed
             #print "\tfully backup(i:$i fully_stamp:$fully_stamp)";
             print $backed_debug_log "\ttmpstamp:$tmpstamp" if defined $tmpstamp;
@@ -414,7 +437,7 @@ SKIP:
 print $debug_log "\tdone.\n";
 print $debug_log qx(date)."\n";
 
-##### STEP 8. check file change time
+##### STEP 8. check file change time 
 my $metadata_after_backup=qx(ls -l $data_dir $tokudb_log_dir/*);
 print $backed_debug_log "############################################# metadata before backup ######################################################\n";
 print $backed_debug_log $metadata_before_backup;
@@ -449,7 +472,7 @@ foreach my $file(@dirs){
     }
 }
 
-##### STEP 9. release metadata lock
+##### STEP 9. release metadata lock 
 if($tmysql_ver ge tmysql_version_parser("tmysql-2.1.3")){
     $dbh->do("unlock tables") or die "failed to release metadata lock";
     print $debug_log qx(date);
@@ -457,7 +480,7 @@ if($tmysql_ver ge tmysql_version_parser("tmysql-2.1.3")){
 }
 
 
-##### STEP 10. release tokudb_checkpoint_lock
+##### STEP 10. release tokudb_checkpoint_lock 
 $dbh->do("SET TOKUDB_CHECKPOINT_LOCK=OFF") or die "release tokudb checkpoint lock failed";
 $row_ref=$dbh->selectrow_arrayref("select * from information_schema.global_variables where variable_name='tokudb_checkpoint_lock'");
 print $debug_log "global:$row_ref->[0]:$row_ref->[1]\n";
@@ -468,9 +491,9 @@ print $debug_log "set tokudb_checkpoint_lock=off ok\n\n";
 $dbh->disconnect;
 
 
-##### STEP 11. fully backup info to file
+##### STEP 11. fully backup info to file 
 #save fully backup info to file
-open my $latest_fully_backup_info,">$Bin/latest_fully_backup_info.$port"
+open my $latest_fully_backup_info,">$Bin/latest_fully_backup_info.$port" 
 or die("ERROR: Can not open latest fully backup info file $Bin/latest_fully_backup_info.$port for $@");
 printf $latest_fully_backup_info "FULLY_STAMP=$fully_stamp\n";
 printf $latest_fully_backup_info "FULLY_NAME=$fully_name\n";
@@ -542,7 +565,7 @@ sub is_low_space{
         my $space_may_used=$disk_used+$max;
         my $warn_level=$disk_total*$max_percent;
         print $debug_log "total-space:${disk_total}B used-space:${disk_used}B backup-may-use:${max}B warn-level:${warn_level}B \n";
-        if($space_may_used>$warn_level){
+        if($space_may_used>$warn_level){ 
             print $debug_log "use-space + space-backup-may-use=${space_may_used}B > warn_level=${warn_level}B\n";
             return 1;
         }else{
