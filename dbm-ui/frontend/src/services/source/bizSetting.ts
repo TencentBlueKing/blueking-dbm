@@ -37,3 +37,11 @@ export const getBizSettingList = function (params: { bk_biz_id: number; key?: st
 export const updateBizSetting = function (params: { bk_biz_id: number; key: string; value: any; value_type?: string }) {
   return http.post(`${path}/update_settings/`, params);
 };
+
+// 批量更新业务设置列表键值
+export const batchUpdateBizSetting = function (params: {
+  bk_biz_id: number;
+  settings: { key: string; value: any; value_type?: string }[];
+}) {
+  return http.post(`${path}/batch_update_setting/`, params);
+};
