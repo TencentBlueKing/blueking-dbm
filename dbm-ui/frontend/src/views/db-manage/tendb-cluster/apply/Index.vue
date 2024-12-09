@@ -325,7 +325,7 @@
       return {
         ...details,
         cluster_shard_num: Number(specInfo.cluster_shard_num),
-        remote_shard_num: specInfo.cluster_shard_num / specInfo.machine_pair,
+        remote_shard_num: Number(specInfo.cluster_shard_num) / specInfo.machine_pair,
         disaster_tolerance_level: details.resource_spec.backend_group.affinity,
         resource_spec: {
           spider: {

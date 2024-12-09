@@ -29,9 +29,10 @@
           <ModuleItem
             ref="moduleItemRef"
             v-model="formdata.details.db_module_id"
+            v-model:module-alias-name="moduleAliasName"
+            v-model:module-level-config="moduleLevelConfig"
             :biz-id="formdata.bk_biz_id"
-            :cluster-type="typeInfo.type"
-            @module-change="handleModuleChange" />
+            :cluster-type="typeInfo.type" />
           <CloudItem
             v-model="formdata.details.bk_cloud_id"
             @change="handleChangeCloud" />
@@ -435,6 +436,11 @@
   const moduleRef = ref();
   const regionItemRef = ref();
   const moduleAliasName = ref('');
+  const moduleLevelConfig = ref({
+    charset: '',
+    dbVersion: '',
+    systemVersionList: [] as string[],
+  });
 
   const cloudInfo = reactive({
     id: '' as number | string,
@@ -446,18 +452,6 @@
         message: t('以小写英文字母开头_且只能包含英文字母_数字_连字符'),
         trigger: 'blur',
         validator: (val: string) => nameRegx.test(val),
-      },
-    ],
-    'details.db_module_id': [
-      {
-        message: t('请先选择所属业务'),
-        trigger: 'blur',
-        validator: () => !!formdata.bk_biz_id,
-      },
-      {
-        message: t('DB模块名不能为空'),
-        trigger: 'blur',
-        validator: (val: number) => !!val,
       },
     ],
     'details.nodes.proxy': [
@@ -516,10 +510,6 @@
 
   // 获取基础数据信息
   const { formdata, fetchState, handleResetFormdata } = useMysqlData(dbType);
-
-  const handleModuleChange = (value: string) => {
-    moduleAliasName.value = value;
-  };
 
   function handleChangeClusterCount(value: number) {
     if (value && formdata.details.inst_num > value) {
@@ -659,7 +649,7 @@
     backend: formatNodes(formdata.details.nodes.backend),
   }));
   const previewData = computed(() => {
-    const { dbVersion, charset } = moduleItemRef.value!.getModuleConfig();
+    const { dbVersion, charset } = moduleLevelConfig.value;
     return tableData.value.map(({ key }: { key: string }) => ({
       domain: `${moduleAliasName.value}db.${key}.${formdata.details.db_app_abbr}.db`,
       slaveDomain: `${moduleAliasName.value}db.${key}.${formdata.details.db_app_abbr}.db`,
@@ -696,7 +686,7 @@
       ?.validate()
       .then(() => true)
       .catch(() => false);
-    if (validate && moduleItemRef.value!.isBind()) {
+    if (validate) {
       baseState.isSubmitting = true;
 
       const getDetails = () => {

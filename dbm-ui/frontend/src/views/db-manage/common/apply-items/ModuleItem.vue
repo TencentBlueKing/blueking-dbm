@@ -1,9 +1,12 @@
 <template>
   <BkFormItem
+    ref="moduleRef"
     class="apply-module-item"
     :description="t('DB 参数模块是一个管理单元，用于标识一组使用了相同数据库配置（版本、字符集等）的集群')"
     :label="t('DB参数模块')"
-    property="details.db_module_id">
+    property="details.db_module_id"
+    required
+    :rules="rules">
     <BkSelect
       v-model="modelValue"
       class="item-input"
@@ -45,7 +48,7 @@
             :biz-id="bizId"
             class="create-module"
             :disabled="!bizId"
-            resource="mysql"
+            :resource="dbType"
             text
             @click="handleCreateModule">
             <DbIcon
@@ -86,9 +89,9 @@
               {{ isBindModule ? t('已完成') : t('去绑定') }}
             </span>
           </div>
-          <div class="bk-form-error mt-10">
+          <!-- <div class="bk-form-error mt-10">
             {{ t('需要绑定数据库相关配置') }}
-          </div>
+          </div> -->
         </template>
       </BkLoading>
     </div>
@@ -96,6 +99,7 @@
 </template>
 
 <script setup lang="ts">
+  import { Form } from 'bkui-vue';
   import type { UnwrapRef } from 'vue';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
@@ -110,24 +114,17 @@
     bizId: number | '';
   }
 
-  interface Emits {
-    (e: 'module-change', value: string): void;
-  }
-
-  interface Exposes {
-    getModuleConfig: () => {
-      charset: string;
-      dbVersion: string;
-      systemVersionList: string[];
-    };
-    isBind: () => boolean;
-  }
-
   const props = defineProps<Props>();
-  const emits = defineEmits<Emits>();
+
   const modelValue = defineModel<number | null>({
     required: true,
   });
+  const moduleAliasName = defineModel<string>('moduleAliasName');
+  const moduleLevelConfig = defineModel<{
+    charset: string;
+    dbVersion: string;
+    systemVersionList: string[];
+  }>('moduleLevelConfig');
 
   const route = useRoute();
   const router = useRouter();
@@ -135,12 +132,31 @@
 
   const { dbType } = clusterTypeInfos[props.clusterType];
 
-  const isBindModule = ref(false);
+  const rules = [
+    {
+      message: t('请先选择所属业务'),
+      trigger: 'blur',
+      validator: () => props.bizId,
+    },
+    {
+      message: t('DB模块名不能为空'),
+      trigger: 'blur',
+      validator: (value: number) => value,
+    },
+    {
+      message: t('需要绑定数据库相关配置'),
+      trigger: 'blur',
+      validator: () => {
+        if ([DBTypes.MYSQL, DBTypes.SQLSERVER].includes(dbType)) {
+          return isBindModule.value;
+        }
+        return true;
+      },
+    },
+  ];
 
-  const moduleAliasName = computed(() => {
-    const item = (moduleList.value || []).find((item) => item.db_module_id === modelValue.value);
-    return item?.alias_name ?? '';
-  });
+  const moduleRef = ref<InstanceType<typeof Form.FormItem>>();
+  const isBindModule = ref(false);
 
   const configItemList = computed(() => {
     const confItems = levelConfigData.value?.conf_items || [];
@@ -212,6 +228,10 @@
     run: runGetLevelConfig,
   } = useRequest(getLevelConfig, {
     manual: true,
+    onSuccess(levelConfigResult) {
+      isBindModule.value = levelConfigResult.conf_items.length > 0;
+      moduleRef.value!.clearValidate();
+    },
   });
 
   const fetchModuleList = () => {
@@ -248,6 +268,9 @@
   watch(
     modelValue,
     () => {
+      const item = (moduleList.value || []).find((item) => item.db_module_id === modelValue.value);
+      moduleAliasName.value = item?.alias_name ?? '';
+
       fetchLevelConfig();
     },
     {
@@ -255,8 +278,26 @@
     },
   );
 
-  watch(moduleAliasName, () => {
-    emits('module-change', moduleAliasName.value);
+  watch(levelConfigData, () => {
+    const confItems = levelConfigData.value?.conf_items || [];
+    const confInfo = {
+      charset: '',
+      dbVersion: '',
+      systemVersionList: [] as string[],
+    };
+    confItems.forEach((confItem) => {
+      const { conf_name: confName, conf_value: confValue = '' } = confItem;
+
+      if (confName === 'charset') {
+        confInfo.charset = confValue;
+      } else if (confName === 'db_version') {
+        confInfo.dbVersion = confValue;
+      } else if (confName === 'system_version') {
+        confInfo.systemVersionList = confValue.split(',');
+      }
+    });
+
+    moduleLevelConfig.value = confInfo;
   });
 
   const getBaseInfo = (moduleItem: NonNullable<UnwrapRef<typeof moduleList>>[number]) => {
@@ -345,33 +386,6 @@
     });
     window.open(url.href, '_blank');
   };
-
-  defineExpose<Exposes>({
-    getModuleConfig() {
-      const confItems = levelConfigData.value?.conf_items || [];
-      const confInfo = {
-        charset: '',
-        dbVersion: '',
-        systemVersionList: [] as string[],
-      };
-      confItems.forEach((confItem) => {
-        const { conf_name: confName, conf_value: confValue = '' } = confItem;
-
-        if (confName === 'charset') {
-          confInfo.charset = confValue;
-        } else if (confName === 'db_version') {
-          confInfo.dbVersion = confValue;
-        } else if (confName === 'system_version') {
-          confInfo.systemVersionList = confValue.split(',');
-        }
-      });
-
-      return confInfo;
-    },
-    isBind() {
-      return configItemList.value.length > 0;
-    },
-  });
 </script>
 
 <style lang="less">

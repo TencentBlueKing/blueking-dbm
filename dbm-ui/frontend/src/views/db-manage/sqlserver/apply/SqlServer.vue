@@ -16,9 +16,10 @@
           <ModuleItem
             ref="moduleItemRef"
             v-model="formData.details.db_module_id"
+            v-model:module-alias-name="moduleAliasName"
+            v-model:module-level-config="moduleLevelConfig"
             :biz-id="formData.bk_biz_id"
-            :cluster-type="clusterType"
-            @module-change="handleModuleChange" />
+            :cluster-type="clusterType" />
           <CloudItem
             v-model="formData.details.bk_cloud_id"
             @change="handleChangeCloud" />
@@ -290,12 +291,17 @@
 
   const formRef = ref();
   const backendRef = ref();
-  const moduleAliasName = ref('');
   const moduleItemRef = ref<InstanceType<typeof ModuleItem>>();
   const isShowPreview = ref(false);
   const maxInstNum = ref();
   const regionItemRef = ref<InstanceType<typeof RegionItem>>();
   const specBackendRef = ref<InstanceType<typeof SpecSelector>>();
+  const moduleAliasName = ref('');
+  const moduleLevelConfig = ref({
+    charset: '',
+    dbVersion: '',
+    systemVersionList: [] as string[],
+  });
 
   const cloudInfo = ref<{
     id: string | number;
@@ -312,13 +318,6 @@
       {
         message: t('以小写英文字母开头_且只能包含英文字母_数字_连字符'),
         trigger: 'blur',
-      },
-    ],
-    'details.db_module_id': [
-      {
-        message: t('DB模块名不能为空'),
-        trigger: 'blur',
-        validator: (val: number) => !!val,
       },
     ],
     'details.nodes.backend': [
@@ -355,7 +354,7 @@
   });
 
   const previewData = computed(() => {
-    const { dbVersion, charset } = moduleItemRef.value!.getModuleConfig();
+    const { dbVersion, charset } = moduleLevelConfig.value;
     return tableData.value.reduce(
       (accumulator, { key }) => [
         ...accumulator,
@@ -407,7 +406,7 @@
   // 只能选择 module 配置中对应操作系统版本的机器
   const disableHostMethod = (data: HostInfo) => {
     const osName = data.os_name.replace(/\s+/g, '');
-    const { systemVersionList } = moduleItemRef.value!.getModuleConfig();
+    const { systemVersionList } = moduleLevelConfig.value;
     return systemVersionList.every((versionItem) => !osName.includes(versionItem))
       ? t('操作系统版本不符合模块配置')
       : false;
@@ -424,10 +423,6 @@
     if (value >= formData.details.cluster_count) {
       maxInstNum.value = formData.details.cluster_count;
     }
-  };
-
-  const handleModuleChange = (value: string) => {
-    moduleAliasName.value = value;
   };
 
   /**

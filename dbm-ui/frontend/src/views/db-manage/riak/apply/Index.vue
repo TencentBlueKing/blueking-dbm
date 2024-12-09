@@ -29,9 +29,9 @@
           @change-biz="handleChangeBiz" />
         <ModuleItem
           v-model="formData.details.db_module_id"
+          v-model:module-alias-name="moduleAliasName"
           :biz-id="formData.bk_biz_id"
-          :cluster-type="ClusterTypes.RIAK"
-          @module-change="handleModuleChange" />
+          :cluster-type="ClusterTypes.RIAK" />
         <ClusterName v-model="formData.details.cluster_name" />
         <ClusterAlias
           v-model="formData.details.cluster_alias"
@@ -283,10 +283,6 @@
     if (formData.details.nodes.length > 0) {
       nodesRef.value.clearValidate();
     }
-  };
-
-  const handleModuleChange = (value: string) => {
-    moduleAliasName.value = value;
   };
 
   const handleSubmit = () => {
