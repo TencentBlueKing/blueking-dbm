@@ -77,6 +77,8 @@ type ResourDistributionParam struct {
 	SubZoneIds []string     `json:"subzone_ids"`
 	GroupBy    string       `json:"group_by" binding:"required"`
 	SpecParam  DbmSpecParam `json:"spec_param" `
+	// 筛选enable的规格
+	EnableSpec bool `json:"enable_spec"`
 }
 
 // DbmSpecParam 规格参数
@@ -87,7 +89,7 @@ type DbmSpecParam struct {
 	SpecIdList  []int   `json:"spec_id_list"`
 }
 
-func (m DbmSpecParam) getQueryParam() map[string]string {
+func (m DbmSpecParam) getQueryParam(enableSpec bool) map[string]string {
 	p := make(map[string]string)
 	if m.DbType != nil {
 		if *m.DbType != model.PUBLIC_RESOURCE_DBTYEP {
@@ -107,6 +109,9 @@ func (m DbmSpecParam) getQueryParam() map[string]string {
 		}
 		p["spec_ids"] = strings.Join(specIdStrList, ",")
 	}
+	if enableSpec {
+		p["enable"] = "true"
+	}
 	return p
 }
 
@@ -120,7 +125,7 @@ func (s *Handler) ResourceDistribution(c *gin.Context) {
 	}
 
 	dbmClient := dbmapi.NewDbmClient()
-	specList, err := dbmClient.GetDbmSpec(param.SpecParam.getQueryParam())
+	specList, err := dbmClient.GetDbmSpec(param.SpecParam.getQueryParam(param.EnableSpec))
 	if err != nil {
 		logger.Error("get dbm spec failed: %v", err)
 		s.SendResponse(c, err, "Failed to get DBM specifications")
