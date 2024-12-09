@@ -5,7 +5,8 @@
         v-for="(columnItem, index) in columnList"
         :key="`#${index}}#${columnItem.key}`"
         :class="{
-          [`is-column-fixed-${columnItem.props.fixed}`]: columnItem.props.fixed,
+          'fixed-left-column': columnItem.props.fixed === 'left',
+          'fixed-right-column': columnItem.props.fixed === 'right',
         }"
         :column="columnItem"
         :style="{

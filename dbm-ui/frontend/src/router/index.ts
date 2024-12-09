@@ -127,6 +127,10 @@ export default () => {
       ],
     },
     {
+      path: '/demo',
+      component: () => import('@/demo/Index.vue'),
+    },
+    {
       path: `${rootPath}${currentBiz}`,
       children: [
         ...getResourceTagRoutes(),
