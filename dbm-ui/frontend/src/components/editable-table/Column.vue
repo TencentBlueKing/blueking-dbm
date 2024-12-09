@@ -30,10 +30,18 @@
             class="bk-dbm db-icon-exclamation-fill" />
         </slot>
       </div>
+      <div
+        v-if="loading"
+        class="bk-editable-table-column-loading">
+        <div class="loading-flag">
+          <Loading />
+        </div>
+      </div>
     </div>
   </td>
 </template>
 <script lang="ts">
+  import { Loading } from 'bkui-vue/lib/icon';
   import get from 'lodash/get';
   import isFunction from 'lodash/isFunction';
   import {
@@ -70,6 +78,8 @@
     fixed?: 'left' | 'right';
     disabledMethod?: (rowData?: any, field?: string) => string | boolean;
     description?: string;
+    loading?: boolean;
+    appendRules?: IRule[];
   }
 
   interface Slots {
@@ -126,6 +136,8 @@
     trigger: string;
   }
 
+  let loadingValidatorTimer: ReturnType<typeof setTimeout>;
+
   const getRulesFromProps = (props: Props) => {
     const rules: (IFinalRule & {
       required?: boolean;
@@ -133,6 +145,27 @@
     })[] = [];
 
     const label = props.label || '';
+    if (props.loading) {
+      rules.push({
+        validator: () => {
+          clearTimeout(loadingValidatorTimer);
+          return new Promise((resolve) => {
+            const loop = () => {
+              if (!props.loading) {
+                resolve(true);
+                return;
+              }
+              loadingValidatorTimer = setTimeout(() => {
+                loop();
+              }, 500);
+            };
+            loop();
+          });
+        },
+        message: `${label}查询中`,
+        trigger: 'change',
+      });
+    }
     if (props.required) {
       rules.push({
         required: true,
@@ -266,6 +299,10 @@
     // form-item 自己的 rules 规则优先级更高
     if (props.rules) {
       rules = props.rules as IRule[];
+    } else if (props.appendRules) {
+      // 配置了 props.rules 时 props.appendRules 不生效
+      // props.appendRules 与 form 的验证规则合并且优先级高
+      rules = [...rules, ...props.appendRules];
     }
 
     // 通过 useColumn 注册
@@ -388,6 +425,7 @@
   onBeforeUnmount(() => {
     rowContext?.unregisterColumn(columnKey);
     registerRules = [];
+    clearTimeout(loadingValidatorTimer);
   });
 
   defineExpose<Expose>({
@@ -457,5 +495,33 @@
     color: #ea3636;
     align-items: center;
     transform: translateY(-50%);
+  }
+
+  @keyframes editable-table-column-loading {
+    0% {
+      transform: rotateZ(0);
+    }
+
+    100% {
+      transform: rotateZ(360deg);
+    }
+  }
+
+  .bk-editable-table-column-loading {
+    position: absolute;
+    z-index: 1;
+    display: flex;
+    inset: 0;
+    align-items: center;
+    justify-content: center;
+    background-color: rgb(255 255 255 / 90%);
+
+    .loading-flag {
+      width: 16px;
+      height: 16px;
+      font-size: 16px;
+      color: #3a84ff;
+      animation: editable-table-column-loading 1.5s linear infinite;
+    }
   }
 </style>

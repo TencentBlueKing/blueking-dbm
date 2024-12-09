@@ -29,8 +29,11 @@
 
     <div class="bk-edit-table-scroll">
       <div
-        ref="scrollX"
+        ref="scrollXRef"
         class="bk-edit-table-scroll-x"
+        :class="{
+          'is-show': isShowScrollX,
+        }"
         @scroll="handleScrollX">
         <div
           class="bk-edit-table-scroll-x-inner"
@@ -108,12 +111,14 @@
   });
 
   const tableRef = ref<HTMLElement>();
-  const scrollX = ref<HTMLElement>();
+  const scrollXRef = ref<HTMLElement>();
   const resizePlaceholderRef = ref<HTMLElement>();
   const tableWidth = ref<'auto' | number>('auto');
 
   const columnList = shallowRef<IColumnContext[]>([]);
   const rowList = shallowRef<IColumnContext[][]>([]);
+
+  const isShowScrollX = ref(true);
 
   const { handleMouseDown, handleMouseMove, columnSizeConfig } = useResize(tableRef, resizePlaceholderRef, columnList);
   const { leftFixedStyles, rightFixedStyles, initalScroll } = useScroll(tableRef);
@@ -130,7 +135,12 @@
           return;
         }
         tableWidth.value = tableRef.value.scrollWidth;
-        scrollX.value!.scrollLeft = tableRef.value!.scrollLeft;
+        scrollXRef.value!.scrollLeft = tableRef.value!.scrollLeft;
+        // 重新计算滚动显示状态
+        isShowScrollX.value = false;
+        setTimeout(() => {
+          isShowScrollX.value = scrollXRef.value!.offsetWidth + 2 < scrollXRef.value!.scrollWidth;
+        });
       });
     },
     {
@@ -171,7 +181,7 @@
   }, 30);
 
   const handleContentScroll = _.throttle((event: Event) => {
-    scrollX.value!.scrollLeft = (event.target as Element)!.scrollLeft;
+    scrollXRef.value!.scrollLeft = (event.target as Element)!.scrollLeft;
     tableRef.value?.click();
   }, 30);
 
@@ -384,7 +394,12 @@
     overflow: scroll hidden;
     cursor: pointer;
     opacity: 0%;
+    visibility: hidden;
     transition: 0.15s;
+
+    &.is-show {
+      visibility: visible;
+    }
 
     &::-webkit-scrollbar {
       height: 6px;
