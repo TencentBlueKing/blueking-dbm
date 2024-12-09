@@ -23,6 +23,7 @@ class _StorageSerializer(serializers.Serializer):
     name = serializers.CharField(max_length=64, required=False)
     db_version = serializers.CharField(max_length=64, required=False)
     is_stand_by = serializers.BooleanField(required=False)
+    phase = serializers.CharField(required=False)
 
 
 class _StorageWithRoleSerializer(_StorageSerializer):

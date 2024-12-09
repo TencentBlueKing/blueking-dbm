@@ -17,7 +17,7 @@ from django.utils.crypto import get_random_string
 from django.utils.translation import ugettext as _
 
 from backend.configuration.constants import DBType
-from backend.db_meta.enums import InstanceStatus
+from backend.db_meta.enums import InstancePhase, InstanceStatus
 from backend.db_meta.models import Cluster
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
@@ -116,7 +116,11 @@ class TenDBRemoteSlaveLocalRecoverFlow(object):
                 self.data["slave_port"] = shard.storage_instance_tuple.receiver.port
                 target_slave = cluster_class.storageinstance_set.get(id=shard.storage_instance_tuple.receiver.id)
                 master = cluster_class.storageinstance_set.get(id=shard.storage_instance_tuple.ejector.id)
-                cluster = {"storage_status": InstanceStatus.RESTORING.value, "storage_id": target_slave.id}
+                cluster = {
+                    "phase": InstancePhase.TRANS_STAGE.value,
+                    "storage_status": InstanceStatus.RESTORING.value,
+                    "storage_id": target_slave.id,
+                }
                 sync_data_sub_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(self.data))
                 sync_data_sub_pipeline.add_act(
                     act_name=_("写入初始化实例的db_meta元信息"),
@@ -216,7 +220,11 @@ class TenDBRemoteSlaveLocalRecoverFlow(object):
                             ins_list=inst_list,
                         )
                     )
-                cluster = {"storage_status": InstanceStatus.RUNNING.value, "storage_id": target_slave.id}
+                cluster = {
+                    "phase": InstancePhase.ONLINE.value,
+                    "storage_status": InstanceStatus.RUNNING.value,
+                    "storage_id": target_slave.id,
+                }
                 sync_data_sub_pipeline.add_act(
                     act_name=_("写入初始化实例的db_meta元信息"),
                     act_component_code=MySQLDBMetaComponent.code,

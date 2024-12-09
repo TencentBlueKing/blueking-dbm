@@ -13,7 +13,14 @@ from django.db import transaction
 from backend.configuration.constants import DBType
 from backend.db_meta import api, request_validator
 from backend.db_meta.api import common
-from backend.db_meta.enums import ClusterType, InstanceRole, InstanceStatus, MachineType
+from backend.db_meta.enums import (
+    ClusterType,
+    InstancePhase,
+    InstanceRole,
+    InstanceRoleInstanceInnerRoleMap,
+    InstanceStatus,
+    MachineType,
+)
 from backend.db_meta.models import Cluster, Machine, StorageInstance, StorageInstanceTuple, TenDBClusterStorageSet
 from backend.db_package.models import Package
 from backend.flow.consts import MediumEnum
@@ -61,9 +68,10 @@ class TenDBClusterMigrateRemoteDb:
                     {
                         "ip": master_ip,
                         "port": port,
-                        "instance_role": InstanceRole.REMOTE_MASTER.value,
-                        "is_stand_by": True,  # 标记实例属于切换组实例
+                        "instance_role": InstanceRole.REMOTE_REPEATER.value,
+                        "is_stand_by": False,  # 标记实例属于切换组实例
                         "db_version": get_mysql_real_version(mysql_pkg.name),  # 存储真正的版本号信息
+                        "phase": InstancePhase.TRANS_STAGE.value,
                     },
                 )
         if slave_ip is not None:
@@ -83,8 +91,9 @@ class TenDBClusterMigrateRemoteDb:
                         "ip": slave_ip,
                         "port": port,
                         "instance_role": InstanceRole.REMOTE_SLAVE.value,
-                        "is_stand_by": True,  # 标记实例属于切换组实例
+                        "is_stand_by": False,  # 标记实例属于切换组实例
                         "db_version": get_mysql_real_version(mysql_pkg.name),  # 存储真正的版本号信息
+                        "phase": InstancePhase.TRANS_STAGE.value,
                     },
                 )
 
@@ -92,7 +101,7 @@ class TenDBClusterMigrateRemoteDb:
         machine_objs = Machine.objects.filter(bk_cloud_id=bk_cloud_id, ip__in=machine_ips)
         machine_objs.update(db_module_id=cluster.db_module_id)
         api.storage_instance.create(
-            instances=storages, creator=creator, time_zone=time_zone, status=InstanceStatus.RESTORING
+            instances=storages, creator=creator, time_zone=time_zone, status=InstanceStatus.RESTORING.value
         )
         # cluster映射关系
         storages = request_validator.validated_storage_list(storages, allow_empty=False, allow_null=False)
@@ -129,6 +138,29 @@ class TenDBClusterMigrateRemoteDb:
         target_slave_obj.status = InstanceStatus.RUNNING
         target_master_obj.instance_role = InstanceRole.REMOTE_MASTER
         target_slave_obj.instance_role = InstanceRole.REMOTE_SLAVE
+        target_master_obj.is_stand_by = source_master_obj.is_stand_by
+        target_slave_obj.is_stand_by = source_slave_obj.is_stand_by
+        target_master_obj.instance_role = InstanceRole.REMOTE_MASTER.value
+        target_master_obj.instance_inner_role = InstanceRoleInstanceInnerRoleMap[InstanceRole.REMOTE_MASTER.value]
+        target_master_obj.phase = InstancePhase.ONLINE
+        target_slave_obj.phase = InstancePhase.ONLINE
+        # ip_port不相同实例表示裁撤替换。需要把源状态设置为UNAVAILABLE
+        if source_master_obj.ip_port != target_master_obj.ip_port:
+            source_master_obj.status = InstanceStatus.UNAVAILABLE
+            source_master_obj.phase = InstancePhase.OFFLINE
+            source_master_obj.is_stand_by = False
+            # 新主节点删除tuple关系
+            StorageInstanceTuple.objects.filter(ejector=source_master_obj, receiver=target_master_obj).delete()
+            # 移出集群
+            cluster.storageinstance_set.remove(source_master_obj)
+        if source_slave_obj.ip_port != target_slave_obj.ip_port:
+            source_slave_obj.status = InstanceStatus.UNAVAILABLE
+            source_slave_obj.phase = InstancePhase.OFFLINE
+            source_slave_obj.is_stand_by = False
+            # 移出集群
+            cluster.storageinstance_set.remove(source_slave_obj)
+        source_master_obj.save()
+        source_slave_obj.save()
         target_master_obj.save()
         target_slave_obj.save()
         source_tuple = StorageInstanceTuple.objects.get(ejector=source_master_obj, receiver=source_slave_obj)
@@ -161,17 +193,21 @@ class TenDBClusterMigrateRemoteDb:
         slave_obj = StorageInstance.objects.get(
             machine__ip=storage["slave"]["ip"], port=storage["slave"]["port"], machine__bk_cloud_id=bk_cloud_id
         )
+        master_obj.status = InstanceStatus.RUNNING.value
+        slave_obj.status = InstanceStatus.RUNNING.value
+        master_obj.save()
+        slave_obj.save()
         StorageInstanceTuple.objects.create(ejector=master_obj, receiver=slave_obj)
 
     @classmethod
     @transaction.atomic
     def uninstall_storage(cls, cluster_id: int, ip: str):
         cluster = Cluster.objects.get(id=cluster_id)
-        bk_cloud_id = cluster.bk_cloud_id
-        cluster.storageinstance_set.remove()
-        storage_instances = StorageInstance.objects.filter(machine__ip=ip, machine__bk_cloud_id=bk_cloud_id)
-        for one in storage_instances:
-            StorageInstanceTuple.objects.filter(ejector=one.id).delete()
-            StorageInstanceTuple.objects.filter(receiver=one.id).delete()
-        StorageInstance.objects.filter(machine__ip=ip, machine__bk_cloud_id=bk_cloud_id).delete()
+        StorageInstanceTuple.objects.filter(
+            ejector__machine__ip=ip, ejector__machine__bk_cloud_id=cluster.bk_cloud_id
+        ).delete()
+        StorageInstanceTuple.objects.filter(
+            receiver__machine__ip=ip, ejector__machine__bk_cloud_id=cluster.bk_cloud_id
+        ).delete()
+        StorageInstance.objects.filter(machine__ip=ip, machine__bk_cloud_id=cluster.bk_cloud_id).delete()
         api.machine.delete(machines=[ip], bk_cloud_id=cluster.bk_cloud_id)

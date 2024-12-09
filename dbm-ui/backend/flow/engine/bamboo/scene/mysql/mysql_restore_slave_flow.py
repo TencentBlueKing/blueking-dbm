@@ -17,7 +17,7 @@ from django.utils.translation import ugettext as _
 
 from backend.configuration.constants import DBType
 from backend.constants import IP_PORT_DIVIDER
-from backend.db_meta.enums import ClusterType, InstanceInnerRole, InstanceStatus
+from backend.db_meta.enums import ClusterType, InstanceInnerRole, InstancePhase, InstanceStatus
 from backend.db_meta.models import Cluster
 from backend.db_package.models import Package
 from backend.flow.consts import MediumEnum
@@ -457,7 +457,11 @@ class MySQLRestoreSlaveFlow(object):
                 kwargs=asdict(
                     DBMetaOPKwargs(
                         db_meta_class_func=MySQLDBMeta.tendb_modify_storage_status.__name__,
-                        cluster={"storage_status": InstanceStatus.RESTORING.value, "storage_id": target_slave.id},
+                        cluster={
+                            "phase": InstancePhase.TRANS_STAGE.value,
+                            "storage_status": InstanceStatus.RESTORING.value,
+                            "storage_id": target_slave.id,
+                        },
                         is_update_trans_data=False,
                     )
                 ),
@@ -558,7 +562,11 @@ class MySQLRestoreSlaveFlow(object):
                 kwargs=asdict(
                     DBMetaOPKwargs(
                         db_meta_class_func=MySQLDBMeta.tendb_modify_storage_status.__name__,
-                        cluster={"storage_status": InstanceStatus.RUNNING.value, "storage_id": target_slave.id},
+                        cluster={
+                            "phase": InstancePhase.ONLINE.value,
+                            "storage_status": InstanceStatus.RUNNING.value,
+                            "storage_id": target_slave.id,
+                        },
                         is_update_trans_data=False,
                     )
                 ),

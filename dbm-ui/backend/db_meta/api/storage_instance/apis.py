@@ -16,6 +16,7 @@ from backend.constants import DEFAULT_TIME_ZONE
 from backend.db_meta import request_validator
 from backend.db_meta.enums import (
     AccessLayer,
+    InstancePhase,
     InstanceRoleInstanceInnerRoleMap,
     InstanceStatus,
     MachineTypeInstanceRoleMap,
@@ -40,6 +41,7 @@ def create(
         name = ins.get("name", "")
         version = ins.get("db_version", "")
         is_stand_by = ins.get("is_stand_by", True)
+        phase = ins.get("phase", InstancePhase.ONLINE.value)
 
         machine_obj = Machine.objects.get(ip=ip)
         if machine_obj.access_layer != AccessLayer.STORAGE:
@@ -70,6 +72,7 @@ def create(
                 time_zone=time_zone,
                 version=version,
                 is_stand_by=is_stand_by,
+                phase=phase,
             )
         )
     return storage_objs

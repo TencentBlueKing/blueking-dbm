@@ -12,7 +12,7 @@ import logging
 
 from django.db import transaction
 
-from backend.db_meta.enums import InstanceStatus
+from backend.db_meta.enums import InstancePhase, InstanceStatus
 from backend.db_meta.models import Cluster, StorageInstance
 
 logger = logging.getLogger("root")
@@ -37,11 +37,14 @@ def switch_slave(cluster_id: int, target_slave_ip: str, source_slave_ip: str, sl
     # target实例需要继承source实例的is_standby特性
     target_storage_obj.is_stand_by = source_storage_obj.is_stand_by
     target_storage_obj.status = InstanceStatus.RUNNING.value
+    target_storage_obj.phase = InstancePhase.ONLINE.value
     target_storage_obj.save()
-
-    # cluster_entry = cluster.clusterentry_set.get(entry=slave_domain)
-    # cluster_entry.storageinstance_set.remove(source_storage_obj)
-    # cluster_entry.storageinstance_set.add(target_storage_obj)
+    source_storage_obj.status = InstanceStatus.UNAVAILABLE.value
+    source_storage_obj.phase = InstancePhase.OFFLINE.value
+    source_storage_obj.is_stand_by = False
+    source_storage_obj.save()
+    # 移除关系
+    cluster.storageinstance_set.remove(source_storage_obj)
     cluster_entry_list = cluster.clusterentry_set.filter(entry__in=slave_domain)
     for cluster_entry in cluster_entry_list:
         cluster_entry.storageinstance_set.remove(source_storage_obj)

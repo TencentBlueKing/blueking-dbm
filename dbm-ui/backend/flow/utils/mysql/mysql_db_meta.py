@@ -23,6 +23,7 @@ from backend.db_meta.enums import (
     ClusterPhase,
     ClusterType,
     InstanceInnerRole,
+    InstancePhase,
     InstanceRole,
     InstanceStatus,
     MachineType,
@@ -234,6 +235,8 @@ class MySQLDBMeta(object):
                 port=self.cluster["master_port"],
             )
             slave_storage.status = InstanceStatus.RUNNING.value
+            if self.cluster.get("add_slave_only", False):
+                slave_storage.phase = InstancePhase.ONLINE.value
             slave_storage.save()
 
     def mysql_restore_slave_change_cluster_info(self):
@@ -735,6 +738,7 @@ class MySQLDBMeta(object):
                     "instance_role": InstanceRole.BACKEND_SLAVE.value,
                     "is_stand_by": False,  # 添加新建
                     "db_version": get_mysql_real_version(self.cluster["package"]),  # 存储真正的版本号信息
+                    "phase": InstancePhase.TRANS_STAGE.value,
                 }
             )
             clusters.append(
@@ -776,7 +780,11 @@ class MySQLDBMeta(object):
             for cluster_id in self.cluster["cluster_ids"]:
                 cluster = Cluster.objects.get(id=cluster_id)
                 master = cluster.main_storage_instances()[0]
-                old_slave = cluster.storageinstance_set.get(machine__ip=self.cluster["uninstall_ip"], port=master.port)
+                old_slave = StorageInstance.objects.get(
+                    machine__ip=self.cluster["uninstall_ip"],
+                    port=master.port,
+                    machine__bk_cloud_id=cluster.bk_cloud_id,
+                )
                 api.cluster.tendbha.remove_storage_tuple(
                     master_ip=master.machine.ip,
                     slave_ip=old_slave.machine.ip,
@@ -899,6 +907,7 @@ class MySQLDBMeta(object):
     def tendb_modify_storage_status(self):
         storage = StorageInstance.objects.get(id=self.cluster["storage_id"])
         storage.status = self.cluster["storage_status"]
+        storage.phase = self.cluster["phase"]
         storage.save()
 
     def migrate_cluster_add_instance(self):
@@ -930,6 +939,7 @@ class MySQLDBMeta(object):
                     "instance_role": InstanceRole.BACKEND_REPEATER.value,
                     "is_stand_by": False,  # 添加新建
                     "db_version": get_mysql_real_version(mysql_pkg.name),  # 存储真正的版本号信息
+                    "phase": InstancePhase.TRANS_STAGE.value,
                 }
             )
             storage_instances.append(
@@ -939,6 +949,7 @@ class MySQLDBMeta(object):
                     "instance_role": InstanceRole.BACKEND_SLAVE.value,
                     "is_stand_by": False,  # 添加新建
                     "db_version": get_mysql_real_version(mysql_pkg.name),  # 存储真正的版本号信息
+                    "phase": InstancePhase.TRANS_STAGE.value,
                 }
             )
 

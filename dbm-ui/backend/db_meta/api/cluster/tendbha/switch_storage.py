@@ -12,7 +12,7 @@ import logging
 
 from django.db import transaction
 
-from backend.db_meta.enums import InstanceRoleInstanceInnerRoleMap, InstanceStatus
+from backend.db_meta.enums import InstancePhase, InstanceRoleInstanceInnerRoleMap, InstanceStatus
 from backend.db_meta.models import Cluster, StorageInstance
 from backend.flow.utils.mysql.mysql_module_operate import MysqlCCTopoOperator
 
@@ -34,6 +34,7 @@ def switch_storage(cluster_id: int, target_storage_ip: str, origin_storage_ip: s
     )
     cluster.storageinstance_set.remove(origin_storage)
     target_storage.status = InstanceStatus.RUNNING.value
+    target_storage.phase = InstancePhase.ONLINE.value
     # target实例需要继承source实例的is_standby特性
     target_storage.is_stand_by = origin_storage.is_stand_by
     if role:
@@ -47,6 +48,10 @@ def switch_storage(cluster_id: int, target_storage_ip: str, origin_storage_ip: s
         cc_topo_operator.transfer_instances_to_cluster_module(instances=[target_storage], is_increment=True)
     else:
         target_storage.save()
+    origin_storage.status = InstanceStatus.UNAVAILABLE.value
+    origin_storage.phase = InstancePhase.OFFLINE.value
+    origin_storage.is_stand_by = False
+    origin_storage.save()
 
 
 def change_proxy_storage_entry(cluster_id: int, master_ip: str, new_master_ip: str):

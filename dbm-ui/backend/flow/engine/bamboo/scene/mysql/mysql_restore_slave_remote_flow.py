@@ -17,7 +17,7 @@ from django.utils.translation import ugettext as _
 
 from backend.configuration.constants import DBType
 from backend.constants import IP_PORT_DIVIDER
-from backend.db_meta.enums import ClusterType, InstanceInnerRole, InstanceStatus
+from backend.db_meta.enums import ClusterType, InstanceInnerRole, InstancePhase, InstanceStatus
 from backend.db_meta.models import Cluster
 from backend.db_package.models import Package
 from backend.flow.consts import MediumEnum
@@ -197,6 +197,7 @@ class MySQLRestoreSlaveRemoteFlow(object):
                 cluster_model = Cluster.objects.get(id=cluster_id)
                 master = cluster_model.storageinstance_set.get(instance_inner_role=InstanceInnerRole.MASTER.value)
                 cluster = {
+                    "add_slave_only": self.add_slave_only,
                     "mysql_port": master.port,
                     "cluster_id": cluster_model.id,
                     "cluster_type": cluster_class.cluster_type,
@@ -457,7 +458,11 @@ class MySQLRestoreSlaveRemoteFlow(object):
                 ),
             )
 
-            cluster = {"storage_status": InstanceStatus.RESTORING.value, "storage_id": target_slave.id}
+            cluster = {
+                "phase": InstancePhase.TRANS_STAGE.value,
+                "storage_status": InstanceStatus.RESTORING.value,
+                "storage_id": target_slave.id,
+            }
             tendb_migrate_pipeline.add_act(
                 act_name=_("写入初始化实例的db_meta元信息"),
                 act_component_code=MySQLDBMetaComponent.code,
@@ -605,7 +610,11 @@ class MySQLRestoreSlaveRemoteFlow(object):
             if len(domain_add_list) > 0:
                 tendb_migrate_pipeline.add_parallel_acts(acts_list=domain_add_list)
 
-            cluster = {"storage_status": InstanceStatus.RUNNING.value, "storage_id": target_slave.id}
+            cluster = {
+                "phase": InstancePhase.ONLINE.value,
+                "storage_status": InstanceStatus.RUNNING.value,
+                "storage_id": target_slave.id,
+            }
             tendb_migrate_pipeline.add_act(
                 act_name=_("写入初始化实例的db_meta元信息"),
                 act_component_code=MySQLDBMetaComponent.code,

@@ -197,7 +197,6 @@ class SpiderDBMeta(object):
         TenDBClusterMigrateRemoteDb.add_storage_tuple(
             cluster_id=self.cluster["cluster_id"], storage=new_master_to_old_master
         )
-        # todo  是否修改new_master角色为中继状态
 
     def remotedb_migrate_switch(self):
         for port in self.cluster["ports"]:

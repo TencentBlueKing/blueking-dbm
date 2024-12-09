@@ -122,7 +122,7 @@ class TenDBRollBackDataFlow(object):
             for spider_node in clusters_info["target_spiders"]:
                 if "spider_node" not in backup_info:
                     raise TendbGetBackupInfoFailedException(message=_("获取spider节点备份信息不存在"))
-                if backup_info["spider_node"] == "":
+                if backup_info["spider_node"] == "" or len(backup_info["spider_node"]) == 0:
                     raise TendbGetBackupInfoFailedException(message=_("获取spider节点备份信息为空"))
                 if not check_storage_database(target_cluster.bk_cloud_id, spider_node["ip"], spider_node["port"]):
                     logger.error("cluster {} check database fail".format(target_cluster.id))
@@ -210,7 +210,7 @@ class TenDBRollBackDataFlow(object):
                 if spider_node["is_admin"]:
                     if "tdbctl_node" not in backup_info:
                         raise TendbGetBackupInfoFailedException(message=_("获取中控节点备份信息不存在"))
-                    if backup_info["tdbctl_node"] == "":
+                    if backup_info["tdbctl_node"] == "" or len(backup_info["tdbctl_node"]) == 0:
                         raise TendbGetBackupInfoFailedException(message=_("获取中控节点备份信息为空"))
                     ctl_sub_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(self.data))
                     ctl_cluster = copy.deepcopy(spd_cluster)
