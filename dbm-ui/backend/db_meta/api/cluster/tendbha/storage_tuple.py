@@ -38,7 +38,7 @@ def remove_storage_tuple(master_ip: str, slave_ip: str, bk_cloud_id: int, port_l
 
 
 @transaction.atomic
-def update_storage_tuple(master_ip: str, new_master_ip: str, bk_cloud_id: int, port_list: list):
+def update_storage_tuple(master_ip: str, new_master_ip: str, exclude_ips: list, bk_cloud_id: int, port_list: list):
     for port in port_list:
         master_storage = StorageInstance.objects.get(
             machine__ip=master_ip, port=port, machine__bk_cloud_id=bk_cloud_id
@@ -46,4 +46,6 @@ def update_storage_tuple(master_ip: str, new_master_ip: str, bk_cloud_id: int, p
         new_master_storage = StorageInstance.objects.get(
             machine__ip=new_master_ip, port=port, machine__bk_cloud_id=bk_cloud_id
         )
-        StorageInstanceTuple.objects.filter(ejector=master_storage).update(ejector=new_master_storage)
+        StorageInstanceTuple.objects.filter(ejector=master_storage).exclude(
+            receiver__machine__ip__in=exclude_ips
+        ).update(ejector=new_master_storage)
