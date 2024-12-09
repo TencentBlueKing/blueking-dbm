@@ -33,7 +33,11 @@
   </div>
 </template>
 <script setup lang="ts">
+<<<<<<< HEAD
   import { nextTick, onMounted, onUpdated, ref, useTemplateRef, type VNode, watch } from 'vue';
+=======
+  import { nextTick, onUpdated, ref, useTemplateRef, type VNode, watch } from 'vue';
+>>>>>>> 1180ed155 (feat(frontend): 工具箱支持资源池协议变更 #8076)
 
   import useColumn from '../useColumn';
 
@@ -56,18 +60,26 @@
   const modelValue = defineModel<string>();
 
   const contentRef = useTemplateRef('content');
+<<<<<<< HEAD
   const isShowPlacehoder = ref(true);
+=======
+
+  const isShowPlacehoder = ref(false);
+>>>>>>> 1180ed155 (feat(frontend): 工具箱支持资源池协议变更 #8076)
 
   watch(modelValue, () => {
     columnContext?.validate('change');
   });
 
+<<<<<<< HEAD
   const calcPlaceholder = () => {
     nextTick(() => {
       isShowPlacehoder.value = !contentRef.value?.innerText;
     });
   };
 
+=======
+>>>>>>> 1180ed155 (feat(frontend): 工具箱支持资源池协议变更 #8076)
   const handleBlur = () => {
     columnContext?.blur();
     columnContext?.validate('blur');
@@ -78,11 +90,17 @@
   };
 
   onUpdated(() => {
+<<<<<<< HEAD
     calcPlaceholder();
   });
 
   onMounted(() => {
     calcPlaceholder();
+=======
+    nextTick(() => {
+      isShowPlacehoder.value = !contentRef.value?.innerText;
+    });
+>>>>>>> 1180ed155 (feat(frontend): 工具箱支持资源池协议变更 #8076)
   });
 </script>
 <style lang="less">
