@@ -3,6 +3,7 @@
     v-model="modelValue"
     allow-create
     class="bk-editable-tag-input"
+    v-bind="{ ...attrs, ...props }"
     clearable
     has-delete-icon
     @blur="handleBlur"
@@ -13,20 +14,39 @@
 
   import useColumn from '../useColumn';
 
+  /* eslint-disable vue/no-unused-properties */
+  interface Props {
+    placeholder?: string;
+    maxData?: number;
+  }
+
+  interface Emits {
+    (e: 'blur'): void;
+    (e: 'focus'): void;
+  }
+
+  const props = defineProps<Props>();
+  const emits = defineEmits<Emits>();
+
+  const attrs = useAttrs();
+
   const columnContext = useColumn();
 
   const modelValue = defineModel<string[]>();
 
   watch(modelValue, () => {
-    columnContext?.validate();
+    columnContext?.validate('change');
   });
 
   const handleBlur = () => {
     columnContext?.blur();
+    columnContext?.validate('blur');
+    emits('blur');
   };
 
   const handleFocus = () => {
     columnContext?.focus();
+    emits('focus');
   };
 </script>
 <style lang="less">
