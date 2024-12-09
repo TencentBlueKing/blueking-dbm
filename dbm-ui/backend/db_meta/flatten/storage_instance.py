@@ -12,7 +12,7 @@ import logging
 from collections import defaultdict
 from typing import Dict, List
 
-from django.db.models import QuerySet
+from django.db.models import F, QuerySet
 
 from backend.db_meta.enums import ClusterEntryType, ClusterPhase
 from backend.db_meta.enums.extra_process_type import ExtraProcessType
@@ -67,7 +67,7 @@ def storage_instance(storages: QuerySet) -> List[Dict]:
         }
 
         receiver = []
-        for e in ins.as_ejector.all():
+        for e in ins.as_ejector.filter(receiver__cluster=F("ejector__cluster")):
             rinfo = {
                 "ip": e.receiver.machine.ip,
                 "port": e.receiver.port,
@@ -78,7 +78,7 @@ def storage_instance(storages: QuerySet) -> List[Dict]:
         info["receiver"] = receiver
 
         ejector = []
-        for r in ins.as_receiver.all():
+        for r in ins.as_receiver.filter(ejector__cluster=F("receiver__cluster")):
             einfo = {
                 "ip": r.ejector.machine.ip,
                 "port": r.ejector.port,
