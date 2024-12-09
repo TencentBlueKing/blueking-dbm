@@ -246,46 +246,31 @@ func (c *DbConsoleDumpComp) Run() (err error) {
 	}
 
 	if len(c.realTables) > 0 && len(c.dbs) > 1 {
-		err := fmt.Errorf("mysqldump only support one database if --tables not empty")
+		err = fmt.Errorf("mysqldump only support one database if --tables not empty")
 		logger.Error(err.Error())
 		return err
 	}
 
-	if len(c.realTables) > 0 {
-		dumper = mysqlutil.MySQLDumper{
-			DumpDir:         c.backupDir,
-			Ip:              c.Params.Host,
-			Port:            c.Params.Port,
-			DbBackupUser:    c.GeneralParam.RuntimeAccountParam.AdminUser,
-			DbBackupPwd:     c.GeneralParam.RuntimeAccountParam.AdminPwd,
-			Tables:          append(c.dbs, c.realTables...),
-			IgnoreTables:    c.realIgnoreTables,
-			Where:           c.Params.DumpDetail.Where,
-			DumpCmdFile:     c.dumpCmd,
-			Charset:         c.charset,
-			MySQLDumpOption: dumpOption,
-		}
-	} else {
-		dumper = mysqlutil.MySQLDumper{
-			DumpDir:         c.backupDir,
-			Ip:              c.Params.Host,
-			Port:            c.Params.Port,
-			DbBackupUser:    c.GeneralParam.RuntimeAccountParam.AdminUser,
-			DbBackupPwd:     c.GeneralParam.RuntimeAccountParam.AdminPwd,
-			DbNames:         c.dbs,
-			IgnoreTables:    c.realIgnoreTables,
-			Where:           c.Params.DumpDetail.Where,
-			DumpCmdFile:     c.dumpCmd,
-			Charset:         c.charset,
-			MySQLDumpOption: dumpOption,
-		}
+	dumper = mysqlutil.MySQLDumper{
+		DumpDir:         c.backupDir,
+		Ip:              c.Params.Host,
+		Port:            c.Params.Port,
+		DbBackupUser:    c.GeneralParam.RuntimeAccountParam.AdminUser,
+		DbBackupPwd:     c.GeneralParam.RuntimeAccountParam.AdminPwd,
+		DbNames:         c.dbs,
+		Tables:          c.realTables,
+		IgnoreTables:    c.realIgnoreTables,
+		Where:           c.Params.DumpDetail.Where,
+		DumpCmdFile:     c.dumpCmd,
+		Charset:         c.charset,
+		MySQLDumpOption: dumpOption,
 	}
 
 	for _, db := range c.dbs {
 		backupfiles = append(backupfiles, fmt.Sprintf("%s.sql", db))
 	}
 
-	if err := dumper.Dump(); err != nil {
+	if err = dumper.Dump(); err != nil {
 		logger.Error("dump failed: %s", err.Error())
 		return err
 	}

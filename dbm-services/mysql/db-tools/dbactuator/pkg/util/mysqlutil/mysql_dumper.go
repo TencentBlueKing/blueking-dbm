@@ -298,15 +298,6 @@ func (m *MySQLDumper) getDumpCmd(outputFile, errFile, dumpOption string) (dumpCm
 		m.DbBackupPwd,
 		dumpOption,
 	)
-	if len(m.Tables) > 0 {
-		dumpCmd += fmt.Sprintf(" --tables  %s", strings.Join(m.Tables, " "))
-	}
-
-	if len(m.IgnoreTables) > 0 {
-		for _, igTb := range m.IgnoreTables {
-			dumpCmd += fmt.Sprintf(" --ignore-table=%s", igTb)
-		}
-	}
 
 	if cmutil.IsNotEmpty(m.Where) {
 		dumpCmd += ` --where='` + m.Where + `'`
@@ -319,6 +310,17 @@ func (m *MySQLDumper) getDumpCmd(outputFile, errFile, dumpOption string) (dumpCm
 			dumpCmd += fmt.Sprintf(" --databases  %s", strings.Join(m.DbNames, " "))
 		}
 	}
+
+	if len(m.Tables) > 0 {
+		dumpCmd += fmt.Sprintf(" --tables  %s", strings.Join(m.Tables, " "))
+	}
+
+	if len(m.IgnoreTables) > 0 {
+		for _, igTb := range m.IgnoreTables {
+			dumpCmd += fmt.Sprintf(" --ignore-table=%s", igTb)
+		}
+	}
+
 	mysqlDumpCmd := fmt.Sprintf("%s > %s 2>%s", dumpCmd, outputFile, errFile)
 	return strings.ReplaceAll(mysqlDumpCmd, "\n", " ")
 }
