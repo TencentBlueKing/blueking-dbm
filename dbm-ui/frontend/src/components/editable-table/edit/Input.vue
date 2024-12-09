@@ -20,7 +20,7 @@
   </div>
 </template>
 <script setup lang="ts">
-  import { useAttrs, watch } from 'vue';
+  import { useAttrs, type VNode, watch } from 'vue';
 
   import useColumn from '../useColumn';
 
@@ -34,8 +34,7 @@
   }
 
   interface Emits {
-    (e: 'blur'): void;
-    (e: 'focus'): void;
+    (e: 'blur' | 'focus'): void;
     (e: 'change', params: string): void;
   }
 
@@ -61,7 +60,6 @@
   const handleChange = (value: string) => {
     emits('change', value);
   };
-
   const handleBlur = () => {
     columnContext?.blur();
     columnContext?.validate('blur');

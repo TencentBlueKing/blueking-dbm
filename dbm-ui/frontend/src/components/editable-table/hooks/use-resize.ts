@@ -235,7 +235,7 @@ export default function (
     const columnKey = target.dataset.name as string;
 
     const targetColumn = _.find(columnList.value, (column) => column.key === columnKey);
-    if (!targetColumn || !targetColumn.props.resizeable) {
+    if (!targetColumn?.props.resizeable) {
       return;
     }
 
@@ -257,7 +257,7 @@ export default function (
     let i = event.composedPath().length - 1;
     while (i >= 0) {
       const target = event.composedPath()[i] as HTMLElement;
-      if (target.classList && target.classList.contains('bk-editable-table')) {
+      if (target.classList?.contains('bk-editable-table')) {
         return;
       }
       i = i - 1;

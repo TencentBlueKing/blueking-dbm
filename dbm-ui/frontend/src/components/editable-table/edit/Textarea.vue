@@ -23,7 +23,7 @@
   </div>
 </template>
 <script setup lang="ts">
-  import { useAttrs, watch } from 'vue';
+  import { useAttrs, type VNode, watch } from 'vue';
 
   import useColumn from '../useColumn';
 
