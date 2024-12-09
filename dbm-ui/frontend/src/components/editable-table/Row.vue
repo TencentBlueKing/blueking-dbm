@@ -5,7 +5,7 @@
 </template>
 <script lang="ts">
   import _ from 'lodash';
-  import { inject, type InjectionKey, onBeforeMount, onMounted, provide } from 'vue';
+  import { inject, type InjectionKey, onBeforeUnmount, onMounted, provide } from 'vue';
 
   import type { IContext as IColumnContext } from './Column.vue';
   import { tableInjectKey } from './Index.vue';
@@ -14,6 +14,7 @@
     registerColumn: (column: IColumnContext) => void;
     unregisterColumn: (columnKey: string) => void;
     getColumnIndex: () => number;
+    getRowIndex: () => number;
   }> = Symbol.for('bk-editable-table-row');
 </script>
 <script setup lang="ts">
@@ -47,17 +48,20 @@
     };
   })();
 
+  const getRowIndex = () => tableContext?.getAllColumnList().findIndex((item) => item === columnList) as number;
+
   provide(injectKey, {
     registerColumn,
     unregisterColumn,
     getColumnIndex,
+    getRowIndex,
   });
 
   onMounted(() => {
     tableContext?.registerRow(columnList);
   });
 
-  onBeforeMount(() => {
+  onBeforeUnmount(() => {
     tableContext?.unregisterRow(columnList);
   });
 </script>
