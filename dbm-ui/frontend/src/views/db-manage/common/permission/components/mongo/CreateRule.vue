@@ -60,7 +60,7 @@
         <BkInput
           v-model="formdata.access_db"
           :maxlength="100"
-          :placeholder="t('请输入访问DB名_以字母开头_支持字母_数字_下划线')"
+          :placeholder="t('请输入访问DB名_以字母开头_支持字母_数字_下划线_多个使用英文逗号_分号或换行分隔')"
           :rows="4"
           type="textarea" />
       </BkFormItem>

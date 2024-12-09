@@ -24,7 +24,6 @@
     <BkForm
       v-if="isShow"
       ref="accountRef"
-      class="mb-36"
       form-type="vertical"
       :model="state.formdata"
       :rules="rules">
@@ -43,10 +42,10 @@
           :maxlength="32"
           :placeholder="userPlaceholder"
           show-word-limit />
-        <p style="color: #ff9c01">
-          {{ t('账号创建后，不支持修改。') }}
-        </p>
       </BkFormItem>
+      <div class="account-dialog-explain">
+        {{ t('账号创建后，不支持修改。') }}
+      </div>
       <BkFormItem
         :label="t('密码')"
         property="password"
@@ -56,22 +55,22 @@
           v-model="state.formdata.password"
           :db-type="dbTypeMap[accountType]"
           @verify-result="verifyResult" />
-        <p style="color: #ff9c01">
-          {{ t('平台不会保存密码，请自行保管好。') }}
-          <BkButton
-            v-bk-tooltips="{
-              content: t('请设置密码'),
-              disabled: state.formdata.password,
-            }"
-            class="copy-password-button"
-            :disabled="!state.formdata.password"
-            text
-            theme="primary"
-            @click="handleCopyPassword">
-            {{ t('复制密码') }}
-          </BkButton>
-        </p>
       </BkFormItem>
+      <div class="account-dialog-explain">
+        {{ t('平台不会保存密码，请自行保管好。') }}
+        <BkButton
+          v-bk-tooltips="{
+            content: t('请设置密码'),
+            disabled: state.formdata.password,
+          }"
+          class="copy-password-button"
+          :disabled="!state.formdata.password"
+          text
+          theme="primary"
+          @click="handleCopyPassword">
+          {{ t('复制密码') }}
+        </BkButton>
+      </div>
     </BkForm>
     <template #footer>
       <BkButton
@@ -165,19 +164,24 @@
   const rules = computed(() => ({
     user: [
       {
-        trigger: 'change',
+        trigger: 'blur',
+        message: t('账户名不能为空'),
+        validator: (value: string) => !!value,
+      },
+      {
+        trigger: 'blur',
         message: defaultUserPlaceholder,
         validator: (value: string) => /^[a-zA-Z0-9][a-zA-Z0-9_.-]{0,31}$/g.test(value),
       },
       props.accountType === AccountTypes.MONGODB
         ? {
-            trigger: 'change',
+            trigger: 'blur',
             message: userPlaceholder.value,
             validator: (value: string) => /^([a-zA-Z0-9_]+)\.([a-zA-Z0-9_]+)$/g.test(value),
           }
         : {},
       {
-        trigger: 'change',
+        trigger: 'blur',
         validator: (value: string) => {
           const specialAccountMap = {
             [AccountTypes.MYSQL]: MysqlConfig[AccountTypes.MYSQL].special_account,
@@ -257,3 +261,22 @@
     state.formdata.user = '';
   };
 </script>
+
+<style lang="less" scoped>
+  .account-dialog {
+    :deep(.bk-form-item) {
+      margin-bottom: 0;
+    }
+
+    :deep(.is-error) {
+      margin-bottom: 18px;
+    }
+
+    .account-dialog-explain {
+      padding-top: 4px;
+      margin-bottom: 16px;
+      font-size: 12px;
+      color: #ff9c01;
+    }
+  }
+</style>
