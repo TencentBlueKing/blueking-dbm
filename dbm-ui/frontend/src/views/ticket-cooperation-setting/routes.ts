@@ -19,7 +19,7 @@ const routes = [
     name: 'TicketCooperationSetting',
     path: 'ticket-cooperation-setting',
     meta: {
-      navName: t('单据免审批设置'),
+      navName: t('单据协助设置'),
     },
     component: () => import('@views/ticket-cooperation-setting/Index.vue'),
   },
