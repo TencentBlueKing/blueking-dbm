@@ -4,11 +4,13 @@
     ref="rootRef"
     class="bk-editable-table-body-column"
     :class="{
+      [`fixed-${fixed}-column`]: fixed,
       'is-focused': isFocused,
       'is-error': validateState.isError,
       'is-disabled': Boolean(disabledTips),
-      [`is-column-fixed-${fixed}`]: fixed,
       'is-previous-sibling-rowspan': isPreviousSiblingRowspan,
+      'is-fixed':
+        (fixed === 'left' && tableContext?.fixedLeft.value) || (fixed === 'right' && tableContext?.fixedRight.value),
     }"
     :data-name="columnKey"
     :rowspan="rowspan">
@@ -19,23 +21,31 @@
       }"
       class="bk-editable-table-field-cell">
       <slot />
+
       <div
-        v-if="validateState.isError"
-        class="bk-editable-table-column-error">
-        <slot
-          name="error"
-          v-bind="{ message: validateState.errorMessage }">
-          <i
-            v-bk-tooltips="validateState.errorMessage"
-            class="bk-dbm db-icon-exclamation-fill" />
-        </slot>
+        v-if="loading"
+        class="bk-editable-table-column-loading">
+        <div class="loading-flag">
+          <Loading />
+        </div>
       </div>
+    </div>
+    <div
+      v-if="validateState.isError"
+      class="bk-editable-table-column-error">
+      <slot
+        name="error"
+        v-bind="{ message: validateState.errorMessage }">
+        <i
+          v-bk-tooltips="validateState.errorMessage"
+          class="bk-dbm db-icon-exclamation-fill" />
+      </slot>
     </div>
   </td>
 </template>
 <script lang="ts">
-  import get from 'lodash/get';
-  import isFunction from 'lodash/isFunction';
+  import { Loading } from 'bkui-vue/lib/icon';
+  import _ from 'lodash';
   import {
     type ComponentInternalInstance,
     computed,
@@ -70,6 +80,8 @@
     fixed?: 'left' | 'right';
     disabledMethod?: (rowData?: any, field?: string) => string | boolean;
     description?: string;
+    loading?: boolean;
+    appendRules?: IRule[];
   }
 
   interface Slots {
@@ -82,16 +94,11 @@
 
   interface Expose {
     validate: () => Promise<boolean>;
+    clearValidate: () => void;
+    getRowIndex: () => number;
   }
 
   const hasOwn = (obj: Record<string, any>, key: string) => Object.prototype.hasOwnProperty.call(obj, key);
-
-  const getRuleMessage = (rule: IRule) => {
-    if (typeof rule.message === 'function') {
-      return rule.message();
-    }
-    return rule.message;
-  };
 
   export interface IContext {
     instance: ComponentInternalInstance;
@@ -99,15 +106,16 @@
     key: string;
     props: Props;
     slots: Slots;
-    validate: () => Promise<boolean>;
+    validate: (trigger?: string) => Promise<boolean>;
   }
 
   export const EditableTableColumnKey: InjectionKey<{
     blur: () => void;
     focus: () => void;
     registerRules: (params: IRule[]) => void;
-    validate: () => Promise<boolean>;
+    validate: (trigger?: string) => Promise<boolean>;
     clearValidate: () => void;
+    getRowIndex: () => number;
   }> = Symbol('EditableTableColumnKey');
 </script>
 <script setup lang="ts">
@@ -126,6 +134,8 @@
     trigger: string;
   }
 
+  let loadingValidatorTimer: ReturnType<typeof setTimeout>;
+
   const getRulesFromProps = (props: Props) => {
     const rules: (IFinalRule & {
       required?: boolean;
@@ -133,6 +143,27 @@
     })[] = [];
 
     const label = props.label || '';
+    if (props.loading) {
+      rules.push({
+        validator: () => {
+          clearTimeout(loadingValidatorTimer);
+          return new Promise((resolve) => {
+            const loop = () => {
+              if (!props.loading) {
+                resolve(true);
+                return;
+              }
+              loadingValidatorTimer = setTimeout(() => {
+                loop();
+              }, 500);
+            };
+            loop();
+          });
+        },
+        message: `${label}查询中`,
+        trigger: '',
+      });
+    }
     if (props.required) {
       rules.push({
         required: true,
@@ -183,10 +214,10 @@
     const formatConfigRules = configRules.reduce<IFinalRule[]>((result, rule) => {
       let rulevalidator: any;
       if (rule.required) {
-        rulevalidator = isFunction(rule.validator) ? rule.validator : defaultValidator.required;
+        rulevalidator = _.isFunction(rule.validator) ? rule.validator : defaultValidator.required;
         customRequired = true;
       } else if (rule.email) {
-        rulevalidator = isFunction(rule.validator) ? rule.validator : defaultValidator.email;
+        rulevalidator = _.isFunction(rule.validator) ? rule.validator : defaultValidator.email;
         customEmail = true;
       } else if (Number(rule.max) > -1) {
         rulevalidator = (value: any) => defaultValidator.max(value, rule.max as number);
@@ -196,7 +227,7 @@
         rulevalidator = (value: any) => defaultValidator.min(value, rule.max as number);
       } else if (Object.prototype.toString.call(rule.pattern) === '[object RegExp]') {
         rulevalidator = (value: any) => defaultValidator.pattern(value, rule.pattern as RegExp);
-      } else if (isFunction(rule.validator)) {
+      } else if (_.isFunction(rule.validator)) {
         rulevalidator = rule.validator;
       } else {
         // 不支持的配置规则
@@ -225,6 +256,25 @@
     return [...filterPropRules, ...formatConfigRules];
   };
 
+  const getTriggerRules = (rules: IFinalRule[], trigger?: string) =>
+    rules.reduce((result, rule) => {
+      if (!rule.trigger || !trigger) {
+        result.push(rule);
+        return result;
+      }
+      if (rule.trigger === trigger) {
+        result.push(rule);
+      }
+      return result;
+    }, [] as IFinalRule[]);
+
+  const getRuleMessage = (rule: IFinalRule) => {
+    if (typeof rule.message === 'function') {
+      return rule.message();
+    }
+    return rule.message;
+  };
+
   let registerRules: IRule[] = [];
 
   const rootRef = ref<HTMLElement>();
@@ -250,22 +300,40 @@
     return result ? '无法操作' : '';
   });
 
-  const validate = (): Promise<boolean> => {
+  const getRowIndex = () => tableContext!.getColumnRelateRowIndexByInstance(currentInstance);
+  const clearValidate = () => {
+    validateState.isError = false;
+    validateState.errorMessage = '';
+  };
+
+  const triggerChangeQueue: string[] = [];
+  const triggerBlurQueue: string[] = [];
+  const triggerQueue: undefined[] = [];
+
+  const validate = (trigger?: string): Promise<boolean> => {
     if (!tableContext) {
       return Promise.resolve(false);
+    }
+    // 单元格被合并跳过验证
+    if (!isRowspanRender.value) {
+      return Promise.resolve(true);
     }
     // 没有设置 field 不进行验证
     if (!props.field) {
       return Promise.resolve(true);
     }
     let rules: IRule[] = [];
-    // 继承 form 的验证规则
+    // 继承 table 的验证规则
     if (tableContext && tableContext.props.rules && hasOwn(tableContext.props.rules, props.field)) {
       rules = tableContext.props.rules[props.field];
     }
-    // form-item 自己的 rules 规则优先级更高
+    // column 自己的 rules 规则优先级更高
     if (props.rules) {
       rules = props.rules as IRule[];
+    } else if (props.appendRules) {
+      // 配置了 props.rules 时 props.appendRules 不生效
+      // props.appendRules 与 table 的验证规则合并且优先级高
+      rules = [...rules, ...props.appendRules];
     }
 
     // 通过 useColumn 注册
@@ -273,20 +341,9 @@
       rules = registerRules;
     }
 
-    // 合并规则属性配置
-    const finalRuleList = mergeRules(rules, getRulesFromProps(props));
-
-    // 重新触发验证重置上次的验证状态
-    if (rules.length > 0) {
-      validateState.isError = false;
-      validateState.errorMessage = '';
-    }
-
-    const value = get(tableContext.props.model, props.field);
-
     const doValidate = (() => {
       let stepIndex = -1;
-      return (): Promise<boolean> => {
+      return (finalRuleList: IFinalRule[], value: any): Promise<boolean> => {
         stepIndex = stepIndex + 1;
         // 验证通过
         if (stepIndex >= finalRuleList.length) {
@@ -297,43 +354,79 @@
 
         return Promise.resolve().then(() => {
           const result = rule.validator(value);
-          // 异步验证（validator 返回一个 Promise）
-          if (typeof result !== 'boolean' && typeof result !== 'string' && typeof result.then === 'function') {
-            return result
-              .then((data) => {
-                // 异步验证结果为 false
-                if (data === false) {
-                  return Promise.reject(getRuleMessage(rule));
-                }
-                if (typeof data === 'string') {
-                  return Promise.reject(data);
-                }
-              })
-              .then(
-                () => doValidate(),
-                (errorMessage: string) => {
-                  validateState.isError = true;
-                  validateState.errorMessage = errorMessage;
-                  tableContext.emits('validate', props.field || '', false, errorMessage);
-                  return Promise.reject(validateState.errorMessage);
-                },
-              );
+          // 同步验证通过下一步
+          if (result === true) {
+            return doValidate(finalRuleList, value);
           }
-          // 同步验证失败
-          if (result === false) {
-            const errorMessage = getRuleMessage(rule);
-            validateState.isError = true;
-            // 验证结果返回的是 String 表示验证失败，返回结果作为错误信息
-            validateState.errorMessage = typeof result === 'string' ? result : errorMessage;
-            tableContext.emits('validate', props.field || '', false, errorMessage);
-            return Promise.reject(validateState.errorMessage);
-          }
-          // 下一步
-          return doValidate();
+          // Promise异步处理验证结果
+          return Promise.resolve(result)
+            .then((data) => {
+              // 异步验证结果为 false
+              if (data === false) {
+                return Promise.reject(getRuleMessage(rule));
+              }
+              if (typeof data === 'string') {
+                return Promise.reject(data);
+              }
+            })
+            .then(
+              () => doValidate(finalRuleList, value),
+              (errorMessage: string) => {
+                validateState.isError = true;
+                validateState.errorMessage = errorMessage;
+                tableContext.emits('validate', props.field || '', false, errorMessage);
+                return Promise.reject(validateState.errorMessage);
+              },
+            );
         });
       };
     })();
-    return doValidate();
+
+    if (trigger !== undefined) {
+      if (trigger === 'change') {
+        triggerChangeQueue.push(trigger);
+      } else if (trigger === 'blur') {
+        triggerBlurQueue.push(trigger);
+      }
+    } else {
+      triggerQueue.push(trigger);
+    }
+
+    return new Promise((resolve, reject) => {
+      const delay = Math.max(Number(tableContext.props.validateDelay || 60), 60);
+      setTimeout(() => {
+        // setTimeout 延迟执行 Column 可能会已经被卸载
+        if (!currentInstance.isMounted) {
+          return reject(false);
+        }
+        if (trigger === undefined) {
+          triggerQueue.pop();
+          if (triggerQueue.length > 0) {
+            return reject(false);
+          }
+        }
+
+        // 处理 change 和 blur 触发器
+        if (trigger === 'change' || trigger === 'blur') {
+          const latestQueue = trigger === 'change' ? triggerChangeQueue : triggerBlurQueue;
+          latestQueue.pop();
+          if (triggerQueue.length > 0 || latestQueue.length > 0) {
+            return reject(false);
+          }
+        }
+
+        // 重新触发验证重置上次的验证状态
+        validateState.isError = false;
+        validateState.errorMessage = '';
+
+        // 合并规则属性配置
+        const finalRuleList = getTriggerRules(mergeRules(rules, getRulesFromProps(props)), trigger);
+
+        const value = _.get(tableContext.props.model[rowContext!.getRowIndex()], props.field || '_');
+
+        return resolve(doValidate(finalRuleList, value));
+      }, delay);
+    });
   };
 
   provide(EditableTableColumnKey, {
@@ -347,10 +440,8 @@
       registerRules = rules;
     },
     validate,
-    clearValidate: () => {
-      validateState.isError = false;
-      validateState.errorMessage = '';
-    },
+    clearValidate,
+    getRowIndex,
   });
 
   onMounted(() => {
@@ -388,23 +479,33 @@
   onBeforeUnmount(() => {
     rowContext?.unregisterColumn(columnKey);
     registerRules = [];
+    clearTimeout(loadingValidatorTimer);
   });
 
   defineExpose<Expose>({
     validate,
+    clearValidate,
+    getRowIndex,
   });
 </script>
 <style lang="less">
+  @focus-z-index: 102;
+  @fixed-focus-z-index: 122;
+  @error-z-index: 101;
+  @fixed-error-z-index: 121;
+
+  @keyframes editable-table-column-loading {
+    0% {
+      transform: rotateZ(0);
+    }
+
+    100% {
+      transform: rotateZ(360deg);
+    }
+  }
+
   .bk-editable-table {
     td.bk-editable-table-body-column {
-      &.is-focused {
-        z-index: 99;
-
-        &::before {
-          border-color: #3a84ff;
-        }
-      }
-
       &.is-disabled {
         .bk-editable-table-field-cell {
           &::after {
@@ -418,7 +519,7 @@
       }
 
       &.is-error {
-        z-index: 99;
+        z-index: @error-z-index;
         background: #fff1f1;
 
         &::before {
@@ -426,13 +527,32 @@
         }
 
         .bk-editable-table-field-cell {
+          padding-right: 20px;
           background: #fff1f1;
+        }
+      }
+
+      &.is-focused {
+        z-index: @focus-z-index;
+
+        &::before {
+          border-color: #3a84ff;
         }
       }
 
       &.is-previous-sibling-rowspan {
         &::before {
           left: -1px;
+        }
+      }
+
+      &.is-fixed {
+        &.is-error {
+          z-index: @fixed-error-z-index;
+        }
+
+        &.is-focused {
+          z-index: @fixed-focus-z-index;
         }
       }
     }
@@ -453,9 +573,27 @@
     z-index: 9;
     display: flex;
     height: 40px;
-    padding: 0 8px;
+    padding-right: 8px;
     color: #ea3636;
     align-items: center;
     transform: translateY(-50%);
+  }
+
+  .bk-editable-table-column-loading {
+    position: absolute;
+    z-index: 1;
+    display: flex;
+    inset: 0;
+    align-items: center;
+    justify-content: center;
+    background-color: rgb(255 255 255 / 90%);
+
+    .loading-flag {
+      width: 16px;
+      height: 16px;
+      font-size: 16px;
+      color: #3a84ff;
+      animation: editable-table-column-loading 1.5s linear infinite;
+    }
   }
 </style>
