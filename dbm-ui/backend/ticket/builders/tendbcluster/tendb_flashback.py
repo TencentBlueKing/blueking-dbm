@@ -31,6 +31,10 @@ class TendbFlashbackDetailSerializer(MySQLFlashbackDetailSerializer, TendbBaseOp
         super(TendbBaseOperateDetailSerializer, self).validate_cluster_can_access(attrs)
         # 校验flash的库表选择器
         RemoteServiceHandler(bk_biz_id=self.context["bk_biz_id"]).check_flashback_database(attrs["infos"])
+        # 库表校验结果判断
+        self.check_flashback_database_result(attrs)
+        # 校验待闪回记录格式与字段是否存在
+        self.validate_rows_filter(attrs)
 
         return attrs
 
