@@ -502,18 +502,16 @@ class BaseTicketFlowBuilderPatchMixin(object):
 
     def patch_recycle_host_details(self):
         """补充回收主机信息，在回收类单据一定调用此方法"""
-        bk_biz_id = self.ticket.bk_biz_id
         recycle_hosts = fetch_recycle_hosts(self.ticket.details)
         if not recycle_hosts:
             return
-        self.ticket.details["recycle_hosts"] = ResourceHandler.standardized_resource_host(recycle_hosts, bk_biz_id)
+        self.ticket.details["recycle_hosts"] = ResourceHandler.standardized_resource_host(recycle_hosts)
 
     def patch_recycle_cluster_details(self, role=None):
         """补充集群下架后回收主机信息，在下架类单据一定调用此方法"""
-        bk_biz_id = self.ticket.bk_biz_id
         recycle_hosts = Cluster.get_cluster_related_machines(fetch_cluster_ids(self.ticket.details), role)
         recycle_hosts = [{"bk_host_id": host.bk_host_id} for host in recycle_hosts]
-        self.ticket.details["recycle_hosts"] = ResourceHandler.standardized_resource_host(recycle_hosts, bk_biz_id)
+        self.ticket.details["recycle_hosts"] = ResourceHandler.standardized_resource_host(recycle_hosts)
 
     def patch_ticket_detail(self):
         if self.need_patch_cluster_details:

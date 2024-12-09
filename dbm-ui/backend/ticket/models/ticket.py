@@ -21,9 +21,8 @@ from django.utils.translation import ugettext_lazy as _
 from backend import env
 from backend.bk_web.constants import LEN_L_LONG, LEN_LONG, LEN_NORMAL, LEN_SHORT
 from backend.bk_web.models import AuditedModel
-from backend.configuration.constants import SystemSettingsEnum
+from backend.configuration.constants import PLAT_BIZ_ID, DBType, SystemSettingsEnum
 from backend.configuration.models import SystemSettings
-from backend.configuration.constants import PLAT_BIZ_ID, DBType
 from backend.db_meta.enums import InstancePhase
 from backend.db_monitor.exceptions import AutofixException
 from backend.db_services.dbbase.constants import IpDest

@@ -116,7 +116,7 @@ class MachineEvent(AuditedModel):
         pool = MACHINE_EVENT__POOL_MAP.get(event)
         # 如果主机非标准话，则查询cc
         if not standard:
-            hosts = ResourceHandler.standardized_resource_host(hosts, bk_biz_id)
+            hosts = ResourceHandler.standardized_resource_host(hosts)
         # 主机池流转
         if pool:
             DirtyMachine.hosts_pool_transfer(bk_biz_id, hosts, pool, operator, ticket)

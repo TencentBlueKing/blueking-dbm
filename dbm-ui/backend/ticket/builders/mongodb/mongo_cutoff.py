@@ -9,6 +9,7 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import itertools
+from collections import defaultdict
 
 from django.db.models import Q
 from django.utils.translation import ugettext_lazy as _
@@ -20,6 +21,7 @@ from backend.db_services.dbbase.constants import IpSource
 from backend.db_services.mongodb.resources.query import MongoDBListRetrieveResource
 from backend.flow.engine.controller.mongodb import MongoDBController
 from backend.ticket import builders
+from backend.ticket.builders.common.base import HostRecycleSerializer
 from backend.ticket.builders.mongodb.base import (
     BaseMongoDBOperateDetailSerializer,
     BaseMongoDBOperateResourceParamBuilder,
@@ -34,6 +36,7 @@ class MongoDBCutoffDetailSerializer(BaseMongoDBOperateDetailSerializer):
         class IpSpecSLZ(serializers.Serializer):
             ip = serializers.CharField(help_text=_("替换主机IP"))
             bk_cloud_id = serializers.IntegerField(help_text=_("主机所在云区域"))
+            bk_host_id = serializers.IntegerField(help_text=_("替换的主机ID"))
             spec_id = serializers.IntegerField(help_text=_("规格ID"))
 
         cluster_id = serializers.IntegerField(help_text=_("集群ID"))
@@ -45,6 +48,7 @@ class MongoDBCutoffDetailSerializer(BaseMongoDBOperateDetailSerializer):
         help_text=_("主机来源"), choices=IpSource.get_choices(), default=IpSource.RESOURCE_POOL
     )
     infos = serializers.ListSerializer(help_text=_("整机替换信息"), child=ACutoffDetailSerializer())
+    ip_recycle = HostRecycleSerializer(help_text=_("主机回收信息"), default=HostRecycleSerializer.DEFAULT)
 
     def validate(self, attrs):
         # 校验替换的mongodb机器不在同一分片中
@@ -153,19 +157,21 @@ class MongoDBCutoffResourceParamBuilder(BaseMongoDBOperateResourceParamBuilder):
             }
 
 
-@builders.BuilderFactory.register(TicketType.MONGODB_CUTOFF, is_apply=True)
+@builders.BuilderFactory.register(TicketType.MONGODB_CUTOFF, is_apply=True, is_recycle=True)
 class MongoDBCutoffApplyFlowBuilder(BaseMongoDBTicketFlowBuilder):
     serializer = MongoDBCutoffDetailSerializer
     inner_flow_builder = MongoDBCutoffFlowParamBuilder
     inner_flow_name = _("MongoDB 整机替换执行")
     resource_batch_apply_builder = MongoDBCutoffResourceParamBuilder
+    need_patch_recycle_host_details = True
 
-    def patch_ticket_resources(self):
+    def patch_ticket_resources_and_old_nodes(self):
         mongo_roles = [MachineType.MONGOS, MachineType.MONOG_CONFIG, MachineType.MONGODB]
         cluster_ids = [info["cluster_id"] for info in self.ticket.details["infos"]]
-        id__cluster = {cluster.id: cluster for cluster in Cluster.objects.filter(id__in=cluster_ids)}
+        cluster_map = Cluster.objects.in_bulk(cluster_ids)
+        old_nodes = defaultdict(list)
         for info in self.ticket.details["infos"]:
-            city = id__cluster[info["cluster_id"]].region
+            city = cluster_map[info["cluster_id"]].region
             # 打包资源信息：按照role_ip这样的命名格式构造每一个资源申请信息组，每组的城市同集群，数量为1
             resource_spec = {}
             for role in mongo_roles:
@@ -176,7 +182,9 @@ class MongoDBCutoffApplyFlowBuilder(BaseMongoDBTicketFlowBuilder):
                         "count": 1,
                         "location_spec": {"city": city, "sub_zone_ids": []},
                     }
+                    old_nodes[role].append({"bk_host_id": host["bk_host_id"]})
             info["resource_spec"] = resource_spec
+            info["old_nodes"] = old_nodes
 
     def patch_ticket_specs(self):
         spec_ids = get_target_items_from_details(self.ticket.details["infos"], match_keys=["spec_id"])
@@ -184,6 +192,6 @@ class MongoDBCutoffApplyFlowBuilder(BaseMongoDBTicketFlowBuilder):
         self.ticket.details["specs"] = specs
 
     def patch_ticket_detail(self):
-        self.patch_ticket_resources()
+        self.patch_ticket_resources_and_old_nodes()
         self.patch_ticket_specs()
         super().patch_ticket_detail()

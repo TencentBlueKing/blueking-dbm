@@ -22,6 +22,7 @@ from backend.ticket import builders
 from backend.ticket.builders.common.base import (
     BaseOperateResourceParamBuilder,
     DisplayInfoSerializer,
+    HostInfoSerializer,
     HostRecycleSerializer,
     SkipToRepresentationMixin,
 )
@@ -43,6 +44,9 @@ class RedisScaleUpDownDetailSerializer(SkipToRepresentationMixin, serializers.Se
 
             backend_group = BackendGroupSerializer()
 
+        class OldNodesSerializer(serializers.Serializer):
+            backend_hosts = serializers.ListSerializer(child=HostInfoSerializer(help_text=_("待下架的机器")))
+
         cluster_id = serializers.IntegerField(help_text=_("集群ID"))
         bk_cloud_id = serializers.IntegerField(help_text=_("云区域ID"))
         shard_num = serializers.IntegerField(help_text=_("集群分片数"))
@@ -57,6 +61,7 @@ class RedisScaleUpDownDetailSerializer(SkipToRepresentationMixin, serializers.Se
             help_text=_("容量变更类型"), choices=RedisCapacityUpdateType.get_choices(), required=False
         )
         resource_spec = ResourceSpecSerializer(help_text=_("资源申请"))
+        old_nodes = OldNodesSerializer(help_text=_("下架机器"))
 
     ip_source = serializers.ChoiceField(
         help_text=_("主机来源"), choices=IpSource.get_choices(), default=IpSource.RESOURCE_POOL
@@ -100,9 +105,7 @@ class RedisScaleUpDownFlowBuilder(BaseRedisTicketFlowBuilder):
         ]
         recycle_hosts = Cluster.get_cluster_related_machines(cluster_ids)
         recycle_hosts = [{"bk_host_id": host_id} for host_id in recycle_hosts]
-        self.ticket.details["recycle_hosts"] = ResourceHandler.standardized_resource_host(
-            recycle_hosts, self.ticket.bk_biz_id
-        )
+        self.ticket.details["recycle_hosts"] = ResourceHandler.standardized_resource_host(recycle_hosts)
 
     def patch_ticket_detail(self):
         self.patch_down_cluster_hosts()

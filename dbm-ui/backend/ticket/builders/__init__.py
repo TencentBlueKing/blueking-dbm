@@ -22,7 +22,7 @@ from backend import env
 from backend.configuration.constants import AffinityEnum
 from backend.components.dbresource.client import DBResourceApi
 from backend.configuration.constants import DBType, SystemSettingsEnum
-from backend.configuration.models import DBAdministrator, SystemSettings
+from backend.configuration.models import BizSettings, DBAdministrator, SystemSettings
 from backend.db_dirty.constants import MachineEventType, PoolType
 from backend.db_dirty.models import MachineEvent
 from backend.db_meta.models import AppCache, Cluster
@@ -308,7 +308,6 @@ class RecycleParamBuilder(FlowParamBuilder):
             "os_type": self.ticket_data["recycle_hosts"][0]["os_type"],
             "db_type": self.ticket.group,
         }
-        self.add_common_params()
 
     def post_callback(self):
         # 转移到故障池，记录机器事件(如果是资源池则资源导入后会记录)
@@ -334,6 +333,7 @@ class ReImportResourceParamBuilder(FlowParamBuilder):
 
     def format_ticket_data(self):
         recycle_hosts = self.ticket_data["recycle_hosts"]
+        # 我们认为，在资源申请的情况下，不会混用多个集群类型
         self.ticket_data = {
             "ticket_id": self.ticket.id,
             "for_biz": self.ticket_data["ip_recycle"]["for_biz"],
@@ -343,8 +343,9 @@ class ReImportResourceParamBuilder(FlowParamBuilder):
             "operator": self.ticket.creator,
             # 标记为退回
             "return_resource": True,
+            # 要查询主机实际的业务管控
+            "bk_biz_id": recycle_hosts[0]["bk_host_id"],
         }
-        self.add_common_params()
 
     def pre_callback(self):
         # 在run的时候才会生成task id，此时要更新到资源池参数里面
@@ -613,8 +614,10 @@ class BuilderFactory:
         @param ticket_type: 单据类型
         @param kwargs: 单据注册的额外信息，主要是将单据归为不同的集合中，目前有这几种类型
         1. is_apply: bool ---- 表示单据是否是部署类单据(类似集群的部署，扩容，替换等)
-        2. phase: ClusterPhase ---- 表示单据与集群状态的映射
+        2. is_recycle: bool ---- 表示单据是否是下架类单据(类似集群的下架，缩容，替换等)
+        3. phase: ClusterPhase ---- 表示单据与集群状态的映射
         4. action: ActionMeta ---- 表示单据与权限动作的映射
+        5. is_sensitive: bool --- 是否为敏感类单据（有特殊鉴权）
         """
 
         def inner_wrapper(wrapped_class: TicketFlowBuilder) -> TicketFlowBuilder:

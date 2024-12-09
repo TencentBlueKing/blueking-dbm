@@ -15,6 +15,7 @@ from typing import Any, Dict, List
 from django.forms import model_to_dict
 from django.utils.translation import ugettext as _
 
+from backend.components import CCApi
 from backend.components.dbresource.client import DBResourceApi
 from backend.components.gse.client import GseApi
 from backend.configuration.constants import COST_ESTIMATE_TEMPLATE, DBType, SystemSettingsEnum
@@ -496,13 +497,18 @@ class ResourceHandler(object):
         return excepted_cost
 
     @classmethod
-    def standardized_resource_host(cls, hosts, bk_biz_id=None):
+    def standardized_resource_host(cls, hosts):
         """标准化主机信息，将cc字段统一成资源池字段"""
         host_ids = [host["bk_host_id"] for host in hosts]
+        # 获取主机通用信息
         hosts = ResourceQueryHelper.search_cc_hosts(role_host_ids=host_ids)
+        # 获取主机拓扑信息
+        host_topos = CCApi.find_host_biz_relations({"bk_host_id": host_ids})
+        host_biz_map = {host["bk_host_id"]: host["bk_biz_id"] for host in host_topos}
+        # 补充主机信息
         for host in hosts:
             host.update(
-                bk_biz_id=bk_biz_id,
+                bk_biz_id=host_biz_map.get(host["bk_host_id"]),
                 ip=host.get("bk_host_innerip"),
                 city=host.get("idc_city_name"),
                 host_id=host.get("bk_host_id"),

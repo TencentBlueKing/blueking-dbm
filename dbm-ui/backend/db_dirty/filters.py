@@ -14,6 +14,7 @@ from django_filters import rest_framework as filters
 from django_filters.filters import BaseInFilter, NumberFilter
 
 from backend.db_dirty.models import DirtyMachine, MachineEvent
+from backend.db_meta.models import Cluster
 
 
 class NumberInFilter(BaseInFilter, NumberFilter):
@@ -23,15 +24,25 @@ class NumberInFilter(BaseInFilter, NumberFilter):
 class MachineEventFilter(filters.FilterSet):
     operator = filters.CharFilter(field_name="creator", lookup_expr="icontains", label=_("操作者"))
     bk_biz_id = filters.NumberFilter(field_name="bk_biz_id", label=_("业务"))
-    event = filters.CharFilter(field_name="event", lookup_expr="exact", label=_("事件类型"))
-    ips = filters.CharFilter(field_name="ip", method="filter_ips", label=_("过滤IP"))
+    create_at__lte = filters.DateTimeFilter(field_name="create_at", lookup_expr="lte", label=_("创建时间早于"))
+    create_at__gte = filters.DateTimeFilter(field_name="create_at", lookup_expr="gte", label=_("创建时间晚于"))
+    events = filters.CharFilter(field_name="events", method="filter_events", label=_("过滤事件"))
+    ips = filters.CharFilter(field_name="ips", method="filter_ips", label=_("过滤IP"))
+    domain = filters.CharFilter(field_name="domain", method="filter_domain", label=_("过滤集群"))
 
     def filter_ips(self, queryset, name, value):
         return queryset.filter(ip__in=value.split(","))
 
+    def filter_events(self, queryset, name, value):
+        return queryset.filter(event__in=value.split(","))
+
+    def filter_domain(self, queryset, name, value):
+        cluster_ids = Cluster.objects.filter(immute_domain__icontains=value).values_list("id", flat=True)
+        return queryset.filter(ticket__clusteroperaterecord__cluster_id__in=cluster_ids)
+
     class Meta:
         model = MachineEvent
-        fields = ["operator", "bk_biz_id", "event", "ips"]
+        fields = ["operator", "bk_biz_id", "events", "ips", "create_at__lte", "create_at__gte", "domain"]
 
 
 class DirtyMachinePoolFilter(filters.FilterSet):

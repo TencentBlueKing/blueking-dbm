@@ -9,11 +9,29 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
+AGENT_DETAILS_DATA = {
+    "agent_id": "",
+    "ip": "xx.xx.xx.xx",
+    "ipv6": "",
+    "host_name": "VM",
+    "os_name": "Linux",
+    "os_type": "Linux",
+    "alive": 1,
+    "cloud_area": {"id": 0, "name": "xxx"},
+    "biz": {"id": 2, "name": "xxx"},
+    "bk_agent_id": "",
+    "bk_agent_alive": 1,
+    "bk_cloud_id": 0,
+}
+
 
 class NodemanApiMock(object):
     """
     gse 的 mock 接口
     """
 
-    def ipchooser_host_details(self, *args, **kwargs):
-        return {}
+    @classmethod
+    def ipchooser_host_details(cls, *args, **kwargs):
+        params = args[0]
+        host_details = [{"host_id": host["host_id"], **AGENT_DETAILS_DATA} for host in params["host_list"]]
+        return host_details

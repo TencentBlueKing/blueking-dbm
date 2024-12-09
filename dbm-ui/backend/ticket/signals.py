@@ -20,7 +20,7 @@ def update_ticket_status(sender, instance: Flow, **kwargs):
     if not instance.pk:
         return
 
-    # 如果是inner flow的终止，要联动回收主机
+    # 如果是inner flow的终止，要联动回收主机。TODO：等通知合并后，应该放到ticket trigger里面
     if instance.flow_type == FlowType.INNER_FLOW and instance.status == TicketFlowStatus.TERMINATED:
         Ticket.create_recycle_ticket(revoke_ticket_id=instance.ticket.id)
 

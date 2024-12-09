@@ -62,11 +62,16 @@ class SQLServerAddSlaveResourceParamBuilder(SQLServerBaseOperateResourceParamBui
         next_flow = self.ticket.next_flow()
         for info in next_flow.details["ticket_data"]["infos"]:
             info["new_slave_host"] = info.pop("new_slave")[0]
-            info["resource_spec"]["sqlserver_ha"] = info["resource_spec"].pop("new_slave")
+            # 兼容手输资源池无规格情况
+            if "new_slave" not in info["resource_spec"]:
+                info["resource_spec"]["sqlserver_ha"] = {"id": 0}
+            else:
+                info["resource_spec"]["sqlserver_ha"] = info["resource_spec"].pop("new_slave")
+
         next_flow.save(update_fields=["details"])
 
 
-@builders.BuilderFactory.register(TicketType.SQLSERVER_ADD_SLAVE)
+@builders.BuilderFactory.register(TicketType.SQLSERVER_ADD_SLAVE, is_apply=True)
 class SQLServerAddSlaveFlowBuilder(BaseSQLServerHATicketFlowBuilder):
     serializer = SQLServerAddSlaveDetailSerializer
     resource_batch_apply_builder = SQLServerAddSlaveResourceParamBuilder

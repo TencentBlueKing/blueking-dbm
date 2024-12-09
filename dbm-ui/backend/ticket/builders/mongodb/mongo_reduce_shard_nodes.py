@@ -19,6 +19,7 @@ from backend.db_meta.enums import ClusterType
 from backend.db_meta.models import AppCache, Cluster
 from backend.flow.engine.controller.mongodb import MongoDBController
 from backend.ticket import builders
+from backend.ticket.builders.common.base import HostRecycleSerializer
 from backend.ticket.builders.mongodb.base import BaseMongoDBOperateDetailSerializer, BaseMongoDBTicketFlowBuilder
 from backend.ticket.constants import TicketType
 
@@ -33,6 +34,7 @@ class MongoDBReduceShardNodesDetailSerializer(BaseMongoDBOperateDetailSerializer
 
     is_safe = serializers.BooleanField(help_text=_("是否做安全检测"))
     infos = serializers.ListSerializer(help_text=_("缩容shard节点数信息"), child=ReduceMongosDetailSerializer())
+    ip_recycle = HostRecycleSerializer(help_text=_("主机回收信息"), default=HostRecycleSerializer.DEFAULT)
 
     def validate(self, attrs):
         cluster_ids = list(itertools.chain(*[info["cluster_ids"] for info in attrs["infos"]]))

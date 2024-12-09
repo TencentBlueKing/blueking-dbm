@@ -135,7 +135,7 @@ class SQLServerRestoreSlaveResourceParamBuilder(SQLServerBaseOperateResourcePara
         next_flow.save(update_fields=["details"])
 
 
-@builders.BuilderFactory.register(TicketType.SQLSERVER_RESTORE_SLAVE, is_recycle=True)
+@builders.BuilderFactory.register(TicketType.SQLSERVER_RESTORE_SLAVE, is_recycle=True, is_apply=True)
 class SQLServerRestoreSlaveFlowBuilder(BaseSQLServerHATicketFlowBuilder):
     serializer = SQLServerRestoreSlaveDetailSerializer
     resource_batch_apply_builder = SQLServerRestoreSlaveResourceParamBuilder

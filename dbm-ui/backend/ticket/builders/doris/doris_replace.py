@@ -46,9 +46,10 @@ class DorisReplaceResourceParamBuilder(BigDataReplaceResourceParamBuilder):
         next_flow.save(update_fields=["details"])
 
 
-@builders.BuilderFactory.register(TicketType.DORIS_REPLACE, is_apply=True)
+@builders.BuilderFactory.register(TicketType.DORIS_REPLACE, is_apply=True, is_recycle=True)
 class DorisReplaceFlowBuilder(BaseDorisTicketFlowBuilder):
     serializer = DorisReplaceDetailSerializer
     inner_flow_builder = DorisReplaceFlowParamBuilder
     inner_flow_name = _("DORIS集群替换")
     resource_apply_builder = DorisReplaceResourceParamBuilder
+    need_patch_recycle_host_details = True

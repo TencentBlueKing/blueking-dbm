@@ -51,13 +51,17 @@ class ProxyScaleDownDetailSerializer(SkipToRepresentationMixin, ClusterValidateM
         # 验证缩容后数量至少为2
         for info in attrs["infos"]:
             cluster = cluster_map[info["cluster_id"]]
+            proxy_count = cluster.proxyinstance_set.count()
             if info.get("old_nodes"):
                 proxy_reduced_hosts = info["old_nodes"]["proxy_reduced_hosts"]
-                info["target_proxy_count"] = cluster.proxyinstance_set.count() - len(proxy_reduced_hosts)
+                info["target_proxy_count"] = proxy_count - len(proxy_reduced_hosts)
             if info["target_proxy_count"] < 2:
                 raise serializers.ValidationError(_("请保证集群{}缩容后proxy数量不小于2").format(cluster.immute_domain))
-            # 提前存入proxy信息用于后续patch
+            if info["target_proxy_count"] == proxy_count:
+                raise serializers.ValidationError(_("目标proxy数量与当前proxy数量相同，无缩容操作"))
+
             attrs.update(bk_cloud_id=cluster.bk_cloud_id)
+
         return attrs
 
 

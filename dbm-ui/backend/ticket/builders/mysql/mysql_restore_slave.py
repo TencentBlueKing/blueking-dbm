@@ -22,7 +22,6 @@ from backend.ticket.builders.common.base import (
     BaseOperateResourceParamBuilder,
     HostInfoSerializer,
     HostRecycleSerializer,
-    InstanceInfoSerializer,
     fetch_cluster_ids,
 )
 from backend.ticket.builders.common.constants import MySQLBackupSource
@@ -33,7 +32,7 @@ from backend.ticket.constants import TicketType
 class MysqlRestoreSlaveDetailSerializer(MySQLBaseOperateDetailSerializer):
     class RestoreInfoSerializer(serializers.Serializer):
         class OldSlaveSerializer(serializers.Serializer):
-            old_slave = serializers.ListSerializer(child=InstanceInfoSerializer())
+            old_slave = serializers.ListSerializer(child=HostInfoSerializer())
 
         old_nodes = OldSlaveSerializer(help_text=_("旧从库信息"))
         new_slave = HostInfoSerializer(help_text=_("新从库 IP"), required=False)

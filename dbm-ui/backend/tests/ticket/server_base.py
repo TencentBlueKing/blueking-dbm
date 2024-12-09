@@ -23,6 +23,7 @@ from backend.core import notify
 from backend.tests.mock_data.components.cc import CCApiMock
 from backend.tests.mock_data.components.dbresource import DBResourceApiMock
 from backend.tests.mock_data.components.itsm import ItsmApiMock
+from backend.tests.mock_data.components.nodeman import NodemanApiMock
 from backend.tests.mock_data.iam_app.permission import PermissionMock
 from backend.tests.mock_data.ticket.ticket_flow import PASSWORD, ROOT_ID
 from backend.ticket.constants import TicketFlowStatus, TicketStatus

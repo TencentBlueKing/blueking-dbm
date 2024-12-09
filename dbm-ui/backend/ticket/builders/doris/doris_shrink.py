@@ -115,7 +115,7 @@ class DorisShrinkFlowParamBuilder(builders.FlowParamBuilder):
         super().format_ticket_data()
 
 
-@builders.BuilderFactory.register(TicketType.DORIS_SHRINK)
+@builders.BuilderFactory.register(TicketType.DORIS_SHRINK, is_recycle=True)
 class DorisShrinkFlowBuilder(BaseDorisTicketFlowBuilder):
     serializer = DorisShrinkDetailSerializer
     inner_flow_builder = DorisShrinkFlowParamBuilder

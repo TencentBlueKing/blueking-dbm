@@ -15,6 +15,7 @@ from rest_framework import serializers
 from backend.db_dirty.constants import PoolType
 from backend.db_dirty.models import DirtyMachine, MachineEvent
 from backend.db_meta.models import AppCache
+from backend.ticket.constants import TicketType
 from backend.ticket.models import Ticket
 
 
@@ -38,18 +39,29 @@ class ListMachineEventSerializer(serializers.ModelSerializer):
         return self._biz_map
 
     @property
-    def ticket_cluster_map(self):
-        if not hasattr(self, "_ticket_cluster_map"):
+    def ticket_map(self):
+        if not hasattr(self, "_ticket_map"):
             ticket_ids = [event.ticket.id for event in self.instance if event.ticket]
-            tickets = Ticket.objects.filter(id__in=ticket_ids)
-            ticket_cluster_map = {ticket.id: ticket.details.get("clusters", {}).values() for ticket in tickets}
-            setattr(self, "_ticket_cluster_map", ticket_cluster_map)
-        return self._ticket_cluster_map
+            ticket_map = Ticket.objects.in_bulk(ticket_ids, field_name="id")
+            setattr(self, "_ticket_map", ticket_map)
+        return self._ticket_map
 
     def to_representation(self, instance):
-        biz, ticket_data = self.biz_map[instance.bk_biz_id], self.ticket_cluster_map.get(instance.ticket_id, [])
+        biz, ticket = self.biz_map[instance.bk_biz_id], self.ticket_map.get(instance.ticket_id)
+        if not ticket:
+            clusters, ticket_type_display = [], ""
+        else:
+            clusters = ticket.details.get("clusters", [])
+            ticket_type_display = TicketType.get_choice_label(ticket.ticket_type)
+
         instance = super().to_representation(instance)
-        instance.update(bk_biz_name=biz.bk_biz_name, db_app_abbr=biz.db_app_abbr, clusters=ticket_data)
+        instance.update(
+            bk_biz_name=biz.bk_biz_name,
+            db_app_abbr=biz.db_app_abbr,
+            clusters=clusters,
+            ticket_type_display=ticket_type_display,
+        )
+
         return instance
 
 
