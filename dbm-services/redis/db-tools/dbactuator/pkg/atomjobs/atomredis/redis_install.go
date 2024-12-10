@@ -25,19 +25,19 @@ import (
 // RedisInstallParams 安装参数
 type RedisInstallParams struct {
 	common.MediaPkg
-	DbToolsPkg        common.DbToolsMediaPkg      `json:"dbtoolspkg"`
-	RedisModulesPkg   common.RedisModulesMediaPkg `json:"redis_modules_pkg"`
-	DataDirs          []string                    `json:"data_dirs"`
-	IP                string                      `json:"ip" validate:"required"`
-	Ports             []int                       `json:"ports"`      // 如果端口不连续,可直接指定端口
-	StartPort         int                         `json:"start_port"` // 如果端口连续,则可直接指定起始端口和实例个数
-	InstNum           int                         `json:"inst_num"`
-	Password          string                      `json:"password" validate:"required"`
-	Databases         int                         `json:"databases" validate:"required"`
-	RedisConfConfigs  map[string]string           `json:"redis_conf_configs" validate:"required"`
-	DbType            string                      `json:"db_type" validate:"required"`
-	MaxMemory         uint64                      `json:"maxmemory"`
-	LoadModulesDetail []LoadModuleItem            `json:"load_modules_detail"`
+	DbToolsPkg       common.DbToolsMediaPkg      `json:"dbtoolspkg"`
+	RedisModulesPkg  common.RedisModulesMediaPkg `json:"redis_modules_pkg"`
+	DataDirs         []string                    `json:"data_dirs"`
+	IP               string                      `json:"ip" validate:"required"`
+	Ports            []int                       `json:"ports"`      // 如果端口不连续,可直接指定端口
+	StartPort        int                         `json:"start_port"` // 如果端口连续,则可直接指定起始端口和实例个数
+	InstNum          int                         `json:"inst_num"`
+	Password         string                      `json:"password" validate:"required"`
+	Databases        int                         `json:"databases" validate:"required"`
+	RedisConfConfigs map[string]string           `json:"redis_conf_configs" validate:"required"`
+	DbType           string                      `json:"db_type" validate:"required"`
+	// MaxMemory         uint64                      `json:"maxmemory"` //不要它了撒
+	LoadModulesDetail []LoadModuleItem `json:"load_modules_detail"`
 }
 
 // LoadModuleItem 加载module信息
@@ -539,7 +539,7 @@ func (job *RedisInstall) GenerateConfigFile(port int) (err error) {
 	confData = strings.ReplaceAll(confData, "{{redis_data_dir}}", instDir)
 	confData = strings.ReplaceAll(confData, "{{databases}}", strconv.Itoa(job.params.Databases))
 	confData = strings.ReplaceAll(confData, "{{cluster_enabled}}", clusterEnabled)
-	confData = strings.ReplaceAll(confData, "{{maxmemory}}", strconv.FormatUint(job.params.MaxMemory, 10))
+	confData = strings.ReplaceAll(confData, "{{maxmemory}}", "0")
 	confData = strings.ReplaceAll(confData, "{{rocks_blockcachemb}}", strconv.FormatUint(instBlockcache, 10))
 	confData = strings.ReplaceAll(confData, "{{rocks_write_buffer_size}}",
 		strconv.FormatUint(writeBufferSize, 10))

@@ -172,7 +172,7 @@ func (test *RedisInstallTest) SetMaxMemory(maxMemory uint64) *RedisInstallTest {
 	if test.Err != nil {
 		return test
 	}
-	test.MaxMemory = maxMemory
+	// test.MaxMemory = maxMemory
 	return test
 }
 

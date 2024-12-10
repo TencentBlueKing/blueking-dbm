@@ -1404,7 +1404,7 @@ class RedisActPayload(object):
         # tendisplus cluster 模式暂时不需要特别指定这两个参数
         if is_twemproxy_proxy_type(self.namespace):
             install_payload["databases"] = int(redis_config["databases"])
-            install_payload["maxmemory"] = int(float(redis_config["maxmemory"]))
+            # install_payload["maxmemory"] = int(float(redis_config["maxmemory"])) ##不要它了，dbmon会动态的设置
 
         return {
             "db_type": DBActuatorTypeEnum.Redis.value,
