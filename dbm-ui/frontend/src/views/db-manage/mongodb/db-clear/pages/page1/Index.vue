@@ -66,7 +66,6 @@
     <template #action>
       <BkButton
         class="w-88"
-        :disabled="totalNum === 0"
         :loading="isSubmitting"
         theme="primary"
         @click="handleSubmit">
@@ -124,7 +123,7 @@
 
   const isShardCluster = computed(() => clusterType.value === ClusterTypes.MONGO_SHARED_CLUSTER);
 
-  const totalNum = computed(() => tableData.value.filter((item) => Boolean(item.clusterName)).length);
+  // const totalNum = computed(() => tableData.value.filter((item) => Boolean(item.clusterName)).length);
 
   // 集群域名是否已存在表格的映射表
   let domainMemo: Record<string, boolean> = {};
