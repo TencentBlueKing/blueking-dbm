@@ -51,7 +51,7 @@
               <HostAgentStatus :data="data.agent_status" />
             </template>
           </BkTableColumn>
-          <BkTableColumn
+          <!-- <BkTableColumn
             field="bk_cpu"
             :label="t('资源归属')"
             :min-width="300">
@@ -60,7 +60,7 @@
                 v-if="false"
                 :data="data" />
             </template>
-          </BkTableColumn>
+          </BkTableColumn> -->
           <BkTableColumn
             field="rack_id"
             :label="t('机架')"
@@ -159,8 +159,8 @@
 
   import DiskPopInfo from '@components/disk-pop-info/DiskPopInfo.vue';
   import HostAgentStatus from '@components/host-agent-status/Index.vue';
-  import ResourceHostOwner from '@components/resource-host-owner/Index.vue';
 
+  // import ResourceHostOwner from '@components/resource-host-owner/Index.vue';
   import PanelTab from './components/PanelTab.vue';
   import useSearchSelectData from './hooks/use-search-select-data';
 
