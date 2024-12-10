@@ -1306,12 +1306,14 @@
             infos: [
               {
                 cluster_id: data.id,
-                spider_ip_list: data.spider_mnt
+                old_nodes: {
+                  spider_ip_list: data.spider_mnt
                   .filter(item => removeMNTInstanceIds.value.includes(item.bk_instance_id))
                   .map(item => ({
                     ip: item.ip,
                     bk_cloud_id: item.bk_cloud_id,
                   })),
+                }
               },
             ],
           },

@@ -57,7 +57,7 @@
 
   const contentRef = useTemplateRef('content');
 
-  const isShowPlacehoder = ref(false);
+  const isShowPlacehoder = ref(true);
 
   watch(modelValue, () => {
     columnContext?.validate('change');

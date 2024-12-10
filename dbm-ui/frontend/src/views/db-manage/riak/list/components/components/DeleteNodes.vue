@@ -151,12 +151,14 @@
                 details: {
                   cluster_id: props.data.id,
                   bk_cloud_id: props.data.bk_cloud_id,
-                  nodes: tableRef.value.bkTableRef.getSelection().map((nodeItem: RiakNodeModel) => ({
-                    ip: nodeItem.ip,
-                    bk_host_id: nodeItem.bk_host_id,
-                    bk_cloud_id: nodeItem.bk_cloud_id,
-                    bk_biz_id: currentBizId,
-                  })),
+                  old_nodes: {
+                    riak: tableRef.value.bkTableRef.getSelection().map((nodeItem: RiakNodeModel) => ({
+                      ip: nodeItem.ip,
+                      bk_host_id: nodeItem.bk_host_id,
+                      bk_cloud_id: nodeItem.bk_cloud_id,
+                      bk_biz_id: currentBizId,
+                    })),
+                  }
                 },
               })
                 .then((createTicketResult) => {

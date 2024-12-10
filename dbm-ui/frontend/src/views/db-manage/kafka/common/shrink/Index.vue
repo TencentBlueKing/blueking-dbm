@@ -209,7 +209,6 @@
               ip: hostItem.ip,
               bk_cloud_id: hostItem.bk_cloud_id,
               bk_host_id: hostItem.bk_host_id,
-              bk_biz_id: bizId,
             }));
 
             const generateExtInfo = () => Object.entries(nodeInfoMap).reduce((results, [key, item]) => {
@@ -235,8 +234,7 @@
               bk_biz_id: bizId,
               details: {
                 cluster_id: props.data.id,
-                ip_source: 'manual_input',
-                nodes: {
+                old_nodes: {
                   broker: fomatHost(nodeInfoMap.broker.nodeList),
                 },
                 ext_info: generateExtInfo(),
