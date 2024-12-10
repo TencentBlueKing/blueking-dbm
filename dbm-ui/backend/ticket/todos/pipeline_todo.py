@@ -46,7 +46,7 @@ class PipelineTodo(todos.TodoActor):
         if action == ActionType.TERMINATE:
             self.todo.set_status(username, TodoStatus.DONE_FAILED)
             # 终止时，直接将流程设置为失败
-            engine.force_fail_pipeline(node_id)
+            engine.force_fail_node(node_id, ex_data=_("人工强制失败"))
             return
 
         res = engine.callback(node_id=node_id, desc="")

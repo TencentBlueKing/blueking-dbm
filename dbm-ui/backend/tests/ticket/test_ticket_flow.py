@@ -41,11 +41,12 @@ from backend.tests.mock_data.ticket.ticket_flow import (
     SQL_IMPORT_FLOW_NODE_DATA,
     SQL_IMPORT_TICKET_DATA,
 )
-from backend.ticket.constants import FlowType, TicketFlowStatus, TicketStatus
+from backend.ticket.constants import EXCLUSIVE_TICKET_EXCEL_PATH, FlowType, TicketFlowStatus, TicketStatus, TicketType
 from backend.ticket.flow_manager.inner import InnerFlow
 from backend.ticket.flow_manager.pause import PauseFlow
 from backend.ticket.models import Flow
 from backend.ticket.views import TicketViewSet
+from backend.utils.excel import ExcelHandler
 
 logger = logging.getLogger("test")
 pytestmark = pytest.mark.django_db
@@ -209,3 +210,9 @@ class TestTicketFlow:
         client.post(f"/apis/tickets/{current_flow.ticket_id}/callback/")
         current_flow = Flow.objects.exclude(flow_obj_id="").last()
         assert current_flow.flow_type == FlowType.INNER_FLOW
+
+    def test_exclusive_ticket_map(self):
+        exclusive_matrix = ExcelHandler.paser_matrix(EXCLUSIVE_TICKET_EXCEL_PATH)
+        invalid_labels = set(exclusive_matrix.keys()) - set(TicketType.get_labels())
+        logger.warning("invalid_labels is %s", invalid_labels)
+        assert len(invalid_labels) == 0

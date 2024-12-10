@@ -289,17 +289,13 @@ class ClusterOperateRecordManager(models.Manager):
 
     def has_exclusive_operations(self, ticket_type, cluster_id, **kwargs):
         """判断当前单据类型与集群正在进行中的单据是否互斥"""
-        active_tickets = self.filter_inner_actives(cluster_id, **kwargs)
+        active_records = self.filter_inner_actives(cluster_id, **kwargs)
         exclusive_infos = []
-        for active_ticket in active_tickets:
-            try:
-                if self.exclusive_ticket_map[ticket_type][active_ticket.ticket.ticket_type]:
-                    exclusive_infos.append(
-                        {"exclusive_ticket": active_ticket.ticket, "root_id": active_ticket.flow.flow_obj_id}
-                    )
-            except KeyError:
-                pass
-
+        for record in active_records:
+            active_ticket_type = record.ticket.ticket_type
+            # 记录互斥信息。不存在互斥表默认为互斥
+            if self.exclusive_ticket_map[ticket_type].get(active_ticket_type, True):
+                exclusive_infos.append({"exclusive_ticket": record.ticket, "root_id": record.flow.flow_obj_id})
         return exclusive_infos
 
     @property
@@ -309,9 +305,9 @@ class ClusterOperateRecordManager(models.Manager):
 
         _exclusive_matrix = ExcelHandler.paser_matrix(EXCLUSIVE_TICKET_EXCEL_PATH)
         _exclusive_ticket_map = defaultdict(dict)
-        for row_key, inner_dict in _exclusive_matrix.items():
-            for col_key, value in inner_dict.items():
-                row_key, col_key = TicketType.get_choice_value(row_key), TicketType.get_choice_value(col_key)
+        for row_label, inner_dict in _exclusive_matrix.items():
+            for col_label, value in inner_dict.items():
+                row_key, col_key = TicketType.get_choice_value(row_label), TicketType.get_choice_value(col_label)
                 _exclusive_ticket_map[row_key][col_key] = value == "N"
 
         setattr(self, "_exclusive_ticket_map", _exclusive_ticket_map)
