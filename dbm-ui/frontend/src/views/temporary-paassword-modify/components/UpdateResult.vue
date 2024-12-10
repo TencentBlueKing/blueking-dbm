@@ -202,7 +202,9 @@
         successList.value = data.success ? getInstanceList(data.success) : [];
         errorList.value = data.fail
           ? getInstanceList(data.fail)
-          : props.instanceList.map((item) => `${item.ip}:${item.port}`);
+          : props.instanceList
+              .map((item) => `${item.ip}:${item.port}`)
+              .filter((item) => !successList.value.includes(item));
       }
     },
   });
