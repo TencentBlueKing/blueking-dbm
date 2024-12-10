@@ -11,7 +11,6 @@ specific language governing permissions and limitations under the License.
 import itertools
 import json
 import logging
-import time
 from typing import Dict, List
 
 from django.db import transaction
@@ -36,7 +35,6 @@ from backend.ticket.constants import (
     TicketFlowStatus,
     TicketStatus,
     TicketType,
-    TodoStatus,
     TodoType,
 )
 from backend.ticket.exceptions import TicketFlowsConfigException
@@ -240,11 +238,11 @@ class TicketHandler:
                 {"key": itsm_fields[1], "value": act_msg},
             ]
             params.update(sn=sn, state_id=state_id, action_type=action, operator=operator, fields=fields)
-            ItsmApi.operate_node(params, use_admin=True)
+            ItsmApi.operate_node(params)
         # 终止/撤销单据
         elif action in [OperateNodeActionType.TERMINATE, OperateNodeActionType.WITHDRAW]:
             params.update(sn=sn, action_type=action, operator=operator)
-            ItsmApi.operate_ticket(params, use_admin=True)
+            ItsmApi.operate_ticket(params)
 
         return sn
 
@@ -424,51 +422,44 @@ class TicketHandler:
         batch = 50
 
         # 标准化只针对running的单据，其他状态单据不影响
-        running_tickets = Ticket.objects.filter(status=TicketStatus.RUNNING)
-        count = running_tickets.count()
-        for current in range(0, count, batch):
-            for ticket in running_tickets[current : current + batch]:
-                raw_status = ticket.status
-                ticket.status = RUNNING_FLOW__TICKET_STATUS[ticket.current_flow().flow_type]
-                ticket.save()
-                print(f"ticket[{ticket.id}] status {raw_status} ---> {ticket.status}")
-            time.sleep(1)
+        running_tickets = list(Ticket.objects.filter(status=TicketStatus.RUNNING))
+        for ticket in running_tickets:
+            raw_status = ticket.status
+            ticket.status = RUNNING_FLOW__TICKET_STATUS[ticket.current_flow().flow_type]
+            ticket.save()
+            print(f"ticket[{ticket.id}] status {raw_status} ---> {ticket.status}")
 
         # 失败的单据要增加一条todo关联
         failed_tickets = Ticket.objects.prefetch_related("flows").filter(status=TicketStatus.FAILED)
-        for current in range(0, count, batch):
-            for ticket in failed_tickets[current : current + batch]:
-                inner_flow = ticket.flows.filter(flow_type=FlowType.INNER_FLOW, status=TicketFlowStatus.FAILED).first()
-                if not inner_flow or inner_flow.todo_of_flow.exists():
-                    continue
-                Todo.objects.create(
-                    name=_("【{}】单据任务执行失败，待处理").format(ticket.get_ticket_type_display()),
-                    flow=inner_flow,
-                    ticket=ticket,
-                    type=TodoType.INNER_FAILED,
-                    operators=[ticket.creator],
-                    context=BaseTodoContext(inner_flow.id, ticket.id).to_dict(),
-                    status=TodoStatus.TODO,
-                )
-                print(f"ticket[{ticket.id}] add a failed todo")
-            time.sleep(1)
+        todos = []
+        for ticket in failed_tickets:
+            inner_flow = ticket.flows.filter(flow_type=FlowType.INNER_FLOW, status=TicketFlowStatus.FAILED).first()
+            if not inner_flow or inner_flow.todo_of_flow.exists():
+                continue
+            todo = Todo(
+                name=_("【{}】单据任务执行失败，待处理").format(ticket.get_ticket_type_display()),
+                flow=inner_flow,
+                ticket=ticket,
+                type=TodoType.INNER_FAILED,
+                context=BaseTodoContext(inner_flow.id, ticket.id).to_dict(),
+            )
+            todos.append(todo)
+            print(f"ticket[{ticket.id}] add a failed todo")
 
         # 待审批的单据要增加一条todo关联
         itsm_tickets = Ticket.objects.prefetch_related("flows").filter(status=TicketStatus.FAILED)
-        for current in range(0, count, batch):
-            for ticket in itsm_tickets[current : current + batch]:
-                itsm_flow = ticket.flows.filter(flow_type=FlowType.BK_ITSM, status=TicketFlowStatus.RUNNING).first()
-                if not itsm_flow or itsm_flow.todo_of_flow.exists():
-                    continue
-                itsm_fields = {f["key"]: f["value"] for f in itsm_flow.details["fields"]}
-                operators = itsm_fields["approver"].split(",")
-                Todo.objects.create(
-                    name=_("【{}】单据等待审批").format(ticket.get_ticket_type_display()),
-                    flow=itsm_flow,
-                    ticket=ticket,
-                    type=TodoType.ITSM,
-                    operators=operators,
-                    context=ItsmTodoContext(itsm_flow.id, ticket.id).to_dict(),
-                )
-                print(f"ticket[{ticket.id}] add a itsm todo")
-            time.sleep(1)
+        for ticket in itsm_tickets:
+            itsm_flow = ticket.flows.filter(flow_type=FlowType.BK_ITSM, status=TicketFlowStatus.RUNNING).first()
+            if not itsm_flow or itsm_flow.todo_of_flow.exists():
+                continue
+            todo = Todo(
+                name=_("【{}】单据等待审批").format(ticket.get_ticket_type_display()),
+                flow=itsm_flow,
+                ticket=ticket,
+                type=TodoType.ITSM,
+                context=ItsmTodoContext(itsm_flow.id, ticket.id).to_dict(),
+            )
+            todos.append(todo)
+            print(f"ticket[{ticket.id}] add a itsm todo")
+
+        Todo.objects.bulk_create(todos, batch_size=batch)

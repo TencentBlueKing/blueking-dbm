@@ -24,7 +24,7 @@ from backend.core.encrypt.handlers import AsymmetricHandler
 from backend.ticket import mock_data
 from backend.ticket.builders import BuilderFactory
 from backend.ticket.constants import (
-    TICKET_RUNNING_STATUS,
+    TICKET_RUNNING_STATUS_SET,
     TODO_RUNNING_STATUS,
     FlowType,
     TicketFlowStatus,
@@ -137,7 +137,7 @@ class TicketSerializer(AuditedSerializer, serializers.ModelSerializer):
         return TicketStatus.get_choice_label(obj.status)
 
     def get_cost_time(self, obj):
-        if obj.status in [TicketStatus.PENDING, *TICKET_RUNNING_STATUS]:
+        if obj.status in [TicketStatus.PENDING, *TICKET_RUNNING_STATUS_SET]:
             return calculate_cost_time(timezone.now(), obj.create_at)
         return calculate_cost_time(obj.update_at, obj.create_at)
 

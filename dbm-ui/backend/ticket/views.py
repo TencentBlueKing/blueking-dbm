@@ -43,8 +43,8 @@ from backend.ticket.builders import BuilderFactory
 from backend.ticket.builders.common.base import InfluxdbTicketFlowBuilderPatchMixin, fetch_cluster_ids
 from backend.ticket.constants import (
     FLOW_NOT_EXECUTE_STATUS,
-    TICKET_RUNNING_STATUS,
-    TICKET_TODO_STATUS,
+    TICKET_RUNNING_STATUS_SET,
+    TICKET_TODO_STATUS_SET,
     TODO_RUNNING_STATUS,
     CountType,
     FlowType,
@@ -200,7 +200,7 @@ class TicketViewSet(viewsets.AuditedModelViewSet):
     def verify_duplicate_ticket(self, ticket_type, details, user):
         """校验是否重复提交"""
         active_tickets = self.get_queryset().filter(
-            ticket_type=ticket_type, status__in=TICKET_RUNNING_STATUS, creator=user
+            ticket_type=ticket_type, status__in=TICKET_RUNNING_STATUS_SET, creator=user
         )
 
         # influxdb 相关操作单独适配，这里暂时没有找到更好的写法，唯一的改进就是创建单据时，会提前提取出对比内容，比如instances
@@ -451,7 +451,7 @@ class TicketViewSet(viewsets.AuditedModelViewSet):
         # 我的代办
         todo_status = (
             tickets.filter(
-                status__in=TICKET_TODO_STATUS,
+                status__in=TICKET_TODO_STATUS_SET,
                 todo_of_ticket__operators__contains=user,
                 todo_of_ticket__status__in=TODO_RUNNING_STATUS,
             )

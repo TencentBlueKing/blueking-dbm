@@ -98,7 +98,6 @@ class TimerFlow(BaseTicketFlow):
                 flow=self.flow_obj,
                 ticket=self.ticket,
                 type=TodoType.APPROVE,
-                operators=[self.ticket.creator],
                 context=PauseTodoContext(self.flow_obj.id, self.ticket.id).to_dict(),
             )
         else:

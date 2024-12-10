@@ -15,8 +15,7 @@ from django.utils.translation import ugettext as _
 
 from backend.flow.engine.bamboo.engine import BambooEngine
 from backend.ticket import todos
-from backend.ticket.constants import TodoStatus
-from backend.ticket.constants import TodoType
+from backend.ticket.constants import TodoStatus, TodoType
 from backend.ticket.models import TodoHistory
 from backend.ticket.todos import ActionType, BaseTodoContext
 
@@ -73,7 +72,5 @@ class PipelineTodo(todos.TodoActor):
             flow=flow,
             ticket=ticket,
             type=TodoType.INNER_APPROVE,
-            # todo: 待办人暂定为提单人
-            operators=[ticket.creator],
             context=PipelineTodoContext(flow.id, ticket.id, root_id, node_id).to_dict(),
         )

@@ -15,7 +15,7 @@ from backend.configuration.constants import DBType
 from backend.db_meta.enums import InstanceInnerRole
 from backend.db_meta.models import Cluster
 from backend.db_services.mysql.dumper.models import DumperSubscribeConfig
-from backend.ticket.constants import TICKET_RUNNING_STATUS, FlowType, TicketFlowStatus, TicketStatus, TicketType
+from backend.ticket.constants import TICKET_RUNNING_STATUS_SET, FlowType, TicketFlowStatus, TicketStatus, TicketType
 from backend.ticket.models import Flow, Ticket
 
 
@@ -66,7 +66,7 @@ class DumperHandler:
         dumper_ticket_types.remove(TicketType.TBINLOGDUMPER_INSTALL)
         dumper_ticket_types.extend([TicketType.MYSQL_MASTER_SLAVE_SWITCH, TicketType.MYSQL_MASTER_FAIL_OVER])
         active_tickets = Ticket.objects.filter(
-            bk_biz_id=bk_biz_id, status__in=TICKET_RUNNING_STATUS, ticket_type__in=dumper_ticket_types
+            bk_biz_id=bk_biz_id, status__in=TICKET_RUNNING_STATUS_SET, ticket_type__in=dumper_ticket_types
         )
         # 获取每个dumper单据状态与id的映射
         dumper_inst_id__ticket: Dict[int, str] = {}

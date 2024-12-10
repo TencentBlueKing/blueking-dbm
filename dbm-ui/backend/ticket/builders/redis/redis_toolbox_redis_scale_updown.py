@@ -28,7 +28,7 @@ from backend.ticket.constants import SwitchConfirmType, TicketType
 class RedisScaleUpDownDetailSerializer(SkipToRepresentationMixin, serializers.Serializer):
     """redis集群容量变更"""
 
-    class InfoSerializer(DisplayInfoSerializer, ClusterValidateMixin, serializers.Serializer):
+    class InfoSerializer(DisplayInfoSerializer, ClusterValidateMixin):
         class ResourceSpecSerializer(serializers.Serializer):
             class BackendGroupSerializer(serializers.Serializer):
                 spec_id = serializers.IntegerField(help_text=_("规格ID"))

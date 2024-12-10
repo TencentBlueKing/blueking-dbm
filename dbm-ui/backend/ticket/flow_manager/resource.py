@@ -204,17 +204,14 @@ class ResourceApplyFlow(BaseTicketFlow):
 
         from backend.ticket.todos.pause_todo import ResourceReplenishTodoContext
 
-        user = self.ticket.creator
-        admins = DBAdministrator.get_biz_db_type_admins(self.ticket.bk_biz_id, self.ticket.group)
+        dba = DBAdministrator.get_biz_db_type_admins(self.ticket.bk_biz_id, self.ticket.group)
         Todo.objects.create(
             name=_("【{}】流程所需资源不足").format(self.ticket.get_ticket_type_display()),
             flow=self.flow_obj,
             ticket=self.ticket,
             type=TodoType.RESOURCE_REPLENISH,
-            # 需要提单人和管理人员共同关注todo单
-            operators=[user, *admins],
             context=ResourceReplenishTodoContext(
-                flow_id=self.flow_obj.id, ticket_id=self.ticket.id, user=user, administrators=admins
+                flow_id=self.flow_obj.id, ticket_id=self.ticket.id, user=self.ticket.creator, administrators=dba
             ).to_dict(),
         )
 

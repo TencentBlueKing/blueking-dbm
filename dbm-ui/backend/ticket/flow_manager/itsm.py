@@ -113,14 +113,11 @@ class ItsmFlow(BaseTicketFlow):
 
     def _run(self) -> str:
         itsm_fields = {f["key"]: f["value"] for f in self.flow_obj.details["fields"]}
-        # 创建审批todo
-        operators = itsm_fields["approver"].split(",")
         Todo.objects.create(
             name=_("【{}】单据等待审批").format(self.ticket.get_ticket_type_display()),
             flow=self.flow_obj,
             ticket=self.ticket,
             type=TodoType.ITSM,
-            operators=operators,
             context=ItsmTodoContext(self.flow_obj.id, self.ticket.id).to_dict(),
         )
         # 创建单据

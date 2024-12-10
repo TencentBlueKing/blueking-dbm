@@ -27,8 +27,8 @@ from backend.ticket.builders.common.base import fetch_cluster_ids
 from backend.ticket.constants import (
     BAMBOO_STATE__TICKET_STATE_MAP,
     FlowCallbackType,
-    FlowMsgType,
     FlowErrCode,
+    FlowMsgType,
     TicketFlowStatus,
     TicketType,
     TodoStatus,
@@ -122,13 +122,11 @@ class InnerFlow(BaseTicketFlow):
         return f"{env.BK_SAAS_HOST}/{self.ticket.bk_biz_id}/task-history/detail/{self.root_id}"
 
     def create_failed_todo(self):
-        # 创建一条todo失败记录，在失败时变更为TODO状态
         Todo.objects.create(
             name=_("【{}】单据任务执行失败，待处理").format(self.ticket.get_ticket_type_display()),
             flow=self.flow_obj,
             ticket=self.ticket,
             type=TodoType.INNER_FAILED,
-            operators=[self.ticket.creator],
             context=BaseTodoContext(self.flow_obj.id, self.ticket.id).to_dict(),
             status=TodoStatus.DONE_SUCCESS,
         )
@@ -280,7 +278,7 @@ class IgnoreResultInnerFlow(InnerFlow):
     @property
     def _status(self) -> str:
         status = self._raw_status
-        if status in [constants.TicketFlowStatus.SUCCEEDED, *constants.TICKET_FAILED_STATUS]:
+        if status in [constants.TicketFlowStatus.SUCCEEDED, *constants.TICKET_FAILED_STATUS_SET]:
             return constants.TicketFlowStatus.SUCCEEDED
 
         return status

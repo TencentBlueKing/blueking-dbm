@@ -25,7 +25,7 @@ from backend.configuration.models import SystemSettings
 from backend.db_monitor.exceptions import AutofixException
 from backend.ticket.constants import (
     EXCLUSIVE_TICKET_EXCEL_PATH,
-    TICKET_RUNNING_STATUS,
+    TICKET_RUNNING_STATUS_SET,
     FlowRetryType,
     FlowType,
     TicketFlowStatus,
@@ -116,7 +116,12 @@ class Ticket(AuditedModel):
 
     @property
     def url(self):
-        return f"{env.BK_SAAS_HOST}/{self.bk_biz_id}/ticket-manage/index?id={self.id}"
+        return f"{env.BK_SAAS_HOST}/ticket/{self.id}"
+
+    @property
+    def iframe_url(self):
+        """iframe 单据链接，目前仅用在itsm表单"""
+        return f"{env.BK_SAAS_HOST}/sub/ticket/{self.id}"
 
     def set_status(self, status):
         self.status = status
@@ -124,7 +129,7 @@ class Ticket(AuditedModel):
 
     def get_cost_time(self):
         # 计算耗时
-        if self.status in [TicketStatus.PENDING, *TICKET_RUNNING_STATUS]:
+        if self.status in [TicketStatus.PENDING, *TICKET_RUNNING_STATUS_SET]:
             return calculate_cost_time(timezone.now(), self.create_at)
         return calculate_cost_time(self.update_at, self.create_at)
 
@@ -362,7 +367,7 @@ class ClusterOperateRecord(AuditedModel):
     def get_cluster_records_map(cls, cluster_ids: List[int]):
         """获取集群与操作记录之间的映射关系"""
         records = cls.objects.select_related("ticket", "flow").filter(
-            cluster_id__in=cluster_ids, ticket__status__in=TICKET_RUNNING_STATUS
+            cluster_id__in=cluster_ids, ticket__status__in=TICKET_RUNNING_STATUS_SET
         )
         cluster_operate_records_map: Dict[int, List] = defaultdict(list)
         for record in records:
@@ -428,7 +433,7 @@ class InstanceOperateRecord(AuditedModel):
     def get_instance_records_map(cls, instance_ids: List[Union[int, str]]):
         """获取实例与操作记录之间的映射关系??????"""
         records = InstanceOperateRecord.objects.select_related("ticket").filter(
-            instance_id__in=instance_ids, ticket__status__in=TICKET_RUNNING_STATUS
+            instance_id__in=instance_ids, ticket__status__in=TICKET_RUNNING_STATUS_SET
         )
         instance_operator_record_map: Dict[int, List] = defaultdict(list)
         for record in records:

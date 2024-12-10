@@ -142,7 +142,7 @@ class ItsmParamBuilder(CallBackBuilderMixin):
                 {"key": "domain", "value": "\n".join(cluster_domains)},
                 {"key": "summary", "value": self.ticket.remark},
                 {"key": "approver", "value": self.get_approvers()},
-                {"key": "ticket_url", "value": f"{self.ticket.url}&isFullscreen=true"},
+                {"key": "ticket_url", "value": self.ticket.iframe_url},
             ],
             "dynamic_fields": [],
             "meta": {

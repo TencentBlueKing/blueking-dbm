@@ -96,7 +96,7 @@ class TicketStatus(str, StructuredEnum):
 
 
 # 单据[正在进行]的状态合集
-TICKET_RUNNING_STATUS = [
+TICKET_RUNNING_STATUS_SET = [
     TicketStatus.APPROVE,
     TicketStatus.TODO,
     TicketStatus.RESOURCE_REPLENISH,
@@ -104,7 +104,7 @@ TICKET_RUNNING_STATUS = [
     TicketStatus.TIMER,
 ]
 # 单据[包含TODO]的状态合集
-TICKET_TODO_STATUS = [
+TICKET_TODO_STATUS_SET = [
     TicketStatus.APPROVE,
     TicketStatus.TODO,
     TicketStatus.RESOURCE_REPLENISH,
@@ -112,7 +112,7 @@ TICKET_TODO_STATUS = [
     TicketStatus.RUNNING,
 ]
 # 单据[失败]的状态合集
-TICKET_FAILED_STATUS = [TicketStatus.REVOKED, TicketStatus.TERMINATED, TicketStatus.FAILED]
+TICKET_FAILED_STATUS_SET = [TicketStatus.REVOKED, TicketStatus.TERMINATED, TicketStatus.FAILED]
 
 
 class TicketFlowStatus(str, StructuredEnum):
