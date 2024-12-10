@@ -16,11 +16,13 @@ import type { RouteRecordRaw } from 'vue-router';
 import type { MySQLFunctions } from '@services/model/function-controller/functionController';
 import FunctionControllModel from '@services/model/function-controller/functionController';
 
-import { AccountTypes } from '@common/const';
+import { AccountTypes, DBTypes, TicketTypes } from '@common/const';
 
-import { checkDbConsole } from '@utils';
+import { checkDbConsole, createToolboxRoute } from '@utils';
 
 import { t } from '@locales/index';
+
+const { createRouteItem } = createToolboxRoute(DBTypes.MYSQL);
 
 export const mysqlToolboxChildrenRouters: RouteRecordRaw[] = [
   {
@@ -55,30 +57,10 @@ export const mysqlToolboxChildrenRouters: RouteRecordRaw[] = [
     },
     component: () => import('@views/db-manage/mysql/privilege-clone-inst/Index.vue'),
   },
-  {
-    name: 'MySQLSlaveRebuild',
-    path: 'slave-rebuild/:page?',
-    meta: {
-      navName: t('重建从库'),
-    },
-    component: () => import('@views/db-manage/mysql/slave-rebuild/index.vue'),
-  },
-  {
-    name: 'MySQLSlaveAdd',
-    path: 'slave-add/:page?',
-    meta: {
-      navName: t('添加从库'),
-    },
-    component: () => import('@views/db-manage/mysql/slave-add/Index.vue'),
-  },
-  {
-    name: 'MySQLMasterSlaveClone',
-    path: 'master-slave-clone/:page?',
-    meta: {
-      navName: t('迁移主从'),
-    },
-    component: () => import('@views/db-manage/mysql/master-slave-clone/index.vue'),
-  },
+  createRouteItem(TicketTypes.MYSQL_RESTORE_SLAVE, t('重建从库')),
+  createRouteItem(TicketTypes.MYSQL_ADD_SLAVE, t('添加从库')),
+  createRouteItem(TicketTypes.MYSQL_MIGRATE_CLUSTER, t('迁移主从')),
+  createRouteItem(TicketTypes.MYSQL_PROXY_ADD, t('添加Proxy')),
   {
     name: 'MySQLMasterSlaveSwap',
     path: 'master-slave-swap/:page?',
@@ -87,22 +69,7 @@ export const mysqlToolboxChildrenRouters: RouteRecordRaw[] = [
     },
     component: () => import('@views/db-manage/mysql/master-slave-swap/index.vue'),
   },
-  {
-    name: 'MySQLProxyReplace',
-    path: 'proxy-replace/:page?',
-    meta: {
-      navName: t('替换Proxy'),
-    },
-    component: () => import('@views/db-manage/mysql/proxy-replace/index.vue'),
-  },
-  {
-    name: 'MySQLProxyAdd',
-    path: 'proxy-add/:page?',
-    meta: {
-      navName: t('添加Proxy'),
-    },
-    component: () => import('@views/db-manage/mysql/proxy-add/index.vue'),
-  },
+  createRouteItem(TicketTypes.MYSQL_PROXY_SWITCH, t('替换Proxy')),
   {
     name: 'MySQLMasterFailover',
     path: 'master-failover/:page?',

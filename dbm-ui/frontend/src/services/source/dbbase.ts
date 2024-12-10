@@ -31,12 +31,14 @@ export function verifyDuplicatedClusterName(params: { cluster_type: string; name
  */
 export function filterClusters<
   T extends {
+    id: number;
     bk_biz_id: number;
     bk_cloud_id: number;
     bk_cloud_name: string;
     cluster_name: string;
     cluster_type: string;
     major_version: string;
+    master_domain: string;
   },
 >(params: { bk_biz_id: number; exact_domain?: string; cluster_ids?: string; domain?: string }) {
   return http.get<T[]>(`${path}/filter_clusters/`, params);

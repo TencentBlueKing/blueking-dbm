@@ -27,16 +27,16 @@
             <div class="item-title">CPU：</div>
             <div class="item-content">
               {{
-                data.cpu.min === data.cpu.max
-                  ? t('n核', { n: data.cpu.min })
-                  : t('((n-m))核', { n: data.cpu.min, m: data.cpu.max })
+                data.cpu?.min === data.cpu?.max
+                  ? t('n核', { n: data.cpu?.min })
+                  : t('((n-m))核', { n: data.cpu?.min, m: data.cpu?.max })
               }}
             </div>
           </div>
           <div class="item">
             <div class="item-title">{{ $t('内存') }}：</div>
             <div class="item-content">
-              {{ data.mem.min === data.mem.max ? data.mem.min : `(${data.mem.min}~${data.mem.max})` }} G
+              {{ data.mem?.min === data.mem?.max ? data.mem?.min : `(${data.mem?.min}~${data.mem?.max})` }} G
             </div>
           </div>
           <div
@@ -58,13 +58,13 @@
                 </div>
                 <div class="table-row">
                   <div class="row-one">
-                    {{ data.storage_spec[0].mount_point }}
+                    {{ data.storage_spec[0]?.mount_point || '--' }}
                   </div>
                   <div class="row-two">
-                    {{ data.storage_spec[0].size }}
+                    {{ data.storage_spec[0]?.size || '--' }}
                   </div>
                   <div class="row-three">
-                    {{ data.storage_spec[0].type }}
+                    {{ data.storage_spec[0]?.type || '--' }}
                   </div>
                 </div>
               </div>
@@ -77,7 +77,7 @@
               {{ $t('单机 QPS') }}
             </div>
             <div class="item-content">
-              {{ data.qps.min === data.qps.max ? `${data.qps.min}/s` : `${data.qps.min}/s~${data.qps.max}/s` }}
+              {{ data.qps?.min === data.qps?.max ? `${data.qps?.min}/s` : `${data.qps?.min}/s~${data.qps?.max}/s` }}
             </div>
           </div>
         </div>

@@ -11,6 +11,8 @@
  * the specific language governing permissions and limitations under the License.
  */
 
+import { TicketTypes } from '@common/const';
+
 import { t } from '@locales/index';
 
 export interface MenuChild {
@@ -104,19 +106,19 @@ export default [
     children: [
       {
         name: t('重建从库'),
-        id: 'MySQLSlaveRebuild',
+        id: TicketTypes.MYSQL_RESTORE_SLAVE,
         parentId: 'migrate',
         dbConsoleValue: 'mysql.toolbox.slaveRebuild',
       },
       {
         name: t('添加从库'),
-        id: 'MySQLSlaveAdd',
+        id: TicketTypes.MYSQL_ADD_SLAVE,
         parentId: 'migrate',
         dbConsoleValue: 'mysql.toolbox.slaveAdd',
       },
       {
         name: t('迁移主从'),
-        id: 'MySQLMasterSlaveClone',
+        id: TicketTypes.MYSQL_MIGRATE_CLUSTER,
         parentId: 'migrate',
         dbConsoleValue: 'mysql.toolbox.masterSlaveClone',
       },
@@ -128,13 +130,13 @@ export default [
       },
       {
         name: t('替换Proxy'),
-        id: 'MySQLProxyReplace',
+        id: TicketTypes.MYSQL_PROXY_SWITCH,
         parentId: 'migrate',
         dbConsoleValue: 'mysql.toolbox.proxyReplace',
       },
       {
         name: t('添加Proxy'),
-        id: 'MySQLProxyAdd',
+        id: TicketTypes.MYSQL_PROXY_ADD,
         parentId: 'migrate',
         dbConsoleValue: 'mysql.toolbox.proxyAdd',
       },
