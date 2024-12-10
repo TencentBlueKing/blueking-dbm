@@ -73,7 +73,10 @@ class TransferMySQLClusterToOtherBizFlow(object):
             p.add_act(
                 act_name=_("clone权限规则"),
                 act_component_code=ClonePrivRulesToOtherComponent.code,
-                kwargs={"target_biz_id": self.target_biz_id},
+                kwargs={
+                    "source_biz": self.bk_biz_id,
+                    "target_biz_id": self.target_biz_id,
+                },
             )
 
         p.add_act(
