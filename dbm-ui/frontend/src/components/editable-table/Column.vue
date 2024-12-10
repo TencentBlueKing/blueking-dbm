@@ -96,27 +96,20 @@
 
   const hasOwn = (obj: Record<string, any>, key: string) => Object.prototype.hasOwnProperty.call(obj, key);
 
-  const getRuleMessage = (rule: IRule) => {
-    if (typeof rule.message === 'function') {
-      return rule.message();
-    }
-    return rule.message;
-  };
-
   export interface IContext {
     instance: ComponentInternalInstance;
     el: HTMLElement;
     key: string;
     props: Props;
     slots: Slots;
-    validate: () => Promise<boolean>;
+    validate: (trigger?: string) => Promise<boolean>;
   }
 
   export const EditableTableColumnKey: InjectionKey<{
     blur: () => void;
     focus: () => void;
     registerRules: (params: IRule[]) => void;
-    validate: () => Promise<boolean>;
+    validate: (trigger?: string) => Promise<boolean>;
     clearValidate: () => void;
   }> = Symbol('EditableTableColumnKey');
 </script>
@@ -258,6 +251,25 @@
     return [...filterPropRules, ...formatConfigRules];
   };
 
+  const getTriggerRules = (rules: IFinalRule[], trigger?: string) =>
+    rules.reduce((result, rule) => {
+      if (!rule.trigger || !trigger) {
+        result.push(rule);
+        return result;
+      }
+      if (rule.trigger === trigger) {
+        result.push(rule);
+      }
+      return result;
+    }, [] as IFinalRule[]);
+
+  const getRuleMessage = (rule: IFinalRule) => {
+    if (typeof rule.message === 'function') {
+      return rule.message();
+    }
+    return rule.message;
+  };
+
   let registerRules: IRule[] = [];
 
   const rootRef = ref<HTMLElement>();
@@ -283,25 +295,33 @@
     return result ? '无法操作' : '';
   });
 
-  const validate = (): Promise<boolean> => {
+  const validate = (trigger?: string): Promise<boolean> => {
+    // 重新触发验证重置上次的验证状态
+    validateState.isError = false;
+    validateState.errorMessage = '';
+
     if (!tableContext) {
       return Promise.resolve(false);
+    }
+    // 单元格被合并跳过验证
+    if (!isRowspanRender.value) {
+      return Promise.resolve(true);
     }
     // 没有设置 field 不进行验证
     if (!props.field) {
       return Promise.resolve(true);
     }
     let rules: IRule[] = [];
-    // 继承 form 的验证规则
+    // 继承 table 的验证规则
     if (tableContext && tableContext.props.rules && hasOwn(tableContext.props.rules, props.field)) {
       rules = tableContext.props.rules[props.field];
     }
-    // form-item 自己的 rules 规则优先级更高
+    // column 自己的 rules 规则优先级更高
     if (props.rules) {
       rules = props.rules as IRule[];
     } else if (props.appendRules) {
       // 配置了 props.rules 时 props.appendRules 不生效
-      // props.appendRules 与 form 的验证规则合并且优先级高
+      // props.appendRules 与 table 的验证规则合并且优先级高
       rules = [...rules, ...props.appendRules];
     }
 
@@ -311,15 +331,13 @@
     }
 
     // 合并规则属性配置
-    const finalRuleList = mergeRules(rules, getRulesFromProps(props));
+    const finalRuleList = getTriggerRules(mergeRules(rules, getRulesFromProps(props)), trigger);
 
-    // 重新触发验证重置上次的验证状态
-    if (rules.length > 0) {
-      validateState.isError = false;
-      validateState.errorMessage = '';
+    if (finalRuleList.length < 1) {
+      return Promise.resolve(true);
     }
 
-    const value = get(tableContext.props.model, props.field);
+    const value = get(tableContext.props.model[rowContext!.getRowIndex()], props.field);
 
     const doValidate = (() => {
       let stepIndex = -1;
@@ -334,39 +352,30 @@
 
         return Promise.resolve().then(() => {
           const result = rule.validator(value);
-          // 异步验证（validator 返回一个 Promise）
-          if (typeof result !== 'boolean' && typeof result !== 'string' && typeof result.then === 'function') {
-            return result
-              .then((data) => {
-                // 异步验证结果为 false
-                if (data === false) {
-                  return Promise.reject(getRuleMessage(rule));
-                }
-                if (typeof data === 'string') {
-                  return Promise.reject(data);
-                }
-              })
-              .then(
-                () => doValidate(),
-                (errorMessage: string) => {
-                  validateState.isError = true;
-                  validateState.errorMessage = errorMessage;
-                  tableContext.emits('validate', props.field || '', false, errorMessage);
-                  return Promise.reject(validateState.errorMessage);
-                },
-              );
+          // 同步验证通过下一步
+          if (result === true) {
+            return doValidate();
           }
-          // 同步验证失败
-          if (result === false) {
-            const errorMessage = getRuleMessage(rule);
-            validateState.isError = true;
-            // 验证结果返回的是 String 表示验证失败，返回结果作为错误信息
-            validateState.errorMessage = typeof result === 'string' ? result : errorMessage;
-            tableContext.emits('validate', props.field || '', false, errorMessage);
-            return Promise.reject(validateState.errorMessage);
-          }
-          // 下一步
-          return doValidate();
+          // Promise异步处理验证结果
+          return Promise.resolve(result)
+            .then((data) => {
+              // 异步验证结果为 false
+              if (data === false) {
+                return Promise.reject(getRuleMessage(rule));
+              }
+              if (typeof data === 'string') {
+                return Promise.reject(data);
+              }
+            })
+            .then(
+              () => doValidate(),
+              (errorMessage: string) => {
+                validateState.isError = true;
+                validateState.errorMessage = errorMessage;
+                tableContext.emits('validate', props.field || '', false, errorMessage);
+                return Promise.reject(validateState.errorMessage);
+              },
+            );
         });
       };
     })();
