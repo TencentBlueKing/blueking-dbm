@@ -11,6 +11,8 @@
  * the specific language governing permissions and limitations under the License.
  */
 
+import { TicketTypes } from '@common/const';
+
 import { t } from '@locales/index';
 
 export interface MenuChild {
@@ -71,19 +73,19 @@ export default [
       },
       {
         name: t('缩容接入层'),
-        id: 'SpiderProxyScaleDown',
+        id: TicketTypes.TENDBCLUSTER_SPIDER_REDUCE_NODES,
         parentId: 'spider_cluster_maintain',
         dbConsoleValue: 'tendbCluster.toolbox.proxyScaleDown',
       },
       {
         name: t('迁移主从'),
-        id: 'spiderMasterSlaveClone',
+        id: TicketTypes.TENDBCLUSTER_MIGRATE_CLUSTER,
         parentId: 'spider_cluster_maintain',
         dbConsoleValue: 'tendbCluster.toolbox.masterSlaveClone',
       },
       {
         name: t('重建从库'),
-        id: 'spiderSlaveRebuild',
+        id: TicketTypes.TENDBCLUSTER_RESTORE_SLAVE,
         parentId: 'spider_cluster_maintain',
         dbConsoleValue: 'tendbCluster.toolbox.slaveRebuild',
       },
@@ -109,7 +111,7 @@ export default [
     children: [
       {
         name: t('添加运维节点'),
-        id: 'spiderAddMnt',
+        id: TicketTypes.TENDBCLUSTER_SPIDER_MNT_APPLY,
         parentId: 'spider_mnt',
         dbConsoleValue: 'tendbCluster.toolbox.addMnt',
       },

@@ -98,7 +98,7 @@
   import type { InjectionKey, Ref } from 'vue';
 
   import TendbclusterMachineModel from '@services/model/tendbcluster/tendbcluster-machine';
-  import type { ListBase } from '@services/types';
+  import type { HostInfo, ListBase } from '@services/types';
 
   import { t } from '@locales/index';
 
@@ -113,7 +113,7 @@
     create_at: string;
     db_module_id: number;
     db_module_name: string;
-    host_info: any;
+    host_info: HostInfo;
     id: number;
     name: string;
     instance_address: string;
@@ -1000,9 +1000,6 @@
         isInnerChange = false;
         return;
       }
-      if (props.selected) {
-        Object.assign(lastValues, props.selected);
-      }
       if (
         props.clusterTypes.length > 0 &&
         (!panelTabActive.value || !props.clusterTypes.includes(panelTabActive.value as Props['clusterTypes'][number]))
@@ -1013,6 +1010,15 @@
     },
     {
       immediate: true,
+    },
+  );
+
+  watch(
+    () => props.selected,
+    () => {
+      if (props.selected) {
+        Object.assign(lastValues, props.selected);
+      }
     },
   );
 

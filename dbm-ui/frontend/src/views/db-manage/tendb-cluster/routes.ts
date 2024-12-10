@@ -18,11 +18,13 @@ import FunctionControllModel, {
   type MySQLFunctions,
 } from '@services/model/function-controller/functionController';
 
-import { AccountTypes } from '@common/const';
+import { AccountTypes, DBTypes, TicketTypes } from '@common/const';
 
-import { checkDbConsole } from '@utils';
+import { checkDbConsole, createToolboxRoute } from '@utils';
 
 import { t } from '@locales/index';
+
+const { createRouteItem } = createToolboxRoute(DBTypes.TENDBCLUSTER);
 
 const spiderSqlExecuteRoute = {
   path: 'sql-execute/:step?',
@@ -78,14 +80,15 @@ const spiderProxyScaleUpRoute = {
   component: () => import('@views/db-manage/tendb-cluster/proxy-scale-up/Index.vue'),
 };
 
-const spiderProxyScaleDownRoute = {
-  name: 'SpiderProxyScaleDown',
-  path: 'proxy-scale-down/:page?',
-  meta: {
-    navName: t('缩容接入层'),
-  },
-  component: () => import('@views/db-manage/tendb-cluster/proxy-scale-down/Index.vue'),
-};
+// const spiderProxyScaleDownRoute = {
+//   name: 'SpiderProxyScaleDown',
+//   path: 'proxy-scale-down/:page?',
+//   meta: {
+//     navName: t('缩容接入层'),
+//   },
+//   component: () => import('@views/db-manage/tendb-cluster/proxy-scale-down/Index.vue'),
+// };
+const spiderProxyScaleDownRoute = createRouteItem(TicketTypes.TENDBCLUSTER_SPIDER_REDUCE_NODES, t('缩容接入层'));
 
 const spiderProxySlaveApplyRoute = {
   name: 'SpiderProxySlaveApply',
@@ -96,14 +99,7 @@ const spiderProxySlaveApplyRoute = {
   component: () => import('@views/db-manage/tendb-cluster/proxy-slave-apply/Index.vue'),
 };
 
-const spiderAddMntRoute = {
-  path: 'add-mnt/:page?',
-  name: 'spiderAddMnt',
-  meta: {
-    navName: t('添加运维节点'),
-  },
-  component: () => import('@views/db-manage/tendb-cluster/add-mnt/Index.vue'),
-};
+const spiderAddMntRoute = createRouteItem(TicketTypes.TENDBCLUSTER_SPIDER_MNT_APPLY, t('添加运维节点'));
 
 const spiderDbTableBackupRoute = {
   path: 'db-table-backup/:page?',
@@ -195,25 +191,28 @@ const spiderOpenareaTemplateRoute = {
   component: () => import('@views/db-manage/tendb-cluster/openarea-template/Index.vue'),
 };
 
-const spiderMasterSlaveCloneRoute = {
-  path: 'master-slave-clone/:page?',
-  name: 'spiderMasterSlaveClone',
-  meta: {
-    navName: t('迁移主从'),
-    activeMenu: 'spiderToolbox',
-  },
-  component: () => import('@views/db-manage/tendb-cluster/master-slave-clone/Index.vue'),
-};
+// const spiderMasterSlaveCloneRoute = {
+//   path: 'master-slave-clone/:page?',
+//   name: 'spiderMasterSlaveClone',
+//   meta: {
+//     navName: t('迁移主从'),
+//     activeMenu: 'spiderToolbox',
+//   },
+//   component: () => import('@views/db-manage/tendb-cluster/master-slave-clone/Index.vue'),
+// };
+const spiderMasterSlaveCloneRoute = createRouteItem(TicketTypes.TENDBCLUSTER_MIGRATE_CLUSTER, t('迁移主从'));
 
-const spiderSlaveRebuildRoute = {
-  path: 'slave-rebuild/:page?',
-  name: 'spiderSlaveRebuild',
-  meta: {
-    navName: t('重建从库'),
-    activeMenu: 'spiderToolbox',
-  },
-  component: () => import('@views/db-manage/tendb-cluster/slave-rebuild/Index.vue'),
-};
+// const spiderSlaveRebuildRoute = {
+//   path: 'slave-rebuild/:page?',
+//   name: 'spiderSlaveRebuild',
+//   meta: {
+//     navName: t('重建从库'),
+//     activeMenu: 'spiderToolbox',
+//   },
+//   component: () => import('@views/db-manage/tendb-cluster/slave-rebuild/Index.vue'),
+// };
+
+const spiderSlaveRebuildRoute = createRouteItem(TicketTypes.TENDBCLUSTER_RESTORE_SLAVE, t('重建从库'));
 
 const spiderWebconsoleRoute = {
   name: 'SpiderWebconsole',
