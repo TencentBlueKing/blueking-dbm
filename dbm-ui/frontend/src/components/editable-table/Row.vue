@@ -14,6 +14,7 @@
     registerColumn: (column: IColumnContext) => void;
     unregisterColumn: (columnKey: string) => void;
     getColumnIndex: () => number;
+    getRowIndex: () => number;
   }> = Symbol.for('bk-editable-table-row');
 </script>
 <script setup lang="ts">
@@ -47,10 +48,13 @@
     };
   })();
 
+  const getRowIndex = () => tableContext?.getAllColumnList().findIndex((item) => item === columnList) as number;
+
   provide(injectKey, {
     registerColumn,
     unregisterColumn,
     getColumnIndex,
+    getRowIndex,
   });
 
   onMounted(() => {

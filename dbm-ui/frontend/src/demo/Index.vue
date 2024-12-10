@@ -10,15 +10,18 @@
         field="name"
         fixed="left"
         label="第一列"
-        :loading="isLoading"
         :min-width="300"
         :rowspan="5">
-        <EditInput v-model="item.name" />
+        <EditInput
+          v-model="item.name"
+          clearable
+          @clear="handleClear" />
       </EditableTableColumn>
       <EditableTableColumn
         field="age"
         label="第二列"
-        :min-width="300">
+        :min-width="300"
+        required>
         <EditSelect v-model="item.age">
           <BkOption
             id="1"
@@ -31,14 +34,19 @@
       <EditableTableColumn
         field="date"
         label="第三列"
-        :min-width="300">
-        <EditDatePicker v-model="item.date" />
+        :min-width="300"
+        required>
+        <EditDatePicker
+          v-model="item.date"
+          @change="handleChange" />
       </EditableTableColumn>
       <EditableTableColumn
         field="time"
         label="第四列"
         :min-width="300">
-        <EditTimePicker v-model="item.time" />
+        <EditTimePicker
+          v-model="item.time"
+          @change="handleChange" />
       </EditableTableColumn>
       <EditableTableColumn
         field="tag"
@@ -51,15 +59,7 @@
         label="第五列"
         :min-width="300">
         <EditBlock v-model="item.des">
-          <div>
-            <div>这是一段文字</div>
-            <div>这是一段文字</div>
-            <div>这是一段文字</div>
-            <div>这是一段文字</div>
-            <div>这是一段文字</div>
-            <div>这是一段文字</div>
-            <div>这是一段文字</div>
-          </div>
+          {{ item.more }}
           <template #append> as </template>
         </EditBlock>
       </EditableTableColumn>
@@ -129,18 +129,32 @@
   const rules = {
     name: [
       {
-        validator: () => true,
+        validator: (value: string) => {
+          console.log('name = ', value);
+          return Boolean(value);
+        },
         message: '错了',
-        trigger: 'change',
+        trigger: 'blur',
       },
     ],
     age: [
       {
-        validator: () => true,
+        validator: (value: string) => {
+          console.log('validator', value);
+          return true;
+        },
         message: '错了没',
         trigger: 'change',
       },
     ],
+  };
+
+  const handleClear = () => {
+    console.log('handleClear');
+  };
+
+  const handleChange = (value: string) => {
+    console.log(value);
   };
 
   const handleSubmit = () => {
