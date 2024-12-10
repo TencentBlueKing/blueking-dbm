@@ -278,8 +278,8 @@ const bigdata: InfoType = {
   },
   [ClusterTypes.RIAK]: {
     id: ClusterTypes.RIAK,
-    name: 'riak',
-    specClusterName: 'riak',
+    name: 'Riak',
+    specClusterName: 'Riak',
     dbType: DBTypes.RIAK,
     moduleId: 'bigdata',
     machineList: [
