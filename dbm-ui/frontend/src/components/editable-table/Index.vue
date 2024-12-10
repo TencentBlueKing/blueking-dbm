@@ -67,6 +67,7 @@
   import Input from './edit/Input.vue';
   import Select from './edit/Select.vue';
   import TagInput from './edit/TagInput.vue';
+  import Text from './edit/Text.vue';
   import Textarea from './edit/Textarea.vue';
   import TimePicker from './edit/TimePicker.vue';
   import useResize from './hooks/use-resize';
@@ -111,7 +112,7 @@
     } & Expose
   > = Symbol.for('bk-editable-table');
 
-  export { Block, Column, DatePicker, Input, Row, Select, TagInput, Textarea, TimePicker, useColumn, useTable };
+  export { Block, Column, DatePicker, Input, Row, Select, TagInput, Text, Textarea, TimePicker, useColumn, useTable };
 </script>
 <script setup lang="ts">
   const props = defineProps<Props>();

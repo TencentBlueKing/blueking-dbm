@@ -369,14 +369,16 @@
           details: {
             cluster_id: props.data.id,
             bk_cloud_id: row.bk_cloud_id,
-            nodes: [
-              {
-                ip: row.ip,
-                bk_host_id: row.bk_host_id,
-                bk_cloud_id: row.bk_cloud_id,
-                bk_biz_id: currentBizId,
-              },
-            ],
+            old_nodes: {
+              riak: [
+                {
+                  ip: row.ip,
+                  bk_host_id: row.bk_host_id,
+                  bk_cloud_id: row.bk_cloud_id,
+                  bk_biz_id: currentBizId,
+                },
+              ],
+            }
           },
         }).then((createTicketResult) => {
           fetchData();
