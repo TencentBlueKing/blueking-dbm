@@ -15,6 +15,7 @@ export * from './useApplyBase';
 export * from './useBeforeClose';
 export * from './useCopy';
 export * from './useCopyFromSelection';
+export * from './useCreateTicket';
 export * from './useDebouncedRef';
 export * from './useDebouncedRef';
 export * from './useDefaultPagination';

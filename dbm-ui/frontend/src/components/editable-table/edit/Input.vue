@@ -30,12 +30,10 @@
 
   const props = defineProps<Props>();
   const emits = defineEmits<Emits>();
+  const modelValue = defineModel<string>();
 
   const attrs = useAttrs();
-
   const columnContext = useColumn();
-
-  const modelValue = defineModel<string>();
 
   watch(modelValue, () => {
     columnContext?.validate('change');
@@ -44,6 +42,7 @@
   const handleChange = (value: string) => {
     emits('change', value);
   };
+
   const handleBlur = () => {
     columnContext?.blur();
     columnContext?.validate('blur');

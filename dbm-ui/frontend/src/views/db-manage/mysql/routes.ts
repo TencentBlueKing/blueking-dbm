@@ -16,11 +16,21 @@ import type { RouteRecordRaw } from 'vue-router';
 import type { MySQLFunctions } from '@services/model/function-controller/functionController';
 import FunctionControllModel from '@services/model/function-controller/functionController';
 
-import { AccountTypes } from '@common/const';
+import { AccountTypes, TicketTypes } from '@common/const';
 
 import { checkDbConsole } from '@utils';
 
 import { t } from '@locales/index';
+
+const createRouteItem = (ticketType: TicketTypes, navName: string) => ({
+  name: ticketType,
+  path: `${ticketType}/:page?`,
+  meta: {
+    navName,
+    fullscreen: true,
+  },
+  component: () => import(`@views/db-manage/mysql/${ticketType}/Index.vue`),
+});
 
 export const mysqlToolboxChildrenRouters: RouteRecordRaw[] = [
   {
@@ -63,14 +73,7 @@ export const mysqlToolboxChildrenRouters: RouteRecordRaw[] = [
     },
     component: () => import('@views/db-manage/mysql/slave-rebuild/index.vue'),
   },
-  {
-    name: 'MySQLSlaveAdd',
-    path: 'slave-add/:page?',
-    meta: {
-      navName: t('添加从库'),
-    },
-    component: () => import('@views/db-manage/mysql/slave-add/Index.vue'),
-  },
+  createRouteItem(TicketTypes.MYSQL_ADD_SLAVE, t('添加从库')),
   {
     name: 'MySQLMasterSlaveClone',
     path: 'master-slave-clone/:page?',

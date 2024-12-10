@@ -11,6 +11,8 @@
  * the specific language governing permissions and limitations under the License.
  */
 
+import { TicketTypes } from '@common/const';
+
 import { t } from '@locales/index';
 
 export interface MenuChild {
@@ -110,7 +112,7 @@ export default [
       },
       {
         name: t('添加从库'),
-        id: 'MySQLSlaveAdd',
+        id: TicketTypes.MYSQL_ADD_SLAVE,
         parentId: 'migrate',
         dbConsoleValue: 'mysql.toolbox.slaveAdd',
       },

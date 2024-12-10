@@ -51,14 +51,14 @@
               <HostAgentStatus :data="data.agent_status" />
             </template>
           </BkTableColumn>
-          <BkTableColumn
+          <!-- <BkTableColumn
             field="bk_cpu"
             :label="t('资源归属')"
             :min-width="300">
             <template #default="{ data }">
               <ResourceHostOwner :data="data" />
             </template>
-          </BkTableColumn>
+          </BkTableColumn> -->
           <BkTableColumn
             field="rack_id"
             :label="t('机架')"
@@ -157,8 +157,8 @@
 
   import DiskPopInfo from '@components/disk-pop-info/DiskPopInfo.vue';
   import HostAgentStatus from '@components/host-agent-status/Index.vue';
-  import ResourceHostOwner from '@components/resource-host-owner/Index.vue';
 
+  // import ResourceHostOwner from '@components/resource-host-owner/Index.vue';
   import PanelTab from './components/PanelTab.vue';
   import useSearchSelectData from './hooks/use-search-select-data';
 
@@ -176,7 +176,7 @@
     (e: 'change', value: IValue[]): void;
   }
 
-  interface IValue {
+  export interface IValue {
     bk_biz_id: number;
     bk_cloud_id: number;
     bk_host_id: number;
