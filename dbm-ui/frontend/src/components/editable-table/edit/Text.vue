@@ -33,7 +33,7 @@
   </div>
 </template>
 <script setup lang="ts">
-  import { onBeforeUpdate, ref, useTemplateRef, type VNode, watch } from 'vue';
+  import { ref, useTemplateRef, type VNode, watch } from 'vue';
 
   import useColumn from '../useColumn';
 
@@ -57,7 +57,7 @@
 
   const contentRef = useTemplateRef('content');
 
-  const isShowPlacehoder = ref(false);
+  const isShowPlacehoder = ref(true);
 
   watch(modelValue, () => {
     columnContext?.validate();
@@ -71,8 +71,10 @@
     columnContext?.focus();
   };
 
-  onBeforeUpdate(() => {
-    isShowPlacehoder.value = !contentRef.value?.innerText;
+  onUpdated(() => {
+    nextTick(() => {
+      isShowPlacehoder.value = !contentRef.value?.innerText;
+    });
   });
 </script>
 <style lang="less">

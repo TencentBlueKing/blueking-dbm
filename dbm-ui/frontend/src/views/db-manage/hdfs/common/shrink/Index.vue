@@ -50,6 +50,8 @@
 
   import { useGlobalBizs } from '@stores';
 
+  import { TicketTypes } from '@common/const';
+
   import HostShrink, {
     type TShrinkNode,
   } from '@views/db-manage/common/host-shrink/Index.vue';
@@ -232,12 +234,11 @@
             }, {} as Record<string, any>);
 
             createTicket({
-              ticket_type: 'HDFS_SHRINK',
+              ticket_type: TicketTypes.HDFS_SHRINK,
               bk_biz_id: bizId,
               details: {
                 cluster_id: props.data.id,
-                ip_source: 'manual_input',
-                nodes: {
+                old_nodes: {
                   [nodeType.value]: fomatHost(nodeInfoMap.datanode.nodeList),
                 },
                 ext_info: generateExtInfo(),
