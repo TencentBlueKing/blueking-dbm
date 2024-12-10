@@ -132,9 +132,30 @@
             confirmText: t('禁用'),
             contentAlign: 'left',
             footerAlign: 'center',
-            headerAlign: 'center',
             onClosed: () => {
               reject();
+            },
+            onConfirm: () => {
+              createTicket({
+                bk_biz_id: currentBizId,
+                details: {
+                  bk_cloud_id: props.data.bk_cloud_id,
+                  cluster_id: props.data.id,
+                  old_nodes: {
+                    riak: tableRef.value.bkTableRef.getSelection().map((nodeItem: RiakNodeModel) => ({
+                      bk_biz_id: currentBizId,
+                      bk_cloud_id: nodeItem.bk_cloud_id,
+                      bk_host_id: nodeItem.bk_host_id,
+                      ip: nodeItem.ip,
+                    })),
+                  },
+                },
+                ticket_type: TicketTypes.RIAK_CLUSTER_SCALE_IN,
+              }).then((createTicketResult) => {
+                ticketMessage(createTicketResult.id);
+                emits('submitSuccess');
+                resolve(true);
+              });
             },
             onConfirm: () => {
               createTicket({

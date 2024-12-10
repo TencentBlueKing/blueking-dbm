@@ -49,6 +49,8 @@
 
   import { useGlobalBizs } from '@stores';
 
+  import { TicketTypes } from '@common/const';
+
   import HostShrink, { type TShrinkNode } from '@views/db-manage/common/host-shrink/Index.vue';
   import NodeStatusList from '@views/db-manage/common/host-shrink/NodeStatusList.vue';
 
@@ -242,40 +244,16 @@
                 ip: hostItem.ip,
               }));
 
-            const generateExtInfo = () =>
-              Object.entries(nodeInfoMap).reduce(
-                (results, [key, item]) => {
-                  const obj = {
-                    host_list: item.nodeList.map((item) => ({
-                      alive: item.status,
-                      bk_disk: item.disk,
-                      ip: item.ip,
-                    })),
-                    // target_disk: item.targetDisk,
-                    shrink_disk: item.shrinkDisk,
-                    total_disk: item.totalDisk,
-                    total_hosts: item.originalNodeList.length,
-                  };
-                  Object.assign(results, {
-                    [key]: obj,
-                  });
-                  return results;
-                },
-                {} as Record<string, any>,
-              );
-
             createTicket({
               bk_biz_id: bizId,
               details: {
                 cluster_id: props.data.id,
-                ext_info: generateExtInfo(),
-                ip_source: 'manual_input',
-                nodes: {
+                old_nodes: {
                   bookkeeper: fomatHost(nodeInfoMap.bookkeeper.nodeList),
                   broker: fomatHost(nodeInfoMap.broker.nodeList),
                 },
               },
-              ticket_type: 'PULSAR_SHRINK',
+              ticket_type: TicketTypes.PULSAR_SHRINK,
             }).then((data) => {
               ticketMessage(data.id);
               resolve('success');

@@ -31,6 +31,7 @@ export function verifyDuplicatedClusterName(params: { bk_biz_id: number; cluster
  */
 export function filterClusters<
   T extends {
+    id: number;
     bk_biz_id: number;
     bk_cloud_id: number;
     bk_cloud_name: string;

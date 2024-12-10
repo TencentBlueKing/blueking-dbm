@@ -17,9 +17,13 @@ import FunctionControllModel, {
   type RedisFunctions,
 } from '@services/model/function-controller/functionController';
 
-import { checkDbConsole } from '@utils';
+import { DBTypes, TicketTypes } from '@common/const';
+
+import { checkDbConsole, createToolboxRoute } from '@utils';
 
 import { t } from '@locales/index';
+
+const { createRouteItem } = createToolboxRoute(DBTypes.REDIS);
 
 const redisInstallModuleRoute = {
   path: 'install-module/:page?',
@@ -30,14 +34,7 @@ const redisInstallModuleRoute = {
   component: () => import('@views/db-manage/redis/install-module/Index.vue'),
 };
 
-const redisCapacityChangeRoute = {
-  path: 'capacity-change/:page?',
-  name: 'RedisCapacityChange',
-  meta: {
-    navName: t('集群容量变更'),
-  },
-  component: () => import('@views/db-manage/redis/capacity-change/Index.vue'),
-};
+const redisCapacityChangeRoute = createRouteItem(TicketTypes.REDIS_SCALE_UPDOWN, t('集群容量变更'));
 
 const redisProxyScaleUpRoute = {
   path: 'proxy-scale-up/:page?',
@@ -48,14 +45,7 @@ const redisProxyScaleUpRoute = {
   component: () => import('@views/db-manage/redis/proxy-scale-up/Index.vue'),
 };
 
-const redisProxyScaleDownRoute = {
-  path: 'proxy-scale-down/:page?',
-  name: 'RedisProxyScaleDown',
-  meta: {
-    navName: t('缩容接入层'),
-  },
-  component: () => import('@views/db-manage/redis/proxy-scale-down/Index.vue'),
-};
+const redisProxyScaleDownRoute = createRouteItem(TicketTypes.REDIS_PROXY_SCALE_DOWN, t('缩容接入层'));
 
 const redisDBCreateSlaveRoute = {
   path: 'db-create-slave/:page?',
@@ -75,14 +65,7 @@ const redisMasterFailoverRoute = {
   component: () => import('@views/db-manage/redis/master-failover/Index.vue'),
 };
 
-const redisDBReplaceRoute = {
-  path: 'db-replace/:page?',
-  name: 'RedisDBReplace',
-  meta: {
-    navName: t('整机替换'),
-  },
-  component: () => import('@views/db-manage/redis/db-replace/Index.vue'),
-};
+const redisDBReplaceRoute = createRouteItem(TicketTypes.REDIS_CLUSTER_CUTOFF, t('整机替换'));
 
 const redisMigrateRoute = {
   path: 'db-migrate/:page?',
