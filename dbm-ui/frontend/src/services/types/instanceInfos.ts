@@ -51,15 +51,27 @@ export interface InstanceInfos {
   }[];
   role: string;
   spec_config: {
-    cpu: number;
     id: number;
-    mem: number;
+    cpu: {
+      max: number;
+      min: number;
+    };
+    mem: {
+      max: number;
+      min: number;
+    };
+    qps: {
+      max: number;
+      min: number;
+    };
     name: string;
+    count: number;
+    device_class: string;
     storage_spec: {
       mount_point: string;
       size: number;
       type: string;
-    };
+    }[];
   };
   status: 'running' | 'unavailable';
 }

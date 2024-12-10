@@ -18,6 +18,7 @@ export * from './checkDbConsole';
 export * from './classes';
 export * from './compareVersions';
 export * from './convertStorageUnits';
+export * from './createToolboxRoute';
 export * from './dom';
 export * from './downloadFile';
 export * from './downloadText';

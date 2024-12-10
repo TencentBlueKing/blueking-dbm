@@ -19,6 +19,8 @@ import type { FlowItem, FlowItemTodo } from '@services/types/ticket';
 
 import { getRouter } from '@router/index';
 
+import type { TicketTypes } from '@common/const';
+
 import { messageError } from '@utils';
 
 import { locale, t } from '@locales/index';
@@ -55,6 +57,19 @@ export function getTickets(params: {
 
 /**
  * 创建单据
+ */
+export function createTicketNew<T>(params: {
+  bk_biz_id: number;
+  details: T;
+  ignore_duplication?: boolean;
+  remark: string;
+  ticket_type: TicketTypes;
+}) {
+  return http.post<{ id: number }>(`${path}/`, params, { catchError: true });
+}
+
+/**
+ * 创建单据、过后摒弃
  */
 export function createTicket(formData: Record<string, any>) {
   return http

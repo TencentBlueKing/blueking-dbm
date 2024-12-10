@@ -40,6 +40,7 @@
   import useColumn from '../useColumn';
 
   const props = defineProps<Props>();
+
   const emits = defineEmits<{
     (e: 'blur' | 'focus'): void;
     (e: 'change', value: T): void;

@@ -298,7 +298,6 @@
           onConfirm: () => {
             const fomatHost = (nodeList: TNodeInfo['nodeList'] = []) =>
               nodeList.map((hostItem) => ({
-                bk_biz_id: bizId,
                 bk_cloud_id: hostItem.bk_cloud_id,
                 bk_host_id: hostItem.bk_host_id,
                 ip: hostItem.ip,
@@ -330,10 +329,9 @@
               bk_biz_id: bizId,
               details: {
                 cluster_id: props.data.id,
-                ext_info: generateExtInfo(),
-                ip_source: 'manual_input',
-                nodes: {
+                old_nodes: {
                   cold: fomatHost(nodeInfoMap.cold.nodeList),
+                  hot: fomatHost(nodeInfoMap.hot.nodeList),
                   hot: fomatHost(nodeInfoMap.hot.nodeList),
                   observer: fomatHost(nodeInfoMap.observer.nodeList),
                 },

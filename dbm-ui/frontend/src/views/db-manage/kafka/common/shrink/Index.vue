@@ -198,41 +198,16 @@
           onConfirm: () => {
             const fomatHost = (nodeList: TNodeInfo['nodeList'] = []) =>
               nodeList.map((hostItem) => ({
-                bk_biz_id: bizId,
                 bk_cloud_id: hostItem.bk_cloud_id,
                 bk_host_id: hostItem.bk_host_id,
                 ip: hostItem.ip,
               }));
 
-            const generateExtInfo = () =>
-              Object.entries(nodeInfoMap).reduce(
-                (results, [key, item]) => {
-                  const obj = {
-                    host_list: item.nodeList.map((item) => ({
-                      alive: item.status,
-                      bk_disk: item.disk,
-                      ip: item.ip,
-                    })),
-                    // target_disk: item.targetDisk,
-                    shrink_disk: item.shrinkDisk,
-                    total_disk: item.totalDisk,
-                    total_hosts: item.originalNodeList.length,
-                  };
-                  Object.assign(results, {
-                    [key]: obj,
-                  });
-                  return results;
-                },
-                {} as Record<string, any>,
-              );
-
             createTicket({
               bk_biz_id: bizId,
               details: {
                 cluster_id: props.data.id,
-                ext_info: generateExtInfo(),
-                ip_source: 'manual_input',
-                nodes: {
+                old_nodes: {
                   broker: fomatHost(nodeInfoMap.broker.nodeList),
                 },
               },
