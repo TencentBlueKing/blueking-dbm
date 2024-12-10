@@ -49,6 +49,8 @@
 
   import { useGlobalBizs } from '@stores';
 
+  import { TicketTypes } from '@common/const';
+
   import HostShrink, { type TShrinkNode } from '@views/db-manage/common/host-shrink/Index.vue';
   import NodeStatusList from '@views/db-manage/common/host-shrink/NodeStatusList.vue';
 
@@ -309,13 +311,13 @@
                 cluster_id: props.data.id,
                 ext_info: generateExtInfo(),
                 ip_source: 'manual_input',
-                nodes: {
+                old_nodes: {
                   client: fomatHost(nodeInfoMap.client.nodeList),
                   cold: fomatHost(nodeInfoMap.cold.nodeList),
                   hot: fomatHost(nodeInfoMap.hot.nodeList),
                 },
               },
-              ticket_type: 'ES_SHRINK',
+              ticket_type: TicketTypes.ES_SHRINK,
             }).then((data) => {
               ticketMessage(data.id);
               resolve('success');

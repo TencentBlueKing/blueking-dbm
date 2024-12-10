@@ -99,7 +99,7 @@
     TimePicker as EditTimePicker,
   } from '@components/editable-table/Index.vue';
 
-  import OperationColumn from '@views/db-manage/common/toolbox-field/operation-column/Index.vue';
+  import OperationColumn from '@views/db-manage/common/toolbox-field/column/operation-column/Index.vue';
 
   const createData = () => ({
     name: 'name',

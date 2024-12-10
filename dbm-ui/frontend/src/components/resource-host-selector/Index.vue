@@ -51,7 +51,7 @@
               <HostAgentStatus :data="data.agent_status" />
             </template>
           </BkTableColumn>
-          <BkTableColumn
+          <!-- <BkTableColumn
             field="bk_cpu"
             :label="t('资源归属')"
             :min-width="300">
@@ -60,7 +60,7 @@
                 v-if="false"
                 :data="data" />
             </template>
-          </BkTableColumn>
+          </BkTableColumn> -->
           <BkTableColumn
             field="rack_id"
             :label="t('机架')"
@@ -159,15 +159,22 @@
 
   import DiskPopInfo from '@components/disk-pop-info/DiskPopInfo.vue';
   import HostAgentStatus from '@components/host-agent-status/Index.vue';
-  import ResourceHostOwner from '@components/resource-host-owner/Index.vue';
 
+  // import ResourceHostOwner from '@components/resource-host-owner/Index.vue';
   import PanelTab from './components/PanelTab.vue';
   import useSearchSelectData from './hooks/use-search-select-data';
+
+  export interface IValue {
+    bk_biz_id: number;
+    bk_cloud_id: number;
+    bk_host_id: number;
+    ip: string;
+  }
 
   interface Props {
     multiple?: boolean;
     params?: {
-      bk_biz_id?: number;
+      for_biz?: number;
       bk_cloud_ids?: string;
       resource_type?: string;
       os_type?: string;
@@ -176,13 +183,6 @@
 
   interface Emits {
     (e: 'change', value: IValue[]): void;
-  }
-
-  interface IValue {
-    bk_biz_id: number;
-    bk_cloud_id: number;
-    bk_host_id: number;
-    ip: string;
   }
 
   const props = withDefaults(defineProps<Props>(), {
@@ -251,7 +251,7 @@
   const handleSubmit = () => {
     isShow.value = false;
     const latestValue = Object.values(rowSelectMemo.value).map((item) => ({
-      bk_biz_id: item.bk_biz_id,
+      bk_biz_id: item.dedicated_biz,
       bk_cloud_id: item.bk_cloud_id,
       bk_host_id: item.bk_host_id,
       ip: item.ip,

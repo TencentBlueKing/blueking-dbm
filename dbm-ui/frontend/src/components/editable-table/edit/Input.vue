@@ -60,6 +60,7 @@
   const handleChange = (value: string) => {
     emits('change', value);
   };
+
   const handleBlur = () => {
     columnContext?.blur();
     columnContext?.validate('blur');

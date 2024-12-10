@@ -37,7 +37,7 @@
   import { bytePretty } from '@utils';
 
   interface Props {
-    clusterStats: Record<'used' | 'total' | 'in_use', number> | Record<string, never>;
+    clusterStats?: Record<'used' | 'total' | 'in_use', number>;
   }
 
   const props = defineProps<Props>();
