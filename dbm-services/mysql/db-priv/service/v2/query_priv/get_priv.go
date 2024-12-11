@@ -1,68 +1,68 @@
+// Package query_priv TODO
 package query_priv
 
 import (
-	"context"
-	"dbm-services/common/go-pubpkg/errno"
-	"dbm-services/mysql/priv-service/service"
-	v2 "dbm-services/mysql/priv-service/service/v2/internal"
 	"fmt"
 	"slices"
 	"strings"
-	"sync"
+
+	"dbm-services/mysql/priv-service/service"
+	v2 "dbm-services/mysql/priv-service/service/v2/internal"
 )
 
-func (m *GetPrivPara) GetPriv() error {
-	err := m.validate()
-	if err != nil {
-		return err
-	}
+// GetPriv TODO
+// func (m *GetPrivPara) GetPriv() error {
+// 	err := m.validate()
+// 	if err != nil {
+// 		return err
+// 	}
 
-	if len(m.Users) == 0 {
-		return errno.ErrUserIsEmpty
-	}
-	userStr := strings.Join(m.Users, `','`)
+// 	if len(m.Users) == 0 {
+// 		return errno.ErrUserIsEmpty
+// 	}
+// 	userStr := strings.Join(m.Users, `','`)
 
-	var errChan = make(chan error)
-	var retChan = make(chan []string)
+// 	var errChan = make(chan error)
+// 	var retChan = make(chan []string)
 
-	go func() {
-		wg := sync.WaitGroup{}
+// 	go func() {
+// 		wg := sync.WaitGroup{}
 
-		for _, item := range m.ImmuteDomains {
-			wg.Add(1)
+// 		for _, item := range m.ImmuteDomains {
+// 			wg.Add(1)
 
-			err := m.limiter.Wait(context.Background())
-			if err != nil {
-				errChan <- err
-				wg.Done()
-				return
-			}
+// 			err := m.limiter.Wait(context.Background())
+// 			if err != nil {
+// 				errChan <- err
+// 				wg.Done()
+// 				return
+// 			}
 
-			go func(item string) {
-				defer func() {
-					wg.Done()
-				}()
+// 			go func(item string) {
+// 				defer func() {
+// 					wg.Done()
+// 				}()
 
-				domainInfo, err := service.GetCluster(*m.ClusterType, service.Domain{EntryName: item})
-				if err != nil {
-					errChan <- err
-					return
-				}
+// 				domainInfo, err := service.GetCluster(*m.ClusterType, service.Domain{EntryName: item})
+// 				if err != nil {
+// 					errChan <- err
+// 					return
+// 				}
 
-				switch domainInfo.ClusterType {
-				case v2.ClusterTypeTenDBSingle:
-					privsFromTenDBSingle(&domainInfo, m.Users, m.Ips, m.Dbs)
-				case v2.ClusterTypeTenDBHA:
-					privsFromTenDBHA(&domainInfo, m.Users, m.Ips, m.Dbs)
-				case v2.ClusterTypeTenDBCluster:
-				default:
-					errChan <- fmt.Errorf("unknown cluster type: %s", domainInfo.ClusterType)
-					return
-				}
-			}(item)
-		}
-	}()
-}
+// 				switch domainInfo.ClusterType {
+// 				case v2.ClusterTypeTenDBSingle:
+// 					privsFromTenDBSingle(&domainInfo, m.Users, m.Ips, m.Dbs)
+// 				case v2.ClusterTypeTenDBHA:
+// 					privsFromTenDBHA(&domainInfo, m.Users, m.Ips, m.Dbs)
+// 				case v2.ClusterTypeTenDBCluster:
+// 				default:
+// 					errChan <- fmt.Errorf("unknown cluster type: %s", domainInfo.ClusterType)
+// 					return
+// 				}
+// 			}(item)
+// 		}
+// 	}()
+// }
 
 func privsFromTenDBSingle(domainInfo *service.Instance, users, clientIps, dbs []string) ([]service.GrantInfo, error) {
 	backendAddr := fmt.Sprintf("%s:%d", domainInfo.Storages[0].IP, domainInfo.Storages[0].Port)
@@ -143,7 +143,8 @@ func privsFromTenDBHAMaster(domainInfo *service.Instance, users, clientIps, dbs 
 	return service.CombineUserWithGrant(whiteList, splitUserGrants, true), nil
 }
 
-func privsFromTenDBHASlave(domainInfo *service.Instance, users []string, clientIps []string, dbs []string) ([]service.GrantInfo, error) {
+func privsFromTenDBHASlave(domainInfo *service.Instance, users []string, clientIps []string,
+	dbs []string) ([]service.GrantInfo, error) {
 	idx := slices.IndexFunc(domainInfo.Storages, func(s service.Storage) bool {
 		// ToDo 这里其实有点问题, 如果有多个 slave, 应该返回哪一个?
 		return s.InstanceRole == v2.InstanceRoleBackendSlave
@@ -188,6 +189,7 @@ func privsFromTenDBCluster() {
 
 }
 
-func privsFromMySQL(addr string, isMasterDomain bool, domainInfo *service.Instance, users, clientIps, dbs []string) ([]service.GrantInfo, error) {
+// func privsFromMySQL(addr string, isMasterDomain bool, domainInfo *service.Instance, users, clientIps,
+// 	dbs []string) ([]service.GrantInfo, error) {
 
-}
+// }
