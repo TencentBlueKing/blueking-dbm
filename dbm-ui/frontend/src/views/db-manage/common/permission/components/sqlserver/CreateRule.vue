@@ -191,6 +191,15 @@
       {
         required: true,
         trigger: 'blur',
+        message: t('请输入访问DB名_以字母开头_支持 % 通配符 或 % 单独使用代表ALL_多个使用英文逗号_分号或换行分隔'),
+        validator: (value: string) => {
+          const dbs = value.split(/[\n;,]/);
+          return _.every(dbs, (item) => (!item ? true : /^(?:[a-zA-Z].*|%$)/.test(item)));
+        },
+      },
+      {
+        required: true,
+        trigger: 'blur',
         message: () => t('该账号下已存在xx规则', [existDBs.value.join(',')]),
         validator: () => {
           existDBs.value = [];
@@ -211,15 +220,6 @@
             existDBs.value = rules.map((item) => item.access_db);
             return rules.length === 0;
           });
-        },
-      },
-      {
-        required: true,
-        trigger: 'blur',
-        message: t('请输入访问DB名_以字母开头_支持 % 通配符 或 % 单独使用代表ALL_多个使用英文逗号_分号或换行分隔'),
-        validator: (value: string) => {
-          const dbs = value.split(/[\n;,]/);
-          return _.every(dbs, (item) => (!item ? true : /^(?:[a-zA-Z].*|%$)/.test(item)));
         },
       },
     ],

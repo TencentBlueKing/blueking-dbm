@@ -254,7 +254,7 @@
           return _.every(dbs, (item) =>
             !item
               ? true
-              : /^%?[a-zA-Z0-9]([a-zA-Z0-9_-])*[a-zA-Z0-9]$/.test(item) && /^(?!stage_truncate).*/.test(item),
+              : /^[a-zA-Z0-9%]([a-zA-Z0-9_%-])*[a-zA-Z0-9%]$/.test(item) && /^(?!stage_truncate).*/.test(item),
           );
         },
       },
