@@ -105,8 +105,16 @@ func (u *AddUser) Init(runtime *jobruntime.JobGenericRuntime) error {
 			info, err = common.AuthGetPrimaryInfo(u.Mongo, u.ConfParams.AdminUsername,
 				u.ConfParams.AdminPassword, u.ConfParams.IP, u.ConfParams.Port)
 			if err != nil {
-				u.runtime.Logger.Error(fmt.Sprintf(
-					"get primary db info of addUser fail, error:%s", err))
+				u.runtime.Logger.Error("get primary db info of addUser fail, error:%s", err)
+				return fmt.Errorf("get primary db info of addUser fail, error:%s", err)
+			}
+			getInfo := strings.Split(info, ":")
+			u.PrimaryIP = getInfo[0]
+			u.PrimaryPort, _ = strconv.Atoi(getInfo[1])
+		} else if u.ConfParams.AdminUsername == "" && u.ConfParams.AdminPassword == "" {
+			info, err = common.CreateDBAUserGetPrimaryInfo(u.Mongo, u.ConfParams.Port)
+			if err != nil {
+				u.runtime.Logger.Error("get primary db info of addUser fail, error:%s", err)
 				return fmt.Errorf("get primary db info of addUser fail, error:%s", err)
 			}
 			getInfo := strings.Split(info, ":")

@@ -257,6 +257,35 @@ func AuthGetPrimaryInfo(mongoBin string, username string, password string, ip st
 	}
 }
 
+// CreateDBAUserGetPrimaryInfo 创建dba用户获取primary节点信息
+func CreateDBAUserGetPrimaryInfo(mongoBin string, port int) (string,
+	error) {
+	// 超时时间
+	timeout := time.After(20 * time.Second)
+	for {
+		select {
+		case <-timeout:
+			return "", fmt.Errorf("get primary info timeout")
+		default:
+			cmd := fmt.Sprintf(
+				"%s --host %s --port %d  --quiet --eval \"rs.isMaster().primary\"", mongoBin, "127.0.0.1", port)
+			result, err := util.RunBashCmd(
+				cmd,
+				"", nil,
+				60*time.Second)
+			if err != nil {
+				return "", err
+			}
+			if strings.Replace(result, "\n", "", -1) == "" {
+				time.Sleep(1 * time.Second)
+				continue
+			}
+			primaryInfo := strings.Replace(result, "\n", "", -1)
+			return primaryInfo, nil
+		}
+	}
+}
+
 // NoAuthGetPrimaryInfo 获取primary节点信息
 func NoAuthGetPrimaryInfo(mongoBin string, ip string, port int) (string, error) {
 	// 超时时间
