@@ -235,9 +235,12 @@ func (m *MysqlUpgradeComp) MysqlUpgradeCheck() (err error) {
 			}
 		}
 		// table check
-		if err = conn.CheckTableUpgrade(currentVer.MysqlVersion, m.newVersion.MysqlVersion); err != nil {
-			logger.Error("check table upgrade failed %s", err.Error())
-			return err
+		errs := conn.CheckTableUpgrade(currentVer.MysqlVersion, m.newVersion.MysqlVersion)
+		if len(errs) > 0 {
+			for _, err := range errs {
+				logger.Error("port:[%d]: check table upgrade error: %s", port, err.Error())
+			}
+			return fmt.Errorf("check table upgrade failed, port: %d, errors: %v", port, errs)
 		}
 	}
 	return
@@ -283,7 +286,7 @@ func (m *MysqlUpgradeComp) Upgrade() (err error) {
 			MediaDir:  cst.MysqldInstallPath,
 		}
 		logger.Info("start mysql for %d", port)
-		pid, err := start.StartMysqlInstance()
+		pid, err := start.StartMysqlInsSpecialErrlog(fmt.Sprintf("/tmp/relink-media-firsrt-start-%d.log", port))
 		if err != nil {
 			logger.Error("start mysql %d failed %s", err.Error())
 			return err
@@ -308,6 +311,26 @@ func (m *MysqlUpgradeComp) Upgrade() (err error) {
 			logger.Info("Upgrading to MySQL version>=8.0.16, remaining upgrade procedure is skipped.")
 			return nil
 		}
+		// 处理分区表升级
+		if m.newVersion.MysqlVersion >= native.MYSQL_5P70 && m.newVersion.MysqlVersion < native.MYSQL_8P0 {
+			// logger.Info("Upgrading to MySQL version>=5.7.0, remaining upgrade procedure is skipped.")
+			pdata, errx := dbConn.GetPartitionSchema()
+			if errx != nil {
+				logger.Error("get partition schema failed %s", errx.Error())
+				return errx
+			}
+			if len(pdata) > 0 {
+				for _, p := range pdata {
+					usql := fmt.Sprintf("ALTER TABLE `%s`.`%s` UPGRADE PARTITIONING", p.TableSchema, p.TableName)
+					logger.Info("upgrade partition sql: %s", usql)
+					_, err = dbConn.Exec(usql)
+					if err != nil {
+						logger.Error("upgrade partition table %s.%s failed %s", p.TableSchema, p.TableName, err.Error())
+						return err
+					}
+				}
+			}
+		}
 		logger.Info("do mysqlcheck  for %d", port)
 		if err = m.mysqlCheck(dbConn, port); err != nil {
 			logger.Error("do %d mysqlcheck failed %s", port, err.Error())
@@ -323,6 +346,13 @@ func (m *MysqlUpgradeComp) Upgrade() (err error) {
 			logger.Error("do %d additionalActions failed %s", port, err.Error())
 			return err
 		}
+		logger.Info("do mysql restart for %d", port)
+		pid, err = start.RestartMysqlInstance()
+		if err != nil {
+			logger.Error("restart mysql %d failed %s", port, err.Error())
+			return err
+		}
+		logger.Info("restart mysql %d success,pid is %d", port, pid)
 	}
 	return nil
 }

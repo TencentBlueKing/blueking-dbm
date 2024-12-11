@@ -16,6 +16,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/samber/lo"
 	"github.com/spf13/cast"
 
 	"dbm-services/common/go-pubpkg/cmutil"
@@ -111,6 +112,41 @@ cd %s && %s ./bin/mysqld_safe --defaults-file=%s --user=mysql `, mediaDir, numaS
 	pid, err = osutil.RunInBG(false, startCmd)
 	if err != nil {
 		return
+	}
+	return pid, util.Retry(
+		util.RetryConfig{
+			Times:     40,
+			DelayTime: 5 * time.Second,
+		}, func() error { return p.CheckMysqlProcess() },
+	)
+}
+
+// StartMysqlInsSpecialErrlog 指定错误日志启动
+func (p *StartMySQLParam) StartMysqlInsSpecialErrlog(errLog string) (pid int, err error) {
+	var (
+		mediaDir  = p.MediaDir
+		numaStr   = osutil.GetNumaStr()
+		myCnfName = p.MyCnfName
+		startCmd  = fmt.Sprintf(
+			`ulimit -n 204800; 
+cd %s && %s ./bin/mysqld_safe --defaults-file=%s --user=mysql `, mediaDir, numaStr, myCnfName,
+		)
+	)
+	if p.SkipSlaveFlag {
+		startCmd += "--skip-slave-start "
+	}
+	if p.SkipGrantTables {
+		startCmd += " --skip-grant-tables "
+	}
+	if lo.IsNotEmpty(errLog) {
+		startCmd += fmt.Sprintf(" --log-error=%s ", errLog)
+	}
+	startCmd += " &"
+	logger.Info(fmt.Sprintf("execute mysqld_safe: [%s]", startCmd))
+	pid, err = osutil.RunInBG(false, startCmd)
+	if err != nil {
+		logger.Error(fmt.Sprintf("start mysqld_safe failed:%v", err))
+		return pid, err
 	}
 	return pid, util.Retry(
 		util.RetryConfig{

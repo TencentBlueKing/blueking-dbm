@@ -73,15 +73,16 @@ func (d *UpgradeMySQLAct) Run() (err error) {
 			FunName: "前置检查",
 			Func:    d.Service.PreCheck,
 		},
-		{
-			FunName: "升级检查",
-			Func:    d.Service.MysqlUpgradeCheck,
-		},
 	}
 	if d.Service.Params.Run {
 		steps = append(steps, subcmd.StepFunc{
 			FunName: "升级MySQL",
 			Func:    d.Service.Upgrade,
+		})
+	} else {
+		steps = append(steps, subcmd.StepFunc{
+			FunName: "升级检查",
+			Func:    d.Service.MysqlUpgradeCheck,
 		})
 	}
 

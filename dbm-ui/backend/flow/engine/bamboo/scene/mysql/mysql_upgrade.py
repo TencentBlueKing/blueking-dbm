@@ -24,6 +24,7 @@ from backend.db_package.models import Package
 from backend.flow.consts import InstanceStatus, MediumEnum
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
+from backend.flow.engine.bamboo.scene.mysql.common.common_sub_flow import build_surrounding_apps_sub_flow
 from backend.flow.engine.bamboo.scene.mysql.common.master_and_slave_switch import master_and_slave_switch
 from backend.flow.engine.bamboo.scene.mysql.mysql_migrate_cluster_remote_flow import MySQLMigrateClusterRemoteFlow
 from backend.flow.plugins.components.collections.common.pause import PauseComponent
@@ -196,13 +197,6 @@ class MySQLStorageLocalUpgradeFlow(object):
         )
         return instances
 
-    def __get_tendbsingle_instance(self, cluster_ids: list):
-        clusters = Cluster.objects.filter(id__in=cluster_ids)
-        instances = StorageInstance.objects.filter(
-            cluster__in=clusters, machine_type=MachineType.SINGLE, instance_role=InstanceRole.ORPHAN
-        )
-        return instances
-
     def __get_pkg_name_by_pkg_id(self, pkg_id: int) -> str:
         # 获取大版本的最新的包名
         mysql_pkg = Package.objects.get(id=pkg_id, pkg_type=MediumEnum.MySQL, db_type=DBType.MySQL)
@@ -212,6 +206,9 @@ class MySQLStorageLocalUpgradeFlow(object):
         mysql_upgrade_pipeline = Builder(root_id=self.root_id, data=self.data)
         sub_pipelines = []
         cluster_ids = []
+        reinstall_ip_list = []
+        cluster_type = None
+        bk_cloud_id = 0
         # 声明子流程
         for upgrade_info in self.upgrade_cluster_list:
             sub_flow_context = copy.deepcopy(self.data)
@@ -224,8 +221,6 @@ class MySQLStorageLocalUpgradeFlow(object):
             sub_pipeline = SubBuilder(
                 root_id=self.root_id, data=copy.deepcopy(sub_flow_context), need_random_pass_cluster_ids=cluster_ids
             )
-            # 取集群列表中的第一个集群类型
-            cluster_type = None
             first_cluster = Cluster.objects.filter(id__in=cluster_ids).first()
             if first_cluster:
                 cluster_type = first_cluster.cluster_type
@@ -246,6 +241,7 @@ class MySQLStorageLocalUpgradeFlow(object):
                     raise DBMetaException(message=_("集群的master应该同属于一个机器,当前分布在{}").format(list(set(master_ip_list))))
 
                 master_ip = master_ip_list[0]
+                reinstall_ip_list.append(master_ip)
                 port_map = defaultdict(list)
                 for slave_instance in slave_instances:
                     port_map[slave_instance.machine.ip].append(slave_instance.port)
@@ -345,33 +341,49 @@ class MySQLStorageLocalUpgradeFlow(object):
 
             # tendbsingle 本地升级
             elif cluster_type == ClusterType.TenDBSingle:
-                instances = self.__get_tendbsingle_instance(cluster_ids)
+                clusters = Cluster.objects.filter(id__in=cluster_ids)
+                instances = StorageInstance.objects.filter(
+                    cluster__in=clusters, machine_type=MachineType.SINGLE, instance_role=InstanceRole.ORPHAN
+                )
                 ipList = []
                 ports = []
                 for instance in instances:
                     ports.append(instance.port)
                     ipList.append(instance.machine.ip)
                     upgrade_version_check(instance.version, new_mysql_pkg_name)
-
+                bk_cloud_id = clusters[0].bk_cloud_id
                 if len(list(set(ipList))) != 1:
                     raise DBMetaException(message=_("集群的master应该同属于一个机器,当前分布在{}").format(list(set(ipList))))
 
-                proxy_ip = ipList[0]
+                host_ip = ipList[0]
+                reinstall_ip_list.append(host_ip)
                 sub_pipeline.add_sub_pipeline(
                     sub_flow=self.upgrade_mysql_subflow(
                         bk_cloud_id=bk_cloud_id,
-                        ip=proxy_ip,
+                        ip=host_ip,
                         mysql_ports=ports,
                         mysql_pkg_name=new_mysql_pkg_name,
                         pkg_id=pkg_id,
                     )
                 )
+
                 sub_pipelines.append(sub_pipeline.build_sub_process(sub_name=_("[TendbSingle]本地升级MySQL版本")))
             else:
                 raise DBMetaException(message=_("不支持的集群类型"))
 
         mysql_upgrade_pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
-
+        # 升级周边应用
+        mysql_upgrade_pipeline.add_sub_pipeline(
+            sub_flow=build_surrounding_apps_sub_flow(
+                bk_cloud_id=int(bk_cloud_id),
+                master_ip_list=reinstall_ip_list,
+                root_id=self.root_id,
+                parent_global_data=copy.deepcopy(sub_flow_context),
+                is_init=True,
+                collect_sysinfo=False,
+                cluster_type=cluster_type,
+            )
+        )
         mysql_upgrade_pipeline.run_pipeline(is_drop_random_user=True)
 
         return

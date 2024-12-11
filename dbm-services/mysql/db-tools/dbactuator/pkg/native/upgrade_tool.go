@@ -222,12 +222,13 @@ type TableInfo struct {
 	RowFormat   string `db:"ROW_FORMAT"`
 }
 
-// CheckTableUpgrade TODO
-func (h *DbWorker) CheckTableUpgrade(currentVersion, newVersion uint64) (err error) {
+// TableNameIsValid TODO
+func (h *DbWorker) TableNameIsValid(currentVersion, newVersion uint64) (errs []error) {
 	type checkFunc struct {
 		fn   func(currentVersion, newVersion uint64) error
 		desc string
 	}
+	var err error
 	// 库表名关键字检查
 	fns := []checkFunc{}
 	fns = append(fns, checkFunc{
@@ -257,14 +258,20 @@ func (h *DbWorker) CheckTableUpgrade(currentVersion, newVersion uint64) (err err
 		logger.Info("start check %s ...", f.desc)
 		if err = f.fn(currentVersion, newVersion); err != nil {
 			logger.Error("when check %s,failed %s", f.desc, err.Error())
-			return err
+			errs = append(errs, fmt.Errorf("[%s]:%v", f.desc, err.Error()))
 		}
 	}
-	type checkFuncNoparam struct {
-		fn   func() error
-		desc string
-	}
-	// 非法字符检查
+	return errs
+}
+
+type checkFuncNoparam struct {
+	fn   func() error
+	desc string
+}
+
+// IllegalCharacterCheck TODO
+func (h *DbWorker) IllegalCharacterCheck() (errs []error) {
+	var err error
 	fnns := []checkFuncNoparam{}
 	fnns = append(fnns, checkFuncNoparam{
 		fn:   h.tableNameAsciiCodeCheck,
@@ -294,9 +301,19 @@ func (h *DbWorker) CheckTableUpgrade(currentVersion, newVersion uint64) (err err
 		logger.Info("start check %s ...", f.desc)
 		if err = f.fn(); err != nil {
 			logger.Error("when check %s,failed %s", f.desc, err.Error())
-			return err
+			errs = append(errs, fmt.Errorf("[%s]:%v", f.desc, err.Error()))
 		}
 	}
+	return errs
+}
+
+// CheckTableUpgrade 检查表是否满足升级条件
+func (h *DbWorker) CheckTableUpgrade(currentVersion, newVersion uint64) (errs []error) {
+	var err error
+	errs = append(errs, h.TableNameIsValid(currentVersion, newVersion)...)
+	// 非法字符检查
+	errs = append(errs, h.IllegalCharacterCheck()...)
+
 	switch {
 	// 当准备升级到8.0版本
 	case newVersion >= MYSQL_8P0 && currentVersion < MYSQL_8P0:
@@ -330,7 +347,7 @@ func (h *DbWorker) CheckTableUpgrade(currentVersion, newVersion uint64) (err err
 			logger.Info("start check %s ...", f.desc)
 			if err = f.fn(); err != nil {
 				logger.Error("when check %s,failed %s", f.desc, err.Error())
-				return err
+				errs = append(errs, fmt.Errorf("[%s]:%v", f.desc, err.Error()))
 			}
 		}
 	// 当准备升级到5.7版本
@@ -358,7 +375,7 @@ func (h *DbWorker) CheckTableUpgrade(currentVersion, newVersion uint64) (err err
 			logger.Info("start check %s ...", f.desc)
 			if err = f.fn(); err != nil {
 				logger.Error("when check %s,failed %s", f.desc, err.Error())
-				return err
+				errs = append(errs, fmt.Errorf("[%s]:%v", f.desc, err.Error()))
 			}
 		}
 	// 当准备升级到5.6版本
@@ -366,11 +383,11 @@ func (h *DbWorker) CheckTableUpgrade(currentVersion, newVersion uint64) (err err
 		// per-4.1 password check
 		logger.Info("准备升级到MySQL5.6 需要做这些额外的检查...")
 		if err = h.passwordCheck(); err != nil {
-			return err
+			errs = append(errs, fmt.Errorf("%v", err.Error()))
 		}
 
 	}
-	return nil
+	return errs
 }
 
 func (h *DbWorker) getKeyWords(currentVersion, newVersion uint64) []string {
@@ -765,6 +782,15 @@ func (h *DbWorker) passwordCheck() (err error) {
 // handler to use the native partitioning handler instead, run mysql_upgrade.
 func (h *DbWorker) partitionCheck() (err error) {
 	var data []TableInfo
+	data, err = h.GetPartitionSchema()
+	if len(data) > 0 {
+		return fmt.Errorf("%v found partition name,but it is not allowed", data)
+	}
+	return nil
+}
+
+// GetPartitionSchema 获取分区表
+func (h *DbWorker) GetPartitionSchema() (data []TableInfo, err error) {
 	q := `
 	select TABLE_SCHEMA,
     TABLE_NAME,
@@ -774,13 +800,8 @@ where PARTITION_NAME is not NULL
 group by 1,
     2;
 	`
-	if err = h.Queryx(&data, q); err != nil {
-		return err
-	}
-	if len(data) > 0 {
-		return fmt.Errorf("%v found partition name,but it is not allowed", data)
-	}
-	return nil
+	err = h.Queryx(&data, q)
+	return data, err
 }
 
 func (h *DbWorker) tokudbEngineCheck() (err error) {
