@@ -22,14 +22,14 @@
       ref="ruleRef"
       class="rule-form"
       form-type="vertical"
-      :model="formdata"
+      :model="formData"
       :rules="rules">
       <BkFormItem
         :label="t('账号名')"
         property="account_id"
         required>
         <BkSelect
-          v-model="formdata.account_id"
+          v-model="formData.account_id"
           :clearable="false"
           filterable
           :input-search="false"
@@ -58,7 +58,7 @@
         required
         :rules="rules.access_db">
         <BkInput
-          v-model="formdata.access_db"
+          v-model="formData.access_db"
           :maxlength="100"
           :placeholder="t('请输入访问DB名_以字母开头_支持字母_数字_下划线_多个使用英文逗号_分号或换行分隔')"
           :rows="4"
@@ -67,7 +67,7 @@
       <BkFormItem
         class="form-item privilege"
         :label="t('权限设置')"
-        property="auth"
+        property="privilege"
         :required="false">
         <div class="rule-setting-box">
           <BkFormItem
@@ -82,7 +82,7 @@
                 {{ t('全选') }}
               </BkCheckbox>
               <BkCheckboxGroup
-                v-model="formdata.privilege.mongo_user"
+                v-model="formData.privilege.mongo_user"
                 class="checkbox-group">
                 <BkCheckbox
                   v-for="option of mongoUserDbOperations"
@@ -106,7 +106,7 @@
                 {{ t('全选') }}
               </BkCheckbox>
               <BkCheckboxGroup
-                v-model="formdata.privilege.mongo_manager"
+                v-model="formData.privilege.mongo_manager"
                 class="checkbox-group">
                 <BkCheckbox
                   v-for="option of dbOperations.mongo_manager"
@@ -138,7 +138,6 @@
 </template>
 
 <script setup lang="ts">
-  import { Message } from 'bkui-vue';
   import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
@@ -152,9 +151,11 @@
 
   import DbForm from '@components/db-form/index.vue';
 
+  import { messageSuccess } from '@utils';
+
   import dbOperations from './config';
 
-  type AuthItemKey = keyof typeof dbOperations;
+  type AuthItemKey = 'mongo_user' | 'mongo_manager';
 
   interface Props {
     accountId: number;
@@ -171,9 +172,17 @@
     default: false,
   });
 
+  const { t } = useI18n();
+  const handleBeforeClose = useBeforeClose();
+
+  const ruleRef = ref<InstanceType<typeof DbForm>>();
+  const accounts = ref<PermissionRuleAccount[]>([]);
+  const existDBs = ref<string[]>([]);
+  const accessDBType = ref<'admin' | 'not_admin'>('admin');
+
   const replaceReg = /[,;\r\n]/g;
 
-  const initFormdata = () => ({
+  const initFormData = () => ({
     account_id: -1,
     access_db: 'admin',
     privilege: {
@@ -182,47 +191,13 @@
     },
   });
 
-  const verifyAccountRulesExits = () => {
-    existDBs.value = [];
-
-    const user = selectedUserInfo.value?.user;
-    const dbs = formdata.value.access_db
-      .replace(replaceReg, ',')
-      .split(',')
-      .filter((db) => db !== '');
-
-    if (!user || dbs.length === 0) {
-      return false;
-    }
-
-    return queryAccountRules({
-      user,
-      access_dbs: dbs,
-      account_type: AccountTypes.MONGODB,
-    }).then((res) => {
-      const rules = res.results[0]?.rules || [];
-      existDBs.value = rules.map((item) => item.access_db);
-
-      return rules.length === 0;
-    });
-  };
-
-  const { t } = useI18n();
-  const handleBeforeClose = useBeforeClose();
-
-  const ruleRef = ref<InstanceType<typeof DbForm>>();
-  const formdata = ref(initFormdata());
-  const accounts = ref<PermissionRuleAccount[]>([]);
-  const existDBs = ref<string[]>([]);
-  const accessDBType = ref<'admin' | 'not_admin'>('admin');
-
   const rules = {
-    auth: [
+    privilege: [
       {
         trigger: 'change',
         message: t('请设置权限'),
         validator: () => {
-          const { mongo_user: mongoUser, mongo_manager: mongoManager } = formdata.value.privilege;
+          const { mongo_user: mongoUser, mongo_manager: mongoManager } = formData.privilege;
           return mongoUser.length !== 0 || mongoManager.length !== 0;
         },
       },
@@ -232,12 +207,35 @@
         required: true,
         trigger: 'blur',
         message: t('访问 DB 不能为空'),
-        validator: (value: string) => !!value,
+        validator: (value: string) => {
+          const dbs = value.split(/[\n;,]/);
+          return _.every(dbs, (item) => !!item.trim());
+        },
       },
       {
+        required: true,
         trigger: 'blur',
-        message: () => t('该账号下已存在xx规则', [existDBs.value.join('，')]),
-        validator: verifyAccountRulesExits,
+        message: () => t('该账号下已存在xx规则', [existDBs.value.join(',')]),
+        validator: () => {
+          existDBs.value = [];
+          const user = accounts.value.find((item) => item.account_id === formData.account_id)?.user;
+          const dbs = formData.access_db
+            .replace(replaceReg, ',')
+            .split(',')
+            .filter((db) => db !== '');
+          if (!user || dbs.length === 0) {
+            return false;
+          }
+          return queryAccountRules({
+            user,
+            access_dbs: dbs,
+            account_type: AccountTypes.MONGODB,
+          }).then((res) => {
+            const rules = res.results[0]?.rules || [];
+            existDBs.value = rules.map((item) => item.access_db);
+            return rules.length === 0;
+          });
+        },
       },
       {
         required: true,
@@ -251,29 +249,17 @@
         message: t('请输入访问DB名_以字母开头_支持字母_数字_下划线_多个使用英文逗号_分号或换行分隔'),
         validator: (value: string) => {
           const dbs = value.split(/[\n;,]/);
-          return _.every(dbs, (item) => (!item ? true : /^[_a-zA-Z0-9]/.test(item) && !/\*/.test(value)));
+          return _.every(dbs, (item) => (!item ? true : /^(?:[a-zA-Z].*$)/.test(item)));
         },
       },
     ],
   };
 
-  const selectedUserInfo = computed(() => accounts.value.find((item) => item.account_id === formdata.value.account_id));
+  const formData = reactive(initFormData());
+
   const mongoUserDbOperations = computed(() =>
     accessDBType.value === 'not_admin' ? ['read', 'readWrite'] : dbOperations.mongo_user,
   );
-
-  const { loading: isSubmitting, run: addMongodbAccountRuleRun } = useRequest(addAccountRule, {
-    manual: true,
-    onSuccess() {
-      Message({
-        message: t('成功添加授权规则'),
-        theme: 'success',
-      });
-      emits('success');
-      window.changeConfirm = false;
-      handleClose();
-    },
-  });
 
   const { run: getPermissionRulesRun, loading: getPermissionRulesLoading } = useRequest(getPermissionRules, {
     manual: true,
@@ -282,9 +268,19 @@
     },
   });
 
+  const { run: addMongodbAccountRuleRun, loading: isSubmitting } = useRequest(addAccountRule, {
+    manual: true,
+    onSuccess() {
+      messageSuccess(t('成功添加授权规则'));
+      emits('success');
+      window.changeConfirm = false;
+      handleClose();
+    },
+  });
+
   watch(isShow, (show) => {
     if (show) {
-      formdata.value.account_id = props.accountId ?? -1;
+      formData.account_id = props.accountId ?? -1;
       getPermissionRulesRun({
         offset: 0,
         limit: -1,
@@ -293,24 +289,24 @@
     }
   });
 
-  const getAllCheckedboxValue = (key: AuthItemKey) => formdata.value.privilege[key].length === dbOperations[key].length;
+  const getAllCheckedboxValue = (key: AuthItemKey) => formData.privilege[key].length === dbOperations[key].length;
 
   const getAllCheckedboxIndeterminate = (key: AuthItemKey) =>
-    formdata.value.privilege[key].length > 0 && formdata.value.privilege[key].length !== dbOperations[key].length;
+    formData.privilege[key].length > 0 && formData.privilege[key].length !== dbOperations[key].length;
 
   const handleSelectedAll = (key: AuthItemKey, value: boolean) => {
     if (value) {
-      formdata.value.privilege[key] = dbOperations[key];
+      formData.privilege[key] = dbOperations[key];
       return;
     }
 
-    formdata.value.privilege[key] = [];
+    formData.privilege[key] = [];
   };
 
   const handleAccessDBTypeChange = (value: 'admin' | 'not_admin') => {
-    formdata.value.access_db = value === 'admin' ? 'admin' : '';
-    formdata.value.privilege.mongo_user = [];
-    formdata.value.privilege.mongo_manager = [];
+    formData.access_db = value === 'admin' ? 'admin' : '';
+    formData.privilege.mongo_user = [];
+    formData.privilege.mongo_manager = [];
   };
 
   const handleClose = async () => {
@@ -321,7 +317,7 @@
     }
 
     isShow.value = false;
-    formdata.value = initFormdata();
+    _.merge(formData, initFormData());
     accessDBType.value = 'admin';
     existDBs.value = [];
     window.changeConfirm = false;
@@ -330,8 +326,8 @@
   const handleSubmit = async () => {
     await ruleRef.value!.validate();
     const params = {
-      ...formdata.value,
-      access_db: formdata.value.access_db.replace(replaceReg, ','), // 统一分隔符
+      ...formData,
+      access_db: formData.access_db.replace(replaceReg, ','), // 统一分隔符
       account_type: AccountTypes.MONGODB,
     };
     addMongodbAccountRuleRun(params);
