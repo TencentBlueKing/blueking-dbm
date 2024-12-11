@@ -7,6 +7,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import logging
 
 from backend.db_meta.enums import ClusterPhase, ClusterType, InstanceInnerRole, InstanceRole, InstanceStatus
 from backend.db_meta.models import Cluster, StorageInstance
@@ -31,6 +32,8 @@ from backend.flow.utils.sqlserver.sqlserver_db_function import (
     insert_sqlserver_config,
 )
 
+logger = logging.getLogger("root")
+
 
 class CheckAppSettingData(object):
     """
@@ -50,7 +53,6 @@ class CheckAppSettingData(object):
         定义巡检逻辑
         """
         for cluster in self.clusters:
-            print(cluster.name)
             self.check_app_setting_data(cluster)
             self.check_job_is_disabled(cluster)
             if cluster.cluster_type == ClusterType.SqlserverHA:
@@ -61,6 +63,7 @@ class CheckAppSettingData(object):
                     self.check_user(master_instance=master, slave_instance=s, cluster=cluster)
                     self.check_job(master_instance=master, slave_instance=s, cluster=cluster)
                     self.check_link_server(master_instance=master, slave_instance=s, cluster=cluster)
+            logger.info(f"[db_periodic_task] the cluster [{cluster.immute_domain}] check task completed")
 
     @staticmethod
     def fix_app_setting_data(cluster: Cluster, instance: StorageInstance, sync_mode: str, master: StorageInstance):
@@ -183,6 +186,8 @@ class CheckAppSettingData(object):
                 # 尝试修复数据
                 self.fix_app_setting_data(cluster=cluster, instance=instance, sync_mode=sync_mode, master=master)
 
+        logger.info(f"[check_app_setting_data] the cluster [{cluster.immute_domain}] check task completed")
+
     @staticmethod
     def check_user(master_instance: StorageInstance, slave_instance: StorageInstance, cluster: Cluster):
         """
@@ -204,6 +209,7 @@ class CheckAppSettingData(object):
                 status=status,
                 msg=msg,
             )
+        logger.info(f"[check_user] the cluster [{cluster.immute_domain}] check task completed")
 
     @staticmethod
     def check_job(master_instance: StorageInstance, slave_instance: StorageInstance, cluster: Cluster):
@@ -226,6 +232,7 @@ class CheckAppSettingData(object):
                 status=status,
                 msg=msg,
             )
+        logger.info(f"[check_job] the cluster [{cluster.immute_domain}] check task completed")
 
     @staticmethod
     def check_link_server(master_instance: StorageInstance, slave_instance: StorageInstance, cluster: Cluster):
@@ -248,6 +255,7 @@ class CheckAppSettingData(object):
                 status=status,
                 msg=msg,
             )
+        logger.info(f"[check_link_server] the cluster [{cluster.immute_domain}] check task completed")
 
     @staticmethod
     def check_job_is_disabled(cluster: Cluster):
@@ -265,3 +273,4 @@ class CheckAppSettingData(object):
                     status=status,
                     msg=msg,
                 )
+        logger.info(f"[check_job_is_disabled] the cluster [{cluster.immute_domain}] check task completed")
