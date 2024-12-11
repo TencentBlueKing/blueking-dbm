@@ -104,7 +104,6 @@ from backend.flow.views.mongodb_scene import (
     MultiReplicasetInstallApiView,
 )
 from backend.flow.views.mysql import MysqlMachineClearApiView
-from backend.flow.views.mysql_add_slave import AddMysqlSlaveSceneApiView
 from backend.flow.views.mysql_add_slave_remote import AddMysqlSlaveRemoteSceneApiView
 from backend.flow.views.mysql_checksum import MysqlChecksumSceneApiView
 from backend.flow.views.mysql_data_migrate import MysqlDataMigrateSceneApiView
@@ -122,7 +121,6 @@ from backend.flow.views.mysql_ha_master_fail_over import MySQLHAMasterFailOverAp
 from backend.flow.views.mysql_ha_rename_database import MySQLHARenameDatabaseView
 from backend.flow.views.mysql_ha_switch import MySQLHASwitchSceneApiView
 from backend.flow.views.mysql_ha_truncate_data import MySQLHATruncateDataView
-from backend.flow.views.mysql_migrate_cluster import MigrateMysqlClusterSceneApiView
 from backend.flow.views.mysql_migrate_cluster_remote import MysqlMigrateRemoteSceneApiView
 from backend.flow.views.mysql_open_area import MysqlOpenAreaSceneApiView
 from backend.flow.views.mysql_partition import MysqlPartitionSceneApiView
@@ -132,8 +130,6 @@ from backend.flow.views.mysql_proxy_switch import SwitchMySQLProxySceneApiView
 from backend.flow.views.mysql_proxy_upgrade import UpgradeMySQLProxySceneApiView
 from backend.flow.views.mysql_pt_table_sync import MySQLPtTableSyncApiView
 from backend.flow.views.mysql_restore_local_remote import RestoreMysqlLocalRemoteSceneApiView
-from backend.flow.views.mysql_restore_local_slave import RestoreMysqlLocalSlaveSceneApiView
-from backend.flow.views.mysql_restore_slave import RestoreMysqlSlaveSceneApiView
 from backend.flow.views.mysql_restore_slave_remote import RestoreMysqlSlaveRemoteSceneApiView
 from backend.flow.views.mysql_rollback_data import MysqlRollbackDataSceneApiView
 from backend.flow.views.mysql_rollback_to_cluster import MysqlRollbackToClusterSceneApiView
@@ -417,15 +413,11 @@ urlpatterns = [
     url(r"^scene/import_sqlfile$", ImportSQLFileSceneApiView.as_view()),
     url(r"^scene/switch_mysql_proxy$", SwitchMySQLProxySceneApiView.as_view()),
     url(r"^scene/add_mysql_proxy$", AddMySQLProxySceneApiView.as_view()),
-    url(r"^scene/restore_slave$", RestoreMysqlSlaveSceneApiView.as_view()),
-    url(r"^scene/add_slave$", AddMysqlSlaveSceneApiView.as_view()),
-    url(r"^scene/restore_local_slave$", RestoreMysqlLocalSlaveSceneApiView.as_view()),
     # 从节点数据恢复(接入备份系统)
     url(r"^scene/restore_slave_remote$", RestoreMysqlSlaveRemoteSceneApiView.as_view()),
     url(r"^scene/add_slave_remote$", AddMysqlSlaveRemoteSceneApiView.as_view()),
     url(r"^scene/restore_local_slave_remote$", RestoreMysqlLocalRemoteSceneApiView.as_view()),
     url(r"^scene/migrate_cluster_remote$", MysqlMigrateRemoteSceneApiView.as_view()),
-    url(r"^scene/migrate_cluster$", MigrateMysqlClusterSceneApiView.as_view()),
     url(r"^scene/mysql_rollback_data", MysqlRollbackDataSceneApiView.as_view()),
     url(r"^scene/mysql_rollback_to_cluster", MysqlRollbackToClusterSceneApiView.as_view()),
     url(r"^scene/install_es$", InstallEsSceneApiView.as_view()),

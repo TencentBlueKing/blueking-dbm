@@ -37,7 +37,6 @@ from backend.flow.engine.bamboo.scene.mysql.mysql_ha_upgrade import (
 )
 from backend.flow.engine.bamboo.scene.mysql.mysql_master_fail_over import MySQLMasterFailOverFlow
 from backend.flow.engine.bamboo.scene.mysql.mysql_master_slave_switch import MySQLMasterSlaveSwitchFlow
-from backend.flow.engine.bamboo.scene.mysql.mysql_migrate_cluster_flow import MySQLMigrateClusterFlow
 from backend.flow.engine.bamboo.scene.mysql.mysql_migrate_cluster_remote_flow import MySQLMigrateClusterRemoteFlow
 from backend.flow.engine.bamboo.scene.mysql.mysql_open_area_flow import MysqlOpenAreaFlow
 from backend.flow.engine.bamboo.scene.mysql.mysql_partition import MysqlPartitionFlow
@@ -48,7 +47,6 @@ from backend.flow.engine.bamboo.scene.mysql.mysql_proxy_upgrade import MySQLProx
 from backend.flow.engine.bamboo.scene.mysql.mysql_push_peripheral_config import MySQLPushPeripheralConfigFlow
 from backend.flow.engine.bamboo.scene.mysql.mysql_random_password import MySQLRandomizePassword
 from backend.flow.engine.bamboo.scene.mysql.mysql_rename_database_flow import MySQLRenameDatabaseFlow
-from backend.flow.engine.bamboo.scene.mysql.mysql_restore_slave_flow import MySQLRestoreSlaveFlow
 from backend.flow.engine.bamboo.scene.mysql.mysql_restore_slave_remote_flow import MySQLRestoreSlaveRemoteFlow
 from backend.flow.engine.bamboo.scene.mysql.mysql_rollback_data_flow import MySQLRollbackDataFlow
 from backend.flow.engine.bamboo.scene.mysql.mysql_single_apply_flow import MySQLSingleApplyFlow
@@ -72,27 +70,6 @@ class MySQLController(BaseController):
         """
         flow = MySQLSingleApplyFlow(root_id=self.root_id, data=self.ticket_data)
         flow.deploy_flow()
-
-    def mysql_restore_slave_scene(self):
-        """
-        tenDB slave 恢复流程编排
-        """
-        flow = MySQLRestoreSlaveFlow(root_id=self.root_id, tick_data=self.ticket_data)
-        flow.deploy_restore_slave_flow()
-
-    def mysql_add_slave_scene(self):
-        """
-        仅添加 slave 流程编排
-        """
-        flow = MySQLRestoreSlaveFlow(root_id=self.root_id, tick_data=self.ticket_data)
-        flow.deploy_add_slave_flow()
-
-    def mysql_restore_local_slave_scene(self):
-        """
-        tenDB slave 原地恢复流程编排
-        """
-        flow = MySQLRestoreSlaveFlow(root_id=self.root_id, tick_data=self.ticket_data)
-        flow.deploy_restore_local_slave_flow()
 
     #  mysql 从节点恢复(接入备份系统)
     def mysql_restore_slave_remote_scene(self):
@@ -401,13 +378,6 @@ class MySQLController(BaseController):
             root_id=self.root_id, data=self.ticket_data, cluster_type=ClusterType.TenDBHA.value
         )
         flow.rename_database()
-
-    def mysql_migrate_cluster_scene(self):
-        """
-        主从成对迁移flow编排
-        """
-        flow = MySQLMigrateClusterFlow(root_id=self.root_id, ticket_data=self.ticket_data)
-        flow.deploy_migrate_cluster_flow()
 
     def mysql_migrate_remote_scene(self):
         """
