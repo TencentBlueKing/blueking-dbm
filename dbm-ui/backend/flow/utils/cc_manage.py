@@ -576,13 +576,15 @@ def trigger_operate_collector(
         trigger_time = time.time()
         logger.error(f"trigger_operate_collector trigger_timer: {trigger_time}")
         RedisConn.set(trigger_time_key, trigger_time, ex=OPERATE_COLLECTOR_COUNTDOWN)
-    RedisConn.lpush(cache_key, *bk_instance_ids)
-    operate_collector.apply_async(
-        kwargs={
-            "db_type": db_type,
-            "machine_type": machine_type,
-            "bk_instance_ids": bk_instance_ids,
-            "action": action,
-        },
-        countdown=OPERATE_COLLECTOR_COUNTDOWN,
-    )
+
+    if bk_instance_ids:
+        RedisConn.lpush(cache_key, *bk_instance_ids)
+        operate_collector.apply_async(
+            kwargs={
+                "db_type": db_type,
+                "machine_type": machine_type,
+                "bk_instance_ids": bk_instance_ids,
+                "action": action,
+            },
+            countdown=OPERATE_COLLECTOR_COUNTDOWN,
+        )
