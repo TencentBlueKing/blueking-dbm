@@ -117,7 +117,7 @@ class SystemSettings(AbstractSettings):
         )
 
     @classmethod
-    def get_external_whitelist_cluster_ids(cls) -> List[int]:
+    def get_external_whitelist_cluster_ids(cls) -> List:
         return [
             conf["cluster_id"]
             for conf in cls.get_setting_value(

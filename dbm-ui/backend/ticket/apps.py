@@ -18,9 +18,11 @@ logger = logging.getLogger("root")
 
 def init_ticket_flow_config(sender, **kwargs):
     from backend.ticket.handler import TicketHandler
+    from backend.ticket.models import ClusterOperateRecord
 
     try:
         TicketHandler.ticket_flow_config_init()
+        ClusterOperateRecord.objects.get_exclusive_ticket_map(force=True)
     except Exception as err:  # pylint: disable=broad-except:
         logger.warning(f"ticket_flow_config_init occur error, {err}")
 

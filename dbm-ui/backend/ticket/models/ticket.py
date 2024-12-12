@@ -20,7 +20,8 @@ from django.utils.translation import ugettext_lazy as _
 from backend import env
 from backend.bk_web.constants import LEN_L_LONG, LEN_LONG, LEN_NORMAL, LEN_SHORT
 from backend.bk_web.models import AuditedModel
-from backend.configuration.constants import PLAT_BIZ_ID, DBType
+from backend.configuration.constants import PLAT_BIZ_ID, DBType, SystemSettingsEnum
+from backend.configuration.models import SystemSettings
 from backend.db_monitor.exceptions import AutofixException
 from backend.ticket.constants import (
     EXCLUSIVE_TICKET_EXCEL_PATH,
@@ -272,13 +273,13 @@ class ClusterOperateRecordManager(models.Manager):
         return self.filter(cluster_id=cluster_id, ticket__status=TicketFlowStatus.RUNNING, *args, **kwargs)
 
     def filter_inner_actives(self, cluster_id, *args, **kwargs):
-        """获取集群正在运行的inner flow的单据记录。此时认为集群会在互斥阶段"""
+        """获取集群正在 运行/失败 的inner flow的单据记录。此时认为集群会在互斥阶段"""
         # 排除特定的单据，如自身单据重试排除自身
         exclude_ticket_ids = kwargs.pop("exclude_ticket_ids", [])
         return self.filter(
             cluster_id=cluster_id,
             flow__flow_type=FlowType.INNER_FLOW,
-            flow__status=TicketFlowStatus.RUNNING,
+            flow__status__in=[TicketFlowStatus.RUNNING, TicketFlowStatus.FAILED],
             *args,
             **kwargs,
         ).exclude(flow__ticket_id__in=exclude_ticket_ids)
@@ -290,28 +291,33 @@ class ClusterOperateRecordManager(models.Manager):
     def has_exclusive_operations(self, ticket_type, cluster_id, **kwargs):
         """判断当前单据类型与集群正在进行中的单据是否互斥"""
         active_records = self.filter_inner_actives(cluster_id, **kwargs)
+        exclusive_ticket_map = self.get_exclusive_ticket_map()
         exclusive_infos = []
         for record in active_records:
             active_ticket_type = record.ticket.ticket_type
             # 记录互斥信息。不存在互斥表默认为互斥
-            if self.exclusive_ticket_map[ticket_type].get(active_ticket_type, True):
+            if exclusive_ticket_map[ticket_type].get(active_ticket_type, True):
                 exclusive_infos.append({"exclusive_ticket": record.ticket, "root_id": record.flow.flow_obj_id})
         return exclusive_infos
 
-    @property
-    def exclusive_ticket_map(self):
-        if hasattr(self, "_exclusive_ticket_map"):
-            return self._exclusive_ticket_map
+    @staticmethod
+    def get_exclusive_ticket_map(force=False):
+        """获取单据互斥状态表, force为True表示强制刷新"""
+        exclusive_map = SystemSettings.get_setting_value(key=SystemSettingsEnum.EXCLUSIVE_TICKET_MAP, default={})
+        if exclusive_map and not force:
+            return exclusive_map
 
-        _exclusive_matrix = ExcelHandler.paser_matrix(EXCLUSIVE_TICKET_EXCEL_PATH)
-        _exclusive_ticket_map = defaultdict(dict)
-        for row_label, inner_dict in _exclusive_matrix.items():
+        exclusive_map = defaultdict(dict)
+        exclusive_matrix = ExcelHandler.paser_matrix(EXCLUSIVE_TICKET_EXCEL_PATH)
+        for row_label, inner_dict in exclusive_matrix.items():
             for col_label, value in inner_dict.items():
                 row_key, col_key = TicketType.get_choice_value(row_label), TicketType.get_choice_value(col_label)
-                _exclusive_ticket_map[row_key][col_key] = value == "N"
+                exclusive_map[row_key][col_key] = value == "N"
 
-        setattr(self, "_exclusive_ticket_map", _exclusive_ticket_map)
-        return self._exclusive_ticket_map
+        SystemSettings.insert_setting_value(
+            key=SystemSettingsEnum.EXCLUSIVE_TICKET_MAP, value=exclusive_map, value_type="dict"
+        )
+        return exclusive_map
 
 
 class ClusterOperateRecord(AuditedModel):

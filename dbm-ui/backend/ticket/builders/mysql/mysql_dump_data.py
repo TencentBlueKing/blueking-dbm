@@ -36,17 +36,16 @@ class MySQLDumpDataDetailSerializer(MySQLBaseOperateDetailSerializer):
     dump_data = serializers.BooleanField(help_text=_("是否导出表数据"))
     force = serializers.BooleanField(help_text=_("是否强制执行"), default=False)
 
+    def to_internal_value(self, data):
+        data = super().to_internal_value(data)
+        data["is_external"] = getattr(self.context["request"], "is_external", False)
+        return data
+
 
 class MySQLDumpDataItsmFlowParamsBuilder(builders.ItsmParamBuilder):
-    def get_params(self):
-        params = super().get_params()
-        bk_biz_id = self.ticket.bk_biz_id
-        # 数据导出的审批人是该业务下的产品，如果没有产品则按照原来审批人
-        approve_index = [field["key"] for field in params["fields"]].index("approver")
-        old_approver = params["fields"].pop(approve_index)["value"]
-        biz_productor = AppCache.get_app_attr_from_cc(bk_biz_id, attr_name="bk_biz_productor") or old_approver
-        params["fields"].append({"key": "approver", "value": biz_productor})
-        return params
+    def get_approvers(self):
+        bk_biz_maintainer = AppCache.get_app_attr_from_cc(self.ticket.bk_biz_id, attr_name="bk_biz_maintainer")
+        return bk_biz_maintainer or super().get_approvers()
 
 
 class MySQLDumpDataFlowParamBuilder(builders.FlowParamBuilder):
@@ -77,3 +76,10 @@ class MySQLDumpDataFlowBuilder(BaseMySQLTicketFlowBuilder):
     inner_flow_builder = MySQLDumpDataFlowParamBuilder
     inner_flow_name = _("数据导出执行")
     itsm_flow_builder = MySQLDumpDataItsmFlowParamsBuilder
+
+    @property
+    def need_itsm(self):
+        # 1. 导出数据和表结构 ：运维人员审批
+        # 2.导出数据 ：运维人员审批
+        # 3.导出表结构 ：正常情况 - 不需要审批，PO环境 - 运维人员审批
+        return self.ticket.details["dump_data"] or self.ticket.details["is_external"]

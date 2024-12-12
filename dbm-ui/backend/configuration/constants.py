@@ -113,6 +113,7 @@ class SystemSettingsEnum(str, StructuredEnum):
     AFFINITY = EnumField("AFFINITY", _("容灾要求(各个环境可能不同，比如SG为空)"))
     SYSTEM_MSG_TYPE = EnumField("SYSTEM_MSG_TYPE", _("系统消息通知方式"))
     PADDING_PROXY_CLUSTER_LIST = EnumField("PADDING_PROXY_CLUSTER_LIST", _("补全proxy的集群域名列表"))
+    EXCLUSIVE_TICKET_MAP = EnumField("EXCLUSIVE_TICKET_MAP", _("单据互斥表(全局)"))
     # ITSM配置
     BK_ITSM_SERVICE_ID = EnumField("BK_ITSM_SERVICE_ID", _("DBM的流程服务ID"))
     ITSM_APPROVAL_KEY = EnumField("ITSM_APPROVAL_KEY", _("ITSM审批意见key"))
