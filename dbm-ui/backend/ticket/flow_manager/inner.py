@@ -24,7 +24,13 @@ from backend.flow.consts import StateType
 from backend.flow.models import FlowTree
 from backend.ticket import constants
 from backend.ticket.builders.common.base import fetch_cluster_ids
-from backend.ticket.constants import BAMBOO_STATE__TICKET_STATE_MAP, FlowCallbackType, TicketType
+from backend.ticket.constants import (
+    BAMBOO_STATE__TICKET_STATE_MAP,
+    FlowCallbackType,
+    FlowMsgType,
+    TicketFlowStatus,
+    TicketType,
+)
 from backend.ticket.flow_manager.base import BaseTicketFlow
 from backend.ticket.models import Flow
 from backend.utils.basic import generate_root_id
@@ -155,6 +161,18 @@ class InnerFlow(BaseTicketFlow):
             )
             # 处理互斥异常和非预期的异常
             self.run_error_status_handler(err)
+            # 发送创建任务失败通知
+            from backend.ticket.tasks.ticket_tasks import send_msg_for_flow
+
+            send_msg_for_flow.apply_async(
+                kwargs={
+                    "flow_id": self.flow_obj.id,
+                    "flow_msg_type": FlowMsgType.DONE.value,
+                    "flow_status": TicketFlowStatus.get_choice_label(self.flow_obj.status),
+                    "processor": self.ticket.creator,
+                    "receiver": self.ticket.creator,
+                }
+            )
             return
         else:
             # 记录inner flow的集群动作和实例动作
