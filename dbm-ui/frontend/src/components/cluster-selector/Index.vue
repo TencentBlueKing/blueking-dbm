@@ -319,6 +319,7 @@
       getResourceList: getTendbsingleList,
       tableContent: TendbSingleTable,
       resultContent: ResultPreview,
+      showPreviewResultTitle: true,
     },
     [ClusterTypes.MONGO_REPLICA_SET]: {
       id: ClusterTypes.MONGO_REPLICA_SET,
@@ -333,6 +334,7 @@
       getResourceList: getMongoList,
       tableContent: MongoTable,
       resultContent: ResultPreview,
+      showPreviewResultTitle: true,
     },
     [ClusterTypes.MONGO_SHARED_CLUSTER]: {
       id: ClusterTypes.MONGO_SHARED_CLUSTER,

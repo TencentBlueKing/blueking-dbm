@@ -12,7 +12,7 @@
 -->
 
 <template>
-  <FixedColumn>
+  <EditableTableColumn label="操作">
     <div class="action-box">
       <div
         v-if="showAdd"
@@ -37,12 +37,17 @@
         <DbIcon type="copy-2" />
       </div>
     </div>
-  </FixedColumn>
+  </EditableTableColumn>
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
-  import FixedColumn from '@components/render-table/columns/fixed-column/index.vue';
+  import {
+    // Block as EditBlock,
+    Column as EditableTableColumn,
+    // Row as EditableTableRow,
+  } from '@components/editable-table/Index.vue';
+  // import FixedColumn from '@components/render-table/columns/fixed-column/index.vue';
 
   interface Props {
     showAdd?: boolean;
