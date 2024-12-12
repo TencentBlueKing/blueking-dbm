@@ -199,7 +199,11 @@
 
   const handleDelete = (value: 'storage_spec' | 'rack_id') => {
     selectedOptions.value = selectedOptions.value.filter((item) => item !== value);
-    formData[value] = undefined;
+    if (value === 'storage_spec') {
+      formData[value] = [];
+    } else {
+      formData[value] = '';
+    }
   };
 
   const handleCancel = () => {
