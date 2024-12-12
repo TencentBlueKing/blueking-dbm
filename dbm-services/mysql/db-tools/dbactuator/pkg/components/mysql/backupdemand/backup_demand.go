@@ -129,7 +129,13 @@ func (c *Component) GenerateBackupConfig() error {
 		logger.Error("map %s to struct failed: %s", dailyBackupConfigPath, err.Error())
 		return err
 	}
-
+	if backupConfig.Public.EncryptOpt == nil {
+		// 指针类型，避免错误 reflect: call of reflect.Value.Type on zero Value
+		backupConfig.Public.EncryptOpt = &cmutil.EncryptOpt{}
+	}
+	if backupConfig.LogicalBackup.TrxConsistencyOnly == nil {
+		backupConfig.LogicalBackup.TrxConsistencyOnly = &config.TruePtr
+	}
 	backupConfig.Public.BackupType = c.Params.BackupType
 	backupConfig.Public.BackupTimeOut = ""
 	backupConfig.Public.BillId = c.Params.BillId

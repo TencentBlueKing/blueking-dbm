@@ -23,6 +23,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/spf13/cast"
 
+	"dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/config"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/cst"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/dbareport"
@@ -85,7 +86,11 @@ func (l *LogicalDumper) Execute(enableTimeOut bool) error {
 		}
 	}
 	if l.cnf.Public.AcquireLockWaitTimeout > 0 {
-		args = append(args, fmt.Sprintf("--lock-wait-timeout=%d", l.cnf.Public.AcquireLockWaitTimeout))
+		if ok, _ := MydumperHasOption(binPath, "--lock-wait-timeout", "1"); ok {
+			args = append(args, fmt.Sprintf("--lock-wait-timeout=%d", l.cnf.Public.AcquireLockWaitTimeout))
+		} else {
+			logger.Log.Warn("mydumper has no option. ignore", "--lock-wait-timeout")
+		}
 	}
 	if !l.cnf.LogicalBackup.DisableCompress {
 		args = append(args, "--compress")
@@ -233,4 +238,20 @@ func (l *LogicalDumper) PrepareBackupMetaInfo(cnf *config.BackupConfig) (*dbarep
 	}
 	metaInfo.JudgeIsFullBackup(&cnf.Public)
 	return &metaInfo, nil
+}
+
+// MydumperHasOption check mydumper has --xxx or not
+// example: ./mydumper --lock-wait-timeout 1 --help
+func MydumperHasOption(bin string, option ...string) (bool, error) {
+	cmdArgs := []string{bin, "--help"}
+	cmdArgs = append(cmdArgs, option...)
+	_, cmdStderr, err := cmutil.ExecCommand(false, "", cmdArgs[0], cmdArgs[1:]...)
+	if err == nil {
+		return true, nil
+	}
+	if strings.Contains(cmdStderr, "Unknown option") {
+		return false, nil
+	} else {
+		return false, err
+	}
 }

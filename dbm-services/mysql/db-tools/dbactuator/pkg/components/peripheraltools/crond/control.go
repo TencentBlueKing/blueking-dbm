@@ -1,12 +1,16 @@
 package crond
 
 import (
-	"dbm-services/common/go-pubpkg/logger"
-	"dbm-services/mysql/db-tools/dbactuator/pkg/core/cst"
-	"dbm-services/mysql/db-tools/dbactuator/pkg/util/osutil"
 	"fmt"
 	"os/exec"
 	"path"
+
+	"github.com/pkg/errors"
+
+	"dbm-services/common/go-pubpkg/logger"
+	"dbm-services/mysql/db-tools/dbactuator/pkg/core/cst"
+	"dbm-services/mysql/db-tools/dbactuator/pkg/util/osutil"
+	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/util"
 )
 
 func (c *MySQLCrondComp) Stop() (err error) {
@@ -51,7 +55,17 @@ func (c *MySQLCrondComp) Start() (err error) {
 	err = cmd.Run()
 	if err != nil {
 		logger.Error("start mysql-crond failed: %s", err.Error())
-		return err
+
+		startErrFilePath := path.Join(cst.MySQLCrondInstallPath, "start-crond.err")
+		errStrPrefix := fmt.Sprintf("grep error from %s", startErrFilePath)
+		errStrDetail, _ := util.GrepLinesFromFile(startErrFilePath, []string{"ERROR", "panic"}, 5, false, false)
+		if len(errStrDetail) > 0 {
+			logger.Info(errStrPrefix)
+			logger.Error(errStrDetail)
+		} else {
+			logger.Warn("tail can not find more detail error message from ", startErrFilePath)
+		}
+		return errors.WithMessagef(err, fmt.Sprintf("%s\n%s", errStrPrefix, errStrDetail))
 	}
 
 	logger.Info("mysql-crond started")

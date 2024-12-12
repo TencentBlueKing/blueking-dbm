@@ -357,3 +357,6 @@ DefaultsFile = /etc/my.cnf.3306
   master机器专用限速因子，因为备份速度可能有多个选项来控制
   - master 文件io打包限速: `Public.IOLimitMBPerSec * IOLimitMasterFactor`
   - 物理备份限速: `PhysicalBackup.Throttle * IOLimitMasterFactor`
+
+### LogicalBackup
+- LogicalBackup.TrxConsistencyOnly

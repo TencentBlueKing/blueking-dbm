@@ -20,7 +20,7 @@
 - `基于指定时间构造`
   即 PIT 构造(Point-In-Time), 通过正向追加应用 binlog 使得数据恢复到某个时间点。
   基于指定时间恢复，为了防止非预期的结果，备份筛选不能是库表备份，必须是全备。
-  一般情况，应用 binlog 需要原始数据是全备，因为 binlog 是实例级别不是库表级别。但如果在所有 binlog 都是 `binlog_format=ROW` 模式且 `FULL`，是可以通过 gomysqlbinlog 过滤出指定的库表变更记录，是可以只恢复部分库表到指定时间。
+  一般情况，应用 binlog 需要原始数据是全备，因为 binlog 是实例级别不是库表级别。但如果在所有 binlog 都是 `binlog_format=ROW` 模式且 `binlog_row_image=FULL`，是可以通过 gomysqlbinlog 过滤出指定的库表变更记录，是可以只恢复部分库表到指定时间。
 
 ### 数据恢复到已有集群，涉及到对已有数据的影响：
 
