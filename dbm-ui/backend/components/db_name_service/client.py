@@ -50,6 +50,21 @@ class _NameServiceApi(BaseApi):
             url="/api/nameservice/clb/deregister_target_and_del_lb",
             description=_("解绑后端主机并删除clb"),
         )
+        self.clb_listener_change_scheduler = self.generate_data_api(
+            method="POST",
+            url="/api/nameservice/clb/listener_change_scheduler",
+            description=_("修改监听器转发方式"),
+        )
+        self.clb_listener_change_session_expire_time = self.generate_data_api(
+            method="POST",
+            url="/api/nameservice/clb/listener_change_session_expire_time",
+            description=_("修改监听器会话保持时间"),
+        )
+        self.clb_change_target_weight = self.generate_data_api(
+            method="POST",
+            url="/api/nameservice/clb/change_target_weight",
+            description=_("修改后端绑定主机的转发权重"),
+        )
         self.polaris_create_service_alias_and_bind_targets = self.generate_data_api(
             method="POST",
             url="/api/nameservice/polaris/create_service_alias_and_bind_targets",
