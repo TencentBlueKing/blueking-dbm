@@ -19,17 +19,7 @@
       }"
       class="bk-editable-table-field-cell">
       <slot />
-      <div
-        v-if="validateState.isError"
-        class="bk-editable-table-column-error">
-        <slot
-          name="error"
-          v-bind="{ message: validateState.errorMessage }">
-          <i
-            v-bk-tooltips="validateState.errorMessage"
-            class="bk-dbm db-icon-exclamation-fill" />
-        </slot>
-      </div>
+
       <div
         v-if="loading"
         class="bk-editable-table-column-loading">
@@ -38,12 +28,22 @@
         </div>
       </div>
     </div>
+    <div
+      v-if="validateState.isError"
+      class="bk-editable-table-column-error">
+      <slot
+        name="error"
+        v-bind="{ message: validateState.errorMessage }">
+        <i
+          v-bk-tooltips="validateState.errorMessage"
+          class="bk-dbm db-icon-exclamation-fill" />
+      </slot>
+    </div>
   </td>
 </template>
 <script lang="ts">
   import { Loading } from 'bkui-vue/lib/icon';
-  import get from 'lodash/get';
-  import isFunction from 'lodash/isFunction';
+  import _ from 'lodash';
   import {
     type ComponentInternalInstance,
     computed,
@@ -92,6 +92,8 @@
 
   interface Expose {
     validate: () => Promise<boolean>;
+    clearValidate: () => void;
+    getRowIndex: () => number;
   }
 
   const hasOwn = (obj: Record<string, any>, key: string) => Object.prototype.hasOwnProperty.call(obj, key);
@@ -111,6 +113,7 @@
     registerRules: (params: IRule[]) => void;
     validate: (trigger?: string) => Promise<boolean>;
     clearValidate: () => void;
+    getRowIndex: () => number;
   }> = Symbol('EditableTableColumnKey');
 </script>
 <script setup lang="ts">
@@ -156,7 +159,7 @@
           });
         },
         message: `${label}查询中`,
-        trigger: 'change',
+        trigger: '',
       });
     }
     if (props.required) {
@@ -209,10 +212,10 @@
     const formatConfigRules = configRules.reduce<IFinalRule[]>((result, rule) => {
       let rulevalidator: any;
       if (rule.required) {
-        rulevalidator = isFunction(rule.validator) ? rule.validator : defaultValidator.required;
+        rulevalidator = _.isFunction(rule.validator) ? rule.validator : defaultValidator.required;
         customRequired = true;
       } else if (rule.email) {
-        rulevalidator = isFunction(rule.validator) ? rule.validator : defaultValidator.email;
+        rulevalidator = _.isFunction(rule.validator) ? rule.validator : defaultValidator.email;
         customEmail = true;
       } else if (Number(rule.max) > -1) {
         rulevalidator = (value: any) => defaultValidator.max(value, rule.max as number);
@@ -222,7 +225,7 @@
         rulevalidator = (value: any) => defaultValidator.min(value, rule.max as number);
       } else if (Object.prototype.toString.call(rule.pattern) === '[object RegExp]') {
         rulevalidator = (value: any) => defaultValidator.pattern(value, rule.pattern as RegExp);
-      } else if (isFunction(rule.validator)) {
+      } else if (_.isFunction(rule.validator)) {
         rulevalidator = rule.validator;
       } else {
         // 不支持的配置规则
@@ -295,11 +298,17 @@
     return result ? '无法操作' : '';
   });
 
-  const validate = (trigger?: string): Promise<boolean> => {
-    // 重新触发验证重置上次的验证状态
+  const getRowIndex = () => tableContext!.getColumnRelateRowIndexByInstance(currentInstance);
+  const clearValidate = () => {
     validateState.isError = false;
     validateState.errorMessage = '';
+  };
 
+  const triggerChangeQueue: string[] = [];
+  const triggerBlurQueue: string[] = [];
+  const triggerQueue: undefined[] = [];
+
+  const validate = (trigger?: string): Promise<boolean> => {
     if (!tableContext) {
       return Promise.resolve(false);
     }
@@ -333,11 +342,13 @@
     // 合并规则属性配置
     const finalRuleList = getTriggerRules(mergeRules(rules, getRulesFromProps(props)), trigger);
 
-    if (finalRuleList.length < 1) {
-      return Promise.resolve(true);
-    }
+    // if (finalRuleList.length < 1) {
+    //   // 重新触发验证重置上次的验证状态
+    //   validateState.isError = false;
+    //   validateState.errorMessage = '';
+    // }
 
-    const value = get(tableContext.props.model[rowContext!.getRowIndex()], props.field);
+    const value = _.get(tableContext.props.model[rowContext!.getRowIndex()], props.field);
 
     const doValidate = (() => {
       let stepIndex = -1;
@@ -379,7 +390,39 @@
         });
       };
     })();
-    return doValidate();
+
+    if (trigger !== undefined) {
+      if (trigger === 'change') {
+        triggerChangeQueue.push(trigger);
+      } else if (trigger === 'blur') {
+        triggerBlurQueue.push(trigger);
+      }
+    } else {
+      triggerQueue.push(trigger);
+    }
+
+    return new Promise((resolve, reject) => {
+      const delay = Math.max(Number(tableContext.props.validateDelay || 200), 0);
+      setTimeout(() => {
+        if (trigger === undefined) {
+          if (triggerQueue.length > 1) {
+            triggerQueue.pop();
+            return reject(false);
+          }
+        }
+        // 处理 change 和 blur 触发器
+        if (trigger === 'change' || trigger === 'blur') {
+          const latestQueue = trigger === 'change' ? triggerChangeQueue : triggerBlurQueue;
+          if (triggerQueue.length > 0 || latestQueue.length > 1) {
+            latestQueue.pop();
+            return resolve(true);
+          }
+          latestQueue.pop();
+        }
+        triggerQueue.pop();
+        return resolve(doValidate());
+      }, delay);
+    });
   };
 
   provide(EditableTableColumnKey, {
@@ -393,10 +436,8 @@
       registerRules = rules;
     },
     validate,
-    clearValidate: () => {
-      validateState.isError = false;
-      validateState.errorMessage = '';
-    },
+    clearValidate,
+    getRowIndex,
   });
 
   onMounted(() => {
@@ -439,13 +480,20 @@
 
   defineExpose<Expose>({
     validate,
+    clearValidate,
+    getRowIndex,
   });
 </script>
 <style lang="less">
+  @focus-z-index: 102;
+  @fixed-focus-z-index: 122;
+  @error-z-index: 101;
+  @fixed-error-z-index: 121;
+
   .bk-editable-table {
     td.bk-editable-table-body-column {
       &.is-focused {
-        z-index: 99;
+        z-index: @focus-z-index;
 
         &::before {
           border-color: #3a84ff;
@@ -465,7 +513,7 @@
       }
 
       &.is-error {
-        z-index: 99;
+        z-index: @error-z-index;
         background: #fff1f1;
 
         &::before {
@@ -473,6 +521,7 @@
         }
 
         .bk-editable-table-field-cell {
+          padding-right: 20px;
           background: #fff1f1;
         }
       }
@@ -480,6 +529,17 @@
       &.is-previous-sibling-rowspan {
         &::before {
           left: -1px;
+        }
+      }
+
+      &.is-column-fixed-left,
+      &.is-column-fixed-right {
+        &.is-focused {
+          z-index: @fixed-focus-z-index;
+        }
+
+        &.is-error {
+          z-index: @fixed-error-z-index;
         }
       }
     }
@@ -500,7 +560,7 @@
     z-index: 9;
     display: flex;
     height: 40px;
-    padding: 0 8px;
+    padding-right: 8px;
     color: #ea3636;
     align-items: center;
     transform: translateY(-50%);

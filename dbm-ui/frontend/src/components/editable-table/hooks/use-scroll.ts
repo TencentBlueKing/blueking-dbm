@@ -1,4 +1,3 @@
-import _ from 'lodash';
 import { onBeforeUnmount, onMounted, type Ref, shallowRef } from 'vue';
 
 export default function (tableContentRef: Ref<HTMLElement | undefined>) {
@@ -8,7 +7,7 @@ export default function (tableContentRef: Ref<HTMLElement | undefined>) {
   const handleHorizontalScroll = _.throttle(() => {
     const tableEl = tableContentRef.value as HTMLElement;
     const { scrollLeft } = tableEl;
-    const tableContentWidth = tableEl.getBoundingClientRect().width;
+    const tableWrapperWidth = tableEl.getBoundingClientRect().width;
     const tableWidth = tableEl.querySelector('table')!.getBoundingClientRect().width;
     if (scrollLeft === 0) {
       leftFixedStyles.value = {
@@ -24,8 +23,7 @@ export default function (tableContentRef: Ref<HTMLElement | undefined>) {
         width: `${fixedWidth}px`,
       };
     }
-
-    if (tableContentWidth + scrollLeft >= tableWidth) {
+    if (tableWrapperWidth + scrollLeft >= tableWidth) {
       rightFixedStyles.value = {
         display: 'none',
       };
