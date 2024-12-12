@@ -22,6 +22,11 @@
             @click="handleShowSystemVersionLog">
             {{ t('版本日志') }}
           </div>
+          <div
+            class="item"
+            @click="linkToDoc">
+            {{ t('产品文档') }}
+          </div>
         </template>
       </BkPopover>
       <BkPopover
@@ -64,7 +69,7 @@
 
   import { useSQLTaskNotify } from '@hooks';
 
-  import { useUserProfile } from '@stores';
+  import { useSystemEnviron, useUserProfile } from '@stores';
 
   import DbRouterView from '@components/db-router-view/Index.vue';
   import LocaleSwitch from '@components/locale-switch/Index.vue';
@@ -83,6 +88,7 @@
   const userProfileStore = useUserProfile();
   userProfileStore.fetchProfile();
   const { t, locale } = useI18n();
+  const systemEnvironStore = useSystemEnviron();
 
   const documentTitles: Record<string, string> = {
     en: 'DBM | Tencent BlueKing',
@@ -109,6 +115,13 @@
 
   const handleShowSystemVersionLog = () => {
     isShowSystemVersionLog.value = true;
+  };
+
+  const linkToDoc = () => {
+    const url = systemEnvironStore.urls.BK_HELPER_URL;
+    if (url) {
+      window.open(url);
+    }
   };
 
   const handleSignOut = () => {
