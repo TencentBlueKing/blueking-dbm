@@ -5,7 +5,7 @@
 </template>
 <script lang="ts">
   import _ from 'lodash';
-  import { inject, type InjectionKey, onBeforeMount, onMounted, provide } from 'vue';
+  import { inject, type InjectionKey, onBeforeUnmount, onMounted, provide } from 'vue';
 
   import type { IContext as IColumnContext } from './Column.vue';
   import { tableInjectKey } from './Index.vue';
@@ -61,7 +61,7 @@
     tableContext?.registerRow(columnList);
   });
 
-  onBeforeMount(() => {
+  onBeforeUnmount(() => {
     tableContext?.unregisterRow(columnList);
   });
 </script>

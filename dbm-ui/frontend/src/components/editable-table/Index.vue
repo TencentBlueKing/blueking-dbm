@@ -70,6 +70,7 @@
   interface Props {
     model: Record<string, any>[];
     rules?: Record<string, IRule[]>;
+    validateDelay?: number;
   }
 
   interface Emits {
@@ -123,10 +124,6 @@
   const { handleMouseDown, handleMouseMove, columnSizeConfig } = useResize(tableRef, resizePlaceholderRef, columnList);
   const { leftFixedStyles, rightFixedStyles, initalScroll } = useScroll(tableRef);
 
-  watch(columnList, () => {
-    initalScroll();
-  });
-
   watch(
     columnSizeConfig,
     () => {
@@ -141,6 +138,7 @@
         setTimeout(() => {
           isShowScrollX.value = scrollXRef.value!.offsetWidth + 2 < scrollXRef.value!.scrollWidth;
         });
+        initalScroll();
       });
     },
     {
@@ -242,6 +240,10 @@
   });
 </script>
 <style lang="less">
+  @fixed-column-z-index: 111;
+  @scroll-z-index: 200;
+  @fixed-wrapper-z-index: 300;
+
   .bk-editable-table {
     position: relative;
     background: #fff;
@@ -307,14 +309,11 @@
       &.is-column-fixed-left {
         position: sticky;
         left: 0;
-        z-index: 9;
-        background: #fff;
       }
 
       &.is-column-fixed-right {
         position: sticky;
         right: 0;
-        background: #fff;
       }
     }
 
@@ -325,6 +324,7 @@
 
       &.is-column-fixed-left,
       &.is-column-fixed-right {
+        z-index: 9;
         background-color: #fafbfd;
       }
 
@@ -338,6 +338,7 @@
 
       &.is-column-fixed-left,
       &.is-column-fixed-right {
+        z-index: @fixed-column-z-index;
         background: #fff;
       }
     }
@@ -361,6 +362,7 @@
     top: 0;
     bottom: 0;
     left: 0;
+    z-index: @fixed-wrapper-z-index;
     overflow-x: hidden;
     pointer-events: none;
     box-shadow: 8px 0 10px -5px rgb(0 0 0 / 12%);
@@ -371,8 +373,9 @@
     top: 0;
     right: 0;
     bottom: 0;
+    z-index: @fixed-wrapper-z-index;
     pointer-events: none;
-    box-shadow: 8px 0 10px -5px rgb(0 0 0 / 12%);
+    box-shadow: -8px 0 10px -5px rgb(0 0 0 / 12%);
   }
 
   .bk-editable-column-resize {
@@ -389,7 +392,7 @@
     right: 1px;
     bottom: 0;
     left: 1px;
-    z-index: 99999999;
+    z-index: @scroll-z-index;
     height: 14px;
     overflow: scroll hidden;
     cursor: pointer;

@@ -5,6 +5,7 @@
     v-bind="{ ...attrs, ...props }"
     clearable
     @blur="handleBlur"
+    @change="handleChange"
     @focus="handleFocus" />
 </template>
 <script setup lang="ts">
@@ -24,6 +25,7 @@
   interface Emits {
     (e: 'blur'): void;
     (e: 'focus'): void;
+    (e: 'change', params: string): void;
   }
 
   const props = defineProps<Props>();
@@ -37,14 +39,15 @@
 
   watch(modelValue, () => {
     columnContext?.validate('change');
-    console.log('change');
   });
 
+  const handleChange = (value: string) => {
+    emits('change', value);
+  };
   const handleBlur = () => {
     columnContext?.blur();
     columnContext?.validate('blur');
     emits('blur');
-    console.log('handleBlur');
   };
 
   const handleFocus = () => {
@@ -58,10 +61,14 @@
       height: 40px;
       border: none;
       box-shadow: none !important;
-    }
 
-    .bk-input--text {
-      background: transparent;
+      .bk-input--text {
+        background: transparent;
+      }
+
+      .bk-input--suffix-icon {
+        background: transparent;
+      }
     }
   }
 </style>

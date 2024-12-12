@@ -7,5 +7,5 @@ export interface IRule {
   pattern?: RegExp;
   validator?: (value: any) => Promise<boolean | string> | boolean | string;
   message: (() => string) | string;
-  trigger: 'change' | 'blur';
+  trigger: string;
 }

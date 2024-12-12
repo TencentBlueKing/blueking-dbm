@@ -10,18 +10,18 @@
         field="name"
         fixed="left"
         label="第一列"
-        :min-width="300"
-        :rowspan="5">
+        :loading="isLoading"
+        :min-width="300">
         <EditInput
           v-model="item.name"
           clearable
+          @change="handelNameChange"
           @clear="handleClear" />
       </EditableTableColumn>
       <EditableTableColumn
         field="age"
         label="第二列"
-        :min-width="300"
-        required>
+        :min-width="300">
         <EditSelect v-model="item.age">
           <BkOption
             id="1"
@@ -34,8 +34,7 @@
       <EditableTableColumn
         field="date"
         label="第三列"
-        :min-width="300"
-        required>
+        :min-width="300">
         <EditDatePicker
           v-model="item.date"
           @change="handleChange" />
@@ -69,6 +68,9 @@
         :min-width="300">
         <EditTextarea v-model="item.more" />
       </EditableTableColumn>
+      <OperationColumn
+        :create-row-method="createData"
+        :table-data="dataModel" />
     </EditableTableRow>
   </EditableTable>
   <BkButton
@@ -92,6 +94,8 @@
     TimePicker as EditTimePicker,
   } from '@components/editable-table/Index.vue';
 
+  import OperationColumn from '@views/db-manage/common/toolbox-field/operation-column/Index.vue';
+
   const createData = () => ({
     name: 'name',
     age: '',
@@ -104,11 +108,8 @@
 
   const tableRef = useTemplateRef('table');
   const isSubmiting = ref(false);
-  const isLoading = ref(true);
-
-  setTimeout(() => {
-    isLoading.value = false;
-  }, 10000);
+  const isLoading = ref(false);
+  let data = 0;
 
   const dataModel = reactive([
     createData(),
@@ -130,7 +131,17 @@
     name: [
       {
         validator: (value: string) => {
-          console.log('name = ', value);
+          data += 1;
+          console.log('change validator name = ', value, data);
+          return Boolean(value);
+        },
+        message: '错了',
+        trigger: 'change',
+      },
+      {
+        validator: (value: string) => {
+          data += 2;
+          console.log('blur validator name = ', value, data);
           return Boolean(value);
         },
         message: '错了',
@@ -139,10 +150,7 @@
     ],
     age: [
       {
-        validator: (value: string) => {
-          console.log('validator', value);
-          return true;
-        },
+        validator: () => false,
         message: '错了没',
         trigger: 'change',
       },
@@ -153,6 +161,14 @@
     console.log('handleClear');
   };
 
+  const handelNameChange = () => {
+    isLoading.value = true;
+    console.log('handelNameChange');
+    setTimeout(() => {
+      isLoading.value = false;
+      data += 1000;
+    }, 0);
+  };
   const handleChange = (value: string) => {
     console.log(value);
   };
@@ -160,7 +176,7 @@
   const handleSubmit = () => {
     isSubmiting.value = true;
     tableRef
-      .value!.validate()
+      .value!.validateByColumnIndex(0)
       .then(() => {
         console.log('success');
       })
