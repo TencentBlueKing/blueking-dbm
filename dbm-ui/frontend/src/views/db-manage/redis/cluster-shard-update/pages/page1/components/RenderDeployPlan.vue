@@ -130,7 +130,7 @@
         currentSepcId: `${specConfig.id}`,
         capacity: { total: rowData.currentCapacity?.total ?? 1, used: 0 },
         clusterType: rowData.clusterType as ClusterTypes,
-        shardNum: rowData.currentShardNum,
+        shardNum: localValue.target_shard_num,
         groupNum: localValue.count,
         bkCloudId: rowData.bkCloudId,
       };
