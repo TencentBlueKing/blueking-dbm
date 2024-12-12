@@ -423,8 +423,11 @@ func (ins *RedisSwitch) TwemproxySwitchM2S(masterIp string, masterPort int, slav
 	ins.ReportLogs(constvar.InfoResult,
 		fmt.Sprintf("twemproxy switch: from master[%s] -> slave[%s] begin, proxies{%d}.",
 			masterAddr, slaveAddr, len(ins.Proxy)))
-
+	notRunningCnt := 0
 	for _, proxy := range ins.Proxy {
+		if proxy.Status != "running" {
+			notRunningCnt++
+		}
 		wg.Add(1)
 		go func(proxyInfo dbutil.ProxyInfo) {
 			defer wg.Done()
@@ -457,6 +460,13 @@ func (ins *RedisSwitch) TwemproxySwitchM2S(masterIp string, masterPort int, slav
 		ins.ReportLogs(constvar.InfoResult,
 			fmt.Sprintf("twemproxy switch: from master[%s] -> slave[%s] switched successfuly {total:%d==succ:%d}",
 				masterAddr, slaveAddr, len(ins.Proxy), successSwitchNum))
+		return nil
+	}
+	//	ignore status !=running
+	if int(successSwitchNum)+notRunningCnt >= len(ins.Proxy) {
+		ins.ReportLogs(constvar.FailResult,
+			fmt.Sprintf("twemproxy switch: partly proxy switched [tota:%d, succ:%d , norunning:%d]",
+				len(ins.Proxy), successSwitchNum, notRunningCnt))
 		return nil
 	}
 
