@@ -792,7 +792,10 @@ class ListRetrieveResource(BaseListRetrieveResource):
             "bk_host_id": Q(bk_host_id=query_params.get("bk_host_id")),
             "ip": Q(ip__in=query_params.get("ip", "").split(",")),
             "machine_type": Q(machine_type=query_params.get("machine_type")),
-            "bk_city_name": Q(bk_city__bk_idc_city_name__in=query_params.get("bk_city_name", "").split(",")),
+            "bk_city_name": (
+                Q(bk_city__bk_idc_city_name__in=query_params.get("bk_city_name", "").split(","))
+                | Q(bk_city__logical_city__name__in=query_params.get("bk_city_name", "").split(","))
+            ),
             "bk_os_name": Q(bk_os_name=query_params.get("bk_os_name")),
             "bk_cloud_id": Q(bk_cloud_id=query_params.get("bk_cloud_id")),
             "bk_agent_id": Q(bk_agent_id=query_params.get("bk_agent_id")),
