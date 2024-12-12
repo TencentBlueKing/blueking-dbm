@@ -193,6 +193,11 @@ TBINLOGDUMPER_PORT = 27000
 DEFAULT_INSTANCE = {"ip": "0.0.0.0", "port": 0, "bk_cloud_id": 0}
 
 
+class OperateCollectorActionEnum(str, StructuredEnum):
+    INSTALL = EnumField("install", _("安装"))
+    UNINSTALL = EnumField("UNINSTALL", _("卸载"))
+
+
 class NameSpaceEnum(str, StructuredEnum):
     Common = EnumField("common", _("共用参数"))
     RedisCommon = EnumField("rediscomm", _("redis共用参数"))

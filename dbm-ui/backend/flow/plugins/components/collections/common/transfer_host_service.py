@@ -29,10 +29,14 @@ class TransferHostService(BaseService):
         bk_module_ids = kwargs["bk_module_ids"]
         bk_host_ids = kwargs["bk_host_ids"]
         update_host_properties = kwargs.get("update_host_properties", None)
+        operate_collector_action = kwargs.get("operate_collector_action", None)
         try:
             cc_manage = CcManage(bk_biz_id=bk_biz_id, cluster_type="")
             cc_manage.transfer_host_module(
-                bk_host_ids=bk_host_ids, target_module_ids=bk_module_ids, update_host_properties=update_host_properties
+                bk_host_ids=bk_host_ids,
+                target_module_ids=bk_module_ids,
+                update_host_properties=update_host_properties,
+                operate_collector_action=operate_collector_action,
             )
             return True
         except Exception as err:  # pylint: disable=broad-except

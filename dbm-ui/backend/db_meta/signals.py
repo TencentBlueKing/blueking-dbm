@@ -13,8 +13,10 @@ from typing import Union
 
 from django.db.models.signals import pre_delete
 
-from backend.db_meta.enums import ClusterStatus
+from backend.db_meta.enums import ClusterStatus, ClusterType
 from backend.db_meta.models import Cluster, ProxyInstance, StorageInstance
+from backend.flow.consts import OperateCollectorActionEnum
+from backend.flow.utils.cc_manage import trigger_operate_collector
 
 logger = logging.getLogger("root")
 
@@ -29,6 +31,12 @@ def update_cluster_status(sender, instance: Union[StorageInstance, ProxyInstance
     if kwargs.get("signal") == pre_delete and not isinstance(instance, Cluster):
         # 提前删除实例与cluster的关联关系
         cluster = instance.cluster.first()
+        trigger_operate_collector(
+            ClusterType.cluster_type_to_db_type(cluster.cluster_type),
+            instance.machine_type,
+            bk_instance_ids=[instance.bk_instance_id],
+            action=OperateCollectorActionEnum.INSTALL.value,
+        )
         if cluster and sender == StorageInstance:
             cluster.storageinstance_set.remove(instance)
         elif cluster and sender == ProxyInstance:
