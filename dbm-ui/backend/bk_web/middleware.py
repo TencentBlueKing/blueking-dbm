@@ -172,7 +172,7 @@ class ExternalProxyMiddleware(MiddlewareMixin):
             # 目前只放开数据导出
             if data["ticket_type"] not in EXTERNAL_TICKET_TYPE_WHITELIST:
                 raise ExternalRouteInvalidException(_("单据类型[{}]非法，未开通白名单").format(data["ticket_type"]))
-            if data["details"]["cluster_id"] not in SystemSettings.get_external_whitelist_cluster_ids():
+            if SystemSettings.check_access_external_cluster(data["details"]["cluster_id"]):
                 raise ExternalClusterIdInvalidException(cluster_id=data["cluster_id"])
 
         # 单据过滤校验函数
@@ -185,7 +185,7 @@ class ExternalProxyMiddleware(MiddlewareMixin):
         def check_webconsole():
             data = json.loads(request.body.decode("utf-8"))
             # 校验集群是否在白名单中
-            if data["cluster_id"] not in SystemSettings.get_external_whitelist_cluster_ids():
+            if SystemSettings.check_access_external_cluster(data["cluster_id"]):
                 raise ExternalClusterIdInvalidException(cluster_id=data["cluster_id"])
 
         check_action_func_map = {

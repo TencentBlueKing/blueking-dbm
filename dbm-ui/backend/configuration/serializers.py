@@ -254,3 +254,10 @@ class FunctionControllerSerializer(serializers.Serializer):
     class Meta:
         model = FunctionController
         fields = "__all__"
+
+
+class UpdateExternalClusterSerializer(serializers.Serializer):
+    cluster_ids = serializers.ListField(help_text=_("集群ID列表"), child=serializers.IntegerField())
+    bk_biz_id = serializers.IntegerField(help_text=_("业务ID"))
+    operator = serializers.CharField(help_text=_("更新人"))
+    remark = serializers.CharField(help_text=_("备注"), required=False, default="")

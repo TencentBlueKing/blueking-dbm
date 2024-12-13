@@ -21,7 +21,6 @@ from django.utils.translation import gettext_lazy as _
 from django.views.decorators.csrf import csrf_exempt
 from django.views.generic import View
 
-from backend import env
 from backend.bk_web.exceptions import ExternalClusterIdInvalidException
 from backend.configuration.constants import SystemSettingsEnum
 from backend.configuration.models import SystemSettings
@@ -416,7 +415,7 @@ class ProxyBaseView(View):
         result = IAMPermission(actions, resources).has_permission(request, "")
 
         # 针对外部查询，需在判断是否集群是否在允许的白名单内
-        if env.ENABLE_EXTERNAL_PROXY and cluster.id not in SystemSettings.get_external_whitelist_cluster_ids():
+        if request.is_external and not SystemSettings.check_access_external_cluster(cluster.id):
             raise ExternalClusterIdInvalidException(cluster_id=cluster.id)
 
         if not result:

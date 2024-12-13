@@ -14,6 +14,7 @@ from django.utils.translation import ugettext_lazy as _
 from backend.ticket import builders
 from backend.ticket.builders.mysql.mysql_dump_data import (
     MySQLDumpDataDetailSerializer,
+    MySQLDumpDataFlowBuilder,
     MySQLDumpDataFlowParamBuilder,
     MySQLDumpDataItsmFlowParamsBuilder,
 )
@@ -34,7 +35,7 @@ class TendbClusterDumpDataItsmFlowParamsBuilder(MySQLDumpDataItsmFlowParamsBuild
 
 
 @builders.BuilderFactory.register(TicketType.TENDBCLUSTER_DUMP_DATA)
-class TendbClusterDumpDataFlowBuilder(BaseTendbTicketFlowBuilder):
+class TendbClusterDumpDataFlowBuilder(BaseTendbTicketFlowBuilder, MySQLDumpDataFlowBuilder):
     serializer = TendbClusterDumpDataDetailSerializer
     itsm_flow_builder = TendbClusterDumpDataItsmFlowParamsBuilder
     inner_flow_builder = TendbClusterDumpDataFlowParamBuilder

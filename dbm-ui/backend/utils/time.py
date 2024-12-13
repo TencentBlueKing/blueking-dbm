@@ -102,6 +102,10 @@ def date2str(o_date: datetime.date, fmt: str = DATE_PATTERN) -> str:
     return datetime.date.strftime(o_date, fmt)
 
 
+def str2date(date_str: str, fmt: str = DATE_PATTERN) -> datetime.date:
+    return datetime.datetime.strptime(date_str, fmt).date()
+
+
 def calculate_cost_time(
     end_time: Optional[Union[datetime.datetime, str]],
     start_time: Optional[Union[datetime.datetime, str]],

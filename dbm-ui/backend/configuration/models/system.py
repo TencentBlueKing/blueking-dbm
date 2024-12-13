@@ -9,10 +9,12 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import logging
+from collections import defaultdict
+from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional, Union
 
 from django.conf import settings
-from django.db import connection, models
+from django.db import connection, models, transaction
 from django.utils.translation import ugettext_lazy as _
 
 from backend import env
@@ -20,7 +22,9 @@ from backend.bk_web.constants import LEN_LONG, LEN_NORMAL
 from backend.bk_web.models import AuditedModel
 from backend.configuration import constants
 from backend.configuration.constants import BizSettingsEnum
+from backend.configuration.constants import SystemSettingsEnum
 from backend.db_meta.enums import ClusterType
+from backend.utils.time import date2str, str2date
 
 logger = logging.getLogger("root")
 
@@ -34,10 +38,13 @@ class AbstractSettings(AuditedModel):
     desc = models.CharField(_("描述"), max_length=LEN_LONG)
 
     @classmethod
-    def get_setting_value(cls, key: dict, default: Optional[Any] = None) -> Union[str, Dict, List]:
+    def get_setting_value(cls, key: dict, default: Optional[Any] = None, lock: bool = False) -> Union[str, Dict, List]:
         """插入一条配置记录"""
         try:
-            setting_value = cls.objects.get(**key).value
+            if lock:
+                setting_value = cls.objects.select_for_update().get(**key).value
+            else:
+                setting_value = cls.objects.get(**key).value
         except cls.DoesNotExist:
             if default is None:
                 setting_value = ""
@@ -104,11 +111,13 @@ class SystemSettings(AbstractSettings):
                 setattr(settings, system_setting.key, system_setting.value)
 
     @classmethod
-    def get_setting_value(cls, key: str, default: Optional[Any] = None) -> Union[str, Dict, List]:
+    def get_setting_value(cls, key: str, default: Optional[Any] = None, lock: bool = False) -> Union[str, Dict, List]:
         return super().get_setting_value(key={"key": key}, default=default)
 
     @classmethod
-    def insert_setting_value(cls, key: str, value: Any, value_type: str = "str", user: str = "admin") -> None:
+    def insert_setting_value(
+        cls, key: str, value: Any, value_type: str = "str", user: str = "admin", desc: str = ""
+    ) -> None:
         return super().insert_setting_value(
             key={"key": key},
             value=value,
@@ -118,13 +127,56 @@ class SystemSettings(AbstractSettings):
         )
 
     @classmethod
-    def get_external_whitelist_cluster_ids(cls) -> List:
-        return [
-            conf["cluster_id"]
-            for conf in cls.get_setting_value(
-                key=constants.SystemSettingsEnum.EXTERNAL_WHITELIST_CLUSTER_IDS.value, default=[]
+    def check_access_external_cluster(cls, cluster_id) -> bool:
+        """
+        获取是否可访问外部合法白名单集群，数据格式
+        "$cluster_id": {"bk_biz_id": 123, "operator": "somebody", "update_at": "2024-12-13 10:23:33", "remark": "xxx"}
+        """
+        today = datetime.today().date()
+        cluster_id = str(cluster_id)
+        with transaction.atomic():
+            # 用行锁控制并发时更新请求的不一致
+            whitelist = cls.get_setting_value(
+                key=SystemSettingsEnum.EXTERNAL_WHITELIST_CLUSTER_IDS, default={}, lock=True
             )
-        ]
+            if cluster_id not in whitelist:
+                return False
+
+            # 判断集群时间是否过期，如果过期则删除该key并报错，否则更新访问时间
+            expire_days = SystemSettings.get_setting_value(
+                SystemSettingsEnum.EXTERNAL_WHITELIST_CLUSTER_EXPIRE.value, default=30
+            )
+            access_date = str2date(whitelist[cluster_id]["update_at"])
+            if access_date - timedelta(days=expire_days) > today:
+                check_flag = False
+            else:
+                if access_date != today:
+                    whitelist[cluster_id]["update_at"] = date2str(today)
+                    cls.insert_setting_value(key=SystemSettingsEnum.EXTERNAL_WHITELIST_CLUSTER_IDS, value=whitelist)
+                check_flag = True
+
+        return check_flag
+
+    @classmethod
+    def update_external_cluster(cls, bk_biz_id, operator, cluster_ids, remark=""):
+        """
+        更新外部可访问集群名单
+        """
+        with transaction.atomic():
+            # 用行锁控制并发时更新请求的不一致
+            whitelist = cls.get_setting_value(
+                key=SystemSettingsEnum.EXTERNAL_WHITELIST_CLUSTER_IDS, default=defaultdict(dict), lock=True
+            )
+            for cluster_id in cluster_ids:
+                whitelist[cluster_id] = {
+                    "bk_biz_id": bk_biz_id,
+                    "operator": operator,
+                    "remark": remark,
+                    "update_at": date2str(datetime.today()),
+                }
+            cls.insert_setting_value(
+                key=SystemSettingsEnum.EXTERNAL_WHITELIST_CLUSTER_IDS, value=whitelist, value_type="dict"
+            )
 
 
 class BizSettings(AbstractSettings):

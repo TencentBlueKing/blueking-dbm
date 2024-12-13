@@ -26,6 +26,7 @@ from backend.configuration.serializers import (
     ListBizSettingsSerializer,
     UpdateBizSettingsSerializer,
     UpdateDutyNoticeSerializer,
+    UpdateExternalClusterSerializer,
 )
 from backend.db_meta.models import AppCache
 from backend.db_services.ipchooser.constants import IDLE_HOST_MODULE
@@ -125,6 +126,16 @@ class SystemSettingsViewSet(viewsets.SystemViewSet):
                 "MONITOR_SERVICE": dbm_report["proxy"],
             }
         )
+
+    @common_swagger_auto_schema(
+        operation_summary=_("更新外部集群白名单"),
+        tags=tags,
+        request_body=UpdateExternalClusterSerializer(),
+    )
+    @action(methods=["POST"], detail=False, pagination_class=None, serializer_class=UpdateExternalClusterSerializer)
+    def update_external_cluster(self, request):
+        SystemSettings.update_external_cluster(**self.validated_data)
+        return Response()
 
 
 class BizSettingsViewSet(viewsets.AuditedModelViewSet):

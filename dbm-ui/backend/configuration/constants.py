@@ -105,6 +105,7 @@ class SystemSettingsEnum(str, StructuredEnum):
     INDEPENDENT_HOSTING_BIZS = EnumField("INDEPENDENT_HOSTING_BIZS", _("独立托管机器的业务列表"))
     BF_WHITELIST_BIZS = EnumField("BF_WHITELIST_BIZS", _("BF业务白名单"))
     EXTERNAL_WHITELIST_CLUSTER_IDS = EnumField("EXTERNAL_WHITELIST_CLUSTER_IDS", _("外部访问集群ID白名单列表"))
+    EXTERNAL_WHITELIST_CLUSTER_EXPIRE = EnumField("EXTERNAL_WHITELIST_CLUSTER_EXPIRE", _("外部访问集群过期时间"))
     SPEC_OFFSET = EnumField("SPEC_OFFSET", _("默认的规格参数偏移量"))
     DEVICE_CLASSES = EnumField("DEVICE_CLASSES", _("机型列表"))
     BKM_DUTY_NOTICE = EnumField("BKM_DUTY_NOTICE", _("轮值通知设置"))
