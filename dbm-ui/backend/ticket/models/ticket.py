@@ -296,7 +296,7 @@ class ClusterOperateRecordManager(models.Manager):
         for record in active_records:
             active_ticket_type = record.ticket.ticket_type
             # 记录互斥信息。不存在互斥表默认为互斥
-            if exclusive_ticket_map[ticket_type].get(active_ticket_type, True):
+            if exclusive_ticket_map.get(ticket_type, {}).get(active_ticket_type, True):
                 exclusive_infos.append({"exclusive_ticket": record.ticket, "root_id": record.flow.flow_obj_id})
         return exclusive_infos
 
