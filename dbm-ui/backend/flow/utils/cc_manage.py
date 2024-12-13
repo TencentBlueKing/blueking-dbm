@@ -594,6 +594,9 @@ def trigger_operate_collector(
     """
     触发操作采集器
     """
+    if not bk_instance_ids:
+        return
+
     # 排除掉 bk_instance_ids 中包含 0 的值，可能是脏数据
     bk_instance_ids = [bk_instance_id for bk_instance_id in bk_instance_ids if bk_instance_id != 0]
 
@@ -617,14 +620,13 @@ def trigger_operate_collector(
         logger.error(f"trigger_operate_collector trigger_timer: {trigger_time}")
         RedisConn.set(trigger_time_key, trigger_time, ex=OPERATE_COLLECTOR_COUNTDOWN)
 
-    if bk_instance_ids:
-        RedisConn.lpush(cache_key, *bk_instance_ids)
-        operate_collector.apply_async(
-            kwargs={
-                "db_type": db_type,
-                "machine_type": machine_type,
-                "bk_instance_ids": bk_instance_ids,
-                "action": action,
-            },
-            countdown=OPERATE_COLLECTOR_COUNTDOWN,
-        )
+    RedisConn.lpush(cache_key, *bk_instance_ids)
+    operate_collector.apply_async(
+        kwargs={
+            "db_type": db_type,
+            "machine_type": machine_type,
+            "bk_instance_ids": bk_instance_ids,
+            "action": action,
+        },
+        countdown=OPERATE_COLLECTOR_COUNTDOWN,
+    )
