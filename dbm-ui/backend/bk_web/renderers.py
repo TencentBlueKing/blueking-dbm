@@ -68,6 +68,7 @@ class BKAPIRenderer(JSONRenderer):
             data = {
                 "data": data,
                 "code": self.SUCCESS_CODE,
+                "result": True,
                 "message": self.SUCCESS_MESSAGE,
                 "request_id": local.request_id,
             }
