@@ -100,6 +100,7 @@ func NewMonitorAgent(conf *config.Config, detectType string) (*MonitorAgent, err
 // report agent's heartbeat info.
 func (a *MonitorAgent) Process(instances map[string]dbutil.DataBaseDetect) {
 	var wg sync.WaitGroup
+	startTime := time.Now().Unix()
 	sem := make(chan struct{}, a.MaxConcurrency) // 创建一个有缓冲的通道，容量为 maxConcurrency
 	log.Logger.Debugf("[%s] need to detect instances number:%d", a.DetectType, len(a.DBInstance))
 	for _, ins := range instances {
@@ -112,6 +113,8 @@ func (a *MonitorAgent) Process(instances map[string]dbutil.DataBaseDetect) {
 		}(ins)
 	}
 	wg.Wait()
+	log.Logger.Debugf("[%s] detected instances number:%d ,cost: %d",
+		a.DetectType, len(a.DBInstance), time.Now().Unix()-startTime)
 	a.DetectPostProcess()
 	time.Sleep(time.Second)
 }
@@ -146,6 +149,7 @@ func (a *MonitorAgent) RefreshInstanceCache() {
 
 // DoDetectSingle do single instance detect
 func (a *MonitorAgent) DoDetectSingle(ins dbutil.DataBaseDetect) {
+	startTime := time.Now().Unix()
 	ip, port := ins.GetAddress()
 	log.Logger.Debugf("begin detect [%s] instance:%s#%d", ins.GetClusterType(), ip, port)
 	err := ins.Detection()
@@ -153,7 +157,8 @@ func (a *MonitorAgent) DoDetectSingle(ins dbutil.DataBaseDetect) {
 		log.Logger.Warnf("Detect db instance failed. ins:[%s:%d],dbType:%s status:%s,DeteckErr=%s",
 			ip, port, ins.GetDBType(), ins.GetStatus(), err.Error())
 	}
-	log.Logger.Debugf("finish detect [%s] instance:%s#%d", ins.GetClusterType(), ip, port)
+	log.Logger.Debugf("finish detect [%s] instance:%s#%d , cost: %d", ins.GetClusterType(),
+		ip, port, time.Now().Unix()-startTime)
 
 	a.reportMonitor(ins, err)
 	if ins.NeedReportAgent() {
@@ -175,6 +180,8 @@ func (a *MonitorAgent) DoDetectSingle(ins dbutil.DataBaseDetect) {
 				err.Error(), ip, port, ins.GetDBType(), ins.GetStatus())
 		}
 	}
+	log.Logger.Debugf("finish report [%s] instance:%s#%d , cost: %d", ins.GetClusterType(),
+		ip, port, time.Now().Unix()-startTime)
 }
 
 // DetectPostProcess post agent heartbeat

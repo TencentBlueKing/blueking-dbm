@@ -20,9 +20,10 @@ type TendisplusDetectInstance struct {
 
 // Detection detect tendisplus instance
 func (ins *TendisplusDetectInstance) Detection() error {
+	startTime := time.Now().Unix()
 	err := ins.DoTendisDetection()
+	log.Logger.Debugf("finsh detect instance [%s#%d] ,cost: %d", ins.Ip, ins.Port, time.Now().Unix()-startTime)
 	if err == nil && ins.Status == constvar.DBCheckSuccess {
-		log.Logger.Debugf("tendisplus check ok and return ok . %s#%d", ins.Ip, ins.Port)
 		return nil
 	}
 

@@ -20,9 +20,10 @@ type RedisDetectInstance struct {
 
 // Detection detection api
 func (ins *RedisDetectInstance) Detection() error {
+	startTime := time.Now().Unix()
 	err := ins.DoRedisDetection()
+	log.Logger.Debugf("finsh detect instance [%s#%d] ,cost: %d", ins.Ip, ins.Port, time.Now().Unix()-startTime)
 	if err == nil && ins.Status == constvar.DBCheckSuccess {
-		log.Logger.Debugf("redis check ok and return ok . %s#%d", ins.Ip, ins.Port)
 		return nil
 	}
 

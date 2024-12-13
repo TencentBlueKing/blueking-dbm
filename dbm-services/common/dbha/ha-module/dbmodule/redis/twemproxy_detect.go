@@ -3,6 +3,7 @@ package redis
 import (
 	"encoding/json"
 	"fmt"
+	"time"
 
 	"dbm-services/common/dbha/ha-module/client"
 	"dbm-services/common/dbha/ha-module/config"
@@ -18,9 +19,10 @@ type TwemproxyDetectInstance struct {
 
 // Detection detect twemproxy instance
 func (ins *TwemproxyDetectInstance) Detection() error {
+	startTime := time.Now().Unix()
 	err := ins.DoTwemproxyDetection()
+	log.Logger.Debugf("finsh detect instance [%s#%d] ,cost: %d", ins.Ip, ins.Port, time.Now().Unix()-startTime)
 	if err == nil && ins.Status == constvar.DBCheckSuccess {
-		log.Logger.Debugf("Twemproxy check ok and return ok . %s#%d", ins.Ip, ins.Port)
 		return nil
 	}
 

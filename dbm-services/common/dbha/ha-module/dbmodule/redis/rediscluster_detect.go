@@ -20,9 +20,10 @@ type RedisClusterDetectInstance struct {
 
 // Detection detect tendisplus instance
 func (ins *RedisClusterDetectInstance) Detection() error {
+	startTime := time.Now().Unix()
 	err := ins.DoTendisDetection()
+	log.Logger.Debugf("finsh detect instance [%s#%d] ,cost: %d", ins.Ip, ins.Port, time.Now().Unix()-startTime)
 	if err == nil && ins.Status == constvar.DBCheckSuccess {
-		log.Logger.Debugf("redisC check ok and return ok . %s#%d", ins.Ip, ins.Port)
 		return nil
 	}
 
