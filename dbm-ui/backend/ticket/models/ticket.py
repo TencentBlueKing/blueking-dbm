@@ -276,13 +276,17 @@ class ClusterOperateRecordManager(models.Manager):
         """获取集群正在 运行/失败 的inner flow的单据记录。此时认为集群会在互斥阶段"""
         # 排除特定的单据，如自身单据重试排除自身
         exclude_ticket_ids = kwargs.pop("exclude_ticket_ids", [])
-        return self.filter(
-            cluster_id=cluster_id,
-            flow__flow_type=FlowType.INNER_FLOW,
-            flow__status__in=[TicketFlowStatus.RUNNING, TicketFlowStatus.FAILED],
-            *args,
-            **kwargs,
-        ).exclude(flow__ticket_id__in=exclude_ticket_ids)
+        return (
+            self.select_related("ticket")
+            .filter(
+                cluster_id=cluster_id,
+                flow__flow_type=FlowType.INNER_FLOW,
+                flow__status__in=[TicketFlowStatus.RUNNING, TicketFlowStatus.FAILED],
+                *args,
+                **kwargs,
+            )
+            .exclude(flow__ticket_id__in=exclude_ticket_ids)
+        )
 
     def get_cluster_operations(self, cluster_id, **kwargs):
         """集群上的正在运行的操作列表"""
