@@ -248,7 +248,7 @@ func (i *InitClusterRoutingComp) OnlyInitTdbctl() (err error) {
 	execSQLs = append(execSQLs, "set tc_admin=1;")
 	execSQLs = append(execSQLs, i.getTdbctlRouterSqls()...)
 	execSQLs = append(execSQLs, "tdbctl enable primary;")
-	if _, err := i.tdbCtlConn.ExecMore(execSQLs); err != nil {
+	if _, err = i.tdbCtlConn.ExecMore(execSQLs); err != nil {
 		logger.Error("tdbctl create node failed:[%s]", err.Error())
 		return err
 	}
@@ -286,7 +286,7 @@ func (i *InitClusterRoutingComp) AddAppendDeployInitRouter() (err error) {
 	execSQLs = append(execSQLs, i.getRemoteRouterSqls()...)
 	execSQLs = append(execSQLs, i.getSpiderRouterSqls()...)
 	execSQLs = append(execSQLs, "tdbctl enable primary;")
-	if _, err := i.tdbCtlConn.ExecMore(execSQLs); err != nil {
+	if _, err = i.tdbCtlConn.ExecMore(execSQLs); err != nil {
 		logger.Error("tdbctl create node failed:[%s]", err.Error())
 		return err
 	}

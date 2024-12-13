@@ -16,6 +16,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/jmoiron/sqlx"
+
 	"dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/common/go-pubpkg/logger"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/components"
@@ -47,6 +49,7 @@ type CheckObject struct {
 }
 type tableSchemaCheckCtx struct {
 	tdbCtlConn *native.TdbctlDbWork
+	xconn      *sqlx.Conn
 	version    string
 }
 
@@ -92,16 +95,21 @@ func (r *TableSchemaCheckComp) Init() (err error) {
 		return err
 	}
 	r.tdbCtlConn = &native.TdbctlDbWork{DbWorker: *conn}
+	r.xconn, err = r.tdbCtlConn.GetSqlxDb().Connx(context.Background())
+	if err != nil {
+		logger.Error("get xconn error: %v")
+		return err
+	}
 	// init checksum table schema
 	if _, err = r.tdbCtlConn.ExecMore([]string{"set tc_admin = 0;", "use infodba_schema;",
 		TsccSchemaChecksum}); err != nil {
 		logger.Error("init tscc_schema_checksum error: %v", err)
-		return
+		return err
 	}
 	r.version, err = r.tdbCtlConn.SelectVersion()
 	if err != nil {
 		logger.Error("get version error: %v", err)
-		return
+		return err
 	}
 	return err
 }
@@ -146,18 +154,13 @@ func (r *TableSchemaCheckComp) checkAll() (err error) {
 }
 
 func (r *TableSchemaCheckComp) atomUpdateDbTables(dbName string) (err error) {
-	xconn, err := r.tdbCtlConn.GetSqlxDb().Connx(context.Background())
-	if err != nil {
-		return err
-	}
-	defer xconn.Close()
-	_, err = xconn.ExecContext(context.Background(), "set tc_admin = 1;")
+	_, err = r.xconn.ExecContext(context.Background(), "set tc_admin = 1;")
 	if err != nil {
 		logger.Error("set tc_admin = 1 failed error: %v", err)
 		return err
 	}
 	var result native.SchemaCheckResults
-	if err = xconn.SelectContext(context.Background(), &result, fmt.Sprintf("TDBCTL CHECK DATABASE `%s`;",
+	if err = r.xconn.SelectContext(context.Background(), &result, fmt.Sprintf("TDBCTL CHECK DATABASE `%s`;",
 		dbName)); err != nil {
 		logger.Error("check table schema: %s", err.Error())
 		return err
@@ -193,13 +196,7 @@ func (r *TableSchemaCheckComp) atomUpdateTables(dbName string, tables []string) 
 	if len(tables) == 0 {
 		return nil
 	}
-	xconn, err := r.tdbCtlConn.GetSqlxDb().Connx(context.Background())
-	if err != nil {
-		logger.Error("get sqlx conn failed: %s", err.Error())
-		return err
-	}
-	defer xconn.Close()
-	_, err = xconn.ExecContext(context.Background(), "set tc_admin = 1;")
+	_, err = r.xconn.ExecContext(context.Background(), "set tc_admin = 1;")
 	if err != nil {
 		logger.Error("set tc_admin = 1 failed error: %v", err)
 		return err
@@ -207,7 +204,7 @@ func (r *TableSchemaCheckComp) atomUpdateTables(dbName string, tables []string) 
 	for _, table := range tables {
 		// check table schema
 		var result native.SchemaCheckResults
-		if err = xconn.SelectContext(context.Background(), &result, fmt.Sprintf("tdbctl check `%s`.`%s`;", dbName,
+		if err = r.xconn.SelectContext(context.Background(), &result, fmt.Sprintf("tdbctl check `%s`.`%s`;", dbName,
 			table)); err != nil {
 			logger.Error("check table schema error: %s", err.Error())
 			return err
@@ -221,7 +218,7 @@ func (r *TableSchemaCheckComp) atomUpdateTables(dbName string, tables []string) 
 
 func (r *TableSchemaCheckComp) atomUpdateCheckResult(db, tbl string, inconsistentItems []native.SchemaCheckResult) (
 	err error) {
-	_, err = r.tdbCtlConn.Exec("set tc_admin=0;")
+	_, err = r.xconn.ExecContext(context.TODO(), "set tc_admin=0;")
 	if err != nil {
 		logger.Error("set tc_admin=0 failed error: %v", err)
 		return err
@@ -237,7 +234,8 @@ func (r *TableSchemaCheckComp) atomUpdateCheckResult(db, tbl string, inconsisten
 			return
 		}
 	}
-	if _, err = r.tdbCtlConn.Exec("replace into infodba_schema.tscc_schema_checksum values(?,?,?,?,?)", db,
+	if _, err = r.xconn.ExecContext(context.TODO(), "replace into infodba_schema.tscc_schema_checksum values(?,?,?,?,?)",
+		db,
 		tbl, status,
 		checkResult,
 		time.Now()); err != nil {

@@ -134,14 +134,14 @@ func (c *CheckTdbctlWithSpideSchemaComp) RunCheck() (err error) {
 		for tb := range map1 {
 			if _, exist := map2[tb]; !exist {
 				msg := fmt.Sprintf("%s frm文件在 tdbctl 中不存在,请确认\n", tb)
-				globalErrs = append(globalErrs, fmt.Errorf(msg))
+				globalErrs = append(globalErrs, fmt.Errorf("%s", msg))
 				logger.Error(msg)
 			}
 		}
 		if dbdirSpiderCount != dbdirTdbctlCount {
 			msg := fmt.Sprintf("【%s】库上的表数量不一致,【tdbctl】节点上表总数量:%d, 【spider】节点上表的总数量 count:%d\n", db, dbdirTdbctlCount,
 				dbdirSpiderCount)
-			globalErrs = append(globalErrs, fmt.Errorf(msg))
+			globalErrs = append(globalErrs, fmt.Errorf("%s", msg))
 			logger.Error(msg)
 		}
 		spiderDbSchemaCountMap[db] = dbdirSpiderCount

@@ -659,9 +659,9 @@ func (c *CutOverCtx) getSlaveSpiderServers() (slaveSpiderServers []native.Server
 }
 
 // CheckSpiderAppProcesslist TODO
-func (ctx *CutOverCtx) CheckSpiderAppProcesslist() (err error) {
-	for addr, spider_conn := range ctx.spidersConn {
-		pls, err := spider_conn.ShowApplicationProcesslist(ctx.sysUsers)
+func (c *CutOverCtx) CheckSpiderAppProcesslist() (err error) {
+	for addr, spider_conn := range c.spidersConn {
+		pls, err := spider_conn.ShowApplicationProcesslist(c.sysUsers)
 		if err != nil {
 			return err
 		}
@@ -672,8 +672,8 @@ func (ctx *CutOverCtx) CheckSpiderAppProcesslist() (err error) {
 	return
 }
 
-func (ctx *CutOverCtx) lockaAllSpidersWrite() (err error) {
-	for addr, lockConn := range ctx.spidersLockConn {
+func (c *CutOverCtx) lockaAllSpidersWrite() (err error) {
+	for addr, lockConn := range c.spidersLockConn {
 		_, err = lockConn.ExecContext(context.Background(), "set lock_wait_timeout = 10;")
 		if err != nil {
 			return fmt.Errorf("set lock_wait_timeout at %s failed,err:%w", addr, err)
@@ -693,8 +693,8 @@ func (ctx *CutOverCtx) lockaAllSpidersWrite() (err error) {
 }
 
 // Unlock TODO
-func (ctx *CutOverCtx) Unlock() (err error) {
-	for addr, lockConn := range ctx.spidersLockConn {
+func (c *CutOverCtx) Unlock() (err error) {
+	for addr, lockConn := range c.spidersLockConn {
 		err = cmutil.Retry(cmutil.RetryConfig{
 			Times:     3,
 			DelayTime: 1 * time.Second,

@@ -45,7 +45,6 @@ type TableSchemaRepairParam struct {
 }
 type tableSchemaRepairCtx struct {
 	tdbCtlConn        *native.TdbctlDbWork
-	taskdir           string
 	svrNameServersMap map[SVRNAME]native.Server
 	primarySpts       []native.Server
 	spiderSpts        []native.Server
@@ -108,7 +107,7 @@ func (r *TableSchemaRepairComp) RunAutoFix() (err error) {
 		logger.Error("get abnormal schema checksum failed, err: %v", err)
 		return err
 	}
-	if len(abnormalChecksums) <= 0 {
+	if len(abnormalChecksums) == 0 {
 		logger.Info("no abnormal table structure check record was found,bye~")
 		return nil
 	}
