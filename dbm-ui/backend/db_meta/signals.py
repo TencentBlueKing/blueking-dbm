@@ -31,16 +31,17 @@ def update_cluster_status(sender, instance: Union[StorageInstance, ProxyInstance
     if kwargs.get("signal") == pre_delete and not isinstance(instance, Cluster):
         # 提前删除实例与cluster的关联关系
         cluster = instance.cluster.first()
-        trigger_operate_collector(
-            ClusterType.cluster_type_to_db_type(cluster.cluster_type),
-            instance.machine_type,
-            bk_instance_ids=[instance.bk_instance_id],
-            action=OperateCollectorActionEnum.INSTALL.value,
-        )
-        if cluster and sender == StorageInstance:
-            cluster.storageinstance_set.remove(instance)
-        elif cluster and sender == ProxyInstance:
-            cluster.proxyinstance_set.remove(instance)
+        if cluster:
+            trigger_operate_collector(
+                ClusterType.cluster_type_to_db_type(cluster.cluster_type),
+                instance.machine_type,
+                bk_instance_ids=[instance.bk_instance_id],
+                action=OperateCollectorActionEnum.INSTALL.value,
+            )
+            if sender == StorageInstance:
+                cluster.storageinstance_set.remove(instance)
+            elif sender == ProxyInstance:
+                cluster.proxyinstance_set.remove(instance)
 
     # 仅在实例状态变更时，同步更新集群状态
     if isinstance(instance, Cluster):
