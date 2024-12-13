@@ -177,10 +177,18 @@ class CcManage(object):
         # 查询主机的服务实例
         bk_instance_ids = []
         bk_instance_ids.extend(
-            StorageInstance.objects.filter(machine__bk_host_id__in=bk_host_ids).values("bk_instance_id", flat=True)
+            list(
+                StorageInstance.objects.filter(machine__bk_host_id__in=bk_host_ids).values_list(
+                    "bk_instance_id", flat=True
+                )
+            )
         )
         bk_instance_ids.extend(
-            ProxyInstance.objects.filter(machine__bk_host_id__in=bk_host_ids).values("bk_instance_id", flat=True)
+            list(
+                ProxyInstance.objects.filter(machine__bk_host_id__in=bk_host_ids).values_list(
+                    "bk_instance_id", flat=True
+                )
+            )
         )
 
         # 操作采集器
