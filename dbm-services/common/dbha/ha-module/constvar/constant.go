@@ -359,6 +359,10 @@ const (
 	DBHAEventRiakSwitchSucc = "dbha_riak_switch_ok"
 	// DBHAEventMysqlSwitchErr TODO
 	DBHAEventRiakSwitchErr = "dbha_riak_switch_err"
+	// DBHAEventSQLserverSwitchSucc TODO
+	DBHAEventSQLserverSwitchSucc = "dbha_sqlserver_switch_ok"
+	// DBHAEventSQLserverSwitchErr TODO
+	DBHAEventSQLserverSwitchErr = "dbha_sqlserver_switch_err"
 	// DBHAEventDetectRedisAuth TODO
 	DBHAEventDetectRedisAuth = "dbha_detect_redis_auth_fail"
 	// DBHAEventDetectSSHAuth TODO

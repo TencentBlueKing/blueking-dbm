@@ -30,6 +30,11 @@ type SqlserverSwitch struct {
 	Entry        dbutil.BindEntry
 }
 
+// GetRole get mysql role type
+func (ins *SqlserverSwitch) GetRole() string {
+	return ins.Role
+}
+
 func (ins *SqlserverSwitch) SetStandbySlave(slaves []dbutil.SlaveInfo) {
 	if len(slaves) > 0 {
 		//try to found standby slave

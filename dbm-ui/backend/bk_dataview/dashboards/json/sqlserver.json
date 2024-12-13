@@ -1,14 +1,4 @@
 {
-  "__inputs": [
-    {
-      "name": "DS_蓝鲸监控_- 指标数据",
-      "label": "蓝鲸监控 - 指标数据",
-      "description": "",
-      "type": "datasource",
-      "pluginId": "bkmonitor-timeseries-datasource",
-      "pluginName": "BlueKing Monitor TimeSeries"
-    }
-  ],
   "annotations": {
     "list": [
       {
@@ -48,7 +38,7 @@
       },
       "id": null,
       "panels": [],
-      "title": "核心指标",
+      "title": "key indicators",
       "type": "row"
     },
     {
@@ -179,7 +169,7 @@
           "type": "range"
         }
       ],
-      "title": "CPU消耗",
+      "title": "Total Processor Time",
       "type": "timeseries"
     },
     {
@@ -319,7 +309,7 @@
           "type": "range"
         }
       ],
-      "title": "请求次数/秒",
+      "title": "Requests",
       "type": "timeseries"
     },
     {
@@ -449,7 +439,7 @@
           "type": "range"
         }
       ],
-      "title": "慢查询数/分钟",
+      "title": "Slow queries/min",
       "type": "timeseries"
     },
     {
@@ -579,7 +569,7 @@
           "type": "range"
         }
       ],
-      "title": "总连接数",
+      "title": "Connections",
       "type": "timeseries"
     },
     {
@@ -747,7 +737,7 @@
           "type": "range"
         }
       ],
-      "title": "高速缓存命中率",
+      "title": "Buffer cache hit ratio",
       "type": "timeseries"
     },
     {
@@ -887,7 +877,7 @@
           "type": "range"
         }
       ],
-      "title": "表扫描数/秒",
+      "title": "Full Scans/sec",
       "type": "timeseries"
     },
     {
@@ -1027,7 +1017,7 @@
           "type": "range"
         }
       ],
-      "title": "checkpoint页数/秒",
+      "title": "Checkpoint pages/sec",
       "type": "timeseries"
     },
     {
@@ -1167,7 +1157,7 @@
           "type": "range"
         }
       ],
-      "title": "磁盘读写次数",
+      "title": "Disk Transfers/sec",
       "type": "timeseries"
     },
     {
@@ -1296,7 +1286,7 @@
           "type": "range"
         }
       ],
-      "title": "实例检测状态",
+      "title": "MSSQL Service Available Status",
       "type": "timeseries"
     },
     {
@@ -1446,7 +1436,7 @@
               "type": "range"
             }
           ],
-          "title": "锁请求数/秒",
+          "title": "Lock Requests/sec",
           "type": "timeseries"
         },
         {
@@ -1575,7 +1565,7 @@
               "type": "range"
             }
           ],
-          "title": "死锁请求数/秒",
+          "title": "Number of deadlocks/sec",
           "type": "timeseries"
         },
         {
@@ -1704,7 +1694,7 @@
               "type": "range"
             }
           ],
-          "title": "等待锁进程数",
+          "title": "Lock Waits/sec",
           "type": "timeseries"
         },
         {
@@ -1844,11 +1834,11 @@
               "type": "range"
             }
           ],
-          "title": "闩锁请求数/秒",
+          "title": "Latch Waits/sec",
           "type": "timeseries"
         }
       ],
-      "title": "阻塞&锁",
+      "title": "Blocking & Locks",
       "type": "row"
     },
     {
@@ -1998,7 +1988,7 @@
               "type": "range"
             }
           ],
-          "title": "重编译次数/秒",
+          "title": "SQL Re-Compilations/sec",
           "type": "timeseries"
         },
         {
@@ -2138,7 +2128,7 @@
               "type": "range"
             }
           ],
-          "title": "编译数/秒",
+          "title": "SQL Compilations/sec",
           "type": "timeseries"
         },
         {
@@ -2278,7 +2268,7 @@
               "type": "range"
             }
           ],
-          "title": "活动事务数/秒",
+          "title": "Transactions/sec",
           "type": "timeseries"
         },
         {
@@ -2407,7 +2397,7 @@
               "type": "range"
             }
           ],
-          "title": "等待网络I/O次数",
+          "title": "Network IO waits",
           "type": "timeseries"
         },
         {
@@ -2547,7 +2537,7 @@
               "type": "range"
             }
           ],
-          "title": "表扫描数/秒",
+          "title": "Full Scans/sec",
           "type": "timeseries"
         },
         {
@@ -2687,7 +2677,7 @@
               "type": "range"
             }
           ],
-          "title": "错误数/秒",
+          "title": "User Error/sec",
           "type": "timeseries"
         },
         {
@@ -2853,11 +2843,11 @@
               "type": "range"
             }
           ],
-          "title": "执行计划缓存命中率",
+          "title": "Plan Cache:Cache Hit Ratio",
           "type": "timeseries"
         }
       ],
-      "title": "编译&扫描",
+      "title": "Compilation & Scan",
       "type": "row"
     },
     {
@@ -2996,7 +2986,7 @@
               "type": "range"
             }
           ],
-          "title": "总连接数",
+          "title": "Connections",
           "type": "timeseries"
         },
         {
@@ -3125,7 +3115,7 @@
               "type": "range"
             }
           ],
-          "title": "阻塞进程数",
+          "title": "Processes blocked",
           "type": "timeseries"
         },
         {
@@ -3265,7 +3255,7 @@
               "type": "range"
             }
           ],
-          "title": "每秒登陆数",
+          "title": "Logins/sec",
           "type": "timeseries"
         },
         {
@@ -3405,7 +3395,7 @@
               "type": "range"
             }
           ],
-          "title": "每秒注销数",
+          "title": "Logouts/sec",
           "type": "timeseries"
         },
         {
@@ -3541,7 +3531,7 @@
               "type": "range"
             }
           ],
-          "title": "实例总内存数(G)",
+          "title": "Server memory(GB)",
           "type": "timeseries"
         },
         {
@@ -3677,11 +3667,11 @@
               "type": "range"
             }
           ],
-          "title": "实例使用内存数(G)",
+          "title": "Server Used Memory(GB)",
           "type": "timeseries"
         }
       ],
-      "title": "进程管理",
+      "title": "Process Management",
       "type": "row"
     },
     {
@@ -3831,7 +3821,7 @@
               "type": "range"
             }
           ],
-          "title": "刷新磁盘页数/秒",
+          "title": "Checkpoint pages/sec",
           "type": "timeseries"
         },
         {
@@ -3971,7 +3961,7 @@
               "type": "range"
             }
           ],
-          "title": "缓冲池中停留秒数",
+          "title": "Page Life Expectancy",
           "type": "timeseries"
         },
         {
@@ -4110,7 +4100,7 @@
               "type": "range"
             }
           ],
-          "title": "物理页读取次数/秒",
+          "title": "Page Reads/sec",
           "type": "timeseries"
         },
         {
@@ -4249,7 +4239,7 @@
               "type": "range"
             }
           ],
-          "title": "物理页写入次数/秒",
+          "title": "Page Writes/sec",
           "type": "timeseries"
         },
         {
@@ -4415,7 +4405,7 @@
               "type": "range"
             }
           ],
-          "title": "高速缓存命中率",
+          "title": "Buffer cache hit ratio",
           "type": "timeseries"
         },
         {
@@ -4544,11 +4534,11 @@
               "type": "range"
             }
           ],
-          "title": "缓冲区写入次数/秒",
+          "title": "Lazy Writes/sec",
           "type": "timeseries"
         }
       ],
-      "title": "缓存管理",
+      "title": "Cache Management",
       "type": "row"
     },
     {
@@ -4687,7 +4677,7 @@
               "type": "range"
             }
           ],
-          "title": "数据库总大小(GB)",
+          "title": "Database MDF Size(GB)",
           "type": "timeseries"
         },
         {
@@ -4816,7 +4806,7 @@
               "type": "range"
             }
           ],
-          "title": "数据库最大日志文件大小(GB)",
+          "title": "Database LDF Size(GB)",
           "type": "timeseries"
         },
         {
@@ -4945,7 +4935,7 @@
               "type": "range"
             }
           ],
-          "title": "实例所在磁盘总空间",
+          "title": "Disk Total",
           "type": "timeseries"
         },
         {
@@ -5074,7 +5064,7 @@
               "type": "range"
             }
           ],
-          "title": "实例所在磁盘使用空间",
+          "title": "Disk Used Size(GB)",
           "type": "timeseries"
         },
         {
@@ -5240,11 +5230,11 @@
               "type": "range"
             }
           ],
-          "title": "实例所在磁盘使用率",
+          "title": "Disk Usage",
           "type": "timeseries"
         }
       ],
-      "title": "空间使用",
+      "title": "Storage Management",
       "type": "row"
     },
     {
@@ -5383,7 +5373,7 @@
               "type": "range"
             }
           ],
-          "title": "出流量(KB)",
+          "title": "MSSQL Out traffic(KB)",
           "type": "timeseries"
         },
         {
@@ -5512,7 +5502,7 @@
               "type": "range"
             }
           ],
-          "title": "入流量(KB)",
+          "title": "MSSQL In traffic(KB)",
           "type": "timeseries"
         },
         {
@@ -5641,7 +5631,7 @@
               "type": "range"
             }
           ],
-          "title": "读取等待时间(毫秒)",
+          "title": "Read IO Wait Time(ms)",
           "type": "timeseries"
         },
         {
@@ -5770,7 +5760,7 @@
               "type": "range"
             }
           ],
-          "title": "写入等待时间(毫秒)",
+          "title": "Write IO Wait Time(ms)",
           "type": "timeseries"
         },
         {
@@ -5899,7 +5889,7 @@
               "type": "range"
             }
           ],
-          "title": "文件读取次数",
+          "title": "Disk Read IOPS",
           "type": "timeseries"
         },
         {
@@ -6028,7 +6018,7 @@
               "type": "range"
             }
           ],
-          "title": "文件写入次数",
+          "title": "Disk Write IOPS",
           "type": "timeseries"
         },
         {
@@ -6157,11 +6147,11 @@
               "type": "range"
             }
           ],
-          "title": "文件读写总次数",
+          "title": "Disk IOPS",
           "type": "timeseries"
         }
       ],
-      "title": "文件读写",
+      "title": "Disk IO",
       "type": "row"
     },
     {
@@ -6955,7 +6945,7 @@
           "type": "timeseries"
         }
       ],
-      "title": "同步延迟",
+      "title": "Database Synchronization Management",
       "type": "row"
     },
     {
@@ -7076,7 +7066,7 @@
               "valueHandler": "Number Threshold"
             }
           ],
-          "title": "CPU总核数",
+          "title": "CPU Cores",
           "type": "stat"
         },
         {
@@ -7205,7 +7195,7 @@
               "type": "range"
             }
           ],
-          "title": "CPU剩余核数",
+          "title": "Available CPU cores",
           "type": "timeseries"
         },
         {
@@ -7309,7 +7299,7 @@
               "type": "range"
             }
           ],
-          "title": "物理总内存",
+          "title": "Total Memory",
           "type": "stat"
         },
         {
@@ -7438,11 +7428,11 @@
               "type": "range"
             }
           ],
-          "title": "物理未分配内存",
+          "title": "Free Memory(GB)",
           "type": "timeseries"
         }
       ],
-      "title": "系统参数",
+      "title": "System Overview",
       "type": "row"
     },
     {
@@ -7581,7 +7571,7 @@
               "type": "range"
             }
           ],
-          "title": "定时作业失败数",
+          "title": "Number of Job Failures",
           "type": "timeseries"
         },
         {
@@ -7710,7 +7700,7 @@
               "type": "range"
             }
           ],
-          "title": "数据库快照失败数",
+          "title": "Number of Snapshot_Deploy_Job Failures",
           "type": "timeseries"
         },
         {
@@ -7839,7 +7829,7 @@
               "type": "range"
             }
           ],
-          "title": "完整备份失败数",
+          "title": "Number of Full_Backup_Job Failures",
           "type": "timeseries"
         },
         {
@@ -7968,11 +7958,11 @@
               "type": "range"
             }
           ],
-          "title": "日志备份失败数",
+          "title": "Number of Log_Backup_Job Failures",
           "type": "timeseries"
         }
       ],
-      "title": "任务失败汇总",
+      "title": "Summary of Job Failures",
       "type": "row"
     }
   ],
@@ -8032,7 +8022,7 @@
         "definition": "- Blueking Monitor - 维度",
         "hide": 0,
         "includeAll": false,
-        "label": "集群域名",
+        "label": "cluster_domain",
         "multi": true,
         "name": "cluster_domain",
         "options": [],
@@ -8074,6 +8064,6 @@
   "timezone": "default",
   "title": "Mssql-Instance",
   "uid": "r5IAkJIIz",
-  "version": 137,
+  "version": 138,
   "weekStart": ""
 }

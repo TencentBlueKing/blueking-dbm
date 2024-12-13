@@ -211,6 +211,12 @@ func GetMonitorInfoBySwitch(ins dbutil.DataBaseSwitch, succ bool) MonitorInfo {
 		} else {
 			eventName = constvar.DBHAEventRiakSwitchErr
 		}
+	case constvar.SqlserverHA:
+		if succ {
+			eventName = constvar.DBHAEventSQLserverSwitchSucc
+		} else {
+			eventName = constvar.DBHAEventSQLserverSwitchErr
+		}
 	default:
 		if succ {
 			eventName = constvar.DBHAEventMysqlSwitchSucc
