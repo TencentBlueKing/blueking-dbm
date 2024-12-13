@@ -75,6 +75,8 @@ class CheckAppSettingData(object):
         if status:
             is_fix = 1
         SqlserverCheckAppSettingReport.objects.create(
+            bk_cloud_id=cluster.bk_cloud_id,
+            bk_biz_id=cluster.bk_biz_id,
             cluster=cluster.name,
             cluster_type=cluster.cluster_type,
             instance_host=instance.machine.ip,
@@ -132,6 +134,8 @@ class CheckAppSettingData(object):
             msg = "fix successfully"
 
         SqlserverCheckAppSettingReport.objects.create(
+            bk_cloud_id=cluster.bk_cloud_id,
+            bk_biz_id=cluster.bk_biz_id,
             cluster=cluster.name,
             cluster_type=cluster.cluster_type,
             instance_host=instance.machine.ip,
@@ -156,6 +160,8 @@ class CheckAppSettingData(object):
             if data is None:
                 # 如果返回是空则,则大概率是访问异常，录入异常信息,跳过这次的校验
                 SqlserverCheckAppSettingReport.objects.create(
+                    bk_cloud_id=cluster.bk_cloud_id,
+                    bk_biz_id=cluster.bk_biz_id,
                     cluster=cluster.name,
                     cluster_type=cluster.cluster_type,
                     instance_host=instance.machine.ip,
@@ -201,6 +207,8 @@ class CheckAppSettingData(object):
         )
         if not status:
             SqlserverCheckUserSyncReport.objects.create(
+                bk_cloud_id=cluster.bk_cloud_id,
+                bk_biz_id=cluster.bk_biz_id,
                 cluster=cluster.name,
                 cluster_type=cluster.cluster_type,
                 instance_host=slave_instance.machine.ip,
@@ -224,6 +232,8 @@ class CheckAppSettingData(object):
         )
         if not status:
             SqlserverCheckJobSyncReport.objects.create(
+                bk_cloud_id=cluster.bk_cloud_id,
+                bk_biz_id=cluster.bk_biz_id,
                 cluster=cluster.name,
                 cluster_type=cluster.cluster_type,
                 instance_host=slave_instance.machine.ip,
@@ -247,6 +257,8 @@ class CheckAppSettingData(object):
         )
         if not status:
             SqlserverCheckLinkServerReport.objects.create(
+                bk_cloud_id=cluster.bk_cloud_id,
+                bk_biz_id=cluster.bk_biz_id,
                 cluster=cluster.name,
                 cluster_type=cluster.cluster_type,
                 instance_host=slave_instance.machine.ip,
@@ -265,6 +277,8 @@ class CheckAppSettingData(object):
             if not status:
                 # 只有异常才记录
                 SqlserverCheckSysJobStatuReport.objects.create(
+                    bk_cloud_id=cluster.bk_cloud_id,
+                    bk_biz_id=cluster.bk_biz_id,
                     cluster=cluster.name,
                     cluster_type=cluster.cluster_type,
                     instance_host=instance.machine.ip,

@@ -818,7 +818,10 @@ def check_sys_job_status(cluster: Cluster, instance: StorageInstance):
     """
     获取实例的系统JOB状态信息
     """
-    sql = "select name, enabled from msdb.dbo.sysjobs where name like 'TC_%'"
+    sql = (
+        "select name, enabled from msdb.dbo.sysjobs where name like 'TC_%' and name "
+        "not in('TC_SNAPSHOT_DAY','TC_SNAPSHOT_ONE','TC_REPORT_LOAD')"
+    )
     ret = base_sqlserver_drs(bk_cloud_id=cluster.bk_cloud_id, instances=[instance.ip_port], sqls=[sql])
     msg = ""
     if ret[0]["error_msg"]:
