@@ -109,7 +109,6 @@
   const tableRef = useTemplateRef('table');
   const isSubmiting = ref(false);
   const isLoading = ref(false);
-  let data = 0;
 
   const dataModel = reactive([
     createData(),
@@ -130,20 +129,12 @@
   const rules = {
     name: [
       {
-        validator: (value: string) => {
-          data += 1;
-          console.log('change validator name = ', value, data);
-          return Boolean(value);
-        },
+        validator: (value: string) => Boolean(value),
         message: '错了',
         trigger: 'change',
       },
       {
-        validator: (value: string) => {
-          data += 2;
-          console.log('blur validator name = ', value, data);
-          return Boolean(value);
-        },
+        validator: (value: string) => Boolean(value),
         message: '错了',
         trigger: 'blur',
       },
@@ -162,12 +153,11 @@
   };
 
   const handelNameChange = () => {
-    isLoading.value = true;
-    console.log('handelNameChange');
-    setTimeout(() => {
-      isLoading.value = false;
-      data += 1000;
-    }, 0);
+    // isLoading.value = true;
+    // console.log('handelNameChange');
+    // setTimeout(() => {
+    //   isLoading.value = false;
+    // }, 0);
   };
   const handleChange = (value: string) => {
     console.log(value);

@@ -44,13 +44,13 @@
 </template>
 <script setup lang="ts" generic="T extends Record<string, any>">
   import _ from 'lodash';
-  import { useTemplateRef } from 'vue';
+  import { nextTick, useTemplateRef } from 'vue';
   import { useI18n } from 'vue-i18n';
 
-  import { Column } from '@components/editable-table/Index.vue';
+  import { Column, useTable } from '@components/editable-table/Index.vue';
 
   const props = defineProps<{
-    createRowMethod: () => T;
+    createRowMethod?: () => T;
   }>();
 
   const tableData = defineModel<T[]>('tableData', {
@@ -59,13 +59,20 @@
 
   const { t } = useI18n();
 
+  const editTableContext = useTable();
   const columnRef = useTemplateRef('column');
+
   const isRemoveable = computed(() => tableData.value.length > 1);
 
   const handleAppend = () => {
     const rowIndex = columnRef.value!.getRowIndex();
-    if (rowIndex > -1) {
-      tableData.value.splice(rowIndex, 0, props.createRowMethod());
+    const newRowIndex = rowIndex + 1;
+
+    if (newRowIndex > 0) {
+      tableData.value.splice(newRowIndex, 0, props.createRowMethod!());
+      nextTick(() => {
+        editTableContext!.validateByRowIndex(newRowIndex);
+      });
     }
   };
 
@@ -82,8 +89,13 @@
   const handleClone = () => {
     const rowIndex = columnRef.value!.getRowIndex();
 
-    if (rowIndex > -1) {
-      tableData.value.splice(rowIndex, 0, _.cloneDeep(tableData.value[rowIndex]));
+    const newRowIndex = rowIndex + 1;
+
+    if (rowIndex > 0) {
+      tableData.value.splice(newRowIndex, 0, _.cloneDeep(tableData.value[rowIndex]));
+      nextTick(() => {
+        editTableContext!.validateByRowIndex(newRowIndex);
+      });
     }
   };
 </script>

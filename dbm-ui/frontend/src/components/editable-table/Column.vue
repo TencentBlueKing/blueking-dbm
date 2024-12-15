@@ -4,11 +4,13 @@
     ref="rootRef"
     class="bk-editable-table-body-column"
     :class="{
+      [`fixed-${fixed}-column`]: fixed,
       'is-focused': isFocused,
       'is-error': validateState.isError,
       'is-disabled': Boolean(disabledTips),
-      [`is-column-fixed-${fixed}`]: fixed,
       'is-previous-sibling-rowspan': isPreviousSiblingRowspan,
+      'is-fixed':
+        (fixed === 'left' && tableContext?.fixedLeft.value) || (fixed === 'right' && tableContext?.fixedRight.value),
     }"
     :data-name="columnKey"
     :rowspan="rowspan">
@@ -402,24 +404,24 @@
     }
 
     return new Promise((resolve, reject) => {
-      const delay = Math.max(Number(tableContext.props.validateDelay || 200), 0);
+      const delay = Math.max(Number(tableContext.props.validateDelay || 200), 200);
       setTimeout(() => {
         if (trigger === undefined) {
-          if (triggerQueue.length > 1) {
-            triggerQueue.pop();
+          triggerQueue.pop();
+          if (triggerQueue.length > 0) {
             return reject(false);
           }
         }
+
         // 处理 change 和 blur 触发器
         if (trigger === 'change' || trigger === 'blur') {
           const latestQueue = trigger === 'change' ? triggerChangeQueue : triggerBlurQueue;
-          if (triggerQueue.length > 0 || latestQueue.length > 1) {
-            latestQueue.pop();
-            return resolve(true);
-          }
           latestQueue.pop();
+          if (triggerQueue.length > 0 || latestQueue.length > 0) {
+            return reject(false);
+          }
         }
-        triggerQueue.pop();
+
         return resolve(doValidate());
       }, delay);
     });
@@ -490,16 +492,18 @@
   @error-z-index: 101;
   @fixed-error-z-index: 121;
 
+  @keyframes editable-table-column-loading {
+    0% {
+      transform: rotateZ(0);
+    }
+
+    100% {
+      transform: rotateZ(360deg);
+    }
+  }
+
   .bk-editable-table {
     td.bk-editable-table-body-column {
-      &.is-focused {
-        z-index: @focus-z-index;
-
-        &::before {
-          border-color: #3a84ff;
-        }
-      }
-
       &.is-disabled {
         .bk-editable-table-field-cell {
           &::after {
@@ -526,20 +530,27 @@
         }
       }
 
+      &.is-focused {
+        z-index: @focus-z-index;
+
+        &::before {
+          border-color: #3a84ff;
+        }
+      }
+
       &.is-previous-sibling-rowspan {
         &::before {
           left: -1px;
         }
       }
 
-      &.is-column-fixed-left,
-      &.is-column-fixed-right {
-        &.is-focused {
-          z-index: @fixed-focus-z-index;
-        }
-
+      &.is-fixed {
         &.is-error {
           z-index: @fixed-error-z-index;
+        }
+
+        &.is-focused {
+          z-index: @fixed-focus-z-index;
         }
       }
     }
@@ -564,16 +575,6 @@
     color: #ea3636;
     align-items: center;
     transform: translateY(-50%);
-  }
-
-  @keyframes editable-table-column-loading {
-    0% {
-      transform: rotateZ(0);
-    }
-
-    100% {
-      transform: rotateZ(360deg);
-    }
   }
 
   .bk-editable-table-column-loading {
