@@ -188,57 +188,65 @@
   }, 30);
 
   const validate = () =>
-    Promise.all(_.flatten(rowList.value).map((column) => column.validate())).then(
-      () => true,
-      () => false,
+    Promise.resolve().then(() =>
+      Promise.all(_.flatten(rowList.value).map((column) => column.validate())).then(
+        () => true,
+        () => false,
+      ),
     );
-  const validateByRowIndex = (rowIndex: number | number[]) => {
-    const rowIndexList = Array.isArray(rowIndex) ? rowIndex : [rowIndex];
 
-    const columnList = rowIndexList.reduce<IColumnContext[]>((result, index) => {
-      result.push(...rowList.value[index]);
-      return result;
-    }, []);
+  const validateByRowIndex = (rowIndex: number | number[]) =>
+    Promise.resolve().then(() => {
+      const rowIndexList = Array.isArray(rowIndex) ? rowIndex : [rowIndex];
 
-    return Promise.all(columnList.map((column) => column.validate())).then(
-      () => true,
-      () => false,
-    );
-  };
-  const validateByColumnIndex = (columnIndex: number | number[]) => {
-    const columnIndexList = Array.isArray(columnIndex) ? columnIndex : [columnIndex];
+      const columnList = rowIndexList.reduce<IColumnContext[]>((result, index) => {
+        result.push(...rowList.value[index]);
+        return result;
+      }, []);
 
-    const columnList = rowList.value.reduce((result, rowItem) => {
-      columnIndexList.forEach((index) => {
-        result.push(rowItem[index]);
-      });
-      return result;
-    }, []);
+      return Promise.all(columnList.map((column) => column.validate())).then(
+        () => true,
+        () => false,
+      );
+    });
 
-    return Promise.all(columnList.map((column) => column.validate())).then(
-      () => true,
-      () => false,
-    );
-  };
-  const validateByField = (field: string | string[]) => {
-    const fieldList = Array.isArray(field) ? field : [field];
+  const validateByColumnIndex = (columnIndex: number | number[]) =>
+    Promise.resolve().then(() => {
+      const columnIndexList = Array.isArray(columnIndex) ? columnIndex : [columnIndex];
 
-    const columnList = rowList.value.reduce((result, rowItem) => {
-      fieldList.forEach((field) => {
-        rowItem.forEach((column) => {
-          if (column.props.field && column.props.field === field) {
-            result.push(column);
-          }
+      const columnList = rowList.value.reduce((result, rowItem) => {
+        columnIndexList.forEach((index) => {
+          result.push(rowItem[index]);
         });
-      });
-      return result;
-    }, []);
+        return result;
+      }, []);
 
-    return Promise.all(columnList.map((column) => column.validate())).then(
-      () => true,
-      () => false,
-    );
-  };
+      return Promise.all(columnList.map((column) => column.validate())).then(
+        () => true,
+        () => false,
+      );
+    });
+
+  const validateByField = (field: string | string[]) =>
+    Promise.resolve().then(() => {
+      const fieldList = Array.isArray(field) ? field : [field];
+
+      const columnList = rowList.value.reduce((result, rowItem) => {
+        fieldList.forEach((field) => {
+          rowItem.forEach((column) => {
+            if (column.props.field && column.props.field === field) {
+              result.push(column);
+            }
+          });
+        });
+        return result;
+      }, []);
+
+      return Promise.all(columnList.map((column) => column.validate())).then(
+        () => true,
+        () => false,
+      );
+    });
 
   provide(tableInjectKey, {
     props,
