@@ -49,7 +49,16 @@
 </template>
 <script lang="ts">
   import _ from 'lodash';
-  import { type ComponentInternalInstance, type InjectionKey, provide, ref, shallowRef, type VNode, watch } from 'vue';
+  import {
+    type ComponentInternalInstance,
+    type InjectionKey,
+    provide,
+    type Ref,
+    ref,
+    shallowRef,
+    type VNode,
+    watch,
+  } from 'vue';
 
   import Column, { type IContext as IColumnContext } from './Column.vue';
   import RenderHeader from './component/render-header/Index.vue';
@@ -65,15 +74,16 @@
   import Row from './Row.vue';
   import { type IRule } from './types';
   import useColumn from './useColumn';
+  import useTable from './useTable';
 
   /* eslint-disable vue/no-unused-properties */
-  interface Props {
+  export interface Props {
     model: Record<string, any>[];
     rules?: Record<string, IRule[]>;
     validateDelay?: number;
   }
 
-  interface Emits {
+  export interface Emits {
     (e: 'validate', property: string, result: boolean, message: string): boolean;
   }
 
@@ -81,24 +91,28 @@
     default: () => VNode;
   }
 
-  interface Expose {
+  export interface Expose {
     validate: () => Promise<boolean>;
     validateByRowIndex: (row: number | number[]) => Promise<boolean>;
     validateByColumnIndex: (row: number | number[]) => Promise<boolean>;
     validateByField: (row: string | string[]) => Promise<boolean>;
   }
 
-  export const tableInjectKey: InjectionKey<{
-    props: Props;
-    emits: Emits;
-    registerRow: (rowColumnList: IColumnContext[]) => void;
-    updateRow: () => void;
-    unregisterRow: (rowColumnList: IColumnContext[]) => void;
-    getAllColumnList: () => IColumnContext[][];
-    getColumnRelateRowIndexByInstance: (columnInstance: ComponentInternalInstance) => number;
-  }> = Symbol.for('bk-editable-table');
+  export const tableInjectKey: InjectionKey<
+    {
+      props: Props;
+      emits: Emits;
+      fixedRight: Ref<boolean>;
+      fixedLeft: Ref<boolean>;
+      registerRow: (rowColumnList: IColumnContext[]) => void;
+      updateRow: () => void;
+      unregisterRow: (rowColumnList: IColumnContext[]) => void;
+      getAllColumnList: () => IColumnContext[][];
+      getColumnRelateRowIndexByInstance: (columnInstance: ComponentInternalInstance) => number;
+    } & Expose
+  > = Symbol.for('bk-editable-table');
 
-  export { Block, Column, DatePicker, Input, Row, Select, TagInput, Textarea, TimePicker, useColumn };
+  export { Block, Column, DatePicker, Input, Row, Select, TagInput, Textarea, TimePicker, useColumn, useTable };
 </script>
 <script setup lang="ts">
   const props = defineProps<Props>();
@@ -122,7 +136,7 @@
   const isShowScrollX = ref(true);
 
   const { handleMouseDown, handleMouseMove, columnSizeConfig } = useResize(tableRef, resizePlaceholderRef, columnList);
-  const { leftFixedStyles, rightFixedStyles, initalScroll } = useScroll(tableRef);
+  const { leftFixedStyles, rightFixedStyles, initalScroll, fixedLeft, fixedRight } = useScroll(tableRef);
 
   watch(
     columnSizeConfig,
@@ -164,16 +178,6 @@
       _.some(rowColumnList, (column) => column.instance === columnInstance),
     );
 
-  provide(tableInjectKey, {
-    props,
-    emits,
-    registerRow,
-    updateRow,
-    unregisterRow,
-    getAllColumnList: () => rowList.value,
-    getColumnRelateRowIndexByInstance,
-  });
-
   const handleScrollX = _.throttle((event: Event) => {
     tableRef.value!.scrollLeft = (event.target as Element)!.scrollLeft;
   }, 30);
@@ -183,60 +187,80 @@
     tableRef.value?.click();
   }, 30);
 
+  const validate = () =>
+    Promise.all(_.flatten(rowList.value).map((column) => column.validate())).then(
+      () => true,
+      () => false,
+    );
+  const validateByRowIndex = (rowIndex: number | number[]) => {
+    const rowIndexList = Array.isArray(rowIndex) ? rowIndex : [rowIndex];
+
+    const columnList = rowIndexList.reduce<IColumnContext[]>((result, index) => {
+      result.push(...rowList.value[index]);
+      return result;
+    }, []);
+
+    return Promise.all(columnList.map((column) => column.validate())).then(
+      () => true,
+      () => false,
+    );
+  };
+  const validateByColumnIndex = (columnIndex: number | number[]) => {
+    const columnIndexList = Array.isArray(columnIndex) ? columnIndex : [columnIndex];
+
+    const columnList = rowList.value.reduce((result, rowItem) => {
+      columnIndexList.forEach((index) => {
+        result.push(rowItem[index]);
+      });
+      return result;
+    }, []);
+
+    return Promise.all(columnList.map((column) => column.validate())).then(
+      () => true,
+      () => false,
+    );
+  };
+  const validateByField = (field: string | string[]) => {
+    const fieldList = Array.isArray(field) ? field : [field];
+
+    const columnList = rowList.value.reduce((result, rowItem) => {
+      fieldList.forEach((field) => {
+        rowItem.forEach((column) => {
+          if (column.props.field && column.props.field === field) {
+            result.push(column);
+          }
+        });
+      });
+      return result;
+    }, []);
+
+    return Promise.all(columnList.map((column) => column.validate())).then(
+      () => true,
+      () => false,
+    );
+  };
+
+  provide(tableInjectKey, {
+    props,
+    emits,
+    fixedLeft,
+    fixedRight,
+    registerRow,
+    updateRow,
+    unregisterRow,
+    getAllColumnList: () => rowList.value,
+    getColumnRelateRowIndexByInstance,
+    validate,
+    validateByRowIndex,
+    validateByColumnIndex,
+    validateByField,
+  });
+
   defineExpose<Expose>({
-    validate() {
-      return Promise.all(_.flatten(rowList.value).map((column) => column.validate())).then(
-        () => true,
-        () => false,
-      );
-    },
-    validateByRowIndex(rowIndex: number | number[]) {
-      const rowIndexList = Array.isArray(rowIndex) ? rowIndex : [rowIndex];
-
-      const columnList = rowIndexList.reduce<IColumnContext[]>((result, index) => {
-        result.push(...rowList.value[index]);
-        return result;
-      }, []);
-
-      return Promise.all(columnList.map((column) => column.validate())).then(
-        () => true,
-        () => false,
-      );
-    },
-    validateByColumnIndex(columnIndex: number | number[]) {
-      const columnIndexList = Array.isArray(columnIndex) ? columnIndex : [columnIndex];
-
-      const columnList = rowList.value.reduce((result, rowItem) => {
-        columnIndexList.forEach((index) => {
-          result.push(rowItem[index]);
-        });
-        return result;
-      }, []);
-
-      return Promise.all(columnList.map((column) => column.validate())).then(
-        () => true,
-        () => false,
-      );
-    },
-    validateByField(field: string | string[]) {
-      const fieldList = Array.isArray(field) ? field : [field];
-
-      const columnList = rowList.value.reduce((result, rowItem) => {
-        fieldList.forEach((field) => {
-          rowItem.forEach((column) => {
-            if (column.props.field && column.props.field === field) {
-              result.push(column);
-            }
-          });
-        });
-        return result;
-      }, []);
-
-      return Promise.all(columnList.map((column) => column.validate())).then(
-        () => true,
-        () => false,
-      );
-    },
+    validate,
+    validateByRowIndex,
+    validateByColumnIndex,
+    validateByField,
   });
 </script>
 <style lang="less">
@@ -306,12 +330,12 @@
         }
       }
 
-      &.is-column-fixed-left {
+      &.fixed-left-column {
         position: sticky;
         left: 0;
       }
 
-      &.is-column-fixed-right {
+      &.fixed-right-column {
         position: sticky;
         right: 0;
       }
@@ -322,8 +346,8 @@
       color: #313238;
       background-color: #fafbfd;
 
-      &.is-column-fixed-left,
-      &.is-column-fixed-right {
+      &.fixed-left-column,
+      &.fixed-right-column {
         z-index: 9;
         background-color: #fafbfd;
       }
@@ -336,8 +360,7 @@
     td {
       padding: 0;
 
-      &.is-column-fixed-left,
-      &.is-column-fixed-right {
+      &.is-fixed {
         z-index: @fixed-column-z-index;
         background: #fff;
       }
