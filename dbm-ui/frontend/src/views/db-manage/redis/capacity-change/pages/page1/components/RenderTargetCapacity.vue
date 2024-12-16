@@ -174,10 +174,16 @@
     return convertStorageUnits(props.rowData.clusterStats.total, 'B', 'GB');
   });
 
-  watchEffect(() => {
-    localValue.cluster_shard_num = props.rowData?.shardNum || 0;
-    localValue.machine_pair = props.rowData?.groupNum || 0;
-  });
+  watch(
+    () => props.rowData,
+    (newData, oldData) => {
+      if (newData?.clusterId && newData?.clusterId === oldData?.clusterId) {
+        return;
+      }
+      localValue.cluster_shard_num = props.rowData?.shardNum || 0;
+      localValue.machine_pair = props.rowData?.groupNum || 0;
+    },
+  );
 
   const rules = [
     {

@@ -58,7 +58,6 @@
                 <span class="info-title">{{ t('磁盘') }}：</span>
                 <span class="info-value">
                   <DbOriginalTable
-                    :border="['row', 'col', 'outer']"
                     class="custom-edit-table mt-8"
                     :columns="columns"
                     :data="item.storage_spec" />
