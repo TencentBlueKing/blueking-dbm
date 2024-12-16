@@ -6,6 +6,7 @@
     fixed="left"
     :label="t('目标集群')"
     :loading="isLoading"
+    :min-width="500"
     required>
     <template #headAppend>
       <BkButton
@@ -21,12 +22,13 @@
     <ClusterSelector
       v-model:is-show="isShowClusterSelector"
       :cluster-types="[ClusterTypes.MONGO_SHARED_CLUSTER, ClusterTypes.MONGO_REPLICA_SET]"
-      :selected="selectedClusters"
+      :selected="seletcedClusters"
       @change="handelClusterChange" />
   </EditableTableColumn>
 </template>
 
 <script setup lang="ts">
+  import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
 
   import MongodbModel from '@services/model/mongodb/mongodb';
@@ -38,15 +40,28 @@
   import ClusterSelector from '@components/cluster-selector/Index.vue';
   import { Column as EditableTableColumn, Input as EditInput } from '@components/editable-table/Index.vue';
 
+  type MappedProps = {
+    [K in keyof Props['selected']]: MongodbModel[];
+  };
+
+  interface Props {
+    selected: {
+      [ClusterTypes.MONGO_REPLICA_SET]: {
+        id: number;
+        master_domain: string;
+      }[];
+      [ClusterTypes.MONGO_SHARED_CLUSTER]: {
+        id: number;
+        master_domain: string;
+      }[];
+    };
+  }
+
   interface Emits {
     (e: 'batch-edit', value: MongodbModel[]): void;
   }
 
-  interface Exposes {
-    setSelectedCluster: (clusterType: string, domain: string) => void;
-    resetSelectedCluster: () => void;
-  }
-
+  const props = defineProps<Props>();
   const emits = defineEmits<Emits>();
 
   const modelValue = defineModel<Partial<ServiceReturnType<typeof filterClusters>[number]>>({
@@ -63,7 +78,7 @@
     },
     {
       validator: () => Boolean(modelValue.value.id),
-      trigger: 'change',
+      trigger: 'blur',
       message: t('目标集群不存在'),
     },
   ];
@@ -72,10 +87,7 @@
   const isShowClusterSelector = ref(false);
   const isLoading = ref(false);
 
-  const selectedClusters = shallowRef<{ [key: string]: MongodbModel[] }>({
-    [ClusterTypes.MONGO_REPLICA_SET]: [],
-    [ClusterTypes.MONGO_SHARED_CLUSTER]: [],
-  });
+  const seletcedClusters = computed(() => _.cloneDeep(props.selected as MappedProps));
 
   watch(
     () => modelValue.value.master_domain,
@@ -97,6 +109,9 @@
             editableTableColumnRef.value!.validate();
           });
       }
+      if (!modelValue.value.master_domain) {
+        modelValue.value.id = undefined;
+      }
     },
     {
       immediate: true,
@@ -107,20 +122,8 @@
     isShowClusterSelector.value = true;
   };
 
-  const handelClusterChange = (selected: { [key: string]: MongodbModel[] }) => {
-    selectedClusters.value = selected;
+  const handelClusterChange = (selected: Record<string, MongodbModel[]>) => {
     const clusterList = Object.values(selected).flatMap((selectedList) => selectedList);
     emits('batch-edit', clusterList);
   };
-
-  defineExpose<Exposes>({
-    setSelectedCluster(clusterType: string, domain: string) {
-      const clustersArr = selectedClusters.value[clusterType!];
-      selectedClusters.value[clusterType!] = clustersArr.filter((item) => item.master_domain !== domain);
-    },
-    resetSelectedCluster() {
-      selectedClusters.value[ClusterTypes.MONGO_SHARED_CLUSTER] = [];
-      selectedClusters.value[ClusterTypes.MONGO_REPLICA_SET] = [];
-    },
-  });
 </script>

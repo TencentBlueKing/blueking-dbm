@@ -34,20 +34,20 @@
             <EditClusterColumn
               ref="editClusterColumn"
               v-model="item.cluster"
+              :selected="selected"
               @batch-edit="handleClusterBatchEdit" />
             <EditableTableColumn
               field="cluster.cluster_type_name"
-              :label="t('集群类型')">
+              :label="t('集群类型')"
+              :max-width="200"
+              :min-width="200">
               <EditBlock
                 :model-value="item.cluster.cluster_type_name"
                 :placeholder="t('输入集群后自动生成')" />
             </EditableTableColumn>
-            <OperateColumn
-              :removeable="tableData.length < 2"
-              show-clone
-              @add="() => handleAppend(index)"
-              @clone="() => handleClone(index)"
-              @remove="() => handleRemove(index)" />
+            <OperationColumn
+              :create-row-method="createRowData"
+              :table-data="tableData" />
           </EditableTableRow>
         </EditableTable>
         <BkFormItem
@@ -112,7 +112,7 @@
 </template>
 
 <script setup lang="ts">
-  import _ from 'lodash';
+  import type { ComponentProps } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
   import { useRouter } from 'vue-router';
 
@@ -124,16 +124,16 @@
 
   import { useGlobalBizs } from '@stores';
 
-  import { TicketTypes } from '@common/const';
+  import { ClusterTypes, TicketTypes } from '@common/const';
 
   import EditableTable, {
     Block as EditBlock,
     Column as EditableTableColumn,
     Row as EditableTableRow,
   } from '@components/editable-table/Index.vue';
-  import OperateColumn from '@components/render-table/columns/operate-column/index.vue';
 
   import TicketRemark from '@views/db-manage/common/TicketRemark.vue';
+  import OperationColumn from '@views/db-manage/common/toolbox-field/operation-column/Index.vue';
   import EditClusterColumn from '@views/db-manage/mongodb/common/toolbox-field/edit-cluster/Index.vue';
 
   export interface IDataRow {
@@ -179,7 +179,6 @@
 
   const formRef = useTemplateRef('form');
   const editableTableRef = useTemplateRef('editableTable');
-  const editClusterColumnRef = useTemplateRef('editClusterColumn');
 
   const rules = {
     'cluster.master_domain': [
@@ -202,38 +201,47 @@
 
   const formData = reactive(createDefaultFormData());
 
-  const handleClusterBatchEdit = (clusterList: MongodbModel[]) => {
-    const newList = clusterList.map((item) =>
-      createRowData({
-        id: item.id,
-        master_domain: item.master_domain,
-        cluster_type: item.cluster_type,
-        cluster_type_name: item.cluster_type_name,
-      }),
-    );
-
-    tableData.value = [...tableData.value, ...newList];
-    window.changeConfirm = true;
-  };
-
-  const handleAppend = (index: number) => {
-    tableData.value.splice(index + 1, 0, createRowData());
-  };
-
-  const handleRemove = (index: number) => {
-    const { master_domain: masterDomain, cluster_type: clusterType } = tableData.value[index].cluster;
-    tableData.value.splice(index, 1);
-    if (clusterType && masterDomain) {
-      editClusterColumnRef.value![0]!.setSelectedCluster(clusterType, masterDomain);
-    }
-  };
-
-  const handleClone = (index: number) => {
-    const copyData = _.cloneDeep(tableData.value[index]);
-    tableData.value.splice(index + 1, 0, copyData);
-    nextTick(() => {
-      editableTableRef.value!.validateByRowIndex([index, index + 1]).then();
+  const selected = computed(() => {
+    const selectedClusters: ComponentProps<typeof EditClusterColumn>['selected'] = {
+      [ClusterTypes.MONGO_REPLICA_SET]: [],
+      [ClusterTypes.MONGO_SHARED_CLUSTER]: [],
+    };
+    tableData.value.forEach((tableRow) => {
+      const { id, cluster_type: clusterType, master_domain: masterDomain } = tableRow.cluster;
+      if (id && clusterType && masterDomain) {
+        selectedClusters[clusterType as keyof typeof selectedClusters].push({
+          id,
+          master_domain: masterDomain,
+        });
+      }
     });
+    return selectedClusters;
+  });
+
+  const clusterMemo = computed(() =>
+    Object.fromEntries(
+      Object.values(selected.value).flatMap((clusters) =>
+        clusters.filter((cluster) => cluster.master_domain).map((cluster) => [cluster.master_domain, true]),
+      ),
+    ),
+  );
+
+  const handleClusterBatchEdit = (clusterList: MongodbModel[]) => {
+    const newList: IDataRow[] = [];
+    clusterList.forEach((item) => {
+      if (!clusterMemo.value[item.master_domain]) {
+        newList.push(
+          createRowData({
+            id: item.id,
+            master_domain: item.master_domain,
+            cluster_type: item.cluster_type,
+            cluster_type_name: item.cluster_type_name,
+          }),
+        );
+      }
+    });
+    tableData.value = [...(tableData.value[0].cluster.master_domain ? tableData.value : []), ...newList];
+    window.changeConfirm = true;
   };
 
   const handleSubmit = async () => {
@@ -274,7 +282,6 @@
 
   const handleReset = () => {
     Object.assign(formData, createDefaultFormData());
-    editClusterColumnRef.value![0]!.resetSelectedCluster();
     tableData.value = [createRowData()];
     window.changeConfirm = false;
   };
