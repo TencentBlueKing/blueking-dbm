@@ -6,8 +6,7 @@
 <script setup lang="ts">
   import { computed, useAttrs } from 'vue';
 
-  import RenderClusterDomain from './ClusterDomain.vue';
-  import RenderClusterName from './ClusterName.vue';
+  import RenderEntry from './entry.vue';
   import RenderInstance from './Instance.vue';
   import ResourcePool from './ResourcePool.vue';
   import RenderTask from './Task.vue';
@@ -22,8 +21,7 @@
   const attrs = useAttrs();
 
   const comMap = {
-    cluster_domain: RenderClusterDomain,
-    cluster_name: RenderClusterName,
+    entry: RenderEntry,
     instance: RenderInstance,
     task: RenderTask,
     ticket: RenderTicket,
