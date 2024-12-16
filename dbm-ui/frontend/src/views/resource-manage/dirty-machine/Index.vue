@@ -495,8 +495,8 @@
   const handleGoTicketDetail = (data: DirtyMachinesModel) => {
     const { href } = router.resolve({
       name: 'bizTicketManage',
-      query: {
-        id: data.ticket_id,
+      params: {
+        ticketId: data.ticket_id,
       },
     });
     window.open(href.replace(/(\d)+/, `${data.bk_biz_id}`));

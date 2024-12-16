@@ -29,10 +29,9 @@
 
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
+  import { useRoute } from 'vue-router';
 
   import TicketModel from '@services/model/ticket/ticket';
-
-  import { useStorage } from '@vueuse/core';
 
   import InfoList, { Item } from './com-factory/components/info-list/Index.vue';
   import ComFactory from './com-factory/Index.vue';
@@ -48,8 +47,19 @@
   });
 
   const { t } = useI18n();
+  const route = useRoute();
 
-  const isTaskInfoCardCollapse = useStorage('ticketTaskInfo', false);
+  const isTaskInfoCardCollapse = ref(true);
+
+  watch(
+    route,
+    () => {
+      isTaskInfoCardCollapse.value = true;
+    },
+    {
+      immediate: true,
+    },
+  );
 </script>
 
 <style lang="less">

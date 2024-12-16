@@ -1139,8 +1139,8 @@
   const handleClickRelatedTicket = (billId: number) => {
     const route = router.resolve({
       name: 'bizTicketManage',
-      query: {
-        id: billId,
+      params: {
+        ticketId: billId,
       },
     });
     window.open(route.href);

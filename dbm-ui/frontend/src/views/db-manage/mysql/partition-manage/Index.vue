@@ -232,8 +232,8 @@
               <router-link
                 to={{
                   name: 'bizTicketManage',
-                  query: {
-                    id: data.ticket_id,
+                  params: {
+                    ticketId: data.ticket_id,
                   },
                 }}
                 target="_blank">

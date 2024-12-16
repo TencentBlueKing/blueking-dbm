@@ -210,8 +210,8 @@
           resource={data.uid}
           to={{
             name: 'bizTicketManage',
-            query: {
-              id: data.uid,
+            params: {
+              ticketId: data.uid,
             }
           }}
           target="_blank">
