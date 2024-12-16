@@ -33,81 +33,87 @@
           :data="item.dataList"
           :pagination="pagination[index]">
           <BkTableColumn
-            field="ip_port"
-            :label="t('实例')"
-            :min-width="220">
-            <template #default="{data: rowData}: {data: QuickSearchInstanceModel}">
-              <TextOverflowLayout v-if="rowData.ip_port">
+            field="immute_domain"
+            :label="t('访问入口（域名、CLB、北极星）')"
+            :min-width="250">
+            <template #default="{data: rowData}: {data: QuickSearchEntryModel}">
+              <TextOverflowLayout>
                 <BkButton
                   text
                   theme="primary"
-                  @click="() => handleToInstance(rowData)">
+                  @click="() => handleToCluster(rowData)">
                   <HightLightText
                     high-light-color="#FF9C01"
-                    :key-word="keyword"
-                    :text="rowData.ip_port" />
+                    :key-word="formattedKeyword"
+                    :text="rowData.entry" />
                 </BkButton>
                 <template #append>
                   <BkButton
                     class="ml-4"
                     text
                     theme="primary"
-                    @click="() => handleCopy(rowData.ip_port)">
+                    @click="() => handleCopy(rowData.entry)">
                     <DbIcon type="copy" />
                   </BkButton>
                 </template>
               </TextOverflowLayout>
-              <span v-else>--</span>
             </template>
           </BkTableColumn>
           <BkTableColumn
-            field="status"
+            field="cluster_status"
             :label="t('状态')">
-            <template #default="{data: rowData}: {data: QuickSearchInstanceModel}">
-              <ClusterInstanceStatus :data="rowData.status" />
+            <template #default="{data: rowData}: {data: QuickSearchEntryModel}">
+              <RenderClusterStatus :data="rowData.cluster_status" />
             </template>
           </BkTableColumn>
           <BkTableColumn
-            field="cluster_domain"
+            field="immute_domain"
             :label="t('所属集群')"
             :min-width="250">
-            <template #default="{data: rowData}: {data: QuickSearchInstanceModel}">
-              {{ rowData.cluster_domain || '--' }}
+            <template #default="{data: rowData}: {data: QuickSearchEntryModel}">
+              {{ rowData.immute_domain || '--' }}
             </template>
           </BkTableColumn>
           <BkTableColumn
             field="cluster_type"
             :label="t('架构类型')">
-            <template #default="{data: rowData}: {data: QuickSearchInstanceModel}">
+            <template #default="{data: rowData}: {data: QuickSearchEntryModel}">
               {{ rowData.cluster_type || '--' }}
-            </template>
-          </BkTableColumn>
-          <BkTableColumn
-            field="role"
-            :label="t('部署角色')">
-            <template #default="{data: rowData}: {data: QuickSearchInstanceModel}">
-              {{ rowData.role || '--' }}
-            </template>
-          </BkTableColumn>
-          <BkTableColumn
-            field="bk_sub_zone"
-            :label="t('园区')">
-            <template #default="{data: rowData}: {data: QuickSearchInstanceModel}">
-              {{ rowData.bk_sub_zone || '--' }}
             </template>
           </BkTableColumn>
           <BkTableColumn
             field="bk_biz_id"
             :label="t('所属业务')">
-            <template #default="{data: rowData}: {data: QuickSearchInstanceModel}">
+            <template #default="{data: rowData}: {data: QuickSearchEntryModel}">
               {{ rowData.bk_biz_id ? bizIdNameMap[rowData.bk_biz_id] : '--' }}
+            </template>
+          </BkTableColumn>
+          <BkTableColumn
+            field="db_module_name"
+            :label="t('DB模块')">
+            <template #default="{data: rowData}: {data: QuickSearchEntryModel}">
+              {{ rowData.db_module_name || '--' }}
+            </template>
+          </BkTableColumn>
+          <BkTableColumn
+            field="region"
+            :label="t('地域')">
+            <template #default="{data: rowData}: {data: QuickSearchEntryModel}">
+              {{ rowData.region || '--' }}
+            </template>
+          </BkTableColumn>
+          <BkTableColumn
+            field="disaster_tolerance_level"
+            :label="t('容灾要求')">
+            <template #default="{data: rowData}: {data: QuickSearchEntryModel}">
+              {{ rowData.disaster_tolerance_level || '--' }}
             </template>
           </BkTableColumn>
           <BkTableColumn
             field="creator"
             :label="t('主 DBA')"
             sortable>
-            <template #default="{data: rowData}: {data: QuickSearchInstanceModel}">
+            <template #default="{data: rowData}: {data: QuickSearchEntryModel}">
               {{ rowData.dba || '--' }}
             </template>
           </BkTableColumn>
@@ -127,23 +133,25 @@
 <script setup lang="tsx">
   import { useI18n } from 'vue-i18n';
 
-  import QuickSearchInstanceModel from '@services/model/quiker-search/quick-search-instance';
+  import QuickSearchEntryModel from '@services/model/quiker-search/quick-search-entry';
 
   import { useCopy } from '@hooks';
 
-  import ClusterInstanceStatus from '@components/cluster-instance-status/Index.vue';
+  import { batchSplitRegex } from '@common/regex';
+
+  import RenderClusterStatus from '@components/cluster-status/Index.vue';
   import EmptyStatus from '@components/empty-status/EmptyStatus.vue';
   import HightLightText from '@components/system-search/components/search-result/render-result/components/HightLightText.vue';
   import { useRedirect } from '@components/system-search/hooks/useRedirect';
   import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
 
-  import { groupByDbType } from '../common/utils';
+  import { exportExcelFile } from '@utils';
 
-  import { exportExcelFile } from '@/utils';
+  import { groupByDbType } from '../common/utils';
 
   interface Props {
     keyword: string;
-    data: QuickSearchInstanceModel[];
+    data: QuickSearchEntryModel[];
     bizIdNameMap: Record<number, string>;
     isAnomalies: boolean;
     isSearching: boolean;
@@ -166,10 +174,23 @@
     {
       count: number;
       limit: number;
+      remote: false;
     }[]
   >([]);
 
-  const renderData = computed(() => groupByDbType<QuickSearchInstanceModel>(props.data));
+  const formattedKeyword = computed(() =>
+    props.keyword
+      .split(batchSplitRegex)
+      .map((item) => {
+        if (item.includes(':')) {
+          return item.split(':')[0];
+        }
+        return item;
+      })
+      .join(' '),
+  );
+
+  const renderData = computed(() => groupByDbType<QuickSearchEntryModel>(props.data));
 
   watch(
     renderData,
@@ -177,6 +198,8 @@
       pagination.value = newRenderData.dataList.map((dataItem) => ({
         count: dataItem.dataList.length,
         limit: 10,
+        current: 1,
+        remote: false,
       }));
     },
     {
@@ -184,41 +207,16 @@
     },
   );
 
-  const handleExport = (clusterType: string, dataList: QuickSearchInstanceModel[]) => {
+  const handleExport = (clusterType: string, dataList: QuickSearchEntryModel[]) => {
     const formatData = dataList.map((dataItem) => ({
-      [t('主机ID')]: String(dataItem.bk_host_id),
-      [t('云区域ID')]: String(dataItem.bk_cloud_id),
-      ['IP']: dataItem.ip,
-      [t('IP端口')]: String(dataItem.port),
-      [t('实例角色')]: dataItem.role,
-      [t('城市')]: dataItem.bk_idc_area,
-      [t('机房')]: dataItem.bk_idc_name,
-      [t('集群ID')]: dataItem.cluster_id,
-      [t('集群名称')]: dataItem.cluster_name,
-      [t('集群别名')]: dataItem.cluster_alias,
-      [t('集群类型')]: dataItem.cluster_type,
-      [t('主域名')]: dataItem.cluster_domain,
-      [t('主版本')]: dataItem.major_version,
-      [t('业务ID')]: String(dataItem.bk_biz_id),
+      [t('集群ID')]: String(dataItem.id),
+      [t('访问入口（域名、CLB、北极星）')]: dataItem.entry,
+      [t('所属集群')]: dataItem.immute_domain,
+      [t('架构类型')]: dataItem.cluster_type,
+      [t('所属业务')]: String(dataItem.bk_biz_id),
       [t('业务名称')]: props.bizIdNameMap[dataItem.bk_biz_id],
     }));
-    const colsWidths = [
-      { width: 10 },
-      { width: 10 },
-      { width: 16 },
-      { width: 24 },
-      { width: 20 },
-      { width: 10 },
-      { width: 10 },
-      { width: 10 },
-      { width: 16 },
-      { width: 16 },
-      { width: 24 },
-      { width: 24 },
-      { width: 16 },
-      { width: 10 },
-      { width: 16 },
-    ];
+    const colsWidths = [{ width: 10 }, { width: 16 }, { width: 16 }, { width: 24 }, { width: 24 }, { width: 16 }];
 
     exportExcelFile(formatData, colsWidths, clusterType, `${clusterType}.xlsx`);
   };
@@ -227,15 +225,16 @@
     copy(content);
   };
 
-  const handleToInstance = (data: QuickSearchInstanceModel) => {
+  const handleToCluster = (data: QuickSearchEntryModel) => {
     handleRedirect(
       data.cluster_type,
       {
-        instance: data.instance,
+        domain: data.immute_domain,
       },
       data.bk_biz_id,
     );
   };
+
   const handleRefresh = () => {
     emits('refresh');
   };

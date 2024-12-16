@@ -104,12 +104,11 @@
   const QUICK_SEARCH_NO_LONGER_PROMPT = 'QUICK_SEARCH_NO_LONGER_PROMPT';
 
   const resultTypeTextMap: Record<string, string> = {
-    cluster_domain: t('域名'),
-    cluster_name: t('集群名'),
-    instance: t('实例'),
+    entry: t('主访问入口'),
+    instance: t('实例（IP、IP:Port）'),
     task: t('任务ID'),
     ticket: t('单据'),
-    resource_pool: t('资源池主机'),
+    resource_pool: t('主机（资源池、故障池、待回收池）'),
   };
 
   const isSearchEmpty = ref(false);
