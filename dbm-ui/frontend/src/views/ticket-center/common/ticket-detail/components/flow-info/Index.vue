@@ -13,6 +13,7 @@
 
 <template>
   <DbCard
+    v-model:collapse="isCardCollapse"
     mode="collapse"
     :title="t('实施进度')">
     <BkLoading :loading="isLoading">
@@ -38,6 +39,7 @@
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
+  import { useRoute } from 'vue-router';
 
   import TicketModel from '@services/model/ticket/ticket';
   import { getTicketFlows } from '@services/source/ticketFlow';
@@ -56,6 +58,7 @@
   });
 
   const { t } = useI18n();
+  const route = useRoute();
 
   const flowTypeModule = Object.values(
     import.meta.glob<{
@@ -73,6 +76,7 @@
     {},
   );
 
+  const isCardCollapse = ref(true);
   const isLoading = ref(true);
   const flowList = shallowRef<ServiceReturnType<typeof getTicketFlows>>([]);
 
@@ -97,6 +101,15 @@
           isLoading.value = false;
         });
       }
+    },
+    {
+      immediate: true,
+    },
+  );
+  watch(
+    route,
+    () => {
+      isCardCollapse.value = true;
     },
     {
       immediate: true,

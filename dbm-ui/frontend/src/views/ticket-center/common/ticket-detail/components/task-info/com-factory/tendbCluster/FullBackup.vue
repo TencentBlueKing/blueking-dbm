@@ -12,14 +12,6 @@
 -->
 
 <template>
-  <InfoList>
-    <InfoItem :label="t('备份类型:')">
-      {{ backupType }}
-    </InfoItem>
-    <InfoItem :label="t('备份保存时间:')">
-      {{ backupTime }}
-    </InfoItem>
-  </InfoList>
   <BkTable
     :data="ticketDetails.details.infos.clusters"
     show-overflow-tooltip>
@@ -34,6 +26,14 @@
       </template>
     </BkTableColumn>
   </BkTable>
+  <InfoList>
+    <InfoItem :label="t('备份类型:')">
+      {{ backupType }}
+    </InfoItem>
+    <InfoItem :label="t('备份保存时间:')">
+      {{ backupTime }}
+    </InfoItem>
+  </InfoList>
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';

@@ -311,8 +311,8 @@
           target="_blank"
           to={{
             name: 'bizTicketManage',
-            query: {
-              id: data.bill_id,
+            params: {
+              ticketId: data.bill_id,
             },
           }}>
           {data.bill_id}

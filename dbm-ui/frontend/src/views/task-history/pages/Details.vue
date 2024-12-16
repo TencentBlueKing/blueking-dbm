@@ -599,8 +599,8 @@
               target="_blank"
               to={{
                 name: 'bizTicketManage',
-                query: {
-                  id: baseInfo.value.uid,
+                params: {
+                  ticketId: baseInfo.value.uid,
                 },
               }}>
               {baseInfo.value.uid}
