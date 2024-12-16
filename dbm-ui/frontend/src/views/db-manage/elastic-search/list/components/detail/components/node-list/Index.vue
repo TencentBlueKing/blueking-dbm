@@ -109,8 +109,8 @@
           target="_blank"
           :to="{
             name: 'bizTicketManage',
-            query: {
-              id: operationData?.operationTicketId,
+            params: {
+              ticketId: operationData?.operationTicketId,
             },
           }">
           {{ t('单据') }}

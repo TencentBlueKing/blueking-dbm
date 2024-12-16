@@ -35,8 +35,8 @@
         target="_blank"
         :to="{
           name: 'bizTicketManage',
-          query: {
-            id: data.ticketId,
+          params: {
+            ticketId: data.ticketId,
           },
         }">
         {{ $t('单据') }}

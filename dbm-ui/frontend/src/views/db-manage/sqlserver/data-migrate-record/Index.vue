@@ -63,8 +63,8 @@
               target="_blank"
               :to="{
                 name: 'bizTicketManage',
-                query: {
-                  id: rowData.ticket_id,
+                params: {
+                  ticketId: rowData.ticket_id,
                 },
               }">
               {{ rowData.ticket_id }}

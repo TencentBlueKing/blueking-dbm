@@ -196,8 +196,8 @@
                 <router-link
                   to={{
                     name: 'bizTicketManage',
-                    query: {
-                      id: data.related_rollback_bill_id,
+                    params: {
+                      ticketId: data.related_rollback_bill_id,
                     },
                   }}
                   target="_blank">
@@ -311,8 +311,8 @@
           target="_blank"
           to={{
             name: 'bizTicketManage',
-            query: {
-              id: data.related_rollback_bill_id,
+            params: {
+              ticketId: data.related_rollback_bill_id,
             },
           }}>
           {data.related_rollback_bill_id}

@@ -518,8 +518,8 @@
     }
     const route = router.resolve({
       name: 'bizTicketManage',
-      query: {
-        id: ticketId,
+      params: {
+        ticketId,
       },
     });
     window.open(route.href);
