@@ -85,19 +85,6 @@
         </BkCheckboxGroup>
       </div>
     </div>
-    <!-- <div class="filter-item">
-      <div class="filter-title">
-        {{ t('检索类型') }}
-      </div>
-      <BkRadioGroup v-model="modelValue.filter_type">
-        <BkRadio label="CONTAINS">
-          {{ t('模糊') }}
-        </BkRadio>
-        <BkRadio label="EXACT">
-          {{ t('精确') }}
-        </BkRadio>
-      </BkRadioGroup>
-    </div> -->
   </div>
 </template>
 <script setup lang="ts">
@@ -127,16 +114,12 @@
 
   const resourceList = [
     {
-      id: 'cluster_domain',
-      name: t('域名'),
-    },
-    {
-      id: 'cluster_name',
-      name: t('集群名称'),
+      id: 'entry',
+      name: t('主访问入口'),
     },
     {
       id: 'instance',
-      name: t('实例'),
+      name: t('实例（IP、IP:Port）'),
     },
     {
       id: 'task',
@@ -148,7 +131,7 @@
     },
     {
       id: 'resource_pool',
-      name: t('资源池主机'),
+      name: t('主机（资源池、故障池、待回收池）'),
     },
   ];
 
@@ -240,6 +223,10 @@
 
       & ~ .bk-checkbox {
         margin-top: 16px;
+      }
+
+      .bk-checkbox-input {
+        flex: 0 0 16px;
       }
     }
 
