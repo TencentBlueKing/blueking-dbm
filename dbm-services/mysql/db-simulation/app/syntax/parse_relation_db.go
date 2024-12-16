@@ -64,7 +64,14 @@ func (tf *TmysqlParseFile) DoParseRelationDbs(version string) (createDbs, relati
 		return nil, nil, false, err
 	}
 	logger.Info("createDbs:%v,relationDbs:%v,dumpAll:%v,err:%v", createDbs, relationDbs, dumpAll, err)
-	return createDbs, relationDbs, dumpAll, nil
+	dumpdbs := []string{}
+	for _, d := range relationDbs {
+		if slices.Contains(createDbs, d) {
+			break
+		}
+		dumpdbs = append(dumpdbs, d)
+	}
+	return lo.Uniq(createDbs), lo.Uniq(dumpdbs), dumpAll, nil
 }
 
 // doParseInchan RelationDbs do parse relation db

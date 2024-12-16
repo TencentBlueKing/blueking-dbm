@@ -256,6 +256,7 @@ func (s SyntaxHandler) ParseSQLFileRelationDb(r *gin.Context) {
 		s.SendResponse(r, err, nil)
 		return
 	}
+
 	s.SendResponse(r, nil, gin.H{
 		"create_dbs": createDbs,
 		"dbs":        dbs,
