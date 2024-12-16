@@ -36,6 +36,10 @@ func (r *RedisClient) InitCluster(addr string, passwd string, timeout int) {
 		DialTimeout:  timeoutVal,
 		ReadTimeout:  timeoutVal,
 		WriteTimeout: timeoutVal,
+
+		// disable retry.
+		MaxRedirects: -1,
+		MaxRetries:   -1,
 	})
 	r.mode = RedisCluster
 	return
@@ -45,12 +49,16 @@ func (r *RedisClient) InitCluster(addr string, passwd string, timeout int) {
 func (r *RedisClient) Init(addr string, passwd string, timeout int, dbnum int) {
 	timeoutVal := time.Duration(timeout) * time.Second
 	r.rdb = redis.NewClient(&redis.Options{
-		Addr:         addr,
-		Password:     passwd,
-		DB:           dbnum,
-		DialTimeout:  timeoutVal,
+		Addr:     addr,
+		Password: passwd,
+		DB:       dbnum,
+
+		// Dial timeout for establishing new connections. Default is 5 seconds.
+		// DialTimeout:  timeoutVal,
 		ReadTimeout:  timeoutVal,
 		WriteTimeout: timeoutVal,
+		//  Default is 3 retries; -1 (not 0) disables retries.
+		MaxRetries: -1,
 	})
 	r.mode = RedisInstance
 	return

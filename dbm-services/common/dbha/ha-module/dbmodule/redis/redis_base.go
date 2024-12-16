@@ -71,14 +71,13 @@ type RedisProxySwitchInfo struct {
 // CheckSSH redis do ssh check
 func (ins *RedisDetectBase) CheckSSH() error {
 	sshStart := time.Now().Unix()
-	defer log.Logger.Debugf("finish ssh detect [%s] , cost: %d", ins.Ip, time.Now().Unix()-sshStart)
 	touchFile := fmt.Sprintf("%s_%s_%d", ins.SshInfo.Dest, "agent", ins.Port)
 
 	touchStr := fmt.Sprintf("touch %s && if [ -d \"/data1/dbha\" ]; then touch /data1/dbha/%s ; fi "+
 		"&& if [ -d \"/data/dbha\" ]; then touch /data/dbha/%s ; fi", touchFile, touchFile, touchFile)
 
 	if err := ins.DoExtendSSH(touchStr); err != nil {
-		log.Logger.Errorf("RedisDetection do ssh failed. err:%s", err.Error())
+		log.Logger.Errorf("do ssh failed[%s], cost: %d. err:%s", ins.Ip, time.Now().Unix()-sshStart, err.Error())
 		return err
 	}
 	return nil
