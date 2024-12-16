@@ -21,8 +21,8 @@ export const useTicketMessage = () => {
   return (id: number | string) => {
     const route = router.resolve({
       name: 'bizTicketManage',
-      query: {
-        id,
+      params: {
+        ticketId: id,
       },
     });
 

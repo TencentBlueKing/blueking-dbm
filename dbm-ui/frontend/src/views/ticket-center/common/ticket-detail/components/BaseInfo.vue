@@ -1,6 +1,6 @@
 <template>
   <DbCard
-    :collapse="isBaseinfoCardCollapse"
+    v-model:collapse="isBaseinfoCardCollapse"
     mode="collapse"
     :title="t('基本信息')">
     <table class="ticket-base-info">
@@ -54,7 +54,17 @@
   const { t } = useI18n();
   const route = useRoute();
 
-  const isBaseinfoCardCollapse = route.name === 'ticketDetail';
+  const isBaseinfoCardCollapse = ref(false);
+
+  watch(
+    route,
+    () => {
+      isBaseinfoCardCollapse.value = route.name === 'ticketDetail';
+    },
+    {
+      immediate: true,
+    },
+  );
 </script>
 <style lang="less">
   .ticket-base-info {
