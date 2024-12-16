@@ -13,7 +13,7 @@
 
 <template>
   <ApplyPermissionCatch>
-    <div class="version-files">
+    <div class="version-files-file-content">
       <BkTab
         v-model:active="state.active"
         type="card">
@@ -69,7 +69,7 @@
     :width="480">
     <BkForm
       ref="versionFormRef"
-      class="create-dialog-operations"
+      class="create-new-version-dialog"
       form-type="vertical"
       :model="createFileState.formdata"
       :rules="rules">
@@ -599,10 +599,10 @@
     Object.assign(createFileState.formdata, initCreateFormdata());
   };
 </script>
-<style lang="less" scoped>
+<style lang="less">
   @import '@styles/mixins.less';
 
-  .version-files {
+  .version-files-file-content {
     padding: 24px;
 
     .version-files-content {
@@ -624,17 +624,15 @@
       background-color: #fafbfd;
     }
 
-    :deep(.bk-tab-content) {
+    .bk-tab-content {
       padding: 0;
     }
 
-    :deep(.bk-tab-header--active) {
+    .bk-tab-header--active {
       background-color: @bg-white;
     }
-  }
 
-  .version-files-table {
-    :deep(.bk-vxe-table) {
+    .version-files-table {
       .md-five {
         display: flex;
 
@@ -669,27 +667,29 @@
         }
       }
 
-      tr:hover .db-icon-copy {
-        display: inline-block;
-      }
+      &.bk-vxe-table {
+        tr:hover .db-icon-copy {
+          display: inline-block;
+        }
 
-      tr:hover {
-        .set-btn {
-          display: inline-flex;
+        tr:hover {
+          .set-btn {
+            display: inline-flex;
+          }
         }
       }
     }
   }
 
-  .create-dialog-operations {
+  .create-new-version-dialog {
     margin-bottom: 16px;
 
     .bk-button {
       min-width: 64px;
     }
-  }
 
-  :deep(.bk-upload__tip) {
-    line-height: normal;
+    .bk-upload__tip {
+      line-height: normal;
+    }
   }
 </style>
