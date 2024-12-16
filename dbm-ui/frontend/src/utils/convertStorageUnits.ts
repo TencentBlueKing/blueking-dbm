@@ -31,6 +31,5 @@ export const convertStorageUnits = (value: number, fromUnit: Unit, toUnit: Unit)
   }
 
   const conversionFactor = 1024 ** (fromIndex - toIndex);
-
   return value * conversionFactor;
 };
