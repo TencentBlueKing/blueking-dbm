@@ -67,7 +67,7 @@ func (tf *TmysqlParseFile) DoParseRelationDbs(version string) (createDbs, relati
 	dumpdbs := []string{}
 	for _, d := range relationDbs {
 		if slices.Contains(createDbs, d) {
-			break
+			continue
 		}
 		dumpdbs = append(dumpdbs, d)
 	}
