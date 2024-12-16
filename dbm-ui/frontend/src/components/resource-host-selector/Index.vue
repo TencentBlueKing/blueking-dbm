@@ -176,7 +176,7 @@
     (e: 'change', value: IValue[]): void;
   }
 
-  export interface IValue {
+  interface IValue {
     bk_biz_id: number;
     bk_cloud_id: number;
     bk_host_id: number;

@@ -34,12 +34,15 @@
     @change="handleSelectorChange" />
 </template>
 <script lang="ts" setup>
+  import type { ComponentProps } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
 
   import { Block as EditableTableBlock, Column as EditableTableColumn } from '@components/editable-table/Index.vue';
-  import ResourceHostSelector, { type IValue } from '@components/resource-host-selector/Index.vue';
+  import ResourceHostSelector from '@components/resource-host-selector/Index.vue';
 
-  const modelValue = defineModel<IValue>({
+  type HostList = NonNullable<ComponentProps<typeof ResourceHostSelector>['modelValue']>;
+
+  const modelValue = defineModel<HostList[number]>({
     required: true,
   });
 
@@ -51,7 +54,7 @@
     showSelector.value = true;
   };
 
-  const handleSelectorChange = (hostInfo: IValue[]) => {
+  const handleSelectorChange = (hostInfo: HostList) => {
     [modelValue.value] = hostInfo;
   };
 </script>
