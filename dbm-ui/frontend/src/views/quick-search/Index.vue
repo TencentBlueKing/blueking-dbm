@@ -14,26 +14,6 @@
             v-model="keyword"
             v-model:filter-type="formData.filter_type"
             @search="handleSearch" />
-          <!-- <BkDropdown class="ml-8">
-                <BkButton
-                  class="export-button"
-                  size="large">
-                  {{ t('导出') }}
-                  <DbIcon
-                    class="export-icon ml-12"
-                    type="down-big" />
-                </BkButton>
-                <template #content>
-                  <BkDropdownMenu>
-                    <BkDropdownItem @click="handleExportAllClusters">
-                      {{ t('所有集群') }}
-                    </BkDropdownItem>
-                    <BkDropdownItem @click="handleExportAllHosts">
-                      {{ t('所有主机') }}
-                    </BkDropdownItem>
-                  </BkDropdownMenu>
-                </template>
-              </BkDropdown> -->
         </div>
         <BkTab
           v-model:active="activeTab"
@@ -97,8 +77,7 @@
   import { FilterType } from '@components/system-search/components/FilterTypeSelect.vue';
   import FilterOptions from '@components/system-search/components/search-result/FilterOptions.vue';
 
-  import ClusterDomain from './components/ClusterDomain.vue';
-  import ClusterName from './components/ClusterName.vue';
+  import Entry from './components/Entry.vue';
   import Instance from './components/Instance.vue';
   import ResourcePool from './components/ResourcePool.vue';
   import SearchInput from './components/SearchInput.vue';
@@ -119,8 +98,7 @@
   let routeParamsMemo = {};
 
   const comMap = {
-    cluster_domain: ClusterDomain,
-    cluster_name: ClusterName,
+    entry: Entry,
     instance: Instance,
     task: Task,
     resource_pool: ResourcePool,
@@ -135,8 +113,7 @@
   // const keyword = ref((route.query.keyword as string) || '');
   const keyword = ref('');
   const dataMap = ref<Omit<ServiceReturnType<typeof quickSearch>, 'keyword' | 'short_code'>>({
-    cluster_name: [],
-    cluster_domain: [],
+    entry: [],
     instance: [],
     task: [],
     resource_pool: [],
@@ -149,26 +126,16 @@
     resource_types: [] as string[],
     filter_type: FilterType.EXACT,
   });
-  const activeTab = ref('cluster_domain');
+  const activeTab = ref('entry');
   const panelList = reactive([
     {
-      name: 'cluster_domain',
-      label: t('域名'),
-      count: 0,
-    },
-    {
-      name: 'cluster_name',
-      label: t('集群'),
+      name: 'entry',
+      label: t('访问入口'),
       count: 0,
     },
     {
       name: 'instance',
-      label: t('实例'),
-      count: 0,
-    },
-    {
-      name: 'resource_pool',
-      label: t('资源池主机'),
+      label: t('实例（IP、IP:Port）'),
       count: 0,
     },
     {
@@ -181,6 +148,11 @@
       label: t('单据'),
       count: 0,
     },
+    {
+      name: 'resource_pool',
+      label: t('主机（资源池、故障池、待回收池）'),
+      count: 0,
+    },
   ]);
 
   const isSearching = computed(() => loading.value && !!keyword.value);
@@ -189,11 +161,13 @@
     if (loading.value) {
       return null;
     }
+
     const activeComponent = comMap[activeTab.value as keyof typeof comMap];
+
     if (activeComponent) {
       return activeComponent;
     }
-    return ClusterDomain;
+    return Entry;
   });
 
   const dataList = computed(() => {
@@ -204,7 +178,7 @@
     if (activeDataList) {
       return activeDataList;
     }
-    return dataMap.value.cluster_domain;
+    return dataMap.value.entry;
   });
 
   const {
@@ -219,19 +193,17 @@
         handleSearch();
       }
       Object.assign(dataMap.value, {
-        cluster_domain: data.cluster_domain,
-        cluster_name: data.cluster_name,
+        entry: data.entry,
         instance: data.instance,
         task: data.task,
         resource_pool: data.resource_pool,
         ticket: data.ticket,
       });
-      panelList[0].count = data.cluster_domain.length;
-      panelList[1].count = data.cluster_name.length;
-      panelList[2].count = data.instance.length;
-      panelList[3].count = data.resource_pool.length;
-      panelList[4].count = data.task.length;
-      panelList[5].count = data.ticket.length;
+      panelList[0].count = data.entry.length;
+      panelList[1].count = data.instance.length;
+      panelList[2].count = data.task.length;
+      panelList[3].count = data.ticket.length;
+      panelList[4].count = data.resource_pool.length;
 
       const panelItem = panelList.find((panel) => panel.count > 0);
       if (panelItem) {
@@ -273,21 +245,9 @@
     },
   );
 
-  // watch(keyword, (newKeyword, oldKeyword) => {
-  //   const newKeywordArr = newKeyword.split(batchSplitRegex);
-  //   const oldKeywordArr = (oldKeyword || '').split(batchSplitRegex);
-  //   if (_.isEqual(newKeywordArr, oldKeywordArr)) {
-  //     return;
-  //   }
-
-  //   isTableSearching.value = false;
-  //   clearData();
-  // });
-
   const clearData = () => {
     Object.assign(dataMap.value, {
-      cluster_domain: [],
-      cluster_name: [],
+      entry: [],
       instance: [],
       task: [],
       resource_pool: [],
@@ -298,7 +258,6 @@
     panelList[2].count = 0;
     panelList[3].count = 0;
     panelList[4].count = 0;
-    panelList[5].count = 0;
   };
 
   const handleSearch = () => {

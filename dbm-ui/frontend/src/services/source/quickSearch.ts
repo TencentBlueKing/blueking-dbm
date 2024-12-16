@@ -12,8 +12,7 @@
  */
 
 import DbResourceModel from '@services/model/db-resource/DbResource';
-import QuickSearchClusterDomainModel from '@services/model/quiker-search/quick-search-cluster-domain';
-import QuickSearchClusterNameModel from '@services/model/quiker-search/quick-search-cluster-name';
+import QuickSearchEntryModel from '@services/model/quiker-search/quick-search-entry';
 import QuickSearchInstanceModel from '@services/model/quiker-search/quick-search-instance';
 import TaskFlowModel from '@services/model/taskflow/taskflow';
 import TicketModel from '@services/model/ticket/ticket';
@@ -36,8 +35,7 @@ export function quickSearch(params: {
 }) {
   return http
     .post<{
-      cluster_domain: QuickSearchClusterDomainModel[];
-      cluster_name: QuickSearchClusterNameModel[];
+      entry: QuickSearchEntryModel[];
       instance: QuickSearchInstanceModel[];
       resource_pool: DbResourceModel[];
       task: TaskFlowModel[];
@@ -47,8 +45,7 @@ export function quickSearch(params: {
     }>('/apis/quick_search/search/', params)
     .then((res) => ({
       ...res,
-      cluster_domain: (res.cluster_domain || []).map((item) => new QuickSearchClusterDomainModel(item)),
-      cluster_name: (res.cluster_name || []).map((item) => new QuickSearchClusterNameModel(item)),
+      entry: (res.entry || []).map((item) => new QuickSearchEntryModel(item)),
       instance: (res.instance || []).map((item) => new QuickSearchInstanceModel(item)),
       resource_pool: (res.resource_pool || []).map((item) => new DbResourceModel(item)),
       task: (res.task || []).map((item) => new TaskFlowModel(item)),

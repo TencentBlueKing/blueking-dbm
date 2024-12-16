@@ -11,50 +11,38 @@
  * the specific language governing permissions and limitations under the License.
  */
 
-import { utcDisplayTime } from '@utils';
-
-export default class QuickSearchClusterDomain {
-  alias: string;
+export default class QuickSearchEntry {
   bk_biz_id: number;
-  bk_cloud_id: number;
+  cluster_entry_type: string;
+  cluster_id: number;
+  cluster_status: string;
   cluster_type: string;
-  create_at: string;
-  creator: string;
-  db_module_id: number;
+  db_module_name: string;
+  db_type: string;
+  dba: string;
   disaster_tolerance_level: string;
+  entry: string;
   id: number;
   immute_domain: string;
-  major_version: string;
-  name: string;
-  phase: string;
+  is_show_dba: string;
   region: string;
-  status: string;
-  time_zone: string;
-  update_at: string;
-  updater: string;
+  role: string;
 
-  constructor(payload = {} as QuickSearchClusterDomain) {
-    this.alias = payload.alias;
+  constructor(payload = {} as QuickSearchEntry) {
     this.bk_biz_id = payload.bk_biz_id;
-    this.bk_cloud_id = payload.bk_cloud_id;
+    this.cluster_entry_type = payload.cluster_entry_type;
+    this.cluster_id = payload.cluster_id;
+    this.cluster_status = payload.cluster_status;
     this.cluster_type = payload.cluster_type;
-    this.create_at = payload.create_at;
-    this.creator = payload.creator;
-    this.db_module_id = payload.db_module_id;
+    this.db_module_name = payload.db_module_name;
+    this.db_type = payload.db_type;
+    this.dba = payload.dba;
     this.disaster_tolerance_level = payload.disaster_tolerance_level;
+    this.entry = payload.entry;
     this.id = payload.id;
     this.immute_domain = payload.immute_domain;
-    this.major_version = payload.major_version;
-    this.name = payload.name;
-    this.phase = payload.phase;
+    this.is_show_dba = payload.is_show_dba;
     this.region = payload.region;
-    this.status = payload.status;
-    this.time_zone = payload.time_zone;
-    this.update_at = payload.update_at;
-    this.updater = payload.updater;
-  }
-
-  get createAtDisplay() {
-    return utcDisplayTime(this.create_at);
+    this.role = payload.role;
   }
 }

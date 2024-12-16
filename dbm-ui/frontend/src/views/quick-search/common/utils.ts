@@ -1,8 +1,11 @@
-import type { FormatClusterArray } from './types';
+type groupByDbTypeArray<T> = Array<{
+  dbType: string;
+  dataList: T;
+}>;
 
-export const formatCluster = <
+export const groupByDbType = <
   T extends {
-    cluster_type: string;
+    db_type: string;
     bk_biz_id: number;
   },
 >(
@@ -12,18 +15,18 @@ export const formatCluster = <
   const clusterMap: Record<string, Array<T>> = {};
 
   data.forEach((clusterItem) => {
-    const { cluster_type: clusterType, bk_biz_id: bizId } = clusterItem;
+    const { db_type: dbType, bk_biz_id: bizId } = clusterItem;
 
-    if (clusterMap[clusterType]) {
-      clusterMap[clusterType].push(clusterItem);
+    if (clusterMap[dbType]) {
+      clusterMap[dbType].push(clusterItem);
     } else {
-      clusterMap[clusterType] = [clusterItem];
+      clusterMap[dbType] = [clusterItem];
     }
 
-    if (bizMap[clusterType]) {
-      bizMap[clusterType].add(bizId);
+    if (bizMap[dbType]) {
+      bizMap[dbType].add(bizId);
     } else {
-      bizMap[clusterType] = new Set([bizId]);
+      bizMap[dbType] = new Set([bizId]);
     }
   });
 
@@ -32,11 +35,11 @@ export const formatCluster = <
       (prevArr, mapKey) => [
         ...prevArr,
         {
-          clusterType: mapKey,
+          dbType: mapKey,
           dataList: clusterMap[mapKey],
         },
       ],
-      [] as FormatClusterArray<Array<T>>,
+      [] as groupByDbTypeArray<Array<T>>,
     ),
     bizMap,
   };
