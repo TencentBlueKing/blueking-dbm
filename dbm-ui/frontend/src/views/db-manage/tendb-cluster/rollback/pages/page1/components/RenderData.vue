@@ -220,7 +220,7 @@
             page: 'success',
           },
           query: {
-            ticket_id: data.id,
+            ticketId: data.id,
           },
         });
       });

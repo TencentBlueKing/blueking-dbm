@@ -24,7 +24,7 @@
         :to="{
           name: 'bizTicketManage',
           params: {
-            ticketId: ticketId,
+            ticketId: Number(ticketId),
           },
         }">
         {{ t('单据') }}
