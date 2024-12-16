@@ -70,8 +70,8 @@ export function createTicket(formData: Record<string, any>) {
 
         const route = router.resolve({
           name: 'bizTicketManage',
-          query: {
-            id,
+          params: {
+            ticketId: id,
           },
         });
         return new Promise<{ id: number }>((resolve, reject) => {

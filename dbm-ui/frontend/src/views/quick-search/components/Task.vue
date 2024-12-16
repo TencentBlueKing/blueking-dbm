@@ -211,8 +211,8 @@
   const handleToTicket = (id: string) => {
     const url = router.resolve({
       name: 'bizTicketManage',
-      query: {
-        id,
+      params: {
+        ticketId: id,
       },
     });
     window.open(url.href, '_blank');

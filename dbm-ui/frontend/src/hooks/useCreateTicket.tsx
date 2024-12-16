@@ -23,8 +23,8 @@ export const useCreateTicket = (params: Record<string, any>) => {
           content: () => {
             const route = router.resolve({
               name: 'bizTicketManage',
-              query: {
-                id,
+              params: {
+                ticketId: id,
               },
             });
 

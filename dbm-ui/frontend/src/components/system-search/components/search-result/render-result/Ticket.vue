@@ -44,8 +44,8 @@
     location(
       {
         name: 'bizTicketManage',
-        query: {
-          id: data.id,
+        params: {
+          ticketId: data.id,
         },
       },
       data.bk_biz_id,

@@ -154,7 +154,9 @@
   const handleToTicket = (id: number) => {
     const localtion = router.resolve({
       name: 'bizTicketManage',
-      query: { id },
+      params: {
+        ticketId: id,
+      },
     });
     window.open(localtion.href, '_blank');
   };
