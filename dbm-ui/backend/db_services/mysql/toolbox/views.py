@@ -51,8 +51,14 @@ class ToolboxViewSet(viewsets.SystemViewSet):
     @action(methods=["POST"], detail=False, serializer_class=QueryPkgListByCompareVersionSerializer)
     def query_higher_version_pkg_list(self, request, **kwargs):
         data = self.params_validate(self.get_serializer_class())
-        cluster_id, higher_major_version = data["cluster_id"], data["higher_major_version"]
-        return Response(ToolboxHandler().query_higher_version_pkg_list(cluster_id, higher_major_version))
+        cluster_id, higher_major_version, higher_all_version = (
+            data["cluster_id"],
+            data["higher_major_version"],
+            data["higher_all_version"],
+        )
+        return Response(
+            ToolboxHandler().query_higher_version_pkg_list(cluster_id, higher_major_version, higher_all_version)
+        )
 
 
 class TendbHaSlaveInstanceAddDomainSet(viewsets.SystemViewSet):

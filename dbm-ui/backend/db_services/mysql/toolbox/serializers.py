@@ -20,9 +20,10 @@ from backend.ticket.constants import FlowRetryType, TicketType
 class QueryPkgListByCompareVersionSerializer(serializers.Serializer):
     cluster_id = serializers.IntegerField()
     higher_major_version = serializers.BooleanField(default=False)
+    higher_all_version = serializers.BooleanField(default=False)
 
     class Meta:
-        swagger_schema_fields = {"cluster_id": 123, "higher_major_version": False}
+        swagger_schema_fields = {"cluster_id": 123, "higher_major_version": False, "higher_all_version": False}
 
 
 class TendbhaTransferToOtherBizSerializer(serializers.Serializer):
