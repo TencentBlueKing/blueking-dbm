@@ -535,18 +535,19 @@ func (r *GoApplyBinlog) FilterBinlogFiles() (totalSize int64, err error) {
 	var firstBinlogSize int64 = 0
 	// 过滤 binlog time < stop_time
 	// 如果有需要 也会过滤 binlog time > start_time
-	var startTimeMore, stopTimeMore time.Time // 前后时间偏移 20分钟
-	var startTimeFilter, stopTimeFilter string
+	var startTimeFilter, stopTimeFilter time.Time // 前后时间偏移 20分钟
 	if r.BinlogOpt.StartTime != "" {
-		startTimeMore, _ = time.ParseInLocation(time.DateTime, r.BinlogOpt.StartTime, time.Local)
+		if startTimeFilter, err = cmutil.ParseLocalTimeString(r.BinlogOpt.StartTime); err != nil {
+			return 0, errors.WithMessage(err, "start_time parse failed")
+		}
 		// binlog时间 start_time 比 预期start_time 提早 20 分钟
-		startTimeFilter = startTimeMore.Add(-20 * time.Minute).Format(time.RFC3339)
+		startTimeFilter = startTimeFilter.Add(-20 * time.Minute)
 	}
-	if stopTimeMore, err = time.ParseInLocation(time.DateTime, r.BinlogOpt.StopTime, time.Local); err != nil {
-		return 0, errors.Errorf("stop_time parse failed: %s", r.BinlogOpt.StopTime)
+	if stopTimeFilter, err = cmutil.ParseLocalTimeString(r.BinlogOpt.StopTime); err != nil {
+		return 0, errors.WithMessage(err, "stop_time parse failed")
 	} else {
 		// binlog时间 stop_time 比 预期stop_time 延后 20 分钟
-		stopTimeFilter = stopTimeMore.Add(20 * time.Minute).Format(time.RFC3339)
+		stopTimeFilter = stopTimeFilter.Add(20 * time.Minute)
 	}
 
 	for _, f := range r.BinlogFiles {
@@ -557,19 +558,19 @@ func (r *GoApplyBinlog) FilterBinlogFiles() (totalSize int64, err error) {
 		if err != nil {
 			return 0, err
 		}
-		startTime := events[0].EventTime
-		stopTime := events[1].EventTime
+		startTime, _ := time.ParseInLocation(time.RFC3339, events[0].EventTime, time.Local)
+		stopTime, _ := time.ParseInLocation(time.RFC3339, events[1].EventTime, time.Local)
 		fileSize := cmutil.GetFileSize(fileName)
 		// **** get binlog time
 
-		if r.BinlogOpt.StopTime != "" && stopTime > stopTimeFilter {
+		if r.BinlogOpt.StopTime != "" && stopTime.Compare(stopTimeFilter) > 0 {
 			break
 		}
 		if r.BinlogStartFile != "" {
 			binlogFiles = append(binlogFiles, f)
 			totalSize += fileSize
 		} else if r.BinlogOpt.StartTime != "" {
-			if startTime > startTimeFilter { // time.RFC3339
+			if startTime.Compare(startTimeFilter) > 0 { // time.RFC3339
 				if !firstBinlogFound { // 拿到binlog时间符合条件的 前一个binlog
 					firstBinlogFound = true
 					firstBinlogFile = lastBinlogFile

@@ -63,7 +63,6 @@ func (f *GoFlashback) Init() error {
 		WorkDir:            f.WorkDir,
 		WorkID:             f.WorkID,
 		ParseConcurrency:   f.ParseConcurrency,
-		StartTime:          f.TargetTime,
 		QuickMode:          true,
 		SourceBinlogFormat: "ROW", // 这里只代表 flashback 要求 ROW 模式，源实例 binlog_format 在 PreCheck 里会判断
 		ParseOnly:          true,
@@ -89,9 +88,9 @@ func (f *GoFlashback) Init() error {
 	if f.StopTime == "" {
 		timeNow := time.Now()
 		f.StopTime = timeNow.Local().Format(time.RFC3339)
-		f.flashback.StopTime = f.StopTime
-		//f.flashback.BinlogOpt.StopTime = timeNow.Local().Format(time.DateTime)
 	}
+	f.flashback.StopTime = f.StopTime
+
 	toolset, err := tools.NewToolSetWithPick(tools.ToolGoMysqlbinlog, tools.ToolMysqlclient)
 	if err != nil {
 		return err
@@ -99,7 +98,7 @@ func (f *GoFlashback) Init() error {
 	if err = f.flashback.ToolSet.Merge(toolset); err != nil {
 		return err
 	}
-	// 拼接 recover-binlog 参数
+	// 拼接 goapply-binlog 参数
 	if err := f.flashback.Init(); err != nil {
 		return err
 	}
@@ -139,6 +138,9 @@ func (f *GoFlashback) getBinlogFilesLocal() (int64, error) {
 		binlogFiles, err := f.flashback.GetBinlogFilesFromDir(binlogDir, namePrefix)
 		if err != nil {
 			return 0, err
+		}
+		if len(binlogFiles) == 0 {
+			logger.Warn("no binlog files found from %s", binlogDir)
 		}
 		f.flashback.BinlogDir = binlogDir // 实例真实 binlog dir
 		f.flashback.BinlogFiles = binlogFiles

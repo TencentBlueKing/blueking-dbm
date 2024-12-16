@@ -323,40 +323,39 @@ DefaultsFile = /etc/my.cnf.3306
 
 ## 参数解释
 ### Public
-- Public.KillLongQueryTime
- 这个参数对逻辑备份和物理备份作用不同
- - 逻辑备份 mydumper
+- Public.KillLongQueryTime  
+ 这个参数对逻辑备份和物理备份作用不同，需要备份账号有 super 权限。默认为 0 则不 kill。
+ - 逻辑备份 mydumper  
   相当于`--kill-long-queries --long-query-guard xx`: 发出 FTWRL 之前如果发现有超过这个时间的长 sql，则 kill 掉
- - 物理备份 xtrabackup
+ - 物理备份 xtrabackup  
    相当于`--kill-long-queries-timeout=xx`: 发出 FTWRL 之后如果被阻塞，则等待多久之后把引起阻塞的长 sql kill 掉
 
-需要备份账号有 super 权限。默认为 0 则不 kill。
-
-- Public.FtwrlWaitTimeout
-  发起备份前检查长 sql，(如果不自动 kill/ kill失败) 则等待长 sql 多久后，放弃 ftwrl，放弃备份。
-  此时还未发起 `FLUSH TABLE WITH READ LOCK` 命令
-  默认 120s，对 mydumper / xtrabackup 有效
-  - 逻辑备份 mydumper
+- Public.FtwrlWaitTimeout  
+  发起备份前检查长 sql，(如果不自动 kill/ kill失败) 则等待长 sql 多久后，放弃 ftwrl，放弃备份。  
+  此时还未发起 `FLUSH TABLE WITH READ LOCK` 命令。默认 120s，对 mydumper / xtrabackup 有效
+  - 逻辑备份 mydumper  
     相当于 `--long-query-guard xx` 且不 kill
-  - 物理备份 xtrabackup
+  - 物理备份 xtrabackup  
     5.5, 5.6 : `--lock-wait-timeout`
     5.7, 8.0 : `--ftwrl-wait-timeout`
 
-- Public.AcquireLockWaitTimeout
-  备份加锁超时，比如 `LOCK TABLES FOR BACKUP` / `FLUSH TABLE WITH READ LOCK`，相当于 `set session lock-wait-timeout=xxx`
+- Public.AcquireLockWaitTimeout  
+  备份加锁超时，比如 `LOCK TABLES FOR BACKUP` / `FLUSH TABLE WITH READ LOCK`，相当于 `set session lock-wait-timeout=xxx`  
   默认 10s 超时，对 mydumper / xtrabackup 有效
 
-- Public.BackupTimeOut
-  备份超时结束时间，只对 master 有效，用于保护 master 不被备份影响。
+- Public.BackupTimeOut  
+  备份超时结束时间，只对 master 有效，用于保护 master 不被备份影响。  
   默认`09:00:00`，即备份执行到这个时间点还未结束，则退出
 
-- Public.OldFileLeftDay
+- Public.OldFileLeftDay  
   备份文件本地最大保留时间天数，每次备份之前会先清理旧的备份。如果备份空间不足，可能会继续清理备份文件，优先保证备份成功
 
-- Public.IOLimitMasterFactor
+- Public.IOLimitMasterFactor  
   master机器专用限速因子，因为备份速度可能有多个选项来控制
   - master 文件io打包限速: `Public.IOLimitMBPerSec * IOLimitMasterFactor`
   - 物理备份限速: `PhysicalBackup.Throttle * IOLimitMasterFactor`
 
-### LogicalBackup
-- LogicalBackup.TrxConsistencyOnly
+### LogicalBackup  
+- LogicalBackup.TrxConsistencyOnly  
+  mydumper `--trx-consistency-only`, 或者 mysqldump `--single-transaction`。默认 true  
+  对于多引擎混合的实例，如果想要保证整体数据的全局一致，需要设置为 false，会导致在整个备份期间持有 FTWRL，在主库上谨慎使用false。

@@ -160,6 +160,7 @@ func (l *LogicalDumperMysqldump) buildArgsObjectFilter() (args []string) {
 
 // MysqldumpHasOption check mysqldump has --xxx or not
 func MysqldumpHasOption(bin string, option string) (bool, error) {
+	// 注意 --help 要在后面
 	_, cmdStderr, err := cmutil.ExecCommand(false, "", bin, option, "--help")
 	if err == nil {
 		return true, nil

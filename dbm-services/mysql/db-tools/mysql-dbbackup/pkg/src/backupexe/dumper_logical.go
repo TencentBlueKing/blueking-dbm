@@ -243,6 +243,7 @@ func (l *LogicalDumper) PrepareBackupMetaInfo(cnf *config.BackupConfig) (*dbarep
 // MydumperHasOption check mydumper has --xxx or not
 // example: ./mydumper --lock-wait-timeout 1 --help
 func MydumperHasOption(bin string, option ...string) (bool, error) {
+	// --help 在前/后 无所谓
 	cmdArgs := []string{bin, "--help"}
 	cmdArgs = append(cmdArgs, option...)
 	_, cmdStderr, err := cmutil.ExecCommand(false, "", cmdArgs[0], cmdArgs[1:]...)

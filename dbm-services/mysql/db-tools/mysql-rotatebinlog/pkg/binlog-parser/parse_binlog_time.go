@@ -314,6 +314,6 @@ func (b *BinlogParse) GetRotateEvent(f *os.File) (*replication.EventHeader, erro
 			}
 		}
 	}
-	// if mysqld is shutdown with kill -9, binlog maynot contains rotate/stop event
+	// if mysqld is shutdown with kill -9, binlog may not contains rotate/stop event
 	return nil, errors.Errorf("%s: get RotateEvent or StopEvent failed", b.FileName)
 }

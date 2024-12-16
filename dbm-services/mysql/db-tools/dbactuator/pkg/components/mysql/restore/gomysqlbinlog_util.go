@@ -9,6 +9,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/spf13/cast"
 
+	"dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/common/go-pubpkg/logger"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util/osutil"
 )
@@ -26,10 +27,8 @@ type GoMySQLBinlogUtil struct {
 	BinlogDir string `json:"-"`
 	StartFile string `json:"-"`
 	StopFile  string `json:"-"`
-	// --start-datetime  时间格式
-	// 格式 "2006-01-02 15:04:05" 原样传递给 mysqlbinlog
-	// 格式"2006-01-02T15:04:05Z07:00"(示例"2023-12-11T05:03:05+08:00")按照机器本地时间，解析成 "2006-01-02 15:04:05" 再传递给 mysqlbinlog
-	// 在 Init 时会统一把时间字符串转换成 time.RFC3399
+	// --start-datetime  时间格式，支持 "2006-01-02 15:04:05" or "2006-01-02T15:04:05Z07:00" 两种格式
+	// 传递给 gomysqlbinlog 时，会按照机器本地时间，统一解析成 "2006-01-02 15:04:05"
 	StartTime string `json:"start_time"`
 	// --stop-datetime   时间格式同 StartTime，可带时区，会转换成机器本地时间
 	StopTime string `json:"stop_time"`
@@ -113,17 +112,19 @@ func (b *GoMySQLBinlogUtil) BuildArgs(filterMode bool) ([]string, error) {
 		}
 	}
 	if b.StartTime != "" {
-		_, err := time.ParseInLocation(time.DateTime, b.StartTime, time.Local)
+		t, err := cmutil.ParseLocalTimeString(b.StartTime)
 		if err != nil {
-			return nil, errors.Errorf("start_time expect format %s but got %s", time.DateTime, b.StartTime)
+			return nil, errors.WithMessage(err, "start_time error")
 		}
+		b.StartTime = t.Format(time.DateTime)
 		b.cmdArgs = append(b.cmdArgs, fmt.Sprintf("--start-datetime='%s'", b.StartTime))
 	}
 	if b.StopTime != "" {
-		_, err := time.ParseInLocation(time.DateTime, b.StopTime, time.Local)
+		t, err := cmutil.ParseLocalTimeString(b.StopTime)
 		if err != nil {
-			return nil, errors.Errorf("stop_time expect format %s but got %s", time.DateTime, b.StopTime)
+			return nil, errors.WithMessage(err, "stop_time error")
 		}
+		b.StopTime = t.Format(time.DateTime)
 		b.cmdArgs = append(b.cmdArgs, fmt.Sprintf("--stop-datetime='%s'", b.StopTime))
 	} else {
 		return nil, errors.Errorf("stop-datetime cannot be empty")
