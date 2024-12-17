@@ -300,6 +300,7 @@
                 <BackendQPSSpec
                   ref="specBackendRef"
                   v-model="state.formdata.details.resource_spec.backend_group"
+                  v-model:apply-schema="applySchema"
                   :biz-id="state.formdata.bk_biz_id"
                   :cloud-id="state.formdata.details.bk_cloud_id"
                   :cluster-type="typeInfos.cluster_type"
@@ -397,6 +398,7 @@
   import DeployVersion from '@views/db-manage/common/apply-items/DeployVersion.vue';
   import RegionItem from '@views/db-manage/common/apply-items/RegionItem.vue';
   import SpecSelector from '@views/db-manage/common/apply-items/SpecSelector.vue';
+  import { APPLY_SCHEME } from '@views/db-manage/common/apply-schema/Index.vue';
   import PasswordInput from '@views/db-manage/common/password-input/Index.vue';
 
   import { generateId } from '@utils';
@@ -494,6 +496,7 @@
     name: '',
   });
   const passwordIsPass = ref(false);
+  const applySchema = ref(APPLY_SCHEME.AUTO);
 
   const state = reactive({
     formdata: initData(),
@@ -590,7 +593,7 @@
   });
 
   const backendMachineType = computed(() =>
-    typeInfos.value.cluster_type === ClusterTypes.PREDIXY_REDIS_CLUSTER
+    typeInfos.value.cluster_type === ClusterTypes.PREDIXY_REDIS_CLUSTER && applySchema.value === APPLY_SCHEME.AUTO
       ? ClusterTypes.PREDIXY_REDIS_CLUSTER
       : specClusterMachineMap[typeInfos.value.cluster_type],
   );
