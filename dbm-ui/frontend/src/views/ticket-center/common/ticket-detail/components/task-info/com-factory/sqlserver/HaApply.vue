@@ -12,26 +12,106 @@
 -->
 
 <template>
-  <DemandInfo
-    :config="config"
-    :data="ticketDetails" />
+  <div class="info-title">{{ t('部署模块') }}</div>
+  <InfoList>
+    <InfoItem :label="t('所属业务：')">
+      {{ ticketDetails.bk_biz_name || '--' }}
+    </InfoItem>
+    <InfoItem :label="t('业务英文名：')">
+      {{ ticketDetails.db_app_abbr || '--' }}
+    </InfoItem>
+    <InfoItem :label="t('DB模块名：')">
+      {{ ticketDetails.details.db_module_name || '--' }}
+    </InfoItem>
+  </InfoList>
+  <div class="info-title mt-20">{{ t('数据库部署信息') }}</div>
+  <InfoList>
+    <InfoItem :label="t('数据库部署地域：')">
+      {{ ticketDetails.details.city_name }}
+    </InfoItem>
+    <InfoItem :label="t('SQLServer起始端口：')">
+      {{ ticketDetails.details.start_mssql_port }}
+    </InfoItem>
+  </InfoList>
+  <div class="info-title mt-20">{{ t('需求信息') }}</div>
+  <InfoList>
+    <InfoItem :label="t('集群数量：')">
+      {{ ticketDetails.details.cluster_count }}
+    </InfoItem>
+    <InfoItem :label="t('每组主机部署集群：')">
+      {{ ticketDetails.details.inst_num }}
+    </InfoItem>
+    <InfoItem :label="t('服务器选择：')">
+      {{ ticketDetails.details.ip_source === 'resource_pool' ? t('自动从资源池匹配') : t('业务空闲机') }}
+    </InfoItem>
+    <InfoItem
+      v-if="resourceSpecs"
+      :label="t('后端存储规格：')">
+      {{ ticketDetails.details.cluster_count }}
+      <BkPopover
+        placement="top"
+        theme="light">
+        <span
+          class="pb-2"
+          style="cursor: pointer; border-bottom: 1px dashed #979ba5">
+          {{ resourceSpecs.spec_name }}（{{ resourceSpecs.count }} {{ t('台') }}）
+        </span>
+        <template #content>
+          <SpecInfos :data="resourceSpecs" />
+        </template>
+      </BkPopover>
+    </InfoItem>
+    <InfoItem :label="t('集群设置：')">
+      <BkTable :data="ticketDetails.details.domains">
+        <BkTableColumn
+          field="master"
+          fixed="left"
+          :label="t('主访问入口')"
+          :min-width="240" />
+        <BkTableColumn
+          field="deployStructure"
+          :label="t('部署架构')"
+          :min-width="120">
+          {{ t('高可用部署') }}
+        </BkTableColumn>
+        <BkTableColumn
+          field="version"
+          :label="t('数据库版本')"
+          :min-width="120">
+          {{ ticketDetails.details.db_version }}
+        </BkTableColumn>
+        <BkTableColumn
+          field="charset"
+          :label="t('字符集')"
+          :min-width="120">
+          {{ ticketDetails.details.charset }}
+        </BkTableColumn>
+        <BkTableColumn
+          v-if="ticketDetails.details.nodes?.sqlserver_ha"
+          field="sqlserver_ha"
+          :label="t('服务器')"
+          :min-width="180">
+          <template
+            v-for="host in ticketDetails.details.nodes.sqlserver_ha"
+            :key="host.bk_host_id">
+            <div>
+              {{ host.ip }}
+            </div>
+          </template>
+        </BkTableColumn>
+      </BkTable>
+    </InfoItem>
+  </InfoList>
 </template>
 
 <script setup lang="tsx">
   import { useI18n } from 'vue-i18n';
-  import { useRequest } from 'vue-request';
 
   import TicketModel, { type Sqlserver } from '@services/model/ticket/ticket';
-  import { getInfrasCities } from '@services/source/ticket';
 
-  import { ClusterTypes, TicketTypes } from '@common/const';
+  import { TicketTypes } from '@common/const';
 
-  import PreviewTable from '@views/db-manage/sqlserver/apply/components/PreviewTable.vue';
-
-  import { useAffinity } from '../../hooks/useAffinity';
-  import DemandInfo, {
-    type DemandInfoConfig,
-  } from '../components/DemandInfo.vue';
+  import InfoList, { Item as InfoItem } from '../components/info-list/Index.vue';
   import SpecInfos from '../components/SpecInfos.vue';
 
   interface Props {
@@ -42,149 +122,25 @@
 
   defineOptions({
     name: TicketTypes.SQLSERVER_HA_APPLY,
-    inheritAttrs: false
-  })
+    inheritAttrs: false,
+  });
 
   const { t } = useI18n();
 
-  const { affinity } = useAffinity(props.ticketDetails);
-
-  const {
-    details,
-  } = props.ticketDetails;
-  const {
-    ip_source: ipSource,
-    resource_spec: resourceSpec,
-    nodes,
-  } = details
-  const isSingleType = false;
-  const isFromResourcePool = ipSource === 'resource_pool';
-  const backendSpec = resourceSpec?.[ClusterTypes.SQLSERVER_HA];
-
-  const config: DemandInfoConfig[] = [
-    {
-      title: t('部署模块'),
-      list: [
-        {
-          label: t('所属业务'),
-          key: 'bk_biz_name',
-        },
-        {
-          label: t('业务英文名'),
-          key: 'db_app_abbr',
-        },
-        {
-          label: t('DB模块名'),
-          key: 'details.db_module_name',
-        },
-      ],
-    },
-    {
-      title: t('地域要求'),
-      list: [
-        {
-          label: t('数据库部署地域'),
-          render: () => cityName.value || '--',
-        },
-      ],
-    },
-    {
-      title: t('需求信息'),
-      list: [
-        {
-          label: t('集群数量'),
-          key: 'details.cluster_count',
-        },
-        {
-          label: t('每组主机部署集群'),
-          key: 'details.inst_num',
-        },
-        {
-          label: t('服务器选择'),
-          render: () => isFromResourcePool ? t('自动从资源池匹配') : t('业务空闲机')
-        },
-      ],
-    },
-  ];
-
-  if (!isSingleType) {
-    config.splice(1, 0, {
-      title: t('数据库部署信息'),
-      list: [
-        {
-          label: t('数据库部署信息'),
-          render: () => affinity.value || '--',
-        },
-        {
-          label: t('SQLServer起始端口'),
-          key: 'details.start_mssql_port',
-        },
-      ],
-    })
-  }
-
-  if (backendSpec) {
-    config[2].list.splice(3, 0, {
-      label: t('后端存储规格'),
-      render: () => (
-        <bk-popover
-          placement="top"
-          theme="light">
-          {{
-            default: () => (
-              <span
-                class="pb-2"
-                style="cursor: pointer;border-bottom: 1px dashed #979ba5;">
-                {backendSpec.spec_name }（{ `${backendSpec.count} ${t('台')}`}）
-              </span>
-            ),
-            content: () => <SpecInfos data={backendSpec} />,
-          }}
-        </bk-popover>
-      ),
-    })
-  }
-  if (nodes){
-    config[2].list.splice(3, 0, {
-    label: t('集群设置'),
-    isTable: true,
-    render: () => (
-        <PreviewTable
-          data={tableData.value}
-          is-show-nodes={!isFromResourcePool}
-          is-single-type={isSingleType}
-          max-height={240}
-          min-height={0}
-          nodeList={nodes[ClusterTypes.SQLSERVER_HA]} />
-      ),
-    })
-  }
-
-  const cityName = ref('--');
-
-  /**
-   * preview table data
-   */
-  const tableData = computed(() =>
-    (props.ticketDetails.details.domains || []).map((domainItem) => {
-      const { details } = props.ticketDetails;
-      return {
-        domain: domainItem.master,
-        slaveDomain: domainItem.slave,
-        disasterDefence: t('同城跨园区'),
-        deployStructure: isSingleType ? t('单节点部署') : t('主从部署'),
-        version: details.db_version,
-        charset: details.charset,
-      };
+  const resourceSpecs = computed(() => {
+    if (!props.ticketDetails.details.resource_spec) {
+      return undefined;
     }
-    ),
-  );
-
-  useRequest(getInfrasCities, {
-    onSuccess: (cityList) => {
-      const cityCode = props.ticketDetails.details.city_code;
-      const name = cityList.find((item) => item.city_code === cityCode)?.city_name;
-      cityName.value = name ?? '--';
-    },
+    const data = props.ticketDetails.details.resource_spec;
+    // data.sqlserver_ha 历史数据兼容问题, 类型不需要定义
+    // eslint-disable-next-line
+    // @ts-ignore
+    return data.sqlserver_ha || data.backend_group;
   });
 </script>
+<style lang="less" scoped>
+  .info-title {
+    font-weight: bold;
+    color: #313238;
+  }
+</style>
