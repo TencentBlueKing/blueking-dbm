@@ -139,4 +139,8 @@ export default class Ticket<T extends unknown | DetailBase = unknown> {
       Ticket.STATUS_RUNNING,
     ].includes(this.status);
   }
+
+  get isFinished() {
+    return [Ticket.STATUS_SUCCEEDED, Ticket.STATUS_TERMINATED].includes(this.status);
+  }
 }

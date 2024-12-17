@@ -62,6 +62,7 @@
           <template #default="{ data }: { data: TicketModel }">
             <RowAction
               v-if="data"
+              :key="data.id"
               :data="data"
               :ticket-status="ticketStatus"
               @go-ticket-detail="() => handleShowDetail(data)" />

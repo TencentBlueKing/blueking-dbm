@@ -47,29 +47,33 @@
           <BkTableColumn
             fixed="left"
             :label="t('单据类型')"
-            :rowspan="rowSpan"
-            :width="240">
+            :min-width="240"
+            :rowspan="rowSpan">
             <template #default="{ data }">
-              {{ data.ticket_type_display }}
-              <AuthButton
-                v-bk-tooltips="{
-                  content: appendBtnTipMap[appendBtnController[data.ticket_type]],
-                  disabled: !appendBtnController[data.ticket_type],
-                }"
-                action-id="biz_ticket_config_set"
-                class="append-config-btn"
-                :disabled="appendBtnController[data.ticket_type]"
-                :permission="data.permission.biz_ticket_config_set"
-                :resource="dbType"
-                size="small"
-                @click="(event: PointerEvent) => handleShowAppendConfig(data, event)">
-                {{ t('添加免审批') }}
-              </AuthButton>
+              <TextOverflowLayout>
+                {{ data.ticket_type_display }}
+                <template #append>
+                  <AuthButton
+                    v-bk-tooltips="{
+                      content: appendBtnTipMap[appendBtnController[data.ticket_type]],
+                      disabled: !appendBtnController[data.ticket_type],
+                    }"
+                    action-id="biz_ticket_config_set"
+                    class="append-config-btn"
+                    :disabled="appendBtnController[data.ticket_type]"
+                    :permission="data.permission.biz_ticket_config_set"
+                    :resource="dbType"
+                    size="small"
+                    @click="(event: PointerEvent) => handleShowAppendConfig(data, event)">
+                    {{ t('添加免审批') }}
+                  </AuthButton>
+                </template>
+              </TextOverflowLayout>
             </template>
           </BkTableColumn>
           <BkTableColumn
             :label="t('目标')"
-            :width="200">
+            :min-width="200">
             <template #default="{ data }">
               <RenderRow
                 v-if="data.isClusterTarget"
@@ -173,8 +177,8 @@
           <BkTableColumn
             field="flow_desc"
             :label="t('流程预览')"
-            show-overflow-tooltip
-            :width="400">
+            :min-width="400"
+            show-overflow-tooltip>
             <template #default="{ data }">
               <span>{{ data.flow_desc.join(' -> ') }}</span>
             </template>
@@ -481,7 +485,7 @@
     fetchData();
   });
 </script>
-<style lang="less" scoped>
+<style lang="less">
   .ticket-flow-list-content {
     display: flex;
     padding: 16px 24px;
@@ -506,38 +510,36 @@
     }
 
     .tickets-flow-table {
-      :deep(.bk-nested-loading) {
+      .bk-nested-loading {
         height: calc(100vh - 240px);
       }
 
-      :deep(.bk-table) {
-        height: 100% !important;
+      height: 100% !important;
 
-        .configs-head {
-          padding-bottom: 2px;
-          border-bottom: 1px dashed #313238;
-        }
+      .configs-head {
+        padding-bottom: 2px;
+        border-bottom: 1px dashed #313238;
+      }
 
-        .append-config-btn {
-          display: none;
-        }
+      .append-config-btn {
+        display: none;
+      }
 
-        tr {
-          &:hover {
-            .append-config-btn {
-              display: inline-flex;
-              margin-left: 8px;
-            }
+      tr {
+        &:hover {
+          .append-config-btn {
+            display: inline-flex;
+            margin-left: 8px;
           }
         }
+      }
 
-        .flow-node-action {
-          display: inline-block;
-          cursor: pointer;
+      .flow-node-action {
+        display: inline-block;
+        cursor: pointer;
 
-          & ~ .flow-node-action {
-            margin-left: 24px;
-          }
+        & ~ .flow-node-action {
+          margin-left: 24px;
         }
       }
     }

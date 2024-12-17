@@ -162,7 +162,7 @@
                 </BkTag>
               </div>
             </div>
-            <template v-else> -- </template>
+            <template v-if="data.related_object.objects.length < 1"> -- </template>
           </template>
         </BkTableColumn>
         <BkTableColumn
