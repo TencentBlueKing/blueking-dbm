@@ -103,7 +103,6 @@ func (p *PhysicalDumper) buildArgs() []string {
 		args = append(args, fmt.Sprintf("--target-dir=%s", targetPath), "--backup")
 	}
 	if strings.Compare(p.mysqlVersion, "005007000") > 0 {
-		args = append(args, "--lock-ddl")
 		if strings.Compare(p.mysqlVersion, "008000000") < 0 { // ver >=5.7 and ver < 8.0
 			args = append(args, "--binlog-info=ON")
 		}
@@ -131,12 +130,21 @@ func (p *PhysicalDumper) buildArgs() []string {
 	if p.cnf.PhysicalBackup.Throttle > 0 {
 		args = append(args, fmt.Sprintf("--throttle=%d", p.cnf.PhysicalBackup.Throttle))
 	}
+	if p.cnf.PhysicalBackup.LockDDL {
+		// will block all ddl and non-innodb dml from the backup beginning
+		if strings.Compare(p.mysqlVersion, "005007000") >= 0 {
+			args = append(args, "--lock-ddl")
+		}
+	} else {
+		if strings.Compare(p.mysqlVersion, "008000000") >= 0 {
+			args = append(args, "--skip-lock-ddl")
+		}
+	}
 
 	if strings.ToLower(p.cnf.Public.MysqlRole) == cst.RoleSlave {
 		// --safe-slave-backup
 		args = append(args, "--slave-info")
 	}
-
 	if strings.Compare(p.mysqlVersion, "008000000") >= 0 {
 		if p.isOfficial {
 			args = append(args, "--skip-strict")

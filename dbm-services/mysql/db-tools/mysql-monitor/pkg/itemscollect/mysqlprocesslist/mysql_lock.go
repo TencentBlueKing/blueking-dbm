@@ -1,9 +1,11 @@
 package mysqlprocesslist
 
 import (
-	"dbm-services/mysql/db-tools/mysql-monitor/pkg/utils"
 	"log/slog"
 	"strings"
+
+	"dbm-services/mysql/db-tools/mysql-monitor/pkg/internal/cst"
+	"dbm-services/mysql/db-tools/mysql-monitor/pkg/utils"
 
 	"github.com/dlclark/regexp2"
 )
@@ -48,7 +50,7 @@ func mysqlLock() (string, error) {
 
 		slog.Debug("mysql lock check process", slog.Any("process", pstr))
 
-		if strings.ToLower(p.User.String) == "system user" {
+		if strings.ToLower(p.User.String) == cst.SystemUser {
 			continue
 		}
 
@@ -129,7 +131,7 @@ func hasNormalLock(p *mysqlProcess) (bool, error) {
 		return false, err
 	}
 
-	slog.Debug("check normal lock", slog.Bool("match status lock", match))
+	slog.Debug("check system lock", slog.Bool("match status lock", match))
 	if match {
 		return false, nil
 	}

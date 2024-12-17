@@ -34,6 +34,7 @@ func init() {
 					"mysqld_safe mysqld restarted",
 					"Failed to open log",
 					"Could not open log file",
+					"Cannot open.*ib_buffer_pool.*No such file", // 物理备份恢复会产生这个日志
 				},
 				"|",
 			),
