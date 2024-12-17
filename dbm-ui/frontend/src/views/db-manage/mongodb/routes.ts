@@ -3,7 +3,25 @@ import type { RouteRecordRaw } from 'vue-router';
 import type { MongoFunctions } from '@services/model/function-controller/functionController';
 import FunctionControllModel from '@services/model/function-controller/functionController';
 
+import { TicketTypes } from '@common/const';
+
 import { t } from '@locales/index';
+
+const createRouteItem = (
+  ticketType: TicketTypes,
+  meta: {
+    navName: string;
+    skeleton?: string;
+  },
+) => ({
+  name: ticketType,
+  path: `${ticketType}/:page?`,
+  meta: {
+    fullscreen: true,
+    ...meta,
+  },
+  component: () => import(`@views/db-manage/mongodb/${ticketType}/Index.vue`),
+});
 
 export const mongoToolboxChildrenRoutes: RouteRecordRaw[] = [
   {
@@ -87,14 +105,17 @@ export const mongoToolboxChildrenRoutes: RouteRecordRaw[] = [
     },
     component: () => import('@views/db-manage/mongodb/db-table-backup/Index.vue'),
   },
-  {
-    name: 'MongoDbBackup',
-    path: 'db-data-copy-record/:page?',
-    meta: {
-      navName: t('全库备份'),
-    },
-    component: () => import('@views/db-manage/mongodb/db-backup/Index.vue'),
-  },
+  createRouteItem(TicketTypes.MONGODB_FULL_BACKUP, {
+    navName: t('全库备份'),
+  }),
+  // {
+  //   name: 'MongoDbBackup',
+  //   path: 'db-data-copy-record/:page?',
+  //   meta: {
+  //     navName: t('全库备份'),
+  //   },
+  //   component: () => import('@views/db-manage/mongodb/db-backup/Index.vue'),
+  // },
   {
     path: 'db-clear/:page?',
     name: 'MongoDbClear',

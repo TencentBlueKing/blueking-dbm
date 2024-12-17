@@ -10,6 +10,8 @@
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
  */
+import { TicketTypes } from '@common/const';
+
 import { t } from '@locales/index';
 
 export interface MenuChild {
@@ -97,7 +99,7 @@ export default [
       },
       {
         name: t('全库备份'),
-        id: 'MongoDbBackup',
+        id: TicketTypes.MONGODB_FULL_BACKUP,
         parentId: 'mongo_backup',
       },
     ],
