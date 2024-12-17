@@ -19,7 +19,7 @@ export interface HaApply extends DetailBase {
   }[];
   inst_num: number;
   ip_source: string;
-  nodes: {
+  nodes?: {
     [ClusterTypes.SQLSERVER_HA]: {
       ip: string;
       bk_host_id: number;
@@ -28,8 +28,7 @@ export interface HaApply extends DetailBase {
     }[];
   };
   resource_spec?: {
-    [ClusterTypes.SQLSERVER_SINGLE]: SpecInfo;
-    [ClusterTypes.SQLSERVER_HA]: SpecInfo;
+    backend_group: SpecInfo;
   };
   spec: string;
   spec_display: string;
