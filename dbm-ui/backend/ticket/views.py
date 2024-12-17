@@ -92,7 +92,7 @@ class TicketViewSet(viewsets.AuditedModelViewSet):
     单据视图
     """
 
-    queryset = Ticket.objects.all().prefetch_related("todo_of_ticket")
+    queryset = Ticket.objects.all()
     serializer_class = TicketSerializer
     filter_class = TicketListFilter
     pagination_class = AuditedLimitOffsetPagination
@@ -157,6 +157,11 @@ class TicketViewSet(viewsets.AuditedModelViewSet):
         ]
         ticket_filter = Q(creator=user.username) | reduce(operator.or_, manage_filters or [Q()])
         return Ticket.objects.filter(ticket_filter)
+
+    def filter_queryset(self, queryset):
+        """filter_class可能导致预取的todo失效，这里重新取一次"""
+        queryset = super().filter_queryset(queryset)
+        return queryset.prefetch_related("todo_of_ticket")
 
     def get_queryset(self):
         """

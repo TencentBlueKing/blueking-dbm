@@ -131,7 +131,7 @@ class TicketSerializer(AuditedSerializer, serializers.ModelSerializer):
         return obj.status
 
     def get_ticket_type_display(self, obj):
-        return obj.get_ticket_type_display()
+        return TicketType.get_choice_label(obj.ticket_type)
 
     def get_status_display(self, obj):
         return TicketStatus.get_choice_label(obj.status)

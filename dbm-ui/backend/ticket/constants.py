@@ -127,9 +127,11 @@ class TicketFlowStatus(str, StructuredEnum):
     SKIPPED = EnumField("SKIPPED", _("跳过"))
 
 
+# 流程成功状态
 FLOW_FINISHED_STATUS = [TicketFlowStatus.SKIPPED, TicketFlowStatus.SUCCEEDED]
+# 流程未执行状态
 FLOW_NOT_EXECUTE_STATUS = [TicketFlowStatus.SKIPPED, TicketFlowStatus.PENDING]
-
+# 任务树和流程状态映射
 BAMBOO_STATE__TICKET_STATE_MAP = {
     StateType.FINISHED.value: TicketFlowStatus.SUCCEEDED.value,
     StateType.FAILED.value: TicketFlowStatus.FAILED.value,
@@ -139,6 +141,13 @@ BAMBOO_STATE__TICKET_STATE_MAP = {
     # bamboo engine流程的创建/准备对应单据flow的运行
     StateType.CREATED.value: TicketFlowStatus.RUNNING.value,
     StateType.READY.value: TicketFlowStatus.RUNNING.value,
+}
+# 任务流程与todo的状态映射
+INNER_FLOW_TODO_STATUS_MAP = {
+    TicketFlowStatus.TERMINATED: TodoStatus.DONE_FAILED,
+    TicketFlowStatus.FAILED: TodoStatus.TODO,
+    TicketFlowStatus.SUCCEEDED: TodoStatus.DONE_SUCCESS,
+    TicketFlowStatus.RUNNING: TodoStatus.DONE_SUCCESS,
 }
 
 EXCLUSIVE_TICKET_EXCEL_PATH = "backend/ticket/exclusive_ticket.xlsx"
@@ -296,9 +305,9 @@ class TicketType(str, StructuredEnum):
     TENDBCLUSTER_AUTHORIZE_RULES = TicketEnumField("TENDBCLUSTER_AUTHORIZE_RULES", _("TenDB Cluster 授权"), _("权限管理"))
     TENDBCLUSTER_EXCEL_AUTHORIZE_RULES = TicketEnumField("TENDBCLUSTER_EXCEL_AUTHORIZE_RULES", _("TenDB Cluster EXCEL授权"), _("权限管理"))  # noqa
     TENDBCLUSTER_STANDARDIZE = TicketEnumField("TENDBCLUSTER_STANDARDIZE", _("TenDB Cluster 集群标准化"), register_iam=False)
-    TENDBCLUSTER_METADATA_IMPORT = TicketEnumField("TENDBCLUSTER_METADATA_IMPORT", _("TenDB Cluster 元数据导入"),register_iam=False)  # noqa
+    TENDBCLUSTER_METADATA_IMPORT = TicketEnumField("TENDBCLUSTER_METADATA_IMPORT", _("TenDB Cluster 元数据导入"), register_iam=False)  # noqa
     TENDBCLUSTER_APPEND_DEPLOY_CTL = TicketEnumField("TENDBCLUSTER_APPEND_DEPLOY_CTL", _("TenDB Cluster 追加部署中控"), register_iam=False)  # noqa
-    TENDBSINGLE_METADATA_IMPORT = TicketEnumField("TENDBSINGLE_METADATA_IMPORT", _("TenDB Single 元数据导入"), register_iam=False)  # noqa
+    TENDBSINGLE_METADATA_IMPORT = TicketEnumField("TENDBSINGLE_METADATA_IMPORT", _("TenDB Single 元数据导入"),  register_iam=False)  # noqa
     TENDBSINGLE_STANDARDIZE = TicketEnumField("TENDBSINGLE_STANDARDIZE", _("TenDB Single 集群标准化"), register_iam=False)  # noqa
     TENDBCLUSTER_DATA_MIGRATE = TicketEnumField("TENDBCLUSTER_DATA_MIGRATE", _("TenDB Cluster DB克隆"), _("数据处理"))
     TENDBCLUSTER_DUMP_DATA = TicketEnumField("TENDBCLUSTER_DUMP_DATA", _("TenDB Cluster 数据导出"), _("数据处理"))

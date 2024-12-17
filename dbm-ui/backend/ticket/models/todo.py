@@ -44,17 +44,18 @@ class TodoManager(models.Manager):
         # 构造单据状态与处理人之间的对应关系
         # - 审批中：提单人可撤销，dba可处理
         # - 待执行：提单人 + 单据协助人
-        # - 待继续：提单人 + dba + 单据协助人
-        # - 待补货：提单人 + dba + 单据协助人
-        # - 已失败：提单人 + dba + 单据协助人
+        # - 待继续：提单人 + 单据协助人 + dba
+        # - 待补货：提单人 + 单据协助人 + dba
+        # - 已失败：提单人 + 单据协助人 + dba
         todo_operators_map = {
             TodoType.ITSM: dba,
             TodoType.APPROVE: creator + biz_helpers,
-            TodoType.INNER_APPROVE: creator + dba + biz_helpers,
-            TodoType.RESOURCE_REPLENISH: creator + dba + biz_helpers,
-            TodoType.INNER_FAILED: creator + dba + biz_helpers,
+            TodoType.INNER_APPROVE: creator + biz_helpers + dba,
+            TodoType.RESOURCE_REPLENISH: creator + biz_helpers + dba,
+            TodoType.INNER_FAILED: creator + biz_helpers + dba,
         }
-        operators = list(set(operators + todo_operators_map.get(todo_type, [])))
+        # 按照顺序去重
+        operators = list(dict.fromkeys(operators + todo_operators_map.get(todo_type, [])))
         return operators
 
     def create(self, **kwargs):

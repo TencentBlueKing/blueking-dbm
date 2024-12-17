@@ -449,14 +449,14 @@ class Cluster(AuditedModel):
                     continue
 
                 # 取一个状态正常的 spider-master 接入层
-                spider_instance = cluster.proxyinstance_set.filter(
+                spider_inst = cluster.proxyinstance_set.filter(
                     tendbclusterspiderext__spider_role=TenDBClusterSpiderRole.SPIDER_MASTER,
                     status=InstanceStatus.RUNNING.value,
                 ).first()
-
-                ctl_address = "{}{}{}".format(spider_instance.machine.ip, IP_PORT_DIVIDER, spider_instance.port + 1000)
-                addresses.append(ctl_address)
-                ctl_address__cluster_id_map[ctl_address] = cluster.id
+                if spider_inst:
+                    ctl_address = "{}{}{}".format(spider_inst.machine.ip, IP_PORT_DIVIDER, spider_inst.port + 1000)
+                    addresses.append(ctl_address)
+                    ctl_address__cluster_id_map[ctl_address] = cluster.id
 
             logger.info("addresses: {}".format(addresses))
 
