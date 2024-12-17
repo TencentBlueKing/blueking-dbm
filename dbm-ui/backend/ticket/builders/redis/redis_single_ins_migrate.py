@@ -16,14 +16,19 @@ from backend.db_meta.models import Cluster
 from backend.db_services.dbbase.constants import IpSource
 from backend.flow.engine.controller.redis import RedisController
 from backend.ticket import builders
-from backend.ticket.builders.common.base import DisplayInfoSerializer, SkipToRepresentationMixin, fetch_cluster_ids
+from backend.ticket.builders.common.base import (
+    BaseOperateResourceParamBuilder,
+    DisplayInfoSerializer,
+    SkipToRepresentationMixin,
+    fetch_cluster_ids,
+)
 from backend.ticket.builders.redis.base import BaseRedisInstanceTicketFlowBuilder
 from backend.ticket.constants import TicketType
 
 
 class RedisSingleInsMigrateDetailSerializer(SkipToRepresentationMixin, serializers.Serializer):
     class RedisSingleInsMigrateItemSerializer(DisplayInfoSerializer):
-        db_version = serializers.CharField(help_text=_("Redis版本"), required=False)
+        db_version = serializers.CharField(help_text=_("Redis版本"))
         cluster_id = serializers.IntegerField(help_text=_("集群ID"))
         resource_spec = serializers.JSONField(help_text=_("资源规格"))
         old_nodes = serializers.JSONField(help_text=_("旧节点信息集合"))
@@ -52,27 +57,14 @@ class RedisSingleInsMigrateBuilder(builders.FlowParamBuilder):
     controller = RedisController.redis_single_ins_migrate
 
     def format_ticket_data(self):
-        cluster_id = self.ticket_data["infos"][0]["cluster_id"]
-        cluster = Cluster.objects.get(id=cluster_id)
-        self.ticket_data.update(
-            cluster_id=cluster.id,
-            bk_cloud_id=cluster.bk_cloud_id,
-            db_version=cluster.major_version,
-            resource_spec=self.ticket_data["infos"][0]["resource_spec"],
-        )
+        # 任取一个集群，补充云区域ID
+        cluster = Cluster.objects.get(id=self.ticket_data["infos"][0]["cluster_id"])
+        self.ticket_data.update(bk_cloud_id=cluster.bk_cloud_id)
 
 
-class RedisSingleInstanceApplyResourceParamBuilder(builders.ResourceApplyParamBuilder):
+class RedisSingleInstanceApplyResourceParamBuilder(BaseOperateResourceParamBuilder):
     def format(self):
         # 资源申请的一些参数补充
-        cluster_id = self.ticket_data["infos"][0]["cluster_id"]
-        cluster = Cluster.objects.get(id=cluster_id)
-        self.ticket_data.update(
-            cluster_id=cluster.id,
-            bk_cloud_id=cluster.bk_cloud_id,
-            db_version=cluster.major_version,
-            resource_spec=self.ticket_data["infos"][0]["resource_spec"],
-        )
         self.patch_info_affinity_location(roles=["backend_group"])
 
     def fetch_cluster_map(self, ticket_data):
@@ -83,17 +75,12 @@ class RedisSingleInstanceApplyResourceParamBuilder(builders.ResourceApplyParamBu
 
     def patch_instance_migrate_info(self, ticket_data):
         """补充实例迁移的信息"""
-        cluster_id__cluster = self.fetch_cluster_map(ticket_data)
         for index, info in enumerate(ticket_data["infos"]):
-            cluster = cluster_id__cluster[info["cluster_id"]]
             info.update(
-                cluster_id=cluster.id,
-                db_version=cluster.major_version,
                 src_master=f'{info["old_nodes"]["master"][0]["ip"]}:{info["old_nodes"]["master"][0]["port"]}',
                 src_slave=f'{info["old_nodes"]["slave"][0]["ip"]}:{info["old_nodes"]["slave"][0]["port"]}',
-                dest_master=f'{ticket_data["nodes"]["backend_group"][0]["master"]["ip"]}',
-                dest_slave=f'{ticket_data["nodes"]["backend_group"][0]["slave"]["ip"]}',
-                resource_spec=ticket_data["resource_spec"],
+                dest_master=f'{info["backend_group"][0]["master"]["ip"]}',
+                dest_slave=f'{info["backend_group"][0]["slave"]["ip"]}',
             )
 
     def post_callback(self):
@@ -106,5 +93,5 @@ class RedisSingleInstanceApplyResourceParamBuilder(builders.ResourceApplyParamBu
 class RedisSingleInsMigrateBuilder(BaseRedisInstanceTicketFlowBuilder):
     serializer = RedisSingleInsMigrateDetailSerializer
     inner_flow_builder = RedisSingleInsMigrateBuilder
-    resource_apply_builder = RedisSingleInstanceApplyResourceParamBuilder
+    resource_batch_apply_builder = RedisSingleInstanceApplyResourceParamBuilder
     inner_flow_name = _("Redis 主从指定实例迁移")
