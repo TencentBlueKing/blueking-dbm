@@ -1,3 +1,4 @@
+// Package spiderctlcmd TODO
 /*
  * TencentBlueKing is pleased to support the open source community by making 蓝鲸智云-DB管理系统(BlueKing-BK-DBM) available.
  * Copyright (C) 2017-2023 THL A29 Limited, a Tencent company. All rights reserved.
@@ -7,7 +8,6 @@
  * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
  * specific language governing permissions and limitations under the License.
  */
-
 package spiderctlcmd
 
 import (
@@ -21,17 +21,17 @@ import (
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util"
 )
 
-// CheckTdbctlWithSpiderSchemaAct check tdbctl with spider schema
-type CheckTdbctlWithSpiderSchemaAct struct {
-	Service spiderctl.CheckTdbctlWithSpideSchemaComp
+// CheckTdbctlWithSpiderRouterAct check tdbctl with spider schema
+type CheckTdbctlWithSpiderRouterAct struct {
+	Service spiderctl.CheckTdbctlWithSpideRouterComp
 }
 
-// NewChkTdbctlSpiderSchaCommand create new subcommand
-func NewChkTdbctlSpiderSchaCommand() *cobra.Command {
-	act := CheckTdbctlWithSpiderSchemaAct{}
+// NewChkTdbctlSpiderRouterCommand create new subcommand
+func NewChkTdbctlSpiderRouterCommand() *cobra.Command {
+	act := CheckTdbctlWithSpiderRouterAct{}
 	cmd := &cobra.Command{
-		Use:   "check-tdbctl-with-spider-schema",
-		Short: "检查中控和spider的schema数量是否一致",
+		Use:   "check-tdbctl-with-spider-router",
+		Short: "检查中控和spider的路由是否一致",
 		Example: fmt.Sprintf(`dbactuator spiderctl cluster-backend-switch %s %s`,
 			subcmd.CmdBaseExampleStr, subcmd.ToPrettyJson(act.Service.Example()),
 		),
@@ -44,7 +44,7 @@ func NewChkTdbctlSpiderSchaCommand() *cobra.Command {
 }
 
 // Init prepare run env
-func (c *CheckTdbctlWithSpiderSchemaAct) Init() (err error) {
+func (c *CheckTdbctlWithSpiderRouterAct) Init() (err error) {
 	if _, err = subcmd.Deserialize(&c.Service.Params); err != nil {
 		logger.Error("DeserializeAndValidate failed, %v", err)
 		return err
@@ -54,20 +54,16 @@ func (c *CheckTdbctlWithSpiderSchemaAct) Init() (err error) {
 }
 
 // Run Command Run
-func (c *CheckTdbctlWithSpiderSchemaAct) Run() (err error) {
+func (c *CheckTdbctlWithSpiderRouterAct) Run() (err error) {
 	steps := subcmd.Steps{
 		{
-			FunName: "初始化",
-			Func:    c.Service.Init,
-		},
-		{
-			FunName: "检查db表数量",
-			Func:    c.Service.RunCheck,
+			FunName: "检查集群路由是否和中控一致",
+			Func:    c.Service.Run,
 		},
 	}
 	if err = steps.Run(); err != nil {
 		return err
 	}
-	logger.Info("check tdbctl with spider schema successfully")
+	logger.Info("check tdbctl with spider routers successfully")
 	return
 }

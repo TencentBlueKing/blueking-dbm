@@ -176,6 +176,18 @@ func (t *TdbctlDbWork) SelectServers() (servers []Server, err error) {
 	return
 }
 
+// GetMasterSpiderNodes 获取所有spider节点
+func (t *TdbctlDbWork) GetMasterSpiderNodes() (servers []Server, err error) {
+	err = t.Queryx(&servers, "select  * from  mysql.servers  where Wrapper in ('SPIDER');")
+	return
+}
+
+// GetSlaveSpiderNodes 获取所有spider slave节点
+func (t *TdbctlDbWork) GetSlaveSpiderNodes() (servers []Server, err error) {
+	err = t.Queryx(&servers, "select  * from  mysql.servers  where Wrapper in ('SPIDER_SLAVE');")
+	return
+}
+
 // get_exec_special_node_cmd TODO
 func (t *TdbctlDbWork) get_exec_special_node_cmd(serverName string) string {
 	return fmt.Sprintf("TDBCTL CONNECT NODE %s EXECUTE", serverName)

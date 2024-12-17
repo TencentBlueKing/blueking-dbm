@@ -426,6 +426,19 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
             },
         }
 
+    def get_check_router_payload(self, **kwargs):
+        return {
+            "db_type": DBActuatorTypeEnum.SpiderCtl.value,
+            "action": DBActuatorActionEnum.CheckTdbctlWithSpiderRouter.value,
+            "payload": {
+                "general": {"runtime_account": self.account},
+                "extend": {
+                    "host": kwargs["ip"],
+                    "port": self.cluster["ctl_port"],
+                },
+            },
+        }
+
     def get_install_spider_ctl_payload(self, **kwargs):
         """
         拼接spider-ctl节点安装的payload, ctl是单机单实例, 所以代码兼容多实例传入
