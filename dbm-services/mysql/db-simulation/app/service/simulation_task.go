@@ -25,6 +25,7 @@ import (
 	"github.com/bsm/redislock"
 	"github.com/redis/go-redis/v9"
 	"github.com/samber/lo"
+	"gorm.io/gorm"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	util "dbm-services/common/go-pubpkg/cmutil"
@@ -200,16 +201,29 @@ func reloadRunningTaskFromdb() {
 	var tks []model.TbSimulationTask
 	if err := model.DB.Model(model.TbSimulationTask{}).Where(
 		//nolint
-		"phase not in (?) and create_time >  DATE_SUB(NOW(),INTERVAL 6 HOUR) and time_to_sec(timediff(heartbeat_time,now())) > ? ",
+		"phase not in (?) and create_time >  DATE_SUB(NOW(),INTERVAL 2 HOUR) and time_to_sec(timediff(now(),heartbeat_time)) > ? ",
 		[]string{model.PhaseDone, model.PhaseReloading}, HeartbeatInterval).Scan(&tks).Error; err != nil {
 		logger.Error("get running task failed %s", err.Error())
 		return
 	}
-	if len(tks) == 0 {
+	var reRunTask []model.TbSimulationTask
+	// 可能已经重试成功了，但是version ID 已经变了
+	for _, tk := range tks {
+		var cks model.TbSimulationTask
+		if err := model.DB.Model(model.TbSimulationTask{}).Where("bill_task_id = ? and phase = ? and status = ?",
+			tk.BillTaskId, model.PhaseDone, model.TaskSuccess).First(&cks).Error; err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				reRunTask = append(reRunTask, tk)
+				continue
+			}
+		}
+		logger.Info("task %s already run success", tk.TaskId)
+	}
+	if len(reRunTask) == 0 {
 		logger.Info("no need reload running task")
 		return
 	}
-	for _, tk := range tks {
+	for _, tk := range reRunTask {
 		var err error
 		var req model.TbRequestRecord
 		var p ReloadParam
