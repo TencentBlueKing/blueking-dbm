@@ -333,6 +333,7 @@
       getResourceList: getMongoList,
       tableContent: MongoTable,
       resultContent: ResultPreview,
+      showPreviewResultTitle: true,
     },
     [ClusterTypes.MONGO_SHARED_CLUSTER]: {
       id: ClusterTypes.MONGO_SHARED_CLUSTER,
@@ -347,6 +348,7 @@
       getResourceList: getMongoList,
       tableContent: MongoTable,
       resultContent: ResultPreview,
+      showPreviewResultTitle: true,
     },
     [ClusterTypes.SQLSERVER_SINGLE]: {
       id: ClusterTypes.SQLSERVER_SINGLE,
@@ -483,14 +485,14 @@
             return result;
           }
           const tabSelectMap = {
-            map: props.selected[tabKey].reduce(
+            map: _.cloneDeep(props.selected[tabKey]).reduce(
               (selectResult, selectItem) => ({
                 ...selectResult,
                 [selectItem.id]: selectItem,
               }),
               {} as Record<string, T>,
             ),
-            list: props.selected[tabKey],
+            list: _.cloneDeep(props.selected[tabKey]),
           };
           return {
             ...result,

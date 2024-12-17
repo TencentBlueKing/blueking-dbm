@@ -150,6 +150,7 @@
     [TicketTypes.TENDBCLUSTER_MIGRATE_CLUSTER]: 'spiderMasterSlaveClone', // spider 迁移主从
     [TicketTypes.TENDBCLUSTER_RESTORE_LOCAL_SLAVE]: 'spiderSlaveRebuild', // spider 重建从库-原地重建
     [TicketTypes.TENDBCLUSTER_RESTORE_SLAVE]: 'spiderSlaveRebuild', // spider 重建从库-新机重建
+    [TicketTypes.MONGODB_FULL_BACKUP]: TicketTypes.MONGODB_FULL_BACKUP, // mongodb 全库备份
   };
 
   const isSupported = computed(() => !!ticketTypeRouteNameMap[props.data.ticket_type]);
