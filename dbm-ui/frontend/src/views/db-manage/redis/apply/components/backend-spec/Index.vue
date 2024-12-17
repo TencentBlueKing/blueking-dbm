@@ -99,13 +99,13 @@
 
   const props = defineProps<Props>();
   const modelValue = defineModel<ModelValue>({ required: true });
+  const applySchema = defineModel<APPLY_SCHEME>('applySchema', {required: true})
 
   const { t } = useI18n();
 
   const specRef = ref();
   const customSchemaRef = ref<InstanceType<typeof CustomSchema>>()
   const isLoading = ref(false);
-  const applySchema = ref(APPLY_SCHEME.AUTO)
 
   const specs = shallowRef<ClusterSpecModel[]>([]);
   const countMap = shallowRef({} as Record<number, number>)
@@ -192,7 +192,7 @@
     if (capacityValue === '' || futureCapacityValue === '') {
       resetSlider();
     } else {
-      modelValue.value.spec_id = -1;
+      modelValue.value.spec_id = '';
       clearTimeout(timer);
       timer = setTimeout(() => {
         fetchFilterClusterSpec();
