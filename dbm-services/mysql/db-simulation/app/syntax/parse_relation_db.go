@@ -25,6 +25,9 @@ import (
 	"dbm-services/common/go-pubpkg/logger"
 )
 
+// AnalyzeConcurrency 解析并发度
+const AnalyzeConcurrency = 10
+
 // DoParseRelationDbs parse relation db from sql file
 func (tf *TmysqlParseFile) DoParseRelationDbs(version string) (createDbs, relationDbs []string, dumpAll bool,
 	err error) {
@@ -45,14 +48,12 @@ func (tf *TmysqlParseFile) DoParseRelationDbs(version string) (createDbs, relati
 	}
 	// 最后删除临时目录,不会返回错误
 	defer tf.delTempDir()
-
-	errChan := make(chan error, 1)
+	logger.Info("all sqlfiles download ok ~")
 	alreadExecutedSqlfileChan := make(chan string, len(tf.Param.FileNames))
 
 	go func() {
 		if err = tf.Execute(alreadExecutedSqlfileChan, version); err != nil {
 			logger.Error("failed to execute tmysqlparse: %s", err.Error())
-			errChan <- err
 		}
 		close(alreadExecutedSqlfileChan)
 	}()
@@ -78,10 +79,11 @@ func (tf *TmysqlParseFile) DoParseRelationDbs(version string) (createDbs, relati
 func (t *TmysqlParse) doParseInchan(alreadExecutedSqlfileCh chan string,
 	mysqlVersion string) (createDbs []string, relationDbs []string, dumpAll bool, err error) {
 	var errs []error
-	c := make(chan struct{}, 10)
-	errChan := make(chan error, 5)
+	c := make(chan struct{}, AnalyzeConcurrency)
+	errChan := make(chan error)
 	wg := &sync.WaitGroup{}
-	stopChan := make(chan struct{})
+	//  stopchan len 必须要和 AnalyzeConcurrency 保持一致
+	stopChan := make(chan struct{}, AnalyzeConcurrency)
 
 	for sqlfile := range alreadExecutedSqlfileCh {
 		wg.Add(1)
@@ -93,8 +95,11 @@ func (t *TmysqlParse) doParseInchan(alreadExecutedSqlfileCh chan string,
 			if err != nil {
 				errChan <- err
 			}
+			// 如果有dumpall 则直接返回退出,不在继续分析
 			if dumpAllDbs {
 				dumpAll = true
+				<-c
+				wg.Done()
 				stopChan <- struct{}{}
 			}
 			t.mu.Lock()
@@ -132,7 +137,6 @@ func (t *TmysqlParse) analyzeRelationDbs(inputfileName, mysqlVersion string) (
 			logger.Error("panic error:%v,stack:%s", r, string(debug.Stack()))
 		}
 	}()
-	t.result[inputfileName] = &CheckInfo{}
 	f, err := os.Open(t.getAbsoutputfilePath(inputfileName, mysqlVersion))
 	if err != nil {
 		logger.Error("open file failed %s", err.Error())

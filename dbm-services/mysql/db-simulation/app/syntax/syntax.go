@@ -112,11 +112,11 @@ const DdlMapFileSubffix = ".tbl.map"
 
 // Do  运行语法检查 For SQL 文件
 func (tf *TmysqlParseFile) Do(dbtype string, versions []string) (result map[string]*CheckInfo, err error) {
-	logger.Info("doing....")
+	tf.mu = sync.Mutex{}
+	tf.mu.Lock()
 	tf.result = make(map[string]*CheckInfo)
 	tf.tmpWorkdir = tf.BaseWorkdir
-	tf.mu = sync.Mutex{}
-
+	tf.mu.Unlock()
 	if !tf.IsLocalFile {
 		if err = tf.Init(); err != nil {
 			logger.Error("Do init failed %s", err.Error())
@@ -142,7 +142,7 @@ func (tf *TmysqlParseFile) Do(dbtype string, versions []string) (result map[stri
 }
 
 func (tf *TmysqlParseFile) doSingleVersion(dbtype string, mysqlVersion string) (err error) {
-	errChan := make(chan error, 1)
+	errChan := make(chan error, len(tf.Param.FileNames))
 	alreadExecutedSqlfileChan := make(chan string, len(tf.Param.FileNames))
 	signalChan := make(chan struct{})
 
