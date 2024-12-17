@@ -68,7 +68,8 @@ class TicketHandler:
                 {int(cluster_id): info["immute_domain"] for cluster_id, info in clusters.items()}
             )
             instances = ticket.details.get("instances", {})
-            instance_id_ip_port_map.update({int(inst_id): info["instance"] for inst_id, info in instances.items()})
+            if isinstance(instances, dict):
+                instance_id_ip_port_map.update({int(inst_id): info["instance"] for inst_id, info in instances.items()})
             ticket_id_obj_ids_map[ticket.id] = {
                 "cluster_ids": fetch_cluster_ids(ticket.details),
                 "instance_ids": fetch_instance_ids(ticket.details),
@@ -419,7 +420,6 @@ class TicketHandler:
         """
         旧单据状态标准化。TODO: 迁移后此段代码可删除
         """
-        batch = 50
 
         # 标准化只针对running的单据，其他状态单据不影响
         running_tickets = list(Ticket.objects.filter(status=TicketStatus.RUNNING))
@@ -430,36 +430,31 @@ class TicketHandler:
             print(f"ticket[{ticket.id}] status {raw_status} ---> {ticket.status}")
 
         # 失败的单据要增加一条todo关联
-        failed_tickets = Ticket.objects.prefetch_related("flows").filter(status=TicketStatus.FAILED)
-        todos = []
+        failed_tickets = Ticket.objects.prefetch_related("flows__todo_of_flow").filter(status=TicketStatus.FAILED)
         for ticket in failed_tickets:
             inner_flow = ticket.flows.filter(flow_type=FlowType.INNER_FLOW, status=TicketFlowStatus.FAILED).first()
             if not inner_flow or inner_flow.todo_of_flow.exists():
                 continue
-            todo = Todo(
+            Todo.objects.create(
                 name=_("【{}】单据任务执行失败，待处理").format(ticket.get_ticket_type_display()),
                 flow=inner_flow,
                 ticket=ticket,
                 type=TodoType.INNER_FAILED,
                 context=BaseTodoContext(inner_flow.id, ticket.id).to_dict(),
             )
-            todos.append(todo)
             print(f"ticket[{ticket.id}] add a failed todo")
 
         # 待审批的单据要增加一条todo关联
-        itsm_tickets = Ticket.objects.prefetch_related("flows").filter(status=TicketStatus.FAILED)
+        itsm_tickets = Ticket.objects.prefetch_related("flows").filter(status=TicketStatus.APPROVE)
         for ticket in itsm_tickets:
             itsm_flow = ticket.flows.filter(flow_type=FlowType.BK_ITSM, status=TicketFlowStatus.RUNNING).first()
             if not itsm_flow or itsm_flow.todo_of_flow.exists():
                 continue
-            todo = Todo(
+            Todo.objects.create(
                 name=_("【{}】单据等待审批").format(ticket.get_ticket_type_display()),
                 flow=itsm_flow,
                 ticket=ticket,
                 type=TodoType.ITSM,
                 context=ItsmTodoContext(itsm_flow.id, ticket.id).to_dict(),
             )
-            todos.append(todo)
             print(f"ticket[{ticket.id}] add a itsm todo")
-
-        Todo.objects.bulk_create(todos, batch_size=batch)

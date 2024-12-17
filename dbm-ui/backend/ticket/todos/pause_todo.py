@@ -12,8 +12,7 @@ from dataclasses import dataclass
 
 from backend.db_meta.models.sqlserver_dts import DtsStatus, SqlserverDtsInfo
 from backend.ticket import todos
-from backend.ticket.constants import TicketFlowStatus, TicketType, TodoType
-from backend.ticket.flow_manager import manager
+from backend.ticket.constants import TicketFlowStatus, TicketType, TodoStatus, TodoType
 from backend.ticket.flow_manager.manager import TicketFlowManager
 from backend.ticket.todos import ActionType, BaseTodoContext
 
@@ -43,7 +42,7 @@ class PauseTodo(todos.TodoActor):
 
         # 所有待办完成后，执行后面的flow
         if not self.todo.ticket.todo_of_ticket.exist_unfinished():
-            manager.TicketFlowManager(ticket=self.todo.ticket).run_next_flow()
+            TicketFlowManager(ticket=self.todo.ticket).run_next_flow()
 
         # 如果是数据迁移单据，更改迁移记录状态信息
         if self.todo.ticket.ticket_type in [TicketType.SQLSERVER_INCR_MIGRATE, TicketType.SQLSERVER_FULL_MIGRATE]:
@@ -73,3 +72,17 @@ class ResourceReplenishTodo(todos.TodoActor):
         self.todo.refresh_from_db(fields=["flow"])
         if self.todo.flow.status == TicketFlowStatus.SUCCEEDED:
             self.todo.set_success(username, action)
+
+
+@todos.TodoActorFactory.register(TodoType.INNER_FAILED)
+class FailedTodo(todos.TodoActor):
+    """来自主流程-失败后待确认"""
+
+    def _process(self, username, action, params):
+        # 终止-仅将todo进行终止(任务流程的终止)，确认-关联flow进行重试
+        if action == ActionType.TERMINATE:
+            self.todo.set_status(username, TodoStatus.DONE_FAILED)
+        else:
+            manager = TicketFlowManager(ticket=self.todo.ticket)
+            fail_inner_flow = manager.get_ticket_flow_cls(self.todo.flow.flow_type)(self.todo.flow)
+            fail_inner_flow.retry()

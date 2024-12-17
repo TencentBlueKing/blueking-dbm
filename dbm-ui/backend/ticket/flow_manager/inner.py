@@ -26,6 +26,7 @@ from backend.ticket import constants
 from backend.ticket.builders.common.base import fetch_cluster_ids
 from backend.ticket.constants import (
     BAMBOO_STATE__TICKET_STATE_MAP,
+    INNER_FLOW_TODO_STATUS_MAP,
     FlowCallbackType,
     FlowErrCode,
     FlowMsgType,
@@ -106,7 +107,8 @@ class InnerFlow(BaseTicketFlow):
         else:
             status = BAMBOO_STATE__TICKET_STATE_MAP.get(self.flow_tree.status, constants.TicketFlowStatus.RUNNING)
 
-        todo_status = TodoStatus.TODO if status == TicketFlowStatus.FAILED else TodoStatus.DONE_SUCCESS
+        # 根据流程状态映射todo的状态
+        todo_status = INNER_FLOW_TODO_STATUS_MAP.get(status, TodoStatus.TODO)
         fail_todo = self.flow_obj.todo_of_flow.filter(type=TodoType.INNER_FAILED).first()
         # 如果任务失败，且不存在todo，则创建一条
         if not fail_todo and todo_status == TodoStatus.TODO:
