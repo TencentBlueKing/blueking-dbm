@@ -98,7 +98,10 @@
           return;
         }
         ticketData.value = data;
-        loopFetchTicketDetails();
+        // 单据为完成继续下一次轮询
+        if (!data.isFinished) {
+          loopFetchTicketDetails();
+        }
       },
     },
   );
@@ -109,7 +112,7 @@
     });
   };
 
-  const { start: loopFetchTicketDetails } = useTimeoutFn(refreshTicketData, 10000);
+  const { start: loopFetchTicketDetails } = useTimeoutFn(refreshTicketData, 3000);
 
   watch(
     () => props.ticketId,
