@@ -163,6 +163,10 @@ CHART_VERSION = get_type_env(key="CHART_VERSION", _type=str, default="")
 ASYMMETRIC_CIPHER_TYPE = get_type_env(key="ASYMMETRIC_CIPHER_TYPE", _type=str, default=AsymmetricCipherType.RSA.value)
 SYMMETRIC_CIPHER_TYPE = get_type_env(key="SYMMETRIC_CIPHER_TYPE", _type=str, default=SymmetricCipherType.AES.value)
 
+# 数据平台应用 token
+BKDATA_DATA_TOKEN = get_type_env(key="BKDATA_DATA_TOKEN", _type=str, default="")
+
+
 # gcs/scr平台
 GCS_SCR_OPERATOR = get_type_env(key="GCS_SCR_OPERATOR", _type=str, default="scr-system")
 

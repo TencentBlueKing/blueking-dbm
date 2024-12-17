@@ -26,7 +26,6 @@ from django.utils.translation import ugettext as _
 from backend import env
 from backend.bk_web.constants import (
     EXTERNAL_TICKET_TYPE_WHITELIST,
-    IP_RE,
     NON_EXTERNAL_PROXY_ROUTING,
     ROUTING_WHITELIST_PATTERNS,
 )
@@ -249,10 +248,6 @@ class ExternalProxyMiddleware(MiddlewareMixin):
         response = self.get_response(request)
 
         return response
-
-    @staticmethod
-    def replace_ip(text):
-        return re.sub(IP_RE, "*.*.*.*", text)
 
 
 class JWTUserModelBackend(UserModelBackend):
