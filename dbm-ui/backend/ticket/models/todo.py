@@ -18,6 +18,7 @@ from backend import env
 from backend.bk_web.constants import LEN_MIDDLE, LEN_SHORT
 from backend.bk_web.models import AuditedModel
 from backend.configuration.models import BizSettings, DBAdministrator
+from backend.ticket.builders import BuilderFactory
 from backend.ticket.constants import (
     TODO_RUNNING_STATUS,
     FlowMsgStatus,
@@ -42,17 +43,19 @@ class TodoManager(models.Manager):
         biz_helpers = BizSettings.get_assistance(ticket.bk_biz_id)
 
         # 构造单据状态与处理人之间的对应关系
-        # - 审批中：提单人可撤销，dba可处理
+        # - 审批中：提单人可撤销，dba可处理，
+        #   考虑某些单据审批人是特定配置(数据导出 -- 运维审批)，所以从ItsmBuilder获得审批人
         # - 待执行：提单人 + 单据协助人
-        # - 待继续：提单人 + 单据协助人 + dba
-        # - 待补货：提单人 + 单据协助人 + dba
-        # - 已失败：提单人 + 单据协助人 + dba
+        # - 待继续：dba + 提单人 + 单据协助人
+        # - 待补货：dba + 提单人 + 单据协助人
+        # - 已失败：dba + 提单人 + 单据协助人
+        itsm_builder = BuilderFactory.get_builder_cls(ticket.ticket_type).itsm_flow_builder(ticket)
         todo_operators_map = {
-            TodoType.ITSM: dba,
+            TodoType.ITSM: itsm_builder.get_approvers().split(","),
             TodoType.APPROVE: creator + biz_helpers,
-            TodoType.INNER_APPROVE: creator + biz_helpers + dba,
-            TodoType.RESOURCE_REPLENISH: creator + biz_helpers + dba,
-            TodoType.INNER_FAILED: creator + biz_helpers + dba,
+            TodoType.INNER_APPROVE: dba + creator + biz_helpers,
+            TodoType.RESOURCE_REPLENISH: dba + creator + biz_helpers,
+            TodoType.INNER_FAILED: dba + creator + biz_helpers,
         }
         # 按照顺序去重
         operators = list(dict.fromkeys(operators + todo_operators_map.get(todo_type, [])))
@@ -109,8 +112,10 @@ class Todo(AuditedModel):
         return f"{env.BK_SAAS_HOST}/my-todos?id={self.ticket.id}"
 
     def set_status(self, username, status):
-        self.status = status
+        if self.status == status:
+            return
 
+        self.status = status
         if status in [TodoStatus.DONE_SUCCESS, TodoStatus.DONE_FAILED]:
             self.done_by = username
             self.done_at = timezone.now()

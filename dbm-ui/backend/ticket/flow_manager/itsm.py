@@ -82,13 +82,16 @@ class ItsmFlow(BaseTicketFlow):
         # 把 ITSM 单据状态映射为本系统内的单据状态
         current_status = self.ticket_approval_result["current_status"]
         approve_result = self.ticket_approval_result["approve_result"]
-        updater = self.ticket_approval_result["updated_by"]
-        todo = self.flow_obj.todo_of_flow.first()
+
         # 进行中
         if current_status == ItsmTicketStatus.RUNNING:
             return self.flow_obj.update_status(TicketFlowStatus.RUNNING)
+
+        todo = self.flow_obj.todo_of_flow.first()
+        updater = self.ticket_approval_result["updated_by"]
+
         # 撤单
-        elif current_status == ItsmTicketStatus.REVOKED:
+        if current_status == ItsmTicketStatus.REVOKED:
             todo.set_status(username=updater, status=TodoStatus.DONE_FAILED)
             return self.flow_obj.update_status(TicketFlowStatus.TERMINATED)
         # 审批通过

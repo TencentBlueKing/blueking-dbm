@@ -51,7 +51,7 @@ class RedisTypeUpdateDetailSerializer(SkipToRepresentationMixin, serializers.Ser
         current_cluster_type = serializers.ChoiceField(choices=ClusterType.get_choices(), help_text=_("当前集群类型"))
         target_cluster_type = serializers.ChoiceField(choices=ClusterType.get_choices(), help_text=_("目标集群类型"))
         resource_spec = ResourceSpecSerializer(help_text=_("资源申请"))
-        capacity = serializers.IntegerField(help_text=_("当前容量需求"))
+        capacity = serializers.FloatField(help_text=_("当前容量需求"))
         future_capacity = serializers.IntegerField(help_text=_("未来容量需求"))
         db_version = serializers.CharField(help_text=_("版本号"))
         online_switch_type = serializers.ChoiceField(

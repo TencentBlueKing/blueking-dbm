@@ -31,6 +31,7 @@ from backend.ticket.constants import (
     FlowType,
     FlowTypeConfig,
     TicketFlowStatus,
+    TodoStatus,
 )
 from backend.ticket.models import ClusterOperateRecord, Flow, InstanceOperateRecord, TicketFlowsConfig, Todo
 
@@ -265,7 +266,7 @@ class BaseTicketFlow(ABC):
         # 停止相关联的todo
         from backend.ticket.todos import ActionType, TodoActorFactory
 
-        todos = Todo.objects.filter(ticket=self.ticket, flow=self.flow_obj)
+        todos = Todo.objects.filter(ticket=self.ticket, flow=self.flow_obj, status=TodoStatus.TODO)
         for todo in todos:
             TodoActorFactory.actor(todo).process(operator, ActionType.TERMINATE, params={})
         # 刷新flow和单据状态 --> 终止
