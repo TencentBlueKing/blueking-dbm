@@ -31,19 +31,33 @@ class ItsmFlow(BaseTicketFlow):
     @property
     def ticket_approval_result(self):
         # 优先读取缓存，避免同一个对象内多次请求 ITSM
-        # TODO: ITSM接口请求比较缓慢
         if getattr(self, "_ticket_approval_result", None):
             return self._ticket_approval_result
 
         # 调用ITSM接口查询审批状态
-        data = ItsmApi.ticket_approval_result({"sn": [self.flow_obj.flow_obj_id]}, use_admin=True)
         try:
+            data = ItsmApi.ticket_approval_result({"sn": [self.flow_obj.flow_obj_id]}, use_admin=True)
             itsm_ticket_result = data[0]
-        except IndexError:
+        except (IndexError, ApiResultError):
             itsm_ticket_result = None
 
         setattr(self, "_ticket_approval_result", itsm_ticket_result)
         return itsm_ticket_result
+
+    @property
+    def ticket_logs(self):
+        # 同ticket_approval_result，优先读取缓存
+        if getattr(self, "_ticket_logs", None):
+            return self._ticket_logs
+
+        try:
+            itsm_logs = ItsmApi.get_ticket_logs({"sn": [self.flow_obj.flow_obj_id]}, use_admin=True)
+            ticket_logs = itsm_logs["logs"]
+        except (KeyError, ApiResultError):
+            ticket_logs = []
+
+        setattr(self, "_ticket_logs", ticket_logs)
+        return ticket_logs
 
     @property
     def _start_time(self) -> str:
@@ -58,11 +72,6 @@ class ItsmFlow(BaseTicketFlow):
 
     @property
     def _summary(self) -> dict:
-        try:
-            logs = ItsmApi.get_ticket_logs({"sn": [self.flow_obj.flow_obj_id]})
-        except ApiResultError:
-            return _("未知单据")
-
         # 获取单据审批状态
         current_status = self.ticket_approval_result["current_status"]
         approve_result = self.ticket_approval_result["approve_result"]
@@ -70,11 +79,11 @@ class ItsmFlow(BaseTicketFlow):
 
         # 目前审批流程是固定的，取流程中第三个节点的日志作为概览即可
         try:
-            summary.update(operator=logs["logs"][2]["operator"], message=logs["logs"][2]["message"])
+            summary.update(operator=self.ticket_logs[2]["operator"], message=self.ticket_logs[2]["message"])
         except (IndexError, KeyError):
             # 异常时根据状态取默认的概览
             msg = TicketStatus.get_choice_label(self.status)
-            summary.update(operator=logs["logs"][-1]["operator"], status=self.status, message=msg)
+            summary.update(operator=self.ticket_logs[-1]["operator"], status=self.status, message=msg)
         return summary
 
     @property
@@ -88,8 +97,8 @@ class ItsmFlow(BaseTicketFlow):
             return self.flow_obj.update_status(TicketFlowStatus.RUNNING)
 
         todo = self.flow_obj.todo_of_flow.first()
-        updater = self.ticket_approval_result["updated_by"]
-
+        # 非进行中的单据，肯定已经来到了第三个节点，否则也无法处理todo
+        updater = self.ticket_logs[2]["operator"]
         # 撤单
         if current_status == ItsmTicketStatus.REVOKED:
             todo.set_status(username=updater, status=TodoStatus.DONE_FAILED)

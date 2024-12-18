@@ -22,7 +22,7 @@ from backend.tests.mock_data.components.cc import CCApiMock
 from backend.tests.mock_data.components.itsm import ItsmApiMock
 from backend.tests.mock_data.iam_app.permission import PermissionMock
 from backend.tests.mock_data.ticket.ticket_flow import MYSQL_FULL_BACKUP_TICKET_DATA, SN
-from backend.ticket.builders.mysql.mysql_ha_full_backup import MySQLHaFullBackupDetailSerializer
+from backend.ticket.builders.mysql.mysql_full_backup import MySQLFullBackupDetailSerializer
 from backend.ticket.constants import TicketStatus, TodoStatus, TodoType
 from backend.ticket.flow_manager.inner import InnerFlow
 from backend.ticket.handler import TicketHandler
@@ -46,19 +46,16 @@ class TestTicketRevoke:
     """
 
     @patch.object(TicketViewSet, "permission_classes")
-    @patch.object(MySQLHaFullBackupDetailSerializer, "validate")
     @patch.object(InnerFlow, "status", new_callable=PropertyMock)
     @patch.object(TicketViewSet, "get_permissions", lambda x: [])
+    @patch.object(MySQLFullBackupDetailSerializer, "validate", lambda self, attrs: attrs)
     @patch("backend.ticket.flow_manager.itsm.ItsmApi", ItsmApiMock())
     @patch("backend.db_services.cmdb.biz.CCApi", CCApiMock())
     @patch("backend.db_services.cmdb.biz.Permission", PermissionMock)
-    def test_ticket_revoke(
-        self, mocked_status, mocked_validate, mocked_permission_classes, query_fixture, db, init_app
-    ):
+    def test_ticket_revoke(self, mocked_status, mocked_permission_classes, db, init_app):
         # 以全库备份为例，测试流程：start --> itsm --> inner --> end
         mocked_status.return_value = TicketStatus.SUCCEEDED
         mocked_permission_classes.return_value = [AllowAny]
-        mocked_validate.return_value = MYSQL_FULL_BACKUP_TICKET_DATA
 
         client.login(username="admin")
         # 创建单据
