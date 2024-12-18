@@ -16,7 +16,12 @@
           v-model="item.name"
           clearable
           @change="handelNameChange"
-          @clear="handleClear" />
+          @clear="handleClear">
+          <template #prepend>asd</template>
+          <template #append>
+            <div>asd</div>
+          </template>
+        </EditInput>
       </EditableTableColumn>
       <EditableTableColumn
         field="age"
@@ -112,29 +117,35 @@
 
   const dataModel = reactive([
     createData(),
-    createData(),
-    createData(),
-    createData(),
-    createData(),
-    createData(),
-    createData(),
-    createData(),
-    createData(),
-    createData(),
-    createData(),
-    createData(),
-    createData(),
+    // createData(),
+    // createData(),
+    // createData(),
+    // createData(),
+    // createData(),
+    // createData(),
+    // createData(),
+    // createData(),
+    // createData(),
+    // createData(),
+    // createData(),
+    // createData(),
   ]);
 
   const rules = {
     name: [
       {
-        validator: (value: string) => Boolean(value),
+        validator: (value: string) => {
+          console.log('change validator = ', value);
+          return Boolean(value);
+        },
         message: '错了',
         trigger: 'change',
       },
       {
-        validator: (value: string) => Boolean(value),
+        validator: (value: string) => {
+          console.log('blur validator = ', value);
+          return Boolean(value);
+        },
         message: '错了',
         trigger: 'blur',
       },
@@ -153,11 +164,11 @@
   };
 
   const handelNameChange = () => {
-    // isLoading.value = true;
-    // console.log('handelNameChange');
-    // setTimeout(() => {
-    //   isLoading.value = false;
-    // }, 0);
+    isLoading.value = true;
+    console.log('handelNameChange');
+    setTimeout(() => {
+      isLoading.value = false;
+    }, 10000);
   };
   const handleChange = (value: string) => {
     console.log(value);

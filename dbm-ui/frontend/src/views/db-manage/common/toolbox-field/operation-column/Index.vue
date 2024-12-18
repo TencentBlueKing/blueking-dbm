@@ -70,7 +70,6 @@
 
     if (newRowIndex > 0) {
       tableData.value.splice(newRowIndex, 0, props.createRowMethod!());
-      editTableContext!.validateByRowIndex(newRowIndex);
     }
   };
 

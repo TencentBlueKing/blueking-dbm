@@ -341,20 +341,9 @@
       rules = registerRules;
     }
 
-    // 合并规则属性配置
-    const finalRuleList = getTriggerRules(mergeRules(rules, getRulesFromProps(props)), trigger);
-
-    // if (finalRuleList.length < 1) {
-    //   // 重新触发验证重置上次的验证状态
-    //   validateState.isError = false;
-    //   validateState.errorMessage = '';
-    // }
-
-    const value = _.get(tableContext.props.model[rowContext!.getRowIndex()], props.field);
-
     const doValidate = (() => {
       let stepIndex = -1;
-      return (): Promise<boolean> => {
+      return (finalRuleList: IFinalRule[], value: any): Promise<boolean> => {
         stepIndex = stepIndex + 1;
         // 验证通过
         if (stepIndex >= finalRuleList.length) {
@@ -367,7 +356,7 @@
           const result = rule.validator(value);
           // 同步验证通过下一步
           if (result === true) {
-            return doValidate();
+            return doValidate(finalRuleList, value);
           }
           // Promise异步处理验证结果
           return Promise.resolve(result)
@@ -381,7 +370,7 @@
               }
             })
             .then(
-              () => doValidate(),
+              () => doValidate(finalRuleList, value),
               (errorMessage: string) => {
                 validateState.isError = true;
                 validateState.errorMessage = errorMessage;
@@ -404,8 +393,12 @@
     }
 
     return new Promise((resolve, reject) => {
-      const delay = Math.max(Number(tableContext.props.validateDelay || 200), 200);
+      const delay = Math.max(Number(tableContext.props.validateDelay || 60), 60);
       setTimeout(() => {
+        // setTimeout 延迟执行 Column 可能会已经被卸载
+        if (!currentInstance.isMounted) {
+          return reject(false);
+        }
         if (trigger === undefined) {
           triggerQueue.pop();
           if (triggerQueue.length > 0) {
@@ -422,7 +415,16 @@
           }
         }
 
-        return resolve(doValidate());
+        // 重新触发验证重置上次的验证状态
+        validateState.isError = false;
+        validateState.errorMessage = '';
+
+        // 合并规则属性配置
+        const finalRuleList = getTriggerRules(mergeRules(rules, getRulesFromProps(props)), trigger);
+
+        const value = _.get(tableContext.props.model[rowContext!.getRowIndex()], props.field || '_');
+
+        return resolve(doValidate(finalRuleList, value));
       }, delay);
     });
   };
