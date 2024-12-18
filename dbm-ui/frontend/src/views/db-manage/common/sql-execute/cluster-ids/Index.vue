@@ -91,6 +91,7 @@
     {
       label: t('集群'),
       field: 'master_domain',
+      minWidth: 250,
     },
     {
       label: t('类型'),

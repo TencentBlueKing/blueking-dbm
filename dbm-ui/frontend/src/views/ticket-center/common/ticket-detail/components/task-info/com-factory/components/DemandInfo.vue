@@ -107,7 +107,6 @@
       }
 
       .demand-info-item-value {
-        display: ruby;
         overflow: hidden;
         color: @title-color;
         text-overflow: ellipsis;
