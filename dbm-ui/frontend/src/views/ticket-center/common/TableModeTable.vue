@@ -109,17 +109,12 @@
                 v-for="(flowItem, index) in ticketInnerFlowInfo[data.id]"
                 :key="index"
                 style="line-height: 26px">
-                <RouterLink
-                  v-if="flowItem.flow_id"
-                  target="_blank"
-                  :to="{
-                    name: 'taskHistoryDetail',
-                    params: {
-                      root_id: flowItem.flow_id,
-                    },
-                  }">
+                <BkButton
+                  text
+                  theme="primary"
+                  @click="() => handleGoTaskHistoryDetail(data, flowItem)">
                   {{ flowItem.flow_alias }}
-                </RouterLink>
+                </BkButton>
               </div>
               <span v-if="ticketInnerFlowInfo[data.id].length < 1">--</span>
             </template>
@@ -224,6 +219,7 @@
   import { onActivated, shallowRef, useTemplateRef } from 'vue';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
+  import { useRouter } from 'vue-router';
 
   import TicketModel from '@services/model/ticket/ticket';
   import { getTickets } from '@services/source/ticket';
@@ -235,7 +231,7 @@
   import TagBlock from '@components/tag-block/Index.vue';
   import TicketStatusTag from '@components/ticket-status-tag/Index.vue';
 
-  import { getOffset } from '@utils';
+  import { getBusinessHref, getOffset } from '@utils';
 
   import { type VxeTableDefines } from '@blueking/vxe-table';
 
@@ -266,6 +262,7 @@
     action?: () => VNode;
   }>();
 
+  const router = useRouter();
   const { t } = useI18n();
   const eventBus = useEventBus();
   const { isSplited: isStretchLayoutOpen } = useStretchLayout();
@@ -437,6 +434,20 @@
     rowSelectMemo.value = {};
     triggerSelection();
     fetchData();
+  };
+
+  const handleGoTaskHistoryDetail = (
+    ticketData: TicketModel,
+    data: ServiceReturnType<typeof getInnerFlowInfo>[number][number],
+  ) => {
+    const { href } = router.resolve({
+      name: 'taskHistoryDetail',
+      params: {
+        root_id: data.flow_id,
+      },
+    });
+
+    window.open(getBusinessHref(href, ticketData.bk_biz_id));
   };
 
   onActivated(() => {
