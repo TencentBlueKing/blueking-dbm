@@ -165,7 +165,7 @@
   const router = useRouter();
   const globalBizsStore = useGlobalBizs();
   const { handleDisableCluster, handleEnableCluster, handleDeleteCluster } = useOperateClusterBasic(
-    ClusterTypes.REDIS,
+    ClusterTypes.REDIS_INSTANCE,
     {
       onSuccess: () => fetchData(),
     },
