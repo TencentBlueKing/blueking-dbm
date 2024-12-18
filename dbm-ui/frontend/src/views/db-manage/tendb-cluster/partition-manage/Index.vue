@@ -230,7 +230,6 @@
     },
     {
       label: t('操作'),
-      field: 'action',
       width: 220,
       fixed: 'right',
       render: ({ data }: { data: PartitionModel }) => {

@@ -36,10 +36,6 @@ import getTicketRoutes from '@views/ticket-center/routes';
 import getTicketCooperationSettingRoutes from '@views/ticket-cooperation-setting/routes';
 import getTicketFlowSettingBizRoutes from '@views/ticket-flow-setting-biz/routes';
 import getTicketFlowSettingGlobalRoutes from '@views/ticket-flow-setting-global/routes';
-// import getTicketManageRoutes from '@views/ticket-manage/routes';
-// import getTicketSelfApplyRoutes from '@views/ticket-self-apply/routes';
-// import getTicketSelfManageRoutes from '@views/ticket-self-manage/routes';
-// import getTicketSelfTodoRoutes from '@views/ticket-self-todo/routes';
 import getVersionFilesRoutes from '@views/version-files/routes';
 import getWhitelistRoutes from '@views/whitelist/routes';
 
