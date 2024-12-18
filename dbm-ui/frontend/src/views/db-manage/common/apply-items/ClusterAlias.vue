@@ -13,7 +13,7 @@
 
 <template>
   <BkFormItem
-    :label="$t('集群名称')"
+    :label="t('集群别名')"
     property="details.cluster_alias"
     :rules="rules">
     <BkInput
@@ -21,9 +21,8 @@
       :disabled="!bizId"
       :maxlength="63"
       :model-value="modelValue"
-      :placeholder="$t('用于区分不同集群_可随时修改')"
-      show-word-limit
-      @change="handleChange" />
+      :placeholder="t('用于区分不同集群_可随时修改')"
+      show-word-limit />
   </BkFormItem>
 </template>
 <script setup lang="ts">
@@ -32,18 +31,15 @@
   import { verifyDuplicatedClusterName } from '@services/source/dbbase';
 
   interface Props {
-    modelValue: string;
     bizId: number | '';
     clusterType: string;
   }
-  interface Emits {
-    (e: 'update:modelValue', value: string): void;
-  }
 
   const props = defineProps<Props>();
-  const emits = defineEmits<Emits>();
 
   const { t } = useI18n();
+
+  const modelValue = defineModel<string>();
 
   const rules = [
     {
@@ -65,12 +61,8 @@
           cluster_type: props.clusterType,
         }).then((data) => !data);
       },
-      message: t('集群名称重复'),
+      message: t('集群别名重复'),
       trigger: 'blur',
     },
   ];
-
-  const handleChange = (value: string) => {
-    emits('update:modelValue', value);
-  };
 </script>
