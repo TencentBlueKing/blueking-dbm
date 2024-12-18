@@ -386,7 +386,7 @@ class MySQLRestoreSlaveRemoteFlow(object):
                     sub_flow=build_surrounding_apps_sub_flow(
                         bk_cloud_id=cluster_class.bk_cloud_id,
                         master_ip_list=None,
-                        slave_ip_list=[self.data["new_slave_ip"]],
+                        slave_ip_list=[self.data["new_slave_ip"], master.machine.ip],
                         root_id=self.root_id,
                         parent_global_data=copy.deepcopy(self.data),
                         is_init=True,
@@ -631,7 +631,7 @@ class MySQLRestoreSlaveRemoteFlow(object):
                 sub_flow=build_surrounding_apps_sub_flow(
                     bk_cloud_id=cluster_model.bk_cloud_id,
                     master_ip_list=None,
-                    slave_ip_list=[target_slave.machine.ip],
+                    slave_ip_list=[target_slave.machine.ip, master.machine.ip],
                     root_id=self.root_id,
                     parent_global_data=copy.deepcopy(self.data),
                     cluster_type=ClusterType.TenDBHA.value,

@@ -309,7 +309,7 @@ class TenDBRemoteSlaveRecoverFlow(object):
             re_surrounding_sub_pipeline.add_sub_pipeline(
                 sub_flow=build_surrounding_apps_sub_flow(
                     bk_cloud_id=cluster_class.bk_cloud_id,
-                    slave_ip_list=[self.data["target_ip"]],
+                    slave_ip_list=[self.data["target_ip"], master.machine.ip],
                     root_id=self.root_id,
                     parent_global_data=copy.deepcopy(self.data),
                     is_init=True,
