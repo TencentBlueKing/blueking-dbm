@@ -5,11 +5,11 @@
     @focus="handleFocus">
     <div
       v-if="slots.prepend"
-      class="text-prepend-wrapper">
+      class="bk-editable-text-prepend-wrapper">
       <slot name="prepend" />
     </div>
     <div
-      class="text-content-wrapper"
+      class="bk-editable-text-content-wrapper"
       :class="{
         'is-show-prepend': Boolean(slots.prepend),
         'is-show-append': Boolean(slots.append),
@@ -21,13 +21,13 @@
       </span>
       <div
         v-if="isShowPlacehoder"
-        class="text-content-placeholder">
+        class="bk-editable-text-content-placeholder">
         {{ placeholder }}
       </div>
     </div>
     <div
       v-if="slots.append"
-      class="text-append-wrapper">
+      class="bk-editable-text-append-wrapper">
       <slot name="append" />
     </div>
   </div>
@@ -86,59 +86,59 @@
     min-height: 40px;
     align-items: center;
     overflow: hidden;
+  }
 
-    .text-prepend-wrapper,
-    .text-append-wrapper {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      height: 100%;
-      padding: 0 8px;
-      user-select: none;
+  .bk-editable-text-prepend-wrapper,
+  .bk-editable-text-append-wrapper {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    padding: 0 8px;
+    user-select: none;
+  }
+
+  .bk-editable-text-prepend-wrapper {
+    padding-left: 10px;
+  }
+
+  .bk-editable-text-append-wrapper {
+    padding-right: 10px;
+    margin-left: auto;
+  }
+
+  .bk-editable-text-content-wrapper {
+    position: relative;
+    width: 100%;
+    min-height: 40px;
+    padding: 10px 0;
+    margin: 0 10px;
+    overflow: hidden;
+    line-height: 20px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    flex: 1;
+
+    &.is-show-prepend {
+      margin-left: 0;
     }
 
-    .text-prepend-wrapper {
-      padding-left: 10px;
+    &.is-show-append {
+      margin-right: 0;
     }
+  }
 
-    .text-append-wrapper {
-      padding-right: 10px;
-      margin-left: auto;
-    }
-
-    .text-content-wrapper {
-      position: relative;
-      width: 100%;
-      min-height: 40px;
-      padding: 10px 0;
-      margin: 0 10px;
-      overflow: hidden;
-      line-height: 20px;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-      flex: 1;
-
-      &.is-show-prepend {
-        margin-left: 0;
-      }
-
-      &.is-show-append {
-        margin-right: 0;
-      }
-    }
-
-    .text-content-placeholder {
-      position: absolute;
-      display: flex;
-      height: 40px;
-      overflow: hidden;
-      font-size: 12px;
-      color: #c4c6cc;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-      user-select: none;
-      align-items: center;
-      inset: 0;
-    }
+  .bk-editable-text-content-placeholder {
+    position: absolute;
+    display: flex;
+    height: 40px;
+    overflow: hidden;
+    font-size: 12px;
+    color: #c4c6cc;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    user-select: none;
+    align-items: center;
+    inset: 0;
   }
 </style>
