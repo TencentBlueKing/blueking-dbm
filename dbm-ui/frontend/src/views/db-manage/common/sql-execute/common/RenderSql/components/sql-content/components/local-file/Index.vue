@@ -43,6 +43,7 @@
         :opacity="0.3"
         style="height: 100%">
         <Editor
+          v-if="isShow"
           :message-list="selectFileData.messageList"
           :model-value="selectFileData.content"
           readonly
@@ -91,6 +92,7 @@
 
   interface Props {
     clusterVersionList: string[];
+    isShow: boolean;
   }
 
   interface Emits {

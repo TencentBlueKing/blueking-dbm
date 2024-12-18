@@ -39,6 +39,7 @@
           v-model="localModelValue"
           v-bind="attrs"
           :cluster-version-list="clusterVersionList"
+          :is-show="isShow"
           @grammar-check="handleGrammarCheck" />
       </KeepAlive>
     </div>
@@ -89,7 +90,7 @@
     default: false,
   });
 
-  const importMode = defineModel<keyof typeof comMap>('importMode', {
+  const importMode = defineModel<'manual' | 'file'>('importMode', {
     required: true,
   });
   const modelValue = defineModel<string[]>('modelValue', {
