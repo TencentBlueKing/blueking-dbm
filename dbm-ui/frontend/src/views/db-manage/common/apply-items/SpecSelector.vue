@@ -307,6 +307,7 @@
 
     .info-value {
       color: @title-color;
+      flex: 0 1 100%;
     }
   }
 </style>

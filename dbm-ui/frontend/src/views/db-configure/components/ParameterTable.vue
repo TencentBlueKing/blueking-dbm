@@ -43,10 +43,6 @@
     data: ParameterConfigItem;
     index: number;
   };
-
-  defineOptions({
-    name: 'ParameterTable',
-  });
 </script>
 
 <script setup lang="tsx">

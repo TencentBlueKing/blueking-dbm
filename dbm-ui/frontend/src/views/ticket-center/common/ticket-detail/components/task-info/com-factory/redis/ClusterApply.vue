@@ -108,7 +108,7 @@
         </InfoItem>
         <InfoItem
           :label="t('集群部署方案')"
-          style="width: 100%">
+          style="flex: 1 0 100%">
           <BkTable :data="[ticketDetails.details.resource_spec.backend_group.spec_info]">
             <BkTableColumn
               field="spec_name"
@@ -122,18 +122,6 @@
             <BkTableColumn
               field="cluster_capacity"
               :label="t('集群容量G')" />
-            <BkTableColumn
-              field="cluster_capacity"
-              :label="t('集群容量G')">
-              <template
-                #default="{
-                  data,
-                }: {
-                  data: Props['ticketDetails']['details']['resource_spec']['backend_group']['spec_info'];
-                }">
-                {{ data.qps.min * data.machine_pair || '--' }}
-              </template>
-            </BkTableColumn>
           </BkTable>
         </InfoItem>
       </template>
