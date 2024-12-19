@@ -227,14 +227,6 @@ class MySQLMigrateClusterRemoteFlow(object):
                 master_model = cluster_model.storageinstance_set.get(
                     instance_inner_role=InstanceInnerRole.MASTER.value
                 )
-                # 查询备份
-                rollback_time = datetime.now(timezone.utc)
-                rollback_handler = FixPointRollbackHandler(cluster_id=cluster_model.id)
-                backup_info = rollback_handler.query_latest_backup_log(rollback_time)
-                if backup_info is None:
-                    logger.error("cluster {} backup info not exists".format(cluster_model.id))
-                    raise TendbGetBackupInfoFailedException(message=_("获取集群 {} 的备份信息失败".format(cluster_id)))
-                cluster["backupinfo"] = backup_info
                 cluster["new_master_ip"] = self.data["new_master_ip"]
                 cluster["new_slave_ip"] = self.data["new_slave_ip"]
                 cluster["new_master_port"] = master_model.port
@@ -274,6 +266,13 @@ class MySQLMigrateClusterRemoteFlow(object):
                         )
                     )
                 else:
+                    rollback_time = datetime.now(timezone.utc)
+                    rollback_handler = FixPointRollbackHandler(cluster_id=cluster_model.id)
+                    backup_info = rollback_handler.query_latest_backup_log(rollback_time)
+                    if backup_info is None:
+                        logger.error("cluster {} backup info not exists".format(cluster_model.id))
+                        raise TendbGetBackupInfoFailedException(message=_("获取集群 {} 的备份信息失败".format(cluster_id)))
+                    cluster["backupinfo"] = backup_info
                     sync_data_sub_pipeline.add_sub_pipeline(
                         sub_flow=remote_instance_migrate_sub_flow(
                             root_id=self.root_id, ticket_data=copy.deepcopy(self.data), cluster_info=cluster
