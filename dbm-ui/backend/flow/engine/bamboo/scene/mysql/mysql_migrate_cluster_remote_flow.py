@@ -33,7 +33,7 @@ from backend.flow.engine.bamboo.scene.mysql.common.common_sub_flow import (
     install_mysql_in_cluster_sub_flow,
 )
 from backend.flow.engine.bamboo.scene.mysql.common.get_master_config import get_instance_config
-from backend.flow.engine.bamboo.scene.mysql.common.master_and_slave_switch import master_and_slave_switch
+from backend.flow.engine.bamboo.scene.mysql.common.master_and_slave_switch import master_and_slave_switch_v2
 from backend.flow.engine.bamboo.scene.mysql.common.mysql_resotre_data_sub_flow import (
     mysql_restore_master_slave_sub_flow,
 )
@@ -331,7 +331,7 @@ class MySQLMigrateClusterRemoteFlow(object):
                     "other_slave_info": other_slaves,
                 }
                 switch_sub_pipeline.add_sub_pipeline(
-                    sub_flow=master_and_slave_switch(
+                    sub_flow=master_and_slave_switch_v2(
                         root_id=self.root_id,
                         ticket_data=copy.deepcopy(self.data),
                         cluster=cluster_model,

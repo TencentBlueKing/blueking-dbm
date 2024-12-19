@@ -33,7 +33,7 @@ from backend.flow.engine.bamboo.scene.mysql.common.common_sub_flow import (
     install_mysql_in_cluster_sub_flow,
 )
 from backend.flow.engine.bamboo.scene.mysql.common.get_master_config import get_instance_config
-from backend.flow.engine.bamboo.scene.mysql.common.master_and_slave_switch import master_and_slave_switch
+from backend.flow.engine.bamboo.scene.mysql.common.master_and_slave_switch import master_and_slave_switch_v2
 from backend.flow.engine.bamboo.scene.mysql.common.mysql_resotre_data_sub_flow import (
     mysql_restore_data_sub_flow,
     mysql_restore_master_slave_sub_flow,
@@ -1179,7 +1179,7 @@ def build_ms_pair_switch_sub_pipelines(
             "new_ro_slave_ips": new_ro_slave_ips,
         }
         switch_sub_pipeline.add_sub_pipeline(
-            sub_flow=master_and_slave_switch(
+            sub_flow=master_and_slave_switch_v2(
                 root_id=root_id,
                 ticket_data=copy.deepcopy(parent_global_data),
                 cluster=cluster_model,

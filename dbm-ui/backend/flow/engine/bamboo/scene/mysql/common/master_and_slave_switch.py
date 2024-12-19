@@ -19,13 +19,17 @@ from backend.db_meta.enums import ClusterEntryType, InstanceInnerRole
 from backend.db_meta.models import Cluster
 from backend.db_meta.models.extra_process import ExtraProcessInstance
 from backend.flow.consts import ACCOUNT_PREFIX, AUTH_ADDRESS_DIVIDER, InstanceStatus
-from backend.flow.engine.bamboo.scene.common.builder import SubBuilder
+from backend.flow.engine.bamboo.scene.common.builder import Conditions, SubBuilder
 from backend.flow.engine.bamboo.scene.mysql.common.cluster_entrys import get_tendb_ha_entry
 from backend.flow.engine.bamboo.scene.mysql.common.common_sub_flow import check_sub_flow
+from backend.flow.plugins.components.collections.common.pause import PauseComponent
 from backend.flow.plugins.components.collections.mysql.add_user_for_cluster_switch import AddSwitchUserComponent
 from backend.flow.plugins.components.collections.mysql.clone_user import CloneUserComponent
 from backend.flow.plugins.components.collections.mysql.dns_manage import MySQLDnsManageComponent
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
+from backend.flow.plugins.components.collections.mysql.exec_switch_for_source_act import (
+    ExecSwitchActForSourceComponent,
+)
 from backend.flow.plugins.components.collections.tbinlogdumper.link_tbinlogdumper_switch import (
     LinkTBinlogDumperSwitchComponent,
 )
@@ -241,3 +245,296 @@ def master_and_slave_switch(
     cluster_switch_sub_pipeline.add_parallel_acts(acts_list=acts_list)
 
     return cluster_switch_sub_pipeline.build_sub_process(sub_name=_("{}集群执行成对切换").format(cluster_info["cluster_id"]))
+
+
+def master_and_slave_switch_v2(
+    root_id: str, ticket_data: dict, cluster: Cluster, cluster_info: dict, check_client_conn=True
+):
+    """
+    定义成对迁移完成，做成对切换的子流程(子流程是已集群维度做成对切换)
+    成对切换更多解决一主一从的集群机器裁撤场景；对于一主多从的集群，
+    并不实现集群所有节点的替换，剩余的从实例节点需要同步新主的数据，保证集群数据一致性
+    @param root_id: root id
+    @param ticket_data: 单据数据
+    @param cluster_info: 输入集群信息
+    @param cluster: 集群信息
+    @param check_client_conn: 检查客户端连接，默认True
+    """
+
+    cluster_info["master_port"] = cluster_info["mysql_port"]
+    cluster_info["slave_port"] = cluster_info["mysql_port"]
+    cluster_info["slave_ip"] = cluster_info["old_slave_ip"]
+    cluster_info["master_ip"] = cluster_info["old_master_ip"]
+
+    # 随机生成切换测试账号和密码
+    switch_account = f"{ACCOUNT_PREFIX}{get_random_string(length=8)}"
+    switch_pwd = get_random_string(length=16)
+    # 拼接子流程需要全局参数
+    switch_sub_flow_context = copy.deepcopy(ticket_data)
+    # 把公共参数拼接到子流程的全局只读上下文
+    switch_sub_flow_context["is_check_delay"] = True
+    switch_sub_flow_context["is_dead_master"] = False
+    switch_sub_flow_context["grant_repl"] = True
+    switch_sub_flow_context["locked_switch"] = True
+    switch_sub_flow_context["switch_pwd"] = switch_pwd
+    switch_sub_flow_context["switch_account"] = switch_account
+    switch_sub_flow_context["change_master_force"] = True
+
+    # 针对集群维度声明子流程
+    cluster_switch_sub_pipeline = SubBuilder(root_id=root_id, data=copy.deepcopy(switch_sub_flow_context))
+
+    # 切换前做预检测, 迁移主从时客户端连接检测和checksum检验默认检测
+    sub_flow = check_sub_flow(
+        uid=ticket_data["uid"],
+        root_id=root_id,
+        cluster=cluster,
+        is_check_client_conn=check_client_conn,
+        is_verify_checksum=True,
+        check_client_conn_inst=[
+            f"{cluster_info['old_master_ip']}{IP_PORT_DIVIDER}{cluster_info['mysql_port']}",
+            f"{cluster_info['old_slave_ip']}{IP_PORT_DIVIDER}{cluster_info['mysql_port']}",
+        ],
+        verify_checksum_tuples=[
+            {
+                "master": f"{cluster_info['old_master_ip']}{IP_PORT_DIVIDER}{cluster_info['mysql_port']}",
+                "slave": f"{cluster_info['new_master_ip']}{IP_PORT_DIVIDER}{cluster_info['mysql_port']}",
+            }
+        ],
+    )
+    if sub_flow:
+        cluster_switch_sub_pipeline.add_sub_pipeline(sub_flow=sub_flow)
+
+    # todo ？授权切换账号
+    add_sw_user_kwargs = AddSwitchUserKwargs(
+        bk_cloud_id=cluster.bk_cloud_id,
+        user=switch_account,
+        psw=switch_pwd,
+        hosts=[cluster_info["new_master_ip"]],
+    )
+    acts_list = []
+    add_sw_user_kwargs.address = f"{cluster_info['old_master_ip']}{AUTH_ADDRESS_DIVIDER}{cluster_info['mysql_port']}"
+    acts_list.append(
+        {
+            "act_name": _("给master添加切换临时账号"),
+            "act_component_code": AddSwitchUserComponent.code,
+            "kwargs": asdict(add_sw_user_kwargs),
+        }
+    )
+    add_sw_user_kwargs.address = f"{cluster_info['new_slave_ip']}{AUTH_ADDRESS_DIVIDER}{cluster_info['mysql_port']}"
+    acts_list.append(
+        {
+            "act_name": _("给新slave添加切换临时账号"),
+            "act_component_code": AddSwitchUserComponent.code,
+            "kwargs": asdict(add_sw_user_kwargs),
+        }
+    )
+    cluster_switch_sub_pipeline.add_parallel_acts(acts_list=acts_list)
+
+    clone_kwargs = InstanceUserCloneKwargs(
+        clone_data=[
+            {
+                "source": f"{cluster_info['old_master_ip']}{AUTH_ADDRESS_DIVIDER}{cluster_info['mysql_port']}",
+                "target": f"{cluster_info['new_master_ip']}{AUTH_ADDRESS_DIVIDER}{cluster_info['mysql_port']}",
+                "bk_cloud_id": cluster.bk_cloud_id,
+            },
+            {
+                "source": f"{cluster_info['old_slave_ip']}{AUTH_ADDRESS_DIVIDER}{cluster_info['mysql_port']}",
+                "target": f"{cluster_info['new_slave_ip']}{AUTH_ADDRESS_DIVIDER}{cluster_info['mysql_port']}",
+                "bk_cloud_id": cluster.bk_cloud_id,
+            },
+        ]
+    )
+    cluster_switch_sub_pipeline.add_act(
+        act_name=_("新master克隆旧master权限,新slave克隆旧slave权限"),
+        act_component_code=CloneUserComponent.code,
+        kwargs=asdict(clone_kwargs),
+    )
+
+    # 代理层、账号等等。
+    mysql_proxy = cluster.proxyinstance_set.all()
+    mysql_storage_slave = cluster.storageinstance_set.filter(
+        instance_inner_role=InstanceInnerRole.SLAVE.value, status=InstanceStatus.RUNNING.value
+    )
+    exclude_ips = [cluster_info["old_slave_ip"]]
+    if cluster_info.get("old_ro_slave_ips"):
+        exclude_ips.extend(cluster_info["old_ro_slave_ips"])
+    logger.info(_("exclude_ips ip list {}").format(exclude_ips))
+    cluster_info["other_slave_info"] = [y.machine.ip for y in mysql_storage_slave.exclude(machine__ip__in=exclude_ips)]
+    logger.info(_("other_slave_info:{}").format(cluster_info["other_slave_info"]))
+    if cluster_info.get("new_ro_slave_ips"):
+        cluster_info["other_slave_info"].extend(cluster_info["new_ro_slave_ips"])
+    domain_map = get_tendb_ha_entry(cluster.id)
+    cluster_info["master_domain"] = domain_map["master_domain"]
+    cluster_info["slave_domain"] = domain_map["slave_domain"]
+    cluster_info["proxy_ip_list"] = [x.machine.ip for x in mysql_proxy]
+    cluster_info["proxy_port"] = mysql_proxy[0].port
+
+    cluster_sw_kwargs = ExecActuatorKwargs(cluster=cluster_info, bk_cloud_id=cluster.bk_cloud_id)
+    cluster_sw_kwargs.exec_ip = cluster_info["new_master_ip"]
+    cluster_sw_kwargs.get_mysql_payload_func = MysqlActPayload.get_set_backend_toward_slave_payload.__name__
+
+    source_act = cluster_switch_sub_pipeline.add_act(
+        act_name=_("执行集群切换[安全]"),
+        act_component_code=ExecSwitchActForSourceComponent.code,
+        kwargs=asdict(cluster_sw_kwargs),
+        write_payload_var=ClusterInfoContext.get_sync_info_var_name(),
+        extend=False,
+    )
+    conditions = [
+        Conditions(
+            act_object=exec_switch_for_force_sub_flow(
+                root_id=root_id,
+                bk_biz_id=switch_sub_flow_context["bk_biz_id"],
+                uid=switch_sub_flow_context["uid"],
+                cluster_info=cluster_info,
+                switch_pwd=switch_pwd,
+                switch_account=switch_account,
+            ),
+            express="==1",
+        ),
+    ]
+    # 并发change master 的 原子任务，集群所有的slave节点同步new master 的数据
+    if cluster_info["other_slave_info"]:
+        conditions.append(
+            Conditions(
+                act_object=change_master_to_sub_flow(
+                    root_id=root_id,
+                    bk_biz_id=switch_sub_flow_context["bk_biz_id"],
+                    uid=switch_sub_flow_context["uid"],
+                    cluster_info=cluster_info,
+                ),
+                express="==0",
+            )
+        )
+
+    cluster_switch_sub_pipeline.add_conditional_subs(
+        source_act=source_act, conditions=conditions, name=_("判断切换状态"), conditions_param="switch_code"
+    )
+
+    # 更改旧slave 和 新slave 的域名映射关系，并发执行
+    acts_list = [
+        {
+            "act_name": _("回收旧slave的域名映射"),
+            "act_component_code": MySQLDnsManageComponent.code,
+            "kwargs": asdict(
+                RecycleDnsRecordKwargs(
+                    dns_op_exec_port=cluster_info["mysql_port"],
+                    exec_ip=cluster_info["old_slave_ip"],
+                    bk_cloud_id=cluster_info["bk_cloud_id"],
+                )
+            ),
+        }
+    ]
+    old_slave = cluster.storageinstance_set.get(machine__ip=cluster_info["old_slave_ip"])
+    slave_dns_list = old_slave.bind_entry.filter(cluster_entry_type=ClusterEntryType.DNS.value).all()
+    cluster_info["slave_dns_list"] = [i.entry for i in slave_dns_list]
+    #  todo 域名映射应该映射老ip对应的所有域名
+    for slave_domain in cluster_info["slave_dns_list"]:
+        acts_list.append(
+            {
+                "act_name": _("对新slave添加域名映射"),
+                "act_component_code": MySQLDnsManageComponent.code,
+                "kwargs": asdict(
+                    CreateDnsKwargs(
+                        bk_cloud_id=cluster_info["bk_cloud_id"],
+                        dns_op_exec_port=cluster_info["mysql_port"],
+                        exec_ip=cluster_info["new_slave_ip"],
+                        add_domain_name=slave_domain,
+                    )
+                ),
+            }
+        )
+
+    # 增加tbinlogdumper实例部署切换联动
+    if ExtraProcessInstance.objects.filter(cluster_id=cluster.id).exists():
+        cluster_switch_sub_pipeline.add_act(
+            act_name=_("联动TBinlogDumper切换单据"),
+            act_component_code=LinkTBinlogDumperSwitchComponent.code,
+            kwargs=asdict(
+                LinkTBinlogDumperSwitchKwargs(
+                    cluster_id=cluster.id,
+                    target_ip=cluster_info["new_master_ip"],
+                    get_binlog_info=ClusterInfoContext.get_sync_info_var_name(),
+                )
+            ),
+        )
+
+    cluster_switch_sub_pipeline.add_parallel_acts(acts_list=acts_list)
+
+    return cluster_switch_sub_pipeline.build_sub_process(sub_name=_("{}集群执行成对切换").format(cluster_info["cluster_id"]))
+
+
+def exec_switch_for_force_sub_flow(
+    root_id: str, bk_biz_id: int, uid: str, cluster_info: dict, switch_pwd: str, switch_account: str
+):
+
+    global_data = {
+        "bk_biz_id": bk_biz_id,
+        "uid": uid,
+        "is_check_delay": True,
+        "is_dead_master": False,
+        "grant_repl": True,
+        "locked_switch": False,
+        "switch_pwd": switch_pwd,
+        "switch_account": switch_account,
+        "change_master_force": True,
+    }
+    sub_pipeline = SubBuilder(root_id=root_id, data=global_data)
+
+    sub_pipeline.add_act(act_name=_("确认是否强切"), act_component_code=PauseComponent.code, kwargs={})
+
+    cluster_sw_kwargs = ExecActuatorKwargs(cluster=cluster_info, bk_cloud_id=cluster_info["bk_cloud_id"])
+    cluster_sw_kwargs.exec_ip = cluster_info["new_master_ip"]
+
+    cluster_sw_kwargs.get_mysql_payload_func = MysqlActPayload.get_set_backend_toward_slave_payload.__name__
+    sub_pipeline.add_act(
+        act_name=_("执行集群切换[强制]"),
+        act_component_code=ExecuteDBActuatorScriptComponent.code,
+        kwargs=asdict(cluster_sw_kwargs),
+        write_payload_var=ClusterInfoContext.get_sync_info_var_name(),
+    )
+
+    # 并发change master 的 原子任务，集群所有的slave节点同步new master 的数据
+    if cluster_info["other_slave_info"]:
+        # 如果集群存在其他slave节点，则建立新的你主从关系
+        acts_list = []
+        for exec_ip in list(set(cluster_info["other_slave_info"])):
+            cluster_sw_kwargs.exec_ip = exec_ip
+            cluster_sw_kwargs.get_mysql_payload_func = MysqlActPayload.get_change_master_payload.__name__
+            acts_list.append(
+                {
+                    "act_name": _("[{}]slave节点同步新master数据".format(exec_ip)),
+                    "act_component_code": ExecuteDBActuatorScriptComponent.code,
+                    "kwargs": asdict(cluster_sw_kwargs),
+                }
+            )
+        sub_pipeline.add_parallel_acts(acts_list=acts_list)
+
+    return sub_pipeline.build_sub_process(sub_name=_("进入强切逻辑"))
+
+
+def change_master_to_sub_flow(
+    root_id: str,
+    bk_biz_id: int,
+    uid: str,
+    cluster_info: dict,
+):
+    sub_pipeline = SubBuilder(root_id=root_id, data={"bk_biz_id": bk_biz_id, "uid": uid, "change_master_force": True})
+
+    cluster_sw_kwargs = ExecActuatorKwargs(cluster=cluster_info, bk_cloud_id=cluster_info["bk_cloud_id"])
+
+    # 并发change master 的 原子任务，集群所有的slave节点同步new master 的数据
+    acts_list = []
+    for exec_ip in list(set(cluster_info["other_slave_info"])):
+        cluster_sw_kwargs.exec_ip = exec_ip
+        cluster_sw_kwargs.get_mysql_payload_func = MysqlActPayload.get_change_master_payload.__name__
+        acts_list.append(
+            {
+                "act_name": _("[{}]slave节点同步新master数据".format(exec_ip)),
+                "act_component_code": ExecuteDBActuatorScriptComponent.code,
+                "kwargs": asdict(cluster_sw_kwargs),
+            }
+        )
+    sub_pipeline.add_parallel_acts(acts_list=acts_list)
+
+    return sub_pipeline.build_sub_process(sub_name=_("多余slave建立数据同步"))
