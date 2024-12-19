@@ -243,7 +243,6 @@ class TicketType(str, StructuredEnum):
     MYSQL_HA_RENAME_DATABASE = TicketEnumField("MYSQL_HA_RENAME_DATABASE", _("MySQL 高可用DB重命名"), _("集群维护"))
     MYSQL_HA_TRUNCATE_DATA = TicketEnumField("MYSQL_HA_TRUNCATE_DATA", _("MySQL 高可用清档"), _("数据处理"))
     MYSQL_HA_DB_TABLE_BACKUP = TicketEnumField("MYSQL_HA_DB_TABLE_BACKUP", _("MySQL 库表备份"), _("备份"))
-    MYSQL_SINGLE_DB_TABLE_BACKUP = TicketEnumField("MYSQL_SINGLE_DB_TABLE_BACKUP", _("TenDBSingle 库表备份"), _("备份"))
     MYSQL_CHECKSUM = TicketEnumField("MYSQL_CHECKSUM", _("MySQL 数据校验修复"), _("数据处理"))
     MYSQL_PARTITION = TicketEnumField("MYSQL_PARTITION", _("MySQL 分区"), _("分区管理"))
     MYSQL_PARTITION_CRON = TicketEnumField("MYSQL_PARTITION_CRON", _("MySQL 分区定时任务"), register_iam=False)  # noqa
@@ -251,7 +250,6 @@ class TicketType(str, StructuredEnum):
     MYSQL_FLASHBACK = TicketEnumField("MYSQL_FLASHBACK", _("MySQL 闪回"), _("回档"))
     MYSQL_ROLLBACK_CLUSTER = TicketEnumField("MYSQL_ROLLBACK_CLUSTER", _("MySQL 定点构造"), _("回档"))
     MYSQL_HA_FULL_BACKUP = TicketEnumField("MYSQL_HA_FULL_BACKUP", _("MySQL 全库备份"), _("备份"))
-    MYSQL_SINGLE_FULL_BACKUP = TicketEnumField("MYSQL_SINGLE_FULL_BACKUP", _("TenDB Single全库备份"), _("备份"))
     MYSQL_SINGLE_TRUNCATE_DATA = TicketEnumField("MYSQL_SINGLE_TRUNCATE_DATA", _("MySQL 单节点清档"), _("数据处理"))
     MYSQL_SINGLE_RENAME_DATABASE = TicketEnumField("MYSQL_SINGLE_RENAME_DATABASE", _("MySQL 单节点DB重命名"), _("集群维护"))  # noqa
     MYSQL_HA_STANDARDIZE = TicketEnumField("MYSQL_HA_STANDARDIZE", _("TendbHA 标准化"), register_iam=False)
