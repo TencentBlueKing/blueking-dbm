@@ -11,7 +11,7 @@ specific language governing permissions and limitations under the License.
 from collections import defaultdict
 from typing import Dict, List, Set, Union
 
-from django.db.models import Q
+from django.db.models import Count, Q
 from django.utils.translation import ugettext as _
 from rest_framework import status
 from rest_framework.decorators import action
@@ -40,6 +40,7 @@ from backend.db_services.dbbase.serializers import (
     QueryAllTypeClusterSerializer,
     QueryBizClusterAttrsResponseSerializer,
     QueryBizClusterAttrsSerializer,
+    QueryClusterInstanceCountSerializer,
     ResourceAdministrationSerializer,
     WebConsoleResponseSerializer,
     WebConsoleSerializer,
@@ -302,3 +303,67 @@ class DBBaseViewSet(viewsets.SystemViewSet):
             ips.extend(cluster.proxyinstance_set.all().values_list("machine__ip", flat=True))
             ips.extend(cluster.storageinstance_set.all().values_list("machine__ip", flat=True))
         return Response(ips)
+
+    @common_swagger_auto_schema(
+        operation_summary=_("根据业务id查询业务下所有集群集群数量与实例数量"),
+        auto_schema=ResponseSwaggerAutoSchema,
+        query_serializer=QueryClusterInstanceCountSerializer(),
+        tags=[SWAGGER_TAG],
+    )
+    @action(methods=["GET"], detail=False, serializer_class=QueryClusterInstanceCountSerializer)
+    def query_cluster_instance_count(self, request, *args, **kwargs):
+
+        validate_data = self.params_validate(self.get_serializer_class())
+        cluster_queryset = Cluster.objects.filter(**validate_data)
+        storage_instance_queryset = StorageInstance.objects.filter(**validate_data)
+        proxy_instance_queryset = ProxyInstance.objects.filter(**validate_data)
+        # 统计每种 cluster_type 的数量
+        cluster_type_counts = list(cluster_queryset.values("cluster_type").annotate(count=Count("cluster_type")))
+        storage_type_counts = list(
+            storage_instance_queryset.values("cluster_type").annotate(count=Count("cluster_type"))
+        )
+        proxy_type_counts = list(proxy_instance_queryset.values("cluster_type").annotate(count=Count("cluster_type")))
+
+        # 将列表转化为字典以便处理
+        def list_to_dict(type_counts):
+            return {entry["cluster_type"]: entry["count"] for entry in type_counts}
+
+        # 转换为字典
+        cluster_type_dict = list_to_dict(cluster_type_counts)
+        storage_type_dict = list_to_dict(storage_type_counts)
+        proxy_type_dict = list_to_dict(proxy_type_counts)
+
+        # 合并 storage 和 proxy 的类型计数
+        instance_count_dict = defaultdict(int)
+        for cluster_type, count in storage_type_dict.items():
+            instance_count_dict[cluster_type] += count
+        for cluster_type, count in proxy_type_dict.items():
+            instance_count_dict[cluster_type] += count
+
+        # 计算 Redis 相关类型的总计数
+        redis_cluster_count = 0
+        redis_instance_count = 0
+
+        redis_cluster_types = ClusterType.redis_cluster_types()
+        redis_cluster_types.remove(ClusterType.TendisRedisInstance)
+
+        for cluster_type in redis_cluster_types:
+            redis_cluster_count += cluster_type_dict.get(cluster_type, 0)
+            redis_instance_count += instance_count_dict.get(cluster_type, 0)
+
+        # 构建最终输出格式，包含所有 ClusterType 成员
+        cluster_type_count_map = {}
+        for cluster_type in ClusterType:
+            if cluster_type.value not in redis_cluster_types:
+                cluster_count = cluster_type_dict.get(cluster_type.value, 0)
+                instance_count = instance_count_dict.get(cluster_type.value, 0)
+                cluster_type_count_map[cluster_type.value] = {
+                    "cluster_count": cluster_count,
+                    "instance_count": instance_count,
+                }
+        cluster_type_count_map["redis_cluster"] = {
+            "cluster_count": redis_cluster_count,
+            "instance_count": redis_instance_count,
+        }
+
+        return Response(cluster_type_count_map)

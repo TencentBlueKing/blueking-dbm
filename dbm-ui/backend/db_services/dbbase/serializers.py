@@ -190,3 +190,7 @@ class WebConsoleResponseSerializer(serializers.Serializer):
 class ClusterDbTypeSerializer(serializers.Serializer):
     bk_biz_id = serializers.IntegerField(help_text=_("业务ID"))
     db_type = serializers.ChoiceField(help_text=_("数据库类型"), choices=DBType.get_choices())
+
+
+class QueryClusterInstanceCountSerializer(serializers.Serializer):
+    bk_biz_id = serializers.IntegerField(help_text=_("业务ID"))
