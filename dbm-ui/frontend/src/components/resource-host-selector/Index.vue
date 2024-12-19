@@ -167,7 +167,7 @@
   interface Props {
     multiple?: boolean;
     params?: {
-      bk_biz_id?: number;
+      for_biz?: number;
       bk_cloud_ids?: string;
       resource_type?: string;
       os_type?: string;
@@ -183,6 +183,7 @@
     bk_cloud_id: number;
     bk_host_id: number;
     ip: string;
+    dedicated_biz?: number;
   }
 
   const props = withDefaults(defineProps<Props>(), {
@@ -255,6 +256,7 @@
       bk_cloud_id: item.bk_cloud_id,
       bk_host_id: item.bk_host_id,
       ip: item.ip,
+      dedicated_biz: item.dedicated_biz,
     }));
 
     modelValue.value = latestValue;

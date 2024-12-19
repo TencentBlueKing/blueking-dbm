@@ -1,0 +1,237 @@
+<!--
+ * TencentBlueKing is pleased to support the open source community by making 蓝鲸智云-DB管理系统(BlueKing-BK-DBM) available.
+ *
+ * Copyright (C) 2017-2023 THL A29 Limited, a Tencent company. All rights reserved.
+ *
+ * Licensed under the MIT License (the "License"); you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License athttps://opensource.org/licenses/MIT
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
+ * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
+ * the specific language governing permissions and limitations under the License.
+-->
+
+<template>
+  <Column
+    :append-rules="rules"
+    field="originProxy.ip"
+    fixed="left"
+    :label="t('目标Proxy主机')"
+    :loading="loading"
+    :min-width="300"
+    required>
+    <template #headAppend>
+      <span
+        v-bk-tooltips="t('批量选择')"
+        class="batch-host-select"
+        @click="handleShowSelector">
+        <DbIcon type="batch-host-select" />
+      </span>
+    </template>
+    <Input
+      v-model="modelValue.ip"
+      :placeholder="t('请输入IP')"
+      @change="handleInputChange" />
+  </Column>
+  <Column
+    :label="t('同机关联实例')"
+    :loading="loading"
+    :min-width="300">
+    <div
+      v-if="modelValue.related_instances.length"
+      class="related-clusters"
+      style="flex: 1">
+      <p
+        v-for="item in modelValue.related_instances"
+        :key="item">
+        {{ item }}
+      </p>
+    </div>
+    <Text
+      v-else
+      :placeholder="t('自动生成')" />
+  </Column>
+  <Column
+    :label="t('同机关联集群')"
+    :loading="loading"
+    :min-width="300">
+    <div
+      v-if="modelValue.related_clusters.length"
+      class="related-clusters"
+      style="flex: 1">
+      <p
+        v-for="item in modelValue.related_clusters"
+        :key="item">
+        {{ item }}
+      </p>
+    </div>
+    <Text
+      v-else
+      :placeholder="t('自动生成')" />
+  </Column>
+  <InstanceSelector
+    v-model:is-show="showSelector"
+    :cluster-types="[TENDBHA_HOST]"
+    :selected="selectedInstances"
+    :tab-list-config="tabListConfig"
+    @change="handleSelectorChange" />
+</template>
+<script lang="ts" setup>
+  import { useI18n } from 'vue-i18n';
+  import { useRequest } from 'vue-request';
+
+  import { checkInstance } from '@services/source/dbbase';
+
+  import { ClusterTypes } from '@common/const';
+  import { ipv4 } from '@common/regex';
+
+  import { Column, Input, Text } from '@components/editable-table/Index.vue';
+  import InstanceSelector, {
+    type InstanceSelectorValues,
+    type IValue,
+    type PanelListType,
+  } from '@components/instance-selector/Index.vue';
+
+  export type SelectorItem = IValue;
+
+  interface Props {
+    selected: {
+      ip: string;
+    }[];
+  }
+
+  interface Emits {
+    (e: 'batch-edit', list: IValue[]): void;
+  }
+
+  const props = defineProps<Props>();
+
+  const emits = defineEmits<Emits>();
+
+  const modelValue = defineModel<{
+    bk_cloud_id?: number;
+    bk_host_id?: number;
+    ip: string;
+    port?: number;
+    cluster_ids: number[];
+    related_instances: string[];
+    related_clusters: string[];
+  }>({
+    default: () => ({
+      ip: '',
+      cluster_ids: [],
+      related_instances: [],
+      related_clusters: [],
+    }),
+  });
+
+  const { t } = useI18n();
+
+  const TENDBHA_HOST = 'TendbhaHost';
+  const tabListConfig = {
+    [TENDBHA_HOST]: [
+      {
+        id: [TENDBHA_HOST],
+        name: t('目标Proxy主机'),
+        tableConfig: {
+          firsrColumn: {
+            label: t('Proxy 主机'),
+            field: 'ip',
+            role: 'proxy',
+          },
+        },
+      },
+      {
+        id: 'manualInput',
+        name: t('手动输入'),
+        tableConfig: {
+          firsrColumn: {
+            label: t('Proxy 主机'),
+            field: 'ip',
+            role: 'proxy',
+          },
+        },
+      },
+    ],
+  } as Record<string, PanelListType>;
+
+  const rules = [
+    {
+      validator: (value: string) => ipv4.test(value),
+      message: t('IP 格式不符合IPv4标准'),
+      trigger: 'change',
+    },
+    {
+      validator: () => Boolean(modelValue.value.bk_host_id),
+      message: t('目标主机不存在'),
+      trigger: 'blur',
+    },
+  ];
+
+  const showSelector = ref(false);
+  const selectedInstances = computed(
+    () =>
+      ({
+        [ClusterTypes.TENDBHA]: props.selected,
+      }) as unknown as InstanceSelectorValues<IValue>,
+  );
+
+  const { run: queryInstance, loading } = useRequest(checkInstance, {
+    manual: true,
+    onSuccess: (data) => {
+      const [hostInfo] = data;
+      const clusterIds: number[] = [];
+      const relatedInstances: string[] = [];
+      const relatedClusters: string[] = [];
+      data.forEach((item) => {
+        clusterIds.push(item.cluster_id);
+        relatedInstances.push(item.instance_address);
+        relatedClusters.push(item.master_domain);
+      });
+      modelValue.value = {
+        bk_cloud_id: hostInfo.bk_cloud_id,
+        bk_host_id: hostInfo.bk_host_id,
+        ip: hostInfo.ip,
+        port: hostInfo.port,
+        cluster_ids: clusterIds,
+        related_instances: relatedInstances,
+        related_clusters: relatedClusters,
+      };
+    },
+  });
+
+  const handleShowSelector = () => {
+    showSelector.value = true;
+  };
+
+  const handleInputChange = (value: string) => {
+    queryInstance({
+      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+      instance_addresses: [value],
+    });
+  };
+
+  const handleSelectorChange = (selected: InstanceSelectorValues<IValue>) => {
+    emits('batch-edit', selected[TENDBHA_HOST]);
+  };
+</script>
+
+<style lang="less" scoped>
+  .batch-host-select {
+    font-size: 14px;
+    color: #3a84ff;
+    cursor: pointer;
+  }
+
+  .related-clusters {
+    padding: 10px 16px;
+    line-height: 20px;
+    background: #fff;
+
+    p {
+      width: 100%;
+      overflow-x: hidden;
+      text-overflow: ellipsis;
+    }
+  }
+</style>

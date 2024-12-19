@@ -33,10 +33,10 @@
             v-model="item.cluster"
             :selected="selected"
             @batch-edit="handleBatchEdit" />
-          <HostSingleSelect
+          <SingleHost
             v-model="item.slave"
             field="slave.ip"
-            :label="t('新 Slave')" />
+            :label="t('新Slave')" />
           <OperationColumn
             v-model:table-data="formData.tableData"
             :create-row-method="createTableRow" />
@@ -92,9 +92,8 @@
   import TicketRemark from '@components/ticket-remark/TicketRemark.vue';
 
   import OperationColumn from '@views/db-manage/common/toolbox-field/operation-column/Index.vue';
-  import WithRelatedClusters from '@views/db-manage/mysql/common/edit-table-column/cluster-input-select/WithRelatedClusters.vue';
-
-  import HostSingleSelect from '@/views/db-manage/mysql/common/edit-table-column/host-block-select/HostSingleSelect.vue';
+  import WithRelatedClusters from '@views/db-manage/mysql/common/edit-table-column/cluster-filter/WithRelatedClusters.vue';
+  import SingleHost from '@views/db-manage/mysql/common/edit-table-column/host-filter/SingleHost.vue';
 
   interface RowData {
     cluster: {

@@ -130,7 +130,7 @@ export default [
       },
       {
         name: t('替换Proxy'),
-        id: 'MySQLProxyReplace',
+        id: TicketTypes.MYSQL_PROXY_SWITCH,
         parentId: 'migrate',
         dbConsoleValue: 'mysql.toolbox.proxyReplace',
       },

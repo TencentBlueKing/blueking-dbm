@@ -40,7 +40,9 @@
   }
 
   const props = defineProps<Props>();
+
   const emits = defineEmits<Emits>();
+
   const modelValue = defineModel<string>();
 
   const slots = defineSlots<{

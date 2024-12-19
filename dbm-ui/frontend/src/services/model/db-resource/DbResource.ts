@@ -32,6 +32,7 @@ export default class DbResource {
   city_id: string;
   consume_time: string;
   create_time: string;
+  dedicated_biz: number;
   device_class: string;
   for_biz: {
     bk_biz_id: number;
@@ -81,6 +82,7 @@ export default class DbResource {
     this.city_id = payload.city_id;
     this.consume_time = payload.consume_time;
     this.create_time = payload.create_time;
+    this.dedicated_biz = payload.dedicated_biz;
     this.device_class = payload.device_class;
     this.for_biz = payload.for_biz;
     this.ip = payload.ip;
