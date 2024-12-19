@@ -42,6 +42,11 @@ export const useDiff = (data: DiffData, origin: DiffData) => {
     const cloneData = _.cloneDeep(unref(data));
     const cloneOrigin = _.cloneDeep(unref(origin));
 
+    // table 组件设置 rowKey 失效导致自动加了一个 _X_ROW_KEY 字段
+    cloneData.forEach((item) => {
+      delete item._X_ROW_KEY;
+    });
+
     // add items
     const created = _.differenceBy(cloneData, cloneOrigin, 'conf_name');
     state.count.create = created.length;
