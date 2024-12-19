@@ -483,7 +483,7 @@ class TicketViewSet(viewsets.AuditedModelViewSet):
         filter_class=ClusterOpRecordListFilter,
     )
     def get_cluster_operate_records(self, request, *args, **kwargs):
-        op_records_page_qs = self.paginate_queryset(self.filter_queryset(self.queryset))
+        op_records_page_qs = self.paginate_queryset(super().filter_queryset(self.queryset))
         op_records_page_data = self.serializer_class(op_records_page_qs, many=True).data
         return self.get_paginated_response(data=op_records_page_data)
 
@@ -499,7 +499,7 @@ class TicketViewSet(viewsets.AuditedModelViewSet):
         filter_class=InstanceOpRecordListFilter,
     )
     def get_instance_operate_records(self, request, *args, **kwargs):
-        op_records_page_qs = self.paginate_queryset(self.filter_queryset(self.queryset))
+        op_records_page_qs = self.paginate_queryset(super().filter_queryset(self.queryset))
         op_records_page_data = self.serializer_class(op_records_page_qs, many=True).data
         return self.get_paginated_response(data=op_records_page_data)
 

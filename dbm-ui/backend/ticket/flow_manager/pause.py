@@ -60,7 +60,7 @@ class PauseFlow(BaseTicketFlow):
         # 创建待办
         from backend.ticket.todos.pause_todo import PauseTodoContext
 
-        operators = list({self.ticket.creator, *self.flow_obj.details.get("operators", [])})
+        operators = self.flow_obj.details.get("operators", [])
         Todo.objects.create(
             name=_("【{}】流程待确认，是否继续？").format(self.ticket.get_ticket_type_display()),
             flow=self.flow_obj,
