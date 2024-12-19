@@ -227,8 +227,12 @@ def cluster_calc(payload: dict, payload_clusters: dict, app: str) -> dict:
             nodes = [{"ip": machine["ip"], "bk_cloud_id": machine["bk_cloud_id"]} for machine in machines]
             replica_set["nodes"] = nodes
             shards.append(replica_set)
+            if node_count > 1:
+                add_shard_nodes = nodes[0:-1]
+            else:
+                add_shard_nodes = nodes
             add_shards[replica_set["set_id"]] = ",".join(
-                ["{}:{}".format(node["ip"], str(replica_set["port"])) for node in nodes[0:-1]]
+                ["{}:{}".format(node["ip"], str(replica_set["port"])) for node in add_shard_nodes]
             )
 
     payload_clusters["shards"] = shards

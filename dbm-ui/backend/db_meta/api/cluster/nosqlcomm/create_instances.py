@@ -37,6 +37,7 @@ def create_mongo_mutil_instances(bk_biz_id, bk_cloud_id, machine_type, inst_pair
                 # 找到主节点
                 if storage["role"] == InstanceRole.MONGO_M1:
                     primary = storage
+
             for storage in inst_pair["nodes"]:
                 if storage["role"] != InstanceRole.MONGO_M1:
                     tuples.append(
@@ -47,7 +48,8 @@ def create_mongo_mutil_instances(bk_biz_id, bk_cloud_id, machine_type, inst_pair
                     )
         machine.create(machines=list(machines.values()), bk_cloud_id=bk_cloud_id)
         storage_instance.create(instances=instances)
-        storage_instance_tuple.create(tuples)
+        if tuples:
+            storage_instance_tuple.create(tuples)
     except Exception as e:
         logger.error(traceback.format_exc())
         raise e
@@ -89,7 +91,8 @@ def create_mongo_instances(
         if not skip_machine:
             machine.create(machines=list(machines.values()), bk_cloud_id=bk_cloud_id)
         storage_instance.create(instances=instances)
-        storage_instance_tuple.create(tuple)
+        if tuple:
+            storage_instance_tuple.create(tuple)
     except Exception as e:
         logger.error(traceback.format_exc())
         raise e
