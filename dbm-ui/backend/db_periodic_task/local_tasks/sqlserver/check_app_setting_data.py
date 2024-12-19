@@ -253,7 +253,7 @@ class CheckAppSettingData(object):
             master_instance=master_instance,
             slave_instance=slave_instance,
             bk_cloud_id=cluster.bk_cloud_id,
-            check_tag="job",
+            check_tag="link_server",
         )
         if not status:
             SqlserverCheckLinkServerReport.objects.create(
