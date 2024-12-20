@@ -40,7 +40,8 @@ export default class MongodbInstance {
   cluster_name: string;
   cluster_type: string;
   create_at: string;
-  db_module_id: string;
+  db_module_id: number;
+  db_module_name: string;
   host_info: HostInfo;
   id: number;
   instance_address: string;
@@ -67,6 +68,7 @@ export default class MongodbInstance {
     this.cluster_type = payload.cluster_type;
     this.create_at = payload.create_at;
     this.db_module_id = payload.db_module_id;
+    this.db_module_name = payload.db_module_name;
     this.host_info = payload.host_info || {};
     this.id = payload.id;
     this.instance_address = payload.instance_address;
