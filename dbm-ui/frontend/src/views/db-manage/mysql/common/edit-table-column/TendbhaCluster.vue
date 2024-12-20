@@ -34,17 +34,6 @@
         v-model="modelValue.domain"
         :placeholder="t('请输入集群域名')"
         @change="handleInputChange" />
-      <BkLoading
-        v-if="modelValue.relatedClusters?.length"
-        class="related-clusters"
-        :loading="relatedClusterLoading">
-        {{ t('含n个同机关联集群', { n: modelValue.relatedClusters.length }) }}
-        <p
-          v-for="item in modelValue.relatedClusters"
-          :key="item.id">
-          -- {{ item.domain }}
-        </p>
-      </BkLoading>
     </div>
   </Column>
   <ClusterSelector
@@ -59,7 +48,6 @@
 
   import TendbhaModel from '@services/model/mysql/tendbha';
   import { filterClusters } from '@services/source/dbbase';
-  import { findRelatedClustersByClusterIds } from '@services/source/mysqlCluster';
 
   import { ClusterTypes } from '@common/const';
   import { domainRegex } from '@common/regex';
@@ -84,13 +72,11 @@
 
   const modelValue = defineModel<{
     id?: number;
-    domain?: string;
-    relatedClusters?: {
-      id: number;
-      domain: string;
-    }[];
+    domain: string;
   }>({
-    required: true,
+    default: () => ({
+      domain: '',
+    }),
   });
 
   const { t } = useI18n();
@@ -124,19 +110,6 @@
     },
   ];
 
-  const { run: queryRelatedClusters, loading: relatedClusterLoading } = useRequest(findRelatedClustersByClusterIds, {
-    manual: true,
-    onSuccess: (data) => {
-      modelValue.value.relatedClusters = [];
-      if (data.length) {
-        modelValue.value.relatedClusters = data[0].related_clusters.map((item) => ({
-          id: item.id,
-          domain: item.master_domain,
-        }));
-      }
-    },
-  });
-
   const { run: queryCluster, loading } = useRequest(filterClusters, {
     manual: true,
     onSuccess: (data) => {
@@ -146,18 +119,6 @@
       }
     },
   });
-
-  watch(
-    () => modelValue.value.id,
-    (id) => {
-      if (id) {
-        queryRelatedClusters({
-          cluster_ids: [id],
-          bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-        });
-      }
-    },
-  );
 
   const handleShowSelector = () => {
     showSelector.value = true;
@@ -174,19 +135,10 @@
     emits('batch-edit', selected[ClusterTypes.TENDBHA]);
   };
 </script>
-
 <style lang="less" scoped>
   .batch-host-select {
     font-size: 14px;
     color: #3a84ff;
     cursor: pointer;
-  }
-
-  .related-clusters {
-    padding: 8px;
-    font-size: 12px;
-    line-height: 20px;
-    color: #979ba5;
-    background: #fafbfd;
   }
 </style>

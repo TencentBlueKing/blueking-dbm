@@ -164,6 +164,13 @@
   import PanelTab from './components/PanelTab.vue';
   import useSearchSelectData from './hooks/use-search-select-data';
 
+  export interface IValue {
+    bk_biz_id: number;
+    bk_cloud_id: number;
+    bk_host_id: number;
+    ip: string;
+  }
+
   interface Props {
     multiple?: boolean;
     params?: {
@@ -176,14 +183,6 @@
 
   interface Emits {
     (e: 'change', value: IValue[]): void;
-  }
-
-  interface IValue {
-    bk_biz_id: number;
-    bk_cloud_id: number;
-    bk_host_id: number;
-    ip: string;
-    dedicated_biz?: number;
   }
 
   const props = withDefaults(defineProps<Props>(), {
@@ -252,11 +251,10 @@
   const handleSubmit = () => {
     isShow.value = false;
     const latestValue = Object.values(rowSelectMemo.value).map((item) => ({
-      bk_biz_id: item.bk_biz_id,
+      bk_biz_id: item.dedicated_biz,
       bk_cloud_id: item.bk_cloud_id,
       bk_host_id: item.bk_host_id,
       ip: item.ip,
-      dedicated_biz: item.dedicated_biz,
     }));
 
     modelValue.value = latestValue;

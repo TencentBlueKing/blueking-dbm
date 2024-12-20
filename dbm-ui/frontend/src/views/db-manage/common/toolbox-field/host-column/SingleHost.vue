@@ -44,13 +44,13 @@
     </Block>
   </Column>
   <ResourceHostSelector
+    v-model="selected"
     v-model:is-show="showSelector"
     :multiple="false"
     :params="params"
     @change="handleSelectorChange" />
 </template>
 <script lang="ts" setup>
-  import type { ComponentProps } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
@@ -59,9 +59,7 @@
   import { ipv4 } from '@common/regex';
 
   import { Block, Column, Input } from '@components/editable-table/Index.vue';
-  import ResourceHostSelector from '@components/resource-host-selector/Index.vue';
-
-  type HostInfo = NonNullable<ComponentProps<typeof ResourceHostSelector>['modelValue']>[number];
+  import ResourceHostSelector, { type IValue } from '@components/resource-host-selector/Index.vue';
 
   interface Props {
     field: string;
@@ -80,13 +78,22 @@
     params: () => ({}),
   });
 
-  const modelValue = defineModel<Partial<HostInfo>>({
+  /**
+   * 绑定的modelValue须包含ip
+   */
+  const modelValue = defineModel<{
+    bk_biz_id?: number;
+    bk_cloud_id?: number;
+    bk_host_id?: number;
+    ip: string;
+  }>({
     default: () => ({}),
   });
 
   const { t } = useI18n();
 
   const showSelector = ref(false);
+  const selected = computed(() => (modelValue.value.bk_host_id ? ([modelValue.value] as IValue[]) : ([] as IValue[])));
 
   const rules = [
     {
@@ -120,14 +127,8 @@
     });
   };
 
-  const handleSelectorChange = (hostList: HostInfo[]) => {
-    const [hostInfo] = hostList;
-    modelValue.value = {
-      bk_biz_id: hostInfo.dedicated_biz,
-      bk_cloud_id: hostInfo.bk_cloud_id,
-      bk_host_id: hostInfo.bk_host_id,
-      ip: hostInfo.ip,
-    };
+  const handleSelectorChange = (hostList: IValue[]) => {
+    [modelValue.value] = hostList;
   };
 </script>
 

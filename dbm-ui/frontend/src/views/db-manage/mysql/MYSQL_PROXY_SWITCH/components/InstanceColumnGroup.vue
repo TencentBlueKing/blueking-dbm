@@ -37,7 +37,7 @@
     :label="t('关联集群')"
     :loading="loading"
     :min-width="300">
-    <Text
+    <Block
       v-model="modelValue.master_domain"
       :placeholder="t('自动生成')" />
   </Column>
@@ -57,7 +57,7 @@
   import { ClusterTypes } from '@common/const';
   import { ipPort } from '@common/regex';
 
-  import { Column, Input, Text } from '@components/editable-table/Index.vue';
+  import { Block, Column, Input } from '@components/editable-table/Index.vue';
   import InstanceSelector, {
     type InstanceSelectorValues,
     type IValue,

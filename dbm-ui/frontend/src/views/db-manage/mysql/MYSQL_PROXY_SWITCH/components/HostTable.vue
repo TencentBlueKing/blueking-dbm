@@ -43,8 +43,8 @@
 
   import EditableTable, { Row as EditableTableRow } from '@components/editable-table/Index.vue';
 
+  import SingleHost from '@views/db-manage/common/toolbox-field/host-column/SingleHost.vue';
   import OperationColumn from '@views/db-manage/common/toolbox-field/operation-column/Index.vue';
-  import SingleHost from '@views/db-manage/mysql/common/edit-table-column/host-filter/SingleHost.vue';
 
   import { ProxyReplaceTypes, type TicketInfo } from '../types';
 
@@ -116,7 +116,7 @@
     'originProxy.ip': [
       {
         validator: (value: string) => selected.value.filter((item) => item.ip === value).length < 2,
-        message: t('目标实例重复'),
+        message: t('目标主机重复'),
         trigger: 'change',
       },
     ],

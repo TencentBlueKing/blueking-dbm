@@ -11,6 +11,8 @@
  * the specific language governing permissions and limitations under the License.
  */
 
+import { TicketTypes } from '@common/const';
+
 import { t } from '@locales/index';
 
 export interface MenuChild {
@@ -109,7 +111,7 @@ export default [
     children: [
       {
         name: t('添加运维节点'),
-        id: 'spiderAddMnt',
+        id: TicketTypes.TENDBCLUSTER_SPIDER_MNT_APPLY,
         parentId: 'spider_mnt',
         dbConsoleValue: 'tendbCluster.toolbox.addMnt',
       },

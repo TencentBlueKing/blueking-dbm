@@ -91,9 +91,9 @@
   import EditableTable, { Row as EditableTableRow } from '@components/editable-table/Index.vue';
   import TicketRemark from '@components/ticket-remark/TicketRemark.vue';
 
+  import SingleHost from '@views/db-manage/common/toolbox-field/host-column/SingleHost.vue';
   import OperationColumn from '@views/db-manage/common/toolbox-field/operation-column/Index.vue';
-  import WithRelatedClusters from '@views/db-manage/mysql/common/edit-table-column/cluster-filter/WithRelatedClusters.vue';
-  import SingleHost from '@views/db-manage/mysql/common/edit-table-column/host-filter/SingleHost.vue';
+  import WithRelatedClusters from '@views/db-manage/mysql/common/edit-table-column/WithRelatedClusters.vue';
 
   interface RowData {
     cluster: {

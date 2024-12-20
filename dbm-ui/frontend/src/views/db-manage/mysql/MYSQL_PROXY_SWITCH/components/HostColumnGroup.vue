@@ -65,7 +65,7 @@
         {{ item }}
       </p>
     </div>
-    <Text
+    <Block
       v-else
       :placeholder="t('自动生成')" />
   </Column>
@@ -85,7 +85,7 @@
   import { ClusterTypes } from '@common/const';
   import { ipv4 } from '@common/regex';
 
-  import { Column, Input, Text } from '@components/editable-table/Index.vue';
+  import { Block, Column, Input } from '@components/editable-table/Index.vue';
   import InstanceSelector, {
     type InstanceSelectorValues,
     type IValue,

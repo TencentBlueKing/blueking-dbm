@@ -16,9 +16,7 @@
     <BkAlert
       class="mb-20"
       closable
-      :title="
-        t('迁移主从：集群主从实例将成对迁移至新机器。默认迁移同机所有关联集群，也可迁移部分集群，迁移会下架旧实例')
-      " />
+      :title="t('添加运维节点：在原集群上增加运维节点实例来实现额外的数据访问，在运维节点上的操作不会影响原集群')" />
     <BkForm
       v-model="formData"
       class="mb-20"
@@ -31,36 +29,28 @@
         <EditableTableRow
           v-for="(item, index) in formData.tableData"
           :key="index">
-          <WithRelatedClusters
+          <TendbCluster
             v-model="item.cluster"
             :selected="selected"
-            @batch-edit="handleBatchEdit" />
-          <SingleHost
-            v-model="item.master"
-            field="master.ip"
-            :label="t('新Master')" />
-          <SingleHost
-            v-model="item.slave"
-            field="slave.ip"
-            :label="t('新Slave')" />
+            @batch-edit="handleBatchEdit"
+            @change="(data) => handleChange(data, item)" />
+          <Column
+            field="cloud.id"
+            :label="t('所属管控区域')"
+            :min-width="300">
+            <Block
+              v-model="item.cloud.name"
+              :placeholder="t('自动生成')" />
+          </Column>
+          <MultipleHost
+            v-model="item.host"
+            field="host"
+            :label="t('运维节点 IP')" />
           <OperationColumn
             v-model:table-data="formData.tableData"
             :create-row-method="createTableRow" />
         </EditableTableRow>
       </EditableTable>
-      <BkFormItem
-        :label="t('备份源')"
-        property="backupSource"
-        required>
-        <BkRadioGroup v-model="formData.backupSource">
-          <BkRadio label="local">
-            {{ t('本地备份') }}
-          </BkRadio>
-          <BkRadio label="remote">
-            {{ t('远程备份') }}
-          </BkRadio>
-        </BkRadioGroup>
-      </BkFormItem>
       <TicketRemark v-model="formData.remark" />
     </BkForm>
     <template #action>
@@ -88,73 +78,60 @@
   import { reactive, useTemplateRef } from 'vue';
   import { useI18n } from 'vue-i18n';
 
-  import TendbhaModel from '@services/model/mysql/tendbha';
+  import TendbClusterModel from '@services/model/tendbcluster/tendbcluster';
+  import type { filterClusters } from '@services/source/dbbase';
 
   import { useCreateTicket } from '@hooks';
 
   import { TicketTypes } from '@common/const';
 
-  import EditableTable, { Row as EditableTableRow } from '@components/editable-table/Index.vue';
+  import EditableTable, { Block, Column, Row as EditableTableRow } from '@components/editable-table/Index.vue';
   import TicketRemark from '@components/ticket-remark/TicketRemark.vue';
 
-  import SingleHost from '@views/db-manage/common/toolbox-field/host-column/SingleHost.vue';
+  import MultipleHost from '@views/db-manage/common/toolbox-field/host-column/MultipleHost.vue';
   import OperationColumn from '@views/db-manage/common/toolbox-field/operation-column/Index.vue';
-  import WithRelatedClusters from '@views/db-manage/mysql/common/edit-table-column/WithRelatedClusters.vue';
+  import TendbCluster from '@views/db-manage/tendb-cluster/common/edit-table-column/TendbCluster.vue';
 
   interface RowData {
     cluster: {
       id: number;
       domain: string;
-      relatedClusters: {
-        id: number;
-        domain: string;
-      }[];
     };
-    master: {
-      bk_biz_id: number;
+    cloud: {
+      id: number;
+      name: string;
+    };
+    host: {
       bk_cloud_id: number;
       bk_host_id: number;
       ip: string;
-    };
-    slave: {
-      bk_biz_id: number;
-      bk_cloud_id: number;
-      bk_host_id: number;
-      ip: string;
-    };
+    }[];
   }
 
   const { t } = useI18n();
   const tableRef = useTemplateRef('table');
 
   const createTableRow = (data = {} as Partial<RowData>) => ({
-    cluster: Object.assign({}, data.cluster),
-    master: Object.assign({}, data.master),
-    slave: Object.assign({}, data.slave),
+    cluster: data.cluster || {
+      id: 0,
+      domain: '',
+    },
+    cloud: data.cloud || {
+      id: 0,
+      name: '',
+    },
+    host: data.host || [],
   });
 
   const defaultData = () => ({
-    backupSource: 'local' as 'local' | 'remote',
     tableData: [createTableRow()],
     remark: '',
   });
 
   const formData = reactive(defaultData());
-  // 表格行内已通过校验的集群为所选集群
+
   const selected = computed(() => formData.tableData.filter((item) => item.cluster.id).map((item) => item.cluster));
-  // 集群域名到自身及其下集群id、域名映射
-  const clusterMap = computed(() => {
-    const result = selected.value.reduce<Record<string, { ids: number[]; domains: string[] }>>((acc, cur) => {
-      const relatedClusters = cur?.relatedClusters || [];
-      acc[cur.domain] = {
-        ids: [cur.id, ...relatedClusters.map((item) => item.id)],
-        domains: [cur.domain, ...relatedClusters.map((item) => item.domain)],
-      };
-      return acc;
-    }, {});
-    return result;
-  });
-  let repeatTarget = '';
+  const selectedMap = computed(() => Object.fromEntries(selected.value.map((cur) => [cur.domain, true])));
 
   const rules = {
     'cluster.domain': [
@@ -163,56 +140,43 @@
         message: t('目标集群重复'),
         trigger: 'change',
       },
-      {
-        validator: (value: string) => {
-          repeatTarget = '';
-          let result = true;
-          Object.entries(clusterMap.value).forEach(([domain, item]) => {
-            const isContain = item.domains.includes(value);
-            if (isContain && domain !== value) {
-              repeatTarget = domain;
-              result = false;
-            }
-          });
-          return result;
-        },
-        message: () => t('目标集群是集群target的关联集群_请勿重复添加', { target: repeatTarget }),
-        trigger: 'change',
-      },
     ],
   };
 
   const { run: createTicketRun, loading: isSubmitting } = useCreateTicket<{
-    backup_source: 'local' | 'remote';
     infos: {
-      cluster_ids: number[];
-      new_master: {
-        bk_biz_id: number;
-        bk_cloud_id: number;
-        bk_host_id: number;
-        ip: string;
-      };
-      new_slave: {
-        bk_biz_id: number;
-        bk_cloud_id: number;
-        bk_host_id: number;
-        ip: string;
+      bk_cloud_id: number;
+      cluster_id: number;
+      resource_spec: {
+        spider_ip_list: {
+          spec_id: number;
+          hosts: {
+            bk_cloud_id: number;
+            bk_host_id: number;
+            ip: string;
+          }[];
+        };
       };
     }[];
-  }>(TicketTypes.MYSQL_MIGRATE_CLUSTER);
+  }>(TicketTypes.TENDBCLUSTER_SPIDER_MNT_APPLY);
 
   const handleSubmit = async () => {
     const result = await tableRef.value!.validate();
     if (!result) {
       return;
     }
+    console.log(formData.tableData, 'formData.tableData');
     createTicketRun(
       {
-        backup_source: formData.backupSource,
         infos: formData.tableData.map((item) => ({
-          cluster_ids: clusterMap.value[item.cluster.domain].ids,
-          new_master: item.master,
-          new_slave: item.slave,
+          bk_cloud_id: item.cloud.id,
+          cluster_id: item.cluster.id,
+          resource_spec: {
+            spider_ip_list: {
+              spec_id: 0,
+              hosts: item.host,
+            },
+          },
         })),
       },
       formData.remark,
@@ -223,15 +187,18 @@
     Object.assign(formData, defaultData());
   };
 
-  const handleBatchEdit = (list: TendbhaModel[]) => {
+  const handleBatchEdit = (list: TendbClusterModel[]) => {
     const dataList = list.reduce<RowData[]>((acc, item) => {
-      if (!clusterMap.value[item.master_domain]) {
+      if (!selectedMap.value[item.master_domain]) {
         acc.push(
           createTableRow({
             cluster: {
               id: item.id,
               domain: item.master_domain,
-              relatedClusters: [],
+            },
+            cloud: {
+              id: item.bk_cloud_id,
+              name: item.bk_cloud_name,
             },
           }),
         );
@@ -239,8 +206,12 @@
       return acc;
     }, []);
     formData.tableData = [...(selected.value.length ? formData.tableData : []), ...dataList];
-    nextTick(() => {
-      tableRef.value!.validateByColumnIndex(0);
-    });
+  };
+
+  const handleChange = (data: ServiceReturnType<typeof filterClusters>[number], row: RowData) => {
+    row.cloud = {
+      id: data.bk_cloud_id,
+      name: data.bk_cloud_name,
+    };
   };
 </script>

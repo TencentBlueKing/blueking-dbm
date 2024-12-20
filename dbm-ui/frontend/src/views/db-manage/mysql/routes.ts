@@ -16,21 +16,15 @@ import type { RouteRecordRaw } from 'vue-router';
 import type { MySQLFunctions } from '@services/model/function-controller/functionController';
 import FunctionControllModel from '@services/model/function-controller/functionController';
 
-import { AccountTypes, TicketTypes } from '@common/const';
+import { useToolboxRoute } from '@hooks';
+
+import { AccountTypes, DBTypes, TicketTypes } from '@common/const';
 
 import { checkDbConsole } from '@utils';
 
 import { t } from '@locales/index';
 
-const createRouteItem = (ticketType: TicketTypes, navName: string) => ({
-  name: ticketType,
-  path: `${ticketType}/:page?`,
-  meta: {
-    navName,
-    fullscreen: true,
-  },
-  component: () => import(`@views/db-manage/mysql/${ticketType}/Index.vue`),
-});
+const { createRouteItem } = useToolboxRoute(DBTypes.MYSQL);
 
 export const mysqlToolboxChildrenRouters: RouteRecordRaw[] = [
   {
