@@ -14,6 +14,12 @@
               :data="ticketData"
               small />
           </td>
+          <td>{{ t('业务') }}:</td>
+          <td>
+            {{ ticketData.bk_biz_name }}
+          </td>
+        </tr>
+        <tr>
           <td>{{ t('已耗时') }}:</td>
           <td>
             <CostTimer
@@ -21,12 +27,12 @@
               :start-time="utcTimeToSeconds(ticketData?.create_at)"
               :value="ticketData?.cost_time || 0" />
           </td>
-        </tr>
-        <tr>
           <td>{{ t('单据类型') }}:</td>
           <td>{{ ticketData.ticket_type_display }}</td>
           <td>{{ t('申请人') }}:</td>
           <td>{{ ticketData.creator }}</td>
+        </tr>
+        <tr>
           <td>{{ t('申请时间') }}:</td>
           <td>{{ utcDisplayTime(ticketData.create_at) }}</td>
         </tr>
