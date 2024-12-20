@@ -12,18 +12,93 @@
 -->
 
 <template>
-  <DbOriginalTable
-    class="details-backup__table"
-    :columns="columns"
-    :data="tableData" />
-  <div class="ticket-details-list">
-    <div class="ticket-details-item">
-      <span class="ticket-details-item-label">{{ t('忽略业务连接') }}：</span>
-      <span class="ticket-details-item-value">
-        {{ ticketDetails.details.is_safe ? t('否') : t('是') }}
-      </span>
-    </div>
-  </div>
+  <BkTable :data="ticketDetails.details.infos">
+    <BkTableColumn
+      field="cluster_ids"
+      fixed="left"
+      :label="t('目标集群')"
+      :min-width="250">
+      <template #default="{data}: {data: RowData}">
+        <div
+          v-for="item in data.cluster_ids"
+          :key="item">
+          {{ ticketDetails.details.clusters[item].immute_domain }}
+        </div>
+      </template>
+    </BkTableColumn>
+    <BkTableColumn
+      field="drop_collection"
+      :label="t('清档类型')"
+      :width="300">
+      <template #default="{data}: {data: RowData}">
+        {{ data.drop_type === 'drop_collection' ? t('直接删除表') : t('将表暂时重命名，用于需要快速恢复的情况') }}
+      </template>
+    </BkTableColumn>
+    <BkTableColumn
+      field="drop_index"
+      :label="t('是否删除索引')">
+      <template #default="{data}: {data: RowData}">
+        {{ data.drop_type === 'drop_index' ? t('是') : t('否') }}
+      </template>
+    </BkTableColumn>
+    <BkTableColumn
+      field="db_patterns"
+      :label="t('指定 DB 名')"
+      :min-width="120">
+      <template #default="{data}: {data: RowData}">
+        <BkTag
+          v-for="(item, index) in data.ns_filter.db_patterns"
+          :key="index">
+          {{ item }}
+        </BkTag>
+        <span v-if="data.ns_filter.db_patterns.length < 1">--</span>
+      </template>
+    </BkTableColumn>
+    <BkTableColumn
+      field="ignore_dbs"
+      :label="t('忽略 DB 名')"
+      :min-width="120">
+      <template #default="{data}: {data: RowData}">
+        <BkTag
+          v-for="(item, index) in data.ns_filter.ignore_dbs"
+          :key="index">
+          {{ item }}
+        </BkTag>
+        <span v-if="data.ns_filter.ignore_dbs.length < 1">--</span>
+      </template>
+    </BkTableColumn>
+    <BkTableColumn
+      field="table_patterns"
+      :label="t('指定表名')"
+      :min-width="120">
+      <template #default="{data}: {data: RowData}">
+        <BkTag
+          v-for="(item, index) in data.ns_filter.table_patterns"
+          :key="index">
+          {{ item }}
+        </BkTag>
+        <span v-if="data.ns_filter.table_patterns.length < 1">--</span>
+      </template>
+    </BkTableColumn>
+    <BkTableColumn
+      field="ignore_tables"
+      :label="t('忽略表名')"
+      :min-width="120">
+      <template #default="{data}: {data: RowData}">
+        <BkTag
+          v-for="(item, index) in data.ns_filter.ignore_tables"
+          :key="index">
+          {{ item }}
+        </BkTag>
+        <span v-if="data.ns_filter.ignore_tables.length < 1">--</span>
+      </template>
+    </BkTableColumn>
+  </BkTable>
+  <InfoList>
+    <InfoItem :label="t('忽略业务连接')">
+      {{ ticketDetails.details.is_safe ? t('否') : t('是') }}
+    </InfoItem>
+  </InfoList>
 </template>
 
 <script setup lang="tsx">
@@ -33,11 +108,15 @@
 
   import { TicketTypes } from '@common/const';
 
+  import InfoList, { Item as InfoItem } from '../components/info-list/Index.vue';
+
   interface Props {
-    ticketDetails: TicketModel<Mongodb.RemoveNs>
+    ticketDetails: TicketModel<Mongodb.RemoveNs>;
   }
 
-  const props = defineProps<Props>();
+  defineProps<Props>();
+
+  type RowData = Props['ticketDetails']['details']['infos'][number];
 
   defineOptions({
     name: TicketTypes.MONGODB_REMOVE_NS,
@@ -45,90 +124,4 @@
   });
 
   const { t } = useI18n();
-
-  const {
-    clusters,
-    infos,
-  } = props.ticketDetails.details;
-  const columns = [
-    {
-      label: t('目标集群'),
-      field: 'immute_domain',
-      showOverflowTooltip: true,
-    },
-    {
-      label: t('清档类型'),
-      field: 'drop_type',
-      showOverflowTooltip: true,
-      render: ({ cell }: { cell: string }) => (
-        <span>
-          {cell === 'drop_collection' ? t('直接删除表') : t('将表暂时重命名，用于需要快速恢复的情况')}
-        </span>
-      ),
-    },
-    {
-      label: t('是否删除索引'),
-      field: 'drop_index',
-      render: ({ cell }: { cell: boolean }) => (
-        <span>
-          {cell ? t('是') : t('否')}
-        </span>
-      ),
-    },
-    {
-      label: t('备份DB名'),
-      field: 'db_patterns',
-      showOverflowTooltip: false,
-      render: ({ cell }: { cell: string[] }) => (
-        <div class="text-overflow" v-overflow-tips={{
-            content: cell,
-          }}>
-          {cell.map(item => <bk-tag>{item}</bk-tag>)}
-        </div>
-      ),
-    },
-    {
-      label: t('忽略DB名'),
-      field: 'ignore_dbs',
-      showOverflowTooltip: false,
-      render: ({ cell }: { cell: string[] }) => (
-        <div class="text-overflow" v-overflow-tips={{
-            content: cell,
-          }}>
-          {cell.length > 0 ? cell.map(item => <bk-tag>{item}</bk-tag>) : '--'}
-        </div>
-      ),
-    },
-    {
-      label: t('备份表名'),
-      field: 'table_patterns',
-      showOverflowTooltip: false,
-      render: ({ cell }: { cell: string[] }) => (
-        <div class="text-overflow" v-overflow-tips={{
-            content: cell,
-          }}>
-          {cell.map(item => <bk-tag>{item}</bk-tag>)}
-        </div>
-      ),
-    },
-    {
-      label: t('忽略表名'),
-      field: 'ignore_tables',
-      showOverflowTooltip: false,
-      render: ({ cell }: { cell: string[] }) => (
-        <div class="text-overflow" v-overflow-tips={{
-            content: cell,
-          }}>
-          {cell.length > 0 ? cell.map(item => <bk-tag>{item}</bk-tag>) : '--'}
-        </div>
-      ),
-    },
-  ];
-
-  const tableData = infos.map(item => ({
-    immute_domain: item.cluster_ids.map(id => clusters[id].immute_domain).join(','),
-    drop_type: item.drop_type,
-    drop_index: item.drop_index,
-    ...item.ns_filter,
-  }));
 </script>
