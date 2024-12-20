@@ -65,7 +65,7 @@ export default [
       },
       {
         name: t('整机替换'),
-        id: 'MongoDBReplace',
+        id: TicketTypes.MONGODB_CUTOFF,
         parentId: 'mongo_manage',
       },
     ],
