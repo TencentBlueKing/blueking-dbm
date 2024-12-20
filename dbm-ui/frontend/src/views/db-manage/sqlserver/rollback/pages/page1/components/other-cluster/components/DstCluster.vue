@@ -30,11 +30,8 @@
     :tab-list-config="clusterSelectorTabConfig"
     @change="handelClusterChange" />
 </template>
-<script lang="ts">
-  const clusterIdMemo: Record<string, number> = {};
-</script>
 <script setup lang="ts">
-  import { onBeforeUnmount, ref, watch } from 'vue';
+  import { ref, watch } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import SqlServerHaModel from '@services/model/sqlserver/sqlserver-ha';
@@ -45,8 +42,6 @@
 
   import ClusterSelector from '@components/cluster-selector/Index.vue';
   import TableEditInput from '@components/render-table/columns/input/index.vue';
-
-  import { random } from '@utils';
 
   import type { IDataRow } from './Row.vue';
 
@@ -65,9 +60,6 @@
     domain: string;
     cloudId: null | number;
   }>();
-
-  const instanceKey = `render_dst_cluster_${random()}`;
-  clusterIdMemo[instanceKey] = 0;
 
   const compareVersion = (dstVersion: string, srcVersion: string) => {
     const versionMatchReg = /[^\d]*(\d+)$/;
@@ -141,25 +133,12 @@
               cloudId: data[0].bk_cloud_id,
               domain: data[0].master_domain,
             };
-            clusterIdMemo[instanceKey] = data[0].id;
             return true;
           }
-          clusterIdMemo[instanceKey] = 0;
           modelValue.value = undefined;
           return false;
         }),
       message: t('目标集群不存在'),
-    },
-    {
-      validator: () => {
-        const otherClusterIdMemo = { ...clusterIdMemo };
-        delete otherClusterIdMemo[instanceKey];
-        if (Object.values(otherClusterIdMemo).includes(modelValue.value!.id)) {
-          return false;
-        }
-        return true;
-      },
-      message: t('目标集群重复'),
     },
   ];
 
@@ -168,7 +147,6 @@
     modelValue,
     () => {
       if (modelValue.value) {
-        clusterIdMemo[instanceKey] = modelValue.value.id;
         localDomain.value = modelValue.value.domain;
       } else {
         localDomain.value = '';
@@ -193,10 +171,6 @@
       domain: clusterData.master_domain,
     };
   };
-
-  onBeforeUnmount(() => {
-    delete clusterIdMemo[instanceKey];
-  });
 
   defineExpose<Exposes>({
     getValue(field) {
