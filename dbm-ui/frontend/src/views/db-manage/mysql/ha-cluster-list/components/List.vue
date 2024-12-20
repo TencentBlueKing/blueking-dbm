@@ -672,12 +672,11 @@
       render: ({ data }: ColumnData) => (
         <RenderInstances
           highlightIps={batchSearchIpInatanceList.value}
-          data={data.slaves || []}
+          data={(data.slaves || []).sort((a, b) => Number(b.is_stand_by) - Number(a.is_stand_by))}
           title={t('【inst】实例预览', { inst: data.master_domain, title: 'Slave' })}
           role="slave"
           clusterId={data.id}
           dataSource={getTendbhaInstanceList}
-          sort={(data: TendbhaModel['slaves'] = []) => data.sort((a, b) => Number(b.is_stand_by) - Number(a.is_stand_by))}
         >
           {{
             append: ({ data: instance }: { data: TendbhaModel['slaves'][number] }) =>

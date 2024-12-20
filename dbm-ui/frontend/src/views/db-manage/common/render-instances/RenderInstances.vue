@@ -15,7 +15,7 @@
   <div class="cluster-instances">
     <p
       v-for="(inst, index) in renderData"
-      :key="inst.bk_instance_id"
+      :key="`${inst.ip}:${inst.port}`"
       class="pt-2 pb-2"
       :class="{ 'is-unavailable': inst.status === 'unavailable' }">
       <TextOverflowLayout>
@@ -104,13 +104,24 @@
       </div>
       <DbTable
         ref="tableRef"
-        :columns="columns"
         :data-source="dataSource"
         fixed-pagination
         :height="440"
         releate-url-query
         @clear-search="handleClearSearch"
-        @request-finished="handleRequestFinished" />
+        @request-finished="handleRequestFinished">
+        <BkTableColumn :label="t('实例')">
+          <template #default="{ data: rowData }: { data: T }"> {{ rowData.ip }}:{{ rowData.port }} </template>
+        </BkTableColumn>
+        <BkTableColumn :label="t('部署角色')">
+          {{ role }}
+        </BkTableColumn>
+        <BkTableColumn :label="t('状态')">
+          <template #default="{ data: rowData }: { data: T }">
+            <ClusterInstanceStatus :data="rowData.status" />
+          </template>
+        </BkTableColumn>
+      </DbTable>
     </div>
     <template #footer>
       <BkButton @click="handleClose">
@@ -119,40 +130,27 @@
     </template>
   </BkDialog>
 </template>
-
-<script
-  setup
-  lang="tsx"
-  generic="
-    T extends {
-      bk_instance_id: number;
-      create_at: string;
-      instance_address: string;
-      ip: string;
-      port: number;
-      role: string;
-      status: string;
-    }
-  ">
+<script lang="ts">
+  type IData = {
+    ip: string;
+    port: number;
+    status: string;
+  };
+</script>
+<script setup lang="ts" generic="T extends IData">
   import tippy, { type Instance, type SingleTarget } from 'tippy.js';
   import type { UnwrapRef } from 'vue';
   import { useI18n } from 'vue-i18n';
 
-  import type {
-    ListBase,
-  } from '@services/types';
+  import type { ListBase } from '@services/types';
 
   import { useCopy } from '@hooks';
 
   import { useGlobalBizs } from '@stores';
 
-  import {
-    type ClusterInstStatus,
-    clusterInstStatus,
-    ClusterInstStatusKeys,
-  } from '@common/const';
+  import { ClusterInstStatusKeys } from '@common/const';
 
-  import DbStatus from '@components/db-status/index.vue';
+  import ClusterInstanceStatus from '@components/cluster-instance-status/Index.vue';
   import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
 
   import { messageWarn } from '@utils';
@@ -160,17 +158,15 @@
   interface Props {
     title: string;
     role: string;
-    data: T[];
+    data: IData[];
     clusterId: number;
     dataSource: (params: Record<string, any>) => Promise<ListBase<T[]>>;
-    sort?: (data: T[]) => T[];
     highlightIps?: string[];
   }
 
   const props = withDefaults(defineProps<Props>(), {
-    highlightIps: () => ([]),
-    tagKeyConfig: () => ([]),
-    sort: (data: T[]) => data,
+    highlightIps: () => [],
+    tagKeyConfig: () => [],
   });
 
   const copy = useCopy();
@@ -179,12 +175,14 @@
 
   let tippyIns: Instance;
 
+  const renderCount = 10;
+
   const copyRootRef = ref();
   const popRef = ref();
   const isCopyIconClicked = ref(false);
   const tableRef = ref();
-  const renderData = shallowRef<T[]>([]);
-  const hasMore = computed(() => props.data.length > 10);
+  const renderData = shallowRef<IData[]>([]);
+  const hasMore = computed(() => props.data.length > renderCount);
 
   const dialogState = reactive({
     isShow: false,
@@ -195,112 +193,92 @@
   watch(
     () => props.data,
     () => {
-      renderData.value = props.sort(props.data).slice(0, 10);
+      renderData.value = props.data.slice(0, renderCount);
     },
     {
       immediate: true,
-    }
+    },
   );
-
-  const columns = [
-    {
-      label: t('实例'),
-      field: 'instance_address',
-    },
-    {
-      label: t('部署角色'),
-      field: 'role',
-    },
-    {
-      label: t('状态'),
-      field: 'status',
-      render: ({ cell }: { cell: ClusterInstStatus }) => {
-        const info = clusterInstStatus[cell] || clusterInstStatus.unavailable;
-        return <DbStatus theme={info.theme}>{info.text}</DbStatus>;
-      },
-    },
-    {
-      label: t('部署时间'),
-      field: 'create_at',
-    },
-  ];
 
   /**
    * 获取节点列表
    */
   const fetchInstance = () => {
     nextTick(() => {
-      tableRef.value.fetchData({
-        instance_address: dialogState.keyword,
-      }, {
-        bk_biz_id: globalBizsStore.currentBizId,
-        cluster_id: props.clusterId,
-        role: props.role,
-      });
+      tableRef.value.fetchData(
+        {
+          instance_address: dialogState.keyword,
+        },
+        {
+          bk_biz_id: globalBizsStore.currentBizId,
+          cluster_id: props.clusterId,
+          role: props.role,
+        },
+      );
     });
-  }
+  };
 
   const handleShowMore = () => {
     dialogState.isShow = true;
     fetchInstance();
-  }
+  };
 
   const handleClearSearch = () => {
     dialogState.keyword = '';
     fetchInstance();
-  }
+  };
 
   const handleRequestFinished = (data: T[]) => {
     dialogState.data = data as UnwrapRef<T[]>;
-  }
+  };
 
   /**
    * 复制异常实例
    */
   const handleCopyAbnormal = () => {
     const abnormalInstances = dialogState.data
-      .filter(item => item.status !== ClusterInstStatusKeys.RUNNING)
-      .map(item => item.instance_address);
+      .filter((item) => item.status !== ClusterInstStatusKeys.RUNNING)
+      .map((item) => `${item.ip}:${item.port}`);
     if (abnormalInstances.length === 0) {
       messageWarn(t('没有可复制实例'));
       return;
     }
     copy(abnormalInstances.join('\n'));
-  }
+  };
 
   /**
    * 复制所有实例
    */
   const handleCopyAll = () => {
-    const instances = dialogState.data.map(item => item.instance_address);
+    const instances = dialogState.data.map((item) => `${item.ip}:${item.port}`);
     if (instances.length === 0) {
       messageWarn(t('没有可复制实例'));
       return;
     }
     copy(instances.join('\n'));
-  }
+  };
 
   const handleCopyIps = () => {
     const { data } = props;
-    const ips = [...new Set(data.map(item => item.ip))];
+    const ips = [...new Set(data.map((item) => item.ip))];
     if (ips.length === 0) {
       messageWarn(t('没有可复制IP'));
       return;
     }
     copy(ips.join('\n'));
-  }
+  };
 
   const handleCopyInstances = () => {
     const { data } = props;
-    const instances = data.map(item => `${item.ip}:${item.port}`);
+    const instances = data.map((item) => `${item.ip}:${item.port}`);
     copy(instances.join('\n'));
-  }
+  };
 
   const handleClose = () => {
     dialogState.isShow = false;
     dialogState.keyword = '';
     dialogState.data = [];
-  }
+  };
 
   onMounted(() => {
     nextTick(() => {

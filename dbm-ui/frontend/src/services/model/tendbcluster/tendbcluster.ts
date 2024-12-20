@@ -113,8 +113,8 @@ export default class TendbCluster {
   phase: 'online' | 'offline';
   phase_name: string;
   region: string;
-  remote_db: ClusterListNode[];
-  remote_dr: ClusterListNode[];
+  remote_db: (ClusterListNode & { shard_id: number })[];
+  remote_dr: (ClusterListNode & { shard_id: number })[];
   remote_shard_num: number;
   slave_domain: string;
   spider_master: ClusterListNode[];
