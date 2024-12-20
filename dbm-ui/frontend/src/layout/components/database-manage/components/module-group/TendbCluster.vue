@@ -3,11 +3,15 @@
     controller-id="tendbcluster"
     module-id="mysql">
     <BkMenuGroup name="Tendb Cluster">
-      <BkSubmenu
-        key="tendb-cluster-manage"
-        :title="t('TendbCluster集群')">
+      <BkSubmenu key="tendb-cluster-manage">
         <template #icon>
           <DbIcon type="cluster" />
+        </template>
+        <template #title>
+          <span>{{ t('TendbCluster集群') }}</span>
+          <CountTag
+            :cluster-type="ClusterTypes.TENDBCLUSTER"
+            role="cluster" />
         </template>
         <BkMenuItem key="SpiderManage">
           <span
@@ -15,6 +19,9 @@
             class="text-overflow">
             {{ t('集群视图') }}
           </span>
+          <CountTag
+            :cluster-type="ClusterTypes.TENDBCLUSTER"
+            role="cluster" />
         </BkMenuItem>
         <BkMenuItem
           key="tendbClusterInstance"
@@ -24,6 +31,9 @@
             class="text-overflow">
             {{ t('实例视图') }}
           </span>
+          <CountTag
+            :cluster-type="ClusterTypes.TENDBCLUSTER"
+            role="instance" />
         </BkMenuItem>
       </BkSubmenu>
       <BkMenuItem
@@ -100,12 +110,13 @@
 
   import { useUserProfile } from '@stores';
 
-  import { UserPersonalSettings } from '@common/const';
+  import { ClusterTypes, UserPersonalSettings } from '@common/const';
 
   import toolboxMenuConfig from '@views/db-manage/tendb-cluster/toolbox-menu';
 
   import { makeMap } from '@utils';
 
+  import CountTag from './components/CountTag.vue';
   import ToolboxMenu from './components/ToolboxMenu.vue';
 
   const userProfile = useUserProfile();

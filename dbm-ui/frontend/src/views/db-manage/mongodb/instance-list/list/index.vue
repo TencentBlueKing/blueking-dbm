@@ -1,26 +1,12 @@
 <template>
-  <div class="instance-list-page">
+  <div class="mongodb-instance-list-page">
     <div class="header-action">
-      <BkDropdown
-        @hide="() => (isInstanceDropdown = false)"
-        @show="() => (isInstanceDropdown = true)">
-        <BkButton
-          class="dropdown-button"
-          :class="{ active: isInstanceDropdown }">
-          {{ t('申请实例') }}
-          <DbIcon type="up-big dropdown-button-icon" />
-        </BkButton>
-        <template #content>
-          <BkDropdownMenu>
-            <BkDropdownItem @click="handleGoApply('MongoDBReplicaSetApply')">
-              {{ t('副本集集群') }}
-            </BkDropdownItem>
-            <BkDropdownItem @click="handleGoApply('MongoDBSharedClusterApply')">
-              {{ t('分片集群实例') }}
-            </BkDropdownItem>
-          </BkDropdownMenu>
-        </template>
-      </BkDropdown>
+      <BkButton
+        class="w-88"
+        theme="primary"
+        @click="handleGoApply">
+        {{ t('申请实例') }}
+      </BkButton>
       <DropdownExportExcel
         export-type="instance"
         :has-selected="hasSelected"
@@ -41,7 +27,7 @@
       <DbTable
         ref="tableRef"
         :columns="columns"
-        :data-source="getMongoInstancesList"
+        :data-source="dataSource"
         releate-url-query
         :row-class="setRowClass"
         selectable
@@ -59,7 +45,7 @@
   import { InfoBox } from 'bkui-vue';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
-  import { useRouter } from 'vue-router';
+  import { useRoute,useRouter } from 'vue-router';
 
   import MongodbInstanceModel from '@services/model/mongodb/mongodb-instance';
   import  {
@@ -99,7 +85,11 @@
   const ticketMessage = useTicketMessage();
   const { currentBizId } = useGlobalBizs();
   const router = useRouter();
+  const route = useRoute();
   const { t } = useI18n();
+
+  const instanceListClusterType = route.name === 'mongodbReplicaSetInstanceList' ? ClusterTypes.MONGO_REPLICA_SET : ClusterTypes.MONGO_SHARED_CLUSTER
+
 
   const {
     columnAttrs,
@@ -113,10 +103,7 @@
     validateSearchValues,
     handleSearchValueChange,
   } = useLinkQueryColumnSerach({
-    searchType: [
-      ClusterTypes.MONGO_SHARED_CLUSTER,
-      ClusterTypes.MONGO_REPLICA_SET
-    ].join(',') as ClusterTypes,
+    searchType: instanceListClusterType,
     attrs: ['role'],
     isCluster: false,
     fetchDataFn: () => fetchData(isInit),
@@ -126,13 +113,17 @@
     }
   });
 
+  const dataSource = (params: ServiceParameters<typeof getMongoInstancesList>) => getMongoInstancesList({
+    ...params,
+    cluster_type: instanceListClusterType
+  })
+
   const {
     isOpen: isStretchLayoutOpen,
     splitScreen: stretchLayoutSplitScreen,
   } = useStretchLayout();
 
   const tableRef = ref();
-  const isInstanceDropdown = ref(false);
 
   const roleListType = ref<{
     id: string,
@@ -177,21 +168,6 @@
     {
       name: t('端口'),
       id: 'port',
-    },
-    {
-      name: t('集群架构'),
-      id: 'cluster_type',
-      multiple: true,
-      children: [
-        {
-          id: ClusterTypes.MONGO_REPLICA_SET,
-          name: t('副本集'),
-        },
-        {
-          id: ClusterTypes.MONGO_SHARED_CLUSTER,
-          name: t('分片集群'),
-        },
-      ],
     },
   ]);
 
@@ -269,24 +245,6 @@
             </router-link>
           </div>
         ),
-      },
-      {
-        label: t('集群架构'),
-        field: 'cluster_type',
-        filter: {
-          list: [
-            {
-              value: ClusterTypes.MONGO_REPLICA_SET,
-              text: t('副本集'),
-            },
-            {
-              value: ClusterTypes.MONGO_SHARED_CLUSTER,
-              text: t('分片集群'),
-            },
-          ],
-          checked: columnCheckedMap.value.cluster_type,
-        },
-        render: ({ data }: { data: MongodbInstanceModel }) => data.clusterTypeText,
       },
       {
         label: t('分片名'),
@@ -419,9 +377,9 @@
     });
   };
 
-  const handleGoApply = (name: string) => {
+  const handleGoApply = () => {
     router.push({
-      name,
+      name: route.name === 'mongodbReplicaSetInstanceList' ? 'MongoDBReplicaSetApply' : 'MongoDBSharedClusterApply',
     });
   };
 
@@ -462,7 +420,7 @@
 <style lang="less" scoped>
   @import '@styles/mixins.less';
 
-  .instance-list-page {
+  .mongodb-instance-list-page {
     height: 100%;
     padding: 24px 0;
     margin: 0 24px;

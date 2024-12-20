@@ -121,3 +121,18 @@ export function queryAllTypeCluster(params: {
     }[]
   >(`${path}/simple_query_cluster/`, params);
 }
+
+// 查询集群实例数量
+export function queryClusterInstanceCount(params: { bk_biz_id: number }) {
+  return http.get<
+    Record<
+      ClusterTypes,
+      {
+        cluster_count: number;
+        instance_count: number;
+      }
+    >
+  >(`${path}/query_cluster_instance_count/`, params, {
+    cache: 1000,
+  });
+}

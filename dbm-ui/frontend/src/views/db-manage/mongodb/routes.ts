@@ -127,6 +127,15 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@views/db-manage/mongodb/replica-set-list/Index.vue'),
       },
       {
+        name: 'mongodbReplicaSetInstanceList',
+        path: 'replica-set-instance-list',
+        meta: {
+          navName: t('【MongoDB】副本集集群实例视图'),
+          fullscreen: true,
+        },
+        component: () => import('@views/db-manage/mongodb/instance-list/index.vue'),
+      },
+      {
         name: 'MongoDBSharedClusterList',
         path: 'shared-cluster-list',
         meta: {
@@ -135,14 +144,23 @@ const routes: RouteRecordRaw[] = [
         },
         component: () => import('@views/db-manage/mongodb/shared-cluster-list/Index.vue'),
       },
+      // {
+      //   name: 'mongodbInstance',
+      //   path: 'mongodb-instance',
+      //   meta: {
+      //     navName: t('【MongoDB】实例视图'),
+      //     fullscreen: true,
+      //   },
+      //   component: () => import('@views/db-manage/mongodb/instance-list/index.vue'),
+      // },
       {
-        name: 'mongodbInstance',
-        path: 'mongodb-instance',
+        name: 'mongodbShareClusterInstanceList',
+        path: 'share-cluster-instance-list',
         meta: {
-          navName: t('【MongoDB】实例视图'),
+          navName: t('【MongoDB】分片集群实例视图'),
           fullscreen: true,
         },
-        component: () => import('@views/db-manage/mongodb/mongodb-instance/index.vue'),
+        component: () => import('@views/db-manage/mongodb/instance-list/index.vue'),
       },
       {
         name: 'MongodbPermission',
