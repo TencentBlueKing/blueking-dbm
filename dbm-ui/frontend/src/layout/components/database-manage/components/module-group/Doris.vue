@@ -12,6 +12,9 @@
           class="text-overflow">
           {{ t('集群管理') }}
         </span>
+        <CountTag
+          :cluster-type="ClusterTypes.DORIS"
+          role="cluster" />
       </BkMenuItem>
     </BkMenuGroup>
   </FunController>
@@ -19,6 +22,10 @@
 
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
+
+  import { ClusterTypes } from '@common/const';
+
+  import CountTag from './components/CountTag.vue';
 
   const { t } = useI18n();
 </script>
