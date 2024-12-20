@@ -97,14 +97,17 @@ export const mongoToolboxChildrenRoutes: RouteRecordRaw[] = [
     },
     component: () => import('@views/db-manage/mongodb/structure-instance/Index.vue'),
   },
-  {
-    name: 'MongoDbTableBackup',
-    path: 'db-data-copy/:page?',
-    meta: {
-      navName: t('库表备份'),
-    },
-    component: () => import('@views/db-manage/mongodb/db-table-backup/Index.vue'),
-  },
+  createRouteItem(TicketTypes.MONGODB_BACKUP, {
+    navName: t('库表备份'),
+  }),
+  // {
+  //   name: 'MongoDbTableBackup',
+  //   path: 'db-data-copy/:page?',
+  //   meta: {
+  //     navName: t('库表备份'),
+  //   },
+  //   component: () => import('@views/db-manage/mongodb/db-table-backup/Index.vue'),
+  // },
   createRouteItem(TicketTypes.MONGODB_FULL_BACKUP, {
     navName: t('全库备份'),
   }),

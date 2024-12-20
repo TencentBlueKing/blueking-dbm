@@ -2,11 +2,11 @@
   <EditableTableColumn
     ref="editableTableColumn"
     :append-rules="rules"
-    field="cluster.master_domain"
+    :field="field"
     fixed="left"
-    :label="t('目标集群')"
+    :label="t(label)"
     :loading="isLoading"
-    :min-width="500"
+    :min-width="300"
     required>
     <template #headAppend>
       <BkButton
@@ -20,8 +20,9 @@
       v-model="modelValue.master_domain"
       :placeholder="t('请输入或选择集群')" />
     <ClusterSelector
+      :key="clusterTypes.join(',')"
       v-model:is-show="isShowClusterSelector"
-      :cluster-types="[ClusterTypes.MONGO_SHARED_CLUSTER, ClusterTypes.MONGO_REPLICA_SET]"
+      :cluster-types="clusterTypes"
       :selected="selected as MappedProps"
       @change="handelClusterChange" />
   </EditableTableColumn>
@@ -33,7 +34,6 @@
   import MongodbModel from '@services/model/mongodb/mongodb';
   import { filterClusters } from '@services/source/dbbase';
 
-  import { ClusterTypes } from '@common/const';
   import { domainRegex } from '@common/regex';
 
   import ClusterSelector from '@components/cluster-selector/Index.vue';
@@ -44,23 +44,26 @@
   };
 
   interface Props {
-    selected: {
-      [ClusterTypes.MONGO_REPLICA_SET]: {
+    clusterTypes: string[];
+    selected: Record<
+      string,
+      {
         id: number;
         master_domain: string;
-      }[];
-      [ClusterTypes.MONGO_SHARED_CLUSTER]: {
-        id: number;
-        master_domain: string;
-      }[];
-    };
+      }[]
+    >;
+    label?: string;
+    field?: string;
   }
 
   interface Emits {
     (e: 'batch-edit', value: MongodbModel[]): void;
   }
 
-  defineProps<Props>();
+  withDefaults(defineProps<Props>(), {
+    label: '目标集群',
+    field: 'cluster.master_domain',
+  });
   const emits = defineEmits<Emits>();
 
   const modelValue = defineModel<Partial<ServiceReturnType<typeof filterClusters>[number]>>({

@@ -94,7 +94,7 @@ export default [
     children: [
       {
         name: t('库表备份'),
-        id: 'MongoDbTableBackup',
+        id: TicketTypes.MONGODB_BACKUP,
         parentId: 'mongo_backup',
       },
       {
