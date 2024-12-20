@@ -21,8 +21,8 @@
         {{ t('提交') }}
       </BkButton>
       <RulesPreview
-        v-if="isShowPreview"
-        :account-type="accountType"
+        v-if="[AccountTypes.MYSQL, AccountTypes.TENDBCLUSTER].includes(accountType) && dbComRef"
+        :account-type="(accountType as AccountTypes.MYSQL | AccountTypes.TENDBCLUSTER)"
         :data="dbComRef?.formData" />
       <BkButton
         class="ml-8"
@@ -110,10 +110,6 @@
     errorMessage: '',
   });
   const dbComRef = ref();
-
-  const isShowPreview = computed(
-    () => props.accountType === AccountTypes.MYSQL || props.accountType === AccountTypes.TENDBCLUSTER,
-  );
 
   const { run: createTicketRun } = useRequest(createTicket, {
     manual: true,

@@ -18,7 +18,6 @@ const create = (dataSource: typeof getTickets, options?: { onSuccess?: (data: Ti
   const isLoading = ref(false);
   const dataList = ref<TicketModel[]>([]);
   const pagination = reactive({
-    offset: 0,
     limit: 20,
     current: 1,
     count: 0,

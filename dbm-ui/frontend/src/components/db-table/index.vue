@@ -527,7 +527,6 @@
 
   // 切换每页条数
   const handlePageLimitChange = (pageLimit: number) => {
-  console.log('pagination.limit = ', pagination.limit,pageLimit )
   if (pagination.limit === pageLimit){
     return
   }
@@ -543,7 +542,6 @@
     }
     pagination.current = pageValue;
 
-    console.log('pagination.current = ', pagination.current, pageValue, pagination )
     fetchListData();
   };
 
