@@ -23,7 +23,7 @@ export interface InstanceInfos {
   cluster_id: number;
   cluster_name: string;
   cluster_type: string;
-  cluster_domain: string;
+  // cluster_domain: string;
   create_at: string;
   db_module_id: number;
   db_module_name: string;
@@ -51,15 +51,21 @@ export interface InstanceInfos {
   }[];
   role: string;
   spec_config: {
-    cpu: number;
+    cpu: {
+      max: number;
+      min: number;
+    };
     id: number;
-    mem: number;
+    mem: {
+      max: number;
+      min: number;
+    };
     name: string;
     storage_spec: {
       mount_point: string;
       size: number;
       type: string;
-    };
+    }[];
   };
-  status: 'running' | 'unavailable';
+  status: string;
 }
