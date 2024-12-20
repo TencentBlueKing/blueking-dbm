@@ -1,30 +1,66 @@
 <template>
   <FunController module-id="mongodb">
     <BkMenuGroup name="MongoDB">
-      <BkSubmenu :title="t('集群管理')">
+      <BkSubmenu>
         <template #icon>
           <DbIcon type="cluster" />
+        </template>
+        <template #title>
+          <span>{{ t('副本集群') }}</span>
+          <CountTag
+            :cluster-type="ClusterTypes.MONGO_REPLICA_SET"
+            role="cluster" />
         </template>
         <BkMenuItem key="MongoDBReplicaSetList">
           <span
             v-overflow-tips.right
             class="text-overflow">
-            {{ t('副本集集群') }}
+            {{ t('集群管理') }}
           </span>
+          <CountTag
+            :cluster-type="ClusterTypes.MONGO_REPLICA_SET"
+            role="cluster" />
         </BkMenuItem>
-        <BkMenuItem key="MongoDBSharedClusterList">
-          <span
-            v-overflow-tips.right
-            class="text-overflow">
-            {{ t('分片集群') }}
-          </span>
-        </BkMenuItem>
-        <BkMenuItem key="mongodbInstance">
+        <BkMenuItem key="mongodbReplicaSetInstanceList">
           <span
             v-overflow-tips.right
             class="text-overflow">
             {{ t('实例视图') }}
           </span>
+          <CountTag
+            :cluster-type="ClusterTypes.MONGO_REPLICA_SET"
+            role="cluster" />
+        </BkMenuItem>
+      </BkSubmenu>
+      <BkSubmenu key="mongodb-permission">
+        <template #icon>
+          <DbIcon type="history" />
+        </template>
+        <template #title>
+          <span>{{ t('分片集群') }}</span>
+          <CountTag
+            :cluster-type="ClusterTypes.MONGO_SHARED_CLUSTER"
+            role="cluster" />
+        </template>
+        <BkMenuItem key="MongoDBSharedClusterList">
+          <span
+            v-overflow-tips.right
+            class="text-overflow">
+            {{ t('集群管理') }}
+          </span>
+          <CountTag
+            :cluster-type="ClusterTypes.MONGO_SHARED_CLUSTER"
+            role="cluster" />
+        </BkMenuItem>
+        <BkMenuItem key="mongodbShareClusterInstanceList">
+          <span
+            v-overflow-tips.right
+            class="text-overflow">
+            {{ t('实例视图') }}
+          </span>
+          <CountTag
+            :cluster-type="ClusterTypes.MONGO_SHARED_CLUSTER"
+            role="cluster" />
         </BkMenuItem>
       </BkSubmenu>
       <BkSubmenu
@@ -71,12 +107,13 @@
 
   import { useUserProfile } from '@stores';
 
-  import { UserPersonalSettings } from '@common/const';
+  import { ClusterTypes, UserPersonalSettings } from '@common/const';
 
   import toolboxMenuConfig from '@views/db-manage/mongodb/toolbox-menu';
 
   import { makeMap } from '@utils';
 
+  import CountTag from './components/CountTag.vue';
   import ToolboxMenu from './components/ToolboxMenu.vue';
 
   const userProfile = useUserProfile();
