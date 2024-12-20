@@ -36,8 +36,9 @@ export function useClusterData<T>(searchSelectValue: Ref<ISearchValue[]>) {
     current: 1,
     count: 0,
     limit: 10,
-    limitList: [10, 20, 50, 100, 500],
+    limitList: [2, 10, 20, 50, 100, 500],
     small: true,
+    remote: true,
   });
 
   watch(
