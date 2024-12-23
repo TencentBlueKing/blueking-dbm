@@ -234,8 +234,14 @@ class ExternalProxyMiddleware(MiddlewareMixin):
         response = self.get_response(request)
 
         # 如果是来自外部转发的请求，进行脱敏
-        if getattr(request, "is_external", False) and request.path.startswith("/apis/") and env.BKDATA_DATA_TOKEN:
-            response.data = json.loads(BKBaseApi.data_desensitization(response.content.decode("utf-8")))
+        if (
+            getattr(request, "is_external", False)
+            and request.path.startswith("/apis/")
+            and response.headers.get("Content-Type").startswith("application/json")
+            and env.BKDATA_DATA_TOKEN
+        ):
+            data = BKBaseApi.data_desensitization(response.content.decode("utf-8"))
+            return JsonResponse(json.loads(data))
 
         return response
 
