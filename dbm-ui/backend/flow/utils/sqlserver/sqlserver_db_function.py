@@ -376,6 +376,9 @@ def get_group_name(master_instance: StorageInstance, bk_cloud_id: int, is_check_
         }
     )
     if ret[0]["error_msg"]:
+        if is_check_group:
+            # 如果设置True则正常返回空字符串
+            return ""
         raise Exception(f"[{master_instance.ip_port}] get_group_name failed: {ret[0]['error_msg']}")
 
     if len(ret[0]["cmd_results"][0]["table_data"]) == 0:
