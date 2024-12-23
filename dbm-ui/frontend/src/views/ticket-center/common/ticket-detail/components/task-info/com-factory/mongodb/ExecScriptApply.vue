@@ -12,37 +12,41 @@
 -->
 
 <template>
-  <div class="ticket-details-list">
-    <div class="ticket-details-item">
-      <span class="ticket-details-item-label">{{ t('脚本来源') }}：</span>
-      <span class="ticket-details-item-value">
-        {{ ticketDetails.details.mode === 'file' ? t('脚本文件') : t('手动输入') }}
-      </span>
-    </div>
-    <div class="ticket-details-item">
-      <span class="ticket-details-item-label">{{ t('脚本执行内容') }}：</span>
+  <InfoList>
+    <InfoItem :label="t('脚本来源：')">
+      {{ ticketDetails.details.mode === 'file' ? t('脚本文件') : t('手动输入') }}
+    </InfoItem>
+    <InfoItem :label="t('脚本执行内容：')">
       <BkButton
         text
         theme="primary"
         @click="handleClickFile">
         {{ t('点击查看') }}
       </BkButton>
-    </div>
-  </div>
-  <div class="mysql-table">
-    <div
-      v-if="clusterState.tableProps.data.length > 0"
-      class="mysql-table__item">
-      <span>{{ t('目标集群') }}：</span>
-      <DBCollapseTable
-        :show-icon="false"
-        style="width: 800px"
-        :table-props="clusterState.tableProps"
-        :title="clusterState.clusterType" />
-    </div>
-  </div>
+    </InfoItem>
+    <InfoItem
+      :label="t('目标集群：')"
+      style="flex: 1 0 100%">
+      <BkTable :data="tableData">
+        <BkTableColumn
+          field="immute_domain"
+          :label="t('集群')">
+          <template #default="{data}: {data: IRowData}">
+            {{ ticketDetails.details.clusters[data.id].immute_domain }}
+          </template>
+        </BkTableColumn>
+        <BkTableColumn
+          field="cluster_type_name"
+          :label="t('类型')">
+          <template #default="{data}: {data: IRowData}">
+            {{ ticketDetails.details.clusters[data.id].cluster_type_name }}
+          </template>
+        </BkTableColumn>
+      </BkTable>
+    </InfoItem>
+  </InfoList>
   <BkSideslider
-    class="sql-log-sideslider"
+    class="mongodb-exec-script-apply-content-dialog"
     :is-show="isShow"
     render-directive="if"
     :title="t('执行脚本变更_内容详情')"
@@ -55,8 +59,7 @@
       <div class="editor-layout-left">
         <RenderFileList
           v-model="selectFileName"
-          :data="uploadFileList"
-          @sort="handleFileSortChange" />
+          :data="uploadFileList" />
       </div>
       <div class="editor-layout-right">
         <RenderFileContent
@@ -75,29 +78,33 @@
 </template>
 
 <script setup lang="tsx">
-  import type { TablePropTypes } from 'bkui-vue/lib/table/props';
   import { useI18n } from 'vue-i18n';
 
   import TicketModel, { type Mongodb } from '@services/model/ticket/ticket';
 
-  import { useDefaultPagination } from '@hooks';
-
   import { TicketTypes } from '@common/const';
 
-  import DBCollapseTable from '@components/db-collapse-table/DBCollapseTable.vue';
+  import RenderFileContent from '@views/ticket-center/common/ticket-detail/components/common/SqlFileContent.vue';
+  import RenderFileList from '@views/ticket-center/common/ticket-detail/components/common/SqlFileList.vue';
 
-  import RenderFileContent from './components/RenderFileContent.vue';
-  import RenderFileList from './components/SqlFileList.vue';
+  import InfoList, { Item as InfoItem } from '../components/info-list/Index.vue';
 
   interface Props {
-    ticketDetails: TicketModel<Mongodb.ExecScriptApply>
+    ticketDetails: TicketModel<Mongodb.ExecScriptApply>;
   }
 
   const props = defineProps<Props>();
 
   defineOptions({
-    name: TicketTypes.MONGODB_EXEC_SCRIPT_APPLY
-  })
+    name: TicketTypes.MONGODB_EXEC_SCRIPT_APPLY,
+    inheritAttrs: false,
+  });
+
+  type IRowData = { id: number };
+
+  const tableData = props.ticketDetails.details.cluster_ids.map((item) => ({
+    id: item,
+  }));
 
   const { t } = useI18n();
 
@@ -107,107 +114,32 @@
   const fileContentMap = shallowRef<Record<string, string>>({});
   const uploadFileList = shallowRef<Array<string>>([]);
 
-  const clusterState = reactive({
-    clusterType: '',
-    tableProps: {
-      data: [] as ValueOf<Props['ticketDetails']['details']['clusters']>[],
-      pagination: useDefaultPagination(),
-      columns: [
-        {
-          label: t('集群'),
-          field: 'immute_domain',
-          showOverflowTooltip: true,
-          render: ({ cell }: { cell: string }) => <span>{cell || '--'}</span>,
-        },
-        {
-          label: t('类型'),
-          field: 'cluster_type_name',
-          render: ({ cell }: { cell: string }) => <span>{cell || '--'}</span>,
-        },
-        {
-          label: t('状态'),
-          field: 'status',
-          render: ({ cell }: { cell: string }) => {
-            const text = cell === 'normal' ? t('正常') : t('异常');
-            const icon = cell === 'normal' ? 'normal' : 'abnormal';
-            return <span>
-            <db-icon svg type={icon} style="margin-right: 5px;" />
-            {text}
-          </span>;
-          },
-        },
-      ],
-    } as unknown as TablePropTypes,
-  });
-
   const currentFileContent = computed(() => fileContentMap.value[selectFileName.value] || '');
 
-  const {
-    clusters,
-    cluster_ids: clusterIds,
-    scripts,
-  } = props.ticketDetails.details;
-
-  Object.assign(clusterState.tableProps, {
-    data: clusterIds.map(id => clusters[id]),
-  });
-
   // 查看日志详情
-  function handleClickFile() {
+  const handleClickFile = () => {
+    const { scripts } = props.ticketDetails.details;
     isShow.value = true;
-    uploadFileList.value = scripts.map(item => item.name);
+    uploadFileList.value = scripts.map((item) => item.name);
 
-    fileContentMap.value = scripts.reduce((result, fileInfo) => Object.assign(result, {
-      [fileInfo.name]: fileInfo.content,
-    }), {} as Record<string, string>);
+    fileContentMap.value = scripts.reduce(
+      (result, fileInfo) =>
+        Object.assign(result, {
+          [fileInfo.name]: fileInfo.content,
+        }),
+      {} as Record<string, string>,
+    );
 
     selectFileName.value = scripts[0].name;
-  }
+  };
 
-  function handleClose() {
+  const handleClose = () => {
     isShow.value = false;
-  }
-
-  const handleFileSortChange = (list: string[]) => {
-    uploadFileList.value = list;
   };
 </script>
 
-<style lang="less" scoped>
-  .sql-mode-execute {
-    i {
-      font-size: 16px;
-      vertical-align: middle;
-    }
-
-    span {
-      margin: 0 0 2px 2px;
-      border-bottom: 1px dashed #313238;
-
-      &:hover {
-        cursor: pointer;
-      }
-    }
-  }
-
-  .mysql-table {
-    &__item {
-      display: flex;
-      margin-bottom: 20px;
-    }
-
-    span {
-      display: inline;
-      min-width: 160px;
-      text-align: right;
-    }
-  }
-
-  :deep(.bk-sideslider-content) {
-    padding: 15px;
-  }
-
-  .sql-log-sideslider {
+<style lang="less">
+  .mongodb-exec-script-apply-content-dialog {
     .editor-layout {
       display: flex;
       width: 100%;
