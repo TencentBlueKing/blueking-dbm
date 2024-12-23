@@ -628,7 +628,7 @@
               text
               theme="primary"
               class="ml-16"
-              disabled={data.operationDisabled}
+              disabled={Boolean(data.operationTicketId)}
               onclick={() => handleDisableCluster([data])}>
               { t('禁用') }
             </bk-button>

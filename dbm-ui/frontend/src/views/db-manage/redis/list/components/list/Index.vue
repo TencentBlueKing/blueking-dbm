@@ -966,7 +966,7 @@
                               resource={data.id}
                               permission={data.permission.redis_open_close}
                               style="width: 100%;height: 32px;"
-                              disabled={data.operationDisabled}
+                              disabled={Boolean(data.operationTicketId)}
                               text
                               onClick={() => handleDisableCluster([data])}>
                               { t('禁用') }
