@@ -71,8 +71,8 @@
   import { type Sqlserver } from '@services/model/ticket/ticket';
   import { batchFetchFile } from '@services/source/storage';
 
-  import RenderFileContent from './components/RenderFileContent.vue';
-  import RenderFileList from './components/RenderFileList.vue';
+  import RenderFileContent from '@views/ticket-center/common/ticket-detail/components/common/SqlFileContent.vue';
+  import RenderFileList from '@views/ticket-center/common/ticket-detail/components/common/SqlFileList.vue';
 
   interface Props {
     executeObject: Sqlserver.ImportSqlFile['execute_objects'][number];
