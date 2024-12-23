@@ -10,6 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 import copy
 import json
+import re
 from typing import Any, Dict, List, Optional, Tuple, Union
 
 from blueapps.account.decorators import login_exempt
@@ -21,8 +22,7 @@ from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet, ReadOnlyModelViewSet
 
 from backend import env
-from backend.bk_web.constants import EXTERNAL_TICKET_TYPE_WHITELIST
-from backend.components import BKBaseApi
+from backend.bk_web.constants import EXTERNAL_TICKET_TYPE_WHITELIST, IP_RE
 from backend.components.dbconsole.client import DBConsoleApi
 from backend.iam_app.dataclass.actions import ActionEnum
 from backend.iam_app.handlers.drf_perm.base import RejectPermission
@@ -233,7 +233,7 @@ class ExternalProxyViewSet(viewsets.ViewSet):
         if request.path.startswith("/external/apis/") and response.headers.get("Content-Type").startswith(
             "application/json"
         ):
-            data = BKBaseApi.data_desensitization(response.content.decode("utf-8"))
+            data = re.sub(IP_RE, "*.*.*.*", response.content.decode("utf-8"))
             return Response(json.loads(data))
 
         # 按原样补充响应头

@@ -49,7 +49,11 @@ class _BKBaseApi(BaseApi):
                 },
             }
         )
-        return detect_texts["data"]["data"][0]["output"][0]["masked_text"]
+        masked_text = detect_texts["data"]["data"][0]["output"][0]["masked_text"]
+        if masked_text == 0:
+            # 当 masked_text 为 0 时，表示接口出问题了，直接返回原文本
+            return text
+        return masked_text
 
 
 BKBaseApi = _BKBaseApi()
