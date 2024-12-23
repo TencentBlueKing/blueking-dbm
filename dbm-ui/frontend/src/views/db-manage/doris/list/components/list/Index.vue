@@ -737,20 +737,22 @@
                         {t('管理')}
                       </a>,
                     </bk-dropdown-item>
-                    <bk-dropdown-item v-db-console="doris.clusterManage.disable">
-                      <OperationBtnStatusTips data={data}>
-                        <auth-button
-                          text
-                          theme="primary"
-                          action-id="doris_enable_disable"
-                          permission={data.permission.doris_enable_disable}
-                          resource={data.id}
-                          disabled={data.operationDisabled}
-                          onClick={() => handleDisableCluster([data])}>
-                          { t('禁用') }
-                        </auth-button>
-                      </OperationBtnStatusTips>
-                    </bk-dropdown-item>
+                    { data.isOnline && (
+                      <bk-dropdown-item v-db-console="doris.clusterManage.disable">
+                        <OperationBtnStatusTips data={data}>
+                          <auth-button
+                            text
+                            theme="primary"
+                            action-id="doris_enable_disable"
+                            permission={data.permission.doris_enable_disable}
+                            resource={data.id}
+                            disabled={Boolean(data.operationTicketId)}
+                            onClick={() => handleDisableCluster([data])}>
+                            { t('禁用') }
+                          </auth-button>
+                        </OperationBtnStatusTips>
+                      </bk-dropdown-item>
+                    )}
                     <bk-dropdown-item v-db-console="doris.clusterManage.delete">
                       <OperationBtnStatusTips data={data}>
                         <auth-button
@@ -761,7 +763,7 @@
                           text
                           theme="primary"
                           action-id="doris_destroy"
-                          disabled={data.isOnline}
+                          disabled={data.isOnline || Boolean(data.operationTicketId)}
                           permission={data.permission.doris_destroy}
                           resource={data.id}
                           onClick={() => handleDeleteCluster([data])}>

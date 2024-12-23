@@ -581,9 +581,9 @@
               { t('获取访问方式') }
             </auth-button>,
           ];
-          if (data.isOffline) {
-            return [
-            <OperationBtnStatusTips
+          if (data.isOffline){
+            baseAction.push((
+              <OperationBtnStatusTips
               data={data}
               v-db-console="pulsar.clusterManage.enable">
               <auth-button
@@ -598,25 +598,8 @@
                 onClick={() => handleEnableCluster([data])}>
                 { t('启用') }
               </auth-button>
-            </OperationBtnStatusTips>,
-            <OperationBtnStatusTips
-              data={data}
-              v-db-console="pulsar.clusterManage.delete">
-              <auth-button
-                text
-                theme="primary"
-                action-id="pulsar_destroy"
-                permission={data.permission.pulsar_destroy}
-                v-db-console="pulsar.clusterManage.delete"
-                disabled={Boolean(data.operationTicketId)}
-                resource={data.id}
-                class="mr8"
-                onClick={() => handleDeleteCluster([data])}>
-                  { t('删除') }
-                </auth-button>
-              </OperationBtnStatusTips>,
-              ...baseAction,
-            ];
+            </OperationBtnStatusTips>
+            ))
           }
           return [
             <OperationBtnStatusTips
@@ -649,21 +632,23 @@
                 { t('缩容') }
               </auth-button>
             </OperationBtnStatusTips>,
-            <OperationBtnStatusTips
-              data={data}
-              v-db-console="pulsar.clusterManage.disable">
-              <auth-button
-                text
-                class="mr8"
-                theme="primary"
-                action-id="pulsar_enable_disable"
-                permission={data.permission.pulsar_enable_disable}
-                resource={data.id}
-                disabled={data.operationDisabled}
-                onClick={() => handleDisableCluster([data])}>
-                { t('禁用') }
-              </auth-button>
-            </OperationBtnStatusTips>,
+            data.isOnline && (
+              <OperationBtnStatusTips
+                data={data}
+                v-db-console="pulsar.clusterManage.disable">
+                <auth-button
+                  text
+                  class="mr8"
+                  theme="primary"
+                  action-id="pulsar_enable_disable"
+                  permission={data.permission.pulsar_enable_disable}
+                  resource={data.id}
+                  disabled={Boolean(data.operationTicketId)}
+                  onClick={() => handleDisableCluster([data])}>
+                  { t('禁用') }
+                </auth-button>
+              </OperationBtnStatusTips>
+            ),
             <OperationBtnStatusTips
               data={data}
               v-db-console="pulsar.clusterManage.delete">
