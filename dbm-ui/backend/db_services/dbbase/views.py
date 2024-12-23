@@ -40,6 +40,8 @@ from backend.db_services.dbbase.serializers import (
     QueryAllTypeClusterSerializer,
     QueryBizClusterAttrsResponseSerializer,
     QueryBizClusterAttrsSerializer,
+    QueryClusterCapResponseSerializer,
+    QueryClusterCapSerializer,
     QueryClusterInstanceCountSerializer,
     ResourceAdministrationSerializer,
     WebConsoleResponseSerializer,
@@ -312,7 +314,6 @@ class DBBaseViewSet(viewsets.SystemViewSet):
     )
     @action(methods=["GET"], detail=False, serializer_class=QueryClusterInstanceCountSerializer)
     def query_cluster_instance_count(self, request, *args, **kwargs):
-
         validate_data = self.params_validate(self.get_serializer_class())
         cluster_queryset = Cluster.objects.filter(**validate_data)
         storage_instance_queryset = StorageInstance.objects.filter(**validate_data)
@@ -353,11 +354,11 @@ class DBBaseViewSet(viewsets.SystemViewSet):
 
         # 构建最终输出格式，包含所有 ClusterType 成员
         cluster_type_count_map = {}
-        for cluster_type in ClusterType:
-            if cluster_type.value not in redis_cluster_types:
-                cluster_count = cluster_type_dict.get(cluster_type.value, 0)
-                instance_count = instance_count_dict.get(cluster_type.value, 0)
-                cluster_type_count_map[cluster_type.value] = {
+        for cluster_type in ClusterType.get_values():
+            if cluster_type not in redis_cluster_types:
+                cluster_count = cluster_type_dict.get(cluster_type, 0)
+                instance_count = instance_count_dict.get(cluster_type, 0)
+                cluster_type_count_map[cluster_type] = {
                     "cluster_count": cluster_count,
                     "instance_count": instance_count,
                 }
@@ -367,3 +368,18 @@ class DBBaseViewSet(viewsets.SystemViewSet):
         }
 
         return Response(cluster_type_count_map)
+
+    @common_swagger_auto_schema(
+        operation_summary=_("查询集群容量"),
+        auto_schema=ResponseSwaggerAutoSchema,
+        query_serializer=QueryClusterCapSerializer(),
+        responses={status.HTTP_200_OK: QueryClusterCapResponseSerializer()},
+        tags=[SWAGGER_TAG],
+    )
+    @action(methods=["GET"], detail=False, serializer_class=QueryClusterCapSerializer, pagination_class=None)
+    def query_cluster_stat(self, request, *args, **kwargs):
+        from backend.db_periodic_task.local_tasks.db_meta.sync_cluster_stat import sync_cluster_stat_by_cluster_type
+
+        data = self.params_validate(self.get_serializer_class())
+        cluster_stat_map = sync_cluster_stat_by_cluster_type(data["bk_biz_id"], data["cluster_type"])
+        return Response(cluster_stat_map)

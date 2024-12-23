@@ -127,6 +127,8 @@ def sync_cluster_stat_by_cluster_type(bk_biz_id, cluster_type):
         f"{CACHE_CLUSTER_STATS}_{bk_biz_id}_{cluster_type}", json.dumps(cluster_stats), timeout=2 * TimeUnit.HOUR
     )
 
+    return cluster_stats
+
 
 @register_periodic_task(run_every=crontab(hour="*/1", minute=0))
 def sync_cluster_stat_from_monitor():

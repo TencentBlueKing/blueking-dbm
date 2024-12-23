@@ -194,3 +194,13 @@ class ClusterDbTypeSerializer(serializers.Serializer):
 
 class QueryClusterInstanceCountSerializer(serializers.Serializer):
     bk_biz_id = serializers.IntegerField(help_text=_("业务ID"))
+
+
+class QueryClusterCapSerializer(serializers.Serializer):
+    bk_biz_id = serializers.IntegerField(help_text=_("业务ID"))
+    cluster_type = serializers.ChoiceField(help_text=_("集群类型"), choices=ClusterType.get_choices())
+
+
+class QueryClusterCapResponseSerializer(serializers.Serializer):
+    class Meta:
+        swagger_schema_fields = {"example": {"cluster1": {"used": 1, "total": 2, "in_use": 50}}}
