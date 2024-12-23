@@ -40,6 +40,7 @@ import getTicketFlowSettingGlobalRoutes from '@views/ticket-flow-setting-global/
 // import getTicketSelfApplyRoutes from '@views/ticket-self-apply/routes';
 // import getTicketSelfManageRoutes from '@views/ticket-self-manage/routes';
 // import getTicketSelfTodoRoutes from '@views/ticket-self-todo/routes';
+import getTicketNoticeRoutes from '@views/ticket-notice-setting/routes';
 import getVersionFilesRoutes from '@views/version-files/routes';
 import getWhitelistRoutes from '@views/whitelist/routes';
 
@@ -144,6 +145,7 @@ export default () => {
         ...getTicketCooperationSettingRoutes(),
         ...getTicketFlowSettingGlobalRoutes(),
         ...businessModuleList,
+        ...getTicketNoticeRoutes(),
       ],
     },
     {
