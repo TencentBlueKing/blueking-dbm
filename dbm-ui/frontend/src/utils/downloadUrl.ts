@@ -17,6 +17,7 @@ export const downloadUrl = (url: string) => {
   const eleLink = document.createElement('a');
   eleLink.style.display = 'none';
   eleLink.href = url;
+  eleLink.target = '_blank';
 
   // 触发点击
   document.body.appendChild(eleLink);
