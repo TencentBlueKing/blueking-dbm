@@ -17,7 +17,7 @@
     :field="field"
     :label="label"
     :loading="loading"
-    :min-width="300"
+    :min-width="minWidth"
     required>
     <Input
       v-if="editable"
@@ -64,6 +64,7 @@
   interface Props {
     field: string;
     label: string;
+    minWidth?: number;
     editable?: boolean;
     params?: {
       for_biz?: number;
@@ -74,6 +75,7 @@
   }
 
   withDefaults(defineProps<Props>(), {
+    minWidth: 300,
     editable: false,
     params: () => ({}),
   });

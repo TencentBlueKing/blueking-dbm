@@ -42,19 +42,7 @@
             :create-row-method="createTableRow" />
         </EditableTableRow>
       </EditableTable>
-      <BkFormItem
-        :label="t('备份源')"
-        property="backupSource"
-        required>
-        <BkRadioGroup v-model="formData.backupSource">
-          <BkRadio label="local">
-            {{ t('本地备份') }}
-          </BkRadio>
-          <BkRadio label="remote">
-            {{ t('远程备份') }}
-          </BkRadio>
-        </BkRadioGroup>
-      </BkFormItem>
+      <BackupSource v-model="formData.backupSource" />
       <TicketRemark v-model="formData.remark" />
     </BkForm>
     <template #action>
@@ -83,16 +71,18 @@
   import { useI18n } from 'vue-i18n';
 
   import TendbhaModel from '@services/model/mysql/tendbha';
+  import { BackupSourceType } from '@services/types';
 
   import { useCreateTicket } from '@hooks';
 
   import { TicketTypes } from '@common/const';
 
   import EditableTable, { Row as EditableTableRow } from '@components/editable-table/Index.vue';
-  import TicketRemark from '@components/ticket-remark/TicketRemark.vue';
 
+  import BackupSource from '@views/db-manage/common/toolbox-field/backup-source/Index.vue';
   import SingleHost from '@views/db-manage/common/toolbox-field/host-column/SingleHost.vue';
   import OperationColumn from '@views/db-manage/common/toolbox-field/operation-column/Index.vue';
+  import TicketRemark from '@views/db-manage/common/toolbox-field/ticket-remark/Index.vue';
   import WithRelatedClusters from '@views/db-manage/mysql/common/edit-table-column/WithRelatedClusters.vue';
 
   interface RowData {
@@ -121,8 +111,8 @@
   });
 
   const defaultData = () => ({
-    backupSource: 'local' as 'local' | 'remote',
     tableData: [createTableRow()],
+    backupSource: BackupSourceType.LOCAL,
     remark: '',
   });
 
@@ -170,7 +160,7 @@
   };
 
   const { run: createTicketRun, loading: isSubmitting } = useCreateTicket<{
-    backup_source: 'local' | 'remote';
+    backup_source: BackupSourceType;
     infos: {
       cluster_ids: number[];
       new_slave: {

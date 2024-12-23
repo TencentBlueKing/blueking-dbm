@@ -76,10 +76,10 @@
   import { TicketTypes } from '@common/const';
 
   import EditableTable, { Row as EditableTableRow } from '@components/editable-table/Index.vue';
-  import TicketRemark from '@components/ticket-remark/TicketRemark.vue';
 
   import SingleHost from '@views/db-manage/common/toolbox-field/host-column/SingleHost.vue';
   import OperationColumn from '@views/db-manage/common/toolbox-field/operation-column/Index.vue';
+  import TicketRemark from '@views/db-manage/common/toolbox-field/ticket-remark/Index.vue';
   import WithRelatedClusters from '@views/db-manage/mysql/common/edit-table-column/WithRelatedClusters.vue';
 
   interface RowData {

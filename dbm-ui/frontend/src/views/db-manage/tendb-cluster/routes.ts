@@ -192,15 +192,16 @@ const spiderOpenareaTemplateRoute = {
   component: () => import('@views/db-manage/tendb-cluster/openarea-template/Index.vue'),
 };
 
-const spiderMasterSlaveCloneRoute = {
-  path: 'master-slave-clone/:page?',
-  name: 'spiderMasterSlaveClone',
-  meta: {
-    navName: t('迁移主从'),
-    activeMenu: 'spiderToolbox',
-  },
-  component: () => import('@views/db-manage/tendb-cluster/master-slave-clone/Index.vue'),
-};
+// const spiderMasterSlaveCloneRoute = {
+//   path: 'master-slave-clone/:page?',
+//   name: 'spiderMasterSlaveClone',
+//   meta: {
+//     navName: t('迁移主从'),
+//     activeMenu: 'spiderToolbox',
+//   },
+//   component: () => import('@views/db-manage/tendb-cluster/master-slave-clone/Index.vue'),
+// };
+const spiderMasterSlaveCloneRoute = createRouteItem(TicketTypes.TENDBCLUSTER_MIGRATE_CLUSTER, t('迁移主从'));
 
 const spiderSlaveRebuildRoute = {
   path: 'slave-rebuild/:page?',

@@ -79,7 +79,7 @@ export default [
       },
       {
         name: t('迁移主从'),
-        id: 'spiderMasterSlaveClone',
+        id: TicketTypes.TENDBCLUSTER_MIGRATE_CLUSTER,
         parentId: 'spider_cluster_maintain',
         dbConsoleValue: 'tendbCluster.toolbox.masterSlaveClone',
       },
