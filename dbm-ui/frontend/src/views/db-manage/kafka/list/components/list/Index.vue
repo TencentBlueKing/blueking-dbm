@@ -688,21 +688,23 @@
                 { t('缩容') }
               </auth-button>
             </OperationBtnStatusTips>,
-            <OperationBtnStatusTips
-              data={data}
-              v-db-console="kafka.clusterManage.disable">
-              <auth-button
-                text
-                class="mr8"
-                theme="primary"
-                action-id="kafka_enable_disable"
-                permission={data.permission.kafka_enable_disable}
-                resource={data.id}
-                disabled={data.operationDisabled}
-                onClick={() => handleDisableCluster([data])}>
-                { t('禁用') }
-              </auth-button>
-            </OperationBtnStatusTips>,
+            data.isOnline && (
+              <OperationBtnStatusTips
+                data={data}
+                v-db-console="kafka.clusterManage.disable">
+                <auth-button
+                  text
+                  class="mr8"
+                  theme="primary"
+                  action-id="kafka_enable_disable"
+                  permission={data.permission.kafka_enable_disable}
+                  resource={data.id}
+                  disabled={Boolean(data.operationTicketId)}
+                  onClick={() => handleDisableCluster([data])}>
+                  { t('禁用') }
+                </auth-button>
+              </OperationBtnStatusTips>
+            ),
             <OperationBtnStatusTips
               data={data}
               v-db-console="kafka.clusterManage.delete">

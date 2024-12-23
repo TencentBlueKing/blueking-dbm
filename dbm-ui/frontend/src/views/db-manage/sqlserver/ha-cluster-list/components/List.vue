@@ -704,7 +704,7 @@
                 text
                 theme="primary"
                 class="ml-16"
-                disabled={data.operationDisabled}
+                disabled={Boolean(data.operationTicketId)}
                 onClick={() => handleDisableCluster([data])}>
                 { t('禁用') }
               </bk-button>
@@ -751,7 +751,7 @@
               theme="primary"
               class="ml-16"
               disabled={data.isOnline || Boolean(data.operationTicketId)}
-              onClick={() => handleDeleteCluster(TicketTypes.SQLSERVER_DESTROY, [data])}>
+              onClick={() => handleDeleteCluster([data])}>
               { t('删除') }
             </bk-button>
           </OperationBtnStatusTips>

@@ -780,20 +780,22 @@
                 { t('缩容') }
               </auth-button>
             </OperationBtnStatusTips>,
-            <OperationBtnStatusTips data={data}>
-              <auth-button
-                text
-                class="mr8"
-                theme="primary"
-                action-id="hdfs_enable_disable"
-                permission={data.permission.hdfs_enable_disable}
-                v-db-console="hdfs.clusterManage.disable"
-                resource={data.id}
-                disabled={data.operationDisabled}
-                onClick={() => handleDisableCluster([data])}>
-                { t('禁用') }
-              </auth-button>
-            </OperationBtnStatusTips>,
+            data.isOnline && (
+              <OperationBtnStatusTips data={data}>
+                <auth-button
+                  text
+                  class="mr8"
+                  theme="primary"
+                  action-id="hdfs_enable_disable"
+                  permission={data.permission.hdfs_enable_disable}
+                  v-db-console="hdfs.clusterManage.disable"
+                  resource={data.id}
+                  disabled={Boolean(data.operationTicketId)}
+                  onClick={() => handleDisableCluster([data])}>
+                  { t('禁用') }
+                </auth-button>
+              </OperationBtnStatusTips>
+            ),
             <OperationBtnStatusTips
               v-db-console="hdfs.clusterManage.delete"
               data={data} >

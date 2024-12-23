@@ -319,7 +319,6 @@
                             <div onClick={() => handleDisable(data)}>{ t('禁用') }</div>
                           </auth-template>
                         </bk-dropdown-item>
-
                       )
                     }
                     <bk-dropdown-item>
