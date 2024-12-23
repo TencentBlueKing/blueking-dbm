@@ -74,6 +74,18 @@
               {{ t('单据协作设置') }}
             </span>
           </BkMenuItem>
+          <BkMenuItem
+            key="TicketNoticeSetting"
+            v-db-console="'bizConfigManage.ticketNoticeSetting'">
+            <template #icon>
+              <DbIcon type="note" />
+            </template>
+            <span
+              v-overflow-tips.right
+              class="text-overflow">
+              {{ t('单据通知') }}
+            </span>
+          </BkMenuItem>
         </BkMenuGroup>
         <BkMenuGroup :name="t('设置')">
           <BkMenuItem
