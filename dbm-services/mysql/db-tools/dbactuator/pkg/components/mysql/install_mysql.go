@@ -177,7 +177,7 @@ func (i *InstallMySQLComp) InitDefaultParam() (err error) {
 	i.InsPorts = i.Params.Ports
 	i.MyCnfTpls = make(map[int]*util.CnfFile)
 	// 获取系统内存,计算实例内存大小
-	if err := i.initMySQLInstanceMem(); err != nil {
+	if err = i.initMySQLInstanceMem(); err != nil {
 		return err
 	}
 	// var findMountPoint func(paths ...string) (string, error)
@@ -239,10 +239,10 @@ func (i *InstallMySQLComp) InitDefaultParam() (err error) {
 			logger.Error("反序列%d 化配置失败:%s", port, err.Error())
 			return err
 		}
-		cnftpl, err := util.NewMyCnfObject(mycnf, "tpl")
-		if err != nil {
-			logger.Error("初始化mycnf ini 模版:%s", err.Error())
-			return err
+		cnftpl, ierr := util.NewMyCnfObject(mycnf, "tpl")
+		if ierr != nil {
+			logger.Error("初始化mycnf ini 模版:%s", ierr.Error())
+			return ierr
 		}
 		i.MyCnfTpls[port] = cnftpl
 	}
@@ -266,10 +266,6 @@ func (i *InstallMySQLComp) InitDefaultParam() (err error) {
 	i.Checkfunc = append(i.Checkfunc, i.precheckMysqlPackageBitOS)
 	i.Checkfunc = append(i.Checkfunc, i.precheckGlibcVersion)
 	i.Checkfunc = append(i.Checkfunc, i.Params.Medium.Check)
-	i.Params.PartitionYWAccount.AccessHosts = []string{
-		i.Params.Host,
-		"localhost",
-	}
 	return nil
 }
 
@@ -448,11 +444,11 @@ func (i *InstallMySQLComp) getInitDirFromCnf() (err error) {
 		"socket":                    "",
 	}
 	for _, port := range i.InsPorts {
-		cnf, err := util.LoadMyCnfForFile(util.GetMyCnfFileName(port))
-		if err != nil {
-			return err
+		cnf, ierr := util.LoadMyCnfForFile(util.GetMyCnfFileName(port))
+		if ierr != nil {
+			return ierr
 		}
-		if err := cnf.GetInitDirItemTpl(initDirTpls); err != nil {
+		if err = cnf.GetInitDirItemTpl(initDirTpls); err != nil {
 			return err
 		}
 		for key, dir := range initDirTpls {
@@ -514,7 +510,7 @@ func (i *InstallMySQLComp) generateMycnfOnePort(port Port, tmplFileName string) 
 		_ = f.Close()
 	}()
 
-	if err := tmpl.Execute(f, i.RenderConfigs[port]); err != nil {
+	if err = tmpl.Execute(f, i.RenderConfigs[port]); err != nil {
 		return err
 	}
 	if _, err = osutil.ExecShellCommand(false, fmt.Sprintf("chown -R mysql %s", cnf)); err != nil {
@@ -573,9 +569,9 @@ func (i *InstallMySQLComp) DecompressMysqlPkg() (err error) {
 		}
 	}
 	pkgAbPath := i.Params.Medium.GetAbsolutePath()
-	if output, err := osutil.ExecShellCommand(false, fmt.Sprintf("tar -xf %s", pkgAbPath)); err != nil {
-		logger.Error("tar -xf %s error:%s,%s", pkgAbPath, output, err.Error())
-		return err
+	if output, ierr := osutil.ExecShellCommand(false, fmt.Sprintf("tar -xf %s", pkgAbPath)); ierr != nil {
+		logger.Error("tar -xf %s error:%s,%s", pkgAbPath, output, ierr.Error())
+		return ierr
 	}
 	mysqlBinaryFile := i.Params.Medium.GePkgBaseName()
 	extraCmd := fmt.Sprintf("ln -sf %s %s && chown -R mysql mysql*", mysqlBinaryFile, i.MysqlInstallDir)
@@ -710,6 +706,10 @@ func (i *InstallMySQLComp) Startup() (err error) {
 注意这里修改，考虑可能需要同步改动 generateDefaultSpiderAccount
 */
 func (i *InstallMySQLComp) generateDefaultMysqlAccount(realVersion string) (initAccountsql []string) {
+	i.Params.PartitionYWAccount.AccessHosts = []string{
+		i.Params.Host,
+		"localhost",
+	}
 	initAccountsql = append(initAccountsql, i.Params.SuperAccount.GetSuperUserAccount(realVersion)...)
 	initAccountsql = append(initAccountsql, i.Params.DBHAAccount.GetDBHAAccount(realVersion)...)
 	initAccountsql = append(initAccountsql, i.Params.WEBCONSOLERSAccount.GetWEBCONSOLERSAccount(realVersion)...)
@@ -748,7 +748,7 @@ VALUES ('%','test','','Y','Y','Y','Y','Y','Y','N','Y','Y','Y','Y','Y','Y','Y','Y
 	initAccountsql = append(initAccountsql, "delete from mysql.user where user='root' or user='';")
 	initAccountsql = append(initAccountsql, "update mysql.db set Insert_priv = 'Y' where db = 'test';")
 	initAccountsql = append(initAccountsql, "flush privileges;")
-	return
+	return initAccountsql
 }
 
 // AdditionalAccount  额外账户
@@ -808,7 +808,7 @@ func (a *AdditionalAccount) GetPartitionYWAccount(realVersion string) (initAccou
 			)
 		}
 	}
-	return
+	return initAccountsql
 }
 
 // GetWEBCONSOLERSAccount 获取webconsole账户授权语句
@@ -840,8 +840,7 @@ func (a *AdditionalAccount) GetWEBCONSOLERSAccount(realVersion string) (initAcco
 	return
 }
 
-// GetDBHAAccount TODO
-// 获取生成DHBA-GM访问账号的生成语句
+// GetDBHAAccount 获取生成DHBA-GM访问账号的生成语句
 // 统一给%授权
 func (a *AdditionalAccount) GetDBHAAccount(realVersion string) (initAccountsql []string) {
 	if cmutil.MySQLVersionParse(realVersion) >= cmutil.MySQLVersionParse("5.7.18") {
@@ -1052,12 +1051,12 @@ func (i *InstallMySQLComp) DecompressTdbctlPkg() (err error) {
 	}
 
 	pkgAbPath := i.Params.Medium.GetAbsolutePath()
-	if output, err := osutil.ExecShellCommand(
+	if output, ierr := osutil.ExecShellCommand(
 		false,
 		fmt.Sprintf("mkdir %s && tar -xf %s -C %s --strip-components 1 ", tdbctlBinaryFile, pkgAbPath,
-			tdbctlBinaryFile)); err != nil {
-		logger.Error("tar -xf %s error:%s,%s", pkgAbPath, output, err.Error())
-		return err
+			tdbctlBinaryFile)); ierr != nil {
+		logger.Error("tar -xf %s error:%s,%s", pkgAbPath, output, ierr.Error())
+		return ierr
 	}
 
 	extraCmd := fmt.Sprintf("ln -sf %s %s && chown -R mysql mysql*", tdbctlBinaryFile, i.TdbctlInstallDir)
@@ -1182,8 +1181,7 @@ func (i *InstallMySQLComp) getSuperUserAccountForSpider() (initAccountsql []stri
 			),
 		)
 	}
-
-	return
+	return initAccountsql
 }
 
 func (i *InstallMySQLComp) createSpiderTable(socket string) (err error) {
