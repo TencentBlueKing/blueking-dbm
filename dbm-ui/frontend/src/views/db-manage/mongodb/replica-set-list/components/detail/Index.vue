@@ -46,7 +46,7 @@
             <BkDropdownMenu>
               <BkDropdownItem>
                 <BkButton
-                  :disabled="data.operationDisabled"
+                  :disabled="Boolean(data.operationTicketId)"
                   text
                   @click="handleDisableCluster([data])">
                   {{ t('禁用集群') }}

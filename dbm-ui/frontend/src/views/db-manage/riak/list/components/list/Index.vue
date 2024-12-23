@@ -497,7 +497,7 @@
                 text
                 class="ml-16"
                 theme="primary"
-                disabled={data.operationDisabled}
+                disabled={Boolean(data.operationTicketId)}
                 onClick={() => handleDisableCluster([data])}
               >
                 { t('禁用') }

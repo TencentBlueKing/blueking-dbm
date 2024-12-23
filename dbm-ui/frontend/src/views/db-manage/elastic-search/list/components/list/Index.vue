@@ -757,7 +757,7 @@
                 action-id="es_enable_disable"
                 permission={data.permission.es_enable_disable}
                 resource={data.id}
-                disabled={data.operationDisabled}
+                disabled={Boolean(data.operationTicketId)}
                 onClick={() => handleDisableCluster([data])}>
                 { t('禁用') }
               </auth-button>

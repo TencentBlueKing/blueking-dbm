@@ -14,7 +14,7 @@
 <template>
   <Teleport to="#dbContentHeaderAppend">
     <div
-      v-if="headShow"
+      v-if="headShow && detailData"
       class="riak-breadcrumbs-box">
       <BkTag>{{ detailData.cluster_name }}</BkTag>
       <div class="riak-breadcrumbs-box-status">
@@ -45,7 +45,7 @@
             <BkDropdownMenu>
               <BkDropdownItem>
                 <BkButton
-                  :disabled="detailData.operationDisabled"
+                  :disabled="Boolean(detailData.operationTicketId)"
                   text
                   @click="handleDisabled">
                   {{ t('禁用集群') }}
@@ -79,17 +79,19 @@
   <DbSideslider
     v-model:is-show="addNodeShow"
     quick-close
-    :title="t('添加节点【xx】', [detailData.cluster_name])"
+    :title="t('添加节点【xx】', [detailData!.cluster_name])"
     :width="960">
     <AddNodes
+      v-if="detailData"
       :data="detailData"
       @submit-success="handleSubmitSuccess" />
   </DbSideslider>
   <DbSideslider
     v-model:is-show="deleteNodeShow"
-    :title="t('删除节点【xx】', [detailData.cluster_name])"
+    :title="t('删除节点【xx】', [detailData!.cluster_name])"
     :width="960">
     <DeleteNodes
+      v-if="detailData"
       :data="detailData"
       @submit-success="handleSubmitSuccess" />
   </DbSideslider>
@@ -120,7 +122,7 @@
   const listRef = ref();
   const detailRef = ref();
   const clusterId = ref(0);
-  const detailData = ref(new RiakModel());
+  const detailData = ref<RiakModel>();
   const addNodeShow = ref(false);
   const deleteNodeShow = ref(false);
   const headShow = ref(false);
@@ -140,7 +142,7 @@
   const handleDisabled = () => {
     const {
       cluster_name: clusterName,
-    } = detailData.value;
+    } = detailData.value as RiakModel;
     InfoBox({
       title: t('确定禁用该集群', { name: clusterName }),
       content: (
@@ -157,7 +159,7 @@
       footerAlign: 'center',
       onConfirm: () => {
         createTicket({
-          bk_biz_id: detailData.value.bk_biz_id,
+          bk_biz_id: detailData.value!.bk_biz_id,
           ticket_type: TicketTypes.RIAK_CLUSTER_DISABLE,
           details: {
             cluster_id: clusterId.value,

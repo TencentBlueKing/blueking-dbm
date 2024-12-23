@@ -607,7 +607,7 @@
                           class="mr-8"
                           action-id="mysql_enable_disable"
                           permission={data.permission.mysql_enable_disable}
-                          disabled={data.operationDisabled}
+                          disabled={Boolean(data.operationTicketId)}
                           resource={data.id}
                           onClick={() => handleDisableCluster([data])}>
                           { t('禁用') }
