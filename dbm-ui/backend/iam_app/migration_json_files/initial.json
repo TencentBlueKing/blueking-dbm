@@ -1166,6 +1166,57 @@
         {
             "operation": "upsert_action",
             "data": {
+                "id": "platform_manage",
+                "name": "平台管理",
+                "name_en": "platform_manage",
+                "type": "manage",
+                "related_resource_types": [],
+                "related_actions": [],
+                "version": 1,
+                "hidden": false,
+                "group": "平台管理",
+                "subgroup": "",
+                "description": "平台管理",
+                "description_en": "platform_manage"
+            }
+        },
+        {
+            "operation": "upsert_action",
+            "data": {
+                "id": "platform_ticket_view",
+                "name": "全局单据查看",
+                "name_en": "platform_ticket_view",
+                "type": "manage",
+                "related_resource_types": [],
+                "related_actions": [],
+                "version": 1,
+                "hidden": false,
+                "group": "平台管理",
+                "subgroup": "",
+                "description": "全局单据查看",
+                "description_en": "platform_ticket_view"
+            }
+        },
+        {
+            "operation": "upsert_action",
+            "data": {
+                "id": "platform_taskflow_view",
+                "name": "全局任务查看",
+                "name_en": "platform_taskflow_view",
+                "type": "manage",
+                "related_resource_types": [],
+                "related_actions": [],
+                "version": 1,
+                "hidden": false,
+                "group": "平台管理",
+                "subgroup": "",
+                "description": "全局任务查看",
+                "description_en": "platform_taskflow_view"
+            }
+        },
+        {
+            "operation": "upsert_action",
+            "data": {
                 "id": "dbconfig_view",
                 "name": "数据库配置查看",
                 "name_en": "dbconfig_view",
@@ -1707,7 +1758,7 @@
             "operation": "upsert_action",
             "data": {
                 "id": "mysql_add_account_rule",
-                "name": "MySQL账号规则创建",
+                "name": "MySQL授权规则变更",
                 "name_en": "mysql_add_account_rule",
                 "type": "create",
                 "related_resource_types": [
@@ -1730,7 +1781,7 @@
                 "hidden": false,
                 "group": "MySQL",
                 "subgroup": "权限管理",
-                "description": "MySQL账号规则创建",
+                "description": "MySQL授权规则变更",
                 "description_en": "mysql_add_account_rule"
             }
         },
@@ -2523,7 +2574,7 @@
             "operation": "upsert_action",
             "data": {
                 "id": "tendbcluster_add_account_rule",
-                "name": "TenDB Cluster 账号规则创建",
+                "name": "TenDB Cluster 授权规则变更",
                 "name_en": "tendbcluster_add_account_rule",
                 "type": "create",
                 "related_resource_types": [
@@ -2546,7 +2597,7 @@
                 "hidden": false,
                 "group": "TenDBCluster",
                 "subgroup": "权限管理",
-                "description": "TenDB Cluster 账号规则创建",
+                "description": "TenDB Cluster 授权规则变更",
                 "description_en": "tendbcluster_add_account_rule"
             }
         },
@@ -3281,6 +3332,68 @@
         {
             "operation": "upsert_action",
             "data": {
+                "id": "vm_apply",
+                "name": "VM 集群部署",
+                "name_en": "vm_apply",
+                "type": "execute",
+                "related_resource_types": [
+                    {
+                        "system_id": "bk_cmdb",
+                        "id": "biz",
+                        "selection_mode": "instance",
+                        "related_instance_selections": [
+                            {
+                                "system_id": "bk_cmdb",
+                                "id": "business"
+                            }
+                        ]
+                    }
+                ],
+                "related_actions": [
+                    "db_manage"
+                ],
+                "version": 1,
+                "hidden": false,
+                "group": "VM",
+                "subgroup": "集群管理",
+                "description": "VM 集群部署",
+                "description_en": "vm_apply"
+            }
+        },
+        {
+            "operation": "upsert_action",
+            "data": {
+                "id": "vm_view",
+                "name": "VictoriaMetrics 集群详情查看",
+                "name_en": "vm_view",
+                "type": "view",
+                "related_resource_types": [
+                    {
+                        "system_id": "bk_dbm",
+                        "id": "vm",
+                        "selection_mode": "all",
+                        "related_instance_selections": [
+                            {
+                                "system_id": "bk_dbm",
+                                "id": "vm_list"
+                            }
+                        ]
+                    }
+                ],
+                "related_actions": [
+                    "db_manage"
+                ],
+                "version": 1,
+                "hidden": false,
+                "group": "VM",
+                "subgroup": "集群管理",
+                "description": "VictoriaMetrics 集群详情查看",
+                "description_en": "vm_view"
+            }
+        },
+        {
+            "operation": "upsert_action",
+            "data": {
                 "id": "es_access_entry_view",
                 "name": "ES 获取访问方式",
                 "name_en": "es_access_entry_view",
@@ -3338,6 +3451,37 @@
                 "subgroup": "集群管理",
                 "description": "ES 集群禁用启用",
                 "description_en": "es_enable_disable"
+            }
+        },
+        {
+            "operation": "upsert_action",
+            "data": {
+                "id": "vm_enable_disable",
+                "name": "VictoriaMetrics 集群禁用/启用",
+                "name_en": "vm_enable_disable",
+                "type": "execute",
+                "related_resource_types": [
+                    {
+                        "system_id": "bk_dbm",
+                        "id": "vm",
+                        "selection_mode": "all",
+                        "related_instance_selections": [
+                            {
+                                "system_id": "bk_dbm",
+                                "id": "vm_list"
+                            }
+                        ]
+                    }
+                ],
+                "related_actions": [
+                    "vm_view"
+                ],
+                "version": 1,
+                "hidden": false,
+                "group": "VictoriaMetrics",
+                "subgroup": "集群管理",
+                "description": "VictoriaMetrics 集群禁用/启用",
+                "description_en": "vm_enable_disable"
             }
         },
         {
@@ -5740,7 +5884,7 @@
             "operation": "upsert_action",
             "data": {
                 "id": "mysql_migrate_cluster",
-                "name": "MySQL 迁移主从",
+                "name": "MySQL 主从迁移",
                 "name_en": "MYSQL_MIGRATE_CLUSTER",
                 "type": "execute",
                 "related_resource_types": [
@@ -5761,7 +5905,7 @@
                 "hidden": false,
                 "group": "MySQL",
                 "subgroup": "集群维护",
-                "description": "MySQL 迁移主从",
+                "description": "MySQL 主从迁移",
                 "description_en": "MYSQL_MIGRATE_CLUSTER"
             }
         },
@@ -5943,7 +6087,7 @@
             "operation": "upsert_action",
             "data": {
                 "id": "mysql_ha_db_table_backup",
-                "name": "MySQL 高可用库表备份",
+                "name": "MySQL 库表备份",
                 "name_en": "MYSQL_HA_DB_TABLE_BACKUP",
                 "type": "execute",
                 "related_resource_types": [
@@ -5964,7 +6108,7 @@
                 "hidden": false,
                 "group": "MySQL",
                 "subgroup": "备份",
-                "description": "MySQL 高可用库表备份",
+                "description": "MySQL 库表备份",
                 "description_en": "MYSQL_HA_DB_TABLE_BACKUP"
             }
         },
@@ -6088,7 +6232,7 @@
             "operation": "upsert_action",
             "data": {
                 "id": "mysql_ha_full_backup",
-                "name": "MySQL 高可用全库备份",
+                "name": "MySQL 全库备份",
                 "name_en": "MYSQL_HA_FULL_BACKUP",
                 "type": "execute",
                 "related_resource_types": [
@@ -6109,7 +6253,7 @@
                 "hidden": false,
                 "group": "MySQL",
                 "subgroup": "备份",
-                "description": "MySQL 高可用全库备份",
+                "description": "MySQL 全库备份",
                 "description_en": "MYSQL_HA_FULL_BACKUP"
             }
         },
@@ -6256,6 +6400,64 @@
                 "subgroup": "版本升级",
                 "description": "MySQL 迁移升级",
                 "description_en": "MYSQL_MIGRATE_UPGRADE"
+            }
+        },
+        {
+            "operation": "upsert_action",
+            "data": {
+                "id": "mysql_slave_migrate_upgrade",
+                "name": "MySQL Slave 迁移升级",
+                "name_en": "MYSQL_SLAVE_MIGRATE_UPGRADE",
+                "type": "execute",
+                "related_resource_types": [
+                    {
+                        "system_id": "bk_dbm",
+                        "id": "mysql",
+                        "selection_mode": "all",
+                        "related_instance_selections": [
+                            {
+                                "system_id": "bk_dbm",
+                                "id": "mysql_list"
+                            }
+                        ]
+                    }
+                ],
+                "related_actions": [],
+                "version": 1,
+                "hidden": false,
+                "group": "MySQL",
+                "subgroup": "版本升级",
+                "description": "MySQL Slave 迁移升级",
+                "description_en": "MYSQL_SLAVE_MIGRATE_UPGRADE"
+            }
+        },
+        {
+            "operation": "upsert_action",
+            "data": {
+                "id": "mysql_ro_slave_uninstall",
+                "name": "MySQL非standby slave下架",
+                "name_en": "MYSQL_RO_SLAVE_UNINSTALL",
+                "type": "execute",
+                "related_resource_types": [
+                    {
+                        "system_id": "bk_dbm",
+                        "id": "mysql",
+                        "selection_mode": "all",
+                        "related_instance_selections": [
+                            {
+                                "system_id": "bk_dbm",
+                                "id": "mysql_list"
+                            }
+                        ]
+                    }
+                ],
+                "related_actions": [],
+                "version": 1,
+                "hidden": false,
+                "group": "MySQL",
+                "subgroup": "集群维护",
+                "description": "MySQL非standby slave下架",
+                "description_en": "MYSQL_RO_SLAVE_UNINSTALL"
             }
         },
         {
@@ -8234,7 +8436,7 @@
             "operation": "upsert_action",
             "data": {
                 "id": "redis_cluster_load_modules",
-                "name": "Redis 集群加载modules",
+                "name": "Redis 集群安装modules",
                 "name_en": "REDIS_CLUSTER_LOAD_MODULES",
                 "type": "execute",
                 "related_resource_types": [
@@ -8255,7 +8457,7 @@
                 "hidden": false,
                 "group": "Redis",
                 "subgroup": "工具箱",
-                "description": "Redis 集群加载modules",
+                "description": "Redis 集群安装modules",
                 "description_en": "REDIS_CLUSTER_LOAD_MODULES"
             }
         },
@@ -8286,6 +8488,64 @@
                 "subgroup": "集群维护",
                 "description": "Tendisplus闪电导入数据",
                 "description_en": "REDIS_TENDISPLUS_LIGHTNING_DATA"
+            }
+        },
+        {
+            "operation": "upsert_action",
+            "data": {
+                "id": "redis_cluster_ins_migrate",
+                "name": "Redis 集群指定实例迁移",
+                "name_en": "REDIS_CLUSTER_INS_MIGRATE",
+                "type": "execute",
+                "related_resource_types": [
+                    {
+                        "system_id": "bk_dbm",
+                        "id": "redis",
+                        "selection_mode": "all",
+                        "related_instance_selections": [
+                            {
+                                "system_id": "bk_dbm",
+                                "id": "redis_list"
+                            }
+                        ]
+                    }
+                ],
+                "related_actions": [],
+                "version": 1,
+                "hidden": false,
+                "group": "Redis",
+                "subgroup": "集群管理",
+                "description": "Redis 集群指定实例迁移",
+                "description_en": "REDIS_CLUSTER_INS_MIGRATE"
+            }
+        },
+        {
+            "operation": "upsert_action",
+            "data": {
+                "id": "redis_single_ins_migrate",
+                "name": "Redis 主从指定实例迁移",
+                "name_en": "REDIS_SINGLE_INS_MIGRATE",
+                "type": "execute",
+                "related_resource_types": [
+                    {
+                        "system_id": "bk_dbm",
+                        "id": "redis",
+                        "selection_mode": "all",
+                        "related_instance_selections": [
+                            {
+                                "system_id": "bk_dbm",
+                                "id": "redis_list"
+                            }
+                        ]
+                    }
+                ],
+                "related_actions": [],
+                "version": 1,
+                "hidden": false,
+                "group": "Redis",
+                "subgroup": "集群管理",
+                "description": "Redis 主从指定实例迁移",
+                "description_en": "REDIS_SINGLE_INS_MIGRATE"
             }
         },
         {
@@ -9625,6 +9885,64 @@
         {
             "operation": "upsert_action",
             "data": {
+                "id": "mongodb_autofix",
+                "name": "MongoDB 故障自愈",
+                "name_en": "MONGODB_AUTOFIX",
+                "type": "execute",
+                "related_resource_types": [
+                    {
+                        "system_id": "bk_dbm",
+                        "id": "mongodb",
+                        "selection_mode": "all",
+                        "related_instance_selections": [
+                            {
+                                "system_id": "bk_dbm",
+                                "id": "mongodb_list"
+                            }
+                        ]
+                    }
+                ],
+                "related_actions": [],
+                "version": 1,
+                "hidden": false,
+                "group": "MongoDB",
+                "subgroup": "集群维护",
+                "description": "MongoDB 故障自愈",
+                "description_en": "MONGODB_AUTOFIX"
+            }
+        },
+        {
+            "operation": "upsert_action",
+            "data": {
+                "id": "mongodb_instance_deinstall",
+                "name": "MongoDB 实例下架",
+                "name_en": "MONGODB_INSTANCE_DEINSTALL",
+                "type": "execute",
+                "related_resource_types": [
+                    {
+                        "system_id": "bk_dbm",
+                        "id": "mongodb",
+                        "selection_mode": "all",
+                        "related_instance_selections": [
+                            {
+                                "system_id": "bk_dbm",
+                                "id": "mongodb_list"
+                            }
+                        ]
+                    }
+                ],
+                "related_actions": [],
+                "version": 1,
+                "hidden": false,
+                "group": "MongoDB",
+                "subgroup": "集群维护",
+                "description": "MongoDB 实例下架",
+                "description_en": "MONGODB_INSTANCE_DEINSTALL"
+            }
+        },
+        {
+            "operation": "upsert_action",
+            "data": {
                 "id": "vm_scale_up",
                 "name": "VM 集群扩容",
                 "name_en": "VM_SCALE_UP",
@@ -9905,6 +10223,9 @@
                             "id": "biz_ticket_config_set"
                         },
                         {
+                            "id": "biz_assistance_vars_config"
+                        },
+                        {
                             "id": "dba_administrator_edit"
                         },
                         {
@@ -10011,6 +10332,22 @@
                             ]
                         }
                     ]
+                },
+                {
+                    "name": "平台管理",
+                    "name_en": "平台管理",
+                    "actions": [
+                        {
+                            "id": "platform_manage"
+                        },
+                        {
+                            "id": "platform_ticket_view"
+                        },
+                        {
+                            "id": "platform_taskflow_view"
+                        }
+                    ],
+                    "sub_groups": []
                 },
                 {
                     "name": "MySQL",
@@ -10200,6 +10537,9 @@
                                 },
                                 {
                                     "id": "mysql_single_rename_database"
+                                },
+                                {
+                                    "id": "mysql_ro_slave_uninstall"
                                 }
                             ]
                         },
@@ -10236,6 +10576,9 @@
                                 },
                                 {
                                     "id": "mysql_migrate_upgrade"
+                                },
+                                {
+                                    "id": "mysql_slave_migrate_upgrade"
                                 },
                                 {
                                     "id": "mysql_proxy_upgrade"
@@ -10514,6 +10857,12 @@
                                 },
                                 {
                                     "id": "redis_purge"
+                                },
+                                {
+                                    "id": "redis_cluster_ins_migrate"
+                                },
+                                {
+                                    "id": "redis_single_ins_migrate"
                                 }
                             ]
                         },
@@ -10626,6 +10975,41 @@
                                 },
                                 {
                                     "id": "es_enable_disable"
+                                }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "name": "VM",
+                    "name_en": "VM",
+                    "actions": [],
+                    "sub_groups": [
+                        {
+                            "name": "集群管理",
+                            "name_en": "集群管理",
+                            "actions": [
+                                {
+                                    "id": "vm_apply"
+                                },
+                                {
+                                    "id": "vm_view"
+                                }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "name": "VictoriaMetrics",
+                    "name_en": "VictoriaMetrics",
+                    "actions": [],
+                    "sub_groups": [
+                        {
+                            "name": "集群管理",
+                            "name_en": "集群管理",
+                            "actions": [
+                                {
+                                    "id": "vm_enable_disable"
                                 }
                             ]
                         }
@@ -10944,6 +11328,12 @@
                                 },
                                 {
                                     "id": "mongodb_install_dbmon"
+                                },
+                                {
+                                    "id": "mongodb_autofix"
+                                },
+                                {
+                                    "id": "mongodb_instance_deinstall"
                                 }
                             ]
                         }
@@ -11398,6 +11788,9 @@
                             "id": "es_view"
                         },
                         {
+                            "id": "vm_apply"
+                        },
+                        {
                             "id": "es_access_entry_view"
                         },
                         {
@@ -11632,6 +12025,12 @@
                             "id": "mysql_migrate_upgrade"
                         },
                         {
+                            "id": "mysql_slave_migrate_upgrade"
+                        },
+                        {
+                            "id": "mysql_ro_slave_uninstall"
+                        },
+                        {
                             "id": "mysql_proxy_upgrade"
                         },
                         {
@@ -11842,6 +12241,12 @@
                             "id": "redis_tendisplus_lightning_data"
                         },
                         {
+                            "id": "redis_cluster_ins_migrate"
+                        },
+                        {
+                            "id": "redis_single_ins_migrate"
+                        },
+                        {
                             "id": "kafka_scale_up"
                         },
                         {
@@ -11978,6 +12383,12 @@
                         },
                         {
                             "id": "mongodb_install_dbmon"
+                        },
+                        {
+                            "id": "mongodb_autofix"
+                        },
+                        {
+                            "id": "mongodb_instance_deinstall"
                         },
                         {
                             "id": "vm_scale_up"
@@ -12327,6 +12738,14 @@
                             },
                             {
                                 "id": "mysql_migrate_upgrade",
+                                "required": true
+                            },
+                            {
+                                "id": "mysql_slave_migrate_upgrade",
+                                "required": true
+                            },
+                            {
+                                "id": "mysql_ro_slave_uninstall",
                                 "required": true
                             },
                             {
@@ -12686,6 +13105,14 @@
                             {
                                 "id": "redis_tendisplus_lightning_data",
                                 "required": true
+                            },
+                            {
+                                "id": "redis_cluster_ins_migrate",
+                                "required": true
+                            },
+                            {
+                                "id": "redis_single_ins_migrate",
+                                "required": true
                             }
                         ]
                     },
@@ -12722,6 +13149,39 @@
                             },
                             {
                                 "id": "es_destroy",
+                                "required": true
+                            }
+                        ]
+                    },
+                    {
+                        "id": "vm",
+                        "actions": [
+                            {
+                                "id": "vm_view",
+                                "required": true
+                            },
+                            {
+                                "id": "vm_enable_disable",
+                                "required": true
+                            },
+                            {
+                                "id": "vm_scale_up",
+                                "required": true
+                            },
+                            {
+                                "id": "vm_shrink",
+                                "required": true
+                            },
+                            {
+                                "id": "vm_reboot",
+                                "required": true
+                            },
+                            {
+                                "id": "vm_replace",
+                                "required": true
+                            },
+                            {
+                                "id": "vm_destroy",
                                 "required": true
                             }
                         ]
@@ -12985,6 +13445,14 @@
                             {
                                 "id": "mongodb_install_dbmon",
                                 "required": true
+                            },
+                            {
+                                "id": "mongodb_autofix",
+                                "required": true
+                            },
+                            {
+                                "id": "mongodb_instance_deinstall",
+                                "required": true
                             }
                         ]
                     },
@@ -13125,31 +13593,6 @@
                             },
                             {
                                 "id": "global_monitor_policy_start_stop",
-                                "required": true
-                            }
-                        ]
-                    },
-                    {
-                        "id": "vm",
-                        "actions": [
-                            {
-                                "id": "vm_scale_up",
-                                "required": true
-                            },
-                            {
-                                "id": "vm_shrink",
-                                "required": true
-                            },
-                            {
-                                "id": "vm_reboot",
-                                "required": true
-                            },
-                            {
-                                "id": "vm_replace",
-                                "required": true
-                            },
-                            {
-                                "id": "vm_destroy",
                                 "required": true
                             }
                         ]

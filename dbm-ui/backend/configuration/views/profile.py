@@ -34,10 +34,12 @@ class ProfileViewSet(viewsets.SystemViewSet):
         client = Permission()
         resource_manage = client.is_allowed(action=ActionEnum.RESOURCE_MANAGE, resources=[])
         global_manage = client.is_allowed(action=ActionEnum.GLOBAL_MANAGE, resources=[])
+        platform_manage = client.is_allowed(action=ActionEnum.PLATFORM_MANAGE, resources=[])
         return Response(
             {
                 "resource_manage": resource_manage,
                 "global_manage": global_manage,
+                "platform_manage": platform_manage,
                 "username": username,
                 "profile": list(Profile.objects.filter(username=username).values("label", "values")),
                 "is_superuser": request.user.is_superuser,
