@@ -10,6 +10,11 @@
           :start-time="utcTimeToSeconds(data.start_time)"
           :value="data.cost_time" />
       </I18nT>
+      <template v-if="ticketDetail.ticket_type === TicketTypes.MONGODB_EXEC_SCRIPT_APPLY">
+        <span> ，</span>
+        <!-- prettier-ignore -->
+        <MongodbExecScriptDownloadFile :details="(data.details as ComponentProps<typeof MongodbExecScriptDownloadFile>['details'])" />
+      </template>
       <template v-if="data.url">
         <span> ，</span>
         <a
@@ -22,9 +27,13 @@
   </StatusTerminated>
 </template>
 <script setup lang="ts">
+  import type { ComponentProps } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
 
   import FlowMode from '@services/model/ticket/flow';
+  import TicketModel from '@services/model/ticket/ticket';
+
+  import { TicketTypes } from '@common/const';
 
   import CostTimer from '@components/cost-timer/CostTimer.vue';
 
@@ -32,8 +41,11 @@
 
   import StatusTerminated from '../flow-type-common/StatusTerminated.vue';
 
+  import MongodbExecScriptDownloadFile from './components/MongodbExecScriptDownloadFile.vue';
+
   interface Props {
     data: FlowMode;
+    ticketDetail: TicketModel<unknown>;
   }
 
   defineProps<Props>();

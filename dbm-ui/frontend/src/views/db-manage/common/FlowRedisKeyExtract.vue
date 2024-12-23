@@ -60,7 +60,6 @@
         :data="state.data"
         :height="460"
         :is-anomalies="isAnomalies"
-        :row-height="56"
         @refresh="fetchKeyFiles"
         @selection-change="handleTableSelected">
         <BkTableColumn
