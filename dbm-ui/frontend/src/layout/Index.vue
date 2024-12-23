@@ -144,6 +144,7 @@
       'StaffManage',
       'TicketFlowSetting',
       'TicketCooperationSetting',
+      'TicketNoticeSetting',
     ],
     [menuEnum.resourceManage]: ['ResourceSpec', 'resourceManage', 'resourcePoolDirtyMachines'],
     [menuEnum.platformManage]: [
