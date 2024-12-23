@@ -626,6 +626,7 @@ func (c *CheckInfo) runSpidercheck(ddlTbls map[string][]string, res ParseLineQue
 			logger.Error("json unmasrshal line failed %s", err.Error())
 			return err
 		}
+		sc = o
 		ddlTbls[o.DbName] = append(ddlTbls[o.DbName], o.TableName)
 	}
 	if sc == nil {

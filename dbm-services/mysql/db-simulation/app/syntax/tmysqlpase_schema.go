@@ -45,19 +45,30 @@ const (
 	SQLTypeUpdate = "update"
 	// SQLTypeUseDb is use db sql
 	SQLTypeUseDb = "change_db"
+	// SQLTypeInsertSelect insert select sql
+	SQLTypeInsertSelect = "insert_select"
+	// SQLTypeRelaceSelect replace select sql
+	SQLTypeRelaceSelect = "replace_select"
 )
+
+// NotAllowedDefaulValColMap 不允许默认值的字段
+var NotAllowedDefaulValColMap map[string]struct{}
+
+func init() {
+	NotAllowedDefaulValColMap = lo.SliceToMap([]string{"json", "tinyblob", "blob", "mediumblob", "longblob"},
+		func(s string) (string, struct{}) {
+			return s, struct{}{}
+		})
+}
 
 // ColDef mysql column definition
 type ColDef struct {
-	Type        string `json:"type"`
-	ColName     string `json:"col_name"`
-	DataType    string `json:"data_type"`
-	FieldLength int    `json:"field_length"`
-	Nullable    bool   `json:"nullable"`
-	DefaultVal  struct {
-		Type  string `json:"type"`
-		Value string `json:"value"`
-	} `json:"default_val"`
+	Type                string      `json:"type"`
+	ColName             string      `json:"col_name"`
+	DataType            string      `json:"data_type"`
+	FieldLength         int         `json:"field_length"`
+	Nullable            bool        `json:"nullable"`
+	DefaultVal          *DefaultVal `json:"default_val"`
 	AutoIncrement       bool        `json:"auto_increment"`
 	UniqueKey           bool        `json:"unique_key"`
 	PrimaryKey          bool        `json:"primary_key"`
@@ -65,6 +76,22 @@ type ColDef struct {
 	CharacterSet        string      `json:"character_set"`
 	Collate             string      `json:"collate"`
 	ReferenceDefinition interface{} `json:"reference_definition"`
+}
+
+// IsNotAllowDefaulValCol tendbcluster 不允许某些类型的字段存在默认值的字段
+func (c ColDef) IsNotAllowDefaulValCol() bool {
+	if _, ok := NotAllowedDefaulValColMap[c.DataType]; ok {
+		if c.DefaultVal != nil {
+			return true
+		}
+	}
+	return false
+}
+
+// DefaultVal column default value
+type DefaultVal struct {
+	Type  string `json:"type"`
+	Value string `json:"value"`
 }
 
 // KeyDef mysql index definition

@@ -165,7 +165,8 @@ func (t *TmysqlParse) analyzeRelationDbs(inputfileName, mysqlVersion string) (
 		if res.ErrorCode != 0 {
 			return nil, nil, false, err
 		}
-		if slices.Contains([]string{SQLTypeCreateProcedure, SQLTypeCreateFunction, SQLTypeCreateView, SQLTypeCreateTrigger},
+		if slices.Contains([]string{SQLTypeCreateProcedure, SQLTypeCreateFunction, SQLTypeCreateView, SQLTypeCreateTrigger,
+			SQLTypeInsertSelect, SQLTypeRelaceSelect},
 			res.Command) {
 			return nil, nil, true, nil
 		}
