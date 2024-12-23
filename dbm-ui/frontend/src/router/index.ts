@@ -36,6 +36,7 @@ import getTicketRoutes from '@views/ticket-center/routes';
 import getTicketCooperationSettingRoutes from '@views/ticket-cooperation-setting/routes';
 import getTicketFlowSettingBizRoutes from '@views/ticket-flow-setting-biz/routes';
 import getTicketFlowSettingGlobalRoutes from '@views/ticket-flow-setting-global/routes';
+import getTicketNoticeRoutes from '@views/ticket-notice-setting/routes';
 import getVersionFilesRoutes from '@views/version-files/routes';
 import getWhitelistRoutes from '@views/whitelist/routes';
 
@@ -140,6 +141,7 @@ export default () => {
         ...getTicketCooperationSettingRoutes(),
         ...getTicketFlowSettingGlobalRoutes(),
         ...businessModuleList,
+        ...getTicketNoticeRoutes(),
       ],
     },
     {

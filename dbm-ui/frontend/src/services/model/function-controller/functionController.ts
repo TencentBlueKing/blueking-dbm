@@ -83,6 +83,7 @@ export default class FunctionController {
   'bizConfigManage.StaffManage': ControllerItem<string>;
   'bizConfigManage.ticketFlowSetting': ControllerItem<string>;
   'bizConfigManage.ticketCooperationSetting': ControllerItem<string>;
+  'bizConfigManage.ticketNoticeSetting': ControllerItem<string>;
   databaseManage: ControllerItem<string>;
   'databaseManage.missionManage': ControllerItem<string>;
   'databaseManage.whitelistManage': ControllerItem<string>;

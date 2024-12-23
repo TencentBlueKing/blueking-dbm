@@ -9,6 +9,7 @@ export * from './dbTypeInfos';
 export * from './dbTypes';
 export * from './localStorageKeys';
 export * from './machineTypes';
+export * from './messageTypes';
 export * from './occupiedInnerHeight';
 export * from './osTypes';
 export * from './pipelineStatus';
