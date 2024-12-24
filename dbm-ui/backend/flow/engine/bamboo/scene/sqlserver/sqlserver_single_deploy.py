@@ -18,6 +18,7 @@ from backend.db_meta.enums import ClusterType
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.sqlserver.base_flow import BaseFlow
 from backend.flow.engine.bamboo.scene.sqlserver.common_sub_flow import (
+    init_machine_sub_flow,
     install_sqlserver_sub_flow,
     install_surrounding_apps_sub_flow,
 )
@@ -53,6 +54,17 @@ class SqlserverSingleApplyFlow(BaseFlow):
         # 定义主流程
         main_pipeline = Builder(root_id=self.root_id, data=self.data)
         sub_pipelines = []
+
+        # 初始化机器
+        main_pipeline.add_sub_pipeline(
+            sub_flow=init_machine_sub_flow(
+                uid=self.data["uid"],
+                root_id=self.root_id,
+                bk_biz_id=int(self.data["bk_biz_id"]),
+                bk_cloud_id=int(self.data["bk_cloud_id"]),
+                target_hosts=[Host(**info["mssql_host"]) for info in self.data["infos"]],
+            )
+        )
 
         for info in self.data["infos"]:
             # 拼接子流程需要全局参数

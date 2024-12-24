@@ -76,6 +76,62 @@ from backend.flow.utils.sqlserver.sqlserver_host import Host
 from backend.flow.utils.sqlserver.validate import SqlserverCluster, SqlserverInstance
 
 
+def init_machine_sub_flow(uid: str, bk_biz_id: int, bk_cloud_id: int, root_id: str, target_hosts: list):
+    # 构造只读上下文
+    global_data = {
+        "uid": uid,
+        "bk_biz_id": bk_biz_id,
+        "bk_cloud_id": bk_cloud_id,
+    }
+    # 声明子流程
+    sub_pipeline = SubBuilder(root_id=root_id, data=global_data)
+
+    # 空闲检查
+    if env.SA_CHECK_TEMPLATE_ID:
+        sub_pipeline.add_act(
+            act_name=_("空闲检查"),
+            act_component_code=CheckMachineIdleComponent.code,
+            kwargs=asdict(
+                InitCheckKwargs(
+                    ips=[host.ip for host in target_hosts],
+                    bk_cloud_id=bk_cloud_id,
+                    account_name=WINDOW_ADMIN_USER_FOR_CHECK,
+                )
+            ),
+        )
+
+    # 更新window机器的gse配置信息
+    if env.UPDATE_WINDOW_GSE_CONFIG:
+        sub_pipeline.add_act(
+            act_name=_("更新gse配置信息"),
+            act_component_code=UpdateWindowGseConfigComponent.code,
+            kwargs=asdict(
+                UpdateWindowGseConfigKwargs(
+                    ips=[host.ip for host in target_hosts],
+                    bk_cloud_id=bk_cloud_id,
+                )
+            ),
+        )
+
+    # 安装蓝鲸插件
+    acts_list = []
+    for plugin_name in DEPENDENCIES_PLUGINS:
+        acts_list.append(
+            {
+                "act_name": _("安装[{}]插件".format(plugin_name)),
+                "act_component_code": InstallNodemanPluginServiceComponent.code,
+                "kwargs": asdict(
+                    InstallNodemanPluginKwargs(
+                        bk_host_ids=[t.bk_host_id for t in target_hosts], plugin_name=plugin_name
+                    )
+                ),
+            }
+        )
+    sub_pipeline.add_parallel_acts(acts_list=acts_list)
+
+    return sub_pipeline.build_sub_process(sub_name=_("初始化机器"))
+
+
 def install_sqlserver_sub_flow(
     uid: str,
     root_id: str,
@@ -123,52 +179,6 @@ def install_sqlserver_sub_flow(
     }
     # 声明子流程
     sub_pipeline = SubBuilder(root_id=root_id, data=global_data)
-
-    # 空闲检查
-    if env.SA_CHECK_TEMPLATE_ID:
-        acts_list = []
-        for host in target_hosts:
-            acts_list.append(
-                {
-                    "act_name": _("空闲检查[{}]".format(host.ip)),
-                    "act_component_code": CheckMachineIdleComponent.code,
-                    "kwargs": asdict(
-                        InitCheckKwargs(
-                            ips=[host.ip], bk_cloud_id=bk_cloud_id, account_name=WINDOW_ADMIN_USER_FOR_CHECK
-                        )
-                    ),
-                }
-            )
-        sub_pipeline.add_parallel_acts(acts_list=acts_list)
-
-    # 更新window机器的gse配置信息
-    if env.UPDATE_WINDOW_GSE_CONFIG:
-        acts_list = []
-        for host in target_hosts:
-            acts_list.append(
-                {
-                    "act_name": _("更新gse配置信息[{}]".format(host.ip)),
-                    "act_component_code": UpdateWindowGseConfigComponent.code,
-                    "kwargs": asdict(UpdateWindowGseConfigKwargs(ips=[host.ip], bk_cloud_id=bk_cloud_id)),
-                }
-            )
-        sub_pipeline.add_parallel_acts(acts_list=acts_list)
-
-    # 安装蓝鲸插件
-    acts_list = []
-    for plugin_name in DEPENDENCIES_PLUGINS:
-        acts_list.append(
-            {
-                "act_name": _("安装[{}]插件".format(plugin_name)),
-                "act_component_code": InstallNodemanPluginServiceComponent.code,
-                "kwargs": asdict(
-                    InstallNodemanPluginKwargs(
-                        bk_host_ids=[t.bk_host_id for t in target_hosts], plugin_name=plugin_name
-                    )
-                ),
-            }
-        )
-    sub_pipeline.add_parallel_acts(acts_list=acts_list)
 
     # 下发安装包
     sub_pipeline.add_act(

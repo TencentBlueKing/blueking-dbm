@@ -26,6 +26,7 @@ from backend.flow.engine.bamboo.scene.sqlserver.base_flow import BaseFlow
 from backend.flow.engine.bamboo.scene.sqlserver.common_sub_flow import (
     build_always_on_sub_flow,
     clone_configs_sub_flow,
+    init_machine_sub_flow,
     install_sqlserver_sub_flow,
     install_surrounding_apps_sub_flow,
     sync_dbs_for_cluster_sub_flow,
@@ -284,6 +285,17 @@ class SqlserverSlaveRebuildFlow(BaseFlow):
 
             # 声明子流程
             sub_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(sub_flow_context))
+
+            # 初始化机器
+            sub_pipeline.add_sub_pipeline(
+                sub_flow=init_machine_sub_flow(
+                    uid=self.data["uid"],
+                    root_id=self.root_id,
+                    bk_biz_id=int(self.data["bk_biz_id"]),
+                    bk_cloud_id=int(cluster.bk_cloud_id),
+                    target_hosts=[Host(**info["new_slave_host"])],
+                )
+            )
 
             # 根据关联的集群，安装实例
             sub_pipeline.add_sub_pipeline(
