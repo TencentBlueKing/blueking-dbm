@@ -14,8 +14,8 @@ from dataclasses import asdict
 from django.utils.crypto import get_random_string
 from django.utils.translation import ugettext as _
 
-from backend.constants import IP_PORT_DIVIDER
-from backend.db_meta.enums import ClusterEntryType, InstanceInnerRole
+from backend.constants import IP_PORT_DIVIDER, IP_PORT_DIVIDER_FOR_DNS
+from backend.db_meta.enums import ClusterEntryRole, ClusterEntryType, InstanceInnerRole
 from backend.db_meta.models import Cluster
 from backend.db_meta.models.extra_process import ExtraProcessInstance
 from backend.flow.consts import ACCOUNT_PREFIX, AUTH_ADDRESS_DIVIDER, InstanceStatus
@@ -38,6 +38,7 @@ from backend.flow.utils.mysql.mysql_act_dataclass import (
     CreateDnsKwargs,
     ExecActuatorKwargs,
     InstanceUserCloneKwargs,
+    IpDnsRecordRecycleKwargs,
     RecycleDnsRecordKwargs,
 )
 from backend.flow.utils.mysql.mysql_act_playload import MysqlActPayload
@@ -103,7 +104,6 @@ def master_and_slave_switch(
     if sub_flow:
         cluster_switch_sub_pipeline.add_sub_pipeline(sub_flow=sub_flow)
 
-    # todo ？授权切换账号
     add_sw_user_kwargs = AddSwitchUserKwargs(
         bk_cloud_id=cluster.bk_cloud_id,
         user=switch_account,
@@ -192,26 +192,23 @@ def master_and_slave_switch(
                     "kwargs": asdict(cluster_sw_kwargs),
                 }
             )
-        cluster_switch_sub_pipeline.add_parallel_acts(acts_list=acts_list)
-
-    # 更改旧slave 和 新slave 的域名映射关系，并发执行
-    acts_list = [
-        {
-            "act_name": _("回收旧slave的域名映射"),
-            "act_component_code": MySQLDnsManageComponent.code,
-            "kwargs": asdict(
-                RecycleDnsRecordKwargs(
-                    dns_op_exec_port=cluster_info["mysql_port"],
-                    exec_ip=cluster_info["old_slave_ip"],
-                    bk_cloud_id=cluster_info["bk_cloud_id"],
-                )
-            ),
-        }
-    ]
+        if len(acts_list) > 0:
+            cluster_switch_sub_pipeline.add_parallel_acts(acts_list=acts_list)
+    #  从库添加域名
+    acts_list = []
     old_slave = cluster.storageinstance_set.get(machine__ip=cluster_info["old_slave_ip"])
-    slave_dns_list = old_slave.bind_entry.filter(cluster_entry_type=ClusterEntryType.DNS.value).all()
+    slave_dns_list = old_slave.bind_entry.filter(
+        cluster_entry_type=ClusterEntryType.DNS.value, role=ClusterEntryRole.SLAVE_ENTRY.value
+    ).all()
     cluster_info["slave_dns_list"] = [i.entry for i in slave_dns_list]
-    #  todo 域名映射应该映射老ip对应的所有域名
+    mater_has_slave_dns_list = []
+    master_storage = cluster.storageinstance_set.get(instance_inner_role=InstanceInnerRole.MASTER.value)
+    if old_slave.is_stand_by is True:
+        mater_has_slave_dns_list = master_storage.bind_entry.filter(
+            cluster_entry_type=ClusterEntryType.DNS.value, role=ClusterEntryRole.SLAVE_ENTRY.value
+        ).all()
+        cluster_info["slave_dns_list"].extend([i.entry for i in mater_has_slave_dns_list])
+    cluster_info["slave_dns_list"] = list(set(cluster_info["slave_dns_list"]))
     for slave_domain in cluster_info["slave_dns_list"]:
         acts_list.append(
             {
@@ -227,6 +224,44 @@ def master_and_slave_switch(
                 ),
             }
         )
+    if len(acts_list) > 0:
+        cluster_switch_sub_pipeline.add_parallel_acts(acts_list=acts_list)
+
+    # 移除主 从节点 域名 .如果主库存在从域名，需移除
+    acts_list = []
+    for bind_entry in mater_has_slave_dns_list:
+        acts_list.append(
+            {
+                "act_name": _("对主节点移除从域名:{}".format(bind_entry.entry)),
+                "act_component_code": MySQLDnsManageComponent.code,
+                "kwargs": asdict(
+                    IpDnsRecordRecycleKwargs(
+                        instance_list=[
+                            "{}{}{}".format(master_storage.machine.ip, IP_PORT_DIVIDER_FOR_DNS, master_storage.port)
+                        ],
+                        domain_name=bind_entry.entry,
+                        bk_cloud_id=cluster_info["bk_cloud_id"],
+                    )
+                ),
+            }
+        )
+
+    # 移除从库本身映射的域名
+    acts_list.append(
+        {
+            "act_name": _("回收旧slave的域名映射"),
+            "act_component_code": MySQLDnsManageComponent.code,
+            "kwargs": asdict(
+                RecycleDnsRecordKwargs(
+                    dns_op_exec_port=cluster_info["mysql_port"],
+                    exec_ip=cluster_info["old_slave_ip"],
+                    bk_cloud_id=cluster_info["bk_cloud_id"],
+                )
+            ),
+        }
+    )
+    if len(acts_list) > 0:
+        cluster_switch_sub_pipeline.add_parallel_acts(acts_list=acts_list)
 
     # 增加tbinlogdumper实例部署切换联动
     if ExtraProcessInstance.objects.filter(cluster_id=cluster.id).exists():
@@ -241,9 +276,6 @@ def master_and_slave_switch(
                 )
             ),
         )
-
-    cluster_switch_sub_pipeline.add_parallel_acts(acts_list=acts_list)
-
     return cluster_switch_sub_pipeline.build_sub_process(sub_name=_("{}集群执行成对切换").format(cluster_info["cluster_id"]))
 
 

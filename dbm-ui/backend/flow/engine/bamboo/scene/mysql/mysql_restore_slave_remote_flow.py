@@ -16,14 +16,14 @@ from typing import Dict, Optional
 from django.utils.translation import ugettext as _
 
 from backend.configuration.constants import DBType
-from backend.constants import IP_PORT_DIVIDER
+from backend.constants import IP_PORT_DIVIDER, IP_PORT_DIVIDER_FOR_DNS
 from backend.db_meta.enums import ClusterType, InstanceInnerRole, InstancePhase, InstanceStatus
 from backend.db_meta.models import Cluster
 from backend.db_package.models import Package
 from backend.flow.consts import MediumEnum
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
-from backend.flow.engine.bamboo.scene.mysql.common.cluster_entrys import get_tendb_ha_entry
+from backend.flow.engine.bamboo.scene.mysql.common.cluster_entrys import get_standby_dns, get_tendb_ha_entry
 from backend.flow.engine.bamboo.scene.mysql.common.common_sub_flow import (
     build_surrounding_apps_sub_flow,
     install_mysql_in_cluster_sub_flow,
@@ -300,13 +300,19 @@ class MySQLRestoreSlaveRemoteFlow(object):
                     switch_sub_pipeline_list.append(switch_sub_pipeline.build_sub_process(sub_name=_("切换到新从节点")))
 
                 uninstall_svr_sub_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(self.data))
-                cluster = {"uninstall_ip": self.data["old_slave_ip"], "cluster_ids": self.data["cluster_ids"]}
+                # cluster = {"uninstall_ip": self.data["old_slave_ip"], "cluster_ids": self.data["cluster_ids"]}
+                cluster = {
+                    "uninstall_ip": self.data["old_slave_ip"],
+                    "ports": self.data["ports"],
+                    "bk_cloud_id": cluster_class.bk_cloud_id,
+                    "cluster_type": cluster_class.cluster_type,
+                }
                 uninstall_svr_sub_pipeline.add_act(
                     act_name=_("卸载实例前先删除元数据"),
                     act_component_code=MySQLDBMetaComponent.code,
                     kwargs=asdict(
                         DBMetaOPKwargs(
-                            db_meta_class_func=MySQLDBMeta.slave_recover_del_instance.__name__,
+                            db_meta_class_func=MySQLDBMeta.uninstall_instance.__name__,
                             is_update_trans_data=True,
                             cluster=cluster,
                         )
@@ -588,44 +594,84 @@ class MySQLRestoreSlaveRemoteFlow(object):
                 kwargs=asdict(InstanceUserCloneKwargs(clone_data=clone_data)),
             )
 
-            # 添加域名
-            domain_map = get_tendb_ha_entry(cluster_model.id)
-            domain_add_list = []
-            for domain in domain_map[target_slave.machine.ip]:
-                domain_add_list.append(
-                    {
-                        "act_name": _("添加从库域名{}:{}").format(target_slave.machine.ip, domain),
-                        "act_component_code": MySQLDnsManageComponent.code,
-                        "kwargs": asdict(
-                            UpdateDnsRecordKwargs(
-                                bk_cloud_id=cluster_model.bk_cloud_id,
-                                old_instance="{}#{}".format(target_slave.machine.ip, master.port),
-                                new_instance="{}#{}".format(target_slave.machine.ip, master.port),
-                                update_domain_name=domain,
-                            )
-                        ),
-                    }
-                )
-
-            if len(domain_add_list) > 0:
-                tendb_migrate_pipeline.add_parallel_acts(acts_list=domain_add_list)
-
-            cluster = {
-                "phase": InstancePhase.ONLINE.value,
-                "storage_status": InstanceStatus.RUNNING.value,
-                "storage_id": target_slave.id,
-            }
-            tendb_migrate_pipeline.add_act(
-                act_name=_("写入初始化实例的db_meta元信息"),
-                act_component_code=MySQLDBMetaComponent.code,
-                kwargs=asdict(
-                    DBMetaOPKwargs(
-                        db_meta_class_func=MySQLDBMeta.tendb_modify_storage_status.__name__,
-                        cluster=cluster,
-                        is_update_trans_data=False,
+            # 这里区分是standby还是普通salve添加域名
+            if target_slave.is_stand_by:
+                domain_map = get_standby_dns(cluster_model.id)
+                domain_add_list = []
+                for old_instance, domain in domain_map.items():
+                    domain_add_list.append(
+                        {
+                            "act_name": _("添加Standby从库域名{}:{}").format(target_slave.machine.ip, domain),
+                            "act_component_code": MySQLDnsManageComponent.code,
+                            "kwargs": asdict(
+                                UpdateDnsRecordKwargs(
+                                    bk_cloud_id=cluster_model.bk_cloud_id,
+                                    old_instance=old_instance,
+                                    new_instance="{}{}{}".format(
+                                        target_slave.machine.ip, IP_PORT_DIVIDER_FOR_DNS, master.port
+                                    ),
+                                    update_domain_name=domain,
+                                )
+                            ),
+                        }
                     )
-                ),
-            )
+                if len(domain_add_list) > 0:
+                    tendb_migrate_pipeline.add_parallel_acts(acts_list=domain_add_list)
+                # 如果域名来源于从库，可能需要修正元数据entry
+                cluster = {
+                    "cluster_id": cluster_model.id,
+                    "new_slave_ip": target_slave.machine.ip,
+                    "old_slave_ip": target_slave.machine.ip,
+                    "slave_domain": [domain for domain in domain_map.values()],
+                }
+                tendb_migrate_pipeline.add_act(
+                    act_name=_("slave切换完毕，修改standby{}数据".format(target_slave.ip_port)),
+                    act_component_code=MySQLDBMetaComponent.code,
+                    kwargs=asdict(
+                        DBMetaOPKwargs(
+                            db_meta_class_func=MySQLDBMeta.mysql_restore_slave_change_cluster_info.__name__,
+                            cluster=cluster,
+                            is_update_trans_data=True,
+                        )
+                    ),
+                )
+            else:
+                # 非standby节点则刷新域名
+                domain_map = get_tendb_ha_entry(cluster_model.id)
+                domain_add_list = []
+                for domain in domain_map[target_slave.machine.ip]:
+                    domain_add_list.append(
+                        {
+                            "act_name": _("添加从库域名{}:{}").format(target_slave.machine.ip, domain),
+                            "act_component_code": MySQLDnsManageComponent.code,
+                            "kwargs": asdict(
+                                UpdateDnsRecordKwargs(
+                                    bk_cloud_id=cluster_model.bk_cloud_id,
+                                    old_instance="{}#{}".format(target_slave.machine.ip, master.port),
+                                    new_instance="{}#{}".format(target_slave.machine.ip, master.port),
+                                    update_domain_name=domain,
+                                )
+                            ),
+                        }
+                    )
+                if len(domain_add_list) > 0:
+                    tendb_migrate_pipeline.add_parallel_acts(acts_list=domain_add_list)
+                cluster = {
+                    "phase": InstancePhase.ONLINE.value,
+                    "storage_status": InstanceStatus.RUNNING.value,
+                    "storage_id": target_slave.id,
+                }
+                tendb_migrate_pipeline.add_act(
+                    act_name=_("同步完毕,修改{}元数据".format(target_slave.ip_port)),
+                    act_component_code=MySQLDBMetaComponent.code,
+                    kwargs=asdict(
+                        DBMetaOPKwargs(
+                            db_meta_class_func=MySQLDBMeta.tendb_modify_storage_status.__name__,
+                            cluster=cluster,
+                            is_update_trans_data=False,
+                        )
+                    ),
+                )
 
             tendb_migrate_pipeline.add_sub_pipeline(
                 sub_flow=build_surrounding_apps_sub_flow(

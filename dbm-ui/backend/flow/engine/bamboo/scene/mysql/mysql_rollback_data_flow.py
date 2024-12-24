@@ -252,6 +252,14 @@ class MySQLRollbackDataFlow(object):
         sub_pipeline_list = []
         for info in self.ticket_data["infos"]:
             self.data = copy.deepcopy(info)
+            # 判断是否全库回档,默认是全库,全库包括逻辑备份，物理备份. todo 如果指定部分库。则只能使用逻辑备份。
+            self.data["all_database_rollback"] = True
+            if not (
+                self.data["databases"][0] == "*"
+                and self.data["tables"][0] == "*"
+                and len(self.data["databases_ignore"]) == 0
+            ):
+                self.data["all_database_rollback"] = False
             cluster_class = Cluster.objects.get(id=self.data["cluster_id"])
             filters = Q(
                 cluster__cluster_type=ClusterType.TenDBSingle.value, instance_inner_role=InstanceInnerRole.ORPHAN.value
@@ -375,7 +383,7 @@ class MySQLRollbackDataFlow(object):
                         )
                     ),
                 )
-                if rollback_storage.instance_role in (InstanceRole.BACKEND_SLAVE, InstanceRole.BACKEND_REPEATER):
+                if self.data["all_database_rollback"]:
                     rollback_pipeline.add_act(
                         act_name=_("从库stop slave {}").format(rollback_storage.ip_port),
                         act_component_code=MySQLExecuteRdsComponent.code,
