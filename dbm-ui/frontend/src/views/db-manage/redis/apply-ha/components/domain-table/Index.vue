@@ -75,6 +75,7 @@
       cityCode: string,
       cityName: string
     }
+    portType: string | number[];
   }
 
   interface Emits {
@@ -156,7 +157,7 @@
   const columns = computed(() => {
     const baseColums: Column[] = [
       {
-        type: 'index',
+        type: 'seq',
         label: t('序号'),
         width: 60,
       },
@@ -194,7 +195,12 @@
                 onChange={(value: string) => handleChangeCellValue(value, index, 'cluster_name')}
               />
             </bk-form-item>
-            <div class="ml-4">.{ props.appAbbr }.db{props.isAppend ? '' : `#${props.port + index}`}</div>
+            {
+              typeof props.portType === 'string' ?
+                <div class="ml-4">.{ props.appAbbr }.db{props.isAppend ? '' : `#${props.portType === 'increment' ? props.port + index : props.port }`}</div>
+                :
+                <div class="ml-4">.{ props.appAbbr }.db{props.isAppend ? '' : `#${props.portType.length === tableData.value.length ? props.portType[index] : ''}`}</div>
+            }
           </div>
         ),
       },

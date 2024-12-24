@@ -31,7 +31,7 @@
     <div class="ticket-details-info-title mt-20">{{ t('地域要求') }}</div>
     <InfoList>
       <InfoItem :label="t('数据库部署地域')">
-        {{ ticketDetails?.details.city_name || '--' }}
+        {{ ticketDetails?.details.city_code || '--' }}
       </InfoItem>
     </InfoList>
     <div class="ticket-details-info-title mt-20">{{ t('数据库部署信息') }}</div>
