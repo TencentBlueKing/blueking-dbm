@@ -152,6 +152,7 @@ class RedisSingleInsMigrateFlow(object):
         port = src_master_info["port"]
         act_kwargs.exec_ip = master_ip
         act_kwargs.cluster["immute_domain"] = src_master_info["immute_domain"]
+        act_kwargs.cluster["origin_db_version"] = src_master_info["origin_db_version"]
         install_master_redis_params = {
             "meta_role": InstanceRole.REDIS_MASTER.value,
             "start_port": port,
