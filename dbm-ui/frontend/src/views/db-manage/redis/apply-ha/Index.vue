@@ -170,6 +170,7 @@
               :is-append="isAppend"
               :max-memory="maxMemory"
               :port="formData.details.port"
+              :port-type="portType"
               @host-change="handleHostChange" />
           </BkFormItem>
           <BkFormItem :label="t('备注')">
@@ -315,6 +316,26 @@
 
   const isAppend = computed(() => formData.details.appendApply === 'append');
   const machineCount = computed(() => formData.details.cluster_count / formData.details.group_count);
+  const portType = computed(() => {
+    if (formData.details.cluster_count % formData.details.group_count !== 0) {
+      return '';
+    }
+    if (formData.details.cluster_count === formData.details.group_count) {
+      return 'increment'; // 递增端口号
+    }
+    if (formData.details.group_count === 1) {
+      return 'same'; // 端口号相同
+    }
+    const ports = Array(formData.details.group_count)
+      .fill(0)
+      .map((_, index) => formData.details.port + index);
+    const groups = formData.details.cluster_count / formData.details.group_count;
+    return _.flatMap(
+      Array(groups)
+        .fill(0)
+        .map(() => ports),
+    );
+  });
 
   watch(
     () => formData.details.city_code,
