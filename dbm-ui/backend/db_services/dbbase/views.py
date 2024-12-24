@@ -31,6 +31,7 @@ from backend.db_services.dbbase.resources import register
 from backend.db_services.dbbase.resources.query import ListRetrieveResource, ResourceList
 from backend.db_services.dbbase.serializers import (
     ClusterDbTypeSerializer,
+    ClusterEntryFilterSerializer,
     ClusterFilterSerializer,
     CommonQueryClusterResponseSerializer,
     CommonQueryClusterSerializer,
@@ -138,6 +139,22 @@ class DBBaseViewSet(viewsets.SystemViewSet):
             clusters_data.extend(cluster_resource_data.data)
 
         return Response(clusters_data)
+
+    @common_swagger_auto_schema(
+        operation_summary=_("根据过滤条件查询业务下域名信息"),
+        auto_schema=ResponseSwaggerAutoSchema,
+        query_serializer=ClusterEntryFilterSerializer(),
+        tags=[SWAGGER_TAG],
+    )
+    @action(methods=["GET"], detail=False, serializer_class=ClusterEntryFilterSerializer, pagination_class=None)
+    def filter_cluster_entries(self, request, *args, **kwargs):
+        data = self.params_validate(self.get_serializer_class())
+        limit, offset = data.pop("limit"), data.pop("offset")
+        resource_class = register.cluster_type__resource_class[data.pop("cluster_type")]
+        entry_resource_data: ResourceList = resource_class.list_cluster_entries(
+            bk_biz_id=data.pop("bk_biz_id"), query_params=data, limit=limit, offset=offset
+        )
+        return Response({"results": entry_resource_data.data, "count": entry_resource_data.count})
 
     @common_swagger_auto_schema(
         operation_summary=_("根据用户手动输入的ip[:port]查询真实的实例"),
