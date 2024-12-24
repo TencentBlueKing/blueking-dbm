@@ -395,7 +395,8 @@ class ListRetrieveResource(BaseListRetrieveResource):
             "cluster_type": Q(cluster_type__in=query_params.get("cluster_type", "").split(",")),
             # 版本
             "major_version": Q(major_version__in=query_params.get("major_version", "").split(",")),
-            # 地域
+            # 地域 TODO: 城市统一为city字段，后续删除region字段
+            "city": Q(region__in=query_params.get("city", "").split(",")),
             "region": Q(region__in=query_params.get("region", "").split(",")),
             # 集群id列表
             "cluster_ids": Q(id__in=query_params.get("cluster_ids")),
@@ -581,6 +582,7 @@ class ListRetrieveResource(BaseListRetrieveResource):
             "bk_cloud_name": bk_cloud_name,
             "major_version": cluster.major_version,
             "region": cluster.region,
+            "city": cluster.region,
             "db_module_name": db_module_names_map.get(cluster.db_module_id, ""),
             "db_module_id": cluster.db_module_id,
             "creator": cluster.creator,

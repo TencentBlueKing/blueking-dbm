@@ -137,7 +137,7 @@ class TicketHandler:
             {
                 **_get_base_info(host_infos[0]),
                 "bk_city_code": host_infos[0].get("bk_idc_id") or default_agent_city_id,
-                "bk_city_name": host_infos[0].get("bk_idc_name", ""),
+                "bk_city_name": host_infos[0].get("bk_idc_city_name", ""),
             }
         ]
         # 构造gm的部署信息
@@ -145,12 +145,12 @@ class TicketHandler:
             {
                 **_get_base_info(host_infos[0]),
                 "bk_city_code": host_infos[0].get("bk_idc_id") or default_gm_city_ids[0],
-                "bk_city_name": host_infos[0].get("bk_idc_name", ""),
+                "bk_city_name": host_infos[0].get("bk_idc_city_name", ""),
             },
             {
                 **_get_base_info(host_infos[1]),
                 "bk_city_code": host_infos[1].get("bk_idc_id") or default_gm_city_ids[1],
-                "bk_city_name": host_infos[1].get("bk_idc_name", ""),
+                "bk_city_name": host_infos[1].get("bk_idc_city_name", ""),
             },
         ]
 
