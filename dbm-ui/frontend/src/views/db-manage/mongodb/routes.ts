@@ -49,14 +49,17 @@ export const mongoToolboxChildrenRoutes: RouteRecordRaw[] = [
     },
     component: () => import('@views/db-manage/mongodb/shard-scale-down/Index.vue'),
   },
-  {
-    name: 'MongoCapacityChange',
-    path: 'capacity-change/:page?',
-    meta: {
-      navName: t('集群容量变更'),
-    },
-    component: () => import('@views/db-manage/mongodb/capacity-change/Index.vue'),
-  },
+  // {
+  //   name: 'MongoCapacityChange',
+  //   path: 'capacity-change/:page?',
+  //   meta: {
+  //     navName: t('集群容量变更'),
+  //   },
+  //   component: () => import('@views/db-manage/mongodb/capacity-change/Index.vue'),
+  // },
+  createRouteItem(TicketTypes.MONGODB_SCALE_UPDOWN, {
+    navName: t('集群容量变更'),
+  }),
   // {
   //   name: 'MongoProxyScaleUp',
   //   path: 'proxy-scale-up/:page?',

@@ -154,6 +154,7 @@
     [TicketTypes.MONGODB_CUTOFF]: TicketTypes.MONGODB_CUTOFF, // mongodb 整机替换
     [TicketTypes.MONGODB_ADD_MONGOS]: TicketTypes.MONGODB_ADD_MONGOS, // mongodb 扩容接入层
     [TicketTypes.MONGODB_REDUCE_MONGOS]: TicketTypes.MONGODB_REDUCE_MONGOS, // mongodb 缩容接入层
+    [TicketTypes.MONGODB_SCALE_UPDOWN]: TicketTypes.MONGODB_SCALE_UPDOWN, // mongodb 集群容量变更
   };
 
   const isSupported = computed(() => !!ticketTypeRouteNameMap[props.data.ticket_type]);
