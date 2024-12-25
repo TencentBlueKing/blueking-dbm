@@ -135,7 +135,7 @@
 </script>
 
 <style lang="less" scoped>
-  :deep(.select-icon) {
+  .select-icon {
     display: flex;
     margin-right: 5px;
     font-size: 18px;

@@ -73,7 +73,7 @@ export default [
       },
       {
         name: t('缩容接入层'),
-        id: 'SpiderProxyScaleDown',
+        id: TicketTypes.TENDBCLUSTER_SPIDER_REDUCE_NODES,
         parentId: 'spider_cluster_maintain',
         dbConsoleValue: 'tendbCluster.toolbox.proxyScaleDown',
       },

@@ -45,15 +45,10 @@
         :is="tableComponentMap[replaceType]"
         ref="table"
         :data="formData.tableData" />
-      <BkFormItem>
-        <BkCheckbox
-          v-model="formData.force"
-          v-bk-tooltips="t('如忽略_在有连接的情况下Proxy也会执行替换')"
-          :false-label="false"
-          true-label>
-          <span class="safe-action-text">{{ t('忽略业务连接') }}</span>
-        </BkCheckbox>
-      </BkFormItem>
+      <IgnoreBiz
+        v-model="formData.force"
+        v-bk-tooltips="t('如忽略_在有连接的情况下Proxy也会执行替换')"
+        class="mb-20" />
       <TicketRemark v-model="formData.remark" />
     </BkForm>
     <template #action>
@@ -87,6 +82,7 @@
 
   import CardCheckbox from '@components/db-card-checkbox/CardCheckbox.vue';
 
+  import IgnoreBiz from '@views/db-manage/common/toolbox-field/ignore-biz/Index.vue';
   import TicketRemark from '@views/db-manage/common/toolbox-field/ticket-remark/Index.vue';
 
   import HostTable from './components/HostTable.vue';

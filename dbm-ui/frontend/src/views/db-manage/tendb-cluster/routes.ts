@@ -82,14 +82,15 @@ const spiderProxyScaleUpRoute = {
   component: () => import('@views/db-manage/tendb-cluster/proxy-scale-up/Index.vue'),
 };
 
-const spiderProxyScaleDownRoute = {
-  name: 'SpiderProxyScaleDown',
-  path: 'proxy-scale-down/:page?',
-  meta: {
-    navName: t('缩容接入层'),
-  },
-  component: () => import('@views/db-manage/tendb-cluster/proxy-scale-down/Index.vue'),
-};
+// const spiderProxyScaleDownRoute = {
+//   name: 'SpiderProxyScaleDown',
+//   path: 'proxy-scale-down/:page?',
+//   meta: {
+//     navName: t('缩容接入层'),
+//   },
+//   component: () => import('@views/db-manage/tendb-cluster/proxy-scale-down/Index.vue'),
+// };
+const spiderProxyScaleDownRoute = createRouteItem(TicketTypes.TENDBCLUSTER_SPIDER_REDUCE_NODES, t('缩容接入层'));
 
 const spiderProxySlaveApplyRoute = {
   name: 'SpiderProxySlaveApply',

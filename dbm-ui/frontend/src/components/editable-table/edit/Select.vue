@@ -4,6 +4,7 @@
     class="bk-editable-select"
     v-bind="{ ...attrs, ...props }"
     @blur="handleBlur"
+    @change="handleChange"
     @focus="handleFocus">
     <template
       v-if="slots.option"
@@ -11,6 +12,13 @@
       <slot
         :item="item"
         name="option" />
+    </template>
+    <template
+      v-if="slots.trigger"
+      #trigger="{ selected }">
+      <slot
+        name="trigger"
+        :selected="selected" />
     </template>
   </BkSelect>
 </template>
@@ -39,6 +47,7 @@
   }>();
 
   const slots = defineSlots<{
+    trigger?: (value: { selected: any[] }) => VNode;
     option?: (value: { item: Record<string, any> }) => VNode;
   }>();
 
@@ -51,6 +60,10 @@
   watch(modelValue, () => {
     columnContext?.validate('change');
   });
+
+  const handleChange = (value: T) => {
+    emits('change', value);
+  };
 
   const handleBlur = () => {
     columnContext?.blur();

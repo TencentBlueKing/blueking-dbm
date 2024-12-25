@@ -38,6 +38,8 @@
     v-model:is-show="showSelector"
     :cluster-types="[ClusterTypes.TENDBCLUSTER]"
     :selected="selectedClusters"
+    support-offline-data
+    :tab-list-config="tabListConfig"
     @change="handleSelectorChange" />
 </template>
 <script lang="ts" setup>
@@ -50,7 +52,7 @@
   import { ClusterTypes } from '@common/const';
   import { domainRegex } from '@common/regex';
 
-  import ClusterSelector from '@components/cluster-selector/Index.vue';
+  import ClusterSelector, { type TabConfig } from '@components/cluster-selector/Index.vue';
   import { Column, Input } from '@components/editable-table/Index.vue';
 
   interface Props {
@@ -62,7 +64,7 @@
 
   interface Emits {
     (e: 'batch-edit', list: TendbClusterModel[]): void;
-    (e: 'change', data: TendbClusterModel): void;
+    (e: 'change', data: ServiceReturnType<typeof filterClusters>[number]): void;
   }
 
   const props = defineProps<Props>();
@@ -91,6 +93,17 @@
     ),
   }));
 
+  const tabListConfig = {
+    [ClusterTypes.TENDBCLUSTER]: {
+      disabledRowConfig: [
+        {
+          handler: (data: TendbClusterModel) => data.spider_master.length <= 2 && data.spider_slave.length <= 1,
+          tip: t('Master 至少保留 2 台 ，Slave 至少 保留 1台'),
+        },
+      ],
+    },
+  } as Record<ClusterTypes, TabConfig>;
+
   const rules = [
     {
       validator: (value: string) => domainRegex.test(value),
@@ -115,7 +128,7 @@
       modelValue.value.id = undefined;
       if (data.length) {
         modelValue.value.id = data[0].id;
-        emits('change', data[0] as TendbClusterModel);
+        emits('change', data[0]);
       }
     },
   });
