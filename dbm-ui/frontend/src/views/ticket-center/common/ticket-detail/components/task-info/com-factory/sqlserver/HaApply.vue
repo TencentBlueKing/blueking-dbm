@@ -47,14 +47,13 @@
     <InfoItem
       v-if="resourceSpecs"
       :label="t('后端存储规格：')">
-      {{ ticketDetails.details.cluster_count }}
       <BkPopover
         placement="top"
         theme="light">
         <span
           class="pb-2"
           style="cursor: pointer; border-bottom: 1px dashed #979ba5">
-          {{ resourceSpecs.spec_name }}（{{ resourceSpecs.count }} {{ t('台') }}）
+          {{ resourceSpecs.spec_name }}（{{ resourceSpecs.count }} {{ t('组') }}）
         </span>
         <template #content>
           <SpecInfos :data="resourceSpecs" />
