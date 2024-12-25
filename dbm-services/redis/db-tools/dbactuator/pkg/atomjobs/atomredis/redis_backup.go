@@ -181,9 +181,12 @@ func (job *RedisBackup) Run() (err error) {
 	// 如果是永久备份，那么需要检查上传结果情况
 	// 结束时间依赖上传时间最长的那个，所以没必要去并发探测
 	if job.params.BackupType == consts.ForeverBackupType {
-		job.runtime.Logger.Info(fmt.Sprintf("backup type is[%s], check upload status, task ids [%+v]",
+		job.runtime.Logger.Info(fmt.Sprintf("backup type is[%s], check upload status, task ids %+v",
 			job.params.BackupType, bakTaskIDs))
 		for _, taskId := range bakTaskIDs {
+			if strings.TrimSpace(taskId) == "" {
+				continue
+			}
 			// 半个小时还没上传成功则认为失败了
 			for i := 0; i < 60; i++ {
 				// taskStatus>4,上传失败;

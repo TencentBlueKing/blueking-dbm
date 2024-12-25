@@ -929,7 +929,11 @@ class RedisActPayload(object):
         redis集群备份
         """
         ip = kwargs["ip"]
-        cluster = Cluster.objects.get(immute_domain=self.cluster["domain_name"])
+        if "params" in kwargs and "domain_name" in kwargs["params"]:
+            domain_name = kwargs["params"]["domain_name"]
+        else:
+            domain_name = self.cluster["domain_name"]
+        cluster = Cluster.objects.get(immute_domain=domain_name)
         return {
             "db_type": DBActuatorTypeEnum.Redis.value,
             "action": DBActuatorTypeEnum.Redis.value + "_" + RedisActuatorActionEnum.Backup.value,
@@ -939,7 +943,7 @@ class RedisActPayload(object):
                 "ip": ip,
                 "ports": self.cluster[ip],
                 "backup_type": self.cluster["backup_type"],
-                "domain": self.cluster["domain_name"],
+                "domain": domain_name,
                 "without_to_backup_sys": not BACKUP_SYS_STATUS,
                 "backup_client_storage_type": "",  # 留空,使用系统默认
             },

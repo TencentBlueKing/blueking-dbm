@@ -161,13 +161,9 @@ class RedisInsShutdownFlow(object):
         acts_list = []
         for ins_info in all_ins_info["ins_info_list"]:
             act_kwargs.exec_ip = ins_info["master_ip"]
-            act_kwargs.cluster["bk_biz_id"] = str(self.data["bk_biz_id"])
-            act_kwargs.cluster["backup_host"] = ins_info["master_ip"]
-            act_kwargs.cluster["backup_instances"] = [ins_info["port"]]
-            act_kwargs.cluster["ssd_log_count"] = {}
-            act_kwargs.cluster["immute_domain"] = ins_info["domain_name"]
+            act_kwargs.cluster["domain_name"] = ins_info["domain_name"]
 
-            act_kwargs.get_redis_payload_func = RedisActPayload.redis_cluster_backup_4_scene.__name__
+            act_kwargs.get_redis_payload_func = RedisActPayload.redis_cluster_backup_payload.__name__
             acts_list.append(
                 {
                     "act_name": _("redis备份: {}").format(ins_info["domain_name"]),
