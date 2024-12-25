@@ -57,22 +57,28 @@ export const mongoToolboxChildrenRoutes: RouteRecordRaw[] = [
     },
     component: () => import('@views/db-manage/mongodb/capacity-change/Index.vue'),
   },
-  {
-    name: 'MongoProxyScaleUp',
-    path: 'proxy-scale-up/:page?',
-    meta: {
-      navName: t('扩容接入层'),
-    },
-    component: () => import('@views/db-manage/mongodb/proxy-scale-up/Index.vue'),
-  },
-  {
-    name: 'MongoProxyScaleDown',
-    path: 'proxy-scale-down/:page?',
-    meta: {
-      navName: t('缩容接入层'),
-    },
-    component: () => import('@views/db-manage/mongodb/proxy-scale-down/Index.vue'),
-  },
+  // {
+  //   name: 'MongoProxyScaleUp',
+  //   path: 'proxy-scale-up/:page?',
+  //   meta: {
+  //     navName: t('扩容接入层'),
+  //   },
+  //   component: () => import('@views/db-manage/mongodb/proxy-scale-up/Index.vue'),
+  // },
+  createRouteItem(TicketTypes.MONGODB_ADD_MONGOS, {
+    navName: t('扩容接入层'),
+  }),
+  // {
+  //   name: 'MongoProxyScaleDown',
+  //   path: 'proxy-scale-down/:page?',
+  //   meta: {
+  //     navName: t('缩容接入层'),
+  //   },
+  //   component: () => import('@views/db-manage/mongodb/proxy-scale-down/Index.vue'),
+  // },
+  createRouteItem(TicketTypes.MONGODB_REDUCE_MONGOS, {
+    navName: t('缩容接入层'),
+  }),
   // {
   //   name: 'MongoDBReplace',
   //   path: 'db-replace/:page?',

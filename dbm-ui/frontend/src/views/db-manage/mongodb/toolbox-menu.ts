@@ -55,12 +55,12 @@ export default [
       },
       {
         name: t('扩容接入层'),
-        id: 'MongoProxyScaleUp',
+        id: TicketTypes.MONGODB_ADD_MONGOS,
         parentId: 'mongo_manage',
       },
       {
         name: t('缩容接入层'),
-        id: 'MongoProxyScaleDown',
+        id: TicketTypes.MONGODB_REDUCE_MONGOS,
         parentId: 'mongo_manage',
       },
       {
