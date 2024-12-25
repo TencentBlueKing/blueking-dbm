@@ -14,13 +14,12 @@
 <template>
   <Column
     :append-rules="rules"
-    field="host.ip"
+    field="slave.ip"
     fixed="left"
-    :label="t('目标主库主机')"
+    :label="t('目标从库主机')"
     :loading="loading"
-    :min-width="minWidth"
-    required
-    :validate-delay="300">
+    :min-width="300"
+    required>
     <template #headAppend>
       <span
         v-bk-tooltips="t('批量选择')"
@@ -29,17 +28,33 @@
         <DbIcon type="batch-host-select" />
       </span>
     </template>
-    <div style="flex: 1">
-      <Input
-        v-model="modelValue.ip"
-        :placeholder="t('请输入IP')"
-        @change="handleInputChange" />
+    <Input
+      v-model="modelValue.ip"
+      :placeholder="t('请输入IP')"
+      @change="handleInputChange" />
+  </Column>
+  <Column
+    :label="t('同机关联集群')"
+    :loading="loading"
+    :min-width="300">
+    <div
+      v-if="modelValue.related_clusters.length"
+      class="table-cell">
+      <p
+        v-for="item in modelValue.related_clusters"
+        :key="item.id">
+        {{ item.master_domain }}
+      </p>
     </div>
+    <Block
+      v-else
+      :placeholder="t('自动生成')" />
   </Column>
   <InstanceSelector
     v-model:is-show="showSelector"
-    :cluster-types="['TendbClusterHost']"
-    :selected="selectedHosts"
+    :cluster-types="[ClusterTypes.TENDBHA]"
+    :selected="selectedInstances"
+    :tab-list-config="tabListConfig"
     @change="handleSelectorChange" />
 </template>
 <script lang="ts" setup>
@@ -48,50 +63,68 @@
 
   import { checkInstance } from '@services/source/dbbase';
 
+  import { ClusterTypes } from '@common/const';
   import { ipv4 } from '@common/regex';
 
-  import { Column, Input } from '@components/editable-table/Index.vue';
-  import InstanceSelector, { type InstanceSelectorValues, type IValue } from '@components/instance-selector/Index.vue';
+  import { Block, Column, Input } from '@components/editable-table/Index.vue';
+  import InstanceSelector, {
+    type InstanceSelectorValues,
+    type IValue,
+    type PanelListType,
+  } from '@components/instance-selector/Index.vue';
 
   export type SelectorHost = IValue;
 
-  export type InputedHost = ServiceReturnType<typeof checkInstance>[number];
-
   interface Props {
     selected: {
-      bk_cloud_id?: number;
-      bk_host_id?: number;
       ip: string;
     }[];
-    minWidth?: number;
   }
 
   interface Emits {
     (e: 'batch-edit', list: IValue[]): void;
-    (e: 'change', data: InputedHost): void;
   }
 
-  const props = withDefaults(defineProps<Props>(), {
-    minWidth: 300,
-  });
+  const props = defineProps<Props>();
 
   const emits = defineEmits<Emits>();
 
   const modelValue = defineModel<{
+    bk_biz_id?: number;
     bk_cloud_id?: number;
     bk_host_id?: number;
     ip: string;
+    related_clusters: {
+      id: number;
+      master_domain: string;
+    }[];
   }>({
     default: () => ({
       ip: '',
+      related_clusters: [],
     }),
   });
 
   const { t } = useI18n();
 
+  const tabListConfig = {
+    [ClusterTypes.TENDBHA]: [
+      {
+        name: t('目标从库'),
+        tableConfig: {
+          firsrColumn: {
+            label: 'slave',
+            role: 'slave',
+            field: 'ip',
+          },
+        },
+      },
+    ],
+  } as unknown as Record<ClusterTypes, PanelListType>;
+
   const showSelector = ref(false);
-  const selectedHosts = computed<InstanceSelectorValues<IValue>>(() => ({
-    TendbClusterHost: props.selected.map(
+  const selectedInstances = computed<InstanceSelectorValues<IValue>>(() => ({
+    [ClusterTypes.TENDBHA]: props.selected.map(
       (item) =>
         ({
           ip: item.ip,
@@ -117,8 +150,17 @@
     onSuccess: (data) => {
       modelValue.value.bk_host_id = undefined;
       if (data.length) {
-        modelValue.value.bk_host_id = data[0].bk_host_id;
-        emits('change', data[0]);
+        const [currentHost] = data;
+        modelValue.value = {
+          bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+          bk_host_id: currentHost.bk_host_id,
+          bk_cloud_id: currentHost.bk_cloud_id,
+          ip: currentHost.ip,
+          related_clusters: currentHost.related_clusters.map((item) => ({
+            id: item.id,
+            master_domain: item.master_domain,
+          })),
+        };
       }
     },
   });
@@ -135,7 +177,7 @@
   };
 
   const handleSelectorChange = (selected: InstanceSelectorValues<IValue>) => {
-    emits('batch-edit', selected.TendbClusterHost);
+    emits('batch-edit', selected[ClusterTypes.TENDBHA]);
   };
 </script>
 <style lang="less" scoped>
@@ -143,5 +185,9 @@
     font-size: 14px;
     color: #3a84ff;
     cursor: pointer;
+  }
+
+  .table-cell {
+    padding: 0 8px;
   }
 </style>

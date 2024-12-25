@@ -86,7 +86,8 @@
   import { TicketTypes } from '@common/const';
 
   import CardCheckbox from '@components/db-card-checkbox/CardCheckbox.vue';
-  import TicketRemark from '@components/ticket-remark/TicketRemark.vue';
+
+  import TicketRemark from '@views/db-manage/common/toolbox-field/ticket-remark/Index.vue';
 
   import HostTable from './components/HostTable.vue';
   import InstanceTable from './components/InstanceTable.vue';

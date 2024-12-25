@@ -5,7 +5,13 @@
     v-bind="{ ...attrs, ...props }"
     @blur="handleBlur"
     @focus="handleFocus">
-    <slot />
+    <template
+      v-if="slots.option"
+      #optionRender="{ item }">
+      <slot
+        :item="item"
+        name="option" />
+    </template>
   </BkSelect>
 </template>
 <script lang="ts">
@@ -25,10 +31,15 @@
   import useColumn from '../useColumn';
 
   const props = defineProps<Props>();
+
   const emits = defineEmits<{
     (e: 'blur'): void;
     (e: 'focus'): void;
     (e: 'change', value: T): void;
+  }>();
+
+  const slots = defineSlots<{
+    option?: (value: { item: Record<string, any> }) => VNode;
   }>();
 
   const attrs = useAttrs();

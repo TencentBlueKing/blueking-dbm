@@ -85,7 +85,7 @@ export default [
       },
       {
         name: t('重建从库'),
-        id: 'spiderSlaveRebuild',
+        id: TicketTypes.TENDBCLUSTER_RESTORE_SLAVE,
         parentId: 'spider_cluster_maintain',
         dbConsoleValue: 'tendbCluster.toolbox.slaveRebuild',
       },

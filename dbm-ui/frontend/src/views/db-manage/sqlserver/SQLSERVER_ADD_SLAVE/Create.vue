@@ -16,7 +16,7 @@
     <BkAlert
       class="mb-20"
       closable
-      :title="t('添加从库_同机的所有集群会统一新增从库_但新机器不添加到域名解析中去')" />
+      :title="t('添加从库：同机的所有集群会统一新增从库，仅支持 always on 集群')" />
     <BkForm
       v-model="formData"
       class="mb-20"
@@ -29,7 +29,7 @@
         <EditableTableRow
           v-for="(item, index) in formData.tableData"
           :key="index">
-          <WithRelatedClusters
+          <ClusterColumn
             v-model="item.cluster"
             :selected="selected"
             @batch-edit="handleBatchEdit" />
@@ -70,7 +70,7 @@
   import { reactive, useTemplateRef } from 'vue';
   import { useI18n } from 'vue-i18n';
 
-  import TendbhaModel from '@services/model/mysql/tendbha';
+  import SqlServerHaModel from '@services/model/sqlserver/sqlserver-ha';
   import { BackupSourceType } from '@services/types';
 
   import { useCreateTicket } from '@hooks';
@@ -83,16 +83,13 @@
   import SingleHost from '@views/db-manage/common/toolbox-field/host-column/SingleHost.vue';
   import OperationColumn from '@views/db-manage/common/toolbox-field/operation-column/Index.vue';
   import TicketRemark from '@views/db-manage/common/toolbox-field/ticket-remark/Index.vue';
-  import WithRelatedClusters from '@views/db-manage/mysql/common/edit-table-column/WithRelatedClusters.vue';
+
+  import ClusterColumn from './components/ClusterColumn.vue';
 
   interface RowData {
     cluster: {
       id: number;
       domain: string;
-      relatedClusters: {
-        id: number;
-        domain: string;
-      }[];
     };
     slave: {
       bk_biz_id: number;
@@ -117,43 +114,14 @@
   });
 
   const formData = reactive(defaultData());
-  // 表格行内已通过校验的集群为所选集群
   const selected = computed(() => formData.tableData.filter((item) => item.cluster.id).map((item) => item.cluster));
-  // 集群域名到自身及其下集群id、域名映射
-  const clusterMap = computed(() => {
-    const result = selected.value.reduce<Record<string, { ids: number[]; domains: string[] }>>((acc, cur) => {
-      const relatedClusters = cur?.relatedClusters || [];
-      acc[cur.domain] = {
-        ids: [cur.id, ...relatedClusters.map((item) => item.id)],
-        domains: [cur.domain, ...relatedClusters.map((item) => item.domain)],
-      };
-      return acc;
-    }, {});
-    return result;
-  });
-  let repeatTarget = '';
+  const selectedMap = computed(() => Object.fromEntries(selected.value.map((cur) => [cur.domain, true])));
 
   const rules = {
     'cluster.domain': [
       {
         validator: (value: string) => selected.value.filter((item) => item.domain === value).length < 2,
         message: t('目标集群重复'),
-        trigger: 'change',
-      },
-      {
-        validator: (value: string) => {
-          repeatTarget = '';
-          let result = true;
-          Object.entries(clusterMap.value).forEach(([domain, item]) => {
-            const isContain = item.domains.includes(value);
-            if (isContain && domain !== value) {
-              repeatTarget = domain;
-              result = false;
-            }
-          });
-          return result;
-        },
-        message: () => t('目标集群是集群target的关联集群_请勿重复添加', { target: repeatTarget }),
         trigger: 'change',
       },
     ],
@@ -163,14 +131,20 @@
     backup_source: BackupSourceType;
     infos: {
       cluster_ids: number[];
-      new_slave: {
-        bk_biz_id: number;
-        bk_cloud_id: number;
-        bk_host_id: number;
-        ip: string;
+      resource_spec: {
+        new_slave: {
+          spec_id: number;
+          count: number;
+          hosts: {
+            bk_biz_id: number;
+            bk_cloud_id: number;
+            bk_host_id: number;
+            ip: string;
+          }[];
+        };
       };
     }[];
-  }>(TicketTypes.MYSQL_ADD_SLAVE);
+  }>(TicketTypes.SQLSERVER_ADD_SLAVE);
 
   const handleSubmit = async () => {
     const result = await tableRef.value!.validate();
@@ -181,9 +155,14 @@
       {
         backup_source: formData.backupSource,
         infos: formData.tableData.map((item) => ({
-          cluster_ids: [item.cluster.id, ...item.cluster.relatedClusters.map((item) => item.id)],
-          new_master: item.slave,
-          new_slave: item.slave,
+          cluster_ids: [item.cluster.id],
+          resource_spec: {
+            new_slave: {
+              spec_id: 0,
+              count: 1,
+              hosts: [item.slave],
+            },
+          },
         })),
       },
       formData.remark,
@@ -194,15 +173,14 @@
     Object.assign(formData, defaultData());
   };
 
-  const handleBatchEdit = (list: TendbhaModel[]) => {
+  const handleBatchEdit = (list: SqlServerHaModel[]) => {
     const dataList = list.reduce<RowData[]>((acc, item) => {
-      if (!clusterMap.value[item.master_domain]) {
+      if (!selectedMap.value[item.master_domain]) {
         acc.push(
           createTableRow({
             cluster: {
               id: item.id,
               domain: item.master_domain,
-              relatedClusters: [],
             },
           }),
         );

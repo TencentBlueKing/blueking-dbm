@@ -14,9 +14,9 @@
 <template>
   <Column
     :append-rules="rules"
-    field="originProxy.ip"
+    field="slave.ip"
     fixed="left"
-    :label="t('目标Proxy主机')"
+    :label="t('目标从库主机')"
     :loading="loading"
     :min-width="300"
     required>
@@ -34,35 +34,16 @@
       @change="handleInputChange" />
   </Column>
   <Column
-    :label="t('同机关联实例')"
-    :loading="loading"
-    :min-width="300">
-    <div
-      v-if="modelValue.related_instances.length"
-      class="related-clusters"
-      style="flex: 1">
-      <p
-        v-for="item in modelValue.related_instances"
-        :key="item">
-        {{ item }}
-      </p>
-    </div>
-    <Block
-      v-else
-      :placeholder="t('自动生成')" />
-  </Column>
-  <Column
     :label="t('同机关联集群')"
     :loading="loading"
     :min-width="300">
     <div
       v-if="modelValue.related_clusters.length"
-      class="related-clusters"
-      style="flex: 1">
+      class="table-cell">
       <p
         v-for="item in modelValue.related_clusters"
-        :key="item">
-        {{ item }}
+        :key="item.id">
+        {{ item.master_domain }}
       </p>
     </div>
     <Block
@@ -71,7 +52,7 @@
   </Column>
   <InstanceSelector
     v-model:is-show="showSelector"
-    :cluster-types="[TENDBHA_HOST]"
+    :cluster-types="[ClusterTypes.SQLSERVER_HA]"
     :selected="selectedInstances"
     :tab-list-config="tabListConfig"
     @change="handleSelectorChange" />
@@ -81,6 +62,7 @@
   import { useRequest } from 'vue-request';
 
   import { checkInstance } from '@services/source/dbbase';
+  import { getSqlServerInstanceList } from '@services/source/sqlserveHaCluster';
 
   import { ClusterTypes } from '@common/const';
   import { ipv4 } from '@common/regex';
@@ -92,7 +74,7 @@
     type PanelListType,
   } from '@components/instance-selector/Index.vue';
 
-  export type SelectorItem = IValue;
+  export type SelectorHost = IValue;
 
   interface Props {
     selected: {
@@ -109,51 +91,47 @@
   const emits = defineEmits<Emits>();
 
   const modelValue = defineModel<{
+    bk_biz_id?: number;
     bk_cloud_id?: number;
     bk_host_id?: number;
     ip: string;
-    port?: number;
-    cluster_ids: number[];
-    related_instances: string[];
-    related_clusters: string[];
+    related_clusters: {
+      id: number;
+      master_domain: string;
+    }[];
   }>({
     default: () => ({
       ip: '',
-      cluster_ids: [],
-      related_instances: [],
       related_clusters: [],
     }),
   });
 
   const { t } = useI18n();
 
-  const TENDBHA_HOST = 'TendbhaHost';
   const tabListConfig = {
-    [TENDBHA_HOST]: [
+    [ClusterTypes.SQLSERVER_HA]: [
       {
-        id: [TENDBHA_HOST],
-        name: t('目标Proxy主机'),
+        name: t('从库主机'),
         tableConfig: {
-          firsrColumn: {
-            label: t('Proxy 主机'),
-            field: 'ip',
-            role: 'proxy',
-          },
-        },
-      },
-      {
-        id: 'manualInput',
-        name: t('手动输入'),
-        tableConfig: {
-          firsrColumn: {
-            label: t('Proxy 主机'),
-            field: 'ip',
-            role: 'proxy',
-          },
+          getTableList: (params: ServiceParameters<typeof getSqlServerInstanceList>) =>
+            getSqlServerInstanceList({
+              ...params,
+              role: 'backend_slave',
+            }),
         },
       },
     ],
-  } as Record<string, PanelListType>;
+  } as Record<ClusterTypes, PanelListType>;
+
+  const showSelector = ref(false);
+  const selectedInstances = computed<InstanceSelectorValues<IValue>>(() => ({
+    [ClusterTypes.SQLSERVER_HA]: props.selected.map(
+      (item) =>
+        ({
+          ip: item.ip,
+        }) as IValue,
+    ),
+  }));
 
   const rules = [
     {
@@ -168,35 +146,23 @@
     },
   ];
 
-  const showSelector = ref(false);
-  const selectedInstances = computed(
-    () =>
-      ({
-        [ClusterTypes.TENDBHA]: props.selected,
-      }) as unknown as InstanceSelectorValues<IValue>,
-  );
-
-  const { run: queryInstance, loading } = useRequest(checkInstance, {
+  const { run: queryHost, loading } = useRequest(checkInstance, {
     manual: true,
     onSuccess: (data) => {
-      const [hostInfo] = data;
-      const clusterIds: number[] = [];
-      const relatedInstances: string[] = [];
-      const relatedClusters: string[] = [];
-      data.forEach((item) => {
-        clusterIds.push(item.cluster_id);
-        relatedInstances.push(item.instance_address);
-        relatedClusters.push(item.master_domain);
-      });
-      modelValue.value = {
-        bk_cloud_id: hostInfo.bk_cloud_id,
-        bk_host_id: hostInfo.bk_host_id,
-        ip: hostInfo.ip,
-        port: hostInfo.port,
-        cluster_ids: clusterIds,
-        related_instances: relatedInstances,
-        related_clusters: relatedClusters,
-      };
+      modelValue.value.bk_host_id = undefined;
+      if (data.length) {
+        const [currentHost] = data;
+        modelValue.value = {
+          bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+          bk_host_id: currentHost.bk_host_id,
+          bk_cloud_id: currentHost.bk_cloud_id,
+          ip: currentHost.ip,
+          related_clusters: currentHost.related_clusters.map((item) => ({
+            id: item.id,
+            master_domain: item.master_domain,
+          })),
+        };
+      }
     },
   });
 
@@ -205,17 +171,16 @@
   };
 
   const handleInputChange = (value: string) => {
-    queryInstance({
+    queryHost({
       bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
       instance_addresses: [value],
     });
   };
 
   const handleSelectorChange = (selected: InstanceSelectorValues<IValue>) => {
-    emits('batch-edit', selected[TENDBHA_HOST]);
+    emits('batch-edit', selected[ClusterTypes.SQLSERVER_HA]);
   };
 </script>
-
 <style lang="less" scoped>
   .batch-host-select {
     font-size: 14px;
@@ -223,15 +188,7 @@
     cursor: pointer;
   }
 
-  .related-clusters {
-    padding: 10px 16px;
-    line-height: 20px;
-    background: #fff;
-
-    p {
-      width: 100%;
-      overflow-x: hidden;
-      text-overflow: ellipsis;
-    }
+  .table-cell {
+    padding: 0 8px;
   }
 </style>

@@ -59,14 +59,7 @@ export const mysqlToolboxChildrenRouters: RouteRecordRaw[] = [
     },
     component: () => import('@views/db-manage/mysql/privilege-clone-inst/Index.vue'),
   },
-  {
-    name: 'MySQLSlaveRebuild',
-    path: 'slave-rebuild/:page?',
-    meta: {
-      navName: t('重建从库'),
-    },
-    component: () => import('@views/db-manage/mysql/slave-rebuild/index.vue'),
-  },
+  createRouteItem(TicketTypes.MYSQL_RESTORE_SLAVE, t('重建从库')),
   createRouteItem(TicketTypes.MYSQL_ADD_SLAVE, t('添加从库')),
   createRouteItem(TicketTypes.MYSQL_MIGRATE_CLUSTER, t('迁移主从')),
   createRouteItem(TicketTypes.MYSQL_PROXY_ADD, t('添加Proxy')),

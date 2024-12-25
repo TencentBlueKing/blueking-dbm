@@ -106,7 +106,7 @@ export default [
     children: [
       {
         name: t('重建从库'),
-        id: 'MySQLSlaveRebuild',
+        id: TicketTypes.MYSQL_RESTORE_SLAVE,
         parentId: 'migrate',
         dbConsoleValue: 'mysql.toolbox.slaveRebuild',
       },

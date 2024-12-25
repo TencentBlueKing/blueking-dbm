@@ -203,15 +203,17 @@ const spiderOpenareaTemplateRoute = {
 // };
 const spiderMasterSlaveCloneRoute = createRouteItem(TicketTypes.TENDBCLUSTER_MIGRATE_CLUSTER, t('迁移主从'));
 
-const spiderSlaveRebuildRoute = {
-  path: 'slave-rebuild/:page?',
-  name: 'spiderSlaveRebuild',
-  meta: {
-    navName: t('重建从库'),
-    activeMenu: 'spiderToolbox',
-  },
-  component: () => import('@views/db-manage/tendb-cluster/slave-rebuild/Index.vue'),
-};
+// const spiderSlaveRebuildRoute = {
+//   path: 'slave-rebuild/:page?',
+//   name: 'spiderSlaveRebuild',
+//   meta: {
+//     navName: t('重建从库'),
+//     activeMenu: 'spiderToolbox',
+//   },
+//   component: () => import('@views/db-manage/tendb-cluster/slave-rebuild/Index.vue'),
+// };
+
+const spiderSlaveRebuildRoute = createRouteItem(TicketTypes.TENDBCLUSTER_RESTORE_SLAVE, t('重建从库'));
 
 const spiderWebconsoleRoute = {
   name: 'SpiderWebconsole',
