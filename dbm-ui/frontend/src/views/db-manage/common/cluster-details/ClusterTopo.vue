@@ -151,6 +151,17 @@
   const { graphState, instState, instDetails, renderDraph, handleZoomIn, handleZoomOut, handleZoomReset } =
     useRenderGraph(props, graphDataInst.nodeConfig);
 
+  watch(
+    instDetails,
+    () => {
+      console.log('instDetails=== ', instDetails.value);
+    },
+    {
+      deep: true,
+      immediate: true,
+    },
+  );
+
   /**
    * 获取拓扑数据
    */

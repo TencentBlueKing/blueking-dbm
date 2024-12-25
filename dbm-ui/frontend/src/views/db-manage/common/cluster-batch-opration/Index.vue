@@ -113,7 +113,10 @@
   });
 
   const popoverOptions = computed(() => ({
+    boundary: 'body',
     disableOutsideClick: sideSliderShow.value,
+    clickContentAutoHide: true,
+    renderType: 'auto',
   }));
 
   watch(sideSliderShow, () => {

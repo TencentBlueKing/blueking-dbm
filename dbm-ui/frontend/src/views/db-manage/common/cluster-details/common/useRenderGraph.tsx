@@ -59,6 +59,7 @@ interface InstanceDetails {
   bk_disk: number;
   bk_host_id: number;
   bk_host_innerip: string;
+  bk_idc_city_name: string;
   bk_mem: number;
   bk_os_name: string;
   cluster_id: number;
@@ -141,7 +142,7 @@ export const detailColumns: DetailColumns<any> = [
   },
   {
     label: t('所在城市'),
-    key: 'idc_city_name',
+    key: 'bk_idc_city_name',
   },
   {
     label: 'CPU',

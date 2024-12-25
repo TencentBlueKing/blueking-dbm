@@ -87,7 +87,7 @@
       },
       {
         label: t('所在城市'),
-        key: 'idc_city_name',
+        key: 'bk_idc_city_name',
       },
       {
         label: t('所在园区'),
@@ -97,7 +97,7 @@
     [
       {
         label: t('部署架构'),
-        key: 'cluster_type_display',
+        key: 'clusterTypeName',
       },
       {
         label: t('部署角色'),
