@@ -13,6 +13,9 @@
 
 import type { HostInfo, InstanceListSpecConfig, InstanceRelatedCluster } from '@services/types';
 
+import { clusterTypeInfos } from '@common/const/clusterTypeInfos';
+import { ClusterTypes } from '@common/const/clusterTypes';
+
 import { utcDisplayTime } from '@utils';
 
 export default class TendbhaInstance {
@@ -22,6 +25,11 @@ export default class TendbhaInstance {
   db_version: string;
   bk_disk: number;
   bk_host_id: number;
+  bk_host_innerip: string;
+  bk_idc_id: number;
+  bk_idc_name: string;
+  bk_idc_city_id: string;
+  bk_idc_city_name: string;
   bk_mem: number;
   bk_sub_zone: string;
   cluster_id: number;
@@ -53,6 +61,11 @@ export default class TendbhaInstance {
     this.bk_cpu = payload.bk_cpu || 0;
     this.bk_disk = payload.bk_disk || 0;
     this.bk_host_id = payload.bk_host_id || 0;
+    this.bk_host_innerip = payload.bk_host_innerip || '';
+    this.bk_idc_id = payload.bk_idc_id || 0;
+    this.bk_idc_name = payload.bk_idc_name || '';
+    this.bk_idc_city_id = payload.bk_idc_city_id || '';
+    this.bk_idc_city_name = payload.bk_idc_city_name || '';
     this.bk_mem = payload.bk_mem || 0;
     this.bk_sub_zone = payload.bk_sub_zone || '';
     this.cluster_id = payload.cluster_id || 0;
@@ -80,5 +93,9 @@ export default class TendbhaInstance {
 
   get createAtDisplay() {
     return utcDisplayTime(this.create_at);
+  }
+
+  get clusterTypeName() {
+    return clusterTypeInfos[this.cluster_type as ClusterTypes].architectureName || '';
   }
 }
