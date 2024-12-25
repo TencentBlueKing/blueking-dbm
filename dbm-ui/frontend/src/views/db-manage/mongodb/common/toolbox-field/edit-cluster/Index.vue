@@ -24,6 +24,7 @@
       v-model:is-show="isShowClusterSelector"
       :cluster-types="clusterTypes"
       :selected="selected as MappedProps"
+      :tab-list-config="tabListConfig"
       @change="handelClusterChange" />
   </EditableTableColumn>
 </template>
@@ -36,7 +37,7 @@
 
   import { domainRegex } from '@common/regex';
 
-  import ClusterSelector from '@components/cluster-selector/Index.vue';
+  import ClusterSelector, { type TabConfig } from '@components/cluster-selector/Index.vue';
   import { Column as EditableTableColumn, Input as EditInput } from '@components/editable-table/Index.vue';
 
   type MappedProps = {
@@ -54,6 +55,7 @@
     >;
     label?: string;
     field?: string;
+    tabListConfig?: Record<string, TabConfig>;
   }
 
   interface Emits {
@@ -63,6 +65,7 @@
   withDefaults(defineProps<Props>(), {
     label: '目标集群',
     field: 'cluster.master_domain',
+    tabListConfig: undefined,
   });
   const emits = defineEmits<Emits>();
 
