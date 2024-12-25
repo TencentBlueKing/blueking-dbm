@@ -40,7 +40,7 @@ export default [
     children: [
       {
         name: t('扩容Shard节点数'),
-        id: 'MongoShardScaleUp',
+        id: TicketTypes.MONGODB_ADD_SHARD_NODES,
         parentId: 'mongo_manage',
       },
       {
