@@ -44,7 +44,6 @@
     <InfoItem
       v-if="resourceSpec"
       :label="t('后端存储规格：')">
-      {{ ticketDetails.details.cluster_count }}
       <BkPopover
         placement="top"
         theme="light">
