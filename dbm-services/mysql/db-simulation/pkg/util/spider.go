@@ -49,7 +49,7 @@ func ParseGetShardKeyForSpider(tableComment string) (string, error) {
 	if end-pos <= 0 {
 		return "", errors.New("parse error")
 	}
-
+	//nolint
 	len := uint(end - pos)
 	keyBuf := make([]byte, len)
 	copy(keyBuf, tableComment[pos:end])

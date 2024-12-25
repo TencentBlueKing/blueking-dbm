@@ -142,7 +142,7 @@ func (tf *TmysqlParseFile) Do(dbtype string, versions []string) (result map[stri
 }
 
 func (tf *TmysqlParseFile) doSingleVersion(dbtype string, mysqlVersion string) (err error) {
-	errChan := make(chan error, len(tf.Param.FileNames))
+	errChan := make(chan error)
 	alreadExecutedSqlfileChan := make(chan string, len(tf.Param.FileNames))
 	signalChan := make(chan struct{})
 
@@ -257,7 +257,7 @@ func (t *TmysqlParse) delTempDir() {
 // Downloadfile download sqlfile
 func (tf *TmysqlParseFile) Downloadfile() (err error) {
 	wg := &sync.WaitGroup{}
-	errCh := make(chan error, 10)
+	errCh := make(chan error)
 	c := make(chan struct{}, 5)
 	for _, fileName := range tf.Param.FileNames {
 		wg.Add(1)
@@ -335,7 +335,7 @@ func (tf *TmysqlParseFile) Execute(alreadExecutedSqlfileCh chan string, version 
 	var wg sync.WaitGroup
 	var errs []error
 	c := make(chan struct{}, 10) // Semaphore to limit concurrent goroutines
-	errChan := make(chan error, len(tf.Param.FileNames))
+	errChan := make(chan error)
 
 	// Iterate through all SQL files
 	for _, fileName := range tf.Param.FileNames {
@@ -383,7 +383,7 @@ func (t *TmysqlParse) AnalyzeParseResult(alreadExecutedSqlfileCh chan string, my
 	dbtype string) (err error) {
 	var errs []error
 	c := make(chan struct{}, 10)
-	errChan := make(chan error, 5)
+	errChan := make(chan error)
 	wg := &sync.WaitGroup{}
 
 	for sqlfile := range alreadExecutedSqlfileCh {

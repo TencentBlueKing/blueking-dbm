@@ -172,8 +172,12 @@ func init() {
 	})
 	go func() {
 		// 等待一个周期的原因，避免重载执行正常的任务
-		time.Sleep(time.Duration(HeartbeatInterval) * time.Second)
-		reloadRunningTaskFromdb()
+		// 因为http svr 是graceful shutdown, 可能旧的服务会接受请求
+		for i := 0; i < 5; i++ {
+			logger.Info("the %d times reload running task", i)
+			time.Sleep(time.Duration(HeartbeatInterval) * time.Second)
+			reloadRunningTaskFromdb(i + HeartbeatInterval)
+		}
 		rdb.Close()
 	}()
 }
@@ -185,7 +189,8 @@ type ReloadParam struct {
 }
 
 // reloadRunningTaskFromdb 重载重启服务前运行的任务 加锁是避免多个服务同时启动，避免相同任务被重载
-func reloadRunningTaskFromdb() {
+// nolint
+func reloadRunningTaskFromdb(heartbeatInterval int) {
 	key := "simulation:reload:lock"
 	locker := redislock.New(rdb)
 	ctx := context.Background()
@@ -200,9 +205,8 @@ func reloadRunningTaskFromdb() {
 	}()
 	var tks []model.TbSimulationTask
 	if err := model.DB.Model(model.TbSimulationTask{}).Where(
-		//nolint
-		"phase not in (?) and create_time >  DATE_SUB(NOW(),INTERVAL 2 HOUR) and time_to_sec(timediff(now(),heartbeat_time)) > ? ",
-		[]string{model.PhaseDone, model.PhaseReloading}, HeartbeatInterval).Scan(&tks).Error; err != nil {
+		"phase not in (?) and create_time > DATE_SUB(NOW(),INTERVAL 2 HOUR) and time_to_sec(timediff(now(),heartbeat_time)) > ?",
+		[]string{model.PhaseDone, model.PhaseReloading}, heartbeatInterval).Scan(&tks).Error; err != nil {
 		logger.Error("get running task failed %s", err.Error())
 		return
 	}
