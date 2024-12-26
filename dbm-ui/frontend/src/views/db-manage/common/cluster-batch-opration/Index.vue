@@ -116,7 +116,7 @@
     boundary: 'body',
     disableOutsideClick: sideSliderShow.value,
     clickContentAutoHide: true,
-    renderType: 'auto',
+    renderDirective: 'show',
   }));
 
   watch(sideSliderShow, () => {
