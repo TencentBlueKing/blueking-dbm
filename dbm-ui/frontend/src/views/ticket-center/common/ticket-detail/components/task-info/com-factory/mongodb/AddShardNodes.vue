@@ -73,8 +73,8 @@
   const tableData = infos.map((item) => ({
     immute_domain: clusters[item.cluster_ids[0]].immute_domain,
     cluster_type: clusters[item.cluster_ids[0]].cluster_type_name,
-    add_shard_nodes_num: item.add_shard_nodes_num,
-    current_nodes: item.add_shard_nodes_num - item.resource_spec.shard_nodes.count,
+    current_nodes: item.current_shard_nodes_num,
+    add_shard_nodes_num: item.current_shard_nodes_num + item.add_shard_nodes_num,
   }));
 </script>
 <style lang="less" scoped>
