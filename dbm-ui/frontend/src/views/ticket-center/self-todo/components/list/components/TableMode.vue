@@ -48,7 +48,7 @@
               v-if="data"
               text
               theme="primary"
-              @click="() => handleShowDetail(data)">
+              @click="(event: MouseEvent) => handleGoDetail(data, event)">
               {{ data.id }}
             </BkButton>
           </template>
@@ -72,7 +72,7 @@
   </div>
 </template>
 <script setup lang="ts">
-  import { getCurrentInstance, onActivated, onDeactivated, ref, shallowRef, useTemplateRef } from 'vue';
+  import { onActivated, onDeactivated, ref, shallowRef, useTemplateRef } from 'vue';
   import { useI18n } from 'vue-i18n';
   import { useRoute, useRouter } from 'vue-router';
 
@@ -82,6 +82,7 @@
   import { useStretchLayout, useUrlSearch } from '@hooks';
 
   import useDatePicker from '@views/ticket-center/common/hooks/use-date-picker';
+  import useOpenDetail from '@views/ticket-center/common/hooks/use-open-detail';
   import useSearchSelect from '@views/ticket-center/common/hooks/use-search-select';
   import TableModeTable from '@views/ticket-center/common/TableModeTable.vue';
 
@@ -93,11 +94,10 @@
   const router = useRouter();
 
   const { t } = useI18n();
-  const currentInstance = getCurrentInstance();
 
   const { list: statusList, defaultStatus: ticketStatus } = useStatusList();
 
-  const { getSearchParams, removeSearchParam } = useUrlSearch();
+  const { removeSearchParam } = useUrlSearch();
   const { splitScreen: stretchLayoutSplitScreen } = useStretchLayout();
 
   const { value: datePickerValue, shortcutsRange } = useDatePicker();
@@ -105,6 +105,8 @@
   const { value: searachSelectValue, searchSelectData } = useSearchSelect({
     exclude: ['status'],
   });
+
+  const handleGoDetail = useOpenDetail();
 
   const rowClass = (params: TicketModel) => (params.id === selectTicketId.value ? 'select-row' : '');
 
@@ -117,7 +119,6 @@
     });
 
   const dataTableRef = useTemplateRef('dataTable');
-  // const ticketStatus = ref(defaultStatus.value);
   const selectTicketIdList = shallowRef<TicketModel[]>([]);
   const isShowBatchOperation = ref(false);
   const selectTicketId = ref(0);
@@ -148,7 +149,6 @@
   };
 
   onActivated(() => {
-    // ticketStatus.value = defaultStatus.value;
     selectTicketId.value = Number(route.query.selectId);
     removeSearchParam('selectId');
     resumeTicketStatus();
@@ -156,18 +156,6 @@
 
   onDeactivated(() => {
     pauseTicketStatus();
-    setTimeout(() => {
-      if (currentInstance!.isUnmounted) {
-        return;
-      }
-      router.replace({
-        params: {
-          status: ticketStatus.value,
-          ticketId: selectTicketId.value,
-        },
-        query: getSearchParams(),
-      });
-    });
   });
 </script>
 <style lang="less">
