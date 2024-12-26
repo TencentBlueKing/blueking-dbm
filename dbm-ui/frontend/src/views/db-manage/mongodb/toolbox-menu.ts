@@ -45,7 +45,7 @@ export default [
       },
       {
         name: t('缩容Shard节点数'),
-        id: 'MongoShardScaleDown',
+        id: TicketTypes.MONGODB_REDUCE_SHARD_NODES,
         parentId: 'mongo_manage',
       },
       {
