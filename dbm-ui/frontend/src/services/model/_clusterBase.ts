@@ -36,4 +36,8 @@ export default class ClusterBase {
   get updateAtDisplay() {
     return utcDisplayTime(this.update_at);
   }
+
+  get masterDomain() {
+    return this.master_domain || this.domain;
+  }
 }

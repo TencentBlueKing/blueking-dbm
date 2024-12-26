@@ -1,5 +1,7 @@
 import type { HostInfo, InstanceListSpecConfig, InstanceRelatedCluster } from '@services/types';
 
+import { ClusterTypes } from '@common/const';
+
 export default class RiakInstance {
   bk_cloud_id: number;
   bk_cloud_name: string;
@@ -11,7 +13,7 @@ export default class RiakInstance {
   bk_idc_city_name: string;
   cluster_id: number;
   cluster_name: string;
-  cluster_type: string;
+  cluster_type: ClusterTypes;
   create_at: string;
   db_module_id: number;
   db_module_name: string;

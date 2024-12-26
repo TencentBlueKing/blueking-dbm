@@ -14,7 +14,7 @@ import { uniq } from 'lodash';
 
 import type { ClusterListEntry, ClusterListNode, ClusterListOperation, ClusterListSpec } from '@services/types';
 
-import { ClusterAffinityMap } from '@common/const';
+import { ClusterAffinityMap, ClusterTypes } from '@common/const';
 
 import { t } from '@locales/index';
 
@@ -59,7 +59,7 @@ export default class Redis extends ClusterBase {
   cluster_spec: ClusterListSpec;
   cluster_stats: Record<'used' | 'total' | 'in_use', number>;
   cluster_time_zone: string;
-  cluster_type: string;
+  cluster_type: ClusterTypes;
   cluster_type_name: string;
   create_at: string;
   creator: string;
@@ -91,8 +91,8 @@ export default class Redis extends ClusterBase {
   phase: string;
   phase_name: string;
   proxy: ClusterListNode[];
-  redis_master: ClusterListNode[];
-  redis_slave: ClusterListNode[];
+  redis_master: ({ seg_range: string } & ClusterListNode)[];
+  redis_slave: ({ seg_range: string } & ClusterListNode)[];
   region: string;
   slave_domain: string;
   status: string;
@@ -209,7 +209,7 @@ export default class Redis extends ClusterBase {
     return displayName;
   }
 
-  get redisInstanceSlaveDomainDisplayName() {
+  get slaveDomainDisplayName() {
     const port = this.cluster_access_port;
     const displayName = port ? `${this.slave_domain}:${port}` : this.slave_domain;
     return this.slave_domain ? displayName : '--';
@@ -313,5 +313,9 @@ export default class Redis extends ClusterBase {
       Master: ClusterBase.getRoleFaildInstanceList(this.redis_master),
       Slave: ClusterBase.getRoleFaildInstanceList(this.redis_slave),
     };
+  }
+
+  get slaveList() {
+    return this.redis_slave;
   }
 }

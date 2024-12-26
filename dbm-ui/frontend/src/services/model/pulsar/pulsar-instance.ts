@@ -13,6 +13,8 @@
 
 import type { HostInfo, InstanceListOperation, InstanceRelatedCluster } from '@services/types';
 
+import { ClusterTypes } from '@common/const';
+
 import { t } from '@locales/index';
 
 export default class PulsarInstance {
@@ -29,6 +31,7 @@ export default class PulsarInstance {
   bk_cloud_id: number;
   bk_host_id: number;
   cluster_id: number;
+  cluster_type: ClusterTypes;
   create_at: string;
   restart_at: string;
   domain: string;
@@ -45,6 +48,7 @@ export default class PulsarInstance {
     this.bk_cloud_id = payload.bk_cloud_id;
     this.bk_host_id = payload.bk_host_id;
     this.cluster_id = payload.cluster_id;
+    this.cluster_type = payload.cluster_type;
     this.create_at = payload.create_at;
     this.restart_at = payload.restart_at;
     this.domain = payload.domain;

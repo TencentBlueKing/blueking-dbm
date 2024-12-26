@@ -14,7 +14,7 @@ import { uniq } from 'lodash';
 
 import type { ClusterListEntry, ClusterListNode, ClusterListSpec } from '@services/types';
 
-import { ClusterAffinityMap } from '@common/const';
+import { ClusterAffinityMap, ClusterTypes } from '@common/const';
 
 import { t } from '@locales/index';
 
@@ -66,7 +66,7 @@ export default class Pulsar extends ClusterBase {
   cluster_name: string;
   cluster_spec: ClusterListSpec;
   cluster_stats: Record<'used' | 'total' | 'in_use', number>;
-  cluster_type: string;
+  cluster_type: ClusterTypes;
   cluster_type_name: string;
   cluster_time_zone: string;
   create_at: string;
@@ -189,7 +189,7 @@ export default class Pulsar extends ClusterBase {
     return false;
   }
 
-  get domainDisplayName() {
+  get masterDomainDisplayName() {
     const port = this.pulsar_broker[0]?.port;
     const displayName = port ? `${this.domain}:${port}` : this.domain;
     return displayName;

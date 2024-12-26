@@ -10,9 +10,9 @@
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
  */
-import type { InstanceListOperation } from '@services/types';
+import type { InstanceListOperation, InstanceListSpecConfig } from '@services/types';
 
-import { TicketTypes } from '@common/const';
+import { ClusterTypes, TicketTypes } from '@common/const';
 
 import { t } from '@locales/index';
 
@@ -28,32 +28,53 @@ export default class DorisInstance {
   };
 
   bk_cloud_id: number;
+  bk_cloud_name: string;
   bk_host_id: number;
   cluster_id: number;
+  cluster_name: string;
+  cluster_type: ClusterTypes;
   create_at: string;
-  restart_at: string;
-  domain: string;
+  db_module_id: number;
+  db_module_name: string;
   id: number;
   instance_address: string;
   instance_name: string;
+  ip: string;
+  machine_type: string;
+  master_domain: string;
   operations: InstanceListOperation[];
+  port: number;
+  restart_at: string;
   role: string;
+  slave_domain: string;
+  spec_config: InstanceListSpecConfig;
   status: string;
+  version: string;
 
   constructor(payload = {} as DorisInstance) {
     this.bk_cloud_id = payload.bk_cloud_id;
+    this.bk_cloud_name = payload.bk_cloud_name;
     this.bk_host_id = payload.bk_host_id;
     this.cluster_id = payload.cluster_id;
+    this.cluster_name = payload.cluster_name;
+    this.cluster_type = payload.cluster_type;
     this.create_at = payload.create_at;
+    this.db_module_id = payload.db_module_id;
+    this.db_module_name = payload.db_module_name;
     this.restart_at = payload.restart_at;
-    this.domain = payload.domain;
     this.id = payload.id;
     this.instance_address = payload.instance_address;
     this.instance_name = payload.instance_name;
+    this.ip = payload.ip;
+    this.machine_type = payload.machine_type;
+    this.master_domain = payload.master_domain;
+    this.operations = payload.operations || [];
+    this.port = payload.port;
     this.role = payload.role;
+    this.slave_domain = payload.slave_domain;
+    this.spec_config = payload.spec_config || {};
     this.status = payload.status;
-
-    this.operations = this.initOperations(payload.operations);
+    this.version = payload.version;
   }
 
   // 操作中的状态
@@ -102,13 +123,5 @@ export default class DorisInstance {
       tip: DorisInstance.operationTextMap[item.ticket_type],
       ticketId: item.ticket_id,
     }));
-  }
-
-  initOperations(payload = [] as DorisInstance['operations']) {
-    if (!Array.isArray(payload)) {
-      return [];
-    }
-
-    return payload;
   }
 }

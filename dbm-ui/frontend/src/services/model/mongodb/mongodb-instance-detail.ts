@@ -1,5 +1,6 @@
-import { clusterTypeInfos } from '@common/const/clusterTypeInfos';
-import { ClusterTypes } from '@common/const/clusterTypes';
+import type { InstanceListOperation, InstanceListSpecConfig } from '@services/types';
+
+import { ClusterTypes } from '@common/const';
 
 export default class MongodbInstanceDetail {
   bk_agent_id: string;
@@ -15,23 +16,27 @@ export default class MongodbInstanceDetail {
   bk_idc_city_name: string;
   bk_mem: number;
   bk_os_name: string;
+  bk_sub_zone: string;
+  bk_sub_zone_id: number;
   cluster_id: number;
   cluster_name: string;
-  cluster_type: string;
+  cluster_type: ClusterTypes;
   cluster_type_name: string;
   create_at: string;
   db_module_id: number;
-  db_version: null;
+  db_module_name: number;
+  db_version: string;
   id: number;
   instance_address: string;
   ip: string;
   machine_type: string;
   master_domain: string;
+  operations: InstanceListOperation[];
   port: number;
   role: string;
   shard: string;
   slave_domain: string;
-  spec_config: string;
+  spec_config: InstanceListSpecConfig;
   status: string;
   version: string;
 
@@ -49,28 +54,28 @@ export default class MongodbInstanceDetail {
     this.bk_idc_city_name = payload.bk_idc_city_name || '';
     this.bk_mem = payload.bk_mem;
     this.bk_os_name = payload.bk_os_name;
+    this.bk_sub_zone = payload.bk_sub_zone;
+    this.bk_sub_zone_id = payload.bk_sub_zone_id;
     this.cluster_id = payload.cluster_id;
     this.cluster_name = payload.cluster_name;
     this.cluster_type = payload.cluster_type;
     this.cluster_type_name = payload.cluster_type_name;
     this.create_at = payload.create_at;
     this.db_module_id = payload.db_module_id;
+    this.db_module_name = payload.db_module_name;
     this.db_version = payload.db_version;
     this.id = payload.id;
     this.instance_address = payload.instance_address;
     this.ip = payload.ip;
     this.machine_type = payload.machine_type;
     this.master_domain = payload.master_domain;
+    this.operations = payload.operations || [];
     this.port = payload.port;
     this.role = payload.role;
     this.shard = payload.shard;
     this.slave_domain = payload.slave_domain;
-    this.spec_config = payload.spec_config;
+    this.spec_config = payload.spec_config || {};
     this.status = payload.status;
     this.version = payload.version;
-  }
-
-  get clusterTypeName() {
-    return clusterTypeInfos[this.cluster_type as ClusterTypes].architectureName || '';
   }
 }

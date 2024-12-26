@@ -79,10 +79,10 @@
       flex: 0 1 auto;
 
       & * {
-        display: block;
+        display: block !important;
         width: 100%;
         overflow: hidden;
-        line-height: 16px !important;
+        line-height: inherit !important;
         text-overflow: ellipsis;
         white-space: nowrap;
       }

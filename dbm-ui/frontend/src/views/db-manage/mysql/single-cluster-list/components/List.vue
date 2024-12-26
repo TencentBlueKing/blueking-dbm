@@ -54,7 +54,6 @@
       :class="{ 'is-shrink-table': isStretchLayoutOpen }">
       <DbTable
         ref="tableRef"
-        :columns="columns"
         :data-source="getTendbsingleList"
         releate-url-query
         :row-class="setRowClass"
@@ -65,7 +64,125 @@
         @column-filter="columnFilterChange"
         @column-sort="columnSortChange"
         @selection="handleSelection"
-        @setting-change="updateTableSettings" />
+        @setting-change="updateTableSettings">
+        <IdColumn :cluster-type="ClusterTypes.TENDBSINGLE" />
+        <MasterDomainColumn
+          :cluster-type="ClusterTypes.TENDBSINGLE"
+          field="master_domain"
+          :get-table-instance="getTableInstance"
+          :label="t('访问入口')"
+          :selected-list="selected"
+          @go-detail="handleToDetails"
+          @refresh="fetchData" />
+        <ClusterNameColumn
+          :cluster-type="ClusterTypes.TENDBSINGLE"
+          :get-table-instance="getTableInstance"
+          :selected-list="selected"
+          @refresh="fetchData" />
+        <StatusColumn :cluster-type="ClusterTypes.TENDBSINGLE" />
+        <ClusterStatsColumn :cluster-type="ClusterTypes.TENDBSINGLE" />
+        <RoleColumn
+          :cluster-type="ClusterTypes.TENDBSINGLE"
+          field="masters"
+          :get-table-instance="getTableInstance"
+          :label="t('实例')"
+          :search-ip="batchSearchIpInatanceList"
+          :selected-list="selected" />
+        <CommonColumn :cluster-type="ClusterTypes.TENDBSINGLE" />
+        <BkTableColumn
+          :fixed="isStretchLayoutOpen ? false : 'right'"
+          :label="t('操作')"
+          :min-width="220"
+          :show-overflow="false">
+          <template #default="{data}: {data: TendbsingleModel}">
+            <BkButton
+              v-db-console="'mysql.singleClusterList.authorize'"
+              class="mr-8"
+              :disabled="data.isOffline"
+              text
+              theme="primary"
+              @click="handleShowAuthorize([data])">
+              {{ t('授权') }}
+            </BkButton>
+            <AuthButton
+              v-db-console="'mysql.haClusterList.webconsole'"
+              action-id="mysql_webconsole"
+              class="mr-8"
+              :disabled="data.operationDisabled"
+              :permission="data.permission.mysql_webconsole"
+              :resource="data.id"
+              text
+              theme="primary"
+              @click="handleGoWebconsole(data.id)">
+              Webconsole
+            </AuthButton>
+            <AuthButton
+              v-db-console="'mysql.singleClusterList.exportData'"
+              action-id="mysql_dump_data"
+              class="mr-16"
+              :disabled="data.isOffline"
+              :permission="data.permission.mysql_dump_data"
+              :resource="data.id"
+              text
+              theme="primary"
+              @click="handleShowDataExportSlider(data)">
+              {{ t('导出数据') }}
+            </AuthButton>
+            <MoreActionExtend v-db-console="'mysql.singleClusterList.moreOperation'">
+              <BkDropdownItem
+                v-if="data.isOnline"
+                v-db-console="'mysql.singleClusterList.disable'">
+                <OperationBtnStatusTips :data="data">
+                  <AuthButton
+                    action-id="mysql_enable_disable"
+                    class="mr-8"
+                    :disabled="Boolean(data.operationTicketId)"
+                    :permission="data.permission.mysql_enable_disable"
+                    :resource="data.id"
+                    text
+                    @click="handleDisableCluster([data])">
+                    {{ t('禁用') }}
+                  </AuthButton>
+                </OperationBtnStatusTips>
+              </BkDropdownItem>
+              <BkDropdownItem
+                v-if="data.isOffline"
+                v-db-console="'mysql.singleClusterList.enable'">
+                <OperationBtnStatusTips :data="data">
+                  <AuthButton
+                    action-id="mysql_enable_disable"
+                    class="mr-8"
+                    :disabled="data.isStarting"
+                    :permission="data.permission.mysql_enable_disable"
+                    :resource="data.id"
+                    text
+                    @click="handleEnableCluster([data])">
+                    {{ t('启用') }}
+                  </AuthButton>
+                </OperationBtnStatusTips>
+              </BkDropdownItem>
+              <BkDropdownItem v-db-console="'mysql.singleClusterList.delete'">
+                <OperationBtnStatusTips :data="data">
+                  <AuthButton
+                    v-bk-tooltips="{
+                      disabled: data.isOffline,
+                      content: t('请先禁用集群'),
+                    }"
+                    action-id="mysql_destroy"
+                    class="mr-8"
+                    :disabled="data.isOnline || Boolean(data.operationTicketId)"
+                    :permission="data.permission.mysql_destroy"
+                    :resource="data.id"
+                    text
+                    @click="handleDeleteCluster([data])">
+                    {{ t('删除') }}
+                  </AuthButton>
+                </OperationBtnStatusTips>
+              </BkDropdownItem>
+            </MoreActionExtend>
+          </template>
+        </BkTableColumn>
+      </DbTable>
     </div>
   </div>
   <!-- 集群授权 -->
@@ -87,69 +204,44 @@
 </template>
 
 <script setup lang="tsx">
-  import { Message } from 'bkui-vue';
   import type { ISearchItem } from 'bkui-vue/lib/search-select/utils';
   import { useI18n } from 'vue-i18n';
-  import {
-    useRoute,
-    useRouter,
-  } from 'vue-router';
+  import { useRoute, useRouter } from 'vue-router';
 
   import TendbsingleModel from '@services/model/mysql/tendbsingle';
-  import {
-    getTendbsingleInstanceList,
-    getTendbsingleList,
-  } from '@services/source/tendbsingle';
+  import { getTendbsingleList } from '@services/source/tendbsingle';
   import { getUserList } from '@services/source/user';
 
-  import {
-    useCopy,
-    useLinkQueryColumnSerach,
-    useStretchLayout,
-    useTableSettings,
-  } from '@hooks';
+  import { useLinkQueryColumnSerach, useStretchLayout, useTableSettings } from '@hooks';
 
-  import {
-    useGlobalBizs,
-  } from '@stores';
+  import { useGlobalBizs } from '@stores';
 
-  import {
-    AccountTypes,
-    ClusterTypes,
-    DBTypes,
-    TicketTypes,
-    UserPersonalSettings,
-  } from '@common/const';
+  import { AccountTypes, ClusterTypes, TicketTypes, UserPersonalSettings } from '@common/const';
 
-  import DbStatus from '@components/db-status/index.vue';
   import DbTable from '@components/db-table/index.vue';
   import MoreActionExtend from '@components/more-action-extend/Index.vue';
-  import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
 
   import ClusterAuthorize from '@views/db-manage/common/cluster-authorize/Index.vue';
-  import ClusterBatchOperation from '@views/db-manage/common/cluster-batch-opration/Index.vue'
-  import ClusterCapacityUsageRate from '@views/db-manage/common/cluster-capacity-usage-rate/Index.vue'
-  import EditEntryConfig from '@views/db-manage/common/cluster-entry-config/Index.vue';
-  import ClusterExportData from '@views/db-manage/common/cluster-export-data/Index.vue'
+  import ClusterBatchOperation from '@views/db-manage/common/cluster-batch-opration/Index.vue';
+  import ClusterExportData from '@views/db-manage/common/cluster-export-data/Index.vue';
   import ClusterIpCopy from '@views/db-manage/common/cluster-ip-copy/Index.vue';
+  import ClusterNameColumn from '@views/db-manage/common/cluster-table-column/ClusterNameColumn.vue';
+  import ClusterStatsColumn from '@views/db-manage/common/cluster-table-column/ClusterStats.vue';
+  import CommonColumn from '@views/db-manage/common/cluster-table-column/CommonColumn.vue';
+  import IdColumn from '@views/db-manage/common/cluster-table-column/IdColumn.vue';
+  import MasterDomainColumn from '@views/db-manage/common/cluster-table-column/MasterDomainColumn.vue';
+  import RoleColumn from '@views/db-manage/common/cluster-table-column/RoleColumn.vue';
+  import StatusColumn from '@views/db-manage/common/cluster-table-column/StatusColumn.vue';
   import DropdownExportExcel from '@views/db-manage/common/dropdown-export-excel/index.vue';
   import ExcelAuthorize from '@views/db-manage/common/ExcelAuthorize.vue';
   import { useOperateClusterBasic } from '@views/db-manage/common/hooks';
   import OperationBtnStatusTips from '@views/db-manage/common/OperationBtnStatusTips.vue';
-  import RenderCellCopy from '@views/db-manage/common/render-cell-copy/Index.vue';
-  import RenderHeadCopy from '@views/db-manage/common/render-head-copy/Index.vue';
-  import RenderInstances from '@views/db-manage/common/render-instances/RenderInstances.vue';
-  import RenderOperationTag from '@views/db-manage/common/RenderOperationTagNew.vue';
 
-  import {
-    getMenuListSearch,
-    getSearchSelectorParams,
-    isRecentDays,
-  } from '@utils';
+  import { getMenuListSearch, getSearchSelectorParams, isRecentDays } from '@utils';
 
   interface ColumnData {
-    cell: string,
-    data: TendbsingleModel
+    cell: string;
+    data: TendbsingleModel;
   }
 
   const clusterId = defineModel<number>('clusterId');
@@ -157,25 +249,19 @@
   const router = useRouter();
   const route = useRoute();
   const globalBizsStore = useGlobalBizs();
-  const copy = useCopy();
-  const { t, locale } = useI18n();
+  const { t } = useI18n();
   const { handleDisableCluster, handleEnableCluster, handleDeleteCluster } = useOperateClusterBasic(
     ClusterTypes.TENDBSINGLE,
     {
       onSuccess: () => fetchData(),
     },
   );
-  const {
-    isOpen: isStretchLayoutOpen,
-    splitScreen: stretchLayoutSplitScreen,
-  } = useStretchLayout();
+  const { isOpen: isStretchLayoutOpen, splitScreen: stretchLayoutSplitScreen } = useStretchLayout();
 
   const {
-    columnAttrs,
     searchAttrs,
     searchValue,
     sortValue,
-    columnCheckedMap,
     batchSearchIpInatanceList,
     columnFilterChange,
     columnSortChange,
@@ -184,34 +270,28 @@
     handleSearchValueChange,
   } = useLinkQueryColumnSerach({
     searchType: ClusterTypes.TENDBSINGLE,
-    attrs: [
-      'bk_cloud_id',
-      'db_module_id',
-      'major_version',
-      'region',
-      'time_zone',
-    ],
+    attrs: ['bk_cloud_id', 'db_module_id', 'major_version', 'region', 'time_zone'],
     fetchDataFn: () => fetchData(),
     defaultSearchItem: {
       name: t('访问入口'),
       id: 'domain',
-    }
+    },
   });
 
   const tableRef = ref<InstanceType<typeof DbTable>>();
   const isShowExcelAuthorize = ref(false);
-  const showDataExportSlider = ref(false)
-  const selected = ref<TendbsingleModel[]>([])
+  const showDataExportSlider = ref(false);
+  const selected = ref<TendbsingleModel[]>([]);
   const currentData = ref<ColumnData['data']>();
+
+  const getTableInstance = () => tableRef.value;
 
   const authorizeState = reactive({
     isShow: false,
     selected: [] as TendbsingleModel[],
   });
 
-  const isCN = computed(() => locale.value === 'zh-cn');
-  const hasSelected = computed(() => selected.value.length > 0);
-  const selectedIds = computed(() => selected.value.map(item => item.id));
+  const selectedIds = computed(() => selected.value.map((item) => item.id));
 
   const searchSelectData = computed(() => [
     {
@@ -283,407 +363,17 @@
     },
   ]);
 
-  const tableOperationWidth = computed(() => {
-    if (!isStretchLayoutOpen.value) {
-      return isCN.value ? 250 : 280;
-    }
-    return 60;
-  });
-
-  const columns = computed(() => [
-    {
-      label: 'ID',
-      field: 'id',
-      fixed: 'left',
-      width: 100,
-    },
-    {
-      label: t('访问入口'),
-      field: 'master_domain',
-      fixed: 'left',
-      minWidth: 320,
-      renderHead: () => (
-        <RenderHeadCopy
-          hasSelected={hasSelected.value}
-          onHandleCopySelected={handleCopySelected}
-          onHandleCopyAll={handleCopyAll}
-          config={
-            [
-              {
-                field: 'master_domain',
-                label: t('域名')
-              },
-              {
-                field: 'masterDomainDisplayName',
-                label: t('域名:端口')
-              }
-            ]
-          }
-        >
-          {t('访问入口')}
-        </RenderHeadCopy>
-      ),
-      render: ({ data }: ColumnData) => (
-        <TextOverflowLayout>
-          {{
-            default: () => (
-              <auth-button
-                action-id="mysql_view"
-                resource={data.id}
-                permission={data.permission.mysql_view}
-                text
-                theme="primary"
-                onClick={() => handleToDetails(data.id)}>
-                {data.masterDomainDisplayName}
-              </auth-button>
-            ),
-            append: () => (
-              <>
-                {
-                  data.operationTagTips.map(item => <RenderOperationTag class="cluster-tag ml-4" data={item}/>)
-                }
-                {
-                  data.isOffline && !data.isStarting && (
-                    <bk-tag
-                      class="ml-4"
-                      size="small">
-                      {t('已禁用')}
-                    </bk-tag>
-                  )
-                }
-                {
-                  data.isNew && (
-                    <bk-tag
-                      theme="success"
-                      size="small"
-                      class="ml-4">
-                      NEW
-                    </bk-tag>
-                  )
-                }
-                <RenderCellCopy copyItems={
-                  [
-                    {
-                      value: data.master_domain,
-                      label: t('域名')
-                    },
-                    {
-                      value: data.masterDomainDisplayName,
-                      label: t('域名:端口')
-                    }
-                  ]
-                } />
-                <span v-db-console="mysql.singleClusterList.modifyEntryConfiguration">
-                  <EditEntryConfig
-                    id={data.id}
-                    bizId={data.bk_biz_id}
-                    permission={data.permission.access_entry_edit}
-                    resource={DBTypes.MYSQL}
-                    onSuccess={fetchData} />
-                </span>
-              </>
-            ),
-          }}
-        </TextOverflowLayout>
-      ),
-    },
-    {
-      label: t('集群名称'),
-      field: 'cluster_name',
-      minWidth: 200,
-      showOverflowTooltip: false,
-      renderHead: () => (
-        <RenderHeadCopy
-          hasSelected={hasSelected.value}
-          onHandleCopySelected={handleCopySelected}
-          onHandleCopyAll={handleCopyAll}
-          config={
-            [
-              {
-                field: 'cluster_name'
-              },
-            ]
-          }
-        >
-          {t('集群名称')}
-        </RenderHeadCopy>
-      ),
-      render: ({ data }: ColumnData) => (
-        <TextOverflowLayout>
-          {{
-            default: () => data.cluster_name,
-            append: () => (
-              <>
-                <db-icon
-                  v-bk-tooltips={t('复制集群名称')}
-                  type="copy"
-                  onClick={() => copy(data.cluster_name)} />
-              </>
-            ),
-          }}
-        </TextOverflowLayout>
-      ),
-    },
-    {
-      label: t('管控区域'),
-      field: 'bk_cloud_id',
-      filter: {
-        list: columnAttrs.value.bk_cloud_id,
-        checked: columnCheckedMap.value.bk_cloud_id,
-      },
-      render: ({ data }: ColumnData) => <span>{data.bk_cloud_name ?? '--'}</span>,
-    },
-    {
-      label: t('状态'),
-      field: 'status',
-      width: 100,
-      filter: {
-        list: [
-          {
-            value: 'normal',
-            text: t('正常'),
-          },
-          {
-            value: 'abnormal',
-            text: t('异常'),
-          },
-        ],
-        checked: columnCheckedMap.value.status,
-      },
-      render: ({ data }: ColumnData) => {
-        const info = data.status === 'normal' ? { theme: 'success', text: t('正常') } : { theme: 'danger', text: t('异常') };
-        return <DbStatus theme={info.theme}>{info.text}</DbStatus>;
-      },
-    },
-    {
-      label: t('容量使用率'),
-      field: 'cluster_stats',
-      width: 240,
-      showOverflowTooltip: false,
-      render: ({ data }: ColumnData) => <ClusterCapacityUsageRate clusterStats={data.cluster_stats} />
-    },
-    {
-      label: t('实例'),
-      field: 'masters',
-      width: 180,
-      minWidth: 180,
-      showOverflowTooltip: false,
-      renderHead: () => (
-        <RenderHeadCopy
-          hasSelected={hasSelected.value}
-          onHandleCopySelected={(field) => handleCopySelected(field, 'masters')}
-          onHandleCopyAll={(field) => handleCopyAll(field, 'masters')}
-          config={
-            [
-              {
-                label: 'IP',
-                field: 'ip'
-              },
-              {
-                label: t('实例'),
-                field: 'instance'
-              }
-            ]
-          }
-        >
-          {t('实例')}
-        </RenderHeadCopy>
-      ),
-      render: ({ data }: ColumnData) => (
-        <RenderInstances
-          highlightIps={batchSearchIpInatanceList.value}
-          data={data.masters}
-          title={t('【inst】实例预览', { inst: data.master_domain })}
-          role="orphan"
-          clusterId={data.id}
-          dataSource={getTendbsingleInstanceList}
-        />
-      ),
-    },
-    {
-      label: t('所属DB模块'),
-      field: 'db_module_id',
-      width: 140,
-      showOverflowTooltip: true,
-      filter: {
-        list: columnAttrs.value.db_module_id,
-        checked: columnCheckedMap.value.db_module_id,
-      },
-      render: ({ data }: ColumnData) => <span>{data.db_module_name || '--'}</span>,
-    },
-    {
-      label: t('版本'),
-      field: 'major_version',
-      minWidth: 100,
-      filter: {
-        list: columnAttrs.value.major_version,
-        checked: columnCheckedMap.value.major_version,
-      },
-      render: ({ cell }: ColumnData) => <span>{cell || '--'}</span>,
-    },
-    {
-      label: t('地域'),
-      field: 'region',
-      minWidth: 100,
-      filter: {
-        list: columnAttrs.value.region,
-        checked: columnCheckedMap.value.region,
-      },
-      render: ({ cell }: ColumnData) => <span>{cell || '--'}</span>,
-    },
-    {
-      label: t('创建人'),
-      field: 'creator',
-      width: 120,
-      render: ({ cell }: ColumnData) => <span>{cell || '--'}</span>,
-    },
-    {
-      label: t('部署时间'),
-      field: 'create_at',
-      width: 250,
-      sort: true,
-      render: ({ data }: ColumnData) => <span>{data.createAtDisplay || '--'}</span>,
-    },
-    {
-      label: t('时区'),
-      field: 'cluster_time_zone',
-      width: 100,
-      filter: {
-        list: columnAttrs.value.time_zone,
-        checked: columnCheckedMap.value.time_zone,
-      },
-      render: ({ cell }: ColumnData) => <span>{cell || '--'}</span>,
-    },
-    {
-      label: t('操作'),
-      field: '',
-      showOverflowTooltip: false,
-      width: tableOperationWidth.value,
-      fixed: isStretchLayoutOpen.value ? false : 'right',
-      render: ({ data }: ColumnData) => (
-        <>
-          <bk-button
-            v-db-console="mysql.singleClusterList.authorize"
-            text
-            theme="primary"
-            class="mr-8"
-            disabled={data.isOffline}
-            onClick={() => handleShowAuthorize([data])}>
-            { t('授权') }
-          </bk-button>
-          <auth-button
-            v-db-console="mysql.haClusterList.webconsole"
-            action-id="mysql_webconsole"
-            resource={data.id}
-            disabled={data.operationDisabled}
-            permission={data.permission.mysql_webconsole}
-            text
-            theme="primary"
-            class="mr-8"
-            onClick={() => handleGoWebconsole(data.id)}>
-            Webconsole
-          </auth-button>
-          <auth-button
-            v-db-console="mysql.singleClusterList.exportData"
-            action-id="mysql_dump_data"
-            permission={data.permission.mysql_dump_data}
-            resource={data.id}
-            disabled={data.isOffline}
-            text
-            theme="primary"
-            class="mr-16"
-            onClick={() => handleShowDataExportSlider(data)}>
-            { t('导出数据') }
-          </auth-button>
-          <MoreActionExtend v-db-console="mysql.singleClusterList.moreOperation">
-            {{
-              default: () => <>
-                {
-                  data.isOnline && (
-                    <bk-dropdown-item v-db-console="mysql.singleClusterList.disable">
-                      <OperationBtnStatusTips data={data}>
-                        <auth-button
-                          text
-                          class="mr-8"
-                          action-id="mysql_enable_disable"
-                          permission={data.permission.mysql_enable_disable}
-                          disabled={Boolean(data.operationTicketId)}
-                          resource={data.id}
-                          onClick={() => handleDisableCluster([data])}>
-                          { t('禁用') }
-                        </auth-button>
-                      </OperationBtnStatusTips>
-                    </bk-dropdown-item>
-                  )
-                }
-                {
-                  data.isOffline && (
-                    <bk-dropdown-item v-db-console="mysql.singleClusterList.enable">
-                      <OperationBtnStatusTips data={data}>
-                        <auth-button
-                          text
-                          class="mr-8"
-                          action-id="mysql_enable_disable"
-                          permission={data.permission.mysql_enable_disable}
-                          disabled={data.isStarting}
-                          resource={data.id}
-                          onClick={() => handleEnableCluster([data])}>
-                          { t('启用') }
-                        </auth-button>
-                      </OperationBtnStatusTips>
-                    </bk-dropdown-item>
-                  )
-                }
-                <bk-dropdown-item v-db-console="mysql.singleClusterList.delete">
-                  <OperationBtnStatusTips data={data}>
-                    <auth-button
-                      v-bk-tooltips={{
-                        disabled: data.isOffline,
-                        content: t('请先禁用集群')
-                      }}
-                      text
-                      class="mr-8"
-                      action-id="mysql_destroy"
-                      permission={data.permission.mysql_destroy}
-                      disabled={data.isOnline || Boolean(data.operationTicketId)}
-                      resource={data.id}
-                      onClick={() => handleDeleteCluster([data])}>
-                      { t('删除') }
-                    </auth-button>
-                  </OperationBtnStatusTips>
-                </bk-dropdown-item>
-              </>
-            }}
-          </MoreActionExtend>
-        </>
-      ),
-    },
-  ]);
-
   // 设置用户个人表头信息
-  const disabledFields = ['master_domain'];
   const defaultSettings = {
-    fields: (columns.value || []).filter(item => item.field).map(item => ({
-      label: item.label as string,
-      field: item.field as string,
-      disabled: disabledFields.includes(item.field as string),
-    })),
-    checked: [
-      'master_domain',
-      'status',
-      'cluster_stats',
-      'masters',
-      'db_module_id',
-      'major_version',
-      'region',
-    ],
+    fields: [],
+    checked: ['master_domain', 'status', 'cluster_stats', 'masters', 'db_module_id', 'major_version', 'region'],
     showLineHeight: false,
     trigger: 'manual' as const,
   };
-  const {
-    settings,
-    updateTableSettings,
-  } = useTableSettings(UserPersonalSettings.TENDBSINGLE_TABLE_SETTINGS, defaultSettings);
+  const { settings, updateTableSettings } = useTableSettings(
+    UserPersonalSettings.TENDBSINGLE_TABLE_SETTINGS,
+    defaultSettings,
+  );
 
   const getMenuList = async (item: ISearchItem | undefined, keyword: string) => {
     if (item?.id !== 'creator' && keyword) {
@@ -693,8 +383,8 @@
     // 没有选中过滤标签
     if (!item) {
       // 过滤掉已经选过的标签
-      const selected = (searchValue.value || []).map(value => value.id);
-      return searchSelectData.value.filter(item => !selected.includes(item.id));
+      const selected = (searchValue.value || []).map((value) => value.id);
+      return searchSelectData.value.filter((item) => !selected.includes(item.id));
     }
 
     // 远程加载执行人
@@ -704,62 +394,22 @@
       }
       return getUserList({
         fuzzy_lookups: keyword,
-      })
-        .then(res => res.results.map(item => ({
+      }).then((res) =>
+        res.results.map((item) => ({
           id: item.username,
           name: item.username,
-        })));
+        })),
+      );
     }
 
     // 不需要远层加载
-    return searchSelectData.value.find(set => set.id === item.id)?.children || [];
+    return searchSelectData.value.find((set) => set.id === item.id)?.children || [];
   };
 
   const fetchData = () => {
     const params = getSearchSelectorParams(searchValue.value);
     tableRef.value!.fetchData(params, { ...sortValue });
   };
-
-  const handleCopy = <T,>(dataList: T[], field: keyof T) => {
-    const copyList = dataList.reduce((prevList, tableItem) => {
-      const value = String(tableItem[field]);
-      if (value && value !== '--' && !prevList.includes(value)) {
-        prevList.push(value);
-      }
-      return prevList;
-    }, [] as string[]);
-    copy(copyList.join('\n'));
-  }
-
-  // 获取列表数据下的实例子列表
-  const getInstanceListByRole = (dataList: TendbsingleModel[], field: keyof TendbsingleModel) => dataList.reduce((result, curRow) => {
-    result.push(...curRow[field] as TendbsingleModel['masters']);
-    return result;
-  }, [] as TendbsingleModel['masters']);
-
-  const handleCopySelected = <T,>(field: keyof T, role?: keyof TendbsingleModel) => {
-    if(role) {
-      handleCopy(getInstanceListByRole(selected.value, role) as T[], field)
-      return;
-    }
-    handleCopy(selected.value as T[], field)
-  }
-
-  const handleCopyAll = async <T,>(field: keyof T, role?: keyof TendbsingleModel) => {
-    const allData = await tableRef.value!.getAllData<TendbsingleModel>();
-    if(allData.length === 0) {
-      Message({
-        theme: 'primary',
-        message: '暂无数据可复制',
-      });
-      return;
-    }
-    if(role) {
-      handleCopy(getInstanceListByRole(allData, role) as T[], field)
-      return;
-    }
-    handleCopy(allData as T[], field)
-  }
 
   // 设置行样式
   const setRowClass = (row: TendbsingleModel) => {
@@ -769,7 +419,7 @@
     if (row.id === clusterId.value) {
       classList.push('is-selected-row');
     }
-    return classList.filter(cls => cls).join(' ');
+    return classList.filter((cls) => cls).join(' ');
   };
 
   /**
@@ -789,10 +439,10 @@
     router.push({
       name: 'MySQLWebconsole',
       query: {
-        clusterId
-      }
+        clusterId,
+      },
     });
-  }
+  };
 
   /** 集群授权 */
   const handleShowAuthorize = (selected: TendbsingleModel[] = []) => {
@@ -808,7 +458,7 @@
   };
 
   const handleShowDataExportSlider = (data: TendbsingleModel) => {
-    currentData.value = data
+    currentData.value = data;
     showDataExportSlider.value = true;
   };
 
@@ -824,14 +474,14 @@
    * 表格选中
    */
 
-  const handleSelection = (data: TendbsingleModel, list: TendbsingleModel[]) => {
+  const handleSelection = (data: any, list: TendbsingleModel[]) => {
     selected.value = list;
   };
 
   const handleBatchOperationSuccess = () => {
     tableRef.value!.clearSelected();
     fetchData();
-  }
+  };
 
   onMounted(() => {
     if (!clusterId.value && route.query.id) {

@@ -79,7 +79,7 @@
   <DbSideslider
     v-model:is-show="addNodeShow"
     quick-close
-    :title="t('添加节点【xx】', [detailData!.cluster_name])"
+    :title="t('添加节点【xx】', [detailData?.cluster_name])"
     :width="960">
     <AddNodes
       v-if="detailData"
@@ -88,7 +88,7 @@
   </DbSideslider>
   <DbSideslider
     v-model:is-show="deleteNodeShow"
-    :title="t('删除节点【xx】', [detailData!.cluster_name])"
+    :title="t('删除节点【xx】', [detailData?.cluster_name])"
     :width="960">
     <DeleteNodes
       v-if="detailData"

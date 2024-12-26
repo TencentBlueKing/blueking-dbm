@@ -79,26 +79,31 @@
         <IdColumn :cluster-type="ClusterTypes.TENDBCLUSTER" />
         <MasterDomainColumn
           :cluster-type="ClusterTypes.TENDBCLUSTER"
+          field="master_domain"
           :get-table-instance="getTableInstance"
-          :selected-list="selected" />
+          :label="t('主访问入口')"
+          :selected-list="selected"
+          @go-detail="handleToDetails"
+          @refresh="fetchTableData" />
         <ClusterNameColumn
           :cluster-type="ClusterTypes.TENDBCLUSTER"
           :get-table-instance="getTableInstance"
-          :selected-list="selected" />
+          :selected-list="selected"
+          @refresh="fetchTableData" />
         <SlaveDomainColumn
           :cluster-type="ClusterTypes.TENDBCLUSTER"
           :get-table-instance="getTableInstance"
           :selected-list="selected" />
         <StatusColumn :cluster-type="ClusterTypes.TENDBCLUSTER" />
         <ClusterStatsColumn :cluster-type="ClusterTypes.TENDBCLUSTER" />
-        <RoleColumn
+        <MasterSlaveRoleColumn
           :cluster-type="ClusterTypes.TENDBCLUSTER"
           field="spider_master"
           :get-table-instance="getTableInstance"
           label="Spider Master"
           :search-ip="searchIp"
           :selected-list="selected">
-          <template #nodeTag="data">
+          <template #nodeTag="{ data }">
             <BkTag
               v-if="clusterPrimaryMap[data.ip]"
               class="is-primary"
@@ -106,8 +111,8 @@
               Primary
             </BkTag>
           </template>
-        </RoleColumn>
-        <RoleColumn
+        </MasterSlaveRoleColumn>
+        <MasterSlaveRoleColumn
           :cluster-type="ClusterTypes.TENDBCLUSTER"
           field="spider_slave"
           :get-table-instance="getTableInstance"
@@ -121,25 +126,26 @@
           :label="t('运维节点')"
           :search-ip="searchIp"
           :selected-list="selected" />
-        <RoleColumn
+        <RemoteRoleColumn
           :cluster-type="ClusterTypes.TENDBCLUSTER"
-          field="RemoteDB"
+          field="remote_db"
           :get-table-instance="getTableInstance"
-          label="remote_db"
+          label="RemoteDB"
           :search-ip="searchIp"
           :selected-list="selected" />
-        <RoleColumn
+        <RemoteRoleColumn
           :cluster-type="ClusterTypes.TENDBCLUSTER"
-          field="RemoteDR"
+          field="remote_dr"
           :get-table-instance="getTableInstance"
-          label="remote_dr"
+          label="RemoteDR"
           :search-ip="searchIp"
           :selected-list="selected" />
         <CommonColumn :cluster-type="ClusterTypes.TENDBCLUSTER" />
         <BkTableColumn
           :fixed="isStretchLayoutOpen ? false : 'right'"
           :label="t('操作')"
-          :width="tableOperationWidth">
+          :min-width="220"
+          :show-overflow="false">
           <template #default="{data}: IColumn">
             <BkButton
               v-db-console="'mysql.haClusterList.authorize'"
@@ -344,13 +350,16 @@
     messageWarn,
   } from '@utils';
 
+  import MasterSlaveRoleColumn from './components/MasterSlaveRoleColume.vue';
+  import RemoteRoleColumn from './components/RemoteRoleColumn.vue';
+
   interface IColumn {
     data: TendbClusterModel
   }
 
   const route = useRoute();
   const router = useRouter();
-  const { t, locale } = useI18n();
+  const { t } = useI18n();
   const {
     isOpen: isStretchLayoutOpen,
     splitScreen: stretchLayoutSplitScreen,
@@ -405,7 +414,6 @@
   const selectedIds = computed(() => selected.value.map(item => item.id));
   const tableDataList = computed(() => tableRef.value?.getData<TendbClusterModel>() || [])
   const hasData = computed(() => tableDataList.value.length > 0);
-  const isCN = computed(() => locale.value === 'zh-cn');
 
   const searchSelectData = computed(() => [
     {
@@ -477,12 +485,7 @@
       layout: ['total', 'limit', 'list'],
     };
   });
-  const tableOperationWidth = computed(() => {
-    if (!isStretchLayoutOpen.value) {
-      return isCN.value ? 270 : 300;
-    }
-    return 60;
-  });
+
   const searchIp = computed<string[]>(() => {
     const ipObj = searchValue.value.find(item => item.id === 'ip');
     if (ipObj && ipObj.values) {
@@ -565,6 +568,7 @@
     //   field: item.field as string,
     //   disabled: ['master_domain'].includes(item.field as string),
     // })),
+    fields: [],
     checked: [
       'master_domain',
       'slave_domain',
@@ -702,7 +706,7 @@
     });
   };
 
-  const handleTableSelected = (data: TendbClusterModel, list: TendbClusterModel[]) => {
+  const handleTableSelected = (data: unknown, list: TendbClusterModel[]) => {
     selected.value = list;
   };
 
