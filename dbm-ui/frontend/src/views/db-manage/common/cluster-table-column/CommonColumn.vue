@@ -6,7 +6,7 @@
       checked: columnCheckedMap.major_version,
     }"
     :label="t('版本')"
-    :min-width="100">
+    :min-width="150">
     <template #default="{ data }: { data: TendnclusterModel }">
       {{ data.major_version || '--' }}
     </template>
@@ -14,7 +14,7 @@
   <BkTableColumn
     field="disaster_tolerance_level"
     :label="t('容灾要求')"
-    :min-width="100">
+    :min-width="160">
     <template #default="{ data }: { data: TendnclusterModel }">
       {{ data.disasterToleranceLevelName || '--' }}
     </template>

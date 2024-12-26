@@ -15,7 +15,7 @@ import { uniq } from 'lodash';
 
 import type { ClusterListEntry, ClusterListNode } from '@services/types';
 
-import { ClusterAffinityMap, PipelineStatus, TicketTypes } from '@common/const';
+import { ClusterAffinityMap, ClusterTypes, PipelineStatus, TicketTypes } from '@common/const';
 
 import { t } from '@locales/index';
 
@@ -47,7 +47,7 @@ export default class Mongodb extends ClusterBase {
   cluster_name: string;
   cluster_stats: Record<'used' | 'total' | 'in_use', number>;
   cluster_time_zone: string;
-  cluster_type: string;
+  cluster_type: ClusterTypes;
   cluster_type_name: string;
   create_at: string;
   creator: string;
@@ -73,6 +73,12 @@ export default class Mongodb extends ClusterBase {
     ticket_type: string;
     title: string;
   }[];
+  permission: {
+    access_entry_edit: boolean;
+    mongodb_destroy: boolean;
+    mongodb_enable_disable: boolean;
+    mongodb_view: boolean;
+  };
   phase: string;
   phase_name: string;
   region: string;
@@ -120,6 +126,7 @@ export default class Mongodb extends ClusterBase {
     this.mongodb = payload.mongodb;
     this.mongos = payload.mongos;
     this.operations = payload.operations;
+    this.permission = payload.permission || {};
     this.phase = payload.phase;
     this.phase_name = payload.phase_name;
     this.region = payload.region;

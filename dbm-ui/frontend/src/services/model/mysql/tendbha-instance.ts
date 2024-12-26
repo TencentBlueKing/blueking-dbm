@@ -13,8 +13,7 @@
 
 import type { HostInfo, InstanceListSpecConfig, InstanceRelatedCluster } from '@services/types';
 
-import { clusterTypeInfos } from '@common/const/clusterTypeInfos';
-import { ClusterTypes } from '@common/const/clusterTypes';
+import { ClusterTypes } from '@common/const';
 
 import { utcDisplayTime } from '@utils';
 
@@ -34,7 +33,7 @@ export default class TendbhaInstance {
   bk_sub_zone: string;
   cluster_id: number;
   cluster_name: string;
-  cluster_type: string;
+  cluster_type: ClusterTypes;
   cluster_type_name: string;
   create_at: string;
   db_module_id: number;
@@ -95,9 +94,5 @@ export default class TendbhaInstance {
 
   get createAtDisplay() {
     return utcDisplayTime(this.create_at);
-  }
-
-  get clusterTypeName() {
-    return clusterTypeInfos[this.cluster_type as ClusterTypes].architectureName || '';
   }
 }

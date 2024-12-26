@@ -15,7 +15,7 @@ import { uniq } from 'lodash';
 
 import type { ClusterListEntry, ClusterListNode, ClusterListOperation } from '@services/types';
 
-import { ClusterAffinityMap } from '@common/const';
+import { ClusterAffinityMap, ClusterTypes } from '@common/const';
 
 import { t } from '@locales/index';
 
@@ -60,7 +60,7 @@ export default class Riak extends ClusterBase {
   cluster_spec: ClusterSpec;
   cluster_stats: Record<'used' | 'total' | 'in_use', number>;
   cluster_time_zone: string;
-  cluster_type: string;
+  cluster_type: ClusterTypes;
   cluster_type_name: string;
   create_at: string;
   creator: string;
@@ -73,6 +73,7 @@ export default class Riak extends ClusterBase {
   master_domain: string;
   operations: ClusterListOperation[];
   permission: {
+    access_entry_edit: boolean;
     riak_access_entry_view: boolean;
     riak_cluster_destroy: boolean;
     riak_cluster_migrate: boolean;
@@ -218,6 +219,12 @@ export default class Riak extends ClusterBase {
 
   get disasterToleranceLevelName() {
     return ClusterAffinityMap[this.disaster_tolerance_level];
+  }
+
+  get masterDomainDisplayName() {
+    const port = this.riak_node[0]?.port;
+    const displayName = port ? `${this.master_domain}:${port}` : this.master_domain;
+    return displayName;
   }
 
   get roleFailedInstanceInfo() {

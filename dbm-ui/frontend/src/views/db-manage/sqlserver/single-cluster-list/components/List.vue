@@ -1,37 +1,37 @@
 <template>
-  <div class="sqlserver-ha-cluster-list">
-    <div class="header-action">
-      <div class="mb-16">
+  <div class="sqlserver-single-cluster-list">
+    <div class="header-action mb-16">
+      <div>
         <BkButton
-          v-db-console="'sqlserver.haClusterList.instanceApply'"
+          v-db-console="'sqlserver.singleClusterList.instanceApply'"
           theme="primary"
           @click="handleApply">
           {{ t('申请实例') }}
         </BkButton>
         <ClusterBatchOperation
-          v-db-console="'sqlserver.haClusterList.batchOperation'"
+          v-db-console="'sqlserver.singleClusterList.batchOperation'"
           class="ml-8"
-          :cluster-type="ClusterTypes.SQLSERVER_HA"
+          :cluster-type="ClusterTypes.SQLSERVER_SINGLE"
           :selected="selected"
           @success="handleBatchOperationSuccess" />
         <BkButton
-          v-db-console="'sqlserver.haClusterList.importAuthorize'"
+          v-db-console="'sqlserver.singleClusterList.importAuthorize'"
           class="ml-8"
           @click="handleShowExcelAuthorize">
           {{ t('导入授权') }}
         </BkButton>
         <DropdownExportExcel
-          v-db-console="'sqlserver.haClusterList.export'"
+          v-db-console="'sqlserver.singleClusterList.export'"
           export-type="cluster"
           :has-selected="hasSelected"
           :ids="selectedIds"
-          type="sqlserver_ha" />
+          type="sqlserver_single" />
         <ClusterIpCopy
-          v-db-console="'sqlserver.haClusterList.batchCopy'"
+          v-db-console="'sqlserver.singleClusterList.batchCopy'"
           :selected="selected" />
       </div>
       <DbSearchSelect
-        class="header-select mb-16"
+        class="header-select"
         :data="searchSelectData"
         :get-menu-list="getMenuList"
         :model-value="searchValue"
@@ -40,12 +40,10 @@
         :validate-values="validateSearchValues"
         @change="handleSearchValueChange" />
     </div>
-    <div
-      class="table-wrapper"
-      :class="{ 'is-shrink-table': isStretchLayoutOpen }">
+    <div class="table-wrapper">
       <DbTable
         ref="tableRef"
-        :data-source="getHaClusterList"
+        :data-source="getSingleClusterList"
         releate-url-query
         :row-class="setRowClass"
         selectable
@@ -57,9 +55,9 @@
         @column-sort="columnSortChange"
         @selection="handleSelection"
         @setting-change="updateTableSettings">
-        <IdColumn :cluster-type="ClusterTypes.SQLSERVER_HA" />
+        <IdColumn :cluster-type="ClusterTypes.SQLSERVER_SINGLE" />
         <MasterDomainColumn
-          :cluster-type="ClusterTypes.SQLSERVER_HA"
+          :cluster-type="ClusterTypes.SQLSERVER_SINGLE"
           field="master_domain"
           :get-table-instance="getTableInstance"
           :label="t('主访问入口')"
@@ -67,60 +65,40 @@
           @go-detail="handleToDetails"
           @refresh="fetchData" />
         <ClusterNameColumn
-          :cluster-type="ClusterTypes.SQLSERVER_HA"
+          :cluster-type="ClusterTypes.SQLSERVER_SINGLE"
           :get-table-instance="getTableInstance"
           :selected-list="selected"
           @refresh="fetchData" />
-        <SlaveDomainColumn
-          :cluster-type="ClusterTypes.SQLSERVER_HA"
-          :get-table-instance="getTableInstance"
-          :selected-list="selected" />
-        <StatusColumn :cluster-type="ClusterTypes.SQLSERVER_HA" />
-        <ClusterStatsColumn :cluster-type="ClusterTypes.SQLSERVER_HA" />
+        <StatusColumn :cluster-type="ClusterTypes.SQLSERVER_SINGLE" />
+        <ClusterStatsColumn :cluster-type="ClusterTypes.SQLSERVER_SINGLE" />
         <RoleColumn
-          :cluster-type="ClusterTypes.SQLSERVER_HA"
-          field="masters"
+          :cluster-type="ClusterTypes.SQLSERVER_SINGLE"
+          field="storages"
           :get-table-instance="getTableInstance"
-          label="Master"
+          :label="t('实例')"
           :search-ip="batchSearchIpInatanceList"
           :selected-list="selected" />
-        <RoleColumn
-          :cluster-type="ClusterTypes.SQLSERVER_HA"
-          field="slaves"
-          :get-table-instance="getTableInstance"
-          label="Slave"
-          :search-ip="batchSearchIpInatanceList"
-          :selected-list="selected" />
-        <BkTableColumn
-          field="sync_mode"
-          :label="t('同步模式')"
-          :width="120">
-          <template #default="{data}: {data: SqlServerHaModel}">
-            {{ data.sync_mode || '--' }}
-          </template>
-        </BkTableColumn>
-        <CommonColumn :cluster-type="ClusterTypes.SQLSERVER_HA" />
+        <CommonColumn :cluster-type="ClusterTypes.SQLSERVER_SINGLE" />
         <BkTableColumn
           :fixed="isStretchLayoutOpen ? false : 'right'"
           :label="t('操作')"
-          :min-width="240"
+          :min-width="180"
           :show-overflow="false">
-          <template #default="{data}: {data: SqlServerHaModel}">
+          <template #default="{data}: {data: SqlServerSingleModel}">
             <BkButton
-              v-db-console="'sqlserver.haClusterList.authorize'"
+              v-db-console="'sqlserver.singleClusterList.authorize'"
               class="mr-8"
-              :disabled="data.isOffline"
               text
               theme="primary"
               @click="handleShowAuthorize([data])">
               {{ t('授权') }}
             </BkButton>
             <OperationBtnStatusTips
-              v-db-console="'sqlserver.haClusterList.enable'"
+              v-db-console="'sqlserver.singleClusterList.enable'"
               :data="data">
               <BkButton
                 class="mr-8"
-                :disabled="data.isStarting || data.isOffline"
+                :disabled="data.isStarting"
                 text
                 theme="primary"
                 @click="handleEnableCluster([data])">
@@ -128,11 +106,11 @@
               </BkButton>
             </OperationBtnStatusTips>
             <OperationBtnStatusTips
-              v-db-console="'sqlserver.haClusterList.reset'"
+              v-db-console="'sqlserver.singleClusterList.reset'"
               :data="data">
               <BkButton
                 class="mr-8"
-                :disabled="data.isOnline || Boolean(data.operationTicketId)"
+                :disabled="Boolean(data.operationTicketId)"
                 text
                 theme="primary"
                 @click="handleResetCluster(data)">
@@ -140,18 +118,18 @@
               </BkButton>
             </OperationBtnStatusTips>
             <MoreActionExtend>
-              <BkDropdownItem v-db-console="'sqlserver.haClusterList.disable'">
-                <OperationBtnStatusTips :data="data">
-                  <BkButton
-                    :disabled="data.isOffline || Boolean(data.operationTicketId)"
-                    text
-                    theme="primary"
-                    @click="handleDisableCluster([data])">
-                    {{ t('禁用') }}
-                  </BkButton>
-                </OperationBtnStatusTips>
-              </BkDropdownItem>
-              <BkDropdownItem v-db-console="'sqlserver.haClusterList.delete'">
+              <OperationBtnStatusTips
+                v-db-console="'sqlserver.singleClusterList.disable'"
+                :data="data">
+                <BkButton
+                  :disabled="data.isOffline || Boolean(data.operationTicketId)"
+                  text
+                  theme="primary"
+                  @click="handleDisableCluster([data])">
+                  {{ t('禁用') }}
+                </BkButton>
+              </OperationBtnStatusTips>
+              <BkDropdownItem v-db-console="'sqlserver.singleClusterList.delete'">
                 <OperationBtnStatusTips :data="data">
                   <BkButton
                     v-bk-tooltips="{
@@ -176,26 +154,27 @@
   <ClusterAuthorize
     v-model="authorizeShow"
     :account-type="AccountTypes.SQLSERVER"
-    :cluster-types="[ClusterTypes.SQLSERVER_HA]"
+    :cluster-types="[ClusterTypes.SQLSERVER_SINGLE]"
     :selected="authorizeSelected"
     @success="handleClearSelected" />
   <!-- excel 导入授权 -->
   <ExcelAuthorize
     v-model:is-show="isShowExcelAuthorize"
-    :cluster-type="ClusterTypes.SQLSERVER_HA"
+    :cluster-type="ClusterTypes.SQLSERVER_SINGLE"
     :ticket-type="TicketTypes.SQLSERVER_EXCEL_AUTHORIZE_RULES" />
   <ClusterReset
     v-if="currentData"
     v-model:is-show="isShowClusterReset"
-    :data="currentData"></ClusterReset>
+    :data="currentData" />
 </template>
+
 <script setup lang="tsx">
   import type { ISearchItem } from 'bkui-vue/lib/search-select/utils';
   import { useI18n } from 'vue-i18n';
   import { useRoute, useRouter } from 'vue-router';
 
-  import SqlServerHaModel from '@services/model/sqlserver/sqlserver-ha';
-  import { getHaClusterList } from '@services/source/sqlserveHaCluster';
+  import SqlServerSingleModel from '@services/model/sqlserver/sqlserver-single';
+  import { getSingleClusterList } from '@services/source/sqlserverSingleCluster';
   import { getUserList } from '@services/source/user';
 
   import { useLinkQueryColumnSerach, useStretchLayout, useTableSettings } from '@hooks';
@@ -216,7 +195,6 @@
   import IdColumn from '@views/db-manage/common/cluster-table-column/IdColumn.vue';
   import MasterDomainColumn from '@views/db-manage/common/cluster-table-column/MasterDomainColumn.vue';
   import RoleColumn from '@views/db-manage/common/cluster-table-column/RoleColumn.vue';
-  import SlaveDomainColumn from '@views/db-manage/common/cluster-table-column/SlaveDomainColumn.vue';
   import StatusColumn from '@views/db-manage/common/cluster-table-column/StatusColumn.vue';
   import DropdownExportExcel from '@views/db-manage/common/dropdown-export-excel/index.vue';
   import ExcelAuthorize from '@views/db-manage/common/ExcelAuthorize.vue';
@@ -226,9 +204,7 @@
 
   import { getMenuListSearch, getSearchSelectorParams } from '@utils';
 
-  const haClusterData = defineModel<{
-    clusterId: number;
-  }>('haClusterData');
+  const singleClusterData = defineModel<{ clusterId: number }>('singleClusterData');
 
   const router = useRouter();
   const route = useRoute();
@@ -256,7 +232,7 @@
     validateSearchValues,
     handleSearchValueChange,
   } = useLinkQueryColumnSerach({
-    searchType: ClusterTypes.SQLSERVER_HA,
+    searchType: ClusterTypes.SQLSERVER_SINGLE,
     attrs: ['bk_cloud_id', 'db_module_id', 'major_version', 'region', 'time_zone'],
     fetchDataFn: () => fetchData(isInit),
     defaultSearchItem: {
@@ -268,11 +244,12 @@
   const tableRef = ref<InstanceType<typeof DbTable>>();
   const isShowExcelAuthorize = ref(false);
   const isShowClusterReset = ref(false);
-  const currentData = ref<SqlServerHaModel>();
-  const selected = ref<SqlServerHaModel[]>([]);
+  const currentData = ref<SqlServerSingleModel>();
+  const selected = ref<SqlServerSingleModel[]>([]);
 
   /** 集群授权 */
   const authorizeShow = ref(false);
+
   const authorizeSelected = ref<
     {
       master_domain: string;
@@ -329,7 +306,7 @@
       ],
     },
     {
-      name: t('所属DB模块'),
+      name: t('模块'),
       id: 'db_module_id',
       multiple: true,
       children: searchAttrs.value.db_module_id,
@@ -358,28 +335,15 @@
     },
   ]);
 
-  // 设置用户个人表头信息
   const defaultSettings = {
     fields: [],
-    checked: [
-      'master_domain',
-      'status',
-      'cluster_stats',
-      'slave_domain',
-      'masters',
-      'slaves',
-      'db_module_id',
-      'major_version',
-      'disaster_tolerance_level',
-      'region',
-      'spec_name',
-    ],
+    checked: ['master_domain', 'status', 'cluster_stats', 'storages', 'db_module_id', 'major_version', 'region'],
     showLineHeight: false,
     trigger: 'manual' as const,
   };
 
   const { settings, updateTableSettings } = useTableSettings(
-    UserPersonalSettings.SQLSERVER_HA_TABLE_SETTINGS,
+    UserPersonalSettings.SQLSERVER_SINGLE_TABLE_SETTINGS,
     defaultSettings,
   );
 
@@ -414,20 +378,7 @@
     return searchSelectData.value.find((set) => set.id === item.id)?.children || [];
   };
 
-  let isInit = true;
-  const fetchData = (loading?: boolean) => {
-    tableRef.value!.fetchData(
-      { ...getSearchSelectorParams(searchValue.value) },
-      {
-        bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-        ...sortValue,
-      },
-      loading,
-    );
-    isInit = false;
-  };
-
-  const handleResetCluster = (data: SqlServerHaModel) => {
+  const handleResetCluster = (data: SqlServerSingleModel) => {
     currentData.value = data;
     isShowClusterReset.value = true;
   };
@@ -437,29 +388,29 @@
     isShowExcelAuthorize.value = true;
   };
 
+  let isInit = true;
+  const fetchData = (loading?: boolean) => {
+    tableRef.value!.fetchData(
+      { ...getSearchSelectorParams(searchValue.value) },
+      { bk_biz_id: window.PROJECT_CONFIG.BIZ_ID, ...sortValue },
+      loading,
+    );
+    isInit = false;
+  };
+
   // 设置行样式
-  const setRowClass = (row: SqlServerHaModel) => {
+  const setRowClass = (row: SqlServerSingleModel) => {
     const classStack = [];
     if (row.isNew) {
       classStack.push('is-new-row');
     }
-    if (haClusterData.value && row.id === haClusterData.value.clusterId) {
+    if (singleClusterData.value && row.id === singleClusterData.value.clusterId) {
       classStack.push('is-selected-row');
     }
     return classStack.join(' ');
   };
 
-  /**
-   * 查看详情
-   */
-  const handleToDetails = (clusterId: number) => {
-    stretchLayoutSplitScreen();
-    haClusterData.value = {
-      clusterId,
-    };
-  };
-
-  const handleSelection = (key: unknown, list: SqlServerHaModel[]) => {
+  const handleSelection = (key: any, list: SqlServerSingleModel[]) => {
     selected.value = list;
   };
 
@@ -468,9 +419,17 @@
     authorizeSelected.value = [];
   };
 
-  const handleShowAuthorize = (selected: SqlServerHaModel[]) => {
+  const handleShowAuthorize = (selected: SqlServerSingleModel[]) => {
     authorizeShow.value = true;
     authorizeSelected.value = selected;
+  };
+
+  /**
+   * 查看详情
+   */
+  const handleToDetails = (clusterId: number) => {
+    stretchLayoutSplitScreen();
+    singleClusterData.value = { clusterId };
   };
 
   /**
@@ -478,7 +437,7 @@
    */
   const handleApply = () => {
     router.push({
-      name: 'SqlServiceHaApply',
+      name: 'SqlServiceSingleApply',
       query: {
         bizId: currentBizId,
         from: String(route.name),
@@ -494,7 +453,7 @@
 <style lang="less">
   @import '@styles/mixins.less';
 
-  .sqlserver-ha-cluster-list {
+  .sqlserver-single-cluster-list {
     height: 100%;
     padding: 24px 0;
     margin: 0 24px;
@@ -538,7 +497,6 @@
       }
     }
 
-    th:hover,
     td:hover {
       .db-icon-copy,
       .db-icon-link,

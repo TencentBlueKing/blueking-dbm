@@ -59,7 +59,6 @@ export function getDorisTableFields() {
  * 获取实例列表
  */
 export function getDorisInstanceList(params: {
-  bk_biz_id: number;
   limit?: number;
   offset?: number;
   cluster_id?: number;

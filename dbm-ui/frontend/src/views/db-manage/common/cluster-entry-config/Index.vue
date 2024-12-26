@@ -28,7 +28,6 @@
     <BkLoading :loading="loading">
       <BkTable
         ref="tableRef"
-        :border="['col', 'outer']"
         :cell-class="generateCellClass"
         class="entry-config-table-box"
         :data="tableData">
@@ -37,25 +36,31 @@
           :label="t('访问入口')"
           :width="263">
           <template #default="{ data }: { data: ClusterEntryInfo }">
-            <span>
-              <slot
-                v-if="slots.prepend"
-                :data="data"
-                name="prepend" />
-              {{ data.entry }}
-            </span>
+            <BkTag
+              v-if="data.role === 'master_entry'"
+              size="small"
+              theme="success">
+              {{ t('主') }}
+            </BkTag>
+            <BkTag
+              v-else
+              size="small"
+              theme="info">
+              {{ t('从') }}
+            </BkTag>
+            {{ data.entry }}
           </template>
         </BkTableColumn>
         <BkTableColumn
           field="ips"
-          label="Bind IP"
-          :width="263">
+          label="Bind IP">
           <template #default="{ data }: { data: ClusterEntryInfo }">
             <RenderBindIps
               v-if="data.ips"
               :data="data"
               v-bind="props"
               @success="handleSuccess" />
+            <span v-if="!data.ips">--</span>
           </template>
         </BkTableColumn>
       </BkTable>
@@ -87,22 +92,20 @@
     bizId: number;
     resource: DBTypes;
     permission: boolean;
-    sort?: (data: ClusterEntryInfo[]) => ClusterEntryInfo[];
   }
 
   interface Emits {
     (e: 'success'): void;
   }
 
-  const props = withDefaults(defineProps<Props>(), {
-    sort: (data: ClusterEntryInfo[]) => data,
-  });
+  const props = defineProps<Props>();
 
   const emits = defineEmits<Emits>();
 
-  const slots = defineSlots<{
-    prepend?: (data: ClusterEntryInfo) => VNode | VNode[];
-  }>();
+  defineOptions({
+    name: 'ClusterEntryConfig',
+    inheritAttrs: false,
+  });
 
   const isShow = defineModel<boolean>('isShow', {
     default: false,
@@ -116,8 +119,8 @@
   const { run: fetchResources, loading } = useRequest(getClusterEntries, {
     manual: true,
     onSuccess: (data) => {
-      tableData.value = props.sort(
-        data.map((item) => ({
+      tableData.value = data
+        .map((item) => ({
           type: item.cluster_entry_type,
           entry: item.entry,
           role: item.role,
@@ -125,8 +128,8 @@
             ? (item as ClusterEntryDetailModel<DnsTargetDetails>).target_details.map((row) => row.ip).join('\n')
             : '',
           port: (item as ClusterEntryDetailModel<DnsTargetDetails>).target_details[0]?.port,
-        })),
-      );
+        }))
+        .sort((a) => (a.role === 'master_entry' ? -1 : 1));
     },
   });
 
