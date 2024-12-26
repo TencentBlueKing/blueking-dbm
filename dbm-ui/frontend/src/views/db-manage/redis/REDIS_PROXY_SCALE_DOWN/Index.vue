@@ -12,36 +12,21 @@
 -->
 
 <template>
-  <Column
-    field="nodeType.role"
-    :label="t('缩容节点类型')"
-    :min-width="300"
-    required>
-    <Select
-      v-model="modelValue"
-      :input-search="false"
-      :list="options" />
-  </Column>
+  <Component :is="components[page]" />
 </template>
-<script lang="ts" setup>
-  import { useI18n } from 'vue-i18n';
+<script setup lang="ts">
+  import { useRoute } from 'vue-router';
 
-  import { Column, Select } from '@components/editable-table/Index.vue';
+  import Page2 from '@views/db-manage/common/create-ticket-success/Index.vue';
 
-  const { t } = useI18n();
+  import Page1 from './Create.vue';
 
-  const modelValue = defineModel<string>({
-    default: '',
-  });
+  const route = useRoute();
 
-  const options = [
-    {
-      value: 'spider_master',
-      label: 'Master',
-    },
-    {
-      value: 'spider_slave',
-      label: 'Slave',
-    },
-  ];
+  const components = {
+    create: Page1,
+    success: Page2,
+  };
+
+  const page = computed(() => (route.params.page as keyof typeof components) || 'create');
 </script>

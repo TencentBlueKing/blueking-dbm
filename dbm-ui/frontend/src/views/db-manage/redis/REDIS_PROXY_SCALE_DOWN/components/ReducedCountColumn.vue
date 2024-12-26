@@ -13,35 +13,39 @@
 
 <template>
   <Column
-    field="nodeType.role"
-    :label="t('缩容节点类型')"
-    :min-width="300"
-    required>
-    <Select
-      v-model="modelValue"
-      :input-search="false"
-      :list="options" />
+    field="count"
+    :label="t('缩容数量（台）')"
+    :min-width="150">
+    <div
+      v-bk-tooltips="{
+        content: t('手动选择主机不需要设置缩容数量'),
+        disabled: !disabled,
+      }"
+      style="flex: 1">
+      <Input
+        v-model="modelValue"
+        :disabled="disabled"
+        :min="0"
+        type="number" />
+    </div>
   </Column>
 </template>
 <script lang="ts" setup>
   import { useI18n } from 'vue-i18n';
 
-  import { Column, Select } from '@components/editable-table/Index.vue';
+  import { Column, Input } from '@components/editable-table/Index.vue';
+
+  interface Props {
+    disabled?: boolean;
+  }
+
+  withDefaults(defineProps<Props>(), {
+    disabled: false,
+  });
 
   const { t } = useI18n();
 
   const modelValue = defineModel<string>({
     default: '',
   });
-
-  const options = [
-    {
-      value: 'spider_master',
-      label: 'Master',
-    },
-    {
-      value: 'spider_slave',
-      label: 'Slave',
-    },
-  ];
 </script>

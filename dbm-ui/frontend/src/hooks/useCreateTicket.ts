@@ -7,27 +7,32 @@ export function useCreateTicket<T>(ticketType: TicketTypes, options?: { onSucces
   const router = useRouter();
 
   const run = async (details: T, remark = '') => {
-    loading.value = true;
-    const { id: ticketId } = await createTicket<T>({
-      ticket_type: ticketType,
-      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-      details,
-      remark,
-      ignore_duplication: true,
-    });
-    loading.value = false;
-    if (options) {
-      options.onSuccess(ticketId);
-    } else {
-      router.push({
-        name: ticketType,
-        params: {
-          page: 'success',
-        },
-        query: {
-          ticketId,
-        },
+    try {
+      loading.value = true;
+      const { id: ticketId } = await createTicket<T>({
+        ticket_type: ticketType,
+        bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+        details,
+        remark,
+        ignore_duplication: true,
       });
+      if (options) {
+        options.onSuccess(ticketId);
+      } else {
+        router.push({
+          name: ticketType,
+          params: {
+            page: 'success',
+          },
+          query: {
+            ticketId,
+          },
+        });
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      loading.value = false;
     }
   };
 

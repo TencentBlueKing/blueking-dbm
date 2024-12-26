@@ -18,9 +18,8 @@
     fixed="left"
     :label="t('目标集群')"
     :loading="loading"
-    :min-width="300"
-    required
-    :validate-delay="300">
+    :min-width="150"
+    required>
     <template #headAppend>
       <span
         v-bk-tooltips="t('批量选择')"
@@ -34,9 +33,18 @@
       :placeholder="t('请输入集群域名')"
       @change="handleInputChange" />
   </Column>
+  <Column
+    field="cluster.cluster_type_name"
+    :label="t('架构版本')"
+    :loading="loading"
+    :min-width="150">
+    <Block
+      v-model="modelValue.cluster_type_name"
+      :placeholder="t('自动生成')" />
+  </Column>
   <ClusterSelector
     v-model:is-show="showSelector"
-    :cluster-types="[ClusterTypes.TENDBCLUSTER]"
+    :cluster-types="[ClusterTypes.REDIS]"
     :selected="selectedClusters"
     support-offline-data
     :tab-list-config="tabListConfig"
@@ -46,14 +54,15 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import TendbClusterModel from '@services/model/tendbcluster/tendbcluster';
+  import RedisModel from '@services/model/redis/redis';
   import { filterClusters } from '@services/source/dbbase';
+  import { getRedisList } from '@services/source/redis';
 
   import { ClusterTypes } from '@common/const';
   import { domainRegex } from '@common/regex';
 
   import ClusterSelector, { type TabConfig } from '@components/cluster-selector/Index.vue';
-  import { Column, Input } from '@components/editable-table/Index.vue';
+  import { Block, Column, Input } from '@components/editable-table/Index.vue';
 
   interface Props {
     selected: {
@@ -63,8 +72,8 @@
   }
 
   interface Emits {
-    (e: 'batch-edit', list: TendbClusterModel[]): void;
-    (e: 'change', data: TendbClusterModel): void;
+    (e: 'batch-edit', list: RedisModel[]): void;
+    (e: 'change', data: RedisModel): void;
   }
 
   const props = defineProps<Props>();
@@ -74,6 +83,7 @@
   const modelValue = defineModel<{
     id?: number;
     domain: string;
+    cluster_type_name?: string;
   }>({
     default: () => ({
       domain: '',
@@ -83,26 +93,36 @@
   const { t } = useI18n();
 
   const showSelector = ref(false);
-  const selectedClusters = computed<Record<string, TendbClusterModel[]>>(() => ({
-    [ClusterTypes.TENDBCLUSTER]: props.selected.map(
+  const selectedClusters = computed<Record<string, RedisModel[]>>(() => ({
+    [ClusterTypes.REDIS]: props.selected.map(
       (item) =>
         ({
           id: item.id,
           master_domain: item.domain,
-        }) as TendbClusterModel,
+        }) as RedisModel,
     ),
   }));
 
   const tabListConfig = {
-    [ClusterTypes.TENDBCLUSTER]: {
-      disabledRowConfig: [
-        {
-          handler: (data: TendbClusterModel) => data.spider_master.length <= 2 && data.spider_slave.length <= 1,
-          tip: t('Master 至少保留 2 台 ，Slave 至少 保留 1台'),
-        },
-      ],
+    [ClusterTypes.REDIS]: {
+      getResourceList: (params: ServiceParameters<typeof getRedisList>) =>
+        getRedisList({
+          cluster_type: [
+            ClusterTypes.TWEMPROXY_REDIS_INSTANCE,
+            ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER,
+            ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE,
+            ClusterTypes.PREDIXY_REDIS_CLUSTER,
+          ].join(','),
+          ...params,
+        }),
+      // disabledRowConfig: [
+      //   {
+      //     handler: (data: RedisModel) => data.proxy.length <= 2,
+      //     tip: t('数量不足，Proxy至少保留 2 台'),
+      //   },
+      // ],
     },
-  } as Record<ClusterTypes, TabConfig>;
+  } as unknown as Record<string, TabConfig>;
 
   const rules = [
     {
@@ -128,7 +148,7 @@
       modelValue.value.id = undefined;
       if (data.length) {
         modelValue.value.id = data[0].id;
-        emits('change', data[0] as TendbClusterModel);
+        emits('change', data[0] as RedisModel);
       }
     },
   });
@@ -144,8 +164,8 @@
     });
   };
 
-  const handleSelectorChange = (selected: Record<string, TendbClusterModel[]>) => {
-    emits('batch-edit', selected[ClusterTypes.TENDBCLUSTER]);
+  const handleSelectorChange = (selected: Record<string, RedisModel[]>) => {
+    emits('batch-edit', selected[ClusterTypes.REDIS]);
   };
 </script>
 <style lang="less" scoped>

@@ -11,6 +11,8 @@
  * the specific language governing permissions and limitations under the License.
  */
 
+import { TicketTypes } from '@common/const';
+
 import { t } from '@locales/index';
 
 export interface MenuItem {
@@ -147,7 +149,7 @@ export default [
           },
           {
             name: t('缩容接入层'),
-            id: 'RedisProxyScaleDown',
+            id: TicketTypes.REDIS_PROXY_SCALE_DOWN,
             parentId: 'cluster-manage',
             dbConsoleValue: 'redis.toolbox.proxyScaleDown',
           },

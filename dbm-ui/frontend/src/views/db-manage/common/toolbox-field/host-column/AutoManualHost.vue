@@ -15,7 +15,7 @@
   <Column
     :field="field"
     :label="label"
-    :min-width="300"
+    :min-width="minWidth"
     required
     :rule="rules">
     <Select
@@ -83,9 +83,10 @@
   interface Props {
     field: string; // 绑选项值的vmodel，不绑主机列表
     label: string;
+    minWidth?: number;
     placeholder?: string;
-    specIds?: number[];
     bkCloudId?: number;
+    specIds?: number[];
     params?: {
       for_biz?: number;
       bk_cloud_ids?: string;
@@ -99,10 +100,11 @@
   }
 
   const props = withDefaults(defineProps<Props>(), {
-    specIds: () => [],
-    bkCloudId: 0,
-    params: () => ({}),
+    minWidth: 300,
     placeholder: '请选择',
+    bkCloudId: 0,
+    specIds: () => [],
+    params: () => ({}),
   });
 
   const emits = defineEmits<Emits>();

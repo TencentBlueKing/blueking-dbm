@@ -13,12 +13,12 @@
 
 <template>
   <Column
-    field="nodeType.role"
-    :label="t('缩容节点类型')"
-    :min-width="300"
-    required>
+    field="switchMode"
+    :label="t('切换模式')"
+    :min-width="150">
     <Select
       v-model="modelValue"
+      :disabled="disabled"
       :input-search="false"
       :list="options" />
   </Column>
@@ -28,20 +28,28 @@
 
   import { Column, Select } from '@components/editable-table/Index.vue';
 
-  const { t } = useI18n();
+  interface Props {
+    disabled?: boolean;
+  }
+
+  withDefaults(defineProps<Props>(), {
+    disabled: false,
+  });
 
   const modelValue = defineModel<string>({
     default: '',
   });
 
+  const { t } = useI18n();
+
   const options = [
     {
-      value: 'spider_master',
-      label: 'Master',
+      value: 'user_confirm',
+      label: t('需人工确认'),
     },
     {
-      value: 'spider_slave',
-      label: 'Slave',
+      value: 'no_confirm',
+      label: t('无需确认'),
     },
   ];
 </script>

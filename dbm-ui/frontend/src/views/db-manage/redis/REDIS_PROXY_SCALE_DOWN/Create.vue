@@ -16,7 +16,7 @@
     <BkAlert
       class="mb-20"
       closable
-      :title="t('缩容接入层：减加集群的Proxy数量')" />
+      :title="t('缩容接入层：减少集群的Proxy数量，但集群Proxy数量不能少于2')" />
     <BkForm
       v-model="formData"
       class="mb-20"
@@ -29,7 +29,7 @@
         <EditableTableRow
           v-for="(item, index) in formData.tableData"
           :key="index">
-          <ClusterColumn
+          <ClusterColumnGroup
             v-model="item.cluster"
             :selected="selected"
             @batch-edit="handleBatchEdit"
@@ -39,20 +39,20 @@
             v-model="item.host.type"
             field="host.type"
             :label="t('主机选择方式')"
-            :spec-ids="getSpecIds(item)"
+            :min-width="150"
+            :spec-ids="item.nodeType.proxy_spec_ids"
             @change="(list) => handleSelectHost(list, item)" />
           <ReducedCountColumn
             v-model="item.count"
+            :disabled="item.host.type === HostSelectType.MANUAL" />
+          <SwitchModeColumn
+            v-model="item.switchMode"
             :disabled="item.host.type === HostSelectType.MANUAL" />
           <OperationColumn
             v-model:table-data="formData.tableData"
             :create-row-method="createTableRow" />
         </EditableTableRow>
       </EditableTable>
-      <IgnoreBiz
-        v-model="formData.isSafe"
-        v-bk-tooltips="t('如忽略_有连接的情况下也会执行')"
-        class="mb-20" />
       <TicketRemark v-model="formData.remark" />
     </BkForm>
     <template #action>
@@ -80,7 +80,7 @@
   import { reactive, useTemplateRef } from 'vue';
   import { useI18n } from 'vue-i18n';
 
-  import TendbClusterModel from '@services/model/tendbcluster/tendbcluster';
+  import RedisModel from '@services/model/redis/redis';
 
   import { useCreateTicket } from '@hooks';
 
@@ -92,23 +92,23 @@
     type HostInfo,
     HostSelectType,
   } from '@views/db-manage/common/toolbox-field/host-column/AutoManualHost.vue';
-  import IgnoreBiz from '@views/db-manage/common/toolbox-field/ignore-biz/Index.vue';
   import OperationColumn from '@views/db-manage/common/toolbox-field/operation-column/Index.vue';
   import TicketRemark from '@views/db-manage/common/toolbox-field/ticket-remark/Index.vue';
 
-  import ClusterColumn from './components/ClusterColumn.vue';
+  import ClusterColumnGroup from './components/ClusterColumnGroup.vue';
   import NodeTypeColumn from './components/NodeTypeColumn.vue';
   import ReducedCountColumn from './components/ReducedCountColumn.vue';
+  import SwitchModeColumn from './components/SwitchModeColumn.vue';
 
   interface RowData {
     cluster: {
       id: number;
       domain: string;
+      cluster_type_name: string;
     };
     nodeType: {
       role: string;
-      master_spec_ids: number[];
-      slave_spec_ids: number[];
+      proxy_spec_ids: number[];
     };
     host: {
       type: string;
@@ -120,6 +120,7 @@
       }[];
     };
     count: string;
+    switchMode: string;
   }
 
   const { t } = useI18n();
@@ -129,22 +130,22 @@
     cluster: data.cluster || {
       id: 0,
       domain: '',
+      cluster_type_name: '',
     },
     nodeType: data.nodeType || {
       role: '',
-      master_spec_ids: [],
-      slave_spec_ids: [],
+      proxy_spec_ids: [],
     },
     host: data.host || {
       type: '',
       list: [],
     },
     count: data.count || '',
+    switchMode: data.switchMode || '',
   });
 
   const defaultData = () => ({
     tableData: [createTableRow()],
-    isSafe: false,
     remark: '',
   });
 
@@ -163,24 +164,24 @@
   };
 
   interface TicketDetail {
-    is_safe: boolean;
+    ip_source: 'resource_pool';
     infos: {
       cluster_id: number;
-      reduce_spider_role: string;
-      spider_reduced_to_count?: number;
+      target_proxy_count?: number;
       old_nodes?: {
-        spider_reduced_hosts: {
+        proxy_reduced_hosts: {
           bk_biz_id: number;
           bk_cloud_id: number;
           bk_host_id: number;
           ip: string;
         }[];
       };
+      online_switch_type: string;
     }[];
   }
 
   const { run: createTicketRun, loading: isSubmitting } = useCreateTicket<TicketDetail>(
-    TicketTypes.TENDBCLUSTER_SPIDER_REDUCE_NODES,
+    TicketTypes.REDIS_PROXY_SCALE_DOWN,
   );
 
   const handleSubmit = async () => {
@@ -190,17 +191,17 @@
     }
     createTicketRun(
       {
-        is_safe: formData.isSafe,
+        ip_source: 'resource_pool',
         infos: formData.tableData.map((item) => {
           const info: TicketDetail['infos'][0] = {
             cluster_id: item.cluster.id,
-            reduce_spider_role: item.nodeType.role,
+            online_switch_type: item.switchMode,
           };
 
           if (item.host.list.length) {
-            info.old_nodes = { spider_reduced_hosts: item.host.list };
+            info.old_nodes = { proxy_reduced_hosts: item.host.list };
           } else if (item.count) {
-            info.spider_reduced_to_count = Number(item.count);
+            info.target_proxy_count = Number(item.count);
           }
 
           return info;
@@ -214,7 +215,7 @@
     Object.assign(formData, defaultData());
   };
 
-  const handleBatchEdit = (list: TendbClusterModel[]) => {
+  const handleBatchEdit = (list: RedisModel[]) => {
     const dataList = list.reduce<RowData[]>((acc, item) => {
       if (!selectedMap.value[item.master_domain]) {
         acc.push(
@@ -222,11 +223,11 @@
             cluster: {
               id: item.id,
               domain: item.master_domain,
+              cluster_type_name: item.cluster_type_name,
             },
             nodeType: {
-              role: '',
-              master_spec_ids: item.spider_master.map((item) => item.spec_config?.id),
-              slave_spec_ids: item.spider_slave.map((item) => item.spec_config?.id),
+              role: 'Proxy',
+              proxy_spec_ids: item?.proxy.map((item) => item.spec_config?.id),
             },
           }),
         );
@@ -236,25 +237,14 @@
     formData.tableData = [...(selected.value.length ? formData.tableData : []), ...dataList];
   };
 
-  const handleInputed = (data: TendbClusterModel, row: RowData) => {
+  const handleInputed = (data: RedisModel, row: RowData) => {
     row.nodeType = {
-      role: '',
-      master_spec_ids: data?.spider_master.map((item) => item.spec_config?.id),
-      slave_spec_ids: data?.spider_slave.map((item) => item.spec_config?.id),
+      role: 'Proxy',
+      proxy_spec_ids: data?.proxy.map((item) => item.spec_config?.id),
     };
   };
 
   const handleSelectHost = (list: HostInfo[], row: RowData) => {
     row.host.list = list;
-  };
-
-  const getSpecIds = (row: RowData) => {
-    if (row.nodeType.role === 'spider_master') {
-      return row.nodeType.master_spec_ids;
-    }
-    if (row.nodeType.role === 'spider_slave') {
-      return row.nodeType.slave_spec_ids;
-    }
-    return [];
   };
 </script>

@@ -17,9 +17,15 @@ import FunctionControllModel, {
   type RedisFunctions,
 } from '@services/model/function-controller/functionController';
 
+import { useToolboxRoute } from '@hooks';
+
+import { DBTypes, TicketTypes } from '@common/const';
+
 import { checkDbConsole } from '@utils';
 
 import { t } from '@locales/index';
+
+const { createRouteItem } = useToolboxRoute(DBTypes.REDIS);
 
 const redisInstallModuleRoute = {
   name: 'RedisInstallModule',
@@ -48,14 +54,7 @@ const redisProxyScaleUpRoute = {
   component: () => import('@views/db-manage/redis/proxy-scale-up/Index.vue'),
 };
 
-const redisProxyScaleDownRoute = {
-  name: 'RedisProxyScaleDown',
-  path: 'proxy-scale-down/:page?',
-  meta: {
-    navName: t('缩容接入层'),
-  },
-  component: () => import('@views/db-manage/redis/proxy-scale-down/Index.vue'),
-};
+const redisProxyScaleDownRoute = createRouteItem(TicketTypes.REDIS_PROXY_SCALE_DOWN, t('缩容接入层'));
 
 const redisDBCreateSlaveRoute = {
   name: 'RedisDBCreateSlave',

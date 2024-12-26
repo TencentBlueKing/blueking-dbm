@@ -15,33 +15,21 @@
   <Column
     field="nodeType.role"
     :label="t('缩容节点类型')"
-    :min-width="300"
+    :min-width="150"
     required>
-    <Select
+    <Block
       v-model="modelValue"
-      :input-search="false"
-      :list="options" />
+      :placeholder="t('自动生成')" />
   </Column>
 </template>
 <script lang="ts" setup>
   import { useI18n } from 'vue-i18n';
 
-  import { Column, Select } from '@components/editable-table/Index.vue';
+  import { Block, Column } from '@components/editable-table/Index.vue';
 
   const { t } = useI18n();
 
   const modelValue = defineModel<string>({
     default: '',
   });
-
-  const options = [
-    {
-      value: 'spider_master',
-      label: 'Master',
-    },
-    {
-      value: 'spider_slave',
-      label: 'Slave',
-    },
-  ];
 </script>
