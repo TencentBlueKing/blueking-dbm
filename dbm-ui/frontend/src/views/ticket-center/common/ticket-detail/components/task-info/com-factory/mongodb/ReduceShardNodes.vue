@@ -12,12 +12,10 @@
 -->
 
 <template>
-  <BkLoading :loading="loading">
-    <DbOriginalTable
-      class="details-backup__table"
-      :columns="columns"
-      :data="tableData" />
-  </BkLoading>
+  <DbOriginalTable
+    class="details-backup__table"
+    :columns="columns"
+    :data="tableData" />
   <div class="ticket-details-list">
     <div class="ticket-details-item">
       <span class="ticket-details-item-label">{{ t('忽略业务连接') }}：</span>
@@ -30,10 +28,8 @@
 
 <script setup lang="tsx">
   import { useI18n } from 'vue-i18n';
-  import { useRequest } from 'vue-request';
 
   import TicketModel, { type Mongodb } from '@services/model/ticket/ticket';
-  import { getMongoList } from '@services/source/mongodb';
 
   import { TicketTypes } from '@common/const';
 
@@ -84,28 +80,13 @@
     },
   ];
 
-  const { loading, run: fetchMongoList } = useRequest(getMongoList, {
-    manual: true,
-    onSuccess(result) {
-      const shardNumMap = result.results.reduce(
-        (results, item) => {
-          Object.assign(results, {
-            [item.id]: item.shard_node_count,
-          });
-          return results;
-        },
-        {} as Record<number, number>,
-      );
-      tableData.value = infos.map((item) => ({
-        immute_domain: clusters[item.cluster_id].immute_domain,
-        cluster_type: clusters[item.cluster_id].cluster_type_name,
-        reduce_shard_nodes: shardNumMap[item.cluster_id] - item.reduce_shard_nodes,
-        current_nodes: shardNumMap[item.cluster_id],
-      }));
-    },
-  });
-
-  fetchMongoList({
-    domains: props.ticketDetails.details.infos.map((item) => clusters[item.cluster_id].immute_domain).join(','),
+  tableData.value = infos.map((item) => {
+    const cluster = clusters[item.cluster_ids[0]];
+    return {
+      immute_domain: cluster.immute_domain,
+      cluster_type: cluster.cluster_type_name,
+      current_nodes: item.current_shard_nodes_num,
+      reduce_shard_nodes: item.current_shard_nodes_num - item.reduce_shard_nodes,
+    };
   });
 </script>
