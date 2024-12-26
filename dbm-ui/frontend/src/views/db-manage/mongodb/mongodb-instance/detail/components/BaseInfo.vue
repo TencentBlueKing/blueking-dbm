@@ -86,15 +86,19 @@
         key: 'bk_cloud_name',
       },
       {
-        label: t('所在城市'),
+        label: t('地域'),
         key: 'bk_idc_city_name',
       },
       {
         label: t('所在园区'),
-        key: 'bk_idc_name',
+        key: 'bk_sub_zone',
       },
     ],
     [
+      {
+        label: t('版本'),
+        key: 'version',
+      },
       {
         label: t('部署架构'),
         key: 'clusterTypeName',
