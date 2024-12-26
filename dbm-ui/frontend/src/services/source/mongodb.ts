@@ -74,7 +74,14 @@ export function getMongoList(params: {
 }) {
   return http.get<ListBase<MongodbModel[]>>(`${getRootPath()}/`, params).then((data) => ({
     ...data,
-    results: data.results.map((item) => new MongodbModel(item)),
+    results: data.results.map(
+      (item) =>
+        new MongodbModel(
+          Object.assign(item, {
+            permission: Object.assign({}, item.permission, data.permission),
+          }),
+        ),
+    ),
   }));
 }
 

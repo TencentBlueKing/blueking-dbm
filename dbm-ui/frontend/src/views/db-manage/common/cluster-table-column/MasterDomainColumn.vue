@@ -1,13 +1,14 @@
 <template>
   <BkTableColumn
-    field="master_domain"
+    :field="field"
     fixed="left"
+    :label="label"
     :min-width="280">
     <template #header>
       <RenderHeadCopy
         :config="[
           {
-            field: 'master_domain',
+            field: 'masterDomain',
             label: t('域名'),
           },
           {
@@ -18,14 +19,14 @@
         :has-selected="selectedList.length > 0"
         @handle-copy-all="handleCopyAll"
         @handle-copy-selected="handleCopySelected">
-        {{ t('主访问入口') }}
+        {{ label }}
       </RenderHeadCopy>
     </template>
-    <template #default="{ data }: { data: TendnclusterModel }">
+    <template #default="{ data }: { data: IRowData }">
       <TextOverflowLayout>
         <AuthButton
           :action-id="viewActionId"
-          :permission="data.permission[viewActionId]"
+          :permission="Boolean(_.get(data.permission, viewActionId))"
           :resource="data.id"
           text
           theme="primary"
@@ -33,6 +34,9 @@
           {{ data.masterDomainDisplayName }}
         </AuthButton>
         <template #append>
+          <slot
+            name="append"
+            v-bind="{ data: data }" />
           <RenderOperationTag
             v-for="(item, index) in data.operationTagTips"
             :key="index"
@@ -52,10 +56,10 @@
             NEW
           </BkTag>
           <RenderCellCopy
-            v-if="data.master_domain"
+            v-if="data.masterDomain"
             :copy-items="[
               {
-                value: data.master_domain,
+                value: data.masterDomain,
                 label: t('域名'),
               },
               {
@@ -67,25 +71,9 @@
             <EditEntryConfig
               :id="data.id"
               :biz-id="data.bk_biz_id"
-              :permission="data.permission.access_entry_edit"
-              :resource="clusterTypeInfos[clusterType].dbType"
-              :sort="entrySort"
-              @success="{ fetchTableData }">
-              <template #prepend="clusterEntry">
-                <BkTag
-                  v-if="clusterEntry.role === 'master_entry'"
-                  size="small"
-                  theme="success">
-                  {{ t('主') }}
-                </BkTag>
-                <BkTag
-                  v-else
-                  size="small"
-                  theme="info">
-                  {{ t('从') }}
-                </BkTag>
-              </template>
-            </EditEntryConfig>
+              :permission="Boolean(data.permission.access_entry_edit)"
+              :resource="dbType || clusterTypeInfos[clusterType].dbType"
+              @success="handleRefresh" />
           </span>
         </template>
       </TextOverflowLayout>
@@ -93,16 +81,16 @@
   </BkTableColumn>
 </template>
 <script setup lang="ts" generic="T extends ISupportClusterType">
+  import _ from 'lodash';
+  import type { VNode } from 'vue';
   import { useI18n } from 'vue-i18n';
 
-  import TendnclusterModel from '@services/model/tendbcluster/tendbcluster';
-
-  import { clusterTypeInfos, ClusterTypes } from '@common/const';
+  import { clusterTypeInfos, ClusterTypes, DBTypes } from '@common/const';
 
   import DbTable from '@components/db-table/index.vue';
   import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
 
-  import EditEntryConfig, { type ClusterEntryInfo } from '@views/db-manage/common/cluster-entry-config/Index.vue';
+  import EditEntryConfig from '@views/db-manage/common/cluster-entry-config/Index.vue';
   import RenderCellCopy from '@views/db-manage/common/render-cell-copy/Index.vue';
   import RenderHeadCopy from '@views/db-manage/common/render-head-copy/Index.vue';
   import RenderOperationTag from '@views/db-manage/common/RenderOperationTagNew.vue';
@@ -111,7 +99,10 @@
   import type { ClusterModel, ISupportClusterType } from './types';
 
   export interface Props<clusterType extends ISupportClusterType> {
+    label: string;
+    field: string;
     clusterType: clusterType;
+    dbType?: DBTypes;
     selectedList: ClusterModel<clusterType>[];
     // eslint-disable-next-line vue/no-unused-properties
     getTableInstance: () => InstanceType<typeof DbTable> | undefined;
@@ -122,22 +113,55 @@
     (e: 'refresh'): void;
   }
 
+  export interface Slots<T extends ISupportClusterType> {
+    append?: (params: { data: ClusterModel<T> }) => VNode;
+  }
+
+  type IRowData = ClusterModel<T>;
+
   const props = defineProps<Props<T>>();
   const emits = defineEmits<Emits>();
+  defineSlots<Slots<T>>();
 
-  const actionIdMap = {
+  const viewActionIdMap: Record<ISupportClusterType, string> = {
     [ClusterTypes.TENDBCLUSTER]: 'tendbcluster_view',
-  } as const;
+    [ClusterTypes.DORIS]: 'doris_view',
+    [ClusterTypes.ES]: 'es_view',
+    [ClusterTypes.HDFS]: 'hdfs_view',
+    [ClusterTypes.TENDBHA]: 'mysql_view',
+    [ClusterTypes.TENDBSINGLE]: 'mysql_view',
+    [ClusterTypes.PULSAR]: 'pulsar_view',
+    [ClusterTypes.REDIS]: 'redis_view',
+    [ClusterTypes.REDIS_INSTANCE]: 'redis_view',
+    [ClusterTypes.RIAK]: 'riak_view',
+    [ClusterTypes.KAFKA]: 'kafka_view',
+    [ClusterTypes.SQLSERVER_HA]: 'sqlserver_view',
+    [ClusterTypes.SQLSERVER_SINGLE]: 'sqlserver_view',
+    [ClusterTypes.MONGO_REPLICA_SET]: 'mongodb_view',
+    [ClusterTypes.MONGO_SHARED_CLUSTER]: 'mongodb_view',
+  };
 
-  const dbConsoleMap = {
+  const dbConsoleMap: Record<ISupportClusterType, string> = {
     [ClusterTypes.TENDBCLUSTER]: 'tendbCluster.clusterManage.modifyEntryConfiguration',
-  } as const;
-
-  const entrySort = (data: ClusterEntryInfo[]) => data.sort((a) => (a.role === 'master_entry' ? -1 : 1));
+    [ClusterTypes.DORIS]: 'doris.clusterManage.modifyEntryConfiguration',
+    [ClusterTypes.ES]: 'es.clusterManage.modifyEntryConfiguration',
+    [ClusterTypes.HDFS]: 'hdfs.clusterManage.modifyEntryConfiguration',
+    [ClusterTypes.TENDBHA]: 'mysql.haClusterList.modifyEntryConfiguration',
+    [ClusterTypes.TENDBSINGLE]: 'mysql.singleClusterList.modifyEntryConfiguration',
+    [ClusterTypes.PULSAR]: 'pulsar.clusterManage.modifyEntryConfiguration',
+    [ClusterTypes.REDIS]: 'redis.clusterManage.modifyEntryConfiguration',
+    [ClusterTypes.REDIS_INSTANCE]: 'redis.clusterManage.modifyEntryConfiguration',
+    [ClusterTypes.RIAK]: 'riak.clusterManage.modifyEntryConfiguration',
+    [ClusterTypes.KAFKA]: 'kafka.clusterManage.modifyEntryConfiguration',
+    [ClusterTypes.SQLSERVER_HA]: 'sqlserver.haClusterList.modifyEntryConfiguration',
+    [ClusterTypes.SQLSERVER_SINGLE]: 'sqlserver.singleClusterList.modifyEntryConfiguration',
+    [ClusterTypes.MONGO_REPLICA_SET]: 'mongodb.clusterManage.modifyEntryConfiguration',
+    [ClusterTypes.MONGO_SHARED_CLUSTER]: 'mongodb.clusterManage.modifyEntryConfiguration',
+  };
 
   const { t } = useI18n();
 
-  const viewActionId = computed(() => actionIdMap[props.clusterType]);
+  const viewActionId = computed(() => viewActionIdMap[props.clusterType]);
 
   const accessEntryDbConsole = computed(() => dbConsoleMap[props.clusterType]);
 
@@ -147,7 +171,7 @@
     emits('go-detail', id);
   };
 
-  const fetchTableData = () => {
+  const handleRefresh = () => {
     emits('refresh');
   };
 </script>

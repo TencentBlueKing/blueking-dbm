@@ -1,6 +1,7 @@
 <template>
   <BkTableColumn
     field="id"
+    fixed="left"
     label="ID" />
 </template>
 <script setup lang="ts">

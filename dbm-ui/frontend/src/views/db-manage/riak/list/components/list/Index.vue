@@ -46,7 +46,6 @@
     <DbTable
       ref="tableRef"
       class="riak-list-table"
-      :columns="columns"
       :data-source="getRiakList"
       :row-class="setRowClass"
       selectable
@@ -56,7 +55,119 @@
       @column-filter="columnFilterChange"
       @column-sort="columnSortChange"
       @selection="handleSelection"
-      @setting-change="updateTableSettings" />
+      @setting-change="updateTableSettings">
+      <IdColumn :cluster-type="ClusterTypes.RIAK" />
+      <MasterDomainColumn
+        :cluster-type="ClusterTypes.RIAK"
+        field="master_domain"
+        :get-table-instance="getTableInstance"
+        :label="t('主访问入口')"
+        :selected-list="selected"
+        @go-detail="handleToDetail"
+        @refresh="fetchData" />
+      <ClusterNameColumn
+        :cluster-type="ClusterTypes.RIAK"
+        :get-table-instance="getTableInstance"
+        :selected-list="selected"
+        @refresh="fetchData" />
+      <StatusColumn :cluster-type="ClusterTypes.RIAK" />
+      <ClusterStatsColumn :cluster-type="ClusterTypes.RIAK" />
+      <RoleColumn
+        :cluster-type="ClusterTypes.RIAK"
+        field="riak_node"
+        :get-table-instance="getTableInstance"
+        :label="t('节点')"
+        :search-ip="batchSearchIpInatanceList"
+        :selected-list="selected" />
+      <CommonColumn :cluster-type="ClusterTypes.RIAK" />
+      <BkTableColumn
+        :fixed="isStretchLayoutOpen ? false : 'right'"
+        :label="t('操作')"
+        :min-width="240"
+        :show-overflow="false">
+        <template #default="{data}: {data: RiakModel}">
+          <OperationBtnStatusTips
+            v-db-console="'riak.clusterManage.addNodes'"
+            :data="data">
+            <AuthButton
+              action-id="riak_cluster_scale_in"
+              class="mr-8"
+              :disabled="data.isOffline"
+              :permission="data.permission.riak_cluster_scale_in"
+              :resource="data.id"
+              text
+              theme="primary"
+              @click="handleAddNodes(data)">
+              {{ t('添加节点') }}
+            </AuthButton>
+          </OperationBtnStatusTips>
+          <OperationBtnStatusTips
+            v-db-console="'riak.clusterManage.deleteNodes'"
+            :data="data">
+            <AuthButton
+              action-id="riak_cluster_scale_out"
+              class="mr-8"
+              :disabled="data.isOffline"
+              :permission="data.permission.riak_cluster_scale_out"
+              :resource="data.id"
+              text
+              theme="primary"
+              @click="handleDeleteNodes(data)">
+              {{ t('删除节点') }}
+            </AuthButton>
+          </OperationBtnStatusTips>
+          <OperationBtnStatusTips
+            v-db-console="'riak.clusterManage.disable'"
+            :data="data">
+            <AuthButton
+              action-id="riak_enable_disable"
+              class="mr-8"
+              :disabled="data.isOffline || Boolean(data.operationTicketId)"
+              :permission="data.permission.riak_enable_disable"
+              :resource="data.id"
+              text
+              theme="primary"
+              @click="handleDisableCluster([data])">
+              {{ t('禁用') }}
+            </AuthButton>
+          </OperationBtnStatusTips>
+          <MoreActionExtend>
+            <BkDropdownItem v-db-console="'riak.clusterManage.enable'">
+              <OperationBtnStatusTips :data="data">
+                <AuthButton
+                  action-id="riak_enable_disable"
+                  :disabled="data.isOnline || data.isStarting"
+                  :permission="data.permission.riak_enable_disable"
+                  :resource="data.id"
+                  text
+                  theme="primary"
+                  @click="handleEnableCluster([data])">
+                  {{ t('启用') }}
+                </AuthButton>
+              </OperationBtnStatusTips>
+            </BkDropdownItem>
+            <BkDropdownItem v-db-console="'riak.clusterManage.delete'">
+              <OperationBtnStatusTips :data="data">
+                <AuthButton
+                  v-bk-tooltips="{
+                    disabled: data.isOffline,
+                    content: t('请先禁用集群'),
+                  }"
+                  action-id="riak_cluster_destroy"
+                  :disabled="data.isOnline || Boolean(data.operationTicketId)"
+                  :permission="data.permission.riak_cluster_destroy"
+                  :resource="data.id"
+                  text
+                  theme="primary"
+                  @click="handleDeleteCluster([data])">
+                  {{ t('删除') }}
+                </AuthButton>
+              </OperationBtnStatusTips>
+            </BkDropdownItem>
+          </MoreActionExtend>
+        </template>
+      </BkTableColumn>
+    </DbTable>
     <DbSideslider
       v-if="detailData"
       v-model:is-show="addNodeShow"
@@ -80,58 +191,47 @@
 </template>
 
 <script setup lang="tsx">
-  import { Message } from 'bkui-vue';
   import type { ISearchItem } from 'bkui-vue/lib/search-select/utils';
   import dayjs from 'dayjs';
   import { useI18n } from 'vue-i18n';
   import { useRouter } from 'vue-router';
 
   import RiakModel from '@services/model/riak/riak';
-  import {
-    getRiakInstanceList,
-    getRiakList,
-  } from '@services/source/riak';
+  import { getRiakList } from '@services/source/riak';
   import { getUserList } from '@services/source/user';
 
-  import {
-    useCopy,
-    useLinkQueryColumnSerach,
-    useStretchLayout,
-    useTableSettings,
-  } from '@hooks';
+  import { useLinkQueryColumnSerach, useStretchLayout, useTableSettings } from '@hooks';
 
   import { useGlobalBizs } from '@stores';
 
   import { ClusterTypes, UserPersonalSettings } from '@common/const';
 
-  import RenderClusterStatus from '@components/cluster-status/Index.vue';
   import DbTable from '@components/db-table/index.vue';
-  import MiniTag from '@components/mini-tag/index.vue';
-  import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
+  import MoreActionExtend from '@components/more-action-extend/Index.vue';
 
-  import ClusterCapacityUsageRate from '@views/db-manage/common/cluster-capacity-usage-rate/Index.vue'
   import ClusterIpCopy from '@views/db-manage/common/cluster-ip-copy/Index.vue';
+  import ClusterNameColumn from '@views/db-manage/common/cluster-table-column/ClusterNameColumn.vue';
+  import ClusterStatsColumn from '@views/db-manage/common/cluster-table-column/ClusterStats.vue';
+  import CommonColumn from '@views/db-manage/common/cluster-table-column/CommonColumn.vue';
+  import IdColumn from '@views/db-manage/common/cluster-table-column/IdColumn.vue';
+  import MasterDomainColumn from '@views/db-manage/common/cluster-table-column/MasterDomainColumn.vue';
+  import RoleColumn from '@views/db-manage/common/cluster-table-column/RoleColumn.vue';
+  import StatusColumn from '@views/db-manage/common/cluster-table-column/StatusColumn.vue';
   import DropdownExportExcel from '@views/db-manage/common/dropdown-export-excel/index.vue';
   import { useOperateClusterBasic } from '@views/db-manage/common/hooks';
   import OperationBtnStatusTips from '@views/db-manage/common/OperationBtnStatusTips.vue';
-  import RenderHeadCopy from '@views/db-manage/common/render-head-copy/Index.vue';
-  import RenderNodeInstance from '@views/db-manage/common/RenderNodeInstance.vue';
-  import RenderOperationTag from '@views/db-manage/common/RenderOperationTagNew.vue';
 
-  import {
-    getMenuListSearch,
-    getSearchSelectorParams,
-  } from '@utils';
+  import { getMenuListSearch, getSearchSelectorParams } from '@utils';
 
   import AddNodes from '../components/AddNodes.vue';
   import DeleteNodes from '../components/DeleteNodes.vue';
 
   interface Emits {
-    (e: 'detailOpenChange', data: boolean): void
+    (e: 'detailOpenChange', data: boolean): void;
   }
 
   interface Expose {
-    freshData: () => void
+    freshData: () => void;
   }
 
   const emits = defineEmits<Emits>();
@@ -140,24 +240,15 @@
   const router = useRouter();
   const route = useRoute();
   const { t } = useI18n();
-  const copy = useCopy();
   const { currentBizId } = useGlobalBizs();
+  const { isOpen: isStretchLayoutOpen, splitScreen: stretchLayoutSplitScreen } = useStretchLayout();
+  const { handleDisableCluster, handleEnableCluster, handleDeleteCluster } = useOperateClusterBasic(ClusterTypes.RIAK, {
+    onSuccess: () => fetchData(),
+  });
   const {
-    isOpen: isStretchLayoutOpen,
-    splitScreen: stretchLayoutSplitScreen,
-  } = useStretchLayout();
-  const { handleDisableCluster, handleEnableCluster, handleDeleteCluster } = useOperateClusterBasic(
-    ClusterTypes.RIAK,
-    {
-      onSuccess: () => fetchData(),
-    },
-  );
-  const {
-    columnAttrs,
     searchAttrs,
     searchValue,
     sortValue,
-    columnCheckedMap,
     batchSearchIpInatanceList,
     columnFilterChange,
     columnSortChange,
@@ -165,400 +256,97 @@
     handleSearchValueChange,
   } = useLinkQueryColumnSerach({
     searchType: ClusterTypes.RIAK,
-    attrs: [
-      'bk_cloud_id',
-      'db_module_id',
-      'major_version',
-      'region',
-      'time_zone',
-    ],
+    attrs: ['bk_cloud_id', 'db_module_id', 'major_version', 'region', 'time_zone'],
     fetchDataFn: () => fetchData(),
     defaultSearchItem: {
       name: t('访问入口'),
       id: 'domain',
-    }
+    },
   });
 
-  const serachData = computed(() => [
-    {
-      name: t('集群名称'),
-      id: 'name',
-      multiple: true,
-    },
-    {
-      name: t('IP 或 IP:Port'),
-      id: 'instance',
-      multiple: true,
-    },
-    {
-      name: 'ID',
-      id: 'id',
-    },
-    {
-      name: t('创建人'),
-      id: 'creator',
-    },
-    {
-      name: t('模块'),
-      id: 'db_module_id',
-      multiple: true,
-      children: searchAttrs.value.db_module_id,
-    },
-    {
-      name: t('管控区域'),
-      id: 'bk_cloud_id',
-      multiple: true,
-      children: searchAttrs.value.bk_cloud_id,
-    },
-    {
-      name: t('状态'),
-      id: 'status',
-      multiple: true,
-      children: [
+  const serachData = computed(
+    () =>
+      [
         {
-          id: 'normal',
-          name: t('正常'),
+          name: t('集群名称'),
+          id: 'name',
+          multiple: true,
         },
         {
-          id: 'abnormal',
-          name: t('异常'),
+          name: t('IP 或 IP:Port'),
+          id: 'instance',
+          multiple: true,
         },
-      ],
-    },
-    {
-      name: t('版本'),
-      id: 'major_version',
-      multiple: true,
-      children: searchAttrs.value.major_version,
-    },
-    {
-      name: t('地域'),
-      id: 'region',
-      multiple: true,
-      children: searchAttrs.value.region,
-    },
-    {
-      name: t('时区'),
-      id: 'time_zone',
-      multiple: true,
-      children: searchAttrs.value.time_zone,
-    },
-  ] as ISearchItem[]);
+        {
+          name: 'ID',
+          id: 'id',
+        },
+        {
+          name: t('创建人'),
+          id: 'creator',
+        },
+        {
+          name: t('模块'),
+          id: 'db_module_id',
+          multiple: true,
+          children: searchAttrs.value.db_module_id,
+        },
+        {
+          name: t('管控区域'),
+          id: 'bk_cloud_id',
+          multiple: true,
+          children: searchAttrs.value.bk_cloud_id,
+        },
+        {
+          name: t('状态'),
+          id: 'status',
+          multiple: true,
+          children: [
+            {
+              id: 'normal',
+              name: t('正常'),
+            },
+            {
+              id: 'abnormal',
+              name: t('异常'),
+            },
+          ],
+        },
+        {
+          name: t('版本'),
+          id: 'major_version',
+          multiple: true,
+          children: searchAttrs.value.major_version,
+        },
+        {
+          name: t('地域'),
+          id: 'region',
+          multiple: true,
+          children: searchAttrs.value.region,
+        },
+        {
+          name: t('时区'),
+          id: 'time_zone',
+          multiple: true,
+          children: searchAttrs.value.time_zone,
+        },
+      ] as ISearchItem[],
+  );
 
   const tableRef = ref<InstanceType<typeof DbTable>>();
   const deployTime = ref<[string, string]>(['', '']);
   const addNodeShow = ref(false);
   const deleteNodeShow = ref(false);
   const detailData = ref<RiakModel>();
-  const selected = ref<RiakModel[]>([])
+  const selected = ref<RiakModel[]>([]);
 
-  const selectedIds = computed(() => selected.value.map(item => item.id));
-  const hasSelected = computed(() => selected.value.length > 0);
+  const getTableInstance = () => tableRef.value;
 
-  const columns = computed(() => [
-    {
-      label: t('集群名称'),
-      field: 'cluster_name',
-      minWidth: 240,
-      fixed: 'left',
-      showOverflowTooltip: false,
-      renderHead: () => (
-        <RenderHeadCopy
-          hasSelected={hasSelected.value}
-          onHandleCopySelected={handleCopySelected}
-          onHandleCopyAll={handleCopyAll}
-          config={
-            [
-              {
-                field: 'cluster_name'
-              },
-            ]
-          }
-        >
-          {t('集群名称')}
-        </RenderHeadCopy>
-      ),
-      render: ({ data }: { data: RiakModel }) => (
-        <TextOverflowLayout>
-          {{
-            default: () => (
-              <auth-button
-                action-id="riak_view"
-                permission={data.permission.riak_view}
-                resource={data.id}
-                text
-                theme="primary"
-                onClick={() => handleToDetail(data.id)}>
-                { data.cluster_name }
-              </auth-button>
-            ),
-            append: () => (
-              <>
-                {
-                  data.isNew && (
-                  <MiniTag
-                      content='NEW'
-                      theme='success'
-                      class='new-tag'>
-                    </MiniTag>
-                  )
-                }
-                {
-                  data.operationTagTips.map(item => <RenderOperationTag class="ml-4" data={item}/>)
-                }
-                {
-                  data.isDisabled && (
-                    <bk-tag
-                      class="ml-4"
-                      size="small">
-                      {t('已禁用')}
-                    </bk-tag>
-                  )
-                }
-              </>
-            )
-          }}
-        </TextOverflowLayout>
-      ),
-    },
-    {
-      label: t('版本'),
-      field: 'major_version',
-      width: 80,
-      filter: {
-        list: columnAttrs.value.major_version,
-        checked: columnCheckedMap.value.major_version,
-      },
-      render: ({ data }: { data: RiakModel }) => <span>{data.major_version || '--'}</span>,
-    },
-    {
-      label: t('所属DB模块'),
-      field: 'db_module_id',
-      width: 140,
-      showOverflowTooltip: true,
-      filter: {
-        list: columnAttrs.value.db_module_id,
-        checked: columnCheckedMap.value.db_module_id,
-      },
-      render: ({ data }: { data: RiakModel }) => <span>{data.db_module_name || '--'}</span>,
-    },
-    {
-        label: t('容灾要求'),
-        field: 'disaster_tolerance_level',
-        minWidth: 100,
-        render: ({ data }: { data: RiakModel }) => data.disasterToleranceLevelName || '--',
-    },
-    {
-      label: t('地域'),
-      field: 'region',
-      minWidth: 100,
-      filter: {
-        list: columnAttrs.value.region,
-        checked: columnCheckedMap.value.region,
-      },
-      render: ({ data }: { data: RiakModel }) => <span>{data.region || '--'}</span>,
-    },
-    {
-      label: t('管控区域'),
-      width: 120,
-      field: 'bk_cloud_id',
-      filter: {
-        list: columnAttrs.value.bk_cloud_id,
-        checked: columnCheckedMap.value.bk_cloud_id,
-      },
-      render: ({ data }: { data: RiakModel }) => data.bk_cloud_name ? `${data.bk_cloud_name}[${data.bk_cloud_id}]` : '--',
-    },
-    {
-      label: t('状态'),
-      field: 'status',
-      width: 100,
-      filter: {
-        list: [
-          {
-            value: 'normal',
-            text: t('正常'),
-          },
-          {
-            value: 'abnormal',
-            text: t('异常'),
-          },
-        ],
-        checked: columnCheckedMap.value.status,
-      },
-      render: ({ data }: { data: RiakModel }) => <RenderClusterStatus data={data.status} />,
-    },
-    {
-      label: t('容量使用率'),
-      field: 'cluster_stats',
-      width: 240,
-      showOverflowTooltip: false,
-      render: ({ data }: { data: RiakModel }) => <ClusterCapacityUsageRate clusterStats={data.cluster_stats} />
-    },
-    {
-      label: t('节点'),
-      field: 'riak_node',
-      minWidth: 230,
-      showOverflowTooltip: false,
-      renderHead: () => (
-        <RenderHeadCopy
-          hasSelected={hasSelected.value}
-          onHandleCopySelected={(field) => handleCopySelected(field, 'riak_node')}
-          onHandleCopyAll={(field) => handleCopyAll(field, 'riak_node')}
-          config={
-            [
-              {
-                label: 'IP',
-                field: 'ip'
-              },
-              {
-                label: t('实例'),
-                field: 'instance'
-              }
-            ]
-          }
-        >
-          {t('节点')}
-        </RenderHeadCopy>
-      ),
-      render: ({ data }: { data: RiakModel }) => (
-        <RenderNodeInstance
-          highlightIps={batchSearchIpInatanceList.value}
-          role="riak_node"
-          title={`【${data.cluster_name}】${t('节点')}`}
-          clusterId={data.id}
-          originalList={data.riak_node.map(nodeItem => ({
-            ip: nodeItem.ip,
-            port: nodeItem.port,
-            status: nodeItem.status,
-          }))}
-          dataSource={ getRiakInstanceList } />
-      ),
-    },
-    {
-      label: t('创建人'),
-      field: 'creator',
-      width: 100,
-      render: ({ data }: { data: RiakModel }) => <span>{data.creator || '--'}</span>,
-    },
-    {
-      label: t('部署时间'),
-      field: 'create_at',
-      width: 160,
-      sort: true,
-      render: ({ data }: { data: RiakModel }) => <span>{data.createAtDisplay || '--'}</span>,
-    },
-    {
-      label: t('操作'),
-      width: 300,
-      fixed: 'right',
-      render: ({ data }: { data: RiakModel }) => {
-        const oprations = []
-
-        if (data.isOnline) {
-          oprations.push([
-            <OperationBtnStatusTips
-              data={data}
-              v-db-console="riak.clusterManage.addNodes">
-              <auth-button
-                action-id="riak_cluster_scale_in"
-                permission={data.permission.riak_cluster_scale_in}
-                resource={data.id}
-                text
-                theme="primary"
-                disabled={data.isOffline}
-                onClick={() => handleAddNodes(data)}
-              >
-                { t('添加节点') }
-              </auth-button>
-            </OperationBtnStatusTips>,
-            <OperationBtnStatusTips
-              data={data}
-              v-db-console="riak.clusterManage.deleteNodes">
-              <auth-button
-                action-id="riak_cluster_scale_out"
-                permission={data.permission.riak_cluster_scale_out}
-                resource={data.id}
-                text
-                class="ml-16"
-                theme="primary"
-                disabled={data.isOffline}
-                onClick={() => handleDeleteNodes(data)}
-              >
-                { t('删除节点') }
-              </auth-button>
-            </OperationBtnStatusTips>,
-            <OperationBtnStatusTips
-              data={data}
-              v-db-console="riak.clusterManage.disable">
-              <auth-button
-                action-id="riak_enable_disable"
-                permissionn={data.permission.riak_enable_disable}
-                resource={data.id}
-                text
-                class="ml-16"
-                theme="primary"
-                disabled={Boolean(data.operationTicketId)}
-                onClick={() => handleDisableCluster([data])}
-              >
-                { t('禁用') }
-              </auth-button>
-            </OperationBtnStatusTips>
-          ])
-        } else {
-          oprations.push(
-            <OperationBtnStatusTips
-              data={data}
-              v-db-console="riak.clusterManage.enable">
-              <auth-button
-                action-id="riak_enable_disable"
-                permissionn={data.permission.riak_enable_disable}
-                resource={data.id}
-                text
-                theme="primary"
-                disabled={data.isStarting}
-                onClick={() => handleEnableCluster([data])}
-              >
-                { t('启用') }
-              </auth-button>
-            </OperationBtnStatusTips>
-          )
-        }
-
-        oprations.push(
-          <OperationBtnStatusTips
-            data={data}
-            v-db-console="riak.clusterManage.delete">
-            <auth-button
-              v-bk-tooltips={{
-                disabled: data.isOffline,
-                content: t('请先禁用集群')
-              }}
-              action-id="riak_cluster_destroy"
-              permission={data.permission.riak_cluster_destroy}
-              resource={data.id}
-              text
-              class="ml-16"
-              theme="primary"
-              disabled={data.isOnline || Boolean(data.operationTicketId)}
-              onClick={() => handleDeleteCluster([data])}
-            >
-              { t('删除') }
-            </auth-button>
-          </OperationBtnStatusTips>
-        )
-
-        return oprations
-      }
-    },
-  ]);
+  const selectedIds = computed(() => selected.value.map((item) => item.id));
 
   // 设置用户个人表头信息
   const defaultSettings = {
-    fields: (columns.value || []).filter(item => item.field).map(item => ({
-      label: item.label as string,
-      field: item.field as string,
-      disabled: ['cluster_name'].includes(item.field as string),
-    })),
+    fields: [],
     checked: [
       'cluster_name',
       'major_version',
@@ -573,10 +361,10 @@
     trigger: 'manual' as const,
   };
 
-  const {
-    settings: tableSetting,
-    updateTableSettings,
-  } = useTableSettings(UserPersonalSettings.RIAK_TABLE_SETTINGS, defaultSettings);
+  const { settings: tableSetting, updateTableSettings } = useTableSettings(
+    UserPersonalSettings.RIAK_TABLE_SETTINGS,
+    defaultSettings,
+  );
 
   watch(isStretchLayoutOpen, (newVal) => {
     emits('detailOpenChange', newVal);
@@ -590,8 +378,8 @@
     // 没有选中过滤标签
     if (!item) {
       // 过滤掉已经选过的标签
-      const selected = (searchValue.value || []).map(value => value.id);
-      return serachData.value.filter(item => !selected.includes(item.id));
+      const selected = (searchValue.value || []).map((value) => value.id);
+      return serachData.value.filter((item) => !selected.includes(item.id));
     }
 
     // 远程加载执行人
@@ -601,14 +389,16 @@
       }
       return getUserList({
         fuzzy_lookups: keyword,
-      }).then(res => res.results.map(item => ({
-        id: item.username,
-        name: item.username,
-      })));
+      }).then((res) =>
+        res.results.map((item) => ({
+          id: item.username,
+          name: item.username,
+        })),
+      );
     }
 
     // 不需要远层加载
-    return serachData.value.find(set => set.id === item.id)?.children || [];
+    return serachData.value.find((set) => set.id === item.id)?.children || [];
   };
 
   const setRowClass = (row: RiakModel) => {
@@ -636,8 +426,8 @@
     });
   };
 
-  const handleSelection = (key: number[], list: Record<any, any>[]) => {
-    selected.value = list as RiakModel[];
+  const handleSelection = (key: unknown, list: RiakModel[]) => {
+    selected.value = list;
   };
 
   const handleToDetail = (id: number) => {
@@ -655,9 +445,11 @@
     deleteNodeShow.value = true;
   };
 
-  const fetchData = (otherParamas: {
-    status?: string
-  } = {}) => {
+  const fetchData = (
+    otherParamas: {
+      status?: string;
+    } = {},
+  ) => {
     const params = {
       ...otherParamas,
       ...getSearchSelectorParams(searchValue.value),
@@ -672,48 +464,6 @@
 
     tableRef.value!.fetchData({ ...params }, sortValue);
   };
-
-  const handleCopy = <T,>(dataList: T[], field: keyof T) => {
-    const copyList = dataList.reduce((prevList, tableItem) => {
-      const value = String(tableItem[field]);
-      if (value && value !== '--' && !prevList.includes(value)) {
-        prevList.push(value);
-      }
-      return prevList;
-    }, [] as string[]);
-    copy(copyList.join('\n'));
-  }
-
-  // 获取列表数据下的实例子列表
-  const getInstanceListByRole = (dataList: RiakModel[], field: keyof RiakModel) => dataList.reduce((result, curRow) => {
-    result.push(...curRow[field] as RiakModel['riak_node']);
-    return result;
-  }, [] as RiakModel['riak_node']);
-
-  const handleCopySelected = <T,>(field: keyof T, role?: keyof RiakModel) => {
-    if(role) {
-      handleCopy(getInstanceListByRole(selected.value, role) as T[], field)
-      return;
-    }
-    handleCopy(selected.value as T[], field)
-  }
-
-  const handleCopyAll = async <T,>(field: keyof T, role?: keyof RiakModel) => {
-    const allData = await tableRef.value!.getAllData<RiakModel>();
-    if(allData.length === 0) {
-      Message({
-        theme: 'primary',
-        message: t('暂无数据可复制'),
-      });
-      return;
-    }
-    if(role) {
-      handleCopy(getInstanceListByRole(allData, role) as T[], field)
-      return;
-    }
-    handleCopy(allData as T[], field)
-  }
-
 
   onMounted(() => {
     if (!clusterId.value && route.query.id) {

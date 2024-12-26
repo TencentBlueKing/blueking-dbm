@@ -12,11 +12,10 @@
 -->
 
 <template>
-  <div class="cluster-instances">
-    <p
-      v-for="(inst, index) in renderData"
+  <div class="cluster-list-role-instances-list-box">
+    <div
+      v-for="(inst, index) in data"
       :key="`${inst.ip}:${inst.port}`"
-      class="pt-2 pb-2"
       :class="{ 'is-unavailable': inst.status === 'unavailable' }">
       <TextOverflowLayout>
         <span
@@ -43,33 +42,13 @@
               ref="copyRootRef"
               :class="{ 'is-active': isCopyIconClicked }"
               type="copy" />
-            <div style="display: none">
-              <div ref="popRef">
-                <BkButton
-                  class="copy-trigger"
-                  text
-                  theme="primary"
-                  @click="handleCopyIps">
-                  {{ t('复制IP') }}
-                </BkButton>
-                <span class="copy-trigger-split" />
-                <BkButton
-                  class="copy-trigger"
-                  text
-                  theme="primary"
-                  @click="handleCopyInstances">
-                  {{ t('复制实例') }}
-                </BkButton>
-              </div>
-            </div>
           </template>
         </template>
       </TextOverflowLayout>
-    </p>
-    <template v-if="renderData.length < 1"> -- </template>
+    </div>
+    <template v-if="data.length < 1"> -- </template>
     <template v-if="hasMore">
       <BkButton
-        class="cluster-instances__more"
         text
         theme="primary"
         @click="handleShowMore">
@@ -77,58 +56,30 @@
       </BkButton>
     </template>
   </div>
-  <BkDialog
-    v-model:is-show="dialogState.isShow"
-    class="cluster-instances-dialog"
-    :title="title"
-    :width="1100">
-    <div class="cluster-instances-content">
-      <div class="cluster-instances-content__operations mb-16">
-        <BkButton
-          class="mr-8"
-          @click="handleCopyAbnormal">
-          {{ t('复制异常实例') }}
-        </BkButton>
-        <BkButton
-          class="mr-8"
-          @click="handleCopyAll">
-          {{ t('复制全部实例') }}
-        </BkButton>
-        <BkInput
-          v-model="dialogState.keyword"
-          clearable
-          :placeholder="t('搜索实例')"
-          type="search"
-          @clear="fetchInstance"
-          @enter="fetchInstance" />
-      </div>
-      <DbTable
-        ref="tableRef"
-        :data-source="dataSource"
-        fixed-pagination
-        :height="440"
-        releate-url-query
-        @clear-search="handleClearSearch"
-        @request-finished="handleRequestFinished">
-        <BkTableColumn :label="t('实例')">
-          <template #default="{ data: rowData }: { data: T }"> {{ rowData.ip }}:{{ rowData.port }} </template>
-        </BkTableColumn>
-        <BkTableColumn :label="t('部署角色')">
-          {{ role }}
-        </BkTableColumn>
-        <BkTableColumn :label="t('状态')">
-          <template #default="{ data: rowData }: { data: T }">
-            <ClusterInstanceStatus :data="rowData.status" />
-          </template>
-        </BkTableColumn>
-      </DbTable>
-    </div>
-    <template #footer>
-      <BkButton @click="handleClose">
-        {{ t('关闭') }}
+  <div style="display: none">
+    <div ref="popRef">
+      <BkButton
+        class="cluster-role-instance-copy-btn"
+        text
+        theme="primary"
+        @click="handleCopyIps">
+        {{ t('复制IP') }}
       </BkButton>
-    </template>
-  </BkDialog>
+      <span class="cluster-role-instance-copy-btn-split" />
+      <BkButton
+        class="cluster-role-instance-copy-btn"
+        text
+        theme="primary"
+        @click="handleCopyInstances">
+        {{ t('复制实例') }}
+      </BkButton>
+    </div>
+  </div>
+  <RenderInstanceList
+    v-model:is-show="isShowMore"
+    :data="data"
+    :role="role"
+    :title="title" />
 </template>
 <script lang="ts">
   type IData = {
@@ -138,30 +89,20 @@
     shard_id?: string;
   };
 </script>
-<script setup lang="ts" generic="T extends IData">
+<script setup lang="ts">
   import tippy, { type Instance, type SingleTarget } from 'tippy.js';
-  import type { UnwrapRef } from 'vue';
   import { useI18n } from 'vue-i18n';
 
-  import type { ListBase } from '@services/types';
-
-  import { useCopy } from '@hooks';
-
-  import { useGlobalBizs } from '@stores';
-
-  import { ClusterInstStatusKeys } from '@common/const';
-
-  import ClusterInstanceStatus from '@components/cluster-instance-status/Index.vue';
   import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
 
-  import { messageWarn } from '@utils';
+  import { execCopy, messageWarn } from '@utils';
+
+  import RenderInstanceList from './Instacelist.vue';
 
   interface Props {
     title: string;
     role: string;
     data: IData[];
-    clusterId: number;
-    dataSource: (params: Record<string, any>) => Promise<ListBase<T[]>>;
     highlightIps?: string[];
   }
 
@@ -170,8 +111,10 @@
     tagKeyConfig: () => [],
   });
 
-  const copy = useCopy();
-  const globalBizsStore = useGlobalBizs();
+  defineOptions({
+    inheritAttrs: false,
+  });
+
   const { t } = useI18n();
 
   let tippyIns: Instance;
@@ -181,111 +124,43 @@
   const copyRootRef = ref();
   const popRef = ref();
   const isCopyIconClicked = ref(false);
-  const tableRef = ref();
-  const renderData = shallowRef<IData[]>([]);
+  const isShowMore = ref(false);
   const hasMore = computed(() => props.data.length > renderCount);
 
-  const dialogState = reactive({
-    isShow: false,
-    keyword: '',
-    data: [] as T[],
-  });
-
-  watch(
-    () => props.data,
-    () => {
-      renderData.value = props.data.slice(0, renderCount);
-    },
-    {
-      immediate: true,
-    },
-  );
-
-  /**
-   * 获取节点列表
-   */
-  const fetchInstance = () => {
-    nextTick(() => {
-      tableRef.value.fetchData(
-        {
-          instance_address: dialogState.keyword,
-        },
-        {
-          bk_biz_id: globalBizsStore.currentBizId,
-          cluster_id: props.clusterId,
-          role: props.role,
-        },
-      );
-    });
-  };
-
   const handleShowMore = () => {
-    dialogState.isShow = true;
-    fetchInstance();
-  };
-
-  const handleClearSearch = () => {
-    dialogState.keyword = '';
-    fetchInstance();
-  };
-
-  const handleRequestFinished = (data: T[]) => {
-    dialogState.data = data as UnwrapRef<T[]>;
-  };
-
-  /**
-   * 复制异常实例
-   */
-  const handleCopyAbnormal = () => {
-    const abnormalInstances = dialogState.data
-      .filter((item) => item.status !== ClusterInstStatusKeys.RUNNING)
-      .map((item) => `${item.ip}:${item.port}`);
-    if (abnormalInstances.length === 0) {
-      messageWarn(t('没有可复制实例'));
-      return;
-    }
-    copy(abnormalInstances.join('\n'));
-  };
-
-  /**
-   * 复制所有实例
-   */
-  const handleCopyAll = () => {
-    const instances = dialogState.data.map((item) => `${item.ip}:${item.port}`);
-    if (instances.length === 0) {
-      messageWarn(t('没有可复制实例'));
-      return;
-    }
-    copy(instances.join('\n'));
+    isShowMore.value = true;
   };
 
   const handleCopyIps = () => {
     const { data } = props;
-    const ips = [...new Set(data.map((item) => item.ip))];
-    if (ips.length === 0) {
+    const ipList = [...new Set(data.map((item) => item.ip))];
+    if (ipList.length === 0) {
       messageWarn(t('没有可复制IP'));
       return;
     }
-    copy(ips.join('\n'));
+    execCopy(
+      ipList.join('\n'),
+      t('成功复制n个', {
+        n: ipList.length,
+      }),
+    );
   };
 
   const handleCopyInstances = () => {
-    const { data } = props;
-    const instances = data.map((item) => `${item.ip}:${item.port}`);
-    copy(instances.join('\n'));
-  };
-
-  const handleClose = () => {
-    dialogState.isShow = false;
-    dialogState.keyword = '';
-    dialogState.data = [];
+    const instanceList = props.data.map((item) => `${item.ip}:${item.port}`);
+    execCopy(
+      instanceList.join('\n'),
+      t('成功复制n个', {
+        n: instanceList.length,
+      }),
+    );
   };
 
   onMounted(() => {
     nextTick(() => {
       if (copyRootRef.value) {
         tippyIns = tippy(copyRootRef.value[0].$el as SingleTarget, {
-          content: popRef.value[0],
+          content: popRef.value,
           placement: 'top',
           appendTo: () => document.body,
           theme: 'light',
@@ -315,12 +190,9 @@
     }
   });
 </script>
-
-<style lang="less" scoped>
-  @import '@styles/mixins.less';
-
-  .cluster-instances {
-    padding: 8px 0;
+<style lang="less">
+  .cluster-list-role-instances-list-box {
+    padding: 6px 0;
 
     .db-icon-copy {
       display: none;
@@ -343,26 +215,9 @@
         line-height: 20px;
       }
     }
-
-    &__more {
-      display: inline-block;
-      margin-top: 2px;
-    }
-
-    &-dialog {
-      width: 80%;
-      max-width: 1600px;
-      min-width: 1200px;
-    }
-
-    &-content {
-      &__operations {
-        .flex-center();
-      }
-    }
   }
 
-  .copy-trigger {
+  .cluster-role-instance-copy-btn {
     display: inline-block;
     padding: 0 4px;
     font-size: 12px;
@@ -375,7 +230,7 @@
     }
   }
 
-  .copy-trigger-split {
+  .cluster-role-instance-copy-btn-split {
     display: inline-block;
     width: 1px;
     height: 18px;

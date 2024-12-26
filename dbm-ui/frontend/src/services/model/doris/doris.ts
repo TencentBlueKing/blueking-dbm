@@ -15,7 +15,7 @@ import { uniq } from 'lodash';
 
 import type { ClusterListEntry, ClusterListNode, ClusterListOperation, ClusterListSpec } from '@services/types';
 
-import { ClusterAffinityMap, TicketTypes } from '@common/const';
+import { ClusterAffinityMap, ClusterTypes, TicketTypes } from '@common/const';
 
 import { t } from '@locales/index';
 
@@ -69,7 +69,7 @@ export default class Doris extends ClusterBase {
   cluster_spec: ClusterListSpec;
   cluster_stats: Record<'used' | 'total' | 'in_use', number>;
   cluster_time_zone: string;
-  cluster_type: string;
+  cluster_type: ClusterTypes;
   cluster_type_name: string;
   create_at: string;
   creator: string;
@@ -192,22 +192,22 @@ export default class Doris extends ClusterBase {
     return false;
   }
 
-  get isStarting() {
-    return Boolean(this.operations.find((item) => item.ticket_type === Doris.DORIS_ENABLE));
-  }
-
-  get domainDisplayName() {
-    const port = this.doris_follower[0]?.port;
-    const displayName = port ? `${this.domain}:${port}` : this.domain;
-    return displayName;
-  }
-
   get operationTagTips() {
     return this.operations.map((item) => ({
       icon: Doris.operationIconMap[item.ticket_type],
       tip: Doris.operationTextMap[item.ticket_type],
       ticketId: item.ticket_id,
     }));
+  }
+
+  get isStarting() {
+    return Boolean(this.operations.find((item) => item.ticket_type === Doris.DORIS_ENABLE));
+  }
+
+  get masterDomainDisplayName() {
+    const port = this.doris_follower[0]?.port;
+    const displayName = port ? `${this.domain}:${port}` : this.domain;
+    return displayName;
   }
 
   get isAbnormal() {

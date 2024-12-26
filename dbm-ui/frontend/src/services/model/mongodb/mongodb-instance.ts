@@ -1,5 +1,7 @@
 import type { HostInfo, InstanceListOperation, InstanceListSpecConfig, InstanceRelatedCluster } from '@services/types';
 
+import { ClusterTypes } from '@common/const';
+
 import { isRecentDays, utcDisplayTime } from '@utils';
 
 import { t } from '@locales/index';
@@ -34,13 +36,15 @@ export default class MongodbInstance {
 
   bk_cloud_id: number;
   bk_cloud_name: string;
-  bk_sub_zone: string;
   bk_host_id: number;
+  bk_sub_zone: string;
+  bk_sub_zone_id: number;
   cluster_id: number;
   cluster_name: string;
-  cluster_type: string;
+  cluster_type: ClusterTypes;
   create_at: string;
-  db_module_id: string;
+  db_module_id: number;
+  db_module_name: string;
   host_info: HostInfo;
   id: number;
   instance_address: string;
@@ -62,11 +66,13 @@ export default class MongodbInstance {
     this.bk_cloud_name = payload.bk_cloud_name;
     this.bk_host_id = payload.bk_host_id;
     this.bk_sub_zone = payload.bk_sub_zone;
+    this.bk_sub_zone_id = payload.bk_sub_zone_id;
     this.cluster_id = payload.cluster_id;
     this.cluster_name = payload.cluster_name;
     this.cluster_type = payload.cluster_type;
     this.create_at = payload.create_at;
     this.db_module_id = payload.db_module_id;
+    this.db_module_name = payload.db_module_name;
     this.host_info = payload.host_info || {};
     this.id = payload.id;
     this.instance_address = payload.instance_address;

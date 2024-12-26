@@ -48,6 +48,65 @@
             </BkButton>
           </div>
         </template>
+        <BkTableColumn
+          v-if="columns.length < 1 && selectable"
+          fixed="left"
+          width="80">
+          <template #header>
+            <div
+              class="db-table-select-cell"
+              data-test="asdas">
+              <div
+                v-if="isWholeChecked"
+                class="db-table-whole-check"
+                @click="handleClearWholeSelect" />
+              <BkCheckbox
+                v-else
+                label
+                :model-value="isCurrentPageAllSelected"
+                @change="handleTogglePageSelect" />
+
+              <BkPopover
+                :arrow="false"
+                placement="bottom-start"
+                theme="light db-table-select-menu"
+                trigger="hover">
+                <template #default>
+                  <DbIcon
+                    class="select-menu-flag"
+                    type="down-big" />
+                </template>
+                <template #content>
+                  <div class="db-table-select-plan">
+                    <div
+                      class="item"
+                      @click="handlePageSelect">
+                      {{ t('本页全选') }}
+                    </div>
+                    <div
+                      class="item"
+                      @click="handleWholeSelect">
+                      {{ t('跨页全选') }}
+                    </div>
+                  </div>
+                </template>
+              </BkPopover>
+            </div>
+          </template>
+          <template #default="{data}: {data: any}">
+            <span
+              v-bk-tooltips="{
+                disabled: !disableSelectMethod(data),
+                content: _.isString(disableSelectMethod(data)) ? disableSelectMethod(data) : t('禁止选择'),
+              }">
+              <BkCheckbox
+                :disabled="Boolean(disableSelectMethod(data))"
+                label
+                :model-value="Boolean(rowSelectMemo[_.get(data, props.primaryKey)])"
+                @change="() => handleSelecteRow(data)" />
+            </span>
+          </template>
+        </BkTableColumn>
         <slot />
         <template #expandRow="row">
           <slot
@@ -90,7 +149,7 @@
 
   import { getOffset } from '@utils';
 
-  interface Props {
+  export interface Props {
     columns?: InstanceType<typeof Table>['$props']['columns'],
     dataSource: (params: any, payload?: IRequestPayload)=> Promise<any>,
     fixedPagination?: boolean,
@@ -114,15 +173,15 @@
     showSettings?: boolean,
   }
 
-  interface Emits {
+  export interface Emits {
     (e: 'requestSuccess', value: any): void,
     (e: 'requestFinished', value: any[]): void,
     (e: 'clearSearch'): void,
-    (e: 'selection', key: string[], list: Record<any, any>[]): void,
-    (e: 'selection', key: number[], list: Record<any, any>[]): void,
+    (e: 'selection', key: string[], list: any[]): void,
+    (e: 'selection', key: number[], list: any[]): void,
   }
 
-  interface Exposes {
+  export interface Exposes{
     fetchData: (params?: Record<string, any>, baseParams?: Record<string, any>, loading?: boolean) => void,
     getData: <T>() => Array<T>,
     getAllData: <T>() => Promise<Array<T>>,
@@ -262,13 +321,13 @@
   });
 
   const localColumns = computed(() => {
-    if (!props.selectable || !props.columns) {
-      return props.columns;
+    if (props.selectable && props.columns.length > 0) {
+      return [
+        genSelectionColumn(),
+        ...props.columns,
+      ];
     }
-    return [
-      genSelectionColumn(),
-      ...props.columns,
-    ];
+    return props.columns;
   });
 
   let paramsMemo = {};

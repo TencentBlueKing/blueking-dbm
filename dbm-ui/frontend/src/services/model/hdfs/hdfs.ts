@@ -14,7 +14,7 @@ import { uniq } from 'lodash';
 
 import type { ClusterListEntry, ClusterListNode, ClusterListOperation, ClusterListSpec } from '@services/types';
 
-import { ClusterAffinityMap } from '@common/const';
+import { ClusterAffinityMap, ClusterTypes } from '@common/const';
 
 import { t } from '@locales/index';
 
@@ -67,7 +67,7 @@ export default class Hdfs extends ClusterBase {
   cluster_spec: ClusterListSpec;
   cluster_stats: Record<'used' | 'total' | 'in_use', number>;
   cluster_time_zone: string;
-  cluster_type: string;
+  cluster_type: ClusterTypes;
   cluster_type_name: string;
   create_at: string;
   creator: string;
@@ -210,7 +210,7 @@ export default class Hdfs extends ClusterBase {
     return false;
   }
 
-  get domainDisplayName() {
+  get masterDomainDisplayName() {
     const port = this.hdfs_namenode[0]?.port;
     const displayName = port ? `${this.domain}:${port}` : this.domain;
     return displayName;

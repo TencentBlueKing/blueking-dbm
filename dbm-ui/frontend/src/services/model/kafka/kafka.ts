@@ -14,7 +14,7 @@ import { uniq } from 'lodash';
 
 import type { ClusterListEntry, ClusterListNode, ClusterListOperation, ClusterListSpec } from '@services/types';
 
-import { ClusterAffinityMap } from '@common/const';
+import { ClusterAffinityMap, ClusterTypes } from '@common/const';
 
 import { t } from '@locales/index';
 
@@ -68,7 +68,7 @@ export default class Kafka extends ClusterBase {
   cluster_spec: ClusterListSpec;
   cluster_stats: Record<'used' | 'total' | 'in_use', number>;
   cluster_time_zone: string;
-  cluster_type: string;
+  cluster_type: ClusterTypes;
   cluster_type_name: string;
   create_at: string;
   creator: string;
@@ -212,7 +212,7 @@ export default class Kafka extends ClusterBase {
     return Boolean(this.operations.find((item) => item.ticket_type === Kafka.KAFKA_ENABLE));
   }
 
-  get domainDisplayName() {
+  get masterDomainDisplayName() {
     const port = this.broker[0]?.port;
     const displayName = port ? `${this.domain}:${port}` : this.domain;
     return displayName;

@@ -12,8 +12,9 @@ declare module 'vue' {
     DbSearchSelect: typeof import('@components/db-search-select/index.vue').default;
     DbSideslider: typeof import('@components/db-sideslider/index.vue').default;
     DbStatus: typeof import('@components/db-status/index.vue').default;
-    DbTable: typeof import('@blueking/table/typings/BkTable.vue');
-    DbTable: typeof import('@blueking/table/typings/BkTableColumn.vue');
+    DbTable: typeof import('@components/db-table/Index.vue');
+    BkTable: typeof import('@blueking/table/typings/BkTable.vue');
+    BkTableColumn: typeof import('@blueking/table/typings/BkTableColumn.vue');
     FunController: typeof import('@components/function-controller/FunController.vue').default;
     MoreActionExtend: typeof import('@components/more-action-extend/Index.vue').default;
     ScrollFaker: typeof import('@components/scroll-faker/Index.vue').default;

@@ -37,7 +37,14 @@ export function getRiakList(params: {
 }) {
   return http.get<ListBase<RiakModel[]>>(`${path}/`, params).then((res) => ({
     ...res,
-    results: res.results.map((item) => new RiakModel(item)),
+    results: res.results.map(
+      (item) =>
+        new RiakModel(
+          Object.assign(item, {
+            permission: Object.assign({}, item.permission, res.permission),
+          }),
+        ),
+    ),
   }));
 }
 

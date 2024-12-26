@@ -45,7 +45,6 @@
       :class="{ 'is-shrink-table': isStretchLayoutOpen }">
       <DbTable
         ref="tableRef"
-        :columns="columns"
         :data-source="getDorisList"
         :pagination-extra="paginationExtra"
         releate-url-query
@@ -57,7 +56,176 @@
         @column-filter="columnFilterChange"
         @column-sort="columnSortChange"
         @selection="handleSelection"
-        @setting-change="updateTableSettings" />
+        @setting-change="updateTableSettings">
+        <IdColumn :cluster-type="ClusterTypes.DORIS" />
+        <MasterDomainColumn
+          :cluster-type="ClusterTypes.DORIS"
+          field="domain"
+          :get-table-instance="getTableInstance"
+          :label="t('访问入口')"
+          :selected-list="selected"
+          @go-detail="handleToDetails"
+          @refresh="fetchTableData" />
+        <ClusterNameColumn
+          :cluster-type="ClusterTypes.DORIS"
+          :get-table-instance="getTableInstance"
+          :selected-list="selected"
+          @refresh="fetchTableData" />
+        <StatusColumn :cluster-type="ClusterTypes.DORIS" />
+        <ClusterStatsColumn :cluster-type="ClusterTypes.DORIS" />
+        <RoleColumn
+          :cluster-type="ClusterTypes.DORIS"
+          field="doris_follower"
+          :get-table-instance="getTableInstance"
+          :label="t('Follower节点')"
+          :search-ip="batchSearchIpInatanceList"
+          :selected-list="selected" />
+        <RoleColumn
+          :cluster-type="ClusterTypes.DORIS"
+          field="doris_observer"
+          :get-table-instance="getTableInstance"
+          :label="t('Observer节点')"
+          :search-ip="batchSearchIpInatanceList"
+          :selected-list="selected" />
+        <RoleColumn
+          :cluster-type="ClusterTypes.DORIS"
+          field="doris_backend_hot"
+          :get-table-instance="getTableInstance"
+          :label="t('热节点')"
+          :search-ip="batchSearchIpInatanceList"
+          :selected-list="selected" />
+        <RoleColumn
+          :cluster-type="ClusterTypes.DORIS"
+          field="doris_backend_cold"
+          :get-table-instance="getTableInstance"
+          :label="t('冷节点')"
+          :search-ip="batchSearchIpInatanceList"
+          :selected-list="selected" />
+        <CommonColumn :cluster-type="ClusterTypes.DORIS" />
+        <BkTableColumn
+          :fixed="isStretchLayoutOpen ? false : 'right'"
+          :label="t('操作')"
+          :min-width="200"
+          :show-overflow="false">
+          <template #default="{ data }: { data: DorisModel }">
+            <template v-if="data.isOnline">
+              <OperationBtnStatusTips
+                v-db-console="'doris.clusterManage.scaleUp'"
+                :data="data">
+                <AuthButton
+                  action-id="doris_scale_up"
+                  class="mr-16"
+                  :disabled="data.operationDisabled"
+                  :permission="data.permission.doris_scale_up"
+                  :resource="data.id"
+                  text
+                  theme="primary"
+                  @click="handleShowExpandsion(data)">
+                  {{ t('扩容') }}
+                </AuthButton>
+              </OperationBtnStatusTips>
+              <OperationBtnStatusTips
+                v-db-console="'doris.clusterManage.scaleDown'"
+                :data="data">
+                <AuthButton
+                  action-id="doris_shrink"
+                  class="mr-16"
+                  :disabled="data.operationDisabled"
+                  :permission="data.permission.doris_shrink"
+                  :resource="data.id"
+                  text
+                  theme="primary"
+                  @click="handleShowShrink(data)">
+                  {{ t('缩容') }}
+                </AuthButton>
+              </OperationBtnStatusTips>
+              <AuthButton
+                v-db-console="'doris.clusterManage.getAccess'"
+                action-id="doris_access_entry_view"
+                class="mr-16"
+                :disabled="data.isOffline"
+                :permission="data.permission.doris_access_entry_view"
+                :resource="data.id"
+                text
+                theme="primary"
+                @click="handleShowPassword(data)">
+                {{ t('获取访问方式') }}
+              </AuthButton>
+              <MoreActionExtend>
+                <BkDropdownItem v-db-console="'doris.clusterManage.manage'">
+                  <a
+                    :href="data.access_url"
+                    target="_blank">
+                    {{ t('管理') }}
+                  </a>
+                </BkDropdownItem>
+                <BkDropdownItem v-db-console="'doris.clusterManage.disable'">
+                  <OperationBtnStatusTips :data="data">
+                    <AuthButton
+                      action-id="doris_enable_disable"
+                      :disabled="Boolean(data.operationTicketId)"
+                      :permission="data.permission.doris_enable_disable"
+                      :resource="data.id"
+                      text
+                      theme="primary"
+                      @click="handleDisableCluster([data])">
+                      {{ t('禁用') }}
+                    </AuthButton>
+                  </OperationBtnStatusTips>
+                </BkDropdownItem>
+                <BkDropdownItem v-db-console="'doris.clusterManage.delete'">
+                  <OperationBtnStatusTips :data="data">
+                    <AuthButton
+                      v-bk-tooltips="{
+                        disabled: data.isOffline,
+                        content: t('请先禁用集群'),
+                      }"
+                      action-id="doris_destroy"
+                      :disabled="data.isOnline || Boolean(data.operationTicketId)"
+                      :permission="data.permission.doris_destroy"
+                      :resource="data.id"
+                      text
+                      theme="primary"
+                      @click="handleDeleteCluster([data])">
+                      {{ t('删除') }}
+                    </AuthButton>
+                  </OperationBtnStatusTips>
+                </BkDropdownItem>
+              </MoreActionExtend>
+            </template>
+            <template v-else>
+              <OperationBtnStatusTips
+                v-db-console="'doris.clusterManage.enable'"
+                :data="data">
+                <AuthButton
+                  action-id="doris_enable_disable"
+                  class="mr-16"
+                  :permission="data.permission.doris_enable_disable"
+                  :resource="data.id"
+                  text
+                  theme="primary"
+                  @click="handleEnableCluster([data])">
+                  {{ t('启用') }}
+                </AuthButton>
+              </OperationBtnStatusTips>
+              <OperationBtnStatusTips
+                v-db-console="'doris.clusterManage.delete'"
+                :data="data">
+                <AuthButton
+                  action-id="doris_destroy"
+                  :disabled="Boolean(data.operationTicketId)"
+                  :permission="data.permission.doris_destroy"
+                  :resource="data.id"
+                  text
+                  theme="primary"
+                  @click="handleDeleteCluster([data])">
+                  {{ t('删除') }}
+                </AuthButton>
+              </OperationBtnStatusTips>
+            </template>
+          </template>
+        </BkTableColumn>
+      </DbTable>
     </div>
     <DbSideslider
       v-model:is-show="isShowExpandsion"
@@ -94,80 +262,58 @@
   </div>
 </template>
 
-<script setup lang="tsx">
-  import { Message } from 'bkui-vue';
+<script setup lang="ts">
   import type { ISearchItem } from 'bkui-vue/lib/search-select/utils';
   import { useI18n } from 'vue-i18n';
 
   import DorisModel from '@services/model/doris/doris';
-  import {
-   getDorisInstanceList,
-   getDorisList
-  } from '@services/source/doris';
+  import { getDorisList } from '@services/source/doris';
   import { getUserList } from '@services/source/user';
 
-  import {
-    useCopy,
-    useLinkQueryColumnSerach,
-    useStretchLayout,
-    useTableSettings,
-  } from '@hooks';
+  import { useLinkQueryColumnSerach, useStretchLayout, useTableSettings } from '@hooks';
 
   import { useGlobalBizs } from '@stores';
 
-  import {
-    ClusterTypes,
-    DBTypes,
-    UserPersonalSettings,
-  } from '@common/const';
+  import { ClusterTypes, UserPersonalSettings } from '@common/const';
 
-  import RenderClusterStatus from '@components/cluster-status/Index.vue';
-  import DbTable from '@components/db-table/index.vue'
-  import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
+  import DbTable from '@components/db-table/index.vue';
+  import MoreActionExtend from '@components/more-action-extend/Index.vue';
 
-  import ClusterCapacityUsageRate from '@views/db-manage/common/cluster-capacity-usage-rate/Index.vue'
-  import EditEntryConfig from '@views/db-manage/common/cluster-entry-config/Index.vue';
   import ClusterIpCopy from '@views/db-manage/common/cluster-ip-copy/Index.vue';
+  import ClusterNameColumn from '@views/db-manage/common/cluster-table-column/ClusterNameColumn.vue';
+  import ClusterStatsColumn from '@views/db-manage/common/cluster-table-column/ClusterStats.vue';
+  import CommonColumn from '@views/db-manage/common/cluster-table-column/CommonColumn.vue';
+  import IdColumn from '@views/db-manage/common/cluster-table-column/IdColumn.vue';
+  import MasterDomainColumn from '@views/db-manage/common/cluster-table-column/MasterDomainColumn.vue';
+  import RoleColumn from '@views/db-manage/common/cluster-table-column/RoleColumn.vue';
+  import StatusColumn from '@views/db-manage/common/cluster-table-column/StatusColumn.vue';
   import DropdownExportExcel from '@views/db-manage/common/dropdown-export-excel/index.vue';
   import { useOperateClusterBasic } from '@views/db-manage/common/hooks';
   import OperationBtnStatusTips from '@views/db-manage/common/OperationBtnStatusTips.vue';
-  import RenderCellCopy from '@views/db-manage/common/render-cell-copy/Index.vue';
-  import RenderHeadCopy from '@views/db-manage/common/render-head-copy/Index.vue';
-  import RenderNodeInstance from '@views/db-manage/common/RenderNodeInstance.vue';
-  import RenderOperationTag from '@views/db-manage/common/RenderOperationTagNew.vue';
   import RenderPassword from '@views/db-manage/common/RenderPassword.vue';
   import ClusterExpansion from '@views/db-manage/doris/common/expansion/Index.vue';
   import ClusterShrink from '@views/db-manage/doris/common/shrink/Index.vue';
 
-  import {
-    getMenuListSearch,
-    getSearchSelectorParams
-  } from '@utils';
+  import { getMenuListSearch, getSearchSelectorParams } from '@utils';
 
   const clusterId = defineModel<number>('clusterId');
 
   const route = useRoute();
   const router = useRouter();
   const { currentBizId } = useGlobalBizs();
-  const copy = useCopy();
-  const { t, locale } = useI18n();
+  const { t } = useI18n();
   const { handleDisableCluster, handleEnableCluster, handleDeleteCluster } = useOperateClusterBasic(
     ClusterTypes.DORIS,
     {
       onSuccess: () => fetchTableData(),
     },
   );
-  const {
-    isOpen: isStretchLayoutOpen,
-    splitScreen: stretchLayoutSplitScreen,
-  } = useStretchLayout();
+  const { isOpen: isStretchLayoutOpen, splitScreen: stretchLayoutSplitScreen } = useStretchLayout();
 
   const {
-    columnAttrs,
     searchAttrs,
     searchValue,
     sortValue,
-    columnCheckedMap,
     batchSearchIpInatanceList,
     columnFilterChange,
     columnSortChange,
@@ -176,19 +322,13 @@
     handleSearchValueChange,
   } = useLinkQueryColumnSerach({
     searchType: ClusterTypes.DORIS,
-    attrs: [
-      'bk_cloud_id',
-      'db_module_id',
-      'major_version',
-      'region',
-      'time_zone',
-    ],
+    attrs: ['bk_cloud_id', 'db_module_id', 'major_version', 'region', 'time_zone'],
     fetchDataFn: () => fetchTableData(),
     defaultSearchItem: {
       name: t('访问入口'),
       id: 'domain',
-    }
-  })
+    },
+  });
 
   const tableRef = ref<InstanceType<typeof DbTable>>();
   const isShowExpandsion = ref(false);
@@ -198,6 +338,8 @@
 
   const selected = shallowRef<DorisModel[]>([]);
   const operationData = shallowRef<DorisModel>();
+
+  const getTableInstance = () => tableRef.value;
 
   const serachData = computed(() => [
     {
@@ -263,10 +405,8 @@
     },
   ]);
 
-  // const tableDataList = computed(() => tableRef.value!.getData<DorisModel>());
-  // const abnormalDataList = computed(() => tableDataList.value.filter(dataItem => dataItem.isAbnormal));
   const hasSelected = computed(() => selected.value.length > 0);
-  const selectedIds = computed(() => selected.value.map(item => item.id));
+  const selectedIds = computed(() => selected.value.map((item) => item.id));
 
   const paginationExtra = computed(() => {
     if (isStretchLayoutOpen.value) {
@@ -279,7 +419,6 @@
       layout: ['total', 'limit', 'list'],
     };
   });
-  const isCN = computed(() => locale.value === 'zh-cn');
 
   const getRowClass = (data: DorisModel) => {
     const classList = [data.isOnline ? '' : 'is-offline'];
@@ -288,536 +427,12 @@
     if (data.id === clusterId.value) {
       classList.push('is-selected-row');
     }
-    return classList.filter(cls => cls).join(' ');
+    return classList.filter((cls) => cls).join(' ');
   };
-
-  const tableOperationWidth = computed(() => {
-    if (!isStretchLayoutOpen.value) {
-      return isCN.value ? 270 : 420;
-    }
-    return 100;
-  });
-
-  const columns = computed(() => [
-    {
-      label: 'ID',
-      field: 'id',
-      fixed: 'left',
-      width: 100,
-    },
-    {
-      label: t('访问入口'),
-      field: 'domain',
-      minWidth: 300,
-      fixed: 'left',
-      renderHead: () => (
-        <RenderHeadCopy
-          hasSelected={hasSelected.value}
-          onHandleCopySelected={handleCopySelected}
-          onHandleCopyAll={handleCopyAll}
-          config={
-            [
-              {
-                field: 'domain',
-                label: t('域名')
-              },
-              {
-                field: 'domainDisplayName',
-                label: t('域名:端口')
-              }
-            ]
-          }
-        >
-          {t('访问入口')}
-        </RenderHeadCopy>
-      ),
-      render: ({ data }: { data: DorisModel }) => (
-        <TextOverflowLayout>
-          {{
-            default: () => (
-              <auth-button
-                action-id="doris_view"
-                resource={data.id}
-                permission={data.permission.doris_view}
-                text
-                theme="primary"
-                onClick={() => handleToDetails(data.id)}>
-                {data.domainDisplayName}
-              </auth-button>
-            ),
-            append: () => (
-              <>
-                {
-                  data.operationTagTips.map(item => <RenderOperationTag class="cluster-tag ml-4" data={item}/>)
-                }
-                {
-                  data.isOffline && !data.isStarting && (
-                    <bk-tag
-                      class="ml-4"
-                      size="small">
-                      {t('已禁用')}
-                    </bk-tag>
-                  )
-                }
-                {
-                  data.isNew && (
-                    <bk-tag
-                      theme="success"
-                      size="small"
-                      class="ml-4">
-                      NEW
-                    </bk-tag>
-                  )
-                }
-                {
-                  data.domain && (
-                    <RenderCellCopy copyItems={
-                      [
-                        {
-                          value: data.domain,
-                          label: t('域名')
-                        },
-                        {
-                          value: data.domainDisplayName,
-                          label: t('域名:端口')
-                        }
-                      ]
-                    }/>
-                  )
-                }
-                <span v-db-console="doris.clusterManage.modifyEntryConfiguration">
-                  <EditEntryConfig
-                    id={data.id}
-                    bizId={data.bk_biz_id}
-                    permission={data.permission.access_entry_edit}
-                    resource={DBTypes.DORIS}
-                    onSuccess={fetchTableData} />
-                </span>
-              </>
-            ),
-          }}
-        </TextOverflowLayout>
-      ),
-    },
-    {
-      label: t('集群名称'),
-      width: 150,
-      minWidth: 150,
-      fixed: 'left',
-      showOverflowTooltip: false,
-      renderHead: () => (
-        <RenderHeadCopy
-          hasSelected={hasSelected.value}
-          onHandleCopySelected={handleCopySelected}
-          onHandleCopyAll={handleCopyAll}
-          config={
-            [
-              {
-                field: 'cluster_name'
-              },
-            ]
-          }
-        >
-          {t('集群名称')}
-        </RenderHeadCopy>
-      ),
-      render: ({ data }: { data: DorisModel }) => (
-        <TextOverflowLayout>
-          {{
-            default: () => (
-              <div>
-                <span>
-                  {data.cluster_name}
-                </span >
-                <div style='color: #C4C6CC;'>{data.cluster_alias || '--'}</div>
-              </div>
-            ),
-            append: () => (
-              <>
-                <db-icon
-                  v-bk-tooltips={t('复制集群名称')}
-                  type="copy"
-                  class="mt-2"
-                  onClick={() => copy(data.cluster_name)} />
-              </>
-            )
-          }}
-        </TextOverflowLayout>
-      ),
-    },
-    {
-      label: t('状态'),
-      field: 'status',
-      minWidth: 100,
-      filter: {
-        list: [
-          {
-            value: 'normal',
-            text: t('正常'),
-          },
-          {
-            value: 'abnormal',
-            text: t('异常'),
-          },
-        ],
-        checked: columnCheckedMap.value.status,
-      },
-      render: ({ data }: {data: DorisModel}) => <RenderClusterStatus data={data.status} />,
-    },
-    {
-      label: t('容量使用率'),
-      field: 'cluster_stats',
-      width: 240,
-      showOverflowTooltip: false,
-      render: ({ data }: {data: DorisModel}) => <ClusterCapacityUsageRate clusterStats={data.cluster_stats} />
-    },
-    {
-      label: t('版本'),
-      field: 'major_version',
-      minWidth: 100,
-      filter: {
-        list: columnAttrs.value.major_version,
-        checked: columnCheckedMap.value.major_version,
-      },
-    },
-    {
-        label: t('容灾要求'),
-        field: 'disaster_tolerance_level',
-        minWidth: 100,
-        render: ({ data }: { data: DorisModel }) => data.disasterToleranceLevelName || '--',
-    },
-    {
-      label: t('地域'),
-      field: 'region',
-      minWidth: 100,
-      filter: {
-        list: columnAttrs.value.region,
-        checked: columnCheckedMap.value.region,
-      },
-      render: ({ data }: {data: DorisModel}) => <span>{data?.region || '--'}</span>,
-    },
-    {
-      label: t('管控区域'),
-      field: 'bk_cloud_id',
-      filter: {
-        list: columnAttrs.value.bk_cloud_id,
-        checked: columnCheckedMap.value.bk_cloud_id,
-      },
-      render: ({ data }: { data: DorisModel }) =>  data.bk_cloud_name ? `${data.bk_cloud_name}[${data.bk_cloud_id}]` : '--',
-    },
-    {
-      label: t('Follower节点'),
-      field: 'doris_follower',
-      minWidth: 230,
-      showOverflowTooltip: false,
-      renderHead: () => (
-        <RenderHeadCopy
-          hasSelected={hasSelected.value}
-          onHandleCopySelected={(field) => handleCopySelected(field, 'doris_follower')}
-          onHandleCopyAll={(field) => handleCopyAll(field, 'doris_follower')}
-          config={
-            [
-              {
-                label: 'IP',
-                field: 'ip'
-              },
-              {
-                label: t('实例'),
-                field: 'instance'
-              }
-            ]
-          }
-        >
-          {t('Follower节点')}
-        </RenderHeadCopy>
-      ),
-      render: ({ data }: { data: DorisModel }) => (
-        <RenderNodeInstance
-          highlightIps={batchSearchIpInatanceList.value}
-          role="doris_follower"
-          title={`【${data.domain}】follower`}
-          clusterId={data.id}
-          originalList={data.doris_follower}
-          dataSource={getDorisInstanceList} />
-      ),
-    },
-    {
-      label: t('Observer节点'),
-      field: 'doris_observer',
-      minWidth: 230,
-      showOverflowTooltip: false,
-      renderHead: () => (
-        <RenderHeadCopy
-          hasSelected={hasSelected.value}
-          onHandleCopySelected={(field) => handleCopySelected(field, 'doris_observer')}
-          onHandleCopyAll={(field) => handleCopyAll(field, 'doris_observer')}
-          config={
-            [
-              {
-                label: 'IP',
-                field: 'ip'
-              },
-              {
-                label: t('实例'),
-                field: 'instance'
-              }
-            ]
-          }
-        >
-          {t('Observer节点')}
-        </RenderHeadCopy>
-      ),
-      render: ({ data }: { data: DorisModel }) => (
-        <RenderNodeInstance
-          highlightIps={batchSearchIpInatanceList.value}
-          role="doris_observer"
-          title={`【${data.domain}】observer`}
-          clusterId={data.id}
-          originalList={data.doris_observer}
-          dataSource={getDorisInstanceList} />
-      ),
-    },
-    {
-      label: t('热节点'),
-      field: 'doris_backend_hot',
-      minWidth: 230,
-      showOverflowTooltip: false,
-      renderHead: () => (
-        <RenderHeadCopy
-          hasSelected={hasSelected.value}
-          onHandleCopySelected={(field) => handleCopySelected(field, 'doris_backend_hot')}
-          onHandleCopyAll={(field) => handleCopyAll(field, 'doris_backend_hot')}
-          config={
-            [
-              {
-                label: 'IP',
-                field: 'ip'
-              },
-              {
-                label: t('实例'),
-                field: 'instance'
-              }
-            ]
-          }
-        >
-          {t('热节点')}
-        </RenderHeadCopy>
-      ),
-      render: ({ data }: { data: DorisModel }) => (
-        <RenderNodeInstance
-          highlightIps={batchSearchIpInatanceList.value}
-          role="doris_backend_hot"
-          title={t('【xx】热节点', { name: data.domain })}
-          clusterId={data.id}
-          originalList={data.doris_backend_hot}
-          dataSource={getDorisInstanceList} />
-      ),
-    },
-    {
-      label: t('冷节点'),
-      field: 'doris_backend_cold',
-      minWidth: 230,
-      showOverflowTooltip: false,
-      renderHead: () => (
-        <RenderHeadCopy
-          hasSelected={hasSelected.value}
-          onHandleCopySelected={(field) => handleCopySelected(field, 'doris_backend_cold')}
-          onHandleCopyAll={(field) => handleCopyAll(field, 'doris_backend_cold')}
-          config={
-            [
-              {
-                label: 'IP',
-                field: 'ip'
-              },
-              {
-                label: t('实例'),
-                field: 'instance'
-              }
-            ]
-          }
-        >
-          {t('冷节点')}
-        </RenderHeadCopy>
-      ),
-      render: ({ data }: { data: DorisModel }) => (
-        <RenderNodeInstance
-          highlightIps={batchSearchIpInatanceList.value}
-          role="doris_backend_cold"
-          title={t('【xx】冷节点', { name: data.domain })}
-          clusterId={data.id}
-          originalList={data.doris_backend_cold}
-          dataSource={getDorisInstanceList} />
-      ),
-    },
-    {
-      label: t('创建人'),
-      field: 'creator',
-      width: 140,
-      render: ({ data }: {data: DorisModel}) => <span>{data.creator || '--'}</span>,
-    },
-    {
-      label: t('部署时间'),
-      field: 'create_at',
-      width: 160,
-      sort: true,
-      render: ({ data }: {data: DorisModel}) => <span>{data.createAtDisplay}</span>,
-    },
-    {
-      label: t('时区'),
-      field: 'cluster_time_zone',
-      width: 100,
-      filter: {
-        list: columnAttrs.value.time_zone,
-        checked: columnCheckedMap.value.time_zone,
-      },
-    },
-    {
-      label: t('操作'),
-      width: tableOperationWidth.value,
-      fixed: isStretchLayoutOpen.value ? false : 'right',
-      render: ({ data }: { data: DorisModel }) => {
-        if (data.isOnline) {
-          return [
-            <OperationBtnStatusTips
-              data={data}
-              v-db-console="doris.clusterManage.scaleUp">
-              <auth-button
-                text
-                theme="primary"
-                action-id="doris_scale_up"
-                permission={data.permission.doris_scale_up}
-                resource={data.id}
-                disabled={data.operationDisabled}
-                onClick={() => handleShowExpandsion(data)}>
-                { t('扩容') }
-              </auth-button>
-            </OperationBtnStatusTips>,
-            <OperationBtnStatusTips
-              data={data}
-              v-db-console="doris.clusterManage.scaleDown">
-              <auth-button
-                text
-                theme="primary"
-                class="ml-16"
-                action-id="doris_shrink"
-                permission={data.permission.doris_shrink}
-                resource={data.id}
-                disabled={data.operationDisabled}
-                onClick={() => handleShowShrink(data)}>
-                { t('缩容') }
-              </auth-button>
-            </OperationBtnStatusTips>,
-            <auth-button
-              text
-              theme="primary"
-              action-id="doris_access_entry_view"
-              v-db-console="doris.clusterManage.getAccess"
-              permission={data.permission.doris_access_entry_view}
-              resource={data.id}
-              class="ml-16"
-              disabled={data.isOffline}
-              onClick={() => handleShowPassword(data)}>
-              {t('获取访问方式')}
-            </auth-button>,
-            <bk-dropdown>
-              {{
-                default: () => (
-                  <bk-button
-                    text
-                    class="ml-16">
-                    <db-icon type="more" />
-                  </bk-button>
-                ),
-                content: () => (
-                  <>
-                    <bk-dropdown-item v-db-console="doris.clusterManage.manage">
-                      <a
-                        href={data.access_url}
-                        target="_blank">
-                        {t('管理')}
-                      </a>,
-                    </bk-dropdown-item>
-                    { data.isOnline && (
-                      <bk-dropdown-item v-db-console="doris.clusterManage.disable">
-                        <OperationBtnStatusTips data={data}>
-                          <auth-button
-                            text
-                            theme="primary"
-                            action-id="doris_enable_disable"
-                            permission={data.permission.doris_enable_disable}
-                            resource={data.id}
-                            disabled={Boolean(data.operationTicketId)}
-                            onClick={() => handleDisableCluster([data])}>
-                            { t('禁用') }
-                          </auth-button>
-                        </OperationBtnStatusTips>
-                      </bk-dropdown-item>
-                    )}
-                    <bk-dropdown-item v-db-console="doris.clusterManage.delete">
-                      <OperationBtnStatusTips data={data}>
-                        <auth-button
-                          v-bk-tooltips={{
-                            disabled: data.isOffline,
-                            content: t('请先禁用集群')
-                          }}
-                          text
-                          theme="primary"
-                          action-id="doris_destroy"
-                          disabled={data.isOnline || Boolean(data.operationTicketId)}
-                          permission={data.permission.doris_destroy}
-                          resource={data.id}
-                          onClick={() => handleDeleteCluster([data])}>
-                          { t('删除') }
-                        </auth-button>
-                      </OperationBtnStatusTips>,
-                    </bk-dropdown-item>
-                  </>
-                )
-              }}
-            </bk-dropdown>
-          ];
-        }
-        return [
-          <OperationBtnStatusTips
-            data={data}
-            v-db-console="doris.clusterManage.enable">
-            <auth-button
-              text
-              theme="primary"
-              action-id="doris_enable_disable"
-              permission={data.permission.doris_enable_disable}
-              resource={data.id}
-              class="mr-16"
-              onClick={() => handleEnableCluster([data])}>
-              { t('启用') }
-            </auth-button>
-          </OperationBtnStatusTips>,
-          <OperationBtnStatusTips
-            data={data}
-            v-db-console="doris.clusterManage.delete">
-            <auth-button
-              text
-              theme="primary"
-              action-id="doris_destroy"
-              permission={data.permission.doris_destroy}
-              resource={data.id}
-              disabled={Boolean(data.operationTicketId)}
-              onClick={() => handleDeleteCluster([data])}>
-              { t('删除') }
-            </auth-button>
-          </OperationBtnStatusTips>,
-        ];
-      },
-    },
-  ]);
 
   // 设置用户个人表头信息
   const defaultSettings = {
-    fields: (columns.value || []).filter(item => item.field).map(item => ({
-      label: item.label,
-      field: item.field,
-      disabled: item.field === 'domain',
-    })),
+    fields: [],
     checked: [
       'domain',
       'cluster_name',
@@ -835,10 +450,10 @@
     trigger: 'manual' as const,
   };
 
-  const {
-    settings: tableSetting,
-    updateTableSettings,
-  } = useTableSettings(UserPersonalSettings.DORIS_TABLE_SETTINGS, defaultSettings);
+  const { settings: tableSetting, updateTableSettings } = useTableSettings(
+    UserPersonalSettings.DORIS_TABLE_SETTINGS,
+    defaultSettings,
+  );
 
   const getMenuList = async (item: ISearchItem | undefined, keyword: string) => {
     if (item?.id !== 'creator' && keyword) {
@@ -848,8 +463,8 @@
     // 没有选中过滤标签
     if (!item) {
       // 过滤掉已经选过的标签
-      const selected = (searchValue.value || []).map(value => value.id);
-      return serachData.value.filter(item => !selected.includes(item.id));
+      const selected = (searchValue.value || []).map((value) => value.id);
+      return serachData.value.filter((item) => !selected.includes(item.id));
     }
 
     // 远程加载执行人
@@ -859,63 +474,24 @@
       }
       return getUserList({
         fuzzy_lookups: keyword,
-      }).then(res => res.results.map(item => ({
-        id: item.username,
-        name: item.username,
-      })));
+      }).then((res) =>
+        res.results.map((item) => ({
+          id: item.username,
+          name: item.username,
+        })),
+      );
     }
 
     // 不需要远层加载
-    return serachData.value.find(set => set.id === item.id)?.children || [];
+    return serachData.value.find((set) => set.id === item.id)?.children || [];
   };
 
-  const fetchTableData = (loading?:boolean) => {
+  const fetchTableData = (loading?: boolean) => {
     tableRef.value!.fetchData({ ...getSearchSelectorParams }, { ...sortValue }, loading);
     isInit.value = false;
   };
 
-  const handleCopy = <T,>(dataList: T[], field: keyof T) => {
-    const copyList = dataList.reduce((prevList, tableItem) => {
-      const value = String(tableItem[field]);
-      if (value && value !== '--' && !prevList.includes(value)) {
-        prevList.push(value);
-      }
-      return prevList;
-    }, [] as string[]);
-    copy(copyList.join('\n'));
-  }
-
-  // 获取列表数据下的实例子列表
-  const getInstanceListByRole = (dataList: DorisModel[], field: keyof DorisModel) => dataList.reduce((result, curRow) => {
-    result.push(...curRow[field] as DorisModel['doris_follower']);
-    return result;
-  }, [] as DorisModel['doris_follower']);
-
-  const handleCopySelected = <T,>(field: keyof T, role?: keyof DorisModel) => {
-    if(role) {
-      handleCopy(getInstanceListByRole(selected.value, role) as T[], field)
-      return;
-    }
-    handleCopy(selected.value as T[], field)
-  }
-
-  const handleCopyAll = async <T,>(field: keyof T, role?: keyof DorisModel) => {
-    const allData = await tableRef.value!.getAllData<DorisModel>();
-    if(allData.length === 0) {
-      Message({
-        theme: 'primary',
-        message: t('暂无数据可复制'),
-      });
-      return;
-    }
-    if(role) {
-      handleCopy(getInstanceListByRole(allData, role) as T[], field)
-      return;
-    }
-    handleCopy(allData as T[], field)
-  }
-
-  const handleSelection = (key: number[], list: Record<number, DorisModel>[]) => {
+  const handleSelection = (key: any, list: Record<number, DorisModel>[]) => {
     selected.value = list as unknown as DorisModel[];
   };
 
@@ -949,7 +525,6 @@
     isShowShrink.value = true;
     operationData.value = data;
   };
-
 
   const handleShowPassword = (clusterData: DorisModel) => {
     operationData.value = clusterData;
