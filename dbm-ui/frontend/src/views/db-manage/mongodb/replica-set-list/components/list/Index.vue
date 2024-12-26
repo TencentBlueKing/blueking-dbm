@@ -58,19 +58,121 @@
     <DbTable
       ref="tableRef"
       class="replica-set-list-table"
-      :columns="columns"
       :data-source="getMongoList"
       releate-url-query
       :row-class="setRowClass"
       selectable
       :settings="tableSetting"
       :show-overflow="false"
-      show-overflow-tips
       @clear-search="clearSearchValue"
       @column-filter="columnFilterChange"
       @column-sort="columnSortChange"
       @selection="handleSelection"
-      @setting-change="updateTableSettings" />
+      @setting-change="updateTableSettings">
+      <IdColumn :cluster-type="ClusterTypes.MONGO_REPLICA_SET" />
+      <MasterDomainColumn
+        :cluster-type="ClusterTypes.MONGO_REPLICA_SET"
+        field="master_domain"
+        :get-table-instance="getTableInstance"
+        :label="t('访问入口')"
+        :selected-list="selected"
+        @go-detail="handleToDetails"
+        @refresh="fetchData" />
+      <ClusterNameColumn
+        :cluster-type="ClusterTypes.MONGO_REPLICA_SET"
+        :get-table-instance="getTableInstance"
+        :selected-list="selected"
+        @refresh="fetchData" />
+      <StatusColumn :cluster-type="ClusterTypes.MONGO_REPLICA_SET" />
+      <ClusterStatsColumn :cluster-type="ClusterTypes.MONGO_REPLICA_SET" />
+      <BkTableColumn
+        field="major_version"
+        :filter="{
+          list: columnAttrs.major_version,
+          checked: columnCheckedMap.major_version,
+        }"
+        :label="t('MongoDB版本')"
+        :min-width="150">
+        <template #default="{data}: {data: MongodbModel}">
+          {{ data.major_version || '--' }}
+        </template>
+      </BkTableColumn>
+      <RoleColumn
+        :cluster-type="ClusterTypes.MONGO_REPLICA_SET"
+        field="mongodb"
+        :get-table-instance="getTableInstance"
+        :label="t('节点')"
+        :search-ip="batchSearchIpInatanceList"
+        :selected-list="selected" />
+      <CommonColumn :cluster-type="ClusterTypes.MONGO_REPLICA_SET" />
+      <BkTableColumn
+        :fixed="isStretchLayoutOpen ? false : 'right'"
+        :label="t('操作')"
+        :min-width="200"
+        :show-overflow="false">
+        <template #default="{data}: {data: MongodbModel}">
+          <OperationBtnStatusTips
+            v-db-console="'mongodb.replicaSetList.capacityChange'"
+            :data="data">
+            <BkButton
+              class="mr-8"
+              :disabled="Boolean(data.isStructCluster) || data.operationDisabled"
+              text
+              @click="handleCapacityChange(data)">
+              {{ t('集群容量变更') }}
+            </BkButton>
+          </OperationBtnStatusTips>
+          <OperationBtnStatusTips
+            v-db-console="'mongodb.replicaSetList.enable'"
+            :data="data">
+            <BkButton
+              class="mr-8"
+              :disabled="data.isStarting || data.isOffline"
+              text
+              theme="primary"
+              @click="handleEnableCluster([data])">
+              {{ t('启用') }}
+            </BkButton>
+          </OperationBtnStatusTips>
+          <BkButton
+            v-db-console="'mongodb.replicaSetList.getAccess'"
+            class="mr-8"
+            :disabled="data.isOffline"
+            text
+            theme="primary"
+            @click="handleShowAccessEntry(data)">
+            {{ t('获取访问方式') }}
+          </BkButton>
+          <MoreActionExtend>
+            <BkDropdownItem v-db-console="'mongodb.replicaSetList.disable'">
+              <OperationBtnStatusTips :data="data">
+                <BkButton
+                  :disabled="Boolean(data.operationTicketId)"
+                  text
+                  theme="primary"
+                  @click="handleDisableCluster([data])">
+                  {{ t('禁用') }}
+                </BkButton>
+              </OperationBtnStatusTips>
+              <BkDropdownItem v-db-console="'mongodb.replicaSetList.delete'">
+                <OperationBtnStatusTips :data="data">
+                  <BkButton
+                    v-bk-tooltips="{
+                      disabled: data.isOffline,
+                      content: t('请先禁用集群'),
+                    }"
+                    :disabled="data.isOnline || Boolean(data.operationTicketId)"
+                    text
+                    @click="handleDeleteCluster([data])">
+                    {{ t('删除') }}
+                  </BkButton>
+                </OperationBtnStatusTips>
+              </BkDropdownItem>
+            </BkDropdownItem>
+          </MoreActionExtend>
+        </template>
+      </BkTableColumn>
+    </DbTable>
     <ClusterAuthorize
       v-model="clusterAuthorizeShow"
       :account-type="AccountTypes.MONGODB"
@@ -106,62 +208,44 @@
 </template>
 
 <script setup lang="tsx">
-  import { Message } from 'bkui-vue';
   import type { ISearchItem } from 'bkui-vue/lib/search-select/utils';
   import { useI18n } from 'vue-i18n';
 
   import MongodbModel from '@services/model/mongodb/mongodb';
-  import {
-    getMongoInstancesList,
-    getMongoList,
-  } from '@services/source/mongodb';
+  import { getMongoList } from '@services/source/mongodb';
   import { getUserList } from '@services/source/user';
 
-  import {
-    useCopy,
-    useLinkQueryColumnSerach,
-    useStretchLayout,
-    useTableSettings,
-  } from '@hooks';
+  import { useLinkQueryColumnSerach, useStretchLayout, useTableSettings } from '@hooks';
 
   import { useGlobalBizs } from '@stores';
 
-  import {
-    AccountTypes,
-    ClusterTypes,
-    TicketTypes,
-    UserPersonalSettings,
-  } from '@common/const';
+  import { AccountTypes, ClusterTypes, TicketTypes, UserPersonalSettings } from '@common/const';
 
-  import RenderClusterStatus from '@components/cluster-status/Index.vue';
   import DbTable from '@components/db-table/index.vue';
-  import RenderTextEllipsisOneLine from '@components/text-ellipsis-one-line/index.vue';
-  import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
+  import MoreActionExtend from '@components/more-action-extend/Index.vue';
 
   import ClusterAuthorize from '@views/db-manage/common/cluster-authorize/Index.vue';
-  import ClusterBatchOperation from '@views/db-manage/common/cluster-batch-opration/Index.vue'
-  import ClusterCapacityUsageRate from '@views/db-manage/common/cluster-capacity-usage-rate/Index.vue'
+  import ClusterBatchOperation from '@views/db-manage/common/cluster-batch-opration/Index.vue';
   import ClusterIpCopy from '@views/db-manage/common/cluster-ip-copy/Index.vue';
+  import ClusterNameColumn from '@views/db-manage/common/cluster-table-column/ClusterNameColumn.vue';
+  import ClusterStatsColumn from '@views/db-manage/common/cluster-table-column/ClusterStats.vue';
+  import CommonColumn from '@views/db-manage/common/cluster-table-column/CommonColumn.vue';
+  import IdColumn from '@views/db-manage/common/cluster-table-column/IdColumn.vue';
+  import MasterDomainColumn from '@views/db-manage/common/cluster-table-column/MasterDomainColumn.vue';
+  import RoleColumn from '@views/db-manage/common/cluster-table-column/RoleColumn.vue';
+  import StatusColumn from '@views/db-manage/common/cluster-table-column/StatusColumn.vue';
   import DropdownExportExcel from '@views/db-manage/common/dropdown-export-excel/index.vue';
   import ExcelAuthorize from '@views/db-manage/common/ExcelAuthorize.vue';
   import { useOperateClusterBasic } from '@views/db-manage/common/hooks';
   import OperationBtnStatusTips from '@views/db-manage/common/OperationBtnStatusTips.vue';
-  import RenderCellCopy from '@views/db-manage/common/render-cell-copy/Index.vue';
-  import RenderHeadCopy from '@views/db-manage/common/render-head-copy/Index.vue';
-  import RenderInstances from '@views/db-manage/common/render-instances/RenderInstances.vue';
-  import RenderOperationTag from '@views/db-manage/common/RenderOperationTagNew.vue';
   import AccessEntry from '@views/db-manage/mongodb/components/AccessEntry.vue';
   import CapacityChange from '@views/db-manage/mongodb/components/CapacityChange.vue';
 
-  import {
-    getMenuListSearch,
-    getSearchSelectorParams,
-  } from '@utils';
+  import { getMenuListSearch, getSearchSelectorParams } from '@utils';
 
   const clusterId = defineModel<number>('clusterId');
 
   const { t } = useI18n();
-  const copy = useCopy();
   const route = useRoute();
   const router = useRouter();
   const { currentBizId } = useGlobalBizs();
@@ -171,10 +255,7 @@
       onSuccess: () => fetchData(),
     },
   );
-  const {
-    isOpen: isStretchLayoutOpen,
-    splitScreen: stretchLayoutSplitScreen,
-  } = useStretchLayout();
+  const { isOpen: isStretchLayoutOpen, splitScreen: stretchLayoutSplitScreen } = useStretchLayout();
   const {
     columnAttrs,
     searchAttrs,
@@ -189,17 +270,12 @@
     handleSearchValueChange,
   } = useLinkQueryColumnSerach({
     searchType: ClusterTypes.MONGO_REPLICA_SET,
-    attrs: [
-      'bk_cloud_id',
-      'major_version',
-      'region',
-      'time_zone',
-    ],
+    attrs: ['bk_cloud_id', 'major_version', 'region', 'time_zone'],
     fetchDataFn: () => fetchData(isInit),
     defaultSearchItem: {
       name: t('访问入口'),
       id: 'domain',
-    }
+    },
   });
 
   const searchSelectData = computed(() => [
@@ -270,399 +346,32 @@
   const tableRef = ref<InstanceType<typeof DbTable>>();
   const clusterAuthorizeShow = ref(false);
   const excelAuthorizeShow = ref(false);
-  const selected = ref<MongodbModel[]>([])
+  const selected = ref<MongodbModel[]>([]);
   const capacityChangeShow = ref(false);
   const isCapacityChange = ref(false);
   const detailData = ref<{
-    id: number,
-    clusterName: string,
-    specId: number,
-    specName: string
-    bizId: number,
-    cloudId: number,
-    shardNum: number,
-    shardNodeCount: number,
+    id: number;
+    clusterName: string;
+    specId: number;
+    specName: string;
+    bizId: number;
+    cloudId: number;
+    shardNum: number;
+    shardNodeCount: number;
   }>();
   const accessEntryInfoShow = ref(false);
   const accessEntryInfo = ref<MongodbModel | undefined>();
 
-  const tableDataList = computed(() => tableRef.value?.getData<MongodbModel>() || [])
+  const getTableInstance = () => tableRef.value;
+
+  const tableDataList = computed(() => tableRef.value?.getData<MongodbModel>() || []);
   const hasData = computed(() => tableDataList.value.length > 0);
   const hasSelected = computed(() => selected.value.length > 0);
-  const selectedIds = computed(() => selected.value.map(item => item.id));
-
-  const columns = computed(() => [
-    {
-      label: 'ID',
-      field: 'id',
-      fixed: 'left',
-      width: 60,
-    },
-    {
-      label: t('集群名称'),
-      field: 'cluster_name',
-      minWidth: 320,
-      fixed: 'left',
-      showOverflowTooltip: false,
-      render: ({ data }: { data: MongodbModel }) => {
-        const content = (
-          <>
-            {
-              data.isStructCluster && (
-                <bk-popover
-                  theme="light"
-                  placement="top"
-                  width={280}>
-                  {{
-                    default: () => (
-                      <db-icon
-                        type="clone"
-                        class='ml-4 mr-4'
-                        style="color: #1CAB88;margin-left: 5px;cursor: pointer;"/>
-                    ),
-                    content: () => (
-                      <div class="struct-cluster-source-popover">
-                        <div class="struct-cluster-title">{t('构造集群')}</div>
-                        <div class="item-row">
-                          <div class="item-row-label">{t('构造源集群')}：</div>
-                          <bk-overflow-title type="tips">
-                            {data.temporary_info?.source_cluster}
-                          </bk-overflow-title>
-                        </div>
-                        <div class="item-row">
-                          <div class="item-row-label">{t('关联单据')}：</div>
-                          <bk-button
-                            text
-                            theme="primary"
-                            onClick={() => handleClickRelatedTicket(data.temporary_info.ticket_id)}>
-                            {data.temporary_info.ticket_id}
-                          </bk-button>
-                        </div>
-                      </div>
-                    ),
-                  }}
-                </bk-popover>
-              )
-            }
-          </>
-        );
-
-        return (
-          <div>
-            <RenderTextEllipsisOneLine
-              text={data.cluster_name}
-              textStyle={{
-                fontWeight: '700',
-                minWidth: '50px',
-              }}
-              onClick={() => handleToDetails(data.id)}>
-              {content}
-            </RenderTextEllipsisOneLine>
-            <span class="cluster-alias">{ data.cluster_alias }</span>
-          </div>
-        );
-      },
-    },
-    {
-      label: t('域名'),
-      field: 'master_domain',
-      width: 280,
-      minWidth: 300,
-      renderHead: () => (
-        <RenderHeadCopy
-          hasSelected={hasSelected.value}
-          onHandleCopySelected={handleCopySelected}
-          onHandleCopyAll={handleCopyAll}
-          config={
-            [
-              {
-                field: 'master_domain',
-                label: t('域名')
-              },
-            ]
-          }
-        >
-          {t('域名')}
-        </RenderHeadCopy>
-      ),
-      render: ({ data }: { data: MongodbModel }) => (
-        <TextOverflowLayout>
-          {{
-            default: () => (
-              <span>{data.masterDomainDisplayName || '--'}</span>
-            ),
-            append: () => (
-              <>
-                {
-                  data.isNew && (
-                    <bk-tag
-                      theme="success"
-                      size="small"
-                      class="ml-4">
-                      NEW
-                    </bk-tag>
-                  )
-                }
-                {
-                  data.operationTagTips.map(item => (
-                    <RenderOperationTag
-                      class="cluster-tag ml-4"
-                      data={item}/>
-                  ))
-                }
-                {
-                  data.isOffline && (
-                    <bk-tag
-                      class="ml-4"
-                      size="small">
-                      {t('已禁用')}
-                    </bk-tag>
-                  )
-                }
-                <RenderCellCopy copyItems={
-                  [
-                    {
-                      value: data.master_domain,
-                      label: t('域名')
-                    },
-                    {
-                      value: data.masterDomainDisplayName,
-                      label: t('域名:端口')
-                    }
-                  ]
-                } />
-              </>
-            ),
-          }}
-        </TextOverflowLayout>
-      ),
-    },
-    {
-      label: t('状态'),
-      field: 'status',
-      width: 100,
-      filter: {
-        list: [
-          {
-            value: 'normal',
-            text: t('正常'),
-          },
-          {
-            value: 'abnormal',
-            text: t('异常'),
-          },
-        ],
-        checked: columnCheckedMap.value.status,
-      },
-      render: ({ data }: { data: MongodbModel }) => <RenderClusterStatus data={data.status} />,
-    },
-    {
-      label: t('容量使用率'),
-      field: 'cluster_stats',
-      width: 240,
-      showOverflowTooltip: false,
-      render: ({ data }: { data: MongodbModel }) => <ClusterCapacityUsageRate clusterStats={data.cluster_stats} />
-    },
-    {
-      label: t('MongoDB版本'),
-      field: 'major_version',
-      minWidth: 100,
-      filter: {
-        list: columnAttrs.value.major_version,
-        checked: columnCheckedMap.value.major_version,
-      },
-      render: ({ data }: { data: MongodbModel }) => <span>{data.major_version || '--'}</span>,
-    },
-    {
-        label: t('容灾要求'),
-        field: 'disaster_tolerance_level',
-        minWidth: 100,
-        render: ({ data }: { data: MongodbModel }) => data.disasterToleranceLevelName || '--',
-    },
-    {
-      label: t('地域'),
-      field: 'region',
-      minWidth: 100,
-      filter: {
-        list: columnAttrs.value.region,
-        checked: columnCheckedMap.value.region,
-      },
-      render: ({ data }: { data: MongodbModel }) => <span>{data.region || '--'}</span>,
-    },
-    {
-      label: t('管控区域'),
-      field: 'bk_cloud_id',
-      filter: {
-        list: columnAttrs.value.bk_cloud_id,
-        checked: columnCheckedMap.value.bk_cloud_id,
-      },
-      render: ({ data }: { data: MongodbModel }) =>  data.bk_cloud_name ? `${data.bk_cloud_name}[${data.bk_cloud_id}]` : '--',
-    },
-    {
-      label: t('节点'),
-      field: 'mongodb',
-      width: 180,
-      showOverflowTooltip: false,
-      renderHead: () => (
-        <RenderHeadCopy
-          hasSelected={hasSelected.value}
-          onHandleCopySelected={(field) => handleCopySelected(field, 'mongodb')}
-          onHandleCopyAll={(field) => handleCopyAll(field, 'mongodb')}
-          config={
-            [
-              {
-                label: 'IP',
-                field: 'ip'
-              },
-              {
-                label: t('实例'),
-                field: 'instance'
-              }
-            ]
-          }
-        >
-          {t('节点')}
-        </RenderHeadCopy>
-      ),
-      render: ({ data }: { data: MongodbModel }) => (
-        <RenderInstances
-          highlightIps={batchSearchIpInatanceList.value}
-          role="mongodb"
-          title={`【${data.master_domain}】Mongos`}
-          clusterId={data.id}
-          data={data.mongodb}
-          dataSource={getMongoInstancesList}
-        />
-      ),
-    },
-    {
-      label: t('更新人'),
-      field: 'updater',
-      width: 140,
-      render: ({ data }: { data: MongodbModel }) => <span>{data.updater || '--'}</span>,
-    },
-    {
-      label: t('更新时间'),
-      field: 'update_at',
-      width: 160,
-      render: ({ data }: { data: MongodbModel }) => <span>{data.updateAtDisplay || '--'}</span>,
-    },
-    {
-      label: t('创建人'),
-      field: 'creator',
-      width: 140,
-      render: ({ data }: { data: MongodbModel }) => <span>{data.creator || '--'}</span>,
-    },
-    {
-      label: t('部署时间'),
-      field: 'create_at',
-      sort: true,
-      width: 160,
-      render: ({ data }: { data: MongodbModel }) => <span>{data.createAtDisplay || '--'}</span>,
-    },
-    {
-      label: t('时区'),
-      field: 'cluster_time_zone',
-      width: 100,
-      filter: {
-        list: columnAttrs.value.time_zone,
-        checked: columnCheckedMap.value.time_zone,
-      },
-      render: ({ data }: { data: MongodbModel }) => <span>{data.cluster_time_zone || '--'}</span>,
-    },
-    {
-      label: t('操作'),
-      width: 300,
-      fixed: isStretchLayoutOpen.value ? false : 'right',
-      render: ({ data }: { data: MongodbModel }) => {
-        const baseButtons = [
-          <bk-button
-            v-db-console="mongodb.replicaSetList.getAccess"
-            disabled={data.isOffline}
-            text
-            theme="primary"
-            onClick={() => handleShowAccessEntry(data)}>
-            { t('获取访问方式') }
-          </bk-button>,
-          <OperationBtnStatusTips
-            v-db-console="mongodb.replicaSetList.capacityChange"
-            data={data}>
-            <bk-button
-              text
-              theme="primary"
-              class="ml-16"
-              disabled={data.operationDisabled}
-              onclick={() => handleCapacityChange(data)}>
-              { t('集群容量变更') }
-            </bk-button>
-          </OperationBtnStatusTips>,
-        ];
-        const onlineButtons = [
-          <OperationBtnStatusTips
-            v-db-console="mongodb.replicaSetList.disable"
-            data={data}>
-            <bk-button
-              text
-              theme="primary"
-              class="ml-16"
-              disabled={Boolean(data.operationTicketId)}
-              onclick={() => handleDisableCluster([data])}>
-              { t('禁用') }
-            </bk-button>
-          </OperationBtnStatusTips>,
-        ];
-        const offlineButtons = [
-          <OperationBtnStatusTips
-            v-db-console="mongodb.replicaSetList.enable"
-            data={data}>
-            <bk-button
-              text
-              theme="primary"
-              class="ml-16"
-              disabled={data.isStarting}
-              onclick={() => handleEnableCluster([data])}>
-              { t('启用') }
-            </bk-button>
-          </OperationBtnStatusTips>,
-        ];
-        const deleteButton = (
-          <OperationBtnStatusTips
-            v-db-console="mongodb.replicaSetList.delete"
-            data={data}>
-            <bk-button
-              v-bk-tooltips={{
-                disabled: data.isOffline,
-                content: t('请先禁用集群')
-              }}
-              text
-              theme="primary"
-              class="ml-16"
-              disabled={data.isOnline || Boolean(data.operationTicketId)}
-              onclick={() => handleDeleteCluster([data])}>
-              { t('删除') }
-            </bk-button>
-          </OperationBtnStatusTips>
-        );
-
-        if (data.isStructCluster) {
-          return [...baseButtons, deleteButton];
-        }
-
-        if (data.isOnline) {
-          return [...baseButtons, ...onlineButtons, deleteButton];
-        }
-        return [...baseButtons, ...offlineButtons, deleteButton];
-      },
-    },
-  ]);
+  const selectedIds = computed(() => selected.value.map((item) => item.id));
 
   // 设置用户个人表头信息
   const defaultSettings = {
-    fields: (columns.value || []).filter(item => item.field).map(item => ({
-      label: item.label,
-      field: item.field,
-      disabled: ['cluster_name'].includes(item.field as string),
-    })),
+    fields: [],
     checked: [
       'cluster_name',
       'master_domain',
@@ -677,10 +386,10 @@
     trigger: 'manual' as const,
   };
 
-  const {
-    settings: tableSetting,
-    updateTableSettings,
-  } = useTableSettings(UserPersonalSettings.MONGODB_REPLICA_SET_SETTINGS, defaultSettings);
+  const { settings: tableSetting, updateTableSettings } = useTableSettings(
+    UserPersonalSettings.MONGODB_REPLICA_SET_SETTINGS,
+    defaultSettings,
+  );
 
   const getMenuList = async (item: ISearchItem | undefined, keyword: string) => {
     if (item?.id !== 'creator' && keyword) {
@@ -690,8 +399,8 @@
     // 没有选中过滤标签
     if (!item) {
       // 过滤掉已经选过的标签
-      const selected = (searchValue.value || []).map(value => value.id);
-      return searchSelectData.value.filter(item => !selected.includes(item.id));
+      const selected = (searchValue.value || []).map((value) => value.id);
+      return searchSelectData.value.filter((item) => !selected.includes(item.id));
     }
 
     // 远程加载执行人
@@ -701,14 +410,16 @@
       }
       return getUserList({
         fuzzy_lookups: keyword,
-      }).then(res => res.results.map(item => ({
-        id: item.username,
-        name: item.username,
-      })));
+      }).then((res) =>
+        res.results.map((item) => ({
+          id: item.username,
+          name: item.username,
+        })),
+      );
     }
 
     // 不需要远层加载
-    return searchSelectData.value.find(set => set.id === item.id)?.children || [];
+    return searchSelectData.value.find((set) => set.id === item.id)?.children || [];
   };
 
   const setRowClass = (row: MongodbModel) => {
@@ -746,10 +457,7 @@
       shard_node_count: shardNodeCount,
       mongodb,
     } = row;
-    const {
-      id: specId,
-      name,
-    } = mongodb[0].spec_config;
+    const { id: specId, name } = mongodb[0].spec_config;
 
     detailData.value = {
       id,
@@ -759,18 +467,14 @@
       bizId,
       cloudId,
       shardNum,
-      shardNodeCount
+      shardNodeCount,
     };
     capacityChangeShow.value = true;
   };
 
-  const handleSelection = (key: number[], list: Record<any, any>[]) => {
-    selected.value = list as MongodbModel[];
+  const handleSelection = (key: unknown, list: MongodbModel[]) => {
+    selected.value = list;
   };
-
-  // const handleShowClusterAuthorize = () => {
-  //   clusterAuthorizeShow.value = true;
-  // };
 
   const handleShowExcelAuthorize = () => {
     excelAuthorizeShow.value = true;
@@ -782,7 +486,7 @@
 
   const handleShowAccessEntry = (data: MongodbModel) => {
     accessEntryInfo.value = data;
-    accessEntryInfoShow.value = true
+    accessEntryInfoShow.value = true;
   };
 
   const handleToDetails = (id: number) => {
@@ -790,70 +494,23 @@
     clusterId.value = id;
   };
 
-  const handleClickRelatedTicket = (billId: number) => {
-    const route = router.resolve({
-      name: 'SelfServiceMyTickets',
-      query: {
-        id: billId,
-      },
-    });
-    window.open(route.href);
-  };
-
   let isInit = true;
   const fetchData = (loading?: boolean) => {
-    tableRef.value!.fetchData({
-      ...getSearchSelectorParams(searchValue.value),
-      cluster_type: ClusterTypes.MONGO_REPLICA_SET,
-    }, {...sortValue}, loading);
+    tableRef.value!.fetchData(
+      {
+        ...getSearchSelectorParams(searchValue.value),
+        cluster_type: ClusterTypes.MONGO_REPLICA_SET,
+      },
+      { ...sortValue },
+      loading,
+    );
     isInit = false;
   };
-
-  const handleCopy = <T,>(dataList: T[], field: keyof T) => {
-    const copyList = dataList.reduce((prevList, tableItem) => {
-      const value = String(tableItem[field]);
-      if (value && value !== '--' && !prevList.includes(value)) {
-        prevList.push(value);
-      }
-      return prevList;
-    }, [] as string[]);
-    copy(copyList.join('\n'));
-  }
-
-  // 获取列表数据下的实例子列表
-  const getInstanceListByRole = (dataList: MongodbModel[], field: keyof MongodbModel) => dataList.reduce((result, curRow) => {
-    result.push(...curRow[field] as MongodbModel['mongodb']);
-    return result;
-  }, [] as MongodbModel['mongodb']);
-
-  const handleCopySelected = <T,>(field: keyof T, role?: keyof MongodbModel) => {
-    if(role) {
-      handleCopy(getInstanceListByRole(selected.value, role) as T[], field)
-      return;
-    }
-    handleCopy(selected.value as T[], field)
-  }
-
-  const handleCopyAll = async <T,>(field: keyof T, role?: keyof MongodbModel) => {
-    const allData = await tableRef.value!.getAllData<MongodbModel>();
-    if(allData.length === 0) {
-      Message({
-        theme: 'primary',
-        message: t('暂无数据可复制'),
-      });
-      return;
-    }
-    if(role) {
-      handleCopy(getInstanceListByRole(allData, role) as T[], field)
-      return;
-    }
-    handleCopy(allData as T[], field)
-  }
 
   const handleBatchOperationSuccess = () => {
     tableRef.value!.clearSelected();
     fetchData();
-  }
+  };
 </script>
 
 <style>

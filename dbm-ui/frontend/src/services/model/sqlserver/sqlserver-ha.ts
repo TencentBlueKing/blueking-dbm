@@ -15,7 +15,7 @@ import { uniq } from 'lodash';
 
 import type { ClusterListEntry, ClusterListNode, ClusterListOperation, ClusterListSpec } from '@services/types';
 
-import { ClusterAffinityMap } from '@common/const';
+import { ClusterAffinityMap, ClusterTypes } from '@common/const';
 
 import { t } from '@locales/index';
 
@@ -56,7 +56,7 @@ export default class SqlServerHaCluster extends ClusterBase {
   cluster_name: string;
   cluster_stats: Record<'used' | 'total' | 'in_use', number>;
   cluster_time_zone: string;
-  cluster_type: string;
+  cluster_type: ClusterTypes;
   cluster_type_name: string;
   create_at: string;
   creator: string;
@@ -238,5 +238,9 @@ export default class SqlServerHaCluster extends ClusterBase {
       Master: ClusterBase.getRoleFaildInstanceList(this.masters),
       Slave: ClusterBase.getRoleFaildInstanceList(this.slaves),
     };
+  }
+
+  get slaveList() {
+    return this.slaves;
   }
 }

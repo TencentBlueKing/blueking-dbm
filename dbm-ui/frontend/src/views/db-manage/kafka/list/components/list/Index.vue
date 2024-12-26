@@ -42,7 +42,6 @@
       :class="{ 'is-shrink-table': isStretchLayoutOpen }">
       <DbTable
         ref="tableRef"
-        :columns="columns"
         :data-source="dataSource"
         :pagination-extra="paginationExtra"
         releate-url-query
@@ -54,7 +53,167 @@
         @column-filter="columnFilterChange"
         @column-sort="columnSortChange"
         @selection="handleSelection"
-        @setting-change="updateTableSettings" />
+        @setting-change="updateTableSettings">
+        <IdColumn :cluster-type="ClusterTypes.KAFKA" />
+        <MasterDomainColumn
+          :cluster-type="ClusterTypes.KAFKA"
+          field="master_domain"
+          :get-table-instance="getTableInstance"
+          :label="t('访问入口')"
+          :selected-list="selected"
+          @go-detail="handleToDetails"
+          @refresh="fetchTableData" />
+        <ClusterNameColumn
+          :cluster-type="ClusterTypes.KAFKA"
+          :get-table-instance="getTableInstance"
+          :selected-list="selected"
+          @refresh="fetchTableData" />
+        <StatusColumn :cluster-type="ClusterTypes.KAFKA" />
+        <ClusterStatsColumn :cluster-type="ClusterTypes.KAFKA" />
+        <RoleColumn
+          :cluster-type="ClusterTypes.KAFKA"
+          field="zookeeper"
+          :get-table-instance="getTableInstance"
+          label="Zookeeper"
+          :search-ip="batchSearchIpInatanceList"
+          :selected-list="selected" />
+        <RoleColumn
+          :cluster-type="ClusterTypes.KAFKA"
+          field="broker"
+          :get-table-instance="getTableInstance"
+          label="Broker"
+          :search-ip="batchSearchIpInatanceList"
+          :selected-list="selected" />
+        <CommonColumn :cluster-type="ClusterTypes.KAFKA" />
+        <BkTableColumn
+          :fixed="isStretchLayoutOpen ? false : 'right'"
+          :label="t('操作')"
+          :min-width="200"
+          :show-overflow="false">
+          <template #default="{data}: {data: KafkaModel}">
+            <template v-if="data.isOffline">
+              <OperationBtnStatusTips
+                v-db-console="'kafka.clusterManage.enable'"
+                :data="data">
+                <AuthButton
+                  action-id="kafka_enable_disable"
+                  class="mr-8"
+                  :disabled="data.isStarting"
+                  :permission="data.permission.kafka_enable_disable"
+                  :resource="data.id"
+                  text
+                  theme="primary"
+                  @click="handleEnableCluster([data])">
+                  {{ t('启用') }}
+                </AuthButton>
+              </OperationBtnStatusTips>
+              <OperationBtnStatusTips
+                v-db-console="'kafka.clusterManage.delete'"
+                :data="data">
+                <AuthButton
+                  action-id="kafka_destroy"
+                  class="mr-8"
+                  :disabled="Boolean(data.operationTicketId)"
+                  :permission="data.permission.kafka_destroy"
+                  :resource="data.id"
+                  text
+                  theme="primary"
+                  @click="handleDeleteCluster([data])">
+                  {{ t('删除') }}
+                </AuthButton>
+              </OperationBtnStatusTips>
+            </template>
+            <template v-if="data.isOnline">
+              <OperationBtnStatusTips
+                v-db-console="'kafka.clusterManage.scaleUp'"
+                :data="data"
+                :disabled="!data.isOffline">
+                <AuthButton
+                  action-id="kafka_scale_up"
+                  class="mr8"
+                  :permission="data.permission.kafka_scale_up"
+                  :resource="data.id"
+                  text
+                  theme="primary"
+                  @click="handleShowExpansion(data)">
+                  {{ t('扩容') }}
+                </AuthButton>
+              </OperationBtnStatusTips>
+              <OperationBtnStatusTips
+                v-db-console="'kafka.clusterManage.scaleDown'"
+                :data="data">
+                <AuthButton
+                  action-id="kafka_shrink"
+                  class="mr8"
+                  :permission="data.permission.kafka_shrink"
+                  :resource="data.id"
+                  text
+                  theme="primary"
+                  @click="handleShowShrink(data)">
+                  {{ t('缩容') }}
+                </AuthButton>
+              </OperationBtnStatusTips>
+            </template>
+            <AuthButton
+              v-db-console="'kafka.clusterManage.getAccess'"
+              action-id="kafka_access_entry_view"
+              class="mr-8"
+              :disabled="data.isOffline"
+              :permission="data.permission.kafka_access_entry_view"
+              :resource="data.id"
+              text
+              theme="primary"
+              @click="handleShowPassword(data)">
+              {{ t('获取访问方式') }}
+            </AuthButton>
+            <MoreActionExtend>
+              <BkDropdownItem v-db-console="'kafka.clusterManage.disable'">
+                <OperationBtnStatusTips :data="data">
+                  <AuthButton
+                    action-id="kafka_enable_disable"
+                    :disabled="data.isOffline || Boolean(data.operationTicketId)"
+                    :permission="data.permission.kafka_enable_disable"
+                    :resource="data.id"
+                    text
+                    theme="primary"
+                    @click="handleDisableCluster([data])">
+                    {{ t('禁用') }}
+                  </AuthButton>
+                </OperationBtnStatusTips>
+              </BkDropdownItem>
+              <BkDropdownItem v-db-console="'kafka.clusterManage.delete'">
+                <!-- 删除按钮 -->
+                <OperationBtnStatusTips :data="data">
+                  <AuthButton
+                    v-bk-tooltips="{
+                      disabled: data.isOffline,
+                      content: t('请先禁用集群'),
+                    }"
+                    action-id="kafka_destroy"
+                    class="mr8"
+                    :disabled="data.isOnline || Boolean(data.operationTicketId)"
+                    :permission="data.permission.kafka_destroy"
+                    :resource="data.id"
+                    text
+                    theme="primary"
+                    @click="handleDeleteCluster([data])">
+                    {{ t('删除') }}
+                  </AuthButton>
+                </OperationBtnStatusTips>
+              </BkDropdownItem>
+              <!-- 管理链接 -->
+              <BkDropdownItem v-db-console="'kafka.clusterManage.manage'">
+                <a
+                  class="mr8"
+                  :href="data.access_url"
+                  target="_blank">
+                  {{ t('管理') }}
+                </a>
+              </BkDropdownItem>
+            </MoreActionExtend>
+          </template>
+        </BkTableColumn>
+      </DbTable>
     </div>
     <DbSideslider
       v-model:is-show="isShowExpandsion"
@@ -99,84 +258,59 @@
   </div>
 </template>
 <script setup lang="tsx">
-  import { Message } from 'bkui-vue';
   import type { ISearchItem } from 'bkui-vue/lib/search-select/utils';
-  import {
-    onMounted,
-    ref,
-    shallowRef,
-  } from 'vue';
+  import { onMounted, ref, shallowRef } from 'vue';
   import { useI18n } from 'vue-i18n';
-  import {
-    useRoute,
-    useRouter,
-  } from 'vue-router';
+  import { useRoute, useRouter } from 'vue-router';
 
   import KafkaModel from '@services/model/kafka/kafka';
-  import {
-    getKafkaInstanceList,
-    getKafkaList,
-  } from '@services/source/kafka';
+  import { getKafkaList } from '@services/source/kafka';
   import { getUserList } from '@services/source/user';
 
-  import {
-    useCopy,
-    useLinkQueryColumnSerach,
-    useStretchLayout,
-    useTableSettings,
-  } from '@hooks';
+  import { useLinkQueryColumnSerach, useStretchLayout, useTableSettings } from '@hooks';
 
   import { useGlobalBizs } from '@stores';
 
   import { ClusterTypes, DBTypes, UserPersonalSettings } from '@common/const';
 
-  import RenderClusterStatus from '@components/cluster-status/Index.vue';
   import DbTable from '@components/db-table/index.vue';
-  import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
+  import MoreActionExtend from '@components/more-action-extend/Index.vue';
 
-  import ClusterCapacityUsageRate from '@views/db-manage/common/cluster-capacity-usage-rate/Index.vue'
-  import EditEntryConfig from '@views/db-manage/common/cluster-entry-config/Index.vue';
   import ClusterIpCopy from '@views/db-manage/common/cluster-ip-copy/Index.vue';
+  import ClusterNameColumn from '@views/db-manage/common/cluster-table-column/ClusterNameColumn.vue';
+  import ClusterStatsColumn from '@views/db-manage/common/cluster-table-column/ClusterStats.vue';
+  import CommonColumn from '@views/db-manage/common/cluster-table-column/CommonColumn.vue';
+  import IdColumn from '@views/db-manage/common/cluster-table-column/IdColumn.vue';
+  import MasterDomainColumn from '@views/db-manage/common/cluster-table-column/MasterDomainColumn.vue';
+  import RoleColumn from '@views/db-manage/common/cluster-table-column/RoleColumn.vue';
+  import StatusColumn from '@views/db-manage/common/cluster-table-column/StatusColumn.vue';
   import DropdownExportExcel from '@views/db-manage/common/dropdown-export-excel/index.vue';
   import { useOperateClusterBasic } from '@views/db-manage/common/hooks';
   import OperationBtnStatusTips from '@views/db-manage/common/OperationBtnStatusTips.vue';
-  import RenderCellCopy from '@views/db-manage/common/render-cell-copy/Index.vue';
-  import RenderHeadCopy from '@views/db-manage/common/render-head-copy/Index.vue';
-  import RenderNodeInstance from '@views/db-manage/common/RenderNodeInstance.vue';
-  import RenderOperationTag from '@views/db-manage/common/RenderOperationTagNew.vue';
   import RenderPassword from '@views/db-manage/common/RenderPassword.vue';
   import ClusterExpansion from '@views/db-manage/kafka/common/expansion/Index.vue';
   import ClusterShrink from '@views/db-manage/kafka/common/shrink/Index.vue';
 
-  import {
-    getMenuListSearch,
-    getSearchSelectorParams,
-    isRecentDays,
-  } from '@utils';
+  import { getMenuListSearch, getSearchSelectorParams, isRecentDays } from '@utils';
 
   const clusterId = defineModel<number>('clusterId');
 
   const route = useRoute();
   const router = useRouter();
   const { currentBizId } = useGlobalBizs();
-  const { t, locale } = useI18n();
+  const { t } = useI18n();
   const { handleDisableCluster, handleEnableCluster, handleDeleteCluster } = useOperateClusterBasic(
     ClusterTypes.KAFKA,
     {
       onSuccess: () => fetchTableData(),
     },
   );
-  const {
-    isOpen: isStretchLayoutOpen,
-    splitScreen: stretchLayoutSplitScreen,
-  } = useStretchLayout();
+  const { isOpen: isStretchLayoutOpen, splitScreen: stretchLayoutSplitScreen } = useStretchLayout();
 
   const {
-    columnAttrs,
     searchAttrs,
     searchValue,
     sortValue,
-    columnCheckedMap,
     batchSearchIpInatanceList,
     columnFilterChange,
     columnSortChange,
@@ -185,17 +319,12 @@
     handleSearchValueChange,
   } = useLinkQueryColumnSerach({
     searchType: ClusterTypes.KAFKA,
-    attrs: [
-      'bk_cloud_id',
-      'major_version',
-      'region',
-      'time_zone',
-    ],
+    attrs: ['bk_cloud_id', 'major_version', 'region', 'time_zone'],
     fetchDataFn: () => fetchTableData(),
     defaultSearchItem: {
       name: t('访问入口'),
       id: 'domain',
-    }
+    },
   });
 
   const dataSource = getKafkaList;
@@ -206,7 +335,7 @@
     if (data.id === clusterId.value) {
       classList.push('is-selected-row');
     }
-    return classList.filter(cls => cls).join(' ');
+    return classList.filter((cls) => cls).join(' ');
   };
 
   const tableRef = ref<InstanceType<typeof DbTable>>();
@@ -214,12 +343,12 @@
   const isShowShrink = ref(false);
   const isShowPassword = ref(false);
   const isInit = ref(true);
-  const selected = ref<KafkaModel[]>([])
+  const selected = ref<KafkaModel[]>([]);
   const operationData = shallowRef<KafkaModel>();
 
-  const selectedIds = computed(() => selected.value.map(item => item.id));
-  const isCN = computed(() => locale.value === 'zh-cn');
-  const hasSelected = computed(() => selected.value.length > 0);
+  const getTableInstance = () => tableRef.value;
+
+  const selectedIds = computed(() => selected.value.map((item) => item.id));
   const paginationExtra = computed(() => {
     if (!isStretchLayoutOpen.value) {
       return { small: false };
@@ -231,8 +360,6 @@
       layout: ['total', 'limit', 'list'],
     };
   });
-
-  const copy = useCopy();
 
   const serachData = computed(() => [
     {
@@ -298,460 +425,9 @@
     },
   ]);
 
-  const tableOperationWidth = computed(() => {
-    if (!isStretchLayoutOpen.value) {
-      return isCN.value ? 300 : 420;
-    }
-    return 100;
-  });
-  const columns = computed(() => [
-    {
-      label: 'ID',
-      field: 'id',
-      fixed: 'left',
-      width: 100,
-    },
-    {
-      label: t('访问入口'),
-      field: 'domain',
-      minWidth: 280,
-      fixed: 'left',
-      renderHead: () => (
-        <RenderHeadCopy
-          hasSelected={hasSelected.value}
-          onHandleCopySelected={handleCopySelected}
-          onHandleCopyAll={handleCopyAll}
-          config={
-            [
-              {
-                field: 'domain',
-                label: t('域名')
-              },
-              {
-                field: 'domainDisplayName',
-                label: t('域名:端口')
-              }
-            ]
-          }
-        >
-          {t('访问入口')}
-        </RenderHeadCopy>
-      ),
-      render: ({ data }: {data: KafkaModel}) => (
-        <TextOverflowLayout>
-          {{
-            default: () => (
-              <auth-button
-                action-id="kafka_view"
-                resource={data.id}
-                permission={data.permission.kafka_view}
-                text
-                theme="primary"
-                onClick={() => handleToDetails(data.id)}>
-                {data.domainDisplayName}
-              </auth-button>
-            ),
-            append: () => (
-              <>
-                {
-                  data.operationTagTips.map(item => <RenderOperationTag class="cluster-tag ml-4" data={item}/>)
-                }
-                {
-                  data.isOffline && !data.isStarting && (
-                    <bk-tag
-                      class="ml-4"
-                      size="small">
-                      {t('已禁用')}
-                    </bk-tag>
-                  )
-                }
-                {
-                  data.isNew && (
-                    <bk-tag
-                      theme="success"
-                      size="small"
-                      class="ml-4">
-                      NEW
-                    </bk-tag>
-                  )
-                }
-                {data.domain && (
-                  <RenderCellCopy copyItems={
-                    [
-                      {
-                        value: data.domain,
-                        label: t('域名')
-                      },
-                      {
-                        value: data.domainDisplayName,
-                        label: t('域名:端口')
-                      }
-                    ]
-                  } />
-                )}
-                <span v-db-console="kafka.clusterManage.modifyEntryConfiguration">
-                  <EditEntryConfig
-                    id={data.id}
-                    bizId={data.bk_biz_id}
-                    permission={data.permission.access_entry_edit}
-                    resource={DBTypes.KAFKA}
-                    onSuccess={fetchTableData} />
-                </span>
-              </>
-            ),
-          }}
-        </TextOverflowLayout>
-      ),
-    },
-    {
-      label: t('集群名称'),
-      width: 200,
-      minWidth: 200,
-      showOverflowTooltip: false,
-      renderHead: () => (
-        <RenderHeadCopy
-          hasSelected={hasSelected.value}
-          onHandleCopySelected={handleCopySelected}
-          onHandleCopyAll={handleCopyAll}
-          config={
-            [
-              {
-                field: 'cluster_name'
-              },
-            ]
-          }
-        >
-          {t('集群名称')}
-        </RenderHeadCopy>
-      ),
-      render: ({ data }: { data: KafkaModel }) => (
-        <TextOverflowLayout>
-          {{
-            default: () => (
-              <div>
-                <span>
-                  {data.cluster_name}
-                </span >
-                <div style='color: #C4C6CC;'>{data.cluster_alias || '--'}</div>
-              </div>
-            ),
-            append: () => (
-              <>
-                <db-icon
-                  v-bk-tooltips={t('复制集群名称')}
-                  type="copy"
-                  class="mt-2"
-                  onClick={() => copy(data.cluster_name)} />
-              </>
-            )
-          }}
-        </TextOverflowLayout>
-      ),
-    },
-    {
-      label: t('状态'),
-      field: 'status',
-      filter: {
-        list: [
-          {
-            value: 'normal',
-            text: t('正常'),
-          },
-          {
-            value: 'abnormal',
-            text: t('异常'),
-          },
-        ],
-        checked: columnCheckedMap.value.status,
-      },
-      render: ({ data }: {data: KafkaModel}) => <RenderClusterStatus data={data.status} />,
-    },
-    {
-      label: t('容量使用率'),
-      field: 'cluster_stats',
-      width: 240,
-      showOverflowTooltip: false,
-      render: ({ data }: {data: KafkaModel}) => <ClusterCapacityUsageRate clusterStats={data.cluster_stats} />
-    },
-    {
-      label: t('版本'),
-      field: 'major_version',
-      minWidth: 100,
-      filter: {
-        list: columnAttrs.value.major_version,
-        checked: columnCheckedMap.value.major_version,
-      },
-    },
-    {
-        label: t('容灾要求'),
-        field: 'disaster_tolerance_level',
-        minWidth: 100,
-        render: ({ data }: { data: KafkaModel }) => data.disasterToleranceLevelName || '--',
-    },
-
-    {
-      label: t('地域'),
-      field: 'region',
-      minWidth: 100,
-      filter: {
-        list: columnAttrs.value.region,
-        checked: columnCheckedMap.value.region,
-      },
-      render: ({ data }: {data: KafkaModel}) => <span>{data?.region || '--'}</span>,
-    },
-    {
-      label: t('管控区域'),
-      field: 'bk_cloud_id',
-      filter: {
-        list: columnAttrs.value.bk_cloud_id,
-        checked: columnCheckedMap.value.bk_cloud_id,
-      },
-      render: ({ data }: { data: KafkaModel }) =>  data.bk_cloud_name ? `${data.bk_cloud_name}[${data.bk_cloud_id}]` : '--',
-    },
-    {
-      label: 'Zookeeper',
-      field: 'zookeeper',
-      minWidth: 230,
-      showOverflowTooltip: false,
-      renderHead: () => (
-        <RenderHeadCopy
-          hasSelected={hasSelected.value}
-          onHandleCopySelected={(field) => handleCopySelected(field, 'zookeeper')}
-          onHandleCopyAll={(field) => handleCopyAll(field, 'zookeeper')}
-          config={
-            [
-              {
-                label: 'IP',
-                field: 'ip'
-              },
-              {
-                label: t('实例'),
-                field: 'instance'
-              }
-            ]
-          }
-        >
-          {'Zookeeper'}
-        </RenderHeadCopy>
-      ),
-      render: ({ data }: {data: KafkaModel}) => (
-        <RenderNodeInstance
-          highlightIps={batchSearchIpInatanceList.value}
-          role="zookeeper"
-          title={`【${data.domain}】Zookeeper`}
-          clusterId={data.id}
-          originalList={data.zookeeper}
-          dataSource={getKafkaInstanceList} />
-      ),
-    },
-    {
-      label: 'Broker',
-      field: 'broker',
-      minWidth: 230,
-      showOverflowTooltip: false,
-      renderHead: () => (
-        <RenderHeadCopy
-          hasSelected={hasSelected.value}
-          onHandleCopySelected={(field) => handleCopySelected(field, 'broker')}
-          onHandleCopyAll={(field) => handleCopyAll(field, 'broker')}
-          config={
-            [
-              {
-                label: 'IP',
-                field: 'ip'
-              },
-              {
-                label: t('实例'),
-                field: 'instance'
-              }
-            ]
-          }
-        >
-          {'Broker'}
-        </RenderHeadCopy>
-      ),
-      render: ({ data }: {data: KafkaModel}) => (
-        <RenderNodeInstance
-          highlightIps={batchSearchIpInatanceList.value}
-          role="broker"
-          title={`【${data.domain} Broker`}
-          clusterId={data.id}
-          originalList={data.broker}
-          dataSource={getKafkaInstanceList} />
-      ),
-    },
-    {
-      label: t('创建人'),
-      field: 'creator',
-    },
-    {
-      label: t('部署时间'),
-      width: 160,
-      sort: true,
-      field: 'create_at',
-      render: ({ data }: {data: KafkaModel}) => <span>{data.createAtDisplay}</span>,
-    },
-    {
-      label: t('时区'),
-      field: 'cluster_time_zone',
-      width: 100,
-      filter: {
-        list: columnAttrs.value.time_zone,
-        checked: columnCheckedMap.value.time_zone,
-      },
-    },
-    {
-      label: t('操作'),
-      width: tableOperationWidth.value,
-      fixed: isStretchLayoutOpen.value ? false : 'right',
-      render: ({ data }: {data: KafkaModel}) => {
-        const renderAction = (theme = 'primary') => {
-          const baseAction = [
-            <auth-button
-              text
-              theme="primary"
-              action-id="kafka_access_entry_view"
-              permission={data.permission.kafka_access_entry_view}
-              v-db-console="kafka.clusterManage.getAccess"
-              resource={data.id}
-              disabled={data.isOffline}
-              class="mr8"
-              onClick={() => handleShowPassword(data)}>
-              { t('获取访问方式') }
-            </auth-button>,
-          ];
-          if (data.isOffline) {
-            return [
-            <OperationBtnStatusTips
-              data={data}
-              v-db-console="kafka.clusterManage.enable">
-              <auth-button
-                text
-                theme="primary"
-                action-id="kafka_enable_disable"
-                permission={data.permission.kafka_enable_disable}
-                resource={data.id}
-                disabled={data.isStarting}
-                class="mr8"
-                onClick={() => handleEnableCluster([data])}>
-                { t('启用') }
-              </auth-button>
-            </OperationBtnStatusTips>,
-            <OperationBtnStatusTips
-              data={data}
-              v-db-console="kafka.clusterManage.delete">
-              <auth-button
-                text
-                theme="primary"
-                action-id="kafka_destroy"
-                permission={data.permission.kafka_destroy}
-                disabled={Boolean(data.operationTicketId)}
-                resource={data.id}
-                class="mr8"
-                onClick={() => handleDeleteCluster([data])}>
-                { t('删除') }
-              </auth-button>
-            </OperationBtnStatusTips>,
-              ...baseAction,
-            ];
-          }
-          return [
-            <OperationBtnStatusTips
-              data={data}
-              disabled={!data.isOffline}
-              v-db-console="kafka.clusterManage.scaleUp">
-              <auth-button
-                text
-                class="mr8"
-                theme="primary"
-                action-id="kafka_scale_up"
-                permission={data.permission.kafka_scale_up}
-                resource={data.id}
-                disabled={data.isOffline}
-                onClick={() => handleShowExpansion(data)}>
-                { t('扩容') }
-              </auth-button>
-            </OperationBtnStatusTips>,
-            <OperationBtnStatusTips
-              data={data}
-              disabled={!data.isOffline}
-              v-db-console="kafka.clusterManage.scaleDown">
-              <auth-button
-                text
-                class="mr8"
-                theme="primary"
-                action-id="kafka_shrink"
-                permission={data.permission.kafka_shrink}
-                resource={data.id}
-                disabled={data.isOffline}
-                onClick={() => handleShowShrink(data)}>
-                { t('缩容') }
-              </auth-button>
-            </OperationBtnStatusTips>,
-            data.isOnline && (
-              <OperationBtnStatusTips
-                data={data}
-                v-db-console="kafka.clusterManage.disable">
-                <auth-button
-                  text
-                  class="mr8"
-                  theme="primary"
-                  action-id="kafka_enable_disable"
-                  permission={data.permission.kafka_enable_disable}
-                  resource={data.id}
-                  disabled={Boolean(data.operationTicketId)}
-                  onClick={() => handleDisableCluster([data])}>
-                  { t('禁用') }
-                </auth-button>
-              </OperationBtnStatusTips>
-            ),
-            <OperationBtnStatusTips
-              data={data}
-              v-db-console="kafka.clusterManage.delete">
-              <auth-button
-                v-bk-tooltips={{
-                  disabled: data.isOffline,
-                  content: t('请先禁用集群')
-                }}
-                text
-                theme="primary"
-                action-id="kafka_destroy"
-                permission={data.permission.kafka_destroy}
-                disabled={data.isOnline || Boolean(data.operationTicketId)}
-                resource={data.id}
-                class="mr8"
-                onClick={() => handleDeleteCluster([data])}>
-                { t('删除') }
-              </auth-button>
-            </OperationBtnStatusTips>,
-            <a
-              v-db-console="kafka.clusterManage.manage"
-              class="mr8"
-              style={[theme === '' ? 'color: #63656e' : '']}
-              href={data.access_url}
-              target="_blank">
-              { t('管理') }
-            </a>,
-            ...baseAction,
-          ];
-        };
-
-        return (
-          <>
-            {renderAction()}
-          </>
-        );
-      },
-    },
-  ]);
-
   // 设置用户个人表头信息
   const defaultSettings = {
-    fields: (columns.value || []).filter(item => item.field).map(item => ({
-      label: item.label as string,
-      field: item.field as string,
-      disabled: ['domain'].includes(item.field as string),
-    })),
+    fields: [],
     checked: [
       'domain',
       'status',
@@ -766,10 +442,10 @@
     trigger: 'manual' as const,
   };
 
-  const {
-    settings: tableSetting,
-    updateTableSettings,
-  } = useTableSettings(UserPersonalSettings.KAFKA_TABLE_SETTINGS, defaultSettings);
+  const { settings: tableSetting, updateTableSettings } = useTableSettings(
+    UserPersonalSettings.KAFKA_TABLE_SETTINGS,
+    defaultSettings,
+  );
 
   const getMenuList = async (item: ISearchItem | undefined, keyword: string) => {
     if (item?.id !== 'creator' && keyword) {
@@ -779,8 +455,8 @@
     // 没有选中过滤标签
     if (!item) {
       // 过滤掉已经选过的标签
-      const selected = (searchValue.value || []).map(value => value.id);
-      return serachData.value.filter(item => !selected.includes(item.id));
+      const selected = (searchValue.value || []).map((value) => value.id);
+      return serachData.value.filter((item) => !selected.includes(item.id));
     }
 
     // 远程加载执行人
@@ -790,66 +466,27 @@
       }
       return getUserList({
         fuzzy_lookups: keyword,
-      }).then(res => res.results.map(item => ({
-        id: item.username,
-        name: item.username,
-      })));
+      }).then((res) =>
+        res.results.map((item) => ({
+          id: item.username,
+          name: item.username,
+        })),
+      );
     }
 
     // 不需要远层加载
-    return serachData.value.find(set => set.id === item.id)?.children || [];
+    return serachData.value.find((set) => set.id === item.id)?.children || [];
   };
 
-  const handleSelection = (data: KafkaModel, list: KafkaModel[]) => {
+  const handleSelection = (data: unknown, list: KafkaModel[]) => {
     selected.value = list;
   };
 
-  const fetchTableData = (loading?:boolean) => {
+  const fetchTableData = (loading?: boolean) => {
     const searchParams = getSearchSelectorParams(searchValue.value);
     tableRef.value?.fetchData(searchParams, { ...sortValue }, loading);
     isInit.value = false;
   };
-
-  const handleCopy = <T,>(dataList: T[], field: keyof T) => {
-    const copyList = dataList.reduce((prevList, tableItem) => {
-      const value = String(tableItem[field]);
-      if (value && value !== '--' && !prevList.includes(value)) {
-        prevList.push(value);
-      }
-      return prevList;
-    }, [] as string[]);
-    copy(copyList.join('\n'));
-  }
-
-  // 获取列表数据下的实例子列表
-  const getInstanceListByRole = (dataList: KafkaModel[], field: keyof KafkaModel) => dataList.reduce((result, curRow) => {
-    result.push(...curRow[field] as KafkaModel['zookeeper']);
-    return result;
-  }, [] as KafkaModel['zookeeper']);
-
-  const handleCopySelected = <T,>(field: keyof T, role?: keyof KafkaModel) => {
-    if(role) {
-      handleCopy(getInstanceListByRole(selected.value, role) as T[], field)
-      return;
-    }
-    handleCopy(selected.value as T[], field)
-  }
-
-  const handleCopyAll = async <T,>(field: keyof T, role?: keyof KafkaModel) => {
-    const allData = await tableRef.value!.getAllData<KafkaModel>();
-    if(allData.length === 0) {
-      Message({
-        theme: 'primary',
-        message: t('暂无数据可复制'),
-      });
-      return;
-    }
-    if(role) {
-      handleCopy(getInstanceListByRole(allData, role) as T[], field)
-      return;
-    }
-    handleCopy(allData as T[], field)
-  }
 
   // 申请实例
   const handleGoApply = () => {

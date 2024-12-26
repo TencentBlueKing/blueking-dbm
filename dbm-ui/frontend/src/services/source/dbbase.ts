@@ -62,7 +62,9 @@ export function queryBizClusterAttrs(params: {
         text: string;
       }[]
     >
-  >(`${path}/query_biz_cluster_attrs/`, params);
+  >(`${path}/query_biz_cluster_attrs/`, params, {
+    cache: 1000,
+  });
 }
 
 /**
@@ -77,7 +79,9 @@ export function queryResourceAdministrationAttrs(params: { resource_type: string
         text: string;
       }[]
     >
-  >(`${path}/query_resource_administration_attrs/`, params);
+  >(`${path}/query_resource_administration_attrs/`, params, {
+    cache: 1000,
+  });
 }
 
 /**
@@ -134,5 +138,12 @@ export function queryClusterInstanceCount(params: { bk_biz_id: number }) {
     >
   >(`${path}/query_cluster_instance_count/`, params, {
     cache: 1000,
+  });
+}
+
+export function updateClusterAlias(params: { cluster_id: number; new_alias: string }) {
+  return http.post(`${path}/update_cluster_alias`, {
+    ...params,
+    bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
   });
 }

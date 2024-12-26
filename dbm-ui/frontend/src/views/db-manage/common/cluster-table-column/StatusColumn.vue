@@ -4,7 +4,7 @@
     :label="t('状态')"
     width="100">
     <template #default="{ data }: { data: TendnclusterModel }">
-      <ClusterRoleStatus :data="data"></ClusterRoleStatus>
+      <ClusterRoleStatus :data="data" />
     </template>
   </BkTableColumn>
 </template>

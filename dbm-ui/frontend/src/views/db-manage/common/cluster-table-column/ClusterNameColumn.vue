@@ -49,6 +49,14 @@
             @click="() => handleCopyClusterName(data.cluster_name)" />
         </template>
       </TextOverflowLayout>
+      <TextOverflowLayout>
+        <span style="color: #c4c6cc">{{ data.cluster_alias || '--' }}</span>
+        <template #append>
+          <UpdateClusterAliasName
+            :data="data"
+            @success="handleUpdateAliasSuccess" />
+        </template>
+      </TextOverflowLayout>
     </template>
   </BkTableColumn>
 </template>
@@ -65,6 +73,7 @@
 
   import { execCopy } from '@utils';
 
+  import UpdateClusterAliasName from './components/UpdateClusterAliasName.vue';
   import useColumnCopy from './hooks/useColumnCopy';
   import type { ClusterModel, ISupportClusterType } from './types';
 
@@ -76,7 +85,12 @@
     getTableInstance: () => InstanceType<typeof DbTable> | undefined;
   }
 
+  export interface Emits {
+    (e: 'refresh'): void;
+  }
+
   const props = defineProps<Props<T>>();
+  const emits = defineEmits<Emits>();
 
   const { t } = useI18n();
   const router = useRouter();
@@ -95,5 +109,9 @@
 
   const handleCopyClusterName = (clusterName: string) => {
     execCopy(clusterName);
+  };
+
+  const handleUpdateAliasSuccess = () => {
+    emits('refresh');
   };
 </script>

@@ -15,7 +15,7 @@ import { uniq } from 'lodash';
 
 import type { ClusterListEntry, ClusterListNode, ClusterListOperation, ClusterListSpec } from '@services/types';
 
-import { ClusterAffinityMap } from '@common/const';
+import { ClusterAffinityMap, ClusterTypes } from '@common/const';
 
 import { t } from '@locales/index';
 
@@ -61,7 +61,7 @@ export default class TendbCluster extends ClusterBase {
   cluster_spec: ClusterListSpec;
   cluster_stats: Record<'used' | 'total' | 'in_use', number>;
   cluster_time_zone: string;
-  cluster_type: string;
+  cluster_type: ClusterTypes;
   cluster_type_name: string;
   create_at: string;
   creator: string;
@@ -93,6 +93,7 @@ export default class TendbCluster extends ClusterBase {
   remote_dr: (ClusterListNode & { shard_id: number })[];
   remote_shard_num: number;
   slave_domain: string;
+  slaves: ClusterListNode[];
   spider_master: ClusterListNode[];
   spider_mnt: ClusterListNode[];
   spider_slave: ClusterListNode[];
@@ -139,6 +140,7 @@ export default class TendbCluster extends ClusterBase {
     this.remote_dr = payload.remote_dr;
     this.remote_shard_num = payload.remote_shard_num;
     this.slave_domain = payload.slave_domain;
+    this.slaves = payload.slaves || [];
     this.spider_master = payload.spider_master;
     this.spider_mnt = payload.spider_mnt;
     this.spider_slave = payload.spider_slave;
@@ -262,5 +264,9 @@ export default class TendbCluster extends ClusterBase {
       RemoteDR: ClusterBase.getRoleFaildInstanceList(this.remote_dr),
       [t('运维节点')]: ClusterBase.getRoleFaildInstanceList(this.spider_mnt),
     };
+  }
+
+  get slaveList() {
+    return this.spider_slave;
   }
 }

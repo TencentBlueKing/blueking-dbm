@@ -14,6 +14,8 @@ import { uniq } from 'lodash';
 
 import type { ClusterListEntry, ClusterListNode, ClusterListOperation } from '@services/types';
 
+import { ClusterTypes } from '@common/const';
+
 import { t } from '@locales/index';
 
 import ClusterBase from '../_clusterBase';
@@ -54,7 +56,7 @@ export default class Tendbsingle extends ClusterBase {
   cluster_name: string;
   cluster_stats: Record<'used' | 'total' | 'in_use', number>;
   cluster_time_zone: string;
-  cluster_type: string;
+  cluster_type: ClusterTypes;
   cluster_type_name: string;
   create_at: string;
   creator: string;
