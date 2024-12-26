@@ -31,7 +31,7 @@
               v-if="data"
               text
               theme="primary"
-              @click="() => handleShowDetail(data)">
+              @click="(event: MouseEvent) => handleGoDetail(data, event)">
               {{ data.id }}
             </BkButton>
           </template>
@@ -53,33 +53,33 @@
   </div>
 </template>
 <script setup lang="ts">
-  import { getCurrentInstance, onActivated, onDeactivated } from 'vue';
+  import { onActivated } from 'vue';
   import { useI18n } from 'vue-i18n';
-  import { useRoute, useRouter } from 'vue-router';
+  import { useRoute } from 'vue-router';
 
   import TicketModel from '@services/model/ticket/ticket';
   import { getTickets } from '@services/source/ticket';
 
-  import { useStretchLayout, useUrlSearch } from '@hooks';
+  import { useUrlSearch } from '@hooks';
 
   import useDatePicker from '@views/ticket-center/common/hooks/use-date-picker';
+  import useOpenDetail from '@views/ticket-center/common/hooks/use-open-detail';
   import useSearchSelect from '@views/ticket-center/common/hooks/use-search-select';
   import TableModeTable from '@views/ticket-center/common/TableModeTable.vue';
   import TicketDetailLink from '@views/ticket-center/common/TicketDetailLink.vue';
 
   type IRowData = TicketModel<unknown>;
 
-  const router = useRouter();
   const route = useRoute();
   const { t } = useI18n();
 
-  const currentInstance = getCurrentInstance();
-  const { getSearchParams, removeSearchParam } = useUrlSearch();
-  const { splitScreen: stretchLayoutSplitScreen } = useStretchLayout();
+  const { removeSearchParam } = useUrlSearch();
 
   const { value: datePickerValue, shortcutsRange } = useDatePicker();
 
   const { value: searachSelectValue, searchSelectData } = useSearchSelect();
+
+  const handleGoDetail = useOpenDetail();
 
   const dataSource = (params: ServiceParameters<typeof getTickets>) =>
     getTickets({
@@ -91,28 +91,9 @@
 
   const rowClass = (params: TicketModel) => (params.id === selectTicketId.value ? 'select-row' : '');
 
-  const handleShowDetail = (data: IRowData) => {
-    stretchLayoutSplitScreen();
-    selectTicketId.value = data.id;
-  };
-
   onActivated(() => {
     selectTicketId.value = Number(route.query.selectId);
     removeSearchParam('selectId');
-  });
-
-  onDeactivated(() => {
-    setTimeout(() => {
-      if (currentInstance!.isUnmounted) {
-        return;
-      }
-      router.replace({
-        params: {
-          ticketId: selectTicketId.value,
-        },
-        query: getSearchParams(),
-      });
-    });
   });
 </script>
 <style lang="less">
