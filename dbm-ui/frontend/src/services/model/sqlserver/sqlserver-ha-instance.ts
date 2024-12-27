@@ -14,6 +14,8 @@
 import type { HostInfo, InstanceListSpecConfig, InstanceRelatedCluster } from '@services/types';
 
 import { clusterInstStatus, ClusterInstStatusKeys } from '@common/const';
+import { clusterTypeInfos } from '@common/const/clusterTypeInfos';
+import { ClusterTypes } from '@common/const/clusterTypes';
 
 import { isRecentDays, utcDisplayTime } from '@utils';
 
@@ -23,6 +25,11 @@ export default class SqlServerHaInstance {
   bk_cpu: number;
   bk_disk: number;
   bk_host_id: number;
+  bk_host_innerip: string;
+  bk_idc_id: number;
+  bk_idc_name: string;
+  bk_idc_city_id: string;
+  bk_idc_city_name: string;
   bk_mem: number;
   bk_sub_zone: string;
   cluster_id: number;
@@ -54,6 +61,11 @@ export default class SqlServerHaInstance {
     this.bk_cpu = payload.bk_cpu;
     this.bk_disk = payload.bk_disk;
     this.bk_host_id = payload.bk_host_id;
+    this.bk_host_innerip = payload.bk_host_innerip || '';
+    this.bk_idc_id = payload.bk_idc_id || 0;
+    this.bk_idc_name = payload.bk_idc_name || '';
+    this.bk_idc_city_id = payload.bk_idc_city_id || '';
+    this.bk_idc_city_name = payload.bk_idc_city_name || '';
     this.bk_mem = payload.bk_mem;
     this.bk_sub_zone = payload.bk_sub_zone;
     this.cluster_id = payload.cluster_id;
@@ -88,5 +100,9 @@ export default class SqlServerHaInstance {
 
   get statusInfo() {
     return clusterInstStatus[this.status] || clusterInstStatus.unavailable;
+  }
+
+  get clusterTypeName() {
+    return clusterTypeInfos[this.cluster_type as ClusterTypes].architectureName || '';
   }
 }

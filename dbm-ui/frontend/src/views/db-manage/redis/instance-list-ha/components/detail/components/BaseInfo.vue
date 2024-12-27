@@ -98,18 +98,22 @@
         key: 'bk_cloud_name',
       },
       {
-        label: t('所在城市'),
-        key: 'idc_city_name',
+        label: t('地域'),
+        key: 'bk_idc_city_name',
       },
       {
-        label: t('所在机房'),
-        key: 'bk_idc_name',
+        label: t('所在园区'),
+        key: 'bk_sub_zone',
       },
     ],
     [
       {
+        label: t('版本'),
+        key: 'version',
+      },
+      {
         label: t('部署架构'),
-        key: 'cluster_type_display',
+        key: 'clusterTypeName',
       },
       {
         label: t('部署角色'),

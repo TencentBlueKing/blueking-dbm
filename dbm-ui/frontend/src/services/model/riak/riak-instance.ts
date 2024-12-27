@@ -4,6 +4,11 @@ export default class RiakInstance {
   bk_cloud_id: number;
   bk_cloud_name: string;
   bk_host_id: number;
+  bk_host_innerip: string;
+  bk_idc_id: number;
+  bk_idc_name: string;
+  bk_idc_city_id: string;
+  bk_idc_city_name: string;
   cluster_id: number;
   cluster_name: string;
   cluster_type: string;
@@ -27,6 +32,11 @@ export default class RiakInstance {
     this.bk_cloud_id = payload.bk_cloud_id;
     this.bk_cloud_name = payload.bk_cloud_name;
     this.bk_host_id = payload.bk_host_id;
+    this.bk_host_innerip = payload.bk_host_innerip || '';
+    this.bk_idc_id = payload.bk_idc_id || 0;
+    this.bk_idc_name = payload.bk_idc_name || '';
+    this.bk_idc_city_id = payload.bk_idc_city_id || '';
+    this.bk_idc_city_name = payload.bk_idc_city_name || '';
     this.cluster_id = payload.cluster_id;
     this.cluster_name = payload.cluster_name;
     this.cluster_type = payload.cluster_type;
