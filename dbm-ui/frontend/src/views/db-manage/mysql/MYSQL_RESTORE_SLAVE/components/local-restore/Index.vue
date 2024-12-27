@@ -99,7 +99,7 @@
 
   const defaultData = () => ({
     tableData: [createTableRow()],
-    backupSource: BackupSourceType.LOCAL,
+    backupSource: BackupSourceType.REMOTE,
     remark: '',
   });
 
