@@ -329,7 +329,7 @@ func (o *SearchContext) MatchLabels(db *gorm.DB) {
 		db.Where(model.JSONQuery("labels").JointOrContains(o.Labels))
 	} else {
 		// 如果请求没有标签, 只能匹配没有标签的资源
-		db.Where(" JSON_TYPE(labels) = 'NULL' OR JSON_LENGTH(labels) < 1 ")
+		db.Where(" JSON_TYPE(labels) is null OR JSON_LENGTH(labels) < 1 ")
 	}
 }
 
