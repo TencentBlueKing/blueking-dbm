@@ -13,6 +13,7 @@
 
 import DirtyMachinesModel from '@services/model/db-resource/dirtyMachines';
 import FaultOrRecycleMachineModel from '@services/model/db-resource/FaultOrRecycleMachine';
+import MachineEventModel from '@services/model/db-resource/machineEvent';
 import type { ListBase } from '@services/types';
 
 import http from '../http';
@@ -38,6 +39,26 @@ export function getDirtyMachines(params: { limit: number; offset: number }) {
           ),
       ),
     }));
+}
+
+/**
+ * 机器事件列表
+ */
+export function getMachineEvents(params: {
+  operator?: string;
+  bk_biz_id?: number;
+  events?: string;
+  ips?: string;
+  create_at__lte?: string;
+  create_at__gte?: string;
+  domain?: string;
+  limit?: number;
+  offset?: number;
+}) {
+  return http.get<ListBase<MachineEventModel[]>>(`${path}/list_machine_events/`, params).then((data) => ({
+    ...data,
+    results: data.results.map((item) => new MachineEventModel(item)),
+  }));
 }
 
 /**
