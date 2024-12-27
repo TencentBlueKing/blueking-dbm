@@ -27,8 +27,8 @@ const resourcePoolRoute = {
 };
 
 const faultPoolRoute = {
-  name: 'faultPool',
   path: 'fault-pool',
+  name: 'faultPool',
   meta: {
     navName: t('故障池'),
   },
@@ -36,8 +36,8 @@ const faultPoolRoute = {
 };
 
 const toRecyclePoolRoute = {
-  name: 'toRecyclePool',
   path: 'to-recycle-pool',
+  name: 'toRecyclePool',
   meta: {
     navName: t('待回收池'),
   },
@@ -53,18 +53,9 @@ const resourcePoolOperationRecordRoute = {
   component: () => import('@views/resource-manage/record/Index.vue'),
 };
 
-const resourcePoolDirtyMachinesRoute = {
-  path: 'dirty-machine',
-  name: 'resourcePoolDirtyMachines',
-  meta: {
-    navName: t('污点主机处理'),
-  },
-  component: () => import('@views/resource-manage/dirty-machine/Index.vue'),
-};
-
 const resourceTagsManagementRoute = {
-  name: 'resourceTagsManagement',
   path: 'tags-management',
+  name: 'resourceTagsManagement',
   meta: {
     navName: t('资源标签管理'),
   },
@@ -111,10 +102,6 @@ export default function getRoutes() {
 
   if (checkDbConsole('resourceManage.toRecyclePool')) {
     mainRoute[0].children.push(toRecyclePoolRoute);
-  }
-
-  if (checkDbConsole('resourceManage.dirtyHostManage')) {
-    mainRoute[0].children.push(resourcePoolDirtyMachinesRoute);
   }
 
   if (checkDbConsole('resourceManage.resourceTagsManagement')) {
