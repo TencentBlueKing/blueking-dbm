@@ -53,15 +53,6 @@ const resourcePoolOperationRecordRoute = {
   component: () => import('@views/resource-manage/record/Index.vue'),
 };
 
-const resourcePoolDirtyMachinesRoute = {
-  name: 'resourcePoolDirtyMachines',
-  path: 'dirty-machine',
-  meta: {
-    navName: t('污点主机处理'),
-  },
-  component: () => import('@views/resource-manage/dirty-machine/Index.vue'),
-};
-
 const resourceTagsManagementRoute = {
   name: 'resourceTagsManagement',
   path: 'tags-management',
@@ -111,10 +102,6 @@ export default function getRoutes() {
 
   if (checkDbConsole('resourceManage.toRecyclePool')) {
     mainRoute[0].children.push(toRecyclePoolRoute);
-  }
-
-  if (checkDbConsole('resourceManage.dirtyHostManage')) {
-    mainRoute[0].children.push(resourcePoolDirtyMachinesRoute);
   }
 
   if (checkDbConsole('resourceManage.resourceTagsManagement')) {
