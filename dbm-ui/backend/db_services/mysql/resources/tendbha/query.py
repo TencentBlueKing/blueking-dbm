@@ -11,12 +11,14 @@ specific language governing permissions and limitations under the License.
 from typing import Any, Callable, Dict, List
 
 from django.db.models import F, Q, QuerySet
+from django.forms import model_to_dict
 from django.utils.translation import ugettext_lazy as _
 
 from backend.db_meta.api.cluster.tendbha.detail import scan_cluster
 from backend.db_meta.enums import ClusterEntryRole, InstanceInnerRole
 from backend.db_meta.enums.cluster_type import ClusterType
-from backend.db_meta.models import AppCache, StorageInstance
+from backend.db_meta.enums.spec import SpecClusterType
+from backend.db_meta.models import AppCache, Spec, StorageInstance
 from backend.db_meta.models.cluster import Cluster
 from backend.db_services.dbbase.resources import query
 from backend.db_services.dbbase.resources.query import ResourceList
@@ -100,8 +102,17 @@ class ListRetrieveResource(query.ListRetrieveResource):
     ) -> ResourceList:
         # 提前预取storage的tuple
         storage_queryset = storage_queryset.prefetch_related("as_receiver__ejector")
+        # 预取remote的spec
+        remote_spec_map = {spec.spec_id: spec for spec in Spec.objects.filter(spec_cluster_type=SpecClusterType.MySQL)}
         return super()._filter_cluster_hook(
-            bk_biz_id, cluster_queryset, proxy_queryset, storage_queryset, limit, offset, **kwargs
+            bk_biz_id,
+            cluster_queryset,
+            proxy_queryset,
+            storage_queryset,
+            limit,
+            offset,
+            remote_spec_map=remote_spec_map,
+            **kwargs,
         )
 
     @classmethod
@@ -130,6 +141,17 @@ class ListRetrieveResource(query.ListRetrieveResource):
         ]
 
         cluster_role_info = {"proxies": proxies, "masters": masters, "slaves": slaves}
+
+        # 补充cluster_spec参数
+        master_storages = list(filter(lambda storage: storage.instance_inner_role == "master", cluster.storages))
+        # 获取master规格
+        if master_storages:
+            spec_id = master_storages[0].machine.spec_id
+            spec = kwargs["remote_spec_map"].get(spec_id)
+        else:
+            spec = None
+        cluster_spec_info = {"cluster_spec": model_to_dict(spec) if spec else None}
+
         cluster_info = super()._to_cluster_representation(
             cluster,
             cluster_entry,
@@ -142,6 +164,7 @@ class ListRetrieveResource(query.ListRetrieveResource):
             **kwargs,
         )
         cluster_info.update(cluster_role_info)
+        cluster_info.update(cluster_spec_info)
         return cluster_info
 
     @classmethod

@@ -12,14 +12,17 @@ from collections import defaultdict
 from operator import itemgetter
 from typing import Any, Dict, List
 
-from django.db.models import Count, F, Q
+from django.db.models import Count, F, Q, QuerySet
+from django.forms import model_to_dict
 from django.utils.translation import ugettext_lazy as _
 
-from backend.db_meta.models import AppCache
+from backend.db_meta.enums.spec import SpecClusterType
+from backend.db_meta.models import AppCache, Spec
 from backend.db_meta.models.cluster import Cluster
 from backend.db_meta.models.instance import StorageInstance
 from backend.db_proxy.models import ClusterExtension
 from backend.db_services.dbbase.resources import query
+from backend.db_services.dbbase.resources.query import ResourceList
 from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
 from backend.ticket.constants import TICKET_RUNNING_STATUS_SET
 from backend.ticket.models import InstanceOperateRecord
@@ -108,7 +111,7 @@ class BigDataBaseListRetrieveResource(query.ListRetrieveResource):
         cloud_info: Dict[str, Any],
         biz_info: AppCache,
         cluster_stats_map: Dict[str, Dict[str, int]],
-        **kwargs
+        **kwargs,
     ) -> Dict[str, Any]:
         """集群序列化"""
         # 获取集群基本信息
@@ -126,6 +129,32 @@ class BigDataBaseListRetrieveResource(query.ListRetrieveResource):
         cluster_info["domain"] = cluster_info["master_domain"]
         # 获取集群访问url
         cluster_info.update(access_url=ClusterExtension.get_cluster_service_url(cluster))
+
+        # 补充cluster_spec参数,需展示多个角色规格，只返回spec_name字段
+        spec_name_parts = []
+
+        for instance_role in cls.instance_roles:
+            # 获取当前角色的 storages
+            instance_role_storages = [
+                storage for storage in cluster.storages if storage.instance_role == instance_role
+            ]
+
+            # 如果存在 storage, 获取对应的规格
+            if instance_role_storages:
+                spec_id = instance_role_storages[0].machine.spec_id
+                spec = kwargs["remote_spec_map"].get(spec_id)
+            else:
+                spec = None
+
+            if spec:
+                cluster_spec = model_to_dict(spec)
+                spec_name_parts.append(f"{cluster_spec['spec_name']}({instance_role})")
+
+        # 合并所有的规格信息
+        spec_name = " , ".join(spec_name_parts)
+
+        # 更新cluster信息
+        cluster_info["cluster_spec"] = {"spec_name": spec_name}
 
         # 获取集群角色信息
         for role in cls.instance_roles:
@@ -242,3 +271,27 @@ class BigDataBaseListRetrieveResource(query.ListRetrieveResource):
         # 对创建时间或者实例数量进行排序
 
         return query.ResourceList(count=count, data=paginated_group_list)
+
+    @classmethod
+    def _filter_cluster_hook(
+        cls,
+        bk_biz_id,
+        cluster_queryset: QuerySet,
+        proxy_queryset: QuerySet,
+        storage_queryset: QuerySet,
+        limit: int,
+        offset: int,
+        **kwargs,
+    ) -> ResourceList:
+        # 预取remote的spec
+        remote_spec_map = {spec.spec_id: spec for spec in Spec.objects.filter(spec_cluster_type=SpecClusterType.Doris)}
+        return super()._filter_cluster_hook(
+            bk_biz_id,
+            cluster_queryset,
+            proxy_queryset,
+            storage_queryset,
+            limit,
+            offset,
+            remote_spec_map=remote_spec_map,
+            **kwargs,
+        )
