@@ -13,6 +13,7 @@
 
 import DirtyMachinesModel from '@services/model/db-resource/dirtyMachines';
 import FaultOrRecycleMachineModel from '@services/model/db-resource/FaultOrRecycleMachine';
+import MachineEventModel from '@services/model/db-resource/machineEvent';
 import type { ListBase } from '@services/types';
 
 import http from '../http';
@@ -41,6 +42,26 @@ export function getDirtyMachines(params: { limit: number; offset: number }) {
 }
 
 /**
+ * 机器事件列表
+ */
+export function getMachineEvents(params: {
+  bk_biz_id?: number;
+  create_at__gte?: string;
+  create_at__lte?: string;
+  domain?: string;
+  events?: string;
+  ips?: string;
+  limit?: number;
+  offset?: number;
+  operator?: string;
+}) {
+  return http.get<ListBase<MachineEventModel[]>>(`${path}/list_machine_events/`, params).then((data) => ({
+    ...data,
+    results: data.results.map((item) => new MachineEventModel(item)),
+  }));
+}
+
+/**
  * 将污点池主机转移至待回收模块
  */
 export function transferDirtyMachines(params: { bk_host_ids: number[] }) {
@@ -58,11 +79,11 @@ export function deleteDirtyRecords(params: { bk_host_ids: number[] }) {
  * 故障池、待回收池列表
  */
 export function getMachinePool(params: {
+  bk_biz_id?: number;
+  ips?: string;
   limit?: number;
   offset?: number;
-  ips?: string;
   pool: 'fault' | 'recycle';
-  bk_biz_id?: number;
 }) {
   return http.get<ListBase<FaultOrRecycleMachineModel[]>>(`${path}/query_machine_pool/`, params).then((res) => ({
     ...res,
