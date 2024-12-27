@@ -1644,5 +1644,16 @@
   "分片集群": "Sharded Cluster",
   "主从管理": "HA Management",
   "DB 重命名：database 重命名": "DB Rename：database rename",
+  "MySQL单节点集群": "",
+  "MySQL高可用集群": "",
+  "TendisCache集群": "",
+  "RedisCache主从版": "",
+  "Kafka集群": "",
+  "Hdfs集群": "",
+  "Pulsar集群": "",
+  "Riak集群": "",
+  "Mongo分片集群": "",
+  "sqlserver单节点版": "",
+  "sqlserver主从版": "",
   "这行勿动！新增翻译请在上一行添加！": ""
 }

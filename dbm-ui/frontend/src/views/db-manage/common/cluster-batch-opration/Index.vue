@@ -113,7 +113,10 @@
   });
 
   const popoverOptions = computed(() => ({
+    boundary: 'body',
     disableOutsideClick: sideSliderShow.value,
+    clickContentAutoHide: true,
+    renderDirective: 'show',
   }));
 
   watch(sideSliderShow, () => {
@@ -133,6 +136,7 @@
       padding: 0;
 
       .opration-button {
+        width: 100%;
         padding: 0 16px;
       }
     }

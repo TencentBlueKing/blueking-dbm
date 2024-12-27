@@ -1,3 +1,6 @@
+import { clusterTypeInfos } from '@common/const/clusterTypeInfos';
+import { ClusterTypes } from '@common/const/clusterTypes';
+
 export default class MongodbInstanceDetail {
   bk_agent_id: string;
   bk_cloud_id: number;
@@ -6,8 +9,10 @@ export default class MongodbInstanceDetail {
   bk_disk: number;
   bk_host_id: number;
   bk_host_innerip: string;
-  bk_idc_id: string;
+  bk_idc_id: number;
   bk_idc_name: string;
+  bk_idc_city_id: string;
+  bk_idc_city_name: string;
   bk_mem: number;
   bk_os_name: string;
   cluster_id: number;
@@ -39,6 +44,8 @@ export default class MongodbInstanceDetail {
     this.bk_host_innerip = payload.bk_host_innerip;
     this.bk_idc_id = payload.bk_idc_id;
     this.bk_idc_name = payload.bk_idc_name;
+    this.bk_idc_city_id = payload.bk_idc_city_id || '';
+    this.bk_idc_city_name = payload.bk_idc_city_name || '';
     this.bk_mem = payload.bk_mem;
     this.bk_os_name = payload.bk_os_name;
     this.cluster_id = payload.cluster_id;
@@ -59,5 +66,9 @@ export default class MongodbInstanceDetail {
     this.spec_config = payload.spec_config;
     this.status = payload.status;
     this.version = payload.version;
+  }
+
+  get clusterTypeName() {
+    return clusterTypeInfos[this.cluster_type as ClusterTypes].architectureName || '';
   }
 }
