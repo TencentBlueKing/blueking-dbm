@@ -8,8 +8,9 @@
     @focus="handleFocus">
     <template
       v-if="slots.option"
-      #optionRender="{ item }">
+      #optionRender="{ item, index }">
       <slot
+        :index="index"
         :item="item"
         name="option" />
     </template>
@@ -48,7 +49,7 @@
 
   const slots = defineSlots<{
     trigger?: (value: { selected: any[] }) => VNode;
-    option?: (value: { item: Record<string, any> }) => VNode;
+    option?: (value: { item: Record<string, any>; index: number }) => VNode;
   }>();
 
   const attrs = useAttrs();

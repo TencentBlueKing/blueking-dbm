@@ -14,7 +14,7 @@
 <template>
   <Column
     :append-rules="rules"
-    field="cluster.domain"
+    field="cluster.master_domain"
     fixed="left"
     :label="t('目标集群')"
     :loading="loading"
@@ -29,7 +29,7 @@
       </span>
     </template>
     <Input
-      v-model="modelValue.domain"
+      v-model="modelValue.master_domain"
       :placeholder="t('请输入集群域名')"
       @change="handleInputChange" />
   </Column>
@@ -67,7 +67,7 @@
   interface Props {
     selected: {
       id: number;
-      domain: string;
+      master_domain: string;
     }[];
   }
 
@@ -82,7 +82,7 @@
 
   const modelValue = defineModel<{
     id?: number;
-    domain: string;
+    master_domain: string;
     cluster_type_name?: string;
   }>({
     default: () => ({
@@ -98,7 +98,7 @@
       (item) =>
         ({
           id: item.id,
-          master_domain: item.domain,
+          master_domain: item.master_domain,
         }) as RedisModel,
     ),
   }));
@@ -115,12 +115,6 @@
           ].join(','),
           ...params,
         }),
-      disabledRowConfig: [
-        {
-          handler: (data: RedisModel) => data.proxy.length <= 2,
-          tip: t('数量不足，Proxy至少保留 2 台'),
-        },
-      ],
     },
   } as unknown as Record<string, TabConfig>;
 
@@ -132,7 +126,7 @@
     },
     {
       validator: () => {
-        if (!modelValue.value.domain) {
+        if (!modelValue.value.master_domain) {
           return true;
         }
         return Boolean(modelValue.value.id);

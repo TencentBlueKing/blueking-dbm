@@ -36,14 +36,7 @@ const redisInstallModuleRoute = {
   component: () => import('@views/db-manage/redis/install-module/Index.vue'),
 };
 
-const redisCapacityChangeRoute = {
-  name: 'RedisCapacityChange',
-  path: 'capacity-change/:page?',
-  meta: {
-    navName: t('集群容量变更'),
-  },
-  component: () => import('@views/db-manage/redis/capacity-change/Index.vue'),
-};
+const redisCapacityChangeRoute = createRouteItem(TicketTypes.REDIS_SCALE_UPDOWN, t('集群容量变更'));
 
 const redisProxyScaleUpRoute = {
   name: 'RedisProxyScaleUp',

@@ -155,7 +155,7 @@ export default [
           },
           {
             name: t('集群容量变更'),
-            id: 'RedisCapacityChange',
+            id: TicketTypes.REDIS_SCALE_UPDOWN,
             parentId: 'cluster-manage',
             dbConsoleValue: 'redis.toolbox.capacityChange',
           },
