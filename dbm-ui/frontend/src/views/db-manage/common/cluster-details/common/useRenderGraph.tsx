@@ -138,12 +138,12 @@ export const detailColumns: DetailColumns<any> = [
     key: 'bk_host_innerip',
   },
   {
-    label: t('园区'),
-    key: 'bk_sub_zone',
-  },
-  {
     label: t('地域'),
     key: 'bk_idc_city_name',
+  },
+  {
+    label: t('园区'),
+    key: 'bk_sub_zone',
   },
   {
     label: 'CPU',
