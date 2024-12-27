@@ -77,6 +77,7 @@ export default class FunctionController {
   'resourceManage.faultPool': ControllerItem<string>;
   'resourceManage.toRecyclePool': ControllerItem<string>;
   'resourceManage.dirtyHostManage': ControllerItem<string>;
+  'resourceManage.resourceTagsManagement': ControllerItem<string>;
   'resourceManage.resourceOperationRecord': ControllerItem<string>;
   bizConfigManage: ControllerItem<string>;
   'bizConfigManage.monitorStrategy': ControllerItem<string>;
