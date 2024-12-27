@@ -17,6 +17,7 @@
         style="width: 500px"
         unique-select
         :validate-values="validateSearchValues"
+        value-behavior="need-key"
         @change="handleSearchValueChange" />
     </div>
     <DbTable
@@ -24,6 +25,7 @@
       :columns="tableColumn"
       :data-source="dataSource"
       releate-url-query
+      :show-settings="false"
       @clear-search="handleClearSearch"
       @column-filter="columnFilterChange"
       @column-sort="columnSortChange" />
@@ -34,26 +36,27 @@
   import dayjs from 'dayjs';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
-  import { useRoute } from 'vue-router';
 
-  import OperationModel from '@services/model/db-resource/Operation';
-  import { fetchOperationList } from '@services/source/dbresourceResource';
+  import { getMachineEvents } from '@services/source/dbdirty';
   import { getTicketTypes } from '@services/source/ticket';
   import { getUserList } from '@services/source/user';
 
   import { useLinkQueryColumnSerach } from '@hooks';
 
+  import { useGlobalBizs } from '@stores'
+
+  import { MachineEvents , machineEventsDisplayMap } from '@common/const/machineEvents';
+
   import { getMenuListSearch, getSearchSelectorParams } from '@utils';
 
-  import HostDetail from './components/HostDetail.vue';
+  type MachineEvent = ServiceReturnType<typeof getMachineEvents>['results'][number]
 
-  const route = useRoute();
   const { t } = useI18n();
-
+  const globalBizStore = useGlobalBizs();
   const {
     searchValue,
     sortValue,
-    columnCheckedMap,
+    // columnCheckedMap,
     columnFilterChange,
     columnSortChange,
     clearSearchValue,
@@ -65,7 +68,7 @@
     fetchDataFn: () => fetchData(),
   });
 
-  const dataSource = fetchOperationList;
+  const dataSource = getMachineEvents;
 
   const tableRef = ref();
   const operationDateTime = ref<[string, string]>([
@@ -76,212 +79,136 @@
   const ticketTypes = ref<Array<{id: string, name: string}>>([]);
 
   const searchSelectData = computed(() => [
+  {
+      name: 'IP',
+      id: 'ips',
+      multiple: true,
+    },
     {
       name: t('操作类型'),
-      id: 'operation_type',
-      children: [
-        {
-          id: [OperationModel.OPERATIN_TYPE_IMPORTED],
-          name: t('导入主机'),
-
-        },
-        {
-          id: [OperationModel.OPERATIN_TYPE_CONSUMED],
-          name: t('消费主机'),
-        },
-      ],
-    },
-    {
-      name: t('单据类型'),
-      id: 'ticket_types',
+      id: 'events',
       multiple: true,
-      children: ticketTypes.value,
-    },
-    {
-      name: t('关联单据'),
-      id: 'ticket_ids',
-    },
-    {
-      name: t('关联任务'),
-      id: 'task_ids',
-    },
-    {
-      name: t('操作状态'),
-      id: 'status',
-      children: [
-        {
-          id: [OperationModel.STATUS_PENDING],
-          name: t('等待执行'),
-
-        },
-        {
-          id: [OperationModel.STATUS_RUNNING],
-          name: t('执行中'),
-
-        },
-        {
-          id: [OperationModel.STATUS_SUCCEEDED],
-          name: t('执行成功'),
-
-        },
-        {
-          id: [OperationModel.STATUS_FAILED],
-          name: t('执行失败'),
-
-        },
-        {
-          id: [OperationModel.STATUS_REVOKED],
-          name: t('执行失败'),
-        },
-      ],
+      children: Object.entries(machineEventsDisplayMap).map(([key, value]) => ({ id: key, name: value })),
     },
     {
       name: t('操作人'),
       id: 'operator',
     },
+    {
+      name: t('所属业务'),
+      id: 'bk_biz_id',
+      // multiple: true,
+      children: globalBizStore.bizs.map((item) => ({ id: item.bk_biz_id, name: item.name }))
+    },
+    {
+      name: t('集群'),
+      multiple: true,
+      id: 'domain',
+    },
+    // {
+    //   name: t('单据类型'),
+    //   id: 'ticket_types',
+    //   multiple: true,
+    //   children: ticketTypes.value,
+    // },
+    // {
+    //   name: t('关联单据'),
+    //   id: 'ticket',
+    // },
+
   ] as ISearchItem[]);
 
   const tableColumn = computed(() => [
     {
-      label: t('操作时间'),
-      field: 'update_time',
+      label: 'IP',
+      field: 'ip',
       fixed: 'left',
       width: 200,
-      sort: true,
-      render: ({ data }: {data: OperationModel}) => data.updateTimeDisplay,
-    },
-    {
-      label: t('操作主机明细（台）'),
-      field: 'total_count',
-      sort: true,
-      render: ({ data }: {data: OperationModel}) => (
-        <HostDetail data={data} />
-      ),
+      render: ({ data }: {data: MachineEvent}) => data.ip,
     },
     {
       label: t('操作类型'),
-      field: 'operation_type',
+      field: 'event',
       filter: {
-        list: [
-          {
-            value: [OperationModel.OPERATIN_TYPE_IMPORTED],
-            text: t('导入主机'),
-          },
-          {
-            value: [OperationModel.OPERATIN_TYPE_CONSUMED],
-            text: t('消费主机'),
-          },
-        ],
-        checked: columnCheckedMap.value.operation_type,
+        list: Object.entries(machineEventsDisplayMap).map(([key, value]) => ({ value: key, text: value })),
+        // checked: columnCheckedMap.value.operation_type,
       },
-      render: ({ data }: {data: OperationModel}) => data.operationTypeText,
-    },
-    {
-      label: t('单据类型'),
-      field: 'ticket_types',
-      filter: {
-        list: ticketTypes.value.map(item => ({
-          value: item.id,
-          text: item.name,
-        })),
-        checked: columnCheckedMap.value.ticket_types,
-      },
-      render: ({ data }: {data: OperationModel}) => data.ticket_type_display || '--',
-    },
-    {
-      label: t('关联单据'),
-      field: 'ticket_id',
-      width: 170,
-      render: ({ data }: {data: OperationModel}) => (data.ticket_id
-        ? <auth-router-link
-            to={{
-              name: 'bizTicketManage',
-              params: {
-                ticketId: data.ticket_id,
-              },
-            }}
-            action-id="ticket_view"
-            resource={data.ticket_id}
-            permission={data.permission.ticket_view}
-            target="_blank">
-            {data.ticket_id}
-          </auth-router-link>
-        : '--'),
-    },
-    {
-      label: t('关联任务'),
-      field: 'task_id',
-      render: ({ data }: {data: OperationModel}) => (data.task_id
-        ? <auth-router-link
-            action-id="flow_detail"
-            resource={data.task_id}
-            permission={data.permission.flow_detail}
-            to={{
-              name: 'taskHistoryDetail',
-              params: {
-                root_id: data.task_id,
-              },
-              query: {
-                from: route.name as string,
-              },
-            }}
-            target="_blank">
-            {data.task_id}
-          </auth-router-link>
-        : '--'),
+      render: ({ data }: {data: MachineEvent}) => data.eventDisplay,
     },
     {
       label: t('操作人'),
-      field: 'operator',
+      field: 'updater',
     },
     {
-      label: t('操作结果'),
-      field: 'status',
-      width: 150,
-      filter: {
-        list: [
-          {
-            value: [OperationModel.STATUS_PENDING],
-            text: t('等待执行'),
-
-          },
-          {
-            value: [OperationModel.STATUS_RUNNING],
-            text: t('执行中'),
-
-          },
-          {
-            value: [OperationModel.STATUS_SUCCEEDED],
-            text: t('执行成功'),
-
-          },
-          {
-            value: [OperationModel.STATUS_FAILED],
-            text: t('执行失败'),
-
-          },
-          {
-            value: [OperationModel.STATUS_REVOKED],
-            text: t('执行失败'),
-          },
-        ],
-        checked: columnCheckedMap.value.status,
-      },
-      render: ({ data }: {data: OperationModel}) => (
-        <div style="display: flex; align-items: center;">
-          <db-icon
-            class={{
-              'rotate-loading': data.isRunning,
+      label: t('操作时间'),
+      field: 'update_at',
+      width: 200,
+      // sort: true,
+      render: ({ data }: {data: MachineEvent}) => data.updateAtDisplay,
+    },
+    {
+      label: t('所属业务'),
+      field: 'bizDisplay',
+    },
+    {
+      label: t('关联单据'),
+      field: 'ticket',
+      width: 170,
+      render: ({ data }: {data: MachineEvent}) => (data.ticket
+        ? <router-link
+            to={{
+              name: 'bizTicketManage',
+              params: {
+                ticketId: data.ticket,
+              },
             }}
-            style={{
-              'font-size': data.isRunning ? '12px' : '16px',
-              'vertical-align': 'middle',
-            }}
-            type={data.statusIcon}
-            svg />
-          <span class="ml-4">{data.statusText}</span>
-        </div>
-      ),
+            target="_blank">
+            {data.ticket}
+          </router-link>
+        : '--'),
+    },
+    {
+      label: t('单据类型'),
+      field: 'ticket_type_display',
+      // filter: {
+      //   list: ticketTypes.value.map(item => ({
+      //     value: item.id,
+      //     text: item.name,
+      //   })),
+      //   checked: columnCheckedMap.value.ticket_types,
+      // },
+      render: ({ data }: {data: MachineEvent}) => data.ticket_type_display || '--'
+    },
+
+    {
+      label: t('集群'),
+      field: 'clusters',
+      render: ({ data }: {data: MachineEvent}) => data.clusters.length ? data.clusters.join(', ') : '--'
+    },
+
+    {
+      label: t('操作明细'),
+      field: 'operationDetail',
+      width: 430,
+      render: ({ data }: {data: MachineEvent}) => {
+        if ([MachineEvents.APPLY_RESOURCE, MachineEvents.RETURN_RESOURCE].includes(data.event) || (data.event === MachineEvents.TO_FAULT && data.ticket)) {
+          return <span>
+          {data.operationDetail}（{t('关联单据')}：
+            <router-link
+              to={{
+                name: 'bizTicketManage',
+                params: {
+                  ticketId: data.ticket,
+                },
+              }}
+              target="_blank">
+              {data.ticket}
+            </router-link>）
+          </span>;
+        }
+
+        return <span>{data.operationDetail}</span>;
+      }
     },
   ]);
 
@@ -326,21 +253,6 @@
     return searchSelectData.value.find(set => set.id === item.id)?.children || [];
   };
 
-  // const serachValidateValues = (
-  //   payload: Record<'id'|'name', string>,
-  //   values: Array<Record<'id'|'name', string>>,
-  // ) => {
-  //   if (payload.id === 'ticket_ids') {
-  //     const [{ id }] = values;
-  //     return Promise.resolve(_.every(id.split(','), item => /^\d+?/.test(item)));
-  //   }
-  //   if (payload.id === 'ip_list') {
-  //     const [{ id }] = values;
-  //     return Promise.resolve(_.every(id.split(','), item => ipv4.test(item)));
-  //   }
-  //   return Promise.resolve(true);
-  // };
-
   // 获取数据
   const fetchData = () => {
     const searchParams = getSearchSelectorParams(searchValue.value);
@@ -349,10 +261,11 @@
       endTime,
     ] = operationDateTime.value;
     tableRef.value.fetchData({
+      bk_biz_id: searchParams.bk_biz_id,
       ...searchParams,
       ...sortValue,
-      begin_time: beginTime ? dayjs(beginTime).format('YYYY-MM-DD HH:mm:ss') : '',
-      end_time: endTime ? dayjs(endTime).format('YYYY-MM-DD HH:mm:ss') : '',
+      create_at__gte: beginTime ? dayjs(beginTime).format('YYYY-MM-DD HH:mm:ss') : '',
+      create_at__lte: endTime ? dayjs(endTime).format('YYYY-MM-DD HH:mm:ss') : '',
     });
   };
 
@@ -366,16 +279,6 @@
     operationDateTime.value = ['', ''];
     clearSearchValue();
   };
-
-  // const handleGoTicketDetail = (data: OperationModel) => {
-  //   const { href } = router.resolve({
-  //     name: 'bizTicketManage',
-  //     query: {
-  //       id: data.ticket_id,
-  //     },
-  //   });
-  //   window.open(href.replace(/(\d)+/, `${data.bk_biz_id}`));
-  // };
 </script>
 
 <style lang="less">
