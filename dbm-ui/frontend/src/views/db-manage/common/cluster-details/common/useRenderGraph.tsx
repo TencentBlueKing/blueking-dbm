@@ -59,8 +59,10 @@ interface InstanceDetails {
   bk_disk: number;
   bk_host_id: number;
   bk_host_innerip: string;
+  bk_idc_city_name: string;
   bk_mem: number;
   bk_os_name: string;
+  bk_sub_zone: string;
   cluster_id: number;
   cluster_type: string;
   create_at: string;
@@ -136,12 +138,12 @@ export const detailColumns: DetailColumns<any> = [
     key: 'bk_host_innerip',
   },
   {
-    label: t('所在机房'),
-    key: 'bk_idc_name',
+    label: t('地域'),
+    key: 'bk_idc_city_name',
   },
   {
-    label: t('所在城市'),
-    key: 'idc_city_name',
+    label: t('园区'),
+    key: 'bk_sub_zone',
   },
   {
     label: 'CPU',

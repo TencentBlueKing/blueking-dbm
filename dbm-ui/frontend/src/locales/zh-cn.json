@@ -3871,6 +3871,17 @@
   "导出数据：": "导出数据：",
   "脚本来源：": "脚本来源：",
   "脚本执行内容：": "脚本执行内容：",
+  "MySQL单节点集群": "MySQL 单节点集群",
+  "MySQL高可用集群": "MySQL 高可用集群",
+  "TendisCache集群": "TendisCache集群",
+  "RedisCache主从版": "RedisCache主从版",
+  "Kafka集群": "Kafka 集群",
+  "Hdfs集群": "Hdfs 集群",
+  "Pulsar集群": "Pulsar 集群",
+  "Riak集群": "Riak 集群",
+  "Mongo分片集群": "Mongo 分片集群",
+  "sqlserver单节点版": "sqlserver 单节点版",
+  "sqlserver主从版": "sqlserver 主从版",
   "这行勿动！新增翻译请在上一行添加！": ""
 
 }
