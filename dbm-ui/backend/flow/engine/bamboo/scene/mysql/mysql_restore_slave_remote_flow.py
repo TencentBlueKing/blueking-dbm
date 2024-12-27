@@ -15,9 +15,11 @@ from typing import Dict, Optional
 
 from django.utils.translation import ugettext as _
 
+from backend.components import DRSApi
 from backend.configuration.constants import DBType
 from backend.constants import IP_PORT_DIVIDER, IP_PORT_DIVIDER_FOR_DNS
 from backend.db_meta.enums import ClusterType, InstanceInnerRole, InstancePhase, InstanceStatus
+from backend.db_meta.exceptions import InstanceNotExistException
 from backend.db_meta.models import Cluster
 from backend.db_package.models import Package
 from backend.flow.consts import MediumEnum
@@ -433,6 +435,20 @@ class MySQLRestoreSlaveRemoteFlow(object):
                 machine__ip=self.data["slave_ip"],
                 port=self.data["slave_port"],
             )
+
+            res = DRSApi.rpc(
+                {
+                    "addresses": [target_slave.ip_port],
+                    "cmds": ["select version()"],
+                    "force": False,
+                    "bk_cloud_id": target_slave.machine.bk_cloud_id,
+                }
+            )
+            if res[0]["error_msg"]:
+                raise InstanceNotExistException(
+                    _("请检查实例 {} 是否存活,是否正常可访问，slave原地重建是实例级别的，且必须保证实例存活方可提单进行").format(target_slave.ip_port)
+                )
+
             master = cluster_model.storageinstance_set.get(instance_inner_role=InstanceInnerRole.MASTER.value)
             self.data["new_slave_ip"] = target_slave.machine.ip
             self.data["bk_biz_id"] = cluster_model.bk_biz_id
