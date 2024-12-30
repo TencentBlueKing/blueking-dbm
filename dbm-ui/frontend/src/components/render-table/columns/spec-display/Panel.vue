@@ -58,13 +58,13 @@
                 </div>
                 <div class="table-row">
                   <div class="row-one">
-                    {{ data.storage_spec[0].mount_point }}
+                    {{ data.storage_spec[0]?.mount_point || '--' }}
                   </div>
                   <div class="row-two">
-                    {{ data.storage_spec[0].size }}
+                    {{ data.storage_spec[0]?.size || '--' }}
                   </div>
                   <div class="row-three">
-                    {{ data.storage_spec[0].type }}
+                    {{ data.storage_spec[0]?.type || '--' }}
                   </div>
                 </div>
               </div>

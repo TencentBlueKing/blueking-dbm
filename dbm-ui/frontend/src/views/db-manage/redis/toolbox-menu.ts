@@ -54,7 +54,7 @@ export default [
           },
           {
             name: t('整机替换'),
-            id: 'RedisDBReplace',
+            id: TicketTypes.REDIS_CLUSTER_CUTOFF,
             parentId: 'common-manage',
             dbConsoleValue: 'redis.toolbox.dbReplace',
           },

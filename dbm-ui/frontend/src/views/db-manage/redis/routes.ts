@@ -67,14 +67,7 @@ const redisMasterFailoverRoute = {
   component: () => import('@views/db-manage/redis/master-failover/Index.vue'),
 };
 
-const redisDBReplaceRoute = {
-  name: 'RedisDBReplace',
-  path: 'db-replace/:page?',
-  meta: {
-    navName: t('整机替换'),
-  },
-  component: () => import('@views/db-manage/redis/db-replace/Index.vue'),
-};
+const redisDBReplaceRoute = createRouteItem(TicketTypes.REDIS_CLUSTER_CUTOFF, t('整机替换'));
 
 const redisClusterShardUpdateRoute = {
   name: 'RedisClusterShardUpdate',
