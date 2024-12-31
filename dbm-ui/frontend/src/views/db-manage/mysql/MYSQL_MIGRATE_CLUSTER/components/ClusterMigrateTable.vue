@@ -15,19 +15,23 @@
   <EditableTable
     ref="table"
     class="mb-20"
-    :model="tableData"
-    :rules="rules">
+    :model="tableData">
     <EditableTableRow
       v-for="(item, index) in tableData"
       :key="index">
-      <InstanceColumnGroup
-        v-model="item.originProxy"
-        :selected="selected"
+      <ClusterColumn
+        v-model="item.cluster"
+        :selected-ids="selectedClusterIds"
         @batch-edit="handleBatchEdit" />
       <SingleHost
-        v-model="item.targetProxy"
-        field="targetProxy.ip"
-        :label="t('新Proxy主机')"
+        v-model="item.newMaster"
+        field="newMaster.ip"
+        :label="t('新Master主机')"
+        :params="{ for_biz: currentBizId }" />
+      <SingleHost
+        v-model="item.newSlave"
+        field="newSlave.ip"
+        :label="t('新Slave主机')"
         :params="{ for_biz: currentBizId }" />
       <OperationColumn
         v-model:table-data="tableData"
@@ -39,6 +43,8 @@
   import { useTemplateRef } from 'vue';
   import { useI18n } from 'vue-i18n';
 
+  import TendbhaModel from '@services/model/mysql/tendbha';
+
   import { useGlobalBizs } from '@stores';
 
   import EditableTable, { Row as EditableTableRow } from '@components/editable-table/Index.vue';
@@ -46,21 +52,22 @@
   import SingleHost from '@views/db-manage/common/toolbox-field/host-column/SingleHost.vue';
   import OperationColumn from '@views/db-manage/common/toolbox-field/operation-column/Index.vue';
 
-  import { ProxyReplaceTypes, type TicketInfo } from '../types';
+  import { MigrateTypes, type TicketInfo } from '../types';
 
-  import InstanceColumnGroup, { type SelectorItem } from './InstanceColumnGroup.vue';
+  import ClusterColumn from './ClusterColumn.vue';
 
   interface RowData {
-    originProxy: {
+    cluster: {
+      cluster_ids: number[];
+      cluster_domains: string;
+    };
+    newMaster: {
+      bk_biz_id: number;
       bk_cloud_id: number;
       bk_host_id: number;
       ip: string;
-      port: number;
-      cluster_id: number;
-      instance_address: string;
-      master_domain: string;
     };
-    targetProxy: {
+    newSlave: {
       bk_biz_id: number;
       bk_cloud_id: number;
       bk_host_id: number;
@@ -83,18 +90,18 @@
   const { currentBizId } = useGlobalBizs();
 
   const createTableRow = (data = {} as Partial<RowData>) => ({
-    originProxy: data.originProxy || {
-      bk_biz_id: 0,
+    cluster: data.cluster || {
+      cluster_ids: [],
+      cluster_domains: '',
+    },
+    newMaster: data.newMaster || {
+      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
       bk_cloud_id: 0,
       bk_host_id: 0,
       ip: '',
-      port: 0,
-      cluster_id: 0,
-      instance_address: '',
-      master_domain: '',
     },
-    targetProxy: data.targetProxy || {
-      bk_biz_id: 0,
+    newSlave: data.newSlave || {
+      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
       bk_cloud_id: 0,
       bk_host_id: 0,
       ip: '',
@@ -103,24 +110,7 @@
 
   const tableData = ref<RowData[]>([createTableRow()]);
 
-  const selected = computed(() =>
-    tableData.value
-      .filter((item) => item.originProxy.bk_host_id)
-      .map((item) => ({
-        instance_address: item.originProxy.instance_address,
-      })),
-  );
-  const selectedMap = computed(() => Object.fromEntries(selected.value.map((cur) => [cur.instance_address, true])));
-
-  const rules = {
-    'originProxy.instance_address': [
-      {
-        validator: (value: string) => selected.value.filter((item) => item.instance_address === value).length < 2,
-        message: t('目标实例重复'),
-        trigger: 'change',
-      },
-    ],
-  };
+  const selectedClusterIds = computed(() => tableData.value.flatMap((item) => item.cluster.cluster_ids));
 
   watch(
     () => props.data,
@@ -133,26 +123,21 @@
     },
   );
 
-  const handleBatchEdit = (list: SelectorItem[]) => {
+  const handleBatchEdit = (list: TendbhaModel[]) => {
     const dataList = list.reduce<RowData[]>((acc, item) => {
-      if (!selectedMap.value[item.instance_address]) {
+      if (!selectedClusterIds.value.includes(item.id)) {
         acc.push(
           createTableRow({
-            originProxy: {
-              bk_cloud_id: item.bk_cloud_id,
-              bk_host_id: item.bk_host_id,
-              ip: item.ip,
-              port: item.port,
-              cluster_id: item.cluster_id,
-              instance_address: item.instance_address,
-              master_domain: item.master_domain,
+            cluster: {
+              cluster_ids: [item.id],
+              cluster_domains: item.master_domain,
             },
           }),
         );
       }
       return acc;
     }, []);
-    tableData.value = [...(selected.value.length ? tableData.value : []), ...dataList];
+    tableData.value = [...(selectedClusterIds.value.length ? tableData.value : []), ...dataList];
   };
 
   defineExpose<Exposes>({
@@ -162,25 +147,20 @@
         return [];
       }
 
-      return tableData.value.map(({ originProxy, targetProxy }) => ({
-        cluster_ids: [originProxy.cluster_id],
-        origin_proxy: {
-          bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-          bk_cloud_id: originProxy.bk_cloud_id,
-          bk_host_id: originProxy.bk_host_id,
-          ip: originProxy.ip,
-          port: originProxy.port,
-          instance_address: originProxy.instance_address,
-        },
-        target_proxy: {
-          bk_biz_id: targetProxy.bk_biz_id,
-          bk_cloud_id: targetProxy.bk_cloud_id,
-          bk_host_id: targetProxy.bk_host_id,
-          ip: targetProxy.ip,
+      return tableData.value.map(({ cluster, newMaster, newSlave }) => ({
+        cluster_ids: cluster.cluster_ids,
+        resource_spec: {
+          new_master: {
+            spec_id: 0,
+            hosts: [newMaster],
+          },
+          new_slave: {
+            spec_id: 0,
+            hosts: [newSlave],
+          },
         },
         display_info: {
-          type: ProxyReplaceTypes.INSTANCE_REPLACE,
-          related_clusters: [originProxy.master_domain],
+          type: MigrateTypes.CLUSTER_MIGRATE,
         },
       }));
     },

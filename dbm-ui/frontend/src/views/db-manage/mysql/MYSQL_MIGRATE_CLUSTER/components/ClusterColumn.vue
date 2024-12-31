@@ -14,13 +14,12 @@
 <template>
   <Column
     :append-rules="rules"
-    field="cluster.domain"
+    field="cluster.cluster_domains"
     fixed="left"
     :label="t('目标集群')"
     :loading="loading"
     :min-width="300"
-    required
-    :validate-delay="300">
+    required>
     <template #headAppend>
       <span
         v-bk-tooltips="t('批量选择')"
@@ -29,17 +28,20 @@
         <DbIcon type="batch-host-select" />
       </span>
     </template>
-    <Input
-      v-model="modelValue.domain"
-      :placeholder="t('请输入集群域名')"
+    <Textarea
+      v-model="modelValue.cluster_domains"
+      :placeholder="t('请输入集群域名_多个集群用分隔符输入')"
       @change="handleInputChange" />
   </Column>
   <ClusterSelector
     v-model:is-show="showSelector"
     :cluster-types="[ClusterTypes.TENDBHA]"
-    :selected="selectedClusters"
+    :selected="selected"
     @change="handleSelectorChange" />
 </template>
+<script lang="ts">
+  const domainIdMap: Record<string, number> = {};
+</script>
 <script lang="ts" setup>
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
@@ -48,16 +50,13 @@
   import { filterClusters } from '@services/source/dbbase';
 
   import { ClusterTypes } from '@common/const';
-  import { domainRegex } from '@common/regex';
+  import { batchSplitRegex, domainRegex } from '@common/regex';
 
   import ClusterSelector from '@components/cluster-selector/Index.vue';
-  import { Column, Input } from '@components/editable-table/Index.vue';
+  import { Column, Textarea } from '@components/editable-table/Index.vue';
 
   interface Props {
-    selected: {
-      id: number;
-      domain: string;
-    }[];
+    selectedIds: number[];
   }
 
   interface Emits {
@@ -69,41 +68,43 @@
   const emits = defineEmits<Emits>();
 
   const modelValue = defineModel<{
-    id?: number;
-    domain: string;
+    cluster_ids: number[];
+    cluster_domains: string;
   }>({
-    default: () => ({
-      domain: '',
-    }),
+    default: () => [],
   });
 
   const { t } = useI18n();
 
   const showSelector = ref(false);
-  const selectedClusters = computed<Record<string, TendbhaModel[]>>(() => ({
-    [ClusterTypes.TENDBHA]: props.selected.map(
-      (item) =>
+  const selected = computed<Record<string, TendbhaModel[]>>(() => ({
+    [ClusterTypes.TENDBHA]: props.selectedIds.map(
+      (id) =>
         ({
-          id: item.id,
-          master_domain: item.domain,
-        }) as TendbhaModel,
+          id,
+          master_domain: domainIdMap[id],
+        }) as unknown as TendbhaModel,
     ),
   }));
 
+  let notFounds: string[];
   const rules = [
     {
-      validator: (value: string) => domainRegex.test(value),
+      validator: (value: string) => value.split(batchSplitRegex).every((item) => domainRegex.test(item)),
       message: t('集群域名格式不正确'),
       trigger: 'change',
     },
     {
-      validator: () => {
-        if (!modelValue.value.domain) {
-          return true;
-        }
-        return Boolean(modelValue.value.id);
+      validator: (value: string) => {
+        notFounds = [];
+        value.split(batchSplitRegex).forEach((item) => {
+          if (!domainIdMap[item]) {
+            notFounds.push(item);
+          }
+        });
+        return !notFounds.length;
       },
-      message: t('目标集群不存在'),
+      message: () => t('目标集群xx不存在', [notFounds.join(',')]),
       trigger: 'blur',
     },
   ];
@@ -111,9 +112,10 @@
   const { run: queryCluster, loading } = useRequest(filterClusters, {
     manual: true,
     onSuccess: (data) => {
-      modelValue.value.id = undefined;
+      modelValue.value.cluster_ids = [];
       if (data.length) {
-        modelValue.value.id = data[0].id;
+        Object.assign(domainIdMap, Object.fromEntries(data.map((cur) => [cur.master_domain, cur.id])));
+        modelValue.value.cluster_ids = data.map((item) => item.id);
       }
     },
   });
@@ -125,12 +127,14 @@
   const handleInputChange = (value: string) => {
     queryCluster({
       bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-      exact_domain: value,
+      exact_domain: value.split(batchSplitRegex).join(','),
     });
   };
 
   const handleSelectorChange = (selected: Record<string, TendbhaModel[]>) => {
-    emits('batch-edit', selected[ClusterTypes.TENDBHA]);
+    const dataList = selected[ClusterTypes.TENDBHA];
+    Object.assign(domainIdMap, Object.fromEntries(dataList.map((cur) => [cur.master_domain, cur.id])));
+    emits('batch-edit', dataList);
   };
 </script>
 <style lang="less" scoped>

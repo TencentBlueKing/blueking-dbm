@@ -127,6 +127,8 @@
     () => {
       if (props.data.length) {
         tableData.value = [...props.data];
+      } else {
+        tableData.value = [createTableRow()];
       }
     },
   );

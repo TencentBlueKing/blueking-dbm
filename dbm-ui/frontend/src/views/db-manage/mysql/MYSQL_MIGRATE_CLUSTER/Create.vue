@@ -19,35 +19,34 @@
       :title="
         t('迁移主从：集群主从实例将成对迁移至新机器。默认迁移同机所有关联集群，也可迁移部分集群，迁移会下架旧实例')
       " />
+    <div>
+      <strong class="mirgate-types-title">
+        {{ t('迁移类型') }}
+      </strong>
+      <div class="mt-8 mb-20">
+        <CardCheckbox
+          v-model="migrateType"
+          :desc="t('只迁移目标集群')"
+          icon="rebuild"
+          :title="t('集群迁移')"
+          :true-value="MigrateTypes.CLUSTER_MIGRATE" />
+        <CardCheckbox
+          v-model="migrateType"
+          class="ml-8"
+          :desc="t('主机关联的所有集群一并迁移')"
+          icon="host"
+          :title="t('整机迁移')"
+          :true-value="MigrateTypes.HOST_MIGRATE" />
+      </div>
+    </div>
     <BkForm
       v-model="formData"
       class="mb-20"
       form-type="vertical">
-      <EditableTable
+      <Component
+        :is="tableComponentMap[migrateType]"
         ref="table"
-        class="mb-20"
-        :model="formData.tableData"
-        :rules="rules">
-        <EditableTableRow
-          v-for="(item, index) in formData.tableData"
-          :key="index">
-          <WithRelatedClusters
-            v-model="item.cluster"
-            :selected="selected"
-            @batch-edit="handleBatchEdit" />
-          <SingleHost
-            v-model="item.master"
-            field="master.ip"
-            :label="t('新Master')" />
-          <SingleHost
-            v-model="item.slave"
-            field="slave.ip"
-            :label="t('新Slave')" />
-          <OperationColumn
-            v-model:table-data="formData.tableData"
-            :create-row-method="createTableRow" />
-        </EditableTableRow>
-      </EditableTable>
+        :data="formData.tableData" />
       <BackupSource v-model="formData.backupSource" />
       <TicketRemark v-model="formData.remark" />
     </BkForm>
@@ -73,164 +72,79 @@
   </SmartAction>
 </template>
 <script lang="ts" setup>
-  import { reactive, useTemplateRef } from 'vue';
+  import { reactive } from 'vue';
   import { useI18n } from 'vue-i18n';
 
-  import TendbhaModel from '@services/model/mysql/tendbha';
   import { BackupSourceType } from '@services/types';
 
   import { useCreateTicket } from '@hooks';
 
   import { TicketTypes } from '@common/const';
 
-  import EditableTable, { Row as EditableTableRow } from '@components/editable-table/Index.vue';
+  import CardCheckbox from '@components/db-card-checkbox/CardCheckbox.vue';
 
   import BackupSource from '@views/db-manage/common/toolbox-field/backup-source/Index.vue';
-  import SingleHost from '@views/db-manage/common/toolbox-field/host-column/SingleHost.vue';
-  import OperationColumn from '@views/db-manage/common/toolbox-field/operation-column/Index.vue';
   import TicketRemark from '@views/db-manage/common/toolbox-field/ticket-remark/Index.vue';
-  import WithRelatedClusters from '@views/db-manage/mysql/common/edit-table-column/WithRelatedClusters.vue';
 
-  interface RowData {
-    cluster: {
-      id: number;
-      domain: string;
-      relatedClusters: {
-        id: number;
-        domain: string;
-      }[];
-    };
-    master: {
-      bk_biz_id: number;
-      bk_cloud_id: number;
-      bk_host_id: number;
-      ip: string;
-    };
-    slave: {
-      bk_biz_id: number;
-      bk_cloud_id: number;
-      bk_host_id: number;
-      ip: string;
-    };
-  }
+  import ClusterMigrateTable from './components/ClusterMigrateTable.vue';
+  import HostMigrateTable from './components/HostMigrateTable.vue';
+  import { MigrateTypes, type TicketInfo } from './types';
 
   const { t } = useI18n();
   const tableRef = useTemplateRef('table');
 
-  const createTableRow = (data = {} as Partial<RowData>) => ({
-    cluster: Object.assign({}, data.cluster),
-    master: Object.assign({}, data.master),
-    slave: Object.assign({}, data.slave),
-  });
+  const tableComponentMap = {
+    [MigrateTypes.CLUSTER_MIGRATE]: ClusterMigrateTable,
+    [MigrateTypes.HOST_MIGRATE]: HostMigrateTable,
+  };
+
+  const migrateType = ref(MigrateTypes.CLUSTER_MIGRATE);
 
   const defaultData = () => ({
-    tableData: [createTableRow()],
+    tableData: [],
     backupSource: BackupSourceType.REMOTE,
     remark: '',
   });
 
   const formData = reactive(defaultData());
-  // 表格行内已通过校验的集群为所选集群
-  const selected = computed(() => formData.tableData.filter((item) => item.cluster.id).map((item) => item.cluster));
-  // 集群域名到自身及其下集群id、域名映射
-  const clusterMap = computed(() => {
-    const result = selected.value.reduce<Record<string, { ids: number[]; domains: string[] }>>((acc, cur) => {
-      const relatedClusters = cur?.relatedClusters || [];
-      acc[cur.domain] = {
-        ids: [cur.id, ...relatedClusters.map((item) => item.id)],
-        domains: [cur.domain, ...relatedClusters.map((item) => item.domain)],
-      };
-      return acc;
-    }, {});
-    return result;
-  });
-  let repeatTarget = '';
-
-  const rules = {
-    'cluster.domain': [
-      {
-        validator: (value: string) => selected.value.filter((item) => item.domain === value).length < 2,
-        message: t('目标集群重复'),
-        trigger: 'change',
-      },
-      {
-        validator: (value: string) => {
-          repeatTarget = '';
-          let result = true;
-          Object.entries(clusterMap.value).forEach(([domain, item]) => {
-            const isContain = item.domains.includes(value);
-            if (isContain && domain !== value) {
-              repeatTarget = domain;
-              result = false;
-            }
-          });
-          return result;
-        },
-        message: () => t('目标集群是集群target的关联集群_请勿重复添加', { target: repeatTarget }),
-        trigger: 'change',
-      },
-    ],
-  };
 
   const { run: createTicketRun, loading: isSubmitting } = useCreateTicket<{
-    backup_source: BackupSourceType;
-    infos: {
-      cluster_ids: number[];
-      new_master: {
-        bk_biz_id: number;
-        bk_cloud_id: number;
-        bk_host_id: number;
-        ip: string;
-      };
-      new_slave: {
-        bk_biz_id: number;
-        bk_cloud_id: number;
-        bk_host_id: number;
-        ip: string;
-      };
-    }[];
+    ip_source: 'resource_pool';
+    backup_source: string;
+    infos: TicketInfo[];
   }>(TicketTypes.MYSQL_MIGRATE_CLUSTER);
 
   const handleSubmit = async () => {
-    const result = await tableRef.value!.validate();
-    if (!result) {
-      return;
+    const infos = await tableRef.value!.getValue();
+    if (infos.length) {
+      createTicketRun(
+        {
+          ip_source: 'resource_pool',
+          backup_source: formData.backupSource,
+          infos,
+        },
+        formData.remark,
+      );
     }
-    createTicketRun(
-      {
-        backup_source: formData.backupSource,
-        infos: formData.tableData.map((item) => ({
-          cluster_ids: clusterMap.value[item.cluster.domain].ids,
-          new_master: item.master,
-          new_slave: item.slave,
-        })),
-      },
-      formData.remark,
-    );
   };
 
   const handleReset = () => {
     Object.assign(formData, defaultData());
   };
-
-  const handleBatchEdit = (list: TendbhaModel[]) => {
-    const dataList = list.reduce<RowData[]>((acc, item) => {
-      if (!clusterMap.value[item.master_domain]) {
-        acc.push(
-          createTableRow({
-            cluster: {
-              id: item.id,
-              domain: item.master_domain,
-              relatedClusters: [],
-            },
-          }),
-        );
-      }
-      return acc;
-    }, []);
-    formData.tableData = [...(selected.value.length ? formData.tableData : []), ...dataList];
-    nextTick(() => {
-      tableRef.value!.validateByColumnIndex(0);
-    });
-  };
 </script>
+
+<style lang="less" scoped>
+  .mirgate-types-title {
+    position: relative;
+    font-size: @font-size-mini;
+    color: @title-color;
+
+    &::after {
+      position: absolute;
+      top: 2px;
+      right: -8px;
+      color: @danger-color;
+      content: '*';
+    }
+  }
+</style>
