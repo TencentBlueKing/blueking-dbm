@@ -12,6 +12,7 @@ from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 from rest_framework import serializers
 
+from backend.db_meta.models import AppCache
 from backend.flow.consts import PipelineStatus
 from backend.flow.models import FlowTree
 from backend.utils.time import calculate_cost_time
@@ -20,6 +21,16 @@ from backend.utils.time import calculate_cost_time
 class FlowTaskSerializer(serializers.ModelSerializer):
     ticket_type_display = serializers.SerializerMethodField(help_text=_("单据类型名称"))
     cost_time = serializers.SerializerMethodField(help_text=_("耗时"))
+    bk_biz_name = serializers.SerializerMethodField(help_text=_("业务名"))
+
+    _biz_name_map = None
+
+    @property
+    def biz_name_map(self):
+        if self._biz_name_map is None:
+            bizs = AppCache.get_appcache(key="appcache_dict")
+            self._biz_name_map = {int(bk_biz_id): biz["bk_biz_name"] for bk_biz_id, biz in bizs.items()}
+        return self._biz_name_map
 
     class Meta:
         model = FlowTree
@@ -33,6 +44,8 @@ class FlowTaskSerializer(serializers.ModelSerializer):
             "created_at",
             "updated_at",
             "cost_time",
+            "bk_biz_id",
+            "bk_biz_name",
         )
 
     def get_ticket_type_display(self, obj):
@@ -42,6 +55,9 @@ class FlowTaskSerializer(serializers.ModelSerializer):
         if obj.status in [PipelineStatus.READY, PipelineStatus.RUNNING]:
             return calculate_cost_time(timezone.now(), obj.created_at)
         return calculate_cost_time(obj.updated_at, obj.created_at)
+
+    def get_bk_biz_name(self, obj):
+        return self.biz_name_map.get(obj.bk_biz_id) or obj.bk_biz_id
 
 
 class NodeSerializer(serializers.Serializer):
