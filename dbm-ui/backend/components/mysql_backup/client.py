@@ -42,7 +42,13 @@ class _BackupApi(BaseApi):
             default_timeout=300,
             max_retry_times=1,
         )
+        self.query_for_task_ids = self.generate_data_api(
+            method="POST",
+            url="backupapi/queryTasks",
+            description=_("根据备份任务id列表，拉取备份文件信息"),
+        )
 
 
 MysqlBackupApi = _BackupApi()
 RedisBackupApi = _BackupApi()
+SQLServerBackupApi = _BackupApi()

@@ -65,3 +65,25 @@ class SqlserverCheckLinkServerReport(BaseSqlserverReportABS):
     """
 
     is_link_server_inconsistent = models.BooleanField(default=False, verbose_name=_("业务LinkServer数量是否不一致"))
+
+
+class SqlserverFullBackupInfoReport(BaseReportABS):
+    """
+    全量备份文件巡检表
+    """
+
+    cluster = models.CharField(max_length=255, default="", verbose_name=_("集群名称"))
+    cluster_type = models.CharField(
+        max_length=64, choices=ClusterType.get_choices(), default="", verbose_name=_("集群类型")
+    )
+
+
+class SqlserverLogBackupInfoReport(BaseReportABS):
+    """
+    增量备份文件巡检表
+    """
+
+    cluster = models.CharField(max_length=255, default="", verbose_name=_("集群名称"))
+    cluster_type = models.CharField(
+        max_length=64, choices=ClusterType.get_choices(), default="", verbose_name=_("集群类型")
+    )

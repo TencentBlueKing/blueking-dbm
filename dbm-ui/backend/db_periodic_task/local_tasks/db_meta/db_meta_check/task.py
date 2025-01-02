@@ -12,13 +12,14 @@ import logging
 
 from celery.schedules import crontab
 
-from backend.db_meta.enums import ClusterType
+from backend.db_meta.enums import ClusterPhase, ClusterType
 from backend.db_meta.models import Cluster
 from backend.db_periodic_task.local_tasks.register import register_periodic_task
 from backend.db_report.models import MetaCheckReport
 
 from .check_redis_instance import check_redis_instance
 from .mysql_cluster_topo.tendbha import health_check
+from .sqlserver_cluster_topo.check import sqlserver_dbmeta_check
 
 logger = logging.getLogger("celery")
 
@@ -36,4 +37,15 @@ def tendbha_topo_daily_check():
     for c in Cluster.objects.filter(cluster_type=ClusterType.TenDBHA):
         r: MetaCheckReport
         for r in health_check(c.id):
+            r.save()
+
+
+@register_periodic_task(run_every=crontab(hour=5, minute=30))
+def sqlserver_topo_daily_check():
+    # 只检查online状态的集群
+    for c in Cluster.objects.filter(
+        phase=ClusterPhase.ONLINE, cluster_type__in=[ClusterType.SqlserverHA, ClusterType.SqlserverSingle]
+    ):
+        r: MetaCheckReport
+        for r in sqlserver_dbmeta_check(c.id):
             r.save()

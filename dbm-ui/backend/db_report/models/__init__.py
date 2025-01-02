@@ -19,4 +19,6 @@ from .sqlserver_check_report import (
     SqlserverCheckLinkServerReport,
     SqlserverCheckSysJobStatuReport,
     SqlserverCheckUserSyncReport,
+    SqlserverFullBackupInfoReport,
+    SqlserverLogBackupInfoReport,
 )
