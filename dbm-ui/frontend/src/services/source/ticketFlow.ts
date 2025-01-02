@@ -51,14 +51,25 @@ export function processTodo(params: { id: number; todo_id: number; action: strin
 // 获取单据数量
 export function getTicketCount() {
   return http.get<{
-    APPROVE: number;
     DONE: number;
-    FAILED: number;
-    INNER_TODO: number;
     MY_APPROVE: number;
-    RESOURCE_REPLENISH: number;
+    pending: {
+      APPROVE: number;
+      TODO: number;
+      INNER_TODO: number;
+      INNER_HELP: number;
+      RESOURCE_REPLENISH: number;
+      FAILED: number;
+    };
     SELF_MANAGE: number;
-    TODO: number;
+    to_help: {
+      APPROVE: number;
+      TODO: number;
+      INNER_TODO: number;
+      INNER_HELP: number;
+      RESOURCE_REPLENISH: number;
+      FAILED: number;
+    };
   }>(`${path}/get_tickets_count/`);
 }
 

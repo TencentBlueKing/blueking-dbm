@@ -15,12 +15,21 @@ export default () => {
     },
     {
       name: 'MyTodos',
-      path: 'ticket-self-todo/:status?/:ticketId?',
+      path: 'ticket-self-todo/:assist?/:status?/:ticketId?',
       meta: {
         navName: t('我的待办'),
         fullscreen: true,
       },
       component: () => import('@views/ticket-center/self-todo/Index.vue'),
+      beforeEnter: (to, from, next) => {
+        if (!to.params.assist) {
+          // 设置默认值
+          Object.assign(to.params, {
+            assist: '0',
+          });
+        }
+        next();
+      },
     },
     {
       name: 'ticketSelfDone',
@@ -39,6 +48,15 @@ export default () => {
         fullscreen: true,
       },
       component: () => import('@views/ticket-center/self-manage/Index.vue'),
+    },
+    {
+      name: 'ticketPlatformManage',
+      path: 'ticket-platform-manage/:ticketId?',
+      meta: {
+        navName: t('单据'),
+        fullscreen: true,
+      },
+      component: () => import('@views/ticket-center/platform-manage/Index.vue'),
     },
     {
       name: 'ticketDetail',

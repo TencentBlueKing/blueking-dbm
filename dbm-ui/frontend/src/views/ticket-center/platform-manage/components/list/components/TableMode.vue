@@ -1,21 +1,6 @@
 <template>
   <div class="ticket-list-table-mode">
     <div class="header-action-box">
-      <BkRadioGroup
-        v-model="ticketStatus"
-        type="capsule">
-        <BkRadioButton
-          v-for="item in statusList"
-          :key="item.id"
-          :label="item.id">
-          {{ item.name }}
-        </BkRadioButton>
-      </BkRadioGroup>
-      <BatchOperation
-        v-model:is-show="isShowBatchOperation"
-        class="w-88 ml-8"
-        :ticket-list="selectTicketIdList"
-        :ticket-status="ticketStatus" />
       <BkDatePicker
         v-model="datePickerValue"
         format="yyyy-MM-dd HH:mm:ss"
@@ -34,21 +19,19 @@
     <TableModeTable
       ref="dataTable"
       :data-source="dataSource"
-      :row-class="rowClass"
-      :selectable="isSelectable"
-      @selection="handleSelection">
+      :row-class="rowClass">
       <template #prepend>
         <BkTableColumn
           field="id"
           fixed="left"
           :label="t('单号')"
           width="100">
-          <template #default="{ data }: { data: TicketModel }">
+          <template #default="{ data }: { data: IRowData }">
             <BkButton
               v-if="data"
               text
               theme="primary"
-              @click="(event: MouseEvent) => handleGoDetail(data, event)">
+              @click="() => handleShowDetail(data)">
               {{ data.id }}
             </BkButton>
           </template>
@@ -58,14 +41,15 @@
         <BkTableColumn
           fixed="right"
           :label="t('操作')"
-          width="220">
-          <template #default="{ data }: { data: TicketModel }">
-            <RowAction
+          width="160">
+          <template #default="{ data }: { data: IRowData }">
+            <TicketClone
               v-if="data"
-              :key="data.id"
-              :data="data"
-              :ticket-status="ticketStatus"
-              @go-ticket-detail="() => handleShowDetail(data)" />
+              :data="data" />
+            <TicketDetailLink
+              v-if="data"
+              class="ml-8"
+              :data="data" />
           </template>
         </BkTableColumn>
       </template>
@@ -73,7 +57,7 @@
   </div>
 </template>
 <script setup lang="ts">
-  import { onActivated, onDeactivated, ref, shallowRef, useTemplateRef } from 'vue';
+  import { getCurrentInstance, onActivated, onDeactivated } from 'vue';
   import { useI18n } from 'vue-i18n';
   import { useRoute, useRouter } from 'vue-router';
 
@@ -83,81 +67,58 @@
   import { useStretchLayout, useUrlSearch } from '@hooks';
 
   import useDatePicker from '@views/ticket-center/common/hooks/use-date-picker';
-  import useOpenDetail from '@views/ticket-center/common/hooks/use-open-detail';
   import useSearchSelect from '@views/ticket-center/common/hooks/use-search-select';
   import TableModeTable from '@views/ticket-center/common/TableModeTable.vue';
+  import TicketClone from '@views/ticket-center/common/TicketClone.vue';
+  import TicketDetailLink from '@views/ticket-center/common/TicketDetailLink.vue';
 
-  import BatchOperation from './components/batch-operation/Index.vue';
-  import RowAction from './components/row-action/Index.vue';
-  import useStatusList from './hooks/useStatusList';
+  type IRowData = TicketModel;
 
-  const route = useRoute();
   const router = useRouter();
-
+  const route = useRoute();
   const { t } = useI18n();
+  const currentInstance = getCurrentInstance();
 
-  const { list: statusList, defaultStatus: ticketStatus } = useStatusList();
-
-  const { removeSearchParam } = useUrlSearch();
+  const { getSearchParams, removeSearchParam } = useUrlSearch();
   const { splitScreen: stretchLayoutSplitScreen } = useStretchLayout();
 
   const { value: datePickerValue, shortcutsRange } = useDatePicker();
 
   const { value: searachSelectValue, searchSelectData } = useSearchSelect({
-    exclude: ['status'],
+    exclude: ['bk_biz_id'],
   });
-
-  const handleGoDetail = useOpenDetail();
-
-  const rowClass = (params: TicketModel) => (params.id === selectTicketId.value ? 'select-row' : '');
 
   const dataSource = (params: ServiceParameters<typeof getTickets>) =>
     getTickets({
       ...params,
-      todo: 'running',
-      self_manage: 1,
-      status: ticketStatus.value,
-      is_assist: Boolean(Number(route.params.assist)),
     });
 
-  const dataTableRef = useTemplateRef('dataTable');
-  const selectTicketIdList = shallowRef<TicketModel[]>([]);
-  const isShowBatchOperation = ref(false);
   const selectTicketId = ref(0);
 
-  const isSelectable = computed(() =>
-    [TicketModel.STATUS_APPROVE, TicketModel.STATUS_RESOURCE_REPLENISH, TicketModel.STATUS_TODO].includes(
-      ticketStatus.value,
-    ),
-  );
+  const rowClass = (params: TicketModel) => (params.id === selectTicketId.value ? 'select-row' : '');
 
-  const { pause: pauseTicketStatus, resume: resumeTicketStatus } = watch(ticketStatus, () => {
-    dataTableRef.value!.fetchData();
-    dataTableRef.value!.resetSelection();
-    router.replace({
-      params: {
-        status: ticketStatus.value,
-      },
-    });
-  });
-
-  const handleShowDetail = (data: TicketModel) => {
+  const handleShowDetail = (data: IRowData) => {
     stretchLayoutSplitScreen();
     selectTicketId.value = data.id;
-  };
-
-  const handleSelection = (data: TicketModel[]) => {
-    selectTicketIdList.value = data;
   };
 
   onActivated(() => {
     selectTicketId.value = Number(route.query.selectId);
     removeSearchParam('selectId');
-    resumeTicketStatus();
   });
 
   onDeactivated(() => {
-    pauseTicketStatus();
+    setTimeout(() => {
+      if (currentInstance!.isUnmounted) {
+        return;
+      }
+      router.replace({
+        params: {
+          ticketId: selectTicketId.value,
+        },
+        query: getSearchParams(),
+      });
+    });
   });
 </script>
 <style lang="less">

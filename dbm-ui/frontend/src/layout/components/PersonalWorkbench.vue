@@ -38,7 +38,7 @@
           {{ t('我的已办') }}
         </span>
       </BkMenuItem>
-      <BkMenuItem
+      <!-- <BkMenuItem
         key="ticketSelfManage"
         v-db-console="'personalWorkbench.myTickets'">
         <template #icon>
@@ -47,7 +47,7 @@
         <span>
           {{ t('我负责的业务') }}
         </span>
-      </BkMenuItem>
+      </BkMenuItem> -->
       <BkMenuItem
         key="serviceApply"
         v-db-console="'personalWorkbench.serviceApply'">
@@ -89,11 +89,11 @@
     }
 
     return (
-      ticketCount.value.APPROVE +
-      ticketCount.value.FAILED +
-      ticketCount.value.RESOURCE_REPLENISH +
-      ticketCount.value.INNER_TODO +
-      ticketCount.value.TODO
+      ticketCount.value.pending.APPROVE +
+      ticketCount.value.pending.FAILED +
+      ticketCount.value.pending.RESOURCE_REPLENISH +
+      ticketCount.value.pending.INNER_TODO +
+      ticketCount.value.pending.TODO
     );
   });
 </script>

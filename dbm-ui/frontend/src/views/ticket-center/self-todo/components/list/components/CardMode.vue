@@ -44,7 +44,7 @@
 <script setup lang="ts">
   import { computed, useTemplateRef } from 'vue';
   import { useI18n } from 'vue-i18n';
-  import { useRouter } from 'vue-router';
+  import { useRoute, useRouter } from 'vue-router';
 
   import { getTickets } from '@services/source/ticket';
 
@@ -57,6 +57,7 @@
   const { t } = useI18n();
 
   const router = useRouter();
+  const route = useRoute();
 
   const { list: statusList, defaultStatus: ticketStatus } = useStatusList();
 
@@ -67,8 +68,6 @@
 
   const dataTableRef = useTemplateRef('list');
 
-  // const ticketStatus = ref(defaultStatus.value);
-
   const ticektStatusName = computed(() => statusList.value.find((item) => item.id === ticketStatus.value)?.name);
 
   const dataSource = (params: ServiceParameters<typeof getTickets>) =>
@@ -77,6 +76,7 @@
       todo: 'running',
       self_manage: 1,
       status: ticketStatus.value,
+      is_assist: Boolean(Number(route.params.assist)),
     });
 
   const { pause: pauseTicketStatus, resume: resumeTicketStatus } = watch(ticketStatus, () => {
@@ -89,7 +89,6 @@
   });
 
   onActivated(() => {
-    // ticketStatus.value = defaultStatus.value;
     resumeTicketStatus();
   });
 

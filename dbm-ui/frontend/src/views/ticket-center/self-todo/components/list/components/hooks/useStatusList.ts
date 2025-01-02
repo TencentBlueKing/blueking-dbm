@@ -15,33 +15,36 @@ const create = () => {
 
   const defaultStatus = ref('');
 
-  const list = computed(() => [
-    {
-      id: TicketModel.STATUS_APPROVE,
-      name: `${t('待审批')}(${ticketCount.value.APPROVE})`,
-      count: ticketCount.value.APPROVE,
-    },
-    {
-      id: TicketModel.STATUS_TODO,
-      name: `${t('待执行')}(${ticketCount.value.TODO})`,
-      count: ticketCount.value.TODO,
-    },
-    {
-      id: TicketModel.STATUS_RESOURCE_REPLENISH,
-      name: `${t('待补货')}(${ticketCount.value.RESOURCE_REPLENISH})`,
-      count: ticketCount.value.RESOURCE_REPLENISH,
-    },
-    {
-      id: TicketModel.STATUS_FAILED,
-      name: `${t('失败待处理')}(${ticketCount.value.FAILED})`,
-      count: ticketCount.value.FAILED,
-    },
-    {
-      id: TicketModel.STATUS_INNER_TODO,
-      name: `${t('待继续')}(${ticketCount.value.INNER_TODO})`,
-      count: ticketCount.value.INNER_TODO,
-    },
-  ]);
+  const list = computed(() => {
+    const countData = Number(route.params.assist) ? ticketCount.value.to_help : ticketCount.value.pending;
+    return [
+      {
+        id: TicketModel.STATUS_APPROVE,
+        name: `${t('待审批')}(${countData.APPROVE})`,
+        count: countData.APPROVE,
+      },
+      {
+        id: TicketModel.STATUS_TODO,
+        name: `${t('待执行')}(${countData.TODO})`,
+        count: countData.TODO,
+      },
+      {
+        id: TicketModel.STATUS_RESOURCE_REPLENISH,
+        name: `${t('待补货')}(${countData.RESOURCE_REPLENISH})`,
+        count: countData.RESOURCE_REPLENISH,
+      },
+      {
+        id: TicketModel.STATUS_FAILED,
+        name: `${t('失败待处理')}(${countData.FAILED})`,
+        count: countData.FAILED,
+      },
+      {
+        id: TicketModel.STATUS_INNER_TODO,
+        name: `${t('待继续')}(${countData.INNER_TODO})`,
+        count: countData.INNER_TODO,
+      },
+    ];
+  });
 
   const routeParamsStatus = String(route.params.status);
   if (routeParamsStatus && _.find(list.value, (item) => item.id === routeParamsStatus)) {
