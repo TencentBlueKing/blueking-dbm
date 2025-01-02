@@ -21,14 +21,16 @@ const path = '/apis/conf/profile';
 export function getProfile() {
   return http.get<{
     global_manage: boolean;
-    is_manager: boolean;
+    is_superuser: boolean;
+    platform_manage: boolean;
+    platform_taskflow_view: boolean;
+    platform_ticket_view: boolean;
     profile: {
       label: string;
       values: any;
     }[];
     resource_manage: boolean;
     username: string;
-    is_superuser: boolean;
   }>(`${path}/get_profile/`);
 }
 
