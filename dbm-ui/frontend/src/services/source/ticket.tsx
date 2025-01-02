@@ -45,6 +45,7 @@ export function getTickets(params: {
   todo?: string;
   self_manage?: number;
   ordering?: string;
+  is_assist?: boolean;
 }) {
   return http.get<ListBase<TicketModel[]>>(`${path}/`, params).then((data) => ({
     ...data,

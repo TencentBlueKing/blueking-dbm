@@ -677,3 +677,9 @@ url("fonts/iconcool.eot?#iefix") format("embedded-opentype");
 .db-icon-guzhangji:before {
 	content: "\e204";
 }
+.db-icon-wodedaiban:before {
+	content: "\e20b";
+}
+.db-icon-yonghu-2:before {
+	content: "\e20a";
+}

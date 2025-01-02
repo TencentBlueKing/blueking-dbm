@@ -57,6 +57,11 @@
   interface Emits {
     (e: 'change', split: boolean): void;
   }
+  interface Expose {
+    isSplited: Ref<boolean>;
+    splitScreen: () => void;
+    handleOpenChange: (direction: string) => void;
+  }
 
   export const provideKey: InjectionKey<{
     isOpen: Ref<boolean>;
@@ -135,16 +140,18 @@
     }
   };
 
+  const splitScreen = () => {
+    isShowTrigger.value = true;
+    if (isOpen.value) {
+      return;
+    }
+    handleOpenChange('left');
+  };
+
   provide(provideKey, {
     isOpen: readonly(isOpen),
     isSplited,
-    splitScreen() {
-      isShowTrigger.value = true;
-      if (isOpen.value) {
-        return;
-      }
-      handleOpenChange('left');
-    },
+    splitScreen,
     handleOpenChange,
   });
 
@@ -157,6 +164,12 @@
 
   onBeforeUnmount(() => {
     window.removeEventListener('resize', handleWindowResize);
+  });
+
+  defineExpose<Expose>({
+    isSplited,
+    splitScreen,
+    handleOpenChange,
   });
 </script>
 

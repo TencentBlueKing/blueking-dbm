@@ -38,6 +38,7 @@ export default class TaskFlow {
   };
 
   bk_biz_id: number;
+  bk_biz_name: string;
   cost_time: number;
   created_at: string;
   created_by: string;
@@ -54,6 +55,7 @@ export default class TaskFlow {
 
   constructor(payload = {} as TaskFlow) {
     this.bk_biz_id = payload.bk_biz_id;
+    this.bk_biz_name = payload.bk_biz_name;
     this.cost_time = payload.cost_time;
     this.created_at = payload.created_at;
     this.created_by = payload.created_by;
