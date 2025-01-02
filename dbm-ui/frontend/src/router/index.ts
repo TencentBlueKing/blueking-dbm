@@ -100,6 +100,7 @@ export default () => {
   }
 
   getTicketRoutes();
+  getTaskHistoryRoutes();
 
   const routes = [
     {
@@ -116,9 +117,6 @@ export default () => {
         ...getServiceApplyRoutes(),
         ...getQuickSearchRoutes(),
         ...getDutyRuleManageRoutes(),
-        // ...getTicketSelfApplyRoutes(),
-        // ...getTicketSelfTodoRoutes(),
-        // ...getTicketSelfManageRoutes(),
         ...moduleList,
       ],
     },
@@ -133,7 +131,6 @@ export default () => {
         ...getPlatMonitorAlarmRoutes(),
         ...getNotificationSettingRoutes(),
         ...getStaffManageRoutes(),
-        ...getTaskHistoryRoutes(),
         ...getWhitelistRoutes(),
         // ...getTicketManageRoutes(),
         ...getTemporaryPasswordModify(),

@@ -61,6 +61,7 @@
 
   import ConfigManage from './components/ConfigManage.vue';
   import DatabaseManage from './components/database-manage/Index.vue';
+  import GlobalConfigManage from './components/GlobalConfigManage.vue';
   import ObservableManage from './components/ObservableManage.vue';
   import PersonalWorkbench from './components/PersonalWorkbench.vue';
   import PlatformManage from './components/PlatformManage.vue';
@@ -76,6 +77,7 @@
     observableManage = 'observableManage',
     configManage = 'configManage',
     resourceManage = 'resourceManage',
+    globalConfigManage = 'globalConfigManage',
     platformManage = 'platformManage',
     personalWorkbench = 'personalWorkbench',
   }
@@ -103,8 +105,12 @@
     },
     userProfile.globalManage && {
       label: t('全局配置'),
-      value: menuEnum.platformManage,
+      value: menuEnum.globalConfigManage,
       dbConsoleValue: 'globalConfigManage',
+    },
+    userProfile.platformManage && {
+      label: t('平台管理'),
+      value: menuEnum.platformManage,
     },
     {
       label: t('个人工作台'),
@@ -147,18 +153,18 @@
       'TicketNoticeSetting',
     ],
     [menuEnum.resourceManage]: ['ResourceSpec', 'resourceManage', 'resourcePoolDirtyMachines'],
-    [menuEnum.platformManage]: [
+    [menuEnum.globalConfigManage]: [
       'PlatformVersionFiles',
       'PlatformDbConfigure',
       'PlatformWhitelist',
       'PlatGlobalStrategy',
       'dutyRuleManange',
-      // 'PlatMonitorAlarmGroup',
       'PlatformNotificationSetting',
       'passwordManage',
       'PlatformTicketFlowSetting',
       'PlatformStaffManage',
     ],
+    [menuEnum.platformManage]: ['platformTaskManage', 'ticketPlatformManage'],
     [menuEnum.personalWorkbench]: [
       'serviceApply',
       'SelfServiceMyTickets',
@@ -177,7 +183,8 @@
       observableManage: ObservableManage,
       configManage: ConfigManage,
       resourceManage: ResourceManage,
-      platformManage: PlatformManage,
+      globalConfigManage: GlobalConfigManage,
+      [menuEnum.platformManage]: PlatformManage,
       personalWorkbench: PersonalWorkbench,
     };
     return comMap[menuType.value as keyof typeof comMap];
@@ -213,13 +220,6 @@
           menuType.value = routeGroupMap[routeName];
         }
       });
-
-      // // fix: menu 组件 acitve 生效有延迟的问题
-      // setTimeout(() => {
-      //   document.body.querySelector('.bk-menu-item.is-active')?.scrollIntoView({
-      //     block: 'start',
-      //   });
-      // }, 300);
     },
     {
       immediate: true,
