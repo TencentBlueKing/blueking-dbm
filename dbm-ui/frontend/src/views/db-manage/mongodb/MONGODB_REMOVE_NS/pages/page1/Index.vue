@@ -56,14 +56,14 @@
               v-model="item.cluster[0]"
               :cluster-types="[formData.cluster_type]"
               field="cluster.0.master_domain"
-              label="目标分片集群"
+              :label="t('目标分片集群')"
               :selected="selected"
               @batch-edit="handleClusterBatchEdit" />
             <EditClusterWithSelectorColumn
               v-else
               v-model="item.cluster"
               :cluster-types="[formData.cluster_type]"
-              label="副本集"
+              :label="t('副本集')"
               :selected="selected"
               @batch-edit="handleClusterBatchEdit" />
             <DropTypeColumn v-model="item.drop_type" />
@@ -154,10 +154,10 @@
 
   import TicketRemark from '@views/db-manage/common/TicketRemark.vue';
   import OperationColumn from '@views/db-manage/common/toolbox-field/operation-column/Index.vue';
-  import EditClusterColumn from '@views/db-manage/mongodb/common/toolbox-field/edit-cluster/Index.vue';
-  import EditClusterWithSelectorColumn from '@views/db-manage/mongodb/common/toolbox-field/edit-cluster-with-selector/Index.vue';
-  import EditDbNameColumn from '@views/db-manage/mongodb/common/toolbox-field/edit-db-name/Index.vue';
-  import EditTableNameColumn from '@views/db-manage/mongodb/common/toolbox-field/edit-db-table/Index.vue';
+  import EditClusterColumn from '@views/db-manage/mongodb/common/toolbox-field/edit-cluster-column/Index.vue';
+  import EditClusterWithSelectorColumn from '@views/db-manage/mongodb/common/toolbox-field/edit-cluster-with-selector-column/Index.vue';
+  import EditDbNameColumn from '@views/db-manage/mongodb/common/toolbox-field/edit-db-name-column/Index.vue';
+  import EditTableNameColumn from '@views/db-manage/mongodb/common/toolbox-field/edit-table-name-column/Index.vue';
 
   import DropTypeColumn from './components/DropTypeColumn.vue';
   import DropIndexColumn from './components/DropTypeIndex.vue';

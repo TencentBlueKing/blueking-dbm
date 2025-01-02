@@ -4,29 +4,28 @@
     :append-rules="rules"
     field="cluster"
     fixed="left"
-    :label="t(label)"
+    :label="label || t('目标集群')"
     :loading="isLoading"
     :min-width="300"
     required>
     <template #headAppend>
-      <BkButton
-        text
-        theme="primary"
+      <span
+        v-bk-tooltips="t('批量选择')"
+        class="batch-select-button"
         @click="handleShowHeadClusterSelector">
         <DbIcon type="batch-host-select" />
-      </BkButton>
+      </span>
     </template>
     <EditTextarea
       v-model="localValue"
       :placeholder="t('请输入或选择集群')">
       <template #append>
         <span v-bk-tooltips="t('选择集群')">
-          <BkButton
-            class="cluster-selector-btn"
-            size="small"
+          <span
+            class="batch-select-button"
             @click="handleShowRowClusterSelector">
             <DbIcon type="host-select" />
-          </BkButton>
+          </span>
         </span>
       </template>
     </EditTextarea>
@@ -45,17 +44,7 @@
   </EditableTableColumn>
 </template>
 
-<script setup lang="ts" generic="T extends Record<string, any>">
-  import { useI18n } from 'vue-i18n';
-
-  import MongodbModel from '@services/model/mongodb/mongodb';
-  import { filterClusters } from '@services/source/dbbase';
-
-  import { domainRegex } from '@common/regex';
-
-  import ClusterSelector from '@components/cluster-selector/Index.vue';
-  import { Column as EditableTableColumn, Textarea as EditTextarea } from '@components/editable-table/Index.vue';
-
+<script lang="ts">
   type MappedProps = {
     [K in keyof Props['selected']]: MongodbModel[];
   };
@@ -77,9 +66,21 @@
   interface Emits {
     (e: 'batch-edit', value: MongodbModel[]): void;
   }
+</script>
+<script setup lang="ts">
+  import { useI18n } from 'vue-i18n';
+  import { useRequest } from 'vue-request';
+
+  import MongodbModel from '@services/model/mongodb/mongodb';
+  import { filterClusters } from '@services/source/dbbase';
+
+  import { domainRegex } from '@common/regex';
+
+  import ClusterSelector from '@components/cluster-selector/Index.vue';
+  import { Column as EditableTableColumn, Textarea as EditTextarea } from '@components/editable-table/Index.vue';
 
   const props = withDefaults(defineProps<Props>(), {
-    label: '目标集群',
+    label: '',
   });
   const emits = defineEmits<Emits>();
 
@@ -116,7 +117,6 @@
 
   const isShowHeadClusterSelector = ref(false);
   const isShowRowClusterSelector = ref(false);
-  const isLoading = ref(false);
   const localValue = ref('');
 
   const rowSelected = computed(() => {
@@ -137,6 +137,26 @@
       }
     });
     return selectedClusters;
+  });
+
+  const { loading: isLoading, run: runFilterClusters } = useRequest(filterClusters<MongodbModel>, {
+    manual: true,
+    onSuccess(data) {
+      if (data.length > 0) {
+        const clusterMap = data.reduce<Record<string, MongodbModel>>(
+          (prevMap, dataItem) =>
+            Object.assign({}, prevMap, {
+              [dataItem.master_domain]: dataItem,
+            }),
+          {},
+        );
+        modelValue.value.forEach((item) => {
+          if (item.master_domain && clusterMap[item.master_domain]) {
+            Object.assign(item, clusterMap[item.master_domain]);
+          }
+        });
+      }
+    },
   });
 
   watch(localValue, () => {
@@ -167,29 +187,10 @@
         modelValue.value.forEach((item) => {
           Object.assign(item, { id: undefined });
         });
-        filterClusters<MongodbModel>({
+        runFilterClusters({
           bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
           exact_domain: domainList.map((item) => item.master_domain).join(','),
-        })
-          .then((data) => {
-            if (data.length > 0) {
-              const clusterMap = data.reduce<Record<string, MongodbModel>>(
-                (prevMap, dataItem) =>
-                  Object.assign({}, prevMap, {
-                    [dataItem.master_domain]: dataItem,
-                  }),
-                {},
-              );
-              modelValue.value.forEach((item) => {
-                if (item.master_domain && clusterMap[item.master_domain]) {
-                  Object.assign(item, clusterMap[item.master_domain]);
-                }
-              });
-            }
-          })
-          .finally(() => {
-            isLoading.value = false;
-          });
+        });
       }
     },
     {
@@ -217,15 +218,9 @@
 </script>
 
 <style lang="less" scoped>
-  .cluster-selector-btn {
-    width: 24px;
-    font-size: 16px;
-    border: none;
-    border-radius: 2px;
-
-    &:hover {
-      color: #3a84ff;
-      background: #f0f1f5;
-    }
+  .batch-select-button {
+    font-size: 14px;
+    color: #3a84ff;
+    cursor: pointer;
   }
 </style>

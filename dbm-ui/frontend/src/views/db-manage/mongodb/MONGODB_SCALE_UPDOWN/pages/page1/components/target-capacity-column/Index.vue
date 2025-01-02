@@ -12,81 +12,90 @@
 -->
 
 <template>
-  <div
-    class="target-capacity"
-    @click="handleClickSelect">
-    <div v-if="!modelValue">
-      <div class="placeholder-text">{{ t('请选择') }}</div>
-    </div>
-    <div
-      v-else
-      class="capacity-box">
-      <div class="display-content">
-        <div class="item">
-          <div class="item-title">{{ t('目标资源规格') }}：</div>
-          <div class="item-content">
-            <RenderSpec
-              :data="selectRow"
-              :hide-qps="!selectRow?.qps.max"
-              is-ignore-counts />
-          </div>
+  <EditableTableColumn
+    field="target_capacity"
+    :label="t('目标容量')"
+    :min-width="400"
+    required>
+    <EditBlock :placeholder="t('请选择')">
+      <div
+        class="target-capacity"
+        @click="handleClickSelect">
+        <div v-if="!modelValue">
+          <div class="placeholder-text">{{ t('请选择') }}</div>
         </div>
-        <div class="item">
-          <div class="item-title">{{ t('目标Shard节点规格') }}：</div>
-          <div class="item-content">
-            {{ selectRow?.shard_recommend.shard_spec }}
-          </div>
-        </div>
-        <div class="item">
-          <div class="item-title">{{ t('目标Shard节点数') }}：</div>
-          <div class="item-content">
-            {{ selectRow?.shard_node_count }}
-          </div>
-        </div>
-        <div class="item">
-          <div class="item-title">{{ t('目标Shard数量') }}：</div>
-          <div class="item-content">
-            {{ selectRow?.shard_num }}
-          </div>
-        </div>
-        <div class="item">
-          <div class="item-title">{{ t('目标机器组数') }}：</div>
-          <div class="item-content">
-            {{ selectRow?.machine_pair }}
-          </div>
-        </div>
-        <div class="item">
-          <div class="item-title">{{ t('目标机器数量') }}：</div>
-          <div class="item-content">
-            {{ selectRow?.machine_need_num }}
+        <div
+          v-else
+          class="capacity-box">
+          <div class="display-content">
+            <div class="item">
+              <div class="item-title">{{ t('目标资源规格') }}：</div>
+              <div class="item-content">
+                <RenderSpec
+                  :data="selectRow"
+                  :hide-qps="!selectRow?.qps.max"
+                  is-ignore-counts />
+              </div>
+            </div>
+            <div class="item">
+              <div class="item-title">{{ t('目标Shard节点规格') }}：</div>
+              <div class="item-content">
+                {{ selectRow?.shard_recommend.shard_spec }}
+              </div>
+            </div>
+            <div class="item">
+              <div class="item-title">{{ t('目标Shard节点数') }}：</div>
+              <div class="item-content">
+                {{ selectRow?.shard_node_count }}
+              </div>
+            </div>
+            <div class="item">
+              <div class="item-title">{{ t('目标Shard数量') }}：</div>
+              <div class="item-content">
+                {{ selectRow?.shard_num }}
+              </div>
+            </div>
+            <div class="item">
+              <div class="item-title">{{ t('目标机器组数') }}：</div>
+              <div class="item-content">
+                {{ selectRow?.machine_pair }}
+              </div>
+            </div>
+            <div class="item">
+              <div class="item-title">{{ t('目标机器数量') }}：</div>
+              <div class="item-content">
+                {{ selectRow?.machine_need_num }}
+              </div>
+            </div>
           </div>
         </div>
       </div>
-    </div>
-    <ChooseDeployPlan
-      v-if="data.id"
-      v-model="isShowSelector"
-      :data="data"
-      @confirm="handleChoosedTargetCapacity" />
-  </div>
+    </EditBlock>
+  </EditableTableColumn>
+  <ChooseDeployPlan
+    v-if="data.id"
+    v-model="isShowSelector"
+    :data="data as Required<typeof data>"
+    @confirm="handleChoosedTargetCapacity" />
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
   import MongodbModel from '@services/model/mongodb/mongodb';
 
+  import { Block as EditBlock, Column as EditableTableColumn } from '@components/editable-table/Index.vue';
   import RenderSpec from '@components/render-table/columns/spec-display/Index.vue';
 
   import ChooseDeployPlan, { type ClusterSpec } from './components/ChooseDeployPlan.vue';
 
   interface Props {
     data: {
-      id: number;
-      master_domain: string;
-      bk_cloud_id: number;
-      shard_num: number;
-      shard_node_count: number;
-      mongodb: MongodbModel['mongodb'];
+      id?: number;
+      master_domain?: string;
+      bk_cloud_id?: number;
+      shard_num?: number;
+      shard_node_count?: number;
+      mongodb?: MongodbModel['mongodb'];
     };
   }
 

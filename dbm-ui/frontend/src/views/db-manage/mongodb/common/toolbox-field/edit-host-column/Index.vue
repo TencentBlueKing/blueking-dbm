@@ -8,12 +8,12 @@
     :min-width="300"
     required>
     <template #headAppend>
-      <BkButton
-        text
-        theme="primary"
+      <span
+        v-bk-tooltips="t('批量选择')"
+        class="batch-select-button"
         @click="handleShowSelector">
         <DbIcon type="batch-host-select" />
-      </BkButton>
+      </span>
     </template>
     <EditInput
       v-model="modelValue.ip"
@@ -31,6 +31,7 @@
 
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
+  import { useRequest } from 'vue-request';
 
   import { getMongoInstancesList } from '@services/source/mongodb';
 
@@ -82,26 +83,25 @@
   ];
 
   const isShowSelector = ref(false);
-  const isLoading = ref(false);
+
+  const { loading: isLoading, run: runGetMongoInstancesList } = useRequest(getMongoInstancesList, {
+    manual: true,
+    onSuccess(data) {
+      if (data.results.length > 0) {
+        [modelValue.value] = data.results;
+      }
+    },
+  });
 
   watch(
     () => modelValue.value.ip,
     () => {
       if (!modelValue.value.id && modelValue.value.ip) {
-        isLoading.value = true;
         modelValue.value.id = undefined;
-        getMongoInstancesList({
+        runGetMongoInstancesList({
           instance_address: modelValue.value.ip,
           extra: 1,
-        })
-          .then((data) => {
-            if (data.results.length > 0) {
-              [modelValue.value] = data.results;
-            }
-          })
-          .finally(() => {
-            isLoading.value = false;
-          });
+        });
       }
       if (!modelValue.value.ip) {
         modelValue.value.id = undefined;
@@ -122,15 +122,9 @@
 </script>
 
 <style lang="less" scoped>
-  .host-selector-btn {
-    width: 24px;
-    font-size: 16px;
-    border: none;
-    border-radius: 2px;
-
-    &:hover {
-      color: #3a84ff;
-      background: #f0f1f5;
-    }
+  .batch-select-button {
+    font-size: 14px;
+    color: #3a84ff;
+    cursor: pointer;
   }
 </style>

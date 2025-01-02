@@ -130,9 +130,9 @@
   import { type IValue, type PanelListType } from '@components/instance-selector/Index.vue';
 
   import TicketRemark from '@views/db-manage/common/TicketRemark.vue';
-  import EditSpecColumn from '@views/db-manage/common/toolbox-field/edit-spec/Index.vue';
+  import EditSpecColumn from '@views/db-manage/common/toolbox-field/edit-spec-column/Index.vue';
   import OperationColumn from '@views/db-manage/common/toolbox-field/operation-column/Index.vue';
-  import EditHostColumn from '@views/db-manage/mongodb/common/toolbox-field/edit-host/Index.vue';
+  import EditHostColumn from '@views/db-manage/mongodb/common/toolbox-field/edit-host-column/Index.vue';
 
   import RelatedClusterColumn from './components/RelatedClusterColumn.vue';
 

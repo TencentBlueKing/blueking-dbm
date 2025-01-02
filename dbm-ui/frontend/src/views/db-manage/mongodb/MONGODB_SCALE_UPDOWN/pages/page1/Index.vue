@@ -37,28 +37,10 @@
               :cluster-types="[ClusterTypes.MONGO_REPLICA_SET, ClusterTypes.MONGO_SHARED_CLUSTER]"
               :selected="selected"
               @batch-edit="handleClusterBatchEdit" />
-            <EditableTableColumn
-              :label="t('当前容量')"
-              :min-width="400">
-              <EditBlock :placeholder="t('选择集群后自动生成')">
-                <CurrentCapacity
-                  v-if="item.cluster.id"
-                  :data="item.cluster"
-                  :spec="item.cluster.mongodb![0].spec_config" />
-              </EditBlock>
-            </EditableTableColumn>
-            <EditableTableColumn
-              field="target_capacity"
-              :label="t('目标容量')"
-              :min-width="400"
-              required>
-              <EditBlock :placeholder="t('请选择')">
-                <TargetCapacity
-                  v-if="item.cluster.id"
-                  v-model="item.target_capacity"
-                  :data="item.cluster as Required<IDataRow['cluster']>" />
-              </EditBlock>
-            </EditableTableColumn>
+            <CurrentCapacityColumn :data="item.cluster" />
+            <TargetCapacityColumn
+              v-model="item.target_capacity"
+              :data="item.cluster" />
             <OperationColumn
               :create-row-method="createRowData"
               :table-data="tableData" />
@@ -102,18 +84,14 @@
 
   import { ClusterTypes, TicketTypes } from '@common/const';
 
-  import EditableTable, {
-    Block as EditBlock,
-    Column as EditableTableColumn,
-    Row as EditableTableRow,
-  } from '@components/editable-table/Index.vue';
+  import EditableTable, { Row as EditableTableRow } from '@components/editable-table/Index.vue';
 
   import TicketRemark from '@views/db-manage/common/TicketRemark.vue';
   import OperationColumn from '@views/db-manage/common/toolbox-field/operation-column/Index.vue';
-  import EditClusterColumn from '@views/db-manage/mongodb/common/toolbox-field/edit-cluster/Index.vue';
+  import EditClusterColumn from '@views/db-manage/mongodb/common/toolbox-field/edit-cluster-column/Index.vue';
 
-  import CurrentCapacity from './components/CurrentCapacity.vue';
-  import TargetCapacity from './components/target-capacity/Index.vue';
+  import CurrentCapacityColumn from './components/CurrentCapacityColumn.vue';
+  import TargetCapacityColumn from './components/target-capacity-column/Index.vue';
 
   export interface IDataRow {
     cluster: {

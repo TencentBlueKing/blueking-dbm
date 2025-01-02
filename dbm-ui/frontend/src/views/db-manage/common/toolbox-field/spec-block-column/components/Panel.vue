@@ -22,66 +22,64 @@
     <template #content>
       <div class="spec-diaplay-panel">
         <div class="spec-diaplay-panel-title">{{ data.name }} {{ t('规格') }}</div>
-        <div class="items">
-          <div class="item">
-            <div class="item-title">CPU：</div>
-            <div class="item-content">
-              {{
-                data.cpu.min === data.cpu.max
-                  ? t('n核', { n: data.cpu.min })
-                  : t('((n-m))核', { n: data.cpu.min, m: data.cpu.max })
-              }}
-            </div>
+        <div class="spec-diaplay-panel-item">
+          <div class="item-title">CPU：</div>
+          <div class="item-content">
+            {{
+              data.cpu.min === data.cpu.max
+                ? t('n核', { n: data.cpu.min })
+                : t('((n-m))核', { n: data.cpu.min, m: data.cpu.max })
+            }}
           </div>
-          <div class="item">
-            <div class="item-title">{{ t('内存') }}：</div>
-            <div class="item-content">
-              {{ data.mem.min === data.mem.max ? data.mem.min : `(${data.mem.min}~${data.mem.max})` }} G
-            </div>
+        </div>
+        <div class="spec-diaplay-panel-item">
+          <div class="item-title">{{ t('内存') }}：</div>
+          <div class="item-content">
+            {{ data.mem.min === data.mem.max ? data.mem.min : `(${data.mem.min}~${data.mem.max})` }} G
           </div>
-          <div
-            class="item"
-            style="align-items: flex-start">
-            <div class="item-title">{{ t('磁盘') }}：</div>
-            <div class="item-content">
-              <div class="disk-table">
-                <div class="table-head">
-                  <div class="head-one">
-                    {{ t('挂载点') }}
-                  </div>
-                  <div class="head-two">
-                    {{ t('最小容量(G)') }}
-                  </div>
-                  <div class="head-three">
-                    {{ t('磁盘类别') }}
-                  </div>
+        </div>
+        <div
+          class="spec-diaplay-panel-item"
+          style="align-items: flex-start">
+          <div class="item-title">{{ t('磁盘') }}：</div>
+          <div class="item-content">
+            <div class="disk-table">
+              <div class="table-head">
+                <div class="head-one">
+                  {{ t('挂载点') }}
                 </div>
-                <div
-                  v-for="(storageSpecItem, storageSpecIndex) in data.storage_spec"
-                  :key="storageSpecIndex"
-                  class="table-row">
-                  <div class="row-one">
-                    {{ storageSpecItem.mount_point }}
-                  </div>
-                  <div class="row-two">
-                    {{ storageSpecItem.size }}
-                  </div>
-                  <div class="row-three">
-                    {{ storageSpecItem.type }}
-                  </div>
+                <div class="head-two">
+                  {{ t('最小容量(G)') }}
+                </div>
+                <div class="head-three">
+                  {{ t('磁盘类别') }}
+                </div>
+              </div>
+              <div
+                v-for="(storageSpecItem, storageSpecIndex) in data.storage_spec"
+                :key="storageSpecIndex"
+                class="table-row">
+                <div class="row-one">
+                  {{ storageSpecItem.mount_point }}
+                </div>
+                <div class="row-two">
+                  {{ storageSpecItem.size }}
+                </div>
+                <div class="row-three">
+                  {{ storageSpecItem.type }}
                 </div>
               </div>
             </div>
           </div>
-          <div
-            v-if="!hideQps"
-            class="item">
-            <div class="item-title">
-              {{ t('单机 QPS') }}
-            </div>
-            <div class="item-content">
-              {{ data.qps.min === data.qps.max ? `${data.qps.min}/s` : `${data.qps.min}/s~${data.qps.max}/s` }}
-            </div>
+        </div>
+        <div
+          v-if="!hideQps"
+          class="spec-diaplay-panel-item">
+          <div class="item-title">
+            {{ t('单机 QPS') }}
+          </div>
+          <div class="item-content">
+            {{ data.qps.min === data.qps.max ? `${data.qps.min}/s` : `${data.qps.min}/s~${data.qps.max}/s` }}
           </div>
         </div>
       </div>
@@ -144,7 +142,7 @@
       color: #63656e;
     }
 
-    .item {
+    .spec-diaplay-panel-item {
       display: flex;
       width: 100%;
       align-items: center;

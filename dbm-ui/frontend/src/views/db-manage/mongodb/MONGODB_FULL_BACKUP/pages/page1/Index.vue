@@ -135,7 +135,7 @@
 
   import TicketRemark from '@views/db-manage/common/TicketRemark.vue';
   import OperationColumn from '@views/db-manage/common/toolbox-field/operation-column/Index.vue';
-  import EditClusterColumn from '@views/db-manage/mongodb/common/toolbox-field/edit-cluster/Index.vue';
+  import EditClusterColumn from '@views/db-manage/mongodb/common/toolbox-field/edit-cluster-column/Index.vue';
 
   export interface IDataRow {
     cluster: {

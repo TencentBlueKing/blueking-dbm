@@ -15,13 +15,12 @@
         :title="label"
         type="taginput"
         @change="handleBatchEditChange">
-        <BkButton
+        <span
           v-bk-tooltips="t('统一设置：将该列统一设置为相同的值')"
-          text
-          theme="primary"
+          class="batch-select-button"
           @click="handleBatchEditShow">
           <DbIcon type="bulk-edit" />
-        </BkButton>
+        </span>
       </BatchEditColumn>
     </template>
     <div
@@ -144,6 +143,12 @@
 </script>
 
 <style lang="less" scoped>
+  .batch-select-button {
+    font-size: 14px;
+    color: #3a84ff;
+    cursor: pointer;
+  }
+
   .edit-table-name-content {
     width: 100%;
   }

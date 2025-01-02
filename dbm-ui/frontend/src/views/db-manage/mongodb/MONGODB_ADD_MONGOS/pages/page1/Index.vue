@@ -117,9 +117,9 @@
   } from '@components/editable-table/Index.vue';
 
   import TicketRemark from '@views/db-manage/common/TicketRemark.vue';
-  import EditSpecColumn from '@views/db-manage/common/toolbox-field/edit-spec/Index.vue';
+  import EditSpecColumn from '@views/db-manage/common/toolbox-field/edit-spec-column/Index.vue';
   import OperationColumn from '@views/db-manage/common/toolbox-field/operation-column/Index.vue';
-  import EditClusterColumn from '@views/db-manage/mongodb/common/toolbox-field/edit-cluster/Index.vue';
+  import EditClusterColumn from '@views/db-manage/mongodb/common/toolbox-field/edit-cluster-column/Index.vue';
 
   export interface IDataRow {
     cluster: {

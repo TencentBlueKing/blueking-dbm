@@ -35,7 +35,7 @@
               v-model="item.cluster"
               :cluster-types="[ClusterTypes.MONGO_SHARED_CLUSTER]"
               field="cluster.master_domain"
-              label="目标分片集群"
+              :label="t('目标分片集群')"
               :selected="selected"
               :tab-list-config="tabListConfig"
               @batch-edit="handleClusterBatchEdit" />
@@ -136,7 +136,7 @@
   import TicketRemark from '@views/db-manage/common/TicketRemark.vue';
   import OperationColumn from '@views/db-manage/common/toolbox-field/operation-column/Index.vue';
   import SpecBlockColumn from '@views/db-manage/common/toolbox-field/spec-block-column/Index.vue';
-  import EditClusterColumn from '@views/db-manage/mongodb/common/toolbox-field/edit-cluster/Index.vue';
+  import EditClusterColumn from '@views/db-manage/mongodb/common/toolbox-field/edit-cluster-column/Index.vue';
 
   import IpSelectColumn from './components/IpSelectColumn.vue';
 

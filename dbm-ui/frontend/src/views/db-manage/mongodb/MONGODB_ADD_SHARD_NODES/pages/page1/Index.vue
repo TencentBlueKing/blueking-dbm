@@ -121,8 +121,8 @@
 
   import TicketRemark from '@views/db-manage/common/TicketRemark.vue';
   import OperationColumn from '@views/db-manage/common/toolbox-field/operation-column/Index.vue';
-  import EditClusterColumn from '@views/db-manage/mongodb/common/toolbox-field/edit-cluster/Index.vue';
-  import EditClusterWithRelatedClustersColumn from '@views/db-manage/mongodb/common/toolbox-field/edit-cluster-with-related-clusters/Index.vue';
+  import EditClusterColumn from '@views/db-manage/mongodb/common/toolbox-field/edit-cluster-column/Index.vue';
+  import EditClusterWithRelatedClustersColumn from '@views/db-manage/mongodb/common/toolbox-field/edit-cluster-with-related-clusters-column/Index.vue';
 
   import TargetNumberColumn from './components/TargetNumberColumn.vue';
 
@@ -185,13 +185,7 @@
       {
         validator: (value: string) => {
           if (value) {
-            const domainList = tableData.value
-              .flatMap((tableRow) => [
-                tableRow.cluster.master_domain || '',
-                ...(tableRow.cluster.related_clusters || []).map((relatedItem) => relatedItem.domain),
-              ])
-              .filter((domainItem) => domainItem);
-            return domainList.filter((domain) => domain === value).length === 1;
+            return domainList.value.filter((domain) => domain === value).length === 1;
           }
           return true;
         },
@@ -229,6 +223,18 @@
         clusters.filter((cluster) => cluster.master_domain).map((cluster) => [cluster.master_domain, true]),
       ),
     ),
+  );
+
+  const domainList = computed(() =>
+    tableData.value.flatMap((tableRow) => {
+      if (tableRow.cluster.master_domain) {
+        return [
+          tableRow.cluster.master_domain || '',
+          ...(tableRow.cluster.related_clusters || []).map((relatedItem) => relatedItem.domain),
+        ];
+      }
+      return [];
+    }),
   );
 
   const handleClusterBatchEdit = (clusterList: MongodbModel[]) => {
