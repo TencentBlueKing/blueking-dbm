@@ -398,5 +398,12 @@ class DBBaseViewSet(viewsets.SystemViewSet):
         from backend.db_periodic_task.local_tasks.db_meta.sync_cluster_stat import sync_cluster_stat_by_cluster_type
 
         data = self.params_validate(self.get_serializer_class())
-        cluster_stat_map = sync_cluster_stat_by_cluster_type(data["bk_biz_id"], data["cluster_type"])
+        cluster_stat_map = {}
+        for cluster_type in data["cluster_type"].split(","):
+            cluster_stat_map.update(sync_cluster_stat_by_cluster_type(data["bk_biz_id"], cluster_type))
+
+        cluster_domain_qs = Cluster.objects.filter(bk_biz_id=3).values("immute_domain", "id")
+        cluster_domain_map = {cluster["immute_domain"]: cluster["id"] for cluster in cluster_domain_qs}
+        cluster_stat_map = {cluster_domain_map[domain]: cap for domain, cap in cluster_stat_map.items()}
+
         return Response(cluster_stat_map)

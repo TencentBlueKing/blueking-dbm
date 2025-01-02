@@ -47,6 +47,11 @@ class TodoActor:
             self.todo.context.update(remark=params["remark"])
         self.todo.save(update_fields=["context"])
 
+    @property
+    def allow_superuser_process(self):
+        # 是否允许超管操作，默认允许.
+        return True
+
     def process(self, username, action, params):
         # 当状态已经被确认，则不允许重复操作
         if self.todo.status not in TODO_RUNNING_STATUS:
@@ -57,7 +62,7 @@ class TodoActor:
             self._process(username, action, params)
             return
         # 允许超级用户和操作人确认
-        is_superuser = User.objects.get(username=username).is_superuser
+        is_superuser = User.objects.get(username=username).is_superuser and self.allow_superuser_process
         if not is_superuser and username not in self.todo.operators:
             raise TodoWrongOperatorException(_("{}不在处理人: {}中，无法处理").format(username, self.todo.operators))
 
