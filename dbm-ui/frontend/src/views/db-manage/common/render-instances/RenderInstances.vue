@@ -135,6 +135,7 @@
     ip: string;
     port: number;
     status: string;
+    shard_id?: string;
   };
 </script>
 <script setup lang="ts" generic="T extends IData">

@@ -17,9 +17,9 @@ import type { ClusterListEntry, ClusterListNode, ClusterListOperation } from '@s
 
 import { t } from '@locales/index';
 
-import DateTime from '../_dateTime';
+import ClusterBase from '../_clusterBase';
 
-export default class SqlServerSingleCluster extends DateTime {
+export default class SqlServerSingleCluster extends ClusterBase {
   static SQLSERVER_DESTROY = 'SQLSERVER_DESTROY';
   static SQLSERVER_DISABLE = 'SQLSERVER_DISABLE';
   static SQLSERVER_ENABLE = 'SQLSERVER_ENABLE';
@@ -206,14 +206,6 @@ export default class SqlServerSingleCluster extends DateTime {
 
   get isAbnormal() {
     return this.status === 'abnormal';
-  }
-
-  get isOnline() {
-    return this.phase === 'online';
-  }
-
-  get isOffline() {
-    return this.phase === 'offline';
   }
 
   get isStarting() {

@@ -16,11 +16,11 @@ import type { ClusterListEntry, ClusterListNode, ClusterListOperation, ClusterLi
 
 import { ClusterAffinityMap } from '@common/const';
 
-import { isRecentDays, utcDisplayTime } from '@utils';
-
 import { t } from '@locales/index';
 
-export default class Redis {
+import ClusterBase from '../_clusterBase';
+
+export default class Redis extends ClusterBase {
   static REDIS_DESTROY = 'REDIS_DESTROY';
   static REDIS_PROXY_CLOSE = 'REDIS_PROXY_CLOSE';
   static REDIS_PROXY_OPEN = 'REDIS_PROXY_OPEN';
@@ -100,6 +100,7 @@ export default class Redis {
   updater: string;
 
   constructor(payload = {} as Redis) {
+    super(payload);
     this.bk_biz_id = payload.bk_biz_id;
     this.bk_biz_name = payload.bk_biz_name;
     this.bk_cloud_id = payload.bk_cloud_id;
@@ -138,14 +139,6 @@ export default class Redis {
     this.status = payload.status;
     this.update_at = payload.update_at;
     this.updater = payload.updater;
-  }
-
-  get isOnline() {
-    return this.phase === 'online';
-  }
-
-  get isNew() {
-    return isRecentDays(this.create_at, 24 * 3);
   }
 
   get redisMasterCount() {
@@ -228,18 +221,6 @@ export default class Redis {
 
   get isOnlinePolaris() {
     return this.cluster_entry.some((item) => item.cluster_entry_type === 'polaris');
-  }
-
-  get createAtDisplay() {
-    return utcDisplayTime(this.create_at);
-  }
-
-  get updateAtDisplay() {
-    return utcDisplayTime(this.update_at);
-  }
-
-  get isOffline() {
-    return this.phase === 'offline';
   }
 
   get isStarting() {
@@ -325,5 +306,12 @@ export default class Redis {
 
   get disasterToleranceLevelName() {
     return ClusterAffinityMap[this.disaster_tolerance_level];
+  }
+
+  get roleFailedInstanceInfo() {
+    return {
+      Master: ClusterBase.getRoleFaildInstanceList(this.redis_master),
+      Slave: ClusterBase.getRoleFaildInstanceList(this.redis_slave),
+    };
   }
 }
