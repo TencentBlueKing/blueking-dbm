@@ -12,6 +12,8 @@
  */
 import type { HostInfo, InstanceListSpecConfig, InstanceRelatedCluster } from '@services/types';
 
+import { ClusterTypes } from '@common/const';
+
 import { isRecentDays, utcDisplayTime } from '@utils';
 
 export default class TendbInstance {
@@ -26,7 +28,7 @@ export default class TendbInstance {
   bk_sub_zone: string;
   cluster_id: number;
   cluster_name: string;
-  cluster_type: string;
+  cluster_type: ClusterTypes;
   create_at: string;
   db_module_id: number;
   db_module_name: string;

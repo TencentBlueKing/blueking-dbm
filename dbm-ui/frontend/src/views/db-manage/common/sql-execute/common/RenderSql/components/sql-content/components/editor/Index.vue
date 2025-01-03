@@ -163,6 +163,11 @@
         theme: 'vs-dark',
         readOnly: props.readonly,
         wordWrap: 'bounded',
+        lineNumbersMinChars: 3,
+        renderLineHighlight: 'none',
+        minimap: {
+          enabled: false,
+        },
         scrollbar: {
           alwaysConsumeMouseWheel: false,
         },
@@ -194,8 +199,8 @@
     height: 100%;
 
     &.is-full-screen {
-      height: 100vh;
       display: flex;
+      height: 100vh;
       flex-direction: column;
 
       .editor-resize-wrapper {

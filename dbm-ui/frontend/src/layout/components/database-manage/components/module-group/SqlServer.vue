@@ -1,11 +1,15 @@
 <template>
   <FunController module-id="sqlserver">
     <BkMenuGroup name="SqlServer">
-      <BkSubmenu
-        key="SqlServerHaClusterManage"
-        :title="t('主从')">
+      <BkSubmenu key="SqlServerHaClusterManage">
         <template #icon>
           <DbIcon type="cluster" />
+        </template>
+        <template #title>
+          <span>{{ t('主从') }}</span>
+          <CountTag
+            :cluster-type="ClusterTypes.SQLSERVER_HA"
+            role="cluster" />
         </template>
         <BkMenuItem key="SqlServerHaClusterList">
           <span
@@ -13,6 +17,9 @@
             class="text-overflow">
             {{ t('集群视图') }}
           </span>
+          <CountTag
+            :cluster-type="ClusterTypes.SQLSERVER_HA"
+            role="cluster" />
         </BkMenuItem>
         <BkMenuItem
           key="SqlServerHaInstanceList"
@@ -22,6 +29,9 @@
             class="text-overflow">
             {{ t('实例视图') }}
           </span>
+          <CountTag
+            :cluster-type="ClusterTypes.SQLSERVER_HA"
+            role="instance" />
         </BkMenuItem>
       </BkSubmenu>
       <BkMenuItem
@@ -35,6 +45,9 @@
           class="text-overflow">
           {{ t('单节点') }}
         </span>
+        <CountTag
+          :cluster-type="ClusterTypes.SQLSERVER_SINGLE"
+          role="cluster" />
       </BkMenuItem>
       <BkSubmenu
         key="sqlserver-permission"
@@ -82,12 +95,13 @@
 
   import { useUserProfile } from '@stores';
 
-  import { UserPersonalSettings } from '@common/const';
+  import { ClusterTypes, UserPersonalSettings } from '@common/const';
 
   import toolboxMenuConfig from '@views/db-manage/sqlserver/toolbox-menu';
 
   import { makeMap } from '@utils';
 
+  import CountTag from './components/CountTag.vue';
   import ToolboxMenu from './components/ToolboxMenu.vue';
 
   const userProfile = useUserProfile();

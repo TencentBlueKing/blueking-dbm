@@ -12,7 +12,14 @@ import logging
 
 from django.db import transaction
 
-from backend.db_meta.enums import InstancePhase, InstanceRoleInstanceInnerRoleMap, InstanceStatus
+from backend.db_meta.enums import (
+    ClusterEntryRole,
+    ClusterEntryType,
+    InstanceInnerRole,
+    InstancePhase,
+    InstanceRoleInstanceInnerRoleMap,
+    InstanceStatus,
+)
 from backend.db_meta.models import Cluster, StorageInstance
 from backend.flow.utils.mysql.mysql_module_operate import MysqlCCTopoOperator
 
@@ -71,3 +78,11 @@ def change_storage_cluster_entry(cluster_id: int, slave_ip: str, new_slave_ip: s
     for be in slave_storage.bind_entry.all():
         be.storageinstance_set.remove(slave_storage)
         be.storageinstance_set.add(new_slave_storage)
+    # 如果是standby节点，为了防止主节点故障dbHa切换后。从域名实际上指向的是主节点。需要从主节点读取域名并移除和添加
+    if slave_storage.is_stand_by is True:
+        master_storage = cluster.storageinstance_set.get(instance_inner_role=InstanceInnerRole.MASTER.value)
+        for be in master_storage.bind_entry.filter(
+            cluster_entry_type=ClusterEntryType.DNS.value, role=ClusterEntryRole.SLAVE_ENTRY.value
+        ):
+            be.storageinstance_set.remove(master_storage)
+            be.storageinstance_set.add(new_slave_storage)

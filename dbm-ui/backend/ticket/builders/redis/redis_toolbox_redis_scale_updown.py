@@ -28,7 +28,7 @@ from backend.ticket.constants import SwitchConfirmType, TicketType
 class RedisScaleUpDownDetailSerializer(SkipToRepresentationMixin, serializers.Serializer):
     """redis集群容量变更"""
 
-    class InfoSerializer(DisplayInfoSerializer, ClusterValidateMixin, serializers.Serializer):
+    class InfoSerializer(DisplayInfoSerializer, ClusterValidateMixin):
         class ResourceSpecSerializer(serializers.Serializer):
             class BackendGroupSerializer(serializers.Serializer):
                 spec_id = serializers.IntegerField(help_text=_("规格ID"))
@@ -44,7 +44,7 @@ class RedisScaleUpDownDetailSerializer(SkipToRepresentationMixin, serializers.Se
         shard_num = serializers.IntegerField(help_text=_("集群分片数"))
         group_num = serializers.IntegerField(help_text=_("部署机器组数"))
         db_version = serializers.CharField(help_text=_("版本号"))
-        capacity = serializers.IntegerField(help_text=_("当前容量需求"))
+        capacity = serializers.FloatField(help_text=_("当前容量需求"))
         future_capacity = serializers.IntegerField(help_text=_("未来容量需求"))
         online_switch_type = serializers.ChoiceField(
             help_text=_("切换类型"), choices=SwitchConfirmType.get_choices(), default=SwitchConfirmType.NO_CONFIRM

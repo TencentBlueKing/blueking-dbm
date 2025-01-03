@@ -36,8 +36,8 @@ from backend.flow.plugins.components.collections.common.install_nodeman_plugin i
     InstallNodemanPluginServiceComponent,
 )
 from backend.flow.plugins.components.collections.common.sa_idle_check import CheckMachineIdleComponent
-from backend.flow.plugins.components.collections.mysql.authorize_rule_v2 import AuthorizeRulesV2Component
 from backend.flow.plugins.components.collections.mysql.authorize_rules import AuthorizeRulesComponent
+from backend.flow.plugins.components.collections.mysql.authorize_rules_v2 import AuthorizeRulesV2Component
 from backend.flow.plugins.components.collections.mysql.check_client_connections import CheckClientConnComponent
 from backend.flow.plugins.components.collections.mysql.clone_rules import CloneRulesComponent
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
@@ -682,6 +682,7 @@ def check_sub_flow(
     @param check_client_conn_inst: 如果做客户端连接检测，则传入待检测的实例列表，["ip:port"...]
     @param is_verify_checksum: 是否做验证checksum结果
     @param verify_checksum_tuples: 如果验证checksum，则传入待检测的实例列表，每个元素[{"master":"ip:port", "slave":"ip:port"}..]
+    @param is_proxy: 是否针对proxy机器做检查
     """
 
     if is_check_client_conn and not check_client_conn_inst:

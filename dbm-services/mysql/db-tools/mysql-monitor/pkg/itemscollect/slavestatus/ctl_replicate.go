@@ -9,11 +9,9 @@
 package slavestatus
 
 import (
-	"context"
 	"fmt"
 	"log/slog"
 
-	"dbm-services/mysql/db-tools/mysql-monitor/pkg/config"
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/monitoriteminterface"
 )
 
@@ -76,12 +74,9 @@ func (c *ctlReplicateChecker) Run() (msg string, err error) {
 }
 
 func (c *ctlReplicateChecker) isPrimary() (bool, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), config.MonitorConfig.InteractTimeout)
-	defer cancel()
-
 	res := getPrimaryRes{}
 
-	err := c.db.QueryRowxContext(ctx, `TDBCTL GET PRIMARY`).StructScan(&res)
+	err := c.db.QueryRowx(`TDBCTL GET PRIMARY`).StructScan(&res)
 	if err != nil {
 		slog.Error("TDBCTL GET PRIMARY", slog.String("error", err.Error()))
 		return false, err

@@ -2,6 +2,7 @@ package api
 
 import (
 	"encoding/json"
+	"log/slog"
 
 	"github.com/pkg/errors"
 )
@@ -15,6 +16,7 @@ type JobDefine struct {
 	Creator  string   `json:"creator"`
 	Enable   bool     `json:"enable"`
 	WorkDir  string   `json:"work_dir"`
+	Overlap  bool     `json:"overlap"`
 }
 
 // CreateOrReplace TODO
@@ -26,6 +28,8 @@ func (m *Manager) CreateOrReplace(job JobDefine, permanent bool) (int, error) {
 		Job:       job,
 		Permanent: permanent,
 	}
+	slog.Info("CreateOrReplace", slog.Any("job", job))
+
 	resp, err := m.do("/create_or_replace", "POST", body)
 	if err != nil {
 		return 0, errors.Wrap(err, "manager call /create_or_replace")

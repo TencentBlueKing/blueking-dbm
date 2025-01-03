@@ -1,12 +1,10 @@
 package scenesnapshot
 
 import (
-	"context"
 	"fmt"
 
 	"github.com/jmoiron/sqlx"
 
-	"dbm-services/mysql/db-tools/mysql-monitor/pkg/config"
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/itemscollect/scenesnapshot/internal/archivescenes"
 )
 
@@ -40,11 +38,7 @@ func engineInnodbStatusScene(db *sqlx.DB) error {
 }
 
 func queryEngineInnodbStatus(db *sqlx.DB) (res []*engineInnodbStatus, err error) {
-	ctx, cancel := context.WithTimeout(context.Background(), config.MonitorConfig.InteractTimeout)
-	defer cancel()
-
-	err = db.SelectContext(
-		ctx,
+	err = db.Select(
 		&res,
 		`SHOW ENGINE INNODB STATUS`,
 	)

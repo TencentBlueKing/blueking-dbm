@@ -14,16 +14,16 @@ import { uniq } from 'lodash';
 
 import type { ClusterListEntry, ClusterListNode, ClusterListOperation, ClusterListSpec } from '@services/types';
 
-import { ClusterAffinityMap } from '@common/const';
-
-import { isRecentDays, utcDisplayTime } from '@utils';
+import { ClusterAffinityMap, ClusterTypes } from '@common/const';
 
 import { t } from '@locales/index';
+
+import ClusterBase from '../_clusterBase';
 
 // const STATUS_NORMAL = 'normal';
 const STATUS_ABNORMAL = 'abnormal';
 
-export default class Es {
+export default class Es extends ClusterBase {
   static ES_SCALE_UP = 'ES_SCALE_UP';
   static ES_SHRINK = 'ES_SHRINK';
   static ES_REPLACE = 'ES_REPLACE';
@@ -64,7 +64,7 @@ export default class Es {
   cluster_spec: ClusterListSpec;
   cluster_stats: Record<'used' | 'total' | 'in_use', number>;
   cluster_time_zone: string;
-  cluster_type: string;
+  cluster_type: ClusterTypes;
   cluster_type_name: string;
   create_at: string;
   creator: string;
@@ -100,6 +100,7 @@ export default class Es {
   updater: string;
 
   constructor(payload = {} as Es) {
+    super(payload);
     this.access_url = payload.access_url;
     this.bk_biz_id = payload.bk_biz_id;
     this.bk_biz_name = payload.bk_biz_name;
@@ -127,6 +128,7 @@ export default class Es {
     this.id = payload.id;
     this.major_version = payload.major_version;
     this.master_domain = payload.master_domain;
+    this.operations = payload.operations || [];
     this.permission = payload.permission || {};
     this.phase = payload.phase;
     this.phase_name = payload.phase_name;
@@ -135,8 +137,6 @@ export default class Es {
     this.status = payload.status;
     this.update_at = payload.update_at;
     this.updater = payload.updater;
-
-    this.operations = this.initOperations(payload.operations);
   }
 
   get allInstanceList() {
@@ -213,22 +213,10 @@ export default class Es {
     return Boolean(this.operations.find((item) => item.ticket_type === Es.ES_ENABLE));
   }
 
-  get isOnline() {
-    return this.phase === 'online';
-  }
-
-  get isOffline() {
-    return this.phase === 'offline';
-  }
-
-  get domainDisplayName() {
+  get masterDomainDisplayName() {
     const { port } = this.es_master[0];
     const displayName = port ? `${this.domain}:${port}` : this.domain;
     return displayName;
-  }
-
-  get createAtDisplay() {
-    return utcDisplayTime(this.create_at);
   }
 
   get operationTagTips() {
@@ -239,19 +227,16 @@ export default class Es {
     }));
   }
 
-  get isNew() {
-    return isRecentDays(this.create_at, 24);
-  }
-
-  initOperations(payload = [] as Es['operations']) {
-    if (!Array.isArray(payload)) {
-      return [];
-    }
-
-    return payload;
-  }
-
   get disasterToleranceLevelName() {
     return ClusterAffinityMap[this.disaster_tolerance_level];
+  }
+
+  get roleFailedInstanceInfo() {
+    return {
+      Master: ClusterBase.getRoleFaildInstanceList(this.es_master),
+      Client: ClusterBase.getRoleFaildInstanceList(this.es_client),
+      [t('热节点')]: ClusterBase.getRoleFaildInstanceList(this.es_datanode_hot),
+      [t('冷节点')]: ClusterBase.getRoleFaildInstanceList(this.es_datanode_cold),
+    };
   }
 }

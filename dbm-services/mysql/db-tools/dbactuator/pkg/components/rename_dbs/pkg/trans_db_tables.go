@@ -37,7 +37,32 @@ func TransDBTables(conn *sqlx.Conn, from, to string, tables []string) ([]string,
 	return res, nil
 }
 
+func flushTable(conn *sqlx.Conn, from, to, tableName string) {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	_, err := conn.ExecContext(
+		ctx,
+		fmt.Sprintf("FLUSH TABLE `%s`.`%s`", from, tableName),
+	)
+	if err != nil {
+		logger.Error("flushing table `%s`.`%s` failed: %s", from, tableName, err.Error())
+	}
+
+	_, err = conn.ExecContext(
+		ctx,
+		fmt.Sprintf("FLUSH TABLE `%s`.`%s`", to, tableName),
+	)
+	if err != nil {
+		logger.Error("flushing table `%s`.`%s` failed: %s", to, tableName, err.Error())
+	}
+}
+
 func transDBTable(conn *sqlx.Conn, from, to, tableName string) ([]string, error) {
+	defer func() {
+		flushTable(conn, from, to, tableName)
+	}()
+
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 

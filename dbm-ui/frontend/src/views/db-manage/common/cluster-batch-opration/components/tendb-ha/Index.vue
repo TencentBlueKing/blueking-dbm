@@ -129,7 +129,9 @@
 
   const batchSubscriptionDisabled = computed(() => props.selected.some((data) => data.isOffline));
   const batchAuthorizeDisabled = computed(() => props.selected.some((data) => data.isOffline));
-  const batchDisabledDisabled = computed(() => props.selected.some((data) => data.isOffline || data.operationDisabled));
+  const batchDisabledDisabled = computed(() =>
+    props.selected.some((data) => data.isOffline || Boolean(data.operationTicketId)),
+  );
   const batchEnableDisabled = computed(() => props.selected.some((data) => data.isOnline || data.isStarting));
   const batchDeleteDisabled = computed(() =>
     props.selected.some((data) => data.isOnline || Boolean(data.operationTicketId)),

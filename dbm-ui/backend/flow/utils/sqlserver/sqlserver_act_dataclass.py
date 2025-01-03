@@ -267,6 +267,38 @@ class SqlserverBackupIDContext:
 
 
 @dataclass()
+class SqlserverRebuildSlaveContext:
+    """
+    定义重建slave的可交互上下文dataclass类
+    """
+
+    sync_dbs: list = field(default_factory=list)
+    clean_dbs: list = field(default_factory=list)
+    full_backup_id: dict = field(default_factory=dict)
+    log_backup_id: dict = field(default_factory=dict)
+
+    @staticmethod
+    def sync_dbs_var_name() -> str:
+        return "sync_dbs"
+
+    @staticmethod
+    def clean_dbs_var_name() -> str:
+        return "clean_dbs"
+
+    @staticmethod
+    def full_backup_id_var_name() -> str:
+        return "full_backup_id"
+
+    @staticmethod
+    def log_backup_id_var_name() -> str:
+        return "log_backup_id"
+
+    @staticmethod
+    def conditions_var_name() -> str:
+        return "fix_number"
+
+
+@dataclass()
 class CheckDBExistKwargs:
     """
     定义执行sqlserver_check_db_exist活动节点的私有变量结构体
@@ -277,3 +309,23 @@ class CheckDBExistKwargs:
 
     cluster_id: str
     check_dbs: list = field(default_factory=list)
+
+
+@dataclass
+class UpdateWindowGseConfigKwargs:
+    """
+    定义变更gse参数的配置私有变量结构体
+    """
+
+    bk_cloud_id: int
+    ips: list
+
+
+@dataclass
+class CheckSlaveSyncStatusKwargs:
+    """
+    定义sqlserver_check_rebuild_slave私有变量结构体
+    """
+
+    cluster_id: int
+    fix_slave_host: list

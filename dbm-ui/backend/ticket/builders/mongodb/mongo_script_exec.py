@@ -40,7 +40,7 @@ class MongoDBScriptExecFlowParamBuilder(builders.FlowParamBuilder):
         # 传递JS脚本文件执行结果地址
         script_path_prefix = f"{MONGODB_JS_FILE_PREFIX.format(biz=self.ticket.bk_biz_id)}"
         self.ticket_data["rules"] = [
-            {"cluster_id": cluster_id, "path": f"{script_path_prefix}/{self.ticket.id}.{cluster_id}"}
+            {"cluster_id": cluster_id, "path": f"{script_path_prefix}/{self.ticket.id}/{cluster_id}"}
             for cluster_id in self.ticket_data["cluster_ids"]
         ]
         # 格式化JS执行脚本字段

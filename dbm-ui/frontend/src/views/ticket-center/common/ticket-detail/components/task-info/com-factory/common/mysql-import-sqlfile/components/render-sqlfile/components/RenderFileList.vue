@@ -28,7 +28,11 @@
           active: fileItemData.name === modelValue,
         }"
         @click="handleClick(fileItemData.name)">
-        <span v-overflow-tips>{{ getSQLFilename(fileItemData.name) }}</span>
+        <div
+          v-overflow-tips
+          class="file-item-text">
+          {{ getSQLFilename(fileItemData.name) }}asdasdasdasdasdasd
+        </div>
       </div>
     </div>
   </div>
@@ -105,12 +109,14 @@
 
       .file-item {
         display: flex;
-        align-items: center;
         height: 36px;
         padding: 0 8px;
+        white-space: pre;
         cursor: pointer;
         background: rgb(255 255 255 / 8%);
         border-radius: 2px;
+        align-items: center;
+        user-select: none;
 
         &:hover {
           background: rgb(255 255 255 / 20%);
@@ -131,6 +137,11 @@
         & ~ .file-item {
           margin-top: 8px;
         }
+      }
+
+      .file-item-text {
+        overflow: hidden;
+        text-overflow: ellipsis;
       }
     }
   }

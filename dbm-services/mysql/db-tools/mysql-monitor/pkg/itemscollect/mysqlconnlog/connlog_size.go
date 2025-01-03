@@ -9,7 +9,6 @@
 package mysqlconnlog
 
 import (
-	"context"
 	"fmt"
 	"io/fs"
 	"log/slog"
@@ -17,18 +16,14 @@ import (
 	"path/filepath"
 	"strings"
 
-	"dbm-services/mysql/db-tools/mysql-monitor/pkg/config"
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/internal/cst"
 
 	"github.com/jmoiron/sqlx"
 )
 
 func mysqlConnLogSize(db *sqlx.DB) (string, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), config.MonitorConfig.InteractTimeout)
-	defer cancel()
-
 	var dataDir string
-	err := db.QueryRowxContext(ctx, `SELECT @@datadir`).Scan(&dataDir)
+	err := db.QueryRowx(`SELECT @@datadir`).Scan(&dataDir)
 	if err != nil {
 		slog.Error("select @@datadir", slog.String("error", err.Error()))
 		return "", err
@@ -72,7 +67,7 @@ func mysqlConnLogSize(db *sqlx.DB) (string, error) {
 	slog.Info("statistic conn log size", slog.Int64("size", logSize))
 
 	if logSize >= sizeLimit {
-		_, err = db.ExecContext(ctx, `SET GLOBAL INIT_CONNECT = ''`)
+		_, err = db.Exec(`SET GLOBAL INIT_CONNECT = ''`)
 		if err != nil {
 			slog.Error("disable init_connect",
 				slog.String("error", err.Error()),

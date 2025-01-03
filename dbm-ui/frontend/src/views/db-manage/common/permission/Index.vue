@@ -428,7 +428,7 @@
     },
     {
       label: t('操作'),
-      minWidth: 100,
+      width: 150,
       fixed: 'right',
       render: ({ data }: { data: PermissionRule }) => {
         if (data.rules.length === 0) {
@@ -474,7 +474,7 @@
                       theme="primary"
                       class="ml-8"
                       text
-                      disabled={data.rules[index].priv_ticket?.ticket_id}
+                      disabled={Boolean(data.rules[index].priv_ticket?.ticket_id)}
                       onClick={(event: PointerEvent) => handleShowEditRule(event, data, index)}>
                       {t('编辑')}
                     </bk-button>
@@ -491,7 +491,7 @@
                       <bk-button
                         theme="primary"
                         class="ml-8"
-                        disabled={data.rules[index].priv_ticket?.ticket_id}
+                        disabled={Boolean(data.rules[index].priv_ticket?.ticket_id)}
                         text>
                         {t('删除')}
                       </bk-button>

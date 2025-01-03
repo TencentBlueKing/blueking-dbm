@@ -84,13 +84,14 @@ class DescribeTaskFlow(DeliveryFlow):
         return datetime2str(self.pre_flow_tree.updated_at)
 
     @property
-    def _summary(self) -> str:
+    def _summary(self) -> dict:
         if self.pre_flow_tree.status in FAILED_STATES:
-            return _("失败后继续提交")
+            return {"status": TicketFlowStatus.FAILED, "message": _("失败后继续提交")}
         elif self.pre_flow_tree.status in SUCCEED_STATES:
-            return _("执行成功")
+            return {"status": TicketFlowStatus.SUCCEEDED, "message": _("执行成功")}
         else:
-            return _("执行{}".format(StateType.get_choice_label(self.pre_flow_tree.status)))
+            state = StateType.get_choice_label(self.pre_flow_tree.status)
+            return {"status": TicketFlowStatus.RUNNING, "message": _("执行{}".format(state))}
 
     @property
     def _url(self) -> str:

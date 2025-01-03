@@ -120,6 +120,8 @@ SA_INIT_TEMPLATE_ID = get_type_env(key="SA_INIT_TEMPLATE_ID", _type=int)
 SA_L5_AGENT_TEMPLATE_ID = get_type_env(key="SA_L5_AGENT_TEMPLATE_ID", _type=int)
 # 标准运维项目 ID
 BK_SOPS_PROJECT_ID = get_type_env(key="BK_SOPS_PROJECT_ID", _type=int, default=1)
+# 标准运维更新window机器的模板ID
+UPDATE_WINDOW_GSE_CONFIG = get_type_env(key="UPDATE_WINDOW_GSE_CONFIG", _type=int)
 
 # Bamboo
 ENABLE_CLEAN_EXPIRED_BAMBOO_TASK = get_type_env(key="ENABLE_CLEAN_EXPIRED_BAMBOO_TASK", _type=bool, default=False)
@@ -162,6 +164,10 @@ CHART_VERSION = get_type_env(key="CHART_VERSION", _type=str, default="")
 # 后端加密算法
 ASYMMETRIC_CIPHER_TYPE = get_type_env(key="ASYMMETRIC_CIPHER_TYPE", _type=str, default=AsymmetricCipherType.RSA.value)
 SYMMETRIC_CIPHER_TYPE = get_type_env(key="SYMMETRIC_CIPHER_TYPE", _type=str, default=SymmetricCipherType.AES.value)
+
+# 数据平台应用 token
+BKDATA_DATA_TOKEN = get_type_env(key="BKDATA_DATA_TOKEN", _type=str, default="")
+
 
 # gcs/scr平台
 GCS_SCR_OPERATOR = get_type_env(key="GCS_SCR_OPERATOR", _type=str, default="scr-system")

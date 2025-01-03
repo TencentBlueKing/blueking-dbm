@@ -39,6 +39,7 @@
         style="position: relative">
         <template v-if="selectFileData">
           <Editor
+            v-if="isShow"
             :key="selectFileName"
             v-model="selectFileData.content"
             :message-list="selectFileData.messageList"
@@ -102,6 +103,7 @@
 
   interface Props {
     clusterVersionList: string[];
+    isShow: boolean;
   }
 
   interface Emits {

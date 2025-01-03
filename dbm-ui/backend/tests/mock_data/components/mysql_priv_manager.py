@@ -85,6 +85,11 @@ class DBPrivManagerApiMock(object):
 
     @classmethod
     @raw_response
+    def authorize_rules_v2(cls, *args, **kwargs):
+        return True
+
+    @classmethod
+    @raw_response
     def clone_instance(cls, *args, **kwargs):
         return True
 

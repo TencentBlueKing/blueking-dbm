@@ -22,9 +22,9 @@ class TicketContext:
         self.spec_map = get_spec_display_map()
         self.db_config = {}
 
-        bizs = list(AppCache.objects.all())
-        self.biz_name_map = {biz.bk_biz_id: biz.bk_biz_name for biz in bizs}
-        self.app_abbr_map = {biz.bk_biz_id: biz.db_app_abbr for biz in bizs}
+        bizs = AppCache.get_appcache(key="appcache_dict")
+        self.biz_name_map = {int(bk_biz_id): biz["bk_biz_name"] for bk_biz_id, biz in bizs.items()}
+        self.app_abbr_map = {int(bk_biz_id): biz["db_app_abbr"] for bk_biz_id, biz in bizs.items()}
 
         db_modules = list(DBModule.objects.all())
         self.db_module_map = {module.db_module_id: module.alias_name for module in db_modules}

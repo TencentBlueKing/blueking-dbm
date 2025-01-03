@@ -4,11 +4,15 @@ import "embed"
 
 // DefaultSysSchemaSQLFileName TODO
 const DefaultSysSchemaSQLFileName = "default_sys_schema.sql"
+const GrantProcedureSQLFileName = "procedure.sql"
 
 // DefaultSysSchemaSQL TODO
 //
 //go:embed default_sys_schema.sql
 var DefaultSysSchemaSQL embed.FS
+
+//go:embed procedure.sql
+var ProcedureSQL embed.FS
 
 // SpiderInitSQL TODO
 const SpiderInitSQL = `CREATE TABLE if not exists infodba_schema.tscc_schema_checksum(

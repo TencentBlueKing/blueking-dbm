@@ -426,9 +426,10 @@
     if (specInfo.capacityNeed > 0 && specInfo.capacityFutureNeed > 0) {
       isTableLoading.value = true;
       const clusterType = props.data?.clusterType ?? ClusterTypes.TWEMPROXY_REDIS_INSTANCE;
+      const machineType = clusterType === ClusterTypes.PREDIXY_REDIS_CLUSTER ? ClusterTypes.PREDIXY_REDIS_CLUSTER : specClusterMachineMap[clusterType];
       const params = {
         spec_cluster_type: 'redis',
-        spec_machine_type: specClusterMachineMap[clusterType],
+        spec_machine_type: machineType,
         shard_num: props.data.shardNum === 0 ? undefined : props.data.shardNum,
         capacity: specInfo.capacityNeed,
         future_capacity: specInfo.capacityNeed <= specInfo.capacityFutureNeed ? specInfo.capacityFutureNeed : specInfo.capacityNeed,

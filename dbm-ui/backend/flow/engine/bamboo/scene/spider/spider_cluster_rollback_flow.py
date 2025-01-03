@@ -73,6 +73,14 @@ class TenDBRollBackDataFlow(object):
         tendb_rollback_list = []
         for info in self.ticket_data["infos"]:
             self.data = info
+            # 判断是否全库回档,默认是全库,全库包括逻辑备份，物理备份. todo 如果指定部分库。则只能使用逻辑备份。
+            self.data["all_database_rollback"] = True
+            if not (
+                self.data["databases"][0] == "*"
+                and self.data["tables"][0] == "*"
+                and len(self.data["databases_ignore"]) == 0
+            ):
+                self.data["all_database_rollback"] = False
             source_cluster = Cluster.objects.get(id=self.data["source_cluster_id"])
             target_cluster = Cluster.objects.get(id=self.data["target_cluster_id"])
             self.data["uid"] = self.ticket_data["uid"]
@@ -148,6 +156,7 @@ class TenDBRollBackDataFlow(object):
                     "databases_ignore": self.data["databases_ignore"],
                     "tables_ignore": self.data["tables_ignore"],
                     "change_master": False,
+                    "all_database_rollback": self.data["all_database_rollback"],
                 }
                 spd_sub_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(self.data))
                 spd_sub_pipeline.add_act(
@@ -265,6 +274,7 @@ class TenDBRollBackDataFlow(object):
                     "databases_ignore": self.data["databases_ignore"],
                     "tables_ignore": self.data["tables_ignore"],
                     "change_master": False,
+                    "all_database_rollback": self.data["all_database_rollback"],
                 }
 
                 ins_sub_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(self.data))

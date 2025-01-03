@@ -15,9 +15,13 @@ import (
 	"errors"
 	"fmt"
 	"regexp"
-	"strconv"
 	"strings"
 	"time"
+
+	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
+
+	glogger "gorm.io/gorm/logger"
 
 	"dbm-services/common/go-pubpkg/errno"
 	"dbm-services/mysql/db-partition/model"
@@ -27,8 +31,9 @@ import (
 
 // GetPartitionsConfig TODO
 func (m *QueryParititionsInput) GetPartitionsConfig() ([]*PartitionConfigWithLog, int64, error) {
-	allResults := make([]*PartitionConfigWithLog, 0)
-	var configTb, logTb, orderBy, ascDesc string
+	allResults := []*PartitionConfigWithLog{}
+	var configTb, logTb, orderBy string
+	var desc bool
 	// Cnt 用于返回匹配到的行数
 	type Cnt struct {
 		Count int64 `gorm:"column:cnt"`
@@ -44,73 +49,83 @@ func (m *QueryParititionsInput) GetPartitionsConfig() ([]*PartitionConfigWithLog
 	default:
 		return nil, 0, errors.New("不支持的db类型")
 	}
-	where := " 1=1 "
+	tx := model.DB.Self.Table(configTb).Session(&gorm.Session{}).Where("1=1")
+	//where := " 1=1 "
 	if m.BkBizId > 0 {
-		where = fmt.Sprintf("%s and bk_biz_id=%d", where, m.BkBizId)
+		tx.Where("bk_biz_id=?", m.BkBizId)
 	}
 	if len(m.Ids) != 0 {
-		var temp = make([]string, len(m.Ids))
-		for k, id := range m.Ids {
-			temp[k] = strconv.FormatInt(id, 10)
-		}
-		ids := " and id in (" + strings.Join(temp, ",") + ") "
-		where = where + ids
+		tx.Where("id in ?", m.Ids)
 	}
 	if len(m.ImmuteDomains) != 0 {
-		dns := " and immute_domain in ('" + strings.Join(m.ImmuteDomains, "','") + "') "
-		where = where + dns
+		tx.Where("immute_domain in ?", m.ImmuteDomains)
 	}
 	if len(m.DbLikes) != 0 {
-		dblike := " and dblike in ('" + strings.Join(m.DbLikes, "','") + "') "
-		where = where + dblike
+		tx.Where("dblike in ?", m.DbLikes)
 	}
 	if len(m.TbLikes) != 0 {
-		tblike := " and tblike in ('" + strings.Join(m.TbLikes, "','") + "') "
-		where = where + tblike
+		tx.Where("tblike in ?", m.TbLikes)
 	}
 	cnt := Cnt{}
-	vsql := fmt.Sprintf("select count(*) as cnt from `%s` where %s", configTb, where)
-	err := model.DB.Self.Raw(vsql).Scan(&cnt).Error
-	if err != nil {
-		slog.Error(vsql, "execute error", err)
-		return nil, 0, err
+	cntResult := tx.Session(&gorm.Session{}).Select("count(*) as cnt").Find(&cnt)
+	if cntResult.Error != nil {
+		slog.Error("sql execute error", cntResult.Error)
+		return nil, 0, cntResult.Error
 	}
+
 	if m.Limit == -1 {
 		m.Limit = cnt.Count
 	}
-
-	limitCondition := fmt.Sprintf("limit %d offset %d", m.Limit, m.Offset)
 	if m.OrderBy == "" {
 		orderBy = "id"
-		ascDesc = "desc"
+		desc = true
 	} else {
 		orderBy = m.OrderBy
-		ascDesc = m.AscDesc
+		switch m.AscDesc {
+		case "desc":
+			desc = true
+		default:
+			desc = false
+		}
 	}
-	condition := fmt.Sprintf("%s order by %s %s %s", where, orderBy, ascDesc, limitCondition)
-	/*
-		一、ticket_id是非0的整数，则表示，最近一次任务生成了分区单据，单据执行状态就是最近这次任务的状态，需要从dbm ticket_ticket表中获取状态。
-		二、ticket_id是0，表示最近一次任务没有生成分区单据，status状态表示最近这次任务的状态，FAILED或者SUCCEEDED。
-				（1）FAILED: 可能因为dry_run获取分区语句失败等，check_info显示错误信息；
-			     （2）SUCCEEDED: 表示dry_run成功，并且没有需要实施的分区操作，无需创建单据。
-		三、ticket_id是NULL，status是NULL，分区规则还没有执行过
-	*/
-	vsql = fmt.Sprintf("SELECT config.*, logs.create_time as execute_time, "+
-		"logs.check_info as check_info, "+
-		"logs.status as status FROM "+
-		"(select * from %s where %s ) AS config LEFT JOIN "+
-		"(SELECT log.* FROM %s AS log, "+
-		"(SELECT inner_config.id AS config_id, MAX(inner_log.id) AS log_id FROM "+
-		"%s AS inner_config LEFT JOIN "+
-		"%s AS inner_log ON inner_config.id = inner_log.config_id where "+
-		"inner_log.create_time > DATE_SUB(now(),interval 100 day) GROUP BY inner_config.id) "+
-		"AS latest_log WHERE log.id = latest_log.log_id) AS logs ON config.id = logs.config_id",
-		configTb, condition, logTb, configTb, logTb)
-	err = model.DB.Self.Raw(vsql).Scan(&allResults).Error
-	if err != nil {
-		slog.Error(vsql, "execute error", err)
-		return nil, 0, err
+
+	//order := fmt.Sprintf("%s %s", orderBy, ascDesc)
+	// 先在partition_config中查出分区配置的相关信息
+	//Logger: glogger.Default.LogMode(glogger.Info)
+	order := clause.OrderByColumn{
+		Column: clause.Column{
+			Name: orderBy,
+		},
+		Desc: desc,
 	}
+	result := tx.Session(&gorm.Session{Logger: glogger.Default.LogMode(glogger.Info)}).
+		Order(order).Limit(int(m.Limit)).Offset(m.Offset).Find(&allResults)
+	if result.Error != nil {
+		slog.Error("sql execute error", result.Error)
+		return nil, 0, result.Error
+	}
+
+	logTx := model.DB.Self.Table(logTb)
+	for _, configResult := range allResults {
+		logInfo := struct {
+			ExecuteTime string `gorm:"execute_time"`
+			Status      string `gorm:"status"`
+			CheckInfo   string `gorm:"check_info"`
+		}{}
+		logResult := logTx.Session(&gorm.Session{}).
+			Select("create_time as execute_time,check_info as check_info,status as status").
+			Where("config_id = ?", configResult.ID).
+			Where("create_time > DATE_SUB(now(),interval 100 day)").
+			Order("id desc").Limit(1).Find(&logInfo)
+		if logResult.Error != nil {
+			slog.Error("sql execute err.", logResult.Error)
+			return nil, 0, logResult.Error
+		}
+		configResult.ExecuteTime = logInfo.ExecuteTime
+		configResult.Status = logInfo.Status
+		configResult.CheckInfo = logInfo.CheckInfo
+	}
+
 	return allResults, cnt.Count, nil
 }
 
@@ -126,30 +141,33 @@ func (m *QueryLogInput) GetPartitionLog() ([]*PartitionLog, int64, error) {
 	default:
 		return nil, 0, errors.New("不支持的db类型")
 	}
+
+	tx := model.DB.Self.Session(&gorm.Session{}).Table(logTb).Where("config_id=?", m.ConfigId)
+	if m.StartTime != "" && m.EndTime != "" {
+		tx.Where("create_time>? and create_time<?", m.StartTime, m.EndTime)
+	} else {
+		// 查询近100天的日志
+		tx.Where("create_time> DATE_SUB(now(),interval 100 day)")
+	}
+
 	// Cnt 用于返回匹配到的行数
 	type Cnt struct {
 		Count int64 `gorm:"column:cnt"`
 	}
-	where := fmt.Sprintf(` config_id=%d and create_time> DATE_SUB(now(),interval 100 day) `, m.ConfigId)
-	if m.StartTime != "" && m.EndTime != "" {
-		where = fmt.Sprintf(` config_id=%d and create_time>'%s' and create_time<'%s' `, m.ConfigId, m.StartTime, m.EndTime)
-	}
-	limitCondition := fmt.Sprintf(" limit %d offset %d ", m.Limit, m.Offset)
 	cnt := Cnt{}
-	vsql := fmt.Sprintf("select count(*) as cnt from `%s` where %s", logTb, where)
-	err := model.DB.Self.Raw(vsql).Scan(&cnt).Error
-	if err != nil {
-		slog.Error(vsql, "execute error", err)
-		return nil, 0, err
+	// 使用session函数，开启新的会话查询
+	cntResult := tx.Session(&gorm.Session{}).Select("count(*) as cnt").Find(&cnt)
+	if cntResult.Error != nil {
+		slog.Error("cnt sql execute error", cntResult.Error)
+		return nil, 0, cntResult.Error
 	}
-
-	vsql = fmt.Sprintf("select id, create_time as execute_time, "+
-		"check_info, status from %s where %s order by execute_time desc %s",
-		logTb, where, limitCondition)
-	err = model.DB.Self.Raw(vsql).Scan(&allResults).Error
-	if err != nil {
-		slog.Error(vsql, "execute error", err)
-		return nil, 0, err
+	// 使用session函数，开启新的会话查询，避免和上面的查询重复（条件，返回字段）
+	result := tx.Session(&gorm.Session{}).
+		Select("id,create_time as execute_time,check_info,status").
+		Limit(m.Limit).Offset(m.Offset).Find(&allResults)
+	if result.Error != nil {
+		slog.Error("sql execute error", result.Error)
+		return nil, 0, result.Error
 	}
 	return allResults, cnt.Count, nil
 }
@@ -175,23 +193,19 @@ func (m *DeletePartitionConfigByIds) DeletePartitionsConfig() error {
 		return errors.New("不支持的db类型")
 	}
 
+	// 操作行为记录到日志
 	for _, configID := range m.Ids {
 		CreateManageLog(tbName, logTbName, configID, "Delete", m.Operator)
 	}
 
-	var list []string
-	for _, item := range m.Ids {
-		list = append(list, strconv.FormatInt(int64(item), 10))
-	}
-	sql := fmt.Sprintf("delete from `%s` where id in  (%s) and bk_biz_id = %d", tbName, strings.Join(list, ","),
-		m.BkBizId)
-	result := model.DB.Self.Exec(sql)
+	result := model.DB.Self.Table(tbName).Where("bk_biz_id=?", m.BkBizId).Delete(&PartitionConfig{}, m.Ids)
 	if result.Error != nil {
 		return result.Error
 	}
 	if result.RowsAffected == 0 {
 		return errno.PartitionConfigNotExisted
 	}
+
 	return nil
 }
 
@@ -216,28 +230,13 @@ func (m *DeletePartitionConfigByClusterIds) DeletePartitionsConfigByCluster() (e
 		return errors.New("不支持的db类型"), ""
 	}
 
-	for _, clusterId := range m.ClusterIds {
-		var partitionConfig PartitionConfig
-		query := PartitionConfig{
-			BkBizId:   m.BkBizId,
-			ClusterId: clusterId,
-		}
-		result2 := model.DB.Self.Table(tbName).Where(&query).First(&partitionConfig)
-		if result2.Error != nil {
-			slog.Error("create manage log err", result2.Error)
-		} else {
-			CreateManageLog(tbName, logTbName, partitionConfig.ID,
-				"Delete by cluster", "uninstall_cluster")
-		}
-	}
+	// 以集群维度记录日志
+	CreateManageLogByCluster(m.BkBizId, m.ClusterIds, tbName, logTbName,
+		"Delete by cluster", m.Operator)
 
-	var list []string
-	for _, item := range m.ClusterIds {
-		list = append(list, strconv.FormatInt(int64(item), 10))
-	}
-	sql := fmt.Sprintf("delete from `%s` where cluster_id in  (%s) and bk_biz_id = %d", tbName, strings.Join(list, ","),
-		m.BkBizId)
-	result := model.DB.Self.Exec(sql)
+	result := model.DB.Self.Session(&gorm.Session{}).Table(tbName).
+		Where("cluster_id in ? and bk_biz_id=?", m.ClusterIds, m.BkBizId).
+		Delete(&PartitionConfig{})
 	if result.Error != nil {
 		return result.Error, ""
 	}
@@ -483,18 +482,13 @@ func (m *DisablePartitionInput) DisablePartitionConfig() error {
 	default:
 		return errors.New("不支持的db类型")
 	}
-	var list []string
-	for _, item := range m.Ids {
-		list = append(list, strconv.FormatInt(int64(item), 10))
 
-	}
 	db := model.DB.Self.Table(tbName)
-	result := db.
-		Where(fmt.Sprintf("id in (%s)", strings.Join(list, ","))).
-		Update("phase", offline)
+	result := db.Where("id in ?", m.Ids).Update("phase", offline)
 	if result.Error != nil {
 		return result.Error
 	}
+
 	for _, id := range m.Ids {
 		CreateManageLog(tbName, logTbName, id, "Disable", m.Operator)
 	}
@@ -519,15 +513,10 @@ func (m *DisablePartitionInput) DisablePartitionConfigByCluster() error {
 	default:
 		return errors.New("不支持的db类型")
 	}
-	var list []string
-	for _, item := range m.ClusterIds {
-		list = append(list, strconv.FormatInt(int64(item), 10))
 
-	}
 	db := model.DB.Self.Table(tbName)
 	result := db.
-		Where(fmt.Sprintf("cluster_id in (%s)", strings.Join(list, ","))).
-		Update("phase", offlinewithclu)
+		Where("cluster_id in ?", m.ClusterIds).Update("phase", offlinewithclu)
 	if result.Error != nil {
 		return result.Error
 	}
@@ -555,15 +544,10 @@ func (m *EnablePartitionInput) EnablePartitionConfig() error {
 	default:
 		return errors.New("不支持的db类型")
 	}
-	var list []string
-	for _, item := range m.Ids {
-		list = append(list, strconv.FormatInt(int64(item), 10))
 
-	}
 	db := model.DB.Self.Table(tbName)
 	result := db.
-		Where(fmt.Sprintf("id in (%s)", strings.Join(list, ","))).
-		Update("phase", online)
+		Where("id in ?", m.Ids).Update("phase", online)
 	if result.Error != nil {
 		return result.Error
 	}
@@ -591,15 +575,8 @@ func (m *EnablePartitionInput) EnablePartitionByCluster() error {
 	default:
 		return errors.New("不支持的db类型")
 	}
-	var list []string
-	for _, item := range m.ClusterIds {
-		list = append(list, strconv.FormatInt(int64(item), 10))
-
-	}
 	db := model.DB.Self.Table(tbName)
-	result := db.
-		Where(fmt.Sprintf("cluster_id in (%s)", strings.Join(list, ","))).
-		Update("phase", online)
+	result := db.Where("cluster_id in ?", m.ClusterIds).Update("phase", online)
 	if result.Error != nil {
 		return result.Error
 	}
@@ -677,12 +654,13 @@ func (m *CreatePartitionsInput) checkExistRules(tbName string) (existRules []Exi
 // CreateManageLog 记录操作日志，日志不对外
 func CreateManageLog(dbName string, logTbName string, id int, operate string, operator string) {
 	/*
-		1、根据config_id去配置表中查到相关配置信息
+		1、根据config_id去配置表中查到相关配置信息 此处id指的是config_id
 		2、写入日志表
 	*/
 	var partitionConfig PartitionConfig
 	partitionConfig.ID = id
-	model.DB.Self.Table(dbName).First(&partitionConfig)
+	// 注意
+	model.DB.Self.Session(&gorm.Session{}).Table(dbName).First(&partitionConfig)
 	jstring, jerr := json.Marshal(partitionConfig)
 	if jerr != nil {
 		slog.Error("create manage log err", jerr)
@@ -698,6 +676,35 @@ func CreateManageLog(dbName string, logTbName string, id int, operate string, op
 	logResult := model.DB.Self.Table(logTbName).Create(&manageLogs)
 	if logResult.Error != nil {
 		slog.Error("create manage log err", logResult.Error)
+	}
+}
+
+// CreateManageLogByCluster 以集群维度记录日志
+func CreateManageLogByCluster(bkBizId int64, clusterIds []int, tbName string, logTbName string,
+	operate string, operator string) {
+	/*
+		需要在删除操作之前记录日志，不然查不到元数据信息
+		不是关键日志，故不在意记录后，后续操作做是否执行
+	*/
+	for _, clusterId := range clusterIds {
+		// var partitionConfigIds []struct{ID int}
+		// 这里直接声明加初始化，避免为nil 不过实际也可以只声明，后面赋值使用，个人习惯
+		partitionConfigIds := []struct{ ID int }{}
+		query := PartitionConfig{
+			BkBizId:   bkBizId,
+			ClusterId: clusterId,
+		}
+		selectResult := model.DB.Self.Table(tbName).Where(&query).Find(&partitionConfigIds)
+		if selectResult.Error != nil {
+			slog.Error("create manage log err.", selectResult.Error)
+		} else {
+			if selectResult.RowsAffected > 0 {
+				for _, id := range partitionConfigIds {
+					CreateManageLog(tbName, logTbName, id.ID,
+						operate, operator)
+				}
+			}
+		}
 	}
 }
 

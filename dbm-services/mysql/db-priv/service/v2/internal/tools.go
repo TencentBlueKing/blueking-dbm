@@ -3,6 +3,7 @@ package internal
 import (
 	"regexp"
 	"strconv"
+	"strings"
 
 	"golang.org/x/exp/maps"
 )
@@ -10,7 +11,10 @@ import (
 func UniqueStringSlice(s []string) []string {
 	t := make(map[string]int)
 	for _, v := range s {
-		t[v] = 1
+		vv := strings.TrimSpace(v)
+		if vv != "" {
+			t[vv] = 1
+		}
 	}
 	return maps.Keys(t)
 }

@@ -12,8 +12,6 @@ package service
 
 import (
 	"context"
-	"dbm-services/common/go-pubpkg/errno"
-	"dbm-services/mysql/db-partition/util"
 	"encoding/json"
 	"fmt"
 	"log/slog"
@@ -22,6 +20,9 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"dbm-services/common/go-pubpkg/errno"
+	"dbm-services/mysql/db-partition/util"
 
 	"golang.org/x/time/rate"
 
@@ -357,7 +358,8 @@ func GetTendbclusterInstances(cluster string) (map[string][]SpiderNode, int, err
 	domain := tmp[0]
 	port, _ := strconv.Atoi(tmp[1])
 	cloud, _ := strconv.Atoi(tmp[2])
-	address := fmt.Sprintf("%s:%d", domain, port)
+	// port加1000，去任意中控查询集群信息
+	address := fmt.Sprintf("%s:%d", domain, port+1000)
 	var splitCnt int
 	var tdbctlPrimary string
 	// 查询tdbctl

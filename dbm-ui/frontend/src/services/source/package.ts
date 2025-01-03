@@ -75,13 +75,13 @@ export function updatePackage(params: {
   id: number;
   priority?: number;
   enable?: boolean;
-  name: string;
-  version: string;
-  pkg_type: string;
-  db_type: string;
-  path: string;
-  size: number;
-  md5: string;
+  name?: string;
+  version?: string;
+  pkg_type?: string;
+  db_type?: string;
+  path?: string;
+  size?: number;
+  md5?: string;
   allow_biz_ids?: number[];
   mode?: string;
 }) {

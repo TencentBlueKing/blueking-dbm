@@ -230,7 +230,6 @@
     },
     {
       label: t('操作'),
-      field: 'action',
       width: 220,
       fixed: 'right',
       render: ({ data }: { data: PartitionModel }) => {
@@ -320,7 +319,6 @@
                             <div onClick={() => handleDisable(data)}>{ t('禁用') }</div>
                           </auth-template>
                         </bk-dropdown-item>
-
                       )
                     }
                     <bk-dropdown-item>

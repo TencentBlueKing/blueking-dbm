@@ -207,8 +207,14 @@ func GenerateBackendSQL(account TbAccounts, rule TbAccountRules, ips []string, m
 			}
 			// 备库域名只授予查询类权限
 			if clusterType == tendbha && tendbhaMasterDomain == false {
-				sql = fmt.Sprintf("GRANT SELECT, SHOW VIEW ON `%s`.* TO '%s'@'%s' %s;",
-					rule.Dbname, account.User, ip, identifiedByPassword)
+				if rule.Dbname == "%" || rule.Dbname == "*" {
+					sql = fmt.Sprintf("GRANT SELECT, SHOW VIEW ON *.* TO '%s'@'%s' %s;",
+						account.User, ip, identifiedByPassword)
+				} else {
+					sql = fmt.Sprintf("GRANT SELECT, SHOW VIEW ON `%s`.* TO '%s'@'%s' %s;",
+						rule.Dbname, account.User, ip, identifiedByPassword)
+				}
+
 				sqlTemp = append(sqlTemp, sql)
 				if containConnLogDBFlag {
 					sql = fmt.Sprintf("%s '%s'@'%s' %s;", insertConnLogPriv, account.User, ip, identifiedByPassword)
@@ -229,8 +235,14 @@ func GenerateBackendSQL(account TbAccounts, rule TbAccountRules, ips []string, m
 			}
 
 			if rule.DmlDdlPriv != "" {
-				sql = fmt.Sprintf("GRANT %s ON `%s`.* TO '%s'@'%s' %s;",
-					rule.DmlDdlPriv, rule.Dbname, account.User, ip, identifiedByPassword)
+				if rule.Dbname == "%" || rule.Dbname == "*" {
+					sql = fmt.Sprintf("GRANT %s ON *.* TO '%s'@'%s' %s;",
+						rule.DmlDdlPriv, account.User, ip, identifiedByPassword)
+				} else {
+					sql = fmt.Sprintf("GRANT %s ON `%s`.* TO '%s'@'%s' %s;",
+						rule.DmlDdlPriv, rule.Dbname, account.User, ip, identifiedByPassword)
+				}
+
 				sqlTemp = append(sqlTemp, sql)
 				if needInsertConnLogFlag {
 					sql = fmt.Sprintf("%s '%s'@'%s' %s;", insertConnLogPriv, account.User, ip, identifiedByPassword)

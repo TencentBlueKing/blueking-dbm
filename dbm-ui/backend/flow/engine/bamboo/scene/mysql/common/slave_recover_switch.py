@@ -12,7 +12,7 @@ from dataclasses import asdict
 from django.utils.translation import ugettext as _
 
 from backend.configuration.constants import DBType
-from backend.constants import IP_PORT_DIVIDER
+from backend.constants import IP_PORT_DIVIDER, IP_PORT_DIVIDER_FOR_DNS
 from backend.db_meta.enums import InstanceStatus
 from backend.db_meta.models import Cluster
 from backend.flow.engine.bamboo.scene.common.builder import SubBuilder
@@ -27,6 +27,7 @@ from backend.flow.utils.mysql.mysql_act_dataclass import (
     DownloadMediaKwargs,
     ExecuteRdsKwargs,
     InstanceUserCloneKwargs,
+    IpDnsRecordRecycleKwargs,
     RecycleDnsRecordKwargs,
 )
 
@@ -45,7 +46,10 @@ def slave_migrate_switch_sub_flow(
     """"""
     # 默认预检测连接情况、同步延时、checksum校验结果
     master = cluster.main_storage_instances()[0]
-    old_slave = "{}{}{}".format(old_slave_ip, IP_PORT_DIVIDER, master.port)
+    old_slave_storage = cluster.storageinstance_set.get(
+        machine__ip=old_slave_ip, port=master.port, machine__bk_cloud_id=cluster.bk_cloud_id
+    )
+    old_slave = "{}{}{}".format(old_slave_ip, IP_PORT_DIVIDER, old_slave_storage.port)
     new_slave = "{}{}{}".format(new_slave_ip, IP_PORT_DIVIDER, master.port)
     old_master = "{}{}{}".format(master.machine.ip, IP_PORT_DIVIDER, master.port)
 
@@ -102,10 +106,7 @@ def slave_migrate_switch_sub_flow(
             "bk_cloud_id": cluster.bk_cloud_id,
         }
     ]
-    slave_storage = cluster.storageinstance_set.filter(
-        status=InstanceStatus.RUNNING.value, machine__ip=old_slave_ip
-    ).exists()
-    if slave_storage:
+    if old_slave_storage.status == InstanceStatus.RUNNING.value:
         clone_data.append(
             {
                 "source": old_slave,
@@ -137,6 +138,23 @@ def slave_migrate_switch_sub_flow(
                 ),
             }
         )
+
+    # 以上已经添加了域名，如果替换的从库是standby，需要删除可能因为切换导致standby域名指向了主库的可能。
+    if old_slave_storage.is_stand_by is True:
+        for domain in domain_map["master_has_slave_domain"]:
+            domain_add_list.append(
+                {
+                    "act_name": _("删除master上的从域名{}:{} {}").format(master.machine.ip, master.port, domain),
+                    "act_component_code": MySQLDnsManageComponent.code,
+                    "kwargs": asdict(
+                        IpDnsRecordRecycleKwargs(
+                            bk_cloud_id=cluster.bk_cloud_id,
+                            instance_list=["{}{}{}".format(master.machine.ip, IP_PORT_DIVIDER_FOR_DNS, master.port)],
+                            domain_name=domain,
+                        )
+                    ),
+                }
+            )
     if len(domain_add_list) > 0:
         sub_pipeline.add_parallel_acts(acts_list=domain_add_list)
 

@@ -76,17 +76,20 @@ func reschedule(configFileDir, configFileName, staff string) error {
 			"--items", strings.Join(itemNames, ","),
 			"-c", configFileName, // use WorkDir
 		}
-		eid, err := manager.CreateOrReplace(
-			ma.JobDefine{
-				Name:     fmt.Sprintf("mysql-monitor-%d-%s", config.MonitorConfig.Port, k),
-				Command:  executable,
-				Args:     args,
-				Schedule: k,
-				Creator:  staff, //viper.GetString("staff"),
-				Enable:   true,
-				WorkDir:  configFileDir,
-			}, true,
-		)
+
+		jobDefine := ma.JobDefine{
+			Name:     fmt.Sprintf("mysql-monitor-%d-%s", config.MonitorConfig.Port, k),
+			Command:  executable,
+			Args:     args,
+			Schedule: k,
+			Creator:  staff, //viper.GetString("staff"),
+			Enable:   true,
+			WorkDir:  configFileDir,
+			Overlap:  true,
+		}
+		slog.Info("reschedule", slog.Any("job define", jobDefine))
+
+		eid, err := manager.CreateOrReplace(jobDefine, true)
 		if err != nil {
 			slog.Error("reschedule add entry", slog.String("error", err.Error()))
 			return err

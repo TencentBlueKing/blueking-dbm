@@ -40,12 +40,13 @@
     (e: 'clearSearch'): void;
   }
   interface Props {
-    columns: InstanceType<typeof Table>['$props']['columns'];
+    columns?: InstanceType<typeof Table>['$props']['columns'];
     isAnomalies?: boolean;
     isSearching?: boolean;
   }
 
   const props = withDefaults(defineProps<Props>(), {
+    columns: undefined,
     isAnomalies: false,
     isSearching: false,
   });

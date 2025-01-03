@@ -1,3 +1,4 @@
+// Package main TODO
 /*
  * TencentBlueKing is pleased to support the open source community by making 蓝鲸智云-DB管理系统(BlueKing-BK-DBM) available.
  * Copyright (C) 2017-2023 THL A29 Limited, a Tencent company. All rights reserved.
@@ -7,7 +8,7 @@
  * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
  * specific language governing permissions and limitations under the License.
  */
-
+// main
 package main
 
 import (
@@ -26,7 +27,6 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/samber/lo"
 	"go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin"
-
 	_ "go.uber.org/automaxprocs"
 
 	"dbm-services/common/go-pubpkg/apm/metric"

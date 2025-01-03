@@ -10,11 +10,11 @@ specific language governing permissions and limitations under the License.
 """
 from rest_framework.routers import DefaultRouter
 
+from backend.db_proxy.reverse_api.common import CommonReverseApiView
 from backend.db_proxy.reverse_api.mysql import MySQLReverseApiView
-from backend.db_proxy.reverse_api.views import CommonReverseApiView
 
 routers = DefaultRouter(trailing_slash=True)
 routers.register("mysql", MySQLReverseApiView, basename="")
-routers.register("", CommonReverseApiView, basename="")
+routers.register("common", CommonReverseApiView, basename="")
 
 urlpatterns = routers.urls

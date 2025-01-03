@@ -103,13 +103,12 @@
       },
       "gridPos": {
         "h": 3,
-        "w": 4,
+        "w": 3,
         "x": 0,
         "y": 1
       },
       "hideTimeOverride": true,
       "id": 78,
-      "links": [],
       "maxDataPoints": 100,
       "options": {
         "colorMode": "none",
@@ -123,12 +122,14 @@
           "fields": "",
           "values": true
         },
+        "showPercentChange": false,
         "text": {
           "valueSize": 18
         },
-        "textMode": "name"
+        "textMode": "name",
+        "wideLayout": true
       },
-      "pluginVersion": "9.1.0",
+      "pluginVersion": "10.4.0",
       "targets": [
         {
           "cluster": [],
@@ -213,13 +214,12 @@
       },
       "gridPos": {
         "h": 3,
-        "w": 4,
-        "x": 4,
+        "w": 3,
+        "x": 3,
         "y": 1
       },
       "hideTimeOverride": true,
       "id": 183,
-      "links": [],
       "maxDataPoints": 100,
       "options": {
         "colorMode": "none",
@@ -233,9 +233,11 @@
           "fields": "",
           "values": false
         },
-        "textMode": "name"
+        "showPercentChange": false,
+        "textMode": "name",
+        "wideLayout": true
       },
-      "pluginVersion": "9.1.0",
+      "pluginVersion": "10.4.0",
       "targets": [
         {
           "cluster": [],
@@ -291,13 +293,12 @@
       },
       "gridPos": {
         "h": 3,
-        "w": 4,
-        "x": 8,
+        "w": 3,
+        "x": 6,
         "y": 1
       },
       "hideTimeOverride": false,
       "id": 59,
-      "links": [],
       "maxDataPoints": 100,
       "options": {
         "colorMode": "none",
@@ -311,9 +312,11 @@
           "fields": "",
           "values": false
         },
-        "textMode": "auto"
+        "showPercentChange": false,
+        "textMode": "auto",
+        "wideLayout": true
       },
-      "pluginVersion": "9.1.0",
+      "pluginVersion": "10.4.0",
       "targets": [
         {
           "cluster": [],
@@ -368,13 +371,12 @@
       },
       "gridPos": {
         "h": 3,
-        "w": 4,
-        "x": 12,
+        "w": 3,
+        "x": 9,
         "y": 1
       },
       "hideTimeOverride": false,
       "id": 317,
-      "links": [],
       "maxDataPoints": 100,
       "options": {
         "colorMode": "none",
@@ -388,9 +390,11 @@
           "fields": "",
           "values": false
         },
-        "textMode": "auto"
+        "showPercentChange": false,
+        "textMode": "auto",
+        "wideLayout": true
       },
-      "pluginVersion": "9.1.0",
+      "pluginVersion": "10.4.0",
       "targets": [
         {
           "cluster": [],
@@ -405,7 +409,7 @@
           "promqlAlias": "",
           "query_configs": [],
           "refId": "A",
-          "source": "max(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_mongod_replset_number_of_members{cluster_domain=\"$cluster_domain\"})",
+          "source": "count(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_up{cluster_domain=\"$cluster_domain\"}==1)",
           "step": 300,
           "type": "range"
         }
@@ -418,7 +422,87 @@
         "type": "bkmonitor-timeseries-datasource",
         "uid": "bkmonitor_timeseries"
       },
-      "description": "Shows the current replication lag for the selected member",
+      "description": "max(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_mongod_replset_member_replication_lag)",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "decimals": 1,
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "s"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 3,
+        "w": 4,
+        "x": 12,
+        "y": 1
+      },
+      "hideTimeOverride": true,
+      "id": 77,
+      "maxDataPoints": 100,
+      "options": {
+        "colorMode": "none",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "horizontal",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "pluginVersion": "10.4.0",
+      "targets": [
+        {
+          "cluster": [],
+          "datasource": {
+            "uid": "dba_mongo_proxy"
+          },
+          "enableDownSampling": false,
+          "expressionList": [],
+          "format": "time_series",
+          "host": [],
+          "mode": "code",
+          "module": [],
+          "promqlAlias": "",
+          "query_configs": [],
+          "refId": "A",
+          "source": "max(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_mongod_replset_member_replication_lag{cluster_domain=\"$cluster_domain\"}) ",
+          "step": 300,
+          "type": "instant"
+        }
+      ],
+      "timeFrom": "1m",
+      "title": "ReplSet Lag",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "bkmonitor-timeseries-datasource",
+        "uid": "bkmonitor_timeseries"
+      },
+      "description": "max(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_mongod_replset_member_replication_lag)",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -450,8 +534,7 @@
         "y": 1
       },
       "hideTimeOverride": true,
-      "id": 77,
-      "links": [],
+      "id": 387,
       "maxDataPoints": 100,
       "options": {
         "colorMode": "none",
@@ -465,15 +548,18 @@
           "fields": "",
           "values": false
         },
-        "textMode": "auto"
+        "showPercentChange": false,
+        "textMode": "auto",
+        "wideLayout": true
       },
-      "pluginVersion": "9.1.0",
+      "pluginVersion": "10.4.0",
       "targets": [
         {
           "cluster": [],
           "datasource": {
             "uid": "dba_mongo_proxy"
           },
+          "enableDownSampling": false,
           "expressionList": [],
           "format": "time_series",
           "host": [],
@@ -482,13 +568,13 @@
           "promqlAlias": "",
           "query_configs": [],
           "refId": "A",
-          "source": "(max(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_mongod_replset_member_optime_date{state=\"PRIMARY\", cluster_domain=\"$cluster_domain\"}) - min(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_mongod_replset_member_optime_date{state=\"SECONDARY\",cluster_domain=\"$cluster_domain\"} * on (name) group_left bkmonitor:exporter_dbm_mongodb_exporter:mongodb_mongod_replset_my_name{cluster_domain=\"$cluster_domain\"})) or vector(-1)",
+          "source": "max(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_ss_oplog_latestOptime{cluster_domain=\"$cluster_domain\"} - bkmonitor:exporter_dbm_mongodb_exporter:mongodb_ss_oplog_earliestOptime{cluster_domain=\"$cluster_domain\"} )  ",
           "step": 300,
           "type": "instant"
         }
       ],
       "timeFrom": "1m",
-      "title": "ReplSet Lag",
+      "title": "Oplog Window",
       "type": "stat"
     },
     {
@@ -529,7 +615,6 @@
       },
       "hideTimeOverride": true,
       "id": 65,
-      "links": [],
       "maxDataPoints": 100,
       "options": {
         "colorMode": "none",
@@ -543,9 +628,11 @@
           "fields": "",
           "values": false
         },
-        "textMode": "auto"
+        "showPercentChange": false,
+        "textMode": "auto",
+        "wideLayout": true
       },
-      "pluginVersion": "9.1.0",
+      "pluginVersion": "10.4.0",
       "targets": [
         {
           "cluster": [],
@@ -571,17 +658,286 @@
       "type": "stat"
     },
     {
-      "collapsed": false,
+      "datasource": {
+        "type": "bkmonitor-timeseries-datasource",
+        "uid": "bkmonitor_timeseries"
+      },
+      "description": "实例所在硬件的cpu核数和内存。\ntodo: 显示同一主机上的实例数量。",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "inspect": false
+          },
+          "decimals": 2,
+          "displayName": "",
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Time"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 181
+              },
+              {
+                "id": "custom.hidden",
+                "value": true
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Value #A"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Cores "
+              },
+              {
+                "id": "unit",
+                "value": "none"
+              },
+              {
+                "id": "custom.align"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Value #B"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "MemTotal"
+              },
+              {
+                "id": "unit",
+                "value": "bytes"
+              },
+              {
+                "id": "decimals",
+                "value": 2
+              },
+              {
+                "id": "custom.align"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "instance_role"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 114
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Cores "
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 139
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "instance_port"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "none"
+              },
+              {
+                "id": "custom.width",
+                "value": 120
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "bk_target_ip"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 155
+              }
+            ]
+          }
+        ]
+      },
       "gridPos": {
-        "h": 1,
-        "w": 24,
+        "h": 5,
+        "w": 12,
         "x": 0,
         "y": 4
       },
-      "id": 371,
-      "panels": [],
-      "title": "Host",
-      "type": "row"
+      "id": 378,
+      "options": {
+        "cellHeight": "sm",
+        "footer": {
+          "countRows": false,
+          "fields": "",
+          "reducer": [
+            "sum"
+          ],
+          "show": false
+        },
+        "showHeader": true,
+        "sortBy": [
+          {
+            "desc": true,
+            "displayName": "instance_port"
+          }
+        ]
+      },
+      "pluginVersion": "10.4.0",
+      "targets": [
+        {
+          "cluster": [],
+          "datasource": {
+            "uid": "dba_redis_proxy"
+          },
+          "enableDownSampling": true,
+          "expressionList": [],
+          "format": "table",
+          "hide": false,
+          "host": [],
+          "mode": "code",
+          "module": [],
+          "promqlAlias": "",
+          "query_configs": [
+            {
+              "alias": "",
+              "data_source_label": "bk_monitor",
+              "data_type_label": "time_series",
+              "display": true,
+              "filter_dict": {},
+              "functions": [],
+              "group_by": [],
+              "interval": "auto",
+              "interval_unit": "s",
+              "method": "count_without_time",
+              "metric_field": "usage",
+              "refId": "a",
+              "result_table_id": "dbm_system.cpu_detail",
+              "result_table_label": "os",
+              "time_field": "time",
+              "where": [
+                {
+                  "key": "cluster_domain",
+                  "method": "eq",
+                  "value": [
+                    "$cluster_domain"
+                  ]
+                }
+              ]
+            }
+          ],
+          "refId": "A",
+          "source": "count(bkmonitor:dbm_system:cpu_detail:usage{cluster_domain=\"$cluster_domain\"}) by (bk_target_ip,instance_role,instance_port)",
+          "step": "",
+          "type": "instant"
+        },
+        {
+          "cluster": [],
+          "datasource": {
+            "uid": "dba_redis_proxy"
+          },
+          "enableDownSampling": true,
+          "expressionList": [],
+          "format": "table",
+          "host": [],
+          "mode": "code",
+          "module": [],
+          "promqlAlias": "",
+          "query_configs": [
+            {
+              "alias": "",
+              "data_source_label": "bk_monitor",
+              "data_type_label": "time_series",
+              "display": true,
+              "filter_dict": {},
+              "functions": [],
+              "group_by": [
+                "bk_target_ip",
+                "instance_role"
+              ],
+              "interval": 60,
+              "interval_unit": "s",
+              "method": "count_without_time",
+              "metric_field": "total",
+              "refId": "a",
+              "result_table_id": "dbm_system.mem",
+              "result_table_label": "os",
+              "time_field": "time",
+              "where": [
+                {
+                  "key": "cluster_domain",
+                  "method": "eq",
+                  "value": [
+                    "$cluster_domain"
+                  ]
+                }
+              ]
+            }
+          ],
+          "refId": "B",
+          "source": "sum by (bk_target_ip,instance_role,instance_port) (bkmonitor:dbm_system:mem:total{cluster_domain=\"$cluster_domain\"})   ",
+          "step": "",
+          "type": "instant"
+        }
+      ],
+      "title": "Cpu and Memory",
+      "transformations": [
+        {
+          "id": "merge",
+          "options": {
+            "reducers": []
+          }
+        }
+      ],
+      "type": "table"
     },
     {
       "datasource": {
@@ -592,39 +948,9 @@
       "fieldConfig": {
         "defaults": {
           "color": {
-            "mode": "palette-classic"
+            "mode": "thresholds"
           },
-          "custom": {
-            "axisCenteredZero": false,
-            "axisColorMode": "text",
-            "axisLabel": "",
-            "axisPlacement": "left",
-            "axisWidth": 40,
-            "barAlignment": 0,
-            "drawStyle": "line",
-            "fillOpacity": 20,
-            "gradientMode": "none",
-            "hideFrom": {
-              "legend": false,
-              "tooltip": false,
-              "viz": false
-            },
-            "lineInterpolation": "linear",
-            "lineWidth": 2,
-            "pointSize": 5,
-            "scaleDistribution": {
-              "type": "linear"
-            },
-            "showPoints": "never",
-            "spanNulls": false,
-            "stacking": {
-              "group": "A",
-              "mode": "none"
-            },
-            "thresholdsStyle": {
-              "mode": "off"
-            }
-          },
+          "decimals": 1,
           "links": [],
           "mappings": [],
           "min": 0,
@@ -634,6 +960,14 @@
               {
                 "color": "green",
                 "value": null
+              },
+              {
+                "color": "#EAB839",
+                "value": 60
+              },
+              {
+                "color": "semi-dark-orange",
+                "value": 80
               }
             ]
           },
@@ -642,44 +976,44 @@
         "overrides": []
       },
       "gridPos": {
-        "h": 6,
-        "w": 12,
-        "x": 0,
-        "y": 5
+        "h": 5,
+        "w": 4,
+        "x": 12,
+        "y": 4
       },
-      "id": 184,
+      "id": 396,
       "interval": "60s",
-      "links": [],
       "options": {
-        "legend": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
           "calcs": [
-            "lastNotNull",
-            "max"
+            "lastNotNull"
           ],
-          "displayMode": "table",
-          "placement": "right",
-          "showLegend": true,
-          "width": 250
+          "fields": "",
+          "values": false
         },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "desc"
-        }
+        "showPercentChange": false,
+        "textMode": "auto",
+        "wideLayout": true
       },
-      "pluginVersion": "9.1.0",
+      "pluginVersion": "10.4.0",
       "targets": [
         {
           "cluster": [],
           "datasource": {
             "uid": "dba_mongo_proxy"
           },
+          "enableDownSampling": false,
           "expressionList": [],
           "format": "time_series",
           "hide": false,
           "host": [],
           "mode": "code",
           "module": [],
-          "promqlAlias": "$tag_instance_role",
+          "promqlAlias": "$tag_instance_role $tag_bk_target_ip",
           "query_configs": [
             {
               "alias": "",
@@ -726,154 +1060,1691 @@
           "type": "range"
         }
       ],
-      "title": "Cpu",
-      "type": "timeseries"
+      "title": "cpu",
+      "type": "stat"
     },
     {
-      "datasource": {
-        "type": "bkmonitor-timeseries-datasource",
-        "uid": "bkmonitor_timeseries"
+      "collapsed": true,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 9
       },
-      "description": "bkmonitor:dbm_system:mem:pct_used",
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "palette-classic"
+      "id": 371,
+      "panels": [
+        {
+          "datasource": {
+            "type": "bkmonitor-timeseries-datasource",
+            "uid": "bkmonitor_timeseries"
           },
-          "custom": {
-            "axisCenteredZero": false,
-            "axisColorMode": "text",
-            "axisLabel": "",
-            "axisPlacement": "left",
-            "axisWidth": 40,
-            "barAlignment": 0,
-            "drawStyle": "line",
-            "fillOpacity": 20,
-            "gradientMode": "none",
-            "hideFrom": {
-              "legend": false,
-              "tooltip": false,
-              "viz": false
+          "description": "Host cpu",
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "axisBorderShow": false,
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "",
+                "axisPlacement": "left",
+                "axisWidth": 40,
+                "barAlignment": 0,
+                "drawStyle": "line",
+                "fillOpacity": 20,
+                "gradientMode": "none",
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                },
+                "insertNulls": false,
+                "lineInterpolation": "linear",
+                "lineWidth": 2,
+                "pointSize": 5,
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "showPoints": "never",
+                "spanNulls": false,
+                "stacking": {
+                  "group": "A",
+                  "mode": "none"
+                },
+                "thresholdsStyle": {
+                  "mode": "off"
+                }
+              },
+              "decimals": 1,
+              "links": [],
+              "mappings": [],
+              "min": 0,
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  }
+                ]
+              },
+              "unit": "percent"
             },
-            "lineInterpolation": "linear",
-            "lineWidth": 2,
-            "pointSize": 5,
-            "scaleDistribution": {
-              "type": "linear"
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 0,
+            "y": 10
+          },
+          "id": 184,
+          "interval": "60s",
+          "options": {
+            "legend": {
+              "calcs": [
+                "lastNotNull",
+                "max"
+              ],
+              "displayMode": "table",
+              "placement": "right",
+              "showLegend": true,
+              "width": 350
             },
-            "showPoints": "never",
-            "spanNulls": false,
-            "stacking": {
-              "group": "A",
-              "mode": "none"
-            },
-            "thresholdsStyle": {
-              "mode": "off"
+            "tooltip": {
+              "mode": "multi",
+              "sort": "desc"
             }
           },
-          "links": [],
-          "mappings": [],
-          "min": 0,
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              }
-            ]
-          },
-          "unit": "percent"
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 6,
-        "w": 12,
-        "x": 12,
-        "y": 5
-      },
-      "id": 363,
-      "interval": "60s",
-      "links": [],
-      "options": {
-        "legend": {
-          "calcs": [
-            "lastNotNull",
-            "max"
-          ],
-          "displayMode": "table",
-          "placement": "right",
-          "showLegend": true,
-          "width": 250
-        },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "desc"
-        }
-      },
-      "pluginVersion": "9.1.0",
-      "targets": [
-        {
-          "cluster": [],
-          "datasource": {
-            "uid": "dba_mongo_proxy"
-          },
-          "expressionList": [],
-          "format": "time_series",
-          "hide": false,
-          "host": [],
-          "mode": "code",
-          "module": [],
-          "promqlAlias": "$tag_instance_role",
-          "query_configs": [
+          "pluginVersion": "9.1.0",
+          "targets": [
             {
-              "alias": "",
-              "data_source_label": "bk_monitor",
-              "data_type_label": "time_series",
-              "display": true,
-              "filter_dict": {},
-              "functions": [],
-              "group_by": [
-                "instance_role",
-                "bk_target_ip",
-                "instance_port"
-              ],
-              "interval": 60,
-              "interval_unit": "s",
-              "method": "avg_without_time",
-              "metric_field": "usage",
-              "refId": "a",
-              "result_table_id": "dbm_system.cpu_summary",
-              "result_table_label": "os",
-              "time_field": "time",
-              "where": [
+              "cluster": [],
+              "datasource": {
+                "uid": "dba_mongo_proxy"
+              },
+              "enableDownSampling": false,
+              "expressionList": [],
+              "format": "time_series",
+              "hide": false,
+              "host": [],
+              "mode": "code",
+              "module": [],
+              "promqlAlias": "$tag_instance_role $tag_bk_target_ip",
+              "query_configs": [
                 {
-                  "key": "cluster_domain",
-                  "method": "eq",
-                  "value": [
-                    "$cluster_domain"
+                  "alias": "",
+                  "data_source_label": "bk_monitor",
+                  "data_type_label": "time_series",
+                  "display": true,
+                  "filter_dict": {},
+                  "functions": [],
+                  "group_by": [
+                    "instance_role",
+                    "bk_target_ip",
+                    "instance_port"
+                  ],
+                  "interval": 60,
+                  "interval_unit": "s",
+                  "method": "avg_without_time",
+                  "metric_field": "usage",
+                  "refId": "a",
+                  "result_table_id": "dbm_system.cpu_summary",
+                  "result_table_label": "os",
+                  "time_field": "time",
+                  "where": [
+                    {
+                      "key": "cluster_domain",
+                      "method": "eq",
+                      "value": [
+                        "$cluster_domain"
+                      ]
+                    },
+                    {
+                      "condition": "and",
+                      "key": "instance_role",
+                      "method": "eq",
+                      "value": [
+                        "$instance_role"
+                      ]
+                    }
+                  ]
+                }
+              ],
+              "refId": "A",
+              "source": "avg by (instance_role, bk_target_ip, instance_port) (bkmonitor:dbm_system:cpu_summary:usage{cluster_domain=\"$cluster_domain\",instance_role=~\"$instance_role$\"})",
+              "step": 300,
+              "type": "range"
+            }
+          ],
+          "title": "Cpu",
+          "type": "timeseries"
+        },
+        {
+          "datasource": {
+            "type": "bkmonitor-timeseries-datasource",
+            "uid": "bkmonitor_timeseries"
+          },
+          "description": "bkmonitor:dbm_system:mem:pct_used",
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "axisBorderShow": false,
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "",
+                "axisPlacement": "left",
+                "axisWidth": 40,
+                "barAlignment": 0,
+                "drawStyle": "line",
+                "fillOpacity": 20,
+                "gradientMode": "none",
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                },
+                "insertNulls": false,
+                "lineInterpolation": "linear",
+                "lineWidth": 2,
+                "pointSize": 5,
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "showPoints": "never",
+                "spanNulls": false,
+                "stacking": {
+                  "group": "A",
+                  "mode": "none"
+                },
+                "thresholdsStyle": {
+                  "mode": "off"
+                }
+              },
+              "links": [],
+              "mappings": [],
+              "min": 0,
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  }
+                ]
+              },
+              "unit": "percent"
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 12,
+            "y": 10
+          },
+          "id": 363,
+          "interval": "60s",
+          "options": {
+            "legend": {
+              "calcs": [
+                "lastNotNull",
+                "max"
+              ],
+              "displayMode": "table",
+              "placement": "right",
+              "showLegend": true,
+              "width": 350
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "desc"
+            }
+          },
+          "pluginVersion": "9.1.0",
+          "targets": [
+            {
+              "cluster": [],
+              "datasource": {
+                "uid": "dba_mongo_proxy"
+              },
+              "enableDownSampling": false,
+              "expressionList": [],
+              "format": "time_series",
+              "hide": false,
+              "host": [],
+              "mode": "code",
+              "module": [],
+              "promqlAlias": "$tag_instance_role $tag_bk_target_ip",
+              "query_configs": [
+                {
+                  "alias": "",
+                  "data_source_label": "bk_monitor",
+                  "data_type_label": "time_series",
+                  "display": true,
+                  "filter_dict": {},
+                  "functions": [],
+                  "group_by": [
+                    "instance_role",
+                    "bk_target_ip",
+                    "instance_port"
+                  ],
+                  "interval": 60,
+                  "interval_unit": "s",
+                  "method": "avg_without_time",
+                  "metric_field": "usage",
+                  "refId": "a",
+                  "result_table_id": "dbm_system.cpu_summary",
+                  "result_table_label": "os",
+                  "time_field": "time",
+                  "where": [
+                    {
+                      "key": "cluster_domain",
+                      "method": "eq",
+                      "value": [
+                        "$cluster_domain"
+                      ]
+                    },
+                    {
+                      "condition": "and",
+                      "key": "instance_role",
+                      "method": "eq",
+                      "value": [
+                        "$instance_role"
+                      ]
+                    }
+                  ]
+                }
+              ],
+              "refId": "A",
+              "source": "avg by (instance_role, bk_target_ip, instance_port) (bkmonitor:dbm_system:mem:pct_used{cluster_domain=\"$cluster_domain\",instance_role=~\"$instance_role$\"})",
+              "step": 300,
+              "type": "range"
+            }
+          ],
+          "title": "memory usage",
+          "type": "timeseries"
+        },
+        {
+          "datasource": {
+            "type": "bkmonitor-timeseries-datasource",
+            "uid": "bkmonitor_timeseries"
+          },
+          "description": "shardsvr DiskUsed% 主机磁盘使用率",
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "axisBorderShow": false,
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "",
+                "axisPlacement": "auto",
+                "barAlignment": 0,
+                "drawStyle": "line",
+                "fillOpacity": 0,
+                "gradientMode": "none",
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                },
+                "insertNulls": false,
+                "lineInterpolation": "linear",
+                "lineWidth": 1,
+                "pointSize": 3,
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "showPoints": "auto",
+                "spanNulls": false,
+                "stacking": {
+                  "group": "A",
+                  "mode": "none"
+                },
+                "thresholdsStyle": {
+                  "mode": "off"
+                }
+              },
+              "decimals": 1,
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  }
+                ]
+              },
+              "unit": "short"
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 0,
+            "y": 18
+          },
+          "id": 380,
+          "interval": "2m",
+          "options": {
+            "legend": {
+              "calcs": [
+                "lastNotNull",
+                "max"
+              ],
+              "displayMode": "table",
+              "placement": "right",
+              "showLegend": true,
+              "sortBy": "Mean",
+              "sortDesc": true,
+              "width": 350
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "desc"
+            }
+          },
+          "pluginVersion": "9.1.0",
+          "targets": [
+            {
+              "cluster": [],
+              "datasource": {
+                "type": "bkmonitor-timeseries-datasource",
+                "uid": "bkmonitor_timeseries"
+              },
+              "enableDownSampling": true,
+              "expressionList": [],
+              "format": "time_series",
+              "host": [],
+              "mode": "code",
+              "module": [],
+              "promqlAlias": "$tag_instance_role $tag_ip $tag_mount_point",
+              "query_configs": [
+                {
+                  "alias": "$tag_ip",
+                  "data_source_label": "bk_monitor",
+                  "data_type_label": "time_series",
+                  "display": true,
+                  "filter_dict": {},
+                  "functions": [],
+                  "group_by": [
+                    "ip"
+                  ],
+                  "interval": 60,
+                  "interval_unit": "s",
+                  "method": "MAX",
+                  "metric_field": "in_use",
+                  "refId": "a",
+                  "result_table_id": "dbm_system.disk",
+                  "result_table_label": "os",
+                  "time_field": "time",
+                  "where": [
+                    {
+                      "key": "cluster_domain",
+                      "method": "eq",
+                      "value": [
+                        "$cluster_domain"
+                      ]
+                    },
+                    {
+                      "condition": "and",
+                      "key": "instance_role",
+                      "method": "eq",
+                      "value": [
+                        "proxy"
+                      ]
+                    }
+                  ]
+                }
+              ],
+              "refId": "A",
+              "source": "bkmonitor:dbm_system:disk:in_use{cluster_domain=\"$cluster_domain\",instance_role=~\"$instance_role\"}",
+              "step": "",
+              "type": "range"
+            }
+          ],
+          "title": "shardsvr DiskUsed%",
+          "type": "timeseries"
+        },
+        {
+          "datasource": {
+            "type": "bkmonitor-timeseries-datasource",
+            "uid": "bkmonitor_timeseries"
+          },
+          "description": "流量使用率：每核分配48M或96MB(<=2core)\n包量使用率：每核分配9w或15w(<=2core)\n适用于大部分腾讯云cvm",
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "axisBorderShow": false,
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "",
+                "axisPlacement": "auto",
+                "barAlignment": 0,
+                "drawStyle": "line",
+                "fillOpacity": 0,
+                "gradientMode": "none",
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                },
+                "insertNulls": false,
+                "lineInterpolation": "linear",
+                "lineWidth": 1,
+                "pointSize": 3,
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "showPoints": "auto",
+                "spanNulls": false,
+                "stacking": {
+                  "group": "A",
+                  "mode": "none"
+                },
+                "thresholdsStyle": {
+                  "mode": "off"
+                }
+              },
+              "decimals": 1,
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  }
+                ]
+              },
+              "unit": "percent"
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 12,
+            "y": 18
+          },
+          "id": 381,
+          "interval": "2m",
+          "options": {
+            "legend": {
+              "calcs": [
+                "lastNotNull",
+                "max"
+              ],
+              "displayMode": "table",
+              "placement": "right",
+              "showLegend": true,
+              "sortBy": "Mean",
+              "sortDesc": false,
+              "width": 350
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "desc"
+            }
+          },
+          "pluginVersion": "9.1.0",
+          "targets": [
+            {
+              "cluster": [],
+              "datasource": {
+                "type": "bkmonitor-timeseries-datasource",
+                "uid": "bkmonitor_timeseries"
+              },
+              "enableDownSampling": false,
+              "expressionList": [
+                {
+                  "active": true,
+                  "alias": "",
+                  "expression": "100 * (a + b) / c / (96 * 1024 * 1024) and d <= 2 or (100 * (e + f) / g / (48 * 1024 * 1024) and h > 2)",
+                  "functions": []
+                }
+              ],
+              "format": "time_series",
+              "hide": false,
+              "host": [],
+              "mode": "code",
+              "module": [],
+              "promqlAlias": "$tag_instance_role $tag_ip 流量",
+              "query_configs": [
+                {
+                  "alias": "",
+                  "data_source_label": "bk_monitor",
+                  "data_type_label": "time_series",
+                  "display": false,
+                  "filter_dict": {},
+                  "functions": [],
+                  "group_by": [
+                    "ip",
+                    "bk_target_cloud_id"
+                  ],
+                  "interval": 60,
+                  "interval_unit": "s",
+                  "method": "MAX",
+                  "metric_field": "speed_recv",
+                  "refId": "a",
+                  "result_table_id": "dbm_system.net",
+                  "result_table_label": "os",
+                  "time_field": "time",
+                  "where": [
+                    {
+                      "key": "cluster_domain",
+                      "method": "eq",
+                      "value": [
+                        "$cluster_domain"
+                      ]
+                    },
+                    {
+                      "condition": "and",
+                      "key": "device_name",
+                      "method": "eq",
+                      "value": [
+                        "eth1"
+                      ]
+                    },
+                    {
+                      "condition": "and",
+                      "key": "instance_role",
+                      "method": "eq",
+                      "value": [
+                        "proxy"
+                      ]
+                    }
                   ]
                 },
                 {
-                  "condition": "and",
-                  "key": "instance_role",
-                  "method": "eq",
-                  "value": [
-                    "$instance_role"
+                  "alias": "",
+                  "data_source_label": "bk_monitor",
+                  "data_type_label": "time_series",
+                  "filter_dict": {},
+                  "functions": [],
+                  "group_by": [
+                    "ip",
+                    "bk_target_cloud_id"
+                  ],
+                  "interval": 60,
+                  "interval_unit": "s",
+                  "method": "MAX",
+                  "metric_field": "speed_sent",
+                  "refId": "b",
+                  "result_table_id": "dbm_system.net",
+                  "result_table_label": "os",
+                  "time_field": "time",
+                  "where": [
+                    {
+                      "key": "cluster_domain",
+                      "method": "eq",
+                      "value": [
+                        "$cluster_domain"
+                      ]
+                    },
+                    {
+                      "condition": "and",
+                      "key": "device_name",
+                      "method": "eq",
+                      "value": [
+                        "eth1"
+                      ]
+                    }
                   ]
+                },
+                {
+                  "alias": "",
+                  "data_source_label": "bk_monitor",
+                  "data_type_label": "time_series",
+                  "filter_dict": {},
+                  "functions": [],
+                  "group_by": [
+                    "ip",
+                    "bk_target_cloud_id"
+                  ],
+                  "interval": 60,
+                  "interval_unit": "s",
+                  "method": "COUNT",
+                  "metric_field": "usage",
+                  "refId": "c",
+                  "result_table_id": "dbm_system.cpu_detail",
+                  "result_table_label": "os",
+                  "time_field": "time",
+                  "where": []
+                },
+                {
+                  "alias": "",
+                  "data_source_label": "bk_monitor",
+                  "data_type_label": "time_series",
+                  "filter_dict": {},
+                  "functions": [],
+                  "group_by": [
+                    "ip",
+                    "bk_target_cloud_id"
+                  ],
+                  "interval": 60,
+                  "interval_unit": "s",
+                  "method": "COUNT",
+                  "metric_field": "usage",
+                  "refId": "d",
+                  "result_table_id": "dbm_system.cpu_detail",
+                  "result_table_label": "os",
+                  "time_field": "time",
+                  "where": []
+                },
+                {
+                  "alias": "",
+                  "data_source_label": "bk_monitor",
+                  "data_type_label": "time_series",
+                  "filter_dict": {},
+                  "functions": [],
+                  "group_by": [
+                    "ip",
+                    "bk_target_cloud_id"
+                  ],
+                  "interval": 60,
+                  "interval_unit": "s",
+                  "method": "MAX",
+                  "metric_field": "speed_recv",
+                  "refId": "e",
+                  "result_table_id": "dbm_system.net",
+                  "result_table_label": "os",
+                  "time_field": "time",
+                  "where": [
+                    {
+                      "key": "cluster_domain",
+                      "method": "eq",
+                      "value": [
+                        "$cluster_domain"
+                      ]
+                    },
+                    {
+                      "condition": "and",
+                      "key": "device_name",
+                      "method": "eq",
+                      "value": [
+                        "eth1"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "alias": "",
+                  "data_source_label": "bk_monitor",
+                  "data_type_label": "time_series",
+                  "filter_dict": {},
+                  "functions": [],
+                  "group_by": [
+                    "ip",
+                    "bk_target_cloud_id"
+                  ],
+                  "interval": 60,
+                  "interval_unit": "s",
+                  "method": "MAX",
+                  "metric_field": "speed_sent",
+                  "refId": "f",
+                  "result_table_id": "dbm_system.net",
+                  "result_table_label": "os",
+                  "time_field": "time",
+                  "where": [
+                    {
+                      "key": "cluster_domain",
+                      "method": "eq",
+                      "value": [
+                        "$cluster_domain"
+                      ]
+                    },
+                    {
+                      "condition": "and",
+                      "key": "device_name",
+                      "method": "eq",
+                      "value": [
+                        "eth1"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "alias": "",
+                  "data_source_label": "bk_monitor",
+                  "data_type_label": "time_series",
+                  "filter_dict": {},
+                  "functions": [],
+                  "group_by": [
+                    "ip",
+                    "bk_target_cloud_id"
+                  ],
+                  "interval": 60,
+                  "interval_unit": "s",
+                  "method": "COUNT",
+                  "metric_field": "usage",
+                  "refId": "g",
+                  "result_table_id": "dbm_system.cpu_detail",
+                  "result_table_label": "os",
+                  "time_field": "time",
+                  "where": []
+                },
+                {
+                  "alias": "",
+                  "data_source_label": "bk_monitor",
+                  "data_type_label": "time_series",
+                  "filter_dict": {},
+                  "functions": [],
+                  "group_by": [
+                    "ip",
+                    "bk_target_cloud_id"
+                  ],
+                  "interval": 60,
+                  "interval_unit": "s",
+                  "method": "COUNT",
+                  "metric_field": "usage",
+                  "refId": "h",
+                  "result_table_id": "dbm_system.cpu_detail",
+                  "result_table_label": "os",
+                  "time_field": "time",
+                  "where": []
                 }
-              ]
+              ],
+              "refId": "A",
+              "source": "(\n  100 * (\n    max by(ip, bk_target_cloud_id, instance_role) (\n        bkmonitor:dbm_system:net:speed_recv{\n          cluster_domain=\"$cluster_domain\",\n          device_name=\"eth1\",\n          instance_role=~\"$instance_role\"\n        }\n      \n    ) +\n    max by(ip, bk_target_cloud_id, instance_role) (\n        bkmonitor:dbm_system:net:speed_sent{\n          cluster_domain=\"$cluster_domain\",\n          device_name=\"eth1\",\n          instance_role=~\"$instance_role\"\n        }\n      \n    )\n  ) /  (96 * 1024 * 1024)  / \n  sum by(ip, bk_target_cloud_id, instance_role) (\n       bkmonitor:dbm_system:cpu_detail:usage{\n        cluster_domain=\"$cluster_domain\",\n        instance_role=~\"$instance_role\"\n      } \n  )   and\n    sum by(ip, bk_target_cloud_id, instance_role) (\n        bkmonitor:dbm_system:cpu_detail:usage{\n          cluster_domain=\"$cluster_domain\",\n          instance_role=~\"$instance_role\"\n        } \n    ) <= 2\n   or\n  (\n    100 * (\n      max by(ip, bk_target_cloud_id, instance_role) (\n          bkmonitor:dbm_system:net:speed_recv{\n            cluster_domain=\"$cluster_domain\",\n            device_name=\"eth1\",\n            instance_role=~\"$instance_role\"\n          } \n      ) +\n      max by(ip, bk_target_cloud_id, instance_role) (\n          bkmonitor:dbm_system:net:speed_sent{\n            cluster_domain=\"$cluster_domain\",\n            device_name=\"eth1\",\n            instance_role=~\"$instance_role\"\n          } \n      )\n    ) / (48 * 1024 * 1024)/\n    sum by(ip, bk_target_cloud_id, instance_role) (\n         bkmonitor:dbm_system:cpu_detail:usage{\n          cluster_domain=\"$cluster_domain\",\n          instance_role=~\"$instance_role\"\n        } \n    )  and \n\n    sum by(ip, bk_target_cloud_id, instance_role) (\n        bkmonitor:dbm_system:cpu_detail:usage{\n          cluster_domain=\"$cluster_domain\",\n          instance_role=~\"$instance_role\"\n        } \n    ) > 2\n  )\n)",
+              "step": "",
+              "type": "range"
+            },
+            {
+              "cluster": [],
+              "datasource": {
+                "type": "bkmonitor-timeseries-datasource",
+                "uid": "bkmonitor_timeseries"
+              },
+              "enableDownSampling": false,
+              "expressionList": [
+                {
+                  "active": true,
+                  "alias": "",
+                  "expression": "100 * (a + b) / c / (96 * 1024 * 1024) and d <= 2 or (100 * (e + f) / g / (48 * 1024 * 1024) and h > 2)",
+                  "functions": []
+                }
+              ],
+              "format": "time_series",
+              "hide": true,
+              "host": [],
+              "mode": "code",
+              "module": [],
+              "promqlAlias": "$tag_instance_role $tag_ip 流量",
+              "query_configs": [
+                {
+                  "alias": "",
+                  "data_source_label": "bk_monitor",
+                  "data_type_label": "time_series",
+                  "display": false,
+                  "filter_dict": {},
+                  "functions": [],
+                  "group_by": [
+                    "ip",
+                    "bk_target_cloud_id"
+                  ],
+                  "interval": 60,
+                  "interval_unit": "s",
+                  "method": "MAX",
+                  "metric_field": "speed_recv",
+                  "refId": "a",
+                  "result_table_id": "dbm_system.net",
+                  "result_table_label": "os",
+                  "time_field": "time",
+                  "where": [
+                    {
+                      "key": "cluster_domain",
+                      "method": "eq",
+                      "value": [
+                        "$cluster_domain"
+                      ]
+                    },
+                    {
+                      "condition": "and",
+                      "key": "device_name",
+                      "method": "eq",
+                      "value": [
+                        "eth1"
+                      ]
+                    },
+                    {
+                      "condition": "and",
+                      "key": "instance_role",
+                      "method": "eq",
+                      "value": [
+                        "proxy"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "alias": "",
+                  "data_source_label": "bk_monitor",
+                  "data_type_label": "time_series",
+                  "filter_dict": {},
+                  "functions": [],
+                  "group_by": [
+                    "ip",
+                    "bk_target_cloud_id"
+                  ],
+                  "interval": 60,
+                  "interval_unit": "s",
+                  "method": "MAX",
+                  "metric_field": "speed_sent",
+                  "refId": "b",
+                  "result_table_id": "dbm_system.net",
+                  "result_table_label": "os",
+                  "time_field": "time",
+                  "where": [
+                    {
+                      "key": "cluster_domain",
+                      "method": "eq",
+                      "value": [
+                        "$cluster_domain"
+                      ]
+                    },
+                    {
+                      "condition": "and",
+                      "key": "device_name",
+                      "method": "eq",
+                      "value": [
+                        "eth1"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "alias": "",
+                  "data_source_label": "bk_monitor",
+                  "data_type_label": "time_series",
+                  "filter_dict": {},
+                  "functions": [],
+                  "group_by": [
+                    "ip",
+                    "bk_target_cloud_id"
+                  ],
+                  "interval": 60,
+                  "interval_unit": "s",
+                  "method": "COUNT",
+                  "metric_field": "usage",
+                  "refId": "c",
+                  "result_table_id": "dbm_system.cpu_detail",
+                  "result_table_label": "os",
+                  "time_field": "time",
+                  "where": []
+                },
+                {
+                  "alias": "",
+                  "data_source_label": "bk_monitor",
+                  "data_type_label": "time_series",
+                  "filter_dict": {},
+                  "functions": [],
+                  "group_by": [
+                    "ip",
+                    "bk_target_cloud_id"
+                  ],
+                  "interval": 60,
+                  "interval_unit": "s",
+                  "method": "COUNT",
+                  "metric_field": "usage",
+                  "refId": "d",
+                  "result_table_id": "dbm_system.cpu_detail",
+                  "result_table_label": "os",
+                  "time_field": "time",
+                  "where": []
+                },
+                {
+                  "alias": "",
+                  "data_source_label": "bk_monitor",
+                  "data_type_label": "time_series",
+                  "filter_dict": {},
+                  "functions": [],
+                  "group_by": [
+                    "ip",
+                    "bk_target_cloud_id"
+                  ],
+                  "interval": 60,
+                  "interval_unit": "s",
+                  "method": "MAX",
+                  "metric_field": "speed_recv",
+                  "refId": "e",
+                  "result_table_id": "dbm_system.net",
+                  "result_table_label": "os",
+                  "time_field": "time",
+                  "where": [
+                    {
+                      "key": "cluster_domain",
+                      "method": "eq",
+                      "value": [
+                        "$cluster_domain"
+                      ]
+                    },
+                    {
+                      "condition": "and",
+                      "key": "device_name",
+                      "method": "eq",
+                      "value": [
+                        "eth1"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "alias": "",
+                  "data_source_label": "bk_monitor",
+                  "data_type_label": "time_series",
+                  "filter_dict": {},
+                  "functions": [],
+                  "group_by": [
+                    "ip",
+                    "bk_target_cloud_id"
+                  ],
+                  "interval": 60,
+                  "interval_unit": "s",
+                  "method": "MAX",
+                  "metric_field": "speed_sent",
+                  "refId": "f",
+                  "result_table_id": "dbm_system.net",
+                  "result_table_label": "os",
+                  "time_field": "time",
+                  "where": [
+                    {
+                      "key": "cluster_domain",
+                      "method": "eq",
+                      "value": [
+                        "$cluster_domain"
+                      ]
+                    },
+                    {
+                      "condition": "and",
+                      "key": "device_name",
+                      "method": "eq",
+                      "value": [
+                        "eth1"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "alias": "",
+                  "data_source_label": "bk_monitor",
+                  "data_type_label": "time_series",
+                  "filter_dict": {},
+                  "functions": [],
+                  "group_by": [
+                    "ip",
+                    "bk_target_cloud_id"
+                  ],
+                  "interval": 60,
+                  "interval_unit": "s",
+                  "method": "COUNT",
+                  "metric_field": "usage",
+                  "refId": "g",
+                  "result_table_id": "dbm_system.cpu_detail",
+                  "result_table_label": "os",
+                  "time_field": "time",
+                  "where": []
+                },
+                {
+                  "alias": "",
+                  "data_source_label": "bk_monitor",
+                  "data_type_label": "time_series",
+                  "filter_dict": {},
+                  "functions": [],
+                  "group_by": [
+                    "ip",
+                    "bk_target_cloud_id"
+                  ],
+                  "interval": 60,
+                  "interval_unit": "s",
+                  "method": "COUNT",
+                  "metric_field": "usage",
+                  "refId": "h",
+                  "result_table_id": "dbm_system.cpu_detail",
+                  "result_table_label": "os",
+                  "time_field": "time",
+                  "where": []
+                }
+              ],
+              "refId": "B",
+              "source": "(\n  100 * (\n    max by(ip, bk_target_cloud_id, instance_role) (\n        bkmonitor:dbm_system:net:speed_packets_recv{\n          cluster_domain=\"$cluster_domain\",\n          device_name=\"eth1\",\n          instance_role=~\"$instance_role\"\n        }\n\n    ) +\n    max by(ip, bk_target_cloud_id, instance_role) (\n        bkmonitor:dbm_system:net:speed_packets_sent{\n          cluster_domain=\"$cluster_domain\",\n          device_name=\"eth1\",\n          instance_role=~\"$instance_role\"\n        }\n\n    )\n  ) /  (96 * 1024 * 1024)  /\n  sum by(ip, bk_target_cloud_id, instance_role) (\n       bkmonitor:dbm_system:cpu_detail:usage{\n        cluster_domain=\"$cluster_domain\",\n        instance_role=~\"$instance_role\"\n      }\n  )   and\n    sum by(ip, bk_target_cloud_id, instance_role) (\n        bkmonitor:dbm_system:cpu_detail:usage{\n          cluster_domain=\"$cluster_domain\",\n          instance_role=~\"$instance_role\"\n        }\n    ) <= 2\n   or\n  (\n    100 * (\n      max by(ip, bk_target_cloud_id, instance_role) (\n          bkmonitor:dbm_system:net:speed_packets_recv{\n            cluster_domain=\"$cluster_domain\",\n            device_name=\"eth1\",\n            instance_role=~\"$instance_role\"\n          }\n      ) +\n      max by(ip, bk_target_cloud_id, instance_role) (\n          bkmonitor:dbm_system:net:speed_packets_sent{\n            cluster_domain=\"$cluster_domain\",\n            device_name=\"eth1\",\n            instance_role=~\"$instance_role\"\n          }\n      )\n    ) / (48 * 1024 * 1024)/\n    sum by(ip, bk_target_cloud_id, instance_role) (\n         bkmonitor:dbm_system:cpu_detail:usage{\n          cluster_domain=\"$cluster_domain\",\n          instance_role=~\"$instance_role\"\n        }\n    )  and\n\n    sum by(ip, bk_target_cloud_id, instance_role) (\n        bkmonitor:dbm_system:cpu_detail:usage{\n          cluster_domain=\"$cluster_domain\",\n          instance_role=~\"$instance_role\"\n        }\n    ) > 2\n  )\n)",
+              "step": "",
+              "type": "range"
             }
           ],
-          "refId": "A",
-          "source": "avg by (instance_role, bk_target_ip, instance_port) (bkmonitor:dbm_system:mem:pct_used{cluster_domain=\"$cluster_domain\",instance_role=~\"$instance_role$\"})",
-          "step": 300,
-          "type": "range"
+          "title": "网卡使用率",
+          "type": "timeseries"
+        },
+        {
+          "datasource": {
+            "type": "bkmonitor-timeseries-datasource",
+            "uid": "bkmonitor_timeseries"
+          },
+          "description": "shardsvr 磁盘读写速率",
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "axisBorderShow": false,
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "",
+                "axisPlacement": "auto",
+                "barAlignment": 0,
+                "drawStyle": "line",
+                "fillOpacity": 0,
+                "gradientMode": "none",
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                },
+                "insertNulls": false,
+                "lineInterpolation": "linear",
+                "lineWidth": 1,
+                "pointSize": 3,
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "showPoints": "auto",
+                "spanNulls": false,
+                "stacking": {
+                  "group": "A",
+                  "mode": "none"
+                },
+                "thresholdsStyle": {
+                  "mode": "off"
+                }
+              },
+              "decimals": 1,
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  }
+                ]
+              },
+              "unit": "KBs"
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 0,
+            "y": 26
+          },
+          "id": 385,
+          "interval": "2m",
+          "options": {
+            "legend": {
+              "calcs": [
+                "lastNotNull",
+                "mean",
+                "max"
+              ],
+              "displayMode": "table",
+              "placement": "right",
+              "showLegend": true,
+              "sortBy": "Mean",
+              "sortDesc": true,
+              "width": 350
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "desc"
+            }
+          },
+          "pluginVersion": "9.1.0",
+          "targets": [
+            {
+              "cluster": [],
+              "datasource": {
+                "type": "bkmonitor-timeseries-datasource",
+                "uid": "bkmonitor_timeseries"
+              },
+              "enableDownSampling": true,
+              "expressionList": [],
+              "format": "time_series",
+              "hide": false,
+              "host": [],
+              "mode": "ui",
+              "module": [],
+              "promqlAlias": "$tag_ip",
+              "query_configs": [
+                {
+                  "alias": "$tag_instance_role $tag_ip  write",
+                  "data_source_label": "bk_monitor",
+                  "data_type_label": "time_series",
+                  "display": true,
+                  "filter_dict": {},
+                  "functions": [],
+                  "group_by": [
+                    "ip"
+                  ],
+                  "interval": 60,
+                  "interval_unit": "s",
+                  "method": "max_without_time",
+                  "metric_field": "wkb_s",
+                  "refId": "a",
+                  "result_table_id": "dbm_system.io",
+                  "result_table_label": "os",
+                  "time_field": "time",
+                  "where": [
+                    {
+                      "key": "cluster_domain",
+                      "method": "eq",
+                      "value": [
+                        "$cluster_domain"
+                      ]
+                    },
+                    {
+                      "condition": "and",
+                      "key": "instance_role",
+                      "method": "reg",
+                      "value": [
+                        "$instance_role"
+                      ]
+                    }
+                  ]
+                }
+              ],
+              "refId": "A",
+              "source": "max by(ip) (max_over_time(bkmonitor:dbm_system:cpu_detail:usage{cluster_domain=\"$cluster_domain\"}[1m]))",
+              "step": "",
+              "type": "range"
+            },
+            {
+              "cluster": [],
+              "datasource": {
+                "type": "bkmonitor-timeseries-datasource",
+                "uid": "bkmonitor_timeseries"
+              },
+              "enableDownSampling": true,
+              "expressionList": [],
+              "format": "time_series",
+              "hide": false,
+              "host": [],
+              "mode": "ui",
+              "module": [],
+              "promqlAlias": "$tag_ip",
+              "query_configs": [
+                {
+                  "alias": "$tag_instance_role $tag_ip read",
+                  "data_source_label": "bk_monitor",
+                  "data_type_label": "time_series",
+                  "display": true,
+                  "filter_dict": {},
+                  "functions": [],
+                  "group_by": [
+                    "ip"
+                  ],
+                  "interval": 60,
+                  "interval_unit": "s",
+                  "method": "max_without_time",
+                  "metric_field": "rkb_s",
+                  "refId": "a",
+                  "result_table_id": "dbm_system.io",
+                  "result_table_label": "os",
+                  "time_field": "time",
+                  "where": [
+                    {
+                      "key": "cluster_domain",
+                      "method": "eq",
+                      "value": [
+                        "$cluster_domain"
+                      ]
+                    },
+                    {
+                      "condition": "and",
+                      "key": "instance_role",
+                      "method": "reg",
+                      "value": [
+                        "$instance_role"
+                      ]
+                    }
+                  ]
+                }
+              ],
+              "refId": "B",
+              "source": "max by(ip) (max_over_time(bkmonitor:dbm_system:cpu_detail:usage{cluster_domain=\"$cluster_domain\"}[1m]))",
+              "step": "",
+              "type": "range"
+            }
+          ],
+          "title": "shardsvr disk read/write ",
+          "type": "timeseries"
+        },
+        {
+          "datasource": {
+            "type": "bkmonitor-timeseries-datasource",
+            "uid": "bkmonitor_timeseries"
+          },
+          "description": "主机流量",
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "axisBorderShow": false,
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "",
+                "axisPlacement": "auto",
+                "barAlignment": 0,
+                "drawStyle": "line",
+                "fillOpacity": 0,
+                "gradientMode": "none",
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                },
+                "insertNulls": false,
+                "lineInterpolation": "linear",
+                "lineWidth": 1,
+                "pointSize": 3,
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "showPoints": "auto",
+                "spanNulls": false,
+                "stacking": {
+                  "group": "A",
+                  "mode": "none"
+                },
+                "thresholdsStyle": {
+                  "mode": "off"
+                }
+              },
+              "decimals": 1,
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  }
+                ]
+              },
+              "unit": "short"
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 12,
+            "y": 26
+          },
+          "id": 383,
+          "interval": "2m",
+          "options": {
+            "legend": {
+              "calcs": [
+                "lastNotNull",
+                "max"
+              ],
+              "displayMode": "table",
+              "placement": "right",
+              "showLegend": true,
+              "sortBy": "Mean",
+              "sortDesc": true,
+              "width": 350
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "desc"
+            }
+          },
+          "pluginVersion": "9.1.0",
+          "targets": [
+            {
+              "cluster": [],
+              "datasource": {
+                "type": "bkmonitor-timeseries-datasource",
+                "uid": "bkmonitor_timeseries"
+              },
+              "enableDownSampling": true,
+              "expressionList": [],
+              "format": "time_series",
+              "host": [],
+              "mode": "ui",
+              "module": [],
+              "promqlAlias": "$tag_ip",
+              "query_configs": [
+                {
+                  "alias": "$tag_instance_role $tag_ip  out",
+                  "data_source_label": "bk_monitor",
+                  "data_type_label": "time_series",
+                  "display": true,
+                  "filter_dict": {},
+                  "functions": [],
+                  "group_by": [
+                    "ip",
+                    "instance_role"
+                  ],
+                  "interval": 60,
+                  "interval_unit": "s",
+                  "method": "max_without_time",
+                  "metric_field": "speed_sent",
+                  "refId": "a",
+                  "result_table_id": "dbm_system.net",
+                  "result_table_label": "os",
+                  "time_field": "time",
+                  "where": [
+                    {
+                      "key": "cluster_domain",
+                      "method": "eq",
+                      "value": [
+                        "$cluster_domain"
+                      ]
+                    },
+                    {
+                      "condition": "and",
+                      "key": "instance_role",
+                      "method": "reg",
+                      "value": [
+                        "$instance_role"
+                      ]
+                    }
+                  ]
+                }
+              ],
+              "refId": "A",
+              "source": "max by(ip) (max_over_time(bkmonitor:dbm_system:cpu_detail:usage{cluster_domain=\"$cluster_domain\"}[1m]))",
+              "step": "",
+              "type": "range"
+            },
+            {
+              "cluster": [],
+              "datasource": {
+                "type": "bkmonitor-timeseries-datasource",
+                "uid": "bkmonitor_timeseries"
+              },
+              "enableDownSampling": true,
+              "expressionList": [],
+              "format": "time_series",
+              "hide": false,
+              "host": [],
+              "mode": "ui",
+              "module": [],
+              "promqlAlias": "$tag_ip",
+              "query_configs": [
+                {
+                  "alias": "$tag_instance_role $tag_ip  in",
+                  "data_source_label": "bk_monitor",
+                  "data_type_label": "time_series",
+                  "display": true,
+                  "filter_dict": {},
+                  "functions": [],
+                  "group_by": [
+                    "ip",
+                    "instance_role"
+                  ],
+                  "interval": 60,
+                  "interval_unit": "s",
+                  "method": "max_without_time",
+                  "metric_field": "speed_recv",
+                  "refId": "a",
+                  "result_table_id": "dbm_system.net",
+                  "result_table_label": "os",
+                  "time_field": "time",
+                  "where": [
+                    {
+                      "key": "cluster_domain",
+                      "method": "eq",
+                      "value": [
+                        "$cluster_domain"
+                      ]
+                    },
+                    {
+                      "condition": "and",
+                      "key": "instance_role",
+                      "method": "reg",
+                      "value": [
+                        "$instance_role"
+                      ]
+                    }
+                  ]
+                }
+              ],
+              "refId": "B",
+              "source": "max by(ip) (max_over_time(bkmonitor:dbm_system:cpu_detail:usage{cluster_domain=\"$cluster_domain\"}[1m]))",
+              "step": "",
+              "type": "range"
+            }
+          ],
+          "title": "主机流量",
+          "type": "timeseries"
+        },
+        {
+          "datasource": {
+            "type": "bkmonitor-timeseries-datasource",
+            "uid": "bkmonitor_timeseries"
+          },
+          "description": "主机包量",
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "axisBorderShow": false,
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "",
+                "axisPlacement": "auto",
+                "barAlignment": 0,
+                "drawStyle": "line",
+                "fillOpacity": 0,
+                "gradientMode": "none",
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                },
+                "insertNulls": false,
+                "lineInterpolation": "linear",
+                "lineWidth": 1,
+                "pointSize": 3,
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "showPoints": "auto",
+                "spanNulls": false,
+                "stacking": {
+                  "group": "A",
+                  "mode": "none"
+                },
+                "thresholdsStyle": {
+                  "mode": "off"
+                }
+              },
+              "decimals": 1,
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  }
+                ]
+              },
+              "unit": "short"
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 12,
+            "y": 34
+          },
+          "id": 384,
+          "interval": "2m",
+          "options": {
+            "legend": {
+              "calcs": [
+                "lastNotNull",
+                "max"
+              ],
+              "displayMode": "table",
+              "placement": "right",
+              "showLegend": true,
+              "sortBy": "Name",
+              "sortDesc": true,
+              "width": 350
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "desc"
+            }
+          },
+          "pluginVersion": "9.1.0",
+          "targets": [
+            {
+              "cluster": [],
+              "datasource": {
+                "type": "bkmonitor-timeseries-datasource",
+                "uid": "bkmonitor_timeseries"
+              },
+              "enableDownSampling": true,
+              "expressionList": [],
+              "format": "time_series",
+              "host": [],
+              "mode": "code",
+              "module": [],
+              "promqlAlias": "$tag_instance_role $tag_ip  out",
+              "query_configs": [
+                {
+                  "alias": "$tag_instance_role $tag_ip  out",
+                  "data_source_label": "bk_monitor",
+                  "data_type_label": "time_series",
+                  "display": true,
+                  "filter_dict": {},
+                  "functions": [],
+                  "group_by": [
+                    "ip",
+                    "instance_role"
+                  ],
+                  "interval": 60,
+                  "interval_unit": "s",
+                  "method": "max_without_time",
+                  "metric_field": "speed_packets_sent",
+                  "refId": "a",
+                  "result_table_id": "dbm_system.net",
+                  "time_field": "",
+                  "where": [
+                    {
+                      "key": "cluster_domain",
+                      "method": "eq",
+                      "value": [
+                        "$cluster_domain"
+                      ]
+                    },
+                    {
+                      "condition": "and",
+                      "key": "instance_role",
+                      "method": "reg",
+                      "value": [
+                        "$instance_role"
+                      ]
+                    }
+                  ]
+                }
+              ],
+              "refId": "A",
+              "source": "max by (ip, instance_role) (bkmonitor:dbm_system:net:speed_packets_sent{cluster_domain=\"$cluster_domain\",instance_role=~\"$instance_role\"})",
+              "step": "",
+              "type": "range"
+            },
+            {
+              "cluster": [],
+              "datasource": {
+                "type": "bkmonitor-timeseries-datasource",
+                "uid": "bkmonitor_timeseries"
+              },
+              "enableDownSampling": true,
+              "expressionList": [],
+              "format": "time_series",
+              "hide": false,
+              "host": [],
+              "mode": "code",
+              "module": [],
+              "promqlAlias": "$tag_instance_role $tag_ip  in",
+              "query_configs": [
+                {
+                  "alias": "$tag_instance_role $tag_ip  in",
+                  "data_source_label": "bk_monitor",
+                  "data_type_label": "time_series",
+                  "display": true,
+                  "filter_dict": {},
+                  "functions": [],
+                  "group_by": [
+                    "ip",
+                    "instance_role"
+                  ],
+                  "interval": 60,
+                  "interval_unit": "s",
+                  "method": "max_without_time",
+                  "metric_field": "speed_recv",
+                  "refId": "a",
+                  "result_table_id": "dbm_system.net",
+                  "result_table_label": "os",
+                  "time_field": "time",
+                  "where": [
+                    {
+                      "key": "cluster_domain",
+                      "method": "eq",
+                      "value": [
+                        "$cluster_domain"
+                      ]
+                    },
+                    {
+                      "condition": "and",
+                      "key": "instance_role",
+                      "method": "reg",
+                      "value": [
+                        "$instance_role"
+                      ]
+                    }
+                  ]
+                }
+              ],
+              "refId": "B",
+              "source": "max by (ip, instance_role) (bkmonitor:dbm_system:net:speed_packets_recv{cluster_domain=\"$cluster_domain\",instance_role=~\"$instance_role\"})",
+              "step": "",
+              "type": "range"
+            }
+          ],
+          "title": "主机包量",
+          "type": "timeseries"
         }
       ],
-      "title": "memory usage",
-      "type": "timeseries"
+      "title": "OS",
+      "type": "row"
     },
     {
       "collapsed": false,
@@ -881,7 +2752,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 11
+        "y": 10
       },
       "id": 325,
       "panels": [],
@@ -900,6 +2771,7 @@
             "mode": "palette-classic"
           },
           "custom": {
+            "axisBorderShow": false,
             "axisCenteredZero": false,
             "axisColorMode": "text",
             "axisLabel": "",
@@ -914,6 +2786,7 @@
               "tooltip": false,
               "viz": false
             },
+            "insertNulls": false,
             "lineInterpolation": "linear",
             "lineWidth": 2,
             "pointSize": 5,
@@ -951,11 +2824,10 @@
         "h": 7,
         "w": 12,
         "x": 0,
-        "y": 12
+        "y": 11
       },
       "id": 377,
       "interval": "1m",
-      "links": [],
       "maxPerRow": 2,
       "options": {
         "legend": {
@@ -968,7 +2840,7 @@
           "showLegend": true,
           "sortBy": "Last *",
           "sortDesc": true,
-          "width": 250
+          "width": 350
         },
         "tooltip": {
           "mode": "multi",
@@ -984,6 +2856,7 @@
           "datasource": {
             "uid": "dba_mongo_proxy"
           },
+          "enableDownSampling": false,
           "expressionList": [
             {
               "active": true,
@@ -997,7 +2870,7 @@
           "host": [],
           "mode": "code",
           "module": [],
-          "promqlAlias": "$tag_type $tag_instance_role",
+          "promqlAlias": "$tag_instance_role $tag_type",
           "query_configs": [
             {
               "alias": "$tag_type",
@@ -1048,7 +2921,7 @@
             }
           ],
           "refId": "B",
-          "source": "sum by (type,instance_role) (irate(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_mongod_op_counters_total{cluster_domain=\"$cluster_domain\",instance_role=~\"$instance_role$\"}[2m]))",
+          "source": "sum by (type,instance_role) (irate(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_mongod_op_counters_total{cluster_domain=\"$cluster_domain\",instance_role=~\"$instance_role$\"}[2m])) \nor \nsum by (type,instance_role) (irate(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_op_counters_total{cluster_domain=\"$cluster_domain\",instance_role=~\"$instance_role$\"}[2m]))",
           "step": "",
           "type": "range"
         }
@@ -1068,6 +2941,7 @@
             "mode": "palette-classic"
           },
           "custom": {
+            "axisBorderShow": false,
             "axisCenteredZero": false,
             "axisColorMode": "text",
             "axisLabel": "",
@@ -1082,6 +2956,7 @@
               "tooltip": false,
               "viz": false
             },
+            "insertNulls": false,
             "lineInterpolation": "linear",
             "lineWidth": 2,
             "pointSize": 5,
@@ -1122,11 +2997,10 @@
         "h": 7,
         "w": 12,
         "x": 0,
-        "y": 19
+        "y": 18
       },
       "id": 63,
       "interval": "2m",
-      "links": [],
       "options": {
         "legend": {
           "calcs": [
@@ -1136,7 +3010,7 @@
           "displayMode": "table",
           "placement": "right",
           "showLegend": true,
-          "width": 250
+          "width": 350
         },
         "tooltip": {
           "mode": "multi",
@@ -1172,13 +3046,14 @@
         "type": "bkmonitor-timeseries-datasource",
         "uid": "bkmonitor_timeseries"
       },
-      "description": "State",
+      "description": "mongodb_mongod_replset_my_state",
       "fieldConfig": {
         "defaults": {
           "color": {
             "mode": "continuous-greens"
           },
           "custom": {
+            "axisBorderShow": false,
             "axisCenteredZero": false,
             "axisColorMode": "text",
             "axisLabel": "",
@@ -1193,6 +3068,7 @@
               "tooltip": false,
               "viz": false
             },
+            "insertNulls": false,
             "lineInterpolation": "linear",
             "lineWidth": 2,
             "pointSize": 5,
@@ -1230,11 +3106,10 @@
         "h": 7,
         "w": 12,
         "x": 12,
-        "y": 19
+        "y": 18
       },
       "id": 86,
       "interval": "1m",
-      "links": [],
       "options": {
         "legend": {
           "calcs": [
@@ -1246,7 +3121,7 @@
           "showLegend": true,
           "sortBy": "Last *",
           "sortDesc": false,
-          "width": 250
+          "width": 350
         },
         "tooltip": {
           "mode": "multi",
@@ -1344,6 +3219,7 @@
             "mode": "palette-classic"
           },
           "custom": {
+            "axisBorderShow": false,
             "axisCenteredZero": false,
             "axisColorMode": "text",
             "axisLabel": "",
@@ -1358,6 +3234,7 @@
               "tooltip": false,
               "viz": false
             },
+            "insertNulls": false,
             "lineInterpolation": "linear",
             "lineWidth": 2,
             "pointSize": 5,
@@ -1382,7 +3259,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": null
               },
               {
                 "color": "red",
@@ -1398,11 +3276,10 @@
         "h": 7,
         "w": 12,
         "x": 0,
-        "y": 26
+        "y": 25
       },
       "id": 354,
       "interval": "2m",
-      "links": [],
       "options": {
         "legend": {
           "calcs": [
@@ -1412,7 +3289,7 @@
           "displayMode": "table",
           "placement": "right",
           "showLegend": true,
-          "width": 250
+          "width": 350
         },
         "tooltip": {
           "mode": "multi",
@@ -1455,6 +3332,7 @@
             "mode": "palette-classic"
           },
           "custom": {
+            "axisBorderShow": false,
             "axisCenteredZero": false,
             "axisColorMode": "text",
             "axisLabel": "",
@@ -1469,6 +3347,7 @@
               "tooltip": false,
               "viz": false
             },
+            "insertNulls": false,
             "lineInterpolation": "linear",
             "lineWidth": 2,
             "pointSize": 5,
@@ -1492,7 +3371,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": null
               },
               {
                 "color": "red",
@@ -1508,11 +3388,10 @@
         "h": 7,
         "w": 12,
         "x": 12,
-        "y": 26
+        "y": 25
       },
       "id": 87,
       "interval": "2m",
-      "links": [],
       "options": {
         "legend": {
           "calcs": [
@@ -1522,7 +3401,7 @@
           "displayMode": "table",
           "placement": "right",
           "showLegend": true,
-          "width": 250
+          "width": 350
         },
         "tooltip": {
           "mode": "multi",
@@ -1536,6 +3415,7 @@
           "datasource": {
             "uid": "dba_mongo_proxy"
           },
+          "enableDownSampling": false,
           "expressionList": [],
           "format": "time_series",
           "hide": false,
@@ -1545,7 +3425,7 @@
           "promqlAlias": "connection $tag_instance_role",
           "query_configs": [],
           "refId": "A",
-          "source": "irate(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_mongod_connections_metrics_created_total{cluster_domain=\"$cluster_domain\",instance_role=~\"$instance_role\"}[2m]) or \nirate(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_connections_metrics_created_total{cluster_domain=\"$cluster_domain\",instance_role=~\"$instance_role\"}[2m]) ",
+          "source": "max by (instance,instance_role) (bkmonitor:exporter_dbm_mongodb_exporter:mongodb_mongod_connections{cluster_domain=\"$cluster_domain\",state=\"current\",instance_role=~\"$instance_role\"}) or max by (instance,instance_role) (bkmonitor:exporter_dbm_mongodb_exporter:mongodb_connections{cluster_domain=\"$cluster_domain\",instance_role=~\"$instance_role\",state=\"current\"})",
           "step": "",
           "type": "range"
         }
@@ -1565,6 +3445,7 @@
             "mode": "palette-classic"
           },
           "custom": {
+            "axisBorderShow": false,
             "axisCenteredZero": false,
             "axisColorMode": "text",
             "axisLabel": "",
@@ -1579,6 +3460,7 @@
               "tooltip": false,
               "viz": false
             },
+            "insertNulls": false,
             "lineInterpolation": "linear",
             "lineWidth": 2,
             "pointSize": 5,
@@ -1602,7 +3484,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": null
               },
               {
                 "color": "red",
@@ -1618,11 +3501,10 @@
         "h": 7,
         "w": 12,
         "x": 0,
-        "y": 33
+        "y": 32
       },
       "id": 27,
       "interval": "60s",
-      "links": [],
       "options": {
         "legend": {
           "calcs": [
@@ -1633,7 +3515,7 @@
           "displayMode": "table",
           "placement": "right",
           "showLegend": true,
-          "width": 250
+          "width": 350
         },
         "tooltip": {
           "mode": "multi",
@@ -1694,6 +3576,7 @@
             "mode": "palette-classic"
           },
           "custom": {
+            "axisBorderShow": false,
             "axisCenteredZero": false,
             "axisColorMode": "text",
             "axisLabel": "",
@@ -1708,6 +3591,7 @@
               "tooltip": false,
               "viz": false
             },
+            "insertNulls": false,
             "lineInterpolation": "linear",
             "lineWidth": 2,
             "pointSize": 5,
@@ -1731,7 +3615,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": null
               },
               {
                 "color": "red",
@@ -1747,22 +3632,20 @@
         "h": 7,
         "w": 12,
         "x": 12,
-        "y": 33
+        "y": 32
       },
       "id": 90,
       "interval": "2m",
-      "links": [],
       "options": {
         "legend": {
           "calcs": [
-            "mean",
             "max",
-            "min"
+            "lastNotNull"
           ],
           "displayMode": "table",
           "placement": "right",
           "showLegend": true,
-          "width": 250
+          "width": 350
         },
         "tooltip": {
           "mode": "multi",
@@ -1776,6 +3659,7 @@
           "datasource": {
             "uid": "dba_mongo_proxy"
           },
+          "enableDownSampling": false,
           "expressionList": [],
           "format": "time_series",
           "hide": false,
@@ -1785,7 +3669,7 @@
           "promqlAlias": "$tag_instance_role",
           "query_configs": [],
           "refId": "A",
-          "source": "increase(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_mongod_connections_metrics_created_total{cluster_domain=\"$cluster_domain\",instance_role=~\"$instance_role\"}[2m])\nor\nincrease(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_connections_metrics_created_total{cluster_domain=\"$cluster_domain\",instance_role=~\"$instance_role\"}[2m])\nor \nincrease(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_ss_connections{cluster_domain=\"$cluster_domain\",instance_role=~\"$instance_role\"}[2m])\n",
+          "source": "increase(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_ss_connections{cluster_domain=\"$cluster_domain\",conn_type=\"totalCreated\",instance_role=~\"$instance_role\"}[2m])  or  increase(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_mongod_connections_metrics_created_total{cluster_domain=\"$cluster_domain\",instance_role=~\"$instance_role\"}[2m]) ",
           "step": "",
           "type": "range"
         }
@@ -1805,6 +3689,7 @@
             "mode": "palette-classic"
           },
           "custom": {
+            "axisBorderShow": false,
             "axisCenteredZero": false,
             "axisColorMode": "text",
             "axisLabel": "",
@@ -1819,6 +3704,7 @@
               "tooltip": false,
               "viz": false
             },
+            "insertNulls": false,
             "lineInterpolation": "linear",
             "lineWidth": 2,
             "pointSize": 5,
@@ -1842,7 +3728,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": null
               },
               {
                 "color": "red",
@@ -1858,11 +3745,10 @@
         "h": 7,
         "w": 12,
         "x": 0,
-        "y": 40
+        "y": 39
       },
       "id": 14,
       "interval": "60s",
-      "links": [],
       "options": {
         "legend": {
           "calcs": [
@@ -1887,6 +3773,7 @@
           "datasource": {
             "uid": "dba_mongo_proxy"
           },
+          "enableDownSampling": false,
           "expressionList": [],
           "format": "time_series",
           "hide": false,
@@ -1896,7 +3783,7 @@
           "promqlAlias": "$tag_instance_role",
           "query_configs": [],
           "refId": "A",
-          "source": "(max(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_mongod_replset_member_optime_date{cluster_domain=\"$cluster_domain\"}) by (instance_role)-\nmin(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_mongod_replset_member_optime_date{cluster_domain=\"$cluster_domain\",instance_role=~\"$instance_role\"})  by (instance_role) )  ",
+          "source": "max(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_mongod_replset_member_replication_lag{cluster_domain=\"$cluster_domain\",instance_role=~\"$instance_role\"}) by (instance_role)",
           "step": 300,
           "type": "range"
         }
@@ -1916,6 +3803,7 @@
             "mode": "palette-classic"
           },
           "custom": {
+            "axisBorderShow": false,
             "axisCenteredZero": false,
             "axisColorMode": "text",
             "axisLabel": "diskSize",
@@ -1930,6 +3818,7 @@
               "tooltip": false,
               "viz": false
             },
+            "insertNulls": false,
             "lineInterpolation": "linear",
             "lineWidth": 2,
             "pointSize": 5,
@@ -1954,7 +3843,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": null
               },
               {
                 "color": "red",
@@ -1970,11 +3860,10 @@
         "h": 7,
         "w": 12,
         "x": 12,
-        "y": 40
+        "y": 39
       },
       "id": 189,
       "interval": "60s",
-      "links": [],
       "options": {
         "legend": {
           "calcs": [
@@ -1985,7 +3874,7 @@
           "displayMode": "table",
           "placement": "right",
           "showLegend": true,
-          "width": 250
+          "width": 350
         },
         "tooltip": {
           "mode": "multi",
@@ -2017,901 +3906,590 @@
     },
     {
       "collapsed": false,
-      "datasource": {
-        "type": "bkmonitor-timeseries-datasource",
-        "uid": "bkmonitor_timeseries"
-      },
       "gridPos": {
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 47
+        "y": 46
       },
-      "id": 92,
+      "id": 390,
       "panels": [],
-      "targets": [
-        {
-          "datasource": {
-            "type": "bkmonitor-timeseries-datasource",
-            "uid": "bkmonitor_timeseries"
-          },
-          "refId": "A"
-        }
-      ],
-      "title": "Row title",
+      "title": "WritedTiger",
       "type": "row"
     },
     {
-      "aliasColors": {},
-      "bars": false,
-      "dashLength": 10,
-      "dashes": false,
       "datasource": {
-        "uid": "dba_mongo_proxy"
+        "type": "bkmonitor-timeseries-datasource",
+        "uid": "bkmonitor_timeseries"
       },
-      "description": "This can show a correlation with the replication lag value",
-      "editable": false,
-      "error": false,
+      "description": "mongodb_mongod_global_lock_current_queue\nrequire version >=3.6",
       "fieldConfig": {
         "defaults": {
-          "links": []
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "decimals": 1,
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "short"
         },
         "overrides": []
       },
-      "fill": 2,
-      "fillGradient": 0,
-      "grid": {
-        "leftLogBase": 1,
-        "leftMin": 0,
-        "rightLogBase": 1
-      },
       "gridPos": {
-        "h": 7,
+        "h": 8,
         "w": 12,
         "x": 0,
-        "y": 48
+        "y": 47
       },
-      "hiddenSeries": false,
-      "id": 13,
-      "interval": "60s",
-      "legend": {
-        "alignAsTable": true,
-        "avg": true,
-        "current": false,
-        "max": true,
-        "min": true,
-        "show": true,
-        "sort": "avg",
-        "sortDesc": true,
-        "total": false,
-        "values": true
-      },
-      "lines": true,
-      "linewidth": 2,
-      "links": [],
-      "maxPerRow": 4,
-      "nullPointMode": "null",
+      "id": 389,
       "options": {
-        "alertThreshold": true
+        "legend": {
+          "calcs": [
+            "max"
+          ],
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true,
+          "width": 350
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
       },
-      "percentage": false,
-      "pluginVersion": "9.1.0",
-      "pointradius": 5,
-      "points": false,
-      "prom": "Prometheus",
-      "renderer": "flot",
-      "repeat": "instance",
-      "repeatDirection": "h",
-      "seriesOverrides": [],
-      "spaceLength": 10,
-      "stack": false,
-      "steppedLine": false,
+      "pluginVersion": "10.4.0",
       "targets": [
         {
+          "cluster": [],
           "datasource": {
             "uid": "dba_mongo_proxy"
           },
-          "expr": "mongodb_mongod_replset_member_ping_ms{gcs_app=\"$gcs_app\",gcs_set=\"$gcs_set\",instance_alias=~\"$instance\"} * on (name) \ngroup_right mongodb_mongod_replset_my_name{gcs_app=\"$gcs_app\",gcs_set=\"$gcs_set\"} ",
+          "enableDownSampling": true,
+          "expressionList": [],
           "format": "time_series",
           "hide": false,
-          "interval": "",
-          "intervalFactor": 1,
-          "legendFormat": "{{instance}}",
+          "host": [],
+          "mode": "code",
+          "module": [],
+          "promqlAlias": "$tag_instance_role  $tag_instance $tag_type",
+          "query_configs": [
+            {
+              "alias": "",
+              "data_label": "exporter_dbm_mongodb_exporter",
+              "data_source_label": "bk_monitor",
+              "data_type_label": "time_series",
+              "display": true,
+              "filter_dict": {},
+              "functions": [],
+              "group_by": [],
+              "interval": "auto",
+              "interval_unit": "s",
+              "method": "AVG",
+              "metric_field": "mongodb_mongod_global_lock_current_queue",
+              "refId": "a",
+              "result_table_id": "exporter_dbm_mongodb_exporter.__default__",
+              "result_table_label": "component",
+              "time_field": "time",
+              "where": []
+            }
+          ],
           "refId": "A",
-          "step": 300
+          "source": "bkmonitor:exporter_dbm_mongodb_exporter:mongodb_mongod_global_lock_current_queue{cluster_domain=\"$cluster_domain\",instance_role=~\"$instance_role\",type!=\"total\"}",
+          "step": "",
+          "type": "range"
         }
       ],
-      "thresholds": [],
-      "timeRegions": [],
-      "title": "Max Member Ping Time",
-      "tooltip": {
-        "msResolution": false,
-        "shared": true,
-        "sort": 0,
-        "value_type": "cumulative"
-      },
-      "type": "graph",
-      "x-axis": true,
-      "xaxis": {
-        "mode": "time",
-        "show": true,
-        "values": []
-      },
-      "y-axis": true,
-      "y_formats": [
-        "ms",
-        "short"
-      ],
-      "yaxes": [
-        {
-          "format": "ms",
-          "label": "",
-          "logBase": 1,
-          "min": 0,
-          "show": true
-        },
-        {
-          "format": "short",
-          "logBase": 1,
-          "show": true
-        }
-      ],
-      "yaxis": {
-        "align": false
-      }
+      "title": "WiredTiger Queue ",
+      "type": "timeseries"
     },
     {
-      "aliasColors": {},
-      "bars": false,
-      "dashLength": 10,
-      "dashes": false,
       "datasource": {
-        "uid": "dba_mongo_proxy"
+        "type": "bkmonitor-timeseries-datasource",
+        "uid": "bkmonitor_timeseries"
       },
-      "editable": false,
-      "error": false,
+      "description": "mongodb_mongod_wiredtiger_session_open_sessions_total \nrequire version >=3.6",
       "fieldConfig": {
         "defaults": {
-          "links": []
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "decimals": 1,
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "short"
         },
         "overrides": []
       },
-      "fill": 2,
-      "fillGradient": 0,
-      "grid": {
-        "leftLogBase": 1,
-        "leftMin": 0,
-        "rightLogBase": 1
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 47
+      },
+      "id": 392,
+      "options": {
+        "legend": {
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ],
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true,
+          "width": 350
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "pluginVersion": "10.4.0",
+      "targets": [
+        {
+          "cluster": [],
+          "datasource": {
+            "uid": "dba_mongo_proxy"
+          },
+          "enableDownSampling": true,
+          "expressionList": [],
+          "format": "time_series",
+          "hide": false,
+          "host": [],
+          "mode": "code",
+          "module": [],
+          "promqlAlias": "$tag_instance_role $tag_instance",
+          "query_configs": [
+            {
+              "alias": "",
+              "data_label": "exporter_dbm_mongodb_exporter",
+              "data_source_label": "bk_monitor",
+              "data_type_label": "time_series",
+              "display": true,
+              "filter_dict": {},
+              "functions": [],
+              "group_by": [],
+              "interval": "auto",
+              "interval_unit": "s",
+              "method": "AVG",
+              "metric_field": "mongodb_mongod_global_lock_current_queue",
+              "refId": "a",
+              "result_table_id": "exporter_dbm_mongodb_exporter.__default__",
+              "result_table_label": "component",
+              "time_field": "time",
+              "where": []
+            }
+          ],
+          "refId": "A",
+          "source": "bkmonitor:exporter_dbm_mongodb_exporter:mongodb_mongod_wiredtiger_session_open_sessions_total{cluster_domain=\"$cluster_domain\",instance_role=~\"$instance_role\",type!=\"total\"}",
+          "step": "",
+          "type": "range"
+        }
+      ],
+      "title": "WiredTiger Session",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "bkmonitor-timeseries-datasource",
+        "uid": "bkmonitor_timeseries"
+      },
+      "description": "mongodb_mongod_wiredtiger_session_open_sessions_total \n\nrequire version >=3.6",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "decimals": 1,
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "percentunit"
+        },
+        "overrides": []
       },
       "gridPos": {
-        "h": 7,
+        "h": 8,
         "w": 12,
         "x": 0,
         "y": 55
       },
-      "hiddenSeries": false,
-      "id": 85,
-      "interval": "60s",
-      "legend": {
-        "alignAsTable": true,
-        "avg": true,
-        "current": false,
-        "max": true,
-        "min": true,
-        "show": true,
-        "sort": "avg",
-        "sortDesc": true,
-        "total": false,
-        "values": true
-      },
-      "lines": true,
-      "linewidth": 2,
-      "links": [],
-      "maxPerRow": 4,
-      "nullPointMode": "null",
+      "id": 393,
       "options": {
-        "alertThreshold": true
+        "legend": {
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ],
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true,
+          "width": 350
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
       },
-      "percentage": false,
-      "pluginVersion": "9.1.0",
-      "pointradius": 5,
-      "points": false,
-      "prom": "Prometheus",
-      "renderer": "flot",
-      "repeat": "instance",
-      "repeatDirection": "h",
-      "seriesOverrides": [],
-      "spaceLength": 10,
-      "stack": false,
-      "steppedLine": false,
+      "pluginVersion": "10.4.0",
       "targets": [
         {
+          "cluster": [],
           "datasource": {
             "uid": "dba_mongo_proxy"
           },
-          "expr": "mongodb_mongod_metrics_repl_buffer_count{gcs_app=\"$gcs_app\",gcs_set=\"$gcs_set\",instance_alias=~\"$instance\"}",
+          "enableDownSampling": true,
+          "expressionList": [],
           "format": "time_series",
           "hide": false,
-          "interval": "",
-          "intervalFactor": 1,
-          "legendFormat": "Current",
+          "host": [],
+          "mode": "code",
+          "module": [],
+          "promqlAlias": "$tag_instance_role $tag_instance",
+          "query_configs": [
+            {
+              "alias": "",
+              "data_label": "exporter_dbm_mongodb_exporter",
+              "data_source_label": "bk_monitor",
+              "data_type_label": "time_series",
+              "display": true,
+              "filter_dict": {},
+              "functions": [],
+              "group_by": [],
+              "interval": "auto",
+              "interval_unit": "s",
+              "method": "AVG",
+              "metric_field": "mongodb_mongod_global_lock_current_queue",
+              "refId": "a",
+              "result_table_id": "exporter_dbm_mongodb_exporter.__default__",
+              "result_table_label": "component",
+              "time_field": "time",
+              "where": []
+            }
+          ],
           "refId": "A",
-          "step": 300
+          "source": "bkmonitor:exporter_dbm_mongodb_exporter:mongodb_mongod_wiredtiger_cache_pages{cluster_domain=\"$cluster_domain\",instance_role=~\"$instance_role\",type=\"dirty\" } / ignoring(type) bkmonitor:exporter_dbm_mongodb_exporter:mongodb_mongod_wiredtiger_cache_pages{cluster_domain=\"$cluster_domain\",instance_role=~\"$instance_role\",type=\"total\" }",
+          "step": "",
+          "type": "range"
         }
       ],
-      "thresholds": [],
-      "timeRegions": [],
-      "title": "Oplog Buffered Operations",
-      "tooltip": {
-        "msResolution": false,
-        "shared": true,
-        "sort": 0,
-        "value_type": "cumulative"
-      },
-      "type": "graph",
-      "x-axis": true,
-      "xaxis": {
-        "mode": "time",
-        "show": true,
-        "values": []
-      },
-      "y-axis": true,
-      "y_formats": [
-        "ms",
-        "short"
-      ],
-      "yaxes": [
-        {
-          "format": "ops",
-          "label": "",
-          "logBase": 1,
-          "min": 0,
-          "show": true
-        },
-        {
-          "format": "short",
-          "logBase": 1,
-          "show": true
-        }
-      ],
-      "yaxis": {
-        "align": false
-      }
+      "title": "WiredTiger Dirty%",
+      "type": "timeseries"
     },
     {
-      "aliasColors": {},
-      "bars": false,
-      "dashLength": 10,
-      "dashes": false,
       "datasource": {
-        "uid": "dba_mongo_proxy"
+        "type": "bkmonitor-timeseries-datasource",
+        "uid": "bkmonitor_timeseries"
       },
-      "description": "Elections happen when a primary becomes unavailable. Look at this graph over longer periods (weeks or months) to determine patterns and correlate elections with other events.",
-      "editable": false,
-      "error": false,
+      "description": "avg(irate(mongodb_mongod_metrics_query_executor_total))",
       "fieldConfig": {
         "defaults": {
-          "links": []
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "decimals": 1,
+          "mappings": [],
+          "max": -2,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "short"
         },
         "overrides": []
       },
-      "fill": 2,
-      "fillGradient": 0,
-      "grid": {
-        "leftLogBase": 1,
-        "leftMin": 0,
-        "rightLogBase": 1
-      },
       "gridPos": {
-        "h": 7,
+        "h": 8,
         "w": 12,
-        "x": 0,
-        "y": 62
+        "x": 12,
+        "y": 55
       },
-      "hiddenSeries": false,
-      "id": 12,
-      "interval": "60s",
-      "legend": {
-        "alignAsTable": true,
-        "avg": true,
-        "current": false,
-        "max": true,
-        "min": true,
-        "show": true,
-        "total": false,
-        "values": true
-      },
-      "lines": true,
-      "linewidth": 2,
-      "links": [],
-      "maxPerRow": 4,
-      "nullPointMode": "null",
+      "id": 394,
       "options": {
-        "alertThreshold": true
+        "legend": {
+          "calcs": [
+            "max"
+          ],
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true,
+          "sortBy": "Max",
+          "sortDesc": true,
+          "width": 350
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
       },
-      "percentage": false,
-      "pluginVersion": "9.1.0",
-      "pointradius": 5,
-      "points": false,
-      "prom": "Prometheus",
-      "renderer": "flot",
-      "repeat": "instance",
-      "repeatDirection": "h",
-      "seriesOverrides": [],
-      "spaceLength": 10,
-      "stack": false,
-      "steppedLine": false,
+      "pluginVersion": "10.4.0",
       "targets": [
         {
+          "cluster": [],
           "datasource": {
             "uid": "dba_mongo_proxy"
           },
-          "expr": "max(changes(mongodb_mongod_replset_member_election_date{gcs_app=\"$gcs_app\",gcs_set=\"$gcs_set\",instance_alias=~\"$instance\"}[$__interval]))",
-          "format": "time_series",
-          "interval": "",
-          "intervalFactor": 1,
-          "legendFormat": "Count",
-          "refId": "A",
-          "step": 300
-        }
-      ],
-      "thresholds": [],
-      "timeRegions": [],
-      "title": "Elections",
-      "tooltip": {
-        "msResolution": false,
-        "shared": true,
-        "sort": 0,
-        "value_type": "cumulative"
-      },
-      "type": "graph",
-      "x-axis": true,
-      "xaxis": {
-        "mode": "time",
-        "show": true,
-        "values": []
-      },
-      "y-axis": true,
-      "y_formats": [
-        "short",
-        "short"
-      ],
-      "yaxes": [
-        {
-          "format": "short",
-          "label": "",
-          "logBase": 1,
-          "min": 0,
-          "show": true
-        },
-        {
-          "format": "short",
-          "logBase": 1,
-          "show": true
-        }
-      ],
-      "yaxis": {
-        "align": false
-      }
-    },
-    {
-      "aliasColors": {},
-      "bars": false,
-      "dashLength": 10,
-      "dashes": false,
-      "datasource": {
-        "uid": "dba_mongo_proxy"
-      },
-      "description": "Shows the heartbeat return times sent by the current member to other members in the replica set.",
-      "editable": false,
-      "error": false,
-      "fieldConfig": {
-        "defaults": {
-          "links": []
-        },
-        "overrides": []
-      },
-      "fill": 2,
-      "fillGradient": 0,
-      "grid": {
-        "leftLogBase": 1,
-        "leftMin": 0,
-        "rightLogBase": 1
-      },
-      "gridPos": {
-        "h": 7,
-        "w": 12,
-        "x": 0,
-        "y": 69
-      },
-      "hiddenSeries": false,
-      "id": 75,
-      "interval": "60s",
-      "legend": {
-        "alignAsTable": true,
-        "avg": true,
-        "current": false,
-        "max": true,
-        "min": true,
-        "show": true,
-        "sort": "avg",
-        "sortDesc": true,
-        "total": false,
-        "values": true
-      },
-      "lines": true,
-      "linewidth": 2,
-      "links": [],
-      "maxPerRow": 4,
-      "nullPointMode": "null",
-      "options": {
-        "alertThreshold": true
-      },
-      "percentage": false,
-      "pluginVersion": "9.1.0",
-      "pointradius": 5,
-      "points": false,
-      "prom": "Prometheus",
-      "renderer": "flot",
-      "repeat": "instance",
-      "repeatDirection": "h",
-      "seriesOverrides": [],
-      "spaceLength": 10,
-      "stack": false,
-      "steppedLine": false,
-      "targets": [
-        {
-          "datasource": {
-            "uid": "dba_mongo_proxy"
-          },
-          "expr": "time() - max(mongodb_mongod_replset_member_last_heartbeat{gcs_app=\"$gcs_app\",gcs_set=\"$gcs_set\",instance_alias=~\"$instance\"}) by (name) * on (name) group_right mongodb_mongod_replset_my_name",
+          "enableDownSampling": true,
+          "expressionList": [],
           "format": "time_series",
           "hide": false,
-          "interval": "",
-          "intervalFactor": 1,
-          "legendFormat": "{{instance}}",
-          "metric": "",
-          "refId": "J",
-          "step": 300
-        }
-      ],
-      "thresholds": [],
-      "timeRegions": [],
-      "title": "Max Heartbeat Time",
-      "tooltip": {
-        "msResolution": false,
-        "shared": true,
-        "sort": 0,
-        "value_type": "cumulative"
-      },
-      "type": "graph",
-      "x-axis": true,
-      "xaxis": {
-        "mode": "time",
-        "show": true,
-        "values": []
-      },
-      "y-axis": true,
-      "y_formats": [
-        "s",
-        "short"
-      ],
-      "yaxes": [
-        {
-          "format": "s",
-          "label": "",
-          "logBase": 1,
-          "min": 0,
-          "show": true
-        },
-        {
-          "format": "short",
-          "logBase": 1,
-          "show": true
-        }
-      ],
-      "yaxis": {
-        "align": false
-      }
-    },
-    {
-      "aliasColors": {},
-      "bars": false,
-      "dashLength": 10,
-      "dashes": false,
-      "datasource": {
-        "uid": "dba_mongo_proxy"
-      },
-      "editable": false,
-      "error": false,
-      "fieldConfig": {
-        "defaults": {
-          "links": []
-        },
-        "overrides": []
-      },
-      "fill": 2,
-      "fillGradient": 0,
-      "grid": {
-        "leftLogBase": 1,
-        "leftMin": 0,
-        "rightLogBase": 1
-      },
-      "gridPos": {
-        "h": 7,
-        "w": 12,
-        "x": 0,
-        "y": 76
-      },
-      "hiddenSeries": false,
-      "id": 80,
-      "interval": "60s",
-      "legend": {
-        "alignAsTable": true,
-        "avg": true,
-        "current": false,
-        "max": true,
-        "min": true,
-        "show": true,
-        "sort": "avg",
-        "sortDesc": true,
-        "total": false,
-        "values": true
-      },
-      "lines": true,
-      "linewidth": 2,
-      "links": [],
-      "maxPerRow": 4,
-      "nullPointMode": "null",
-      "options": {
-        "alertThreshold": true
-      },
-      "percentage": false,
-      "pluginVersion": "9.1.0",
-      "pointradius": 5,
-      "points": false,
-      "prom": "Prometheus",
-      "renderer": "flot",
-      "repeat": "instance",
-      "repeatDirection": "h",
-      "seriesOverrides": [],
-      "spaceLength": 10,
-      "stack": false,
-      "steppedLine": false,
-      "targets": [
-        {
-          "datasource": {
-            "uid": "dba_mongo_proxy"
-          },
-          "expr": "mongodb_mongod_metrics_repl_buffer_size_bytes{gcs_app=\"$gcs_app\",gcs_set=\"$gcs_set\",instance_alias=~\"$instance\"}",
-          "format": "time_series",
-          "interval": "",
-          "intervalFactor": 1,
-          "legendFormat": "Used",
+          "host": [],
+          "mode": "code",
+          "module": [],
+          "promqlAlias": "$tag_instance_role $tag_instance $tag_state",
+          "query_configs": [
+            {
+              "alias": "$tag_instance $tag_state",
+              "data_label": "exporter_dbm_mongodb_exporter",
+              "data_source_label": "bk_monitor",
+              "data_type_label": "time_series",
+              "display": true,
+              "filter_dict": {},
+              "functions": [
+                {
+                  "id": "irate",
+                  "params": [
+                    {
+                      "id": "window",
+                      "value": "2m"
+                    }
+                  ]
+                }
+              ],
+              "group_by": [
+                "state",
+                "instance"
+              ],
+              "interval": 60,
+              "interval_unit": "s",
+              "method": "AVG",
+              "metric_field": "mongodb_mongod_metrics_query_executor_total",
+              "refId": "a",
+              "result_table_id": "exporter_dbm_mongodb_exporter.__default__",
+              "result_table_label": "component",
+              "time_field": "time",
+              "where": [
+                {
+                  "key": "cluster_domain",
+                  "method": "eq",
+                  "value": [
+                    "$cluster_domain"
+                  ]
+                }
+              ]
+            }
+          ],
           "refId": "A",
-          "step": 300
-        },
-        {
-          "datasource": {
-            "uid": "dba_mongo_proxy"
-          },
-          "expr": "mongodb_mongod_metrics_repl_buffer_max_size_bytes{gcs_app=\"$gcs_app\",gcs_set=\"$gcs_set\",instance_alias=~\"$instance\"}",
-          "format": "time_series",
-          "interval": "",
-          "intervalFactor": 1,
-          "legendFormat": "Max",
-          "refId": "B",
-          "step": 300
+          "source": "avg by (state, instance,instance_role) (irate(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_mongod_metrics_query_executor_total{cluster_domain=\"$cluster_domain\",instance_role=~\"$instance_role\"}[2m]))",
+          "step": "",
+          "type": "range"
         }
       ],
-      "thresholds": [],
-      "timeRegions": [],
-      "title": "Oplog Buffer Capacity",
-      "tooltip": {
-        "msResolution": false,
-        "shared": true,
-        "sort": 0,
-        "value_type": "cumulative"
-      },
-      "type": "graph",
-      "x-axis": true,
-      "xaxis": {
-        "mode": "time",
-        "show": true,
-        "values": []
-      },
-      "y-axis": true,
-      "y_formats": [
-        "ms",
-        "short"
-      ],
-      "yaxes": [
-        {
-          "format": "decbytes",
-          "label": "",
-          "logBase": 10,
-          "min": 0,
-          "show": true
-        },
-        {
-          "format": "short",
-          "logBase": 1,
-          "show": true
-        }
-      ],
-      "yaxis": {
-        "align": false
-      }
-    },
-    {
-      "aliasColors": {},
-      "bars": false,
-      "dashLength": 10,
-      "dashes": false,
-      "datasource": {
-        "uid": "dba_mongo_proxy"
-      },
-      "editable": false,
-      "error": false,
-      "fieldConfig": {
-        "defaults": {
-          "links": []
-        },
-        "overrides": []
-      },
-      "fill": 2,
-      "fillGradient": 0,
-      "grid": {
-        "leftLogBase": 1,
-        "leftMin": 0,
-        "rightLogBase": 1
-      },
-      "gridPos": {
-        "h": 7,
-        "w": 12,
-        "x": 0,
-        "y": 83
-      },
-      "hiddenSeries": false,
-      "id": 79,
-      "interval": "60s",
-      "legend": {
-        "alignAsTable": true,
-        "avg": true,
-        "current": false,
-        "max": true,
-        "min": true,
-        "show": true,
-        "sort": "avg",
-        "sortDesc": true,
-        "total": false,
-        "values": true
-      },
-      "lines": true,
-      "linewidth": 2,
-      "links": [],
-      "maxPerRow": 4,
-      "nullPointMode": "null",
-      "options": {
-        "alertThreshold": true
-      },
-      "percentage": false,
-      "pluginVersion": "9.1.0",
-      "pointradius": 5,
-      "points": false,
-      "prom": "Prometheus",
-      "renderer": "flot",
-      "repeat": "instance",
-      "repeatDirection": "h",
-      "seriesOverrides": [],
-      "spaceLength": 10,
-      "stack": false,
-      "steppedLine": false,
-      "targets": [
-        {
-          "datasource": {
-            "uid": "dba_mongo_proxy"
-          },
-          "expr": "rate(mongodb_mongod_metrics_repl_network_getmores_total_milliseconds{gcs_app=\"$gcs_app\",gcs_set=\"$gcs_set\",instance_alias=~\"$instance\"}[$__interval]) or \nirate(mongodb_mongod_metrics_repl_network_getmores_total_milliseconds{gcs_app=\"$gcs_app\",gcs_set=\"$gcs_set\",instance_alias=~\"$instance\"}[5m])",
-          "format": "time_series",
-          "interval": "",
-          "intervalFactor": 1,
-          "legendFormat": "{{instance}}",
-          "refId": "A",
-          "step": 300
-        }
-      ],
-      "thresholds": [],
-      "timeRegions": [],
-      "title": "Oplog Getmore Time",
-      "tooltip": {
-        "msResolution": false,
-        "shared": true,
-        "sort": 0,
-        "value_type": "cumulative"
-      },
-      "type": "graph",
-      "x-axis": true,
-      "xaxis": {
-        "mode": "time",
-        "show": true,
-        "values": []
-      },
-      "y-axis": true,
-      "y_formats": [
-        "ms",
-        "short"
-      ],
-      "yaxes": [
-        {
-          "format": "ms",
-          "label": "",
-          "logBase": 1,
-          "min": 0,
-          "show": true
-        },
-        {
-          "format": "short",
-          "logBase": 1,
-          "show": true
-        }
-      ],
-      "yaxis": {
-        "align": false
-      }
-    },
-    {
-      "aliasColors": {},
-      "bars": false,
-      "dashLength": 10,
-      "dashes": false,
-      "datasource": {
-        "uid": "dba_mongo_proxy"
-      },
-      "editable": false,
-      "error": false,
-      "fieldConfig": {
-        "defaults": {
-          "links": []
-        },
-        "overrides": []
-      },
-      "fill": 2,
-      "fillGradient": 0,
-      "grid": {
-        "leftLogBase": 1,
-        "leftMin": 0,
-        "rightLogBase": 1
-      },
-      "gridPos": {
-        "h": 7,
-        "w": 12,
-        "x": 0,
-        "y": 90
-      },
-      "hiddenSeries": false,
-      "id": 84,
-      "interval": "60s",
-      "legend": {
-        "alignAsTable": true,
-        "avg": true,
-        "current": false,
-        "max": true,
-        "min": true,
-        "show": true,
-        "sort": "avg",
-        "sortDesc": true,
-        "total": false,
-        "values": true
-      },
-      "lines": true,
-      "linewidth": 2,
-      "links": [],
-      "maxPerRow": 4,
-      "nullPointMode": "null",
-      "options": {
-        "alertThreshold": true
-      },
-      "percentage": false,
-      "pluginVersion": "9.1.0",
-      "pointradius": 5,
-      "points": false,
-      "prom": "Prometheus",
-      "renderer": "flot",
-      "repeat": "instance",
-      "repeatDirection": "h",
-      "seriesOverrides": [],
-      "spaceLength": 10,
-      "stack": false,
-      "steppedLine": false,
-      "targets": [
-        {
-          "datasource": {
-            "uid": "dba_mongo_proxy"
-          },
-          "expr": "rate(mongodb_mongod_metrics_repl_preload_docs_total_milliseconds{gcs_app=\"$gcs_app\",gcs_set=\"$gcs_set\",instance_alias=~\"$instance\"}[$__interval]) or \nirate(mongodb_mongod_metrics_repl_preload_docs_total_milliseconds{gcs_app=\"$gcs_app\",gcs_set=\"$gcs_set\",instance_alias=~\"$instance\"}[5m])",
-          "format": "time_series",
-          "interval": "",
-          "intervalFactor": 1,
-          "legendFormat": "Document Preload",
-          "refId": "A",
-          "step": 300
-        },
-        {
-          "datasource": {
-            "uid": "dba_mongo_proxy"
-          },
-          "expr": "rate(mongodb_mongod_metrics_repl_preload_indexes_total_milliseconds{gcs_app=\"$gcs_app\",gcs_set=\"$gcs_set\",instance_alias=~\"$instance\"}[$__interval]) \nor irate(mongodb_mongod_metrics_repl_preload_indexes_total_milliseconds{gcs_app=\"$gcs_app\",gcs_set=\"$gcs_set\",instance_alias=~\"$instance\"}[5m])",
-          "format": "time_series",
-          "interval": "",
-          "intervalFactor": 1,
-          "legendFormat": "Index Preload",
-          "metric": "mongodb_mongod_metrics_repl_preload_indexes_total_milliseconds",
-          "refId": "B",
-          "step": 300
-        },
-        {
-          "datasource": {
-            "uid": "dba_mongo_proxy"
-          },
-          "expr": "rate(mongodb_mongod_metrics_repl_apply_batches_total_milliseconds{gcs_app=\"$gcs_app\",gcs_set=\"$gcs_set\",instance_alias=~\"$instance\"}[$__interval]) \nor irate(mongodb_mongod_metrics_repl_apply_batches_total_milliseconds{gcs_app=\"$gcs_app\",gcs_set=\"$gcs_set\",instance_alias=~\"$instance\"}[5m])",
-          "format": "time_series",
-          "interval": "",
-          "intervalFactor": 1,
-          "legendFormat": "Batch Apply",
-          "metric": "mongodb_mongod_metrics_repl_preload_indexes_total_milliseconds",
-          "refId": "C",
-          "step": 300
-        }
-      ],
-      "thresholds": [],
-      "timeRegions": [],
-      "title": "Oplog Processing Time",
-      "tooltip": {
-        "msResolution": false,
-        "shared": true,
-        "sort": 0,
-        "value_type": "cumulative"
-      },
-      "type": "graph",
-      "x-axis": true,
-      "xaxis": {
-        "mode": "time",
-        "show": true,
-        "values": []
-      },
-      "y-axis": true,
-      "y_formats": [
-        "ms",
-        "short"
-      ],
-      "yaxes": [
-        {
-          "format": "ms",
-          "label": "",
-          "logBase": 1,
-          "min": 0,
-          "show": true
-        },
-        {
-          "format": "short",
-          "logBase": 1,
-          "show": true
-        }
-      ],
-      "yaxis": {
-        "align": false
-      }
+      "title": "scan object",
+      "type": "timeseries"
     }
   ],
   "refresh": false,
-  "schemaVersion": 37,
-  "style": "dark",
+  "schemaVersion": 39,
   "tags": [
     "MongoReplicaSet"
   ],
   "templating": {
     "list": [
+      {
+        "current": {
+          "selected": false,
+          "text": "ReplicaSet",
+          "value": "ReplicaSet"
+        },
+        "description": "ClusterType",
+        "hide": 0,
+        "includeAll": false,
+        "label": "ClusterType",
+        "multi": false,
+        "name": "ClusterType",
+        "options": [
+          {
+            "selected": true,
+            "text": "ReplicaSet",
+            "value": "ReplicaSet"
+          }
+        ],
+        "query": "ReplicaSet",
+        "skipUrlSync": false,
+        "type": "custom"
+      },
       {
         "allFormat": "glob",
         "current": {
@@ -2924,12 +4502,13 @@
           "uid": "bkmonitor_timeseries"
         },
         "definition": "- Blueking Monitor - 维度",
+        "description": "app",
         "hide": 2,
         "includeAll": false,
-        "label": "cluster_domain",
+        "label": "app",
         "multi": false,
         "multiFormat": "glob",
-        "name": "cluster_domain",
+        "name": "app",
         "options": [],
         "prom": "Prometheus",
         "query": {
@@ -2937,7 +4516,7 @@
             "data_label": "exporter_dbm_mongodb_exporter",
             "data_source_label": "bk_monitor",
             "data_type_label": "time_series",
-            "group_by": "cluster_domain",
+            "group_by": "app",
             "metric_field": "mongodb_up",
             "result_table_id": "exporter_dbm_mongodb_exporter.__default__",
             "result_table_label": "component",
@@ -2964,16 +4543,74 @@
       },
       {
         "allFormat": "glob",
+        "current": {
+          "selected": true,
+          "text": "mongoP.charts.so.db",
+          "value": "mongoP.charts.so.db"
+        },
+        "datasource": {
+          "type": "bkmonitor-timeseries-datasource",
+          "uid": "bkmonitor_timeseries"
+        },
+        "definition": "- Blueking Monitor - 维度",
+        "hide": 0,
+        "includeAll": false,
+        "label": "cluster_domain",
+        "multi": false,
+        "multiFormat": "glob",
+        "name": "cluster_domain",
+        "options": [],
+        "prom": "Prometheus",
+        "query": {
+          "metricConfig": {
+            "data_label": "exporter_dbm_mongodb_exporter",
+            "data_source_label": "bk_monitor",
+            "data_type_label": "time_series",
+            "group_by": "cluster_domain",
+            "metric_field": "mongodb_up",
+            "result_table_id": "exporter_dbm_mongodb_exporter.__default__",
+            "result_table_label": "component",
+            "where": [
+              {
+                "key": "cluster_type",
+                "method": "eq",
+                "value": [
+                  "MongoReplicaSet"
+                ]
+              },
+              {
+                "condition": "and",
+                "key": "app",
+                "method": "eq",
+                "value": [
+                  "$app"
+                ]
+              }
+            ]
+          },
+          "queryType": "dimension",
+          "variables": "$app"
+        },
+        "refresh": 2,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 3,
+        "tagsQuery": "",
+        "type": "query",
+        "useTags": false
+      },
+      {
+        "allFormat": "glob",
         "allValue": "",
         "current": {
           "selected": true,
           "text": [
-            "mongo_m2",
-            "mongo_m1"
+            "m2",
+            "m1"
           ],
           "value": [
-            "mongo_m2",
-            "mongo_m1"
+            "m2",
+            "m1"
           ]
         },
         "datasource": {
@@ -3063,7 +4700,7 @@
   "timezone": "browser",
   "title": "ReplicaSet",
   "uid": "MongoReplicaSet",
-  "version": 33,
+  "version": 53,
   "weekStart": "",
   "__inputs": [
     {

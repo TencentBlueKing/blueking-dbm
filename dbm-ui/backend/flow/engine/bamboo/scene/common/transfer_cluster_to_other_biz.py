@@ -9,7 +9,7 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
-from typing import Dict, Optional
+from typing import Dict, List, Optional, Set
 
 from django.utils.translation import ugettext as _
 
@@ -24,6 +24,24 @@ from backend.flow.plugins.components.collections.common.transfer_cluster_meta_to
     TransferClusterMetaToOtherBizComponent,
     UpdateClusterDnsBelongAppComponent,
 )
+
+
+def find_other_relation_domains(immute_domains: List[str]) -> List[str]:
+    qs_cluster = Cluster.objects.filter(immute_domain__in=immute_domains)
+    fetch_cluster_ids: Set[int] = set()
+    for c in qs_cluster.all():
+        for s in c.storageinstance_set.all():
+            fetch_cluster_ids |= set(list(s.machine.storageinstance_set.values_list("cluster", flat=True)))
+
+        for p in c.proxyinstance_set.all():
+            fetch_cluster_ids |= set(list(p.machine.proxyinstance_set.values_list("cluster", flat=True)))
+
+    input_cluster_ids = list(qs_cluster.values_list("id", flat=True))
+    if input_cluster_ids != list(fetch_cluster_ids):
+        res = []
+        for cluster_id in list(fetch_cluster_ids.difference(set(input_cluster_ids))):
+            res.append(Cluster.objects.get(id=cluster_id).immute_domain)
+        return res
 
 
 class TransferMySQLClusterToOtherBizFlow(object):
@@ -41,7 +59,9 @@ class TransferMySQLClusterToOtherBizFlow(object):
         self.need_clone_priv_rules = data.get("need_clone_priv_rules")
 
     def transfer_to_other_biz_flow(self):
-
+        other_domains = find_other_relation_domains(self.cluster_domain_list)
+        if len(other_domains) > 0:
+            raise Exception(_("以下域名与当前业务存在关联，请先处理关联关系:{}".format(other_domains)))
         clusters = Cluster.objects.filter(bk_biz_id=self.bk_biz_id, immute_domain__in=self.cluster_domain_list).all()
         bk_cloud_ids = []
         source_bk_biz_ids = []
@@ -63,10 +83,8 @@ class TransferMySQLClusterToOtherBizFlow(object):
             raise Exception(_("迁移的集群必须在同一个云区域"))
         if len(uniq_source_bk_biz_ids) != 1:
             raise Exception(_("迁移的集群必须在同一个业务"))
-
         bk_cloud_id = uniq_bk_cloud_ids[0]
         source_bk_biz_id = uniq_source_bk_biz_ids[0]
-
         p = Builder(root_id=self.root_id, data=self.data)
 
         if self.need_clone_priv_rules:

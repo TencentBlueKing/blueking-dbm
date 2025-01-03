@@ -31,6 +31,7 @@ func CheckCommand() *cobra.Command {
 			Commands: []*cobra.Command{
 				CheckAbnormalDBCommand(),
 				CheckInstProcessCommand(),
+				MssqlServiceCommand(),
 			},
 		},
 	}

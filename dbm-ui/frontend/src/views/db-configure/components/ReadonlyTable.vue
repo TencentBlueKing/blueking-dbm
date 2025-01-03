@@ -84,6 +84,7 @@
     {
       label: t('参数项'),
       field: 'conf_name',
+      minWidth: 300,
       render: ({ data }: {data: ParameterConfigItem}) => (
         <>
           <div

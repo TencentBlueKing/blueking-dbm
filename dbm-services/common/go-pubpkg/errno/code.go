@@ -13,6 +13,8 @@ package errno
 var (
 	// OK TODO
 	OK = Errno{Code: 0, Message: "", CNMessage: ""}
+	// SimulationTaskFailed 语义检查失败
+	SimulationTaskFailed = Errno{Code: 1, Message: "simulation failed", CNMessage: "模拟执行失败"}
 
 	// InternalServerError TODO
 	InternalServerError = Errno{Code: 10001, Message: "Internal server error", CNMessage: "服务器内部错误。"}

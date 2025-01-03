@@ -2,6 +2,7 @@
 package crond
 
 import (
+	"dbm-services/mysql/db-tools/mysql-crond/pkg/third_party"
 	"log/slog"
 	"sync"
 
@@ -89,6 +90,11 @@ func Start() error {
 			},
 		)
 		slog.Info("add heart beat job", slog.Int("entry id", int(entryID)))
+	}
+
+	// 第三方
+	for _, rg := range third_party.ThirdPartyRegisters {
+		rg(cronJob)
 	}
 
 	cronJob.Start()

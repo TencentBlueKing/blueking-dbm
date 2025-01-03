@@ -134,6 +134,12 @@ class DBSpecViewSet(viewsets.AuditedModelViewSet):
                     continue
                 else:
                     raise SpecOperateException(_("规格: {}已经被引用，只允许拓展机型").format(spec_id))
+            # 在机型更新的情况下 允许cpu/内存的更新
+            elif key in ["cpu", "mem"]:
+                if set(update_data["device_class"]) > set(spec.device_class):
+                    continue
+                else:
+                    raise SpecOperateException(_("规格: {}已经被引用，只允许拓展机型").format(spec_id))
             # 对正在被引用的规格的配置字段更改，抛出异常
             elif update_data[key] != spec.__dict__[key]:
                 raise SpecOperateException(_("规格: {}已经被引用，无法修改配置！(只允许拓展机型和修改描述)").format(spec.spec_name))

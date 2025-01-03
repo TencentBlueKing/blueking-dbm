@@ -11,7 +11,7 @@
     "metric_relabel_configs": [{
       "source_labels": ["__name__"],
       "action": "drop",
-      "regex": "^mongodb_sys_.*|^mongodb_ss_metrics_.*|^mongodb_connPoolStats_.*|^mongodb_ss_tcmalloc_.*|^mongodb_networklnterfaceStats_.*|^mongodb_ss_shardingStatistics_.*"
+      "regex": "^mongodb_sys_.*|^mongodb_ss_metrics_.*|^mongodb_connPoolStats_.*|^mongodb_ss_tcmalloc_.*|^mongodb_networkInterfaceStats_.*|^mongodb_ss_shardingStatistics_.*"
     }],
     "params": {
       "collector": {

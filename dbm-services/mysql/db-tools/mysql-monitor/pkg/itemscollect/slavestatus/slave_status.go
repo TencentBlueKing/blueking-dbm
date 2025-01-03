@@ -9,7 +9,6 @@
 package slavestatus
 
 import (
-	"context"
 	"fmt"
 	"log/slog"
 	"slices"
@@ -17,7 +16,6 @@ import (
 	"strings"
 	"time"
 
-	"dbm-services/mysql/db-tools/mysql-monitor/pkg/config"
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/monitoriteminterface"
 
 	"github.com/jmoiron/sqlx"
@@ -79,11 +77,7 @@ func (s *slaveStatusChecker) Run() (msg string, err error) {
 }
 
 func (s *slaveStatusChecker) skipErr() error {
-	ctx, cancel := context.WithTimeout(context.Background(), config.MonitorConfig.InteractTimeout)
-	defer cancel()
-
-	_, err := s.db.ExecContext(
-		ctx,
+	_, err := s.db.Exec(
 		`STOP SLAVE SQL_THREAD;SET GLOBAL SQL_SLAVE_SKIP_COUNTER=1;START SLAVE SQL_THREAD`,
 	)
 	if err != nil {
@@ -174,10 +168,7 @@ func (s *slaveStatusChecker) collectError() (string, error) {
 }
 
 func (s *slaveStatusChecker) fetchSlaveStatus() error {
-	ctx, cancel := context.WithTimeout(context.Background(), config.MonitorConfig.InteractTimeout)
-	defer cancel()
-
-	rows, err := s.db.QueryxContext(ctx, `SHOW SLAVE STATUS`)
+	rows, err := s.db.Queryx(`SHOW SLAVE STATUS`)
 	if err != nil {
 		slog.Error("show slave status", slog.String("error", err.Error()))
 		return err

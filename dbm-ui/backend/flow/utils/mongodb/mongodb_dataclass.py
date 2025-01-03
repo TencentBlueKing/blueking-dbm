@@ -583,6 +583,7 @@ class ActKwargs:
             info["bk_cloud_id"] = self.payload["config"]["nodes"][0]["bk_cloud_id"]
             info["machine_specs"] = self.payload["machine_specs"]
             info["immute_domain"] = self.payload["mongos"]["domain"]
+            node_count = self.payload["node_count"]
             # mongos
             info["proxies"] = [
                 {"ip": node["ip"], "port": self.payload["mongos"]["port"]} for node in self.payload["mongos"]["nodes"]
@@ -595,11 +596,7 @@ class ActKwargs:
             }
             if len(self.payload["config"]["nodes"]) <= 11:
                 for index, node in enumerate(self.payload["config"]["nodes"]):
-                    if index == len(self.payload["config"]["nodes"]) - 1:
-                        config["nodes"].append(
-                            {"ip": node["ip"], "port": self.payload["config"]["port"], "role": self.instance_role[-1]}
-                        )
-                    else:
+                    if node_count == 1:
                         config["nodes"].append(
                             {
                                 "ip": node["ip"],
@@ -607,6 +604,23 @@ class ActKwargs:
                                 "role": self.instance_role[index],
                             }
                         )
+                    elif node_count > 1:
+                        if index == len(self.payload["config"]["nodes"]) - 1:
+                            config["nodes"].append(
+                                {
+                                    "ip": node["ip"],
+                                    "port": self.payload["config"]["port"],
+                                    "role": self.instance_role[-1],
+                                }
+                            )
+                        else:
+                            config["nodes"].append(
+                                {
+                                    "ip": node["ip"],
+                                    "port": self.payload["config"]["port"],
+                                    "role": self.instance_role[index],
+                                }
+                            )
             info["configs"].append(config)
 
             # shard
@@ -618,14 +632,19 @@ class ActKwargs:
                 }
                 if len(shard["nodes"]) <= 11:
                     for index, node in enumerate(shard["nodes"]):
-                        if index == len(shard["nodes"]) - 1:
-                            storage["nodes"].append(
-                                {"role": self.instance_role[-1], "ip": node["ip"], "port": shard["port"]}
-                            )
-                        else:
+                        if node_count == 1:
                             storage["nodes"].append(
                                 {"role": self.instance_role[index], "ip": node["ip"], "port": shard["port"]}
                             )
+                        elif node_count > 1:
+                            if index == len(shard["nodes"]) - 1:
+                                storage["nodes"].append(
+                                    {"role": self.instance_role[-1], "ip": node["ip"], "port": shard["port"]}
+                                )
+                            else:
+                                storage["nodes"].append(
+                                    {"role": self.instance_role[index], "ip": node["ip"], "port": shard["port"]}
+                                )
                 info["storages"].append(storage)
         return info
 
@@ -985,7 +1004,8 @@ class ActKwargs:
                         "instance_role": member.role,
                     }
                 )
-            nodes.append(backup_node)
+            if len(cluster_info.get_shards()[0].members) > 1:
+                nodes.append(backup_node)
             self.payload["nodes"] = nodes
         elif cluster_info.cluster_type == ClusterType.MongoShardedCluster.value:
             mongos = cluster_info.get_mongos()
@@ -1019,7 +1039,8 @@ class ActKwargs:
                             "instance_role": member.role,
                         }
                     )
-                nodes.append(backup_node)
+                if len(shard.members) > 1:
+                    nodes.append(backup_node)
                 shard_info["nodes"] = nodes
                 shards_nodes.append(shard_info)
             backup_node = {}
@@ -1040,7 +1061,8 @@ class ActKwargs:
                         "instance_role": member.role,
                     }
                 )
-            config_nodes.append(backup_node)
+            if len(config.members) > 1:
+                config_nodes.append(backup_node)
             self.payload["mongos_nodes"] = mongos_nodes
             self.payload["shards_nodes"] = shards_nodes
             self.payload["config_nodes"] = config_nodes

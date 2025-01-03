@@ -2,7 +2,6 @@ package timezonechange
 
 import (
 	"bufio"
-	"context"
 	"fmt"
 	"log/slog"
 	"os"
@@ -20,11 +19,8 @@ func mysqlTzChange(db *sqlx.DB) (msg string, err error) {
 	}
 	slog.Info("get last mysql tz", slog.String("tz", lastTz))
 
-	ctx, cancel := context.WithTimeout(context.Background(), config.MonitorConfig.InteractTimeout)
-	defer cancel()
-
 	var currentTz string
-	err = db.QueryRowxContext(ctx, `SELECT @@time_zone`).Scan(&currentTz)
+	err = db.QueryRowx(`SELECT @@time_zone`).Scan(&currentTz)
 	if err != nil {
 		return "", err
 	}

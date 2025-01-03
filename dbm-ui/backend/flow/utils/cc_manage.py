@@ -594,11 +594,13 @@ def trigger_operate_collector(
     """
     触发操作采集器
     """
-    if not bk_instance_ids:
-        return
+    if bk_instance_ids is None:
+        bk_instance_ids = []
 
     # 排除掉 bk_instance_ids 中包含 0 的值，可能是脏数据
     bk_instance_ids = [bk_instance_id for bk_instance_id in bk_instance_ids if bk_instance_id != 0]
+    if not bk_instance_ids:
+        return
 
     # 监控某些场景下，不传入 db_type 和 machine_type 的情况，例如 dbha 切换后，仅更新标签
     if db_type is None and machine_type is None and bk_instance_ids is not None:

@@ -11,57 +11,17 @@
  * the specific language governing permissions and limitations under the License.
  */
 
-import dayjs from 'dayjs';
 import { uniq } from 'lodash';
 
-import type { ClusterListEntry } from '@services/types';
+import type { ClusterListEntry, ClusterListNode } from '@services/types';
 
-import { ClusterAffinityMap, PipelineStatus, TicketTypes } from '@common/const';
-
-import { utcDisplayTime } from '@utils';
+import { ClusterAffinityMap, ClusterTypes, PipelineStatus, TicketTypes } from '@common/const';
 
 import { t } from '@locales/index';
 
-interface MongoInstance {
-  bk_biz_id: number;
-  bk_city: string;
-  bk_cloud_id: number;
-  bk_host_id: number;
-  bk_instance_id: number;
-  bk_sub_zone: string;
-  bk_sub_zone_id: number;
-  instance: string;
-  ip: string;
-  name: string;
-  phase: string;
-  port: number;
-  spec_config: {
-    id: number;
-    cpu: {
-      max: number;
-      min: number;
-    };
-    mem: {
-      max: number;
-      min: number;
-    };
-    qps: {
-      max: number;
-      min: number;
-    };
-    name: string;
-    count: number;
-    device_class: string[];
-    storage_spec: {
-      size: number;
-      type: string;
-      mount_point: string;
-    }[];
-  };
-  status: 'running' | 'unavailable';
-}
+import ClusterBase from '../_clusterBase';
 
-export default class Mongodb {
+export default class Mongodb extends ClusterBase {
   static MongoShardedCluster = 'MongoShardedCluster'; // 分片集群
   static MongoReplicaSet = 'MongoReplicaSet'; // 副本集集群
 
@@ -87,7 +47,7 @@ export default class Mongodb {
   cluster_name: string;
   cluster_stats: Record<'used' | 'total' | 'in_use', number>;
   cluster_time_zone: string;
-  cluster_type: string;
+  cluster_type: ClusterTypes;
   cluster_type_name: string;
   create_at: string;
   creator: string;
@@ -101,9 +61,9 @@ export default class Mongodb {
   machine_instance_num: number;
   mongodb_machine_num: number;
   mongodb_machine_pair: number;
-  mongo_config: MongoInstance[];
-  mongodb: MongoInstance[];
-  mongos: MongoInstance[];
+  mongo_config: ClusterListNode[];
+  mongodb: ClusterListNode[];
+  mongos: ClusterListNode[];
   operations: {
     cluster_id: number;
     flow_id: number;
@@ -113,6 +73,12 @@ export default class Mongodb {
     ticket_type: string;
     title: string;
   }[];
+  permission: {
+    access_entry_edit: boolean;
+    mongodb_destroy: boolean;
+    mongodb_enable_disable: boolean;
+    mongodb_view: boolean;
+  };
   phase: string;
   phase_name: string;
   region: string;
@@ -131,6 +97,7 @@ export default class Mongodb {
   updater: string;
 
   constructor(payload = {} as Mongodb) {
+    super(payload);
     this.bk_biz_id = payload.bk_biz_id;
     this.bk_biz_name = payload.bk_biz_name;
     this.bk_cloud_id = payload.bk_cloud_id;
@@ -159,6 +126,7 @@ export default class Mongodb {
     this.mongodb = payload.mongodb;
     this.mongos = payload.mongos;
     this.operations = payload.operations;
+    this.permission = payload.permission || {};
     this.phase = payload.phase;
     this.phase_name = payload.phase_name;
     this.region = payload.region;
@@ -172,14 +140,6 @@ export default class Mongodb {
     this.status = payload.status;
     this.update_at = payload.update_at;
     this.updater = payload.updater;
-  }
-
-  get isOnline() {
-    return this.phase === 'online';
-  }
-
-  get isOffline() {
-    return this.phase === 'offline';
   }
 
   get isStarting() {
@@ -258,15 +218,6 @@ export default class Mongodb {
     return false;
   }
 
-  get isNew() {
-    if (!this.create_at) {
-      return '';
-    }
-    const createDay = dayjs(this.create_at);
-    const today = dayjs();
-    return today.diff(createDay, 'hour') <= 24;
-  }
-
   get isNormal() {
     return this.status === 'normal';
   }
@@ -310,14 +261,6 @@ export default class Mongodb {
 
   get isMongoReplicaSet() {
     return this.cluster_type === 'MongoReplicaSet';
-  }
-
-  get createAtDisplay() {
-    return utcDisplayTime(this.create_at);
-  }
-
-  get updateAtDisplay() {
-    return utcDisplayTime(this.update_at);
   }
 
   get entryDomain() {
@@ -369,5 +312,11 @@ export default class Mongodb {
 
   get disasterToleranceLevelName() {
     return ClusterAffinityMap[this.disaster_tolerance_level];
+  }
+
+  get roleFailedInstanceInfo() {
+    return {
+      mongodb: ClusterBase.getRoleFaildInstanceList(this.mongodb),
+    };
   }
 }

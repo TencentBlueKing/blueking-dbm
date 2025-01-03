@@ -41,11 +41,18 @@
                 v-if="isWholeChecked"
                 class="db-table-whole-check"
                 @click="handleClearWholeSelect" />
-              <BkCheckbox
-                v-else
-                label
-                :model-value="Object.keys(rowSelectMemo).length > 0"
-                @change="handleTogglePageSelect" />
+              <template v-else>
+                <BkCheckbox
+                  v-if="isCurrentPageAllSelected"
+                  key="page"
+                  label
+                  model-value
+                  @change="handleTogglePageSelect" />
+                <BkCheckbox
+                  v-else
+                  key="all"
+                  @change="handleWholeSelect" />
+              </template>
               <BkPopover
                 :arrow="false"
                 placement="bottom-start"
@@ -109,17 +116,12 @@
                 v-for="(flowItem, index) in ticketInnerFlowInfo[data.id]"
                 :key="index"
                 style="line-height: 26px">
-                <RouterLink
-                  v-if="flowItem.flow_id"
-                  target="_blank"
-                  :to="{
-                    name: 'taskHistoryDetail',
-                    params: {
-                      root_id: flowItem.flow_id,
-                    },
-                  }">
+                <BkButton
+                  text
+                  theme="primary"
+                  @click="() => handleGoTaskHistoryDetail(data, flowItem)">
                   {{ flowItem.flow_alias }}
-                </RouterLink>
+                </BkButton>
               </div>
               <span v-if="ticketInnerFlowInfo[data.id].length < 1">--</span>
             </template>
@@ -162,7 +164,7 @@
                 </BkTag>
               </div>
             </div>
-            <template v-else> -- </template>
+            <template v-if="data.related_object.objects.length < 1"> -- </template>
           </template>
         </BkTableColumn>
         <BkTableColumn
@@ -196,6 +198,16 @@
           </template>
         </BkTableColumn>
         <BkTableColumn
+          field="todo_helpers"
+          :label="t('单据协作人')"
+          width="250">
+          <template #default="{ data }: { data: IRowData }">
+            <TagBlock
+              copyenable
+              :data="data.todo_helpers" />
+          </template>
+        </BkTableColumn>
+        <BkTableColumn
           field="creator"
           :label="t('申请人')"
           width="250" />
@@ -224,6 +236,7 @@
   import { onActivated, shallowRef, useTemplateRef } from 'vue';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
+  import { useRouter } from 'vue-router';
 
   import TicketModel from '@services/model/ticket/ticket';
   import { getTickets } from '@services/source/ticket';
@@ -235,7 +248,7 @@
   import TagBlock from '@components/tag-block/Index.vue';
   import TicketStatusTag from '@components/ticket-status-tag/Index.vue';
 
-  import { getOffset } from '@utils';
+  import { getBusinessHref, getOffset } from '@utils';
 
   import { type VxeTableDefines } from '@blueking/vxe-table';
 
@@ -266,6 +279,7 @@
     action?: () => VNode;
   }>();
 
+  const router = useRouter();
   const { t } = useI18n();
   const eventBus = useEventBus();
   const { isSplited: isStretchLayoutOpen } = useStretchLayout();
@@ -342,6 +356,7 @@
       rowSelect[data.id] = data;
     }
     rowSelectMemo.value = rowSelect;
+    isWholeChecked.value = false;
     triggerSelection();
   };
 
@@ -352,6 +367,7 @@
     });
     rowSelectMemo.value = rowSelect;
     triggerSelection();
+    isWholeChecked.value = false;
   };
 
   const handleTogglePageSelect = (checked: boolean) => {
@@ -364,6 +380,7 @@
       }
     });
     rowSelectMemo.value = rowSelect;
+    isWholeChecked.value = false;
     triggerSelection();
   };
 
@@ -380,12 +397,14 @@
           rowSelect[item.id] = item;
         });
         rowSelectMemo.value = rowSelect;
+        isWholeChecked.value = true;
         triggerSelection();
       });
   };
 
   const handleClearWholeSelect = () => {
     rowSelectMemo.value = {};
+    isWholeChecked.value = false;
     triggerSelection();
   };
 
@@ -437,6 +456,20 @@
     rowSelectMemo.value = {};
     triggerSelection();
     fetchData();
+  };
+
+  const handleGoTaskHistoryDetail = (
+    ticketData: TicketModel,
+    data: ServiceReturnType<typeof getInnerFlowInfo>[number][number],
+  ) => {
+    const { href } = router.resolve({
+      name: 'taskHistoryDetail',
+      params: {
+        root_id: data.flow_id,
+      },
+    });
+
+    window.open(getBusinessHref(href, ticketData.bk_biz_id));
   };
 
   onActivated(() => {

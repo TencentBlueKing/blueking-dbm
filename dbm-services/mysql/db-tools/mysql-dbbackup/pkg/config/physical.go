@@ -14,6 +14,10 @@ type PhysicalBackup struct {
 	Throttle     int    `ini:"Throttle"` // limits the number of chunks copied per second. The chunk size is 10 MB, 0 means no limit
 	DefaultsFile string `ini:"DefaultsFile" validate:"required,file"`
 	ExtraOpt     string `ini:"ExtraOpt"` // other xtrabackup options string to be appended
+	// LockDDL 备份期间是否允许 ddl, >=5.7 参数有效
+	// 默认 false，表示用户的 ddl 优先，备份无效。如果存在 Non-InnoDB 表，在拷贝这些非事务引擎表的时候，会阻塞对 Non-InnoDB dml
+	// 为 true 时，备份一开始就发送 lock tables for backup，全程不允许 ddl 和 Non-InnoDB dml
+	LockDDL bool `ini:"LockDDL"`
 	// DisableSlaveMultiThread 在 slave并行多线程复制，且未开启 gtid 时，是否可临时关闭并行复制。默认值 false
 	// 解决 The --slave-info option requires GTID enabled for a multi-threaded slave
 	DisableSlaveMultiThread bool `ini:"DisableSlaveMultiThread"`

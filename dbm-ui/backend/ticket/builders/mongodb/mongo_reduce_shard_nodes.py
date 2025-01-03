@@ -27,6 +27,9 @@ class MongoDBReduceShardNodesDetailSerializer(BaseMongoDBOperateDetailSerializer
     class ReduceMongosDetailSerializer(serializers.Serializer):
         cluster_ids = serializers.ListField(help_text=_("集群ID列表"), child=serializers.IntegerField(help_text=_("集群ID")))
         reduce_shard_nodes = serializers.IntegerField(help_text=_("缩容数量"))
+        current_shard_nodes_num = serializers.IntegerField(help_text=_("当前shard节点数量"))
+        machine_instance_num = serializers.IntegerField(help_text=_("单机部署实例数量"))
+        shard_num = serializers.IntegerField(help_text=_("shard数量"))
 
     is_safe = serializers.BooleanField(help_text=_("是否做安全检测"))
     infos = serializers.ListSerializer(help_text=_("缩容shard节点数信息"), child=ReduceMongosDetailSerializer())

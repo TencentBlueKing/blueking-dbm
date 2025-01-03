@@ -52,19 +52,11 @@ def scan_cluster(cluster: Cluster) -> Graphic:
             dummy_slave_be_node, slave_be_group = graph.add_node(slave_be, to_group=slave_be_group)
             graph.add_line(source=slave_be_group, target=receiver_instance_group, label=LineLabel.Bind)
 
-        for otr in (
-            StorageInstanceTuple.objects.filter(ejector=ejector_instance)
-            .prefetch_related("cluster")
-            .exclude(receiver__cluster=cluster)
-        ):
+        for otr in StorageInstanceTuple.objects.filter(ejector=ejector_instance).exclude(receiver__cluster=cluster):
             foreign_receiver_cluster = otr.receiver.cluster.get()
             graph.add_foreign_cluster(ForeignRelationType.RepTo, foreign_receiver_cluster)
 
-        for otr in (
-            StorageInstanceTuple.objects.filter(receiver=ejector_instance)
-            .prefetch_related("cluster")
-            .exclude(ejector__cluster=cluster)
-        ):
+        for otr in StorageInstanceTuple.objects.filter(receiver=ejector_instance).exclude(ejector__cluster=cluster):
             foreign_ejector_cluster = otr.ejector.cluster.get()
             graph.add_foreign_cluster(ForeignRelationType.RepFrom, foreign_ejector_cluster)
 

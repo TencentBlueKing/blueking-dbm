@@ -42,18 +42,22 @@ func Run(hardcode bool) error {
 	lockFileName := fmt.Sprintf("%d-%s.lock", config.MonitorConfig.Port, strings.Join(iNames, "."))
 	lockFilePath := filepath.Join(cst.MySQLMonitorInstallPath, lockFileName)
 
-	slog.Info("man loop", slog.String("lockFilePath", lockFilePath))
+	slog.Info("main loop", slog.String("lockFilePath", lockFilePath))
 	lk := fslock.New(lockFilePath)
 	err := lk.TryLock()
 	if err != nil {
 		slog.Error("main loop",
 			slog.String("error", err.Error()))
-		utils.SendMonitorEvent("db-hang", lockFileName)
+		utils.SendMonitorEvent(
+			"db-hang",
+			fmt.Sprintf("last round %s not finish, db may be hang", strings.Join(iNames, ",")),
+		)
 		return errors.Wrapf(err, "main loop lock file %s failed, may be last round not finish", lockFilePath)
 	}
 	defer func() {
 		_ = lk.Unlock()
 	}()
+	slog.Info("main loop get lock success", slog.String("lockFilePath", lockFilePath))
 
 	if hardcode && slices.Index(iNames, config.HeartBeatName) >= 0 {
 		utils.SendMonitorMetrics(config.HeartBeatName, 1, nil)

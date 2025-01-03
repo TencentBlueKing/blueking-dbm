@@ -15,16 +15,19 @@ import { uniq } from 'lodash';
 
 import type { ClusterListEntry, ClusterListNode, ClusterListOperation, ClusterListSpec } from '@services/types';
 
-import { ClusterAffinityMap, TicketTypes } from '@common/const';
-
-import { isRecentDays, utcDisplayTime } from '@utils';
+import { ClusterAffinityMap, ClusterTypes, TicketTypes } from '@common/const';
 
 import { t } from '@locales/index';
 
-// const STATUS_NORMAL = 'normal';
+import ClusterBase from '../_clusterBase';
+
+const STATUS_NORMAL = 'normal';
 const STATUS_ABNORMAL = 'abnormal';
 
-export default class Doris {
+export default class Doris extends ClusterBase {
+  static STATUS_NORMAL = STATUS_NORMAL;
+  static STATUS_ABNORMAL = STATUS_ABNORMAL;
+
   static DORIS_ENABLE = TicketTypes.DORIS_ENABLE;
   static DORIS_DISABLE = TicketTypes.DORIS_DISABLE;
   static DORIS_DESTROY = TicketTypes.DORIS_DESTROY;
@@ -66,7 +69,7 @@ export default class Doris {
   cluster_spec: ClusterListSpec;
   cluster_stats: Record<'used' | 'total' | 'in_use', number>;
   cluster_time_zone: string;
-  cluster_type: string;
+  cluster_type: ClusterTypes;
   cluster_type_name: string;
   create_at: string;
   creator: string;
@@ -98,6 +101,7 @@ export default class Doris {
   updater: string;
 
   constructor(payload = {} as Doris) {
+    super(payload);
     this.bk_biz_id = payload.bk_biz_id;
     this.bk_biz_name = payload.bk_biz_name;
     this.bk_cloud_id = payload.bk_cloud_id;
@@ -122,6 +126,7 @@ export default class Doris {
     this.doris_observer = payload.doris_observer;
     this.id = payload.id;
     this.major_version = payload.major_version;
+    this.operations = payload.operations || [];
     this.permission = payload.permission || {};
     this.phase = payload.phase;
     this.phase_name = payload.phase_name;
@@ -130,12 +135,6 @@ export default class Doris {
     this.update_at = payload.update_at;
     this.updater = payload.updater;
     this.access_url = payload.access_url;
-
-    this.operations = this.initOperations(payload.operations);
-  }
-
-  get isNew() {
-    return isRecentDays(this.create_at, 24);
   }
 
   get runningOperation() {
@@ -193,34 +192,22 @@ export default class Doris {
     return false;
   }
 
-  get isStarting() {
-    return Boolean(this.operations.find((item) => item.ticket_type === Doris.DORIS_ENABLE));
-  }
-
-  get isOnline() {
-    return this.phase === 'online';
-  }
-
-  get isOffline() {
-    return this.phase === 'offline';
-  }
-
-  get domainDisplayName() {
-    const port = this.doris_follower[0]?.port;
-    const displayName = port ? `${this.domain}:${port}` : this.domain;
-    return displayName;
-  }
-
-  get createAtDisplay() {
-    return utcDisplayTime(this.create_at);
-  }
-
   get operationTagTips() {
     return this.operations.map((item) => ({
       icon: Doris.operationIconMap[item.ticket_type],
       tip: Doris.operationTextMap[item.ticket_type],
       ticketId: item.ticket_id,
     }));
+  }
+
+  get isStarting() {
+    return Boolean(this.operations.find((item) => item.ticket_type === Doris.DORIS_ENABLE));
+  }
+
+  get masterDomainDisplayName() {
+    const port = this.doris_follower[0]?.port;
+    const displayName = port ? `${this.domain}:${port}` : this.domain;
+    return displayName;
   }
 
   get isAbnormal() {
@@ -245,15 +232,16 @@ export default class Doris {
     );
   }
 
-  initOperations(payload = [] as Doris['operations']) {
-    if (!Array.isArray(payload)) {
-      return [];
-    }
-
-    return payload;
-  }
-
   get disasterToleranceLevelName() {
     return ClusterAffinityMap[this.disaster_tolerance_level];
+  }
+
+  get roleFailedInstanceInfo() {
+    return {
+      Follower: ClusterBase.getRoleFaildInstanceList(this.doris_follower),
+      Observer: ClusterBase.getRoleFaildInstanceList(this.doris_observer),
+      [t('热节点')]: ClusterBase.getRoleFaildInstanceList(this.doris_backend_hot),
+      [t('冷节点')]: ClusterBase.getRoleFaildInstanceList(this.doris_backend_cold),
+    };
   }
 }

@@ -39,21 +39,21 @@
         </DbForm>
       </BkCard>
       <template #action>
-        <div>
-          <BkButton
-            class="w-88"
-            :loading="updateSettingLoading"
-            theme="primary"
-            @click="handleSubmit">
-            {{ t('提交') }}
-          </BkButton>
-          <BkButton
-            class="ml8 w-88"
-            :disabled="updateSettingLoading"
-            @click="handleReset">
-            {{ t('重置') }}
-          </BkButton>
-        </div>
+        <AuthButton
+          action-id="biz_notify_config"
+          class="w-88"
+          :loading="updateSettingLoading"
+          :resource="bizId"
+          theme="primary"
+          @click="handleSubmit">
+          {{ t('提交') }}
+        </AuthButton>
+        <BkButton
+          class="ml8 w-88"
+          :disabled="updateSettingLoading"
+          @click="handleReset">
+          {{ t('重置') }}
+        </BkButton>
       </template>
     </SmartAction>
   </BkLoading>
@@ -82,6 +82,8 @@
   const { t } = useI18n();
 
   const dataList = ref<DataRow[]>([]);
+
+  const bizId = window.PROJECT_CONFIG.BIZ_ID
 
   const columns = computed(() => {
     const baseColumns = [
@@ -211,17 +213,17 @@
 
   const getData = () => {
     runGetBizSettingList({
-      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+      bk_biz_id: bizId,
       key: 'NOTIFY_CONFIG',
     })
     runGetAlarmGroupNotifyList({
-      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID
+      bk_biz_id: bizId
     })
   }
 
   const handleSubmit = () => {
     runUpdateBizSetting({
-      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+      bk_biz_id: bizId,
       key: 'NOTIFY_CONFIG',
       value: dataList.value.reduce<Record<string, Record<string, boolean | string[]>>>((prevMap, dataItem) => {
         const checkboxMap = Object.entries(dataItem.checkbox).reduce<Record<string, boolean>>((prevMap, [key, value])=> {

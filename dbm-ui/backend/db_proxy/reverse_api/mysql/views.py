@@ -10,15 +10,13 @@ specific language governing permissions and limitations under the License.
 """
 import logging
 
-from django.db.models import Q
 from django.http import JsonResponse
 from django.utils.translation import ugettext_lazy as _
 
 from backend.bk_web.swagger import common_swagger_auto_schema
-from backend.db_meta.enums import AccessLayer
-from backend.db_meta.models import Machine, ProxyInstance, StorageInstance
 from backend.db_proxy.reverse_api.base_reverse_api_view import BaseReverseApiView
 from backend.db_proxy.reverse_api.decorators import reverse_api
+from backend.db_proxy.reverse_api.mysql.impl import list_instance_info
 
 logger = logging.getLogger("root")
 
@@ -29,22 +27,7 @@ class MySQLReverseApiView(BaseReverseApiView):
     def list_instance_info(self, request, *args, **kwargs):
         bk_cloud_id, ip, port_list = self.get_api_params()
         logger.info(f"bk_cloud_id: {bk_cloud_id}, ip: {ip}, port:{port_list}")
-
-        m = Machine.objects.get(ip=ip, bk_cloud_id=bk_cloud_id)
-        q = Q()
-        q |= Q(**{"machine": m})
-
-        if port_list:
-            q &= Q(**{"port__in": port_list})
-
-        res = []
-        if m.access_layer == AccessLayer.PROXY:
-            for i in ProxyInstance.objects.filter(q):
-                res.append({"ip": i.machine.ip, "port": i.port, "phase": i.phase, "status": i.status})
-        else:
-            for i in StorageInstance.objects.filter(q):
-                res.append({"ip": i.machine.ip, "port": i.port, "phase": i.phase, "status": i.status})
-
+        res = list_instance_info(bk_cloud_id=bk_cloud_id, ip=ip, port_list=port_list)
         logger.info(f"instance info: {res}")
         return JsonResponse(
             {

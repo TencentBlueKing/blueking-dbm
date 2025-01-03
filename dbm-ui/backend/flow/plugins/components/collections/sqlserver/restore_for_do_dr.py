@@ -42,15 +42,21 @@ class RestoreForDoDrService(SqlserverActuatorScriptService):
 
     def _execute(self, data, parent_data) -> bool:
         kwargs = data.get_one_of_inputs("kwargs")
+        global_data = data.get_one_of_inputs("global_data")
         trans_data = data.get_one_of_inputs("trans_data")
         restore_dbs = []
         restore_infos = []
+
+        if global_data.get("is_recalc_sync_dbs", False):
+            check_restore_dbs = trans_data.sync_dbs
+        else:
+            check_restore_dbs = kwargs["restore_dbs"]
 
         backup_id = getattr(trans_data, get_backup_id_map[kwargs["restore_mode"]])["id"]
         if not backup_id:
             raise Exception(f"backup id is null: backup_id:{backup_id}")
 
-        for db_name in kwargs["restore_dbs"]:
+        for db_name in check_restore_dbs:
             self.log_info(f"checking db:[{db_name}]")
 
             backup_info = get_backup_path_files(

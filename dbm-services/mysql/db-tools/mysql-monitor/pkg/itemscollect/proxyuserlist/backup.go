@@ -59,10 +59,7 @@ func (c *Checker) backupToBackend(users []string) error {
 }
 
 func writeOne(stmt *sqlx.Stmt, username, host string, now time.Time) error {
-	ctx, cancel := context.WithTimeout(context.Background(), config.MonitorConfig.InteractTimeout)
-	defer cancel()
-	_, err := stmt.ExecContext(
-		ctx,
+	_, err := stmt.Exec(
 		config.MonitorConfig.Ip,
 		username,
 		host,
@@ -89,11 +86,8 @@ func (c *Checker) cleanOldBackup() error {
 		return err
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), config.MonitorConfig.InteractTimeout)
-	defer cancel()
-
 	_, err = conn.ExecContext(
-		ctx,
+		context.Background(),
 		`DELETE FROM infodba_schema.proxy_user_list 
        				WHERE create_at < DATE(NOW() - INTERVAL 7 DAY)`,
 	)

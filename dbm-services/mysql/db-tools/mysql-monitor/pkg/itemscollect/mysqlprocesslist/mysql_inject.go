@@ -13,6 +13,8 @@ import (
 	"strings"
 
 	"github.com/dlclark/regexp2"
+
+	"dbm-services/mysql/db-tools/mysql-monitor/pkg/internal/cst"
 )
 
 func mysqlInject() (string, error) {
@@ -30,7 +32,7 @@ func mysqlInject() (string, error) {
 
 		slog.Debug("mysql inject check process", slog.Any("process", pstr))
 
-		if strings.ToLower(p.User.String) == "system user" {
+		if strings.ToLower(p.User.String) == cst.SystemUser {
 			continue
 		}
 

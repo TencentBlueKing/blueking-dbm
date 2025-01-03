@@ -55,8 +55,7 @@
               class="item-input"
               :min="1"
               :placeholder="t('请输入')"
-              type="number"
-              @change="handleChangeClusterCount" />
+              type="number" />
           </BkFormItem>
           <BkFormItem
             :label="t('每组主机部署集群')"
@@ -65,10 +64,9 @@
             <BkInput
               v-model="formData.details.inst_num"
               class="item-input"
-              :max="maxInstNum"
+              :max="Math.max(formData.details.cluster_count, 1)"
               :min="1"
-              type="number"
-              @change="handleChangeInstCount" />
+              type="number" />
           </BkFormItem>
           <BkFormItem
             class="service"
@@ -138,11 +136,11 @@
               class="mb-24">
               <BkFormItem
                 :label="t('后端存储资源规格')"
-                property="details.resource_spec.backend.spec_id"
+                property="details.resource_spec.backend_group.spec_id"
                 required>
                 <SpecSelector
                   ref="specBackendRef"
-                  v-model="formData.details.resource_spec.backend.spec_id"
+                  v-model="formData.details.resource_spec.backend_group.spec_id"
                   :biz-id="formData.bk_biz_id"
                   :city="formData.details.city_code"
                   :cloud-id="formData.details.bk_cloud_id"
@@ -270,7 +268,7 @@
         backend: [] as HostInfo[],
       },
       resource_spec: {
-        backend: {
+        backend_group: {
           spec_id: '',
           spec_name: '',
           // spec_cluster_type: 'mysql',
@@ -293,7 +291,6 @@
   const backendRef = ref();
   const moduleItemRef = ref<InstanceType<typeof ModuleItem>>();
   const isShowPreview = ref(false);
-  const maxInstNum = ref();
   const regionItemRef = ref<InstanceType<typeof RegionItem>>();
   const specBackendRef = ref<InstanceType<typeof SpecSelector>>();
   const moduleAliasName = ref('');
@@ -329,10 +326,7 @@
     ],
   }));
 
-  const hostNums = computed(() => {
-    const nums = Math.ceil(formData.details.cluster_count / formData.details.inst_num);
-    return isSingleType ? nums : nums * 2;
-  });
+  const hostNums = computed(() => Math.ceil(formData.details.cluster_count / formData.details.inst_num));
 
   /**
    * 预览功能
@@ -412,18 +406,12 @@
       : false;
   };
 
-  const handleChangeClusterCount = (value: number) => {
-    if (formData.details.inst_num > value) {
-      formData.details.inst_num = value;
-      maxInstNum.value = value;
-    }
-  };
-
-  const handleChangeInstCount = (value: number) => {
-    if (value >= formData.details.cluster_count) {
-      maxInstNum.value = formData.details.cluster_count;
-    }
-  };
+  // const getModulesConfig = () => {
+  //   fetchModulesConfig({
+  //     cluster_type: clusterType,
+  //     bk_biz_id: Number(formData.bk_biz_id),
+  //   });
+  // };
 
   /**
    * 变更所属管控区域
@@ -461,12 +449,12 @@
       const { details } = formData;
       const { cityCode } = regionItemRef.value!.getValue();
       if (details.ip_source === 'resource_pool') {
-        delete details.nodes;
         return {
           ...details,
+          nodes: undefined,
           resource_spec: {
-            [clusterType]: {
-              ...details.resource_spec.backend,
+            backend_group: {
+              spec_id: details.resource_spec.backend_group.spec_id,
               ...specBackendRef.value!.getData(),
               spec_cluster_type: clusterType,
               spec_machine_type: clusterType,
@@ -481,9 +469,9 @@
         };
       }
 
-      delete details.resource_spec;
       return {
         ...details,
+        resource_spec: undefined,
         nodes: {
           [clusterType]: formatNodes(details.nodes.backend),
         },

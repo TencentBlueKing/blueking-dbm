@@ -54,6 +54,9 @@ from backend.flow.plugins.components.collections.sqlserver.sqlserver_download_ba
     SqlserverDownloadBackupFileComponent,
 )
 from backend.flow.plugins.components.collections.sqlserver.trans_files import TransFileInWindowsComponent
+from backend.flow.plugins.components.collections.sqlserver.update_window_gse_config import (
+    UpdateWindowGseConfigComponent,
+)
 from backend.flow.utils.common_act_dataclass import DownloadBackupClientKwargs, InstallNodemanPluginKwargs
 from backend.flow.utils.mysql.mysql_act_dataclass import InitCheckKwargs, UpdateDnsRecordKwargs
 from backend.flow.utils.sqlserver.sqlserver_act_dataclass import (
@@ -65,6 +68,7 @@ from backend.flow.utils.sqlserver.sqlserver_act_dataclass import (
     P2PFileForWindowKwargs,
     RestoreForDoDrKwargs,
     SqlserverBackupIDContext,
+    UpdateWindowGseConfigKwargs,
 )
 from backend.flow.utils.sqlserver.sqlserver_act_payload import SqlserverActPayload
 from backend.flow.utils.sqlserver.sqlserver_db_function import get_backup_path
@@ -133,6 +137,19 @@ def install_sqlserver_sub_flow(
                             ips=[host.ip], bk_cloud_id=bk_cloud_id, account_name=WINDOW_ADMIN_USER_FOR_CHECK
                         )
                     ),
+                }
+            )
+        sub_pipeline.add_parallel_acts(acts_list=acts_list)
+
+    # 更新window机器的gse配置信息
+    if env.UPDATE_WINDOW_GSE_CONFIG:
+        acts_list = []
+        for host in target_hosts:
+            acts_list.append(
+                {
+                    "act_name": _("更新gse配置信息[{}]".format(host.ip)),
+                    "act_component_code": UpdateWindowGseConfigComponent.code,
+                    "kwargs": asdict(UpdateWindowGseConfigKwargs(ips=[host.ip], bk_cloud_id=bk_cloud_id)),
                 }
             )
         sub_pipeline.add_parallel_acts(acts_list=acts_list)
@@ -435,6 +452,8 @@ def sync_dbs_for_cluster_sub_flow(
     sync_dbs: list,
     clean_dbs: list = None,
     sub_flow_name: str = _("建立数据库同步子流程"),
+    is_recalc_sync_dbs: bool = False,
+    is_recalc_clean_dbs: bool = False,
 ):
     """
     数据库建立同步的子流程
@@ -445,6 +464,8 @@ def sync_dbs_for_cluster_sub_flow(
     @param sync_dbs: 待同步的db列表
     @param clean_dbs: 这次清理的db列表，默认为空，则用sync_dbs列表作为清理db
     @param sub_flow_name: 子流程名称
+    @param is_recalc_sync_dbs: 控制在流程运行是否在传输上下文获取sync_dbs,适配于原地重建slave场景
+    @param is_recalc_clean_dbs: 控制在流程运行是否在传输上下文获取clean_dbs,适配于原地重建slave场景
     """
     # 获取当前master实例信息
     master_instance = cluster.storageinstance_set.get(instance_role=InstanceRole.BACKEND_MASTER)
@@ -463,7 +484,7 @@ def sync_dbs_for_cluster_sub_flow(
         SqlserverSyncMode.ALWAYS_ON: SqlserverActPayload.get_build_add_dbs_in_always_on.__name__,
     }
     #  判断必要参数
-    if len(sync_slaves) == 0 or len(sync_dbs) == 0:
+    if len(sync_slaves) == 0 or (len(sync_dbs) == 0 and is_recalc_sync_dbs is False):
         raise Exception("sync_slaves or sync_dbs is null, check")
 
     # 做判断, cluster_sync_mode 如果是mirror，原则上不允许一主多从的架构, 所以判断传入的slave是否有多个
@@ -483,6 +504,8 @@ def sync_dbs_for_cluster_sub_flow(
         "ignore_clean_tables": [],
         "sync_mode": SqlserverSyncModeMaps[cluster_sync_mode],
         "slaves": [],
+        "is_recalc_sync_dbs": is_recalc_sync_dbs,  # 判断标志位待入到全局上下文，获取payload进行判断
+        "is_recalc_clean_dbs": is_recalc_clean_dbs,  # 判断标志位待入到全局上下文，获取payload进行判断
     }
 
     # 声明子流程

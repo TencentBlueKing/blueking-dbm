@@ -4,17 +4,24 @@
       <FunController
         controller-id="tendbha"
         module-id="mysql">
-        <BkSubmenu
-          key="MysqlManage"
-          :title="t('主从')">
+        <BkSubmenu key="MysqlManage">
           <template #icon>
             <DbIcon type="cluster" />
+          </template>
+          <template #title>
+            <span>{{ t('主从') }}</span>
+            <CountTag
+              :cluster-type="ClusterTypes.TENDBHA"
+              role="cluster" />
           </template>
           <BkMenuItem key="DatabaseTendbha">
             <span
               v-overflow-tips.right
               class="text-overflow">
               {{ t('集群视图') }}
+              <CountTag
+                :cluster-type="ClusterTypes.TENDBHA"
+                role="cluster" />
             </span>
           </BkMenuItem>
           <BkMenuItem
@@ -24,6 +31,9 @@
               v-overflow-tips.right
               class="text-overflow">
               {{ t('实例视图') }}
+              <CountTag
+                :cluster-type="ClusterTypes.TENDBHA"
+                role="instance" />
             </span>
           </BkMenuItem>
         </BkSubmenu>
@@ -41,6 +51,9 @@
             v-overflow-tips.right
             class="text-overflow">
             {{ t('单节点') }}
+            <CountTag
+              :cluster-type="ClusterTypes.TENDBSINGLE"
+              role="cluster" />
           </span>
         </BkMenuItem>
       </FunController>
@@ -140,12 +153,13 @@
 
   import { useUserProfile } from '@stores';
 
-  import { UserPersonalSettings } from '@common/const';
+  import { ClusterTypes, UserPersonalSettings } from '@common/const';
 
   import toolboxMenuConfig from '@views/db-manage/mysql/toolbox-menu';
 
   import { makeMap } from '@utils';
 
+  import CountTag from './components/CountTag.vue';
   import ToolboxMenu from './components/ToolboxMenu.vue';
 
   const userProfile = useUserProfile();

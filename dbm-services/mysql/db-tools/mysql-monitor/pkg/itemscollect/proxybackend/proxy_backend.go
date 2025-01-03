@@ -11,7 +11,6 @@ package proxybackend
 
 import (
 	"bufio"
-	"context"
 	"fmt"
 	"log/slog"
 	"math/big"
@@ -80,12 +79,8 @@ func (c *Checker) Run() (msg string, err error) {
 
 	backendAddr := splitLine[1]
 
-	ctx, cancel := context.WithTimeout(context.Background(), config.MonitorConfig.InteractTimeout)
-	defer cancel()
-
 	backendInfo := make(map[string]interface{})
-	err = c.db.QueryRowxContext(
-		ctx,
+	err = c.db.QueryRowx(
 		`SELECT * FROM BACKENDS`,
 	).MapScan(backendInfo)
 	if err != nil {

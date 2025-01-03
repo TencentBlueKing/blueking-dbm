@@ -149,6 +149,7 @@ class Machine(AuditedModel):
                     "bk_os_name",
                     "bk_host_innerip",
                     "idc_city_name",
+                    "idc_city_id",
                     "sub_zone",
                     "rack",
                     "bk_svr_device_cls_name",
@@ -176,6 +177,8 @@ class Machine(AuditedModel):
             # 格式化idc信息
             exact_host_info["bk_idc_name"] = exact_host_info.pop("idc_name", "")
             exact_host_info["bk_idc_id"] = exact_host_info.pop("idc_id", "")
+            exact_host_info["bk_idc_city_name"] = exact_host_info.pop("idc_city_name", "")
+            exact_host_info["bk_idc_city_id"] = exact_host_info.pop("idc_city_id", "")
             return exact_host_info
         except IndexError:
             raise HostDoseNotExistInCmdbException(bk_host_id=bk_host_id)

@@ -90,15 +90,6 @@ class Spec(AuditedModel):
         apply_params = {
             "group_mark": group_mark,
             "bk_cloud_id": bk_cloud_id,
-            "device_class": self.device_class,
-            "spec": {
-                "cpu": self.cpu,
-                # 内存GB-->MB，只偏移左边
-                "ram": {
-                    "min": max(int(self.mem["min"] * 1024 - spec_offset["mem"]), 0),
-                    "max": int(self.mem["max"] * 1024),
-                },
-            },
             "storage_spec": [
                 {
                     "mount_point": storage_spec["mount_point"],
@@ -112,6 +103,20 @@ class Spec(AuditedModel):
             "count": count,
             "affinity": affinity,
         }
+        # 对于机型和规格，优先以机型为准，机型不存在则用规格申请
+        if self.device_class:
+            apply_params.update(device_class=self.device_class)
+        else:
+            spec = {
+                "cpu": self.cpu,
+                # 内存GB-->MB，只偏移左边
+                "ram": {
+                    "min": max(int(self.mem["min"] * 1024 - spec_offset["mem"]), 0),
+                    "max": int(self.mem["max"] * 1024),
+                },
+            }
+            apply_params.update(spec=spec)
+
         if location_spec:
             # 将bk_sub_zone_id转成str，本身为空也不影响
             location_spec["sub_zone_ids"] = list(map(str, location_spec.get("sub_zone_ids", [])))

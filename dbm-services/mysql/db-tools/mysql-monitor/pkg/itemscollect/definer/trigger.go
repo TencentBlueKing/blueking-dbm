@@ -9,7 +9,6 @@
 package definer
 
 import (
-	"context"
 	"fmt"
 	"log/slog"
 
@@ -20,9 +19,6 @@ import (
 )
 
 func triggers(db *sqlx.DB) (msg []string, err error) {
-	ctx, cancel := context.WithTimeout(context.Background(), config.MonitorConfig.InteractTimeout)
-	defer cancel()
-
 	q, args, err := sqlx.In(
 		`SELECT TRIGGER_NAME, TRIGGER_SCHEMA, DEFINER   
 					FROM information_schema.TRIGGERS  
@@ -38,7 +34,7 @@ func triggers(db *sqlx.DB) (msg []string, err error) {
 		TriggerSchema string `db:"TRIGGER_SCHEMA"`
 		Definer       string `db:"DEFINER"`
 	}
-	err = db.SelectContext(ctx, &res, db.Rebind(q), args...)
+	err = db.Select(&res, db.Rebind(q), args...)
 	if err != nil {
 		return nil, errors.Wrap(err, "query triggers")
 	}

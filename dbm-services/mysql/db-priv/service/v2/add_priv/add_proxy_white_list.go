@@ -33,71 +33,54 @@ func (c *PrivTaskPara) addWhiteList(targetMetaInfos []*service.Instance) (err er
 		slog.Any("proxies", workingProxies),
 	)
 
-	// 确实有要操作的 proxy
-	if len(workingProxies) > 0 {
-		var cmds []string
-		for _, clientIp := range c.SourceIPs {
-			//clientIp 可能是 localhost, 要忽略
-			if clientIp == "localhost" {
-				continue
-			}
-			cmds = append(
-				cmds,
-				fmt.Sprintf(`refresh_users('%s@%s', '+')`,
-					c.User, clientIp,
-				))
-		}
+	if len(workingProxies) <= 0 {
+		return nil
+	}
+
+	cmds := generateProxyCmds(c.SourceIPs, c.User)
+	slog.Info(
+		"add proxy white list",
+		slog.Any("cmds", cmds),
+	)
+
+	// drs 执行多个 sql 是循环一个一个来的
+	// 所以批量发送是可以的, 只是这么搞 drs 负载估计要炸
+	// 这里搞并发的意义不大
+	var errCollect error
+	for bkCloudId, addresses := range workingProxies {
 		slog.Info(
 			"add proxy white list",
-			slog.Any("cmds", cmds),
+			slog.Int64("bk_cloud_id", bkCloudId),
+			slog.Any("addresses", addresses),
 		)
-
-		// drs 执行多个 sql 是循环一个一个来的
-		// 所以批量发送是可以的, 只是这么搞 drs 负载估计要炸
-		// 这里搞并发的意义不大
-		var errCollect error
-		for bkCloudId, addresses := range workingProxies {
-			slog.Info(
-				"add proxy white list",
-				slog.Int64("bk_cloud_id", bkCloudId),
-				slog.Any("addresses", addresses),
-			)
-			drsRes, err := drs.RPCProxyAdmin(
-				bkCloudId,
-				addresses,
-				cmds,
-				false,
-				0,
-			)
-			if err != nil {
-				slog.Error(
-					"add proxy white list",
-					slog.Int64("bk_cloud_id", bkCloudId),
-					slog.String("err", err.Error()),
-				)
-				return err
-			}
-
-			// 错误要收集起来
-			ec := collectErrors(drsRes)
-			if ec != nil {
-				slog.Error(
-					"add proxy white list",
-					slog.Int64("bk_cloud_id", bkCloudId),
-					slog.String("err", ec.Error()),
-				)
-				errCollect = errors.Join(errCollect, ec)
-			} else {
-				slog.Info(
-					"add proxy white list success",
-					slog.Int64("bk_cloud_id", bkCloudId),
-				)
-			}
+		drsRes, err := drs.RPCProxyAdmin(
+			bkCloudId,
+			addresses,
+			cmds,
+			false,
+			0,
+		)
+		if err != nil {
+			slog.Error("add proxy white list", slog.String("err", err.Error()))
+			return err
 		}
-		if errCollect != nil {
-			return errCollect
+
+		// 错误要收集起来
+		ec := collectErrors(drsRes)
+		if ec != nil {
+			slog.Error("add proxy white list", slog.String("err collection", ec.Error()))
+			errCollect = errors.Join(errCollect, ec)
+		} else {
+			slog.Info(
+				"add proxy white list success",
+				slog.Int64("bk_cloud_id", bkCloudId),
+			)
 		}
 	}
+	if errCollect != nil {
+		return errCollect
+	}
+
 	return nil
 }
 
@@ -119,4 +102,19 @@ func collectErrors(res []*drs.OneAddressResult) (ec error) {
 		}
 	}
 	return ec
+}
+
+func generateProxyCmds(clientIps []string, username string) (cmds []string) {
+	for _, clientIp := range clientIps {
+		//clientIp 可能是 localhost, 要忽略
+		if clientIp == "localhost" {
+			continue
+		}
+		cmds = append(
+			cmds,
+			fmt.Sprintf(`refresh_users('%s@%s', '+')`,
+				username, clientIp,
+			))
+	}
+	return cmds
 }

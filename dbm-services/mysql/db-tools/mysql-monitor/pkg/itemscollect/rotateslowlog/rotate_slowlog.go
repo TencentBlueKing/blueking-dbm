@@ -11,7 +11,6 @@ package rotateslowlog
 
 import (
 	"bytes"
-	"context"
 	"fmt"
 	"log/slog"
 	"os"
@@ -19,7 +18,6 @@ import (
 	"path/filepath"
 	"time"
 
-	"dbm-services/mysql/db-tools/mysql-monitor/pkg/config"
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/monitoriteminterface"
 
 	"github.com/jmoiron/sqlx"
@@ -47,13 +45,9 @@ qq{set global slow_query_log=\@sq_log_save},
 
 // Run 运行
 func (d *Dummy) Run() (msg string, err error) {
-	queryCtx, queryCancel := context.WithTimeout(context.Background(), config.MonitorConfig.InteractTimeout)
-	defer queryCancel()
-
 	var slowLogPath string
 	var slowLogOn bool
-	err = d.db.QueryRowxContext(
-		queryCtx,
+	err = d.db.QueryRowx(
 		`SELECT @@slow_query_log, @@slow_query_log_file`,
 	).Scan(&slowLogOn, &slowLogPath)
 	if err != nil {
@@ -135,9 +129,7 @@ func (d *Dummy) Run() (msg string, err error) {
 		return "", err
 	}
 
-	execCtx, execCancel := context.WithTimeout(context.Background(), config.MonitorConfig.InteractTimeout)
-	defer execCancel()
-	_, err = d.db.ExecContext(execCtx, `FLUSH SLOW LOGS`)
+	_, err = d.db.Exec(`FLUSH SLOW LOGS`)
 	if err != nil {
 		slog.Error("flush slow logs", slog.String("error", err.Error()))
 		return "", err

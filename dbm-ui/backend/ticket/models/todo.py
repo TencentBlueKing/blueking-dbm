@@ -17,9 +17,16 @@ from django.utils.translation import ugettext_lazy as _
 from backend import env
 from backend.bk_web.constants import LEN_MIDDLE, LEN_SHORT
 from backend.bk_web.models import AuditedModel
-from backend.configuration.constants import BizSettingsEnum
-from backend.configuration.models import BizSettings
-from backend.ticket.constants import FlowMsgStatus, FlowMsgType, TicketFlowStatus, TodoStatus, TodoType
+from backend.configuration.models import BizSettings, DBAdministrator
+from backend.ticket.builders import BuilderFactory
+from backend.ticket.constants import (
+    TODO_RUNNING_STATUS,
+    FlowMsgStatus,
+    FlowMsgType,
+    TicketFlowStatus,
+    TodoStatus,
+    TodoType,
+)
 from backend.ticket.tasks.ticket_tasks import send_msg_for_flow
 
 logger = logging.getLogger("root")
@@ -27,25 +34,36 @@ logger = logging.getLogger("root")
 
 class TodoManager(models.Manager):
     def exist_unfinished(self):
-        return self.filter(status__in=[TodoStatus.TODO, TodoStatus.RUNNING]).exists()
+        return self.filter(status__in=TODO_RUNNING_STATUS).exists()
+
+    def get_operators(self, todo_type, ticket, operators):
+        # 获得提单人，dba，业务协助人. TODO: 后续还会细分主、备、二线DBA，以及明确区分协助人角色
+        creator = [ticket.creator]
+        dba = DBAdministrator.get_biz_db_type_admins(ticket.bk_biz_id, ticket.group)
+        biz_helpers = BizSettings.get_assistance(ticket.bk_biz_id)
+
+        # 构造单据状态与处理人之间的对应关系
+        # - 审批中：提单人可撤销，dba可处理，
+        #   考虑某些单据审批人是特定配置(数据导出 -- 运维审批)，所以从ItsmBuilder获得审批人
+        # - 待执行：提单人 + 单据协助人
+        # - 待继续：dba + 提单人 + 单据协助人
+        # - 待补货：dba + 提单人 + 单据协助人
+        # - 已失败：dba + 提单人 + 单据协助人
+        itsm_builder = BuilderFactory.get_builder_cls(ticket.ticket_type).itsm_flow_builder(ticket)
+        todo_operators_map = {
+            TodoType.ITSM: itsm_builder.get_approvers().split(","),
+            TodoType.APPROVE: creator + biz_helpers,
+            TodoType.INNER_APPROVE: dba + creator + biz_helpers,
+            TodoType.RESOURCE_REPLENISH: dba + creator + biz_helpers,
+            TodoType.INNER_FAILED: dba + creator + biz_helpers,
+        }
+        # 按照顺序去重
+        operators = list(dict.fromkeys(operators + todo_operators_map.get(todo_type, [])))
+        return operators
 
     def create(self, **kwargs):
-        assistance_flag = (
-            BizSettings.get_setting_value(kwargs["ticket"].bk_biz_id, BizSettingsEnum.BIZ_ASSISTANCE_SWITCH) or False
-        )
-        if assistance_flag:
-            # 获取业务协助人列表
-            biz_facilitators: list = (
-                BizSettings.get_setting_value(
-                    bk_biz_id=kwargs["ticket"].bk_biz_id, key=BizSettingsEnum.BIZ_ASSISTANCE_VARS
-                )
-                or []
-            )
-            operators = kwargs.get("operators", [])
-            # 过滤掉已经在 operators 中的协助人
-            unique_biz_facilitators = [facilitator for facilitator in biz_facilitators if facilitator not in operators]
-            # 按顺序合并
-            kwargs["operators"] = operators + unique_biz_facilitators
+        operators = self.get_operators(kwargs["type"], kwargs["ticket"], kwargs.get("operators", []))
+        kwargs["operators"] = operators
         todo = super().create(**kwargs)
         send_msg_for_flow.apply_async(
             kwargs={
@@ -56,7 +74,6 @@ class TodoManager(models.Manager):
                 "receiver": todo.creator,
             }
         )
-
         return todo
 
 
@@ -95,8 +112,10 @@ class Todo(AuditedModel):
         return f"{env.BK_SAAS_HOST}/my-todos?id={self.ticket.id}"
 
     def set_status(self, username, status):
-        self.status = status
+        if self.status == status:
+            return
 
+        self.status = status
         if status in [TodoStatus.DONE_SUCCESS, TodoStatus.DONE_FAILED]:
             self.done_by = username
             self.done_at = timezone.now()
@@ -109,7 +128,6 @@ class Todo(AuditedModel):
 
     def set_terminated(self, username, action):
         self.set_status(username, TodoStatus.DONE_FAILED)
-        self.ticket.set_terminated()
         self.flow.update_status(TicketFlowStatus.TERMINATED)
         TodoHistory.objects.create(creator=username, todo=self, action=action)
 

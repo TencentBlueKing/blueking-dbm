@@ -2,7 +2,6 @@ package proxyuserlist
 
 import (
 	"bufio"
-	"context"
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/config"
 	"fmt"
 	"log/slog"
@@ -11,11 +10,8 @@ import (
 )
 
 func (c *Checker) loadUsersFromMem() ([]string, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), config.MonitorConfig.InteractTimeout)
-	defer cancel()
-
 	var usersFromQuery []string
-	err := c.adminDB.SelectContext(ctx, &usersFromQuery, `SELECT * FROM USERS`)
+	err := c.adminDB.Select(&usersFromQuery, `SELECT * FROM USERS`)
 	if err != nil {
 		slog.Error("query user list", slog.String("error", err.Error()))
 		return nil, err

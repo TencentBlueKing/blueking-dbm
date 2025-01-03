@@ -36,7 +36,7 @@
     <div style="display: none">
       <div
         ref="tipsPanel"
-        style="word-break: keep-all; white-space: nowrap">
+        class="dbm-tag-block-more-panel">
         <BkTag
           v-for="item in data.slice(renderData.length)"
           :key="item">
@@ -151,6 +151,7 @@
           theme: 'light',
           interactive: true,
           arrow: true,
+          maxWidth: 400,
           offset: [0, 8],
           zIndex: 999999,
           hideOnClick: true,
@@ -226,6 +227,14 @@
       &:hover {
         color: #3a84ff;
       }
+    }
+  }
+
+  .dbm-tag-block-more-panel {
+    margin-top: -8px;
+
+    .bk-tag {
+      margin-top: 8px;
     }
   }
 </style>

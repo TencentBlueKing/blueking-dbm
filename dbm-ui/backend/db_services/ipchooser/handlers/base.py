@@ -72,8 +72,10 @@ class BaseHandler:
                 "bk_mem": host.get("bk_mem"),
                 "bk_disk": host.get("bk_disk"),
                 "bk_cpu": host.get("bk_cpu"),
-                "bk_idc_name": host.get("idc_city_name"),
-                "bk_idc_id": host.get("idc_city_id"),
+                "bk_idc_name": host.get("idc_name"),
+                "bk_idc_id": host.get("idc_id"),
+                "bk_idc_city_name": host.get("idc_city_name"),
+                "bk_idc_city_id": host.get("idc_city_id"),
                 "bk_cpu_architecture": host.get("bk_cpu_architecture"),
                 "bk_cpu_module": host.get("bk_cpu_module"),
             }

@@ -24,7 +24,7 @@ const create = (options = {} as { exclude: string[] }) => {
     const serachList = [
       {
         name: t('单号'),
-        id: 'id',
+        id: 'ids',
       },
       {
         name: t('单据类型'),

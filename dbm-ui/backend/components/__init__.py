@@ -11,6 +11,7 @@ specific language governing permissions and limitations under the License.
 
 from django.apps import AppConfig
 
+from .bkbase.client import BKBaseApi
 from .bklog.client import BKLogApi
 from .bkmonitorv3.client import BKMonitorV3Api
 from .cc.client import CCApi
@@ -44,6 +45,7 @@ __all__ = [
     "DRSApi",
     "BKMonitorV3Api",
     "NameServiceApi",
+    "BKBaseApi",
 ]
 
 

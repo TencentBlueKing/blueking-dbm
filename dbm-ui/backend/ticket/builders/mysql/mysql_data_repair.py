@@ -44,10 +44,11 @@ class MySQLDataRepairFlowParamBuilder(builders.FlowParamBuilder):
 class MySQLDataRepairPauseParamBuilder(builders.PauseParamBuilder):
     """MySQL 数据校验暂停参数"""
 
-    def format(self):
+    @property
+    def operators(self):
         # 数据修复目前都是自动发起，确认人加上业务主备DBA
         dba = DBAdministrator.get_biz_db_type_admins(self.ticket.bk_biz_id, self.ticket.group)[:2]
-        self.params.update(operators=dba)
+        return dba
 
 
 @builders.BuilderFactory.register(TicketType.MYSQL_DATA_REPAIR)

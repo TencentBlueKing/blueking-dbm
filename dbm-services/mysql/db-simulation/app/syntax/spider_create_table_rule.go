@@ -11,6 +11,7 @@
 package syntax
 
 import (
+	"fmt"
 	"slices"
 	"strings"
 
@@ -33,6 +34,7 @@ func (c CreateTableResult) SpiderChecker(spiderVersion string) (r *CheckerResult
 			return SpecialCharValidator(c.TableName)
 		})
 	}
+	r.ParseBultinBan(c.NotAllowedDefaulValCol)
 	if c.IsCreateTableSelect {
 		r.Trigger(SR.SpiderCreateTableRule.CreateWithSelect, "")
 	}
@@ -223,4 +225,14 @@ func (c CreateTableResult) getColDef(colName string) (colDef ColDef) {
 		}
 	}
 	return colDef
+}
+
+// NotAllowedDefaulValCol 不允许存在默认值的字段
+func (c CreateTableResult) NotAllowedDefaulValCol() (bool, string) {
+	for _, col := range c.CreateDefinitions.ColDefs {
+		if col.IsNotAllowDefaulValCol() {
+			return true, fmt.Sprintf("col:%s,类型:%s 不允许存在默认值:[`%s`] ", col.ColName, col.DataType, col.DefaultVal.Value)
+		}
+	}
+	return false, ""
 }
