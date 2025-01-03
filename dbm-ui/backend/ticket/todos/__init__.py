@@ -19,7 +19,7 @@ from django.utils.translation import ugettext_lazy as _
 
 from backend.constants import DEFAULT_SYSTEM_USER
 from backend.ticket.constants import TODO_RUNNING_STATUS
-from backend.ticket.exceptions import TodoWrongOperatorException
+from backend.ticket.exceptions import TodoDuplicateProcessException, TodoWrongOperatorException
 from backend.ticket.models import Todo
 from blue_krill.data_types.enum import EnumField, StructuredEnum
 
@@ -55,7 +55,7 @@ class TodoActor:
     def process(self, username, action, params):
         # 当状态已经被确认，则不允许重复操作
         if self.todo.status not in TODO_RUNNING_STATUS:
-            raise TodoWrongOperatorException(_("当前代办操作已经处理，不能重复处理！"))
+            raise TodoDuplicateProcessException(_("当前代办操作已经处理，不能重复处理！"))
 
         # 允许系统内置用户确认
         if username == DEFAULT_SYSTEM_USER:

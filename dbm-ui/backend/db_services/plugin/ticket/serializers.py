@@ -12,8 +12,17 @@ specific language governing permissions and limitations under the License.
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
-from backend.ticket.serializers import BatchTicketOperateSerializer
+from backend.ticket.serializers import BatchTicketOperateSerializer, TodoOperateSerializer
 
 
 class OpenAPIBatchTicketOperateSerializer(BatchTicketOperateSerializer):
     username = serializers.CharField(help_text=_("操作者"))
+
+
+class OpenAPIBkChatProcessTodoSerializer(TodoOperateSerializer):
+    username = serializers.CharField(help_text=_("操作者"))
+
+
+class OpenAPIBkChatProcessTodoResponseSerializer(serializers.Serializer):
+    response_msg = serializers.CharField(help_text=_("返回信息"))
+    response_color = serializers.CharField(help_text=_("按钮颜色"))

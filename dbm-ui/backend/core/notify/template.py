@@ -16,10 +16,10 @@ TODO_TEMPLATE = _(
     """\
     申请人:  {{creator}}
     申请时间: {{submit_time}}
-    所属业务: {{biz_name}}
+    业务: {{biz_name}}
     域名: {{cluster_domains}}
     备注: {{remark}}
-    处理人:  {{operators}}
+    当前处理人:  {{operators}}
     查看详情: {{detail_address}}\
     """
 )
@@ -29,7 +29,7 @@ FINISHED_TEMPLATE = _(
     """\
     申请人:  {{creator}}
     申请时间: {{submit_time}}
-    所属业务: {{biz_name}}
+    业务: {{biz_name}}
     域名: {{cluster_domains}}
     完成时间: {{update_time}}
     查看详情: {{detail_address}}\
@@ -41,10 +41,10 @@ FAILED_TEMPLATE = _(
     """\
     申请人:  {{creator}}
     申请时间: {{submit_time}}
-    所属业务: {{biz_name}}
+    业务: {{biz_name}}
     域名: {{cluster_domains}}
     失败时间: {{update_time}}
-    处理人:  {{operators}}
+    当前当前处理人:  {{operators}}
     查看详情: {{detail_address}}\
     """
 )
@@ -54,7 +54,7 @@ TERMINATE_TEMPLATE = _(
     """\
     申请人:  {{creator}}
     申请时间: {{submit_time}}
-    所属业务: {{biz_name}}
+    业务: {{biz_name}}
     域名: {{cluster_domains}}
     终止时间: {{update_time}}
     终止原因:  {{terminate_reason}}

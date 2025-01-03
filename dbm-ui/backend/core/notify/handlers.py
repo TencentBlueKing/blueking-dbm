@@ -24,12 +24,12 @@ from backend.core.notify.constants import DEFAULT_BIZ_NOTIFY_CONFIG, MsgType
 from backend.core.notify.exceptions import NotifyBaseException
 from backend.core.notify.template import FAILED_TEMPLATE, FINISHED_TEMPLATE, TERMINATE_TEMPLATE, TODO_TEMPLATE
 from backend.db_meta.models import AppCache
+from backend.exceptions import ApiResultError
 from backend.ticket.builders import BuilderFactory
-from backend.ticket.constants import TicketStatus, TicketType
+from backend.ticket.constants import TicketStatus, TicketType, TodoStatus
 from backend.ticket.models import Flow, Ticket
 from backend.ticket.todos import ActionType
 from backend.utils.cache import func_cache_decorator
-from backend.utils.time import datetime2str
 
 logger = logging.getLogger("root")
 
@@ -78,20 +78,25 @@ class BkChatHandler(BaseNotifyHandler):
         """获取bkchat操作按钮"""
         if ticket.status not in [TicketStatus.APPROVE, TicketStatus.TODO]:
             return []
+
+        todo = ticket.todo_of_ticket.filter(status=TodoStatus.TODO).first()
+        if not todo:
+            return []
+
         # 增加回调按钮，执行和终止
         agree_action = {
             "name": _("同意") if ticket.status == TicketStatus.APPROVE else _("确认执行"),
             "color": "green",
-            "callback_url": f"{env.BK_DBM_APIGATEWAY}/tickets/batch_process_ticket/",
-            "callback_data": {"action": ActionType.APPROVE.value, "ticket_ids": [ticket.id]},
+            "callback_url": f"{env.BK_DBM_APIGATEWAY}/tickets/bkchat_process_todo/",
+            "callback_data": {"action": ActionType.APPROVE.value, "todo_id": todo.id, "params": {}},
         }
         refuse_action = {
             "name": _("拒绝") if ticket.status == TicketStatus.APPROVE else _("终止单据"),
             "color": "red",
-            "callback_url": f"{env.BK_DBM_APIGATEWAY}/tickets/batch_process_ticket/",
+            "callback_url": f"{env.BK_DBM_APIGATEWAY}/tickets/bkchat_process_todo/",
             "callback_data": {
                 "action": ActionType.TERMINATE.value,
-                "ticket_ids": [ticket.id],
+                "todo_id": todo.id,
                 "params": {"remark": _("使用「蓝鲸审批助手」终止单据")},
             },
         }
@@ -178,6 +183,8 @@ class CmsiHandler(BaseNotifyHandler):
             kwargs.update(sender=sender)
         if cc:
             kwargs.update(cc__username=",".join(cc))
+        # 邮件的换行要用<br>的html
+        self.content = self.content.replace("\n", "<br>")
         self._cmsi_send_msg(MsgType.MAIL, **kwargs)
 
     def send_voice(self):
@@ -193,7 +200,9 @@ class CmsiHandler(BaseNotifyHandler):
         self._cmsi_send_msg(MsgType.RTX.value)
 
     def send_sms(self):
-        """发送企微消息"""
+        """发送短信消息"""
+        # 短信消息没有标题参数，直接把标题和内容放在一起
+        self.content = f"{self.title}\n{self.content}"
         self._cmsi_send_msg(MsgType.SMS.value)
 
     def send_wecom_robot(self):
@@ -238,7 +247,11 @@ class NotifyAdapter:
     def get_support_msg_types(cls):
         # 获取当前环境下支持的通知类型
         # 所有的拓展方式都需要接入CMSI，所以直接返回CMSI支持方式即可
-        return CmsiApi.get_msg_type()
+        # 暂不暴露微信的通知方式
+        msg_types = CmsiApi.get_msg_type()
+        msg_type_map = {msg["type"]: msg for msg in msg_types}
+        msg_type_map[MsgType.WEIXIN.value]["is_active"] = False
+        return list(msg_type_map.values())
 
     def get_notify_class(self, msg_type: str):
         # 根据通知类型获取通知类，以及通知所需的上下文
@@ -253,15 +266,17 @@ class NotifyAdapter:
         biz_helpers = BizSettings.get_assistance(self.bk_biz_id)
         creator = [self.ticket.creator]
         # 待审批：审批人
-        # 待执行、待补货、待确认、已失败、已完成、已终止：	提单人、协助人
+        # 待执行、待补货、待确认、已失败、已完成、已终止：提单人、协助人
         # 暂不通知DBA
         if self.phase in [TicketStatus.PENDING]:
-            return creator
+            receivers = creator
         elif self.phase in [TicketStatus.APPROVE]:
             itsm_builder = BuilderFactory.get_builder_cls(self.ticket.ticket_type).itsm_flow_builder(self.ticket)
-            return itsm_builder.get_approvers().split(",")
+            receivers = itsm_builder.get_approvers().split(",")
         else:
-            return creator + biz_helpers
+            receivers = creator + biz_helpers
+        # 去重后返回
+        return list(dict.fromkeys(receivers))
 
     def render_msg_template(self, msg_type: str):
         # 获取标题，在群机器人通知则加上@人
@@ -289,8 +304,8 @@ class NotifyAdapter:
             "cluster_domains": ",".join(self.clusters),
             "remark": self.ticket.remark,
             "creator": self.ticket.creator,
-            "submit_time": datetime2str(self.ticket.create_at),
-            "update_time": datetime2str(self.ticket.update_at),
+            "submit_time": self.ticket.create_at.astimezone().strftime("%Y-%m-%d %H:%M:%S%z"),
+            "update_time": self.ticket.update_at.astimezone().strftime("%Y-%m-%d %H:%M:%S%z"),
             "status": TicketStatus.get_choice_label(self.phase),
             "operators": ",".join(self.ticket.get_current_operators()),
             "detail_address": self.ticket.url,
@@ -325,17 +340,13 @@ class NotifyAdapter:
             if msg_type == MsgType.WECOM_ROBOT:
                 self.receivers = send_msg_config.get(MsgType.WECOM_ROBOT.value, [])
 
-            notify_class(title, content, self.receivers).send_msg(msg_type, context=context)
+            try:
+                notify_class(title, content, self.receivers).send_msg(msg_type, context=context)
+            except (ApiResultError, Exception) as e:
+                logger.error(_("[{}]消息发送失败，错误信息: {}").format(MsgType.get_choice_label(msg_type), e))
 
 
 @shared_task
-def send_msg(ticket_id: int, flow_id: int = None, raise_exception: bool = False):
+def send_msg(ticket_id: int, flow_id: int = None):
     # 可异步发送消息，非阻塞路径默认不抛出异常
-    try:
-        NotifyAdapter(ticket_id, flow_id).send_msg()
-    except Exception as e:
-        err_msg = _("消息发送失败，错误信息:{}").format(e)
-        if not raise_exception:
-            logger.error(err_msg)
-        else:
-            raise NotifyBaseException(err_msg)
+    NotifyAdapter(ticket_id, flow_id).send_msg()

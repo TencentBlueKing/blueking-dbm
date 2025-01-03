@@ -231,7 +231,13 @@ class TicketHandler:
         act_msg = kwargs.get("action_message") or act_msg_tpl
 
         # 审批单据
-        params = {"action_message": act_msg}
+        params = {
+            "sn": sn,
+            "action_message": act_msg,
+            "action_type": action,
+            "operator": operator,
+            "bk_username": operator,
+        }
         if action == OperateNodeActionType.TRANSITION:
             is_approved = kwargs["is_approved"]
             itsm_fields = cls.get_itsm_fields(flow.ticket.ticket_type)
@@ -239,11 +245,10 @@ class TicketHandler:
                 {"key": itsm_fields[0], "value": json.dumps(is_approved)},
                 {"key": itsm_fields[1], "value": act_msg},
             ]
-            params.update(sn=sn, state_id=state_id, action_type=action, operator=operator, fields=fields)
+            params.update(state_id=state_id, fields=fields)
             ItsmApi.operate_node(params)
         # 终止/撤销单据
         elif action in [OperateNodeActionType.TERMINATE, OperateNodeActionType.WITHDRAW]:
-            params.update(sn=sn, action_type=action, operator=operator)
             ItsmApi.operate_ticket(params)
 
         return sn

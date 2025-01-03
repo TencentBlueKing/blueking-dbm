@@ -10,6 +10,8 @@ specific language governing permissions and limitations under the License.
 """
 import logging
 
+from django.db import transaction
+
 from backend import env
 from backend.core import notify
 from backend.ticket import constants
@@ -115,15 +117,20 @@ class TicketFlowManager(object):
             # 其他场景下状态未变更，无需更新DB
             return
 
-        if self.ticket.status != target_status:
-            origin_status = self.ticket.status
-            self.ticket.status = target_status
-            self.ticket.save(update_fields=["status", "update_at"])
+        # 原子更新单据状态
+        with transaction.atomic():
+            ticket = Ticket.objects.select_for_update().get(id=self.ticket.id)
+            if ticket.status == target_status:
+                return
+            origin_status, ticket.status = ticket.status, target_status
+            ticket.save(update_fields=["status", "update_at"])
             self.ticket_status_trigger(origin_status, target_status)
 
     def ticket_status_trigger(self, origin_status, target_status):
         """单据状态更新后的钩子函数"""
 
-        # 单据状态变更后，发送通知。忽略running
-        if target_status != TicketStatus.RUNNING:
+        # 单据状态变更后，发送通知。
+        # 忽略运行中：流转到内置任务无需通知，待继续在todo创建时才触发通知
+        # 忽略待补货：到资源申请节点，单据状态总会流转为待补货，但是只有待补货todo创建才触发通知
+        if target_status not in [TicketStatus.RUNNING, TicketStatus.RESOURCE_REPLENISH]:
             notify.send_msg.apply_async(args=(self.ticket.id,))

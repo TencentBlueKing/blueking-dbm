@@ -43,7 +43,7 @@ def timezone2timestamp(date: Union[str, datetime.datetime]) -> int:
     return int(time_parse(date).timestamp())
 
 
-def datetime2str(o_datetime: datetime.datetime, fmt: str = DATETIME_PATTERN, aware_check: bool = True) -> str:
+def datetime2str(o_datetime: datetime.datetime, aware_check: bool = True) -> str:
     """
     将时间对象转换为时间字符串，可选时区强校验
     """

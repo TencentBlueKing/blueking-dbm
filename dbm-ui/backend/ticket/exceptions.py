@@ -60,6 +60,12 @@ class TodoWrongOperatorException(TicketBaseException):
     MESSAGE_TPL = _("错误的todo处理人{username}")
 
 
+class TodoDuplicateProcessException(TicketBaseException):
+    ERROR_CODE = "010"
+    MESSAGE = _("重复操作")
+    MESSAGE_TPL = _("重复操作")
+
+
 class ApprovalWrongOperatorException(TicketBaseException):
     ERROR_CODE = "008"
     MESSAGE = _("审批处理异常")
@@ -67,6 +73,6 @@ class ApprovalWrongOperatorException(TicketBaseException):
 
 
 class TicketFlowsConfigException(TicketBaseException):
-    ERROR_CODE = "008"
+    ERROR_CODE = "009"
     MESSAGE = _("单据流程设置失败")
     MESSAGE_TPL = _("单据流程{ticket_type}设置失败")

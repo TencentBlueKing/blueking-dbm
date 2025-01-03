@@ -21,6 +21,7 @@ from backend import env
 from backend.components.dbresource.client import DBResourceApi
 from backend.configuration.constants import AffinityEnum
 from backend.configuration.models import DBAdministrator
+from backend.core import notify
 from backend.db_meta.models import Spec
 from backend.db_services.dbresource.exceptions import ResourceApplyException, ResourceApplyInsufficientException
 from backend.db_services.ipchooser.constants import CommonEnum
@@ -214,6 +215,7 @@ class ResourceApplyFlow(BaseTicketFlow):
                 flow_id=self.flow_obj.id, ticket_id=self.ticket.id, user=self.ticket.creator, administrators=dba
             ).to_dict(),
         )
+        notify.send_msg.apply_async(args=(self.ticket.id,))
 
     def fetch_apply_params(self, ticket_data):
         """

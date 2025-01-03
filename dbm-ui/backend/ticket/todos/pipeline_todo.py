@@ -74,7 +74,7 @@ class PipelineTodo(todos.TodoActor):
 
             # 当前不存在待确认的todo，则发送通知
             if not flow.todo_of_flow.filter(type=TodoType.INNER_APPROVE).count():
-                notify.send_msg(ticket.id, flow.id)
+                notify.send_msg.apply_async(args=(ticket.id,))
 
             Todo.objects.create(
                 name=_("【{}】流程待确认,是否继续？").format(ticket.get_ticket_type_display()),
