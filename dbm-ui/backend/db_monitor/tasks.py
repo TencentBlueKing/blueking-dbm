@@ -13,7 +13,10 @@ import logging
 
 from celery import shared_task
 
+from backend import env
+from backend.components import BKMonitorV3Api
 from backend.configuration.constants import PLAT_BIZ_ID
+from backend.exceptions import ApiResultError
 
 logger = logging.getLogger("celery")
 
@@ -85,3 +88,27 @@ def update_app_policy(bk_biz_id, notify_group_id, db_type):
                 notify_group_id,
                 db_type,
             )
+
+
+@shared_task
+def update_db_notice_group(db_type: str):
+    """更新DB类型的告警组"""
+    from backend.db_monitor.models import NoticeGroup
+
+    for notice_group in NoticeGroup.objects.filter(is_built_in=True, db_type=db_type):
+        logger.info("[local_notice_group] update notice group: %s", notice_group.name)
+        notice_group.save()
+
+
+@shared_task
+def delete_monitor_duty_rule(db_type: str, monitor_duty_rule_id):
+    """解绑相关告警组，删除轮值策略，调用此函数之前保证轮值已从DBM中删除"""
+    update_db_notice_group(db_type)
+
+    logger.info("[duty_rule] delete duty rule: %s", monitor_duty_rule_id)
+
+    try:
+        BKMonitorV3Api.delete_duty_rules({"ids": [monitor_duty_rule_id], "bk_biz_ids": [env.DBA_APP_BK_BIZ_ID]})
+    except (ApiResultError, Exception) as e:
+        # 轮值删除错误暂可忽略，因为删除之前已经停用不会生效，并且在DBM数据也清理。只是会在监控平台留下一条脏数据
+        logger.error("[duty_rule] error in deleting duty: %s", e)

@@ -9,6 +9,7 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import urllib.parse
+from collections import defaultdict
 
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
@@ -17,6 +18,7 @@ from backend import env
 from backend.bk_web.serializers import AuditedSerializer
 from backend.configuration.constants import DBType
 from backend.db_meta.enums import ClusterType
+from backend.db_meta.models import AppCache
 from backend.db_monitor import mock_data
 from backend.db_monitor.constants import AlertLevelEnum, DetectAlgEnum, OperatorEnum, TargetLevel
 from backend.db_monitor.exceptions import AutofixException
@@ -64,21 +66,36 @@ class NoticeGroupUpdateSerializer(NoticeGroupSerializer):
 
 
 class DutyRuleSerializer(AuditedSerializer, serializers.ModelSerializer):
+    biz_config_display = serializers.SerializerMethodField(help_text=_("业务配置信息"))
+
+    @property
+    def biz_name_map(self):
+        if not hasattr(self, "_biz_name_map"):
+            setattr(self, "_biz_name_map", AppCache.get_appcache(key="appcache_dict"))
+        return self._biz_name_map
+
     class Meta:
         model = DutyRule
         fields = "__all__"
 
+    def get_biz_config_display(self, obj):
+        biz_config_display = defaultdict(dict)
+        for key, bizs in obj.biz_config.items():
+            infos = [{"bk_biz_id": biz, "bk_biz_name": self.biz_name_map[str(biz)]["bk_biz_name"]} for biz in bizs]
+            biz_config_display[key] = infos
+        return biz_config_display
+
 
 class DutyRuleCreateSerializer(DutyRuleSerializer):
     class Meta:
-        model = NoticeGroup
+        model = DutyRule
         fields = "__all__"
         swagger_schema_fields = {"example": mock_data.CREATE_HANDOFF_DUTY_RULE}
 
 
 class DutyRuleUpdateSerializer(DutyRuleSerializer):
     class Meta:
-        model = NoticeGroup
+        model = DutyRule
         fields = "__all__"
         swagger_schema_fields = {"example": mock_data.CREATE_CUSTOM_DUTY_RULE}
 

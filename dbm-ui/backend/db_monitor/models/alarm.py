@@ -47,8 +47,9 @@ from backend.db_monitor.exceptions import (
     BkMonitorDeleteAlarmException,
     BkMonitorSaveAlarmException,
     BuiltInNotAllowDeleteException,
+    DutyRuleSaveException,
 )
-from backend.db_monitor.tasks import update_app_policy
+from backend.db_monitor.tasks import delete_monitor_duty_rule, update_app_policy, update_db_notice_group
 from backend.db_monitor.utils import (
     bkm_delete_alarm_strategy,
     bkm_save_alarm_strategy,
@@ -167,12 +168,8 @@ class NoticeGroup(AuditedModel):
             resp = BKMonitorV3Api.save_duty_rule(save_duty_rule_params, use_admin=True, raw=True)
             if resp.get("result"):
                 self.monitor_duty_rule_id = resp["data"]["id"]
-                monitor_duty_rule_ids = (
-                    DutyRule.objects.filter(db_type=self.db_type)
-                    .exclude(monitor_duty_rule_id=0)
-                    .order_by("-priority")
-                    .values_list("monitor_duty_rule_id", flat=True)
-                )
+                duty_rules = DutyRule.get_biz_db_duty_rules(self.bk_biz_id, self.db_type)
+                monitor_duty_rule_ids = [rule.monitor_duty_rule_id for rule in duty_rules]
                 save_monitor_group_params["need_duty"] = True
                 save_monitor_group_params["duty_rules"] = list(monitor_duty_rule_ids) + [self.monitor_duty_rule_id]
             else:
@@ -275,11 +272,15 @@ class DutyRule(AuditedModel):
     category = models.CharField(verbose_name=_("轮值类型"), choices=DutyRuleCategory.get_choices(), max_length=LEN_SHORT)
     db_type = models.CharField(_("数据库类型"), choices=DBType.get_choices(), max_length=LEN_SHORT)
     duty_arranges = models.JSONField(_("轮值人员设置"))
+    biz_config = models.JSONField(_("业务设置(包含业务include/排除业务exclude)"), default=dict)
 
     def save(self, *args, **kwargs):
         """
         保存轮值
         """
+        # 0. (前置校验)不允许同时存在包含业务和排除业务两个设置
+        if self.biz_config.get("include") and self.biz_config.get("exclude"):
+            raise DutyRuleSaveException(_("不允许通知存在包含业务和排除业务配置"))
         # 1. 新建监控轮值
         params = {
             "name": f"{self.db_type}_{self.name}",
@@ -343,25 +344,42 @@ class DutyRule(AuditedModel):
         # 3. 判断是否需要变更用户组
         # 3.1 非老规则（即新建的规则）
         need_update_user_group = not is_old_rule
-        # 3.2 调整了优先级的规则
+        # 3.2 调整了优先级的规则，或者调整了业务配置
         if self.pk:
             old_rule = DutyRule.objects.get(pk=self.pk)
-            if old_rule.priority != self.priority:
+            if old_rule.priority != self.priority or old_rule.biz_config != self.biz_config:
                 need_update_user_group = True
         # 4. 保存本地轮值规则
         super().save(*args, **kwargs)
-        # 5. 变更告警组
+        # 5. 变更告警组-异步执行
         if need_update_user_group:
-            for notice_group in NoticeGroup.objects.filter(is_built_in=True, db_type=self.db_type):
-                notice_group.save()
+            update_db_notice_group.delay(self.db_type)
 
     def delete(self, using=None, keep_parents=False):
-        BKMonitorV3Api.delete_duty_rules({"ids": [self.monitor_duty_rule_id], "bk_biz_ids": [env.DBA_APP_BK_BIZ_ID]})
+        """删除轮值"""
         super().delete()
+        delete_monitor_duty_rule.delay(self.db_type, self.monitor_duty_rule_id)
 
     @classmethod
     def priority_distinct(cls) -> list:
         return list(cls.objects.values_list("priority", flat=True).distinct().order_by("-priority"))
+
+    @classmethod
+    def get_biz_db_duty_rules(cls, bk_biz_id: int, db_type: str):
+        """获取指定业务DB组件的轮值策略"""
+        duty_rules = DutyRule.objects.filter(db_type=db_type).exclude(monitor_duty_rule_id=0).order_by("-priority")
+        active_biz_duty_rules: list = []
+
+        for rule in duty_rules:
+            # 如果业务不在包含名单，或者业务在排除名单，则本策略不属于该业务下
+            if rule.biz_config:
+                include, exclude = rule.biz_config.get("include"), rule.biz_config.get("exclude")
+                if (include and bk_biz_id not in include) or (exclude and bk_biz_id in exclude):
+                    continue
+            # 添加该业务下的轮值策略
+            active_biz_duty_rules.append(rule)
+
+        return active_biz_duty_rules
 
     class Meta:
         verbose_name_plural = verbose_name = _("轮值规则(DutyRule)")

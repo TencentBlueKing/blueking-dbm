@@ -40,3 +40,9 @@ class AutofixException(DBMonitorBaseException):
     ERROR_CODE = "203"
     MESSAGE = _("故障自愈异常")
     MESSAGE_TPL = _("故障自愈异常: {message}")
+
+
+class DutyRuleSaveException(DBMonitorBaseException):
+    ERROR_CODE = "204"
+    MESSAGE = _("轮值策略保存失败")
+    MESSAGE_TPL = _("轮值策略保存失败: {message}")
