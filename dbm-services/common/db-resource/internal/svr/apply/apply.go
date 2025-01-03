@@ -14,6 +14,8 @@ package apply
 import (
 	"fmt"
 	"path"
+	"slices"
+	"sort"
 	"strings"
 
 	"dbm-services/common/db-resource/internal/config"
@@ -32,14 +34,195 @@ import (
 // SearchContext TODO
 type SearchContext struct {
 	*ObjectDetail
-	RsType          string
-	IntetionBkBizId int
-	IdcCitys        []string
-	SpecialHostIds  []int
+	RsType            string
+	IntetionBkBizId   int
+	IdcCitys          []string
+	SpecialSubZoneIds []string
+	SpecialHostIds    []int
+}
+
+// applyGroupsInSameLocaltion apply groups in same location
+func applyGroupsInSameLocaltion(param RequestInputParam) (pickers []*PickerObject, err error) {
+	var picker *PickerObject
+	resourceReqList, err := param.SortDetails()
+	if err != nil {
+		logger.Error("对请求参数排序失败%v", err)
+		return nil, err
+	}
+	var idcCitys []string
+	v := resourceReqList[0]
+	idcCitys, err = getLogicIdcCitys(v)
+	if err != nil {
+		logger.Error("get logic citys failed %s", err.Error())
+		return pickers, err
+	}
+	// 根据请求，按照请求的分组，分别计算出每个分组的匹配的园区的优先级
+	groupcampusNice, err := getGroupcampusNice(param, resourceReqList, idcCitys)
+	if err != nil {
+		logger.Error("order campus nice failed %s", err.Error())
+		return pickers, err
+	}
+	// 因为整个大的分组在需要分配机器在同一个园区，这里合并所有的分组的园区优先级
+	// 合并之后再次排序，返回整体的园区优先级
+	subzoneIds := sortgroupcampusNice(groupcampusNice)
+	logger.Info("sort subzone ids %v", subzoneIds)
+	if len(subzoneIds) == 0 {
+		return pickers, errno.ErrResourceinsufficient.Add("没有符合条件的资源")
+	}
+	for _, subzoneId := range subzoneIds {
+		pickers = []*PickerObject{}
+		for _, v := range resourceReqList {
+			s := &SearchContext{
+				IntetionBkBizId:   param.ForbizId,
+				RsType:            param.ResourceType,
+				ObjectDetail:      &v,
+				IdcCitys:          idcCitys,
+				SpecialHostIds:    v.Hosts.GetBkHostIds(),
+				SpecialSubZoneIds: []string{subzoneId},
+			}
+			if err = s.PickCheck(); err != nil {
+				logger.Error("挑选资源失败:%v", err)
+				goto RollBack
+			}
+			// 挑选符合需求的资源
+			picker, err = s.PickInstance()
+			if err != nil {
+				logger.Error("挑选资源失败:%v", err)
+				goto RollBack
+			}
+			// Debug Print Log 挑选实例分区的情况
+			picker.DebugDistrubuteLog()
+			// 更新挑选到的资源的状态为Preselected
+			if updateErr := picker.PreselectedSatisfiedInstance(); updateErr != nil {
+				goto RollBack
+			}
+			// 追加到挑选好的分组
+			pickers = append(pickers, picker)
+		}
+		return pickers, nil
+	RollBack:
+		RollBackAllInstanceUnused(pickers)
+	}
+	return pickers, err
+}
+func getGroupcampusNice(param RequestInputParam, resourceReqList []ObjectDetail,
+	idcCitys []string) (groupcampusNice map[string]map[string]*SubZoneSummary,
+	err error) {
+	groupcampusNice = make(map[string]map[string]*SubZoneSummary)
+	for _, v := range resourceReqList {
+		s := &SearchContext{
+			IntetionBkBizId: param.ForbizId,
+			RsType:          param.ResourceType,
+			ObjectDetail:    &v,
+			IdcCitys:        idcCitys,
+			SpecialHostIds:  v.Hosts.GetBkHostIds(),
+		}
+		var items []model.TbRpDetail
+		db := model.DB.Self.Table(model.TbRpDetailName())
+		s.pickBase(db)
+		if err = db.Scan(&items).Error; err != nil {
+			logger.Error("query failed %s", err.Error())
+			return nil, errno.ErrDBQuery.AddErr(err)
+		}
+		campusSummarys := make(map[string]*SubZoneSummary)
+		for _, item := range items {
+			if _, ok := campusSummarys[item.SubZoneID]; !ok {
+				campusSummarys[item.SubZoneID] = &SubZoneSummary{
+					Count:             1,
+					EquipmentIdList:   []string{item.RackID},
+					LinkNetdeviceList: strings.Split(item.NetDeviceID, ","),
+					RequestCount:      v.Count,
+				}
+			} else {
+				campusSummarys[item.SubZoneID].Count++
+				campusSummarys[item.SubZoneID].EquipmentIdList = append(campusSummarys[item.SubZoneID].EquipmentIdList, item.RackID)
+				campusSummarys[item.SubZoneID].LinkNetdeviceList = append(campusSummarys[item.SubZoneID].LinkNetdeviceList,
+					strings.Split(item.NetDeviceID, ",")...)
+			}
+		}
+		groupcampusNice[v.GroupMark] = campusSummarys
+	}
+	return groupcampusNice, nil
+}
+
+func sortgroupcampusNice(gpms map[string]map[string]*SubZoneSummary) []string {
+	subzones := []string{}
+	gcnsMap := make(map[string]*CampusNice)
+	var cns []CampusNice
+	for _, campuseSummary := range gpms {
+		for campus := range campuseSummary {
+			equipmentIdList := lo.Uniq(campuseSummary[campus].EquipmentIdList)
+			linkNetdeviceList := lo.Uniq(campuseSummary[campus].LinkNetdeviceList)
+			count := campuseSummary[campus].Count
+			requestCount := campuseSummary[campus].RequestCount
+			if count >= requestCount && len(equipmentIdList) >= requestCount &&
+				len(linkNetdeviceList) >= requestCount {
+				cns = append(cns, CampusNice{
+					Campus: campus,
+					Count:  int64(count + len(equipmentIdList)*(1+PriorityP3) + len(linkNetdeviceList)*(PriorityP3+1)),
+				})
+			}
+		}
+	}
+
+	for _, cn := range cns {
+		if _, ok := gcnsMap[cn.Campus]; !ok {
+			gcnsMap[cn.Campus] = &CampusNice{
+				Campus: cn.Campus,
+				Count:  cn.Count,
+			}
+		} else {
+			gcnsMap[cn.Campus].Count += cn.Count
+		}
+	}
+	var gcns []CampusNice
+	for key := range gcnsMap {
+		gcns = append(gcns, CampusNice{
+			Campus: key,
+			Count:  gcnsMap[key].Count,
+		})
+	}
+	sort.Sort(CampusWrapper{gcns, func(p, q *CampusNice) bool {
+		return q.Count < p.Count
+	}})
+
+	for _, v := range gcns {
+		subzones = append(subzones, v.Campus)
+	}
+	return subzones
+}
+
+// SubZoneSummary subzone summary
+type SubZoneSummary struct {
+	RequestCount      int
+	Count             int
+	EquipmentIdList   []string // 存在的设备Id
+	LinkNetdeviceList []string // 存在的网卡Id
+}
+
+func getLogicIdcCitys(v ObjectDetail) (idcCitys []string, err error) {
+	if config.AppConfig.RunMode == "dev" {
+		idcCitys = []string{}
+	} else if cmutil.ElementNotInArry(v.Affinity, []string{CROSS_RACK, NONE}) ||
+		lo.IsNotEmpty(v.LocationSpec.City) ||
+		len(v.Hosts) > 0 {
+		idcCitys, err = dbmapi.GetIdcCityByLogicCity(v.LocationSpec.City)
+		if err != nil {
+			logger.Error("request real citys by logic city %s from bkdbm api failed:%v", v.LocationSpec.City, err)
+			return []string{}, err
+		}
+	}
+	return idcCitys, nil
 }
 
 // CycleApply 循环匹配
 func CycleApply(param RequestInputParam) (pickers []*PickerObject, err error) {
+	// 多个请求参数分组在同一个地方
+	affinitys := lo.Uniq(param.GetAllAffinitys())
+	if param.GroupsInSameLocation && len(param.Details) > 1 && len(affinitys) == 1 &&
+		slices.Contains([]string{SAME_SUBZONE, SAME_SUBZONE_CROSS_SWTICH}, affinitys[0]) {
+		return applyGroupsInSameLocaltion(param)
+	}
 	resourceReqList, err := param.SortDetails()
 	if err != nil {
 		logger.Error("对请求参数排序失败%v", err)
@@ -52,19 +235,11 @@ func CycleApply(param RequestInputParam) (pickers []*PickerObject, err error) {
 		if v.Affinity == "" || v.Count <= 1 {
 			v.Affinity = NONE
 		}
-		var idcCitys []string
-		if config.AppConfig.RunMode == "dev" {
-			idcCitys = []string{}
-		} else if cmutil.ElementNotInArry(v.Affinity, []string{CROSS_RACK, NONE}) ||
-			lo.IsNotEmpty(v.LocationSpec.City) ||
-			len(v.Hosts) > 0 {
-			idcCitys, err = dbmapi.GetIdcCityByLogicCity(v.LocationSpec.City)
-			if err != nil {
-				logger.Error("request real citys by logic city %s from bkdbm api failed:%v", v.LocationSpec.City, err)
-				return pickers, err
-			}
+		idcCitys, err := getLogicIdcCitys(v)
+		if err != nil {
+			logger.Error("get logic citys failed %s", err.Error())
+			return pickers, err
 		}
-
 		s := &SearchContext{
 			IntetionBkBizId: param.ForbizId,
 			RsType:          param.ResourceType,
@@ -270,7 +445,7 @@ func (o *SearchContext) MatchIntetionBkBiz(db *gorm.DB) {
 	// 如果没有指定专属业务，就表示只能选用公共的资源
 	// 不能匹配打了业务标签的资源
 	if o.IntetionBkBizId <= 0 {
-		db.Where("dedicated_biz == 0")
+		db.Where("dedicated_biz = 0")
 	} else {
 		db.Where("dedicated_biz in (?)", []int{0, o.IntetionBkBizId})
 	}
@@ -281,7 +456,7 @@ func (o *SearchContext) MatchRsType(db *gorm.DB) {
 	// 如果没有指定资源类型，表示只能选择无资源类型标签的资源
 	// 没有资源类型标签的资源可以被所有其他类型使用
 	if lo.IsEmpty(o.RsType) {
-		db.Where("rs_type == 'PUBLIC' ")
+		db.Where("rs_type = 'PUBLIC' ")
 	} else {
 		db.Where("rs_type in (?)", []string{"PUBLIC", o.RsType})
 	}
@@ -345,12 +520,15 @@ func (o *SearchContext) MatchLocationSpec(db *gorm.DB) {
 		db = db.Where("city = ? ", o.LocationSpec.City)
 	}
 	if o.LocationSpec.SubZoneIsEmpty() {
+		if len(o.SpecialSubZoneIds) > 0 {
+			db.Where("sub_zone_id in (?)", o.SpecialSubZoneIds)
+		}
 		return
 	}
 	if o.LocationSpec.IncludeOrExclude {
-		db.Where("sub_zone_id in ?", o.LocationSpec.SubZoneIds)
+		db.Where("sub_zone_id in (?)", o.LocationSpec.SubZoneIds)
 	} else {
-		db.Where("sub_zone_id  not in ?", o.LocationSpec.SubZoneIds)
+		db.Where("sub_zone_id not in (?)", o.LocationSpec.SubZoneIds)
 	}
 }
 
