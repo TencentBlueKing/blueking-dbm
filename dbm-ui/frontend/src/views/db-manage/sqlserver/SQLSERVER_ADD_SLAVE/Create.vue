@@ -18,9 +18,9 @@
       closable
       :title="t('添加从库：同机的所有集群会统一新增从库，仅支持 always on 集群')" />
     <BkForm
-      v-model="formData"
       class="mb-20"
-      form-type="vertical">
+      form-type="vertical"
+      :model="formData">
       <EditableTable
         ref="table"
         class="mb-20"
