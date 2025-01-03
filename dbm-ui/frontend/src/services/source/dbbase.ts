@@ -15,7 +15,7 @@ import type { InstanceInfos } from '@services/types';
 
 import { ClusterTypes } from '@common/const';
 
-import http from '../http';
+import http, { type IRequestPayload } from '../http';
 
 const path = '/apis/dbbase';
 
@@ -142,8 +142,27 @@ export function queryClusterInstanceCount(params: { bk_biz_id: number }) {
 }
 
 export function updateClusterAlias(params: { cluster_id: number; new_alias: string }) {
-  return http.post(`${path}/update_cluster_alias`, {
+  return http.post(`${path}/update_cluster_alias/`, {
     ...params,
     bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
   });
+}
+
+export function queryClusterStat(params: { bk_biz_id: number; cluster_type: string }, payload = {} as IRequestPayload) {
+  return http.get<
+    Record<
+      number,
+      {
+        in_use: number;
+        total: number;
+        used: number;
+      }
+    >
+  >(
+    `${path}/query_cluster_stat/`,
+    {
+      ...params,
+    },
+    payload,
+  );
 }
