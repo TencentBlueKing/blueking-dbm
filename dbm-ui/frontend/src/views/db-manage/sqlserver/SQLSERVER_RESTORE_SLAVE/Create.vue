@@ -17,7 +17,7 @@
     closable
     :title="t('重建从库_原机器或新机器重新同步数据及权限_并且将域名解析指向同步好的机器')" />
   <div>
-    <strong class="proxy-switch-types-title">
+    <strong class="restore-types-title">
       {{ t('重建类型') }}
     </strong>
     <div class="mt-8 mb-20">
@@ -66,7 +66,7 @@
 </script>
 
 <style lang="less" scoped>
-  .proxy-switch-types-title {
+  .restore-types-title {
     position: relative;
     font-size: @font-size-mini;
     color: @title-color;

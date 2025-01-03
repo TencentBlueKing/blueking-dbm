@@ -52,10 +52,11 @@
 
   import { Column, Input } from '@components/editable-table/Index.vue';
 
+  import type { SpecInfo } from '@views/db-manage/redis/common/spec-panel/Index.vue';
+
   import InstanceSelector, { type InstanceSelectorValues } from './instance-selector/Index.vue';
 
   export type SelectorHost = InstanceSelectorValues['idleHosts'][0];
-  export type HostInputed = ServiceReturnType<typeof checkInstance>[0];
 
   interface Props {
     selected: {
@@ -65,7 +66,7 @@
 
   interface Emits {
     (e: 'batch-edit', list: InstanceSelectorValues['idleHosts']): void;
-    (e: 'change', data: HostInputed): void;
+    (e: 'append-row'): void;
   }
 
   const props = defineProps<Props>();
@@ -73,13 +74,23 @@
   const emits = defineEmits<Emits>();
 
   const modelValue = defineModel<{
-    bk_biz_id?: number;
+    bk_biz_id: number;
     bk_host_id?: number;
-    bk_cloud_id?: number;
+    bk_cloud_id: number;
     ip: string;
+    role: string;
+    cluster_domain: string;
+    cluster_ids: number[];
+    spec_config: SpecInfo;
   }>({
     default: () => ({
+      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+      bk_cloud_id: 0,
       ip: '',
+      role: '',
+      cluster_domain: '',
+      cluster_ids: [],
+      spec_config: {} as SpecInfo,
     }),
   });
 
@@ -102,6 +113,11 @@
       trigger: 'change',
     },
     {
+      validator: (value: string) => props.selected.filter((item) => item.ip === value).length < 2,
+      message: t('目标主机重复'),
+      trigger: 'blur',
+    },
+    {
       validator: () => Boolean(modelValue.value.bk_host_id),
       message: t('目标主机不存在'),
       trigger: 'blur',
@@ -113,14 +129,26 @@
     onSuccess: (data) => {
       modelValue.value.bk_host_id = undefined;
       if (data.length) {
-        const [currentHost] = data;
+        const currentHost = data[0];
+        const roleMap = {
+          master: 'redis_master',
+          slave: 'redis_slave',
+          proxy: 'proxy',
+        } as Record<string, string>;
         modelValue.value = {
           bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
           bk_host_id: currentHost.bk_host_id,
           bk_cloud_id: currentHost.bk_cloud_id,
           ip: currentHost.ip,
+          role: roleMap[currentHost.role] || '',
+          cluster_domain: currentHost.master_domain,
+          cluster_ids: currentHost.related_clusters.map((item) => item.id),
+          spec_config: currentHost.spec_config,
         };
-        emits('change', currentHost);
+        // 输入的主机为master主机带出slave主机
+        if (currentHost.role === 'master') {
+          emits('append-row');
+        }
       }
     },
   });
@@ -130,10 +158,12 @@
   };
 
   const handleInputChange = (value: string) => {
-    queryHost({
-      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-      instance_addresses: [value],
-    });
+    if (value) {
+      queryHost({
+        bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+        instance_addresses: [value],
+      });
+    }
   };
 
   const handleSelectorChange = (selected: InstanceSelectorValues) => {

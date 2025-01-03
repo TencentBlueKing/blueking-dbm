@@ -24,8 +24,7 @@
       <EditableTable
         ref="table"
         class="mb-20"
-        :model="formData.tableData"
-        :rules="rules">
+        :model="formData.tableData">
         <EditableTableRow
           v-for="(item, index) in formData.tableData"
           :key="index">
@@ -33,7 +32,7 @@
             v-model="item.cluster"
             :selected="selected"
             @batch-edit="handleBatchEdit" />
-          <SingleHost
+          <SingleHostColumn
             v-model="item.slave"
             field="slave.ip"
             :label="t('新从库主机')" />
@@ -79,17 +78,17 @@
 
   import EditableTable, { Row as EditableTableRow } from '@components/editable-table/Index.vue';
 
-  import BackupSource from '@views/db-manage/common/toolbox-field/backup-source/Index.vue';
-  import SingleHost from '@views/db-manage/common/toolbox-field/host-column/SingleHost.vue';
-  import OperationColumn from '@views/db-manage/common/toolbox-field/operation-column/Index.vue';
-  import TicketRemark from '@views/db-manage/common/toolbox-field/ticket-remark/Index.vue';
+  import OperationColumn from '@views/db-manage/common/toolbox-field/column/operation-column/Index.vue';
+  import SingleHostColumn from '@views/db-manage/common/toolbox-field/column/single-host-column/Index.vue';
+  import BackupSource from '@views/db-manage/common/toolbox-field/form-item/backup-source/Index.vue';
+  import TicketRemark from '@views/db-manage/common/toolbox-field/form-item/ticket-remark/Index.vue';
 
   import ClusterColumn from './components/ClusterColumn.vue';
 
   interface RowData {
     cluster: {
       id: number;
-      domain: string;
+      master_domain: string;
     };
     slave: {
       bk_biz_id: number;
@@ -103,8 +102,16 @@
   const tableRef = useTemplateRef('table');
 
   const createTableRow = (data = {} as Partial<RowData>) => ({
-    cluster: Object.assign({}, data.cluster),
-    slave: Object.assign({}, data.slave),
+    cluster: data.cluster || {
+      id: 0,
+      master_domain: '',
+    },
+    slave: data.slave || {
+      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+      bk_cloud_id: 0,
+      bk_host_id: 0,
+      ip: '',
+    },
   });
 
   const defaultData = () => ({
@@ -115,17 +122,7 @@
 
   const formData = reactive(defaultData());
   const selected = computed(() => formData.tableData.filter((item) => item.cluster.id).map((item) => item.cluster));
-  const selectedMap = computed(() => Object.fromEntries(selected.value.map((cur) => [cur.domain, true])));
-
-  const rules = {
-    'cluster.domain': [
-      {
-        validator: (value: string) => selected.value.filter((item) => item.domain === value).length < 2,
-        message: t('目标集群重复'),
-        trigger: 'change',
-      },
-    ],
-  };
+  const selectedMap = computed(() => Object.fromEntries(selected.value.map((cur) => [cur.master_domain, true])));
 
   const { run: createTicketRun, loading: isSubmitting } = useCreateTicket<{
     backup_source: BackupSourceType;
@@ -151,8 +148,8 @@
     if (!result) {
       return;
     }
-    createTicketRun(
-      {
+    createTicketRun({
+      details: {
         backup_source: formData.backupSource,
         infos: formData.tableData.map((item) => ({
           cluster_ids: [item.cluster.id],
@@ -165,8 +162,8 @@
           },
         })),
       },
-      formData.remark,
-    );
+      remark: formData.remark,
+    });
   };
 
   const handleReset = () => {
@@ -180,7 +177,7 @@
           createTableRow({
             cluster: {
               id: item.id,
-              domain: item.master_domain,
+              master_domain: item.master_domain,
             },
           }),
         );
@@ -188,8 +185,5 @@
       return acc;
     }, []);
     formData.tableData = [...(selected.value.length ? formData.tableData : []), ...dataList];
-    nextTick(() => {
-      tableRef.value!.validateByColumnIndex(0);
-    });
   };
 </script>

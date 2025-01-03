@@ -126,10 +126,12 @@
   };
 
   const handleInputChange = (value: string) => {
-    queryCluster({
-      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-      exact_domain: value,
-    });
+    if (value) {
+      queryCluster({
+        bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+        exact_domain: value,
+      });
+    }
   };
 
   const handleSelectorChange = (selected: Record<string, SqlserverHaModel[]>) => {

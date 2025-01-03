@@ -20,8 +20,7 @@
       <EditableTable
         ref="table"
         class="mb-20"
-        :model="formData.tableData"
-        :rules="rules">
+        :model="formData.tableData">
         <EditableTableRow
           v-for="(item, index) in formData.tableData"
           :key="index">
@@ -29,6 +28,20 @@
             v-model="item.slave"
             :selected="selected"
             @batch-edit="handleBatchEdit" />
+          <Column
+            :label="t('同机关联集群')"
+            :min-width="150">
+            <Block
+              v-model="item.slave.master_domain"
+              :placeholder="t('自动生成')" />
+          </Column>
+          <Column
+            :label="t('当前资源规格')"
+            :min-width="150">
+            <Block
+              v-model="item.slave.spec_name"
+              :placeholder="t('自动生成')" />
+          </Column>
           <NewSlaveHostColumn
             v-model="item.newSlave"
             :slave="item.slave"
@@ -72,11 +85,11 @@
 
   import { TicketTypes } from '@common/const';
 
-  import EditableTable, { Row as EditableTableRow } from '@components/editable-table/Index.vue';
+  import EditableTable, { Block, Column, Row as EditableTableRow } from '@components/editable-table/Index.vue';
 
-  import BackupSource from '@views/db-manage/common/toolbox-field/backup-source/Index.vue';
-  import OperationColumn from '@views/db-manage/common/toolbox-field/operation-column/Index.vue';
-  import TicketRemark from '@views/db-manage/common/toolbox-field/ticket-remark/Index.vue';
+  import OperationColumn from '@views/db-manage/common/toolbox-field/column/operation-column/Index.vue';
+  import BackupSource from '@views/db-manage/common/toolbox-field/form-item/backup-source/Index.vue';
+  import TicketRemark from '@views/db-manage/common/toolbox-field/form-item/ticket-remark/Index.vue';
 
   import NewSlaveHostColumn from './NewSlaveHostColumn.vue';
   import SlaveHostColumnGroup, { type SelectorHost } from './SlaveHostColumnGroup.vue';
@@ -126,16 +139,6 @@
   const selected = computed(() => formData.tableData.filter((item) => item.slave.bk_host_id).map((item) => item.slave));
   const selectedMap = computed(() => Object.fromEntries(selected.value.map((cur) => [cur.ip, true])));
 
-  const rules = {
-    'slave.ip': [
-      {
-        validator: (value: string) => selected.value.filter((item) => item.ip === value).length < 2,
-        message: t('目标实例重复'),
-        trigger: 'change',
-      },
-    ],
-  };
-
   const { run: createTicketRun, loading: isSubmitting } = useCreateTicket<{
     ip_source: 'resource_pool';
     backup_source: BackupSourceType;
@@ -161,8 +164,8 @@
   const handleSubmit = async () => {
     const valid = await tableRef.value!.validate();
     if (valid) {
-      createTicketRun(
-        {
+      createTicketRun({
+        details: {
           ip_source: 'resource_pool',
           backup_source: formData.backupSource,
           infos: formData.tableData.map((item) => ({
@@ -185,8 +188,8 @@
             },
           })),
         },
-        formData.remark,
-      );
+        remark: formData.remark,
+      });
     }
   };
 

@@ -69,8 +69,6 @@
 
   export type SelectorHost = IValue;
 
-  export type InputedHost = ServiceReturnType<typeof checkInstance>[number];
-
   interface Props {
     selected: {
       bk_biz_id?: number;
@@ -82,7 +80,6 @@
 
   interface Emits {
     (e: 'batch-edit', list: IValue[]): void;
-    (e: 'change', data: InputedHost): void;
   }
 
   const props = defineProps<Props>();
@@ -90,15 +87,21 @@
   const emits = defineEmits<Emits>();
 
   const modelValue = defineModel<{
-    bk_biz_id?: number;
-    bk_cloud_id?: number;
+    bk_biz_id: number;
+    bk_cloud_id: number;
     bk_host_id?: number;
     ip: string;
     related_instances: string[];
+    cluster_id: number;
+    master_domain: string;
   }>({
     default: () => ({
+      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+      bk_cloud_id: 0,
       ip: '',
       related_instances: [],
+      cluster_id: 0,
+      master_domain: '',
     }),
   });
 
@@ -118,6 +121,11 @@
     {
       validator: (value: string) => ipv4.test(value),
       message: t('IP 格式不符合IPv4标准'),
+      trigger: 'change',
+    },
+    {
+      validator: (value: string) => props.selected.filter((item) => item.ip === value).length < 2,
+      message: t('目标主机重复'),
       trigger: 'change',
     },
     {
@@ -143,8 +151,9 @@
           bk_host_id: currentHost.bk_host_id,
           ip: currentHost.ip,
           related_instances: relatedInstances,
+          cluster_id: currentHost.cluster_id,
+          master_domain: currentHost.master_domain,
         };
-        emits('change', data[0]);
       }
     },
   });
@@ -154,10 +163,12 @@
   };
 
   const handleInputChange = (value: string) => {
-    queryHost({
-      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-      instance_addresses: [value],
-    });
+    if (value) {
+      queryHost({
+        bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+        instance_addresses: [value],
+      });
+    }
   };
 
   const handleSelectorChange = (selected: InstanceSelectorValues<IValue>) => {

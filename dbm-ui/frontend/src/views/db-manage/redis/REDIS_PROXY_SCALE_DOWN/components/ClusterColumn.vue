@@ -14,13 +14,12 @@
 <template>
   <Column
     :append-rules="rules"
-    field="cluster.domain"
+    field="cluster.master_domain"
     fixed="left"
     :label="t('目标集群')"
     :loading="loading"
-    :min-width="300"
-    required
-    :validate-delay="300">
+    :min-width="150"
+    required>
     <template #headAppend>
       <span
         v-bk-tooltips="t('批量选择')"
@@ -29,53 +28,42 @@
         <DbIcon type="batch-host-select" />
       </span>
     </template>
-    <div style="flex: 1">
-      <Input
-        v-model="modelValue.domain"
-        :placeholder="t('请输入集群域名')"
-        @change="handleInputChange" />
-      <BkLoading
-        v-if="modelValue.relatedClusters?.length"
-        class="related-clusters"
-        :loading="relatedClusterLoading">
-        {{ t('含n个同机关联集群', { n: modelValue.relatedClusters.length }) }}
-        <p
-          v-for="item in modelValue.relatedClusters"
-          :key="item.id">
-          -- {{ item.domain }}
-        </p>
-      </BkLoading>
-    </div>
+    <Input
+      v-model="modelValue.master_domain"
+      :placeholder="t('请输入集群域名')"
+      @change="handleInputChange" />
   </Column>
   <ClusterSelector
     v-model:is-show="showSelector"
-    :cluster-types="[ClusterTypes.TENDBHA]"
+    :cluster-types="[ClusterTypes.REDIS]"
     :selected="selectedClusters"
+    support-offline-data
+    :tab-list-config="tabListConfig"
     @change="handleSelectorChange" />
 </template>
 <script lang="ts" setup>
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import TendbhaModel from '@services/model/mysql/tendbha';
+  import RedisModel from '@services/model/redis/redis';
   import { filterClusters } from '@services/source/dbbase';
-  import { findRelatedClustersByClusterIds } from '@services/source/mysqlCluster';
+  import { getRedisList } from '@services/source/redis';
 
   import { ClusterTypes } from '@common/const';
   import { domainRegex } from '@common/regex';
 
-  import ClusterSelector from '@components/cluster-selector/Index.vue';
+  import ClusterSelector, { type TabConfig } from '@components/cluster-selector/Index.vue';
   import { Column, Input } from '@components/editable-table/Index.vue';
 
   interface Props {
     selected: {
       id: number;
-      domain: string;
+      master_domain: string;
     }[];
   }
 
   interface Emits {
-    (e: 'batch-edit', list: TendbhaModel[]): void;
+    (e: 'batch-edit', list: RedisModel[]): void;
   }
 
   const props = defineProps<Props>();
@@ -84,29 +72,52 @@
 
   const modelValue = defineModel<{
     id?: number;
-    domain: string;
-    relatedClusters?: {
-      id: number;
-      domain: string;
-    }[];
+    master_domain: string;
+    cluster_type_name: string;
+    role: string;
+    proxy_spec_ids: number[];
   }>({
     default: () => ({
-      domain: '',
+      master_domain: '',
+      cluster_type_name: '',
+      role: '',
+      proxy_spec_ids: [],
     }),
   });
 
   const { t } = useI18n();
 
   const showSelector = ref(false);
-  const selectedClusters = computed<Record<string, TendbhaModel[]>>(() => ({
-    [ClusterTypes.TENDBHA]: props.selected.map(
+  const selectedClusters = computed<Record<string, RedisModel[]>>(() => ({
+    [ClusterTypes.REDIS]: props.selected.map(
       (item) =>
         ({
           id: item.id,
-          master_domain: item.domain,
-        }) as TendbhaModel,
+          master_domain: item.master_domain,
+        }) as RedisModel,
     ),
   }));
+
+  const tabListConfig = {
+    [ClusterTypes.REDIS]: {
+      getResourceList: (params: ServiceParameters<typeof getRedisList>) =>
+        getRedisList({
+          cluster_type: [
+            ClusterTypes.TWEMPROXY_REDIS_INSTANCE,
+            ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER,
+            ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE,
+            ClusterTypes.PREDIXY_REDIS_CLUSTER,
+          ].join(','),
+          ...params,
+        }),
+      disabledRowConfig: [
+        {
+          handler: (data: RedisModel) => data.proxy.length <= 2,
+          tip: t('数量不足，Proxy至少保留 2 台'),
+        },
+      ],
+    },
+  } as unknown as Record<string, TabConfig>;
 
   const rules = [
     {
@@ -115,8 +126,13 @@
       trigger: 'change',
     },
     {
+      validator: (value: string) => props.selected.filter((item) => item.master_domain === value).length < 2,
+      message: t('目标集群重复'),
+      trigger: 'blur',
+    },
+    {
       validator: () => {
-        if (!modelValue.value.domain) {
+        if (!modelValue.value.master_domain) {
           return true;
         }
         return Boolean(modelValue.value.id);
@@ -126,54 +142,38 @@
     },
   ];
 
-  const { run: queryRelatedClusters, loading: relatedClusterLoading } = useRequest(findRelatedClustersByClusterIds, {
-    manual: true,
-    onSuccess: (data) => {
-      modelValue.value.relatedClusters = [];
-      if (data.length) {
-        modelValue.value.relatedClusters = data[0].related_clusters.map((item) => ({
-          id: item.id,
-          domain: item.master_domain,
-        }));
-      }
-    },
-  });
-
-  const { run: queryCluster, loading } = useRequest(filterClusters, {
+  const { run: queryCluster, loading } = useRequest(filterClusters<RedisModel>, {
     manual: true,
     onSuccess: (data) => {
       modelValue.value.id = undefined;
       if (data.length) {
-        modelValue.value.id = data[0].id;
+        const [currentCluster] = data;
+        modelValue.value = {
+          id: currentCluster.id,
+          master_domain: currentCluster.master_domain,
+          cluster_type_name: currentCluster.cluster_type_name,
+          role: 'Proxy',
+          proxy_spec_ids: currentCluster.proxy.map((item) => item.spec_config?.id),
+        };
       }
     },
   });
-
-  watch(
-    () => modelValue.value.id,
-    (id) => {
-      if (id) {
-        queryRelatedClusters({
-          cluster_ids: [id],
-          bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-        });
-      }
-    },
-  );
 
   const handleShowSelector = () => {
     showSelector.value = true;
   };
 
   const handleInputChange = (value: string) => {
-    queryCluster({
-      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-      exact_domain: value,
-    });
+    if (value) {
+      queryCluster({
+        bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+        exact_domain: value,
+      });
+    }
   };
 
-  const handleSelectorChange = (selected: Record<string, TendbhaModel[]>) => {
-    emits('batch-edit', selected[ClusterTypes.TENDBHA]);
+  const handleSelectorChange = (selected: Record<string, RedisModel[]>) => {
+    emits('batch-edit', selected[ClusterTypes.REDIS]);
   };
 </script>
 <style lang="less" scoped>
@@ -181,13 +181,5 @@
     font-size: 14px;
     color: #3a84ff;
     cursor: pointer;
-  }
-
-  .related-clusters {
-    padding: 8px;
-    font-size: 12px;
-    line-height: 20px;
-    color: #979ba5;
-    background: #fafbfd;
   }
 </style>

@@ -83,12 +83,12 @@
 
   import CardCheckbox from '@components/db-card-checkbox/CardCheckbox.vue';
 
-  import BackupSource from '@views/db-manage/common/toolbox-field/backup-source/Index.vue';
-  import TicketRemark from '@views/db-manage/common/toolbox-field/ticket-remark/Index.vue';
+  import BackupSource from '@views/db-manage/common/toolbox-field/form-item/backup-source/Index.vue';
+  import TicketRemark from '@views/db-manage/common/toolbox-field/form-item/ticket-remark/Index.vue';
 
   import ClusterMigrateTable from './components/ClusterMigrateTable.vue';
   import HostMigrateTable from './components/HostMigrateTable.vue';
-  import { MigrateTypes, type TicketInfo } from './types';
+  import { MigrateTypes } from './types';
 
   const { t } = useI18n();
   const tableRef = useTemplateRef('table');
@@ -111,20 +111,45 @@
   const { run: createTicketRun, loading: isSubmitting } = useCreateTicket<{
     ip_source: 'resource_pool';
     backup_source: string;
-    infos: TicketInfo[];
+    infos: {
+      cluster_ids: number[];
+      resource_spec: {
+        new_master: {
+          spec_id: 0;
+          hosts: {
+            bk_biz_id: number;
+            bk_cloud_id: number;
+            bk_host_id: number;
+            ip: string;
+          }[];
+        };
+        new_slave: {
+          spec_id: 0;
+          hosts: {
+            bk_biz_id: number;
+            bk_cloud_id: number;
+            bk_host_id: number;
+            ip: string;
+          }[];
+        };
+      };
+      display_info: {
+        type: MigrateTypes;
+      };
+    }[];
   }>(TicketTypes.MYSQL_MIGRATE_CLUSTER);
 
   const handleSubmit = async () => {
     const infos = await tableRef.value!.getValue();
     if (infos.length) {
-      createTicketRun(
-        {
+      createTicketRun({
+        details: {
           ip_source: 'resource_pool',
           backup_source: formData.backupSource,
           infos,
         },
-        formData.remark,
-      );
+        remark: formData.remark,
+      });
     }
   };
 

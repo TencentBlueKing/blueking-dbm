@@ -24,26 +24,48 @@
       <EditableTable
         ref="table"
         class="mb-20"
-        :model="formData.tableData"
-        :rules="rules">
+        :model="formData.tableData">
         <EditableTableRow
           v-for="(item, index) in formData.tableData"
           :key="index">
           <ClusterColumn
             v-model="item.cluster"
             :selected="selected"
-            @batch-edit="handleBatchEdit"
-            @change="(data) => handleInputed(data, item)" />
-          <NodeTypeColumn v-model="item.nodeType.role" />
-          <AutoManualHost
+            @batch-edit="handleBatchEdit" />
+          <Column
+            field="cluster.role"
+            :label="t('缩容节点类型')"
+            :min-width="200"
+            required>
+            <Select
+              v-model="item.cluster.role"
+              :input-search="false"
+              :list="nodeTypeOptions" />
+          </Column>
+          <HybridHostColumn
             v-model="item.host.type"
             field="host.type"
             :label="t('主机选择方式')"
+            :min-width="200"
             :spec-ids="getSpecIds(item)"
             @change="(list) => handleSelectHost(list, item)" />
-          <ReducedCountColumn
-            v-model="item.count"
-            :disabled="item.host.type === HostSelectType.MANUAL" />
+          <Column
+            field="count"
+            :label="t('缩容数量（台）')"
+            :min-width="200">
+            <div
+              v-bk-tooltips="{
+                content: t('手动选择主机不需要设置缩容数量'),
+                disabled: item.host.type !== HostSelectType.MANUAL,
+              }"
+              style="flex: 1">
+              <Input
+                v-model="item.count"
+                :disabled="item.host.type === HostSelectType.MANUAL"
+                :min="0"
+                type="number" />
+            </div>
+          </Column>
           <OperationColumn
             v-model:table-data="formData.tableData"
             :create-row-method="createTableRow" />
@@ -51,8 +73,7 @@
       </EditableTable>
       <IgnoreBiz
         v-model="formData.isSafe"
-        v-bk-tooltips="t('如忽略_有连接的情况下也会执行')"
-        class="mb-20" />
+        v-bk-tooltips="t('如忽略_有连接的情况下也会执行')" />
       <TicketRemark v-model="formData.remark" />
     </BkForm>
     <template #action>
@@ -86,26 +107,22 @@
 
   import { TicketTypes } from '@common/const';
 
-  import EditableTable, { Row as EditableTableRow } from '@components/editable-table/Index.vue';
+  import EditableTable, { Column, Input, Row as EditableTableRow, Select } from '@components/editable-table/Index.vue';
 
-  import AutoManualHost, {
+  import HybridHostColumn, {
     type HostInfo,
     HostSelectType,
-  } from '@views/db-manage/common/toolbox-field/host-column/AutoManualHost.vue';
-  import IgnoreBiz from '@views/db-manage/common/toolbox-field/ignore-biz/Index.vue';
-  import OperationColumn from '@views/db-manage/common/toolbox-field/operation-column/Index.vue';
-  import TicketRemark from '@views/db-manage/common/toolbox-field/ticket-remark/Index.vue';
+  } from '@views/db-manage/common/toolbox-field/column/hybrid-host-column/Index.vue';
+  import OperationColumn from '@views/db-manage/common/toolbox-field/column/operation-column/Index.vue';
+  import IgnoreBiz from '@views/db-manage/common/toolbox-field/form-item/ignore-biz/Index.vue';
+  import TicketRemark from '@views/db-manage/common/toolbox-field/form-item/ticket-remark/Index.vue';
 
   import ClusterColumn from './components/ClusterColumn.vue';
-  import NodeTypeColumn from './components/NodeTypeColumn.vue';
-  import ReducedCountColumn from './components/ReducedCountColumn.vue';
 
   interface RowData {
     cluster: {
       id: number;
-      domain: string;
-    };
-    nodeType: {
+      master_domain: string;
       role: string;
       master_spec_ids: number[];
       slave_spec_ids: number[];
@@ -128,9 +145,7 @@
   const createTableRow = (data = {} as Partial<RowData>) => ({
     cluster: data.cluster || {
       id: 0,
-      domain: '',
-    },
-    nodeType: data.nodeType || {
+      master_domain: '',
       role: '',
       master_spec_ids: [],
       slave_spec_ids: [],
@@ -150,17 +165,18 @@
 
   const formData = reactive(defaultData());
   const selected = computed(() => formData.tableData.filter((item) => item.cluster.id).map((item) => item.cluster));
-  const selectedMap = computed(() => Object.fromEntries(selected.value.map((cur) => [cur.domain, true])));
+  const selectedMap = computed(() => Object.fromEntries(selected.value.map((cur) => [cur.master_domain, true])));
 
-  const rules = {
-    'cluster.domain': [
-      {
-        validator: (value: string) => selected.value.filter((item) => item.domain === value).length < 2,
-        message: t('目标集群重复'),
-        trigger: 'change',
-      },
-    ],
-  };
+  const nodeTypeOptions = [
+    {
+      value: 'spider_master',
+      label: 'Master',
+    },
+    {
+      value: 'spider_slave',
+      label: 'Slave',
+    },
+  ];
 
   interface TicketDetail {
     is_safe: boolean;
@@ -188,13 +204,13 @@
     if (!result) {
       return;
     }
-    createTicketRun(
-      {
+    createTicketRun({
+      details: {
         is_safe: formData.isSafe,
         infos: formData.tableData.map((item) => {
           const info: TicketDetail['infos'][0] = {
             cluster_id: item.cluster.id,
-            reduce_spider_role: item.nodeType.role,
+            reduce_spider_role: item.cluster.role,
           };
 
           if (item.host.list.length) {
@@ -206,8 +222,8 @@
           return info;
         }),
       },
-      formData.remark,
-    );
+      remark: formData.remark,
+    });
   };
 
   const handleReset = () => {
@@ -221,9 +237,7 @@
           createTableRow({
             cluster: {
               id: item.id,
-              domain: item.master_domain,
-            },
-            nodeType: {
+              master_domain: item.master_domain,
               role: '',
               master_spec_ids: item.spider_master.map((item) => item.spec_config?.id),
               slave_spec_ids: item.spider_slave.map((item) => item.spec_config?.id),
@@ -236,24 +250,16 @@
     formData.tableData = [...(selected.value.length ? formData.tableData : []), ...dataList];
   };
 
-  const handleInputed = (data: TendbClusterModel, row: RowData) => {
-    row.nodeType = {
-      role: '',
-      master_spec_ids: data?.spider_master.map((item) => item.spec_config?.id),
-      slave_spec_ids: data?.spider_slave.map((item) => item.spec_config?.id),
-    };
-  };
-
   const handleSelectHost = (list: HostInfo[], row: RowData) => {
     row.host.list = list;
   };
 
   const getSpecIds = (row: RowData) => {
-    if (row.nodeType.role === 'spider_master') {
-      return row.nodeType.master_spec_ids;
+    if (row.cluster.role === 'spider_master') {
+      return row.cluster.master_spec_ids;
     }
-    if (row.nodeType.role === 'spider_slave') {
-      return row.nodeType.slave_spec_ids;
+    if (row.cluster.role === 'spider_slave') {
+      return row.cluster.slave_spec_ids;
     }
     return [];
   };

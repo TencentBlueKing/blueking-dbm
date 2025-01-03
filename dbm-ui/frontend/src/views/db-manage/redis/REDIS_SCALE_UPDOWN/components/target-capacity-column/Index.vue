@@ -91,14 +91,14 @@
     </div>
   </Column>
   <ClusterTargetPlan
-    v-if="cluster?.cluster_stats"
-    :cluster-id="cluster.id"
-    :cluster-stats="cluster.cluster_stats"
+    v-if="rowData.cluster?.cluster_stats"
+    :cluster-id="rowData.cluster.id"
+    :cluster-stats="rowData.cluster.cluster_stats"
     :data="activeRowData"
     hide-shard-column
     :is-show="showClusterTargetPlan"
     :target-object="targetObj"
-    :target-verison="version"
+    :target-verison="rowData.version"
     :title="t('选择集群容量变更部署方案')"
     @click-cancel="() => (showClusterTargetPlan = false)"
     @click-confirm="handleChoosedTargetCapacity"
@@ -127,16 +127,18 @@
   } from './ClusterDeployPlan.vue';
 
   interface Props {
-    cluster: Pick<RedisModel, 'id' | 'master_domain' | 'cluster_type' | 'cluster_type_name' | 'bk_cloud_id'> & {
-      cluster_stats?: RedisModel['cluster_stats'];
-      cluster_spec?: RedisModel['cluster_spec'];
-      group_num: RedisModel['machine_pair_cnt'];
-      shard_num: RedisModel['cluster_shard_num'];
-    };
-    version: string;
-    currentCapacity: {
-      used: number;
-      total: number;
+    rowData: {
+      cluster: Pick<RedisModel, 'id' | 'master_domain' | 'cluster_type' | 'cluster_type_name' | 'bk_cloud_id'> & {
+        cluster_stats?: RedisModel['cluster_stats'];
+        cluster_spec?: RedisModel['cluster_spec'];
+        group_num: RedisModel['machine_pair_cnt'];
+        shard_num: RedisModel['cluster_shard_num'];
+      };
+      version: string;
+      currentCapacity: {
+        used: number;
+        total: number;
+      };
     };
   }
 
@@ -167,10 +169,10 @@
   const targetObj = ref<TargetInfo>();
   const targetClusterStats = ref<RedisModel['cluster_stats']>();
   const currentCapacity = computed(() => {
-    if (_.isEmpty(props.cluster?.cluster_stats)) {
-      return props.currentCapacity?.total ?? 0;
+    if (_.isEmpty(props.rowData.cluster?.cluster_stats)) {
+      return props.rowData.currentCapacity?.total ?? 0;
     }
-    return convertStorageUnits(props.cluster.cluster_stats.total, 'B', 'GB');
+    return convertStorageUnits(props.rowData.cluster.cluster_stats.total, 'B', 'GB');
   });
 
   const rules = [
@@ -181,10 +183,10 @@
   ];
 
   watch(
-    () => props.cluster,
+    () => props.rowData.cluster,
     () => {
-      localValue.cluster_shard_num = props.cluster.shard_num;
-      localValue.machine_pair = props.cluster.group_num;
+      localValue.cluster_shard_num = props.rowData.cluster.shard_num;
+      localValue.machine_pair = props.rowData.cluster.group_num;
     },
   );
 
@@ -209,7 +211,7 @@
       cluster_type: clusterType,
       bk_cloud_id: bkCloudId,
       shard_num: shardNum,
-    } = props.cluster;
+    } = props.rowData.cluster;
     if (spec) {
       activeRowData.value = {
         targetCluster: domain,
@@ -221,7 +223,7 @@
           qps: spec.qps,
           storage_spec: spec.storage_spec,
         },
-        capacity: props.currentCapacity,
+        capacity: props.rowData.currentCapacity,
         clusterType: clusterType ?? ClusterTypes.TWEMPROXY_REDIS_INSTANCE,
         cloudId: bkCloudId,
         groupNum: localValue.machine_pair,

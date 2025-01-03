@@ -17,16 +17,13 @@
     :field="field"
     :label="label"
     :loading="loading"
-    :min-width="300"
+    :min-width="minWidth"
     required>
     <Input
       v-if="editable"
-      v-model="localValue"
+      v-model="modelValue.ip"
       :placeholder="t('请选择主机')"
       @change="handleInputChange">
-      <template #default>
-        <span ref="rootRef">{{ localValue }}</span>
-      </template>
       <template #append>
         <DbIcon
           class="select-icon"
@@ -36,11 +33,8 @@
     </Input>
     <Block
       v-else
-      v-model="localValue"
+      v-model="modelValue.ip"
       :placeholder="t('请选择主机')">
-      <template #default>
-        <span ref="rootRef">{{ localValue }}</span>
-      </template>
       <template #append>
         <DbIcon
           class="select-icon"
@@ -50,23 +44,13 @@
     </Block>
   </Column>
   <ResourceHostSelector
+    v-model="selected"
     v-model:is-show="showSelector"
-    v-mode="modelValue"
+    :multiple="false"
     :params="params"
     @change="handleSelectorChange" />
-  <div style="display: none">
-    <div ref="popRef">
-      <p
-        v-for="item in modelValue"
-        :key="item.ip">
-        {{ item.ip }}
-      </p>
-    </div>
-  </div>
 </template>
 <script lang="ts" setup>
-  import type { Instance, SingleTarget } from 'tippy.js';
-  import tippy from 'tippy.js';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
@@ -78,11 +62,9 @@
   import ResourceHostSelector, { type IValue } from '@components/resource-host-selector/Index.vue';
 
   interface Props {
-    /**
-     * field 对应的必须是model的数组变量
-     */
     field: string;
     label: string;
+    minWidth?: number;
     editable?: boolean;
     params?: {
       for_biz?: number;
@@ -92,60 +74,38 @@
     };
   }
 
-  interface IHost {
-    bk_biz_id?: number;
-    bk_cloud_id?: number;
-    bk_host_id?: number;
-    ip: string;
-  }
-
   withDefaults(defineProps<Props>(), {
+    minWidth: 300,
     editable: false,
     params: () => ({}),
   });
 
   /**
-   * 绑定modelValue为数组 项须包含ip
+   * 绑定的modelValue须包含ip
    */
-  const modelValue = defineModel<IHost[]>({
-    default: () => [],
+  const modelValue = defineModel<{
+    bk_biz_id?: number;
+    bk_cloud_id?: number;
+    bk_host_id?: number;
+    ip: string;
+  }>({
+    default: () => ({}),
   });
 
   const { t } = useI18n();
 
-  const rootRef = ref();
-  const popRef = ref();
   const showSelector = ref(false);
-  const localValue = ref('');
-  let notIpv4: string[] = [];
-  let notFound: string[] = [];
-  let tippyIns: Instance;
+  const selected = computed(() => (modelValue.value.bk_host_id ? ([modelValue.value] as IValue[]) : ([] as IValue[])));
 
   const rules = [
     {
-      validator: (hosts: IHost[]) => {
-        notIpv4 = [];
-        hosts.forEach((item) => {
-          if (!ipv4.test(item.ip)) {
-            notIpv4.push(item.ip);
-          }
-        });
-        return !notIpv4.length;
-      },
-      message: () => t('xx不符合IPv4标准', [notIpv4.join(',')]),
+      validator: (value: string) => ipv4.test(value),
+      message: t('IP 格式不符合IPv4标准'),
       trigger: 'change',
     },
     {
-      validator: (hosts: IHost[]) => {
-        notFound = [];
-        hosts.forEach((item) => {
-          if (!item.bk_host_id) {
-            notFound.push(item.ip);
-          }
-        });
-        return !notFound.length;
-      },
-      message: () => t('目标主机xx不存在', [notFound.join(',')]),
+      validator: () => Boolean(modelValue.value.bk_host_id),
+      message: t('目标主机不存在'),
       trigger: 'blur',
     },
   ];
@@ -154,44 +114,7 @@
     manual: true,
     onSuccess: (data) => {
       console.log(data, 'data');
-      // modelValue.value = data.map(item => ({
-      //   bk_biz_id: item.dedicated_biz || item.bk_biz_id,
-      // bk_cloud_id: item.bk_cloud_id,
-      // bk_host_id: item.bk_host_id,
-      // ip: item.ip,
-      // }))
-      // localValue.value = data.map(item => item.ip).join(',')
     },
-  });
-
-  const destroyInst = () => {
-    if (tippyIns) {
-      tippyIns.hide();
-      tippyIns.unmount();
-      tippyIns.destroy();
-    }
-  };
-
-  watch(modelValue, () => {
-    localValue.value = modelValue.value.map((item) => item.ip).join(',');
-    if (modelValue.value.length > 0) {
-      destroyInst();
-      nextTick(() => {
-        tippyIns = tippy(rootRef.value as SingleTarget, {
-          content: popRef.value,
-          placement: 'top-start',
-          appendTo: () => document.body,
-          theme: 'light',
-          maxWidth: 'none',
-          trigger: 'mouseenter click',
-          interactive: true,
-          arrow: false,
-          allowHTML: true,
-          zIndex: 999999,
-          hideOnClick: true,
-        });
-      });
-    }
   });
 
   const handleShowSelector = () => {
@@ -199,20 +122,18 @@
   };
 
   const handleInputChange = (value: string) => {
-    queryHost({
-      search_content: value,
-      limit: -1,
-      offset: 0,
-    });
+    if (value) {
+      queryHost({
+        search_content: value,
+        limit: -1,
+        offset: 0,
+      });
+    }
   };
 
   const handleSelectorChange = (hostList: IValue[]) => {
-    modelValue.value = hostList;
+    [modelValue.value] = hostList;
   };
-
-  onBeforeUnmount(() => {
-    destroyInst();
-  });
 </script>
 
 <style lang="less" scoped>

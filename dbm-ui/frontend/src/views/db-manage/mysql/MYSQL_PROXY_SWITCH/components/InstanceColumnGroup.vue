@@ -81,16 +81,22 @@
   const emits = defineEmits<Emits>();
 
   const modelValue = defineModel<{
-    bk_cloud_id?: number;
+    bk_cloud_id: number;
     bk_host_id?: number;
-    ip?: string;
-    port?: number;
-    cluster_id?: number;
+    ip: string;
+    port: number;
+    cluster_id: number;
     instance_address: string;
-    master_domain?: string;
+    master_domain: string;
   }>({
     default: () => ({
+      bk_cloud_id: 0,
+      bk_host_id: 0,
+      ip: '',
+      port: 0,
+      cluster_id: 0,
       instance_address: '',
+      master_domain: '',
     }),
   });
 
@@ -138,6 +144,11 @@
       trigger: 'change',
     },
     {
+      validator: (value: string) => props.selected.filter((item) => item.instance_address === value).length < 2,
+      message: t('目标实例重复'),
+      trigger: 'blur',
+    },
+    {
       validator: () => Boolean(modelValue.value.bk_host_id),
       message: t('目标实例不存在'),
       trigger: 'blur',
@@ -165,10 +176,12 @@
   };
 
   const handleInputChange = (value: string) => {
-    queryInstance({
-      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-      instance_addresses: [value],
-    });
+    if (value) {
+      queryInstance({
+        bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+        instance_addresses: [value],
+      });
+    }
   };
 
   const handleSelectorChange = (selected: InstanceSelectorValues<IValue>) => {

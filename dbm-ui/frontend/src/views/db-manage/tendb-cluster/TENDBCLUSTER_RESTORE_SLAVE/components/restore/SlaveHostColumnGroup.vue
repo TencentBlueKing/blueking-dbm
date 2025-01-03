@@ -50,20 +50,6 @@
       v-else
       :placeholder="t('自动生成')" />
   </Column>
-  <Column
-    :label="t('同机关联集群')"
-    :min-width="150">
-    <Block
-      v-model="modelValue.master_domain"
-      :placeholder="t('自动生成')" />
-  </Column>
-  <Column
-    :label="t('当前资源规格')"
-    :min-width="150">
-    <Block
-      v-model="modelValue.spec_name"
-      :placeholder="t('自动生成')" />
-  </Column>
   <InstanceSelector
     v-model:is-show="showSelector"
     :cluster-types="['TendbClusterHost']"
@@ -104,20 +90,27 @@
   const emits = defineEmits<Emits>();
 
   const modelValue = defineModel<{
-    bk_biz_id?: number;
-    bk_cloud_id?: number;
+    bk_biz_id: number;
+    bk_cloud_id: number;
     bk_host_id?: number;
     ip: string;
     related_instances: string[];
-    cluster_id?: number;
-    master_domain?: string;
-    spec_id?: number;
-    spec_name?: string;
-    count?: number;
+    cluster_id: number;
+    master_domain: string;
+    spec_id: number;
+    spec_name: string;
+    count: number;
   }>({
     default: () => ({
+      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+      bk_cloud_id: 0,
       ip: '',
       related_instances: [],
+      cluster_id: 0,
+      master_domain: '',
+      spec_id: 0,
+      spec_name: '',
+      count: 0,
     }),
   });
 
@@ -164,6 +157,11 @@
       trigger: 'change',
     },
     {
+      validator: (value: string) => props.selected.filter((item) => item.ip === value).length < 2,
+      message: t('目标主机重复'),
+      trigger: 'blur',
+    },
+    {
       validator: () => Boolean(modelValue.value.bk_host_id),
       message: t('目标主机不存在'),
       trigger: 'blur',
@@ -201,10 +199,12 @@
   };
 
   const handleInputChange = (value: string) => {
-    queryHost({
-      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-      instance_addresses: [value],
-    });
+    if (value) {
+      queryHost({
+        bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+        instance_addresses: [value],
+      });
+    }
   };
 
   const handleSelectorChange = (selected: InstanceSelectorValues<IValue>) => {

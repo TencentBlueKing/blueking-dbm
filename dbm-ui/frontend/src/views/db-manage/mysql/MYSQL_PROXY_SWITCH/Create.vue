@@ -47,8 +47,7 @@
         :data="formData.tableData" />
       <IgnoreBiz
         v-model="formData.force"
-        v-bk-tooltips="t('如忽略_在有连接的情况下Proxy也会执行替换')"
-        class="mb-20" />
+        v-bk-tooltips="t('如忽略_在有连接的情况下Proxy也会执行替换')" />
       <TicketRemark v-model="formData.remark" />
     </BkForm>
     <template #action>
@@ -82,12 +81,12 @@
 
   import CardCheckbox from '@components/db-card-checkbox/CardCheckbox.vue';
 
-  import IgnoreBiz from '@views/db-manage/common/toolbox-field/ignore-biz/Index.vue';
-  import TicketRemark from '@views/db-manage/common/toolbox-field/ticket-remark/Index.vue';
+  import IgnoreBiz from '@views/db-manage/common/toolbox-field/form-item/ignore-biz/Index.vue';
+  import TicketRemark from '@views/db-manage/common/toolbox-field/form-item/ticket-remark/Index.vue';
 
   import HostTable from './components/HostTable.vue';
   import InstanceTable from './components/InstanceTable.vue';
-  import { ProxyReplaceTypes, type TicketInfo } from './types';
+  import { ProxyReplaceTypes } from './types';
 
   const { t } = useI18n();
   const tableRef = useTemplateRef('table');
@@ -108,19 +107,39 @@
 
   const { run: createTicketRun, loading: isSubmitting } = useCreateTicket<{
     force: boolean;
-    infos: TicketInfo[];
-  }>(TicketTypes.MYSQL_PROXY_ADD);
+    infos: {
+      cluster_ids: number[];
+      origin_proxy: {
+        bk_biz_id: number;
+        bk_cloud_id: number;
+        bk_host_id: number;
+        ip: string;
+        port?: number;
+        instance_address?: string;
+      };
+      target_proxy: {
+        bk_biz_id: number;
+        bk_cloud_id: number;
+        bk_host_id: number;
+        ip: string;
+      };
+      display_info: {
+        type: ProxyReplaceTypes;
+        related_clusters: string[];
+      };
+    }[];
+  }>(TicketTypes.MYSQL_PROXY_SWITCH);
 
   const handleSubmit = async () => {
     const infos = await tableRef.value!.getValue();
     if (infos.length) {
-      createTicketRun(
-        {
+      createTicketRun({
+        details: {
           force: formData.force,
           infos,
         },
-        formData.remark,
-      );
+        remark: formData.remark,
+      });
     }
   };
 

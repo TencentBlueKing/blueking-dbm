@@ -1,10 +1,12 @@
 <template>
-  <BkCheckbox
-    v-model="modelValue"
-    :false-label="false"
-    true-label>
-    <span class="safe-action-text">{{ t('忽略业务连接') }}</span>
-  </BkCheckbox>
+  <BkFormItem class="ignore-biz">
+    <BkCheckbox
+      v-model="modelValue"
+      :false-label="false"
+      true-label>
+      <span class="safe-action-text">{{ t('忽略业务连接') }}</span>
+    </BkCheckbox>
+  </BkFormItem>
 </template>
 
 <script setup lang="ts">
@@ -18,6 +20,10 @@
 </script>
 
 <style lang="less" scoped>
+  .ignore-biz {
+    width: fit-content;
+  }
+
   .safe-action-text {
     padding-bottom: 2px;
     border-bottom: 1px dashed #979ba5;

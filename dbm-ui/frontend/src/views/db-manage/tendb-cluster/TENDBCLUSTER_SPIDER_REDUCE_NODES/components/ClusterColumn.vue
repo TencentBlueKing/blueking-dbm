@@ -14,11 +14,11 @@
 <template>
   <Column
     :append-rules="rules"
-    field="cluster.domain"
+    field="cluster.master_domain"
     fixed="left"
     :label="t('目标集群')"
     :loading="loading"
-    :min-width="300"
+    :min-width="200"
     required
     :validate-delay="300">
     <template #headAppend>
@@ -30,7 +30,7 @@
       </span>
     </template>
     <Input
-      v-model="modelValue.domain"
+      v-model="modelValue.master_domain"
       :placeholder="t('请输入集群域名')"
       @change="handleInputChange" />
   </Column>
@@ -58,13 +58,12 @@
   interface Props {
     selected: {
       id: number;
-      domain: string;
+      master_domain: string;
     }[];
   }
 
   interface Emits {
     (e: 'batch-edit', list: TendbClusterModel[]): void;
-    (e: 'change', data: TendbClusterModel): void;
   }
 
   const props = defineProps<Props>();
@@ -73,10 +72,13 @@
 
   const modelValue = defineModel<{
     id?: number;
-    domain: string;
+    master_domain: string;
+    role: string;
+    master_spec_ids: number[];
+    slave_spec_ids: number[];
   }>({
     default: () => ({
-      domain: '',
+      master_domain: '',
     }),
   });
 
@@ -88,7 +90,7 @@
       (item) =>
         ({
           id: item.id,
-          master_domain: item.domain,
+          master_domain: item.master_domain,
         }) as TendbClusterModel,
     ),
   }));
@@ -111,8 +113,13 @@
       trigger: 'change',
     },
     {
+      validator: (value: string) => props.selected.filter((item) => item.master_domain === value).length < 2,
+      message: t('目标集群重复'),
+      trigger: 'blur',
+    },
+    {
       validator: () => {
-        if (!modelValue.value.domain) {
+        if (!modelValue.value.master_domain) {
           return true;
         }
         return Boolean(modelValue.value.id);
@@ -122,13 +129,19 @@
     },
   ];
 
-  const { run: queryCluster, loading } = useRequest(filterClusters, {
+  const { run: queryCluster, loading } = useRequest(filterClusters<TendbClusterModel>, {
     manual: true,
     onSuccess: (data) => {
       modelValue.value.id = undefined;
       if (data.length) {
-        modelValue.value.id = data[0].id;
-        emits('change', data[0] as TendbClusterModel);
+        const [currentCluster] = data;
+        modelValue.value = {
+          id: currentCluster.id,
+          master_domain: currentCluster.master_domain,
+          role: '',
+          master_spec_ids: currentCluster.spider_master.map((item) => item.spec_config.id),
+          slave_spec_ids: currentCluster.spider_slave.map((item) => item.spec_config.id),
+        };
       }
     },
   });
@@ -138,10 +151,12 @@
   };
 
   const handleInputChange = (value: string) => {
-    queryCluster({
-      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-      exact_domain: value,
-    });
+    if (value) {
+      queryCluster({
+        bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+        exact_domain: value,
+      });
+    }
   };
 
   const handleSelectorChange = (selected: Record<string, TendbClusterModel[]>) => {

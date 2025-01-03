@@ -24,33 +24,31 @@
       <EditableTable
         ref="table"
         class="mb-20"
-        :model="formData.tableData"
-        :rules="rules">
+        :model="formData.tableData">
         <EditableTableRow
           v-for="(item, index) in formData.tableData"
           :key="index">
           <HostColumn
-            ref="rowHostRef"
             v-model="item.host"
             :selected="selected"
-            @batch-edit="handleBatchEdit"
-            @change="(data) => handleChange(data, item, index)" />
+            @append-row="handleAppendRow(item.host, index)"
+            @batch-edit="handleBatchEdit" />
           <Column
             :label="t('角色类型')"
             :min-width="150">
             <Block
-              v-model="item.role"
+              v-model="item.host.role"
               :placeholder="t('自动生成')" />
           </Column>
           <Column
             :label="t('所属集群')"
             :min-width="150"
-            :rowspan="rowSpan[item.cluster.domain]">
+            :rowspan="rowSpan[item.host.cluster_domain]">
             <Block
-              v-model="item.cluster.domain"
+              v-model="item.host.cluster_domain"
               :placeholder="t('自动生成')" />
           </Column>
-          <SpecColumn v-model="item.spec" />
+          <SpecColumn v-model="item.host.spec_config" />
           <OperationColumn
             v-model:table-data="formData.tableData"
             :create-row-method="createTableRow" />
@@ -92,11 +90,11 @@
 
   import EditableTable, { Block, Column, Row as EditableTableRow } from '@components/editable-table/Index.vue';
 
-  import OperationColumn from '@views/db-manage/common/toolbox-field/operation-column/Index.vue';
-  import TicketRemark from '@views/db-manage/common/toolbox-field/ticket-remark/Index.vue';
+  import OperationColumn from '@views/db-manage/common/toolbox-field/column/operation-column/Index.vue';
+  import TicketRemark from '@views/db-manage/common/toolbox-field/form-item/ticket-remark/Index.vue';
   import type { SpecInfo } from '@views/db-manage/redis/common/spec-panel/Index.vue';
 
-  import HostColumn, { type HostInputed, type SelectorHost } from './components/HostColumn.vue';
+  import HostColumn, { type SelectorHost } from './components/HostColumn.vue';
   import SpecColumn from './components/SpecColumn.vue';
 
   interface RowData {
@@ -105,13 +103,11 @@
       bk_host_id: number;
       bk_cloud_id: number;
       ip: string;
+      role: string;
+      cluster_domain: string;
+      cluster_ids: number[];
+      spec_config: SpecInfo;
     };
-    role: string;
-    cluster: {
-      domain: string;
-      cluster_ids: number[]; // 关联集群的id集合
-    };
-    spec: SpecInfo;
   }
 
   const { t } = useI18n();
@@ -123,13 +119,11 @@
       bk_cloud_id: 0,
       bk_host_id: 0,
       ip: '',
-    },
-    role: data.role || '',
-    cluster: data.cluster || {
-      domain: '',
+      role: '',
+      cluster_domain: '',
       cluster_ids: [],
+      spec_config: {} as SpecInfo,
     },
-    spec: data.spec || ({} as SpecInfo),
   });
 
   const defaultData = () => ({
@@ -138,28 +132,17 @@
   });
 
   const formData = reactive(defaultData());
-  const rowHostRef = ref();
 
   const selected = computed(() => formData.tableData.filter((item) => item.host.bk_host_id).map((item) => item.host));
   const selectedMap = computed(() => Object.fromEntries(selected.value.map((cur) => [cur.ip, true])));
   const rowSpan = computed(() =>
     formData.tableData.reduce<Record<string, number>>((acc, item) => {
-      if (item.cluster.domain) {
-        acc[item.cluster.domain] = (acc[item.cluster.domain] || 0) + 1;
+      if (item.host.cluster_domain) {
+        acc[item.host.cluster_domain] = (acc[item.host.cluster_domain] || 0) + 1;
       }
       return acc;
     }, {}),
   );
-
-  const rules = {
-    'host.tp': [
-      {
-        validator: (value: string) => selected.value.filter((item) => item.ip === value).length < 2,
-        message: t('目标主机重复'),
-        trigger: 'change',
-      },
-    ],
-  };
 
   interface TicketDetail {
     ip_source: 'resource_pool';
@@ -197,11 +180,11 @@
     const sameClusters: Record<string, RowData[]> = {};
     const taskList: Promise<ServiceReturnType<typeof queryMasterSlavePairs>>[] = [];
     formData.tableData.forEach((item) => {
-      if (!sameClusters[item.cluster.domain]) {
-        sameClusters[item.cluster.domain] = [];
+      if (!sameClusters[item.host.cluster_domain]) {
+        sameClusters[item.host.cluster_domain] = [];
       }
-      sameClusters[item.cluster.domain].push(item);
-      item.cluster.cluster_ids.forEach((clusterId) => {
+      sameClusters[item.host.cluster_domain].push(item);
+      item.host.cluster_ids.forEach((clusterId) => {
         taskList.push(
           queryMasterSlavePairs({
             cluster_id: clusterId,
@@ -218,7 +201,7 @@
 
     const infos = Object.values(sameClusters).map((sameRows) => {
       const info = {
-        cluster_ids: sameRows[0].cluster.cluster_ids,
+        cluster_ids: sameRows[0].host.cluster_ids,
         bk_cloud_id: sameRows[0].host.bk_cloud_id,
         proxy: [],
         redis_master: [],
@@ -232,22 +215,22 @@
         const spec = {
           bk_host_id: item.host.bk_host_id,
           ip: item.host.ip,
-          spec_id: item.spec.id,
+          spec_id: item.host.spec_config.id,
         };
         info.display_info.data.push({
           ip: item.host.ip,
-          role: item.role,
-          cluster_domain: item.cluster.domain,
-          spec_id: item.spec?.id ?? 0,
-          spec_name: item.spec?.name ?? '',
+          role: item.host.role,
+          cluster_domain: item.host.cluster_domain,
+          spec_id: item.host.spec_config.id,
+          spec_name: item.host.spec_config.name,
         });
         const list = info[
-          item.role as 'redis_slave' | 'redis_master' | 'proxy'
+          item.host.role as 'redis_slave' | 'redis_master' | 'proxy'
         ] as TicketDetail['infos'][0]['redis_master'];
         _.merge(info, {
-          [item.role]: [...list, spec],
+          [item.host.role]: [...list, spec],
         });
-        if (item.role === 'redis_master') {
+        if (item.host.role === 'redis_master') {
           const deleteSlaveIp = slaveMasterMap[item.host.ip];
           if (deleteSlaveIp) {
             needDeleteSlaves.push(deleteSlaveIp);
@@ -259,13 +242,13 @@
       return info;
     });
 
-    createTicketRun(
-      {
+    createTicketRun({
+      details: {
         ip_source: 'resource_pool',
         infos,
       },
-      formData.remark,
-    );
+      remark: formData.remark,
+    });
   };
 
   const handleReset = () => {
@@ -282,13 +265,11 @@
               bk_cloud_id: item.bk_cloud_id,
               bk_host_id: item.bk_host_id,
               ip: item.ip,
-            },
-            role: item.role,
-            cluster: {
-              domain: item.cluster_domain,
+              role: item.role,
+              cluster_domain: item.cluster_domain,
               cluster_ids: item.cluster_ids,
+              spec_config: item.spec_config,
             },
-            spec: item.spec_config,
           }),
         );
       }
@@ -297,58 +278,28 @@
     formData.tableData = [...(selected.value.length ? formData.tableData : []), ...dataList];
   };
 
-  /**
-   *
-   * @param target 手输ip后查询到的数据
-   * @param item 行数据
-   * @param index 行索引
-   */
-  const handleChange = (target: HostInputed, item: RowData, index: number) => {
-    const roleMap = {
-      master: 'redis_master',
-      slave: 'redis_slave',
-      proxy: 'proxy',
-    } as Record<string, string>;
-    const row = createTableRow({
-      host: {
-        bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-        bk_cloud_id: target.bk_cloud_id,
-        bk_host_id: target.bk_host_id,
-        ip: target.ip,
-      },
-      role: roleMap[target.role] || '',
-      cluster: {
-        domain: target.master_domain,
-        cluster_ids: target.related_clusters.map((item) => item.id),
-      },
-      spec: target.spec_config,
-    });
-    Object.assign(item, row);
-
-    // 输入的主机为master主机带出slave主机
-    if (target.role === 'master') {
+  const handleAppendRow = async (host: RowData['host'], index: number) => {
+    const taskList = host.cluster_ids.map((clusterId) =>
       queryMasterSlavePairs({
-        cluster_id: target.cluster_id,
-      }).then((data) => {
-        const { slaves } = data[0];
-        if (slaves) {
-          formData.tableData.splice(
-            index + 1,
-            0,
-            createTableRow({
-              host: {
-                bk_biz_id: slaves.bk_biz_id,
-                bk_cloud_id: slaves.bk_cloud_id,
-                bk_host_id: slaves.bk_host_id,
-                ip: slaves.ip,
-              },
-              role: 'redis_slave',
-              cluster: row.cluster,
-              spec: row.spec,
-            }),
-          );
-        }
+        cluster_id: clusterId,
+      }),
+    );
+    const results = await Promise.all(taskList);
+    const rows = results.map((data) => {
+      const { slaves } = data[0];
+      return createTableRow({
+        host: {
+          bk_biz_id: slaves.bk_biz_id,
+          bk_cloud_id: slaves.bk_cloud_id,
+          bk_host_id: slaves.bk_host_id,
+          ip: slaves.ip,
+          role: 'redis_slave',
+          cluster_domain: host.cluster_domain,
+          cluster_ids: host.cluster_ids,
+          spec_config: host.spec_config,
+        },
       });
-    }
+    });
+    formData.tableData.splice(index + 1, 0, ...rows);
   };
 </script>

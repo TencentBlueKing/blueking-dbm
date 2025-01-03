@@ -18,15 +18,13 @@ import FunctionControllModel, {
   type MySQLFunctions,
 } from '@services/model/function-controller/functionController';
 
-import { useToolboxRoute } from '@hooks';
-
 import { AccountTypes, DBTypes, TicketTypes } from '@common/const';
 
-import { checkDbConsole } from '@utils';
+import { checkDbConsole, createToolboxRoute } from '@utils';
 
 import { t } from '@locales/index';
 
-const { createRouteItem } = useToolboxRoute(DBTypes.TENDBCLUSTER);
+const { createRouteItem } = createToolboxRoute(DBTypes.TENDBCLUSTER);
 
 const spiderSqlExecuteRoute = {
   path: 'sql-execute/:step?',

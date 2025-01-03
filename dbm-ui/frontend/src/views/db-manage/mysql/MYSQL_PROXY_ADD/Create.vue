@@ -29,11 +29,11 @@
         <EditableTableRow
           v-for="(item, index) in formData.tableData"
           :key="index">
-          <WithRelatedClusters
+          <WithRelatedClustersColumn
             v-model="item.cluster"
             :selected="selected"
             @batch-edit="handleBatchEdit" />
-          <SingleHost
+          <SingleHostColumn
             v-model="item.proxy"
             field="proxy.ip"
             :label="t('新Proxy主机')" />
@@ -77,18 +77,18 @@
 
   import EditableTable, { Row as EditableTableRow } from '@components/editable-table/Index.vue';
 
-  import SingleHost from '@views/db-manage/common/toolbox-field/host-column/SingleHost.vue';
-  import OperationColumn from '@views/db-manage/common/toolbox-field/operation-column/Index.vue';
-  import TicketRemark from '@views/db-manage/common/toolbox-field/ticket-remark/Index.vue';
-  import WithRelatedClusters from '@views/db-manage/mysql/common/edit-table-column/WithRelatedClusters.vue';
+  import OperationColumn from '@views/db-manage/common/toolbox-field/column/operation-column/Index.vue';
+  import SingleHostColumn from '@views/db-manage/common/toolbox-field/column/single-host-column/Index.vue';
+  import TicketRemark from '@views/db-manage/common/toolbox-field/form-item/ticket-remark/Index.vue';
+  import WithRelatedClustersColumn from '@views/db-manage/mysql/common/edit-table-column/WithRelatedClustersColumn.vue';
 
   interface RowData {
     cluster: {
       id: number;
-      domain: string;
-      relatedClusters: {
+      master_domain: string;
+      related_clusters: {
         id: number;
-        domain: string;
+        master_domain: string;
       }[];
     };
     proxy: {
@@ -103,8 +103,17 @@
   const tableRef = useTemplateRef('table');
 
   const createTableRow = (data = {} as Partial<RowData>) => ({
-    cluster: Object.assign({}, data.cluster),
-    proxy: Object.assign({}, data.proxy),
+    cluster: data.cluster || {
+      id: 0,
+      master_domain: '',
+      related_clusters: [],
+    },
+    proxy: data.proxy || {
+      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+      bk_cloud_id: 0,
+      bk_host_id: 0,
+      ip: '',
+    },
   });
 
   const defaultData = () => ({
@@ -118,39 +127,26 @@
   // 集群域名到自身及其下集群id、域名映射
   const clusterMap = computed(() => {
     const result = selected.value.reduce<Record<string, { ids: number[]; domains: string[] }>>((acc, cur) => {
-      const relatedClusters = cur?.relatedClusters || [];
-      acc[cur.domain] = {
-        ids: [cur.id, ...relatedClusters.map((item) => item.id)],
-        domains: [cur.domain, ...relatedClusters.map((item) => item.domain)],
+      acc[cur.master_domain] = {
+        ids: [cur.id, ...cur.related_clusters.map((item) => item.id)],
+        domains: [cur.master_domain, ...cur.related_clusters.map((item) => item.master_domain)],
       };
       return acc;
     }, {});
     return result;
   });
-  let repeatTarget = '';
 
   const rules = {
-    'cluster.domain': [
-      {
-        validator: (value: string) => selected.value.filter((item) => item.domain === value).length < 2,
-        message: t('目标集群重复'),
-        trigger: 'change',
-      },
+    'cluster.master_domain': [
       {
         validator: (value: string) => {
-          repeatTarget = '';
-          let result = true;
-          Object.entries(clusterMap.value).forEach(([domain, item]) => {
-            const isContain = item.domains.includes(value);
-            if (isContain && domain !== value) {
-              repeatTarget = domain;
-              result = false;
-            }
-          });
-          return result;
+          const repeatTarget = Object.keys(clusterMap.value).find(
+            (domain) => clusterMap.value[domain].domains.includes(value) && domain !== value,
+          );
+          return repeatTarget ? t('目标集群是集群target的关联集群_请勿重复添加', { target: repeatTarget }) : true;
         },
-        message: () => t('目标集群是集群target的关联集群_请勿重复添加', { target: repeatTarget }),
-        trigger: 'change',
+        message: '',
+        trigger: 'blur',
       },
     ],
   };
@@ -172,15 +168,15 @@
     if (!result) {
       return;
     }
-    createTicketRun(
-      {
+    createTicketRun({
+      details: {
         infos: formData.tableData.map((item) => ({
-          cluster_ids: clusterMap.value[item.cluster.domain].ids,
+          cluster_ids: clusterMap.value[item.cluster.master_domain].ids,
           new_proxy: item.proxy,
         })),
       },
-      formData.remark,
-    );
+      remark: formData.remark,
+    });
   };
 
   const handleReset = () => {
@@ -194,8 +190,8 @@
           createTableRow({
             cluster: {
               id: item.id,
-              domain: item.master_domain,
-              relatedClusters: [],
+              master_domain: item.master_domain,
+              related_clusters: [],
             },
           }),
         );

@@ -14,7 +14,7 @@
 <template>
   <Column
     :append-rules="rules"
-    field="cluster.domain"
+    field="cluster.master_domain"
     fixed="left"
     :label="t('目标集群')"
     :loading="loading"
@@ -29,10 +29,23 @@
         <DbIcon type="batch-host-select" />
       </span>
     </template>
-    <Input
-      v-model="modelValue.domain"
-      :placeholder="t('请输入集群域名')"
-      @change="handleInputChange" />
+    <div style="flex: 1">
+      <Input
+        v-model="modelValue.master_domain"
+        :placeholder="t('请输入集群域名')"
+        @change="handleInputChange" />
+      <BkLoading
+        v-if="modelValue.related_clusters.length"
+        class="related-clusters"
+        :loading="relatedClusterLoading">
+        {{ t('含n个同机关联集群', { n: modelValue.related_clusters.length }) }}
+        <p
+          v-for="item in modelValue.related_clusters"
+          :key="item.id">
+          -- {{ item.master_domain }}
+        </p>
+      </BkLoading>
+    </div>
   </Column>
   <ClusterSelector
     v-model:is-show="showSelector"
@@ -46,6 +59,7 @@
 
   import TendbhaModel from '@services/model/mysql/tendbha';
   import { filterClusters } from '@services/source/dbbase';
+  import { findRelatedClustersByClusterIds } from '@services/source/mysqlCluster';
 
   import { ClusterTypes } from '@common/const';
   import { domainRegex } from '@common/regex';
@@ -56,7 +70,7 @@
   interface Props {
     selected: {
       id: number;
-      domain: string;
+      master_domain: string;
     }[];
   }
 
@@ -70,10 +84,16 @@
 
   const modelValue = defineModel<{
     id?: number;
-    domain: string;
+    master_domain: string;
+    related_clusters: {
+      id: number;
+      master_domain: string;
+    }[];
   }>({
     default: () => ({
-      domain: '',
+      id: 0,
+      master_domain: '',
+      related_clusters: [],
     }),
   });
 
@@ -85,7 +105,7 @@
       (item) =>
         ({
           id: item.id,
-          master_domain: item.domain,
+          master_domain: item.master_domain,
         }) as TendbhaModel,
     ),
   }));
@@ -97,8 +117,13 @@
       trigger: 'change',
     },
     {
+      validator: (value: string) => props.selected.filter((item) => item.master_domain === value).length < 2,
+      message: t('目标集群重复'),
+      trigger: 'blur',
+    },
+    {
       validator: () => {
-        if (!modelValue.value.domain) {
+        if (!modelValue.value.master_domain) {
           return true;
         }
         return Boolean(modelValue.value.id);
@@ -107,6 +132,19 @@
       trigger: 'blur',
     },
   ];
+
+  const { run: queryRelatedClusters, loading: relatedClusterLoading } = useRequest(findRelatedClustersByClusterIds, {
+    manual: true,
+    onSuccess: (data) => {
+      modelValue.value.related_clusters = [];
+      if (data.length) {
+        modelValue.value.related_clusters = data[0].related_clusters.map((item) => ({
+          id: item.id,
+          master_domain: item.master_domain,
+        }));
+      }
+    },
+  });
 
   const { run: queryCluster, loading } = useRequest(filterClusters, {
     manual: true,
@@ -118,15 +156,29 @@
     },
   });
 
+  watch(
+    () => modelValue.value.id,
+    (id) => {
+      if (id) {
+        queryRelatedClusters({
+          cluster_ids: [id],
+          bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+        });
+      }
+    },
+  );
+
   const handleShowSelector = () => {
     showSelector.value = true;
   };
 
   const handleInputChange = (value: string) => {
-    queryCluster({
-      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-      exact_domain: value,
-    });
+    if (value) {
+      queryCluster({
+        bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+        exact_domain: value,
+      });
+    }
   };
 
   const handleSelectorChange = (selected: Record<string, TendbhaModel[]>) => {
@@ -138,5 +190,13 @@
     font-size: 14px;
     color: #3a84ff;
     cursor: pointer;
+  }
+
+  .related-clusters {
+    padding: 8px;
+    font-size: 12px;
+    line-height: 20px;
+    color: #979ba5;
+    background: #fafbfd;
   }
 </style>

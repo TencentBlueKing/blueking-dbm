@@ -15,8 +15,7 @@
   <EditableTable
     ref="table"
     class="mb-20"
-    :model="tableData"
-    :rules="rules">
+    :model="tableData">
     <EditableTableRow
       v-for="(item, index) in tableData"
       :key="index">
@@ -24,7 +23,7 @@
         v-model="item.originProxy"
         :selected="selected"
         @batch-edit="handleBatchEdit" />
-      <SingleHost
+      <SingleHostColumn
         v-model="item.targetProxy"
         field="targetProxy.ip"
         :label="t('新Proxy主机')"
@@ -43,10 +42,10 @@
 
   import EditableTable, { Row as EditableTableRow } from '@components/editable-table/Index.vue';
 
-  import SingleHost from '@views/db-manage/common/toolbox-field/host-column/SingleHost.vue';
-  import OperationColumn from '@views/db-manage/common/toolbox-field/operation-column/Index.vue';
+  import OperationColumn from '@views/db-manage/common/toolbox-field/column/operation-column/Index.vue';
+  import SingleHostColumn from '@views/db-manage/common/toolbox-field/column/single-host-column/Index.vue';
 
-  import { ProxyReplaceTypes, type TicketInfo } from '../types';
+  import { ProxyReplaceTypes } from '../types';
 
   import HostColumnGroup, { type SelectorItem } from './HostColumnGroup.vue';
 
@@ -73,7 +72,29 @@
   }
 
   interface Exposes {
-    getValue: () => Promise<TicketInfo[]>;
+    getValue: () => Promise<
+      {
+        cluster_ids: number[];
+        origin_proxy: {
+          bk_biz_id: number;
+          bk_cloud_id: number;
+          bk_host_id: number;
+          ip: string;
+          port?: number;
+          instance_address?: string;
+        };
+        target_proxy: {
+          bk_biz_id: number;
+          bk_cloud_id: number;
+          bk_host_id: number;
+          ip: string;
+        };
+        display_info: {
+          type: ProxyReplaceTypes;
+          related_clusters: string[];
+        };
+      }[]
+    >;
   }
 
   const props = defineProps<Props>();
@@ -84,7 +105,6 @@
 
   const createTableRow = (data = {} as Partial<RowData>) => ({
     originProxy: data.originProxy || {
-      bk_biz_id: 0,
       bk_cloud_id: 0,
       bk_host_id: 0,
       ip: '',
@@ -94,7 +114,7 @@
       related_clusters: [],
     },
     targetProxy: data.targetProxy || {
-      bk_biz_id: 0,
+      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
       bk_cloud_id: 0,
       bk_host_id: 0,
       ip: '',
@@ -111,16 +131,6 @@
       })),
   );
   const selectedMap = computed(() => Object.fromEntries(selected.value.map((cur) => [cur.ip, true])));
-
-  const rules = {
-    'originProxy.ip': [
-      {
-        validator: (value: string) => selected.value.filter((item) => item.ip === value).length < 2,
-        message: t('目标主机重复'),
-        trigger: 'change',
-      },
-    ],
-  };
 
   watch(
     () => props.data,

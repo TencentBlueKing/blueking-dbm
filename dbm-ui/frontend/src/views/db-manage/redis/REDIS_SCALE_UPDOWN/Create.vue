@@ -24,28 +24,39 @@
       <EditableTable
         ref="table"
         class="mb-20"
-        :model="formData.tableData"
-        :rules="rules">
+        :model="formData.tableData">
         <EditableTableRow
           v-for="(item, index) in formData.tableData"
           :key="index">
-          <ClusterColumnGroup
+          <ClusterColumn
             v-model="item.cluster"
             :selected="selected"
-            @batch-edit="handleBatchEdit"
-            @change="(data) => handleInputed(data, item)" />
+            @batch-edit="handleBatchEdit" />
+          <Column
+            field="cluster.cluster_type_name"
+            :label="t('架构版本')"
+            :min-width="150">
+            <Block
+              v-model="item.cluster.cluster_type_name"
+              :placeholder="t('自动生成')" />
+          </Column>
           <RedisVersionColumn
             v-model="item.version"
-            :cluster-id="item.cluster.id" />
+            :cluster="item.cluster" />
           <CurrentCapacityColumn :cluster="item.cluster" />
           <TargetCapacityColumn
             v-model="item.backendGroup"
-            :cluster="item.cluster"
-            :current-capacity="item.currentCapacity"
-            :version="item.version" />
-          <SwitchModeColumn
-            v-model="item.switchMode"
-            :disabled="!item.cluster.id" />
+            :row-data="item" />
+          <Column
+            field="switchMode"
+            :label="t('切换模式')"
+            :min-width="150">
+            <Select
+              v-model="item.switchMode"
+              :disabled="!item.cluster.id"
+              :input-search="false"
+              :list="switchModeOptions" />
+          </Column>
           <OperationColumn
             v-model:table-data="formData.tableData"
             :create-row-method="createTableRow" />
@@ -84,20 +95,29 @@
 
   import { TicketTypes } from '@common/const';
 
-  import EditableTable, { Row as EditableTableRow } from '@components/editable-table/Index.vue';
+  import EditableTable, { Block, Column, Row as EditableTableRow, Select } from '@components/editable-table/Index.vue';
 
-  import OperationColumn from '@views/db-manage/common/toolbox-field/operation-column/Index.vue';
-  import TicketRemark from '@views/db-manage/common/toolbox-field/ticket-remark/Index.vue';
+  import OperationColumn from '@views/db-manage/common/toolbox-field/column/operation-column/Index.vue';
+  import TicketRemark from '@views/db-manage/common/toolbox-field/form-item/ticket-remark/Index.vue';
   import { AffinityType } from '@views/db-manage/redis/common/types';
 
-  import ClusterColumnGroup from './components/ClusterColumnGroup.vue';
+  import ClusterColumn from './components/ClusterColumn.vue';
   import CurrentCapacityColumn from './components/CurrentCapacityColumn.vue';
   import RedisVersionColumn from './components/RedisVersionColumn.vue';
-  import SwitchModeColumn from './components/SwitchModeColumn.vue';
-  import TargetCapacityColumn from './components/TargetCapacityColumn.vue';
+  import TargetCapacityColumn from './components/target-capacity-column/Index.vue';
 
   interface RowData {
-    cluster: Pick<RedisModel, 'id' | 'master_domain' | 'cluster_type' | 'cluster_type_name' | 'bk_cloud_id'> & {
+    cluster: Pick<
+      RedisModel,
+      | 'id'
+      | 'master_domain'
+      | 'cluster_type'
+      | 'cluster_type_name'
+      | 'bk_cloud_id'
+      | 'major_version'
+      | 'cluster_capacity'
+      | 'disaster_tolerance_level'
+    > & {
       cluster_stats?: RedisModel['cluster_stats'];
       cluster_spec?: RedisModel['cluster_spec'];
       group_num: RedisModel['machine_pair_cnt'];
@@ -127,9 +147,12 @@
       master_domain: '',
       cluster_type: '',
       cluster_type_name: '',
+      major_version: '',
       shard_num: 0,
       group_num: 0,
       bk_cloud_id: 0,
+      cluster_capacity: 0,
+      disaster_tolerance_level: 'CROS_SUBZONE',
     },
     version: data.version || '',
     currentCapacity: data.currentCapacity || {
@@ -156,15 +179,16 @@
   const selected = computed(() => formData.tableData.filter((item) => item.cluster.id).map((item) => item.cluster));
   const selectedMap = computed(() => Object.fromEntries(selected.value.map((cur) => [cur.master_domain, true])));
 
-  const rules = {
-    'cluster.master_domain': [
-      {
-        validator: (value: string) => selected.value.filter((item) => item.master_domain === value).length < 2,
-        message: t('目标集群重复'),
-        trigger: 'change',
-      },
-    ],
-  };
+  const switchModeOptions = [
+    {
+      value: 'user_confirm',
+      label: t('需人工确认'),
+    },
+    {
+      value: 'no_confirm',
+      label: t('无需确认'),
+    },
+  ];
 
   const { run: createTicketRun, loading: isSubmitting } = useCreateTicket<{
     ip_source: 'resource_pool';
@@ -201,8 +225,8 @@
     if (!result) {
       return;
     }
-    createTicketRun(
-      {
+    createTicketRun({
+      details: {
         ip_source: 'resource_pool',
         infos: formData.tableData.map((item) => ({
           bk_cloud_id: item.cluster.bk_cloud_id,
@@ -227,55 +251,38 @@
           },
         })),
       },
-      formData.remark,
-    );
+      remark: formData.remark,
+    });
   };
 
   const handleReset = () => {
     Object.assign(formData, defaultData());
   };
 
-  /**
-   * redis model转换成表格行数据
-   */
-  const generateTableRow = (item: RedisModel) =>
-    createTableRow({
-      cluster: {
-        id: item.id,
-        master_domain: item.master_domain,
-        cluster_type: item.cluster_type,
-        cluster_type_name: item.cluster_type_name,
-        cluster_stats: item.cluster_stats,
-        cluster_spec: item.cluster_spec,
-        group_num: item.machine_pair_cnt,
-        shard_num: item.cluster_shard_num,
-        bk_cloud_id: item.bk_cloud_id,
-      },
-      version: item.major_version,
-      currentCapacity: {
-        used: 1,
-        total: item.cluster_capacity,
-      },
-      backendGroup: {
-        spec_id: 0,
-        count: 0,
-        affinity: item.disaster_tolerance_level,
-        shard_num: 0,
-        group_num: 0,
-      },
-    });
-
   const handleBatchEdit = (list: RedisModel[]) => {
     const dataList = list.reduce<RowData[]>((acc, item) => {
       if (!selectedMap.value[item.master_domain]) {
-        acc.push(generateTableRow(item));
+        acc.push(
+          createTableRow({
+            cluster: {
+              id: item.id,
+              master_domain: item.master_domain,
+              cluster_type: item.cluster_type,
+              cluster_type_name: item.cluster_type_name,
+              cluster_stats: item.cluster_stats,
+              cluster_spec: item.cluster_spec,
+              cluster_capacity: item.cluster_capacity,
+              group_num: item.machine_pair_cnt,
+              shard_num: item.cluster_shard_num,
+              bk_cloud_id: item.bk_cloud_id,
+              major_version: item.major_version,
+              disaster_tolerance_level: item.disaster_tolerance_level,
+            },
+          }),
+        );
       }
       return acc;
     }, []);
     formData.tableData = [...(selected.value.length ? formData.tableData : []), ...dataList];
-  };
-
-  const handleInputed = (item: RedisModel, row: RowData) => {
-    Object.assign(row, generateTableRow(item));
   };
 </script>

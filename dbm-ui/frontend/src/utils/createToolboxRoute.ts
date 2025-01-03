@@ -1,6 +1,6 @@
 import { DBTypes, type TicketTypes } from '@common/const';
 
-export function useToolboxRoute(dbType: DBTypes) {
+export function createToolboxRoute(dbType: DBTypes) {
   const dbToolbox = dbType === DBTypes.TENDBCLUSTER ? 'tendb-cluster' : dbType;
 
   const createRouteItem = (ticketType: TicketTypes, navName: string) => ({

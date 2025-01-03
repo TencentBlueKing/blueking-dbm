@@ -109,16 +109,18 @@
   const emits = defineEmits<Emits>();
 
   const modelValue = defineModel<{
-    bk_cloud_id?: number;
+    bk_cloud_id: number;
     bk_host_id?: number;
     ip: string;
-    port?: number;
+    port: number;
     cluster_ids: number[];
     related_instances: string[];
     related_clusters: string[];
   }>({
     default: () => ({
+      bk_cloud_id: 0,
       ip: '',
+      port: 0,
       cluster_ids: [],
       related_instances: [],
       related_clusters: [],
@@ -205,10 +207,12 @@
   };
 
   const handleInputChange = (value: string) => {
-    queryInstance({
-      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-      instance_addresses: [value],
-    });
+    if (value) {
+      queryInstance({
+        bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+        instance_addresses: [value],
+      });
+    }
   };
 
   const handleSelectorChange = (selected: InstanceSelectorValues<IValue>) => {

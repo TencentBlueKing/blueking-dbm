@@ -14,7 +14,7 @@
 <template>
   <Column
     :append-rules="rules"
-    field="slave.instance"
+    field="slave.instance_address"
     fixed="left"
     :label="t('目标从库实例')"
     :loading="loading"
@@ -33,17 +33,9 @@
       :placeholder="t('请输入IP:Port')"
       @change="handleInputChange" />
   </Column>
-  <Column
-    :label="t('所属集群')"
-    :loading="loading"
-    :min-width="150">
-    <Block
-      v-model="modelValue.master_domain"
-      :placeholder="t('自动生成')" />
-  </Column>
   <InstanceSelector
     v-model:is-show="showSelector"
-    :cluster-types="[ClusterTypes.TENDBCLUSTER]"
+    :cluster-types="[ClusterTypes.SQLSERVER_HA]"
     :selected="selectedInstances"
     :tab-list-config="tabListConfig"
     @change="handleSelectorChange" />
@@ -53,11 +45,12 @@
   import { useRequest } from 'vue-request';
 
   import { checkInstance } from '@services/source/dbbase';
+  import { getSqlServerInstanceList } from '@services/source/sqlserveHaCluster';
 
   import { ClusterTypes } from '@common/const';
   import { ipPort } from '@common/regex';
 
-  import { Block, Column, Input } from '@components/editable-table/Index.vue';
+  import { Column, Input } from '@components/editable-table/Index.vue';
   import InstanceSelector, {
     type InstanceSelectorValues,
     type IValue,
@@ -81,40 +74,46 @@
   const emits = defineEmits<Emits>();
 
   const modelValue = defineModel<{
-    bk_biz_id?: number;
-    bk_cloud_id?: number;
+    bk_biz_id: number;
+    bk_cloud_id: number;
     bk_host_id?: number;
     ip: string;
     port: number;
     instance_address: string;
-    cluster_id?: number;
-    master_domain?: string;
+    cluster_id: number;
+    master_domain: string;
   }>({
     default: () => ({
+      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+      bk_cloud_id: 0,
+      ip: '',
+      port: 0,
       instance_address: '',
+      cluster_id: 0,
+      master_domain: '',
     }),
   });
 
   const { t } = useI18n();
 
   const tabListConfig = {
-    [ClusterTypes.TENDBCLUSTER]: [
+    [ClusterTypes.SQLSERVER_HA as string]: [
       {
-        name: t('目标从库'),
+        name: t('从库实例'),
         tableConfig: {
-          firsrColumn: {
-            label: t('Slave 实例'),
-            field: 'instance_address',
-            role: 'remote_slave',
-          },
+          getTableList: (params: ServiceParameters<typeof getSqlServerInstanceList>) =>
+            getSqlServerInstanceList({
+              ...params,
+              role: 'backend_slave',
+            }),
         },
       },
     ],
-  } as unknown as Record<ClusterTypes, PanelListType>;
+  } as Record<string, PanelListType>;
 
   const showSelector = ref(false);
   const selectedInstances = computed<InstanceSelectorValues<IValue>>(() => ({
-    TendbClusterHost: props.selected.map(
+    [ClusterTypes.SQLSERVER_HA]: props.selected.map(
       (item) =>
         ({
           instance_address: item.instance_address,
@@ -127,6 +126,11 @@
       validator: (value: string) => ipPort.test(value),
       message: t('格式不符合要求'),
       trigger: 'change',
+    },
+    {
+      validator: (value: string) => props.selected.filter((item) => item.instance_address === value).length < 2,
+      message: t('目标实例重复'),
+      trigger: 'blur',
     },
     {
       validator: () => Boolean(modelValue.value.bk_host_id),
@@ -160,14 +164,16 @@
   };
 
   const handleInputChange = (value: string) => {
-    queryHost({
-      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-      instance_addresses: [value],
-    });
+    if (value) {
+      queryHost({
+        bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+        instance_addresses: [value],
+      });
+    }
   };
 
   const handleSelectorChange = (selected: InstanceSelectorValues<IValue>) => {
-    emits('batch-edit', selected[ClusterTypes.TENDBCLUSTER]);
+    emits('batch-edit', selected[ClusterTypes.SQLSERVER_HA]);
   };
 </script>
 <style lang="less" scoped>

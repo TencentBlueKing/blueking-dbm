@@ -23,12 +23,12 @@
         v-model="item.cluster"
         :selected-ids="selectedClusterIds"
         @batch-edit="handleBatchEdit" />
-      <SingleHost
+      <SingleHostColumn
         v-model="item.newMaster"
         field="newMaster.ip"
         :label="t('新Master主机')"
         :params="{ for_biz: currentBizId }" />
-      <SingleHost
+      <SingleHostColumn
         v-model="item.newSlave"
         field="newSlave.ip"
         :label="t('新Slave主机')"
@@ -49,10 +49,10 @@
 
   import EditableTable, { Row as EditableTableRow } from '@components/editable-table/Index.vue';
 
-  import SingleHost from '@views/db-manage/common/toolbox-field/host-column/SingleHost.vue';
-  import OperationColumn from '@views/db-manage/common/toolbox-field/operation-column/Index.vue';
+  import OperationColumn from '@views/db-manage/common/toolbox-field/column/operation-column/Index.vue';
+  import SingleHostColumn from '@views/db-manage/common/toolbox-field/column/single-host-column/Index.vue';
 
-  import { MigrateTypes, type TicketInfo } from '../types';
+  import { MigrateTypes } from '../types';
 
   import ClusterColumn from './ClusterColumn.vue';
 
@@ -80,7 +80,34 @@
   }
 
   interface Exposes {
-    getValue: () => Promise<TicketInfo[]>;
+    getValue: () => Promise<
+      {
+        cluster_ids: number[];
+        resource_spec: {
+          new_master: {
+            spec_id: 0;
+            hosts: {
+              bk_biz_id: number;
+              bk_cloud_id: number;
+              bk_host_id: number;
+              ip: string;
+            }[];
+          };
+          new_slave: {
+            spec_id: 0;
+            hosts: {
+              bk_biz_id: number;
+              bk_cloud_id: number;
+              bk_host_id: number;
+              ip: string;
+            }[];
+          };
+        };
+        display_info: {
+          type: MigrateTypes;
+        };
+      }[]
+    >;
   }
 
   const props = defineProps<Props>();

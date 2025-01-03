@@ -14,7 +14,7 @@
 <template>
   <Column
     :append-rules="rules"
-    field="cluster.domain"
+    field="cluster.master_domain"
     fixed="left"
     :label="t('目标集群')"
     :loading="loading"
@@ -29,18 +29,9 @@
       </span>
     </template>
     <Input
-      v-model="modelValue.domain"
+      v-model="modelValue.master_domain"
       :placeholder="t('请输入集群域名')"
       @change="handleInputChange" />
-  </Column>
-  <Column
-    field="cluster.cluster_type_name"
-    :label="t('架构版本')"
-    :loading="loading"
-    :min-width="150">
-    <Block
-      v-model="modelValue.cluster_type_name"
-      :placeholder="t('自动生成')" />
   </Column>
   <ClusterSelector
     v-model:is-show="showSelector"
@@ -62,31 +53,51 @@
   import { domainRegex } from '@common/regex';
 
   import ClusterSelector, { type TabConfig } from '@components/cluster-selector/Index.vue';
-  import { Block, Column, Input } from '@components/editable-table/Index.vue';
+  import { Column, Input } from '@components/editable-table/Index.vue';
 
   interface Props {
     selected: {
       id: number;
-      domain: string;
+      master_domain: string;
     }[];
   }
 
   interface Emits {
     (e: 'batch-edit', list: RedisModel[]): void;
-    (e: 'change', data: RedisModel): void;
   }
 
   const props = defineProps<Props>();
 
   const emits = defineEmits<Emits>();
 
-  const modelValue = defineModel<{
-    id?: number;
-    domain: string;
-    cluster_type_name?: string;
-  }>({
+  const modelValue = defineModel<
+    Pick<
+      RedisModel,
+      | 'master_domain'
+      | 'cluster_type'
+      | 'cluster_type_name'
+      | 'bk_cloud_id'
+      | 'major_version'
+      | 'cluster_capacity'
+      | 'disaster_tolerance_level'
+    > & {
+      cluster_stats?: RedisModel['cluster_stats'];
+      cluster_spec?: RedisModel['cluster_spec'];
+      group_num: RedisModel['machine_pair_cnt'];
+      shard_num: RedisModel['cluster_shard_num'];
+      id?: number;
+    }
+  >({
     default: () => ({
-      domain: '',
+      master_domain: '',
+      cluster_type: '',
+      cluster_type_name: '',
+      major_version: '',
+      shard_num: 0,
+      group_num: 0,
+      bk_cloud_id: 0,
+      cluster_capacity: 0,
+      disaster_tolerance_level: 'CROS_SUBZONE',
     }),
   });
 
@@ -95,10 +106,10 @@
   const showSelector = ref(false);
   const selectedClusters = computed<Record<string, RedisModel[]>>(() => ({
     [ClusterTypes.REDIS]: props.selected.map(
-      (item) =>
+      (currentCluster) =>
         ({
-          id: item.id,
-          master_domain: item.domain,
+          id: currentCluster.id,
+          master_domain: currentCluster.master_domain,
         }) as RedisModel,
     ),
   }));
@@ -115,12 +126,6 @@
           ].join(','),
           ...params,
         }),
-      disabledRowConfig: [
-        {
-          handler: (data: RedisModel) => data.proxy.length <= 2,
-          tip: t('数量不足，Proxy至少保留 2 台'),
-        },
-      ],
     },
   } as unknown as Record<string, TabConfig>;
 
@@ -131,8 +136,13 @@
       trigger: 'change',
     },
     {
+      validator: (value: string) => props.selected.filter((item) => item.master_domain === value).length < 2,
+      message: t('目标集群重复'),
+      trigger: 'blur',
+    },
+    {
       validator: () => {
-        if (!modelValue.value.domain) {
+        if (!modelValue.value.master_domain) {
           return true;
         }
         return Boolean(modelValue.value.id);
@@ -142,13 +152,26 @@
     },
   ];
 
-  const { run: queryCluster, loading } = useRequest(filterClusters, {
+  const { run: queryCluster, loading } = useRequest(filterClusters<RedisModel>, {
     manual: true,
     onSuccess: (data) => {
       modelValue.value.id = undefined;
       if (data.length) {
-        modelValue.value.id = data[0].id;
-        emits('change', data[0] as RedisModel);
+        const [currentCluster] = data;
+        modelValue.value = {
+          id: currentCluster.id,
+          master_domain: currentCluster.master_domain,
+          cluster_type: currentCluster.cluster_type,
+          cluster_type_name: currentCluster.cluster_type_name,
+          cluster_stats: currentCluster.cluster_stats,
+          cluster_spec: currentCluster.cluster_spec,
+          cluster_capacity: currentCluster.cluster_capacity,
+          group_num: currentCluster.machine_pair_cnt,
+          shard_num: currentCluster.cluster_shard_num,
+          bk_cloud_id: currentCluster.bk_cloud_id,
+          major_version: currentCluster.major_version,
+          disaster_tolerance_level: currentCluster.disaster_tolerance_level,
+        };
       }
     },
   });
@@ -158,10 +181,12 @@
   };
 
   const handleInputChange = (value: string) => {
-    queryCluster({
-      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-      exact_domain: value,
-    });
+    if (value) {
+      queryCluster({
+        bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+        exact_domain: value,
+      });
+    }
   };
 
   const handleSelectorChange = (selected: Record<string, RedisModel[]>) => {

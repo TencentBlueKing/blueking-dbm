@@ -19,7 +19,7 @@
     required>
     <Select
       v-model="modelValue"
-      :disabled="!clusterId"
+      :disabled="!cluster.id"
       :input-search="false"
       :list="versionList"
       :placeholder="t('自动生成')">
@@ -54,7 +54,10 @@
   import { Column, Select } from '@components/editable-table/Index.vue';
 
   interface Props {
-    clusterId: number;
+    cluster: {
+      id: number;
+      major_version: string;
+    };
   }
 
   const props = defineProps<Props>();
@@ -79,17 +82,18 @@
         label: item,
         value: item,
       }));
+      modelValue.value = versions.includes(props.cluster.major_version) ? props.cluster.major_version : '';
     },
   });
 
   watch(
-    () => props.clusterId,
+    () => props.cluster,
     () => {
-      if (props.clusterId) {
+      if (props.cluster) {
         fetchVersions({
           node_type: 'Backend',
           type: 'update',
-          cluster_id: props.clusterId,
+          cluster_id: props.cluster.id,
         });
       }
     },

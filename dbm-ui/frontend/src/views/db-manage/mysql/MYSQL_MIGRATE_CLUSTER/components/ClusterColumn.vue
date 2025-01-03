@@ -87,7 +87,6 @@
     ),
   }));
 
-  let notFounds: string[];
   const rules = [
     {
       validator: (value: string) => value.split(batchSplitRegex).every((item) => domainRegex.test(item)),
@@ -96,15 +95,15 @@
     },
     {
       validator: (value: string) => {
-        notFounds = [];
+        const notFounds: string[] = [];
         value.split(batchSplitRegex).forEach((item) => {
           if (!domainIdMap[item]) {
             notFounds.push(item);
           }
         });
-        return !notFounds.length;
+        return notFounds.length ? t('目标集群xx不存在', [notFounds.join(',')]) : true;
       },
-      message: () => t('目标集群xx不存在', [notFounds.join(',')]),
+      message: '',
       trigger: 'blur',
     },
   ];
@@ -125,10 +124,12 @@
   };
 
   const handleInputChange = (value: string) => {
-    queryCluster({
-      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-      exact_domain: value.split(batchSplitRegex).join(','),
-    });
+    if (value) {
+      queryCluster({
+        bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+        exact_domain: value.split(batchSplitRegex).join(','),
+      });
+    }
   };
 
   const handleSelectorChange = (selected: Record<string, TendbhaModel[]>) => {

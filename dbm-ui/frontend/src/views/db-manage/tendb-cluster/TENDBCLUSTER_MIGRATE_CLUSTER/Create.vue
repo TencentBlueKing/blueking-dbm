@@ -24,16 +24,14 @@
       <EditableTable
         ref="table"
         class="mb-20"
-        :model="formData.tableData"
-        :rules="rules">
+        :model="formData.tableData">
         <EditableTableRow
           v-for="(item, index) in formData.tableData"
           :key="index">
           <MasterHostColumnGroup
             v-model="item.oldMaster"
             :selected="selected"
-            @batch-edit="handleBatchEdit"
-            @change="(data) => handleChange(data, item)" />
+            @batch-edit="handleBatchEdit" />
           <SlaveHostColumnGroup
             v-model="item.oldSlave"
             :master-host="item.oldMaster" />
@@ -41,15 +39,15 @@
             :label="t('所属集群')"
             :min-width="150">
             <Block
-              v-model="item.cluster.domain"
+              v-model="item.oldMaster.master_domain"
               :placeholder="t('自动生成')" />
           </Column>
-          <SingleHost
+          <SingleHostColumn
             v-model="item.newMaster"
             field="newMaster"
             :label="t('新Master')"
             :min-width="150" />
-          <SingleHost
+          <SingleHostColumn
             v-model="item.newSlave"
             field="newSlave"
             :label="t('新Slave')"
@@ -95,12 +93,12 @@
 
   import EditableTable, { Block, Column, Row as EditableTableRow } from '@components/editable-table/Index.vue';
 
-  import BackupSource from '@views/db-manage/common/toolbox-field/backup-source/Index.vue';
-  import SingleHost from '@views/db-manage/common/toolbox-field/host-column/SingleHost.vue';
-  import OperationColumn from '@views/db-manage/common/toolbox-field/operation-column/Index.vue';
-  import TicketRemark from '@views/db-manage/common/toolbox-field/ticket-remark/Index.vue';
+  import OperationColumn from '@views/db-manage/common/toolbox-field/column/operation-column/Index.vue';
+  import SingleHostColumn from '@views/db-manage/common/toolbox-field/column/single-host-column/Index.vue';
+  import BackupSource from '@views/db-manage/common/toolbox-field/form-item/backup-source/Index.vue';
+  import TicketRemark from '@views/db-manage/common/toolbox-field/form-item/ticket-remark/Index.vue';
 
-  import MasterHostColumnGroup, { type InputedHost, type SelectorHost } from './components/MasterHostColumnGroup.vue';
+  import MasterHostColumnGroup, { type SelectorHost } from './components/MasterHostColumnGroup.vue';
   import SlaveHostColumnGroup from './components/SlaveHostColumnGroup.vue';
 
   interface RowData {
@@ -110,11 +108,15 @@
       bk_host_id: number;
       ip: string;
       related_instances: string[];
+      cluster_id: number;
+      master_domain: string;
     };
-    oldSlave: RowData['oldMaster'];
-    cluster: {
-      id: number;
-      domain: string;
+    oldSlave: {
+      bk_biz_id: number;
+      bk_cloud_id: number;
+      bk_host_id: number;
+      ip: string;
+      related_instances: string[];
     };
     newMaster: {
       bk_biz_id: number;
@@ -139,14 +141,12 @@
       oldMaster: data.oldMaster || {
         ...initHost(),
         related_instances: [],
+        cluster_id: 0,
+        master_domain: '',
       },
       oldSlave: data.oldSlave || {
         ...initHost(),
         related_instances: [],
-      },
-      cluster: data.cluster || {
-        id: 0,
-        domain: '',
       },
       newMaster: data.newMaster || initHost(),
       newSlave: data.newSlave || initHost(),
@@ -165,16 +165,6 @@
     formData.tableData.filter((item) => item.oldMaster.bk_host_id).map((item) => item.oldMaster),
   );
   const selectedMap = computed(() => Object.fromEntries(selected.value.map((cur) => [cur.ip, true])));
-
-  const rules = {
-    'oldMaster.ip': [
-      {
-        validator: (value: string) => selected.value.filter((item) => item.ip === value).length < 2,
-        message: t('目标主机重复'),
-        trigger: 'change',
-      },
-    ],
-  };
 
   interface ResourceHost {
     spec_id: number;
@@ -207,12 +197,12 @@
     if (!result) {
       return;
     }
-    createTicketRun(
-      {
+    createTicketRun({
+      details: {
         backup_resource: formData.backupSource,
         ip_source: 'resource_pool',
         infos: formData.tableData.map((item) => ({
-          cluster_id: item.cluster.id,
+          cluster_id: item.oldMaster.cluster_id,
           old_nodes: {
             old_master: [item.oldMaster],
             old_slave: [item.oldSlave],
@@ -229,8 +219,8 @@
           },
         })),
       },
-      formData.remark,
-    );
+      remark: formData.remark,
+    });
   };
 
   const handleReset = () => {
@@ -248,10 +238,8 @@
               bk_host_id: item.bk_host_id,
               ip: item.ip,
               related_instances: item.related_instances.map((item) => item.instance),
-            },
-            cluster: {
-              id: item.cluster_id,
-              domain: item.master_domain,
+              cluster_id: item.cluster_id,
+              master_domain: item.master_domain,
             },
           }),
         );
@@ -259,12 +247,5 @@
       return acc;
     }, []);
     formData.tableData = [...(selected.value.length ? formData.tableData : []), ...dataList];
-  };
-
-  const handleChange = (data: InputedHost, row: RowData) => {
-    row.cluster = {
-      id: data.cluster_id,
-      domain: data.master_domain,
-    };
   };
 </script>

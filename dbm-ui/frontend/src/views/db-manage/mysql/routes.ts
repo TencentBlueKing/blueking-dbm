@@ -16,15 +16,13 @@ import type { RouteRecordRaw } from 'vue-router';
 import type { MySQLFunctions } from '@services/model/function-controller/functionController';
 import FunctionControllModel from '@services/model/function-controller/functionController';
 
-import { useToolboxRoute } from '@hooks';
-
 import { AccountTypes, DBTypes, TicketTypes } from '@common/const';
 
-import { checkDbConsole } from '@utils';
+import { checkDbConsole, createToolboxRoute } from '@utils';
 
 import { t } from '@locales/index';
 
-const { createRouteItem } = useToolboxRoute(DBTypes.MYSQL);
+const { createRouteItem } = createToolboxRoute(DBTypes.MYSQL);
 
 export const mysqlToolboxChildrenRouters: RouteRecordRaw[] = [
   {

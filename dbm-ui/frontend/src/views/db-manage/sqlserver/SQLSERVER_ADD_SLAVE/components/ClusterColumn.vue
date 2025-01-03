@@ -14,7 +14,7 @@
 <template>
   <Column
     :append-rules="rules"
-    field="cluster.domain"
+    field="cluster.master_domain"
     fixed="left"
     :label="t('目标集群 (always on 集群)')"
     :loading="loading"
@@ -29,7 +29,7 @@
       </span>
     </template>
     <Input
-      v-model="modelValue.domain"
+      v-model="modelValue.master_domain"
       :placeholder="t('请输入集群域名')"
       @change="handleInputChange" />
   </Column>
@@ -57,7 +57,7 @@
   interface Props {
     selected: {
       id: number;
-      domain: string;
+      master_domain: string;
     }[];
   }
 
@@ -71,10 +71,10 @@
 
   const modelValue = defineModel<{
     id?: number;
-    domain: string;
+    master_domain: string;
   }>({
     default: () => ({
-      domain: '',
+      master_domain: '',
     }),
   });
 
@@ -98,7 +98,7 @@
       (item) =>
         ({
           id: item.id,
-          master_domain: item.domain,
+          master_domain: item.master_domain,
         }) as SqlServerHaModel,
     ),
   }));
@@ -110,8 +110,13 @@
       trigger: 'change',
     },
     {
+      validator: (value: string) => props.selected.filter((item) => item.master_domain === value).length < 2,
+      message: t('目标集群重复'),
+      trigger: 'blur',
+    },
+    {
       validator: () => {
-        if (!modelValue.value.domain) {
+        if (!modelValue.value.master_domain) {
           return true;
         }
         return Boolean(modelValue.value.id);
@@ -136,10 +141,12 @@
   };
 
   const handleInputChange = (value: string) => {
-    queryCluster({
-      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-      exact_domain: value,
-    });
+    if (value) {
+      queryCluster({
+        bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+        exact_domain: value,
+      });
+    }
   };
 
   const handleSelectorChange = (selected: Record<string, SqlServerHaModel[]>) => {

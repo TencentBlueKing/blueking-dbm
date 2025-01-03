@@ -24,25 +24,23 @@
       <EditableTable
         ref="table"
         class="mb-20"
-        :model="formData.tableData"
-        :rules="rules">
+        :model="formData.tableData">
         <EditableTableRow
           v-for="(item, index) in formData.tableData"
           :key="index">
-          <TendbCluster
+          <ClusterColumn
             v-model="item.cluster"
             :selected="selected"
-            @batch-edit="handleBatchEdit"
-            @change="(data) => handleChange(data, item)" />
+            @batch-edit="handleBatchEdit" />
           <Column
-            field="cloud.id"
+            field="cluster.bk_cloud_name"
             :label="t('所属管控区域')"
             :min-width="300">
             <Block
-              v-model="item.cloud.name"
+              v-model="item.cluster.bk_cloud_name"
               :placeholder="t('自动生成')" />
           </Column>
-          <MultipleHost
+          <MultipleHostColumn
             v-model="item.host"
             field="host"
             :label="t('运维节点 IP')" />
@@ -79,7 +77,6 @@
   import { useI18n } from 'vue-i18n';
 
   import TendbClusterModel from '@services/model/tendbcluster/tendbcluster';
-  import type { filterClusters } from '@services/source/dbbase';
 
   import { useCreateTicket } from '@hooks';
 
@@ -87,19 +84,18 @@
 
   import EditableTable, { Block, Column, Row as EditableTableRow } from '@components/editable-table/Index.vue';
 
-  import MultipleHost from '@views/db-manage/common/toolbox-field/host-column/MultipleHost.vue';
-  import OperationColumn from '@views/db-manage/common/toolbox-field/operation-column/Index.vue';
-  import TicketRemark from '@views/db-manage/common/toolbox-field/ticket-remark/Index.vue';
-  import TendbCluster from '@views/db-manage/tendb-cluster/common/edit-table-column/TendbCluster.vue';
+  import MultipleHostColumn from '@views/db-manage/common/toolbox-field/column/multiple-host-column/Index.vue';
+  import OperationColumn from '@views/db-manage/common/toolbox-field/column/operation-column/Index.vue';
+  import TicketRemark from '@views/db-manage/common/toolbox-field/form-item/ticket-remark/Index.vue';
+
+  import ClusterColumn from './components/ClusterColumn.vue';
 
   interface RowData {
     cluster: {
       id: number;
-      domain: string;
-    };
-    cloud: {
-      id: number;
-      name: string;
+      master_domain: string;
+      bk_cloud_id: number;
+      bk_cloud_name: string;
     };
     host: {
       bk_cloud_id: number;
@@ -114,11 +110,9 @@
   const createTableRow = (data = {} as Partial<RowData>) => ({
     cluster: data.cluster || {
       id: 0,
-      domain: '',
-    },
-    cloud: data.cloud || {
-      id: 0,
-      name: '',
+      master_domain: '',
+      bk_cloud_id: 0,
+      bk_cloud_name: '',
     },
     host: data.host || [],
   });
@@ -131,17 +125,7 @@
   const formData = reactive(defaultData());
 
   const selected = computed(() => formData.tableData.filter((item) => item.cluster.id).map((item) => item.cluster));
-  const selectedMap = computed(() => Object.fromEntries(selected.value.map((cur) => [cur.domain, true])));
-
-  const rules = {
-    'cluster.domain': [
-      {
-        validator: (value: string) => selected.value.filter((item) => item.domain === value).length < 2,
-        message: t('目标集群重复'),
-        trigger: 'change',
-      },
-    ],
-  };
+  const selectedMap = computed(() => Object.fromEntries(selected.value.map((cur) => [cur.master_domain, true])));
 
   const { run: createTicketRun, loading: isSubmitting } = useCreateTicket<{
     infos: {
@@ -165,10 +149,10 @@
     if (!result) {
       return;
     }
-    createTicketRun(
-      {
+    createTicketRun({
+      details: {
         infos: formData.tableData.map((item) => ({
-          bk_cloud_id: item.cloud.id,
+          bk_cloud_id: item.cluster.bk_cloud_id,
           cluster_id: item.cluster.id,
           resource_spec: {
             spider_ip_list: {
@@ -178,8 +162,8 @@
           },
         })),
       },
-      formData.remark,
-    );
+      remark: formData.remark,
+    });
   };
 
   const handleReset = () => {
@@ -193,11 +177,9 @@
           createTableRow({
             cluster: {
               id: item.id,
-              domain: item.master_domain,
-            },
-            cloud: {
-              id: item.bk_cloud_id,
-              name: item.bk_cloud_name,
+              master_domain: item.master_domain,
+              bk_cloud_id: item.bk_cloud_id,
+              bk_cloud_name: item.bk_cloud_name,
             },
           }),
         );
@@ -205,12 +187,5 @@
       return acc;
     }, []);
     formData.tableData = [...(selected.value.length ? formData.tableData : []), ...dataList];
-  };
-
-  const handleChange = (data: ServiceReturnType<typeof filterClusters>[number], row: RowData) => {
-    row.cloud = {
-      id: data.bk_cloud_id,
-      name: data.bk_cloud_name,
-    };
   };
 </script>

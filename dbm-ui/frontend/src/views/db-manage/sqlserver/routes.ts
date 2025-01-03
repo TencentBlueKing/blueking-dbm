@@ -15,13 +15,13 @@ import type { RouteRecordRaw } from 'vue-router';
 import type { SqlServerFunctions } from '@services/model/function-controller/functionController';
 import FunctionControllModel from '@services/model/function-controller/functionController';
 
-import { useToolboxRoute } from '@hooks';
-
 import { DBTypes, TicketTypes } from '@common/const';
+
+import { createToolboxRoute } from '@utils';
 
 import { t } from '@locales/index';
 
-const { createRouteItem } = useToolboxRoute(DBTypes.SQLSERVER);
+const { createRouteItem } = createToolboxRoute(DBTypes.SQLSERVER);
 
 const routes: RouteRecordRaw[] = [
   {

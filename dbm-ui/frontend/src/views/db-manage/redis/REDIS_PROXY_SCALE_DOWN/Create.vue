@@ -24,30 +24,65 @@
       <EditableTable
         ref="table"
         class="mb-20"
-        :model="formData.tableData"
-        :rules="rules">
+        :model="formData.tableData">
         <EditableTableRow
           v-for="(item, index) in formData.tableData"
           :key="index">
-          <ClusterColumnGroup
+          <ClusterColumn
             v-model="item.cluster"
             :selected="selected"
-            @batch-edit="handleBatchEdit"
-            @change="(data) => handleInputed(data, item)" />
-          <NodeTypeColumn v-model="item.nodeType.role" />
-          <AutoManualHost
+            @batch-edit="handleBatchEdit" />
+          <Column
+            field="cluster.cluster_type_name"
+            :label="t('架构版本')"
+            :min-width="150">
+            <Block
+              v-model="item.cluster.cluster_type_name"
+              :placeholder="t('自动生成')" />
+          </Column>
+          <Column
+            field="cluster.role"
+            :label="t('缩容节点类型')"
+            :min-width="150"
+            required>
+            <Block
+              v-model="item.cluster.role"
+              :placeholder="t('自动生成')" />
+          </Column>
+          <HybridHostColumn
             v-model="item.host.type"
             field="host.type"
             :label="t('主机选择方式')"
             :min-width="150"
-            :spec-ids="item.nodeType.proxy_spec_ids"
+            :spec-ids="item.cluster.proxy_spec_ids"
             @change="(list) => handleSelectHost(list, item)" />
-          <ReducedCountColumn
-            v-model="item.count"
-            :disabled="item.host.type === HostSelectType.MANUAL" />
-          <SwitchModeColumn
-            v-model="item.switchMode"
-            :disabled="item.host.type === HostSelectType.MANUAL" />
+          <Column
+            field="count"
+            :label="t('缩容数量（台）')"
+            :min-width="150">
+            <div
+              v-bk-tooltips="{
+                content: t('手动选择主机不需要设置缩容数量'),
+                disabled: item.host.type !== HostSelectType.MANUAL,
+              }"
+              style="flex: 1">
+              <Input
+                v-model="item.count"
+                :disabled="item.host.type === HostSelectType.MANUAL"
+                :min="0"
+                type="number" />
+            </div>
+          </Column>
+          <Column
+            field="switchMode"
+            :label="t('切换模式')"
+            :min-width="150">
+            <Select
+              v-model="item.switchMode"
+              :disabled="item.host.type === HostSelectType.MANUAL"
+              :input-search="false"
+              :list="switchModeOptions" />
+          </Column>
           <OperationColumn
             v-model:table-data="formData.tableData"
             :create-row-method="createTableRow" />
@@ -86,27 +121,28 @@
 
   import { TicketTypes } from '@common/const';
 
-  import EditableTable, { Row as EditableTableRow } from '@components/editable-table/Index.vue';
+  import EditableTable, {
+    Block,
+    Column,
+    Input,
+    Row as EditableTableRow,
+    Select,
+  } from '@components/editable-table/Index.vue';
 
-  import AutoManualHost, {
+  import HybridHostColumn, {
     type HostInfo,
     HostSelectType,
-  } from '@views/db-manage/common/toolbox-field/host-column/AutoManualHost.vue';
-  import OperationColumn from '@views/db-manage/common/toolbox-field/operation-column/Index.vue';
-  import TicketRemark from '@views/db-manage/common/toolbox-field/ticket-remark/Index.vue';
+  } from '@views/db-manage/common/toolbox-field/column/hybrid-host-column/Index.vue';
+  import OperationColumn from '@views/db-manage/common/toolbox-field/column/operation-column/Index.vue';
+  import TicketRemark from '@views/db-manage/common/toolbox-field/form-item/ticket-remark/Index.vue';
 
-  import ClusterColumnGroup from './components/ClusterColumnGroup.vue';
-  import NodeTypeColumn from './components/NodeTypeColumn.vue';
-  import ReducedCountColumn from './components/ReducedCountColumn.vue';
-  import SwitchModeColumn from './components/SwitchModeColumn.vue';
+  import ClusterColumn from './components/ClusterColumn.vue';
 
   interface RowData {
     cluster: {
       id: number;
-      domain: string;
+      master_domain: string;
       cluster_type_name: string;
-    };
-    nodeType: {
       role: string;
       proxy_spec_ids: number[];
     };
@@ -129,10 +165,8 @@
   const createTableRow = (data = {} as Partial<RowData>) => ({
     cluster: data.cluster || {
       id: 0,
-      domain: '',
+      master_domain: '',
       cluster_type_name: '',
-    },
-    nodeType: data.nodeType || {
       role: '',
       proxy_spec_ids: [],
     },
@@ -151,17 +185,18 @@
 
   const formData = reactive(defaultData());
   const selected = computed(() => formData.tableData.filter((item) => item.cluster.id).map((item) => item.cluster));
-  const selectedMap = computed(() => Object.fromEntries(selected.value.map((cur) => [cur.domain, true])));
+  const selectedMap = computed(() => Object.fromEntries(selected.value.map((cur) => [cur.master_domain, true])));
 
-  const rules = {
-    'cluster.domain': [
-      {
-        validator: (value: string) => selected.value.filter((item) => item.domain === value).length < 2,
-        message: t('目标集群重复'),
-        trigger: 'change',
-      },
-    ],
-  };
+  const switchModeOptions = [
+    {
+      value: 'user_confirm',
+      label: t('需人工确认'),
+    },
+    {
+      value: 'no_confirm',
+      label: t('无需确认'),
+    },
+  ];
 
   interface TicketDetail {
     ip_source: 'resource_pool';
@@ -189,8 +224,8 @@
     if (!result) {
       return;
     }
-    createTicketRun(
-      {
+    createTicketRun({
+      details: {
         ip_source: 'resource_pool',
         infos: formData.tableData.map((item) => {
           const info: TicketDetail['infos'][0] = {
@@ -207,8 +242,8 @@
           return info;
         }),
       },
-      formData.remark,
-    );
+      remark: formData.remark,
+    });
   };
 
   const handleReset = () => {
@@ -222,10 +257,8 @@
           createTableRow({
             cluster: {
               id: item.id,
-              domain: item.master_domain,
+              master_domain: item.master_domain,
               cluster_type_name: item.cluster_type_name,
-            },
-            nodeType: {
               role: 'Proxy',
               proxy_spec_ids: item?.proxy.map((item) => item.spec_config?.id),
             },
@@ -235,13 +268,6 @@
       return acc;
     }, []);
     formData.tableData = [...(selected.value.length ? formData.tableData : []), ...dataList];
-  };
-
-  const handleInputed = (data: RedisModel, row: RowData) => {
-    row.nodeType = {
-      role: 'Proxy',
-      proxy_spec_ids: data?.proxy.map((item) => item.spec_config?.id),
-    };
   };
 
   const handleSelectHost = (list: HostInfo[], row: RowData) => {

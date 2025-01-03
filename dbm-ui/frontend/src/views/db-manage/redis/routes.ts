@@ -17,15 +17,13 @@ import FunctionControllModel, {
   type RedisFunctions,
 } from '@services/model/function-controller/functionController';
 
-import { useToolboxRoute } from '@hooks';
-
 import { DBTypes, TicketTypes } from '@common/const';
 
-import { checkDbConsole } from '@utils';
+import { checkDbConsole, createToolboxRoute } from '@utils';
 
 import { t } from '@locales/index';
 
-const { createRouteItem } = useToolboxRoute(DBTypes.REDIS);
+const { createRouteItem } = createToolboxRoute(DBTypes.REDIS);
 
 const redisInstallModuleRoute = {
   name: 'RedisInstallModule',
