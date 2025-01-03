@@ -65,7 +65,6 @@
       }">
       <DbTable
         ref="tableRef"
-        :columns="columns"
         :data-source="fetchData"
         :pagination-extra="paginationExtra"
         :row-class="setRowClass"
@@ -76,36 +75,196 @@
         @column-filter="columnFilterChange"
         @column-sort="columnSortChange"
         @selection="handleTableSelected"
-        @setting-change="updateTableSettings" />
+        @setting-change="updateTableSettings">
+        <IdColumn :cluster-type="ClusterTypes.TENDBCLUSTER" />
+        <MasterDomainColumn
+          :cluster-type="ClusterTypes.TENDBCLUSTER"
+          :get-table-instance="getTableInstance"
+          :selected-list="selected" />
+        <ClusterNameColumn
+          :cluster-type="ClusterTypes.TENDBCLUSTER"
+          :get-table-instance="getTableInstance"
+          :selected-list="selected" />
+        <SlaveDomainColumn
+          :cluster-type="ClusterTypes.TENDBCLUSTER"
+          :get-table-instance="getTableInstance"
+          :selected-list="selected" />
+        <StatusColumn :cluster-type="ClusterTypes.TENDBCLUSTER" />
+        <ClusterStatsColumn :cluster-type="ClusterTypes.TENDBCLUSTER" />
+        <RoleColumn
+          :cluster-type="ClusterTypes.TENDBCLUSTER"
+          field="spider_master"
+          :get-table-instance="getTableInstance"
+          label="Spider Master"
+          :search-ip="searchIp"
+          :selected-list="selected">
+          <template #nodeTag="data">
+            <BkTag
+              v-if="clusterPrimaryMap[data.ip]"
+              class="is-primary"
+              size="small">
+              Primary
+            </BkTag>
+          </template>
+        </RoleColumn>
+        <RoleColumn
+          :cluster-type="ClusterTypes.TENDBCLUSTER"
+          field="spider_slave"
+          :get-table-instance="getTableInstance"
+          label="Spider Slave"
+          :search-ip="searchIp"
+          :selected-list="selected" />
+        <RoleColumn
+          :cluster-type="ClusterTypes.TENDBCLUSTER"
+          field="spider_mnt"
+          :get-table-instance="getTableInstance"
+          :label="t('运维节点')"
+          :search-ip="searchIp"
+          :selected-list="selected" />
+        <RoleColumn
+          :cluster-type="ClusterTypes.TENDBCLUSTER"
+          field="RemoteDB"
+          :get-table-instance="getTableInstance"
+          label="remote_db"
+          :search-ip="searchIp"
+          :selected-list="selected" />
+        <RoleColumn
+          :cluster-type="ClusterTypes.TENDBCLUSTER"
+          field="RemoteDR"
+          :get-table-instance="getTableInstance"
+          label="remote_dr"
+          :search-ip="searchIp"
+          :selected-list="selected" />
+        <CommonColumn :cluster-type="ClusterTypes.TENDBCLUSTER" />
+        <BkTableColumn
+          :fixed="isStretchLayoutOpen ? false : 'right'"
+          :label="t('操作')"
+          :width="tableOperationWidth">
+          <template #default="{data}: IColumn">
+            <BkButton
+              v-db-console="'mysql.haClusterList.authorize'"
+              class="mr-8"
+              :disabled="data.isOffline"
+              text
+              theme="primary"
+              @click="() => handleShowAuthorize([data])">
+              {{ t('授权') }}
+            </BkButton>
+            <AuthButton
+              v-db-console="'tendbCluster.clusterManage.webconsole'"
+              action-id="tendbcluster_webconsole"
+              class="mr-8"
+              :disabled="data.isOffline"
+              :permission="data.permission.tendbcluster_webconsole"
+              :resource="data.id"
+              text
+              theme="primary"
+              @lick="() => handleGoWebconsole(data.id)">
+              Webconsole
+            </AuthButton>
+            <AuthButton
+              v-db-console="'tendbCluster.clusterManage.exportData'"
+              action-id="tendbcluster_dump_data"
+              class="mr-16"
+              :disabled="data.isOffline"
+              :permission="data.permission.tendbcluster_dump_data"
+              :resource="data.id"
+              text
+              theme="primary"
+              @click="() => handleShowDataExportSlider(data)">
+              {{ t('导出数据') }}
+            </AuthButton>
+            <MoreActionExtend>
+              <BkDropdownItem
+                v-bk-tooltips="{
+                  disabled: data.spider_mnt.length > 0,
+                  content: t('无运维节点'),
+                }"
+                v-db-console="'tendbCluster.clusterManage.removeMNTNode'">
+                <AuthButton
+                  action-id="tendbcluster_spider_mnt_destroy"
+                  class="mr-8"
+                  :disabled="data.spider_mnt.length === 0 || data.isOffline"
+                  :permission="data.permission.tendbcluster_spider_mnt_destroy"
+                  :resource="data.id"
+                  text
+                  @click="handleRemoveMNT(data)">
+                  {{ t('下架运维节点') }}
+                </AuthButton>
+              </BkDropdownItem>
+              <BkDropdownItem
+                v-bk-tooltips="{
+                  disabled: data.spider_slave.length > 0,
+                  content: t('无只读集群'),
+                }"
+                v-db-console="'tendbCluster.clusterManage.removeReadonlyNode'">
+                <AuthButton
+                  action-id="tendb_spider_slave_destroy"
+                  class="mr-8"
+                  :disabled="data.spider_slave.length === 0 || data.isOffline"
+                  :permission="data.permission.tendb_spider_slave_destroy"
+                  :resource="data.id"
+                  text
+                  @click="handleDestroySlave(data)">
+                  {{ t('下架只读集群') }}
+                </AuthButton>
+              </BkDropdownItem>
+              <BkDropdownItem
+                v-if="data.isOnline"
+                v-db-console="'tendbCluster.clusterManage.disable'">
+                <OperationBtnStatusTips :data="data">
+                  <AuthButton
+                    action-id="tendbcluster_enable_disable"
+                    class="mr-8"
+                    :disabled="data.operationDisabled"
+                    :permission="data.permission.tendbcluster_enable_disable"
+                    :resource="data.id"
+                    text
+                    @click="handleDisableCluster([data])">
+                    {{ t('禁用') }}
+                  </AuthButton>
+                </OperationBtnStatusTips>
+              </BkDropdownItem>
+              <BkDropdownItem
+                v-if="data.isOffline"
+                v-db-console="'tendbCluster.clusterManage.enable'">
+                <OperationBtnStatusTips :data="data">
+                  <AuthButton
+                    action-id="tendbcluster_enable_disable"
+                    class="mr-8"
+                    :disabled="data.isStarting"
+                    :permission="data.permission.tendbcluster_enable_disable"
+                    :resource="data.id"
+                    text
+                    @click="handleEnableCluster([data])">
+                    {{ t('启用') }}
+                  </AuthButton>
+                </OperationBtnStatusTips>
+              </BkDropdownItem>
+              <BkDropdownItem v-db-console="'tendbCluster.clusterManage.delete'">
+                <OperationBtnStatusTips :data="data">
+                  <AuthButton
+                    v-bk-tooltips="{
+                      disabled: data.isOffline,
+                      content: t('请先禁用集群'),
+                    }"
+                    action-id="tendbcluster_destroy"
+                    class="mr-8"
+                    :disabled="data.isOnline || Boolean(data.operationTicketId)"
+                    :permission="data.permission.tendbcluster_destroy"
+                    :resource="data.id"
+                    text
+                    @click="handleDeleteCluster([data])">
+                    {{ t('删除') }}
+                  </AuthButton>
+                </OperationBtnStatusTips>
+              </BkDropdownItem>
+            </MoreActionExtend>
+          </template>
+        </BkTableColumn>
+      </DbTable>
     </div>
   </div>
-  <!-- <DbSideslider
-    v-model:is-show="isShowScaleUp"
-    :disabled-confirm="!isChangeScaleUpForm"
-    :title="t('TenDBCluster扩容接入层name', { name: operationData.cluster_name })"
-    width="960">
-    <ScaleUp
-      v-model:is-change="isChangeScaleUpForm"
-      :data="operationData" />
-  </DbSideslider> -->
-  <!-- <DbSideslider
-    v-model:is-show="isShowShrink"
-    :disabled-confirm="!isChangeShrinkForm"
-    :title="t('TenDBCluster缩容接入层name', { name: operationData.cluster_name })"
-    width="960">
-    <Shrink
-      v-model:is-change="isChangeShrinkForm"
-      :data="operationData" />
-  </DbSideslider>
-  <DbSideslider
-    v-model:is-show="isShowCapacityChange"
-    :disabled-confirm="!isChangeCapacityForm"
-    :title="t('TenDBCluster集群容量变更name', { name: operationData.cluster_name })"
-    width="960">
-    <CapacityChange
-      v-model:is-change="isChangeCapacityForm"
-      :data="operationData" />
-  </DbSideslider> -->
   <ClusterAuthorize
     v-model="clusterAuthorizeShow"
     :account-type="AccountTypes.TENDBCLUSTER"
@@ -124,11 +283,8 @@
 </template>
 
 <script setup lang="tsx">
-  import { Checkbox, Message } from 'bkui-vue';
+  import { Checkbox } from 'bkui-vue';
   import InfoBox from 'bkui-vue/lib/info-box';
-  // import CapacityChange from './components/CapacityChange.vue';
-  // import ScaleUp from './components/ScaleUp.vue';
-  // import Shrink from './components/Shrink.vue';
   import type { ISearchItem } from 'bkui-vue/lib/search-select/utils';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
@@ -139,7 +295,6 @@
 
   import TendbClusterModel from '@services/model/tendbcluster/tendbcluster';
   import {
-    getTendbclusterInstanceList,
     getTendbClusterList,
     getTendbclusterPrimary,
   } from '@services/source/tendbcluster';
@@ -147,7 +302,6 @@
   import { getUserList } from '@services/source/user';
 
   import {
-    useCopy,
     useLinkQueryColumnSerach,
     useStretchLayout,
     useTableSettings,
@@ -159,30 +313,29 @@
   import {
     AccountTypes,
     ClusterTypes,
-    DBTypes,
     TicketTypes,
     UserPersonalSettings,
   } from '@common/const';
 
-  import DbStatus from '@components/db-status/index.vue';
   import DbTable from '@components/db-table/index.vue';
   import MoreActionExtend from '@components/more-action-extend/Index.vue';
-  import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
 
   import ClusterAuthorize from '@views/db-manage/common/cluster-authorize/Index.vue';
   import ClusterBatchOperation from '@views/db-manage/common/cluster-batch-opration/Index.vue'
-  import ClusterCapacityUsageRate from '@views/db-manage/common/cluster-capacity-usage-rate/Index.vue'
-  import EditEntryConfig, { type ClusterEntryInfo } from '@views/db-manage/common/cluster-entry-config/Index.vue';
   import ClusterExportData from '@views/db-manage/common/cluster-export-data/Index.vue'
   import ClusterIpCopy from '@views/db-manage/common/cluster-ip-copy/Index.vue';
+  import ClusterNameColumn from '@views/db-manage/common/cluster-table-column/ClusterNameColumn.vue';
+  import ClusterStatsColumn from '@views/db-manage/common/cluster-table-column/ClusterStats.vue';
+  import CommonColumn from '@views/db-manage/common/cluster-table-column/CommonColumn.vue';
+  import IdColumn from '@views/db-manage/common/cluster-table-column/IdColumn.vue';
+  import MasterDomainColumn from '@views/db-manage/common/cluster-table-column/MasterDomainColumn.vue';
+  import RoleColumn from '@views/db-manage/common/cluster-table-column/RoleColumn.vue';
+  import SlaveDomainColumn from '@views/db-manage/common/cluster-table-column/SlaveDomainColumn.vue';
+  import StatusColumn from '@views/db-manage/common/cluster-table-column/StatusColumn.vue';
   import DropdownExportExcel from '@views/db-manage/common/dropdown-export-excel/index.vue';
   import ExcelAuthorize from '@views/db-manage/common/ExcelAuthorize.vue';
   import { useOperateClusterBasic } from '@views/db-manage/common/hooks';
   import OperationBtnStatusTips from '@views/db-manage/common/OperationBtnStatusTips.vue';
-  import RenderCellCopy from '@views/db-manage/common/render-cell-copy/Index.vue';
-  import RenderHeadCopy from '@views/db-manage/common/render-head-copy/Index.vue';
-  import RenderInstances from '@views/db-manage/common/render-instances/RenderInstances.vue';
-  import RenderOperationTag from '@views/db-manage/common/RenderOperationTagNew.vue';
 
   import {
     getMenuListSearch,
@@ -203,7 +356,6 @@
     splitScreen: stretchLayoutSplitScreen,
   } = useStretchLayout();
   const { currentBizId } = useGlobalBizs();
-  const copy = useCopy();
   const ticketMessage = useTicketMessage();
   const { handleDisableCluster, handleEnableCluster, handleDeleteCluster } = useOperateClusterBasic(
     ClusterTypes.TENDBCLUSTER,
@@ -213,11 +365,9 @@
   );
 
   const {
-    columnAttrs,
     searchAttrs,
     searchValue,
     sortValue,
-    columnCheckedMap,
     columnFilterChange,
     columnSortChange,
     clearSearchValue,
@@ -242,12 +392,6 @@
   const clusterId = defineModel<number>('clusterId');
 
   const tableRef = ref<InstanceType<typeof DbTable>>();
-  // const isShowScaleUp = ref(false);
-  // const isShowShrink = ref(false);
-  // const isShowCapacityChange = ref(false);
-  // const isChangeScaleUpForm = ref(false);
-  // const isChangeShrinkForm = ref(false);
-  // const isChangeCapacityForm = ref(false);
   const removeMNTInstanceIds = ref<number[]>([]);
   const excelAuthorizeShow = ref(false);
   const clusterAuthorizeShow = ref(false);
@@ -255,9 +399,9 @@
   const currentData = ref<IColumn['data']>()
   const selected = ref<TendbClusterModel[]>([]);
   const clusterPrimaryMap = ref<Record<string, boolean>>({});
-  // const operationData = shallowRef({} as TendbClusterModel);
 
-  const hasSelected = computed(() => selected.value.length > 0);
+  const getTableInstance = () => tableRef.value
+
   const selectedIds = computed(() => selected.value.map(item => item.id));
   const tableDataList = computed(() => tableRef.value?.getData<TendbClusterModel>() || [])
   const hasData = computed(() => tableDataList.value.length > 0);
@@ -347,739 +491,6 @@
     return [];
   });
 
-  const entrySort = (data: ClusterEntryInfo[]) => data.sort(a => a.role === 'master_entry' ? -1 : 1);
-
-  const columns = computed(() => [
-    {
-      label: 'ID',
-      field: 'id',
-      fixed: 'left',
-      width: 80,
-    },
-    {
-      label: t('主访问入口'),
-      field: 'master_domain',
-      fixed: 'left',
-      minWidth: 280,
-      renderHead: () => (
-        <RenderHeadCopy
-          hasSelected={hasSelected.value}
-          onHandleCopySelected={handleCopySelected}
-          onHandleCopyAll={handleCopyAll}
-          config={
-            [
-              {
-                field: 'master_domain',
-                label: t('域名')
-              },
-              {
-                field: 'masterDomainDisplayName',
-                label: t('域名:端口')
-              }
-            ]
-          }
-        >
-          {t('主访问入口')}
-        </RenderHeadCopy>
-      ),
-      render: ({ data }: IColumn) => (
-        <TextOverflowLayout>
-          {{
-            default: () => (
-              <auth-button
-                action-id="tendbcluster_view"
-                resource={data.id}
-                permission={data.permission.tendbcluster_view}
-                text
-                theme="primary"
-                onClick={() => handleToDetails(data.id)}>
-                {data.masterDomainDisplayName}
-              </auth-button>
-            ),
-            append: () => (
-              <>
-                {
-                  data.operationTagTips.map(item => <RenderOperationTag class="cluster-tag ml-4" data={item}/>)
-                }
-                {
-                  data.isOffline && !data.isStarting && (
-                    <bk-tag
-                      class="ml-4"
-                      size="small">
-                      {t('已禁用')}
-                    </bk-tag>
-                 )
-                }
-                {
-                  data.isNew && (
-                    <bk-tag
-                      theme="success"
-                      size="small"
-                      class="ml-4">
-                      NEW
-                    </bk-tag>
-                  )
-                }
-                {data.master_domain && (
-                  <RenderCellCopy copyItems={
-                    [
-                      {
-                        value: data.master_domain,
-                        label: t('域名')
-                      },
-                      {
-                        value: data.masterDomainDisplayName,
-                        label: t('域名:端口')
-                      }
-                    ]
-                  } />
-                )}
-                <span v-db-console="tendbCluster.clusterManage.modifyEntryConfiguration">
-                  <EditEntryConfig
-                    id={data.id}
-                    bizId={data.bk_biz_id}
-                    permission={data.permission.access_entry_edit}
-                    resource={DBTypes.TENDBCLUSTER}
-                    sort={entrySort}
-                    onSuccess={fetchData}>
-                      {{
-                        prepend: ({ data: cluster }: { data: ClusterEntryInfo } ) =>
-                          cluster.role === 'master_entry' ?
-                            <bk-tag size="small" theme="success">{ t('主') }</bk-tag>
-                            : <bk-tag size="small" theme="info">{ t('从') }</bk-tag>,
-                      }}
-                  </EditEntryConfig>
-                </span>
-              </>
-            ),
-          }}
-        </TextOverflowLayout>
-      ),
-    },
-    {
-      label: t('集群名称'),
-      field: 'cluster_name',
-      minWidth: 200,
-      showOverflowTooltip: false,
-      renderHead: () => (
-        <RenderHeadCopy
-          hasSelected={hasSelected.value}
-          onHandleCopySelected={handleCopySelected}
-          onHandleCopyAll={handleCopyAll}
-          config={
-            [
-              {
-                field: 'cluster_name'
-              },
-            ]
-          }
-        >
-          {t('集群名称')}
-        </RenderHeadCopy>
-      ),
-      render: ({ data }: IColumn) => (
-        <TextOverflowLayout>
-          {{
-            default: () => data.cluster_name,
-            append: () => (
-              <>
-                {
-                  data.temporary_info?.source_cluster && (
-                    <bk-popover theme="light" placement="top">
-                      {{
-                        default: () => (
-                          <db-icon
-                            type="clone"
-                            style="color: #1CAB88;margin-left: 5px;cursor: pointer;"/>
-                        ),
-                        content: (
-                          <div class="struct-cluster-source-popover">
-                            <div class="title">{t('构造集群')}</div>
-                            <div class="item-row">
-                              <div class="label">{t('构造源集群')}：</div>
-                              <div class="content">{data.temporary_info?.source_cluster}</div>
-                            </div>
-                            <div class="item-row">
-                              <div class="label">{t('关联单据')}：</div>
-                              <div
-                                class="content"
-                                style="color: #3A84FF;"
-                                onClick={() => handleClickRelatedTicket(data.temporary_info.ticket_id)}>
-                                {data.temporary_info.ticket_id}
-                              </div>
-                            </div>
-                          </div>
-                        ),
-                      }}
-                    </bk-popover>
-                  )
-                }
-                <db-icon
-                  type="copy"
-                  v-bk-tooltips={t('复制集群名称')}
-                  onClick={() => copy(data.cluster_name)} />
-              </>
-            )
-          }}
-        </TextOverflowLayout>
-      ),
-    },
-    {
-      label: t('从访问入口'),
-      field: 'slave_domain',
-      minWidth: 200,
-      showOverflowTooltip: false,
-      renderHead: () => (
-        <RenderHeadCopy
-          hasSelected={hasSelected.value}
-          onHandleCopySelected={handleCopySelected}
-          onHandleCopyAll={handleCopyAll}
-          config={
-            [
-              {
-                field: 'slave_domain',
-                label: t('域名')
-              },
-              {
-                field: 'slaveDomainDisplayName',
-                label: t('域名:端口')
-              }
-            ]
-          }
-        >
-          {t('从访问入口')}
-        </RenderHeadCopy>
-      ),
-      render: ({ data }: IColumn) => (
-        <div class="domain">
-          <span
-            class="text-overflow"
-            v-overflow-tips>
-            {data.slaveDomainDisplayName || '--'}
-          </span>
-          {
-            data.slave_domain
-            && (
-              <db-icon
-                type="copy"
-                v-bk-tooltips={t('复制从访问入口')}
-                onClick={() => copy(data.slaveDomainDisplayName)} />
-            )
-          }
-          <span v-db-console="tendbCluster.clusterManage.modifyEntryConfiguration">
-            <EditEntryConfig
-              id={data.id}
-              bizId={data.bk_biz_id}
-              permission={data.permission.access_entry_edit}
-              resource={DBTypes.TENDBCLUSTER}
-              sort={entrySort}
-              onSuccess={fetchData}>
-                {{
-                  prepend: ({ data: cluster }: { data: ClusterEntryInfo } ) =>
-                    cluster.role === 'master_entry' ?
-                      <bk-tag size="small" theme="success">{ t('主') }</bk-tag>
-                      : <bk-tag size="small" theme="info">{ t('从') }</bk-tag>,
-                }}
-            </EditEntryConfig>
-          </span>
-        </div>
-      ),
-    },
-    // {
-    //   label: t('MySQL版本'),
-    //   field: 'version',
-    //   width: 120,
-    //   render: ({ data }: IColumn) => data.major_version,
-    // },
-    {
-      label: t('状态'),
-      field: 'status',
-      width: 100,
-      filter: {
-        list: [
-          {
-            value: 'normal',
-            text: t('正常'),
-          },
-          {
-            value: 'abnormal',
-            text: t('异常'),
-          },
-        ],
-        checked: columnCheckedMap.value.status,
-      },
-      render: ({ data }: IColumn) => {
-        const info = data.status === 'normal' ? { theme: 'success', text: t('正常') } : { theme: 'danger', text: t('异常') };
-        return <DbStatus theme={info.theme}>{info.text}</DbStatus>;
-      },
-    },
-    {
-      label: t('容量使用率'),
-      field: 'cluster_stats',
-      width: 240,
-      showOverflowTooltip: false,
-      render: ({ data }: IColumn) => <ClusterCapacityUsageRate clusterStats={data.cluster_stats} />
-    },
-    {
-      label: 'Spider Master',
-      field: 'spider_master',
-      width: 200,
-      minWidth: 200,
-      showOverflowTooltip: false,
-      renderHead: () => (
-        <RenderHeadCopy
-          hasSelected={hasSelected.value}
-          onHandleCopySelected={(field) => handleCopySelected(field, 'spider_master')}
-          onHandleCopyAll={(field) => handleCopyAll(field, 'spider_master')}
-          config={
-            [
-              {
-                label: 'IP',
-                field: 'ip'
-              },
-              {
-                label: t('实例'),
-                field: 'instance'
-              }
-            ]
-          }
-        >
-          {'Spider Master'}
-        </RenderHeadCopy>
-      ),
-      render: ({ data }: IColumn) => (
-          <RenderInstances
-            highlightIps={searchIp.value}
-            data={data.spider_master}
-            title={t('【inst】实例预览', {
-              inst: data.master_domain, title: 'Spider Master',
-            })}
-            role="spider_master"
-            clusterId={data.id}
-            dataSource={getTendbclusterInstanceList}
-          >
-            {{
-              append: ({ data }: { data: TendbClusterModel['spider_master'][number] }) =>
-                clusterPrimaryMap.value[data.ip] &&
-                (<bk-tag class="is-primary" size="small">Primary</bk-tag>)
-            }}
-          </RenderInstances>
-        )
-    },
-    {
-      label: 'Spider Slave',
-      field: 'spider_slave',
-      width: 200,
-      minWidth: 200,
-      showOverflowTooltip: false,
-      renderHead: () => (
-        <RenderHeadCopy
-          hasSelected={hasSelected.value}
-          onHandleCopySelected={(field) => handleCopySelected(field, 'spider_slave')}
-          onHandleCopyAll={(field) => handleCopyAll(field, 'spider_slave')}
-          config={
-            [
-              {
-                label: 'IP',
-                field: 'ip'
-              },
-              {
-                label: t('实例'),
-                field: 'instance'
-              }
-            ]
-          }
-        >
-          {'Spider Slave'}
-        </RenderHeadCopy>
-      ),
-      render: ({ data }: IColumn) => {
-        if (data.spider_slave.length === 0) return '--';
-        return (
-          <RenderInstances
-            highlightIps={searchIp.value}
-            data={data.spider_slave}
-            title={t('【inst】实例预览', {
-              inst: data.master_domain, title: 'Spider slave',
-            })}
-            role="spider_slave"
-            clusterId={data.id}
-            dataSource={getTendbclusterInstanceList}
-          />
-        );
-      },
-    },
-    {
-      label: t('运维节点'),
-      field: 'spider_mnt',
-      width: 200,
-      minWidth: 200,
-      showOverflowTooltip: false,
-      renderHead: () => (
-        <RenderHeadCopy
-          hasSelected={hasSelected.value}
-          onHandleCopySelected={(field) => handleCopySelected(field, 'spider_mnt')}
-          onHandleCopyAll={(field) => handleCopyAll(field, 'spider_mnt')}
-          config={
-            [
-              {
-                label: 'IP',
-                field: 'ip'
-              },
-              {
-                label: t('实例'),
-                field: 'instance'
-              }
-            ]
-          }
-        >
-          {t('运维节点')}
-        </RenderHeadCopy>
-      ),
-      render: ({ data }: IColumn) => {
-        if (data.spider_mnt.length === 0) return '--';
-        return (
-          <RenderInstances
-            highlightIps={searchIp.value}
-            data={data.spider_mnt}
-            title={t('【inst】实例预览', {
-              inst: data.master_domain, title: t('运维节点'),
-            })}
-            role="spider_mnt"
-            clusterId={data.id}
-            dataSource={getTendbclusterInstanceList}
-          />
-        );
-      },
-    },
-    {
-      label: 'RemoteDB',
-      field: 'remote_db',
-      width: 250,
-      minWidth: 250,
-      showOverflowTooltip: false,
-      renderHead: () => (
-        <RenderHeadCopy
-          hasSelected={hasSelected.value}
-          onHandleCopySelected={(field) => handleCopySelected(field, 'remote_db')}
-          onHandleCopyAll={(field) => handleCopyAll(field, 'remote_db')}
-          config={
-            [
-              {
-                label: 'IP',
-                field: 'ip'
-              },
-              {
-                label: t('实例'),
-                field: 'instance'
-              }
-            ]
-          }
-        >
-          {'RemoteDB'}
-        </RenderHeadCopy>
-      ),
-      render: ({ data }: IColumn) => {
-        if (data.remote_db.length === 0) return '--';
-        return (
-          <RenderInstances
-            highlightIps={searchIp.value}
-            data={data.remote_db}
-            title={t('【inst】实例预览', { inst: data.master_domain, title: 'RemoteDB' })}
-            role="remote_master"
-            clusterId={data.id}
-            dataSource={getTendbclusterInstanceList}>
-            {{
-              default: ({ data }: { data:TendbClusterModel['remote_db'][0] }) => {
-                if (data.shard_id !== undefined) {
-                  return `${data.instance}(%_${data.shard_id})`;
-                }
-                return data.instance;
-              },
-            }}
-          </RenderInstances>
-        );
-      },
-    },
-    {
-      label: 'RemoteDR',
-      field: 'remote_dr',
-      width: 250,
-      minWidth: 250,
-      showOverflowTooltip: false,
-      renderHead: () => (
-        <RenderHeadCopy
-          hasSelected={hasSelected.value}
-          onHandleCopySelected={(field) => handleCopySelected(field, 'remote_dr')}
-          onHandleCopyAll={(field) => handleCopyAll(field, 'remote_dr')}
-          config={
-            [
-              {
-                label: 'IP',
-                field: 'ip'
-              },
-              {
-                label: t('实例'),
-                field: 'instance'
-              }
-            ]
-          }
-        >
-          {'RemoteDR'}
-        </RenderHeadCopy>
-      ),
-      render: ({ data }: IColumn) => {
-        if (data.remote_dr.length === 0) return '--';
-        return (
-          <RenderInstances
-            highlightIps={searchIp.value}
-            data={data.remote_dr}
-            title={t('【inst】实例预览', { inst: data.master_domain, title: 'RemoteDR' })}
-            role="remote_slave"
-            clusterId={data.id}
-            dataSource={getTendbclusterInstanceList}>
-            {{
-              default: ({ data }: { data:TendbClusterModel['remote_dr'][0] }) => {
-                if (data.shard_id !== undefined) {
-                  return `${data.instance}(%_${data.shard_id})`;
-                }
-                return data.instance;
-              },
-            }}
-          </RenderInstances>
-        );
-      },
-    },
-    {
-      label: t('版本'),
-      field: 'major_version',
-      minWidth: 100,
-      filter: {
-        list: columnAttrs.value.major_version,
-        checked: columnCheckedMap.value.major_version,
-      },
-      render: ({ data }: IColumn) => <span>{data.major_version || '--'}</span>,
-    },
-    {
-        label: t('容灾要求'),
-        field: 'disaster_tolerance_level',
-        minWidth: 100,
-        render: ({ data }: IColumn) => data.disasterToleranceLevelName || '--',
-    },
-
-    {
-      label: t('地域'),
-      field: 'region',
-      minWidth: 100,
-      filter: {
-        list: columnAttrs.value.region,
-        checked: columnCheckedMap.value.region,
-      },
-      render: ({ data }: IColumn) => <span>{data.region || '--'}</span>,
-    },
-    {
-        label: t('规格'),
-        field: 'spec_name',
-        minWidth: 180,
-        render: ({ data }: IColumn) => data.cluster_spec.spec_name || '--',
-    },
-    {
-      label: t('管控区域'),
-      width: 120,
-      field: 'bk_cloud_id',
-      filter: {
-        list: columnAttrs.value.bk_cloud_id,
-        checked: columnCheckedMap.value.bk_cloud_id,
-      },
-      render: ({ data }: IColumn) => data.bk_cloud_name ? `${data.bk_cloud_name}[${data.bk_cloud_id}]` : '--',
-    },
-    {
-      label: t('创建人'),
-      field: 'creator',
-      width: 140,
-      render: ({ data }: IColumn) => <span>{data.creator || '--'}</span>,
-    },
-    {
-      label: t('部署时间'),
-      field: 'create_at',
-      sort: true,
-      width: 250,
-      render: ({ data }: IColumn) => <span>{data.createAtDisplay || '--'}</span>,
-    },
-    {
-      label: t('时区'),
-      field: 'cluster_time_zone',
-      width: 100,
-      filter: {
-        list: columnAttrs.value.time_zone,
-        checked: columnCheckedMap.value.time_zone,
-      },
-      render: ({ data }: IColumn) => <span>{data.cluster_time_zone || '--'}</span>,
-    },
-    {
-      label: t('操作'),
-      field: '',
-      width: tableOperationWidth.value,
-      fixed: isStretchLayoutOpen.value ? false : 'right',
-      render: ({ data }: IColumn) => {
-        const getOperations = () => {
-          const operations = [
-            <bk-button
-              v-db-console="mysql.haClusterList.authorize"
-              text
-              theme="primary"
-              class="mr-8"
-              disabled={data.isOffline}
-              onClick={() => handleShowAuthorize([data])}>
-              { t('授权') }
-            </bk-button>,
-            <auth-button
-              v-db-console="tendbCluster.clusterManage.webconsole"
-              action-id="tendbcluster_webconsole"
-              resource={data.id}
-              permission={data.permission.tendbcluster_webconsole}
-              disabled={data.isOffline}
-              text
-              theme="primary"
-              class="mr-8"
-              onClick={() => handleGoWebconsole(data.id)}>
-              Webconsole
-            </auth-button>,
-            <auth-button
-              v-db-console="tendbCluster.clusterManage.exportData"
-              action-id="tendbcluster_dump_data"
-              permission={data.permission.tendbcluster_dump_data}
-              resource={data.id}
-              disabled={data.isOffline}
-              text
-              theme="primary"
-              class="mr-16"
-              onClick={() => handleShowDataExportSlider(data)}>
-              { t('导出数据') }
-            </auth-button>
-          ];
-          return operations;
-        };
-        const getDropdownOperations = () => {
-          const operations = [
-            <bk-dropdown-item
-              v-db-console="tendbCluster.clusterManage.removeMNTNode"
-              v-bk-tooltips={{
-                disabled: data.spider_mnt.length > 0,
-                content: t('无运维节点')
-              }}>
-              <auth-button
-                action-id="tendbcluster_spider_mnt_destroy"
-                permission={data.permission.tendbcluster_spider_mnt_destroy}
-                resource={data.id}
-                disabled={data.spider_mnt.length === 0 || data.isOffline}
-                text
-                class="mr-8"
-                onClick={() => handleRemoveMNT(data)}>
-                { t('下架运维节点') }
-              </auth-button>
-            </bk-dropdown-item>,
-            <bk-dropdown-item
-              v-db-console="tendbCluster.clusterManage.removeReadonlyNode"
-              v-bk-tooltips={{
-                disabled: data.spider_slave.length > 0,
-                content: t('无只读集群')
-              }}>
-              <auth-button
-                action-id="tendb_spider_slave_destroy"
-                permission={data.permission.tendb_spider_slave_destroy}
-                resource={data.id}
-                text
-                disabled={data.spider_slave.length === 0 || data.isOffline}
-                class="mr-8"
-                onClick={() => handleDestroySlave(data)}>
-                { t('下架只读集群') }
-              </auth-button>
-            </bk-dropdown-item>
-          ];
-
-          if (data.isOnline) {
-            operations.push(
-              <bk-dropdown-item v-db-console="tendbCluster.clusterManage.disable">
-                <OperationBtnStatusTips data={data}>
-                  <auth-button
-                    action-id="tendbcluster_enable_disable"
-                    permission={data.permission.tendbcluster_enable_disable}
-                    resource={data.id}
-                    text
-                    disabled={data.operationDisabled}
-                    class="mr-8"
-                    onClick={() => handleDisableCluster([data])}>
-                    { t('禁用') }
-                  </auth-button>
-                </OperationBtnStatusTips>
-              </bk-dropdown-item>
-            )
-          }
-          if (data.isOffline) {
-            operations.push(...[
-              <bk-dropdown-item v-db-console="tendbCluster.clusterManage.enable">
-                <OperationBtnStatusTips data={data}>
-                  <auth-button
-                    action-id="tendbcluster_enable_disable"
-                    permission={data.permission.tendbcluster_enable_disable}
-                    v-db-console="tendbCluster.clusterManage.enable"
-                    resource={data.id}
-                    text
-                    disabled={data.isStarting}
-                    class="mr-8"
-                    onClick={() => handleEnableCluster([data])}>
-                    { t('启用') }
-                  </auth-button>
-                </OperationBtnStatusTips>
-              </bk-dropdown-item>,
-            ]);
-          }
-
-          operations.push(
-            <bk-dropdown-item v-db-console="tendbCluster.clusterManage.delete">
-              <OperationBtnStatusTips data={data}>
-                <auth-button
-                  v-bk-tooltips={{
-                    disabled: data.isOffline,
-                    content: t('请先禁用集群')
-                  }}
-                  action-id="tendbcluster_destroy"
-                  permission={data.permission.tendbcluster_destroy}
-                  v-db-console="tendbCluster.clusterManage.delete"
-                  resource={data.id}
-                  text
-                  disabled={data.isOnline || Boolean(data.operationTicketId)}
-                  class="mr-8"
-                  onClick={() => handleDeleteCluster([data])}>
-                  { t('删除') }
-                </auth-button>
-              </OperationBtnStatusTips>
-            </bk-dropdown-item>
-          )
-
-          return operations;
-        };
-
-        const renderDropdownOperations = getDropdownOperations();
-        return (
-          <>
-            { getOperations() }
-            {
-              renderDropdownOperations.length > 0
-                ? <MoreActionExtend v-db-console="tendbCluster.clusterManage.moreOperation">
-                    {{
-                      default: () => renderDropdownOperations
-                    }}
-                </MoreActionExtend>
-                : null
-            }
-          </>
-        );
-      },
-    },
-  ]);
-
   const { run: getSpiderClusterPrimaryRun } = useRequest(getTendbclusterPrimary, {
     manual: true,
     onSuccess(data) {
@@ -1136,16 +547,6 @@
     return searchSelectData.value.find(set => set.id === item.id)?.children || [];
   };
 
-  const handleClickRelatedTicket = (billId: number) => {
-    const route = router.resolve({
-      name: 'bizTicketManage',
-      params: {
-        ticketId: billId,
-      },
-    });
-    window.open(route.href);
-  };
-
   // 设置行样式
   const setRowClass = (row: TendbClusterModel) => {
     const classList = [row.phase === 'offline' ? 'is-offline' : ''];
@@ -1159,11 +560,11 @@
 
   // 设置用户个人表头信息
   const defaultSettings = {
-    fields: (columns.value || []).filter(item => item.field).map(item => ({
-      label: item.label as string,
-      field: item.field as string,
-      disabled: ['master_domain'].includes(item.field as string),
-    })),
+    // fields: (columns.value || []).filter(item => item.field).map(item => ({
+    //   label: item.label as string,
+    //   field: item.field as string,
+    //   disabled: ['master_domain'].includes(item.field as string),
+    // })),
     checked: [
       'master_domain',
       'slave_domain',
@@ -1199,70 +600,11 @@
     return Promise.resolve([]);
   };
 
-  const handleCopy = <T,>(dataList: T[], field: keyof T) => {
-    const copyList = dataList.reduce((prevList, tableItem) => {
-      const value = String(tableItem[field]);
-      if (value && value !== '--' && !prevList.includes(value)) {
-        prevList.push(value);
-      }
-      return prevList;
-    }, [] as string[]);
-    copy(copyList.join('\n'));
-  }
-
-  // 获取列表数据下的实例子列表
-  const getInstanceListByRole = (dataList: TendbClusterModel[], field: keyof TendbClusterModel) => dataList.reduce((result, curRow) => {
-    result.push(...curRow[field] as TendbClusterModel['spider_master']);
-    return result;
-  }, [] as TendbClusterModel['spider_master']);
-
-  const handleCopySelected = <T,>(field: keyof T, role?: keyof TendbClusterModel) => {
-    if(role) {
-      handleCopy(getInstanceListByRole(selected.value, role) as T[], field)
-      return;
-    }
-    handleCopy(selected.value as T[], field)
-  }
-
-  const handleCopyAll = async <T,>(field: keyof T, role?: keyof TendbClusterModel) => {
-    const allData = await tableRef.value!.getAllData<TendbClusterModel>();
-    if(allData.length === 0) {
-      Message({
-        theme: 'primary',
-        message: t('暂无数据可复制'),
-      });
-      return;
-    }
-    if(role) {
-      handleCopy(getInstanceListByRole(allData, role) as T[], field)
-      return;
-    }
-    handleCopy(allData as T[], field)
-  }
-
   // 查看集群详情
   const handleToDetails = (id: number) => {
     stretchLayoutSplitScreen();
     clusterId.value = id;
   };
-
-  // // 集群扩容
-  // const handleShowScaleUp = (data: TendbClusterModel) => {
-  //   isShowScaleUp.value = true;
-  //   operationData.value = data;
-  // };
-
-  // // 集群缩容
-  // const handleShowShrink = (data: TendbClusterModel) => {
-  //   isShowShrink.value = true;
-  //   operationData.value = data;
-  // };
-
-  // // 集群容量变更
-  // const handleShowCapacityChange = (data: TendbClusterModel) => {
-  //   isShowCapacityChange.value = true;
-  //   operationData.value = data;
-  // };
 
   const handleGoWebconsole = (clusterId: number) => {
     router.push({
