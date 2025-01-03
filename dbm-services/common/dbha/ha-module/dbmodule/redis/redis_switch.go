@@ -434,7 +434,19 @@ func (ins *RedisSwitch) TwemproxySwitchM2S(masterIp string, masterPort int, slav
 			log.Logger.Infof("twemproxy switch: [%s:%d:%d] switch, from master[%s] -> slave[%s] begin .",
 				proxyInfo.Ip, proxyInfo.Port, proxyInfo.AdminPort, masterAddr, slaveAddr)
 
-			rsp, err := ins.DoSwitchTwemproxyBackends(proxyInfo.Ip, proxyInfo.AdminPort, masterAddr, slaveAddr)
+			var rsp string
+			var err error
+			for i := 0; i < 10; i++ { // read: connection reset by peer
+				if rsp, err = ins.DoSwitchTwemproxyBackends(proxyInfo.Ip, proxyInfo.AdminPort, masterAddr, slaveAddr); err != nil {
+					ins.ReportLogs(constvar.WarnResult,
+						fmt.Sprintf("twemproxy switch: [%s:%d] switch from %s to %s failed, retry:%d, err:%s",
+							proxyInfo.Ip, proxyInfo.Port, masterAddr, slaveAddr, i+1, err.Error()))
+					time.Sleep(time.Second)
+				} else {
+					break
+				}
+			}
+
 			if err != nil {
 				redisErr := fmt.Errorf("twemproxy switch: [%s:%d] switch from %s to %s failed, err:%s",
 					proxyInfo.Ip, proxyInfo.Port, masterAddr, slaveAddr, err.Error())

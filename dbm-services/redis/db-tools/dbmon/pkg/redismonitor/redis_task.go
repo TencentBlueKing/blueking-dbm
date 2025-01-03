@@ -96,16 +96,29 @@ func (task *RedisMonitorTask) CheckRedisConn() {
 	var addr01 string
 	for _, port := range task.ServerConf.ServerPorts {
 		addr01 = task.getRedisAddr(task.ServerConf.ServerIP, port)
-		cli01, task.Err = myredis.NewRedisClientWithTimeout(addr01, task.Password, 0,
-			consts.TendisTypeRedisInstance, 5*time.Second)
+		retries := 1
+		if task.ServerConf.MetaRole == consts.MetaRoleRedisSlave {
+			retries = 10
+		}
+		for i := 0; i < retries; i++ {
+			cli01, task.Err = myredis.NewRedisClientWithTimeout(addr01, task.Password, 0,
+				consts.TendisTypeRedisInstance, 5*time.Second)
+			if task.Err != nil {
+				mylog.Logger.Error(fmt.Sprintf("create connection failed by(%s), retry:%d : %+v",
+					task.ServerConf.MetaRole, i+1, task.Err.Error()))
+				time.Sleep(time.Second)
+				continue
+			}
+			task.redisClis = append(task.redisClis, cli01)
+			break
+		}
 		if task.Err != nil {
 			task.eventSender.SetInstance(addr01)
 			task.eventSender.SendWarning(consts.EventRedisLogin, task.Err.Error(), consts.WarnLevelError,
 				task.ServerConf.ServerIP)
 			return
 		}
-		task.redisClis = append(task.redisClis, cli01)
-	}
+	} // end for ports.
 }
 
 // SetDbmonKeyOnMaster 如果'我'是master,则写入 dbmon:$master_ip:$master_port key
