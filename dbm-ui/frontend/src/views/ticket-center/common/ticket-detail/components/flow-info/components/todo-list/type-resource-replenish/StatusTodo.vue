@@ -1,13 +1,23 @@
 <template>
   <div>
     <I18nT
-      keypath="处理人_p_耗时_t"
+      keypath="处理人_p"
       scope="global">
-      <span>{{ data.operators.join(',') }}</span>
+      {{ data.operators.join(',') }}
+    </I18nT>
+    <I18nT
+      v-if="ticketData.todo_helpers.length > 0"
+      keypath="_协助人_p"
+      scope="global">
+      {{ ticketData.todo_helpers.join(',') }}
+    </I18nT>
+    <I18nT
+      keypath="_耗时_t"
+      scope="global">
       <CostTimer
-        :is-timing="false"
+        is-timing
         :start-time="utcTimeToSeconds(flowData.start_time)"
-        :value="data.cost_time" />
+        :value="flowData.cost_time" />
     </I18nT>
     <div style="margin-top: 10px; color: #979ba5">{{ utcDisplayTime(data.done_at) }}</div>
     <template v-if="isSuperuser || data.operators.includes(username)">
@@ -32,6 +42,7 @@
   import { useI18n } from 'vue-i18n';
 
   import FlowMode from '@services/model/ticket/flow';
+  import TicketModel from '@services/model/ticket/ticket';
 
   import { useUserProfile } from '@stores';
 
@@ -43,6 +54,7 @@
   import { utcDisplayTime, utcTimeToSeconds } from '@utils';
 
   interface Props {
+    ticketData: TicketModel;
     data: FlowMode<unknown>['todos'][number];
     flowData: FlowMode<unknown>;
   }
