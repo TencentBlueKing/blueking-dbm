@@ -13,10 +13,7 @@
 
 import type { HostInfo, InstanceListSpecConfig, InstanceRelatedCluster } from '@services/types';
 
-import { clusterTypeInfos, ClusterTypes } from '@common/const';
-import { type ClusterInstStatus, clusterInstStatus } from '@common/const';
-import { clusterTypeInfos } from '@common/const/clusterTypeInfos';
-import { ClusterTypes } from '@common/const/clusterTypes';
+import { type ClusterInstStatus, clusterInstStatus, clusterTypeInfos, ClusterTypes } from '@common/const';
 
 import { isRecentDays, utcDisplayTime } from '@utils';
 
