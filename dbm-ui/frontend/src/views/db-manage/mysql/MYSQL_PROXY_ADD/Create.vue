@@ -18,9 +18,9 @@
       closable
       :title="t('给集群添加Proxy实例')" />
     <BkForm
-      v-model="formData"
       class="mb-20"
-      form-type="vertical">
+      form-type="vertical"
+      :model="formData">
       <EditableTable
         ref="table"
         class="mb-20"
