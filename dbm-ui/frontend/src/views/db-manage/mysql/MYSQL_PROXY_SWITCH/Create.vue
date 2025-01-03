@@ -38,9 +38,9 @@
       </div>
     </div>
     <BkForm
-      v-model="formData"
       class="mb-20"
-      form-type="vertical">
+      form-type="vertical"
+      :model="formData">
       <Component
         :is="tableComponentMap[replaceType]"
         ref="table"
