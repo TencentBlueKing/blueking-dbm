@@ -41,11 +41,18 @@
                 v-if="isWholeChecked"
                 class="db-table-whole-check"
                 @click="handleClearWholeSelect" />
-              <BkCheckbox
-                v-else
-                label
-                :model-value="Object.keys(rowSelectMemo).length > 0"
-                @change="handleTogglePageSelect" />
+              <template v-else>
+                <BkCheckbox
+                  v-if="isCurrentPageAllSelected"
+                  key="page"
+                  label
+                  model-value
+                  @change="handleTogglePageSelect" />
+                <BkCheckbox
+                  v-else
+                  key="all"
+                  @change="handleWholeSelect" />
+              </template>
               <BkPopover
                 :arrow="false"
                 placement="bottom-start"
@@ -349,6 +356,7 @@
       rowSelect[data.id] = data;
     }
     rowSelectMemo.value = rowSelect;
+    isWholeChecked.value = false;
     triggerSelection();
   };
 
@@ -359,6 +367,7 @@
     });
     rowSelectMemo.value = rowSelect;
     triggerSelection();
+    isWholeChecked.value = false;
   };
 
   const handleTogglePageSelect = (checked: boolean) => {
@@ -371,6 +380,7 @@
       }
     });
     rowSelectMemo.value = rowSelect;
+    isWholeChecked.value = false;
     triggerSelection();
   };
 
@@ -387,12 +397,14 @@
           rowSelect[item.id] = item;
         });
         rowSelectMemo.value = rowSelect;
+        isWholeChecked.value = true;
         triggerSelection();
       });
   };
 
   const handleClearWholeSelect = () => {
     rowSelectMemo.value = {};
+    isWholeChecked.value = false;
     triggerSelection();
   };
 
