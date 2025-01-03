@@ -53,19 +53,23 @@
           fixed="left"
           width="80">
           <template #header>
-            <div
-              class="db-table-select-cell"
-              data-test="asdas">
+            <div class="db-table-select-cell">
               <div
                 v-if="isWholeChecked"
                 class="db-table-whole-check"
                 @click="handleClearWholeSelect" />
-              <BkCheckbox
-                v-else
-                label
-                :model-value="isCurrentPageAllSelected"
-                @change="handleTogglePageSelect" />
-
+              <template v-else>
+                <BkCheckbox
+                  v-if="isCurrentPageAllSelected"
+                  key="page"
+                  label
+                  model-value
+                  @change="handleTogglePageSelect" />
+                <BkCheckbox
+                  v-else
+                  key="all"
+                  @change="handleWholeSelect" />
+              </template>
               <BkPopover
                 :arrow="false"
                 placement="bottom-start"
@@ -225,11 +229,16 @@
             <div class="db-table-whole-check" onClick={handleClearWholeSelect} />
           );
         }
+        if (isCurrentPageAllSelected.value){
+          return (
+            <bk-checkbox
+              label={true}
+              modelValue={true}
+              onChange={handleTogglePageSelect} />
+          );
+        }
         return (
-          <bk-checkbox
-            label={true}
-            modelValue={isCurrentPageAllSelected.value}
-            onChange={handleTogglePageSelect} />
+          <bk-checkbox onChange={handleWholeSelect} />
         );
       };
       return (
