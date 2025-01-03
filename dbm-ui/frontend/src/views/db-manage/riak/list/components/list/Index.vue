@@ -295,7 +295,7 @@
             append: () => (
               <>
                 {
-                  data.isNewRow && (
+                  data.isNew && (
                   <MiniTag
                       content='NEW'
                       theme='success'
@@ -614,7 +614,7 @@
   const setRowClass = (row: RiakModel) => {
     const classList = [];
 
-    if (row.isNewRow) {
+    if (row.isNew) {
       classList.push('is-new');
     }
     if (!row.isOnline) {

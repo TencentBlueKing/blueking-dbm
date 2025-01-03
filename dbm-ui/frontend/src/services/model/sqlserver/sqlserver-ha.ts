@@ -19,22 +19,25 @@ import { ClusterAffinityMap } from '@common/const';
 
 import { t } from '@locales/index';
 
-import DateTime from '../_dateTime';
+import ClusterBase from '../_clusterBase';
 
-export default class SqlServerHaCluster extends DateTime {
+export default class SqlServerHaCluster extends ClusterBase {
   static SQLSERVER_DESTROY = 'SQLSERVER_DESTROY';
   static SQLSERVER_DISABLE = 'SQLSERVER_DISABLE';
   static SQLSERVER_ENABLE = 'SQLSERVER_ENABLE';
+
   static operationIconMap = {
     [SqlServerHaCluster.SQLSERVER_ENABLE]: t('启用中'),
     [SqlServerHaCluster.SQLSERVER_DISABLE]: t('禁用中'),
     [SqlServerHaCluster.SQLSERVER_DESTROY]: t('删除中'),
   };
+
   static operationTextMap = {
     [SqlServerHaCluster.SQLSERVER_DESTROY]: t('删除任务执行中'),
     [SqlServerHaCluster.SQLSERVER_DISABLE]: t('禁用任务执行中'),
     [SqlServerHaCluster.SQLSERVER_ENABLE]: t('启用任务执行中'),
   };
+
   static statusMap: Record<string, string> = {
     running: t('正常'),
     unavailable: t('异常'),
@@ -77,7 +80,7 @@ export default class SqlServerHaCluster extends DateTime {
   spec_config: ClusterListSpec;
   status: string;
   sync_mode: string;
-  update_at: Date | string;
+  update_at: string;
   updater: string;
 
   constructor(payload: SqlServerHaCluster) {
@@ -222,19 +225,18 @@ export default class SqlServerHaCluster extends DateTime {
     return this.status === 'abnormal';
   }
 
-  get isOnline() {
-    return this.phase === 'online';
-  }
-
-  get isOffline() {
-    return this.phase === 'offline';
-  }
-
   get isStarting() {
     return Boolean(this.operations.find((item) => item.ticket_type === SqlServerHaCluster.SQLSERVER_ENABLE));
   }
 
   get disasterToleranceLevelName() {
     return ClusterAffinityMap[this.disaster_tolerance_level];
+  }
+
+  get roleFailedInstanceInfo() {
+    return {
+      Master: ClusterBase.getRoleFaildInstanceList(this.masters),
+      Slave: ClusterBase.getRoleFaildInstanceList(this.slaves),
+    };
   }
 }

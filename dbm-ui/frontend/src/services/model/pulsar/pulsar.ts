@@ -12,31 +12,21 @@
  */
 import { uniq } from 'lodash';
 
-import type { ClusterListEntry, ClusterListSpec } from '@services/types';
+import type { ClusterListEntry, ClusterListNode, ClusterListSpec } from '@services/types';
 
 import { ClusterAffinityMap } from '@common/const';
 
-import { isRecentDays, utcDisplayTime } from '@utils';
-
 import { t } from '@locales/index';
 
-// const STATUS_NORMAL = 'normal';
+import ClusterBase from '../_clusterBase';
+
+const STATUS_NORMAL = 'normal';
 const STATUS_ABNORMAL = 'abnormal';
 
-type Node = {
-  bk_biz_id: number;
-  bk_cloud_id: number;
-  bk_host_id: number;
-  bk_instance_id: number;
-  instance: string;
-  ip: string;
-  name: string;
-  phase: string;
-  port: number;
-  status: 'running' | 'unavailable';
-};
+export default class Pulsar extends ClusterBase {
+  static STATUS_NORMAL = STATUS_NORMAL;
+  static STATUS_ABNORMAL = STATUS_ABNORMAL;
 
-export default class Pulsar {
   static PULSAR_SCALE_UP = 'PULSAR_SCALE_UP';
   static PULSAR_SHRINK = 'PULSAR_SHRINK';
   static PULSAR_REPLACE = 'PULSAR_REPLACE';
@@ -94,9 +84,9 @@ export default class Pulsar {
     title: string;
   }>;
   phase: string;
-  pulsar_bookkeeper: Node[];
-  pulsar_broker: Node[];
-  pulsar_zookeeper: Node[];
+  pulsar_bookkeeper: ClusterListNode[];
+  pulsar_broker: ClusterListNode[];
+  pulsar_zookeeper: ClusterListNode[];
   permission: {
     access_entry_edit: boolean;
     pulsar_access_entry_view: boolean;
@@ -114,6 +104,7 @@ export default class Pulsar {
   updater: string;
 
   constructor(payload = {} as Pulsar) {
+    super(payload);
     this.access_url = payload.access_url;
     this.bk_biz_id = payload.bk_biz_id;
     this.bk_biz_name = payload.bk_biz_name;
@@ -134,6 +125,7 @@ export default class Pulsar {
     this.domain = payload.domain;
     this.id = payload.id;
     this.major_version = payload.major_version;
+    this.operations = payload.operations || [];
     this.phase = payload.phase;
     this.pulsar_bookkeeper = payload.pulsar_bookkeeper || [];
     this.pulsar_broker = payload.pulsar_broker || [];
@@ -143,8 +135,6 @@ export default class Pulsar {
     this.status = payload.status;
     this.update_at = payload.update_at;
     this.updater = payload.updater;
-
-    this.operations = this.initOperations(payload.operations);
   }
 
   get runningOperation() {
@@ -199,26 +189,10 @@ export default class Pulsar {
     return false;
   }
 
-  get isOnline() {
-    return this.phase === 'online';
-  }
-
-  get isOffline() {
-    return this.phase === 'offline';
-  }
-
-  get isNew() {
-    return isRecentDays(this.create_at, 24 * 3);
-  }
-
   get domainDisplayName() {
     const port = this.pulsar_broker[0]?.port;
     const displayName = port ? `${this.domain}:${port}` : this.domain;
     return displayName;
-  }
-
-  get createAtDisplay() {
-    return utcDisplayTime(this.create_at);
   }
 
   get allInstanceList() {
@@ -247,19 +221,19 @@ export default class Pulsar {
     }));
   }
 
-  initOperations(payload = [] as Pulsar['operations']) {
-    if (!Array.isArray(payload)) {
-      return [];
-    }
-
-    return payload;
-  }
-
   get isStarting() {
     return Boolean(this.operations.find((item) => item.ticket_type === Pulsar.PULSAR_ENABLE));
   }
 
   get disasterToleranceLevelName() {
     return ClusterAffinityMap[this.disaster_tolerance_level];
+  }
+
+  get roleFailedInstanceInfo() {
+    return {
+      Bookkeeper: ClusterBase.getRoleFaildInstanceList(this.pulsar_bookkeeper),
+      Zookeeper: ClusterBase.getRoleFaildInstanceList(this.pulsar_zookeeper),
+      Broker: ClusterBase.getRoleFaildInstanceList(this.pulsar_broker),
+    };
   }
 }

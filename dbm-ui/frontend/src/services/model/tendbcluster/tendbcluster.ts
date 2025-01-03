@@ -17,35 +17,11 @@ import type { ClusterListEntry, ClusterListNode, ClusterListOperation, ClusterLi
 
 import { ClusterAffinityMap } from '@common/const';
 
-import { isRecentDays, utcDisplayTime } from '@utils';
-
 import { t } from '@locales/index';
 
-export type InstanceSpecInfo = {
-  count: number;
-  cpu: {
-    max: number;
-    min: number;
-  };
-  device_class: string[];
-  id: number;
-  mem: {
-    max: number;
-    min: number;
-  };
-  name: string;
-  storage_spec: {
-    mount_point: string;
-    size: number;
-    type: string;
-  }[];
-  qps: {
-    min: number;
-    max: number;
-  };
-};
+import ClusterBase from '../_clusterBase';
 
-export default class TendbCluster {
+export default class TendbCluster extends ClusterBase {
   static TENDBCLUSTER_SPIDER_ADD_NODES = 'TENDBCLUSTER_SPIDER_ADD_NODES';
   static TENDBCLUSTER_SPIDER_REDUCE_NODES = 'TENDBCLUSTER_SPIDER_REDUCE_NODES';
   static TENDBCLUSTER_ENABLE = 'TENDBCLUSTER_ENABLE';
@@ -129,6 +105,7 @@ export default class TendbCluster {
   updater: string;
 
   constructor(payload = {} as TendbCluster) {
+    super(payload);
     this.bk_biz_id = payload.bk_biz_id;
     this.bk_biz_name = payload.bk_biz_name;
     this.bk_cloud_id = payload.bk_cloud_id;
@@ -245,18 +222,6 @@ export default class TendbCluster {
     return false;
   }
 
-  get isNew() {
-    return isRecentDays(this.create_at, 24 * 3);
-  }
-
-  get isOnline() {
-    return this.phase === 'online';
-  }
-
-  get isOffline() {
-    return this.phase === 'offline';
-  }
-
   get isStarting() {
     return Boolean(this.operations.find((item) => item.ticket_type === TendbCluster.TENDBCLUSTER_ENABLE));
   }
@@ -285,11 +250,17 @@ export default class TendbCluster {
     }));
   }
 
-  get createAtDisplay() {
-    return utcDisplayTime(this.create_at);
-  }
-
   get disasterToleranceLevelName() {
     return ClusterAffinityMap[this.disaster_tolerance_level];
+  }
+
+  get roleFailedInstanceInfo() {
+    return {
+      'Spider Master': ClusterBase.getRoleFaildInstanceList(this.spider_master),
+      'Spider Slave': ClusterBase.getRoleFaildInstanceList(this.spider_slave),
+      RemoteDB: ClusterBase.getRoleFaildInstanceList(this.remote_db),
+      RemoteDR: ClusterBase.getRoleFaildInstanceList(this.remote_dr),
+      [t('运维节点')]: ClusterBase.getRoleFaildInstanceList(this.spider_mnt),
+    };
   }
 }
