@@ -90,6 +90,7 @@ export default class Ticket<T extends unknown | DetailBase = unknown> {
   status_display: string;
   ticket_type: TicketTypes;
   ticket_type_display: string;
+  todo_helpers: string[];
   todo_operators: string[];
   update_at: string;
   updater: string;
@@ -113,6 +114,7 @@ export default class Ticket<T extends unknown | DetailBase = unknown> {
     this.status_display = payload.status_display;
     this.ticket_type = payload.ticket_type;
     this.ticket_type_display = payload.ticket_type_display;
+    this.todo_helpers = payload.todo_helpers || [];
     this.todo_operators = payload.todo_operators || [];
     this.update_at = payload.update_at;
     this.updater = payload.updater;
