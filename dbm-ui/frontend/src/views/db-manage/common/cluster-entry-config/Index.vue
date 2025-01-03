@@ -101,7 +101,7 @@
   const emits = defineEmits<Emits>();
 
   const slots = defineSlots<{
-    prepend?: () => VNode | VNode[];
+    prepend?: (data: ClusterEntryInfo) => VNode | VNode[];
   }>();
 
   const isShow = defineModel<boolean>('isShow', {

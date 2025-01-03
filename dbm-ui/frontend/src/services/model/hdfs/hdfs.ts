@@ -16,14 +16,17 @@ import type { ClusterListEntry, ClusterListNode, ClusterListOperation, ClusterLi
 
 import { ClusterAffinityMap } from '@common/const';
 
-import { isRecentDays, utcDisplayTime } from '@utils';
-
 import { t } from '@locales/index';
 
-// const STATUS_NORMAL = 'normal';
+import ClusterBase from '../_clusterBase';
+
+const STATUS_NORMAL = 'normal';
 const STATUS_ABNORMAL = 'abnormal';
 
-export default class Hdfs {
+export default class Hdfs extends ClusterBase {
+  static STATUS_NORMAL = STATUS_NORMAL;
+  static STATUS_ABNORMAL = STATUS_ABNORMAL;
+
   static HDFS_SCALE_UP = 'HDFS_SCALE_UP';
   static HDFS_SHRINK = 'HDFS_SHRINK';
   static HDFS_REPLACE = 'HDFS_REPLACE';
@@ -99,6 +102,7 @@ export default class Hdfs {
   updater: string;
 
   constructor(payload = {} as Hdfs) {
+    super(payload);
     this.access_url = payload.access_url;
     this.bk_biz_id = payload.bk_biz_id;
     this.bk_biz_name = payload.bk_biz_name;
@@ -126,6 +130,7 @@ export default class Hdfs {
     this.id = payload.id;
     this.major_version = payload.major_version;
     this.master_domain = payload.master_domain;
+    this.operations = payload.operations || [];
     this.permission = payload.permission || {};
     this.phase = payload.phase;
     this.region = payload.region;
@@ -133,8 +138,6 @@ export default class Hdfs {
     this.status = payload.status;
     this.update_at = payload.update_at;
     this.updater = payload.updater;
-
-    this.operations = this.initOperations(payload.operations);
   }
 
   get allInstanceList() {
@@ -207,22 +210,10 @@ export default class Hdfs {
     return false;
   }
 
-  get isOnline() {
-    return this.phase === 'online';
-  }
-
-  get isOffline() {
-    return this.phase === 'offline';
-  }
-
   get domainDisplayName() {
     const port = this.hdfs_namenode[0]?.port;
     const displayName = port ? `${this.domain}:${port}` : this.domain;
     return displayName;
-  }
-
-  get createAtDisplay() {
-    return utcDisplayTime(this.create_at);
   }
 
   get operationTagTips() {
@@ -233,23 +224,20 @@ export default class Hdfs {
     }));
   }
 
-  initOperations(payload = [] as Hdfs['operations']) {
-    if (!Array.isArray(payload)) {
-      return [];
-    }
-
-    return payload;
-  }
-
   get isStarting() {
     return Boolean(this.operations.find((item) => item.ticket_type === Hdfs.HDFS_ENABLE));
   }
 
-  get isNew() {
-    return isRecentDays(this.create_at, 24);
-  }
-
   get disasterToleranceLevelName() {
     return ClusterAffinityMap[this.disaster_tolerance_level];
+  }
+
+  get roleFailedInstanceInfo() {
+    return {
+      NameNode: ClusterBase.getRoleFaildInstanceList(this.hdfs_namenode),
+      Zookeeper: ClusterBase.getRoleFaildInstanceList(this.hdfs_zookeeper),
+      Journalnode: ClusterBase.getRoleFaildInstanceList(this.hdfs_journalnode),
+      DataNode: ClusterBase.getRoleFaildInstanceList(this.hdfs_datanode),
+    };
   }
 }

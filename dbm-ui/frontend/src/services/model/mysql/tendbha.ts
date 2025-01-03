@@ -16,11 +16,11 @@ import type { ClusterListEntry, ClusterListNode, ClusterListOperation, ClusterLi
 
 import { ClusterAffinityMap } from '@common/const';
 
-import { isRecentDays, utcDisplayTime } from '@utils';
-
 import { t } from '@locales/index';
 
-export default class Tendbha {
+import ClusterBase from '../_clusterBase';
+
+export default class Tendbha extends ClusterBase {
   static MYSQL_HA_DESTROY = 'MYSQL_HA_DESTROY';
   static MYSQL_HA_DISABLE = 'MYSQL_HA_DISABLE';
   static MYSQL_HA_ENABLE = 'MYSQL_HA_ENABLE';
@@ -90,6 +90,7 @@ export default class Tendbha {
   updater: string;
 
   constructor(payload = {} as Tendbha) {
+    super(payload);
     this.bk_biz_id = payload.bk_biz_id || 0;
     this.bk_biz_name = payload.bk_biz_name || '';
     this.bk_cloud_id = payload.bk_cloud_id || 0;
@@ -124,14 +125,6 @@ export default class Tendbha {
     this.status = payload.status || '';
     this.update_at = payload.update_at;
     this.updater = payload.updater;
-  }
-
-  get isOnline() {
-    return this.phase === 'online';
-  }
-
-  get isOffline() {
-    return this.phase === 'offline';
   }
 
   get isStarting() {
@@ -227,10 +220,6 @@ export default class Tendbha {
     return this.cluster_entry.filter((item) => item.role === 'slave_entry').map((item) => `${item.entry}:${port}`);
   }
 
-  get createAtDisplay() {
-    return utcDisplayTime(this.create_at);
-  }
-
   get operationTagTips() {
     return this.operations.map((item) => ({
       icon: Tendbha.operationIconMap[item.ticket_type],
@@ -239,11 +228,14 @@ export default class Tendbha {
     }));
   }
 
-  get isNew() {
-    return isRecentDays(this.create_at, 24);
-  }
-
   get disasterToleranceLevelName() {
     return ClusterAffinityMap[this.disaster_tolerance_level];
+  }
+
+  get roleFailedInstanceInfo() {
+    return {
+      Master: ClusterBase.getRoleFaildInstanceList(this.masters),
+      Slaves: ClusterBase.getRoleFaildInstanceList(this.slaves),
+    };
   }
 }

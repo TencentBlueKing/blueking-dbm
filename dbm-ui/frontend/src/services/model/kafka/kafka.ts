@@ -16,14 +16,17 @@ import type { ClusterListEntry, ClusterListNode, ClusterListOperation, ClusterLi
 
 import { ClusterAffinityMap } from '@common/const';
 
-import { isRecentDays, utcDisplayTime } from '@utils';
-
 import { t } from '@locales/index';
 
-// const STATUS_NORMAL = 'normal';
+import ClusterBase from '../_clusterBase';
+
+const STATUS_NORMAL = 'normal';
 const STATUS_ABNORMAL = 'abnormal';
 
-export default class Kafka {
+export default class Kafka extends ClusterBase {
+  static STATUS_NORMAL = STATUS_NORMAL;
+  static STATUS_ABNORMAL = STATUS_ABNORMAL;
+
   static KAFKA_SCALE_UP = 'KAFKA_SCALE_UP';
   static KAFKA_SHRINK = 'KAFKA_SHRINK';
   static KAFKA_REPLACE = 'KAFKA_REPLACE';
@@ -98,6 +101,7 @@ export default class Kafka {
   zookeeper: Array<ClusterListNode>;
 
   constructor(payload = {} as Kafka) {
+    super(payload);
     this.bk_biz_id = payload.bk_biz_id;
     this.bk_biz_name = payload.bk_biz_name;
     this.bk_cloud_id = payload.bk_cloud_id;
@@ -204,14 +208,6 @@ export default class Kafka {
     return false;
   }
 
-  get isOnline() {
-    return this.phase === 'online';
-  }
-
-  get isOffline() {
-    return this.phase === 'offline';
-  }
-
   get isStarting() {
     return Boolean(this.operations.find((item) => item.ticket_type === Kafka.KAFKA_ENABLE));
   }
@@ -222,10 +218,6 @@ export default class Kafka {
     return displayName;
   }
 
-  get createAtDisplay() {
-    return utcDisplayTime(this.create_at);
-  }
-
   get operationTagTips() {
     return this.operations.map((item) => ({
       icon: Kafka.operationIconMap[item.ticket_type],
@@ -234,11 +226,14 @@ export default class Kafka {
     }));
   }
 
-  get isNew() {
-    return isRecentDays(this.create_at, 24 * 3);
-  }
-
   get disasterToleranceLevelName() {
     return ClusterAffinityMap[this.disaster_tolerance_level];
+  }
+
+  get roleFailedInstanceInfo() {
+    return {
+      Zookeeper: ClusterBase.getRoleFaildInstanceList(this.zookeeper),
+      Broker: ClusterBase.getRoleFaildInstanceList(this.broker),
+    };
   }
 }

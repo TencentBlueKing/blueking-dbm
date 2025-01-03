@@ -11,9 +11,7 @@
  * the specific language governing permissions and limitations under the License.
  */
 
-import dayjs from 'dayjs';
-
-import { utcDisplayTime } from '@utils';
+import { isRecentDays, utcDisplayTime } from '@utils';
 
 import { t } from '@locales/index';
 
@@ -80,14 +78,8 @@ export default class RiakNode {
     this.status = payload.status;
   }
 
-  get isNewRow() {
-    if (!this.create_at) {
-      return '';
-    }
-
-    const createDay = dayjs(this.create_at);
-    const today = dayjs();
-    return today.diff(createDay, 'hour') <= 24;
+  get isNew() {
+    return isRecentDays(this.create_at, 24);
   }
 
   get isNodeNormal() {
