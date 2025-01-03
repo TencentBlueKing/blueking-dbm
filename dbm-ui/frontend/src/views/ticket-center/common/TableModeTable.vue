@@ -191,6 +191,16 @@
           </template>
         </BkTableColumn>
         <BkTableColumn
+          field="todo_helpers"
+          :label="t('单据协作人')"
+          width="250">
+          <template #default="{ data }: { data: IRowData }">
+            <TagBlock
+              copyenable
+              :data="data.todo_helpers" />
+          </template>
+        </BkTableColumn>
+        <BkTableColumn
           field="creator"
           :label="t('申请人')"
           width="250" />

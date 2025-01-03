@@ -91,6 +91,7 @@
     (params: ServiceParameters<typeof getTicketDetails>) =>
       getTicketDetails(params, {
         permission: 'catch',
+        cache: 1000,
       }),
     {
       onSuccess(data, params) {
