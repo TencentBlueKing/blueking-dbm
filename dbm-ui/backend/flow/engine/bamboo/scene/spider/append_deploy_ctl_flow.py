@@ -391,6 +391,7 @@ class AppendDeployCTLFlow(object):
                 act_component_code=ExecuteDBActuatorScriptComponent.code,
                 kwargs=asdict(exec_act_kwargs),
             )
+
             # 校验spider节点和tdbctldb表的数量
             exec_act_kwargs.cluster = {"ctl_port": ctl_port, "spider_port": leader_spider.port}
             exec_act_kwargs.exec_ip = primary_ctl_ip
@@ -411,6 +412,17 @@ class AppendDeployCTLFlow(object):
                 act_component_code=ExecuteDBActuatorScriptComponent.code,
                 kwargs=asdict(exec_act_kwargs),
             )
+
+            # 校验spider节点和tdbctldb表的数量
+            exec_act_kwargs.cluster = {"ctl_port": ctl_port}
+            exec_act_kwargs.exec_ip = primary_ctl_ip
+            exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.get_check_router_payload.__name__
+            migrate_pipeline.add_act(
+                act_name=_("校验spider和tdbctl节点间路由是否一致"),
+                act_component_code=ExecuteDBActuatorScriptComponent.code,
+                kwargs=asdict(exec_act_kwargs),
+            )
+
             sub_pipelines.append(
                 migrate_pipeline.build_sub_process(
                     sub_name=_("[{}]追加部署tdbctl&迁移表结构").format(cluster_obj.immute_domain)

@@ -1,15 +1,16 @@
-// Package handler TODO
+// Package handler TODOG
 package handler
 
 import (
-	"dbm-services/mysql/db-partition/model"
-	"dbm-services/mysql/db-partition/monitor"
 	"errors"
 	"fmt"
 	"log/slog"
 	"net/http"
 	_ "runtime/debug" // debug TODO
 	"time"
+
+	"dbm-services/mysql/db-partition/model"
+	"dbm-services/mysql/db-partition/monitor"
 
 	cron_pkg "github.com/robfig/cron/v3"
 
@@ -185,7 +186,7 @@ func DisablePartitionByCluster(r *gin.Context) {
 		SendResponse(r, err, nil)
 		return
 	}
-	slog.Info(fmt.Sprintf("ids: %v, operator: %s", input.Ids, input.Operator))
+	slog.Info(fmt.Sprintf("cluster_ids: %v, operator: %s", input.ClusterIds, input.Operator))
 	err := input.DisablePartitionConfigByCluster()
 	if err != nil {
 		slog.Error(err.Error())

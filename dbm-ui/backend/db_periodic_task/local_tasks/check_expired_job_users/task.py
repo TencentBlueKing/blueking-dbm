@@ -31,14 +31,10 @@ def check_expired_job_users_for_mysql():
     mysql 临时账号巡检
     每条凌晨6点执行
     """
-    # 单节点集群
-    CheckExpiredJobUserForMysql(mysql_cluster_type=ClusterType.TenDBSingle).do_check()
-
-    # HA集群
-    CheckExpiredJobUserForMysql(mysql_cluster_type=ClusterType.TenDBHA).do_check()
-
-    # TenDB Cluster集群
-    CheckExpiredJobUserForMysql(mysql_cluster_type=ClusterType.TenDBCluster).do_check()
+    # 单节点、HA、TenDB Cluster集群
+    CheckExpiredJobUserForMysql(
+        mysql_cluster_types=[ClusterType.TenDBSingle, ClusterType.TenDBHA, ClusterType.TenDBCluster]
+    ).do_check()
 
 
 @register_periodic_task(run_every=crontab(minute=00, hour=7))

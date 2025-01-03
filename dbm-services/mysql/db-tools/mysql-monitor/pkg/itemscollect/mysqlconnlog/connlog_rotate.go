@@ -52,17 +52,14 @@ func mysqlConnLogRotate(db *sqlx.DB) (string, error) {
 }
 
 func prepareRotate(db *sqlx.DB) (conn *sqlx.Conn, err error) {
-	ctx, cancel := context.WithTimeout(context.Background(), config.MonitorConfig.InteractTimeout)
-	defer cancel()
-
-	conn, err = db.Connx(ctx)
+	conn, err = db.Connx(context.Background())
 	if err != nil {
 		slog.Error("connlog rotate get conn from db", slog.String("error", err.Error()))
 		return nil, err
 	}
 
 	var _r interface{}
-	err = conn.GetContext(ctx, &_r,
+	err = conn.GetContext(context.Background(), &_r,
 		`SELECT 1 FROM INFORMATION_SCHEMA.TABLES 
 					WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ? AND TABLE_TYPE='BASE TABLE'`,
 		cst.DBASchema, "conn_log")
@@ -77,7 +74,7 @@ func prepareRotate(db *sqlx.DB) (conn *sqlx.Conn, err error) {
 		}
 	}
 
-	_, err = conn.ExecContext(ctx, `SET SQL_LOG_BIN=0`)
+	_, err = conn.ExecContext(context.Background(), `SET SQL_LOG_BIN=0`)
 	if err != nil {
 		slog.Error("disable binlog", slog.String("error", err.Error()))
 		return nil, err
@@ -109,10 +106,8 @@ func report(conn *sqlx.Conn) error {
 
 	lf := ratelimit.Writer(f, ratelimit.NewBucketWithRate(float64(speedLimit), speedLimit))
 
-	ctx, cancel := context.WithTimeout(context.Background(), config.MonitorConfig.InteractTimeout)
-	defer cancel()
 	rows, err := conn.QueryxContext(
-		ctx,
+		context.Background(),
 		fmt.Sprintf(
 			`SELECT * FROM %s.conn_log WHERE conn_time >= DATE_SUB(NOW(), INTERVAL 1 DAY)`,
 			cst.DBASchema,
@@ -176,11 +171,8 @@ func clean(conn *sqlx.Conn) error {
 }
 
 func cleanOneRound(conn *sqlx.Conn) (affectedRows int64, err error) {
-	ctx, cancel := context.WithTimeout(context.Background(), config.MonitorConfig.InteractTimeout)
-	defer cancel()
-
 	r, err := conn.ExecContext(
-		ctx,
+		context.Background(),
 		fmt.Sprintf(
 			`DELETE FROM %s.conn_log WHERE conn_time < DATE_SUB(NOW(), INTERVAL 3 DAY) LIMIT 500`,
 			cst.DBASchema,

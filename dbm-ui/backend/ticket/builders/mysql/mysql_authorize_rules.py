@@ -78,7 +78,8 @@ class MySQLExcelAuthorizeRulesSerializer(serializers.Serializer):
 
 
 class MySQLAuthorizeRulesFlowParamBuilder(builders.FlowParamBuilder):
-    controller = MySQLController.mysql_authorize_rules
+    # controller = MySQLController.mysql_authorize_rules
+    controller = MySQLController.mysql_authorize_rules_v2
 
     def post_callback(self):
         excel_url = (

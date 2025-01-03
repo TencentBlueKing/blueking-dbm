@@ -28,10 +28,10 @@
       <BkTableColumn
         :label="t('访问源')"
         :width="150">
-        <template #default="{ data }: { data: IDataRow }">
+        <template #default="{ data: rowData }: { data: IDataRow }">
           <div>
             <p
-              v-for="(ip, index) in showAllIp ? data.ips : data.ips.slice(0, 10)"
+              v-for="(ip, index) in showAllIp ? rowData.ips : rowData.ips.slice(0, 10)"
               :key="index">
               {{ ip }}
               <DbIcon
@@ -40,9 +40,9 @@
                 @click="handleCopyIps" />
             </p>
           </div>
-          <div v-if="data.ips.length > 10">
+          <div v-if="rowData.ips.length > 10">
             <BkTag size="small">
-              {{ t('共n个', [data.ips.length]) }}
+              {{ t('共n个', [rowData.ips.length]) }}
             </BkTag>
             <BkButton
               class="more-btn"
@@ -57,10 +57,10 @@
       <BkTableColumn
         :label="t('集群域名')"
         :width="250">
-        <template #default="{ data }: { data: IDataRow }">
+        <template #default="{ data: rowData }: { data: IDataRow }">
           <div class="cell-cluster">
             <p
-              v-for="(item, index) in data.clusterDomains"
+              v-for="(item, index) in rowData.clusterDomains"
               :key="index">
               {{ item }}
               <DbIcon
@@ -78,10 +78,10 @@
       <BkTableColumn
         :label="t('访问DB')"
         :width="150">
-        <template #default="{ data }: { data: IDataRow }">
+        <template #default="{ data: rowData }: { data: IDataRow }">
           <div>
             <p
-              v-for="item in showAllDb ? data.accessDbs : data.accessDbs.slice(0, 10)"
+              v-for="item in showAllDb ? rowData.accessDbs : rowData.accessDbs.slice(0, 10)"
               :key="item"
               class="mb-6">
               <BkTag>
@@ -89,9 +89,9 @@
               </BkTag>
             </p>
           </div>
-          <div v-if="data.accessDbs.length > 10">
+          <div v-if="rowData.accessDbs.length > 10">
             <BkTag size="small">
-              {{ t('共n个', [data.accessDbs.length]) }}
+              {{ t('共n个', [rowData.accessDbs.length]) }}
             </BkTag>
             <BkButton
               class="more-btn"
@@ -106,10 +106,10 @@
       <BkTableColumn
         :label="t('权限')"
         :width="350">
-        <template #default="{ data }: { data: IDataRow }">
+        <template #default="{ data: rowData }: { data: IDataRow }">
           <div
-            v-for="(privilege, key) in data.privilege"
-            :key="`${data.account}#${key}`">
+            v-for="(privilege, key) in rowData.privilege"
+            :key="`${rowData.account}#${key}`">
             <div
               v-if="privilege.length > 0"
               class="cell-privilege">

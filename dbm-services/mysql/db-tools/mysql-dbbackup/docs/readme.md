@@ -359,3 +359,9 @@ DefaultsFile = /etc/my.cnf.3306
 - LogicalBackup.TrxConsistencyOnly  
   mydumper `--trx-consistency-only`, 或者 mysqldump `--single-transaction`。默认 true  
   对于多引擎混合的实例，如果想要保证整体数据的全局一致，需要设置为 false，会导致在整个备份期间持有 FTWRL，在主库上谨慎使用false。
+
+### PhysicalBackup  
+- PhysicalBackup.LockDDL  
+  LockDDL 备份期间是否允许 ddl, >=5.7 参数有效  
+  - 默认 false，表示用户的 ddl 优先，备份无效。如果存在 Non-InnoDB 表，在拷贝这些非事务引擎表的时候，会阻塞对 Non-InnoDB dml  
+  - 为 true 时，备份一开始就发送 lock tables for backup，全程不允许 ddl 和 Non-InnoDB dml  

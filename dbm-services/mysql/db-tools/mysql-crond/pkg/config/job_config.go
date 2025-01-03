@@ -31,6 +31,7 @@ type ExternalJob struct {
 	Schedule string   `yaml:"schedule" json:"schedule" binding:"required" validate:"required"`
 	Creator  string   `yaml:"creator" json:"creator" binding:"required" validate:"required"`
 	WorkDir  string   `yaml:"work_dir" json:"work_dir"`
+	Overlap  bool     `yaml:"overlap" json:"overlap"` // 是否允许作业重叠执行, 默认 false
 	// JobID 这个 id 主要用于追溯哪个 cron job (如果有) 调起本 external job
 	JobID cron.EntryID `yaml:"-" json:"-"`
 	ch    chan struct{}
@@ -87,23 +88,35 @@ func (j *ExternalJob) run() {
 
 // Run TODO
 func (j *ExternalJob) Run() {
-	select {
-	case v := <-j.ch:
+	slog.Info(
+		"run job",
+		slog.String("name", j.Name),
+		slog.Bool("overlap", j.Overlap),
+	)
+
+	if j.Overlap {
 		j.run()
-		j.ch <- v
-	default:
-		slog.Warn("skip job", slog.String("name", j.Name))
-		err := SendEvent(
-			mysqlCrondEventName,
-			fmt.Sprintf("%s skipt for last round use too much time", j.Name),
-			map[string]interface{}{
-				"job_name": j.Name,
-			},
-		)
-		if err != nil {
-			slog.Error("send event", slog.String("error", err.Error()))
+	} else {
+		select {
+		case v := <-j.ch:
+			j.run()
+			j.ch <- v
+		default:
+			slog.Warn("skip job", slog.String("name", j.Name))
+			err := SendEvent(
+				mysqlCrondEventName,
+				fmt.Sprintf("%s skipt for last round use too much time", j.Name),
+				map[string]interface{}{
+					"job_name": j.Name,
+				},
+			)
+			if err != nil {
+				slog.Error("send event", slog.String("error", err.Error()))
+			}
 		}
 	}
+
+	slog.Info("finish job", slog.String("name", j.Name))
 }
 
 // SetupChannel TODO
@@ -165,7 +178,9 @@ func InitJobsConfig() error {
 			panic(err)
 		}
 
-		j.SetupChannel()
+		if !j.Overlap {
+			j.SetupChannel()
+		}
 	}
 	return nil
 }

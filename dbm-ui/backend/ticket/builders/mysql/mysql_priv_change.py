@@ -55,12 +55,13 @@ class MySQLAccountRuleChangeFlowParamBuilder(builders.FlowParamBuilder):
 
 
 class MySQLAccountRuleChangeItsmFlowParamBuilder(builders.ItsmParamBuilder):
+    def get_approvers(self):
+        approver_list = DBRuleActionLog.get_notifiers(self.ticket.details["rule_id"])
+        return ",".join(approver_list)
+
     def get_params(self):
         params = super().get_params()
         field_map = {field["key"]: field["value"] for field in params["fields"]}
-        # 获取权限审批人
-        approver_list = DBRuleActionLog.get_notifiers(self.ticket.details["rule_id"])
-        field_map["approver"] = ",".join(approver_list)
         # 审批模式改成会签
         field_map["approve_mode"] = ItsmApproveMode.CounterSign
         # 导出itsm字段

@@ -5,9 +5,10 @@ import (
 	"dbm-services/mysql/priv-service/service/v2/internal"
 	"fmt"
 	"log/slog"
+	"strings"
 )
 
-func (c *PrivTaskPara) prepareMySQLPayload(targetMetaInfos []*service.Instance) (
+func (c *PrivTaskPara) prepareMySQLPayload(targetMetaInfos ...*service.Instance) (
 	clientIps []string,
 	workingMySQLInstances map[int64][]string) {
 	slog.Info(
@@ -27,7 +28,7 @@ func (c *PrivTaskPara) prepareMySQLPayload(targetMetaInfos []*service.Instance) 
 func (c *PrivTaskPara) prepareTenDBSingle(targetMetaInfos []*service.Instance) (
 	clientIps []string,
 	workingMySQLInstances map[int64][]string) {
-	clientIps = make([]string, 0)
+	clientIps = c.SourceIPs
 	workingMySQLInstances = make(map[int64][]string)
 
 	for _, ele := range targetMetaInfos {
@@ -58,13 +59,21 @@ func (c *PrivTaskPara) prepareTenDBHA(targetMetaInfos []*service.Instance) (
 
 		// 申请主域名权限要把来源替换为 proxy ip
 		// 如果集群有 padding proxy 属性, 则是把 proxy ip 追加到 client ip 里
+		slog.Info(
+			"prepare tendbha",
+			slog.String("bind to", ele.BindTo),
+			slog.Bool("padding proxy", ele.PaddingProxy),
+		)
 		if ele.BindTo == internal.MachineTypeProxy {
 			if ele.PaddingProxy {
 				clientIps = append(clientIps, proxyIps...)
 			} else {
 				clientIps = proxyIps
 			}
+		} else {
+			clientIps = c.SourceIPs
 		}
+		slog.Info("prepare tendbha", slog.String("clientIps", strings.Join(clientIps, ",")))
 		// TenDBHA 要在所有存储实例执行授权
 		for _, s := range ele.Storages {
 			if _, ok := workingMySQLInstances[ele.BkCloudId]; !ok {
@@ -81,7 +90,7 @@ func (c *PrivTaskPara) prepareTenDBHA(targetMetaInfos []*service.Instance) (
 }
 
 func (c *PrivTaskPara) prepareTenDBCluster(targetMetaInfos []*service.Instance) (clientIps []string, workingMySQLInstances map[int64][]string) {
-	clientIps = make([]string, 0)
+	clientIps = c.SourceIPs
 	workingMySQLInstances = make(map[int64][]string)
 
 	// 对应的 spider 上执行授权

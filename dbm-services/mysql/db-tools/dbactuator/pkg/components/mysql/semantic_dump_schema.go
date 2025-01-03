@@ -206,10 +206,6 @@ func (c *SemanticDumpSchemaComp) getDumpdbs(alldbs []string, version string) (re
 			finaldbs = append(finaldbs, db)
 		}
 	} else {
-		if len(lo.Intersect(alldbs, c.Params.ParseCreateDbs)) > 0 {
-			err = fmt.Errorf("create dbs %v,已经存在目标实例中", c.Params.ParseCreateDbs)
-			return nil, err
-		}
 		for _, f := range c.Params.ExecuteObjects {
 			var realexcutedbs []string
 			// 获得目标库 因为是通配符 所以需要获取完整名称
@@ -226,7 +222,9 @@ func (c *SemanticDumpSchemaComp) getDumpdbs(alldbs []string, version string) (re
 			realexcutedbs = util.FilterOutStringSlice(intentionDbs, ignoreDbs)
 			finaldbs = append(finaldbs, realexcutedbs...)
 		}
+		createSQLExistDbs := lo.Intersect(alldbs, c.Params.ParseCreateDbs)
 		finaldbs = append(finaldbs, c.Params.ParseNeedDumpDbs...)
+		finaldbs = append(finaldbs, createSQLExistDbs...)
 	}
 	logger.Info("dump dbs:%v", finaldbs)
 	return finaldbs, nil

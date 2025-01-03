@@ -2,6 +2,7 @@ package pkg
 
 import (
 	"context"
+	"dbm-services/common/go-pubpkg/logger"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/components/rename_dbs/pkg"
 	"fmt"
 	"time"
@@ -22,6 +23,7 @@ func SafeDropSourceTables(conn *sqlx.Conn, dbName, stageDBName string, tables []
 func safeDropSourceTable(conn *sqlx.Conn, dbName, stageDBName, tableName string) error {
 	ok, err := pkg.IsTableExistsIn(conn, tableName, stageDBName)
 	if err != nil {
+		logger.Error("error checking if table exists in database %s.%s: %s", stageDBName, tableName, err)
 		return err
 	}
 
@@ -29,7 +31,7 @@ func safeDropSourceTable(conn *sqlx.Conn, dbName, stageDBName, tableName string)
 		return fmt.Errorf("table `%s` does not exist in `%s`", tableName, stageDBName)
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()
 
 	// 留着这里, drop table 不需要预处理触发器

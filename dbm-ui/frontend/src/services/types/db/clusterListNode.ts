@@ -3,6 +3,7 @@ export interface ClusterListNode {
   bk_cloud_id: number;
   bk_host_id: number;
   bk_instance_id: number;
+  bk_sub_zone: string;
   instance: string;
   ip: string;
   is_stand_by: boolean;
@@ -10,6 +11,7 @@ export interface ClusterListNode {
   phase: string;
   port: number;
   spec_config: {
+    capacity: number;
     count: number;
     cpu: {
       max: number;
@@ -17,12 +19,16 @@ export interface ClusterListNode {
     };
     device_class: string[];
     id: number;
+    machine_pair: number;
     mem: {
       max: number;
       min: number;
     };
     name: string;
-    qps: Record<string, any>;
+    qps: {
+      max: number;
+      min: number;
+    };
     storage_spec: {
       mount_point: string;
       size: number;

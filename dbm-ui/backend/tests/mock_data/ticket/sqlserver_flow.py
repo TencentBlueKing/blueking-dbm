@@ -140,12 +140,12 @@ SQLSERVER_HA_APPLY_TICKET_DATA = {
         "bk_cloud_id": 0,
         "city_code": "深圳",
         "db_module_id": DB_MODULE_ID + 1,
-        "cluster_count": 1,
+        "cluster_count": 2,
         "inst_num": 1,
         "ip_source": "resource_pool",
         "nodes": {"backend": []},
         "resource_spec": {
-            "sqlserver_ha": {
+            "backend_group": {
                 "spec_id": 102,
                 "spec_name": "2核_4G_10G",
                 "spec_cluster_type": "sqlserver_ha",

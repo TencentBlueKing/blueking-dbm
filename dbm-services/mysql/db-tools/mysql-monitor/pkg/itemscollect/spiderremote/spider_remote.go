@@ -9,7 +9,6 @@
 package spiderremote
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"hash/crc32"
@@ -37,16 +36,12 @@ type spiderRemoteCheck struct {
 }
 
 func (c *spiderRemoteCheck) Run() (msg string, err error) {
-	ctx, cancel := context.WithTimeout(context.Background(), config.MonitorConfig.InteractTimeout)
-	defer cancel()
-
 	var res []struct {
 		ServerName string `db:"Server_name"`
 		Host       string `db:"Host"`
 		Port       int    `db:"Port"`
 	}
-	err = c.db.SelectContext(
-		ctx,
+	err = c.db.Select(
 		&res,
 		`SELECT Server_name, Host, Port FROM mysql.servers WHERE Wrapper = 'mysql' ORDER BY Server_name`)
 	if err != nil {

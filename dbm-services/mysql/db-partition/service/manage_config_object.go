@@ -14,9 +14,9 @@ const MysqlPartitionCronLogTable = "mysql_partition_cron_log"
 // SpiderPartitionCronLogTable TODO
 const SpiderPartitionCronLogTable = "spider_partition_cron_log"
 
-const online = "online"
-const offline = "offline"
-const offlinewithclu = "offlinewithclu"
+const online = "online"                 // 启用分区
+const offline = "offline"               // 禁用
+const offlinewithclu = "offlinewithclu" // 集群维度的禁用
 const extraTime = 15
 
 // MysqlManageLogsTable TODO
@@ -83,7 +83,7 @@ type CreatePartitionsInput struct {
 	RemoteHashAlgorithm   string   `json:"remote_hash_algorithm"`
 }
 
-// DeletePartitionConfigByIds TODO
+// DeletePartitionConfigByIds Ids 是分区配置的主键id
 type DeletePartitionConfigByIds struct {
 	ClusterType string `json:"cluster_type"`
 	BkBizId     int64  `json:"bk_biz_id"`
@@ -99,9 +99,10 @@ type DeletePartitionConfigByClusterIds struct {
 	ClusterIds  []int  `json:"cluster_ids"`
 }
 
-// DisablePartitionInput TODO
+// DisablePartitionInput
 type DisablePartitionInput struct {
 	ClusterType string `json:"cluster_type"`
+	BkBizId     int64  `json:"bk_biz_id"`
 	Operator    string `json:"operator"`
 	Ids         []int  `json:"ids"`
 	ClusterIds  []int  `json:"cluster_ids"`

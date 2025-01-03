@@ -15,37 +15,13 @@ import { uniq } from 'lodash';
 
 import type { ClusterListEntry, ClusterListNode, ClusterListOperation, ClusterListSpec } from '@services/types';
 
-import { ClusterAffinityMap } from '@common/const';
-
-import { isRecentDays, utcDisplayTime } from '@utils';
+import { ClusterAffinityMap, ClusterTypes } from '@common/const';
 
 import { t } from '@locales/index';
 
-export type InstanceSpecInfo = {
-  count: number;
-  cpu: {
-    max: number;
-    min: number;
-  };
-  device_class: string[];
-  id: number;
-  mem: {
-    max: number;
-    min: number;
-  };
-  name: string;
-  storage_spec: {
-    mount_point: string;
-    size: number;
-    type: string;
-  }[];
-  qps: {
-    min: number;
-    max: number;
-  };
-};
+import ClusterBase from '../_clusterBase';
 
-export default class TendbCluster {
+export default class TendbCluster extends ClusterBase {
   static TENDBCLUSTER_SPIDER_ADD_NODES = 'TENDBCLUSTER_SPIDER_ADD_NODES';
   static TENDBCLUSTER_SPIDER_REDUCE_NODES = 'TENDBCLUSTER_SPIDER_REDUCE_NODES';
   static TENDBCLUSTER_ENABLE = 'TENDBCLUSTER_ENABLE';
@@ -85,7 +61,7 @@ export default class TendbCluster {
   cluster_spec: ClusterListSpec;
   cluster_stats: Record<'used' | 'total' | 'in_use', number>;
   cluster_time_zone: string;
-  cluster_type: string;
+  cluster_type: ClusterTypes;
   cluster_type_name: string;
   create_at: string;
   creator: string;
@@ -113,10 +89,11 @@ export default class TendbCluster {
   phase: 'online' | 'offline';
   phase_name: string;
   region: string;
-  remote_db: ClusterListNode[];
-  remote_dr: ClusterListNode[];
+  remote_db: (ClusterListNode & { shard_id: number })[];
+  remote_dr: (ClusterListNode & { shard_id: number })[];
   remote_shard_num: number;
   slave_domain: string;
+  slaves: ClusterListNode[];
   spider_master: ClusterListNode[];
   spider_mnt: ClusterListNode[];
   spider_slave: ClusterListNode[];
@@ -129,6 +106,7 @@ export default class TendbCluster {
   updater: string;
 
   constructor(payload = {} as TendbCluster) {
+    super(payload);
     this.bk_biz_id = payload.bk_biz_id;
     this.bk_biz_name = payload.bk_biz_name;
     this.bk_cloud_id = payload.bk_cloud_id;
@@ -162,6 +140,7 @@ export default class TendbCluster {
     this.remote_dr = payload.remote_dr;
     this.remote_shard_num = payload.remote_shard_num;
     this.slave_domain = payload.slave_domain;
+    this.slaves = payload.slaves || [];
     this.spider_master = payload.spider_master;
     this.spider_mnt = payload.spider_mnt;
     this.spider_slave = payload.spider_slave;
@@ -245,18 +224,6 @@ export default class TendbCluster {
     return false;
   }
 
-  get isNew() {
-    return isRecentDays(this.create_at, 24 * 3);
-  }
-
-  get isOnline() {
-    return this.phase === 'online';
-  }
-
-  get isOffline() {
-    return this.phase === 'offline';
-  }
-
   get isStarting() {
     return Boolean(this.operations.find((item) => item.ticket_type === TendbCluster.TENDBCLUSTER_ENABLE));
   }
@@ -285,11 +252,21 @@ export default class TendbCluster {
     }));
   }
 
-  get createAtDisplay() {
-    return utcDisplayTime(this.create_at);
-  }
-
   get disasterToleranceLevelName() {
     return ClusterAffinityMap[this.disaster_tolerance_level];
+  }
+
+  get roleFailedInstanceInfo() {
+    return {
+      'Spider Master': ClusterBase.getRoleFaildInstanceList(this.spider_master),
+      'Spider Slave': ClusterBase.getRoleFaildInstanceList(this.spider_slave),
+      RemoteDB: ClusterBase.getRoleFaildInstanceList(this.remote_db),
+      RemoteDR: ClusterBase.getRoleFaildInstanceList(this.remote_dr),
+      [t('运维节点')]: ClusterBase.getRoleFaildInstanceList(this.spider_mnt),
+    };
+  }
+
+  get slaveList() {
+    return this.spider_slave;
   }
 }

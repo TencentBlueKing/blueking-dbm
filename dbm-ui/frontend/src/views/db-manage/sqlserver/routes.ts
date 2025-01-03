@@ -54,7 +54,7 @@ const routes: RouteRecordRaw[] = [
           navName: t('SQLServer单节点集群管理'),
           fullscreen: true,
         },
-        component: () => import('@views/db-manage/sqlserver/single-cluster/Index.vue'),
+        component: () => import('@views/db-manage/sqlserver/single-cluster-list/Index.vue'),
       },
       {
         name: 'SqlServerPermissionRules',

@@ -1,9 +1,11 @@
 package mysqlprocesslist
 
 import (
-	"dbm-services/mysql/db-tools/mysql-monitor/pkg/utils"
 	"log/slog"
 	"strings"
+
+	"dbm-services/mysql/db-tools/mysql-monitor/pkg/internal/cst"
+	"dbm-services/mysql/db-tools/mysql-monitor/pkg/utils"
 
 	"github.com/dlclark/regexp2"
 )
@@ -39,7 +41,6 @@ func mysqlLock() (string, error) {
 		return "", err
 	}
 
-	//var locks []string
 	for _, p := range processList {
 		pstr, err := p.JsonString()
 		if err != nil {
@@ -48,7 +49,7 @@ func mysqlLock() (string, error) {
 
 		slog.Debug("mysql lock check process", slog.Any("process", pstr))
 
-		if strings.ToLower(p.User.String) == "system user" {
+		if strings.ToLower(p.User.String) == cst.SystemUser {
 			continue
 		}
 
@@ -64,6 +65,7 @@ func mysqlLock() (string, error) {
 				"lock_command": p.Command.String,
 				"lock_info":    p.Info.String,
 				"lock_host":    p.Host.String,
+				"lock_state":   p.State.String,
 			})
 			slog.Debug("mysql lock check process", slog.Bool("has long wait for table flush", hasLongWait))
 			continue
@@ -81,28 +83,13 @@ func mysqlLock() (string, error) {
 				"lock_command": p.Command.String,
 				"lock_info":    p.Info.String,
 				"lock_host":    p.Host.String,
+				"lock_state":   p.State.String,
 			})
 			slog.Debug("mysql lock check process", slog.Bool("has normal lock", hasNormal))
 			continue
 		}
-		//hasLongWait, err := hasLongWaitingForTableFlush(p)
-		//if err != nil {
-		//	return "", err
-		//}
-		//slog.Debug("mysql lock check process", slog.Bool("has long wait for table flush", hasLongWait))
-		//
-		//hasNormal, err := hasNormalLock(p)
-		//if err != nil {
-		//	return "", err
-		//}
-		//slog.Debug("mysql lock check process", slog.Bool("has normal lock", hasNormal))
-		//
-		//if hasLongWait || hasNormal {
-		//	locks = append(locks, pstr)
-		//}
 	}
 	return "", nil
-	//return strings.Join(locks, ","), nil
 }
 
 func hasLongWaitingForTableFlush(p *mysqlProcess) (bool, error) {
@@ -129,12 +116,11 @@ func hasNormalLock(p *mysqlProcess) (bool, error) {
 		return false, err
 	}
 
-	slog.Debug("check normal lock", slog.Bool("match status lock", match))
+	slog.Debug("check system lock", slog.Bool("match status lock", match))
 	if match {
 		return false, nil
 	}
 
-	// reExcludeCommands := regexp2.MustCompile(`^(?!.*(?:(^binlog|load data)))`, regexp2.IgnoreCase)
 	reExcludeSql := regexp2.MustCompile(`(?=(?:(^binlog|load data)))`, regexp2.IgnoreCase)
 	match, err = reExcludeSql.MatchString(p.Info.String)
 	if err != nil {
@@ -148,16 +134,4 @@ func hasNormalLock(p *mysqlProcess) (bool, error) {
 	}
 
 	return p.Time.Int64 > lockThreshold, nil
-
-	//now := time.Now()
-	//if now.Hour() >= 21 && now.Hour() < 9 {
-	//	if p.Time.Int64 > 300 {
-	//		return true, nil
-	//	}
-	//} else {
-	//	if p.Time.Int64 > 5 {
-	//		return true, nil
-	//	}
-	//}
-	//return false, nil
 }

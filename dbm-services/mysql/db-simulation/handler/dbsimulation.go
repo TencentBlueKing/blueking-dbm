@@ -18,6 +18,7 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"dbm-services/common/go-pubpkg/cmutil"
+	"dbm-services/common/go-pubpkg/errno"
 	"dbm-services/common/go-pubpkg/logger"
 	"dbm-services/mysql/db-simulation/app/service"
 	"dbm-services/mysql/db-simulation/model"
@@ -121,7 +122,7 @@ func (s *SimulationHandler) QueryTask(c *gin.Context) {
 		switch task.Status {
 		case model.TaskFailed:
 			allSuccessful = false
-			s.SendResponse(c, fmt.Errorf("%s", task.SysErrMsg), map[string]interface{}{
+			s.SendResponse(c, errno.SimulationTaskFailed.Add(task.SysErrMsg), map[string]interface{}{
 				"simulation_version": task.MySQLVersion,
 				"stdout":             task.Stdout,
 				"stderr":             task.Stderr,
@@ -131,7 +132,7 @@ func (s *SimulationHandler) QueryTask(c *gin.Context) {
 			allSuccessful = true
 		default:
 			allSuccessful = false
-			s.SendResponse(c, fmt.Errorf("unknown transition state"), map[string]interface{}{
+			s.SendResponse(c, errno.SimulationTaskFailed.Add("unknown transition state"), map[string]interface{}{
 				"stdout": task.Stdout,
 				"stderr": task.Stderr,
 				"errmsg": fmt.Sprintf("the program has been run with abnormal status:%s", task.Status)})

@@ -12,7 +12,9 @@
 -->
 
 <template>
-  <BkTable :data="ticketDetails.details.infos">
+  <BkTable
+    :data="ticketDetails.details.infos"
+    :merge-cells="mergeCells">
     <BkTableColumn
       field="display_info.instance"
       :label="t('目标 Master 实例')">
@@ -20,7 +22,7 @@
     <BkTableColumn
       field="cluster_id"
       :label="t('所属集群')"
-      :rowspan="getRowSpan">
+      :rowspan="3">
       <template #default="{ data }: { data: RowData }">
         {{ ticketDetails.details.clusters[data.cluster_id].immute_domain }}
       </template>
@@ -47,11 +49,14 @@
   </BkTable>
 </template>
 <script setup lang="ts">
+  import type { UnwrapRef } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import TicketModel, { type Redis } from '@services/model/ticket/ticket';
 
   import { TicketTypes } from '@common/const';
+
+  import type { VxeTablePropTypes } from '@blueking/vxe-table';
 
   interface Props {
     ticketDetails: TicketModel<Redis.MigrateCluster>;
@@ -68,9 +73,21 @@
 
   const { t } = useI18n();
 
-  const getRowSpan = ({ row }: { row: RowData }) => {
-    const { clusters, infos } = props.ticketDetails.details;
-    return infos.filter((item) => clusters[item.cluster_id].immute_domain === clusters[row.cluster_id].immute_domain)
-      .length;
-  };
+  const mergeCells = ref<VxeTablePropTypes.MergeCells>([]);
+
+  watchEffect(() => {
+    const { infos, clusters } = props.ticketDetails.details;
+    const domainMap = infos.reduce<Record<string, number>>((prevMap, infoItem) => {
+      const domain = clusters[infoItem.cluster_id].immute_domain;
+      if (prevMap[domain]) {
+        return Object.assign({}, prevMap, { [domain]: prevMap[domain] + 1 });
+      }
+      return Object.assign({}, prevMap, { [domain]: 1 });
+    }, {});
+    mergeCells.value = Object.values(domainMap).reduce<UnwrapRef<typeof mergeCells>>((prevMergeCells, count) => {
+      const row = prevMergeCells.length ? prevMergeCells[prevMergeCells.length - 1].rowspan : 0;
+      const item = { row, col: 1, rowspan: count, colspan: 1 };
+      return prevMergeCells.concat(item);
+    }, []);
+  });
 </script>

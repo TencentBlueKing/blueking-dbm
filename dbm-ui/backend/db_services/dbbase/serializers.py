@@ -18,7 +18,7 @@ from backend.configuration.constants import DBType
 from backend.db_dirty.models import DirtyMachine
 from backend.db_meta.enums import ClusterPhase, ClusterType
 from backend.db_services.dbbase.constants import ResourceType
-from backend.db_services.dbbase.resources.serializers import ListResourceSLZ
+from backend.db_services.dbbase.resources.serializers import ListClusterEntriesSLZ, ListResourceSLZ
 from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
 from backend.db_services.redis.resources.redis_cluster.query import RedisListRetrieveResource
 from backend.dbm_init.constants import CC_APP_ABBR_ATTR
@@ -94,6 +94,13 @@ class ClusterFilterSerializer(ListResourceSLZ):
         query_params = {field: attrs[field] for field in self.fields.keys() if field in attrs}
         attrs["query_params"] = query_params
         return attrs
+
+
+class ClusterEntryFilterSerializer(ListClusterEntriesSLZ):
+    bk_biz_id = serializers.IntegerField(help_text=_("业务ID"))
+    cluster_type = serializers.CharField(help_text=_("集群类型"))
+    limit = serializers.IntegerField(help_text=_("分页限制"), required=False, default=10)
+    offset = serializers.IntegerField(help_text=_("分页起始"), required=False, default=0)
 
 
 class QueryBizClusterAttrsSerializer(serializers.Serializer):
@@ -190,3 +197,17 @@ class WebConsoleResponseSerializer(serializers.Serializer):
 class ClusterDbTypeSerializer(serializers.Serializer):
     bk_biz_id = serializers.IntegerField(help_text=_("业务ID"))
     db_type = serializers.ChoiceField(help_text=_("数据库类型"), choices=DBType.get_choices())
+
+
+class QueryClusterInstanceCountSerializer(serializers.Serializer):
+    bk_biz_id = serializers.IntegerField(help_text=_("业务ID"))
+
+
+class QueryClusterCapSerializer(serializers.Serializer):
+    bk_biz_id = serializers.IntegerField(help_text=_("业务ID"))
+    cluster_type = serializers.ChoiceField(help_text=_("集群类型"), choices=ClusterType.get_choices())
+
+
+class QueryClusterCapResponseSerializer(serializers.Serializer):
+    class Meta:
+        swagger_schema_fields = {"example": {"cluster1": {"used": 1, "total": 2, "in_use": 50}}}

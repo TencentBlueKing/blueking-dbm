@@ -15,7 +15,7 @@ import type { InstanceInfos } from '@services/types';
 
 import { ClusterTypes } from '@common/const';
 
-import http from '../http';
+import http, { type IRequestPayload } from '../http';
 
 const path = '/apis/dbbase';
 
@@ -62,7 +62,9 @@ export function queryBizClusterAttrs(params: {
         text: string;
       }[]
     >
-  >(`${path}/query_biz_cluster_attrs/`, params);
+  >(`${path}/query_biz_cluster_attrs/`, params, {
+    cache: 1000,
+  });
 }
 
 /**
@@ -77,7 +79,9 @@ export function queryResourceAdministrationAttrs(params: { resource_type: string
         text: string;
       }[]
     >
-  >(`${path}/query_resource_administration_attrs/`, params);
+  >(`${path}/query_resource_administration_attrs/`, params, {
+    cache: 1000,
+  });
 }
 
 /**
@@ -120,4 +124,45 @@ export function queryAllTypeCluster(params: {
       region: string;
     }[]
   >(`${path}/simple_query_cluster/`, params);
+}
+
+// 查询集群实例数量
+export function queryClusterInstanceCount(params: { bk_biz_id: number }) {
+  return http.get<
+    Record<
+      ClusterTypes,
+      {
+        cluster_count: number;
+        instance_count: number;
+      }
+    >
+  >(`${path}/query_cluster_instance_count/`, params, {
+    cache: 1000,
+  });
+}
+
+export function updateClusterAlias(params: { cluster_id: number; new_alias: string }) {
+  return http.post(`${path}/update_cluster_alias/`, {
+    ...params,
+    bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+  });
+}
+
+export function queryClusterStat(params: { bk_biz_id: number; cluster_type: string }, payload = {} as IRequestPayload) {
+  return http.get<
+    Record<
+      number,
+      {
+        in_use: number;
+        total: number;
+        used: number;
+      }
+    >
+  >(
+    `${path}/query_cluster_stat/`,
+    {
+      ...params,
+    },
+    payload,
+  );
 }

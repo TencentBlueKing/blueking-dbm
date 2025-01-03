@@ -31,6 +31,7 @@ use (
 	mongodb/db-tools/mongo-toolkit-go
 	mongodb/db-tools/dbactuator
 	common/db-dns/dns-api/pkg
+	common/reverse-api
 )
 
 replace github.com/go-sql-driver/mysql => github.com/go-sql-driver/mysql v1.7.1

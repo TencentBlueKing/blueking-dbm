@@ -112,11 +112,11 @@ const DdlMapFileSubffix = ".tbl.map"
 
 // Do  运行语法检查 For SQL 文件
 func (tf *TmysqlParseFile) Do(dbtype string, versions []string) (result map[string]*CheckInfo, err error) {
-	logger.Info("doing....")
+	tf.mu = sync.Mutex{}
+	tf.mu.Lock()
 	tf.result = make(map[string]*CheckInfo)
 	tf.tmpWorkdir = tf.BaseWorkdir
-	tf.mu = sync.Mutex{}
-
+	tf.mu.Unlock()
 	if !tf.IsLocalFile {
 		if err = tf.Init(); err != nil {
 			logger.Error("Do init failed %s", err.Error())
@@ -142,7 +142,7 @@ func (tf *TmysqlParseFile) Do(dbtype string, versions []string) (result map[stri
 }
 
 func (tf *TmysqlParseFile) doSingleVersion(dbtype string, mysqlVersion string) (err error) {
-	errChan := make(chan error, 1)
+	errChan := make(chan error)
 	alreadExecutedSqlfileChan := make(chan string, len(tf.Param.FileNames))
 	signalChan := make(chan struct{})
 
@@ -257,7 +257,7 @@ func (t *TmysqlParse) delTempDir() {
 // Downloadfile download sqlfile
 func (tf *TmysqlParseFile) Downloadfile() (err error) {
 	wg := &sync.WaitGroup{}
-	errCh := make(chan error, 10)
+	errCh := make(chan error)
 	c := make(chan struct{}, 5)
 	for _, fileName := range tf.Param.FileNames {
 		wg.Add(1)
@@ -335,7 +335,7 @@ func (tf *TmysqlParseFile) Execute(alreadExecutedSqlfileCh chan string, version 
 	var wg sync.WaitGroup
 	var errs []error
 	c := make(chan struct{}, 10) // Semaphore to limit concurrent goroutines
-	errChan := make(chan error, len(tf.Param.FileNames))
+	errChan := make(chan error)
 
 	// Iterate through all SQL files
 	for _, fileName := range tf.Param.FileNames {
@@ -383,7 +383,7 @@ func (t *TmysqlParse) AnalyzeParseResult(alreadExecutedSqlfileCh chan string, my
 	dbtype string) (err error) {
 	var errs []error
 	c := make(chan struct{}, 10)
-	errChan := make(chan error, 5)
+	errChan := make(chan error)
 	wg := &sync.WaitGroup{}
 
 	for sqlfile := range alreadExecutedSqlfileCh {
@@ -626,6 +626,7 @@ func (c *CheckInfo) runSpidercheck(ddlTbls map[string][]string, res ParseLineQue
 			logger.Error("json unmasrshal line failed %s", err.Error())
 			return err
 		}
+		sc = o
 		ddlTbls[o.DbName] = append(ddlTbls[o.DbName], o.TableName)
 	}
 	if sc == nil {

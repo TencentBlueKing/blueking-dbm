@@ -13,10 +13,12 @@ from typing import List
 
 from django.utils.translation import gettext as _
 
+from backend.components import DBPrivManagerApi
 from backend.components.db_remote_service.client import DRSApi
 from backend.components.sql_import.client import SQLSimulationApi
 from backend.constants import IP_PORT_DIVIDER
-from backend.db_meta.models import StorageInstance
+from backend.db_meta.models import Cluster, StorageInstance
+from backend.flow.consts import TDBCTL_USER
 from backend.flow.utils.mysql.mysql_version_parse import mysql_version_parse
 
 logger = logging.getLogger("flow")
@@ -172,3 +174,49 @@ def parse_db_from_sqlfile(path: str, files: List[str]):
     except Exception as e:
         logger.error(f"parse db from sqlfile failed: [{e}]")
         return None
+
+
+def create_tdbctl_user_for_remote(cluster: Cluster, ctl_primary: str, new_ip: str, new_port: int, tdbctl_pass: str):
+    """
+    给新的remote实例对中控primary授权
+    操作步骤：
+    1: 主动回收primary在remote机器的账号权限,不返回异常，可以报warning信息
+    2: 通过add_priv_without_account_rule添加spider账号
+    参数信息:
+    @param cluster: 集群元数据
+    @param ctl_primary: 中控primary实例
+    @param new_ip: 新加remote的ip信息
+    @param new_port: 新加remote的port信息
+    @param tdbctl_pass: 授权pass
+    """
+    # 删除已经存在的spider账号
+    rpc_params = {
+        "addresses": [f"{new_ip}{IP_PORT_DIVIDER}{new_port}"],
+        "cmds": [
+            f"drop user '{TDBCTL_USER}'@'{ctl_primary.split(IP_PORT_DIVIDER)[0]}'",
+        ],
+        "force": False,
+        "bk_cloud_id": cluster.bk_cloud_id,
+    }
+    # drs服务远程请求
+    res = DRSApi.rpc(rpc_params)
+    if res[0]["error_msg"]:
+        logger.warning(f"drop old tdbctl user in Instance[{new_ip}:{new_port}] failed: {res[0]['error_msg']}")
+
+    # 添加临时账号
+    DBPrivManagerApi.add_priv_without_account_rule(
+        params={
+            "bk_cloud_id": cluster.bk_cloud_id,
+            "bk_biz_id": cluster.bk_biz_id,
+            "operator": "",
+            "user": TDBCTL_USER,
+            "psw": tdbctl_pass,
+            "dbname": "%",
+            "dml_ddl_priv": "",
+            "global_priv": "all privileges",
+            "address": f"{new_ip}{IP_PORT_DIVIDER}{new_port}",
+            "hosts": [ctl_primary.split(IP_PORT_DIVIDER)[0]],
+        }
+    )
+    logger.info(f"add tdbctl user in instance [f'{new_ip}{IP_PORT_DIVIDER}{new_port}'] success")
+    return True

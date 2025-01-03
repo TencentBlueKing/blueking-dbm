@@ -1,11 +1,14 @@
 <template>
   <FunController module-id="redis">
     <BkMenuGroup name="Redis">
-      <BkSubmenu
-        key="RedisManage"
-        :title="t('集群')">
+      <BkSubmenu key="RedisManage">
         <template #icon>
           <DbIcon type="fenbushijiqun" />
+        </template>
+        <template #title>
+          <span>{{ t('集群') }}</span>
+          <!-- prettier-ignore -->
+          <CountTag :cluster-type="('redis_cluster' as ClusterTypes)" role="cluster" />
         </template>
         <BkMenuItem key="DatabaseRedisList">
           <span
@@ -13,6 +16,8 @@
             class="text-overflow">
             {{ t('集群管理') }}
           </span>
+          <!-- prettier-ignore -->
+          <CountTag :cluster-type="('redis_cluster' as ClusterTypes)" role="cluster" />
         </BkMenuItem>
         <BkMenuItem
           key="DatabaseRedisInstanceList"
@@ -22,14 +27,20 @@
             class="text-overflow">
             {{ t('实例视图') }}
           </span>
+          <!-- prettier-ignore -->
+          <CountTag :cluster-type="('redis_cluster' as ClusterTypes)" role="instance" />
         </BkMenuItem>
       </BkSubmenu>
       <BkSubmenu
         key="RedisHaManage"
-        v-db-console="'redis.haClusterManage'"
-        :title="t('主从')">
+        v-db-console="'redis.haClusterManage'">
         <template #icon>
           <DbIcon type="cluster" />
+        </template>
+        <template #title>
+          <span>{{ t('主从') }}</span>
+          <!-- prettier-ignore -->
+          <CountTag :cluster-type="('RedisInstance' as ClusterTypes)" role="cluster" />
         </template>
         <BkMenuItem key="DatabaseRedisHaList">
           <span
@@ -37,6 +48,8 @@
             class="text-overflow">
             {{ t('主从管理') }}
           </span>
+          <!-- prettier-ignore -->
+          <CountTag :cluster-type="('RedisInstance' as ClusterTypes)" role="cluster" />
         </BkMenuItem>
         <BkMenuItem
           key="DatabaseRedisHaInstanceList"
@@ -46,6 +59,8 @@
             class="text-overflow">
             {{ t('实例视图') }}
           </span>
+          <!-- prettier-ignore -->
+          <CountTag :cluster-type="('RedisInstance' as ClusterTypes)" role="instance" />
         </BkMenuItem>
       </BkSubmenu>
       <div
@@ -86,12 +101,13 @@
 
   import { useUserProfile } from '@stores';
 
-  import { UserPersonalSettings } from '@common/const';
+  import { ClusterTypes, UserPersonalSettings } from '@common/const';
 
   import toolboxMenuConfig from '@views/db-manage/redis/toolbox-menu';
 
   import { makeMap } from '@utils';
 
+  import CountTag from './components/CountTag.vue';
   import ToolboxMenu from './components/ToolboxMenu.vue';
 
   const userProfile = useUserProfile();

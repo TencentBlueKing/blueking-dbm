@@ -15,9 +15,8 @@ from pipeline.component_framework.component import Component
 from pipeline.core.flow.io import ObjectItemSchema, StringItemSchema
 
 from backend.flow.plugins.components.collections.common.base_service import BaseService
-from backend.ticket.constants import TodoType
-from backend.ticket.models import Ticket, Todo
-from backend.ticket.todos.pipeline_todo import PipelineTodoContext
+from backend.ticket.models import Ticket
+from backend.ticket.todos.pipeline_todo import PipelineTodo
 
 logger = logging.getLogger("root")
 
@@ -34,26 +33,14 @@ class PauseService(BaseService):
         self.log_info("execute PauseService")
         kwargs = data.get_one_of_inputs("kwargs")
         global_data = data.get_one_of_inputs("global_data")
+
+        # 获取单据和flow信息
         ticket_id = global_data["uid"]
         ticket = Ticket.objects.get(id=ticket_id)
-
-        # todo：这里假设ticket中不会出现并行的flow
         flow = ticket.current_flow()
 
-        Todo.objects.create(
-            name=_("【{}】流程待确认,是否继续？").format(ticket.get_ticket_type_display()),
-            flow=flow,
-            ticket=ticket,
-            type=TodoType.INNER_APPROVE,
-            # todo: 待办人暂定为提单人
-            operators=[ticket.creator],
-            context=PipelineTodoContext(
-                flow.id,
-                ticket_id,
-                self.runtime_attrs.get("root_pipeline_id"),
-                self.runtime_attrs.get("id"),
-            ).to_dict(),
-        )
+        # 创建一条代办
+        PipelineTodo.create(ticket, flow, self.runtime_attrs.get("root_pipeline_id"), self.runtime_attrs.get("id"))
 
         self.log_info("pause kwargs: {}".format(kwargs))
         return True

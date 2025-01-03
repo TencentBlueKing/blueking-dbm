@@ -12,11 +12,13 @@ import logging
 
 from celery.schedules import crontab
 
+from backend.db_meta.enums import ClusterType
+from backend.db_meta.models import Cluster
 from backend.db_periodic_task.local_tasks.register import register_periodic_task
+from backend.db_report.models import MetaCheckReport
 
-from .check_instance_belong import check_instance_belong
 from .check_redis_instance import check_redis_instance
-from .check_replicate_role import check_replicate_role
+from .mysql_cluster_topo.tendbha import health_check
 
 logger = logging.getLogger("celery")
 
@@ -27,5 +29,11 @@ def db_meta_check_task():
     巡检校验元数据
     """
     check_redis_instance()
-    check_instance_belong()
-    check_replicate_role()
+
+
+@register_periodic_task(run_every=crontab(hour=2, minute=30))
+def tendbha_topo_daily_check():
+    for c in Cluster.objects.filter(cluster_type=ClusterType.TenDBHA):
+        r: MetaCheckReport
+        for r in health_check(c.id):
+            r.save()

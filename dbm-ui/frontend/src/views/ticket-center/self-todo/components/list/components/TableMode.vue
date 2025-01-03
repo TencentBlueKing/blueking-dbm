@@ -62,6 +62,7 @@
           <template #default="{ data }: { data: TicketModel }">
             <RowAction
               v-if="data"
+              :key="data.id"
               :data="data"
               :ticket-status="ticketStatus"
               @go-ticket-detail="() => handleShowDetail(data)" />
@@ -116,6 +117,7 @@
       todo: 'running',
       self_manage: 1,
       status: ticketStatus.value,
+      is_assist: Boolean(Number(route.params.assist)),
     });
 
   const dataTableRef = useTemplateRef('dataTable');

@@ -2,7 +2,6 @@ package scenesnapshot
 
 import (
 	"bytes"
-	"context"
 	"database/sql"
 	"log/slog"
 
@@ -10,7 +9,6 @@ import (
 	"github.com/olekukonko/tablewriter"
 	"github.com/spf13/cast"
 
-	"dbm-services/mysql/db-tools/mysql-monitor/pkg/config"
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/itemscollect/scenesnapshot/internal/archivescenes"
 )
 
@@ -28,11 +26,7 @@ type mysqlProcess struct {
 var processListName = "processlist"
 
 func queryProcesslist(db *sqlx.DB) (res []*mysqlProcess, err error) {
-	ctx, cancel := context.WithTimeout(context.Background(), config.MonitorConfig.InteractTimeout)
-	defer cancel()
-
-	err = db.SelectContext(
-		ctx,
+	err = db.Select(
 		&res,
 		`SELECT ID, USER, HOST, DB, COMMAND, TIME, STATE, INFO FROM INFORMATION_SCHEMA.PROCESSLIST`,
 	)

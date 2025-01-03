@@ -2,12 +2,10 @@
 package ibdstatistic
 
 import (
-	"context"
 	"database/sql"
 	"log/slog"
 	"regexp"
 
-	"dbm-services/mysql/db-tools/mysql-monitor/pkg/config"
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/monitoriteminterface"
 
 	"github.com/jmoiron/sqlx"
@@ -50,11 +48,8 @@ type ibdStatistic struct {
 
 // Run TODO
 func (c *ibdStatistic) Run() (msg string, err error) {
-	ctx, cancel := context.WithTimeout(context.Background(), config.MonitorConfig.InteractTimeout)
-	defer cancel()
-
 	var dataDir sql.NullString
-	err = c.db.GetContext(ctx, &dataDir, `SELECT @@datadir`)
+	err = c.db.Get(&dataDir, `SELECT @@datadir`)
 	if err != nil {
 		slog.Error("ibd-statistic", slog.String("error", err.Error()))
 		return "", err
@@ -71,10 +66,10 @@ func (c *ibdStatistic) Run() (msg string, err error) {
 		return "", err
 	}
 
-	//err = reportMetrics(result)
-	//if err != nil {
-	//	return "", err
-	//}
+	err = reportMetrics(result)
+	if err != nil {
+		return "", err
+	}
 
 	err = reportLog(result)
 	if err != nil {

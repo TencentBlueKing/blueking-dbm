@@ -15,15 +15,14 @@ import { uniq } from 'lodash';
 
 import type { ClusterListEntry, ClusterListNode, ClusterListOperation } from '@services/types';
 
-import { ClusterAffinityMap } from '@common/const';
-
-import { isRecentDays, utcDisplayTime } from '@utils';
+import { ClusterAffinityMap, ClusterTypes } from '@common/const';
 
 import { t } from '@locales/index';
 
+import ClusterBase from '../_clusterBase';
 import type ClusterSpec from '../resource-spec/cluster-sepc';
 
-export default class Riak {
+export default class Riak extends ClusterBase {
   static RIAK_CLUSTER_SCALE_OUT = 'RIAK_CLUSTER_SCALE_OUT';
   static RIAK_CLUSTER_SCALE_IN = 'RIAK_CLUSTER_SCALE_IN';
   static RIAK_CLUSTER_ENABLE = 'RIAK_CLUSTER_ENABLE';
@@ -61,7 +60,7 @@ export default class Riak {
   cluster_spec: ClusterSpec;
   cluster_stats: Record<'used' | 'total' | 'in_use', number>;
   cluster_time_zone: string;
-  cluster_type: string;
+  cluster_type: ClusterTypes;
   cluster_type_name: string;
   create_at: string;
   creator: string;
@@ -74,6 +73,7 @@ export default class Riak {
   master_domain: string;
   operations: ClusterListOperation[];
   permission: {
+    access_entry_edit: boolean;
     riak_access_entry_view: boolean;
     riak_cluster_destroy: boolean;
     riak_cluster_migrate: boolean;
@@ -93,6 +93,7 @@ export default class Riak {
   updater: string;
 
   constructor(payload = {} as Riak) {
+    super(payload);
     this.access_url = payload.access_url;
     this.bk_biz_id = payload.bk_biz_id || 0;
     this.bk_biz_name = payload.bk_biz_name || '';
@@ -126,10 +127,6 @@ export default class Riak {
     this.status = payload.status || '';
     this.update_at = payload.update_at;
     this.updater = payload.updater;
-  }
-
-  get isNewRow() {
-    return isRecentDays(this.create_at, 24 * 3);
   }
 
   get allInstanceList() {
@@ -208,20 +205,8 @@ export default class Riak {
     return this.status === 'normal';
   }
 
-  get isOnline() {
-    return this.phase === 'online';
-  }
-
-  get isOffline() {
-    return this.phase === 'offline';
-  }
-
   get isStarting() {
     return Boolean(this.operations.find((item) => item.ticket_type === Riak.RIAK_CLUSTER_ENABLE));
-  }
-
-  get createAtDisplay() {
-    return utcDisplayTime(this.create_at);
   }
 
   get operationTagTips() {
@@ -234,5 +219,17 @@ export default class Riak {
 
   get disasterToleranceLevelName() {
     return ClusterAffinityMap[this.disaster_tolerance_level];
+  }
+
+  get masterDomainDisplayName() {
+    const port = this.riak_node[0]?.port;
+    const displayName = port ? `${this.master_domain}:${port}` : this.master_domain;
+    return displayName;
+  }
+
+  get roleFailedInstanceInfo() {
+    return {
+      [t('节点')]: ClusterBase.getRoleFaildInstanceList(this.riak_node),
+    };
   }
 }

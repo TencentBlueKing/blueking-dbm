@@ -31,5 +31,9 @@ func CreateOrReplace(j *config.ExternalJob, permanent bool) (int, error) {
 		)
 		return 0, err
 	}
+	slog.Info(
+		"create or replace job",
+		slog.Any("job", j),
+	)
 	return entryID, nil
 }

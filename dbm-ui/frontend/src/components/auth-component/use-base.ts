@@ -71,6 +71,7 @@ const withBizActionList = [
   'biz_ticket_config_set',
   'doris_apply',
   'biz_assistance_vars_config',
+  'biz_notify_config',
 ];
 
 export default function (props: Props) {

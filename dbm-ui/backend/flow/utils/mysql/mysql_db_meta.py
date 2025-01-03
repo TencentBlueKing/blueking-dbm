@@ -773,7 +773,7 @@ class MySQLDBMeta(object):
 
     def slave_recover_del_instance(self):
         """
-        实例卸载完毕修改元数据
+        实例卸载完毕修改元数据 废弃
         """
 
         with atomic():
@@ -1039,14 +1039,14 @@ class MySQLDBMeta(object):
                     machine__bk_cloud_id=self.cluster["bk_cloud_id"],
                     port=port,
                 )
-                cc_manage = CcManage(storage.bk_biz_id, cluster_type=self.cluster["cluster_type"])
+                cc_manage = CcManage(storage.bk_biz_id, cluster_type=storage.cluster_type)
                 cc_manage.delete_service_instance(bk_instance_ids=[storage.bk_instance_id])
                 storage.delete()
 
             if not StorageInstance.objects.filter(
-                machine__ip=self.cluster["uninstall_ip"], machine__bk_cloud_id=self.cluster["bk_cloud_id"]
+                machine__ip=storage.machine.ip, machine__bk_cloud_id=storage.machine.bk_cloud_id
             ).exists():
-                api.machine.delete(machines=[self.cluster["uninstall_ip"]], bk_cloud_id=self.cluster["bk_cloud_id"])
+                api.machine.delete(machines=[storage.machine.ip], bk_cloud_id=storage.machine.bk_cloud_id)
 
     def update_proxy_instance_version(self):
         """

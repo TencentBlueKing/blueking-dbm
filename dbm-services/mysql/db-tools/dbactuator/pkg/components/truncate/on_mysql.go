@@ -317,7 +317,6 @@ func (c *OnMySQLComponent) instanceRecreateSourceTables(port int) error {
 		}
 
 		// 这里改成从 stage 库拿表列表, 在重试的时候才能幂等
-		//for _, table := range c.dbTablesMap[db] {
 		for _, table := range stageTables {
 			err := c.instanceRecreateSourceTable(port, db, stageDBName, table)
 			if err != nil {
@@ -349,6 +348,10 @@ func (c *OnMySQLComponent) instanceRecreateSourceTable(port int, dbName, stageDB
 	//	return err
 	//}
 	//logger.Info("source table found in stage db on instance %d, try to truncate", port)
+	defer func() {
+		c.flushTable(dbName, tableName)
+		c.flushTable(stageDBName, tableName)
+	}()
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
@@ -368,6 +371,19 @@ func (c *OnMySQLComponent) instanceRecreateSourceTable(port int, dbName, stageDB
 	}
 
 	return nil
+}
+
+func (c *OnMySQLComponent) flushTable(dbName, tableName string) {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	_, err := c.dbConn.ExecContext(
+		ctx,
+		fmt.Sprintf("FLUSH TABLE `%s`.`%s`", dbName, tableName),
+	)
+	if err != nil {
+		logger.Error("flush table %s.%s  failed: %s", dbName, tableName, err.Error())
+	}
 }
 
 func (c *OnMySQLComponent) GenerateDropStageSQL() error {

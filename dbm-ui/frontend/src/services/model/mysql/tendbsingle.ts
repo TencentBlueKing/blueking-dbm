@@ -14,11 +14,13 @@ import { uniq } from 'lodash';
 
 import type { ClusterListEntry, ClusterListNode, ClusterListOperation } from '@services/types';
 
-import { isRecentDays, utcDisplayTime } from '@utils';
+import { ClusterTypes } from '@common/const';
 
 import { t } from '@locales/index';
 
-export default class Tendbsingle {
+import ClusterBase from '../_clusterBase';
+
+export default class Tendbsingle extends ClusterBase {
   static MYSQL_HA_DESTROY = 'MYSQL_HA_DESTROY';
   static MYSQL_HA_DISABLE = 'MYSQL_HA_DISABLE';
   static MYSQL_HA_ENABLE = 'MYSQL_HA_ENABLE';
@@ -54,7 +56,7 @@ export default class Tendbsingle {
   cluster_name: string;
   cluster_stats: Record<'used' | 'total' | 'in_use', number>;
   cluster_time_zone: string;
-  cluster_type: string;
+  cluster_type: ClusterTypes;
   cluster_type_name: string;
   create_at: string;
   creator: string;
@@ -82,6 +84,7 @@ export default class Tendbsingle {
   updater: string;
 
   constructor(payload = {} as Tendbsingle) {
+    super(payload);
     this.bk_biz_id = payload.bk_biz_id || 0;
     this.bk_biz_name = payload.bk_biz_name || '';
     this.bk_cloud_id = payload.bk_cloud_id || 0;
@@ -113,14 +116,6 @@ export default class Tendbsingle {
     this.updater = payload.updater;
   }
 
-  get isOnline() {
-    return this.phase === 'online';
-  }
-
-  get isOffline() {
-    return this.phase === 'offline';
-  }
-
   get isStarting() {
     return Boolean(this.operations.find((item) => item.ticket_type === Tendbsingle.MYSQL_SINGLE_ENABLE));
   }
@@ -129,10 +124,6 @@ export default class Tendbsingle {
     const port = this.masters[0]?.port;
     const displayName = port ? `${this.master_domain}:${port}` : this.master_domain;
     return displayName;
-  }
-
-  get createAtDisplay() {
-    return utcDisplayTime(this.create_at);
   }
 
   get allInstanceList() {
@@ -211,7 +202,9 @@ export default class Tendbsingle {
     }));
   }
 
-  get isNew() {
-    return isRecentDays(this.create_at, 24);
+  get roleFailedInstanceInfo() {
+    return {
+      Master: ClusterBase.getRoleFaildInstanceList(this.masters),
+    };
   }
 }

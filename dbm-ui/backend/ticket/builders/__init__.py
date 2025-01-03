@@ -142,7 +142,7 @@ class ItsmParamBuilder(CallBackBuilderMixin):
                 {"key": "domain", "value": "\n".join(cluster_domains)},
                 {"key": "summary", "value": self.ticket.remark},
                 {"key": "approver", "value": self.get_approvers()},
-                {"key": "ticket_url", "value": f"{self.ticket.url}&isFullscreen=true"},
+                {"key": "ticket_url", "value": self.ticket.iframe_url},
             ],
             "dynamic_fields": [],
             "meta": {
@@ -171,6 +171,11 @@ class PauseParamBuilder(CallBackBuilderMixin):
         self.ticket_data = copy.deepcopy(ticket.details)
         self.params = {"pause_type": None}
 
+    @property
+    def operators(self):
+        """当前单据指定处理人"""
+        return []
+
     def format(self):
         """
         这里可以为params添加更多参数
@@ -180,6 +185,7 @@ class PauseParamBuilder(CallBackBuilderMixin):
 
     def get_params(self):
         self.format()
+        self.params.update(operators=self.operators)
         self.params = super().inject_callback_in_params(params=self.params)
         return self.params
 

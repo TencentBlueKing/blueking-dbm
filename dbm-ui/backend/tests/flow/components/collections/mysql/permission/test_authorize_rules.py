@@ -16,7 +16,7 @@ import pytest
 from django.test import TestCase
 from pipeline.component_framework.component import Component
 
-from backend.flow.plugins.components.collections.mysql.authorize_rules import AuthorizeRulesComponent
+from backend.flow.plugins.components.collections.mysql.authorize_rules_v2 import AuthorizeRulesV2Component
 from backend.tests.flow.components.collections.base import BaseComponentPatcher as Patcher
 from backend.tests.flow.components.collections.mysql.utils import MySQLComponentBaseTest
 from backend.tests.mock_data.components.mysql_priv_manager import DBPrivManagerApiMock
@@ -36,7 +36,7 @@ class TestAuthorizeRulesComponent(MySQLComponentBaseTest, TestCase):
         cls.excepted_outputs = {}
 
     def component_cls(self) -> Type[Component]:
-        return AuthorizeRulesComponent
+        return AuthorizeRulesV2Component
 
     def tearDown(self) -> Union[Any, NoReturn]:
         pass

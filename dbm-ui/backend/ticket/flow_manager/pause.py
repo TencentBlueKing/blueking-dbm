@@ -40,16 +40,15 @@ class PauseFlow(BaseTicketFlow):
 
     @property
     def _summary(self) -> str:
-        return _("暂停状态{status_display}").format(status_display=constants.TicketStatus.get_choice_label(self.status))
+        return _("暂停状态{status_display}").format(
+            status_display=constants.TicketFlowStatus.get_choice_label(self.status)
+        )
 
     @property
     def _status(self) -> str:
         if self.ticket.todo_of_ticket.exist_unfinished():
-            self.flow_obj.update_status(constants.TicketFlowStatus.RUNNING)
-            return constants.TicketStatus.RUNNING.value
-
-        self.flow_obj.update_status(constants.TicketFlowStatus.SUCCEEDED)
-        return constants.TicketStatus.SUCCEEDED.value
+            return self.flow_obj.update_status(constants.TicketFlowStatus.RUNNING)
+        return self.flow_obj.update_status(constants.TicketFlowStatus.SUCCEEDED)
 
     @property
     def _url(self) -> str:
@@ -61,7 +60,7 @@ class PauseFlow(BaseTicketFlow):
         # 创建待办
         from backend.ticket.todos.pause_todo import PauseTodoContext
 
-        operators = list({self.ticket.creator, *self.flow_obj.details.get("operators", [])})
+        operators = self.flow_obj.details.get("operators", [])
         Todo.objects.create(
             name=_("【{}】流程待确认，是否继续？").format(self.ticket.get_ticket_type_display()),
             flow=self.flow_obj,

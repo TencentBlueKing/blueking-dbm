@@ -19,6 +19,7 @@ from backend import env
 from backend.bk_web.constants import LEN_LONG, LEN_NORMAL
 from backend.bk_web.models import AuditedModel
 from backend.configuration import constants
+from backend.configuration.constants import BizSettingsEnum
 from backend.db_meta.enums import ClusterType
 
 logger = logging.getLogger("root")
@@ -192,3 +193,13 @@ class BizSettings(AbstractSettings):
                 return bk_biz_id
 
         return env.DBA_APP_BK_BIZ_ID
+
+    @classmethod
+    def get_assistance(cls, bk_biz_id: int):
+        """
+        获取业务协助人
+        """
+        assistance_flag = BizSettings.get_setting_value(bk_biz_id, key=BizSettingsEnum.BIZ_ASSISTANCE_SWITCH) or False
+        if not assistance_flag:
+            return []
+        return BizSettings.get_setting_value(bk_biz_id, key=BizSettingsEnum.BIZ_ASSISTANCE_VARS, default=[])

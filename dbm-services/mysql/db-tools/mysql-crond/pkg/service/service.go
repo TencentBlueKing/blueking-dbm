@@ -200,7 +200,11 @@ func Start(version string, buildStamp string, gitHash string, quit chan struct{}
 			defer func() {
 				m.Unlock()
 			}()
-			body.Job.SetupChannel( /*config.RuntimeConfig.Ip*/ )
+
+			if !body.Job.Overlap {
+				body.Job.SetupChannel( /*config.RuntimeConfig.Ip*/ )
+			}
+
 			entryID, err := crond.CreateOrReplace(body.Job, *body.Permanent)
 			if err != nil {
 				ctx.AbortWithStatusJSON(http.StatusInternalServerError, api.NewErrorResp(500, err))

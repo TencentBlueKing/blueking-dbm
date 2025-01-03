@@ -208,6 +208,42 @@ class ActionEnum:
         common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
+    PLATFORM_MANAGE = ActionMeta(
+        id="platform_manage",
+        name=_("平台管理"),
+        name_en="platform_manage",
+        type="manage",
+        related_actions=[],
+        related_resource_types=[],
+        group=_("平台管理"),
+        subgroup="",
+        common_labels=[],
+    )
+
+    PLATFORM_TICKET_VIEW = ActionMeta(
+        id="platform_ticket_view",
+        name=_("全局单据查看"),
+        name_en="platform_ticket_view",
+        type="manage",
+        related_actions=[],
+        related_resource_types=[],
+        group=_("平台管理"),
+        subgroup="",
+        common_labels=[],
+    )
+
+    PLATFORM_TASKFLOW_VIEW = ActionMeta(
+        id="platform_taskflow_view",
+        name=_("全局任务查看"),
+        name_en="platform_taskflow_view",
+        type="manage",
+        related_actions=[],
+        related_resource_types=[],
+        group=_("平台管理"),
+        subgroup="",
+        common_labels=[],
+    )
+
     DBCONFIG_VIEW = ActionMeta(
         id="dbconfig_view",
         name=_("数据库配置查看"),

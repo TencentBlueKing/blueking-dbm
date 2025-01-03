@@ -9,19 +9,13 @@
 package definer
 
 import (
-	"context"
 	"log/slog"
-
-	"dbm-services/mysql/db-tools/mysql-monitor/pkg/config"
 
 	"github.com/jmoiron/sqlx"
 )
 
 func snapshot(db *sqlx.DB) error {
-	ctx, cancel := context.WithTimeout(context.Background(), config.MonitorConfig.InteractTimeout)
-	defer cancel()
-
-	err := db.SelectContext(ctx, &mysqlUsers, `SELECT user FROM mysql.user`)
+	err := db.Select(&mysqlUsers, `SELECT user FROM mysql.user`)
 	if err != nil {
 		slog.Error("query users", slog.String("error", err.Error()))
 		return err

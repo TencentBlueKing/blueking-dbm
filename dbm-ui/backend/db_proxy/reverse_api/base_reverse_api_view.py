@@ -11,7 +11,7 @@ specific language governing permissions and limitations under the License.
 
 import logging
 from types import FunctionType
-from typing import Tuple
+from typing import List, Tuple
 
 from django.utils.translation import ugettext as _
 from rest_framework import permissions
@@ -63,7 +63,7 @@ class BaseReverseApiView(SystemViewSet):
     def get_permissions(self):
         return [IPHasRegisteredPermission()]
 
-    def get_api_params(self) -> Tuple[int, str, int]:
+    def get_api_params(self) -> Tuple[int, str, List[int]]:
         """
         return request bk_cloud_id, ip, port param
         """

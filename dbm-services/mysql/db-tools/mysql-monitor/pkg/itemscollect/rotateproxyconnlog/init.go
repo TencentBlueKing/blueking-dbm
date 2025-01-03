@@ -2,7 +2,6 @@ package rotateproxyconnlog
 
 import (
 	"bytes"
-	"context"
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/config"
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/monitoriteminterface"
 	"fmt"
@@ -105,10 +104,7 @@ func (d *Dummy) Run() (msg string, err error) {
 }
 
 func (d *Dummy) disableConnlog() error {
-	ctx, cancel := context.WithTimeout(context.Background(), config.MonitorConfig.InteractTimeout)
-	defer cancel()
-
-	_, err := d.db.ExecContext(ctx, `refresh_connlog(0)`)
+	_, err := d.db.Exec(`refresh_connlog(0)`)
 	if err != nil {
 		slog.Error("disable connlog", slog.String("error", err.Error()))
 		return err
@@ -118,10 +114,7 @@ func (d *Dummy) disableConnlog() error {
 }
 
 func (d *Dummy) enableConnlog() error {
-	ctx, cancel := context.WithTimeout(context.Background(), config.MonitorConfig.InteractTimeout)
-	defer cancel()
-
-	_, err := d.db.ExecContext(ctx, `refresh_connlog(1)`)
+	_, err := d.db.Exec(`refresh_connlog(1)`)
 	if err != nil {
 		slog.Error("enable connlog", slog.String("error", err.Error()))
 		return err

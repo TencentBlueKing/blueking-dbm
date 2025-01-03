@@ -25,7 +25,7 @@ from backend.flow.consts import InstanceStatus, MediumEnum
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.engine.bamboo.scene.mysql.common.common_sub_flow import build_surrounding_apps_sub_flow
-from backend.flow.engine.bamboo.scene.mysql.common.master_and_slave_switch import master_and_slave_switch
+from backend.flow.engine.bamboo.scene.mysql.common.master_and_slave_switch import master_and_slave_switch_v2
 from backend.flow.engine.bamboo.scene.mysql.mysql_migrate_cluster_remote_flow import MySQLMigrateClusterRemoteFlow
 from backend.flow.plugins.components.collections.common.pause import PauseComponent
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
@@ -294,7 +294,7 @@ class MySQLStorageLocalUpgradeFlow(object):
                         "other_slave_info": other_slaves,
                     }
                     switch_sub_pipeline.add_sub_pipeline(
-                        sub_flow=master_and_slave_switch(
+                        sub_flow=master_and_slave_switch_v2(
                             root_id=self.root_id,
                             ticket_data=copy.deepcopy(self.data),
                             cluster=cluster_model,

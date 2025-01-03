@@ -39,10 +39,15 @@ class StoragePermission(ResourceActionPermission):
     def instance_id_getter(self, request, view):
         file_path = get_request_key_id(request, "file_path")
         file_path_list = get_request_key_id(request, "file_path_list") or [file_path]
+        medium_types = MediumEnum.get_values()
+
+        # 解析路径下的文件类型
+        try:
+            is_all_pkg = set([(path.strip("/").split("/")[1] in medium_types) for path in file_path_list])
+        except IndexError:
+            raise PermissionDeniedError(_("文件操作路径{}不合法，请联系管理员").format(file_path_list))
 
         # 保证文件列表都是同种类型，即不允许同时操作介质文件和业务文件(一般也无此需求)
-        medium_types = MediumEnum.get_values()
-        is_all_pkg = set([(path.strip("/").split("/")[1] in medium_types) for path in file_path_list])
         if len(is_all_pkg) > 1:
             raise PermissionDeniedError(_("不允许同时操作业务临时文件和介质文件"))
 

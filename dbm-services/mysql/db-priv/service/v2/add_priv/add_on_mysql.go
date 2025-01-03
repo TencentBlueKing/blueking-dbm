@@ -64,14 +64,15 @@ func (c *PrivTaskPara) addOneDtOnMySQL(
 	dt *service.TbAccountRules,
 	reports map[string][]string,
 ) error {
-	var ipStr string
+	var oneBatchClients []string
 	for idx, ip := range clientIps {
-		// 限长 1500 代码会比较好些, 不往极限的 2000 搞
-		ipStr = ipStr + "," + ip
-		if len(ipStr) > 1500 || idx == len(clientIps)-1 {
-			slog.Info("add one dt on mysql", slog.String("ipstr", ipStr))
+		// 限长 100 代码会比较好些, 不往极限的 2000 搞
+		oneBatchClients = append(oneBatchClients, ip)
+		if len(oneBatchClients) > 100 || idx == len(clientIps)-1 {
+			slog.Info("add one dt on mysql", slog.Any("one batch client", oneBatchClients))
+			// 一次跑一批 client
 			err := c.addOneDtOnMySQLForSplitClient(
-				strings.Trim(ipStr, ","),
+				strings.Join(oneBatchClients, ","),
 				workingInstances,
 				accountAndRuleDetails,
 				psw,
@@ -82,7 +83,7 @@ func (c *PrivTaskPara) addOneDtOnMySQL(
 				slog.Error("add on mysql", slog.String("err", err.Error()))
 				return err
 			}
-			ipStr = ""
+			oneBatchClients = []string{}
 		}
 	}
 	return nil
@@ -152,6 +153,7 @@ func readOneDtRes(bkCloudId int64, res []*drs.OneAddressResult, reports map[stri
 				slog.String("addr", r.Address),
 			)
 			reports[r.Address] = []string{r.ErrorMsg}
+			continue
 		}
 		readOneAddrRes(bkCloudId, r, reports)
 	}
@@ -161,6 +163,10 @@ func readOneAddrRes(bkCloudId int64, r *drs.OneAddressResult, reports map[string
 	errMsg := r.CmdResults[0].ErrorMsg
 	if errMsg == "" {
 		return
+	}
+
+	if _, ok := reports[r.Address]; !ok {
+		reports[r.Address] = make([]string, 0)
 	}
 
 	_, sqlStat, msgText, isException := internal.ParseMySQLErrStr(errMsg)

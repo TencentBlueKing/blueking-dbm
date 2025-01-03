@@ -12,13 +12,13 @@ import logging
 from collections import defaultdict
 from datetime import datetime, timedelta
 
-from django.db.models import Q
+from django.db.models import Prefetch, Q
 from django.utils import timezone
 from django.utils.translation import ugettext as _
 
 from backend.constants import IP_PORT_DIVIDER
 from backend.db_meta.enums import ClusterType, InstanceRole
-from backend.db_meta.models import Cluster
+from backend.db_meta.models import Cluster, StorageInstance, StorageInstanceTuple
 from backend.db_report.enums import RedisBackupCheckSubType
 from backend.db_report.models import RedisBackupCheckReport
 
@@ -60,6 +60,7 @@ def _check_tendis_full_backup():
     """
     删除时间大于60天的记录,全备份和binlog都是同一张表，这里操作就好
     """
+    failed_records = []
     RedisBackupCheckReport.objects.filter(create_at__lte=timezone.now() - timedelta(days=60)).delete()
 
     # 构建查询条件:tendisplus,ssd,cache,集群创建时间大于1天，巡检0点发起
@@ -68,8 +69,22 @@ def _check_tendis_full_backup():
         | Q(cluster_type=ClusterType.TwemproxyTendisSSDInstance)
         | Q(cluster_type=ClusterType.TendisTwemproxyRedisInstance)
     ) & Q(create_at__lt=timezone.now() - timedelta(days=1))
-    # 遍历集群
-    for c in Cluster.objects.filter(query):
+
+    # 预取storanges关联的as_ejector对象
+    ejector_prefetch = Prefetch(
+        "as_ejector", queryset=StorageInstanceTuple.objects.select_related("receiver"), to_attr="ejector_tuples"
+    )
+
+    # 预取storages对象
+    storage_prefetch = Prefetch(
+        "storageinstance_set",
+        queryset=StorageInstance.objects.filter(instance_role=InstanceRole.REDIS_MASTER.value)
+        .select_related("machine")
+        .prefetch_related(ejector_prefetch),
+        to_attr="storages",
+    )
+    cluster_list = Cluster.objects.filter(query).prefetch_related(storage_prefetch)
+    for c in cluster_list:
         logger.info("+===+++++===  start check {} full backup +++++===++++ ".format(c.immute_domain))
         logger.info("+===+++++===  cluster type is: {} +++++===++++ ".format(c.cluster_type))
         cluster_slave_instance = []  # 初始化集群slave列表
@@ -78,8 +93,8 @@ def _check_tendis_full_backup():
         bklog_success_instance_count = {}  # 初始化字典：节点和对应的备份次数
         slave_ins_map = defaultdict()  # 主从节点对应关系
 
-        for master_obj in c.storageinstance_set.filter(instance_role=InstanceRole.REDIS_MASTER.value):
-            slave_obj = master_obj.as_ejector.get().receiver
+        for master_obj in c.storages:
+            slave_obj = master_obj.ejector_tuples[0].receiver
             current_datetime = timezone.now()
             # 计算时间差
             time_difference = current_datetime - slave_obj.create_at
@@ -118,7 +133,7 @@ def _check_tendis_full_backup():
             msg = _("无法查找到在时间范围内{}-{}，集群{}的全备份日志").format(start_time, end_time, c.immute_domain)
             logger.error(msg)
             instance = "all instance"
-            full_backup_failed_record(c, instance, msg)
+            failed_records.append(create_full_failed_record(c, instance, msg))
             continue
 
         logger.info(_("+===+++++===  {} 集群维度日志不为空 +++++===++++ ".format(c.immute_domain)))
@@ -128,7 +143,7 @@ def _check_tendis_full_backup():
                 logger.error("+===+++++=== to_backup_system_failed bklog: {} +++++===++++ ".format(bklog))
                 msg = bklog["backup_status_info"]
                 instance = bklog["redis_ip"] + IP_PORT_DIVIDER + str(bklog["redis_port"])
-                full_backup_failed_record(c, instance, msg)
+                failed_records.append(create_full_failed_record(c, instance, msg))
 
             # 对成功的进行处理
             if bklog.get("backup_status", "") == "to_backup_system_success":
@@ -162,15 +177,18 @@ def _check_tendis_full_backup():
                     instance, count, master_instance, master_backup_count, expect_count
                 )
                 # 记录备份失败的集群和实例
-                full_backup_failed_record(c, instance, msg)
+                failed_records.append(create_full_failed_record(c, instance, msg))
+
+    # 批量插入备份失败记录
+    RedisBackupCheckReport.objects.bulk_create(failed_records)
 
 
-def full_backup_failed_record(c: Cluster, instance: str, msg: str):
+def create_full_failed_record(c, instance, msg):
     """
-    记录全备备份失败的集群和实例
+    创建全备备份失败记录对象
     """
-    logger.info(_("+===++===  实例{}全备份失败，集群类型{}写入表 ++++++++ ".format(instance, c.cluster_type)))
-    RedisBackupCheckReport.objects.create(
+    logger.info(_("+===++===  实例{}全备份失败，集群类型{}写入记录 ++++++++ ".format(instance, c.cluster_type)))
+    return RedisBackupCheckReport(
         creator=c.creator,
         bk_biz_id=c.bk_biz_id,
         bk_cloud_id=c.bk_cloud_id,

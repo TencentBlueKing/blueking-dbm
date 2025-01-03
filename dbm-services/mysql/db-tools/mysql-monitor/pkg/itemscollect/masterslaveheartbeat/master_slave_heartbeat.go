@@ -50,9 +50,6 @@ type primaryDesc struct {
 }
 
 func (c *Checker) updateHeartbeat() error {
-	ctx, cancel := context.WithTimeout(context.Background(), config.MonitorConfig.InteractTimeout)
-	defer cancel()
-
 	masterServerId := ""
 	binlogFormatOld := ""
 	err := c.db.QueryRow("select @@server_id, @@binlog_format").
@@ -81,7 +78,7 @@ func (c *Checker) updateHeartbeat() error {
 	}()
 
 	if config.MonitorConfig.MachineType == "spider" {
-		_, err := conn.ExecContext(ctx, "set tc_admin=0")
+		_, err := conn.ExecContext(context.Background(), "set tc_admin=0")
 		if err != nil {
 			slog.Error("master-slave-heartbeat", slog.String("error", err.Error()))
 			return err
@@ -95,18 +92,18 @@ func (c *Checker) updateHeartbeat() error {
 VALUES('%s', @@server_id, now(), sysdate(), timestampdiff(SECOND, now(),sysdate()))`,
 		c.heartBeatTable, masterServerId)
 
-	if _, err = conn.ExecContext(ctx, txrrSQL); err != nil {
+	if _, err = conn.ExecContext(context.Background(), txrrSQL); err != nil {
 		err := errors.Wrapf(err, "update heartbeat need SET SESSION tx_isolation = 'REPEATABLE-READ'")
 		slog.Error("master-slave-heartbeat", slog.String("error", err.Error()))
 		return err
 	}
-	if _, err = conn.ExecContext(ctx, binlogSQL); err != nil {
+	if _, err = conn.ExecContext(context.Background(), binlogSQL); err != nil {
 		err := errors.WithMessage(err, "update heartbeat need binlog_format=STATEMENT")
 		slog.Error("master-slave-heartbeat", slog.String("error", err.Error()))
 		return err
 	}
 
-	res, err := conn.ExecContext(ctx, insertSQL)
+	res, err := conn.ExecContext(context.Background(), insertSQL)
 	if err != nil {
 		// 不再自动创建表
 		// merr.Number == 1146 || merr.Number == 1054 , c.initTableHeartbeat()

@@ -16,7 +16,6 @@ from backend.configuration.constants import AffinityEnum
 from backend.db_meta.enums import ClusterType
 from backend.db_meta.models import Cluster
 from backend.db_services.dbbase.constants import IpSource
-from backend.db_services.version.utils import query_versions_by_key
 from backend.flow.engine.controller.redis import RedisController
 from backend.ticket import builders
 from backend.ticket.builders.common.base import SkipToRepresentationMixin
@@ -51,7 +50,7 @@ class RedisTypeUpdateDetailSerializer(SkipToRepresentationMixin, serializers.Ser
         current_cluster_type = serializers.ChoiceField(choices=ClusterType.get_choices(), help_text=_("当前集群类型"))
         target_cluster_type = serializers.ChoiceField(choices=ClusterType.get_choices(), help_text=_("目标集群类型"))
         resource_spec = ResourceSpecSerializer(help_text=_("资源申请"))
-        capacity = serializers.IntegerField(help_text=_("当前容量需求"))
+        capacity = serializers.FloatField(help_text=_("当前容量需求"))
         future_capacity = serializers.IntegerField(help_text=_("未来容量需求"))
         db_version = serializers.CharField(help_text=_("版本号"))
         online_switch_type = serializers.ChoiceField(
@@ -67,15 +66,6 @@ class RedisTypeUpdateDetailSerializer(SkipToRepresentationMixin, serializers.Ser
                         cluster.immute_domain,
                         attr.get("target_cluster_type"),
                         cluster.cluster_type,
-                    )
-                )
-
-            if attr.get("db_version") not in query_versions_by_key(attr.get("target_cluster_type")):
-                raise serializers.ValidationError(
-                    _("集群({})：{} 类集群不支持版本 {}.").format(
-                        cluster.immute_domain,
-                        attr.get("target_cluster_type"),
-                        attr.get("db_version"),
                     )
                 )
 

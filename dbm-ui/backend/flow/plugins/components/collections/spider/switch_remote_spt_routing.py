@@ -9,50 +9,18 @@ specific language governing permissions and limitations under the License.
 """
 from pipeline.component_framework.component import Component
 
-from backend.components import DBPrivManagerApi, DRSApi
+from backend.components import DRSApi
 from backend.constants import IP_PORT_DIVIDER
 from backend.db_meta.models import Cluster
 from backend.flow.consts import TDBCTL_USER
 from backend.flow.plugins.components.collections.common.base_service import BaseService
+from backend.flow.utils.mysql.mysql_commom_query import create_tdbctl_user_for_remote
 
 
 class SwitchRemoteShardRoutingService(BaseService):
     """
     定义spider(tenDB cluster)集群的替换remote slave实例的路由关系
     """
-
-    def _create_tdbctl_user(self, cluster: Cluster, ctl_primary: str, new_ip: str, new_port: int, tdbctl_pass: str):
-        """
-        再新的实例对中控primary授权
-        """
-        # 删除已经存在的spider账号
-        rpc_params = {
-            "addresses": [f"{new_ip}{IP_PORT_DIVIDER}{new_port}"],
-            "cmds": [
-                f"drop user '{TDBCTL_USER}'@'{ctl_primary.split(IP_PORT_DIVIDER)[0]}'",
-            ],
-            "force": False,
-            "bk_cloud_id": cluster.bk_cloud_id,
-        }
-        # drs服务远程请求
-        res = DRSApi.rpc(rpc_params)
-        self.log_info(res)
-        # 添加临时账号
-        DBPrivManagerApi.add_priv_without_account_rule(
-            params={
-                "bk_cloud_id": cluster.bk_cloud_id,
-                "bk_biz_id": cluster.bk_biz_id,
-                "operator": "",
-                "user": TDBCTL_USER,
-                "psw": tdbctl_pass,
-                "dbname": "%",
-                "dml_ddl_priv": "",
-                "global_priv": "all privileges",
-                "address": f"{new_ip}{IP_PORT_DIVIDER}{new_port}",
-                "hosts": [ctl_primary.split(IP_PORT_DIVIDER)[0]],
-            }
-        )
-        self.log_info(f"add tdbctl user in instance [f'{new_ip}{IP_PORT_DIVIDER}{new_port}'] success")
 
     def _alter_remote_slave_routing(
         self, cluster: Cluster, server_name: str, new_ip: str, new_port: int, tdbctl_pass: str
@@ -89,7 +57,7 @@ class SwitchRemoteShardRoutingService(BaseService):
             return False
 
         # 添加tdbctl账号
-        self._create_tdbctl_user(
+        create_tdbctl_user_for_remote(
             cluster=cluster, ctl_primary=ctl_primary, new_ip=new_ip, new_port=new_port, tdbctl_pass=tdbctl_pass
         )
 

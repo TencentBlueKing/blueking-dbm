@@ -79,7 +79,6 @@ class ItsmApiMock(object):
     def create_ticket(cls, *args, **kwargs):
         response_data = copy.deepcopy(cls.base_info)
         response_data["data"] = {"sn": ticket_flow.SN}
-
         return response_data["data"]
 
     @classmethod
@@ -97,6 +96,22 @@ class ItsmApiMock(object):
             }
         ]
 
+        return response_data["data"]
+
+    @classmethod
+    def get_ticket_logs(cls, *args, **kwargs):
+        response_data = copy.deepcopy(cls.base_info)
+        response_data["data"] = {
+            "sn": "REQ20200831000005",
+            "title": "测试内置审批日志",
+            "create_at": "2020-08-31 20:57:22",
+            "creator": "xxx(xxx)",
+            "logs": [
+                {"operator": "xxx", "message": "流程开始"},
+                {"operator": "xxx", "message": "xxx 处理节点【提单】(提交)"},
+                {"operator": "admin", "message": "admin 处理节点【审批】(通过)"},
+            ],
+        }
         return response_data["data"]
 
     @classmethod

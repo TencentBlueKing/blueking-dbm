@@ -1,11 +1,12 @@
+SET SESSION sql_log_bin = 0;
 -- 授权, 检查 ERROR_MSG 来判断是否成功
 -- ERROR STATE CODE
 -- 32401 参数验证错误
 -- 32402 冲突检测错误
--- ToDo 中控兼容
-DROP PROCEDURE IF EXISTS dba_grant;
+-- 中控不会转发授权语句, 当普通 MySQL 就好
+DROP PROCEDURE IF EXISTS infodba_schema.dba_grant;
 DELIMITER //
-CREATE PROCEDURE dba_grant(
+CREATE PROCEDURE infodba_schema.dba_grant(
     IN username VARCHAR(128), 
     IN ip_list VARCHAR(3000), -- 但是限制最大只能传入 2000
     IN db_list VARCHAR(3000), -- 但是限制最大只能传入 2000
@@ -25,7 +26,9 @@ BEGIN
         SIGNAL SQLSTATE '32401' SET MESSAGE_TEXT = @msg;
     END IF;
 
-    SET SESSION binlog_format = 'STATEMENT';
+    -- 不同版本授权语句不兼容, 所以干脆不写
+    SET SESSION sql_log_bin = 0;
+
     -- 初始化结果表
     CALL init_report_table();
 
@@ -41,7 +44,7 @@ BEGIN
 
     -- 先做检查
     SET @is_check_failed = 0;
-    CALL check_all(@uuid, @@bind_address, @grant_time, username, ip_list, db_list, long_psw, short_psw, @is_check_failed);
+    CALL check_all(@uuid, @grant_time, username, ip_list, db_list, long_psw, short_psw, @is_check_failed);
 
     IF @is_check_failed = 1 THEN
         SIGNAL SQLSTATE '32402' SET MESSAGE_TEXT = @uuid;
@@ -54,18 +57,22 @@ BEGIN
         -- 如果涉及新增账号, 只使用新版本密码
         CALL dba_grant_one_ip(username, @ip, db_list, long_psw, priv_str, global_priv_str);
     END WHILE;
+
+    FLUSH PRIVILEGES;
 END//
 DELIMITER ;
 
-DROP PROCEDURE IF EXISTS init_report_table;
+DROP PROCEDURE IF EXISTS infodba_schema.init_report_table;
+DROP TABLE IF EXISTS infodba_schema.dba_grant_result;
 DELIMITER //
-CREATE PROCEDURE init_report_table()
+CREATE PROCEDURE infodba_schema.init_report_table()
 SQL SECURITY INVOKER
 BEGIN
-    SET SESSION binlog_format = 'STATEMENT';
-    CREATE TABLE IF NOT EXISTS dba_grant_result(
+    -- 不同版本授权语句不兼容, 所以干脆不写
+    SET SESSION sql_log_bin = 0;
+
+    CREATE TABLE IF NOT EXISTS infodba_schema.dba_grant_result(
         id VARCHAR(64),
-        db_ip VARCHAR(32),
         grant_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
         username VARCHAR(128),
         client_ip VARCHAR(32),
@@ -75,17 +82,16 @@ BEGIN
         priv VARCHAR(4096),
         global_priv VARCHAR(4096),
         msg VARCHAR(4096)
-    );
+    ) ENGINE = InnoDB;
     DELETE FROM dba_grant_result WHERE grant_time < DATE_SUB(NOW(), INTERVAL 1 DAY);
 END//
 DELIMITER ;
 
 -- 检查入口
-DROP PROCEDURE IF EXISTS check_all;
+DROP PROCEDURE IF EXISTS infodba_schema.check_all;
 DELIMITER //
-CREATE PROCEDURE check_all(
+CREATE PROCEDURE infodba_schema.check_all(
     IN uuid VARCHAR(64),
-    IN db_ip VARCHAR(32),
     IN grant_time TIMESTAMP,
     IN username VARCHAR(128), 
     IN ip_list VARCHAR(3000), 
@@ -97,17 +103,16 @@ CREATE PROCEDURE check_all(
 SQL SECURITY INVOKER
 BEGIN
     -- 全量检查入口
-    CALL check_password(uuid, db_ip, grant_time, username, ip_list, long_psw, short_psw, is_check_failed);
-    CALL check_db_conflict(uuid, db_ip, grant_time, username, ip_list, db_list, is_check_failed);
+    CALL check_password(uuid, grant_time, username, ip_list, long_psw, short_psw, is_check_failed);
+    CALL check_db_conflict(uuid, grant_time, username, ip_list, db_list, is_check_failed);
 END //
 DELIMITER ;
 
 -- 密码一致性检查
-DROP PROCEDURE IF EXISTS check_password;
+DROP PROCEDURE IF EXISTS infodba_schema.check_password;
 DELIMITER //
-CREATE PROCEDURE check_password(
+CREATE PROCEDURE infodba_schema.check_password(
     IN uuid VARCHAR(64),
-    IN db_ip VARCHAR(32),
     IN grant_time TIMESTAMP,    
     IN username VARCHAR(128), 
     IN ip_list VARCHAR(3000), 
@@ -117,7 +122,9 @@ CREATE PROCEDURE check_password(
 )
 SQL SECURITY INVOKER
 BEGIN
-    SET SESSION binlog_format = 'STATEMENT';
+    -- 不同版本授权语句不兼容, 所以干脆不写
+    SET SESSION sql_log_bin = 0;
+
     WHILE (LOCATE(',', ip_list) > 0)
     DO
         SET @ip = TRIM(SUBSTRING(ip_list, 1, LOCATE(',', ip_list) - 1));
@@ -135,8 +142,8 @@ BEGIN
 
             IF NOT @psw_match THEN
                 SET is_check_failed = is_check_failed OR 1;
-                INSERT INTO dba_grant_result(id, db_ip, grant_time, username, client_ip, long_psw, short_psw, msg) 
-                    VALUES (uuid, db_ip, grant_time, username, @ip, long_psw, short_psw, 'password not match');
+                INSERT INTO dba_grant_result(id, grant_time, username, client_ip, long_psw, short_psw, msg)
+                    VALUES (uuid, grant_time, username, @ip, long_psw, short_psw, 'password not match');
             END IF;     
         END IF;
     END WHILE;
@@ -144,11 +151,10 @@ END //
 DELIMITER ;
 
 -- 库模式冲突检查入口
-DROP PROCEDURE IF EXISTS check_db_conflict;
+DROP PROCEDURE IF EXISTS infodba_schema.check_db_conflict;
 DELIMITER //
-CREATE PROCEDURE check_db_conflict(
+CREATE PROCEDURE infodba_schema.check_db_conflict(
     IN uuid VARCHAR(64),
-    IN db_ip VARCHAR(32),
     IN grant_time TIMESTAMP,
     IN username VARCHAR(128), 
     IN ip_list VARCHAR(3000), 
@@ -164,18 +170,17 @@ BEGIN
 
         SELECT EXISTS(SELECT 1 FROM mysql.db WHERE user = username AND host = @ip) INTO @db_priv_applied;
         IF @db_priv_applied THEN
-            CALL check_db_conflict_one_ip(uuid, db_ip, grant_time, username, @ip, db_list, is_check_failed);
+            CALL check_db_conflict_one_ip(uuid, grant_time, username, @ip, db_list, is_check_failed);
         END IF;
     END WHILE;
 END //
 DELIMITER ;
 
 -- 单 IP 库模式冲突检查
-DROP PROCEDURE IF EXISTS check_db_conflict_one_ip;
+DROP PROCEDURE IF EXISTS infodba_schema.check_db_conflict_one_ip;
 DELIMITER //
-CREATE PROCEDURE check_db_conflict_one_ip(
+CREATE PROCEDURE infodba_schema.check_db_conflict_one_ip(
     IN uuid VARCHAR(64),
-    IN db_ip VARCHAR(32),
     IN grant_time TIMESTAMP,    
     IN username VARCHAR(128), 
     IN ip VARCHAR(15), 
@@ -189,7 +194,8 @@ BEGIN
     DECLARE db_cursor CURSOR FOR SELECT db FROM mysql.db WHERE user = username AND host = @ip;
     DECLARE CONTINUE HANDLER FOR NOT FOUND SET cursor_done = TRUE;    
 
-    SET SESSION binlog_format = 'STATEMENT';
+    -- 不同版本授权语句不兼容, 所以干脆不写
+    SET SESSION sql_log_bin = 0;
 
     OPEN db_cursor;
     fetch_loop: LOOP
@@ -208,8 +214,8 @@ BEGIN
             -- 申请库名和已有库名不等并且能模式匹配 
             IF @dbname <> applied_dbname AND (@dbname LIKE applied_dbname OR applied_dbname LIKE @dbname) THEN 
                 SET is_check_failed = is_check_failed OR 1;
-                INSERT INTO dba_grant_result(id, db_ip, grant_time, username, client_ip, dbname, long_psw, short_psw, msg) 
-                    VALUES (uuid, db_ip, grant_time, username, @ip, @dbname, long_psw, short_psw, CONCAT("conflict with applied db [", applied_dbname, "]"));                
+                INSERT INTO dba_grant_result(id, grant_time, username, client_ip, dbname, long_psw, short_psw, msg)
+                    VALUES (uuid, grant_time, username, @ip, @dbname, long_psw, short_psw, CONCAT("conflict with applied db [", applied_dbname, "]"));
             END IF;
         END WHILE;
 
@@ -219,9 +225,9 @@ END //
 DELIMITER ;
 
 -- 单 IP 授权
-DROP PROCEDURE IF EXISTS dba_grant_one_ip;
+DROP PROCEDURE IF EXISTS infodba_schema.dba_grant_one_ip;
 DELIMITER //
-CREATE PROCEDURE dba_grant_one_ip(
+CREATE PROCEDURE infodba_schema.dba_grant_one_ip(
     IN username VARCHAR(128), 
     IN ip VARCHAR(15), 
     IN db_list VARCHAR(3000), 
@@ -231,6 +237,9 @@ CREATE PROCEDURE dba_grant_one_ip(
 )
 SQL SECURITY INVOKER
 BEGIN
+    -- 不同版本授权语句不兼容, 所以干脆不写
+    SET SESSION sql_log_bin = 0;
+
     SELECT EXISTS(SELECT 1 FROM mysql.user WHERE user = username AND host = ip) INTO @user_host_exists;
     IF NOT @user_host_exists THEN
         -- 用户不存在, 直接创建, 只使用新版本密码, 传入的密码是密文
@@ -239,7 +248,7 @@ BEGIN
             PREPARE stmt FROM @create_user_sql;
             EXECUTE stmt;
         ELSE
-            SET @create_user_sql = CONCAT("CREATE USER IF NOT EXISTS'", username, "'@'", ip, "' IDENTIFIED WITH mysql_native_password AS '", psw, "'");
+            SET @create_user_sql = CONCAT("CREATE USER IF NOT EXISTS '", username, "'@'", ip, "' IDENTIFIED WITH mysql_native_password AS '", psw, "'");
             PREPARE stmt FROM @create_user_sql;
             EXECUTE stmt;            
         END IF;
@@ -255,9 +264,9 @@ END//
 DELIMITER ;
 
 -- 单 IP 单 DB 授权
-DROP PROCEDURE IF EXISTS dba_grant_one_ip_db;
+DROP PROCEDURE IF EXISTS infodba_schema.dba_grant_one_ip_db;
 DELIMITER //
-CREATE PROCEDURE dba_grant_one_ip_db(
+CREATE PROCEDURE infodba_schema.dba_grant_one_ip_db(
     IN username VARCHAR(128), 
     IN ip VARCHAR(15), 
     IN dbname VARCHAR(64), 
@@ -271,6 +280,9 @@ BEGIN
     DECLARE cursor_done INT DEFAULT FALSE;
     DECLARE db_cursor CURSOR FOR SELECT db FROM mysql.db WHERE user = username AND host = ip;
     DECLARE CONTINUE HANDLER FOR NOT FOUND SET cursor_done = TRUE;
+
+    -- 不同版本授权语句不兼容, 所以干脆不写
+    SET SESSION sql_log_bin = 0;
 
     SET priv_str = TRIM(BOTH ',' FROM TRIM(priv_str));
     SET global_priv_str = TRIM(BOTH ',' FROM TRIM(global_priv_str));
@@ -295,5 +307,3 @@ BEGIN
     END IF;
 END//
 DELIMITER ;
-
-

@@ -151,6 +151,7 @@
   - spider
   role:
   - master
+  - slave
   - spider_master
   - orphan
 - name: mysql-inject

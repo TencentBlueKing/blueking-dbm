@@ -12,45 +12,37 @@
 -->
 
 <template>
-  <div
-    class="ticket-details-item"
-    style="align-items: flex-start">
-    <span class="ticket-details-item-label">{{ t('订阅的库表') }}：</span>
-    <span class="ticket-details-item-value">
+  <InfoList>
+    <InfoItem
+      :label="t('订阅的库表：')"
+      style="flex: 0 0 100%">
       <BkTable
-        class="subscribe-table"
         :columns="subscribeColumns"
         :data="subscribeTableData" />
-    </span>
-  </div>
-  <div
-    class="ticket-details-item mt-16"
-    style="align-items: flex-start">
-    <span class="ticket-details-item-label">{{ t('数据源与接收端') }}：</span>
-    <span class="ticket-details-item-value">
+    </InfoItem>
+    <InfoItem
+      :label="t('数据源与接收端：')"
+      style="flex: 0 0 100%">
       <BkTable
-        class="subscribe-table"
         :columns="receiverColumns"
         :data="receiverTableData" />
-    </span>
-  </div>
-
-  <div class="ticket-details-list">
-    <div class="ticket-details-item">
-      <span class="ticket-details-item-label">{{ t('订阅名称') }}：</span>
-      <span class="ticket-details-item-value">{{ name }}</span>
-    </div>
-    <div class="ticket-details-item">
-      <span class="ticket-details-item-label">{{ t('Dumper部署位置') }}：</span>
-      <span class="ticket-details-item-value">{{ t('集群Master所在主机') }}</span>
-    </div>
-    <div class="ticket-details-item">
-      <span class="ticket-details-item-label">{{ t('数据同步方式') }}：</span>
-      <span class="ticket-details-item-value">
-        {{ addType === 'incr_sync' ? t('增量同步') : t('全量同步') }}
-      </span>
-    </div>
-  </div>
+    </InfoItem>
+    <InfoItem
+      :label="t('订阅名称：')"
+      style="flex: 0 0 100%">
+      {{ name }}
+    </InfoItem>
+    <InfoItem
+      :label="t('Dumper部署位置：')"
+      style="flex: 0 0 100%">
+      {{ t('集群Master所在主机') }}
+    </InfoItem>
+    <InfoItem
+      :label="t('数据同步方式：')"
+      style="flex: 0 0 100%">
+      {{ addType === 'incr_sync' ? t('增量同步') : t('全量同步') }}
+    </InfoItem>
+  </InfoList>
 </template>
 
 <script setup lang="tsx">
@@ -59,6 +51,8 @@
   import TicketModel, {type Dumper} from '@services/model/ticket/ticket';
 
   import { TicketTypes } from '@common/const';
+
+  import InfoList, { Item as InfoItem } from '../components/info-list/Index.vue';
 
 
   interface Props {
@@ -193,31 +187,3 @@
     };
   });
 </script>
-<style lang="less" scoped>
-  .subscribe-table {
-    :deep(.table-names-box) {
-      display: flex;
-      width: 100%;
-      flex-wrap: wrap;
-      padding-top: 10px;
-      padding-bottom: 2px;
-
-      .name-item {
-        height: 22px;
-        padding: 0 8px;
-        margin-right: 4px;
-        margin-bottom: 8px;
-        line-height: 22px;
-        color: #63656e;
-        background: #f0f1f5;
-        border-radius: 2px;
-      }
-    }
-
-    :deep(th) {
-      .head-text {
-        color: #313238;
-      }
-    }
-  }
-</style>

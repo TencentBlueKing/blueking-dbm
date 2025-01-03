@@ -12,47 +12,37 @@
 -->
 
 <template>
-  <BkLoading :loading="loading">
-    <div class="ticket-details-list">
-      <div class="ticket-details-item">
-        <span class="ticket-details-item-label">{{ t('集群') }}：</span>
-        <span class="ticket-details-item-value">{{ rowData?.clusterName || '--' }}</span>
-      </div>
-      <div class="ticket-details-item">
-        <span class="ticket-details-item-label">{{ t('集群ID') }}：</span>
-        <span class="ticket-details-item-value">{{ rowData?.clusterId || '--' }}</span>
-      </div>
+  <BkLoading :loading="isLoading">
+    <InfoList>
+      <InfoItem :label="t('集群：')">
+        {{ rowData?.clusterName || '--' }}
+      </InfoItem>
+      <InfoItem :label="t('集群ID：')">
+        {{ rowData?.clusterId || '--' }}
+      </InfoItem>
       <template v-if="isScaleUp">
-        <div class="ticket-details-item">
-          <span class="ticket-details-item-label">{{ t('服务器选择方式') }}：</span>
-          <span class="ticket-details-item-value">
-            {{ isFromResourcePool ? t('从资源池匹配') : t('手动选择') }}
-          </span>
-        </div>
+        <InfoItem :label="t('服务器选择方式：')">
+          {{ isFromResourcePool ? t('从资源池匹配') : t('手动选择') }}
+        </InfoItem>
         <template v-if="isFromResourcePool">
-          <div class="ticket-details-item">
-            <span class="ticket-details-item-label">{{ t('扩容规格') }}：</span>
-            <span class="ticket-details-item-value">{{ rowData?.specName || '--' }}</span>
-          </div>
-          <div class="ticket-details-item">
-            <span class="ticket-details-item-label">{{ t('扩容数量') }}：</span>
-            <span class="ticket-details-item-value">
-              {{ t('n台', [rowData?.count]) || '--' }}
-            </span>
-          </div>
+          <InfoItem :label="t('扩容规格：')">
+            {{ rowData?.specName || '--' }}
+          </InfoItem>
+          <InfoItem :label="t('扩容数量：')">
+            {{ t('n台', [rowData?.count]) || '--' }}
+          </InfoItem>
         </template>
         <template v-else>
-          <div class="ticket-details-item table">
-            <span class="ticket-details-item-label">{{ t('已选IP') }}：</span>
-            <span class="ticket-details-item-value">
-              <BkTable
-                :columns="tableColumns"
-                :data="ipList" />
-            </span>
-          </div>
+          <InfoItem
+            :label="t('已选IP：')"
+            style="width: 100%">
+            <BkTable
+              :columns="tableColumns"
+              :data="ipList" />
+          </InfoItem>
         </template>
       </template>
-    </div>
+    </InfoList>
   </BkLoading>
 </template>
 
@@ -62,6 +52,8 @@
 
   import TicketModel, { type Riak } from '@services/model/ticket/ticket';
   import { getResourceSpecList } from '@services/source/dbresourceSpec';
+
+  import InfoList, { Item as InfoItem } from '../../components/info-list/Index.vue';
 
   interface Props {
     ticketDetails: TicketModel<Riak.ScaleIn>
@@ -101,7 +93,7 @@
 
   const ipList = computed(() => props.ticketDetails.details?.nodes?.riak || []);
 
-  const { loading } = useRequest(getResourceSpecList, {
+  const { loading: isLoading } = useRequest(getResourceSpecList, {
     defaultParams: [{
       spec_cluster_type: 'riak',
       offset: 0,

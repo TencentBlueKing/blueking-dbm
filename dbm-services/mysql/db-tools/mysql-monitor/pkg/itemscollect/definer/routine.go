@@ -9,7 +9,6 @@
 package definer
 
 import (
-	"context"
 	"fmt"
 	"log/slog"
 
@@ -20,9 +19,6 @@ import (
 )
 
 func routines(db *sqlx.DB) (msg []string, err error) {
-	ctx, cancel := context.WithTimeout(context.Background(), config.MonitorConfig.InteractTimeout)
-	defer cancel()
-
 	q, args, err := sqlx.In(
 		`SELECT ROUTINE_TYPE, ROUTINE_NAME, ROUTINE_SCHEMA, DEFINER 
 					FROM information_schema.ROUTINES 
@@ -39,7 +35,7 @@ func routines(db *sqlx.DB) (msg []string, err error) {
 		RoutineSchema string `db:"ROUTINE_SCHEMA"`
 		Definer       string `db:"DEFINER"`
 	}
-	err = db.SelectContext(ctx, &res, db.Rebind(q), args...)
+	err = db.Select(&res, db.Rebind(q), args...)
 	if err != nil {
 		return nil, errors.Wrap(err, "query routines")
 	}

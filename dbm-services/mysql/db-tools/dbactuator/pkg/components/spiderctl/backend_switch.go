@@ -446,7 +446,7 @@ func (r *SpiderClusterBackendSwitchComp) CutOver() (err error) {
 	if err = r.recordBinLogPos(); err != nil {
 		return err
 	}
-	// flush 到中控生效
+	// flush 到中控生效,此时才算真正切换，中控更改后端的路由
 	logger.Info("execute:tdbctl flush routing force")
 	return r.flushrouting()
 }
@@ -495,7 +495,7 @@ func (r *SpiderClusterBackendSwitchComp) CutOverSlave() (err error) {
 	return r.flushrouting()
 }
 
-// PersistenceRollbackFile TODO
+// PersistenceRollbackFile 持久化需要回滚的切换路由的SQL文件
 func (r *SpiderClusterBackendSwitchComp) PersistenceRollbackFile() (err error) {
 	var masterRbSqls, slaveRbSqls, w []string
 	for _, ins_pair := range r.realSwitchSvrPairs {
@@ -724,24 +724,16 @@ func (c *CutOverCtx) flushrouting() (err error) {
 	return
 }
 
-// me, ok := err.(*mysql.MySQLError)
-// if !ok {
-// 	return
-// }
-// if me.Number == 12028 {
-// 	partFlushed = true
-// }
-// partFlushed, err
-
 func (c *CutOverCtx) initRollbackRouteFile() (err error) {
 	fileName := "rollback.sql"
 	currentPath, err := os.Getwd()
 	if err != nil {
 		return
 	}
+	var fsInfo os.FileInfo
 	logger.Info("init rollback route sql file in %s", currentPath)
 	if cmutil.FileExists(fileName) {
-		fsInfo, err := os.Stat(fileName)
+		fsInfo, err = os.Stat(fileName)
 		if err != nil {
 			return err
 		}

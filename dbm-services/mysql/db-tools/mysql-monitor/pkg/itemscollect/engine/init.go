@@ -9,7 +9,6 @@
 package engine
 
 import (
-	"context"
 	"database/sql"
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/config"
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/monitoriteminterface"
@@ -72,11 +71,8 @@ func (c *Checker) Run() (msg string, err error) {
 		_ = regFile.Close()
 	}()
 
-	ctx, cancel := context.WithTimeout(context.Background(), config.MonitorConfig.InteractTimeout)
-	defer cancel()
-
 	var dataDir sql.NullString
-	err = c.db.GetContext(ctx, &dataDir, `SELECT @@datadir`)
+	err = c.db.Get(&dataDir, `SELECT @@datadir`)
 	if err != nil {
 		slog.Error("ibd-statistic", slog.String("error", err.Error()))
 		return "", err

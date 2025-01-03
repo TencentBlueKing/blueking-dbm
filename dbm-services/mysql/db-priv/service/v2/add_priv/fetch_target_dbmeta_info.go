@@ -37,6 +37,7 @@ func (c *PrivTaskPara) fetchTargetDBMetaInfo() ([]*service.Instance, error) {
 		)
 		return nil, err
 	}
+	slog.Info("fetch target db meta info", slog.Any("result", result))
 
 	res := make([]*service.Instance, 0)
 	err = json.Unmarshal(result.Data, &res)

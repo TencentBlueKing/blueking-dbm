@@ -361,6 +361,8 @@ func (job *RedisDtsOnlineSwitch) NewProxyConfigFileForSameType() (err error) {
 			dstConfContent = strings.ReplaceAll(dstConfContent, logRootDir+"/", consts.GetRedisDataDir()+"/")
 		}
 	}
+	// 避免跟密码字段有重复，放在最后面替换集群名
+	dstConfContent = strings.ReplaceAll(dstConfContent, job.params.DstClusterName, job.params.SrcClusterName)
 
 	newFile := fmt.Sprintf("dts_new_config.billid_%d.%s_%d.%s", job.params.DtsBillID, job.params.SrcProxyIP,
 		job.params.SrcProxyPort, job.getSrcConfigFileSuffix())
@@ -392,6 +394,10 @@ func (job *RedisDtsOnlineSwitch) NewProxyConfigFileForSameType() (err error) {
 	if err != nil {
 		return
 	}
+
+	// 修改目录归属
+	util.LocalDirChownMysql(job.getSrcProxyConfigSaveDir())
+
 	return nil
 }
 
@@ -418,6 +424,8 @@ func (job *RedisDtsOnlineSwitch) NewProxyConfigFileForDiffType() (err error) {
 			dstConfContent = strings.ReplaceAll(dstConfContent, logRootDir+"/", consts.GetRedisDataDir()+"/")
 		}
 	}
+	// 避免跟密码字段有重复，放在最后面替换集群名
+	dstConfContent = strings.ReplaceAll(dstConfContent, job.params.DstClusterName, job.params.SrcClusterName)
 
 	proxyFileForDstPort := job.getProxyFile(job.params.DstClusterType, job.params.DstProxyPort)
 	proxyFileForDstPort = filepath.Join(saveDirForDstPort, proxyFileForDstPort)

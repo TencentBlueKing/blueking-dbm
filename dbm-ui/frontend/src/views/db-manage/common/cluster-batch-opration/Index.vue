@@ -136,6 +136,7 @@
       padding: 0;
 
       .opration-button {
+        width: 100%;
         padding: 0 16px;
       }
     }

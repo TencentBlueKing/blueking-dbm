@@ -15,11 +15,13 @@ import { uniq } from 'lodash';
 
 import type { ClusterListEntry, ClusterListNode, ClusterListOperation } from '@services/types';
 
+import { ClusterTypes } from '@common/const';
+
 import { t } from '@locales/index';
 
-import DateTime from '../_dateTime';
+import ClusterBase from '../_clusterBase';
 
-export default class SqlServerSingleCluster extends DateTime {
+export default class SqlServerSingleCluster extends ClusterBase {
   static SQLSERVER_DESTROY = 'SQLSERVER_DESTROY';
   static SQLSERVER_DISABLE = 'SQLSERVER_DISABLE';
   static SQLSERVER_ENABLE = 'SQLSERVER_ENABLE';
@@ -51,7 +53,7 @@ export default class SqlServerSingleCluster extends DateTime {
   cluster_name: string;
   cluster_stats: Record<'used' | 'total' | 'in_use', number>;
   cluster_time_zone: string;
-  cluster_type: string;
+  cluster_type: ClusterTypes;
   cluster_type_name: string;
   create_at: string;
   creator: string;
@@ -206,14 +208,6 @@ export default class SqlServerSingleCluster extends DateTime {
 
   get isAbnormal() {
     return this.status === 'abnormal';
-  }
-
-  get isOnline() {
-    return this.phase === 'online';
-  }
-
-  get isOffline() {
-    return this.phase === 'offline';
   }
 
   get isStarting() {

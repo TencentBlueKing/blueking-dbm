@@ -9,7 +9,6 @@
 package ext3check
 
 import (
-	"context"
 	"database/sql"
 	"fmt"
 	"path/filepath"
@@ -23,14 +22,11 @@ import (
 )
 
 func mysqlDirs(db *sqlx.DB, variables []string) (dirs []string, err error) {
-	ctx, cancel := context.WithTimeout(context.Background(), config.MonitorConfig.InteractTimeout)
-	defer cancel()
-
 	var datadir string
 
 	for _, v := range variables {
 		var dir sql.NullString
-		err = db.GetContext(ctx, &dir, fmt.Sprintf(`SELECT @@%s`, v))
+		err = db.Get(&dir, fmt.Sprintf(`SELECT @@%s`, v))
 		if err != nil && !errors.Is(err, sql.ErrNoRows) {
 			return nil, errors.Wrap(err, fmt.Sprintf(`SELECT @@%s`, v))
 		}
@@ -45,7 +41,7 @@ func mysqlDirs(db *sqlx.DB, variables []string) (dirs []string, err error) {
 	}
 
 	var versionStr string
-	err = db.GetContext(ctx, &versionStr, `SELECT SUBSTRING_INDEX(@@version, ".", 2)`)
+	err = db.Get(&versionStr, `SELECT SUBSTRING_INDEX(@@version, ".", 2)`)
 	if err != nil {
 		return nil, errors.Wrap(err, `SELECT SUBSTRING_INDEX(@@version, ".", 2)`)
 	}
@@ -58,7 +54,7 @@ func mysqlDirs(db *sqlx.DB, variables []string) (dirs []string, err error) {
 		var binlogBase sql.NullString
 		var relaylogBase sql.NullString
 
-		err = db.GetContext(ctx, &binlogBase, `SELECT @@log_bin_basename`)
+		err = db.Get(&binlogBase, `SELECT @@log_bin_basename`)
 		if err != nil && !errors.Is(err, sql.ErrNoRows) {
 			return nil, errors.Wrap(err, `SELECT @@log_bin_basename`)
 		}
@@ -67,7 +63,7 @@ func mysqlDirs(db *sqlx.DB, variables []string) (dirs []string, err error) {
 			dirs = append(dirs, filepath.Dir(binlogBase.String))
 		}
 
-		err = db.GetContext(ctx, &relaylogBase, `SELECT @@relay_log_basename`)
+		err = db.Get(&relaylogBase, `SELECT @@relay_log_basename`)
 		if err != nil && !errors.Is(err, sql.ErrNoRows) {
 			return nil, errors.Wrap(err, `SELECT @@relay_log_basename`)
 		}

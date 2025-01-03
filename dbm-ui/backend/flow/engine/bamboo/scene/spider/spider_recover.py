@@ -129,7 +129,7 @@ def remote_node_rollback(root_id: str, ticket_data: dict, cluster: dict):
     sub_pipeline_all_list = []
     instance_check_list = []
     backup_info = cluster["backupinfo"]
-    if cluster["new_master"]["instance"] != cluster["new_slave"]["instance"]:
+    if cluster["new_master"]["instance"] != cluster["new_slave"]["instance"] and cluster["all_database_rollback"]:
         sub_pipeline_all.add_act(
             act_name=_("从库stop slave {}").format(cluster["new_slave"]["instance"]),
             act_component_code=MySQLExecuteRdsComponent.code,

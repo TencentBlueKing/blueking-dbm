@@ -81,7 +81,11 @@ class Services:
         dbm_service_json["project_key"] = project_key
         dbm_service_json["catalog_id"] = dbm_catalog_id
         dbm_service_name = dbm_service_json["name"]
+
         for_update = dbm_service_json.pop("for_update", False)
+        approve_key = dbm_service_json.pop("approve_key")
+        remark_key = dbm_service_json.pop("remark_key")
+
         dbm_service_id = 0
 
         try:
@@ -100,9 +104,9 @@ class Services:
 
         # 更新到系统配置中
         if dbm_service_id:
-            SystemSettings.insert_setting_value(
-                key=SystemSettingsEnum.BK_ITSM_SERVICE_ID.value, value=str(dbm_service_id)
-            )
+            SystemSettings.insert_setting_value(key=SystemSettingsEnum.BK_ITSM_SERVICE_ID, value=str(dbm_service_id))
+            SystemSettings.insert_setting_value(key=SystemSettingsEnum.ITSM_APPROVAL_KEY, value=approve_key)
+            SystemSettings.insert_setting_value(key=SystemSettingsEnum.ITSM_REMARK_KEY, value=remark_key)
             logger.info("服务创建/更新成功")
         else:
             logger.info("本次更新跳过...")

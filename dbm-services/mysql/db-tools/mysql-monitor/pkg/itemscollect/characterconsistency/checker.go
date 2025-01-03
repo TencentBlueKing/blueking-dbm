@@ -9,7 +9,6 @@
 package characterconsistency
 
 import (
-	"context"
 	"fmt"
 
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/config"
@@ -28,11 +27,9 @@ type Checker struct {
 
 // Run TODO
 func (c *Checker) Run() (msg string, err error) {
-	ctx, cancel := context.WithTimeout(context.Background(), config.MonitorConfig.InteractTimeout)
-	defer cancel()
 
 	var characterSetServer string
-	err = c.db.GetContext(ctx, &characterSetServer, `SELECT @@character_set_server`)
+	err = c.db.Get(&characterSetServer, `SELECT @@character_set_server`)
 	if err != nil {
 		return "", errors.Wrap(err, "get character_set_server") // ToDo 这里需要发告警么?
 	}
@@ -52,7 +49,7 @@ func (c *Checker) Run() (msg string, err error) {
 		SchemaName    string `db:"SCHEMA_NAME"`
 		SchemaCharset string `db:"DEFAULT_CHARACTER_SET_NAME"`
 	}
-	err = c.db.SelectContext(ctx, &res, c.db.Rebind(q), args...)
+	err = c.db.Select(&res, c.db.Rebind(q), args...)
 	if err != nil {
 		return "", errors.Wrap(err, "query charset inconsistent dbs")
 	}

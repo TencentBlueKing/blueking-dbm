@@ -190,7 +190,7 @@
   const selected = shallowRef<RiakNodeModel[]>([]);
   const operationData = shallowRef<RiakModel>();
 
-  const setRowClass = (data: RiakNodeModel) => (data.isNewRow ? 'is-new-row' : '');
+  const setRowClass = (data: RiakNodeModel) => (data.isNew ? 'is-new-row' : '');
 
   const columns = [
     {
@@ -201,7 +201,7 @@
       render: ({ row }: { row: RiakNodeModel }) => {
         const content = (
         <>
-          {row.isNewRow && <MiniTag content="NEW" theme="success"></MiniTag>}
+          {row.isNew && <MiniTag content="NEW" theme="success"></MiniTag>}
           <bk-button
             text
             theme="primary"

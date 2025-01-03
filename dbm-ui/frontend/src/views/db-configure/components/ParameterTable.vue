@@ -28,8 +28,6 @@
   </DbForm>
 </template>
 <script lang="tsx">
-  import type { Column } from 'bkui-vue/lib/table/props';
-  // import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
 
   import { getLevelConfig } from '@services/source/configs';
@@ -44,10 +42,6 @@
     cell: string;
     data: ParameterConfigItem;
     index: number;
-  };
-
-  export default {
-    name: 'ParameterTable',
   };
 </script>
 
@@ -101,10 +95,10 @@
   // 配合 controlShow 控制当前行显示隐藏
   const lockTipsList = computed(() => Array.from({ length: props.data.length }, () => false));
 
-  const columns: Column[] = [{
+  const columns = [{
     label: t('参数项'),
     field: 'conf_name',
-    showOverflowTooltip: false,
+    minWidth: 300,
     render: ({ cell, data, index }: TableColumn) => {
       if (data.op_type === 'add') {
         return (

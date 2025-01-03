@@ -9,7 +9,6 @@
 package mysqlprocesslist
 
 import (
-	"context"
 	"database/sql"
 	"encoding/json"
 	"fmt"
@@ -125,11 +124,7 @@ func loadSnapShot() ([]*mysqlProcess, error) {
 }
 
 func queryProcessList(db *sqlx.DB) ([]mysqlProcess, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), config.MonitorConfig.InteractTimeout)
-	defer cancel()
-
-	rows, err := db.QueryxContext(
-		ctx,
+	rows, err := db.Queryx(
 		`SELECT ID, USER, HOST, DB, COMMAND, TIME, STATE, INFO FROM INFORMATION_SCHEMA.PROCESSLIST`)
 	if err != nil {
 		slog.Error("show full processlist", slog.String("error", err.Error()))

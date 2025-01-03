@@ -48,6 +48,69 @@
             </BkButton>
           </div>
         </template>
+        <BkTableColumn
+          v-if="columns.length < 1 && selectable"
+          fixed="left"
+          width="80">
+          <template #header>
+            <div class="db-table-select-cell">
+              <div
+                v-if="isWholeChecked"
+                class="db-table-whole-check"
+                @click="handleClearWholeSelect" />
+              <template v-else>
+                <BkCheckbox
+                  v-if="isCurrentPageAllSelected"
+                  key="page"
+                  label
+                  model-value
+                  @change="handleTogglePageSelect" />
+                <BkCheckbox
+                  v-else
+                  key="all"
+                  @change="handleWholeSelect" />
+              </template>
+              <BkPopover
+                :arrow="false"
+                placement="bottom-start"
+                theme="light db-table-select-menu"
+                trigger="hover">
+                <template #default>
+                  <DbIcon
+                    class="select-menu-flag"
+                    type="down-big" />
+                </template>
+                <template #content>
+                  <div class="db-table-select-plan">
+                    <div
+                      class="item"
+                      @click="handlePageSelect">
+                      {{ t('本页全选') }}
+                    </div>
+                    <div
+                      class="item"
+                      @click="handleWholeSelect">
+                      {{ t('跨页全选') }}
+                    </div>
+                  </div>
+                </template>
+              </BkPopover>
+            </div>
+          </template>
+          <template #default="{data}: {data: any}">
+            <span
+              v-bk-tooltips="{
+                disabled: !disableSelectMethod(data),
+                content: _.isString(disableSelectMethod(data)) ? disableSelectMethod(data) : t('禁止选择'),
+              }">
+              <BkCheckbox
+                :disabled="Boolean(disableSelectMethod(data))"
+                label
+                :model-value="Boolean(rowSelectMemo[_.get(data, props.primaryKey)])"
+                @change="() => handleSelecteRow(data)" />
+            </span>
+          </template>
+        </BkTableColumn>
         <slot />
         <template #expandRow="row">
           <slot
@@ -90,7 +153,7 @@
 
   import { getOffset } from '@utils';
 
-  interface Props {
+  export interface Props {
     columns?: InstanceType<typeof Table>['$props']['columns'],
     dataSource: (params: any, payload?: IRequestPayload)=> Promise<any>,
     fixedPagination?: boolean,
@@ -114,15 +177,15 @@
     showSettings?: boolean,
   }
 
-  interface Emits {
+  export interface Emits {
     (e: 'requestSuccess', value: any): void,
     (e: 'requestFinished', value: any[]): void,
     (e: 'clearSearch'): void,
-    (e: 'selection', key: string[], list: Record<any, any>[]): void,
-    (e: 'selection', key: number[], list: Record<any, any>[]): void,
+    (e: 'selection', key: string[], list: any[]): void,
+    (e: 'selection', key: number[], list: any[]): void,
   }
 
-  interface Exposes {
+  export interface Exposes{
     fetchData: (params?: Record<string, any>, baseParams?: Record<string, any>, loading?: boolean) => void,
     getData: <T>() => Array<T>,
     getAllData: <T>() => Promise<Array<T>>,
@@ -166,11 +229,16 @@
             <div class="db-table-whole-check" onClick={handleClearWholeSelect} />
           );
         }
+        if (isCurrentPageAllSelected.value){
+          return (
+            <bk-checkbox
+              label={true}
+              modelValue={true}
+              onChange={handleTogglePageSelect} />
+          );
+        }
         return (
-          <bk-checkbox
-            label={true}
-            modelValue={isCurrentPageAllSelected.value}
-            onChange={handleTogglePageSelect} />
+          <bk-checkbox onChange={handleWholeSelect} />
         );
       };
       return (
@@ -262,13 +330,13 @@
   });
 
   const localColumns = computed(() => {
-    if (!props.selectable || !props.columns) {
-      return props.columns;
+    if (props.selectable && props.columns.length > 0) {
+      return [
+        genSelectionColumn(),
+        ...props.columns,
+      ];
     }
-    return [
-      genSelectionColumn(),
-      ...props.columns,
-    ];
+    return props.columns;
   });
 
   let paramsMemo = {};
@@ -527,7 +595,6 @@
 
   // 切换每页条数
   const handlePageLimitChange = (pageLimit: number) => {
-  console.log('pagination.limit = ', pagination.limit,pageLimit )
   if (pagination.limit === pageLimit){
     return
   }
@@ -543,7 +610,6 @@
     }
     pagination.current = pageValue;
 
-    console.log('pagination.current = ', pagination.current, pageValue, pagination )
     fetchListData();
   };
 

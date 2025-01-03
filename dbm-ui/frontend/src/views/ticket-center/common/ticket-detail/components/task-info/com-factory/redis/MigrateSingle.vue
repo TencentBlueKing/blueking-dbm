@@ -16,8 +16,14 @@
     class="single-migrate-table"
     :data="ticketDetails.details.infos">
     <BkTableColumn
-      :field="isDomain ? 'display_info.domain' : 'display_info.ip'"
-      :label="isDomain ? t('目标集群') : t('目标 Master 主机')">
+      v-if="isDomain"
+      field="display_info.domain"
+      :label="t('目标集群')">
+    </BkTableColumn>
+    <BkTableColumn
+      v-else
+      field="display_info.ip"
+      :label="t('目标 Master 主机')">
     </BkTableColumn>
     <BkTableColumn
       field="old_nodes"

@@ -31,7 +31,7 @@ func NewChkTdbctlSpiderSchaCommand() *cobra.Command {
 	act := CheckTdbctlWithSpiderSchemaAct{}
 	cmd := &cobra.Command{
 		Use:   "check-tdbctl-with-spider-schema",
-		Short: "spider集群后端切换",
+		Short: "检查中控和spider的schema数量是否一致",
 		Example: fmt.Sprintf(`dbactuator spiderctl cluster-backend-switch %s %s`,
 			subcmd.CmdBaseExampleStr, subcmd.ToPrettyJson(act.Service.Example()),
 		),

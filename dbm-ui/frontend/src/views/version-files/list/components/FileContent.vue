@@ -44,7 +44,6 @@
         <BkLoading :loading="state.isLoading">
           <DbOriginalTable
             class="version-files-table"
-            :columns="columns"
             :data="state.data"
             :is-anomalies="state.isAnomalies"
             :is-searching="!!state.search"
@@ -54,7 +53,116 @@
             @clear-search="handleClearSearch"
             @page-limit-change="handeChangeLimit"
             @page-value-change="handleChangePage"
-            @refresh="fetchPackages" />
+            @refresh="fetchPackages">
+            <BkTableColumn
+              field="version"
+              :label="t('版本名称')"
+              :min-width="300">
+              <template #default="{ data }: { data: VersionFileModel }">
+                <TextOverflowLayout>
+                  {{ data.version }}
+                  <template #append>
+                    <BkButton
+                      v-if="data.priority === 0"
+                      v-bk-tooltips="{
+                        disabled: data.enable,
+                        content: t('未启用的版本不能设为默认'),
+                      }"
+                      class="set-btn"
+                      :class="{
+                        'set-btn-disable': !data.enable,
+                      }"
+                      size="small"
+                      @click="() => handleSetDefaultVersion(data)">
+                      {{ t('设为默认版本') }}
+                    </BkButton>
+                    <BkTag
+                      v-else
+                      class="ml-5"
+                      size="small"
+                      theme="info">
+                      {{ t('默认') }}
+                    </BkTag>
+                  </template>
+                </TextOverflowLayout>
+              </template>
+            </BkTableColumn>
+            <BkTableColumn
+              field="name"
+              :label="t('文件名称')"
+              :min-width="350">
+              <template #default="{ data }: { data: VersionFileModel }">
+                {{ data.name || '--' }}
+              </template>
+            </BkTableColumn>
+            <BkTableColumn
+              v-if="isShowSwitch"
+              :field="t('是否启用')"
+              label="enable"
+              :width="120">
+              <template #default="{ data }: { data: VersionFileModel }">
+                <BkPopConfirm
+                  :confirm-text="data.enable ? t('停用') : t('启用')"
+                  :content="
+                    data.enable
+                      ? t('停用后，在选择版本时，将不可见，且不可使用')
+                      : t('启用后，在选择版本时，将开放选择')
+                  "
+                  placement="bottom"
+                  :title="data.enable ? t('确认停用该版本？') : t('确认启用该版本？')"
+                  trigger="click"
+                  width="308"
+                  @confirm="() => handleConfirmSwitch(data)">
+                  <AuthSwitcher
+                    action-id="package_manage"
+                    :model-value="data.enable"
+                    :permission="data.permission.package_manage"
+                    :resource="info.name"
+                    size="small"
+                    theme="primary" />
+                </BkPopConfirm>
+              </template>
+            </BkTableColumn>
+            <BkTableColumn
+              v-else
+              field="md5"
+              label="MD5"
+              :width="350">
+              <template #default="{ data }: { data: VersionFileModel }">
+                <TextOverflowLayout>
+                  {{ data.md5 }}
+                  <template #append>
+                    <DbIcon
+                      type="copy"
+                      @click="() => copy(data.md5)" />
+                  </template>
+                </TextOverflowLayout>
+              </template>
+            </BkTableColumn>
+            <BkTableColumn
+              field="updater"
+              :label="t('更新人')"
+              :width="120">
+              <template #default="{ data }: { data: VersionFileModel }">
+                {{ data.updater || '--' }}
+              </template>
+            </BkTableColumn>
+            <BkTableColumn
+              :label="t('操作')"
+              :width="120">
+              <template #default="{ data }: { data: VersionFileModel }">
+                <AuthButton
+                  action-id="package_manage"
+                  :permission="data.permission.package_manage"
+                  :resource="info.name"
+                  text
+                  theme="primary"
+                  @click="() => handleConfirmDelete(data)">
+                  {{ t('删除') }}
+                </AuthButton>
+              </template>
+            </BkTableColumn>
+          </DbOriginalTable>
         </BkLoading>
       </div>
     </div>
@@ -149,44 +257,34 @@
     </template>
   </BkDialog>
 </template>
-<script setup lang="tsx">
+<script setup lang="ts">
   import { Form, Message } from 'bkui-vue';
-  import type {  UploadProgressEvent,UploadRequestOptions } from 'bkui-vue/lib/upload/upload.type';
+  import type { UploadProgressEvent, UploadRequestOptions } from 'bkui-vue/lib/upload/upload.type';
   import Cookies from 'js-cookie';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
   import VersionFileModel from '@services/model/version-file/version-file';
-  import {
-    createPackage,
-    updatePackage,
-  } from '@services/source/package';
+  import { createPackage, updatePackage } from '@services/source/package';
   import { createBkrepoAccessToken } from '@services/source/storage';
   import { getVersions } from '@services/source/version';
 
-  import {
-    useCopy,
-    useDefaultPagination,
-    useTableMaxHeight,
-  } from '@hooks';
+  import { useCopy, useDefaultPagination, useTableMaxHeight } from '@hooks';
 
   import { DBTypes } from '@common/const';
 
   import ApplyPermissionCatch from '@components/apply-permission/Catch.vue';
   import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
 
-  import {
-    messageSuccess,
-  } from '@utils';
+  import { messageSuccess } from '@utils';
 
   import { useVersionFiles } from '../hooks/useVersionFiles';
 
   import type { IState, VersionFileType } from './types';
 
-
   interface Props {
-    info: VersionFileType,
-    pkgTypeList: string[],
+    info: VersionFileType;
+    pkgTypeList: string[];
   }
 
   const props = defineProps<Props>();
@@ -233,8 +331,15 @@
   const tabs = computed(() => props.info.children || []);
   // 版本是否为输入框
   const isInputType = computed(() => {
-    const bigData: string[] = [DBTypes.KAFKA, DBTypes.ES, DBTypes.HDFS, DBTypes.PULSAR, DBTypes.INFLUXDB, DBTypes.DORIS];
-    return (bigData.includes(props.info.name) && state.active !== 'actuator' || props.info.name === DBTypes.MONGODB);
+    const bigData: string[] = [
+      DBTypes.KAFKA,
+      DBTypes.ES,
+      DBTypes.HDFS,
+      DBTypes.PULSAR,
+      DBTypes.INFLUXDB,
+      DBTypes.DORIS,
+    ];
+    return (bigData.includes(props.info.name) && state.active !== 'actuator') || props.info.name === DBTypes.MONGODB;
   });
   const fileTips = computed(() => ({
     content: isInputType.value ? t('请输入版本名称') : t('请选择版本名称'),
@@ -257,133 +362,26 @@
 
   const isShowSwitch = computed(() => props.pkgTypeList.length > 0 && props.pkgTypeList.includes(state.active));
 
-  const columns = computed(() => {
-    const basicColumns = [
-      {
-        label: t('版本名称'),
-        field: 'version',
-        render: ({ data }: { data: VersionFileModel }) => (
-          <div class="version-name text-overflow" v-overflow-tips>
-            {data.version}
-            {data.priority > 0 && <bk-tag theme="info" class="ml-5">{t('默认')}</bk-tag>}
-            {data.priority === 0 && (
-              <bk-button
-                v-bk-tooltips={{
-                  disabled: data.enable,
-                  content: t('未启用的版本不能设为默认'),
-                }}
-                class={{ 'set-btn': true, 'set-btn-disable': !data.enable }}
-                size="small"
-                onClick={() => handleSetDefaultVersion(data)}
-              >
-              {t('设为默认版本')}
-              </bk-button>
-            )}
-          </div>
-        ),
-      },
-      {
-        label: t('文件名称'),
-        field: 'name',
-        render: ({ data }: { data: VersionFileModel }) => data.name || '--',
-      },
-      {
-        label: 'MD5',
-        field: 'md5',
-        render: ({ data }: { data: VersionFileModel }) => (
-          <TextOverflowLayout>
-            {{
-              default: () => data.md5,
-              append: () => (
-                <db-icon
-                  type="copy"
-                  onClick={() => copy(data.md5)} />
-              ),
-            }}
-          </TextOverflowLayout>
-        ),
-      },
-      {
-        label: t('更新人'),
-        field: 'updater',
-        width: 120,
-        render: ({ data }: { data: VersionFileModel }) => data.updater || '--',
-      },
-      {
-        label: t('更新时间'),
-        field: 'update_at',
-        width: 250,
-        render: ({ data }: { data: VersionFileModel }) => data.updateAtDisplay || '--',
-      },
-      {
-        label: t('操作'),
-        field: 'id',
-        width: 100,
-        render: ({ data }: { data: VersionFileModel }) => (
-          <auth-button
-            action-id="package_manage"
-            resource={props.info.name}
-            permission={data.permission.package_manage}
-            text
-            theme="primary"
-            onClick={() => handleConfirmDelete(data)}>
-            { t('删除') }
-          </auth-button>
-        ),
-      },
-    ];
-    if (isShowSwitch.value) {
-      const switchColumn = {
-        label: t('是否启用'),
-        field: 'enable',
-        width: 120,
-        render: ({ data }: { data: VersionFileModel }) => (
-          <bk-pop-confirm
-            title={data.enable ? t('确认停用该版本？') : t('确认启用该版本？')}
-            content={data.enable ? t('停用后，在选择版本时，将不可见，且不可使用') : t('启用后，在选择版本时，将开放选择')}
-            width="308"
-            placement="bottom"
-            trigger="click"
-            confirm-text={data.enable ? t('停用') : t('启用')}
-            onConfirm={() => handleConfirmSwitch(data)}
-          >
-            <auth-switcher
-              action-id="package_manage"
-              resource={props.info.name}
-              permission={data.permission.package_manage}
-              size="small"
-              model-value={data.enable}
-              theme="primary"
-            />
-          </bk-pop-confirm>
-        ),
-      };
-      basicColumns.splice(2, 1, switchColumn);
-    }
-    return basicColumns;
-  });
-
   const rules = {
-    version: [{
-      required: true,
-      message: t('必填'),
-      trigger: 'blur',
-    }],
-    name: [{
-      required: true,
-      message: t('文件不能为空'),
-      trigger: 'change',
-      validator: (val: string[]) => val.length > 0,
-    }],
+    version: [
+      {
+        required: true,
+        message: t('必填'),
+        trigger: 'blur',
+      },
+    ],
+    name: [
+      {
+        required: true,
+        message: t('文件不能为空'),
+        trigger: 'change',
+        validator: (val: string[]) => val.length > 0,
+      },
+    ],
   };
 
   /** 操作列表基础方法 */
-  const {
-    fetchPackages,
-    handleChangePage,
-    handeChangeLimit,
-    handleConfirmDelete,
-  } = useVersionFiles(state, typeParams);
+  const { fetchPackages, handleChangePage, handeChangeLimit, handleConfirmDelete } = useVersionFiles(state, typeParams);
 
   const { run: runUpdatePackage } = useRequest(updatePackage, {
     manual: true,
@@ -393,17 +391,20 @@
     },
   });
 
-  watch(() => state.active, (value, old) => {
-    if (value && value !== old) {
-      state.search = '';
-      handleChangePage(1);
-      // 大数据类型不需要拉取版本
-      if (!isInputType.value) {
-        fetchVersions();
+  watch(
+    () => state.active,
+    (value, old) => {
+      if (value && value !== old) {
+        state.search = '';
+        handleChangePage(1);
+        // 大数据类型不需要拉取版本
+        if (!isInputType.value) {
+          fetchVersions();
+        }
       }
-    }
-  }, { immediate: true });
-
+    },
+    { immediate: true },
+  );
 
   const handleBeforeUpload = async (fileObj: File) => {
     const dbType = props.info.name;
@@ -421,8 +422,8 @@
     const tokenResult = await createBkrepoAccessToken({ file_path: filePath });
     const uploadDomain = import.meta.env.MODE === 'production' ? tokenResult.url : '/bkrepo_upload';
     createFileState.uploadUrl = `${uploadDomain}/generic/temporary/upload/${tokenResult.project}/${tokenResult.repo}${tokenResult.path}?token=${tokenResult.token}`;
-    return true
-  }
+    return true;
+  };
 
   const getRes = (xhr: XMLHttpRequest): XMLHttpRequestResponseType => {
     const res = xhr.responseText || xhr.response;
@@ -435,7 +436,7 @@
     } catch {
       return res;
     }
-  }
+  };
 
   const handleCustomRequest = (option: UploadRequestOptions) => {
     if (typeof XMLHttpRequest === 'undefined') {
@@ -446,7 +447,7 @@
     const { action } = option;
 
     if (xhr.upload) {
-      xhr.upload.addEventListener('progress', event => {
+      xhr.upload.addEventListener('progress', (event) => {
         const progressEvent = event as unknown as UploadProgressEvent;
         progressEvent.percent = event.total > 0 ? (event.loaded / event.total) * 100 : 0;
         option.onProgress(progressEvent);
@@ -476,7 +477,7 @@
 
     if (option.header) {
       if (Array.isArray(option.header)) {
-        option.header.forEach(head => {
+        option.header.forEach((head) => {
           const headerKey = head.name;
           const headerVal = head.value;
           xhr.setRequestHeader(headerKey, headerVal);
@@ -495,14 +496,14 @@
       for (const [key, value] of Object.entries(headers)) {
         if (value === null || typeof value === 'undefined') {
           continue;
-        };
+        }
         xhr.setRequestHeader(key, String(value));
       }
     }
 
     xhr.send(option.file);
     return xhr;
-  }
+  };
 
   const handleSetDefaultVersion = (row: VersionFileModel) => {
     if (!row.enable) {
@@ -531,12 +532,15 @@
    */
   const fetchVersions = () => {
     createFileState.isLoadVersions = true;
-    getVersions({
-      query_key: state.active,
-      db_type: props.info.name,
-    }, {
-      permission: 'catch',
-    })
+    getVersions(
+      {
+        query_key: state.active,
+        db_type: props.info.name,
+      },
+      {
+        permission: 'catch',
+      },
+    )
       .then((res) => {
         createFileState.versions = res;
       })
@@ -588,7 +592,7 @@
    * 文件上传成功
    */
   const handleUpdateSuccess = (file: any) => {
-    Object.assign(createFileState.formdata, file?.data, { path: file?.data.fullPath } || {});
+    Object.assign(createFileState.formdata, file?.data, { path: file?.data.fullPath });
     versionFormRef.value?.clearValidate();
   };
 
@@ -651,20 +655,18 @@
         }
       }
 
-      .version-name {
-        .set-btn {
-          display: none;
-          height: 22px;
-          padding: 3px 8px;
-          margin-left: 5px;
-          cursor: pointer;
-          background: #fafbfd;
-          border: 1px solid #dcdee5;
-        }
+      .set-btn {
+        display: none;
+        height: 22px;
+        padding: 3px 8px;
+        margin-left: 5px;
+        cursor: pointer;
+        background: #fafbfd;
+        border: 1px solid #dcdee5;
+      }
 
-        .set-btn-disable {
-          color: #c4c6cc;
-        }
+      .set-btn-disable {
+        color: #c4c6cc;
       }
 
       &.bk-vxe-table {

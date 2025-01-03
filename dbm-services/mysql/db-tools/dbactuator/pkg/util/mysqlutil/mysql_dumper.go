@@ -98,7 +98,7 @@ func (m MySQLDumper) Dump() (err error) {
 	var errs []error
 	concurrencyControl := make(chan struct{}, m.maxConcurrency)
 	dumpMap := m.GetDumpFileInfo()
-	errChan := make(chan error, len(dumpMap))
+	errChan := make(chan error)
 	for db, outputFileName := range dumpMap {
 		dumper := m
 		dumper.DbNames = []string{db}

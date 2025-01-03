@@ -1,7 +1,6 @@
 package dbhaheartbeat
 
 import (
-	"context"
 	"database/sql"
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/utils"
 	"fmt"
@@ -11,7 +10,6 @@ import (
 
 	"github.com/jmoiron/sqlx"
 
-	"dbm-services/mysql/db-tools/mysql-monitor/pkg/config"
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/monitoriteminterface"
 )
 
@@ -33,12 +31,8 @@ func init() {
 }
 
 func (c *Checker) Run() (msg string, err error) {
-	ctx, cancel := context.WithTimeout(context.Background(), config.MonitorConfig.InteractTimeout)
-	defer cancel()
-
 	var res sql.NullTime
-	err = c.db.QueryRowxContext(
-		ctx,
+	err = c.db.QueryRowx(
 		`SELECT MAX(ck_time) FROM infodba_schema.check_heartbeat WHERE uid = @@server_id`,
 	).Scan(&res)
 

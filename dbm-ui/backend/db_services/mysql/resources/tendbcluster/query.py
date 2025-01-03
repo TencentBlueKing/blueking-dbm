@@ -8,7 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-
+from collections import defaultdict
 from typing import Any, Callable, Dict, List
 
 from django.db.models import F, Q, QuerySet, Value
@@ -117,7 +117,7 @@ class ListRetrieveResource(query.ListRetrieveResource):
 
         def get_remote_infos(insts: List[StorageInstance]):
             """获取remote信息，并补充分片信息"""
-            remote_infos = {InstanceInnerRole.MASTER.value: [], InstanceInnerRole.SLAVE.value: []}
+            remote_infos = defaultdict(list)
             for inst in insts:
                 try:
                     related = "as_ejector" if inst.instance_inner_role == InstanceInnerRole.MASTER else "as_receiver"

@@ -1,11 +1,12 @@
 package main
 
 import (
+	"net/http"
+	"os"
+
 	"dbm-services/mysql/db-partition/monitor"
 	"dbm-services/mysql/db-partition/service"
 	"dbm-services/mysql/db-partition/util"
-	"net/http"
-	"os"
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-migrate/migrate/v4"
@@ -82,4 +83,5 @@ func init() {
 	model.DB.Init()
 	model.InitClient()
 	model.InitBkRepo()
+	model.InitCustimazation()
 }
