@@ -18,9 +18,9 @@
       closable
       :title="t('迁移主从：主从机器上的所有实例成对迁移到新机器上，旧机器会下架掉。')" />
     <BkForm
-      v-model="formData"
       class="mb-20"
-      form-type="vertical">
+      form-type="vertical"
+      :model="formData">
       <EditableTable
         ref="table"
         class="mb-20"
