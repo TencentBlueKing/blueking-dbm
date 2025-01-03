@@ -18,9 +18,9 @@
       closable
       :title="t('添加从库_同机的所有集群会统一新增从库_但新机器不添加到域名解析中去')" />
     <BkForm
-      v-model="formData"
       class="mb-20"
-      form-type="vertical">
+      form-type="vertical"
+      :model="formData">
       <EditableTable
         ref="table"
         class="mb-20"
