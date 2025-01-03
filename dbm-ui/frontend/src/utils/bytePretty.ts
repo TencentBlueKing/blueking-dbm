@@ -19,8 +19,7 @@ export const bytePretty = (value: any) => {
   let index = 0;
   const srcsize = parseFloat(value);
   index = Math.floor(Math.log(srcsize) / Math.log(1024));
-  let size = srcsize / 1024 ** index;
+  const size = srcsize / 1024 ** index;
   //  保留的小数位数
-  size = parseFloat(size.toFixed(2));
-  return `${size} ${unitArr[index]}`;
+  return `${size.toFixed(2)} ${unitArr[index]}`;
 };
