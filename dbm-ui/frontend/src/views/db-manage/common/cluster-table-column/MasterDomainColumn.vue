@@ -3,7 +3,7 @@
     :field="field"
     fixed="left"
     :label="label"
-    :min-width="280">
+    :min-width="columnMinWidth">
     <template #header>
       <RenderHeadCopy
         :config="[
@@ -160,6 +160,8 @@
   };
 
   const { t } = useI18n();
+
+  const columnMinWidth = window.innerWidth < 1366 ? 180 : 280;
 
   const viewActionId = computed(() => viewActionIdMap[props.clusterType]);
 
