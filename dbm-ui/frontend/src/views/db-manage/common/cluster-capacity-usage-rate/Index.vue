@@ -57,8 +57,8 @@
     }
 
     return {
-      percent: inUse,
-      rate: `${inUse}%`,
+      percent: parseFloat(inUse.toFixed(2)),
+      rate: `${inUse.toFixed(2)}%`,
       num: `(${bytePretty(used)}/${bytePretty(total)})`,
       color,
     };

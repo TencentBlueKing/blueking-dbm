@@ -281,7 +281,7 @@
 
   import ClusterIpCopy from '@views/db-manage/common/cluster-ip-copy/Index.vue';
   import ClusterNameColumn from '@views/db-manage/common/cluster-table-column/ClusterNameColumn.vue';
-  import ClusterStatsColumn from '@views/db-manage/common/cluster-table-column/ClusterStats.vue';
+  import ClusterStatsColumn from '@views/db-manage/common/cluster-table-column/ClusterStatsColumn.vue';
   import CommonColumn from '@views/db-manage/common/cluster-table-column/CommonColumn.vue';
   import IdColumn from '@views/db-manage/common/cluster-table-column/IdColumn.vue';
   import MasterDomainColumn from '@views/db-manage/common/cluster-table-column/MasterDomainColumn.vue';
