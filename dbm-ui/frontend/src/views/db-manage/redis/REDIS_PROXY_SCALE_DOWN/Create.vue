@@ -18,9 +18,9 @@
       closable
       :title="t('缩容接入层：减少集群的Proxy数量，但集群Proxy数量不能少于2')" />
     <BkForm
-      v-model="formData"
       class="mb-20"
-      form-type="vertical">
+      form-type="vertical"
+      :model="formData">
       <EditableTable
         ref="table"
         class="mb-20"
