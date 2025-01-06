@@ -98,6 +98,9 @@
       bk_cloud_id: 0,
       cluster_capacity: 0,
       disaster_tolerance_level: 'CROS_SUBZONE',
+      id: undefined,
+      cluster_stats: {},
+      cluster_spec: {},
     }),
   });
 
@@ -155,7 +158,6 @@
   const { run: queryCluster, loading } = useRequest(filterClusters<RedisModel>, {
     manual: true,
     onSuccess: (data) => {
-      modelValue.value.id = undefined;
       if (data.length) {
         const [currentCluster] = data;
         modelValue.value = {
@@ -181,6 +183,20 @@
   };
 
   const handleInputChange = (value: string) => {
+    modelValue.value = {
+      master_domain: value,
+      cluster_type: '',
+      cluster_type_name: '',
+      major_version: '',
+      shard_num: 0,
+      group_num: 0,
+      bk_cloud_id: 0,
+      cluster_capacity: 0,
+      disaster_tolerance_level: 'CROS_SUBZONE',
+      id: undefined,
+      cluster_stats: {} as RedisModel['cluster_stats'],
+      cluster_spec: {} as RedisModel['cluster_spec'],
+    };
     if (value) {
       queryCluster({
         bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,

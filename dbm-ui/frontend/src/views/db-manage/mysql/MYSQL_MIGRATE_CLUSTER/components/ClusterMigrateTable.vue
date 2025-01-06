@@ -26,13 +26,11 @@
       <SingleHostColumn
         v-model="item.newMaster"
         field="newMaster.ip"
-        :label="t('新Master主机')"
-        :params="{ for_biz: currentBizId }" />
+        :label="t('新Master主机')" />
       <SingleHostColumn
         v-model="item.newSlave"
         field="newSlave.ip"
-        :label="t('新Slave主机')"
-        :params="{ for_biz: currentBizId }" />
+        :label="t('新Slave主机')" />
       <OperationColumn
         v-model:table-data="tableData"
         :create-row-method="createTableRow" />
@@ -44,8 +42,6 @@
   import { useI18n } from 'vue-i18n';
 
   import TendbhaModel from '@services/model/mysql/tendbha';
-
-  import { useGlobalBizs } from '@stores';
 
   import EditableTable, { Row as EditableTableRow } from '@components/editable-table/Index.vue';
 
@@ -114,7 +110,6 @@
 
   const { t } = useI18n();
   const tableRef = useTemplateRef('table');
-  const { currentBizId } = useGlobalBizs();
 
   const createTableRow = (data = {} as Partial<RowData>) => ({
     cluster: data.cluster || {

@@ -56,7 +56,6 @@
   const modelValue = defineModel<string>();
 
   const contentRef = useTemplateRef('content');
-
   const isShowPlacehoder = ref(true);
 
   watch(modelValue, () => {
