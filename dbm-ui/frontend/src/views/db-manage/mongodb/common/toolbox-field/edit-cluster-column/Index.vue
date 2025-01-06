@@ -4,17 +4,17 @@
     :append-rules="rules"
     :field="field"
     fixed="left"
-    :label="t(label)"
+    :label="label || t('目标集群')"
     :loading="isLoading"
     :min-width="300"
     required>
     <template #headAppend>
-      <BkButton
-        text
-        theme="primary"
+      <span
+        v-bk-tooltips="t('批量选择')"
+        class="batch-select-button"
         @click="handleShowClusterSelector">
         <DbIcon type="batch-host-select" />
-      </BkButton>
+      </span>
     </template>
     <EditInput
       v-model="modelValue.master_domain"
@@ -31,6 +31,7 @@
 
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
+  import { useRequest } from 'vue-request';
 
   import MongodbModel from '@services/model/mongodb/mongodb';
   import { filterClusters } from '@services/source/dbbase';
@@ -63,7 +64,7 @@
   }
 
   withDefaults(defineProps<Props>(), {
-    label: '目标集群',
+    label: '',
     field: 'cluster.master_domain',
     tabListConfig: undefined,
   });
@@ -88,29 +89,26 @@
     },
   ];
 
-  const editableTableColumnRef = useTemplateRef('editableTableColumn');
   const isShowClusterSelector = ref(false);
-  const isLoading = ref(false);
+
+  const { loading: isLoading, run: runFilterClusters } = useRequest(filterClusters<MongodbModel>, {
+    manual: true,
+    onSuccess(data) {
+      if (data.length > 0) {
+        [modelValue.value] = data;
+      }
+    },
+  });
 
   watch(
     () => modelValue.value.master_domain,
     () => {
       if (!modelValue.value.id && modelValue.value.master_domain) {
-        isLoading.value = true;
         modelValue.value.id = undefined;
-        filterClusters<MongodbModel>({
+        runFilterClusters({
           bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
           exact_domain: modelValue.value.master_domain,
-        })
-          .then((data) => {
-            if (data.length > 0) {
-              [modelValue.value] = data;
-            }
-          })
-          .finally(() => {
-            isLoading.value = false;
-            editableTableColumnRef.value!.validate();
-          });
+        });
       }
       if (!modelValue.value.master_domain) {
         modelValue.value.id = undefined;
@@ -130,3 +128,11 @@
     emits('batch-edit', clusterList);
   };
 </script>
+
+<style lang="less" scoped>
+  .batch-select-button {
+    font-size: 14px;
+    color: #3a84ff;
+    cursor: pointer;
+  }
+</style>

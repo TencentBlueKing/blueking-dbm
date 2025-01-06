@@ -24,7 +24,7 @@
     <template #headAppend>
       <span
         v-bk-tooltips="t('批量选择')"
-        class="batch-host-select"
+        class="batch-select-button"
         @click="handleShowSelector">
         <DbIcon type="batch-host-select" />
       </span>
@@ -107,7 +107,6 @@
   const { t } = useI18n();
 
   const showSelector = ref(false);
-  const isLoading = ref(false);
 
   const rules = [
     {
@@ -121,6 +120,15 @@
       message: t('目标集群不存在'),
     },
   ];
+
+  const { loading: isLoading, run: runFilterClusters } = useRequest(filterClusters<MongodbModel>, {
+    manual: true,
+    onSuccess(data) {
+      if (data.length > 0) {
+        [modelValue.value] = data;
+      }
+    },
+  });
 
   const { run: queryRelatedClusters, loading: relatedClusterLoading } = useRequest(getRelatedClustersByClusterIds, {
     manual: true,
@@ -139,21 +147,11 @@
     () => modelValue.value.master_domain,
     () => {
       if (!modelValue.value.id && modelValue.value.master_domain) {
-        isLoading.value = true;
         modelValue.value.id = undefined;
-        filterClusters<MongodbModel>({
+        runFilterClusters({
           bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
           exact_domain: modelValue.value.master_domain,
-        })
-          .then((data) => {
-            if (data.length > 0) {
-              [modelValue.value] = data;
-            }
-          })
-          .finally(() => {
-            isLoading.value = false;
-            // editableTableColumnRef.value!.validate();
-          });
+        });
       }
       if (!modelValue.value.master_domain) {
         modelValue.value.id = undefined;
@@ -188,7 +186,7 @@
 </script>
 
 <style lang="less" scoped>
-  .batch-host-select {
+  .batch-select-button {
     font-size: 14px;
     color: #3a84ff;
     cursor: pointer;

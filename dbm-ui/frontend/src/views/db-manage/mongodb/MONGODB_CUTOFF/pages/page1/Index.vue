@@ -110,15 +110,11 @@
 <script setup lang="tsx">
   import { type ComponentProps } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
-  import { useRouter } from 'vue-router';
 
   import { type Mongodb } from '@services/model/ticket/ticket';
   import { getMongoInstancesList, getMongoTopoList } from '@services/source/mongodb';
-  import { createTicket } from '@services/source/ticket';
 
-  import { useTicketDetail } from '@hooks';
-
-  import { useGlobalBizs } from '@stores';
+  import { useCreateTicket, useTicketDetail } from '@hooks';
 
   import { ClusterTypes, TicketTypes } from '@common/const';
 
@@ -129,14 +125,20 @@
   } from '@components/editable-table/Index.vue';
   import { type IValue, type PanelListType } from '@components/instance-selector/Index.vue';
 
-  import TicketRemark from '@views/db-manage/common/TicketRemark.vue';
-  import EditSpecColumn from '@views/db-manage/common/toolbox-field/edit-spec/Index.vue';
-  import OperationColumn from '@views/db-manage/common/toolbox-field/operation-column/Index.vue';
-  import EditHostColumn from '@views/db-manage/mongodb/common/toolbox-field/edit-host/Index.vue';
+  import EditSpecColumn from '@views/db-manage/common/toolbox-field/column/edit-spec-column/Index.vue';
+  import OperationColumn from '@views/db-manage/common/toolbox-field/column/operation-column/Index.vue';
+  import TicketRemark from '@views/db-manage/common/toolbox-field/form-item/ticket-remark/Index.vue';
+  import EditHostColumn from '@views/db-manage/mongodb/common/toolbox-field/edit-host-column/Index.vue';
 
   import RelatedClusterColumn from './components/RelatedClusterColumn.vue';
 
-  export interface IDataRow {
+  interface MachineInfo {
+    ip: string;
+    spec_id: number;
+    bk_cloud_id: number;
+  }
+
+  interface IDataRow {
     host: {
       id?: number;
       ip?: string;
@@ -172,9 +174,7 @@
     remark: '',
   });
 
-  const { currentBizId } = useGlobalBizs();
   const { t } = useI18n();
-  const router = useRouter();
 
   useTicketDetail<Mongodb.Cutoff>(TicketTypes.MONGODB_CUTOFF, {
     onSuccess(ticketDetail) {
@@ -201,7 +201,16 @@
     },
   });
 
-  const formRef = useTemplateRef('form');
+  const { run: createTicketRun, loading: isSubmitting } = useCreateTicket<{
+    ip_source: 'resource_pool';
+    infos: {
+      cluster_id: number;
+      mongos: MachineInfo[];
+      mongodb: MachineInfo[];
+      mongo_config: MachineInfo[];
+    }[];
+  }>(TicketTypes.MONGODB_CUTOFF);
+
   const editableTableRef = useTemplateRef('editableTable');
 
   const rules = {
@@ -243,7 +252,6 @@
     ],
   };
 
-  const isSubmitting = ref(false);
   const tableData = ref<Array<IDataRow>>([createRowData()]);
 
   const formData = reactive(createDefaultFormData());
@@ -446,56 +454,34 @@
     const infos = domains.map((domain) => {
       const sameArr = clusterMap[domain];
       const infoItem = {
-        cluster_id: sameArr[0].host.cluster_id,
-        mongos: [],
-        mongodb: [],
-        mongo_config: [],
-      } as Record<string, any>;
+        cluster_id: sameArr[0].host.cluster_id!,
+        mongos: [] as MachineInfo[],
+        mongodb: [] as MachineInfo[],
+        mongo_config: [] as MachineInfo[],
+      };
       sameArr.forEach((item) => {
         const specObj = {
-          ip: item.host.ip,
-          spec_id: item.spec_id,
-          bk_cloud_id: item.host.bk_cloud_id,
+          ip: item.host.ip!,
+          spec_id: item.spec_id!,
+          bk_cloud_id: item.host.bk_cloud_id!,
         };
-        infoItem[item.host.machine_type!].push(specObj);
+        infoItem[item.host.machine_type as keyof Omit<typeof infoItem, 'cluster_id'>].push(specObj);
       });
       return infoItem;
     });
     return infos;
   };
 
-  // 提交
   const handleSubmit = async () => {
-    try {
-      isSubmitting.value = true;
-      await formRef.value!.validate();
-      const validateResult = await editableTableRef.value!.validate();
-      if (validateResult) {
-        const infos = generateRequestParam();
-        const params = {
-          bk_biz_id: currentBizId,
-          remark: formData.remark,
-          ticket_type: TicketTypes.MONGODB_CUTOFF,
-          details: {
-            ip_source: 'resource_pool',
-            infos,
-          },
-        };
-        await createTicket(params).then((data) => {
-          window.changeConfirm = false;
-          router.push({
-            name: TicketTypes.MONGODB_CUTOFF,
-            params: {
-              page: 'success',
-            },
-            query: {
-              ticketId: data.id,
-            },
-          });
-        });
-      }
-    } finally {
-      isSubmitting.value = false;
+    const validateResult = await editableTableRef.value!.validate();
+    if (validateResult) {
+      createTicketRun({
+        details: {
+          ip_source: 'resource_pool',
+          infos: generateRequestParam(),
+        },
+        remark: formData.remark,
+      });
     }
   };
 

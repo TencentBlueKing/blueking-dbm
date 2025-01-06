@@ -1,5 +1,5 @@
 <template>
-  <EditTableName
+  <EditDbNameColumn
     v-model="modelValue"
     :batch-edit="false"
     :disabled="disabled"
@@ -31,14 +31,14 @@
         </div>
       </div>
     </template>
-  </EditTableName>
+  </EditDbNameColumn>
 </template>
 
 <script setup lang="ts">
   import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
 
-  import EditTableName from '@views/db-manage/common/toolbox-field/edit-table-name/Index.vue';
+  import EditDbNameColumn from '@views/db-manage/common/toolbox-field/column/edit-db-table-name-column/Index.vue';
 
   interface Props {
     label: string;

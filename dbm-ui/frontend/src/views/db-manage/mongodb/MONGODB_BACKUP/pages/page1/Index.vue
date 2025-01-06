@@ -160,26 +160,22 @@
   import _ from 'lodash';
   import type { ComponentProps } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
-  import { useRouter } from 'vue-router';
 
   import MongodbModel from '@services/model/mongodb/mongodb';
   import type { Mongodb } from '@services/model/ticket/ticket';
-  import { createTicket } from '@services/source/ticket';
 
-  import { useTicketDetail } from '@hooks';
-
-  import { useGlobalBizs } from '@stores';
+  import { useCreateTicket, useTicketDetail } from '@hooks';
 
   import { ClusterTypes, TicketTypes } from '@common/const';
 
   import EditableTable, { Row as EditableTableRow } from '@components/editable-table/Index.vue';
 
-  import TicketRemark from '@views/db-manage/common/TicketRemark.vue';
-  import OperationColumn from '@views/db-manage/common/toolbox-field/operation-column/Index.vue';
-  import EditClusterColumn from '@views/db-manage/mongodb/common/toolbox-field/edit-cluster/Index.vue';
-  import EditClusterWithSelectorColumn from '@views/db-manage/mongodb/common/toolbox-field/edit-cluster-with-selector/Index.vue';
-  import EditDbNameColumn from '@views/db-manage/mongodb/common/toolbox-field/edit-db-name/Index.vue';
-  import EditTableNameColumn from '@views/db-manage/mongodb/common/toolbox-field/edit-db-table/Index.vue';
+  import OperationColumn from '@views/db-manage/common/toolbox-field/column/operation-column/Index.vue';
+  import TicketRemark from '@views/db-manage/common/toolbox-field/form-item/ticket-remark/Index.vue';
+  import EditClusterColumn from '@views/db-manage/mongodb/common/toolbox-field/edit-cluster-column/Index.vue';
+  import EditClusterWithSelectorColumn from '@views/db-manage/mongodb/common/toolbox-field/edit-cluster-with-selector-column/Index.vue';
+  import EditDbNameColumn from '@views/db-manage/mongodb/common/toolbox-field/edit-db-name-column/Index.vue';
+  import EditTableNameColumn from '@views/db-manage/mongodb/common/toolbox-field/edit-table-name-column/Index.vue';
 
   import EditTargetHostColumn from './components/TargetHostColumn.vue';
 
@@ -214,8 +210,6 @@
   });
 
   const { t } = useI18n();
-  const router = useRouter();
-  const { currentBizId } = useGlobalBizs();
 
   useTicketDetail<Mongodb.Backup>(TicketTypes.MONGODB_BACKUP, {
     onSuccess(ticketDetail) {
@@ -244,6 +238,22 @@
       });
     },
   });
+
+  const { run: createTicketRun, loading: isSubmitting } = useCreateTicket<{
+    file_tag: string;
+    backup_type?: string;
+    infos: {
+      cluster_ids: number[];
+      cluster_type: string;
+      ns_filter: {
+        db_patterns: string[];
+        ignore_dbs: string[];
+        table_patterns: string[];
+        ignore_tables: string[];
+      };
+      backup_host?: string;
+    }[];
+  }>(TicketTypes.MONGODB_BACKUP);
 
   const formRef = useTemplateRef('form');
   const editableTableRef = useTemplateRef('editableTable');
@@ -278,7 +288,6 @@
     ],
   };
 
-  const isSubmitting = ref(false);
   const tableData = ref<IDataRow[]>([createRowData()]);
 
   const formData = reactive(createDefaultFormData());
@@ -320,6 +329,44 @@
     },
   );
 
+  const handleSubmit = async () => {
+    await formRef.value!.validate();
+    const validateResult = await editableTableRef.value!.validate();
+    if (validateResult) {
+      const details = {
+        file_tag: formData.file_tag,
+        infos: tableData.value.map((tableRow) => {
+          const result = {
+            cluster_ids: tableRow.cluster.map((item) => item.id!),
+            cluster_type: formData.cluster_type,
+            ns_filter: {
+              db_patterns: tableRow.db_patterns,
+              ignore_dbs: tableRow.ignore_dbs,
+              table_patterns: tableRow.table_patterns,
+              ignore_tables: tableRow.ignore_tables,
+            },
+          };
+          if (isShowHostColumn.value) {
+            Object.assign(result, {
+              backup_host: tableRow.target_host,
+            });
+          }
+          return result;
+        }),
+      };
+      if (isShardCluster.value) {
+        Object.assign(details, {
+          backup_type: formData.backup_type,
+        });
+      }
+
+      createTicketRun({
+        details,
+        remark: formData.remark,
+      });
+    }
+  };
+
   const handleClusterBatchEdit = (clusterList: MongodbModel[]) => {
     const newList: IDataRow[] = [];
     clusterList.forEach((item) => {
@@ -348,61 +395,6 @@
       Object.assign(item, { [field]: value });
     });
     window.changeConfirm = true;
-  };
-
-  const handleSubmit = async () => {
-    try {
-      isSubmitting.value = true;
-      await formRef.value!.validate();
-      const validateResult = await editableTableRef.value!.validate();
-      if (validateResult) {
-        const params = {
-          bk_biz_id: currentBizId,
-          ticket_type: TicketTypes.MONGODB_BACKUP,
-          remark: formData.remark,
-          details: {
-            file_tag: formData.file_tag,
-            infos: tableData.value.map((tableRow) => {
-              const result = {
-                cluster_ids: tableRow.cluster.map((item) => item.id),
-                cluster_type: formData.cluster_type,
-                ns_filter: {
-                  db_patterns: tableRow.db_patterns,
-                  ignore_dbs: tableRow.ignore_dbs,
-                  table_patterns: tableRow.table_patterns,
-                  ignore_tables: tableRow.ignore_tables,
-                },
-              };
-              if (isShowHostColumn.value) {
-                Object.assign(result, {
-                  backup_host: tableRow.target_host,
-                });
-              }
-              return result;
-            }),
-          },
-        };
-        if (isShardCluster.value) {
-          Object.assign(params.details, {
-            backup_type: formData.backup_type,
-          });
-        }
-        await createTicket(params).then((data) => {
-          window.changeConfirm = false;
-          router.push({
-            name: TicketTypes.MONGODB_BACKUP,
-            params: {
-              page: 'success',
-            },
-            query: {
-              ticketId: data.id,
-            },
-          });
-        });
-      }
-    } finally {
-      isSubmitting.value = false;
-    }
   };
 
   const handleReset = () => {

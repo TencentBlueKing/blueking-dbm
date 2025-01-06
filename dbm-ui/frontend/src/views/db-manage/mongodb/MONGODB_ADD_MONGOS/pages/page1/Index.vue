@@ -97,15 +97,11 @@
 
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
-  import { useRouter } from 'vue-router';
 
   import MongodbModel from '@services/model/mongodb/mongodb';
   import type { Mongodb } from '@services/model/ticket/ticket';
-  import { createTicket } from '@services/source/ticket';
 
-  import { useTicketDetail } from '@hooks';
-
-  import { useGlobalBizs } from '@stores';
+  import { useCreateTicket, useTicketDetail } from '@hooks';
 
   import { ClusterTypes, MachineTypes, TicketTypes } from '@common/const';
 
@@ -116,10 +112,10 @@
     Row as EditableTableRow,
   } from '@components/editable-table/Index.vue';
 
-  import TicketRemark from '@views/db-manage/common/TicketRemark.vue';
-  import EditSpecColumn from '@views/db-manage/common/toolbox-field/edit-spec/Index.vue';
-  import OperationColumn from '@views/db-manage/common/toolbox-field/operation-column/Index.vue';
-  import EditClusterColumn from '@views/db-manage/mongodb/common/toolbox-field/edit-cluster/Index.vue';
+  import EditSpecColumn from '@views/db-manage/common/toolbox-field/column/edit-spec-column/Index.vue';
+  import OperationColumn from '@views/db-manage/common/toolbox-field/column/operation-column/Index.vue';
+  import TicketRemark from '@views/db-manage/common/toolbox-field/form-item/ticket-remark/Index.vue';
+  import EditClusterColumn from '@views/db-manage/mongodb/common/toolbox-field/edit-cluster-column/Index.vue';
 
   export interface IDataRow {
     cluster: {
@@ -142,9 +138,7 @@
     remark: '',
   });
 
-  const router = useRouter();
   const { t } = useI18n();
-  const { currentBizId } = useGlobalBizs();
 
   useTicketDetail<Mongodb.AddMongos>(TicketTypes.MONGODB_ADD_MONGOS, {
     onSuccess(ticketDetail) {
@@ -166,7 +160,19 @@
     },
   });
 
-  const formRef = useTemplateRef('form');
+  const { run: createTicketRun, loading: isSubmitting } = useCreateTicket<{
+    infos: {
+      cluster_id: number;
+      role: string;
+      resource_spec: {
+        mongos: {
+          spec_id: number;
+          count: number;
+        };
+      };
+    }[];
+  }>(TicketTypes.MONGODB_ADD_MONGOS);
+
   const editableTableRef = useTemplateRef('editableTable');
 
   const rules = {
@@ -203,7 +209,6 @@
     },
   } as unknown as Record<ClusterTypes, TabItem>;
 
-  const isSubmitting = ref(false);
   const tableData = ref<IDataRow[]>([createRowData()]);
 
   const formData = reactive(createDefaultFormData());
@@ -237,6 +242,27 @@
     ),
   );
 
+  const handleSubmit = async () => {
+    const validateResult = await editableTableRef.value!.validate();
+    if (validateResult) {
+      createTicketRun({
+        details: {
+          infos: tableData.value.map((tableItem) => ({
+            cluster_id: tableItem.cluster.id!,
+            role: 'mongos',
+            resource_spec: {
+              mongos: {
+                spec_id: tableItem.spec_id!,
+                count: tableItem.target_num!,
+              },
+            },
+          })),
+        },
+        remark: formData.remark,
+      });
+    }
+  };
+
   // 批量选择
   const handleClusterBatchEdit = (clusterList: MongodbModel[]) => {
     const newList: IDataRow[] = [];
@@ -257,47 +283,6 @@
 
     tableData.value = [...(tableData.value[0].cluster.master_domain ? tableData.value : []), ...newList];
     window.changeConfirm = true;
-  };
-
-  const handleSubmit = async () => {
-    try {
-      isSubmitting.value = true;
-      await formRef.value!.validate();
-      const validateResult = await editableTableRef.value!.validate();
-      if (validateResult) {
-        const params = {
-          bk_biz_id: currentBizId,
-          ticket_type: TicketTypes.MONGODB_ADD_MONGOS,
-          remark: formData.remark,
-          details: {
-            infos: tableData.value.map((tableItem) => ({
-              cluster_id: tableItem.cluster.id,
-              role: 'mongos',
-              resource_spec: {
-                mongos: {
-                  spec_id: tableItem.spec_id,
-                  count: tableItem.target_num,
-                },
-              },
-            })),
-          },
-        };
-        await createTicket(params).then((data) => {
-          window.changeConfirm = false;
-          router.push({
-            name: TicketTypes.MONGODB_ADD_MONGOS,
-            params: {
-              page: 'success',
-            },
-            query: {
-              ticketId: data.id,
-            },
-          });
-        });
-      }
-    } finally {
-      isSubmitting.value = false;
-    }
   };
 
   // 重置

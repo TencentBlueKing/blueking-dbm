@@ -62,19 +62,9 @@
               :table-data="tableData" />
           </EditableTableRow>
         </EditableTable>
-        <div class="bottom-opeartion">
-          <BkCheckbox
-            v-model="formData.is_ignore_business_access"
-            style="padding-top: 6px" />
-          <span
-            v-bk-tooltips="{
-              content: t('如忽略_有连接的情况下也会执行'),
-              theme: 'dark',
-            }"
-            class="ml-6 force-switch">
-            {{ t('忽略业务连接') }}
-          </span>
-        </div>
+        <IgnoreBiz
+          v-model="formData.is_ignore_business_access"
+          v-bk-tooltips="t('如忽略_有连接的情况下也会执行')" />
         <TicketRemark v-model="formData.remark" />
       </DbForm>
     </div>
@@ -103,13 +93,11 @@
 <script setup lang="tsx">
   import type { ComponentProps } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
-  import { useRouter } from 'vue-router';
 
   import MongodbModel from '@services/model/mongodb/mongodb';
   import type { Mongodb } from '@services/model/ticket/ticket';
-  import { createTicket } from '@services/source/ticket';
 
-  import { useTicketDetail } from '@hooks';
+  import { useCreateTicket, useTicketDetail } from '@hooks';
 
   import { ClusterTypes, TicketTypes } from '@common/const';
 
@@ -119,10 +107,11 @@
     Row as EditableTableRow,
   } from '@components/editable-table/Index.vue';
 
-  import TicketRemark from '@views/db-manage/common/TicketRemark.vue';
-  import OperationColumn from '@views/db-manage/common/toolbox-field/operation-column/Index.vue';
-  import EditClusterColumn from '@views/db-manage/mongodb/common/toolbox-field/edit-cluster/Index.vue';
-  import EditClusterWithRelatedClustersColumn from '@views/db-manage/mongodb/common/toolbox-field/edit-cluster-with-related-clusters/Index.vue';
+  import OperationColumn from '@views/db-manage/common/toolbox-field/column/operation-column/Index.vue';
+  import IgnoreBiz from '@views/db-manage/common/toolbox-field/form-item/ignore-biz/Index.vue';
+  import TicketRemark from '@views/db-manage/common/toolbox-field/form-item/ticket-remark/Index.vue';
+  import EditClusterColumn from '@views/db-manage/mongodb/common/toolbox-field/edit-cluster-column/Index.vue';
+  import EditClusterWithRelatedClustersColumn from '@views/db-manage/mongodb/common/toolbox-field/edit-cluster-with-related-clusters-column/Index.vue';
 
   import TargetNumberColumn from './components/TargetNumberColumn.vue';
 
@@ -155,7 +144,6 @@
   });
 
   const { t } = useI18n();
-  const router = useRouter();
 
   useTicketDetail<Mongodb.AddShardNodes>(TicketTypes.MONGODB_ADD_SHARD_NODES, {
     onSuccess(ticketDetail) {
@@ -177,7 +165,23 @@
     },
   });
 
-  const formRef = useTemplateRef('form');
+  const { run: createTicketRun, loading: isSubmitting } = useCreateTicket<{
+    is_safe: boolean;
+    infos: {
+      cluster_ids: number[];
+      add_shard_nodes_num: number; // 增加shard节点数
+      current_shard_nodes_num: number; // 当前shard节点数
+      node_replica_count: number; // 单机部署实例
+      shards_num: number; // 分片数
+      resource_spec: {
+        shard_nodes: {
+          spec_id: number;
+          count: number; // 分片数 / 每台机器的实例数 * 增加的节点数
+        };
+      };
+    }[];
+  }>(TicketTypes.MONGODB_ADD_SHARD_NODES);
+
   const editableTableRef = useTemplateRef('editableTable');
 
   const rules = {
@@ -185,13 +189,7 @@
       {
         validator: (value: string) => {
           if (value) {
-            const domainList = tableData.value
-              .flatMap((tableRow) => [
-                tableRow.cluster.master_domain || '',
-                ...(tableRow.cluster.related_clusters || []).map((relatedItem) => relatedItem.domain),
-              ])
-              .filter((domainItem) => domainItem);
-            return domainList.filter((domain) => domain === value).length === 1;
+            return domainList.value.filter((domain) => domain === value).length === 1;
           }
           return true;
         },
@@ -201,7 +199,6 @@
     ],
   };
 
-  const isSubmitting = ref(false);
   const tableData = ref<IDataRow[]>([createRowData()]);
 
   const formData = reactive(createDefaultFormData());
@@ -231,6 +228,50 @@
     ),
   );
 
+  const domainList = computed(() =>
+    tableData.value.flatMap((tableRow) => {
+      if (tableRow.cluster.master_domain) {
+        return [
+          tableRow.cluster.master_domain || '',
+          ...(tableRow.cluster.related_clusters || []).map((relatedItem) => relatedItem.domain),
+        ];
+      }
+      return [];
+    }),
+  );
+
+  const handleSubmit = async () => {
+    const validateResult = await editableTableRef.value!.validate();
+    if (validateResult) {
+      createTicketRun({
+        details: {
+          is_safe: !formData.is_ignore_business_access,
+          infos: tableData.value.map((tableRow) => {
+            const cluster = tableRow.cluster as Required<IDataRow['cluster']>;
+            const targerNum = tableRow.target_num!;
+            return {
+              cluster_ids:
+                cluster.cluster_type === ClusterTypes.MONGO_REPLICA_SET
+                  ? [cluster.id, ...cluster.related_clusters.map((relatedItem) => relatedItem.id)]
+                  : [cluster.id],
+              add_shard_nodes_num: targerNum - cluster.shard_node_count, // 增加shard节点数
+              current_shard_nodes_num: cluster.shard_node_count, // 当前shard节点数
+              node_replica_count: cluster.machine_instance_num, // 单机部署实例
+              shards_num: cluster.shard_num, // 分片数
+              resource_spec: {
+                shard_nodes: {
+                  spec_id: cluster.mongodb[0].spec_config.id,
+                  count: (cluster.shard_num / cluster.machine_instance_num) * (targerNum - cluster.shard_node_count), // 分片数 / 每台机器的实例数 * 增加的节点数
+                },
+              },
+            };
+          }),
+        },
+        remark: formData.remark,
+      });
+    }
+  };
+
   const handleClusterBatchEdit = (clusterList: MongodbModel[]) => {
     const newList: IDataRow[] = [];
     clusterList.forEach((item) => {
@@ -253,59 +294,6 @@
     });
     tableData.value = [...(tableData.value[0].cluster.master_domain ? tableData.value : []), ...newList];
     window.changeConfirm = true;
-  };
-
-  // 点击提交按钮
-  const handleSubmit = async () => {
-    try {
-      isSubmitting.value = true;
-      await formRef.value!.validate();
-      const validateResult = await editableTableRef.value!.validate();
-      if (validateResult) {
-        const params = {
-          bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-          ticket_type: TicketTypes.MONGODB_ADD_SHARD_NODES,
-          remark: formData.remark,
-          details: {
-            is_safe: !formData.is_ignore_business_access,
-            infos: tableData.value.map((tableRow) => {
-              const cluster = tableRow.cluster as Required<IDataRow['cluster']>;
-              const targerNum = tableRow.target_num!;
-              return {
-                cluster_ids:
-                  cluster.cluster_type === ClusterTypes.MONGO_REPLICA_SET
-                    ? [cluster.id, ...cluster.related_clusters.map((relatedItem) => relatedItem.id)]
-                    : [cluster.id],
-                add_shard_nodes_num: targerNum - cluster.shard_node_count, // 增加shard节点数
-                current_shard_nodes_num: cluster.shard_node_count, // 当前shard节点数
-                node_replica_count: cluster.machine_instance_num, // 单机部署实例
-                shards_num: cluster.shard_num, // 分片数
-                resource_spec: {
-                  shard_nodes: {
-                    spec_id: cluster.mongodb[0].spec_config.id,
-                    count: (cluster.shard_num / cluster.machine_instance_num) * (targerNum - cluster.shard_node_count), // 分片数 / 每台机器的实例数 * 增加的节点数
-                  },
-                },
-              };
-            }),
-          },
-        };
-        await createTicket(params).then((data) => {
-          window.changeConfirm = false;
-          router.push({
-            name: TicketTypes.MONGODB_ADD_SHARD_NODES,
-            params: {
-              page: 'success',
-            },
-            query: {
-              ticketId: data.id,
-            },
-          });
-        });
-      }
-    } finally {
-      isSubmitting.value = false;
-    }
   };
 
   const handleReset = () => {
@@ -331,19 +319,6 @@
           padding-bottom: 2px;
           border-bottom: 1px dashed #979ba5;
         }
-      }
-    }
-
-    .bottom-opeartion {
-      display: flex;
-      width: 100%;
-      height: 30px;
-      align-items: flex-end;
-      margin-bottom: 24px;
-
-      .force-switch {
-        font-size: 12px;
-        border-bottom: 1px dashed #63656e;
       }
     }
   }

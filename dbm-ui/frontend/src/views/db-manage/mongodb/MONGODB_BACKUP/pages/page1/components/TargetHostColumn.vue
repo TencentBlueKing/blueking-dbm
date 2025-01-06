@@ -12,14 +12,18 @@
       :disabled="disabled"
       :placeholder="t('请输入或选择主机')">
       <template #append>
-        <span v-bk-tooltips="t('选择主机')">
-          <BkButton
-            class="host-selector-btn"
+        <span
+          v-bk-tooltips="{
+            content: t('选择主机'),
+            disabled: disabled,
+          }">
+          <div
+            class="host-selector-button"
+            :class="{ 'host-selector-button-disabled': disabled }"
             :disabled="disabled"
-            size="small"
             @click="handleShowSelector">
             <DbIcon type="host-select" />
-          </BkButton>
+          </div>
         </span>
       </template>
     </EditInput>
@@ -107,6 +111,9 @@
   });
 
   const handleShowSelector = () => {
+    if (props.disabled) {
+      return;
+    }
     isShowSelector.value = true;
   };
 
@@ -117,14 +124,25 @@
 </script>
 
 <style lang="less" scoped>
-  .host-selector-btn {
+  .host-selector-button {
     width: 24px;
     font-size: 16px;
-    border: none;
     border-radius: 2px;
+    text-align: center;
+    cursor: pointer;
 
     &:hover {
       color: #3a84ff;
+      background: #f0f1f5;
+    }
+  }
+
+  .host-selector-button-disabled {
+    color: #dcdee5;
+    cursor: not-allowed;
+
+    &:hover {
+      color: #dcdee5;
       background: #f0f1f5;
     }
   }

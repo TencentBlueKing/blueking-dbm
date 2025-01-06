@@ -56,14 +56,14 @@
               v-model="item.cluster[0]"
               :cluster-types="[formData.cluster_type]"
               field="cluster.0.master_domain"
-              label="目标分片集群"
+              :label="t('目标分片集群')"
               :selected="selected"
               @batch-edit="handleClusterBatchEdit" />
             <EditClusterWithSelectorColumn
               v-else
               v-model="item.cluster"
               :cluster-types="[formData.cluster_type]"
-              label="副本集"
+              :label="t('副本集')"
               :selected="selected"
               @batch-edit="handleClusterBatchEdit" />
             <DropTypeColumn v-model="item.drop_type" />
@@ -97,19 +97,9 @@
               :table-data="tableData" />
           </EditableTableRow>
         </EditableTable>
-        <div class="bottom-opeartion">
-          <BkCheckbox
-            v-model="formData.ignore_business_access"
-            style="padding-top: 6px" />
-          <span
-            v-bk-tooltips="{
-              content: t('如忽略_有连接的情况下也会执行'),
-              theme: 'dark',
-            }"
-            class="ml-6 force-switch">
-            {{ t('忽略业务连接') }}
-          </span>
-        </div>
+        <IgnoreBiz
+          v-model="formData.ignore_business_access"
+          v-bk-tooltips="t('如忽略_有连接的情况下也会执行')" />
         <TicketRemark v-model="formData.remark" />
       </DbForm>
     </div>
@@ -138,26 +128,23 @@
   import _ from 'lodash';
   import type { ComponentProps } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
-  import { useRouter } from 'vue-router';
 
   import MongodbModel from '@services/model/mongodb/mongodb';
   import type { Mongodb } from '@services/model/ticket/ticket';
-  import { createTicket } from '@services/source/ticket';
 
-  import { useTicketDetail } from '@hooks';
-
-  import { useGlobalBizs } from '@stores';
+  import { useCreateTicket, useTicketDetail } from '@hooks';
 
   import { ClusterTypes, TicketTypes } from '@common/const';
 
   import EditableTable, { Row as EditableTableRow } from '@components/editable-table/Index.vue';
 
-  import TicketRemark from '@views/db-manage/common/TicketRemark.vue';
-  import OperationColumn from '@views/db-manage/common/toolbox-field/operation-column/Index.vue';
-  import EditClusterColumn from '@views/db-manage/mongodb/common/toolbox-field/edit-cluster/Index.vue';
-  import EditClusterWithSelectorColumn from '@views/db-manage/mongodb/common/toolbox-field/edit-cluster-with-selector/Index.vue';
-  import EditDbNameColumn from '@views/db-manage/mongodb/common/toolbox-field/edit-db-name/Index.vue';
-  import EditTableNameColumn from '@views/db-manage/mongodb/common/toolbox-field/edit-db-table/Index.vue';
+  import OperationColumn from '@views/db-manage/common/toolbox-field/column/operation-column/Index.vue';
+  import IgnoreBiz from '@views/db-manage/common/toolbox-field/form-item/ignore-biz/Index.vue';
+  import TicketRemark from '@views/db-manage/common/toolbox-field/form-item/ticket-remark/Index.vue';
+  import EditClusterColumn from '@views/db-manage/mongodb/common/toolbox-field/edit-cluster-column/Index.vue';
+  import EditClusterWithSelectorColumn from '@views/db-manage/mongodb/common/toolbox-field/edit-cluster-with-selector-column/Index.vue';
+  import EditDbNameColumn from '@views/db-manage/mongodb/common/toolbox-field/edit-db-name-column/Index.vue';
+  import EditTableNameColumn from '@views/db-manage/mongodb/common/toolbox-field/edit-table-name-column/Index.vue';
 
   import DropTypeColumn from './components/DropTypeColumn.vue';
   import DropIndexColumn from './components/DropTypeIndex.vue';
@@ -193,8 +180,6 @@
   });
 
   const { t } = useI18n();
-  const router = useRouter();
-  const { currentBizId } = useGlobalBizs();
 
   useTicketDetail<Mongodb.RemoveNs>(TicketTypes.MONGODB_REMOVE_NS, {
     onSuccess(ticketDetail) {
@@ -223,6 +208,21 @@
       });
     },
   });
+
+  const { run: createTicketRun, loading: isSubmitting } = useCreateTicket<{
+    is_safe: boolean;
+    infos: {
+      cluster_ids: number[];
+      drop_index: boolean;
+      drop_type: string;
+      ns_filter: {
+        db_patterns: string[];
+        ignore_dbs: string[];
+        ignore_tables: string[];
+        table_patterns: string[];
+      };
+    }[];
+  }>(TicketTypes.MONGODB_REMOVE_NS);
 
   const formRef = useTemplateRef('form');
   const editableTableRef = useTemplateRef('editableTable');
@@ -257,7 +257,6 @@
     ],
   };
 
-  const isSubmitting = ref(false);
   const tableData = ref<Array<IDataRow>>([createRowData()]);
 
   const selectedClusters = shallowRef<{ [key: string]: Array<MongodbModel> }>({
@@ -331,46 +330,27 @@
   };
 
   const handleSubmit = async () => {
-    try {
-      isSubmitting.value = true;
-      await formRef.value!.validate();
-      const validateResult = await editableTableRef.value!.validate();
-      if (validateResult) {
-        const params = {
-          bk_biz_id: currentBizId,
-          ticket_type: TicketTypes.MONGODB_REMOVE_NS,
-          remark: formData.remark,
-          details: {
-            is_safe: !formData.ignore_business_access,
-            infos: tableData.value.map((tableRow) => ({
-              cluster_ids: tableRow.cluster.map((item) => item.id),
-              cluster_type: formData.cluster_type,
-              drop_type: tableRow.drop_type,
-              drop_index: tableRow.drop_index !== 'keep',
-              ns_filter: {
-                db_patterns: tableRow.db_patterns,
-                ignore_dbs: tableRow.ignore_dbs,
-                table_patterns: tableRow.table_patterns,
-                ignore_tables: tableRow.ignore_tables,
-              },
-            })),
-          },
-        };
-        await createTicket(params).then((data) => {
-          window.changeConfirm = false;
-          router.push({
-            name: TicketTypes.MONGODB_REMOVE_NS,
-            params: {
-              page: 'success',
+    await formRef.value!.validate();
+    const validateResult = await editableTableRef.value!.validate();
+    if (validateResult) {
+      createTicketRun({
+        details: {
+          is_safe: !formData.ignore_business_access,
+          infos: tableData.value.map((tableRow) => ({
+            cluster_ids: tableRow.cluster.map((item) => item.id!),
+            cluster_type: formData.cluster_type,
+            drop_type: tableRow.drop_type,
+            drop_index: tableRow.drop_index !== 'keep',
+            ns_filter: {
+              db_patterns: tableRow.db_patterns,
+              ignore_dbs: tableRow.ignore_dbs,
+              table_patterns: tableRow.table_patterns,
+              ignore_tables: tableRow.ignore_tables,
             },
-            query: {
-              ticketId: data.id,
-            },
-          });
-        });
-      }
-    } finally {
-      isSubmitting.value = false;
+          })),
+        },
+        remark: formData.remark,
+      });
     }
   };
 
@@ -393,19 +373,6 @@
       .safe-action-text {
         padding-bottom: 2px;
         border-bottom: 1px dashed #979ba5;
-      }
-    }
-
-    .bottom-opeartion {
-      display: flex;
-      width: 100%;
-      height: 30px;
-      align-items: flex-end;
-      margin-bottom: 24px;
-
-      .force-switch {
-        font-size: 12px;
-        border-bottom: 1px dashed #63656e;
       }
     }
   }

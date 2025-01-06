@@ -115,15 +115,11 @@
 <script setup lang="ts">
   import type { ComponentProps } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
-  import { useRouter } from 'vue-router';
 
   import MongodbModel from '@services/model/mongodb/mongodb';
   import type { Mongodb } from '@services/model/ticket/ticket';
-  import { createTicket } from '@services/source/ticket';
 
-  import { useTicketDetail } from '@hooks';
-
-  import { useGlobalBizs } from '@stores';
+  import { useCreateTicket, useTicketDetail } from '@hooks';
 
   import { ClusterTypes, TicketTypes } from '@common/const';
 
@@ -133,9 +129,9 @@
     Row as EditableTableRow,
   } from '@components/editable-table/Index.vue';
 
-  import TicketRemark from '@views/db-manage/common/TicketRemark.vue';
-  import OperationColumn from '@views/db-manage/common/toolbox-field/operation-column/Index.vue';
-  import EditClusterColumn from '@views/db-manage/mongodb/common/toolbox-field/edit-cluster/Index.vue';
+  import OperationColumn from '@views/db-manage/common/toolbox-field/column/operation-column/Index.vue';
+  import TicketRemark from '@views/db-manage/common/toolbox-field/form-item/ticket-remark/Index.vue';
+  import EditClusterColumn from '@views/db-manage/mongodb/common/toolbox-field/edit-cluster-column/Index.vue';
 
   export interface IDataRow {
     cluster: {
@@ -157,8 +153,6 @@
   });
 
   const { t } = useI18n();
-  const router = useRouter();
-  const { currentBizId } = useGlobalBizs();
 
   useTicketDetail<Mongodb.FullBackup>(TicketTypes.MONGODB_FULL_BACKUP, {
     onSuccess(ticketDetail) {
@@ -177,6 +171,14 @@
       });
     },
   });
+
+  const { run: createTicketRun, loading: isSubmitting } = useCreateTicket<{
+    file_tag: string;
+    infos: {
+      cluster_id: number;
+    }[];
+    oplog: boolean;
+  }>(TicketTypes.MONGODB_FULL_BACKUP);
 
   const formRef = useTemplateRef('form');
   const editableTableRef = useTemplateRef('editableTable');
@@ -197,7 +199,6 @@
     ],
   };
 
-  const isSubmitting = ref(false);
   const tableData = ref<IDataRow[]>([createRowData()]);
 
   const formData = reactive(createDefaultFormData());
@@ -246,38 +247,19 @@
   };
 
   const handleSubmit = async () => {
-    try {
-      isSubmitting.value = true;
-      await formRef.value!.validate();
-      const validateResult = await editableTableRef.value!.validate();
-      if (validateResult) {
-        const params = {
-          bk_biz_id: currentBizId,
-          ticket_type: TicketTypes.MONGODB_FULL_BACKUP,
-          remark: formData.remark,
-          details: {
-            file_tag: formData.file_tag,
-            oplog: formData.oplog === '1',
-            infos: tableData.value.map((tableItem) => ({
-              cluster_id: tableItem.cluster.id!,
-            })),
-          },
-        };
-        await createTicket(params).then((data) => {
-          window.changeConfirm = false;
-          router.push({
-            name: TicketTypes.MONGODB_FULL_BACKUP,
-            params: {
-              page: 'success',
-            },
-            query: {
-              ticketId: data.id,
-            },
-          });
-        });
-      }
-    } finally {
-      isSubmitting.value = false;
+    await formRef.value!.validate();
+    const validateResult = await editableTableRef.value!.validate();
+    if (validateResult) {
+      createTicketRun({
+        details: {
+          file_tag: formData.file_tag,
+          oplog: formData.oplog === '1',
+          infos: tableData.value.map((tableItem) => ({
+            cluster_id: tableItem.cluster.id!,
+          })),
+        },
+        remark: formData.remark,
+      });
     }
   };
 

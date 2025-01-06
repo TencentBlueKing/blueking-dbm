@@ -37,28 +37,10 @@
               :cluster-types="[ClusterTypes.MONGO_REPLICA_SET, ClusterTypes.MONGO_SHARED_CLUSTER]"
               :selected="selected"
               @batch-edit="handleClusterBatchEdit" />
-            <EditableTableColumn
-              :label="t('当前容量')"
-              :min-width="400">
-              <EditBlock :placeholder="t('选择集群后自动生成')">
-                <CurrentCapacity
-                  v-if="item.cluster.id"
-                  :data="item.cluster"
-                  :spec="item.cluster.mongodb![0].spec_config" />
-              </EditBlock>
-            </EditableTableColumn>
-            <EditableTableColumn
-              field="target_capacity"
-              :label="t('目标容量')"
-              :min-width="400"
-              required>
-              <EditBlock :placeholder="t('请选择')">
-                <TargetCapacity
-                  v-if="item.cluster.id"
-                  v-model="item.target_capacity"
-                  :data="item.cluster as Required<IDataRow['cluster']>" />
-              </EditBlock>
-            </EditableTableColumn>
+            <CurrentCapacityColumn :data="item.cluster" />
+            <TargetCapacityColumn
+              v-model="item.target_capacity"
+              :data="item.cluster" />
             <OperationColumn
               :create-row-method="createRowData"
               :table-data="tableData" />
@@ -92,28 +74,22 @@
 <script setup lang="tsx">
   import type { ComponentProps } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
-  import { useRouter } from 'vue-router';
 
   import MongodbModel from '@services/model/mongodb/mongodb';
   import type { Mongodb } from '@services/model/ticket/ticket';
-  import { createTicket } from '@services/source/ticket';
 
-  import { useTicketDetail } from '@hooks';
+  import { useCreateTicket, useTicketDetail } from '@hooks';
 
   import { ClusterTypes, TicketTypes } from '@common/const';
 
-  import EditableTable, {
-    Block as EditBlock,
-    Column as EditableTableColumn,
-    Row as EditableTableRow,
-  } from '@components/editable-table/Index.vue';
+  import EditableTable, { Row as EditableTableRow } from '@components/editable-table/Index.vue';
 
-  import TicketRemark from '@views/db-manage/common/TicketRemark.vue';
-  import OperationColumn from '@views/db-manage/common/toolbox-field/operation-column/Index.vue';
-  import EditClusterColumn from '@views/db-manage/mongodb/common/toolbox-field/edit-cluster/Index.vue';
+  import OperationColumn from '@views/db-manage/common/toolbox-field/column/operation-column/Index.vue';
+  import TicketRemark from '@views/db-manage/common/toolbox-field/form-item/ticket-remark/Index.vue';
+  import EditClusterColumn from '@views/db-manage/mongodb/common/toolbox-field/edit-cluster-column/Index.vue';
 
-  import CurrentCapacity from './components/CurrentCapacity.vue';
-  import TargetCapacity from './components/target-capacity/Index.vue';
+  import CurrentCapacityColumn from './components/CurrentCapacityColumn.vue';
+  import TargetCapacityColumn from './components/target-capacity-column/Index.vue';
 
   export interface IDataRow {
     cluster: {
@@ -151,7 +127,6 @@
   });
 
   const { t } = useI18n();
-  const router = useRouter();
 
   useTicketDetail<Mongodb.ScaleUpdown>(TicketTypes.MONGODB_SCALE_UPDOWN, {
     onSuccess(ticketDetail) {
@@ -170,6 +145,22 @@
       });
     },
   });
+
+  const { run: createTicketRun, loading: isSubmitting } = useCreateTicket<{
+    infos: {
+      cluster_id: number;
+      resource_spec: {
+        mongodb: {
+          count: number;
+          spec_id: number;
+        };
+      };
+      shard_machine_group: number;
+      shard_node_count: number;
+      shards_num: number;
+    }[];
+    ip_source: string;
+  }>(TicketTypes.MONGODB_SCALE_UPDOWN);
 
   const formRef = useTemplateRef('form');
   const editableTableRef = useTemplateRef('editableTable');
@@ -190,7 +181,6 @@
     ],
   };
 
-  const isSubmitting = ref(false);
   const tableData = ref<IDataRow[]>([createRowData()]);
 
   const formData = reactive(createDefaultFormData());
@@ -246,40 +236,20 @@
     window.changeConfirm = true;
   };
 
-  // 点击提交按钮
   const handleSubmit = async () => {
-    try {
-      isSubmitting.value = true;
-      await formRef.value!.validate();
-      const validateResult = await editableTableRef.value!.validate();
-      if (validateResult) {
-        const params = {
-          bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-          ticket_type: TicketTypes.MONGODB_SCALE_UPDOWN,
-          remark: formData.remark,
-          details: {
-            ip_source: 'resource_pool',
-            infos: tableData.value.map((tableRow) => ({
-              cluster_id: tableRow.cluster.id,
-              ...tableRow.target_capacity!,
-            })),
-          },
-        };
-        await createTicket(params).then((data) => {
-          window.changeConfirm = false;
-          router.push({
-            name: TicketTypes.MONGODB_SCALE_UPDOWN,
-            params: {
-              page: 'success',
-            },
-            query: {
-              ticketId: data.id,
-            },
-          });
-        });
-      }
-    } finally {
-      isSubmitting.value = false;
+    await formRef.value!.validate();
+    const validateResult = await editableTableRef.value!.validate();
+    if (validateResult) {
+      createTicketRun({
+        details: {
+          ip_source: 'resource_pool',
+          infos: tableData.value.map((tableRow) => ({
+            cluster_id: tableRow.cluster.id!,
+            ...tableRow.target_capacity!,
+          })),
+        },
+        remark: formData.remark,
+      });
     }
   };
 

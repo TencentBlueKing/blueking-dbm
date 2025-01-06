@@ -21,8 +21,8 @@
     <slot name="hover" />
     <template #content>
       <div class="mongo-spec-panel">
-        <div class="title">{{ data.name }} {{ t('规格') }}</div>
-        <div class="item">
+        <div class="mongo-spec-panel-title">{{ data.name }} {{ t('规格') }}</div>
+        <div class="mongo-spec-panel-item">
           <div class="item-title">CPU：</div>
           <div class="item-content">
             {{
@@ -32,17 +32,17 @@
             }}
           </div>
         </div>
-        <div class="item">
+        <div class="mongo-spec-panel-item">
           <div class="item-title">{{ t('内存') }}：</div>
           <div class="item-content">
             {{ data.mem.min === data.mem.max ? data.mem.min : `(${data.mem.min}~${data.mem.max})` }} G
           </div>
         </div>
-        <div class="item">
+        <div class="mongo-spec-panel-item">
           <div class="item-title">{{ t('磁盘') }}：</div>
           <div class="item-content">
-            <div class="table">
-              <div class="head">
+            <div class="mount-point-table">
+              <div class="mount-point-table-head">
                 <div class="head-one">
                   {{ t('挂载点') }}
                 </div>
@@ -53,15 +53,18 @@
                   {{ t('磁盘类别') }}
                 </div>
               </div>
-              <div class="row">
+              <div
+                v-for="(storageSpecItem, storageSpecIndex) in data.storage_spec"
+                :key="storageSpecIndex"
+                class="table-row">
                 <div class="row-one">
-                  {{ data.storage_spec[0].mount_point }}
+                  {{ storageSpecItem.mount_point }}
                 </div>
                 <div class="row-two">
-                  {{ data.storage_spec[0].size }}
+                  {{ storageSpecItem.size }}
                 </div>
                 <div class="row-three">
-                  {{ data.storage_spec[0].type }}
+                  {{ storageSpecItem.type }}
                 </div>
               </div>
             </div>
@@ -136,7 +139,7 @@
     box-sizing: border-box;
     flex-direction: column;
 
-    .title {
+    .mongo-spec-panel-title {
       height: 20px;
       margin-bottom: 12px;
       font-size: 12px;
@@ -145,7 +148,7 @@
       color: #63656e;
     }
 
-    .item {
+    .mongo-spec-panel-item {
       display: flex;
       width: 100%;
       height: 32px;
@@ -164,7 +167,7 @@
         letter-spacing: 0;
         color: #313238;
 
-        .table {
+        .mount-point-table {
           display: flex;
           width: 100%;
           flex-direction: column;
@@ -178,7 +181,7 @@
             border-bottom: 1px solid #dcdee5;
           }
 
-          .head {
+          .mount-point-table-head {
             display: flex;
             width: 100%;
             background: #f0f1f5;
@@ -206,7 +209,7 @@
             }
           }
 
-          .row {
+          .table-row {
             display: flex;
             width: 100%;
             border-top: none;
