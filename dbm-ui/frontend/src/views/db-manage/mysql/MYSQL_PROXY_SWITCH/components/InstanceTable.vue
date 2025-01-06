@@ -26,8 +26,7 @@
       <SingleHostColumn
         v-model="item.targetProxy"
         field="targetProxy.ip"
-        :label="t('新Proxy主机')"
-        :params="{ for_biz: currentBizId }" />
+        :label="t('新Proxy主机')" />
       <OperationColumn
         v-model:table-data="tableData"
         :create-row-method="createTableRow" />
@@ -37,8 +36,6 @@
 <script lang="ts" setup>
   import { useTemplateRef } from 'vue';
   import { useI18n } from 'vue-i18n';
-
-  import { useGlobalBizs } from '@stores';
 
   import EditableTable, { Row as EditableTableRow } from '@components/editable-table/Index.vue';
 
@@ -101,7 +98,6 @@
 
   const { t } = useI18n();
   const tableRef = useTemplateRef('table');
-  const { currentBizId } = useGlobalBizs();
 
   const createTableRow = (data = {} as Partial<RowData>) => ({
     originProxy: data.originProxy || {
