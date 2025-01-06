@@ -71,7 +71,10 @@
     cluster_ids: number[];
     cluster_domains: string;
   }>({
-    default: () => [],
+    default: () => ({
+      cluster_ids: [],
+      cluster_domains: '',
+    }),
   });
 
   const { t } = useI18n();
@@ -111,7 +114,6 @@
   const { run: queryCluster, loading } = useRequest(filterClusters, {
     manual: true,
     onSuccess: (data) => {
-      modelValue.value.cluster_ids = [];
       if (data.length) {
         Object.assign(domainIdMap, Object.fromEntries(data.map((cur) => [cur.master_domain, cur.id])));
         modelValue.value.cluster_ids = data.map((item) => item.id);
@@ -124,6 +126,7 @@
   };
 
   const handleInputChange = (value: string) => {
+    modelValue.value.cluster_ids = [];
     if (value) {
       queryCluster({
         bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,

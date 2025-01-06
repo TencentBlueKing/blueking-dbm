@@ -26,6 +26,7 @@
       @change="handleInputChange">
       <template #append>
         <DbIcon
+          v-bk-tooltips="t('从资源池选择')"
           class="select-icon"
           type="host-select"
           @click="handleShowSelector" />
@@ -37,6 +38,7 @@
       :placeholder="t('请选择主机')">
       <template #append>
         <DbIcon
+          v-bk-tooltips="t('从资源池选择')"
           class="select-icon"
           type="host-select"
           @click="handleShowSelector" />
@@ -46,7 +48,7 @@
   <ResourceHostSelector
     v-model="selected"
     v-model:is-show="showSelector"
-    :multiple="false"
+    :need-num="1"
     :params="params"
     @change="handleSelectorChange" />
 </template>
@@ -124,6 +126,7 @@
   const handleInputChange = (value: string) => {
     if (value) {
       queryHost({
+        bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
         search_content: value,
         limit: -1,
         offset: 0,

@@ -78,6 +78,7 @@
     proxy_spec_ids: number[];
   }>({
     default: () => ({
+      id: undefined,
       master_domain: '',
       cluster_type_name: '',
       role: '',
@@ -145,7 +146,6 @@
   const { run: queryCluster, loading } = useRequest(filterClusters<RedisModel>, {
     manual: true,
     onSuccess: (data) => {
-      modelValue.value.id = undefined;
       if (data.length) {
         const [currentCluster] = data;
         modelValue.value = {
@@ -164,6 +164,13 @@
   };
 
   const handleInputChange = (value: string) => {
+    modelValue.value = {
+      id: undefined,
+      master_domain: '',
+      cluster_type_name: '',
+      role: '',
+      proxy_spec_ids: [],
+    };
     if (value) {
       queryCluster({
         bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
