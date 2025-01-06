@@ -23,12 +23,11 @@
             :width="60">
             <template #default="{ data }">
               <BkCheckbox
-                v-if="multiple"
-                label
-                :model-value="Boolean(rowSelectMemo[data.bk_host_id])"
-                @change="() => handleSelectChange(data)" />
-              <BkRadio
-                v-else
+                v-bk-tooltips="{
+                  content: t('已选够n台', { n: needNum }),
+                  disabled: selectedNum < needNum,
+                }"
+                :disabled="selectedNum === needNum && !Boolean(rowSelectMemo[data.bk_host_id])"
                 label
                 :model-value="Boolean(rowSelectMemo[data.bk_host_id])"
                 @change="() => handleSelectChange(data)" />
@@ -51,16 +50,14 @@
               <HostAgentStatus :data="data.agent_status" />
             </template>
           </BkTableColumn>
-          <!-- <BkTableColumn
+          <BkTableColumn
             field="bk_cpu"
             :label="t('资源归属')"
             :min-width="300">
             <template #default="{ data }">
-              <ResourceHostOwner
-                v-if="false"
-                :data="data" />
+              <ResourceHostOwner :data="data" />
             </template>
-          </BkTableColumn> -->
+          </BkTableColumn>
           <BkTableColumn
             field="rack_id"
             :label="t('机架')"
@@ -137,7 +134,20 @@
       </div>
     </div>
     <template #footer>
+      <I18nT
+        class="mr-20"
+        keypath="需n台_已选n台"
+        style="font-size: 14px; color: #63656e"
+        tag="span">
+        <span style="font-weight: bold; color: #2dcb56"> {{ needNum }} </span>
+        <span style="font-weight: bold; color: #3a84ff"> {{ selectedNum }} </span>
+      </I18nT>
       <BkButton
+        v-bk-tooltips="{
+          content: t('还差n台_请先勾选足够的IP', { n: needNum - selectedNum }),
+          disabled: selectedNum === needNum,
+        }"
+        :disabled="selectedNum !== needNum"
         theme="primary"
         @click="handleSubmit">
         {{ t('确定') }}
@@ -159,8 +169,8 @@
 
   import DiskPopInfo from '@components/disk-pop-info/DiskPopInfo.vue';
   import HostAgentStatus from '@components/host-agent-status/Index.vue';
+  import ResourceHostOwner from '@components/resource-host-owner/Index.vue';
 
-  // import ResourceHostOwner from '@components/resource-host-owner/Index.vue';
   import PanelTab from './components/PanelTab.vue';
   import useSearchSelectData from './hooks/use-search-select-data';
 
@@ -172,7 +182,7 @@
   }
 
   interface Props {
-    multiple?: boolean;
+    needNum: number;
     params?: {
       for_biz?: number;
       bk_cloud_ids?: string;
@@ -186,7 +196,6 @@
   }
 
   const props = withDefaults(defineProps<Props>(), {
-    multiple: true,
     params: () => ({}),
   });
 
@@ -208,6 +217,8 @@
   const dbTableRef = useTemplateRef('table');
   const currentPanelTab = ref('host');
   const rowSelectMemo = shallowRef<Record<number, DbResourceModel>>({});
+
+  const selectedNum = computed(() => Object.keys(rowSelectMemo.value).length);
 
   const dataSource = (params: ServiceParameters<typeof fetchList>) =>
     fetchList({
@@ -234,18 +245,12 @@
 
   const handleSelectChange = (data: DbResourceModel) => {
     const latestSelectMemo = { ...rowSelectMemo.value };
-    if (props.multiple) {
-      if (latestSelectMemo[data.bk_host_id]) {
-        delete latestSelectMemo[data.bk_host_id];
-      } else {
-        latestSelectMemo[data.bk_host_id] = data;
-      }
-      rowSelectMemo.value = latestSelectMemo;
+    if (latestSelectMemo[data.bk_host_id]) {
+      delete latestSelectMemo[data.bk_host_id];
     } else {
-      rowSelectMemo.value = {
-        [data.bk_host_id]: data,
-      };
+      latestSelectMemo[data.bk_host_id] = data;
     }
+    rowSelectMemo.value = latestSelectMemo;
   };
 
   const handleSubmit = () => {
@@ -256,9 +261,7 @@
       bk_host_id: item.bk_host_id,
       ip: item.ip,
     }));
-
     modelValue.value = latestValue;
-
     emits('change', latestValue);
   };
 
