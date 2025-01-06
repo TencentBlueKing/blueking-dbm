@@ -50,7 +50,7 @@ export default [
       },
       {
         name: t('集群容量变更'),
-        id: 'MongoCapacityChange',
+        id: TicketTypes.MONGODB_SCALE_UPDOWN,
         parentId: 'mongo_manage',
       },
       {
