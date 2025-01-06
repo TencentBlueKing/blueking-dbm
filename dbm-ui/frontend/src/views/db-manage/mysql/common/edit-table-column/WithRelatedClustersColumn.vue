@@ -91,7 +91,7 @@
     }[];
   }>({
     default: () => ({
-      id: 0,
+      id: undefined,
       master_domain: '',
       related_clusters: [],
     }),
@@ -111,6 +111,15 @@
   }));
 
   const rules = [
+    {
+      // 监听输入项变化时关联集群重置
+      validator: () => {
+        modelValue.value.related_clusters = [];
+        return true;
+      },
+      message: '',
+      trigger: 'change',
+    },
     {
       validator: (value: string) => domainRegex.test(value),
       message: t('集群域名格式不正确'),
@@ -136,7 +145,6 @@
   const { run: queryRelatedClusters, loading: relatedClusterLoading } = useRequest(findRelatedClustersByClusterIds, {
     manual: true,
     onSuccess: (data) => {
-      modelValue.value.related_clusters = [];
       if (data.length) {
         modelValue.value.related_clusters = data[0].related_clusters.map((item) => ({
           id: item.id,
@@ -149,7 +157,6 @@
   const { run: queryCluster, loading } = useRequest(filterClusters, {
     manual: true,
     onSuccess: (data) => {
-      modelValue.value.id = undefined;
       if (data.length) {
         modelValue.value.id = data[0].id;
       }
@@ -173,6 +180,11 @@
   };
 
   const handleInputChange = (value: string) => {
+    modelValue.value = {
+      id: undefined,
+      master_domain: value,
+      related_clusters: [],
+    };
     if (value) {
       queryCluster({
         bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,

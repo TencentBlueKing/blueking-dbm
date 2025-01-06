@@ -119,6 +119,7 @@
   }>({
     default: () => ({
       bk_cloud_id: 0,
+      bk_host_id: undefined,
       ip: '',
       port: 0,
       cluster_ids: [],
@@ -186,24 +187,26 @@
   const { run: queryInstance, loading } = useRequest(checkInstance, {
     manual: true,
     onSuccess: (data) => {
-      const [hostInfo] = data;
-      const clusterIds: number[] = [];
-      const relatedInstances: string[] = [];
-      const relatedClusters: string[] = [];
-      data.forEach((item) => {
-        clusterIds.push(item.cluster_id);
-        relatedInstances.push(item.instance_address);
-        relatedClusters.push(item.master_domain);
-      });
-      modelValue.value = {
-        bk_cloud_id: hostInfo.bk_cloud_id,
-        bk_host_id: hostInfo.bk_host_id,
-        ip: hostInfo.ip,
-        port: hostInfo.port,
-        cluster_ids: clusterIds,
-        related_instances: relatedInstances,
-        related_clusters: relatedClusters,
-      };
+      if (data.length) {
+        const [hostInfo] = data;
+        const clusterIds: number[] = [];
+        const relatedInstances: string[] = [];
+        const relatedClusters: string[] = [];
+        data.forEach((item) => {
+          clusterIds.push(item.cluster_id);
+          relatedInstances.push(item.instance_address);
+          relatedClusters.push(item.master_domain);
+        });
+        modelValue.value = {
+          bk_cloud_id: hostInfo.bk_cloud_id,
+          bk_host_id: hostInfo.bk_host_id,
+          ip: hostInfo.ip,
+          port: hostInfo.port,
+          cluster_ids: clusterIds,
+          related_instances: relatedInstances,
+          related_clusters: relatedClusters,
+        };
+      }
     },
   });
 
@@ -212,6 +215,15 @@
   };
 
   const handleInputChange = (value: string) => {
+    modelValue.value = {
+      bk_host_id: undefined,
+      bk_cloud_id: 0,
+      ip: value,
+      port: 0,
+      cluster_ids: [],
+      related_instances: [],
+      related_clusters: [],
+    };
     if (value) {
       queryInstance({
         bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
