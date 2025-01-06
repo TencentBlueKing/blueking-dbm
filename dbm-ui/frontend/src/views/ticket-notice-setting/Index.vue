@@ -42,18 +42,27 @@
         <AuthButton
           action-id="biz_notify_config"
           class="w-88"
+          :disabled="resetSettingLoading"
           :loading="updateSettingLoading"
           :resource="bizId"
           theme="primary"
-          @click="handleSubmit">
-          {{ t('提交') }}
+          @click="handleSave">
+          {{ t('保存') }}
         </AuthButton>
-        <BkButton
-          class="ml8 w-88"
-          :disabled="updateSettingLoading"
-          @click="handleReset">
-          {{ t('重置') }}
-        </BkButton>
+        <DbPopconfirm
+          ref="dbPopconfirm"
+          :confirm-handler="handleReset"
+          :content="t('重置将会恢复默认设置的内容')"
+          :title="t('确认重置')">
+          <AuthButton
+            action-id="biz_notify_config"
+            class="ml8 w-88"
+            :disabled="updateSettingLoading"
+            :loading="resetSettingLoading"
+            :resource="bizId">
+            {{ t('重置') }}
+          </AuthButton>
+        </DbPopconfirm>
       </template>
     </SmartAction>
   </BkLoading>
@@ -67,9 +76,12 @@
   import { getBizSettingList, updateBizSetting } from '@services/source/bizSetting';
   import { getAlarmGroupNotifyList } from '@services/source/monitorNoticeGroup';
 
-  import { InputMessageTypes, MessageTypes } from '@common/const'
+  import { InputMessageTypes, MessageTipMap, MessageTypes } from '@common/const'
 
   import { messageSuccess } from '@utils';
+
+  type AlarmGroupNotify = ServiceReturnType<typeof getAlarmGroupNotifyList>
+  type TicketNoticeSetting = Record<string, Record<string, boolean | string[]>>
 
   interface DataRow {
     status: string;
@@ -84,6 +96,8 @@
   const dataList = ref<DataRow[]>([]);
 
   const bizId = window.PROJECT_CONFIG.BIZ_ID
+  const DefaultMessageTypeList = [MessageTypes.MAIL, MessageTypes.RTX]
+  const NoticeTicketTypeList = Object.entries(TicketModel.statusTextMap).filter(([status]) => ![TicketModel.STATUS_RUNNING, TicketModel.STATUS_TIMER].includes(status))
 
   const columns = computed(() => {
     const baseColumns = [
@@ -100,8 +114,27 @@
       },
     ];
 
-    const nofityColumns = (alarmGroupNotifyList.value || []).filter((item) => item.is_active).map(item => {
+    // input 类型的放最后
+    const activeTypeMap = (alarmGroupNotifyList.value || []).reduce<{
+      checkbox: AlarmGroupNotify,
+      input: AlarmGroupNotify,
+    }>((prevMap, item) => {
+      if (item.is_active) {
+        if (InputMessageTypes.includes(item.type)) {
+          Object.assign(prevMap.input, prevMap.input.concat(item))
+        } else {
+          Object.assign(prevMap.checkbox, prevMap.checkbox.concat(item))
+        }
+      }
+      return prevMap;
+    }, {
+      checkbox: [],
+      input: []
+    })
+
+    const nofityColumns = [...activeTypeMap.checkbox, ...activeTypeMap.input].map(item => {
       const isInputType = InputMessageTypes.includes(item.type)
+      const messageTip = MessageTipMap[item.type]
       return {
         field: item.type,
         minWidth: isInputType ? 320 : 120,
@@ -116,6 +149,16 @@
               class="ml-4">
               { item.label }
             </span>
+            {
+              messageTip && (
+                <db-icon
+                  class="message-type-head-tip ml-4"
+                  v-bk-tooltips={{
+                    content: messageTip
+                  }}
+                  type="attention" />
+              )
+            }
           </div>
         ),
         render: ({ data } : { data: DataRow }) => {
@@ -146,6 +189,15 @@
     manual: true,
     onSuccess: () => {
       messageSuccess(t('保存成功'));
+      getData()
+    },
+  });
+
+  const { loading: resetSettingLoading, run: runResetBizSetting } = useRequest(updateBizSetting, {
+    manual: true,
+    onSuccess: () => {
+      messageSuccess(t('重置成功'));
+      getData()
     },
   });
 
@@ -175,33 +227,31 @@
       const isBizSettingEmpty = _.isEmpty(bizSetting.value) ||  _.isEmpty(bizSetting.value.NOTIFY_CONFIG)
       const list: DataRow[] = []
 
-      Object.entries(TicketModel.statusTextMap).forEach(([status, statusText]) => {
-        if (![TicketModel.STATUS_RUNNING, TicketModel.STATUS_TIMER].includes(status)) {
-          const initSetting = _.cloneDeep(activeTypeMap)
-          if (isBizSettingEmpty) {
-            [MessageTypes.MAIL, MessageTypes.RTX].forEach(type => {
-              if (initSetting.checkbox[type] !== undefined) {
-                initSetting.checkbox[type] = true;
-              }
-            });
-          } else {
-            const statusBizSetting = bizSetting.value!.NOTIFY_CONFIG[status]
-            Object.keys(initSetting.checkbox).forEach(initSettingKey => {
-              initSetting.checkbox[initSettingKey] = statusBizSetting[initSettingKey] || false
-            })
-            Object.keys(initSetting.input).forEach(initSettingKey => {
-              initSetting.input[initSettingKey] = (statusBizSetting[initSettingKey] || []).join(',')
-            })
-          }
-
-          list.push({
-            status,
-            statusText,
-            noticeMember: status === TicketModel.STATUS_APPROVE ? [t('审批人')] : [t('提单人'), t('协助人')],
-            checkbox: initSetting.checkbox,
-            input: initSetting.input
+      NoticeTicketTypeList.forEach(([status, statusText]) => {
+        const initSetting = _.cloneDeep(activeTypeMap)
+        if (isBizSettingEmpty) {
+          DefaultMessageTypeList.forEach(type => {
+            if (initSetting.checkbox[type] !== undefined) {
+              initSetting.checkbox[type] = true;
+            }
+          });
+        } else {
+          const statusBizSetting = bizSetting.value!.NOTIFY_CONFIG[status]
+          Object.keys(initSetting.checkbox).forEach(initSettingKey => {
+            initSetting.checkbox[initSettingKey] = statusBizSetting[initSettingKey] || false
+          })
+          Object.keys(initSetting.input).forEach(initSettingKey => {
+            initSetting.input[initSettingKey] = (statusBizSetting[initSettingKey] || []).join(',')
           })
         }
+
+        list.push({
+          status,
+          statusText,
+          noticeMember: status === TicketModel.STATUS_APPROVE ? [t('审批人')] : [t('提单人'), t('协助人')],
+          checkbox: initSetting.checkbox,
+          input: initSetting.input
+        })
       })
       dataList.value = list
     }
@@ -221,11 +271,11 @@
     })
   }
 
-  const handleSubmit = () => {
+  const handleSave = () => {
     runUpdateBizSetting({
       bk_biz_id: bizId,
       key: 'NOTIFY_CONFIG',
-      value: dataList.value.reduce<Record<string, Record<string, boolean | string[]>>>((prevMap, dataItem) => {
+      value: dataList.value.reduce<TicketNoticeSetting>((prevMap, dataItem) => {
         const checkboxMap = Object.entries(dataItem.checkbox).reduce<Record<string, boolean>>((prevMap, [key, value])=> {
           if (value) {
             return Object.assign({}, prevMap, { [key]: value })
@@ -249,7 +299,15 @@
   };
 
   const handleReset = () => {
-    getData()
+    runResetBizSetting({
+      bk_biz_id: bizId,
+      key: 'NOTIFY_CONFIG',
+      value: NoticeTicketTypeList.reduce<TicketNoticeSetting>((prevSettingMap, [status]) => Object.assign({}, prevSettingMap, {
+        [status]: DefaultMessageTypeList.reduce<Record<string, boolean>>((prevValueMap, type) => Object.assign({}, prevValueMap, {
+          [type]: true
+        }), {})
+      }), {})
+    })
   };
 
   // 初始化查询
@@ -283,6 +341,11 @@
         .message-type-head {
           display: flex;
           align-items: center;
+
+          .message-type-head-tip {
+            font-size: 14px;
+            color: #63656e;
+          }
         }
       }
     }
