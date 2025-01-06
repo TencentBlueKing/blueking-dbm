@@ -74,6 +74,7 @@
     master_domain: string;
   }>({
     default: () => ({
+      id: undefined,
       master_domain: '',
     }),
   });
@@ -129,7 +130,6 @@
   const { run: queryCluster, loading } = useRequest(filterClusters, {
     manual: true,
     onSuccess: (data) => {
-      modelValue.value.id = undefined;
       if (data.length) {
         modelValue.value.id = data[0].id;
       }
@@ -141,6 +141,7 @@
   };
 
   const handleInputChange = (value: string) => {
+    modelValue.value.id = undefined;
     if (value) {
       queryCluster({
         bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,

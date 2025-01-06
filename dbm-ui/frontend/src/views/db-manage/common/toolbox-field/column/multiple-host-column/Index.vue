@@ -29,6 +29,7 @@
       </template>
       <template #append>
         <DbIcon
+          v-bk-tooltips="t('从资源池选择')"
           class="select-icon"
           type="host-select"
           @click="handleShowSelector" />
@@ -43,6 +44,7 @@
       </template>
       <template #append>
         <DbIcon
+          v-bk-tooltips="t('从资源池选择')"
           class="select-icon"
           type="host-select"
           @click="handleShowSelector" />
@@ -52,6 +54,7 @@
   <ResourceHostSelector
     v-model:is-show="showSelector"
     v-mode="modelValue"
+    :need-num="needNum"
     :params="params"
     @change="handleSelectorChange" />
   <div style="display: none">
@@ -83,6 +86,7 @@
      */
     field: string;
     label: string;
+    needNum: number;
     editable?: boolean;
     params?: {
       for_biz?: number;
@@ -201,6 +205,7 @@
   const handleInputChange = (value: string) => {
     if (value) {
       queryHost({
+        bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
         search_content: value,
         limit: -1,
         offset: 0,
