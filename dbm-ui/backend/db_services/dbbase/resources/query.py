@@ -748,6 +748,7 @@ class ListRetrieveResource(BaseListRetrieveResource):
             "id": instance["id"],
             "cluster_id": instance["cluster__id"],
             "cluster_type": instance["cluster__cluster_type"],
+            "cluster_type_name": ClusterType.get_choice_label(instance["cluster__cluster_type"]),
             "cluster_name": instance["cluster__name"],
             "version": instance["cluster__major_version"],
             "db_module_id": instance["cluster__db_module_id"],
