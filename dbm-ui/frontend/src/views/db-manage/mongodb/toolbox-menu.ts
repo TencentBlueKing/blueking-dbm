@@ -60,7 +60,7 @@ export default [
       },
       {
         name: t('缩容接入层'),
-        id: 'MongoProxyScaleDown',
+        id: TicketTypes.MONGODB_REDUCE_MONGOS,
         parentId: 'mongo_manage',
       },
       {
