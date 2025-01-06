@@ -62,6 +62,7 @@ export const mongoToolboxChildrenRoutes: RouteRecordRaw[] = [
     },
     component: () => import('@views/db-manage/mongodb/proxy-scale-down/Index.vue'),
   },
+  createRouteItem(TicketTypes.MONGODB_REDUCE_MONGOS, t('缩容接入层')),
   // {
   //   name: 'MongoDBReplace',
   //   path: 'db-replace/:page?',
