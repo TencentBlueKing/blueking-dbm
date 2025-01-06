@@ -103,14 +103,15 @@ export const mongoToolboxChildrenRoutes: RouteRecordRaw[] = [
   //   component: () => import('@views/db-manage/mongodb/db-backup/Index.vue'),
   // },
   createRouteItem(TicketTypes.MONGODB_FULL_BACKUP, t('全库备份')),
-  {
-    path: 'db-clear/:page?',
-    name: 'MongoDbClear',
-    meta: {
-      navName: t('清档'),
-    },
-    component: () => import('@views/db-manage/mongodb/db-clear/Index.vue'),
-  },
+  // {
+  //   path: 'db-clear/:page?',
+  //   name: 'MongoDbClear',
+  //   meta: {
+  //     navName: t('清档'),
+  //   },
+  //   component: () => import('@views/db-manage/mongodb/db-clear/Index.vue'),
+  // },
+  createRouteItem(TicketTypes.MONGODB_REMOVE_NS, t('清档')),
 ];
 
 const routes: RouteRecordRaw[] = [

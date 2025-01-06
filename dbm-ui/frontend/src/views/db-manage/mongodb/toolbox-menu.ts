@@ -111,7 +111,7 @@ export default [
     children: [
       {
         name: t('清档'),
-        id: 'MongoDbClear',
+        id: TicketTypes.MONGODB_REMOVE_NS,
         parentId: 'mongo_data',
       },
     ],
