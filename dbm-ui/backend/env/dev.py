@@ -21,8 +21,5 @@ TEST_ACCESS_HOSTS = get_type_env(key="TEST_ACCESS_HOSTS", _type=list, default=[]
 WEBCONSOLE_USERNAME = get_type_env(key="WEBCONSOLE_USERNAME", _type=str, default="")
 WEBCONSOLE_PASSWORD = get_type_env(key="WEBCONSOLE_PASSWORD", _type=str, default="")
 
-# 资源池伪造开关
-FAKE_RESOURCE_APPLY_ENABLE = get_type_env(key="FAKE_RESOURCE_APPLY_ENABLE", _type=bool, default=False)
-
 # 跳过审批开关，默认关闭，方便本地联调
 ITSM_FLOW_SKIP = get_type_env(key="ITSM_FLOW_SKIP", _type=bool, default=False)

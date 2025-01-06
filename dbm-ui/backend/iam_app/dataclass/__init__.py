@@ -221,7 +221,12 @@ def assign_auth_to_group(iam: IAM, biz: AppCache, group_id):
     """
     给单个用户组分配权限，这里的权限固定是DBA权限
     """
-    biz_actions = [action for action in _all_actions.values() if action.group not in [_("全局设置"), _("资源管理")]]
+    global_action_groups = [_("全局设置"), _("资源管理"), _("平台管理")]
+    biz_actions = [
+        action
+        for action in _all_actions.values()
+        if action.group not in global_action_groups and action.related_resource_types
+    ]
     auth_contents = generate_resource_topo_auth(biz_actions, bk_biz_id=biz.bk_biz_id, bk_biz_name=biz.bk_biz_name)
     for auth_info in auth_contents:
         ok, message, data = iam._client.grant_user_group_actions(env.BK_IAM_SYSTEM_ID, group_id, data=auth_info)

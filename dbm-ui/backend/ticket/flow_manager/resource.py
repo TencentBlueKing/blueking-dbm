@@ -14,18 +14,14 @@ import logging
 from collections import defaultdict
 from typing import Any, Dict, List, Optional, Union
 
-from django.core.cache import cache
 from django.utils.translation import gettext as _
 
-from backend import env
 from backend.components.dbresource.client import DBResourceApi
 from backend.configuration.constants import AffinityEnum
 from backend.configuration.models import DBAdministrator
 from backend.core import notify
 from backend.db_meta.models import Spec
 from backend.db_services.dbresource.exceptions import ResourceApplyException, ResourceApplyInsufficientException
-from backend.db_services.ipchooser.constants import CommonEnum
-from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
 from backend.ticket import constants
 from backend.ticket.constants import FlowCallbackType, FlowType, ResourceApplyErrCode, TodoType
 from backend.ticket.flow_manager.base import BaseTicketFlow
@@ -150,7 +146,7 @@ class ResourceApplyFlow(BaseTicketFlow):
 
     def apply_resource(self, ticket_data):
         """资源申请"""
-        apply_params: Dict[str, Union[str, List]] = {
+        apply_params: Dict[str, Union[str, Any]] = {
             "for_biz_id": ticket_data["bk_biz_id"],
             "resource_type": self.ticket.group,
             "bill_id": str(self.ticket.id),
@@ -164,6 +160,12 @@ class ResourceApplyFlow(BaseTicketFlow):
         # 如果无资源申请，则返回空
         if not apply_params["details"]:
             return "", {}
+
+        # groups_in_same_location只在同城同园区亲和性下才成效，保证所有组申请的机器都在同园区
+        # 目前所有组亲和性相同，任取一个判断即可
+        affinity = apply_params["details"][0]["affinity"]
+        if affinity in [AffinityEnum.SAME_SUBZONE, AffinityEnum.SAME_SUBZONE_CROSS_SWTICH]:
+            apply_params.update(groups_in_same_location=True)
 
         # 向资源池申请机器
         resp = DBResourceApi.resource_pre_apply(params=apply_params, raw=True)
@@ -398,86 +400,6 @@ class ResourceDeliveryFlow(DeliveryFlow):
 
 
 class ResourceBatchDeliveryFlow(ResourceDeliveryFlow):
-    """
-    内置资源申请批量交付流程，主要是通知资源池机器使用成功
-    """
-
-    def _run(self) -> str:
-        # 暂时与单独交付节点没有区别
-        return super()._run()
-
-
-class FakeResourceApplyFlow(ResourceApplyFlow):
-    def apply_resource(self, ticket_data):
-        """模拟资源池申请"""
-
-        host_in_use = set(cache.get(HOST_IN_USE, []))
-
-        resp = ResourceQueryHelper.query_cc_hosts(
-            {"bk_biz_id": env.DBA_APP_BK_BIZ_ID, "bk_inst_id": 7, "bk_obj_id": "module"},
-            [],
-            0,
-            1000,
-            CommonEnum.DEFAULT_HOST_FIELDS.value,
-            return_status=True,
-            bk_cloud_id=0,
-        )
-        count, apply_data = resp["count"], list(filter(lambda x: x["status"] == 1, resp["info"]))
-
-        for item in apply_data:
-            item["ip"] = item["bk_host_innerip"]
-
-        # 排除缓存占用的主机
-        host_free = list(filter(lambda x: x["bk_host_id"] not in host_in_use, apply_data))
-
-        index = 0
-        expected_count = 0
-        node_infos: Dict[str, List] = defaultdict(list)
-        for detail in self.fetch_apply_params(ticket_data):
-            role, count = detail["group_mark"], detail["count"]
-            host_infos = host_free[index : index + count]
-            try:
-                if "backend_group" in role:
-                    backend_group_name = role.rsplit("_", 1)[0]
-                    node_infos[backend_group_name].append({"master": host_infos[0], "slave": host_infos[1]})
-                else:
-                    node_infos[role] = host_infos
-            except IndexError:
-                raise ResourceApplyException(_("模拟资源申请失败，主机数量不够"))
-
-            index += count
-            expected_count += len(host_infos)
-
-        if expected_count < index:
-            raise ResourceApplyException(_("模拟资源申请失败，主机数量不够：{} < {}").format(count, index))
-
-        logger.info(_("模拟资源申请成功（%s）：%s"), expected_count, node_infos)
-
-        # 添加新占用的主机
-        host_in_use = host_in_use.union(list(map(lambda x: x["bk_host_id"], host_free[:index])))
-        cache.set(HOST_IN_USE, list(host_in_use))
-
-        return count, node_infos
-
-
-class FakeResourceBatchApplyFlow(FakeResourceApplyFlow, ResourceBatchApplyFlow):
-    pass
-
-
-class FakeResourceDeliveryFlow(ResourceDeliveryFlow):
-    """
-    内置资源申请交付流程，暂时无需操作
-    """
-
-    def confirm_resource(self, ticket_data):
-        pass
-
-    def _run(self) -> str:
-        self.confirm_resource(self.ticket.details)
-        return super()._run()
-
-
-class FakeResourceBatchDeliveryFlow(FakeResourceDeliveryFlow):
     """
     内置资源申请批量交付流程，主要是通知资源池机器使用成功
     """
