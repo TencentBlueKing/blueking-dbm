@@ -38,6 +38,7 @@ export * from './useTagsOverflow';
 export * from './useTaskCount';
 export * from './useTicketCloneInfo';
 export * from './useTicketCount';
+export * from './useTicketDetail';
 export * from './useTicketMessage';
 export * from './useTimeZoneFormat';
 export * from './useUrlSearach';

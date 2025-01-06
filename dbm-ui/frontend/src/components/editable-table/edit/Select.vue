@@ -6,6 +6,7 @@
     @blur="handleBlur"
     @change="handleChange"
     @focus="handleFocus">
+    <slot />
     <template
       v-if="slots.option"
       #optionRender="{ item, index }">
@@ -48,6 +49,7 @@
   }>();
 
   const slots = defineSlots<{
+    default?: () => VNode;
     trigger?: (value: { selected: any[] }) => VNode;
     option?: (value: { item: Record<string, any>; index: number }) => VNode;
   }>();
