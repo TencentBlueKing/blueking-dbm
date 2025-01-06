@@ -85,6 +85,7 @@
   }>({
     default: () => ({
       bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+      bk_host_id: undefined,
       bk_cloud_id: 0,
       ip: '',
       role: '',
@@ -127,7 +128,6 @@
   const { run: queryHost, loading } = useRequest(checkInstance, {
     manual: true,
     onSuccess: (data) => {
-      modelValue.value.bk_host_id = undefined;
       if (data.length) {
         const currentHost = data[0];
         const roleMap = {
@@ -158,6 +158,16 @@
   };
 
   const handleInputChange = (value: string) => {
+    modelValue.value = {
+      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+      bk_host_id: undefined,
+      bk_cloud_id: 0,
+      ip: value,
+      role: '',
+      cluster_domain: '',
+      cluster_ids: [],
+      spec_config: {} as SpecInfo,
+    };
     if (value) {
       queryHost({
         bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,

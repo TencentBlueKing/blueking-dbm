@@ -91,7 +91,7 @@
   }>({
     default: () => ({
       bk_cloud_id: 0,
-      bk_host_id: 0,
+      bk_host_id: undefined,
       ip: '',
       port: 0,
       cluster_id: 0,
@@ -158,16 +158,18 @@
   const { run: queryInstance, loading } = useRequest(checkInstance, {
     manual: true,
     onSuccess: (data) => {
-      const [hostInfo] = data;
-      modelValue.value = {
-        bk_cloud_id: hostInfo.bk_cloud_id,
-        bk_host_id: hostInfo.bk_host_id,
-        ip: hostInfo.ip,
-        port: hostInfo.port,
-        cluster_id: hostInfo.cluster_id,
-        instance_address: hostInfo.instance_address,
-        master_domain: hostInfo.master_domain,
-      };
+      if (data.length) {
+        const [hostInfo] = data;
+        modelValue.value = {
+          bk_cloud_id: hostInfo.bk_cloud_id,
+          bk_host_id: hostInfo.bk_host_id,
+          ip: hostInfo.ip,
+          port: hostInfo.port,
+          cluster_id: hostInfo.cluster_id,
+          instance_address: hostInfo.instance_address,
+          master_domain: hostInfo.master_domain,
+        };
+      }
     },
   });
 
@@ -176,6 +178,15 @@
   };
 
   const handleInputChange = (value: string) => {
+    modelValue.value = {
+      bk_cloud_id: 0,
+      bk_host_id: undefined,
+      ip: '',
+      port: 0,
+      cluster_id: 0,
+      instance_address: value,
+      master_domain: '',
+    };
     if (value) {
       queryInstance({
         bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,

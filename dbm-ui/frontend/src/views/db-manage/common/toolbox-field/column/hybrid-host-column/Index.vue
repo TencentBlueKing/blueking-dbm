@@ -38,6 +38,7 @@
           </template>
           <template #append>
             <DbIcon
+              v-bk-tooltips="t('从资源池选择')"
               class="select-icon"
               type="host-select"
               @click.stop="handleShowSelector" />
@@ -59,6 +60,7 @@
   <ResourceHostSelector
     v-model:is-show="showSelector"
     v-mode="hostList"
+    :need-num="needNum"
     :params="params"
     @change="handleSelectorChange" />
 </template>
@@ -83,6 +85,7 @@
   interface Props {
     field: string; // 绑选项值的vmodel，不绑主机列表
     label: string;
+    needNum: number;
     minWidth?: number;
     placeholder?: string;
     bkCloudId?: number;

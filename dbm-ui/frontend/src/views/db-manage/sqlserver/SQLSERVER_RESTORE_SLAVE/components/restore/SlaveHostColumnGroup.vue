@@ -103,6 +103,7 @@
     default: () => ({
       bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
       bk_cloud_id: 0,
+      bk_host_id: undefined,
       ip: '',
       related_clusters: [],
     }),
@@ -156,7 +157,6 @@
   const { run: queryHost, loading } = useRequest(checkInstance, {
     manual: true,
     onSuccess: (data) => {
-      modelValue.value.bk_host_id = undefined;
       if (data.length) {
         const [currentHost] = data;
         modelValue.value = {
@@ -178,6 +178,13 @@
   };
 
   const handleInputChange = (value: string) => {
+    modelValue.value = {
+      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+      bk_cloud_id: 0,
+      bk_host_id: undefined,
+      ip: value,
+      related_clusters: [],
+    };
     if (value) {
       queryHost({
         bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,

@@ -47,6 +47,7 @@
             field="host.type"
             :label="t('主机选择方式')"
             :min-width="200"
+            :need-num="1"
             :spec-ids="getSpecIds(item)"
             @change="(list) => handleSelectHost(list, item)" />
           <Column

@@ -40,7 +40,7 @@
               v-model="item.cluster.bk_cloud_name"
               :placeholder="t('自动生成')" />
           </Column>
-          <MultipleHostColumn
+          <SingleHostColumn
             v-model="item.host"
             field="host"
             :label="t('运维节点 IP')" />
@@ -84,8 +84,8 @@
 
   import EditableTable, { Block, Column, Row as EditableTableRow } from '@components/editable-table/Index.vue';
 
-  import MultipleHostColumn from '@views/db-manage/common/toolbox-field/column/multiple-host-column/Index.vue';
   import OperationColumn from '@views/db-manage/common/toolbox-field/column/operation-column/Index.vue';
+  import SingleHostColumn from '@views/db-manage/common/toolbox-field/column/single-host-column/Index.vue';
   import TicketRemark from '@views/db-manage/common/toolbox-field/form-item/ticket-remark/Index.vue';
 
   import ClusterColumn from './components/ClusterColumn.vue';
@@ -98,10 +98,11 @@
       bk_cloud_name: string;
     };
     host: {
+      bk_biz_id: number;
       bk_cloud_id: number;
       bk_host_id: number;
       ip: string;
-    }[];
+    };
   }
 
   const { t } = useI18n();
@@ -114,7 +115,12 @@
       bk_cloud_id: 0,
       bk_cloud_name: '',
     },
-    host: data.host || [],
+    host: data.host || {
+      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+      bk_cloud_id: 0,
+      bk_host_id: 0,
+      ip: '',
+    },
   });
 
   const defaultData = () => ({
@@ -157,7 +163,7 @@
           resource_spec: {
             spider_ip_list: {
               spec_id: 0,
-              hosts: item.host,
+              hosts: [item.host],
             },
           },
         })),
