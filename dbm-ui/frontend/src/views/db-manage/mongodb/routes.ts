@@ -3,7 +3,13 @@ import type { RouteRecordRaw } from 'vue-router';
 import type { MongoFunctions } from '@services/model/function-controller/functionController';
 import FunctionControllModel from '@services/model/function-controller/functionController';
 
+import { DBTypes, TicketTypes } from '@common/const';
+
+import { createToolboxRoute } from '@utils';
+
 import { t } from '@locales/index';
+
+const { createRouteItem } = createToolboxRoute(DBTypes.MONGODB);
 
 export const mongoToolboxChildrenRoutes: RouteRecordRaw[] = [
   {
@@ -87,14 +93,15 @@ export const mongoToolboxChildrenRoutes: RouteRecordRaw[] = [
     },
     component: () => import('@views/db-manage/mongodb/db-table-backup/Index.vue'),
   },
-  {
-    name: 'MongoDbBackup',
-    path: 'db-data-copy-record/:page?',
-    meta: {
-      navName: t('全库备份'),
-    },
-    component: () => import('@views/db-manage/mongodb/db-backup/Index.vue'),
-  },
+  // {
+  //   name: 'MongoDbBackup',
+  //   path: 'db-data-copy-record/:page?',
+  //   meta: {
+  //     navName: t('全库备份'),
+  //   },
+  //   component: () => import('@views/db-manage/mongodb/db-backup/Index.vue'),
+  // },
+  createRouteItem(TicketTypes.MONGODB_FULL_BACKUP, t('全库备份')),
   {
     path: 'db-clear/:page?',
     name: 'MongoDbClear',
