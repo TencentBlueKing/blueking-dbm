@@ -151,6 +151,8 @@
     [TicketTypes.TENDBCLUSTER_RESTORE_LOCAL_SLAVE]: 'spiderSlaveRebuild', // spider 重建从库-原地重建
     [TicketTypes.TENDBCLUSTER_RESTORE_SLAVE]: 'spiderSlaveRebuild', // spider 重建从库-新机重建
     [TicketTypes.MONGODB_FULL_BACKUP]: TicketTypes.MONGODB_FULL_BACKUP, // mongodb 全库备份
+    [TicketTypes.MONGODB_BACKUP]: TicketTypes.MONGODB_BACKUP, // mongodb 库表备份
+    [TicketTypes.MONGODB_REMOVE_NS]: TicketTypes.MONGODB_REMOVE_NS, // mongodb 清档
   };
 
   const isSupported = computed(() => !!ticketTypeRouteNameMap[props.data.ticket_type]);
