@@ -74,7 +74,10 @@
     bk_cloud_name: string;
   }>({
     default: () => ({
+      id: undefined,
       master_domain: '',
+      bk_cloud_id: 0,
+      bk_cloud_name: '',
     }),
   });
 
@@ -117,7 +120,6 @@
   const { run: queryCluster, loading } = useRequest(filterClusters<TendbClusterModel>, {
     manual: true,
     onSuccess: (data) => {
-      modelValue.value.id = undefined;
       if (data.length) {
         const [currentCluster] = data;
         modelValue.value = {
@@ -135,6 +137,12 @@
   };
 
   const handleInputChange = (value: string) => {
+    modelValue.value = {
+      id: undefined,
+      master_domain: value,
+      bk_cloud_id: 0,
+      bk_cloud_name: '',
+    };
     if (value) {
       queryCluster({
         bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
