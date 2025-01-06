@@ -23,7 +23,7 @@ export interface InstanceInfos {
   cluster_id: number;
   cluster_name: string;
   cluster_type: string;
-  cluster_domain: string;
+  // cluster_domain: string;
   create_at: string;
   db_module_id: number;
   db_module_name: string;
@@ -73,5 +73,5 @@ export interface InstanceInfos {
       type: string;
     }[];
   };
-  status: 'running' | 'unavailable';
+  status: string;
 }

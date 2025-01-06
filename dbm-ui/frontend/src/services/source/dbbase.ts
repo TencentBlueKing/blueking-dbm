@@ -102,7 +102,11 @@ export function checkClusterDatabase(params: { bk_biz_id: number; cluster_id: nu
 }
 
 // 根据用户手动输入的ip[:port]查询真实的实例
-export function checkInstance<T extends InstanceInfos>(params: { instance_addresses: string[]; bk_biz_id: number }) {
+export function checkInstance<T extends InstanceInfos>(params: {
+  instance_addresses: string[];
+  bk_biz_id: number;
+  cluster_ids?: number[];
+}) {
   return http.post<T[]>(`${path}/check_instances/`, params);
 }
 
