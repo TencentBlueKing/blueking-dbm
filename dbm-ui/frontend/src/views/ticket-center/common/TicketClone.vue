@@ -153,6 +153,7 @@
     [TicketTypes.MONGODB_FULL_BACKUP]: TicketTypes.MONGODB_FULL_BACKUP, // mongodb 全库备份
     [TicketTypes.MONGODB_BACKUP]: TicketTypes.MONGODB_BACKUP, // mongodb 库表备份
     [TicketTypes.MONGODB_REMOVE_NS]: TicketTypes.MONGODB_REMOVE_NS, // mongodb 清档
+    [TicketTypes.MONGODB_CUTOFF]: TicketTypes.MONGODB_CUTOFF, // mongodb 整机替换
   };
 
   const isSupported = computed(() => !!ticketTypeRouteNameMap[props.data.ticket_type]);

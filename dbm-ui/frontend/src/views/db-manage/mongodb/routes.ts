@@ -61,14 +61,15 @@ export const mongoToolboxChildrenRoutes: RouteRecordRaw[] = [
     },
     component: () => import('@views/db-manage/mongodb/proxy-scale-down/Index.vue'),
   },
-  {
-    name: 'MongoDBReplace',
-    path: 'db-replace/:page?',
-    meta: {
-      navName: t('整机替换'),
-    },
-    component: () => import('@views/db-manage/mongodb/db-replace/Index.vue'),
-  },
+  // {
+  //   name: 'MongoDBReplace',
+  //   path: 'db-replace/:page?',
+  //   meta: {
+  //     navName: t('整机替换'),
+  //   },
+  //   component: () => import('@views/db-manage/mongodb/db-replace/Index.vue'),
+  // },
+  createRouteItem(TicketTypes.MONGODB_CUTOFF, t('整机替换')),
   {
     name: 'MongoDBStructure',
     path: 'db-structure/:page?',
