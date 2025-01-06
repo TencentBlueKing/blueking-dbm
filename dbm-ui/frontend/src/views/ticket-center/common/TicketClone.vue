@@ -157,6 +157,7 @@
     [TicketTypes.MONGODB_ADD_MONGOS]: TicketTypes.MONGODB_ADD_MONGOS, // mongodb 扩容接入层
     [TicketTypes.MONGODB_REDUCE_MONGOS]: TicketTypes.MONGODB_REDUCE_MONGOS, // mongodb 缩容接入层
     [TicketTypes.MONGODB_SCALE_UPDOWN]: TicketTypes.MONGODB_SCALE_UPDOWN, // mongodb 集群容量变更
+    [TicketTypes.MONGODB_ADD_SHARD_NODES]: TicketTypes.MONGODB_ADD_SHARD_NODES, // 扩容 Shard 节点数
   };
 
   const isSupported = computed(() => !!ticketTypeRouteNameMap[props.data.ticket_type]);

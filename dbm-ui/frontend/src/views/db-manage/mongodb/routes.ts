@@ -21,14 +21,15 @@ export const mongoToolboxChildrenRoutes: RouteRecordRaw[] = [
     },
     component: () => import('@views/db-manage/mongodb/script-execute/Index.vue'),
   },
-  {
-    name: 'MongoShardScaleUp',
-    path: 'shard-scale-up/:page?',
-    meta: {
-      navName: t('扩容Shard节点数'),
-    },
-    component: () => import('@views/db-manage/mongodb/shard-scale-up/Index.vue'),
-  },
+  // {
+  //   name: 'MongoShardScaleUp',
+  //   path: 'shard-scale-up/:page?',
+  //   meta: {
+  //     navName: t('扩容Shard节点数'),
+  //   },
+  //   component: () => import('@views/db-manage/mongodb/shard-scale-up/Index.vue'),
+  // },
+  createRouteItem(TicketTypes.MONGODB_ADD_SHARD_NODES, t('扩容Shard节点数')),
   {
     name: 'MongoShardScaleDown',
     path: 'shard-scale-down/:page?',
