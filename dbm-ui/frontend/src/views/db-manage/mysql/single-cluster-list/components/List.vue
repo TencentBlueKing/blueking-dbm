@@ -234,7 +234,7 @@
   import { useOperateClusterBasic } from '@views/db-manage/common/hooks';
   import OperationBtnStatusTips from '@views/db-manage/common/OperationBtnStatusTips.vue';
 
-  import { getMenuListSearch, getSearchSelectorParams, isRecentDays } from '@utils';
+  import { getMenuListSearch, getSearchSelectorParams } from '@utils';
 
   interface ColumnData {
     cell: string;
@@ -411,7 +411,7 @@
   // 设置行样式
   const setRowClass = (row: TendbsingleModel) => {
     const classList = [row.isOffline ? 'is-offline' : ''];
-    const newClass = isRecentDays(row.create_at, 24 * 3) ? 'is-new-row' : '';
+    const newClass = row.isNew ? 'is-new-row' : '';
     classList.push(newClass);
     if (row.id === clusterId.value) {
       classList.push('is-selected-row');
@@ -486,7 +486,7 @@
     }
   });
 </script>
-<style lang="less" scoped>
+<style lang="less">
   @import '@styles/mixins.less';
 
   .mysql-single-cluster-list-page {
@@ -510,100 +510,11 @@
 
     .table-wrapper {
       background-color: white;
-
-      :deep(td .vxe-cell) {
-        .domain {
-          display: flex;
-          align-items: center;
-        }
-
-        .db-icon-copy,
-        .db-icon-visible1 {
-          display: none;
-          margin-top: 1px;
-          margin-left: 4px;
-          color: @primary-color;
-          cursor: pointer;
-        }
-
-        .operations-more {
-          .db-icon-more {
-            display: block;
-            font-size: @font-size-normal;
-            font-weight: bold;
-            color: @default-color;
-            cursor: pointer;
-
-            &:hover {
-              background-color: @bg-disable;
-              border-radius: 2px;
-            }
-          }
-        }
-      }
-
-      :deep(th:hover) {
-        .db-icon-copy {
-          display: inline-block !important;
-        }
-      }
-
-      :deep(td:hover) {
-        .db-icon-copy,
-        .db-icon-visible1 {
-          display: inline-block !important;
-        }
-      }
-
-      :deep(.is-offline) {
-        a {
-          color: @gray-color;
-        }
-
-        .vxe-cell {
-          color: @disable-color;
-        }
-      }
-    }
-  }
-</style>
-<style lang="less">
-  .cluster-name-container {
-    display: flex;
-    align-items: center;
-    padding: 8px 0;
-    overflow: hidden;
-
-    .cluster-name {
-      .bk-button {
-        display: inline-block;
-        width: 100%;
-        overflow: hidden;
-
-        .bk-button-text {
-          display: inline-block;
-          width: 100%;
-          overflow: hidden;
-          line-height: 15px;
-          text-overflow: ellipsis;
-          white-space: nowrap;
-        }
-      }
-
-      &__alias {
-        color: @light-gray;
-      }
     }
 
-    .cluster-tags {
-      display: flex;
-      max-width: 150px;
-      margin-left: 4px;
-      align-items: center;
-
-      .cluster-tag {
-        margin: 2px 0;
-        flex-shrink: 0;
+    tr.is-offline {
+      .vxe-cell {
+        color: @disable-color;
       }
     }
   }

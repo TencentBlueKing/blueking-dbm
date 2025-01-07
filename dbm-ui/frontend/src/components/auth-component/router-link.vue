@@ -1,17 +1,18 @@
 <template>
   <RouterLink
     v-if="isShowRaw"
-    v-bind="attrs as unknown as any">
+    v-bind="{ ...($attrs as unknown as any) }">
     <slot />
   </RouterLink>
   <span
     v-else
-    :id="attrs.id as string"
     v-cursor
     class="auth-router-link-disabled"
-    :class="attrs.class"
     :loading="loading"
-    :style="attrs.style as StyleValue"
+    v-bind="{
+      class: attrs.class,
+      style: attrs.style as StyleValue,
+    }"
     @click.stop="handleRequestPermission">
     <slot />
   </span>

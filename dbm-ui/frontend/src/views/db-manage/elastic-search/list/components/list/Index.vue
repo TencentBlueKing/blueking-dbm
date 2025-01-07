@@ -40,192 +40,188 @@
         :validate-values="validateSearchValues"
         @change="handleSearchValueChange" />
     </div>
-    <div
-      class="table-wrapper"
-      :class="{ 'is-shrink-table': isStretchLayoutOpen }">
-      <DbTable
-        ref="tableRef"
-        :data-source="dataSource"
-        :pagination-extra="paginationExtra"
-        releate-url-query
-        :row-class="getRowClass"
-        selectable
-        :settings="tableSetting"
-        :show-overflow="false"
-        @clear-search="clearSearchValue"
-        @column-filter="columnFilterChange"
-        @column-sort="columnSortChange"
-        @selection="handleSelection"
-        @setting-change="updateTableSettings">
-        <IdColumn :cluster-type="ClusterTypes.ES" />
-        <MasterDomainColumn
-          :cluster-type="ClusterTypes.ES"
-          field="master_domain"
-          :get-table-instance="getTableInstance"
-          :label="t('访问入口')"
-          :selected-list="selected"
-          @go-detail="handleToDetails"
-          @refresh="fetchTableData" />
-        <ClusterNameColumn
-          :cluster-type="ClusterTypes.ES"
-          :get-table-instance="getTableInstance"
-          :selected-list="selected"
-          @refresh="fetchTableData" />
-        <StatusColumn :cluster-type="ClusterTypes.ES" />
-        <ClusterStatsColumn :cluster-type="ClusterTypes.ES" />
-        <RoleColumn
-          :cluster-type="ClusterTypes.ES"
-          field="es_master"
-          :get-table-instance="getTableInstance"
-          :label="t('Master节点')"
-          :search-ip="batchSearchIpInatanceList"
-          :selected-list="selected" />
-        <RoleColumn
-          :cluster-type="ClusterTypes.ES"
-          field="es_client"
-          :get-table-instance="getTableInstance"
-          :label="t('Client节点')"
-          :search-ip="batchSearchIpInatanceList"
-          :selected-list="selected" />
-        <RoleColumn
-          :cluster-type="ClusterTypes.ES"
-          field="es_datanode_hot"
-          :get-table-instance="getTableInstance"
-          :label="t('热节点')"
-          :search-ip="batchSearchIpInatanceList"
-          :selected-list="selected" />
-        <RoleColumn
-          :cluster-type="ClusterTypes.ES"
-          field="es_datanode_cold"
-          :get-table-instance="getTableInstance"
-          :label="t('冷节点')"
-          :search-ip="batchSearchIpInatanceList"
-          :selected-list="selected" />
-        <CommonColumn :cluster-type="ClusterTypes.ES" />
-        <BkTableColumn
-          :fixed="isStretchLayoutOpen ? false : 'right'"
-          :label="t('操作')"
-          :min-width="200"
-          :show-overflow="false">
-          <template #default="{data}: {data: EsModel}">
-            <template v-if="data.isOffline">
-              <AuthButton
-                v-db-console="'es.clusterManage.enable'"
-                action-id="es_enable_disable"
-                class="mr-8"
-                :disabled="data.isStarting"
-                :permission="data.permission.es_enable_disable"
-                :resource="data.id"
-                text
-                theme="primary"
-                @click="handleEnableCluster([data])">
-                {{ t('启用') }}
-              </AuthButton>
-              <AuthButton
-                v-db-console="'es.clusterManage.delete'"
-                action-id="es_destroy"
-                class="mr-8"
-                :disabled="Boolean(data.operationTicketId)"
-                :permission="data.permission.es_destroy"
-                :resource="data.id"
-                text
-                theme="primary"
-                @click="handleDeleteCluster([data])">
-                {{ t('删除') }}
-              </AuthButton>
-            </template>
-            <template v-else>
-              <OperationBtnStatusTips
-                v-db-console="'es.clusterManage.scaleUp'"
-                :data="data">
-                <AuthButton
-                  action-id="es_scale_up"
-                  class="mr8"
-                  :disabled="data.operationDisabled"
-                  :permission="data.permission.es_scale_up"
-                  :resource="data.id"
-                  text
-                  theme="primary"
-                  @click="handleShowExpandsion(data)">
-                  {{ t('扩容') }}
-                </AuthButton>
-              </OperationBtnStatusTips>
-              <OperationBtnStatusTips
-                v-db-console="'es.clusterManage.scaleDown'"
-                :data="data">
-                <AuthButton
-                  action-id="es_shrink"
-                  class="mr8"
-                  :disabled="data.operationDisabled"
-                  :permission="data.permission.es_shrink"
-                  :resource="data.id"
-                  text
-                  theme="primary"
-                  @click="handleShowShrink(data)">
-                  {{ t('缩容') }}
-                </AuthButton>
-              </OperationBtnStatusTips>
-            </template>
+    <DbTable
+      ref="tableRef"
+      :data-source="dataSource"
+      :pagination-extra="paginationExtra"
+      releate-url-query
+      :row-class="getRowClass"
+      selectable
+      :settings="tableSetting"
+      :show-overflow="false"
+      @clear-search="clearSearchValue"
+      @column-filter="columnFilterChange"
+      @column-sort="columnSortChange"
+      @selection="handleSelection"
+      @setting-change="updateTableSettings">
+      <IdColumn :cluster-type="ClusterTypes.ES" />
+      <MasterDomainColumn
+        :cluster-type="ClusterTypes.ES"
+        field="master_domain"
+        :get-table-instance="getTableInstance"
+        :label="t('访问入口')"
+        :selected-list="selected"
+        @go-detail="handleToDetails"
+        @refresh="fetchTableData" />
+      <ClusterNameColumn
+        :cluster-type="ClusterTypes.ES"
+        :get-table-instance="getTableInstance"
+        :selected-list="selected"
+        @refresh="fetchTableData" />
+      <StatusColumn :cluster-type="ClusterTypes.ES" />
+      <ClusterStatsColumn :cluster-type="ClusterTypes.ES" />
+      <RoleColumn
+        :cluster-type="ClusterTypes.ES"
+        field="es_master"
+        :get-table-instance="getTableInstance"
+        :label="t('Master节点')"
+        :search-ip="batchSearchIpInatanceList"
+        :selected-list="selected" />
+      <RoleColumn
+        :cluster-type="ClusterTypes.ES"
+        field="es_client"
+        :get-table-instance="getTableInstance"
+        :label="t('Client节点')"
+        :search-ip="batchSearchIpInatanceList"
+        :selected-list="selected" />
+      <RoleColumn
+        :cluster-type="ClusterTypes.ES"
+        field="es_datanode_hot"
+        :get-table-instance="getTableInstance"
+        :label="t('热节点')"
+        :search-ip="batchSearchIpInatanceList"
+        :selected-list="selected" />
+      <RoleColumn
+        :cluster-type="ClusterTypes.ES"
+        field="es_datanode_cold"
+        :get-table-instance="getTableInstance"
+        :label="t('冷节点')"
+        :search-ip="batchSearchIpInatanceList"
+        :selected-list="selected" />
+      <CommonColumn :cluster-type="ClusterTypes.ES" />
+      <BkTableColumn
+        :fixed="isStretchLayoutOpen ? false : 'right'"
+        :label="t('操作')"
+        :min-width="200"
+        :show-overflow="false">
+        <template #default="{data}: {data: EsModel}">
+          <template v-if="data.isOffline">
             <AuthButton
-              v-db-console="'es.clusterManage.getAccess'"
-              action-id="es_access_entry_view"
+              v-db-console="'es.clusterManage.enable'"
+              action-id="es_enable_disable"
               class="mr-8"
-              :disabled="data.isOffline"
-              :permission="data.permission.es_access_entry_view"
+              :disabled="data.isStarting"
+              :permission="data.permission.es_enable_disable"
               :resource="data.id"
               text
               theme="primary"
-              @click="handleShowPassword(data)">
-              {{ t('获取访问方式') }}
+              @click="handleEnableCluster([data])">
+              {{ t('启用') }}
             </AuthButton>
-            <MoreActionExtend>
-              <BkDropdownItem
-                v-if="data.isOnline"
-                v-db-console="'es.clusterManage.disable'">
-                <OperationBtnStatusTips :data="data">
-                  <AuthButton
-                    action-id="es_enable_disable"
-                    :disabled="Boolean(data.operationTicketId)"
-                    :permission="data.permission.es_enable_disable"
-                    :resource="data.id"
-                    text
-                    theme="primary"
-                    @click="handleDisableCluster([data])">
-                    {{ t('禁用') }}
-                  </AuthButton>
-                </OperationBtnStatusTips>
-              </BkDropdownItem>
-              <BkDropdownItem v-db-console="'es.clusterManage.delete'">
-                <OperationBtnStatusTips :data="data">
-                  <AuthButton
-                    v-bk-tooltips="{
-                      disabled: data.isOffline,
-                      content: t('请先禁用集群'),
-                    }"
-                    action-id="es_destroy"
-                    :disabled="data.isOnline || Boolean(data.operationTicketId)"
-                    :permission="data.permission.es_destroy"
-                    :resource="data.id"
-                    text
-                    theme="primary"
-                    @click="handleDeleteCluster([data])">
-                    {{ t('删除') }}
-                  </AuthButton>
-                </OperationBtnStatusTips>
-              </BkDropdownItem>
-              <BkDropdownItem v-db-console="'es.clusterManage.manage'">
-                <a
-                  :href="data.access_url"
-                  style="color: #63656e"
-                  target="_blank">
-                  {{ t('管理') }}
-                </a>
-              </BkDropdownItem>
-            </MoreActionExtend>
+            <AuthButton
+              v-db-console="'es.clusterManage.delete'"
+              action-id="es_destroy"
+              class="mr-8"
+              :disabled="Boolean(data.operationTicketId)"
+              :permission="data.permission.es_destroy"
+              :resource="data.id"
+              text
+              theme="primary"
+              @click="handleDeleteCluster([data])">
+              {{ t('删除') }}
+            </AuthButton>
           </template>
-        </BkTableColumn>
-      </DbTable>
-    </div>
+          <template v-else>
+            <OperationBtnStatusTips
+              v-db-console="'es.clusterManage.scaleUp'"
+              :data="data">
+              <AuthButton
+                action-id="es_scale_up"
+                class="mr8"
+                :disabled="data.operationDisabled"
+                :permission="data.permission.es_scale_up"
+                :resource="data.id"
+                text
+                theme="primary"
+                @click="handleShowExpandsion(data)">
+                {{ t('扩容') }}
+              </AuthButton>
+            </OperationBtnStatusTips>
+            <OperationBtnStatusTips
+              v-db-console="'es.clusterManage.scaleDown'"
+              :data="data">
+              <AuthButton
+                action-id="es_shrink"
+                class="mr8"
+                :disabled="data.operationDisabled"
+                :permission="data.permission.es_shrink"
+                :resource="data.id"
+                text
+                theme="primary"
+                @click="handleShowShrink(data)">
+                {{ t('缩容') }}
+              </AuthButton>
+            </OperationBtnStatusTips>
+          </template>
+          <AuthButton
+            v-db-console="'es.clusterManage.getAccess'"
+            action-id="es_access_entry_view"
+            class="mr-8"
+            :disabled="data.isOffline"
+            :permission="data.permission.es_access_entry_view"
+            :resource="data.id"
+            text
+            theme="primary"
+            @click="handleShowPassword(data)">
+            {{ t('获取访问方式') }}
+          </AuthButton>
+          <MoreActionExtend>
+            <BkDropdownItem
+              v-if="data.isOnline"
+              v-db-console="'es.clusterManage.disable'">
+              <OperationBtnStatusTips :data="data">
+                <AuthButton
+                  action-id="es_enable_disable"
+                  :disabled="Boolean(data.operationTicketId)"
+                  :permission="data.permission.es_enable_disable"
+                  :resource="data.id"
+                  text
+                  theme="primary"
+                  @click="handleDisableCluster([data])">
+                  {{ t('禁用') }}
+                </AuthButton>
+              </OperationBtnStatusTips>
+            </BkDropdownItem>
+            <BkDropdownItem v-db-console="'es.clusterManage.delete'">
+              <OperationBtnStatusTips :data="data">
+                <AuthButton
+                  v-bk-tooltips="{
+                    disabled: data.isOffline,
+                    content: t('请先禁用集群'),
+                  }"
+                  action-id="es_destroy"
+                  :disabled="data.isOnline || Boolean(data.operationTicketId)"
+                  :permission="data.permission.es_destroy"
+                  :resource="data.id"
+                  text
+                  theme="primary"
+                  @click="handleDeleteCluster([data])">
+                  {{ t('删除') }}
+                </AuthButton>
+              </OperationBtnStatusTips>
+            </BkDropdownItem>
+            <BkDropdownItem v-db-console="'es.clusterManage.manage'">
+              <a
+                :href="data.access_url"
+                style="color: #63656e"
+                target="_blank">
+                {{ t('管理') }}
+              </a>
+            </BkDropdownItem>
+          </MoreActionExtend>
+        </template>
+      </BkTableColumn>
+    </DbTable>
     <DbSideslider
       v-model:is-show="isShowExpandsion"
       background-color="#F5F7FA"
@@ -562,85 +558,9 @@
       }
     }
 
-    .table-wrapper {
-      background-color: white;
-
-      .db-table,
-      .audit-render-list,
-      .bk-nested-loading {
-        height: 100%;
-      }
-    }
-
-    .db-icon-more {
-      display: block;
-      font-size: @font-size-normal;
-      font-weight: bold;
-      color: @default-color;
-      cursor: pointer;
-
-      &:hover {
-        background-color: @bg-disable;
-        border-radius: 2px;
-      }
-    }
-
-    .is-offline {
-      * {
-        color: #c4c6cc !important;
-      }
-
-      a,
-      i,
-      .bk-button.bk-button-primary .bk-button-text {
-        color: #3a84ff !important;
-      }
-    }
-
-    td .vxe-cell .db-icon-copy {
-      display: none;
-      margin-top: 1px;
-      margin-left: 4px;
-      color: #3a84ff;
-      vertical-align: middle;
-      cursor: pointer;
-    }
-
-    th:hover,
-    td:hover {
-      .db-icon-copy {
-        display: inline-block !important;
-      }
-    }
-  }
-
-  .es-manage-sideslider {
-    .bk-modal-content {
-      max-height: calc(100vh - 120px);
-      overflow-y: auto;
-    }
-  }
-</style>
-<style lang="less" scoped>
-  .es-list-page {
-    :deep(.vxe-cell) {
-      .domain {
-        display: flex;
-        align-items: center;
-      }
-
-      .db-icon-visible1 {
-        display: none;
-        margin-top: 1px;
-        margin-left: 4px;
-        color: @primary-color;
-        cursor: pointer;
-      }
-    }
-
-    :deep(td:hover) {
-      .db-icon-visible1 {
-        display: inline-block !important;
+    tr.is-offline {
+      .vxe-cell {
+        color: @disable-color;
       }
     }
   }
