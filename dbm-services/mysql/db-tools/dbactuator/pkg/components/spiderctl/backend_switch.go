@@ -549,7 +549,12 @@ func (r *SpiderClusterBackendSwitchComp) GrantReplForNewSlave() (err error) {
 		if !ok {
 			return fmt.Errorf("get  %s conn failed", swpair.Slave.IpPort())
 		}
-		if _, err = conn.ExecMore(r.grantReplSql(swpair.Master.Host)); err != nil {
+		// 获取版本信息
+		ver, err := conn.SelectVersion()
+		if err != nil {
+			return err
+		}
+		if _, err = conn.ExecMore(r.grantReplSql(swpair.Master.Host, ver)); err != nil {
 			return err
 		}
 	}
@@ -570,15 +575,26 @@ func (r *SpiderClusterBackendSwitchComp) StopRepl() (err error) {
 	return nil
 }
 
-func (r *SpiderClusterBackendSwitchComp) grantReplSql(host string) []string {
+func (r *SpiderClusterBackendSwitchComp) grantReplSql(host string, verison string) []string {
 	var execSQLs []string
 	repl_user := r.GeneralParam.RuntimeAccountParam.ReplUser
 	repl_pwd := r.GeneralParam.RuntimeAccountParam.ReplPwd
 	logger.Info("repl user:%s,repl_pwd:%s", repl_user, repl_pwd)
-	execSQLs = append(execSQLs, fmt.Sprintf("CREATE USER /*!50706 IF NOT EXISTS */ `%s`@`%s` IDENTIFIED BY '%s';",
-		repl_user, host, repl_pwd))
-	execSQLs = append(execSQLs, fmt.Sprintf("GRANT REPLICATION SLAVE, REPLICATION CLIENT ON *.* TO `%s`@`%s`;", repl_user,
-		host))
+	if cmutil.MySQLVersionParse(verison) >= cmutil.MySQLVersionParse("5.7") {
+		// MySQL5.7以上的版本的授权
+		execSQLs = append(execSQLs, fmt.Sprintf("CREATE USER /*!50706 IF NOT EXISTS */ `%s`@`%s` IDENTIFIED BY '%s';",
+			repl_user, host, repl_pwd))
+		execSQLs = append(execSQLs, fmt.Sprintf("GRANT REPLICATION SLAVE, REPLICATION CLIENT ON *.* TO `%s`@`%s`;", repl_user,
+			host))
+	} else {
+		// 兼容MySQL5.7以下的版本的授权
+		execSQLs = append(execSQLs,
+			fmt.Sprintf("GRANT REPLICATION SLAVE, REPLICATION CLIENT ON *.* TO `%s`@`%s` IDENTIFIED BY '%s';",
+				repl_user,
+				host,
+				repl_pwd))
+	}
+
 	return execSQLs
 }
 
