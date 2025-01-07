@@ -183,6 +183,9 @@
       localValue.cluster_shard_num = props.rowData?.shardNum || 0;
       localValue.machine_pair = props.rowData?.groupNum || 0;
     },
+    {
+      immediate: true,
+    },
   );
 
   const rules = [
@@ -215,7 +218,7 @@
         cloudId: rowData.bkCloudId,
         // groupNum: rowData.groupNum ?? 0,
         groupNum: localValue.machine_pair,
-        shardNum: rowData.shardNum ?? 0,
+        shardNum: localValue.cluster_shard_num,
         bkCloudId: rowData.bkCloudId,
       };
       activeRowData.value = obj;

@@ -250,13 +250,13 @@
       <BkButton
         class="mr-8"
         :disabled="!isAbleSubmit"
-        :loading="isConfirmLoading"
+        :loading="isLoading"
         theme="primary"
         @click="handleConfirm">
         {{ t('确定') }}
       </BkButton>
       <BkButton
-        :disabled="isConfirmLoading"
+        :disabled="isLoading"
         @click="handleClose">
         {{ t('取消') }}
       </BkButton>
@@ -407,11 +407,12 @@
   const radioValue = ref(-1);
   const radioChoosedId  = ref(''); // 标记，sort重新定位index用
   const isTableLoading = ref(false);
-  const isConfirmLoading = ref(false);
   const tableData = ref<ClusterSpecModel[]>([]);
   const targetInfo = ref(createDefaultTargetInfo());
   const applySchema = ref(APPLY_SCHEME.AUTO);
   const updateInfoError = ref(false)
+  const customUpdateInfoLoading = ref(false)
+  const autoUpdateInfoLoading = ref(false)
 
   const specDisabledMap = shallowRef<Record<number, boolean>>({})
 
@@ -456,6 +457,8 @@
     emits('targetStatsChange', stats)
     return stats
   })
+
+  const isLoading = computed(() => customUpdateInfoLoading.value || autoUpdateInfoLoading.value)
 
   const currentCapacity = computed(() => {
     if (_.isEmpty(props.clusterStats)) {
@@ -537,9 +540,9 @@
     immediate: true,
   });
 
-  watch(() => props.data.shardNum, () => {
-    specInfo.shardNum = props.data.shardNum
-  })
+  // watch(() => props.data.shardNum, () => {
+  //   specInfo.shardNum = props.data.shardNum
+  // })
 
   watch(specInfo, () => {
     if (specInfo.specId && specInfo.count && specInfo.clusterShardNum) {
@@ -551,6 +554,7 @@
   })
 
   const getCustomUpdateInfo = _.debounce(() => {
+    customUpdateInfoLoading.value = true
     getRedisClusterCapacityUpdateInfo({
       cluster_id: props.clusterId!,
       new_storage_version: props.targetVerison!,
@@ -580,6 +584,8 @@
         shardNum: specInfo.clusterShardNum,
         updateMode: updateInfo.capacity_update_type
       }
+    }).finally(() => {
+      customUpdateInfoLoading.value = false
     })
   }, 200)
 
@@ -665,6 +671,7 @@
   }
 
   const getUpdateInfo = (row: ClusterSpecModel) => {
+    autoUpdateInfoLoading.value = true
     getRedisClusterCapacityUpdateInfo({
       cluster_id: props.clusterId!,
       new_storage_version: props.targetVerison!,
@@ -695,6 +702,8 @@
         updateMode: updateInfo.capacity_update_type
       }
       radioChoosedId.value = row.spec_name;
+    }).finally(() => {
+      autoUpdateInfoLoading.value = false
     })
   }
 
