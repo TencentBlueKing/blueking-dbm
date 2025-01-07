@@ -39,9 +39,7 @@
     });
 
   const { value: datePickerValue, shortcutsRange } = useDatePicker();
-  const { value: searachSelectValue, searchSelectData } = useSearchSelect({
-    exclude: ['bk_biz_id'],
-  });
+  const { value: searachSelectValue, searchSelectData } = useSearchSelect();
 </script>
 <style lang="less">
   .ticket-list-card-mode {
