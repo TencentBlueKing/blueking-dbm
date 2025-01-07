@@ -18,6 +18,7 @@ export default class MongodbInstanceDetail {
   cluster_id: number;
   cluster_name: string;
   cluster_type: string;
+  cluster_type_name: string;
   create_at: string;
   db_module_id: number;
   db_version: null;
@@ -51,6 +52,7 @@ export default class MongodbInstanceDetail {
     this.cluster_id = payload.cluster_id;
     this.cluster_name = payload.cluster_name;
     this.cluster_type = payload.cluster_type;
+    this.cluster_type_name = payload.cluster_type_name;
     this.create_at = payload.create_at;
     this.db_module_id = payload.db_module_id;
     this.db_version = payload.db_version;
