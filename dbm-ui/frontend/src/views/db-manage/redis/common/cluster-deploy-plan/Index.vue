@@ -161,7 +161,7 @@
     </div>
     <template #footer>
       <BkButton
-        class="w-88 ml-16"
+        class="w-88"
         :disabled="!isAbleSubmit"
         :loading="isConfirmLoading"
         theme="primary"

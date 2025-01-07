@@ -3,7 +3,8 @@
     class-name="cluster-table-role-column"
     :field="field"
     :label="label"
-    :min-width="200">
+    :min-width="200"
+    :show-overflow="false">
     <template #header>
       <RenderHeadCopy
         :config="[

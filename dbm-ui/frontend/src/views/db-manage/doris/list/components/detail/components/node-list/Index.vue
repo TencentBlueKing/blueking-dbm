@@ -413,7 +413,7 @@
                 action-id="doris_replace"
                 permission={data.permission.doris_replace}
                 resource={data.bk_host_id}
-                class="ml16"
+                class="ml-8"
                 disabled={operationData.value?.operationDisabled}
                 onClick={() => handleReplaceOne(data)}>
                 {t('替换')}
@@ -426,7 +426,7 @@
                 action-id="doris_reboot"
                 permission={data.permission.doris_reboot}
                 resource={data.bk_host_id}
-                class="ml16"
+                class="ml-8"
                 disabled={operationData.value?.operationDisabled}
                 onClick={() => handleShowDetail(data)}>
                 {t('重启实例')}

@@ -114,7 +114,6 @@
                 :data="data">
                 <AuthButton
                   action-id="doris_scale_up"
-                  class="mr-16"
                   :disabled="data.operationDisabled"
                   :permission="data.permission.doris_scale_up"
                   :resource="data.id"
@@ -129,7 +128,7 @@
                 :data="data">
                 <AuthButton
                   action-id="doris_shrink"
-                  class="mr-16"
+                  class="ml-8"
                   :disabled="data.operationDisabled"
                   :permission="data.permission.doris_shrink"
                   :resource="data.id"
@@ -142,7 +141,7 @@
               <AuthButton
                 v-db-console="'doris.clusterManage.getAccess'"
                 action-id="doris_access_entry_view"
-                class="mr-16"
+                class="ml-8"
                 :disabled="data.isOffline"
                 :permission="data.permission.doris_access_entry_view"
                 :resource="data.id"
@@ -199,7 +198,6 @@
                 :data="data">
                 <AuthButton
                   action-id="doris_enable_disable"
-                  class="mr-16"
                   :permission="data.permission.doris_enable_disable"
                   :resource="data.id"
                   text
@@ -213,6 +211,7 @@
                 :data="data">
                 <AuthButton
                   action-id="doris_destroy"
+                  class="ml-8"
                   :disabled="Boolean(data.operationTicketId)"
                   :permission="data.permission.doris_destroy"
                   :resource="data.id"

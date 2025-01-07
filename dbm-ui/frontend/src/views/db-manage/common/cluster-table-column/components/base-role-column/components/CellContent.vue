@@ -197,8 +197,6 @@
 
 <style lang="less">
   .cluster-list-role-instances-list-box {
-    padding: 6px 0;
-
     .db-icon-copy {
       display: none;
       margin-top: 1px;
