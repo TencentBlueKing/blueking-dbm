@@ -35,8 +35,8 @@ export default [
         dbConsoleValue: 'tendbCluster.toolbox.sqlExecute',
       },
       {
-        name: t('DB 重命名'),
-        id: 'spiderDbRename',
+        name: t('DB重命名'),
+        id: TicketTypes.TENDBCLUSTER_RENAME_DATABASE,
         parentId: 'spider_sql',
         dbConsoleValue: 'tendbCluster.toolbox.dbRename',
       },
@@ -49,13 +49,13 @@ export default [
     children: [
       {
         name: t('主从互切'),
-        id: 'spiderMasterSlaveSwap',
+        id: TicketTypes.TENDBCLUSTER_MASTER_SLAVE_SWITCH,
         parentId: 'spider_cluster_maintain',
         dbConsoleValue: 'tendbCluster.toolbox.masterSlaveSwap',
       },
       {
         name: t('主库故障切换'),
-        id: 'spiderMasterFailover',
+        id: TicketTypes.TENDBCLUSTER_MASTER_FAIL_OVER,
         parentId: 'spider_cluster_maintain',
         dbConsoleValue: 'tendbCluster.toolbox.masterFailover',
       },
