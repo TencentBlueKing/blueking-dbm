@@ -156,7 +156,7 @@
     {
       label: t('状态'),
       field: 'status',
-      minWidth: 150,
+      width: 120,
       render: ({ data }: {data: DutyRuleModel}) => {
         const { label, theme } = statusMap[data.status as RuleStatus];
         return <bk-tag theme={theme}>{label}</bk-tag>;
@@ -245,7 +245,7 @@
       label: t('轮值表'),
       field: 'duty_arranges',
       showOverflowTooltip: false,
-      width: 250,
+      width: 280,
       render: ({ data }: {data: DutyRuleModel}) => {
         let title = '';
         if (data.status in statusMap) {
@@ -331,7 +331,7 @@
       fixed: 'right',
       showOverflowTooltip: false,
       field: '',
-      width: 180,
+      width: 120,
       render: ({ data }: {data: DutyRuleModel}) => (
       <div class="operate-box">
         <auth-button

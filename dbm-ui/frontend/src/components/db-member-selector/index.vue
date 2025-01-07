@@ -166,7 +166,7 @@
       display: none;
       width: 20px;
       height: 20px;
-      margin-top: -15px;
+      margin-top: -10px;
       font-size: 12px;
       line-height: 20px;
       color: #979ba5;
