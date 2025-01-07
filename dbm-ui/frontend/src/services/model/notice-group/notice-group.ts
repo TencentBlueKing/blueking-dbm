@@ -1,4 +1,4 @@
-import { utcDisplayTime } from '@utils';
+import { isRecentDays, utcDisplayTime } from '@utils';
 
 export default class NoticGroup {
   bk_biz_id: number;
@@ -60,5 +60,9 @@ export default class NoticGroup {
 
   get updateAtDisplay() {
     return utcDisplayTime(this.update_at);
+  }
+
+  get isNew() {
+    return isRecentDays(this.create_at, 24);
   }
 }
