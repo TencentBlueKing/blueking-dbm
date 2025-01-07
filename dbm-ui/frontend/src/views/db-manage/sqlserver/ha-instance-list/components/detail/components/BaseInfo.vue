@@ -106,7 +106,7 @@
       },
       {
         label: t('部署架构'),
-        key: 'clusterTypeName',
+        key: 'cluster_type_name',
       },
       {
         label: t('部署角色'),
