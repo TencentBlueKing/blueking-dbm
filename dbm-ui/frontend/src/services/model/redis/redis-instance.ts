@@ -36,6 +36,7 @@ export default class RedisInstance {
   cluster_id: number;
   cluster_name: string;
   cluster_type: string;
+  cluster_type_name: string;
   create_at: string;
   db_module_id: number;
   host_info: HostInfo;
@@ -70,6 +71,7 @@ export default class RedisInstance {
     this.cluster_id = payload.cluster_id || 0;
     this.cluster_name = payload.cluster_name || '';
     this.cluster_type = payload.cluster_type || '';
+    this.cluster_type_name = payload.cluster_type_name || '';
     this.create_at = payload.create_at || '';
     this.db_module_id = payload.db_module_id || 0;
     this.db_version = payload.db_version || '';

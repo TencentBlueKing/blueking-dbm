@@ -9,7 +9,6 @@ import { MachineTypes } from './machineTypes';
 export interface ClusterTypeInfoItem {
   id: ClusterTypes;
   name: string;
-  architectureName: string; // 部署架构名称
   specClusterName: string; // 规格对应的集群名，磨平集群类型差异
   dbType: DBTypes;
   moduleId: ExtractedControllerDataKeys;
@@ -29,7 +28,6 @@ const mysql: InfoType = {
   [ClusterTypes.TENDBSINGLE]: {
     id: ClusterTypes.TENDBSINGLE,
     name: t('MySQL单节点'),
-    architectureName: t('MySQL单节点集群'),
     specClusterName: 'MySQL',
     dbType: DBTypes.MYSQL,
     moduleId: 'mysql',
@@ -47,7 +45,6 @@ const mysql: InfoType = {
   [ClusterTypes.TENDBHA]: {
     id: ClusterTypes.TENDBHA,
     name: t('MySQL主从'),
-    architectureName: t('MySQL高可用集群'),
     specClusterName: 'MySQL',
     dbType: DBTypes.MYSQL,
     moduleId: 'mysql',
@@ -68,7 +65,6 @@ const spider: InfoType = {
   [ClusterTypes.TENDBCLUSTER]: {
     id: ClusterTypes.TENDBCLUSTER,
     name: 'TenDBCluster',
-    architectureName: t('TendbCluster集群'),
     specClusterName: 'TenDBCluster',
     dbType: DBTypes.TENDBCLUSTER,
     moduleId: 'mysql',
@@ -89,7 +85,6 @@ const redis: InfoType = {
   [ClusterTypes.TWEMPROXY_REDIS_INSTANCE]: {
     id: ClusterTypes.TWEMPROXY_REDIS_INSTANCE,
     name: 'TendisCache',
-    architectureName: t('TendisCache集群'),
     specClusterName: 'Redis',
     dbType: DBTypes.REDIS,
     moduleId: 'redis',
@@ -107,7 +102,6 @@ const redis: InfoType = {
   [ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE]: {
     id: ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE,
     name: 'TendisSSD',
-    architectureName: t('TendisSSD集群'),
     specClusterName: 'Redis',
     dbType: DBTypes.REDIS,
     moduleId: 'redis',
@@ -125,7 +119,6 @@ const redis: InfoType = {
   [ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER]: {
     id: ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER,
     name: 'Tendisplus',
-    architectureName: t('Tendisplus存储版集群'),
     specClusterName: 'Redis',
     dbType: DBTypes.REDIS,
     moduleId: 'redis',
@@ -143,7 +136,6 @@ const redis: InfoType = {
   [ClusterTypes.PREDIXY_REDIS_CLUSTER]: {
     id: ClusterTypes.PREDIXY_REDIS_CLUSTER,
     name: 'RedisCluster',
-    architectureName: t('RedisCluster集群'),
     specClusterName: 'Redis',
     dbType: DBTypes.REDIS,
     moduleId: 'redis',
@@ -161,7 +153,6 @@ const redis: InfoType = {
   [ClusterTypes.REDIS_INSTANCE]: {
     id: ClusterTypes.REDIS_INSTANCE,
     name: t('Redis主从'),
-    architectureName: t('RedisCache主从版'),
     specClusterName: 'Redis',
     dbType: DBTypes.REDIS,
     moduleId: 'redis',
@@ -178,7 +169,6 @@ const bigdata: InfoType = {
   [ClusterTypes.ES]: {
     id: ClusterTypes.ES,
     name: 'ElasticSearch',
-    architectureName: t('ES集群'),
     specClusterName: 'ElasticSearch',
     dbType: DBTypes.ES,
     moduleId: 'bigdata',
@@ -200,7 +190,6 @@ const bigdata: InfoType = {
   [ClusterTypes.KAFKA]: {
     id: ClusterTypes.KAFKA,
     name: 'Kafka',
-    architectureName: t('Kafka集群'),
     specClusterName: 'Kafka',
     dbType: DBTypes.KAFKA,
     moduleId: 'bigdata',
@@ -218,7 +207,6 @@ const bigdata: InfoType = {
   [ClusterTypes.HDFS]: {
     id: ClusterTypes.HDFS,
     name: 'HDFS',
-    architectureName: t('Hdfs集群'),
     specClusterName: 'HDFS',
     dbType: DBTypes.HDFS,
     moduleId: 'bigdata',
@@ -236,7 +224,6 @@ const bigdata: InfoType = {
   [ClusterTypes.INFLUXDB]: {
     id: ClusterTypes.INFLUXDB,
     name: 'InfuxDB',
-    architectureName: t('Influxdb实例'),
     specClusterName: 'InfuxDB',
     dbType: DBTypes.INFLUXDB,
     moduleId: 'bigdata',
@@ -250,7 +237,6 @@ const bigdata: InfoType = {
   [ClusterTypes.PULSAR]: {
     id: ClusterTypes.PULSAR,
     name: 'Pulsar',
-    architectureName: t('Pulsar集群'),
     specClusterName: 'Pulsar',
     dbType: DBTypes.PULSAR,
     moduleId: 'bigdata',
@@ -272,7 +258,6 @@ const bigdata: InfoType = {
   [ClusterTypes.DORIS]: {
     id: ClusterTypes.DORIS,
     name: 'Doris',
-    architectureName: t('Doris集群'),
     specClusterName: 'Doris',
     dbType: DBTypes.DORIS,
     moduleId: 'bigdata',
@@ -294,7 +279,6 @@ const bigdata: InfoType = {
   [ClusterTypes.RIAK]: {
     id: ClusterTypes.RIAK,
     name: 'Riak',
-    architectureName: t('Riak集群'),
     specClusterName: 'Riak',
     dbType: DBTypes.RIAK,
     moduleId: 'bigdata',
@@ -311,7 +295,6 @@ const mongodb: InfoType = {
   [ClusterTypes.MONGO_REPLICA_SET]: {
     id: ClusterTypes.MONGO_REPLICA_SET,
     name: t('Mongo副本集'),
-    architectureName: t('Mongo副本集'),
     specClusterName: 'MongoDB',
     dbType: DBTypes.MONGODB,
     moduleId: 'mongodb',
@@ -325,7 +308,6 @@ const mongodb: InfoType = {
   [ClusterTypes.MONGO_SHARED_CLUSTER]: {
     id: ClusterTypes.MONGO_SHARED_CLUSTER,
     name: t('Mongo分片集群'),
-    architectureName: t('Mongo分片集群'),
     specClusterName: 'MongoDB',
     dbType: DBTypes.MONGODB,
     moduleId: 'mongodb',
@@ -350,7 +332,6 @@ const sqlserver: InfoType = {
   [ClusterTypes.SQLSERVER_SINGLE]: {
     id: ClusterTypes.SQLSERVER_SINGLE,
     name: t('SQLServer单节点'),
-    architectureName: t('sqlserver单节点版'),
     specClusterName: 'SQLServer',
     dbType: DBTypes.SQLSERVER,
     moduleId: 'sqlserver',
@@ -364,7 +345,6 @@ const sqlserver: InfoType = {
   [ClusterTypes.SQLSERVER_HA]: {
     id: ClusterTypes.SQLSERVER_HA,
     name: t('SQLServer主从'),
-    architectureName: t('sqlserver主从版'),
     specClusterName: 'SQLServer',
     dbType: DBTypes.SQLSERVER,
     moduleId: 'sqlserver',
