@@ -110,7 +110,7 @@ export default [
         children: [
           {
             name: t('数据复制'),
-            id: 'RedisDBDataCopy',
+            id: TicketTypes.REDIS_CLUSTER_DATA_COPY,
             parentId: 'common-dts',
             dbConsoleValue: 'redis.toolbox.dataCopy',
           },

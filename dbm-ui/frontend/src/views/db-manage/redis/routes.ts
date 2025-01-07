@@ -123,14 +123,15 @@ const redisRecoverFromInstanceRoute = {
   component: () => import('@views/db-manage/redis/recover-from-instance/Index.vue'),
 };
 
-const redisDBDataCopyRoute = {
-  name: 'RedisDBDataCopy',
-  path: 'db-data-copy/:page?',
-  meta: {
-    navName: t('数据复制'),
-  },
-  component: () => import('@views/db-manage/redis/db-data-copy/Index.vue'),
-};
+// const redisDBDataCopyRoute = {
+//   name: 'RedisDBDataCopy',
+//   path: 'db-data-copy/:page?',
+//   meta: {
+//     navName: t('数据复制'),
+//   },
+//   component: () => import('@views/db-manage/redis/db-data-copy/Index.vue'),
+// };
+const redisDBDataCopyRoute = createRouteItem(TicketTypes.REDIS_CLUSTER_DATA_COPY, t('数据复制'));
 
 const redisDBDataCopyRecordRoute = {
   name: 'RedisDBDataCopyRecord',

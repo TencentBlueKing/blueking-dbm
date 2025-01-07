@@ -19,7 +19,11 @@
       :label="t('源集群')"
       :min-width="180">
       <template #default="{ data }: { data: RowData }">
-        {{ ticketDetails.details.clusters[data.src_cluster].immute_domain }}
+        {{
+          _.isString(data.src_cluster)
+            ? data.src_cluster
+            : ticketDetails.details.clusters[data.src_cluster].immute_domain
+        }}
       </template>
     </BkTableColumn>
     <BkTableColumn
@@ -33,7 +37,7 @@
       v-else
       :label="t('架构版本')">
       <template #default="{ data }: { data: RowData }">
-        {{ ticketDetails.details.clusters[data.src_cluster].cluster_type_name }}
+        {{ ticketDetails.details.clusters[data.src_cluster as number].cluster_type_name }}
       </template>
     </BkTableColumn>
     <BkTableColumn
@@ -47,7 +51,11 @@
       :label="t('目标集群')"
       :min-width="180">
       <template #default="{ data }: { data: RowData }">
-        {{ ticketDetails.details.clusters[data.dst_cluster].immute_domain }}
+        {{
+          _.isString(data.dst_cluster)
+            ? data.dst_cluster
+            : ticketDetails.details.clusters[data.dst_cluster].immute_domain
+        }}
       </template>
     </BkTableColumn>
     <BkTableColumn
@@ -105,6 +113,7 @@
 </template>
 
 <script setup lang="ts">
+  import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
 
   import TicketModel, { type Redis } from '@services/model/ticket/ticket';

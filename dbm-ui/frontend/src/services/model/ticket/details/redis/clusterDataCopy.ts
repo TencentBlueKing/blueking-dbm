@@ -13,8 +13,8 @@ export interface ClusterDataCopy extends DetailBase {
     execution_frequency: string;
   };
   infos: {
-    src_cluster: number;
-    dst_cluster: number;
+    src_cluster: number | string;
+    dst_cluster: number | string;
     key_white_regex: string; // 包含key
     key_black_regex: string; // 排除key
     src_cluster_type: string;

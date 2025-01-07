@@ -107,7 +107,7 @@
 
   import { useDefaultPagination } from '@hooks';
 
-  import { LocalStorageKeys   } from '@common/const';
+  import { LocalStorageKeys, TicketTypes } from '@common/const';
 
   import useResetTableHeight from '@views/db-manage/redis/common/hooks/useResetTableHeight';
 
@@ -469,7 +469,7 @@
   const handleClickRecopy = (row: RedisDSTHistoryJobModel) => {
     localStorage.setItem(LocalStorageKeys.REDIS_DB_DATA_RECORD_RECOPY, JSON.stringify(row));
     router.push({
-      name: 'RedisDBDataCopy',
+      name: TicketTypes.REDIS_CLUSTER_DATA_COPY,
     });
   };
 
