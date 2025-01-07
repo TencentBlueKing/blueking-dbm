@@ -56,7 +56,7 @@
     [TicketTypes.REDIS_SCALE_UPDOWN]: 'RedisCapacityChange', // Redis 集群容量变更
     [TicketTypes.REDIS_MASTER_SLAVE_SWITCH]: 'RedisMasterFailover', // Redis 主从切换
     [TicketTypes.REDIS_DATA_STRUCTURE]: 'RedisDBStructure', // Redis 定点构造
-    [TicketTypes.REDIS_CLUSTER_ADD_SLAVE]: 'RedisDBCreateSlave', // Redis 重建从库
+    [TicketTypes.REDIS_CLUSTER_ADD_SLAVE]: TicketTypes.REDIS_CLUSTER_ADD_SLAVE, // Redis 重建从库
     [TicketTypes.REDIS_CLUSTER_DATA_COPY]: 'RedisDBDataCopy', // Redis 数据复制
     [TicketTypes.REDIS_CLUSTER_SHARD_NUM_UPDATE]: 'RedisClusterShardUpdate', // Redis 集群分片变更
     [TicketTypes.REDIS_CLUSTER_TYPE_UPDATE]: 'RedisClusterTypeUpdate', // Redis 集群类型变更

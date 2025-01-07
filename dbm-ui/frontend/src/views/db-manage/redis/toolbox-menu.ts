@@ -42,7 +42,7 @@ export default [
         children: [
           {
             name: t('重建从库'),
-            id: 'RedisDBCreateSlave',
+            id: TicketTypes.REDIS_CLUSTER_ADD_SLAVE,
             parentId: 'common-manage',
             dbConsoleValue: 'redis.toolbox.slaveRebuild',
           },
