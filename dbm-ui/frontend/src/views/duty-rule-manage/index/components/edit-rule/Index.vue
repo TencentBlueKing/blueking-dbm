@@ -55,15 +55,9 @@
         </BkRadioButton>
       </BkRadioGroup>
       <div class="title-spot item-title mt-24">{{ t('轮值业务') }}<span class="required" /></div>
-      <BkRadioGroup
-        v-model="bizType"
-        class="rotate-biz">
-        <div class="biz-box">
-          <BkRadio :label="0">
-            {{ t('全部业务') }}
-          </BkRadio>
-        </div>
-      </BkRadioGroup>
+      <RotateBizs
+        ref="rotateBizsRef"
+        :data="data" />
       <KeepAlive>
         <CycleRotate
           v-if="rotateType === 'handoff'"
@@ -105,6 +99,7 @@
 
   import CustomRotate from './CustomRotate.vue';
   import CycleRotate from './CycleRotate.vue';
+  import RotateBizs from './RotateBizs.vue';
 
   interface Props {
     dbType: string;
@@ -130,10 +125,10 @@
 
   const nameTip = ref('');
   const rotateType = ref('handoff');
-  const bizType = ref(0);
   const customRef = ref();
   const cycleRef = ref();
   const formRef = ref();
+  const rotateBizsRef = ref<InstanceType<typeof RotateBizs>>();
   const formModel = reactive({
     ruleName: '',
   });
@@ -229,6 +224,7 @@
   // 点击确定
   const handleConfirm = async () => {
     await formRef.value.validate();
+    const bizConfig = await rotateBizsRef.value!.getValue();
     if (rotateType.value === 'handoff') {
       const cycleValues = await cycleRef.value.getValue();
       const cycleParams = {
@@ -239,16 +235,17 @@
         effective_time: cycleValues.effective_time,
         end_time: cycleValues.end_time,
         duty_arranges: cycleValues.duty_arranges,
+        ...bizConfig,
       };
       if (isCreate.value) {
         // 新建/克隆
-        await runCreateDutyRule(cycleParams);
+        runCreateDutyRule(cycleParams);
       } else {
         // 克隆或者编辑
         if (props.data) {
           cycleParams.effective_time = cycleValues.effective_time;
           cycleParams.end_time = cycleValues.end_time;
-          await runUpdateDutyRule(props.data.id, cycleParams);
+          runUpdateDutyRule(props.data.id, cycleParams);
         }
       }
     } else {
@@ -262,14 +259,15 @@
         effective_time: customValues.effective_time,
         end_time: customValues.end_time,
         duty_arranges: customValues.duty_arranges,
+        ...bizConfig,
       };
       if (isCreate.value) {
         // 新建/克隆
-        await runCreateDutyRule(customParams);
+        runCreateDutyRule(customParams);
       } else {
         // 克隆或者编辑
         if (props.data) {
-          await runUpdateDutyRule(props.data.id, customParams);
+          runUpdateDutyRule(props.data.id, customParams);
         }
       }
     }
@@ -311,41 +309,6 @@
       margin-bottom: 6px;
       font-size: 12px;
       color: #ea3636;
-    }
-
-    .rotate-biz {
-      width: 100%;
-      flex-direction: column;
-      gap: 12px;
-
-      .biz-box {
-        display: flex;
-        width: 100%;
-        height: 54px;
-        padding-left: 17px;
-        background: #f5f7fa;
-        border-radius: 2px;
-        align-items: center;
-
-        .biz-box-control {
-          display: flex;
-          width: 100%;
-          margin-left: 36px;
-          align-items: center;
-
-          .biz-select {
-            width: 710px;
-          }
-
-          .biz-box-append {
-            display: flex;
-            font-size: 12px;
-            color: #3a84ff;
-            align-items: center;
-            cursor: pointer;
-          }
-        }
-      }
     }
   }
 </style>
