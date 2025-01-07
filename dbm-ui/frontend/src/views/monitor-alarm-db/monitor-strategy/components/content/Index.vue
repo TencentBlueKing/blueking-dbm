@@ -67,7 +67,6 @@
 
   import ApplyPermissionCatch from '@components/apply-permission/Catch.vue'
   import AuthButton from '@components/auth-component/button.vue';
-  import MiniTag from '@components/mini-tag/index.vue';
   import MoreActionExtend from '@components/more-action-extend/Index.vue';
   import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
 
@@ -178,10 +177,9 @@
       minWidth: 150,
       width: 280,
       render: ({ data }: {data: MonitorPolicyModel}) => {
-        const isInner = data.bk_biz_id === 0;
         const isDanger = data.event_count > 0;
-        const pageType = isInner ? 'read' : 'edit';
-        const ButtonCom = isInner ? Button : AuthButton
+        const pageType = data.isInner ? 'read' : 'edit';
+        const ButtonCom = data.isInner ? Button : AuthButton
         return (
           <TextOverflowLayout>
             {{
@@ -199,20 +197,42 @@
               ),
               append: () => (
                 <>
-                  {isInner && <MiniTag content={t('内置')} />}
-                  {!data.is_enabled && <MiniTag content={t('已停用')} />}
-                  {isDanger && (
-                    <div class="monitor-alarm-danger-box" v-bk-tooltips={{
-                      content: t('当前有n个未恢复事件', { n: data.event_count }),
-                    }}>
-                    <MiniTag
-                      theme='danger'
-                      iconType='alert'
-                      content={data.event_count}
-                      onTag-click={() => handleGoMonitorPage(data.event_url)}/>
-                    </div>
+                  {data.isInner && (
+                    <bk-tag
+                      size="small"
+                      class="ml-4">
+                      {t('内置')}
+                    </bk-tag>
                   )}
-                  {data.isNewCreated && <MiniTag theme='success' content="NEW" />}
+                  {!data.is_enabled && (
+                    <bk-tag
+                      size="small"
+                      class="ml-4">
+                      {t('已停用')}
+                    </bk-tag>
+                  )}
+                  {isDanger && (
+                    <bk-tag
+                      v-bk-tooltips={{
+                        content: t('当前有n个未恢复事件', { n: data.event_count }),
+                      }}
+                      theme='danger'
+                      size="small"
+                      class="ml-4"
+                      style="cursor: pointer;"
+                      onclick={() => handleGoMonitorPage(data.event_url)} >
+                      <db-icon type="alert" />
+                      {data.event_count}
+                    </bk-tag>
+                  )}
+                  {data.isNewCreated && (
+                    <bk-tag
+                      size="small"
+                      theme="success"
+                      class="ml-4">
+                      NEW
+                    </bk-tag>
+                  )}
                 </>
               ),
             }}
@@ -276,8 +296,7 @@
       showOverflowTooltip: true,
       minWidth: 60,
       render: ({ data }: {data: MonitorPolicyModel}) => {
-        const isInner = data.bk_biz_id === 0;
-        if (isInner) {
+        if (data.isInner) {
           return (
             <bk-switcher
               size="small"
@@ -290,7 +309,7 @@
           <bk-pop-confirm
             title={t('确认停用该策略？')}
             content={t('停用后所有监控动作将会停止，请谨慎操作！')}
-            disabled={isInner}
+            disabled={data.isInner}
             width="320"
             is-show={showTipMap.value[data.id]}
             trigger="manual"
@@ -302,7 +321,7 @@
               resource={data.id}
               permission={data.permission.monitor_policy_start_stop}
               size="small"
-              disabled={isInner}
+              disabled={data.isInner}
               v-model={data.is_enabled}
               theme="primary"
               onChange={() => handleChangeSwitch(data)}/>
@@ -329,11 +348,9 @@
       field: '',
       width: 200,
       showOverflow: false,
-      render: ({ data }: {data: MonitorPolicyModel}) => {
-        const isInner = data.bk_biz_id === 0;
-        return (
+      render: ({ data }: {data: MonitorPolicyModel}) => (
           <div class="operate-box">
-          {!isInner && (
+          {!data.isInner && (
             <auth-button
               text
               action-id="monitor_policy_edit"
@@ -364,7 +381,7 @@
               default: () => <>
                 <bk-dropdown-item>
                   <auth-button
-                    disabled={isInner}
+                    disabled={data.isInner}
                     text
                     action-id="monitor_policy_delete"
                     results={data.permission.monitor_policy_delete}
@@ -378,8 +395,7 @@
             }}
           </MoreActionExtend>
         </div>
-        );
-      },
+        ),
     },
   ];
 
@@ -584,13 +600,6 @@
           background-color: #f3fcf5 !important;
         }
       }
-    }
-  }
-</style>
-<style lang="less">
-  .monitor-alarm-danger-box {
-    .bk-tag {
-      cursor: pointer;
     }
   }
 </style>

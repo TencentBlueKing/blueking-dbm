@@ -93,9 +93,9 @@
           </BkSelect>
           <BkOverflowTitle
             v-else
-            class="title-txt"
-            >{{ item.title }}</BkOverflowTitle
-          >
+            class="title-txt">
+            {{ item.title }}
+          </BkOverflowTitle>
         </div>
         <div class="content">
           <BkSelect
@@ -199,7 +199,7 @@
 
   let titleListRaw: FlowListType[number]['titleList'] = [];
 
-  function initFlowList() {
+  const initFlowList = () => {
     const titles = [TargetType.CLUSTER, TargetType.MODULE] as string[];
     let selectCounts = 0;
     const targets = _.cloneDeep(props.targets).reduce((results, item) => {
@@ -280,9 +280,9 @@
       activeMinus: false,
     }));
     return [...targetList, ...customeList] as FlowListType;
-  }
+  };
 
-  function generateFlowSelectItem() {
+  const generateFlowSelectItem = () => {
     const item = {
       id: TargetType.MODULE,
       title: '0',
@@ -327,7 +327,7 @@
       activeMinus: true,
     });
     return item;
-  }
+  };
 
   const enum TargetType {
     BIZ = 'appid',
