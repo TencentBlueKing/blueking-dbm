@@ -32,7 +32,12 @@
             :value="item.value">
             <div class="spec-select-column-spec-item">
               <span class="text-overflow">
-                {{ item.label }}
+                <slot
+                  :label="item.label"
+                  name="label"
+                  :value="item.value">
+                  {{ item.label }}
+                </slot>
                 <BkTag
                   v-if="currentSpecIds?.includes(item.value)"
                   size="small"
@@ -79,6 +84,7 @@
 
   const slots = defineSlots<{
     head?: (value: { label: string }) => VNode;
+    label?: (value: { value: number; label: string }) => VNode;
   }>();
 
   const { t } = useI18n();

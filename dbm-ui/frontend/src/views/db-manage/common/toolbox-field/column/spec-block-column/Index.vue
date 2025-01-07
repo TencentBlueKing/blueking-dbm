@@ -15,10 +15,20 @@
   <EditableColumn
     :label="t('当前规格')"
     :width="200">
+    <template
+      v-if="labelTip"
+      #head>
+      <BkPopover
+        :content="labelTip"
+        placement="top"
+        theme="dark">
+        <span class="spec-block-column-label-tip">{{ t('当前规格') }}</span>
+      </BkPopover>
+    </template>
     <EditableBlock :placeholder="placeholder">
       {{ data?.name ? `${data.name} ${showCounts ? t('((n))台', { n: data?.count }) : ''}` : '' }}
       <SpecPanel
-        v-if="data"
+        v-if="data.id"
         :data="data"
         :show-qps="showQps">
         <DbIcon
@@ -39,6 +49,7 @@
     placeholder?: string;
     showCounts?: boolean;
     showQps?: boolean;
+    labelTip?: string;
   }
 
   withDefaults(defineProps<Props>(), {
@@ -46,12 +57,17 @@
     placeholder: undefined,
     showCounts: true,
     showQps: false,
+    labelTip: '',
   });
 
   const { t } = useI18n();
 </script>
 
 <style lang="less" scoped>
+  .spec-block-column-label-tip {
+    border-bottom: 1px dashed #979ba5;
+  }
+
   .visible-icon {
     font-size: 16px;
     color: #3a84ff;
