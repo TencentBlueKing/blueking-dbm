@@ -16,7 +16,7 @@ from backend.db_meta.enums import ClusterType
 from backend.db_services.dbbase.constants import IpSource
 from backend.flow.engine.controller.mysql import MySQLController
 from backend.ticket import builders
-from backend.ticket.builders.common.base import BaseOperateResourceParamBuilder, HostInfoSerializer
+from backend.ticket.builders.common.base import BaseOperateResourceParamBuilder, HostInfoSerializer, fetch_cluster_ids
 from backend.ticket.builders.common.constants import MySQLBackupSource
 from backend.ticket.builders.mysql.base import MySQLBaseOperateDetailSerializer
 from backend.ticket.builders.mysql.mysql_master_slave_switch import (
@@ -43,9 +43,14 @@ class MysqlMigrateClusterDetailSerializer(MySQLBaseOperateDetailSerializer):
     is_safe = serializers.BooleanField(help_text=_("安全模式"), default=True)
 
     def validate(self, attrs):
+        cluster_ids = fetch_cluster_ids(attrs)
+
         # 校验集群是否可用，集群类型为高可用
         super().validate_cluster_can_access(attrs)
         super().validated_cluster_type(attrs, ClusterType.TenDBHA)
+
+        # 校验集群存在最近一次全备
+        super().validated_cluster_latest_backup(cluster_ids, attrs["backup_source"])
 
         if attrs["ip_source"] == IpSource.RESOURCE_POOL:
             return attrs

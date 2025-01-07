@@ -8,7 +8,6 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-import datetime
 import itertools
 
 from django.utils.translation import gettext_lazy as _
@@ -18,7 +17,6 @@ from backend.configuration.constants import AffinityEnum
 from backend.db_meta.enums import ClusterType, InstanceRole
 from backend.db_meta.models import Cluster
 from backend.db_services.dbbase.constants import IpSource
-from backend.db_services.mysql.fixpoint_rollback.handlers import FixPointRollbackHandler
 from backend.flow.consts import MySQLBackupTypeEnum
 from backend.flow.engine.controller.mysql import MySQLController
 from backend.ticket import builders
@@ -66,13 +64,8 @@ class MysqlMigrateUpgradeDetailSerializer(MySQLBaseOperateDetailSerializer):
         super(MysqlMigrateUpgradeDetailSerializer, self).validated_cluster_type(attrs, ClusterType.TenDBHA)
 
         # 校验集群最近一次备份记录是逻辑备份
-        now = datetime.datetime.now(datetime.timezone.utc)
         cluster_ids = fetch_cluster_ids(attrs)
-        for cluster in cluster_ids:
-            handler = FixPointRollbackHandler(cluster_id=cluster)
-            backup = handler.query_latest_backup_log(rollback_time=now, backup_source=attrs["backup_source"])
-            if not backup or backup["backup_type"] != MySQLBackupTypeEnum.LOGICAL:
-                raise serializers.ValidationError(_("集群{}无法找到最近一次备份，或最近一次备份不为逻辑备份").format(cluster))
+        super().validated_cluster_latest_backup(cluster_ids, attrs["backup_source"], MySQLBackupTypeEnum.LOGICAL)
 
         if attrs["ip_source"] == IpSource.RESOURCE_POOL:
             return attrs

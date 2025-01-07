@@ -15,7 +15,7 @@ from rest_framework import serializers
 from backend.db_meta.enums import ClusterType, InstanceInnerRole
 from backend.flow.engine.controller.mysql import MySQLController
 from backend.ticket import builders
-from backend.ticket.builders.common.base import HostInfoSerializer, InstanceInfoSerializer
+from backend.ticket.builders.common.base import HostInfoSerializer, InstanceInfoSerializer, fetch_cluster_ids
 from backend.ticket.builders.common.constants import MySQLBackupSource
 from backend.ticket.builders.mysql.base import BaseMySQLHATicketFlowBuilder, MySQLBaseOperateDetailSerializer
 from backend.ticket.constants import TicketType
@@ -31,6 +31,8 @@ class MysqlRestoreSlaveDetailSerializer(MySQLBaseOperateDetailSerializer):
     infos = serializers.ListField(help_text=_("集群重建信息"), child=RestoreInfoSerializer())
 
     def validate(self, attrs):
+        cluster_ids = fetch_cluster_ids(attrs)
+
         # 校验集群是否可用，集群类型为高可用
         super(MysqlRestoreSlaveDetailSerializer, self).validate_cluster_can_access(attrs)
         super(MysqlRestoreSlaveDetailSerializer, self).validated_cluster_type(attrs, ClusterType.TenDBHA)
@@ -48,6 +50,11 @@ class MysqlRestoreSlaveDetailSerializer(MySQLBaseOperateDetailSerializer):
         # 校验新机器的云区域与集群一致
         super(MysqlRestoreSlaveDetailSerializer, self).validate_hosts_clusters_in_same_cloud_area(
             attrs, host_key=["new_slave"], cluster_key=["cluster_ids"]
+        )
+
+        # 校验集群存在最近一次全备
+        super(MysqlRestoreSlaveDetailSerializer, self).validated_cluster_latest_backup(
+            cluster_ids, attrs["backup_source"]
         )
 
         return attrs

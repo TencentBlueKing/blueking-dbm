@@ -26,7 +26,7 @@ from ..constans import CommonActionLabel
 from ..exceptions import BaseIAMError
 from ..handlers.client import IAM
 from ..handlers.permission import Permission
-from .actions import _all_actions
+from .actions import ActionEnum, _all_actions
 from .resources import ResourceEnum, ResourceMeta, _all_resources, _extra_instance_selections
 
 logger = logging.getLogger("root")
@@ -221,7 +221,11 @@ def assign_auth_to_group(iam: IAM, biz: AppCache, group_id):
     """
     给单个用户组分配权限，这里的权限固定是DBA权限
     """
-    global_action_groups = [_("全局设置"), _("资源管理"), _("平台管理")]
+    global_action_groups = [
+        ActionEnum.GLOBAL_MANAGE.group,
+        ActionEnum.RESOURCE_MANAGE.group,
+        ActionEnum.PLATFORM_MANAGE.group,
+    ]
     biz_actions = [
         action
         for action in _all_actions.values()
