@@ -199,7 +199,7 @@
         </BkTableColumn>
         <BkTableColumn
           field="todo_helpers"
-          :label="t('单据协作人')"
+          :label="t('当前协助人')"
           width="250">
           <template #default="{ data }: { data: IRowData }">
             <TagBlock
