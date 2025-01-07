@@ -176,6 +176,20 @@ def parse_db_from_sqlfile(path: str, files: List[str]):
         return None
 
 
+def merge_resp_to_cluster(resp: dict):
+    """
+    合并返回的数据到集群
+    """
+    dump_schema_payload = {}
+    logger.info(f"resp: {resp}")
+    dump_schema_payload["dump_all"] = resp.get("dump_all")
+    dump_schema_payload["parse_need_dump_dbs"] = resp.get("dbs")
+    dump_schema_payload["parse_create_dbs"] = resp.get("create_dbs")
+    dump_schema_payload["just_dump_special_tbls"] = resp.get("just_dump_special_tbls")
+    dump_schema_payload["special_tbls"] = resp.get("special_tbls")
+    return dump_schema_payload
+
+
 def create_tdbctl_user_for_remote(cluster: Cluster, ctl_primary: str, new_ip: str, new_port: int, tdbctl_pass: str):
     """
     给新的remote实例对中控primary授权

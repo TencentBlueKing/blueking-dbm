@@ -629,7 +629,7 @@ func (m MysqlUpgradeComp) mysqlUpgrade(conn *native.DbWorker, port int) (err err
 		return nil
 	}
 	// open general_log
-	if errx := m.openGeneralLog(conn); err != nil {
+	if errx := m.openGeneralLog(conn); errx != nil {
 		logger.Warn("set global general_log=on failed %s", errx.Error())
 	}
 	upgradeScript := ""

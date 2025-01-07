@@ -114,7 +114,7 @@ func (i *InstallMySQLProxyComp) Init() (err error) {
 /**
  * @description: 预检查：
  * 				- 检查是否存在安装proxy的路径
- *				- 检查是否存在proxy processs
+ *				- 检查是否存在proxy processes
  * 				- 检查安装包是否存在，如果存在检查md5是否正确
  * 				-
  * @return {*}
@@ -312,8 +312,7 @@ func (i *InstallMySQLProxyComp) DecompressPkg() (err error) {
 		proxyRealDirName,
 	)
 	if output, err := osutil.ExecShellCommand(false, extraCmd); err != nil {
-		err := fmt.Errorf("execute shell[%s]  get an error:%w and output:%s", extraCmd, err, output)
-		return err
+		return fmt.Errorf("execute shell[%s]  get an error:%w and output:%s", extraCmd, err, output)
 	}
 	logger.Info("untar %s successfully", i.Params.Pkg)
 	return nil

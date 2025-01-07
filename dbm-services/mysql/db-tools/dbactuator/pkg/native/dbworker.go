@@ -120,6 +120,7 @@ func (h *DbWorker) ExecMore(sqls []string) (rowsAffectedCount int64, err error) 
 	return h.ExecMoreContext(sqls, ctx)
 }
 
+// ExecMoreContext TODO
 func (h *DbWorker) ExecMoreContext(sqls []string, ctx context.Context) (rowsAffected int64, err error) {
 	var c int64
 	db, err := h.Db.Conn(ctx)

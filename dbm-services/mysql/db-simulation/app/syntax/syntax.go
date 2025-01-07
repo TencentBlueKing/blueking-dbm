@@ -128,7 +128,7 @@ func (tf *TmysqlParseFile) Do(dbtype string, versions []string) (result map[stri
 		}
 	}
 	// 最后删除临时目录,不会返回错误
-	defer tf.delTempDir()
+	defer tf.DelTempDir()
 
 	var errs []error
 	for _, version := range versions {
@@ -184,7 +184,7 @@ func (tf *TmysqlParseFile) CreateAndUploadDDLTblFile() (err error) {
 	}
 	// 最后删除临时目录,不会返回错误
 	// 暂时屏蔽 观察过程文件
-	defer tf.delTempDir()
+	defer tf.DelTempDir()
 
 	if err = tf.Downloadfile(); err != nil {
 		logger.Error("failed to download sql file from the product library %s", err.Error())
@@ -248,7 +248,8 @@ func (t *TmysqlParse) Init() (err error) {
 	return nil
 }
 
-func (t *TmysqlParse) delTempDir() {
+// DelTempDir TODO
+func (t *TmysqlParse) DelTempDir() {
 	if err := os.RemoveAll(t.tmpWorkdir); err != nil {
 		logger.Warn("remove tempDir:" + t.tmpWorkdir + ".error info:" + err.Error())
 	}

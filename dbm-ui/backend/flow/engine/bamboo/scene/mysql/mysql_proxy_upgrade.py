@@ -107,7 +107,7 @@ class MySQLProxyLocalUpgradeFlow(object):
                         uid=self.uid,
                         root_id=self.root_id,
                         cluster=cluster_obj,
-                        is_check_client_conn=not self.force_upgrade,
+                        is_check_client_conn=True,
                         is_proxy=True,
                         check_client_conn_inst=proxy_ins,
                     )
@@ -134,7 +134,7 @@ class MySQLProxyLocalUpgradeFlow(object):
                         pkg_id=pkg_id,
                         proxy_version=get_sub_version_by_pkg_name(proxy_pkg.name),
                         proxy_ports=ports,
-                        force_upgrade=False,
+                        force_upgrade=self.force_upgrade,
                     )
                 )
                 # 最后一个节点无需再确认

@@ -17,6 +17,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/samber/lo"
 	"github.com/spf13/viper"
 
 	"dbm-services/common/go-pubpkg/cmutil"
@@ -251,9 +252,27 @@ func (s SyntaxHandler) ParseSQLFileRelationDb(r *gin.Context) {
 			FileNames:      param.Files,
 		},
 	}
-	createDbs, dbs, dumpall, err := p.DoParseRelationDbs("")
+	createDbs, dbs, allCommands, dumpall, err := p.DoParseRelationDbs("")
 	if err != nil {
 		s.SendResponse(r, err, nil)
+		return
+	}
+	// 如果所有的命令都是alter table, dump指定库表
+	logger.Debug("debug: %v,%d", allCommands, len(allCommands))
+	if isAllOperateTable(allCommands) || isAllCreateTable(allCommands) {
+		relationTbls, err := p.ParseSpecialTbls("")
+		if err != nil {
+			s.SendResponse(r, err, nil)
+			return
+		}
+		s.SendResponse(r, nil, gin.H{
+			"create_dbs":             createDbs,
+			"dbs":                    dbs,
+			"dump_all":               false,
+			"just_dump_special_tbls": true,
+			"special_tbls":           relationTbls,
+			"timestamp":              time.Now().Unix(),
+		})
 		return
 	}
 
@@ -263,6 +282,15 @@ func (s SyntaxHandler) ParseSQLFileRelationDb(r *gin.Context) {
 		"dump_all":   dumpall,
 		"timestamp":  time.Now().Unix(),
 	})
+}
+
+func isAllOperateTable(allCommands []string) bool {
+	return lo.Every([]string{syntax.SQLTypeAlterTable, syntax.SQLTypeUseDb,
+		syntax.SQLTypeCreateIndex, syntax.SQLTypeDropTable}, allCommands)
+}
+
+func isAllCreateTable(allCommands []string) bool {
+	return lo.Every([]string{syntax.SQLTypeCreateTable, syntax.SQLTypeUseDb}, allCommands)
 }
 
 // ParseSQLRelationDb  语法检查入参SQL string
@@ -298,11 +326,31 @@ func (s *SyntaxHandler) ParseSQLRelationDb(r *gin.Context) {
 			FileNames:      []string{fileName},
 		},
 	}
-	createDbs, dbs, dumpall, err := p.DoParseRelationDbs("")
+	// defer p.DelTempDir()
+	createDbs, dbs, allCommands, dumpall, err := p.DoParseRelationDbs("")
 	if err != nil {
 		s.SendResponse(r, err, nil)
 		return
 	}
+	// 如果所有的命令都是alter table, dump指定库表
+	logger.Info("make debug: %v,%d", allCommands, len(allCommands))
+	if isAllOperateTable(allCommands) || isAllCreateTable(allCommands) {
+		relationTbls, err := p.ParseSpecialTbls("")
+		if err != nil {
+			s.SendResponse(r, err, nil)
+			return
+		}
+		s.SendResponse(r, nil, gin.H{
+			"create_dbs":             createDbs,
+			"dbs":                    dbs,
+			"dump_all":               false,
+			"just_dump_special_tbls": true,
+			"special_tbls":           relationTbls,
+			"timestamp":              time.Now().Unix(),
+		})
+		return
+	}
+
 	s.SendResponse(r, nil, gin.H{
 		"create_dbs": createDbs,
 		"dbs":        dbs,

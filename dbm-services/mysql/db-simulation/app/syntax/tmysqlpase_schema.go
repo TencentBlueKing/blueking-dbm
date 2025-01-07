@@ -49,6 +49,10 @@ const (
 	SQLTypeInsertSelect = "insert_select"
 	// SQLTypeRelaceSelect replace select sql
 	SQLTypeRelaceSelect = "replace_select"
+	// SQLTypeDropTable drop table sql
+	SQLTypeDropTable = "drop_table"
+	// SQLTypeCreateIndex is creat table sql
+	SQLTypeCreateIndex = "create_index"
 )
 
 // NotAllowedDefaulValColMap 不允许默认值的字段
@@ -308,4 +312,12 @@ type UpdateResult struct {
 	HasIgnore        bool   `json:"has_ignore"`
 	HasWhere         bool   `json:"has_where"`
 	Limit            int    `json:"limit"`
+}
+
+// ParseIncludeTableBase parse include table
+type ParseIncludeTableBase struct {
+	QueryID   int    `json:"query_id"`
+	Command   string `json:"command"`
+	DbName    string `json:"db_name"`
+	TableName string `json:"table_name"`
 }

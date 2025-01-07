@@ -912,6 +912,8 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
                     "parse_need_dump_dbs": self.cluster.get("parse_need_dump_dbs", []),
                     "parse_create_dbs": self.cluster.get("parse_create_dbs", []),
                     "execute_objects": self.cluster.get("execute_objects", None),
+                    "just_dump_special_tbls": self.cluster.get("just_dump_special_tbls", False),
+                    "special_tbls": self.cluster.get("special_tbls", []),
                     "backup_file_name": f"{self.cluster['semantic_dump_schema_file_name']}",
                     "backup_file_name_suffix": f"{self.cluster['semantic_dump_schema_file_name_suffix']}",
                     "backup_dir": BK_PKG_INSTALL_PATH,

@@ -32,6 +32,8 @@ const (
 const (
 	// DefaultCharset default charset
 	DefaultCharset = "default"
+	// StageDbHeader backup db header
+	StageDbHeader = "stage_truncate"
 )
 
 // GetNowTimeLayoutStr 20060102150405

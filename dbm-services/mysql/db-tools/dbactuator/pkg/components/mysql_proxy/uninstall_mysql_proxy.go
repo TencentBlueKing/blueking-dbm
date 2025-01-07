@@ -76,20 +76,20 @@ func (u *UnInstallMySQLProxyComp) Init() (err error) {
 func (u *UnInstallMySQLProxyComp) PreCheck() (err error) {
 	for _, port := range u.Params.Ports {
 		if !u.Params.Force {
-			db, err := native.InsObject{
+			db, errx := native.InsObject{
 				Host: u.Params.Host,
 				User: u.runTimeCtx.proxyAdminUser,
 				Pwd:  u.proxyAdminPwd,
 				Port: port,
 			}.ConnProxyAdmin()
-			if err != nil {
-				logger.Error("连接%d的Admin Port 失败%s", port, err.Error())
-				return err
+			if errx != nil {
+				logger.Error("连接%d的Admin Port 失败:%s", port, errx.Error())
+				return errx
 			}
-			inuse, err := db.CheckProxyInUse()
-			if err != nil {
-				logger.Error("检查Proxy可用性检查失败")
-				return err
+			inuse, errx := db.CheckProxyInUse()
+			if errx != nil {
+				logger.Error("检查Proxy可用性检查失败:%s", errx.Error())
+				return errx
 			}
 			if inuse {
 				return fmt.Errorf("检测到%d存在可用连接", port)

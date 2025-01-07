@@ -11,6 +11,7 @@
 package mysqlutil
 
 import (
+	"bufio"
 	"errors"
 	"fmt"
 	"os"
@@ -18,6 +19,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"runtime"
+	"slices"
 	"strings"
 	"sync"
 
@@ -54,6 +56,7 @@ type MySQLDumpOption struct {
 	GtidPurgedOff           bool // --set-gtid-purged=OFF
 	Quick                   bool
 	ExtendedInsert          bool
+	Force                   bool
 }
 
 type runtimectx struct {
@@ -111,7 +114,7 @@ func (m MySQLDumper) Dump() (err error) {
 				<-concurrencyControl
 			}()
 			errFile := path.Join(dump.DumpDir, fmt.Sprintf("%s.err", db))
-			dumpCmd := dump.getDumpCmd(outputFile, errFile, "")
+			dumpCmd := dump.getDumpCmd(outputFile, errFile, "", false)
 			logger.Info("mysqldump cmd:%s", mysqlcomm.RemovePassword(dumpCmd))
 			output, err := osutil.StandardShellCommand(false, dumpCmd)
 			if err != nil {
@@ -198,7 +201,7 @@ func (m *MySQLDumperTogether) Dump() (err error) {
 			logger.Error("errFile:%s", errFileContext)
 		}
 	}()
-	dumpCmd := m.getDumpCmd(outputFile, errFile, dumpOption)
+	dumpCmd := m.getDumpCmd(outputFile, errFile, dumpOption, false)
 	logger.Info("mysqldump cmd:%s", mysqlcomm.ClearSensitiveInformation(dumpCmd))
 	output, err := osutil.StandardShellCommand(false, dumpCmd)
 	if err != nil {
@@ -207,6 +210,98 @@ func (m *MySQLDumperTogether) Dump() (err error) {
 	if err := checkDumpComplete(outputFile); err != nil {
 		logger.Error("checkDumpComplete failed %s", err.Error())
 		return err
+	}
+	return
+}
+
+// MySQLDumperAppend 不同库表导出到同一个文件
+type MySQLDumperAppend struct {
+	MySQLDumper
+	OutputfileName string
+	DumpMap        map[string][]string
+}
+
+// Dump do dump
+func (m *MySQLDumperAppend) Dump() (err error) {
+	outputFile := path.Join(m.DumpDir, m.OutputfileName)
+	errFile := path.Join(m.DumpDir, m.OutputfileName+".err")
+	fd, err := os.OpenFile(outputFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		return fmt.Errorf("open file failed %s", err.Error())
+	}
+	_, err = fd.WriteString("-- dump schema for dbm simulation\n")
+	if err != nil {
+		logger.Error("write file failed %s", err.Error())
+		return err
+	}
+	defer func() {
+		if err != nil {
+			if cmutil.FileExists(errFile) {
+				errMsg, errx := osutil.ReadFileString(errFile)
+				if errx != nil {
+					logger.Error("read errFile failed %s", errx.Error())
+				}
+				logger.Error("errFile contenxt:%s", errMsg)
+			}
+		}
+	}()
+	defer fd.Close()
+	inputdbs := m.DbNames
+	for db, tables := range m.DumpMap {
+		var realdbs []string
+		if lo.IsNotEmpty(db) {
+			// inputdbs是实际存在的库
+			// 如果dumpMap中的库不在inputdbs中，直接跳过
+			// 让错误在模拟执行中体现
+			if !slices.Contains(inputdbs, db) {
+				logger.Warn("db %s not in inputdbs %v", db, inputdbs)
+				continue
+			}
+			realdbs = []string{db}
+		} else {
+			realdbs = inputdbs
+		}
+		for _, realdb := range realdbs {
+			_, err = fd.WriteString(fmt.Sprintf("CREATE DATABASE IF NOT EXISTS `%s`;\n USE `%s`;\n", realdb, realdb))
+			if err != nil {
+				return fmt.Errorf("write file failed %s", err.Error())
+			}
+			m.Tables = lo.Uniq(tables)
+			m.DbNames = []string{realdb}
+			dumpCmd := m.getDumpCmd(outputFile, errFile, "", true)
+			logger.Info("mysqldump cmd:%s", mysqlcomm.ClearSensitiveInformation(dumpCmd))
+			output, errx := osutil.StandardShellCommand(false, dumpCmd)
+			if errx != nil {
+				if err = dumpIsOk(errFile); err == nil {
+					continue
+				}
+				return fmt.Errorf("execte %s get an error:%s,%w", dumpCmd, output, errx)
+			}
+			if err = checkDumpComplete(outputFile); err != nil {
+				logger.Error("checkDumpComplete failed %s", err.Error())
+				return err
+			}
+		}
+	}
+	return err
+}
+
+func dumpIsOk(errLog string) (err error) {
+	fd, err := os.Open(errLog)
+	if err != nil {
+		return err
+	}
+	r := regexp.MustCompile(`Couldn't find table:`)
+	var lines []string
+	scanner := bufio.NewScanner(fd)
+	for scanner.Scan() {
+		l := scanner.Text()
+		if !r.MatchString(l) && lo.IsNotEmpty(l) {
+			lines = append(lines, l)
+		}
+	}
+	if len(lines) > 0 {
+		return fmt.Errorf("%s", strings.Join(lines, "\n"))
 	}
 	return
 }
@@ -247,7 +342,7 @@ DumpSchema 功能概述：
 >/data/dbbak/$dump_file.$old_db_name 2>/data/dbbak/$dump_file.$old_db_name.$SUBJOB_ID.err;
 */
 // nolint
-func (m *MySQLDumper) getDumpCmd(outputFile, errFile, dumpOption string) (dumpCmd string) {
+func (m *MySQLDumper) getDumpCmd(outputFile, errFile, dumpOption string, appendOutput bool) (dumpCmd string) {
 
 	switch {
 	case m.DumpData && m.DumpSchema:
@@ -298,6 +393,9 @@ func (m *MySQLDumper) getDumpCmd(outputFile, errFile, dumpOption string) (dumpCm
 	if m.Charset != "" { // charset 可能为空
 		dumpOption += " --default-character-set=" + m.Charset
 	}
+	if m.Force {
+		dumpOption += " -f "
+	}
 	dumpCmd = fmt.Sprintf(
 		`%s -h%s -P%d  -u%s  -p%s --skip-opt --create-options --single-transaction --max-allowed-packet=1G -q --no-autocommit %s`,
 		m.DumpCmdFile,
@@ -329,8 +427,10 @@ func (m *MySQLDumper) getDumpCmd(outputFile, errFile, dumpOption string) (dumpCm
 			dumpCmd += fmt.Sprintf(" --ignore-table=%s", igTb)
 		}
 	}
-
 	mysqlDumpCmd := fmt.Sprintf("%s > %s 2>%s", dumpCmd, outputFile, errFile)
+	if appendOutput {
+		mysqlDumpCmd = fmt.Sprintf("%s >> %s 2>>%s", dumpCmd, outputFile, errFile)
+	}
 	return strings.ReplaceAll(mysqlDumpCmd, "\n", " ")
 }
 

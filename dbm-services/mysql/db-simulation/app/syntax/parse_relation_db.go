@@ -14,6 +14,7 @@ import (
 	"bufio"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"os"
 	"runtime/debug"
@@ -29,7 +30,8 @@ import (
 const AnalyzeConcurrency = 10
 
 // DoParseRelationDbs parse relation db from sql file
-func (tf *TmysqlParseFile) DoParseRelationDbs(version string) (createDbs, relationDbs []string, dumpAll bool,
+func (tf *TmysqlParseFile) DoParseRelationDbs(version string) (createDbs, relationDbs, allCommands []string,
+	dumpAll bool,
 	err error) {
 	logger.Info("doing....")
 	tf.result = make(map[string]*CheckInfo)
@@ -39,15 +41,13 @@ func (tf *TmysqlParseFile) DoParseRelationDbs(version string) (createDbs, relati
 	if !tf.IsLocalFile {
 		if err = tf.Init(); err != nil {
 			logger.Error("Do init failed %s", err.Error())
-			return nil, nil, false, err
+			return nil, nil, nil, false, err
 		}
 		if err = tf.Downloadfile(); err != nil {
 			logger.Error("failed to download sql file from the product library %s", err.Error())
-			return nil, nil, false, err
+			return nil, nil, nil, false, err
 		}
 	}
-	// 最后删除临时目录,不会返回错误
-	defer tf.delTempDir()
 	logger.Info("all sqlfiles download ok ~")
 	alreadExecutedSqlfileChan := make(chan string, len(tf.Param.FileNames))
 
@@ -59,12 +59,13 @@ func (tf *TmysqlParseFile) DoParseRelationDbs(version string) (createDbs, relati
 	}()
 
 	logger.Info("start to analyze the parsing result")
-	createDbs, relationDbs, dumpAll, err = tf.doParseInchan(alreadExecutedSqlfileChan, version)
+	createDbs, relationDbs, allCommands, dumpAll, err = tf.doParseInchan(alreadExecutedSqlfileChan, version)
 	if err != nil {
 		logger.Error("failed to analyze the parsing result:%s", err.Error())
-		return nil, nil, false, err
+		return nil, nil, nil, false, err
 	}
-	logger.Info("createDbs:%v,relationDbs:%v,dumpAll:%v,err:%v", createDbs, relationDbs, dumpAll, err)
+	logger.Info("createDbs:%v,relationDbs:%v,allcomands%v,dumpAll:%v,err:%v", createDbs, relationDbs, allCommands, dumpAll,
+		err)
 	dumpdbs := []string{}
 	for _, d := range relationDbs {
 		if slices.Contains(createDbs, d) {
@@ -72,12 +73,12 @@ func (tf *TmysqlParseFile) DoParseRelationDbs(version string) (createDbs, relati
 		}
 		dumpdbs = append(dumpdbs, d)
 	}
-	return lo.Uniq(createDbs), lo.Uniq(dumpdbs), dumpAll, nil
+	return lo.Uniq(createDbs), lo.Uniq(dumpdbs), lo.Uniq(allCommands), dumpAll, nil
 }
 
 // doParseInchan RelationDbs do parse relation db
 func (t *TmysqlParse) doParseInchan(alreadExecutedSqlfileCh chan string,
-	mysqlVersion string) (createDbs []string, relationDbs []string, dumpAll bool, err error) {
+	mysqlVersion string) (createDbs []string, relationDbs []string, allCommands []string, dumpAll bool, err error) {
 	var errs []error
 	c := make(chan struct{}, AnalyzeConcurrency)
 	errChan := make(chan error)
@@ -90,21 +91,23 @@ func (t *TmysqlParse) doParseInchan(alreadExecutedSqlfileCh chan string,
 		c <- struct{}{}
 		go func(fileName string) {
 			defer wg.Done()
-			cdbs, dbs, dumpAllDbs, err := t.analyzeRelationDbs(fileName, mysqlVersion)
+			cdbs, dbs, commands, dumpAllDbs, err := t.analyzeRelationDbs(fileName, mysqlVersion)
 			logger.Info("createDbs:%v,dbs:%v,dumpAllDbs:%v,err:%v", cdbs, dbs, dumpAllDbs, err)
 			if err != nil {
+				logger.Error("analyzeRelationDbs failed %s", err.Error())
 				errChan <- err
+				return
 			}
 			// 如果有dumpall 则直接返回退出,不在继续分析
 			if dumpAllDbs {
 				dumpAll = true
 				<-c
-				wg.Done()
 				stopChan <- struct{}{}
 			}
 			t.mu.Lock()
 			relationDbs = append(relationDbs, dbs...)
 			createDbs = append(createDbs, cdbs...)
+			allCommands = append(allCommands, commands...)
 			t.mu.Unlock()
 			<-c
 		}(sqlfile)
@@ -121,7 +124,7 @@ func (t *TmysqlParse) doParseInchan(alreadExecutedSqlfileCh chan string,
 		case err := <-errChan:
 			errs = append(errs, err)
 		case <-stopChan:
-			return createDbs, relationDbs, dumpAll, errors.Join(errs...)
+			return createDbs, relationDbs, allCommands, dumpAll, errors.Join(errs...)
 		}
 	}
 }
@@ -130,6 +133,7 @@ func (t *TmysqlParse) doParseInchan(alreadExecutedSqlfileCh chan string,
 func (t *TmysqlParse) analyzeRelationDbs(inputfileName, mysqlVersion string) (
 	createDbs []string,
 	relationDbs []string,
+	allCommandType []string,
 	dumpAll bool,
 	err error) {
 	defer func() {
@@ -140,7 +144,7 @@ func (t *TmysqlParse) analyzeRelationDbs(inputfileName, mysqlVersion string) (
 	f, err := os.Open(t.getAbsoutputfilePath(inputfileName, mysqlVersion))
 	if err != nil {
 		logger.Error("open file failed %s", err.Error())
-		return nil, nil, false, err
+		return nil, nil, nil, false, err
 	}
 	defer f.Close()
 	reader := bufio.NewReader(f)
@@ -151,7 +155,7 @@ func (t *TmysqlParse) analyzeRelationDbs(inputfileName, mysqlVersion string) (
 				break
 			}
 			logger.Error("read Line Error %s", errx.Error())
-			return nil, nil, false, errx
+			return nil, nil, nil, false, errx
 		}
 		if len(line) == 1 && line[0] == byte('\n') {
 			continue
@@ -159,16 +163,19 @@ func (t *TmysqlParse) analyzeRelationDbs(inputfileName, mysqlVersion string) (
 		var res ParseLineQueryBase
 		if err = json.Unmarshal(line, &res); err != nil {
 			logger.Error("json unmasrshal line:%s failed %s", string(line), err.Error())
-			return nil, nil, false, err
+			return nil, nil, nil, false, err
 		}
 		// 判断是否有语法错误
 		if res.ErrorCode != 0 {
-			return nil, nil, false, err
+			return nil, nil, nil, false, fmt.Errorf("%s", res.ErrorMsg)
+		}
+		if lo.IsNotEmpty(res.Command) {
+			allCommandType = append(allCommandType, res.Command)
 		}
 		if slices.Contains([]string{SQLTypeCreateProcedure, SQLTypeCreateFunction, SQLTypeCreateView, SQLTypeCreateTrigger,
 			SQLTypeInsertSelect, SQLTypeRelaceSelect},
 			res.Command) {
-			return nil, nil, true, nil
+			return nil, nil, nil, true, nil
 		}
 		if lo.IsEmpty(res.DbName) {
 			continue
@@ -181,5 +188,74 @@ func (t *TmysqlParse) analyzeRelationDbs(inputfileName, mysqlVersion string) (
 		relationDbs = append(relationDbs, res.DbName)
 
 	}
-	return createDbs, relationDbs, false, nil
+	return createDbs, relationDbs, allCommandType, false, nil
+}
+
+// ParseSpecialTbls parse special tables
+func (tf *TmysqlParseFile) ParseSpecialTbls(mysqlVersion string) (relationTbls []RelationTbl, err error) {
+	m := make(map[string][]string)
+	for _, fileName := range tf.Param.FileNames {
+		mm, err := tf.parseSpecialSQLFile(fileName, mysqlVersion)
+		if err != nil {
+			logger.Error("parseAlterSQLFile failed %s", err.Error())
+			return nil, err
+		}
+		for k, v := range mm {
+			m[k] = append(m[k], v...)
+		}
+	}
+	for k, v := range m {
+		relationTbls = append(relationTbls, RelationTbl{
+			DbName: k,
+			Tbls:   v,
+		})
+	}
+	return relationTbls, nil
+}
+
+// RelationTbl dunmp db and table
+type RelationTbl struct {
+	DbName string   `json:"db_name"`
+	Tbls   []string `json:"tbls"`
+}
+
+// parseSpecialSQLFile 解析指定库表
+func (t *TmysqlParse) parseSpecialSQLFile(inputfileName, mysqlVersion string) (m map[string][]string, err error) {
+	f, err := os.Open(t.getAbsoutputfilePath(inputfileName, mysqlVersion))
+	if err != nil {
+		logger.Error("open file failed %s", err.Error())
+		return nil, err
+	}
+	m = make(map[string][]string)
+	defer f.Close()
+	reader := bufio.NewReader(f)
+	for {
+		line, errx := reader.ReadBytes(byte('\n'))
+		if errx != nil {
+			if errx == io.EOF {
+				break
+			}
+			logger.Error("read Line Error %s", errx.Error())
+			return nil, errx
+		}
+		if len(line) == 1 && line[0] == byte('\n') {
+			continue
+		}
+		var baseRes ParseIncludeTableBase
+		if err = json.Unmarshal(line, &baseRes); err != nil {
+			logger.Error("json unmasrshal line:%s failed %s", string(line), err.Error())
+			return nil, err
+		}
+		dbName := ""
+		if baseRes.Command == SQLTypeUseDb {
+			dbName = baseRes.DbName
+		}
+		if lo.IsNotEmpty(baseRes.DbName) {
+			dbName = baseRes.DbName
+		}
+		if lo.IsNotEmpty(baseRes.TableName) {
+			m[dbName] = append(m[dbName], baseRes.TableName)
+		}
+	}
+	return m, nil
 }

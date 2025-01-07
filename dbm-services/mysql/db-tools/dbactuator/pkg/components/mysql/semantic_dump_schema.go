@@ -55,10 +55,17 @@ type DumpSchemaParam struct {
 	ParseNeedDumpDbs []string `json:"parse_need_dump_dbs"`
 	// SQL 语句中解析出来的create database dbs
 	// 需要导出的原因是复现 create database 是否已经存在的错误
-	ParseCreateDbs []string            `json:"parse_create_dbs"`
-	ExecuteObjects []ExecuteSQLFileObj `json:"execute_objects"`
-
+	ParseCreateDbs      []string            `json:"parse_create_dbs"`
+	ExecuteObjects      []ExecuteSQLFileObj `json:"execute_objects"`
+	JustDumpSpecialTbls bool                `json:"just_dump_special_tbls"`
+	SpecialTbls         []SpecialTblInfo    `json:"special_tbls"`
 	UploadBkRepoParam
+}
+
+// SpecialTblInfo TODO
+type SpecialTblInfo struct {
+	DbName string   `json:"db_name"`
+	Tbls   []string `json:"tbls"`
 }
 
 // UploadBkRepoParam upload to bk repo param
@@ -195,7 +202,7 @@ func (c *SemanticDumpSchemaComp) getDumpdbs(alldbs []string, version string) (re
 	if c.Params.DumpAll {
 		logger.Info("param is dump all")
 		reg := regexp.MustCompile(`^bak_cbs`)
-		newBackupDbreg := regexp.MustCompile(`^stage_truncate`)
+		newBackupDbreg := regexp.MustCompile(fmt.Sprintf("^%s", cst.StageDbHeader))
 		for _, db := range dbsExcluesysdbs {
 			if reg.MatchString(db) {
 				continue
@@ -223,7 +230,7 @@ func (c *SemanticDumpSchemaComp) getDumpdbs(alldbs []string, version string) (re
 			finaldbs = append(finaldbs, realexcutedbs...)
 		}
 		createSQLExistDbs := lo.Intersect(alldbs, c.Params.ParseCreateDbs)
-		finaldbs = append(finaldbs, c.Params.ParseNeedDumpDbs...)
+		finaldbs = append(finaldbs, lo.Intersect(alldbs, c.Params.ParseNeedDumpDbs)...)
 		finaldbs = append(finaldbs, createSQLExistDbs...)
 	}
 	logger.Info("dump dbs:%v", finaldbs)
@@ -280,7 +287,38 @@ func (c *SemanticDumpSchemaComp) DumpSchema() (err error) {
 		dumpOption.GtidPurgedOff = true
 		c.useTmysqldump = false
 	}
-	dumper = &mysqlutil.MySQLDumperTogether{
+	switch {
+	case c.Params.JustDumpSpecialTbls:
+		return c.DumpSpecialTables(dumpOption)
+	default:
+		dumper = &mysqlutil.MySQLDumperTogether{
+			MySQLDumper: mysqlutil.MySQLDumper{
+				DumpDir:         c.Params.BackupDir,
+				Ip:              c.Params.Host,
+				Port:            c.Params.Port,
+				DbBackupUser:    c.GeneralParam.RuntimeAccountParam.AdminUser,
+				DbBackupPwd:     c.GeneralParam.RuntimeAccountParam.AdminPwd,
+				DbNames:         c.dbs,
+				IgnoreTables:    c.ignoreTables,
+				DumpCmdFile:     c.dumpCmd,
+				Charset:         c.charset,
+				MySQLDumpOption: dumpOption,
+			},
+			UseTMySQLDump:  c.useTmysqldump,
+			OutputfileName: c.Params.BackupFileName,
+		}
+		if err := dumper.Dump(); err != nil {
+			logger.Error("dump failed: %s", err.Error())
+			return err
+		}
+		return nil
+	}
+}
+
+// DumpSpecialTables dump zhi special tables
+func (c *SemanticDumpSchemaComp) DumpSpecialTables(dumpOption mysqlutil.MySQLDumpOption) (err error) {
+	dumpOption.Force = true
+	dumper := &mysqlutil.MySQLDumperAppend{
 		MySQLDumper: mysqlutil.MySQLDumper{
 			DumpDir:         c.Params.BackupDir,
 			Ip:              c.Params.Host,
@@ -293,7 +331,13 @@ func (c *SemanticDumpSchemaComp) DumpSchema() (err error) {
 			Charset:         c.charset,
 			MySQLDumpOption: dumpOption,
 		},
-		UseTMySQLDump:  c.useTmysqldump,
+		DumpMap: lo.SliceToMap(c.Params.SpecialTbls, func(item SpecialTblInfo) (string, []string) {
+			if len(item.Tbls) > 0 {
+				return item.DbName,
+					item.Tbls
+			}
+			return item.DbName, []string{}
+		}),
 		OutputfileName: c.Params.BackupFileName,
 	}
 	if err := dumper.Dump(); err != nil {
