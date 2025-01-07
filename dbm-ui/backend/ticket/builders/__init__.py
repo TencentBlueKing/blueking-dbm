@@ -300,14 +300,16 @@ class RecycleParamBuilder(FlowParamBuilder):
         return super().build_controller_info()
 
     def format_ticket_data(self):
-        self.ticket_data = {
-            "clear_hosts": self.ticket_data["recycle_hosts"],
-            "ip_dest": self.ip_dest,
-            # 一批机器的操作系统类型一致，任取一个即可
-            "os_name": self.ticket_data["recycle_hosts"][0]["os_name"],
-            "os_type": self.ticket_data["recycle_hosts"][0]["os_type"],
-            "db_type": self.ticket.group,
-        }
+        self.ticket_data.update(
+            {
+                "clear_hosts": self.ticket_data["recycle_hosts"],
+                "ip_dest": self.ip_dest,
+                # 一批机器的操作系统类型一致，任取一个即可
+                "os_name": self.ticket_data["recycle_hosts"][0]["os_name"],
+                "os_type": self.ticket_data["recycle_hosts"][0]["os_type"],
+                "db_type": self.ticket.group,
+            }
+        )
 
     def post_callback(self):
         # 转移到故障池，记录机器事件(如果是资源池则资源导入后会记录)
@@ -334,18 +336,20 @@ class ReImportResourceParamBuilder(FlowParamBuilder):
     def format_ticket_data(self):
         recycle_hosts = self.ticket_data["recycle_hosts"]
         # 我们认为，在资源申请的情况下，不会混用多个集群类型
-        self.ticket_data = {
-            "ticket_id": self.ticket.id,
-            "for_biz": self.ticket_data["ip_recycle"]["for_biz"],
-            "resource_type": self.ticket.group,
-            "os_type": recycle_hosts[0]["bk_os_type"],
-            "hosts": recycle_hosts,
-            "operator": self.ticket.creator,
-            # 标记为退回
-            "return_resource": True,
-            # 要查询主机实际的业务管控
-            "bk_biz_id": recycle_hosts[0]["bk_host_id"],
-        }
+        self.ticket_data.update(
+            {
+                "ticket_id": self.ticket.id,
+                "for_biz": self.ticket_data["ip_recycle"]["for_biz"],
+                "resource_type": self.ticket.group,
+                "os_type": recycle_hosts[0]["bk_os_type"],
+                "hosts": recycle_hosts,
+                "operator": self.ticket.creator,
+                # 标记为退回
+                "return_resource": True,
+                # 要查询主机实际的业务管控
+                "bk_biz_id": recycle_hosts[0]["bk_biz_id"],
+            }
+        )
 
     def pre_callback(self):
         # 在run的时候才会生成task id，此时要更新到资源池参数里面
