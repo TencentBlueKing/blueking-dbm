@@ -710,8 +710,7 @@ class MonitorPolicy(AuditedModel):
         details["bk_biz_id"] = env.DBA_APP_BK_BIZ_ID
         return details
 
-    @staticmethod
-    def patch_target_and_metric_id(details, db_type):
+    def patch_target_and_metric_id(self, details, db_type):
         """监控目标/自定义事件和指标需要渲染
         metric_id: {bk_biz_id}_bkmoinitor_event_{event_data_id}
         """
@@ -781,6 +780,11 @@ class MonitorPolicy(AuditedModel):
                     "condition": "and",
                 }
             )
+
+        # dbm 仅允许修改子策略的阈值，因此有修改时，需要先同步父亲的，再进行后续的 patch
+        if self.parent_id != 0:
+            parent_policy = MonitorPolicy.objects.get(id=self.parent_id)
+            details["items"] = copy.deepcopy(parent_policy.details["items"])
 
         for item in details["items"]:
             for query_config in item["query_configs"]:
@@ -874,6 +878,11 @@ class MonitorPolicy(AuditedModel):
         # 平台内置策略支持保存初始版本，用于恢复默认设置
         if self.pk is None and self.bk_biz_id == env.DBA_APP_BK_BIZ_ID:
             self.parent_details = self.details
+
+        # 父策略有变更时，把子策略也刷新一遍，以保证子策略的配置与父策略的指标、维度、周期一致，才能够使优先级计算生效
+        if self.parent_id == 0:
+            for sub_policy in MonitorPolicy.objects.filter(parent_id=self.id):
+                sub_policy.save()
 
         # step3. save to db
         super().save(force_insert, force_update, using, update_fields)
