@@ -42,7 +42,6 @@
 </template>
 
 <script setup lang="tsx">
-  import type { Column } from 'bkui-vue/lib/table/props';
   import type { ComputedRef, Ref } from 'vue';
   import { useI18n } from 'vue-i18n';
   import {
@@ -74,7 +73,7 @@
   /**
    * table 设置
    */
-  const columns: Column[] = [{
+  const columns = [{
     label: t('名称'),
     field: 'name',
     render: ({ cell, data }: { cell: string, data: ConfigListItem[number] }) => (
@@ -109,7 +108,6 @@
         resource={activeTab?.value}
         permission={data.permission.dbconfig_edit}
         theme="primary"
-        class="mr-24"
         onClick={() => handleToEdit(data)}>
         { t('编辑') }
       </auth-button>

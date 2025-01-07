@@ -28,6 +28,7 @@
         :columns="columns"
         :data-source="dataSource"
         :row-class="updateRowClass"
+        :show-overflow="false"
         @clear-search="handleClearSearch" />
     </div>
     <EditStrategy
@@ -176,7 +177,6 @@
       fixed: 'left',
       minWidth: 150,
       width: 280,
-      showOverflowTooltip: false,
       render: ({ data }: {data: MonitorPolicyModel}) => {
         const isInner = data.bk_biz_id === 0;
         const isDanger = data.event_count > 0;
@@ -224,28 +224,25 @@
       label: t('监控目标'),
       field: 'targets',
       minWidth: 180,
+      showOverflow: false,
       render: ({ data }: {data: MonitorPolicyModel}) => {
         if (data.targets.length < 1){
           return '--'
         }
         return (
-          <div style="padding: 5px 0">
-            {
-              data.targets.map((item, index) => {
-                const {level} = item;
-                let list = item.rule.value;
-                if (level === 'appid') {
-                  // 业务级
-                  list = [bizsMap.value[list[0]]];
-                }
-                if (level === 'db_module') {
-                  // 模块
-                  list = item.rule.value.map(item => dbModuleMap[item]);
-                }
-                return <RenderTargetItem key={index} title={level} list={list} data-test={level}/>;
-              })
+          data.targets.map((item, index) => {
+            const {level} = item;
+            let list = item.rule.value;
+            if (level === 'appid') {
+              // 业务级
+              list = [bizsMap.value[list[0]]];
             }
-          </div>
+            if (level === 'db_module') {
+              // 模块
+              list = item.rule.value.map(item => dbModuleMap[item]);
+            }
+            return <RenderTargetItem key={index} title={level} list={list} data-test={level}/>;
+          })
         )
       },
     },
@@ -316,7 +313,6 @@
     {
       label: t('更新时间'),
       field: 'update_at',
-      showOverflowTooltip: true,
       sort: true,
       minWidth: 160,
       render: ({ data }: {data: RowData}) => <span>{data.updateAtDisplay}</span>,
@@ -324,7 +320,6 @@
     {
       label: t('更新人'),
       field: 'updater',
-      showOverflowTooltip: true,
       minWidth: 100,
       render: ({ data }: {data: RowData}) => <span>{data.updater || '--'}</span>,
     },
@@ -332,7 +327,8 @@
       label: t('操作'),
       fixed: 'right',
       field: '',
-      width: 230,
+      width: 200,
+      showOverflow: false,
       render: ({ data }: {data: MonitorPolicyModel}) => {
         const isInner = data.bk_biz_id === 0;
         return (

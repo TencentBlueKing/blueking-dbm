@@ -34,6 +34,7 @@
       :row-class="getRowClass"
       selectable
       :settings="tableSetting"
+      :show-overflow="false"
       @clear-search="handleClearSearch"
       @selection="handleTableSelection"
       @setting-change="handleSettingChange" />
@@ -222,8 +223,9 @@
     },
     {
       label: t('操作'),
-      width: 220,
+      width: 180,
       fixed: 'right',
+      showOverflow: false,
       render: ({ data }: { data: PartitionModel }) => {
         const renderAction = () => {
           if (data.isRunning) {
