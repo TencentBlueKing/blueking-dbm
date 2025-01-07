@@ -107,8 +107,12 @@
   const errorMessage = ref('');
 
   watch(
-    () => props.data.biz_config,
+    () => props.data?.biz_config,
     (bizConfig) => {
+      if (!bizConfig) {
+        return;
+      }
+
       if (bizConfig.exclude) {
         excludeBizs.value = bizConfig.exclude;
         modelValue.value = 'all';
