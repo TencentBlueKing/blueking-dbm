@@ -171,7 +171,7 @@
             <AuthButton
               v-db-console="'tendbCluster.clusterManage.exportData'"
               action-id="tendbcluster_dump_data"
-              class="mr-16"
+              class="mr-8"
               :disabled="data.isOffline"
               :permission="data.permission.tendbcluster_dump_data"
               :resource="data.id"
@@ -189,7 +189,6 @@
                 v-db-console="'tendbCluster.clusterManage.removeMNTNode'">
                 <AuthButton
                   action-id="tendbcluster_spider_mnt_destroy"
-                  class="mr-8"
                   :disabled="data.spider_mnt.length === 0 || data.isOffline"
                   :permission="data.permission.tendbcluster_spider_mnt_destroy"
                   :resource="data.id"
@@ -206,7 +205,6 @@
                 v-db-console="'tendbCluster.clusterManage.removeReadonlyNode'">
                 <AuthButton
                   action-id="tendb_spider_slave_destroy"
-                  class="mr-8"
                   :disabled="data.spider_slave.length === 0 || data.isOffline"
                   :permission="data.permission.tendb_spider_slave_destroy"
                   :resource="data.id"
@@ -221,7 +219,6 @@
                 <OperationBtnStatusTips :data="data">
                   <AuthButton
                     action-id="tendbcluster_enable_disable"
-                    class="mr-8"
                     :disabled="data.operationDisabled"
                     :permission="data.permission.tendbcluster_enable_disable"
                     :resource="data.id"
@@ -237,7 +234,6 @@
                 <OperationBtnStatusTips :data="data">
                   <AuthButton
                     action-id="tendbcluster_enable_disable"
-                    class="mr-8"
                     :disabled="data.isStarting"
                     :permission="data.permission.tendbcluster_enable_disable"
                     :resource="data.id"
@@ -255,7 +251,6 @@
                       content: t('请先禁用集群'),
                     }"
                     action-id="tendbcluster_destroy"
-                    class="mr-8"
                     :disabled="data.isOnline || Boolean(data.operationTicketId)"
                     :permission="data.permission.tendbcluster_destroy"
                     :resource="data.id"
