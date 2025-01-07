@@ -8,10 +8,12 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import json.decoder
 import logging
 from collections import defaultdict
 from datetime import datetime, time, timedelta
 
+from blueapps.core.celery.celery import app
 from django.db.models import Q
 from django.utils import timezone
 
@@ -97,6 +99,7 @@ def _build_backup_info_files(backups_info: []):
     return backups
 
 
+@app.task
 def _check_tendbha_full_backup(date_str: str):
     """
     tendbha 必须有一份完整的备份
@@ -114,29 +117,35 @@ def _check_tendbha_full_backup(date_str: str):
     )
     query = Q(cluster_type=ClusterType.TenDBHA) & Q(create_at__lt=timezone.now() - timedelta(days=1))
     for c in Cluster.objects.filter(query):
-        logger.info("==== start check full backup for cluster {} ====".format(c.immute_domain))
-        backup = ClusterBackup(c.id, c.immute_domain)
+        try:
+            logger.info("==== start check full backup for cluster {} ====".format(c.immute_domain))
+            backup = ClusterBackup(c.id, c.immute_domain)
 
-        items = backup.query_backup_log_from_bklog(start_time, end_time)
-        backup.backups = _build_backup_info_files(items)
+            items = backup.query_backup_log_from_bklog(start_time, end_time)
+            backup.backups = _build_backup_info_files(items)
 
-        for bid, bk in backup.backups.items():
-            if bk.is_full_backup == 1:
-                if bk.file_index and bk.file_tar:
-                    backup.success = True
-                    break
-        if not backup.success:
-            MysqlBackupCheckReport.objects.create(
-                bk_biz_id=c.bk_biz_id,
-                bk_cloud_id=c.bk_cloud_id,
-                cluster=c.immute_domain,
-                cluster_type=ClusterType.TenDBHA,
-                status=False,
-                msg="no success full backup found",
-                subtype=MysqlBackupCheckSubType.FullBackup.value,
-            )
+            for bid, bk in backup.backups.items():
+                if bk.is_full_backup == 1:
+                    if bk.file_index and bk.file_tar:
+                        backup.success = True
+                        break
+            if not backup.success:
+                MysqlBackupCheckReport.objects.create(
+                    bk_biz_id=c.bk_biz_id,
+                    bk_cloud_id=c.bk_cloud_id,
+                    cluster=c.immute_domain,
+                    cluster_type=ClusterType.TenDBHA,
+                    status=False,
+                    msg="no success full backup found",
+                    subtype=MysqlBackupCheckSubType.FullBackup.value,
+                )
+        except json.decoder.JSONDecodeError as e:
+            logger.error("==== eslog error check full backup for cluster {}:{} ====".format(c.immute_domain, e))
+        except Exception as e:
+            logger.error("==== error check full backup for cluster {}:{} ====".format(c.immute_domain, e))
 
 
+@app.task
 def _check_tendbcluster_full_backup(date_str: str):
     """
     tendbcluster 集群必须有完整的备份
@@ -149,38 +158,43 @@ def _check_tendbcluster_full_backup(date_str: str):
     )
 
     for c in Cluster.objects.filter(cluster_type=ClusterType.TenDBCluster):
-        logger.info("==== start check full backup for cluster {} ====".format(c.immute_domain))
-        backup = ClusterBackup(c.id, c.immute_domain)
-        items = backup.query_backup_log_from_bklog(start_time, end_time)
-        backup.backups = _build_backup_info_files(items)
+        try:
+            logger.info("==== start check full backup for cluster {} ====".format(c.immute_domain))
+            backup = ClusterBackup(c.id, c.immute_domain)
+            items = backup.query_backup_log_from_bklog(start_time, end_time)
+            backup.backups = _build_backup_info_files(items)
 
-        backup_id_stat = defaultdict(list)
-        backup_id_invalid = {}
-        for bid, bk in backup.backups.items():
-            backup_id, shard_id = bid.split("#", 1)
-            if bk.is_full_backup == 1:
-                if bk.file_index and bk.file_tar:
-                    #  这一个 shard ok
-                    backup_id_stat[backup_id].append({shard_id: True})
-                else:
-                    # 这一个 shard 不ok，整个backup_id 无效
-                    backup_id_invalid[backup_id] = True
-                    backup_id_stat[backup_id].append({shard_id: False})
-        message = ""
-        for backup_id, stat in backup_id_stat.items():
-            if backup_id not in backup_id_invalid:
-                backup.success = True
-                message = "shard_id:{}".format(backup_id_stat[backup_id])
-                break
+            backup_id_stat = defaultdict(list)
+            backup_id_invalid = {}
+            for bid, bk in backup.backups.items():
+                backup_id, shard_id = bid.split("#", 1)
+                if bk.is_full_backup == 1:
+                    if bk.file_index and bk.file_tar:
+                        #  这一个 shard ok
+                        backup_id_stat[backup_id].append({shard_id: True})
+                    else:
+                        # 这一个 shard 不ok，整个backup_id 无效
+                        backup_id_invalid[backup_id] = True
+                        backup_id_stat[backup_id].append({shard_id: False})
+            message = ""
+            for backup_id, stat in backup_id_stat.items():
+                if backup_id not in backup_id_invalid:
+                    backup.success = True
+                    message = "shard_id:{}".format(backup_id_stat[backup_id])
+                    break
 
-        # 只记录失败的结果
-        if not backup.success:
-            MysqlBackupCheckReport.objects.create(
-                bk_biz_id=c.bk_biz_id,
-                bk_cloud_id=c.bk_cloud_id,
-                cluster=c.immute_domain,
-                cluster_type=ClusterType.TenDBCluster,
-                status=False,
-                msg="no success full backup found:{}".format(message),
-                subtype=MysqlBackupCheckSubType.FullBackup.value,
-            )
+            # 只记录失败的结果
+            if not backup.success:
+                MysqlBackupCheckReport.objects.create(
+                    bk_biz_id=c.bk_biz_id,
+                    bk_cloud_id=c.bk_cloud_id,
+                    cluster=c.immute_domain,
+                    cluster_type=ClusterType.TenDBCluster,
+                    status=False,
+                    msg="no success full backup found:{}".format(message),
+                    subtype=MysqlBackupCheckSubType.FullBackup.value,
+                )
+        except json.decoder.JSONDecodeError as e:
+            logger.error("==== eslog error check full backup for cluster {}:{} ====".format(c.immute_domain, e))
+        except Exception as e:
+            logger.error("==== error check full backup for cluster {}:{} ====".format(c.immute_domain, e))

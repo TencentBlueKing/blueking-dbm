@@ -212,7 +212,7 @@
   },
   "is_enabled": true,
   "monitor_indicator": "MAX(dbha_heartbeat)",
-  "version": 1,
+  "version": 26,
   "alert_source": "time_series",
   "custom_conditions": [],
   "export_at": "2024-11-26T16:26:58+08:00"

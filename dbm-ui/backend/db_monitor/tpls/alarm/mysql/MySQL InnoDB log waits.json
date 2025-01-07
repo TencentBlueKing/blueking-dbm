@@ -264,7 +264,7 @@
   },
   "is_enabled": true,
   "monitor_indicator": "AVG(mysql_global_status_innodb_log_waits)",
-  "version": 22,
+  "version": 26,
   "alert_source": "time_series",
   "custom_conditions": []
 }
