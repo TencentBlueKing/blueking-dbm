@@ -18,6 +18,7 @@
     required
     :rules="rules">
     <BkInput
+      v-model="modelValue"
       v-bk-tooltips="{
         trigger: 'click',
         placement: 'top',
@@ -26,7 +27,6 @@
       }"
       class="item-input"
       :maxlength="63"
-      :model-value="modelValue"
       :placeholder="clusterNamePlaceholder"
       show-word-limit />
   </BkFormItem>
@@ -40,7 +40,7 @@
 
   const modelValue = defineModel<string>();
 
-  const clusterNamePlaceholder = t('以小写字母或数字开头，支持小写英文字母、数字、连字符-');
+  const clusterNamePlaceholder = t('集群标识，支持小写字母、数字、连字符 -（连字符不可打头）');
 
   const rules = [
     {
