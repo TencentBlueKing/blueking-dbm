@@ -37,83 +37,158 @@
         :validate-values="validateSearchValues"
         @change="handleSearchValueChange" />
     </div>
-    <div
-      class="table-wrapper"
-      :class="{ 'is-shrink-table': isStretchLayoutOpen }">
-      <DbTable
-        ref="tableRef"
-        :data-source="dataSource"
-        :pagination-extra="paginationExtra"
-        releate-url-query
-        :row-class="getRowClass"
-        selectable
-        :settings="tableSetting"
-        :show-overflow="false"
-        @clear-search="clearSearchValue"
-        @column-filter="columnFilterChange"
-        @column-sort="columnSortChange"
-        @selection="handleSelection"
-        @setting-change="updateTableSettings">
-        <IdColumn :cluster-type="ClusterTypes.KAFKA" />
-        <MasterDomainColumn
-          :cluster-type="ClusterTypes.KAFKA"
-          field="master_domain"
-          :get-table-instance="getTableInstance"
-          :label="t('访问入口')"
-          :selected-list="selected"
-          @go-detail="handleToDetails"
-          @refresh="fetchTableData" />
-        <ClusterNameColumn
-          :cluster-type="ClusterTypes.KAFKA"
-          :get-table-instance="getTableInstance"
-          :selected-list="selected"
-          @refresh="fetchTableData" />
-        <StatusColumn :cluster-type="ClusterTypes.KAFKA" />
-        <ClusterStatsColumn :cluster-type="ClusterTypes.KAFKA" />
-        <RoleColumn
-          :cluster-type="ClusterTypes.KAFKA"
-          field="zookeeper"
-          :get-table-instance="getTableInstance"
-          label="Zookeeper"
-          :search-ip="batchSearchIpInatanceList"
-          :selected-list="selected" />
-        <RoleColumn
-          :cluster-type="ClusterTypes.KAFKA"
-          field="broker"
-          :get-table-instance="getTableInstance"
-          label="Broker"
-          :search-ip="batchSearchIpInatanceList"
-          :selected-list="selected" />
-        <CommonColumn :cluster-type="ClusterTypes.KAFKA" />
-        <BkTableColumn
-          :fixed="isStretchLayoutOpen ? false : 'right'"
-          :label="t('操作')"
-          :min-width="200"
-          :show-overflow="false">
-          <template #default="{data}: {data: KafkaModel}">
-            <template v-if="data.isOffline">
-              <OperationBtnStatusTips
-                v-db-console="'kafka.clusterManage.enable'"
-                :data="data">
+    <DbTable
+      ref="tableRef"
+      :data-source="dataSource"
+      :pagination-extra="paginationExtra"
+      releate-url-query
+      :row-class="getRowClass"
+      selectable
+      :settings="tableSetting"
+      :show-overflow="false"
+      @clear-search="clearSearchValue"
+      @column-filter="columnFilterChange"
+      @column-sort="columnSortChange"
+      @selection="handleSelection"
+      @setting-change="updateTableSettings">
+      <IdColumn :cluster-type="ClusterTypes.KAFKA" />
+      <MasterDomainColumn
+        :cluster-type="ClusterTypes.KAFKA"
+        field="master_domain"
+        :get-table-instance="getTableInstance"
+        :label="t('访问入口')"
+        :selected-list="selected"
+        @go-detail="handleToDetails"
+        @refresh="fetchTableData" />
+      <ClusterNameColumn
+        :cluster-type="ClusterTypes.KAFKA"
+        :get-table-instance="getTableInstance"
+        :selected-list="selected"
+        @refresh="fetchTableData" />
+      <StatusColumn :cluster-type="ClusterTypes.KAFKA" />
+      <ClusterStatsColumn :cluster-type="ClusterTypes.KAFKA" />
+      <RoleColumn
+        :cluster-type="ClusterTypes.KAFKA"
+        field="zookeeper"
+        :get-table-instance="getTableInstance"
+        label="Zookeeper"
+        :search-ip="batchSearchIpInatanceList"
+        :selected-list="selected" />
+      <RoleColumn
+        :cluster-type="ClusterTypes.KAFKA"
+        field="broker"
+        :get-table-instance="getTableInstance"
+        label="Broker"
+        :search-ip="batchSearchIpInatanceList"
+        :selected-list="selected" />
+      <CommonColumn :cluster-type="ClusterTypes.KAFKA" />
+      <BkTableColumn
+        :fixed="isStretchLayoutOpen ? false : 'right'"
+        :label="t('操作')"
+        :min-width="200"
+        :show-overflow="false">
+        <template #default="{data}: {data: KafkaModel}">
+          <template v-if="data.isOffline">
+            <OperationBtnStatusTips
+              v-db-console="'kafka.clusterManage.enable'"
+              :data="data">
+              <AuthButton
+                action-id="kafka_enable_disable"
+                class="mr-8"
+                :disabled="data.isStarting"
+                :permission="data.permission.kafka_enable_disable"
+                :resource="data.id"
+                text
+                theme="primary"
+                @click="handleEnableCluster([data])">
+                {{ t('启用') }}
+              </AuthButton>
+            </OperationBtnStatusTips>
+            <OperationBtnStatusTips
+              v-db-console="'kafka.clusterManage.delete'"
+              :data="data">
+              <AuthButton
+                action-id="kafka_destroy"
+                class="mr-8"
+                :disabled="Boolean(data.operationTicketId)"
+                :permission="data.permission.kafka_destroy"
+                :resource="data.id"
+                text
+                theme="primary"
+                @click="handleDeleteCluster([data])">
+                {{ t('删除') }}
+              </AuthButton>
+            </OperationBtnStatusTips>
+          </template>
+          <template v-if="data.isOnline">
+            <OperationBtnStatusTips
+              v-db-console="'kafka.clusterManage.scaleUp'"
+              :data="data"
+              :disabled="!data.isOffline">
+              <AuthButton
+                action-id="kafka_scale_up"
+                class="mr8"
+                :permission="data.permission.kafka_scale_up"
+                :resource="data.id"
+                text
+                theme="primary"
+                @click="handleShowExpansion(data)">
+                {{ t('扩容') }}
+              </AuthButton>
+            </OperationBtnStatusTips>
+            <OperationBtnStatusTips
+              v-db-console="'kafka.clusterManage.scaleDown'"
+              :data="data">
+              <AuthButton
+                action-id="kafka_shrink"
+                class="mr8"
+                :permission="data.permission.kafka_shrink"
+                :resource="data.id"
+                text
+                theme="primary"
+                @click="handleShowShrink(data)">
+                {{ t('缩容') }}
+              </AuthButton>
+            </OperationBtnStatusTips>
+          </template>
+          <AuthButton
+            v-db-console="'kafka.clusterManage.getAccess'"
+            action-id="kafka_access_entry_view"
+            class="mr-8"
+            :disabled="data.isOffline"
+            :permission="data.permission.kafka_access_entry_view"
+            :resource="data.id"
+            text
+            theme="primary"
+            @click="handleShowPassword(data)">
+            {{ t('获取访问方式') }}
+          </AuthButton>
+          <MoreActionExtend>
+            <BkDropdownItem v-db-console="'kafka.clusterManage.disable'">
+              <OperationBtnStatusTips :data="data">
                 <AuthButton
                   action-id="kafka_enable_disable"
-                  class="mr-8"
-                  :disabled="data.isStarting"
+                  :disabled="data.isOffline || Boolean(data.operationTicketId)"
                   :permission="data.permission.kafka_enable_disable"
                   :resource="data.id"
                   text
                   theme="primary"
-                  @click="handleEnableCluster([data])">
-                  {{ t('启用') }}
+                  @click="handleDisableCluster([data])">
+                  {{ t('禁用') }}
                 </AuthButton>
               </OperationBtnStatusTips>
-              <OperationBtnStatusTips
-                v-db-console="'kafka.clusterManage.delete'"
-                :data="data">
+            </BkDropdownItem>
+            <BkDropdownItem v-db-console="'kafka.clusterManage.delete'">
+              <!-- 删除按钮 -->
+              <OperationBtnStatusTips :data="data">
                 <AuthButton
+                  v-bk-tooltips="{
+                    disabled: data.isOffline,
+                    content: t('请先禁用集群'),
+                  }"
                   action-id="kafka_destroy"
-                  class="mr-8"
-                  :disabled="Boolean(data.operationTicketId)"
+                  class="mr8"
+                  :disabled="data.isOnline || Boolean(data.operationTicketId)"
                   :permission="data.permission.kafka_destroy"
                   :resource="data.id"
                   text
@@ -122,99 +197,20 @@
                   {{ t('删除') }}
                 </AuthButton>
               </OperationBtnStatusTips>
-            </template>
-            <template v-if="data.isOnline">
-              <OperationBtnStatusTips
-                v-db-console="'kafka.clusterManage.scaleUp'"
-                :data="data"
-                :disabled="!data.isOffline">
-                <AuthButton
-                  action-id="kafka_scale_up"
-                  class="mr8"
-                  :permission="data.permission.kafka_scale_up"
-                  :resource="data.id"
-                  text
-                  theme="primary"
-                  @click="handleShowExpansion(data)">
-                  {{ t('扩容') }}
-                </AuthButton>
-              </OperationBtnStatusTips>
-              <OperationBtnStatusTips
-                v-db-console="'kafka.clusterManage.scaleDown'"
-                :data="data">
-                <AuthButton
-                  action-id="kafka_shrink"
-                  class="mr8"
-                  :permission="data.permission.kafka_shrink"
-                  :resource="data.id"
-                  text
-                  theme="primary"
-                  @click="handleShowShrink(data)">
-                  {{ t('缩容') }}
-                </AuthButton>
-              </OperationBtnStatusTips>
-            </template>
-            <AuthButton
-              v-db-console="'kafka.clusterManage.getAccess'"
-              action-id="kafka_access_entry_view"
-              class="mr-8"
-              :disabled="data.isOffline"
-              :permission="data.permission.kafka_access_entry_view"
-              :resource="data.id"
-              text
-              theme="primary"
-              @click="handleShowPassword(data)">
-              {{ t('获取访问方式') }}
-            </AuthButton>
-            <MoreActionExtend>
-              <BkDropdownItem v-db-console="'kafka.clusterManage.disable'">
-                <OperationBtnStatusTips :data="data">
-                  <AuthButton
-                    action-id="kafka_enable_disable"
-                    :disabled="data.isOffline || Boolean(data.operationTicketId)"
-                    :permission="data.permission.kafka_enable_disable"
-                    :resource="data.id"
-                    text
-                    theme="primary"
-                    @click="handleDisableCluster([data])">
-                    {{ t('禁用') }}
-                  </AuthButton>
-                </OperationBtnStatusTips>
-              </BkDropdownItem>
-              <BkDropdownItem v-db-console="'kafka.clusterManage.delete'">
-                <!-- 删除按钮 -->
-                <OperationBtnStatusTips :data="data">
-                  <AuthButton
-                    v-bk-tooltips="{
-                      disabled: data.isOffline,
-                      content: t('请先禁用集群'),
-                    }"
-                    action-id="kafka_destroy"
-                    class="mr8"
-                    :disabled="data.isOnline || Boolean(data.operationTicketId)"
-                    :permission="data.permission.kafka_destroy"
-                    :resource="data.id"
-                    text
-                    theme="primary"
-                    @click="handleDeleteCluster([data])">
-                    {{ t('删除') }}
-                  </AuthButton>
-                </OperationBtnStatusTips>
-              </BkDropdownItem>
-              <!-- 管理链接 -->
-              <BkDropdownItem v-db-console="'kafka.clusterManage.manage'">
-                <a
-                  class="mr8"
-                  :href="data.access_url"
-                  target="_blank">
-                  {{ t('管理') }}
-                </a>
-              </BkDropdownItem>
-            </MoreActionExtend>
-          </template>
-        </BkTableColumn>
-      </DbTable>
-    </div>
+            </BkDropdownItem>
+            <!-- 管理链接 -->
+            <BkDropdownItem v-db-console="'kafka.clusterManage.manage'">
+              <a
+                class="mr8"
+                :href="data.access_url"
+                target="_blank">
+                {{ t('管理') }}
+              </a>
+            </BkDropdownItem>
+          </MoreActionExtend>
+        </template>
+      </BkTableColumn>
+    </DbTable>
     <DbSideslider
       v-model:is-show="isShowExpandsion"
       background-color="#F5F7FA"
@@ -554,83 +550,9 @@
       }
     }
 
-    .table-wrapper {
-      background-color: white;
-
-      .db-table,
-      .audit-render-list,
-      .bk-nested-loading {
-        height: 100%;
-      }
-    }
-
-    .is-offline {
-      * {
-        color: #c4c6cc !important;
-      }
-
-      a,
-      i,
-      .bk-button.bk-button-primary .bk-button-text {
-        color: #3a84ff !important;
-      }
-    }
-
-    td div.vxe-cell .db-icon-copy {
-      display: none;
-      margin-top: 2px;
-      margin-left: 4px;
-      color: #3a84ff;
-      vertical-align: middle;
-      cursor: pointer;
-    }
-
-    .db-icon-more {
-      display: block;
-      font-size: @font-size-normal;
-      font-weight: bold;
-      color: @default-color;
-      cursor: pointer;
-
-      &:hover {
-        background-color: @bg-disable;
-        border-radius: 2px;
-      }
-    }
-
-    th:hover .db-icon-copy,
-    td:hover .db-icon-copy {
-      display: inline-block !important;
-    }
-  }
-
-  .kafka-manage-sideslider {
-    .bk-modal-content {
-      max-height: calc(100vh - 120px);
-      overflow-y: auto;
-    }
-  }
-</style>
-<style lang="less" scoped>
-  .kafka-list-page {
-    :deep(.vxe-cell) {
-      .domain {
-        display: flex;
-        align-items: center;
-      }
-
-      .db-icon-visible1 {
-        display: none;
-        margin-top: 2px;
-        margin-left: 4px;
-        color: @primary-color;
-        cursor: pointer;
-      }
-    }
-
-    :deep(tr:hover) {
-      .db-icon-visible1 {
-        display: inline-block !important;
+    tr.is-offline {
+      .vxe-cell {
+        color: @disable-color;
       }
     }
   }

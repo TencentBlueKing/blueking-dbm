@@ -44,219 +44,213 @@
         unique-select
         @change="handleSearchValueChange" />
     </div>
-    <div class="table-wrapper-out">
-      <div
-        class="table-wrapper"
-        :class="{ 'is-shrink-table': isStretchLayoutOpen }">
-        <DbTable
-          ref="tableRef"
-          :data-source="getRedisList"
-          :disable-select-method="disableSelectMethod"
-          :pagination-extra="paginationExtra"
-          releate-url-query
-          :row-class="getRowClass"
-          selectable
-          :settings="settings"
-          :show-overflow="false"
-          @clear-search="clearSearchValue"
-          @column-filter="columnFilterChange"
-          @column-sort="columnSortChange"
-          @selection="handleSelection"
-          @setting-change="updateTableSettings">
-          <IdColumn :cluster-type="ClusterTypes.REDIS_INSTANCE" />
-          <MasterDomainColumn
-            :cluster-type="ClusterTypes.REDIS_INSTANCE"
-            field="master_domain"
-            :get-table-instance="getTableInstance"
-            :label="t('主访问入口')"
-            :selected-list="selected"
-            @go-detail="handleToDetails"
-            @refresh="fetchData" />
-          <ClusterNameColumn
-            :cluster-type="ClusterTypes.REDIS_INSTANCE"
-            :get-table-instance="getTableInstance"
-            :selected-list="selected"
-            @refresh="fetchData" />
-          <SlaveDomainColumn
-            :cluster-type="ClusterTypes.REDIS_INSTANCE"
-            :get-table-instance="getTableInstance"
-            :selected-list="selected" />
-          <StatusColumn :cluster-type="ClusterTypes.REDIS_INSTANCE" />
-          <ClusterStatsColumn :cluster-type="ClusterTypes.REDIS_INSTANCE" />
-          <RoleColumn
-            :cluster-type="ClusterTypes.REDIS_INSTANCE"
-            field="redis_master"
-            :get-table-instance="getTableInstance"
-            label="Master"
-            :search-ip="batchSearchIpInatanceList"
-            :selected-list="selected" />
-          <RoleColumn
-            :cluster-type="ClusterTypes.REDIS_INSTANCE"
-            field="redis_slave"
-            :get-table-instance="getTableInstance"
-            label="Slave"
-            :search-ip="batchSearchIpInatanceList"
-            :selected-list="selected" />
-          <CommonColumn :cluster-type="ClusterTypes.REDIS_INSTANCE" />
-          <BkTableColumn
-            :fixed="isStretchLayoutOpen ? false : 'right'"
-            :label="t('操作')"
-            :min-width="200"
-            :show-overflow="false">
-            <template #default="{data}: {data: RedisModel}">
+    <DbTable
+      ref="tableRef"
+      :data-source="getRedisList"
+      :disable-select-method="disableSelectMethod"
+      :pagination-extra="paginationExtra"
+      releate-url-query
+      :row-class="getRowClass"
+      selectable
+      :settings="settings"
+      :show-overflow="false"
+      @clear-search="clearSearchValue"
+      @column-filter="columnFilterChange"
+      @column-sort="columnSortChange"
+      @selection="handleSelection"
+      @setting-change="updateTableSettings">
+      <IdColumn :cluster-type="ClusterTypes.REDIS_INSTANCE" />
+      <MasterDomainColumn
+        :cluster-type="ClusterTypes.REDIS_INSTANCE"
+        field="master_domain"
+        :get-table-instance="getTableInstance"
+        :label="t('主访问入口')"
+        :selected-list="selected"
+        @go-detail="handleToDetails"
+        @refresh="fetchData" />
+      <ClusterNameColumn
+        :cluster-type="ClusterTypes.REDIS_INSTANCE"
+        :get-table-instance="getTableInstance"
+        :selected-list="selected"
+        @refresh="fetchData" />
+      <SlaveDomainColumn
+        :cluster-type="ClusterTypes.REDIS_INSTANCE"
+        :get-table-instance="getTableInstance"
+        :selected-list="selected" />
+      <StatusColumn :cluster-type="ClusterTypes.REDIS_INSTANCE" />
+      <ClusterStatsColumn :cluster-type="ClusterTypes.REDIS_INSTANCE" />
+      <RoleColumn
+        :cluster-type="ClusterTypes.REDIS_INSTANCE"
+        field="redis_master"
+        :get-table-instance="getTableInstance"
+        label="Master"
+        :search-ip="batchSearchIpInatanceList"
+        :selected-list="selected" />
+      <RoleColumn
+        :cluster-type="ClusterTypes.REDIS_INSTANCE"
+        field="redis_slave"
+        :get-table-instance="getTableInstance"
+        label="Slave"
+        :search-ip="batchSearchIpInatanceList"
+        :selected-list="selected" />
+      <CommonColumn :cluster-type="ClusterTypes.REDIS_INSTANCE" />
+      <BkTableColumn
+        :fixed="isStretchLayoutOpen ? false : 'right'"
+        :label="t('操作')"
+        :min-width="200"
+        :show-overflow="false">
+        <template #default="{data}: {data: RedisModel}">
+          <OperationBtnStatusTips
+            v-bk-tooltips="{
+              content: t('暂不支持跨管控区域提取Key'),
+              disabled: data.bk_cloud_id === undefined,
+            }"
+            v-db-console="'redis.haClusterManage.extractKey'"
+            :data="data"
+            :disabled="!data.isOffline">
+            <AuthButton
+              action-id="redis_keys_extract"
+              class="mr-8"
+              :disabled="data.isOffline"
+              :permission="data.permission.redis_keys_extract"
+              :resource="data.id"
+              text
+              theme="primary"
+              @click="handleShowExtract([data])">
+              {{ t('提取Key') }}
+            </AuthButton>
+          </OperationBtnStatusTips>
+          <OperationBtnStatusTips
+            v-bk-tooltips="{
+              content: t('暂不支持跨管控区域删除Key'),
+              disabled: data.bk_cloud_id === undefined,
+            }"
+            v-db-console="'redis.haClusterManage.deleteKey'"
+            :data="data"
+            :disabled="!data.isOffline">
+            <AuthButton
+              action-id="redis_keys_delete"
+              class="mr-8"
+              :disabled="data.isOffline"
+              :permission="data.permission.redis_keys_delete"
+              :resource="data.id"
+              text
+              theme="primary"
+              @click="handlShowDeleteKeys([data])">
+              {{ t('删除Key') }}
+            </AuthButton>
+          </OperationBtnStatusTips>
+          <AuthButton
+            action-id="redis_webconsole"
+            class="mr-8"
+            :disabled="data.isOffline"
+            :permission="data.permission.redis_webconsole"
+            :resource="data.id"
+            text
+            theme="primary"
+            @click="handleGoWebconsole(data.id)">
+            Webconsole
+          </AuthButton>
+          <MoreActionExtend v-db-console="'redis.haClusterManage.moreOperation'">
+            <BkDropdownItem v-db-console="'redis.haClusterManage.backup'">
               <OperationBtnStatusTips
-                v-bk-tooltips="{
-                  content: t('暂不支持跨管控区域提取Key'),
-                  disabled: data.bk_cloud_id === undefined,
-                }"
-                v-db-console="'redis.haClusterManage.extractKey'"
                 :data="data"
                 :disabled="!data.isOffline">
                 <AuthButton
-                  action-id="redis_keys_extract"
-                  class="mr-8"
+                  action-id="redis_backup"
                   :disabled="data.isOffline"
-                  :permission="data.permission.redis_keys_extract"
+                  :permission="data.permission.redis_backup"
                   :resource="data.id"
+                  style="width: 100%; height: 32px"
                   text
-                  theme="primary"
-                  @click="handleShowExtract([data])">
-                  {{ t('提取Key') }}
+                  @click="handleShowBackup([data])">
+                  {{ t('备份') }}
                 </AuthButton>
               </OperationBtnStatusTips>
+            </BkDropdownItem>
+            <BkDropdownItem v-db-console="'redis.haClusterManage.dbClear'">
               <OperationBtnStatusTips
-                v-bk-tooltips="{
-                  content: t('暂不支持跨管控区域删除Key'),
-                  disabled: data.bk_cloud_id === undefined,
-                }"
-                v-db-console="'redis.haClusterManage.deleteKey'"
                 :data="data"
                 :disabled="!data.isOffline">
                 <AuthButton
-                  action-id="redis_keys_delete"
-                  class="mr-8"
+                  action-id="redis_purge"
                   :disabled="data.isOffline"
-                  :permission="data.permission.redis_keys_delete"
+                  :permission="data.permission.redis_purge"
                   :resource="data.id"
+                  style="width: 100%; height: 32px"
                   text
-                  theme="primary"
-                  @click="handlShowDeleteKeys([data])">
-                  {{ t('删除Key') }}
+                  @click="handleShowPurge([data])">
+                  {{ t('清档') }}
                 </AuthButton>
               </OperationBtnStatusTips>
-              <AuthButton
-                action-id="redis_webconsole"
-                class="mr-8"
-                :disabled="data.isOffline"
-                :permission="data.permission.redis_webconsole"
-                :resource="data.id"
-                text
-                theme="primary"
-                @click="handleGoWebconsole(data.id)">
-                Webconsole
-              </AuthButton>
-              <MoreActionExtend v-db-console="'redis.haClusterManage.moreOperation'">
-                <BkDropdownItem v-db-console="'redis.haClusterManage.backup'">
-                  <OperationBtnStatusTips
-                    :data="data"
-                    :disabled="!data.isOffline">
-                    <AuthButton
-                      action-id="redis_backup"
-                      :disabled="data.isOffline"
-                      :permission="data.permission.redis_backup"
-                      :resource="data.id"
-                      style="width: 100%; height: 32px"
-                      text
-                      @click="handleShowBackup([data])">
-                      {{ t('备份') }}
-                    </AuthButton>
-                  </OperationBtnStatusTips>
-                </BkDropdownItem>
-                <BkDropdownItem v-db-console="'redis.haClusterManage.dbClear'">
-                  <OperationBtnStatusTips
-                    :data="data"
-                    :disabled="!data.isOffline">
-                    <AuthButton
-                      action-id="redis_purge"
-                      :disabled="data.isOffline"
-                      :permission="data.permission.redis_purge"
-                      :resource="data.id"
-                      style="width: 100%; height: 32px"
-                      text
-                      @click="handleShowPurge([data])">
-                      {{ t('清档') }}
-                    </AuthButton>
-                  </OperationBtnStatusTips>
-                </BkDropdownItem>
-                <BkDropdownItem v-db-console="'redis.haClusterManage.getAccess'">
-                  <OperationBtnStatusTips
-                    :data="data"
-                    :disabled="!data.isOffline">
-                    <AuthButton
-                      action-id="redis_access_entry_view"
-                      :disabled="data.isOffline"
-                      :permission="data.permission.redis_access_entry_view"
-                      :resource="data.id"
-                      text
-                      @click="handleShowPassword(data.id)">
-                      {{ t('获取访问方式') }}
-                    </AuthButton>
-                  </OperationBtnStatusTips>
-                </BkDropdownItem>
-                <BkDropdownItem
-                  v-if="data.isOnline"
-                  v-db-console="'redis.haClusterManage.disable'">
-                  <OperationBtnStatusTips :data="data">
-                    <AuthButton
-                      action-id="redis_open_close"
-                      :disabled="Boolean(data.operationTicketId)"
-                      :permission="data.permission.redis_open_close"
-                      :resource="data.id"
-                      style="width: 100%; height: 32px"
-                      text
-                      @click="handleDisableCluster([data])">
-                      {{ t('禁用') }}
-                    </AuthButton>
-                  </OperationBtnStatusTips>
-                </BkDropdownItem>
-                <BkDropdownItem
-                  v-if="data.isOffline"
-                  v-db-console="'redis.haClusterManage.enable'">
-                  <OperationBtnStatusTips :data="data">
-                    <AuthButton
-                      action-id="redis_open_close"
-                      :disabled="data.isStarting"
-                      :permission="data.permission.redis_open_close"
-                      :resource="data.id"
-                      text
-                      @click="handleEnableCluster([data])">
-                      {{ t('启用') }}
-                    </AuthButton>
-                  </OperationBtnStatusTips>
-                </BkDropdownItem>
-                <BkDropdownItem v-db-console="'redis.haClusterManage.delete'">
-                  <OperationBtnStatusTips :data="data">
-                    <AuthButton
-                      v-bk-tooltips="{
-                        disabled: data.isOffline,
-                        content: t('请先禁用集群'),
-                      }"
-                      action-id="redis_destroy"
-                      :disabled="data.isOnline || Boolean(data.operationTicketId)"
-                      :permission="data.permission.redis_destroy"
-                      :resource="data.id"
-                      text
-                      @click="handleDeleteCluster([data])">
-                      {{ t('删除') }}
-                    </AuthButton>
-                  </OperationBtnStatusTips>
-                </BkDropdownItem>
-              </MoreActionExtend>
-            </template>
-          </BkTableColumn>
-        </DbTable>
-      </div>
-    </div>
+            </BkDropdownItem>
+            <BkDropdownItem v-db-console="'redis.haClusterManage.getAccess'">
+              <OperationBtnStatusTips
+                :data="data"
+                :disabled="!data.isOffline">
+                <AuthButton
+                  action-id="redis_access_entry_view"
+                  :disabled="data.isOffline"
+                  :permission="data.permission.redis_access_entry_view"
+                  :resource="data.id"
+                  text
+                  @click="handleShowPassword(data.id)">
+                  {{ t('获取访问方式') }}
+                </AuthButton>
+              </OperationBtnStatusTips>
+            </BkDropdownItem>
+            <BkDropdownItem
+              v-if="data.isOnline"
+              v-db-console="'redis.haClusterManage.disable'">
+              <OperationBtnStatusTips :data="data">
+                <AuthButton
+                  action-id="redis_open_close"
+                  :disabled="Boolean(data.operationTicketId)"
+                  :permission="data.permission.redis_open_close"
+                  :resource="data.id"
+                  style="width: 100%; height: 32px"
+                  text
+                  @click="handleDisableCluster([data])">
+                  {{ t('禁用') }}
+                </AuthButton>
+              </OperationBtnStatusTips>
+            </BkDropdownItem>
+            <BkDropdownItem
+              v-if="data.isOffline"
+              v-db-console="'redis.haClusterManage.enable'">
+              <OperationBtnStatusTips :data="data">
+                <AuthButton
+                  action-id="redis_open_close"
+                  :disabled="data.isStarting"
+                  :permission="data.permission.redis_open_close"
+                  :resource="data.id"
+                  text
+                  @click="handleEnableCluster([data])">
+                  {{ t('启用') }}
+                </AuthButton>
+              </OperationBtnStatusTips>
+            </BkDropdownItem>
+            <BkDropdownItem v-db-console="'redis.haClusterManage.delete'">
+              <OperationBtnStatusTips :data="data">
+                <AuthButton
+                  v-bk-tooltips="{
+                    disabled: data.isOffline,
+                    content: t('请先禁用集群'),
+                  }"
+                  action-id="redis_destroy"
+                  :disabled="data.isOnline || Boolean(data.operationTicketId)"
+                  :permission="data.permission.redis_destroy"
+                  :resource="data.id"
+                  text
+                  @click="handleDeleteCluster([data])">
+                  {{ t('删除') }}
+                </AuthButton>
+              </OperationBtnStatusTips>
+            </BkDropdownItem>
+          </MoreActionExtend>
+        </template>
+      </BkTableColumn>
+    </DbTable>
     <!-- 查看密码 -->
     <ClusterPassword
       v-model:is-show="passwordState.isShow"
@@ -647,7 +641,7 @@
   });
 </script>
 
-<style lang="less" scoped>
+<style lang="less">
   @import '@styles/mixins.less';
 
   .redis-cluster-list-page {
@@ -667,112 +661,21 @@
       }
     }
 
-    .table-wrapper-out {
-      flex: 1;
-      overflow: hidden;
-
-      .table-wrapper {
-        background-color: white;
-
-        :deep(td .vxe-cell) {
-          line-height: unset !important;
-
-          .db-icon-copy,
-          .db-icon-visible1 {
-            display: none;
-            margin-top: 1px;
-            margin-left: 4px;
-            color: @primary-color;
-            cursor: pointer;
-          }
+    tr {
+      &.is-new {
+        td {
+          background-color: #f3fcf5 !important;
         }
+      }
 
-        :deep(.cluster-name-container) {
-          display: flex;
-          align-items: flex-start;
-          padding: 8px 0;
-          overflow: hidden;
-
-          .cluster-name {
-            line-height: 16px;
-
-            .cluster-name-alias {
-              color: @light-gray;
-            }
-          }
-
-          .cluster-tags {
-            display: flex;
-            align-items: center;
-            flex-wrap: wrap;
-            margin-left: 4px;
-          }
-
-          .cluster-tag {
-            flex-shrink: 0;
-            margin: 2px;
-          }
-        }
-
-        :deep(.ip-list) {
-          padding: 8px 0;
-
-          .ip-list-more {
-            display: inline-block;
-            margin-top: 2px;
-          }
-        }
-
-        :deep(.operations-box) {
-          .bk-button {
-            margin-right: 8px;
-          }
-
-          .operations-more {
-            .db-icon-more {
-              font-size: 16px;
-              color: @default-color;
-              cursor: pointer;
-
-              &:hover {
-                background-color: @bg-disable;
-                border-radius: 2px;
-              }
-            }
-          }
-        }
-
-        :deep(th:hover),
-        :deep(td:hover) {
-          .db-icon-copy,
-          .db-icon-visible1 {
-            display: inline-block;
-          }
-        }
-
-        :deep(.is-offline) {
-          .cluster-name-container {
-            .cluster-name {
-              a {
-                color: @gray-color;
-              }
-
-              .cluster-name-alias {
-                color: @disable-color;
-              }
-            }
-          }
-
-          .vxe-cell {
-            color: @disable-color;
-          }
+      &.is-offline {
+        .vxe-cell {
+          color: #c4c6cc !important;
         }
       }
     }
   }
-</style>
 
-<style lang="less">
   .redis-manage-clb-minitag {
     color: #8e3aff;
     cursor: pointer;

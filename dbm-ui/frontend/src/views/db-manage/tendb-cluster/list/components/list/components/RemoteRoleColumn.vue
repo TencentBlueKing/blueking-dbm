@@ -1,5 +1,6 @@
 <template>
   <BaseRoleColumn v-bind="props">
+    <template #default="{ data }"> {{ data.ip }}:{{ data.port }}(%_{{ data.shard_id }}) </template>
     <template #instanceList="{ clusterData }: { clusterData: TendbClusterModel }">
       <BkTable :data="clusterData.remote_db">
         <BkTableColumn label="Master">
@@ -31,7 +32,7 @@
   } from '@views/db-manage/common/cluster-table-column/components/base-role-column/Index.vue';
 
   const props = defineProps<
-    Props<ClusterTypes.TENDBCLUSTER> & {
+    Props<ClusterTypes.TENDBCLUSTER, 'remote_db' | 'remote_dr'> & {
       field: 'remote_db' | 'remote_dr';
     }
   >();

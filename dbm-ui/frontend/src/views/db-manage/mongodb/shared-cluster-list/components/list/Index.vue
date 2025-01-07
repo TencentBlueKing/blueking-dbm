@@ -12,7 +12,7 @@
 -->
 
 <template>
-  <div class="shared-cluster-list">
+  <div class="mongodb-shared-cluster-list-page">
     <div class="header-action">
       <BkButton
         class="mb-8"
@@ -57,7 +57,7 @@
     </div>
     <DbTable
       ref="tableRef"
-      class="shared-cluster-list-table"
+      class="mongodb-shared-cluster-list-table"
       :data-source="getMongoList"
       releate-url-query
       :row-class="setRowClass"
@@ -516,20 +516,8 @@
   };
 </script>
 
-<style>
-  .info-box-cluster-name {
-    color: #313238;
-  }
-
-  .cluster-delete-content {
-    padding-left: 16px;
-    text-align: left;
-    word-break: all;
-  }
-</style>
-
-<style lang="less" scoped>
-  .shared-cluster-list {
+<style lang="less">
+  .mongodb-shared-cluster-list-page {
     height: 100%;
     padding: 24px 0;
     margin: 0 24px;
@@ -551,52 +539,28 @@
       }
     }
 
-    :deep(.shared-cluster-list-table) {
-      .is-new {
+    tr {
+      &.is-new {
         td {
           background-color: #f3fcf5 !important;
         }
       }
 
-      .is-offline {
+      &.is-offline {
         .vxe-cell {
           color: #c4c6cc !important;
         }
       }
-
-      .new-tag {
-        height: 19px;
-      }
-
-      .disabled-tag {
-        width: 38px;
-        height: 16px;
-        margin-left: 4px;
-      }
-
-      .cluster-alias {
-        color: #979ba5 !important;
-      }
-
-      td div.vxe-cell .db-icon-copy {
-        display: none;
-        margin-top: 2px;
-        margin-left: 4px;
-        color: #3a84ff;
-        color: @primary-color;
-        cursor: pointer;
-      }
-
-      th:hover,
-      td:hover {
-        .db-icon-copy {
-          display: inline-block !important;
-          margin-left: 4px;
-          color: #3a84ff;
-          vertical-align: middle;
-          cursor: pointer;
-        }
-      }
     }
+  }
+
+  .info-box-cluster-name {
+    color: #313238;
+  }
+
+  .cluster-delete-content {
+    padding-left: 16px;
+    text-align: left;
+    word-break: all;
   }
 </style>

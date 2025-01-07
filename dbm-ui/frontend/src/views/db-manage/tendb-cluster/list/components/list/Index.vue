@@ -736,7 +736,7 @@
   });
 </script>
 
-<style lang="less" scoped>
+<style lang="less">
   .spider-manage-list-page {
     height: 100%;
     padding: 24px 0;
@@ -756,103 +756,23 @@
       }
     }
 
-    .table-wrapper {
-      background-color: white;
-    }
-
-    :deep(td .vxe-cell) {
-      .domain {
-        display: flex;
-        flex-wrap: wrap;
-
-        .bk-search-select {
-          flex: 1;
-          max-width: 320px;
-          min-width: 320px;
-          margin-left: auto;
+    tr {
+      &.is-new {
+        td {
+          background-color: #f3fcf5 !important;
         }
       }
 
-      .is-primary {
-        color: #531dab !important;
-        background: #f9f0ff !important;
-      }
-
-      .db-icon-copy,
-      .db-icon-visible1 {
-        display: none;
-        margin-top: 2px;
-        margin-left: 4px;
-        color: @primary-color;
-        cursor: pointer;
-      }
-
-      :deep(.cluster-name-container) {
-        display: flex;
-        align-items: center;
-        padding: 8px 0;
-        overflow: hidden;
-
-        .cluster-name {
-          line-height: 16px;
-
-          &__alias {
-            color: @light-gray;
-          }
-        }
-
-        .cluster-tags {
-          display: flex;
-          margin-left: 4px;
-          align-items: center;
-          flex-wrap: wrap;
-        }
-
-        .cluster-tag {
-          margin: 2px 0;
-          flex-shrink: 0;
+      &.is-offline {
+        .vxe-cell {
+          color: #c4c6cc !important;
         }
       }
     }
 
-    :deep(th:hover),
-    :deep(td:hover) {
-      .db-icon-copy,
-      .db-icon-visible1 {
-        display: inline-block !important;
-      }
-    }
-
-    :deep(.is-offline) {
-      a {
-        color: @gray-color;
-      }
-
-      .vxe-cell {
-        color: @disable-color;
-      }
-    }
-
-    :deep(.operations-more) {
-      .db-icon-more {
-        font-size: 16px;
-        color: @default-color;
-        cursor: pointer;
-
-        &:hover {
-          background-color: @bg-disable;
-          border-radius: 2px;
-        }
-      }
-    }
-  }
-</style>
-
-<style lang="less">
-  .operations-menu {
-    .bk-button {
-      width: 100%;
-      justify-content: flex-start;
+    .is-primary {
+      color: #531dab !important;
+      background: #f9f0ff !important;
     }
   }
 

@@ -1,5 +1,8 @@
 <template>
-  <BaseRoleColumn v-bind="props">
+  <BaseRoleColumn
+    v-bind="props"
+    :min-width="280">
+    <template #default="{ data }"> {{ data.ip }}:{{ data.port }}({{ data.seg_range }}) </template>
     <template #instanceList="{ clusterData }: { clusterData: RedisModel }">
       <BkTable :data="clusterData.redis_master">
         <BkTableColumn label="Master">
@@ -32,11 +35,7 @@
     type Props,
   } from '@views/db-manage/common/cluster-table-column/components/base-role-column/Index.vue';
 
-  const props = defineProps<
-    Props<ClusterTypes.REDIS> & {
-      field: 'redis_master' | 'redis_slave';
-    }
-  >();
+  const props = defineProps<Props<ClusterTypes.REDIS, 'redis_master' | 'redis_slave'>>();
 
   const { t } = useI18n();
 </script>

@@ -28,6 +28,12 @@ body {
 a {
   color: @primary-color;
   text-decoration: none;
+
+  &[disabled="true"]{
+    color: #dcdee5;
+    pointer-events: none;
+    cursor: not-allowed;
+  }
 }
 
 h1,
