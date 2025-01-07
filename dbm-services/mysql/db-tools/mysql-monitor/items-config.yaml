@@ -59,6 +59,16 @@
   role:
   - slave
   - orphan
+  options:
+    merge_partition: true
+    topk_num: 0
+    merge_rules:
+      - from: "(?P<db>stage_truncate_).+\\..*"
+        to: "${db}_MERGED._MERGED"
+      - from: "(?P<db>bak_20\\d\\d).+\\..*"
+        to: "${db}._MERGED"
+      - from: "(bak_cbs)_.+_(\\d+)\\.(?P<table>.+)"
+        to: "${1}_X_${2}.${table}"
 - name: master-slave-heartbeat
   enable: true
   schedule: '@every 1m'

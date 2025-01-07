@@ -23,17 +23,17 @@ func BuildLoader(cnf *config.BackupConfig, backupType string, backupTool string,
 	if strings.ToLower(backupType) == cst.BackupLogical {
 		if backupTool == cst.ToolMysqldump {
 			// mysqldump 共用 LogicalLoad 参数
-			if err := validate.GoValidateStruct(cnf.LogicalLoad, false, false); err != nil {
+			if err := validate.GoValidateStruct(cnf.LogicalLoad, false); err != nil {
 				return nil, err
 			}
-			if err := validate.GoValidateStruct(cnf.LogicalLoadMysqldump, false, false); err != nil {
+			if err := validate.GoValidateStruct(cnf.LogicalLoadMysqldump, false); err != nil {
 				return nil, err
 			}
 			loader = &LogicalLoaderMysqldump{
 				cnf: cnf,
 			}
 		} else {
-			if err := validate.GoValidateStruct(cnf.LogicalLoad, false, false); err != nil {
+			if err := validate.GoValidateStruct(cnf.LogicalLoad, false); err != nil {
 				return nil, err
 			}
 			loader = &LogicalLoader{
@@ -44,7 +44,7 @@ func BuildLoader(cnf *config.BackupConfig, backupType string, backupTool string,
 			return nil, err
 		}
 	} else if strings.ToLower(backupType) == cst.BackupPhysical {
-		if err := validate.GoValidateStruct(cnf.PhysicalLoad, false, false); err != nil {
+		if err := validate.GoValidateStruct(cnf.PhysicalLoad, false); err != nil {
 			return nil, err
 		}
 		if cst.StorageEngineRocksdb == storageEngine {

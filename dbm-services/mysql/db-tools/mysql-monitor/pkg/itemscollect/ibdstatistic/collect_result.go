@@ -16,7 +16,7 @@ import (
 	"strings"
 )
 
-func collectResult(dataDir string) (map[string]map[string]int64, error) {
+func (c *ibdStatistic) collectResult(dataDir string) (map[string]map[string]int64, error) {
 	result := make(map[string]map[string]int64)
 
 	err := filepath.WalkDir(

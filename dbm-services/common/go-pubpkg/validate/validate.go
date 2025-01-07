@@ -8,14 +8,14 @@ import (
 	"strings"
 	"time"
 
-	"dbm-services/common/go-pubpkg/cmutil"
-
 	"github.com/go-playground/locales/en"
 	ut "github.com/go-playground/universal-translator"
 	"github.com/go-playground/validator/v10"
 	en_translations "github.com/go-playground/validator/v10/translations/en"
 	"github.com/pkg/errors"
 	"github.com/robfig/cron/v3"
+
+	"dbm-services/common/go-pubpkg/cmutil"
 )
 
 // ValidateEnums TODO
@@ -55,21 +55,31 @@ func GoValidateStructSimple(v interface{}, enum bool) error {
 const TagEnum = "enums"
 
 // GoValidateStruct v 不能是Ptr
-func GoValidateStruct(v interface{}, enum bool, charset bool) error {
+func GoValidateStruct(v interface{}, enum bool) error {
+	return GoValidateTransError(v, "json", enum, false)
+}
+
+func GoValidateStructCharset(v interface{}, enum bool, checkCharset bool) error {
+	return GoValidateTransError(v, "json", enum, checkCharset)
+}
+
+// GoValidateTransError v 不能是Ptr
+func GoValidateTransError(v interface{}, tagKey string, enum bool, charset bool) error {
+	if tagKey == "" {
+		tagKey = "json"
+	}
 	validate := validator.New()
 	uni := ut.New(en.New())
 	trans, _ := uni.GetTranslator("en")
 	// 提示时显示 json 字段的名字
-	validate.RegisterTagNameFunc(
-		func(fld reflect.StructField) string {
-			// name := fld.Tag.Get("json")
-			name := strings.SplitN(fld.Tag.Get("json"), ",", 2)[0]
-			if name == "-" {
-				return ""
-			}
-			return name
-		},
-	)
+	validate.RegisterTagNameFunc(func(fld reflect.StructField) string {
+		// name := fld.Tag.Get("json")
+		name := strings.SplitN(fld.Tag.Get(tagKey), ",", 2)[0]
+		if name == "-" {
+			return ""
+		}
+		return name
+	})
 	if err := en_translations.RegisterDefaultTranslations(validate, trans); err != nil {
 		return err
 	}
@@ -80,8 +90,6 @@ func GoValidateStruct(v interface{}, enum bool, charset bool) error {
 	if charset {
 		_ = validate.RegisterValidation("checkCharset", validCharSet)
 	}
-	_ = validate.RegisterValidation("crontabexpr", validateCrontabExpr)
-	_ = validate.RegisterValidation("time", validateTimeStr)
 	if err := validate.Struct(v); err != nil {
 		return translateErr2Msg(v, trans, err)
 	}
@@ -91,10 +99,6 @@ func GoValidateStruct(v interface{}, enum bool, charset bool) error {
 // translateErr2Msg v 不能是Ptr
 func translateErr2Msg(v interface{}, trans ut.Translator, err error) error {
 	var errStr []string
-	_, ok := err.(*validator.InvalidValidationError)
-	if ok {
-		return fmt.Errorf("param error:%s", err.Error())
-	}
 	for _, vErr := range err.(validator.ValidationErrors) {
 		if vErr.Tag() == TagEnum {
 			errmsg := ""
@@ -113,7 +117,6 @@ func translateErr2Msg(v interface{}, trans ut.Translator, err error) error {
 	}
 	return errors.New(strings.Join(errStr, " || "))
 }
-
 func customEnumTransFunc(fe validator.FieldError, v interface{}) string {
 	if fe.Param() == "" {
 		sf, _ := reflect.TypeOf(v).FieldByName(fe.StructField())

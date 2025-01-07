@@ -5,7 +5,8 @@ import (
 	"bk-dbconfig/internal/handler"
 	"bk-dbconfig/internal/service/simpleconfig"
 	"bk-dbconfig/pkg/constvar"
-	"bk-dbconfig/pkg/validate"
+
+	"dbm-services/common/go-pubpkg/validate"
 
 	"github.com/gin-gonic/gin"
 )

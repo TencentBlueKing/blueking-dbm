@@ -30,38 +30,72 @@ Flags:
 ## 3.1 dumpbackup
 生成备份时，即 `dumpbackup`，其配置文件config的格式为ini，配置项如下：
 ```
-[public]
-  BkBizId          string `ini:"BkBizId"`
-  BkCloudId       string `ini:"BkCloudId"`
-  BillId          string `ini:"BillId"`
-  ClusterAddress  string `ini:"ClusterAddress"`
-  MysqlHost       string `ini:"MysqlHost"`
-  MysqlPort       string `ini:"MysqlPort"`
-  MysqlUser       string `ini:"MysqlUser"`
-  MysqlPasswd     string `ini:"MysqlPasswd"`
-  DataSchemaGrant string `ini:"DataSchemaGrant"` [data,schema,grant] data表示表内数据，schema表示表结构，grant代表权限信息。例如输入 data 表示只备份表内信息，输入 data, grant表示备份表内数据和权限信息， 输入data, schema, grant表示上述三种信息数据都备份。输入你想备份的信息名称，并用`,`连接起来，输入的信息名称必须是data,schema,grant中的一种，否则视为非法输入。也可单独输入all，相当于data,schema,grant。
-  BackupDir       string `ini:"BackupDir"`
-  MysqlRole       string `ini:"MysqlRole"`  [master|slave]
-  MysqlCharset    string `ini:"MysqlCharset"`
-  BackupTimeOut   string `ini:"BackupTimeout"` //example: 09:00:00
-  BackupType      string `ini:"BackupType"`  [logical|physical]
-  OldFileLeftDay         int    `ini:"OldFileLeftDay"`
-  TarSizeThreshold uint64 `ini:"TarSizeThreshold"`
-[BackupClient]
-  FileTag          string `ini:"FileTag"`
-  StorageType string `ini:"StorageType"`  [hdfs|cos]
-  DoChecksum       bool   `ini:"DoChecksum"`    //默认为true
-[LogicalBackup]
-  PartMaxRows          uint64 `ini:"PartMaxRows"`
-  PartChunkSize         uint64 `ini:"PartChunkSize"`
-  Regex                 string `ini:"Regex"`
-  Threads               int    `ini:"Threads"`
-  FlushRetryCount       int    `ini:"FlushRetryCount"`
-  MydumperDefaultsFile string `ini:"MydumperDefaultsFile"`  //暂未启用
+[Public]
+MysqlHost       =       x.x.x.x
+MysqlPort       =       3306
+MysqlUser       =       xx
+MysqlPasswd     =       xx
+MysqlCharset    =
+MysqlRole       =       slave
+BackupType      =       physical  # physical | logical | auto
+DataSchemaGrant =       grant
+NoCheckDiskSpace        =       false
+OldFileLeftDay  =       2
+BkBizId =       123
+BkCloudId       =       0
+ClusterId       =       1234
+ClusterAddress  =       xx.xx.xx.db
+ShardValue      =       0
+BackupTimeout   =       09:00:00
+BackupDir       =       /data/dbbak/
+IOLimitMBPerSec =       300
+IOLimitMasterFactor     =       0.5
+TarSizeThreshold        =       8192
+FtwrlWaitTimeout        =       120
+AcquireLockWaitTimeout  =       10
+KillLongQueryTime       =       0
+BillId  =
+BackupId        =
+ReportPath      =       /home/mysql/dbareport/mysql/dbbackup
+StatusReportPath        =       /home/mysql/dbareport/mysql/dbbackup/status
+
 [PhysicalBackup]
-  Threads           int    `ini:"Threads"`
-  SplitSpeed        int64  `ini:"SplitSpeed"` // MB/s
-  MysqlDefaultsFile string `ini:"MysqlDefaultsFile"`
+Threads =       2
+Throttle        =       200
+DefaultsFile    =       /etc/my.cnf
+DisableSlaveMultiThread =       true
+MaxMyisamTables =       10
+ExtraOpt        =
+
+[LogicalBackup]
+Regex   =       ^(?=(?:(.*\..*$)))(?!(?:(test\..*$|mysql\..*$|sys\..*$|db_infobase\..*$|information_schema\..*$|performance_schema\..*$)))
+Databases       =       *
+Tables  =       *
+ExcludeDatabases        =       # 默认会排除这些系统库 mysql,sys,test,information_schema,performance_schema,db_infobase
+ChunkFilesize   =       2048
+DisableCompress =       false
+Threads =       4
+FlushRetryCount =       3
+TrxConsistencyOnly      =       true
+DefaultsFile    =
+ExtraOpt        =
+UseMysqldump    =       no  # auto | no | yes
+
+[LogicalBackupMysqldump]
+BinPath =
+ExtraOpt        =
+
+[EncryptOpt]
+EncryptElgo     =
+EncryptPublicKey        =
+EncryptCmd      =       openssl
+EncryptEnable   =       false
+
+[BackupClient]
+FileTag =       MYSQL_FULL_BACKUP
+StorageType     =
+DoChecksum      =       true
+Enable  =       true
 ```
 OldFileLeftDay  = N  ： dbbackup运行时，首先删除距今N天的备份文件。如果发现硬盘空间不足，则删除所有以前的备份文件。
 

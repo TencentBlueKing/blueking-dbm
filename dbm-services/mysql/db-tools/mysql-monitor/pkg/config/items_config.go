@@ -9,6 +9,8 @@ type MonitorItem struct {
 	Schedule    *string  `json:"schedule" yaml:"schedule"`
 	MachineType []string `json:"machine_type" yaml:"machine_type"`
 	Role        []string `json:"role" yaml:"role"`
+	// Options custom options for this item
+	Options map[string]interface{} `json:"options" yaml:"options"`
 }
 
 // IsEnable 监控项启用
@@ -36,4 +38,12 @@ func (c *MonitorItem) IsMatchRole() bool {
 	}
 
 	return slices.Index(c.Role, *MonitorConfig.Role) >= 0
+}
+
+// HasOptions 是否存在自定义选项
+func (c *MonitorItem) HasOptions() bool {
+	if c.Options == nil || len(c.Options) == 0 {
+		return false
+	}
+	return true
 }

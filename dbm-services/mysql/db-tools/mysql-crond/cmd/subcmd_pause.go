@@ -15,7 +15,6 @@ import (
 	"os"
 	"time"
 
-	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 
 	"dbm-services/mysql/db-tools/mysql-crond/api"
@@ -36,7 +35,8 @@ var pauseJobCmd = &cobra.Command{
 		} else if nameMatch, _ := cmd.Flags().GetString("name-match"); nameMatch != "" {
 			entries := listEntries(cmd, api.JobStatusEnabled)
 			if len(entries) == 0 {
-				return errors.Errorf("no job match %s", nameMatch)
+				return nil
+				//return errors.Errorf("no job match %s", nameMatch)
 			}
 			for _, entry := range entries {
 				jobNames = append(jobNames, entry.Job.Name)

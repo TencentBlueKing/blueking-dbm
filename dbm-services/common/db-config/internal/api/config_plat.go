@@ -1,7 +1,9 @@
 package api
 
 import (
-	"bk-dbconfig/pkg/validate"
+	"bk-dbconfig/pkg/validatestruct"
+
+	"dbm-services/common/go-pubpkg/validate"
 )
 
 // UpsertConfFilePlatReq TODO
@@ -42,7 +44,7 @@ func (f *UpsertConfFilePlatReq) Validate() error {
 		if err := validate.GoValidateStruct(*c, true); err != nil {
 			return err
 		}
-		valueTypeSub := validate.ValueTypeDef{ValueType: c.ValueType, ValueTypeSub: c.ValueTypeSub}
+		valueTypeSub := validatestruct.ValueTypeDef{ValueType: c.ValueType, ValueTypeSub: c.ValueTypeSub}
 		if err := valueTypeSub.Validate(); err != nil {
 			return err
 		}

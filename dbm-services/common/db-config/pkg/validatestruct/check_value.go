@@ -1,3 +1,13 @@
+/*
+ * TencentBlueKing is pleased to support the open source community by making 蓝鲸智云-DB管理系统(BlueKing-BK-DBM) available.
+ * Copyright (C) 2017-2023 THL A29 Limited, a Tencent company. All rights reserved.
+ * Licensed under the MIT License (the "License"); you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at https://opensource.org/licenses/MIT
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
+ * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
+
 package validate
 
 import (
@@ -321,70 +331,79 @@ func ValidateConfValue(confValue, valueType, valueTypeSub, valueAllowed string) 
 			return invalidErr
 		}
 	} else if util.StringsHas([]string{DTypeInt, DTypeFloat, DTypeNumber}, valueType) {
-		if valueTypeSub == "" {
-			valueTypeSub = AutoDetectTypeSub(valueAllowed)
-			if valueTypeSub == "" {
-				return errors.Errorf("cannot detect value_type_sub for %s", valueAllowed)
-			}
-		}
-		switch valueTypeSub {
-		case DTypeSubEnum:
-			return CheckInEnums(confValue, valueAllowed, false)
-		case DTypeSubRange:
-			return CheckInRange(confValue, valueAllowed)
-		default:
-			return invalidErr
-		}
+		return validateValueNumber(valueType, valueTypeSub, confValue, valueAllowed)
 	} else { // STRING
-		if valueAllowed == "" && !(valueTypeSub == DTypeSubJson || valueTypeSub == DTypeSubMap) {
-			// JSON,MAP 合法性 不依赖 valueAllowed
-			return nil
-		}
-		switch valueTypeSub {
-		case DTypeSubEnum:
-			if err := CheckInEnums(confValue, valueAllowed, false); err != nil {
-				return err
-			}
-		case DTypeSubEnums:
-			if err := CheckInEnums(confValue, valueAllowed, true); err != nil {
-				return err
-			}
-		case DTypeSubRegex:
-			if err := CheckInRegex(confValue, valueAllowed); err != nil {
-				return err
-			}
-		case DTypeSubBytes:
-			if err := CheckInSizeRange(confValue, valueAllowed); err != nil {
-				return err
-			}
-		case DTypeSubDuration:
-			if err := CheckInDuration(confValue, valueAllowed); err != nil {
-				return err
-			}
-		case DTypeSubJson, DTypeSubMap:
-			if err := CheckInJson(confValue); err != nil {
-				return err
-			}
-		case DTypeSubGovalidate:
-			if err := CheckGoValidate(confValue, valueAllowed); err != nil {
-				return err
-			}
-		case DTypeSubList:
-			// 忽略 value_allowed，只用户返回格式化
-			return nil
-		case DTypeSubString, "":
-			if valueAllowed != "" {
-				// value_allowed !='' and value_type_sub=''，要求 conf_value 只能一个值即 value_allowed
-				if confValue != valueAllowed {
-					return errors.Errorf("value must equal value_allowed:%s", valueAllowed)
-				}
-				return nil
-			}
-			return nil
-		default:
-			return invalidErr
+		return validateValueString(valueType, valueTypeSub, confValue, valueAllowed)
+	}
+}
+
+func validateValueNumber(valueType, valueTypeSub, confValue, valueAllowed string) error {
+	if valueTypeSub == "" {
+		valueTypeSub = AutoDetectTypeSub(valueAllowed)
+		if valueTypeSub == "" {
+			return errors.Errorf("cannot detect value_type_sub for %s", valueAllowed)
 		}
 	}
+	switch valueTypeSub {
+	case DTypeSubEnum:
+		return CheckInEnums(confValue, valueAllowed, false)
+	case DTypeSubRange:
+		return CheckInRange(confValue, valueAllowed)
+	default:
+		var invalidErr = errors.Errorf("invalid value_type_sub %s for %s", valueTypeSub, valueType)
+		return invalidErr
+	}
+}
 
+func validateValueString(valueType, valueTypeSub, confValue, valueAllowed string) error {
+	if valueAllowed == "" && !(valueTypeSub == DTypeSubJson || valueTypeSub == DTypeSubMap) {
+		// JSON,MAP 合法性 不依赖 valueAllowed
+		return nil
+	}
+	switch valueTypeSub {
+	case DTypeSubEnum:
+		if err := CheckInEnums(confValue, valueAllowed, false); err != nil {
+			return err
+		}
+	case DTypeSubEnums:
+		if err := CheckInEnums(confValue, valueAllowed, true); err != nil {
+			return err
+		}
+	case DTypeSubRegex:
+		if err := CheckInRegex(confValue, valueAllowed); err != nil {
+			return err
+		}
+	case DTypeSubBytes:
+		if err := CheckInSizeRange(confValue, valueAllowed); err != nil {
+			return err
+		}
+	case DTypeSubDuration:
+		if err := CheckInDuration(confValue, valueAllowed); err != nil {
+			return err
+		}
+	case DTypeSubJson, DTypeSubMap:
+		if err := CheckInJson(confValue); err != nil {
+			return err
+		}
+	case DTypeSubGovalidate:
+		if err := CheckGoValidate(confValue, valueAllowed); err != nil {
+			return err
+		}
+	case DTypeSubList:
+		// 忽略 value_allowed，只用户返回格式化
+		return nil
+	case DTypeSubString, "":
+		if valueAllowed != "" {
+			// value_allowed !='' and value_type_sub=''，要求 conf_value 只能一个值即 value_allowed
+			if confValue != valueAllowed {
+				return errors.Errorf("value must equal value_allowed:%s", valueAllowed)
+			}
+			return nil
+		}
+		return nil
+	default:
+		var invalidErr = errors.Errorf("invalid value_type_sub %s for %s", valueTypeSub, valueType)
+		return invalidErr
+	}
 	return nil
 }

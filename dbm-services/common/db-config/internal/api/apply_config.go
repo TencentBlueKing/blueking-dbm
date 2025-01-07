@@ -1,7 +1,7 @@
 package api
 
 import (
-	"bk-dbconfig/pkg/validate"
+	"dbm-services/common/go-pubpkg/validate"
 )
 
 // ApplyConfigItem TODO

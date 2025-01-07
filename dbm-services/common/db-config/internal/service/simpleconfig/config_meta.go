@@ -7,7 +7,7 @@ import (
 	"bk-dbconfig/internal/pkg/errno"
 	"bk-dbconfig/internal/repository/model"
 	"bk-dbconfig/pkg/util"
-	"bk-dbconfig/pkg/validate"
+	"bk-dbconfig/pkg/validatestruct"
 
 	"github.com/pkg/errors"
 	"gorm.io/gorm"
@@ -59,7 +59,7 @@ func CheckConfNameAndValue(c *model.ConfigModel, checkValue bool, valueType, val
 		}
 		cn.ValueDefault = c.ConfValue
 		// 如果不校验 conf_name， 那么 conf_name 可能在 name_def 里没定义，value_type, value_type_sub, value_allowed 都为空
-		err := validate.ValidateConfValue(cn.ValueDefault, cn.ValueType, cn.ValueTypeSub, cn.ValueAllowed)
+		err := validatestruct.ValidateConfValue(cn.ValueDefault, cn.ValueType, cn.ValueTypeSub, cn.ValueAllowed)
 		if err != nil {
 			errors.WithMessage(err, c.ConfName)
 		}

@@ -116,8 +116,13 @@ func (h *DbWorker) ExecWithTimeout(dura time.Duration, query string, args ...int
 // 会在同一个连接里执行
 // 空元素会跳过
 func (h *DbWorker) ExecMore(sqls []string) (rowsAffectedCount int64, err error) {
+	ctx := context.Background()
+	return h.ExecMoreContext(sqls, ctx)
+}
+
+func (h *DbWorker) ExecMoreContext(sqls []string, ctx context.Context) (rowsAffected int64, err error) {
 	var c int64
-	db, err := h.Db.Conn(context.Background())
+	db, err := h.Db.Conn(ctx)
 	if err != nil {
 		return 0, err
 	}
@@ -126,14 +131,14 @@ func (h *DbWorker) ExecMore(sqls []string) (rowsAffectedCount int64, err error) 
 		if strings.TrimSpace(sqlStr) == "" {
 			continue
 		}
-		ret, err := db.ExecContext(context.Background(), sqlStr)
+		ret, err := db.ExecContext(ctx, sqlStr)
 		if err != nil {
-			return rowsAffectedCount, fmt.Errorf("exec %s failed,err:%w", sqlStr, err)
+			return rowsAffected, fmt.Errorf("exec %s failed,err:%w", sqlStr, err)
 		}
 		if c, err = ret.RowsAffected(); err != nil {
-			return rowsAffectedCount, fmt.Errorf("exec %s failed,err:%w", sqlStr, err)
+			return rowsAffected, fmt.Errorf("exec %s failed,err:%w", sqlStr, err)
 		}
-		rowsAffectedCount += c
+		rowsAffected += c
 	}
 	return
 }
@@ -935,13 +940,13 @@ func GetTableUniqueKeyBest(uniqKeys map[string][]string) []string {
 
 // GetOneTableColumns get table column info
 // return {columnName1:info, columName2:info}
+// info example:
+//
+//	DATA_TYPE:smallint  COLUMN_TYPE:smallint(5) unsigned
+//	DATA_TYPE:varchar   COLUMN_TYPE:varchar(64)
+//	DATA_TYPE:datetime  COLUMN_TYPE:datetime(6)
 func GetOneTableColumns(dbworker *DbWorker, dbName, tblName string) (map[string]TableColumnDef, error) {
 	// tblSchemas = {"dbX.tableY": {"a": {"name":"a", "pos":"1", "type":"int"}}}
-	/*
-		queryStr := fmt.Sprintf("SELECT TABLE_SCHEMA,TABLE_NAME,COLUMN_NAME,ORDINAL_POSITION,DATA_TYPE,COLUMN_TYPE " +
-			"FROM information_schema.COLUMNS WHERE TABLE_SCHEMA =%s AND TABLE_NAME = %s" +
-			" ORDER BY TABLE_SCHEMA,TABLE_NAME,ORDINAL_POSITION asc", dbName, tblName)
-	*/
 	queryStr := fmt.Sprintf(
 		"SELECT TABLE_SCHEMA,TABLE_NAME,COLUMN_NAME,ORDINAL_POSITION,DATA_TYPE,COLUMN_TYPE " +
 			"FROM information_schema.COLUMNS WHERE TABLE_SCHEMA =? AND TABLE_NAME = ? " +
@@ -969,30 +974,30 @@ func GetOneTableColumns(dbworker *DbWorker, dbName, tblName string) (map[string]
 	return nil, errors.New("table not found")
 }
 
-// GetTableColumnList TODO
-func GetTableColumnList(dbworker *DbWorker, dbName, tblName string) ([]string, error) {
-	// tblSchemas = {"dbX.tableY": {"a": {"name":"a", "pos":"1", "type":"int"}}}
-	/*
-		queryStr := fmt.Sprintf("SELECT TABLE_SCHEMA,TABLE_NAME,COLUMN_NAME,ORDINAL_POSITION,DATA_TYPE,COLUMN_TYPE " +
-			"FROM information_schema.COLUMNS WHERE TABLE_SCHEMA =%s AND TABLE_NAME = %s" +
-			" ORDER BY TABLE_SCHEMA,TABLE_NAME,ORDINAL_POSITION asc", dbName, tblName)
-	*/
+// GetTableColumnList get table column names info, order by position ASC
+func GetTableColumnList(dbName, tblName string, dbWorker *DbWorker) ([]TableColumnDef, error) {
 	queryStr := fmt.Sprintf(
 		"SELECT TABLE_SCHEMA,TABLE_NAME,COLUMN_NAME,ORDINAL_POSITION,DATA_TYPE,COLUMN_TYPE " +
 			"FROM information_schema.COLUMNS WHERE TABLE_SCHEMA =? AND TABLE_NAME = ? " +
 			"ORDER BY TABLE_SCHEMA,TABLE_NAME,ORDINAL_POSITION asc",
 	)
-	result, err := dbworker.QueryWithArgs(queryStr, dbName, tblName)
+	result, err := dbWorker.QueryWithArgs(queryStr, dbName, tblName)
 	// todo 这里的err没有正确捕捉到，比如sql执行错误
 	if err != nil {
 		return nil, err
 	}
-	var columnList []string
 	if len(result) > 0 {
+		tblColumns := make([]TableColumnDef, 0)
+
 		for _, row := range result {
-			columnList = append(columnList, row["COLUMN_NAME"].(string))
+			colDef := TableColumnDef{
+				ColName: row["COLUMN_NAME"].(string),
+				ColPos:  cast.ToInt(row["ORDINAL_POSITION"].(string)),
+				ColType: row["DATA_TYPE"].(string),
+			}
+			tblColumns = append(tblColumns, colDef)
 		}
-		return columnList, nil
+		return tblColumns, nil
 	}
 	return nil, errors.New("table not found")
 }

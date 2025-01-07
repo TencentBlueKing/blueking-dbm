@@ -10,12 +10,13 @@
 package mainloop
 
 import (
-	"dbm-services/mysql/db-tools/dbactuator/pkg/core/cst"
 	"fmt"
 	"log/slog"
 	"path/filepath"
 	"slices"
 	"strings"
+
+	"dbm-services/mysql/db-tools/dbactuator/pkg/core/cst"
 
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/config"
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/itemscollect"
@@ -73,6 +74,7 @@ func Run(hardcode bool) error {
 	defer func() {
 		cc.Close()
 	}()
+	cc.InitItemOptions() // set item custom options to runner
 
 	slog.Debug("make connection collect", slog.Any("connection collect", cc))
 

@@ -111,7 +111,7 @@ func (m *DBLoader) chooseDBBackupLoader() error {
 		}
 	}
 	// logger.Warn("validate dbLoaderUtil: %+v", m.dbLoaderUtil)
-	if err := validate.GoValidateStruct(m.dbLoaderUtil, false, false); err != nil {
+	if err := validate.GoValidateStruct(m.dbLoaderUtil, false); err != nil {
 		return err
 	}
 

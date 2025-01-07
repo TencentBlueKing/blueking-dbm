@@ -144,7 +144,7 @@ func (b *BaseOptions) DeserializeNonStandard(s interface{}) (err error) {
 		logger.Error("json.Unmarshal failed, %v", s, err)
 		return
 	}
-	if err = validate.GoValidateStruct(s, false, true); err != nil {
+	if err = validate.GoValidateStructCharset(s, false, true); err != nil {
 		logger.Error("validate struct failed, %v", s, err)
 		return
 	}
@@ -184,7 +184,7 @@ func Deserialize(s interface{}) (p *BaseOptions, err error) {
 		err = errors.WithMessage(err, "参数解析错误")
 		return nil, err
 	}
-	if err = validate.GoValidateStruct(bip, false, true); err != nil {
+	if err = validate.GoValidateStructCharset(bip, false, true); err != nil {
 		logger.Error("validate struct failed, %v", s, err)
 		err = errors.WithMessage(err, "参数输入错误")
 		return nil, err
@@ -246,7 +246,7 @@ func (b *BaseOptions) Deserialize(s interface{}) (err error) {
 		return err
 	}
 	s = bip.ExtendParam
-	if err = validate.GoValidateStruct(bip, false, true); err != nil {
+	if err = validate.GoValidateStructCharset(bip, false, true); err != nil {
 		logger.Error("validate struct failed, %v", s, err)
 		err = errors.WithMessage(err, "参数输入错误")
 		return err
@@ -279,7 +279,7 @@ func (b *BaseOptions) DeserializeSimple(s interface{}) (err error) {
 		err = errors.WithMessage(err, "参数解析错误")
 		return
 	}
-	if err = validate.GoValidateStruct(s, false, true); err != nil {
+	if err = validate.GoValidateStructCharset(s, false, true); err != nil {
 		logger.Error("validate struct failed, %v", s, err)
 		err = errors.WithMessage(err, "参数输入错误")
 		return

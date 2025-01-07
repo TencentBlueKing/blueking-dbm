@@ -101,7 +101,7 @@ func (m *MLoad) Start() error {
 		}
 	}
 
-	if err := validate.GoValidateStruct(m.mloadUtil, false, false); err != nil {
+	if err := validate.GoValidateStruct(m.mloadUtil, false); err != nil {
 		return err
 	}
 	logger.Info("mload params %+v", m)

@@ -4,6 +4,9 @@ package cmutil
 import (
 	"regexp"
 	"strconv"
+	"strings"
+
+	"github.com/pkg/errors"
 )
 
 // GetMysqlSystemDatabases TODO
@@ -129,4 +132,19 @@ func RemovePassword(input string) string {
 	return userPasswordRegex.ReplaceAllStringFunc(input, func(sub string) string {
 		return mysqlPasswordRegex.ReplaceAllString(sub, " -pxxxx")
 	})
+}
+
+// GetDbTableName get dbName, tableName from db1.table1 / `db1`.`table1`
+func GetDbTableName(dbTableName string) (dbName string, tableName string, err error) {
+	ss := strings.SplitN(dbTableName, ".", 2)
+	if len(ss) == 2 {
+		dbName = strings.Trim(ss[0], "`")
+		tableName = strings.Trim(ss[1], "`")
+	} else {
+		return "", "", errors.Errorf("failed get db table name spliting with . for %s", dbTableName)
+	}
+	if dbName == "" || tableName == "" {
+		return "", "", errors.Errorf("db table cannot be empty parsing %s", dbTableName)
+	}
+	return
 }
