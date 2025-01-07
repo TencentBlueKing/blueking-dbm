@@ -48,7 +48,7 @@ export default [
           },
           {
             name: t('主从切换'),
-            id: 'RedisMasterFailover',
+            id: TicketTypes.REDIS_MASTER_SLAVE_SWITCH,
             parentId: 'common-manage',
             dbConsoleValue: 'redis.toolbox.masterSlaveSwap',
           },

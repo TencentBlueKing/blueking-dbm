@@ -57,14 +57,15 @@ const redisProxyScaleDownRoute = createRouteItem(TicketTypes.REDIS_PROXY_SCALE_D
 // };
 const redisDBCreateSlaveRoute = createRouteItem(TicketTypes.REDIS_CLUSTER_ADD_SLAVE, t('重建从库'));
 
-const redisMasterFailoverRoute = {
-  name: 'RedisMasterFailover',
-  path: 'master-failover/:page?',
-  meta: {
-    navName: t('主从切换'),
-  },
-  component: () => import('@views/db-manage/redis/master-failover/Index.vue'),
-};
+// const redisMasterFailoverRoute = {
+//   name: 'RedisMasterFailover',
+//   path: 'master-failover/:page?',
+//   meta: {
+//     navName: t('主从切换'),
+//   },
+//   component: () => import('@views/db-manage/redis/master-failover/Index.vue'),
+// };
+const redisMasterFailoverRoute = createRouteItem(TicketTypes.REDIS_MASTER_SLAVE_SWITCH, t('主从切换'));
 
 const redisDBReplaceRoute = createRouteItem(TicketTypes.REDIS_CLUSTER_CUTOFF, t('整机替换'));
 

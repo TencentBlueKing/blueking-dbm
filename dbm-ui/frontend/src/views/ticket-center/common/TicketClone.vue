@@ -54,7 +54,7 @@
     [TicketTypes.REDIS_PROXY_SCALE_UP]: 'RedisProxyScaleUp', // Redis 扩容接入层
     [TicketTypes.REDIS_PROXY_SCALE_DOWN]: 'RedisProxyScaleDown', // Redis 缩容接入层
     [TicketTypes.REDIS_SCALE_UPDOWN]: 'RedisCapacityChange', // Redis 集群容量变更
-    [TicketTypes.REDIS_MASTER_SLAVE_SWITCH]: 'RedisMasterFailover', // Redis 主从切换
+    [TicketTypes.REDIS_MASTER_SLAVE_SWITCH]: TicketTypes.REDIS_MASTER_SLAVE_SWITCH, // Redis 主从切换
     [TicketTypes.REDIS_DATA_STRUCTURE]: 'RedisDBStructure', // Redis 定点构造
     [TicketTypes.REDIS_CLUSTER_ADD_SLAVE]: TicketTypes.REDIS_CLUSTER_ADD_SLAVE, // Redis 重建从库
     [TicketTypes.REDIS_CLUSTER_DATA_COPY]: 'RedisDBDataCopy', // Redis 数据复制
