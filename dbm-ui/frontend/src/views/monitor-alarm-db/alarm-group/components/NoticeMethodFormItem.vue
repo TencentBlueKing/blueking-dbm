@@ -86,7 +86,7 @@
                   :key="headItem.label"
                   class="table-row-item table-row-head-item"
                   :class="{
-                    'table-row-type': headItem.type,
+                    'table-row-type': !headItem.type,
                     'table-row-input': headItem.input,
                   }">
                   <img
@@ -99,6 +99,11 @@
                     :class="{ 'label-bold': headItem.bold }">
                     {{ headItem.label }}
                   </span>
+                  <DbIcon
+                    v-if="MessageTipMap[headItem.type]"
+                    v-bk-tooltips="MessageTipMap[headItem.type]"
+                    class="message-type-head-tip ml-4"
+                    type="attention" />
                 </div>
               </div>
               <div
@@ -145,11 +150,13 @@
 <script setup lang="ts">
   import BkTimePicker from 'bkui-vue/lib/time-picker';
   import _ from 'lodash';
-  import type ComponentPublicInstance from 'vue';
+  import type { ComponentPublicInstance } from 'vue';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
   import { getAlarmGroupList, getAlarmGroupNotifyList } from '@services/source/monitorNoticeGroup';
+
+  import { InputMessageTypes, MessageTypes } from '@common/const';
 
   import { messageWarn } from '@utils';
 
@@ -183,9 +190,9 @@
   }
 
   interface TableHead {
+    type: string;
     label: string;
     bold?: boolean;
-    type?: boolean;
     icon?: string;
     input?: boolean;
   }
@@ -205,13 +212,20 @@
 
   const { t } = useI18n();
 
-  const inputTypes = ['wxwork-bot', 'bkchat'];
+  const MessageTipMap: Record<string, string> = {
+    [MessageTypes.WECOM_ROBOT]: [
+      t('获取会话ID方法:'),
+      t('1. 群聊添加群机器人: 蓝鲸监控(上云)'),
+      t('2. 手动蓝鲸监控(上云) 并输入关键字n', { n: "'会话ID'" }),
+      t('3. 将获取到的会话ID粘贴到输入框，多个会话ID使用逗号分隔'),
+    ].join('\n'),
+  };
 
   let head: TableHead[] = [
     {
       label: t('告警级别'),
       bold: true,
-      type: true,
+      type: '',
     },
   ];
 
@@ -290,7 +304,7 @@
         const { type, label, is_active: isActive, icon } = item;
 
         if (isActive) {
-          if (inputTypes.includes(type)) {
+          if (InputMessageTypes.includes(type)) {
             panelInitData.inputArr.push({
               type,
               label,
@@ -299,6 +313,7 @@
             });
 
             inputHead.push({
+              type,
               label,
               icon,
               input: true,
@@ -312,6 +327,7 @@
             });
 
             checkboxHead.push({
+              type,
               label,
               icon,
             });
@@ -456,11 +472,11 @@
             const inputArr = _.cloneDeep(panelInitData.inputArr);
 
             configItem.notice_ways.forEach((wayItem) => {
-              if (inputTypes.includes(wayItem.name)) {
+              if (InputMessageTypes.includes(wayItem.name)) {
                 const idx = inputArr.findIndex((inputItem) => inputItem.type === wayItem.name);
 
                 if (idx > -1) {
-                  inputArr[idx].value = wayItem.receivers?.join(',') as string;
+                  inputArr[idx].value = (wayItem.receivers || []).join(',');
                 }
               } else {
                 const idx = checkboxArr.findIndex((checkboxItem) => checkboxItem.type === wayItem.name);
@@ -732,6 +748,11 @@
 
         .label-bold {
           font-weight: bold;
+        }
+
+        .message-type-head-tip {
+          font-size: 14px;
+          color: #63656e;
         }
       }
 

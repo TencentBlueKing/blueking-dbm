@@ -50,7 +50,6 @@
 
 <script setup lang="tsx">
   import { InfoBox } from 'bkui-vue';
-  import dayjs from 'dayjs';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
@@ -64,23 +63,12 @@
 
   import { useGlobalBizs } from '@stores';
 
-  import MiniTag from '@components/mini-tag/index.vue';
   import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
 
   import { messageSuccess  } from '@utils';
 
   import DetailDialog from './components/DetailDialog.vue';
   import RenderRow from './components/RenderRow.vue';
-
-  const isNewUser = (createTime: string) => {
-    if (!createTime) {
-      return '';
-    }
-
-    const createDay = dayjs(createTime);
-    const today = dayjs();
-    return today.diff(createDay, 'hour') <= 24;
-  };
 
   interface TableRenderData {
     data: NoticGroupModel
@@ -104,7 +92,6 @@
         <TextOverflowLayout>
           {{
             default: () => {
-
               if (data.is_built_in){
                 return (
                   <bk-button
@@ -131,17 +118,21 @@
               <>
                 {
                   data.is_built_in && (
-                    <MiniTag
-                      content={ t('内置') }
-                      class="ml-4" />
+                    <bk-tag
+                      size="small"
+                      class="ml-4">
+                      {t('内置')}
+                    </bk-tag>
                   )
                 }
                 {
-                  isNewUser(data.create_at) && (
-                    <MiniTag
-                      content='NEW'
+                  data.isNew && (
+                    <bk-tag
+                      size="small"
                       theme='success'
-                      class="ml-4" />
+                      class="ml-4">
+                      NEW
+                    </bk-tag>
                   )
                 }
               </>
@@ -211,45 +202,45 @@
       fixed: 'right',
       showOverflow: false,
       render: ({ data }: TableRenderData) => (
-          <>
-            <auth-button
-              actionId="notify_group_create"
-              permission={data.permission.notify_group_create}
-              class="mr-24"
-              text
-              theme="primary"
-              onClick={ () => handleOpenDetail('copy', data) }>
-              { t('克隆') }
-            </auth-button>
-            {
-              !data.is_built_in && (
-                <auth-button
-                  actionId="notify_group_update"
-                  permission={data.permission.notify_group_update}
-                  resource={data.id}
-                  class="mr-24"
-                  text
-                  theme="primary"
-                  onClick={ () => handleOpenDetail('edit', data) }>
-                  { t('编辑') }
-                </auth-button>
-              )
-            }
-            {
-              !data.is_built_in && (
-                <auth-button
-                  action-id="notify_group_delete"
-                  resource={data.id}
-                  permission={data.permission.notify_group_delete}
-                  text
-                  theme="primary"
-                  onClick={ () => handleDelete(data.id) }>
-                  { t('删除') }
-                </auth-button>
-              )
-            }
-          </>
-        ),
+        <>
+          <auth-button
+            actionId="notify_group_create"
+            permission={data.permission.notify_group_create}
+            class="mr-24"
+            text
+            theme="primary"
+            onClick={ () => handleOpenDetail('copy', data) }>
+            { t('克隆') }
+          </auth-button>
+          {
+            !data.is_built_in && (
+              <auth-button
+                actionId="notify_group_update"
+                permission={data.permission.notify_group_update}
+                resource={data.id}
+                class="mr-24"
+                text
+                theme="primary"
+                onClick={ () => handleOpenDetail('edit', data) }>
+                { t('编辑') }
+              </auth-button>
+            )
+          }
+          {
+            !data.is_built_in && (
+              <auth-button
+                action-id="notify_group_delete"
+                resource={data.id}
+                permission={data.permission.notify_group_delete}
+                text
+                theme="primary"
+                onClick={ () => handleDelete(data.id) }>
+                { t('删除') }
+              </auth-button>
+            )
+          }
+        </>
+      ),
     },
   ];
 
@@ -279,7 +270,7 @@
     });
   };
 
-  const setRowClass = (data: NoticGroupModel) => (isNewUser(data.create_at) ? 'is-new' : '');
+  const setRowClass = (data: NoticGroupModel) => (data.isNew ? 'is-new' : '');
 
   const toRelatedPolicy = (notifyGroupId: number, dbType: string) => {
     const routerData = router.resolve({

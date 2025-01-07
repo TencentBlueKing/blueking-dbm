@@ -73,6 +73,7 @@
         {{ t('提交') }}
       </BkButton>
       <BkButton
+        class="w-88"
         :disabled="loading"
         @click="handleClose">
         {{ t('取消') }}
