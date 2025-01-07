@@ -3,7 +3,7 @@
     class-name="cluster-table-role-column"
     :field="field"
     :label="label"
-    :min-width="200"
+    :min-width="minWidth"
     :show-overflow="false">
     <template #header>
       <RenderHeadCopy
@@ -30,25 +30,37 @@
         :field="field"
         :hightlight-key="searchIp"
         :label="label">
+        <template
+          v-if="slots.default"
+          #default="{ data: instanceData }">
+          <slot
+            name="default"
+            v-bind="{ data: instanceData as any }" />
+        </template>
         <template #nodeTag="{ data: instanceData }">
           <slot
             name="nodeTag"
-            v-bind="{ data: instanceData }" />
+            v-bind="{
+              data: instanceData as any,
+            }" />
         </template>
         <template #instanceList>
           <slot
             name="instanceList"
-            v-bind="{ instanceList: getRoleInstanceList(data), clusterData: data }">
+            v-bind="{
+              instanceList: getRoleInstanceList(data) as any,
+              clusterData: data,
+            }">
             <RenderInstanceList
               :data="getRoleInstanceList(data)"
-              :role="field" />
+              :role="String(field)" />
           </slot>
         </template>
       </CellContent>
     </template>
   </BkTableColumn>
 </template>
-<script setup lang="ts" generic="T extends ISupportClusterType">
+<script setup lang="ts" generic="T extends ISupportClusterType, F extends keyof ClusterModel<T>">
   import _ from 'lodash';
   import type { VNode } from 'vue';
   import { useI18n } from 'vue-i18n';
@@ -66,25 +78,35 @@
   import CellContent from './components/CellContent.vue';
   import RenderInstanceList from './components/InstanceList.vue';
 
-  export interface Props<clusterType extends ISupportClusterType> {
-    field: string;
+  export interface Props<clusterType extends ISupportClusterType, F extends keyof ClusterModel<clusterType>> {
+    field: F;
     label: string;
     searchIp?: string[];
     // eslint-disable-next-line vue/no-unused-properties
     clusterType: clusterType;
     selectedList: ClusterModel<clusterType>[];
     getTableInstance: () => InstanceType<typeof DbTable> | undefined;
+    minWidth?: number;
   }
 
-  export interface Slots<clusterType extends ISupportClusterType> {
-    nodeTag: (params: { data: { ip: string; port: number; status: string } }) => VNode;
-    instanceList: (params: { instanceList: ClusterListNode[]; clusterData: ClusterModel<clusterType> }) => VNode;
+  export type ReturnArrayElement<T> = T extends (infer U)[] ? U : T;
+
+  export interface Slots<clusterType extends ISupportClusterType, F extends keyof ClusterModel<clusterType>> {
+    default?: (params: { data: ReturnArrayElement<ClusterModel<clusterType>[F]> }) => void;
+    nodeTag: (params: { data: ReturnArrayElement<ClusterModel<clusterType>[F]> }) => void;
+    instanceList: (params: {
+      instanceList: ClusterModel<clusterType>[F];
+      clusterData: ClusterModel<clusterType>;
+    }) => VNode;
   }
 
   type IRowData = ClusterModel<T>;
 
-  const props = defineProps<Props<T>>();
-  defineSlots<Slots<T>>();
+  const props = withDefaults(defineProps<Props<T, F>>(), {
+    searchIp: undefined,
+    minWidth: 200,
+  });
+  const slots = defineSlots<Slots<T, F>>();
 
   const { t } = useI18n();
 
@@ -134,6 +156,14 @@
       [class*=' db-icon'] {
         display: inline !important;
       }
+    }
+
+    [class*=' db-icon'] {
+      display: none;
+      margin-top: 1px;
+      margin-left: 4px;
+      color: @primary-color;
+      cursor: pointer;
     }
   }
 </style>

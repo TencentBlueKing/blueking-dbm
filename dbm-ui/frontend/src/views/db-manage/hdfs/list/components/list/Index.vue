@@ -583,29 +583,6 @@
     }
   });
 </script>
-<style lang="less" scoped>
-  .hdfs-list-page {
-    :deep(.vxe-cell) {
-      .domain {
-        display: flex;
-        align-items: center;
-      }
-
-      .db-icon-visible1 {
-        display: none;
-        margin-left: 4px;
-        color: @primary-color;
-        cursor: pointer;
-      }
-    }
-
-    :deep(tr:hover) {
-      .db-icon-visible1 {
-        display: inline-block !important;
-      }
-    }
-  }
-</style>
 <style lang="less">
   .hdfs-list-page {
     height: 100%;
@@ -625,59 +602,10 @@
       }
     }
 
-    .table-wrapper {
-      background-color: white;
-
-      .db-table,
-      .audit-render-list,
-      .bk-nested-loading {
-        height: 100%;
+    tr.is-offline {
+      .vxe-cell {
+        color: @disable-color;
       }
-    }
-
-    .is-offline {
-      * {
-        color: #c4c6cc !important;
-      }
-
-      a,
-      i,
-      .bk-button.bk-button-primary .bk-button-text {
-        color: #3a84ff !important;
-      }
-    }
-
-    td div.vxe-cell .db-icon-copy {
-      display: none;
-      margin-left: 4px;
-      color: #3a84ff;
-      vertical-align: middle;
-      cursor: pointer;
-    }
-
-    .db-icon-more {
-      display: block;
-      font-size: @font-size-normal;
-      font-weight: bold;
-      color: @default-color;
-      cursor: pointer;
-
-      &:hover {
-        background-color: @bg-disable;
-        border-radius: 2px;
-      }
-    }
-
-    td:hover .db-icon-copy,
-    th:hover .db-icon-copy {
-      display: inline-block !important;
-    }
-  }
-
-  .hdfs-manage-sideslider {
-    .bk-modal-content {
-      max-height: calc(100vh - 120px);
-      overflow-y: auto;
     }
   }
 </style>

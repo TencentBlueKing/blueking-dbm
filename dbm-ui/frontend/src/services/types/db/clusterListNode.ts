@@ -6,7 +6,7 @@ export interface ClusterListNode {
   bk_sub_zone: string;
   instance: string;
   ip: string;
-  is_stand_by: boolean;
+
   name: string;
   phase: string;
   port: number;

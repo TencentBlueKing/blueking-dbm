@@ -37,173 +37,169 @@
         :validate-values="validateSearchValues"
         @change="handleSearchValueChange" />
     </div>
-    <div
-      class="table-wrapper"
-      :class="{ 'is-shrink-table': isStretchLayoutOpen }">
-      <DbTable
-        ref="tableRef"
-        :data-source="dataSource"
-        :pagination-extra="paginationExtra"
-        releate-url-query
-        :row-class="getRowClass"
-        selectable
-        :settings="tableSetting"
-        :show-overflow="false"
-        @clear-search="clearSearchValue"
-        @column-filter="columnFilterChange"
-        @column-sort="columnSortChange"
-        @selection="handleSelection"
-        @setting-change="updateTableSettings">
-        <IdColumn :cluster-type="ClusterTypes.PULSAR" />
-        <MasterDomainColumn
-          :cluster-type="ClusterTypes.PULSAR"
-          field="master_domain"
-          :get-table-instance="getTableInstance"
-          :label="t('访问入口')"
-          :selected-list="selected"
-          @go-detail="handleToDetails"
-          @refresh="fetchTableData" />
-        <ClusterNameColumn
-          :cluster-type="ClusterTypes.PULSAR"
-          :get-table-instance="getTableInstance"
-          :selected-list="selected"
-          @refresh="fetchTableData" />
-        <StatusColumn :cluster-type="ClusterTypes.PULSAR" />
-        <ClusterStatsColumn :cluster-type="ClusterTypes.PULSAR" />
-        <RoleColumn
-          :cluster-type="ClusterTypes.PULSAR"
-          field="Bookkeeper"
-          :get-table-instance="getTableInstance"
-          label="pulsar_bookkeeper"
-          :search-ip="batchSearchIpInatanceList"
-          :selected-list="selected" />
-        <RoleColumn
-          :cluster-type="ClusterTypes.PULSAR"
-          field="Zookeeper"
-          :get-table-instance="getTableInstance"
-          label="pulsar_zookeeper"
-          :search-ip="batchSearchIpInatanceList"
-          :selected-list="selected" />
-        <RoleColumn
-          :cluster-type="ClusterTypes.PULSAR"
-          field="Broker"
-          :get-table-instance="getTableInstance"
-          label="pulsar_broker"
-          :search-ip="batchSearchIpInatanceList"
-          :selected-list="selected" />
-        <CommonColumn :cluster-type="ClusterTypes.PULSAR" />
-        <BkTableColumn
-          :fixed="isStretchLayoutOpen ? false : 'right'"
-          :label="t('操作')"
-          :min-width="180"
-          :show-overflow="false">
-          <template #default="{data}: {data: PulsarModel}">
-            <OperationBtnStatusTips
-              v-db-console="'pulsar.clusterManage.scaleUp'"
-              :data="data">
-              <AuthButton
-                action-id="pulsar_scale_up"
-                class="mr-8"
-                :disabled="data.operationDisabled"
-                :permission="data.permission.pulsar_scale_up"
-                :resource="data.id"
-                text
-                theme="primary"
-                @click="handleShowExpansion(data)">
-                {{ t('扩容') }}
-              </AuthButton>
-            </OperationBtnStatusTips>
-            <OperationBtnStatusTips
-              v-db-console="'pulsar.clusterManage.scaleDown'"
-              :data="data">
-              <AuthButton
-                action-id="pulsar_shrink"
-                class="mr-8"
-                :disabled="data.operationDisabled"
-                :permission="data.permission.pulsar_shrink"
-                :resource="data.id"
-                text
-                theme="primary"
-                @click="handleShowShrink(data)">
-                {{ t('缩容') }}
-              </AuthButton>
-            </OperationBtnStatusTips>
+    <DbTable
+      ref="tableRef"
+      :data-source="dataSource"
+      :pagination-extra="paginationExtra"
+      releate-url-query
+      :row-class="getRowClass"
+      selectable
+      :settings="tableSetting"
+      :show-overflow="false"
+      @clear-search="clearSearchValue"
+      @column-filter="columnFilterChange"
+      @column-sort="columnSortChange"
+      @selection="handleSelection"
+      @setting-change="updateTableSettings">
+      <IdColumn :cluster-type="ClusterTypes.PULSAR" />
+      <MasterDomainColumn
+        :cluster-type="ClusterTypes.PULSAR"
+        field="master_domain"
+        :get-table-instance="getTableInstance"
+        :label="t('访问入口')"
+        :selected-list="selected"
+        @go-detail="handleToDetails"
+        @refresh="fetchTableData" />
+      <ClusterNameColumn
+        :cluster-type="ClusterTypes.PULSAR"
+        :get-table-instance="getTableInstance"
+        :selected-list="selected"
+        @refresh="fetchTableData" />
+      <StatusColumn :cluster-type="ClusterTypes.PULSAR" />
+      <ClusterStatsColumn :cluster-type="ClusterTypes.PULSAR" />
+      <RoleColumn
+        :cluster-type="ClusterTypes.PULSAR"
+        field="pulsar_bookkeeper"
+        :get-table-instance="getTableInstance"
+        label="Bookkeeper"
+        :search-ip="batchSearchIpInatanceList"
+        :selected-list="selected" />
+      <RoleColumn
+        :cluster-type="ClusterTypes.PULSAR"
+        field="pulsar_zookeeper"
+        :get-table-instance="getTableInstance"
+        label="Zookeeper"
+        :search-ip="batchSearchIpInatanceList"
+        :selected-list="selected" />
+      <RoleColumn
+        :cluster-type="ClusterTypes.PULSAR"
+        field="pulsar_broker"
+        :get-table-instance="getTableInstance"
+        label="Broker"
+        :search-ip="batchSearchIpInatanceList"
+        :selected-list="selected" />
+      <CommonColumn :cluster-type="ClusterTypes.PULSAR" />
+      <BkTableColumn
+        :fixed="isStretchLayoutOpen ? false : 'right'"
+        :label="t('操作')"
+        :min-width="180"
+        :show-overflow="false">
+        <template #default="{data}: {data: PulsarModel}">
+          <OperationBtnStatusTips
+            v-db-console="'pulsar.clusterManage.scaleUp'"
+            :data="data">
             <AuthButton
-              v-db-console="'pulsar.clusterManage.getAccess'"
-              action-id="pulsar_access_entry_view"
+              action-id="pulsar_scale_up"
               class="mr-8"
-              :disabled="data.isOffline"
-              :permission="data.permission.pulsar_access_entry_view"
+              :disabled="data.operationDisabled"
+              :permission="data.permission.pulsar_scale_up"
               :resource="data.id"
               text
               theme="primary"
-              @click="handleShowPassword(data)">
-              {{ t('获取访问方式') }}
+              @click="handleShowExpansion(data)">
+              {{ t('扩容') }}
             </AuthButton>
-            <MoreActionExtend>
-              <BkDropdownItem
-                v-if="data.isOnline"
-                v-db-console="'pulsar.clusterManage.enable'">
-                <OperationBtnStatusTips :data="data">
-                  <AuthButton
-                    action-id="pulsar_enable_disable"
-                    :disabled="data.isStarting"
-                    :permission="data.permission.pulsar_enable_disable"
-                    :resource="data.id"
-                    text
-                    theme="primary"
-                    @click="handleEnableCluster([data])">
-                    {{ t('启用') }}
-                  </AuthButton>
-                </OperationBtnStatusTips>
-              </BkDropdownItem>
-              <BkDropdownItem
-                v-if="data.isOffline"
-                v-db-console="'pulsar.clusterManage.disable'">
-                <OperationBtnStatusTips :data="data">
-                  <AuthButton
-                    action-id="pulsar_enable_disable"
-                    :disabled="Boolean(data.operationTicketId)"
-                    :permission="data.permission.pulsar_enable_disable"
-                    :resource="data.id"
-                    text
-                    theme="primary"
-                    @click="handleDisableCluster([data])">
-                    {{ t('禁用') }}
-                  </AuthButton>
-                </OperationBtnStatusTips>
-              </BkDropdownItem>
-              <BkDropdownItem v-db-console="'pulsar.clusterManage.delete'">
-                <OperationBtnStatusTips :data="data">
-                  <AuthButton
-                    v-bk-tooltips="{
-                      disabled: data.isOffline,
-                      content: t('请先禁用集群'),
-                    }"
-                    action-id="pulsar_destroy"
-                    :disabled="data.isOnline || Boolean(data.operationTicketId)"
-                    :permission="data.permission.pulsar_destroy"
-                    :resource="data.id"
-                    text
-                    theme="primary"
-                    @click="handleDeleteCluster([data])">
-                    {{ t('删除') }}
-                  </AuthButton>
-                </OperationBtnStatusTips>
-              </BkDropdownItem>
-              <BkDropdownItem v-db-console="'pulsar.clusterManage.manage'">
-                <a
-                  :href="data.access_url"
-                  style="color: #63656e"
-                  target="_blank">
-                  {{ t('管理') }}
-                </a>
-              </BkDropdownItem>
-            </MoreActionExtend>
-          </template>
-        </BkTableColumn>
-      </DbTable>
-    </div>
+          </OperationBtnStatusTips>
+          <OperationBtnStatusTips
+            v-db-console="'pulsar.clusterManage.scaleDown'"
+            :data="data">
+            <AuthButton
+              action-id="pulsar_shrink"
+              class="mr-8"
+              :disabled="data.operationDisabled"
+              :permission="data.permission.pulsar_shrink"
+              :resource="data.id"
+              text
+              theme="primary"
+              @click="handleShowShrink(data)">
+              {{ t('缩容') }}
+            </AuthButton>
+          </OperationBtnStatusTips>
+          <AuthButton
+            v-db-console="'pulsar.clusterManage.getAccess'"
+            action-id="pulsar_access_entry_view"
+            class="mr-8"
+            :disabled="data.isOffline"
+            :permission="data.permission.pulsar_access_entry_view"
+            :resource="data.id"
+            text
+            theme="primary"
+            @click="handleShowPassword(data)">
+            {{ t('获取访问方式') }}
+          </AuthButton>
+          <MoreActionExtend>
+            <BkDropdownItem
+              v-if="data.isOnline"
+              v-db-console="'pulsar.clusterManage.enable'">
+              <OperationBtnStatusTips :data="data">
+                <AuthButton
+                  action-id="pulsar_enable_disable"
+                  :disabled="data.isStarting"
+                  :permission="data.permission.pulsar_enable_disable"
+                  :resource="data.id"
+                  text
+                  theme="primary"
+                  @click="handleEnableCluster([data])">
+                  {{ t('启用') }}
+                </AuthButton>
+              </OperationBtnStatusTips>
+            </BkDropdownItem>
+            <BkDropdownItem
+              v-if="data.isOffline"
+              v-db-console="'pulsar.clusterManage.disable'">
+              <OperationBtnStatusTips :data="data">
+                <AuthButton
+                  action-id="pulsar_enable_disable"
+                  :disabled="Boolean(data.operationTicketId)"
+                  :permission="data.permission.pulsar_enable_disable"
+                  :resource="data.id"
+                  text
+                  theme="primary"
+                  @click="handleDisableCluster([data])">
+                  {{ t('禁用') }}
+                </AuthButton>
+              </OperationBtnStatusTips>
+            </BkDropdownItem>
+            <BkDropdownItem v-db-console="'pulsar.clusterManage.delete'">
+              <OperationBtnStatusTips :data="data">
+                <AuthButton
+                  v-bk-tooltips="{
+                    disabled: data.isOffline,
+                    content: t('请先禁用集群'),
+                  }"
+                  action-id="pulsar_destroy"
+                  :disabled="data.isOnline || Boolean(data.operationTicketId)"
+                  :permission="data.permission.pulsar_destroy"
+                  :resource="data.id"
+                  text
+                  theme="primary"
+                  @click="handleDeleteCluster([data])">
+                  {{ t('删除') }}
+                </AuthButton>
+              </OperationBtnStatusTips>
+            </BkDropdownItem>
+            <BkDropdownItem v-db-console="'pulsar.clusterManage.manage'">
+              <a
+                :href="data.access_url"
+                style="color: #63656e"
+                target="_blank">
+                {{ t('管理') }}
+              </a>
+            </BkDropdownItem>
+          </MoreActionExtend>
+        </template>
+      </BkTableColumn>
+    </DbTable>
     <DbSideslider
       v-model:is-show="isShowExpandsion"
       background-color="#F5F7FA"
@@ -527,112 +523,6 @@
 </script>
 <style lang="less">
   .pulsar-list-page {
-    height: 100%;
-    padding: 24px 0;
-    margin: 0 24px;
-    overflow: hidden;
-
-    .header-action {
-      display: flex;
-      flex-wrap: wrap;
-      margin-bottom: 16px;
-
-      .bk-search-select {
-        max-width: 500px;
-        min-width: 320px;
-        margin-left: auto;
-      }
-    }
-
-    .table-wrapper {
-      background-color: white;
-
-      .cluster-name-box {
-        display: flex;
-        align-items: center;
-
-        & > * {
-          vertical-align: middle;
-        }
-      }
-
-      .db-table,
-      .audit-render-list,
-      .bk-nested-loading {
-        height: 100%;
-      }
-    }
-
-    .is-offline {
-      * {
-        color: #c4c6cc !important;
-      }
-
-      a,
-      i,
-      .bk-button.bk-button-primary .bk-button-text {
-        color: #3a84ff !important;
-      }
-    }
-
-    td div.vxe-cell .db-icon-copy {
-      display: none;
-      margin-top: 2px;
-      margin-left: 4px;
-      color: #3a84ff;
-      vertical-align: middle;
-      cursor: pointer;
-    }
-
-    .db-icon-more {
-      display: block;
-      font-size: @font-size-normal;
-      font-weight: bold;
-      color: @default-color;
-      cursor: pointer;
-
-      &:hover {
-        background-color: @bg-disable;
-        border-radius: 2px;
-      }
-    }
-
-    th:hover .db-icon-copy,
-    td:hover .db-icon-copy {
-      display: inline-block !important;
-    }
-  }
-
-  .pulsar-manage-sideslider {
-    .bk-modal-content {
-      max-height: calc(100vh - 120px);
-      overflow-y: auto;
-    }
-  }
-</style>
-<style lang="less" scoped>
-  .pulsar-list-page {
-    :deep(.vxe-cell) {
-      .domain {
-        display: flex;
-        align-items: center;
-      }
-
-      .db-icon-visible1 {
-        display: none;
-        margin-top: 2px;
-        margin-left: 4px;
-        color: @primary-color;
-        cursor: pointer;
-      }
-    }
-
-    :deep(tr:hover) {
-      .db-icon-visible1 {
-        display: inline-block !important;
-      }
-    }
-
     .header-action {
       display: flex;
       flex-wrap: wrap;
@@ -642,6 +532,20 @@
         max-width: 500px;
         min-width: 320px;
         margin-left: auto;
+      }
+    }
+
+    tr {
+      &.is-new {
+        td {
+          background-color: #f3fcf5 !important;
+        }
+      }
+
+      &.is-offline {
+        .vxe-cell {
+          color: #c4c6cc !important;
+        }
       }
     }
   }
