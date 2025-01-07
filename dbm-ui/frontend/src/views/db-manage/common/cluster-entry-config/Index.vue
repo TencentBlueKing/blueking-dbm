@@ -23,18 +23,19 @@
     :quick-close="false"
     :show-mask="false"
     :title="t('查看域名/IP对应关系')"
-    :width="640"
+    :width="548"
     @closed="() => (isShow = false)">
     <BkLoading :loading="loading">
       <BkTable
         ref="tableRef"
         :cell-class="generateCellClass"
         class="entry-config-table-box"
-        :data="tableData">
+        :data="tableData"
+        :show-overflow="false">
         <BkTableColumn
           field="entry"
           :label="t('访问入口')"
-          :width="263">
+          :width="260">
           <template #default="{ data }: { data: ClusterEntryInfo }">
             <BkTag
               v-if="data.role === 'master_entry'"
@@ -53,7 +54,9 @@
         </BkTableColumn>
         <BkTableColumn
           field="ips"
-          label="Bind IP">
+          label="Bind IP"
+          :show-overflow="false"
+          :width="240">
           <template #default="{ data }: { data: ClusterEntryInfo }">
             <RenderBindIps
               v-if="data.ips"

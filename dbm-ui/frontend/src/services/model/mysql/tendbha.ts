@@ -68,7 +68,7 @@ export default class Tendbha extends ClusterBase {
   immute_domain: string;
   major_version: string;
   master_domain: string;
-  masters: ClusterListNode[];
+  masters: (ClusterListNode & { is_stand_by: boolean })[];
   operations: ClusterListOperation[];
   permission: {
     access_entry_edit: boolean;
@@ -84,7 +84,7 @@ export default class Tendbha extends ClusterBase {
   proxies: ClusterListNode[];
   region: string;
   slave_domain: string;
-  slaves: ClusterListNode[];
+  slaves: (ClusterListNode & { is_stand_by: boolean })[];
   status: string;
   update_at: string;
   updater: string;

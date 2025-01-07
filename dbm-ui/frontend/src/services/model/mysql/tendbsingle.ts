@@ -65,7 +65,7 @@ export default class Tendbsingle extends ClusterBase {
   id: number;
   major_version: string;
   master_domain: string;
-  masters: ClusterListNode[];
+  masters: (ClusterListNode & { is_stand_by: boolean })[];
   operations: ClusterListOperation[];
   permission: {
     mysql_destroy: boolean;

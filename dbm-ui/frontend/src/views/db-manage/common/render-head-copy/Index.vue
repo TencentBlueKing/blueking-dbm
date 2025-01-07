@@ -55,24 +55,22 @@
   import tippy, { type Instance, type SingleTarget } from 'tippy.js';
   import { useI18n } from 'vue-i18n';
 
-  interface CopyItem {
-    label?: string;
-    field: keyof T;
-  }
-
-  interface Props {
+  export interface Props<T> {
     hasSelected: boolean;
-    config: CopyItem[];
+    config: {
+      label?: string;
+      field: keyof T;
+    }[];
   }
 
-  interface Emits {
+  export interface Emits<T> {
     (e: 'handleCopySelected', field: keyof T): void;
     (e: 'handleCopyAll', field: keyof T): void;
   }
 
-  defineProps<Props>();
+  defineProps<Props<T>>();
 
-  const emits = defineEmits<Emits>();
+  const emits = defineEmits<Emits<T>>();
 
   const { t } = useI18n();
 
@@ -124,7 +122,6 @@
 <style lang="less">
   .render-head-copy {
     .db-icon-copy {
-      display: none;
       margin-left: 4px;
       color: @primary-color;
       cursor: pointer;

@@ -12,7 +12,7 @@
 -->
 
 <template>
-  <div class="riak-list-container">
+  <div class="riak-cluster-list-page">
     <div class="header-action">
       <AuthButton
         v-db-console="'riak.clusterManage.instanceApply'"
@@ -189,7 +189,6 @@
     </DbSideslider>
   </div>
 </template>
-
 <script setup lang="tsx">
   import type { ISearchItem } from 'bkui-vue/lib/search-select/utils';
   import dayjs from 'dayjs';
@@ -477,15 +476,8 @@
     },
   });
 </script>
-
-<style>
-  .info-box-cluster-name {
-    color: #313238;
-  }
-</style>
-
-<style lang="less" scoped>
-  .riak-list-container {
+<style lang="less">
+  .riak-cluster-list-page {
     height: 100%;
     padding: 24px 0;
     margin: 0 24px;
@@ -509,42 +501,22 @@
       }
     }
 
-    :deep(.riak-list-table) {
-      .is-new {
+    tr {
+      &.is-new {
         td {
           background-color: #f3fcf5 !important;
         }
       }
 
-      .is-offline {
+      &.is-offline {
         .vxe-cell {
           color: #c4c6cc !important;
         }
       }
-
-      .new-tag {
-        height: 19px;
-      }
-
-      .disabled-tag {
-        width: 38px;
-        height: 16px;
-        margin-left: 4px;
-      }
-
-      td .vxe-cell .db-icon-copy {
-        display: none;
-      }
-
-      td:hover {
-        .db-icon-copy {
-          display: inline-block !important;
-          margin-left: 4px;
-          color: #3a84ff;
-          vertical-align: middle;
-          cursor: pointer;
-        }
-      }
     }
+  }
+
+  .info-box-cluster-name {
+    color: #313238;
   }
 </style>

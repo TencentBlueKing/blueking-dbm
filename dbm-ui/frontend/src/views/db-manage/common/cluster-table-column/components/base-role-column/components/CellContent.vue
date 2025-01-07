@@ -15,7 +15,13 @@
                   ? 'rgb(255 130 4)'
                   : '',
             }">
-            {{ instanceItem.ip }}:{{ instanceItem.port }}
+            <slot
+              name="default"
+              v-bind="{
+                data: instanceItem,
+              }">
+              {{ instanceItem.ip }}:{{ instanceItem.port }}
+            </slot>
           </span>
           <template #append>
             <BkTag
@@ -24,7 +30,10 @@
               {{ t('不可用') }}
             </BkTag>
             <slot
-              v-bind="{ data: instanceItem }"
+              v-if="data.length > 1"
+              v-bind="{
+                data: instanceItem,
+              }"
               name="nodeTag" />
             <span
               v-if="index === 0"
@@ -115,6 +124,7 @@
   const props = defineProps<Props>();
 
   defineSlots<{
+    default: (params: { data: { ip: string; port: number; status: string } }) => VNode;
     nodeTag: (params: { data: { ip: string; port: number; status: string } }) => VNode;
     instanceList: () => VNode;
   }>();

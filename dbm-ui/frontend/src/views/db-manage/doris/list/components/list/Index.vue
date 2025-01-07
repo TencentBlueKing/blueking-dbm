@@ -40,192 +40,188 @@
         :validate-values="validateSearchValues"
         @change="handleSearchValueChange" />
     </div>
-    <div
-      class="table-wrapper"
-      :class="{ 'is-shrink-table': isStretchLayoutOpen }">
-      <DbTable
-        ref="tableRef"
-        :data-source="getDorisList"
-        :pagination-extra="paginationExtra"
-        releate-url-query
-        :row-class="getRowClass"
-        selectable
-        :settings="tableSetting"
-        :show-overflow="false"
-        @clear-search="clearSearchValue"
-        @column-filter="columnFilterChange"
-        @column-sort="columnSortChange"
-        @selection="handleSelection"
-        @setting-change="updateTableSettings">
-        <IdColumn :cluster-type="ClusterTypes.DORIS" />
-        <MasterDomainColumn
-          :cluster-type="ClusterTypes.DORIS"
-          field="domain"
-          :get-table-instance="getTableInstance"
-          :label="t('访问入口')"
-          :selected-list="selected"
-          @go-detail="handleToDetails"
-          @refresh="fetchTableData" />
-        <ClusterNameColumn
-          :cluster-type="ClusterTypes.DORIS"
-          :get-table-instance="getTableInstance"
-          :selected-list="selected"
-          @refresh="fetchTableData" />
-        <StatusColumn :cluster-type="ClusterTypes.DORIS" />
-        <ClusterStatsColumn :cluster-type="ClusterTypes.DORIS" />
-        <RoleColumn
-          :cluster-type="ClusterTypes.DORIS"
-          field="doris_follower"
-          :get-table-instance="getTableInstance"
-          :label="t('Follower节点')"
-          :search-ip="batchSearchIpInatanceList"
-          :selected-list="selected" />
-        <RoleColumn
-          :cluster-type="ClusterTypes.DORIS"
-          field="doris_observer"
-          :get-table-instance="getTableInstance"
-          :label="t('Observer节点')"
-          :search-ip="batchSearchIpInatanceList"
-          :selected-list="selected" />
-        <RoleColumn
-          :cluster-type="ClusterTypes.DORIS"
-          field="doris_backend_hot"
-          :get-table-instance="getTableInstance"
-          :label="t('热节点')"
-          :search-ip="batchSearchIpInatanceList"
-          :selected-list="selected" />
-        <RoleColumn
-          :cluster-type="ClusterTypes.DORIS"
-          field="doris_backend_cold"
-          :get-table-instance="getTableInstance"
-          :label="t('冷节点')"
-          :search-ip="batchSearchIpInatanceList"
-          :selected-list="selected" />
-        <CommonColumn :cluster-type="ClusterTypes.DORIS" />
-        <BkTableColumn
-          :fixed="isStretchLayoutOpen ? false : 'right'"
-          :label="t('操作')"
-          :min-width="200"
-          :show-overflow="false">
-          <template #default="{ data }: { data: DorisModel }">
-            <template v-if="data.isOnline">
-              <OperationBtnStatusTips
-                v-db-console="'doris.clusterManage.scaleUp'"
-                :data="data">
-                <AuthButton
-                  action-id="doris_scale_up"
-                  :disabled="data.operationDisabled"
-                  :permission="data.permission.doris_scale_up"
-                  :resource="data.id"
-                  text
-                  theme="primary"
-                  @click="handleShowExpandsion(data)">
-                  {{ t('扩容') }}
-                </AuthButton>
-              </OperationBtnStatusTips>
-              <OperationBtnStatusTips
-                v-db-console="'doris.clusterManage.scaleDown'"
-                :data="data">
-                <AuthButton
-                  action-id="doris_shrink"
-                  class="ml-8"
-                  :disabled="data.operationDisabled"
-                  :permission="data.permission.doris_shrink"
-                  :resource="data.id"
-                  text
-                  theme="primary"
-                  @click="handleShowShrink(data)">
-                  {{ t('缩容') }}
-                </AuthButton>
-              </OperationBtnStatusTips>
+    <DbTable
+      ref="tableRef"
+      :data-source="getDorisList"
+      :pagination-extra="paginationExtra"
+      releate-url-query
+      :row-class="getRowClass"
+      selectable
+      :settings="tableSetting"
+      :show-overflow="false"
+      @clear-search="clearSearchValue"
+      @column-filter="columnFilterChange"
+      @column-sort="columnSortChange"
+      @selection="handleSelection"
+      @setting-change="updateTableSettings">
+      <IdColumn :cluster-type="ClusterTypes.DORIS" />
+      <MasterDomainColumn
+        :cluster-type="ClusterTypes.DORIS"
+        field="domain"
+        :get-table-instance="getTableInstance"
+        :label="t('访问入口')"
+        :selected-list="selected"
+        @go-detail="handleToDetails"
+        @refresh="fetchTableData" />
+      <ClusterNameColumn
+        :cluster-type="ClusterTypes.DORIS"
+        :get-table-instance="getTableInstance"
+        :selected-list="selected"
+        @refresh="fetchTableData" />
+      <StatusColumn :cluster-type="ClusterTypes.DORIS" />
+      <ClusterStatsColumn :cluster-type="ClusterTypes.DORIS" />
+      <RoleColumn
+        :cluster-type="ClusterTypes.DORIS"
+        field="doris_follower"
+        :get-table-instance="getTableInstance"
+        :label="t('Follower节点')"
+        :search-ip="batchSearchIpInatanceList"
+        :selected-list="selected" />
+      <RoleColumn
+        :cluster-type="ClusterTypes.DORIS"
+        field="doris_observer"
+        :get-table-instance="getTableInstance"
+        :label="t('Observer节点')"
+        :search-ip="batchSearchIpInatanceList"
+        :selected-list="selected" />
+      <RoleColumn
+        :cluster-type="ClusterTypes.DORIS"
+        field="doris_backend_hot"
+        :get-table-instance="getTableInstance"
+        :label="t('热节点')"
+        :search-ip="batchSearchIpInatanceList"
+        :selected-list="selected" />
+      <RoleColumn
+        :cluster-type="ClusterTypes.DORIS"
+        field="doris_backend_cold"
+        :get-table-instance="getTableInstance"
+        :label="t('冷节点')"
+        :search-ip="batchSearchIpInatanceList"
+        :selected-list="selected" />
+      <CommonColumn :cluster-type="ClusterTypes.DORIS" />
+      <BkTableColumn
+        :fixed="isStretchLayoutOpen ? false : 'right'"
+        :label="t('操作')"
+        :min-width="200"
+        :show-overflow="false">
+        <template #default="{ data }: { data: DorisModel }">
+          <template v-if="data.isOnline">
+            <OperationBtnStatusTips
+              v-db-console="'doris.clusterManage.scaleUp'"
+              :data="data">
               <AuthButton
-                v-db-console="'doris.clusterManage.getAccess'"
-                action-id="doris_access_entry_view"
-                class="ml-8"
-                :disabled="data.isOffline"
-                :permission="data.permission.doris_access_entry_view"
+                action-id="doris_scale_up"
+                :disabled="data.operationDisabled"
+                :permission="data.permission.doris_scale_up"
                 :resource="data.id"
                 text
                 theme="primary"
-                @click="handleShowPassword(data)">
-                {{ t('获取访问方式') }}
+                @click="handleShowExpandsion(data)">
+                {{ t('扩容') }}
               </AuthButton>
-              <MoreActionExtend>
-                <BkDropdownItem v-db-console="'doris.clusterManage.manage'">
-                  <a
-                    :href="data.access_url"
-                    target="_blank">
-                    {{ t('管理') }}
-                  </a>
-                </BkDropdownItem>
-                <BkDropdownItem v-db-console="'doris.clusterManage.disable'">
-                  <OperationBtnStatusTips :data="data">
-                    <AuthButton
-                      action-id="doris_enable_disable"
-                      :disabled="Boolean(data.operationTicketId)"
-                      :permission="data.permission.doris_enable_disable"
-                      :resource="data.id"
-                      text
-                      theme="primary"
-                      @click="handleDisableCluster([data])">
-                      {{ t('禁用') }}
-                    </AuthButton>
-                  </OperationBtnStatusTips>
-                </BkDropdownItem>
-                <BkDropdownItem v-db-console="'doris.clusterManage.delete'">
-                  <OperationBtnStatusTips :data="data">
-                    <AuthButton
-                      v-bk-tooltips="{
-                        disabled: data.isOffline,
-                        content: t('请先禁用集群'),
-                      }"
-                      action-id="doris_destroy"
-                      :disabled="data.isOnline || Boolean(data.operationTicketId)"
-                      :permission="data.permission.doris_destroy"
-                      :resource="data.id"
-                      text
-                      theme="primary"
-                      @click="handleDeleteCluster([data])">
-                      {{ t('删除') }}
-                    </AuthButton>
-                  </OperationBtnStatusTips>
-                </BkDropdownItem>
-              </MoreActionExtend>
-            </template>
-            <template v-else>
-              <OperationBtnStatusTips
-                v-db-console="'doris.clusterManage.enable'"
-                :data="data">
-                <AuthButton
-                  action-id="doris_enable_disable"
-                  :permission="data.permission.doris_enable_disable"
-                  :resource="data.id"
-                  text
-                  theme="primary"
-                  @click="handleEnableCluster([data])">
-                  {{ t('启用') }}
-                </AuthButton>
-              </OperationBtnStatusTips>
-              <OperationBtnStatusTips
-                v-db-console="'doris.clusterManage.delete'"
-                :data="data">
-                <AuthButton
-                  action-id="doris_destroy"
-                  class="ml-8"
-                  :disabled="Boolean(data.operationTicketId)"
-                  :permission="data.permission.doris_destroy"
-                  :resource="data.id"
-                  text
-                  theme="primary"
-                  @click="handleDeleteCluster([data])">
-                  {{ t('删除') }}
-                </AuthButton>
-              </OperationBtnStatusTips>
-            </template>
+            </OperationBtnStatusTips>
+            <OperationBtnStatusTips
+              v-db-console="'doris.clusterManage.scaleDown'"
+              :data="data">
+              <AuthButton
+                action-id="doris_shrink"
+                class="ml-8"
+                :disabled="data.operationDisabled"
+                :permission="data.permission.doris_shrink"
+                :resource="data.id"
+                text
+                theme="primary"
+                @click="handleShowShrink(data)">
+                {{ t('缩容') }}
+              </AuthButton>
+            </OperationBtnStatusTips>
+            <AuthButton
+              v-db-console="'doris.clusterManage.getAccess'"
+              action-id="doris_access_entry_view"
+              class="ml-8"
+              :disabled="data.isOffline"
+              :permission="data.permission.doris_access_entry_view"
+              :resource="data.id"
+              text
+              theme="primary"
+              @click="handleShowPassword(data)">
+              {{ t('获取访问方式') }}
+            </AuthButton>
+            <MoreActionExtend>
+              <BkDropdownItem v-db-console="'doris.clusterManage.manage'">
+                <a
+                  :href="data.access_url"
+                  target="_blank">
+                  {{ t('管理') }}
+                </a>
+              </BkDropdownItem>
+              <BkDropdownItem v-db-console="'doris.clusterManage.disable'">
+                <OperationBtnStatusTips :data="data">
+                  <AuthButton
+                    action-id="doris_enable_disable"
+                    :disabled="Boolean(data.operationTicketId)"
+                    :permission="data.permission.doris_enable_disable"
+                    :resource="data.id"
+                    text
+                    theme="primary"
+                    @click="handleDisableCluster([data])">
+                    {{ t('禁用') }}
+                  </AuthButton>
+                </OperationBtnStatusTips>
+              </BkDropdownItem>
+              <BkDropdownItem v-db-console="'doris.clusterManage.delete'">
+                <OperationBtnStatusTips :data="data">
+                  <AuthButton
+                    v-bk-tooltips="{
+                      disabled: data.isOffline,
+                      content: t('请先禁用集群'),
+                    }"
+                    action-id="doris_destroy"
+                    :disabled="data.isOnline || Boolean(data.operationTicketId)"
+                    :permission="data.permission.doris_destroy"
+                    :resource="data.id"
+                    text
+                    theme="primary"
+                    @click="handleDeleteCluster([data])">
+                    {{ t('删除') }}
+                  </AuthButton>
+                </OperationBtnStatusTips>
+              </BkDropdownItem>
+            </MoreActionExtend>
           </template>
-        </BkTableColumn>
-      </DbTable>
-    </div>
+          <template v-else>
+            <OperationBtnStatusTips
+              v-db-console="'doris.clusterManage.enable'"
+              :data="data">
+              <AuthButton
+                action-id="doris_enable_disable"
+                :permission="data.permission.doris_enable_disable"
+                :resource="data.id"
+                text
+                theme="primary"
+                @click="handleEnableCluster([data])">
+                {{ t('启用') }}
+              </AuthButton>
+            </OperationBtnStatusTips>
+            <OperationBtnStatusTips
+              v-db-console="'doris.clusterManage.delete'"
+              :data="data">
+              <AuthButton
+                action-id="doris_destroy"
+                class="ml-8"
+                :disabled="Boolean(data.operationTicketId)"
+                :permission="data.permission.doris_destroy"
+                :resource="data.id"
+                text
+                theme="primary"
+                @click="handleDeleteCluster([data])">
+                {{ t('删除') }}
+              </AuthButton>
+            </OperationBtnStatusTips>
+          </template>
+        </template>
+      </BkTableColumn>
+    </DbTable>
     <DbSideslider
       v-model:is-show="isShowExpandsion"
       :title="t('xx扩容【name】', { title: 'Doris', name: operationData?.cluster_name })"
@@ -560,73 +556,17 @@
       }
     }
 
-    .table-wrapper {
-      background-color: white;
-
-      .db-table,
-      .audit-render-list,
-      .bk-nested-loading {
-        height: 100%;
-      }
-    }
-
-    .db-icon-more {
-      display: block;
-      font-size: @font-size-normal;
-      font-weight: bold;
-      color: @default-color;
-      cursor: pointer;
-
-      &:hover {
-        background-color: @bg-disable;
-        border-radius: 2px;
-      }
-    }
-
-    .is-offline {
-      * {
-        color: #c4c6cc !important;
+    tr {
+      &.is-new {
+        td {
+          background-color: #f3fcf5 !important;
+        }
       }
 
-      a,
-      i,
-      .bk-button.bk-button-primary .bk-button-text {
-        color: #3a84ff !important;
-      }
-    }
-
-    .db-icon-copy,
-    .db-icon-visible1 {
-      display: none;
-      margin-top: 1px;
-      margin-left: 4px;
-      color: @primary-color;
-      cursor: pointer;
-    }
-
-    tr:hover {
-      .db-icon-copy,
-      .db-icon-visible1 {
-        display: inline-block !important;
-      }
-    }
-  }
-</style>
-
-<style lang="less" scoped>
-  .doris-list-page {
-    :deep(.vxe-cell) {
-      .db-icon-edit {
-        display: none;
-        margin-left: 4px;
-        color: @primary-color;
-        cursor: pointer;
-      }
-    }
-
-    :deep(tr:hover) {
-      .db-icon-edit {
-        display: inline-block !important;
+      &.is-offline {
+        .vxe-cell {
+          color: #c4c6cc !important;
+        }
       }
     }
   }

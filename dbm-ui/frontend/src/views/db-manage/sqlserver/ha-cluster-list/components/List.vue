@@ -1,5 +1,5 @@
 <template>
-  <div class="sqlserver-ha-cluster-list">
+  <div class="sqlserver-ha-cluster-list-page">
     <div class="header-action">
       <div class="mb-16">
         <BkButton
@@ -40,137 +40,133 @@
         :validate-values="validateSearchValues"
         @change="handleSearchValueChange" />
     </div>
-    <div
-      class="table-wrapper"
-      :class="{ 'is-shrink-table': isStretchLayoutOpen }">
-      <DbTable
-        ref="tableRef"
-        :data-source="getHaClusterList"
-        releate-url-query
-        :row-class="setRowClass"
-        selectable
-        :settings="settings"
-        :show-overflow="false"
-        show-overflow-tips
-        @clear-search="clearSearchValue"
-        @column-filter="columnFilterChange"
-        @column-sort="columnSortChange"
-        @selection="handleSelection"
-        @setting-change="updateTableSettings">
-        <IdColumn :cluster-type="ClusterTypes.SQLSERVER_HA" />
-        <MasterDomainColumn
-          :cluster-type="ClusterTypes.SQLSERVER_HA"
-          field="master_domain"
-          :get-table-instance="getTableInstance"
-          :label="t('主访问入口')"
-          :selected-list="selected"
-          @go-detail="handleToDetails"
-          @refresh="fetchData" />
-        <ClusterNameColumn
-          :cluster-type="ClusterTypes.SQLSERVER_HA"
-          :get-table-instance="getTableInstance"
-          :selected-list="selected"
-          @refresh="fetchData" />
-        <SlaveDomainColumn
-          :cluster-type="ClusterTypes.SQLSERVER_HA"
-          :get-table-instance="getTableInstance"
-          :selected-list="selected" />
-        <StatusColumn :cluster-type="ClusterTypes.SQLSERVER_HA" />
-        <ClusterStatsColumn :cluster-type="ClusterTypes.SQLSERVER_HA" />
-        <RoleColumn
-          :cluster-type="ClusterTypes.SQLSERVER_HA"
-          field="masters"
-          :get-table-instance="getTableInstance"
-          label="Master"
-          :search-ip="batchSearchIpInatanceList"
-          :selected-list="selected" />
-        <RoleColumn
-          :cluster-type="ClusterTypes.SQLSERVER_HA"
-          field="slaves"
-          :get-table-instance="getTableInstance"
-          label="Slave"
-          :search-ip="batchSearchIpInatanceList"
-          :selected-list="selected" />
-        <BkTableColumn
-          field="sync_mode"
-          :label="t('同步模式')"
-          :width="120">
-          <template #default="{data}: {data: SqlServerHaModel}">
-            {{ data.sync_mode || '--' }}
-          </template>
-        </BkTableColumn>
-        <CommonColumn :cluster-type="ClusterTypes.SQLSERVER_HA" />
-        <BkTableColumn
-          :fixed="isStretchLayoutOpen ? false : 'right'"
-          :label="t('操作')"
-          :min-width="240"
-          :show-overflow="false">
-          <template #default="{data}: {data: SqlServerHaModel}">
+    <DbTable
+      ref="tableRef"
+      :data-source="getHaClusterList"
+      releate-url-query
+      :row-class="setRowClass"
+      selectable
+      :settings="settings"
+      :show-overflow="false"
+      show-overflow-tips
+      @clear-search="clearSearchValue"
+      @column-filter="columnFilterChange"
+      @column-sort="columnSortChange"
+      @selection="handleSelection"
+      @setting-change="updateTableSettings">
+      <IdColumn :cluster-type="ClusterTypes.SQLSERVER_HA" />
+      <MasterDomainColumn
+        :cluster-type="ClusterTypes.SQLSERVER_HA"
+        field="master_domain"
+        :get-table-instance="getTableInstance"
+        :label="t('主访问入口')"
+        :selected-list="selected"
+        @go-detail="handleToDetails"
+        @refresh="fetchData" />
+      <ClusterNameColumn
+        :cluster-type="ClusterTypes.SQLSERVER_HA"
+        :get-table-instance="getTableInstance"
+        :selected-list="selected"
+        @refresh="fetchData" />
+      <SlaveDomainColumn
+        :cluster-type="ClusterTypes.SQLSERVER_HA"
+        :get-table-instance="getTableInstance"
+        :selected-list="selected" />
+      <StatusColumn :cluster-type="ClusterTypes.SQLSERVER_HA" />
+      <ClusterStatsColumn :cluster-type="ClusterTypes.SQLSERVER_HA" />
+      <RoleColumn
+        :cluster-type="ClusterTypes.SQLSERVER_HA"
+        field="masters"
+        :get-table-instance="getTableInstance"
+        label="Master"
+        :search-ip="batchSearchIpInatanceList"
+        :selected-list="selected" />
+      <RoleColumn
+        :cluster-type="ClusterTypes.SQLSERVER_HA"
+        field="slaves"
+        :get-table-instance="getTableInstance"
+        label="Slave"
+        :search-ip="batchSearchIpInatanceList"
+        :selected-list="selected" />
+      <BkTableColumn
+        field="sync_mode"
+        :label="t('同步模式')"
+        :width="120">
+        <template #default="{data}: {data: SqlServerHaModel}">
+          {{ data.sync_mode || '--' }}
+        </template>
+      </BkTableColumn>
+      <CommonColumn :cluster-type="ClusterTypes.SQLSERVER_HA" />
+      <BkTableColumn
+        :fixed="isStretchLayoutOpen ? false : 'right'"
+        :label="t('操作')"
+        :min-width="240"
+        :show-overflow="false">
+        <template #default="{data}: {data: SqlServerHaModel}">
+          <BkButton
+            v-db-console="'sqlserver.haClusterList.authorize'"
+            class="mr-8"
+            :disabled="data.isOffline"
+            text
+            theme="primary"
+            @click="handleShowAuthorize([data])">
+            {{ t('授权') }}
+          </BkButton>
+          <OperationBtnStatusTips
+            v-db-console="'sqlserver.haClusterList.enable'"
+            :data="data">
             <BkButton
-              v-db-console="'sqlserver.haClusterList.authorize'"
               class="mr-8"
-              :disabled="data.isOffline"
+              :disabled="data.isStarting || data.isOffline"
               text
               theme="primary"
-              @click="handleShowAuthorize([data])">
-              {{ t('授权') }}
+              @click="handleEnableCluster([data])">
+              {{ t('启用') }}
             </BkButton>
-            <OperationBtnStatusTips
-              v-db-console="'sqlserver.haClusterList.enable'"
-              :data="data">
-              <BkButton
-                class="mr-8"
-                :disabled="data.isStarting || data.isOffline"
-                text
-                theme="primary"
-                @click="handleEnableCluster([data])">
-                {{ t('启用') }}
-              </BkButton>
-            </OperationBtnStatusTips>
-            <OperationBtnStatusTips
-              v-db-console="'sqlserver.haClusterList.reset'"
-              :data="data">
-              <BkButton
-                class="mr-8"
-                :disabled="data.isOnline || Boolean(data.operationTicketId)"
-                text
-                theme="primary"
-                @click="handleResetCluster(data)">
-                {{ t('重置') }}
-              </BkButton>
-            </OperationBtnStatusTips>
-            <MoreActionExtend>
-              <BkDropdownItem v-db-console="'sqlserver.haClusterList.disable'">
-                <OperationBtnStatusTips :data="data">
-                  <BkButton
-                    :disabled="data.isOffline || Boolean(data.operationTicketId)"
-                    text
-                    theme="primary"
-                    @click="handleDisableCluster([data])">
-                    {{ t('禁用') }}
-                  </BkButton>
-                </OperationBtnStatusTips>
-              </BkDropdownItem>
-              <BkDropdownItem v-db-console="'sqlserver.haClusterList.delete'">
-                <OperationBtnStatusTips :data="data">
-                  <BkButton
-                    v-bk-tooltips="{
-                      disabled: data.isOffline,
-                      content: t('请先禁用集群'),
-                    }"
-                    :disabled="data.isOnline || Boolean(data.operationTicketId)"
-                    text
-                    theme="primary"
-                    @click="handleDeleteCluster([data])">
-                    {{ t('删除') }}
-                  </BkButton>
-                </OperationBtnStatusTips>
-              </BkDropdownItem>
-            </MoreActionExtend>
-          </template>
-        </BkTableColumn>
-      </DbTable>
-    </div>
+          </OperationBtnStatusTips>
+          <OperationBtnStatusTips
+            v-db-console="'sqlserver.haClusterList.reset'"
+            :data="data">
+            <BkButton
+              class="mr-8"
+              :disabled="data.isOnline || Boolean(data.operationTicketId)"
+              text
+              theme="primary"
+              @click="handleResetCluster(data)">
+              {{ t('重置') }}
+            </BkButton>
+          </OperationBtnStatusTips>
+          <MoreActionExtend>
+            <BkDropdownItem v-db-console="'sqlserver.haClusterList.disable'">
+              <OperationBtnStatusTips :data="data">
+                <BkButton
+                  :disabled="data.isOffline || Boolean(data.operationTicketId)"
+                  text
+                  theme="primary"
+                  @click="handleDisableCluster([data])">
+                  {{ t('禁用') }}
+                </BkButton>
+              </OperationBtnStatusTips>
+            </BkDropdownItem>
+            <BkDropdownItem v-db-console="'sqlserver.haClusterList.delete'">
+              <OperationBtnStatusTips :data="data">
+                <BkButton
+                  v-bk-tooltips="{
+                    disabled: data.isOffline,
+                    content: t('请先禁用集群'),
+                  }"
+                  :disabled="data.isOnline || Boolean(data.operationTicketId)"
+                  text
+                  theme="primary"
+                  @click="handleDeleteCluster([data])">
+                  {{ t('删除') }}
+                </BkButton>
+              </OperationBtnStatusTips>
+            </BkDropdownItem>
+          </MoreActionExtend>
+        </template>
+      </BkTableColumn>
+    </DbTable>
   </div>
   <!-- 集群授权 -->
   <ClusterAuthorize
@@ -494,7 +490,7 @@
 <style lang="less">
   @import '@styles/mixins.less';
 
-  .sqlserver-ha-cluster-list {
+  .sqlserver-ha-cluster-list-page {
     height: 100%;
     padding: 24px 0;
     margin: 0 24px;
@@ -512,38 +508,17 @@
       }
     }
 
-    td .vxe-cell {
-      .db-icon-copy,
-      .db-icon-link,
-      .db-icon-visible1 {
-        display: none;
-        margin-left: 4px;
-        color: @primary-color;
-        cursor: pointer;
-      }
-
-      .operations-more {
-        .db-icon-more {
-          display: block;
-          font-size: @font-size-normal;
-          font-weight: bold;
-          color: @default-color;
-          cursor: pointer;
-
-          &:hover {
-            background-color: @bg-disable;
-            border-radius: 2px;
-          }
+    tr {
+      &.is-new {
+        td {
+          background-color: #f3fcf5 !important;
         }
       }
-    }
 
-    th:hover,
-    td:hover {
-      .db-icon-copy,
-      .db-icon-link,
-      .db-icon-visible1 {
-        display: inline-block !important;
+      &.is-offline {
+        .vxe-cell {
+          color: #c4c6cc !important;
+        }
       }
     }
   }
