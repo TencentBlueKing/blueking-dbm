@@ -37,7 +37,6 @@
         :biz-id="currentBizId"
         button-text=""
         :data="selectedIps"
-        :os-types="[OSTypes.Linux]"
         service-mode="all"
         :show-view="false"
         @change="handleHostChange" />
@@ -75,7 +74,7 @@
 
   import { useGlobalBizs } from '@stores';
 
-  import { OSTypes, TicketTypes } from '@common/const';
+  import { TicketTypes } from '@common/const';
 
   import IpSelector from '@components/ip-selector/IpSelector.vue';
   import TicketRemark from '@components/ticket-remark/Index.vue';
