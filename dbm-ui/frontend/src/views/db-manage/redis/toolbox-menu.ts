@@ -66,7 +66,7 @@ export default [
           },
           {
             name: t('版本升级'),
-            id: 'RedisVersionUpgrade',
+            id: TicketTypes.REDIS_VERSION_UPDATE_ONLINE,
             parentId: 'common-manage',
             dbConsoleValue: 'redis.toolbox.versionUpgrade',
           },

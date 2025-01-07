@@ -114,7 +114,7 @@
     [TicketTypes.MYSQL_LOCAL_UPGRADE]: 'MySQLVersionUpgrade', // MySQL 原地升级
     [TicketTypes.MYSQL_MIGRATE_UPGRADE]: 'MySQLVersionUpgrade', // MySQL 迁移升级
     [TicketTypes.TENDBCLUSTER_OPEN_AREA]: 'spiderOpenareaTemplate', // Spider 开区
-    [TicketTypes.REDIS_VERSION_UPDATE_ONLINE]: 'RedisVersionUpgrade', // redis 版本升级
+    [TicketTypes.REDIS_VERSION_UPDATE_ONLINE]: TicketTypes.REDIS_VERSION_UPDATE_ONLINE, // redis 版本升级
     [TicketTypes.SQLSERVER_DATA_MIGRATE]: 'sqlServerDataMigrate', // sqlserver 数据迁移
     [TicketTypes.SQLSERVER_CLEAR_DBS]: 'sqlServerDBClear', // sqlserver 清档
     [TicketTypes.SQLSERVER_DBRENAME]: 'sqlServerDBRename', // sqlserver DB重命名
