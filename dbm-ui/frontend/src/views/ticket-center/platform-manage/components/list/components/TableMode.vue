@@ -84,9 +84,7 @@
 
   const { value: datePickerValue, shortcutsRange } = useDatePicker();
 
-  const { value: searachSelectValue, searchSelectData } = useSearchSelect({
-    exclude: ['bk_biz_id'],
-  });
+  const { value: searachSelectValue, searchSelectData } = useSearchSelect();
 
   const dataSource = (params: ServiceParameters<typeof getTickets>) =>
     getTickets({
