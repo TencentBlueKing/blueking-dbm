@@ -113,4 +113,8 @@ export default class MonitorPolicy {
   get updateAtDisplay() {
     return utcDisplayTime(this.update_at);
   }
+
+  get isInner() {
+    return this.bk_biz_id === 0;
+  }
 }
