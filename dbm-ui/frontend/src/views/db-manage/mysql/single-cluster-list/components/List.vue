@@ -119,7 +119,7 @@
             <AuthButton
               v-db-console="'mysql.singleClusterList.exportData'"
               action-id="mysql_dump_data"
-              class="mr-16"
+              class="mr-8"
               :disabled="data.isOffline"
               :permission="data.permission.mysql_dump_data"
               :resource="data.id"
@@ -135,7 +135,6 @@
                 <OperationBtnStatusTips :data="data">
                   <AuthButton
                     action-id="mysql_enable_disable"
-                    class="mr-8"
                     :disabled="Boolean(data.operationTicketId)"
                     :permission="data.permission.mysql_enable_disable"
                     :resource="data.id"
@@ -151,7 +150,6 @@
                 <OperationBtnStatusTips :data="data">
                   <AuthButton
                     action-id="mysql_enable_disable"
-                    class="mr-8"
                     :disabled="data.isStarting"
                     :permission="data.permission.mysql_enable_disable"
                     :resource="data.id"
@@ -169,7 +167,6 @@
                       content: t('请先禁用集群'),
                     }"
                     action-id="mysql_destroy"
-                    class="mr-8"
                     :disabled="data.isOnline || Boolean(data.operationTicketId)"
                     :permission="data.permission.mysql_destroy"
                     :resource="data.id"

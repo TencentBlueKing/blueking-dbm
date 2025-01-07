@@ -32,7 +32,8 @@
           :columns="columns"
           :data-source="dataSource"
           :row-class="updateRowClass"
-          :settings="settings" />
+          :settings="settings"
+          :show-overflow="false" />
       </BkLoading>
     </div>
     <EditRule
@@ -244,7 +245,7 @@
     {
       label: t('轮值表'),
       field: 'duty_arranges',
-      showOverflowTooltip: false,
+      showOverflow: false,
       width: 250,
       render: ({ data }: {data: DutyRuleModel}) => {
         let title = '';
@@ -281,14 +282,14 @@
     {
       label: t('生效时间'),
       field: 'effective_time',
-      showOverflowTooltip: true,
+      showOverflow: true,
       width: 240,
       render: ({ data }: { data: DutyRuleModel }) => <span>{data.effectiveTimeDisplay}</span>,
     },
     {
       label: t('更新时间'),
       field: 'update_at',
-      showOverflowTooltip: true,
+      showOverflow: true,
       sort: true,
       width: 240,
       render: ({ data }: { data: DutyRuleModel }) => <span>{data.updateAtDisplay}</span>,
@@ -296,7 +297,7 @@
     {
       label: t('更新人'),
       field: 'updater',
-      showOverflowTooltip: true,
+      showOverflow: true,
       width: 120,
     },
     {
@@ -329,9 +330,9 @@
     {
       label: t('操作'),
       fixed: 'right',
-      showOverflowTooltip: false,
+      showOverflow: false,
       field: '',
-      width: 180,
+      width: 100,
       render: ({ data }: {data: DutyRuleModel}) => (
       <div class="operate-box">
         <auth-button

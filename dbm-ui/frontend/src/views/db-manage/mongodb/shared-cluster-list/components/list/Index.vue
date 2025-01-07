@@ -165,7 +165,6 @@
                     disabled: data.isOffline,
                     content: t('请先禁用集群'),
                   }"
-                  class="ml-16"
                   :disabled="data.isOnline || Boolean(data.operationTicketId)"
                   text
                   theme="primary"
