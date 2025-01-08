@@ -1,4 +1,4 @@
-package validatestruct
+package validate
 
 import "regexp"
 

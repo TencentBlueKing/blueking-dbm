@@ -1,10 +1,9 @@
-package validatestruct
+package validate
 
 import (
+	"bk-dbconfig/pkg/util"
 	"log"
 	"testing"
-
-	"bk-dbconfig/pkg/util"
 
 	. "github.com/smartystreets/goconvey/convey"
 )

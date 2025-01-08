@@ -2,8 +2,7 @@ package api
 
 import (
 	"bk-dbconfig/pkg/constvar"
-
-	"dbm-services/common/go-pubpkg/validate"
+	"bk-dbconfig/pkg/validate"
 
 	"github.com/pkg/errors"
 )
