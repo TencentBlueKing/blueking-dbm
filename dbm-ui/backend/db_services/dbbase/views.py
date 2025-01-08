@@ -406,7 +406,9 @@ class DBBaseViewSet(viewsets.SystemViewSet):
 
         cluster_domain_qs = Cluster.objects.filter(bk_biz_id=3).values("immute_domain", "id")
         cluster_domain_map = {cluster["immute_domain"]: cluster["id"] for cluster in cluster_domain_qs}
-        cluster_stat_map = {cluster_domain_map[domain]: cap for domain, cap in cluster_stat_map.items()}
+        cluster_stat_map = {
+            cluster_domain_map[domain]: cap for domain, cap in cluster_stat_map.items() if domain in cluster_domain_map
+        }
 
         return Response(cluster_stat_map)
 

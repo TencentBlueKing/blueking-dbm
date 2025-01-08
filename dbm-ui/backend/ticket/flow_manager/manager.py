@@ -12,7 +12,6 @@ import logging
 
 from django.db import transaction
 
-from backend import env
 from backend.core import notify
 from backend.ticket import constants
 from backend.ticket.constants import FLOW_FINISHED_STATUS, FlowType, TicketStatus

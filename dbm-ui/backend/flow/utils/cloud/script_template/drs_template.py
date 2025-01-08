@@ -32,7 +32,7 @@ export DRS_WEBCONSOLE_USER="{{drs_webconsole_user}}"
 export DRS_WEBCONSOLE_PASSWORD="{{drs_webconsole_password}}"
 export DRS_PORT={{drs_port}}
 export DRS_LOG_JSON=true # 是否使用 json 格式日志
-export DRS_LOG_CONSOLE=true # 是否在 stdout 打印日志
+export DRS_LOG_CONSOLE=false # 是否在 stdout 打印日志
 export DRS_LOG_DEBUG=true # 启用 debug 日志级别
 export DRS_KEY_FILE="/home/mysql/db-remote-service/server.key"
 
@@ -40,7 +40,7 @@ export DRS_KEY_FILE="/home/mysql/db-remote-service/server.key"
 # 容器环境不要使用
 export DRS_TMYSQLPARSER_BIN="tmysqlparse"
 export DRS_LOG_FILE=test.log # 是否在文件打印日志, 文件路径
-export DRS_LOG_FILE_ROTATE_SIZE=10 # rotate 大小, MB
+export DRS_LOG_FILE_ROTATE_SIZE=20 # rotate 大小, MB
 export DRS_LOG_FILE_MAX_BACKUP=5 # 旧日志保留数
 export DRS_LOG_FILE_MAX_AGE=5 # 过期天数
 export DRS_CA_FILE=/home/mysql/db-remote-service/server.crt

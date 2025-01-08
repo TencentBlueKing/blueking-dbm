@@ -94,6 +94,9 @@ dbm:
     # Overrides the image tag whose default is the chart appVersion.
     tag: ""
 
+  terminationGracePeriodSeconds:
+    worker: 60
+
   serviceAccount:
     # Specifies whether a service account should be created
     create: true
