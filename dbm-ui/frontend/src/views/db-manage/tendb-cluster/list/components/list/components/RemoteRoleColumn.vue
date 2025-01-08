@@ -76,6 +76,7 @@
   </BaseRoleColumn>
 </template>
 <script setup lang="ts">
+  import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
 
   import TendbClusterModel from '@services/model/tendbcluster/tendbcluster';
@@ -88,22 +89,18 @@
 
   import { execCopy, messageWarn } from '@utils';
 
-  const props = defineProps<
-    Props<ClusterTypes.TENDBCLUSTER, 'remote_db' | 'remote_dr'> & {
-      field: 'remote_db' | 'remote_dr';
-    }
-  >();
+  const props = defineProps<Props<ClusterTypes.TENDBCLUSTER, 'remote_db' | 'remote_dr'>>();
 
   const { t } = useI18n();
 
   const handleCopy = (data: { ip: string; instance: string }[], field: 'ip' | 'instance') => {
-    const copyData = data.map((item) => item[field]);
+    const copyData = _.uniq(data.map((item) => item[field]));
     if (copyData.length < 1) {
       messageWarn('数据为空');
       return;
     }
     execCopy(
-      copyData.join(','),
+      copyData.join('\n'),
       t('成功复制n个', {
         n: copyData.length,
       }),

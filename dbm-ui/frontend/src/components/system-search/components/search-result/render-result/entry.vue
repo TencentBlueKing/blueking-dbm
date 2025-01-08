@@ -5,13 +5,11 @@
       :key="item.immute_domain"
       class="result-item"
       @click="handleGo(item)">
-      <TextOverflowLayout>
-        <div class="value-text">
-          <HightLightText
-            :key-word="formattedKeyword"
-            :text="item.immute_domain" />
-        </div>
-      </TextOverflowLayout>
+      <div class="value-text">
+        <HightLightText
+          :key-word="formattedKeyword"
+          :text="item.immute_domain" />
+      </div>
       <div class="biz-text">
         {{ bizIdNameMap[item.bk_biz_id] }}
       </div>
@@ -23,7 +21,6 @@
   import { batchSplitRegex } from '@common/regex';
 
   import { useRedirect } from '@components/system-search/hooks/useRedirect';
-  import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
 
   import HightLightText from './components/HightLightText.vue';
 
