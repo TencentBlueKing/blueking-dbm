@@ -117,10 +117,14 @@
   const { t } = useI18n();
 
   const getCopyList = (data: ClusterModel<T>[], field: 'ip' | 'instance') =>
-    data.reduce(
-      (result, item) =>
-        result.concat((item[props.field as keyof typeof item] as ClusterListNode[]).map((nodeItem) => nodeItem[field])),
-      [] as string[],
+    _.uniq(
+      data.reduce(
+        (result, item) =>
+          result.concat(
+            (item[props.field as keyof typeof item] as ClusterListNode[]).map((nodeItem) => nodeItem[field]),
+          ),
+        [] as string[],
+      ),
     );
 
   const getRoleInstanceList = (data: IRowData) => (_.get(data, props.field) || []) as ClusterListNode[];

@@ -1,6 +1,5 @@
-import { reactive, ref } from 'vue';
+import { onBeforeUnmount, reactive, ref } from 'vue';
 import { useRequest } from 'vue-request';
-import { onBeforeRouteLeave } from 'vue-router';
 
 import TicketModel from '@services/model/ticket/ticket';
 import { getTickets, getTicketStatus } from '@services/source/ticket';
@@ -92,7 +91,7 @@ const create = (dataSource: typeof getTickets, options?: { onSuccess?: (data: Ti
 
   eventBus.on('refreshTicketStatus', fetchTicketStatus);
 
-  onBeforeRouteLeave(() => {
+  onBeforeUnmount(() => {
     eventBus.off('refreshTicketStatus', fetchTicketStatus);
   });
 
@@ -113,7 +112,7 @@ export default (...args: Parameters<typeof create>) => {
     context = create(...args);
   }
 
-  onBeforeRouteLeave(() => {
+  onBeforeUnmount(() => {
     context = undefined;
   });
 

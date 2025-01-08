@@ -91,7 +91,10 @@
           :label="t('单号')"
           width="100">
           <template #default="{ data }: { data: IRowData }">
-            <RouterLink
+            <AuthRouterLink
+              action-id="ticket_view"
+              :permission="data.permission.ticket_view"
+              :resource="data.id"
               target="_blank"
               :to="{
                 name: 'ticketDetail',
@@ -101,7 +104,7 @@
               }"
               @click="(event: MouseEvent) => handleGoDetail(data, event)">
               {{ data.id }}
-            </RouterLink>
+            </AuthRouterLink>
           </template>
         </BkTableColumn>
         <BkTableColumn
