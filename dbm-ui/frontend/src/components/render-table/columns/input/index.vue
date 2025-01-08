@@ -22,6 +22,7 @@
       'is-clearable': clearable,
     }">
     <BkInput
+      ref="inputRef"
       class="input-box"
       :disabled="disabled"
       :max="max"
@@ -60,6 +61,7 @@
   import useValidtor, { type Rules } from '../../hooks/useValidtor';
 
   interface Props {
+    autoFocus?: boolean;
     placeholder?: string;
     rules?: Rules;
     disabled?: boolean;
@@ -90,6 +92,7 @@
   }
 
   const props = withDefaults(defineProps<Props>(), {
+    autoFocus: false,
     placeholder: '请输入',
     rules: undefined,
     disabled: false,
@@ -109,6 +112,7 @@
   });
 
   const rootRef = ref<HTMLElement>();
+  const inputRef = ref();
   const isBlur = ref(true);
 
   const isPassword = computed(() => props.type === 'password');
@@ -215,6 +219,12 @@
     modelValue.value = props.pasteFn ? props.pasteFn(paste) : paste;
     window.changeConfirm = true;
   };
+
+  onMounted(() => {
+    if (props.autoFocus) {
+      inputRef.value.focus();
+    }
+  });
 
   defineExpose<Exposes>({
     getValue() {

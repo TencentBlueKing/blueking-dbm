@@ -38,11 +38,11 @@ export default class DutyRule {
     exclude?: {
       bk_biz_id: number;
       bk_biz_name: string;
-    };
+    }[];
     include?: {
       bk_biz_id: number;
       bk_biz_name: string;
-    };
+    }[];
   };
   category: string;
   creator: string;
