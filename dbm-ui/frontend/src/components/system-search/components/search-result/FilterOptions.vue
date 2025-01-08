@@ -115,7 +115,7 @@
   const resourceList = [
     {
       id: 'entry',
-      name: t('主访问入口'),
+      name: t('访问入口'),
     },
     {
       id: 'instance',

@@ -54,6 +54,10 @@
         :pagination-extra="paginationExtra"
         releate-url-query
         :row-class="getRowClass"
+        :row-config="{
+          useKey: true,
+          keyField: 'id',
+        }"
         selectable
         :settings="settings"
         :show-overflow="false"
@@ -167,17 +171,21 @@
                 {{ t('删除Key') }}
               </AuthButton>
             </OperationBtnStatusTips>
-            <AuthButton
+            <AuthRouterLink
               action-id="redis_webconsole"
               class="mr-8"
               :disabled="data.isOffline"
               :permission="data.permission.redis_webconsole"
               :resource="data.id"
-              text
-              theme="primary"
-              @click="handleGoWebconsole(data.id)">
+              target="_blank"
+              :to="{
+                name: 'RedisWebconsole',
+                query: {
+                  clusterId: data.id,
+                },
+              }">
               Webconsole
-            </AuthButton>
+            </AuthRouterLink>
             <MoreActionExtend v-db-console="'redis.clusterManage.moreOperation'">
               <BkDropdownItem v-db-console="'redis.clusterManage.backup'">
                 <OperationBtnStatusTips
@@ -717,15 +725,6 @@
   const handleShowPassword = (id: number) => {
     passwordState.isShow = true;
     passwordState.fetchParams.cluster_id = id;
-  };
-
-  const handleGoWebconsole = (clusterId: number) => {
-    router.push({
-      name: 'RedisWebconsole',
-      query: {
-        clusterId,
-      },
-    });
   };
 
   /**

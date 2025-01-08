@@ -33,7 +33,7 @@
           :data="item.dataList"
           :pagination="pagination[index]">
           <BkTableColumn
-            field="immute_domain"
+            field="entry"
             :label="t('访问入口（域名、CLB、北极星）')"
             :min-width="250">
             <template #default="{data: rowData}: {data: QuickSearchEntryModel}">
@@ -48,8 +48,32 @@
                     :text="rowData.entry" />
                 </BkButton>
                 <template #append>
+                  <BkTag
+                    v-if="rowData.cluster_entry_type === 'clb'"
+                    class="redis-cluster-clb"
+                    size="small">
+                    CLB
+                  </BkTag>
+                  <BkTag
+                    v-if="rowData.cluster_entry_type === 'polaris'"
+                    class="redis-cluster-polary"
+                    size="small">
+                    {{ t('北极星') }}
+                  </BkTag>
+                  <BkTag
+                    v-if="rowData.role === 'master_entry'"
+                    size="small"
+                    theme="info">
+                    {{ t('主') }}
+                  </BkTag>
+                  <BkTag
+                    v-if="rowData.role === 'slave_entry'"
+                    size="small"
+                    theme="success">
+                    {{ t('从') }}
+                  </BkTag>
                   <BkButton
-                    class="ml-4"
+                    class="copy-btn ml-4"
                     text
                     theme="primary"
                     @click="() => handleCopy(rowData.entry)">
@@ -82,17 +106,10 @@
             </template>
           </BkTableColumn>
           <BkTableColumn
-            field="bk_biz_id"
-            :label="t('所属业务')">
+            field="major_version"
+            :label="t('版本')">
             <template #default="{data: rowData}: {data: QuickSearchEntryModel}">
-              {{ rowData.bk_biz_id ? bizIdNameMap[rowData.bk_biz_id] : '--' }}
-            </template>
-          </BkTableColumn>
-          <BkTableColumn
-            field="db_module_name"
-            :label="t('DB模块')">
-            <template #default="{data: rowData}: {data: QuickSearchEntryModel}">
-              {{ rowData.db_module_name || '--' }}
+              {{ rowData.major_version || '--' }}
             </template>
           </BkTableColumn>
           <BkTableColumn
@@ -100,6 +117,13 @@
             :label="t('地域')">
             <template #default="{data: rowData}: {data: QuickSearchEntryModel}">
               {{ rowData.region || '--' }}
+            </template>
+          </BkTableColumn>
+          <BkTableColumn
+            field="bk_biz_id"
+            :label="t('所属业务')">
+            <template #default="{data: rowData}: {data: QuickSearchEntryModel}">
+              {{ rowData.bk_biz_id ? bizIdNameMap[rowData.bk_biz_id] : '--' }}
             </template>
           </BkTableColumn>
           <BkTableColumn
@@ -195,6 +219,7 @@
   watch(
     renderData,
     (newRenderData) => {
+      console.log('renderData = ', renderData);
       pagination.value = newRenderData.dataList.map((dataItem) => ({
         count: dataItem.dataList.length,
         limit: 10,
@@ -229,7 +254,7 @@
     handleRedirect(
       data.cluster_type,
       {
-        domain: data.immute_domain,
+        domain: data.entry,
       },
       data.bk_biz_id,
     );
@@ -255,6 +280,40 @@
     .export-button-text {
       margin-left: 4px;
       font-size: 12px;
+    }
+
+    .redis-cluster-clb {
+      color: #8e3aff;
+      cursor: pointer;
+      background-color: #f2edff;
+
+      &:hover {
+        color: #8e3aff;
+        background-color: #e3d9fe;
+      }
+    }
+
+    .redis-cluster-polary {
+      color: #3a84ff;
+      cursor: pointer;
+      background-color: #edf4ff;
+
+      &:hover {
+        color: #3a84ff;
+        background-color: #e1ecff;
+      }
+    }
+
+    tr {
+      .copy-btn {
+        display: none;
+      }
+
+      &:hover {
+        .copy-btn {
+          display: inline-block;
+        }
+      }
     }
   }
 </style>

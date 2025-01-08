@@ -76,6 +76,6 @@
 
 <style lang="less" scoped>
   .highlight-text > span {
-    display: inline;
+    display: inline !important;
   }
 </style>

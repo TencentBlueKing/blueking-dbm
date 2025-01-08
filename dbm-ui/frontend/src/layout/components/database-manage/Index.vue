@@ -34,7 +34,7 @@
         </BkMenuGroup>
         <BkMenuGroup
           v-db-console="'databaseManage.missionManage'"
-          :name="t('任务中心')">
+          :name="t('单据中心')">
           <BkMenuItem
             key="bizTicketManage"
             v-db-console="'databaseManage.missionManage.ticketManage'">
