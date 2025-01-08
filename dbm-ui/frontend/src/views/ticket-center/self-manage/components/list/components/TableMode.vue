@@ -20,23 +20,6 @@
       ref="dataTable"
       :data-source="dataSource"
       :row-class="rowClass">
-      <template #prepend>
-        <BkTableColumn
-          field="id"
-          fixed="left"
-          :label="t('单号')"
-          width="100">
-          <template #default="{ data }: { data: IRowData }">
-            <BkButton
-              v-if="data"
-              text
-              theme="primary"
-              @click="(event: MouseEvent) => handleGoDetail(data, event)">
-              {{ data.id }}
-            </BkButton>
-          </template>
-        </BkTableColumn>
-      </template>
       <template #action>
         <BkTableColumn
           fixed="right"
@@ -63,7 +46,6 @@
   import { useUrlSearch } from '@hooks';
 
   import useDatePicker from '@views/ticket-center/common/hooks/use-date-picker';
-  import useOpenDetail from '@views/ticket-center/common/hooks/use-open-detail';
   import useSearchSelect from '@views/ticket-center/common/hooks/use-search-select';
   import TableModeTable from '@views/ticket-center/common/TableModeTable.vue';
   import TicketDetailLink from '@views/ticket-center/common/TicketDetailLink.vue';
@@ -78,8 +60,6 @@
   const { value: datePickerValue, shortcutsRange } = useDatePicker();
 
   const { value: searachSelectValue, searchSelectData } = useSearchSelect();
-
-  const handleGoDetail = useOpenDetail();
 
   const dataSource = (params: ServiceParameters<typeof getTickets>) =>
     getTickets({

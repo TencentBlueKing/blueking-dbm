@@ -68,6 +68,10 @@
         :data-source="fetchData"
         :pagination-extra="paginationExtra"
         :row-class="setRowClass"
+        :row-config="{
+          useKey: true,
+          keyField: 'id',
+        }"
         selectable
         :settings="settings"
         :show-overflow="false"
@@ -156,22 +160,26 @@
               @click="() => handleShowAuthorize([data])">
               {{ t('授权') }}
             </BkButton>
-            <AuthButton
+            <AuthRouterLink
               v-db-console="'tendbCluster.clusterManage.webconsole'"
               action-id="tendbcluster_webconsole"
               class="mr-8"
               :disabled="data.isOffline"
               :permission="data.permission.tendbcluster_webconsole"
               :resource="data.id"
-              text
-              theme="primary"
-              @lick="() => handleGoWebconsole(data.id)">
+              target="_blank"
+              :to="{
+                name: 'SpiderWebconsole',
+                query: {
+                  clusterId: data.id,
+                },
+              }">
               Webconsole
-            </AuthButton>
+            </AuthRouterLink>
             <AuthButton
               v-db-console="'tendbCluster.clusterManage.exportData'"
               action-id="tendbcluster_dump_data"
-              class="mr-16"
+              class="mr-8"
               :disabled="data.isOffline"
               :permission="data.permission.tendbcluster_dump_data"
               :resource="data.id"
@@ -189,7 +197,6 @@
                 v-db-console="'tendbCluster.clusterManage.removeMNTNode'">
                 <AuthButton
                   action-id="tendbcluster_spider_mnt_destroy"
-                  class="mr-8"
                   :disabled="data.spider_mnt.length === 0 || data.isOffline"
                   :permission="data.permission.tendbcluster_spider_mnt_destroy"
                   :resource="data.id"
@@ -206,7 +213,6 @@
                 v-db-console="'tendbCluster.clusterManage.removeReadonlyNode'">
                 <AuthButton
                   action-id="tendb_spider_slave_destroy"
-                  class="mr-8"
                   :disabled="data.spider_slave.length === 0 || data.isOffline"
                   :permission="data.permission.tendb_spider_slave_destroy"
                   :resource="data.id"
@@ -221,7 +227,6 @@
                 <OperationBtnStatusTips :data="data">
                   <AuthButton
                     action-id="tendbcluster_enable_disable"
-                    class="mr-8"
                     :disabled="data.operationDisabled"
                     :permission="data.permission.tendbcluster_enable_disable"
                     :resource="data.id"
@@ -237,7 +242,6 @@
                 <OperationBtnStatusTips :data="data">
                   <AuthButton
                     action-id="tendbcluster_enable_disable"
-                    class="mr-8"
                     :disabled="data.isStarting"
                     :permission="data.permission.tendbcluster_enable_disable"
                     :resource="data.id"
@@ -255,7 +259,6 @@
                       content: t('请先禁用集群'),
                     }"
                     action-id="tendbcluster_destroy"
-                    class="mr-8"
                     :disabled="data.isOnline || Boolean(data.operationTicketId)"
                     :permission="data.permission.tendbcluster_destroy"
                     :resource="data.id"
@@ -610,15 +613,6 @@
     clusterId.value = id;
   };
 
-  const handleGoWebconsole = (clusterId: number) => {
-    router.push({
-      name: 'SpiderWebconsole',
-      query: {
-        clusterId
-      }
-    });
-  }
-
   // 下架运维节点
   const handleRemoveMNT = (data: TendbClusterModel) => {
     InfoBox({
@@ -741,7 +735,7 @@
   });
 </script>
 
-<style lang="less" scoped>
+<style lang="less">
   .spider-manage-list-page {
     height: 100%;
     padding: 24px 0;
@@ -761,103 +755,23 @@
       }
     }
 
-    .table-wrapper {
-      background-color: white;
-    }
-
-    :deep(td .vxe-cell) {
-      .domain {
-        display: flex;
-        flex-wrap: wrap;
-
-        .bk-search-select {
-          flex: 1;
-          max-width: 320px;
-          min-width: 320px;
-          margin-left: auto;
+    tr {
+      &.is-new {
+        td {
+          background-color: #f3fcf5 !important;
         }
       }
 
-      .is-primary {
-        color: #531dab !important;
-        background: #f9f0ff !important;
-      }
-
-      .db-icon-copy,
-      .db-icon-visible1 {
-        display: none;
-        margin-top: 2px;
-        margin-left: 4px;
-        color: @primary-color;
-        cursor: pointer;
-      }
-
-      :deep(.cluster-name-container) {
-        display: flex;
-        align-items: center;
-        padding: 8px 0;
-        overflow: hidden;
-
-        .cluster-name {
-          line-height: 16px;
-
-          &__alias {
-            color: @light-gray;
-          }
-        }
-
-        .cluster-tags {
-          display: flex;
-          margin-left: 4px;
-          align-items: center;
-          flex-wrap: wrap;
-        }
-
-        .cluster-tag {
-          margin: 2px 0;
-          flex-shrink: 0;
+      &.is-offline {
+        .vxe-cell {
+          color: #c4c6cc !important;
         }
       }
     }
 
-    :deep(th:hover),
-    :deep(td:hover) {
-      .db-icon-copy,
-      .db-icon-visible1 {
-        display: inline-block !important;
-      }
-    }
-
-    :deep(.is-offline) {
-      a {
-        color: @gray-color;
-      }
-
-      .vxe-cell {
-        color: @disable-color;
-      }
-    }
-
-    :deep(.operations-more) {
-      .db-icon-more {
-        font-size: 16px;
-        color: @default-color;
-        cursor: pointer;
-
-        &:hover {
-          background-color: @bg-disable;
-          border-radius: 2px;
-        }
-      }
-    }
-  }
-</style>
-
-<style lang="less">
-  .operations-menu {
-    .bk-button {
-      width: 100%;
-      justify-content: flex-start;
+    .is-primary {
+      color: #531dab !important;
+      background: #f9f0ff !important;
     }
   }
 

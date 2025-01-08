@@ -1,5 +1,6 @@
 <template>
   <BkTableColumn
+    class-name="cluster-table-cluster-name-column"
     field="cluster_name"
     :label="t('集群名称')"
     :min-width="200">
@@ -115,3 +116,20 @@
     emits('refresh');
   };
 </script>
+<style lang="less">
+  .cluster-table-cluster-name-column {
+    &:hover {
+      [class*=' db-icon'] {
+        display: inline !important;
+      }
+    }
+
+    [class*=' db-icon'] {
+      display: none;
+      margin-top: 1px;
+      margin-left: 4px;
+      color: @primary-color;
+      cursor: pointer;
+    }
+  }
+</style>

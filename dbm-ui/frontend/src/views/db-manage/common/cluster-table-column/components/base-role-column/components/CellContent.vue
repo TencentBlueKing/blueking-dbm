@@ -2,7 +2,7 @@
   <div>
     <div class="cluster-list-role-instances-list-box">
       <div
-        v-for="(instanceItem, index) in data"
+        v-for="(instanceItem, index) in renderData"
         :key="`${instanceItem.ip}:${instanceItem.port}`"
         :class="{ 'is-unavailable': instanceItem.status === 'unavailable' }">
         <TextOverflowLayout>
@@ -15,7 +15,13 @@
                   ? 'rgb(255 130 4)'
                   : '',
             }">
-            {{ instanceItem.ip }}:{{ instanceItem.port }}
+            <slot
+              name="default"
+              v-bind="{
+                data: instanceItem,
+              }">
+              {{ instanceItem.ip }}:{{ instanceItem.port }}
+            </slot>
           </span>
           <template #append>
             <BkTag
@@ -24,7 +30,10 @@
               {{ t('不可用') }}
             </BkTag>
             <slot
-              v-bind="{ data: instanceItem }"
+              v-if="data.length > 1"
+              v-bind="{
+                data: instanceItem,
+              }"
               name="nodeTag" />
             <span
               v-if="index === 0"
@@ -76,12 +85,14 @@
       :title="title"
       :width="1100">
       <template #header>
-        {{
-          t('【inst】实例预览', {
-            inst: clusterData.masterDomain,
-            title: label,
-          })
-        }}
+        <slot name="instanceListTitle">
+          {{
+            t('【inst】实例预览', {
+              inst: clusterData.masterDomain,
+              title: label,
+            })
+          }}
+        </slot>
       </template>
       <slot name="instanceList" />
       <template #footer>
@@ -115,7 +126,9 @@
   const props = defineProps<Props>();
 
   defineSlots<{
+    default: (params: { data: { ip: string; port: number; status: string } }) => VNode;
     nodeTag: (params: { data: { ip: string; port: number; status: string } }) => VNode;
+    instanceListTitle: () => VNode;
     instanceList: () => VNode;
   }>();
 
@@ -129,6 +142,8 @@
   const popRef = ref();
   const isShowMore = ref(false);
   const isCopyIconClicked = ref(false);
+
+  const renderData = computed(() => props.data.slice(0, renderInstanceCount));
 
   const handleCopyIps = () => {
     const ipList = [...new Set(props.data.map((item) => item.ip))];
@@ -197,8 +212,6 @@
 
 <style lang="less">
   .cluster-list-role-instances-list-box {
-    padding: 6px 0;
-
     .db-icon-copy {
       display: none;
       margin-top: 1px;

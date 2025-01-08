@@ -298,7 +298,7 @@
               action-id="tendbcluster_partition"
               permission={data.permission.tendbcluster_partition}
               resource={data.cluster_id}
-              class="ml-8 mr-16"
+              class="ml-8 mr-8"
               theme="primary"
               text
               onClick={() => handleShowExecuteLog(data)}>

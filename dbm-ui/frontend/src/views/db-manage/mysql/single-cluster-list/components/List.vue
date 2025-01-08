@@ -57,6 +57,10 @@
         :data-source="getTendbsingleList"
         releate-url-query
         :row-class="setRowClass"
+        :row-config="{
+          useKey: true,
+          keyField: 'id',
+        }"
         selectable
         :settings="settings"
         :show-overflow="false"
@@ -104,22 +108,26 @@
               @click="handleShowAuthorize([data])">
               {{ t('授权') }}
             </BkButton>
-            <AuthButton
+            <AuthRouterLink
               v-db-console="'mysql.haClusterList.webconsole'"
               action-id="mysql_webconsole"
               class="mr-8"
               :disabled="data.operationDisabled"
               :permission="data.permission.mysql_webconsole"
               :resource="data.id"
-              text
-              theme="primary"
-              @click="handleGoWebconsole(data.id)">
+              target="_blank"
+              :to="{
+                name: 'MySQLWebconsole',
+                query: {
+                  clusterId: data.id,
+                },
+              }">
               Webconsole
-            </AuthButton>
+            </AuthRouterLink>
             <AuthButton
               v-db-console="'mysql.singleClusterList.exportData'"
               action-id="mysql_dump_data"
-              class="mr-16"
+              class="mr-8"
               :disabled="data.isOffline"
               :permission="data.permission.mysql_dump_data"
               :resource="data.id"
@@ -135,7 +143,6 @@
                 <OperationBtnStatusTips :data="data">
                   <AuthButton
                     action-id="mysql_enable_disable"
-                    class="mr-8"
                     :disabled="Boolean(data.operationTicketId)"
                     :permission="data.permission.mysql_enable_disable"
                     :resource="data.id"
@@ -151,7 +158,6 @@
                 <OperationBtnStatusTips :data="data">
                   <AuthButton
                     action-id="mysql_enable_disable"
-                    class="mr-8"
                     :disabled="data.isStarting"
                     :permission="data.permission.mysql_enable_disable"
                     :resource="data.id"
@@ -169,7 +175,6 @@
                       content: t('请先禁用集群'),
                     }"
                     action-id="mysql_destroy"
-                    class="mr-8"
                     :disabled="data.isOnline || Boolean(data.operationTicketId)"
                     :permission="data.permission.mysql_destroy"
                     :resource="data.id"
@@ -237,7 +242,7 @@
   import { useOperateClusterBasic } from '@views/db-manage/common/hooks';
   import OperationBtnStatusTips from '@views/db-manage/common/OperationBtnStatusTips.vue';
 
-  import { getMenuListSearch, getSearchSelectorParams, isRecentDays } from '@utils';
+  import { getMenuListSearch, getSearchSelectorParams } from '@utils';
 
   interface ColumnData {
     cell: string;
@@ -414,7 +419,7 @@
   // 设置行样式
   const setRowClass = (row: TendbsingleModel) => {
     const classList = [row.isOffline ? 'is-offline' : ''];
-    const newClass = isRecentDays(row.create_at, 24 * 3) ? 'is-new-row' : '';
+    const newClass = row.isNew ? 'is-new-row' : '';
     classList.push(newClass);
     if (row.id === clusterId.value) {
       classList.push('is-selected-row');
@@ -431,15 +436,6 @@
       query: {
         bizId: globalBizsStore.currentBizId,
         from: route.name as string,
-      },
-    });
-  };
-
-  const handleGoWebconsole = (clusterId: number) => {
-    router.push({
-      name: 'MySQLWebconsole',
-      query: {
-        clusterId,
       },
     });
   };
@@ -489,7 +485,7 @@
     }
   });
 </script>
-<style lang="less" scoped>
+<style lang="less">
   @import '@styles/mixins.less';
 
   .mysql-single-cluster-list-page {
@@ -513,100 +509,11 @@
 
     .table-wrapper {
       background-color: white;
-
-      :deep(td .vxe-cell) {
-        .domain {
-          display: flex;
-          align-items: center;
-        }
-
-        .db-icon-copy,
-        .db-icon-visible1 {
-          display: none;
-          margin-top: 1px;
-          margin-left: 4px;
-          color: @primary-color;
-          cursor: pointer;
-        }
-
-        .operations-more {
-          .db-icon-more {
-            display: block;
-            font-size: @font-size-normal;
-            font-weight: bold;
-            color: @default-color;
-            cursor: pointer;
-
-            &:hover {
-              background-color: @bg-disable;
-              border-radius: 2px;
-            }
-          }
-        }
-      }
-
-      :deep(th:hover) {
-        .db-icon-copy {
-          display: inline-block !important;
-        }
-      }
-
-      :deep(td:hover) {
-        .db-icon-copy,
-        .db-icon-visible1 {
-          display: inline-block !important;
-        }
-      }
-
-      :deep(.is-offline) {
-        a {
-          color: @gray-color;
-        }
-
-        .vxe-cell {
-          color: @disable-color;
-        }
-      }
-    }
-  }
-</style>
-<style lang="less">
-  .cluster-name-container {
-    display: flex;
-    align-items: center;
-    padding: 8px 0;
-    overflow: hidden;
-
-    .cluster-name {
-      .bk-button {
-        display: inline-block;
-        width: 100%;
-        overflow: hidden;
-
-        .bk-button-text {
-          display: inline-block;
-          width: 100%;
-          overflow: hidden;
-          line-height: 15px;
-          text-overflow: ellipsis;
-          white-space: nowrap;
-        }
-      }
-
-      &__alias {
-        color: @light-gray;
-      }
     }
 
-    .cluster-tags {
-      display: flex;
-      max-width: 150px;
-      margin-left: 4px;
-      align-items: center;
-
-      .cluster-tag {
-        margin: 2px 0;
-        flex-shrink: 0;
+    tr.is-offline {
+      .vxe-cell {
+        color: @disable-color;
       }
     }
   }

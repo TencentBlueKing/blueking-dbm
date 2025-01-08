@@ -36,6 +36,7 @@
       :data-source="getAlarmGroupList"
       releate-url-query
       :row-class="setRowClass"
+      :show-overflow="false"
       @request-success="handleRequestSuccess" />
     <DetailDialog
       v-model="detailDialogShow"
@@ -197,8 +198,9 @@
     },
     {
       label: t('操作'),
-      width: 160,
+      width: 130,
       fixed: 'right',
+      showOverflow: false,
       render: ({ data }: TableRenderData) => (
         <>
           <auth-button

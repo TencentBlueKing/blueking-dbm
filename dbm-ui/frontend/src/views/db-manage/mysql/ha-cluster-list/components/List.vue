@@ -49,15 +49,17 @@
         :validate-values="validateSearchValues"
         @change="handleSearchValueChange" />
     </div>
-    <div
-      class="table-wrapper"
-      :class="{ 'is-shrink-table': isStretchLayoutOpen }">
+    <div class="table-wrapper">
       <DbTable
         ref="tableRef"
         :data-source="getTendbhaList"
         :line-height="80"
         releate-url-query
         :row-class="setRowClass"
+        :row-config="{
+          useKey: true,
+          keyField: 'id',
+        }"
         selectable
         :settings="settings"
         :show-overflow="false"
@@ -106,7 +108,16 @@
           :get-table-instance="getTableInstance"
           label="Slave"
           :search-ip="batchSearchIpInatanceList"
-          :selected-list="selected" />
+          :selected-list="selected">
+          <template #nodeTag="{ data }">
+            <BkTag
+              v-if="data.is_stand_by"
+              class="is-stand-by"
+              size="small">
+              Standby
+            </BkTag>
+          </template>
+        </RoleColumn>
         <CommonColumn :cluster-type="ClusterTypes.TENDBHA" />
         <BkTableColumn
           :fixed="isStretchLayoutOpen ? false : 'right'"
@@ -123,22 +134,26 @@
               @click="handleShowAuthorize([data])">
               {{ t('授权') }}
             </BkButton>
-            <AuthButton
+            <AuthRouterLink
               v-db-console="'mysql.haClusterList.webconsole'"
               action-id="mysql_webconsole"
               class="mr-8"
               :disabled="data.isOffline"
               :permission="data.permission.mysql_webconsole"
               :resource="data.id"
-              text
-              theme="primary"
-              @click="handleGoWebconsole(data.id)">
+              target="_blank"
+              :to="{
+                name: 'MySQLWebconsole',
+                query: {
+                  clusterId: data.id,
+                },
+              }">
               Webconsole
-            </AuthButton>
+            </AuthRouterLink>
             <AuthButton
               v-db-console="'mysql.haClusterList.exportData'"
               action-id="mysql_dump_data"
-              class="mr-16"
+              class="mr-8"
               :disabled="data.isOffline"
               :permission="data.permission.mysql_dump_data"
               :resource="data.id"
@@ -153,7 +168,6 @@
                 v-db-console="'mysql.dataSubscription'">
                 <AuthButton
                   action-id="tbinlogdumper_install"
-                  class="mr-8"
                   :disabled="data.isOffline"
                   :permission="data.permission.tbinlogdumper_install"
                   :resource="data.id"
@@ -168,7 +182,6 @@
                 <OperationBtnStatusTips :data="data">
                   <AuthButton
                     action-id="mysql_enable_disable"
-                    class="mr-8"
                     :disabled="Boolean(data.operationTicketId)"
                     :permission="data.permission.mysql_enable_disable"
                     :resource="data.id"
@@ -184,7 +197,6 @@
                 <OperationBtnStatusTips :data="data">
                   <AuthButton
                     action-id="mysql_enable_disable"
-                    class="mr-8"
                     :disabled="data.isStarting"
                     :permission="data.permission.mysql_enable_disable"
                     :resource="data.id"
@@ -202,7 +214,6 @@
                       content: t('请先禁用集群'),
                     }"
                     action-id="mysql_destroy"
-                    class="mr-8"
                     :disabled="data.isOnline || Boolean(data.operationTicketId)"
                     :permission="data.permission.mysql_destroy"
                     :resource="data.id"
@@ -526,15 +537,6 @@
     clusterId.value = id;
   };
 
-  const handleGoWebconsole = (clusterId: number) => {
-    router.push({
-      name: 'MySQLWebconsole',
-      query: {
-        clusterId,
-      },
-    });
-  };
-
   /**
    * 申请实例
    */
@@ -560,7 +562,7 @@
   });
 </script>
 
-<style lang="less" scoped>
+<style lang="less">
   @import '@styles/mixins.less';
 
   .mysql-ha-cluster-list-page {
@@ -586,99 +588,15 @@
       background-color: white;
     }
 
-    :deep(td .vxe-cell) {
-      .domain {
-        display: flex;
-        flex-wrap: wrap;
-
-        .bk-search-select {
-          flex: 1;
-          max-width: 320px;
-          min-width: 320px;
-          margin-left: auto;
-        }
-      }
-
-      .slave-entry {
-        line-height: 22px;
-      }
-
-      .is-stand-by {
-        color: #531dab !important;
-        background: #f9f0ff !important;
-      }
-
-      .db-icon-copy,
-      .db-icon-visible1 {
-        display: none;
-        margin-top: 1px;
-        margin-left: 4px;
-        color: @primary-color;
-        cursor: pointer;
-      }
-
-      :deep(.cluster-name-container) {
-        display: flex;
-        align-items: center;
-        padding: 8px 0;
-        overflow: hidden;
-
-        .cluster-name {
-          line-height: 16px;
-
-          &__alias {
-            color: @light-gray;
-          }
-        }
-
-        .cluster-tags {
-          display: flex;
-          margin-left: 4px;
-          align-items: center;
-          flex-wrap: wrap;
-        }
-
-        .cluster-tag {
-          margin: 2px 0;
-          flex-shrink: 0;
-        }
-      }
-    }
-
-    :deep(th:hover) {
-      .db-icon-copy {
-        display: inline-block !important;
-      }
-    }
-
-    :deep(td:hover) {
-      .db-icon-copy,
-      .db-icon-visible1 {
-        display: inline-block !important;
-      }
-    }
-
-    :deep(.is-offline) {
-      a {
-        color: @gray-color;
-      }
-
+    tr.is-offline {
       .vxe-cell {
         color: @disable-color;
       }
     }
 
-    :deep(.operations-more) {
-      .db-icon-more {
-        font-size: 16px;
-        color: @default-color;
-        cursor: pointer;
-
-        &:hover {
-          background-color: @bg-disable;
-          border-radius: 2px;
-        }
-      }
+    .is-stand-by {
+      color: #531dab !important;
+      background: #f9f0ff !important;
     }
   }
 </style>

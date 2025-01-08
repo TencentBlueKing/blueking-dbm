@@ -17,10 +17,10 @@
     property="details.cluster_alias"
     :rules="rules">
     <BkInput
+      v-model="modelValue"
       class="item-input"
       :disabled="!bizId"
       :maxlength="63"
-      :model-value="modelValue"
       :placeholder="t('用于区分不同集群_可随时修改')"
       show-word-limit />
   </BkFormItem>

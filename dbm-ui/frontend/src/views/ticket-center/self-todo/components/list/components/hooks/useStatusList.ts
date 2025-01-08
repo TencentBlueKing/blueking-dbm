@@ -1,5 +1,5 @@
 import _ from 'lodash';
-import { computed } from 'vue';
+import { computed, onBeforeUnmount } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRoute } from 'vue-router';
 
@@ -64,6 +64,10 @@ export default () => {
   if (!context) {
     context = create();
   }
+
+  onBeforeUnmount(() => {
+    context = undefined;
+  });
 
   return context;
 };

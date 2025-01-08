@@ -110,7 +110,7 @@
             action-id="tendb_openarea_config_update"
             resource={data.id}
             permission={data.permission.tendb_openarea_config_update}
-            class="ml-16"
+            class="ml-8"
             to={{
               name: 'spiderOpenareaTemplateEdit',
               params: {
@@ -131,7 +131,7 @@
               content={t('删除操作无法撤回，请谨慎操作！')}
               confirmHandler={() => handleRemove(data)}>
               <bk-button
-                class="ml-16"
+                class="ml-8"
                 text
                 theme="primary">
                 { t('删除') }
