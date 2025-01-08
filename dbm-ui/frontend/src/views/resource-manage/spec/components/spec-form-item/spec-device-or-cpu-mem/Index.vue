@@ -54,7 +54,9 @@
       v-if="currentType === 'device_class'"
       ref="specDeviceRef"
       v-model="deviceClassModelValue"
-      :is-edit="isEdit" />
+      :cpu="cpuModelValue"
+      :is-edit="isEdit"
+      :mem="memModelValue" />
     <div
       v-else
       class="cpu-mem-main">

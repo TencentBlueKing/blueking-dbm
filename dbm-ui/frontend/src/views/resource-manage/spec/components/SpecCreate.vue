@@ -170,6 +170,7 @@
     `${DBTypes.ES}_es_client`,
     `${DBTypes.PULSAR}_pulsar_broker`,
     `${DBTypes.TENDBCLUSTER}_proxy`,
+    `${DBTypes.SQLSERVER}_sqlserver`,
   ];
 
   const isRequired = !notRequiredStorageList.includes(`${props.dbType}_${props.machineType}`);
