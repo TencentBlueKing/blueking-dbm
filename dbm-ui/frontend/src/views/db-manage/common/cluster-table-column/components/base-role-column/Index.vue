@@ -44,6 +44,11 @@
               data: instanceData as any,
             }" />
         </template>
+        <template #instanceListTitle>
+          <slot
+            name="instanceListTitle"
+            v-bind="{ data }" />
+        </template>
         <template #instanceList>
           <slot
             name="instanceList"
@@ -94,6 +99,7 @@
   export interface Slots<clusterType extends ISupportClusterType, F extends keyof ClusterModel<clusterType>> {
     default?: (params: { data: ReturnArrayElement<ClusterModel<clusterType>[F]> }) => void;
     nodeTag: (params: { data: ReturnArrayElement<ClusterModel<clusterType>[F]> }) => void;
+    instanceListTitle: (params: { data: ClusterModel<clusterType> }) => VNode;
     instanceList: (params: {
       instanceList: ClusterModel<clusterType>[F];
       clusterData: ClusterModel<clusterType>;

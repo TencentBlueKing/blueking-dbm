@@ -85,8 +85,27 @@
               @change="handleSelectionChange(row)" />
           </template>
         </BkTableColumn>
-        <slot name="prepend" />
         <BkTableColumn
+          field="id"
+          fixed="left"
+          :label="t('单号')"
+          width="100">
+          <template #default="{ data }: { data: IRowData }">
+            <RouterLink
+              target="_blank"
+              :to="{
+                name: 'ticketDetail',
+                params: {
+                  ticketId: data.id,
+                },
+              }"
+              @click="(event: MouseEvent) => handleGoDetail(data, event)">
+              {{ data.id }}
+            </RouterLink>
+          </template>
+        </BkTableColumn>
+        <BkTableColumn
+          v-if="!excludeColumn.includes('bk_biz_id')"
           field="bk_biz_id"
           :filter-multiple="false"
           :filters="searchFieldMap['bk_biz_id']"
@@ -190,7 +209,7 @@
         <BkTableColumn
           field="todo_operators"
           :label="t('当前处理人')"
-          width="250">
+          width="160">
           <template #default="{ data }: { data: IRowData }">
             <TagBlock
               copyenable
@@ -210,7 +229,7 @@
         <BkTableColumn
           field="creator"
           :label="t('申请人')"
-          width="250" />
+          width="150" />
         <BkTableColumn
           field="create_at"
           :label="t('申请时间')"
@@ -233,7 +252,7 @@
   </BkLoading>
 </template>
 <script setup lang="tsx">
-  import { onActivated, shallowRef, useTemplateRef } from 'vue';
+  import { getCurrentInstance, onActivated, shallowRef, useTemplateRef } from 'vue';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
   import { useRouter } from 'vue-router';
@@ -242,7 +261,7 @@
   import { getTickets } from '@services/source/ticket';
   import { getInnerFlowInfo } from '@services/source/ticketFlow';
 
-  import { useEventBus, useStretchLayout } from '@hooks';
+  import { useEventBus, useStretchLayout, useUrlSearch } from '@hooks';
 
   import EmptyStatus from '@components/empty-status/EmptyStatus.vue';
   import TagBlock from '@components/tag-block/Index.vue';
@@ -262,6 +281,7 @@
     dataSource: typeof getTickets;
     selectable?: boolean;
     rowClass: (params: TicketModel) => string;
+    excludeColumn?: string[];
   }
 
   interface Emits {
@@ -270,6 +290,7 @@
 
   const props = withDefaults(defineProps<Props>(), {
     selectable: false,
+    excludeColumn: () => [],
   });
 
   const emits = defineEmits<Emits>();
@@ -282,13 +303,16 @@
   const router = useRouter();
   const { t } = useI18n();
   const eventBus = useEventBus();
-  const { isSplited: isStretchLayoutOpen } = useStretchLayout();
-
-  let isInited = false;
+  const { isSplited: isStretchLayoutOpen, splitScreen: stretchLayoutSplitScreen } = useStretchLayout();
 
   const { value: datePickerValue, formatValue: formatDateValue } = useDatePicker();
   const { loading: isLoading, pagination, fetchTicketList, dataList, ordering } = useFetchData(props.dataSource);
   const { value: searchSelectValue, formatSearchValue, searchFieldMap } = useSearchSelect();
+
+  const currentInstance = getCurrentInstance();
+  const { getSearchParams } = useUrlSearch();
+
+  let isInited = false;
 
   const rootRef = useTemplateRef('tableWrapper');
   const tableMaxHeight = ref<number | 'auto'>('auto');
@@ -456,6 +480,28 @@
     rowSelectMemo.value = {};
     triggerSelection();
     fetchData();
+  };
+
+  const handleGoDetail = (ticketData: TicketModel, event: MouseEvent) => {
+    if (event.ctrlKey || event.metaKey) {
+      return true;
+    }
+
+    event.preventDefault();
+    event.stopPropagation();
+    stretchLayoutSplitScreen();
+    setTimeout(() => {
+      if (currentInstance!.isUnmounted) {
+        return;
+      }
+      router.replace({
+        params: {
+          ticketId: ticketData.id,
+        },
+        query: getSearchParams(),
+      });
+    });
+    return false;
   };
 
   const handleGoTaskHistoryDetail = (

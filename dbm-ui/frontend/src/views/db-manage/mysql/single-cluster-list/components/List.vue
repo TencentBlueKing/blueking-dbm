@@ -57,6 +57,10 @@
         :data-source="getTendbsingleList"
         releate-url-query
         :row-class="setRowClass"
+        :row-config="{
+          useKey: true,
+          keyField: 'id',
+        }"
         selectable
         :settings="settings"
         :show-overflow="false"
@@ -104,18 +108,22 @@
               @click="handleShowAuthorize([data])">
               {{ t('授权') }}
             </BkButton>
-            <AuthButton
+            <AuthRouterLink
               v-db-console="'mysql.haClusterList.webconsole'"
               action-id="mysql_webconsole"
               class="mr-8"
               :disabled="data.operationDisabled"
               :permission="data.permission.mysql_webconsole"
               :resource="data.id"
-              text
-              theme="primary"
-              @click="handleGoWebconsole(data.id)">
+              target="_blank"
+              :to="{
+                name: 'MySQLWebconsole',
+                query: {
+                  clusterId: data.id,
+                },
+              }">
               Webconsole
-            </AuthButton>
+            </AuthRouterLink>
             <AuthButton
               v-db-console="'mysql.singleClusterList.exportData'"
               action-id="mysql_dump_data"
@@ -428,15 +436,6 @@
       query: {
         bizId: globalBizsStore.currentBizId,
         from: route.name as string,
-      },
-    });
-  };
-
-  const handleGoWebconsole = (clusterId: number) => {
-    router.push({
-      name: 'MySQLWebconsole',
-      query: {
-        clusterId,
       },
     });
   };

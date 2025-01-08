@@ -2,7 +2,7 @@
   <div>
     <div class="cluster-list-role-instances-list-box">
       <div
-        v-for="(instanceItem, index) in data"
+        v-for="(instanceItem, index) in renderData"
         :key="`${instanceItem.ip}:${instanceItem.port}`"
         :class="{ 'is-unavailable': instanceItem.status === 'unavailable' }">
         <TextOverflowLayout>
@@ -85,12 +85,14 @@
       :title="title"
       :width="1100">
       <template #header>
-        {{
-          t('【inst】实例预览', {
-            inst: clusterData.masterDomain,
-            title: label,
-          })
-        }}
+        <slot name="instanceListTitle">
+          {{
+            t('【inst】实例预览', {
+              inst: clusterData.masterDomain,
+              title: label,
+            })
+          }}
+        </slot>
       </template>
       <slot name="instanceList" />
       <template #footer>
@@ -126,6 +128,7 @@
   defineSlots<{
     default: (params: { data: { ip: string; port: number; status: string } }) => VNode;
     nodeTag: (params: { data: { ip: string; port: number; status: string } }) => VNode;
+    instanceListTitle: () => VNode;
     instanceList: () => VNode;
   }>();
 
@@ -139,6 +142,8 @@
   const popRef = ref();
   const isShowMore = ref(false);
   const isCopyIconClicked = ref(false);
+
+  const renderData = computed(() => props.data.slice(0, renderInstanceCount));
 
   const handleCopyIps = () => {
     const ipList = [...new Set(props.data.map((item) => item.ip))];
