@@ -1,6 +1,5 @@
 import dayjs from 'dayjs';
-import { computed, ref } from 'vue';
-import { onBeforeRouteLeave } from 'vue-router';
+import { computed, onBeforeUnmount, ref } from 'vue';
 
 import { useUrlSearch } from '@hooks';
 
@@ -80,7 +79,7 @@ export default () => {
     context = create();
   }
 
-  onBeforeRouteLeave(() => {
+  onBeforeUnmount(() => {
     context = undefined;
   });
 

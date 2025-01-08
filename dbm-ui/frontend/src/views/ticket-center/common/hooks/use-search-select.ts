@@ -1,7 +1,6 @@
-import { computed, shallowRef } from 'vue';
+import { computed, onBeforeUnmount, shallowRef } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRequest } from 'vue-request';
-import { onBeforeRouteLeave } from 'vue-router';
 
 import TicketModel from '@services/model/ticket/ticket';
 import { getTicketTypes } from '@services/source/ticket';
@@ -117,7 +116,7 @@ export default (...args: Parameters<typeof create>) => {
     context = create(...args);
   }
 
-  onBeforeRouteLeave(() => {
+  onBeforeUnmount(() => {
     context = undefined;
   });
 

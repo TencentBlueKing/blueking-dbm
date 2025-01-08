@@ -228,6 +228,7 @@
         display: flex;
         height: 32px;
         padding: 0 12px;
+        line-height: 32px;
         cursor: pointer;
         align-items: center;
         justify-content: space-between;
@@ -238,10 +239,18 @@
         }
 
         .value-text {
-          display: flex;
-          height: 32px;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          word-break: keep-all;
+          white-space: nowrap;
           cursor: pointer;
           align-items: center;
+          flex: 0 1 auto;
+
+          .intro {
+            padding-left: 4px;
+            color: #c4c6cc;
+          }
 
           &:hover {
             background: #f5f7fa;
@@ -253,18 +262,8 @@
             overflow: unset;
           }
 
-          .value-text {
-            display: flex;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            word-break: keep-all;
-            white-space: nowrap;
-            flex: 0 1 auto;
-
-            .intro {
-              padding-left: 4px;
-              color: #c4c6cc;
-            }
+          * {
+            display: inline;
           }
         }
 
