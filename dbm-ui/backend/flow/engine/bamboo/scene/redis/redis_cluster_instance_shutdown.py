@@ -111,6 +111,7 @@ class RedisClusterInstanceShutdownSceneFlow(object):
             for k, v in cluster_info.items():
                 cluster_kwargs.cluster[k] = v
             cluster_kwargs.cluster["created_by"] = self.data["created_by"]
+            cluster_kwargs.bk_cloud_id = cluster_info["bk_cloud_id"]  # 海外多云区域
             flow_data["shutdown_instances"] = cluster_instances
             redis_pipeline.add_act(
                 act_name=_("初始化配置-{}".format(cluster_info["immute_domain"])),

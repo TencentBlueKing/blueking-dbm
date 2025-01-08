@@ -229,6 +229,7 @@ class RedisClusterCMRSceneFlow(object):
                     sync_type = SyncType.SYNC_SMS.value
 
                 flow_data = self.data
+                cluster_kwargs.bk_cloud_id = cluster_info["bk_cloud_id"]  # 海外多云区域
                 cluster_kwargs.cluster.update(cluster_info)
                 cluster_kwargs.cluster["created_by"] = self.data["created_by"]
                 flow_data["sync_type"] = sync_type

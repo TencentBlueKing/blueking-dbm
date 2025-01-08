@@ -401,6 +401,7 @@ class RedisClusterAddSlaveFlow(object):
             sub_pipeline = SubBuilder(root_id=self.root_id, data=self.data)
             cluster_kwargs = deepcopy(act_kwargs)
             cluster_info = RedisClusterAddSlaveFlow.get_cluster_info(bk_biz_id, cluster_id)
+            cluster_kwargs.bk_cloud_id = cluster_info["bk_cloud_id"]  # 海外多云区域
             cluster_kwargs.cluster.update(cluster_info)
             cluster_kwargs.cluster["db_version"] = cluster_info["major_version"]
             cluster_kwargs.cluster["created_by"] = self.data["created_by"]

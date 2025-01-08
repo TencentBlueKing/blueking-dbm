@@ -206,6 +206,7 @@ class RedisClusterAutoFixSceneFlow(object):
                 cluster_kwargs = deepcopy(act_kwargs)
                 cluster_info = self.get_cluster_info(self.data["bk_biz_id"], cluster_id)
                 flow_data = self.data
+                cluster_kwargs.bk_cloud_id = cluster_info["bk_cloud_id"]  # 海外多云区域
                 cluster_kwargs.cluster.update(cluster_info)
                 cluster_kwargs.cluster["created_by"] = self.data["created_by"]
                 flow_data["fix_info"] = cluster_fix

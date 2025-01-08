@@ -163,6 +163,7 @@ class RedisClusterMSSSceneFlow(object):
                 cluster_info = self.__get_cluster_info(self.data["bk_biz_id"], cluster_id)
 
                 flow_data = self.data
+                cluster_kwargs.bk_cloud_id = cluster_info["bk_cloud_id"]  # 海外多云区域
                 cluster_kwargs.cluster.update(cluster_info)
                 cluster_kwargs.cluster["created_by"] = self.data["created_by"]
                 cluster_kwargs.cluster["switch_option"] = ms_switch["online_switch_type"]
