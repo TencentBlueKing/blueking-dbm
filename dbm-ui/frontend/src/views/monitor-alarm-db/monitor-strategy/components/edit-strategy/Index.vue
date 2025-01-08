@@ -208,7 +208,9 @@
     existedNames: () => [],
   });
   const emits = defineEmits<Emits>();
-  const isShow = defineModel<boolean>();
+  const isShow = defineModel<boolean>({
+    required: true,
+  });
 
   let rawFormData = '';
 
@@ -218,7 +220,7 @@
   };
 
   const { t } = useI18n();
-  const { currentBizId } = useGlobalBizs();
+  const { currentBizId, currentBizInfo } = useGlobalBizs();
 
   const monitorTargetRef = ref();
   const infoValueRef = ref();
@@ -348,7 +350,7 @@
     () => props.data,
     (data) => {
       if (data.id) {
-        formModel.strategyName = data.name;
+        formModel.strategyName = getStrategyName();
         formModel.notifyRules = _.cloneDeep(data.notify_rules);
         if (isReadonlyPage.value) {
           // 内置策略，展示默认的告警组
@@ -365,8 +367,13 @@
     formModel.notifyTarget.splice(index, 1);
   };
 
+  const getStrategyName = () =>
+    props.data.isInner && props.pageStatus === 'clone'
+      ? `${props.data.name} - ${currentBizInfo?.name}`
+      : props.data.name;
+
   const handleClickConfirmRecoverDefault = () => {
-    formModel.strategyName = props.data.name;
+    formModel.strategyName = getStrategyName();
     formModel.notifyRules = _.cloneDeep(props.data.notify_rules);
     formModel.notifyTarget = _.cloneDeep(props.data.notify_groups);
     monitorTargetRef.value.resetValue();
