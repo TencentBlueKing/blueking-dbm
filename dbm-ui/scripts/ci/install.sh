@@ -18,6 +18,7 @@ pip install poetry >> /tmp/pip_install.log
 
 # 进入dbm-ui进行操作
 cd $DBM_DIR
+poetry self add poetry-plugin-export
 poetry export --without-hashes -f requirements.txt --output requirements.txt
 
 pip install -r requirements.txt >> /tmp/pip_install.log

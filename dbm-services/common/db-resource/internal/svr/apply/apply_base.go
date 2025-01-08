@@ -71,11 +71,22 @@ type ActionInfo struct {
 
 // RequestInputParam 请求接口参数
 type RequestInputParam struct {
-	ResourceType string         `json:"resource_type"` // 申请的资源用作的用途 Redis|MySQL|Proxy
-	DryRun       bool           `json:"dry_run"`
-	ForbizId     int            `json:"for_biz_id"`
-	Details      []ObjectDetail `json:"details" binding:"required,gt=0,dive"`
+	ResourceType         string         `json:"resource_type"` // 申请的资源用作的用途 Redis|MySQL|Proxy
+	DryRun               bool           `json:"dry_run"`
+	ForbizId             int            `json:"for_biz_id"`
+	Details              []ObjectDetail `json:"details" binding:"required,gt=0,dive"`
+	GroupsInSameLocation bool           `json:"groups_in_same_location"`
 	ActionInfo
+}
+
+// GetAllAffinitys 获取这批请求的所有亲和性的参数
+func (param RequestInputParam) GetAllAffinitys() (affinitys []string) {
+	for _, d := range param.Details {
+		if !lo.Contains(affinitys, d.Affinity) {
+			affinitys = append(affinitys, d.Affinity)
+		}
+	}
+	return affinitys
 }
 
 // BuildMessage build apply message

@@ -66,7 +66,7 @@ func (c *PrivTaskPara) prepareTenDBHA(targetMetaInfos []*service.Instance) (
 		)
 		if ele.BindTo == internal.MachineTypeProxy {
 			if ele.PaddingProxy {
-				clientIps = append(clientIps, proxyIps...)
+				clientIps = append(c.SourceIPs, proxyIps...)
 			} else {
 				clientIps = proxyIps
 			}

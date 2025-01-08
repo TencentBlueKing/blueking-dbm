@@ -26,6 +26,8 @@ type ConnectionCollect struct {
 	ProxyDB      *sqlx.DB
 	ProxyAdminDB *sqlx.DB
 	CtlDB        *sqlx.DB
+
+	itemOptions map[string]ItemOptions
 }
 
 // Close 关闭所有连接
@@ -45,6 +47,39 @@ func (c *ConnectionCollect) Close() {
 	if c.CtlDB != nil {
 		_ = c.CtlDB.Close()
 	}
+}
+
+type ItemOptions map[string]interface{}
+
+func (c *ConnectionCollect) InitItemOptions() map[string]ItemOptions {
+	opts := make(map[string]ItemOptions)
+	for _, opt := range config.ItemsConfig {
+		opts[opt.Name] = opt.Options
+	}
+	c.itemOptions = opts
+	return opts
+}
+func (c *ConnectionCollect) GetCustomOptions(name string) ItemOptions {
+	return c.itemOptions[name]
+}
+
+func (o ItemOptions) Get(optionName string, defaultValue interface{}) interface{} {
+	if val, ok := o[optionName]; ok {
+		return val
+	}
+	return defaultValue
+}
+func (o ItemOptions) GetInt(optionName string, defaultValue interface{}) int {
+	return o.Get(optionName, defaultValue).(int)
+}
+func (o ItemOptions) GetBool(optionName string, defaultValue interface{}) bool {
+	return o.Get(optionName, defaultValue).(bool)
+}
+func (o ItemOptions) GetString(optionName string, defaultValue interface{}) string {
+	return o.Get(optionName, defaultValue).(string)
+}
+func (o ItemOptions) GetStringSlice(optionName string, defaultValue interface{}) []string {
+	return o.Get(optionName, defaultValue).([]string)
 }
 
 // NewConnectionCollect 新建连接

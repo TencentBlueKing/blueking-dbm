@@ -81,8 +81,8 @@ func GetProxyPrivilege(address string, hosts []string, bkCloudId int64, specifie
 	if len(hosts) == 0 {
 		// 实例间克隆
 		for _, user := range usersResult {
-			addUserSQL := fmt.Sprintf("refresh_users('%s','+')", user["user@ip"].(string))
-			grants = append(grants, addUserSQL)
+			//addUserSQL := fmt.Sprintf("refresh_users('%s','+')", user["user@ip"].(string))
+			grants = append(grants, user["user@ip"].(string))
 		}
 	} else {
 		// 客户端克隆
@@ -99,8 +99,9 @@ func GetProxyPrivilege(address string, hosts []string, bkCloudId int64, specifie
 		for _, user := range usersResult {
 			tmpUser := user["user@ip"].(string)
 			if re.MatchString(tmpUser) && !monitorReg.MatchString(tmpUser) {
-				addUserSQL := fmt.Sprintf("refresh_users('%s','+')", tmpUser)
-				grants = append(grants, addUserSQL)
+				//addUserSQL := fmt.Sprintf("refresh_users('%s','+')", tmpUser)
+				//grants = append(grants, addUserSQL)
+				grants = append(grants, tmpUser)
 			}
 		}
 	}

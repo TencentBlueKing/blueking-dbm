@@ -57,14 +57,14 @@ func BuildDumper(cnf *config.BackupConfig, db *sql.DB) (dumper Dumper, err error
 			}
 		}
 		if cnf.LogicalBackup.UseMysqldump == cst.LogicalMysqldumpNo {
-			if err := validate.GoValidateStruct(cnf.LogicalBackup, false, false); err != nil {
+			if err := validate.GoValidateStruct(cnf.LogicalBackup, false); err != nil {
 				return nil, err
 			}
 			dumper = &LogicalDumper{
 				cnf: cnf,
 			}
 		} else if cnf.LogicalBackup.UseMysqldump == cst.LogicalMysqldumpYes {
-			if err := validate.GoValidateStruct(cnf.LogicalBackupMysqldump, false, false); err != nil {
+			if err := validate.GoValidateStruct(cnf.LogicalBackupMysqldump, false); err != nil {
 				return nil, err
 			}
 			dumper = &LogicalDumperMysqldump{
@@ -78,7 +78,7 @@ func BuildDumper(cnf *config.BackupConfig, db *sql.DB) (dumper Dumper, err error
 			return nil, err
 		}
 	} else if strings.ToLower(cnf.Public.BackupType) == cst.BackupPhysical {
-		if err := validate.GoValidateStruct(cnf.PhysicalBackup, false, false); err != nil {
+		if err := validate.GoValidateStruct(cnf.PhysicalBackup, false); err != nil {
 			return nil, err
 		}
 

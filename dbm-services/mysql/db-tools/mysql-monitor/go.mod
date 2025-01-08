@@ -3,6 +3,7 @@ module dbm-services/mysql/db-tools/mysql-monitor
 go 1.21
 
 require (
+	github.com/antlr4-go/antlr/v4 v4.13.0
 	github.com/dlclark/regexp2 v1.10.0
 	github.com/go-playground/validator/v10 v10.15.4
 	github.com/go-sql-driver/mysql v1.6.0
@@ -22,6 +23,11 @@ require (
 )
 
 require (
+	github.com/mitchellh/mapstructure v1.5.0
+	golang.org/x/exp v0.0.0-20230515195305-f3d0a9c9a5cc
+)
+
+require (
 	github.com/fsnotify/fsnotify v1.6.0 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.2 // indirect
 	github.com/go-playground/locales v0.14.1 // indirect
@@ -31,7 +37,6 @@ require (
 	github.com/leodido/go-urn v1.2.4 // indirect
 	github.com/magiconair/properties v1.8.7 // indirect
 	github.com/mattn/go-runewidth v0.0.9 // indirect
-	github.com/mitchellh/mapstructure v1.5.0 // indirect
 	github.com/pelletier/go-toml/v2 v2.0.8 // indirect
 	github.com/spf13/afero v1.9.5 // indirect
 	github.com/spf13/jwalterweatherman v1.1.0 // indirect

@@ -82,7 +82,7 @@ func (c *RotateBinlogComp) Start() (err error) {
 			Pwd:    inst.Password,
 			Socket: inst.Socket,
 		}
-		if err = validate.GoValidateStruct(inst, true, false); err != nil {
+		if err = validate.GoValidateStruct(inst, true); err != nil {
 			err = errs.WithMessagef(err, "validate instance %s", inst)
 			logger.Error("%+v", err.Error())
 			errRet = errors.Join(errRet, err)

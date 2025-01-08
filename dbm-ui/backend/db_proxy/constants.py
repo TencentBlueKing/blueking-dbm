@@ -51,7 +51,7 @@ class ClusterServiceType(str, StructuredEnum):
     KAFKA_MANAGER = EnumField("kafka_manager", _("kafka_manager-Kafka管理端"))
     HAPROXY = EnumField("ha_proxy", _("haproxy-HDFS管理端"))
     PULSAR_MANAGER = EnumField("pulsar_manager", _("pulsar_manager管理端"))
-    DORIS_MANAGER = EnumField("doris_manager", _("doris_manager管理端"))
+    DORIS_MANAGER = EnumField("doris_web_ui", _("doris_manager管理端"))
 
 
 class ExtensionAccountEnum(str, StructuredEnum):

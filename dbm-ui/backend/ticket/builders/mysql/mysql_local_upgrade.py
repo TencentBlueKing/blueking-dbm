@@ -23,6 +23,7 @@ class MysqlLocalUpgradeDetailSerializer(MySQLBaseOperateDetailSerializer):
     class InfoSerializer(DisplayInfoSerializer):
         cluster_ids = serializers.ListField(help_text=_("集群ID列表"), child=serializers.IntegerField(), min_length=1)
         pkg_id = serializers.IntegerField(help_text=_("目标版本包ID"))
+        new_db_module_id = serializers.IntegerField(help_text=_("数据库模块ID"), required=False)
 
     infos = serializers.ListField(help_text=_("单据信息"), child=InfoSerializer())
     force = serializers.BooleanField(help_text=_("是否强制执行"), required=False, default=False)

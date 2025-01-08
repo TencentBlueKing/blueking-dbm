@@ -227,7 +227,7 @@
   },
   "is_enabled": true,
   "monitor_indicator": "MAX(磁盘空间使用率)",
-  "version": 1,
+  "version": 26,
   "alert_source": "time_series",
   "custom_conditions": [],
   "export_at": "2024-12-06T15:52:08+08:00"

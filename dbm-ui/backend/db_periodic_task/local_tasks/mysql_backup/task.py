@@ -23,7 +23,14 @@ logger = logging.getLogger("celery")
 @register_periodic_task(run_every=crontab(minute=33, hour=2))
 def mysql_backup_check_task():
     """
-    mysql 备份巡检
+    mysql 全备巡检
     """
     check_full_backup("")
+
+
+@register_periodic_task(run_every=crontab(minute=15, hour=2))
+def mysql_binlog_check_task():
+    """
+    mysql binlog巡检
+    """
     check_binlog_backup("")

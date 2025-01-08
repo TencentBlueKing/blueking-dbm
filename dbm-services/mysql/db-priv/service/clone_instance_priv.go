@@ -1,6 +1,7 @@
 package service
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -93,15 +94,44 @@ func (m *CloneInstancePrivPara) CloneInstancePriv(jsonPara string, ticket string
 		if err != nil {
 			return errno.ClonePrivilegesFail.Add(err.Error())
 		}
-		proxyGrants, err := GetProxyPrivilege(m.Source.Address, nil, *m.BkCloudId, "")
+		proxyUsers, err := GetProxyPrivilege(m.Source.Address, nil, *m.BkCloudId, "")
 		if err != nil {
 			return err
-		} else if len(proxyGrants) == 0 {
+		} else if len(proxyUsers) == 0 {
 			return errno.NoPrivilegesNothingToDo
 		}
-		err = ImportProxyPrivileges(proxyGrants, m.Target.Address, *m.BkCloudId)
+
+		var oneBuckUsers []string
+		var errCollect error
+		for _, u := range proxyUsers {
+			oneBuckUsers = append(oneBuckUsers, u)
+			if len(oneBuckUsers) >= 1000 {
+				refreshSql := fmt.Sprintf(
+					"refresh_users('%s', '+')",
+					strings.Join(oneBuckUsers, ","),
+				)
+
+				err = ImportProxyPrivileges(
+					[]string{refreshSql},
+					m.Target.Address, *m.BkCloudId)
+				if err != nil {
+					errCollect = errors.Join(errCollect, err)
+				}
+				oneBuckUsers = []string{}
+			}
+		}
+		refreshSql := fmt.Sprintf(
+			"refresh_users('%s', '+')",
+			strings.Join(oneBuckUsers, ","),
+		)
+
+		err = ImportProxyPrivileges([]string{refreshSql}, m.Target.Address, *m.BkCloudId)
 		if err != nil {
-			return err
+			errCollect = errors.Join(errCollect, err)
+		}
+
+		if errCollect != nil {
+			return errCollect
 		}
 	}
 	return nil

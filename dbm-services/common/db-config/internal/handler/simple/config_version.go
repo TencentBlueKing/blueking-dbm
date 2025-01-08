@@ -12,7 +12,8 @@ import (
 	"bk-dbconfig/pkg/constvar"
 	"bk-dbconfig/pkg/core/logger"
 	"bk-dbconfig/pkg/util"
-	"bk-dbconfig/pkg/validate"
+
+	"dbm-services/common/go-pubpkg/validate"
 
 	"github.com/gin-gonic/gin"
 	"github.com/pkg/errors"

@@ -16,8 +16,10 @@ from typing import Dict, Optional
 from django.utils.crypto import get_random_string
 from django.utils.translation import ugettext as _
 
+from backend.components import DRSApi
 from backend.configuration.constants import DBType
 from backend.db_meta.enums import InstancePhase, InstanceStatus
+from backend.db_meta.exceptions import InstanceNotExistException
 from backend.db_meta.models import Cluster
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
@@ -115,6 +117,20 @@ class TenDBRemoteSlaveLocalRecoverFlow(object):
                 self.data["master_port"] = shard.storage_instance_tuple.ejector.port
                 self.data["slave_port"] = shard.storage_instance_tuple.receiver.port
                 target_slave = cluster_class.storageinstance_set.get(id=shard.storage_instance_tuple.receiver.id)
+                # 检查slave是否存活
+                res = DRSApi.rpc(
+                    {
+                        "addresses": [target_slave.ip_port],
+                        "cmds": ["select version()"],
+                        "force": False,
+                        "bk_cloud_id": target_slave.machine.bk_cloud_id,
+                    }
+                )
+                if res[0]["error_msg"]:
+                    raise InstanceNotExistException(
+                        _("请检查实例 {} 是否存活,是否正常可访问，slave原地重建是实例级别的，且必须保证实例存活方可提单进行").format(target_slave.ip_port)
+                    )
+
                 master = cluster_class.storageinstance_set.get(id=shard.storage_instance_tuple.ejector.id)
                 cluster = {
                     "phase": InstancePhase.TRANS_STAGE.value,

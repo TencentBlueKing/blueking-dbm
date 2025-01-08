@@ -17,7 +17,7 @@ from typing import Dict, List
 from django.db.models import QuerySet
 
 from backend.components import DRSApi
-from backend.db_meta.enums import ClusterType, InstanceRole
+from backend.db_meta.enums import ClusterType, InstanceRole, InstanceStatus
 from backend.db_meta.models import Cluster, StorageInstance
 from backend.db_meta.models.storage_set_dtl import SqlserverClusterSyncMode
 from backend.flow.consts import (
@@ -912,3 +912,44 @@ def exec_resume_sp(slave_instances: List[StorageInstance], master_host: str, mas
     if ret[0]["error_msg"]:
         raise Exception(f"Sys_AutoSwitch_Resume exec failed: {ret[0]['error_msg']}")
     return True
+
+
+def get_backup_info(cluster: Cluster, start_time: str, end_time: str, backup_type: int):
+    """
+    根据传入时间区间，返回集群所有实例的本地备份信息
+    @param cluster: 集群
+    @param start_time: 查询起始日期， 格式 xxxx-xx-xx
+    @param end_time: 查询截止日期， 格式 xxxx-xx-xx
+    @param backup_type: 备份类型
+    """
+    backup_infos = []
+    err_msg = ""
+    instances = cluster.storageinstance_set.filter(status=InstanceStatus.RUNNING)
+    if not instances:
+        return [], "the cluster is not running instance"
+
+    select_sql = f"""SELECT [BACKUP_ID]
+ [DBNAME]
+,[FILENAME]
+,[TYPE]
+,[STARTTIME]
+,[ENDTIME]
+FROM [Monitor].[dbo].[BACKUP_TRACE](NOLOCK) where
+ STARTTIME between '{start_time}' and '{end_time}' and TYPE = {backup_type}
+"""
+
+    ret = DRSApi.sqlserver_rpc(
+        {
+            "bk_cloud_id": cluster.bk_cloud_id,
+            "addresses": [i.ip_port for i in instances],
+            "cmds": [select_sql],
+            "force": False,
+        }
+    )
+    for info in ret:
+        if info["error_msg"]:
+            err_msg += f"{info['address']} error: {info['error_msg']}\n"
+            continue
+        backup_infos.extend(info["cmd_results"][0]["table_data"])
+
+    return backup_infos, err_msg

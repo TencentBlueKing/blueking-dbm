@@ -205,7 +205,7 @@ class QueryClusterInstanceCountSerializer(serializers.Serializer):
 
 class QueryClusterCapSerializer(serializers.Serializer):
     bk_biz_id = serializers.IntegerField(help_text=_("业务ID"))
-    cluster_type = serializers.ChoiceField(help_text=_("集群类型"), choices=ClusterType.get_choices())
+    cluster_type = serializers.CharField(help_text=_("集群类型(多个以逗号分隔)"))
 
 
 class QueryClusterCapResponseSerializer(serializers.Serializer):

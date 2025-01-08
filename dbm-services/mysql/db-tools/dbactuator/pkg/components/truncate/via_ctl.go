@@ -125,21 +125,6 @@ func (c *ViaCtlComponent) CreateStageTables() error {
 
 // Truncate truncate table 不需要任何处理
 func (c *ViaCtlComponent) Truncate() error {
-	/*
-			v1 版本中, 这一步操作是直接 drop db, 而且写法是 drop db if exists
-			所以可以不用关心 remote 上这个 db 在不在
-			v2 版本优化了 dropSourceDBs, 会先定向删除 db 中表, 能减少超时
-			但是当 remote 的 db 不存在时 (实际确实没了), 会报错
-			所以需要在这里单独把 tcadmin 设置为 0, 不转发 drop 命令
-		    只能在这个函数内设置, 因为这个函数只在最后的 中控清档 步骤执行
-		    如果在前面设置会影响其他步骤
-	*/
-	_, err := c.dbConn.ExecContext(context.Background(), `SET TC_ADMIN=0`)
-	if err != nil {
-		logger.Error("truncate on ctl set tc admin failed: ", err.Error())
-		return err
-	}
-
 	if c.Param.TruncateDataType == "drop_database" {
 		err := c.dropSourceDBs()
 		if err != nil {
@@ -192,11 +177,24 @@ func (c *ViaCtlComponent) dropSourceTables() error {
 // 得循环起来先一个一个把表 drop 了
 func (c *ViaCtlComponent) dropSourceDBs() error {
 	for db := range c.dbTablesMap {
+		// 中控连接设置了 tc_admin = 1
+		// 当清档类型是 drop db 时, remote 的库已经删除了
+		// 为了能清理 spider, tc_admin 必须保持为 1
+		// 所以必须在中控把库临时恢复出来
+		_, err := c.dbConn.ExecContext(
+			context.Background(),
+			fmt.Sprintf("CREATE DATABASE IF NOT EXISTS `%s`", db),
+		)
+		if err != nil {
+			logger.Error("drop source dbs on ctl recreate source db failed: ", err.Error())
+			return err
+		}
+
 		stageDBName := generateStageDBName(c.Param.StageDBHeader, c.Param.FlowTimeStr, db)
 
 		logger.Info(fmt.Sprintf("drop source dbs %v should drop it's tables", c.dbTablesMap[db]))
 
-		err := tpkg.SafeDropSourceTables(c.dbConn, db, stageDBName, c.dbTablesMap[db])
+		err = tpkg.SafeDropSourceTables(c.dbConn, db, stageDBName, c.dbTablesMap[db])
 		if err != nil {
 			logger.Error("drop source tables %v failed: ", c.dbTablesMap[db], err.Error())
 			return err

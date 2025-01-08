@@ -14,13 +14,9 @@
         "no_data_config": {
           "level": 1,
           "continuous": "5",
-          "is_enabled": true,
+          "is_enabled": false,
           "agg_dimension": [
-            "bk_target_service_instance_id",
-            "app",
-            "appid",
-            "cluster_domain",
-            "instance"
+            "bk_target_service_instance_id"
           ]
         },
         "target": [],
@@ -218,7 +214,7 @@
   },
   "is_enabled": true,
   "monitor_indicator": "AVG(mysqlproxy_up)",
-  "version": 24,
+  "version": 26,
   "alert_source": "time_series",
   "custom_conditions": [],
   "export_at": "2024-12-06T15:52:08+08:00"

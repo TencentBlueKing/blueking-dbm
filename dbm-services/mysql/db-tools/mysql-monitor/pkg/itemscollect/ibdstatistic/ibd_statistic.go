@@ -5,10 +5,13 @@ import (
 	"database/sql"
 	"log/slog"
 	"regexp"
+	"sort"
 
+	"dbm-services/mysql/db-tools/mysql-monitor/pkg/internal/cst"
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/monitoriteminterface"
 
 	"github.com/jmoiron/sqlx"
+	"github.com/mitchellh/mapstructure"
 	"github.com/pkg/errors"
 )
 
@@ -26,6 +29,7 @@ var name = "ibd-statistic"
 
 var ibdExt string
 var partitionPattern *regexp.Regexp
+var defaultMergeRules []*MergeRuleDef
 var systemDBs = []string{
 	"mysql",
 	"sys",
@@ -39,11 +43,48 @@ var systemDBs = []string{
 func init() {
 	ibdExt = ".ibd"
 	partitionPattern = regexp.MustCompile(`^(.*)#[pP]#.*\.ibd`)
+	defaultMergeRules = []*MergeRuleDef{
+		// 规则配在 yaml 里要 \\. 转义
+		// 合并转换后的库表明，必须是 dbX.tableY 格式，如果.分割出的 dbName,tableName 为空，会报错
+		&MergeRuleDef{
+			// "(?P<db>stage_truncate_).+\\..*"
+			// 将以 stage_truncate_ 开头的库表 合并成 stage_truncate_MERGED._MERGED
+			From: `(?P<db>stage_truncate_).+\..*`,
+			To:   `${db}_MERGED._MERGED`,
+		},
+		&MergeRuleDef{
+			// "(?P<db>bak_20\\d\\d).+\\..*"
+			// 将 bak_20190218_dbtest.tb1 / bak_20190318_dbtest_1.tb2 合并成 bak_2019._MERGED
+			From: `(?P<db>bak_20\d\d).+\..*`,
+			To:   `${db}._MERGED`,
+		},
+		&MergeRuleDef{
+			// "(bak_cbs)_.+_(\\d+)\\.(?P<table>.+)"
+			// 将 bak_cbs_dbtest_0.tb1 bak_cbs_dbtesta_1.tb2  合并成 bak_cbs_X_0.tb1 bak_cbs_X_1.tb2
+			From: `(bak_cbs)_.+_(\d+)\.(?P<table>.+)`,
+			To:   `${1}_X_${2}.${table}`,
+		},
+	}
+}
 
+type MergeRuleDef struct {
+	From string `mapstructure:"from"`
+	To   string `mapstructure:"to"`
 }
 
 type ibdStatistic struct {
-	db *sqlx.DB
+	// MergePartition 合并分区表
+	MergePartition *bool `mapstructure:"merge_partition"`
+	// MergeRuleRegex 合并表名，比如 db\.test_(\d+) 会合并 db.test_1 db.test_2 成 db.test_X
+	// 提示：这里的替换规则，可能会把 spider remote _<shard> 也去掉，统计时需要注意
+	MergeRules []*MergeRuleDef `mapstructure:"merge_rules"`
+	// TopkNum 只上报排名前 k 条记录，0 表示全部
+	TopkNum int `mapstructure:"topk_num"`
+
+	optionMap        monitoriteminterface.ItemOptions
+	reMergeRulesFrom []*regexp.Regexp
+	reMergeRulesTo   []string
+	db               *sqlx.DB
 }
 
 // Run TODO
@@ -61,17 +102,37 @@ func (c *ibdStatistic) Run() (msg string, err error) {
 		return "", err
 	}
 
-	result, err := collectResult(dataDir.String)
+	dbTableSize, dbSize, err := c.collectResult2(dataDir.String)
 	if err != nil {
 		return "", err
 	}
 
-	err = reportMetrics(result)
-	if err != nil {
-		return "", err
+	if c.TopkNum > 0 {
+		type dbTableInfo struct {
+			dbTableName string
+			size        int64
+		}
+		var dbTableSizeSorted []dbTableInfo
+
+		for k, v := range dbTableSize {
+			dbTableSizeSorted = append(dbTableSizeSorted, dbTableInfo{dbTableName: k, size: v})
+		}
+		// 降序
+		sort.Slice(dbTableSizeSorted, func(i, j int) bool {
+			return dbTableSizeSorted[i].size > dbTableSizeSorted[j].size
+		})
+		dbTableSize = nil
+		dbTableSize = make(map[string]int64) // reuse
+		for i, sz := range dbTableSizeSorted {
+			if i < c.TopkNum {
+				dbTableSize[sz.dbTableName] = sz.size
+			} else {
+				dbTableSize[cst.OTHER_DB_TABLE_NAME] += sz.size
+			}
+		}
 	}
 
-	err = reportLog(result)
+	err = reportLog2(dbTableSize, dbSize)
 	if err != nil {
 		return "", err
 	}
@@ -84,9 +145,33 @@ func (c *ibdStatistic) Name() string {
 	return name
 }
 
+func (c *ibdStatistic) initCustomOptions(opts monitoriteminterface.ItemOptions) error {
+	return nil
+}
+
 // New TODO
 func New(cc *monitoriteminterface.ConnectionCollect) monitoriteminterface.MonitorItemInterface {
-	return &ibdStatistic{db: cc.MySqlDB}
+	opts := cc.GetCustomOptions(name)
+	var itemObj ibdStatistic
+	if err := mapstructure.Decode(opts, &itemObj); err != nil {
+		panic(err)
+	}
+	itemObj.db = cc.MySqlDB
+	itemObj.optionMap = opts
+
+	if len(itemObj.MergeRules) == 0 {
+		slog.Info("ibd-statistic", slog.String("msg", "use default merge rules"),
+			slog.Int("count", len(itemObj.MergeRules)))
+		itemObj.MergeRules = defaultMergeRules
+	} else {
+		slog.Info("ibd-statistic", slog.String("msg", "use custom merge rules"),
+			slog.Int("count", len(itemObj.MergeRules)))
+	}
+	if itemObj.MergePartition == nil {
+		truePtr := true
+		itemObj.MergePartition = &truePtr
+	}
+	return &itemObj
 }
 
 // Register TODO

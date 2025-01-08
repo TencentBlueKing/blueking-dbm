@@ -20,6 +20,7 @@ from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.sqlserver.base_flow import BaseFlow
 from backend.flow.engine.bamboo.scene.sqlserver.common_sub_flow import (
     build_always_on_sub_flow,
+    init_machine_sub_flow,
     install_sqlserver_sub_flow,
     install_surrounding_apps_sub_flow,
 )
@@ -56,6 +57,21 @@ class SqlserverHAApplyFlow(BaseFlow):
         # 定义主流程
         main_pipeline = Builder(root_id=self.root_id, data=self.data)
         sub_pipelines = []
+
+        # 初始化机器
+        target_hosts = []
+        for info in self.data["infos"]:
+            target_hosts.extend([Host(**info["mssql_master_host"]), Host(**info["mssql_slave_host"])])
+
+        main_pipeline.add_sub_pipeline(
+            sub_flow=init_machine_sub_flow(
+                uid=self.data["uid"],
+                root_id=self.root_id,
+                bk_biz_id=int(self.data["bk_biz_id"]),
+                bk_cloud_id=int(self.data["bk_cloud_id"]),
+                target_hosts=target_hosts,
+            )
+        )
 
         for info in self.data["infos"]:
             # 拼接子流程需要全局参数

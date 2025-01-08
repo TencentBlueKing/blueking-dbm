@@ -211,7 +211,7 @@
   },
   "is_enabled": true,
   "monitor_indicator": "COUNT(partition-dbm_report_channel)",
-  "version": 23,
+  "version": 26,
   "alert_source": "event",
   "custom_conditions": [],
   "export_at": "2024-05-31T17:50:28+08:00"

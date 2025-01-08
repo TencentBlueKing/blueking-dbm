@@ -247,7 +247,7 @@
   },
   "is_enabled": true,
   "monitor_indicator": "COUNT(get-ctl-primary-dbm_report_channel)",
-  "version": 1,
+  "version": 26,
   "alert_source": "event",
   "custom_conditions": [],
   "export_at": "2024-12-06T15:54:01+08:00"

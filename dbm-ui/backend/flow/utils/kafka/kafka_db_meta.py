@@ -215,19 +215,21 @@ class KafkaMeta(object):
             )
             api.storage_instance.create(instances=storage_instances, creator=self.ticket_data["created_by"])
             new_cluster = api.cluster.kafka.create(**cluster)
-            # 兼容 broker及zk 混部的场景
+            # 兼容 broker及zk 混部的场景, 分批插入实例到CC
             broker_storage_objs = list(new_cluster.storageinstance_set.filter(instance_role=InstanceRole.BROKER))
-            # 修改zk 实例对象的machineType，写入数据库
-            if len(uniq_machines) != len(machines):
+            # first add broker instance to cc
+            cc_topo_operator = KafkaCCTopoOperator(new_cluster, self.ticket_data)
+            cc_topo_operator.transfer_instances_to_cluster_module(broker_storage_objs)
+            # 判断是否为混部的标记
+            hybrid_tag = len(uniq_machines) != len(machines)
+            # 若为混部，需要修改zk 实例对象的machineType，写入数据库
+            if hybrid_tag:
                 new_cluster.storageinstance_set.filter(instance_role=InstanceRole.ZOOKEEPER).update(
                     machine_type=MachineType.ZOOKEEPER.value
                 )
             zk_storage_objs = list(new_cluster.storageinstance_set.filter(instance_role=InstanceRole.ZOOKEEPER))
-
-            # 生成模块、转移主机、添加服务实例
-            KafkaCCTopoOperator(new_cluster, self.ticket_data).transfer_instances_to_cluster_module(
-                instances=broker_storage_objs + zk_storage_objs, is_increment=True
-            )
+            # is_increment=True 支持混部ZK的主机落在多个模块下
+            cc_topo_operator.transfer_instances_to_cluster_module(instances=zk_storage_objs, is_increment=hybrid_tag)
 
         return True
 

@@ -186,14 +186,14 @@ func (c *PickerObject) pickerOneByPriority(key string, cross_switch bool) bool {
 const (
 	// PriorityPMax 园区count 最大
 	PriorityPMax = 100000000
-	// PriorityP0 TODO
-	PriorityP0 = 10000
-	// PriorityP1 TODO
-	PriorityP1 = 1000
-	// PriorityP2 TODO
-	PriorityP2 = 100
-	// PriorityP3 TODO
-	PriorityP3 = 10
+	// PriorityP0 priority 0
+	PriorityP0 = 100000
+	// PriorityP1 priority 1
+	PriorityP1 = 10000
+	// PriorityP2 priority 2
+	PriorityP2 = 10
+	// PriorityP3 priority 3
+	PriorityP3 = 1
 )
 
 const (
@@ -214,16 +214,16 @@ func (o *SearchContext) setResourcePriority(ins model.TbRpDetail, ele *Item) {
 	}
 	// 如果请求参数包含规格，如果机器机型匹配,则高优先级
 	if len(o.DeviceClass) > 0 && lo.Contains(o.DeviceClass, ins.DeviceClass) {
-		ele.Priority += PriorityP1
+		ele.Priority += PriorityP0
 	}
 	// 如果请求参数请求了专属业务资源，则标记了专用业务的资源优先级更高
 	if o.IntetionBkBizId > 0 && ins.DedicatedBiz == o.IntetionBkBizId {
-		ele.Priority += PriorityP2
+		ele.Priority += PriorityP0
 	}
 
 	//  如果请求参数请求了专属db类型，机器的资源类型标签只有一个，且等于请求的资源的类中，则优先级更高
 	if lo.IsNotEmpty(o.RsType) && (ins.RsType == o.RsType) {
-		ele.Priority += PriorityP2
+		ele.Priority += PriorityP3
 	}
 	// 如果是匹配的资源是redis资源
 	// 在内存满足的条件下，偏向取cpu核心小的机器

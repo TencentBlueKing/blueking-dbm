@@ -247,7 +247,7 @@ class SqlserverHAClusterHandler(ClusterHandler):
         # 删除旧的服务实例
         cc_manage.delete_service_instance(bk_instance_ids=[i.bk_instance_id for i in objs])
         # 删除cluster模块
-        ClusterMonitorTopo.objects.filter(bk_biz_id=cluster.bk_biz_id, cluster_id=cluster.id).delete()
+        ClusterMonitorTopo.objects.filter(cluster_id=cluster.id).delete()
 
         # 创建模块
         SqlserverCCTopoOperator(cluster).transfer_instances_to_cluster_module(instances=objs, is_increment=True)

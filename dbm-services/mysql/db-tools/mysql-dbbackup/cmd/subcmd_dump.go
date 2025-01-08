@@ -164,7 +164,7 @@ func dumpExecute(cmd *cobra.Command, args []string) (err error) {
 func backupData(cnf *config.BackupConfig) (err error) {
 	logger.Log.Infof("Dbbackup begin for %d", cnf.Public.MysqlPort)
 	// validate dumpBackup
-	if err = validate.GoValidateStruct(cnf.Public, false, false); err != nil {
+	if err = validate.GoValidateStruct(cnf.Public, false); err != nil {
 		return err
 	}
 	if cnf.Public.EncryptOpt == nil {
@@ -224,10 +224,12 @@ func backupData(cnf *config.BackupConfig) (err error) {
 	}
 
 	// ExecuteBackup 执行备份后，返回备份元数据信息
+	logger.Log.Info("backup main run:", cnf.Public.MysqlPort)
 	metaInfo, exeErr := backupexe.ExecuteBackup(cnf)
 	if exeErr != nil {
 		return exeErr
 	}
+	logger.Log.Info("backup main finish:", cnf.Public.MysqlPort)
 
 	// tar and split
 	err = logReport.ReportBackupStatus("Tar")

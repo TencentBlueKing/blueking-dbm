@@ -172,7 +172,7 @@ type IBSRecoverQueryResp struct {
 
 // BsQuery 搜索备份系统中的文件
 func (r *IBSQueryParam) BsQuery(param IBSQueryReq) (*IBSQueryResp, error) {
-	if err := validate.GoValidateStruct(param, false, false); err != nil {
+	if err := validate.GoValidateStruct(param, false); err != nil {
 		return nil, err
 	}
 	url := fmt.Sprintf("%s%s", r.client.Url, "/query")

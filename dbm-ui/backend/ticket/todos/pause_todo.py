@@ -32,6 +32,11 @@ class ResourceReplenishTodoContext(BaseTodoContext):
 class PauseTodo(todos.TodoActor):
     """来自主流程的待办"""
 
+    @property
+    def allow_superuser_process(self):
+        # 单据未执行前（待审批、待执行时）超管不拥有特权。规避超管误点的风险
+        return False
+
     def _process(self, username, action, params):
         """确认/终止"""
         if action == ActionType.TERMINATE:

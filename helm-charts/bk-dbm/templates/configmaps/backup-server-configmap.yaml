@@ -65,4 +65,13 @@ data:
       api_key: "{{ index .Values "backup-server" "hdfs" "api_key" }}"
       api_ticket: ""
       api_version: "1.0"
+      databases:
+        mysql:
+          name: "old_server_mysql"
+          host: "{{ index .Values "backup-server" "hdfs" "oldBackupDb" "host" }}"
+          port: {{ index .Values "backup-server" "hdfs" "oldBackupDb" "port" }}
+          user: "{{ index .Values "backup-server" "hdfs" "oldBackupDb" "username" }}"
+          password: "{{ index .Values "backup-server" "hdfs" "oldBackupDb" "password" }}"
+          database: "{{ index .Values "backup-server" "hdfs" "oldBackupDb" "name" }}"
+          charset: "utf8mb4"
     {{- end }}

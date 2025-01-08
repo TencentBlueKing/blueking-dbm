@@ -32,11 +32,24 @@ DataSchemaGrant = all
 不建议将 `Public.NoCheckDiskSpace` 持久化到配置文件
 
 ### 4. 怎么修改备份开始时间
+
+- **tendbha主从高可用集群**  
 进入 mysql-crond 任务调度程序目录
 ```
 cd /home/mysql/mysql-crond
-vim jobs-config.yaml
+./mysql-crond  list
 
+如果需要重启 mysql-crond
+./stop.sh && sleep 1
+./start.sh
+```
+
+修改 schedule:
+```
+ ./mysql-crond change-job --permanent -n "dbbackup-schedule" --schedule "4 3 * * *"
+```
+某些旧版本的 mysql-crond 没有 change-job命令，可以直接修改 `jobs-config.yaml`，再重启 mysql-crond
+```
     - name: dbbackup-schedule
       enable: true
       command: /home/mysql/dbbackup-go/dbbackup_main.sh
@@ -47,9 +60,36 @@ vim jobs-config.yaml
       schedule: 3 3 * * *
       creator: system
       work_dir: /home/mysql/dbbackup-go
-      
-修改 schedule
 ```
+
+- **tendbcluster 集群**  
+spider 集群的备份由两个任务组成
+  - `spiderbackup-schedule`  
+   发起备份，即调度起一个 backup-id 的备份，会向 spider, remote master 写入备份任务`infodba_schema.global_backup`。
+   remote slave 的任务由 remote master 同步过来，如果有主从延迟，可能不会马上在 slave 上看到备份进程
+  - `spiderbackup-check`  
+   每分钟轮训判断本机是否有备份任务，如果有则执行备份
+
+修改备份时间时间 schedule：
+```
+./mysql-crond change-job --permanent -n "spiderbackup-schedule" --schedule "4 3 * * *"
+```
+
+某些旧版本的 mysql-crond 没有 change-job 命令，可以直接修改 `jobs-config.yaml`，再重启 mysql-crond
+```
+    - name: spiderbackup-schedule
+      enable: true
+      command: /home/mysql/dbbackup-go/dbbackup
+      args:
+        - spiderbackup
+        - schedule
+        - --config
+        - dbbackup.25000.ini
+      schedule: 3 3 * * *
+      creator: xxx
+      work_dir: /home/mysql/dbbackup-go
+```
+
 
 ### 5. 怎么调整磁盘 io 限速
 限速分为 2 个阶段：导出阶段，打包切分阶段

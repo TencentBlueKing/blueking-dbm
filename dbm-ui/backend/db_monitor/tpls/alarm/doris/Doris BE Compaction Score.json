@@ -41,7 +41,7 @@
               [
                 {
                   "method": "gte",
-                  "threshold": 100
+                  "threshold": 250
                 }
               ]
             ],
@@ -56,7 +56,7 @@
         "level": 1,
         "expression": "",
         "trigger_config": {
-          "count": 5,
+          "count": 10,
           "uptime": {
             "calendars": [],
             "time_ranges": [
@@ -69,7 +69,7 @@
           "check_window": 10
         },
         "recovery_config": {
-          "check_window": 5,
+          "check_window": 2,
           "status_setter": "recovery"
         },
         "connector": "and"
@@ -237,8 +237,8 @@
   },
   "is_enabled": true,
   "monitor_indicator": "Doris BE Compaction Score",
-  "version": 1,
+  "version": 2,
   "alert_source": "time_series",
   "custom_conditions": [],
-  "export_at": "2024-10-22T18:50:29+08:00"
+  "export_at": "2025-01-06T16:34:43+08:00"
 }

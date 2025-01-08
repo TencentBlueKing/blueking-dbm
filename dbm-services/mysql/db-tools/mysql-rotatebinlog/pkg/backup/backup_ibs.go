@@ -35,7 +35,7 @@ type IBSBackupClient struct {
 
 // Init TODO
 func (o *IBSBackupClient) Init() error {
-	if err := validate.GoValidateStruct(o, false, false); err != nil {
+	if err := validate.GoValidateStruct(o, false); err != nil {
 		return err
 	}
 	o.ibsQueryCmd = o.ToolPath

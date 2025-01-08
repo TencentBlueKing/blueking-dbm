@@ -54,7 +54,7 @@ QUERY_TEMPLATE = {
         1024))""",
     },
     ClusterType.TenDBSingle: {
-        "range": 120,
+        "range": 129,
         "used": """sum by (cluster_domain) (
                     max_over_time(
                         bkmonitor:exporter_dbm_mysqld_exporter:mysql_datadir_df_used_mb{instance_role="orphan",%s}[5m]
@@ -65,7 +65,7 @@ QUERY_TEMPLATE = {
                     ) * 1024 * 1024 )""",
     },
     ClusterType.TenDBHA: {
-        "range": 120,
+        "range": 129,
         "used": """sum by (cluster_domain) (
             max by (cluster_domain, ip) (
                 max_over_time(
@@ -80,11 +80,11 @@ QUERY_TEMPLATE = {
             ))""",
     },
     ClusterType.TenDBCluster: {
-        "range": 120,
+        "range": 129,
         "used": """sum by (cluster_domain) (
-            avg by (cluster_domain, ip) (
+            avg by (cluster_domain, instance) (
                 avg_over_time(
-                    bkmonitor:exporter_dbm_mysqld_exporter:mysql_datadir_df_used_mb{instance_role="remote_master",%s}[5m]
+                    bkmonitor:exporter_dbm_mysqld_exporter:mysql_datadir_du_used_mb{instance_role="remote_master",%s}[5m]
                 ) * 1024 * 1024))""",
         "total": """sum by (cluster_domain) (
             avg by (cluster_domain, ip) (

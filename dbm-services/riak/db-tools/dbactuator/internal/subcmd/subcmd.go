@@ -133,7 +133,7 @@ func (b *BaseOptions) DeserializeAndValidate(s interface{}) (err error) {
 		return
 	}
 
-	if err = validate.GoValidateStruct(s, false, true); err != nil {
+	if err = validate.GoValidateStruct(s, false); err != nil {
 		logger.Error("validate struct failed, %v", s, err)
 		return
 	}
@@ -180,7 +180,7 @@ func (b *BaseOptions) Deserialize(s interface{}) (err error) {
 		return
 	}
 	// logger.Info("params after unmarshal %+v", bip)
-	if err = validate.GoValidateStruct(bip, false, true); err != nil {
+	if err = validate.GoValidateStruct(bip, false); err != nil {
 		logger.Error("validate struct failed, %v", s, err)
 		err = errors.WithMessage(err, "参数输入错误")
 		return
@@ -213,7 +213,7 @@ func (b *BaseOptions) DeserializeSimple(s interface{}) (err error) {
 		err = errors.WithMessage(err, "参数解析错误")
 		return
 	}
-	if err = validate.GoValidateStruct(s, false, true); err != nil {
+	if err = validate.GoValidateStruct(s, false); err != nil {
 		logger.Error("validate struct failed, %v", s, err)
 		err = errors.WithMessage(err, "参数输入错误")
 		return

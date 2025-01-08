@@ -1,6 +1,8 @@
 package api
 
-import "bk-dbconfig/pkg/validate"
+import (
+	"dbm-services/common/go-pubpkg/validate"
+)
 
 // BatchGetConfigItemReq TODO
 // 批量获取多个对象的某一配置项
