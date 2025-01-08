@@ -5,19 +5,17 @@
       :key="item.id"
       class="result-item"
       @click="handleGo(item)">
-      <TextOverflowLayout>
-        <div class="value-text">
-          <HightLightText
-            class="keyword-highlight"
-            :key-word="keyWord"
-            :text="getMatchText(item)" />
-          <div
-            v-if="item.cluster_domain"
-            class="intro">
-            （{{ item.cluster_domain }}）
-          </div>
-        </div>
-      </TextOverflowLayout>
+      <div class="value-text">
+        <HightLightText
+          class="keyword-highlight"
+          :key-word="keyWord"
+          :text="getMatchText(item)" />
+        <span
+          v-if="item.cluster_domain"
+          class="intro">
+          （{{ item.cluster_domain }}）
+        </span>
+      </div>
       <div class="biz-text">
         {{ bizIdNameMap[item.bk_biz_id] }}
       </div>
@@ -28,7 +26,6 @@
   import { systemSearchCache } from '@common/cache';
 
   import { useRedirect } from '@components/system-search/hooks/useRedirect';
-  import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
 
   import HightLightText from './components/HightLightText.vue';
 
