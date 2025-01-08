@@ -46,6 +46,10 @@
       :pagination-extra="paginationExtra"
       releate-url-query
       :row-class="getRowClass"
+      :row-config="{
+        useKey: true,
+        keyField: 'id',
+      }"
       selectable
       :settings="tableSetting"
       :show-overflow="false"

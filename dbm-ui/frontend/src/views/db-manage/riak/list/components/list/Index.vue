@@ -48,6 +48,10 @@
       class="riak-list-table"
       :data-source="getRiakList"
       :row-class="setRowClass"
+      :row-config="{
+        useKey: true,
+        keyField: 'id',
+      }"
       selectable
       :settings="tableSetting"
       :show-overflow="false"

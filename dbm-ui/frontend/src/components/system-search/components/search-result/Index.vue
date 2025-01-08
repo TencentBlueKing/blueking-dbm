@@ -104,7 +104,7 @@
   const QUICK_SEARCH_NO_LONGER_PROMPT = 'QUICK_SEARCH_NO_LONGER_PROMPT';
 
   const resultTypeTextMap: Record<string, string> = {
-    entry: t('主访问入口'),
+    entry: t('访问入口'),
     instance: t('实例（IP、IP:Port）'),
     task: t('任务ID'),
     ticket: t('单据'),

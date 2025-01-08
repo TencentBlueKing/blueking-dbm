@@ -45,10 +45,13 @@
       :data-source="getHaClusterList"
       releate-url-query
       :row-class="setRowClass"
+      :row-config="{
+        useKey: true,
+        keyField: 'id',
+      }"
       selectable
       :settings="settings"
       :show-overflow="false"
-      show-overflow-tips
       @clear-search="clearSearchValue"
       @column-filter="columnFilterChange"
       @column-sort="columnSortChange"

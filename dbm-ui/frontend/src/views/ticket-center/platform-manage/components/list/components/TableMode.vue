@@ -20,23 +20,6 @@
       ref="dataTable"
       :data-source="dataSource"
       :row-class="rowClass">
-      <template #prepend>
-        <BkTableColumn
-          field="id"
-          fixed="left"
-          :label="t('单号')"
-          width="100">
-          <template #default="{ data }: { data: IRowData }">
-            <BkButton
-              v-if="data"
-              text
-              theme="primary"
-              @click="() => handleShowDetail(data)">
-              {{ data.id }}
-            </BkButton>
-          </template>
-        </BkTableColumn>
-      </template>
       <template #action>
         <BkTableColumn
           fixed="right"
@@ -64,7 +47,7 @@
   import TicketModel from '@services/model/ticket/ticket';
   import { getTickets } from '@services/source/ticket';
 
-  import { useStretchLayout, useUrlSearch } from '@hooks';
+  import { useUrlSearch } from '@hooks';
 
   import useDatePicker from '@views/ticket-center/common/hooks/use-date-picker';
   import useSearchSelect from '@views/ticket-center/common/hooks/use-search-select';
@@ -80,7 +63,6 @@
   const currentInstance = getCurrentInstance();
 
   const { getSearchParams, removeSearchParam } = useUrlSearch();
-  const { splitScreen: stretchLayoutSplitScreen } = useStretchLayout();
 
   const { value: datePickerValue, shortcutsRange } = useDatePicker();
 
@@ -94,11 +76,6 @@
   const selectTicketId = ref(0);
 
   const rowClass = (params: TicketModel) => (params.id === selectTicketId.value ? 'select-row' : '');
-
-  const handleShowDetail = (data: IRowData) => {
-    stretchLayoutSplitScreen();
-    selectTicketId.value = data.id;
-  };
 
   onActivated(() => {
     selectTicketId.value = Number(route.query.selectId);
