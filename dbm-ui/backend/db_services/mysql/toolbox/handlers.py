@@ -70,7 +70,7 @@ class ToolboxHandler:
                 # tmysql 可用用mysql 官方社区版本的介质
                 if re.search(tmysql_re_pattern, pkg.name) or (not re.search(pkgname_txsql_re_pattern, pkg.name)):
                     # higger_major_version：需要更高的主版本，无需比较子版本
-                    if higher_major_version:
+                    if higher_major_version or higher_all_version:
                         self.filter_available_packages(
                             pkg,
                             higher_major_version,
@@ -80,6 +80,15 @@ class ToolboxHandler:
                             sub_version_num,
                             pkg_sub_version_num,
                         )
+                        # 判断tmysql的子版本
+                        if (
+                            higher_all_version
+                            and pkg_major_vesion_num == major_version_num
+                            and pkg_sub_version_num == sub_version_num
+                        ):
+                            tmysql_pkg_sub_version_num = tmysql_version_parse(pkg.name)
+                            if tmysql_pkg_sub_version_num > tmysql_sub_version_num:
+                                self.available_pkg_list.append(pkg)
                         continue
                     else:
                         if pkg_major_vesion_num == major_version_num:
@@ -103,7 +112,9 @@ class ToolboxHandler:
 
             # 统一当做社区版本来处理
             else:
-                if (not re.search(pkgname_txsql_re_pattern, pkg.name)) and (re.search(tmysql_re_pattern, pkg.name)):
+                if (not re.search(pkgname_txsql_re_pattern, pkg.name)) and (
+                    not re.search(tmysql_re_pattern, pkg.name)
+                ):
                     self.filter_available_packages(
                         pkg,
                         higher_major_version,
@@ -136,7 +147,9 @@ class ToolboxHandler:
         """
         根据包类型、版本号和是否要求更高主版本来过滤包列表
         """
-        if higher_major_version and just_cross_one_major_version(current_version_num, refer_version_num):
+        if (higher_major_version or higher_all_version) and just_cross_one_major_version(
+            current_version_num, refer_version_num
+        ):
             self.available_pkg_list.append(pkg)
         else:
             if (

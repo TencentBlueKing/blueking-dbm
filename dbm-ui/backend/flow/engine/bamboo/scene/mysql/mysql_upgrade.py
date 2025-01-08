@@ -140,7 +140,7 @@ class MySQLStorageLocalUpgradeFlow(object):
                 cluster_ids:[],
                 cluster_type:"",
                 new_mysql_version:"",
-                new_module_id:""
+                new_db_module_id:""
             }
         ]
     }
@@ -215,6 +215,7 @@ class MySQLStorageLocalUpgradeFlow(object):
             cluster_ids = upgrade_info["cluster_ids"]
             pkg_id = upgrade_info["pkg_id"]
             new_mysql_pkg_name = self.__get_pkg_name_by_pkg_id(pkg_id)
+            new_db_module_id = upgrade_info.get("new_db_module_id")
             logger.info("param pkg_id:{},get the pkg name: {}".format(pkg_id, new_mysql_pkg_name))
             # 确保这批集群的master都是一个主机
             self.__the_clusters_use_same_machine(cluster_ids)
@@ -225,6 +226,7 @@ class MySQLStorageLocalUpgradeFlow(object):
             if first_cluster:
                 cluster_type = first_cluster.cluster_type
             bk_cloud_id = first_cluster.bk_cloud_id
+            bk_biz_id = first_cluster.bk_biz_id
             # 高可用升级
             if cluster_type == ClusterType.TenDBHA:
                 slave_instances = self.__get_clusters_slave_instance(cluster_ids)
@@ -366,8 +368,25 @@ class MySQLStorageLocalUpgradeFlow(object):
                         pkg_id=pkg_id,
                     )
                 )
-
+                # 更新集群模块信息
+                if new_db_module_id > 0:
+                    charset, major_version = get_version_and_charset(bk_biz_id, new_db_module_id, cluster_type)
+                    sub_pipeline.add_act(
+                        act_name=_("更新集群db模块信息"),
+                        act_component_code=MySQLDBMetaComponent.code,
+                        kwargs=asdict(
+                            DBMetaOPKwargs(
+                                db_meta_class_func=MySQLDBMeta.update_cluster_module.__name__,
+                                cluster={
+                                    "cluster_ids": cluster_ids,
+                                    "new_module_id": new_db_module_id,
+                                    "major_version": major_version,
+                                },
+                            )
+                        ),
+                    )
                 sub_pipelines.append(sub_pipeline.build_sub_process(sub_name=_("[TendbSingle]本地升级MySQL版本")))
+
             else:
                 raise DBMetaException(message=_("不支持的集群类型"))
 
