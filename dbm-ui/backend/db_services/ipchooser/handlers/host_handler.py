@@ -162,9 +162,10 @@ class HostHandler:
         """
 
         rules = []
+        bk_host_ids = []
         for host_info in host_list:
             if "host_id" in host_info:
-                rule = {"field": "bk_host_id", "operator": "equal", "value": host_info["host_id"]}
+                bk_host_ids.append(host_info["host_id"])
             else:
                 rule = {
                     "condition": "AND",
@@ -173,6 +174,10 @@ class HostHandler:
                         {"field": "bk_cloud_id", "operator": "equal", "value": host_info["cloud_id"]},
                     ],
                 }
-            rules.append(rule)
+                rules.append(rule)
+
+        # 合并为 in 查询，提高查询效率
+        if bk_host_ids:
+            rules.append({"field": "bk_host_id", "operator": "in", "value": bk_host_ids})
 
         return cls.details_base(scope_list, {"condition": "OR", "rules": rules}, mode)
