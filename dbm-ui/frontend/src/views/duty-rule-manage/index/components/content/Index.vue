@@ -157,7 +157,7 @@
     {
       label: t('状态'),
       field: 'status',
-      minWidth: 150,
+      width: 120,
       render: ({ data }: {data: DutyRuleModel}) => {
         const { label, theme } = statusMap[data.status as RuleStatus];
         return <bk-tag theme={theme}>{label}</bk-tag>;
@@ -190,6 +190,7 @@
                 resource={props.activeDbType}>
                 <NumberInput
                   type='number'
+                  autoFocus
                   model-value={level}
                   min={1}
                   max={100}
@@ -243,10 +244,24 @@
       },
     },
     {
+      label: t('轮值业务'),
+      field: 'status',
+      width: 250,
+      render: ({ data }: {data: DutyRuleModel}) => {
+        if (data.biz_config_display.include) {
+          return data.biz_config_display.include.map((biz) => biz.bk_biz_name).join(' , ')
+        }
+        if (data.biz_config_display.exclude) {
+          return `${t('全部业务')} (${t('排除业务')} : ${data.biz_config_display.exclude.map((biz) => biz.bk_biz_name).join(' , ')}) `
+        }
+        return t('全部业务')
+      },
+    },
+    {
       label: t('轮值表'),
       field: 'duty_arranges',
-      showOverflow: false,
-      width: 250,
+      showOverflowTooltip: false,
+      width: 280,
       render: ({ data }: {data: DutyRuleModel}) => {
         let title = '';
         if (data.status in statusMap) {
@@ -332,7 +347,7 @@
       fixed: 'right',
       showOverflow: false,
       field: '',
-      width: 100,
+      width: 120,
       render: ({ data }: {data: DutyRuleModel}) => (
       <div class="operate-box">
         <auth-button
@@ -403,7 +418,7 @@
         field: 'is_enabled',
       },
     ],
-    checked: ['name', 'status', 'priority', 'duty_arranges', 'effective_time', 'update_at', 'updater', 'is_enabled'],
+    checked: ['name', 'status', 'priority', 'duty_arranges', 'effective_time', 'updater', 'is_enabled'],
   };
 
   const { run: runGetPriorityDistinct } = useRequest(getPriorityDistinct, {

@@ -23,7 +23,9 @@
       property="peopleList"
       required>
       <span class="cycle-title-tip">（{{ t('排班时将会按照人员的顺序进行排班，可拖动 Tag 进行排序') }}）</span>
-      <MemberSelector v-model="formModel.peopleList" />
+      <MemberSelector
+        v-model="formModel.peopleList"
+        @change="handleMemberSelectorChange" />
     </BkFormItem>
     <div class="cycle-duty-box">
       <BkFormItem
@@ -137,10 +139,7 @@
 
   import MemberSelector from '@components/db-member-selector/index.vue';
 
-  import {
-    getDiffDays,
-    random,
-  } from '@utils';
+  import { getDiffDays, random } from '@utils';
 
   interface RowData {
     dateTime: string,
@@ -375,12 +374,15 @@
       dateSelect.value.date = workType;
       let workdays = arranges[0].work_days;
       workdays = workType === 'weekly' ? workdays.map(num => (num === 7 ? 0 : num)) : workdays;
-      dateSelect.value.weekday = workdays;
+      dateSelect.value.weekday = workdays || [];
     }
   }, {
     immediate: true,
   });
 
+  const handleMemberSelectorChange = () => {
+    formRef.value.validate('peopleList');
+  }
 
   const handleAddTime = () => {
     dateSelect.value.timeList.push({
@@ -396,6 +398,7 @@
 
   defineExpose<Exposes>({
     async getValue() {
+      await formRef.value.validate();
       const splitTimeToMinute = (str: string) => {
         const strArr = str.split(':');
         if (strArr.length <= 2) {

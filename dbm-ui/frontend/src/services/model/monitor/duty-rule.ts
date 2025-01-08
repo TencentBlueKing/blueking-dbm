@@ -30,6 +30,20 @@ export interface DutyCustomItem {
 }
 
 export default class DutyRule {
+  biz_config: {
+    exclude?: number[];
+    include?: number[];
+  };
+  biz_config_display: {
+    exclude?: {
+      bk_biz_id: number;
+      bk_biz_name: string;
+    }[];
+    include?: {
+      bk_biz_id: number;
+      bk_biz_name: string;
+    }[];
+  };
   category: string;
   creator: string;
   create_at: string;
@@ -52,16 +66,18 @@ export default class DutyRule {
   update_at: string;
 
   constructor(payload = {} as DutyRule) {
-    this.id = payload.id;
+    this.biz_config = payload.biz_config;
+    this.biz_config_display = payload.biz_config_display;
     this.creator = payload.creator;
     this.create_at = payload.create_at;
     this.category = payload.category;
     this.db_type = payload.db_type;
     this.duty_arranges = payload.duty_arranges;
     this.effective_time = payload.effective_time;
+    this.end_time = payload.end_time;
+    this.id = payload.id;
     this.is_enabled = payload.is_enabled;
     this.is_show_edit = false;
-    this.end_time = payload.end_time;
     this.name = payload.name;
     this.permission = payload.permission;
     this.priority = payload.priority;

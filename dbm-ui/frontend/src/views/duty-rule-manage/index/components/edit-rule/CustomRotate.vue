@@ -12,20 +12,34 @@
 -->
 
 <template>
-  <div class="title-spot custom-item-title mt-24">{{ t('轮值起止时间') }}<span class="required" /></div>
-  <BkDatePicker
-    ref="datePickerRef"
-    v-model="dateTimeRange"
-    append-to-body
-    :clearable="false"
-    style="width: 100%"
-    type="daterange"
-    @change="handleDatetimeRangeChange" />
-  <div class="title-spot custom-item-title mt-24">{{ t('轮值排班') }}<span class="required" /></div>
-  <DbOriginalTable
-    class="custom-table-box"
-    :columns="columns"
-    :data="tableData" />
+  <BkForm
+    ref="formRef"
+    class="mt-24"
+    form-type="vertical"
+    :model="formModel">
+    <BkFormItem
+      :label="t('轮值起止时间')"
+      property="dateTimeRange"
+      required>
+      <BkDatePicker
+        ref="datePickerRef"
+        v-model="formModel.dateTimeRange"
+        append-to-body
+        :clearable="false"
+        style="width: 100%"
+        type="daterange"
+        @change="handleDatetimeRangeChange" />
+    </BkFormItem>
+    <BkFormItem
+      :label="t('轮值排班')"
+      property="tableData"
+      required>
+      <DbOriginalTable
+        class="custom-table-box"
+        :columns="columns"
+        :data="formModel.tableData" />
+    </BkFormItem>
+  </BkForm>
 </template>
 
 <script setup lang="tsx">
@@ -53,7 +67,7 @@
   }
 
   interface Exposes {
-    getValue: () => {
+    getValue: () => Promise<{
       effective_time: string,
       end_time: string,
       duty_arranges:{
@@ -61,15 +75,19 @@
         work_times: string[],
         members: string[],
       }[],
-    }
+    }>
   }
 
   const props = defineProps<Props>();
 
   const { t } = useI18n();
 
-  const dateTimeRange = ref<[string, string]>();
-  const tableData = ref<RowData[]>([]);
+  const formRef = ref();
+
+  const formModel = reactive({
+    dateTimeRange: undefined as [string, string] | undefined,
+    tableData: [] as RowData[],
+  });
 
   const columns = [
     {
@@ -127,8 +145,8 @@
     }
 
     if (data && data.category === 'regular') {
-      dateTimeRange.value = [data.effective_time, data.end_time];
-      tableData.value = (data.duty_arranges as DutyCustomItem[]).map(item => ({
+      formModel.dateTimeRange = [data.effective_time, data.end_time];
+      formModel.tableData = (data.duty_arranges as DutyCustomItem[]).map(item => ({
         dateTime: item.date,
         timeRange: item.work_times.map(i => ({
           id: random(),
@@ -137,7 +155,7 @@
         members: item.members,
       }));
     } else {
-      tableData.value = []
+      formModel.tableData = []
     }
   }, {
     immediate: true,
@@ -145,9 +163,9 @@
 
 
   const handleDatetimeRangeChange = (value: [string, string]) => {
-    dateTimeRange.value = value;
+    formModel.dateTimeRange = value;
     const dateArr = getDiffDays(value[0], value[1]);
-    tableData.value = dateArr.map(item => ({
+    formModel.tableData = dateArr.map(item => ({
       dateTime: item,
       timeRange: [{
         id: random(),
@@ -155,26 +173,30 @@
       }],
       members: [],
     }));
+    nextTick(() => {
+      formRef.value.validate('tableData');
+    })
   }
 
   const handelPeopleChange = (value: string[], index: number) => {
-    tableData.value[index].members = value
+    formModel.tableData[index].members = value
   }
 
   const handleAddTime = (index: number) => {
-    tableData.value[index].timeRange.push({
+    formModel.tableData[index].timeRange.push({
       id: random(),
       value: ['00:00:00', '23:59:59'],
     });
   };
 
   const handleDeleteTime = (outerIndex: number, innerIndex: number) => {
-    tableData.value[outerIndex].timeRange.splice(innerIndex, 1);
+    formModel.tableData[outerIndex].timeRange.splice(innerIndex, 1);
   };
 
 
   defineExpose<Exposes>({
-    getValue() {
+    async getValue() {
+      await formRef.value.validate();
       const splitTimeToMinute = (str: string) => {
         const strArr = str.split(':');
         if (strArr.length <= 2) {
@@ -184,9 +206,9 @@
         return strArr.join(':');
       };
       return {
-        effective_time: dayjs(dateTimeRange.value![0]).startOf('day').format('YYYY-MM-DD HH:mm:ss'),
-        end_time: dayjs(dateTimeRange.value![1]).startOf('day').format('YYYY-MM-DD HH:mm:ss'),
-        duty_arranges: tableData.value.map(item => ({
+        effective_time: dayjs(formModel.dateTimeRange![0]).startOf('day').format('YYYY-MM-DD HH:mm:ss'),
+        end_time: dayjs(formModel.dateTimeRange![1]).startOf('day').format('YYYY-MM-DD HH:mm:ss'),
+        duty_arranges: formModel.tableData.map(item => ({
           date: item.dateTime,
           work_times: item.timeRange.map(data => data.value.map(str => splitTimeToMinute(str)).join('--')),
           members: item.members,
