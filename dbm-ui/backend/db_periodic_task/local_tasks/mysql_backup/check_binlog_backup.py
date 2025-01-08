@@ -11,8 +11,6 @@ specific language governing permissions and limitations under the License.
 import logging
 from collections import defaultdict
 
-from blueapps.core.celery.celery import app
-
 from backend.db_meta.enums import ClusterType
 from backend.db_meta.models import Cluster
 from backend.db_periodic_task.constants import BACKUP_TASK_SUCCESS
@@ -30,7 +28,6 @@ def check_binlog_backup(date_str: str):
     _check_tendbcluster_binlog_backup(date_str)
 
 
-@app.task
 def _check_tendbha_binlog_backup(date_str: str):
     """
     master 实例必须要有备份binlog
@@ -40,7 +37,6 @@ def _check_tendbha_binlog_backup(date_str: str):
     return _check_binlog_backup(ClusterType.TenDBHA, date_str)
 
 
-@app.task
 def _check_tendbcluster_binlog_backup(date_str: str):
     """
     master 实例必须要有备份binlog

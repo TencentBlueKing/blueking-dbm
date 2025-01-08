@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-	"github.com/spf13/cast"
 
 	"dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/cst"
@@ -30,7 +29,7 @@ type mydumperMetadata struct {
 // parseMysqldumpMetadata 从 mysqldump sql 文件里解析 change master / change slave 命令
 // 命令被注释，在文件开头的前几行
 func parseMysqldumpMetadata(sqlFilePath string) (*mydumperMetadata, error) {
-	logger.Log.Infof("start parseMysqldumpMetadata from %s", sqlFilePath)
+
 	sqlFile, err := os.Open(sqlFilePath)
 	if err != nil {
 		return nil, err
@@ -44,17 +43,15 @@ func parseMysqldumpMetadata(sqlFilePath string) (*mydumperMetadata, error) {
 
 	var bufScanner *bufio.Scanner
 	if strings.HasSuffix(sqlFilePath, cst.ZstdSuffix) {
-		cmds := []string{"head", "-c", "4096", sqlFilePath, "|", CmdZstd, "-d", "-c"}
+		cmds := []string{"cut", "-b", "-4096", sqlFilePath, "|", CmdZstd, "-d", "-c"}
 		outBuf, _, err := cmutil.ExecCommandReturnBytes(true, "", cmds[0], cmds[1:]...)
 
 		if len(outBuf) < 100 { // 返回小于这个长度，肯定非法了，重试一遍
-			// https://github.com/facebook/zstd/issues/1358 The maximum block size is indeed a hard limit of 128 KB
-			zstdMaxBlockSize := cast.ToString(128 * 1024 * 2)
-			cmds = []string{"head", "-c", zstdMaxBlockSize, sqlFilePath, "|", CmdZstd, "-d", "-c"}
+			cmds = []string{"cut", "-b", "-10240", sqlFilePath, "|", CmdZstd, "-d", "-c"}
 			outBuf, _, err = cmutil.ExecCommandReturnBytes(true, "", cmds[0], cmds[1:]...)
 		}
 		if err != nil {
-			logger.Log.Warnf("zstd decode first 4096 bytes failed from %s, err:%s", sqlFilePath, err.Error())
+			logger.Log.Warnf("zstd decode first 2048 bytes failed from %s, err:%s", sqlFilePath, err.Error())
 		}
 		if len(outBuf) < 100 { // 返回小于这个长度，非法报错
 			return nil, errors.Errorf("failed to get binlog position from zst file %s", sqlFilePath)
@@ -90,7 +87,6 @@ func parseMysqldumpMetadata(sqlFilePath string) (*mydumperMetadata, error) {
 }
 
 func parseMydumperMetadata(metadataFile string) (*mydumperMetadata, error) {
-	logger.Log.Infof("start parseMydumperMetadata %s", metadataFile)
 	metafile, err := os.Open(metadataFile)
 	if err != nil {
 		return nil, err
@@ -205,6 +201,7 @@ func parseXtraInfo(qpress string, fileName string, tmpFileName string, metaInfo 
 	if err != nil {
 		return err
 	}
+
 	scanner := bufio.NewScanner(fileBytes)
 	var startTimeStr, endTimeStr string
 	for scanner.Scan() {

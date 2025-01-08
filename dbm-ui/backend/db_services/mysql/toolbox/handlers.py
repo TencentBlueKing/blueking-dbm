@@ -37,7 +37,8 @@ class ToolboxHandler:
     # txsql pkg name: mysql-txsql-8.0.30-20230701-linux-x86_64.tar.gz
     # 社区版本 pkg name: mysql-8.0.32-linux-glibc2.12-x86_64.tar.xz
 
-    def query_higher_version_pkg_list(self, cluster_id: int, higher_major_version: bool, higher_all_version: bool):
+    def query_higher_version_pkg_list(self, cluster_id: int, higher_major_version: bool):
+        higher_major_version = True
         cluster = Cluster.objects.filter(id=cluster_id).get()
         instance = StorageInstance.objects.filter(
             cluster=cluster,
@@ -74,7 +75,6 @@ class ToolboxHandler:
                         self.filter_available_packages(
                             pkg,
                             higher_major_version,
-                            higher_all_version,
                             major_version_num,
                             pkg_major_vesion_num,
                             sub_version_num,
@@ -94,7 +94,6 @@ class ToolboxHandler:
                     self.filter_available_packages(
                         pkg,
                         higher_major_version,
-                        higher_all_version,
                         major_version_num,
                         pkg_major_vesion_num,
                         sub_version_num,
@@ -107,7 +106,6 @@ class ToolboxHandler:
                     self.filter_available_packages(
                         pkg,
                         higher_major_version,
-                        higher_all_version,
                         major_version_num,
                         pkg_major_vesion_num,
                         sub_version_num,
@@ -127,7 +125,6 @@ class ToolboxHandler:
         self,
         pkg: Package,
         higher_major_version: bool,
-        higher_all_version: bool,
         refer_version_num: int,
         current_version_num: int,
         refer_sub_version_num: int,
@@ -145,13 +142,6 @@ class ToolboxHandler:
                 and (current_sub_version_num > refer_sub_version_num)
             ):
                 self.available_pkg_list.append(pkg)
-        # higher_all_version 表示需要获取大小版本都可以使用的包
-        if (
-            higher_all_version
-            and (current_version_num == refer_version_num)
-            and (current_sub_version_num > refer_sub_version_num)
-        ):
-            self.available_pkg_list.append(pkg)
 
 
 def convert_mysql8_version_num(major_version: int) -> int:

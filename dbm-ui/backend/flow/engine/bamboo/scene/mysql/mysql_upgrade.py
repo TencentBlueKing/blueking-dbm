@@ -345,17 +345,17 @@ class MySQLStorageLocalUpgradeFlow(object):
                 instances = StorageInstance.objects.filter(
                     cluster__in=clusters, machine_type=MachineType.SINGLE, instance_role=InstanceRole.ORPHAN
                 )
-                ip_list = []
+                ipList = []
                 ports = []
                 for instance in instances:
                     ports.append(instance.port)
-                    ip_list.append(instance.machine.ip)
+                    ipList.append(instance.machine.ip)
                     upgrade_version_check(instance.version, new_mysql_pkg_name)
                 bk_cloud_id = clusters[0].bk_cloud_id
-                if len(list(set(ip_list))) != 1:
-                    raise DBMetaException(message=_("集群的master应该同属于一个机器,当前分布在{}").format(list(set(ip_list))))
+                if len(list(set(ipList))) != 1:
+                    raise DBMetaException(message=_("集群的master应该同属于一个机器,当前分布在{}").format(list(set(ipList))))
 
-                host_ip = ip_list[0]
+                host_ip = ipList[0]
                 reinstall_ip_list.append(host_ip)
                 sub_pipeline.add_sub_pipeline(
                     sub_flow=self.upgrade_mysql_subflow(

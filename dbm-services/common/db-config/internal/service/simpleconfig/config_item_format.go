@@ -9,7 +9,7 @@ import (
 	"bk-dbconfig/pkg/constvar"
 	"bk-dbconfig/pkg/core/logger"
 	"bk-dbconfig/pkg/util"
-	"bk-dbconfig/pkg/validatestruct"
+	"bk-dbconfig/pkg/validate"
 
 	"github.com/pkg/errors"
 	"github.com/spf13/cast"
@@ -141,17 +141,17 @@ func CastValueType(confName string, confValue string, f api.BaseConfFileDef, val
 	if valueType == "" {
 		return confValue
 	}
-	if valueType == validatestruct.DTypeInt {
+	if valueType == validate.DTypeInt {
 		return cast.ToInt(confValue)
-	} else if valueType == validatestruct.DTypeFloat || valueType == validatestruct.DTypeNumber {
+	} else if valueType == validate.DTypeFloat || valueType == validate.DTypeNumber {
 		return cast.ToFloat32(confValue)
-	} else if valueType == validatestruct.DTypeBool {
+	} else if valueType == validate.DTypeBool {
 		return cmutil.ToBoolExt(confValue)
-	} else if valueType == validatestruct.DTypeString {
-		if valueSubType == validatestruct.DTypeSubList {
+	} else if valueType == validate.DTypeString {
+		if valueSubType == validate.DTypeSubList {
 			newValue := util.SplitAnyRuneTrim(confValue, ",")
 			return newValue
-		} else if valueSubType == validatestruct.DTypeSubMap {
+		} else if valueSubType == validate.DTypeSubMap {
 			mapI := make(map[string]interface{})
 			err := json.Unmarshal([]byte(confValue), &mapI)
 			if err != nil {

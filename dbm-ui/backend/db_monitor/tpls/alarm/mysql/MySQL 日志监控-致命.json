@@ -242,7 +242,7 @@
   },
   "is_enabled": true,
   "monitor_indicator": "COUNT(mysql-err-critical)",
-  "version": 26,
+  "version": 23,
   "alert_source": "event",
   "custom_conditions": []
 }

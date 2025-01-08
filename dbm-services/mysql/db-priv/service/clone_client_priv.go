@@ -224,45 +224,18 @@ func (m *CloneClientPrivPara) CloneClientPriv(jsonPara string, ticket string) ([
 							"source ip", m.SourceIp)
 						continue
 					}
-					proxyUsers, err := GetProxyPrivilege(address, matchHosts, item.BkCloudId, m.User)
+					proxyGrants, err := GetProxyPrivilege(address, matchHosts, item.BkCloudId, m.User)
 					if err != nil {
 						slog.Error("msg", "GetProxyPrivilege", err)
 						AddError(&errMsg, address, err)
 					}
-					if len(proxyUsers) == 0 {
+					if len(proxyGrants) == 0 {
 						slog.Info("no match user@host", "instance", address, "user", m.User)
 						continue
 					}
-					proxyUsers = ReplaceHostInProxyGrants(proxyUsers, m.TargetIp)
-
-					var oneBuckUsers []string
-					for _, u := range proxyUsers {
-						oneBuckUsers = append(oneBuckUsers, u)
-						if len(oneBuckUsers) >= 1000 {
-							refreshSql := fmt.Sprintf(
-								"refresh_users('%s', '+')",
-								strings.Join(oneBuckUsers, ","),
-							)
-							clusterGrant.Sqls = append(clusterGrant.Sqls,
-								InstanceGrantSql{address, []string{refreshSql}},
-							)
-							err = ImportProxyPrivileges(
-								[]string{refreshSql},
-								address, item.BkCloudId)
-							if err != nil {
-								AddError(&errMsg, address, err)
-							}
-							oneBuckUsers = []string{}
-						}
-					}
-					refreshSql := fmt.Sprintf(
-						"refresh_users('%s', '+')",
-						strings.Join(oneBuckUsers, ","),
-					)
-					clusterGrant.Sqls = append(clusterGrant.Sqls,
-						InstanceGrantSql{address, []string{refreshSql}},
-					)
-					err = ImportProxyPrivileges([]string{refreshSql}, address, item.BkCloudId)
+					proxyGrants = ReplaceHostInProxyGrants(proxyGrants, m.TargetIp)
+					clusterGrant.Sqls = append(clusterGrant.Sqls, InstanceGrantSql{address, proxyGrants})
+					err = ImportProxyPrivileges(proxyGrants, address, item.BkCloudId)
 					if err != nil {
 						AddError(&errMsg, address, err)
 					}

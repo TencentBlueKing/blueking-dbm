@@ -10,9 +10,7 @@
 package itemscollect
 
 import (
-	"dbm-services/mysql/db-tools/mysql-monitor/pkg/itemscollect/privcheck"
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/itemscollect/rotateproxyconnlog"
-
 	"fmt"
 	"log/slog"
 
@@ -97,5 +95,4 @@ func init() {
 	_ = registerItemConstructor(timezonechange.RegisterMySQLTimezoneChange())
 	_ = registerItemConstructor(rotateproxyconnlog.RegisterRotateProxyConnlog())
 	_ = registerItemConstructor(spiderctlchecker.GetCtlPrimaryRegister())
-	_ = registerItemConstructor(privcheck.Register())
 }

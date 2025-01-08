@@ -2,20 +2,17 @@
 package validate
 
 import (
+	"bk-dbconfig/pkg/util"
 	"fmt"
 	"log"
 	"reflect"
 	"strings"
-	"time"
-
-	"dbm-services/common/go-pubpkg/cmutil"
 
 	"github.com/go-playground/locales/en"
 	ut "github.com/go-playground/universal-translator"
 	"github.com/go-playground/validator/v10"
 	en_translations "github.com/go-playground/validator/v10/translations/en"
 	"github.com/pkg/errors"
-	"github.com/robfig/cron/v3"
 )
 
 // ValidateEnums TODO
@@ -30,7 +27,7 @@ func ValidateEnums(f validator.FieldLevel) bool {
 	// get tag value from tag_field enums
 	tagValue := sf.Tag.Get(TagEnum)
 	enumsValues := strings.Split(tagValue, ",")
-	if cmutil.StringsHas(enumsValues, fieldValue) {
+	if util.StringsHas(enumsValues, fieldValue) {
 		return true
 	} else {
 		return false
@@ -55,21 +52,19 @@ func GoValidateStructSimple(v interface{}, enum bool) error {
 const TagEnum = "enums"
 
 // GoValidateStruct v 不能是Ptr
-func GoValidateStruct(v interface{}, enum bool, charset bool) error {
+func GoValidateStruct(v interface{}, enum bool) error {
 	validate := validator.New()
 	uni := ut.New(en.New())
 	trans, _ := uni.GetTranslator("en")
 	// 提示时显示 json 字段的名字
-	validate.RegisterTagNameFunc(
-		func(fld reflect.StructField) string {
-			// name := fld.Tag.Get("json")
-			name := strings.SplitN(fld.Tag.Get("json"), ",", 2)[0]
-			if name == "-" {
-				return ""
-			}
-			return name
-		},
-	)
+	validate.RegisterTagNameFunc(func(fld reflect.StructField) string {
+		// name := fld.Tag.Get("json")
+		name := strings.SplitN(fld.Tag.Get("json"), ",", 2)[0]
+		if name == "-" {
+			return ""
+		}
+		return name
+	})
 	if err := en_translations.RegisterDefaultTranslations(validate, trans); err != nil {
 		return err
 	}
@@ -77,11 +72,6 @@ func GoValidateStruct(v interface{}, enum bool, charset bool) error {
 	if enum {
 		_ = validate.RegisterValidation(TagEnum, ValidateEnums)
 	}
-	if charset {
-		_ = validate.RegisterValidation("checkCharset", validCharSet)
-	}
-	_ = validate.RegisterValidation("crontabexpr", validateCrontabExpr)
-	_ = validate.RegisterValidation("time", validateTimeStr)
 	if err := validate.Struct(v); err != nil {
 		return translateErr2Msg(v, trans, err)
 	}
@@ -91,10 +81,6 @@ func GoValidateStruct(v interface{}, enum bool, charset bool) error {
 // translateErr2Msg v 不能是Ptr
 func translateErr2Msg(v interface{}, trans ut.Translator, err error) error {
 	var errStr []string
-	_, ok := err.(*validator.InvalidValidationError)
-	if ok {
-		return fmt.Errorf("param error:%s", err.Error())
-	}
 	for _, vErr := range err.(validator.ValidationErrors) {
 		if vErr.Tag() == TagEnum {
 			errmsg := ""
@@ -113,7 +99,6 @@ func translateErr2Msg(v interface{}, trans ut.Translator, err error) error {
 	}
 	return errors.New(strings.Join(errStr, " || "))
 }
-
 func customEnumTransFunc(fe validator.FieldError, v interface{}) string {
 	if fe.Param() == "" {
 		sf, _ := reflect.TypeOf(v).FieldByName(fe.StructField())
@@ -152,41 +137,4 @@ func translate(ut ut.Translator, fe validator.FieldError) string {
 		return fe.(error).Error()
 	}
 	return s
-}
-
-func validCharSet(f validator.FieldLevel) bool {
-	v := f.Field().String()
-	return cmutil.HasElem(
-		v, []string{"default", "utf8mb4", "utf8", "latin1", "gb2312", "gbk", "binary", "gb18030", "utf8mb3"},
-	)
-}
-
-// validateCrontabExpr 验证Liunx crontab表达式
-func validateCrontabExpr(f validator.FieldLevel) bool {
-	v := f.Field().String()
-	err := validateCronExpr(v)
-	return err == nil
-}
-
-// validateCronExpr TODO
-/**
- * @description: crontab 表达式检查,如果返回error != nil，则表示crontab 表达式不正确
- * @receiver {string} cronstr eg:" * * * 3 5"
- * @return {*}
- */
-func validateCronExpr(cronstr string) (err error) {
-	specParser := cron.NewParser(cron.Minute | cron.Hour | cron.Dom | cron.Month | cron.Dow)
-	_, err = specParser.Parse(cronstr)
-	return
-}
-
-// validateTimeStr TODO
-// 验证时间字符串 "09:00:00" 这种
-func validateTimeStr(f validator.FieldLevel) bool {
-	v := f.Field().String()
-	if strings.TrimSpace(v) == "" {
-		return true
-	}
-	_, err := time.Parse("15:04:05", v)
-	return err == nil
 }
