@@ -90,7 +90,7 @@
     {
       label: t('日期'),
       field: 'dateTime',
-      width: 120,
+      minWidth: 120,
       render: ({ data }: {data: RowData}) => {
         let tag = null;
         const today = dayjs(new Date()).format('YYYY-MM-DD');
@@ -104,7 +104,7 @@
       label: t('时段'),
       field: 'timeRange',
       showOverflowTooltip: true,
-      width: 200,
+      minWidth: 200,
       render: ({ data }: {data: RowData}) => data.timeRange.join(' , '),
     },
     {
