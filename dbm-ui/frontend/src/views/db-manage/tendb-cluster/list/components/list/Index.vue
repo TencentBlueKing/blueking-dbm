@@ -68,6 +68,10 @@
         :data-source="fetchData"
         :pagination-extra="paginationExtra"
         :row-class="setRowClass"
+        :row-config="{
+          useKey: true,
+          keyField: 'id',
+        }"
         selectable
         :settings="settings"
         :show-overflow="false"
@@ -156,18 +160,22 @@
               @click="() => handleShowAuthorize([data])">
               {{ t('授权') }}
             </BkButton>
-            <AuthButton
+            <AuthRouterLink
               v-db-console="'tendbCluster.clusterManage.webconsole'"
               action-id="tendbcluster_webconsole"
               class="mr-8"
               :disabled="data.isOffline"
               :permission="data.permission.tendbcluster_webconsole"
               :resource="data.id"
-              text
-              theme="primary"
-              @lick="() => handleGoWebconsole(data.id)">
+              target="_blank"
+              :to="{
+                name: 'SpiderWebconsole',
+                query: {
+                  clusterId: data.id,
+                },
+              }">
               Webconsole
-            </AuthButton>
+            </AuthRouterLink>
             <AuthButton
               v-db-console="'tendbCluster.clusterManage.exportData'"
               action-id="tendbcluster_dump_data"
@@ -604,15 +612,6 @@
     stretchLayoutSplitScreen();
     clusterId.value = id;
   };
-
-  const handleGoWebconsole = (clusterId: number) => {
-    router.push({
-      name: 'SpiderWebconsole',
-      query: {
-        clusterId
-      }
-    });
-  }
 
   // 下架运维节点
   const handleRemoveMNT = (data: TendbClusterModel) => {

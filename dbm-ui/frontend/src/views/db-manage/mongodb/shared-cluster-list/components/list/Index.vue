@@ -61,6 +61,10 @@
       :data-source="getMongoList"
       releate-url-query
       :row-class="setRowClass"
+      :row-config="{
+        useKey: true,
+        keyField: 'id',
+      }"
       selectable
       :settings="tableSetting"
       :show-overflow="false"

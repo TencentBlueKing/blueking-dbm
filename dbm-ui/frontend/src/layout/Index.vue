@@ -241,6 +241,8 @@
 </script>
 <style lang="less">
   .bk-navigation {
+    height: calc(100vh - var(--notice-height)) !important;
+
     .container-content {
       height: auto;
       max-height: unset !important;
@@ -266,6 +268,10 @@
 
     .navigation-container {
       max-width: none !important;
+
+      .container-content {
+        max-height: calc(100vh - 52px - var(--notice-height)) !important;
+      }
     }
 
     .bk-navigation-header {

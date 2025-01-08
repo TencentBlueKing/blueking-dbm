@@ -159,6 +159,7 @@
     .db-card {
       .db-card__content {
         padding-left: 116px;
+        overflow: hidden;
       }
 
       & ~ .db-card {

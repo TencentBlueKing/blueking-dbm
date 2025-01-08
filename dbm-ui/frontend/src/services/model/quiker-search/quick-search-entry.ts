@@ -25,6 +25,7 @@ export default class QuickSearchEntry {
   id: number;
   immute_domain: string;
   is_show_dba: string;
+  major_version: string;
   region: string;
   role: string;
 
@@ -42,6 +43,7 @@ export default class QuickSearchEntry {
     this.id = payload.id;
     this.immute_domain = payload.immute_domain;
     this.is_show_dba = payload.is_show_dba;
+    this.major_version = payload.major_version;
     this.region = payload.region;
     this.role = payload.role;
   }

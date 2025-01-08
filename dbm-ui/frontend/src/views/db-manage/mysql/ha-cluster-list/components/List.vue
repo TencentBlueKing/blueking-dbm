@@ -56,6 +56,10 @@
         :line-height="80"
         releate-url-query
         :row-class="setRowClass"
+        :row-config="{
+          useKey: true,
+          keyField: 'id',
+        }"
         selectable
         :settings="settings"
         :show-overflow="false"

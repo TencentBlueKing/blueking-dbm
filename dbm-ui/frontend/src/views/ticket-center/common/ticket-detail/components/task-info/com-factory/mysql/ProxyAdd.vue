@@ -12,10 +12,10 @@
 -->
 
 <template>
-  <BkTable
-    :data="ticketDetails.details.infos"
-    show-overflow-tooltip>
-    <BkTableColumn :label="t('目标集群')">
+  <BkTable :data="ticketDetails.details.infos">
+    <BkTableColumn
+      :label="t('目标集群')"
+      :min-width="250">
       <template #default="{ data }: { data: RowData }">
         <div
           v-for="clusterId in data.cluster_ids"

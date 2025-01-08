@@ -131,7 +131,6 @@
   };
   // 批量选择
   const handelInstanceSelectorChange = (data: InstanceSelectorValues<IValue>) => {
-    console.log('asdasd = ', data);
     selectedIps.value = data;
     const newList = data.tendbcluster.reduce((result, item) => {
       const { instance_address: ip } = item;

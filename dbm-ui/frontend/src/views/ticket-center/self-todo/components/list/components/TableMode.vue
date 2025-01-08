@@ -37,23 +37,6 @@
       :row-class="rowClass"
       :selectable="isSelectable"
       @selection="handleSelection">
-      <template #prepend>
-        <BkTableColumn
-          field="id"
-          fixed="left"
-          :label="t('单号')"
-          width="100">
-          <template #default="{ data }: { data: TicketModel }">
-            <BkButton
-              v-if="data"
-              text
-              theme="primary"
-              @click="(event: MouseEvent) => handleGoDetail(data, event)">
-              {{ data.id }}
-            </BkButton>
-          </template>
-        </BkTableColumn>
-      </template>
       <template #action>
         <BkTableColumn
           fixed="right"
@@ -83,7 +66,6 @@
   import { useStretchLayout, useUrlSearch } from '@hooks';
 
   import useDatePicker from '@views/ticket-center/common/hooks/use-date-picker';
-  import useOpenDetail from '@views/ticket-center/common/hooks/use-open-detail';
   import useSearchSelect from '@views/ticket-center/common/hooks/use-search-select';
   import TableModeTable from '@views/ticket-center/common/TableModeTable.vue';
 
@@ -106,8 +88,6 @@
   const { value: searachSelectValue, searchSelectData } = useSearchSelect({
     exclude: ['status'],
   });
-
-  const handleGoDetail = useOpenDetail();
 
   const rowClass = (params: TicketModel) => (params.id === selectTicketId.value ? 'select-row' : '');
 
