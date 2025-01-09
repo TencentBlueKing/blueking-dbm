@@ -3,7 +3,8 @@
     class-name="cluster-table-cluster-name-column"
     field="cluster_name"
     :label="t('集群名称')"
-    :min-width="200">
+    :min-width="200"
+    :show-overflow="false">
     <template #header>
       <RenderHeadCopy
         :config="[

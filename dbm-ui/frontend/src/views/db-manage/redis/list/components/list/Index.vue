@@ -124,6 +124,14 @@
           label="Slave"
           :search-ip="batchSearchIpInatanceList"
           :selected-list="selected" />
+        <BkTableColumn
+          field="cluster_type_name"
+          :label="t('架构版本')"
+          :min-width="150">
+          <template #default="{ data }: { data: RedisModel }">
+            {{ data.cluster_type_name || '--' }}
+          </template>
+        </BkTableColumn>
         <CommonColumn :cluster-type="ClusterTypes.REDIS" />
         <BkTableColumn
           :fixed="isStretchLayoutOpen ? false : 'right'"
@@ -132,29 +140,31 @@
           :show-overflow="false">
           <template #default="{data}: {data: RedisModel}">
             <OperationBtnStatusTips
-              v-bk-tooltips="{
-                content: t('暂不支持跨管控区域提取Key'),
-                disabled: data.bk_cloud_id === undefined,
-              }"
               v-db-console="'redis.clusterManage.extractKey'"
               :data="data"
               :disabled="!data.isOffline">
-              <AuthButton
-                action-id="redis_keys_extract"
-                class="mr-8"
-                :disabled="data.isOffline"
-                :permission="data.permission.redis_keys_extract"
-                :resource="data.id"
-                text
-                theme="primary"
-                @click="handleShowExtract([data])">
-                {{ t('提取Key') }}
-              </AuthButton>
+              <span
+                v-bk-tooltips="{
+                  content: t('暂不支持跨管控区域提取Key'),
+                  disabled: data.bk_cloud_id === 0,
+                }">
+                <AuthButton
+                  action-id="redis_keys_extract"
+                  class="mr-8"
+                  :disabled="data.isOffline || data.bk_cloud_id !== 0"
+                  :permission="data.permission.redis_keys_extract"
+                  :resource="data.id"
+                  text
+                  theme="primary"
+                  @click="handleShowExtract([data])">
+                  {{ t('提取Key') }}
+                </AuthButton>
+              </span>
             </OperationBtnStatusTips>
             <OperationBtnStatusTips
               v-bk-tooltips="{
                 content: t('暂不支持跨管控区域删除Key'),
-                disabled: data.bk_cloud_id === undefined,
+                disabled: data.bk_cloud_id === 0,
               }"
               v-db-console="'redis.clusterManage.deleteKey'"
               :data="data"
@@ -162,7 +172,7 @@
               <AuthButton
                 action-id="redis_keys_delete"
                 class="mr-8"
-                :disabled="data.isOffline"
+                :disabled="data.isOffline || data.bk_cloud_id !== 0"
                 :permission="data.permission.redis_keys_delete"
                 :resource="data.id"
                 text

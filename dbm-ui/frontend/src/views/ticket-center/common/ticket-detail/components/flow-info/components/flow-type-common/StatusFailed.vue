@@ -98,6 +98,11 @@
   const { t } = useI18n();
   const { username, isSuperuser } = useUserProfile();
 
-  const isCanOperation = computed(() => isSuperuser || props.ticketDetail.todo_operators.includes(username));
+  const isCanOperation = computed(
+    () =>
+      isSuperuser ||
+      props.ticketDetail.todo_operators.includes(username) ||
+      props.ticketDetail.todo_helpers.includes(username),
+  );
   const isNeedOperation = computed(() => [0, 2].includes(props.data.err_code));
 </script>

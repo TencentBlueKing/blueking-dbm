@@ -34,11 +34,18 @@
           <template
             v-if="index === 0"
             #append>
-            <DbIcon
+            <RenderCellCopy
               v-if="data.slave_domain"
-              v-bk-tooltips="t('复制从访问入口')"
-              type="copy"
-              @click="() => handleCopySlaveDomain(data.slaveDomainDisplayName)" />
+              :copy-items="[
+                {
+                  value: data.slave_domain,
+                  label: t('域名'),
+                },
+                {
+                  value: data.slaveDomainDisplayName,
+                  label: t('域名:端口'),
+                },
+              ]" />
             <span v-db-console="accessEntryDbConsole">
               <EditEntryConfig
                 :id="data.id"
@@ -83,9 +90,8 @@
   import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
 
   import EditEntryConfig from '@views/db-manage/common/cluster-entry-config/Index.vue';
+  import RenderCellCopy from '@views/db-manage/common/render-cell-copy/Index.vue';
   import RenderHeadCopy from '@views/db-manage/common/render-head-copy/Index.vue';
-
-  import { execCopy } from '@utils';
 
   import useColumnCopy from './hooks/useColumnCopy';
   import type { ClusterModel } from './types';
@@ -125,10 +131,6 @@
   const accessEntryDbConsole = computed(() => dbConsoleMap[props.clusterType]);
 
   const { handleCopySelected, handleCopyAll } = useColumnCopy(props);
-
-  const handleCopySlaveDomain = (clusterName: string) => {
-    execCopy(clusterName);
-  };
 
   const fetchTableData = () => {
     emits('refresh');

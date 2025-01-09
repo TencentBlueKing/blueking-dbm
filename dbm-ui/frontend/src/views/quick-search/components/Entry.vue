@@ -31,7 +31,11 @@
         <BkTable
           class="search-result-table mt-14 mb-8"
           :data="item.dataList"
-          :pagination="pagination[index]">
+          :pagination="pagination[index]"
+          :row-config="{
+            useKey: true,
+            keyField: 'id',
+          }">
           <BkTableColumn
             field="entry"
             :label="t('访问入口（域名、CLB、北极星）')"
@@ -85,7 +89,8 @@
           </BkTableColumn>
           <BkTableColumn
             field="cluster_status"
-            :label="t('状态')">
+            :label="t('状态')"
+            :width="100">
             <template #default="{data: rowData}: {data: QuickSearchEntryModel}">
               <RenderClusterStatus :data="rowData.cluster_status" />
             </template>
@@ -100,28 +105,32 @@
           </BkTableColumn>
           <BkTableColumn
             field="cluster_type"
-            :label="t('架构类型')">
+            :label="t('架构类型')"
+            :width="150">
             <template #default="{data: rowData}: {data: QuickSearchEntryModel}">
               {{ rowData.cluster_type || '--' }}
             </template>
           </BkTableColumn>
           <BkTableColumn
             field="major_version"
-            :label="t('版本')">
+            :label="t('版本')"
+            :width="150">
             <template #default="{data: rowData}: {data: QuickSearchEntryModel}">
               {{ rowData.major_version || '--' }}
             </template>
           </BkTableColumn>
           <BkTableColumn
             field="region"
-            :label="t('地域')">
+            :label="t('地域')"
+            :width="150">
             <template #default="{data: rowData}: {data: QuickSearchEntryModel}">
               {{ rowData.region || '--' }}
             </template>
           </BkTableColumn>
           <BkTableColumn
             field="bk_biz_id"
-            :label="t('所属业务')">
+            :label="t('所属业务')"
+            :width="150">
             <template #default="{data: rowData}: {data: QuickSearchEntryModel}">
               {{ rowData.bk_biz_id ? bizIdNameMap[rowData.bk_biz_id] : '--' }}
             </template>
@@ -238,8 +247,12 @@
       [t('访问入口（域名、CLB、北极星）')]: dataItem.entry,
       [t('所属集群')]: dataItem.immute_domain,
       [t('架构类型')]: dataItem.cluster_type,
+      [t('版本')]: dataItem.major_version,
+      [t('地域')]: dataItem.region,
       [t('所属业务')]: String(dataItem.bk_biz_id),
       [t('业务名称')]: props.bizIdNameMap[dataItem.bk_biz_id],
+      [t('容灾要求')]: dataItem.disaster_tolerance_level,
+      [t('主 DBA')]: dataItem.dba,
     }));
     const colsWidths = [{ width: 10 }, { width: 16 }, { width: 16 }, { width: 24 }, { width: 24 }, { width: 16 }];
 

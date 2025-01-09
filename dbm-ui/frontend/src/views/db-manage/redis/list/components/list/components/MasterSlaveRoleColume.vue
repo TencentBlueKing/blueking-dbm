@@ -2,7 +2,10 @@
   <BaseRoleColumn
     v-bind="props"
     :min-width="280">
-    <template #default="{ data }"> {{ data.ip }}:{{ data.port }}({{ data.seg_range }}) </template>
+    <template #default="{ data }">
+      {{ data.ip }}:{{ data.port }}
+      <template v-if="data.seg_range">({{ data.seg_range }})</template>
+    </template>
     <template #instanceListTitle="{ data }">
       <I18nT keypath="c实例预览r_n">
         <span>{{ data.master_domain }}</span>

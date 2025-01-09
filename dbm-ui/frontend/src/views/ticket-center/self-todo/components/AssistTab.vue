@@ -4,7 +4,7 @@
       <BkPopover placement="top">
         <DbIcon type="attention" />
         <template #content>
-          <div>{{ t('待我处理：通常是我提交的单据，或者我是业务主DB') }}</div>
+          <div>{{ t('待我处理：通常是我提交的单据，或者我是业务主DBA') }}</div>
           <div>{{ t('待我协助：通常是我被设定为单据协助人，或者我是业务的备DBA、二线 DBA') }}</div>
         </template>
       </BkPopover>

@@ -227,7 +227,7 @@
                 <OperationBtnStatusTips :data="data">
                   <AuthButton
                     action-id="tendbcluster_enable_disable"
-                    :disabled="data.operationDisabled"
+                    :disabled="data.operationTicketId"
                     :permission="data.permission.tendbcluster_enable_disable"
                     :resource="data.id"
                     text

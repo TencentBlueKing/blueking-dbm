@@ -332,8 +332,8 @@
   const isSearching = computed(
     () =>
       Object.keys(formatSearchValue.value).length > 0 ||
-      formatDateValue.value.create_at__gte !== '' ||
-      formatDateValue.value.create_at__lte !== '',
+      Boolean(formatDateValue.value.create_at__gte) ||
+      Boolean(formatDateValue.value.create_at__lte),
   );
 
   const fetchData = () => {
