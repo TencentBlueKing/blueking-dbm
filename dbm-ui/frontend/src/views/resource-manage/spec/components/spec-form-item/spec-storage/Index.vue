@@ -83,7 +83,7 @@
   const { t } = useI18n();
 
   const rowRefs = ref();
-  const tableData = ref<IDataRow[]>([createRowData()]);
+  const tableData = ref<IDataRow[]>([]);
   const diskTypeList = ref<{ label: string; value: string }[]>([]);
 
   const mountPointList = computed(() => tableData.value.map((item) => item.mount_point));
@@ -132,7 +132,7 @@
   };
 
   defineExpose<Exposes>({
-    getValue: () => Promise.all(rowRefs.value.map((item: any) => item.getValue())),
+    getValue: () => Promise.all(rowRefs.value ? rowRefs.value.map((item: any) => item.getValue()) : []),
   });
 </script>
 <style lang="less" scoped>
