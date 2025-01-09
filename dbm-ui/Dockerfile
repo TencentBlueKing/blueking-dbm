@@ -58,7 +58,7 @@ COPY ./pyproject.toml ./poetry.lock /
 
 ENV PATH="/root/.cargo/bin:${PATH}"
 # 创建 Python 虚拟环境并安装依赖
-RUN set -ex && python -m venv /venv && . /venv/bin/activate && pip install --upgrade pip && pip install poetry && poetry install
+RUN set -ex && python -m venv /venv && . /venv/bin/activate && pip install --upgrade pip && pip install poetry && poetry install --no-root
 
 FROM base AS copy-backend-file
 WORKDIR /app
