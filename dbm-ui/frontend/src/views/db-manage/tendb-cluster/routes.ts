@@ -41,14 +41,7 @@ const spiderMasterSlaveSwapRoute = createRouteItem(TicketTypes.TENDBCLUSTER_MAST
 
 const spiderMasterFailoverRoute = createRouteItem(TicketTypes.TENDBCLUSTER_MASTER_FAIL_OVER, t('主库故障切换'));
 
-const spiderCapacityChangeRoute = {
-  path: 'capacity-change/:page?',
-  name: 'spiderCapacityChange',
-  meta: {
-    navName: t('集群容量变更'),
-  },
-  component: () => import('@views/db-manage/tendb-cluster/capacity-change/Index.vue'),
-};
+const spiderCapacityChangeRoute = createRouteItem(TicketTypes.TENDBCLUSTER_NODE_REBALANCE, t('集群容量变更'));
 
 const spiderProxyScaleUpRoute = createRouteItem(TicketTypes.TENDBCLUSTER_SPIDER_ADD_NODES, t('扩容接入层'));
 
