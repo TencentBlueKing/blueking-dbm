@@ -60,7 +60,7 @@ class TransferMySQLClusterToOtherBizFlow(object):
 
     def transfer_to_other_biz_flow(self):
         other_domains = find_other_relation_domains(self.cluster_domain_list)
-        if len(other_domains) > 0:
+        if other_domains:
             raise Exception(_("以下域名与当前业务存在关联，请先处理关联关系:{}".format(other_domains)))
         clusters = Cluster.objects.filter(bk_biz_id=self.bk_biz_id, immute_domain__in=self.cluster_domain_list).all()
         bk_cloud_ids = []
