@@ -51,7 +51,7 @@
   const ticketTypeRouteNameMap: Record<string, string> = {
     [TicketTypes.REDIS_CLUSTER_APPLY]: 'SelfServiceApplyRedis', // Redis 申请部署
     [TicketTypes.REDIS_CLUSTER_CUTOFF]: 'RedisDBReplace', // Redis 整机替换
-    [TicketTypes.REDIS_PROXY_SCALE_UP]: 'RedisProxyScaleUp', // Redis 扩容接入层
+    [TicketTypes.REDIS_PROXY_SCALE_UP]: TicketTypes.REDIS_PROXY_SCALE_UP, // Redis 扩容接入层
     [TicketTypes.REDIS_PROXY_SCALE_DOWN]: 'RedisProxyScaleDown', // Redis 缩容接入层
     [TicketTypes.REDIS_SCALE_UPDOWN]: 'RedisCapacityChange', // Redis 集群容量变更
     [TicketTypes.REDIS_MASTER_SLAVE_SWITCH]: TicketTypes.REDIS_MASTER_SLAVE_SWITCH, // Redis 主从切换

@@ -36,14 +36,15 @@ const redisInstallModuleRoute = {
 
 const redisCapacityChangeRoute = createRouteItem(TicketTypes.REDIS_SCALE_UPDOWN, t('集群容量变更'));
 
-const redisProxyScaleUpRoute = {
-  name: 'RedisProxyScaleUp',
-  path: 'proxy-scale-up/:page?',
-  meta: {
-    navName: t('扩容接入层'),
-  },
-  component: () => import('@views/db-manage/redis/proxy-scale-up/Index.vue'),
-};
+// const redisProxyScaleUpRoute = {
+//   name: 'RedisProxyScaleUp',
+//   path: 'proxy-scale-up/:page?',
+//   meta: {
+//     navName: t('扩容接入层'),
+//   },
+//   component: () => import('@views/db-manage/redis/proxy-scale-up/Index.vue'),
+// };
+const redisProxyScaleUpRoute = createRouteItem(TicketTypes.REDIS_PROXY_SCALE_UP, t('扩容接入层'));
 
 const redisProxyScaleDownRoute = createRouteItem(TicketTypes.REDIS_PROXY_SCALE_DOWN, t('缩容接入层'));
 

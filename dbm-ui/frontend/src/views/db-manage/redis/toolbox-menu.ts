@@ -149,7 +149,7 @@ export default [
         children: [
           {
             name: t('扩容接入层'),
-            id: 'RedisProxyScaleUp',
+            id: TicketTypes.REDIS_PROXY_SCALE_UP,
             parentId: 'cluster-manage',
             dbConsoleValue: 'redis.toolbox.proxyScaleUp',
           },
