@@ -11,7 +11,7 @@
         fixed="left"
         label="第一列"
         :loading="isLoading"
-        :min-width="300">
+        :width="200">
         <EditInput
           v-model="item.name"
           clearable
@@ -26,7 +26,7 @@
       <EditableTableColumn
         field="age"
         label="第二列"
-        :min-width="300">
+        :width="200">
         <EditSelect v-model="item.age">
           <BkOption
             id="1"
@@ -38,16 +38,14 @@
       </EditableTableColumn>
       <EditableTableColumn
         field="date"
-        label="第三列"
-        :min-width="300">
+        label="第三列">
         <EditDatePicker
           v-model="item.date"
           @change="handleChange" />
       </EditableTableColumn>
       <EditableTableColumn
         field="time"
-        label="第四列"
-        :min-width="300">
+        label="第四列">
         <EditTimePicker
           v-model="item.time"
           @change="handleChange" />
@@ -55,13 +53,13 @@
       <EditableTableColumn
         field="tag"
         label="第五列"
-        :min-width="300">
+        :min-width="200">
         <EditTagInput v-model="item.tag" />
       </EditableTableColumn>
       <EditableTableColumn
         field="tag"
         label="第五列"
-        :min-width="300">
+        :min-width="200">
         <EditBlock v-model="item.des">
           {{ item.more }}
           <template #append> as </template>
@@ -70,7 +68,7 @@
       <EditableTableColumn
         field="more"
         label="第六列"
-        :min-width="300">
+        :min-width="200">
         <EditTextarea v-model="item.more" />
       </EditableTableColumn>
       <OperationColumn
@@ -117,25 +115,25 @@
 
   const dataModel = reactive([
     createData(),
-    // createData(),
-    // createData(),
-    // createData(),
-    // createData(),
-    // createData(),
-    // createData(),
-    // createData(),
-    // createData(),
-    // createData(),
-    // createData(),
-    // createData(),
-    // createData(),
+    createData(),
+    createData(),
+    createData(),
+    createData(),
+    createData(),
+    createData(),
+    createData(),
+    createData(),
+    createData(),
+    createData(),
+    createData(),
+    createData(),
   ]);
 
   const rules = {
     name: [
       {
-        validator: (value: string) => {
-          console.log('change validator = ', value);
+        validator: (value: string, rowData: any) => {
+          console.log('change validator = ', value, rowData);
           return Boolean(value);
         },
         message: '错了',
