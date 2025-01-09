@@ -16,8 +16,8 @@
     ref="column"
     fixed="right"
     :label="t('操作')"
-    :max-width="100"
-    :min-width="100">
+    :resizeable="false"
+    :width="100">
     <div class="toolbox-operation-column">
       <div
         v-if="Boolean(createRowMethod)"

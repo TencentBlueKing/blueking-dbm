@@ -104,6 +104,7 @@
       emits: Emits;
       fixedRight: Ref<boolean>;
       fixedLeft: Ref<boolean>;
+      columnSizeConfig: Ref<Record<string, { renderWidth: number }>>;
       registerRow: (rowColumnList: IColumnContext[]) => void;
       updateRow: () => void;
       unregisterRow: (rowColumnList: IColumnContext[]) => void;
@@ -253,6 +254,7 @@
     emits,
     fixedLeft,
     fixedRight,
+    columnSizeConfig,
     registerRow,
     updateRow,
     unregisterRow,
@@ -301,7 +303,6 @@
     }
 
     table {
-      width: 100%;
       text-align: left;
       table-layout: fixed;
     }

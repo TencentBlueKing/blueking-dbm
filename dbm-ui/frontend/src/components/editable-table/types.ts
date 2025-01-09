@@ -5,7 +5,7 @@ export interface IRule {
   max?: number;
   maxlength?: number;
   pattern?: RegExp;
-  validator?: (value: any) => Promise<boolean | string> | boolean | string;
+  validator?: (value: any, rowData?: Record<string, any>) => Promise<boolean | string> | boolean | string;
   message: (() => string) | string;
   trigger: string;
 }
