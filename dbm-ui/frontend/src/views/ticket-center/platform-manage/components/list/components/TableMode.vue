@@ -40,9 +40,9 @@
   </div>
 </template>
 <script setup lang="ts">
-  import { getCurrentInstance, onActivated, onDeactivated } from 'vue';
+  import { onActivated } from 'vue';
   import { useI18n } from 'vue-i18n';
-  import { useRoute, useRouter } from 'vue-router';
+  import { useRoute } from 'vue-router';
 
   import TicketModel from '@services/model/ticket/ticket';
   import { getTickets } from '@services/source/ticket';
@@ -57,12 +57,10 @@
 
   type IRowData = TicketModel;
 
-  const router = useRouter();
   const route = useRoute();
   const { t } = useI18n();
-  const currentInstance = getCurrentInstance();
 
-  const { getSearchParams, removeSearchParam } = useUrlSearch();
+  const { removeSearchParam } = useUrlSearch();
 
   const { value: datePickerValue, shortcutsRange } = useDatePicker();
 
@@ -80,20 +78,6 @@
   onActivated(() => {
     selectTicketId.value = Number(route.query.selectId);
     removeSearchParam('selectId');
-  });
-
-  onDeactivated(() => {
-    setTimeout(() => {
-      if (currentInstance!.isUnmounted) {
-        return;
-      }
-      router.replace({
-        params: {
-          ticketId: selectTicketId.value,
-        },
-        query: getSearchParams(),
-      });
-    });
   });
 </script>
 <style lang="less">

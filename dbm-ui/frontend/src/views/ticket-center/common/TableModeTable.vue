@@ -8,6 +8,10 @@
         :max-height="tableMaxHeight"
         :pagination="pagination"
         :row-class="rowClass"
+        :row-config="{
+          useKey: true,
+          keyField: 'id',
+        }"
         :show-overflow="false"
         @filter-change="handleFilterChange"
         @page-limit-change="handlePageLimitChange"
