@@ -46,13 +46,19 @@ func init() {
 	_ = viper.BindPFlag("BackupClient.Enable", dumpCmd.PersistentFlags().Lookup("backup-client"))
 	_ = viper.BindPFlag("BackupClient.FileTag", dumpCmd.PersistentFlags().Lookup("backup-file-tag"))
 
-	dumpCmd.PersistentFlags().String("data-schema-grant", "", "all|schema|data|grant, overwrite Public.DataSchemaGrant")
-	dumpCmd.PersistentFlags().String("backup-dir", "/data/dbbak", "backup root path to save, overwrite Public.BackupDir")
-	dumpCmd.PersistentFlags().String("cluster-domain", "", "cluster domain to report, overwrite Public.ClusterAddress")
-	viper.BindPFlag("Public.DataSchemaGrant", dumpCmd.PersistentFlags().Lookup("data-schema-grant"))
+	dumpCmd.PersistentFlags().String("backup-dir", "/data/dbbak",
+		"backup root path to save, overwrite Public.BackupDir")
+	dumpCmd.PersistentFlags().String("cluster-domain", "",
+		"cluster domain to report, overwrite Public.ClusterAddress")
+	dumpCmd.PersistentFlags().String("data-schema-grant", "",
+		"all|schema|data|grant, overwrite Public.DataSchemaGrant")
+	dumpCmd.PersistentFlags().Int("is-full-backup", 0,
+		"report backup-id as full backup. default 0 means auto judge by backup-type,data-schema-grant")
+
 	viper.BindPFlag("Public.BackupDir", dumpCmd.PersistentFlags().Lookup("backup-dir"))
 	viper.BindPFlag("Public.ClusterAddress", dumpCmd.PersistentFlags().Lookup("cluster-domain"))
-	//dumpCmd.PersistentFlags().SetAnnotation("backup-type", "Public.BackupType", []string{"logical", "physical"})
+	viper.BindPFlag("Public.DataSchemaGrant", dumpCmd.PersistentFlags().Lookup("data-schema-grant"))
+	viper.BindPFlag("Public.IsFullBackup", dumpCmd.PersistentFlags().Lookup("is-full-backup"))
 
 	// Connection Options
 	dumpCmd.PersistentFlags().StringP("host", "h", "", "The host to connect to, overwrite Public.MysqlHost")

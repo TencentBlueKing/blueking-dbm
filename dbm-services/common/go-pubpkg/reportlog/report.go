@@ -31,10 +31,12 @@ type LoggerOption struct {
 
 func defaultLoggerOpt() *LoggerOption {
 	return &LoggerOption{
-		MaxSize:    5,  // MB
-		MaxBackups: 10, // num
-		MaxAge:     30, // days
-		Compress:   false,
+		MaxSize:    100, // MB
+		MaxBackups: 10,  // num
+		MaxAge:     30,  // days
+		// report Compress 建议开启 compress，因为 lumberjack 默认 rotate 文件名格式是 report-2025-01-09T08-18-41.933.log
+		//  日志采集如果没配置好可能会重复采集 *.log
+		Compress: true,
 	}
 }
 
@@ -75,6 +77,7 @@ func NewReporter(reportDir, filename string, logOpt *LoggerOption) (*Reporter, e
 		MaxBackups: logOpt.MaxBackups,
 		MaxAge:     logOpt.MaxAge,
 		Compress:   logOpt.Compress,
+		LocalTime:  true,
 	}
 	reporter.log.SetOutput(resultLogger)
 	return reporter, nil

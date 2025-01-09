@@ -193,6 +193,54 @@ type ConnectionCollect struct {
 |db-up|@every 10s|backend, proxy|                 | 致命              |db 连通性. 硬编码, 不可配置, 无需录入配置系统|enable
 |mysql_monitor_heart_beat|@every 10s|backend, proxy|                 | 无               |监控心跳. 硬编码, 不可配置, 无需录入配置系统|enable
 
+## ibd-statistic 说明
+- 统计表空间大小，支持自定义库表名合并
+- 支持只上报 top N 的表，避免上报数据过多，其它表会上报到 `__OTHER_.__OTHER_` 表
+
+- 示例 1：
+我们一般不关注清档备份库的每个表大小，把他们合并，示例：
+```
+- name: ibd-statistic
+  enable: true
+  schedule: 0 45 23 * * *
+  ...
+  options:
+    topk_num: 0
+    disable_merge_partition: false
+    disable_merge_rules: false
+    merge_rules:
+      - from: "(?P<db>stage_truncate_).+\\..*"
+        to: "${db}_MERGED._MERGED"
+      - from: "(?P<db>bak_20\\d\\d).+\\..*"
+        to: "${db}_MERGED._MERGED"
+      - from: "(bak_cbs)_.+\\.(?P<table>.+)"
+        to: "${1}_MERGED.${table}"
+```
+
+上面的是内置规则，如果是 spider 集群，rules 稍微不一样，因为要带了 shard 后缀：
+```
+    merge_rules:
+      - from: "(?P<db>stage_truncate)_.+_(?P<shard>\\d+)\\..*"
+        to: "${db}_MERGED_${shard}._MERGED"
+      - from: "(?P<db>bak_20\\d\\d).+_(?P<shard>\\d+)\\..*"
+        to: "${db}_MERGED_${shard}._MERGED"
+      - from: "(bak_cbs)_.+_(\\d+)\\.(?P<table>.+)"
+        to: "${1}_MERGED_${2}.${table}"
+```
+
+- 示例 2：
+某些业务自己分表，统计表可以不关注表的分表后缀
+```
+    merge_rules:
+      - from: "(?P<db>.+)\\.(?P<table>.+)_\\d+"
+        to: "${db}.${table}"
+```
+注意：
+  - 当配置自己的规则时，如果想内置规则也要生效，也需要把示例1 里的 3 条规则加上  
+  - 自定义规则是，`\`需要转义  
+    比如一般正则 from: `(?P<db>.+)\.(?P<table>.+)_\d+`，配置到 yaml 里需要写成 `(?P<db>.+)\\.(?P<table>.+)_\\d+`，
+    否则会报错 Error: yaml: line X: found unknown escape character  
+
 ## 生成dbconfig 配置
 ```
 perl config2sql.pl | sed  's/"enable":"1"/"enable":true/g'

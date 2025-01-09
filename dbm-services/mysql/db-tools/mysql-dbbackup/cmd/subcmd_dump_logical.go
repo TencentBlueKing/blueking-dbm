@@ -101,7 +101,9 @@ var dumpLogicalCmd = &cobra.Command{
 
 		cnf.PhysicalBackup = config.PhysicalBackup{}
 		cnf.PhysicalLoad = config.PhysicalLoad{}
-		cnf.Public.SetFlagFullBackup(-1) // dumplogical command 一律不认为是 full backup，不可用于全库恢复
+		if cnf.Public.IsFullBackup == 0 {
+			cnf.Public.IsFullBackup = -1 // dumplogical command 一律不认为是 full backup，不可用于全库恢复
+		}
 		err = backupData(&cnf)
 		if err != nil {
 			logger.Log.Error("dumpbackup logical failed", err.Error())

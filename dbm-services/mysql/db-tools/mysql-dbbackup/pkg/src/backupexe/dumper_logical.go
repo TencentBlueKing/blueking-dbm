@@ -237,6 +237,7 @@ func (l *LogicalDumper) PrepareBackupMetaInfo(cnf *config.BackupConfig) (*dbarep
 		}
 	}
 	metaInfo.JudgeIsFullBackup(&cnf.Public)
+
 	return &metaInfo, nil
 }
 

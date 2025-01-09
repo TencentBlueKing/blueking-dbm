@@ -7,6 +7,7 @@ import (
 	"regexp"
 	"sort"
 
+	"dbm-services/mysql/db-tools/mysql-monitor/pkg/config"
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/internal/cst"
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/monitoriteminterface"
 
@@ -38,33 +39,13 @@ var systemDBs = []string{
 	"performance_schema",
 	"test",
 	"db_infobase",
+	cst.OTHER_DB_NAME,
 }
 
 func init() {
 	ibdExt = ".ibd"
 	partitionPattern = regexp.MustCompile(`^(.*)#[pP]#.*\.ibd`)
-	defaultMergeRules = []*MergeRuleDef{
-		// 规则配在 yaml 里要 \\. 转义
-		// 合并转换后的库表明，必须是 dbX.tableY 格式，如果.分割出的 dbName,tableName 为空，会报错
-		&MergeRuleDef{
-			// "(?P<db>stage_truncate_).+\\..*"
-			// 将以 stage_truncate_ 开头的库表 合并成 stage_truncate_MERGED._MERGED
-			From: `(?P<db>stage_truncate_).+\..*`,
-			To:   `${db}_MERGED._MERGED`,
-		},
-		&MergeRuleDef{
-			// "(?P<db>bak_20\\d\\d).+\\..*"
-			// 将 bak_20190218_dbtest.tb1 / bak_20190318_dbtest_1.tb2 合并成 bak_2019._MERGED
-			From: `(?P<db>bak_20\d\d).+\..*`,
-			To:   `${db}._MERGED`,
-		},
-		&MergeRuleDef{
-			// "(bak_cbs)_.+_(\\d+)\\.(?P<table>.+)"
-			// 将 bak_cbs_dbtest_0.tb1 bak_cbs_dbtesta_1.tb2  合并成 bak_cbs_X_0.tb1 bak_cbs_X_1.tb2
-			From: `(bak_cbs)_.+_(\d+)\.(?P<table>.+)`,
-			To:   `${1}_X_${2}.${table}`,
-		},
-	}
+
 }
 
 type MergeRuleDef struct {
@@ -73,9 +54,12 @@ type MergeRuleDef struct {
 }
 
 type ibdStatistic struct {
-	// MergePartition 合并分区表
-	MergePartition *bool `mapstructure:"merge_partition"`
-	// MergeRuleRegex 合并表名，比如 db\.test_(\d+) 会合并 db.test_1 db.test_2 成 db.test_X
+	// DisableMergePartition 是否合并分区表，默认合并
+	DisableMergePartition bool `mapstructure:"disable_merge_partition"`
+	// DisableMergeRules 是否启用库表名合并规则，默认启用，已内置 3 条规则
+	DisableMergeRules bool `mapstructure:"disable_merge_rules"`
+
+	// MergeRules 合并表名，比如 db\.test_(\d+) 会合并 db.test_1 db.test_2 成 db.test_X
 	// 提示：这里的替换规则，可能会把 spider remote _<shard> 也去掉，统计时需要注意
 	MergeRules []*MergeRuleDef `mapstructure:"merge_rules"`
 	// TopkNum 只上报排名前 k 条记录，0 表示全部
@@ -145,8 +129,53 @@ func (c *ibdStatistic) Name() string {
 	return name
 }
 
-func (c *ibdStatistic) initCustomOptions(opts monitoriteminterface.ItemOptions) error {
-	return nil
+func (c *ibdStatistic) initCustomOptions() {
+	defaultMergeRules = []*MergeRuleDef{
+		// 规则配在 yaml 里要 \\. 转义
+		// 合并转换后的库表明，必须是 dbX.tableY 格式，如果.分割出的 dbName,tableName 为空，会报错
+		&MergeRuleDef{
+			// "(?P<db>stage_truncate_).+\\..*"
+			// 将以 stage_truncate_ 开头的库表 合并成 stage_truncate_MERGED._MERGED
+			From: `(?P<db>stage_truncate_20\d\d).+\..*`,
+			To:   `${db}_MERGED._MERGED`,
+		},
+		&MergeRuleDef{
+			// "(?P<db>bak_20\\d\\d).+\\..*"
+			// 将 bak_20190218_dbtest.tb1 / bak_20190318_dbtest_1.tb2 合并成 bak_2019._MERGED
+			From: `(?P<db>bak_20\d\d).+\..*`,
+			To:   `${db}_MERGED._MERGED`,
+		},
+		&MergeRuleDef{
+			// "(bak_cbs)_.+_(\\d+)\\.(?P<table>.+)"
+			// 将 bak_cbs_dbtest.tb1 bak_cbs_dbtesta.tb2  合并成 bak_cbs_X.tb1 bak_cbs_X.tb2
+			From: `(bak_cbs)_.+\.(?P<table>.+)`,
+			To:   `${1}_MERGED.${table}`,
+		},
+	}
+	if config.MonitorConfig.MachineType == "remote" { // spider 集群
+		defaultMergeRules = []*MergeRuleDef{
+			// 规则配在 yaml 里要 \\. 转义
+			// 合并转换后的库表明，必须是 dbX.tableY 格式，如果.分割出的 dbName,tableName 为空，会报错
+			&MergeRuleDef{
+				// "(?P<db>stage_truncate_).+\\..*"
+				// 将以 stage_truncate_ 开头的库表 合并成 stage_truncate_MERGED._MERGED
+				From: `(?P<db>stage_truncate_20\d\d)_.+_(?P<shard>\d+)\..*`,
+				To:   `${db}_MERGED_${shard}._MERGED`,
+			},
+			&MergeRuleDef{
+				// "(?P<db>bak_20\\d\\d).+\\..*"
+				// 将 bak_20190218_dbtest.tb1 / bak_20190318_dbtest_1.tb2 合并成 bak_2019._MERGED
+				From: `(?P<db>bak_20\d\d).+_(?P<shard>\d+)\..*`,
+				To:   `${db}_MERGED_${shard}._MERGED`,
+			},
+			&MergeRuleDef{
+				// "(bak_cbs)_.+_(\\d+)\\.(?P<table>.+)"
+				// 将 bak_cbs_dbtest_0.tb1 bak_cbs_dbtesta_1.tb2  合并成 bak_cbs_X_0.tb1 bak_cbs_X_1.tb2
+				From: `(bak_cbs)_.+_(\d+)\.(?P<table>.+)`,
+				To:   `${1}_MERGED_${2}.${table}`,
+			},
+		}
+	}
 }
 
 // New TODO
@@ -159,17 +188,17 @@ func New(cc *monitoriteminterface.ConnectionCollect) monitoriteminterface.Monito
 	itemObj.db = cc.MySqlDB
 	itemObj.optionMap = opts
 
-	if len(itemObj.MergeRules) == 0 {
-		slog.Info("ibd-statistic", slog.String("msg", "use default merge rules"),
-			slog.Int("count", len(itemObj.MergeRules)))
-		itemObj.MergeRules = defaultMergeRules
-	} else {
-		slog.Info("ibd-statistic", slog.String("msg", "use custom merge rules"),
-			slog.Int("count", len(itemObj.MergeRules)))
-	}
-	if itemObj.MergePartition == nil {
-		truePtr := true
-		itemObj.MergePartition = &truePtr
+	itemObj.initCustomOptions()
+
+	if !itemObj.DisableMergeRules {
+		if len(itemObj.MergeRules) == 0 {
+			itemObj.MergeRules = defaultMergeRules
+			slog.Info("ibd-statistic", slog.String("msg", "use default merge rules"),
+				slog.Int("count", len(itemObj.MergeRules)))
+		} else {
+			slog.Info("ibd-statistic", slog.String("msg", "use custom merge rules"),
+				slog.Int("count", len(itemObj.MergeRules)))
+		}
 	}
 	return &itemObj
 }

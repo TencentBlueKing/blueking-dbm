@@ -88,11 +88,13 @@ type Public struct {
 	// issue lock to mysqld: default 10s
 	//  lock-ddl-timeout(xtrabackup57), backup-lock-timeout(xtrabackup80) --lock-wait-timeout(mydumper)
 	AcquireLockWaitTimeout int `ini:"AcquireLockWaitTimeout"`
+	// IsFullBackup 1: true, -1: false, 0: auto
+	// 这个选项默认 0 代表会自动根据备份方式+备份对象 来决定是否将备份上报为全备
+	// 某些情况只需要表结构，可以设置此选项强制上报为全备
+	IsFullBackup int `ini:"IsFullBackup"`
 
 	cnfFilename string
 	targetName  string
-	// isFullBackup 1: true, -1: false, 0: unknown
-	isFullBackup int
 }
 
 // GetCnfFileName TODO
@@ -103,17 +105,6 @@ func (c *Public) GetCnfFileName() string {
 // SetCnfFileName TODO
 func (c *Public) SetCnfFileName(filename string) {
 	c.cnfFilename = filename
-}
-
-// IsFullBackup TODO
-func (c *Public) IsFullBackup() int {
-	return c.isFullBackup
-}
-
-// SetFlagFullBackup 是否是全备
-// 全备判断是：DataGrantSchema 是 all, 并且备份的是所有 db
-func (c *Public) SetFlagFullBackup(isFullBackup int) {
-	c.isFullBackup = isFullBackup
 }
 
 func (c *Public) splitDataSchemaGrant() []string {

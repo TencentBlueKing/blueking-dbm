@@ -123,10 +123,19 @@ mydumper 的处理比较粗暴，表结构，表数据 都是以指定的 `--set
 
 也可以指定为具体的字符集，但最好与表写入的字符集或者定义的字符集相同，否则导出数据可能错乱。也可以指定为 binary，但这也要求表定义的 comment上没有一些乱码等不可识别的字符，否则结果无法导入（数据可以导入）。
 
-### 7. 关于 tendbcluster 集群备份，请参考 [spider](spiderbackup.md)
+### 7. 如果只备份表结构用于重做从库
+`Public.IsFullBackup` or `--is-full-backup` 这个选项默认 0 代表会自动根据备份方式+备份对象 来决定是否将备份上报为全备
 
+某些情况只需要表结构，可以设置此选项强制上报为全备
+```
+./dbbackup dumpbackup -c dbbackup.3306.ini --is-full-backup 1 \
+ --data-schema-grant schema,grant \
+ --backup-type logical
+```
 
-### 8. 常见备份失败处理
+### 8. 关于 tendbcluster 集群备份，请参考 [spider](spiderbackup.md)
+
+### 9. 常见备份失败处理
 
 #### 1. log copying being too slow
 > it looks like InnoDB log has wrapped around before xtrabackup could process all records due to either log copying being too slow, or  log files being too small.
@@ -142,7 +151,7 @@ mydumper 的处理比较粗暴，表结构，表数据 都是以指定的 `--set
 
 mydumper / myloader 依赖 glibc>=2.14, centos 6.x(or tlinux 1.2) 是 glibc 2.12，可能会报如上错误。查看 glibc 版本`ldd --version |grep libc`。
 
-如果必须使用逻辑备份，可以设置
+如果必须使用逻辑备份，可以设置 `UseMysqldump = auto` 则会在 mydumper 不可用时，自动选择 mysqldump 进行备份
 ```
 [LogicalBackup]
 UseMysqldump = auto

@@ -131,15 +131,21 @@ type ExtraFields struct {
 // JudgeIsFullBackup 是否是带所有数据的全备
 // 这里比较难判断逻辑备份 Regex 正则是否只包含系统库，所以优先判断如果是库表备份，认为false
 func (i *IndexContent) JudgeIsFullBackup(cnf *config.Public) bool {
-	if cnf.IsFullBackup() < 0 {
+	if cnf.IsFullBackup < 0 {
+		i.IsFullBackup = false
 		return false
-	} else if cnf.IsFullBackup() > 0 {
+	} else if cnf.IsFullBackup > 0 {
+		i.IsFullBackup = true
 		return true
-	} // == 0: unknown
+	}
+
+	// == 0: unknown，自动判断
+	// 库表备份单，false
 	if !cnf.IfBackupAll() || strings.Contains(cnf.BackupDir, "backupDatabaseTable_") {
 		i.IsFullBackup = false
 		return i.IsFullBackup
 	}
+	// 物理备份数据，true
 	if cnf.IfBackupAll() && i.BackupType == cst.BackupPhysical {
 		i.IsFullBackup = true
 	}

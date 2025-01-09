@@ -13,7 +13,6 @@ import (
 	"os"
 	"path/filepath"
 	"slices"
-	"strings"
 	"time"
 
 	"dbm-services/common/go-pubpkg/cmutil"
@@ -31,6 +30,7 @@ func reportLog2(dbTableSize map[string]int64, dbSize map[string]int64) error {
 		slog.Error("failed to create database size reports directory", slog.String("error", err.Error()))
 		return errors.Wrap(err, "failed to create database size reports directory")
 	}
+	// TODO add port to report_<port>.log
 	resultReport, err := reportlog.NewReporter(dbsizeReportBaseDir, "report.log", nil)
 	if err != nil {
 		return err
@@ -38,23 +38,25 @@ func reportLog2(dbTableSize map[string]int64, dbSize map[string]int64) error {
 	reportTs := cmutil.TimeToSecondPrecision(time.Now())
 	for dbTableName, tableSize := range dbTableSize {
 		var originalDBName, tableName string
-		if ss := strings.SplitN(dbTableName, ".", 2); len(ss) == 2 {
-			originalDBName = ss[0]
-			tableName = ss[1]
-			if _, ok := dbSize[originalDBName]; !ok { // 这个不应该发生，防止后面 panic 设置默认值
-				slog.Error("failed to read database size for db %s", originalDBName)
-				dbSize[originalDBName] = 0
-			}
-		} else {
-			return errors.Errorf("fail to get db table name from %s", dbTableName)
+		if originalDBName, tableName, err = cmutil.GetDbTableName(dbTableName); err != nil {
+			return err
+		}
+		if _, ok := dbSize[originalDBName]; !ok { // 这个不应该发生，防止后面 panic 设置默认值
+			slog.Error("failed to read database size for db %s", originalDBName)
+			dbSize[originalDBName] = 0
 		}
 		// 根据 dbm 枚举约定, remote 是 tendbcluster 的存储机器类型
+		// originalDBName 是 remote/backend 上的真实 db名
+		// dbName 是 业务看到的 db 名（去掉 remote shard后缀）
 		dbName := originalDBName
 		if dbTableName == cst.OTHER_DB_TABLE_NAME {
 			dbSize[originalDBName] = tableSize
 		}
 
-		if config.MonitorConfig.MachineType == "remote" && slices.Index(systemDBs, originalDBName) < 0 {
+		if slices.Index(systemDBs, dbName) >= 0 {
+			continue
+		} else if config.MonitorConfig.MachineType == "remote" {
+			// 针对 spider remote 转换 dbName
 			match := tenDBClusterDbNamePattern.FindStringSubmatch(originalDBName)
 			if match == nil {
 				err := errors.Errorf(
@@ -67,9 +69,6 @@ func reportLog2(dbTableSize map[string]int64, dbSize map[string]int64) error {
 			} else {
 				dbName = match[1]
 			}
-		}
-		if slices.Index(systemDBs, dbName) >= 0 {
-			continue
 		}
 
 		oneTableInfo := tableSizeStruct{

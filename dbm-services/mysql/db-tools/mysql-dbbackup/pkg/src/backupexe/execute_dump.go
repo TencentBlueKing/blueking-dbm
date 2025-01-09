@@ -64,6 +64,7 @@ func ExecuteBackup(cnf *config.BackupConfig) (*dbareport.IndexContent, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	metaInfo.BackupTool = BackupTool
 	return metaInfo, nil
 }

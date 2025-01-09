@@ -52,7 +52,7 @@ func (c *ibdStatistic) collectResult2(dataDir string) (map[string]int64, map[str
 				dbName := filepath.Base(dir)
 				tableName := strings.TrimSuffix(d.Name(), ibdExt)
 
-				if *c.MergePartition {
+				if !c.DisableMergePartition {
 					match := partitionPattern.FindStringSubmatch(d.Name())
 					if match != nil {
 						tableName = match[1]
@@ -60,12 +60,13 @@ func (c *ibdStatistic) collectResult2(dataDir string) (map[string]int64, map[str
 				}
 
 				if len(c.reMergeRulesFrom) > 0 {
-					newDbTbName := fmt.Sprintf("%s.%s", dbName, tableName)
+					oldDbTbName := fmt.Sprintf("%s.%s", dbName, tableName)
 					for i, reMergeRule := range c.reMergeRulesFrom {
-						if reMergeRule.MatchString(newDbTbName) {
-							newDbTbName = reMergeRule.ReplaceAllString(newDbTbName, c.reMergeRulesTo[i])
+						if reMergeRule.MatchString(oldDbTbName) {
+							newDbTbName := reMergeRule.ReplaceAllString(oldDbTbName, c.reMergeRulesTo[i])
 							dbName, tableName, err = cmutil.GetDbTableName(newDbTbName)
-							//fmt.Println("xxxx1", newDbTbName, dbName, tableName)
+							slog.Debug("merge rule matched", slog.String("rule_to", c.reMergeRulesTo[i]),
+								slog.String("name_from", oldDbTbName), slog.String("name_to", newDbTbName))
 							if err != nil {
 								return errors.WithMessagef(err, "using merge rules to %s", c.reMergeRulesTo[i])
 							}

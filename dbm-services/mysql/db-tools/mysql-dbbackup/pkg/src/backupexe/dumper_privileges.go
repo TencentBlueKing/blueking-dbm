@@ -62,7 +62,7 @@ func (d *DumperGrant) PrepareBackupMetaInfo(cnf *config.BackupConfig) (*dbarepor
 	metaInfo.BackupBeginTime = d.backupStartTime
 	metaInfo.BackupEndTime = d.backupEndTime
 	metaInfo.BackupConsistentTime = d.backupStartTime
-	// metaInfo.IsFullBackup = false
+	// metaInfo.GetIsFullBackup = false
 	return &metaInfo, nil
 }
 

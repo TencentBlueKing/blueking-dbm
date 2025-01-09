@@ -49,9 +49,10 @@ func Report() *ReportLogger {
 // NewLogReporter TODO
 func NewLogReporter(reportDir string) (*ReportLogger, error) {
 	logOpt := reportlog.LoggerOption{
-		MaxSize:    5,
-		MaxBackups: 30,
+		MaxSize:    100,
+		MaxBackups: 10,
 		MaxAge:     60,
+		Compress:   true,
 	}
 	resultReport, err := reportlog.NewReporter(reportDir, "backup_result.log", &logOpt)
 	if err != nil {
