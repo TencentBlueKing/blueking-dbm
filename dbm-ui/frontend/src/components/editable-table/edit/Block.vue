@@ -33,7 +33,7 @@
   </div>
 </template>
 <script setup lang="ts">
-  import { nextTick, onUpdated, ref, useTemplateRef, type VNode, watch } from 'vue';
+  import { nextTick, onMounted, onUpdated, ref, useTemplateRef, type VNode, watch } from 'vue';
 
   import useColumn from '../useColumn';
 
@@ -62,6 +62,12 @@
     columnContext?.validate('change');
   });
 
+  const calcPlaceholder = () => {
+    nextTick(() => {
+      isShowPlacehoder.value = !contentRef.value?.innerText;
+    });
+  };
+
   const handleBlur = () => {
     columnContext?.blur();
     columnContext?.validate('blur');
@@ -72,9 +78,11 @@
   };
 
   onUpdated(() => {
-    nextTick(() => {
-      isShowPlacehoder.value = !contentRef.value?.innerText;
-    });
+    calcPlaceholder();
+  });
+
+  onMounted(() => {
+    calcPlaceholder();
   });
 </script>
 <style lang="less">

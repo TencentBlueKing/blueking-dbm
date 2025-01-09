@@ -9,6 +9,7 @@
           'fixed-right-column': columnItem.props.fixed === 'right',
         }"
         :column="columnItem"
+        :column-size-config="columnSizeConfig"
         :style="{
           width:
             columnSizeConfig[columnItem.key].renderWidth > 0 ? `${columnSizeConfig[columnItem.key].renderWidth}px` : '',

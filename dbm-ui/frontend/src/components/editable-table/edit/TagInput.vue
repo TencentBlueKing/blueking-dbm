@@ -1,6 +1,7 @@
 <template>
+  <!-- prettier-ignore -->
   <BkTagInput
-    v-model="modelValue"
+    v-model="(modelValue as string[])"
     allow-create
     class="bk-editable-tag-input"
     v-bind="{ ...attrs, ...props }"
@@ -9,30 +10,31 @@
     @blur="handleBlur"
     @focus="handleFocus" />
 </template>
-<script setup lang="ts">
+<script setup lang="ts" generic="T extends string[] | number[] | string | number">
   import { watch } from 'vue';
 
   import useColumn from '../useColumn';
 
   /* eslint-disable vue/no-unused-properties */
-  interface Props {
+  export interface Props {
     placeholder?: string;
     maxData?: number;
   }
 
-  interface Emits {
+  export interface Emits<T> {
     (e: 'blur'): void;
     (e: 'focus'): void;
+    (e: 'change', value: T): void;
   }
 
   const props = defineProps<Props>();
-  const emits = defineEmits<Emits>();
+  const emits = defineEmits<Emits<T>>();
 
   const attrs = useAttrs();
 
   const columnContext = useColumn();
 
-  const modelValue = defineModel<string[]>();
+  const modelValue = defineModel<T>();
 
   watch(modelValue, () => {
     columnContext?.validate('change');
