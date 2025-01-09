@@ -772,6 +772,9 @@ func (task *BackupTask) TendisSSDInstanceBackup() {
 		return
 	}
 
+	afterVerify, _ := task.Cli.TendisSSDBinlogSize()
+	mylog.Logger.Info("fish backup with binlogPos: %+v; afterVerify binlogPos: %+v", binlogsizeRet, afterVerify)
+
 	// 备份文件名带上 binlogPos
 	fileWithBinlogPos := fmt.Sprintf("%s-%d", backupFullDir, binlogsizeRet.EndSeq)
 	task.Err = os.Rename(backupFullDir, fileWithBinlogPos)

@@ -488,6 +488,11 @@ export LD_LIBRARY_PATH=LD_LIBRARY_PATH:%s
 	task.runtime.Logger.Info(sedCmd)
 	util.RunBashCmd(sedCmd, "", nil, 1*time.Minute)
 
+	// 先注释掉slaveof命令, 拉起后不要 清理过期数据
+	sedCmd = fmt.Sprintf("sed -i -e 's/^disk-delete-count [0-9]*/disk-delete-count 0/g' %s", slaveConfFile)
+	task.runtime.Logger.Info(sedCmd)
+	util.RunBashCmd(sedCmd, "", nil, 1*time.Minute)
+
 	startScript := filepath.Join("/usr/local/redis/bin", "start-redis.sh")
 	_, task.Err = util.RunLocalCmd("su", []string{consts.MysqlAaccount, "-c", startScript + " " + strconv.Itoa(
 		task.SlavePort)}, "", nil, 10*time.Second)
@@ -549,6 +554,9 @@ export LD_LIBRARY_PATH=LD_LIBRARY_PATH:%s
 		return
 	}
 
+	slaveBinlogRange2, _ := task.SlaveCli.TendisSSDBinlogSize()
+	task.runtime.Logger.Info("binlogPos AtStart:%+v, AfterSetSnapShot:%+v", slaveBinlogRange, slaveBinlogRange2)
+
 	// slaveof
 	_, task.Err = task.SlaveCli.SlaveOf(task.MasterIP, strconv.Itoa(task.MasterPort))
 	if task.Err != nil {
@@ -556,6 +564,8 @@ export LD_LIBRARY_PATH=LD_LIBRARY_PATH:%s
 	}
 	task.runtime.Logger.Info("slave(%s) 'slaveof %s %d'", task.SlaveAddr(), task.MasterIP, task.MasterPort)
 
+	// waiting server change inner stats.
+	time.Sleep(time.Second * 2)
 	// slave 'confxx set disk-delete-count 50'
 	_, task.Err = task.SlaveCli.ConfigSet("disk-delete-count", "50")
 	if task.Err != nil {
