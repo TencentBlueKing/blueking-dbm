@@ -67,7 +67,7 @@ export default [
       },
       {
         name: t('扩容接入层'),
-        id: 'SpiderProxyScaleUp',
+        id: TicketTypes.TENDBCLUSTER_SPIDER_ADD_NODES,
         parentId: 'spider_cluster_maintain',
         dbConsoleValue: 'tendbCluster.toolbox.proxyScaleUp',
       },

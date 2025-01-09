@@ -50,14 +50,7 @@ const spiderCapacityChangeRoute = {
   component: () => import('@views/db-manage/tendb-cluster/capacity-change/Index.vue'),
 };
 
-const spiderProxyScaleUpRoute = {
-  name: 'SpiderProxyScaleUp',
-  path: 'proxy-scale-up/:page?',
-  meta: {
-    navName: t('扩容接入层'),
-  },
-  component: () => import('@views/db-manage/tendb-cluster/proxy-scale-up/Index.vue'),
-};
+const spiderProxyScaleUpRoute = createRouteItem(TicketTypes.TENDBCLUSTER_SPIDER_ADD_NODES, t('扩容接入层'));
 
 const spiderProxyScaleDownRoute = createRouteItem(TicketTypes.TENDBCLUSTER_SPIDER_REDUCE_NODES, t('缩容接入层'));
 
