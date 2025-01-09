@@ -5,6 +5,7 @@
     clearable
     v-bind="{ ...attrs, ...props }"
     @blur="handleBlur"
+    @change="handleChange"
     @focus="handleFocus" />
 </template>
 <script lang="ts">
@@ -16,7 +17,7 @@
     disabledDate?: (date: Date | number) => boolean;
   }
 </script>
-<script setup lang="ts" generic="T extends [string, string] | string | Date">
+<script setup lang="ts" generic="T extends [string, string] | [Date, Date] | string | Date">
   import { useAttrs, watch } from 'vue';
 
   import useColumn from '../useColumn';
@@ -47,6 +48,10 @@
   const handleFocus = () => {
     columnContext?.focus();
     emits('focus');
+  };
+
+  const handleChange = (value: T) => {
+    emits('change', value);
   };
 </script>
 <style lang="less">
