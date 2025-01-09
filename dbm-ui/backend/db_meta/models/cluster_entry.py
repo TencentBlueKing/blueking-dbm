@@ -144,7 +144,8 @@ class PolarisEntryDetail(AuditedModel):
         ClusterEntry,
         on_delete=models.CASCADE,
     )
-    polaris_name = models.CharField(default="", max_length=50, unique=True)
+    # 要大于 immute_doamin 长度
+    polaris_name = models.CharField(default="", max_length=270, unique=True)
     polaris_l5 = models.CharField(default="", max_length=30)
     polaris_token = models.CharField(default="", max_length=50)
     alias_token = models.CharField(default="", max_length=50)
