@@ -13,6 +13,7 @@
       v-bind="{ ...attrs, ...props }"
       type="textarea"
       @blur="handleBlur"
+      @change="handleChange"
       @focus="handleFocus" />
     <div
       v-if="slots.append"
@@ -37,6 +38,7 @@
   interface Emits {
     (e: 'blur'): void;
     (e: 'focus'): void;
+    (e: 'change', value: string): void;
   }
 
   const props = defineProps<Props>();
@@ -67,6 +69,10 @@
   const handleFocus = () => {
     columnContext?.focus();
     emits('focus');
+  };
+
+  const handleChange = (value: string) => {
+    emits('change', value);
   };
 </script>
 <style lang="less">

@@ -9,6 +9,10 @@ export default defineComponent({
       type: Object as () => IColumnContext,
       required: true,
     },
+    columnSizeConfig: {
+      type: Object as () => Record<string, { renderWidth: number }>,
+      required: true,
+    },
   },
   setup(props) {
     return () => {
@@ -72,6 +76,12 @@ export default defineComponent({
           'div',
           {
             class: 'bk-editable-table-label-cell',
+            style: {
+              width:
+                props.columnSizeConfig[props.column.key].renderWidth > 0
+                  ? `${props.columnSizeConfig[props.column.key].renderWidth - 20}px`
+                  : '',
+            },
           },
           childNode,
         ),

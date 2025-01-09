@@ -19,7 +19,10 @@
         content: disabledTips,
         disabled: !disabledTips,
       }"
-      class="bk-editable-table-field-cell">
+      class="bk-editable-table-field-cell"
+      :style="{
+        width: `${tableContext?.columnSizeConfig.value[columnKey]?.renderWidth}px`,
+      }">
       <slot />
 
       <div
@@ -82,6 +85,7 @@
     description?: string;
     loading?: boolean;
     appendRules?: IRule[];
+    resizeable?: boolean;
   }
 
   interface Slots {
@@ -97,8 +101,6 @@
     clearValidate: () => void;
     getRowIndex: () => number;
   }
-
-  const hasOwn = (obj: Record<string, any>, key: string) => Object.prototype.hasOwnProperty.call(obj, key);
 
   export interface IContext {
     instance: ComponentInternalInstance;
@@ -119,7 +121,22 @@
   }> = Symbol('EditableTableColumnKey');
 </script>
 <script setup lang="ts">
-  const props = defineProps<Props>();
+  const props = withDefaults(defineProps<Props>(), {
+    field: undefined,
+    rowspan: undefined,
+    width: undefined,
+    minWidth: undefined,
+    maxWidth: undefined,
+    rules: undefined,
+    max: undefined,
+    min: undefined,
+    maxlength: undefined,
+    fixed: undefined,
+    disabledMethod: undefined,
+    description: undefined,
+    appendRules: undefined,
+    resizeable: true,
+  });
   const slots = defineSlots<Slots>();
 
   const tableContext = inject(tableInjectKey);
@@ -129,7 +146,7 @@
   const columnKey = `bk-editable-table-column-${rowContext?.getColumnIndex()}`;
 
   interface IFinalRule {
-    validator: (value: any) => Promise<boolean | string> | boolean | string;
+    validator: (value: any, rowData?: Record<string, any>) => Promise<boolean | string> | boolean | string;
     message: string | (() => string);
     trigger: string;
   }
@@ -324,7 +341,7 @@
     }
     let rules: IRule[] = [];
     // 继承 table 的验证规则
-    if (tableContext && tableContext.props.rules && hasOwn(tableContext.props.rules, props.field)) {
+    if (tableContext && tableContext.props.rules && _.has(tableContext.props.rules, props.field)) {
       rules = tableContext.props.rules[props.field];
     }
     // column 自己的 rules 规则优先级更高
@@ -343,7 +360,7 @@
 
     const doValidate = (() => {
       let stepIndex = -1;
-      return (finalRuleList: IFinalRule[], value: any): Promise<boolean> => {
+      return (finalRuleList: IFinalRule[], value: any, rowDataValue: Record<string, any>): Promise<boolean> => {
         stepIndex = stepIndex + 1;
         // 验证通过
         if (stepIndex >= finalRuleList.length) {
@@ -353,10 +370,10 @@
         const rule = finalRuleList[stepIndex];
 
         return Promise.resolve().then(() => {
-          const result = rule.validator(value);
+          const result = rule.validator(value, rowDataValue);
           // 同步验证通过下一步
           if (result === true) {
-            return doValidate(finalRuleList, value);
+            return doValidate(finalRuleList, value, rowDataValue);
           }
           // Promise异步处理验证结果
           return Promise.resolve(result)
@@ -370,7 +387,7 @@
               }
             })
             .then(
-              () => doValidate(finalRuleList, value),
+              () => doValidate(finalRuleList, value, rowDataValue),
               (errorMessage: string) => {
                 validateState.isError = true;
                 validateState.errorMessage = errorMessage;
@@ -422,9 +439,10 @@
         // 合并规则属性配置
         const finalRuleList = getTriggerRules(mergeRules(rules, getRulesFromProps(props)), trigger);
 
-        const value = _.get(tableContext.props.model[rowContext!.getRowIndex()], props.field || '_');
+        const rowDataValue = tableContext.props.model[rowContext!.getRowIndex()];
+        const value = _.get(rowDataValue, props.field || '_');
 
-        return resolve(doValidate(finalRuleList, value));
+        return resolve(doValidate(finalRuleList, value, rowDataValue));
       }, delay);
     });
   };
