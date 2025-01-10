@@ -74,7 +74,8 @@
         <DbOriginalTable
           class="custom-edit-table"
           :columns="rederColumns"
-          :data="state.formdata" />
+          :data="state.formdata"
+          :show-overflow="false" />
       </DbForm>
     </div>
     <template #footer>
@@ -146,10 +147,12 @@
     message: t('请输入正则表达式'),
     validator: (value: string) => !!value,
   }];
-  const columns = [{
+  const columns = [
+    {
     label: t('集群'),
     field: 'name',
-    showOverflowTooltip: false,
+    minWidth: 280,
+    showOverflow: false,
     render: ({ data }: { data: ExtractItem }) => (
       <div
         class="cluster-name text-overflow"
@@ -164,7 +167,8 @@
         <span class="cluster-name__alias">{data.cluster_alias}</span>
       </div>
     ),
-  }, {
+  },
+  {
     label: () => (
       <span class="key-table-header">
         { t('包含Key') }
@@ -180,6 +184,7 @@
       </span>
     ),
     field: 'white_regex',
+    minWidth: 280,
     render: ({ data, index }: { data: ExtractItem, index: number }) => (
       <bk-form-item
         error-display-type="tooltips"
@@ -197,7 +202,8 @@
           teleport-to-body={false} />
       </bk-form-item>
     ),
-  }, {
+  },
+  {
     label: () => (
       <span class="key-table-header">
         { t('排除Key') }
@@ -212,6 +218,7 @@
       </span>
     ),
     field: 'black_regex',
+    minWidth: 280,
     render: ({ data, index }: { data: ExtractItem, index: number }) => (
       <bk-form-item
         error-display-type="tooltips"

@@ -7,7 +7,7 @@
     }"
     :label="t('版本')"
     :min-width="150">
-    <template #default="{ data }: { data: TendnclusterModel }">
+    <template #default="{ data }: { data: IRowData }">
       {{ data.major_version || '--' }}
     </template>
   </BkTableColumn>
@@ -15,7 +15,7 @@
     field="disaster_tolerance_level"
     :label="t('容灾要求')"
     :min-width="160">
-    <template #default="{ data }: { data: TendnclusterModel }">
+    <template #default="{ data }: { data: IRowData }">
       {{ data.disasterToleranceLevelName || '--' }}
     </template>
   </BkTableColumn>
@@ -27,15 +27,15 @@
     }"
     :label="t('地域')"
     :min-width="100">
-    <template #default="{ data }: { data: TendnclusterModel }">
+    <template #default="{ data }: { data: IRowData }">
       {{ data.region || '--' }}
     </template>
   </BkTableColumn>
   <BkTableColumn
-    field="spec_name"
+    field="cluster_spec"
     :label="t('规格')"
     :min-width="180">
-    <template #default="{ data }: { data: TendnclusterModel }">
+    <template #default="{ data }: { data: IRowData }">
       {{ data.cluster_spec.spec_name || '--' }}
     </template>
   </BkTableColumn>
@@ -47,7 +47,7 @@
     }"
     :label="t('管控区域')"
     :width="120">
-    <template #default="{ data }: { data: TendnclusterModel }">
+    <template #default="{ data }: { data: IRowData }">
       {{ data.bk_cloud_name ? `${data.bk_cloud_name}[${data.bk_cloud_id}]` : '--' }}
     </template>
   </BkTableColumn>
@@ -55,7 +55,7 @@
     field="creator"
     :label="t('创建人')"
     :width="140">
-    <template #default="{ data }: { data: TendnclusterModel }">
+    <template #default="{ data }: { data: IRowData }">
       {{ data.creator || '--' }}
     </template>
   </BkTableColumn>
@@ -64,7 +64,7 @@
     :label="t('部署时间')"
     sort
     :width="250">
-    <template #default="{ data }: { data: TendnclusterModel }">
+    <template #default="{ data }: { data: IRowData }">
       {{ data.createAtDisplay || '--' }}
     </template>
   </BkTableColumn>
@@ -76,25 +76,23 @@
     }"
     :label="t('时区')"
     :width="100">
-    <template #default="{ data }: { data: TendnclusterModel }">
+    <template #default="{ data }: { data: IRowData }">
       {{ data.cluster_time_zone || '--' }}
     </template>
   </BkTableColumn>
 </template>
-<script setup lang="ts">
+<script setup lang="ts" generic="T extends ISupportClusterType">
   import { useI18n } from 'vue-i18n';
-
-  import TendnclusterModel from '@services/model/tendbcluster/tendbcluster';
 
   import { useLinkQueryColumnSerach } from '@hooks';
 
-  import type { ISupportClusterType } from './types';
+  import type { ClusterModel, ISupportClusterType } from './types';
 
-  interface Props {
+  export interface Props {
     clusterType: ISupportClusterType;
   }
 
-  interface Emits {
+  export interface Emits {
     (e: 'refresh'): void;
   }
 
@@ -102,6 +100,8 @@
   const emits = defineEmits<Emits>();
 
   const { t } = useI18n();
+
+  type IRowData = ClusterModel<T>;
 
   const { columnAttrs, columnCheckedMap } = useLinkQueryColumnSerach({
     searchType: props.clusterType,

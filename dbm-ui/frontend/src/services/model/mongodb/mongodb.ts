@@ -13,7 +13,7 @@
 
 import { uniq } from 'lodash';
 
-import type { ClusterListEntry, ClusterListNode } from '@services/types';
+import type { ClusterListEntry, ClusterListNode, ClusterListSpec } from '@services/types';
 
 import { ClusterAffinityMap, ClusterTypes, PipelineStatus, TicketTypes } from '@common/const';
 
@@ -45,6 +45,7 @@ export default class Mongodb extends ClusterBase {
   cluster_alias: string;
   cluster_entry: ClusterListEntry[];
   cluster_name: string;
+  cluster_spec: ClusterListSpec;
   cluster_stats: Record<'used' | 'total' | 'in_use', number>;
   cluster_time_zone: string;
   cluster_type: ClusterTypes;
@@ -102,19 +103,21 @@ export default class Mongodb extends ClusterBase {
     this.bk_biz_name = payload.bk_biz_name;
     this.bk_cloud_id = payload.bk_cloud_id;
     this.bk_cloud_name = payload.bk_cloud_name;
-    this.db_module_id = payload.db_module_id;
-    this.db_module_name = payload.db_module_name;
     this.cluster_access_port = payload.cluster_access_port;
     this.cluster_alias = payload.cluster_alias;
     this.cluster_entry = payload.cluster_entry || [];
     this.disaster_tolerance_level = payload.disaster_tolerance_level;
     this.cluster_name = payload.cluster_name;
+    this.cluster_spec = payload.cluster_spec || {};
     this.cluster_stats = payload.cluster_stats || {};
     this.cluster_time_zone = payload.cluster_time_zone;
     this.cluster_type = payload.cluster_type;
     this.cluster_type_name = payload.cluster_type_name;
     this.create_at = payload.create_at;
     this.creator = payload.creator;
+    this.db_module_id = payload.db_module_id;
+    this.db_module_name = payload.db_module_name;
+
     this.id = payload.id;
     this.major_version = payload.major_version;
     this.master_domain = payload.master_domain;

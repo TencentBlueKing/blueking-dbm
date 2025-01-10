@@ -13,9 +13,9 @@
 
 import { uniq } from 'lodash';
 
-import type { ClusterListEntry, ClusterListNode, ClusterListOperation } from '@services/types';
+import type { ClusterListEntry, ClusterListNode, ClusterListOperation, ClusterListSpec } from '@services/types';
 
-import { ClusterTypes } from '@common/const';
+import { ClusterAffinityMap, ClusterTypes } from '@common/const';
 
 import { t } from '@locales/index';
 
@@ -51,6 +51,7 @@ export default class SqlServerSingleCluster extends ClusterBase {
   cluster_alias: string;
   cluster_entry: ClusterListEntry[];
   cluster_name: string;
+  cluster_spec: ClusterListSpec;
   cluster_stats: Record<'used' | 'total' | 'in_use', number>;
   cluster_time_zone: string;
   cluster_type: ClusterTypes;
@@ -59,6 +60,7 @@ export default class SqlServerSingleCluster extends ClusterBase {
   creator: string;
   db_module_id: number;
   db_module_name: string;
+  disaster_tolerance_level: keyof typeof ClusterAffinityMap;
   id: number;
   major_version: string;
   master_domain: string;
@@ -87,6 +89,7 @@ export default class SqlServerSingleCluster extends ClusterBase {
     this.cluster_alias = payload.cluster_alias;
     this.cluster_entry = payload.cluster_entry || [];
     this.cluster_name = payload.cluster_name;
+    this.cluster_spec = payload.cluster_spec || {};
     this.cluster_time_zone = payload.cluster_time_zone;
     this.cluster_stats = payload.cluster_stats || {};
     this.cluster_type = payload.cluster_type;
@@ -95,6 +98,7 @@ export default class SqlServerSingleCluster extends ClusterBase {
     this.creator = payload.creator;
     this.db_module_id = payload.db_module_id;
     this.db_module_name = payload.db_module_name;
+    this.disaster_tolerance_level = payload.disaster_tolerance_level;
     this.id = payload.id;
     this.major_version = payload.major_version;
     this.master_domain = payload.master_domain;
@@ -212,5 +216,9 @@ export default class SqlServerSingleCluster extends ClusterBase {
 
   get isStarting() {
     return Boolean(this.operations.find((item) => item.ticket_type === SqlServerSingleCluster.SQLSERVER_ENABLE));
+  }
+
+  get disasterToleranceLevelName() {
+    return ClusterAffinityMap[this.disaster_tolerance_level];
   }
 }

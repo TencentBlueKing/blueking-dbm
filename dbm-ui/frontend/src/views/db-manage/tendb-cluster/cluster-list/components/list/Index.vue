@@ -144,6 +144,7 @@
           label="RemoteDR"
           :search-ip="searchIp"
           :selected-list="selected" />
+        <ModuleNameColumn :cluster-type="ClusterTypes.TENDBCLUSTER" />
         <CommonColumn :cluster-type="ClusterTypes.TENDBCLUSTER" />
         <BkTableColumn
           :fixed="isStretchLayoutOpen ? false : 'right'"
@@ -338,6 +339,7 @@
   import CommonColumn from '@views/db-manage/common/cluster-table-column/CommonColumn.vue';
   import IdColumn from '@views/db-manage/common/cluster-table-column/IdColumn.vue';
   import MasterDomainColumn from '@views/db-manage/common/cluster-table-column/MasterDomainColumn.vue';
+  import ModuleNameColumn from '@views/db-manage/common/cluster-table-column/ModuleNameColumn.vue';
   import RoleColumn from '@views/db-manage/common/cluster-table-column/RoleColumn.vue';
   import SlaveDomainColumn from '@views/db-manage/common/cluster-table-column/SlaveDomainColumn.vue';
   import StatusColumn from '@views/db-manage/common/cluster-table-column/StatusColumn.vue';
