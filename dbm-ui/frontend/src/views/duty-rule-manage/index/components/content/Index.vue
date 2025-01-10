@@ -260,7 +260,6 @@
     {
       label: t('轮值表'),
       field: 'duty_arranges',
-      showOverflowTooltip: false,
       width: 280,
       render: ({ data }: {data: DutyRuleModel}) => {
         let title = '';
@@ -297,14 +296,12 @@
     {
       label: t('生效时间'),
       field: 'effective_time',
-      showOverflow: true,
       width: 240,
       render: ({ data }: { data: DutyRuleModel }) => <span>{data.effectiveTimeDisplay}</span>,
     },
     {
       label: t('更新时间'),
       field: 'update_at',
-      showOverflow: true,
       sort: true,
       width: 240,
       render: ({ data }: { data: DutyRuleModel }) => <span>{data.updateAtDisplay}</span>,
@@ -312,13 +309,13 @@
     {
       label: t('更新人'),
       field: 'updater',
-      showOverflow: true,
       width: 120,
     },
     {
       label: t('启停'),
       field: 'is_enabled',
       width: 80,
+      showOverflow: false,
       render: ({ data }: { data: DutyRuleModel }) => (
         <bk-pop-confirm
           title={t('确认停用该策略？')}

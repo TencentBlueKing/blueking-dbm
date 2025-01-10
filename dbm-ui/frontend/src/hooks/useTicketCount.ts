@@ -1,5 +1,6 @@
 import { onBeforeUnmount } from 'vue';
 import { useRequest } from 'vue-request';
+import { useRoute } from 'vue-router';
 
 import { getTicketCount } from '@services/source/ticketFlow';
 
@@ -50,11 +51,19 @@ const run = () => {
   };
 };
 
-let context: ReturnType<typeof run>;
+let context: ReturnType<typeof run> | undefined;
 
 export const useTicketCount = () => {
+  const route = useRoute();
   if (!context) {
     context = run();
   }
+  onBeforeUnmount(() => {
+    setTimeout(() => {
+      if (route.name !== 'MyTodos') {
+        context = undefined;
+      }
+    });
+  });
   return context;
 };
