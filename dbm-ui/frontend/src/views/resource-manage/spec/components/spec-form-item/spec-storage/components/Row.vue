@@ -18,7 +18,7 @@
         ref="mountPointRef"
         v-model="localValue.mount_point"
         v-bk-tooltips="{
-          content: t('不支持修改'),
+          content: t('该规格已被使用，不允许修改'),
           disabled: !isEdit && !localValue.isSystemDrive,
         }"
         :disabled="isEdit || localValue.isSystemDrive"
@@ -30,7 +30,7 @@
         ref="minCapacityRef"
         v-model="localValue.size"
         v-bk-tooltips="{
-          content: t('不支持修改'),
+          content: t('该规格已被使用，不允许修改'),
           disabled: !isEdit,
         }"
         :disabled="isEdit"
@@ -44,7 +44,7 @@
         ref="diskTypeRef"
         v-model="localValue.type"
         v-bk-tooltips="{
-          content: t('不支持修改'),
+          content: t('该规格已被使用，不允许修改'),
           disabled: !props.isEdit,
         }"
         :disabled="isEdit"

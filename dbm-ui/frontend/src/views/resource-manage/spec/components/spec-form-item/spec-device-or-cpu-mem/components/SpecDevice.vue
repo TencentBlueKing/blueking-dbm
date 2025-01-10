@@ -92,6 +92,14 @@
 
   interface Props {
     isEdit: boolean;
+    cpu: {
+      min: number | string;
+      max: number | string;
+    };
+    mem: {
+      min: number | string;
+      max: number | string;
+    };
   }
 
   interface Exposes {
@@ -193,6 +201,19 @@
       deviceClassList.value = deviceList;
     },
   });
+
+  watch(
+    () => [props.cpu, props.mem],
+    () => {
+      if (typeof props.cpu.max !== 'string') {
+        selectedCpuMem.cpu = props.cpu as DeviceClassCpuMemType['cpu'];
+        selectedCpuMem.mem = props.mem as DeviceClassCpuMemType['mem'];
+      }
+    },
+    {
+      immediate: true,
+    },
+  );
 
   watch(
     () => modelValue.value,
