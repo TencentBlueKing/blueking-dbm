@@ -214,14 +214,14 @@ export function getTodoTickets(
 /**
  * 单据详情
  */
-export function getTicketDetails(
+export function getTicketDetails<T extends TicketModel = TicketModel<unknown>>(
   params: {
     id: number;
     is_reviewed?: number;
   },
   payload = {} as IRequestPayload,
 ) {
-  return http.get<TicketModel<unknown>>(`${path}/${params.id}/`, params, payload).then((data) => new TicketModel(data));
+  return http.get<T>(`${path}/${params.id}/`, params, payload).then((data) => new TicketModel(data) as T);
 }
 
 /**

@@ -2,9 +2,9 @@
  * 账号类型
  */
 export enum AccountTypes {
-  MYSQL = 'mysql',
-  TENDBCLUSTER = 'tendbcluster',
   MONGODB = 'mongodb',
+  MYSQL = 'mysql',
   SQLSERVER = 'sqlserver',
+  TENDBCLUSTER = 'tendbcluster',
 }
 export type AccountTypesValues = `${AccountTypes}`;
