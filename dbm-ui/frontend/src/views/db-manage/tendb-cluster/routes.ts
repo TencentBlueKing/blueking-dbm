@@ -256,7 +256,7 @@ const tendbClusterInstanceRoute = {
     navName: t('TendbCluster分布式集群_实例视图'),
     fullscreen: true,
   },
-  component: () => import('@views/db-manage/tendb-cluster/list-instance/Index.vue'),
+  component: () => import('@views/db-manage/tendb-cluster/instance-list/Index.vue'),
 };
 
 const spiderPartitionManageRoute = {
@@ -332,12 +332,12 @@ const renderRoutes = [
       // },
       {
         name: 'tendbClusterList',
-        path: 'list',
+        path: 'cluster-list',
         meta: {
           navName: t('TendbCluster分布式集群_集群管理'),
           fullscreen: true,
         },
-        component: () => import('@views/db-manage/tendb-cluster/list/Index.vue'),
+        component: () => import('@views/db-manage/tendb-cluster/cluster-list/Index.vue'),
       },
       {
         path: 'openarea-template-create',

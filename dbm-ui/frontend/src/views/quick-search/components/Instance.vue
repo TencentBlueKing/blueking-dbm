@@ -186,21 +186,18 @@
 
   const handleExport = (clusterType: string, dataList: QuickSearchInstanceModel[]) => {
     const formatData = dataList.map((dataItem) => ({
-      [t('主机ID')]: String(dataItem.bk_host_id),
-      [t('云区域ID')]: String(dataItem.bk_cloud_id),
       ['IP']: dataItem.ip,
       [t('IP端口')]: String(dataItem.port),
       [t('实例角色')]: dataItem.role,
       [t('城市')]: dataItem.bk_idc_area,
       [t('机房')]: dataItem.bk_idc_name,
       [t('集群ID')]: dataItem.cluster_id,
-      [t('集群名称')]: dataItem.cluster_name,
-      [t('集群别名')]: dataItem.cluster_alias,
       [t('集群类型')]: dataItem.cluster_type,
       [t('主域名')]: dataItem.cluster_domain,
       [t('主版本')]: dataItem.major_version,
       [t('业务ID')]: String(dataItem.bk_biz_id),
       [t('业务名称')]: props.bizIdNameMap[dataItem.bk_biz_id],
+      [t('主 DBA')]: dataItem.dba,
     }));
     const colsWidths = [
       { width: 10 },

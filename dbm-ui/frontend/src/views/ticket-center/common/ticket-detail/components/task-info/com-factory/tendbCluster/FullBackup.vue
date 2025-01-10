@@ -13,7 +13,7 @@
 
 <template>
   <BkTable
-    :data="ticketDetails.details.infos.clusters"
+    :data="ticketDetails.details.infos"
     show-overflow-tooltip>
     <BkTableColumn :label="t('目标集群')">
       <template #default="{ data }: { data: RowData }">
@@ -48,7 +48,7 @@
     ticketDetails: TicketModel<TendbCluster.FullBackup>;
   }
 
-  type RowData = Props['ticketDetails']['details']['infos']['clusters'][number];
+  type RowData = Props['ticketDetails']['details']['infos'][number];
 
   const props = defineProps<Props>();
 
@@ -61,7 +61,7 @@
 
   // 备份类型
   const backupType = computed(() => {
-    if (props.ticketDetails.details.infos.backup_type === 'physical') {
+    if (props.ticketDetails.details.backup_type === 'physical') {
       return t('物理备份');
     }
     return t('逻辑备份');
@@ -75,7 +75,7 @@
   };
   // 备份保存时间
   const backupTime = computed(() => {
-    const fileTag = props.ticketDetails.details.infos.file_tag;
+    const fileTag = props.ticketDetails.details.file_tag;
     if (!fileTagMap[fileTag]) {
       // 兼容旧单据
       if (fileTag === 'LONGDAY_DBFILE_3Y') {
