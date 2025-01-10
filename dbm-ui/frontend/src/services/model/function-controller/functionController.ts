@@ -1,4 +1,3 @@
-/* eslint-disable max-len */
 /*
  * TencentBlueKing is pleased to support the open source community by making 蓝鲸智云-DB管理系统(BlueKing-BK-DBM) available.
  *
@@ -38,7 +37,8 @@ export interface ControllerBaseInfo {
   is_enabled: boolean;
 }
 
-interface ControllerItem<T extends string> extends ControllerBaseInfo {
+interface ControllerItem<T extends string> {
+  is_enabled: boolean;
   children: Record<T, ControllerBaseInfo>;
 }
 
