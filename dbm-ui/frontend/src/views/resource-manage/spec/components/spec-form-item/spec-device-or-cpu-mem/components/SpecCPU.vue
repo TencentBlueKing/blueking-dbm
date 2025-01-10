@@ -19,7 +19,7 @@
         required>
         <span
           v-bk-tooltips="{
-            content: t('不支持修改'),
+            content: t('该规格已被使用，不允许修改'),
             disabled: !isEdit,
           }"
           class="inline-block">
@@ -40,7 +40,7 @@
         required>
         <span
           v-bk-tooltips="{
-            content: t('不支持修改'),
+            content: t('该规格已被使用，不允许修改'),
             disabled: !isEdit,
           }"
           class="inline-block">
