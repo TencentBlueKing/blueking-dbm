@@ -20,6 +20,21 @@
         :title="t('闪回：通过 flashback 工具，对 row 格式的 binlog 做逆向操作')" />
       <div class="title-spot mt-12 mb-10">{{ t('时区') }}<span class="required" /></div>
       <TimeZonePicker style="width: 450px" />
+      <div class="title-spot mt-12 mb-10">{{ t('闪回方式') }}<span class="required" /></div>
+      <BkRadioGroup
+        model-value="TABLE_FLASHBACK"
+        @change="handleFlashbackTypeChange">
+        <BkRadioButton
+          label="TABLE_FLASHBACK"
+          style="width: 225px">
+          {{ t('库表闪回') }}
+        </BkRadioButton>
+        <BkRadioButton
+          label="RECORD_FLASHBACK"
+          style="width: 225px">
+          {{ t('记录级闪回') }}
+        </BkRadioButton>
+      </BkRadioGroup>
       <RenderData
         class="mt16"
         @batch-edit="handleBatchEditColumn"
@@ -99,6 +114,15 @@
       tableData.value = tableDataList;
       remark.value = cloneData.remark;
       window.changeConfirm = true;
+      if (cloneData.flashbackType === 'RECORD_FLASHBACK') {
+        router.push({
+          name: 'TENDBCLUSTER_FLASHBACK',
+          query: {
+            ticketId: cloneData.id,
+            ticketType: cloneData.ticketType,
+          },
+        });
+      }
     },
   });
 
@@ -122,6 +146,14 @@
     return (
       !firstRow.clusterData && !firstRow.startTime && !firstRow.databases && !firstRow.tables && !firstRow.tablesIgnore
     );
+  };
+
+  const handleFlashbackTypeChange = (type: string) => {
+    if (type === 'RECORD_FLASHBACK') {
+      router.push({
+        name: 'TENDBCLUSTER_FLASHBACK',
+      });
+    }
   };
 
   // 批量选择
@@ -221,6 +253,7 @@
         remark: remark.value,
         details: {
           infos,
+          flashback_type: 'TABLE_FLASHBACK',
         },
         bk_biz_id: currentBizId,
       }).then((data) => {

@@ -27,10 +27,15 @@ export function generateSpiderFlashbackCloneData(ticketData: TicketModel<TendbCl
         id: clusterItem.id,
         domain: clusterItem.immute_domain,
       },
-      startTime: item.start_time,
-      endTime: item.end_time,
       databases: item.databases,
       databasesIgnore: item.databases_ignore,
+      directWriteBack: item.direct_write_back,
+      endTime: item.end_time,
+      message: item.message,
+      mysqlbinlogRollback: item.mysqlbinlog_rollback,
+      recoredFile: item.recored_file,
+      rowsFilter: item.rows_filter,
+      startTime: item.start_time,
       tables: item.tables,
       tablesIgnore: item.tables_ignore,
     };
@@ -39,5 +44,9 @@ export function generateSpiderFlashbackCloneData(ticketData: TicketModel<TendbCl
   return Promise.resolve({
     tableDataList,
     remark: ticketData.remark,
+    flashbackType: ticketData.details.flashback_type,
+    force: ticketData.details.force,
+    id: ticketData.id,
+    ticketType: ticketData.ticket_type,
   });
 }

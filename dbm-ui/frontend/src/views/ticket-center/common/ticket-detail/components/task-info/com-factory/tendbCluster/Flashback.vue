@@ -12,7 +12,14 @@
 -->
 
 <template>
-  <BkTable :data="ticketDetails.details.infos">
+  <InfoList>
+    <InfoItem :label="t('闪回方式:')">
+      {{ ticketDetails.details.flashback_type === 'RECORD_FLASHBACK' ? t('记录级闪回') : t('库表闪回') }}
+    </InfoItem>
+  </InfoList>
+  <BkTable
+    :data="ticketDetails.details.infos"
+    :show-overflow="false">
     <BkTableColumn
       fixed="left"
       :label="t('目标集群')"
@@ -43,6 +50,19 @@
       </template>
     </BkTableColumn>
     <BkTableColumn
+      v-if="isTableFlashback"
+      :label="t('忽略库')">
+      <template #default="{ data }: { data: RowData }">
+        <BkTag
+          v-for="item in data.databases_ignore"
+          :key="item">
+          {{ item }}
+        </BkTag>
+        <span v-if="data.databases_ignore.length < 1">--</span>
+      </template>
+    </BkTableColumn>
+    <BkTableColumn
+      v-if="isTableFlashback"
       :label="t('忽略库')"
       :min-width="120">
       <template #default="{ data }: { data: RowData }">
@@ -57,13 +77,27 @@
       </template>
     </BkTableColumn>
     <BkTableColumn
-      :label="t('忽略表')"
-      :min-width="120">
+      v-if="isTableFlashback"
+      :label="t('忽略表')">
       <template #default="{ data }: { data: RowData }">
         <TagBlock :data="data.tables_ignore" />
       </template>
     </BkTableColumn>
+    <BkTableColumn
+      v-if="isRecordFlashback"
+      :label="t('待闪回记录')"
+      :min-width="300"
+      :show-overflow="false">
+      <template #default="{ data }: { data: RowData }">
+        <div style="line-height: 26px; white-space: pre">{{ data.rows_filter }}</div>
+      </template>
+    </BkTableColumn>
   </BkTable>
+  <InfoList v-if="isRecordFlashback">
+    <InfoItem :label="t('覆盖原始数据:')">
+      {{ ticketDetails.details.infos[0].direct_write_back ? t('是') : t('否') }}
+    </InfoItem>
+  </InfoList>
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
@@ -76,13 +110,15 @@
 
   import { utcDisplayTime } from '@utils';
 
+  import InfoList, { Item as InfoItem } from '../components/info-list/Index.vue';
+
   interface Props {
     ticketDetails: TicketModel<TendbCluster.FlashBack>;
   }
 
   type RowData = Props['ticketDetails']['details']['infos'][number];
 
-  defineProps<Props>();
+  const props = defineProps<Props>();
 
   defineOptions({
     name: TicketTypes.TENDBCLUSTER_FLASHBACK,
@@ -90,4 +126,7 @@
   });
 
   const { t } = useI18n();
+
+  const isTableFlashback = computed(() => props.ticketDetails.details.flashback_type === 'TABLE_FLASHBACK');
+  const isRecordFlashback = computed(() => props.ticketDetails.details.flashback_type === 'RECORD_FLASHBACK');
 </script>
