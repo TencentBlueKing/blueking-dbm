@@ -16,16 +16,16 @@ import type { ConfLevels } from '@common/const';
  * 业务拓扑树
  */
 export default class BizConfTopoTree {
-  instance_id: number;
-  instance_name: string;
-  obj_id: ConfLevels;
-  obj_name: string;
   children: BizConfTopoTree[];
   extra: {
     domain: string;
     proxy_version: string;
     version: string;
   };
+  instance_id: number;
+  instance_name: string;
+  obj_id: ConfLevels;
+  obj_name: string;
 
   constructor(payload = {} as BizConfTopoTree) {
     this.instance_id = payload.instance_id;

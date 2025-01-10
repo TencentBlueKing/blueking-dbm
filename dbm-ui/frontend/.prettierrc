@@ -1,7 +1,5 @@
 {
-  "plugins": [
-    "prettier-plugin-curly"
-  ],
+  "plugins": ["prettier-plugin-curly"],
   "$schema": "https://json.schemastore.org/prettierrc",
   "semi": true,
   "quoteProps": "as-needed",
@@ -15,14 +13,5 @@
   "arrowParens": "always",
   "vueIndentScriptAndStyle": true,
   "singleAttributePerLine": true,
-  "proseWrap": "always",
-  "parser": "typescript",
-  "overrides": [
-    {
-      "files": "*.vue",
-      "options": {
-        "parser": "vue"
-      }
-    }
-  ]
+  "proseWrap": "always"
 }

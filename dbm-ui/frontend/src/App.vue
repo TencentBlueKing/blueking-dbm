@@ -65,6 +65,8 @@
   import { onMounted, watch } from 'vue';
   import { useI18n } from 'vue-i18n';
 
+  import NoticeComponent from '@blueking/notice-component';
+
   import { getLogout } from '@services/source/logout';
 
   import { useSQLTaskNotify } from '@hooks';
@@ -79,11 +81,9 @@
 
   import { checkDbConsole } from '@utils';
 
-  import NoticeComponent from '@blueking/notice-component';
-
   import Layout from './layout/Index.vue';
 
-  import '@blueking/notice-component/dist/style.css';
+  import('@blueking/notice-component/dist/style.css');
 
   const userProfileStore = useUserProfile();
   const { t, locale } = useI18n();

@@ -26,6 +26,8 @@ export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd());
   const isHttps = mode === 'https';
 
+  console.log('env === ', mode);
+
   return {
     base: env.VITE_PUBLIC_PATH,
     resolve: {
@@ -92,7 +94,6 @@ export default defineConfig(({ mode }) => {
       ViteHTMLEnv({
         prefix: '{{',
         suffix: '}}',
-        envPrefixes: ['VITE_'],
       }),
     ].concat(isHttps ? [basicSsl()] : []),
     optimizeDeps: {
@@ -102,6 +103,10 @@ export default defineConfig(({ mode }) => {
       strictPort: true,
       host: '127.0.0.1',
       allowedHosts: true,
+      hrm: true,
+      watch: {
+        usePolling: true,
+      },
       port: 8088,
       proxy: {
         '/bkrepo_upload': {
