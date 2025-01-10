@@ -21,8 +21,7 @@ import (
 )
 
 const (
-	Mem8GB         = 8 * 1024 * 1024
-	MemUsedPercent = 0.70
+	MemUsedPercent = 0.70 * 100
 )
 
 // Task 任务内容
@@ -194,13 +193,13 @@ func (t *Task) bigKeySmartStat(server Instance) (string, string, int64, int64, e
 	} else {
 		var useFastRdbStat bool
 		osMem, _ := mem.VirtualMemory()
-		if osMem.Total > Mem8GB && osMem.UsedPercent < MemUsedPercent {
+		if t.conf.BigKeyConf.UseRdb && osMem.UsedPercent < MemUsedPercent {
 			useFastRdbStat = true
 		}
 		mylog.Logger.Info(fmt.Sprintf("do stats keys %s: use Rdb: (config_rdb:%+v,mem_current:%+v) Mem:%+v",
 			server.Addr, t.conf.BigKeyConf.UseRdb, useFastRdbStat, osMem))
 
-		if t.conf.BigKeyConf.UseRdb && useFastRdbStat {
+		if useFastRdbStat {
 			// 如果RDB save 正在跑（不是我自己触发的，那么需要等等)
 			dbsize, step, err = t.bigKeyWithRdb4Cache(server, bkfile, kmfile)
 		} else {
@@ -220,6 +219,7 @@ func (t *Task) bigKeyWithRdb4Cache(server Instance, bkfile, kmfile string) (int6
 	allkeys := fmt.Sprintf("v.%d.keys", server.Port)
 	cmdKeys := fmt.Sprintf("%s rdbstat -f %s/%d/data/dump.rdb > %s 2>&1",
 		consts.TendisKeyLifecycleBin, t.basicDir, server.Port, allkeys)
+	mylog.Logger.Info(fmt.Sprintf("do parse keys %s:%s", server.Addr, cmdKeys))
 	if _, err := util.RunBashCmd(cmdKeys, "", nil, time.Hour); err != nil {
 		return 0, 0, err
 	}
@@ -228,12 +228,14 @@ func (t *Task) bigKeyWithRdb4Cache(server Instance, bkfile, kmfile string) (int6
 
 func (t *Task) bigKeyWithAof4Cache(server Instance, bkfile, kmfile string) (int64, int64, error) {
 	if err := server.Cli.BgRewriteAOFAndWaitForDone(); err != nil {
+		mylog.Logger.Warn(fmt.Sprintf("aof rewrite failed :%+v", err))
 		return 0, 0, err
 	}
 
 	allkeys := fmt.Sprintf("v.%d.keys", server.Port)
 	cmdKeys := fmt.Sprintf("%s parseaof -f %s/%d/data/appendonly.aof > %s 2>&1",
 		consts.TendisKeyLifecycleBin, t.basicDir, server.Port, allkeys)
+	mylog.Logger.Info(fmt.Sprintf("do parse keys %s:%s", server.Addr, cmdKeys))
 	if _, err := util.RunBashCmd(cmdKeys, "", nil, time.Hour); err != nil {
 		return 0, 0, err
 	}
