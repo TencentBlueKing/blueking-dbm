@@ -191,6 +191,14 @@ export const mysqlToolboxChildrenRouters: RouteRecordRaw[] = [
     },
     component: () => import('@views/db-manage/mysql/version-upgrade/Index.vue'),
   },
+  {
+    name: 'MYSQL_FLASHBACK',
+    path: 'MYSQL_FLASHBACK/:page?',
+    meta: {
+      navName: t('闪回'),
+    },
+    component: () => import('@views/db-manage/mysql/MYSQL_FLASHBACK/Index.vue'),
+  },
 ];
 
 const singleRoutes: RouteRecordRaw[] = [

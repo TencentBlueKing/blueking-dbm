@@ -14,9 +14,9 @@ export default function (
     Record<
       string,
       {
-        width: number;
-        minWidth: number;
-        maxWidth: number;
+        width?: number;
+        minWidth?: number;
+        maxWidth?: number;
         renderWidth: number;
       }
     >
@@ -33,30 +33,105 @@ export default function (
   watch(
     columnList,
     () => {
+      if (!tableRef.value) {
+        return;
+      }
+      const tableWidth = tableRef.value.getBoundingClientRect().width;
+
       const columnSizeConfigCache = { ...columnSizeConfig.value };
-      columnSizeConfig.value = columnList.value.reduce((result, columnConfig) => {
-        const width = columnConfig.props.width || 0;
-        const minWidth =
-          Number(columnConfig.props.minWidth) > 60 ? Number(columnConfig.props.minWidth) : Number.MIN_VALUE;
-        const maxWidth =
-          Number(columnConfig.props.maxWidth) > 60 ? Number(columnConfig.props.maxWidth) : Number.MAX_VALUE;
 
-        const renderWidth = Math.min(Math.max(width, minWidth), maxWidth);
+      const maxColumn: IColumnContext[] = [];
+      const minColumn: IColumnContext[] = [];
+      const pxColumn: IColumnContext[] = [];
+      const autoColumn: IColumnContext[] = [];
 
-        Object.assign(result, {
-          [columnConfig.key]: columnSizeConfigCache[columnConfig.key]
-            ? columnSizeConfigCache[columnConfig.key]
-            : {
-                width,
-                minWidth,
-                maxWidth,
-                renderWidth,
-              },
+      columnList.value.forEach((column) => {
+        if (column.props.width) {
+          pxColumn.push(column);
+        } else if (column.props.minWidth) {
+          minColumn.push(column);
+        } else if (column.props.maxWidth) {
+          maxColumn.push(column);
+        } else {
+          autoColumn.push(column);
+        }
+      });
+
+      let totalWidth = 0;
+      pxColumn.forEach((column) => {
+        if (columnSizeConfigCache[column.key]) {
+          totalWidth += columnSizeConfigCache[column.key].renderWidth;
+          return;
+        }
+        columnSizeConfigCache[column.key] = {
+          width: column.props.width,
+          renderWidth: Number(column.props.width),
+        };
+        totalWidth += Number(column.props.width);
+      });
+      minColumn.forEach((column) => {
+        if (columnSizeConfigCache[column.key]) {
+          totalWidth += columnSizeConfigCache[column.key].renderWidth;
+          return;
+        }
+        columnSizeConfigCache[column.key] = {
+          minWidth: column.props.minWidth,
+          renderWidth: Number(column.props.minWidth),
+        };
+        totalWidth += Number(column.props.minWidth);
+      });
+
+      const remainWidth = tableWidth - totalWidth;
+
+      let meanWidth =
+        remainWidth > 0 ? Math.floor(remainWidth / (minColumn.length + maxColumn.length + autoColumn.length)) : 0;
+
+      let extraWidth = 0;
+      maxColumn.forEach((column) => {
+        if (columnSizeConfigCache[column.key]) {
+          return;
+        }
+        let renderWidth = meanWidth;
+        if (Number(column.props.maxWidth) <= meanWidth) {
+          renderWidth = Number(column.props.maxWidth);
+          extraWidth += meanWidth - Number(column.props.maxWidth);
+        }
+        columnSizeConfigCache[column.key] = {
+          maxWidth: column.props.maxWidth,
+          renderWidth,
+        };
+      });
+      meanWidth += Math.floor(extraWidth / (autoColumn.length + minColumn.length));
+      minColumn.forEach((column) => {
+        Object.assign(columnSizeConfigCache[column.key], {
+          renderWidth: columnSizeConfigCache[column.key].renderWidth + meanWidth,
         });
+      });
+      autoColumn.forEach((column) => {
+        columnSizeConfigCache[column.key] = {
+          renderWidth: meanWidth,
+        };
+      });
 
-        return result;
-      }, {});
-      console.log('columnSizeConfig.value = ', columnSizeConfig.value);
+      const renderColumnWidthTotal = Object.values(columnSizeConfigCache).reduce(
+        (result, item) => result + item.renderWidth,
+        0,
+      );
+      if (renderColumnWidthTotal < tableWidth) {
+        const fixWidth = tableWidth - renderColumnWidthTotal;
+        if (minColumn.length > 0) {
+          columnSizeConfigCache[minColumn[0].key].renderWidth =
+            columnSizeConfigCache[minColumn[0].key].renderWidth + fixWidth;
+        } else if (autoColumn.length > 0) {
+          columnSizeConfigCache[autoColumn[0].key].renderWidth =
+            columnSizeConfigCache[autoColumn[0].key].renderWidth + fixWidth;
+        } else if (maxColumn.length > 0) {
+          columnSizeConfigCache[maxColumn[0].key].renderWidth =
+            columnSizeConfigCache[maxColumn[0].key].renderWidth + fixWidth;
+        }
+      }
+
+      columnSizeConfig.value = columnSizeConfigCache;
     },
     {
       immediate: true,
@@ -104,22 +179,14 @@ export default function (
 
     const handleMouseUp = () => {
       if (dragging.value) {
-        const containerWidth = tableEl!.getBoundingClientRect().width;
-        const containerScrollWidth = tableEl!.scrollWidth;
-        const isScrolling = containerScrollWidth > containerWidth;
         const { startColumnLeft } = dragState.value;
         const finalLeft = Number.parseInt(resizeProxy.style.left, 10);
-        const latestColumnWidth = Math.ceil(Math.max(finalLeft - startColumnLeft, 60));
+        const latestColumnWidth = Math.ceil(Math.max(finalLeft - startColumnLeft, 80));
 
         const nextSiblingEl = columnEl!.nextElementSibling as HTMLElement;
 
         if (nextSiblingEl!.classList.contains('table-column-resize')) {
           return;
-        }
-        // 没有出现滚动条时缩小当前列的宽度同时会放大后面一列的宽度
-        if (!isScrolling && columnRect.width > latestColumnWidth) {
-          const latestWidth = columnRect.width - latestColumnWidth + nextSiblingEl!.getBoundingClientRect().width;
-          console.log('latestWidth = ', latestWidth);
         }
 
         resizeProxy.style.display = 'none';
@@ -127,10 +194,23 @@ export default function (
         dragging.value = false;
 
         const realWidth = Math.max(
-          columnSizeConfig.value[columnKey].minWidth as number,
-          Math.min(latestColumnWidth, columnSizeConfig.value[columnKey].maxWidth as number),
+          columnSizeConfig.value[columnKey].minWidth || 60,
+          Math.min(latestColumnWidth, columnSizeConfig.value[columnKey].maxWidth || 1000000),
         );
-        columnSizeConfig.value[columnKey].renderWidth = realWidth;
+        const renderColumWidthTotal = Array.from(columnEl.parentElement!.children).reduce((result, element) => {
+          if (element === columnEl) {
+            return result;
+          }
+          return result + element.getBoundingClientRect().width;
+        }, 0);
+
+        const tableWidth = tableRef.value!.getBoundingClientRect().width;
+
+        if (renderColumWidthTotal + realWidth < tableWidth) {
+          columnSizeConfig.value[columnKey].renderWidth = tableWidth - renderColumWidthTotal;
+        } else {
+          columnSizeConfig.value[columnKey].renderWidth = realWidth;
+        }
       }
 
       dragable = false;
@@ -149,6 +229,13 @@ export default function (
     const target = (event.target as HTMLElement).closest('th');
 
     if (!target) {
+      return;
+    }
+
+    const columnKey = target.dataset.name as string;
+
+    const targetColumn = _.find(columnList.value, (column) => column.key === columnKey);
+    if (!targetColumn || !targetColumn.props.resizeable) {
       return;
     }
 

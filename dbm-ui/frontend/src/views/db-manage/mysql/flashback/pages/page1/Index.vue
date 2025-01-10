@@ -28,6 +28,21 @@
       </div>
       <div class="title-spot mt-12 mb-10">{{ t('时区') }}<span class="required" /></div>
       <TimeZonePicker style="width: 450px" />
+      <div class="title-spot mt-12 mb-10">{{ t('闪回方式') }}<span class="required" /></div>
+      <BkRadioGroup
+        model-value="TABLE_FLASHBACK"
+        @change="handleFlashbackTypeChange">
+        <BkRadioButton
+          label="TABLE_FLASHBACK"
+          style="width: 225px">
+          {{ t('库表闪回') }}
+        </BkRadioButton>
+        <BkRadioButton
+          label="RECORD_FLASHBACK"
+          style="width: 225px">
+          {{ t('记录级闪回') }}
+        </BkRadioButton>
+      </BkRadioGroup>
       <RenderData
         class="mt16"
         @batch-edit="handleBatchEditColumn"
@@ -117,6 +132,15 @@
       tableData.value = cloneData.tableDataList;
       remark.value = cloneData.remark;
       window.changeConfirm = true;
+      if (cloneData.flashbackType === 'RECORD_FLASHBACK') {
+        router.push({
+          name: 'MYSQL_FLASHBACK',
+          query: {
+            ticketId: cloneData.id,
+            ticketType: cloneData.ticketType,
+          },
+        });
+      }
     },
   });
 
@@ -131,6 +155,14 @@
 
   // 集群域名是否已存在表格的映射表
   let domainMemo: Record<string, boolean> = {};
+
+  const handleFlashbackTypeChange = (type: string) => {
+    if (type === 'RECORD_FLASHBACK') {
+      router.push({
+        name: 'MYSQL_FLASHBACK',
+      });
+    }
+  };
 
   // 批量录入
   const handleShowBatchEntry = () => {
@@ -227,6 +259,7 @@
         remark: remark.value,
         details: {
           infos,
+          flashback_type: 'TABLE_FLASHBACK',
         },
         bk_biz_id: currentBizId,
       }).then((data) => {

@@ -114,12 +114,10 @@ export function createTicket(formData: Record<string, any>) {
                   ...formData,
                   ignore_duplication: true,
                 });
-                resolve(res);
-                return true;
+                return resolve(res);
               } catch (e: any) {
                 messageError(e?.message);
-                reject(e);
-                return false;
+                return reject(e);
               }
             },
             onCancel: () => {
@@ -214,14 +212,14 @@ export function getTodoTickets(
 /**
  * 单据详情
  */
-export function getTicketDetails(
+export function getTicketDetails<T extends TicketModel = TicketModel<unknown>>(
   params: {
     id: number;
     is_reviewed?: number;
   },
   payload = {} as IRequestPayload,
 ) {
-  return http.get<TicketModel<unknown>>(`${path}/${params.id}/`, params, payload).then((data) => new TicketModel(data));
+  return http.get<T>(`${path}/${params.id}/`, params, payload).then((data) => new TicketModel(data) as T);
 }
 
 /**
@@ -303,7 +301,9 @@ export function updateTicketFlowConfig(params: {
 }
 
 export function getTicketStatus(params: { ticket_ids: string }) {
-  return http.get<Record<string, string>>(`${path}/list_ticket_status/`, params);
+  return http.get<Record<string, string>>(`${path}/list_ticket_status/`, params, {
+    cache: 1000,
+  });
 }
 
 /**

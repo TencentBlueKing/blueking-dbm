@@ -5,9 +5,11 @@
         v-for="(columnItem, index) in columnList"
         :key="`#${index}}#${columnItem.key}`"
         :class="{
-          [`is-column-fixed-${columnItem.props.fixed}`]: columnItem.props.fixed,
+          'fixed-left-column': columnItem.props.fixed === 'left',
+          'fixed-right-column': columnItem.props.fixed === 'right',
         }"
         :column="columnItem"
+        :column-size-config="columnSizeConfig"
         :style="{
           width:
             columnSizeConfig[columnItem.key].renderWidth > 0 ? `${columnSizeConfig[columnItem.key].renderWidth}px` : '',

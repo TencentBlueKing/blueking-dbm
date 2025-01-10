@@ -25,8 +25,6 @@ import { setGlobalComps } from '@common/importComps';
 
 import i18n from '@locales/index';
 
-import { subEnv } from '@blueking/sub-saas';
-
 import App from './App.vue';
 import getRouter from './router';
 import SubApp from './SubApp.vue';
@@ -36,6 +34,7 @@ import '@lib/bk-icon/iconcool';
 import '@styles/common.less';
 import 'bkui-vue/dist/style.css';
 import { setGlobalDirectives } from '@/directives/index';
+import { subEnv } from '@blueking/sub-saas';
 
 import('tippy.js/dist/tippy.css');
 import('tippy.js/themes/light.css');
