@@ -16,6 +16,7 @@
     ref="column"
     fixed="right"
     :label="t('操作')"
+    readonly
     :resizeable="false"
     :width="100">
     <div class="toolbox-operation-column">
@@ -88,7 +89,7 @@
 
     const newRowIndex = rowIndex + 1;
 
-    if (rowIndex > 0) {
+    if (newRowIndex > 0) {
       tableData.value.splice(newRowIndex, 0, _.cloneDeep(tableData.value[rowIndex]));
       editTableContext!.validateByRowIndex(newRowIndex);
     }

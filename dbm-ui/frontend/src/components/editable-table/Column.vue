@@ -668,16 +668,6 @@
       &.is-focused {
         z-index: @fixed-focus-z-index;
       }
-
-      &.is-fixed {
-        &.is-error {
-          z-index: @fixed-error-z-index;
-        }
-
-        &.is-focused {
-          z-index: @fixed-focus-z-index;
-        }
-      }
     }
   }
 
