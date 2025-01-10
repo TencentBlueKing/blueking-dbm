@@ -47,14 +47,7 @@ const spiderProxyScaleUpRoute = createRouteItem(TicketTypes.TENDBCLUSTER_SPIDER_
 
 const spiderProxyScaleDownRoute = createRouteItem(TicketTypes.TENDBCLUSTER_SPIDER_REDUCE_NODES, t('缩容接入层'));
 
-const spiderProxySlaveApplyRoute = {
-  name: 'SpiderProxySlaveApply',
-  path: 'proxy-slave-apply/:page?',
-  meta: {
-    navName: t('部署只读接入层'),
-  },
-  component: () => import('@views/db-manage/tendb-cluster/proxy-slave-apply/Index.vue'),
-};
+const spiderProxySlaveApplyRoute = createRouteItem(TicketTypes.TENDBCLUSTER_SPIDER_SLAVE_APPLY, t('部署只读接入层'));
 
 const spiderAddMntRoute = createRouteItem(TicketTypes.TENDBCLUSTER_SPIDER_MNT_APPLY, t('添加运维节点'));
 

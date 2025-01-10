@@ -98,7 +98,7 @@ export default [
     children: [
       {
         name: t('部署只读接入层'),
-        id: 'SpiderProxySlaveApply',
+        id: TicketTypes.TENDBCLUSTER_SPIDER_SLAVE_APPLY,
         parentId: 'spider_entry',
         dbConsoleValue: 'tendbCluster.toolbox.proxySlaveApply',
       },
