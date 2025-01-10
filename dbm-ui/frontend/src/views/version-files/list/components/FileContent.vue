@@ -148,6 +148,14 @@
               </template>
             </BkTableColumn>
             <BkTableColumn
+              field="updateAtDisplay"
+              :label="t('更新时间')"
+              :width="250">
+              <template #default="{ data }: { data: VersionFileModel }">
+                {{ data.updateAtDisplay || '--' }}
+              </template>
+            </BkTableColumn>
+            <BkTableColumn
               :label="t('操作')"
               :width="120">
               <template #default="{ data }: { data: VersionFileModel }">

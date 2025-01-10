@@ -164,11 +164,12 @@
         <BkTableColumn
           field="related_object"
           :label="t('集群')"
-          min-width="250">
+          min-width="250"
+          :show-overflow="false">
           <template #default="{ data }: { data: IRowData }">
             <div
               v-if="data.related_object.objects && !isStretchLayoutOpen"
-              style="padding: 8px 0; line-height: 20px">
+              style="line-height: 20px">
               <div
                 v-for="item in data.related_object.objects.slice(0, 6)"
                 :key="item">

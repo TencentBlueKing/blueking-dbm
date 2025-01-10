@@ -15,11 +15,11 @@
   <div
     v-bkloading="{ loading: isLoading }"
     class="config-info">
-    <DbOriginalTable
-      :columns="columns"
-      :data="data.conf_items"
-      height="100%"
-      :show-overflow-tooltip="false" />
+    <ScrollFaker>
+      <DbOriginalTable
+        :columns="columns"
+        :data="data.conf_items" />
+    </ScrollFaker>
   </div>
 </template>
 
@@ -83,7 +83,24 @@
     (infos) => {
       const { dbModuleId, version, clusterId } = infos;
       if (dbModuleId && version && clusterId) {
-        fetchClusterConfig();
+        isLoading.value = true;
+        getLevelConfig({
+          bk_biz_id: currentBizId,
+          level_value: props.queryInfos.clusterId,
+          meta_cluster_type: ClusterTypes.TENDBHA,
+          level_name: 'cluster',
+          conf_type: 'dbconf',
+          version: props.queryInfos.version,
+          level_info: {
+            module: String(props.queryInfos.dbModuleId),
+          },
+        })
+          .then((res) => {
+            data.value = res;
+          })
+          .finally(() => {
+            isLoading.value = false;
+          });
       }
     },
     {
@@ -91,30 +108,6 @@
       deep: true,
     },
   );
-
-  /**
-   * 获取集群配置
-   */
-  const fetchClusterConfig = () => {
-    isLoading.value = true;
-    getLevelConfig({
-      bk_biz_id: currentBizId,
-      level_value: props.queryInfos.clusterId,
-      meta_cluster_type: ClusterTypes.TENDBHA,
-      level_name: 'cluster',
-      conf_type: 'dbconf',
-      version: props.queryInfos.version,
-      level_info: {
-        module: String(props.queryInfos.dbModuleId),
-      },
-    })
-      .then((res) => {
-        data.value = res;
-      })
-      .finally(() => {
-        isLoading.value = false;
-      });
-  };
 </script>
 
 <style lang="less" scoped>

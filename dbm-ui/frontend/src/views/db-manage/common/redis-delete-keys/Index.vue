@@ -74,7 +74,8 @@
         <DbOriginalTable
           class="custom-edit-table"
           :columns="rederColumns"
-          :data="state.formdata" />
+          :data="state.formdata"
+          :show-overflow="false" />
       </DbForm>
     </div>
     <template #footer>
@@ -151,7 +152,8 @@
   const columns = [{
     label: t('集群'),
     field: 'name',
-    showOverflowTooltip: false,
+    minWidth: 240,
+    showOverflow: false,
     render: ({ data }: { data: DataItem }) => (
       <div
         class="cluster-name text-overflow"
@@ -182,6 +184,7 @@
       </span>
     ),
     field: 'white_regex',
+    minWidth: 240,
     render: ({ data, index }: { data: DataItem, index: number }) => (
       <bk-form-item
         error-display-type="tooltips"
