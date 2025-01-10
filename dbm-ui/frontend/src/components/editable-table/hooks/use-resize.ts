@@ -60,6 +60,7 @@ export default function (
       let totalWidth = 0;
       pxColumn.forEach((column) => {
         if (columnSizeConfigCache[column.key]) {
+          totalWidth += columnSizeConfigCache[column.key].renderWidth;
           return;
         }
         columnSizeConfigCache[column.key] = {
@@ -70,6 +71,7 @@ export default function (
       });
       minColumn.forEach((column) => {
         if (columnSizeConfigCache[column.key]) {
+          totalWidth += columnSizeConfigCache[column.key].renderWidth;
           return;
         }
         columnSizeConfigCache[column.key] = {
