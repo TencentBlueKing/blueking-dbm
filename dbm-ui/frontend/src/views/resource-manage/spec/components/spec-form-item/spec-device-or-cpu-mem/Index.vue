@@ -23,7 +23,7 @@
         <template #trigger>
           <div
             v-bk-tooltips="{
-              content: t('不支持修改'),
+              content: t('该规格已被使用，不允许修改'),
               disabled: !isEdit,
             }"
             class="operation-more-main">

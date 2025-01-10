@@ -23,6 +23,11 @@
     <div class="spec-form-item-content">
       <BkButton
         v-if="tableData.length === 0"
+        v-bk-tooltips="{
+          content: t('该规格已被使用，不允许修改'),
+          disabled: !isEdit,
+        }"
+        :disabled="isEdit"
         @click="handleAddFirstRow">
         <DbIcon type="add" />
         <span style="font-size: 12px">{{ t('添加') }}</span>
