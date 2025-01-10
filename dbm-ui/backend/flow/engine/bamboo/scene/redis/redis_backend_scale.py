@@ -54,6 +54,7 @@ from backend.flow.utils.redis.redis_act_playload import RedisActPayload
 from backend.flow.utils.redis.redis_context_dataclass import ActKwargs, CommonContext, DnsKwargs
 from backend.flow.utils.redis.redis_db_meta import RedisDBMeta
 from backend.flow.utils.redis.redis_proxy_util import get_cluster_info_by_cluster_id
+from backend.flow.utils.redis.redis_util import version_ge
 
 logger = logging.getLogger("flow")
 
@@ -590,15 +591,10 @@ class RedisBackendScaleFlow(object):
                     )
 
             # > 4.0 版本需要重做一下slave，否则可能会丢数据
-            big_version = int(str.split(act_kwargs.cluster["db_version"], "-")[1])
-            if (
-                act_kwargs.cluster["cluster_type"]
-                in [
-                    ClusterType.TendisRedisInstance.value,
-                    ClusterType.TendisTwemproxyRedisInstance.value,
-                ]
-                and big_version >= 4
-            ):
+            if act_kwargs.cluster["cluster_type"] in [
+                ClusterType.TendisRedisInstance.value,
+                ClusterType.TendisTwemproxyRedisInstance.value,
+            ] and version_ge(act_kwargs.cluster["db_version"], "4"):
                 sub_pipeline.add_parallel_acts(acts_list=self.redis_local_redo_dr(act_kwargs, sync_relations))
 
             sub_pipeline.add_act(act_name=_("Redis-人工确认"), act_component_code=PauseComponent.code, kwargs={})
