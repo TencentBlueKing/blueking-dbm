@@ -7,6 +7,7 @@
       [`fixed-${fixed}-column`]: fixed,
       'is-focused': isFocused,
       'is-error': validateState.isError,
+      'is-readonly': readonly,
       'is-disabled': Boolean(disabledTips),
       'is-previous-sibling-rowspan': isPreviousSiblingRowspan,
       'is-fixed':
@@ -85,6 +86,7 @@
     description?: string;
     loading?: boolean;
     appendRules?: IRule[];
+    readonly?: boolean;
     resizeable?: boolean;
   }
 
@@ -135,6 +137,7 @@
     disabledMethod: undefined,
     description: undefined,
     appendRules: undefined,
+    readonly: false,
     resizeable: true,
   });
   const slots = defineSlots<Slots>();
@@ -507,6 +510,7 @@
   });
 </script>
 <style lang="less">
+  @hover-z-index: 100;
   @focus-z-index: 102;
   @fixed-focus-z-index: 122;
   @error-z-index: 101;
@@ -522,56 +526,68 @@
     }
   }
 
-  .bk-editable-table {
-    td.bk-editable-table-body-column {
-      &.is-disabled {
-        .bk-editable-table-field-cell {
-          &::after {
-            position: absolute;
-            z-index: 1;
-            cursor: not-allowed;
-            content: '';
-            inset: 0;
-          }
+  .bk-editable-table-body-column {
+    &:hover {
+      z-index: @hover-z-index;
+
+      &::before {
+        border-color: #979ba5;
+      }
+    }
+
+    &.is-disabled {
+      .bk-editable-table-field-cell {
+        &::after {
+          position: absolute;
+          z-index: 1;
+          cursor: not-allowed;
+          content: '';
+          inset: 0;
         }
       }
+    }
 
-      &.is-error {
-        z-index: @error-z-index;
+    &.is-error {
+      z-index: @error-z-index;
+      background: #fff1f1;
+
+      &::before {
+        border-color: #ea3636;
+      }
+
+      .bk-editable-table-field-cell {
+        padding-right: 20px;
         background: #fff1f1;
+      }
+    }
 
-        &::before {
-          border-color: #ea3636;
-        }
+    &.is-focused {
+      z-index: @focus-z-index;
 
-        .bk-editable-table-field-cell {
-          padding-right: 20px;
-          background: #fff1f1;
-        }
+      &::before {
+        border-color: #3a84ff;
+      }
+    }
+
+    &.is-readonly {
+      &::before {
+        border-color: #dcdee5;
+      }
+    }
+
+    &.is-previous-sibling-rowspan {
+      &::before {
+        left: -1px;
+      }
+    }
+
+    &.is-fixed {
+      &.is-error {
+        z-index: @fixed-error-z-index;
       }
 
       &.is-focused {
-        z-index: @focus-z-index;
-
-        &::before {
-          border-color: #3a84ff;
-        }
-      }
-
-      &.is-previous-sibling-rowspan {
-        &::before {
-          left: -1px;
-        }
-      }
-
-      &.is-fixed {
-        &.is-error {
-          z-index: @fixed-error-z-index;
-        }
-
-        &.is-focused {
-          z-index: @fixed-focus-z-index;
-        }
+        z-index: @fixed-focus-z-index;
       }
     }
   }
