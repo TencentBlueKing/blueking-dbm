@@ -23,6 +23,11 @@
     <div class="spec-form-item-content">
       <BkButton
         v-if="tableData.length === 0"
+        v-bk-tooltips="{
+          content: t('该规格已被使用，不允许修改'),
+          disabled: !isEdit,
+        }"
+        :disabled="isEdit"
         @click="handleAddFirstRow">
         <DbIcon type="add" />
         <span style="font-size: 12px">{{ t('添加') }}</span>
@@ -83,7 +88,7 @@
   const { t } = useI18n();
 
   const rowRefs = ref();
-  const tableData = ref<IDataRow[]>([createRowData()]);
+  const tableData = ref<IDataRow[]>([]);
   const diskTypeList = ref<{ label: string; value: string }[]>([]);
 
   const mountPointList = computed(() => tableData.value.map((item) => item.mount_point));
@@ -132,7 +137,7 @@
   };
 
   defineExpose<Exposes>({
-    getValue: () => Promise.all(rowRefs.value.map((item: any) => item.getValue())),
+    getValue: () => Promise.all(rowRefs.value ? rowRefs.value.map((item: any) => item.getValue()) : []),
   });
 </script>
 <style lang="less" scoped>
