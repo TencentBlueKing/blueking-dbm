@@ -28,10 +28,10 @@ def check_instance_app_setting():
     CheckAppSettingData().check_task()
 
 
-@register_periodic_task(run_every=crontab(minute=00, hour=8))
+@register_periodic_task(run_every=crontab(minute=00, hour=15))
 def check_backup_info():
     """
     检查集群的备份信息的巡检报告
-    每条凌晨8点执行
+    每条下午15点执行
     """
     CheckBackupInfo().check_task()

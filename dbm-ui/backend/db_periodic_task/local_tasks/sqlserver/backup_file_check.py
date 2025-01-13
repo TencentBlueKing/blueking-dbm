@@ -13,7 +13,7 @@ from collections import defaultdict
 from datetime import datetime, time, timedelta
 from typing import Dict, List, Set
 
-from django.utils import timezone
+import pytz
 
 from backend.components.bklog.handler import BKLogHandler
 from backend.components.mysql_backup.client import SQLServerBackupApi
@@ -37,16 +37,30 @@ class CheckBackupInfo(object):
             "storageinstance_set__machine",
         ).filter(phase=ClusterPhase.ONLINE, cluster_type__in=[ClusterType.SqlserverHA, ClusterType.SqlserverSingle])
         # 拼装查询的时间区间, 查找当前00点到前一天的00点
-        today = datetime.now(timezone.utc).date()
-        midnight_utc = datetime.combine(today, time(), tzinfo=timezone.utc)
-        self.start_time = midnight_utc - timedelta(days=1)
-        self.end_time = midnight_utc
+        tz = pytz.FixedOffset(480)
+        today = datetime.now(tz).date()
+        midnight_utc = datetime.combine(today, time(), tzinfo=tz)
+
+        # 增量备份的时间段检查(从0点开始检查前一天)
+        self.log_backup_start_time = midnight_utc - timedelta(days=1)
+        self.log_backup_end_time = midnight_utc
+
+        # 全量备份的时间段检查(检查当天的)
+        self.full_backup_start_time = midnight_utc
+        self.full_backup_end_time = datetime.now(tz)
 
     def __query_log_bk_log(self, cluster: Cluster, collector: str):
+        if collector == "mssql_binlog_result":
+            start_time = self.log_backup_start_time
+            end_time = self.log_backup_end_time
+        else:
+            start_time = self.full_backup_start_time
+            end_time = self.full_backup_end_time
+
         return BKLogHandler.query_logs(
             collector=collector,
-            start_time=self.start_time,
-            end_time=self.end_time,
+            start_time=start_time,
+            end_time=end_time,
             query_string=f"cluster_id: {cluster.id}",
             size=10000,
             sorting_rule="asc",
@@ -66,7 +80,7 @@ class CheckBackupInfo(object):
         # 获取待巡检的全量备份信息
         backup_infos = self.__query_log_bk_log(cluster=cluster, collector="mssql_dbbackup_result")
         # 判断每一次的备份任务是否缺失记录
-        check_result, is_normal = self.check_backup_info_in_bk_log(backup_infos)
+        check_result, is_normal = self.check_backup_info_in_bk_log(backup_infos, "full")
         # 写入到巡检表
         SqlserverFullBackupInfoReport.objects.create(
             bk_cloud_id=cluster.bk_cloud_id,
@@ -87,7 +101,7 @@ class CheckBackupInfo(object):
         # 获取待巡检的全量备份信息
         backup_infos = self.__query_log_bk_log(cluster=cluster, collector="mssql_binlog_result")
         # 判断每一次的备份任务是否缺失记录
-        check_result, is_normal = self.check_backup_info_in_bk_log(backup_infos)
+        check_result, is_normal = self.check_backup_info_in_bk_log(backup_infos, "log")
         # 写入到巡检表
         SqlserverLogBackupInfoReport.objects.create(
             bk_cloud_id=cluster.bk_cloud_id,
@@ -99,15 +113,22 @@ class CheckBackupInfo(object):
         )
         return
 
-    def check_backup_info_in_bk_log(self, backup_infos: list):
+    def check_backup_info_in_bk_log(self, backup_infos: list, tag: str):
         """
         判断从bk_log拉取出来的备份信息，根据backup_id聚合，判断合法性
         """
+        if tag == "full":
+            start_time = self.full_backup_start_time
+            end_time = self.full_backup_end_time
+        else:
+            start_time = self.log_backup_start_time
+            end_time = self.log_backup_end_time
+
         check_result = ""
         is_normal = True
         if not backup_infos:
             # 如果查询到的备份文件为空， 怎么提前返回结果
-            return f"backup-info is null , check [{self.start_time}-{self.end_time}]", False
+            return f"backup-info is null , check [{start_time}-{end_time}]", False
 
         # 根据backup id聚合备份记录
         backup_id__logs: Dict[str, List] = defaultdict(list)
@@ -139,7 +160,7 @@ class CheckBackupInfo(object):
 
         if not check_result:
             # 代表正常返回结果
-            return f"backup info check ok [{self.start_time}-{self.end_time}]", is_normal
+            return f"backup info check ok [{start_time}-{end_time}]", is_normal
 
         return check_result, is_normal
 

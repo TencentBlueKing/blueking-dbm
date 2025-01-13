@@ -164,7 +164,7 @@ const (
 		"securityadmin,serveradmin,setupadmin,processadmin,diskadmin,bulkadmin " +
 		"from master.sys.sql_logins a left join sys.syslogins b " +
 		"on a.name=b.name where principal_id>4 and a.name not in('%s') " +
-		"and a.name not like '%s' and a.is_disabled = 0"
+		"and a.name not like '%s' "
 )
 
 // 判断实例是否有业务进程
