@@ -83,6 +83,11 @@ class _DBConfigApi(BaseApi):
             url="bkconfig/v1/version/generate",
             description=_("查询实例配置文件模版"),
         )
+        self.change_bk_biz_id = self.generate_data_api(
+            method="POST",
+            url="bkconfig/v1/version/change-bkbizid",
+            description=_("集群转移业务"),
+        )
 
 
 DBConfigApi = _DBConfigApi()

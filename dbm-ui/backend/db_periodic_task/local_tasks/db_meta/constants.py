@@ -69,13 +69,13 @@ QUERY_TEMPLATE = {
         "used": """sum by (cluster_domain) (
             max by (cluster_domain, ip) (
                 max_over_time(
-                    bkmonitor:exporter_dbm_mysqld_exporter:mysql_datadir_df_used_mb{instance_role="backend_master",%s}[5m]
+                    bkmonitor:exporter_dbm_mysqld_exporter:mysql_datadir_df_used_mb{instance_role="backend_master",%s}[124m]
                 ) * 1024 * 1024
             ))""",
         "total": """sum by (cluster_domain) (
             max by (cluster_domain, ip) (
                 max_over_time(
-                    bkmonitor:exporter_dbm_mysqld_exporter:mysql_datadir_df_total_mb{instance_role="backend_master",%s}[5m]
+                    bkmonitor:exporter_dbm_mysqld_exporter:mysql_datadir_df_total_mb{instance_role="backend_master",%s}[124m]
                 ) * 1024 * 1024
             ))""",
     },
@@ -84,12 +84,12 @@ QUERY_TEMPLATE = {
         "used": """sum by (cluster_domain) (
             avg by (cluster_domain, instance) (
                 avg_over_time(
-                    bkmonitor:exporter_dbm_mysqld_exporter:mysql_datadir_du_used_mb{instance_role="remote_master",%s}[5m]
+                    bkmonitor:exporter_dbm_mysqld_exporter:mysql_datadir_du_used_mb{instance_role="remote_master",%s}[124m]
                 ) * 1024 * 1024))""",
         "total": """sum by (cluster_domain) (
             avg by (cluster_domain, ip) (
                 avg_over_time(
-                    bkmonitor:exporter_dbm_mysqld_exporter:mysql_datadir_df_total_mb{instance_role="remote_master",%s}[5m]
+                    bkmonitor:exporter_dbm_mysqld_exporter:mysql_datadir_df_total_mb{instance_role="remote_master",%s}[124m]
                 ) * 1024 * 1024))""",
     },
     ClusterType.SqlserverSingle: {

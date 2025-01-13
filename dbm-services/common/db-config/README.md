@@ -202,3 +202,22 @@ tb_config_file_def: 配置类型和配置文件定义
 tb_config_name_def: 平台配置项定义
 tb_config_node: 业务、模块、集群等配置项
 tb_config_versioned： 已发布配置文件版本
+
+
+## 转移业务 api示例：
+```
+# request
+curl http://x.x.x.x/bkconfig/v1/version/change-bkbizid -d \
+'{
+    "bk_biz_id": "123",
+    "new_bk_biz_id": "456",
+    "cluster_domains": ["xx1.yy.zz", "xx2.yy.zz"]
+}'
+
+# response
+{
+    "code":0,
+    "message":"",
+    "data":{"clusters_affected":0, "cluster_received":2}
+}
+```

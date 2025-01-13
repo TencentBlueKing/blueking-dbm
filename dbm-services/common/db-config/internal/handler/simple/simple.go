@@ -35,6 +35,7 @@ func (cf *Config) Routes() []*gin.RouteInfo {
 		{Method: http.MethodPost, Path: "/version/applied", HandlerFunc: cf.VersionApplyStat},
 		{Method: http.MethodPost, Path: "/version/status", HandlerFunc: cf.VersionStat},
 		{Method: http.MethodPost, Path: "/version/applyitem", HandlerFunc: cf.ItemApply},
+		{Method: http.MethodPost, Path: "/version/change-bkbizid", HandlerFunc: cf.ChangeBizBizId},
 
 		// config_item
 		{Method: http.MethodPost, Path: "/confitem/query", HandlerFunc: cf.MergeAndGetConfigItems},

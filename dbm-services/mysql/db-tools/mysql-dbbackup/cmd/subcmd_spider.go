@@ -137,11 +137,7 @@ var spiderCheckCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		configFile, err := findSpiderBackupConfigFile(cnfFiles)
-		if err != nil {
-			return err
-		}
-		publicConfigs, err := batchParseCnfFiles([]string{configFile})
+		publicConfigs, err := batchParseCnfFiles(cnfFiles)
 		if err != nil {
 			return err
 		}

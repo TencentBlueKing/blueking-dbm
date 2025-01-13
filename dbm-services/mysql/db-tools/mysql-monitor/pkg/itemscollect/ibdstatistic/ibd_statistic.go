@@ -115,7 +115,7 @@ func (c *ibdStatistic) Run() (msg string, err error) {
 			}
 		}
 	}
-
+	//reportMetrics()
 	err = reportLog2(dbTableSize, dbSize)
 	if err != nil {
 		return "", err

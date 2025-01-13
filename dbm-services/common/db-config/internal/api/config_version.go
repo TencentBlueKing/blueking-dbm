@@ -60,3 +60,16 @@ type ListConfigVersionsResp struct {
 	VersionLatest string `json:"published"`
 	BaseLevelDef
 } // @name ListConfigVersionsResp
+
+// ChangeBkBizIdReq change bk_biz_id request body
+type ChangeBkBizIdReq struct {
+	BKBizIDDef
+	NewBKBizID     string   `json:"new_bk_biz_id" form:"new_bk_biz_id" validate:"required" example:"2345"`
+	ClusterDomains []string `json:"cluster_domains" form:"cluster_domains" validate:"required"`
+}
+
+// ChangeBkBizIdResp change bk_biz_id response body
+type ChangeBkBizIdResp struct {
+	ClustersAffected int64 `json:"clusters_affected" form:"clusters_affected"`
+	ClusterReceived  int   `json:"cluster_received" form:"cluster_received"`
+}
