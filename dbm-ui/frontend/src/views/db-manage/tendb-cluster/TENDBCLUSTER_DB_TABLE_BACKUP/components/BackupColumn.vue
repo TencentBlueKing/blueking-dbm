@@ -13,16 +13,17 @@
 
 <template>
   <Column
-    :append-rules="rules"
-    :field="field"
-    :label="label"
+    field="backup"
+    :label="t('备份位置')"
+    :loading="loading"
     :min-width="200"
     required>
     <template #headAppend>
       <BatchEditColumn
         v-model="showBatchEdit"
-        :title="label"
-        type="input"
+        :data-list="backupList"
+        :title="t('备份位置')"
+        type="select"
         @change="handleBatchEditChange">
         <span
           v-bk-tooltips="t('统一设置：将该列统一设置为相同的值')"
@@ -32,82 +33,68 @@
         </span>
       </BatchEditColumn>
     </template>
-    <Input v-model="modelValue" />
+    <Select
+      v-model="modelValue"
+      :list="backupList" />
   </Column>
 </template>
+
 <script lang="ts" setup>
-  import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
+  import { useRequest } from 'vue-request';
 
-  import { checkClusterDatabase } from '@services/source/remoteService';
+  import { getTendbClusterList } from '@services/source/tendbcluster';
 
-  import { Column, Input } from '@components/editable-table/Index.vue';
+  import { Column, Select } from '@components/editable-table/Index.vue';
 
   import BatchEditColumn from '@views/db-manage/common/batch-edit-column/Index.vue';
 
   interface Props {
-    field: string;
-    label: string;
-    clusterId: number;
-    checkExist?: boolean;
-    checkNotExist?: boolean;
+    cluster: {
+      id: number;
+    };
   }
 
-  const props = withDefaults(defineProps<Props>(), {
-    checkExist: false,
-    checkNotExist: false,
-  });
+  const props = defineProps<Props>();
 
-  const modelValue = defineModel<string>({
-    default: '',
-  });
+  const modelValue = defineModel<string>();
 
   const { t } = useI18n();
 
   const showBatchEdit = ref(false);
+  const backupList = shallowRef<Record<'value' | 'label', string>[]>([]);
 
-  const rules = [
-    {
-      validator: (value: string) => !/^stage_truncate/.test(value),
-      message: t('不可以stage_truncate开头'),
-      trigger: 'change',
+  const { run: fetchClusterList, loading } = useRequest(getTendbClusterList, {
+    manual: true,
+    onSuccess(data) {
+      const baseList = [
+        {
+          value: 'remote',
+          label: 'RemoteDR',
+        },
+      ];
+      if (data.results.length < 1) {
+        backupList.value = [...baseList];
+        return;
+      }
+      const mntList = data.results[0].spider_mnt.map((item) => ({
+        label: `${item.ip}:${item.port}`,
+        value: `spider_mnt::${item.instance}`,
+      }));
+      backupList.value = [...baseList, ...mntList];
     },
-    {
-      validator: (value: string) => !/rollback$/.test(value),
-      message: t('不可以rollback结尾'),
-      trigger: 'change',
-    },
-    {
-      validator: (value: string) => /^[a-zA-z][a-zA-Z0-9_-]{1,39}$/.test(value),
-      message: t('由字母_数字_下划线_减号_字符组成以字母开头'),
-      trigger: 'change',
-    },
-    {
-      validator: async (value: string) => {
-        if (!_.some(value, (item) => !/[*%]/.test(item))) {
-          return true;
-        }
-        const data = await checkClusterDatabase({
-          infos: [
-            {
-              cluster_id: props.clusterId,
-              db_names: [value],
-            },
-          ],
+  });
+
+  watch(
+    () => props.cluster.id,
+    () => {
+      if (props.cluster.id) {
+        fetchClusterList({
+          cluster_ids: [props.cluster.id],
         });
-        const isExist = Boolean(data[0]?.check_info[value]);
-        if (isExist && props.checkExist) {
-          return t('DB已存在');
-        }
-        if (!isExist && props.checkNotExist) {
-          return t('DB不存在');
-        }
-        return true;
-      },
-      message: '',
-      trigger: 'blur',
+      }
     },
-  ];
+  );
 
   const handleBatchEditShow = () => {
     showBatchEdit.value = true;

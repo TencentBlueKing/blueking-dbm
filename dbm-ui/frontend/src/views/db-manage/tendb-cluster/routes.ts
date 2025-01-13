@@ -51,23 +51,9 @@ const spiderProxySlaveApplyRoute = createRouteItem(TicketTypes.TENDBCLUSTER_SPID
 
 const spiderAddMntRoute = createRouteItem(TicketTypes.TENDBCLUSTER_SPIDER_MNT_APPLY, t('添加运维节点'));
 
-const spiderDbTableBackupRoute = {
-  path: 'db-table-backup/:page?',
-  name: 'spiderDbTableBackup',
-  meta: {
-    navName: t('库表备份'),
-  },
-  component: () => import('@views/db-manage/tendb-cluster/db-table-backup/Index.vue'),
-};
+const spiderDbTableBackupRoute = createRouteItem(TicketTypes.TENDBCLUSTER_DB_TABLE_BACKUP, t('库表备份'));
 
-const spiderDbBackupRoute = {
-  path: 'db-backup/:page?',
-  name: 'spiderDbBackup',
-  meta: {
-    navName: t('全库备份'),
-  },
-  component: () => import('@views/db-manage/tendb-cluster/db-backup/Index.vue'),
-};
+const spiderDbBackupRoute = createRouteItem(TicketTypes.TENDBCLUSTER_FULL_BACKUP, t('全库备份'));
 
 const spiderFlashbackRoute = {
   path: 'flashback/:page?',

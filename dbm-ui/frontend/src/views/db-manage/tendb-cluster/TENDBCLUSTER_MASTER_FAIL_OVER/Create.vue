@@ -47,7 +47,10 @@
             :create-row-method="createTableRow" />
         </EditableTableRow>
       </EditableTable>
-      <CheckGroup v-model="formData.checkGroup" />
+      <CheckGroup
+        v-model:is_check_delay="formData.is_check_delay"
+        v-model:is_check_process="formData.is_check_process"
+        v-model:is_verify_checksum="formData.is_verify_checksum" />
       <TicketRemark v-model="formData.remark" />
     </BkForm>
     <template #action>
@@ -127,11 +130,9 @@
 
   const defaultData = () => ({
     tableData: [createTableRow()],
-    checkGroup: {
-      is_check_process: true,
-      is_verify_checksum: true,
-      is_check_delay: true,
-    },
+    is_check_process: true,
+    is_verify_checksum: true,
+    is_check_delay: true,
     remark: '',
   });
 
@@ -169,7 +170,9 @@
     }
     createTicketRun({
       details: {
-        ...formData.checkGroup,
+        is_check_process: formData.is_check_process,
+        is_verify_checksum: formData.is_verify_checksum,
+        is_check_delay: formData.is_check_delay,
         infos: formData.tableData.map((item) => ({
           cluster_id: item.cluster.id,
           switch_tuples: [

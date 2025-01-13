@@ -85,12 +85,12 @@
 
   import EditableTable, { Row as EditableTableRow } from '@components/editable-table/Index.vue';
 
+  import DbNameColumn from '@views/db-manage/common/toolbox-field/column/db-name-column/Index.vue';
   import OperationColumn from '@views/db-manage/common/toolbox-field/column/operation-column/Index.vue';
   import IgnoreBiz from '@views/db-manage/common/toolbox-field/form-item/ignore-biz/Index.vue';
   import TicketRemark from '@views/db-manage/common/toolbox-field/form-item/ticket-remark/Index.vue';
 
   import ClusterColumn from './components/ClusterColumn.vue';
-  import DbNameColumn from './components/DbNameColumn.vue';
 
   interface RowData {
     cluster: {

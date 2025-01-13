@@ -16,7 +16,7 @@
     <BkAlert
       class="mb-20"
       closable
-      :title="t('主从互切：主机级别操作，即同机所有集群均会完成主从关系互切')" />
+      :title="t('库表备份：指定库表备份，支持模糊匹配')" />
     <BkForm
       class="mb-20"
       form-type="vertical"
@@ -28,29 +28,44 @@
         <EditableTableRow
           v-for="(item, index) in formData.tableData"
           :key="index">
-          <MasterHostColumn
-            v-model="item.master"
+          <ClusterColumn
+            v-model="item.cluster"
             :selected="selected"
-            @batch-edit="handleBatchEdit" />
-          <SlaveHostColumn
-            v-model="item.slave"
-            :master="item.master" />
-          <Column
-            :label="t('所属集群')"
-            :min-width="150">
-            <Block
-              v-model="item.cluster.master_domain"
-              :placeholder="t('自动生成')" />
-          </Column>
+            @batch-edit="handleBatchEditCluster" />
+          <BackupColumn
+            v-model="item.backup"
+            :cluster="item.cluster" />
+          <TagDbNameColumn
+            v-model="item.dbPatterns"
+            check-exist
+            :cluster-id="item.cluster.id"
+            field="dbPatterns"
+            :label="t('备份DB名')"
+            required />
+          <TagDbNameColumn
+            v-model="item.ignoreDbs"
+            check-not-exist
+            :cluster-id="item.cluster.id"
+            field="ignoreDbs"
+            :label="t('忽略DB名')" />
+          <TagDbNameColumn
+            v-model="item.tablePatterns"
+            check-exist
+            :cluster-id="item.cluster.id"
+            field="tablePatterns"
+            :label="t('备份表名')"
+            required />
+          <TagDbNameColumn
+            v-model="item.ignoreTables"
+            check-not-exist
+            :cluster-id="item.cluster.id"
+            field="ignoreTables"
+            :label="t('忽略表名')" />
           <OperationColumn
             v-model:table-data="formData.tableData"
             :create-row-method="createTableRow" />
         </EditableTableRow>
       </EditableTable>
-      <CheckGroup
-        v-model:is_check_delay="formData.is_check_delay"
-        v-model:is_check_process="formData.is_check_process"
-        v-model:is_verify_checksum="formData.is_verify_checksum" />
       <TicketRemark v-model="formData.remark" />
     </BkForm>
     <template #action>
@@ -78,90 +93,67 @@
   import { reactive, useTemplateRef } from 'vue';
   import { useI18n } from 'vue-i18n';
 
+  import TendbClusterModel from '@services/model/tendbcluster/tendbcluster';
+
   import { useCreateTicket } from '@hooks';
 
   import { TicketTypes } from '@common/const';
 
-  import EditableTable, { Block, Column, Row as EditableTableRow } from '@components/editable-table/Index.vue';
+  import EditableTable, { Row as EditableTableRow } from '@components/editable-table/Index.vue';
 
   import OperationColumn from '@views/db-manage/common/toolbox-field/column/operation-column/Index.vue';
-  import CheckGroup from '@views/db-manage/common/toolbox-field/form-item/check-group/Index.vue';
+  import TagDbNameColumn from '@views/db-manage/common/toolbox-field/column/tag-db-name-column/Index.vue';
   import TicketRemark from '@views/db-manage/common/toolbox-field/form-item/ticket-remark/Index.vue';
 
-  import MasterHostColumn, { type SelectorHost } from './components/MasterHostColumn.vue';
-  import SlaveHostColumn from './components/SlaveHostColumn.vue';
+  import BackupColumn from './components/BackupColumn.vue';
+  import ClusterColumn from './components/ClusterColumn.vue';
 
   interface RowData {
-    master: {
-      bk_cloud_id: number;
-      bk_host_id: number;
-      ip: string;
-    };
-    slave: {
-      bk_cloud_id: number;
-      bk_host_id: number;
-      ip: string;
-    };
     cluster: {
       id: number;
       master_domain: string;
     };
+    backup: string;
+    dbPatterns: string[];
+    ignoreDbs: string[];
+    tablePatterns: string[];
+    ignoreTables: string[];
   }
 
   const { t } = useI18n();
   const tableRef = useTemplateRef('table');
 
   const createTableRow = (data = {} as Partial<RowData>) => ({
-    master: data.master || {
-      bk_cloud_id: 0,
-      bk_host_id: 0,
-      ip: '',
-    },
-    slave: data.slave || {
-      bk_cloud_id: 0,
-      bk_host_id: 0,
-      ip: '',
-    },
     cluster: data.cluster || {
       id: 0,
       master_domain: '',
     },
+    backup: data.backup || '',
+    dbPatterns: data.dbPatterns || [],
+    ignoreDbs: data.ignoreDbs || [],
+    tablePatterns: data.tablePatterns || [],
+    ignoreTables: data.ignoreTables || [],
   });
 
   const defaultData = () => ({
     tableData: [createTableRow()],
-    is_check_process: true,
-    is_verify_checksum: true,
-    is_check_delay: true,
     remark: '',
   });
 
   const formData = reactive(defaultData());
-  const selected = computed(() =>
-    formData.tableData.filter((item) => item.master.bk_host_id).map((item) => item.master),
-  );
-  const selectedMap = computed(() => Object.fromEntries(selected.value.map((cur) => [cur.ip, true])));
+  const selected = computed(() => formData.tableData.filter((item) => item.cluster.id).map((item) => item.cluster));
+  const selectedMap = computed(() => Object.fromEntries(selected.value.map((cur) => [cur.master_domain, true])));
 
   const { run: createTicketRun, loading: isSubmitting } = useCreateTicket<{
-    is_check_process: boolean;
-    is_verify_checksum: boolean;
-    is_check_delay: boolean;
     infos: {
       cluster_id: number;
-      switch_tuples: {
-        master: {
-          bk_cloud_id: number;
-          bk_host_id: number;
-          ip: string;
-        };
-        slave: {
-          bk_cloud_id: number;
-          bk_host_id: number;
-          ip: string;
-        };
-      }[];
+      backup_local: string;
+      db_patterns: string[];
+      table_patterns: string[];
+      ignore_dbs: string[];
+      ignore_tables: string[];
     }[];
-  }>(TicketTypes.TENDBCLUSTER_MASTER_SLAVE_SWITCH);
+  }>(TicketTypes.TENDBCLUSTER_DB_TABLE_BACKUP);
 
   const handleSubmit = async () => {
     const result = await tableRef.value!.validate();
@@ -170,17 +162,13 @@
     }
     createTicketRun({
       details: {
-        is_check_process: formData.is_check_process,
-        is_verify_checksum: formData.is_verify_checksum,
-        is_check_delay: formData.is_check_delay,
         infos: formData.tableData.map((item) => ({
           cluster_id: item.cluster.id,
-          switch_tuples: [
-            {
-              master: item.master,
-              slave: item.slave,
-            },
-          ],
+          backup_local: item.backup,
+          db_patterns: item.dbPatterns,
+          table_patterns: item.tablePatterns,
+          ignore_dbs: item.ignoreDbs,
+          ignore_tables: item.ignoreTables,
         })),
       },
       remark: formData.remark,
@@ -191,18 +179,13 @@
     Object.assign(formData, defaultData());
   };
 
-  const handleBatchEdit = (list: SelectorHost[]) => {
+  const handleBatchEditCluster = (list: TendbClusterModel[]) => {
     const dataList = list.reduce<RowData[]>((acc, item) => {
-      if (!selectedMap.value[item.ip]) {
+      if (!selectedMap.value[item.master_domain]) {
         acc.push(
           createTableRow({
-            master: {
-              bk_cloud_id: item.bk_cloud_id,
-              bk_host_id: item.bk_host_id,
-              ip: item.ip,
-            },
             cluster: {
-              id: item.cluster_id,
+              id: item.id,
               master_domain: item.master_domain,
             },
           }),
