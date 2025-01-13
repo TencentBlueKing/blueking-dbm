@@ -689,7 +689,8 @@ func (c *CheckInfo) runcheck(res ParseLineQueryBase, bs []byte, mysqlVersion str
 			return err
 		}
 		mc = o
-	case SQLTypeCreateFunction, SQLTypeCreateTrigger, SQLTypeCreateEvent, SQLTypeCreateProcedure, SQLTypeCreateView:
+	case SQLTypeCreateFunction, SQLTypeCreateTrigger, SQLTypeCreateEvent, SQLTypeCreateProcedure, SQLTypeCreateView,
+		SQLTypeCreateSpFunction:
 		var o DefinerBase
 		if err = json.Unmarshal(bs, &o); err != nil {
 			logger.Error("json unmasrshal line failed %s", err.Error())

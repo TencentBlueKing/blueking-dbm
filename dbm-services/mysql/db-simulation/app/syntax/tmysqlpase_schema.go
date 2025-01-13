@@ -28,6 +28,8 @@ const (
 	SQLTypeCreateDb = "create_db"
 	// SQLTypeCreateFunction is create function sql
 	SQLTypeCreateFunction = "create_function"
+	// SQLTypeCreateSpFunction is create sp function sql
+	SQLTypeCreateSpFunction = "create_spfunction"
 	// SQLTypeCreateTrigger is create trigger sql
 	SQLTypeCreateTrigger = "create_trigger"
 	// SQLTypeCreateEvent  is create event sql
