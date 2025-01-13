@@ -12,7 +12,7 @@ specific language governing permissions and limitations under the License.
 
 import logging
 
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext as _
 from rest_framework import serializers, status
 
 from backend.bk_web.swagger import common_swagger_auto_schema
@@ -20,31 +20,31 @@ from backend.db_report import mock_data
 from backend.db_report.enums import SWAGGER_TAG, ReportFieldFormat
 from backend.db_report.models import MetaCheckReport
 from backend.db_report.report_baseview import ReportBaseViewSet
+from backend.db_report.serializers import ReportCommonFieldSerializerMixin
 
 logger = logging.getLogger("root")
 
 
-class MetaCheckReportInstanceBelongSerializer(serializers.ModelSerializer):
+class MetaCheckReportSerializer(serializers.ModelSerializer, ReportCommonFieldSerializerMixin):
     class Meta:
         model = MetaCheckReport
-        fields = ("bk_biz_id", "ip", "port", "machine_type", "status", "msg", "create_at")
+        fields = ("bk_biz_id", "ip", "port", "machine_type", "status", "msg", "create_at", "dba")
         swagger_schema_fields = {"example": mock_data.META_CHECK_DATA}
 
 
-class MetaCheckReportInstanceBelongViewSet(ReportBaseViewSet):
+class MetaCheckReportBaseViewSet(ReportBaseViewSet):
     queryset = MetaCheckReport.objects.all()
-    serializer_class = MetaCheckReportInstanceBelongSerializer
-    filter_fields = {  # 大部分时候不需要覆盖默认的filter
-        "bk_biz_id": ["exact"],
-        "cluster_type": ["exact", "in"],
-        "create_at": ["gte", "lte"],
-        "status": ["exact", "in"],
-    }
-    report_name = _("实例集群归属")
+    serializer_class = MetaCheckReportSerializer
+    report_name = _("元数据检查")
     report_title = [
         {
             "name": "bk_biz_id",
             "display_name": _("业务"),
+            "format": ReportFieldFormat.TEXT.value,
+        },
+        {
+            "name": "dba",
+            "display_name": _("DBA"),
             "format": ReportFieldFormat.TEXT.value,
         },
         {
@@ -81,7 +81,7 @@ class MetaCheckReportInstanceBelongViewSet(ReportBaseViewSet):
 
     @common_swagger_auto_schema(
         operation_summary=_("元数据检查报告列表"),
-        responses={status.HTTP_200_OK: MetaCheckReportInstanceBelongSerializer()},
+        responses={status.HTTP_200_OK: MetaCheckReportSerializer()},
         tags=[SWAGGER_TAG],
     )
     def list(self, request, *args, **kwargs):

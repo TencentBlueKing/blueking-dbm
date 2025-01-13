@@ -263,6 +263,18 @@ class ActionEnum:
         common_labels=[],
     )
 
+    PLATFORM_HEALTHY_REPORT_VIEW = ActionMeta(
+        id="platform_healthy_report_view",
+        name=_("全局巡检报告查看"),
+        name_en="platform_healthy_report_view",
+        type="manage",
+        related_actions=[],
+        related_resource_types=[],
+        group=_("平台管理"),
+        subgroup="",
+        common_labels=[],
+    )
+
     DBCONFIG_VIEW = ActionMeta(
         id="dbconfig_view",
         name=_("数据库配置查看"),
@@ -1631,7 +1643,7 @@ class ActionEnum:
 
     HEALTHY_REPORT_VIEW = ActionMeta(
         id="health_report_view",
-        name=_("健康报告查看"),
+        name=_("巡检报告查看"),
         name_en="health_report_view",
         type="view",
         related_actions=[],

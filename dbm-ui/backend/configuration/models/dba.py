@@ -8,7 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from typing import Dict, List, Union
+from typing import Dict, List, Tuple, Union
 
 from django.db import models
 from django.utils.translation import ugettext_lazy as _
@@ -62,9 +62,28 @@ class DBAdministrator(models.Model):
         return DEFAULT_DB_ADMINISTRATORS
 
     @classmethod
-    def get_dba_for_db_type(cls, bk_biz_id: int, db_type: str) -> List[str]:
+    def get_dba_for_db_type(cls, bk_biz_id: int, db_type: str) -> Tuple[List[str], List[str], List[str]]:
         """获取主dba、备dba、二线dba人员"""
         dba_list = cls.list_biz_admins(bk_biz_id)
         dba_content = next((dba for dba in dba_list if dba["db_type"] == db_type), {"users": []})
         users = dba_content.get("users", [])
         return users[:1], users[1:2], users[2:]
+
+    @classmethod
+    def get_manage_bizs(cls, db_type: str, username: str) -> Tuple[List[str], List[str]]:
+        """获取待我处理，待我协助的业务"""
+        manage_biz = DBAdministrator.objects.filter(db_type=db_type, users__0=username).values_list(
+            "bk_biz_id", flat=True
+        )
+
+        assist_bizs = (
+            DBAdministrator.objects.filter(db_type=db_type, users__contains=username)
+            .exclude(users__0=username)
+            .values_list("bk_biz_id", flat=True)
+        )
+
+        return list(manage_biz), list(assist_bizs)
+
+    @classmethod
+    def is_dba(cls, username: str) -> bool:
+        return DBAdministrator.objects.filter(users__contains=username).exists()

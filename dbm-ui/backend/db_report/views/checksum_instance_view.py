@@ -12,7 +12,8 @@ specific language governing permissions and limitations under the License.
 
 import logging
 
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext as _
+from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import serializers, status
 
 from backend.bk_web.swagger import common_swagger_auto_schema
@@ -32,6 +33,7 @@ class ChecksumInstanceSerializer(serializers.ModelSerializer):
 class ChecksumInstanceViewSet(ReportBaseViewSet):
     queryset = ChecksumInstance.objects.all()
     serializer_class = ChecksumInstanceSerializer
+    filter_backends = [DjangoFilterBackend]
     filter_fields = {
         "report_id": ["exact"],
     }

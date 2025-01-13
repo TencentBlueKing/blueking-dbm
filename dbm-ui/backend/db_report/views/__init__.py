@@ -8,10 +8,5 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from .checksum_check_report_view import ChecksumCheckReportViewSet
-from .checksum_instance_view import ChecksumInstanceViewSet
-from .dbmon_heartbeat_view import DbmonHeatbeartCheckReportBaseViewSet
-from .meta_check_view import MetaCheckReportInstanceBelongViewSet
-from .mysqlbackup_check_view import MysqlBinlogBackupCheckReportViewSet, MysqlFullBackupCheckReportViewSet
-from .redis_dbmeta_check_view import RedisAloneInstanceCheckReportViewSet, RedisStatusAbnormalCheckReportViewSet
-from .redisbackup_check_view import RedisBinlogBackupCheckReportViewSet, RedisFullBackupCheckReportViewSet
+from .mysql import *
+from .redis import *

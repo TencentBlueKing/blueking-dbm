@@ -75,6 +75,7 @@ urlpatterns = [
     path("grafana/", include("backend.bk_dataview.grafana.urls")),
     # 版本日志
     path("version_log/", include("backend.version_log.urls")),
+    # 巡检报告
     path("db_report/", include("backend.db_report.urls")),
     # 接入消息通知
     path("{}".format(config.ENTRANCE_URL), include("bk_notice_sdk.urls")),

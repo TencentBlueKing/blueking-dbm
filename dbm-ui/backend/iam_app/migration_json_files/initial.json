@@ -1118,6 +1118,37 @@
         {
             "operation": "upsert_action",
             "data": {
+                "id": "biz_notify_config",
+                "name": "单据通知设置",
+                "name_en": "biz_notify_config",
+                "type": "edit",
+                "related_resource_types": [
+                    {
+                        "system_id": "bk_cmdb",
+                        "id": "biz",
+                        "selection_mode": "instance",
+                        "related_instance_selections": [
+                            {
+                                "system_id": "bk_cmdb",
+                                "id": "business"
+                            }
+                        ]
+                    }
+                ],
+                "related_actions": [
+                    "db_manage"
+                ],
+                "version": 1,
+                "hidden": false,
+                "group": "业务配置",
+                "subgroup": "",
+                "description": "单据通知设置",
+                "description_en": "biz_notify_config"
+            }
+        },
+        {
+            "operation": "upsert_action",
+            "data": {
                 "id": "resource_manage",
                 "name": "资源管理访问",
                 "name_en": "resource_manage",
@@ -1212,6 +1243,23 @@
                 "subgroup": "",
                 "description": "全局任务查看",
                 "description_en": "platform_taskflow_view"
+            }
+        },
+        {
+            "operation": "upsert_action",
+            "data": {
+                "id": "platform_healthy_report_view",
+                "name": "全局巡检报告查看",
+                "name_en": "platform_healthy_report_view",
+                "type": "manage",
+                "related_resource_types": [],
+                "related_actions": [],
+                "version": 1,
+                "hidden": false,
+                "group": "平台管理",
+                "subgroup": "",
+                "description": "全局巡检报告查看",
+                "description_en": "platform_healthy_report_view"
             }
         },
         {
@@ -4760,7 +4808,7 @@
             "operation": "upsert_action",
             "data": {
                 "id": "health_report_view",
-                "name": "健康报告查看",
+                "name": "巡检报告查看",
                 "name_en": "health_report_view",
                 "type": "view",
                 "related_resource_types": [
@@ -4781,7 +4829,7 @@
                 "hidden": false,
                 "group": "可观测",
                 "subgroup": "",
-                "description": "健康报告查看",
+                "description": "巡检报告查看",
                 "description_en": "health_report_view"
             }
         },
@@ -10226,6 +10274,9 @@
                             "id": "biz_assistance_vars_config"
                         },
                         {
+                            "id": "biz_notify_config"
+                        },
+                        {
                             "id": "dba_administrator_edit"
                         },
                         {
@@ -10345,6 +10396,9 @@
                         },
                         {
                             "id": "platform_taskflow_view"
+                        },
+                        {
+                            "id": "platform_healthy_report_view"
                         }
                     ],
                     "sub_groups": []
@@ -11591,6 +11645,9 @@
                         },
                         {
                             "id": "biz_assistance_vars_config"
+                        },
+                        {
+                            "id": "biz_notify_config"
                         },
                         {
                             "id": "flow_detail"

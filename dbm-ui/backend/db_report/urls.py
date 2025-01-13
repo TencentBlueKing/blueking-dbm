@@ -8,19 +8,20 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from django.conf.urls import url
+from rest_framework.routers import DefaultRouter
 
-from backend.db_report import views
+from backend.db_report.register import db_report_maps
+from backend.db_report.report_baseview import ReportCommonViewSet
+from backend.db_report.views.checksum_instance_view import ChecksumInstanceViewSet
 
-urlpatterns = [
-    url("^meta_check/instance_belong$", views.MetaCheckReportInstanceBelongViewSet.as_view({"get": "list"})),
-    url("^checksum_check/report$", views.ChecksumCheckReportViewSet.as_view({"get": "list"})),
-    url("^checksum_check/instance$", views.ChecksumInstanceViewSet.as_view({"get": "list"})),
-    url("^mysql_check/full_backup$", views.MysqlFullBackupCheckReportViewSet.as_view({"get": "list"})),
-    url("^mysql_check/binlog_backup$", views.MysqlBinlogBackupCheckReportViewSet.as_view({"get": "list"})),
-    url("^redis_check/full_backup$", views.RedisFullBackupCheckReportViewSet.as_view({"get": "list"})),
-    url("^redis_check/binlog_backup$", views.RedisBinlogBackupCheckReportViewSet.as_view({"get": "list"})),
-    url("^dbmon/heartbeat$", views.DbmonHeatbeartCheckReportBaseViewSet.as_view({"get": "list"})),
-    url("^redis_meta_check/status_abnormal$", views.RedisStatusAbnormalCheckReportViewSet.as_view({"get": "list"})),
-    url("^redis_meta_check/alone_instance$", views.RedisAloneInstanceCheckReportViewSet.as_view({"get": "list"})),
-]
+routers = DefaultRouter(trailing_slash=True)
+
+routers.register(r"", ReportCommonViewSet, basename="report_common")
+routers.register(r"checksum_instance", ChecksumInstanceViewSet, basename="checksum_instance")
+
+# 自动添加注册的巡检视图
+for db_type, reports in db_report_maps.items():
+    for report in reports:
+        routers.register(f"{db_type}/{report.report_type}", report, basename=f"{db_type}-{report.report_type}")
+
+urlpatterns = routers.urls

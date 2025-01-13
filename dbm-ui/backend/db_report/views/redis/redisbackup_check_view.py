@@ -11,36 +11,30 @@ specific language governing permissions and limitations under the License.
 
 import logging
 
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext as _
 from rest_framework import serializers, status
 
 from backend.bk_web.swagger import common_swagger_auto_schema
+from backend.configuration.constants import DBType
 from backend.db_report import mock_data
-from backend.db_report.enums import SWAGGER_TAG, MetaCheckSubType, ReportFieldFormat
-from backend.db_report.models import MetaCheckReport
+from backend.db_report.enums import SWAGGER_TAG, RedisBackupCheckSubType, ReportFieldFormat, ReportType
+from backend.db_report.models import RedisBackupCheckReport
+from backend.db_report.register import register_report
 from backend.db_report.report_baseview import ReportBaseViewSet
 
 logger = logging.getLogger("root")
 
 
-class RedisDbmetaCheckReportSerializer(serializers.ModelSerializer):
+class RedisBackupCheckReportSerializer(serializers.ModelSerializer):
     class Meta:
-        model = MetaCheckReport
-        fields = ("bk_biz_id", "cluster", "cluster_type", "status", "msg", "create_at")
-        swagger_schema_fields = {"example": mock_data.REDIS_META_CHECK_DATA}
+        model = RedisBackupCheckReport
+        fields = ("bk_biz_id", "cluster", "cluster_type", "instance", "status", "msg", "create_at")
+        swagger_schema_fields = {"example": mock_data.REDIS_BACKUP_CHECK_DATA}
 
 
-class RedisDbmetaCheckReportBaseViewSet(ReportBaseViewSet):
-    queryset = MetaCheckReport.objects.all()
-    serializer_class = RedisDbmetaCheckReportSerializer
-    filter_fields = {  # 大部分时候不需要覆盖默认的filter
-        "bk_biz_id": ["exact"],
-        "cluster": ["exact", "in"],
-        "cluster_type": ["exact", "in"],
-        "create_at": ["gte", "lte"],
-        "status": ["exact", "in"],
-    }
-    report_name = _("redis 元数据检查")
+class RedisBackupCheckReportBaseViewSet(ReportBaseViewSet):
+    queryset = RedisBackupCheckReport.objects.all()
+    serializer_class = RedisBackupCheckReportSerializer
     report_title = [
         {
             "name": "bk_biz_id",
@@ -53,13 +47,18 @@ class RedisDbmetaCheckReportBaseViewSet(ReportBaseViewSet):
             "format": ReportFieldFormat.TEXT.value,
         },
         {
+            "name": "instance",
+            "display_name": _("实例节点"),
+            "format": ReportFieldFormat.TEXT.value,
+        },
+        {
             "name": "cluster_type",
             "display_name": _("集群类型"),
             "format": ReportFieldFormat.TEXT.value,
         },
         {
             "name": "status",
-            "display_name": _("元数据状态"),
+            "display_name": _("备份状态"),
             "format": ReportFieldFormat.STATUS.value,
         },
         {
@@ -75,8 +74,8 @@ class RedisDbmetaCheckReportBaseViewSet(ReportBaseViewSet):
     ]
 
     @common_swagger_auto_schema(
-        operation_summary=_("redis 元数据检查报告"),
-        responses={status.HTTP_200_OK: RedisDbmetaCheckReportSerializer()},
+        operation_summary=_("备份检查报告"),
+        responses={status.HTTP_200_OK: RedisBackupCheckReportSerializer()},
         tags=[SWAGGER_TAG],
     )
     def list(self, request, *args, **kwargs):
@@ -84,28 +83,30 @@ class RedisDbmetaCheckReportBaseViewSet(ReportBaseViewSet):
         return super().list(request, *args, **kwargs)
 
 
-class RedisAloneInstanceCheckReportViewSet(RedisDbmetaCheckReportBaseViewSet):
-    queryset = MetaCheckReport.objects.filter(subtype=MetaCheckSubType.AloneInstance.value)
-    serializer_class = RedisDbmetaCheckReportSerializer
-    report_name = _("孤立节点检查")
+@register_report(DBType.Redis)
+class RedisFullBackupCheckReportViewSet(RedisBackupCheckReportBaseViewSet):
+    queryset = RedisBackupCheckReport.objects.filter(subtype=RedisBackupCheckSubType.FullBackup.value)
+    serializer_class = RedisBackupCheckReportSerializer
+    report_type = ReportType.FULL_BACKUP_CHECK
 
     @common_swagger_auto_schema(
-        operation_summary=_("孤立节点检查报告"),
-        responses={status.HTTP_200_OK: RedisDbmetaCheckReportSerializer()},
+        operation_summary=_("Redis 全备检查报告"),
+        responses={status.HTTP_200_OK: RedisBackupCheckReportSerializer()},
         tags=[SWAGGER_TAG],
     )
     def list(self, request, *args, **kwargs):
         return super().list(request, *args, **kwargs)
 
 
-class RedisStatusAbnormalCheckReportViewSet(RedisDbmetaCheckReportBaseViewSet):
-    queryset = MetaCheckReport.objects.filter(subtype=MetaCheckSubType.StatusAbnormal.value)
-    serializer_class = RedisDbmetaCheckReportSerializer
-    report_name = _("实例状态异常检查")
+@register_report(DBType.Redis)
+class RedisBinlogBackupCheckReportViewSet(RedisBackupCheckReportBaseViewSet):
+    queryset = RedisBackupCheckReport.objects.filter(subtype=RedisBackupCheckSubType.BinlogBackup.value)
+    serializer_class = RedisBackupCheckReportSerializer
+    report_type = ReportType.BINLOG_BACKUP_CHECK
 
     @common_swagger_auto_schema(
-        operation_summary=_("实例状态异常检查"),
-        responses={status.HTTP_200_OK: RedisDbmetaCheckReportSerializer()},
+        operation_summary=_("Redis binlog检查报告"),
+        responses={status.HTTP_200_OK: RedisBackupCheckReportSerializer()},
         tags=[SWAGGER_TAG],
     )
     def list(self, request, *args, **kwargs):

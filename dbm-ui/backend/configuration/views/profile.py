@@ -14,7 +14,7 @@ from rest_framework.response import Response
 
 from backend.bk_web import viewsets
 from backend.bk_web.swagger import common_swagger_auto_schema
-from backend.configuration.models import Profile
+from backend.configuration.models import DBAdministrator, Profile
 from backend.configuration.serializers import ProfileSerializer
 from backend.iam_app.dataclass.actions import ActionEnum
 from backend.iam_app.handlers.permission import Permission
@@ -43,6 +43,7 @@ class ProfileViewSet(viewsets.SystemViewSet):
                 "username": username,
                 "profile": list(Profile.objects.filter(username=username).values("label", "values")),
                 "is_superuser": request.user.is_superuser,
+                "is_dba": DBAdministrator.is_dba(request.user.username),
             }
         )
 

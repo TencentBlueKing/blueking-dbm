@@ -19,9 +19,23 @@ from .redisbackup_check_sub_type import RedisBackupCheckSubType
 
 SWAGGER_TAG = _("巡检报告")
 
+REPORT_COUNT_CACHE_KEY = "{user}_report_count_key"
+
 
 class ReportFieldFormat(str, StructuredEnum):
     TEXT = EnumField("text", _("文本渲染"))
     STATUS = EnumField("status", _("状态渲染"))
     # 数据校验失败详情字段
     FAIL_SLAVE_INSTANCE = EnumField("fail_slave_instance", _("数据校验失败详情渲染"))
+
+
+class ReportType(str, StructuredEnum):
+    CHECKSUM = EnumField("checksum", _("数据校验"))
+    FULL_BACKUP_CHECK = EnumField("full_backup_check", _("全备校验"))
+    BINLOG_BACKUP_CHECK = EnumField("binlog_backup_check", _("集群binlog检查"))
+
+    ALONE_INSTANCE_CHECK = EnumField("alone_instance_check", _("孤立实例检查"))
+    STATUS_ABNORMAL_CHECK = EnumField("status_abnormal_check", _("实例异常状态检查"))
+    META_CHECK = EnumField("meta_check", _("元数据检查"))
+
+    REDIS_DBMON_HEARTBEAT_CHECK = EnumField("dbmon_heartbeat_check", _("dbmon心跳超时检查"))

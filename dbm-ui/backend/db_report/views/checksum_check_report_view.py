@@ -12,7 +12,7 @@ specific language governing permissions and limitations under the License.
 
 import logging
 
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext as _
 from rest_framework import serializers, status
 
 from backend.bk_web.swagger import common_swagger_auto_schema
@@ -31,16 +31,9 @@ class ChecksumCheckReportSerializer(serializers.ModelSerializer):
         swagger_schema_fields = {"example": mock_data.CHECKSUM_CHECK_DATA}
 
 
-class ChecksumCheckReportViewSet(ReportBaseViewSet):
+class ChecksumCheckReportBaseViewSet(ReportBaseViewSet):
     queryset = ChecksumCheckReport.objects.all().order_by("-create_at")
     serializer_class = ChecksumCheckReportSerializer
-    filter_fields = {
-        "bk_biz_id": ["exact"],
-        "cluster_type": ["exact"],
-        "create_at": ["gte", "lte"],
-        "status": ["exact", "in"],
-        "cluster": ["exact", "in"],
-    }
     report_name = _("数据校验")
     report_title = [
         {

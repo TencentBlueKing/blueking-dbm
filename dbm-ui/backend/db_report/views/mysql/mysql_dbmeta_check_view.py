@@ -8,3 +8,17 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+
+from backend.configuration.constants import DBType
+from backend.db_meta.enums import ClusterType
+from backend.db_report.enums import ReportType
+from backend.db_report.models import MetaCheckReport
+from backend.db_report.register import register_report
+from backend.db_report.views.meta_check_view import MetaCheckReportBaseViewSet
+
+
+@register_report(DBType.MySQL)
+class MySQLMetaCheckReportViewSet(MetaCheckReportBaseViewSet):
+    report_type = ReportType.META_CHECK
+    cluster_types = ClusterType.db_type_to_cluster_types(DBType.MySQL)
+    queryset = MetaCheckReport.objects.filter(cluster_type__in=cluster_types).order_by("-create_at")

@@ -12,13 +12,15 @@ specific language governing permissions and limitations under the License.
 
 import logging
 
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext as _
 from rest_framework import serializers, status
 
 from backend.bk_web.swagger import common_swagger_auto_schema
+from backend.configuration.constants import DBType
 from backend.db_report import mock_data
-from backend.db_report.enums import SWAGGER_TAG, ReportFieldFormat
+from backend.db_report.enums import SWAGGER_TAG, ReportFieldFormat, ReportType
 from backend.db_report.models import DbmonHeartbeatReport
+from backend.db_report.register import register_report
 from backend.db_report.report_baseview import ReportBaseViewSet
 
 logger = logging.getLogger("root")
@@ -31,17 +33,11 @@ class DbmonHeartbeatCheckReportSerializer(serializers.ModelSerializer):
         swagger_schema_fields = {"example": mock_data.DBMON_HEARTBEAT_CHECK_DATA}
 
 
+@register_report(DBType.Redis)
 class DbmonHeatbeartCheckReportBaseViewSet(ReportBaseViewSet):
     queryset = DbmonHeartbeatReport.objects.all()
     serializer_class = DbmonHeartbeatCheckReportSerializer
-    filter_fields = {  # 大部分时候不需要覆盖默认的filter
-        "bk_biz_id": ["exact"],
-        "cluster_type": ["exact", "in"],
-        "cluster": ["exact", "in"],
-        "create_at": ["gte", "lte"],
-        "status": ["exact", "in"],
-    }
-    report_name = _("dbmon心跳超时检查")
+    report_type = ReportType.REDIS_DBMON_HEARTBEAT_CHECK
     report_title = [
         {
             "name": "bk_biz_id",

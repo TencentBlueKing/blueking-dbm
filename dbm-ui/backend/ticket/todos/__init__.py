@@ -21,6 +21,7 @@ from backend.constants import DEFAULT_SYSTEM_USER
 from backend.ticket.constants import TODO_RUNNING_STATUS
 from backend.ticket.exceptions import TodoDuplicateProcessException, TodoWrongOperatorException
 from backend.ticket.models import Todo
+from backend.utils.register import re_import_modules
 from blue_krill.data_types.enum import EnumField, StructuredEnum
 
 logger = logging.getLogger("root")
@@ -106,22 +107,8 @@ class TodoActorFactory:
         return todo_cls(todo)
 
 
-def register_all_todos(path=os.path.dirname(__file__), module_path="backend.ticket.todos"):
-    """递归注册当前目录下所有的todo处理器"""
-    for name in os.listdir(path):
-        # 忽略无效文件
-        if name.endswith(".pyc") or name in ["__init__.py", "__pycache__"]:
-            continue
-
-        if os.path.isdir(os.path.join(path, name)):
-            register_all_todos(os.path.join(path, name), ".".join([module_path, name]))
-        else:
-            try:
-                module_name = name.replace(".py", "")
-                import_path = ".".join([module_path, module_name])
-                importlib.import_module(import_path)
-            except ModuleNotFoundError as e:
-                logger.warning(e)
+def register_all_todos():
+    re_import_modules(path=os.path.dirname(__file__), module_path="backend.ticket.todos")
 
 
 class ActionType(str, StructuredEnum):

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 TencentBlueKing is pleased to support the open source community by making 蓝鲸智云-DB管理系统(BlueKing-BK-DBM) available.
 Copyright (C) 2017-2023 THL A29 Limited, a Tencent company. All rights reserved.
@@ -12,36 +11,30 @@ specific language governing permissions and limitations under the License.
 
 import logging
 
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext as _
 from rest_framework import serializers, status
 
 from backend.bk_web.swagger import common_swagger_auto_schema
+from backend.configuration.constants import DBType
 from backend.db_report import mock_data
-from backend.db_report.enums import SWAGGER_TAG, MysqlBackupCheckSubType, ReportFieldFormat
-from backend.db_report.models import MysqlBackupCheckReport
+from backend.db_report.enums import SWAGGER_TAG, MetaCheckSubType, ReportFieldFormat, ReportType
+from backend.db_report.models import MetaCheckReport
+from backend.db_report.register import register_report
 from backend.db_report.report_baseview import ReportBaseViewSet
 
 logger = logging.getLogger("root")
 
 
-class MysqlBackupCheckReportSerializer(serializers.ModelSerializer):
+class RedisDbmetaCheckReportSerializer(serializers.ModelSerializer):
     class Meta:
-        model = MysqlBackupCheckReport
+        model = MetaCheckReport
         fields = ("bk_biz_id", "cluster", "cluster_type", "status", "msg", "create_at")
-        swagger_schema_fields = {"example": mock_data.MYSQL_BACKUP_CHECK_DATA}
+        swagger_schema_fields = {"example": mock_data.REDIS_META_CHECK_DATA}
 
 
-class MysqlBackupCheckReportBaseViewSet(ReportBaseViewSet):
-    queryset = MysqlBackupCheckReport.objects.all()
-    serializer_class = MysqlBackupCheckReportSerializer
-    filter_fields = {  # 大部分时候不需要覆盖默认的filter
-        "bk_biz_id": ["exact"],
-        "cluster": ["exact", "in"],
-        "cluster_type": ["exact", "in"],
-        "create_at": ["gte", "lte"],
-        "status": ["exact", "in"],
-    }
-    report_name = _("集群全备检查")
+class RedisDbmetaCheckReportBaseViewSet(ReportBaseViewSet):
+    queryset = MetaCheckReport.objects.all()
+    serializer_class = RedisDbmetaCheckReportSerializer
     report_title = [
         {
             "name": "bk_biz_id",
@@ -60,7 +53,7 @@ class MysqlBackupCheckReportBaseViewSet(ReportBaseViewSet):
         },
         {
             "name": "status",
-            "display_name": _("全备状态"),
+            "display_name": _("元数据状态"),
             "format": ReportFieldFormat.STATUS.value,
         },
         {
@@ -76,8 +69,8 @@ class MysqlBackupCheckReportBaseViewSet(ReportBaseViewSet):
     ]
 
     @common_swagger_auto_schema(
-        operation_summary=_("备份检查报告"),
-        responses={status.HTTP_200_OK: MysqlBackupCheckReportSerializer()},
+        operation_summary=_("redis 元数据检查报告"),
+        responses={status.HTTP_200_OK: RedisDbmetaCheckReportSerializer()},
         tags=[SWAGGER_TAG],
     )
     def list(self, request, *args, **kwargs):
@@ -85,28 +78,30 @@ class MysqlBackupCheckReportBaseViewSet(ReportBaseViewSet):
         return super().list(request, *args, **kwargs)
 
 
-class MysqlFullBackupCheckReportViewSet(MysqlBackupCheckReportBaseViewSet):
-    queryset = MysqlBackupCheckReport.objects.filter(subtype=MysqlBackupCheckSubType.FullBackup.value)
-    serializer_class = MysqlBackupCheckReportSerializer
-    report_name = _("MySQL 全备检查")
+@register_report(DBType.Redis)
+class RedisAloneInstanceCheckReportViewSet(RedisDbmetaCheckReportBaseViewSet):
+    queryset = MetaCheckReport.objects.filter(subtype=MetaCheckSubType.AloneInstance.value)
+    serializer_class = RedisDbmetaCheckReportSerializer
+    report_type = ReportType.ALONE_INSTANCE_CHECK
 
     @common_swagger_auto_schema(
-        operation_summary=_("MySQL 全备检查报告"),
-        responses={status.HTTP_200_OK: MysqlBackupCheckReportSerializer()},
+        operation_summary=_("孤立节点检查报告"),
+        responses={status.HTTP_200_OK: RedisDbmetaCheckReportSerializer()},
         tags=[SWAGGER_TAG],
     )
     def list(self, request, *args, **kwargs):
         return super().list(request, *args, **kwargs)
 
 
-class MysqlBinlogBackupCheckReportViewSet(MysqlBackupCheckReportBaseViewSet):
-    queryset = MysqlBackupCheckReport.objects.filter(subtype=MysqlBackupCheckSubType.BinlogSeq.value)
-    serializer_class = MysqlBackupCheckReportSerializer
-    report_name = _("集群binlog检查")
+@register_report(DBType.Redis)
+class RedisStatusAbnormalCheckReportViewSet(RedisDbmetaCheckReportBaseViewSet):
+    queryset = MetaCheckReport.objects.filter(subtype=MetaCheckSubType.StatusAbnormal.value)
+    serializer_class = RedisDbmetaCheckReportSerializer
+    report_type = ReportType.STATUS_ABNORMAL_CHECK
 
     @common_swagger_auto_schema(
-        operation_summary=_("MySQL binlog检查报告"),
-        responses={status.HTTP_200_OK: MysqlBackupCheckReportSerializer()},
+        operation_summary=_("实例状态异常检查"),
+        responses={status.HTTP_200_OK: RedisDbmetaCheckReportSerializer()},
         tags=[SWAGGER_TAG],
     )
     def list(self, request, *args, **kwargs):

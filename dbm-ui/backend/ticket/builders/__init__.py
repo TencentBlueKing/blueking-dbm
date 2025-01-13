@@ -26,6 +26,7 @@ from backend.db_services.dbbase.constants import IpSource
 from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket.constants import TICKET_EXPIRE_DEFAULT_CONFIG, FlowRetryType, FlowType, TicketType
 from backend.ticket.models import Flow, Ticket, TicketFlowsConfig
+from backend.utils.register import re_import_modules
 
 logger = logging.getLogger("root")
 
@@ -522,19 +523,5 @@ class BuilderFactory:
         return builder_cls(ticket)
 
 
-def register_all_builders(path=os.path.dirname(__file__), module_path="backend.ticket.builders"):
-    """递归注册当前目录下所有的构建器"""
-    for name in os.listdir(path):
-        # 忽略无效文件
-        if name.endswith(".pyc") or name in ["__init__.py", "__pycache__"]:
-            continue
-
-        if os.path.isdir(os.path.join(path, name)):
-            register_all_builders(os.path.join(path, name), ".".join([module_path, name]))
-        else:
-            try:
-                module_name = name.replace(".py", "")
-                import_path = ".".join([module_path, module_name])
-                importlib.import_module(import_path)
-            except ModuleNotFoundError as e:
-                logger.warning(e)
+def register_all_builders():
+    re_import_modules(path=os.path.dirname(__file__), module_path="backend.ticket.builders")

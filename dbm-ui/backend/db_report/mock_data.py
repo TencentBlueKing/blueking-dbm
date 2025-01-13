@@ -144,3 +144,23 @@ REDIS_META_CHECK_DATA = {
         {"name": "msg", "display_name": "详情", "format": "text"},
     ],
 }
+
+REPORT_OVERVIEW_DATA = {
+    "redis": [
+        "dbmon_heartbeat_check",
+        "full_backup_check",
+        "binlog_backup_check",
+        "alone_instance_check",
+        "status_abnormal_check",
+    ],
+    "mysql": ["full_backup_check", "binlog_backup_check", "meta_check", "checksum"],
+}
+
+REPORT_COUNT_DATA = {
+    "redis": {
+        "dbmon_heartbeat_check": {"manage_count": 10896, "assist_count": 0},
+    },
+    "mysql": {
+        "full_backup_check": {"manage_count": 0, "assist_count": 26},
+    },
+}
