@@ -68,7 +68,7 @@
         </BkTableColumn>
         <BkTableColumn label="Shard_id">
           <template #default="{ data }: { data: TendbClusterModel['remote_db'][number] }">
-            {{ data.shard_id || '--' }}
+            {{ data.shard_id }}
           </template>
         </BkTableColumn>
       </BkTable>
