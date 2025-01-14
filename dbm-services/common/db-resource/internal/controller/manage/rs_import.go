@@ -139,6 +139,9 @@ type ImportHostResp struct {
 }
 
 func (p ImportMachParam) transParamToBytes() (lableJson json.RawMessage, err error) {
+	if len(p.Labels) == 0 {
+		return []byte("[]"), nil
+	}
 	lableJson, err = json.Marshal(p.Labels)
 	if err != nil {
 		logger.Error(fmt.Sprintf("ConverLableToJsonStr Failed,Error:%s", err.Error()))
