@@ -32,7 +32,6 @@ import (
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util/osutil"
 
-	"github.com/mitchellh/go-ps"
 	"github.com/shirou/gopsutil/v3/process"
 )
 
@@ -271,34 +270,37 @@ func (u *UnInstallMySQLComp) ClearMachine() (err error) {
 //	@receiver u
 //	@return err
 func (u *UnInstallMySQLComp) KillDirtyProcess() (err error) {
-	dirtyProcessNames := []string{
-		"mysql",
-	}
-	processes, err := ps.Processes()
+	mysqlClient := "mysql"
+	processes, err := process.Processes()
 	if err != nil {
 		return fmt.Errorf("list processes failed, err:%s", err.Error())
 	}
-	msgs := make([]string, 0)
 	for _, proc := range processes {
-		processName := proc.Executable()
-		if !cmutil.HasElem(processName, dirtyProcessNames) {
-			continue
-		}
-
-		p, err := process.NewProcess(int32(proc.Pid()))
+		processName, err := proc.Name()
 		if err != nil {
-			msgs = append(msgs, fmt.Sprintf("process:%s, err:%s", processName, err.Error()))
+			logger.Warn("get process name failed, err:%s")
 			continue
 		}
-		if err := p.Terminate(); err != nil {
-			msg := fmt.Sprintf("terminate process %s failed, err:%s", processName, err.Error())
-			msgs = append(msgs, msg)
+		if processName != mysqlClient {
 			continue
+		}
+		cmdline, errx := proc.Cmdline()
+		if errx != nil {
+			logger.Warn("get process cmdline failed, err:%s", errx.Error())
+			continue
+		}
+		for _, port := range u.Params.Ports {
+			if strings.Contains(cmdline, strconv.Itoa(port)) {
+				if err := proc.Kill(); err != nil {
+					if err == process.ErrorProcessNotRunning {
+						continue
+					}
+					logger.Error("terminate process %s failed, err:%s", processName, err.Error())
+					continue
+				}
+			}
 		}
 		logger.Info("success terminate dirty process %s", processName)
-	}
-	if len(msgs) != 0 {
-		return fmt.Errorf("failed kill %d processes, they are: %s", len(msgs), strings.Join(msgs, "\n"))
 	}
 	return nil
 }
