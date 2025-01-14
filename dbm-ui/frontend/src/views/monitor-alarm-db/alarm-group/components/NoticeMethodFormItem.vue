@@ -221,6 +221,11 @@
     ].join('\n'),
   };
 
+  const InputMessageTypeMap: Record<string, string> = {
+    'wxwork-bot': MessageTypes.WECOM_ROBOT,
+    [MessageTypes.WECOM_ROBOT]: 'wxwork-bot',
+  };
+
   let head: TableHead[] = [
     {
       label: t('告警级别'),
@@ -472,14 +477,16 @@
             const inputArr = _.cloneDeep(panelInitData.inputArr);
 
             configItem.notice_ways.forEach((wayItem) => {
-              if (InputMessageTypes.includes(wayItem.name)) {
-                const idx = inputArr.findIndex((inputItem) => inputItem.type === wayItem.name);
+              // 转为消息类型对应值
+              const conversionType = InputMessageTypeMap[wayItem.name] || wayItem.name;
+              if (InputMessageTypes.includes(conversionType)) {
+                const idx = inputArr.findIndex((inputItem) => inputItem.type === conversionType);
 
                 if (idx > -1) {
                   inputArr[idx].value = (wayItem.receivers || []).join(',');
                 }
               } else {
-                const idx = checkboxArr.findIndex((checkboxItem) => checkboxItem.type === wayItem.name);
+                const idx = checkboxArr.findIndex((checkboxItem) => checkboxItem.type === conversionType);
 
                 if (idx > -1) {
                   checkboxArr[idx].checked = true;
@@ -625,7 +632,7 @@
               (prev, current) => {
                 if (current.value !== '') {
                   prev.push({
-                    name: current.type,
+                    name: InputMessageTypeMap[current.type] || current.type, // 转为映射值
                     receivers: current.value.split(','),
                   });
                 }
@@ -697,10 +704,9 @@
 
         .table-row-item {
           display: flex;
-          min-width: 120px;
+          width: 110px;
           padding: 0 12px;
           border-bottom: 1px solid #dcdee5;
-          flex: 1;
           align-items: center;
           justify-content: center;
           flex-shrink: 0;
