@@ -55,14 +55,7 @@ const spiderDbTableBackupRoute = createRouteItem(TicketTypes.TENDBCLUSTER_DB_TAB
 
 const spiderDbBackupRoute = createRouteItem(TicketTypes.TENDBCLUSTER_FULL_BACKUP, t('全库备份'));
 
-const spiderFlashbackRoute = {
-  path: 'flashback/:page?',
-  name: 'spiderFlashback',
-  meta: {
-    navName: t('闪回'),
-  },
-  component: () => import('@views/db-manage/tendb-cluster/flashback/Index.vue'),
-};
+const spiderFlashbackRoute = createRouteItem(TicketTypes.TENDBCLUSTER_FLASHBACK, t('闪回'));
 
 const spiderRollbackRoute = {
   path: 'rollback/:page?',

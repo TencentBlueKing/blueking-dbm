@@ -1,0 +1,117 @@
+<!--
+ * TencentBlueKing is pleased to support the open source community by making 蓝鲸智云-DB管理系统(BlueKing-BK-DBM) available.
+ *
+ * Copyright (C) 2017-2023 THL A29 Limited, a Tencent company. All rights reserved.
+ *
+ * Licensed under the MIT License (the "License"); you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License athttps://opensource.org/licenses/MIT
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
+ * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
+ * the specific language governing permissions and limitations under the License.
+-->
+
+<template>
+  <Column
+    field="endTime"
+    :label="t('截止时间')"
+    :min-width="200"
+    required>
+    <template #headAppend>
+      <BatchEditColumn
+        v-model="showBatchEdit"
+        :title="t('回档时间')"
+        type="datetime"
+        @change="handleBatchEditChange">
+        <span
+          v-bk-tooltips="t('统一设置：将该列统一设置为相同的值')"
+          class="batch-edit-btn"
+          @click="handleBatchEditShow">
+          <DbIcon type="bulk-edit" />
+        </span>
+      </BatchEditColumn>
+    </template>
+    <div class="render-end-time">
+      <DatePicker
+        v-model="modelValue"
+        :disable-date="disableDate"
+        type="datetime">
+        <template #footer>
+          <div
+            style="line-height: 32px; text-align: center; cursor: pointer"
+            @click.stop="handleNowTime">
+            now
+          </div>
+        </template>
+      </DatePicker>
+      <div
+        v-if="isNowTime"
+        class="value-now">
+        now
+      </div>
+    </div>
+  </Column>
+</template>
+
+<script lang="ts" setup>
+  import dayjs from 'dayjs';
+  import { useI18n } from 'vue-i18n';
+
+  import { Column, DatePicker } from '@components/editable-table/Index.vue';
+
+  import BatchEditColumn from '@views/db-manage/common/batch-edit-column/Index.vue';
+
+  interface Props {
+    startTime: string;
+  }
+
+  const props = defineProps<Props>();
+
+  const modelValue = defineModel<string>();
+
+  const { t } = useI18n();
+
+  const showBatchEdit = ref(false);
+  const isNowTime = ref(false);
+
+  const disableDate = (date: Date) =>
+    date && (date.valueOf() > Date.now() || date.valueOf() < dayjs(props.startTime).valueOf());
+
+  watch(modelValue, () => {
+    isNowTime.value = false;
+  });
+
+  const handleBatchEditShow = () => {
+    showBatchEdit.value = true;
+  };
+
+  const handleBatchEditChange = (value: string) => {
+    modelValue.value = value;
+  };
+
+  const handleNowTime = () => {
+    isNowTime.value = true;
+  };
+</script>
+<style lang="less" scoped>
+  .batch-edit-btn {
+    font-size: 14px;
+    color: #3a84ff;
+    cursor: pointer;
+  }
+
+  .render-end-time {
+    position: relative;
+
+    .value-now {
+      position: absolute;
+      display: flex;
+      padding: 0 16px;
+      pointer-events: none;
+      cursor: pointer;
+      background: #fff;
+      inset: 0;
+      align-items: center;
+    }
+  }
+</style>

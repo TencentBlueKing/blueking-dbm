@@ -6,7 +6,11 @@
     v-bind="{ ...attrs, ...props }"
     @blur="handleBlur"
     @change="handleChange"
-    @focus="handleFocus" />
+    @focus="handleFocus">
+    <template #footer>
+      <slot name="footer" />
+    </template>
+  </BkDatePicker>
 </template>
 <script lang="ts">
   /* eslint-disable vue/no-unused-properties */

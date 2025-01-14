@@ -155,7 +155,7 @@ export default [
       },
       {
         name: t('闪回'),
-        id: 'spiderFlashback',
+        id: TicketTypes.TENDBCLUSTER_FLASHBACK,
         parentId: 'spider_fileback',
         dbConsoleValue: 'tendbCluster.toolbox.flashback',
       },
