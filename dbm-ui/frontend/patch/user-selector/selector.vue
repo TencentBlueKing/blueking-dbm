@@ -868,9 +868,9 @@
         }
         try {
           loading.value = true;
-          const pasteStr = event.clipboardData.getData('text').replace(/\s/g, '');
+          const pasteStr = event.clipboardData.getData('text').replace(/[^\S\r\n]/g, '');
           const values = pasteStr
-            .split(/,|;/)
+            .split(/\s*[｜|，,；;、\t/\s]\s*/g)
             .map((value) => pasteFormatter.value(value))
             .filter((value) => value.length);
           const uniqueValues = [...new Set(values)];
