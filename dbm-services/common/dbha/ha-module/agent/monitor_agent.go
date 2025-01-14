@@ -100,7 +100,7 @@ func NewMonitorAgent(conf *config.Config, detectType string) (*MonitorAgent, err
 // report agent's heartbeat info.
 func (a *MonitorAgent) Process(instances map[string]dbutil.DataBaseDetect) {
 	var wg sync.WaitGroup
-	startTime := time.Now().Unix()
+	startTime := time.Now()
 	sem := make(chan struct{}, a.MaxConcurrency) // 创建一个有缓冲的通道，容量为 maxConcurrency
 	log.Logger.Debugf("[%s] need to detect instances number:%d", a.DetectType, len(a.DBInstance))
 	for _, ins := range instances {
@@ -113,9 +113,10 @@ func (a *MonitorAgent) Process(instances map[string]dbutil.DataBaseDetect) {
 		}(ins)
 	}
 	wg.Wait()
+	interval := int(time.Now().Sub(startTime).Seconds())
 	log.Logger.Debugf("[%s] detected instances number:%d ,cost: %d",
-		a.DetectType, len(a.DBInstance), time.Now().Unix()-startTime)
-	a.DetectPostProcess()
+		a.DetectType, len(a.DBInstance), interval)
+	a.DetectPostProcess(interval)
 	time.Sleep(time.Second)
 }
 
@@ -185,8 +186,8 @@ func (a *MonitorAgent) DoDetectSingle(ins dbutil.DataBaseDetect) {
 }
 
 // DetectPostProcess post agent heartbeat
-func (a *MonitorAgent) DetectPostProcess() {
-	err := a.reporterHeartbeat()
+func (a *MonitorAgent) DetectPostProcess(interval int) {
+	err := a.reporterHeartbeat(interval)
 	if err != nil {
 		log.Logger.Errorf("reporter heartbeat failed. err:%s", err.Error())
 	}
@@ -232,15 +233,19 @@ func (a *MonitorAgent) FetchDBInstance() error {
 	a.HashMod = mod
 	a.HashValue = modValue
 
-	req := client.DBInstanceInfoRequest{
+	req := client.DBInstanceByCityRequest{
 		LogicalCityIDs: []int{a.CityID},
 		HashCnt:        mod,
 		HashValue:      modValue,
 		ClusterTypes:   []string{a.DetectType},
 	}
 
-	rawInfo, err := a.CmDBClient.GetDBInstanceInfoByClusterType(req)
+	rawInfo, err := a.CmDBClient.GetDBInstanceInfoByCityID(req)
 	if err != nil {
+		minInfo := monitor.GetApiAlertInfo(constvar.CmDBInstanceUrl, err.Error())
+		if e := monitor.MonitorSend("get instances failed", minInfo); e != nil {
+			log.Logger.Warnf(e.Error())
+		}
 		log.Logger.Errorf("get instance info from cmdb failed. err:%s", err.Error())
 		return err
 	}
@@ -306,20 +311,20 @@ func (a *MonitorAgent) FetchGMInstance() error {
 			continue
 		}
 		// needn't lock
-		_, ok := a.GMInstance[info.Ip]
+		_, ok := a.GMInstance[info.IP]
 		if ok {
-			a.GMInstance[info.Ip].LastFetchTime = time.Now()
+			a.GMInstance[info.IP].LastFetchTime = time.Now()
 		} else {
-			a.GMInstance[info.Ip] = &GMConnection{
-				Ip:            info.Ip,
+			a.GMInstance[info.IP] = &GMConnection{
+				Ip:            info.IP,
 				Port:          info.Port,
 				LastFetchTime: time.Now(),
 				IsClose:       false,
 			}
-			err = a.GMInstance[info.Ip].Init()
+			err = a.GMInstance[info.IP].Init()
 			if err != nil {
 				log.Logger.Errorf("init gm failed. gm_ip:%s, gm_port:%d, err:%s",
-					info.Ip, info.Port, err.Error())
+					info.Port, info.Port, err.Error())
 				return err
 			}
 		}
@@ -342,6 +347,7 @@ func (a *MonitorAgent) NeedReportGM(ins dbutil.DataBaseDetect) bool {
 		cachedIns := a.ReportGMCache[ip]
 		now := time.Now()
 		if now.Before(cachedIns.ReporterGMTime.Add(time.Second * time.Duration(cachedIns.ExpireInterval))) {
+			log.Logger.Debugf("instance[%s] cached, skip report to gm", cachedIns.Ip)
 			return false
 		}
 	}
@@ -395,6 +401,7 @@ func (a *MonitorAgent) ReportDetectInfoToGM(reporterInstance dbutil.DataBaseDete
 			//do retry
 			continue
 		} else {
+			log.Logger.Debugf("reporter instance[%s#%d] to gm[%s#%d] success", ip, port, gmIns.Ip, gmIns.Port)
 			isReported = true
 			gmIns.Mutex.Unlock()
 			a.ReportGMCache[ip] = &CachedHostInfo{
@@ -484,9 +491,8 @@ func (a *MonitorAgent) registerAgentInfoToHaDB() error {
 }
 
 // reporterHeartbeat send agent heartbeat to HA-DB
-func (a *MonitorAgent) reporterHeartbeat() error {
-	interval := time.Now().Sub(a.heartbeat).Seconds()
-	err := a.HaDBClient.ReporterAgentHeartbeat(a.MonIp, a.DetectType, int(interval), a.HashMod, a.HashValue)
+func (a *MonitorAgent) reporterHeartbeat(interval int) error {
+	err := a.HaDBClient.ReporterAgentHeartbeat(a.MonIp, a.DetectType, interval, a.HashMod, a.HashValue)
 	a.heartbeat = time.Now()
 	return err
 }

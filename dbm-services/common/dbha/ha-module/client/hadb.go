@@ -21,21 +21,6 @@ type HaDBClient struct {
 	Client
 }
 
-// GMInfo gm base info, use to report
-type GMInfo struct {
-	Ip      string `json:"ip"`
-	Port    int    `json:"port"`
-	CityID  int    `json:"city_id"`
-	CloudID int    `json:"cloud_id"`
-}
-
-// AgentInfo gm base info, use to report
-type AgentInfo struct {
-	Ip      string `json:"ip"`
-	CityID  int    `json:"city_id"`
-	CloudID int    `json:"cloud_id"`
-}
-
 // HaStatusRequest request ha status table
 type HaStatusRequest struct {
 	DBCloudToken string          `json:"db_cloud_token"`
@@ -50,8 +35,8 @@ type HaStatusResponse struct {
 	RowsAffected int `json:"rowsAffected"`
 }
 
-// DbStatusRequest request db status
-type DbStatusRequest struct {
+// HaAgentLogsRequest request ha_agent_logs
+type HaAgentLogsRequest struct {
 	DBCloudToken string             `json:"db_cloud_token"`
 	BKCloudID    int                `json:"bk_cloud_id"`
 	Name         string             `json:"name"`
@@ -59,8 +44,8 @@ type DbStatusRequest struct {
 	SetArgs      *model.HAAgentLogs `json:"set_args,omitempty"`
 }
 
-// DbStatusResponse db status response
-type DbStatusResponse struct {
+// HaAgentLogsResponse ha_agent_logs response
+type HaAgentLogsResponse struct {
 	RowsAffected int `json:"rowsAffected"`
 	Uid          int `json:"uid"`
 }
@@ -129,16 +114,15 @@ func NewHaDBClient(conf *config.APIConfig, cloudId int) *HaDBClient {
 	return &HaDBClient{c}
 }
 
-// GetDBDetectInfo get gm info from hadb
-func (c *HaDBClient) GetDBDetectInfo() ([]model.HAAgentLogs, error) {
-	req := DbStatusRequest{
+// GetHADetectInfo get gm info from hadb
+func (c *HaDBClient) GetHADetectInfo() ([]model.HAAgentLogs, error) {
+	req := HaAgentLogsRequest{
 		DBCloudToken: c.Conf.BKConf.BkToken,
 		BKCloudID:    c.CloudId,
 		Name:         constvar.GetInstanceStatus,
-		QueryArgs:    &model.HAAgentLogs{},
 	}
 
-	log.Logger.Debugf("AgentGetGMInfo param:%#v", req)
+	log.Logger.Debugf("GetHADetectInfo param:%#v", util.GraceStructString(req.QueryArgs))
 
 	response, err := c.DoNew(http.MethodPost,
 		c.SpliceUrlByPrefix(c.Conf.UrlPre, constvar.DbStatusUrl, ""), req, nil)
@@ -154,17 +138,18 @@ func (c *HaDBClient) GetDBDetectInfo() ([]model.HAAgentLogs, error) {
 		return nil, err
 	}
 	if len(result) == 0 {
-		return nil, fmt.Errorf("no gm available")
+		log.Logger.Debugf("no detected instance found")
 	}
+
 	return result, nil
 }
 
 // ReportDBStatus report detected instance's status
 func (c *HaDBClient) ReportDBStatus(app, agentIp, ip string, port int, dbType, status, bindGM string) error {
-	var result DbStatusResponse
+	var result HaAgentLogsResponse
 	currentTime := time.Now()
 
-	updateReq := DbStatusRequest{
+	updateReq := HaAgentLogsRequest{
 		DBCloudToken: c.Conf.BKConf.BkToken,
 		BKCloudID:    c.CloudId,
 		Name:         constvar.UpdateInstanceStatus,
@@ -205,7 +190,7 @@ func (c *HaDBClient) ReportDBStatus(app, agentIp, ip string, port int, dbType, s
 		log.Logger.Errorf("bug: update instance status affect rows %d", result.RowsAffected)
 	}
 
-	insertReq := DbStatusRequest{
+	insertReq := HaAgentLogsRequest{
 		DBCloudToken: c.Conf.BKConf.BkToken,
 		BKCloudID:    c.CloudId,
 		Name:         constvar.InsertInstanceStatus,
@@ -295,9 +280,10 @@ func (c *HaDBClient) RegisterDBHAInfo(
 		BKCloudID:    c.CloudId,
 		Name:         constvar.RegisterDBHAInfo,
 		QueryArgs: &model.HaStatus{
-			IP:     ip,
-			Module: module,
-			DbType: dbType,
+			CloudID: c.CloudId,
+			IP:      ip,
+			Module:  module,
+			DbType:  dbType,
 		},
 		SetArgs: &model.HaStatus{
 			IP:        ip,
@@ -368,8 +354,8 @@ func (c *HaDBClient) GetAliveAgentInfo(cityID int, dbType string, interval int) 
 	return result, nil
 }
 
-// GetAliveHAComponent get alive gm instance from ha_status table
-func (c *HaDBClient) GetAliveHAComponent(module string, interval int) ([]GMInfo, error) {
+// GetAliveHAComponent get alive ha component instance from ha_status table
+func (c *HaDBClient) GetAliveHAComponent(module string, interval int) ([]model.HaStatus, error) {
 	currentTime := time.Now().Add(-time.Second * time.Duration(interval))
 	req := HaStatusRequest{
 		DBCloudToken: c.Conf.BKConf.BkToken,
@@ -382,7 +368,7 @@ func (c *HaDBClient) GetAliveHAComponent(module string, interval int) ([]GMInfo,
 		},
 	}
 
-	log.Logger.Debugf("GetAliveHAInfo param:%#v", util.GraceStructString(req))
+	log.Logger.Debugf("GetAliveHAInfo param:%#v", util.GraceStructString(req.QueryArgs))
 
 	response, err := c.DoNew(http.MethodPost,
 		c.SpliceUrlByPrefix(c.Conf.UrlPre, constvar.HaStatusUrl, ""), req, nil)
@@ -394,7 +380,7 @@ func (c *HaDBClient) GetAliveHAComponent(module string, interval int) ([]GMInfo,
 		return nil, fmt.Errorf("%s failed, return code:%d, msg:%s", util.AtWhere(), response.Code, response.Msg)
 	}
 
-	result := make([]GMInfo, 0)
+	result := make([]model.HaStatus, 0)
 	err = json.Unmarshal(response.Data, &result)
 	if err != nil {
 		log.Logger.Errorf("GetAliveHAInfo failed, unmarshal failed, err:%s, data:%s", err.Error(), response.Data)
@@ -478,6 +464,42 @@ func (c *HaDBClient) ReporterGMHeartbeat(gmIP, module string, interval int) erro
 	if err != nil {
 		return err
 	}
+	return nil
+}
+
+// ReporterMonitorHeartbeat report global monitor heartbeat to ha_status
+func (c *HaDBClient) ReporterMonitorHeartbeat(monIP, detectType string) error {
+	var result HaStatusResponse
+
+	currentTime := time.Now()
+	req := HaStatusRequest{
+		DBCloudToken: c.Conf.BKConf.BkToken,
+		BKCloudID:    c.CloudId,
+		Name:         constvar.ReporterMonitorHeartbeat,
+		QueryArgs: &model.HaStatus{
+			IP:     monIP,
+			DbType: detectType,
+		},
+		SetArgs: &model.HaStatus{
+			LastTime: &currentTime,
+		},
+	}
+
+	log.Logger.Debugf("ReporterMonitorHeartbeat param:%#v", util.GraceStructString(req))
+
+	response, err := c.DoNew(http.MethodPost,
+		c.SpliceUrlByPrefix(c.Conf.UrlPre, constvar.HaStatusUrl, ""), req, nil)
+	if err != nil {
+		return err
+	}
+	if response.Code != 0 {
+		return fmt.Errorf("%s failed, return code:%d, msg:%s", util.AtWhere(), response.Code, response.Msg)
+	}
+	err = json.Unmarshal(response.Data, &result)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 

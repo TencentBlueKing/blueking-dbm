@@ -52,6 +52,8 @@ const (
 	GetAgentInfo = "agent_get_agent_info"
 	// UpdateAgentInfo TODO
 	UpdateAgentInfo = "reporter_agent_heartbeat"
+	// UpdateMonitorInfo TODO
+	UpdateMonitorInfo = "reporter_monitor_heartbeat"
 	// UpdateGMInfo TODO
 	UpdateGMInfo = "reporter_gm_heartbeat"
 	// GetAliveAgentInfo TODO
@@ -77,9 +79,7 @@ func Handler(ctx *fasthttp.RequestCtx) {
 	switch param.Name {
 	case GetGmInfo, GetAgentInfo:
 		GetHaInfo(ctx, param.QueryArgs)
-	case UpdateAgentInfo:
-		UpdateHaInfo(ctx, param.QueryArgs, param.SetArgs)
-	case UpdateGMInfo:
+	case UpdateAgentInfo, UpdateGMInfo, UpdateMonitorInfo:
 		UpdateHaInfo(ctx, param.QueryArgs, param.SetArgs)
 	case GetAliveHAInfo:
 		GetAliveHAByModule(ctx, param.QueryArgs)

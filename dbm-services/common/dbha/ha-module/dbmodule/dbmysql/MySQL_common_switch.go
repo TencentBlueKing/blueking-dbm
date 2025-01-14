@@ -934,7 +934,7 @@ func (ins *SpiderCommonSwitch) GetPrimary() error {
 // SetSpiderNodes get all spider nodes from dbmeta
 func (ins *SpiderCommonSwitch) SetSpiderNodes() error {
 	cmdbClient := client.NewCmDBClient(&ins.Config.DBConf.CMDB, ins.Config.GetCloudId())
-	rawData, err := cmdbClient.GetDBInstanceInfoByCluster(ins.ClusterName)
+	rawData, err := cmdbClient.GetDBInstanceInfoByAddress(ins.ClusterName)
 	if err != nil {
 		return fmt.Errorf("get all cluster instance info failed:%s", err.Error())
 	}

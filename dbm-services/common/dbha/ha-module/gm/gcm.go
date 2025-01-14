@@ -1,8 +1,6 @@
 package gm
 
 import (
-	"dbm-services/common/dbha/ha-module/util"
-	"dbm-services/common/dbha/hadb-api/model"
 	"fmt"
 	"time"
 
@@ -12,6 +10,8 @@ import (
 	"dbm-services/common/dbha/ha-module/dbutil"
 	"dbm-services/common/dbha/ha-module/log"
 	"dbm-services/common/dbha/ha-module/monitor"
+	"dbm-services/common/dbha/ha-module/util"
+	"dbm-services/common/dbha/hadb-api/model"
 )
 
 // GCM gcm work struct

@@ -10,6 +10,7 @@ import (
 	"dbm-services/common/dbha/ha-module/dbmodule"
 	"dbm-services/common/dbha/ha-module/dbutil"
 	"dbm-services/common/dbha/ha-module/log"
+	"dbm-services/common/dbha/ha-module/monitor"
 )
 
 // GQA work struct
@@ -200,6 +201,10 @@ func (gqa *GQA) getAllInstanceFromCMDB(
 	ip, _ := instance.db.GetAddress()
 	instances, err := gqa.CmDBClient.GetDBInstanceInfoByIp(ip)
 	if err != nil {
+		minInfo := monitor.GetApiAlertInfo(constvar.CmDBInstanceUrl, err.Error())
+		if e := monitor.MonitorSend("get instances failed", minInfo); e != nil {
+			log.Logger.Warnf(e.Error())
+		}
 		log.Logger.Errorf("get mysql instance failed. err:%s", err.Error())
 		return nil, err
 	}

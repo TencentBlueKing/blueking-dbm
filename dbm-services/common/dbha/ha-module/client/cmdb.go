@@ -1,14 +1,14 @@
 package client
 
 import (
+	"encoding/json"
+	"fmt"
+	"net/http"
+
 	"dbm-services/common/dbha/ha-module/config"
 	"dbm-services/common/dbha/ha-module/constvar"
 	"dbm-services/common/dbha/ha-module/log"
 	"dbm-services/common/dbha/ha-module/util"
-
-	"encoding/json"
-	"fmt"
-	"net/http"
 )
 
 // CmDBClient client to request cmdb
@@ -16,15 +16,25 @@ type CmDBClient struct {
 	Client
 }
 
-// DBInstanceInfoByAddressRequest fetch instances list from cmdb by ip
-type DBInstanceInfoByAddressRequest struct {
+// DBInstanceByAddressRequest fetch instances list from cmdb by ip
+type DBInstanceByAddressRequest struct {
 	DBCloudToken string   `json:"db_cloud_token"`
 	BKCloudID    int      `json:"bk_cloud_id"`
 	Addresses    []string `json:"addresses"`
 }
 
-// DBInstanceInfoRequest fetch instances list from cmdb by city and status
-type DBInstanceInfoRequest struct {
+// DBInstanceByClusterTypeRequest fetch instances list from cmdb by ip
+type DBInstanceByClusterTypeRequest struct {
+	DBCloudToken string   `json:"db_cloud_token"`
+	BKCloudID    int      `json:"bk_cloud_id"`
+	Statuses     []string `json:"statuses"`
+	HashCnt      int      `json:"hash_cnt"`
+	HashValue    int      `json:"hash_value"`
+	ClusterTypes []string `json:"cluster_types"`
+}
+
+// DBInstanceByCityRequest fetch instances list from cmdb by city and status
+type DBInstanceByCityRequest struct {
 	DBCloudToken   string   `json:"db_cloud_token"`
 	BKCloudID      int      `json:"bk_cloud_id"`
 	LogicalCityIDs []int    `json:"logical_city_ids"`
@@ -135,7 +145,7 @@ func NewCmDBClient(conf *config.APIConfig, cloudId int) *CmDBClient {
 // GetDBInstanceInfoByIp fetch instance info from cmdb by ip
 func (c *CmDBClient) GetDBInstanceInfoByIp(ip string) ([]interface{}, error) {
 	var res []interface{}
-	req := DBInstanceInfoByAddressRequest{
+	req := DBInstanceByAddressRequest{
 		DBCloudToken: c.Conf.BKConf.BkToken,
 		BKCloudID:    c.CloudId,
 		Addresses:    []string{ip},
@@ -156,62 +166,9 @@ func (c *CmDBClient) GetDBInstanceInfoByIp(ip string) ([]interface{}, error) {
 	return res, nil
 }
 
-// GetAllDBInstanceInfo detect running, available status instance
-func (c *CmDBClient) GetAllDBInstanceInfo() ([]interface{}, error) {
-	req := DBInstanceInfoRequest{
-		DBCloudToken: c.Conf.BKConf.BkToken,
-		BKCloudID:    c.CloudId,
-		Statuses:     []string{constvar.RUNNING, constvar.AVAILABLE},
-	}
-
-	response, err := c.DoNew(
-		http.MethodPost, c.SpliceUrlByPrefix(c.Conf.UrlPre, constvar.CmDBInstanceUrl, ""), req, nil)
-	if err != nil {
-		return nil, err
-	}
-	if response.Code != 0 {
-		return nil, fmt.Errorf("%s failed, return code:%d, msg:%s", util.AtWhere(), response.Code, response.Msg)
-	}
-
-	var res []interface{}
-	err = json.Unmarshal(response.Data, &res)
-	if err != nil {
-		return nil, err
-	}
-
-	return res, nil
-}
-
-// GetDBInstanceInfoByCity detect running, available status instance
-func (c *CmDBClient) GetDBInstanceInfoByCity(cityID int) ([]interface{}, error) {
-	req := DBInstanceInfoRequest{
-		DBCloudToken:   c.Conf.BKConf.BkToken,
-		BKCloudID:      c.CloudId,
-		LogicalCityIDs: []int{cityID},
-		Statuses:       []string{constvar.RUNNING, constvar.AVAILABLE},
-	}
-
-	response, err := c.DoNew(
-		http.MethodPost, c.SpliceUrlByPrefix(c.Conf.UrlPre, constvar.CmDBInstanceUrl, ""), req, nil)
-	if err != nil {
-		return nil, err
-	}
-	if response.Code != 0 {
-		return nil, fmt.Errorf("%s failed, return code:%d, msg:%s", util.AtWhere(), response.Code, response.Msg)
-	}
-
-	var res []interface{}
-	err = json.Unmarshal(response.Data, &res)
-	if err != nil {
-		return nil, err
-	}
-
-	return res, nil
-}
-
-// GetDBInstanceInfoByClusterType detect running, available status instance
-func (c *CmDBClient) GetDBInstanceInfoByClusterType(requestInfo DBInstanceInfoRequest) ([]interface{}, error) {
-	req := DBInstanceInfoRequest{
+// GetDBInstanceInfoByCityID detect running, available status instance
+func (c *CmDBClient) GetDBInstanceInfoByCityID(requestInfo DBInstanceByCityRequest) ([]interface{}, error) {
+	req := DBInstanceByCityRequest{
 		DBCloudToken:   c.Conf.BKConf.BkToken,
 		BKCloudID:      c.CloudId,
 		LogicalCityIDs: requestInfo.LogicalCityIDs,
@@ -221,7 +178,7 @@ func (c *CmDBClient) GetDBInstanceInfoByClusterType(requestInfo DBInstanceInfoRe
 		ClusterTypes:   requestInfo.ClusterTypes,
 	}
 
-	log.Logger.Debugf("GetDBInstanceInfo param:%#v", req)
+	log.Logger.Debugf("GetDBInstanceInfoByCityID param:%#v", req)
 
 	response, err := c.DoNew(
 		http.MethodPost, c.SpliceUrlByPrefix(c.Conf.UrlPre, constvar.CmDBInstanceUrl, ""), req, nil)
@@ -241,15 +198,47 @@ func (c *CmDBClient) GetDBInstanceInfoByClusterType(requestInfo DBInstanceInfoRe
 	return res, nil
 }
 
-// GetDBInstanceInfoByCluster fetch instance info from cmdb by ip
-func (c *CmDBClient) GetDBInstanceInfoByCluster(clusterName string) ([]interface{}, error) {
+// GetDBInstanceByClusterType detect running, available status instance
+func (c *CmDBClient) GetDBInstanceByClusterType(requestInfo DBInstanceByClusterTypeRequest) ([]interface{}, error) {
+	req := DBInstanceByClusterTypeRequest{
+		DBCloudToken: c.Conf.BKConf.BkToken,
+		BKCloudID:    c.CloudId,
+		Statuses:     []string{constvar.RUNNING, constvar.AVAILABLE},
+		HashCnt:      requestInfo.HashCnt,
+		HashValue:    requestInfo.HashValue,
+		ClusterTypes: requestInfo.ClusterTypes,
+	}
+
+	log.Logger.Debugf("GetDBInstanceByClusterType param:%#v", req)
+
+	response, err := c.DoNew(
+		http.MethodPost, c.SpliceUrlByPrefix(c.Conf.UrlPre, constvar.CmDBInstanceUrl, ""), req, nil)
+	if err != nil {
+		return nil, err
+	}
+	if response.Code != 0 {
+		return nil, fmt.Errorf("%s failed, return code:%d, msg:%s", util.AtWhere(), response.Code, response.Msg)
+	}
+
 	var res []interface{}
-	req := DBInstanceInfoByAddressRequest{
+	err = json.Unmarshal(response.Data, &res)
+	if err != nil {
+		return nil, err
+	}
+
+	return res, nil
+}
+
+// GetDBInstanceInfoByAddress fetch instance info from cmdb by ip
+func (c *CmDBClient) GetDBInstanceInfoByAddress(clusterName string) ([]interface{}, error) {
+	var res []interface{}
+	req := DBInstanceByAddressRequest{
 		DBCloudToken: c.Conf.BKConf.BkToken,
 		BKCloudID:    c.CloudId,
 		Addresses:    []string{clusterName},
 	}
 
+	log.Logger.Debugf("GetDBInstanceInfoByAddress param:%#v", req)
 	response, err := c.DoNew(
 		http.MethodPost, c.SpliceUrlByPrefix(c.Conf.UrlPre, constvar.CmDBInstanceUrl, ""), req, nil)
 	if err != nil {

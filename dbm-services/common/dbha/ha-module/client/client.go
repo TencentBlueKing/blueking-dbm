@@ -97,8 +97,9 @@ func (c *Client) DoNewForCB(
 	}
 
 	var retryErr error
+	var response interface{}
 	for retryIdx := 0; retryIdx < 5; retryIdx++ {
-		response, retryErr := c.doNewInner(method, url, params, headers, bodyCB)
+		response, retryErr = c.doNewInner(method, url, params, headers, bodyCB)
 		if retryErr == nil {
 			return response, nil
 		}
@@ -211,7 +212,7 @@ func (c *Client) doNewInner(method, url string, params interface{},
 
 	result, err := bodyCB(b)
 	if err != nil {
-		log.Logger.Errorf(err.Error())
+		log.Logger.Errorf(fmt.Sprintf("%s:%s", util.AtWhere(), err.Error()))
 		return nil, err
 	}
 	return result, nil

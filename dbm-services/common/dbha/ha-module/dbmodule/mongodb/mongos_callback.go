@@ -33,7 +33,7 @@ func NewMongosInstanceByCmDB(instances []interface{}, Conf *config.Config) ([]db
 	)
 
 	if unmarshalIns, err = UnMarshalMongosInstanceByCmdb(instances,
-		constvar.MongoShardCluster, constvar.Mongos); err != nil {
+		constvar.MongoShardedCluster, constvar.Mongos); err != nil {
 		return nil, err
 	}
 
@@ -55,7 +55,7 @@ func DeserializeMongos(jsonInfo []byte, conf *config.Config) (dbutil.DataBaseDet
 	}
 	var ret dbutil.DataBaseDetect
 	// gm将agent上报的数据结构转换为gdm通道接收的数据结构
-	ret = NewMongosDetectInstanceForGdm(&response, constvar.MongoShardCluster, conf)
+	ret = NewMongosDetectInstanceForGdm(&response, constvar.MongoShardedCluster, conf)
 	return ret, nil
 }
 

@@ -1,7 +1,7 @@
 SHELL := /bin/bash
 BASE_DIR = $(shell pwd)
-VERSION = 0.0.1
-GITHASH = ""
+VERSION = $(shell git describe --tags --always --dirty)
+GITHASH = $(shell git rev-parse --short HEAD)
 APPNAME = dbha
 GOOS ?= linux
 BUILD_FLAG = " -X main.version=${VERSION} -X main.githash=${GITHASH} "

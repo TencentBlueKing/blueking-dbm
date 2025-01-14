@@ -99,7 +99,7 @@ func init() {
 	}
 
 	// Mongos used
-	DBCallbackMap[constvar.MongoShardCluster] = Callback{
+	DBCallbackMap[constvar.MongoShardedCluster] = Callback{
 		FetchDBCallback:              mongodb.NewMongosInstanceByCmDB,
 		DeserializeCallback:          mongodb.DeserializeMongos,
 		GetSwitchInstanceInformation: mongodb.NewMongosSwitchInstance,

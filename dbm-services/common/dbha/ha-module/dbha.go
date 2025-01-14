@@ -4,11 +4,11 @@ import (
 	"flag"
 	"fmt"
 	"os"
-	"time"
 
 	"dbm-services/common/dbha/ha-module/agent"
 	"dbm-services/common/dbha/ha-module/config"
 	"dbm-services/common/dbha/ha-module/constvar"
+	"dbm-services/common/dbha/ha-module/globalmonitor"
 	"dbm-services/common/dbha/ha-module/gm"
 	"dbm-services/common/dbha/ha-module/log"
 	"dbm-services/common/dbha/ha-module/monitor"
@@ -17,16 +17,27 @@ import (
 
 var dbhaType string
 var configFile string
+var showVersion bool
+var version = "1.0.0"
+var githash = "unknown"
 
 // Init TODO
 func Init() {
 	flag.StringVar(&dbhaType, "type", "", `Input dbha type, ["agent","gm","monitor"]`)
 	flag.StringVar(&configFile, "config_file", "", "Input config file path")
+	flag.BoolVar(&showVersion, "version", false, "Show version")
 }
 
 func main() {
 	Init()
 	flag.Parse()
+
+	if showVersion {
+		fmt.Println("Version:", version)
+		fmt.Println("Git hash info:", githash)
+		os.Exit(0)
+	}
+
 	if flag.NFlag() != 2 {
 		fmt.Println("args wrong.")
 		os.Exit(1)
@@ -81,16 +92,13 @@ func main() {
 			os.Exit(1)
 		}
 	case constvar.MONITOR:
-		for {
-			if monInfo, err := monitor.CheckHAComponent(conf); err != nil {
-				if err = monitor.MonitorSend(err.Error(), monInfo); err != nil {
-					log.Logger.Fatalf("global monitor run failed. err:%s", err.Error())
-					os.Exit(1)
-				}
-			}
-			time.Sleep(time.Duration(conf.Monitor.MonitorInterval) * time.Second)
+		mon := globalmonitor.NewMonitorComponent(conf)
+		if err = mon.RegisterMonitorInfoToHaDB(); err != nil {
+			log.Logger.Fatalf("global monitor register failed:%s", err.Error())
 		}
-
+		if err = mon.Run(); err != nil {
+			log.Logger.Fatalf("global monitor run failed:%s", err.Error())
+		}
 	default:
 		log.Logger.Fatalf("unknow dbha type")
 		os.Exit(1)

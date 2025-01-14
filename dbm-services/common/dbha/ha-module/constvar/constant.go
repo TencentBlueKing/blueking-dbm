@@ -64,6 +64,15 @@ const (
 
 	// Mongos MONGOS = EnumField("mongos", _("mongos"))  # mongos
 	Mongos = "mongos"
+
+	// TendisCacheMetaType storage layer type name in PredixyRedisCluster
+	TendisCacheMetaType = "tendiscache"
+	// TendisPlusMetaType storage layer type name in PredixyTendisplusCluster
+	TendisPlusMetaType = "tendisplus"
+	// MongodbMetaType storage layer type name in MongoShardedCluster
+	MongodbMetaType = "mongodb"
+	// MongoConfigMetaType storage layer type name in MongoShardedCluster
+	MongoConfigMetaType = "mongo_config"
 )
 
 // instance role in cmdb
@@ -113,7 +122,7 @@ const (
 	SqlserverHA = "sqlserver_ha"
 
 	// MongoShardedCluster = EnumField("MongoShardedCluster", _("Mongo分片集群"))
-	MongoShardCluster = "MongoShardedCluster"
+	MongoShardedCluster = "MongoShardedCluster"
 )
 
 // wrapper name in TenDBCluster
@@ -168,6 +177,8 @@ const (
 	ReporterAgentHeartbeat = "reporter_agent_heartbeat"
 	// ReporterGMHeartbeat TODO
 	ReporterGMHeartbeat = "reporter_gm_heartbeat"
+	// ReporterMonitorHeartbeat TODO
+	ReporterMonitorHeartbeat = "reporter_monitor_heartbeat"
 	// QuerySingleTotal TODO
 	QuerySingleTotal = "query_single_total"
 	// QueryIntervalTotal TODO
@@ -377,6 +388,8 @@ const (
 	DBHAEventDoubleCheckAuth = "dbha_doublecheck_auth_fail"
 	// DBHAEventGlobalMonitor TODO
 	DBHAEventGlobalMonitor = "dbha_global_monitor"
+	// DBHAEventApiFailed TODO
+	DBHAEventApiFailed = "dbha_call_api_fail"
 
 	// MonitorInfoSwitch TODO
 	MonitorInfoSwitch = 0
@@ -384,6 +397,8 @@ const (
 	MonitorInfoDetect = 1
 	// MonitorInfoGlobal global monitor for component work normal
 	MonitorInfoGlobal = 2
+	// MonitorInfoAPI event name for api alert
+	MonitorInfoAPI = 3
 
 	// MonitorReportType TODO
 	MonitorReportType = "agent"

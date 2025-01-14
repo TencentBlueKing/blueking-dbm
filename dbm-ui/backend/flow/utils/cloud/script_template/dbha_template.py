@@ -306,6 +306,8 @@ mkdir -p $path/dbha/{{dbha_type}};
 cp /data/install/{{dbha_conf}} $path/dbha/{{dbha_type}};
 cp /data/install/dbha $path/dbha/{{dbha_type}};
 chmod -R 777 $path/dbha;
+systemctl start ntpd
+systemctl enable ntpd
 
 # 部署dbha服务
 cd $path/dbha/{{dbha_type}}
