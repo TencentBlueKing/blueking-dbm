@@ -90,18 +90,19 @@ func (t *TmysqlParse) doParseInchan(alreadExecutedSqlfileCh chan string,
 		wg.Add(1)
 		c <- struct{}{}
 		go func(fileName string) {
-			defer wg.Done()
 			cdbs, dbs, commands, dumpAllDbs, err := t.analyzeRelationDbs(fileName, mysqlVersion)
 			logger.Info("createDbs:%v,dbs:%v,dumpAllDbs:%v,err:%v", cdbs, dbs, dumpAllDbs, err)
 			if err != nil {
 				logger.Error("analyzeRelationDbs failed %s", err.Error())
 				errChan <- err
+				wg.Done()
 				return
 			}
 			// 如果有dumpall 则直接返回退出,不在继续分析
 			if dumpAllDbs {
 				dumpAll = true
 				<-c
+				wg.Done()
 				stopChan <- struct{}{}
 			}
 			t.mu.Lock()
@@ -110,6 +111,7 @@ func (t *TmysqlParse) doParseInchan(alreadExecutedSqlfileCh chan string,
 			allCommands = append(allCommands, commands...)
 			t.mu.Unlock()
 			<-c
+			wg.Done()
 		}(sqlfile)
 	}
 
@@ -170,12 +172,24 @@ func (t *TmysqlParse) analyzeRelationDbs(inputfileName, mysqlVersion string) (
 			return nil, nil, nil, false, fmt.Errorf("%s", res.ErrorMsg)
 		}
 		if lo.IsNotEmpty(res.Command) {
-			allCommandType = append(allCommandType, res.Command)
+			if res.Command == SQLTypeCreateTable {
+				var c CreateTableResult
+				if err = json.Unmarshal(line, &c); err != nil {
+					logger.Error("json unmasrshal line:%s failed %s", string(line), err.Error())
+					return nil, nil, nil, false, err
+				}
+				// 需要排除create table like
+				if !c.IsCreateTableLike && !c.IsCreateTableSelect {
+					allCommandType = append(allCommandType, res.Command)
+				}
+			} else {
+				allCommandType = append(allCommandType, res.Command)
+			}
 		}
 		if slices.Contains([]string{SQLTypeCreateProcedure, SQLTypeCreateFunction, SQLTypeCreateView, SQLTypeCreateTrigger,
 			SQLTypeInsertSelect, SQLTypeRelaceSelect},
 			res.Command) {
-			return nil, nil, nil, true, nil
+			return nil, nil, allCommandType, true, nil
 		}
 		if lo.IsEmpty(res.DbName) {
 			continue
@@ -207,7 +221,7 @@ func (tf *TmysqlParseFile) ParseSpecialTbls(mysqlVersion string) (relationTbls [
 	for k, v := range m {
 		relationTbls = append(relationTbls, RelationTbl{
 			DbName: k,
-			Tbls:   v,
+			Tbls:   lo.Uniq(v),
 		})
 	}
 	return relationTbls, nil

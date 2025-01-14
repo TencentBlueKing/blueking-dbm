@@ -39,6 +39,10 @@ const (
 	// SQLTypeCreateView is create view sql
 	SQLTypeCreateView = "create_view"
 
+	// SQLTypeInsert is insert sql
+	SQLTypeInsert = "insert"
+	// SQLTypeReplace is replace sql
+	SQLTypeReplace = "replace"
 	// SQLTypeAlterTable is alter table sql
 	SQLTypeAlterTable = "alter_table"
 	// SQLTypeDelete is delete sql
@@ -276,14 +280,12 @@ type CreateTrigger struct {
 type CreateFunction struct {
 	ParseBase
 	Definer UserHost `json:"definer,omitempty"`
-	// TODO
 }
 
 // CreateEvent  tmysqlparse create event result
 type CreateEvent struct {
 	ParseBase
 	Definer UserHost `json:"definer,omitempty"`
-	// TODO
 }
 
 // CreateIndex  tmysqlparse create index result

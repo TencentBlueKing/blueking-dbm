@@ -257,12 +257,27 @@ func (s SyntaxHandler) ParseSQLFileRelationDb(r *gin.Context) {
 		s.SendResponse(r, err, nil)
 		return
 	}
+	defer p.DelTempDir()
 	// 如果所有的命令都是alter table, dump指定库表
 	logger.Debug("debug: %v,%d", allCommands, len(allCommands))
-	if isAllOperateTable(allCommands) || isAllCreateTable(allCommands) {
+	if isAllOperateTable(allCommands) {
 		relationTbls, err := p.ParseSpecialTbls("")
 		if err != nil {
 			s.SendResponse(r, err, nil)
+			return
+		}
+		tblCount := 0
+		for _, tbl := range relationTbls {
+			tblCount += len(lo.Uniq(tbl.Tbls))
+		}
+		// sql语句的变更表数量大于5000,防止mysqldump 拼接参数过长导致执行失败
+		if tblCount > 5000 || len(relationTbls) > 100 {
+			s.SendResponse(r, nil, gin.H{
+				"create_dbs": createDbs,
+				"dbs":        dbs,
+				"dump_all":   dumpall,
+				"timestamp":  time.Now().Unix(),
+			})
 			return
 		}
 		s.SendResponse(r, nil, gin.H{
@@ -285,12 +300,20 @@ func (s SyntaxHandler) ParseSQLFileRelationDb(r *gin.Context) {
 }
 
 func isAllOperateTable(allCommands []string) bool {
-	return lo.Every([]string{syntax.SQLTypeAlterTable, syntax.SQLTypeUseDb,
-		syntax.SQLTypeCreateIndex, syntax.SQLTypeDropTable}, allCommands)
-}
-
-func isAllCreateTable(allCommands []string) bool {
-	return lo.Every([]string{syntax.SQLTypeCreateTable, syntax.SQLTypeUseDb}, allCommands)
+	if len(allCommands) == 0 {
+		return false
+	}
+	// 不允许只用use db
+	if len(allCommands) == 1 && allCommands[0] == syntax.SQLTypeUseDb {
+		return false
+	}
+	return lo.Every([]string{
+		syntax.SQLTypeAlterTable, syntax.SQLTypeUseDb,
+		syntax.SQLTypeCreateIndex, syntax.SQLTypeDropTable,
+		syntax.SQLTypeInsert, syntax.SQLTypeUpdate,
+		syntax.SQLTypeDelete, syntax.SQLTypeCreateTable,
+		syntax.SQLTypeReplace,
+	}, allCommands)
 }
 
 // ParseSQLRelationDb  语法检查入参SQL string
@@ -333,8 +356,8 @@ func (s *SyntaxHandler) ParseSQLRelationDb(r *gin.Context) {
 		return
 	}
 	// 如果所有的命令都是alter table, dump指定库表
-	logger.Info("make debug: %v,%d", allCommands, len(allCommands))
-	if isAllOperateTable(allCommands) || isAllCreateTable(allCommands) {
+	logger.Info("all command types: %v,%d", allCommands, len(allCommands))
+	if isAllOperateTable(allCommands) {
 		relationTbls, err := p.ParseSpecialTbls("")
 		if err != nil {
 			s.SendResponse(r, err, nil)
