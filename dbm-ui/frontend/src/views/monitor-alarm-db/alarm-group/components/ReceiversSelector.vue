@@ -21,6 +21,7 @@
       :default-alternate="defaultAlternate"
       :disabled="disabled"
       :fuzzy-search-method="fuzzySearchMethod"
+      :paste-validator="pasteValidator"
       :render-list="renderList"
       :render-tag="renderTag"
       :search-from-default-alternate="false"
@@ -226,6 +227,13 @@
   const handleRemoveSelected = () => {
     userSelectorRef.value.search();
   };
+
+  const pasteValidator = (values: string[]) =>
+    getUserList({
+      exact_lookups: values.join(','),
+      offset: 0,
+      limit: -1,
+    }).then((userResult) => userResult.results.map((userItem) => userItem.username));
 
   defineExpose<Exposes>({
     getSelectedReceivers() {
