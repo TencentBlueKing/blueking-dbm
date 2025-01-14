@@ -101,6 +101,10 @@
     }[];
   }
 
+  interface Emits {
+    (e: 'batch-edit', value: string[], field: string): void;
+  }
+
   const props = withDefaults(defineProps<Props>(), {
     minWidth: 200,
     required: false,
@@ -109,6 +113,8 @@
     allowAsterisk: false,
     rules: () => [],
   });
+
+  const emits = defineEmits<Emits>();
 
   const modelValue = defineModel<string[]>({
     required: true,
@@ -234,7 +240,7 @@
   };
 
   const handleBatchEditChange = (value: string[]) => {
-    modelValue.value = value;
+    emits('batch-edit', value, props.field);
   };
 
   const handleShowTips = () => {

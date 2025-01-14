@@ -75,14 +75,7 @@ const spiderRollbackRecordRoute = {
   component: () => import('@views/db-manage/tendb-cluster/rollback-record/Index.vue'),
 };
 
-const spiderDbClearRoute = {
-  path: 'db-clear/:page?',
-  name: 'spiderDbClear',
-  meta: {
-    navName: t('清档'),
-  },
-  component: () => import('@views/db-manage/tendb-cluster/db-clear/Index.vue'),
-};
+const spiderDbClearRoute = createRouteItem(TicketTypes.TENDBCLUSTER_TRUNCATE_DATABASE, t('清档'));
 
 const spiderChecksumRoute = {
   path: 'checksum/:page?',

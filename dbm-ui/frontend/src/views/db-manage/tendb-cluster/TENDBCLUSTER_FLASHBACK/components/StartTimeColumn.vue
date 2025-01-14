@@ -45,6 +45,12 @@
 
   import BatchEditColumn from '@views/db-manage/common/batch-edit-column/Index.vue';
 
+  interface Emits {
+    (e: 'batch-edit', value: string, field: string): void;
+  }
+
+  const emits = defineEmits<Emits>();
+
   const modelValue = defineModel<string>();
 
   const { t } = useI18n();
@@ -58,7 +64,7 @@
   };
 
   const handleBatchEditChange = (value: string) => {
-    modelValue.value = value;
+    emits('batch-edit', value, 'startTime');
   };
 </script>
 <style lang="less" scoped>

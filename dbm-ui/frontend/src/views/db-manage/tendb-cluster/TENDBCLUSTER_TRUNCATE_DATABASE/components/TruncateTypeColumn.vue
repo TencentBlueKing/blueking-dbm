@@ -13,16 +13,15 @@
 
 <template>
   <Column
-    field="backup"
-    :label="t('备份位置')"
-    :loading="loading"
+    field="truncateType"
+    :label="t('清档类型')"
     :min-width="200"
     required>
     <template #headAppend>
       <BatchEditColumn
         v-model="showBatchEdit"
-        :data-list="backupList"
-        :title="t('备份位置')"
+        :data-list="list"
+        :title="t('清档类型')"
         type="select"
         @change="handleBatchEditChange">
         <span
@@ -35,31 +34,20 @@
     </template>
     <Select
       v-model="modelValue"
-      :list="backupList" />
+      :list="list" />
   </Column>
 </template>
 
 <script lang="ts" setup>
   import { useI18n } from 'vue-i18n';
-  import { useRequest } from 'vue-request';
-
-  import { getTendbClusterList } from '@services/source/tendbcluster';
 
   import { Column, Select } from '@components/editable-table/Index.vue';
 
   import BatchEditColumn from '@views/db-manage/common/batch-edit-column/Index.vue';
 
-  interface Props {
-    cluster: {
-      id: number;
-    };
-  }
-
   interface Emits {
     (e: 'batch-edit', value: string, field: string): void;
   }
-
-  const props = defineProps<Props>();
 
   const emits = defineEmits<Emits>();
 
@@ -67,50 +55,29 @@
 
   const { t } = useI18n();
 
-  const showBatchEdit = ref(false);
-  const backupList = shallowRef<Record<'value' | 'label', string>[]>([]);
-
-  const { run: fetchClusterList, loading } = useRequest(getTendbClusterList, {
-    manual: true,
-    onSuccess(data) {
-      const baseList = [
-        {
-          value: 'remote',
-          label: 'RemoteDR',
-        },
-      ];
-      if (data.results.length < 1) {
-        backupList.value = [...baseList];
-        return;
-      }
-      const mntList = data.results[0].spider_mnt.map((item) => ({
-        label: `${item.ip}:${item.port}`,
-        value: `spider_mnt::${item.instance}`,
-      }));
-      backupList.value = [...baseList, ...mntList];
-    },
-  });
-
-  watch(
-    () => props.cluster.id,
-    () => {
-      if (props.cluster.id) {
-        fetchClusterList({
-          cluster_ids: [props.cluster.id],
-        });
-      }
+  const list = [
+    {
+      value: 'truncate_table',
+      label: t('清除表数据_truncatetable'),
     },
     {
-      immediate: true,
+      value: 'drop_table',
+      label: t('清除表数据和结构_droptable'),
     },
-  );
+    {
+      value: 'drop_database',
+      label: t('删除整库_dropdatabase'),
+    },
+  ];
+
+  const showBatchEdit = ref(false);
 
   const handleBatchEditShow = () => {
     showBatchEdit.value = true;
   };
 
   const handleBatchEditChange = (value: string) => {
-    emits('batch-edit', value, 'backup');
+    emits('batch-edit', value, 'truncateType');
   };
 </script>
 <style lang="less" scoped>

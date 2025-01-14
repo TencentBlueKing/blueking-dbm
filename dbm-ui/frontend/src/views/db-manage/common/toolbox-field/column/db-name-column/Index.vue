@@ -53,10 +53,16 @@
     checkNotExist?: boolean;
   }
 
+  interface Emits {
+    (e: 'batch-edit', value: string, field: string): void;
+  }
+
   const props = withDefaults(defineProps<Props>(), {
     checkExist: false,
     checkNotExist: false,
   });
+
+  const emits = defineEmits<Emits>();
 
   const modelValue = defineModel<string>({
     default: '',
@@ -131,7 +137,7 @@
   };
 
   const handleBatchEditChange = (value: string) => {
-    modelValue.value = value;
+    emits('batch-edit', value, props.field);
   };
 </script>
 <style lang="less" scoped>

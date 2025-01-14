@@ -20,7 +20,7 @@
     <template #headAppend>
       <BatchEditColumn
         v-model="showBatchEdit"
-        :title="t('回档时间')"
+        :title="t('截止时间')"
         type="datetime"
         @change="handleBatchEditChange">
         <span
@@ -65,7 +65,13 @@
     startTime: string;
   }
 
+  interface Emits {
+    (e: 'batch-edit', value: string, field: string): void;
+  }
+
   const props = defineProps<Props>();
+
+  const emits = defineEmits<Emits>();
 
   const modelValue = defineModel<string>();
 
@@ -86,7 +92,7 @@
   };
 
   const handleBatchEditChange = (value: string) => {
-    modelValue.value = value;
+    emits('batch-edit', value, 'endTime');
   };
 
   const handleNowTime = () => {

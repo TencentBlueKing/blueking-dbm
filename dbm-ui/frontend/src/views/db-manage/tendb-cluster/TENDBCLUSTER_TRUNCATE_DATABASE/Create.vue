@@ -16,13 +16,13 @@
     <BkAlert
       class="mb-20"
       closable
-      :title="t('闪回：通过 flashback 工具，对 row 格式的 binlog 做逆向操作')" />
+      :title="
+        t('清档：删除目标数据库数据, 数据会暂存在不可见的备份库中，只有在执行删除备份库后, 才会真正的删除数据。')
+      " />
     <BkForm
       class="mb-20"
       form-type="vertical"
       :model="formData">
-      <div class="title-spot mt-12 mb-10">{{ t('时区') }}<span class="required" /></div>
-      <TimeZonePicker style="width: 450px" />
       <EditableTable
         ref="table"
         class="mt-16 mb-20"
@@ -34,48 +34,56 @@
             v-model="item.cluster"
             :selected="selected"
             @batch-edit="handleBatchEditCluster" />
-          <StartTimeColumn
-            v-model="item.startTime"
-            @batch-edit="handleBatchEdit" />
-          <EndTimeColumn
-            v-model="item.endTime"
-            :start-time="item.startTime"
+          <TruncateTypeColumn
+            v-model="item.truncateType"
             @batch-edit="handleBatchEdit" />
           <TagDbNameColumn
-            v-model="item.databases"
+            v-model="item.dbPatterns"
             check-exist
             :cluster-id="item.cluster.id"
-            field="databases"
-            :label="t('目标库')"
+            field="dbPatterns"
+            :label="t('目标DB名')"
             required
             @batch-edit="handleBatchEdit" />
           <TagDbNameColumn
-            v-model="item.databasesIgnore"
+            v-model="item.ignoreDbs"
             check-not-exist
             :cluster-id="item.cluster.id"
-            field="databasesIgnore"
-            :label="t('忽略库')"
+            field="ignoreDbs"
+            :label="t('忽略DB名')"
             @batch-edit="handleBatchEdit" />
           <TagDbNameColumn
-            v-model="item.tables"
+            v-model="item.tablePatterns"
             check-exist
             :cluster-id="item.cluster.id"
-            field="tables"
-            :label="t('目标表')"
+            field="tablePatterns"
+            :label="t('目标表名')"
             required
             @batch-edit="handleBatchEdit" />
           <TagDbNameColumn
-            v-model="item.tablesIgnore"
+            v-model="item.ignoreTables"
             check-not-exist
             :cluster-id="item.cluster.id"
-            field="tablesIgnore"
-            :label="t('忽略表')"
+            field="ignoreTables"
+            :label="t('忽略表名')"
             @batch-edit="handleBatchEdit" />
           <OperationColumn
             v-model:table-data="formData.tableData"
             :create-row-method="createTableRow" />
         </EditableTableRow>
       </EditableTable>
+      <BkFormItem class="ignore-biz">
+        <BkCheckbox
+          v-model="formData.isSafe"
+          :false-label="false"
+          true-label>
+          <span
+            v-bk-tooltips="t('安全模式下_存在业务连接时需要人工确认')"
+            class="safe-action-text">
+            {{ t('安全模式') }}
+          </span>
+        </BkCheckbox>
+      </BkFormItem>
       <TicketRemark v-model="formData.remark" />
     </BkForm>
     <template #action>
@@ -100,41 +108,34 @@
   </SmartAction>
 </template>
 <script lang="ts" setup>
-  import _ from 'lodash';
   import { reactive, useTemplateRef } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import TendbClusterModel from '@services/model/tendbcluster/tendbcluster';
-  import { checkFlashbackDatabase } from '@services/source/remoteService';
 
   import { useCreateTicket } from '@hooks';
 
   import { TicketTypes } from '@common/const';
 
   import EditableTable, { Row as EditableTableRow } from '@components/editable-table/Index.vue';
-  import TimeZonePicker from '@components/time-zone-picker/index.vue';
 
   import OperationColumn from '@views/db-manage/common/toolbox-field/column/operation-column/Index.vue';
   import TagDbNameColumn from '@views/db-manage/common/toolbox-field/column/tag-db-name-column/Index.vue';
   import TicketRemark from '@views/db-manage/common/toolbox-field/form-item/ticket-remark/Index.vue';
 
-  import { messageError } from '@utils';
-
   import ClusterColumn from './components/ClusterColumn.vue';
-  import EndTimeColumn from './components/EndTimeColumn.vue';
-  import StartTimeColumn from './components/StartTimeColumn.vue';
+  import TruncateTypeColumn from './components/TruncateTypeColumn.vue';
 
   interface RowData {
     cluster: {
       id: number;
       master_domain: string;
     };
-    startTime: string;
-    endTime: string;
-    databases: string[];
-    databasesIgnore: string[];
-    tables: string[];
-    tablesIgnore: string[];
+    truncateType: string;
+    dbPatterns: string[];
+    ignoreDbs: string[];
+    tablePatterns: string[];
+    ignoreTables: string[];
   }
 
   const { t } = useI18n();
@@ -145,16 +146,16 @@
       id: 0,
       master_domain: '',
     },
-    startTime: data.startTime || '',
-    endTime: data.endTime || '',
-    databases: data.databases || [],
-    databasesIgnore: data.databasesIgnore || [],
-    tables: data.tables || [],
-    tablesIgnore: data.tablesIgnore || [],
+    truncateType: data.truncateType || '',
+    dbPatterns: data.dbPatterns || [],
+    ignoreDbs: data.ignoreDbs || [],
+    tablePatterns: data.tablePatterns || [],
+    ignoreTables: data.ignoreTables || [],
   });
 
   const defaultData = () => ({
     tableData: [createTableRow()],
+    isSafe: false,
     remark: '',
   });
 
@@ -165,40 +166,29 @@
   const { run: createTicketRun, loading: isSubmitting } = useCreateTicket<{
     infos: {
       cluster_id: number;
-      start_time: string;
-      end_time: string;
-      databases: string[];
-      tables: string[];
-      databases_ignore: string[];
-      tables_ignore: string[];
+      truncate_data_type: string;
+      db_patterns: string[];
+      table_patterns: string[];
+      ignore_dbs: string[];
+      ignore_tables: string[];
     }[];
-  }>(TicketTypes.TENDBCLUSTER_FLASHBACK);
+  }>(TicketTypes.TENDBCLUSTER_TRUNCATE_DATABASE);
 
   const handleSubmit = async () => {
     const result = await tableRef.value!.validate();
     if (!result) {
       return;
     }
-    const infos = formData.tableData.map((item) => ({
-      cluster_id: item.cluster.id,
-      start_time: item.startTime,
-      end_time: item.endTime,
-      databases: item.databases,
-      tables: item.tables,
-      databases_ignore: item.databasesIgnore,
-      tables_ignore: item.tablesIgnore,
-    }));
-    const checkResult = await checkFlashbackDatabase({
-      infos,
-    });
-    const checkResultError = _.find(checkResult, (item) => !!item.message);
-    if (checkResultError) {
-      messageError(checkResultError.message);
-      return;
-    }
     createTicketRun({
       details: {
-        infos,
+        infos: formData.tableData.map((item) => ({
+          cluster_id: item.cluster.id,
+          truncate_data_type: item.truncateType,
+          db_patterns: item.dbPatterns,
+          table_patterns: item.tablePatterns,
+          ignore_dbs: item.ignoreDbs,
+          ignore_tables: item.ignoreTables,
+        })),
       },
       remark: formData.remark,
     });
@@ -231,3 +221,10 @@
     });
   };
 </script>
+
+<style lang="less" scoped>
+  .safe-action-text {
+    padding-bottom: 2px;
+    border-bottom: 1px dashed #979ba5;
+  }
+</style>

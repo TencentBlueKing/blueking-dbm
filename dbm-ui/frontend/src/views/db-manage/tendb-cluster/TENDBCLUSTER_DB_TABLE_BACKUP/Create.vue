@@ -34,33 +34,38 @@
             @batch-edit="handleBatchEditCluster" />
           <BackupColumn
             v-model="item.backup"
-            :cluster="item.cluster" />
+            :cluster="item.cluster"
+            @batch-edit="handleBatchEdit" />
           <TagDbNameColumn
             v-model="item.dbPatterns"
             check-exist
             :cluster-id="item.cluster.id"
             field="dbPatterns"
             :label="t('备份DB名')"
-            required />
+            required
+            @batch-edit="handleBatchEdit" />
           <TagDbNameColumn
             v-model="item.ignoreDbs"
             check-not-exist
             :cluster-id="item.cluster.id"
             field="ignoreDbs"
-            :label="t('忽略DB名')" />
+            :label="t('忽略DB名')"
+            @batch-edit="handleBatchEdit" />
           <TagDbNameColumn
             v-model="item.tablePatterns"
             check-exist
             :cluster-id="item.cluster.id"
             field="tablePatterns"
             :label="t('备份表名')"
-            required />
+            required
+            @batch-edit="handleBatchEdit" />
           <TagDbNameColumn
             v-model="item.ignoreTables"
             check-not-exist
             :cluster-id="item.cluster.id"
             field="ignoreTables"
-            :label="t('忽略表名')" />
+            :label="t('忽略表名')"
+            @batch-edit="handleBatchEdit" />
           <OperationColumn
             v-model:table-data="formData.tableData"
             :create-row-method="createTableRow" />
@@ -194,5 +199,11 @@
       return acc;
     }, []);
     formData.tableData = [...(selected.value.length ? formData.tableData : []), ...dataList];
+  };
+
+  const handleBatchEdit = (value: any, field: string) => {
+    formData.tableData.forEach((item) => {
+      item[field as keyof RowData] = value;
+    });
   };
 </script>

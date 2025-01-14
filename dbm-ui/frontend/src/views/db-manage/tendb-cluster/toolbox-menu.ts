@@ -168,7 +168,7 @@ export default [
     children: [
       {
         name: t('清档'),
-        id: 'spiderDbClear',
+        id: TicketTypes.TENDBCLUSTER_TRUNCATE_DATABASE,
         parentId: 'spider_data',
         dbConsoleValue: 'tendbCluster.toolbox.dbClear',
       },
