@@ -281,6 +281,7 @@
 
   .db-navigation-header {
     display: flex;
+    white-space: nowrap;
 
     .nav-item {
       position: relative;
