@@ -11,101 +11,44 @@
  * the specific language governing permissions and limitations under the License.
  */
 
-import type { Settings } from 'bkui-vue/lib/table/props';
-import _ from 'lodash';
-
 import { useUserProfile } from '@stores';
 
-type TableSettingKeys = keyof Settings;
+interface Settings {
+  disabled?: string[];
+  checked?: string[];
+  size?: 'medium' | 'mini' | 'small';
+}
+
+// type TableSettingKeys = keyof Settings;
 
 /**
  * 用户个人配置表头字段
  */
 export const useTableSettings = (key: string, defaultSettings: Settings) => {
   const userProfileStore = useUserProfile();
+
   // 获取用户配置的表头信息
-  const settings = shallowRef(getSettings(userProfileStore.profile[key] || defaultSettings));
-
-  // 初始化设置
-  if (userProfileStore.profile[key] === undefined) {
-    updateTableSettings(defaultSettings);
-  }
-
-  function getSettings(updateSettings: Settings) {
-    const values: Settings = Object.assign({}, defaultSettings);
-    if (defaultSettings && updateSettings) {
-      // 获取后续新增字段
-      const newFields = [];
-      const defaultFields = defaultSettings.fields || [];
-      const updateFields = (updateSettings.fields || []).map((item) => item.field);
-      for (const item of defaultFields) {
-        // 新增字段
-        if (item.field && !updateFields.includes(item.field)) {
-          newFields.push(item);
-        }
-      }
-
-      for (const key of Object.keys(updateSettings)) {
-        const settingKey = key as TableSettingKeys;
-
-        // 以 default settings 为准设置 fields，确保增删生效
-        if (settingKey === 'fields') {
-          continue;
-        }
-
-        // 设置新增字段选中
-        if (settingKey === 'checked') {
-          const checked = updateSettings.checked || [];
-          const defaultChecked = defaultSettings.checked || [];
-          // 必须勾选项
-          const disabledFieldsChecked = (defaultSettings.fields || [])
-            .filter((item) => item.field && item.disabled)
-            .map((item) => item.field as string);
-          // 新增字段默认勾选项
-          const newFieldsChecked = newFields
-            .filter((item) => item.field && defaultChecked.includes(item.field))
-            .map((item) => item.field as string);
-
-          Object.assign(values, {
-            [settingKey]: _.uniq(checked.concat(disabledFieldsChecked, newFieldsChecked)),
-          });
-
-          continue;
-        }
-
-        // 确保以 update settings 为准
-        const updateValue = updateSettings[settingKey];
-        if (updateValue) {
-          Object.assign(values, {
-            [settingKey]: updateValue,
-          });
-        }
-      }
-    } else {
-      Object.assign(values, updateSettings);
-    }
-
-    return values;
+  const settings = shallowRef<{ checked?: string[]; disabled?: string[]; size?: string }>();
+  if (userProfileStore.profile[key]) {
+    settings.value = {
+      checked: userProfileStore.profile[key].checked || defaultSettings.checked,
+      disabled: defaultSettings.disabled,
+      size: userProfileStore.profile[key].size || defaultSettings.size || 'small',
+    };
   }
 
   /**
    * 更新表头设置
    */
-  function updateTableSettings(updateSettings: Settings) {
-    const newSettings = getSettings(updateSettings);
-    newSettings.fields = newSettings.fields?.map((item) => ({
-      field: item.field,
-    }));
-    userProfileStore
-      .updateProfile({
-        label: key,
-        values: newSettings,
-      })
-      .then(() => {
-        newSettings.fields = defaultSettings.fields;
-        settings.value = newSettings;
-      });
-  }
+  const updateTableSettings = (updateSettings: Settings) => {
+    userProfileStore.updateProfile({
+      label: key,
+      values: {
+        checked: updateSettings.checked,
+        size: updateSettings.size,
+      },
+    });
+  };
 
   return {
     settings,

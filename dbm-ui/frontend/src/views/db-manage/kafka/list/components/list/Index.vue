@@ -425,9 +425,7 @@
     },
   ]);
 
-  // 设置用户个人表头信息
-  const defaultSettings = {
-    fields: [],
+  const { settings: tableSetting, updateTableSettings } = useTableSettings(UserPersonalSettings.KAFKA_TABLE_SETTINGS, {
     checked: [
       'domain',
       'status',
@@ -438,14 +436,8 @@
       'zookeeper',
       'broker',
     ],
-    showLineHeight: false,
-    trigger: 'manual' as const,
-  };
-
-  const { settings: tableSetting, updateTableSettings } = useTableSettings(
-    UserPersonalSettings.KAFKA_TABLE_SETTINGS,
-    defaultSettings,
-  );
+    disabled: ['master_domain'],
+  });
 
   const getMenuList = async (item: ISearchItem | undefined, keyword: string) => {
     if (item?.id !== 'creator' && keyword) {

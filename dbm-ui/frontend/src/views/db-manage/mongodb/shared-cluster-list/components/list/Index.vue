@@ -105,16 +105,17 @@
         :selected-list="selected" />
       <RoleColumn
         :cluster-type="ClusterTypes.MONGO_SHARED_CLUSTER"
-        field="ShardSvr"
+        field="mongodb"
         :get-table-instance="getTableInstance"
-        label="mongodb"
+        label="ShardSvr"
         :search-ip="batchSearchIpInatanceList"
         :selected-list="selected" />
       <CommonColumn :cluster-type="ClusterTypes.MONGO_SHARED_CLUSTER" />
       <BkTableColumn
         :fixed="isStretchLayoutOpen ? false : 'right'"
         :label="t('操作')"
-        :min-width="200">
+        :min-width="260"
+        :show-overflow="false">
         <template #default="{data}: {data: MongodbModel}">
           <!-- 集群容量变更 -->
           <OperationBtnStatusTips
@@ -375,28 +376,23 @@
   const hasSelected = computed(() => selected.value.length > 0);
   const selectedIds = computed(() => selected.value.map((item) => item.id));
 
-  // 设置用户个人表头信息
-  const defaultSettings = {
-    fields: [],
-    checked: [
-      'cluster_name',
-      'master_domain',
-      'status',
-      'cluster_stats',
-      'major_version',
-      'disaster_tolerance_level',
-      'region',
-      'mongo_config',
-      'mongos',
-      'mongodb',
-    ],
-    showLineHeight: false,
-    trigger: 'manual' as const,
-  };
-
   const { settings: tableSetting, updateTableSettings } = useTableSettings(
     UserPersonalSettings.MONGODB_SHARED_CLUSTER_SETTINGS,
-    defaultSettings,
+    {
+      checked: [
+        'cluster_name',
+        'master_domain',
+        'status',
+        'cluster_stats',
+        'major_version',
+        'disaster_tolerance_level',
+        'region',
+        'mongo_config',
+        'mongos',
+        'mongodb',
+      ],
+      disabled: ['master_domain'],
+    },
   );
 
   const getMenuList = async (item: ISearchItem | undefined, keyword: string) => {

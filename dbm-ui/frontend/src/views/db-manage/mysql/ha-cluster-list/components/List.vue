@@ -436,8 +436,7 @@
     return funControllerStore.funControllerData.mysql.children[currentKey];
   });
 
-  const defaultSettings = {
-    fields: [],
+  const { settings, updateTableSettings } = useTableSettings(UserPersonalSettings.TENDBHA_TABLE_SETTINGS, {
     checked: [
       'master_domain',
       'status',
@@ -452,14 +451,8 @@
       'region',
       'bk_cloud_id',
     ],
-    showLineHeight: false,
-    trigger: 'manual' as const,
-  };
-
-  const { settings, updateTableSettings } = useTableSettings(
-    UserPersonalSettings.TENDBHA_TABLE_SETTINGS,
-    defaultSettings,
-  );
+    disabled: ['master_domain'],
+  });
 
   const getMenuList = async (item: ISearchItem | undefined, keyword: string) => {
     if (item?.id !== 'creator' && keyword) {

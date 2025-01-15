@@ -31,7 +31,7 @@
     </div>
     <DbTable
       ref="tableRef"
-      :data-source="getTaskflow"
+      :data-source="dataSource"
       @clear-search="handleClearSearch"
       @column-filter="columnFilterChange">
       <BkTableColumn
@@ -201,6 +201,14 @@
   const route = useRoute();
   const { t } = useI18n();
 
+  const isPlatformManage = route.name === 'platformTaskHistoryList';
+
+  const dataSource = (params: Parameters<typeof getTaskflow>[0]) =>
+    getTaskflow({
+      ...params,
+      bk_biz_id: isPlatformManage ? undefined : window.PROJECT_CONFIG.BIZ_ID,
+    });
+
   const { searchValue, columnCheckedMap, columnFilterChange, clearSearchValue, handleSearchValueChange } =
     useLinkQueryColumnSerach({
       searchType: ClusterTypes.TENDBHA,
@@ -286,15 +294,10 @@
             created_at__lte: format(new Date(daterange[1]), 'yyyy-MM-dd HH:mm:ss'),
           };
 
-    tableRef.value.fetchData(
-      {
-        ...dateParams,
-        ...getSearchSelectorParams(searchValue.value),
-      },
-      {
-        bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-      },
-    );
+    tableRef.value.fetchData({
+      ...dateParams,
+      ...getSearchSelectorParams(searchValue.value),
+    });
   };
 
   async function getMenuList(item: ISearchItem | undefined, keyword: string) {

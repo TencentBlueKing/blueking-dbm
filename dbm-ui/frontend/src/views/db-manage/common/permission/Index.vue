@@ -306,6 +306,7 @@
       field: 'user',
       minWidth: 200,
       fixed: 'left',
+      showOverflow: false,
       render: ({ data }: { data: PermissionRule }) => (
         <TextOverflowLayout>
           {{
@@ -360,6 +361,7 @@
       label: t('访问的DB名'),
       field: 'access_db',
       minWidth: 200,
+      showOverflow: false,
       render: ({ data }: { data: PermissionRule }) => {
         if (data.rules.length === 0) {
           return (
@@ -392,6 +394,7 @@
     {
       label: t('权限'),
       field: 'privilege',
+      showOverflow: false,
       minWidth: 250,
       render: ({ data }: { data: PermissionRule }) => (
         getRenderList(data).map((rule) => {
@@ -430,6 +433,7 @@
       label: t('操作'),
       width: 150,
       fixed: 'right',
+      showOverflow: false,
       render: ({ data }: { data: PermissionRule }) => {
         if (data.rules.length === 0) {
           return (
@@ -462,6 +466,7 @@
                 {t('授权')}
               </bk-button>
               {
+                configMap[props.accountType].buttonController[ButtonTypes.DELETE_RULE] &&
                 <OperationBtnStatusTips
                   disabled={!data.rules[index].priv_ticket}
                   data={{
@@ -479,8 +484,16 @@
                       {t('编辑')}
                     </bk-button>
                   }
-                  {
-                    configMap[props.accountType].buttonController[ButtonTypes.DELETE_RULE] &&
+                </OperationBtnStatusTips>
+              }
+              {
+                configMap[props.accountType].buttonController[ButtonTypes.DELETE_RULE] &&
+                <OperationBtnStatusTips
+                  disabled={!data.rules[index].priv_ticket}
+                  data={{
+                    operationStatusText: t('权限规则_t_任务正在进行中', { t: actionMap[data.rules[index].priv_ticket?.action] }),
+                    operationTicketId: data.rules[index].priv_ticket?.ticket_id,
+                  }}>
                     <bk-pop-confirm
                       width="288"
                       content={skipApproval.value ? t('删除规则后将不能恢复，请谨慎操作') : t('删除规则会创建单据，需此规则所有过往调用方审批后才执行删除。')}
@@ -496,7 +509,6 @@
                         {t('删除')}
                       </bk-button>
                     </bk-pop-confirm>
-                  }
                 </OperationBtnStatusTips>
               }
             </div>

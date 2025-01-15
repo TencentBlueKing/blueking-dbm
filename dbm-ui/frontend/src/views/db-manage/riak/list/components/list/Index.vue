@@ -347,9 +347,7 @@
 
   const selectedIds = computed(() => selected.value.map((item) => item.id));
 
-  // 设置用户个人表头信息
-  const defaultSettings = {
-    fields: [],
+  const { settings: tableSetting, updateTableSettings } = useTableSettings(UserPersonalSettings.RIAK_TABLE_SETTINGS, {
     checked: [
       'cluster_name',
       'major_version',
@@ -361,13 +359,8 @@
       'cluster_stats',
       'riak_node',
     ],
-    trigger: 'manual' as const,
-  };
-
-  const { settings: tableSetting, updateTableSettings } = useTableSettings(
-    UserPersonalSettings.RIAK_TABLE_SETTINGS,
-    defaultSettings,
-  );
+    disabled: ['master_domain'],
+  });
 
   watch(isStretchLayoutOpen, (newVal) => {
     emits('detailOpenChange', newVal);

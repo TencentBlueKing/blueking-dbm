@@ -142,7 +142,7 @@
             <AuthButton
               v-db-console="'doris.clusterManage.getAccess'"
               action-id="doris_access_entry_view"
-              class="ml-8"
+              class="ml-8 mr-8"
               :disabled="data.isOffline"
               :permission="data.permission.doris_access_entry_view"
               :resource="data.id"
@@ -212,7 +212,6 @@
               :data="data">
               <AuthButton
                 action-id="doris_destroy"
-                class="ml-8"
                 :disabled="Boolean(data.operationTicketId)"
                 :permission="data.permission.doris_destroy"
                 :resource="data.id"
@@ -429,9 +428,8 @@
     return classList.filter((cls) => cls).join(' ');
   };
 
-  // 设置用户个人表头信息
-  const defaultSettings = {
-    fields: [],
+  const { settings: tableSetting, updateTableSettings } = useTableSettings(UserPersonalSettings.DORIS_TABLE_SETTINGS, {
+    disabled: ['domain'],
     checked: [
       'domain',
       'cluster_name',
@@ -446,13 +444,7 @@
       'doris_backend_cold',
       'cluster_time_zone',
     ],
-    trigger: 'manual' as const,
-  };
-
-  const { settings: tableSetting, updateTableSettings } = useTableSettings(
-    UserPersonalSettings.DORIS_TABLE_SETTINGS,
-    defaultSettings,
-  );
+  });
 
   const getMenuList = async (item: ISearchItem | undefined, keyword: string) => {
     if (item?.id !== 'creator' && keyword) {

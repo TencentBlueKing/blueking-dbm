@@ -31,6 +31,7 @@
         :cell-class="generateCellClass"
         class="entry-config-table-box"
         :data="tableData"
+        :max-height="450"
         :show-overflow="false">
         <BkTableColumn
           field="entry"
