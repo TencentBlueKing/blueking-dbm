@@ -692,9 +692,10 @@
       const getDetails = () => {
         const details: Record<string, any> = _.cloneDeep(formdata.details);
         const { cityCode } = regionItemRef.value.getValue();
+        const { affinity } = details.resource_spec.backend;
 
         const regionAndDisasterParams = {
-          affinity: details.resource_spec.backend.affinity,
+          affinity,
           location_spec: {
             city: cityCode,
             sub_zone_ids: [],
@@ -739,7 +740,7 @@
                 },
               },
             },
-            disaster_tolerance_level: details.resource_spec.backend.affinity,
+            disaster_tolerance_level: affinity,
           };
         }
 
@@ -750,6 +751,7 @@
             proxy: formatNodes(formdata.details.nodes.proxy),
             backend: formatNodes(formdata.details.nodes.backend),
           },
+          disaster_tolerance_level: affinity,
         };
       };
 
