@@ -91,14 +91,10 @@ const spiderPrivilegeCloneClientRoute = createRouteItem(
   t('客户端权限克隆'),
 );
 
-const spiderPrivilegeCloneInstRoute = {
-  path: 'privilege-clone-inst/:page?',
-  name: 'spiderPrivilegeCloneInst',
-  meta: {
-    navName: t('DB 实例权限克隆'),
-  },
-  component: () => import('@views/db-manage/tendb-cluster/privilege-clone-inst/Index.vue'),
-};
+const spiderPrivilegeCloneInstRoute = createRouteItem(
+  TicketTypes.TENDBCLUSTER_INSTANCE_CLONE_RULES,
+  t('DB实例权限克隆'),
+);
 
 const spiderOpenareaTemplateRoute = {
   path: 'openarea-template',
