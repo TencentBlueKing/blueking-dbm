@@ -14,12 +14,14 @@ from datetime import datetime, time, timedelta
 from typing import Dict, List, Set
 
 import pytz
+from django.utils.translation import ugettext as _
 
 from backend.components.bklog.handler import BKLogHandler
 from backend.components.mysql_backup.client import SQLServerBackupApi
 from backend.db_meta.enums import ClusterPhase, ClusterType
 from backend.db_meta.models import Cluster
 from backend.db_report.models.sqlserver_check_report import SqlserverFullBackupInfoReport, SqlserverLogBackupInfoReport
+from backend.flow.utils.sqlserver.sqlserver_db_function import get_dbs_for_drs
 
 logger = logging.getLogger("root")
 
@@ -42,8 +44,8 @@ class CheckBackupInfo(object):
         midnight_utc = datetime.combine(today, time(), tzinfo=tz)
 
         # 增量备份的时间段检查(从0点开始检查前一天)
-        self.log_backup_start_time = midnight_utc - timedelta(days=1)
-        self.log_backup_end_time = midnight_utc
+        self.log_backup_start_time = midnight_utc - timedelta(days=1) + timedelta(seconds=300)
+        self.log_backup_end_time = midnight_utc + timedelta(seconds=300)
 
         # 全量备份的时间段检查(检查当天的)
         self.full_backup_start_time = midnight_utc
@@ -68,6 +70,14 @@ class CheckBackupInfo(object):
 
     def check_task(self):
         for cluster in self.clusters:
+            # 如果集群的创建时间大于起始时间，则跳过这次巡检
+            if cluster.create_at > self.full_backup_start_time or cluster.create_at > self.log_backup_start_time:
+                continue
+
+            # 如果集群是空集群，则跳过这次的巡检
+            if len(get_dbs_for_drs(cluster_id=cluster.id, db_list=["*"], ignore_db_list=[])) == 0:
+                continue
+
             self.check_full_backup_info_cluster(cluster)
             self.check_log_backup_info_cluster(cluster)
 
@@ -128,7 +138,7 @@ class CheckBackupInfo(object):
         is_normal = True
         if not backup_infos:
             # 如果查询到的备份文件为空， 怎么提前返回结果
-            return f"backup-info is null , check [{start_time}-{end_time}]", False
+            return _("查询集群没有备份记录上报到日志平台 [{}-{}]".format(start_time, end_time)), False
 
         # 根据backup id聚合备份记录
         backup_id__logs: Dict[str, List] = defaultdict(list)
@@ -150,17 +160,22 @@ class CheckBackupInfo(object):
             task_ids = [i["task_id"] for i in logs]
             result = self.check_backup_file_in_backup_system(task_ids=task_ids)
             if result:
-                check_result += f"[{backup_id}] {result}\n"
+                check_result += f"[{backup_id}][{logs[0]['host']}:{logs[0]['port']}] {result}\n"
                 is_normal = False
 
             # 判断每个备份任务的备份文件行数，跟bk_log上传的日志是否一致
             if len(logs) != logs[0]["file_cnt"]:
-                check_result += f"Backup tasks[{backup_id}] are missing backup records, check\n"
+                check_result += _(
+                    "备份 ID[{}][{}:{}] 备份文件记录数量不符合预期,预期数量: {}, 实际数量: {} \n ".format(
+                        backup_id, logs[0]["host"], logs[0]["port"], logs[0]["file_cnt"], len(logs)
+                    )
+                )
+
                 is_normal = False
 
         if not check_result:
             # 代表正常返回结果
-            return f"backup info check ok [{start_time}-{end_time}]", is_normal
+            return _("备份ID [{}-{}] 检查正常".format(start_time, end_time)), is_normal
 
         return check_result, is_normal
 
@@ -184,7 +199,7 @@ class CheckBackupInfo(object):
         # 判断长度
         if len(task_ids) != len(check_result):
             # 如果传入的任务列表长度和返回的结果长度不一致，则必定是有缺漏，返回异常
-            return "some backup files are not in the backup system, check"
+            return _("这次备份任务的某些文件在备份系统查询不到, 请检查")
 
         # 判断每个备份文件上传状态码，如果状态码不等于4（已上传完成），表示返回异常
         not_success_task_id_list = []
@@ -192,6 +207,6 @@ class CheckBackupInfo(object):
             if info["status"] != 4:
                 not_success_task_id_list.append(info["task_id"])
         if not_success_task_id_list:
-            return f"some backup files failed to upload, check:{not_success_task_id_list}"
+            return _("部分文件上传状态不正常，请检查。 异常上传ID列表{}".format(not_success_task_id_list))
 
         return ""

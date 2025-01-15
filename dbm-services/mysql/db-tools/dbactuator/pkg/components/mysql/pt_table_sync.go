@@ -238,7 +238,7 @@ func (c *PtTableSyncComp) ExecPtTableSync() (err error) {
 		// 拼接pt-table-sync 的执行命令
 		syncCmd := fmt.Sprintf(
 			"%s --replicate=%s.%s --sync-to-master --no-buffer-to-client --no-check-child-tables "+
-				"--chunk-size=%s --databases=%s --tables=%s --charset=%s h=%s,P=%d,u=%s,p=%s --execute",
+				"--chunk-size=%s --databases=%s --tables=%s --charset=%s h=%s,P=%d,u=%s,p=%s --execute --algorithms=Nibble ",
 			PtTableSyncPath, checkSumDB, getChecksumName, chunkSize, syncTable.DbName,
 			syncTable.TableName, Charset, c.Params.Host, c.Params.Port, c.Params.SyncUser, c.Params.SyncPass,
 		)
