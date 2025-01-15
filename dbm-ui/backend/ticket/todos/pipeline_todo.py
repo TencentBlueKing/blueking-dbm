@@ -17,7 +17,7 @@ from django.utils.translation import ugettext as _
 from backend.core import notify
 from backend.flow.engine.bamboo.engine import BambooEngine
 from backend.ticket import todos
-from backend.ticket.constants import TodoStatus, TodoType
+from backend.ticket.constants import TODO_RUNNING_STATUS, TodoStatus, TodoType
 from backend.ticket.models import Flow, TodoHistory
 from backend.ticket.todos import ActionType, BaseTodoContext
 
@@ -73,7 +73,7 @@ class PipelineTodo(todos.TodoActor):
             flow = Flow.objects.select_for_update().get(id=flow.id)
 
             # 当前不存在待确认的todo，则发送通知
-            if not flow.todo_of_flow.filter(type=TodoType.INNER_APPROVE).count():
+            if not flow.todo_of_flow.filter(type=TodoType.INNER_APPROVE, status__in=TODO_RUNNING_STATUS).count():
                 notify.send_msg.apply_async(args=(ticket.id,))
 
             Todo.objects.create(

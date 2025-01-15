@@ -19,7 +19,7 @@ TODO_TEMPLATE = _(
     业务: {{biz_name}}
     域名: {{cluster_domains}}
     备注: {{remark}}
-    当前处理人:  {{operators}}
+    当前处理人: {{operators}}，当前协助人: {{helpers}}
     查看详情: {{detail_address}}\
     """
 )
@@ -44,7 +44,7 @@ FAILED_TEMPLATE = _(
     业务: {{biz_name}}
     域名: {{cluster_domains}}
     失败时间: {{update_time}}
-    当前当前处理人:  {{operators}}
+    当前处理人: {{operators}}，当前协助人: {{helpers}}
     查看详情: {{detail_address}}\
     """
 )

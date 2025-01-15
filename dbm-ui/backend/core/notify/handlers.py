@@ -76,7 +76,8 @@ class BkChatHandler(BaseNotifyHandler):
     @staticmethod
     def get_actions(msg_type, ticket):
         """获取bkchat操作按钮"""
-        if ticket.status not in [TicketStatus.APPROVE, TicketStatus.TODO]:
+        # TODO: 暂时去掉[待确认]按钮
+        if ticket.status not in [TicketStatus.APPROVE]:
             return []
 
         todo = ticket.todo_of_ticket.filter(status=TodoStatus.TODO).first()
@@ -133,10 +134,12 @@ class BkChatHandler(BaseNotifyHandler):
     def send_msg(self, msg_type, context):
         ticket, phase, receivers = context["ticket"], context["phase"], context["receivers"]
         title, content = self.render_title_content(msg_type, self.title, self.content, ticket, phase, receivers)
+        ticket_operators = ticket.get_current_operators()
+        approvers = list(dict.fromkeys(ticket_operators["operators"] + ticket_operators["helpers"]))
         msg_info = {
             "title": title,
             # 处理人
-            "approvers": ticket.get_current_operators(),
+            "approvers": approvers,
             # 微信消息时 receiver生效，不发群消息，群消息时，receive_group，不发送个人消息
             "receiver": self.receivers if msg_type == MsgType.RTX else [],
             "receive_group": self.receivers if msg_type == MsgType.WECOM_ROBOT else [],
@@ -247,7 +250,7 @@ class NotifyAdapter:
     def get_support_msg_types(cls):
         # 获取当前环境下支持的通知类型
         # 所有的拓展方式都需要接入CMSI，所以直接返回CMSI支持方式即可
-        # 暂不暴露微信的通知方式
+        # TODO: 暂不暴露微信的通知方式
         msg_types = CmsiApi.get_msg_type()
         msg_type_map = {msg["type"]: msg for msg in msg_types}
         msg_type_map[MsgType.WEIXIN.value]["is_active"] = False
@@ -298,6 +301,7 @@ class NotifyAdapter:
             template = jinja_env.from_string(TODO_TEMPLATE)
 
         biz_name = AppCache.get_biz_name(self.bk_biz_id)
+        ticket_operators = self.ticket.get_current_operators()
         payload = {
             "ticket_type": TicketType.get_choice_label(self.ticket.ticket_type),
             "biz_name": f"{biz_name}(#{self.bk_biz_id}, {biz_name})",
@@ -307,7 +311,8 @@ class NotifyAdapter:
             "submit_time": self.ticket.create_at.astimezone().strftime("%Y-%m-%d %H:%M:%S%z"),
             "update_time": self.ticket.update_at.astimezone().strftime("%Y-%m-%d %H:%M:%S%z"),
             "status": TicketStatus.get_choice_label(self.phase),
-            "operators": ",".join(self.ticket.get_current_operators()),
+            "operators": ",".join(ticket_operators["operators"]),
+            "helpers": ",".join(ticket_operators["helpers"]),
             "detail_address": self.ticket.url,
             "terminate_reason": self.ticket.get_terminate_reason(),
         }
