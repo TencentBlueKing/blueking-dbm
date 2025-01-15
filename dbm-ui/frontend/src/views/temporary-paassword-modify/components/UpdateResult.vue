@@ -164,13 +164,6 @@
 
   const passwordDisplay = computed(() => (isShowPassword.value ? props.password : '********'));
 
-  // 轮询
-  const { isActive, resume, pause } = useTimeoutPoll(() => {
-    queryAsyncModifyResultRun({
-      root_id: props.rootId,
-    });
-  }, 2000);
-
   const getInstanceList = (list: ServiceReturnType<typeof queryAsyncModifyResult>['success'] = []) => {
     const arr: string[] = [];
     list.forEach((item) => {
@@ -208,6 +201,13 @@
       }
     },
   });
+
+  // 轮询
+  const { isActive, resume, pause } = useTimeoutPoll(() => {
+    queryAsyncModifyResultRun({
+      root_id: props.rootId,
+    });
+  }, 2000);
 
   watch(
     () => props.rootId,
