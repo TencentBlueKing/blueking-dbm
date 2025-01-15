@@ -73,6 +73,8 @@
 <script setup lang="ts">
   import { readonly } from 'vue';
 
+  import { useResizeObserver } from '@vueuse/core';
+
   import DragResize from './components/DragResize.vue';
 
   const props = withDefaults(defineProps<Props>(), {
@@ -159,6 +161,7 @@
     if (!isOpen.value) {
       renderLeftWidth.value = getMaxWidth();
     }
+    useResizeObserver(rootRef.value, handleWindowResize);
     window.addEventListener('resize', handleWindowResize);
   });
 

@@ -36,6 +36,7 @@
     </BkTab>
     <InstanceList
       v-if="activePanel === 'instance'"
+      :key="data ? data.id : 0"
       :data="data" />
     <RuleList
       v-else

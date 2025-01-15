@@ -121,7 +121,7 @@
             :data="data">
             <BkButton
               class="mr-8"
-              :disabled="data.isStarting || data.isOffline"
+              :disabled="data.isStarting || !data.isOffline"
               text
               theme="primary"
               @click="handleEnableCluster([data])">
@@ -133,7 +133,7 @@
             :data="data">
             <BkButton
               class="mr-8"
-              :disabled="data.isOnline || Boolean(data.operationTicketId)"
+              :disabled="!data.isOnline || Boolean(data.operationTicketId)"
               text
               theme="primary"
               @click="handleResetCluster(data)">
@@ -359,9 +359,7 @@
     },
   ]);
 
-  // 设置用户个人表头信息
-  const defaultSettings = {
-    fields: [],
+  const { settings, updateTableSettings } = useTableSettings(UserPersonalSettings.SQLSERVER_HA_TABLE_SETTINGS, {
     checked: [
       'master_domain',
       'status',
@@ -375,14 +373,8 @@
       'region',
       'spec_name',
     ],
-    showLineHeight: false,
-    trigger: 'manual' as const,
-  };
-
-  const { settings, updateTableSettings } = useTableSettings(
-    UserPersonalSettings.SQLSERVER_HA_TABLE_SETTINGS,
-    defaultSettings,
-  );
+    disabled: ['master_domain'],
+  });
 
   const getMenuList = async (item: ISearchItem | undefined, keyword: string) => {
     if (item?.id !== 'creator' && keyword) {

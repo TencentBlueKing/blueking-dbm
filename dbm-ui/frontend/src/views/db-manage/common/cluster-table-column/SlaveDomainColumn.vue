@@ -3,7 +3,9 @@
     class-name="cluster-table-slave-domain-column"
     field="slave_domain"
     :label="t('从访问入口')"
-    :min-width="280">
+    :min-width="280"
+    :show-overflow="false"
+    visiable>
     <template #header>
       <RenderHeadCopy
         :config="[
@@ -127,7 +129,7 @@
 
   const { t } = useI18n();
 
-  const renderCount = 1;
+  const renderCount = 6;
   const accessEntryDbConsole = computed(() => dbConsoleMap[props.clusterType]);
 
   const { handleCopySelected, handleCopyAll } = useColumnCopy(props);

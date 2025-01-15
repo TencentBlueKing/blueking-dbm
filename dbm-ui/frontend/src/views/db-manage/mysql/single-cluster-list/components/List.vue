@@ -371,16 +371,10 @@
   ]);
 
   // 设置用户个人表头信息
-  const defaultSettings = {
-    fields: [],
+  const { settings, updateTableSettings } = useTableSettings(UserPersonalSettings.TENDBSINGLE_TABLE_SETTINGS, {
     checked: ['master_domain', 'status', 'cluster_stats', 'masters', 'db_module_id', 'major_version', 'region'],
-    showLineHeight: false,
-    trigger: 'manual' as const,
-  };
-  const { settings, updateTableSettings } = useTableSettings(
-    UserPersonalSettings.TENDBSINGLE_TABLE_SETTINGS,
-    defaultSettings,
-  );
+    disabled: ['master_domain'],
+  });
 
   const getMenuList = async (item: ISearchItem | undefined, keyword: string) => {
     if (item?.id !== 'creator' && keyword) {

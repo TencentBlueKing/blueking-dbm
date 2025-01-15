@@ -89,18 +89,6 @@
         @refresh="fetchData" />
       <StatusColumn :cluster-type="ClusterTypes.MONGO_REPLICA_SET" />
       <ClusterStatsColumn :cluster-type="ClusterTypes.MONGO_REPLICA_SET" />
-      <BkTableColumn
-        field="major_version"
-        :filter="{
-          list: columnAttrs.major_version,
-          checked: columnCheckedMap.major_version,
-        }"
-        :label="t('MongoDB版本')"
-        :min-width="150">
-        <template #default="{data}: {data: MongodbModel}">
-          {{ data.major_version || '--' }}
-        </template>
-      </BkTableColumn>
       <RoleColumn
         :cluster-type="ClusterTypes.MONGO_REPLICA_SET"
         field="mongodb"
@@ -112,7 +100,7 @@
       <BkTableColumn
         :fixed="isStretchLayoutOpen ? false : 'right'"
         :label="t('操作')"
-        :min-width="200"
+        :min-width="260"
         :show-overflow="false">
         <template #default="{data}: {data: MongodbModel}">
           <OperationBtnStatusTips
@@ -122,6 +110,7 @@
               class="mr-8"
               :disabled="Boolean(data.isStructCluster) || data.operationDisabled"
               text
+              theme="primary"
               @click="handleCapacityChange(data)">
               {{ t('集群容量变更') }}
             </BkButton>
@@ -158,20 +147,20 @@
                   {{ t('禁用') }}
                 </BkButton>
               </OperationBtnStatusTips>
-              <BkDropdownItem v-db-console="'mongodb.replicaSetList.delete'">
-                <OperationBtnStatusTips :data="data">
-                  <BkButton
-                    v-bk-tooltips="{
-                      disabled: data.isOffline,
-                      content: t('请先禁用集群'),
-                    }"
-                    :disabled="data.isOnline || Boolean(data.operationTicketId)"
-                    text
-                    @click="handleDeleteCluster([data])">
-                    {{ t('删除') }}
-                  </BkButton>
-                </OperationBtnStatusTips>
-              </BkDropdownItem>
+            </BkDropdownItem>
+            <BkDropdownItem v-db-console="'mongodb.replicaSetList.delete'">
+              <OperationBtnStatusTips :data="data">
+                <BkButton
+                  v-bk-tooltips="{
+                    disabled: data.isOffline,
+                    content: t('请先禁用集群'),
+                  }"
+                  :disabled="data.isOnline || Boolean(data.operationTicketId)"
+                  text
+                  @click="handleDeleteCluster([data])">
+                  {{ t('删除') }}
+                </BkButton>
+              </OperationBtnStatusTips>
             </BkDropdownItem>
           </MoreActionExtend>
         </template>
@@ -261,11 +250,9 @@
   );
   const { isOpen: isStretchLayoutOpen, splitScreen: stretchLayoutSplitScreen } = useStretchLayout();
   const {
-    columnAttrs,
     searchAttrs,
     searchValue,
     sortValue,
-    columnCheckedMap,
     batchSearchIpInatanceList,
     columnFilterChange,
     columnSortChange,
@@ -373,26 +360,21 @@
   const hasSelected = computed(() => selected.value.length > 0);
   const selectedIds = computed(() => selected.value.map((item) => item.id));
 
-  // 设置用户个人表头信息
-  const defaultSettings = {
-    fields: [],
-    checked: [
-      'cluster_name',
-      'master_domain',
-      'status',
-      'cluster_stats',
-      'major_version',
-      'region',
-      'disaster_tolerance_level',
-      'mongodb',
-    ],
-    showLineHeight: false,
-    trigger: 'manual' as const,
-  };
-
   const { settings: tableSetting, updateTableSettings } = useTableSettings(
     UserPersonalSettings.MONGODB_REPLICA_SET_SETTINGS,
-    defaultSettings,
+    {
+      checked: [
+        'cluster_name',
+        'master_domain',
+        'status',
+        'cluster_stats',
+        'major_version',
+        'region',
+        'disaster_tolerance_level',
+        'mongodb',
+      ],
+      disabled: ['master_domain'],
+    },
   );
 
   const getMenuList = async (item: ISearchItem | undefined, keyword: string) => {

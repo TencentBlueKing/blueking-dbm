@@ -41,7 +41,7 @@ export enum FlowTypes {
  * 查询任务列表
  */
 export function getTaskflow(params: {
-  bk_biz_id: number;
+  bk_biz_id?: number;
   limit: number;
   offset: number;
   root_id?: string;

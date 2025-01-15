@@ -228,7 +228,7 @@
                 <OperationBtnStatusTips :data="data">
                   <AuthButton
                     action-id="tendbcluster_enable_disable"
-                    :disabled="data.operationTicketId"
+                    :disabled="Boolean(data.operationTicketId)"
                     :permission="data.permission.tendbcluster_enable_disable"
                     :resource="data.id"
                     text
@@ -566,14 +566,10 @@
     return classList.filter(cls => cls).join(' ');
   };
 
-  // 设置用户个人表头信息
-  const defaultSettings = {
-    // fields: (columns.value || []).filter(item => item.field).map(item => ({
-    //   label: item.label as string,
-    //   field: item.field as string,
-    //   disabled: ['master_domain'].includes(item.field as string),
-    // })),
-    fields: [],
+  const {
+    settings,
+    updateTableSettings,
+  } = useTableSettings(UserPersonalSettings.TENDBCLUSTER_TABLE_SETTINGS, {
     checked: [
       'master_domain',
       'slave_domain',
@@ -590,14 +586,8 @@
       'spec_name',
       'bk_cloud_id',
     ],
-    showLineHeight: false,
-    trigger: 'manual' as const,
-  };
-
-  const {
-    settings,
-    updateTableSettings,
-  } = useTableSettings(UserPersonalSettings.TENDBCLUSTER_TABLE_SETTINGS, defaultSettings);
+    disabled: ['master_domain'],
+  });
 
   let isInitData = true;
   const fetchTableData = () => {

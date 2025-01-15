@@ -432,11 +432,9 @@
     return classList.filter((cls) => cls).join(' ');
   };
 
-  // 设置用户个人表头信息
-  const defaultSettings = {
-    fields: [],
+  const { settings: tableSetting, updateTableSettings } = useTableSettings(UserPersonalSettings.ES_TABLE_SETTINGS, {
+    disabled: ['master_domain'],
     checked: [
-      'domain',
       'status',
       'cluster_stats',
       'major_version',
@@ -447,14 +445,7 @@
       'es_datanode_hot',
       'es_datanode_cold',
     ],
-    showLineHeight: false,
-    trigger: 'manual' as const,
-  };
-
-  const { settings: tableSetting, updateTableSettings } = useTableSettings(
-    UserPersonalSettings.ES_TABLE_SETTINGS,
-    defaultSettings,
-  );
+  });
 
   const getMenuList = async (item: ISearchItem | undefined, keyword: string) => {
     if (item?.id !== 'creator' && keyword) {

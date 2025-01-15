@@ -23,11 +23,11 @@
       <span
         v-bk-tooltips="{
           content: t('请选择实例'),
-          disabled: hasSelectedInstances,
+          disabled: hasSelected,
         }"
         class="inline-block">
         <BkButton
-          :disabled="!hasSelectedInstances"
+          :disabled="!hasSelected"
           @click="handleBatchStopInstance">
           {{ t('禁用') }}
         </BkButton>
@@ -35,11 +35,11 @@
       <span
         v-bk-tooltips="{
           content: t('请选择实例'),
-          disabled: hasSelectedInstances,
+          disabled: hasSelected,
         }"
         class="inline-block">
         <BkButton
-          :disabled="!hasSelectedInstances"
+          :disabled="!hasSelected"
           @click="handleBatchDeleteInstance">
           {{ t('删除') }}
         </BkButton>
@@ -47,13 +47,13 @@
       <span
         v-bk-tooltips="{
           content: t('请选择实例'),
-          disabled: hasSelectedInstances,
+          disabled: hasSelected,
         }"
         class="inline-block">
-        <BkDropdown :disabled="!hasSelectedInstances">
+        <BkDropdown :disabled="!hasSelected">
           <BkButton
             class="dropdown-button"
-            :disabled="!hasSelectedInstances">
+            :disabled="!hasSelected">
             {{ t('复制') }}
             <DbIcon type="up-big dropdown-button-icon" />
           </BkButton>
@@ -108,18 +108,21 @@
     <DbTable
       ref="tableRef"
       class="table-box"
-      :clear-selection="false"
       :columns="columns"
       :data-source="listDumperInstance"
+      primary-key="dumper_id"
       :row-class="setRowClass"
-      selection-key="dumper_id"
+      :row-config="{
+        useKey: true,
+        keyField: 'id',
+      }"
+      selectable
       :settings="settings"
       style="margin-bottom: 34px"
       @clear-search="handleClearFilters"
       @column-filter="handleColumnFilter"
       @request-finished="handleTableRequestFinished"
-      @select="handleSelect"
-      @select-all="handleSelectAll" />
+      @selection="handleSelect" />
   </div>
   <AppendSubscribeSlider
     v-model="showAppendSubscribeSlider"
@@ -250,11 +253,9 @@
   const activeRow = ref<DumperInstanceModel>();
   const runningTicketList = ref<number[]>([]);
 
-  const batchSelectInstances = shallowRef<Record<number, DumperInstanceModel>>({});
+  const selectedList = shallowRef<DumperInstanceModel[]>([]);
 
-  const selectedInstances = computed(() => Object.entries(batchSelectInstances.value));
-
-  const hasSelectedInstances = computed(() => selectedInstances.value.length > 0);
+  const hasSelected = computed(() => selectedList.value.length > 0);
 
   const isCN = computed(() => locale.value === 'zh-cn');
 
@@ -264,13 +265,6 @@
   } as Record<string, string>;
 
   const columns = [
-    {
-      type: 'selection',
-      width: 30,
-      minWidth: 30,
-      label: '',
-      fixed: 'left',
-    },
     {
       label: t('实例'),
       minWidth: 200,
@@ -575,7 +569,7 @@
     InfoBox({
       extCls: 'dumper-instance-infobox',
       infoType: 'warning',
-      title: t('确认批量禁用n个实例？', { n: selectedInstances.value.length }),
+      title: t('确认批量禁用n个实例？', { n: selectedList.value.length }),
       confirmText: t('禁用'),
       subTitle: t('禁用后数据传输将会终止，请谨慎操作！'),
       width: 400,
@@ -585,7 +579,7 @@
           ticket_type: TicketTypes.TBINLOGDUMPER_DISABLE_NODES,
           remark: '',
           details: {
-            dumper_instance_ids: selectedInstances.value.map(item => item[0]),
+            dumper_instance_ids: selectedList.value.map(item => item.id),
           },
 
         };
@@ -625,7 +619,7 @@
   const handleBatchDeleteInstance = () => {
     InfoBox({
       type: 'warning',
-      title: t('确认批量删除n个实例？', { n: selectedInstances.value.length }),
+      title: t('确认批量删除n个实例？', { n: selectedList.value.length }),
       confirmText: t('删除'),
       confirmButtonTheme: 'danger',
       content: t('删除后数据传输将会终止，并删除实例，请谨慎操作！'),
@@ -636,7 +630,7 @@
           ticket_type: TicketTypes.TBINLOGDUMPER_REDUCE_NODES,
           remark: '',
           details: {
-            dumper_instance_ids: selectedInstances.value.map(item => item[0]),
+            dumper_instance_ids: selectedList.value.map(item => item.id),
           },
 
         };
@@ -683,7 +677,7 @@
   };
 
   const handleCopySelected = (isInstance = false) => {
-    const list = Object.values(batchSelectInstances.value).map(item => `${item.ip}:${item.listen_port}`);
+    const list = selectedList.value.map(item => `${item.ip}:${item.listen_port}`);
     if (!isInstance) {
       copy(list.map(inst => inst.split(':')[0]).join(','));
       return;
@@ -693,30 +687,10 @@
   };
 
   // 选择单台
-  const handleSelect = (data: { checked: boolean, row: DumperInstanceModel }) => {
-    const selectedMap = { ...batchSelectInstances.value };
-    if (data.checked) {
-      selectedMap[data.row.id] = data.row;
-    } else {
-      delete selectedMap[data.row.id];
-    }
-
-    batchSelectInstances.value = selectedMap;
+  const handleSelect = (_idList: string[], list: DumperInstanceModel[]) => {
+    selectedList.value = list
   };
 
-  // 选择所有
-  const handleSelectAll = (data:{checked: boolean}) => {
-    let selectedMap = { ...batchSelectInstances.value };
-    if (data.checked) {
-      selectedMap = (tableRef.value.getData() as DumperInstanceModel[]).reduce((result, item) => ({
-        ...result,
-        [item.id]: item,
-      }), {});
-    } else {
-      selectedMap = {};
-    }
-    batchSelectInstances.value = selectedMap;
-  };
 
   const handleColumnFilter = (data: {
     checked: string[],

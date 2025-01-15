@@ -4,7 +4,8 @@
     :field="field"
     fixed="left"
     :label="label"
-    :min-width="columnMinWidth">
+    :min-width="columnMinWidth"
+    visiable>
     <template #header>
       <RenderHeadCopy
         :config="[
