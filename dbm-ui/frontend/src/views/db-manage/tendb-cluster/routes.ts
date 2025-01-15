@@ -86,14 +86,10 @@ const spiderChecksumRoute = {
   component: () => import('@views/db-manage/tendb-cluster/checksum/Index.vue'),
 };
 
-const spiderPrivilegeCloneClientRoute = {
-  path: 'privilege-clone-client/:page?',
-  name: 'spiderPrivilegeCloneClient',
-  meta: {
-    navName: t('客户端权限克隆'),
-  },
-  component: () => import('@views/db-manage/tendb-cluster/privilege-clone-client/Index.vue'),
-};
+const spiderPrivilegeCloneClientRoute = createRouteItem(
+  TicketTypes.TENDBCLUSTER_CLIENT_CLONE_RULES,
+  t('客户端权限克隆'),
+);
 
 const spiderPrivilegeCloneInstRoute = {
   path: 'privilege-clone-inst/:page?',

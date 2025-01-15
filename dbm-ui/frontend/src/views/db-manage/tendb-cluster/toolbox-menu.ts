@@ -187,7 +187,7 @@ export default [
     children: [
       {
         name: t('客户端权限克隆'),
-        id: 'spiderPrivilegeCloneClient',
+        id: TicketTypes.TENDBCLUSTER_CLIENT_CLONE_RULES,
         parentId: 'spider_privilege',
         dbConsoleValue: 'tendbCluster.toolbox.clientPermissionClone',
       },
