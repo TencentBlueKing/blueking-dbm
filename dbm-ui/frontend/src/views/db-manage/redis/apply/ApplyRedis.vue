@@ -821,9 +821,10 @@
     const getDetails = () => {
       const details: Record<string, any> = _.cloneDeep(state.formdata.details);
       const { cityCode } = regionItemRef.value.getValue();
+      const { affinity } = details.resource_spec.backend_group;
 
       const regionAndDisasterParams = {
-        affinity: details.resource_spec.backend_group.affinity,
+        affinity,
         location_spec: {
           city: cityCode,
           sub_zone_ids: [],
@@ -840,7 +841,7 @@
         return {
           ...details,
           cluster_shard_num: Number(specInfo.cluster_shard_num),
-          disaster_tolerance_level: details.resource_spec.backend_group.affinity,
+          disaster_tolerance_level: affinity,
           resource_spec: {
             proxy: {
               ...details.resource_spec.proxy,
@@ -871,6 +872,7 @@
           master: formatNodes(state.formdata.details.nodes.master),
           slave: formatNodes(state.formdata.details.nodes.slave),
         },
+        disaster_tolerance_level: affinity,
       };
     };
     const params = {
