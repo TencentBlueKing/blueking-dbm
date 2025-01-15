@@ -36,13 +36,13 @@ export function useAffinity(props: {
   ];
 
   const affinity = computed(() => {
-    const { city_code: cityCode, disaster_tolerance_level: disasterToleranceLevel } = props.details;
+    const { disaster_tolerance_level: disasterToleranceLevel } = props.details;
 
     if (!disasterToleranceLevel) {
       return '--';
     }
 
-    const realAffinityList = cityCode === 'default' ? defaultAffinityList : affinityList;
+    const realAffinityList = [...defaultAffinityList, ...affinityList];
     const index = realAffinityList.findIndex((affinityItem) => affinityItem.value === disasterToleranceLevel);
     return index > -1 ? realAffinityList[index].label : '--';
   });
