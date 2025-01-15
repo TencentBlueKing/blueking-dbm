@@ -2,13 +2,13 @@
   <div>
     <div
       v-for="item in data"
-      :key="item.immute_domain"
+      :key="item.entry"
       class="result-item"
       @click="handleGo(item)">
       <div class="value-text">
         <HightLightText
           :key-word="formattedKeyword"
-          :text="item.immute_domain" />
+          :text="item.entry" />
       </div>
       <div class="biz-text">
         {{ bizIdNameMap[item.bk_biz_id] }}
@@ -32,6 +32,7 @@
       id: number;
       immute_domain: string;
       name: string;
+      entry: string;
     }[];
     bizIdNameMap: Record<number, string>;
   }
