@@ -40,21 +40,15 @@
         label="ID"
         :min-width="120">
         <template #default="{data}: {data: TaskFlowModel}">
-          <AuthRouterLink
+          <AuthButton
             action-id="flow_detail"
             :permission="data.permission.flow_detail"
             :resource="data.root_id"
-            :to="{
-              name: 'taskHistoryDetail',
-              params: {
-                root_id: data.root_id,
-              },
-              query: {
-                from: route.name,
-              },
-            }">
+            text
+            theme="primary"
+            @click="handleGoDetail(data)">
             {{ data.root_id }}
-          </AuthRouterLink>
+          </AuthButton>
         </template>
       </BkTableColumn>
       <BkTableColumn
@@ -99,20 +93,16 @@
         :label="t('关联单据')"
         :width="100">
         <template #default="{data}: {data: TaskFlowModel}">
-          <AuthRouterLink
+          <AuthButton
             v-if="data.uid"
             action-id="ticket_view"
             :permission="data.permission.ticket_view"
             :resource="data.uid"
-            target="_blank"
-            :to="{
-              name: 'bizTicketManage',
-              params: {
-                ticketId: data.uid,
-              },
-            }">
+            text
+            theme="primary"
+            @click="handleGoTicketDetail(data)">
             {{ data.uid }}
-          </AuthRouterLink>
+          </AuthButton>
           <span v-else>--</span>
         </template>
       </BkTableColumn>
@@ -144,18 +134,15 @@
         :label="t('操作')"
         :width="120">
         <template #default="{data}: {data: TaskFlowModel}">
-          <AuthRouterLink
+          <AuthButton
             action-id="flow_detail"
             :permission="data.permission.flow_detail"
             :resource="data.root_id"
-            :to="{
-              name: 'taskHistoryDetail',
-              params: {
-                root_id: data.root_id,
-              },
-            }">
+            text
+            theme="primary"
+            @click="handleGoDetail(data)">
             {{ t('查看详情') }}
-          </AuthRouterLink>
+          </AuthButton>
           <BkButton
             v-if="includesResultFiles.includes(data.ticket_type) && data.status === 'FINISHED'"
             class="ml-6"
@@ -179,7 +166,7 @@
   import { format } from 'date-fns';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
-  import { useRoute } from 'vue-router';
+  import { useRoute, useRouter } from 'vue-router';
 
   import TaskFlowModel from '@services/model/taskflow/taskflow';
   import { getTaskflow } from '@services/source/taskflow';
@@ -193,11 +180,12 @@
 
   import DbStatus from '@components/db-status/index.vue';
 
-  import { getCostTimeDisplay, getMenuListSearch, getSearchSelectorParams } from '@utils';
+  import { getBusinessHref, getCostTimeDisplay, getMenuListSearch, getSearchSelectorParams } from '@utils';
 
   import type { ListState } from '../common/types';
   import RedisResultFiles from '../components/RedisResultFiles.vue';
 
+  const router = useRouter();
   const route = useRoute();
   const { t } = useI18n();
 
@@ -339,6 +327,31 @@
   const handleShowResultFiles = (id: string) => {
     resultFileState.isShow = true;
     resultFileState.rootId = id;
+  };
+
+  const handleGoDetail = (data: TaskFlowModel) => {
+    const { href } = router.resolve({
+      name: 'taskHistoryDetail',
+      params: {
+        root_id: data.root_id,
+      },
+      query: {
+        from: route.name as string,
+      },
+    });
+
+    window.open(getBusinessHref(href), '_blank');
+  };
+
+  const handleGoTicketDetail = (data: TaskFlowModel) => {
+    const { href } = router.resolve({
+      name: 'bizTicketManage',
+      params: {
+        ticketId: data.uid,
+      },
+    });
+
+    window.open(getBusinessHref(href), '_blank');
   };
 </script>
 
