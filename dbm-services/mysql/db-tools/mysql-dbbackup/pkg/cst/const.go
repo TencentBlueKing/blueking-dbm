@@ -127,3 +127,6 @@ const (
 	ToolMyrocksHotbackup = "myrocks_hotbackup"
 	ToolTokudbBackup     = "tokudb_back.pl"
 )
+
+// KillDelayMilliSec 中断信号延迟毫秒数
+const KillDelayMilliSec = 100

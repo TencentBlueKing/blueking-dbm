@@ -160,7 +160,7 @@ func (p *PhysicalDumper) buildArgs() []string {
 }
 
 // Execute excute dumping backup with physical backup tool
-func (p *PhysicalDumper) Execute(enableTimeOut bool) error {
+func (p *PhysicalDumper) Execute(ctx context.Context, enableTimeOut bool) error {
 	p.backupStartTime = time.Now()
 	defer func() {
 		p.backupEndTime = time.Now()
@@ -197,21 +197,7 @@ func (p *PhysicalDumper) Execute(enableTimeOut bool) error {
 	}
 
 	var cmd *exec.Cmd
-	if enableTimeOut {
-		timeDiffUnix, err := GetMaxRunningTime(p.cnf.Public.BackupTimeOut)
-		if err != nil {
-			return err
-		}
-		ctx, cancel := context.WithTimeout(context.Background(), (time.Duration(timeDiffUnix))*time.Second)
-		defer cancel()
-
-		cmd = exec.CommandContext(ctx,
-			"sh", "-c",
-			fmt.Sprintf(`%s %s`, binPath, strings.Join(args, " ")))
-	} else {
-		cmd = exec.Command("sh", "-c",
-			fmt.Sprintf(`%s %s`, binPath, strings.Join(args, " ")))
-	}
+	cmd = exec.CommandContext(ctx, "sh", "-c", fmt.Sprintf(`%s %s`, binPath, strings.Join(args, " ")))
 
 	xtrabackupLogFile := filepath.Join(logger.GetLogDir(),
 		fmt.Sprintf("xtrabackup_%d_%d.log", p.cnf.Public.MysqlPort, int(time.Now().Weekday())))

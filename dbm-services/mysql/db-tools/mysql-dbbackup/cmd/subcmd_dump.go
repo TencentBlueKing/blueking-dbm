@@ -9,9 +9,15 @@
 package cmd
 
 import (
+	"context"
+	errs "errors"
 	"fmt"
 	"math"
+	"os"
 	"path/filepath"
+	"strings"
+	"syscall"
+	"time"
 
 	"github.com/pkg/errors"
 	"github.com/spf13/viper"
@@ -27,10 +33,11 @@ import (
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/dbareport"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/logger"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/precheck"
+	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/util"
 )
 
 func init() {
-	dumpCmd.Flags().String("backup-type", cst.BackupTypeAuto, "overwrite Public.BackupType")
+	dumpCmd.Flags().StringP("backup-type", "t", cst.BackupTypeAuto, "overwrite Public.BackupType")
 	_ = viper.BindPFlag("Public.BackupType", dumpCmd.Flags().Lookup("backup-type"))
 
 	dumpCmd.PersistentFlags().String("backup-id", "", "overwrite Public.BackupId")
@@ -50,7 +57,7 @@ func init() {
 		"backup root path to save, overwrite Public.BackupDir")
 	dumpCmd.PersistentFlags().String("cluster-domain", "",
 		"cluster domain to report, overwrite Public.ClusterAddress")
-	dumpCmd.PersistentFlags().String("data-schema-grant", "",
+	dumpCmd.PersistentFlags().StringP("data-schema-grant", "g", "",
 		"all|schema|data|grant, overwrite Public.DataSchemaGrant")
 	dumpCmd.PersistentFlags().Int("is-full-backup", 0,
 		"report backup-id as full backup. default 0 means auto judge by backup-type,data-schema-grant")
@@ -130,12 +137,12 @@ func dumpExecute(cmd *cobra.Command, args []string) (err error) {
 	}
 	logger.Log.Infof("using config files: %v", cnfFiles)
 
-	var errList []error
+	var errList error
 	for _, f := range cnfFiles {
 		config.SetDefaults()
 		var cnf = config.BackupConfig{}
 		if err := initConfig(f, &cnf); err != nil {
-			errList = append(errList, errors.WithMessage(err, f))
+			errList = errs.Join(errList, errors.WithMessagef(err, "init failed for %d", cnf.Public.MysqlPort))
 			logger.Log.Error("Create Dbbackup: fail to parse ", f)
 			continue
 		}
@@ -147,27 +154,57 @@ func dumpExecute(cmd *cobra.Command, args []string) (err error) {
 				cnf.Public.IOLimitMasterFactor*float64(cnf.PhysicalBackup.Throttle)))
 		}
 
-		err := backupData(&cnf)
-		if err != nil {
-			logger.Log.Error("Create Dbbackup: Failure for ", f)
-			errList = append(errList, errors.WithMessage(err, f))
-			body.Dimension["bk_biz_id"] = cnf.Public.BkBizId
-			body.Dimension["cluster_domain"] = cnf.Public.ClusterAddress
-			body.Dimension["instance"] = fmt.Sprintf("%s:%d", cnf.Public.MysqlHost, cnf.Public.MysqlPort)
-			body.Content = fmt.Sprintf("run dbbackup failed for %s", f)
-			if sendErr := manager.SendEvent(body.Name, body.Content, body.Dimension); sendErr != nil {
-				logger.Log.Error("SendEvent failed for ", f, sendErr.Error())
+		var maxTimeoutSeconds int64 = 10 * 24 * 86400 // 最大允许单个备份任务跑 10 天
+		if strings.ToLower(cnf.Public.MysqlRole) == cst.RoleMaster && cnf.Public.BackupTimeOut != "" {
+			maxTimeoutSeconds, err = util.GetMaxRunningTime(cnf.Public.BackupTimeOut)
+			if err != nil {
+				errList = errs.Join(errList, err)
+				continue
 			}
+		}
+		if maxTimeoutSeconds < 5 { // +5 seconds
+			errList = errs.Join(errList, errors.Errorf("do not start backup %d, because of too short timeout %s",
+				cnf.Public.MysqlPort, cnf.Public.BackupTimeOut))
 			continue
 		}
+
+		ctx := context.Background()
+		done := make(chan error, 1)
+		go func() {
+			err := backupData(ctx, &cnf)
+			if err != nil {
+				logger.Log.Error("Create Dbbackup: Failure for ", f)
+				body.Dimension["bk_biz_id"] = cnf.Public.BkBizId
+				body.Dimension["cluster_domain"] = cnf.Public.ClusterAddress
+				body.Dimension["instance"] = fmt.Sprintf("%s:%d", cnf.Public.MysqlHost, cnf.Public.MysqlPort)
+				body.Content = fmt.Sprintf("run dbbackup failed for %s", f)
+				if sendErr := manager.SendEvent(body.Name, body.Content, body.Dimension); sendErr != nil {
+					logger.Log.Error("SendEvent failed for ", f, sendErr.Error())
+				}
+			}
+			done <- err
+		}()
+
+		select {
+		case doneErr := <-done:
+			errList = errs.Join(errList, doneErr)
+			continue
+		case <-time.After(time.Duration(maxTimeoutSeconds) * time.Second):
+			doneErr := fmt.Errorf("backup timeout exceed %s for port %d",
+				cnf.Public.BackupTimeOut, cnf.Public.MysqlPort)
+			errList = errs.Join(errList, doneErr)
+			time.Sleep(cst.KillDelayMilliSec * time.Millisecond)
+			syscall.Kill(os.Getpid(), syscall.SIGINT) // 确保子进程能够获取到中断信号
+			continue                                  //break  // 同一批发起的备份任务，某个任务超时，后续任务也不进行
+		}
 	}
-	if len(errList) > 0 {
-		return errors.Errorf("%v", errList)
+	if errList != nil {
+		return errList
 	}
 	return nil
 }
 
-func backupData(cnf *config.BackupConfig) (err error) {
+func backupData(ctx context.Context, cnf *config.BackupConfig) (err error) {
 	logger.Log.Infof("Dbbackup begin for %d", cnf.Public.MysqlPort)
 	// validate dumpBackup
 	if err = validate.GoValidateStruct(cnf.Public, false); err != nil {
@@ -205,7 +242,7 @@ func backupData(cnf *config.BackupConfig) (err error) {
 		logger.Log.Infof("backup nothing for %d, exit", cnf.Public.MysqlPort)
 		return nil
 	}
-	if err := precheck.BeforeDump(cnf); err != nil {
+	if err := precheck.BeforeDump(ctx, cnf); err != nil {
 		return err
 	}
 	// 备份权限 backup priv info
@@ -231,7 +268,7 @@ func backupData(cnf *config.BackupConfig) (err error) {
 
 	// ExecuteBackup 执行备份后，返回备份元数据信息
 	logger.Log.Info("backup main run:", cnf.Public.MysqlPort)
-	metaInfo, exeErr := backupexe.ExecuteBackup(cnf)
+	metaInfo, exeErr := backupexe.ExecuteBackup(ctx, cnf)
 	if exeErr != nil {
 		return exeErr
 	}

@@ -137,7 +137,7 @@ func (x *Xtrabackup) PostRun() (err error) {
 	logger.Info("restart local mysqld %d", x.TgtInstance.Port)
 	// 重启mysql（去掉 skip-grant-tables）
 	startParam.SkipGrantTables = false
-	startParam.SkipSlaveFlag = false
+	startParam.SkipSlaveFlag = false // 这里是否有 reset slave
 	startParam.MySQLUser = native.DBUserAdmin
 	if _, err := startParam.RestartMysqlInstance(); err != nil {
 		return errors.WithMessage(err, "RestartMysqlInstance")

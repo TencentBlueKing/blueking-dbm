@@ -12,6 +12,7 @@ package backupexe
 
 import (
 	"bufio"
+	"context"
 	"fmt"
 	"os"
 	"os/exec"
@@ -45,7 +46,7 @@ func (d *DumperGrant) initConfig(mysqlVerStr string) error {
 }
 
 // Execute call backup privileges
-func (d *DumperGrant) Execute(enableTimeOut bool) error {
+func (d *DumperGrant) Execute(ctx context.Context, enableTimeOut bool) error {
 	d.backupStartTime = cmutil.TimeToSecondPrecision(time.Now())
 	defer func() {
 		d.backupEndTime = cmutil.TimeToSecondPrecision(time.Now())

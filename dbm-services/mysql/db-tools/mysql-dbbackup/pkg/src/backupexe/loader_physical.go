@@ -81,6 +81,7 @@ func (p *PhysicalLoader) decompress() error {
 		fmt.Sprintf("--parallel=%d", p.cnf.PhysicalLoad.Threads),
 	}
 	if strings.Compare(p.mysqlVersion, "005007000") < 0 {
+		// xtrabackup <=5.6 没有 removal original 选项
 		args = append(args, p.cnf.PhysicalLoad.MysqlLoadDir)
 	} else {
 		args = append(args, "--remove-original")

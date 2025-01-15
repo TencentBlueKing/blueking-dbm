@@ -15,9 +15,11 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"os/signal"
 	"path/filepath"
 	"strconv"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/pkg/errors"
@@ -53,7 +55,7 @@ func (l *LogicalDumper) initConfig(mysqlVerStr string) error {
 }
 
 // Execute excute dumping backup with logical backup tool
-func (l *LogicalDumper) Execute(enableTimeOut bool) error {
+func (l *LogicalDumper) Execute(ctx context.Context, enableTimeOut bool) error {
 	l.backupStartTime = time.Now()
 	defer func() {
 		l.backupEndTime = time.Now()
@@ -147,22 +149,7 @@ func (l *LogicalDumper) Execute(enableTimeOut bool) error {
 	}
 
 	var cmd *exec.Cmd
-	if enableTimeOut {
-		timeDiffUnix, err := GetMaxRunningTime(l.cnf.Public.BackupTimeOut)
-		if err != nil {
-			return err
-		}
-		ctx, cancel := context.WithTimeout(context.Background(), (time.Duration(timeDiffUnix))*time.Second)
-		defer cancel()
-
-		cmd = exec.CommandContext(ctx,
-			"sh", "-c",
-			fmt.Sprintf(`%s %s`, binPath, strings.Join(args, " ")))
-	} else {
-		cmd = exec.Command("sh", "-c",
-			fmt.Sprintf(`%s %s`, binPath, strings.Join(args, " ")))
-	}
-
+	cmd = exec.CommandContext(ctx, "sh", "-c", fmt.Sprintf(`%s %s`, binPath, strings.Join(args, " ")))
 	logger.Log.Info("logical dump command: ", cmd.String())
 
 	mydumperLogFile := filepath.Join(logger.GetLogDir(),
@@ -178,18 +165,41 @@ func (l *LogicalDumper) Execute(enableTimeOut bool) error {
 
 	cmd.Stdout = outFile
 	cmd.Stderr = outFile
-	err = cmd.Run()
+
+	cmd.SysProcAttr = &syscall.SysProcAttr{
+		Setpgid: true,
+	}
+
+	if err = cmd.Start(); err != nil {
+		return err
+	}
+
+	sig := make(chan os.Signal)
+	signal.Notify(sig, syscall.SIGHUP, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT) // syscall.SIGKILL
+	go func() {
+		select {
+		case s := <-sig:
+			logger.Log.Warnf("dbbackup got signal: %v", s)
+			if cmd.Process != nil {
+				err := cmd.Process.Kill() // syscall.Kill(-cmd.Process.Pid,syscall.SIGKILL)
+				logger.Log.Warnf("kill mydumper %d exit with %v", cmd.Process.Pid, err)
+			}
+		}
+	}()
+
+	err = cmd.Wait()
 	if err != nil {
-		errStrPrefix := fmt.Sprintf("tail 5 error from %s", mydumperLogFile)
+		// mydumper 的错误信息要从头往后看，看最近的日志因为多线程的原因，不准确
+		errStrPrefix := fmt.Sprintf("head 5 error from %s", mydumperLogFile)
 		errStrDetail, _ := util.GrepLinesFromFile(mydumperLogFile, []string{"ERROR", "fatal", "critical"},
-			5, false, true)
+			5, false, false)
 		if len(errStrDetail) > 0 {
 			logger.Log.Info(errStrPrefix)
 			logger.Log.Error(errStrDetail)
 		} else {
-			logger.Log.Warn("tail can not find more detail error message from ", mydumperLogFile)
+			logger.Log.Warn("can not find more detail error message from ", mydumperLogFile)
 		}
-		logger.Log.Error("run logical backup failed", err, l.cnf.Public.MysqlPort)
+		logger.Log.Error("run logical backup failed ", err, l.cnf.Public.MysqlPort)
 		return errors.WithMessagef(err, fmt.Sprintf("%s\n%s", errStrPrefix, errStrDetail))
 	}
 	// check the integrity of backup

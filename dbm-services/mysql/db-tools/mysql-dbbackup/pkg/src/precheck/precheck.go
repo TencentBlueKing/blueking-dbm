@@ -12,6 +12,7 @@
 package precheck
 
 import (
+	"context"
 	"database/sql"
 
 	"github.com/pkg/errors"
@@ -28,7 +29,7 @@ import (
 // 检查字符集
 // 删除就备份
 // 检查磁盘空间
-func BeforeDump(cnf *config.BackupConfig) error {
+func BeforeDump(ctx context.Context, cnf *config.BackupConfig) error {
 	dbh, err := mysqlconn.InitConn(&cnf.Public)
 	if err != nil {
 		return err

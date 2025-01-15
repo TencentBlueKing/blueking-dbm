@@ -7,7 +7,6 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
-	"time"
 
 	"github.com/samber/lo"
 
@@ -172,27 +171,6 @@ func SetEnv(backupType string, mysqlVersionStr string) error {
 		return err
 	}
 	return nil
-}
-
-// GetMaxRunningTime Get MaxRunningTime from BackupTimeOut
-func GetMaxRunningTime(backupTimeOut string) (int64, error) {
-	deadline, err := time.Parse("15:04:05", backupTimeOut)
-	if err != nil {
-		logger.Log.Error("failed to parse BackupTimeOut, err: ", err)
-		return 0, err
-	}
-
-	currtime := time.Now()
-	duetime := time.Date(currtime.Year(), currtime.Month(), currtime.Day(),
-		deadline.Hour(), deadline.Minute(), deadline.Second(), deadline.Nanosecond(), deadline.Location())
-	currtimeUnix := currtime.Unix()
-	duetimeUnix := duetime.Unix()
-	if duetimeUnix < currtimeUnix {
-		duetimeUnix += 86400
-	}
-	timeDiffUinx := duetimeUnix - currtimeUnix
-
-	return timeDiffUinx, nil
 }
 
 // ParseJsonFile Parse JsonFile

@@ -12,6 +12,7 @@ import (
 	"strconv"
 	"strings"
 	"syscall"
+	"time"
 
 	"github.com/pkg/errors"
 	"github.com/spf13/cast"
@@ -304,4 +305,25 @@ func GrepLinesFromFile(logFilePath string, keywords []string, linesRet int, sens
 	} else {
 		return "", errors.WithMessage(err, cmdStdErr)
 	}
+}
+
+// GetMaxRunningTime Get MaxRunningTime from BackupTimeOut
+func GetMaxRunningTime(backupTimeOut string) (int64, error) {
+	deadline, err := time.ParseInLocation("15:04:05", backupTimeOut, time.Local)
+	if err != nil {
+		logger.Log.Error("failed to parse BackupTimeOut, err: ", err)
+		return 0, err
+	}
+
+	nowTime := time.Now().Local()
+	duetime := time.Date(nowTime.Year(), nowTime.Month(), nowTime.Day(),
+		deadline.Hour(), deadline.Minute(), deadline.Second(), deadline.Nanosecond(), deadline.Location())
+	currtimeUnix := nowTime.Unix()
+	duetimeUnix := duetime.Unix()
+	if duetimeUnix < currtimeUnix {
+		duetimeUnix += 86400
+	}
+	timeDiffUinx := duetimeUnix - currtimeUnix
+
+	return timeDiffUinx, nil
 }

@@ -58,8 +58,10 @@ func DeleteOldBackup(cnf *config.Public, expireDays int) error {
 			if strings.Contains(fi.Name(), fileMatch) || strings.Contains(fi.Name(), fileMatchOld) {
 				fileName := filepath.Join(cnf.BackupDir, fi.Name())
 				if fi.Size() > 4*1024*1024*1024 {
-					logger.Log.Infof("remove old backup file %s limit %dMB/s ", fileName, cnf.IOLimitMBPerSec)
-					if err2 := cmutil.TruncateFile(fileName, cnf.IOLimitMBPerSec); err2 != nil {
+					// remove 速度适度放大一点
+					removeLimit := cnf.IOLimitMBPerSec
+					logger.Log.Infof("remove old backup file %s limit %dMB/s ", fileName, removeLimit)
+					if err2 := cmutil.TruncateFile(fileName, removeLimit); err2 != nil {
 						// 尽可能清理，记录最后一个错误
 						err = err2
 						continue

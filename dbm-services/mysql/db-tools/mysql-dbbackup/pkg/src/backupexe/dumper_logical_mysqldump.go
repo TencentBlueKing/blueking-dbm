@@ -14,6 +14,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -33,6 +34,7 @@ import (
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/dbareport"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/logger"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/mysqlconn"
+	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/util"
 )
 
 // LogicalDumperMysqldump logical dumper using mysqldump tool
@@ -173,7 +175,7 @@ func MysqldumpHasOption(bin string, option string) (bool, error) {
 }
 
 // Execute excute dumping backup with logical backup tool[mysqldump]
-func (l *LogicalDumperMysqldump) Execute(enableTimeOut bool) (err error) {
+func (l *LogicalDumperMysqldump) Execute(ctx context.Context, enableTimeOut bool) (err error) {
 	var binPath string
 	if l.cnf.LogicalBackupMysqldump.BinPath != "" {
 		binPath = l.cnf.LogicalBackupMysqldump.BinPath
@@ -242,29 +244,17 @@ func (l *LogicalDumperMysqldump) Execute(enableTimeOut bool) (err error) {
 	if l.cnf.LogicalBackup.DisableCompress {
 		args = append(args, "-r", outSqlFile)
 	} else {
+		// 注意这里用了管道
+		// bash -c "aaa | bbb" 只要 bbb 命令没报错，返回值一直是 0，所有不能根据 return code 判断命令成功失败，而要从 stderr 判断
 		args = append(args, "|", CmdZstd, "-q", "-f", "-o", outSqlFile+cst.ZstdSuffix)
 	}
 	var cmd *exec.Cmd
-	if enableTimeOut {
-		timeDiffUnix, err := GetMaxRunningTime(l.cnf.Public.BackupTimeOut)
-		if err != nil {
-			return err
-		}
-		ctx, cancel := context.WithTimeout(context.Background(), (time.Duration(timeDiffUnix))*time.Second)
-		defer cancel()
-
-		cmd = exec.CommandContext(ctx,
-			"bash", "-c",
-			fmt.Sprintf(`%s %s`, binPath, strings.Join(args, " ")))
-	} else {
-		cmd = exec.Command("bash", "-c",
-			fmt.Sprintf(`%s %s`, binPath, strings.Join(args, " ")))
-	}
-
+	cmd = exec.CommandContext(ctx, "bash", "-c", fmt.Sprintf(`%s %s`, binPath, strings.Join(args, " ")))
 	logger.Log.Info("logical dump command with mysqldump: ", cmd.String())
 
-	outFile, err := os.Create(filepath.Join(logger.GetLogDir(),
-		fmt.Sprintf("mysqldump_%d.log", int(time.Now().Weekday()))))
+	mysqldumpLogFile := filepath.Join(logger.GetLogDir(),
+		fmt.Sprintf("mysqldump_%d_%d.log", l.cnf.Public.MysqlPort, int(time.Now().Weekday())))
+	outFile, err := os.OpenFile(mysqldumpLogFile, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0644)
 	if err != nil {
 		logger.Log.Error("create log file failed: ", err)
 		return err
@@ -273,9 +263,10 @@ func (l *LogicalDumperMysqldump) Execute(enableTimeOut bool) (err error) {
 		_ = outFile.Close()
 	}()
 	cmd.Stdout = outFile
-	//cmd.Stderr = outFile
 	var stderr bytes.Buffer
-	cmd.Stderr = &stderr
+
+	errWriter := io.MultiWriter(outFile, &stderr)
+	cmd.Stderr = errWriter
 
 	mysqldumpBeginTime := time.Now().Format("2006-01-02 15:04:05")
 	l.backupInfo.BackupBeginTime, err = time.ParseInLocation(cst.MydumperTimeLayout, mysqldumpBeginTime, time.Local)
@@ -314,9 +305,20 @@ func (l *LogicalDumperMysqldump) Execute(enableTimeOut bool) (err error) {
 	}
 
 	err = cmd.Run()
-	if err != nil {
-		logger.Log.Error("run logical backup(with mysqldump) failed: ", err, stderr.String())
-		return errors.WithMessage(err, stderr.String())
+	if err != nil || stderr.String() != "" {
+		errStrPrefix := fmt.Sprintf("tail 5 error from %s", mysqldumpLogFile)
+		errStrDetail, _ := util.GrepLinesFromFile(mysqldumpLogFile, nil, 2, false, true)
+		if len(errStrDetail) > 0 {
+			logger.Log.Info(errStrPrefix)
+			logger.Log.Error(errStrDetail)
+		} else {
+			logger.Log.Warn("tail can not find more detail error message from ", mysqldumpLogFile)
+		}
+		logger.Log.Error("run logical(mysqldump) backup failed", err, l.cnf.Public.MysqlPort)
+		if err == nil {
+			return errors.Errorf("%s\n%s", errStrPrefix, errStrDetail)
+		}
+		return errors.WithMessagef(err, fmt.Sprintf("%s\n%s", errStrPrefix, errStrDetail))
 	}
 	mysqldumpEndTime := time.Now().Format("2006-01-02 15:04:05")
 	l.backupInfo.BackupEndTime, err = time.ParseInLocation(cst.MydumperTimeLayout, mysqldumpEndTime, time.Local)

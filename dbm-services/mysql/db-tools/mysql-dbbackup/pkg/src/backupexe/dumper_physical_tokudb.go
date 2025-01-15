@@ -111,7 +111,7 @@ func (p *PhysicalTokudbDumper) initConfig(mysqlVersion string) error {
 }
 
 // Execute Perform data recovery operations.
-func (p *PhysicalTokudbDumper) Execute(enableTimeOut bool) error {
+func (p *PhysicalTokudbDumper) Execute(ctx context.Context, enableTimeOut bool) error {
 	p.backupStartTime = cmutil.TimeToSecondPrecision(time.Now())
 	defer func() {
 		p.backupEndTime = cmutil.TimeToSecondPrecision(time.Now())
@@ -131,20 +131,7 @@ func (p *PhysicalTokudbDumper) Execute(enableTimeOut bool) error {
 	// perform the dump operation
 	var cmd *exec.Cmd
 	backupCmd := fmt.Sprintf(`%s %s`, binPath, strings.Join(args, " "))
-
-	if enableTimeOut {
-		timeDiffUnix, err := GetMaxRunningTime(p.cfg.Public.BackupTimeOut)
-		if err != nil {
-			return err
-		}
-
-		ctx, cancel := context.WithTimeout(context.Background(), (time.Duration(timeDiffUnix))*time.Second)
-		defer cancel()
-
-		cmd = exec.CommandContext(ctx, "sh", "-c", backupCmd)
-	} else {
-		cmd = exec.Command("sh", "-c", backupCmd)
-	}
+	cmd = exec.CommandContext(ctx, "sh", "-c", backupCmd)
 
 	// create a dumper log file to store the log of the dumper command
 	p.backupLogfile = fmt.Sprintf("dumper_%s_%d_%d.log",

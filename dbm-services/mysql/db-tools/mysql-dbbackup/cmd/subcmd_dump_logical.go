@@ -11,6 +11,8 @@
 package cmd
 
 import (
+	"context"
+
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -45,10 +47,12 @@ func init() {
 	dumpLogicalCmd.Flags().BoolP("no-data", "d", false, "tables to dump, comma separated")
 	dumpLogicalCmd.Flags().BoolP("no-schemas", "m", false, "Do not dump table data")
 	//dumpLogicalCmd.Flags().BoolP("no-views", "W", false, "Do not dump VIEWs")
-	dumpLogicalCmd.Flags().BoolP("triggers", "G", false, "Dump triggers. By default, it do not dump triggers")
-	dumpLogicalCmd.Flags().BoolP("events", "E", false, "Dump stored procedures and functions. "+
-		"By default, it do not dump stored procedures nor functions")
-	dumpLogicalCmd.Flags().BoolP("routines", "R", false, "Dump events. By default, it do not dump events")
+	dumpLogicalCmd.Flags().BoolP("triggers", "G", false,
+		"Dump triggers. By default, it do not dump triggers. work only when data-schema-grant is empty")
+	dumpLogicalCmd.Flags().BoolP("events", "E", false,
+		"Dump events. By default, it do not dump events. work only when data-schema-grant is empty")
+	dumpLogicalCmd.Flags().BoolP("routines", "R", false,
+		"Dump stored procedures and functions. By default, it do not dump. work only when data-schema-grant is empty")
 	viper.BindPFlag("LogicalBackup.NoData", dumpLogicalCmd.Flags().Lookup("no-data"))
 	viper.BindPFlag("LogicalBackup.NoSchemas", dumpLogicalCmd.Flags().Lookup("no-schemas"))
 	//viper.BindPFlag("LogicalBackup.NoViews", dumpLogicalCmd.Flags().Lookup("no-views"))
@@ -102,11 +106,11 @@ var dumpLogicalCmd = &cobra.Command{
 		cnf.PhysicalBackup = config.PhysicalBackup{}
 		cnf.PhysicalLoad = config.PhysicalLoad{}
 		if cnf.Public.IsFullBackup == 0 {
-			cnf.Public.IsFullBackup = -1 // dumplogical command 一律不认为是 full backup，不可用于全库恢复
+			// cnf.Public.IsFullBackup = -1 // dumplogical command 一律不认为是 full backup，不可用于全库恢复
 		}
-		err = backupData(&cnf)
+		err = backupData(context.Background(), &cnf)
 		if err != nil {
-			logger.Log.Error("dumpbackup logical failed", err.Error())
+			logger.Log.Error("dumpbackup logical failed ", err.Error())
 		}
 		return err
 	},

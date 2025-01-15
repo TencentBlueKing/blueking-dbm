@@ -9,18 +9,17 @@
 package backupexe
 
 import (
-	"strings"
+	"context"
 
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/dbareport"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/mysqlconn"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/util"
 
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/config"
-	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/cst"
 )
 
 // ExecuteBackup execute dump backup command
-func ExecuteBackup(cnf *config.BackupConfig) (*dbareport.IndexContent, error) {
+func ExecuteBackup(ctx context.Context, cnf *config.BackupConfig) (*dbareport.IndexContent, error) {
 	// get mysql version from mysql server, and then set env variables
 	db, err := mysqlconn.InitConn(&cnf.Public)
 	if err != nil {
@@ -51,15 +50,10 @@ func ExecuteBackup(cnf *config.BackupConfig) (*dbareport.IndexContent, error) {
 	}
 
 	// needn't set timeout for slave
-	if strings.ToLower(cnf.Public.MysqlRole) == cst.RoleSlave || cnf.Public.BackupTimeOut == "" {
-		if err = dumper.Execute(false); err != nil {
-			return nil, err
-		}
-	} else {
-		if err = dumper.Execute(true); err != nil {
-			return nil, err
-		}
+	if err = dumper.Execute(ctx, false); err != nil {
+		return nil, err
 	}
+
 	metaInfo, err := dumper.PrepareBackupMetaInfo(cnf)
 	if err != nil {
 		return nil, err
