@@ -547,6 +547,7 @@ def tendbha_cluster_upgrade_subflow(
             root_id=root_id,
             parent_global_data=copy.deepcopy(parent_global_data),
             collect_sysinfo=True,
+            is_init=True,
             is_install_backup=True,
             is_install_monitor=True,
             is_install_rotate_binlog=True,
