@@ -205,19 +205,14 @@ export default class Tendbha extends ClusterBase {
     return displayName;
   }
 
-  get slaveDomainDisplayName() {
-    const port = this.slaves[0]?.port;
-    const displayName = port ? `${this.slave_domain}:${port}` : this.slave_domain;
-    return this.slave_domain ? displayName : '--';
-  }
-
   get slaveEntryList() {
-    return this.cluster_entry.filter((item) => item.role === 'slave_entry').map((item) => item.entry);
-  }
-
-  get slaveEntryDisplayList() {
     const port = this.slaves[0]?.port;
-    return this.slaveEntryList.map((item) => `${item}:${port}`);
+    return this.cluster_entry
+      .filter((item) => item.role === 'slave_entry')
+      .map((item) => ({
+        ...item,
+        port,
+      }));
   }
 
   get operationTagTips() {

@@ -1,12 +1,14 @@
 <template>
   <div>
-    <div class="cluster-list-role-instances-list-box">
+    <div
+      class="cluster-list-role-instances-list-box"
+      @mouseenter="handleToolsShow">
       <div
         v-for="(instanceItem, index) in renderData"
         :key="`${instanceItem.ip}:${instanceItem.port}`"
         :class="{ 'is-unavailable': instanceItem.status === 'unavailable' }">
         <TextOverflowLayout>
-          <span
+          <div
             class="pr-4"
             :style="{
               color:
@@ -22,7 +24,7 @@
               }">
               {{ instanceItem.ip }}:{{ instanceItem.port }}
             </slot>
-          </span>
+          </div>
           <template #append>
             <BkTag
               v-if="instanceItem.status === 'unavailable'"
@@ -35,52 +37,31 @@
                 data: instanceItem,
               }"
               name="nodeTag" />
-            <span
-              v-if="index === 0"
-              ref="copyRootRef">
-              <DbIcon
-                :class="{ 'is-active': isCopyIconClicked }"
-                style="display: none"
-                type="copy" />
+            <span v-if="index === 0 && isToolsShow">
+              <PopoverCopy>
+                <div @click="handleCopyIps">{{ t('复制IP') }}</div>
+                <div @click="handleCopyInstances">{{ t('复制实例') }}</div>
+              </PopoverCopy>
             </span>
           </template>
         </TextOverflowLayout>
       </div>
       <template v-if="data.length < 1"> -- </template>
-      <template v-if="data.length > renderInstanceCount">
-        <BkButton
-          text
-          theme="primary"
+      <template v-if="isShowMore">
+        <span
+          style="color: #3a84ff; cursor: pointer"
           @click="handleShowMore">
           <I18nT keypath="共n个">
             {{ data.length }}
           </I18nT>
           ,
           {{ t('查看更多') }}
-        </BkButton>
+        </span>
       </template>
     </div>
-    <div style="display: none">
-      <div ref="popRef">
-        <BkButton
-          class="cluster-role-instance-copy-btn"
-          text
-          theme="primary"
-          @click="handleCopyIps">
-          {{ t('复制IP') }}
-        </BkButton>
-        <span class="cluster-role-instance-copy-btn-split" />
-        <BkButton
-          class="cluster-role-instance-copy-btn"
-          text
-          theme="primary"
-          @click="handleCopyInstances">
-          {{ t('复制实例') }}
-        </BkButton>
-      </div>
-    </div>
     <BkDialog
-      v-model:is-show="isShowMore"
+      v-if="isToolsShow && isShowMore"
+      v-model:is-show="isShowInstanceDetail"
       render-directive="if"
       :title="title"
       :width="1100">
@@ -104,11 +85,11 @@
   </div>
 </template>
 <script setup lang="ts">
-  import tippy, { type Instance, type SingleTarget } from 'tippy.js';
   import { useI18n } from 'vue-i18n';
 
   import type { ClusterListNode } from '@services/types';
 
+  import PopoverCopy from '@components/popover-copy/Index.vue';
   import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
 
   import { execCopy, messageWarn } from '@utils';
@@ -136,14 +117,17 @@
 
   const renderInstanceCount = 6;
 
-  let tippyIns: Instance;
-
-  const copyRootRef = ref();
-  const popRef = ref();
-  const isShowMore = ref(false);
-  const isCopyIconClicked = ref(false);
+  const isToolsShow = ref(false);
+  const isShowInstanceDetail = ref(false);
+  const isShowMore = computed(() => props.data.length > renderInstanceCount);
 
   const renderData = computed(() => props.data.slice(0, renderInstanceCount));
+
+  const handleToolsShow = () => {
+    setTimeout(() => {
+      isToolsShow.value = true;
+    }, 1000);
+  };
 
   const handleCopyIps = () => {
     const ipList = [...new Set(props.data.map((item) => item.ip))];
@@ -170,44 +154,12 @@
   };
 
   const handleShowMore = () => {
-    isShowMore.value = true;
+    isShowInstanceDetail.value = true;
   };
 
   const handleClose = () => {
-    isShowMore.value = false;
+    isShowInstanceDetail.value = false;
   };
-
-  onMounted(() => {
-    if (copyRootRef.value) {
-      tippyIns = tippy(copyRootRef.value[0] as SingleTarget, {
-        content: () => popRef.value,
-        placement: 'top',
-        appendTo: () => document.body,
-        theme: 'light',
-        maxWidth: 'none',
-        trigger: 'mouseenter click',
-        interactive: true,
-        arrow: false,
-        allowHTML: true,
-        zIndex: 999999,
-        hideOnClick: true,
-        onShow() {
-          isCopyIconClicked.value = true;
-        },
-        onHide() {
-          isCopyIconClicked.value = false;
-        },
-      });
-    }
-  });
-
-  onBeforeUnmount(() => {
-    if (tippyIns) {
-      tippyIns.hide();
-      tippyIns.unmount();
-      tippyIns.destroy();
-    }
-  });
 </script>
 
 <style lang="less">

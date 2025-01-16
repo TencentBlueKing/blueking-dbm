@@ -238,10 +238,14 @@ export default class TendbCluster extends ClusterBase {
     return displayName;
   }
 
-  get slaveDomainDisplayName() {
+  get slaveEntryList() {
     const port = this.spider_slave[0]?.port;
-    const displayName = port ? `${this.slave_domain}:${port}` : this.slave_domain;
-    return this.slave_domain ? displayName : '--';
+    return this.cluster_entry
+      .filter((item) => item.role === 'slave_entry')
+      .map((item) => ({
+        ...item,
+        port,
+      }));
   }
 
   get operationTagTips() {
