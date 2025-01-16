@@ -37,16 +37,6 @@
               :pop-width="240"
               :rules="versionRules"
               @change="(value) => handleVersionChange(value as string)">
-              <template #default="{ item }">
-                <span>{{ item.name }}</span>
-                <!-- <BkTag
-                  v-if="item.name.split('-')[1] === data.currentVersion.split('-')[1]"
-                  class="ml-4"
-                  size="small"
-                  theme="info">
-                  {{ t('当前版本') }}
-                </BkTag> -->
-              </template>
             </TableEditSelect>
           </div>
         </div>
@@ -90,7 +80,9 @@
         <div class="content-item">
           <div class="item-title">{{ t('绑定模块') }}：</div>
           <div class="item-content">
+            <span v-if="isCurrentMajorVersion">{{ data.moduleName }}</span>
             <TableEditSelect
+              v-else
               ref="moduleSelectRef"
               is-plain
               :list="moduleSelectList"
@@ -179,10 +171,11 @@
   interface Exposes {
     getValue: () => Promise<{
       pkg_id: number;
-      new_db_module_id: number;
+      new_db_module_id?: number;
       display_info: {
         target_version: string;
-        target_module_name: string;
+        target_package: string;
+        target_module_name?: string;
       };
     }>;
   }
@@ -236,6 +229,13 @@
     },
   ];
 
+  const isCurrentMajorVersion = computed(() => {
+    if (localVersion.value) {
+      return props.data?.currentVersion === localVersion.value;
+    }
+    return true;
+  });
+
   const { run: queryMysqlHigherVersionPkgListRun } = useRequest(queryMysqlHigherVersionPkgList, {
     manual: true,
     onSuccess(versions) {
@@ -255,7 +255,7 @@
         name: version,
       }));
 
-      if (versionSelectList.value.length) {
+      if (!localVersion.value && versionSelectList.value.length) {
         localVersion.value = versionSelectList.value[0].id as string;
         fetchModuleList();
       }
@@ -266,7 +266,7 @@
           name: versionItem.pkg_name,
         }));
 
-        if (packageSelectList.value.length) {
+        if (!localPackage.value && packageSelectList.value.length) {
           localPackage.value = packageSelectList.value[0].id as number;
         }
       }
@@ -319,7 +319,7 @@
       if (props.data?.clusterId) {
         queryMysqlHigherVersionPkgListRun({
           cluster_id: props.data.clusterId,
-          higher_major_version: true,
+          higher_all_version: true,
         });
       }
     },
@@ -400,6 +400,7 @@
 
   const handleVersionChange = (value: string) => {
     localVersion.value = value;
+    localModule.value = '';
     fetchModuleList();
   };
 
@@ -415,7 +416,7 @@
     const url = router.resolve({
       name: 'SelfServiceCreateDbModule',
       params: {
-        type: TicketTypes.MYSQL_HA_APPLY,
+        type: TicketTypes.MYSQL_SINGLE_APPLY,
         bk_biz_id: bizId,
       },
       query: {
@@ -431,9 +432,18 @@
 
   defineExpose<Exposes>({
     getValue() {
-      return Promise.all([packageSelectRef.value!.getValue(), moduleSelectRef.value?.getValue()]).then(() => ({
+      if (isCurrentMajorVersion.value) {
+        return packageSelectRef.value!.getValue().then(() => ({
+          pkg_id: localPackage.value as number,
+          display_info: {
+            target_version: localVersion.value,
+            target_package: packageSelectList.value.find((item) => item.id === localPackage.value)?.name || '',
+          },
+        }));
+      }
+      return Promise.all([packageSelectRef.value!.getValue(), moduleSelectRef.value!.getValue()]).then(() => ({
         pkg_id: localPackage.value as number,
-        new_db_module_id: localModule.value as number,
+        new_db_module_id: localModule.value,
         display_info: {
           target_version: localVersion.value,
           target_package: packageSelectList.value.find((item) => item.id === localPackage.value)?.name || '',

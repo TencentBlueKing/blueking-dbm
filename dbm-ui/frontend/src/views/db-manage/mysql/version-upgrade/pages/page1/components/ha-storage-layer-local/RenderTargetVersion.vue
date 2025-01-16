@@ -108,7 +108,6 @@
   interface Exposes {
     getValue: () => Promise<{
       pkg_id: number;
-      new_db_module_id: number;
       display_info: {
         target_version: string;
         target_package: string;
@@ -128,7 +127,6 @@
   const { t } = useI18n();
 
   const packageSelectRef = ref<InstanceType<typeof TableEditSelect>>();
-  const moduleSelectRef = ref<InstanceType<typeof TableEditSelect>>();
   const localVersion = ref<string>('');
   const localPackage = ref<number | ''>('');
   const localModule = ref<number | ''>('');
@@ -271,9 +269,8 @@
 
   defineExpose<Exposes>({
     getValue() {
-      return Promise.all([packageSelectRef.value!.getValue(), moduleSelectRef.value?.getValue()]).then(() => ({
+      return packageSelectRef.value!.getValue().then(() => ({
         pkg_id: localPackage.value as number,
-        new_db_module_id: localModule.value as number,
         display_info: {
           target_version: localVersion.value,
           target_package: packageSelectList.value.find((item) => item.id === localPackage.value)?.name || '',
