@@ -131,6 +131,10 @@
 
     &.is-active {
       display: block;
+
+      * {
+        display: block !important;
+      }
     }
   }
 </style>

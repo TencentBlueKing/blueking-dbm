@@ -19,46 +19,52 @@
       </RenderHeadCopy>
     </template>
     <template #default="{ data }: { data: TendnclusterModel }">
-      <TextOverflowLayout>
-        {{ data.cluster_name }}
-        <template #append>
-          <BkPopover v-if="data.temporary_info?.source_cluster">
-            <DbIcon
-              style="margin-left: 5px; color: #1cab88; cursor: pointer"
-              type="clone" />
-            <template #content>
-              <div class="struct-cluster-source-popover">
-                <div class="title">{{ t('构造集群') }}</div>
-                <div class="item-row">
-                  <div class="label">{{ t('构造源集群') }}：</div>
-                  <div class="content">{{ data.temporary_info?.source_cluster }}</div>
-                </div>
-                <div class="item-row">
-                  <div class="label">{{ t('关联单据') }}：</div>
-                  <div
-                    class="content"
-                    style="color: #3a84ff"
-                    @click="() => handleGoTicket(data.temporary_info.ticket_id)">
-                    {{ data.temporary_info.ticket_id }}
+      <div @mouseenter="handleToolsShow">
+        <TextOverflowLayout>
+          {{ data.cluster_name }}
+          <template
+            v-if="isToolsShow"
+            #append>
+            <BkPopover v-if="data.temporary_info?.source_cluster">
+              <DbIcon
+                style="margin-left: 5px; color: #1cab88; cursor: pointer"
+                type="clone" />
+              <template #content>
+                <div class="struct-cluster-source-popover">
+                  <div class="title">{{ t('构造集群') }}</div>
+                  <div class="item-row">
+                    <div class="label">{{ t('构造源集群') }}：</div>
+                    <div class="content">{{ data.temporary_info?.source_cluster }}</div>
+                  </div>
+                  <div class="item-row">
+                    <div class="label">{{ t('关联单据') }}：</div>
+                    <div
+                      class="content"
+                      style="color: #3a84ff"
+                      @click="() => handleGoTicket(data.temporary_info.ticket_id)">
+                      {{ data.temporary_info.ticket_id }}
+                    </div>
                   </div>
                 </div>
-              </div>
-            </template>
-          </BkPopover>
-          <DbIcon
-            v-bk-tooltips="t('复制集群名称')"
-            type="copy"
-            @click="() => handleCopyClusterName(data.cluster_name)" />
-        </template>
-      </TextOverflowLayout>
-      <TextOverflowLayout>
-        <span style="color: #c4c6cc">{{ data.cluster_alias || '--' }}</span>
-        <template #append>
-          <UpdateClusterAliasName
-            :data="data"
-            @success="handleUpdateAliasSuccess" />
-        </template>
-      </TextOverflowLayout>
+              </template>
+            </BkPopover>
+            <DbIcon
+              v-bk-tooltips="t('复制集群名称')"
+              type="copy"
+              @click="handleCopyClusterName(data.cluster_name)" />
+          </template>
+        </TextOverflowLayout>
+        <TextOverflowLayout>
+          <span style="color: #c4c6cc">{{ data.cluster_alias || '--' }}</span>
+          <template
+            v-if="isToolsShow"
+            #append>
+            <UpdateClusterAliasName
+              :data="data"
+              @success="handleUpdateAliasSuccess" />
+          </template>
+        </TextOverflowLayout>
+      </div>
     </template>
   </BkTableColumn>
 </template>
@@ -97,7 +103,15 @@
   const { t } = useI18n();
   const router = useRouter();
 
+  const isToolsShow = ref(false);
+
   const { handleCopySelected, handleCopyAll } = useColumnCopy(props);
+
+  const handleToolsShow = () => {
+    setTimeout(() => {
+      isToolsShow.value = true;
+    }, 1000);
+  };
 
   const handleGoTicket = (billId: number) => {
     const route = router.resolve({
