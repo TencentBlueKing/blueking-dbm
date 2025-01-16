@@ -41,6 +41,7 @@ from backend.flow.engine.bamboo.scene.spider.common.exceptions import (
     TendbGetBackupInfoFailedException,
 )
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
+from backend.flow.plugins.components.collections.mysql.mysql_check_slave_delay import MySQLCheckSlaveDelayComponent
 from backend.flow.plugins.components.collections.mysql.mysql_crond_control import MysqlCrondMonitorControlComponent
 from backend.flow.plugins.components.collections.mysql.mysql_rds_execute import MySQLExecuteRdsComponent
 from backend.flow.plugins.components.collections.mysql.trans_flies import TransFileComponent
@@ -371,6 +372,24 @@ class MySQLRollbackDataFlow(object):
                     act_component_code=ExecuteDBActuatorScriptComponent.code,
                     kwargs=asdict(exec_act_kwargs),
                 )
+
+                if rollback_storage.instance_role in (
+                    InstanceRole.BACKEND_REPEATER.value,
+                    InstanceRole.BACKEND_SLAVE.value,
+                ):
+                    rollback_pipeline.add_act(
+                        act_name=_("检查主从延迟 {}").format(rollback_storage.ip_port),
+                        act_component_code=MySQLCheckSlaveDelayComponent.code,
+                        kwargs=asdict(
+                            ExecuteRdsKwargs(
+                                bk_cloud_id=cluster_class.bk_cloud_id,
+                                instance_ip=rollback_storage.machine.ip,
+                                instance_port=rollback_storage.port,
+                                sqls=["show slave status"],
+                            )
+                        ),
+                    )
+
                 # 屏蔽监控，停止从库备份
                 rollback_pipeline.add_act(
                     act_name=_("屏蔽监控 {}").format(rollback_storage.ip_port),
@@ -383,6 +402,7 @@ class MySQLRollbackDataFlow(object):
                         )
                     ),
                 )
+
                 if self.data["all_database_rollback"]:
                     rollback_pipeline.add_act(
                         act_name=_("从库stop slave {}").format(rollback_storage.ip_port),
