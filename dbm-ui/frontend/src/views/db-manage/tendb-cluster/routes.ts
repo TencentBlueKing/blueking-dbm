@@ -77,14 +77,7 @@ const spiderRollbackRecordRoute = {
 
 const spiderDbClearRoute = createRouteItem(TicketTypes.TENDBCLUSTER_TRUNCATE_DATABASE, t('清档'));
 
-const spiderChecksumRoute = {
-  path: 'checksum/:page?',
-  name: 'spiderChecksum',
-  meta: {
-    navName: t('数据校验修复'),
-  },
-  component: () => import('@views/db-manage/tendb-cluster/checksum/Index.vue'),
-};
+const spiderChecksumRoute = createRouteItem(TicketTypes.TENDBCLUSTER_CHECKSUM, t('数据校验修复'));
 
 const spiderPrivilegeCloneClientRoute = createRouteItem(
   TicketTypes.TENDBCLUSTER_CLIENT_CLONE_RULES,
