@@ -15,7 +15,9 @@
   <BkTable
     :data="ticketDetails.details.infos"
     :show-overflow="false">
-    <BkTableColumn :label="t('目标集群')">
+    <BkTableColumn
+      :label="t('目标集群')"
+      :min-width="200">
       <template #default="{ data }: { data: RowData }">
         <p
           v-for="item in data.cluster_ids"
@@ -24,7 +26,9 @@
         </p>
       </template>
     </BkTableColumn>
-    <BkTableColumn :label="t('主从主机')">
+    <BkTableColumn
+      :label="t('主从主机')"
+      :min-width="150">
       <template #default="{ data }: { data: RowData }">
         <div>
           <BkTag
@@ -44,7 +48,9 @@
         </div>
       </template>
     </BkTableColumn>
-    <BkTableColumn :label="t('只读主机')">
+    <BkTableColumn
+      :label="t('只读主机')"
+      :min-width="150">
       <template #default="{ data }: { data: RowData }">
         <div
           v-for="host in data.read_only_slaves"
@@ -54,7 +60,9 @@
         <span v-if="data.read_only_slaves.length < 1"> -- </span>
       </template>
     </BkTableColumn>
-    <BkTableColumn :label="t('当前版本')">
+    <BkTableColumn
+      :label="t('当前版本')"
+      :min-width="200">
       <template #default="{ data }: { data: RowData }">
         <VersionContent
           :data="{
@@ -65,7 +73,9 @@
           }" />
       </template>
     </BkTableColumn>
-    <BkTableColumn :label="t('目标版本')">
+    <BkTableColumn
+      :label="t('目标版本')"
+      :min-width="200">
       <template #default="{ data }: { data: RowData }">
         <VersionContent
           :data="{
@@ -76,7 +86,9 @@
           }" />
       </template>
     </BkTableColumn>
-    <BkTableColumn :label="t('新主从主机')">
+    <BkTableColumn
+      :label="t('新主从主机')"
+      :min-width="150">
       <template #default="{ data }: { data: RowData }">
         <div>
           <BkTag
@@ -96,7 +108,9 @@
         </div>
       </template>
     </BkTableColumn>
-    <BkTableColumn :label="t('新只读主机')">
+    <BkTableColumn
+      :label="t('新只读主机')"
+      :min-width="200">
       <template #default="{ data }: { data: RowData }">
         {{ data.read_only_slaves.length ? data.read_only_slaves.map((item) => item.new_slave.ip).join(',') : '--' }}
       </template>

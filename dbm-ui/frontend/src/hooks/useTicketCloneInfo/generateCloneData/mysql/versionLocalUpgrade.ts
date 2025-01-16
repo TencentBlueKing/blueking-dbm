@@ -57,7 +57,9 @@ export async function generateMysqlVersionLocalUpgradeCloneData(ticketData: Tick
         moduleId: clusters[clusterId].db_module_id,
         cloudId: clusters[clusterId].bk_cloud_id,
       },
+      targetVersion: item.display_info.target_version,
       targetPackage: item.pkg_id,
+      targetModule: item.new_db_module_id,
     };
   });
 

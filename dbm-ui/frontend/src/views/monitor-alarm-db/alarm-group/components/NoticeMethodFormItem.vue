@@ -745,7 +745,6 @@
 
         .table-row-input {
           flex: 1;
-          min-width: 300px;
         }
 
         .table-row-icon {
