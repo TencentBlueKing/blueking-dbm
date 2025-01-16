@@ -18,6 +18,7 @@ import http from '@services/http';
 export function queryMysqlHigherVersionPkgList(params: {
   cluster_id: number;
   higher_major_version?: boolean; // 代表是否跨版本升级, 默认false
+  higher_all_version?: boolean; // 单节点本地升级 获取可用的升级包
 }) {
   return http.post<
     {

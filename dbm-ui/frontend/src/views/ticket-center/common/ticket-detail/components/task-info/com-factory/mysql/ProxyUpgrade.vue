@@ -14,8 +14,10 @@
 <template>
   <BkTable
     :data="ticketDetails.details.infos"
-    show-overflow-tooltip>
-    <BkTableColumn :label="t('目标集群')">
+    :show-overflow="false">
+    <BkTableColumn
+      :label="t('目标集群')"
+      :min-width="200">
       <template #default="{ data }: { data: RowData }">
         <p
           v-for="item in data.cluster_ids"
@@ -24,12 +26,16 @@
         </p>
       </template>
     </BkTableColumn>
-    <BkTableColumn :label="t('当前版本')">
+    <BkTableColumn
+      :label="t('当前版本')"
+      :min-width="100">
       <template #default="{ data }: { data: RowData }">
         {{ data.display_info.current_version || '--' }}
       </template>
     </BkTableColumn>
-    <BkTableColumn :label="t('目标版本')">
+    <BkTableColumn
+      :label="t('目标版本')"
+      :min-width="400">
       <template #default="{ data }: { data: RowData }">
         {{ data.display_info.target_package || '--' }}
       </template>
