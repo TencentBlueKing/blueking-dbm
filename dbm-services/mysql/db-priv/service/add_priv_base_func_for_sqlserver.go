@@ -169,12 +169,12 @@ func ImportSqlserverPrivilege(account TbAccounts, rules []TbAccountRules, bkClou
 		if backendSQL, err = GenerateSqlserverSQL(account, rules, address, bkCloudId, s.InstanceRole); err != nil {
 			return err
 		}
-		if len(backendSQL) == 0 && s.InstanceRole == backendSlave {
-			// slave节点有可能不需要执行授权SQL，所以返回正常
+		if len(backendSQL) == 0 {
+			// 返回正常，跳出
 			slog.Info(
-				fmt.Sprintf("[%s] no grant sql execute in slave instance [%s]", account.User, address),
+				fmt.Sprintf("[%s] no grant sql execute in instance [%s]", account.User, address),
 			)
-			return nil
+			continue
 		}
 		var queryRequest = QueryRequest{[]string{address}, backendSQL, false, 60, bkCloudId}
 		_, err = OneAddressExecuteSqlserverSql(queryRequest)
