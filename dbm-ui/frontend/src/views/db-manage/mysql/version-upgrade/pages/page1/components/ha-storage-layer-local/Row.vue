@@ -47,7 +47,8 @@
 
   import RenderCluster from '../RenderClusterWithRelateCluster.vue';
   import RenderCurrentVersion from '../RenderCurrentVersion.vue';
-  import RenderTargetVersion from '../RenderTargetVersion.vue';
+
+  import RenderTargetVersion from './RenderTargetVersion.vue';
 
   export interface IDataRow {
     rowKey: string;

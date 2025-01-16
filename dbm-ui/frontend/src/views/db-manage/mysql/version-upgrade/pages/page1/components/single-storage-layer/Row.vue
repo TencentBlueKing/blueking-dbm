@@ -30,7 +30,9 @@
         ref="targetVersionRef"
         :data="data.clusterData"
         :is-loading="data.isLoading"
+        :target-module="data.targetModule"
         :target-package="data.targetPackage"
+        :target-version="data.targetVersion"
         @module-change="handleModuleChange" />
     </td>
     <OperateColumn
@@ -46,9 +48,9 @@
   import { random } from '@utils';
 
   import RenderCurrentVersion from '../RenderCurrentVersion.vue';
-  import RenderTargetVersion from '../RenderTargetVersion.vue';
 
   import RenderCluster from './RenderCluster.vue';
+  import RenderTargetVersion from './RenderTargetVersion.vue';
 
   export interface IDataRow {
     rowKey: string;
@@ -62,7 +64,9 @@
       moduleName: string;
       moduleId: number;
     };
+    targetVersion?: string;
     targetPackage?: number;
+    targetModule?: number;
   }
 
   // 创建表格数据
