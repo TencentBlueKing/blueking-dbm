@@ -65,7 +65,6 @@
   import OperateColumn from '@components/render-table/columns/operate-column/index.vue';
   import RenderText from '@components/render-table/columns/text-plain/index.vue';
 
-  import { specClusterMachineMap } from '@views/db-manage/redis/common/const';
   import RenderTargetCluster from '@views/db-manage/redis/common/edit-field/ClusterName.vue';
 
   import { random } from '@utils';
@@ -144,19 +143,28 @@
 
   // 查询集群对应的规格列表
   const querySpecList = async (item: RedisModel) => {
-    const clusterType = item.cluster_type;
-    const specId = item.cluster_spec.spec_id;
-    const specCount = item.proxy.length;
+    const specCountMap = item.proxy.reduce<Record<number, number>>((prevMap, proxyItem) => {
+      if (prevMap[proxyItem.spec_config.id]) {
+        return Object.assign({}, prevMap, {
+          [proxyItem.spec_config.id]: prevMap[proxyItem.spec_config.id] + 1,
+        });
+      }
+      return Object.assign({}, prevMap, {
+        [proxyItem.spec_config.id]: 1,
+      });
+    }, {});
     const ret = await getResourceSpecList({
       spec_cluster_type: 'redis',
-      spec_machine_type: specClusterMachineMap[clusterType],
+      spec_machine_type: 'proxy',
       limit: -1,
       offset: 0,
     });
     const retArr = ret.results;
     const arr = retArr.map((item) => ({
       value: item.spec_id,
-      label: item.spec_id === specId ? `${item.spec_name} ${t('((n))台', { n: specCount })}` : item.spec_name,
+      label: specCountMap[item.spec_id]
+        ? `${item.spec_name} ${t('((n))台', { n: specCountMap[item.spec_id] })}`
+        : item.spec_name,
       specData: {
         name: item.spec_name,
         cpu: item.cpu,
