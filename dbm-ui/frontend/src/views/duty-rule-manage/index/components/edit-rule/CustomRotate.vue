@@ -34,10 +34,10 @@
       :label="t('轮值排班')"
       property="tableData"
       required>
-      <DbOriginalTable
-        class="custom-table-box"
+      <BkTable
         :columns="columns"
-        :data="formModel.tableData" />
+        :data="formModel.tableData"
+        :show-overflow="false" />
     </BkFormItem>
   </BkForm>
 </template>
@@ -107,6 +107,7 @@
               <div class="time-item" key={item.id}>
                 <bk-time-picker
                   v-model={item.value}
+                  style="width: 200px"
                   clearable={false}
                   type="timerange"
                   append-to-body />
@@ -127,6 +128,7 @@
     {
       label: t('轮值人员'),
       field: 'members',
+      width: 510,
       render: ({data, index}: {data: RowData, index: number}) =>(
         <MemberSelector
           modelValue={data.members}
@@ -229,77 +231,23 @@
       color: #979ba5;
     }
   }
+</style>
+<style lang="less">
+  .time-group-box {
+    display: flex;
+    width: 100%;
+    flex-flow: column wrap;
+    gap: 8px;
 
-  .custom-table-box {
-    :deep(td) {
-      background-color: #f5f7fa !important;
-    }
-
-    :deep(.members) {
-      position: relative;
+    .time-item {
       display: flex;
       width: 100%;
-      flex-wrap: wrap;
+      align-items: center;
 
-      &:hover {
-        .operate-box {
-          .operate-icon {
-            display: block !important;
-          }
-        }
-      }
-
-      .people-select {
-        width: 100%;
-
-        .angle-up {
-          display: none !important;
-        }
-      }
-
-      .bk-tag-input {
-        width: 100%;
-      }
-
-      .operate-box {
-        position: absolute;
-        top: 0;
-        right: 0;
-        z-index: 9999;
-        display: flex;
-        height: 100%;
-        padding-right: 12px;
-        align-items: center;
-
-        .operate-icon {
-          display: none !important;
-          font-size: 16px;
-          color: #737987;
-          cursor: pointer;
-        }
-      }
-    }
-
-    :deep(.time-group-mutiple) {
-      padding: 10px 0;
-    }
-
-    :deep(.time-group-box) {
-      display: flex;
-      width: 100%;
-      flex-flow: column wrap;
-      gap: 8px;
-
-      .time-item {
-        display: flex;
-        width: 100%;
-        align-items: center;
-
-        .icon {
-          font-size: 18px;
-          color: #979ba5;
-          cursor: pointer;
-        }
+      .icon {
+        font-size: 18px;
+        color: #979ba5;
+        cursor: pointer;
       }
     }
   }
