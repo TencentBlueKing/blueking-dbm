@@ -95,7 +95,6 @@
     getTickets({
       ...params,
       todo: 'running',
-      self_manage: 1,
       status: ticketStatus.value,
       is_assist: Boolean(Number(route.params.assist)),
     });

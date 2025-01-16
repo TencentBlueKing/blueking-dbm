@@ -50,6 +50,8 @@
 
   import { useUrlSearch } from '@hooks';
 
+  import { useUserProfile } from '@stores';
+
   import useDatePicker from '@views/ticket-center/common/hooks/use-date-picker';
   import useSearchSelect from '@views/ticket-center/common/hooks/use-search-select';
   import TableModeTable from '@views/ticket-center/common/TableModeTable.vue';
@@ -62,15 +64,18 @@
   const { t } = useI18n();
 
   const { removeSearchParam } = useUrlSearch();
+  const { username } = useUserProfile();
 
   const { value: datePickerValue, shortcutsRange } = useDatePicker();
 
-  const { value: searachSelectValue, searchSelectData } = useSearchSelect();
+  const { value: searachSelectValue, searchSelectData } = useSearchSelect({
+    exclude: ['creator'],
+  });
 
   const dataSource = (params: ServiceParameters<typeof getTickets>) =>
     getTickets({
       ...params,
-      self_manage: 0,
+      creator: username,
     });
 
   const selectTicketId = ref(0);

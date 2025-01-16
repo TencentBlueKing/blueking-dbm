@@ -56,7 +56,6 @@
   const isPreChecking = useDetailPreCheck({
     id: ticketId.value,
     todo: 'running',
-    self_manage: 1,
   });
 
   const { loading: isTicketCountLoading } = useTicketCount();

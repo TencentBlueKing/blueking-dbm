@@ -64,7 +64,6 @@
   const dataSource = (params: ServiceParameters<typeof getTickets>) =>
     getTickets({
       ...params,
-      self_manage: 1,
     });
 
   const selectTicketId = ref(0);

@@ -27,19 +27,25 @@
 
   import { getTickets } from '@services/source/ticket';
 
+  import { useUserProfile } from '@stores';
+
   import CardModeList from '@views/ticket-center/common/CardModeList.vue';
   import useDatePicker from '@views/ticket-center/common/hooks/use-date-picker';
   import useSearchSelect from '@views/ticket-center/common/hooks/use-search-select';
 
   const { t } = useI18n();
 
+  const { username } = useUserProfile();
+
   const { value: datePickerValue, shortcutsRange } = useDatePicker();
-  const { value: searachSelectValue, searchSelectData } = useSearchSelect();
+  const { value: searachSelectValue, searchSelectData } = useSearchSelect({
+    exclude: ['creator'],
+  });
 
   const dataSource = (params: ServiceParameters<typeof getTickets>) =>
     getTickets({
       ...params,
-      self_manage: 0,
+      creator: username,
     });
 </script>
 <style lang="less">

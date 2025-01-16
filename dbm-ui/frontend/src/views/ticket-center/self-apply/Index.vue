@@ -35,6 +35,8 @@
 
   import { useUrlSearch } from '@hooks';
 
+  import { useUserProfile } from '@stores';
+
   import StretchLayout from '@components/stretch-layout/StretchLayout.vue';
 
   import useDetailPreCheck from '@views/ticket-center/common/hooks/use-detail-precheck';
@@ -46,11 +48,13 @@
   const route = useRoute();
   const { getSearchParams } = useUrlSearch();
 
+  const { username } = useUserProfile();
+
   const ticketId = computed(() => Number(route.params.ticketId) || 0);
 
   const isPreChecking = useDetailPreCheck({
     id: ticketId.value,
-    self_manage: 0,
+    creator: username,
   });
 
   const handleStretchLayoutChange = (value: boolean) => {
