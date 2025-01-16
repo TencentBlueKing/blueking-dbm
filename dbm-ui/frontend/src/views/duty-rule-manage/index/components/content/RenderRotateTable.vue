@@ -56,7 +56,6 @@
   const tableData = computed(() => {
     if (props.data.category === 'regular') {
       // 自定义轮值
-      // eslint-disable-next-line max-len
       return (isShowAllData.value ? props.data.duty_arranges as DutyCustomItem[] : props.data.duty_arranges.slice(0, 8) as DutyCustomItem[]).map(item => ({
         dateTime: item.date,
         timeRange: item.work_times.map(data => data.replace('--', '~')),
@@ -71,7 +70,7 @@
     if (dutyArranges[0].work_type !== 'daily') {
       // 按周
       dateArr = dateArr.filter((item) => {
-        let weekday = dayjs(item).day();
+        let weekday = dayjs(item).day() as number;
         weekday = weekday === 0 ? 7 : weekday;
         if (dutyArranges[0].work_days.includes(weekday)) {
           return true;
@@ -82,7 +81,7 @@
     return dutyArranges.map((item, index) => ({
       dateTime: dateArr[index],
       timeRange: item.work_times.map(data => data.replace('--', '~')),
-      peoples: item.members,
+      peoples: item.members.slice(0, item.duty_number),
     }));
   });
 

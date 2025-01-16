@@ -226,6 +226,7 @@
     await formRef.value.validate();
     const bizConfig = await rotateBizsRef.value!.getValue();
     if (rotateType.value === 'handoff') {
+      // 周期轮值
       const cycleValues = await cycleRef.value.getValue();
       const cycleParams = {
         name: formModel.ruleName,

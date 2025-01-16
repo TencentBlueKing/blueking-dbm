@@ -98,6 +98,7 @@
         class="time-select">
         <BkTimePicker
           v-model="item.value"
+          append-to-body
           :clearable="false"
           type="timerange" />
         <DbIcon
@@ -117,7 +118,7 @@
     <div class="title">
       {{ t('排班预览') }}
     </div>
-    <DbOriginalTable
+    <BkTable
       class="table-box"
       :columns="columns"
       :data="tableData" />
@@ -256,13 +257,14 @@
     {
       label: t('时段'),
       field: 'timeRange',
-      showOverflowTooltip: true,
+      showOverflow: 'tooltip',
       width: 200,
       render: ({ data }: {data: RowData}) => data.timeRange.join(','),
     },
     {
       label: t('轮值人员'),
       field: 'peoples',
+      width: 528,
       render: ({ data }: {data: RowData}) => <div class="peoples">{data.peoples.map(item => <bk-tag>{item}</bk-tag>)}</div>,
     },
   ];
@@ -410,14 +412,16 @@
       return {
         effective_time: dayjs(dateTimeRange.value![0]).startOf('day').format('YYYY-MM-DD HH:mm:ss'),
         end_time: dayjs(dateTimeRange.value![1]).endOf('day').format('YYYY-MM-DD HH:mm:ss'),
-        duty_arranges: tableData.value.map(item => ({
-          duty_number: formModel.singleDutyPeoples,
-          duty_day: formModel.sinlgeDutyDays,
-          members: item.peoples,
-          work_type: dateSelect.value.date,
-          work_days: dateSelect.value.date === 'weekly' ? dateSelect.value.weekday.map(num => (num === 0 ? 7 : num)) : [],
-          work_times: dateSelect.value.timeList.map(item => item.value.map(str => splitTimeToMinute(str)).join('--')),
-        })),
+        duty_arranges: [
+          {
+            duty_number: formModel.singleDutyPeoples,
+            duty_day: formModel.sinlgeDutyDays,
+            members: formModel.peopleList,
+            work_type: dateSelect.value.date,
+            work_days: dateSelect.value.date === 'weekly' ? dateSelect.value.weekday.map(num => (num === 0 ? 7 : num)) : [],
+            work_times: dateSelect.value.timeList.map(item => item.value.map(str => splitTimeToMinute(str)).join('--')),
+          }
+        ],
       };
     },
   });
@@ -524,5 +528,10 @@
       color: #63656e;
       background: #fff;
     }
+  }
+</style>
+<style lang="less">
+  .vxe-table--tooltip-wrapper {
+    z-index: 99999 !important;
   }
 </style>
