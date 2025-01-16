@@ -207,7 +207,7 @@
       };
       return {
         effective_time: dayjs(formModel.dateTimeRange![0]).startOf('day').format('YYYY-MM-DD HH:mm:ss'),
-        end_time: dayjs(formModel.dateTimeRange![1]).startOf('day').format('YYYY-MM-DD HH:mm:ss'),
+        end_time: dayjs(formModel.dateTimeRange![1]).endOf('day').format('YYYY-MM-DD HH:mm:ss'),
         duty_arranges: formModel.tableData.map(item => ({
           date: item.dateTime,
           work_times: item.timeRange.map(data => data.value.map(str => splitTimeToMinute(str)).join('--')),

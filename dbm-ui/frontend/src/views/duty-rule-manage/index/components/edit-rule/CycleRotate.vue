@@ -409,7 +409,7 @@
       };
       return {
         effective_time: dayjs(dateTimeRange.value![0]).startOf('day').format('YYYY-MM-DD HH:mm:ss'),
-        end_time: dayjs(dateTimeRange.value![1]).startOf('day').format('YYYY-MM-DD HH:mm:ss'),
+        end_time: dayjs(dateTimeRange.value![1]).endOf('day').format('YYYY-MM-DD HH:mm:ss'),
         duty_arranges: tableData.value.map(item => ({
           duty_number: formModel.singleDutyPeoples,
           duty_day: formModel.sinlgeDutyDays,
