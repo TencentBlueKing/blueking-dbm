@@ -373,7 +373,7 @@ func (p ImportMachParam) transHostInfoToDbModule(h *cc.Host, bkCloudId int, labe
 		RackID:          strings.TrimSpace(h.Equipment),
 		SvrTypeName:     h.SvrTypeName,
 		Status:          model.Unused,
-		NetDeviceID:     strings.TrimSpace(h.LinkNetdeviceId),
+		NetDeviceID:     util.TransInnerSwitchIpAsNetDeviceId(h.InnerSwitchIp),
 		StorageDevice:   []byte("{}"),
 		TotalStorageCap: h.BkDisk,
 		BkAgentId:       h.BkAgentId,

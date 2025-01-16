@@ -77,6 +77,7 @@ func (c *BackStageHandler) RegisterRouter(engine *gin.Engine) {
 		r.POST("/cc/module/check", c.RunModuleCheck)
 		r.POST("/cc/async", c.RunAsyncCmdb)
 		r.POST("/cc/sync/os/info", c.SyncOsInfo)
+		r.POST("/cc/sync/netdevice", c.FlushNetDeviceInfo)
 	}
 }
 
@@ -105,4 +106,13 @@ func (c BackStageHandler) SyncOsInfo(r *gin.Context) {
 		logger.Error("SyncOsNameInfo failed %v", err)
 	}
 	c.SendResponse(r, nil, "async success")
+}
+
+// FlushNetDeviceInfo flush net device info
+func (c BackStageHandler) FlushNetDeviceInfo(r *gin.Context) {
+	err := task.FlushNetDeviceInfo()
+	if err != nil {
+		logger.Error("flush failed %v", err)
+	}
+	c.SendResponse(r, nil, "success")
 }

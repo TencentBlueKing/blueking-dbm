@@ -59,6 +59,8 @@ func init() {
 		"rack_id",
 		"svr_type_name",
 		"net_device_id",
+		"bk_inner_switch_ip",
+		"bk_outer_switch_ip",
 		"bk_os_type",
 		"bk_os_bit",
 		"bk_os_version",

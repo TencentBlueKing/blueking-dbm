@@ -252,3 +252,37 @@ func SyncOsNameInfo() (err error) {
 	}
 	return nil
 }
+
+// FlushNetDeviceInfo TODO
+func FlushNetDeviceInfo() (err error) {
+	var rsList []model.TbRpDetail
+	err = model.DB.Self.Table(model.TbRpDetailName()).Find(&rsList).Error
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil
+		}
+		logger.Error("query total_storage_cap less than 0,err %w ", err)
+		return err
+	}
+	bizHostMap := make(map[int][]string)
+	for _, rs := range rsList {
+		bizHostMap[rs.BkBizId] = append(bizHostMap[rs.BkBizId], rs.IP)
+	}
+	for bizId, hosts := range bizHostMap {
+		ccInfos, _, err := bk.BatchQueryHostsInfo(bizId, hosts)
+		if err != nil {
+			logger.Warn("query machine hardinfo from cmdb failed %s", err.Error())
+			continue
+		}
+		for _, ccInfo := range ccInfos {
+			err = model.DB.Self.Table(model.TbRpDetailName()).Where("ip = ? and  bk_biz_id = ? ", ccInfo.InnerIP, bizId).
+				Updates(map[string]interface{}{
+					"net_device_id": util.TransInnerSwitchIpAsNetDeviceId(ccInfo.InnerSwitchIp),
+				}).Error
+			if err != nil {
+				logger.Warn("request cmdb api failed %s", err.Error())
+			}
+		}
+	}
+	return nil
+}

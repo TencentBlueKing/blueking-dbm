@@ -210,7 +210,7 @@ func (o *SearchContext) setResourcePriority(ins model.TbRpDetail, ele *Item) {
 	// 如果请求的磁盘为空，尽量匹配没有磁盘的机器
 	// 请求参数需要几块盘，如果机器盘数量预制相等，则优先级更高
 	if len(o.StorageSpecs) == len(ins.Storages) {
-		ele.Priority += PriorityP0
+		ele.Priority += PriorityP1
 	}
 	// 如果请求参数包含规格，如果机器机型匹配,则高优先级
 	if len(o.DeviceClass) > 0 && lo.Contains(o.DeviceClass, ins.DeviceClass) {
