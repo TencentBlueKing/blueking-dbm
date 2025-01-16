@@ -59,12 +59,16 @@
       :columns="columns"
       :data-source="queryTicketFlowDescribe"
       primary-key="ticket_type"
+      :row-config="{
+        useKey: true,
+        keyField: 'id',
+      }"
       selectable
       @clear-search="handleClearSearch"
       @selection="handleSelection" />
   </div>
   <BatchConfigDialog
-    v-model:isShow="isShowBatchConfigDialog"
+    v-model:is-show="isShowBatchConfigDialog"
     :ticket-types="selecedTicketTypes"
     @success="fetchData" />
 </template>

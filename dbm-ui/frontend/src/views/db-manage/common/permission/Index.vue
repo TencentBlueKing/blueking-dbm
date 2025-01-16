@@ -361,6 +361,7 @@
       label: t('访问的DB名'),
       field: 'access_db',
       minWidth: 200,
+      className: 'access-db-column',
       showOverflow: false,
       render: ({ data }: { data: PermissionRule }) => {
         if (data.rules.length === 0) {
@@ -396,6 +397,7 @@
       field: 'privilege',
       showOverflow: false,
       minWidth: 250,
+      className: 'privilege-column',
       render: ({ data }: { data: PermissionRule }) => (
         getRenderList(data).map((rule) => {
           const { privilege } = rule;
@@ -432,7 +434,7 @@
     {
       label: t('操作'),
       width: 150,
-      fixed: 'right',
+      className: 'privilege-column',
       showOverflow: false,
       render: ({ data }: { data: PermissionRule }) => {
         if (data.rules.length === 0) {
@@ -700,7 +702,7 @@
   };
 </script>
 
-<style lang="less" scoped>
+<style lang="less">
   .permission-rules-page {
     .permission-info-alert {
       margin-bottom: 16px;
@@ -717,69 +719,61 @@
       align-items: center;
     }
 
-    :deep(.db-table) {
-      .rules-table {
+    .rules-table {
+      tr {
+        &:hover {
+          .add-rule-btn {
+            display: inline-flex;
+            margin-left: 8px;
+          }
+        }
+
+        &.is-new {
+          td {
+            background-color: #f3fcf5 !important;
+          }
+        }
+      }
+
+      .cell-row {
+        height: 40px;
+        padding: 0 16px;
+        overflow: hidden;
+        line-height: 40px;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+
+        & ~ .cell-row {
+          border-top: 1px solid #dcdee5;
+        }
+      }
+
+      .row-expand-btn {
+        display: flex;
+        padding-right: 8px;
+        cursor: pointer;
+        align-items: center;
+        justify-content: center;
+
+        .expand-flag {
+          transform: rotate(-90deg);
+          transition: all 0.1s;
+
+          &.is-expand {
+            transform: rotate(0);
+          }
+        }
+      }
+
+      .add-rule-btn {
+        display: none;
+      }
+
+      .access-db-column,
+      .privilege-column {
         .vxe-cell {
-          padding: 0 !important;
-        }
-
-        tr {
-          &:hover {
-            .add-rule-btn {
-              display: inline-flex;
-              margin-left: 8px;
-            }
-          }
-
-          &.is-new {
-            td {
-              background-color: #f3fcf5 !important;
-            }
-          }
-        }
-
-        th {
-          padding: 0 16px;
-        }
-
-        td {
-          &:first-child {
-            padding: 0 16px;
-          }
-        }
-
-        .cell-row {
-          height: 40px;
-          padding: 0 16px;
-          overflow: hidden;
-          line-height: 40px;
-          text-overflow: ellipsis;
-          white-space: nowrap;
-
-          & ~ .cell-row {
-            border-top: 1px solid #dcdee5;
-          }
-        }
-
-        .row-expand-btn {
-          display: flex;
-          padding-right: 8px;
-          cursor: pointer;
-          align-items: center;
-          justify-content: center;
-
-          .expand-flag {
-            transform: rotate(-90deg);
-            transition: all 0.1s;
-
-            &.is-expand {
-              transform: rotate(0);
-            }
-          }
-        }
-
-        .add-rule-btn {
-          display: none;
+          padding-right: 0 !important;
+          padding-left: 0 !important;
         }
       }
     }

@@ -41,7 +41,10 @@
           :data="tableData"
           :pagination="pagination"
           remote-pagination
-          row-key="rowKey"
+          :row-config="{
+            useKey: true,
+            keyField: 'id',
+          }"
           @page-limit-change="handeChangeLimit"
           @page-value-change="handleChangePage">
           <BkTableColumn
@@ -60,7 +63,7 @@
                     }"
                     action-id="biz_ticket_config_set"
                     class="append-config-btn"
-                    :disabled="appendBtnController[data.ticket_type]"
+                    :disabled="Boolean(appendBtnController[data.ticket_type])"
                     :permission="data.permission.biz_ticket_config_set"
                     :resource="dbType"
                     size="small"

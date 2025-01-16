@@ -2,7 +2,8 @@
   <BkTableColumn
     field="id"
     fixed="left"
-    label="ID" />
+    label="ID"
+    :width="140" />
 </template>
 <script setup lang="ts">
   import type { ISupportClusterType } from './types';

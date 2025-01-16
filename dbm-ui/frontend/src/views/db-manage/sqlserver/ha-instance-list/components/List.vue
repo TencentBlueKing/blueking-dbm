@@ -45,7 +45,6 @@
         :row-class="setRowClass"
         selectable
         :settings="settings"
-        :show-overflow="false"
         @clear-search="clearSearchValue"
         @column-filter="columnFilterChange"
         @column-sort="columnSortChange"
@@ -313,7 +312,7 @@
       {
         label: t('部署时间'),
         field: 'create_at',
-        width: 160,
+        width: 240,
         sort: true,
         render: ({ data }: { data: SqlServerHaInstanceModel }) => <span>{data.createAtDisplay}</span>,
       },
@@ -321,7 +320,7 @@
         label: t('操作'),
         field: '',
         fixed: isStretchLayoutOpen.value ? false : 'right',
-        width: 140,
+        width: 80,
         render: ({ data }: { data: SqlServerHaInstanceModel }) => (
           <bk-button
             theme="primary"
@@ -384,8 +383,8 @@
     isInit = false;
   };
 
-  const handleSelection = (key: number[], list: Record<number, SqlServerHaInstanceModel>[]) => {
-    selected.value = list as unknown as SqlServerHaInstanceModel[];
+  const handleSelection = (_key: any[], list: SqlServerHaInstanceModel[]) => {
+    selected.value = list;
   };
 
   /**

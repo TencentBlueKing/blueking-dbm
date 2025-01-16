@@ -49,6 +49,7 @@
         useKey: true,
         keyField: 'id',
       }"
+      :scroll-y="{ enabled: true, gt: 0 }"
       selectable
       :settings="settings"
       :show-overflow="false"
@@ -104,7 +105,7 @@
       <BkTableColumn
         :fixed="isStretchLayoutOpen ? false : 'right'"
         :label="t('操作')"
-        :min-width="240"
+        :min-width="160"
         :show-overflow="false">
         <template #default="{data}: {data: SqlServerHaModel}">
           <BkButton

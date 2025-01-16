@@ -214,9 +214,9 @@
 
   const emits = defineEmits<Emits>();
 
-  defineOptions({
-    inheritAttrs: false,
-  });
+  // defineOptions({
+  //   inheritAttrs: false,
+  // });
 
   // 生成可选中列配置
   const genSelectionColumn = () => ({

@@ -50,6 +50,7 @@
           useKey: true,
           keyField: 'id',
         }"
+        :scroll-y="{ enabled: true, gt: 0 }"
         selectable
         :settings="settings"
         :show-overflow="false"

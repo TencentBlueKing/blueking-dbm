@@ -221,11 +221,16 @@ export default class Tendbha extends ClusterBase {
   }
 
   get operationTagTips() {
-    return this.operations.map((item) => ({
-      icon: Tendbha.operationIconMap[item.ticket_type],
-      tip: Tendbha.operationTextMap[item.ticket_type],
-      ticketId: item.ticket_id,
-    }));
+    return this.operations.reduce<{ icon: string; tip: string; ticketId: number }[]>((result, item) => {
+      if (Tendbha.operationIconMap[item.ticket_type]) {
+        result.push({
+          icon: Tendbha.operationIconMap[item.ticket_type],
+          tip: Tendbha.operationTextMap[item.ticket_type],
+          ticketId: item.ticket_id,
+        });
+      }
+      return result;
+    }, []);
   }
 
   get disasterToleranceLevelName() {

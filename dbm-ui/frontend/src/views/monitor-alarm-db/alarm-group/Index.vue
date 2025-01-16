@@ -88,6 +88,7 @@
       field: 'name',
       width: 240,
       fixed: 'left',
+      showOverflow: false,
       render: ({ data }: TableRenderData) => (
         <TextOverflowLayout>
           {{
@@ -144,6 +145,7 @@
     {
       label: t('通知对象'),
       field: 'recipient',
+      minWidth: 400,
       render: ({ data }: TableRenderData) => {
         const userGroup = userGroupMap.value;
 
@@ -193,12 +195,12 @@
     {
       label: t('更新人'),
       field: 'updater',
-      width: 100,
+      width: 180,
       render: ({ data }: TableRenderData) => (<span>{ data.updater || '--' }</span>),
     },
     {
       label: t('操作'),
-      width: 130,
+      width: 100,
       fixed: 'right',
       showOverflow: false,
       render: ({ data }: TableRenderData) => (
@@ -206,7 +208,7 @@
           <auth-button
             actionId="notify_group_create"
             permission={data.permission.notify_group_create}
-            class="mr-24"
+            class="mr-8"
             text
             theme="primary"
             onClick={ () => handleOpenDetail('copy', data) }>
@@ -218,7 +220,7 @@
                 actionId="notify_group_update"
                 permission={data.permission.notify_group_update}
                 resource={data.id}
-                class="mr-24"
+                class="mr-8"
                 text
                 theme="primary"
                 onClick={ () => handleOpenDetail('edit', data) }>

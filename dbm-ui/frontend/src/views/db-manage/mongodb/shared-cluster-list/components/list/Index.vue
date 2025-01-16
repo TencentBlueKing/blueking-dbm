@@ -65,6 +65,7 @@
         useKey: true,
         keyField: 'id',
       }"
+      :scroll-y="{ enabled: true, gt: 0 }"
       selectable
       :settings="tableSetting"
       :show-overflow="false"
@@ -114,7 +115,7 @@
       <BkTableColumn
         :fixed="isStretchLayoutOpen ? false : 'right'"
         :label="t('操作')"
-        :min-width="260"
+        :min-width="240"
         :show-overflow="false">
         <template #default="{data}: {data: MongodbModel}">
           <!-- 集群容量变更 -->

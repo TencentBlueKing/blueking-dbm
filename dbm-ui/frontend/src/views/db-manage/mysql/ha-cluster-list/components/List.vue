@@ -53,13 +53,13 @@
       <DbTable
         ref="tableRef"
         :data-source="getTendbhaList"
-        :line-height="80"
         releate-url-query
         :row-class="setRowClass"
         :row-config="{
           useKey: true,
           keyField: 'id',
         }"
+        :scroll-y="{ enabled: true, gt: 0 }"
         selectable
         :settings="settings"
         :show-overflow="false"
