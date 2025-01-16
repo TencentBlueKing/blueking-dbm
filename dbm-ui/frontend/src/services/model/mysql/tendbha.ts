@@ -217,7 +217,7 @@ export default class Tendbha extends ClusterBase {
 
   get slaveEntryDisplayList() {
     const port = this.slaves[0]?.port;
-    return this.cluster_entry.filter((item) => item.role === 'slave_entry').map((item) => `${item.entry}:${port}`);
+    return this.slaveEntryList.map((item) => `${item}:${port}`);
   }
 
   get operationTagTips() {

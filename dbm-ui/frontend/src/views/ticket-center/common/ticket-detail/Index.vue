@@ -23,7 +23,9 @@
             v-if="ticketData"
             class="pb-20">
             <BaseInfo :ticket-data="ticketData" />
-            <TaskInfo :data="ticketData" />
+            <TaskInfo
+              :key="ticketId"
+              :data="ticketData" />
             <FlowInfos :data="ticketData" />
           </div>
           <template
