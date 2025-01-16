@@ -25,60 +25,56 @@
       </RenderHeadCopy>
     </template>
     <template #default="{ data }: { data: IRowData }">
-      <TextOverflowLayout>
-        <AuthButton
-          :action-id="viewActionId"
-          :permission="Boolean(_.get(data.permission, viewActionId))"
-          :resource="data.id"
-          text
-          theme="primary"
-          @click="handleToDetails(data.id)">
-          {{ data.masterDomainDisplayName }}
-        </AuthButton>
-        <template #append>
-          <slot
-            name="append"
-            v-bind="{ data: data }" />
-          <RenderOperationTag
-            v-for="(item, index) in data.operationTagTips"
-            :key="index"
-            class="cluster-tag ml-4"
-            :data="item" />
-          <BkTag
-            v-if="data.isOffline && !data.isStarting"
-            class="ml-4"
-            size="small">
-            {{ t('已禁用') }}
-          </BkTag>
-          <BkTag
-            v-if="data.isNew"
-            class="ml-4"
-            size="small"
-            theme="success">
-            NEW
-          </BkTag>
-          <RenderCellCopy
-            v-if="data.masterDomain"
-            :copy-items="[
-              {
-                value: data.masterDomain,
-                label: t('域名'),
-              },
-              {
-                value: data.masterDomainDisplayName,
-                label: t('域名:端口'),
-              },
-            ]" />
-          <span v-db-console="accessEntryDbConsole">
-            <EditEntryConfig
-              :id="data.id"
-              :biz-id="data.bk_biz_id"
-              :permission="Boolean(data.permission.access_entry_edit)"
-              :resource="dbType || clusterTypeInfos[clusterType].dbType"
-              @success="handleRefresh" />
-          </span>
-        </template>
-      </TextOverflowLayout>
+      <div @mouseenter="handleToolsShow">
+        <TextOverflowLayout>
+          <AuthButton
+            :action-id="viewActionId"
+            :permission="Boolean(_.get(data.permission, viewActionId))"
+            :resource="data.id"
+            text
+            theme="primary"
+            @click="handleToDetails(data.id)">
+            {{ data.masterDomainDisplayName }}
+          </AuthButton>
+          <template #append>
+            <slot
+              name="append"
+              v-bind="{ data: data }" />
+            <RenderOperationTag
+              v-for="(item, index) in data.operationTagTips"
+              :key="index"
+              class="cluster-tag ml-4"
+              :data="item" />
+            <BkTag
+              v-if="data.isOffline && !data.isStarting"
+              class="ml-4"
+              size="small">
+              {{ t('已禁用') }}
+            </BkTag>
+            <BkTag
+              v-if="data.isNew"
+              class="ml-4"
+              size="small"
+              theme="success">
+              NEW
+            </BkTag>
+            <template v-if="isToolsShow">
+              <PopoverCopy>
+                <div @click="handleCopy(data.masterDomain)">{{ t('复制域名') }}</div>
+                <div @click="handleCopy(data.masterDomainDisplayName)">{{ t('复制域名:端口') }}</div>
+              </PopoverCopy>
+              <span v-db-console="accessEntryDbConsole">
+                <EditEntryConfig
+                  :id="data.id"
+                  :biz-id="data.bk_biz_id"
+                  :permission="Boolean(data.permission.access_entry_edit)"
+                  :resource="dbType || clusterTypeInfos[clusterType].dbType"
+                  @success="handleRefresh" />
+              </span>
+            </template>
+          </template>
+        </TextOverflowLayout>
+      </div>
     </template>
   </BkTableColumn>
 </template>
@@ -90,12 +86,14 @@
   import { clusterTypeInfos, ClusterTypes, DBTypes } from '@common/const';
 
   import DbTable from '@components/db-table/index.vue';
+  import PopoverCopy from '@components/popover-copy/Index.vue';
   import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
 
   import EditEntryConfig from '@views/db-manage/common/cluster-entry-config/Index.vue';
-  import RenderCellCopy from '@views/db-manage/common/render-cell-copy/Index.vue';
   import RenderHeadCopy from '@views/db-manage/common/render-head-copy/Index.vue';
   import RenderOperationTag from '@views/db-manage/common/RenderOperationTagNew.vue';
+
+  import { execCopy } from '@utils';
 
   import useColumnCopy from './hooks/useColumnCopy';
   import type { ClusterModel, ISupportClusterType } from './types';
@@ -165,11 +163,22 @@
 
   const columnMinWidth = window.innerWidth < 1366 ? 180 : 280;
 
+  const isToolsShow = ref(false);
   const viewActionId = computed(() => viewActionIdMap[props.clusterType]);
 
   const accessEntryDbConsole = computed(() => dbConsoleMap[props.clusterType]);
 
   const { handleCopySelected, handleCopyAll } = useColumnCopy(props);
+
+  const handleToolsShow = () => {
+    setTimeout(() => {
+      isToolsShow.value = true;
+    }, 1000);
+  };
+
+  const handleCopy = (data: string) => {
+    execCopy(data, t('复制成功'));
+  };
 
   const handleToDetails = (id: number) => {
     emits('go-detail', id);

@@ -209,10 +209,14 @@ export default class Redis extends ClusterBase {
     return displayName;
   }
 
-  get slaveDomainDisplayName() {
-    const port = this.cluster_access_port;
-    const displayName = port ? `${this.slave_domain}:${port}` : this.slave_domain;
-    return this.slave_domain ? displayName : '--';
+  get slaveEntryList() {
+    const port = this.redis_slave[0]?.port;
+    return this.cluster_entry
+      .filter((item) => item.role === 'slave_entry')
+      .map((item) => ({
+        ...item,
+        port,
+      }));
   }
 
   get isOnlineCLB() {

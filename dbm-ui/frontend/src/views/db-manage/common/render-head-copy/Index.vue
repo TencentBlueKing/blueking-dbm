@@ -98,7 +98,7 @@
         interactive: true,
         arrow: false,
         allowHTML: true,
-        zIndex: 999999,
+        zIndex: 999,
         hideOnClick: true,
         onShow() {
           isCopyIconClicked.value = true;

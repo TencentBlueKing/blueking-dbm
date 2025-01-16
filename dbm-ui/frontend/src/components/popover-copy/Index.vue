@@ -12,27 +12,16 @@
 -->
 
 <template>
-  <div class="render-cell-copy">
+  <div class="dbm-popover-copy">
     <DbIcon
       ref="copyRootRef"
-      :class="{ 'is-active': isCopyIconClicked }"
+      :class="{ 'is-active': isActive }"
       type="copy" />
     <div style="display: none">
-      <div ref="popRef">
-        <span
-          v-for="(item, index) in copyItems"
-          :key="item.value">
-          <span
-            v-if="index !== 0"
-            class="copy-trigger-split" />
-          <BkButton
-            class="copy-trigger"
-            text
-            theme="primary"
-            @click="copy(item.value)">
-            {{ `${t('复制')}${item.label}` }}
-          </BkButton>
-        </span>
+      <div
+        ref="popRef"
+        class="dbm-popover-copy-panel">
+        <slot />
       </div>
     </div>
   </div>
@@ -40,24 +29,9 @@
 
 <script setup lang="ts">
   import tippy, { type Instance, type SingleTarget } from 'tippy.js';
-  import { useI18n } from 'vue-i18n';
-
-  import { useCopy } from '@hooks';
-
-  interface Props {
-    copyItems: {
-      value: string;
-      label: string;
-    }[];
-  }
-
-  defineProps<Props>();
-
-  const { t } = useI18n();
-  const copy = useCopy();
 
   let tippyIns: Instance;
-  const isCopyIconClicked = ref(false);
+  const isActive = ref(false);
   const copyRootRef = ref();
   const popRef = ref();
 
@@ -76,10 +50,10 @@
         zIndex: 999999,
         hideOnClick: true,
         onShow() {
-          isCopyIconClicked.value = true;
+          isActive.value = true;
         },
         onHide() {
-          isCopyIconClicked.value = false;
+          isActive.value = false;
         },
       });
     });
@@ -94,9 +68,9 @@
   });
 </script>
 
-<style lang="less" scoped>
-  .render-cell-copy {
-    display: grid;
+<style lang="less">
+  .dbm-popover-copy {
+    display: inline-block;
     color: #3a84ff;
 
     .is-active {
@@ -104,25 +78,37 @@
     }
   }
 
-  .copy-trigger {
-    display: inline-block;
-    padding: 0 4px;
-    font-size: 12px;
-    line-height: 24px;
-    vertical-align: middle;
-    border-radius: 2px;
+  .dbm-popover-copy-panel {
+    & > * {
+      position: relative;
+      display: inline-block;
+      padding: 0 4px;
+      font-size: 12px;
+      line-height: 24px;
+      color: #3a84ff;
+      vertical-align: middle;
+      cursor: pointer;
+      border-radius: 2px;
 
-    &:hover {
-      background-color: #f0f1f5;
+      &:hover {
+        background-color: #f0f1f5;
+      }
+
+      &:nth-child(n + 2) {
+        margin-left: 9px;
+
+        &::before {
+          position: absolute;
+          top: 3px;
+          left: -5px;
+          display: inline-block;
+          width: 1px;
+          height: 18px;
+          vertical-align: middle;
+          background-color: #f0f1f5;
+          content: '';
+        }
+      }
     }
-  }
-
-  .copy-trigger-split {
-    display: inline-block;
-    width: 1px;
-    height: 18px;
-    margin: 0 4px;
-    vertical-align: middle;
-    background-color: #f0f1f5;
   }
 </style>
