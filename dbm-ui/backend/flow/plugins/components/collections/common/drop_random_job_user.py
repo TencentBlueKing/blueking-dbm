@@ -19,7 +19,10 @@ from backend.db_meta.enums import InstanceStatus
 from backend.db_meta.exceptions import ClusterNotExistException
 from backend.db_meta.models import Cluster
 from backend.flow.plugins.components.collections.common.base_service import BaseService
-from backend.flow.utils.mysql.common.random_job_with_ticket_map import get_instance_with_random_job
+from backend.flow.utils.mysql.common.random_job_with_ticket_map import (
+    TICKET_TYPE_SENSITIVE_LIST,
+    get_instance_with_random_job,
+)
 from backend.flow.utils.mysql.get_mysql_sys_user import generate_mysql_tmp_user
 from backend.flow.utils.mysql.mysql_version_parse import mysql_version_parse
 from backend.ticket.constants import TicketType
@@ -69,8 +72,11 @@ class DropTempUserForClusterService(BaseService):
             for info in resp[0]["cmd_results"]:
                 # 其实只是一行
                 if info["error_msg"]:
-                    if instance["cmdb_status"] == InstanceStatus.RUNNING.value:
+                    if instance["cmdb_status"] == InstanceStatus.RUNNING.value or (
+                        instance["cmdb_status"] != InstanceStatus.RUNNING and ticket_type in TICKET_TYPE_SENSITIVE_LIST
+                    ):
                         # 如果实例是running状态，应该记录错误，并且返回异常
+                        # 如果实例非running状态，且单据类型加入敏感队列，则需要记录错误，并且返回异常
                         self.log_error(
                             f"The result [drop user `{user}`] in {instance['instance']}" f" is [{info['error_msg']}]"
                         )

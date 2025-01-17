@@ -19,7 +19,10 @@ from backend.db_meta.enums import InstanceStatus
 from backend.db_meta.exceptions import ClusterNotExistException
 from backend.db_meta.models import Cluster
 from backend.flow.plugins.components.collections.common.base_service import BaseService
-from backend.flow.utils.mysql.common.random_job_with_ticket_map import get_instance_with_random_job
+from backend.flow.utils.mysql.common.random_job_with_ticket_map import (
+    TICKET_TYPE_SENSITIVE_LIST,
+    get_instance_with_random_job,
+)
 from backend.flow.utils.mysql.get_mysql_sys_user import generate_mysql_tmp_user
 
 logger = logging.getLogger("flow")
@@ -94,11 +97,15 @@ class AddTempUserForClusterService(BaseService):
                 common_param["hosts"] = ["localhost", inst["instance"].split(":")[0]]
                 common_param["role"] = inst["priv_role"]
                 if not self.__add_priv(common_param):
-                    if inst["cmdb_status"] == InstanceStatus.RUNNING:
+                    if inst["cmdb_status"] == InstanceStatus.RUNNING or (
+                        inst["cmdb_status"] != InstanceStatus.RUNNING
+                        and global_data.get("ticket_type", "test") in TICKET_TYPE_SENSITIVE_LIST
+                    ):
                         # 如果实例是running状态，应该记录错误，并且返回异常
+                        # 如果实例非running状态，且单据类型加入敏感队列，则需要记录错误，并且返回异常
                         err_num = err_num + 1
                     else:
-                        # 如果是非running状态，标记warning信息，但不作异常处理
+                        # 如果是非running状态，默认标记warning信息，但不作异常处理
                         self.log_warning(f"[{inst['instance']} is not running in dbm [{inst['cmdb_status']}],ignore]")
                         continue
 

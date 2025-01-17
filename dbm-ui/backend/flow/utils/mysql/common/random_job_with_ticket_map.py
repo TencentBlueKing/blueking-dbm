@@ -51,7 +51,21 @@ random_job_with_ticket_map = {
     TicketType.TENDBCLUSTER_IMPORT_SQLFILE: RuleDict(is_tdbctl_primary_add=True),
     # tendb_cluster集群强制SQL执行添加账号规则
     TicketType.TENDBCLUSTER_FORCE_IMPORT_SQLFILE: RuleDict(is_tdbctl_primary_add=True),
+    # tendb_cluster模拟执行规则
+    TicketType.MYSQL_SEMANTIC_CHECK: RuleDict(
+        exec_storage_instance_role_list=[InstanceRole.BACKEND_MASTER, InstanceRole.ORPHAN]
+    ),
+    # tendb_cluster集群模拟执行添加账号规则
+    TicketType.TENDBCLUSTER_SEMANTIC_CHECK: RuleDict(is_tdbctl_primary_add=True),
 }
+
+"""
+定义单据类型是否强制添加临时账号的逻辑
+默认情况下，授权中如果UNAVAILABLE状态的实例授权失败了，只是告警级别，不异常退出
+这里则定义那些单据，如果UNAVAILABLE状态的实例授权失败，则异常退出
+需要开启的单据则在TICKET_TYPE_SENSITIVE_LIST 列表添加对应单据类型即可
+"""
+TICKET_TYPE_SENSITIVE_LIST = []
 
 
 def get_instance_with_random_job(cluster: Cluster, ticket_type: TicketType):
