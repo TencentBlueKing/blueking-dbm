@@ -102,7 +102,7 @@
       <BkTableColumn
         :fixed="isStretchLayoutOpen ? false : 'right'"
         :label="t('操作')"
-        :min-width="200"
+        :min-width="240"
         :show-overflow="false">
         <template #default="{data}: {data: RedisModel}">
           <OperationBtnStatusTips
