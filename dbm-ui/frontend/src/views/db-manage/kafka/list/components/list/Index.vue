@@ -109,21 +109,6 @@
                 {{ t('启用') }}
               </AuthButton>
             </OperationBtnStatusTips>
-            <OperationBtnStatusTips
-              v-db-console="'kafka.clusterManage.delete'"
-              :data="data">
-              <AuthButton
-                action-id="kafka_destroy"
-                class="mr-8"
-                :disabled="Boolean(data.operationTicketId)"
-                :permission="data.permission.kafka_destroy"
-                :resource="data.id"
-                text
-                theme="primary"
-                @click="handleDeleteCluster([data])">
-                {{ t('删除') }}
-              </AuthButton>
-            </OperationBtnStatusTips>
           </template>
           <template v-if="data.isOnline">
             <OperationBtnStatusTips

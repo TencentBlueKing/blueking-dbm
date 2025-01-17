@@ -134,7 +134,7 @@
             :data="data">
             <BkButton
               class="mr-8"
-              :disabled="!data.isOnline || Boolean(data.operationTicketId)"
+              :disabled="Boolean(data.operationTicketId)"
               text
               theme="primary"
               @click="handleResetCluster(data)">

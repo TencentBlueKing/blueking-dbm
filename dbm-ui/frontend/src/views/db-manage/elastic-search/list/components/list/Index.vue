@@ -123,18 +123,6 @@
               @click="handleEnableCluster([data])">
               {{ t('启用') }}
             </AuthButton>
-            <AuthButton
-              v-db-console="'es.clusterManage.delete'"
-              action-id="es_destroy"
-              class="mr-8"
-              :disabled="Boolean(data.operationTicketId)"
-              :permission="data.permission.es_destroy"
-              :resource="data.id"
-              text
-              theme="primary"
-              @click="handleDeleteCluster([data])">
-              {{ t('删除') }}
-            </AuthButton>
           </template>
           <template v-else>
             <OperationBtnStatusTips

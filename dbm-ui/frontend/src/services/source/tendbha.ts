@@ -40,10 +40,9 @@ export function getTendbhaList(params: {
   return http.get<ListBase<TendbhaModel[]>>(`${getRootPath()}/`, params).then((data) => ({
     ...data,
     results: data.results.map(
-      (item, index) =>
+      (item) =>
         new TendbhaModel(
           Object.assign(item, {
-            id: index,
             permission: Object.assign({}, item.permission, data.permission),
           }),
         ),
