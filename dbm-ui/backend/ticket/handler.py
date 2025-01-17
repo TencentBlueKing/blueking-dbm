@@ -11,6 +11,7 @@ specific language governing permissions and limitations under the License.
 import itertools
 import json
 import logging
+from collections import defaultdict
 from typing import Dict, List
 
 from django.db import transaction
@@ -60,16 +61,23 @@ class TicketHandler:
         # 单据关联对象映射表
         ticket_id_obj_ids_map: Dict[int, Dict[str, List[int]]] = {}
 
+        # 这里的快照数据需要以单据维度分割，因为不同单据的集群信息可能不同
+        snapshot_cluster_domain_map = defaultdict(dict)
+        snapshot_instance_ip_port_map = defaultdict(dict)
+
         # 查询单据对应的集群列表、实例列表等
-        cluster_id_immute_domain_map, instance_id_ip_port_map = {}, {}
         for ticket in Ticket.objects.filter(id__in=ticket_ids):
             clusters = ticket.details.get("clusters", {})
-            cluster_id_immute_domain_map.update(
+            snapshot_cluster_domain_map[ticket.id].update(
                 {int(cluster_id): info["immute_domain"] for cluster_id, info in clusters.items()}
             )
+
             instances = ticket.details.get("instances", {})
             if isinstance(instances, dict):
-                instance_id_ip_port_map.update({int(inst_id): info["instance"] for inst_id, info in instances.items()})
+                snapshot_instance_ip_port_map[ticket.id].update(
+                    {int(inst_id): info["instance"] for inst_id, info in instances.items()}
+                )
+
             ticket_id_obj_ids_map[ticket.id] = {
                 "cluster_ids": fetch_cluster_ids(ticket.details),
                 "instance_ids": fetch_instance_ids(ticket.details),
@@ -77,27 +85,30 @@ class TicketHandler:
 
         # 补充关联对象信息
         for item in ticket_data:
-            ticket_cluster_ids = ticket_id_obj_ids_map[item["id"]]["cluster_ids"]
-            if ticket_cluster_ids:
+            ticket_id = item["id"]
+            cluster_ids = ticket_id_obj_ids_map[ticket_id]["cluster_ids"]
+            instance_ids = ticket_id_obj_ids_map[ticket_id]["instance_ids"]
+
+            if cluster_ids:
                 item["related_object"] = {
                     "title": _("集群"),
                     "objects": [
-                        cluster_id_immute_domain_map.get(cluster_id)
-                        for cluster_id in ticket_cluster_ids
-                        if cluster_id_immute_domain_map.get(cluster_id)
+                        snapshot_cluster_domain_map[ticket_id][cluster_id]
+                        for cluster_id in cluster_ids
+                        if cluster_id in snapshot_cluster_domain_map[ticket_id]
                     ],
                 }
 
-            ticket_instance_ids = ticket_id_obj_ids_map[item["id"]]["instance_ids"]
-            if ticket_instance_ids:
+            if instance_ids:
                 item["related_object"] = {
                     "title": _("实例"),
                     "objects": [
-                        instance_id_ip_port_map.get(instance_id)
-                        for instance_id in ticket_instance_ids
-                        if instance_id_ip_port_map.get(instance_id)
+                        snapshot_instance_ip_port_map[ticket_id][inst_id]
+                        for inst_id in instance_ids
+                        if inst_id in snapshot_instance_ip_port_map[ticket_id]
                     ],
                 }
+
         return ticket_data
 
     @classmethod

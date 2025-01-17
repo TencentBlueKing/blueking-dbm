@@ -156,9 +156,9 @@ class Ticket(AuditedModel):
     def get_current_operators(self):
         # 获取当前流程处理人和协助人
         running_todo = self.todo_of_ticket.filter(status=TodoStatus.TODO).first()
-        if not running_todo:
-            return []
-        return {"operators": running_todo.operators, "helpers": running_todo.helpers}
+        operators = running_todo.operators if running_todo else []
+        helpers = running_todo.helpers if running_todo else []
+        return {"operators": operators, "helpers": helpers}
 
     def update_details(self, **kwargs):
         self.details.update(kwargs)

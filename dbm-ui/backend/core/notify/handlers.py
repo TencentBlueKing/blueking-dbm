@@ -300,11 +300,11 @@ class NotifyAdapter:
         else:
             template = jinja_env.from_string(TODO_TEMPLATE)
 
-        biz_name = AppCache.get_biz_name(self.bk_biz_id)
+        biz = AppCache.objects.get(bk_biz_id=self.bk_biz_id)
         ticket_operators = self.ticket.get_current_operators()
         payload = {
             "ticket_type": TicketType.get_choice_label(self.ticket.ticket_type),
-            "biz_name": f"{biz_name}(#{self.bk_biz_id}, {biz_name})",
+            "biz_name": f"{biz.bk_biz_name}(#{self.bk_biz_id}, {biz.db_app_abbr})",
             "cluster_domains": ",".join(self.clusters),
             "remark": self.ticket.remark,
             "creator": self.ticket.creator,
