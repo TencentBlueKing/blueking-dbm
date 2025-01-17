@@ -13,11 +13,12 @@ export function useCreateTicket<T>(ticketType: TicketTypes, options?: { onSucces
   const router = useRouter();
   const { t, locale } = useI18n();
 
-  const run = async (formData: { details: T; remark: string; ignore_duplication?: boolean }) => {
+  const run = async (formData: { details: T; remark?: string; ignore_duplication?: boolean }) => {
     const params = {
       ticket_type: ticketType,
       bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-      ...formData,
+      details: formData.details,
+      remark: formData.remark || '',
     };
     try {
       loading.value = true;

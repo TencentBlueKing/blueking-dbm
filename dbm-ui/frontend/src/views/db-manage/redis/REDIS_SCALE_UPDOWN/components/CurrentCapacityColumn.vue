@@ -12,7 +12,7 @@
 -->
 
 <template>
-  <Column
+  <EditableColumn
     field="currentCapacity"
     :label="t('当前容量')"
     :min-width="150">
@@ -54,18 +54,17 @@
           </div>
         </div>
       </div>
-      <Block
+      <EditableBlock
         v-else
         :placeholder="t('自动生成')" />
     </div>
-  </Column>
+  </EditableColumn>
 </template>
 <script lang="ts" setup>
   import { useI18n } from 'vue-i18n';
 
   import RedisModel from '@services/model/redis/redis';
 
-  import { Block, Column } from '@components/editable-table/Index.vue';
   import RenderSpec from '@components/render-table/columns/spec-display/Index.vue';
 
   import ClusterCapacityUsageRate from '@views/db-manage/common/cluster-capacity-usage-rate/Index.vue';

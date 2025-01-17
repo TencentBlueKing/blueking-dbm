@@ -25,7 +25,7 @@
         ref="table"
         class="mb-20"
         :model="formData.tableData">
-        <EditableTableRow
+        <EditableRow
           v-for="(item, index) in formData.tableData"
           :key="index">
           <ClusterColumn
@@ -39,10 +39,10 @@
           <OperationColumn
             v-model:table-data="formData.tableData"
             :create-row-method="createTableRow" />
-        </EditableTableRow>
+        </EditableRow>
       </EditableTable>
       <BackupSource v-model="formData.backupSource" />
-      <TicketRemark v-model="formData.remark" />
+      <TicketPayload v-model="formData" />
     </BkForm>
     <template #action>
       <BkButton
@@ -76,12 +76,11 @@
 
   import { TicketTypes } from '@common/const';
 
-  import EditableTable, { Row as EditableTableRow } from '@components/editable-table/Index.vue';
-
-  import OperationColumn from '@views/db-manage/common/toolbox-field/column/operation-column/Index.vue';
   import SingleHostColumn from '@views/db-manage/common/toolbox-field/column/single-host-column/Index.vue';
   import BackupSource from '@views/db-manage/common/toolbox-field/form-item/backup-source/Index.vue';
-  import TicketRemark from '@views/db-manage/common/toolbox-field/form-item/ticket-remark/Index.vue';
+  import TicketPayload, {
+    createTickePayload,
+  } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
 
   import ClusterColumn from './components/ClusterColumn.vue';
 
@@ -117,7 +116,7 @@
   const defaultData = () => ({
     tableData: [createTableRow()],
     backupSource: BackupSourceType.REMOTE,
-    remark: '',
+    ...createTickePayload(),
   });
 
   const formData = reactive(defaultData());
