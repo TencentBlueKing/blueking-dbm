@@ -156,18 +156,26 @@ class CheckBackupInfo(object):
 
         # 遍历没有backup_id的备份任务
         for backup_id, logs in backup_id__valid_logs.items():
+            if len(logs) == 0:
+                # 如果这里聚合条数为0，直接返回异常
+                check_result += _("备份 ID[{}] 在日志平台找不到任何记录\n ".format(backup_id))
+                is_normal = False
+                continue
+
             # 按照备份任务，查询在备份系统上报情况
             task_ids = [i["task_id"] for i in logs]
+            backup_host = logs[0].get("host", logs[0].get("backup_host"))
+            backup_port = logs[0].get("port", logs[0].get("backup_port"))
             result = self.check_backup_file_in_backup_system(task_ids=task_ids)
             if result:
-                check_result += f"[{backup_id}][{logs[0]['host']}:{logs[0]['port']}] {result}\n"
+                check_result += f"[{backup_id}][{backup_host}:{backup_port}] {result}\n"
                 is_normal = False
 
             # 判断每个备份任务的备份文件行数，跟bk_log上传的日志是否一致
             if len(logs) != logs[0]["file_cnt"]:
                 check_result += _(
                     "备份 ID[{}][{}:{}] 备份文件记录数量不符合预期,预期数量: {}, 实际数量: {} \n ".format(
-                        backup_id, logs[0]["host"], logs[0]["port"], logs[0]["file_cnt"], len(logs)
+                        backup_id, backup_host, backup_port, logs[0]["file_cnt"], len(logs)
                     )
                 )
 
