@@ -12,7 +12,7 @@
 -->
 
 <template>
-  <Column
+  <EditableColumn
     field="newSlave"
     :label="t('新从库主机')"
     :min-width="150"
@@ -32,7 +32,7 @@
         </template>
       </TableEditSelect>
     </div>
-  </Column>
+  </EditableColumn>
 </template>
 
 <script lang="ts" setup>
@@ -40,8 +40,6 @@
   import { useRequest } from 'vue-request';
 
   import { getSpecResourceCount } from '@services/source/dbresourceResource';
-
-  import { Column } from '@components/editable-table/Index.vue';
 
   import TableEditSelect from '@views/db-manage/tendb-cluster/common/edit/SelectInput.vue';
 

@@ -21,27 +21,27 @@
         ref="table"
         class="mb-20"
         :model="formData.tableData">
-        <EditableTableRow
+        <EditableRow
           v-for="(item, index) in formData.tableData"
           :key="index">
           <SlaveHostColumnGroup
             v-model="item.slave"
             :selected="selected"
             @batch-edit="handleBatchEdit" />
-          <Column
+          <EditableColumn
             :label="t('同机关联集群')"
             :min-width="150">
-            <Block
+            <EditableBlock
               v-model="item.slave.master_domain"
               :placeholder="t('自动生成')" />
-          </Column>
-          <Column
+          </EditableColumn>
+          <EditableColumn
             :label="t('当前资源规格')"
             :min-width="150">
-            <Block
+            <EditableBlock
               v-model="item.slave.spec_name"
               :placeholder="t('自动生成')" />
-          </Column>
+          </EditableColumn>
           <NewSlaveHostColumn
             v-model="item.newSlave"
             :slave="item.slave"
@@ -49,10 +49,10 @@
           <OperationColumn
             v-model:table-data="formData.tableData"
             :create-row-method="createTableRow" />
-        </EditableTableRow>
+        </EditableRow>
       </EditableTable>
       <BackupSource v-model="formData.backupSource" />
-      <TicketRemark v-model="formData.remark" />
+      <TicketPayload v-model="formData" />
     </BkForm>
     <template #action>
       <BkButton
@@ -85,11 +85,10 @@
 
   import { TicketTypes } from '@common/const';
 
-  import EditableTable, { Block, Column, Row as EditableTableRow } from '@components/editable-table/Index.vue';
-
-  import OperationColumn from '@views/db-manage/common/toolbox-field/column/operation-column/Index.vue';
   import BackupSource from '@views/db-manage/common/toolbox-field/form-item/backup-source/Index.vue';
-  import TicketRemark from '@views/db-manage/common/toolbox-field/form-item/ticket-remark/Index.vue';
+  import TicketPayload, {
+    createTickePayload,
+  } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
 
   import NewSlaveHostColumn from './NewSlaveHostColumn.vue';
   import SlaveHostColumnGroup, { type SelectorHost } from './SlaveHostColumnGroup.vue';
@@ -132,7 +131,7 @@
   const defaultData = () => ({
     tableData: [createTableRow()],
     backupSource: BackupSourceType.REMOTE,
-    remark: '',
+    ...createTickePayload(),
   });
 
   const formData = reactive(defaultData());

@@ -12,12 +12,12 @@
 -->
 
 <template>
-  <Column
+  <EditableColumn
     field="version"
     :label="t('Redis版本')"
     :min-width="150"
     required>
-    <Select
+    <EditableSelect
       v-model="modelValue"
       :disabled="!cluster.id"
       :input-search="false"
@@ -42,16 +42,14 @@
           </BkTag>
         </div>
       </template>
-    </Select>
-  </Column>
+    </EditableSelect>
+  </EditableColumn>
 </template>
 <script lang="ts" setup>
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
   import { getClusterVersions } from '@services/source/redisToolbox';
-
-  import { Column, Select } from '@components/editable-table/Index.vue';
 
   interface Props {
     cluster: {
