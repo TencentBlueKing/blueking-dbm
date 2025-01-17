@@ -16,7 +16,7 @@
     ref="table"
     class="mb-20"
     :model="tableData">
-    <EditableTableRow
+    <EditableRow
       v-for="(item, index) in tableData"
       :key="index">
       <HostColumnGroup
@@ -30,16 +30,13 @@
       <OperationColumn
         v-model:table-data="tableData"
         :create-row-method="createTableRow" />
-    </EditableTableRow>
+    </EditableRow>
   </EditableTable>
 </template>
 <script lang="ts" setup>
   import { useTemplateRef } from 'vue';
   import { useI18n } from 'vue-i18n';
 
-  import EditableTable, { Row as EditableTableRow } from '@components/editable-table/Index.vue';
-
-  import OperationColumn from '@views/db-manage/common/toolbox-field/column/operation-column/Index.vue';
   import SingleHostColumn from '@views/db-manage/common/toolbox-field/column/single-host-column/Index.vue';
 
   import { ProxyReplaceTypes } from '../types';

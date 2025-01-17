@@ -25,21 +25,21 @@
         ref="table"
         class="mb-20"
         :model="formData.tableData">
-        <EditableTableRow
+        <EditableRow
           v-for="(item, index) in formData.tableData"
           :key="index">
           <ClusterColumn
             v-model="item.cluster"
             :selected="selected"
             @batch-edit="handleBatchEdit" />
-          <Column
+          <EditableColumn
             field="cluster.cluster_type_name"
             :label="t('架构版本')"
             :min-width="150">
-            <Block
+            <EditableBlock
               v-model="item.cluster.cluster_type_name"
               :placeholder="t('自动生成')" />
-          </Column>
+          </EditableColumn>
           <RedisVersionColumn
             v-model="item.version"
             :cluster="item.cluster" />
@@ -47,22 +47,22 @@
           <TargetCapacityColumn
             v-model="item.backendGroup"
             :row-data="item" />
-          <Column
+          <EditableColumn
             field="switchMode"
             :label="t('切换模式')"
             :min-width="150">
-            <Select
+            <EditableSelect
               v-model="item.switchMode"
               :disabled="!item.cluster.id"
               :input-search="false"
               :list="switchModeOptions" />
-          </Column>
+          </EditableColumn>
           <OperationColumn
             v-model:table-data="formData.tableData"
             :create-row-method="createTableRow" />
-        </EditableTableRow>
+        </EditableRow>
       </EditableTable>
-      <TicketRemark v-model="formData.remark" />
+      <TicketPayload v-model="formData" />
     </BkForm>
     <template #action>
       <BkButton
@@ -95,10 +95,9 @@
 
   import { TicketTypes } from '@common/const';
 
-  import EditableTable, { Block, Column, Row as EditableTableRow, Select } from '@components/editable-table/Index.vue';
-
-  import OperationColumn from '@views/db-manage/common/toolbox-field/column/operation-column/Index.vue';
-  import TicketRemark from '@views/db-manage/common/toolbox-field/form-item/ticket-remark/Index.vue';
+  import TicketPayload, {
+    createTickePayload,
+  } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
   import { AffinityType } from '@views/db-manage/redis/common/types';
 
   import ClusterColumn from './components/ClusterColumn.vue';
@@ -171,7 +170,7 @@
 
   const defaultData = () => ({
     tableData: [createTableRow()],
-    remark: '',
+    ...createTickePayload(),
   });
 
   const formData = reactive(defaultData());

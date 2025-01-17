@@ -12,13 +12,13 @@
 -->
 
 <template>
-  <Column
+  <EditableColumn
     :field="field"
     :label="label"
     :min-width="minWidth"
     required
     :rule="rules">
-    <Select
+    <EditableSelect
       v-model="modelValue"
       :list="selectList"
       @change="handleSelectChange">
@@ -29,7 +29,7 @@
         </div>
       </template>
       <template #trigger>
-        <Input
+        <EditableInput
           v-if="modelValue === HostSelectType.MANUAL"
           v-model="localValue"
           :placeholder="t('请选择主机')">
@@ -43,7 +43,7 @@
               type="host-select"
               @click.stop="handleShowSelector" />
           </template>
-        </Input>
+        </EditableInput>
         <div
           v-else-if="modelValue === HostSelectType.AUTO"
           class="table-cell">
@@ -55,8 +55,8 @@
           {{ t(placeholder) }}
         </div>
       </template>
-    </Select>
-  </Column>
+    </EditableSelect>
+  </EditableColumn>
   <ResourceHostSelector
     v-model:is-show="showSelector"
     v-mode="hostList"
@@ -77,7 +77,6 @@
 
   import { getSpecResourceCount } from '@services/source/dbresourceResource';
 
-  import { Column, Input, Select } from '@components/editable-table/Index.vue';
   import ResourceHostSelector, { type IValue } from '@components/resource-host-selector/Index.vue';
 
   export type HostInfo = IValue;

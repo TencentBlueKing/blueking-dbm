@@ -26,7 +26,7 @@
         class="mb-20"
         :model="formData.tableData"
         :rules="rules">
-        <EditableTableRow
+        <EditableRow
           v-for="(item, index) in formData.tableData"
           :key="index">
           <WithRelatedClustersColumn
@@ -40,9 +40,9 @@
           <OperationColumn
             v-model:table-data="formData.tableData"
             :create-row-method="createTableRow" />
-        </EditableTableRow>
+        </EditableRow>
       </EditableTable>
-      <TicketRemark v-model="formData.remark" />
+      <TicketPayload v-model="formData" />
     </BkForm>
     <template #action>
       <BkButton
@@ -75,11 +75,10 @@
 
   import { TicketTypes } from '@common/const';
 
-  import EditableTable, { Row as EditableTableRow } from '@components/editable-table/Index.vue';
-
-  import OperationColumn from '@views/db-manage/common/toolbox-field/column/operation-column/Index.vue';
   import SingleHostColumn from '@views/db-manage/common/toolbox-field/column/single-host-column/Index.vue';
-  import TicketRemark from '@views/db-manage/common/toolbox-field/form-item/ticket-remark/Index.vue';
+  import TicketPayload, {
+    createTickePayload,
+  } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
   import WithRelatedClustersColumn from '@views/db-manage/mysql/common/edit-table-column/WithRelatedClustersColumn.vue';
 
   interface RowData {
@@ -118,7 +117,7 @@
 
   const defaultData = () => ({
     tableData: [createTableRow()],
-    remark: '',
+    ...createTickePayload(),
   });
 
   const formData = reactive(defaultData());

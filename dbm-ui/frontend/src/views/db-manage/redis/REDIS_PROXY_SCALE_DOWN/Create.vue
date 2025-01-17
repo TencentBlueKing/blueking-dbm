@@ -25,30 +25,30 @@
         ref="table"
         class="mb-20"
         :model="formData.tableData">
-        <EditableTableRow
+        <EditableRow
           v-for="(item, index) in formData.tableData"
           :key="index">
           <ClusterColumn
             v-model="item.cluster"
             :selected="selected"
             @batch-edit="handleBatchEdit" />
-          <Column
+          <EditableColumn
             field="cluster.cluster_type_name"
             :label="t('架构版本')"
             :min-width="150">
-            <Block
+            <EditableBlock
               v-model="item.cluster.cluster_type_name"
               :placeholder="t('自动生成')" />
-          </Column>
-          <Column
+          </EditableColumn>
+          <EditableColumn
             field="cluster.role"
             :label="t('缩容节点类型')"
             :min-width="150"
             required>
-            <Block
+            <EditableBlock
               v-model="item.cluster.role"
               :placeholder="t('自动生成')" />
-          </Column>
+          </EditableColumn>
           <HybridHostColumn
             v-model="item.host.type"
             field="host.type"
@@ -57,7 +57,7 @@
             :need-num="1"
             :spec-ids="item.cluster.proxy_spec_ids"
             @change="(list) => handleSelectHost(list, item)" />
-          <Column
+          <EditableColumn
             field="count"
             :label="t('缩容数量（台）')"
             :min-width="150">
@@ -67,29 +67,29 @@
                 disabled: item.host.type !== HostSelectType.MANUAL,
               }"
               style="flex: 1">
-              <Input
+              <EditableInput
                 v-model="item.count"
                 :disabled="item.host.type === HostSelectType.MANUAL"
                 :min="0"
                 type="number" />
             </div>
-          </Column>
-          <Column
+          </EditableColumn>
+          <EditableColumn
             field="switchMode"
             :label="t('切换模式')"
             :min-width="150">
-            <Select
+            <EditableSelect
               v-model="item.switchMode"
               :disabled="item.host.type === HostSelectType.MANUAL"
               :input-search="false"
               :list="switchModeOptions" />
-          </Column>
+          </EditableColumn>
           <OperationColumn
             v-model:table-data="formData.tableData"
             :create-row-method="createTableRow" />
-        </EditableTableRow>
+        </EditableRow>
       </EditableTable>
-      <TicketRemark v-model="formData.remark" />
+      <TicketPayload v-model="formData" />
     </BkForm>
     <template #action>
       <BkButton
@@ -122,20 +122,13 @@
 
   import { TicketTypes } from '@common/const';
 
-  import EditableTable, {
-    Block,
-    Column,
-    Input,
-    Row as EditableTableRow,
-    Select,
-  } from '@components/editable-table/Index.vue';
-
   import HybridHostColumn, {
     type HostInfo,
     HostSelectType,
   } from '@views/db-manage/common/toolbox-field/column/hybrid-host-column/Index.vue';
-  import OperationColumn from '@views/db-manage/common/toolbox-field/column/operation-column/Index.vue';
-  import TicketRemark from '@views/db-manage/common/toolbox-field/form-item/ticket-remark/Index.vue';
+  import TicketPayload, {
+    createTickePayload,
+  } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
 
   import ClusterColumn from './components/ClusterColumn.vue';
 
@@ -181,7 +174,7 @@
 
   const defaultData = () => ({
     tableData: [createTableRow()],
-    remark: '',
+    ...createTickePayload(),
   });
 
   const formData = reactive(defaultData());
