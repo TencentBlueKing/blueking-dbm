@@ -12,7 +12,7 @@
 -->
 
 <template>
-  <Column
+  <EditableColumn
     :append-rules="rules"
     field="slave.instance_address"
     fixed="left"
@@ -28,11 +28,11 @@
         <DbIcon type="batch-host-select" />
       </span>
     </template>
-    <Input
+    <EditableInput
       v-model="modelValue.instance_address"
       :placeholder="t('请输入IP:Port')"
       @change="handleInputChange" />
-  </Column>
+  </EditableColumn>
   <InstanceSelector
     v-model:is-show="showSelector"
     :cluster-types="[ClusterTypes.TENDBCLUSTER]"
@@ -49,7 +49,6 @@
   import { ClusterTypes } from '@common/const';
   import { ipPort } from '@common/regex';
 
-  import { Column, Input } from '@components/editable-table/Index.vue';
   import InstanceSelector, {
     type InstanceSelectorValues,
     type IValue,
