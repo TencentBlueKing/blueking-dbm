@@ -25,23 +25,23 @@
         ref="table"
         class="mb-20"
         :model="formData.tableData">
-        <EditableTableRow
+        <EditableRow
           v-for="(item, index) in formData.tableData"
           :key="index">
           <ClusterColumn
             v-model="item.cluster"
             :selected="selected"
             @batch-edit="handleBatchEdit" />
-          <Column
+          <EditableColumn
             field="cluster.role"
             :label="t('缩容节点类型')"
             :min-width="200"
             required>
-            <Select
+            <EditableSelect
               v-model="item.cluster.role"
               :input-search="false"
               :list="nodeTypeOptions" />
-          </Column>
+          </EditableColumn>
           <HybridHostColumn
             v-model="item.host.type"
             field="host.type"
@@ -50,7 +50,7 @@
             :need-num="1"
             :spec-ids="getSpecIds(item)"
             @change="(list) => handleSelectHost(list, item)" />
-          <Column
+          <EditableColumn
             field="count"
             :label="t('缩容数量（台）')"
             :min-width="200">
@@ -60,22 +60,22 @@
                 disabled: item.host.type !== HostSelectType.MANUAL,
               }"
               style="flex: 1">
-              <Input
+              <EditableInput
                 v-model="item.count"
                 :disabled="item.host.type === HostSelectType.MANUAL"
                 :min="0"
                 type="number" />
             </div>
-          </Column>
+          </EditableColumn>
           <OperationColumn
             v-model:table-data="formData.tableData"
             :create-row-method="createTableRow" />
-        </EditableTableRow>
+        </EditableRow>
       </EditableTable>
       <IgnoreBiz
         v-model="formData.isSafe"
         v-bk-tooltips="t('如忽略_有连接的情况下也会执行')" />
-      <TicketRemark v-model="formData.remark" />
+      <TicketPayload v-model="formData" />
     </BkForm>
     <template #action>
       <BkButton
@@ -108,15 +108,14 @@
 
   import { TicketTypes } from '@common/const';
 
-  import EditableTable, { Column, Input, Row as EditableTableRow, Select } from '@components/editable-table/Index.vue';
-
   import HybridHostColumn, {
     type HostInfo,
     HostSelectType,
   } from '@views/db-manage/common/toolbox-field/column/hybrid-host-column/Index.vue';
-  import OperationColumn from '@views/db-manage/common/toolbox-field/column/operation-column/Index.vue';
   import IgnoreBiz from '@views/db-manage/common/toolbox-field/form-item/ignore-biz/Index.vue';
-  import TicketRemark from '@views/db-manage/common/toolbox-field/form-item/ticket-remark/Index.vue';
+  import TicketPayload, {
+    createTickePayload,
+  } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
 
   import ClusterColumn from './components/ClusterColumn.vue';
 
@@ -161,7 +160,7 @@
   const defaultData = () => ({
     tableData: [createTableRow()],
     isSafe: false,
-    remark: '',
+    ...createTickePayload(),
   });
 
   const formData = reactive(defaultData());

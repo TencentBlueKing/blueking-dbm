@@ -12,7 +12,7 @@
 -->
 
 <template>
-  <Column
+  <EditableColumn
     :append-rules="rules"
     field="cluster.master_domain"
     fixed="left"
@@ -30,7 +30,7 @@
       </span>
     </template>
     <div style="flex: 1">
-      <Input
+      <EditableInput
         v-model="modelValue.master_domain"
         :placeholder="t('请输入集群域名')"
         @change="handleInputChange" />
@@ -46,7 +46,7 @@
         </p>
       </BkLoading>
     </div>
-  </Column>
+  </EditableColumn>
   <ClusterSelector
     v-model:is-show="showSelector"
     :cluster-types="[ClusterTypes.TENDBHA]"
@@ -65,7 +65,6 @@
   import { domainRegex } from '@common/regex';
 
   import ClusterSelector from '@components/cluster-selector/Index.vue';
-  import { Column, Input } from '@components/editable-table/Index.vue';
 
   interface Props {
     selected: {
