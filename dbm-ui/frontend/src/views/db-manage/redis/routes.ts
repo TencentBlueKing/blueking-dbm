@@ -79,14 +79,16 @@ const redisMigrateRoute = {
   component: () => import('@views/db-manage/redis/migrate/Index.vue'),
 };
 
-const redisClusterShardUpdateRoute = {
-  name: 'RedisClusterShardUpdate',
-  path: 'cluster-shard-update/:page?',
-  meta: {
-    navName: t('集群分片变更'),
-  },
-  component: () => import('@views/db-manage/redis/cluster-shard-update/Index.vue'),
-};
+// const redisClusterShardUpdateRoute = {
+//   name: 'RedisClusterShardUpdate',
+//   path: 'cluster-shard-update/:page?',
+//   meta: {
+//     navName: t('集群分片变更'),
+//   },
+//   component: () => import('@views/db-manage/redis/cluster-shard-update/Index.vue'),
+// };
+
+const redisClusterShardUpdateRoute = createRouteItem(TicketTypes.REDIS_CLUSTER_SHARD_NUM_UPDATE, t('集群分片变更'));
 
 const redisClusterTypeUpdateRoute = {
   name: 'RedisClusterTypeUpdate',
