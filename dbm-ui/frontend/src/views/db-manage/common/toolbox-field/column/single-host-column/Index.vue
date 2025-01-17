@@ -12,14 +12,14 @@
 -->
 
 <template>
-  <Column
+  <EditableColumn
     :append-rules="editable ? rules : []"
     :field="field"
     :label="label"
     :loading="loading"
     :min-width="minWidth"
     required>
-    <Input
+    <EditableInput
       v-if="editable"
       v-model="modelValue.ip"
       :placeholder="t('请选择主机')"
@@ -31,8 +31,8 @@
           type="host-select"
           @click="handleShowSelector" />
       </template>
-    </Input>
-    <Block
+    </EditableInput>
+    <EditableBlock
       v-else
       v-model="modelValue.ip"
       :placeholder="t('请选择主机')">
@@ -43,8 +43,8 @@
           type="host-select"
           @click="handleShowSelector" />
       </template>
-    </Block>
-  </Column>
+    </EditableBlock>
+  </EditableColumn>
   <ResourceHostSelector
     v-model="selected"
     v-model:is-show="showSelector"
@@ -60,7 +60,6 @@
 
   import { ipv4 } from '@common/regex';
 
-  import { Block, Column, Input } from '@components/editable-table/Index.vue';
   import ResourceHostSelector, { type IValue } from '@components/resource-host-selector/Index.vue';
 
   interface Props {
