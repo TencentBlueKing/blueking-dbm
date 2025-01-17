@@ -7,7 +7,7 @@
     }"
     :label="t('版本')"
     :min-width="150"
-    :show-overflow="false">
+    show-overflow>
     <template #default="{ data }: { data: IRowData }">
       {{ data.major_version || '--' }}
     </template>
@@ -16,7 +16,7 @@
     field="disaster_tolerance_level"
     :label="t('容灾要求')"
     :min-width="160"
-    :show-overflow="false">
+    show-overflow>
     <template #default="{ data }: { data: IRowData }">
       {{ data.disasterToleranceLevelName || '--' }}
     </template>
@@ -29,7 +29,7 @@
     }"
     :label="t('地域')"
     :min-width="100"
-    :show-overflow="false">
+    show-overflow>
     <template #default="{ data }: { data: IRowData }">
       {{ data.region || '--' }}
     </template>
@@ -38,7 +38,7 @@
     field="cluster_spec"
     :label="t('规格')"
     :min-width="180"
-    :show-overflow="false">
+    show-overflow>
     <template #default="{ data }: { data: IRowData }">
       {{ data.cluster_spec.spec_name || '--' }}
     </template>
@@ -50,7 +50,7 @@
       checked: columnCheckedMap.bk_cloud_id,
     }"
     :label="t('管控区域')"
-    :show-overflow="false"
+    show-overflow
     :width="120">
     <template #default="{ data }: { data: IRowData }">
       {{ data.bk_cloud_name ? `${data.bk_cloud_name}[${data.bk_cloud_id}]` : '--' }}
@@ -59,7 +59,7 @@
   <BkTableColumn
     field="creator"
     :label="t('创建人')"
-    :show-overflow="false"
+    show-overflow
     :width="140">
     <template #default="{ data }: { data: IRowData }">
       {{ data.creator || '--' }}
@@ -68,7 +68,7 @@
   <BkTableColumn
     field="create_at"
     :label="t('部署时间')"
-    :show-overflow="false"
+    show-overflow
     sort
     :width="250">
     <template #default="{ data }: { data: IRowData }">
@@ -82,7 +82,7 @@
       checked: columnCheckedMap.time_zone,
     }"
     :label="t('时区')"
-    :show-overflow="false"
+    show-overflow
     :width="100">
     <template #default="{ data }: { data: IRowData }">
       {{ data.cluster_time_zone || '--' }}

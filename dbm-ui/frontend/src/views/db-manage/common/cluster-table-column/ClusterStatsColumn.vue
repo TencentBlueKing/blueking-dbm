@@ -2,7 +2,7 @@
   <BkTableColumn
     field="cluster_stats"
     :label="t('容量使用率')"
-    :width="240">
+    :width="280">
     <template #default="{ data }: { data: IRowData }">
       <ClusterStatsCell
         :cluster-id="data.id"
