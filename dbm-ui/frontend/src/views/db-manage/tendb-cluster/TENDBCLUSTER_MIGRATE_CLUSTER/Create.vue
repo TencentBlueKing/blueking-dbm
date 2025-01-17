@@ -25,7 +25,7 @@
         ref="table"
         class="mb-20"
         :model="formData.tableData">
-        <EditableTableRow
+        <EditableRow
           v-for="(item, index) in formData.tableData"
           :key="index">
           <MasterHostColumnGroup
@@ -35,13 +35,13 @@
           <SlaveHostColumnGroup
             v-model="item.oldSlave"
             :master-host="item.oldMaster" />
-          <Column
+          <EditableColumn
             :label="t('所属集群')"
             :min-width="150">
-            <Block
+            <EditableBlock
               v-model="item.oldMaster.master_domain"
               :placeholder="t('自动生成')" />
-          </Column>
+          </EditableColumn>
           <SingleHostColumn
             v-model="item.newMaster"
             field="newMaster"
@@ -55,10 +55,10 @@
           <OperationColumn
             v-model:table-data="formData.tableData"
             :create-row-method="createTableRow" />
-        </EditableTableRow>
+        </EditableRow>
       </EditableTable>
       <BackupSource v-model="formData.backupSource" />
-      <TicketRemark v-model="formData.remark" />
+      <TicketPayload v-model="formData" />
     </BkForm>
     <template #action>
       <BkButton
@@ -91,12 +91,11 @@
 
   import { TicketTypes } from '@common/const';
 
-  import EditableTable, { Block, Column, Row as EditableTableRow } from '@components/editable-table/Index.vue';
-
-  import OperationColumn from '@views/db-manage/common/toolbox-field/column/operation-column/Index.vue';
   import SingleHostColumn from '@views/db-manage/common/toolbox-field/column/single-host-column/Index.vue';
   import BackupSource from '@views/db-manage/common/toolbox-field/form-item/backup-source/Index.vue';
-  import TicketRemark from '@views/db-manage/common/toolbox-field/form-item/ticket-remark/Index.vue';
+  import TicketPayload, {
+    createTickePayload,
+  } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
 
   import MasterHostColumnGroup, { type SelectorHost } from './components/MasterHostColumnGroup.vue';
   import SlaveHostColumnGroup from './components/SlaveHostColumnGroup.vue';
@@ -156,7 +155,7 @@
   const defaultData = () => ({
     tableData: [createTableRow()],
     backupSource: BackupSourceType.REMOTE,
-    remark: '',
+    ...createTickePayload(),
   });
 
   const formData = reactive(defaultData());

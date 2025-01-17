@@ -12,7 +12,7 @@
 -->
 
 <template>
-  <Column
+  <EditableColumn
     :label="t('规格需求')"
     :min-width="150">
     <template #head>
@@ -20,7 +20,7 @@
         <span class="spec-title">{{ t('规格需求') }}</span>
       </div>
     </template>
-    <Block
+    <EditableBlock
       v-model="modelValue.name"
       :placeholder="t('自动生成')">
       <template #append>
@@ -33,14 +33,13 @@
             type="visible1" />
         </SpecPanel>
       </template>
-    </Block>
-  </Column>
+    </EditableBlock>
+  </EditableColumn>
 </template>
 
 <script lang="ts" setup>
   import { useI18n } from 'vue-i18n';
 
-  import { Block, Column } from '@components/editable-table/Index.vue';
   import SpecPanel from '@components/render-table/columns/spec-display/Panel.vue';
 
   import type { SpecInfo } from '@views/db-manage/redis/common/spec-panel/Index.vue';
