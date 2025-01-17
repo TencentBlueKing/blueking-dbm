@@ -129,22 +129,6 @@
                   {{ t('启用') }}
                 </AuthButton>
               </OperationBtnStatusTips>
-              <OperationBtnStatusTips
-                v-db-console="'hdfs.clusterManage.delete'"
-                :data="data">
-                <AuthButton
-                  v-db-console="'hdfs.clusterManage.delete'"
-                  action-id="hdfs_destroy"
-                  class="mr-8"
-                  :disabled="Boolean(data.operationTicketId)"
-                  :permission="data.permission.hdfs_destroy"
-                  :resource="data.id"
-                  text
-                  theme="primary"
-                  @click="handleDeleteCluster([data])">
-                  {{ t('删除') }}
-                </AuthButton>
-              </OperationBtnStatusTips>
             </template>
             <template v-else>
               <OperationBtnStatusTips :data="data">
