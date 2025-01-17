@@ -172,7 +172,7 @@ class AddAccountRuleSerializer(serializers.Serializer):
             required=False,
         )
         ddl = serializers.ListField(
-            help_text=_("dml"),
+            help_text=_("ddl"),
             child=serializers.ChoiceField(choices=PrivilegeType.MySQL.DDL.get_choices()),
             required=False,
         )

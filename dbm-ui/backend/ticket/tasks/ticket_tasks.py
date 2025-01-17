@@ -26,6 +26,7 @@ from backend import env
 from backend.components import BKLogApi
 from backend.configuration.constants import PLAT_BIZ_ID, DBType
 from backend.constants import DEFAULT_SYSTEM_USER
+from backend.core import notify
 from backend.db_meta.enums import ClusterType, InstanceInnerRole
 from backend.db_meta.models import Cluster, StorageInstance
 from backend.ticket.builders.common.constants import MYSQL_CHECKSUM_TABLE, MySQLDataRepairTriggerMode
@@ -238,24 +239,12 @@ class TicketTask(object):
 
         # 一次批量只操作100个单据
         batch = 100
-        now = datetime.now()
+        now = datetime.now(timezone.utc)
         # 只考虑平台级别的过期配置，暂不考虑业务和集群粒度
         ticket_configs = TicketFlowsConfig.objects.filter(bk_biz_id=PLAT_BIZ_ID)
 
-        def get_expire_flow_tickets(expire_type):
-            """获取超时过期的过滤条件"""
-            qs, ticket_ids = [], []
-            for cnf in ticket_configs:
-                expire_days = cnf.configs.get(FlowTypeConfig.EXPIRE_CONFIG, TICKET_EXPIRE_DEFAULT_CONFIG)[expire_type]
-                if expire_days < 0:
-                    continue
-                qs.append(Q(update_at__lt=now - timedelta(days=expire_days), ticket__ticket_type=cnf.ticket_type))
-
-            # 如果设置为无限制过期，则不进行过滤
-            if not qs:
-                return ticket_ids
-
-            filters = reduce(operator.or_, qs)
+        def filter_tickets(filters, expire_type):
+            ticket_ids = []
             # itsm: 审批中的流程
             if expire_type == TicketExpireType.ITSM:
                 filters &= Q(flow_type=FlowType.BK_ITSM, status=TicketFlowStatus.RUNNING)
@@ -273,14 +262,59 @@ class TicketTask(object):
 
             return ticket_ids
 
+        def get_expire_flow_tickets(expire_type):
+            """获取超时过期的单据"""
+            qs = []
+            for cnf in ticket_configs:
+                expire = cnf.configs.get(FlowTypeConfig.EXPIRE_CONFIG, TICKET_EXPIRE_DEFAULT_CONFIG)[expire_type]
+                # -1表示无限制，不参与终止
+                if expire < 0:
+                    continue
+                qs.append(Q(update_at__lt=now - timedelta(days=expire), ticket__ticket_type=cnf.ticket_type))
+
+            # 如果设置为无限制过期，则不进行过滤
+            if not qs:
+                return []
+
+            ticket_ids = filter_tickets(reduce(operator.or_, qs), expire_type)
+            return ticket_ids
+
+        def remind_expire_tickets(expire_type):
+            """获取即将超时需要提醒的单据"""
+            deadline_hours = [3, 72]
+            for hour in deadline_hours:
+                qs = []
+                for cnf in ticket_configs:
+                    expire = cnf.configs.get(FlowTypeConfig.EXPIRE_CONFIG, TICKET_EXPIRE_DEFAULT_CONFIG)[expire_type]
+                    # -1表示无限制，不参与提醒
+                    if expire < 0:
+                        continue
+                    # 超时提醒的区间是1小时，左闭右开，
+                    # 即 terminate - hour - 1 <= now < terminate - hour; terminate = update_at + expire_days
+                    st = now - timedelta(days=expire) + timedelta(hours=hour)
+                    ed = now - timedelta(days=expire) + timedelta(hours=hour + 1)
+                    qs.append(Q(update_at__gte=st, update_at__lt=ed, ticket__ticket_type=cnf.ticket_type))
+
+                if not qs:
+                    continue
+
+                ticket_ids = filter_tickets(reduce(operator.or_, qs), expire_type)
+                for ticket_id in ticket_ids:
+                    notify.send_msg.apply_async(
+                        args=(
+                            ticket_id,
+                            hour,
+                        )
+                    )
+
         # 根据超时保护类型，获取需要过期处理的单据
         expire_ticket_ids = []
         for expire_type in TicketExpireType.get_values():
             expire_ticket_ids.extend(get_expire_flow_tickets(expire_type))
+            remind_expire_tickets(expire_type)
 
         # 终止单据
         TicketHandler.revoke_ticket(ticket_ids=expire_ticket_ids[:batch], operator=DEFAULT_SYSTEM_USER)
-        # print(expire_ticket_ids)
 
 
 # ----------------------------- 异步执行任务函数 ----------------------------------------
