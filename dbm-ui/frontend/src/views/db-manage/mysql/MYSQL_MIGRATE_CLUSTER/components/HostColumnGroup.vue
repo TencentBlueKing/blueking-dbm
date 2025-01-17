@@ -12,7 +12,7 @@
 -->
 
 <template>
-  <Column
+  <EditableColumn
     :append-rules="rules"
     field="master.ip"
     fixed="left"
@@ -28,12 +28,12 @@
         <DbIcon type="batch-host-select" />
       </span>
     </template>
-    <Input
+    <EditableInput
       v-model="modelValue.ip"
       :placeholder="t('请输入IP')"
       @change="handleInputChange" />
-  </Column>
-  <Column
+  </EditableColumn>
+  <EditableColumn
     :label="t('同机关联实例')"
     :loading="loading"
     :min-width="150">
@@ -47,11 +47,11 @@
         {{ item }}
       </p>
     </div>
-    <Block
+    <EditableBlock
       v-else
       :placeholder="t('自动生成')" />
-  </Column>
-  <Column
+  </EditableColumn>
+  <EditableColumn
     :label="t('同机关联集群')"
     :loading="loading"
     :min-width="150">
@@ -65,10 +65,10 @@
         {{ item }}
       </p>
     </div>
-    <Block
+    <EditableBlock
       v-else
       :placeholder="t('自动生成')" />
-  </Column>
+  </EditableColumn>
   <InstanceSelector
     v-model:is-show="showSelector"
     :cluster-types="[TENDBHA_HOST]"
@@ -85,7 +85,6 @@
   import { ClusterTypes } from '@common/const';
   import { ipv4 } from '@common/regex';
 
-  import { Block, Column, Input } from '@components/editable-table/Index.vue';
   import InstanceSelector, {
     type InstanceSelectorValues,
     type IValue,
