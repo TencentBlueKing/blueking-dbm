@@ -12,14 +12,14 @@
 -->
 
 <template>
-  <Column
+  <EditableColumn
     field="backendGroup.spec_id"
     :label="t('目标容量')"
     :min-width="150"
     required
     :rule="rules">
     <div class="capacity-box">
-      <Input
+      <EditableInput
         v-if="!localValue || !activeRowData || !targetObj"
         :placeholder="t('请选择')"
         @focus="handleShowSideslider">
@@ -28,7 +28,7 @@
             class="down-icon"
             type="down-big" />
         </template>
-      </Input>
+      </EditableInput>
       <div
         v-else
         class="display-content">
@@ -89,7 +89,7 @@
         </div>
       </div>
     </div>
-  </Column>
+  </EditableColumn>
   <ClusterTargetPlan
     v-if="rowData.cluster?.cluster_stats"
     :cluster-id="rowData.cluster.id"
@@ -112,7 +112,6 @@
 
   import { ClusterTypes } from '@common/const';
 
-  import { Column, Input } from '@components/editable-table/Index.vue';
   import RenderSpec from '@components/render-table/columns/spec-display/Index.vue';
 
   import ClusterCapacityUsageRate from '@views/db-manage/common/cluster-capacity-usage-rate/Index.vue';

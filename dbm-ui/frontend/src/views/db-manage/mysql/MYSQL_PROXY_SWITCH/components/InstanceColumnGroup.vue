@@ -12,7 +12,7 @@
 -->
 
 <template>
-  <Column
+  <EditableColumn
     :append-rules="rules"
     field="originProxy.instance_address"
     fixed="left"
@@ -28,19 +28,19 @@
         <DbIcon type="batch-host-select" />
       </span>
     </template>
-    <Input
+    <EditableInput
       v-model="modelValue.instance_address"
       :placeholder="t('请输入IP:Port')"
       @change="handleInputChange" />
-  </Column>
-  <Column
+  </EditableColumn>
+  <EditableColumn
     :label="t('关联集群')"
     :loading="loading"
     :min-width="300">
-    <Block
+    <EditableBlock
       v-model="modelValue.master_domain"
       :placeholder="t('自动生成')" />
-  </Column>
+  </EditableColumn>
   <InstanceSelector
     v-model:is-show="showSelector"
     :cluster-types="[ClusterTypes.TENDBHA]"
@@ -57,7 +57,6 @@
   import { ClusterTypes } from '@common/const';
   import { ipPort } from '@common/regex';
 
-  import { Block, Column, Input } from '@components/editable-table/Index.vue';
   import InstanceSelector, {
     type InstanceSelectorValues,
     type IValue,

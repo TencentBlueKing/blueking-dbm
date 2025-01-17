@@ -12,15 +12,15 @@
 -->
 
 <template>
-  <Column
+  <EditableColumn
     :label="t('目标从库主机')"
     :loading="loading"
     :min-width="150">
-    <Block
+    <EditableBlock
       v-model="modelValue.ip"
       :placeholder="t('自动生成')" />
-  </Column>
-  <Column
+  </EditableColumn>
+  <EditableColumn
     :label="t('从库主机关联实例')"
     :loading="loading"
     :min-width="150">
@@ -33,18 +33,16 @@
         {{ item }}
       </p>
     </div>
-    <Block
+    <EditableBlock
       v-else
       :placeholder="t('自动生成')" />
-  </Column>
+  </EditableColumn>
 </template>
 <script lang="ts" setup>
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
   import { getRemoteMachineInstancePair } from '@services/source/mysqlCluster';
-
-  import { Block, Column } from '@components/editable-table/Index.vue';
 
   interface Props {
     masterHost: {

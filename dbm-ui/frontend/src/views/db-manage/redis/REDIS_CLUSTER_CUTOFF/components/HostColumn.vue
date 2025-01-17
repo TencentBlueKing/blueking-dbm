@@ -12,7 +12,7 @@
 -->
 
 <template>
-  <Column
+  <EditableColumn
     :append-rules="rules"
     field="host.ip"
     fixed="left"
@@ -28,11 +28,11 @@
         <DbIcon type="batch-host-select" />
       </span>
     </template>
-    <Input
+    <EditableInput
       v-model="modelValue.ip"
       :placeholder="t('请输入IP')"
       @change="handleInputChange" />
-  </Column>
+  </EditableColumn>
   <InstanceSelector
     v-model:is-show="showSelector"
     active-tab="idleHosts"
@@ -49,8 +49,6 @@
   import { checkInstance } from '@services/source/dbbase';
 
   import { ipv4 } from '@common/regex';
-
-  import { Column, Input } from '@components/editable-table/Index.vue';
 
   import type { SpecInfo } from '@views/db-manage/redis/common/spec-panel/Index.vue';
 
