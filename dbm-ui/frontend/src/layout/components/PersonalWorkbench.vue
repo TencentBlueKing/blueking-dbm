@@ -6,7 +6,7 @@
     @click="handleMenuChange">
     <BkMenuGroup
       v-db-console="'personalWorkbench'"
-      :name="t('单据管理')">
+      :name="t('我的待办')">
       <BkMenuItem
         key="MyTodos"
         v-db-console="'personalWorkbench.myTodos'">
@@ -14,10 +14,25 @@
           <DbIcon type="todos" />
         </template>
         <span>
-          {{ t('我的待办') }}
+          {{ t('单据待办') }}
         </span>
         <span class="ticket-count">{{ todoCount }}</span>
       </BkMenuItem>
+      <BkMenuItem
+        key="InspectionTodos"
+        v-db-console="'personalWorkbench.InspectionTodos'">
+        <template #icon>
+          <DbIcon type="cluster-standardize" />
+        </template>
+        <span>
+          {{ t('巡检待办') }}
+        </span>
+        <span class="ticket-count">{{ reportCountStore.manageCount }}</span>
+      </BkMenuItem>
+    </BkMenuGroup>
+    <BkMenuGroup
+      v-db-console="'personalWorkbench'"
+      :name="t('我的申请')">
       <BkMenuItem
         key="SelfServiceMyTickets"
         v-db-console="'personalWorkbench.myTickets'">
@@ -28,6 +43,10 @@
           {{ t('我的申请') }}
         </span>
       </BkMenuItem>
+    </BkMenuGroup>
+    <BkMenuGroup
+      v-db-console="'personalWorkbench'"
+      :name="t('我的已办')">
       <BkMenuItem
         key="ticketSelfDone"
         v-db-console="'personalWorkbench.myTickets'">
@@ -35,10 +54,13 @@
           <DbIcon type="todos" />
         </template>
         <span>
-          {{ t('我的已办') }}
+          {{ t('已办单据') }}
         </span>
       </BkMenuItem>
-      <!-- <BkMenuItem
+      <!-- <BkMenuGroup>
+      v-db-console="'personalWorkbench'"
+      :name="t('单据管理')">
+      <BkMenuItem
         key="ticketSelfManage"
         v-db-console="'personalWorkbench.myTickets'">
         <template #icon>
@@ -47,7 +69,8 @@
         <span>
           {{ t('我负责的业务') }}
         </span>
-      </BkMenuItem> -->
+      </BkMenuItem> 
+      </BkMenuGroup>-->
       <BkMenuItem
         key="serviceApply"
         v-db-console="'personalWorkbench.serviceApply'">
@@ -69,6 +92,8 @@
 
   import { useTicketCount } from '@hooks';
 
+  import { useReportCount } from '@stores';
+
   import { useActiveKey } from './hooks/useActiveKey';
 
   const { t } = useI18n();
@@ -82,6 +107,9 @@
   } = useActiveKey(menuRef as Ref<InstanceType<typeof Menu>>, 'MyTodos');
 
   const { data: ticketCount } = useTicketCount();
+  const reportCountStore = useReportCount();
+
+  reportCountStore.updateCounts();
 
   const todoCount = computed(() => {
     if (!ticketCount.value) {

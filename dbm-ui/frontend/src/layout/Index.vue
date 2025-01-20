@@ -171,6 +171,7 @@
       'MyTodos',
       'ticketSelfDone',
       'ticketSelfManage',
+      'InspectionTodos',
     ],
   } as Record<string, string[]>;
 
