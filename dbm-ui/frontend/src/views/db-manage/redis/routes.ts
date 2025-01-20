@@ -25,14 +25,15 @@ import { t } from '@locales/index';
 
 const { createRouteItem } = createToolboxRoute(DBTypes.REDIS);
 
-const redisInstallModuleRoute = {
-  name: 'RedisInstallModule',
-  path: 'install-module/:page?',
-  meta: {
-    navName: t('安装 Module'),
-  },
-  component: () => import('@views/db-manage/redis/install-module/Index.vue'),
-};
+// const redisInstallModuleRoute = {
+//   name: 'RedisInstallModule',
+//   path: 'install-module/:page?',
+//   meta: {
+//     navName: t('安装 Module'),
+//   },
+//   component: () => import('@views/db-manage/redis/install-module/Index.vue'),
+// };
+const redisInstallModuleRoute = createRouteItem(TicketTypes.REDIS_CLUSTER_LOAD_MODULES, t('安装 Module'));
 
 const redisCapacityChangeRoute = createRouteItem(TicketTypes.REDIS_SCALE_UPDOWN, t('集群容量变更'));
 
