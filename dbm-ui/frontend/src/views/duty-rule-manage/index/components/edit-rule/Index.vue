@@ -97,9 +97,9 @@
 
   import { messageSuccess } from '@utils';
 
-  import CustomRotate from './CustomRotate.vue';
-  import CycleRotate from './CycleRotate.vue';
-  import RotateBizs from './RotateBizs.vue';
+  import CustomRotate from './components/CustomRotate.vue';
+  import CycleRotate from './components/CycleRotate.vue';
+  import RotateBizs from './components/RotateBizs.vue';
 
   interface Props {
     dbType: string;
