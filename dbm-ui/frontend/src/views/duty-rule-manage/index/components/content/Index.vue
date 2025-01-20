@@ -60,17 +60,14 @@
 
   import ApplyPermissionCatch from '@components/apply-permission/Catch.vue';
   import MiniTag from '@components/mini-tag/index.vue';
-  import NumberInput from '@components/render-table/columns/input/index.vue';
   import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
 
-  import {
-    messageError,
-    messageSuccess,
-  } from '@utils';
+  import { messageSuccess } from '@utils';
 
   import EditRule from '../edit-rule/Index.vue';
 
-  import RenderRotateTable from './RenderRotateTable.vue';
+  import PriorityInput from './components/PriorityInput.vue'
+  import RenderRotateTable from './components/RenderRotateTable.vue';
 
   interface Props {
     activeDbType: string;
@@ -178,24 +175,17 @@
       sort: true,
       width: 120,
       render: ({ data }: {data: DutyRuleModel}) => {
-
         const renderPriority = () => {
           const level = data.priority;
-
           if (data.is_show_edit){
             return (
               <auth-template
                 action-id="duty_rule_update"
                 permission={data.permission.duty_rule_update}
                 resource={props.activeDbType}>
-                <NumberInput
-                  type='number'
-                  autoFocus
+                <PriorityInput
                   model-value={level}
-                  min={1}
-                  max={100}
-                  placeholder={t('请输入 1～100 的数值')}
-                  onSubmit={(value: string) => handlePriorityChange(data, value)}/>
+                  requestHandler={(value: number) => handlePriorityChange(data, value)}/>
               </auth-template>
             )
           }
@@ -334,7 +324,7 @@
             size="small"
             v-model={data.is_enabled}
             theme="primary"
-            onChange={() => handleChangeSwitch(data)}
+            before-change={(isEnable: boolean) => enableRequestHandler(isEnable, data)}
           />
         </bk-pop-confirm>
       ),
@@ -428,6 +418,9 @@
     },
   });
 
+  let enableRequestHandlerResolver = null as null | ((value: boolean) => void);
+  let enableRequestHandlerRejecter = null as null | (() => void);
+
   watch(() => props.activeDbType, (type) => {
     if (type) {
       setTimeout(() => {
@@ -457,8 +450,8 @@
     });
   };
 
-  const handlePriorityChange = async (row: DutyRuleModel, value: string) => {
-    let priority = Number(value);
+  const handlePriorityChange = async (row: DutyRuleModel, value: number) => {
+    let priority = value;
     if (priority < 1) {
       priority = 1;
     } else if (priority > 100) {
@@ -474,48 +467,50 @@
         messageSuccess(t('优先级设置成功'));
       }
       runGetPriorityDistinct();
-      await fetchHostNodes();
-      setTimeout(() => {
-        window.changeConfirm = false;
-      });
-    } catch {
-      messageError(t('优先级设置失败'));
-      fetchHostNodes();
+      window.changeConfirm = false;
+    } finally {
+      Object.assign(row, {
+        priority,
+        is_show_edit: false,
+      })
     }
   };
 
-  const handleChangeSwitch = async (row: DutyRuleModel) => {
-    if (!row.is_enabled) {
-      showTipMap.value[row.id] = true;
-      Object.assign(row, {
-        is_enabled: !row.is_enabled,
-      });
-    } else {
-      // 启用
-      const updateResult = await updatePartialDutyRule(row.id, {
-        is_enabled: true,
-      });
-      if (updateResult.is_enabled) {
-        messageSuccess(t('启用成功'));
+  const enableRequestHandler = (isEnable: boolean, row: DutyRuleModel) =>
+    new Promise((resolve, reject) => {
+      enableRequestHandlerResolver = resolve;
+      enableRequestHandlerRejecter = reject;
+      if (isEnable) {
+        updatePartialDutyRule(row.id, {
+          is_enabled: true,
+        }).then(() => {
+          resolve(true);
+          messageSuccess(t('启用成功'));
+        }).catch(() => {
+          reject();
+        })
+      } else {
+        showTipMap.value[row.id] = true;
       }
-      fetchHostNodes();
-    }
-  };
+    });
 
   const handleClickConfirm = async (row: DutyRuleModel) => {
-    const updateResult = await updatePartialDutyRule(row.id, {
-      is_enabled: false,
-    });
-    if (!updateResult.is_enabled) {
+    try {
+      await updatePartialDutyRule(row.id, {
+        is_enabled: false,
+      });
       // 停用成功
+      enableRequestHandlerResolver!(true);
+      showTipMap.value[row.id] = false;
       messageSuccess(t('停用成功'));
+    } finally {
+      enableRequestHandlerRejecter!();
     }
-    showTipMap.value[row.id] = false;
-    fetchHostNodes();
   };
 
   const handleCancelConfirm = (row: DutyRuleModel) => {
     showTipMap.value[row.id] = false;
+    enableRequestHandlerRejecter!();
   };
 
   const handleOperate = (type: string, row?: DutyRuleModel) => {

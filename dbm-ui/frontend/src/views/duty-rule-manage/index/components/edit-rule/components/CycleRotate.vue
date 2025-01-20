@@ -100,6 +100,7 @@
           v-model="item.value"
           append-to-body
           :clearable="false"
+          format="HH:mm"
           type="timerange" />
         <DbIcon
           v-if="index === 0"
@@ -188,7 +189,7 @@
       weekday: [] as number[],
       timeList: [{
         id: random(),
-        value: ['00:00:00', '23:59:59'],
+        value: ['00:00', '23:59'],
       }],
     });
   }
@@ -389,7 +390,7 @@
   const handleAddTime = () => {
     dateSelect.value.timeList.push({
       id: random(),
-      value: ['00:00:00', '23:59:59'],
+      value: ['00:00', '23:59'],
     });
   };
 
@@ -401,14 +402,6 @@
   defineExpose<Exposes>({
     async getValue() {
       await formRef.value.validate();
-      const splitTimeToMinute = (str: string) => {
-        const strArr = str.split(':');
-        if (strArr.length <= 2) {
-          return str;
-        }
-        strArr.pop();
-        return strArr.join(':');
-      };
       return {
         effective_time: dayjs(dateTimeRange.value![0]).startOf('day').format('YYYY-MM-DD HH:mm:ss'),
         end_time: dayjs(dateTimeRange.value![1]).endOf('day').format('YYYY-MM-DD HH:mm:ss'),
@@ -419,7 +412,7 @@
             members: formModel.peopleList,
             work_type: dateSelect.value.date,
             work_days: dateSelect.value.date === 'weekly' ? dateSelect.value.weekday.map(num => (num === 0 ? 7 : num)) : [],
-            work_times: dateSelect.value.timeList.map(item => item.value.map(str => splitTimeToMinute(str)).join('--')),
+            work_times: dateSelect.value.timeList.map(item => item.value.join('--')),
           }
         ],
       };
