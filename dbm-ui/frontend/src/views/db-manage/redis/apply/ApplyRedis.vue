@@ -401,6 +401,7 @@
   import SpecSelector from '@views/db-manage/common/apply-items/SpecSelector.vue';
   import { APPLY_SCHEME } from '@views/db-manage/common/apply-schema/Index.vue';
   import PasswordInput from '@views/db-manage/common/password-input/Index.vue';
+  import { QueryKeyMap } from '@views/db-manage/redis/common/const';
 
   import { generateId } from '@utils';
 
@@ -571,25 +572,25 @@
         backend_machine_type: 'tendiscache',
         cluster_type: ClusterTypes.PREDIXY_REDIS_CLUSTER,
         machine_type: MachineTypes.REDIS_TENDIS_CACHE,
-        pkg_type: 'redis',
+        pkg_type: QueryKeyMap[ClusterTypes.PREDIXY_REDIS_CLUSTER],
       },
       [ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER]: {
         backend_machine_type: 'tendisplus',
         cluster_type: ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER,
         machine_type: MachineTypes.REDIS_TENDIS_PLUS,
-        pkg_type: 'tendisplus',
+        pkg_type: QueryKeyMap[ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER],
       },
       [ClusterTypes.TWEMPROXY_REDIS_INSTANCE]: {
         backend_machine_type: 'tendiscache',
         cluster_type: ClusterTypes.TWEMPROXY_REDIS_INSTANCE,
         machine_type: MachineTypes.REDIS_TENDIS_CACHE,
-        pkg_type: 'redis',
+        pkg_type: QueryKeyMap[ClusterTypes.TWEMPROXY_REDIS_INSTANCE],
       },
       [ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE]: {
         backend_machine_type: 'tendisssd',
         cluster_type: ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE,
         machine_type: MachineTypes.REDIS_TENDIS_SSD,
-        pkg_type: 'tendisssd',
+        pkg_type: QueryKeyMap[ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE],
       },
     };
     return types[state.formdata.details.cluster_type as keyof typeof types];
