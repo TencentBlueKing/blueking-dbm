@@ -173,7 +173,7 @@ export default [
           },
           {
             name: t('集群类型变更'),
-            id: 'RedisClusterTypeUpdate',
+            id: TicketTypes.REDIS_CLUSTER_TYPE_UPDATE,
             parentId: 'cluster-manage',
             dbConsoleValue: 'redis.toolbox.clusterTypeChange',
           },

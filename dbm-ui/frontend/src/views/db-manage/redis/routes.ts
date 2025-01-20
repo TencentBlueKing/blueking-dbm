@@ -90,14 +90,15 @@ const redisMigrateRoute = {
 
 const redisClusterShardUpdateRoute = createRouteItem(TicketTypes.REDIS_CLUSTER_SHARD_NUM_UPDATE, t('集群分片变更'));
 
-const redisClusterTypeUpdateRoute = {
-  name: 'RedisClusterTypeUpdate',
-  path: 'cluster-type-update/:page?',
-  meta: {
-    navName: t('集群类型变更'),
-  },
-  component: () => import('@views/db-manage/redis/cluster-type-update/Index.vue'),
-};
+// const redisClusterTypeUpdateRoute = {
+//   name: 'RedisClusterTypeUpdate',
+//   path: 'cluster-type-update/:page?',
+//   meta: {
+//     navName: t('集群类型变更'),
+//   },
+//   component: () => import('@views/db-manage/redis/cluster-type-update/Index.vue'),
+// };
+const redisClusterTypeUpdateRoute = createRouteItem(TicketTypes.REDIS_CLUSTER_TYPE_UPDATE, t('集群类型变更'));
 
 const redisDBStructureRoute = {
   name: 'RedisDBStructure',

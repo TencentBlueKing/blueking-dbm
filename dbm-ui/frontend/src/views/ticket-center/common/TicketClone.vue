@@ -59,7 +59,7 @@
     [TicketTypes.REDIS_CLUSTER_ADD_SLAVE]: TicketTypes.REDIS_CLUSTER_ADD_SLAVE, // Redis 重建从库
     [TicketTypes.REDIS_CLUSTER_DATA_COPY]: TicketTypes.REDIS_CLUSTER_DATA_COPY, // Redis 数据复制
     [TicketTypes.REDIS_CLUSTER_SHARD_NUM_UPDATE]: TicketTypes.REDIS_CLUSTER_SHARD_NUM_UPDATE, // Redis 集群分片变更
-    [TicketTypes.REDIS_CLUSTER_TYPE_UPDATE]: 'RedisClusterTypeUpdate', // Redis 集群类型变更
+    [TicketTypes.REDIS_CLUSTER_TYPE_UPDATE]: TicketTypes.REDIS_CLUSTER_TYPE_UPDATE, // Redis 集群类型变更
     [TicketTypes.REDIS_DATACOPY_CHECK_REPAIR]: TicketTypes.REDIS_DATACOPY_CHECK_REPAIR, // Redis 数据校验修复
     [TicketTypes.REDIS_CLUSTER_ROLLBACK_DATA_COPY]: 'RedisRecoverFromInstance', // Redis 以构造实例恢复
     [TicketTypes.REDIS_DATA_STRUCTURE_TASK_DELETE]: 'RedisStructureInstance', // Redis 删除构造任务
