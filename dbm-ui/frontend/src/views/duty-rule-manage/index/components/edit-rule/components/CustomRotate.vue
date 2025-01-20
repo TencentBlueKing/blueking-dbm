@@ -110,6 +110,7 @@
                   style="width: 200px"
                   clearable={false}
                   type="timerange"
+                  format="HH:mm"
                   append-to-body />
                   {innerIndex === 0 && <db-icon
                     class="ml-10 icon"
@@ -171,7 +172,7 @@
       dateTime: item,
       timeRange: [{
         id: random(),
-        value: ['00:00:00', '23:59:59'],
+        value: ['00:00', '23:59'],
       }],
       members: [],
     }));
@@ -187,7 +188,7 @@
   const handleAddTime = (index: number) => {
     formModel.tableData[index].timeRange.push({
       id: random(),
-      value: ['00:00:00', '23:59:59'],
+      value: ['00:00', '23:59'],
     });
   };
 
@@ -199,20 +200,12 @@
   defineExpose<Exposes>({
     async getValue() {
       await formRef.value.validate();
-      const splitTimeToMinute = (str: string) => {
-        const strArr = str.split(':');
-        if (strArr.length <= 2) {
-          return str;
-        }
-        strArr.pop();
-        return strArr.join(':');
-      };
       return {
         effective_time: dayjs(formModel.dateTimeRange![0]).startOf('day').format('YYYY-MM-DD HH:mm:ss'),
         end_time: dayjs(formModel.dateTimeRange![1]).endOf('day').format('YYYY-MM-DD HH:mm:ss'),
         duty_arranges: formModel.tableData.map(item => ({
           date: item.dateTime,
-          work_times: item.timeRange.map(data => data.value.map(str => splitTimeToMinute(str)).join('--')),
+          work_times: item.timeRange.map(data => data.value.join('--')),
           members: item.members,
         })),
       };
