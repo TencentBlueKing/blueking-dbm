@@ -14,15 +14,11 @@
 <template>
   <BkTable :data="ticketDetails.details.infos">
     <BkTableColumn
+      fixed="left"
       :label="t('源集群')"
       :min-width="180">
       <template #default="{ data }: { data: RowData }">
         {{ ticketDetails.details.clusters[data.src_cluster].immute_domain }}
-      </template>
-    </BkTableColumn>
-    <BkTableColumn :label="t('架构版本')">
-      <template #default="{ data }: { data: RowData }">
-        {{ ticketDetails.details.clusters[data.src_cluster].cluster_type_name }}
       </template>
     </BkTableColumn>
     <BkTableColumn
@@ -38,7 +34,7 @@
       :min-width="150">
       <template #default="{ data }: { data: RowData }">
         {{
-          `${data.capacity}G_${ticketDetails.details.specs[data.resource_spec.backend_group.spec_id].qps.max}/s(${data.current_shard_num}片)`
+          `${data.capacity}G_${ticketDetails.details.specs[data.resource_spec.backend_group.spec_id].qps.max || 0}/s(${data.current_shard_num}分片)`
         }}
       </template>
     </BkTableColumn>
@@ -58,7 +54,9 @@
     <BkTableColumn
       field="db_version"
       :label="t('版本')" />
-    <BkTableColumn :label="t('切换模式')">
+    <BkTableColumn
+      :label="t('切换模式')"
+      :width="100">
       <template #default="{ data }: { data: RowData }">
         {{ data.online_switch_type === 'user_confirm' ? t('需人工确认') : t('无需确认') }}
       </template>

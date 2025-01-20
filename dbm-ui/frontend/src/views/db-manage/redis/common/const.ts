@@ -111,7 +111,7 @@ export const QueryKeyMap: Record<string, string> = {
   [ClusterTypes.PREDIXY_REDIS_CLUSTER]: 'redis',
   [ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER]: 'tendisplus',
   [ClusterTypes.REDIS_INSTANCE]: 'redis',
-  [ClusterTypes.TWEMPROXY_REDIS_INSTANCE]: 'tendiscache',
+  [ClusterTypes.TWEMPROXY_REDIS_INSTANCE]: 'redis',
   [ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE]: 'tendisssd',
 };
 
