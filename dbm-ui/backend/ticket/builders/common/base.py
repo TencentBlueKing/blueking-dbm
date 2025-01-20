@@ -50,19 +50,19 @@ def fetch_cluster_ids(details: Dict[str, Any]) -> List[int]:
         "target_clusters",
     ]
     targets = get_target_items_from_details(obj=details, match_keys=cluster_keys)
-    return [item for item in targets if isinstance(item, int)]
+    return [item for item in targets if isinstance(item, int) and item]
 
 
 def fetch_instance_ids(details: Dict[str, Any]) -> List[int]:
     instance_id_keys = ["instance_id", "instance_ids"]
     targets = get_target_items_from_details(obj=details, match_keys=instance_id_keys)
-    return [item for item in targets if isinstance(item, (int, str))]
+    return [item for item in targets if isinstance(item, (int, str)) and item]
 
 
 def fetch_host_ids(details: Dict[str, Any]) -> List[int]:
     host_keys = ["host_id", "bk_host_id", "bk_host_ids"]
     targets = get_target_items_from_details(obj=details, match_keys=host_keys)
-    return [item for item in targets if isinstance(item, int)]
+    return [item for item in targets if isinstance(item, int) and item]
 
 
 def remove_useless_spec(attrs: Dict[str, Any]) -> Dict[str, Any]:
