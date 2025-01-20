@@ -55,3 +55,4 @@ class HdfsReplaceFlowBuilder(BaseHdfsTicketFlowBuilder):
     inner_flow_builder = HdfsReplaceFlowParamBuilder
     inner_flow_name = _("HDFS 集群替换")
     resource_apply_builder = HdfsResourceParamBuilder
+    need_patch_recycle_host_details = True

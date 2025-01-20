@@ -109,3 +109,20 @@ class ImportResourceInitStepFlow(object):
         )
 
         p.run_pipeline()
+
+    def machine_import_fault_pool_flow(self):
+        p = Builder(root_id=self.root_id, data=self.data)
+
+        p.add_act(
+            act_name=_("主机导入故障池"),
+            act_component_code=CheckMachineIdleComponent.code,
+            kwargs={
+                "bk_biz_id": self.data["bk_biz_id"],
+                "recycle_hosts": self.data["hosts"],
+                "operator": self.data["operator"],
+                "event": MachineEventType.ToFault.value,
+                "ticket_id": self.data["uid"],
+            },
+        )
+
+        p.run_pipeline()

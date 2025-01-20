@@ -523,7 +523,8 @@ class TicketType(str, StructuredEnum):
     # 资源池
     RESOURCE_IMPORT = EnumField("RESOURCE_IMPORT", _("资源池导入"))
     ADMIN_PASSWORD_MODIFY = EnumField("ADMIN_PASSWORD_MODIFY", _("临时密码修改"))
-    RECYCLE_HOST = EnumField("RECYCLE_HOST", _("主机回收"))
+    RECYCLE_APPLY_HOST = EnumField("RECYCLE_APPLY_HOST", _("新分配主机退回"))
+    RECYCLE_OLD_HOST = EnumField("RECYCLE_OLD_HOST", _("已下架主机再利用"))
     # fmt: on
 
     # VM
@@ -567,8 +568,6 @@ class FlowType(str, StructuredEnum):
     RESOURCE_BATCH_APPLY = EnumField("RESOURCE_BATCH_APPLY", _("资源批量申请"))
     # 主机回收
     HOST_RECYCLE = EnumField("HOST_RECYCLE", _("主机回收"))
-    # 主机重导入资源池
-    HOST_IMPORT_RESOURCE = EnumField("HOST_IMPORT_RESOURCE", _("主机重导入资源池"))
 
 
 class FlowContext(str, StructuredEnum):

@@ -46,9 +46,10 @@ class VmReplaceResourceParamBuilder(BigDataReplaceResourceParamBuilder):
         next_flow.save(update_fields=["details"])
 
 
-@builders.BuilderFactory.register(TicketType.VM_REPLACE, is_apply=True)
+@builders.BuilderFactory.register(TicketType.VM_REPLACE, is_apply=True, is_recycle=True)
 class VmReplaceFlowBuilder(BaseVmTicketFlowBuilder):
     serializer = VmReplaceDetailSerializer
     inner_flow_builder = VmReplaceFlowParamBuilder
     inner_flow_name = _("VictoriaMetrics 集群替换")
     resource_apply_builder = VmReplaceResourceParamBuilder
+    need_patch_recycle_host_details = True

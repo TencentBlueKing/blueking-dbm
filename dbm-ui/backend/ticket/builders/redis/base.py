@@ -148,15 +148,10 @@ class RedisUpdateApplyResourceParamBuilder(builders.ResourceApplyParamBuilder):
         next_flow.save(update_fields=["details"])
 
         # 将下架的新proxy更新到清理流程中
-        recycle_flow = self.ticket.flows.get(flow_type=FlowType.HOST_RECYCLE)
-        recycle_flow.details["ticket_data"]["clear_hosts"].extend(drop_proxy_hosts)
-        recycle_flow.save(update_fields=["details"])
-
-        # 如果有导入资源池流程，则将新proxy加入
-        resource_flow = self.ticket.flows.filter(flow_type=FlowType.HOST_IMPORT_RESOURCE).first()
-        if resource_flow:
-            resource_flow.details["ticket_data"]["hosts"].extend(drop_proxy_hosts)
-            resource_flow.save(update_fields=["details"])
+        recycle_flows = self.ticket.flows.filter(flow_type=FlowType.HOST_RECYCLE)
+        for flow in recycle_flows:
+            flow.details["ticket_data"]["hosts"].extend(drop_proxy_hosts)
+            flow.save(update_fields=["details"])
 
 
 class ClusterValidateMixin(object):

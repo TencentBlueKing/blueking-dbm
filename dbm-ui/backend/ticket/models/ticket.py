@@ -244,44 +244,27 @@ class Ticket(AuditedModel):
         return ticket
 
     @classmethod
-    def create_recycle_ticket(cls, revoke_ticket_id: int):
-        """
-        从一个终止单据派生产生另一个清理单据
-        :param revoke_ticket_id: 终止单据ID
-        """
-        from backend.ticket.builders import BuilderFactory
-
-        revoke_ticket = cls.objects.get(id=revoke_ticket_id)
-        # 忽略非回收单据
-        if revoke_ticket.ticket_type not in BuilderFactory.apply_ticket_type:
-            return None
+    def __create_recycle_ticket(cls, recycle_hosts, revoke_ticket, ip_recycle, ticket_type, flow_name):
+        if not recycle_hosts:
+            return
 
         # 获取回收机器，
         # 判定是否允许回收：主机的实例的phase不能是online
         from backend.db_meta.models import Machine
-        from backend.ticket.builders.common.base import fetch_apply_hosts
-
-        recycle_hosts = fetch_apply_hosts(revoke_ticket.details)
-        if not recycle_hosts:
-            return
 
         host_ids = [host["bk_host_id"] for host in recycle_hosts]
         online_filter = Q(storageinstance__phase=InstancePhase.ONLINE) | Q(proxyinstance__phase=InstancePhase.ONLINE)
         if Machine.objects.filter(online_filter, bk_host_id__in=host_ids).count():
+            logger.error(_("机器存在正在运行的实例，不允许清理"))
             return
 
-        # 创建回收单据流程，SQLServer暂时回收到故障池
-        ip_dest = IpDest.Fault if revoke_ticket.group == DBType.Sqlserver else IpDest.Resource
-        details = {
-            "recycle_hosts": recycle_hosts,
-            "ip_recycle": {"ip_dest": ip_dest, "for_biz": revoke_ticket.bk_biz_id},
-            "group": revoke_ticket.group,
-        }
+        # 创建回收单据流程
+        details = {"recycle_hosts": recycle_hosts, "ip_recycle": ip_recycle, "group": revoke_ticket.group}
         recycle_ticket = cls.create_ticket(
-            ticket_type=TicketType.RECYCLE_HOST,
+            ticket_type=ticket_type,
             creator=revoke_ticket.creator,
             bk_biz_id=revoke_ticket.bk_biz_id,
-            remark=_("单据{}终止后自动发起清理机器单据").format(revoke_ticket.id),
+            remark=_("单据{}终止后自动发起{}单据").format(revoke_ticket.id, TicketType.get_choice_label(ticket_type)),
             details=details,
         )
 
@@ -290,10 +273,44 @@ class Ticket(AuditedModel):
             ticket=revoke_ticket,
             flow_type=FlowType.DELIVERY.value,
             details={"recycle_ticket": recycle_ticket.id},
-            flow_alias=_("申请主机清理释放"),
+            flow_alias=flow_name,
         )
 
-        return recycle_ticket
+    @classmethod
+    def create_recycle_ticket(cls, revoke_ticket_id: int):
+        """
+        从一个终止单据派生产生另一个清理单据
+        :param revoke_ticket_id: 终止单据ID
+        """
+        from backend.ticket.builders import BuilderFactory
+        from backend.ticket.builders.common.base import fetch_apply_hosts, fetch_recycle_hosts
+
+        revoke_ticket = cls.objects.get(id=revoke_ticket_id)
+
+        # 对新申请机器进行回收
+        if revoke_ticket.ticket_type in BuilderFactory.apply_ticket_type:
+            recycle_apply_hosts = fetch_apply_hosts(revoke_ticket.details)
+            ip_dest = IpDest.Fault if revoke_ticket.group == DBType.Sqlserver else IpDest.Resource
+            ip_recycle = {"ip_dest": ip_dest, "for_biz": revoke_ticket.bk_biz_id}
+            cls.__create_recycle_ticket(
+                recycle_apply_hosts,
+                revoke_ticket,
+                ip_recycle,
+                ticket_type=TicketType.RECYCLE_APPLY_HOST,
+                flow_name=_("新分配主机退回"),
+            )
+
+        # 对将要下架机器进行回收
+        if revoke_ticket.ticket_type in BuilderFactory.recycle_ticket_type:
+            recycle_old_hosts = fetch_recycle_hosts(revoke_ticket.details)
+            ip_recycle = revoke_ticket.details["ip_recycle"]
+            cls.__create_recycle_ticket(
+                recycle_old_hosts,
+                revoke_ticket,
+                ip_recycle,
+                ticket_type=TicketType.RECYCLE_OLD_HOST,
+                flow_name=_("下架机器回收"),
+            )
 
     @classmethod
     def create_ticket_from_bk_monitor(cls, callback_data):

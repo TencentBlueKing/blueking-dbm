@@ -45,3 +45,4 @@ class PulsarReplaceFlowBuilder(BasePulsarTicketFlowBuilder):
     inner_flow_builder = PulsarReplaceFlowParamBuilder
     inner_flow_name = _("Pulsar 集群替换")
     resource_apply_builder = PulsarReplaceResourceParamBuilder
+    need_patch_recycle_host_details = True

@@ -68,10 +68,11 @@ class KafkaMeta(object):
                     "bk_cloud_id": node["bk_cloud_id"],
                 }
                 if self.ticket_data["ip_source"] == IpSource.RESOURCE_POOL:
+                    role_spec = self.ticket_data["resource_spec"].get(role, {"id": 0})
                     machine.update(
                         {
-                            "spec_id": self.ticket_data["resource_spec"][role]["id"],
-                            "spec_config": self.ticket_data["resource_spec"][role],
+                            "spec_id": role_spec["id"],
+                            "spec_config": role_spec,
                         }
                     )
                 machines.append(machine)
@@ -103,10 +104,11 @@ class KafkaMeta(object):
                     "bk_cloud_id": node["bk_cloud_id"],
                 }
                 if self.ticket_data["ip_source"] == IpSource.RESOURCE_POOL:
+                    role_spec = self.ticket_data["resource_spec"].get(KafkaRoleEnum.ZOOKEEPER.value, {"id": 0})
                     machine.update(
                         {
-                            "spec_id": self.ticket_data["resource_spec"][KafkaRoleEnum.ZOOKEEPER.value]["id"],
-                            "spec_config": self.ticket_data["resource_spec"][KafkaRoleEnum.ZOOKEEPER.value],
+                            "spec_id": role_spec["id"],
+                            "spec_config": role_spec,
                         }
                     )
                 machines.append(machine)
@@ -127,10 +129,11 @@ class KafkaMeta(object):
                     "bk_cloud_id": node["bk_cloud_id"],
                 }
                 if self.ticket_data["ip_source"] == IpSource.RESOURCE_POOL:
+                    role_spec = self.ticket_data["resource_spec"].get(KafkaRoleEnum.BROKER.value, {"id": 0})
                     machine.update(
                         {
-                            "spec_id": self.ticket_data["resource_spec"][KafkaRoleEnum.BROKER.value]["id"],
-                            "spec_config": self.ticket_data["resource_spec"][KafkaRoleEnum.BROKER.value],
+                            "spec_id": role_spec["id"],
+                            "spec_config": role_spec,
                         }
                     )
                 machines.append(machine)

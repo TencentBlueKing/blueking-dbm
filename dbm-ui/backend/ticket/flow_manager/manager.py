@@ -22,6 +22,7 @@ from backend.ticket.flow_manager.pause import PauseFlow
 from backend.ticket.flow_manager.resource import ResourceApplyFlow, ResourceBatchApplyFlow, ResourceDeliveryFlow
 from backend.ticket.flow_manager.timer import TimerFlow
 from backend.ticket.models import Ticket
+from backend.ticket.tasks.ticket_tasks import create_recycle_ticket
 
 SUPPORTED_FLOW_MAP = {
     FlowType.BK_ITSM.value: ItsmFlow,
@@ -36,7 +37,6 @@ SUPPORTED_FLOW_MAP = {
     FlowType.RESOURCE_DELIVERY: ResourceDeliveryFlow,
     FlowType.RESOURCE_BATCH_APPLY: ResourceBatchApplyFlow,
     FlowType.HOST_RECYCLE: SimpleTaskFlow,
-    FlowType.HOST_IMPORT_RESOURCE: SimpleTaskFlow,
 }
 
 logger = logging.getLogger("root")
@@ -104,13 +104,19 @@ class TicketFlowManager(object):
                 return
             origin_status, ticket.status = ticket.status, target_status
             ticket.save(update_fields=["status", "update_at"])
-            self.ticket_status_trigger(origin_status, target_status)
+
+        # 执行状态更新钩子函数
+        self.ticket_status_trigger(origin_status, target_status)
 
     def ticket_status_trigger(self, origin_status, target_status):
-        """单据状态更新后的钩子函数"""
+        """单据状态更新后的钩子函数。注：如果钩子函数非关键链路，请异步发起"""
 
         # 单据状态变更后，发送通知。
         # 忽略运行中：流转到内置任务无需通知，待继续在todo创建时才触发通知
         # 忽略待补货：到资源申请节点，单据状态总会流转为待补货，但是只有待补货todo创建才触发通知
         if target_status not in [TicketStatus.RUNNING, TicketStatus.RESOURCE_REPLENISH]:
             notify.send_msg.apply_async(args=(self.ticket.id,))
+
+        # 如果是inner flow的终止，要联动回收主机。
+        if target_status == TicketStatus.TERMINATED and self.current_flow_obj.flow_type == FlowType.INNER_FLOW:
+            create_recycle_ticket.apply_async(args=(self.ticket.id,))

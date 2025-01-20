@@ -19,9 +19,8 @@ from django.utils.translation import ugettext as _
 from rest_framework import serializers
 
 from backend import env
-from backend.configuration.constants import AffinityEnum
 from backend.components.dbresource.client import DBResourceApi
-from backend.configuration.constants import DBType, SystemSettingsEnum
+from backend.configuration.constants import AffinityEnum, DBType, SystemSettingsEnum
 from backend.configuration.models import BizSettings, DBAdministrator, SystemSettings
 from backend.db_dirty.constants import MachineEventType, PoolType
 from backend.db_dirty.models import MachineEvent
@@ -264,7 +263,7 @@ class ResourceApplyParamBuilder(CallBackBuilderMixin):
 
 class RecycleParamBuilder(FlowParamBuilder):
     """
-    回收主机流程 参数构建器
+    回收清理主机流程 参数构建器
     职责：获取单据中的下架机器，并走回收流程
     """
 
@@ -277,10 +276,11 @@ class RecycleParamBuilder(FlowParamBuilder):
         DBType.Hdfs.value: "hdfs.HdfsController.hdfs_machine_clear_scene",
         DBType.Pulsar.value: "pulsar.PulsarController.pulsar_machine_clear_scene",
         DBType.Vm.value: "vm.VmController.vm_machine_clear_scene",
-        # TODO redis，sqlserver，mongo清理流程暂时没有
-        DBType.Redis.value: "",
+        DBType.Redis.value: "redis.RedisController.redis_dirty_machine_clear",
+        # TODO sqlserver，mongo，riak清理流程暂时没有
         DBType.Sqlserver.value: "",
         DBType.MongoDB.value: "",
+        DBType.Riak.value: "",
     }
 
     def __init__(self, ticket: Ticket):
@@ -302,7 +302,7 @@ class RecycleParamBuilder(FlowParamBuilder):
     def format_ticket_data(self):
         self.ticket_data.update(
             {
-                "clear_hosts": self.ticket_data["recycle_hosts"],
+                "hosts": self.ticket_data["recycle_hosts"],
                 "ip_dest": self.ip_dest,
                 # 一批机器的操作系统类型一致，任取一个即可
                 "os_name": self.ticket_data["recycle_hosts"][0]["os_name"],
@@ -310,16 +310,6 @@ class RecycleParamBuilder(FlowParamBuilder):
                 "db_type": self.ticket.group,
             }
         )
-
-    def post_callback(self):
-        # 转移到故障池，记录机器事件(如果是资源池则资源导入后会记录)
-        ticket_data = self.ticket.current_flow().details["ticket_data"]
-        if ticket_data["ip_dest"] != PoolType.Fault:
-            return
-
-        event = MachineEventType.ToFault
-        bk_biz_id, recycle_hosts, operator = self.ticket.bk_biz_id, ticket_data["clear_hosts"], self.ticket.creator
-        MachineEvent.host_event_trigger(bk_biz_id, recycle_hosts, event, operator, self.ticket, standard=True)
 
 
 class ReImportResourceParamBuilder(FlowParamBuilder):
@@ -361,6 +351,28 @@ class ReImportResourceParamBuilder(FlowParamBuilder):
         DBResourceApi.import_operation_create(params=import_record)
 
 
+class ImportFaultPoolParamBuilder(FlowParamBuilder):
+    """
+    主机导入故障池 参数构造器 - 此流程目前仅用于回收后使用
+    职责：获取单据中下架的机器，并走故障池导入
+    """
+
+    controller = BaseController.import_machine_fault_pool
+
+    def __init__(self, ticket: Ticket):
+        super().__init__(ticket)
+
+    def format_ticket_data(self):
+        self.ticket_data.update(
+            {
+                "ticket_id": self.ticket.id,
+                "bk_biz_id": self.ticket_data["ip_recycle"]["for_biz"],
+                "hosts": self.ticket_data["recycle_hosts"],
+                "operator": self.ticket.creator,
+            }
+        )
+
+
 class TicketFlowBuilder:
     """
     单据流程构建器
@@ -383,6 +395,8 @@ class TicketFlowBuilder:
     recycle_flow_builder: RecycleParamBuilder = RecycleParamBuilder
     # 默认资源重导入参数构造器
     import_resource_flow_builder: ReImportResourceParamBuilder = ReImportResourceParamBuilder
+    # 默认主机导入故障池参数构造器
+    import_fault_pool_builder: ImportFaultPoolParamBuilder = ImportFaultPoolParamBuilder
     # 默认资源申请参数构造器
     # resource_apply_builder和resource_batch_apply_builder只能存在其一，表示是资源池单次申请还是批量申请
     resource_apply_builder: ResourceApplyParamBuilder = None
@@ -539,7 +553,18 @@ class TicketFlowBuilder:
                     ticket=self.ticket,
                     flow_type=FlowType.HOST_RECYCLE.value,
                     details=self.recycle_flow_builder(self.ticket).get_params(),
-                    flow_alias=_("原主机清理释放"),
+                    flow_alias=_("已下架主机数据清理"),
+                ),
+            )
+
+        # 判断并添加导入故障池节点
+        if self.need_recycle == PoolType.Fault:
+            flows.append(
+                Flow(
+                    ticket=self.ticket,
+                    flow_type=FlowType.HOST_RECYCLE.value,
+                    details=self.import_resource_flow_builder(self.ticket).get_params(),
+                    flow_alias=_("已下架主机转入故障池"),
                 ),
             )
 
@@ -548,9 +573,9 @@ class TicketFlowBuilder:
             flows.append(
                 Flow(
                     ticket=self.ticket,
-                    flow_type=FlowType.HOST_IMPORT_RESOURCE.value,
+                    flow_type=FlowType.HOST_RECYCLE.value,
                     details=self.import_resource_flow_builder(self.ticket).get_params(),
-                    flow_alias=_("原主机回收到资源池"),
+                    flow_alias=_("已下架主机重导入资源池"),
                 ),
             )
 

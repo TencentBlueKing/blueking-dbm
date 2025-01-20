@@ -82,16 +82,15 @@ class ResourceImportResponseSerializer(serializers.Serializer):
 
 class ResourceListSerializer(serializers.Serializer):
     for_biz = serializers.IntegerField(help_text=_("专属业务"), required=False)
+    for_bizs = serializers.ListField(help_text=_("专属业务列表"), child=serializers.IntegerField(), required=False)
     resource_type = serializers.CharField(help_text=_("专属DB"), required=False, allow_null=True, allow_blank=True)
+    resource_types = serializers.ListField(help_text=_("专属DB列表"), child=serializers.CharField(), required=False)
     device_class = serializers.CharField(help_text=_("机型"), required=False)
     hosts = serializers.CharField(help_text=_("主机IP列表"), required=False)
     bk_cloud_ids = serializers.CharField(help_text=_("云区域ID列表"), required=False)
     city = serializers.CharField(help_text=_("城市"), required=False)
     subzones = serializers.CharField(help_text=_("园区"), required=False)
     subzone_ids = serializers.CharField(help_text=_("园区ID"), required=False)
-
-    set_empty_biz = serializers.BooleanField(help_text=_("是否无专用业务"), required=False, default=False)
-    set_empty_resource_type = serializers.BooleanField(help_text=_("是否无专用资源类型"), required=False, default=False)
 
     os_type = serializers.CharField(help_text=_("操作系统类型"), required=False)
     cpu = serializers.CharField(help_text=_("cpu资源限制"), required=False)
@@ -109,10 +108,6 @@ class ResourceListSerializer(serializers.Serializer):
 
     @staticmethod
     def format_fields(attrs, fields):
-        # 如果没有专用业务和专用DB，则无限制查询
-        attrs["set_empty_biz"] = "for_biz" not in attrs
-        attrs["set_empty_resource_type"] = "resource_type" not in attrs
-
         # 用逗号方便前端URL渲染，这里统一转换为数组 or obj
         for field in fields:
             divider = "-" if field in ["cpu", "mem", "disk"] else ","

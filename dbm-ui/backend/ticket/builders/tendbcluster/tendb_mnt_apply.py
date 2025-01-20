@@ -30,7 +30,7 @@ class TendbMNTApplyDetailSerializer(TendbBaseOperateDetailSerializer):
 
     infos = serializers.ListField(help_text=_("添加spider运维节点信息"), child=MNTApplySerializer())
     ip_source = serializers.ChoiceField(
-        help_text=_("机器导入类型"), choices=IpSource.get_choices(), required=False, default=IpSource.MANUAL_INPUT
+        help_text=_("机器导入类型"), choices=IpSource.get_choices(), required=False, default=IpSource.RESOURCE_POOL
     )
 
     def validate(self, attrs):

@@ -46,3 +46,4 @@ class KafkaReplaceFlowBuilder(BaseKafkaTicketFlowBuilder):
     inner_flow_builder = KafkaReplaceFlowParamBuilder
     inner_flow_name = _("Kafka 集群替换")
     resource_apply_builder = KafkaReplaceResourceParamBuilder
+    need_patch_recycle_host_details = True

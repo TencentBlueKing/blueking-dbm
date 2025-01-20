@@ -172,7 +172,7 @@ class ResourceApplyFlow(BaseTicketFlow):
 
         # groups_in_same_location只在同城同园区亲和性下才成效，保证所有组申请的机器都在同园区
         # 目前所有组亲和性相同，任取一个判断即可
-        affinity = apply_params["details"][0]["affinity"]
+        affinity = apply_params["details"][0].get("affinity", AffinityEnum.NONE)
         if affinity in [AffinityEnum.SAME_SUBZONE, AffinityEnum.SAME_SUBZONE_CROSS_SWTICH]:
             apply_params.update(groups_in_same_location=True)
 
@@ -300,7 +300,7 @@ class ResourceApplyFlow(BaseTicketFlow):
         for role, role_spec in copy.deepcopy(resource_spec).items():
             # 如果是手动指定主机申请，则规格无意义
             if "hosts" in role_spec:
-                del resource_spec[role]
+                resource_spec[role] = {"id": 0}
                 continue
             # 如果该存在无需申请，则跳过
             if not role_spec["count"] or not role_spec["spec_id"]:

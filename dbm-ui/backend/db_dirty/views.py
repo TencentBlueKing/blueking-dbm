@@ -56,7 +56,12 @@ class DBDirtyMachineViewSet(viewsets.SystemViewSet):
         responses={status.HTTP_200_OK: ListMachineEventResponseSerializer()},
         tags=[SWAGGER_TAG],
     )
-    @action(detail=False, methods=["GET"], filter_class=MachineEventFilter, queryset=MachineEvent.objects.all())
+    @action(
+        detail=False,
+        methods=["GET"],
+        filter_class=MachineEventFilter,
+        queryset=MachineEvent.objects.all().order_by("-update_at"),
+    )
     def list_machine_events(self, request):
         events_qs = self.paginate_queryset(self.filter_queryset(self.get_queryset()))
         events_data = ListMachineEventSerializer(events_qs, many=True).data
@@ -67,7 +72,12 @@ class DBDirtyMachineViewSet(viewsets.SystemViewSet):
         responses={status.HTTP_200_OK: ListMachinePoolResponseSerializer()},
         tags=[SWAGGER_TAG],
     )
-    @action(detail=False, methods=["GET"], filter_class=DirtyMachinePoolFilter, queryset=DirtyMachine.objects.all())
+    @action(
+        detail=False,
+        methods=["GET"],
+        filter_class=DirtyMachinePoolFilter,
+        queryset=DirtyMachine.objects.all().order_by("-update_at"),
+    )
     def query_machine_pool(self, request):
         machine_qs = self.paginate_queryset(self.filter_queryset(self.get_queryset()))
         # 查询主机池主机信息

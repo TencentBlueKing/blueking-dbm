@@ -22,7 +22,7 @@ from backend.flow.utils.redis.redis_context_dataclass import ActKwargs, CommonCo
 logger = logging.getLogger("flow")
 
 
-class DirtyMachineClearFlow(Builder):
+class DirtyMachineClearFlow(object):
     """
     脏机清理流程
     """
@@ -34,6 +34,9 @@ class DirtyMachineClearFlow(Builder):
         """
         self.root_id = root_id
         self.data = data
+        self.data["clear_hosts"] = self.data.pop("hosts")
+        # 清理的机器云区域相同，任取一台即可
+        self.data["bk_cloud_id"] = self.data["clear_hosts"][0]["bk_cloud_id"]
         self.precheck()
 
     def precheck(self):
@@ -46,10 +49,6 @@ class DirtyMachineClearFlow(Builder):
                 machine__ip=ip, machine__bk_cloud_id=self.data["bk_cloud_id"]
             ).first()
 
-            if not proxy_inst and not storage_inst:
-                # 如果不是redis proxy 和redis storage实例对应的机器,则报错
-                logger.error(f"ip:{ip} is not proxy or storage instance")
-                raise Exception(f"ip:{ip} is not proxy or storage instance")
             if proxy_inst:
                 # 如果是proxy机器,其上任意实例属于某个集群,则报错
                 for proxy_inst in ProxyInstance.objects.filter(
@@ -63,6 +62,7 @@ class DirtyMachineClearFlow(Builder):
                         raise Exception(
                             "ip:{} is  proxy instance and belong to cluster:{}".format(ip, cluster.immute_domain)
                         )
+
             if storage_inst:
                 # 如果是storage机器,其上任意实例属于某个集群,则报错
                 for storage_inst in StorageInstance.objects.filter(
@@ -147,6 +147,6 @@ class DirtyMachineClearFlow(Builder):
                         if inst_obj.cluster.count() > 0:
                             raise Exception("storage {} in cluster , can't do this .".format(inst_obj))
             except Machine.DoesNotExist:
-                logger.log.info("{} host does not exists , ignore ".format(ip))
+                logger.info("{} host does not exists , ignore ".format(ip))
             except Exception as e:
                 raise Exception("unkown exception... bugs {}:{}".format(ip, e))

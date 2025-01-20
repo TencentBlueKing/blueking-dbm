@@ -52,3 +52,4 @@ class EsReplaceFlowBuilder(BaseEsTicketFlowBuilder):
     inner_flow_builder = EsReplaceFlowParamBuilder
     inner_flow_name = _("ES集群替换")
     resource_apply_builder = EsReplaceResourceParamBuilder
+    need_patch_recycle_host_details = True

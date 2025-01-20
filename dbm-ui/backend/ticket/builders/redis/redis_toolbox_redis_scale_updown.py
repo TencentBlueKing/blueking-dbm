@@ -12,9 +12,7 @@ from django.utils.translation import ugettext_lazy as _
 from rest_framework import serializers
 
 from backend.configuration.constants import AffinityEnum
-from backend.db_meta.models import Cluster
 from backend.db_services.dbbase.constants import IpSource
-from backend.db_services.dbresource.handlers import ResourceHandler
 from backend.flow.consts import RedisCapacityUpdateType
 from backend.flow.engine.controller.redis import RedisController
 from backend.flow.utils.redis.redis_proxy_util import get_major_version_by_version_name
@@ -95,18 +93,7 @@ class RedisScaleUpDownFlowBuilder(BaseRedisTicketFlowBuilder):
     inner_flow_builder = RedisScaleUpDownParamBuilder
     inner_flow_name = _("Redis 集群容量变更")
     resource_batch_apply_builder = RedisScaleUpDownResourceParamBuilder
-
-    def patch_down_cluster_hosts(self):
-        """针对全部全部机器替换，获取所有的下架机器"""
-        cluster_ids = [
-            info["cluster_id"]
-            for info in self.ticket.details["infos"]
-            if info["update_mode"] == RedisCapacityUpdateType.ALL_MACHINES_REPLACE
-        ]
-        recycle_hosts = Cluster.get_cluster_related_machines(cluster_ids)
-        recycle_hosts = [{"bk_host_id": host_id} for host_id in recycle_hosts]
-        self.ticket.details["recycle_hosts"] = ResourceHandler.standardized_resource_host(recycle_hosts)
+    need_patch_recycle_host_details = True
 
     def patch_ticket_detail(self):
-        self.patch_down_cluster_hosts()
         super().patch_ticket_detail()

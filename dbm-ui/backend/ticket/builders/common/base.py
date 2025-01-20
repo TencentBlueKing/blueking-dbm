@@ -90,7 +90,7 @@ def remove_useless_spec(attrs: Dict[str, Any]) -> Dict[str, Any]:
         return attrs
 
     for role, spec in attrs["resource_spec"].items():
-        if spec and spec["count"]:
+        if spec and spec.get("count"):
             real_resource_spec[role] = spec
 
     attrs["resource_spec"] = real_resource_spec
@@ -223,7 +223,7 @@ class CommonValidate(object):
     def validate_instance_role(cls, inst_list: List[Dict], role: Union[AccessLayer, InstanceInnerRole]):
         """校验实例角色类型"""
 
-        inst_filters = reduce(operator.or_, [Q(machine__ip=inst["ip"], port=inst["port"]) for inst in inst_list])
+        inst_filters = reduce(operator.or_, [Q(machine__ip=inst["ip"]) for inst in inst_list])
         check_role_info = list(
             StorageInstance.objects.annotate(role=F("instance_inner_role"))
             .filter(inst_filters)
