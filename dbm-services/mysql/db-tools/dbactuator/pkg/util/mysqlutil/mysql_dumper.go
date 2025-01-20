@@ -291,12 +291,14 @@ func dumpIsOk(errLog string) (err error) {
 	if err != nil {
 		return err
 	}
+	// ignore warning
+	w := regexp.MustCompile(`[Warning] Using a password on the command line interface can be insecure`)
 	r := regexp.MustCompile(`Couldn't find table:`)
 	var lines []string
 	scanner := bufio.NewScanner(fd)
 	for scanner.Scan() {
 		l := scanner.Text()
-		if !r.MatchString(l) && lo.IsNotEmpty(l) {
+		if !r.MatchString(l) && lo.IsNotEmpty(l) && !w.MatchString(l) {
 			lines = append(lines, l)
 		}
 	}
