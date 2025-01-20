@@ -43,7 +43,7 @@
   const route = useRoute();
   const globalBizsStore = useGlobalBizs();
 
-  const dateValue = ref('');
+  const dateValue = ref(dayjs().format('YYYY-MM-DD'));
   const searchValue = ref<ISearchValue[]>([]);
 
   const searchData = computed(() => {

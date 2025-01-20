@@ -68,7 +68,7 @@
   });
 
   const labelConfig = computed(() => {
-    if (!dbOverviewConfig.value || !Object.keys(reportCountStore.dbReportCountMap).length) {
+    if (isInspectionReport || !dbOverviewConfig.value || !Object.keys(reportCountStore.dbReportCountMap).length) {
       return undefined;
     }
 

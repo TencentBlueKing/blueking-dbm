@@ -48,7 +48,7 @@
 
   const currentActiveTab = ref(route.query.manage || 'todo');
 
-  const titleTooltip = `${t('待我处理')}：${t('展示我作为主DBA的业务，所产生的巡检异常，每日更新一次')}\n${t('待我协助')}：${t('展示我作为备 DBA、二线 DBA 的业务，所产生的巡检异常，每日更新一次')}`;
+  const titleTooltip = `${t('待我处理')}：${t('展示我作为主 DBA 的业务，当日所产生的巡检异常，一般每日更新一次')}\n${t('待我协助')}：${t('展示我作为备 DBA、二线 DBA 的业务，当日所产生的巡检异常，一般每日更新一次')}`;
 
   const handleClickTab = (tab: string) => {
     currentActiveTab.value = tab;
