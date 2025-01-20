@@ -13,6 +13,7 @@
 
 <template>
   <BkTab
+    :key="renderKey"
     v-model:active="moduleValue"
     class="db-tab"
     type="unborder-card">
@@ -50,7 +51,8 @@
     default: DBTypes.MYSQL,
   });
 
-  // const renderKey = ref(0);
+  // 解决 labelConfig 变化后渲染样式异常问题
+  const renderKey = ref(0);
 
   const renderTabs = computed(() =>
     Object.values(DBTypeInfos).reduce((result, item) => {
@@ -64,6 +66,14 @@
       }
       return result;
     }, [] as TabItem[]),
+  );
+
+  watch(
+    () => [props.exclude, props.labelConfig],
+    () => {
+      renderKey.value += 1;
+    },
+    { immediate: true },
   );
 </script>
 
