@@ -21,7 +21,7 @@
   <BkLoading
     :loading="isLoading"
     :z-index="2">
-    <DbOriginalTable
+    <DbTable
       class="table-box"
       :columns="generatedColumns"
       :data="tableData"
