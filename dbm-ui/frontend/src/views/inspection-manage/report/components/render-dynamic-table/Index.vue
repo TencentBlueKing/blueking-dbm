@@ -5,10 +5,12 @@
     <BlockCard>
       <template #title>
         <span>{{ tableName }}</span>
+        <span>（{{ pagination.count }}）</span>
       </template>
       <BkTable
         :columns="tableColumns"
         :data="tableData"
+        header-row-class-name="dynamic-table-head"
         :pagination="pagination"
         @page-limit-change="pageLimitChange"
         @page-value-change="pageValueChange" />
@@ -19,56 +21,72 @@
   </BkLoading>
 </template>
 <script setup lang="tsx">
-  import {
-    reactive,
-    shallowRef,
-  } from 'vue';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import { getChecksumReport } from '@services/source/report';
+  import { getReport } from '@services/source/report';
+
+  import { useGlobalBizs } from '@stores';
 
   import DbStatus from '@components/db-status/index.vue';
+
+  import { utcDisplayTime } from '@utils';
 
   import BlockCard from './components/BlockCard.vue';
   import FailSlaveInstance from './components/FailSlaveInstance.vue';
 
   interface Props {
     searchParams?: Record<string, any>,
-    service: typeof getChecksumReport
+    serviceUrl: string;
+  }
+
+  interface Exposes {
+    getExportExcelSheetData: () => Promise<{
+      headerList: string[];
+      colWidthList: { wch: number }[];
+      fileName: string;
+      dataList: string[][];
+    }>;
   }
 
   const props = defineProps<Props>();
 
   const { t } = useI18n();
+  const globalBizsStore = useGlobalBizs();
 
   const pagination = reactive({
+    count: 0,
     current: 1,
     limit: 10,
+    remote: true,
   });
 
   const tableName = ref('');
-  const tableColumns = shallowRef<{label: string, render:(data: any) => any }[]>([]);
-  const tableData = shallowRef<any[]>([]);
-
   const isShowFailSlaveInstance = ref(false);
   const failSlaveInstanceReportId = ref(0);
 
-  const handleShowFailSlaveInstance = (data: any) => {
-    isShowFailSlaveInstance.value = true;
-    failSlaveInstanceReportId.value = data.id;
-  };
+  const tableColumns = shallowRef<{label: string, render:(data: any) => any }[]>([]);
+  const tableData = shallowRef<any[]>([]);
+
+  const bizsMap = computed(() => globalBizsStore.bizs.reduce<Record<number, string>>((results, item) => {
+    Object.assign(results, {
+      [item.bk_biz_id]: item.name,
+    })
+    return results;
+  }, {}));
 
   const {
     loading,
-    run,
-  } = useRequest(props.service, {
+    run: fetchInspectionData,
+  } = useRequest(getReport, {
     manual: true,
     onSuccess(result) {
+      pagination.count = result.count;
       tableName.value = result.name;
 
       tableColumns.value = result.title.map(titleItem => ({
         label: titleItem.display_name,
+        showOverflow: "tooltip",
         render: ({ data: fieldData }: {data:any}) => {
           const fieldValue = fieldData[titleItem.name];
           if (titleItem.format === 'status') {
@@ -89,6 +107,12 @@
               </bk-button>
             );
           }
+          if (titleItem.name === 'create_at') {
+            return utcDisplayTime(fieldData[titleItem.name]);
+          }
+          if (titleItem.name === 'bk_biz_id') {
+            return bizsMap.value[fieldValue] || fieldValue;
+          }
           return fieldData[titleItem.name] || '--';
         },
       }));
@@ -98,10 +122,10 @@
   });
 
   const fetchData = () => {
-    run({
+    fetchInspectionData(props.serviceUrl, {
+      offset: (pagination.current - 1) * pagination.limit,
+      limit: pagination.limit,
       ...props.searchParams,
-      ...pagination,
-      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
     }, {
       permission: 'page',
     });
@@ -110,24 +134,74 @@
   watch(() => props.searchParams, () => {
     fetchData();
   }, {
-    immediate: true
+    immediate: true,
   });
 
+  const handleShowFailSlaveInstance = (data: any) => {
+    isShowFailSlaveInstance.value = true;
+    failSlaveInstanceReportId.value = data.id;
+  };
+
   const pageLimitChange = (pageLimit: number) => {
+    if (pagination.limit === pageLimit){
+      return
+    }
+
     pagination.limit = pageLimit;
     pagination.current = 1;
     fetchData();
   };
 
   const pageValueChange = (pageValue:number) => {
+    if (pagination.current === pageValue) {
+      return
+    }
+
     pagination.current = pageValue;
     fetchData();
   };
+
+  defineExpose<Exposes>({
+    async getExportExcelSheetData() {
+      const { results, title, name: fileName } = await getReport(props.serviceUrl, {
+        offset: 0,
+        limit: -1,
+        ...props.searchParams,
+      }, {
+        permission: 'page',
+      });
+      const headerList: string[] = [];
+      const columnIds: string[] = [];
+      title.forEach(item => {
+        headerList.push(item.display_name);
+        columnIds.push(item.name);
+      });
+      const colWidthList = Array(headerList.length).fill(20).map(width => ({ wch: width }));
+      const dataList = results.map(item => columnIds.reduce<string[]>((results, columnId) => {
+        let value = item[columnId];
+        if (columnId === 'bk_biz_id') {
+          value = bizsMap.value[Number(value)];
+        }
+        results.push(value);
+        return results
+      }, []));
+      return {
+        headerList,
+        colWidthList,
+        dataList,
+        fileName,
+      };
+    }
+  })
 </script>
 <style lang="less">
   .render-dynamic-table {
     & ~ .render-dynamic-table {
       margin-top: 16px;
     }
+  }
+
+  .dynamic-table-head {
+    background-color: #fafbfd;
   }
 </style>

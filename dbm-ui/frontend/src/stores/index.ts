@@ -14,6 +14,7 @@
 export * from './globalBizs';
 export * from './useFunController';
 export * from './useMenu';
+export * from './useReportCount';
 export * from './useSqlImport';
 export * from './useSQLTaskCount';
 export * from './useSystemEnviron';

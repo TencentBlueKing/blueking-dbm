@@ -33,7 +33,7 @@
             <span
               v-overflow-tips.right
               class="text-overflow">
-              {{ t('健康报告') }}
+              {{ t('巡检报告') }}
             </span>
           </BkMenuItem>
         </BkMenuGroup>
