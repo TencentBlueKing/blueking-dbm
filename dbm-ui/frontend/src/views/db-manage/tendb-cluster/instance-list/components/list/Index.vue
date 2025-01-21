@@ -44,6 +44,7 @@
         :row-class="setRowClass"
         selectable
         :settings="settings"
+        show-settings
         @clear-search="clearSearchValue"
         @column-filter="columnFilterChange"
         @column-sort="columnSortChange"
@@ -414,27 +415,18 @@
       }
     }
 
-    .table-wrapper {
-      background-color: white;
-
-      .db-table,
-      .bk-nested-loading {
-        height: 100%;
+    tr:hover {
+      .db-icon-copy {
+        display: inline-block !important;
       }
+    }
 
-      tr:hover {
-        .db-icon-copy {
-          display: inline-block !important;
-        }
-      }
-
-      .vxe-cell {
-        .db-icon-copy {
-          display: none;
-          margin-left: 4px;
-          color: @primary-color;
-          cursor: pointer;
-        }
+    .vxe-cell {
+      .db-icon-copy {
+        display: none;
+        margin-left: 4px;
+        color: @primary-color;
+        cursor: pointer;
       }
     }
   }

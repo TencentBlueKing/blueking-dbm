@@ -36,19 +36,41 @@
         <BkTableColumn
           field="entry"
           :label="t('访问入口')"
-          :width="260">
+          :width="300">
           <template #default="{ data }: { data: ClusterEntryInfo }">
+            <template v-if="['master_entry', 'proxy_entry'].includes(data.role)">
+              <BkTag
+                v-if="data.cluster_entry_type === 'polaris'"
+                class="entry-polary-tag"
+                size="small"
+                theme="success">
+                {{ t('北极星') }}
+              </BkTag>
+              <BkTag
+                v-else-if="data.cluster_entry_type === 'clb'"
+                class="entry-clb-tag"
+                size="small"
+                theme="success">
+                CLB
+              </BkTag>
+              <BkTag
+                v-else
+                size="small"
+                theme="info">
+                {{ t('主') }}
+              </BkTag>
+            </template>
             <BkTag
-              v-if="data.role === 'master_entry'"
+              v-if="data.role === 'slave_entry'"
               size="small"
               theme="success">
-              {{ t('主') }}
+              {{ t('从') }}
             </BkTag>
             <BkTag
-              v-else
+              v-if="data.role === 'node_entry'"
               size="small"
-              theme="info">
-              {{ t('从') }}
+              theme="success">
+              Nodes
             </BkTag>
             {{ data.entry }}
           </template>
@@ -57,7 +79,7 @@
           field="ips"
           label="Bind IP"
           :show-overflow="false"
-          :width="240">
+          :width="200">
           <template #default="{ data }: { data: ClusterEntryInfo }">
             <RenderBindIps
               v-if="data.ips"
@@ -71,7 +93,6 @@
     </BkLoading>
   </BkDialog>
 </template>
-
 <script setup lang="tsx">
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
@@ -84,7 +105,7 @@
   import RenderBindIps from './RenderBindIps.vue';
 
   export interface ClusterEntryInfo {
-    type: string;
+    cluster_entry_type: string;
     entry: string;
     role: string;
     ips: string;
@@ -125,7 +146,7 @@
     onSuccess: (data) => {
       tableData.value = data
         .map((item) => ({
-          type: item.cluster_entry_type,
+          cluster_entry_type: item.cluster_entry_type,
           entry: item.entry,
           role: item.role,
           ips: item.isDns
@@ -152,16 +173,36 @@
     emits('success');
   };
 </script>
-
-<style lang="less" scoped>
-  .entry-config-table-box {
-    max-height: fit-content;
-  }
-</style>
 <style lang="less">
   .entry-config-dialog {
     .bk-modal-footer {
       display: none;
+    }
+
+    .entry-config-table-box {
+      max-height: fit-content;
+    }
+
+    .entry-clb-tag {
+      color: #8e3aff;
+      cursor: pointer;
+      background-color: #f2edff;
+
+      &:hover {
+        color: #8e3aff;
+        background-color: #e3d9fe;
+      }
+    }
+
+    .entry-polary-tag {
+      color: #3a84ff;
+      cursor: pointer;
+      background-color: #edf4ff;
+
+      &:hover {
+        color: #3a84ff;
+        background-color: #e1ecff;
+      }
     }
   }
 </style>

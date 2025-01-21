@@ -34,6 +34,7 @@
       :row-class="getRowClass"
       selectable
       :settings="tableSetting"
+      show-settings
       @clear-search="handleClearSearch"
       @selection="handleTableSelection"
       @setting-change="handleSettingChange" />

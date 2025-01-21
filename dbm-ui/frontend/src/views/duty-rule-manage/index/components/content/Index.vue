@@ -32,7 +32,6 @@
           :columns="columns"
           :data-source="dataSource"
           :row-class="updateRowClass"
-          :settings="settings"
           :show-overflow="false" />
       </BkLoading>
     </div>
@@ -162,14 +161,14 @@
     },
     {
       label: () => (
-        <div
+        <span
           v-bk-tooltips={{
             content: t('范围 1～100，数字越高代表优先级越高，当有规则冲突时，优先执行数字较高的规则'),
             theme: 'dark',
           }}
           style="border-bottom: 1px dashed #979BA5;">
           {t('优先级')}
-        </div>
+        </span>
       ),
       field: 'priority',
       sort: true,
@@ -334,7 +333,7 @@
       fixed: 'right',
       showOverflow: false,
       field: '',
-      width: 120,
+      width: 140,
       render: ({ data }: {data: DutyRuleModel}) => (
       <div class="operate-box">
         <auth-button
@@ -370,43 +369,6 @@
     },
   ]);
 
-  const settings = {
-    fields: [
-      {
-        label: t('规则名称'),
-        field: 'name',
-      },
-      {
-        label: t('状态'),
-        field: 'status',
-      },
-      {
-        label: t('优先级'),
-        field: 'priority',
-      },
-      {
-        label: t('轮值表'),
-        field: 'duty_arranges',
-      },
-      {
-        label: t('生效时间'),
-        field: 'effective_time',
-      },
-      {
-        label: t('更新时间'),
-        field: 'update_at',
-      },
-      {
-        label: t('更新人'),
-        field: 'updater',
-      },
-      {
-        label: t('启停'),
-        field: 'is_enabled',
-      },
-    ],
-    checked: ['name', 'status', 'priority', 'duty_arranges', 'effective_time', 'updater', 'is_enabled'],
-  };
 
   const { run: runGetPriorityDistinct } = useRequest(getPriorityDistinct, {
     onSuccess: (list) => {
@@ -569,6 +531,7 @@
       }
 
       .display-text {
+        display: inline-block;
         height: 22px;
         padding: 0 8px;
         overflow: hidden;

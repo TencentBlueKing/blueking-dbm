@@ -45,6 +45,7 @@
         :row-class="setRowClass"
         selectable
         :settings="settings"
+        show-settings
         @clear-search="clearSearchValue"
         @column-filter="columnFilterChange"
         @column-sort="columnSortChange"

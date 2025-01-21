@@ -8,8 +8,7 @@
       :cell-class="cellClassCallback"
       :columns="columns"
       :container-height="600"
-      :data-source="getPermissionRules"
-      settings />
+      :data-source="getPermissionRules" />
   </div>
 </template>
 <script setup lang="tsx">

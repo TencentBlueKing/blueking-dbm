@@ -34,6 +34,7 @@
       :row-class="getRowClass"
       selectable
       :settings="tableSetting"
+      show-settings
       @clear-search="handleClearSearch"
       @selection="handleTableSelection"
       @setting-change="handleSettingChange" />
@@ -230,7 +231,7 @@
     },
     {
       label: t('操作'),
-      width: 220,
+      width: 180,
       fixed: 'right',
       render: ({ data }: { data: PartitionModel }) => {
         const renderAction = () => {

@@ -24,6 +24,7 @@ const create = (options = {} as { exclude: string[] }) => {
       {
         name: t('单号'),
         id: 'ids',
+        multiple: true,
       },
       {
         name: t('单据类型'),

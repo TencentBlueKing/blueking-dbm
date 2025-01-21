@@ -126,6 +126,7 @@
       :data-source="getInfluxdbInstanceList"
       :row-class="setRowClass"
       :settings="renderSettings"
+      show-settings
       style="margin-bottom: 34px"
       @clear-search="clearSearchValue"
       @column-filter="columnFilterChange"

@@ -44,6 +44,7 @@
         selectable
         selection-key="target_cluster_id"
         :settings="settings"
+        show-settings
         @clear-search="handleClearFilters"
         @column-filter="handleColumnFilter"
         @selection="handleSelection" />

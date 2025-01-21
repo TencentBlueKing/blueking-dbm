@@ -73,6 +73,7 @@
       releate-url-query
       selectable
       :settings="tableSetting"
+      show-settings
       @clear-search="handleClearSearch"
       @selection="handleSelection"
       @setting-change="handleSettingChange" />
@@ -133,64 +134,71 @@
       label: 'IP',
       field: 'ip',
       fixed: 'left',
-      minWidth: 120,
+      minWidth: 150,
       with: 150,
     },
     {
       label: t('管控区域'),
       field: 'bk_cloud_name',
-      with: 120,
+      minWidth: 120,
     },
     {
       label: t('Agent 状态'),
       field: 'agent_status',
-      with: 100,
+      minWidth: 100,
       render: ({ data }: {data: DbResourceModel}) => <HostAgentStatus data={data.agent_status} />,
     },
     {
       label: t('所属业务'),
       field: 'forBizDisplay',
-      width: 170,
+      minWidth: 170,
       render: ({ data }: {data: DbResourceModel}) => data.forBizDisplay || '--',
     },
     {
       label: t('所属DB类型'),
       field: 'resourceTypeDisplay',
-      width: 150,
+      minWidth: 150,
       render: ({ data }: {data: DbResourceModel}) => data.resourceTypeDisplay || '--',
     },
     {
       label: t('机架'),
       field: 'rack_id',
+      minWidth: 100,
       render: ({ data }: {data: DbResourceModel}) => data.rack_id || '--',
     },
     {
       label: t('机型'),
       field: 'device_class',
+      minWidth: 100,
       render: ({ data }: {data: DbResourceModel}) => data.device_class || '--',
     },
     {
       label: t('操作系统类型'),
       field: 'os_type',
+      minWidth: 100,
       render: ({ data }: {data: DbResourceModel}) => data.os_type || '--',
     },
     {
       label: t('地域'),
       field: 'city',
+      minWidth: 100,
       render: ({ data }: {data: DbResourceModel}) => data.city || '--',
     },
     {
       label: t('园区'),
       field: 'sub_zone',
+      minWidth: 100,
       render: ({ data }: {data: DbResourceModel}) => data.sub_zone || '--',
     },
     {
       label: t('CPU(核)'),
       field: 'bk_cpu',
+      minWidth: 100,
     },
     {
       label: t('内存'),
       field: 'bkMemText',
+      minWidth: 100,
       render: ({ data }: {data: DbResourceModel}) => data.bkMemText || '0 M',
     },
     {

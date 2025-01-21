@@ -76,6 +76,7 @@
         selectable
         :settings="settings"
         :show-overflow="false"
+        show-settings
         @clear-search="clearSearchValue"
         @column-filter="columnFilterChange"
         @column-sort="columnSortChange"

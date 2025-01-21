@@ -1,10 +1,9 @@
 <template>
   <BkSideslider
+    v-model:is-show="isShow"
     class="sql-log-sideslider"
-    :is-show="isShow"
     :title="t('执行SQL变更_内容详情')"
-    :width="960"
-    @close="handleClose">
+    :width="960">
     <template
       v-if="executeObject"
       #header>
@@ -116,7 +115,7 @@
   );
 
   watch(
-    () => isShow,
+    isShow,
     () => {
       if (isShow.value) {
         localSelectFileName.value = props.selectFileName;
@@ -129,10 +128,6 @@
       immediate: true,
     },
   );
-
-  const handleClose = () => {
-    isShow.value = false;
-  };
 </script>
 <style lang="less">
   .sql-log-sideslider {

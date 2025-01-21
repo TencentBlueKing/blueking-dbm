@@ -29,21 +29,18 @@
         :validate-values="validateSearchValues"
         @change="handleSearchValueChange" />
     </div>
-    <div
-      class="table-wrapper"
-      :class="{ 'is-shrink-table': isStretchLayoutOpen }">
-      <DbTable
-        ref="tableRef"
-        :columns="columns"
-        :data-source="getTendbhaInstanceList"
-        releate-url-query
-        :row-class="setRowClass"
-        :settings="settings"
-        @clear-search="clearSearchValue"
-        @column-filter="columnFilterChange"
-        @column-sort="columnSortChange"
-        @setting-change="updateTableSettings" />
-    </div>
+    <DbTable
+      ref="tableRef"
+      :columns="columns"
+      :data-source="getTendbhaInstanceList"
+      releate-url-query
+      :row-class="setRowClass"
+      :settings="settings"
+      show-settings
+      @clear-search="clearSearchValue"
+      @column-filter="columnFilterChange"
+      @column-sort="columnSortChange"
+      @setting-change="updateTableSettings" />
   </div>
 </template>
 

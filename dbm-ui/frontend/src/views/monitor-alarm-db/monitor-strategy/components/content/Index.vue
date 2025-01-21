@@ -29,6 +29,7 @@
         :data-source="dataSource"
         :row-class="updateRowClass"
         :show-overflow="false"
+        :show-settings="false"
         @clear-search="handleClearSearch" />
     </div>
     <EditStrategy
