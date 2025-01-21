@@ -435,12 +435,14 @@
           }
         }
 
-        // 重新触发验证重置上次的验证状态
-        validateState.isError = false;
-        validateState.errorMessage = '';
-
         // 合并规则属性配置
         const finalRuleList = getTriggerRules(mergeRules(rules, getRulesFromProps(props)), trigger);
+
+        if (finalRuleList.length > 0) {
+          // 重新触发验证重置上次的验证状态
+          validateState.isError = false;
+          validateState.errorMessage = '';
+        }
 
         const rowDataValue = tableContext.props.model[rowContext!.getRowIndex()];
         const value = _.get(rowDataValue, props.field || '_');
@@ -539,10 +541,15 @@
       .bk-editable-table-field-cell {
         &::after {
           position: absolute;
-          z-index: 1;
+          z-index: 9;
           cursor: not-allowed;
           content: '';
           inset: 0;
+        }
+
+        * {
+          pointer-events: none;
+          background: #fafbfd;
         }
       }
     }

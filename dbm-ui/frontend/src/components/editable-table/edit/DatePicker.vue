@@ -67,6 +67,10 @@
         height: 40px;
         background: transparent;
         border: none;
+
+        &:focus {
+          border: none;
+        }
       }
     }
   }
