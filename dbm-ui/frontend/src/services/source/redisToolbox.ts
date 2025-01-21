@@ -122,6 +122,12 @@ export function getRedisClusterCapacityUpdateInfo(params: {
     require_spec_id: number;
     require_machine_group_num: number;
     err_msg: string;
+    old_machine_info: {
+      bk_biz_id: number;
+      bk_cloud_id: number;
+      bk_host_id: number;
+      ip: string;
+    }[];
   }>(`${getRootPath()}/get_cluster_capacity_update_info/`, params);
 }
 

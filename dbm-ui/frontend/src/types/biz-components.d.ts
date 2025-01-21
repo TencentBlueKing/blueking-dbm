@@ -12,8 +12,9 @@ declare module 'vue' {
     DbSearchSelect: typeof import('@components/db-search-select/index.vue').default;
     DbSideslider: typeof import('@components/db-sideslider/index.vue').default;
     DbStatus: typeof import('@components/db-status/index.vue').default;
-    DbTable: typeof import('@blueking/table/typings/BkTable.vue');
-    DbTable: typeof import('@blueking/table/typings/BkTableColumn.vue');
+    DbTable: typeof import('@components/db-table/Index.vue');
+    BkTable: typeof import('@blueking/table/typings/BkTable.vue');
+    BkTableColumn: typeof import('@blueking/table/typings/BkTableColumn.vue');
     EditableTable: typeof import('@components/editable-table/Index.vue').default;
     EditableBlock: typeof import('@components/editable-table/Index.vue').Block;
     EditableColumn: typeof import('@components/editable-table/Index.vue').Column;
@@ -25,7 +26,6 @@ declare module 'vue' {
     EditableTextarea: typeof import('@components/editable-table/Index.vue').Textarea;
     EditableTimePicker: typeof import('@components/editable-table/Index.vue').TimePicker;
     OperationColumn: typeof import('@views/db-manage/common/toolbox-field/column/operation-column/Index.vue').default;
-    OperationRow: typeof import('@views/db-manage/common/toolbox-field/row/operation-row/Index.vue').default;
     FunController: typeof import('@components/function-controller/FunController.vue').default;
     MoreActionExtend: typeof import('@components/more-action-extend/Index.vue').default;
     ScrollFaker: typeof import('@components/scroll-faker/Index.vue').default;
