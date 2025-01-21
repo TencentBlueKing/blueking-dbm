@@ -240,7 +240,7 @@
     },
     {
       name: t('任务类型'),
-      id: 'ticket_type',
+      id: 'ticket_type__in',
       multiple: true,
       children: state.ticketTypes,
     },
