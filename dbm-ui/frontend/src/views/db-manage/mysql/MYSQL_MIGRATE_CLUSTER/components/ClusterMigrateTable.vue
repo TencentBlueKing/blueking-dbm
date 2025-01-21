@@ -20,8 +20,9 @@
       v-for="(item, index) in tableData"
       :key="index">
       <ClusterColumn
-        v-model="item.cluster"
-        :selected-ids="selectedClusterIds"
+        v-model="item.batchCluster"
+        :selected="selected"
+        :selected-map="selectedMap"
         @batch-edit="handleBatchEdit" />
       <SingleHostColumn
         v-model="item.newMaster"
@@ -50,9 +51,15 @@
   import ClusterColumn from './ClusterColumn.vue';
 
   interface RowData {
-    cluster: {
-      cluster_ids: number[];
-      cluster_domains: string;
+    batchCluster: {
+      renderText: string;
+      clusters: Record<
+        string,
+        {
+          id: number;
+          master_domain: string;
+        }
+      >;
     };
     newMaster: {
       bk_biz_id: number;
@@ -109,9 +116,9 @@
   const tableRef = useTemplateRef('table');
 
   const createTableRow = (data = {} as Partial<RowData>) => ({
-    cluster: data.cluster || {
-      cluster_ids: [],
-      cluster_domains: '',
+    batchCluster: data.batchCluster || {
+      renderText: '',
+      clusters: {},
     },
     newMaster: data.newMaster || {
       bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
@@ -129,7 +136,15 @@
 
   const tableData = ref<RowData[]>([createTableRow()]);
 
-  const selectedClusterIds = computed(() => tableData.value.flatMap((item) => item.cluster.cluster_ids));
+  const selected = computed(() => tableData.value.flatMap((item) => item.batchCluster));
+  const selectedMap = computed(() =>
+    selected.value.reduce<Record<string, number>>((acc, cur) => {
+      Object.values(cur.clusters).forEach((item) => {
+        acc[item.master_domain] = 1;
+      });
+      return acc;
+    }, {}),
+  );
 
   watch(
     () => props.data,
@@ -144,19 +159,24 @@
 
   const handleBatchEdit = (list: TendbhaModel[]) => {
     const dataList = list.reduce<RowData[]>((acc, item) => {
-      if (!selectedClusterIds.value.includes(item.id)) {
+      if (!selectedMap.value[item.master_domain]) {
         acc.push(
           createTableRow({
-            cluster: {
-              cluster_ids: [item.id],
-              cluster_domains: item.master_domain,
+            batchCluster: {
+              renderText: '',
+              clusters: {
+                [item.master_domain]: {
+                  id: item.id,
+                  master_domain: item.master_domain,
+                },
+              },
             },
           }),
         );
       }
       return acc;
     }, []);
-    tableData.value = [...(selectedClusterIds.value.length ? tableData.value : []), ...dataList];
+    tableData.value = [...(selected.value.length ? tableData.value : []), ...dataList];
   };
 
   defineExpose<Exposes>({
@@ -166,8 +186,8 @@
         return [];
       }
 
-      return tableData.value.map(({ cluster, newMaster, newSlave }) => ({
-        cluster_ids: cluster.cluster_ids,
+      return tableData.value.map(({ batchCluster, newMaster, newSlave }) => ({
+        cluster_ids: Object.values(batchCluster.clusters).map((item) => item.id),
         resource_spec: {
           new_master: {
             spec_id: 0,
