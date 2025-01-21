@@ -13,6 +13,7 @@
 
 <template>
   <EditableColumn
+    :disabled-method="disabledMethod"
     field="backendGroup.spec_id"
     :label="t('目标容量')"
     :min-width="150"
@@ -149,6 +150,14 @@
     affinity: string;
     group_num: number;
     shard_num: number;
+    capacity: number;
+    future_capacity: number;
+    old_machine_info: {
+      bk_biz_id: number;
+      bk_cloud_id: number;
+      bk_host_id: number;
+      ip: string;
+    }[];
   }>({
     default: () => ({}),
   });
@@ -161,6 +170,8 @@
     cluster_shard_num: 0,
     spec_id: 0,
     machine_pair: 0,
+    capacity: 1,
+    future_capacity: 1,
   });
   const showClusterTargetPlan = ref(false);
   const activeRowData = ref<TargetPlanProps['data']>();
@@ -189,19 +200,12 @@
     },
   );
 
-  watch(
-    () => [localValue, targetObj.value],
-    () => {
-      const cloneData = _.cloneDeep(modelValue.value);
-      modelValue.value = {
-        spec_id: localValue.spec_id,
-        count: targetObj.value!.requireMachineGroupNum,
-        affinity: cloneData.affinity,
-        shard_num: localValue.cluster_shard_num,
-        group_num: localValue.machine_pair,
-      };
-    },
-  );
+  const disabledMethod = (rowData?: any, field?: string) => {
+    if (field === 'backendGroup.spec_id' && !rowData.version) {
+      return t('请先选择版本');
+    }
+    return '';
+  };
 
   const handleShowSideslider = () => {
     const {
@@ -238,6 +242,16 @@
     Object.assign(localValue, obj);
     futureCapacity.value = capacity;
     targetObj.value = targetInfo;
+    modelValue.value = {
+      spec_id: localValue.spec_id,
+      count: targetObj.value!.requireMachineGroupNum,
+      affinity: modelValue.value.affinity,
+      shard_num: localValue.cluster_shard_num,
+      group_num: localValue.machine_pair,
+      capacity: capacity || 1,
+      future_capacity: capacity || 1,
+      old_machine_info: targetInfo.oldMachineInfo,
+    };
     showClusterTargetPlan.value = false;
   };
 
