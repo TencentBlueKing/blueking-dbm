@@ -24,10 +24,10 @@
             <template #default="{ data }">
               <BkCheckbox
                 v-bk-tooltips="{
-                  content: t('已选够n台', { n: needNum }),
-                  disabled: selectedNum < needNum,
+                  content: t('已选够n台', { n: limit }),
+                  disabled: selectedNum < limit,
                 }"
-                :disabled="selectedNum === needNum && !Boolean(rowSelectMemo[data.bk_host_id])"
+                :disabled="selectedNum === limit && !Boolean(rowSelectMemo[data.bk_host_id])"
                 label
                 :model-value="Boolean(rowSelectMemo[data.bk_host_id])"
                 @change="() => handleSelectChange(data)" />
@@ -139,15 +139,15 @@
         keypath="需n台_已选n台"
         style="font-size: 14px; color: #63656e"
         tag="span">
-        <span style="font-weight: bold; color: #2dcb56"> {{ needNum }} </span>
+        <span style="font-weight: bold; color: #2dcb56"> {{ limit }} </span>
         <span style="font-weight: bold; color: #3a84ff"> {{ selectedNum }} </span>
       </I18nT>
       <BkButton
         v-bk-tooltips="{
-          content: t('还差n台_请先勾选足够的IP', { n: needNum - selectedNum }),
-          disabled: selectedNum === needNum,
+          content: t('还差n台_请先勾选足够的IP', { n: limit - selectedNum }),
+          disabled: selectedNum === limit,
         }"
-        :disabled="selectedNum !== needNum"
+        :disabled="selectedNum !== limit"
         theme="primary"
         @click="handleSubmit">
         {{ t('确定') }}
@@ -182,7 +182,7 @@
   }
 
   interface Props {
-    needNum: number;
+    limit: number;
     params?: {
       for_biz?: number;
       bk_cloud_ids?: string;

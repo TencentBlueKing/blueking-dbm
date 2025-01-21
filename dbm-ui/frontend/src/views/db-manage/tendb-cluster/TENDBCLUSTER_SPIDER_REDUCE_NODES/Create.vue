@@ -46,8 +46,8 @@
             v-model="item.host.type"
             field="host.type"
             :label="t('主机选择方式')"
+            :limit="1"
             :min-width="200"
-            :need-num="1"
             :spec-ids="getSpecIds(item)"
             @change="(list) => handleSelectHost(list, item)" />
           <EditableColumn
