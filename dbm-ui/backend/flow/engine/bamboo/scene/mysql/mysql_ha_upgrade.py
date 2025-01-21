@@ -424,36 +424,6 @@ def tendbha_cluster_upgrade_subflow(
                     )
                 ),
             )
-            # 切换ro slave后，更新相关元数据信息
-            ro_switch_ro_sub_pipleline.add_act(
-                act_name=_("ro slave 切换换完成,更新 {} 的元信息".format(new_ro_slave_ip)),
-                act_component_code=MySQLDBMetaComponent.code,
-                kwargs=asdict(
-                    DBMetaOPKwargs(
-                        db_meta_class_func=MySQLDBMeta.mysql_migrate_cluster_switch_ro_slaves.__name__,
-                        cluster={
-                            "cluster_ids": cluster_ids,
-                            "old_ro_slave_ip": old_ro_slave_ip,
-                            "new_ro_slave_ip": new_ro_slave_ip,
-                        },
-                    )
-                ),
-            )
-            # 解除old从节点和集群的元数据的关系
-            ro_switch_ro_sub_pipleline.add_act(
-                act_name=_("解除[OldSlave]{}相关从实例和集群的元数据的关系".format(old_ro_slave_ip)),
-                act_component_code=MySQLDBMetaComponent.code,
-                kwargs=asdict(
-                    DBMetaOPKwargs(
-                        db_meta_class_func=MySQLDBMeta.dissolve_master_slave_relationship.__name__,
-                        is_update_trans_data=True,
-                        cluster={
-                            "cluster_ids": cluster_ids,
-                            "old_slave_ip": old_ro_slave_ip,
-                        },
-                    )
-                ),
-            )
             ro_switch_ro_sub_piplelines.append(ro_switch_ro_sub_pipleline.build_sub_process(sub_name=_("切换RO从节点")))
     # 安装mysql
     ms_sub_pipeline = SubBuilder(root_id=root_id, data=parent_global_data)
