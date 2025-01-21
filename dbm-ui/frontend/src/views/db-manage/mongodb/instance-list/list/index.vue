@@ -21,24 +21,21 @@
         :validate-values="validateSearchValues"
         @change="handleSearchValueChange" />
     </div>
-    <div
-      class="table-wrapper"
-      :class="{ 'is-shrink-table': isStretchLayoutOpen }">
-      <DbTable
-        ref="tableRef"
-        :columns="columns"
-        :data-source="dataSource"
-        releate-url-query
-        :row-class="setRowClass"
-        selectable
-        :settings="settings"
-        :show-overflow="false"
-        @clear-search="clearSearchValue"
-        @column-filter="columnFilterChange"
-        @column-sort="columnSortChange"
-        @selection="handleSelection"
-        @setting-change="updateTableSettings" />
-    </div>
+    <DbTable
+      ref="tableRef"
+      :columns="columns"
+      :data-source="dataSource"
+      releate-url-query
+      :row-class="setRowClass"
+      selectable
+      :settings="settings"
+      :show-overflow="false"
+      show-settings
+      @clear-search="clearSearchValue"
+      @column-filter="columnFilterChange"
+      @column-sort="columnSortChange"
+      @selection="handleSelection"
+      @setting-change="updateTableSettings" />
   </div>
 </template>
 <script setup lang="tsx">

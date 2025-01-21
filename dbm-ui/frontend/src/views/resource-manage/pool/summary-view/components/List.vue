@@ -186,9 +186,9 @@
   };
 </script>
 
-<style lang="less" scoped>
+<style lang="less">
   .summary-view-list {
-    :deep(.db-card__content) {
+    .db-card__content {
       padding: 14px 22px;
     }
 
@@ -198,16 +198,14 @@
     }
 
     .summary-view-table {
-      :deep(.cell) {
-        .cell-num {
-          font-weight: bold;
-          color: #3a84ff;
-          cursor: pointer;
-        }
+      .cell-num {
+        font-weight: bold;
+        color: #3a84ff;
+        cursor: pointer;
+      }
 
-        .cell-num--zero {
-          color: #000;
-        }
+      .cell-num--zero {
+        color: #000;
       }
     }
   }

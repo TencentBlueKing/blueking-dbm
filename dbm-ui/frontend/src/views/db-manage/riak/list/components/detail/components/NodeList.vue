@@ -334,8 +334,8 @@
     },
   );
 
-  const handleSelection = (key: number[], list: Record<any, any>[]) => {
-    selected.value = list as RiakNodeModel[];
+  const handleSelection = (_key: any[], list: RiakNodeModel[]) => {
+    selected.value = list;
   };
 
   const handleAddNode = () => {

@@ -37,7 +37,6 @@
         :columns="columns"
         :data-source="getPermissionRules"
         :max-height="700"
-        :settings="settings"
         @clear-search="handleClearSearch" />
     </div>
     <template #footer>
@@ -124,23 +123,6 @@
     },
   ];
 
-  const settings = {
-    fields: [
-      {
-        label: t('账号名称'),
-        field: 'user',
-      },
-      {
-        label: t('访问DB'),
-        field: 'access_db',
-      },
-      {
-        label: t('权限'),
-        field: 'privilege',
-      },
-    ],
-    checked: ['user', 'access_db', 'privilege'],
-  };
 
   const columns = [
     {

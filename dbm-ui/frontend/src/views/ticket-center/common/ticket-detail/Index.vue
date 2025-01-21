@@ -58,14 +58,10 @@
   import TicketModel from '@services/model/ticket/ticket';
   import { getTicketDetails } from '@services/source/ticket';
 
-  import { useEventBus } from '@hooks';
-
   import PermissionCatch from '@components/apply-permission/Catch.vue';
 
   import TicketClone from '@views/ticket-center/common/TicketClone.vue';
   import TicketRevoke from '@views/ticket-center/common/TicketRevoke.vue';
-
-  import { useTimeoutFn } from '@vueuse/core';
 
   import BaseInfo from './components/BaseInfo.vue';
   import FlowInfos from './components/flow-info/Index.vue';
@@ -79,7 +75,7 @@
 
   const router = useRouter();
   const route = useRoute();
-  const eventBus = useEventBus();
+
   const { t } = useI18n();
 
   const getOffsetTarget = () => document.body.querySelector('.ticket-details-page .db-card');
@@ -101,21 +97,9 @@
           return;
         }
         ticketData.value = data;
-        // 单据为完成继续下一次轮询
-        if (!data.isFinished) {
-          loopFetchTicketDetails();
-        }
       },
     },
   );
-
-  const refreshTicketData = () => {
-    fetchTicketDetails({
-      id: props.ticketId,
-    });
-  };
-
-  const { start: loopFetchTicketDetails } = useTimeoutFn(refreshTicketData, 3000);
 
   watch(
     () => props.ticketId,
@@ -144,12 +128,6 @@
     });
     window.open(href);
   };
-
-  eventBus.on('refreshTicketStatus', refreshTicketData);
-
-  onBeforeUnmount(() => {
-    eventBus.off('refreshTicketStatus', refreshTicketData);
-  });
 </script>
 
 <style lang="less">

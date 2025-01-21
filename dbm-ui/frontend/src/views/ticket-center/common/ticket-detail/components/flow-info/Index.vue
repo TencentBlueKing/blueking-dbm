@@ -39,10 +39,11 @@
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
-  import { useRoute } from 'vue-router';
 
   import TicketModel from '@services/model/ticket/ticket';
   import { getTicketFlows } from '@services/source/ticketFlow';
+
+  import { useTimeoutFn } from '@vueuse/core';
 
   import FlowTypeBase from './components/FlowTypeBase.vue';
   import DbTimeLine from './components/time-line/Index.vue';
@@ -58,7 +59,6 @@
   });
 
   const { t } = useI18n();
-  const route = useRoute();
 
   const flowTypeModule = Object.values(
     import.meta.glob<{
@@ -80,39 +80,37 @@
   const isLoading = ref(true);
   const flowList = shallowRef<ServiceReturnType<typeof getTicketFlows>>([]);
 
-  const { runAsync: fetchTicketFlows } = useRequest(getTicketFlows, {
-    manual: true,
-    onSuccess(data, params) {
-      if (params[0].id !== props.data.id) {
-        return;
+  const { refresh: refreshTicketFlows } = useRequest(
+    () => {
+      if (!props.data) {
+        return Promise.reject();
       }
-      flowList.value = data;
+      return getTicketFlows({
+        id: props.data.id,
+      });
     },
-  });
+    {
+      manual: true,
+      onSuccess(data) {
+        flowList.value = data;
+        loopFetchTicketStatus();
+        isLoading.value = false;
+      },
+    },
+  );
 
   watch(
     () => props.data,
-    (newData, oldData) => {
-      if (props.data) {
-        isLoading.value = newData.id !== oldData?.id;
-        fetchTicketFlows({
-          id: props.data.id,
-        }).finally(() => {
-          isLoading.value = false;
-        });
-      }
-    },
-    {
-      immediate: true,
-    },
-  );
-  watch(
-    route,
     () => {
+      isLoading.value = true;
       isCardCollapse.value = true;
+      refreshTicketFlows();
     },
     {
       immediate: true,
     },
   );
+  const { start: loopFetchTicketStatus } = useTimeoutFn(() => {
+    refreshTicketFlows();
+  }, 3000);
 </script>

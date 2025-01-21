@@ -54,6 +54,7 @@
       selectable
       :settings="tableSetting"
       :show-overflow="false"
+      show-settings
       @clear-search="clearSearchValue"
       @column-filter="columnFilterChange"
       @column-sort="columnSortChange"

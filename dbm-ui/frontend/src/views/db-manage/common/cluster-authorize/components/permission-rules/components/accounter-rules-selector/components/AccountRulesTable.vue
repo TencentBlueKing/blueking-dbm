@@ -18,7 +18,6 @@
     :columns="columns"
     :data-source="dataSource"
     :max-height="700"
-    row-hover="auto"
     @clear-search="handleClearSearch" />
 </template>
 
@@ -44,25 +43,25 @@
 
   import DbTable from '@components/db-table/index.vue';
 
-  interface Props {
+  export interface Props<T> {
     accountType: AccountTypes,
     selectedList?: T[]
   }
 
-  interface Emits {
+  export interface Emits<T> {
     (e: 'change', value: UnwrapRef<typeof selectedMap>): void,
     (e: 'delete', value: T[]): void
   }
 
-  interface Expose {
+  export interface Expose {
     searchData: (value?: Record<string, string>) => void
   }
 
-  const props = withDefaults(defineProps<Props>(), {
+  const props = withDefaults(defineProps<Props<T>>(), {
     selectMode: false,
     selectedList: () => [],
   });
-  const emits = defineEmits<Emits>();
+  const emits = defineEmits<Emits<T>>();
 
   const renderList = (row: T) => (
     expandMap.value[row.account.account_id]

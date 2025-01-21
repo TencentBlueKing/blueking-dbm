@@ -107,7 +107,7 @@
     </BkAlert>
     <DbTable
       ref="tableRef"
-      class="table-box"
+      class="table-box mb-24"
       :columns="columns"
       :data-source="listDumperInstance"
       primary-key="dumper_id"
@@ -118,7 +118,7 @@
       }"
       selectable
       :settings="settings"
-      style="margin-bottom: 34px"
+      show-settings
       @clear-search="handleClearFilters"
       @column-filter="handleColumnFilter"
       @request-finished="handleTableRequestFinished"

@@ -38,6 +38,7 @@
         releate-url-query
         :row-class="setRowClass"
         :settings="settings"
+        show-settings
         @clear-search="clearSearchValue"
         @column-filter="columnFilterChange"
         @column-sort="columnSortChange"
@@ -306,7 +307,7 @@
       {
         label: t('操作'),
         fixed: 'right',
-        width: 140,
+        width: 100,
         render: ({ data }: { data: RedisInstanceModel }) => (
           <auth-button
             action-id="redis_view"

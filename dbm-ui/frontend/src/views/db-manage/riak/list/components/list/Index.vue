@@ -56,6 +56,7 @@
       selectable
       :settings="tableSetting"
       :show-overflow="false"
+      show-settings
       @clear-search="clearSearchValue"
       @column-filter="columnFilterChange"
       @column-sort="columnSortChange"
@@ -88,7 +89,7 @@
       <BkTableColumn
         :fixed="isStretchLayoutOpen ? false : 'right'"
         :label="t('操作')"
-        :min-width="240"
+        :min-width="200"
         :show-overflow="false">
         <template #default="{data}: {data: RiakModel}">
           <OperationBtnStatusTips

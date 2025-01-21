@@ -74,6 +74,7 @@
     limitList: Array<number>;
     align: string;
     layout: Array<string>;
+    remote: boolean;
   }
   export interface IPaginationExtra {
     small?: boolean;
@@ -228,6 +229,7 @@
     limitList: [10, 20, 50, 100],
     align: 'right',
     layout: ['total', 'limit', 'list'],
+    remote: true,
     ...props.paginationExtra,
   });
   // 是否本页全选

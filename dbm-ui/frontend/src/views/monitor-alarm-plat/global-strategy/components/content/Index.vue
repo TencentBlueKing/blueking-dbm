@@ -29,7 +29,6 @@
           :columns="columns"
           :data-source="dataSource"
           :row-class="updateRowClass"
-          :settings="settings"
           @clear-search="handleClearSearch" />
       </BkLoading>
     </div>
@@ -216,36 +215,6 @@
       ),
     },
   ];
-
-  const settings = {
-    fields: [
-      {
-        label: t('策略名称'),
-        field: 'name',
-      },
-      {
-        label: t('监控目标'),
-        field: 'targets',
-      },
-      {
-        label: t('默认通知对象'),
-        field: 'notify_groups',
-      },
-      {
-        label: t('更新时间'),
-        field: 'update_at',
-      },
-      {
-        label: t('更新人'),
-        field: 'updater',
-      },
-      {
-        label: t('启停'),
-        field: 'is_enabled',
-      },
-    ],
-    checked: ['name', 'targets', 'notify_groups', 'update_at', 'updater', 'is_enabled'],
-  };
 
   const { run: runEnablePolicy } = useRequest(enablePolicy, {
     manual: true,

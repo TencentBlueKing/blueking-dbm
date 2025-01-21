@@ -63,6 +63,7 @@
         selectable
         :settings="settings"
         :show-overflow="false"
+        show-settings
         @clear-search="clearSearchValue"
         @column-filter="columnFilterChange"
         @column-sort="columnSortChange"
@@ -577,10 +578,6 @@
         min-width: 320px;
         margin-left: auto;
       }
-    }
-
-    .table-wrapper {
-      background-color: white;
     }
 
     tr.is-offline {

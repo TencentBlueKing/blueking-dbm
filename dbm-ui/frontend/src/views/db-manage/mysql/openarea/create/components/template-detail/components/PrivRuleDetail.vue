@@ -9,7 +9,7 @@
       :columns="columns"
       :container-height="600"
       :data-source="getPermissionRules"
-      settings />
+      :show-overflow="false" />
   </div>
 </template>
 <script setup lang="tsx">
@@ -36,7 +36,6 @@
       label: t('账号名称'),
       field: 'user',
       width: 220,
-      showOverflowTooltip: false,
       render: ({ data }: { data: MysqlPermissionAccountModel }) => (
         <div class="account-box">
           <db-icon
@@ -61,8 +60,6 @@
       label: t('访问DB'),
       width: 300,
       field: 'access-db',
-      showOverflowTooltip: true,
-      sort: true,
       render: ({ data }: { data: MysqlPermissionAccountModel }) => {
         if (data.rules.length < 1) {
           return '--';
@@ -82,8 +79,6 @@
     {
       label: t('权限'),
       field: 'privilege',
-      showOverflowTooltip: true,
-      sort: true,
       render: ({ data }: { data: MysqlPermissionAccountModel }) => {
         if (data.rules.length === 0) {
           return <div class="inner-row">--</div>;

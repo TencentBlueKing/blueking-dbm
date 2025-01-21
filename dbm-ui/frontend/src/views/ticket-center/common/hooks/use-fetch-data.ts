@@ -57,7 +57,7 @@ const create = (dataSource: typeof getTickets, options?: { onSuccess?: (data: Ti
 
   const { start: loopFetchTicketStatus } = useTimeoutFn(() => {
     fetchTicketStatus();
-  }, 10000);
+  }, 3000);
 
   const fetchTicketList = (params: ServiceParameters<typeof getTickets>) => {
     isLoading.value = true;

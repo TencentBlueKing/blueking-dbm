@@ -100,7 +100,7 @@
           :label="t('集群分片')">
         </BkTableColumn>
         <BkTableColumn
-          field="cluster_shard_num"
+          field="qps"
           :label="t('集群QPS每秒')">
           <template #default="{data}: {data: ClusterSpecModel}">
             {{ data.qps.min * data.machine_pair || '--' }}

@@ -209,7 +209,7 @@
     remotePagination: true,
     allowRowClickSelect: false,
     remoteSort: false,
-    showSettings: true,
+    showSettings: false,
   });
 
   const emits = defineEmits<Emits>();

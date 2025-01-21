@@ -38,6 +38,7 @@
         releate-url-query
         :row-class="setRowClass"
         :settings="settings"
+        show-settings
         @clear-search="clearSearchValue"
         @column-filter="columnFilterChange"
         @column-sort="columnSortChange"
