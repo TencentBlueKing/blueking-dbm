@@ -13,8 +13,9 @@
 
 <template>
   <EditableColumn
+    ref="column"
     :append-rules="rules"
-    field="cluster.cluster_domains"
+    field="batchCluster.renderText"
     fixed="left"
     :label="t('目标集群')"
     :loading="loading"
@@ -29,19 +30,16 @@
       </span>
     </template>
     <EditableTextarea
-      v-model="modelValue.cluster_domains"
+      v-model="modelValue.renderText"
       :placeholder="t('请输入集群域名_多个集群用分隔符输入')"
       @change="handleInputChange" />
   </EditableColumn>
   <ClusterSelector
     v-model:is-show="showSelector"
     :cluster-types="[ClusterTypes.TENDBHA]"
-    :selected="selected"
+    :selected="selectedClusters"
     @change="handleSelectorChange" />
 </template>
-<script lang="ts">
-  const domainIdMap: Record<string, number> = {};
-</script>
 <script lang="ts" setup>
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
@@ -55,7 +53,17 @@
   import ClusterSelector from '@components/cluster-selector/Index.vue';
 
   interface Props {
-    selectedIds: number[];
+    selected: {
+      renderText: string;
+      clusters: Record<
+        string,
+        {
+          id: number;
+          master_domain: string;
+        }
+      >;
+    }[];
+    selectedMap: Record<string, number>;
   }
 
   interface Emits {
@@ -67,26 +75,27 @@
   const emits = defineEmits<Emits>();
 
   const modelValue = defineModel<{
-    cluster_ids: number[];
-    cluster_domains: string;
+    renderText: string;
+    clusters: Record<
+      string,
+      {
+        id: number;
+        master_domain: string;
+      }
+    >;
   }>({
     default: () => ({
-      cluster_ids: [],
-      cluster_domains: '',
+      renderText: '',
+      clusters: {},
     }),
   });
 
   const { t } = useI18n();
+  const columnRef = useTemplateRef('column');
 
   const showSelector = ref(false);
-  const selected = computed<Record<string, TendbhaModel[]>>(() => ({
-    [ClusterTypes.TENDBHA]: props.selectedIds.map(
-      (id) =>
-        ({
-          id,
-          master_domain: domainIdMap[id],
-        }) as unknown as TendbhaModel,
-    ),
+  const selectedClusters = computed<Record<string, TendbhaModel[]>>(() => ({
+    [ClusterTypes.TENDBHA]: props.selected.flatMap((item) => item.clusters as unknown as TendbhaModel),
   }));
 
   const rules = [
@@ -97,9 +106,30 @@
     },
     {
       validator: (value: string) => {
+        const repeats: string[] = [];
+        const list = value.split(batchSplitRegex);
+        list.forEach((item, index) => {
+          // 同一个单元格内校验重复
+          if (index !== list.indexOf(item)) {
+            repeats.push(item);
+          }
+          // 另一行出现重复
+          props.selected.forEach((rowData, rowIndex) => {
+            if (rowIndex !== columnRef.value?.getRowIndex() && rowData.clusters[item]) {
+              repeats.push(item);
+            }
+          });
+        });
+        return repeats.length ? t('目标集群xx重复', [repeats.join(',')]) : true;
+      },
+      message: '',
+      trigger: 'blur',
+    },
+    {
+      validator: (value: string) => {
         const notFounds: string[] = [];
         value.split(batchSplitRegex).forEach((item) => {
-          if (!domainIdMap[item]) {
+          if (!props.selectedMap[item]) {
             notFounds.push(item);
           }
         });
@@ -114,8 +144,17 @@
     manual: true,
     onSuccess: (data) => {
       if (data.length) {
-        Object.assign(domainIdMap, Object.fromEntries(data.map((cur) => [cur.master_domain, cur.id])));
-        modelValue.value.cluster_ids = data.map((item) => item.id);
+        let clusters = {};
+        data.forEach((item) => {
+          clusters = {
+            ...clusters,
+            [item.master_domain]: {
+              id: item.id,
+              master_domain: item.master_domain,
+            },
+          };
+        });
+        modelValue.value.clusters = clusters;
       }
     },
   });
@@ -125,7 +164,7 @@
   };
 
   const handleInputChange = (value: string) => {
-    modelValue.value.cluster_ids = [];
+    modelValue.value.clusters = {};
     if (value) {
       queryCluster({
         bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
@@ -135,9 +174,7 @@
   };
 
   const handleSelectorChange = (selected: Record<string, TendbhaModel[]>) => {
-    const dataList = selected[ClusterTypes.TENDBHA];
-    Object.assign(domainIdMap, Object.fromEntries(dataList.map((cur) => [cur.master_domain, cur.id])));
-    emits('batch-edit', dataList);
+    emits('batch-edit', selected[ClusterTypes.TENDBHA]);
   };
 </script>
 <style lang="less" scoped>

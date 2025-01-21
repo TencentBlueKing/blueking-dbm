@@ -18,6 +18,7 @@ export function useCreateTicket<T>(ticketType: TicketTypes, options?: { onSucces
       bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
       details: formData.details,
       remark: formData.remark || '',
+      ignore_duplication: formData.ignore_duplication,
     };
     try {
       loading.value = true;

@@ -13,16 +13,15 @@
 
 <template>
   <EditableColumn
-    :append-rules="editable ? rules : []"
+    :append-rules="rules"
     :field="field"
     :label="label"
     :loading="loading"
     :min-width="300"
     required>
     <EditableInput
-      v-if="editable"
       v-model="localValue"
-      :placeholder="t('请选择主机')"
+      :placeholder="t('请输入n个主机IP', { n: limit })"
       @change="handleInputChange">
       <template #default>
         <span ref="rootRef">{{ localValue }}</span>
@@ -35,26 +34,11 @@
           @click="handleShowSelector" />
       </template>
     </EditableInput>
-    <EditableBlock
-      v-else
-      v-model="localValue"
-      :placeholder="t('请选择主机')">
-      <template #default>
-        <span ref="rootRef">{{ localValue }}</span>
-      </template>
-      <template #append>
-        <DbIcon
-          v-bk-tooltips="t('从资源池选择')"
-          class="select-icon"
-          type="host-select"
-          @click="handleShowSelector" />
-      </template>
-    </EditableBlock>
   </EditableColumn>
   <ResourceHostSelector
     v-model:is-show="showSelector"
     v-mode="modelValue"
-    :need-num="needNum"
+    :limit="limit"
     :params="params"
     @change="handleSelectorChange" />
   <div style="display: none">
@@ -73,9 +57,9 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import { fetchListDbaHost } from '@services/source/dbresourceResource';
+  import { fetchList } from '@services/source/dbresourceResource';
 
-  import { ipv4 } from '@common/regex';
+  import { batchSplitRegex, ipv4 } from '@common/regex';
 
   import ResourceHostSelector, { type IValue } from '@components/resource-host-selector/Index.vue';
 
@@ -85,8 +69,7 @@
      */
     field: string;
     label: string;
-    needNum: number;
-    editable?: boolean;
+    limit: number;
     params?: {
       for_biz?: number;
       bk_cloud_ids?: string;
@@ -102,8 +85,7 @@
     ip: string;
   }
 
-  withDefaults(defineProps<Props>(), {
-    editable: false,
+  const props = withDefaults(defineProps<Props>(), {
     params: () => ({}),
   });
 
@@ -139,6 +121,11 @@
       trigger: 'change',
     },
     {
+      validator: () => localValue.value.split(batchSplitRegex).length <= props.limit,
+      message: t('最多输入n个主机IP', { n: props.limit }),
+      trigger: 'blur',
+    },
+    {
       validator: (hosts: IHost[]) => {
         notFound = [];
         hosts.forEach((item) => {
@@ -153,17 +140,18 @@
     },
   ];
 
-  const { run: queryHost, loading } = useRequest(fetchListDbaHost, {
+  const { run: queryHost, loading } = useRequest(fetchList, {
     manual: true,
-    onSuccess: (data) => {
-      console.log(data, 'data');
-      // modelValue.value = data.map(item => ({
-      //   bk_biz_id: item.dedicated_biz || item.bk_biz_id,
-      // bk_cloud_id: item.bk_cloud_id,
-      // bk_host_id: item.bk_host_id,
-      // ip: item.ip,
-      // }))
-      // localValue.value = data.map(item => item.ip).join(',')
+    onSuccess: ({ results }) => {
+      if (results.length) {
+        modelValue.value = results.map((item) => ({
+          bk_biz_id: item.dedicated_biz || item.bk_biz_id,
+          bk_cloud_id: item.bk_cloud_id,
+          bk_host_id: item.bk_host_id,
+          ip: item.ip,
+        }));
+        localValue.value = results.map((item) => item.ip).join(',');
+      }
     },
   });
 
@@ -202,10 +190,11 @@
   };
 
   const handleInputChange = (value: string) => {
+    modelValue.value = [];
     if (value) {
       queryHost({
         bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-        search_content: value,
+        hosts: value,
         limit: -1,
         offset: 0,
       });
