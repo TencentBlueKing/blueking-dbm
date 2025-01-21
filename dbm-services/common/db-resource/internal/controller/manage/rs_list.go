@@ -30,14 +30,16 @@ import (
 // MachineResourceGetterInputParam TODO
 type MachineResourceGetterInputParam struct {
 	// 专用业务Ids
-	ForBiz       int               `json:"for_biz"`
+	ForBiz       *int              `json:"for_biz"`       // 后续删除
+	RsType       *string           `json:"resource_type"` // 后续删除
+	ForBizs      []int             `json:"for_bizs"`
+	RsTypes      []string          `json:"resource_types"`
 	City         []string          `json:"city"`
 	SubZoneIds   []string          `json:"subzone_ids"`
 	DeviceClass  []string          `json:"device_class"`
 	Labels       []string          `json:"labels"`
 	Hosts        []string          `json:"hosts"`
 	BkCloudIds   []int             `json:"bk_cloud_ids"`
-	RsType       string            `json:"resource_type"`
 	MountPoint   string            `json:"mount_point"`
 	Cpu          meta.MeasureRange `json:"cpu"`
 	Mem          meta.MeasureRange `json:"mem"`
@@ -45,9 +47,6 @@ type MachineResourceGetterInputParam struct {
 	DiskType     string            `json:"disk_type"`
 	OsType       string            `json:"os_type"`
 	StorageSpecs []meta.DiskSpec   `json:"storage_spec"`
-	// 适用于用户没选业务和db类型的情况
-	SetBizEmpty    bool `json:"set_empty_biz"`
-	SetRsTypeEmpty bool `json:"set_empty_resource_type"`
 	// true,false,""
 	GseAgentAlive string `json:"gse_agent_alive"`
 	Limit         int    `json:"limit"`
@@ -174,11 +173,17 @@ func (c *MachineResourceGetterInputParam) queryBs(db *gorm.DB) (err error) {
 	if len(c.BkCloudIds) > 0 {
 		db.Where("bk_cloud_id in (?) ", c.BkCloudIds)
 	}
-	if !c.SetRsTypeEmpty {
+	if c.RsType != nil {
 		db.Where("rs_type = ? ", c.RsType)
 	}
-	if !c.SetBizEmpty {
+	if c.ForBiz != nil {
 		db.Where("dedicated_biz = ?", c.ForBiz)
+	}
+	if len(c.RsTypes) > 0 {
+		db.Where("rs_type in (?) ", c.RsTypes)
+	}
+	if len(c.ForBizs) > 0 {
+		db.Where("dedicated_biz in (?) ", c.ForBizs)
 	}
 	c.matchSpec(db)
 	c.matchStorageSpecs(db)
