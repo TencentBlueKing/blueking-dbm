@@ -344,10 +344,12 @@ func (job *RedisDtsOnlineSwitch) NewProxyConfigFileForSameType() (err error) {
 	dstConfContent := job.params.DstProxyConfigContent
 	dstConfContent = strings.ReplaceAll(dstConfContent, job.getDstProxyAddr(), job.getSrcProxyAddr())
 	job.runtime.Logger.Info(fmt.Sprintf("replace dstConfContent dstProxyAddr:%s => srcProxyAddr:%s",
-		job.getDstProxyAddr(), job.getDstProxyAddr()))
+		job.getDstProxyAddr(), job.getSrcProxyAddr()))
+	// 增加上SrcProxyIP限制，避免出现类似backend seg 350000 被替换的情况
 	dstConfContent = strings.ReplaceAll(dstConfContent,
-		strconv.Itoa(job.params.DstProxyPort),
-		strconv.Itoa(job.params.SrcProxyPort))
+		job.params.SrcProxyIP+":"+strconv.Itoa(job.params.DstProxyPort),
+		job.params.SrcProxyIP+":"+strconv.Itoa(job.params.SrcProxyPort),
+	)
 	dstConfContent = strings.ReplaceAll(dstConfContent, "\\n", "\n")
 	if consts.IsTwemproxyClusterType(job.params.SrcClusterType) {
 		re := regexp.MustCompile(`\s\spassword\s*:\s*` + job.params.DstProxyPassword)
