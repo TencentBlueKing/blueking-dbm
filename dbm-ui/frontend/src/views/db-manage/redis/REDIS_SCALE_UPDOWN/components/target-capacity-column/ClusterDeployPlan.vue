@@ -315,6 +315,12 @@
     requireMachineGroupNum: number,
     shardNum: number,
     updateMode: string
+    oldMachineInfo: {
+      bk_biz_id: number;
+      bk_cloud_id: number;
+      bk_host_id: number;
+      ip: string;
+    }[];
   }
 
   export interface Props {
@@ -397,7 +403,8 @@
     groupNum: 0,
     requireMachineGroupNum: 0,
     shardNum: 0,
-    updateMode: ''
+    updateMode: '',
+    oldMachineInfo: [] as TargetInfo['oldMachineInfo']
   })
 
   const formRef = ref<InstanceType<typeof DbForm>>()
@@ -443,7 +450,7 @@
   const targetClusterStats = computed(() => {
     let stats = {} as RedisModel['cluster_stats']
     if (!_.isEmpty(props.clusterStats)) {
-      const { used } = props.clusterStats;
+      const { used = 0 } = props.clusterStats;
       const targetTotal = convertStorageUnits(targetInfo.value.capacity, 'GB', 'B')
 
       stats = {
@@ -578,7 +585,8 @@
         groupNum: specInfo.count,
         requireMachineGroupNum: updateInfo.require_machine_group_num,
         shardNum: specInfo.clusterShardNum,
-        updateMode: updateInfo.capacity_update_type
+        updateMode: updateInfo.capacity_update_type,
+        oldMachineInfo: updateInfo.old_machine_info
       }
     })
   }, 200)
@@ -691,7 +699,8 @@
         groupNum: row.machine_pair,
         requireMachineGroupNum: updateInfo.require_machine_group_num,
         shardNum: row.cluster_shard_num,
-        updateMode: updateInfo.capacity_update_type
+        updateMode: updateInfo.capacity_update_type,
+        oldMachineInfo: updateInfo.old_machine_info
       }
       radioChoosedId.value = row.spec_name;
     })

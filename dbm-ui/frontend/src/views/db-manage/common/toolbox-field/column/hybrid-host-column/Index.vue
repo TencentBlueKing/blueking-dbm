@@ -60,7 +60,7 @@
   <ResourceHostSelector
     v-model:is-show="showSelector"
     v-mode="hostList"
-    :need-num="needNum"
+    :limit="limit"
     :params="params"
     @change="handleSelectorChange" />
 </template>
@@ -84,7 +84,7 @@
   interface Props {
     field: string; // 绑选项值的vmodel，不绑主机列表
     label: string;
-    needNum: number;
+    limit: number;
     minWidth?: number;
     placeholder?: string;
     bkCloudId?: number;

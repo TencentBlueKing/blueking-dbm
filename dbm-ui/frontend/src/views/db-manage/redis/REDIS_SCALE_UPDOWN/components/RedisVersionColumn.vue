@@ -13,13 +13,13 @@
 
 <template>
   <EditableColumn
+    :disabled-method="disabledMethod"
     field="version"
     :label="t('Redis版本')"
     :min-width="150"
     required>
     <EditableSelect
       v-model="modelValue"
-      :disabled="!cluster.id"
       :input-search="false"
       :list="versionList"
       :placeholder="t('自动生成')">
@@ -96,4 +96,11 @@
       }
     },
   );
+
+  const disabledMethod = (rowData?: any, field?: string) => {
+    if (field === 'version' && !rowData.cluster.id) {
+      return t('请先选择集群');
+    }
+    return '';
+  };
 </script>

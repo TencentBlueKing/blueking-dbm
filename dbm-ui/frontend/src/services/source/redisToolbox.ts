@@ -120,6 +120,12 @@ export function getRedisClusterCapacityUpdateInfo(params: {
   return http.get<{
     capacity_update_type: string; // 原地变更(keep_current_machines)、替换变更(all_machines_replace)
     err_msg: string;
+    old_machine_info: {
+      bk_biz_id: number;
+      bk_cloud_id: number;
+      bk_host_id: number;
+      ip: string;
+    }[];
     require_machine_group_num: number;
     require_spec_id: number;
   }>(`${getRootPath()}/get_cluster_capacity_update_info/`, params);
