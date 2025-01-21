@@ -38,10 +38,6 @@ DataSchemaGrant = all
 ```
 cd /home/mysql/mysql-crond
 ./mysql-crond  list
-
-如果需要重启 mysql-crond
-./stop.sh && sleep 1
-./start.sh
 ```
 
 修改 schedule:
@@ -75,6 +71,7 @@ spider 集群的备份由两个任务组成
 ./mysql-crond change-job --permanent -n "spiderbackup-schedule" --schedule "4 3 * * *"
 ```
 
+-- **也可直接修改jobs-config.yaml**  
 某些旧版本的 mysql-crond 没有 change-job 命令，可以直接修改 `jobs-config.yaml`，再重启 mysql-crond
 ```
     - name: spiderbackup-schedule
@@ -85,13 +82,50 @@ spider 集群的备份由两个任务组成
         - schedule
         - --config
         - dbbackup.25000.ini
-      schedule: 3 3 * * *
+      schedule: 3 3 * * *  --- 改这个
       creator: xxx
       work_dir: /home/mysql/dbbackup-go
 ```
 
+如果需要重启 mysql-crond  
+```
+./stop.sh && sleep 1
+./start.sh
+```
 
-### 5. 怎么调整磁盘 io 限速
+
+### 5. 怎么手工在机器上发起备份
+首先要坚持当前实例的角色，比如备份类型(physical/logical)，备份角色(master/slave)，备份内容(all/schema,grant)
+
+- **主从集群**
+```
+cd dbbackup-go
+
+# 默认生成一个随机 backup uuid，遍历目录下的 dbbackup.<port>.ini 顺序执行
+./dbbackup_main.sh
+
+# 也可以直接调用二进制
+./dbbackup dumpbackup -c dbbackup.3306.ini
+# 指定 backup_id 等选项，--backup-id xx-xx-xx --backup-type physical -g all
+./dbbackup dumpbackup -c dbbackup.3306.ini
+```
+
+- **tendbcluster集群**
+在 spider primary 节点(即中控 tdbctl primary)，发起全局备份(共用一个 backup_id):
+
+```
+异步发起备份
+./dbbackup spiderbackup -c dbbackup.25000.ini schedule
+查看备份进度
+./dbbackup spiderbackup query --backupId=xx-xx-xx 
+
+同步等备份完成
+./dbbackup spiderbackup -c dbbackup.25000.ini schedule --wait
+```
+
+当然也可以想主从集群那样，在单个分片上发起自己的备份。
+
+### 6. 怎么调整磁盘 io 限速
 限速分为 2 个阶段：导出阶段，打包切分阶段
 
 导出阶段:
@@ -112,7 +146,7 @@ IOLimitMBPerSec = 300
 ```
 参数 `Public.IOLimitMasterFactor = 0.5` 可进一步限制在 master 上备份的限速，表示的是限速因子，比如 0.5 表示实际限速为 `IOLimitMBPerSec * 0.5`, `Throttle * 0.5`
 
-### 6. 关于逻辑备份字符集说明
+### 7. 关于逻辑备份字符集说明
 首先，mysql 的表结构上的 comment 注释，mysqld 内部都是以 utf8 来编码的，它与表结构定义的 charset 和 表里面数据的字符集 都么有关系。mysqldump 导出表结构时，可以看到都设置为了 utf8，能正确处理。
 
 mydumper 的处理比较粗暴，表结构，表数据 都是以指定的 `--set-names` 来导出，并且把指定的这个字符集写到导出结果文件里。
@@ -123,7 +157,7 @@ mydumper 的处理比较粗暴，表结构，表数据 都是以指定的 `--set
 
 也可以指定为具体的字符集，但最好与表写入的字符集或者定义的字符集相同，否则导出数据可能错乱。也可以指定为 binary，但这也要求表定义的 comment上没有一些乱码等不可识别的字符，否则结果无法导入（数据可以导入）。
 
-### 7. 如果只备份表结构用于重做从库
+### 8. 如何只备份表结构用于重做从库
 `Public.IsFullBackup` or `--is-full-backup` 这个选项默认 0 代表会自动根据备份方式+备份对象 来决定是否将备份上报为全备
 
 某些情况只需要表结构，可以设置此选项强制上报为全备
@@ -133,9 +167,22 @@ mydumper 的处理比较粗暴，表结构，表数据 都是以指定的 `--set
  --backup-type logical
 ```
 
-### 8. 关于 tendbcluster 集群备份，请参考 [spider](spiderbackup.md)
+### 9. 关于 tendbcluster 集群备份，请参考 [spider](spiderbackup.md)
 
-### 9. 常见备份失败处理
+### 10. 关于如何重新上报备份记录
+每一次备份都会将备份信息写入 `dbareport/mysql/dbbackup/backup_result.log`，记录会实时被蓝鲸日志采集上报。
+如果想覆盖某条备份记录，可以从中找出相应的 backup_id 后，根据需要修改对应字段，再重新写一条进去。
+```
+-- 找到需要重新上报的 backup_id，比如 xxx-xxx-xxx
+grep xxx-xxx-xxx ~/dbareport/mysql/dbbackup/backup_result.log > /data/dbbak/xxx-xxx-xxx.backup_result.log
+
+-- 根据需要修改
+
+-- 写回去(追加)
+cat /data/dbbak/xxx-xxx-xxx.backup_result.log >> ~/dbareport/mysql/dbbackup/backup_result.log
+```
+
+### 19. 常见备份失败处理
 
 #### 1. log copying being too slow
 > it looks like InnoDB log has wrapped around before xtrabackup could process all records due to either log copying being too slow, or  log files being too small.

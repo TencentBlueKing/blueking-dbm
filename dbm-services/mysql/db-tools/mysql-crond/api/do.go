@@ -49,16 +49,16 @@ func (m *Manager) do(endpoint string, method string, payLoad interface{}) ([]byt
 	defer func() {
 		_ = resp.Body.Close()
 	}()
-
-	if resp.StatusCode != http.StatusOK {
-		respBody, _ := io.ReadAll(resp.Body)
-		return nil, errors.Errorf("http code: %d, status: %s, resp body: %s",
-			resp.StatusCode, resp.Status, string(respBody))
+	var respBody []byte
+	if resp.Body != nil {
+		respBody, err = io.ReadAll(resp.Body)
+		if err != nil {
+			return nil, errors.Wrap(err, "read resp body")
+		}
 	}
-
-	respBody, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, errors.Wrap(err, "read resp body")
+	if resp.StatusCode != http.StatusOK {
+		return respBody, errors.Errorf("http code: %d, status: %s, resp body: %s",
+			resp.StatusCode, resp.Status, string(respBody))
 	}
 	return respBody, nil
 }

@@ -46,5 +46,10 @@ func CheckBackupType(cnf *config.BackupConfig, storageEngine string) error {
 			cnf.Public.BackupType = cst.BackupPhysical
 		}
 	}
+	if cnf.Public.BackupType == cst.BackupPhysical && cnf.Public.IfBackupSchema() && !cnf.Public.IfBackupAll() {
+		logger.Log.Warnf("BackupType physical cannot backup schema only, change it to logical")
+		cnf.Public.BackupType = cst.BackupLogical
+		cnf.LogicalBackup.UseMysqldump = cst.BackupTypeAuto
+	}
 	return nil
 }

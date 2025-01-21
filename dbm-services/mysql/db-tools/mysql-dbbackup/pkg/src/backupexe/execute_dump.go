@@ -50,7 +50,7 @@ func ExecuteBackup(ctx context.Context, cnf *config.BackupConfig) (*dbareport.In
 	}
 
 	// needn't set timeout for slave
-	if err = dumper.Execute(ctx, false); err != nil {
+	if err = dumper.Execute(ctx); err != nil {
 		return nil, err
 	}
 

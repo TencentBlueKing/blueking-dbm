@@ -14,7 +14,6 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 
 	"dbm-services/mysql/db-tools/mysql-crond/api"
@@ -27,22 +26,7 @@ var enableJobCmd = &cobra.Command{
 	Short: "enable crond entry",
 	Long:  `enable crond entry`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		var jobNames []string
-		permanent, _ := cmd.Flags().GetBool("permanent")
-		if jobName, _ := cmd.Flags().GetString("name"); jobName != "" {
-			jobNames = append(jobNames, jobName)
-			return enableEntry(cmd, jobNames, permanent)
-		} else if nameMatch, _ := cmd.Flags().GetString("name-match"); nameMatch != "" {
-			entries := listEntries(cmd, api.JobStatusDisabled)
-			if len(entries) == 0 {
-				return errors.Errorf("no job match %s", nameMatch)
-			}
-			for _, entry := range entries {
-				jobNames = append(jobNames, entry.Job.Name)
-			}
-			return enableEntry(cmd, jobNames, permanent)
-		}
-		return nil
+		return enableEntry(cmd)
 	},
 }
 
@@ -55,8 +39,30 @@ func init() {
 	rootCmd.AddCommand(enableJobCmd)
 }
 
-// enableEntry resume
-func enableEntry(cmd *cobra.Command, jobNames []string, permanent bool) error {
+// enableEntry 启用当前是 disabled 状态的entry
+// 没有找到 entry 返回 nil
+func enableEntry(cmd *cobra.Command) error {
+	var jobNames []string
+	permanent, _ := cmd.Flags().GetBool("permanent")
+	if jobName, _ := cmd.Flags().GetString("name"); jobName != "" {
+		jobNames = append(jobNames, jobName)
+		return enableEntryByNames(cmd, jobNames, permanent)
+	} else if nameMatch, _ := cmd.Flags().GetString("name-match"); nameMatch != "" {
+		entries := listEntries(cmd, api.JobStatusDisabled)
+		if len(entries) == 0 {
+			return nil
+			//return errors.Errorf("no job match %s", nameMatch)
+		}
+		for _, entry := range entries {
+			jobNames = append(jobNames, entry.Job.Name)
+		}
+		return enableEntryByNames(cmd, jobNames, permanent)
+	}
+	return nil
+}
+
+// enableEntryByNames resume
+func enableEntryByNames(cmd *cobra.Command, jobNames []string, permanent bool) error {
 	var err error
 	apiUrl := ""
 	configFile, _ := cmd.Flags().GetString("config")

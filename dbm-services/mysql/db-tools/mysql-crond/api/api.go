@@ -30,7 +30,7 @@ func NewManager(apiUrl string) *Manager {
 	}
 }
 
-// NotFoundError not found
+// NotFoundError entry not found
 var NotFoundError = errors.New("not found")
 
 const (

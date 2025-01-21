@@ -185,9 +185,6 @@ func (m *CnfFile) Load() error {
 //	@receiver m
 //	@return datadir
 //	@return err
-//
-// e.g: datadir=/data1/mysqldata/20000/data 返回 /data1/mysqldata/20000
-// datadir=/data/mysqldata/data 返回 /data/mysqldata/
 func (m *CnfFile) GetMySQLDataDir() (string, error) {
 	var datadir string
 	if m.Cfg.Section(MysqldSec).HasKey("datadir") {
@@ -199,6 +196,9 @@ func (m *CnfFile) GetMySQLDataDir() (string, error) {
 }
 
 // GetMySQLDataHomeDir 获取实例的数据目录
+//
+// e.g: datadir=/data1/mysqldata/20000/data 返回 /data1/mysqldata/20000
+// datadir=/data/mysqldata/data 返回 /data/mysqldata/
 func (m *CnfFile) GetMySQLDataHomeDir() (string, error) {
 	datadir, err := m.GetMySQLDataDir()
 	if err != nil {
@@ -382,10 +382,7 @@ func (m *CnfFile) SafeSaveFile(isProxy bool) (err error) {
 }
 
 // sortAllkeys 对写入的key进行排序
-//
-//	@receiver m
-//	@return *CnfFile
-//	@return error
+// 用于生成配置文件时，保持键值有序，方便后续比较和维护
 func (m *CnfFile) sortAllkeys(isProxy bool) (*CnfFile, error) {
 	f := CnfFile{
 		Cfg: ini.Empty(iniLoadOption),

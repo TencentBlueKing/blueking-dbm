@@ -29,6 +29,9 @@ type PublicCfg struct {
 	MaxDiskUsedPct float64 `json:"max_disk_used_pct" mapstructure:"max_disk_used_pct"  validate:"required"`
 	// 本地 binlog 最大保留时间，超过会直接删除
 	MaxKeepDuration string `json:"max_keep_duration" mapstructure:"max_keep_duration"`
+	// MaxOldDaysToUpload 多久时间以内的 binlog 才上传到备份系统
+	// 一般在 rotatebinlog 第一次部署，或者很久没有运行时重新运行会用到，默认 7 天
+	MaxOldDaysToUpload int `json:"max_old_days_to_upload" mapstructure:"max_old_days_to_upload"`
 	// 间隔多久执行一次 purge index
 	PurgeInterval string `json:"purge_interval" mapstructure:"purge_interval" validate:"required"`
 	// 每隔多久执行一次 flush binary logs

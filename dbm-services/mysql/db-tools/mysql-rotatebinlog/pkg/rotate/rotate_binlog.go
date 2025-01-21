@@ -100,6 +100,7 @@ func (i *ServerObj) Rotate() (lastFileBefore *models.BinlogFileModel, err error)
 	if lastFileBefore, err = i.rotate.binlogInst.QueryLastFileReport(models.DB.Conn); err != nil {
 		logger.Error(err.Error())
 	}
+	// 如果是第一次处理，这里是一个空对象
 	logger.Info("last binlog file processed: %s", lastFileBefore)
 
 	return lastFileBefore, nil
@@ -155,7 +156,8 @@ func (i *ServerObj) getBinlogFilesLocal() (string, []*BinlogFile, error) {
 	}
 	reFilename := regexp.MustCompile(cst.ReBinlogFilename)
 	timeNow := time.Now()
-	days15 := 24 * 15 * time.Hour // 超过 15 天的不处理
+	// 针对第一次上报，超过 60 天的不处理
+	days60 := time.Hour * 24 * 60
 	for _, fi := range files {
 		if !reFilename.MatchString(fi.Name()) {
 			if !strings.HasSuffix(fi.Name(), ".index") {
@@ -164,7 +166,7 @@ func (i *ServerObj) getBinlogFilesLocal() (string, []*BinlogFile, error) {
 			continue
 		} else {
 			fii, _ := fi.Info()
-			if timeNow.Sub(fii.ModTime()) > days15 {
+			if timeNow.Sub(fii.ModTime()) > days60 {
 				continue
 			}
 			i.binlogFiles = append(

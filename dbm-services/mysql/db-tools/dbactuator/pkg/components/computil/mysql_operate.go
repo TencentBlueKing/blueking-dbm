@@ -305,7 +305,7 @@ func KillReMindMySQLClient(regexpStr string) error {
 		return errors.New("grep 参数为空，不允许！！！")
 	}
 	killComand := fmt.Sprintf(
-		"ps -efwww|grep ' %s '|egrep -v mysqld|grep mysql|egrep -v grep |awk '{print $2}'|xargs  kill -9", regexpStr,
+		"ps -efwww|grep ' %s '|grep -Ev mysqld|grep mysql|grep -Ev grep |awk '{print $2}'|xargs  kill -9", regexpStr,
 	)
 	logger.Info(" kill command is %s", killComand)
 	_, err = osutil.ExecShellCommand(false, killComand)
@@ -313,7 +313,7 @@ func KillReMindMySQLClient(regexpStr string) error {
 		logger.Error("execute %s get an error:%s", killComand, err.Error())
 	}
 	killSocketComand := fmt.Sprintf(
-		"ps -efwww|grep '%s'|egrep -v 'mysqld |mysqld_safe'|grep mysql|grep mysql.sock|egrep -v grep |awk '{print $2}'|xargs  kill -9",
+		"ps -efwww|grep '%s'|grep -Ev 'mysqld |mysqld_safe'|grep mysql|grep mysql.sock|grep -Ev grep |awk '{print $2}'|xargs  kill -9",
 		regexpStr,
 	)
 	logger.Info(" kill command is %s", killSocketComand)
@@ -333,7 +333,7 @@ func KillMySQLD(regexpStr string) error {
 	if strings.TrimSpace(regexpStr) == "" {
 		return errors.New("grep 参数为空，不允许！！！")
 	}
-	shellCMD := fmt.Sprintf("ps -efwww|grep %s|grep -E 'mysqld |mysqld_safe'|egrep -v grep |wc -l", regexpStr)
+	shellCMD := fmt.Sprintf("ps -efwww|grep %s|grep -E 'mysqld |mysqld_safe'|grep -Ev grep |wc -l", regexpStr)
 	processCnts, err := osutil.ExecShellCommand(false, shellCMD)
 	processCnt := cast.ToInt(strings.TrimSpace(processCnts))
 	if err != nil {
@@ -349,7 +349,7 @@ func KillMySQLD(regexpStr string) error {
 	}
 	logger.Info("will kill this %s  %d", regexpStr, processCnt)
 	killCmd := fmt.Sprintf(
-		"ps -efwww|grep %s|grep -E 'mysqld |mysqld_safe' |egrep -v grep |awk '{print $2}'|xargs  kill -15", regexpStr)
+		"ps -efwww|grep %s|grep -E 'mysqld |mysqld_safe' |grep -Ev grep |awk '{print $2}'|xargs  kill -15", regexpStr)
 	logger.Info(" kill command is %s", killCmd)
 	kOutput, err := osutil.ExecShellCommand(false, killCmd)
 	if err != nil {

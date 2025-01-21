@@ -174,8 +174,8 @@ func MysqldumpHasOption(bin string, option string) (bool, error) {
 	}
 }
 
-// Execute excute dumping backup with logical backup tool[mysqldump]
-func (l *LogicalDumperMysqldump) Execute(ctx context.Context, enableTimeOut bool) (err error) {
+// Execute execute dumping backup with logical backup tool[mysqldump]
+func (l *LogicalDumperMysqldump) Execute(ctx context.Context) (err error) {
 	var binPath string
 	if l.cnf.LogicalBackupMysqldump.BinPath != "" {
 		binPath = l.cnf.LogicalBackupMysqldump.BinPath

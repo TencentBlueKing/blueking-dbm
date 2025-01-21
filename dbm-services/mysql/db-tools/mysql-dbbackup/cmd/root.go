@@ -45,7 +45,6 @@ func init() {
 	rootCmd.AddCommand(spiderCmd)
 	rootCmd.AddCommand(migrateOldCmd)
 	rootCmd.AddCommand(dumpLogicalCmd)
-
 }
 
 // initConfig parse the configuration file of dbbackup to init a cfg

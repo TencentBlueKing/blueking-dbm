@@ -22,7 +22,7 @@ import (
 // Dumper TODO
 type Dumper interface {
 	initConfig(mysqlVersion string) error
-	Execute(ctx context.Context, enableTimeOut bool) error
+	Execute(ctx context.Context) error
 	PrepareBackupMetaInfo(cnf *config.BackupConfig) (*dbareport.IndexContent, error)
 }
 

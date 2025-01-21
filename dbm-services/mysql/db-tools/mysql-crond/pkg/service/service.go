@@ -160,6 +160,7 @@ func Start(version string, buildStamp string, gitHash string, quit chan struct{}
 			body := struct {
 				Name     string        `json:"name" binding:"required"`
 				Duration time.Duration `json:"duration" binding:"required"`
+				Rewrite  bool          `json:"rewrite"`
 			}{}
 			err := ctx.BindJSON(&body)
 			if err != nil {
@@ -174,6 +175,10 @@ func Start(version string, buildStamp string, gitHash string, quit chan struct{}
 			}()
 			entryID, err := crond.Pause(body.Name, body.Duration)
 			if err != nil {
+				if errors.Is(err, api.NotFoundError) {
+					ctx.AbortWithStatusJSON(http.StatusBadRequest, api.NewErrorResp(4001, err))
+					return
+				}
 				ctx.AbortWithStatusJSON(http.StatusInternalServerError, api.NewErrorResp(500, err))
 				return
 			}

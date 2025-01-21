@@ -108,21 +108,53 @@ func (x *Xtrabackup) RepairUserAdmin(userAdmin, password string, version string)
 	// flush privileges;
 }
 
-// RepairAndTruncateMyIsamTables TODO
-func (x *Xtrabackup) RepairAndTruncateMyIsamTables() error {
-	systemDbs := cmutil.StringsRemove(native.DBSys, native.TEST_DB)
-	sql := fmt.Sprintf(
-		`SELECT table_schema, table_name FROM information_schema.tables `+
-			`WHERE table_schema not in (%s) AND engine = 'MyISAM' AND TABLE_TYPE ='BASE TABLE'`,
-		mysqlcomm.UnsafeIn(systemDbs, "'"),
-	)
-
-	rows, err := x.dbWorker.Db.Query(sql)
+// RepairMyisamTables 离线修复 myisam
+// myisamchk 重要
+func (x *Xtrabackup) RepairMyisamTables() error {
+	dataDir, err := x.myCnf.GetMySQLDataDir()
 	if err != nil {
-		return fmt.Errorf("query myisam tables error,detail:%w,sql:%s", err, sql)
+		return errors.WithMessage(err, "RepairMyisamTables")
+	}
+	// find . -name '*.MYI' -exec /usr/local/mysql/bin/myisamchk -r -v -f {} \; > /tmp/repair_myisam_3306.log
+	repairArgs := []string{
+		"find", ".", "-name", "'*MYI'",
+		"-exec", "/usr/local/mysql/bin/myisamchk", "-r", "-v", "-f", "{}", `\;`,
+		">", fmt.Sprintf("/tmp/repire_myisam_%d.log", x.TgtInstance.Port), "2>&1",
+	}
+	logger.Info("myisamchk cmd:", strings.Join(repairArgs, " "))
+	_, errStr, err := cmutil.ExecCommand(true, dataDir, repairArgs[0], repairArgs[1:]...)
+	if err != nil {
+		logger.Warn("myisamchk failed: %s(%s)", errStr, err.Error())
+	}
+	return nil
+}
+
+// RepairAndTruncateMyIsamTables 修复 myisam
+// repair 命令只修复系统库
+func (x *Xtrabackup) RepairAndTruncateMyIsamTables(sysDB bool) error {
+	systemDbs := cmutil.StringsRemove(native.DBSys, native.TEST_DB)
+	var sqlStr string
+	if sysDB {
+		sqlStr = fmt.Sprintf(
+			`SELECT table_schema, table_name FROM information_schema.tables `+
+				`WHERE table_schema in (%s) AND engine = 'MyISAM' AND TABLE_TYPE ='BASE TABLE'`,
+			mysqlcomm.UnsafeIn(systemDbs, "'"),
+		)
+	} else {
+		sqlStr = fmt.Sprintf(
+			`SELECT table_schema, table_name FROM information_schema.tables `+
+				`WHERE table_schema not in (%s) AND engine = 'MyISAM' AND TABLE_TYPE ='BASE TABLE'`,
+			mysqlcomm.UnsafeIn(systemDbs, "'"),
+		)
+	}
+
+	rows, err := x.dbWorker.Db.Query(sqlStr)
+	if err != nil {
+		return fmt.Errorf("query myisam tables error,detail:%w,sql:%s", err, sqlStr)
 	}
 	defer rows.Close()
 
+	//g, ctx := errgroup.WithContext(context.Background())
 	wg := sync.WaitGroup{}
 	errorChan := make(chan error, 1)
 	finishChan := make(chan bool, 1)
@@ -135,6 +167,7 @@ func (x *Xtrabackup) RepairAndTruncateMyIsamTables() error {
 		}
 		ch <- struct{}{}
 		wg.Add(1)
+
 		go func(worker *native.DbWorker, db, table string) {
 			<-ch
 			defer wg.Done()

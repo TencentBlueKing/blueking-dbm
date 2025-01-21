@@ -128,6 +128,7 @@ func RunInBG(isSudo bool, param string) (pid int, err error) {
 
 // ExecShellCommand 执行 shell 命令
 // 如果有 err, 返回 stderr; 如果没有 err 返回的是 stdout
+// 因为 bash -c "aaa | bbb" 如果 aaa 命令出错，return code 是 0，要从 stderr 抓取错误信息
 // 后续尽量不要用这个方法,因为通过标准错误来判断有点不靠谱
 func ExecShellCommand(isSudo bool, param string) (stdoutStr string, err error) {
 	if isSudo {

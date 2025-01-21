@@ -1,9 +1,14 @@
 package dbbackup
 
 import (
+	"archive/tar"
+	"bytes"
+	"compress/gzip"
 	"encoding/json"
 	"fmt"
+	"io"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"regexp"
 	"sort"
@@ -142,13 +147,18 @@ func (f *BackupIndexFile) UntarFiles(untarDir string, removeOriginal bool) error
 	if cmutil.FileExists(f.targetDir) {
 		return errors.Errorf("target untar path already exists %s", f.targetDir)
 	}
+
 	// 物理备份, merge parts
-	if len(f.splitParts) > 0 {
+	if len(f.splitParts) > 0 && len(f.splitParts) <= 20 {
 		// TODO 考虑使用 pv 限速
 		cmd := fmt.Sprintf(`cd %s && cat %s | tar -xf - -C %s/`,
 			f.backupDir, strings.Join(f.splitParts, " "), untarDir)
 		if _, err := osutil.ExecShellCommand(false, cmd); err != nil {
 			return errors.Wrap(err, cmd)
+		}
+	} else if len(f.splitParts) > 20 {
+		if err := MergeAndUntarFiles(f.splitParts, f.backupDir, untarDir, true); err != nil {
+			return err
 		}
 	}
 
@@ -156,6 +166,10 @@ func (f *BackupIndexFile) UntarFiles(untarDir string, removeOriginal bool) error
 		for _, p := range f.tarParts {
 			backupexe.ParseTarFilename(p)
 			cmd := fmt.Sprintf(`cd %s && tar -xf %s -C %s/`, f.backupDir, p, untarDir)
+			if strings.Contains(p, ".gz") {
+				cmd = fmt.Sprintf(`cd %s && cat %s | tar -zxf - -C %s/`,
+					f.backupDir, strings.Join(f.tarParts, " "), untarDir)
+			}
 			if _, err := osutil.ExecShellCommand(false, cmd); err != nil {
 				return errors.Wrap(err, cmd)
 			}
@@ -164,6 +178,65 @@ func (f *BackupIndexFile) UntarFiles(untarDir string, removeOriginal bool) error
 
 	if !cmutil.FileExists(f.targetDir) {
 		return errors.Errorf("targetDir %s is not ready", f.targetDir)
+	}
+	return nil
+}
+
+// MergeAndUntarFiles 当文件数非常多时，避免超过命令行长度
+// 单个文件解压
+// removeOriginal 为 true 时，会清理原文件
+func MergeAndUntarFiles(splitParts []string, srcDir, untarDir string, removeOriginal bool) error {
+	pipeReader, pipeWriter := io.Pipe()
+	untarCmd := exec.Command("tar", "-xf", "-", "-C", untarDir)
+	if !strings.Contains(splitParts[0], ".gz") {
+		untarCmd = exec.Command("tar", "-zxf", "-", "-C", untarDir)
+	}
+	untarCmd.Dir = srcDir
+	//untarCmd.Stdout = os.Stdout
+	var stderrBuff bytes.Buffer
+	untarCmd.Stderr = &stderrBuff
+	untarCmd.Stdin = pipeReader
+	chanErr := make(chan error, 1)
+	go func() {
+		chanErr <- untarCmd.Run()
+	}()
+	/*
+		go func() {
+			cmutil.ExtractTarGz(pipeReader)
+		}()
+	*/
+
+	var readErr error
+	for _, tarFile := range splitParts {
+		logger.Info("read file %s", tarFile)
+		tarFile = filepath.Join(srcDir, tarFile)
+		tarf, err := os.OpenFile(tarFile, os.O_RDONLY, 0644)
+		if err != nil {
+			readErr = errors.WithMessage(err, "read file")
+			break // 任何错误，都传输给 pipeWriter，以便管道下游命令能够捕获 error
+			//return readErr
+		}
+		if _, err = io.Copy(pipeWriter, tarf); err != nil {
+			readErr = errors.WithMessage(err, "copy file to stdout")
+			break // 任何错误，都传输给 pipeWriter，以便管道下游命令能够捕获 error
+			//return readErr
+		}
+		tarf.Close()
+		if removeOriginal {
+			os.Remove(tarFile)
+		}
+	}
+	pipeWriter.CloseWithError(readErr)
+	//time.Sleep(100 * time.Millisecond) // 确保 reader 在收到 EOF 之后，再退出函数
+
+	select {
+	case err := <-chanErr:
+		if err != nil {
+			return err
+		}
+	}
+	if errStr := stderrBuff.String(); strings.TrimSpace(errStr) != "" {
+		return errors.New(errStr)
 	}
 	return nil
 }
@@ -183,4 +256,49 @@ func (f *BackupIndexFile) GetTargetDir(untarDir string) string {
 
 func (f *BackupIndexFile) GetMetafileBasename() string {
 	return f.backupIndexBasename
+}
+
+func ExtractTarGz(gzipStream io.Reader) error {
+	uncompressedStream, err := gzip.NewReader(gzipStream)
+	if err != nil {
+		return errors.New("ExtractTarGz: NewReader failed")
+	}
+
+	tarReader := tar.NewReader(uncompressedStream)
+
+	for true {
+		header, err := tarReader.Next()
+
+		if err == io.EOF {
+			break
+		}
+
+		if err != nil {
+			return errors.Wrap(err, "ExtractTarGz: Next() failed")
+		}
+
+		switch header.Typeflag {
+		case tar.TypeDir:
+			if err := os.Mkdir(header.Name, 0755); err != nil {
+				return errors.Wrap(err, "ExtractTarGz: Mkdir() failed")
+
+			}
+		case tar.TypeReg:
+			outFile, err := os.Create(header.Name)
+			if err != nil {
+				return errors.Wrap(err, "ExtractTarGz: Create() failed")
+			}
+			if _, err := io.Copy(outFile, tarReader); err != nil {
+				return errors.Wrap(err, "ExtractTarGz: Copy() failed")
+
+			}
+			outFile.Close()
+
+		default:
+			return errors.Errorf("ExtractTarGz: uknown type: %s in %s",
+				header.Typeflag,
+				header.Name)
+		}
+	}
+	return nil
 }

@@ -15,6 +15,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 
 	"dbm-services/mysql/db-tools/mysql-crond/api"
@@ -27,25 +28,14 @@ var pauseJobCmd = &cobra.Command{
 	Short: "pause crond entry",
 	Long:  `pause crond entry`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		var jobNames []string
-		dura, _ := cmd.Flags().GetDuration("duration")
-		if jobName, _ := cmd.Flags().GetString("name"); jobName != "" {
-			jobNames = append(jobNames, jobName)
-			return pauseEntry(cmd, jobNames, dura)
-		} else if nameMatch, _ := cmd.Flags().GetString("name-match"); nameMatch != "" {
-			entries := listEntries(cmd, api.JobStatusEnabled)
-			if len(entries) == 0 {
-				return nil
-				//return errors.Errorf("no job match %s", nameMatch)
+		rewrite, _ := cmd.Flags().GetBool("rewrite")
+		if rewrite {
+			// permanent is always false
+			if err := enableEntry(cmd); err != nil {
+				return errors.WithMessage(err, "enable entry first")
 			}
-			for _, entry := range entries {
-				jobNames = append(jobNames, entry.Job.Name)
-			}
-			return pauseEntry(cmd, jobNames, dura)
-		} else {
-
 		}
-		return nil
+		return pauseEntry(cmd)
 	},
 }
 
@@ -53,12 +43,34 @@ func init() {
 	pauseJobCmd.Flags().StringP("name", "n", "", "full job name")
 	pauseJobCmd.Flags().StringP("name-match", "m", "", "name-match using regex")
 	pauseJobCmd.Flags().DurationP("duration", "r", 1*time.Hour, "pause job duration， default 1h")
+	pauseJobCmd.Flags().Bool("rewrite", false, "if one entry is disabled before, rewrite with new duration")
 	pauseJobCmd.MarkFlagsOneRequired("name", "name-match")
 	pauseJobCmd.MarkFlagsMutuallyExclusive("name", "name-match")
 	rootCmd.AddCommand(pauseJobCmd)
 }
 
-func pauseEntry(cmd *cobra.Command, jobNames []string, dura time.Duration) error {
+func pauseEntry(cmd *cobra.Command) error {
+	var jobNames []string
+	dura, _ := cmd.Flags().GetDuration("duration")
+	if jobName, _ := cmd.Flags().GetString("name"); jobName != "" {
+		jobNames = append(jobNames, jobName)
+		return pauseEntryByNames(cmd, jobNames, dura)
+	} else if nameMatch, _ := cmd.Flags().GetString("name-match"); nameMatch != "" {
+		entries := listEntries(cmd, api.JobStatusEnabled)
+		if len(entries) == 0 {
+			return nil
+			//return errors.Errorf("no job match %s", nameMatch)
+		}
+		for _, entry := range entries {
+			jobNames = append(jobNames, entry.Job.Name)
+		}
+		return pauseEntryByNames(cmd, jobNames, dura)
+	}
+	return nil
+}
+
+// pauseEntryByNames pauseEntryByNames
+func pauseEntryByNames(cmd *cobra.Command, jobNames []string, dura time.Duration) error {
 	// init config to get listen ip:port
 	var err error
 	apiUrl := ""

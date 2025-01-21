@@ -55,7 +55,7 @@ func (l *LogicalDumper) initConfig(mysqlVerStr string) error {
 }
 
 // Execute excute dumping backup with logical backup tool
-func (l *LogicalDumper) Execute(ctx context.Context, enableTimeOut bool) error {
+func (l *LogicalDumper) Execute(ctx context.Context) error {
 	l.backupStartTime = time.Now()
 	defer func() {
 		l.backupEndTime = time.Now()
@@ -191,8 +191,8 @@ func (l *LogicalDumper) Execute(ctx context.Context, enableTimeOut bool) error {
 	if err != nil {
 		// mydumper 的错误信息要从头往后看，看最近的日志因为多线程的原因，不准确
 		errStrPrefix := fmt.Sprintf("head 5 error from %s", mydumperLogFile)
-		errStrDetail, _ := util.GrepLinesFromFile(mydumperLogFile, []string{"ERROR", "fatal", "critical"},
-			5, false, false)
+		errStrDetail, _ := util.GrepLinesFromFile(mydumperLogFile,
+			[]string{"ERROR", "fatal", "critical", "No such file"}, 5, false, false)
 		if len(errStrDetail) > 0 {
 			logger.Log.Info(errStrPrefix)
 			logger.Log.Error(errStrDetail)

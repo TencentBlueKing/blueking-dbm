@@ -96,7 +96,7 @@ func RemoveSystemCrontab(removeKey string) (err error) {
  * @return {*}
  */
 func ListCrontb(user string) (output string, err error) {
-	crontabList := fmt.Sprintf("crontab -u %s -l|egrep -v ^$ || true", user)
+	crontabList := fmt.Sprintf("crontab -u %s -l|grep -Ev ^$ || true", user)
 	// "crontab -u " + user + " -l"
 	output, err = ExecShellCommand(false, crontabList)
 	if err != nil {

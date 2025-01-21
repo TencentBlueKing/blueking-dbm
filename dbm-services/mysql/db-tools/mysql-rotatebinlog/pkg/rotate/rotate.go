@@ -248,7 +248,11 @@ func (i *ServerObj) RegisterBinlog(lastFileBefore *models.BinlogFileModel) error
 		}
 		var backupStatus int
 		if i.backupEnable {
-			backupStatus = models.IBStatusNew
+			if fileObj.Mtime.Before(time.Now().Add(-time.Hour * time.Duration(i.publicCfg.MaxOldDaysToUpload))) {
+				backupStatus = models.FileStatusTooOldToRegister
+			} else {
+				backupStatus = models.IBStatusNew
+			}
 		} else if i.Tags.DBRole == models.RoleSlave || i.Tags.DBRole == models.RoleOrphan { // slave 无需备份 binlog
 			backupStatus = models.FileStatusNoNeedUpload
 		} else {

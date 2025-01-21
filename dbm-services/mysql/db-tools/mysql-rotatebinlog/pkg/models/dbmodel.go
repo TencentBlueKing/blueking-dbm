@@ -296,6 +296,8 @@ const (
 	FileStatusAbnormal = 202
 	// FileStatusNoNeedUpload binlog无需上传
 	FileStatusNoNeedUpload = 203
+	// FileStatusTooOldToRegister binlog文件时间太老，无需上传
+	FileStatusTooOldToRegister = 204
 )
 
 const (
@@ -321,9 +323,10 @@ var IBStatusMap = map[int]string{
 	IBStatusFail:         "Fail: unknown",         // 其它错误
 	IBStatusExpired:      "done, expired",         // 备份系统文件已过期
 
-	FileStatusRemoved:      "local removed",
-	FileStatusAbnormal:     "file abnormal",
-	FileStatusNoNeedUpload: "no need to backup",
+	FileStatusRemoved:          "local removed",
+	FileStatusAbnormal:         "file abnormal",
+	FileStatusNoNeedUpload:     "no need to backup",
+	FileStatusTooOldToRegister: "too old to backup",
 }
 
 // DeleteExpired godoc

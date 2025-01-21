@@ -15,7 +15,6 @@ import (
 	"path"
 	"path/filepath"
 	"sort"
-	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -99,30 +98,6 @@ func (m *CnfFile) Load() error {
 		}
 	}
 	return nil
-}
-
-// GetMySQLDataDir 从my.cnf 获取datadir
-//
-//	@receiver m
-//	@return datadir
-//	@return err
-//
-// e.g: datadir=/data1/mysqldata/20000/data 返回 /data1/mysqldata/20000
-// datadir=/data/mysqldata/data 返回 /data/mysqldata/
-func (m *CnfFile) GetMySQLDataDir() (string, error) {
-	var datadir string
-	if m.Cfg.Section(MysqldSec).HasKey("datadir") {
-		datadir = m.Cfg.Section(MysqldSec).Key("datadir").String()
-	} else {
-		return "", fmt.Errorf("在配置中没找到datadir的配置项")
-	}
-	// datadirName := filepath.Base(datadir)                               // "data"
-	datadirPath := filepath.Dir(datadir)                                // "/data1/mysqldata/20000" or "/data/mysqldata"
-	if _, err := strconv.Atoi(filepath.Base(datadirPath)); err != nil { // "/data/mysqldata"
-		return datadir, nil // "/data/mysqldata/data"
-	} else {
-		return filepath.Dir(datadir), nil // "/data/mysqldata/20000/data"
-	}
 }
 
 // GetMySQLLogDir 从配置中获取mysql logdir

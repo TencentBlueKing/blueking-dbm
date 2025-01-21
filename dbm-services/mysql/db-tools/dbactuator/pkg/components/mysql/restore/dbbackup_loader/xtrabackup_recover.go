@@ -68,7 +68,7 @@ func (x *Xtrabackup) PreRun() error {
 	return nil
 }
 
-// PostRun TODO
+// PostRun 以下所有步骤必须可重试
 func (x *Xtrabackup) PostRun() (err error) {
 	logger.Info("decompress xtrabackup meta files again")
 	if err := x.DecompressMetaFile(); err != nil {
@@ -161,14 +161,25 @@ func (x *Xtrabackup) PostRun() (err error) {
 			logger.Warn("fail to reset user %s", x.TgtInstance.User)
 		}
 	}
-	logger.Info("repair myisam tables")
-	// 修复MyIsam表
-	if err := x.RepairAndTruncateMyIsamTables(); err != nil {
+	logger.Info("repair myisam tables with repair")
+	// 修复MyIsam表，系统库表优先修复
+	if err := x.RepairAndTruncateMyIsamTables(true); err != nil {
 		return err
 	}
+	if err := x.RepairAndTruncateMyIsamTables(false); err != nil {
+		return err
+	}
+
+	/*
+		logger.Info("repair myisam tables with myisamchk")
+		if err = x.RepairMyisamTables(); err != nil {
+			return err
+		}
+	*/
 	return nil
 }
 
+// cleanXtraEnv 清理物理备份环境
 func (x *Xtrabackup) cleanXtraEnv() error {
 	dirs := []string{
 		"datadir",
@@ -214,6 +225,7 @@ func (x *Xtrabackup) importData() error {
 	return nil
 }
 
+// changeDirOwner change datadir owner user and group
 func (x *Xtrabackup) changeDirOwner() error {
 	dirs := []string{
 		"datadir",

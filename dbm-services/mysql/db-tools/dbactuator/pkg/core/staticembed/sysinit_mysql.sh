@@ -13,7 +13,7 @@ function _exit() {
 #chmod o+rx /usr/local/agenttools/agent/agentRep* 
 #handler nscd restart
 #如果存在mysql用户组就groupadd mysql -g 202
-egrep "^mysql" /etc/group >& /dev/null
+grep -E "^mysql" /etc/group >& /dev/null
 if [ $? -ne 0 ]
 then
 groupadd mysql -g 202

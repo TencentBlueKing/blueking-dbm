@@ -242,6 +242,7 @@ func (p *PackageFile) tarballDir() error {
 	return nil
 }
 
+// tarAndSplit 只 tar，不 zip
 func (p *PackageFile) tarAndSplit() (string, error) {
 	logger.Log.Infof("Tarball Package: src dir %s, iolimit %d MB/s", p.srcDir, p.cnf.Public.IOLimitMBPerSec)
 

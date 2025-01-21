@@ -160,7 +160,7 @@ func (p *PhysicalDumper) buildArgs() []string {
 }
 
 // Execute excute dumping backup with physical backup tool
-func (p *PhysicalDumper) Execute(ctx context.Context, enableTimeOut bool) error {
+func (p *PhysicalDumper) Execute(ctx context.Context) error {
 	p.backupStartTime = time.Now()
 	defer func() {
 		p.backupEndTime = time.Now()
@@ -217,8 +217,8 @@ func (p *PhysicalDumper) Execute(ctx context.Context, enableTimeOut bool) error 
 	err = cmd.Run()
 	if err != nil {
 		errStrPrefix := fmt.Sprintf("tail 5 error from %s", xtrabackupLogFile)
-		errStrDetail, _ := util.GrepLinesFromFile(xtrabackupLogFile, []string{"ERROR", "fatal", "unknown"},
-			5, false, true)
+		errStrDetail, _ := util.GrepLinesFromFile(xtrabackupLogFile,
+			[]string{"ERROR", "fatal", "unknown", "No such file"}, 5, false, true)
 		if len(errStrDetail) > 0 {
 			logger.Log.Info(errStrPrefix)
 			logger.Log.Error(errStrDetail)

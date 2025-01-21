@@ -111,7 +111,7 @@ func (p *PhysicalTokudbDumper) initConfig(mysqlVersion string) error {
 }
 
 // Execute Perform data recovery operations.
-func (p *PhysicalTokudbDumper) Execute(ctx context.Context, enableTimeOut bool) error {
+func (p *PhysicalTokudbDumper) Execute(ctx context.Context) error {
 	p.backupStartTime = cmutil.TimeToSecondPrecision(time.Now())
 	defer func() {
 		p.backupEndTime = cmutil.TimeToSecondPrecision(time.Now())
