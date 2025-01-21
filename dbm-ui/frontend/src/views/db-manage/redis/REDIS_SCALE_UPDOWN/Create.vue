@@ -133,6 +133,14 @@
       affinity: string;
       group_num: number;
       shard_num: number;
+      capacity: number;
+      future_capacity: number;
+      old_machine_info: {
+        bk_biz_id: number;
+        bk_cloud_id: number;
+        bk_host_id: number;
+        ip: string;
+      }[];
     };
     switchMode: string;
   }
@@ -164,6 +172,9 @@
       affinity: AffinityType.CROS_SUBZONE,
       shard_num: 0,
       group_num: 0,
+      capacity: 1,
+      future_capacity: 1,
+      old_machine_info: [],
     },
     switchMode: data.switchMode || '',
   });
@@ -192,11 +203,14 @@
   const { run: createTicketRun, loading: isSubmitting } = useCreateTicket<{
     ip_source: 'resource_pool';
     infos: {
+      update_mode: 'all_machines_replace';
       cluster_id: number;
       bk_cloud_id: number;
       db_version: string;
       shard_num: number;
       group_num: number;
+      capacity: number;
+      future_capacity: number;
       online_switch_type: string;
       resource_spec: {
         backend_group: {
@@ -205,7 +219,7 @@
           affinity: AffinityType;
         };
       };
-      old_nodes?: {
+      old_nodes: {
         backend_hosts: {
           bk_cloud_id: number;
           bk_host_id: number;
@@ -228,11 +242,14 @@
       details: {
         ip_source: 'resource_pool',
         infos: formData.tableData.map((item) => ({
+          update_mode: 'all_machines_replace',
           bk_cloud_id: item.cluster.bk_cloud_id,
           cluster_id: item.cluster.id,
           db_version: item.version,
           shard_num: item.backendGroup.shard_num,
           group_num: item.backendGroup.group_num,
+          capacity: item.backendGroup.capacity,
+          future_capacity: item.backendGroup.future_capacity,
           resource_spec: {
             backend_group: {
               spec_id: item.backendGroup.spec_id,
@@ -241,6 +258,9 @@
             },
           },
           online_switch_type: item.switchMode,
+          old_nodes: {
+            backend_hosts: item.backendGroup.old_machine_info,
+          },
           display_info: {
             cluster_capacity: item.currentCapacity.total,
             cluster_shard_num: item.cluster.shard_num,

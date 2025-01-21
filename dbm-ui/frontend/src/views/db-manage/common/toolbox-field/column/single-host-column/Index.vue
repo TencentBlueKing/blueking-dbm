@@ -13,16 +13,15 @@
 
 <template>
   <EditableColumn
-    :append-rules="editable ? rules : []"
+    :append-rules="rules"
     :field="field"
     :label="label"
     :loading="loading"
     :min-width="minWidth"
     required>
     <EditableInput
-      v-if="editable"
       v-model="modelValue.ip"
-      :placeholder="t('请选择主机')"
+      :placeholder="t('请输入n个主机IP', { n: limit })"
       @change="handleInputChange">
       <template #append>
         <DbIcon
@@ -32,23 +31,11 @@
           @click="handleShowSelector" />
       </template>
     </EditableInput>
-    <EditableBlock
-      v-else
-      v-model="modelValue.ip"
-      :placeholder="t('请选择主机')">
-      <template #append>
-        <DbIcon
-          v-bk-tooltips="t('从资源池选择')"
-          class="select-icon"
-          type="host-select"
-          @click="handleShowSelector" />
-      </template>
-    </EditableBlock>
   </EditableColumn>
   <ResourceHostSelector
     v-model="selected"
     v-model:is-show="showSelector"
-    :need-num="1"
+    :limit="limit"
     :params="params"
     @change="handleSelectorChange" />
 </template>
@@ -56,9 +43,9 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import { fetchListDbaHost } from '@services/source/dbresourceResource';
+  import { fetchList } from '@services/source/dbresourceResource';
 
-  import { ipv4 } from '@common/regex';
+  import { batchSplitRegex, ipv4 } from '@common/regex';
 
   import ResourceHostSelector, { type IValue } from '@components/resource-host-selector/Index.vue';
 
@@ -66,7 +53,6 @@
     field: string;
     label: string;
     minWidth?: number;
-    editable?: boolean;
     params?: {
       for_biz?: number;
       bk_cloud_ids?: string;
@@ -77,7 +63,6 @@
 
   withDefaults(defineProps<Props>(), {
     minWidth: 300,
-    editable: false,
     params: () => ({}),
   });
 
@@ -90,11 +75,17 @@
     bk_host_id?: number;
     ip: string;
   }>({
-    default: () => ({}),
+    default: () => ({
+      bk_biz_id: undefined,
+      bk_cloud_id: undefined,
+      bk_host_id: undefined,
+      ip: '',
+    }),
   });
 
   const { t } = useI18n();
 
+  const limit = 1;
   const showSelector = ref(false);
   const selected = computed(() => (modelValue.value.bk_host_id ? ([modelValue.value] as IValue[]) : ([] as IValue[])));
 
@@ -105,16 +96,26 @@
       trigger: 'change',
     },
     {
+      validator: (value: string) => value.split(batchSplitRegex).length <= limit,
+      message: t('最多输入n个主机IP', { n: limit }),
+      trigger: 'blur',
+    },
+    {
       validator: () => Boolean(modelValue.value.bk_host_id),
       message: t('目标主机不存在'),
       trigger: 'blur',
     },
   ];
 
-  const { run: queryHost, loading } = useRequest(fetchListDbaHost, {
+  const { run: queryHost, loading } = useRequest(fetchList, {
     manual: true,
     onSuccess: (data) => {
-      console.log(data, 'data');
+      if (data.results.length) {
+        const [currentHost] = data.results;
+        modelValue.value.bk_biz_id = currentHost.dedicated_biz;
+        modelValue.value.bk_cloud_id = currentHost.bk_cloud_id;
+        modelValue.value.bk_host_id = currentHost.bk_host_id;
+      }
     },
   });
 
@@ -123,11 +124,17 @@
   };
 
   const handleInputChange = (value: string) => {
+    modelValue.value = {
+      bk_biz_id: undefined,
+      bk_cloud_id: undefined,
+      bk_host_id: undefined,
+      ip: value,
+    };
     if (value) {
       queryHost({
         bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-        search_content: value,
-        limit: -1,
+        hosts: value,
+        limit,
         offset: 0,
       });
     }

@@ -53,8 +53,8 @@
             v-model="item.host.type"
             field="host.type"
             :label="t('主机选择方式')"
+            :limit="1"
             :min-width="150"
-            :need-num="1"
             :spec-ids="item.cluster.proxy_spec_ids"
             @change="(list) => handleSelectHost(list, item)" />
           <EditableColumn
