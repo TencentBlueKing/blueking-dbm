@@ -16,7 +16,7 @@
           {{ t('导出') }}
         </BkButton>
         <SearchBox
-          :is-all-bizs="!isInspectionReport"
+          :is-todos="!isInspectionReport"
           style="margin-bottom: 16px"
           @change="handleSearchChange" />
       </div>
@@ -75,7 +75,7 @@
     return Object.keys(dbOverviewConfig.value).reduce(
       (results, item) => {
         Object.assign(results, {
-          [item]: `${item}(${reportCountStore.dbReportCountMap[item].manageCount})`,
+          [item]: `${item}(${reportCountStore.dbReportCountMap[item]?.manageCount || 0})`,
         });
         return results;
       },
@@ -113,6 +113,8 @@
     };
     if (isInspectionReport) {
       Object.assign(query, { bk_biz_id: window.PROJECT_CONFIG.BIZ_ID });
+    } else {
+      Object.assign(query, { status: 0 });
     }
     router.replace({
       name: route.name,

@@ -13,7 +13,16 @@
         header-row-class-name="dynamic-table-head"
         :pagination="pagination"
         @page-limit-change="pageLimitChange"
-        @page-value-change="pageValueChange" />
+        @page-value-change="pageValueChange">
+        <template #empty>
+          <slot name="empty">
+            <BkException
+              :description="t('搜索结果为空')"
+              scene="part"
+              type="empty" />
+          </slot>
+        </template>
+      </BkTable>
     </BlockCard>
     <FailSlaveInstance
       :id="failSlaveInstanceReportId"
