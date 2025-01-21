@@ -624,6 +624,11 @@
         & > *:not(.bk-editable-table-column-disabled-mask) {
           pointer-events: none;
         }
+
+        * {
+          pointer-events: none;
+          background: #fafbfd;
+        }
       }
     }
 
