@@ -19,6 +19,7 @@
         <span class="ticket-count">{{ todoCount }}</span>
       </BkMenuItem>
       <BkMenuItem
+        v-if="userProfileStore.isDba"
         key="InspectionTodos"
         v-db-console="'personalWorkbench.InspectionTodos'">
         <template #icon>
@@ -92,7 +93,7 @@
 
   import { useTicketCount } from '@hooks';
 
-  import { useReportCount } from '@stores';
+  import { useReportCount, useUserProfile } from '@stores';
 
   import { useActiveKey } from './hooks/useActiveKey';
 
@@ -108,6 +109,7 @@
 
   const { data: ticketCount } = useTicketCount();
   const reportCountStore = useReportCount();
+  const userProfileStore = useUserProfile();
 
   reportCountStore.updateCounts();
 

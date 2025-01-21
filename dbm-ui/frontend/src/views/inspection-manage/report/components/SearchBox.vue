@@ -27,7 +27,7 @@
   import { batchSplitRegex } from '@common/regex';
 
   interface Props {
-    isAllBizs?: boolean;
+    isTodos?: boolean;
   }
 
   interface Emits {
@@ -35,7 +35,7 @@
   }
 
   const props = withDefaults(defineProps<Props>(), {
-    isAllBizs: false,
+    isTodos: false,
   });
   const emits = defineEmits<Emits>();
 
@@ -47,38 +47,38 @@
   const searchValue = ref<ISearchValue[]>([]);
 
   const searchData = computed(() => {
-    const filterList = [
-      {
-        name: t('集群'),
-        id: 'cluster',
-        multiple: true,
-      },
-      {
-        name: t('状态'),
-        id: 'status',
-        children: [
-          {
-            id: 1,
-            name: t('正常'),
-          },
-          {
-            id: 0,
-            name: t('异常'),
-          },
-        ],
-      },
-    ];
-    if (props.isAllBizs) {
-      filterList.push({
-        name: t('业务'),
-        id: 'bk_biz_id',
-        children: globalBizsStore.bizs.map((biz) => ({
-          id: biz.bk_biz_id,
-          name: biz.name,
-        })),
-      });
+    const bizFilter = {
+      name: t('业务'),
+      id: 'bk_biz_id',
+      children: globalBizsStore.bizs.map((biz) => ({
+        id: biz.bk_biz_id,
+        name: biz.name,
+      })),
+    };
+    const statusFilter = {
+      name: t('状态'),
+      id: 'status',
+      children: [
+        {
+          id: 1,
+          name: t('正常'),
+        },
+        {
+          id: 0,
+          name: t('异常'),
+        },
+      ],
+    };
+    const clusterFilter = {
+      name: t('集群'),
+      id: 'cluster',
+      multiple: true,
+    };
+    if (props.isTodos) {
+      return [clusterFilter, bizFilter] as ICommonItem[];
     }
-    return filterList as ICommonItem[];
+
+    return [clusterFilter, statusFilter] as ICommonItem[];
   });
 
   watchEffect(() => {

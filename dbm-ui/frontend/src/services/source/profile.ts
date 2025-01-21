@@ -22,6 +22,7 @@ export function getProfile() {
   return http.get<{
     global_manage: boolean;
     is_superuser: boolean;
+    is_dba: boolean;
     platform_manage: boolean;
     platform_taskflow_view: boolean;
     platform_ticket_view: boolean;
