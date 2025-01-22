@@ -23,7 +23,7 @@ pytestmark = pytest.mark.django_db
 
 class TestCreateMachine:
     @patch("backend.db_meta.api.machine.apis.CCApi", cc.CCApiMock())
-    def test_create_success(self, create_city):
+    def test_create_success(self):
         """创建成功"""
         api.machine.create(
             machines=[

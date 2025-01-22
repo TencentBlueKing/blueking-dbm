@@ -8,7 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-import ipaddress
+import copy
 import os
 
 import mock
@@ -16,14 +16,10 @@ import pytest
 from django.contrib.auth import get_user_model
 from django.utils.crypto import get_random_string
 
-from backend.db_meta import models
-from backend.db_meta.enums import AccessLayer, ClusterEntryRole, ClusterEntryType, ClusterType, MachineType
-from backend.db_meta.models import AppCache, BKCity, Cluster, ClusterEntry, DBModule, LogicalCity, Machine
-from backend.flow.models import FlowTree
-from backend.tests.constants import TEST_ADMIN_USERNAME
+from backend.db_meta.enums import ClusterEntryRole, ClusterEntryType, ClusterType
+from backend.db_meta.models import AppCache, BKCity, Cluster, ClusterEntry, DBModule, LogicalCity, Machine, Spec
 from backend.tests.mock_data import constant
-from backend.tests.mock_data.components import cc
-from backend.ticket.models import Ticket
+from backend.tests.mock_data.constant import INIT_MACHINE_DATA, INIT_SPEC_DATA
 
 
 def mock_bk_user(username):
@@ -45,60 +41,23 @@ def bk_user():
 
 @pytest.fixture
 def bk_admin():
-    return mock_bk_user(TEST_ADMIN_USERNAME)
+    return mock_bk_user("admin")
 
 
-@pytest.fixture
-def create_city():
-    LogicalCity.objects.get_or_create(id=1, defaults={"name": "南京"})
-    LogicalCity.objects.get_or_create(id=2, defaults={"name": "上海"})
-
-    BKCity.objects.create(logical_city_id=1, bk_idc_city_id=21, bk_idc_city_name="南京")
-    BKCity.objects.create(logical_city_id=1, bk_idc_city_id=1955, bk_idc_city_name="仪征")
-    BKCity.objects.create(logical_city_id=2, bk_idc_city_id=28, bk_idc_city_name="上海")
-
-
-@pytest.fixture
-def machine_fixture(create_city):
-    bk_city = BKCity.objects.first()
-    machine = Machine.objects.create(
-        ip=cc.NORMAL_IP2,
-        bk_biz_id=constant.BK_BIZ_ID,
-        machine_type=MachineType.BACKEND.value,
-        bk_city=bk_city,
-        bk_cloud_id=1,
-        bk_host_id=2,
-    )
-    yield machine
+@pytest.fixture(scope="session", autouse=True)
+def create_city(django_db_setup, django_db_blocker):
+    with django_db_blocker.unblock():
+        LogicalCity.objects.get_or_create(id=1, defaults={"name": "南京"})
+        LogicalCity.objects.get_or_create(id=2, defaults={"name": "上海"})
+        BKCity.objects.create(logical_city_id=1, bk_idc_city_id=21, bk_idc_city_name="南京")
+        BKCity.objects.create(logical_city_id=1, bk_idc_city_id=1955, bk_idc_city_name="仪征")
+        BKCity.objects.create(logical_city_id=2, bk_idc_city_id=28, bk_idc_city_name="上海")
+        yield
+        BKCity.objects.all().delete()
+        LogicalCity.objects.all().delete()
 
 
-@pytest.fixture
-def init_proxy_machine(create_city):
-    bk_city = models.BKCity.objects.first()
-    machine = models.Machine.objects.create(
-        ip=cc.NORMAL_IP,
-        bk_biz_id=constant.BK_BIZ_ID,
-        machine_type=MachineType.BACKEND.value,
-        bk_city=bk_city,
-        access_layer=AccessLayer.PROXY,
-    )
-    return machine
-
-
-@pytest.fixture
-def init_storage_machine(create_city):
-    bk_city = models.BKCity.objects.first()
-    machine = models.Machine.objects.create(
-        ip=cc.NORMAL_IP,
-        bk_biz_id=constant.BK_BIZ_ID,
-        machine_type=MachineType.BACKEND.value,
-        bk_city=bk_city,
-        access_layer=AccessLayer.STORAGE,
-        bk_host_id=int(ipaddress.IPv4Address(cc.NORMAL_IP)),
-    )
-    return machine
-
-
+# TODO: 初始化各个集群的模块信息
 @pytest.fixture
 def init_db_module():
     DBModule.objects.create(
@@ -109,7 +68,8 @@ def init_db_module():
     )
 
 
-@pytest.fixture
+# TODO: 初始化mysql集群信息
+@pytest.fixture()
 def init_cluster():
     cluster = Cluster.objects.create(
         bk_biz_id=constant.BK_BIZ_ID,
@@ -127,93 +87,46 @@ def init_cluster():
     yield cluster
 
 
-@pytest.fixture
-def init_cluster_entry(init_cluster):
-    pass
+# 全局初始化AppCache信息 -- 自动创建
+@pytest.fixture(scope="session", autouse=True)
+def init_app(django_db_setup, django_db_blocker):
+    with django_db_blocker.unblock():
+        app = AppCache.objects.create(
+            bk_biz_id=constant.BK_BIZ_ID,
+            db_app_abbr="DBA",
+            bk_biz_name="dba",
+        )
+        yield app
+        app.delete()
 
 
-@pytest.fixture
-def init_app():
-    app = AppCache.objects.create(
-        bk_biz_id=constant.BK_BIZ_ID,
-        db_app_abbr="DBA",
-        bk_biz_name="dba",
-    )
-    yield app
+# 全局初始化规格信息 -- 自动创建
+@pytest.fixture(scope="session", autouse=True)
+def init_spec(django_db_setup, django_db_blocker):
+    n = 10
+    specs = [
+        Spec(**copy.deepcopy(INIT_SPEC_DATA), spec_id=spec_id, spec_name=f"test_spec_{spec_id}")
+        for spec_id in range(1, n + 1)
+    ]
+    with django_db_blocker.unblock():
+        Spec.objects.all().delete()
+        Spec.objects.bulk_create(specs)
+        yield
+        Spec.objects.all().delete()
 
 
-@pytest.fixture
-def init_storage_instance():
-    bk_city = models.BKCity.objects.first()
-    machine = models.Machine.objects.create(
-        ip=cc.NORMAL_IP,
-        bk_biz_id=constant.BK_BIZ_ID,
-        machine_type=MachineType.BACKEND.value,
-        bk_city=bk_city,
-        access_layer=AccessLayer.PROXY,
-    )
-    cluster = Cluster.objects.first()
-    storage_instance = models.StorageInstance.objects.create(
-        version=constant.INSTANCE_VERSION,
-        port=constant.INSTANCE_PORT,
-        machine=machine,
-        bk_biz_id=constant.BK_BIZ_ID,
-        name=constant.INSTANCE_NAME,
-        cluster_type=ClusterType.TenDBHA.value,
-    )
-    storage_instance.cluster.add(cluster)
-    yield storage_instance
-
-
-@pytest.fixture
-def init_proxy_instance():
-    bk_city = models.BKCity.objects.first()
-    machine = models.Machine.objects.create(
-        ip=cc.NORMAL_IP,
-        bk_biz_id=constant.BK_BIZ_ID,
-        machine_type=MachineType.BACKEND.value,
-        bk_city=bk_city,
-        access_layer=AccessLayer.PROXY,
-    )
-    cluster = Cluster.objects.first()
-    proxy_instance = models.ProxyInstance.objects.create(
-        version=constant.INSTANCE_VERSION,
-        port=constant.INSTANCE_PORT,
-        machine=machine,
-        bk_biz_id=constant.BK_BIZ_ID,
-        name=constant.INSTANCE_NAME,
-        cluster_type=ClusterType.TenDBHA.value,
-    )
-    proxy_instance.cluster.add(cluster)
-    yield proxy_instance
-
-
-@pytest.fixture
-def init_flow_tree():
-    task = FlowTree.objects.create(
-        bk_biz_id=constant.BK_BIZ_ID,
-        uid=constant.TASK_UID,
-        ticket_type=constant.TICKET_TYPE,
-        root_id=constant.TASK_ROOT_ID,
-        tree={},
-        status=constant.TASK_STATUS,
-    )
-    yield task
-
-
-@pytest.fixture
-def init_ticket():
-    ticket = Ticket.objects.create(
-        bk_biz_id=constant.BK_BIZ_ID,
-        ticket_type=constant.TICKET_TYPE,
-        group=constant.DB_TYPE,
-        status=constant.TICKET_STATUS,
-        remark="",
-        details={},
-        send_msg_config={},
-        is_reviewed=False,
-    )
-    yield ticket
+# 全局初始化机器信息 -- 自动创建
+@pytest.fixture(scope="session", autouse=True)
+def init_machine(django_db_setup, django_db_blocker):
+    n = 10
+    machines = [
+        Machine(**copy.deepcopy(INIT_MACHINE_DATA), bk_host_id=host_id, ip=f"1.1.1.{host_id}")
+        for host_id in range(1, n + 1)
+    ]
+    with django_db_blocker.unblock():
+        Machine.objects.bulk_create(machines)
+        yield
+        Machine.objects.all().delete()
 
 
 mark_global_skip = pytest.mark.skipif(os.environ.get("GLOBAL_SKIP") == "true", reason="disable in landun WIP")

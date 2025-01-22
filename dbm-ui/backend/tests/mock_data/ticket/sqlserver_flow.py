@@ -80,7 +80,7 @@ SQLSERVER_SINGLE_APPLY_TICKET_DATA = {
         "ip_source": "resource_pool",
         "resource_spec": {
             "sqlserver_single": {
-                "spec_id": 101,
+                "spec_id": 1,
                 "spec_name": "2核_4G_10G",
                 "spec_cluster_type": "sqlserver_single",
                 "spec_machine_type": "sqlserver_single",
@@ -117,7 +117,7 @@ SQLSERVER_SINGLE_MANUAL_DATA = {
         "cluster_count": 1,
         "inst_num": 1,
         "ip_source": "manual_input",
-        "nodes": {"sqlserver_single": [{"ip": "127.0.0.4", "bk_cloud_id": 0}]},
+        "nodes": {"sqlserver_single": [{"ip": "2.2.2.1", "bk_cloud_id": 0}]},
         "domains": [
             {
                 "key": "sqlserverha01",
@@ -146,7 +146,7 @@ SQLSERVER_HA_APPLY_TICKET_DATA = {
         "nodes": {"backend": []},
         "resource_spec": {
             "backend_group": {
-                "spec_id": 102,
+                "spec_id": 2,
                 "spec_name": "2核_4G_10G",
                 "spec_cluster_type": "sqlserver_ha",
                 "spec_machine_type": "sqlserver_ha",
@@ -190,8 +190,8 @@ SQLSERVER_HA_MANUAL_DATA = {
         "ip_source": "manual_input",
         "nodes": {
             "sqlserver_ha": [
-                {"ip": "1.1.1.7", "bk_cloud_id": 0, "bk_host_id": 7},
-                {"ip": "1.1.1.8", "bk_cloud_id": 0, "bk_host_id": 8},
+                {"ip": "3.2.2.1", "bk_cloud_id": 0, "bk_host_id": 3001},
+                {"ip": "3.2.2.2", "bk_cloud_id": 0, "bk_host_id": 3002},
             ]
         },
         "domains": [
@@ -296,8 +296,8 @@ SQLSERVER_MASTER_SLAVE_SWITCH_TICKET_DATA = {
         "infos": [
             {
                 "cluster_ids": [CLUSTER_ID + 1],
-                "master": {"ip": "1.1.1.3", "bk_cloud_id": 0, "bk_host_id": 2},
-                "slave": {"ip": "1.1.1.4", "bk_cloud_id": 0, "bk_host_id": 3},
+                "master": {"ip": "2.2.2.2", "bk_cloud_id": 0, "bk_host_id": 1002},
+                "slave": {"ip": "2.2.2.3", "bk_cloud_id": 0, "bk_host_id": 1003},
             }
         ]
     },
@@ -345,7 +345,7 @@ SQLSERVER_RESTORE_LOCAL_SLAVE_TICKET_DATA = {
         "infos": [
             {
                 "cluster_id": CLUSTER_ID + 1,
-                "slave": {"ip": "1.1.1.4", "bk_cloud_id": 0, "port": 48322, "bk_host_id": 3},
+                "slave": {"ip": "2.2.2.1", "bk_cloud_id": 0, "port": 48322, "bk_host_id": 1001},
             }
         ]
     },
@@ -361,8 +361,8 @@ SQLSERVER_RESTORE_SLAVE_TICKET_DATA = {
         "infos": [
             {
                 "cluster_ids": [CLUSTER_ID + 1],
-                "old_slave_host": {"ip": "1.1.1.4", "bk_cloud_id": 0, "bk_host_id": 3},
-                "new_slave_host": {"ip": "1.1.1.5", "bk_cloud_id": 0, "bk_host_id": 4},
+                "old_slave_host": {"ip": "2.2.2.1", "bk_cloud_id": 0, "bk_host_id": 1001},
+                "new_slave_host": {"ip": "2.2.2.2", "bk_cloud_id": 0, "bk_host_id": 1002},
             }
         ],
     },
@@ -377,9 +377,9 @@ SQLSERVER_RESTORE_SLAVE_SOURCE_TICKET_DATA = {
         "ip_source": "resource_pool",
         "infos": [
             {
-                "resource_spec": {"sqlserver_ha": {"spec_id": 102, "count": 1}},
+                "resource_spec": {"sqlserver_ha": {"spec_id": 2, "count": 1}},
                 "cluster_ids": [CLUSTER_ID + 1],
-                "old_slave_host": {"ip": "1.1.1.4", "bk_cloud_id": 0, "bk_host_id": 3},
+                "old_slave_host": {"ip": "2.2.2.3", "bk_cloud_id": 0, "bk_host_id": 1003},
             }
         ],
     },
@@ -408,116 +408,6 @@ SQLSERVER_ROLLBACK_TICKET_DATA = {
         ],
     },
 }
-
-# SQLSERVER 资源池申请
-SQLSERVER_SOURCE_APPLICATION_DATA = {
-    "sqlserver_single": [
-        {
-            "bk_biz_id": BK_BIZ_ID,
-            "ip": "1.1.1.2",
-            "bk_cloud_id": 0,
-            "bk_host_id": 1,
-            "bk_cpu": 2,
-            "bk_disk": 199,
-            "bk_mem": 4095,
-            "storage_device": {
-                "C:": {"size": 99, "disk_id": "", "disk_type": "", "file_type": "NTFS"},
-                "D:": {"size": 99, "disk_id": "", "disk_type": "", "file_type": "NTFS"},
-                "E:": {"size": 0, "disk_id": "", "disk_type": "", "file_type": ""},
-            },
-            "city": "",
-            "sub_zone": "",
-            "sub_zone_id": "",
-            "rack_id": "",
-            "device_class": "",
-        },
-        {
-            "bk_biz_id": BK_BIZ_ID,
-            "ip": "1.1.1.5",
-            "bk_cloud_id": 0,
-            "bk_host_id": 1,
-            "bk_cpu": 4,
-            "bk_disk": 199,
-            "bk_mem": 4095,
-            "storage_device": {
-                "C:": {"size": 99, "disk_id": "", "disk_type": "", "file_type": "NTFS"},
-                "D:": {"size": 99, "disk_id": "", "disk_type": "", "file_type": "NTFS"},
-                "E:": {"size": 0, "disk_id": "", "disk_type": "", "file_type": ""},
-            },
-            "city": "",
-            "sub_zone": "",
-            "sub_zone_id": "",
-            "rack_id": "",
-            "device_class": "",
-        },
-    ],
-    "sqlserver_ha": [
-        {
-            "bk_biz_id": BK_BIZ_ID,
-            "ip": "1.1.1.3",
-            "bk_cloud_id": 0,
-            "bk_host_id": 2,
-            "bk_cpu": 2,
-            "bk_disk": 199,
-            "bk_mem": 4095,
-            "storage_device": {
-                "C:": {"size": 99, "disk_id": "", "disk_type": "", "file_type": "NTFS"},
-                "D:": {"size": 99, "disk_id": "", "disk_type": "", "file_type": "NTFS"},
-                "E:": {"size": 0, "disk_id": "", "disk_type": "", "file_type": ""},
-            },
-            "city": "",
-            "sub_zone": "",
-            "sub_zone_id": "",
-            "rack_id": "",
-            "device_class": "",
-        },
-        {
-            "bk_biz_id": BK_BIZ_ID,
-            "ip": "1.1.1.4",
-            "bk_cloud_id": 0,
-            "bk_host_id": 3,
-            "bk_cpu": 2,
-            "bk_disk": 199,
-            "bk_mem": 4095,
-            "storage_device": {
-                "C:": {"size": 99, "disk_id": "", "disk_type": "", "file_type": "NTFS"},
-                "D:": {"size": 99, "disk_id": "", "disk_type": "", "file_type": "NTFS"},
-                "E:": {"size": 0, "disk_id": "", "disk_type": "", "file_type": ""},
-            },
-            "city": "",
-            "sub_zone": "",
-            "sub_zone_id": "",
-            "rack_id": "",
-            "device_class": "",
-        },
-    ],
-}
-
-# SQLSERVER 冲库资源池申请
-SQLSERVER_SLAVE_SOURCE_APPLICATION_DATA = {
-    "0_sqlserver_ha": [
-        {
-            "bk_biz_id": BK_BIZ_ID,
-            "ip": "1.1.1.4",
-            "bk_cloud_id": 0,
-            "bk_host_id": 3,
-            "bk_cpu": 2,
-            "bk_disk": 199,
-            "bk_mem": 4095,
-            "storage_device": {
-                "C:": {"size": 99, "disk_id": "", "disk_type": "", "file_type": "NTFS"},
-                "D:": {"size": 99, "disk_id": "", "disk_type": "", "file_type": "NTFS"},
-                "E:": {"size": 0, "disk_id": "", "disk_type": "", "file_type": ""},
-            },
-            "city": "",
-            "sub_zone": "",
-            "sub_zone_id": "",
-            "rack_id": "",
-            "device_class": "",
-        },
-    ],
-}
-
 
 DBCONFIG_DATA = {
     "buffer_percent": "50",
@@ -568,43 +458,6 @@ SQLSERVER_CLUSTER_DATA = [
     },
 ]
 
-# SQLSERVER 规格初始化
-SQLSERVER_SPEC_DATA = [
-    {
-        "spec_id": 101,
-        "spec_name": "1核_1G_10G",
-        "cpu": {"max": 256, "min": 1},
-        "mem": {"max": 256, "min": 1},
-        "storage_spec": [{"size": 10, "type": "ALL", "mount_point": "c:"}],
-        "spec_cluster_type": ClusterType.SqlserverSingle.value,
-        "spec_machine_type": "backend",
-        "qps": {"max": 0, "min": 0},
-        "enable": 1,
-    },
-    {
-        "spec_id": 102,
-        "spec_name": "1核_1G_10G",
-        "cpu": {"max": 256, "min": 1},
-        "mem": {"max": 256, "min": 1},
-        "storage_spec": [{"size": 10, "type": "ALL", "mount_point": "c:"}],
-        "spec_cluster_type": ClusterType.SqlserverHA.value,
-        "spec_machine_type": "backend",
-        "qps": {"max": 0, "min": 0},
-        "enable": 1,
-    },
-    {
-        "spec_id": 103,
-        "spec_name": "1核_1G_10G",
-        "cpu": {"max": 256, "min": 1},
-        "mem": {"max": 256, "min": 1},
-        "storage_spec": [{"size": 10, "type": "ALL", "mount_point": "c:"}],
-        "spec_cluster_type": ClusterType.SqlserverHA.value,
-        "spec_machine_type": "backend",
-        "qps": {"max": 0, "min": 0},
-        "enable": 1,
-    },
-]
-
 # SQLSERVER SINGLE实例数据
 SQLSERVER_STORAGE_INSTANCE_DATA = [
     {
@@ -624,7 +477,7 @@ SQLSERVER_STORAGE_INSTANCE_DATA = [
         "name": "",
         "time_zone": "+08:00",
         "bk_instance_id": 7089,
-        "machine_id": 1,
+        "machine_id": 1001,
         "phase": "online",
         "instance_role": "orphan",
         "instance_inner_role": "master",
@@ -646,7 +499,7 @@ SQLSERVER_STORAGE_INSTANCE_DATA = [
         "name": "",
         "time_zone": "+08:00",
         "bk_instance_id": 7089,
-        "machine_id": 2,
+        "machine_id": 1002,
         "phase": "online",
         "instance_role": "backend_master",
         "instance_inner_role": "master",
@@ -668,7 +521,7 @@ SQLSERVER_STORAGE_INSTANCE_DATA = [
         "name": "",
         "time_zone": "+08:00",
         "bk_instance_id": 7089,
-        "machine_id": 3,
+        "machine_id": 1003,
         "phase": "online",
         "instance_role": "backend_slave",
         "instance_inner_role": "slave",
@@ -692,13 +545,13 @@ SQLSERVER_MACHINE_DATA = [
         "create_at": "2024-03-13 11:14:48.433116",
         "updater": "",
         "update_at": "2024-03-13 11:14:48.433116",
-        "ip": "1.1.1.4",
+        "ip": "2.2.2.3",
         "bk_biz_id": BK_BIZ_ID,
         "db_module_id": 0,
         "access_layer": "storage",
         "machine_type": MachineType.SQLSERVER_SINGLE.value,
         "cluster_type": ClusterType.SqlserverSingle.value,
-        "bk_host_id": 3,
+        "bk_host_id": 1003,
         "bk_os_name": "Windows Server 2012 R2 Standard",
         "bk_idc_area": "",
         "bk_idc_area_id": 0,
@@ -716,7 +569,7 @@ SQLSERVER_MACHINE_DATA = [
         '"qps": {"max": 0, "min": 0}, "name": "1核_4G_20G", "count": 1, "device_class": [], '
         '"storage_spec": [{"size": 20, "type": "ALL", "mount_point": "C:\\", "isSystemDrive": true},'
         ' {"size": 30, "type": "ALL", "mount_point": "D:\\", "isSystemDrive": true}]}',
-        "spec_id": 3,
+        "spec_id": 1,
         "bk_agent_id": "",
     },
     {
@@ -724,13 +577,13 @@ SQLSERVER_MACHINE_DATA = [
         "create_at": "2024-03-13 11:14:48.433116",
         "updater": "",
         "update_at": "2024-03-13 11:14:48.433116",
-        "ip": "1.1.1.3",
+        "ip": "2.2.2.2",
         "bk_biz_id": BK_BIZ_ID,
         "db_module_id": 0,
         "access_layer": "storage",
         "machine_type": MachineType.SQLSERVER_HA.value,
         "cluster_type": ClusterType.SqlserverHA.value,
-        "bk_host_id": 2,
+        "bk_host_id": 1002,
         "bk_os_name": "Windows Server 2012 R2 Standard",
         "bk_idc_area": "",
         "bk_idc_area_id": 0,
@@ -748,7 +601,7 @@ SQLSERVER_MACHINE_DATA = [
         '"qps": {"max": 0, "min": 0}, "name": "1核_4G_20G", "count": 1, "device_class": [], '
         '"storage_spec": [{"size": 20, "type": "ALL", "mount_point": "C:\\", "isSystemDrive": true},'
         ' {"size": 30, "type": "ALL", "mount_point": "D:\\", "isSystemDrive": true}]}',
-        "spec_id": 3,
+        "spec_id": 2,
         "bk_agent_id": "",
     },
     {
@@ -756,13 +609,13 @@ SQLSERVER_MACHINE_DATA = [
         "create_at": "2024-03-13 11:14:48.433116",
         "updater": "",
         "update_at": "2024-03-13 11:14:48.433116",
-        "ip": "1.1.1.2",
+        "ip": "2.2.2.1",
         "bk_biz_id": BK_BIZ_ID,
-        "db_module_id": 0,
+        "db_module_id": 1003,
         "access_layer": "storage",
         "machine_type": MachineType.SQLSERVER_HA.value,
         "cluster_type": ClusterType.SqlserverHA.value,
-        "bk_host_id": 1,
+        "bk_host_id": 1001,
         "bk_os_name": "Windows Server 2012 R2 Standard",
         "bk_idc_area": "",
         "bk_idc_area_id": 0,
@@ -780,7 +633,7 @@ SQLSERVER_MACHINE_DATA = [
         '"qps": {"max": 0, "min": 0}, "name": "1核_4G_20G", "count": 1, "device_class": [], '
         '"storage_spec": [{"size": 20, "type": "ALL", "mount_point": "C:\\", "isSystemDrive": true},'
         ' {"size": 30, "type": "ALL", "mount_point": "D:\\", "isSystemDrive": true}]}',
-        "spec_id": 103,
+        "spec_id": 1,
         "bk_agent_id": "",
     },
 ]

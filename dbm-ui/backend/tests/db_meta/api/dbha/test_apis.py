@@ -40,7 +40,7 @@ TEST_STORAGE_PORT3 = 20002
 
 
 @pytest.fixture
-def dbha_fixture(create_city):
+def dbha_fixture():
     # TODO 提取常量，把 conftest 里的 yaml 用常量维护起来
     city1 = models.BKCity.objects.get(bk_idc_city_name="南京")
     city2 = models.BKCity.objects.get(bk_idc_city_name="上海")

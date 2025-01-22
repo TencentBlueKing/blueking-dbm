@@ -11,15 +11,14 @@ specific language governing permissions and limitations under the License.
 import pytest
 
 from backend.configuration.models import Profile
-from backend.tests.constants import TEST_ADMIN_USERNAME
 from backend.ticket.constants import TicketType
 
 
 @pytest.fixture
 def profile():
-    Profile.objects.create(username=TEST_ADMIN_USERNAME, label="biz", values=["biz-1", "biz-2"])
+    Profile.objects.create(username="admin", label="biz", values=["biz-1", "biz-2"])
     Profile.objects.create(
-        username=TEST_ADMIN_USERNAME,
+        username="admin",
         label="ticket_type",
         values=[TicketType.MYSQL_SINGLE_APPLY, TicketType.MYSQL_HA_APPLY],
     )

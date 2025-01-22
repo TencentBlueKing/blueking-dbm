@@ -26,7 +26,7 @@ TEST_INVALID_STORAGE_PORT = 99999
 
 
 @pytest.fixture
-def init_storage_machine(create_city):
+def init_storage_machine():
     bk_city = models.BKCity.objects.first()
     machine = models.Machine.objects.create(
         ip=cc.NORMAL_IP,
@@ -87,7 +87,7 @@ class TestStorageInstance:
                 ]
             )
 
-    def test_create_storage_err_with_invalid_access_layer(self, create_city):
+    def test_create_storage_err_with_invalid_access_layer(self):
         """接入层类型错误"""
         bk_city = models.BKCity.objects.first()
         models.Machine.objects.create(

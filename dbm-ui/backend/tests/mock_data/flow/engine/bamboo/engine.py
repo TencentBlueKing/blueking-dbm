@@ -15,7 +15,7 @@ import collections
 
 from bamboo_engine.eri import State
 
-from backend.tests.mock_data.ticket.ticket_flow import SQL_IMPORT_DATA, SQL_IMPORT_NODE_ID
+from backend.tests.mock_data.ticket.mysql_flow import SQL_IMPORT_DATA, SQL_IMPORT_NODE_ID
 
 NodeInput = collections.namedtuple(
     "NodeInput",

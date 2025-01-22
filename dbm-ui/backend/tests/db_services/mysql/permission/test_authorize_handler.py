@@ -18,6 +18,7 @@ from django.test import RequestFactory
 from openpyxl.writer.excel import save_virtual_workbook
 
 from backend.db_meta.enums import ClusterType
+from backend.db_meta.models import AppCache
 from backend.db_services.mysql.permission.authorize.dataclass import MySQLAuthorizeMeta, MySQLExcelAuthorizeMeta
 from backend.db_services.mysql.permission.authorize.handlers import MySQLAuthorizeHandler
 from backend.db_services.mysql.permission.constants import AUTHORIZE_EXCEL_HEADER
@@ -44,17 +45,26 @@ class TestAuthorizeHandler:
 
     handler = MySQLAuthorizeHandler(bk_biz_id=constant.BK_BIZ_ID)
 
-    @patch("backend.db_services.dbpermission.db_account.handlers.DBPrivManagerApi", DBPrivManagerApiMock)
-    @patch("backend.db_services.dbpermission.db_authorize.handlers.DBPrivManagerApi", DBPrivManagerApiMock)
-    @patch("backend.db_services.mysql.permission.authorize.handlers.DBPrivManagerApi", DBPrivManagerApiMock)
+    @classmethod
+    def setup_class(cls):
+        cls.patchers = [
+            patch("backend.db_services.dbpermission.db_account.handlers.DBPrivManagerApi", DBPrivManagerApiMock),
+            patch("backend.db_services.dbpermission.db_authorize.handlers.DBPrivManagerApi", DBPrivManagerApiMock),
+            patch("backend.db_services.mysql.permission.authorize.handlers.DBPrivManagerApi", DBPrivManagerApiMock),
+            patch("backend.db_services.mysql.permission.authorize.handlers.GcsApi", GcsApiMock),
+            patch("backend.db_services.mysql.permission.authorize.handlers.ScrApi", ScrApiMock),
+        ]
+        [patcher.start() for patcher in cls.patchers]
+
+    @classmethod
+    def teardown_class(cls):
+        [patcher.stop() for patcher in cls.patchers]
+
     def test_pre_check_rules(self, query_fixture):
         authorize = MySQLAuthorizeMeta(**AUTHORIZE_DATA)
         authorize_result = self.handler.pre_check_rules(authorize)
         assert authorize_result["pre_check"] is True
 
-    @patch("backend.db_services.dbpermission.db_account.handlers.DBPrivManagerApi", DBPrivManagerApiMock)
-    @patch("backend.db_services.dbpermission.db_authorize.handlers.DBPrivManagerApi", DBPrivManagerApiMock)
-    @patch("backend.db_services.mysql.permission.authorize.handlers.DBPrivManagerApi", DBPrivManagerApiMock)
     def test_pre_check_excel_rules(self, query_fixture):
         data_dict__list = EXCEL_DATA_DICT__LIST
         excel_bytes = save_virtual_workbook(ExcelHandler.serialize(data_dict__list, headers=AUTHORIZE_EXCEL_HEADER))
@@ -67,10 +77,7 @@ class TestAuthorizeHandler:
         authorize_data_list = self.handler.pre_check_excel_rules(excel_authorize)
         assert authorize_data_list["pre_check"] is True
 
-    @patch("backend.db_services.mysql.permission.authorize.handlers.GcsApi", GcsApiMock)
-    @patch("backend.db_services.mysql.permission.authorize.handlers.ScrApi", ScrApiMock)
-    @patch("backend.db_services.dbpermission.db_account.handlers.DBPrivManagerApi", DBPrivManagerApiMock)
-    def test_authorize_apply(self, init_cluster, bk_user, init_app):
+    def test_authorize_apply(self, bk_user, init_cluster):
         request = RequestFactory().post("")
         request.user = bk_user
 
@@ -89,13 +96,14 @@ class TestAuthorizeHandler:
         assert task_info["status"] == TicketStatus.RUNNING
 
         # 测试集群在gcs的授权流程
+        app = AppCache.objects.get(bk_biz_id=constant.BK_BIZ_ID)
         task = self.handler.authorize_apply(
             request=request,
             user="test",
             access_db="test_db",
             source_ips="127.0.0.1",
             target_instance=GCS_CLUSTER_INSTANCE,
-            app=init_app.db_app_abbr,
+            app=app.db_app_abbr,
             operator=bk_user.username,
         )
         assert task["task_id"] == "gcs_task"

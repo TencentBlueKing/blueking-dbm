@@ -12,6 +12,7 @@ specific language governing permissions and limitations under the License.
 from typing import Any, Callable, Optional, Union
 
 import wrapt
+from django.utils.crypto import get_random_string
 
 from blue_krill.data_types.enum import StructuredEnum
 
@@ -40,10 +41,8 @@ class MockReturn:
 @wrapt.decorator
 def raw_response(wrapped, instance, args, kwargs):
     """根据raw参数来决定是否返回原始的response"""
-
     data = wrapped(*args, **kwargs)
-    raw_resp = {"code": 0, "message": "ok", "data": data, "result": True}
+    raw_resp = {"code": 0, "message": "ok", "data": data, "result": True, "request_id": get_random_string(32)}
     if kwargs.get("raw", False):
         return raw_resp
-
     return data

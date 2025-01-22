@@ -14,6 +14,7 @@ import pytest
 
 from backend.components.dbresource.client import DBResourceApi
 from backend.db_meta.enums import ClusterEntryRole
+from backend.db_meta.models import Machine
 from backend.db_services.quick_search.views import QuickSearchViewSet
 from backend.utils.pytest import AuthorizedAPIRequestFactory
 
@@ -124,11 +125,11 @@ class TestQuickSearchViewSet:
 
     @pytest.mark.parametrize("query", [QUICK_SEARCH_CONTAINS_PARAMS, QUICK_SEARCH_EXACT_PARAMS])
     @patch.object(DBResourceApi, "resource_list")
-    def test_quick_search_for_machine(self, resource_list_mock, query, machine_fixture):
+    def test_quick_search_for_machine(self, resource_list_mock, query):
         """
         测试搜索主机
         """
-        target_value = machine_fixture.ip
+        target_value = Machine.objects.first().ip
         query["keyword"] = self._get_keyword(query, target_value)
         response = self._request_quick_search(resource_list_mock, query)
         assert response.status_code == 200

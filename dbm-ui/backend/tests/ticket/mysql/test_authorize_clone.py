@@ -22,7 +22,8 @@ from backend.db_services.mysql.permission.constants import CloneClusterType
 from backend.tests.mock_data.components.cc import CCApiMock
 from backend.tests.mock_data.components.itsm import ItsmApiMock
 from backend.tests.mock_data.iam_app.permission import PermissionMock
-from backend.tests.mock_data.ticket.ticket_flow import MYSQL_AUTHORIZE_CLONE_CLIENT_TICKET_DATA, ROOT_ID
+from backend.tests.mock_data.ticket.mysql_flow import MYSQL_AUTHORIZE_CLONE_CLIENT_TICKET_DATA
+from backend.tests.mock_data.ticket.ticket_flow import ROOT_ID
 from backend.ticket.constants import TicketStatus
 from backend.ticket.flow_manager.inner import InnerFlow
 from backend.ticket.models import Flow

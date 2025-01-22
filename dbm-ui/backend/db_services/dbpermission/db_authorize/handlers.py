@@ -17,7 +17,7 @@ from django.http.response import HttpResponse
 from django.utils.translation import ugettext as _
 
 from backend import env
-from backend.components import DBPrivManagerApi
+from backend.components.mysql_priv_manager.client import DBPrivManagerApi
 from backend.configuration.constants import DBType
 from backend.db_meta.enums import ClusterType
 from backend.db_services.dbpermission.constants import AUTHORIZE_DATA_EXPIRE_TIME, AccountType

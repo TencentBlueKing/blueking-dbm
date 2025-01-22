@@ -69,7 +69,7 @@ MOCK_LIST_HOSTS_WITHOU_BIZ_RETURN = {
             "sub_zone": "上海-宝信",
             "sub_zone_id": "154",
             "bk_cloud_id": 1,
-            "bk_host_id": 1,
+            "bk_host_id": 10001,
         },
         {
             "bk_host_innerip": NORMAL_IP2,
@@ -86,7 +86,7 @@ MOCK_LIST_HOSTS_WITHOU_BIZ_RETURN = {
             "sub_zone": "上海-宝信",
             "sub_zone_id": "154",
             "bk_cloud_id": 1,
-            "bk_host_id": 2,
+            "bk_host_id": 10002,
         },
         {
             "bk_host_innerip": NORMAL_IP3,
@@ -103,7 +103,7 @@ MOCK_LIST_HOSTS_WITHOU_BIZ_RETURN = {
             "sub_zone": "上海-宝信",
             "sub_zone_id": "154",
             "bk_cloud_id": 1,
-            "bk_host_id": 3,
+            "bk_host_id": 10003,
         },
         {
             "bk_host_innerip": NORMAL_IP4,
@@ -120,7 +120,7 @@ MOCK_LIST_HOSTS_WITHOU_BIZ_RETURN = {
             "sub_zone": "上海-宝信",
             "sub_zone_id": "154",
             "bk_cloud_id": 1,
-            "bk_host_id": 4,
+            "bk_host_id": 10004,
         },
         {
             "bk_host_innerip": IP_WITH_NOT_REGISTERED_CITY,
@@ -138,7 +138,7 @@ MOCK_LIST_HOSTS_WITHOU_BIZ_RETURN = {
             "sub_zone": "上海-宝信",
             "sub_zone_id": "154",
             "bk_cloud_id": 1,
-            "bk_host_id": 5,
+            "bk_host_id": 10005,
         },
     ],
 }

@@ -45,9 +45,9 @@ class TestMachine:
         dbm_meta = machine.dbm_meta
         assert dbm_meta == {
             "version": "v2",
-            "content": "H4sIAAAAAAAC/9WOSwoCMRBErzL0WobMgBuvIjLkJwaTdEwiTAi5u90uRI9gr6rrFUV10BgCRjhNfRwm0"
-            "M9SMdB37iBTIgFANkln+FmFOAq+lW3tKW7zZjBIxx1wlXc7GzVT63egtmQZVxuNuklGRn3c0MrDs+diqT"
-            "Jqu2X0b5Iy7u2HJMyVyUIbFqDJf7BTwLiMF+mlgLRqAQAA",
+            "content": "H4sIAAAAAAAC/9WOTQoCMQyFrzJkLUNnwI07xVuIDP0Ti21T2woOpXc3cSF6BLPKe1/"
+            "yeA00hoARdkPrmwH0o1QMpE4NZEq0wPGwByKknGE9C7EVPDPb2tOHzYvBIB3HwEXe7Gj"
+            "USMHfB3VNlnG10airZGTUxw1ruXv2XCxVRm2XjP5NUsbn+kMS5spkog4TUOv/qCqgn/sLF6depHABAAA=",
         }
 
         # 将Base64字符串解码回压缩的字节数据
@@ -63,7 +63,7 @@ class TestMachine:
             "common": {},
             "custom": [
                 {
-                    "app": "",
+                    "app": "DBA",
                     "appid": "2005000002",
                     "cluster_domain": "fake.db.com",
                     "cluster_type": "tendbha",
@@ -72,7 +72,7 @@ class TestMachine:
                     "instance_port": "10001",
                 },
                 {
-                    "app": "",
+                    "app": "DBA",
                     "appid": "2005000002",
                     "cluster_domain": "fake.db.com",
                     "cluster_type": "tendbha",

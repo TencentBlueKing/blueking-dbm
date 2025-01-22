@@ -34,7 +34,7 @@ class TestHandler:
     @patch("backend.flow.utils.cc_manage.CCApi", CCApiMock())
     @patch("backend.dbm_init.services.CCApi", CCApiMock())
     @patch("backend.flow.utils.cc_manage.ResourceQueryHelper", ResourceQueryHelperMock())
-    def test_create_success(self, init_db_module, create_city):
+    def test_create_success(self, init_db_module):
         cluster_name = "test"
         clusters = [
             {

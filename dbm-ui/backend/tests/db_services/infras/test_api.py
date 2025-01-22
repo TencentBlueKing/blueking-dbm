@@ -18,7 +18,7 @@ pytestmark = pytest.mark.django_db
 factory = APIRequestFactory()
 
 
-def test_list_cities(bk_user, create_city):
+def test_list_cities(bk_user):
     request = factory.get(
         "/apis/infras/cities/",
     )
@@ -29,7 +29,7 @@ def test_list_cities(bk_user, create_city):
     assert len(data) == 2
 
 
-def test_list_host_specs(bk_user, create_city):
+def test_list_host_specs(bk_user):
     request = factory.get(
         "/apis/infras/cities/sh/host_specs/",
     )

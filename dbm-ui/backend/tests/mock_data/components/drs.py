@@ -19,7 +19,7 @@ class DRSApiMock(object):
     def sqlserver_rpc(cls, *args, **kwargs):
         response_data = [
             {
-                "address": "1.1.1.2:10000",
+                "address": "2.2.2.1:10000",
                 "cmd_results": [
                     {"cmd": "", "table_data": [{"name": "test_database"}], "rows_affected": 0, "error_msg": ""}
                 ],

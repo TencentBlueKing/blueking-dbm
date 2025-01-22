@@ -64,7 +64,7 @@ class TestProxyInstance:
                 ]
             )
 
-    def test_create_proxy_err_with_invalid_access_layer(self, create_city):
+    def test_create_proxy_err_with_invalid_access_layer(self):
         """接入层类型错误"""
         bk_city = models.BKCity.objects.first()
         models.Machine.objects.create(

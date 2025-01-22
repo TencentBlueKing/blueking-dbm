@@ -18,11 +18,11 @@ from django.core.cache import cache
 from rest_framework.permissions import AllowAny
 from rest_framework.test import APIClient
 
-from backend.tests.mock_data.ticket.ticket_flow import (
+from backend.tests.mock_data.ticket.mysql_flow import (
     MYSQL_AUTHORIZE_CLONE_CLIENT_TICKET_DATA,
     MYSQL_CLONE_CLIENT_TICKET_CONFIG,
-    ROOT_ID,
 )
+from backend.tests.mock_data.ticket.ticket_flow import ROOT_ID
 from backend.ticket.constants import FlowType, TicketStatus
 from backend.ticket.flow_manager.inner import InnerFlow
 from backend.ticket.handler import TicketHandler
@@ -53,7 +53,7 @@ class TestTicketFlowsConfig:
     @patch.object(InnerFlow, "_run")
     @patch.object(InnerFlow, "status", new_callable=PropertyMock)
     @patch.object(TicketViewSet, "get_permissions", lambda x: [])
-    def test_ticket_flows_config(self, mocked_status, mocked__run, mocked_permission_classes, db, init_app):
+    def test_ticket_flows_config(self, mocked_status, mocked__run, mocked_permission_classes, db):
         """
         以mysql客户端权限克隆为例，测试单据流程设置
         """

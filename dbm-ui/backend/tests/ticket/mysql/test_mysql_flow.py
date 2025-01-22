@@ -10,209 +10,99 @@ specific language governing permissions and limitations under the License.
 """
 import copy
 import logging
+import os
 import uuid
-from unittest.mock import PropertyMock, patch
+from unittest.mock import patch
 
 import pytest
 from django.conf import settings
 from django.core.cache import cache
-from rest_framework.permissions import AllowAny
-from rest_framework.test import APIClient
 
 from backend.db_meta.models.db_module import DBModule
 from backend.flow.models import FlowNode, FlowTree
-from backend.tests.mock_data.components.cc import CCApiMock
 from backend.tests.mock_data.components.dbconfig import DBConfigApiMock
-from backend.tests.mock_data.components.itsm import ItsmApiMock
+from backend.tests.mock_data.components.mysql_priv_manager import DBPrivManagerApiMock
 from backend.tests.mock_data.components.sql_import import SQLSimulationApiMock
 from backend.tests.mock_data.flow.engine.bamboo.engine import BambooEngineMock
-from backend.tests.mock_data.iam_app.permission import PermissionMock
-from backend.tests.mock_data.ticket.ticket_flow import (
-    APPLY_RESOURCE_RETURN_DATA,
-    DB_MODULE_DATA,
-    FLOW_TREE_DATA,
+from backend.tests.mock_data.ticket.mysql_flow import (
     MYSQL_AUTHORIZE_TICKET_DATA,
     MYSQL_ITSM_AUTHORIZE_TICKET_DATA,
-    MYSQL_PERMISSION_ACCOUNT,
     MYSQL_SINGLE_APPLY_TICKET_DATA,
     MYSQL_TENDBHA_TICKET_DATA,
-    ROOT_ID,
-    SN,
     SQL_IMPORT_FLOW_NODE_DATA,
     SQL_IMPORT_TICKET_DATA,
 )
-from backend.ticket.constants import EXCLUSIVE_TICKET_EXCEL_PATH, FlowType, TicketFlowStatus, TicketStatus, TicketType
-from backend.ticket.flow_manager.inner import InnerFlow
-from backend.ticket.flow_manager.pause import PauseFlow
-from backend.ticket.models import Flow
-from backend.ticket.views import TicketViewSet
+from backend.tests.mock_data.ticket.ticket_flow import DB_MODULE_DATA, FLOW_TREE_DATA
+from backend.tests.ticket.server_base import BaseTicketTest
+from backend.ticket.constants import EXCLUSIVE_TICKET_EXCEL_PATH, TicketType
 from backend.utils.excel import ExcelHandler
 
 logger = logging.getLogger("test")
 pytestmark = pytest.mark.django_db
-client = APIClient()
-
-INITIAL_FLOW_FINISHED_STATUS = [TicketFlowStatus.SKIPPED, TicketStatus.SUCCEEDED]
-CHANGED_MOCK_STATUS = [TicketFlowStatus.SKIPPED, TicketStatus.SUCCEEDED, TicketFlowStatus.RUNNING]
 
 
-@pytest.fixture(scope="module")
-def query_fixture(django_db_blocker):
+@pytest.fixture(scope="class", autouse=True)
+def setup_mysql_database(django_db_setup, django_db_blocker):
     with django_db_blocker.unblock():
         DBModule.objects.create(**DB_MODULE_DATA)
         FlowTree.objects.create(**FLOW_TREE_DATA)
         FlowNode.objects.create(**SQL_IMPORT_FLOW_NODE_DATA)
-
         yield
         DBModule.objects.all().delete()
         FlowTree.objects.all().delete()
         FlowNode.objects.all().delete()
 
 
-@pytest.fixture(autouse=True)  # autouse=True 会自动应用这个fixture到所有的测试中
-def set_empty_middleware():
-    with patch.object(settings, "MIDDLEWARE", []):
-        yield
-
-
-class TestTicketFlow:
+class TestMySQLTicket(BaseTicketTest):
     """
     测试mysql授权流程正确性
     """
 
-    # 某个对象的某个属性替换为一个模拟对象,模拟TicketViewSet和InnerFlow类的属性和方法
-    @patch.object(TicketViewSet, "permission_classes")
-    @patch.object(InnerFlow, "_run")
-    @patch.object(InnerFlow, "status", new_callable=PropertyMock)
-    @patch.object(TicketViewSet, "get_permissions", lambda x: [])
-    @patch("backend.ticket.flow_manager.itsm.ItsmApi", ItsmApiMock())
-    @patch("backend.db_services.cmdb.biz.CCApi", CCApiMock())
-    @patch("backend.db_services.cmdb.biz.Permission", PermissionMock)
-    @patch(
-        "backend.db_services.dbpermission.db_account.handlers.DBPrivManagerApi.list_account_rules",
-        return_value=MYSQL_PERMISSION_ACCOUNT,
-    )
-    def test_authorize_ticket_flow(
-        self, mocked_list_account_rules, mocked_status, mocked__run, mocked_permission_classes, db
-    ):
-        # 测试单据流程：start --> inner --> end
-        mocked_status.return_value = TicketStatus.SUCCEEDED
-        mocked__run.return_value = ROOT_ID
-        mocked_permission_classes.return_value = [AllowAny]
+    @classmethod
+    def apply_patches(cls):
+        mock_list_account_rules_patch = patch(
+            "backend.db_services.dbpermission.db_account.handlers.DBPrivManagerApi", DBPrivManagerApiMock
+        )
+        mock_dbconfig_api_patch = patch(
+            "backend.ticket.builders.mysql.mysql_single_apply.DBConfigApi", DBConfigApiMock
+        )
+        mock_simulation_api_patch = patch(
+            "backend.ticket.builders.mysql.mysql_import_sqlfile.SQLSimulationApi", SQLSimulationApiMock
+        )
+        mock_bamboo_api_patch = patch(
+            "backend.ticket.builders.mysql.mysql_import_sqlfile.BambooEngine", BambooEngineMock
+        )
+        cls.patches.extend(
+            [
+                mock_list_account_rules_patch,
+                mock_dbconfig_api_patch,
+                mock_simulation_api_patch,
+                mock_bamboo_api_patch,
+            ]
+        )
+        super().apply_patches()
 
-        client.login(username="admin")
+    def test_mysql_authorize_ticket_flow(self):
         authorize_uid = uuid.uuid1().hex
         cache.set(authorize_uid, MYSQL_ITSM_AUTHORIZE_TICKET_DATA)
         authorize_data = copy.deepcopy(MYSQL_AUTHORIZE_TICKET_DATA)
         authorize_data["details"]["authorize_uid"] = authorize_uid
-
-        client.post("/apis/tickets/", data=authorize_data)
-        flow_data = Flow.objects.exclude(flow_obj_id="").last()
-        assert flow_data.flow_obj_id is not None
-
+        self.flow_test(authorize_data)
         cache.delete(authorize_uid)
 
-    @patch.object(TicketViewSet, "permission_classes")
-    @patch.object(InnerFlow, "_run")
-    @patch.object(InnerFlow, "status", new_callable=PropertyMock)
-    @patch.object(TicketViewSet, "get_permissions", lambda x: [])
-    @patch("backend.ticket.flow_manager.itsm.ItsmApi", ItsmApiMock())
-    @patch("backend.db_services.cmdb.biz.CCApi", CCApiMock())
-    @patch("backend.core.notify.send_msg.apply_async", lambda *args, **kwargs: "有一条MySQL 高可用部署待办需要您处理")
-    @patch("backend.db_services.cmdb.biz.Permission", PermissionMock)
-    @patch("backend.ticket.builders.mysql.mysql_single_apply.DBConfigApi", DBConfigApiMock)
-    def test_mysql_single_apply_flow(
-        self, mocked_status, mocked__run, mocked_permission_classes, query_fixture, db, init_app
-    ):
-        # 测试流程单据: start --> itsm --> PAUSE --> end
-        mocked_status.return_value = TicketStatus.SUCCEEDED
-        mocked__run.return_value = ROOT_ID
-        mocked_permission_classes.return_value = [AllowAny]
+    def test_mysql_single_apply_flow(self):
+        self.flow_test(MYSQL_SINGLE_APPLY_TICKET_DATA)
 
-        client.login(username="admin")
+    def test_mysql_sql_import_flow(self):
+        self.flow_test(SQL_IMPORT_TICKET_DATA)
 
-        # itsm流程
-        single_apply_data = copy.deepcopy(MYSQL_SINGLE_APPLY_TICKET_DATA)
-        client.post("/apis/tickets/", data=single_apply_data)
-        current_flow = Flow.objects.filter(flow_obj_id=SN).first()
-        assert current_flow is not None
-
-        # inner流程
-        client.post(f"/apis/tickets/{current_flow.ticket_id}/callback/")
-        current_flow = Flow.objects.exclude(flow_obj_id="").last()
-        assert current_flow.flow_type == FlowType.PAUSE
-
-    @patch.object(TicketViewSet, "permission_classes")
-    @patch.object(InnerFlow, "_run")
-    @patch.object(InnerFlow, "status", new_callable=PropertyMock)
-    @patch.object(TicketViewSet, "get_permissions", lambda x: [])
-    @patch("backend.ticket.builders.mysql.mysql_import_sqlfile.BambooEngine", BambooEngineMock)
-    @patch("backend.ticket.flow_manager.itsm.ItsmApi", ItsmApiMock())
-    @patch("backend.db_services.cmdb.biz.CCApi", CCApiMock())
-    @patch("backend.db_services.cmdb.biz.Permission", PermissionMock)
-    @patch("backend.ticket.builders.mysql.mysql_import_sqlfile.SQLSimulationApi", SQLSimulationApiMock)
-    def test_sql_import_flow(self, mocked_status, mocked__run, mocked_permission_classes, query_fixture, db, init_app):
-        # 测试流程：start --> itsm --> inner --> end
-        mocked_status.return_value = TicketStatus.SUCCEEDED
-        mocked__run.return_value = ROOT_ID
-        mocked_permission_classes.return_value = [AllowAny]
-
-        client.login(username="admin")
-
-        sql_import_data = copy.deepcopy(SQL_IMPORT_TICKET_DATA)
-        ticket = client.post("/apis/tickets/", data=sql_import_data).data
-        flows = Flow.objects.filter(ticket_id=ticket["id"])
-
-        assert flows[0].flow_type == FlowType.DELIVERY
-        assert flows[1].flow_type == FlowType.DESCRIBE_TASK
-        assert flows[2].flow_type == FlowType.INNER_FLOW
-
-    @patch.object(TicketViewSet, "permission_classes")
-    @patch.object(InnerFlow, "_run")
-    @patch.object(InnerFlow, "status", new_callable=PropertyMock)
-    @patch.object(PauseFlow, "status", new_callable=PropertyMock)
-    @patch.object(TicketViewSet, "get_permissions", lambda x: [])
-    @patch("backend.ticket.flow_manager.itsm.ItsmApi", ItsmApiMock())
-    @patch("backend.db_services.cmdb.biz.CCApi", CCApiMock())
-    @patch("backend.core.notify.send_msg.apply_async", lambda *args, **kwargs: "有一条MySQL 高可用部署待办需要您处理")
-    @patch(
-        "backend.ticket.flow_manager.resource.ResourceApplyFlow.apply_resource",
-        lambda resource_request_id, node_infos: (1, APPLY_RESOURCE_RETURN_DATA),
-    )
-    @patch(
-        "backend.ticket.flow_manager.resource.ResourceApplyFlow.patch_resource_spec", lambda self, ticket_data: None
-    )
-    @patch("backend.db_services.cmdb.biz.Permission", PermissionMock)
-    @patch("backend.ticket.builders.mysql.mysql_single_apply.DBConfigApi", DBConfigApiMock)
-    def test_mysql_ha_apply_flow(
-        self, mock_pause_status, mocked_status, mocked__run, mocked_permission_classes, query_fixture, db, init_app
-    ):
-        # MySQL 高可用部署: start --> itsm --> PAUSE --> RESOURC --> INNER_FLOW --> end
-        mocked_status.return_value = TicketStatus.SUCCEEDED
-        mock_pause_status.return_value = TicketFlowStatus.SKIPPED
-        mocked__run.return_value = ROOT_ID
-        mocked_permission_classes.return_value = [AllowAny]
-
-        client.login(username="admin")
-
-        # itsm流程
-        tendbha_apply_data = copy.deepcopy(MYSQL_TENDBHA_TICKET_DATA)
-        client.post("/apis/tickets/", data=tendbha_apply_data)
-        current_flow = Flow.objects.filter(flow_obj_id=SN).first()
-        assert current_flow is not None
-
-        # PAUSE流程
-        client.post(f"/apis/tickets/{current_flow.ticket_id}/callback/")
-        current_flow = Flow.objects.exclude(flow_obj_id="").last()
-        assert current_flow.flow_type == FlowType.PAUSE
-
-        # RESOURCE_APPLY -> INNER_FLOW
-        client.post(f"/apis/tickets/{current_flow.ticket_id}/callback/")
-        current_flow = Flow.objects.exclude(flow_obj_id="").last()
-        assert current_flow.flow_type == FlowType.INNER_FLOW
+    def test_mysql_ha_apply_flow(self):
+        self.flow_test(MYSQL_TENDBHA_TICKET_DATA)
 
     def test_exclusive_ticket_map(self):
-        exclusive_matrix = ExcelHandler.paser_matrix(EXCLUSIVE_TICKET_EXCEL_PATH)
+        # 测试互斥表互斥逻辑正常
+        path = os.path.join(settings.BASE_DIR, EXCLUSIVE_TICKET_EXCEL_PATH)
+        exclusive_matrix = ExcelHandler.paser_matrix(path)
         invalid_labels = set(exclusive_matrix.keys()) - set(TicketType.get_labels())
         logger.warning("invalid_labels is %s", invalid_labels)
         assert len(invalid_labels) == 0

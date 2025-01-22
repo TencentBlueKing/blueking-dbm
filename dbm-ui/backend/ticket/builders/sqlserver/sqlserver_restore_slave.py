@@ -97,10 +97,11 @@ class SQLServerRestoreSlaveResourceParamBuilder(SQLServerBaseOperateResourcePara
         cluster_ids = list(itertools.chain(*[infos["cluster_ids"] for infos in self.ticket.details["infos"]]))
         id__cluster = {cluster.id: cluster for cluster in Cluster.objects.filter(id__in=cluster_ids)}
 
-        for info in self.ticket.details["infos"]:
+        for info in self.ticket_data["infos"]:
             cluster = id__cluster[info["cluster_ids"][0]]
             # 申请新的slave, 需要和当前集群中的master处于不同机房;
             master_machine = id__machine[formatted_dict[info["old_slave_host"]["bk_host_id"]]]
+            info.update(bk_cloud_id=master_machine.bk_cloud_id)
             # TODO: 还有补充操作系统
             info["resource_spec"]["sqlserver_ha"]["location_spec"] = {
                 "city": master_machine.bk_city.logical_city.name,
@@ -119,7 +120,6 @@ class SQLServerRestoreSlaveResourceParamBuilder(SQLServerBaseOperateResourcePara
                 info["resource_spec"]["sqlserver_ha"]["location_spec"].update(
                     sub_zone_ids=[master_machine.bk_sub_zone_id], include_or_exclue=True
                 )
-        self.ticket.save(update_fields=["details"])
 
     def post_callback(self):
         next_flow = self.ticket.next_flow()

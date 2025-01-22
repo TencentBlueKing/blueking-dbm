@@ -24,7 +24,7 @@ TEST_STORAGE_INSTANCE_PORT = 20000
 
 
 @pytest.fixture
-def init_normal_storage_instance(create_city):
+def init_normal_storage_instance():
     bk_city = models.BKCity.objects.first()
     machine1 = models.Machine.objects.create(
         ip=cc.NORMAL_IP,
@@ -58,7 +58,7 @@ def init_normal_storage_instance(create_city):
 
 
 @pytest.fixture
-def init_remote_storage_instance(create_city):
+def init_remote_storage_instance():
     bk_city = models.BKCity.objects.first()
     machine = models.Machine.objects.create(
         ip=cc.NORMAL_IP,

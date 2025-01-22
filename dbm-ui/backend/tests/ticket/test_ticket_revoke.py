@@ -21,7 +21,8 @@ from backend.constants import DEFAULT_SYSTEM_USER
 from backend.tests.mock_data.components.cc import CCApiMock
 from backend.tests.mock_data.components.itsm import ItsmApiMock
 from backend.tests.mock_data.iam_app.permission import PermissionMock
-from backend.tests.mock_data.ticket.ticket_flow import MYSQL_FULL_BACKUP_TICKET_DATA, SN
+from backend.tests.mock_data.ticket.mysql_flow import MYSQL_FULL_BACKUP_TICKET_DATA
+from backend.tests.mock_data.ticket.ticket_flow import SN
 from backend.ticket.builders.mysql.mysql_full_backup import MySQLFullBackupDetailSerializer
 from backend.ticket.constants import TicketStatus, TodoStatus, TodoType
 from backend.ticket.flow_manager.inner import InnerFlow
@@ -52,7 +53,7 @@ class TestTicketRevoke:
     @patch("backend.ticket.flow_manager.itsm.ItsmApi", ItsmApiMock())
     @patch("backend.db_services.cmdb.biz.CCApi", CCApiMock())
     @patch("backend.db_services.cmdb.biz.Permission", PermissionMock)
-    def test_ticket_revoke(self, mocked_status, mocked_permission_classes, db, init_app):
+    def test_ticket_revoke(self, mocked_status, mocked_permission_classes, db):
         # 以全库备份为例，测试流程：start --> itsm --> inner --> end
         mocked_status.return_value = TicketStatus.SUCCEEDED
         mocked_permission_classes.return_value = [AllowAny]
