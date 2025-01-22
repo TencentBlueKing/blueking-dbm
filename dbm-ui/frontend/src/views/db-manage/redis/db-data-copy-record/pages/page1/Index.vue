@@ -461,7 +461,7 @@
     }
     localStorage.setItem(LocalStorageKeys.REDIS_DATA_CHECK_AND_REPAIR, JSON.stringify(row));
     router.push({
-      name: 'RedisToolboxDataCheckRepair',
+      name: TicketTypes.REDIS_DATACOPY_CHECK_REPAIR,
     });
   };
 
