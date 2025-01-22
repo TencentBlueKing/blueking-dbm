@@ -10,6 +10,7 @@
       <DbSearchSelect
         class="search-select-main"
         :data="searchData"
+        :get-menu-list="getMenuList"
         :model-value="searchValue"
         unique-select
         @change="handleSearchValueChange" />
@@ -17,17 +18,22 @@
   </div>
 </template>
 <script setup lang="ts">
-  import type { ICommonItem, ISearchValue } from 'bkui-vue/lib/search-select/utils';
+  import type { ISearchItem, ISearchValue } from 'bkui-vue/lib/search-select/utils';
   import dayjs from 'dayjs';
   import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
+
+  import { getUserList } from '@services/source/user';
 
   import { useGlobalBizs } from '@stores';
 
   import { batchSplitRegex } from '@common/regex';
 
+  import { getMenuListSearch } from '@utils';
+
   interface Props {
     isTodos?: boolean;
+    isAssist?: boolean;
   }
 
   interface Emits {
@@ -36,6 +42,7 @@
 
   const props = withDefaults(defineProps<Props>(), {
     isTodos: false,
+    isAssist: false,
   });
   const emits = defineEmits<Emits>();
 
@@ -74,11 +81,19 @@
       id: 'cluster',
       multiple: true,
     };
-    if (props.isTodos) {
-      return [clusterFilter, bizFilter] as ICommonItem[];
+    const dbaFilter = {
+      name: t('主DBA'),
+      id: 'dba',
+    };
+    if (props.isTodos && !props.isAssist) {
+      return [clusterFilter, bizFilter] as ISearchItem[];
     }
 
-    return [clusterFilter, statusFilter] as ICommonItem[];
+    if (props.isTodos && props.isAssist) {
+      return [clusterFilter, bizFilter, dbaFilter] as ISearchItem[];
+    }
+
+    return [clusterFilter, statusFilter] as ISearchItem[];
   });
 
   watchEffect(() => {
@@ -109,6 +124,37 @@
       immediate: true,
     },
   );
+
+  const getMenuList = async (item: ISearchItem | undefined, keyword: string) => {
+    if (item?.id !== 'dba' && keyword) {
+      return getMenuListSearch(item, keyword, searchData.value, searchValue.value);
+    }
+
+    // 没有选中过滤标签
+    if (!item) {
+      // 过滤掉已经选过的标签
+      const selected = (searchValue.value || []).map((value) => value.id);
+      return searchData.value.filter((item) => !selected.includes(item.id));
+    }
+
+    // 远程加载执行人
+    if (item.id === 'dba') {
+      if (!keyword) {
+        return [];
+      }
+      return getUserList({
+        fuzzy_lookups: keyword,
+      }).then((res) =>
+        res.results.map((item) => ({
+          id: item.username,
+          name: item.username,
+        })),
+      );
+    }
+
+    // 不需要远层加载
+    return searchData.value.find((set) => set.id === item.id)?.children || [];
+  };
 
   const handleDatePickerChange = (value: string) => {
     dateValue.value = value;
