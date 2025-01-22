@@ -69,19 +69,25 @@
     getValue: () => Promise<
       {
         cluster_ids: number[];
-        origin_proxy: {
-          bk_biz_id: number;
-          bk_cloud_id: number;
-          bk_host_id: number;
-          ip: string;
-          port?: number;
-          instance_address?: string;
+        old_nodes: {
+          origin_proxy: {
+            bk_biz_id: number;
+            bk_cloud_id: number;
+            bk_host_id: number;
+            ip: string;
+            port?: number;
+            instance_address?: string;
+          }[];
         };
-        target_proxy: {
-          bk_biz_id: number;
-          bk_cloud_id: number;
-          bk_host_id: number;
-          ip: string;
+        resource_spec: {
+          target_proxy: {
+            hosts: {
+              bk_biz_id: number;
+              bk_cloud_id: number;
+              bk_host_id: number;
+              ip: string;
+            }[];
+          };
         };
         display_info: {
           type: ProxyReplaceTypes;
@@ -167,19 +173,29 @@
 
       return tableData.value.map(({ originProxy, targetProxy }) => ({
         cluster_ids: [originProxy.cluster_id],
-        origin_proxy: {
-          bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-          bk_cloud_id: originProxy.bk_cloud_id,
-          bk_host_id: originProxy.bk_host_id,
-          ip: originProxy.ip,
-          port: originProxy.port,
-          instance_address: originProxy.instance_address,
+        old_nodes: {
+          origin_proxy: [
+            {
+              bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+              bk_cloud_id: originProxy.bk_cloud_id,
+              bk_host_id: originProxy.bk_host_id,
+              ip: originProxy.ip,
+              port: originProxy.port,
+              instance_address: originProxy.instance_address,
+            },
+          ],
         },
-        target_proxy: {
-          bk_biz_id: targetProxy.bk_biz_id,
-          bk_cloud_id: targetProxy.bk_cloud_id,
-          bk_host_id: targetProxy.bk_host_id,
-          ip: targetProxy.ip,
+        resource_spec: {
+          target_proxy: {
+            hosts: [
+              {
+                bk_biz_id: targetProxy.bk_biz_id,
+                bk_cloud_id: targetProxy.bk_cloud_id,
+                bk_host_id: targetProxy.bk_host_id,
+                ip: targetProxy.ip,
+              },
+            ],
+          },
         },
         display_info: {
           type: ProxyReplaceTypes.INSTANCE_REPLACE,
