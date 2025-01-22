@@ -163,14 +163,17 @@
   });
 
   watch(
-    () => modelValue.value.id,
-    (id) => {
-      if (id) {
+    modelValue,
+    () => {
+      if (modelValue.value.id) {
         queryRelatedClusters({
-          cluster_ids: [id],
+          cluster_ids: [modelValue.value.id],
           bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
         });
       }
+    },
+    {
+      immediate: true,
     },
   );
 

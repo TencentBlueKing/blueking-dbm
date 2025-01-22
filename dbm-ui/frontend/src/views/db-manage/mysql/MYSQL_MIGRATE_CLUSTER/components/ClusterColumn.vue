@@ -13,7 +13,6 @@
 
 <template>
   <EditableColumn
-    ref="column"
     :append-rules="rules"
     field="batchCluster.renderText"
     fixed="left"
@@ -41,6 +40,7 @@
     @change="handleSelectorChange" />
 </template>
 <script lang="ts" setup>
+  import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
@@ -54,16 +54,10 @@
 
   interface Props {
     selected: {
-      renderText: string;
-      clusters: Record<
-        string,
-        {
-          id: number;
-          master_domain: string;
-        }
-      >;
+      id: number;
+      master_domain: string;
     }[];
-    selectedMap: Record<string, number>;
+    selectedMap: Record<string, boolean>;
   }
 
   interface Emits {
@@ -91,12 +85,12 @@
   });
 
   const { t } = useI18n();
-  const columnRef = useTemplateRef('column');
 
   const showSelector = ref(false);
   const selectedClusters = computed<Record<string, TendbhaModel[]>>(() => ({
-    [ClusterTypes.TENDBHA]: props.selected.flatMap((item) => item.clusters as unknown as TendbhaModel),
+    [ClusterTypes.TENDBHA]: props.selected as TendbhaModel[],
   }));
+  const selectedCounter = computed(() => _.countBy(props.selected, 'master_domain'));
 
   const rules = [
     {
@@ -108,17 +102,12 @@
       validator: (value: string) => {
         const repeats: string[] = [];
         const list = value.split(batchSplitRegex);
-        list.forEach((item, index) => {
-          // 同一个单元格内校验重复
-          if (index !== list.indexOf(item)) {
-            repeats.push(item);
+        list.forEach((domain, index) => {
+          if (index !== list.indexOf(domain)) {
+            repeats.push(domain);
+          } else if (selectedCounter.value[domain] > 1) {
+            repeats.push(domain);
           }
-          // 另一行出现重复
-          props.selected.forEach((rowData, rowIndex) => {
-            if (rowIndex !== columnRef.value?.getRowIndex() && rowData.clusters[item]) {
-              repeats.push(item);
-            }
-          });
         });
         return repeats.length ? t('目标集群xx重复', [repeats.join(',')]) : true;
       },
