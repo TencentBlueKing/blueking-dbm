@@ -42,9 +42,13 @@
 
   const columns = [
     {
-      label: t('迁移目标位置'),
+      label: t('源实例'),
       field: 'host',
-      render: ({ data }: {data: {host: string, port: number}}) => <span>{data.host}:{data.port}</span>,
+      render: ({ data }: {data: { host: string, port: number }}) => <span>{data.host}:{data.port}</span>,
+    },
+    {
+      label: t('迁移目标位置'),
+      field: 'target_pos',
     },
     {
       label: 'binlog file',
