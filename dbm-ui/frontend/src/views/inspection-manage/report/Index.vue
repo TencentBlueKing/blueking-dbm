@@ -16,6 +16,7 @@
           {{ t('导出') }}
         </BkButton>
         <SearchBox
+          :is-assist="isTodoAssist"
           :is-todos="!isInspectionReport"
           style="margin-bottom: 16px"
           @change="handleSearchChange" />
@@ -57,6 +58,8 @@
   const searchParams = ref<Record<string, any>>({});
   const excludeDbs = ref<DBTypes[]>([]);
   const dynamicTablesRef = ref<InstanceType<typeof RenderDynamicTable>[]>([]);
+
+  const isTodoAssist = computed(() => route.query.manage === 'assist');
 
   const serviceList = computed(() => {
     if (!dbOverviewConfig.value || !dbOverviewConfig.value[tabType.value]) {
@@ -111,6 +114,9 @@
       ...searchParams.value,
       tabType: tabType.value,
     };
+    if (route.query.manage) {
+      Object.assign(query, { manage: route.query.manage });
+    }
     if (isInspectionReport) {
       Object.assign(query, { bk_biz_id: window.PROJECT_CONFIG.BIZ_ID });
     } else {
