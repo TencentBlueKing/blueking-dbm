@@ -136,15 +136,12 @@
 
   const tableData = ref<RowData[]>([createTableRow()]);
 
-  const selected = computed(() => tableData.value.flatMap((item) => item.batchCluster));
-  const selectedMap = computed(() =>
-    selected.value.reduce<Record<string, number>>((acc, cur) => {
-      Object.values(cur.clusters).forEach((item) => {
-        acc[item.master_domain] = 1;
-      });
-      return acc;
-    }, {}),
+  const selected = computed(() =>
+    tableData.value
+      .filter((item) => item.batchCluster.renderText)
+      .flatMap((item) => Object.values(item.batchCluster.clusters)),
   );
+  const selectedMap = computed(() => Object.fromEntries(selected.value.map((cur) => [cur.master_domain, true])));
 
   watch(
     () => props.data,

@@ -107,21 +107,28 @@
 
   const { run: createTicketRun, loading: isSubmitting } = useCreateTicket<{
     force: boolean;
+    ip_source: 'resource_pool';
     infos: {
       cluster_ids: number[];
-      origin_proxy: {
-        bk_biz_id: number;
-        bk_cloud_id: number;
-        bk_host_id: number;
-        ip: string;
-        port?: number;
-        instance_address?: string;
+      old_nodes: {
+        origin_proxy: {
+          bk_biz_id: number;
+          bk_cloud_id: number;
+          bk_host_id: number;
+          ip: string;
+          port?: number;
+          instance_address?: string;
+        }[];
       };
-      target_proxy: {
-        bk_biz_id: number;
-        bk_cloud_id: number;
-        bk_host_id: number;
-        ip: string;
+      resource_spec: {
+        target_proxy: {
+          hosts: {
+            bk_biz_id: number;
+            bk_cloud_id: number;
+            bk_host_id: number;
+            ip: string;
+          }[];
+        };
       };
       display_info: {
         type: ProxyReplaceTypes;
@@ -136,6 +143,7 @@
       createTicketRun({
         details: {
           force: formData.force,
+          ip_source: 'resource_pool',
           infos,
         },
         remark: formData.remark,
