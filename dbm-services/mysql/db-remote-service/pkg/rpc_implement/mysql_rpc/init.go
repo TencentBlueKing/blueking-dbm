@@ -5,6 +5,7 @@ var genericDoQueryCommand = []string{
 	"explain",
 	"select",
 	"show",
+	"desc",
 }
 
 var doQueryParseCommands = []string{
