@@ -151,13 +151,19 @@
   };
 
   const { run: createTicketRun, loading: isSubmitting } = useCreateTicket<{
+    ip_source: 'resource_pool';
     infos: {
       cluster_ids: number[];
-      new_proxy: {
-        bk_biz_id: number;
-        bk_cloud_id: number;
-        bk_host_id: number;
-        ip: string;
+      resource_spec: {
+        new_proxy: {
+          spec_id: number;
+          hosts: {
+            bk_biz_id: number;
+            bk_cloud_id: number;
+            bk_host_id: number;
+            ip: string;
+          }[];
+        };
       };
     }[];
   }>(TicketTypes.MYSQL_PROXY_ADD);
@@ -169,9 +175,15 @@
     }
     createTicketRun({
       details: {
+        ip_source: 'resource_pool',
         infos: formData.tableData.map((item) => ({
           cluster_ids: clusterMap.value[item.cluster.master_domain].ids,
-          new_proxy: item.proxy,
+          resource_spec: {
+            new_proxy: {
+              spec_id: 0,
+              hosts: [item.proxy],
+            },
+          },
         })),
       },
       remark: formData.remark,
@@ -198,8 +210,5 @@
       return acc;
     }, []);
     formData.tableData = [...(selected.value.length ? formData.tableData : []), ...dataList];
-    nextTick(() => {
-      tableRef.value!.validateByColumnIndex(0);
-    });
   };
 </script>

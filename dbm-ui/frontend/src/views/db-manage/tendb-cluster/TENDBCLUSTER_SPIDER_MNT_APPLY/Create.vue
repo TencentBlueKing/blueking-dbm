@@ -42,7 +42,7 @@
           </EditableColumn>
           <SingleHostColumn
             v-model="item.host"
-            field="host"
+            field="host.ip"
             :label="t('运维节点 IP')" />
           <OperationColumn
             v-model:table-data="formData.tableData"
