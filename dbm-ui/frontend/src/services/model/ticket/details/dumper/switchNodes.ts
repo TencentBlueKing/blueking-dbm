@@ -9,6 +9,7 @@ export interface SwitchNodes extends DetailBase {
       port: number;
       repl_binlog_file: string;
       repl_binlog_pos: number;
+      target_pos: string;
     }[];
   }[];
   is_safe: boolean;

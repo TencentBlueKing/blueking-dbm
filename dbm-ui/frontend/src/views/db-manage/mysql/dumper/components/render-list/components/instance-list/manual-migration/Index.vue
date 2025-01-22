@@ -16,8 +16,7 @@
     :before-close="handleClose"
     :is-show="isShow"
     render-directive="if"
-    :width="1100"
-    @closed="handleClose">
+    :width="1100">
     <template #header>
       <div class="header-main">
         {{ t('Dumper 手动迁移【name】', { name: `${data.ip}:${data.listen_port}` }) }}
@@ -41,7 +40,7 @@
           <div
             v-overflow-tips
             class="content">
-            {{ data.source_cluster.immute_domain ?? '--' }}
+            {{ data.source_cluster?.immute_domain || '--' }}
           </div>
         </div>
         <div class="info-item">
@@ -100,7 +99,7 @@
           <BkInput v-model="formModel.binlog_file" />
         </BkFormItem>
         <BkFormItem
-          :label="t('binlog pos')"
+          label="binlog pos"
           property="binlog_pos"
           required>
           <BkInput
@@ -151,14 +150,15 @@
 
   const props = defineProps<Props>();
   const emits = defineEmits<Emits>();
+
   const isShow = defineModel<boolean>();
 
-  const { t } = useI18n();
+  const initFormModel = () => ({
+    binlog_file: '',
+    binlog_pos: '',
+  });
 
-  const targetPos = computed(
-    () =>
-      `${props.data.source_cluster.master_ip}:${props.data.source_cluster.master_port} ( ${props.data.source_cluster.immute_domain} )`,
-  );
+  const { t } = useI18n();
 
   const handleBeforeClose = useBeforeClose();
   const { currentBizId } = useGlobalBizs();
@@ -167,10 +167,12 @@
   const formRef = ref();
   const isSubmitting = ref(false);
 
-  const formModel = reactive({
-    binlog_file: '',
-    binlog_pos: '',
-  });
+  const formModel = ref(initFormModel());
+
+  const targetPos = computed(
+    () =>
+      `${props.data.source_cluster?.master_ip}:${props.data.source_cluster?.master_port} ( ${props.data.source_cluster?.immute_domain} )`,
+  );
 
   const formRules = {
     binlog_file: [
@@ -189,6 +191,12 @@
     ],
   };
 
+  watch(isShow, () => {
+    if (isShow.value) {
+      formModel.value = initFormModel();
+    }
+  });
+
   const handleConfirm = async () => {
     await formRef.value.validate();
     const params = {
@@ -205,8 +213,9 @@
                 dumper_instance_id: props.data.id,
                 host: props.data.ip,
                 port: props.data.listen_port,
-                repl_binlog_file: formModel.binlog_file,
-                repl_binlog_pos: formModel.binlog_pos,
+                repl_binlog_file: formModel.value.binlog_file,
+                repl_binlog_pos: formModel.value.binlog_pos,
+                target_pos: `${props.data.source_cluster!.master_ip}:${props.data.source_cluster!.master_port}`,
               },
             ],
           },
@@ -221,20 +230,21 @@
         emits('success');
         isShow.value = false;
       }
-      window.changeConfirm = false;
     } finally {
       isSubmitting.value = false;
     }
   };
 
   async function handleClose() {
-    const result = await handleBeforeClose();
+    const isInputDataChanged = Object.values(formModel.value).some((value) => !!value);
+    const result = await handleBeforeClose(isInputDataChanged);
     if (!result) {
-      return;
+      return false;
     }
-    window.changeConfirm = false;
+
     emits('cancel');
     isShow.value = false;
+    return true;
   }
 </script>
 
