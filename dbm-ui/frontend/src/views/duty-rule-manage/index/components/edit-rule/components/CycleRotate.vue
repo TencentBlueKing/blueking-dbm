@@ -174,15 +174,6 @@
     return dayjs(date).format('YYYY-MM-DD');
   }
 
-  // 临时处理，待时间选择器修复后去除
-  function transferToTimePicker(timeStr: string) {
-    const arr = timeStr.split(':');
-    if (arr.length === 2) {
-      return `${timeStr}:00`;
-    }
-    return timeStr;
-  }
-
   function initDateSelect() {
     return ({
       date: 'daily',
@@ -366,7 +357,7 @@
       const arranges = data.duty_arranges as DutyCycleItem[];
       dateSelect.value.timeList = arranges[0].work_times.map(item => ({
         id: random(),
-        value: item.split('--').map(time => transferToTimePicker(time)),
+        value: item.split('--'),
       }));
       formModel.sinlgeDutyDays = arranges[0].duty_day;
       formModel.singleDutyPeoples = arranges[0].duty_number;
