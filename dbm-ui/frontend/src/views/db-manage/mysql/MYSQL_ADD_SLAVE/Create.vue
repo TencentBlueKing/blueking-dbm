@@ -205,8 +205,5 @@
       return acc;
     }, []);
     formData.tableData = [...(selected.value.length ? formData.tableData : []), ...dataList];
-    nextTick(() => {
-      tableRef.value!.validateByColumnIndex(0);
-    });
   };
 </script>
