@@ -44,12 +44,12 @@
           </EditableColumn>
           <SingleHostColumn
             v-model="item.newMaster"
-            field="newMaster"
+            field="newMaster.ip"
             :label="t('新Master')"
             :min-width="150" />
           <SingleHostColumn
             v-model="item.newSlave"
-            field="newSlave"
+            field="newSlave.ip"
             :label="t('新Slave')"
             :min-width="150" />
           <OperationColumn
