@@ -139,21 +139,13 @@
   ];
 
   watch(() => props.data, (data) => {
-    const transferToTimePicker = (timeStr: string) => {
-      const arr = timeStr.split(':');
-      if (arr.length === 2) {
-        return `${timeStr}:00`;
-      }
-      return timeStr;
-    }
-
     if (data && data.category === 'regular') {
       formModel.dateTimeRange = [data.effective_time, data.end_time];
       formModel.tableData = (data.duty_arranges as DutyCustomItem[]).map(item => ({
         dateTime: item.date,
         timeRange: item.work_times.map(i => ({
           id: random(),
-          value: i.split('--').map(time => transferToTimePicker(time)),
+          value: i.split('--'),
         })),
         members: item.members,
       }));
