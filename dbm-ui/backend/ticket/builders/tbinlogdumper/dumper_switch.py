@@ -25,6 +25,7 @@ class TbinlogdumperSwitchNodesDetailSerializer(SkipToRepresentationMixin, serial
             dumper_instance_id = serializers.IntegerField(help_text=_("dumper进程ID"))
             host = serializers.CharField(help_text=_("主机IP"))
             port = serializers.IntegerField(help_text=_("主机端口"))
+            target_pos = serializers.CharField(help_text=_("目标实例位置"), required=False)
             repl_binlog_file = serializers.CharField(help_text=_("待切换后需要同步的binlog文件"))
             repl_binlog_pos = serializers.IntegerField(help_text=_("待切换后需要同步的binlog文件的为位点"))
 
