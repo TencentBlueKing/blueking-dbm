@@ -56,15 +56,28 @@ func applyGroupsInSameLocaltion(param RequestInputParam) (pickers []*PickerObjec
 		logger.Error("get logic citys failed %s", err.Error())
 		return pickers, err
 	}
-	// 根据请求，按照请求的分组，分别计算出每个分组的匹配的园区的优先级
-	groupcampusNice, err := getGroupcampusNice(param, resourceReqList, idcCitys)
-	if err != nil {
-		logger.Error("order campus nice failed %s", err.Error())
-		return pickers, err
+	var subzoneIds []string
+	specialSubZoneIds, isExclude := param.SpecialSubZoneIds()
+	// 如果有指定的子园区，那么就按照指定的子园区进行分配
+	if !isExclude && len(specialSubZoneIds) > 0 {
+		subzoneIds = specialSubZoneIds
+	} else {
+		// 根据请求，按照请求的分组，分别计算出每个分组的匹配的园区的优先级
+		groupcampusNice, errx := getGroupcampusNice(param, resourceReqList, idcCitys)
+		if errx != nil {
+			logger.Error("order campus nice failed %s", errx.Error())
+			return pickers, errx
+		}
+		// 因为整个大的分组在需要分配机器在同一个园区，这里合并所有的分组的园区优先级
+		// 合并之后再次排序，返回整体的园区优先级
+		nsubzoneIds := sortgroupcampusNice(groupcampusNice)
+		// 如果需要排除指定的子园区，那么就排除指定的子园区
+		if isExclude && len(specialSubZoneIds) > 0 {
+			subzoneIds, _ = lo.Difference(nsubzoneIds, specialSubZoneIds)
+		} else {
+			subzoneIds = nsubzoneIds
+		}
 	}
-	// 因为整个大的分组在需要分配机器在同一个园区，这里合并所有的分组的园区优先级
-	// 合并之后再次排序，返回整体的园区优先级
-	subzoneIds := sortgroupcampusNice(groupcampusNice)
 	logger.Info("sort subzone ids %v", subzoneIds)
 	if len(subzoneIds) == 0 {
 		return pickers, errno.ErrResourceinsufficient.Add("没有符合条件的资源")
@@ -221,6 +234,7 @@ func CycleApply(param RequestInputParam) (pickers []*PickerObject, err error) {
 	affinitys := lo.Uniq(param.GetAllAffinitys())
 	if param.GroupsInSameLocation && len(param.Details) > 1 && len(affinitys) == 1 &&
 		slices.Contains([]string{SAME_SUBZONE, SAME_SUBZONE_CROSS_SWTICH}, affinitys[0]) {
+		logger.Info("apply all groups in same location")
 		return applyGroupsInSameLocaltion(param)
 	}
 	resourceReqList, err := param.SortDetails()
@@ -525,10 +539,10 @@ func (o *SearchContext) MatchLocationSpec(db *gorm.DB) {
 		}
 		return
 	}
-	if o.LocationSpec.IncludeOrExclude {
-		db.Where("sub_zone_id in (?)", o.LocationSpec.SubZoneIds)
-	} else {
+	if o.LocationSpec.IsExclude() {
 		db.Where("sub_zone_id not in (?)", o.LocationSpec.SubZoneIds)
+	} else {
+		db.Where("sub_zone_id in (?)", o.LocationSpec.SubZoneIds)
 	}
 }
 

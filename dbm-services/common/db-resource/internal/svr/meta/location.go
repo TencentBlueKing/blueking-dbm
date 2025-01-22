@@ -16,7 +16,7 @@ import "dbm-services/common/go-pubpkg/cmutil"
 type LocationSpec struct {
 	City             string   `json:"city" validate:"required"` // 所属城市获取地域
 	SubZoneIds       []string `json:"sub_zone_ids"`
-	IncludeOrExclude bool     `json:"include_or_exclue"`
+	IncludeOrExclude *bool    `json:"include_or_exclue"`
 }
 
 // IsEmpty whether the address location parameter is blank
@@ -27,4 +27,12 @@ func (l LocationSpec) IsEmpty() bool {
 // SubZoneIsEmpty determine whether subzone is empty
 func (l LocationSpec) SubZoneIsEmpty() bool {
 	return l.IsEmpty() || len(l.SubZoneIds) == 0
+}
+
+// IsExclude TODO
+func (l LocationSpec) IsExclude() bool {
+	if l.IncludeOrExclude == nil {
+		return false
+	}
+	return !*l.IncludeOrExclude
 }

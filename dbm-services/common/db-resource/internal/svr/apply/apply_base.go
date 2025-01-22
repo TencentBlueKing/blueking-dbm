@@ -51,7 +51,7 @@ func (param *RequestInputParam) ParamCheck() (err error) {
 			if a.LocationSpec.IsEmpty() {
 				return fmt.Errorf("you need choose a city !!! ")
 			}
-			if a.LocationSpec.IncludeOrExclude && len(a.LocationSpec.SubZoneIds) < 2 {
+			if !a.LocationSpec.IsExclude() && (len(a.LocationSpec.SubZoneIds) > 0 && len(a.LocationSpec.SubZoneIds) < 2) {
 				return fmt.Errorf("because need cros subzone,you special subzones need more than 2 subzones")
 			}
 		case NONE:
@@ -104,6 +104,12 @@ func (param RequestInputParam) BuildMessage() (msg string) {
 		msg += fmt.Sprintf("按照亲和性%s申请的资源分组%d,总共包含机器数量%d\n", affinity, count, groupCountMap[affinity])
 	}
 	return msg
+}
+
+// SpecialSubZoneIds get special subzone ids
+func (param RequestInputParam) SpecialSubZoneIds() (specialZones []string, isExclude bool) {
+	d := param.Details[0]
+	return d.LocationSpec.SubZoneIds, d.LocationSpec.IsExclude()
 }
 
 // SortDetails 优先去匹配有明确需求的参数
@@ -300,10 +306,10 @@ func (a *ObjectDetail) GetMessage() (message string) {
 	if !a.LocationSpec.IsEmpty() {
 		message += fmt.Sprintf("city: %s \n\r", a.LocationSpec.City)
 		if len(a.LocationSpec.SubZoneIds) > 0 {
-			if a.LocationSpec.IncludeOrExclude {
-				message += fmt.Sprintf("subzoneId  must exist in the %v", a.LocationSpec.SubZoneIds)
-			} else {
+			if a.LocationSpec.IsExclude() {
 				message += fmt.Sprintf("subzoneId must not exist in the  %v", a.LocationSpec.SubZoneIds)
+			} else {
+				message += fmt.Sprintf("subzoneId  must exist in the %v", a.LocationSpec.SubZoneIds)
 			}
 		}
 	}
