@@ -34,6 +34,7 @@
   interface Props {
     isTodos?: boolean;
     isAssist?: boolean;
+    isShowAll?: boolean;
   }
 
   interface Emits {
@@ -43,6 +44,7 @@
   const props = withDefaults(defineProps<Props>(), {
     isTodos: false,
     isAssist: false,
+    isShowAll: false,
   });
   const emits = defineEmits<Emits>();
 
@@ -85,12 +87,15 @@
       name: t('主DBA'),
       id: 'dba',
     };
+    if (props.isShowAll) {
+      return [bizFilter, dbaFilter, clusterFilter, statusFilter] as ISearchItem[];
+    }
     if (props.isTodos && !props.isAssist) {
-      return [clusterFilter, bizFilter] as ISearchItem[];
+      return [bizFilter, clusterFilter] as ISearchItem[];
     }
 
     if (props.isTodos && props.isAssist) {
-      return [clusterFilter, bizFilter, dbaFilter] as ISearchItem[];
+      return [bizFilter, dbaFilter, clusterFilter] as ISearchItem[];
     }
 
     return [clusterFilter, statusFilter] as ISearchItem[];
