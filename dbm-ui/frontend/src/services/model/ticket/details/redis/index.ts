@@ -3,6 +3,7 @@ export * from './clusterAddSlave';
 export * from './clusterApply';
 export * from './clusterCutoff';
 export * from './clusterDataCopy';
+export * from './clusterLoadModules';
 export * from './clusterRollbackDataCopy';
 export * from './clusterShardNumUpdate';
 export * from './clusterTypeUpdate';
