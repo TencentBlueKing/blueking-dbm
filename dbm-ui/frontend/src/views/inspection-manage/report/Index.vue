@@ -17,6 +17,7 @@
         </BkButton>
         <SearchBox
           :is-assist="isTodoAssist"
+          :is-show-all="isInspectionReportGlobal"
           :is-todos="!isInspectionReport"
           style="margin-bottom: 16px"
           @change="handleSearchChange" />
@@ -95,6 +96,7 @@
   });
 
   const isInspectionReport = route.name === 'inspectionReport';
+  const isInspectionReportGlobal = route.name === 'inspectionReportGlobal';
 
   watch(
     () => route.query,
@@ -119,8 +121,14 @@
     }
     if (isInspectionReport) {
       Object.assign(query, { bk_biz_id: window.PROJECT_CONFIG.BIZ_ID });
-    } else {
+    }
+
+    if (!isInspectionReport && !isInspectionReportGlobal) {
       Object.assign(query, { status: 0 });
+
+      if (!route.query.manage) {
+        Object.assign(query, { manage: 'todo' });
+      }
     }
     router.replace({
       name: route.name,
@@ -144,7 +152,7 @@
         XLSX.utils.book_append_sheet(workbook, worksheet, `${tabType.value}-${fileName}`);
         worksheet['!cols'] = colWidthList;
       });
-      XLSX.writeFile(workbook, `${tabType.value}_${t('巡检待办')}.xlsx`);
+      XLSX.writeFile(workbook, `${tabType.value}_${t('巡检报告')}.xlsx`);
     } finally {
       exportLoading.value = false;
     }
