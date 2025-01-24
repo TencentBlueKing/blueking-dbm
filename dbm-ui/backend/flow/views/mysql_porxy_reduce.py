@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 TencentBlueKing is pleased to support the open source community by making 蓝鲸智云-DB管理系统(BlueKing-BK-DBM) available.
 Copyright (C) 2017-2023 THL A29 Limited, a Tencent company. All rights reserved.
@@ -27,9 +26,10 @@ class ReduceMySQLProxySceneApiView(FlowTestView):
 
     @staticmethod
     def post(request):
-        logger.info(_("开始回收mysql_proxy实例场景"))
+        logger.info(_("开始下架mysql_proxy实例场景"))
 
         root_id = generate_root_id()
         logger.info("define root_id: {}".format(root_id))
-        MySQLController.mysql_proxy_reduce_scene(root_id=root_id, ticket_data=request.data)
+        test = MySQLController(root_id=root_id, ticket_data=request.data)
+        test.mysql_proxy_reduce_scene()
         return Response({"root_id": root_id})

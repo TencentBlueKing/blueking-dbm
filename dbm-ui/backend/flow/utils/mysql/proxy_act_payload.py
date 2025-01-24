@@ -130,7 +130,7 @@ class ProxyActPayload(object):
                 "general": {"runtime_account": self.proxy_account},
                 "extend": {
                     "host": kwargs["ip"],
-                    "force": self.ticket_data["force"],
+                    "force": self.ticket_data.get("force", False),
                     "ports": [self.cluster["proxy_port"]],
                 },
             },

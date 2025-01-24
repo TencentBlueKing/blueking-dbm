@@ -79,6 +79,9 @@ MAX_SPIDER_MASTER_COUNT = 37
 MIN_SPIDER_MASTER_COUNT = 2
 MIN_SPIDER_SLAVE_COUNT = 1
 
+# 定义TenDB-HA的最少proxy实例数量
+MIN_TENDB_PROXY_COUNT = 2
+
 TDBCTL_USER = "spider"
 
 # 定义每个flow发起时的实例临时账号名称前缀

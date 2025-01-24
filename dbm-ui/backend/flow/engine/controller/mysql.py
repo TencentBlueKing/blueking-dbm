@@ -42,6 +42,7 @@ from backend.flow.engine.bamboo.scene.mysql.mysql_open_area_flow import MysqlOpe
 from backend.flow.engine.bamboo.scene.mysql.mysql_partition import MysqlPartitionFlow
 from backend.flow.engine.bamboo.scene.mysql.mysql_partition_cron import MysqlPartitionCronFlow
 from backend.flow.engine.bamboo.scene.mysql.mysql_proxy_cluster_add import MySQLProxyClusterAddFlow
+from backend.flow.engine.bamboo.scene.mysql.mysql_proxy_cluster_reduce import MySQLProxyClusterReduceFlow
 from backend.flow.engine.bamboo.scene.mysql.mysql_proxy_cluster_switch import MySQLProxyClusterSwitchFlow
 from backend.flow.engine.bamboo.scene.mysql.mysql_proxy_upgrade import MySQLProxyLocalUpgradeFlow
 from backend.flow.engine.bamboo.scene.mysql.mysql_random_password import MySQLRandomizePassword
@@ -685,3 +686,10 @@ class MySQLController(BaseController):
         """
         flow = ClearMysqlMachineFlow(root_id=self.root_id, data=self.ticket_data)
         flow.run_flow()
+
+    def mysql_proxy_reduce_scene(self):
+        """
+        清理mysql机器
+        """
+        flow = MySQLProxyClusterReduceFlow(root_id=self.root_id, data=self.ticket_data)
+        flow.reduce_mysql_proxy_flow()

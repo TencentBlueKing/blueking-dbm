@@ -125,6 +125,7 @@ from backend.flow.views.mysql_migrate_cluster_remote import MysqlMigrateRemoteSc
 from backend.flow.views.mysql_open_area import MysqlOpenAreaSceneApiView
 from backend.flow.views.mysql_partition import MysqlPartitionSceneApiView
 from backend.flow.views.mysql_partition_cron import MysqlPartitionCronSceneApiView
+from backend.flow.views.mysql_porxy_reduce import ReduceMySQLProxySceneApiView
 from backend.flow.views.mysql_proxy_add import AddMySQLProxySceneApiView
 from backend.flow.views.mysql_proxy_switch import SwitchMySQLProxySceneApiView
 from backend.flow.views.mysql_proxy_upgrade import UpgradeMySQLProxySceneApiView
@@ -374,6 +375,7 @@ urlpatterns = [
     url(r"^scene/tendbha_truncate_data$", MySQLHATruncateDataView.as_view()),
     url(r"^scene/import_sqlfile$", ImportSQLFileSceneApiView.as_view()),
     url(r"^scene/switch_mysql_proxy$", SwitchMySQLProxySceneApiView.as_view()),
+    url(r"^scene/reduce_mysql_proxy$", ReduceMySQLProxySceneApiView.as_view()),
     url(r"^scene/add_mysql_proxy$", AddMySQLProxySceneApiView.as_view()),
     url(r"^scene/install_influxdb$", InstallInfluxdbSceneApiView.as_view()),
     url(r"^scene/enable_influxdb$", EnableInfluxdbSceneApiView.as_view()),
