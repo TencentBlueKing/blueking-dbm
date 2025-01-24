@@ -12,6 +12,8 @@ import logging
 
 import pytest
 
+from backend.configuration.constants import DBType
+from backend.db_meta.enums import ClusterType
 from backend.db_meta.models import Cluster, Machine, ProxyInstance
 from backend.tests.mock_data.ticket.mongodb_flow import (
     MONGODB_ADD_MONGOS_TICKET_DATA,
@@ -40,9 +42,10 @@ def setup_mongodb_database(django_db_setup, django_db_blocker):
         for proxy_instance in ProxyInstance.objects.all():
             proxy_instance.cluster.add(cluster_id)
         yield
-        ProxyInstance.objects.all().delete()
-        Cluster.objects.all().delete()
-        Machine.objects.all().delete()
+        mongo_cluster_types = ClusterType.db_type_to_cluster_types(DBType.MongoDB)
+        ProxyInstance.objects.filter(cluster_type__in=mongo_cluster_types).delete()
+        Cluster.objects.filter(cluster_type__in=mongo_cluster_types).delete()
+        Machine.objects.filter(cluster_type__in=mongo_cluster_types).delete()
 
 
 class TestMangodbFlow(BaseTicketTest):

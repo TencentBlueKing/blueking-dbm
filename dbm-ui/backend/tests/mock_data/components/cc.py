@@ -12,6 +12,7 @@ import copy
 
 from backend.components import CCApi
 from backend.tests.mock_data import constant
+from backend.tests.mock_data.constant import INIT_CC_MACHINE_DATA
 from backend.tests.mock_data.utils import raw_response
 
 MOCK_SEARCH_BUSINESS_RETURN = {"info": [{"bk_biz_id": constant.BK_BIZ_ID, "bk_biz_name": "蓝鲸"}], "count": 1}
@@ -47,9 +48,8 @@ NORMAL_IP4 = "127.0.0.4"
 IP_WITH_NOT_REGISTERED_CITY = "127.0.0.5"
 IP_NOT_IN_BKCC = "127.0.0.6"
 
-REGISTERED_CITY_ID = 28
-REGISTERED_CITY_NAME = "city"
-NOT_REGISTERED_CITY_ID = "9999"
+REGISTERED_CITY_ID = 1
+NOT_REGISTERED_CITY_ID = 9999
 
 MOCK_LIST_HOSTS_WITHOU_BIZ_RETURN = {
     "count": 3,
@@ -62,7 +62,7 @@ MOCK_LIST_HOSTS_WITHOU_BIZ_RETURN = {
             "bk_svr_device_cls_name": "D2-4-50-10",
             "idc_city_id": REGISTERED_CITY_ID,
             "idc_city_name": "上海",
-            "idc_id": 826,
+            "idc_id": 1,
             "idc_name": "上海腾讯宝信DC",
             "rack": "2F-S16",
             "rack_id": "104599",
@@ -265,4 +265,35 @@ class CCApiMock:
     def transfer_host_to_idlemodule(*args, **kwargs):
         if kwargs.get("raw"):
             return {"result": True}
+        return
+
+
+class CCInitMock:
+    """
+    这个mock主要用于夹具中初始化创建集群/机器使用
+    """
+
+    host_count = 20
+
+    def __init__(self, *args, **kwargs):
+        pass
+
+    @classmethod
+    def list_hosts_without_biz(cls, *args, **kwargs):
+        host_infos = [
+            {**INIT_CC_MACHINE_DATA, "bk_host_id": host_id, "bk_host_innerip": f"1.1.1.{host_id}"}
+            for host_id in range(1, cls.host_count + 1)
+        ]
+        return {"count": cls.host_count, "info": host_infos}
+
+    @classmethod
+    def recycle_host(cls, *args, **kwargs):
+        return
+
+    @classmethod
+    def delete_service_instance(cls, *args, **kwargs):
+        return
+
+    @classmethod
+    def transfer_instances_to_cluster_module(cls, *args, **kwargs):
         return

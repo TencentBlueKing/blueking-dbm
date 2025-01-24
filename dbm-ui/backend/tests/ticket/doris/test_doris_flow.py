@@ -15,7 +15,6 @@ import pytest
 
 from backend.db_meta.enums import ClusterType
 from backend.db_meta.models import AppCache, Cluster, Machine, StorageInstance
-from backend.db_meta.models.db_module import DBModule
 from backend.tests.mock_data import constant
 from backend.tests.mock_data.ticket.doris_flow import (
     DORIS_APPLY_TICKET_DATA,
@@ -49,10 +48,9 @@ def setup_doris_database(django_db_setup, django_db_blocker):
         storage_instance = StorageInstance.objects.filter(cluster_type=ClusterType.Doris.value)
         cluster.storageinstance_set.set(storage_instance, clear=True)
         yield
-        DBModule.objects.all().delete()
-        Cluster.objects.all().delete()
-        StorageInstance.objects.all().delete()
-        Machine.objects.all().delete()
+        Cluster.objects.filter(cluster_type=ClusterType.Doris.value).delete()
+        StorageInstance.objects.filter(cluster_type=ClusterType.Doris.value).delete()
+        Machine.objects.filter(cluster_type=ClusterType.Doris.value).delete()
 
 
 class TestDorisApplyFlow(BaseTicketTest):

@@ -15,10 +15,8 @@ import pytest
 
 from backend.db_meta.enums.cluster_type import ClusterType
 from backend.db_meta.models import Cluster, Machine, StorageInstance, StorageInstanceTuple
-from backend.db_meta.models.db_module import DBModule
 from backend.tests.mock_data.components.drs import DRSApiMock
 from backend.tests.mock_data.ticket.sqlserver_flow import (
-    DB_MODULE_DATA,
     DBCONFIG_DATA,
     SQLSERVER_BACKUP_TICKET_DATA,
     SQLSERVER_CLEAR_DBS_TICKET_DATA,
@@ -53,7 +51,6 @@ pytestmark = pytest.mark.django_db
 def setup_sqlserver_database(django_db_setup, django_db_blocker):
     with django_db_blocker.unblock():
         # 创建外部用户和内外部用户映射
-        DBModule.objects.bulk_create([DBModule(**data) for data in DB_MODULE_DATA])
         Machine.objects.bulk_create([Machine(**data) for data in SQLSERVER_MACHINE_DATA])
         Cluster.objects.bulk_create([Cluster(**data) for data in SQLSERVER_CLUSTER_DATA])
         StorageInstance.objects.bulk_create([StorageInstance(**data) for data in SQLSERVER_STORAGE_INSTANCE_DATA])
@@ -66,10 +63,11 @@ def setup_sqlserver_database(django_db_setup, django_db_blocker):
         for storageinstance in storage_instances:
             storageinstance.cluster.add(cluster_ha)
         yield
-        DBModule.objects.all().delete()
-        Cluster.objects.all().delete()
-        StorageInstance.objects.all().delete()
-        Machine.objects.all().delete()
+        Cluster.objects.filter(cluster_type__in=[ClusterType.SqlserverHA, ClusterType.SqlserverSingle]).delete()
+        StorageInstance.objects.filter(
+            cluster_type__in=[ClusterType.SqlserverHA, ClusterType.SqlserverSingle]
+        ).delete()
+        Machine.objects.filter(cluster_type__in=[ClusterType.SqlserverHA, ClusterType.SqlserverSingle]).delete()
 
 
 class TestSqlServerApplyFlow(BaseTicketTest):

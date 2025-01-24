@@ -18,7 +18,6 @@ import pytest
 from django.conf import settings
 from django.core.cache import cache
 
-from backend.db_meta.models.db_module import DBModule
 from backend.flow.models import FlowNode, FlowTree
 from backend.tests.mock_data.components.dbconfig import DBConfigApiMock
 from backend.tests.mock_data.components.mysql_priv_manager import DBPrivManagerApiMock
@@ -32,7 +31,7 @@ from backend.tests.mock_data.ticket.mysql_flow import (
     SQL_IMPORT_FLOW_NODE_DATA,
     SQL_IMPORT_TICKET_DATA,
 )
-from backend.tests.mock_data.ticket.ticket_flow import DB_MODULE_DATA, FLOW_TREE_DATA
+from backend.tests.mock_data.ticket.ticket_flow import FLOW_TREE_DATA
 from backend.tests.ticket.server_base import BaseTicketTest
 from backend.ticket.constants import EXCLUSIVE_TICKET_EXCEL_PATH, TicketType
 from backend.utils.excel import ExcelHandler
@@ -44,11 +43,9 @@ pytestmark = pytest.mark.django_db
 @pytest.fixture(scope="class", autouse=True)
 def setup_mysql_database(django_db_setup, django_db_blocker):
     with django_db_blocker.unblock():
-        DBModule.objects.create(**DB_MODULE_DATA)
         FlowTree.objects.create(**FLOW_TREE_DATA)
         FlowNode.objects.create(**SQL_IMPORT_FLOW_NODE_DATA)
         yield
-        DBModule.objects.all().delete()
         FlowTree.objects.all().delete()
         FlowNode.objects.all().delete()
 

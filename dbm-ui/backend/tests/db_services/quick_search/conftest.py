@@ -11,12 +11,20 @@ specific language governing permissions and limitations under the License.
 
 import pytest
 
+from backend.configuration.constants import DBType
 from backend.db_meta.enums import AccessLayer, ClusterType, MachineType
 from backend.db_meta.models import BKCity, Cluster, Machine, ProxyInstance, StorageInstance
+from backend.flow.consts import StateType
 from backend.flow.models import FlowTree
 from backend.tests.mock_data import constant
 from backend.tests.mock_data.components import cc
+from backend.ticket.constants import TicketType
 from backend.ticket.models import Ticket
+
+INSTANCE_VERSION = "latest"
+INSTANCE_PORT = 8000
+INSTANCE_NAME = "zookeeper"
+TASK_ROOT_ID = "202304250963aa"
 
 
 @pytest.fixture
@@ -31,11 +39,11 @@ def init_proxy_instance():
     )
     cluster = Cluster.objects.first()
     proxy_instance = ProxyInstance.objects.create(
-        version=constant.INSTANCE_VERSION,
-        port=constant.INSTANCE_PORT,
+        version=INSTANCE_VERSION,
+        port=INSTANCE_PORT,
         machine=machine,
         bk_biz_id=constant.BK_BIZ_ID,
-        name=constant.INSTANCE_NAME,
+        name=INSTANCE_NAME,
         cluster_type=ClusterType.TenDBHA.value,
     )
     proxy_instance.cluster.add(cluster)
@@ -54,11 +62,11 @@ def init_storage_instance():
     )
     cluster = Cluster.objects.first()
     storage_instance = StorageInstance.objects.create(
-        version=constant.INSTANCE_VERSION,
-        port=constant.INSTANCE_PORT,
+        version=INSTANCE_VERSION,
+        port=INSTANCE_PORT,
         machine=machine,
         bk_biz_id=constant.BK_BIZ_ID,
-        name=constant.INSTANCE_NAME,
+        name=INSTANCE_NAME,
         cluster_type=ClusterType.TenDBHA.value,
     )
     storage_instance.cluster.add(cluster)
@@ -69,11 +77,11 @@ def init_storage_instance():
 def init_flow_tree():
     task = FlowTree.objects.create(
         bk_biz_id=constant.BK_BIZ_ID,
-        uid=constant.TASK_UID,
-        ticket_type=constant.TICKET_TYPE,
-        root_id=constant.TASK_ROOT_ID,
+        uid=1,
+        ticket_type=TicketType.MYSQL_SINGLE_APPLY,
+        root_id=TASK_ROOT_ID,
         tree={},
-        status=constant.TASK_STATUS,
+        status=StateType.FINISHED,
     )
     yield task
 
@@ -82,9 +90,8 @@ def init_flow_tree():
 def init_ticket():
     ticket = Ticket.objects.create(
         bk_biz_id=constant.BK_BIZ_ID,
-        ticket_type=constant.TICKET_TYPE,
-        group=constant.DB_TYPE,
-        status=constant.TICKET_STATUS,
+        ticket_type=TicketType.MYSQL_SINGLE_APPLY,
+        group=DBType.MySQL,
         remark="",
         details={},
         send_msg_config={},

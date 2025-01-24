@@ -11,11 +11,11 @@ specific language governing permissions and limitations under the License.
 
 from backend.db_meta.enums.cluster_type import ClusterType
 from backend.db_meta.enums.machine_type import MachineType
+from backend.tests.mock_data.constant import DB_MODULE_ID
 from backend.ticket.constants import TicketType
 
 BK_BIZ_ID = 2005000002
-DB_MODULE_ID = 1
-CLUSTER_ID = 1
+CLUSTER_ID = 101
 BK_USERNAME = "admin"
 
 DB_MODULE_DATA = [
@@ -37,7 +37,7 @@ DB_MODULE_DATA = [
         "update_at": "2022-07-29 07:09:46",
         "bk_biz_id": BK_BIZ_ID,
         "db_module_name": "sqlserver-ha-module",
-        "db_module_id": DB_MODULE_ID + 1,
+        "db_module_id": DB_MODULE_ID,
         "cluster_type": ClusterType.SqlserverHA.value,
         "alias_name": "",
     },
@@ -139,7 +139,7 @@ SQLSERVER_HA_APPLY_TICKET_DATA = {
     "details": {
         "bk_cloud_id": 0,
         "city_code": "深圳",
-        "db_module_id": DB_MODULE_ID + 1,
+        "db_module_id": DB_MODULE_ID,
         "cluster_count": 2,
         "inst_num": 1,
         "ip_source": "resource_pool",
@@ -184,7 +184,7 @@ SQLSERVER_HA_MANUAL_DATA = {
     "details": {
         "bk_cloud_id": 0,
         "city_code": "深圳",
-        "db_module_id": DB_MODULE_ID + 1,
+        "db_module_id": DB_MODULE_ID,
         "cluster_count": 1,
         "inst_num": 1,
         "ip_source": "manual_input",
@@ -446,7 +446,7 @@ SQLSERVER_CLUSTER_DATA = [
         "alias": "sqlserverha02",
         "bk_biz_id": BK_BIZ_ID,
         "cluster_type": ClusterType.SqlserverHA.value,
-        "db_module_id": DB_MODULE_ID + 1,
+        "db_module_id": DB_MODULE_ID,
         "immute_domain": "test3-sqlserver-1.dba-test.db",
         "major_version": "MSSQL_Enterprise_2016",
         "phase": "offline",
@@ -461,7 +461,6 @@ SQLSERVER_CLUSTER_DATA = [
 # SQLSERVER SINGLE实例数据
 SQLSERVER_STORAGE_INSTANCE_DATA = [
     {
-        "id": 1,
         "creator": BK_USERNAME,
         "create_at": "2024-03-14 01:36:51.626234",
         "updater": "",
@@ -483,7 +482,6 @@ SQLSERVER_STORAGE_INSTANCE_DATA = [
         "instance_inner_role": "master",
     },
     {
-        "id": 2,
         "creator": BK_USERNAME,
         "create_at": "2024-03-14 01:36:51.626234",
         "updater": "",
@@ -505,7 +503,6 @@ SQLSERVER_STORAGE_INSTANCE_DATA = [
         "instance_inner_role": "master",
     },
     {
-        "id": 3,
         "creator": BK_USERNAME,
         "create_at": "2024-03-14 01:36:51.626234",
         "updater": "",

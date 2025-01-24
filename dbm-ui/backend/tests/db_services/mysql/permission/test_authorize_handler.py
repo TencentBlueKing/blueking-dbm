@@ -18,7 +18,7 @@ from django.test import RequestFactory
 from openpyxl.writer.excel import save_virtual_workbook
 
 from backend.db_meta.enums import ClusterType
-from backend.db_meta.models import AppCache
+from backend.db_meta.models import AppCache, Cluster
 from backend.db_services.mysql.permission.authorize.dataclass import MySQLAuthorizeMeta, MySQLExcelAuthorizeMeta
 from backend.db_services.mysql.permission.authorize.handlers import MySQLAuthorizeHandler
 from backend.db_services.mysql.permission.constants import AUTHORIZE_EXCEL_HEADER
@@ -77,18 +77,19 @@ class TestAuthorizeHandler:
         authorize_data_list = self.handler.pre_check_excel_rules(excel_authorize)
         assert authorize_data_list["pre_check"] is True
 
-    def test_authorize_apply(self, bk_user, init_cluster):
+    def test_authorize_apply(self, bk_user, init_mysql_cluster):
         request = RequestFactory().post("")
         request.user = bk_user
 
         # 测试集群在dbm的授权流程
+        cluster = Cluster.objects.filter(cluster_type=ClusterType.TenDBHA).first()
         task = self.handler.authorize_apply(
             request=request,
             user="test",
             access_db="test_db",
             source_ips="127.0.0.1",
-            target_instance=init_cluster.immute_domain,
-            bk_biz_id=init_cluster.bk_biz_id,
+            target_instance=cluster.immute_domain,
+            bk_biz_id=cluster.bk_biz_id,
             operator=bk_user.username,
         )
         task_info = self.handler.query_authorize_apply_result(task["task_id"], task["platform"])

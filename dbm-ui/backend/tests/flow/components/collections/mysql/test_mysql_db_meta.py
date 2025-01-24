@@ -33,7 +33,6 @@ logger = logging.getLogger("test")
 pytestmark = pytest.mark.django_db
 
 
-@pytest.mark.usefixtures("create_city", "init_db_module")
 class TestMySQLDBMetaComponent(MySQLSingleApplyComponentTest, TestCase):
     def component_cls(self) -> Type[Component]:
         return MySQLDBMetaComponent

@@ -11,26 +11,23 @@ specific language governing permissions and limitations under the License.
 
 from collections import namedtuple
 
-from backend.db_meta.enums import MachineType
+from backend.constants import DEFAULT_TIME_ZONE
+from backend.db_meta.enums import AccessLayer, InstancePhase, InstanceStatus, MachineType
 from backend.db_meta.enums.spec import SpecClusterType
 
+# 全局cc信息
 BK_BIZ_ID = 2005000002
 BK_SET_ID = 1
 BK_MODULE_ID = 11
 BK_MODULE_ID2 = 22
+
+# 全局模块ID
 DB_MODULE_ID = 111
+
 CLUSTER_NAME = "fake_cluster"
 CLUSTER_IMMUTE_DOMAIN = "fake.db.com"
 
-TICKET_TYPE = "MYSQL_SINGLE_APPLY"
-DB_TYPE = "mysql"
-TICKET_STATUS = "PENDING"
-TASK_UID = 1
-TASK_ROOT_ID = "202304250963aa"
-TASK_STATUS = "FINISHED"
-INSTANCE_VERSION = "latest"
-INSTANCE_PORT = 8000
-INSTANCE_NAME = "zookeeper"
+INIT_MYSQL_CLUSTER_NAME = "fake_mysql_cluster"
 
 Response = namedtuple("Response", ["data", "message", "code"])
 
@@ -49,35 +46,71 @@ INIT_SPEC_DATA = {
 }
 
 # 初始化machine数据
-INIT_MACHINE_DATA = {
+INIT_CC_MACHINE_DATA = {
     # "ip": "1.1.1.4",
     # "bk_host_id": 1,
+    # "bk_host_innerip": "",
+    "bk_idc_area": "hd",
+    "bk_idc_area_id": 5,
+    "bk_os_name": "linux release 1.2 (Final)",
+    "bk_svr_device_cls_name": "D2-4-50-10",
+    "idc_city_id": 1,
+    "idc_city_name": "sh",
+    "idc_id": 826,
+    "idc_name": "sh-dc",
+    "rack": "2F-S16",
+    "rack_id": "104599",
+    "sub_zone": "sh-dc",
+    "sub_zone_id": "154",
+    "bk_cloud_id": 0,
+}
+
+# 初始化实例信息
+INIT_STORAGE_INSTANCE_DATA = {
     "creator": "admin",
-    "create_at": "2024-03-13 11:14:48.433116",
-    "updater": "",
-    "update_at": "2024-03-13 11:14:48.433116",
+    "updater": "admin",
+    "version": "test_version",
+    "port": 10000,
+    "db_module_id": DB_MODULE_ID,
     "bk_biz_id": BK_BIZ_ID,
-    "db_module_id": 0,
-    "access_layer": "",
+    "status": InstanceStatus.RUNNING.value,
+    "name": "test_storage_instance",
+    "time_zone": "+08:00",
+    "bk_instance_id": 7089,
+    "phase": InstancePhase.ONLINE.value,
     "machine_type": "",
     "cluster_type": "",
-    "bk_os_name": "",
-    "bk_idc_area": "",
-    "bk_idc_area_id": 0,
-    "bk_sub_zone": "",
-    "bk_sub_zone_id": 0,
-    "bk_rack": "",
-    "bk_rack_id": 0,
-    "bk_svr_device_cls_name": "",
-    "bk_idc_name": "",
-    "bk_idc_id": 0,
+    "machine_id": "",
+    "instance_role": "",
+    "instance_inner_role": "",
+}
+
+INIT_PROXY_INSTANCE_DATA = {
+    "creator": "admin",
+    "updater": "admin",
+    "version": "test_version",
+    "port": 10000,
+    "db_module_id": DB_MODULE_ID,
+    "bk_biz_id": BK_BIZ_ID,
+    "access_layer": AccessLayer.PROXY.value,
+    "status": InstanceStatus.RUNNING.value,
+    "name": "test_proxy_instance",
+    "time_zone": "+08:00",
+    "bk_instance_id": 7090,
+    "phase": InstancePhase.ONLINE.value,
+    "machine_type": "",
+    "cluster_type": "",
+    "machine_id": "",
+}
+
+INIT_TENDBHA_CREATE_API_DATA = {
+    "bk_biz_id": BK_BIZ_ID,
+    "db_module_id": DB_MODULE_ID,
+    "creator": "admin",
+    "major_version": "latest",
+    "time_zone": DEFAULT_TIME_ZONE,
     "bk_cloud_id": 0,
-    "net_device_id": "",
-    "bk_city_id": 0,
-    "spec_config": '{"id": 440, "cpu": {"max": 4, "min": 2}, "mem": {"max": 8, "min": 4}, '
-    '"qps": {"max": 0, "min": 0}, "name": "1核_4G_20G", "count": 1, "device_class": [], '
-    '"storage_spec": [{"size": 20, "type": "ALL", "mount_point": "C:\\", "isSystemDrive": true},'
-    ' {"size": 30, "type": "ALL", "mount_point": "D:\\", "isSystemDrive": true}]}',
-    "spec_id": 3,
-    "bk_agent_id": "",
+    "resource_spec": {MachineType.BACKEND.value: {"id": 0}, MachineType.PROXY.value: {"id": 0}},
+    "region": "",
+    "disaster_tolerance_level": "NONE",
 }

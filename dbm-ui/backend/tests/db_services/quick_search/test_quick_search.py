@@ -13,8 +13,8 @@ from unittest.mock import patch
 import pytest
 
 from backend.components.dbresource.client import DBResourceApi
-from backend.db_meta.enums import ClusterEntryRole
-from backend.db_meta.models import Machine
+from backend.db_meta.enums import ClusterEntryRole, ClusterType
+from backend.db_meta.models import Cluster, Machine
 from backend.db_services.quick_search.views import QuickSearchViewSet
 from backend.utils.pytest import AuthorizedAPIRequestFactory
 
@@ -69,11 +69,12 @@ class TestQuickSearchViewSet:
 
     @pytest.mark.parametrize("query", [QUICK_SEARCH_CONTAINS_PARAMS, QUICK_SEARCH_EXACT_PARAMS])
     @patch.object(DBResourceApi, "resource_list")
-    def test_quick_search_for_entry(self, resource_list_mock, query, init_cluster):
+    def test_quick_search_for_entry(self, resource_list_mock, query, init_mysql_cluster):
         """
         测试搜索访问入口
         """
-        target_value = init_cluster.immute_domain
+        cluster = Cluster.objects.filter(cluster_type=ClusterType.TenDBHA).first()
+        target_value = cluster.immute_domain
         query["keyword"] = self._get_keyword(query, target_value)
         response = self._request_quick_search(resource_list_mock, query)
         assert response.status_code == 200
@@ -82,7 +83,7 @@ class TestQuickSearchViewSet:
             for entry in response.data.get("entry")
             if entry["role"] == ClusterEntryRole.MASTER_ENTRY
         ]
-        assert init_cluster.immute_domain in result
+        assert cluster.immute_domain in result
 
     @pytest.mark.parametrize("query", [QUICK_SEARCH_CONTAINS_PARAMS, QUICK_SEARCH_EXACT_PARAMS])
     @patch.object(DBResourceApi, "resource_list")
@@ -125,7 +126,7 @@ class TestQuickSearchViewSet:
 
     @pytest.mark.parametrize("query", [QUICK_SEARCH_CONTAINS_PARAMS, QUICK_SEARCH_EXACT_PARAMS])
     @patch.object(DBResourceApi, "resource_list")
-    def test_quick_search_for_machine(self, resource_list_mock, query):
+    def test_quick_search_for_machine(self, resource_list_mock, query, init_mysql_cluster):
         """
         测试搜索主机
         """
