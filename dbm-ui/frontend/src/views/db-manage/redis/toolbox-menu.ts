@@ -60,7 +60,7 @@ export default [
           },
           {
             name: t('迁移'),
-            id: 'RedisMigrate',
+            id: TicketTypes.REDIS_CLUSTER_INS_MIGRATE,
             parentId: 'common-manage',
             dbConsoleValue: 'redis.toolbox.migrate',
           },

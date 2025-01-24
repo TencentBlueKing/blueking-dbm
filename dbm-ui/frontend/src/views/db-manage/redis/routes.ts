@@ -71,14 +71,15 @@ const redisMasterFailoverRoute = createRouteItem(TicketTypes.REDIS_MASTER_SLAVE_
 
 const redisDBReplaceRoute = createRouteItem(TicketTypes.REDIS_CLUSTER_CUTOFF, t('整机替换'));
 
-const redisMigrateRoute = {
-  name: 'RedisMigrate',
-  path: 'db-migrate/:page?',
-  meta: {
-    navName: t('迁移'),
-  },
-  component: () => import('@views/db-manage/redis/migrate/Index.vue'),
-};
+// const redisMigrateRoute = {
+//   name: 'RedisMigrate',
+//   path: 'db-migrate/:page?',
+//   meta: {
+//     navName: t('迁移'),
+//   },
+//   component: () => import('@views/db-manage/redis/migrate/Index.vue'),
+// };
+const redisMigrateRoute = createRouteItem(TicketTypes.REDIS_CLUSTER_INS_MIGRATE, t('迁移'));
 
 // const redisClusterShardUpdateRoute = {
 //   name: 'RedisClusterShardUpdate',

@@ -129,6 +129,7 @@
       master_domain: string;
       immute_domain: string;
       cluster_type: string;
+      major_version: string;
     }[];
     related_instances: {
       cluster_id: number;

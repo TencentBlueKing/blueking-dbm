@@ -13,8 +13,8 @@
 
 <template>
   <BkTable
-    class="single-migrate-table"
-    :data="ticketDetails.details.infos">
+    :data="ticketDetails.details.infos"
+    :show-overflow="false">
     <BkTableColumn
       v-if="isDomain"
       field="display_info.domain"
@@ -33,7 +33,7 @@
         <div
           v-for="(item, index) in instanceMap[data.display_info[rowKey]]"
           :key="index"
-          class="host-item">
+          class="single-migrate-table-host-item">
           <div class="host-tag host-tag-master">M</div>
           <div>{{ item[0] }}</div>
           ，
@@ -86,7 +86,7 @@
     const instanceList = [`${masterItem.ip}:${masterItem.port}`, `${slaveItem.ip}:${slaveItem.port}`];
     if (prevMap[item.display_info[rowKey]]) {
       return Object.assign({}, prevMap, {
-        [item.display_info[rowKey]]: prevMap[item.display_info[rowKey]].concat(instanceList),
+        [item.display_info[rowKey]]: prevMap[item.display_info[rowKey]].concat([instanceList]),
       });
     }
     return Object.assign({}, prevMap, {
@@ -96,32 +96,30 @@
 </script>
 
 <style lang="less" scoped>
-  .single-migrate-table {
-    .host-item {
-      display: flex;
-      align-items: center;
+  .single-migrate-table-host-item {
+    display: flex;
+    align-items: center;
 
-      .host-tag {
-        width: 16px;
-        height: 16px;
-        margin-right: 4px;
-        font-size: @font-size-mini;
-        font-weight: bolder;
-        line-height: 16px;
-        text-align: center;
-      }
+    .host-tag {
+      width: 16px;
+      height: 16px;
+      margin-right: 4px;
+      font-size: @font-size-mini;
+      font-weight: bolder;
+      line-height: 16px;
+      text-align: center;
+    }
 
-      .host-tag-master {
-        flex-shrink: 0;
-        color: @primary-color;
-        background-color: #cad7eb;
-      }
+    .host-tag-master {
+      flex-shrink: 0;
+      color: @primary-color;
+      background-color: #cad7eb;
+    }
 
-      .host-tag-slave {
-        flex-shrink: 0;
-        color: #2dcb56;
-        background-color: #c8e5cd;
-      }
+    .host-tag-slave {
+      flex-shrink: 0;
+      color: #2dcb56;
+      background-color: #c8e5cd;
     }
   }
 </style>
