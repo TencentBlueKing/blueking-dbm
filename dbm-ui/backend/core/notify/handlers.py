@@ -24,6 +24,7 @@ from backend.core.notify.constants import DEFAULT_BIZ_NOTIFY_CONFIG, MsgType
 from backend.core.notify.exceptions import NotifyBaseException
 from backend.core.notify.template import FAILED_TEMPLATE, FINISHED_TEMPLATE, TERMINATE_TEMPLATE, TODO_TEMPLATE
 from backend.db_meta.models import AppCache
+from backend.env import DEFAULT_USERNAME
 from backend.exceptions import ApiResultError
 from backend.ticket.builders import BuilderFactory
 from backend.ticket.constants import TicketStatus, TicketType, TodoStatus
@@ -215,6 +216,8 @@ class CmsiHandler(BaseNotifyHandler):
             "text": {"content": self.content},
             "group_receiver": self.receivers,
         }
+        # 机器人发送，则receiver__username要置为用户名/admin。TODO: 应该支持填会话ID or 填空的
+        self.receivers = [DEFAULT_USERNAME]
         self._cmsi_send_msg(MsgType.WECOM_ROBOT.value, sender=env.WECOM_ROBOT, wecom_robot=wecom_robot)
 
     def send_msg(self, msg_type, context):

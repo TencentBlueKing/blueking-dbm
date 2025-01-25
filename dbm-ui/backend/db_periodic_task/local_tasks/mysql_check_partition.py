@@ -49,11 +49,13 @@ def mysql_check_partition():
         return
     chat_ids = env.MYSQL_CHATID.split(",")
     if content:
-        title = _("【DBM】分区表异常 ")
-        content = _("【DBM】分区表异常情况 {} \n业务名称 bk_biz_id DB类型 失败/未执行 数量 DBA 策略ID\n{}").format(
-            datetime.date.today(), content
-        )
-        CmsiHandler(title, content, chat_ids).send_wecom_robot()
+        cut_msgs = _cut_content(content)
+        for msg in cut_msgs:
+            title = _("【DBM】分区表异常 ")
+            partition_msg = _("【DBM】分区表异常情况 {} \n业务名称 bk_biz_id DB类型 失败/未执行 数量 DBA 策略ID\n{}").format(
+                datetime.date.today(), msg
+            )
+            CmsiHandler(title, partition_msg, chat_ids).send_wecom_robot()
     return
 
 
@@ -80,3 +82,23 @@ def _format_msg(logs: list, db_type: str, fail_type: str, content: str):
                 )
             )
     return content
+
+
+def _cut_content(content: str):
+    """
+    将content按照不超过2048字符进行分割，防止内容超限。
+    这里取1024长度作为界限
+    """
+    split_contents = content.split("\n")
+    max_len = 1024
+
+    contents = []
+    current_content = ""
+    for index, msg in enumerate(split_contents):
+        if msg:
+            current_content += msg + "\n"
+        if len(current_content) > max_len or index == len(split_contents) - 1:
+            contents.append(current_content)
+            current_content = ""
+
+    return contents
