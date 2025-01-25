@@ -29,13 +29,11 @@ export const useTableSettings = (key: string, defaultSettings: Settings) => {
 
   // 获取用户配置的表头信息
   const settings = shallowRef<{ checked?: string[]; disabled?: string[]; size?: string }>();
-  if (userProfileStore.profile[key]) {
-    settings.value = {
-      checked: userProfileStore.profile[key].checked || defaultSettings.checked,
-      disabled: defaultSettings.disabled,
-      size: userProfileStore.profile[key].size || defaultSettings.size || 'small',
-    };
-  }
+  settings.value = {
+    checked: userProfileStore.profile[key]?.checked || defaultSettings.checked,
+    disabled: defaultSettings.disabled,
+    size: userProfileStore.profile[key]?.size || defaultSettings.size || 'small',
+  };
 
   /**
    * 更新表头设置

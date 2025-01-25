@@ -86,7 +86,6 @@
   import '@blueking/notice-component/dist/style.css';
 
   const userProfileStore = useUserProfile();
-  userProfileStore.fetchProfile();
   const { t, locale } = useI18n();
   const systemEnvironStore = useSystemEnviron();
 
