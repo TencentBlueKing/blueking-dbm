@@ -168,6 +168,21 @@ class SqlserverSlaveRebuildFlow(BaseFlow):
                     ),
                     express="==3",
                 ),
+                # 正常在修复4，下发dbactor节点，为后续同步周边配置做处理
+                Conditions(
+                    act_object=sub_pipeline.add_act(
+                        act_name=_("下发执行器"),
+                        act_component_code=TransFileInWindowsComponent.code,
+                        kwargs=asdict(
+                            DownloadMediaKwargs(
+                                target_hosts=[Host(ip=master.machine.ip, bk_cloud_id=cluster.bk_cloud_id)],
+                                file_list=GetFileList(db_type=DBType.Sqlserver).get_db_actuator_package(),
+                            ),
+                        ),
+                        extend=False,
+                    ),
+                    express="==4",
+                ),
             ]
 
             sub_pipeline.add_conditional_subs(

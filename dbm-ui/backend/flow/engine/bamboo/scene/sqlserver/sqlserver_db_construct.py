@@ -145,6 +145,19 @@ class SqlserverDataConstruct(BaseFlow):
         main_pipeline = Builder(root_id=self.root_id, data=self.data)
         sub_pipelines = []
 
+        # 创建随机账号, 单据聚合处理
+        main_pipeline.add_act(
+            act_name=_("create temp job account"),
+            act_component_code=SqlserverAddJobUserComponent.code,
+            kwargs=asdict(
+                CreateRandomJobUserKwargs(
+                    cluster_ids=list(set([i["dst_cluster"] for i in self.data["infos"]])),
+                    sid=create_sqlserver_login_sid(),
+                ),
+            ),
+            is_remote_rewritable=True,
+        )
+
         for info in self.data["infos"]:
             # 计算源集群和目标集群的master
             cluster = Cluster.objects.get(id=info["src_cluster"])
@@ -183,18 +196,6 @@ class SqlserverDataConstruct(BaseFlow):
 
             # 声明子流程
             sub_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(sub_flow_context))
-
-            # 创建随机账号
-            sub_pipeline.add_act(
-                act_name=_("create temp job account"),
-                act_component_code=SqlserverAddJobUserComponent.code,
-                kwargs=asdict(
-                    CreateRandomJobUserKwargs(
-                        cluster_ids=[target_cluster.id],
-                        sid=create_sqlserver_login_sid(),
-                    ),
-                ),
-            )
 
             # 下发执行器
             sub_pipeline.add_act(
@@ -295,13 +296,6 @@ class SqlserverDataConstruct(BaseFlow):
                     ),
                 )
 
-            # 删除随机账号
-            sub_pipeline.add_act(
-                act_name=_("remove temp job account"),
-                act_component_code=SqlserverDropJobUserComponent.code,
-                kwargs=asdict(DropRandomJobUserKwargs(cluster_ids=[target_cluster.id])),
-            )
-
             sub_pipelines.append(
                 sub_pipeline.build_sub_process(
                     sub_name=_("[{}]->[{}]数据构造流程".format(cluster.name, target_cluster.name))
@@ -309,4 +303,15 @@ class SqlserverDataConstruct(BaseFlow):
             )
 
         main_pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
+
+        # 删除随机账号
+        main_pipeline.add_act(
+            act_name=_("remove temp job account"),
+            act_component_code=SqlserverDropJobUserComponent.code,
+            kwargs=asdict(
+                DropRandomJobUserKwargs(cluster_ids=list(set([i["dst_cluster"] for i in self.data["infos"]])))
+            ),
+            is_remote_rewritable=True,
+        )
+
         main_pipeline.run_pipeline(init_trans_data_class=SqlserverDBConstructContext())

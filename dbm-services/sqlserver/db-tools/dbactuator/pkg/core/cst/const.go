@@ -164,14 +164,16 @@ const (
 		"securityadmin,serveradmin,setupadmin,processadmin,diskadmin,bulkadmin " +
 		"from master.sys.sql_logins a left join sys.syslogins b " +
 		"on a.name=b.name where principal_id>4 and a.name not in('%s') " +
-		"and a.name not like '%s' "
+		"and a.name not like '%s' and a.name not like '##%%##' "
 )
 
 // 判断实例是否有业务进程
+// 这里固定过滤到非业务账号名称的连接（sa和sqlserver账号）
 const (
-	CHECK_INST_SQL = "select spid, DB_NAME(dbid) as dbname ,cmd, status, program_name,hostname, login_time" +
+	CHECK_INST_SQL = "select spid, DB_NAME(dbid) as dbname ,cmd, status, program_name,hostname, login_time, loginame" +
 		" from master.sys.sysprocesses where dbid >4  and dbid != DB_ID('Monitor') " +
-		" and lastwaittype != 'PARALLEL_REDO_WORKER_WAIT_WORK' order by login_time desc;"
+		" and lastwaittype != 'PARALLEL_REDO_WORKER_WAIT_WORK' " +
+		" and loginame != 'sa' and loginame not like '%%sqlserver' order by login_time desc "
 )
 
 // 获取实例的默认数据目录

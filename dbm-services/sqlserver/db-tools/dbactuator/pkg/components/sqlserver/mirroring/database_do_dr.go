@@ -149,6 +149,7 @@ func (c *CreateMirrorComp) CreateDBMirroring() error {
 			}
 			if _, err := c.DB.ExecMore(offSQL); err != nil {
 				logger.Error("exec [%s] SET PARTNER OFF in DB [%s:%d] failed", dbName, c.Params.DRHost, c.Params.DRPort)
+				logger.Error("err: %v", err)
 				isErr = true
 				continue
 			}
@@ -167,6 +168,7 @@ func (c *CreateMirrorComp) CreateDBMirroring() error {
 		// 在dr执行
 		if _, err := c.DR.ExecMore(drExecSQLs); err != nil {
 			logger.Error("exec [%s] SET PARTNER in DR [%s:%d] failed", dbName, c.Params.DRHost, c.Params.DRPort)
+			logger.Error("err: %v", err)
 			isErr = true
 			continue
 		}
@@ -175,6 +177,8 @@ func (c *CreateMirrorComp) CreateDBMirroring() error {
 		// 在db执行
 		if _, err := c.DB.ExecMore(dbExecSQLs); err != nil {
 			logger.Error("exec [%s] SET PARTNER in DB [%s:%d] failed", dbName, c.Params.Host, c.Params.Port)
+			logger.Error("err: %v", err)
+			isErr = true
 			continue
 		}
 		logger.Info("exec [%s] SET PARTNER in DB [%s:%d] successfully", dbName, c.Params.Host, c.Params.Port)

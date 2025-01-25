@@ -127,6 +127,7 @@ class Builder(object):
         write_payload_var: str = None,
         error_ignorable: bool = False,
         extend: bool = True,
+        is_remote_rewritable: bool = False,
     ):
         """
         add_act 方法：为流程加入活动节点，并加入流程数字典
@@ -139,6 +140,7 @@ class Builder(object):
         todo  write_payload_var 变量名称变更为 write_context_var 这样表达清晰点
         @param error_ignorable：节点是否忽略错误继续往下执行
         @param extend: extend
+        @param is_remote_rewritable, 目前版本有bug，在有设置上下文的流程中，部分场景加入上下文交互列表会有导致上下文失效，参数设置为了避免出现这个bug，默认False即可
         """
 
         act = ServiceActivity(name=act_name, component_code=act_component_code, error_ignorable=error_ignorable)
@@ -149,7 +151,8 @@ class Builder(object):
         act.component.inputs.splice_payload_var = Var(type=Var.PLAIN, value=splice_payload_var)
         act.component.inputs.write_payload_var = Var(type=Var.PLAIN, value=write_payload_var)
 
-        self.rewritable_node_source_keys.append({"source_act": act.id, "source_key": "trans_data"})
+        if not is_remote_rewritable:
+            self.rewritable_node_source_keys.append({"source_act": act.id, "source_key": "trans_data"})
 
         FlowNode.objects.create(uid=self.data.get("uid"), root_id=self.root_id, node_id=act.id)
         if extend:
