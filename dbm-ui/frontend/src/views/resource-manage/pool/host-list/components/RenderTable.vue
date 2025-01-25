@@ -26,8 +26,6 @@
         :max-height="tableMaxHeight"
         :pagination="pagination"
         :pagination-heihgt="60"
-        remote-pagination
-        show-overflow-tooltip
         v-bind="$attrs"
         @column-sort="handleColumnSortChange"
         @page-limit-change="handlePageLimitChange"

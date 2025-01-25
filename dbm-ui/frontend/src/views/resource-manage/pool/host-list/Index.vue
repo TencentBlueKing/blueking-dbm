@@ -76,7 +76,7 @@
       show-settings
       @clear-search="handleClearSearch"
       @selection="handleSelection"
-      @setting-change="handleSettingChange" />
+      @setting-change="updateTableSettings" />
     <ImportHost
       v-model:is-show="isShowImportHost"
       @change="handleImportHostChange" />
@@ -98,6 +98,10 @@
     removeResource,
   } from '@services/source/dbresourceResource';
 
+  import { useTableSettings } from '@hooks';
+
+  import { UserPersonalSettings } from '@common/const';
+
   import DiskPopInfo from '@components/disk-pop-info/DiskPopInfo.vue';
   import HostAgentStatus from '@components/host-agent-status/Index.vue';
 
@@ -111,15 +115,9 @@
   import ImportHostBtn from './components/ImportHostBtn.vue';
   import RenderTable from './components/RenderTable.vue';
   import SearchBox from './components/search-box/Index.vue';
-  import useTableSetting from './hooks/useTableSetting';
 
   const { t } = useI18n();
   const router = useRouter();
-
-  const {
-    setting: tableSetting,
-    handleChange: handleSettingChange,
-  } = useTableSetting();
 
   const searchBoxRef = ref();
   const tableRef = ref();
@@ -150,13 +148,13 @@
     },
     {
       label: t('所属业务'),
-      field: 'forBizDisplay',
+      field: 'for_biz',
       minWidth: 170,
       render: ({ data }: {data: DbResourceModel}) => data.forBizDisplay || '--',
     },
     {
       label: t('所属DB类型'),
-      field: 'resourceTypeDisplay',
+      field: 'resource_type',
       minWidth: 150,
       render: ({ data }: {data: DbResourceModel}) => data.resourceTypeDisplay || '--',
     },
@@ -175,7 +173,7 @@
     {
       label: t('操作系统类型'),
       field: 'os_type',
-      minWidth: 100,
+      minWidth: 180,
       render: ({ data }: {data: DbResourceModel}) => data.os_type || '--',
     },
     {
@@ -197,7 +195,7 @@
     },
     {
       label: t('内存'),
-      field: 'bkMemText',
+      field: 'bk_mem',
       minWidth: 100,
       render: ({ data }: {data: DbResourceModel}) => data.bkMemText || '0 M',
     },
@@ -215,7 +213,6 @@
     },
     {
       label: t('操作'),
-      field: 'id',
       fixed: 'right',
       width: 100,
       render: ({ data }: {data: DbResourceModel}) => (
@@ -234,6 +231,26 @@
       ),
     },
   ];
+
+  const { settings: tableSetting, updateTableSettings } = useTableSettings(UserPersonalSettings.RESOURCE_POOL_HOST_LIST_SETTINGS, {
+    disabled: ['ip'],
+    checked: [
+      'ip',
+      'bk_cloud_name',
+      'agent_status',
+      'for_biz',
+      'resource_type',
+      'rack_id',
+      'device_class',
+      'city',
+      'sub_zone',
+      'bk_cpu',
+      'bk_mem',
+      'bk_disk',
+      'os_type',
+    ],
+  });
+
 
   const fetchData = () => {
     tableRef.value.fetchData(searchParams);

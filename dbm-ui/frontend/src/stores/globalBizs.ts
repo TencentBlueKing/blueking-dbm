@@ -47,11 +47,7 @@ export const useGlobalBizs = defineStore('GlobalBizs', {
       const userProfileStore = useUserProfile();
 
       // 获取最新用户个人配置
-      try {
-        await userProfileStore.fetchProfile();
-      } catch (e) {
-        console.log(e);
-      }
+      await userProfileStore.fetchProfile();
 
       const activatedBizId = userProfileStore.profile[UserPersonalSettings.ACTIVATED_APP];
       const favors = userProfileStore.profile[UserPersonalSettings.APP_FAVOR] || [];
