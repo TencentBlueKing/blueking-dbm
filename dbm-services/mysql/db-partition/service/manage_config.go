@@ -161,9 +161,17 @@ func (m *QueryLogInput) GetPartitionLog() ([]*PartitionLog, int64, error) {
 		slog.Error("cnt sql execute error", cntResult.Error)
 		return nil, 0, cntResult.Error
 	}
+
+	order := clause.OrderByColumn{
+		Column: clause.Column{
+			Name: "create_time",
+		},
+		Desc: true,
+	}
+
 	// 使用session函数，开启新的会话查询，避免和上面的查询重复（条件，返回字段）
 	result := tx.Session(&gorm.Session{}).
-		Select("id,create_time as execute_time,check_info,status").
+		Select("id,create_time as execute_time,check_info,status").Order(order).
 		Limit(m.Limit).Offset(m.Offset).Find(&allResults)
 	if result.Error != nil {
 		slog.Error("sql execute error", result.Error)

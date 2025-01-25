@@ -399,7 +399,7 @@ func GetTendbclusterInstances(cluster string) (map[string][]SpiderNode, int, err
 	}
 	// 查询remote master各分片实例和tdbctl主节点
 	splitSql := fmt.Sprintf("select HOST,PORT,replace(server_name,'SPT','') as SPLIT_NUM, SERVER_NAME, WRAPPER "+
-		"from mysql.servers where wrapper in ('mysql','TDBCTL') and "+
+		"from mysql.servers where wrapper in ('mysql') and "+
 		"(server_name like 'SPT%%' or server_name like '%s')", tdbctlPrimary)
 	queryRequest = QueryRequest{Addresses: []string{address}, Cmds: []string{splitSql}, Force: true, QueryTimeout: 30,
 		BkCloudId: cloud}
