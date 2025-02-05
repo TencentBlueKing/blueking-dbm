@@ -64,12 +64,13 @@
   interface Props {
     clusterId?: number;
     disabledRowConfig?: TableConfigType['disabledRowConfig'];
-    firsrColumn?: TableConfigType['firsrColumn'];
 
+    firsrColumn?: TableConfigType['firsrColumn'];
     getTableList: NonNullable<TableConfigType['getTableList']>;
     lastValues: InstanceSelectorValues<IValue>;
     // eslint-disable-next-line vue/no-unused-properties
     roleFilterList?: TableConfigType['roleFilterList'];
+
     // eslint-disable-next-line vue/no-unused-properties
     statusFilter?: TableConfigType['statusFilter'];
   }

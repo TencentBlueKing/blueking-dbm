@@ -49,7 +49,7 @@
               v-model="item.cluster.role"
               :placeholder="t('自动生成')" />
           </EditableColumn>
-          <HybridHostColumn
+          <HybridResourceHostColumn
             v-model="item.host.type"
             field="host.type"
             :label="t('主机选择方式')"
@@ -122,10 +122,10 @@
 
   import { TicketTypes } from '@common/const';
 
-  import HybridHostColumn, {
+  import HybridResourceHostColumn, {
     type HostInfo,
     HostSelectType,
-  } from '@views/db-manage/common/toolbox-field/column/hybrid-host-column/Index.vue';
+  } from '@views/db-manage/common/toolbox-field/column/hybrid-resource-host-column/Index.vue';
   import TicketPayload, {
     createTickePayload,
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';

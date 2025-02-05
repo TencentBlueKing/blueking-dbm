@@ -42,16 +42,6 @@
               v-model="item.oldMaster.master_domain"
               :placeholder="t('自动生成')" />
           </EditableColumn>
-          <SingleHostColumn
-            v-model="item.newMaster"
-            field="newMaster.ip"
-            :label="t('新Master')"
-            :min-width="150" />
-          <SingleHostColumn
-            v-model="item.newSlave"
-            field="newSlave.ip"
-            :label="t('新Slave')"
-            :min-width="150" />
           <OperationColumn
             v-model:table-data="formData.tableData"
             :create-row-method="createTableRow" />
@@ -91,7 +81,6 @@
 
   import { TicketTypes } from '@common/const';
 
-  import SingleHostColumn from '@views/db-manage/common/toolbox-field/column/single-host-column/Index.vue';
   import BackupSource from '@views/db-manage/common/toolbox-field/form-item/backup-source/Index.vue';
   import TicketPayload, {
     createTickePayload,
@@ -109,6 +98,7 @@
       related_instances: string[];
       cluster_id: number;
       master_domain: string;
+      spec_id: number;
     };
     oldSlave: {
       bk_biz_id: number;
@@ -117,13 +107,6 @@
       ip: string;
       related_instances: string[];
     };
-    newMaster: {
-      bk_biz_id: number;
-      bk_cloud_id: number;
-      bk_host_id: number;
-      ip: string;
-    };
-    newSlave: RowData['newMaster'];
   }
 
   const { t } = useI18n();
@@ -142,13 +125,12 @@
         related_instances: [],
         cluster_id: 0,
         master_domain: '',
+        spec_id: 0,
       },
       oldSlave: data.oldSlave || {
         ...initHost(),
         related_instances: [],
       },
-      newMaster: data.newMaster || initHost(),
-      newSlave: data.newSlave || initHost(),
     };
   };
 
@@ -185,8 +167,10 @@
         old_slave: ResourceHost['hosts'];
       };
       resource_spec: {
-        new_master: ResourceHost;
-        new_slave: ResourceHost;
+        backend_group: {
+          count: number;
+          spec_id: number;
+        };
       };
     }[];
   }>(TicketTypes.TENDBCLUSTER_MIGRATE_CLUSTER);
@@ -207,13 +191,9 @@
             old_slave: [item.oldSlave],
           },
           resource_spec: {
-            new_master: {
-              spec_id: 0,
-              hosts: [item.newMaster],
-            },
-            new_slave: {
-              spec_id: 0,
-              hosts: [item.newSlave],
+            backend_group: {
+              count: 1,
+              spec_id: item.oldMaster.spec_id,
             },
           },
         })),
@@ -229,6 +209,8 @@
   const handleBatchEdit = (list: SelectorHost[]) => {
     const dataList = list.reduce<RowData[]>((acc, item) => {
       if (!selectedMap.value[item.ip]) {
+        console.log(item, 'item.spec_id');
+
         acc.push(
           createTableRow({
             oldMaster: {
@@ -239,6 +221,7 @@
               related_instances: item.related_instances.map((item) => item.instance),
               cluster_id: item.cluster_id,
               master_domain: item.master_domain,
+              spec_id: item.spec_id,
             },
           }),
         );

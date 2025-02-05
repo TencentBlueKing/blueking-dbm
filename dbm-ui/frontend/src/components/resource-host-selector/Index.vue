@@ -166,6 +166,7 @@
 
   import DbResourceModel from '@services/model/db-resource/DbResource';
   import { fetchList } from '@services/source/dbresourceResource';
+  import type { HostInfo } from '@services/types';
 
   import DiskPopInfo from '@components/disk-pop-info/DiskPopInfo.vue';
   import HostAgentStatus from '@components/host-agent-status/Index.vue';
@@ -185,8 +186,11 @@
     limit: number;
     params?: {
       for_biz?: number;
-      bk_cloud_ids?: string;
+      for_bizs?: number[];
       resource_type?: string;
+      resource_types?: string[];
+      hosts?: HostInfo[];
+      bk_cloud_ids?: string;
       os_type?: string;
     };
   }

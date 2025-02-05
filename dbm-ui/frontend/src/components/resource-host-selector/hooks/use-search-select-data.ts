@@ -26,7 +26,7 @@ export default (props: any) => {
       },
       {
         name: t('所属业务'),
-        id: 'bk_biz_id',
+        id: 'for_biz',
         children: globalBizsStore.bizs.map((item) => ({
           id: `${item.bk_biz_id}`,
           name: item.name,

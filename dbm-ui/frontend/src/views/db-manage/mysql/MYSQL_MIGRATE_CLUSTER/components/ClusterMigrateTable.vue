@@ -24,14 +24,20 @@
         :selected="selected"
         :selected-map="selectedMap"
         @batch-edit="handleBatchEdit" />
-      <SingleHostColumn
+      <SingleResourceHostColumn
         v-model="item.newMaster"
         field="newMaster.ip"
-        :label="t('新Master主机')" />
-      <SingleHostColumn
+        :label="t('新Master主机')"
+        :params="{
+          resource_types: [DBTypes.MYSQL, 'PUBLIC'],
+        }" />
+      <SingleResourceHostColumn
         v-model="item.newSlave"
         field="newSlave.ip"
-        :label="t('新Slave主机')" />
+        :label="t('新Slave主机')"
+        :params="{
+          resource_types: [DBTypes.MYSQL, 'PUBLIC'],
+        }" />
       <OperationColumn
         v-model:table-data="tableData"
         :create-row-method="createTableRow" />
@@ -44,7 +50,9 @@
 
   import TendbhaModel from '@services/model/mysql/tendbha';
 
-  import SingleHostColumn from '@views/db-manage/common/toolbox-field/column/single-host-column/Index.vue';
+  import { DBTypes } from '@common/const';
+
+  import SingleResourceHostColumn from '@views/db-manage/common/toolbox-field/column/single-resource-host-column/Index.vue';
 
   import { MigrateTypes } from '../types';
 
@@ -160,7 +168,7 @@
         acc.push(
           createTableRow({
             batchCluster: {
-              renderText: '',
+              renderText: item.master_domain,
               clusters: {
                 [item.master_domain]: {
                   id: item.id,
@@ -173,7 +181,7 @@
       }
       return acc;
     }, []);
-    tableData.value = [...(selected.value.length ? tableData.value : []), ...dataList];
+    tableData.value = [...tableData.value.filter((item) => item.batchCluster.renderText), ...dataList];
   };
 
   defineExpose<Exposes>({
