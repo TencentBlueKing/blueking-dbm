@@ -37,16 +37,13 @@
     :label="t('同机关联实例')"
     :loading="loading"
     :min-width="150">
-    <div
-      v-if="modelValue.related_instances.length"
-      class="related-clusters"
-      style="flex: 1">
+    <EditableBlock v-if="modelValue.related_instances.length">
       <p
         v-for="item in modelValue.related_instances"
         :key="item">
         {{ item }}
       </p>
-    </div>
+    </EditableBlock>
     <EditableBlock
       v-else
       :placeholder="t('自动生成')" />
@@ -55,23 +52,20 @@
     :label="t('同机关联集群')"
     :loading="loading"
     :min-width="150">
-    <div
-      v-if="modelValue.related_clusters.length"
-      class="related-clusters"
-      style="flex: 1">
+    <EditableBlock v-if="modelValue.related_clusters.length">
       <p
         v-for="item in modelValue.related_clusters"
         :key="item">
         {{ item }}
       </p>
-    </div>
+    </EditableBlock>
     <EditableBlock
       v-else
       :placeholder="t('自动生成')" />
   </EditableColumn>
   <InstanceSelector
     v-model:is-show="showSelector"
-    :cluster-types="[TENDBHA_HOST]"
+    :cluster-types="['TendbhaHost']"
     :selected="selectedInstances"
     :tab-list-config="tabListConfig"
     @change="handleSelectorChange" />
@@ -129,17 +123,16 @@
 
   const { t } = useI18n();
 
-  const TENDBHA_HOST = 'TendbhaHost';
   const tabListConfig = {
-    [TENDBHA_HOST]: [
+    TendbhaHost: [
       {
-        id: [TENDBHA_HOST],
-        name: t('目标Proxy主机'),
+        id: 'TENDBHA_HOST',
+        name: t('目标主库主机'),
         tableConfig: {
           firsrColumn: {
-            label: t('Proxy 主机'),
+            label: t('Master 主机'),
             field: 'ip',
-            role: 'proxy',
+            role: 'backend_master',
           },
         },
       },
@@ -148,14 +141,14 @@
         name: t('手动输入'),
         tableConfig: {
           firsrColumn: {
-            label: t('Proxy 主机'),
+            label: t('Master 主机'),
             field: 'ip',
-            role: 'proxy',
+            role: 'backend_master',
           },
         },
       },
     ],
-  } as Record<string, PanelListType>;
+  } as unknown as Record<ClusterTypes, PanelListType>;
 
   const rules = [
     {
@@ -171,12 +164,14 @@
   ];
 
   const showSelector = ref(false);
-  const selectedInstances = computed(
-    () =>
-      ({
-        [ClusterTypes.TENDBHA]: props.selected,
-      }) as unknown as InstanceSelectorValues<IValue>,
-  );
+  const selectedInstances = computed<InstanceSelectorValues<IValue>>(() => ({
+    [ClusterTypes.TENDBHA]: props.selected.map(
+      (item) =>
+        ({
+          ip: item.ip,
+        }) as IValue,
+    ),
+  }));
 
   const { run: queryInstance, loading } = useRequest(checkInstance, {
     manual: true,
@@ -227,7 +222,7 @@
   };
 
   const handleSelectorChange = (selected: InstanceSelectorValues<IValue>) => {
-    emits('batch-edit', selected[TENDBHA_HOST]);
+    emits('batch-edit', selected.TendbhaHost);
   };
 </script>
 
@@ -236,17 +231,5 @@
     font-size: 14px;
     color: #3a84ff;
     cursor: pointer;
-  }
-
-  .related-clusters {
-    padding: 10px 16px;
-    line-height: 20px;
-    background: #fff;
-
-    p {
-      width: 100%;
-      overflow-x: hidden;
-      text-overflow: ellipsis;
-    }
   }
 </style>

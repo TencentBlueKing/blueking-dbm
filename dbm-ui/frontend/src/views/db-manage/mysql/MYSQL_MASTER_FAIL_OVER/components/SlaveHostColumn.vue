@@ -13,26 +13,12 @@
 
 <template>
   <EditableColumn
-    :label="t('目标从库主机')"
+    field="slave.ip"
+    :label="t('从库主机')"
     :loading="loading"
     :min-width="150">
     <EditableBlock
       v-model="modelValue.ip"
-      :placeholder="t('自动生成')" />
-  </EditableColumn>
-  <EditableColumn
-    :label="t('从库主机关联实例')"
-    :loading="loading"
-    :min-width="150">
-    <EditableBlock v-if="modelValue.related_instances.length">
-      <p
-        v-for="item in modelValue.related_instances"
-        :key="item">
-        {{ item }}
-      </p>
-    </EditableBlock>
-    <EditableBlock
-      v-else
       :placeholder="t('自动生成')" />
   </EditableColumn>
 </template>
@@ -40,43 +26,44 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import { getRemoteMachineInstancePair } from '@services/source/mysqlCluster';
+  import { getIntersectedSlaveMachinesFromClusters } from '@services/source/mysqlCluster';
 
   interface Props {
     masterHost: {
-      bk_cloud_id: number;
-      ip: string;
+      related_clusters: {
+        id: number;
+      }[];
     };
   }
 
   const props = defineProps<Props>();
 
   const modelValue = defineModel<{
-    bk_biz_id?: number;
-    bk_cloud_id?: number;
+    bk_biz_id: number;
+    bk_cloud_id: number;
     bk_host_id?: number;
     ip: string;
-    related_instances: string[];
   }>({
     default: () => ({
+      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+      bk_cloud_id: 0,
+      bk_host_id: undefined,
       ip: '',
-      related_instances: [],
     }),
   });
 
   const { t } = useI18n();
 
-  const { run: queryMachineInstancePair, loading } = useRequest(getRemoteMachineInstancePair, {
+  const { run: querySlaveMachine, loading } = useRequest(getIntersectedSlaveMachinesFromClusters, {
     manual: true,
     onSuccess: (data) => {
-      const [machineInstancePair] = Object.values(data.machines);
-      if (machineInstancePair) {
+      const [slaveHost] = data;
+      if (slaveHost) {
         modelValue.value = {
-          bk_biz_id: machineInstancePair.bk_biz_id,
-          bk_cloud_id: machineInstancePair.bk_cloud_id,
-          bk_host_id: machineInstancePair.bk_host_id,
-          ip: machineInstancePair.ip,
-          related_instances: machineInstancePair.related_instances.map((item) => item.instance),
+          bk_biz_id: slaveHost.bk_biz_id,
+          bk_cloud_id: slaveHost.bk_cloud_id,
+          bk_host_id: slaveHost.bk_host_id,
+          ip: slaveHost.ip,
         };
       }
     },
@@ -85,11 +72,22 @@
   watch(
     () => props.masterHost,
     () => {
-      if (props.masterHost) {
-        queryMachineInstancePair({
-          machines: [`${props.masterHost.bk_cloud_id}:${props.masterHost.ip}`],
+      if (props.masterHost.related_clusters.length) {
+        querySlaveMachine({
+          bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+          cluster_ids: [props.masterHost.related_clusters[0].id],
+          is_stand_by: true,
         });
       }
     },
+    {
+      immediate: true,
+    },
   );
 </script>
+
+<style lang="less" scoped>
+  .table-cell {
+    padding: 0 8px;
+  }
+</style>

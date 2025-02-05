@@ -49,7 +49,11 @@ export function findRelatedClustersByInstances(params: {
 /**
  * 获取关联集群从库的交集
  */
-export function getIntersectedSlaveMachinesFromClusters(params: { bk_biz_id: number; cluster_ids: number[] }) {
+export function getIntersectedSlaveMachinesFromClusters(params: {
+  bk_biz_id: number;
+  cluster_ids: number[];
+  is_stand_by?: boolean;
+}) {
   return http.post<
     Array<{
       bk_biz_id: number;

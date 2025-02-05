@@ -144,11 +144,11 @@
       status: string;
     }[];
     role: string;
-    shard?: string;
-    spec_config?: TendbclusterMachineModel['spec_config'];
-    spec_id?: number;
-    status?: string;
-    version?: string;
+    shard: string;
+    spec_config: TendbclusterMachineModel['spec_config'];
+    spec_id: number;
+    status: string;
+    version: string;
   }
 
   export type InstanceSelectorValues<T> = Record<string, T[]>;
@@ -313,7 +313,6 @@
       | 'RedisHost'
       | 'mongoCluster'
       | 'TendbSingleHost'
-      | 'TendbHaHost'
     )[];
     disableDialogSubmitMethod?: (hostList: Array<string>) => string | boolean;
     hideManualInput?: boolean;

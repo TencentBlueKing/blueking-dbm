@@ -40,16 +40,16 @@
             <EditableSelect
               v-model="item.cluster.role"
               :input-search="false"
-              :list="nodeTypeOptions" />
+              :list="nodeTypeOptions"
+              @change="handleChangeRole(item)" />
           </EditableColumn>
           <HybridHostColumn
-            v-model="item.host.type"
+            v-model:list="item.host.list"
+            v-model:type="item.host.type"
+            :cluster-types="['TendbClusterHost']"
+            :count="machineCount(item)"
             field="host.type"
-            :label="t('主机选择方式')"
-            :limit="1"
-            :min-width="200"
-            :spec-ids="getSpecIds(item)"
-            @change="(list) => handleSelectHost(list, item)" />
+            :tab-list-config="tabListConfig(item)" />
           <EditableColumn
             field="count"
             :label="t('缩容数量（台）')"
@@ -103,13 +103,13 @@
   import { useI18n } from 'vue-i18n';
 
   import TendbClusterModel from '@services/model/tendbcluster/tendbcluster';
+  import { getTendbclusterMachineList } from '@services/source/tendbcluster';
 
   import { useCreateTicket } from '@hooks';
 
-  import { TicketTypes } from '@common/const';
+  import { ClusterTypes, TicketTypes } from '@common/const';
 
   import HybridHostColumn, {
-    type HostInfo,
     HostSelectType,
   } from '@views/db-manage/common/toolbox-field/column/hybrid-host-column/Index.vue';
   import IgnoreBiz from '@views/db-manage/common/toolbox-field/form-item/ignore-biz/Index.vue';
@@ -119,13 +119,15 @@
 
   import ClusterColumn from './components/ClusterColumn.vue';
 
+  import type { PanelListType } from '@/components/instance-selector/Index.vue';
+
   interface RowData {
     cluster: {
       id: number;
       master_domain: string;
       role: string;
-      master_spec_ids: number[];
-      slave_spec_ids: number[];
+      master_count: number;
+      slave_count: number;
     };
     host: {
       type: string;
@@ -147,8 +149,8 @@
       id: 0,
       master_domain: '',
       role: '',
-      master_spec_ids: [],
-      slave_spec_ids: [],
+      master_count: 0,
+      slave_count: 0,
     },
     host: data.host || {
       type: '',
@@ -239,8 +241,8 @@
               id: item.id,
               master_domain: item.master_domain,
               role: '',
-              master_spec_ids: item.spider_master.map((item) => item.spec_config?.id),
-              slave_spec_ids: item.spider_slave.map((item) => item.spec_config?.id),
+              master_count: item.spider_master.length,
+              slave_count: item.spider_slave.length,
             },
           }),
         );
@@ -250,17 +252,62 @@
     formData.tableData = [...(selected.value.length ? formData.tableData : []), ...dataList];
   };
 
-  const handleSelectHost = (list: HostInfo[], row: RowData) => {
-    row.host.list = list;
+  const handleChangeRole = (row: RowData) => {
+    row.host.type = HostSelectType.AUTO;
   };
 
-  const getSpecIds = (row: RowData) => {
+  const machineCount = (row: RowData) => {
     if (row.cluster.role === 'spider_master') {
-      return row.cluster.master_spec_ids;
+      return row.cluster.master_count;
     }
     if (row.cluster.role === 'spider_slave') {
-      return row.cluster.slave_spec_ids;
+      return row.cluster.slave_count;
     }
-    return [];
+    return 0;
+  };
+
+  const tabListConfig = (row: RowData) => {
+    const isMater = row.cluster.role === 'spider_master';
+    return {
+      TendbClusterHost: [
+        {
+          name: t('主机选择'),
+          topoConfig: {
+            filterClusterId: row.cluster.id,
+            countFunc: (clusterItem: TendbClusterModel) => {
+              const hostList = isMater ? clusterItem.spider_master : clusterItem.spider_slave;
+              const ipList = hostList.map((hostItem) => hostItem.ip);
+              return new Set(ipList).size;
+            },
+          },
+          tableConfig: {
+            getTableList: (params: ServiceReturnType<typeof getTendbclusterMachineList>) =>
+              getTendbclusterMachineList({
+                ...params,
+                spider_role: isMater ? 'spider_master' : 'spider_slave',
+              }),
+            firsrColumn: {
+              label: isMater ? t('Master 主机') : t('Slave 主机'),
+              field: 'ip',
+              role: '',
+            },
+          },
+        },
+        {
+          tableConfig: {
+            getTableList: (params: ServiceReturnType<typeof getTendbclusterMachineList>) =>
+              getTendbclusterMachineList({
+                ...params,
+                spider_role: isMater ? 'spider_master' : 'spider_slave',
+              }),
+            firsrColumn: {
+              label: isMater ? t('Master 主机') : t('Slave 主机'),
+              field: 'ip',
+              role: '',
+            },
+          },
+        },
+      ],
+    } as unknown as Record<ClusterTypes, PanelListType>;
   };
 </script>

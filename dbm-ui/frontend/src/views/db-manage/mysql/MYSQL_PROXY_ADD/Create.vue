@@ -33,10 +33,13 @@
             v-model="item.cluster"
             :selected="selected"
             @batch-edit="handleBatchEdit" />
-          <SingleHostColumn
+          <SingleResourceHostColumn
             v-model="item.proxy"
             field="proxy.ip"
-            :label="t('新Proxy主机')" />
+            :label="t('新Proxy主机')"
+            :params="{
+              resource_types: [DBTypes.MYSQL, 'PUBLIC'],
+            }" />
           <OperationColumn
             v-model:table-data="formData.tableData"
             :create-row-method="createTableRow" />
@@ -73,9 +76,9 @@
 
   import { useCreateTicket } from '@hooks';
 
-  import { TicketTypes } from '@common/const';
+  import { DBTypes, TicketTypes } from '@common/const';
 
-  import SingleHostColumn from '@views/db-manage/common/toolbox-field/column/single-host-column/Index.vue';
+  import SingleResourceHostColumn from '@views/db-manage/common/toolbox-field/column/single-resource-host-column/Index.vue';
   import TicketPayload, {
     createTickePayload,
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
@@ -212,3 +215,8 @@
     formData.tableData = [...(selected.value.length ? formData.tableData : []), ...dataList];
   };
 </script>
+<style lang="less" scoped>
+  :deep(.is-error .related-clusters) {
+    background: initial;
+  }
+</style>

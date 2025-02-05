@@ -40,6 +40,7 @@
     @change="handleSelectorChange" />
 </template>
 <script lang="ts" setup>
+  import type { ComponentProps } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
@@ -53,12 +54,7 @@
     field: string;
     label: string;
     minWidth?: number;
-    params?: {
-      for_biz?: number;
-      bk_cloud_ids?: string;
-      resource_type?: string;
-      os_type?: string;
-    };
+    params?: ComponentProps<typeof ResourceHostSelector>['params'];
   }
 
   withDefaults(defineProps<Props>(), {
