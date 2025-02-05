@@ -93,6 +93,7 @@
       status: instanceItem.status
     })),
     spec_config: data.spec_config,
+    spec_id: data.spec_id,
     db_module_id: data.db_module_id,
     db_module_name: data.db_module_name,
     role: data.role

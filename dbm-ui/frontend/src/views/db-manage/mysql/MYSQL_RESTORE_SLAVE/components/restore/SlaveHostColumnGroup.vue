@@ -37,22 +37,20 @@
     :label="t('同机关联集群')"
     :loading="loading"
     :min-width="300">
-    <div
-      v-if="modelValue.related_clusters.length"
-      class="table-cell">
+    <EditableBlock v-if="modelValue.related_clusters.length">
       <p
         v-for="item in modelValue.related_clusters"
         :key="item.id">
         {{ item.master_domain }}
       </p>
-    </div>
+    </EditableBlock>
     <EditableBlock
       v-else
       :placeholder="t('自动生成')" />
   </EditableColumn>
   <InstanceSelector
     v-model:is-show="showSelector"
-    :cluster-types="[ClusterTypes.TENDBHA]"
+    :cluster-types="['TendbhaHost']"
     :selected="selectedInstances"
     :tab-list-config="tabListConfig"
     @change="handleSelectorChange" />
@@ -110,14 +108,26 @@
   const { t } = useI18n();
 
   const tabListConfig = {
-    [ClusterTypes.TENDBHA]: [
+    TendbhaHost: [
       {
-        name: t('目标从库'),
+        id: 'TENDBHA_HOST',
+        name: t('目标从库主机'),
         tableConfig: {
           firsrColumn: {
-            label: 'slave',
-            role: 'slave',
+            label: t('Slave 主机'),
             field: 'ip',
+            role: 'backend_slave',
+          },
+        },
+      },
+      {
+        id: 'manualInput',
+        name: t('手动输入'),
+        tableConfig: {
+          firsrColumn: {
+            label: t('Slave 主机'),
+            field: 'ip',
+            role: 'backend_slave',
           },
         },
       },
@@ -192,7 +202,7 @@
   };
 
   const handleSelectorChange = (selected: InstanceSelectorValues<IValue>) => {
-    emits('batch-edit', selected[ClusterTypes.TENDBHA]);
+    emits('batch-edit', selected.TendbhaHost);
   };
 </script>
 <style lang="less" scoped>
@@ -200,9 +210,5 @@
     font-size: 14px;
     color: #3a84ff;
     cursor: pointer;
-  }
-
-  .table-cell {
-    padding: 0 8px;
   }
 </style>

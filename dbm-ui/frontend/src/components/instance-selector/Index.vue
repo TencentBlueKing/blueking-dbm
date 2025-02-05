@@ -120,7 +120,7 @@
     instance_role: string;
     ip: string;
     port: number;
-    status?: string;
+    status: string;
     machine_type: string;
     master_domain: string;
     related_clusters: {
@@ -144,11 +144,11 @@
       bk_instance_id: number;
       admin_port: number;
     }[];
-    spec_config?: TendbclusterMachineModel['spec_config'];
-    spec_id?: number;
+    spec_config: TendbclusterMachineModel['spec_config'];
+    spec_id: number;
     role: string;
-    shard?: string;
-    version?: string;
+    shard: string;
+    version: string;
   }
 
   export type InstanceSelectorValues<T> = Record<string, T[]>;
@@ -314,7 +314,6 @@
       | 'RedisHost'
       | 'mongoCluster'
       | 'TendbSingleHost'
-      | 'TendbHaHost'
     )[];
     tabListConfig?: Record<string, PanelListType>;
     selected?: InstanceSelectorValues<T>;

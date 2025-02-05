@@ -37,15 +37,13 @@
     :label="t('同机关联集群')"
     :loading="loading"
     :min-width="300">
-    <div
-      v-if="modelValue.related_clusters.length"
-      class="table-cell">
+    <EditableBlock v-if="modelValue.related_clusters.length">
       <p
         v-for="item in modelValue.related_clusters"
         :key="item.id">
         {{ item.master_domain }}
       </p>
-    </div>
+    </EditableBlock>
     <EditableBlock
       v-else
       :placeholder="t('自动生成')" />
@@ -201,9 +199,5 @@
     font-size: 14px;
     color: #3a84ff;
     cursor: pointer;
-  }
-
-  .table-cell {
-    padding: 0 8px;
   }
 </style>
