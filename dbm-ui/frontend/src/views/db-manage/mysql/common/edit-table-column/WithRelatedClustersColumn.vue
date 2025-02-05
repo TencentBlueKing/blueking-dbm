@@ -213,4 +213,8 @@
     color: #979ba5;
     background: #fafbfd;
   }
+
+  :deep(.bk-editable-table-column-error) {
+    top: 21.5%;
+  }
 </style>

@@ -61,9 +61,7 @@
     getTableList: NonNullable<TableConfigType['getTableList']>,
   }
 
-  interface Emits {
-    (e: 'change', value: InstanceSelectorValues<IValue>): void;
-  }
+  type Emits = (e: 'change', value: InstanceSelectorValues<IValue>) => void;
 
   const props = withDefaults(defineProps<Props>(), {
     clusterId: undefined,

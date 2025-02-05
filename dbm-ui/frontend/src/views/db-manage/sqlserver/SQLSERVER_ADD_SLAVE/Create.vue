@@ -32,10 +32,13 @@
             v-model="item.cluster"
             :selected="selected"
             @batch-edit="handleBatchEdit" />
-          <SingleHostColumn
+          <SingleResourceHostColumn
             v-model="item.slave"
             field="slave.ip"
-            :label="t('新从库主机')" />
+            :label="t('新从库主机')"
+            :params="{
+              resource_types: [DBTypes.SQLSERVER, 'PUBLIC'],
+            }" />
           <OperationColumn
             v-model:table-data="formData.tableData"
             :create-row-method="createTableRow" />
@@ -74,9 +77,9 @@
 
   import { useCreateTicket } from '@hooks';
 
-  import { TicketTypes } from '@common/const';
+  import { DBTypes, TicketTypes } from '@common/const';
 
-  import SingleHostColumn from '@views/db-manage/common/toolbox-field/column/single-host-column/Index.vue';
+  import SingleResourceHostColumn from '@views/db-manage/common/toolbox-field/column/single-resource-host-column/Index.vue';
   import BackupSource from '@views/db-manage/common/toolbox-field/form-item/backup-source/Index.vue';
   import TicketPayload, {
     createTickePayload,

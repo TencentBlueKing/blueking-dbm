@@ -27,8 +27,8 @@
           target="_blank"
           :to="{
             name: 'bizTicketManage',
-            query: {
-              id: ticketId,
+            params: {
+              ticketId: `${ticketId}`,
             },
           }">
           {{ t('单据') }}
@@ -100,8 +100,8 @@
   const handleGoTicket = () => {
     const route = router.resolve({
       name: 'bizTicketManage',
-      query: {
-        id: ticketId,
+      params: {
+        ticketId: `${ticketId}`,
       },
     });
     window.open(route.href);

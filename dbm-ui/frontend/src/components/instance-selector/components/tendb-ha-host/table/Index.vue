@@ -68,15 +68,13 @@
     // eslint-disable-next-line vue/no-unused-properties
     roleFilterList?: TableConfigType['roleFilterList'],
     disabledRowConfig?: TableConfigType['disabledRowConfig'],
-    // eslint-disable-next-line vue/no-unused-properties
+
     getTableList: NonNullable<TableConfigType['getTableList']>,
     // eslint-disable-next-line vue/no-unused-properties
     statusFilter?: TableConfigType['statusFilter'],
   }
 
-  interface Emits {
-    (e: 'change', value: InstanceSelectorValues<IValue>): void;
-  }
+  type Emits = (e: 'change', value: InstanceSelectorValues<IValue>) => void;
 
   const props = withDefaults(defineProps<Props>(), {
     clusterId: undefined,
