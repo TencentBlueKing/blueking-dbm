@@ -54,6 +54,7 @@
 <script lang="ts" setup>
   import type { Instance, SingleTarget } from 'tippy.js';
   import tippy from 'tippy.js';
+  import type { ComponentProps } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
@@ -70,12 +71,7 @@
     field: string;
     label: string;
     limit: number;
-    params?: {
-      for_biz?: number;
-      bk_cloud_ids?: string;
-      resource_type?: string;
-      os_type?: string;
-    };
+    params?: ComponentProps<typeof ResourceHostSelector>['params'];
   }
 
   interface IHost {

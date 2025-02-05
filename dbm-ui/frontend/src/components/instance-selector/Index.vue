@@ -143,11 +143,11 @@
       status: string;
     }[];
     role: string;
-    shard?: string;
-    spec_config?: TendbclusterMachineModel['spec_config'];
-    spec_id?: number;
-    status?: string;
-    version?: string;
+    shard: string;
+    spec_config: TendbclusterMachineModel['spec_config'];
+    spec_id: number;
+    status: string;
+    version: string;
   }
 
   export type InstanceSelectorValues<T> = Record<string, T[]>;
@@ -312,7 +312,6 @@
       | 'RedisHost'
       | 'mongoCluster'
       | 'TendbSingleHost'
-      | 'TendbHaHost'
     )[];
     disableDialogSubmitMethod?: (hostList: Array<string>) => string | boolean;
     hideManualInput?: boolean;
@@ -328,6 +327,10 @@
     (e: 'cancel'): void;
   };
 
+  defineOptions({
+    name: 'InstanceSelector',
+  });
+
   const props = withDefaults(defineProps<Props>(), {
     disableDialogSubmitMethod: () => false,
     hideManualInput: false,
@@ -340,17 +343,13 @@
 
   const emits = defineEmits<Emits>();
 
-  defineOptions({
-    name: 'InstanceSelector',
-  });
+  const slots = defineSlots<{
+    submitTips?: () => VNode;
+  }>();
 
   const isShow = defineModel<boolean>('isShow', {
     default: false,
   });
-
-  const slots = defineSlots<{
-    submitTips?: () => VNode;
-  }>();
 
   const tabListMap: Record<string, PanelListType> = {
     [ClusterTypes.REDIS]: [
