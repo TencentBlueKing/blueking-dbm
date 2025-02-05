@@ -97,7 +97,7 @@
     ...data,
     related_instances: (data.related_instances || []).map((item, index) => ({
       ...item,
-      cluster_id: data.related_clusters?.[index].id || 0
+      cluster_id: data.related_clusters?.[index]?.id || 0
     })),
   });
 

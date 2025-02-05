@@ -37,15 +37,13 @@
     :label="t('从库主机关联实例')"
     :loading="loading"
     :min-width="150">
-    <div
-      v-if="modelValue.related_instances.length"
-      class="table-cell">
+    <EditableBlock v-if="modelValue.related_instances.length">
       <p
         v-for="item in modelValue.related_instances"
         :key="item">
         {{ item }}
       </p>
-    </div>
+    </EditableBlock>
     <EditableBlock
       v-else
       :placeholder="t('自动生成')" />
@@ -227,9 +225,5 @@
     font-size: 14px;
     color: #3a84ff;
     cursor: pointer;
-  }
-
-  .table-cell {
-    padding: 0 8px;
   }
 </style>

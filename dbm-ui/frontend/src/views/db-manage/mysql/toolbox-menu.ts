@@ -142,7 +142,7 @@ export default [
       },
       {
         name: t('主库故障切换'),
-        id: 'MySQLMasterFailover',
+        id: TicketTypes.MYSQL_MASTER_FAIL_OVER,
         parentId: 'migrate',
         dbConsoleValue: 'mysql.toolbox.masterFailover',
       },

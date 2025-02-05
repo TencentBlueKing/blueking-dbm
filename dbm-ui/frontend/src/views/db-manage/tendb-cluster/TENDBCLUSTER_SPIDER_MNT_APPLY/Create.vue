@@ -40,10 +40,13 @@
               v-model="item.cluster.bk_cloud_name"
               :placeholder="t('自动生成')" />
           </EditableColumn>
-          <SingleHostColumn
+          <SingleResourceHostColumn
             v-model="item.host"
             field="host.ip"
-            :label="t('运维节点 IP')" />
+            :label="t('运维节点 IP')"
+            :params="{
+              resource_types: [DBTypes.TENDBCLUSTER, 'PUBLIC'],
+            }" />
           <OperationColumn
             v-model:table-data="formData.tableData"
             :create-row-method="createTableRow" />
@@ -80,9 +83,9 @@
 
   import { useCreateTicket } from '@hooks';
 
-  import { TicketTypes } from '@common/const';
+  import { DBTypes, TicketTypes } from '@common/const';
 
-  import SingleHostColumn from '@views/db-manage/common/toolbox-field/column/single-host-column/Index.vue';
+  import SingleResourceHostColumn from '@views/db-manage/common/toolbox-field/column/single-resource-host-column/Index.vue';
   import TicketPayload, {
     createTickePayload,
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';

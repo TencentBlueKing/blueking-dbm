@@ -14,54 +14,53 @@
 <template>
   <EditableColumn
     :field="field"
-    :label="label"
+    :label="t(label)"
     :min-width="minWidth"
     required
     :rule="rules">
     <EditableSelect
-      v-model="modelValue"
+      v-model="selectType"
       :list="selectList"
       @change="handleSelectChange">
       <template #option="{ item }">
-        <div class="spec-display">
+        <div class="flex-center">
           {{ item.label }}
-          <span class="spec-display-count">{{ countMap[item.value] }}</span>
+          <span class="flex-center-count">{{ count }}</span>
         </div>
       </template>
       <template #trigger>
-        <EditableInput
-          v-if="modelValue === HostSelectType.MANUAL"
-          v-model="localValue"
-          :placeholder="t('请选择主机')">
-          <template #default>
-            <span ref="rootRef">{{ localValue }}</span>
-          </template>
-          <template #append>
-            <DbIcon
-              v-bk-tooltips="t('从资源池选择')"
-              class="select-icon"
-              type="host-select"
-              @click.stop="handleShowSelector" />
-          </template>
-        </EditableInput>
         <div
-          v-else-if="modelValue === HostSelectType.AUTO"
+          v-if="selectType === HostSelectType.MANUAL"
           class="table-cell">
+          <EditableTagInput
+            v-model="renderText"
+            :placeholder="t('请选择主机')"
+            @remove="handleRemove"
+            @remove-all="handleRemoveAll" />
+          <DbIcon
+            class="select-icon"
+            type="host-select"
+            @click.stop="handleShowSelector" />
+        </div>
+        <div
+          v-else-if="selectType === HostSelectType.AUTO"
+          class="table-cell pl-8">
           {{ t('自动匹配') }}
         </div>
         <div
           v-else
-          class="table-cell placeholder-text">
+          class="table-cell pl-8 placeholder-text">
           {{ t(placeholder) }}
         </div>
       </template>
     </EditableSelect>
   </EditableColumn>
-  <ResourceHostSelector
+  <InstanceSelector
+    v-if="selectType === HostSelectType.MANUAL"
     v-model:is-show="showSelector"
-    v-mode="hostList"
-    :limit="limit"
-    :params="params"
+    :cluster-types="clusterTypes"
+    :selected="selected"
+    :tab-list-config="tabListConfig"
     @change="handleSelectorChange" />
 </template>
 
@@ -72,59 +71,52 @@
   }
 </script>
 <script setup lang="ts">
+  import _ from 'lodash';
+  import type { ComponentProps } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
-  import { useRequest } from 'vue-request';
 
-  import { getSpecResourceCount } from '@services/source/dbresourceResource';
+  import { ClusterTypes } from '@common/const';
 
-  import ResourceHostSelector, { type IValue } from '@components/resource-host-selector/Index.vue';
-
-  export type HostInfo = IValue;
+  import InstanceSelector, { type InstanceSelectorValues, type IValue } from '@components/instance-selector/Index.vue';
 
   interface Props {
-    field: string; // 绑选项值的vmodel，不绑主机列表
-    label: string;
-    limit: number;
+    field: string; // 主机选择方式
+    label?: string;
     minWidth?: number;
     placeholder?: string;
-    bkCloudId?: number;
-    specIds?: number[];
-    params?: {
-      for_biz?: number;
-      bk_cloud_ids?: string;
-      resource_type?: string;
-      os_type?: string;
-    };
-  }
-
-  interface Emits {
-    (e: 'change', list: IValue[]): void;
+    clusterTypes: (ClusterTypes | 'TendbClusterHost' | 'mongoCluster')[];
+    tabListConfig: ComponentProps<typeof InstanceSelector>['tabListConfig'];
+    count: number;
   }
 
   const props = withDefaults(defineProps<Props>(), {
-    minWidth: 300,
+    label: '主机选择方式',
+    minWidth: 200,
     placeholder: '请选择',
-    bkCloudId: 0,
-    specIds: () => [],
-    params: () => ({}),
   });
-
-  const emits = defineEmits<Emits>();
 
   const { t } = useI18n();
 
-  const modelValue = defineModel<string>({
+  const selectType = defineModel<string>('type', {
     default: '',
   });
 
-  const showSelector = ref(false);
-  const hostList = ref<IValue[]>([]);
-  const localValue = ref('');
-
-  const countMap = reactive<Record<string, number>>({
-    [HostSelectType.AUTO]: 0,
-    [HostSelectType.MANUAL]: 0,
+  const hostList = defineModel<
+    {
+      bk_biz_id: number;
+      bk_cloud_id: number;
+      bk_host_id: number;
+      ip: string;
+      instance_address?: string;
+    }[]
+  >('list', {
+    default: () => [],
   });
+
+  const showSelector = ref(false);
+  const selected = shallowRef<InstanceSelectorValues<IValue>>({});
+  const firsrColumnKey = computed<'ip' | 'instance_address'>(() => props.tabListConfig?.firsrColumn?.field || 'ip');
+  const renderText = computed(() => hostList.value.map((item) => item[firsrColumnKey.value] as string));
 
   const selectList = [
     {
@@ -147,51 +139,58 @@
         if (value === HostSelectType.AUTO) {
           return true;
         }
-        return Boolean(localValue.value);
+        return Boolean(renderText.value);
       },
       message: t('请选择主机'),
     },
   ];
 
-  const { run: fetchSpecResourceCount } = useRequest(getSpecResourceCount, {
-    manual: true,
-    onSuccess(countResult) {
-      countMap[HostSelectType.AUTO] = Object.values(countResult).reduce<number>((acc, cur) => acc + cur, 0);
-    },
-  });
-
-  watch(
-    () => props.specIds,
-    () => {
-      if (props.specIds.length) {
-        fetchSpecResourceCount({
-          bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-          bk_cloud_id: props.bkCloudId,
-          spec_ids: props.specIds,
-        });
-      }
-    },
-  );
-
   const handleShowSelector = () => {
     showSelector.value = true;
   };
 
-  const handleSelectorChange = (data: IValue[]) => {
-    hostList.value = data;
-    localValue.value = data.map((item) => item.ip).join(',');
-    emits('change', hostList.value);
+  const handleRemoveAll = () => {
+    hostList.value = [];
+    props.clusterTypes.forEach((clusterType) => {
+      selected.value[clusterType] = [];
+    });
+  };
+
+  const handleRemove = (removeItem: { id: string; name: string }) => {
+    const removeIndex = hostList.value.findIndex((item) => item[firsrColumnKey.value] === removeItem.id);
+    hostList.value.splice(removeIndex, 1);
+    props.clusterTypes.forEach((clusterType) => {
+      const removeIndex = selected.value[clusterType].findIndex((item) => item[firsrColumnKey.value] === removeItem.id);
+      selected.value[clusterType].splice(removeIndex, 1);
+    });
+  };
+
+  const handleSelectorChange = (selectedValues: InstanceSelectorValues<IValue>) => {
+    selected.value = selectedValues;
+    hostList.value = _.flatten(Object.values(selectedValues)).map((item) => {
+      const base: (typeof hostList.value)[0] = {
+        bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+        bk_cloud_id: item.bk_cloud_id,
+        bk_host_id: item.bk_host_id,
+        ip: item.ip,
+      };
+      if (firsrColumnKey.value === 'instance_address') {
+        base.instance_address = item.instance_address;
+      }
+      return base;
+    });
   };
 
   const handleSelectChange = () => {
-    handleSelectorChange([]);
+    handleSelectorChange({});
   };
 </script>
 
 <style lang="less" scoped>
   .table-cell {
-    flex: 1;
-    padding: 0 8px;
+    display: flex;
+    align-items: center;
+    min-height: 40px;
   }
 
   .select-icon {
@@ -207,14 +206,14 @@
     }
   }
 
-  .spec-display {
+  .flex-center {
     display: flex;
     width: 100%;
     flex: 1;
     align-items: center;
     justify-content: space-between;
 
-    .spec-display-count {
+    .flex-center-count {
       height: 16px;
       min-width: 20px;
       font-size: 12px;

@@ -73,15 +73,15 @@
     id?: number;
     master_domain: string;
     role: string;
-    master_spec_ids: number[];
-    slave_spec_ids: number[];
+    master_count: number;
+    slave_count: number;
   }>({
     default: () => ({
       id: undefined,
       master_domain: '',
       role: '',
-      master_spec_ids: [],
-      slave_spec_ids: [],
+      master_count: 0,
+      slave_count: 0,
     }),
   });
 
@@ -103,7 +103,7 @@
       disabledRowConfig: [
         {
           handler: (data: TendbClusterModel) => data.spider_master.length <= 2 && data.spider_slave.length <= 1,
-          tip: t('Master 至少保留 2 台 ，Slave 至少 保留 1台'),
+          tip: t('Spider_Master至少保留2台_Spider_Slave至少保留1台'),
         },
       ],
     },
@@ -141,8 +141,8 @@
           id: currentCluster.id,
           master_domain: currentCluster.master_domain,
           role: '',
-          master_spec_ids: currentCluster.spider_master.map((item) => item.spec_config.id),
-          slave_spec_ids: currentCluster.spider_slave.map((item) => item.spec_config.id),
+          master_count: currentCluster.spider_master.length,
+          slave_count: currentCluster.spider_slave.length,
         };
       }
     },
@@ -157,8 +157,8 @@
       id: undefined,
       master_domain: value,
       role: '',
-      master_spec_ids: [],
-      slave_spec_ids: [],
+      master_count: 0,
+      slave_count: 0,
     };
     if (value) {
       queryCluster({

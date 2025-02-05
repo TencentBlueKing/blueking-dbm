@@ -23,10 +23,13 @@
         v-model="item.originProxy"
         :selected="selected"
         @batch-edit="handleBatchEdit" />
-      <SingleHostColumn
+      <SingleResourceHostColumn
         v-model="item.targetProxy"
         field="targetProxy.ip"
-        :label="t('新Proxy主机')" />
+        :label="t('新Proxy主机')"
+        :params="{
+          resource_types: [DBTypes.MYSQL, 'PUBLIC'],
+        }" />
       <OperationColumn
         v-model:table-data="tableData"
         :create-row-method="createTableRow" />
@@ -37,7 +40,9 @@
   import { useTemplateRef } from 'vue';
   import { useI18n } from 'vue-i18n';
 
-  import SingleHostColumn from '@views/db-manage/common/toolbox-field/column/single-host-column/Index.vue';
+  import { DBTypes } from '@common/const';
+
+  import SingleResourceHostColumn from '@views/db-manage/common/toolbox-field/column/single-resource-host-column/Index.vue';
 
   import { ProxyReplaceTypes } from '../types';
 
