@@ -37,16 +37,13 @@
     :label="t('同机关联实例')"
     :loading="loading"
     :min-width="300">
-    <div
-      v-if="modelValue.related_instances.length"
-      class="related-clusters"
-      style="flex: 1">
+    <EditableBlock v-if="modelValue.related_instances.length">
       <p
         v-for="item in modelValue.related_instances"
         :key="item">
         {{ item }}
       </p>
-    </div>
+    </EditableBlock>
     <EditableBlock
       v-else
       :placeholder="t('自动生成')" />
@@ -55,16 +52,13 @@
     :label="t('同机关联集群')"
     :loading="loading"
     :min-width="300">
-    <div
-      v-if="modelValue.related_clusters.length"
-      class="related-clusters"
-      style="flex: 1">
+    <EditableBlock v-if="modelValue.related_clusters.length">
       <p
         v-for="item in modelValue.related_clusters"
         :key="item">
         {{ item }}
       </p>
-    </div>
+    </EditableBlock>
     <EditableBlock
       v-else
       :placeholder="t('自动生成')" />
@@ -241,17 +235,5 @@
     font-size: 14px;
     color: #3a84ff;
     cursor: pointer;
-  }
-
-  .related-clusters {
-    padding: 10px 16px;
-    line-height: 20px;
-    background: #fff;
-
-    p {
-      width: 100%;
-      overflow-x: hidden;
-      text-overflow: ellipsis;
-    }
   }
 </style>

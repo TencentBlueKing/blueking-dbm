@@ -70,14 +70,7 @@ export const mysqlToolboxChildrenRouters: RouteRecordRaw[] = [
     component: () => import('@views/db-manage/mysql/master-slave-swap/index.vue'),
   },
   createRouteItem(TicketTypes.MYSQL_PROXY_SWITCH, t('替换Proxy')),
-  {
-    path: 'master-failover/:page?',
-    name: 'MySQLMasterFailover',
-    meta: {
-      navName: t('主库故障切换'),
-    },
-    component: () => import('@views/db-manage/mysql/master-failover/index.vue'),
-  },
+  createRouteItem(TicketTypes.MYSQL_MASTER_FAIL_OVER, t('主库故障切换')),
   {
     path: 'db-table-backup/:page?',
     name: 'MySQLDBTableBackup',

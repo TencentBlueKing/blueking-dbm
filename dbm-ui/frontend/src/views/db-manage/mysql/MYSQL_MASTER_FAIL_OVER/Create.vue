@@ -16,7 +16,7 @@
     <BkAlert
       class="mb-20"
       closable
-      :title="t('添加从库_同机的所有集群会统一新增从库_但新机器不添加到域名解析中去')" />
+      :title="t('Slave提升成主库_断开同步_切换后集成成单点状态_一般用于紧急切换')" />
     <BkForm
       class="mb-20"
       form-type="vertical"
@@ -24,28 +24,38 @@
       <EditableTable
         ref="table"
         class="mb-20"
-        :model="formData.tableData"
-        :rules="rules">
+        :model="formData.tableData">
         <EditableRow
           v-for="(item, index) in formData.tableData"
           :key="index">
-          <WithRelatedClustersColumn
-            v-model="item.cluster"
+          <MasterHostColumn
+            v-model="item.master"
             :selected="selected"
             @batch-edit="handleBatchEdit" />
-          <SingleResourceHostColumn
+          <SlaveHostColumn
             v-model="item.slave"
-            field="slave.ip"
-            :label="t('新从库主机')"
-            :params="{
-              resource_types: [DBTypes.MYSQL, 'PUBLIC'],
-            }" />
+            :master-host="item.master" />
+          <EditableColumn
+            :label="t('同机关联的集群')"
+            :min-width="150"
+            required>
+            <EditableBlock v-if="item.master.related_clusters.length">
+              <p
+                v-for="cluster in item.master.related_clusters"
+                :key="cluster.id">
+                {{ cluster.master_domain }}
+              </p>
+            </EditableBlock>
+            <EditableBlock
+              v-else
+              :placeholder="t('自动生成')" />
+          </EditableColumn>
           <OperationColumn
             v-model:table-data="formData.tableData"
             :create-row-method="createTableRow" />
         </EditableRow>
       </EditableTable>
-      <BackupSource v-model="formData.backupSource" />
+      <CheckPayload v-model="formData" />
       <TicketPayload v-model="formData" />
     </BkForm>
     <template #action>
@@ -73,24 +83,26 @@
   import { reactive, useTemplateRef } from 'vue';
   import { useI18n } from 'vue-i18n';
 
-  import TendbhaModel from '@services/model/mysql/tendbha';
-  import { BackupSourceType } from '@services/types';
-
   import { useCreateTicket } from '@hooks';
 
-  import { DBTypes, TicketTypes } from '@common/const';
+  import { TicketTypes } from '@common/const';
 
-  import SingleResourceHostColumn from '@views/db-manage/common/toolbox-field/column/single-resource-host-column/Index.vue';
-  import BackupSource from '@views/db-manage/common/toolbox-field/form-item/backup-source/Index.vue';
+  import CheckPayload, {
+    createCheckPayload,
+  } from '@views/db-manage/common/toolbox-field/form-item/check-payload/Index.vue';
   import TicketPayload, {
     createTickePayload,
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
-  import WithRelatedClustersColumn from '@views/db-manage/mysql/common/edit-table-column/WithRelatedClustersColumn.vue';
+
+  import MasterHostColumn, { type SelectorHost } from './components/MasterHostColumn.vue';
+  import SlaveHostColumn from './components/SlaveHostColumn.vue';
 
   interface RowData {
-    cluster: {
-      id: number;
-      master_domain: string;
+    master: {
+      bk_biz_id: number;
+      bk_cloud_id: number;
+      bk_host_id: number;
+      ip: string;
       related_clusters: {
         id: number;
         master_domain: string;
@@ -107,68 +119,55 @@
   const { t } = useI18n();
   const tableRef = useTemplateRef('table');
 
-  const createTableRow = (data = {} as Partial<RowData>) => ({
-    cluster: data.cluster || {
-      id: 0,
-      master_domain: '',
-      related_clusters: [],
-    },
-    slave: data.slave || {
+  const createTableRow = (data = {} as Partial<RowData>) => {
+    const initHost = () => ({
       bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
       bk_cloud_id: 0,
       bk_host_id: 0,
       ip: '',
-    },
-  });
+    });
+    return {
+      master: data.master || {
+        ...initHost(),
+        related_clusters: [] as RowData['master']['related_clusters'],
+      },
+      slave: data.slave || initHost(),
+    };
+  };
 
   const defaultData = () => ({
     tableData: [createTableRow()],
-    backupSource: BackupSourceType.REMOTE,
+    ...createCheckPayload(),
     ...createTickePayload(),
   });
 
   const formData = reactive(defaultData());
-  // 表格行内已通过校验的集群为所选集群
-  const selected = computed(() => formData.tableData.filter((item) => item.cluster.id).map((item) => item.cluster));
-  // 集群域名到自身及其下集群id、域名映射
-  const clusterMap = computed(() => {
-    const result = selected.value.reduce<Record<string, { ids: number[]; domains: string[] }>>((acc, cur) => {
-      acc[cur.master_domain] = {
-        ids: [cur.id, ...cur.related_clusters.map((item) => item.id)],
-        domains: [cur.master_domain, ...cur.related_clusters.map((item) => item.master_domain)],
-      };
-      return acc;
-    }, {});
-    return result;
-  });
 
-  const rules = {
-    'cluster.master_domain': [
-      {
-        validator: (value: string) => {
-          const repeatTarget = Object.keys(clusterMap.value).find(
-            (domain) => clusterMap.value[domain].domains.includes(value) && domain !== value,
-          );
-          return repeatTarget ? t('目标集群是集群target的关联集群_请勿重复添加', { target: repeatTarget }) : true;
-        },
-        message: '',
-        trigger: 'blur',
-      },
-    ],
-  };
+  const selected = computed(() =>
+    formData.tableData.filter((item) => item.master.bk_host_id).map((item) => item.master),
+  );
+  const selectedMap = computed(() => Object.fromEntries(selected.value.map((cur) => [cur.ip, true])));
 
   const { run: createTicketRun, loading: isSubmitting } = useCreateTicket<{
-    backup_source: BackupSourceType;
     infos: {
       cluster_ids: number[];
-      new_slave: {
+      master_ip: {
+        bk_biz_id: number;
+        bk_cloud_id: number;
+        bk_host_id: number;
+        ip: string;
+      };
+      slave_ip: {
         bk_biz_id: number;
         bk_cloud_id: number;
         bk_host_id: number;
         ip: string;
       };
     }[];
-  }>(TicketTypes.MYSQL_ADD_SLAVE);
+    is_check_delay: boolean;
+    is_check_process: boolean;
+    is_verify_checksum: boolean;
+  }>(TicketTypes.MYSQL_MASTER_FAIL_OVER);
 
   const handleSubmit = async () => {
     const result = await tableRef.value!.validate();
@@ -177,12 +176,19 @@
     }
     createTicketRun({
       details: {
-        backup_source: formData.backupSource,
         infos: formData.tableData.map((item) => ({
-          cluster_ids: [item.cluster.id, ...item.cluster.related_clusters.map((item) => item.id)],
-          new_master: item.slave,
-          new_slave: item.slave,
+          cluster_ids: item.master.related_clusters.map((item) => item.id),
+          master_ip: {
+            bk_biz_id: item.master.bk_biz_id,
+            bk_cloud_id: item.master.bk_cloud_id,
+            bk_host_id: item.master.bk_host_id,
+            ip: item.master.ip,
+          },
+          slave_ip: item.slave,
         })),
+        is_check_delay: formData.is_check_delay,
+        is_check_process: formData.is_check_process,
+        is_verify_checksum: formData.is_verify_checksum,
       },
       remark: formData.remark,
     });
@@ -192,15 +198,20 @@
     Object.assign(formData, defaultData());
   };
 
-  const handleBatchEdit = (list: TendbhaModel[]) => {
+  const handleBatchEdit = (list: SelectorHost[]) => {
     const dataList = list.reduce<RowData[]>((acc, item) => {
-      if (!clusterMap.value[item.master_domain]) {
+      if (!selectedMap.value[item.ip]) {
         acc.push(
           createTableRow({
-            cluster: {
-              id: item.id,
-              master_domain: item.master_domain,
-              related_clusters: [],
+            master: {
+              bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+              bk_cloud_id: item.bk_cloud_id,
+              bk_host_id: item.bk_host_id,
+              ip: item.ip,
+              related_clusters: item.related_clusters.map((item) => ({
+                id: item.id,
+                master_domain: item.immute_domain,
+              })),
             },
           }),
         );
@@ -210,8 +221,3 @@
     formData.tableData = [...(selected.value.length ? formData.tableData : []), ...dataList];
   };
 </script>
-<style lang="less" scoped>
-  :deep(.is-error .related-clusters) {
-    background: initial;
-  }
-</style>

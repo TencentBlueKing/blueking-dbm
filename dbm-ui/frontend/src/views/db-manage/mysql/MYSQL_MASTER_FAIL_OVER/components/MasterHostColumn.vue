@@ -14,9 +14,9 @@
 <template>
   <EditableColumn
     :append-rules="rules"
-    field="oldMaster.ip"
+    field="master.ip"
     fixed="left"
-    :label="t('目标主库主机')"
+    :label="t('故障主库主机')"
     :loading="loading"
     :min-width="150"
     required>
@@ -33,25 +33,11 @@
       :placeholder="t('请输入IP')"
       @change="handleInputChange" />
   </EditableColumn>
-  <EditableColumn
-    :label="t('主库主机关联实例')"
-    :loading="loading"
-    :min-width="150">
-    <EditableBlock v-if="modelValue.related_instances.length">
-      <p
-        v-for="item in modelValue.related_instances"
-        :key="item">
-        {{ item }}
-      </p>
-    </EditableBlock>
-    <EditableBlock
-      v-else
-      :placeholder="t('自动生成')" />
-  </EditableColumn>
   <InstanceSelector
     v-model:is-show="showSelector"
-    :cluster-types="['TendbClusterHost']"
-    :selected="selectedHosts"
+    :cluster-types="['TendbhaHost']"
+    :selected="selectedInstances"
+    :tab-list-config="tabListConfig"
     @change="handleSelectorChange" />
 </template>
 <script lang="ts" setup>
@@ -60,17 +46,19 @@
 
   import { checkInstance } from '@services/source/dbbase';
 
+  import { ClusterTypes } from '@common/const';
   import { ipv4 } from '@common/regex';
 
-  import InstanceSelector, { type InstanceSelectorValues, type IValue } from '@components/instance-selector/Index.vue';
+  import InstanceSelector, {
+    type InstanceSelectorValues,
+    type IValue,
+    type PanelListType,
+  } from '@components/instance-selector/Index.vue';
 
   export type SelectorHost = IValue;
 
   interface Props {
     selected: {
-      bk_biz_id?: number;
-      bk_cloud_id?: number;
-      bk_host_id?: number;
       ip: string;
     }[];
   }
@@ -88,28 +76,52 @@
     bk_cloud_id: number;
     bk_host_id?: number;
     ip: string;
-    related_instances: string[];
-    cluster_id: number;
-    master_domain: string;
-    spec_id: number;
+    related_clusters: {
+      id: number;
+      master_domain: string;
+    }[];
   }>({
     default: () => ({
       bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
       bk_cloud_id: 0,
       bk_host_id: undefined,
       ip: '',
-      related_instances: [],
-      cluster_id: 0,
-      master_domain: '',
-      spec_id: 0,
+      related_clusters: [],
     }),
   });
 
   const { t } = useI18n();
 
+  const tabListConfig = {
+    TendbhaHost: [
+      {
+        id: 'TENDBHA_HOST',
+        name: t('故障主库主机'),
+        tableConfig: {
+          firsrColumn: {
+            label: t('Master 主机'),
+            field: 'ip',
+            role: 'backend_master',
+          },
+        },
+      },
+      {
+        id: 'manualInput',
+        name: t('手动输入'),
+        tableConfig: {
+          firsrColumn: {
+            label: t('Master 主机'),
+            field: 'ip',
+            role: 'backend_master',
+          },
+        },
+      },
+    ],
+  } as unknown as Record<ClusterTypes, PanelListType>;
+
   const showSelector = ref(false);
-  const selectedHosts = computed<InstanceSelectorValues<IValue>>(() => ({
-    TendbClusterHost: props.selected.map(
+  const selectedInstances = computed<InstanceSelectorValues<IValue>>(() => ({
+    TendbhaHost: props.selected.map(
       (item) =>
         ({
           ip: item.ip,
@@ -126,7 +138,7 @@
     {
       validator: (value: string) => props.selected.filter((item) => item.ip === value).length < 2,
       message: t('目标主机重复'),
-      trigger: 'change',
+      trigger: 'blur',
     },
     {
       validator: () => Boolean(modelValue.value.bk_host_id),
@@ -139,20 +151,16 @@
     manual: true,
     onSuccess: (data) => {
       if (data.length) {
-        const currentHost = data[0];
-        const relatedInstances: string[] = [];
-        data.forEach((item) => {
-          relatedInstances.push(item.instance_address);
-        });
+        const [currentHost] = data;
         modelValue.value = {
           bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
           bk_cloud_id: currentHost.bk_cloud_id,
           bk_host_id: currentHost.bk_host_id,
           ip: currentHost.ip,
-          related_instances: relatedInstances,
-          cluster_id: currentHost.cluster_id,
-          master_domain: currentHost.master_domain,
-          spec_id: currentHost.spec_config.id,
+          related_clusters: currentHost.related_clusters.map((item) => ({
+            id: item.id,
+            master_domain: item.master_domain,
+          })),
         };
       }
     },
@@ -168,10 +176,7 @@
       bk_cloud_id: 0,
       bk_host_id: undefined,
       ip: value,
-      related_instances: [],
-      cluster_id: 0,
-      master_domain: '',
-      spec_id: 0,
+      related_clusters: [],
     };
     if (value) {
       queryHost({
@@ -182,7 +187,7 @@
   };
 
   const handleSelectorChange = (selected: InstanceSelectorValues<IValue>) => {
-    emits('batch-edit', selected.TendbClusterHost);
+    emits('batch-edit', selected.TendbhaHost);
   };
 </script>
 <style lang="less" scoped>
@@ -190,5 +195,9 @@
     font-size: 14px;
     color: #3a84ff;
     cursor: pointer;
+  }
+
+  .table-cell {
+    padding: 0 8px;
   }
 </style>
