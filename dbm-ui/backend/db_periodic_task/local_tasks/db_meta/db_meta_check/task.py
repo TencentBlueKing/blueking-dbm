@@ -18,7 +18,7 @@ from backend.db_periodic_task.local_tasks.register import register_periodic_task
 from backend.db_report.models import MetaCheckReport
 
 from .check_redis_instance import check_redis_instance
-from .mysql_cluster_topo.tendbha import health_check
+from .mysql_cluster_topo import tendbcluster, tendbha
 from .sqlserver_cluster_topo.check import sqlserver_dbmeta_check
 
 logger = logging.getLogger("celery")
@@ -36,7 +36,15 @@ def db_meta_check_task():
 def tendbha_topo_daily_check():
     for c in Cluster.objects.filter(cluster_type=ClusterType.TenDBHA):
         r: MetaCheckReport
-        for r in health_check(c.id):
+        for r in tendbha.health_check(c.id):
+            r.save()
+
+
+@register_periodic_task(run_every=crontab(hour=2, minute=30))
+def tendbcluster_topo_daily_check():
+    for c in Cluster.objects.filter(cluster_type=ClusterType.TenDBCluster):
+        r: MetaCheckReport
+        for r in tendbcluster.health_check(c.id):
             r.save()
 
 

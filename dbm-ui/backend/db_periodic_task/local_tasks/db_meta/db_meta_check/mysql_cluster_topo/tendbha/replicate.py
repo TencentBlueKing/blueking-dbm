@@ -20,7 +20,7 @@ from backend.db_report.enums import MetaCheckSubType
 
 
 @checker_wrapper
-def _cluster_master_as_ejector(c: Cluster) -> List[CheckResponse]:
+def cluster_master_as_ejector(c: Cluster) -> List[CheckResponse]:
     """
     master 只能是 ejector
     """
@@ -40,7 +40,7 @@ def _cluster_master_as_ejector(c: Cluster) -> List[CheckResponse]:
 
 
 @checker_wrapper
-def _cluster_slave_as_receiver(c: Cluster) -> List[CheckResponse]:
+def cluster_slave_as_receiver(c: Cluster) -> List[CheckResponse]:
     """
     slave 只能是 receiver
     """
@@ -60,7 +60,7 @@ def _cluster_slave_as_receiver(c: Cluster) -> List[CheckResponse]:
 
 
 @checker_wrapper
-def _cluster_replicate_out(c: Cluster) -> List[CheckResponse]:
+def cluster_replicate_out(c: Cluster) -> List[CheckResponse]:
     """
     不能同步到集群外部
     """

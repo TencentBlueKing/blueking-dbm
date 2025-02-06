@@ -13,13 +13,16 @@ from typing import List
 from backend.db_meta.enums import ClusterType
 from backend.db_meta.models import Cluster
 from backend.db_periodic_task.local_tasks.db_meta.db_meta_check.mysql_cluster_topo.check_response import CheckResponse
-from backend.db_periodic_task.local_tasks.db_meta.db_meta_check.mysql_cluster_topo.tendbha.access_relate import (
-    _cluster_proxy_access_master,
+from backend.db_periodic_task.local_tasks.db_meta.db_meta_check.mysql_cluster_topo.tendbcluster.access_relate import (
+    _cluster_spider_access_remote,
 )
-from backend.db_periodic_task.local_tasks.db_meta.db_meta_check.mysql_cluster_topo.tendbha.entry_bind import (
-    _cluster_entry_real_bind,
-    _cluster_master_entry_on_proxy,
-    _cluster_master_entry_on_storage,
+from backend.db_periodic_task.local_tasks.db_meta.db_meta_check.mysql_cluster_topo.tendbcluster.entry_bind import (
+    _cluster_entry_on_spider,
+    _cluster_entry_on_storage,
+)
+from backend.db_periodic_task.local_tasks.db_meta.db_meta_check.mysql_cluster_topo.tendbcluster.status import (
+    _cluster_master_remote_count,
+    _cluster_master_spider_count,
 )
 from backend.db_periodic_task.local_tasks.db_meta.db_meta_check.mysql_cluster_topo.tendbha.replicate import (
     cluster_master_as_ejector,
@@ -27,12 +30,9 @@ from backend.db_periodic_task.local_tasks.db_meta.db_meta_check.mysql_cluster_to
     cluster_slave_as_receiver,
 )
 from backend.db_periodic_task.local_tasks.db_meta.db_meta_check.mysql_cluster_topo.tendbha.status import (
-    _cluster_proxy_count,
     cluster_instance_status,
     cluster_master_entry_count,
     cluster_master_status,
-    cluster_one_master,
-    cluster_one_standby_slave,
     cluster_standby_slave_status,
     cluster_status,
 )
@@ -43,23 +43,23 @@ from backend.db_periodic_task.local_tasks.db_meta.db_meta_check.mysql_cluster_to
 
 def health_check(cluster_id: int) -> List[CheckResponse]:
     """
-    所有检查项应相互独立
     集群状态正常
     主入口数 >= 1
-    proxy 数 >= 2
-    唯一 master
+    主 spider >= 2
     master 状态正常
-    唯一 standby slave
+    master 实例数和分片数一致
+    每个 master 实例唯一 standby slave
     standby slave 状态正常
-    主入口 bind 的 proxy 必须和集群正常 proxy 数量一致
-    主入口不能 bind 到存储
-    ToDo 检查域名真实的 bind 配置
-    proxy 只能访问 master
+    主/从入口 bind 的 spider 必须和正常 spider 数量一致
+    master spider 只能访问 remote master
+    slave spider 只能访问 remote slave
+    mnt master spider 只能访问 remote master
+    mnt slave spider 只能访问 remote slave
     master 只能作为 ejector
     slave 只能作为 receiver
     不允许有到集群外部的同步关系
     """
-    qs = Cluster.objects.filter(cluster_type=ClusterType.TenDBHA).prefetch_related(
+    qs = Cluster.objects.filter(cluster_type=ClusterType.TenDBCluster).prefetch_related(
         "clusterentry_set__proxyinstance_set",
         "clusterentry_set__storageinstance_set",
         "proxyinstance_set__storageinstance",
@@ -67,30 +67,28 @@ def health_check(cluster_id: int) -> List[CheckResponse]:
         "storageinstance_set__as_ejector__receiver__cluster",
         "storageinstance_set__cluster",
         "proxyinstance_set__cluster",
+        "tendbclusterstorageset_set",
     )
     cluster_obj = qs.get(id=cluster_id)
 
     res = []
-    # unique_cluster.py
+    # unique
     res.extend(cluster_instance_unique_cluster(cluster_obj))
-    # status.py
+    # status
     res.extend(cluster_status(cluster_obj))
     res.extend(cluster_instance_status(cluster_obj))
     res.extend(cluster_master_entry_count(cluster_obj))
-    res.extend(_cluster_proxy_count(cluster_obj))
-    res.extend(cluster_one_master(cluster_obj))
+    res.extend(_cluster_master_spider_count(cluster_obj))
     res.extend(cluster_master_status(cluster_obj))
-    res.extend(cluster_one_standby_slave(cluster_obj))
+    res.extend(_cluster_master_remote_count(cluster_obj))
     res.extend(cluster_standby_slave_status(cluster_obj))
-    # entry_bind.py
-    res.extend(_cluster_master_entry_on_proxy(cluster_obj))
-    res.extend(_cluster_master_entry_on_storage(cluster_obj))
-    res.extend(_cluster_entry_real_bind(cluster_obj))
-    # access_relate.py
-    res.extend(_cluster_proxy_access_master(cluster_obj))
-    # replicate.py
+    # bind
+    res.extend(_cluster_entry_on_spider(cluster_obj))
+    res.extend(_cluster_entry_on_storage(cluster_obj))
+    # access relate
+    res.extend(_cluster_spider_access_remote(cluster_obj))
+    # replicate
     res.extend(cluster_master_as_ejector(cluster_obj))
     res.extend(cluster_slave_as_receiver(cluster_obj))
     res.extend(cluster_replicate_out(cluster_obj))
-
     return res

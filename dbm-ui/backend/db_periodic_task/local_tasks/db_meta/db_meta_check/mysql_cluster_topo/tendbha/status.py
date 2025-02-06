@@ -21,18 +21,21 @@ from backend.db_report.enums import MetaCheckSubType
 
 
 @checker_wrapper
-def _cluster_status(c: Cluster) -> List[CheckResponse]:
+def cluster_status(c: Cluster) -> List[CheckResponse]:
+    bad = []
     if c.status != ClusterStatus.NORMAL:
-        return [
+        bad.append(
             CheckResponse(
                 msg=_("集群状态异常: {}".format(c.status)),
                 check_subtype=MetaCheckSubType.ClusterTopo,
             )
-        ]
+        )
+
+    return bad
 
 
 @checker_wrapper
-def _cluster_instance_status(c: Cluster) -> List[CheckResponse]:
+def cluster_instance_status(c: Cluster) -> List[CheckResponse]:
     bad = []
     for si in c.storageinstance_set.all():
         if si.status != InstanceStatus.RUNNING or si.phase != InstancePhase.ONLINE:
@@ -58,7 +61,7 @@ def _cluster_instance_status(c: Cluster) -> List[CheckResponse]:
 
 
 @checker_wrapper
-def _cluster_master_entry_count(c: Cluster) -> List[CheckResponse]:
+def cluster_master_entry_count(c: Cluster) -> List[CheckResponse]:
     """
     至少 1 个主访问入口
     """
@@ -67,8 +70,11 @@ def _cluster_master_entry_count(c: Cluster) -> List[CheckResponse]:
         if ce.role == ClusterEntryRole.MASTER_ENTRY:
             cnt += 1
 
+    bad = []
     if cnt <= 0:
-        return [CheckResponse(msg=_("缺少主访问入口"), check_subtype=MetaCheckSubType.ClusterTopo)]
+        bad.append(CheckResponse(msg=_("缺少主访问入口"), check_subtype=MetaCheckSubType.ClusterTopo))
+
+    return bad
 
 
 @checker_wrapper
@@ -81,32 +87,38 @@ def _cluster_proxy_count(c: Cluster) -> List[CheckResponse]:
         if pi.status == InstanceStatus.RUNNING and pi.phase == InstancePhase.ONLINE:
             cnt += 1
 
+    bad = []
     if cnt < 2:
-        return [CheckResponse(msg=_("正常 proxy 不足 2 个"), check_subtype=MetaCheckSubType.ClusterTopo)]
+        bad.append(CheckResponse(msg=_("正常 proxy 不足 2 个"), check_subtype=MetaCheckSubType.ClusterTopo))
+
+    return bad
 
 
 @checker_wrapper
-def _cluster_one_master(c: Cluster) -> List[CheckResponse]:
+def cluster_one_master(c: Cluster) -> List[CheckResponse]:
     """只能有一个 master"""
     m = []
     for si in c.storageinstance_set.all():
         if si.instance_inner_role == InstanceInnerRole.MASTER:
             m.append(si)
 
+    bad = []
     if len(m) <= 0:
-        return [CheckResponse(msg=_("无 master 实例"), check_subtype=MetaCheckSubType.ClusterTopo)]
+        bad.append(CheckResponse(msg=_("无 master 实例"), check_subtype=MetaCheckSubType.ClusterTopo))
 
     if len(m) > 1:
-        return [
+        bad.append(
             CheckResponse(
                 msg=_("master 多余 1 个: {}".format(",".join([ele.ip_port for ele in m]))),
                 check_subtype=MetaCheckSubType.ClusterTopo,
             )
-        ]
+        )
+
+    return bad
 
 
 @checker_wrapper
-def _cluster_master_status(
+def cluster_master_status(
     c: Cluster,
 ) -> List[CheckResponse]:
     """
@@ -124,12 +136,15 @@ def _cluster_master_status(
         ):
             cnt += 1
 
+    bad = []
     if cnt <= 0:
-        return [CheckResponse(msg=_("无正常 master"), check_subtype=MetaCheckSubType.ClusterTopo)]
+        bad.append(CheckResponse(msg=_("无正常 master"), check_subtype=MetaCheckSubType.ClusterTopo))
+
+    return bad
 
 
 @checker_wrapper
-def _cluster_one_standby_slave(
+def cluster_one_standby_slave(
     c: Cluster,
 ) -> List[CheckResponse]:
     """
@@ -140,20 +155,23 @@ def _cluster_one_standby_slave(
         if si.instance_inner_role == InstanceInnerRole.SLAVE and si.is_stand_by is True:
             m.append(si)
 
+    bad = []
     if len(m) <= 0:
-        return [CheckResponse(msg=_("无 standby slave"), check_subtype=MetaCheckSubType.ClusterTopo)]
+        bad.append(CheckResponse(msg=_("无 standby slave"), check_subtype=MetaCheckSubType.ClusterTopo))
 
     if len(m) > 1:
-        return [
+        bad.append(
             CheckResponse(
                 msg=_("standby slave 多余 1 个: {}".format(",".join([ele.ip_port for ele in m]))),
                 check_subtype=MetaCheckSubType.ClusterTopo,
             )
-        ]
+        )
+
+    return bad
 
 
 @checker_wrapper
-def _cluster_standby_slave_status(c: Cluster) -> List[CheckResponse]:
+def cluster_standby_slave_status(c: Cluster) -> List[CheckResponse]:
     """
     standby slave 必须正常
     """

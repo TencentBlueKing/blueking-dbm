@@ -12,6 +12,7 @@ from typing import List
 
 from django.utils.translation import ugettext_lazy as _
 
+from backend.db_meta.enums import InstanceInnerRole, TenDBClusterSpiderRole
 from backend.db_meta.models import Cluster
 from backend.db_periodic_task.local_tasks.db_meta.db_meta_check.mysql_cluster_topo.check_response import CheckResponse
 from backend.db_periodic_task.local_tasks.db_meta.db_meta_check.mysql_cluster_topo.decorator import checker_wrapper
@@ -19,28 +20,37 @@ from backend.db_report.enums import MetaCheckSubType
 
 
 @checker_wrapper
-def cluster_instance_unique_cluster(c: Cluster) -> List[CheckResponse]:
+def _cluster_spider_access_remote(c: Cluster) -> List[CheckResponse]:
     """
-    实例只能属于一个集群
+    master spider 只能访问 remote master
+    slave spider 只能访问 remote slave
+    mnt master spider 只能访问 remote master
+    mnt slave spider 只能访问 remote slave
     """
     bad = []
-    for si in c.storageinstance_set.all():
-        for sc in si.cluster.all():
-            if sc.id != c.id:
-                bad.append(
-                    CheckResponse(
-                        msg=_("实例同时属于另一个集群: {}".format(sc.immute_domain)),
-                        check_subtype=MetaCheckSubType.ClusterTopo,
-                        instance=si,
-                    )
-                )
-
     for pi in c.proxyinstance_set.all():
-        for pc in pi.cluster.all():
-            if pc.id != c.id:
+        if pi.tendbclusterspiderext.spider_role in [
+            TenDBClusterSpiderRole.SPIDER_MASTER,
+            TenDBClusterSpiderRole.SPIDER_MNT,
+        ]:
+            can_access_remote_role = InstanceInnerRole.MASTER
+        elif pi.tendbclusterspiderext.spider_role in [
+            TenDBClusterSpiderRole.SPIDER_SLAVE,
+            TenDBClusterSpiderRole.SPIDER_SLAVE_MNT,
+        ]:
+            can_access_remote_role = InstanceInnerRole.SLAVE
+        else:
+            continue
+
+        for si in pi.storageinstance.all():
+            if si.instance_inner_role != can_access_remote_role:
                 bad.append(
                     CheckResponse(
-                        msg=_("实例同时属于另一个集群: {}".format(pc.immute_domain)),
+                        msg=_(
+                            "{} 关联到 {}: {}".format(
+                                pi.tendbclusterspiderext.spider_role, si.instance_inner_role, si.ip_port
+                            )
+                        ),
                         check_subtype=MetaCheckSubType.ClusterTopo,
                         instance=pi,
                     )

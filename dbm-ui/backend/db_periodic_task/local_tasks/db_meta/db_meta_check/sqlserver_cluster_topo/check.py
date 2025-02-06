@@ -13,19 +13,19 @@ from backend.db_meta.enums import ClusterType
 from backend.db_meta.models import Cluster
 from backend.db_periodic_task.local_tasks.db_meta.db_meta_check.mysql_cluster_topo.check_response import CheckResponse
 from backend.db_periodic_task.local_tasks.db_meta.db_meta_check.mysql_cluster_topo.tendbha.replicate import (
-    _cluster_master_as_ejector,
-    _cluster_slave_as_receiver,
+    cluster_master_as_ejector,
+    cluster_slave_as_receiver,
 )
 from backend.db_periodic_task.local_tasks.db_meta.db_meta_check.mysql_cluster_topo.tendbha.status import (
-    _cluster_master_entry_count,
-    _cluster_master_status,
-    _cluster_one_master,
-    _cluster_one_standby_slave,
-    _cluster_standby_slave_status,
-    _cluster_status,
+    cluster_master_entry_count,
+    cluster_master_status,
+    cluster_one_master,
+    cluster_one_standby_slave,
+    cluster_standby_slave_status,
+    cluster_status,
 )
 from backend.db_periodic_task.local_tasks.db_meta.db_meta_check.mysql_cluster_topo.tendbha.unique_cluster import (
-    _cluster_instance_unique_cluster,
+    cluster_instance_unique_cluster,
 )
 
 
@@ -53,25 +53,25 @@ def sqlserver_dbmeta_check(cluster_id: int) -> List[CheckResponse]:
     res = []
     for cluster_obj in clusters:
         # 检查集群状态
-        res.extend(_cluster_status(cluster_obj))
+        res.extend(cluster_status(cluster_obj))
         # 实例有且只有属于一个集群
-        res.extend(_cluster_instance_unique_cluster(cluster_obj))
+        res.extend(cluster_instance_unique_cluster(cluster_obj))
         # 主入口数 >= 1
-        res.extend(_cluster_master_entry_count(cluster_obj))
+        res.extend(cluster_master_entry_count(cluster_obj))
 
         # 如果是ha架构，则需要检测下面子项
         if cluster_obj.cluster_type == ClusterType.SqlserverHA:
             # 唯一 master
-            res.extend(_cluster_one_master(cluster_obj))
+            res.extend(cluster_one_master(cluster_obj))
             # master 状态
-            res.extend(_cluster_master_status(cluster_obj))
+            res.extend(cluster_master_status(cluster_obj))
             # 唯一 standby slave
-            res.extend(_cluster_one_standby_slave(cluster_obj))
+            res.extend(cluster_one_standby_slave(cluster_obj))
             # standby slave 状态正常
-            res.extend(_cluster_standby_slave_status(cluster_obj))
+            res.extend(cluster_standby_slave_status(cluster_obj))
             # master 只能作为 ejector
-            res.extend(_cluster_master_as_ejector(cluster_obj))
+            res.extend(cluster_master_as_ejector(cluster_obj))
             # slave 只能作为 receiver
-            res.extend(_cluster_slave_as_receiver(cluster_obj))
+            res.extend(cluster_slave_as_receiver(cluster_obj))
 
     return res
