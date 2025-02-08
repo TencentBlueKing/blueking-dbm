@@ -29,7 +29,7 @@ func (i *InstallMySQLComp) InitTdbctlDeploy() (err error) {
 	i.WorkUser = "root"
 	i.WorkPassword = ""
 
-	i.Params.MyCnfConfigs = i.MySQLConfigParams.MyCnfConfigs
+	//	i.Params.MyCnfConfigs = i.MySQLConfigParams.MyCnfConfigs
 	i.InstallDir = cst.UsrLocal
 	i.MysqlInstallDir = cst.MysqldInstallPath
 	i.TdbctlInstallDir = cst.TdbctlInstallPath

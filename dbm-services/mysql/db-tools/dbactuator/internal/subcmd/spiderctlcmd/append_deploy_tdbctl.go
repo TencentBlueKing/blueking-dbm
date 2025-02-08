@@ -78,7 +78,8 @@ func (d *AppendDeployCtlSpiderAct) Init() (err error) {
 		logger.Error("DeserializeAndValidate failed, %v", err)
 		return err
 	}
-	if err = d.DeserializeNonSensitivePayload(&d.BaseService.MySQLConfigParams); err != nil {
+	d.BaseService.InstanceConfig, err = d.DeserializeMySQLConfigPayload()
+	if err != nil {
 		logger.Error("DeserializeAndValidate failed, %v", err)
 		return err
 	}

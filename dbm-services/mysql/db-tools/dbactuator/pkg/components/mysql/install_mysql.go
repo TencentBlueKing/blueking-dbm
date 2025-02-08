@@ -43,7 +43,7 @@ import (
 type InstallMySQLComp struct {
 	GeneralParam       *components.GeneralParam `json:"general"`
 	Params             *InstallMySQLParams      `json:"extend"`
-	MySQLConfigParams  *MySQLConfigParams
+	InstanceConfig     map[int]json.RawMessage
 	installMySQLConfig `json:"-"`
 	RollBackContext    rollback.RollBackObjects `json:"-"`
 	TimeZone           string
@@ -54,11 +54,6 @@ type InstallMySQLComp struct {
 	WorkUser     string `json:"-"`
 	WorkPassword string `json:"-"`
 	AvoidReset   bool   `json:"-"` // 迁移单据复用了这个 actor, 需要不做reset
-}
-
-// MySQLConfigParams TODO
-type MySQLConfigParams struct {
-	MyCnfConfigs json.RawMessage `json:"mycnf_configs"  validate:"required" `
 }
 
 // InstallMySQLParams TODO
@@ -163,7 +158,6 @@ func (i *InstallMySQLComp) InitDefaultParam() (err error) {
 	i.WorkPassword = ""
 	i.AvoidReset = false
 
-	i.Params.MyCnfConfigs = i.MySQLConfigParams.MyCnfConfigs
 	var mountpoint string
 	i.InstallDir = cst.UsrLocal
 	i.MysqlInstallDir = cst.MysqldInstallPath
@@ -223,10 +217,7 @@ func (i *InstallMySQLComp) InitDefaultParam() (err error) {
 	}
 	// 反序列化mycnf 配置
 	var mycnfs map[Port]json.RawMessage
-	if err = json.Unmarshal(i.Params.MyCnfConfigs, &mycnfs); err != nil {
-		logger.Error("反序列化配置失败:%s", err.Error())
-		return err
-	}
+	mycnfs = i.InstanceConfig
 
 	for _, port := range i.InsPorts {
 		var cnfraw json.RawMessage

@@ -68,8 +68,9 @@ func (d *DeployTbinlogDumperAct) Init() (err error) {
 		logger.Error("DeserializeAndValidate failed, %v", err)
 		return err
 	}
-	if err = d.DeserializeNonSensitivePayload(&d.Service.MySQLConfigParams); err != nil {
-		logger.Error("DeserializeNonSensitivePayload failed, %v", err)
+	d.Service.InstanceConfig, err = d.DeserializeMySQLConfigPayload()
+	if err != nil {
+		logger.Error("DeserializeAndValidate failed, %v", err)
 		return err
 	}
 	// 解析额外参数

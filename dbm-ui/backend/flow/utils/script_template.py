@@ -41,7 +41,7 @@ trap 'rm -f "$lock_file"' EXIT
    
    cd /data/install/dbactuator-{{uid}}
    chmod +x dbactuator
-   ./dbactuator {{db_type}} {{action}} --uid {{uid}} --root_id {{root_id}} --node_id {{node_id}} --version_id {{version_id}} -c {{non_sensitive_payload}} --payload $1 
+   ./dbactuator {{db_type}} {{action}} --uid {{uid}} --root_id {{root_id}} --node_id {{node_id}} --version_id {{version_id}} --payload $1 {% for item in non_sensitive_payload %} -c {{ item }} {% endfor %}
 
 """  # noqa
 

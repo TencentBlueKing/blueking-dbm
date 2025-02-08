@@ -163,9 +163,8 @@ Buildstamp:%s`, version, githash, strings.ToUpper(external), buildstamp,
 		&subcmd.GBaseOptions.PayloadFormat, "payload-format", "m",
 		subcmd.GBaseOptions.PayloadFormat, "command payload format, default base64, value_allowed: base64|raw",
 	)
-	cmds.PersistentFlags().StringVarP(
-		&subcmd.GBaseOptions.NotSensitivePayload, "non-sensitive-paylod", "c",
-		subcmd.GBaseOptions.NotSensitivePayload, "commandn not sensitive payload <base64>",
+	cmds.PersistentFlags().StringSliceVarP(
+		&subcmd.GBaseOptions.NotSensitivePayload, "non-sensitive-paylod", "c", []string{}, "non-sensitive payload",
 	)
 	cmds.PersistentFlags().StringVarP(&subcmd.GBaseOptions.Uid, "uid", "U", subcmd.GBaseOptions.Uid, "bill id")
 	cmds.PersistentFlags().StringVarP(&subcmd.GBaseOptions.RootId, "root_id", "R", subcmd.GBaseOptions.NodeId,

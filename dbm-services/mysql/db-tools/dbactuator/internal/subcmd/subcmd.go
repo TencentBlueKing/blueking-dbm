@@ -15,11 +15,11 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"maps"
 	"os"
 	"path/filepath"
 	"strings"
 
-	"dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/common/go-pubpkg/logger"
 	"dbm-services/common/go-pubpkg/validate"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/components"
@@ -28,6 +28,7 @@ import (
 
 	"github.com/caarlos0/env/v6"
 	"github.com/pkg/errors"
+	"github.com/samber/lo"
 	"github.com/spf13/cobra"
 )
 
@@ -60,7 +61,7 @@ type BaseOptions struct {
 	VersionId           string
 	Payload             string
 	PayloadFormat       string
-	NotSensitivePayload string
+	NotSensitivePayload []string
 	RollBack            bool
 	Helper              bool
 	// 是否为外部版本
@@ -193,23 +194,31 @@ func Deserialize(s interface{}) (p *BaseOptions, err error) {
 	return GBaseOptions, nil
 }
 
-// DeserializeNonSensitivePayload 反序列化非敏感payload,不校验参数
-func (b *BaseOptions) DeserializeNonSensitivePayload(s interface{}) (err error) {
+// DeserializeMySQLConfigPayload 反序列化非敏感payload,不校验参数
+func (b *BaseOptions) DeserializeMySQLConfigPayload() (gmap map[int]json.RawMessage, err error) {
 	var bp []byte
-	if cmutil.IsEmpty(b.NotSensitivePayload) {
-		return errors.New("non-sensitive payload need input")
+	if len(b.NotSensitivePayload) == 0 {
+		return nil, errors.New("non-sensitive payload need input")
 	}
-	bp, err = base64.StdEncoding.DecodeString(b.NotSensitivePayload)
-	if err != nil {
-		return err
+	gmap = make(map[int]json.RawMessage)
+	for idx, v := range b.NotSensitivePayload {
+		logger.Info("the not sensitive payload index: %d, value: %s", idx, v)
+		if lo.IsEmpty(v) {
+			continue
+		}
+		var jv map[int]json.RawMessage
+		bp, err = base64.StdEncoding.DecodeString(v)
+		if err != nil {
+			return nil, err
+		}
+		if err = json.Unmarshal(bp, &jv); err != nil {
+			logger.Error("json.Unmarshal failed, %v", jv, err)
+			err = errors.WithMessage(err, "error in resolving parameter")
+			return nil, err
+		}
+		maps.Copy(gmap, jv)
 	}
-	logger.Local("DeserializeSimple not sensitive payload body: %s", b.NotSensitivePayload)
-	if err = json.Unmarshal(bp, &s); err != nil {
-		logger.Error("json.Unmarshal failed, %v", s, err)
-		err = errors.WithMessage(err, "error in resolving parameter")
-		return err
-	}
-	return nil
+	return gmap, nil
 }
 
 // Deserialize 反序列化payload,并校验参数
