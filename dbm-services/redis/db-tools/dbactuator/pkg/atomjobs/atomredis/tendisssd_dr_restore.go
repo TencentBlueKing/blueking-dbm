@@ -513,12 +513,13 @@ export LD_LIBRARY_PATH=LD_LIBRARY_PATH:%s
 	if task.Err != nil {
 		return
 	}
-	if slaveBinlogRange.FirstSeq < masterBinlogRange.FirstSeq {
-		task.Err = fmt.Errorf("slave(%s) binlog_first_seq:%d < master(%s) binlog_first_seq:%d",
-			task.SlaveAddr(), slaveBinlogRange.FirstSeq, task.MasterAddr(), masterBinlogRange.FirstSeq)
-		task.runtime.Logger.Error(task.Err.Error())
-		return
-	}
+	// 不需要管这里。
+	// if slaveBinlogRange.FirstSeq < masterBinlogRange.FirstSeq {
+	// 	task.Err = fmt.Errorf("slave(%s) binlog_first_seq:%d < master(%s) binlog_first_seq:%d",
+	// 		task.SlaveAddr(), slaveBinlogRange.FirstSeq, task.MasterAddr(), masterBinlogRange.FirstSeq)
+	// 	task.runtime.Logger.Error(task.Err.Error())
+	// 	return
+	// }
 	if slaveBinlogRange.EndSeq > masterBinlogRange.EndSeq {
 		task.Err = fmt.Errorf("slave(%s) binlog_end_seq:%d > master(%s) binlog_end_seq:%d",
 			task.SlaveAddr(), slaveBinlogRange.EndSeq, task.MasterAddr(), masterBinlogRange.EndSeq)

@@ -119,16 +119,18 @@ type ReplicaTask struct {
 	SlaveCli       *myredis.RedisClient `json:"-"`
 	ClusterEnabled string               `json:"cluster_enabled"`
 	// version信息
-	SlaveVersion       string `json:"slave_version"`
-	SlaveBaseVer       uint64 `json:"slave_base_ver"`
-	SlaveSubVer        uint64 `json:"slave_sub_ver"`
-	InfoReplRole       string `json:"info_repl_role"`
-	InfoReplMasterHost string `json:"info_repl_master_host"`
-	InfoReplMasterPort string `json:"info_repl_master_port"`
-	InfoReplLinkStatus string `json:"info_repl_link_status"`
-	DbType             string `json:"db_type"`
-	runtime            *jobruntime.JobGenericRuntime
-	Err                error `json:"-"`
+	SlaveVersion         string `json:"slave_version"`
+	SlaveBaseVer         uint64 `json:"slave_base_ver"`
+	SlaveSubVer          uint64 `json:"slave_sub_ver"`
+	InfoReplRole         string `json:"info_repl_role"`
+	InfoReplMasterHost   string `json:"info_repl_master_host"`
+	InfoReplMasterPort   string `json:"info_repl_master_port"`
+	InfoReplLinkStatus   string `json:"info_repl_link_status"`
+	InfoLastIOSecondsAgo uint64 `json:"master_last_io_seconds_ago"`
+
+	DbType  string `json:"db_type"`
+	runtime *jobruntime.JobGenericRuntime
+	Err     error `json:"-"`
 }
 
 // NewReplicaTask new replica task
@@ -200,6 +202,7 @@ func (task *ReplicaTask) getReplicaStatusData() {
 	task.InfoReplMasterHost = infoRet["master_host"]
 	task.InfoReplMasterPort = infoRet["master_port"]
 	task.InfoReplLinkStatus = infoRet["master_link_status"]
+	task.InfoLastIOSecondsAgo, _ = strconv.ParseUint(infoRet["master_last_io_seconds_ago"], 10, 64)
 }
 
 // IsReplicaStatusOk 复制关系是否已ok
@@ -214,6 +217,13 @@ func (task *ReplicaTask) IsReplicaStatusOk() (status bool) {
 			task.InfoReplMasterPort == strconv.Itoa(task.MasterPort) &&
 			task.InfoReplLinkStatus == consts.MasterLinkStatusUP {
 			// 同步关系已ok
+
+			//还的判断一下 master_last_io_seconds_ago
+			if task.InfoLastIOSecondsAgo >= 11 {
+				task.runtime.Logger.Warn("slave(%s) master last_io_seconds: %d , need <= 10 seconds.",
+					task.SlaveAddr(), task.InfoLastIOSecondsAgo)
+				return false
+			}
 			return true
 		}
 		// slave角色,但其master信息不正确
@@ -399,34 +409,24 @@ func (task *ReplicaTask) CreateReplicaAndWait() {
 	if task.Err != nil {
 		return
 	}
-	maxRetryTimes := 720 // 1 hour timeout
-	for maxRetryTimes >= 0 {
-		maxRetryTimes--
-		task.getReplicaStatusData()
-		if task.Err != nil {
-			return
+	maxRetryTimes := 3600 // 10 hour timeout
+	for i := 0; i < maxRetryTimes; i++ {
+		if ok := task.IsReplicaStatusOk(); ok {
+			break
 		}
-		if task.InfoReplLinkStatus != consts.MasterLinkStatusUP {
-			if maxRetryTimes%3 == 0 {
-				// 半分钟输出一次日志
-				msg = fmt.Sprintf("redis(%s) master_link_status:%s", task.SlaveAddr(), task.InfoReplLinkStatus)
-				task.runtime.Logger.Info(msg)
-			}
-			time.Sleep(5 * time.Second)
-			continue
+
+		if maxRetryTimes%3 == 0 {
+			task.runtime.Logger.Info("redis(%s) master_link_status:%s, master_last_io_seconds_ago:%d, waiting...",
+				task.SlaveAddr(), task.InfoReplLinkStatus, task.InfoLastIOSecondsAgo)
 		}
-		break
+		time.Sleep(10 * time.Second)
+		continue
 	}
-	if task.InfoReplLinkStatus != consts.MasterLinkStatusUP {
-		task.Err = fmt.Errorf("redis(%s) master_link_status:%s", task.SlaveAddr(), task.InfoReplLinkStatus)
-		task.runtime.Logger.Error(task.Err.Error())
-		return
-	}
-	msg = fmt.Sprintf("redis(%s) master(%s) master_link_status:%s",
+
+	task.runtime.Logger.Info("redis(%s) -> master(%s) master_link_status:%s, master_last_io_seconds_ago:%d",
 		task.SlaveAddr(),
 		task.InfoReplMasterAddr(),
-		task.InfoReplLinkStatus)
-	task.runtime.Logger.Info(msg)
+		task.InfoReplLinkStatus, task.InfoLastIOSecondsAgo)
 	return
 }
 
