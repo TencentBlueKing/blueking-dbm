@@ -30,7 +30,7 @@ export default function getRoutes() {
     {
       path: 'inspection-report-global',
       name: 'inspectionReportGlobal',
-      component: () => import('@views/inspection-manage/global/Index.vue'),
+      component: () => import('@views/inspection-manage/report/Index.vue'),
       meta: {
         navName: t('巡检报告'),
         fullscreen: true,
