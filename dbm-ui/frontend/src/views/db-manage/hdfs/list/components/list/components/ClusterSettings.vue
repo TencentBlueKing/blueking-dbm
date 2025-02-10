@@ -30,7 +30,7 @@
                 class="mr-8"
                 text
                 theme="primary"
-                @click.stop="copy(xml.value)">
+                @click.stop="execCopy(xml.value)">
                 {{ $t('复制') }}
               </BkButton>
               <BkButton
@@ -54,9 +54,9 @@
   import ClusterConfigXmlsModel from '@services/model/hdfs/hdfs-cluster-config-xmls';
   import { getHdfsXmls } from '@services/source/hdfs';
 
-  import SettingsMonacoEditor from './SettingsMonacoEditor.vue';
+  import { execCopy } from '@utils';
 
-  import { useCopy } from '@/hooks';
+  import SettingsMonacoEditor from './SettingsMonacoEditor.vue';
 
   interface XML {
     name: string;
@@ -68,8 +68,6 @@
   }
 
   const props = defineProps<Props>();
-
-  const copy = useCopy();
 
   const isLoading = ref(false);
   const xmlKeys = ['hdfs-site.xml', 'core-site.xml'];

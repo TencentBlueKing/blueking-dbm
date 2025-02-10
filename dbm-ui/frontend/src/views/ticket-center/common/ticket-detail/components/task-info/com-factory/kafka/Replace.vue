@@ -22,9 +22,9 @@
 
   import TicketModel, { type Kafka } from '@services/model/ticket/ticket';
 
-  import { useCopy } from '@hooks';
-
   import { TicketTypes } from '@common/const';
+
+  import { execCopy } from '@utils';
 
   interface Props {
     ticketDetails: TicketModel<Kafka.Replace>
@@ -37,18 +37,11 @@
     inheritAttrs: false
   })
 
-  const copy = useCopy();
-
   const { t } = useI18n();
 
   type nodeIpList = {
     key: string,
-    value: {
-      ip: string,
-      bk_host_id: number,
-      bk_cloud_id: number,
-      instance_num: number,
-    }[],
+    value: string[],
   }
 
   /**
@@ -82,7 +75,7 @@
       <div class="details-replace__cell">
         {item.value.map((ip, index) => <p class="details-replace__ip">{ip}
           { index === 0
-            ? <i v-bk-tooltips="复制实例" class="db-icon-copy" onClick={() => copy(item.value.join('\n'))} />
+            ? <i v-bk-tooltips={t('复制 IP')} class="db-icon-copy" onClick={() => handleCopy(item.value)} />
             : '' }
           </p>)}
       </div>
@@ -94,7 +87,7 @@
       <div class="details-replace__cell">
         {item.value.map((ip, index) => <p class="details-replace__ip">{ip}
           { index === 0
-            ? <i v-bk-tooltips="复制实例" class="db-icon-copy" onClick={() => copy(item.value.join('\n'))} />
+            ? <i v-bk-tooltips={t('复制 IP')} class="db-icon-copy" onClick={() => handleCopy(item.value)} />
             : '' }
           </p>)}
       </div>
@@ -125,5 +118,9 @@
       }
     });
     return nodeList;
+  }
+
+  const handleCopy = (value: nodeIpList['value']) => {
+    execCopy(value.join('\n'), t('复制成功，共n条', { n: value.length }));
   }
 </script>

@@ -18,7 +18,7 @@
         <BkButton
           class="ml-8"
           @click="handleCopyAllIp">
-          {{ t('复制全部 IP') }}
+          {{ t('复制所有 IP') }}
         </BkButton>
       </div>
       <BkTable
@@ -122,26 +122,26 @@
   };
 
   const handleCopyAbnormalIp = () => {
-    const ipList = hostList.value?.reduce((result, item) => {
+    const ipList = (hostList.value || []).reduce((result, item) => {
       if (item.alive !== 1) {
         result.push(item.ip);
       }
       return result;
     }, [] as string[]);
-    if (!ipList || ipList.length < 1) {
+    if (ipList.length < 1) {
       messageWarn(t('暂无可复制异常 IP'));
       return;
     }
-    execCopy(ipList?.join('\n'));
+    execCopy(ipList.join('\n'), t('复制成功，共n条', { n: ipList.length }));
   };
 
   const handleCopyAllIp = () => {
-    const ipList = hostList.value?.map(hostItem => hostItem.ip);
-    if (!ipList || ipList.length < 1) {
+    const ipList = (hostList.value || []).map(hostItem => hostItem.ip);
+    if (ipList.length < 1) {
       messageWarn(t('暂无可复制 IP'));
       return;
     }
-    execCopy(ipList?.join('\n'));
+    execCopy(ipList.join('\n'), t('复制成功，共n条', { n: ipList.length }));
   };
 
   const handleClose = () => {

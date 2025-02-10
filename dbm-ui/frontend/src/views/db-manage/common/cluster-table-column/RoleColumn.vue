@@ -28,6 +28,7 @@
     searchIp?: string[];
     clusterType: clusterType;
     selectedList: ClusterModel<clusterType>[];
+    isFilter: boolean;
     getTableInstance: () => InstanceType<typeof DbTable> | undefined;
   }
 

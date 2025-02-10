@@ -73,6 +73,8 @@ export const useLinkQueryColumnSerach = (config: {
     return [];
   });
 
+  const isFilter = computed(() => searchValue.value.length > 0);
+
   const resourceTypes = ['spotty_host', 'resource_record'];
 
   const sortValue: {
@@ -342,6 +344,7 @@ export const useLinkQueryColumnSerach = (config: {
     sortValue,
     columnCheckedMap,
     batchSearchIpInatanceList,
+    isFilter,
     columnFilterChange,
     columnSortChange,
     clearSearchValue,

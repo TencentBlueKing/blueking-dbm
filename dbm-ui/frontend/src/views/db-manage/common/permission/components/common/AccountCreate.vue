@@ -101,11 +101,11 @@
   import { createAccount as createMysqlAccount } from '@services/source/mysqlPermissionAccount';
   import { createAccount as createSqlserverAccount } from '@services/source/sqlserverPermissionAccount';
 
-  import { useCopy } from '@hooks';
-
   import { AccountTypes, DBTypes } from '@common/const';
 
   import PasswordInput from '@views/db-manage/common/password-input/Index.vue';
+
+  import { execCopy } from '@utils';
 
   import MongoConfig from '../mongo/config';
   import MysqlConfig from '../mysql/config';
@@ -122,8 +122,6 @@
   const props = defineProps<Props>();
 
   const emits = defineEmits<Emits>();
-
-  const copy = useCopy();
 
   const isShow = defineModel<boolean>({
     required: true,
@@ -213,7 +211,7 @@
    * 复制密码
    */
   const handleCopyPassword = () => {
-    copy(state.formdata.password);
+    execCopy(state.formdata.password, t('复制成功，共n条', { n: 1 }));
   };
 
   const verifyResult = (isPass: boolean) => {

@@ -40,12 +40,12 @@
   import { getTendbSlaveClusterList } from '@services/source/tendbcluster';
   import { getTendbhaList, getTendbhaSalveList } from '@services/source/tendbha';
 
-  import { useCopy } from '@hooks';
-
   import { AccountTypes, ClusterTypes } from '@common/const';
 
   import ClusterSelector, { type TabConfig } from '@components/cluster-selector/Index.vue';
   import DBCollapseTable from '@components/db-collapse-table/DBCollapseTable.vue';
+
+  import { execCopy } from '@utils';
 
   interface Props {
     accountType: AccountTypes;
@@ -75,7 +75,6 @@
   });
 
   const { t } = useI18n();
-  const copy = useCopy();
 
   const formRef = ref();
   const rules = [
@@ -185,8 +184,8 @@
       {
         label: t('复制所有域名'),
         onClick: () => {
-          const value = state.tableProps.data.map((item) => item.master_domain).join('\n');
-          copy(value);
+          const value = state.tableProps.data.map((item) => item.master_domain)
+          execCopy(value.join('\n'), t('复制成功，共n条', { n: value.length }));
         },
       },
     ],

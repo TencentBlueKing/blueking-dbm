@@ -61,7 +61,6 @@
   import { createTicket } from '@services/source/ticket';
 
   import {
-    useCopy,
     useTicketMessage,
   } from '@hooks';
 
@@ -75,7 +74,7 @@
   import OperationBtnStatusTips from '@views/db-manage/common/OperationBtnStatusTips.vue';
   import RenderOperationTag from '@views/db-manage/common/RenderOperationTagNew.vue';
 
-  import { getSearchSelectorParams } from '@utils';
+  import { execCopy, getSearchSelectorParams } from '@utils';
 
   interface SearchSelectItem {
     id: string,
@@ -84,7 +83,6 @@
 
   const { currentBizId } = useGlobalBizs();
   const { t } = useI18n();
-  const copy = useCopy();
   const handleDeleteSuccess = useTicketMessage();
 
   const searchValue = ref<Array<SearchSelectItem & {values: SearchSelectItem[]}>>([]);
@@ -189,7 +187,7 @@
               <db-icon
                 type="copy"
                 v-bk-tooltips={t('复制n', { n: t('构造的集群') })}
-                onClick={() => copy(data.target_cluster.immute_domain)} />
+                onClick={() => execCopy(data.target_cluster.immute_domain, t('复制成功，共n条', { n: 1 }))} />
               </>
             ),
           }}
@@ -209,7 +207,7 @@
               <db-icon
                 type="copy"
                 v-bk-tooltips={t('复制n', { n: t('源集群') })}
-                onClick={() => copy(data.sourceClusteText)} />
+                onClick={() => execCopy(data.sourceClusteText, t('复制成功，共n条', { n: 1 }))} />
             ),
           }}
         </TextOverflowLayout>
@@ -246,7 +244,7 @@
           <db-icon
             type="copy"
             v-bk-tooltips={t('复制n', { n: t('构造的主机') })}
-            onClick={() => copy(data.target_nodes.join(','))} />
+            onClick={() => execCopy(data.target_nodes.join(','), t('复制成功，共n条', { n: 1 }))} />
         </div>
         ),
     },
@@ -344,7 +342,7 @@
           <bk-button
             text
             theme="primary"
-            onClick={() => copy(data.target_cluster.immute_domain)}
+            onClick={() => execCopy(data.target_cluster.immute_domain, t('复制成功，共n条', { n: 1 }))}
             style="margin-left:10px;">
             {t('复制访问地址')}
           </bk-button>

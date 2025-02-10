@@ -100,7 +100,7 @@
 
   import { getPulsarPassword } from '@services/source/pulsar';
 
-  import { useCopy } from '@hooks';
+  import { execCopy } from '@utils';
 
   interface Props {
     clusterId: number;
@@ -108,7 +108,6 @@
 
   const props = defineProps<Props>();
 
-  const copy = useCopy();
   const { t } = useI18n();
 
   const isLoading = ref(true);
@@ -162,12 +161,16 @@
         copy(token);
         break;
       default:
-        // 复制全部
+        // 复制所有
         // eslint-disable-next-line no-case-declarations, camelcase
         const content = `${t('集群名称')}: ${cluster_name}\n${t('域名')}: ${domain}\n${t('Manager 账号')}: ${username}\n${t('Manager 密码')}: ${password}\nToken: ${token}`;
         copy(content);
         break;
     }
+  };
+
+  const copy = (value: string) => {
+    execCopy(value, t('复制成功，共n条', { n: 1 }));
   };
 
   const handlePasswordToggle = () => {

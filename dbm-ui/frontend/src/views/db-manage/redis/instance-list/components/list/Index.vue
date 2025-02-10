@@ -54,7 +54,6 @@
   import { getRedisInstances } from '@services/source/redis';
 
   import {
-    useCopy,
     useLinkQueryColumnSerach,
     useStretchLayout,
     useTableSettings,
@@ -71,6 +70,7 @@
   import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
 
   import {
+    execCopy,
     getSearchSelectorParams,
   } from '@utils';
 
@@ -94,7 +94,6 @@
 
   const router = useRouter();
   const globalBizsStore = useGlobalBizs();
-  const copy = useCopy();
   const { t } = useI18n();
   const {
     isOpen: isStretchLayoutOpen,
@@ -231,7 +230,7 @@
                 v-bk-tooltips={t('复制集群名称')}
                 type="copy"
                 class="copy-btn"
-                onClick={() => copy(data.cluster_name)} />
+                onClick={() => execCopy(data.cluster_name, t('复制成功，共n条', { n: 1 }))} />
             ),
           }}
         </TextOverflowLayout>
@@ -277,7 +276,7 @@
                   v-bk-tooltips={t('复制主访问入口')}
                   type="copy"
                   class="copy-btn"
-                  onClick={() => copy(data.master_domain)} />
+                  onClick={() => execCopy(data.master_domain, t('复制成功，共n条', { n: 1 }))} />
               ),
             }}
           </TextOverflowLayout>

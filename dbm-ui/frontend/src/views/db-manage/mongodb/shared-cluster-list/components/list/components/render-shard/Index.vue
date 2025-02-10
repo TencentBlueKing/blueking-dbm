@@ -49,7 +49,7 @@
         <BkButton
           class="mr-8"
           @click="handleCopyAll">
-          {{ t('复制全部实例') }}
+          {{ t('复制所有实例') }}
         </BkButton>
         <BkInput
           v-model="keyword"
@@ -82,11 +82,9 @@
 
   import MongodbModel from '@services/model/mongodb/mongodb';
 
-  import { useCopy } from '@hooks';
-
   import { ClusterInstStatusKeys } from '@common/const';
 
-  import { messageWarn } from '@utils';
+  import { execCopy, messageWarn } from '@utils';
 
   import RenderRow from './components/RenderRow.vue';
 
@@ -101,7 +99,6 @@
 
   const props = defineProps<Props>();
 
-  const copy = useCopy();
   const { t } = useI18n();
 
   const tableRef = ref();
@@ -163,7 +160,7 @@
       messageWarn(t('没有可复制实例'));
       return;
     }
-    copy(abnormalInstances.join('\n'));
+    execCopy(abnormalInstances.join('\n'), t('复制成功，共n条', { n: abnormalInstances.length }));
   };
 
   /**
@@ -175,7 +172,7 @@
       messageWarn(t('没有可复制实例'));
       return;
     }
-    copy(instances.join('\n'));
+    execCopy(instances.join('\n'), t('复制成功，共n条', { n: instances.length }));
   };
 
   const filterInstance = () => {

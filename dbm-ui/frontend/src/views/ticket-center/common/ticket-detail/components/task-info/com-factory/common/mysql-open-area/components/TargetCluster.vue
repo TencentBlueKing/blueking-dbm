@@ -24,7 +24,7 @@
 
   import TicketModel, { type Mysql } from '@services/model/ticket/ticket';
 
-  import { useCopy } from '@hooks';
+  import { execCopy } from '@utils';
 
   interface Props {
     ticketDetails: TicketModel<Mysql.OpenArea>;
@@ -39,7 +39,6 @@
   const props = defineProps<Props>();
 
   const { t } = useI18n();
-  const copy = useCopy();
 
   const clustersMap = props.ticketDetails.details.clusters;
   const clusterIpsMap = props.ticketDetails.details.rules_set.reduce<Record<string, string[]>>((acc, { target_instances: [cluster], source_ips }) => {
@@ -83,16 +82,19 @@
       label: t('授权的IP'),
       field: 'ips',
       showOverflowTooltip: true,
-      render: ({ data }: { data: RowData }) => (
-        <span>
-          { data.ips || '--' }
-          <db-icon
-            is-show={data.ips.length > 0}
-            class="copy-btn"
-            type="copy"
-            onClick={() => copy(data.ips.replace(/,/g, '\n'))} />
-        </span>
-      ),
+      render: ({ data }: { data: RowData }) => {
+        const ipList = data.ips.replace(/,/g, '\n')
+        return (
+          <span>
+            { data.ips || '--' }
+            <db-icon
+              is-show={data.ips.length > 0}
+              class="copy-btn"
+              type="copy"
+              onClick={() => execCopy(ipList, t('复制成功，共n条', { n: ipList.split('\n').length }))} />
+          </span>
+        )
+      }
     },
   ]);
 </script>

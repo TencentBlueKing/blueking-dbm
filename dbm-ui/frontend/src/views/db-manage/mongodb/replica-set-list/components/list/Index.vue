@@ -80,6 +80,7 @@
         :cluster-type="ClusterTypes.MONGO_REPLICA_SET"
         field="master_domain"
         :get-table-instance="getTableInstance"
+        :is-filter="isFilter"
         :label="t('访问入口')"
         :selected-list="selected"
         @go-detail="handleToDetails"
@@ -87,6 +88,7 @@
       <ClusterNameColumn
         :cluster-type="ClusterTypes.MONGO_REPLICA_SET"
         :get-table-instance="getTableInstance"
+        :is-filter="isFilter"
         :selected-list="selected"
         @refresh="fetchData" />
       <StatusColumn :cluster-type="ClusterTypes.MONGO_REPLICA_SET" />
@@ -95,6 +97,7 @@
         :cluster-type="ClusterTypes.MONGO_REPLICA_SET"
         field="mongodb"
         :get-table-instance="getTableInstance"
+        :is-filter="isFilter"
         :label="t('节点')"
         :search-ip="batchSearchIpInatanceList"
         :selected-list="selected" />
@@ -256,6 +259,7 @@
     searchValue,
     sortValue,
     batchSearchIpInatanceList,
+    isFilter,
     columnFilterChange,
     columnSortChange,
     clearSearchValue,

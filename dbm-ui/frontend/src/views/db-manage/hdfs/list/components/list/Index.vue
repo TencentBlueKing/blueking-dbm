@@ -67,6 +67,7 @@
           :cluster-type="ClusterTypes.HDFS"
           field="master_domain"
           :get-table-instance="getTableInstance"
+          :is-filter="isFilter"
           :label="t('访问入口')"
           :selected-list="selected"
           @go-detail="handleToDetails"
@@ -74,6 +75,7 @@
         <ClusterNameColumn
           :cluster-type="ClusterTypes.HDFS"
           :get-table-instance="getTableInstance"
+          :is-filter="isFilter"
           :selected-list="selected"
           @refresh="fetchTableData" />
         <StatusColumn :cluster-type="ClusterTypes.HDFS" />
@@ -82,6 +84,7 @@
           :cluster-type="ClusterTypes.HDFS"
           field="hdfs_namenode"
           :get-table-instance="getTableInstance"
+          :is-filter="isFilter"
           label="NameNode"
           :search-ip="batchSearchIpInatanceList"
           :selected-list="selected" />
@@ -89,6 +92,7 @@
           :cluster-type="ClusterTypes.HDFS"
           field="hdfs_zookeeper"
           :get-table-instance="getTableInstance"
+          :is-filter="isFilter"
           label="Zookeeper"
           :search-ip="batchSearchIpInatanceList"
           :selected-list="selected" />
@@ -96,6 +100,7 @@
           :cluster-type="ClusterTypes.HDFS"
           field="hdfs_journalnode"
           :get-table-instance="getTableInstance"
+          :is-filter="isFilter"
           label="Journalnode"
           :search-ip="batchSearchIpInatanceList"
           :selected-list="selected" />
@@ -103,6 +108,7 @@
           :cluster-type="ClusterTypes.HDFS"
           field="hdfs_datanode"
           :get-table-instance="getTableInstance"
+          :is-filter="isFilter"
           label="DataNode"
           :search-ip="batchSearchIpInatanceList"
           :selected-list="selected" />
@@ -341,6 +347,7 @@
     searchValue,
     sortValue,
     batchSearchIpInatanceList,
+    isFilter,
     columnFilterChange,
     columnSortChange,
     clearSearchValue,

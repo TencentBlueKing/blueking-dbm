@@ -28,7 +28,7 @@
         <BkButton
           class="mr-8"
           @click="handleCopyIps">
-          {{ $t('复制全部IP') }}
+          {{ $t('复制所有IP') }}
         </BkButton>
       </div>
       <BkLoading :loading="loading">
@@ -56,9 +56,9 @@
   import { getHostDetails } from '@services/source/ipchooser';
   import type { HostInfo } from '@services/types';
 
-  import { useCopy } from '@hooks';
-
   import DbStatus from '@components/db-status/index.vue';
+
+  import { execCopy } from '@utils';
 
   interface Props {
     hostIds: number[],
@@ -69,7 +69,6 @@
   const isShow = defineModel<boolean>('isShow');
 
   const { t } = useI18n();
-  const copy = useCopy();
 
   const isAnomalies = ref(false);
 
@@ -161,13 +160,13 @@
   function handleCopyAbnormalIps() {
     const abnormalIps = (data.value || []).filter(item => item.alive === 0).map(item => item.ip);
     if (abnormalIps.length === 0) return;
-    copy(abnormalIps.join('\n'));
+    execCopy(abnormalIps.join('\n'), t('复制成功，共n条', { n: abnormalIps.length }));
   }
 
   function handleCopyIps() {
     const ips = (data.value || []).map(item => item.ip);
     if (ips.length === 0) return;
-    copy(ips.join('\n'));
+    execCopy(ips.join('\n'), t('复制成功，共n条', { n: ips.length }));
   }
 
   function handleClose() {

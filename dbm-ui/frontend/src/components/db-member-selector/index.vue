@@ -46,7 +46,7 @@
 
   import { getUserList } from '@services/source/user';
 
-  import { useCopy } from '@hooks';
+  import { execCopy } from '@utils';
 
   const emits = defineEmits<{
     (e: 'change', value: string[]): void;
@@ -57,7 +57,6 @@
   });
 
   const { t } = useI18n();
-  const copy = useCopy();
 
   const userSelectorRef = ref();
   const isHover = ref(false);
@@ -133,7 +132,7 @@
   };
 
   const handleCopy = () => {
-    copy(modelValue.value.join(';'));
+    execCopy(modelValue.value.join(';'), t('复制成功，共n条', { n: modelValue.value.length }));
   };
 </script>
 

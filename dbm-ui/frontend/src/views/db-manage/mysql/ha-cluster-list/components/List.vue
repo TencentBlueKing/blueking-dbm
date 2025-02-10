@@ -74,6 +74,7 @@
           :cluster-type="ClusterTypes.TENDBHA"
           field="master_domain"
           :get-table-instance="getTableInstance"
+          :is-filter="isFilter"
           :label="t('主访问入口')"
           :selected-list="selected"
           @go-detail="handleToDetails"
@@ -81,11 +82,13 @@
         <ClusterNameColumn
           :cluster-type="ClusterTypes.TENDBHA"
           :get-table-instance="getTableInstance"
+          :is-filter="isFilter"
           :selected-list="selected"
           @refresh="fetchData" />
         <SlaveDomainColumn
           :cluster-type="ClusterTypes.TENDBHA"
           :get-table-instance="getTableInstance"
+          :is-filter="isFilter"
           :selected-list="selected" />
         <StatusColumn :cluster-type="ClusterTypes.TENDBHA" />
         <ClusterStatsColumn :cluster-type="ClusterTypes.TENDBHA" />
@@ -93,6 +96,7 @@
           :cluster-type="ClusterTypes.TENDBHA"
           field="proxies"
           :get-table-instance="getTableInstance"
+          :is-filter="isFilter"
           label="Proxy"
           :search-ip="batchSearchIpInatanceList"
           :selected-list="selected" />
@@ -100,6 +104,7 @@
           :cluster-type="ClusterTypes.TENDBHA"
           field="masters"
           :get-table-instance="getTableInstance"
+          :is-filter="isFilter"
           label="Master"
           :search-ip="batchSearchIpInatanceList"
           :selected-list="selected" />
@@ -107,6 +112,7 @@
           :cluster-type="ClusterTypes.TENDBHA"
           field="slaves"
           :get-table-instance="getTableInstance"
+          :is-filter="isFilter"
           label="Slave"
           :search-ip="batchSearchIpInatanceList"
           :selected-list="selected">
@@ -328,6 +334,7 @@
     searchValue,
     sortValue,
     batchSearchIpInatanceList,
+    isFilter,
     columnFilterChange,
     columnSortChange,
     clearSearchValue,

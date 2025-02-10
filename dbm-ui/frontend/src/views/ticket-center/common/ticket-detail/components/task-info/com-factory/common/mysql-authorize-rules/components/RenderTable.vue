@@ -119,11 +119,11 @@
   import { queryAccountRules } from '@services/source/mongodbPermissionAccount';
   import type { AccountRulePrivilege, AuthorizePreCheckData } from '@services/types';
 
-  import { useCopy } from '@hooks';
-
   import { AccountTypes } from '@common/const';
 
   import configMap from '@views/db-manage/common/permission/components/mysql/config';
+
+  import { execCopy } from '@utils';
 
   interface IDataRow {
     ips: string[];
@@ -141,7 +141,6 @@
   const props = defineProps<Props>();
 
   const { t } = useI18n();
-  const copy = useCopy();
 
   const showAllIp = ref(false);
   const showAllDb = ref(false);
@@ -215,11 +214,11 @@
   );
 
   const handleCopyIps = (ips: string[]) => {
-    copy(ips.join('\n'));
+    execCopy(ips.join('\n'), t('复制成功，共n条', { n: ips.length }));
   };
 
   const handleCopyDomains = (domains: string[]) => {
-    copy(domains.join('\n'));
+    execCopy(domains.join('\n'), t('复制成功，共n条', { n: domains.length }));
   };
 </script>
 

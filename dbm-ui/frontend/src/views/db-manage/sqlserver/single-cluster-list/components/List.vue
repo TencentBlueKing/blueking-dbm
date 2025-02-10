@@ -65,6 +65,7 @@
           :cluster-type="ClusterTypes.SQLSERVER_SINGLE"
           field="master_domain"
           :get-table-instance="getTableInstance"
+          :is-filter="isFilter"
           :label="t('主访问入口')"
           :selected-list="selected"
           @go-detail="handleToDetails"
@@ -72,6 +73,7 @@
         <ClusterNameColumn
           :cluster-type="ClusterTypes.SQLSERVER_SINGLE"
           :get-table-instance="getTableInstance"
+          :is-filter="isFilter"
           :selected-list="selected"
           @refresh="fetchData" />
         <StatusColumn :cluster-type="ClusterTypes.SQLSERVER_SINGLE" />
@@ -80,6 +82,7 @@
           :cluster-type="ClusterTypes.SQLSERVER_SINGLE"
           field="storages"
           :get-table-instance="getTableInstance"
+          :is-filter="isFilter"
           :label="t('实例')"
           :search-ip="batchSearchIpInatanceList"
           :selected-list="selected" />
@@ -231,6 +234,7 @@
     searchValue,
     sortValue,
     batchSearchIpInatanceList,
+    isFilter,
     columnFilterChange,
     columnSortChange,
     clearSearchValue,

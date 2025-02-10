@@ -168,7 +168,7 @@
   );
 
   const handleCopy = () => {
-    execCopy(props.data.join('\n'), t('复制成功'));
+    execCopy(props.data.join('\n'), t('复制成功，共n条', { n: props.data.length }));
   };
 
   let resizeObserver: any;

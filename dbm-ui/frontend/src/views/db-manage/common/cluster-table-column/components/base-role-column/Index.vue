@@ -18,6 +18,7 @@
           },
         ]"
         :has-selected="selectedList.length > 0"
+        :is-filter="isFilter"
         @handle-copy-all="handleHeadCopyAll"
         @handle-copy-selected="handleHeadCopySelected">
         {{ label }}
@@ -90,8 +91,9 @@
     // eslint-disable-next-line vue/no-unused-properties
     clusterType: clusterType;
     selectedList: ClusterModel<clusterType>[];
-    getTableInstance: () => InstanceType<typeof DbTable> | undefined;
     minWidth?: number;
+    isFilter: boolean;
+    getTableInstance: () => InstanceType<typeof DbTable> | undefined;
   }
 
   export type ReturnArrayElement<T> = T extends (infer U)[] ? U : T;
@@ -131,13 +133,7 @@
 
   const handleHeadCopySelected = (field: 'ip' | 'instance') => {
     const copyList = getCopyList(props.selectedList, field);
-
-    execCopy(
-      copyList.join('\n'),
-      t('成功复制n个', {
-        n: copyList.length,
-      }),
-    );
+    execCopy(copyList.join('\n'), t('复制成功，共n条', { n: copyList.length }));
   };
 
   const handleHeadCopyAll = (field: 'ip' | 'instance') => {
@@ -150,13 +146,7 @@
           return;
         }
         const copyList = getCopyList(data, field);
-
-        execCopy(
-          copyList.join('\n'),
-          t('成功复制n个', {
-            n: copyList.length,
-          }),
-        );
+        execCopy(copyList.join('\n'), t('复制成功，共n条', { n: copyList.length }));
       });
   };
 </script>

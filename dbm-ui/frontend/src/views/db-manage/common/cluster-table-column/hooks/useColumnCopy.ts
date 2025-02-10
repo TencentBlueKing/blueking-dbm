@@ -15,7 +15,7 @@ export default <T extends ISupportClusterType>(props: {
   const handleCopySelected = (field: keyof ClusterModel<T>) => {
     const copyList = props.selectedList.map((item) => item[field as keyof ClusterModel<T>]);
 
-    execCopy(copyList.join('\n'));
+    execCopy(copyList.join('\n'), t('复制成功，共n条', { n: copyList.length }));
   };
 
   const handleCopyAll = (field: keyof ClusterModel<T>) => {
@@ -28,8 +28,7 @@ export default <T extends ISupportClusterType>(props: {
           return;
         }
         const copyList = data.map((item) => item[field as keyof ClusterModel<T>]);
-
-        execCopy(copyList.join('\n'));
+        execCopy(copyList.join('\n'), t('复制成功，共n条', { n: data.length }));
       });
   };
 

@@ -23,9 +23,9 @@
 
   import TicketModel, { type Pulsar } from '@services/model/ticket/ticket';
 
-  import { useCopy } from '@hooks';
-
   import { TicketTypes } from '@common/const';
+
+  import { execCopy } from '@utils';
 
   interface Props {
     ticketDetails: TicketModel<Pulsar.Reboot>
@@ -37,8 +37,6 @@
     name: TicketTypes.PULSAR_REBOOT,
     inheritAttrs: false
   })
-
-  const copy = useCopy();
 
   const { t } = useI18n();
 
@@ -64,7 +62,7 @@
     field: 'node_ip',
     render: ({ cell }: { cell: [] }) => cell.map((ip, index) => <p class="pt-2 pb-2">{ip}
       { index === 0
-        ? <i v-bk-tooltips={t('复制IP')} class="db-icon-copy" onClick={() => copy(cell.join('\n'))} />
+        ? <i v-bk-tooltips={t('复制IP')} class="db-icon-copy" onClick={() => execCopy(cell.join('\n'), t('复制成功，共n条', { n: cell.length }))} />
         : '' }
     </p>),
   }];

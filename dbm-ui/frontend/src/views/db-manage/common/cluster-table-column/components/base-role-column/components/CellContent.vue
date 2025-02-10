@@ -135,22 +135,12 @@
       messageWarn(t('没有可复制IP'));
       return;
     }
-    execCopy(
-      ipList.join('\n'),
-      t('成功复制n个', {
-        n: ipList.length,
-      }),
-    );
+    execCopy(ipList.join('\n'), t('复制成功，共n条', { n: ipList.length }));
   };
 
   const handleCopyInstances = () => {
     const instanceList = props.data.map((item) => `${item.ip}:${item.port}`);
-    execCopy(
-      instanceList.join('\n'),
-      t('成功复制n个', {
-        n: instanceList.length,
-      }),
-    );
+    execCopy(instanceList.join('\n'), t('复制成功，共n条', { n: instanceList.length }));
   };
 
   const handleShowMore = () => {

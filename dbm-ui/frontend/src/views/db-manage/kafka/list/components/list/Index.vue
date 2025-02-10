@@ -62,6 +62,7 @@
         :cluster-type="ClusterTypes.KAFKA"
         field="master_domain"
         :get-table-instance="getTableInstance"
+        :is-filter="isFilter"
         :label="t('访问入口')"
         :selected-list="selected"
         @go-detail="handleToDetails"
@@ -69,6 +70,7 @@
       <ClusterNameColumn
         :cluster-type="ClusterTypes.KAFKA"
         :get-table-instance="getTableInstance"
+        :is-filter="isFilter"
         :selected-list="selected"
         @refresh="fetchTableData" />
       <StatusColumn :cluster-type="ClusterTypes.KAFKA" />
@@ -77,6 +79,7 @@
         :cluster-type="ClusterTypes.KAFKA"
         field="zookeeper"
         :get-table-instance="getTableInstance"
+        :is-filter="isFilter"
         label="Zookeeper"
         :search-ip="batchSearchIpInatanceList"
         :selected-list="selected" />
@@ -84,6 +87,7 @@
         :cluster-type="ClusterTypes.KAFKA"
         field="broker"
         :get-table-instance="getTableInstance"
+        :is-filter="isFilter"
         label="Broker"
         :search-ip="batchSearchIpInatanceList"
         :selected-list="selected" />
@@ -299,6 +303,7 @@
     searchValue,
     sortValue,
     batchSearchIpInatanceList,
+    isFilter,
     columnFilterChange,
     columnSortChange,
     clearSearchValue,
