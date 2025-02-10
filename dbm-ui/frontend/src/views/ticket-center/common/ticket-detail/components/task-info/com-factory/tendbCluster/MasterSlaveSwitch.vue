@@ -23,9 +23,7 @@
       {{ ticketDetails.details.is_verify_checksum ? t('是') : t('否') }}
     </InfoItem>
   </InfoList>
-  <BkTable
-    :data="ticketDetails.details.infos"
-    show-overflow-tooltip>
+  <BkTable :data="ticketDetails.details.infos">
     <BkTableColumn :label="t('主库主机')">
       <template #default="{ data }: { data: RowData }">
         {{ data.switch_tuples[0]?.master?.ip }}

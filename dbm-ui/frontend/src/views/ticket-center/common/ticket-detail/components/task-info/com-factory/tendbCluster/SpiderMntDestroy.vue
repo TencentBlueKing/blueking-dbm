@@ -14,7 +14,7 @@
 <template>
   <BkTable
     :data="ticketDetails.details.infos"
-    show-overflow-tooltip>
+    :show-overflow="false">
     <BkTableColumn :label="t('集群')">
       <template #default="{ data }: { data: RowData }">
         {{ ticketDetails.details.clusters[data.cluster_id].immute_domain }}
@@ -22,7 +22,11 @@
     </BkTableColumn>
     <BkTableColumn :label="t('节点IP')">
       <template #default="{ data }: { data: RowData }">
-        {{ data.spider_ip_list.map((item) => item.ip).join(', ') }}
+        <div
+          v-for="item in data.spider_ip_list"
+          :key="item.ip">
+          {{ item.ip }}
+        </div>
       </template>
     </BkTableColumn>
   </BkTable>

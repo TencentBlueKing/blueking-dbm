@@ -1,6 +1,7 @@
 export * from './addSlave';
 export * from './authorizeRules';
 export * from './backupDb';
+export * from './buildDbSync';
 export * from './clearDbs';
 export * from './dataMigrate';
 export * from './dbRename';

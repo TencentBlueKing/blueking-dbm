@@ -12,9 +12,7 @@
 -->
 
 <template>
-  <BkTable
-    :data="ticketDetails.details.infos"
-    show-overflow-tooltip>
+  <BkTable :data="ticketDetails.details.infos">
     <BkTableColumn :label="t('目标集群')">
       <template #default="{ data }: { data: RowData }">
         {{ ticketDetails.details.clusters[data.cluster_id].immute_domain }}
@@ -42,7 +40,7 @@
   import { TicketTypes } from '@common/const';
 
   interface Props {
-    ticketDetails: TicketModel<Sqlserver.DbRename>;
+    ticketDetails: TicketModel<Sqlserver.BuildDbSync>;
   }
 
   type RowData = Props['ticketDetails']['details']['infos'][number];

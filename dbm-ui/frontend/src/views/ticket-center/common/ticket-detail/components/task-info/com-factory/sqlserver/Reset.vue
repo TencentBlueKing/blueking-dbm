@@ -12,9 +12,7 @@
 -->
 
 <template>
-  <BkTable
-    :data="ticketDetails.details.infos"
-    show-overflow-tooltip>
+  <BkTable :data="ticketDetails.details.infos">
     <BkTableColumn
       field="cluster_id"
       :label="t('集群ID')" />

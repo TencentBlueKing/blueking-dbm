@@ -1,7 +1,5 @@
 <template>
-  <BkTable
-    :data="ticketDetails.details.infos"
-    show-overflow-tooltip>
+  <BkTable :data="ticketDetails.details.infos">
     <BkTableColumn :label="t('目标集群')">
       <template #default="{ data }: { data: RowData }">
         {{ ticketDetails.details.clusters[data.cluster_id].immute_domain }}
@@ -10,11 +8,13 @@
     <BkTableColumn :label="t('源 DB 名')">
       <template #default="{ data }: { data: RowData }">
         <BkTag v-if="data">{{ data.from_database }}</BkTag>
+        <span v-else>--</span>
       </template>
     </BkTableColumn>
     <BkTableColumn :label="t('新 DB 名')">
       <template #default="{ data }: { data: RowData }">
         <BkTag v-if="data">{{ data.to_database }}</BkTag>
+        <span v-else>--</span>
       </template>
     </BkTableColumn>
   </BkTable>

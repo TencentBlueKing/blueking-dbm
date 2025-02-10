@@ -12,7 +12,9 @@
 -->
 
 <template>
-  <BkTable :data="ticketDetails.details.infos">
+  <BkTable
+    :data="ticketDetails.details.infos"
+    :show-overflow="false">
     <BkTableColumn
       :label="t('目标集群')"
       :min-width="250">

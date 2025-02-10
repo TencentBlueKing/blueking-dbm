@@ -12,9 +12,7 @@
 -->
 
 <template>
-  <BkTable
-    :data="ticketDetails.details.infos"
-    show-overflow-tooltip>
+  <BkTable :data="ticketDetails.details.infos">
     <BkTableColumn :label="t('构造产物访问入口')">
       <template #default="{ row }">
         {{ row.display_info?.temp_cluster_proxy || '--' }}

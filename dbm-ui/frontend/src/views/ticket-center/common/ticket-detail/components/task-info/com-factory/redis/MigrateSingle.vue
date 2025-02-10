@@ -14,7 +14,8 @@
 <template>
   <BkTable
     class="single-migrate-table"
-    :data="ticketDetails.details.infos">
+    :data="ticketDetails.details.infos"
+    :show-overflow="false">
     <BkTableColumn
       v-if="isDomain"
       field="display_info.domain"
