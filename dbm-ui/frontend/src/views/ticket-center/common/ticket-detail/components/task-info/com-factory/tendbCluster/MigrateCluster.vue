@@ -12,7 +12,9 @@
 -->
 
 <template>
-  <BkTable :data="ticketDetails.details.infos">
+  <BkTable
+    :data="ticketDetails.details.infos"
+    :show-overflow="false">
     <BkTableColumn
       fixed="left"
       :label="t('目标主库主机')"

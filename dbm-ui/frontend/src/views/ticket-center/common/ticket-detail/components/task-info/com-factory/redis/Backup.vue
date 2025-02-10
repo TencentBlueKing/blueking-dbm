@@ -12,9 +12,7 @@
 -->
 
 <template>
-  <BkTable
-    :data="ticketDetails.details.rules"
-    show-overflow-tooltip>
+  <BkTable :data="ticketDetails.details.rules">
     <BkTableColumn
       :label="t('集群')"
       :min-width="220">
