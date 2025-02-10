@@ -129,13 +129,13 @@
 
   import QuickSearchInstanceModel from '@services/model/quiker-search/quick-search-instance';
 
-  import { useCopy } from '@hooks';
-
   import ClusterInstanceStatus from '@components/cluster-instance-status/Index.vue';
   import EmptyStatus from '@components/empty-status/EmptyStatus.vue';
   import HightLightText from '@components/system-search/components/search-result/render-result/components/HightLightText.vue';
   import { useRedirect } from '@components/system-search/hooks/useRedirect';
   import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
+
+  import { execCopy } from '@utils';
 
   import { groupByDbType } from '../common/utils';
 
@@ -158,7 +158,6 @@
   const emits = defineEmits<Emits>();
 
   const { t } = useI18n();
-  const copy = useCopy();
   const handleRedirect = useRedirect();
 
   const settingChangeKey = ref(1);
@@ -221,7 +220,7 @@
   };
 
   const handleCopy = (content: string) => {
-    copy(content);
+    execCopy(content, t('复制成功，共n条', { n: 1 }));
   };
 
   const handleToInstance = (data: QuickSearchInstanceModel) => {

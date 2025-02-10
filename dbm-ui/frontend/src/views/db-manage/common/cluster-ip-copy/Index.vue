@@ -49,7 +49,7 @@
   import { uniq } from 'lodash';
   import { useI18n } from 'vue-i18n';
 
-  import { useCopy } from '@hooks';
+  import { execCopy } from '@utils';
 
   interface Props {
     selected: T[];
@@ -58,7 +58,6 @@
   const props = defineProps<Props>();
 
   const { t } = useI18n();
-  const copy = useCopy();
 
   const isCopyDropdown = ref(false);
 
@@ -69,7 +68,7 @@
     const copyList = uniq(
       props.selected.reduce((prevList, tableItem) => [...prevList, ...tableItem.allIPList], [] as string[]),
     );
-    copy(copyList.join('\n'));
+    execCopy(copyList.join('\n'), t('复制成功，共n条', { n: copyList.length }));
   };
 
   /**
@@ -86,7 +85,7 @@
       });
       return;
     }
-    copy(copyList.join('\n'));
+    execCopy(copyList.join('\n'), t('复制成功，共n条', { n: copyList.length }));
   };
 </script>
 

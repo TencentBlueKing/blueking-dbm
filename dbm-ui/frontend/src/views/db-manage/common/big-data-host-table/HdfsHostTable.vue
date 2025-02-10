@@ -86,9 +86,9 @@
 
   import type { HostInfo } from '@services/types';
 
-  import { useCopy } from '@hooks';
-
   import DbStatus from '@components/db-status/index.vue';
+
+  import { execCopy } from '@utils';
 
   import tableSetting from './common/tableSetting';
   import useLocalPagination from './hook/useLocalPagination';
@@ -105,7 +105,6 @@
   const props = defineProps<Props>();
   const emits = defineEmits<Emits>();
 
-  const copy = useCopy();
   const { t } = useI18n();
 
   const isLoading = ref(false);
@@ -344,7 +343,7 @@
   // 复制所有主机IP
   const handleCopyAll = () => {
     const ipList = props.data.map(_ => _.ip);
-    copy(ipList.join('\n'));
+    execCopy(ipList.join('\n'), t('复制成功，共n条', { n: ipList.length }));
   };
   // 复制异常主机IP
   const handleCopyAbnormal = () => {
@@ -354,7 +353,7 @@
       }
       return result;
     }, [] as Array<string>);
-    copy(abnormalList.join('\n'));
+    execCopy(abnormalList.join('\n'), t('复制成功，共n条', { n: abnormalList.length }));
   };
 </script>
 <style lang="less" scoped>

@@ -65,6 +65,7 @@
         :cluster-type="ClusterTypes.DORIS"
         field="domain"
         :get-table-instance="getTableInstance"
+        :is-filter="isFilter"
         :label="t('访问入口')"
         :selected-list="selected"
         @go-detail="handleToDetails"
@@ -72,6 +73,7 @@
       <ClusterNameColumn
         :cluster-type="ClusterTypes.DORIS"
         :get-table-instance="getTableInstance"
+        :is-filter="isFilter"
         :selected-list="selected"
         @refresh="fetchTableData" />
       <StatusColumn :cluster-type="ClusterTypes.DORIS" />
@@ -80,6 +82,7 @@
         :cluster-type="ClusterTypes.DORIS"
         field="doris_follower"
         :get-table-instance="getTableInstance"
+        :is-filter="isFilter"
         :label="t('Follower节点')"
         :search-ip="batchSearchIpInatanceList"
         :selected-list="selected" />
@@ -87,6 +90,7 @@
         :cluster-type="ClusterTypes.DORIS"
         field="doris_observer"
         :get-table-instance="getTableInstance"
+        :is-filter="isFilter"
         :label="t('Observer节点')"
         :search-ip="batchSearchIpInatanceList"
         :selected-list="selected" />
@@ -94,6 +98,7 @@
         :cluster-type="ClusterTypes.DORIS"
         field="doris_backend_hot"
         :get-table-instance="getTableInstance"
+        :is-filter="isFilter"
         :label="t('热节点')"
         :search-ip="batchSearchIpInatanceList"
         :selected-list="selected" />
@@ -101,6 +106,7 @@
         :cluster-type="ClusterTypes.DORIS"
         field="doris_backend_cold"
         :get-table-instance="getTableInstance"
+        :is-filter="isFilter"
         :label="t('冷节点')"
         :search-ip="batchSearchIpInatanceList"
         :selected-list="selected" />
@@ -315,6 +321,7 @@
     searchValue,
     sortValue,
     batchSearchIpInatanceList,
+    isFilter,
     columnFilterChange,
     columnSortChange,
     clearSearchValue,

@@ -14,7 +14,7 @@
       <BkButton
         class="mr-8"
         @click="handleCopyAll">
-        {{ t('复制全部实例') }}({{ totalCount }})
+        {{ t('复制所有实例') }}({{ totalCount }})
       </BkButton>
       <BkInput
         v-model="searchKey"

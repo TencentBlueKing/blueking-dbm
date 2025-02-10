@@ -65,6 +65,7 @@
         :cluster-type="ClusterTypes.ES"
         field="master_domain"
         :get-table-instance="getTableInstance"
+        :is-filter="isFilter"
         :label="t('访问入口')"
         :selected-list="selected"
         @go-detail="handleToDetails"
@@ -72,6 +73,7 @@
       <ClusterNameColumn
         :cluster-type="ClusterTypes.ES"
         :get-table-instance="getTableInstance"
+        :is-filter="isFilter"
         :selected-list="selected"
         @refresh="fetchTableData" />
       <StatusColumn :cluster-type="ClusterTypes.ES" />
@@ -80,6 +82,7 @@
         :cluster-type="ClusterTypes.ES"
         field="es_master"
         :get-table-instance="getTableInstance"
+        :is-filter="isFilter"
         :label="t('Master节点')"
         :search-ip="batchSearchIpInatanceList"
         :selected-list="selected" />
@@ -87,6 +90,7 @@
         :cluster-type="ClusterTypes.ES"
         field="es_client"
         :get-table-instance="getTableInstance"
+        :is-filter="isFilter"
         :label="t('Client节点')"
         :search-ip="batchSearchIpInatanceList"
         :selected-list="selected" />
@@ -94,6 +98,7 @@
         :cluster-type="ClusterTypes.ES"
         field="es_datanode_hot"
         :get-table-instance="getTableInstance"
+        :is-filter="isFilter"
         :label="t('热节点')"
         :search-ip="batchSearchIpInatanceList"
         :selected-list="selected" />
@@ -101,6 +106,7 @@
         :cluster-type="ClusterTypes.ES"
         field="es_datanode_cold"
         :get-table-instance="getTableInstance"
+        :is-filter="isFilter"
         :label="t('冷节点')"
         :search-ip="batchSearchIpInatanceList"
         :selected-list="selected" />
@@ -307,6 +313,7 @@
     searchValue,
     sortValue,
     batchSearchIpInatanceList,
+    isFilter,
     columnFilterChange,
     columnSortChange,
     clearSearchValue,

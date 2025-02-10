@@ -134,7 +134,7 @@
                   <template #append>
                     <DbIcon
                       type="copy"
-                      @click="() => copy(data.md5)" />
+                      @click="() => execCopy(data.md5, t('复制成功，共n条', { n: 1 }))" />
                   </template>
                 </TextOverflowLayout>
               </template>
@@ -277,14 +277,14 @@
   import { createBkrepoAccessToken } from '@services/source/storage';
   import { getVersions } from '@services/source/version';
 
-  import { useCopy, useDefaultPagination, useTableMaxHeight } from '@hooks';
+  import { useDefaultPagination, useTableMaxHeight } from '@hooks';
 
   import { DBTypes } from '@common/const';
 
   import ApplyPermissionCatch from '@components/apply-permission/Catch.vue';
   import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
 
-  import { messageSuccess } from '@utils';
+  import { execCopy, messageSuccess } from '@utils';
 
   import { useVersionFiles } from '../hooks/useVersionFiles';
 
@@ -306,7 +306,6 @@
   });
 
   const { t } = useI18n();
-  const copy = useCopy();
   const tableMaxHeight = useTableMaxHeight(340);
 
   const uplodRef = ref();

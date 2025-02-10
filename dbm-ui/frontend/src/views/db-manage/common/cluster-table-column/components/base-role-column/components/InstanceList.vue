@@ -11,7 +11,7 @@
       <BkButton
         class="mr-8"
         @click="handleCopyAll">
-        {{ t('复制全部实例') }}({{ totalCount }})
+        {{ t('复制所有实例') }}({{ totalCount }})
       </BkButton>
       <BkInput
         v-model="searchKey"
@@ -108,7 +108,7 @@
       messageWarn(t('没有可复制实例'));
       return;
     }
-    execCopy(abnormalInstanceList.join('\n'));
+    execCopy(abnormalInstanceList.join('\n'), t('复制成功，共n条', { n: abnormalInstanceList.length }));
   };
 
   /**
@@ -120,6 +120,6 @@
       messageWarn(t('没有可复制实例'));
       return;
     }
-    execCopy(instanceList.join('\n'));
+    execCopy(instanceList.join('\n'), t('复制成功，共n条', { n: instanceList.length }));
   };
 </script>

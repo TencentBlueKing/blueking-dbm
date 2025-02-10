@@ -41,7 +41,7 @@
           theme="primary">
           <DbIcon
             type="copy"
-            @click="copy(item.value)" />
+            @click="execCopy(item.value)" />
         </BkButton>
       </div>
     </div>
@@ -59,7 +59,7 @@
   import MongodbModel from '@services/model/mongodb/mongodb';
   import MongodbDetailModel from '@services/model/mongodb/mongodb-detail';
 
-  import { useCopy } from '@hooks';
+  import { execCopy } from '@utils';
 
   interface Props {
     data: MongodbModel | MongodbDetailModel;
@@ -71,7 +71,6 @@
     default: false,
   });
 
-  const copy = useCopy();
   const { t } = useI18n();
 
   const dataList = computed(() => {
@@ -102,8 +101,8 @@
   });
 
   const handleCopyAll = () => {
-    const content = dataList.value.map((dataItem) => `${dataItem.label}：${dataItem.value}`).join('\n');
-    copy(content);
+    const content = dataList.value.map((dataItem) => `${dataItem.label}：${dataItem.value}`);
+    execCopy(content.join('\n'));
   };
 
   const handleClose = () => {

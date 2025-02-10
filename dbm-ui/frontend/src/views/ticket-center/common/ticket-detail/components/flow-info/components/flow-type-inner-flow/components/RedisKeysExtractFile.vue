@@ -83,9 +83,7 @@
   import { createBkrepoAccessToken } from '@services/source/storage';
   import { getKeyFiles } from '@services/source/taskflow';
 
-  import { useCopy } from '@hooks';
-
-  import { downloadUrl, generateBkRepoDownloadUrl } from '@utils';
+  import { downloadUrl, execCopy, generateBkRepoDownloadUrl } from '@utils';
 
   type KeyFileItem = ServiceReturnType<typeof getKeyFiles>[number];
 
@@ -96,7 +94,6 @@
   const props = defineProps<Props>();
 
   const { t } = useI18n();
-  const copy = useCopy();
 
   const isAnomalies = ref(false);
   const isShow = ref(false);
@@ -147,7 +144,7 @@
     createBkrepoAccessToken({ file_path: data.path })
       .then((tokenResult) => {
         const url = generateBkRepoDownloadUrl(tokenResult);
-        copy(url);
+        execCopy(url, t('复制成功，共n条', { n: 1 }));
       })
       .finally(() => {
         state.fileLoadings[index] = false;

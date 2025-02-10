@@ -60,7 +60,6 @@
   import { getTendbclusterInstanceList } from '@services/source/tendbcluster';
 
   import {
-    useCopy,
     useLinkQueryColumnSerach,
     useStretchLayout,
     useTableSettings,
@@ -81,10 +80,10 @@
   import DropdownExportExcel from '@views/db-manage/common/dropdown-export-excel/index.vue';
 
   import {
+    execCopy,
     getSearchSelectorParams,
     isRecentDays,
-    utcDisplayTime,
-  } from '@utils';
+    utcDisplayTime  } from '@utils';
 
   interface IColumn {
     cell: string,
@@ -95,7 +94,6 @@
 
   const router = useRouter();
   const { currentBizId } = useGlobalBizs();
-  const copy = useCopy();
   const { t } = useI18n();
   const {
     isOpen: isStretchLayoutOpen,
@@ -220,7 +218,7 @@
                 <db-icon
                   v-bk-tooltips={t('复制所属集群')}
                   type="copy"
-                  onClick={() => copy(data.master_domain)} />
+                  onClick={() => execCopy(data.master_domain, t('复制成功，共n条', { n: 1 }))} />
               )
             }}
           </TextOverflowLayout>
@@ -250,7 +248,7 @@
                 <db-icon
                   type="copy"
                   v-bk-tooltips={t('复制集群名称')}
-                  onClick={() => copy(data.cluster_name)} />
+                  onClick={() => execCopy(data.cluster_name, t('复制成功，共n条', { n: 1 }))} />
               )
 
             }}

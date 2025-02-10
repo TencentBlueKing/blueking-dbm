@@ -72,7 +72,7 @@
                 :disabled="tableData.length === 0"
                 text
                 @click="() => handleCopyIp(tableData)">
-                {{ t('复制全部IP') }}
+                {{ t('复制所有IP') }}
               </BkButton>
             </BkDropdownItem>
             <BkDropdownItem>
@@ -192,7 +192,6 @@
   } from '@services/source/doris';
 
   import {
-    useCopy,
     useLinkQueryColumnSerach,
   } from '@hooks';
 
@@ -210,7 +209,7 @@
   import ClusterReplace from '@views/db-manage/doris/common/replace/Index.vue';
   import ClusterShrink from '@views/db-manage/doris/common/shrink/Index.vue';
 
-  import { getSearchSelectorParams } from '@utils';
+  import { execCopy, getSearchSelectorParams } from '@utils';
 
   import { useTimeoutPoll } from '@vueuse/core';
 
@@ -221,7 +220,6 @@
   const props = defineProps<Props>();
 
   const globalBizsStore = useGlobalBizs();
-  const copy = useCopy();
   const { t, locale } = useI18n();
 
   const {
@@ -627,7 +625,7 @@
   // 复制IP
   const handleCopyIp = (dataList: DorisNodeModel[]) => {
     const ipList = dataList.map(nodeItem => nodeItem.ip);
-    copy(ipList.join('\n'));
+    execCopy(ipList.join('\n'), t('复制成功，共n条', { n: ipList.length }))
   };
 
   const handleSelect = (checked: boolean, data: DorisNodeModel) => {

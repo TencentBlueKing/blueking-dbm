@@ -51,7 +51,6 @@
   import { getTendbhaInstanceList } from '@services/source/tendbha';
 
   import {
-    useCopy,
     useLinkQueryColumnSerach,
     useStretchLayout,
     useTableSettings,
@@ -70,6 +69,7 @@
   import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
 
   import {
+    execCopy,
     getSearchSelectorParams,
     isRecentDays,
   } from '@utils';
@@ -90,7 +90,6 @@
 
   const router = useRouter();
   const globalBizsStore = useGlobalBizs();
-  const copy = useCopy();
   const { t } = useI18n();
   const {
     isOpen: isStretchLayoutOpen,
@@ -256,7 +255,7 @@
                   v-bk-tooltips={t('复制所属集群')}
                   type="copy"
                   class="copy-btn"
-                  onClick={() => copy(cell)} />
+                  onClick={() => execCopy(cell, t('复制成功，共n条', { n: 1 }))} />
               ),
             }}
           </TextOverflowLayout>
@@ -286,7 +285,7 @@
                   v-bk-tooltips={t('复制集群名称')}
                   type="copy"
                   class="copy-btn"
-                  onClick={() => copy(cell)} />
+                  onClick={() => execCopy(cell, t('复制成功，共n条', { n: 1 }))} />
               ),
             }}
           </TextOverflowLayout>

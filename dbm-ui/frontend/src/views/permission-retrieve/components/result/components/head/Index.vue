@@ -15,7 +15,7 @@
           style="flex-shrink: 0"
           text
           theme="primary"
-          @click="handleIpCopy(privIpMap.noPriv.join('\n'))">
+          @click="handleIpCopy(privIpMap.noPriv)">
           <DbIcon type="copy" />
         </BkButton>
       </template>
@@ -28,7 +28,7 @@
           class="ml-4"
           text
           theme="primary"
-          @click="handleIpCopy(privIpMap.hasPriv.join('\n'))">
+          @click="handleIpCopy(privIpMap.hasPriv)">
           <DbIcon type="copy" />
         </BkButton>
         <BkButton
@@ -58,7 +58,7 @@
 
   import { getAccountPrivs } from '@services/source/mysqlPermissionAccount';
 
-  import { useCopy } from '@hooks';
+  import { execCopy } from '@utils';
 
   import MultLineText from './components/MultLineText.vue';
 
@@ -78,7 +78,6 @@
   });
 
   const { t } = useI18n();
-  const copy = useCopy();
 
   const privIpMap = computed(() => {
     const { data } = props;
@@ -95,8 +94,8 @@
     };
   });
 
-  const handleIpCopy = (value: string) => {
-    copy(value);
+  const handleIpCopy = (value: string[]) => {
+    execCopy(value.join('\n'), t('复制成功，共n条', { n: value.length }));
   };
 
   const handleFormatTypeChange = () => {

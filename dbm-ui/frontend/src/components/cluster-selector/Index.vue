@@ -157,11 +157,11 @@
   import { getTendbsingleList } from '@services/source/tendbsingle';
   import type { ListBase } from '@services/types';
 
-  import { useCopy, useSelectorDialogWidth } from '@hooks';
+  import { useSelectorDialogWidth } from '@hooks';
 
   import { ClusterTypes } from '@common/const';
 
-  import { messageWarn } from '@utils';
+  import { execCopy, messageWarn } from '@utils';
 
   import ResultPreview from './components/common/result-preview/Index.vue';
   import type { SearchSelectList } from './components/common/SearchBar.vue';
@@ -235,7 +235,6 @@
   const slots = defineSlots<{
     submitTips?: () => VNode;
   }>();
-  const copy = useCopy();
   const { dialogWidth } = useSelectorDialogWidth();
   const { t } = useI18n();
 
@@ -567,8 +566,7 @@
       messageWarn(t('没有可复制集群'));
       return;
     }
-
-    copy(copyValues.join('\n'));
+    execCopy(copyValues.join('\n'), t('复制成功，共n条', { n: copyValues.length }));
   };
 
   const handleConfirm = () => {

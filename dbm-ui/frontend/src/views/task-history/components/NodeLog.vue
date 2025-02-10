@@ -143,7 +143,7 @@
   import CostTimer from '@components/cost-timer/CostTimer.vue';
   import BkLog from '@components/vue2/bk-log/index.vue';
 
-  import { messageSuccess } from '@utils';
+  import { execCopy, messageSuccess } from '@utils';
 
   import { useFullscreen, useTimeoutPoll } from '@vueuse/core';
 
@@ -151,8 +151,6 @@
   import type { GraphNode } from '../common/utils';
 
   import RetrySelector from './RetrySelector.vue';
-
-  import { useCopy } from '@/hooks';
 
   type NodeLog = ServiceReturnType<typeof getNodeLog>[number];
 
@@ -176,7 +174,6 @@
   const emits = defineEmits<Emits>();
 
   const { t } = useI18n();
-  const copy = useCopy();
   const route = useRoute();
 
   const rootId = route.params.root_id as string;
@@ -346,7 +343,8 @@
   };
   const handleCopyLog = () => {
     const logData = formatLogData(logState.data);
-    copy(logData.map((item) => item.message).join('\n'));
+    const messageList = logData.map((item) => item.message);
+    execCopy(messageList.join('\n'), t('复制成功，共n条', { n: messageList.length }));
   };
 
   const handleRefresh = () => {

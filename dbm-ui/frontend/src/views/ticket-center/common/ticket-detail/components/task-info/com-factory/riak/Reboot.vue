@@ -22,9 +22,9 @@
 
   import TicketModel, { type Riak } from '@services/model/ticket/ticket';
 
-  import { useCopy } from '@hooks';
-
   import { TicketTypes } from '@common/const';
+
+   import { execCopy } from '@utils';
 
   interface Props {
     ticketDetails: TicketModel<Riak.Reboot>
@@ -37,7 +37,6 @@
     inheritAttrs: false
   })
 
-  const copy = useCopy();
   const { t } = useI18n();
 
   const columns = [
@@ -69,7 +68,7 @@
           <db-icon
             v-bk-tooltips={t('复制IP')}
             type="copy"
-            onClick={() => copy(cell)} />
+            onClick={() => execCopy(cell, t('复制成功，共n条', { n: 1 }))} />
         </p>
       ),
     },

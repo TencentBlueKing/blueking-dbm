@@ -138,9 +138,7 @@
   import { fetchDbTypeList } from '@services/source/infras';
   import type { HostInfo } from '@services/types';
 
-  import { useCopy } from '@hooks';
-
-  import { messageWarn } from '@utils';
+  import { execCopy, messageWarn } from '@utils';
 
   interface Props {
     hostList: HostInfo[];
@@ -155,7 +153,6 @@
   const props = defineProps<Props>();
   const emits = defineEmits<Emits>();
 
-  const copy = useCopy();
   const { t } = useI18n();
 
   const formRef = ref();
@@ -233,8 +230,7 @@
       messageWarn(t('暂无可复制 IP'));
       return;
     }
-
-    copy(ipList.join('\n'));
+    execCopy(ipList.join('\n'), t('复制成功，共n条', { n: ipList.length }));
   };
 
   // 复制所有异常主机 IP
@@ -252,13 +248,12 @@
       messageWarn(t('暂无可复制 IP'));
       return;
     }
-
-    copy(ipList.join('\n'));
+    execCopy(ipList.join('\n'), t('复制成功，共n条', { n: ipList.length }));
   };
 
   // 复制单个指定主机 IP
   const handleCopy = (hostItem: HostInfo) => {
-    copy(hostItem.ip);
+    execCopy(hostItem.ip, t('复制成功，共n条', { n: 1 }));
   };
 
   // 删除单个主机

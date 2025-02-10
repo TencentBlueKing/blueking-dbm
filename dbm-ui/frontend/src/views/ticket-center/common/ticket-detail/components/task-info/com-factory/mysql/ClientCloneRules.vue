@@ -46,9 +46,9 @@
 
   import TicketModel, { type Mysql } from '@services/model/ticket/ticket';
 
-  import { useCopy } from '@hooks';
-
   import { TicketTypes } from '@common/const';
+
+  import { execCopy } from '@utils';
 
   interface Props {
     ticketDetails: TicketModel<Mysql.ClientCloneRules>;
@@ -58,11 +58,10 @@
 
   defineProps<Props>();
 
-  const copy = useCopy();
-
   const copyIp = (data: string[]) => {
-    copy(data.join('\n'));
+    execCopy(data.join('\n'), t('复制成功，共n条', { n: data.length }));
   };
+
   defineOptions({
     name: TicketTypes.MYSQL_CLIENT_CLONE_RULES,
     inheritAttrs: false,

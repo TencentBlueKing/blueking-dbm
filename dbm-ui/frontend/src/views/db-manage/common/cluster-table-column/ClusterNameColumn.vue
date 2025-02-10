@@ -13,6 +13,7 @@
           },
         ]"
         :has-selected="selectedList.length > 0"
+        :is-filter="isFilter"
         @handle-copy-all="handleCopyAll"
         @handle-copy-selected="handleCopySelected">
         {{ t('集群名称') }}
@@ -89,6 +90,7 @@
     // eslint-disable-next-line vue/no-unused-properties
     clusterType: clusterType;
     selectedList: ClusterModel<clusterType>[];
+    isFilter: boolean;
     // eslint-disable-next-line vue/no-unused-properties
     getTableInstance: () => InstanceType<typeof DbTable> | undefined;
   }
@@ -124,7 +126,7 @@
   };
 
   const handleCopyClusterName = (clusterName: string) => {
-    execCopy(clusterName);
+    execCopy(clusterName, t('复制成功，共n条', { n: 1 }));
   };
 
   const handleUpdateAliasSuccess = () => {

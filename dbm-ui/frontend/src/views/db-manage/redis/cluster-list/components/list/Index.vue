@@ -74,6 +74,7 @@
           :db-type="DBTypes.REDIS"
           field="master_domain"
           :get-table-instance="getTableInstance"
+          :is-filter="isFilter"
           :label="t('访问入口')"
           :selected-list="selected"
           @go-detail="handleToDetails"
@@ -101,6 +102,7 @@
         <ClusterNameColumn
           :cluster-type="ClusterTypes.REDIS"
           :get-table-instance="getTableInstance"
+          :is-filter="isFilter"
           :selected-list="selected"
           @refresh="fetchData" />
         <StatusColumn :cluster-type="ClusterTypes.REDIS" />
@@ -109,6 +111,7 @@
           :cluster-type="ClusterTypes.REDIS"
           field="proxy"
           :get-table-instance="getTableInstance"
+          :is-filter="isFilter"
           label="Proxy"
           :search-ip="batchSearchIpInatanceList"
           :selected-list="selected" />
@@ -116,6 +119,7 @@
           :cluster-type="ClusterTypes.REDIS"
           field="redis_master"
           :get-table-instance="getTableInstance"
+          :is-filter="isFilter"
           label="Master"
           :search-ip="batchSearchIpInatanceList"
           :selected-list="selected" />
@@ -123,6 +127,7 @@
           :cluster-type="ClusterTypes.REDIS"
           field="redis_slave"
           :get-table-instance="getTableInstance"
+          :is-filter="isFilter"
           label="Slave"
           :search-ip="batchSearchIpInatanceList"
           :selected-list="selected" />
@@ -465,6 +470,7 @@
     searchValue,
     sortValue,
     batchSearchIpInatanceList,
+    isFilter,
     columnFilterChange,
     columnSortChange,
     clearSearchValue,

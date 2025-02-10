@@ -102,11 +102,6 @@
       messageWarn('数据为空');
       return;
     }
-    execCopy(
-      copyData.join('\n'),
-      t('成功复制n个', {
-        n: copyData.length,
-      }),
-    );
+    execCopy(copyData.join('\n'), t('复制成功，共n条', { n: copyData.length }));
   };
 </script>

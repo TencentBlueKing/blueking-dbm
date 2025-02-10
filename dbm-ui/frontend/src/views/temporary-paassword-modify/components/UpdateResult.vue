@@ -133,9 +133,9 @@
 
   import { modifyAdminPassword, queryAsyncModifyResult } from '@services/source/permission';
 
-  import { useCopy } from '@hooks';
-
   import RenderSuccess from '@components/ticket-success/Index.vue';
+
+  import { execCopy } from '@utils';
 
   import { useTimeoutPoll } from '@vueuse/core';
 
@@ -155,7 +155,6 @@
   const emits = defineEmits<Emits>();
 
   const { t } = useI18n();
-  const copy = useCopy();
 
   const isShowPassword = ref(false);
   const successList = ref<string[]>([]);
@@ -226,11 +225,11 @@
   };
 
   const handleCopyPassword = () => {
-    copy(props.password);
+    execCopy(props.password, t('复制成功，共n条', { n: 1 }));
   };
 
   const handleCopy = () => {
-    copy(errorList.value.join('\n'));
+    execCopy(errorList.value.join('\n'), t('复制成功，共n条', { n: errorList.value.join('\n') }));
   };
 
   const handleRetry = () => {

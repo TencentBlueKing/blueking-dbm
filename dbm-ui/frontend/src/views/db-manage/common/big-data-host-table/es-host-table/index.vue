@@ -104,11 +104,9 @@
     watch,
   } from 'vue';
 
-  import { useCopy } from '@hooks';
-
   import DbStatus from '@components/db-status/index.vue';
 
-  import { messageWarn } from '@utils';
+  import { execCopy, messageWarn } from '@utils';
 
   import tableSetting from '../common/tableSetting';
   import useLocalPagination from '../hook/useLocalPagination';
@@ -123,7 +121,6 @@
   const emits = defineEmits<Emits>();
 
   const { t } = useI18n();
-  const copy = useCopy();
   const isLoading = ref(false);
   const isShowTable = ref(true);
   const batchEditValue = ref(1);
@@ -380,7 +377,7 @@
       messageWarn(t('没有可以复制主机'));
       return;
     }
-    copy(ipList.join('\n'));
+    execCopy(ipList.join('\n'), t('复制成功，共n条', { n: ipList.length }));
   };
   // 复制异常主机IP
   const handleCopyAbnormal = () => {
@@ -394,7 +391,7 @@
       messageWarn(t('没有可复制异常主机'));
       return;
     }
-    copy(abnormalList.join('\n'));
+    execCopy(abnormalList.join('\n'), t('复制成功，共n条', { n: abnormalList.length }));
   };
 </script>
 <style lang="less" scoped>

@@ -19,6 +19,7 @@
           },
         ]"
         :has-selected="selectedList.length > 0"
+        :is-filter="isFilter"
         @handle-copy-all="handleCopyAll"
         @handle-copy-selected="handleCopySelected">
         {{ t('从访问入口') }}
@@ -105,6 +106,7 @@
   export interface Props<clusterType extends ISupportClusterType> {
     clusterType: clusterType;
     selectedList: ClusterModel<clusterType>[];
+    isFilter: boolean;
     // eslint-disable-next-line vue/no-unused-properties
     getTableInstance: () => InstanceType<typeof DbTable> | undefined;
   }
@@ -143,22 +145,12 @@
 
   const copyDomain = (data: IRowData['slaveEntryList']) => {
     const copyList = _.uniq(data.map(({ entry }) => entry));
-    execCopy(
-      copyList.join('\n'),
-      t('复制成功n个域名', {
-        n: copyList.length,
-      }),
-    );
+    execCopy(copyList.join('\n'), t('复制成功，共n条', { n: copyList.length }));
   };
 
   const copyDomainPort = (data: IRowData['slaveEntryList']) => {
     const copyList = _.uniq(data.map(({ entry, port }) => `${entry}:${port}`));
-    execCopy(
-      copyList.join('\n'),
-      t('复制成功n个域名:端口', {
-        n: copyList.length,
-      }),
-    );
+    execCopy(copyList.join('\n'), t('复制成功，共n条', { n: copyList.length }));
   };
 
   const handleCopyAll = (field: string) => {

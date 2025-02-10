@@ -75,7 +75,7 @@
         <template #content>
           <BkDropdownMenu>
             <BkDropdownItem @click="handleCopyAll">
-              {{ t('复制全部IP') }}
+              {{ t('复制所有IP') }}
             </BkDropdownItem>
             <BkDropdownItem @click="handleCopeFailed">
               {{ t('复制异常IP') }}
@@ -183,7 +183,6 @@
   import { getEsDetail, getEsNodeList } from '@services/source/es';
 
   import {
-    useCopy,
     useLinkQueryColumnSerach,
   } from '@hooks';
 
@@ -201,6 +200,7 @@
   import ClusterShrink from '@views/db-manage/elastic-search/common/shrink/Index.vue';
 
   import {
+    execCopy,
     getSearchSelectorParams,
     isRecentDays,
     messageWarn,
@@ -264,7 +264,6 @@
   };
 
   const globalBizsStore = useGlobalBizs();
-  const copy = useCopy();
   const { t, locale } = useI18n();
 
   const {
@@ -617,7 +616,7 @@
       messageWarn(t('没有可复制IP'));
       return;
     }
-    copy(ipList.join('\n'));
+    copy(ipList);
   };
 
   // 复制异常 IP
@@ -632,7 +631,7 @@
       messageWarn(t('没有可复制IP'));
       return;
     }
-    copy(ipList.join('\n'));
+    copy(ipList);
   };
 
   // 复制已选 IP
@@ -642,8 +641,12 @@
       messageWarn(t('没有可复制IP'));
       return;
     }
-    copy(list.join('\n'));
+    copy(list);
   };
+
+  const copy = (list: string[]) => {
+    execCopy(list.join('\n'), t('复制成功，共n条', { n: list.length }))
+  }
 
   const handleSelect = (checked: boolean, data: EsNodeModel) => {
     const checkedMap = { ...checkedNodeMap.value };

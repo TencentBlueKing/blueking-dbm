@@ -28,7 +28,7 @@
         <BkButton
           class="mr-8"
           @click="handleCopyIps">
-          {{ $t('复制全部IP') }}
+          {{ $t('复制所有IP') }}
         </BkButton>
         <BkInput
           v-model="state.keyword"
@@ -65,9 +65,11 @@
 
   import type { HostNode } from '@services/types';
 
-  import { useCopy, useDefaultPagination } from '@hooks';
+  import { useDefaultPagination } from '@hooks';
 
   import DbStatus from '@components/db-status/index.vue';
+
+  import { execCopy } from '@utils';
 
   interface Props {
     fetchParams: Record<string, any>,
@@ -83,7 +85,6 @@
   });
 
   const { t } = useI18n();
-  const copy = useCopy();
 
   /**
    * 预览表格配置
@@ -161,14 +162,16 @@
 
   function handleCopyAbnormalIps() {
     const abnormalIps = state.data.filter(item => item.status === 0).map(item => item.bk_host_innerip);
-    if (abnormalIps.length === 0) return;
-    copy(abnormalIps.join('\n'));
+    if (abnormalIps.length > 0) {
+      execCopy(abnormalIps.join('\n'), t('复制成功，共n条', { n: abnormalIps.length }));
+    }
   }
 
   function handleCopyIps() {
     const ips = state.data.map(item => item.bk_host_innerip);
-    if (ips.length === 0) return;
-    copy(ips.join('\n'));
+    if (ips.length > 0) {
+      execCopy(ips.join('\n'), t('复制成功，共n条', { n: ips.length }));
+    }
   }
 
   /**

@@ -68,9 +68,7 @@
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
-  import { useCopy } from '@hooks';
-
-  import { messageWarn } from '@utils';
+  import { execCopy, messageWarn } from '@utils';
 
   import type { InstanceSelectorValues, IValue } from '../../../Index.vue';
 
@@ -99,7 +97,6 @@
   const emits = defineEmits<Emits>();
 
   const { t } = useI18n();
-  const copy = useCopy();
 
   const keys = computed(() => Object.keys(props.lastValues) as Keys[]);
   const isEmpty = computed(() => keys.value.every((key) => props.lastValues[key].length < 1));
@@ -133,7 +130,8 @@
     for (const key of keys.value) {
       instances.push(...props.lastValues[key]);
     }
-    copy(instances.map((item) => item[mainKey.value]).join('\n'));
+    const copyData = instances.map((item) => item[mainKey.value]);
+    execCopy(copyData.join('\n'), t('复制成功，共n条', { n: copyData.length }));
   };
 </script>
 <style lang="less">
