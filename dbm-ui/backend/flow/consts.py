@@ -74,7 +74,7 @@ LINUX_ADMIN_USER_FOR_CHECK = "root"
 DEFAULT_TENDISPLUS_KVSTORECOUNT = 10
 
 # 定义每个TenDB-Cluster集群最大spider-master/mnt角色的节点数量（暂定）
-MAX_SPIDER_MASTER_COUNT = 37
+MAX_SPIDER_MASTER_COUNT = 64
 # 定义每个TenDB-Cluster集群最小spider-master/slave角色的节点数量（暂定）
 MIN_SPIDER_MASTER_COUNT = 2
 MIN_SPIDER_SLAVE_COUNT = 1
