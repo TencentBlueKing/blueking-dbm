@@ -20,7 +20,7 @@
         :value="flowData.cost_time" />
     </I18nT>
     <div style="margin-top: 10px; color: #979ba5">{{ utcDisplayTime(data.done_at) }}</div>
-    <template v-if="isSuperuser || data.operators.includes(username)">
+    <template v-if="isSuperuser || data.operators.includes(username) || ticketData.todo_helpers.includes(username)">
       <ProcessResourceReplenish :todo-data="data">
         <BkButton
           class="w-88"
