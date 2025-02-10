@@ -344,7 +344,7 @@
   let sortParams = {};
 
   let isReady = false;
-
+  let isPaginationChangeFetch = false;
   /**
    * 判断是否处于搜索状态
    */
@@ -365,6 +365,10 @@
     getSearchParams,
     replaceSearchParams,
   } = useUrlSearch();
+
+  const triggerSelection = () => {
+    emits('selection', Object.keys(rowSelectMemo.value), Object.values(rowSelectMemo.value));
+  };
 
   const fetchListData = (loading = true) => {
     isReady = true;
@@ -406,6 +410,12 @@
             if (!props.fixedPagination && props.releateUrlQuery) {
               replaceSearchParams(params);
             }
+            if (!isPaginationChangeFetch) {
+              isPaginationChangeFetch = false;
+              rowSelectMemo.value = {}
+              isWholeChecked.value = false
+              triggerSelection();
+            }
 
             emits('requestSuccess', data);
           })
@@ -439,9 +449,7 @@
     tableKey.value = Date.now().toString();
   });
 
-  const triggerSelection = () => {
-    emits('selection', Object.keys(rowSelectMemo.value), Object.values(rowSelectMemo.value));
-  };
+
 
   // 解析 URL 上面的分页信息
   const parseURL = () => {
@@ -600,6 +608,7 @@
   }
     pagination.limit = pageLimit;
     pagination.current = 1;
+    isPaginationChangeFetch = true
     fetchListData();
   };
 
@@ -609,6 +618,7 @@
       return
     }
     pagination.current = pageValue;
+    isPaginationChangeFetch = true
 
     fetchListData();
   };
