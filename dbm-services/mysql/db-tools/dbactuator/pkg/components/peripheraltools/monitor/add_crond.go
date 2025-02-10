@@ -16,10 +16,10 @@ func (c *MySQLMonitorComp) AddToCrond() (err error) {
 		return err
 	}
 
-	for _, ele := range c.Params.PortBkInstanceList {
+	for _, inst := range c.Params.InstancesInfo {
 		configPath := filepath.Join(
 			cst.MySQLMonitorInstallPath,
-			fmt.Sprintf("monitor-config_%d.yaml", ele.Port),
+			fmt.Sprintf("monitor-config_%d.yaml", inst.Port),
 		)
 
 		err = internal.RegisterCrond(mysqlMonitor, configPath, c.Params.ExecUser)

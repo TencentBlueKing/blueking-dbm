@@ -28,6 +28,7 @@ from backend.flow.engine.bamboo.scene.spider.spider_cluster_enable_deploy import
 from backend.flow.engine.bamboo.scene.spider.spider_cluster_flashback import TenDBClusterFlashbackFlow
 from backend.flow.engine.bamboo.scene.spider.spider_cluster_metadata_import_flow import SpiderClusterMetadataImportFlow
 from backend.flow.engine.bamboo.scene.spider.spider_cluster_rollback_flow import TenDBRollBackDataFlow
+from backend.flow.engine.bamboo.scene.spider.spider_cluster_standardize_flow import SpiderClusterStandardizeFlow
 from backend.flow.engine.bamboo.scene.spider.spider_cluster_truncate_database import SpiderTruncateDatabaseFlow
 from backend.flow.engine.bamboo.scene.spider.spider_partition import SpiderPartitionFlow
 from backend.flow.engine.bamboo.scene.spider.spider_partition_cron import SpiderPartitionCronFlow
@@ -233,9 +234,9 @@ class SpiderController(BaseController):
         flow = AppendDeployCTLFlow(root_id=self.root_id, data=self.ticket_data)
         flow.run()
 
-    # def tendbcluster_standardize_scene(self):
-    #     flow = SpiderClusterStandardizeFlow(root_id=self.root_id, data=self.ticket_data)
-    #     flow.standardize()
+    def tendbcluster_standardize_scene(self):
+        flow = SpiderClusterStandardizeFlow(root_id=self.root_id, data=self.ticket_data)
+        flow.standardize()
 
     def metadata_import_scene(self):
         flow = SpiderClusterMetadataImportFlow(root_id=self.root_id, data=self.ticket_data)

@@ -22,26 +22,23 @@ type MySQLChecksumComp struct {
 func (c *MySQLChecksumComp) Init() (err error) {
 	c.tools = tools.NewToolSetWithPickNoValidate(tools.ToolMysqlTableChecksum, tools.ToolPtTableChecksum)
 
+	err = c.Params.Medium.Check()
+	if err != nil {
+		logger.Error(err.Error())
+		return err
+	}
 	logger.Info("install checksum init success")
 	return nil
 }
 
 type MySQLChecksumParam struct {
-	//components.Medium
-	BkBizId      int      `json:"bk_biz_id"`
-	IP           string   `json:"ip"`
-	Ports        []int    `json:"port_list"`
-	Role         string   `json:"role"`
-	ClusterId    int      `json:"cluster_id"`
-	ImmuteDomain string   `json:"immute_domain"`
-	DBModuleId   int      `json:"db_module_id"`
-	Schedule     string   `json:"schedule"`
-	SystemDbs    []string `json:"system_dbs"`
-	ExecUser     string   `json:"exec_user"`
-	ApiUrl       string   `json:"api_url"`
-	//InstancesInfo  []*instanceInfo `json:"instances_info"`
-	StageDBHeader  string `json:"stage_db_header"`
-	RollbackDBTail string `json:"rollback_db_tail"`
+	components.Medium
+	SystemDbs      []string        `json:"system_dbs"`
+	ExecUser       string          `json:"exec_user"`
+	ApiUrl         string          `json:"api_url"`
+	InstancesInfo  []*instanceInfo `json:"instances_info"`
+	StageDBHeader  string          `json:"stage_db_header"`
+	RollbackDBTail string          `json:"rollback_db_tail"`
 }
 
 type instanceInfo struct {

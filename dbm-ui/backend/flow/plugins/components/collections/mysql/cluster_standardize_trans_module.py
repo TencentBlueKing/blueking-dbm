@@ -22,11 +22,7 @@ class ClusterStandardizeTransModuleService(BaseService):
         kwargs = data.get_one_of_inputs("kwargs")
         global_data = data.get_one_of_inputs("global_data")
 
-        if "cluster_id" in global_data:
-            cluster_id = global_data["cluster_id"]
-        else:
-            cluster_id = kwargs["cluster_id"]
-
+        cluster_id = global_data["cluster_id"]
         cluster_obj = Cluster.objects.get(pk=cluster_id)
 
         MysqlCCTopoOperator(cluster_obj).transfer_instances_to_cluster_module(

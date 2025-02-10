@@ -25,7 +25,7 @@ from backend.constants import IP_PORT_DIVIDER
 from backend.core.consts import BK_PKG_INSTALL_PATH
 from backend.core.encrypt.constants import AsymmetricCipherConfigType
 from backend.core.encrypt.handlers import AsymmetricHandler
-from backend.db_meta.enums import InstanceInnerRole, MachineType
+from backend.db_meta.enums import AccessLayer, InstanceInnerRole, MachineType
 from backend.db_meta.exceptions import DBMetaException
 from backend.db_meta.models import Cluster, Machine, ProxyInstance, StorageInstance, StorageInstanceTuple
 from backend.db_package.models import Package
@@ -47,7 +47,6 @@ from backend.flow.consts import (
     MysqlVersionToDBBackupForMap,
 )
 from backend.flow.engine.bamboo.scene.common.get_real_version import get_mysql_real_version, get_spider_real_version
-from backend.flow.engine.bamboo.scene.mysql.deploy_peripheraltools.departs import DeployPeripheralToolsDepart
 from backend.flow.engine.bamboo.scene.spider.common.exceptions import TendbGetBackupInfoFailedException
 from backend.flow.utils.base.bkrepo import get_bk_repo_url
 from backend.flow.utils.base.payload_handler import PayloadHandler
@@ -106,7 +105,7 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
         )["content"]
         return data["charset"], data["db_version"]
 
-    def __get_mysql_rotatebinlog_config(self, cluster_type) -> dict:
+    def __get_mysql_rotatebinlog_config(self) -> dict:
         """
         远程获取rotate_binlog配置
         """
@@ -117,7 +116,7 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
                 "level_value": str(self.db_module_id),
                 "conf_file": "binlog_rotate.yaml",
                 "conf_type": "backup",
-                "namespace": cluster_type,
+                "namespace": self.cluster_type,
                 "format": FormatType.MAP_LEVEL,
             }
         )
@@ -749,6 +748,85 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
             },
         }
 
+    def push_dbbackup_config_payload(self, **kwargs) -> dict:
+        ini = get_backup_ini_config(
+            bk_biz_id=self.ticket_data["bk_biz_id"],
+            db_module_id=self.cluster["db_module_id"],
+            cluster_type=self.cluster["cluster_type"],
+        )
+
+        port_domain_map = {}
+        cluster_id_map = {}
+        shard_port_map = {}  # port as key
+        options_map = {}
+
+        if self.cluster["machine_type"] == MachineType.SPIDER.value:
+            ins_list = ProxyInstance.objects.filter(machine__ip=kwargs["ip"], port__in=self.cluster["ports"])
+            role = ins_list[0].tendbclusterspiderext.spider_role
+        elif self.cluster["machine_type"] in [
+            MachineType.REMOTE.value,
+            MachineType.BACKEND.value,
+            MachineType.SINGLE.value,
+        ]:
+            ins_list = StorageInstance.objects.filter(machine__ip=kwargs["ip"], port__in=self.cluster["ports"])
+            role = ins_list[0].instance_inner_role
+        else:
+            raise DBMetaException(message=_("不支持的机器类型: {}".format(self.cluster["machine_type"])))
+
+        if self.cluster["machine_type"] == MachineType.REMOTE.value:
+            for ins in ins_list:
+                if ins.instance_inner_role == InstanceInnerRole.MASTER.value:
+                    tp = StorageInstanceTuple.objects.filter(ejector=ins).first()
+                else:
+                    tp = StorageInstanceTuple.objects.get(receiver=ins)
+                shard_port_map[ins.port] = tp.tendbclusterstorageset.shard_id
+
+        for instance in ins_list:
+            port_domain_map[instance.port] = self.cluster["immute_domain"]
+            cluster_id_map[instance.port] = self.cluster["cluster_id"]
+
+            shard_port_map[instance.port] = shard_port_map.get(instance.port, 0)
+            options_map[instance.port] = get_backup_options_config(
+                bk_biz_id=self.ticket_data["bk_biz_id"],
+                db_module_id=self.cluster["db_module_id"],
+                cluster_type=self.cluster["cluster_type"],
+                cluster_domain=self.cluster["immute_domain"],
+            )
+
+        db_backup_pkg_type = self.cluster.get("db_backup_pkg_type", MediumEnum.DbBackup)
+        if self.cluster["machine_type"] != MachineType.SPIDER.value:
+            db_version = ins_list[0].cluster.get().major_version
+            db_backup_pkg_type = MysqlVersionToDBBackupForMap[db_version]
+
+        db_backup_pkg = Package.get_latest_package(
+            version=MediumEnum.Latest,
+            pkg_type=db_backup_pkg_type,
+        )
+
+        return {
+            "db_type": DBActuatorTypeEnum.MySQL.value,
+            "action": DBActuatorActionEnum.PushNewDbBackupConfig.value,
+            "payload": {
+                "general": {"runtime_account": self.account},
+                "extend": {
+                    "pkg": db_backup_pkg.name,
+                    "pkg_md5": db_backup_pkg.md5,
+                    "host": kwargs["ip"],
+                    "ports": self.cluster["ports"],
+                    "bk_cloud_id": int(self.bk_cloud_id),
+                    "bk_biz_id": int(self.ticket_data["bk_biz_id"]),
+                    "role": role,
+                    "configs": ini,
+                    "options": options_map,
+                    "cluster_address": port_domain_map,
+                    "cluster_id": cluster_id_map,
+                    "cluster_type": self.cluster["cluster_type"],
+                    "exec_user": self.ticket_data["created_by"],
+                    "shard_value": shard_port_map,
+                },
+            },
+        }
+
     def get_import_sqlfile_payload(self, **kwargs) -> dict:
         """
         return import sqlfile payload
@@ -1251,6 +1329,47 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
             },
         }
 
+    def push_mysql_checksum_config_payload(self, **kwargs) -> dict:
+        """
+        ToDo
+        和监控一样, 安装校验的 get_install_mysql_checksum_payload
+        现在也是机器级别
+        """
+        checksum_pkg = Package.get_latest_package(version=MediumEnum.Latest, pkg_type=MediumEnum.MySQLChecksum)
+
+        instances_info = []
+        for ins_obj in StorageInstance.objects.filter(machine__ip=kwargs["ip"], port__in=self.cluster["ports"]):
+            instances_info.append(
+                {
+                    "bk_biz_id": self.ticket_data["bk_biz_id"],
+                    "ip": kwargs["ip"],
+                    "port": ins_obj.port,
+                    "role": ins_obj.instance_inner_role,
+                    "cluster_id": self.cluster["cluster_id"],
+                    "immute_domain": self.cluster["immute_domain"],
+                    "db_module_id": self.cluster["db_module_id"],
+                    "schedule": "0 5 2 * * 1-5",
+                }
+            )
+
+        return {
+            "db_type": DBActuatorTypeEnum.MySQL.value,
+            "action": DBActuatorActionEnum.PushChecksumConfig.value,
+            "payload": {
+                "general": {"runtime_account": self.account},
+                "extend": {
+                    "pkg": checksum_pkg.name,
+                    "pkg_md5": checksum_pkg.md5,
+                    "system_dbs": SYSTEM_DBS,
+                    "stage_db_header": STAGE_DB_HEADER,
+                    "rollback_db_tail": ROLLBACK_DB_TAIL,
+                    "instances_info": instances_info,
+                    "exec_user": self.ticket_data["created_by"],
+                    "api_url": "http://127.0.0.1:9999",  # 长时间可以写死
+                },
+            },
+        }
+
     def get_mysql_edit_config_payload(self, **kwargs) -> dict:
         """
         mysql 配置修改
@@ -1297,7 +1416,6 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
         # 拼接主机需要安装实例备份配置关系
 
         ins_list = StorageInstance.objects.filter(machine__ip=kwargs["ip"])
-        cluster_type = ""
         for instance in ins_list:
             ins = {
                 "host": kwargs["ip"],
@@ -1305,7 +1423,6 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
                 "tags": {"bk_biz_id": int(self.ticket_data["bk_biz_id"])},
             }
             cluster = instance.cluster.get()
-            cluster_type = cluster.cluster_type
             ins["tags"]["cluster_domain"] = cluster.immute_domain
             ins["tags"]["cluster_id"] = cluster.id
             ins["tags"]["db_role"] = instance.instance_inner_role
@@ -1319,11 +1436,16 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
                 "extend": {
                     "pkg": mysql_rotatebinlog.name,
                     "pkg_md5": mysql_rotatebinlog.md5,
-                    "configs": self.__get_mysql_rotatebinlog_config(cluster_type=cluster_type),
+                    "configs": self.__get_mysql_rotatebinlog_config(),
                     "instances": instances,
                 },
             },
         }
+
+    def push_mysql_rotatebinlog_config_payload(self, **kwargs) -> dict:
+        res = self.get_install_mysql_rotatebinlog_payload(**kwargs)
+        res["action"] = DBActuatorActionEnum.PushMySQLRotatebinlogConfig.value
+        return res
 
     def get_install_dba_toolkit_payload(self, **kwargs):
         """
@@ -1474,6 +1596,11 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
             },
         }
 
+    def push_mysql_crond_config_payload(self, **kwargs) -> dict:
+        res = self.get_deploy_mysql_crond_payload(**kwargs)
+        res["action"] = DBActuatorActionEnum.PushMySQLCrondConfig.value
+        return res
+
     def get_deploy_mysql_monitor_payload(self, **kwargs) -> dict:
         """
         部署mysql/proxy/spider事件监控程序
@@ -1577,6 +1704,91 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
                     "bk_cloud_id": int(self.bk_cloud_id),
                     "instances_info": instances_info,
                     "items_config": config_items["content"],
+                },
+            },
+        }
+
+    def push_mysql_monitor_config_payload(self, **kwargs) -> dict:
+        """
+        ToDo
+        上面的get_deploy_mysql_monitor_payload有点问题
+        是基于机器级别生成配置的
+        在迁移完成后, 实际维护中应该是基于集群级别
+        所以 push 单独实现
+        以后应该都替换成这个函数
+        """
+        mysql_monitor_pkg = Package.get_latest_package(version=MediumEnum.Latest, pkg_type=MediumEnum.MySQLMonitor)
+
+        instances_info = []
+
+        config_items = DBConfigApi.query_conf_item(
+            {
+                "bk_biz_id": "{}".format(self.ticket_data["bk_biz_id"]),
+                "level_name": "cluster",
+                "level_value": "act3",
+                "conf_file": "items-config.yaml",
+                "conf_type": "mysql_monitor",
+                "namespace": "tendbha",
+                "level_info": {"module": "act"},
+                "format": "map",
+            }
+        )
+        logger.info("config_items: {}".format(config_items))
+
+        # instance_info = {
+        #     "bk_biz_id": self.ticket_data["bk_biz_id"],
+        #     "ip": kwargs["ip"],
+        #     "cluster_id": self.cluster["cluster_id"],
+        #     "immute_domain": self.cluster["immute_domain"],
+        #     "items_config": config_items["content"],
+        # }
+        if self.cluster["access_layer"] == AccessLayer.PROXY.value:
+            for ins_obj in ProxyInstance.objects.filter(machine__ip=kwargs["ip"], port__in=self.cluster["ports"]):
+                instance_info = {
+                    "bk_biz_id": self.ticket_data["bk_biz_id"],
+                    "ip": kwargs["ip"],
+                    "cluster_id": self.cluster["cluster_id"],
+                    "immute_domain": self.cluster["immute_domain"],
+                    "items_config": config_items["content"],
+                    "port": ins_obj.port,
+                    "bk_instance_id": ins_obj.bk_instance_id,
+                    "db_module_id": ins_obj.db_module_id,
+                }
+
+                if self.cluster["machine_type"] == MachineType.SPIDER.value:
+                    instance_info["role"] = ins_obj.tendbclusterspiderext.spider_role
+
+                instances_info.append(instance_info)
+        else:
+            for ins_obj in StorageInstance.objects.filter(machine__ip=kwargs["ip"], port__in=self.cluster["ports"]):
+                instance_info = {
+                    "bk_biz_id": self.ticket_data["bk_biz_id"],
+                    "ip": kwargs["ip"],
+                    "cluster_id": self.cluster["cluster_id"],
+                    "immute_domain": self.cluster["immute_domain"],
+                    "items_config": config_items["content"],
+                    "port": ins_obj.port,
+                    "bk_instance_id": ins_obj.bk_instance_id,
+                    "db_module_id": ins_obj.db_module_id,
+                    "role": ins_obj.instance_inner_role,
+                }
+
+                instances_info.append(instance_info)
+
+        return {
+            "db_type": DBActuatorTypeEnum.MySQL.value,
+            "action": DBActuatorActionEnum.PushMySQLMonitorConfig.value,
+            "payload": {
+                "general": {"runtime_account": {**self.account, **self.proxy_account}},
+                "extend": {
+                    "pkg": mysql_monitor_pkg.name,
+                    "pkg_md5": mysql_monitor_pkg.md5,
+                    "system_dbs": SYSTEM_DBS,
+                    "exec_user": self.ticket_data["created_by"],
+                    "api_url": "http://127.0.0.1:9999",
+                    "machine_type": self.cluster["machine_type"],
+                    "bk_cloud_id": int(self.bk_cloud_id),
+                    "instances_info": instances_info,
                 },
             },
         }
@@ -2255,6 +2467,38 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
             },
         }
 
+    def get_standardize_mysql_instance_payload(self, **kwargs):
+        # 这个包其实没有用, 所以只要传包名, 不需要下发
+        # 是因为复用了 mysql install actor 需要包名做条件分支
+        # self.mysql_pkg = Package.get_latest_package(version=db_version, pkg_type=MediumEnum.MySQL)
+        drs_account, dbha_account = self.get_super_account()
+        return {
+            "db_type": DBActuatorTypeEnum.MySQL.value,
+            "action": DBActuatorActionEnum.StandardizeMySQLInstance.value,
+            "payload": {
+                "general": {"runtime_account": self.account},
+                "extend": {
+                    "pkg": self.cluster["mysql_pkg"]["name"],
+                    "pkg_md5": self.cluster["mysql_pkg"]["md5"],
+                    "ip": kwargs["ip"],
+                    "ports": self.cluster["ports"],
+                    "mysql_version": self.cluster["version"],
+                    "super_account": drs_account,
+                    "dbha_account": dbha_account,
+                    "webconsolers_account": self.get_webconsolers_account(),
+                    "partition_yw_account": self.get_partition_yw_account(),
+                },
+            },
+        }
+
+    @staticmethod
+    def get_standardize_tendbha_proxy_payload(**kwargs):
+        return {
+            "db_type": DBActuatorTypeEnum.MySQL.value,
+            "action": DBActuatorActionEnum.StandardizeTenDBHAProxy.value,
+            "payload": {"general": {}, "extend": {}},  # {"runtime_account": self.account},
+        }
+
     def get_data_migrate_dump_payload(self, **kwargs):
         """
         数据迁移导出库表结构与数据
@@ -2579,336 +2823,3 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
             },
         }
         return payload
-
-    def push_exporter_cnf(self, **kwargs):
-        payload = {
-            "db_type": DBActuatorTypeEnum.MySQL.value,
-            "action": DBActuatorActionEnum.PushExporterCnf.value,
-            "payload": {
-                "general": {"runtime_account": self.account},
-                "extend": {
-                    "ip": kwargs["ip"],
-                    "port_list": self.cluster["port_list"],
-                    "machine_type": self.cluster["machine_type"],
-                },
-            },
-        }
-        return payload
-
-    def prepare_peripheraltools_binary(self, **kwargs):
-        """
-        不要随意调用, 输入有依赖处理
-        """
-        departs = self.cluster["departs"]
-        machine_type = self.cluster["machine_type"]
-        ip = kwargs["ip"]
-
-        depart_pkgs = {}
-        # 调用方已经决定了组件包含备份时, machine_type 肯定不是 proxy
-
-        if DeployPeripheralToolsDepart.MySQLDBBackup in departs:
-            departs.remove(DeployPeripheralToolsDepart.MySQLDBBackup)
-            if machine_type == MachineType.SPIDER:
-                dbbackup_pkg_type = MediumEnum.DbBackup
-            else:
-                db_version = Cluster.objects.filter(storageinstance__machine__ip=ip).first().major_version
-                dbbackup_pkg_type = MysqlVersionToDBBackupForMap[db_version]
-
-            dbbackup_pkg = Package.get_latest_package(version=MediumEnum.Latest, pkg_type=dbbackup_pkg_type)
-            depart_pkgs[DeployPeripheralToolsDepart.MySQLDBBackup] = {
-                "pkg": dbbackup_pkg.name,
-                "pkg_md5": dbbackup_pkg.md5,
-            }
-
-        for depart in departs:
-            pkg = Package.get_latest_package(version=MediumEnum.Latest, pkg_type=depart)
-            depart_pkgs[depart] = {
-                "pkg": pkg.name,
-                "pkg_md5": pkg.md5,
-            }
-
-        payload = {
-            "db_type": DBActuatorTypeEnum.MySQL.value,
-            "action": DBActuatorActionEnum.PreparePeripheraltoolsBinary.value,
-            "payload": {
-                "general": {"runtime_account": self.account},
-                "extend": {
-                    # "ip": kwargs["ip"],
-                    "departs": depart_pkgs,
-                },
-            },
-        }
-        return payload
-
-    def standardize_proxy(self, **kwargs) -> dict:
-        _, dbha_account = self.get_super_account()
-        return {
-            "db_type": DBActuatorTypeEnum.Proxy.value,
-            "action": DBActuatorActionEnum.StandardizeTenDBHAProxy.value,
-            "payload": {
-                "general": {
-                    "runtime_account": self.proxy_account,
-                },
-                "extend": {
-                    "dbha_account": dbha_account["user"],
-                    "port_list": self.cluster["port_list"],
-                    "ip": kwargs["ip"],
-                },
-            },
-        }
-
-    def standardize_mysql(self, **kwargs) -> dict:
-        ip = kwargs["ip"]
-        machine_type = self.cluster["machine_type"]
-
-        if machine_type == MachineType.SPIDER:
-            major_version = Cluster.objects.filter(proxyinstance__machine__ip=ip).first().major_version
-        else:
-            major_version = Cluster.objects.filter(storageinstance__machine__ip=ip).first().major_version
-
-        # 这个包其实没有用, 所以只要传包名, 不需要下发
-        # 是因为复用了 mysql install actor 需要包名做条件分支
-        pkg = Package.get_latest_package(version=major_version, pkg_type=MediumEnum.MySQL)
-        drs_account, dbha_account = self.get_super_account()
-        return {
-            "db_type": DBActuatorTypeEnum.MySQL.value,
-            "action": DBActuatorActionEnum.StandardizeMySQLInstance.value,
-            "payload": {
-                "general": {"runtime_account": self.account},
-                "extend": {
-                    "pkg": pkg.name,
-                    "pkg_md5": pkg.md5,
-                    "ip": kwargs["ip"],
-                    "ports": self.cluster["port_list"],
-                    "mysql_version": major_version,
-                    "super_account": drs_account,
-                    "dbha_account": dbha_account,
-                    "webconsolers_account": self.get_webconsolers_account(),
-                    "partition_yw_account": self.get_partition_yw_account(),
-                },
-            },
-        }
-
-    def push_mysql_crond_config(self, **kwargs) -> dict:
-        """
-        dup: get_deploy_mysql_crond_payload
-        """
-        mysql_crond_pkg = Package.get_latest_package(version=MediumEnum.Latest, pkg_type=MediumEnum.MySQLCrond)
-
-        bkm_dbm_report = SystemSettings.get_setting_value(key="BKM_DBM_REPORT")
-        event_data_id = bkm_dbm_report["event"]["data_id"]
-        event_data_token = bkm_dbm_report["event"]["token"]
-        metrics_data_id = bkm_dbm_report["metric"]["data_id"]
-        metrics_data_token = bkm_dbm_report["metric"]["token"]
-
-        return {
-            "db_type": DBActuatorTypeEnum.MySQL.value,
-            "action": DBActuatorActionEnum.PushMySQLCrondConfig.value,
-            "payload": {
-                "general": {"runtime_account": self.account},
-                "extend": {
-                    "pkg": mysql_crond_pkg.name,
-                    "pkg_md5": mysql_crond_pkg.md5,
-                    "ip": kwargs["ip"],
-                    "bk_cloud_id": int(self.bk_cloud_id),
-                    "event_data_id": int(event_data_id),
-                    "event_data_token": event_data_token,
-                    "metrics_data_id": int(metrics_data_id),
-                    "metrics_data_token": metrics_data_token,
-                    "beat_path": env.MYSQL_CROND_BEAT_PATH,
-                    "agent_address": env.MYSQL_CROND_AGENT_ADDRESS,
-                    "bk_biz_id": int(self.cluster["bk_biz_id"]),
-                    "nginx_addrs": list_nginx_addrs(bk_cloud_id=self.bk_cloud_id),
-                },
-            },
-        }
-
-    def push_mysql_monitor_config(self, **kwargs) -> dict:
-        """
-        dup: get_deploy_mysql_monitor_payload
-        """
-        ip = kwargs["ip"]
-        bk_biz_id = self.cluster["bk_biz_id"]
-        immute_domain = self.cluster["immute_domain"]
-        port_list = self.cluster["port_list"]
-        machine_type = self.cluster["machine_type"]
-        db_module_id = self.cluster["db_module_id"]
-        cluster_id = self.cluster["cluster_id"]
-
-        port_bk_instance_list = []
-        if machine_type in [MachineType.PROXY, MachineType.SPIDER]:
-            ins_list = ProxyInstance.objects.filter(machine__ip=ip, port__in=port_list)
-            role = ""  # ToDo spider role
-        else:
-            ins_list = StorageInstance.objects.filter(machine__ip=ip, port__in=port_list)
-            role = ins_list[0].instance_inner_role
-
-        for ins in ins_list:
-            port_bk_instance_list.append(
-                {
-                    "port": ins.port,
-                    "bk_instance_id": ins.bk_instance_id,
-                }
-            )
-
-        cluster_items_config = DBConfigApi.query_conf_item(
-            {
-                "bk_biz_id": f"{bk_biz_id}",
-                "level_name": "cluster",
-                "level_value": immute_domain,  # 集群域名
-                "conf_file": "items-config.yaml",
-                "conf_type": "mysql_monitor",
-                "namespace": "tendbha",  # 现在TenDBSingle, TenDBHA, TenDBCluster 监控配置公用的这个
-                "level_info": {"module": f"{db_module_id}"},  # module id
-                "format": "map",
-            }
-        )
-
-        return {
-            "db_type": DBActuatorTypeEnum.MySQL.value,
-            "action": DBActuatorActionEnum.PushMySQLMonitorConfig.value,
-            "payload": {
-                "general": {"runtime_account": {**self.account, **self.proxy_account}},
-                "extend": {
-                    "system_dbs": SYSTEM_DBS,
-                    "exec_user": self.ticket_data["created_by"],
-                    "api_url": "http://127.0.0.1:9999",
-                    "machine_type": machine_type,
-                    "bk_cloud_id": int(self.bk_cloud_id),
-                    "bk_biz_id": int(bk_biz_id),
-                    "port_bk_instance_list": port_bk_instance_list,
-                    "ip": ip,
-                    "immute_domain": immute_domain,
-                    "db_module_id": db_module_id,
-                    "role": role,
-                    "cluster_id": cluster_id,
-                    "items_config": cluster_items_config["content"],
-                },
-            },
-        }
-
-    def push_mysql_dbbackup_config(self, **kwargs) -> dict:
-        """
-        dup: get_install_db_backup_payload
-        """
-        ip = kwargs["ip"]
-        bk_biz_id = self.cluster["bk_biz_id"]
-        immute_domain = self.cluster["immute_domain"]
-        port_list = self.cluster["port_list"]
-        machine_type = self.cluster["machine_type"]
-        cluster_type = self.cluster["cluster_type"]
-        db_module_id = self.cluster["db_module_id"]
-        cluster_id = self.cluster["cluster_id"]
-
-        ini = get_backup_ini_config(
-            bk_biz_id=bk_biz_id,
-            db_module_id=db_module_id,
-            cluster_type=cluster_type,
-        )
-
-        backup_options = get_backup_options_config(
-            bk_biz_id=bk_biz_id, db_module_id=db_module_id, cluster_type=cluster_type, cluster_domain=immute_domain
-        )
-
-        # 获取实例列表和决定角色信息
-        if machine_type == MachineType.SPIDER.value:
-            ins_list = ProxyInstance.objects.filter(machine__ip=ip, port__in=port_list)
-            role = ins_list[0].tendbclusterspiderext.spider_role
-        elif machine_type in [MachineType.REMOTE.value, MachineType.BACKEND.value, MachineType.SINGLE.value]:
-            ins_list = StorageInstance.objects.filter(machine__ip=ip, port__in=port_list)
-            role = ins_list[0].instance_inner_role
-        else:
-            raise DBMetaException(message=_("不支持的机器类型: {}".format(machine_type)))
-
-        port_shard_map = {}  # port as key, TenDBCluster 端口-分片信息
-        for ins in ins_list:
-            port_shard_map[ins.port] = 0  # 非 TenDBCluster 默认分片 0
-            if machine_type == MachineType.REMOTE:
-                if ins.instance_inner_role == InstanceInnerRole.MASTER:
-                    tp = StorageInstanceTuple.objects.filter(ejector=ins).first()
-                else:
-                    tp = StorageInstanceTuple.objects.get(receiver=ins)
-                port_shard_map[ins.port] = tp.tendbclusterstorageset.shard_id
-
-        return {
-            "db_type": DBActuatorTypeEnum.MySQL.value,
-            "action": DBActuatorActionEnum.PushNewDbBackupConfig.value,
-            "payload": {
-                "general": {"runtime_account": self.account},
-                "extend": {
-                    "configs": ini,
-                    "options": backup_options,
-                    "host": ip,
-                    "ports": port_list,
-                    "role": role,
-                    "cluster_type": cluster_type,
-                    "bk_biz_id": int(bk_biz_id),
-                    "bk_cloud_id": int(self.bk_cloud_id),
-                    "immute_domain": immute_domain,
-                    "cluster_id": cluster_id,
-                    "shard_value": port_shard_map,
-                    "exec_user": self.ticket_data["created_by"],
-                },
-            },
-        }
-
-    def push_mysql_rotatebinlog_config(self, **kwargs) -> dict:
-        """
-        dup: get_install_mysql_rotatebinlog_payload
-        """
-        ip = kwargs["ip"]
-        port_list = self.cluster["port_list"]
-        bk_biz_id = self.cluster["bk_biz_id"]
-        immute_domain = self.cluster["immute_domain"]
-        ins = StorageInstance.objects.filter(machine__ip=ip, port__in=port_list).first()
-
-        return {
-            "db_type": DBActuatorTypeEnum.MySQL.value,
-            "action": DBActuatorActionEnum.PushMySQLRotatebinlogConfig.value,
-            "payload": {
-                "general": {"runtime_account": self.account},
-                "extend": {
-                    "configs": self.__get_mysql_rotatebinlog_config(self.cluster["cluster_type"]),
-                    "ip": kwargs["ip"],
-                    "port_list": self.cluster["port_list"],
-                    "role": ins.instance_inner_role,
-                    "bk_biz_id": int(bk_biz_id),
-                    "cluster_domain": immute_domain,
-                    "cluster_id": ins.cluster.first().pk,
-                    "exec_user": self.ticket_data["created_by"],
-                },
-            },
-        }
-
-    def push_mysql_table_checksum_config(self, **kwargs) -> dict:
-        """
-        dup: get_install_mysql_checksum_payload
-        """
-        bk_biz_id = self.cluster["bk_biz_id"]
-        ip = kwargs["ip"]
-        port_list = self.cluster["port_list"]
-        immute_domain = self.cluster["immute_domain"]
-        ins = StorageInstance.objects.filter(machine__ip=ip, port__in=port_list).first()
-
-        return {
-            "db_type": DBActuatorTypeEnum.MySQL.value,
-            "action": DBActuatorActionEnum.PushChecksumConfig.value,
-            "payload": {
-                "general": {"runtime_account": self.account},
-                "extend": {
-                    "bk_biz_id": bk_biz_id,
-                    "ip": ip,
-                    "port_list": port_list,
-                    "role": ins.instance_inner_role,
-                    "cluster_id": ins.cluster.first().pk,
-                    "immute_domain": immute_domain,
-                    "db_module_id": ins.cluster.first().db_module_id,
-                    "schedule": "0 5 2 * * 1-5",
-                    "system_dbs": SYSTEM_DBS,
-                    "stage_db_header": STAGE_DB_HEADER,
-                    "rollback_db_tail": ROLLBACK_DB_TAIL,
-                    "exec_user": self.ticket_data["created_by"],
-                    "api_url": "http://127.0.0.1:9999",  # 长时间可以写死
-                },
-            },
-        }

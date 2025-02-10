@@ -13,15 +13,16 @@ func (c *MySQLCrondComp) Example() interface{} {
 			},
 		},
 		Params: &MySQLCrondParam{
+			Medium: components.Medium{
+				Pkg:    "mysql-crond.tar.gz",
+				PkgMd5: "12345",
+			},
 			Ip:               "127.0.0.1",
 			BkCloudId:        0,
 			EventDataId:      123,
 			EventDataToken:   "abc",
 			MetricsDataId:    456,
 			MetricsDataToken: "xyz",
-			BeatPath:         "/a/bc",
-			AgentAddress:     "127.0.0.1",
-			BkBizId:          123,
 		},
 	}
 }

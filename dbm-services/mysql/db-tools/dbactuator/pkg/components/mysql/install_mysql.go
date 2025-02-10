@@ -518,23 +518,6 @@ func (i *InstallMySQLComp) generateMycnfOnePort(port Port, tmplFileName string) 
 		return err
 	}
 
-	// 先暂时不返回错误
-	if port == 3306 {
-		logger.Info("try to make link")
-		if _, err := osutil.ExecShellCommand(
-			false,
-			fmt.Sprintf("rm -f /etc/my.cnf"),
-		); err != nil {
-			logger.Error("rm -f /etc/my.cnf failed: %s", err.Error())
-		}
-		logger.Info("try to rm /etc/my.cnf success")
-
-		if _, err := osutil.ExecShellCommand(
-			false, fmt.Sprintf("ln -s %s /etc/my.cnf", cnf)); err != nil {
-			logger.Error("ln -s %s /etc/my.cnf failed: ", cnf, err.Error())
-		}
-		logger.Info("make link success")
-	}
 	return nil
 }
 
@@ -979,7 +962,6 @@ func (i *InstallMySQLComp) InitDefaultPrivAndSchemaWithResetMaster() (err error)
 			logger.Info("tdbctl port %d need tc_admin=0, binlog_format=off", port)
 			initAccountSqls = append(initAccountSqls, "set session tc_admin=0;", "set session sql_log_bin=off;")
 			initAccountSqls = append(initAccountSqls, i.generateDefaultMysqlAccount(version)...)
-			logger.Info("tdbctl init account sqls: ", initAccountSqls)
 		default:
 			// 默认按照mysql的初始化权限的方式
 			initAccountSqls = i.generateDefaultMysqlAccount(version)
@@ -990,7 +972,6 @@ func (i *InstallMySQLComp) InitDefaultPrivAndSchemaWithResetMaster() (err error)
 			initAccountSqls = append(initAccountSqls, "reset master;")
 		}
 
-		logger.Info("init account sqls: ", initAccountSqls)
 		if _, err := dbWork.ExecMore(initAccountSqls); err != nil {
 			logger.Error("flush privileges failed for %d %v", port, err)
 			return err

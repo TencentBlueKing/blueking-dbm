@@ -126,7 +126,7 @@ ClusterMachineAccessTypeDefine = {
         AccessLayer.STORAGE: MachineType.BACKEND,
     },
     ClusterType.TenDBCluster: {
-        AccessLayer.PROXY: MachineType.SPIDER,
+        AccessLayer.PROXY: MachineType.SINGLE,
         AccessLayer.STORAGE: MachineType.REMOTE,
     },
     ClusterType.Riak: {

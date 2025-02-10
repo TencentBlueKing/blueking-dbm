@@ -19,13 +19,12 @@ from backend.configuration.constants import DBType
 from backend.db_meta.enums import ClusterType
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
-from backend.flow.engine.bamboo.scene.mysql.common.common_sub_flow import init_machine_sub_flow
+from backend.flow.engine.bamboo.scene.mysql.common.common_sub_flow import (
+    build_surrounding_apps_sub_flow,
+    init_machine_sub_flow,
+)
 from backend.flow.plugins.components.collections.mysql.dns_manage import MySQLDnsManageComponent
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
-from backend.flow.plugins.components.collections.mysql.generate_mysql_cluster_standardize_flow import (
-    GenerateMySQLClusterStandardizeFlowComponent,
-    GenerateMySQLClusterStandardizeFlowService,
-)
 from backend.flow.plugins.components.collections.mysql.mysql_db_meta import MySQLDBMetaComponent
 from backend.flow.plugins.components.collections.mysql.trans_flies import TransFileComponent
 from backend.flow.utils.mysql.mysql_act_dataclass import (
@@ -156,6 +155,19 @@ class MySQLHAApplyFlow(object):
                 ]
             )
 
+            acts_list = []
+            for ip_info in info["mysql_ip_list"] + info["proxy_ip_list"]:
+                exec_act_kwargs.exec_ip = ip_info["ip"]
+                exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.get_deploy_mysql_crond_payload.__name__
+                acts_list.append(
+                    {
+                        "act_name": _("部署mysql-crond"),
+                        "act_component_code": ExecuteDBActuatorScriptComponent.code,
+                        "kwargs": asdict(exec_act_kwargs),
+                    }
+                )
+            sub_pipeline.add_parallel_acts(acts_list=acts_list)
+
             # 阶段3 并发安装mysql、proxy 实例(一个活动节点部署多实例)
             acts_list = []
             for proxy_ip in info["proxy_ip_list"]:
@@ -280,25 +292,22 @@ class MySQLHAApplyFlow(object):
                 ),
             )
 
+            # 阶段7 部署周边组件
+            sub_pipeline.add_sub_pipeline(
+                sub_flow=build_surrounding_apps_sub_flow(
+                    bk_cloud_id=int(self.data["bk_cloud_id"]),
+                    master_ip_list=[info["mysql_ip_list"][0]["ip"]],
+                    slave_ip_list=[info["mysql_ip_list"][1]["ip"]],
+                    proxy_ip_list=[ip_info["ip"] for ip_info in info["proxy_ip_list"]],
+                    root_id=self.root_id,
+                    parent_global_data=copy.deepcopy(sub_flow_context),
+                    is_init=True,
+                    collect_sysinfo=True,
+                    cluster_type=ClusterType.TenDBHA.value,
+                )
+            )
+
             sub_pipelines.append(sub_pipeline.build_sub_process(sub_name=_("部署MySQL高可用集群")))
 
         mysql_ha_pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
-
-        # 集群域名输入
-        immute_domains = []
-        for ele in self.data["apply_infos"]:
-            immute_domains.extend([c["master"] for c in ele["clusters"]])
-
-        gp = SubBuilder(root_id=self.root_id, data=copy.deepcopy(self.data))
-        gp.add_act(
-            act_name=_("生成标准化单据"),
-            act_component_code=GenerateMySQLClusterStandardizeFlowComponent.code,
-            kwargs={
-                "trans_func": GenerateMySQLClusterStandardizeFlowService.generate_from_immute_domains.__name__,
-                "immute_domains": immute_domains,
-            },
-        )
-
-        mysql_ha_pipeline.add_sub_pipeline(sub_flow=gp.build_sub_process(sub_name=_("生成标准化单据")))
-
         mysql_ha_pipeline.run_pipeline(init_trans_data_class=HaApplyManualContext())

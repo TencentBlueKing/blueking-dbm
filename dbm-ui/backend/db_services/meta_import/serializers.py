@@ -15,7 +15,6 @@ from rest_framework import serializers
 from backend.db_meta.enums import ClusterType
 from backend.db_meta.enums.spec import SpecClusterType, SpecMachineType
 from backend.db_meta.models import AppCache, DBModule, Spec
-from backend.flow.engine.bamboo.scene.mysql.deploy_peripheraltools.departs import ALLDEPARTS
 
 
 class CustomChoiceField(serializers.ChoiceField):
@@ -69,21 +68,20 @@ class TenDBHAMetadataImportSerializer(serializers.Serializer):
         return attrs
 
 
-class MySQLClusterStandardizeSerializer(serializers.Serializer):
+class TenDBHAStandardizeSerializer(serializers.Serializer):
     bk_biz_id = BizChoiceField(help_text=_("业务ID"))
-    cluster_type = serializers.ChoiceField(
-        choices=[
-            (ClusterType.TenDBSingle.value, ClusterType.TenDBSingle.name),
-            (ClusterType.TenDBHA.value, ClusterType.TenDBHA.name),
-            (ClusterType.TenDBCluster.value, ClusterType.TenDBCluster.name),
-        ]
-    )
-    # immute_domains = serializers.CharField(allow_null=False, allow_blank=False)
     file = serializers.FileField(help_text=_("域名列表文件"))
-    departs = serializers.MultipleChoiceField(choices=[(c.value, c.name) for c in ALLDEPARTS], default=ALLDEPARTS)
-    deploy_binary = serializers.BooleanField(default=True)
-    push_config = serializers.BooleanField(default=True)
-    collect_sysinfo = serializers.BooleanField(default=True)
+
+    def validate(self, attrs):
+        return attrs
+
+
+class TenDBClusterStandardizeSerializer(serializers.Serializer):
+    bk_biz_id = BizChoiceField(help_text=_("业务ID"))
+    file = serializers.FileField(help_text=_("域名列表文件"))
+
+    def validate(self, attrs):
+        return attrs
 
 
 class TenDBClusterMetadataImportSerializer(serializers.Serializer):
@@ -125,6 +123,14 @@ class TenDBSingleMetadataImportSerializer(serializers.Serializer):
     storage_spec_id = MetadataImportSpecField(
         help_text=_("存储机规格"), cluster_type=SpecClusterType.MySQL.value, machine_type=SpecMachineType.BACKEND.value
     )
+
+    def validate(self, attrs):
+        return attrs
+
+
+class TenDBSingleStandardizeSerializer(serializers.Serializer):
+    bk_biz_id = BizChoiceField(help_text=_("业务ID"))
+    file = serializers.FileField(help_text=_("域名列表文件"))
 
     def validate(self, attrs):
         return attrs

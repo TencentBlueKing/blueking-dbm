@@ -175,11 +175,11 @@ func (c *ClearInstanceConfigComp) clearChecksum() (err error) {
 
 		err = unInstallTableChecksum.Run()
 		if err != nil {
-			logger.Warn(
+			logger.Error(
 				"run %s failed: %s, %s",
 				unInstallTableChecksum, err.Error(), stderr.String(),
 			)
-			//return err
+			return err
 		}
 		logger.Info("run %s success: %s", unInstallTableChecksum, stdout.String())
 	}
@@ -203,8 +203,8 @@ func (c *ClearInstanceConfigComp) clearRotateBinlog() (err error) {
 
 	_, err = osutil.ExecShellCommand(false, cmd)
 	if err != nil {
-		logger.Warn("remove rotate binlog config failed: %s", err.Error())
-		//return err
+		logger.Error("remove rotate binlog config failed: %s", err.Error())
+		return err
 	}
 	logger.Info("remove rotate binlog config success [%s]", clearPortString)
 	return nil
@@ -232,11 +232,11 @@ func (c *ClearInstanceConfigComp) clearMySQLMonitor() (err error) {
 
 		err = unInstallMySQLMonitorCmd.Run()
 		if err != nil {
-			logger.Warn(
+			logger.Error(
 				"run %s failed: %s, %s",
 				unInstallMySQLMonitorCmd, err.Error(), stderr.String(),
 			)
-			//return err
+			return err
 		}
 		logger.Info("run %s success: %s", unInstallMySQLMonitorCmd, stdout.String())
 	}

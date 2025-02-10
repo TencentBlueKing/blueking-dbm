@@ -51,6 +51,7 @@ class AddTempUserForClusterService(BaseService):
     def _execute(self, data, parent_data, callback=None) -> bool:
         kwargs = data.get_one_of_inputs("kwargs")
         global_data = data.get_one_of_inputs("global_data")
+
         encrypt_switch_pwd = global_data["job_root_id"]
         common_param = {
             "bk_cloud_id": -1,

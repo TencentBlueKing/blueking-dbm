@@ -24,6 +24,10 @@ func (c *MySQLRotateBinlogComp) Example() interface{} {
 			},
 		},
 		Params: MySQLRotateBinlogParam{
+			Medium: components.Medium{
+				Pkg:    "mysql-rotatebinlog.tar.gz",
+				PkgMd5: "12345",
+			},
 			Configs: rotate.Config{
 				Public: rotate.PublicCfg{
 					KeepPolicy:         "most",
@@ -50,13 +54,15 @@ func (c *MySQLRotateBinlogComp) Example() interface{} {
 					"ibs": json.RawMessage(ibsExample),
 				},
 			},
-			IP:            "127.0.0.1",
-			Ports:         []int{20000, 20001},
-			Role:          "master",
-			BkBizId:       1,
-			ClusterDomain: "cluster.local",
-			ClusterId:     123,
-			ExecUser:      "sys",
+			Instances: []*rotate.ServerObj{
+				{
+					Host: "1.1.1.1", Port: 3306,
+					Tags: rotate.InstanceMeta{
+						BkBizId: 100, ClusterId: 10, ClusterDomain: "a.b.c", DBRole: "master",
+					},
+				},
+			},
+			ExecUser: "sys",
 		},
 	}
 }

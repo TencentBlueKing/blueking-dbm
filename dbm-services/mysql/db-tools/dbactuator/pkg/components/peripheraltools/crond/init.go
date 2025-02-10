@@ -24,8 +24,6 @@ func (c *MySQLCrondComp) Init() error {
 		return err
 	}
 
-	// 这里不 return err
-	// 就是没下发nginx ip只打印一行日志, 不影响crond部署过程
 	if c.Params.NginxAddrs == nil || len(c.Params.NginxAddrs) <= 0 {
 		err := fmt.Errorf("nginx addresses are required")
 		logger.Error(err.Error())

@@ -13,6 +13,10 @@ import (
 )
 
 func (c *NewDbBackupComp) InitBackupDir() (err error) {
+	if c.Params.UntarOnly {
+		logger.Info("untar_only=true do not need InitBackupDir")
+		return nil
+	}
 	backupdir := c.Params.Configs["Public"]["BackupDir"]
 	if _, err := os.Stat(backupdir); os.IsNotExist(err) {
 		logger.Warn("backup dir %s is not exist. will make it", backupdir)
@@ -31,6 +35,10 @@ func (c *NewDbBackupComp) InitBackupDir() (err error) {
 }
 
 func (c *NewDbBackupComp) initReportDir() (err error) {
+	if c.Params.UntarOnly {
+		logger.Info("untar_only=true do not need initReportDir")
+		return nil
+	}
 	// redis 会污染 /home/mysql/dbareport，建立成软连
 	if isLink, _ := cmutil.IsSymLinkFile(cst.DBAReportBase); isLink {
 		_ = os.Remove(cst.DBAReportBase)

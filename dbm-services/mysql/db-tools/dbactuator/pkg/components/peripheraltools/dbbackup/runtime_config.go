@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 	"text/template"
 
+	"dbm-services/common/go-pubpkg/logger"
 	"dbm-services/common/go-pubpkg/mysqlcomm"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/core/cst"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/config"
@@ -14,8 +15,12 @@ import (
 )
 
 func (c *NewDbBackupComp) GenerateRuntimeConfig() (err error) {
+	if c.Params.UntarOnly {
+		logger.Info("untar_only=true do not need GenerateDbbackupConfig")
+		return nil
+	}
 	// 先渲染模版配置文件
-	templatePath := filepath.Join(cst.DbbackupGoInstallPath, fmt.Sprintf("%s.tpl", cst.BackupFile))
+	templatePath := filepath.Join(c.installPath, fmt.Sprintf("%s.tpl", cst.BackupFile))
 	if err := saveTplConfigfile(c.Params.Configs, templatePath); err != nil {
 		return err
 	}
@@ -26,12 +31,12 @@ func (c *NewDbBackupComp) GenerateRuntimeConfig() (err error) {
 	}
 
 	for _, port := range c.Params.Ports {
-		_, err := writeCnf(port, cst.DbbackupGoInstallPath, c.renderCnf, cnfTemp)
+		_, err := writeCnf(port, c.installPath, c.renderCnf, cnfTemp)
 		if err != nil {
 			return err
 		}
 		if c.Params.Role == cst.BackupRoleSpiderMaster {
-			cnfPath, err := writeCnf(mysqlcomm.GetTdbctlPortBySpider(port), cst.DbbackupGoInstallPath, c.renderCnf, cnfTemp)
+			cnfPath, err := writeCnf(mysqlcomm.GetTdbctlPortBySpider(port), c.installPath, c.renderCnf, cnfTemp)
 			if err != nil {
 				return err
 			}
@@ -47,7 +52,7 @@ func (c *NewDbBackupComp) GenerateRuntimeConfig() (err error) {
 				return err
 			}
 
-			tdbCtlCnf.LogicalBackup.DefaultsFile = filepath.Join(cst.DbbackupGoInstallPath, "mydumper_for_tdbctl.cnf")
+			tdbCtlCnf.LogicalBackup.DefaultsFile = filepath.Join(c.installPath, "mydumper_for_tdbctl.cnf")
 			err = tdbCtlCnfIni.ReflectFrom(&tdbCtlCnf)
 			if err != nil {
 				return err

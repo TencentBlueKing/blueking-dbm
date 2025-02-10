@@ -63,10 +63,7 @@ func summary(stdout string) (summaries []ChecksumSummary, err error) {
 			cs.Time, _ = strconv.Atoi(splitRow[6])
 			cs.Table = splitRow[7]
 
-			if cs.Errors != 0 || cs.Diffs != 0 || cs.Chunks == 0 || cs.Skipped != 0 {
-				summaries = append(summaries, cs)
-			}
-
+			summaries = append(summaries, cs)
 		}
 	}
 	return summaries, nil

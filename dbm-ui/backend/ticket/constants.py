@@ -255,6 +255,7 @@ class TicketType(str, StructuredEnum):
     MYSQL_SINGLE_TRUNCATE_DATA = TicketEnumField("MYSQL_SINGLE_TRUNCATE_DATA", _("MySQL 单节点清档"), _("数据处理"))
     MYSQL_SINGLE_RENAME_DATABASE = TicketEnumField("MYSQL_SINGLE_RENAME_DATABASE", _("MySQL 单节点DB重命名"),
                                                    _("集群维护"))  # noqa
+    MYSQL_HA_STANDARDIZE = TicketEnumField("MYSQL_HA_STANDARDIZE", _("TendbHA 标准化"), register_iam=False)
     MYSQL_HA_METADATA_IMPORT = TicketEnumField("MYSQL_HA_METADATA_IMPORT", _("TendbHA 元数据导入"), register_iam=False)
     MYSQL_OPEN_AREA = TicketEnumField("MYSQL_OPEN_AREA", _("MySQL 开区"), _("克隆开区"), register_iam=False)
     MYSQL_DATA_MIGRATE = TicketEnumField("MYSQL_DATA_MIGRATE", _("MySQL DB克隆"), _("数据处理"))
@@ -271,7 +272,6 @@ class TicketType(str, StructuredEnum):
                                                    register_iam=False)
     MYSQL_ACCOUNT_RULE_CHANGE = TicketEnumField("MYSQL_ACCOUNT_RULE_CHANGE", _("MySQL 授权规则变更"),
                                                 register_iam=False)
-    MYSQL_CLUSTER_STANDARDIZE = TicketEnumField("MYSQL_CLUSTER_STANDARDIZE", _("MySQL 集群标准化"), register_iam=False)
 
     # SPIDER(TenDB Cluster)
     TENDBCLUSTER_OPEN_AREA = TicketEnumField("TENDBCLUSTER_OPEN_AREA", _("TenDB Cluster 开区"), _("克隆开区"),
@@ -336,12 +336,16 @@ class TicketType(str, StructuredEnum):
                                                    _("权限管理"))
     TENDBCLUSTER_EXCEL_AUTHORIZE_RULES = TicketEnumField("TENDBCLUSTER_EXCEL_AUTHORIZE_RULES",
                                                          _("TenDB Cluster EXCEL授权"), _("权限管理"))  # noqa
+    TENDBCLUSTER_STANDARDIZE = TicketEnumField("TENDBCLUSTER_STANDARDIZE", _("TenDB Cluster 集群标准化"),
+                                               register_iam=False)
     TENDBCLUSTER_METADATA_IMPORT = TicketEnumField("TENDBCLUSTER_METADATA_IMPORT", _("TenDB Cluster 元数据导入"),
                                                    register_iam=False)  # noqa
     TENDBCLUSTER_APPEND_DEPLOY_CTL = TicketEnumField("TENDBCLUSTER_APPEND_DEPLOY_CTL", _("TenDB Cluster 追加部署中控"),
                                                      register_iam=False)  # noqa
     TENDBSINGLE_METADATA_IMPORT = TicketEnumField("TENDBSINGLE_METADATA_IMPORT", _("TenDB Single 元数据导入"),
                                                   register_iam=False)  # noqa
+    TENDBSINGLE_STANDARDIZE = TicketEnumField("TENDBSINGLE_STANDARDIZE", _("TenDB Single 集群标准化"),
+                                              register_iam=False)  # noqa
     TENDBCLUSTER_DATA_MIGRATE = TicketEnumField("TENDBCLUSTER_DATA_MIGRATE", _("TenDB Cluster DB克隆"), _("数据处理"))
     TENDBCLUSTER_DUMP_DATA = TicketEnumField("TENDBCLUSTER_DUMP_DATA", _("TenDB Cluster 数据导出"), _("数据处理"))
     TENDBCLUSTER_ACCOUNT_RULE_CHANGE = TicketEnumField("TENDBCLUSTER_ACCOUNT_RULE_CHANGE",

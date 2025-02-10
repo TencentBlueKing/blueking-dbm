@@ -68,13 +68,9 @@ def decommission(cluster: Cluster):
     ClusterDBHAExt.objects.filter(cluster=cluster).delete()
     # 删除集群相关的配置模板
     TendbOpenAreaConfig.objects.filter(source_cluster_id=cluster.id).delete()
-    try:
-        DBPartitionApi.cluster_del_conf(
-            params={"cluster_type": cluster.cluster_type, "bk_biz_id": cluster.bk_biz_id, "cluster_ids": [cluster.id]}
-        )
-    except Exception as e:  # noqa
-        logger.error(e)
-
+    DBPartitionApi.cluster_del_conf(
+        params={"cluster_type": cluster.cluster_type, "bk_biz_id": cluster.bk_biz_id, "cluster_ids": [cluster.id]}
+    )
     # 删除集群在bkcc对应的模块
     # TODO CC 目前没有把主机移出当前模块的接口，主机还在模块下，无法删除
     # cc_manage.delete_cluster_modules(db_type=DBType.MySQL.value, cluster=cluster)

@@ -8,3 +8,23 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import logging
+
+from django.utils.translation import ugettext as _
+
+from backend.flow.engine.controller.mysql import MySQLController
+from backend.flow.views.base import FlowTestView
+from backend.utils.basic import generate_root_id
+
+logger = logging.getLogger("root")
+
+
+class MySQLPushPeripheralConfigView(FlowTestView):
+    @staticmethod
+    def post(request):
+        logger.info(_("开始下发周边配置场景"))
+        root_id = generate_root_id()
+        logger.info("define root_id: {}".format(root_id))
+
+        c = MySQLController(root_id=root_id, ticket_data=request.data)
+        c.push_peripheral_config_scene()

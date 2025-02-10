@@ -453,16 +453,12 @@ class DBActuatorActionEnum(str, StructuredEnum):
     CreateToDBViaCtl = EnumField("create-to-db-via-ctl", _("重命名在中控建立目标库"))
     RenamePreDropToOnRemote = EnumField("rename-pre-drop-to-on-remote", _("TenDBCluster 重命名在remote预清理目标库"))
     RenameDropFromViaCtl = EnumField("rename-drop-from-via-ctl", _("TenDBCluster 重命名在中控删除源库"))
-
+    PushMySQLCrondConfig = EnumField("push-mysql-crond-config", _("推送mysql-crond配置"))
     PushMySQLMonitorConfig = EnumField("push-mysql-monitor-config", _("推送mysql-monitor配置"))
     PushChecksumConfig = EnumField("push-checksum-config", _("推送mysql-table-checksum配置"))
     PushNewDbBackupConfig = EnumField("push-new-db-backup-config", _("推送备份配置"))
     PushMySQLRotatebinlogConfig = EnumField("push-mysql-rotatebinlog-config", _("推送rotatebinlog配置"))
     ChangeServerId = EnumField("change-server-id", _("change-server-id"))
-    # ---
-    PushExporterCnf = EnumField("push-exporter-cnf", _("push-exporter-cnf"))
-    PreparePeripheraltoolsBinary = EnumField("prepare-peripheraltools-binary", _("prepare-peripheraltools-binary"))
-    PushMySQLCrondConfig = EnumField("push-mysql-crond-config", _("推送mysql-crond配置"))
 
 
 class RedisActuatorActionEnum(str, StructuredEnum):

@@ -2,7 +2,6 @@ package monitor
 
 import (
 	"dbm-services/common/go-pubpkg/logger"
-	"dbm-services/mysql/db-tools/dbactuator/pkg/components"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/core/cst"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util/osutil"
 	"fmt"
@@ -10,7 +9,7 @@ import (
 	"path/filepath"
 )
 
-func DeployBinary(medium *components.Medium) (err error) {
+func (c *MySQLMonitorComp) DeployBinary() (err error) {
 	err = os.MkdirAll(cst.MySQLMonitorInstallPath, 0755)
 	if err != nil {
 		logger.Error("mkdir %s failed: %s", cst.MySQLCrondInstallPath, err.Error())
@@ -35,7 +34,7 @@ func DeployBinary(medium *components.Medium) (err error) {
 
 	decompressCmd := fmt.Sprintf(
 		`tar zxf %s -C %s`,
-		medium.GetAbsolutePath(), cst.MySQLMonitorInstallPath,
+		c.Params.Medium.GetAbsolutePath(), cst.MySQLMonitorInstallPath,
 	)
 	_, err = osutil.ExecShellCommand(false, decompressCmd)
 	if err != nil {
@@ -86,7 +85,3 @@ func DeployBinary(medium *components.Medium) (err error) {
 	}
 	return nil
 }
-
-//func (c *MySQLMonitorComp) DeployBinary() (err error) {
-//	return DeployBinary(&c.Params.Medium)
-//}
