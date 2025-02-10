@@ -58,7 +58,9 @@
     <InfoItem
       :label="t('集群设置：')"
       style="width: 100%">
-      <BkTable :data="ticketDetails.details.domains">
+      <BkTable
+        :data="ticketDetails.details.domains"
+        :show-overflow="false">
         <BkTableColumn
           field="master"
           fixed="left"

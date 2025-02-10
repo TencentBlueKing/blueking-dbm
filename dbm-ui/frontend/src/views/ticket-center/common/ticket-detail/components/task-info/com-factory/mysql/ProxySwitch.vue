@@ -19,7 +19,7 @@
   </InfoList>
   <BkTable
     :data="ticketDetails.details.infos"
-    show-overflow-tooltip>
+    :show-overflow="false">
     <BkTableColumn :label="t('目标Proxy')">
       <template #default="{ data }: { data: RowData }">
         {{ data.origin_proxy.ip }}

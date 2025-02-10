@@ -12,7 +12,9 @@
 -->
 
 <template>
-  <BkTable :data="ticketDetails.details.clone_data">
+  <BkTable
+    :data="ticketDetails.details.clone_data"
+    :show-overflow="false">
     <BkTableColumn :label="t('源客户端IP')">
       <template #default="{ data }: { data: RowData }">
         {{ data.source }}

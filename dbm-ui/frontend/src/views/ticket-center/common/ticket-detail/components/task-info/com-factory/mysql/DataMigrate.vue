@@ -14,7 +14,7 @@
 <template>
   <BkTable
     :data="ticketDetails.details.infos"
-    show-overflow-tooltip>
+    :show-overflow="false">
     <BkTableColumn
       fixed="left"
       :label="t('源集群')"

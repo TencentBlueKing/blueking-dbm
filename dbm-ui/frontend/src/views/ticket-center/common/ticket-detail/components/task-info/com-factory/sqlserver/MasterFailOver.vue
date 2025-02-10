@@ -14,7 +14,7 @@
 <template>
   <BkTable
     :data="ticketDetails.details.infos"
-    show-overflow-tooltip>
+    :show-overflow="false">
     <BkTableColumn
       field="master.ip"
       :label="t('故障主库主机')">
