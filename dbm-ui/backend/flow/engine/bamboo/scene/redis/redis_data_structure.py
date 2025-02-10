@@ -50,6 +50,7 @@ from backend.flow.engine.bamboo.scene.redis.atom_jobs import RedisBatchInstallAt
 from backend.flow.engine.bamboo.scene.redis.common.exceptions import TendisGetBinlogFailedException
 from backend.flow.engine.bamboo.scene.redis.redis_data_structure_sub import redis_backupfile_download
 from backend.flow.plugins.components.collections.common.download_backup_client import DownloadBackupClientComponent
+from backend.flow.plugins.components.collections.common.pause import PauseComponent
 from backend.flow.plugins.components.collections.redis.exec_actuator_script import ExecuteDBActuatorScriptComponent
 from backend.flow.plugins.components.collections.redis.exec_data_structure_actuator_script import (
     ExecuteDataStructureActuatorScriptComponent,
@@ -354,6 +355,9 @@ class RedisDataStructureFlow(object):
                 kwargs=asdict(cluster_kwargs),
             )
             # # ### cc 转移机器模块完成 ############################################################
+
+            # 人工确认文件下发完成的节点
+            redis_pipeline.add_act(act_name=_("人工确认"), act_component_code=PauseComponent.code, kwargs={})
 
             # ### 如果是tendisplus,需要构建tendis cluster关系 ############################################################
             if is_redis_cluster_protocal(cluster_type):
