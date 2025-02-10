@@ -76,6 +76,7 @@ type InstallMySQLParams struct {
 	PartitionYWAccount       AdditionalAccount `json:"partition_yw_account"`
 	SpiderAutoIncrModeMap    json.RawMessage   `json:"spider_auto_incr_mode_map"`
 	AllowDiskFileSystemTypes []string
+	Engine                   string `json:"engine"`
 }
 
 // InitDirs init dirs
@@ -107,12 +108,12 @@ type installMySQLConfig struct {
 	Checkfunc               []func() error
 }
 
-// RenderConfigs TODO
+// RenderConfigs mysqld config section render value
 type RenderConfigs struct {
 	Mysqld Mysqld
 }
 
-// Mysqld TODO
+// Mysqld mysqld config section
 type Mysqld struct {
 	Port                         string                  `json:"port"`
 	Datadir                      string                  `json:"datadir"`
@@ -123,6 +124,13 @@ type Mysqld struct {
 	ServerId                     uint64                  `json:"server_id"`
 	InnodbBufferPoolSize         string                  `json:"innodb_buffer_pool_size"`
 	SpiderAutoIncrementModeValue SpiderAutoIncrModeValue `json:"spider_auto_increment_mode_value"`
+	// rocksdb
+	RocksdbBlockCacheSize string `json:"rocksdb_block_cache_size"`
+	// tokudb
+	TokudbCacheSize string `json:"tokudb_cache_size"`
+	TokudbDataDir   string `json:"tokudb_data_dir"`
+	TokudbLogDir    string `json:"tokudb_log_dir"`
+	TokudbTmpDir    string `json:"tokudb_tmp_dir"`
 }
 
 // Example subcommand example input
@@ -152,7 +160,7 @@ func (i *InstallMySQLComp) Example() interface{} {
 	return comp
 }
 
-// InitDefaultParam TODO
+// InitDefaultParam init default param
 func (i *InstallMySQLComp) InitDefaultParam() (err error) {
 	i.WorkUser = "root"
 	i.WorkPassword = ""
@@ -215,6 +223,7 @@ func (i *InstallMySQLComp) InitDefaultParam() (err error) {
 		i.LogRootPath = mountpoint
 		i.LogBaseDir = path.Join(mountpoint, cst.DefaultMysqlLogBasePath)
 	}
+	// 反序列化mycnf 配置
 	mycnfs := i.InstanceConfig
 	for _, port := range i.InsPorts {
 		var cnfraw json.RawMessage
@@ -248,17 +257,20 @@ func (i *InstallMySQLComp) InitDefaultParam() (err error) {
 	if err := i.initInsReplaceMyConfigs(); err != nil {
 		return err
 	}
+	return nil
+}
+
+// PreCheck do precheck
+func (i *InstallMySQLComp) PreCheck() error {
 	i.Checkfunc = append(i.Checkfunc, i.CheckTimeZoneSetting)
 	i.Checkfunc = append(i.Checkfunc, i.precheckMysqlDir)
 	i.Checkfunc = append(i.Checkfunc, i.precheckMysqlProcess)
 	i.Checkfunc = append(i.Checkfunc, i.precheckMysqlPackageBitOS)
 	i.Checkfunc = append(i.Checkfunc, i.precheckGlibcVersion)
 	i.Checkfunc = append(i.Checkfunc, i.Params.Medium.Check)
-	return nil
-}
-
-// PreCheck TODO
-func (i *InstallMySQLComp) PreCheck() error {
+	if isRocksdb(i.Params.Engine) {
+		i.Checkfunc = append(i.Checkfunc, i.specialCheckForRocksdb)
+	}
 	for _, f := range i.Checkfunc {
 		if err := f(); err != nil {
 			logger.Error("check failed %s", err.Error())
@@ -268,7 +280,7 @@ func (i *InstallMySQLComp) PreCheck() error {
 	return nil
 }
 
-// precheckMysqlDir TODO
+// precheckMysqlDir check mysql dir
 /*
 	检查根路径下是已经存在mysql相关的数据和日志目录
 	eg:
@@ -293,6 +305,8 @@ func (i *InstallMySQLComp) precheckMysqlDir() error {
 	return nil
 }
 
+// precheckFilesystemType 检查文件系统类型
+// nolint
 func (i *InstallMySQLComp) precheckFilesystemType() (err error) {
 	for _, dirPath := range util.UniqueStrings([]string{i.DataRootPath, i.LogRootPath}) {
 		mountInfo := osutil.GetMountPathInfo(dirPath)
@@ -308,6 +322,14 @@ func (i *InstallMySQLComp) precheckFilesystemType() (err error) {
 				return fmt.Errorf("the %s,Filesystem is %s,is not allowed", dirPath, info.FileSystemType)
 			}
 		}
+	}
+	return nil
+}
+
+// specialCheckForRocksdb rocksdb 特定的检查
+func (i *InstallMySQLComp) specialCheckForRocksdb() (err error) {
+	if cmutil.TmysqlVersionParse(i.Params.Medium.Pkg) < cmutil.TmysqlVersionParse("tmysql-3.4") {
+		return fmt.Errorf("only version tmysql3.4+ support rocksdb")
 	}
 	return nil
 }
@@ -401,25 +423,65 @@ func (i *InstallMySQLComp) initInsReplaceMyConfigs() error {
 			logger.Error("%s:%d generation serverId Failed %s", i.Params.Host, port, err.Error())
 			return err
 		}
-		i.RenderConfigs[port] = RenderConfigs{Mysqld{
-			Datadir:                      insBaseDataDir,
-			Logdir:                       insBaseLogDir,
-			ServerId:                     serverId,
-			Port:                         strconv.Itoa(port),
-			CharacterSetServer:           i.Params.CharSet,
-			InnodbBufferPoolSize:         fmt.Sprintf("%dM", i.Params.InstMem),
-			BindAddress:                  i.Params.Host,
-			SpiderAutoIncrementModeValue: i.SpiderAutoIncrModeMap[port],
-		}}
-
 		i.InsInitDirs[port] = append(i.InsInitDirs[port], []string{insBaseDataDir, insBaseLogDir}...)
+		switch strings.ToUpper(i.Params.Engine) {
+		case cst.RocksDBEngine:
+			i.RenderConfigs[port] = RenderConfigs{Mysqld{
+				Datadir:                      insBaseDataDir,
+				Logdir:                       insBaseLogDir,
+				ServerId:                     serverId,
+				Port:                         strconv.Itoa(port),
+				CharacterSetServer:           i.Params.CharSet,
+				RocksdbBlockCacheSize:        fmt.Sprintf("%dM", i.Params.InstMem),
+				InnodbBufferPoolSize:         "100M",
+				BindAddress:                  i.Params.Host,
+				SpiderAutoIncrementModeValue: i.SpiderAutoIncrModeMap[port],
+			}}
+		case cst.TokudbEngine:
+			i.RenderConfigs[port] = RenderConfigs{Mysqld{
+				Datadir:                      insBaseDataDir,
+				Logdir:                       insBaseLogDir,
+				ServerId:                     serverId,
+				Port:                         strconv.Itoa(port),
+				CharacterSetServer:           i.Params.CharSet,
+				TokudbCacheSize:              fmt.Sprintf("%dM", i.Params.InstMem),
+				InnodbBufferPoolSize:         "100M",
+				TokudbDataDir:                insBaseDataDir,
+				TokudbTmpDir:                 insBaseDataDir,
+				TokudbLogDir:                 insBaseDataDir,
+				BindAddress:                  i.Params.Host,
+				SpiderAutoIncrementModeValue: i.SpiderAutoIncrModeMap[port],
+			}}
+		default:
+			i.RenderConfigs[port] = RenderConfigs{Mysqld{
+				Datadir:                      insBaseDataDir,
+				Logdir:                       insBaseLogDir,
+				ServerId:                     serverId,
+				Port:                         strconv.Itoa(port),
+				CharacterSetServer:           i.Params.CharSet,
+				InnodbBufferPoolSize:         fmt.Sprintf("%dM", i.Params.InstMem),
+				BindAddress:                  i.Params.Host,
+				SpiderAutoIncrementModeValue: i.SpiderAutoIncrModeMap[port],
+			}}
+		}
+
 	}
 	return nil
-	//	return i.calInsInitDirs()
 }
 
-// getInitDirFromCnf TODO
-// calInsInitDirs  从模板配置获取需要初始化新建的目录
+func isTokudb(engine string) bool {
+	return strings.ToUpper(engine) == cst.TokudbEngine
+}
+
+func isInnodb(engine string) bool {
+	return strings.ToUpper(engine) == cst.InnoDBEngine
+}
+
+func isRocksdb(engine string) bool {
+	return strings.ToUpper(engine) == cst.RocksDBEngine
+}
+
+// getInitDirFromCnf 从模板配置获取需要初始化新建的目录
 func (i *InstallMySQLComp) getInitDirFromCnf() (err error) {
 	// 获取需要初始化目录的模板值
 	initDirTpls := map[string]string{
@@ -430,6 +492,11 @@ func (i *InstallMySQLComp) getInitDirFromCnf() (err error) {
 		"relay-log":                 "",
 		"tmpdir":                    "",
 		"socket":                    "",
+	}
+	if isTokudb(i.Params.Engine) {
+		initDirTpls["tokudb_log_dir"] = ""
+		initDirTpls["tokudb_data_dir"] = ""
+		initDirTpls["tokudb_tmp_dir"] = ""
 	}
 	for _, port := range i.InsPorts {
 		cnf, ierr := util.LoadMyCnfForFile(util.GetMyCnfFileName(port))
@@ -453,11 +520,7 @@ func (i *InstallMySQLComp) getInitDirFromCnf() (err error) {
 	return err
 }
 
-// GenerateMycnf TODO
-/**
- * @description: 渲染配置
- * @return {*}
- */
+// GenerateMycnf 渲染配置
 func (i *InstallMySQLComp) GenerateMycnf() (err error) {
 	// 1. 根据参数反序列化配置
 	var tmplFileName = "/tmp/my.cnf.tpl"
@@ -509,10 +572,7 @@ func (i *InstallMySQLComp) generateMycnfOnePort(port Port, tmplFileName string) 
 	return nil
 }
 
-// InitInstanceDirs TODO
-/*
-	创建实例相关的数据，日志目录以及修改权限
-*/
+// InitInstanceDirs 创建实例相关的数据，日志目录以及修改权限
 func (i *InstallMySQLComp) InitInstanceDirs() (err error) {
 	if err = i.getInitDirFromCnf(); err != nil {
 		return err
@@ -540,11 +600,7 @@ func (i *InstallMySQLComp) InitInstanceDirs() (err error) {
 	return nil
 }
 
-// DecompressMysqlPkg TODO
-/**
- * @description:  校验、解压mysql安装包
- * @return {*}
- */
+// DecompressMysqlPkg 校验、解压mysql安装包
 func (i *InstallMySQLComp) DecompressMysqlPkg() (err error) {
 	if err = os.Chdir(i.InstallDir); err != nil {
 		return fmt.Errorf("cd to dir %s failed, err:%w", i.InstallDir, err)
@@ -576,11 +632,7 @@ func (i *InstallMySQLComp) DecompressMysqlPkg() (err error) {
 	return nil
 }
 
-// Install TODO
-/**
- * @description:  mysqld init 初始化mysql 内置的系统库表
- * @return {*}
- */
+// Install  mysqld init 初始化mysql 内置的系统库表
 func (i *InstallMySQLComp) Install() (err error) {
 	logger.Info("开始安装mysql实例 ~  %v", i.InsPorts)
 	var isSudo = mysqlutil.IsSudo()
@@ -684,6 +736,31 @@ func (i *InstallMySQLComp) Startup() (err error) {
 		i.RollBackContext.AddKillProcess(pid)
 	}
 	return nil
+}
+
+// RegisterOtherEngine register other engine
+func (i *InstallMySQLComp) RegisterOtherEngine() (err error) {
+	if isInnodb(i.Params.Engine) {
+		logger.Info("is innodb engine,do nothing")
+		return nil
+	}
+	if isTokudb(i.Params.Engine) {
+		logger.Info("will register tokudb engine")
+		comp := EnableTokudbEngineComp{
+			GeneralParam: i.GeneralParam,
+			Params: EnableTokudbParams{
+				Host:  i.Params.Host,
+				Ports: i.InsPorts,
+			},
+		}
+		if err = comp.Init(); err != nil {
+			return err
+		}
+		if err = comp.Install(); err != nil {
+			return err
+		}
+	}
+	return
 }
 
 // generateDefaultMysqlAccount TODO
@@ -855,11 +932,7 @@ func (a *AdditionalAccount) GetDBHAAccount(realVersion string) (initAccountsql [
 	return
 }
 
-// InitDefaultPrivAndSchemaWithResetMaster TODO
-/**
- * @description: 执行初始化默认库表语句&初始化默认账户sql
- * @return {*}
- */
+// InitDefaultPrivAndSchemaWithResetMaster   执行初始化默认库表语句&初始化默认账户sql
 func (i *InstallMySQLComp) InitDefaultPrivAndSchemaWithResetMaster() (err error) {
 	var bsql []byte
 	var initSQLs []string
@@ -923,7 +996,7 @@ func (i *InstallMySQLComp) InitDefaultPrivAndSchemaWithResetMaster() (err error)
 			logger.Error("connect by %s failed,err:%s", port, err.Error())
 			return err
 		}
-
+		defer dbWork.Close()
 		// 初始化schema
 		if _, err := dbWork.ExecMore(initSQLs); err != nil {
 			logger.Error("init %d schema failed for %v", port, err)

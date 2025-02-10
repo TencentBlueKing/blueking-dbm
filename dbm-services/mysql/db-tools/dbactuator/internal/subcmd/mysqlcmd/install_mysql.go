@@ -125,6 +125,10 @@ func (d *DeployMySQLAct) Run() (err error) {
 			Func:    d.Service.InitDefaultPrivAndSchemaWithResetMaster,
 		},
 		{
+			FunName: "加载其他存储引擎，如果存在的",
+			Func:    d.Service.RegisterOtherEngine,
+		},
+		{
 			FunName: "建立socker软连接",
 			Func:    d.Service.MakeSocketSoftLink,
 		},

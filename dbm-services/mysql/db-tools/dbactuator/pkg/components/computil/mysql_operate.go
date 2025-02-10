@@ -109,7 +109,8 @@ cd %s && %s ./bin/mysqld_safe --defaults-file=%s --user=mysql `, mediaDir, numaS
 	}
 	startCmd += " &"
 	logger.Info(fmt.Sprintf("execute mysqld_safe: [%s]", startCmd))
-	pid, err = osutil.RunInBG(false, startCmd)
+	// use mysql start
+	pid, err = osutil.RunInBG(false, fmt.Sprintf("su - mysql -c \"%s\" ", startCmd))
 	if err != nil {
 		return
 	}
@@ -143,7 +144,7 @@ cd %s && %s ./bin/mysqld_safe --defaults-file=%s --user=mysql `, mediaDir, numaS
 	}
 	startCmd += " &"
 	logger.Info(fmt.Sprintf("execute mysqld_safe: [%s]", startCmd))
-	pid, err = osutil.RunInBG(false, startCmd)
+	pid, err = osutil.RunInBG(false, fmt.Sprintf("su - mysql -c \"%s\" ", startCmd))
 	if err != nil {
 		logger.Error(fmt.Sprintf("start mysqld_safe failed:%v", err))
 		return pid, err
@@ -156,7 +157,7 @@ cd %s && %s ./bin/mysqld_safe --defaults-file=%s --user=mysql `, mediaDir, numaS
 	)
 }
 
-// CheckMysqlProcess TODO
+// CheckMysqlProcess check mysqld process running
 func (p *StartMySQLParam) CheckMysqlProcess() (err error) {
 	if p.MyCnfName == "" {
 		p.MyCnfName = util.GetMyCnfFileName(p.Port)

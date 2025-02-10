@@ -103,6 +103,7 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
                 "format": FormatType.MAP,
             }
         )["content"]
+        logger.info(f"Get mysql version,charset,engine from dbconfig: {data}")
         return data["charset"], data["db_version"]
 
     def __get_mysql_rotatebinlog_config(self) -> dict:
@@ -229,12 +230,21 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
 
         return cfg
 
+    def get_engine_from_mysql_config(self, mysql_configs: dict) -> str:
+        for config in mysql_configs.values():
+            if "default_storage_engine" in config["mysqld"]:
+                return config["mysqld"]["default_storage_engine"]
+            if "default-storage-engine" in config["mysqld"]:
+                return config["mysqld"]["default-storage-engine"]
+        return "innodb"
+
     def get_install_mysql_payload(self, **kwargs) -> dict:
         """
         拼接安装MySQL的payload参数, 分别兼容集群申请、集群实例重建、集群实例添加单据的获取方式
         由于集群实例重建或者添加单据是不知道 需要部署的版本号以及字符集，需要通过接口获取
         """
         init_mysql_config = {}
+        engine = "innodb"
         if self.ticket_data.get("charset") and self.ticket_data.get("db_version"):
             # 如果单据传入有字符集和版本号，则以单据为主：
             charset, db_version = self.ticket_data.get("charset"), self.ticket_data.get("db_version")
@@ -268,7 +278,8 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
                     db_version=version_no, init_configs=mysql_config[port], origin_configs=old_configs[port_str]
                 )
         logger.debug("install  config:", mysql_config)
-
+        engine = self.get_engine_from_mysql_config(mysql_configs=mysql_config)
+        logger.debug("engine is ", engine)
         drs_account, dbha_account = self.get_super_account()
 
         return {
@@ -282,6 +293,7 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
                     "pkg_md5": mysql_pkg.md5,
                     "mysql_version": version_no,
                     "charset": charset,
+                    "engine": engine,
                     "inst_mem": 0,
                     "ports": self.ticket_data.get("mysql_ports", []),
                     "super_account": drs_account,

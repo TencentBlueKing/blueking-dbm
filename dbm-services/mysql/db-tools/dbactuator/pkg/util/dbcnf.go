@@ -426,6 +426,7 @@ func (m *CnfFile) GetInitDirItemTpl(initDirs map[string]string) (err error) {
 	}
 	for key := range initDirs {
 		initDirs[key] = mysqld.Key(key).String()
+		logger.Info("get dir val key:%s,val:%s,", key, initDirs[key])
 	}
 	return
 }
@@ -441,7 +442,7 @@ func (m *CnfFile) GetInitDirItemTpl(initDirs map[string]string) (err error) {
 func (m *CnfFile) RenderSection(sectionName, key, val string, isProxy bool) (err error) {
 	if m.isShadowKey(key) {
 		for _, shadowv := range strings.Split(val, ",") {
-			if _, err := m.Cfg.Section(sectionName).NewKey(key, shadowv); err != nil {
+			if _, err = m.Cfg.Section(sectionName).NewKey(key, shadowv); err != nil {
 				return err
 			}
 			// fmt.Println(",", "M")
@@ -628,6 +629,7 @@ func CreateExporterConf(fileName string, host string, port int, user string, pas
 	return nil
 }
 
+// CreateMysqlExporterArgs TODO
 func CreateMysqlExporterArgs(fileName, pkgType string, port int) error {
 	spiderArgs := []string{
 		"--enable-scrape-interval",
@@ -662,7 +664,7 @@ func CreateMysqlExporterArgs(fileName, pkgType string, port int) error {
 		"--collect.info_schema.innodb_trx",
 		"--collect.engine_innodb_status",
 	}
-	//fileName := fmt.Sprintf("/etc/exporter_%d.args", port)
+	// fileName := fmt.Sprintf("/etc/exporter_%d.args", port)
 	f, err := os.OpenFile(fileName, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0755)
 	if err != nil {
 		return err

@@ -44,10 +44,11 @@ INSERT INTO plugin (name,dl) VALUES ('tokudb_fractal_tree_block_map','ha_tokudb.
 type EnableTokudbEngineComp struct {
 	GeneralParam *components.GeneralParam `json:"general"`
 	Params       EnableTokudbParams
-	enabledTokudbCtx
+	EnabledTokudbCtx
 }
 
-type enabledTokudbCtx struct {
+// EnabledTokudbCtx enabled tokudb ctx
+type EnabledTokudbCtx struct {
 	conns           map[Port]*native.DbWorker
 	sockeMap        map[Port]string
 	serializeCnfMap map[Port]*util.CnfFile

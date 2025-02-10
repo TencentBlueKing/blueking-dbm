@@ -147,5 +147,14 @@ const (
 	BackupTypePhysical = "physical"
 )
 
+const (
+	// RocksDBEngine rocksdb engine
+	RocksDBEngine = "ROCKSDB"
+	// InnoDBEngine innodb engine
+	InnoDBEngine = "INNODB"
+	// TokudbEngine tokudb engine
+	TokudbEngine = "TOKUDB"
+)
+
 // MySQLCrondPort crond 端口
 const MySQLCrondPort = 9999
