@@ -101,6 +101,7 @@ export default defineConfig(({ mode }) => {
     server: {
       strictPort: true,
       host: '127.0.0.1',
+      allowedHosts: true,
       port: 8088,
       proxy: {
         '/bkrepo_upload': {
