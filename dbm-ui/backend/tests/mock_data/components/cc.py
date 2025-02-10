@@ -29,7 +29,7 @@ MOCK_SEARCH_BUSINESS_WITH_MULTI_BIZ_RETURN = {
     "count": 2,
 }
 MOCK_FIND_HOST_BIZ_RELATIONS_RETURN = [
-    {"bk_host_id": 1, "bk_biz_id": constant.BK_BIZ_ID, "bk_module_id": constant.BK_MODULE_ID}
+    {"bk_host_id": 10001, "bk_biz_id": constant.BK_BIZ_ID, "bk_module_id": constant.BK_MODULE_ID}
 ]
 
 MOCK_GET_BIZ_INTERNAL_MODULE_RETURN = {

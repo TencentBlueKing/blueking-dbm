@@ -14,7 +14,7 @@ from backend.flow.models import StateType
 from backend.tests.mock_data import constant
 from backend.ticket.constants import TicketType
 
-PASSWORD = "j2BJpNxU7cdtgfgG"
+PASSWORD = "xxxxxxxxxx"
 ROOT_ID = "a884b5422f7111ed830cc2afcf9e926b"
 BK_USERNAME = "admin"
 SN = "NO2019090519542603"
