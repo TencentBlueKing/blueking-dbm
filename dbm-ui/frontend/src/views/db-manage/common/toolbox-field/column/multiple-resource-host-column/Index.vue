@@ -13,15 +13,16 @@
 
 <template>
   <EditableColumn
-    :append-rules="rules"
+    :append-rules="limit > -1 ? appendRules : []"
     :field="field"
     :label="label"
     :loading="loading"
-    :min-width="300"
-    required>
+    :min-width="minWidth"
+    required
+    :rules="rules">
     <EditableInput
       v-model="localValue"
-      :placeholder="t('请输入n个主机IP', { n: limit })"
+      :placeholder="limit === -1 ? t('请输入主机IP,多个英文逗号分隔') : t('请输入n个主机IP', { n: limit })"
       @change="handleInputChange">
       <template #default>
         <span ref="rootRef">{{ localValue }}</span>
@@ -70,7 +71,8 @@
      */
     field: string;
     label: string;
-    limit: number;
+    minWidth?: number;
+    limit?: number;
     params?: ComponentProps<typeof ResourceHostSelector>['params'];
   }
 
@@ -82,6 +84,8 @@
   }
 
   const props = withDefaults(defineProps<Props>(), {
+    minWidth: 300,
+    limit: -1,
     params: () => ({}),
   });
 
@@ -117,11 +121,6 @@
       trigger: 'change',
     },
     {
-      validator: () => localValue.value.split(batchSplitRegex).length <= props.limit,
-      message: t('最多输入n个主机IP', { n: props.limit }),
-      trigger: 'blur',
-    },
-    {
       validator: (hosts: IHost[]) => {
         notFound = [];
         hosts.forEach((item) => {
@@ -132,6 +131,14 @@
         return !notFound.length;
       },
       message: () => t('目标主机xx不存在', [notFound.join(',')]),
+      trigger: 'blur',
+    },
+  ];
+
+  const appendRules = [
+    {
+      validator: () => localValue.value.split(batchSplitRegex).length <= props.limit,
+      message: t('最多输入n个主机IP', { n: props.limit }),
       trigger: 'blur',
     },
   ];
@@ -161,7 +168,7 @@
 
   watch(modelValue, () => {
     localValue.value = modelValue.value.map((item) => item.ip).join(',');
-    if (modelValue.value.length > 0) {
+    if (modelValue.value.length > 0 && rootRef.value) {
       destroyInst();
       nextTick(() => {
         tippyIns = tippy(rootRef.value as SingleTarget, {
