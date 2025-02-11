@@ -28,6 +28,7 @@ export const useDefaultPagination = () => ({
   count: 0,
   limit,
   'limit-list': [limit, 50, 100, 500],
+  remote: true,
   getFetchParams() {
     return {
       limit: this.limit,
