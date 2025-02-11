@@ -276,11 +276,13 @@
           name: t('集群名称'),
           id: 'name',
           multiple: true,
+          async: false,
         },
         {
           name: t('IP 或 IP:Port'),
           id: 'instance',
           multiple: true,
+          async: false,
         },
         {
           name: 'ID',

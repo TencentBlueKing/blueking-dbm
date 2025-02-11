@@ -359,11 +359,13 @@
       name: t('访问入口'),
       id: 'domain',
       multiple: true,
+      async: false,
     },
     {
       name: t('IP 或 IP:Port'),
       id: 'instance',
       multiple: true,
+      async: false,
     },
     {
       name: t('集群名称'),
