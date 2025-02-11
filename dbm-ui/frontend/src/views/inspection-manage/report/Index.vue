@@ -107,6 +107,9 @@
       delete queryObj.tabType;
       searchParams.value = queryObj;
     },
+    {
+      immediate: true,
+    },
   );
 
   watch(tabType, () => {
