@@ -2,6 +2,7 @@ package redis_rpc
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"time"
@@ -88,22 +89,22 @@ func (db *RedisClient) newConn() (err error) {
 	return
 }
 
-// DoCommand Do command(auto switch db)
+// doCommand Do command(auto switch db)
 func (db *RedisClient) DoCommand(cmdArgv []string, dbnum int) (interface{}, error) {
 	err := db.SelectDB(dbnum)
 	if err != nil {
 		return nil, err
 	}
 	var ret interface{}
-	dstCmds := []interface{}{}
+	var dstCmds []interface{}
 	for _, cmd01 := range cmdArgv {
 		dstCmds = append(dstCmds, cmd01)
 	}
 	ret, err = db.InstanceClient.Do(context.TODO(), dstCmds...).Result()
-	if err != nil && err != redis.Nil {
-		slog.Error("Redis  DoCommand fail,err:%v,command:%+v,addr:%s", err, cmdArgv, db.Addr)
+	if err != nil && !errors.Is(err, redis.Nil) {
+		slog.Error("Redis  doCommand fail,err:%v,command:%+v,addr:%s", err, cmdArgv, db.Addr)
 		return nil, err
-	} else if err != nil && err == redis.Nil {
+	} else if err != nil && errors.Is(err, redis.Nil) {
 		return "", nil
 	}
 	return ret, nil
@@ -116,13 +117,13 @@ func (db *RedisClient) SelectDB(dbNum int) (err error) {
 	}
 	pipe01 := db.InstanceClient.Pipeline()
 	_, err = pipe01.Select(context.TODO(), dbNum).Result()
-	if err != nil && err != redis.Nil {
+	if err != nil && !errors.Is(err, redis.Nil) {
 		err = fmt.Errorf("redis:%s selectdb fail,err:%v", db.Addr, err)
 		slog.Error(err.Error())
 		return
 	}
 	_, err = pipe01.Exec(context.TODO())
-	if err != nil && err != redis.Nil {
+	if err != nil && !errors.Is(err, redis.Nil) {
 		err = fmt.Errorf("redis:%s selectdb fail,err:%v", db.Addr, err)
 		slog.Error(err.Error())
 		return

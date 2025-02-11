@@ -52,7 +52,7 @@ func (r *RedisRPCEmbed) DoCommandForWebConsole(c *gin.Context, param *RedisQuery
 			return
 		}
 
-		ret, err := RedisCli(address, password, formatCmd, param.DbNum)
+		ret, err := RedisCli(address, password, formatCmd, param.DbNum, param.Raw)
 		if err != nil {
 			slog.Error("RedisRPCEmbed execute command", err,
 				slog.String("address", address),

@@ -22,7 +22,7 @@ func (r *TwemproxyRPCEmbed) IsProxyQueryCommand(cmd string) bool {
 	return true
 }
 
-// DoCommand 执行redis命令
+// doCommand 执行redis命令
 func (r *TwemproxyRPCEmbed) DoCommand(c *gin.Context) {
 	// 获取参数
 	var param RedisQueryParams

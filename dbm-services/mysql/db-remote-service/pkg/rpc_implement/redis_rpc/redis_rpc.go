@@ -77,7 +77,7 @@ func (r *RedisRPCEmbed) IsExecuteCommand() bool {
 	return false
 }
 
-// DoCommand 执行redis命令
+// doCommand 执行redis命令
 func (r *RedisRPCEmbed) DoCommand(c *gin.Context) {
 	// 获取参数
 	var param RedisQueryParams
@@ -87,6 +87,7 @@ func (r *RedisRPCEmbed) DoCommand(c *gin.Context) {
 		SendResponse(c, 1, err.Error(), nil)
 		return
 	}
+
 	slog.Info("RedisRPCEmbed request data", slog.String("param", param.StringWithoutPasswd()))
 
 	// WebConsoleMode 使用 DoCommandForWebConsole

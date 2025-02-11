@@ -37,13 +37,14 @@ type RedisQueryParams struct {
 	Command   string   `json:"command"`
 	// ClientType webconsole or 其它任何值。 当这个值为webconsole时，调用redis-cli执行命令.
 	ClientType string `json:"client_type"`
-	// Raw 只对ClientType为webconsole时生效. 为redis-cli添加--raw参数 raw模式下，能返回中文. 默认为false
-	Raw bool `json:"raw,omitempty"`
+	// Raw 只对ClientType为webconsole时生效. 为redis-cli添加--raw参数 raw:true 返回中文. 默认为false
+	Raw bool `json:"raw,omitempty"` // 是否使用--raw参数
 }
 
 // StringWithoutPasswd 打印参数，不打印密码
 func (param *RedisQueryParams) StringWithoutPasswd() string {
-	return fmt.Sprintf("{addresses:%+v,db_num:%d,command:%s,password:xxxx}", param.Addresses, param.DbNum, param.Command)
+	return fmt.Sprintf("{addresses:%+v,db_num:%d,command:%s,password:xxxx,raw:%v,client_type:%s}",
+		param.Addresses, param.DbNum, param.Command, param.Raw, param.ClientType)
 }
 
 // CmdResult TODO
