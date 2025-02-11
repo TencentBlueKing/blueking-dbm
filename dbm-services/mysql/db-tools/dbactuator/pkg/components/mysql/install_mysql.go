@@ -215,10 +215,7 @@ func (i *InstallMySQLComp) InitDefaultParam() (err error) {
 		i.LogRootPath = mountpoint
 		i.LogBaseDir = path.Join(mountpoint, cst.DefaultMysqlLogBasePath)
 	}
-	// 反序列化mycnf 配置
-	var mycnfs map[Port]json.RawMessage
-	mycnfs = i.InstanceConfig
-
+	mycnfs := i.InstanceConfig
 	for _, port := range i.InsPorts {
 		var cnfraw json.RawMessage
 		var ok bool

@@ -52,13 +52,7 @@ func (i *InstallMySQLComp) InitTdbctlDeploy() (err error) {
 	i.DataBaseDir = path.Join(mountpoint, cst.DefaultMysqlDataBasePath)
 	i.LogRootPath = mountpoint
 	i.LogBaseDir = path.Join(mountpoint, cst.DefaultMysqlLogBasePath)
-
-	// 反序列化mycnf 配置
-	var mycnfs map[Port]json.RawMessage
-	if err = json.Unmarshal([]byte(i.Params.MyCnfConfigs), &mycnfs); err != nil {
-		logger.Error("反序列化配置失败:%s", err.Error())
-		return err
-	}
+	mycnfs := i.InstanceConfig
 	for _, port := range i.InsPorts {
 		var cnfraw json.RawMessage
 		var ok bool
