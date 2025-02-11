@@ -36,7 +36,6 @@
   </BkSideslider>
 </template>
 <script setup lang="tsx">
-  import type { Column } from 'bkui-vue/lib/table/props';
   import _ from 'lodash';
   import type { UnwrapRef } from 'vue';
   import { computed, shallowRef, watch } from 'vue';
@@ -78,7 +77,7 @@
     return instanceList.value.filter((item) => rule.test(item.ip));
   });
 
-  const tableColumns: Column[] = [
+  const tableColumns = [
     {
       label: t('库名'),
       field: 'db_name',
