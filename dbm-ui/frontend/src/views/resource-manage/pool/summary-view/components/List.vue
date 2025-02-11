@@ -19,8 +19,6 @@
         class="summary-view-table"
         :data="tableData"
         :pagination="pagination"
-        remote-pagination
-        show-overflow-tooltip
         @page-limit-change="handeChangeLimit"
         @page-value-change="handleChangePage">
         <BkTableColumn
@@ -154,7 +152,6 @@
 
   const handleChangePage = (value: number) => {
     pagination.value.current = value;
-    tableRef.value.scrollTo(0, 0);
   };
 
   const handeChangeLimit = (value: number) => {
