@@ -26,6 +26,7 @@
         v-for="url in serviceList"
         :key="url"
         ref="dynamicTablesRef"
+        :is-platform="isPlatform"
         :search-params="searchParams"
         :service-url="url" />
     </div>
@@ -61,6 +62,7 @@
   const dynamicTablesRef = ref<InstanceType<typeof RenderDynamicTable>[]>([]);
 
   const isTodoAssist = computed(() => route.query.manage === 'assist');
+  const isPlatform = computed(() => route.name === 'inspectionReportGlobal');
 
   const serviceList = computed(() => {
     if (!dbOverviewConfig.value || !dbOverviewConfig.value[tabType.value]) {
@@ -111,11 +113,16 @@
     updateRouteQuery();
   });
 
-  const updateRouteQuery = () => {
-    const query = {
-      ...searchParams.value,
-      tabType: tabType.value,
-    };
+  const updateRouteQuery = (payload?: Record<string, string>) => {
+    const query = payload
+      ? {
+          ...payload,
+          tabType: tabType.value,
+        }
+      : {
+          ...searchParams.value,
+          tabType: tabType.value,
+        };
     if (route.query.manage) {
       Object.assign(query, { manage: route.query.manage });
     }
@@ -136,9 +143,8 @@
     });
   };
 
-  const handleSearchChange = (payload: Record<string, any>) => {
-    searchParams.value = payload;
-    updateRouteQuery();
+  const handleSearchChange = (payload: Record<string, string>) => {
+    updateRouteQuery(payload);
   };
 
   const handleExport = async () => {
