@@ -46,6 +46,7 @@
 
   interface Props {
     searchParams?: Record<string, any>,
+    isPlatform?: boolean;
     serviceUrl: string;
   }
 
@@ -58,7 +59,10 @@
     }>;
   }
 
-  const props = defineProps<Props>();
+  const props = withDefaults(defineProps<Props>(), {
+    searchParams: undefined,
+    isPlatform: false,
+  });
 
   const { t } = useI18n();
   const globalBizsStore = useGlobalBizs();
@@ -134,6 +138,7 @@
     fetchInspectionData(props.serviceUrl, {
       offset: (pagination.current - 1) * pagination.limit,
       limit: pagination.limit,
+      platform: props.isPlatform,
       ...props.searchParams,
     }, {
       permission: 'page',
