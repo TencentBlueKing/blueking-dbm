@@ -174,6 +174,7 @@
     // 是否允许行点击选中
     allowRowClickSelect?: boolean,
     remoteSort?: boolean,
+    showSettings?: boolean;
     sortType?: 'ordering' | 'default';
   }
 

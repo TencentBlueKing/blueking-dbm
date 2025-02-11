@@ -136,6 +136,7 @@
   const selectedMap = computed(() => Object.fromEntries(selected.value.map((cur) => [cur.master_domain, true])));
 
   const { run: createTicketRun, loading: isSubmitting } = useCreateTicket<{
+    ip_source: 'resource_pool';
     infos: {
       bk_cloud_id: number;
       cluster_id: number;
@@ -159,6 +160,7 @@
     }
     createTicketRun({
       details: {
+        ip_source: 'resource_pool',
         infos: formData.tableData.map((item) => ({
           bk_cloud_id: item.cluster.bk_cloud_id,
           cluster_id: item.cluster.id,
