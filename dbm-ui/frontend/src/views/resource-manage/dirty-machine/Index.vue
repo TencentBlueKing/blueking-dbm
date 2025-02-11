@@ -153,6 +153,7 @@
       name: 'IP',
       id: 'ip',
       multiple: true,
+      async: false,
     },
     {
       name: t('管控区域'),
