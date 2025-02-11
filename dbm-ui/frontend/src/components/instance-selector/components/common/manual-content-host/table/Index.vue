@@ -119,8 +119,8 @@
   });
 
   const isSelectedAll = computed(() => (
-    tableData.value.length > 0
-    && tableData.value.length === tableData.value.filter(item => checkedMap.value[item[firstColumnFieldId.value]]).length
+    renderManualData.value.length > 0
+    && renderManualData.value.length === renderManualData.value.filter(item => checkedMap.value[item[firstColumnFieldId.value]]).length
   ));
 
   let isSelectedAllReal = false;
@@ -296,6 +296,11 @@
     immediate: true,
   });
 
+  watch(searchValue, () => {
+    checkedMap.value = {}
+    triggerChange()
+  })
+
   const triggerChange = () => {
     if (props.isManul) {
       const lastValues: InstanceSelectorValues<IValue> = {
@@ -327,18 +332,23 @@
   };
 
   const handleSelectPageAll = (checked: boolean) => {
-    const list = tableData.value;
-    if (props.disabledRowConfig) {
-      isSelectedAllReal = !isSelectedAllReal;
-      for (const data of list) {
-        if (!props.disabledRowConfig.handler(data)) {
-          handleTableSelectOne(isSelectedAllReal, data);
+    if (checked) {
+      const list = renderManualData.value;
+      if (props.disabledRowConfig) {
+        isSelectedAllReal = !isSelectedAllReal;
+        for (const data of list) {
+          if (!props.disabledRowConfig.handler(data)) {
+            handleTableSelectOne(isSelectedAllReal, data);
+          }
         }
+        return;
       }
-      return;
-    }
-    for (const item of list) {
-      handleTableSelectOne(checked, item);
+      for (const item of list) {
+        handleTableSelectOne(checked, item);
+      }
+    } else {
+      checkedMap.value = {};
+      triggerChange();
     }
   };
 

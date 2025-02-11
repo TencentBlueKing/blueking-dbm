@@ -492,6 +492,10 @@
     },
   ];
 
+  watch(searchValue, () => {
+    checkedNodeMap.value = {}
+  })
+
   const setRowClass = (data: KafkaNodeModel) => (isRecentDays(data.create_at, 24 * 3) ? 'is-new-row' : '');
 
   const fetchClusterDetail = () => {

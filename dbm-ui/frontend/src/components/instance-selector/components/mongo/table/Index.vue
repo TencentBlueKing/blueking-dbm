@@ -327,6 +327,11 @@
     immediate: true,
   });
 
+  watch(searchValue, () => {
+    checkedMap.value = {}
+    triggerChange()
+  })
+
   const triggerChange = () => {
     if (props.isManul) {
       const lastValues: InstanceSelectorValues<IValue> = {

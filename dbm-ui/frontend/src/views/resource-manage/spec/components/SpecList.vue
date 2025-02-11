@@ -423,6 +423,7 @@
     props.machineType,
     searchKey.value,
   ], () => {
+    tableRef.value!.clearSelected();
     fetchData();
   });
 

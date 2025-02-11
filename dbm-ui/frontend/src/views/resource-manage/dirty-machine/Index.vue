@@ -318,6 +318,10 @@
     },
   ]);
 
+  watch(searchValue, () => {
+    tableRef.value!.clearSelected();
+  });
+
   // const serachValidateValues = (
   //   payload: Record<'id'|'name', string>,
   //   values: Array<Record<'id'|'name', string>>,

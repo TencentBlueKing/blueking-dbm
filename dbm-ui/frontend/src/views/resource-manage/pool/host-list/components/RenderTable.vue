@@ -136,23 +136,27 @@
   const genSelectionColumn = () => ({
     width: 60,
     fixed: 'left',
-    label: () => {
-      const renderCheckbox = () => {
-        if (isWholeChecked.value) {
-          return (
-            <div class="db-table-whole-check" onClick={handleClearWholeSelect} />
-          );
-        }
-        return (
-          <bk-checkbox
-            label={true}
-            modelValue={isCurrentPageAllSelected.value}
-            onChange={handleTogglePageSelect} />
-        );
-      };
-      return (
+    label: () =>
+      // const renderCheckbox = () => {
+      //   if (isWholeChecked.value) {
+      //     return (
+      //       <div class="db-table-whole-check" onClick={handleClearWholeSelect} />
+      //     );
+      //   }
+      //   return (
+      //     <bk-checkbox
+      //       label={true}
+      //       modelValue={isCurrentPageAllSelected.value}
+      //       onChange={handleTogglePageSelect} />
+      //   );
+      // };
+       (
         <div class="db-table-select-cell">
-          {renderCheckbox()}
+          <bk-checkbox
+            model-value={isWholeChecked.value}
+            label={true}
+            onChange={handleWholeSelect}
+          />
           <bk-popover
             placement="bottom-start"
             theme="light db-table-select-menu"
@@ -163,14 +167,14 @@
               content: () => (
                 <div class="db-table-select-plan">
                   <div class="item" onClick={handlePageSelect}>{t('本页全选')}</div>
-                  <div class="item" onClick={handleWholeSelect}>{t('跨页全选')}</div>
+                  <div class="item" onClick={() => handleWholeSelect(!isWholeChecked.value)}>{t('跨页全选')}</div>
                 </div>
               ),
             }}>
           </bk-popover>
       </div>
-      );
-    },
+      )
+    ,
     render: ({ data }: {data: any}) => {
       const selectDisabled = props.disableSelectMethod(data);
       const tips = {
@@ -219,19 +223,19 @@
     ...props.paginationExtra,
   });
   // 是否本页全选
-  const isCurrentPageAllSelected = computed(() => {
-    const list = tableData.value.results;
-    if (list.length < 1) {
-      return false;
-    }
-    const selectMap = { ...rowSelectMemo.value };
-    for (let i = 0; i < list.length; i++) {
-      if (!selectMap[_.get(list[i], props.primaryKey)]) {
-        return false;
-      }
-    }
-    return true;
-  });
+  // const isCurrentPageAllSelected = computed(() => {
+  //   const list = tableData.value.results;
+  //   if (list.length < 1) {
+  //     return false;
+  //   }
+  //   const selectMap = { ...rowSelectMemo.value };
+  //   for (let i = 0; i < list.length; i++) {
+  //     if (!selectMap[_.get(list[i], props.primaryKey)]) {
+  //       return false;
+  //     }
+  //   }
+  //   return true;
+  // });
 
   const localColumns = computed(() => {
     if (!props.selectable || !props.columns) {
@@ -358,21 +362,21 @@
   };
 
   // 切换当前页全选
-  const handleTogglePageSelect = (checked: boolean) => {
-    const selectMap = { ...rowSelectMemo.value };
-    tableData.value.results.forEach((dataItem: any) => {
-      if (checked) {
-        selectMap[_.get(dataItem, props.primaryKey)] = dataItem;
-      } else {
-        delete selectMap[_.get(dataItem, props.primaryKey)];
-      }
-    });
-    if (!checked) {
-      isWholeChecked.value = false;
-    }
-    rowSelectMemo.value = selectMap;
-    triggerSelection();
-  };
+  // const handleTogglePageSelect = (checked: boolean) => {
+  //   const selectMap = { ...rowSelectMemo.value };
+  //   tableData.value.results.forEach((dataItem: any) => {
+  //     if (checked) {
+  //       selectMap[_.get(dataItem, props.primaryKey)] = dataItem;
+  //     } else {
+  //       delete selectMap[_.get(dataItem, props.primaryKey)];
+  //     }
+  //   });
+  //   if (!checked) {
+  //     isWholeChecked.value = false;
+  //   }
+  //   rowSelectMemo.value = selectMap;
+  //   triggerSelection();
+  // };
 
   // 清空选择
   const handleClearWholeSelect = () => {
@@ -382,24 +386,30 @@
   };
 
   // 跨页全选
-  const handleWholeSelect = () => {
-    props.dataSource({
-      offset: (pagination.current - 1) * pagination.limit,
-      limit: -1,
-      ...paramsMemo,
-      ...sortParams,
-    }).then((data) => {
-      const selectMap = { ...rowSelectMemo.value };
-      data.results.forEach((dataItem: any) => {
-        if (props.disableSelectMethod(dataItem)) {
-          return;
-        }
-        selectMap[_.get(dataItem, props.primaryKey)] = dataItem;
+  const handleWholeSelect = (value: boolean) => {
+    if (value) {
+      props.dataSource({
+        offset: (pagination.current - 1) * pagination.limit,
+        limit: -1,
+        ...paramsMemo,
+        ...sortParams,
+      }).then((data) => {
+        const selectMap = { ...rowSelectMemo.value };
+        data.results.forEach((dataItem: any) => {
+          if (props.disableSelectMethod(dataItem)) {
+            return;
+          }
+          selectMap[_.get(dataItem, props.primaryKey)] = dataItem;
+        });
+        rowSelectMemo.value = selectMap;
+        isWholeChecked.value = true;
+        triggerSelection();
       });
-      rowSelectMemo.value = selectMap;
-      isWholeChecked.value = true;
+    } else {
+      rowSelectMemo.value = {};
+      isWholeChecked.value = false;
       triggerSelection();
-    });
+    }
   };
 
   // 选中单行

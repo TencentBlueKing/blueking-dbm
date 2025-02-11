@@ -145,6 +145,7 @@
   };
 
   const handleSearch = () => {
+    tableRef.value!.clearSelected();
     fetchData();
   };
 
