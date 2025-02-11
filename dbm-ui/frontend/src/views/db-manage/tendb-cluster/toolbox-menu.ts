@@ -145,7 +145,7 @@ export default [
     children: [
       {
         dbConsoleValue: 'tendbCluster.toolbox.rollback',
-        id: 'spiderRollback',
+        id: TicketTypes.TENDBCLUSTER_ROLLBACK_CLUSTER,
         name: t('定点构造'),
         parentId: 'spider_fileback',
       },
