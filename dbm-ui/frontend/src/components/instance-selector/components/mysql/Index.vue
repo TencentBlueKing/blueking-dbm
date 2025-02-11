@@ -79,7 +79,7 @@
     </div>
   </BkLoading>
 </template>
-<script setup lang="ts" generic="T extends IValue">
+<script setup lang="ts">
   import type { InstanceSelectorValues, IValue, PanelListType, TableSetting } from '../../Index.vue';
 
   import RenderTopoHost from './table/Index.vue';
@@ -97,7 +97,7 @@
   type TopoConfigType = Required<PanelListType[number]>['topoConfig'];
 
   interface Props {
-    lastValues: InstanceSelectorValues<T>;
+    lastValues: InstanceSelectorValues<IValue>;
     tableSetting: TableSetting;
     firsrColumn?: TableConfigType['firsrColumn'];
     roleFilterList?: TableConfigType['roleFilterList'];

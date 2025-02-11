@@ -34,12 +34,10 @@
     </BkLoading>
   </div>
 </template>
-<script setup lang="tsx" generic="T extends IValue">
+<script setup lang="tsx">
   import type { Column } from 'bkui-vue/lib/table/props';
   import type { Ref } from 'vue';
   import { useI18n } from 'vue-i18n';
-
-  import T from '@services/model/tendbcluster/tendbcluster-machine';
 
   import DbStatus from '@components/db-status/index.vue';
 
@@ -57,7 +55,7 @@
   type DataRow = Record<string, any>;
 
   interface Props {
-    lastValues: InstanceSelectorValues<T>,
+    lastValues: InstanceSelectorValues<IValue>,
     activePanelId?: string,
     clusterId?: number,
     isManul?: boolean,
@@ -74,7 +72,7 @@
   }
 
   interface Emits {
-    (e: 'change', value: InstanceSelectorValues<T>): void;
+    (e: 'change', value: InstanceSelectorValues<IValue>): void;
   }
 
   const props = withDefaults(defineProps<Props>(), {
@@ -91,25 +89,6 @@
   });
 
   const emits = defineEmits<Emits>();
-
-  const formatValue = (data: T) => ({
-    bk_host_id: data.bk_host_id,
-    bk_cloud_id: data.bk_cloud_id,
-    ip: data.ip,
-    port: 0,
-    instance_address: '',
-    cluster_id: data.related_clusters[0].id,
-    cluster_type: '',
-    master_domain: data.related_clusters[0].immute_domain,
-    bk_cloud_name: data.bk_cloud_name,
-    related_clusters: data.related_clusters || [],
-    related_instances: (data.related_instances || []).map(instanceItem => ({
-      instance: instanceItem.instance,
-      status: instanceItem.status
-    })),
-    db_module_id: data.db_module_id,
-    db_module_name: data.db_module_name,
-  });
 
   const { t } = useI18n();
 
@@ -132,7 +111,7 @@
     fetchResources,
     handleChangePage,
     handeChangeLimit,
-  } = useTableData<T>(initRole);
+  } = useTableData<IValue>(initRole);
 
   const renderManualData = computed(() => {
     if (searchValue.value === '') {
@@ -302,7 +281,7 @@
 
   const triggerChange = () => {
     if (props.isManul) {
-      const lastValues: InstanceSelectorValues<T> = {
+      const lastValues: InstanceSelectorValues<IValue> = {
         [props.activePanelId]: [],
       };
       for (const item of Object.values(checkedMap.value)) {
@@ -314,17 +293,18 @@
       });
       return;
     }
-    const result = Object.values(checkedMap.value).reduce((result, item) => {
-      result.push({
-        ...item,
-      });
-      return result;
-    }, [] as T[]);
 
     if (activePanel?.value) {
       emits('change', {
         ...props.lastValues,
-        [activePanel.value]: result,
+        [activePanel.value]: Object.values(checkedMap.value).map(item => ({
+          ...item,
+          port: 0,
+          instance_address: '',
+          cluster_id: item.related_clusters[0].id,
+          cluster_type: '',
+          master_domain: item.related_clusters[0].immute_domain,
+        })),
       });
     }
   };
@@ -345,10 +325,10 @@
     }
   };
 
-  const handleTableSelectOne = (checked: boolean, data: T) => {
+  const handleTableSelectOne = (checked: boolean, data: IValue) => {
     const lastCheckMap = { ...checkedMap.value };
     if (checked) {
-      lastCheckMap[data[firstColumnFieldId.value]] = formatValue(data) as T;
+      lastCheckMap[data[firstColumnFieldId.value]] = data;
     } else {
       delete lastCheckMap[data[firstColumnFieldId.value]];
     }

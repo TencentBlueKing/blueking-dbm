@@ -93,7 +93,7 @@
     </BkResizeLayout>
   </div>
 </template>
-<script setup lang="ts" generic="T extends IValue">
+<script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
   import type { ListBase } from '@services/types';
@@ -110,7 +110,7 @@
   type ManualConfigType = Required<PanelListType[number]>['manualConfig'];
 
   interface Props {
-    lastValues: InstanceSelectorValues<T>;
+    lastValues: InstanceSelectorValues<IValue>;
     manualConfig: Required<ManualConfigType>;
     // clusterId?: number,
     tableSetting: TableSetting;
@@ -120,7 +120,7 @@
   }
 
   interface Emits {
-    (e: 'change', value: InstanceSelectorValues<T>): void;
+    (e: 'change', value: InstanceSelectorValues<IValue>): void;
   }
   const props = withDefaults(defineProps<Props>(), {
     firsrColumn: undefined,
@@ -137,7 +137,7 @@
     values: '',
     placeholder: t('请输入IP_如_1_1_1_1多个可使用换行_空格或_分隔'),
     isLoading: false,
-    tableData: [] as T[],
+    tableData: [] as IValue[],
   });
   const errorState = reactive({
     format: {
@@ -154,7 +154,7 @@
     },
   });
 
-  const handleHostChange = (values: InstanceSelectorValues<T>) => {
+  const handleHostChange = (values: InstanceSelectorValues<IValue>) => {
     emits('change', values);
   };
 
@@ -267,7 +267,7 @@
               status: instanceItem.status,
             })),
             spec_config: item.spec_config,
-          } as T);
+          } as IValue);
         }
       }
       emits('change', {

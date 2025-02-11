@@ -65,7 +65,7 @@
     </div>
   </div>
 </template>
-<script setup lang="ts" generic="T extends IValue">
+<script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
   import { useCopy } from '@hooks';
@@ -77,7 +77,7 @@
   import CollapseMini from './CollapseMini.vue';
 
   interface Props {
-    lastValues: InstanceSelectorValues<T>;
+    lastValues: InstanceSelectorValues<IValue>;
     titleMap: Record<string, string>;
     showTitle?: boolean;
     displayKey?: keyof IValue;
@@ -129,7 +129,7 @@
       return;
     }
 
-    const instances: T[] = [];
+    const instances: IValue[] = [];
     for (const key of keys.value) {
       instances.push(...props.lastValues[key]);
     }

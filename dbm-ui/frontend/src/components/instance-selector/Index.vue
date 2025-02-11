@@ -95,7 +95,7 @@
 </template>
 
 <script lang="ts">
-  import type { InjectionKey, Ref } from 'vue';
+  import { type InjectionKey, type Ref, type VNode } from 'vue';
 
   import TendbclusterMachineModel from '@services/model/tendbcluster/tendbcluster-machine';
   import type { ListBase } from '@services/types';
@@ -350,7 +350,9 @@
     default: false,
   });
 
-  const slots = useSlots();
+  const slots = defineSlots<{
+    submitTips?: () => VNode;
+  }>();
 
   const tabListMap: Record<string, PanelListType> = {
     [ClusterTypes.REDIS]: [
