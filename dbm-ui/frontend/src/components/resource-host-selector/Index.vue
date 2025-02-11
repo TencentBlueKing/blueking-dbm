@@ -25,9 +25,9 @@
               <BkCheckbox
                 v-bk-tooltips="{
                   content: t('已选够n台', { n: limit }),
-                  disabled: selectedNum < limit,
+                  disabled: isInfinity || selectedNum < limit,
                 }"
-                :disabled="selectedNum === limit && !Boolean(rowSelectMemo[data.bk_host_id])"
+                :disabled="!isInfinity && selectedNum === limit && !Boolean(rowSelectMemo[data.bk_host_id])"
                 label
                 :model-value="Boolean(rowSelectMemo[data.bk_host_id])"
                 @change="() => handleSelectChange(data)" />
@@ -135,6 +135,7 @@
     </div>
     <template #footer>
       <I18nT
+        v-if="!isInfinity"
         class="mr-20"
         keypath="需n台_已选n台"
         style="font-size: 14px; color: #63656e"
@@ -145,9 +146,9 @@
       <BkButton
         v-bk-tooltips="{
           content: t('还差n台_请先勾选足够的IP', { n: limit - selectedNum }),
-          disabled: selectedNum === limit,
+          disabled: isInfinity || selectedNum === limit,
         }"
-        :disabled="selectedNum !== limit"
+        :disabled="!isInfinity && selectedNum !== limit"
         theme="primary"
         @click="handleSubmit">
         {{ t('确定') }}
@@ -183,7 +184,7 @@
   }
 
   interface Props {
-    limit: number;
+    limit?: number;
     params?: {
       for_biz?: number;
       for_bizs?: number[];
@@ -200,6 +201,7 @@
   }
 
   const props = withDefaults(defineProps<Props>(), {
+    limit: -1,
     params: () => ({}),
   });
 
@@ -223,11 +225,13 @@
   const rowSelectMemo = shallowRef<Record<number, DbResourceModel>>({});
 
   const selectedNum = computed(() => Object.keys(rowSelectMemo.value).length);
+  const isInfinity = computed(() => props.limit === -1);
 
   const dataSource = (params: ServiceParameters<typeof fetchList>) =>
     fetchList({
       ...params,
       ...props.params,
+      bk_biz_id: undefined, // 资源池参数用for_biz,把db-table内置的bk_biz_id去掉
     });
 
   watch(searchSelectValue, () => {
