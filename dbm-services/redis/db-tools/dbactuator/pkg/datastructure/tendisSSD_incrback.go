@@ -239,7 +239,8 @@ func (incr *TredisRocksDBIncrBack) GetTredisIncrbacks(binlogFileList []FileDetai
 
 		// 过滤节点维度的文件,这里比较重要，因为flow传下来的是这台机器涉及到的所有节点信息，
 		// 这里是针对单节点的，所以需要过滤出来，这个值返回给前置函数
-		if strings.Contains(back01.BackupFile, incr.FileName) && (back01.NodeIP == incr.SourceIP) {
+		// 不能用strings.contains来判断因为backupfile可能存在xxx-20250210130000.log.zst的情况，直接用port段匹配
+		if match01[1] == incr.FileName && (back01.NodeIP == incr.SourceIP) {
 			mylog.Logger.Info("back01.BackupFile:%s,incr.FileName:%s,back01.NodeIP:%s,incr.SourceIP:%s",
 				back01.BackupFile, incr.FileName, back01.NodeIP, incr.SourceIP)
 			backs = append(backs, back01)

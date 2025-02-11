@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"path/filepath"
 
 	"strconv"
 	"sync"
@@ -119,6 +120,12 @@ func (task *RedisDataStructure) Run() (err error) {
 		return err
 	}
 
+	// 检查文件是否齐全
+	err = task.CheckFileList()
+	if err != nil {
+		return err
+	}
+
 	task.runtime.Logger.Info(task.params.RecoveryTimePoint)
 	// 构造任务初始化
 	recoverTasks := make([]*datastructure.TendisInsRecoverTask, 0, len(task.params.SourcePorts))
@@ -221,5 +228,31 @@ func (task *RedisDataStructure) CheckRecoverDir() (err error) {
 
 	}
 	task.runtime.Logger.Info("CheckRecoverDir:%s success", task.RecoverDir)
+	return nil
+}
+
+// CheckFileList 检查需要的全备和增备是否都拉取齐全，避免出现缺失一个无法重试的情况
+func (task *RedisDataStructure) CheckFileList() error {
+	var filePath, msg string
+	fileAllOk := true
+	for _, file := range task.params.FullFileList {
+		filePath = filepath.Join(task.RecoverDir, file.FileName)
+		if _, err := os.Stat(filePath); os.IsNotExist(err) {
+			fileAllOk = false
+			msg = fmt.Sprintf("全备文件:%s 不存在", filePath)
+			task.runtime.Logger.Info(msg)
+		}
+	}
+	for _, file := range task.params.BinlogFileList {
+		filePath = filepath.Join(task.RecoverDir, file.FileName)
+		if _, err := os.Stat(filePath); os.IsNotExist(err) {
+			fileAllOk = false
+			msg = fmt.Sprintf("增备文件:%s 不存在", filePath)
+			task.runtime.Logger.Info(msg)
+		}
+	}
+	if !fileAllOk {
+		return fmt.Errorf("有文件未拉取!!!请检查后重试")
+	}
 	return nil
 }
