@@ -101,11 +101,11 @@ class SqlserverController(BaseController):
 
     def full_dts_scene(self):
         flow = SqlserverDTSFlow(root_id=self.root_id, data=self.ticket_data)
-        flow.full_dts_flow()
+        flow.full_dts_flow_v2()
 
     def incr_dts_scene(self):
         flow = SqlserverDTSFlow(root_id=self.root_id, data=self.ticket_data)
-        flow.incr_dts_flow()
+        flow.incr_dts_flow_v2()
 
     def db_construct_scene(self):
         flow = SqlserverDataConstruct(root_id=self.root_id, data=self.ticket_data)

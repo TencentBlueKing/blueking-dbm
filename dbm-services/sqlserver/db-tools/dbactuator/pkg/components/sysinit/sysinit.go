@@ -100,14 +100,15 @@ func (s *SysInitParam) CreateSysUser() error {
 		Comment: "SQL SERVER ACCOUNT",
 	}
 	if mssql.UserExists() {
-		if err := mssql.SetUerPass(); err != nil {
-			return err
-		}
-	} else {
-		if err := mssql.CreateUser(false); err != nil {
+		if err := mssql.DropUser(); err != nil {
 			return err
 		}
 	}
+
+	if err := mssql.CreateUser(false); err != nil {
+		return err
+	}
+
 	if err := mssql.AddGroupMember("Administrators"); err != nil {
 		return err
 	}
@@ -123,14 +124,14 @@ func (s *SysInitParam) CreateSysUser() error {
 		Comment: "SQL SERVER SERVICE ACCOUNT",
 	}
 	if sqlserver.UserExists() {
-		if err := sqlserver.SetUerPass(); err != nil {
-			return err
-		}
-	} else {
-		if err := sqlserver.CreateUser(false); err != nil {
+		if err := sqlserver.DropUser(); err != nil {
 			return err
 		}
 	}
+	if err := sqlserver.CreateUser(false); err != nil {
+		return err
+	}
+
 	if err := sqlserver.AddGroupMember("Administrators"); err != nil {
 		return err
 	}

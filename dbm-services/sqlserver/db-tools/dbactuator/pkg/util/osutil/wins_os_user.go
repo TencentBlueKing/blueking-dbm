@@ -99,7 +99,7 @@ func (w *WINSOSUser) CreateUser(isTranAdmin bool) error {
 
 // DropUser 定义删除系统用户的方法
 func (w *WINSOSUser) DropUser() error {
-	// 创建账号，账号不存在默认不报错
+	// 删除账号信息
 
 	_, err := StandardPowerShellCommand(
 		fmt.Sprintf("net user %s /delete", w.User),
