@@ -439,7 +439,7 @@ func (task *BackupTask) TendisplusInstanceBackup() {
 		return
 	}
 	task.EndTime = time.Now().Local()
-	tarFile, task.Err = util.TarADir(backupFullDir, task.BackupDir, true)
+	tarFile, task.Err = util.TarADir(backupFullDir, task.BackupDir, true, true)
 	task.BackupFile = tarFile
 	if task.Err != nil {
 		mylog.Logger.Error(task.Err.Error())
@@ -514,7 +514,7 @@ func (task *BackupTask) TendisSSDInstanceBackup() {
 	backupFullDir = fileWithBinlogPos
 
 	// 只做打包,不做压缩,rocksdb中已经做了压缩
-	tarFile, task.Err = util.TarADir(backupFullDir, task.BackupDir, true)
+	tarFile, task.Err = util.TarADir(backupFullDir, task.BackupDir, true, false)
 	if task.Err != nil {
 		mylog.Logger.Error(task.Err.Error())
 		return

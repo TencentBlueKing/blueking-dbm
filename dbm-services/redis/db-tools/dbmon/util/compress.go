@@ -126,8 +126,12 @@ func SplitLargeFile(file, splitTargetSize string, rmOrigin bool) (splitedFiles [
 // 参数: originDir 为 /data/dbbak/REDIS-FULL-rocksdb-1.1.1.1-30000
 // 参数: tarSaveDir 为 /tmp/
 // 返回值: tarFile 为  /tmp/REDIS-FULL-rocksdb-1.1.1.1-30000.tar
-func TarADir(originDir, tarSaveDir string, rmOrigin bool) (tarFile string, err error) {
+func TarADir(originDir, tarSaveDir string, rmOrigin bool, tarUseDbTools bool) (tarFile string, err error) {
 	var tarCmd, rmCmd string
+	tarBin := "tar" // use by default: system
+	if tarUseDbTools {
+		tarBin = consts.TarBin
+	}
 	basename := filepath.Base(originDir)
 	baseDir := filepath.Dir(originDir)
 	if tarSaveDir == "" {
@@ -136,11 +140,11 @@ func TarADir(originDir, tarSaveDir string, rmOrigin bool) (tarFile string, err e
 	tarFile = filepath.Join(tarSaveDir, basename+".tar")
 
 	if rmOrigin {
-		tarCmd = fmt.Sprintf(`cd %s && tar -cf %s  %s && rm -rf %s`,
-			baseDir, filepath.Base(tarFile), basename, basename)
+		tarCmd = fmt.Sprintf(`cd %s && %s -cf %s  %s && rm -rf %s`,
+			baseDir, tarBin, filepath.Base(tarFile), basename, basename)
 		rmCmd = fmt.Sprintf("rm -f %s", tarFile)
 	} else {
-		tarCmd = fmt.Sprintf(`cd %s && tar -cf %s %s`, baseDir, filepath.Base(tarFile), basename)
+		tarCmd = fmt.Sprintf(`cd %s && %s -cf %s %s`, baseDir, tarBin, filepath.Base(tarFile), basename)
 		rmCmd = fmt.Sprintf("rm -f %s", tarFile)
 	}
 	mylog.Logger.Info(tarCmd)
@@ -148,11 +152,11 @@ func TarADir(originDir, tarSaveDir string, rmOrigin bool) (tarFile string, err e
 	for maxRetryTimes >= 0 {
 		maxRetryTimes--
 		err = nil
-		_, err = RunBashCmd(tarCmd, "", nil, 6*time.Hour)
+		_, err = RunBashCmd(tarCmd, "", nil, 8*time.Hour)
 		if err != nil && !strings.Contains(err.Error(), "file changed as we read it") {
 			// 如果报错则删除tar文件然后重试
 			mylog.Logger.Info(rmCmd)
-			RunBashCmd(rmCmd, "", nil, 10*time.Minute)
+			RunBashCmd(rmCmd, "", nil, 30*time.Minute)
 			continue
 		}
 		err = nil
@@ -169,7 +173,7 @@ func TarADir(originDir, tarSaveDir string, rmOrigin bool) (tarFile string, err e
 func TarAndSplitADir(originDir, targetSaveDir, splitTargetSize string, rmOrigin bool) (
 	splitedFiles []string, err error) {
 	var tarFile string
-	tarFile, err = TarADir(originDir, targetSaveDir, rmOrigin)
+	tarFile, err = TarADir(originDir, targetSaveDir, rmOrigin, false)
 	if err != nil {
 		return
 	}

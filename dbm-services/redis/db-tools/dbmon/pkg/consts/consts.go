@@ -3,7 +3,7 @@ package consts
 
 // version
 const (
-	BkDbmonVersion = "v0.16"
+	BkDbmonVersion = "v0.17"
 )
 
 const (
@@ -126,6 +126,7 @@ const (
 	TendisKeyLifecycleBin   = "/home/mysql/dbtools/tendis-key-lifecycle"
 	ZkWatchBin              = "/home/mysql/dbtools/zkwatch"
 	ZstdBin                 = "/home/mysql/dbtools/zstd"
+	TarBin                  = "/home/mysql/dbtools/tar"
 	LzopBin                 = "/home/mysql/dbtools/lzop"
 	LdbWithV38Bin           = "/home/mysql/dbtools/ldb_with_len.3.8"
 	LdbWithV513Bin          = "/home/mysql/dbtools/ldb_with_len.5.13"
