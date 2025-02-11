@@ -172,11 +172,11 @@
   const nodeTypeOptions = [
     {
       value: 'spider_master',
-      label: 'Master',
+      label: 'Spider Master',
     },
     {
       value: 'spider_slave',
-      label: 'Slave',
+      label: 'Spider Slave',
     },
   ];
 

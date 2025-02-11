@@ -128,14 +128,7 @@ const spiderFlashbackRoute = {
   component: () => import('@views/db-manage/tendb-cluster/flashback/Index.vue'),
 };
 
-const spiderRollbackRoute = {
-  path: 'rollback/:page?',
-  name: 'spiderRollback',
-  meta: {
-    navName: t('定点构造'),
-  },
-  component: () => import('@views/db-manage/tendb-cluster/rollback/Index.vue'),
-};
+const spiderRollbackRoute = createRouteItem(TicketTypes.TENDBCLUSTER_ROLLBACK_CLUSTER, t('定点构造'));
 
 const spiderRollbackRecordRoute = {
   path: 'rollback-record',
