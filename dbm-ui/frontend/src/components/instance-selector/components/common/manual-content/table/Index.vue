@@ -269,19 +269,29 @@
     });
   };
 
+  watch(searchValue, () => {
+    checkedMap.value = {}
+    triggerChange()
+  })
+
   const handleSelectPageAll = (checked: boolean) => {
-    const list = renderManualData.value;
-    if (props.disabledRowConfig) {
-      isSelectedAllReal = !isSelectedAllReal;
-      for (const data of list) {
-        if (!props.disabledRowConfig.handler(data)) {
-          handleTableSelectOne(isSelectedAllReal, data);
+    if (checked) {
+      const list = renderManualData.value;
+      if (props.disabledRowConfig) {
+        isSelectedAllReal = !isSelectedAllReal;
+        for (const data of list) {
+          if (!props.disabledRowConfig.handler(data)) {
+            handleTableSelectOne(isSelectedAllReal, data);
+          }
         }
+        return;
       }
-      return;
-    }
-    for (const item of list) {
-      handleTableSelectOne(checked, item);
+      for (const item of list) {
+        handleTableSelectOne(checked, item);
+      }
+    } else {
+      checkedMap.value = {};
+      triggerChange();
     }
   };
 

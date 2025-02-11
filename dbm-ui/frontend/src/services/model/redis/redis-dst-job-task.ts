@@ -19,7 +19,7 @@ export default class RedisDSTJobTask {
   bill_id: number;
   bk_cloud_id: number;
   create_time: string;
-  checked: boolean;
+  // checked: boolean;
   dst_cluster: string;
   dts_server: string;
   fetch_file: string;
@@ -65,7 +65,7 @@ export default class RedisDSTJobTask {
     this.bill_id = payload.bill_id;
     this.bk_cloud_id = payload.bk_cloud_id;
     this.create_time = payload.create_time;
-    this.checked = false;
+    // this.checked = false;
     this.dst_cluster = payload.dst_cluster;
     this.dts_server = payload.dts_server;
     this.fetch_file = payload.fetch_file;

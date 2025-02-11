@@ -12,6 +12,7 @@
  */
 import type { ISearchValue } from 'bkui-vue/lib/search-select/utils';
 import type { ComponentInternalInstance, Ref } from 'vue';
+import { useRequest } from 'vue-request';
 
 import { useGlobalBizs } from '@stores';
 
@@ -32,7 +33,6 @@ export function useTableData<T>(
     };
   };
 
-  const isLoading = ref(false);
   const tableData = shallowRef<T[]>([]);
   const isAnomalies = ref(false);
   const pagination = reactive({
@@ -45,14 +45,27 @@ export function useTableData<T>(
     remote: true,
   });
 
+  const { run: getTableListRun, loading: isLoading } = useRequest(currentInstance.proxy.getTableList, {
+    manual: true,
+    onSuccess(data) {
+      tableData.value = data.results;
+      pagination.count = data.count;
+      isAnomalies.value = false;
+    },
+    onError() {
+      tableData.value = [];
+      pagination.count = 0;
+      isAnomalies.value = true;
+    },
+  });
+
   watch(searchSelectValue, () => {
     setTimeout(() => {
       handleChangePage(1);
     });
   });
 
-  const fetchResources = async () => {
-    isLoading.value = true;
+  const generateParams = () => {
     const params = {
       bk_biz_id: currentBizId,
       limit: pagination.limit,
@@ -70,22 +83,12 @@ export function useTableData<T>(
         cluster_id: clusterId.value,
       });
     }
-    return currentInstance.proxy
-      .getTableList(params)
-      .then((data) => {
-        const ret = data;
-        tableData.value = ret.results;
-        pagination.count = ret.count;
-        isAnomalies.value = false;
-      })
-      .catch(() => {
-        tableData.value = [];
-        pagination.count = 0;
-        isAnomalies.value = true;
-      })
-      .finally(() => {
-        isLoading.value = false;
-      });
+    return params;
+  };
+
+  const fetchResources = async () => {
+    const params = generateParams();
+    return getTableListRun(params);
   };
 
   const handleChangePage = (value: number) => {
@@ -102,6 +105,7 @@ export function useTableData<T>(
     isLoading,
     data: tableData,
     pagination,
+    generateParams,
     fetchResources,
     handleChangePage,
     handeChangeLimit,

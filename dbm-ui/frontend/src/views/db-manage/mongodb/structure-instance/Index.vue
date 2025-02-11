@@ -353,6 +353,7 @@
 
   watch(searchValue, () => {
     fetchTableData();
+    tableRef.value!.clearSelected();
   });
 
   const fetchTableData = () => {

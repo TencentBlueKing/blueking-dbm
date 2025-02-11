@@ -476,6 +476,7 @@
 
   watch(() => [props.data, search], () => {
     fetchTableData();
+    tableRef.value?.clearSelected();
     if (props.data){
       fetchRunningTaskList({
         dumper_config_id: props.data?.id

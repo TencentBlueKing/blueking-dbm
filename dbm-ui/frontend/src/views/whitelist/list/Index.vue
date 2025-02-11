@@ -46,8 +46,8 @@
         :placeholder="t('请输入IP')"
         style="width: 500px"
         type="search"
-        @clear="fetchTableData"
-        @enter="fetchTableData" />
+        @clear="handleKeyWordChange"
+        @enter="handleKeyWordChange" />
     </div>
     <DbTable
       ref="tableRef"
@@ -192,6 +192,11 @@
       },
     },
   ];
+
+  const handleKeyWordChange = () => {
+    tableRef.value!.clearSelected();
+    fetchTableData();
+  }
 
   const fetchTableData = () => {
     tableRef.value.fetchData({

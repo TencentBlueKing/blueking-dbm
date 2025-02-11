@@ -75,7 +75,7 @@
         class="action-box-search"
         clearable
         :placeholder="t('请输入节点实例或选择字段搜索')"
-        @change="() => fetchData()" />
+        @change="handleSearchKeyChange" />
     </div>
     <BkAlert
       v-if="operationData?.operationStatusText"
@@ -332,6 +332,11 @@
       immediate: true,
     },
   );
+
+  const handleSearchKeyChange = () => {
+    tableRef.value!.clearSelected();
+    fetchData()
+  }
 
   const handleSelection = (_key: any[], list: RiakNodeModel[]) => {
     selected.value = list;

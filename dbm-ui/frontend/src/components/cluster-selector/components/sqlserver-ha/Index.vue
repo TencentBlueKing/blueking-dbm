@@ -157,9 +157,9 @@
             disabled={mainSelectDisable.value}
             label={true}
             onClick={(e: Event) => e.stopPropagation()}
-            onChange={handleSelecteAll}
+            onChange={handleWholeSelect}
           />
-          <bk-popover
+          {/* <bk-popover
             placement="bottom-start"
             theme="light db-table-select-menu"
             arrow={ false }
@@ -174,7 +174,7 @@
                 </div>
               ),
             }}>
-          </bk-popover>
+          </bk-popover> */}
         </div>
       ) : '',
       fixed: 'left',
@@ -343,33 +343,43 @@
     }
   });
 
+  watch(searchValue, () => {
+    selectedList.value = [];
+    emits('change', []);
+  });
+
   // 跨页全选
-  const handleWholeSelect = () => {
-    isLoading.value = true;
-    props.getResourceList({
-      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-      offset: 0,
-      limit: -1,
-      ...getSearchSelectorParams(searchValue.value),
-    }).then((data) => {
-      data.results.forEach((dataItem) => {
-        if (!props.disabledRowConfig.find(item => item.handler(dataItem))) {
-          handleSelecteRow(dataItem, true);
-        }
-      });
-    }).finally(() => isLoading.value = false);
+  const handleWholeSelect = (value: boolean) => {
+    if (value) {
+      isLoading.value = true;
+      props.getResourceList({
+        bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+        offset: 0,
+        limit: -1,
+        ...getSearchSelectorParams(searchValue.value),
+      }).then((data) => {
+        data.results.forEach((dataItem) => {
+          if (!props.disabledRowConfig.find(item => item.handler(dataItem))) {
+            handleSelecteRow(dataItem, true);
+          }
+        });
+      }).finally(() => isLoading.value = false);
+    } else {
+      selectedList.value = [];
+      emits('change', []);
+    }
   };
 
   /**
    * 全选当页数据
    */
-  const handleSelecteAll = (value: boolean) => {
-    for (const data of tableData.value) {
-      if (!props.disabledRowConfig.find(item => item.handler(data))) {
-        handleSelecteRow(data, value);
-      }
-    }
-  };
+  // const handleSelecteAll = (value: boolean) => {
+  //   for (const data of tableData.value) {
+  //     if (!props.disabledRowConfig.find(item => item.handler(data))) {
+  //       handleSelecteRow(data, value);
+  //     }
+  //   }
+  // };
 
   /**
    * 选择当行数据

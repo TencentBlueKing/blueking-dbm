@@ -562,6 +562,10 @@
     immediate: true,
   });
 
+  watch(searchValue, () => {
+    checkedNodeMap.value = {}
+  })
+
   const setRowClass = (data: DorisNodeModel) => (data.isNew ? 'is-new-row' : '');
 
   const checkNodeShrinkDisable = (node: DorisNodeModel) => {

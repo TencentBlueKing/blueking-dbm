@@ -229,6 +229,10 @@
 
   const dbCollapseTableTableData = computed(() => ({
     ...previewTableProps.value,
+    pagination: previewTableProps.value.pagination ? {
+      ...previewTableProps.value.pagination as Exclude<TablePropTypes['pagination'], boolean>,
+      count: renderData.value.length,
+    } : previewTableProps.value.pagination,
     data: renderData.value,
   })) as unknown as TablePropTypes;
 
@@ -409,7 +413,7 @@
       {
         label: t('管控区域'),
         field: 'cloud_area',
-        render: ({data}: {data: HostInfo}) => data.cloud_area || '--',
+        render: ({data}: {data: HostInfo}) => data.cloud_area.name || '--',
       },
       {
         label: t('Agent状态'),

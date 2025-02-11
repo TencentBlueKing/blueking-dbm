@@ -150,9 +150,9 @@
             label={true}
             model-value={isSelectedAll.value}
             disabled={mainSelectDisable.value}
-            onChange={handleSelectPageAll}
+            onChange={handleWholeSelect}
           />
-          <bk-popover
+          {/* <bk-popover
             placement="bottom-start"
             theme="light db-table-select-menu"
             arrow={ false }
@@ -167,7 +167,7 @@
                 </div>
               ),
             }}>
-          </bk-popover>
+          </bk-popover> */}
         </div>
     ),
       render: ({ data }: DataRow) => {
@@ -332,6 +332,11 @@
     },
   );
 
+  watch(searchValue, () => {
+    checkedMap.value = {}
+    triggerChange()
+  })
+
   const triggerChange = () => {
     if (activePanel?.value) {
       emits('change', {
@@ -347,33 +352,38 @@
   };
 
   // 跨页全选
-  const handleWholeSelect = () => {
-    isLoading.value = true;
-    const params = generateParams();
-    params.limit = -1;
-    props.getTableList(params).then((data) => {
-      data.results.forEach((dataItem: IValue) => {
-        if (!props.disabledRowConfig?.handler(dataItem)) {
-          handleTableSelectOne(true, dataItem);
-        }
-      });
-    }).finally(() => isLoading.value = false);
+  const handleWholeSelect = (value: boolean) => {
+    if (value) {
+      isLoading.value = true;
+      const params = generateParams();
+      params.limit = -1;
+      props.getTableList(params).then((data) => {
+        data.results.forEach((dataItem: IValue) => {
+          if (!props.disabledRowConfig?.handler(dataItem)) {
+            handleTableSelectOne(true, dataItem);
+          }
+        });
+      }).finally(() => isLoading.value = false);
+    } else {
+      checkedMap.value = {}
+      triggerChange()
+    }
   };
 
-  const handleSelectPageAll = (checked: boolean) => {
-    const list = tableData.value;
-    if (props.disabledRowConfig) {
-      for (const data of list) {
-        if (!props.disabledRowConfig.handler(data)) {
-          handleTableSelectOne(checked, data);
-        }
-      }
-      return;
-    }
-    for (const item of list) {
-      handleTableSelectOne(checked, item);
-    }
-  };
+  // const handleSelectPageAll = (checked: boolean) => {
+  //   const list = tableData.value;
+  //   if (props.disabledRowConfig) {
+  //     for (const data of list) {
+  //       if (!props.disabledRowConfig.handler(data)) {
+  //         handleTableSelectOne(checked, data);
+  //       }
+  //     }
+  //     return;
+  //   }
+  //   for (const item of list) {
+  //     handleTableSelectOne(checked, item);
+  //   }
+  // };
 
   const handleRowClick = (row: unknown, data: IValue) => {
     if (props.disabledRowConfig && props.disabledRowConfig.handler(data)) {
