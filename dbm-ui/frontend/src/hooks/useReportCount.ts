@@ -11,30 +11,30 @@
  * the specific language governing permissions and limitations under the License.
  */
 
-import { defineStore } from 'pinia';
+import { useRequest } from 'vue-request';
 
 import { getReportCount } from '@services/source/report';
 
 /**
  * 巡检报告统计数据
  */
-export const useReportCount = defineStore('useReportCount', {
-  state: () => ({
-    manageCount: 0,
-    assistCount: 0,
-    dbReportCountMap: {} as Record<
+export const useReportCount = () => {
+  const manageCount = ref(0);
+  const assistCount = ref(0);
+  const dbReportCountMap = ref<
+    Record<
       string,
       {
         assistCount: number;
         manageCount: number;
       }
-    >,
-  }),
-  actions: {
-    async updateCounts() {
-      let manageCount = 0;
-      let assistCount = 0;
-      const countResult = await getReportCount();
+    >
+  >({});
+
+  useRequest(getReportCount, {
+    onSuccess(countResult) {
+      let manages = 0;
+      let assists = 0;
       Object.entries(countResult).forEach(([db, value]) => {
         const singleDbCount = Object.values(value).reduce(
           (results, item) => {
@@ -49,12 +49,18 @@ export const useReportCount = defineStore('useReportCount', {
             assistCount: 0,
           },
         );
-        this.dbReportCountMap[db] = singleDbCount;
-        manageCount = manageCount + singleDbCount.manageCount;
-        assistCount = assistCount + singleDbCount.assistCount;
+        dbReportCountMap.value[db] = singleDbCount;
+        manages = manages + singleDbCount.manageCount;
+        assists = assists + singleDbCount.assistCount;
       });
-      this.manageCount = manageCount;
-      this.assistCount = assistCount;
+      manageCount.value = manages;
+      assistCount.value = assists;
     },
-  },
-});
+  });
+
+  return {
+    manageCount,
+    assistCount,
+    dbReportCountMap,
+  };
+};

@@ -94,7 +94,13 @@ export function getReportCount() {
         }
       >
     >
-  >(`${path}/get_report_count/`);
+  >(
+    `${path}/get_report_count/`,
+    {},
+    {
+      cache: 2000,
+    },
+  );
 }
 
 // 巡检报告通用接口

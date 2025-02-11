@@ -41,7 +41,7 @@
 
   import { getReportOverview } from '@services/source/report';
 
-  import { useReportCount } from '@stores';
+  import { useReportCount } from '@hooks';
 
   import { DBTypeInfos, DBTypes } from '@common/const';
 
@@ -50,7 +50,7 @@
   import RenderDynamicTable from './components/render-dynamic-table/Index.vue';
   import SearchBox from './components/SearchBox.vue';
 
-  const reportCountStore = useReportCount();
+  const { dbReportCountMap } = useReportCount();
   const route = useRoute();
   const router = useRouter();
   const { t } = useI18n();
@@ -74,14 +74,14 @@
   });
 
   const labelConfig = computed(() => {
-    if (isInspectionReport || !dbOverviewConfig.value || !Object.keys(reportCountStore.dbReportCountMap).length) {
+    if (isInspectionReport || !dbOverviewConfig.value || !Object.keys(dbReportCountMap.value).length) {
       return undefined;
     }
 
     return Object.keys(dbOverviewConfig.value).reduce(
       (results, item) => {
         Object.assign(results, {
-          [item]: `${item}(${reportCountStore.dbReportCountMap[item]?.manageCount || 0})`,
+          [item]: `${item}(${dbReportCountMap.value[item]?.manageCount || 0})`,
         });
         return results;
       },
@@ -166,12 +166,6 @@
       exportLoading.value = false;
     }
   };
-
-  onMounted(() => {
-    if (reportCountStore.manageCount === 0 && reportCountStore.assistCount === 0) {
-      reportCountStore.updateCounts();
-    }
-  });
 </script>
 <style lang="less">
   .inspection-manage-page {

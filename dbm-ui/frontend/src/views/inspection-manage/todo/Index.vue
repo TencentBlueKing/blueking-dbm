@@ -17,7 +17,7 @@
             class="control-icon"
             type="wodedaiban" />
           <span>{{ t('待我处理') }}</span>
-          <span> （{{ reportCountStore.manageCount }}）</span>
+          <span> （{{ manageCount }}）</span>
         </div>
         <div
           class="tab-item tab-item-assist"
@@ -27,7 +27,7 @@
             class="control-icon"
             type="yonghu-2" />
           <span>{{ t('待我协助') }}</span>
-          <span>（{{ reportCountStore.assistCount }}）</span>
+          <span>（{{ assistCount }}）</span>
         </div>
       </div>
     </Teleport>
@@ -37,14 +37,14 @@
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
-  import { useReportCount } from '@stores';
+  import { useReportCount } from '@hooks';
 
   import InspectionReportPage from '../report/Index.vue';
 
   const { t } = useI18n();
   const route = useRoute();
   const router = useRouter();
-  const reportCountStore = useReportCount();
+  const { manageCount, assistCount } = useReportCount();
 
   const currentActiveTab = ref(route.query.manage || 'todo');
 

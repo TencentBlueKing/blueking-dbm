@@ -28,7 +28,7 @@
         <span>
           {{ t('巡检待办') }}
         </span>
-        <span class="ticket-count">{{ reportCountStore.manageCount }}</span>
+        <span class="ticket-count">{{ manageCount }}</span>
       </BkMenuItem>
     </BkMenuGroup>
     <BkMenuGroup
@@ -91,9 +91,9 @@
   import { Menu } from 'bkui-vue';
   import { useI18n } from 'vue-i18n';
 
-  import { useTicketCount } from '@hooks';
+  import { useReportCount, useTicketCount } from '@hooks';
 
-  import { useReportCount, useUserProfile } from '@stores';
+  import { useUserProfile } from '@stores';
 
   import { useActiveKey } from './hooks/useActiveKey';
 
@@ -108,10 +108,8 @@
   } = useActiveKey(menuRef as Ref<InstanceType<typeof Menu>>, 'MyTodos');
 
   const { data: ticketCount } = useTicketCount();
-  const reportCountStore = useReportCount();
+  const { manageCount } = useReportCount();
   const userProfileStore = useUserProfile();
-
-  reportCountStore.updateCounts();
 
   const todoCount = computed(() => {
     if (!ticketCount.value) {
