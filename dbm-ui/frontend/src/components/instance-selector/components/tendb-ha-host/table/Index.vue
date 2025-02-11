@@ -38,7 +38,7 @@
     </BkLoading>
   </div>
 </template>
-<script setup lang="tsx" generic="T extends IValue">
+<script setup lang="tsx">
   import type { Ref } from 'vue';
   import { useI18n } from 'vue-i18n';
 
@@ -64,7 +64,7 @@
   type DataRow = Record<string, any>;
 
   interface Props {
-    lastValues: InstanceSelectorValues<T>,
+    lastValues: InstanceSelectorValues<IValue>,
     tableSetting: TableSetting,
     clusterId?: number,
     isRemotePagination?: TableConfigType['isRemotePagination'],
@@ -79,7 +79,7 @@
   }
 
   interface Emits {
-    (e: 'change', value: InstanceSelectorValues<T>): void;
+    (e: 'change', value: InstanceSelectorValues<IValue>): void;
   }
 
   const props = withDefaults(defineProps<Props>(), {
@@ -92,14 +92,6 @@
   });
 
   const emits = defineEmits<Emits>();
-
-  const formatValue = (data: T) => ({
-    ...data,
-    related_instances: (data.related_instances || []).map((item, index) => ({
-      ...item,
-      cluster_id: data.related_clusters?.[index].id || 0
-    })),
-  });
 
   const { t } = useI18n();
 
@@ -143,7 +135,7 @@
     fetchResources,
     handleChangePage,
     handeChangeLimit,
-  } = useTableData<T>(searchValue, initRole, selectClusterId);
+  } = useTableData<IValue>(searchValue, initRole, selectClusterId);
 
   const isSelectedAll = computed(() => (
     tableData.value.length > 0
@@ -228,6 +220,12 @@
       render: ({ data }: DataRow) => <span>{data.bk_cloud_name ?? '--'}</span>,
     },
     {
+      label: t('机架ID'),
+      field: 'host_name',
+      showOverflowTooltip: true,
+      render: ({ data }: DataRow) => data.host_info?.host_name || '--',
+    },
+    {
       minWidth: 100,
       label: t('Agent状态'),
       field: 'alive',
@@ -296,17 +294,17 @@
   });
 
   const triggerChange = () => {
-    const result = Object.values(checkedMap.value).reduce((result, item) => {
-      result.push({
-        ...item,
-      });
-      return result;
-    }, [] as T[]);
-
     if (activePanel?.value) {
       emits('change', {
         ...props.lastValues,
-        [activePanel.value]: result,
+        [activePanel.value]: Object.values(checkedMap.value).map(item => ({
+          ...item,
+          // 兼容历史遗留问题（对 related_instances 的特殊处理）
+          related_instances: (item.related_instances as any[] || [] as any[]).map((relatedInstancesItem, index) => ({
+            ...relatedInstancesItem,
+            cluster_id: item.related_clusters?.[index].id || 0
+          })),
+        })),
       });
     }
   };
@@ -317,7 +315,7 @@
     const params = generateParams();
     params.limit = -1;
     props.getTableList(params).then((data) => {
-      data.results.forEach((dataItem: T) => {
+      data.results.forEach((dataItem: IValue) => {
         if (!props.disabledRowConfig?.handler(dataItem)) {
           handleTableSelectOne(true, dataItem);
         }
@@ -342,10 +340,10 @@
     }
   };
 
-  const handleTableSelectOne = (checked: boolean, data: T) => {
+  const handleTableSelectOne = (checked: boolean, data: IValue) => {
     const lastCheckMap = { ...checkedMap.value };
     if (checked) {
-      lastCheckMap[data[firstColumnFieldId.value]] = formatValue(data);
+      lastCheckMap[data[firstColumnFieldId.value]] = data;
     } else {
       delete lastCheckMap[data[firstColumnFieldId.value]];
     }

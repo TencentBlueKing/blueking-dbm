@@ -38,7 +38,7 @@
     </BkLoading>
   </div>
 </template>
-<script setup lang="tsx" generic="T extends IValue">
+<script setup lang="tsx">
   import { useI18n } from 'vue-i18n';
 
   import { useLinkQueryColumnSerach } from '@hooks';
@@ -61,11 +61,11 @@
   type TableConfigType = Required<PanelListType[number]>['tableConfig'];
 
   interface DataRow {
-    data: T,
+    data: IValue,
   }
 
   interface Props {
-    lastValues: InstanceSelectorValues<T>,
+    lastValues: InstanceSelectorValues<IValue>,
     tableSetting: TableSetting,
     clusterId?: number,
     isRemotePagination?: TableConfigType['isRemotePagination'],
@@ -94,21 +94,6 @@
 
   const emits = defineEmits<Emits>();
 
-  const formatValue = (data: T) => ({
-    bk_host_id: data.bk_host_id,
-    instance_address: data.instance_address || '',
-    cluster_id: data.cluster_id,
-    bk_cloud_id: data?.host_info?.cloud_id || 0,
-    ip: data.ip || '',
-    port: data.port,
-    cluster_type: data.cluster_type,
-    db_module_id: data.db_module_id,
-    db_module_name: data.db_module_name,
-    master_domain: data.master_domain || '',
-    related_clusters: data.related_clusters || [],
-    role: data.role
-  });
-
   const { t } = useI18n();
 
   const {
@@ -136,7 +121,7 @@
 
   const activePanel = inject(activePanelInjectionKey) as Ref<string> | undefined;
 
-  const checkedMap = shallowRef({} as Record<string, T>);
+  const checkedMap = shallowRef({} as Record<string, IValue>);
 
   const initRole = computed(() => props.firsrColumn?.role);
   const selectClusterId = computed(() => props.clusterId);
@@ -152,7 +137,7 @@
     fetchResources,
     handleChangePage,
     handeChangeLimit,
-  } = useTableData<T>(searchValue, initRole, selectClusterId);
+  } = useTableData<IValue>(searchValue, initRole, selectClusterId);
 
   const isSelectedAll = computed(() => (
     tableData.value.length > 0
@@ -329,17 +314,16 @@
   });
 
   const triggerChange = () => {
-    const result = Object.values(checkedMap.value).reduce((result, item) => {
-      result.push({
-        ...item,
-      });
-      return result;
-    }, [] as T[]);
 
     if (activePanel?.value) {
       emits('change', {
         ...props.lastValues,
-        [activePanel.value]: result,
+        [activePanel.value]: Object.values(checkedMap.value).map(item => ({
+          ...item,
+          // 兼容历史遗留问题（对 bk_cloud_id, bk_cloud_name 的特殊处理）
+          bk_cloud_id: item.host_info.cloud_id,
+          bk_cloud_name: item.host_info.cloud_area.name,
+        })),
       });
     }
   };
@@ -350,7 +334,7 @@
     const params = generateParams();
     params.limit = -1;
     props.getTableList(params).then((data) => {
-      data.results.forEach((dataItem: T) => {
+      data.results.forEach((dataItem: IValue) => {
         if (!props.disabledRowConfig?.handler(dataItem)) {
           handleTableSelectOne(true, dataItem);
         }
@@ -373,7 +357,7 @@
     }
   };
 
-  const handleRowClick = (row: unknown, data: T) => {
+  const handleRowClick = (row: unknown, data: IValue) => {
     if (props.disabledRowConfig && props.disabledRowConfig.handler(data)) {
       return;
     }
@@ -382,10 +366,10 @@
     handleTableSelectOne(!isChecked, data);
   };
 
-  const handleTableSelectOne = (checked: boolean, data: T) => {
+  const handleTableSelectOne = (checked: boolean, data: IValue) => {
     const lastCheckMap = { ...checkedMap.value };
     if (checked) {
-      lastCheckMap[data[firstColumnFieldId.value]] = formatValue(data) as T;
+      lastCheckMap[data[firstColumnFieldId.value]] = data;
     } else {
       delete lastCheckMap[data[firstColumnFieldId.value]];
     }

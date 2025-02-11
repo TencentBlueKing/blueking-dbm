@@ -23,5 +23,8 @@ export interface IValue {
   port: number;
   instance_address: string;
   cluster_id: number;
-  cluster_type: MySQLClusterTypes;
+  cluster_type: ClusterTypes;
+  db_module_id: number;
+  db_module_name: string;
+  master_domain: string;
 }

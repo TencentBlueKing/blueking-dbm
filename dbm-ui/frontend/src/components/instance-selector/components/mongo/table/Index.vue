@@ -35,7 +35,7 @@
     </BkLoading>
   </div>
 </template>
-<script setup lang="tsx" generic="T extends IValue">
+<script setup lang="tsx">
   import type { Ref } from 'vue';
   import { useI18n } from 'vue-i18n';
 
@@ -57,7 +57,7 @@
   type DataRow = Record<string, any>;
 
   interface Props {
-    lastValues: InstanceSelectorValues<T>,
+    lastValues: InstanceSelectorValues<IValue>,
     tableSetting: TableSetting,
     activePanelId?: string,
     clusterId?: number,
@@ -73,7 +73,7 @@
   }
 
   interface Emits {
-    (e: 'change', value: InstanceSelectorValues<T>): void;
+    (e: 'change', value: InstanceSelectorValues<IValue>): void;
   }
 
   const props = withDefaults(defineProps<Props>(), {
@@ -195,12 +195,6 @@
       label: props.firsrColumn?.label ? props.firsrColumn.label : t('实例'),
       field: props.firsrColumn?.field ? props.firsrColumn.field : 'instance_address',
     },
-    // {
-    //   label: t('角色'),
-    //   field: 'role',
-    //   showOverflowTooltip: true,
-    //   filter: props.roleFilterList,
-    // },
     {
       label: t('角色'),
       field: 'role',
@@ -315,7 +309,7 @@
 
   const triggerChange = () => {
     if (props.isManul) {
-      const lastValues: InstanceSelectorValues<T> = {
+      const lastValues: InstanceSelectorValues<IValue> = {
         [props.activePanelId]: [],
       };
       for (const item of Object.values(checkedMap.value)) {
@@ -349,7 +343,7 @@
     const params = generateParams();
     params.limit = -1;
     props.getTableList(params).then((data) => {
-      data.results.forEach((dataItem: T) => {
+      data.results.forEach((dataItem: IValue) => {
         if (!props.disabledRowConfig?.handler(dataItem)) {
           handleTableSelectOne(true, dataItem);
         }
