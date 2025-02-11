@@ -78,7 +78,7 @@
   </BkLoading>
 </template>
 
-<script setup lang="ts" generic="T extends IValue">
+<script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
   import type { InstanceSelectorValues, IValue, PanelListType, TableSetting } from '../../Index.vue';
@@ -95,14 +95,14 @@
   }
 
   interface Emits {
-    (e: 'change', value: InstanceSelectorValues<T>): void;
+    (e: 'change', value: InstanceSelectorValues<IValue>): void;
   }
 
   type TableConfigType = Required<PanelListType[number]>['tableConfig'];
   type TopoConfigType = Required<PanelListType[number]>['topoConfig'];
 
   interface Props {
-    lastValues: InstanceSelectorValues<T>;
+    lastValues: InstanceSelectorValues<IValue>;
     tableSetting: TableSetting;
     firsrColumn?: TableConfigType['firsrColumn'];
     roleFilterList?: TableConfigType['roleFilterList'];
@@ -177,7 +177,7 @@
     }
   };
 
-  const handleHostChange = (values: InstanceSelectorValues<T>) => {
+  const handleHostChange = (values: InstanceSelectorValues<IValue>) => {
     emits('change', values);
   };
 

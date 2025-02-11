@@ -27,7 +27,7 @@
       :settings="tableSetting" />
   </div>
 </template>
-<script setup lang="tsx" generic="T extends IValue">
+<script setup lang="tsx">
   import { useI18n } from 'vue-i18n';
 
   import DbStatus from '@components/db-status/index.vue';
@@ -43,14 +43,14 @@
   type ManualConfigType = Required<PanelListType[number]>['manualConfig'];
 
   interface DataRow {
-    data: T,
+    data: IValue,
   }
 
   interface Props {
-    lastValues: InstanceSelectorValues<T>,
+    lastValues: InstanceSelectorValues<IValue>,
     tableSetting: TableSetting,
     activePanelId?: string,
-    manualTableData?: T[];
+    manualTableData?: IValue[];
     firsrColumn?: TableConfigType['firsrColumn'],
     roleFilterList?: TableConfigType['roleFilterList'],
     disabledRowConfig?: TableConfigType['disabledRowConfig'],
@@ -75,20 +75,6 @@
 
   const emits = defineEmits<Emits>();
 
-  const formatValue = (data: T) => ({
-    bk_host_id: data.bk_host_id,
-    instance_address: data.instance_address || '',
-    cluster_id: data.cluster_id,
-    bk_cloud_id: data?.host_info?.cloud_id || 0,
-    ip: data.ip || '',
-    port: data.port,
-    cluster_type: data.cluster_type,
-    db_module_id: data.db_module_id,
-    db_module_name: data.db_module_name,
-    master_domain: data.master_domain,
-    spec_config: data.spec_config
-  });
-
   const { t } = useI18n();
 
   const searchValue = ref('');
@@ -101,7 +87,7 @@
     layout: ['total', 'limit', 'list'],
   });
 
-  const checkedMap = shallowRef({} as Record<string, T>);
+  const checkedMap = shallowRef({} as Record<string, IValue>);
 
   const firstColumnFieldId = computed(() => (props.firsrColumn?.field || 'instance_address') as keyof IValue);
   const renderManualData = computed(() => {
@@ -253,7 +239,7 @@
   });
 
   const triggerChange = () => {
-    const lastValues: InstanceSelectorValues<T> = {
+    const lastValues: InstanceSelectorValues<IValue> = {
       [props.activePanelId]: [],
     };
     for (const item of Object.values(checkedMap.value)) {
@@ -281,10 +267,14 @@
     }
   };
 
-  const handleTableSelectOne = (checked: boolean, data: T) => {
+  const handleTableSelectOne = (checked: boolean, data: IValue) => {
     const lastCheckMap = { ...checkedMap.value };
     if (checked) {
-      lastCheckMap[data[firstColumnFieldId.value]] = formatValue(data) as T;
+      lastCheckMap[data[firstColumnFieldId.value]] = {
+        ...data,
+        bk_cloud_id: data.host_info.cloud_id,
+        bk_cloud_name: data.host_info.cloud_area.name,
+      };
     } else {
       delete lastCheckMap[data[firstColumnFieldId.value]];
     }

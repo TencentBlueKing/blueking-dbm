@@ -93,7 +93,7 @@
     </BkResizeLayout>
   </div>
 </template>
-<script setup lang="ts" generic="T extends IValue">
+<script setup lang="ts">
   import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
 
@@ -109,7 +109,7 @@
   type ManualConfigType = Required<PanelListType[number]>['manualConfig'];
 
   interface Props {
-    lastValues: InstanceSelectorValues<T>;
+    lastValues: InstanceSelectorValues<IValue>;
     manualConfig: Required<ManualConfigType>;
     // clusterId?: number,
     tableSetting: TableSetting;
@@ -138,7 +138,7 @@
         ? t('请输入IP_Port_如_1_1_1_1_10000_多个可使用换行_空格或_分隔')
         : t('请输入IP_如_1_1_1_1_多个可使用换行_空格或_分隔'),
     isLoading: false,
-    tableData: [] as T[],
+    tableData: [] as IValue[],
   });
   const errorState = reactive({
     format: {
@@ -276,7 +276,7 @@
             bk_cloud_id: item.host_info.cloud_id,
             port: item.port,
             ip: item.ip,
-          } as T);
+          } as IValue);
         }
       }
       emits('change', {
