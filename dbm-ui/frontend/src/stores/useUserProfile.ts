@@ -24,6 +24,7 @@ export const useUserProfile = defineStore('UserProfile', {
   state: () => ({
     globalManage: false, // 顶部导航全部配置访问权限
     isSuperuser: false, // 登录用户超级管理员权限
+    isDba: false,
     platformManage: false,
     platformTicketView: false,
     platformTaskflowView: false,
@@ -39,6 +40,7 @@ export const useUserProfile = defineStore('UserProfile', {
       return getProfile().then((result) => {
         this.globalManage = Boolean(result.global_manage);
         this.isSuperuser = result.is_superuser;
+        this.isDba = Boolean(result.is_dba);
         this.platformManage = Boolean(result.platform_manage);
         this.platformTicketView = Boolean(result.platform_ticket_view);
         this.platformTaskflowView = Boolean(result.platform_taskflow_view);

@@ -13,6 +13,7 @@
 
 <template>
   <BkTab
+    :key="renderKey"
     v-model:active="moduleValue"
     class="db-tab"
     type="unborder-card">
@@ -31,6 +32,7 @@
 
   interface Props {
     exclude?: DBTypes[];
+    labelConfig?: Record<DBTypes, string>;
   }
 
   interface TabItem {
@@ -39,6 +41,7 @@
   }
 
   const props = withDefaults(defineProps<Props>(), {
+    labelConfig: undefined,
     exclude: () => [],
   });
 
@@ -48,14 +51,30 @@
     default: DBTypes.MYSQL,
   });
 
-  const renderTabs = Object.values(DBTypeInfos).reduce((result, item) => {
-    const { id, name, moduleId } = item;
-    const data = funControllerStore.funControllerData.getFlatData(moduleId);
-    if (data[id] && !props.exclude.includes(id)) {
-      result.push({ id, name });
-    }
-    return result;
-  }, [] as TabItem[]);
+  // 解决 labelConfig 变化后渲染样式异常问题
+  const renderKey = ref(0);
+
+  const renderTabs = computed(() =>
+    Object.values(DBTypeInfos).reduce((result, item) => {
+      const { id, name, moduleId } = item;
+      const data = funControllerStore.funControllerData.getFlatData(moduleId);
+      if (data[id] && !props.exclude.includes(id)) {
+        result.push({
+          id,
+          name: props.labelConfig?.[id] || name,
+        });
+      }
+      return result;
+    }, [] as TabItem[]),
+  );
+
+  watch(
+    () => [props.exclude, props.labelConfig],
+    () => {
+      renderKey.value += 1;
+    },
+    { immediate: true },
+  );
 </script>
 
 <style lang="less">

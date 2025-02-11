@@ -3,6 +3,7 @@ import type { ListBase } from '@services/types';
 import http, { type IRequestPayload } from '../http';
 
 interface IResult {
+  count: number;
   results: Record<string, unknown>[];
   name: string;
   title: {
@@ -11,6 +12,9 @@ interface IResult {
     format: 'text' | 'status' | 'fail_slave_instance';
   }[];
 }
+
+const path = '/db_report';
+
 // 数据校验
 export const getChecksumReport = function (params: Record<string, any>, payload = {} as IRequestPayload) {
   return http.get<IResult>('/db_report/checksum_check/report', params, payload);
@@ -29,7 +33,7 @@ export const getChecksumInstance = function (params: Record<string, any>, payloa
         port: string;
       }[]
     >
-  >('/db_report/checksum_check/instance', params, payload);
+  >('/db_report/checksum_instance/', params, payload);
 };
 
 // 元数据检查报告列表
@@ -71,3 +75,44 @@ export const getRedisMetaCheckAloneInstance = function (params: Record<string, a
 export const getRedisMetaCheckStatusAbnormal = function (params: Record<string, any>, payload = {} as IRequestPayload) {
   return http.get<IResult>('/db_report/redis_meta_check/status_abnormal', params, payload);
 };
+
+// 巡检通用接口视图
+export function getReportOverview() {
+  return http.get<Record<string, string[]>>(`${path}/get_report_overview/`);
+}
+
+// 巡检总览统计接口
+export function getReportCount() {
+  return http.get<
+    Record<
+      string,
+      Record<
+        string,
+        {
+          assist_count: number;
+          manage_count: number;
+        }
+      >
+    >
+  >(
+    `${path}/get_report_count/`,
+    {},
+    {
+      cache: 2000,
+    },
+  );
+}
+
+// 巡检报告通用接口
+export function getReport(path: string, params: Record<string, any>, payload = {} as IRequestPayload) {
+  return http.get<{
+    count: number;
+    name: string;
+    results: Record<string, string>[];
+    title: {
+      name: string;
+      display_name: string;
+      format: string;
+    }[];
+  }>(path, params, payload);
+}

@@ -1,142 +1,228 @@
 <template>
   <div class="inspection-search-box">
-    <BkForm form-type="vertical">
-      <BkFormItem :label="t('日期')">
-        <BkDatePicker
-          clearable
-          :model-value="[formData.create_at__gte, formData.create_at__lte]"
-          type="datetimerange"
-          @change="handleDateChange" />
-      </BkFormItem>
-      <BkFormItem :label="t('集群')">
-        <BkSelect
-          v-model="formData.cluster"
-          filterable>
-          <BkOption
-            v-for="clusterItem in clusterList"
-            :key="clusterItem.id"
-            :label="`[${clusterItem.id}] ${clusterItem.immute_domain}`"
-            :value="clusterItem.immute_domain" />
-        </BkSelect>
-      </BkFormItem>
-      <BkFormItem :label="t('状态')">
-        <BkSelect v-model="formData.status">
-          <BkOption
-            :label="t('正常')"
-            :value="1" />
-          <BkOption
-            :label="t('异常')"
-            :value="0" />
-          <BkOption
-            :label="t('未知')"
-            :value="-1" />
-        </BkSelect>
-      </BkFormItem>
-    </BkForm>
-    <div style="padding: 0 12px">
-      <BkButton
-        theme="primary"
-        @click="handleSubmit">
-        {{ t('查询') }}
-      </BkButton>
-      <BkButton
-        class="ml-8"
-        @click="handleReset">
-        {{ t('清空') }}
-      </BkButton>
+    <div class="search-operations">
+      <BkDatePicker
+        append-to-body
+        class="date-picker-main"
+        clearable
+        :model-value="dateValue"
+        @change="handleDatePickerChange" />
+      <DbSearchSelect
+        class="search-select-main"
+        :data="searchData"
+        :get-menu-list="getMenuList"
+        :model-value="searchValue"
+        unique-select
+        @change="handleSearchValueChange" />
     </div>
   </div>
 </template>
 <script setup lang="ts">
+  import type { ISearchItem, ISearchValue } from 'bkui-vue/lib/search-select/utils';
   import dayjs from 'dayjs';
-  import { reactive } from 'vue';
+  import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
-  import { useRequest } from 'vue-request';
 
-  import { queryAllTypeCluster } from '@services/source/dbbase';
+  import { getUserList } from '@services/source/user';
 
-  import { useUrlSearch } from '@hooks';
+  import { useGlobalBizs } from '@stores';
+
+  import { batchSplitRegex } from '@common/regex';
+
+  import { getMenuListSearch } from '@utils';
+
+  interface Props {
+    isTodos?: boolean;
+    isAssist?: boolean;
+    isShowAll?: boolean;
+  }
 
   interface Emits {
     (e: 'change', value: Record<string, any>): void;
   }
 
+  const props = withDefaults(defineProps<Props>(), {
+    isTodos: false,
+    isAssist: false,
+    isShowAll: false,
+  });
   const emits = defineEmits<Emits>();
 
-  const genDefaultData = () => ({
-    create_at__gte: dayjs().startOf('day').format('YYYY-MM-DD HH:mm:ss'),
-    create_at__lte: dayjs().endOf('day').format('YYYY-MM-DD HH:mm:ss'),
-    cluster: '',
-    status: '',
+  const { t } = useI18n();
+  const route = useRoute();
+  const globalBizsStore = useGlobalBizs();
+
+  const dateValue = ref(dayjs().format('YYYY-MM-DD'));
+  const searchValue = ref<ISearchValue[]>([]);
+
+  const searchData = computed(() => {
+    const bizFilter = {
+      name: t('业务'),
+      id: 'bk_biz_id',
+      children: globalBizsStore.bizs.map((biz) => ({
+        id: biz.bk_biz_id,
+        name: biz.name,
+      })),
+    };
+    const statusFilter = {
+      name: t('状态'),
+      id: 'status',
+      children: [
+        {
+          id: 1,
+          name: t('正常'),
+        },
+        {
+          id: 0,
+          name: t('异常'),
+        },
+      ],
+    };
+    const clusterFilter = {
+      name: t('集群'),
+      id: 'cluster',
+      multiple: true,
+    };
+    const dbaFilter = {
+      name: t('主DBA'),
+      id: 'dba',
+    };
+    if (props.isShowAll) {
+      return [bizFilter, dbaFilter, clusterFilter, statusFilter] as ISearchItem[];
+    }
+    if (props.isTodos && !props.isAssist) {
+      return [bizFilter, clusterFilter] as ISearchItem[];
+    }
+
+    if (props.isTodos && props.isAssist) {
+      return [bizFilter, dbaFilter, clusterFilter] as ISearchItem[];
+    }
+
+    return [clusterFilter, statusFilter] as ISearchItem[];
   });
 
-  const filterInvalidValue = (params: Record<string, any>) =>
-    Object.keys(params).reduce((result, item) => {
-      if (params[item]) {
-        return Object.assign(result, {
-          [item]: params[item],
-        });
-      }
-      return result;
-    }, {});
-
-  const { t } = useI18n();
-  const { getSearchParams } = useUrlSearch();
-
-  const formData = reactive(genDefaultData());
-
-  const serachParams = getSearchParams();
-  Object.keys(formData).forEach((key) => {
-    if (serachParams[key] !== undefined) {
-      formData[key as keyof typeof formData] = serachParams[key];
+  watchEffect(() => {
+    if (route.query.create_at__gte && route.query.create_at__lte) {
+      dateValue.value = dayjs(route.query.create_at__gte as string).format('YYYY-MM-DD');
     }
   });
 
-  const { data: clusterList } = useRequest(queryAllTypeCluster, {
-    defaultParams: [
-      {
-        bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-      },
-    ],
-  });
+  watch(
+    () => [searchValue.value, dateValue.value],
+    () => {
+      const searchObj = searchValue.value.reduce<Record<string, string>>((results, item) => {
+        Object.assign(results, {
+          [item.id]: item.values?.map((value) => value.id).join(',') || '',
+        });
+        return results;
+      }, {});
 
-  const handleDateChange = (value: [string, string]) => {
-    [formData.create_at__gte, formData.create_at__lte] = value;
+      if (dateValue.value) {
+        Object.assign(searchObj, {
+          create_at__gte: dayjs(dateValue.value).startOf('day').format('YYYY-MM-DD HH:mm:ss'),
+          create_at__lte: dayjs(dateValue.value).endOf('day').format('YYYY-MM-DD HH:mm:ss'),
+        });
+      }
+      emits('change', searchObj);
+    },
+    {
+      immediate: true,
+    },
+  );
+
+  const getMenuList = async (item: ISearchItem | undefined, keyword: string) => {
+    if (item?.id !== 'dba' && keyword) {
+      return getMenuListSearch(item, keyword, searchData.value, searchValue.value);
+    }
+
+    // 没有选中过滤标签
+    if (!item) {
+      // 过滤掉已经选过的标签
+      const selected = (searchValue.value || []).map((value) => value.id);
+      return searchData.value.filter((item) => !selected.includes(item.id));
+    }
+
+    // 远程加载执行人
+    if (item.id === 'dba') {
+      if (!keyword) {
+        return [];
+      }
+      return getUserList({
+        fuzzy_lookups: keyword,
+      }).then((res) =>
+        res.results.map((item) => ({
+          id: item.username,
+          name: item.username,
+        })),
+      );
+    }
+
+    // 不需要远层加载
+    return searchData.value.find((set) => set.id === item.id)?.children || [];
   };
 
-  const handleSubmit = () => {
-    emits(
-      'change',
-      filterInvalidValue({
-        ...formData,
-        create_at__gte: formData.create_at__gte ? dayjs(formData.create_at__gte).format('YYYY-MM-DD HH:mm:ss') : '',
-        create_at__lte: formData.create_at__lte ? dayjs(formData.create_at__lte).format('YYYY-MM-DD HH:mm:ss') : '',
-      }),
-    );
+  const handleDatePickerChange = (value: string) => {
+    dateValue.value = value;
   };
 
-  handleSubmit();
+  const handleSearchValueChange = (valueList: ISearchValue[]) => {
+    // 防止方法由于searchValue的值改变而被循环触发
+    if (JSON.stringify(valueList) === JSON.stringify(searchValue.value)) {
+      return;
+    }
+    // 批量参数统一用,分隔符，展示的分隔符统一成 |
+    const handledValueList: ISearchValue[] = [];
+    valueList.forEach((item) => {
+      if (item.id !== 'cluster') {
+        // 原样返回
+        handledValueList.push(item);
+        return;
+      }
+      const values = item.values
+        ? item.values.reduce(
+            (results, value) => {
+              const idList = _.uniq(`${value.id.trim()}`.split(batchSplitRegex));
+              const nameList = _.uniq(`${value.name.trim()}`.split(batchSplitRegex));
+              results.push(
+                ...idList.map((id, index) => ({
+                  id,
+                  name: nameList[index],
+                })),
+              );
+              return results;
+            },
+            [] as {
+              id: string;
+              name: string;
+            }[],
+          )
+        : [];
 
-  const handleReset = () => {
-    Object.assign(formData, genDefaultData());
+      const searchObj = {
+        ...item,
+        values,
+      };
+      handledValueList.push(searchObj);
+    });
+    searchValue.value = handledValueList;
   };
 </script>
 <style lang="less">
   .inspection-search-box {
-    padding: 16px 12px 36px;
-    background: #fff;
+    display: flex;
 
-    .bk-form {
+    .search-operations {
       display: flex;
+      gap: 8px;
 
-      .bk-form-item {
-        flex: 1;
-        padding: 0 12px;
+      .date-picker-main {
+        width: 150px;
+        margin-right: 8px;
       }
-    }
 
-    .bk-date-picker {
-      width: 100%;
+      .search-select-main {
+        width: 580px;
+      }
     }
   }
 </style>

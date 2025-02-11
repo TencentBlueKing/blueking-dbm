@@ -10,35 +10,57 @@
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
  */
+import { registerBusinessModule, registerModule } from '@router';
+
 import { checkDbConsole } from '@utils';
 
 import { t } from '@locales/index';
 
-const routes = [
-  {
-    path: 'inspection-manage',
-    name: 'inspectionManage',
-    component: () => import('@views/inspection-manage/Index.vue'),
-    meta: {
-      navName: t('巡检'),
-    },
-    redirect: {
-      name: 'inspectionReport',
-    },
-    children: [
-      {
-        path: 'report',
-        name: 'inspectionReport',
-        component: () => import('@views/inspection-manage/report/Index.vue'),
-        meta: {
-          navName: t('健康报告'),
-          fullscreen: true,
-        },
-      },
-    ],
-  },
-];
-
 export default function getRoutes() {
-  return checkDbConsole('observableManage.healthReport') ? routes : [];
+  registerModule([
+    {
+      path: 'inspection-todos',
+      name: 'InspectionTodos',
+      component: () => import('@views/inspection-manage/todo/Index.vue'),
+      meta: {
+        navName: t('巡检待办'),
+        fullscreen: true,
+      },
+    },
+    {
+      path: 'inspection-report-global',
+      name: 'inspectionReportGlobal',
+      component: () => import('@views/inspection-manage/report/Index.vue'),
+      meta: {
+        navName: t('巡检报告'),
+        fullscreen: true,
+      },
+    },
+  ]);
+  if (checkDbConsole('observableManage.healthReport')) {
+    registerBusinessModule([
+      {
+        path: 'inspection-manage',
+        name: 'inspectionManage',
+        component: () => import('@views/inspection-manage/Index.vue'),
+        meta: {
+          navName: t('巡检'),
+        },
+        redirect: {
+          name: 'inspectionReport',
+        },
+        children: [
+          {
+            path: 'report',
+            name: 'inspectionReport',
+            component: () => import('@views/inspection-manage/report/Index.vue'),
+            meta: {
+              navName: t('巡检报告'),
+              fullscreen: true,
+            },
+          },
+        ],
+      },
+    ]);
+  }
 }

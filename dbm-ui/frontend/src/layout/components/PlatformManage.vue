@@ -18,6 +18,20 @@
         {{ t('任务') }}
       </BkMenuItem>
     </BkMenuGroup>
+    <BkMenuGroup
+      v-db-console="'platformManage.healthReport'"
+      :name="t('巡检')">
+      <BkMenuItem key="inspectionReportGlobal">
+        <template #icon>
+          <DbIcon type="db-config" />
+        </template>
+        <span
+          v-overflow-tips.right
+          class="text-overflow">
+          {{ t('巡检报告') }}
+        </span>
+      </BkMenuItem>
+    </BkMenuGroup>
   </BkMenu>
 </template>
 <script setup lang="ts">

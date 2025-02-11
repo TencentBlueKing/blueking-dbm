@@ -27,6 +27,7 @@ export * from './useLocalPagination';
 export * from './useLocation';
 export * from './useModelProvider';
 export * from './useProps';
+export * from './useReportCount';
 export * from './useSelectorDialogWidth';
 export * from './useSQLTaskNotify';
 export * from './useStickyFooter';

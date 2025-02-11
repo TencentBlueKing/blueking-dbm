@@ -101,6 +101,7 @@ export default () => {
 
   getTicketRoutes();
   getTaskHistoryRoutes();
+  getInspectionRoutes();
 
   const routes = [
     {
@@ -126,7 +127,6 @@ export default () => {
         ...getDbManageRoutes(),
         ...getDbConfRoutes(),
         ...getDbhaSwitchEventsRouters(),
-        ...getInspectionRoutes(),
         ...getDBMonitorAlarmRoutes(),
         ...getPlatMonitorAlarmRoutes(),
         ...getNotificationSettingRoutes(),

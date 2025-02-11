@@ -164,13 +164,14 @@
       'PlatformTicketFlowSetting',
       'PlatformStaffManage',
     ],
-    [menuEnum.platformManage]: ['platformTaskManage', 'ticketPlatformManage'],
+    [menuEnum.platformManage]: ['platformTaskManage', 'ticketPlatformManage', 'inspectionReportGlobal'],
     [menuEnum.personalWorkbench]: [
       'serviceApply',
       'SelfServiceMyTickets',
       'MyTodos',
       'ticketSelfDone',
       'ticketSelfManage',
+      'InspectionTodos',
     ],
   } as Record<string, string[]>;
 
