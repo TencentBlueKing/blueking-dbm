@@ -59,6 +59,8 @@
 
   import { useUserProfile } from '@stores';
 
+  import { useStorage } from '@vueuse/core';
+
   import ConfigManage from './components/ConfigManage.vue';
   import DatabaseManage from './components/database-manage/Index.vue';
   import GlobalConfigManage from './components/GlobalConfigManage.vue';
@@ -67,10 +69,10 @@
   import PlatformManage from './components/PlatformManage.vue';
   import ResourceManage from './components/ResourceManage.vue';
 
-  const SIDE_MENU_TOGGLE_KEY = 'sideMenuFlod';
   const { t } = useI18n();
   const route = useRoute();
   const userProfile = useUserProfile();
+  const isSideMenuFlod = useStorage('is_side_menu_flod', false);
 
   const enum menuEnum {
     databaseManage = 'databaseManage',
@@ -176,7 +178,6 @@
   } as Record<string, string[]>;
 
   const menuType = ref('');
-  const isSideMenuFlod = ref(localStorage.getItem(SIDE_MENU_TOGGLE_KEY) !== null);
 
   const renderMenuCom = computed(() => {
     const comMap = {
@@ -229,11 +230,6 @@
 
   const handleCollapse = () => {
     isSideMenuFlod.value = !isSideMenuFlod.value;
-    if (!isSideMenuFlod.value) {
-      localStorage.setItem(SIDE_MENU_TOGGLE_KEY, 'open');
-    } else {
-      localStorage.removeItem(SIDE_MENU_TOGGLE_KEY);
-    }
   };
 
   const handleMenuChange = (type: string) => {
