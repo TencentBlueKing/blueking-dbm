@@ -306,14 +306,14 @@
       ...searchParams,
     }).then((data) => {
       const ipList = data.results.map(item => item.ip);
-      execCopy(ipList.join('\n'), `${t('复制成功n个IP', { n: ipList.length })}\n`);
+      execCopy(ipList.join('\n'), t('复制成功，共n条', { n: ipList.length }));
     });
   };
 
   // 复制已选主机
   const handleCopySelectHost = () => {
     const ipList = selectionListWholeDataMemo.map(item => item.ip);
-    execCopy(ipList.join('\n'), `${t('复制成功n个IP', { n: ipList.length })}\n`);
+    execCopy(ipList.join('\n'), t('复制成功，共n条', { n: ipList.length }));
   };
 
   // 复制所有异常主机
@@ -328,7 +328,7 @@
         }
         return result;
       }, [] as string[]);
-      execCopy(ipList.join('\n'), `${t('复制成功n个IP', { n: ipList.length })}\n`);
+      execCopy(ipList.join('\n'), t('复制成功，共n条', { n: ipList.length }));
     });
   };
 

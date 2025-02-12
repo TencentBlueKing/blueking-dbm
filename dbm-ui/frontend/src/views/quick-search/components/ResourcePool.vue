@@ -42,7 +42,6 @@
   import { fetchDbTypeList } from '@services/source/infras';
 
   import {
-    useCopy,
     useLocation,
     useTableSettings,
   } from '@hooks';
@@ -54,6 +53,8 @@
   import HostAgentStatus from '@components/host-agent-status/Index.vue';
   import HightLightText from '@components/system-search/components/search-result/render-result/components/HightLightText.vue';
   import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
+
+  import { execCopy } from '@utils';
 
   interface Props {
     keyword: string,
@@ -72,7 +73,6 @@
   const emits = defineEmits<Emits>();
 
   const { t } = useI18n();
-  const copy = useCopy();
   const location = useLocation();
 
   const pagination = ref({
@@ -284,7 +284,7 @@
   } = useTableSettings(UserPersonalSettings.QUICK_SEARCH_RESOURCE_POOL, defaultSettings);
 
   const handleCopy = (content: string) => {
-    copy(content);
+    execCopy(content, t('复制成功，共n条', { n: 1 }));
   };
 
   const handleGo = (data: DbResourceModel) => {

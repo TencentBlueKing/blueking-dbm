@@ -110,9 +110,9 @@
 
   import { getPulsarPassword } from '@services/source/pulsar';
 
-  import { useCopy } from '@hooks';
-
   import type { DBTypes } from '@common/const';
+
+  import { execCopy } from '@utils';
 
   interface Props {
     clusterId: number;
@@ -121,7 +121,6 @@
 
   const props = defineProps<Props>();
 
-  const copy = useCopy();
   const { t } = useI18n();
 
   const isLoading = ref(true);
@@ -192,6 +191,10 @@
         copy(content);
         break;
     }
+  };
+
+  const copy = (value: string) => {
+    execCopy(value, t('复制成功，共n条', { n: 1 }));
   };
 
   const handlePasswordToggle = () => {

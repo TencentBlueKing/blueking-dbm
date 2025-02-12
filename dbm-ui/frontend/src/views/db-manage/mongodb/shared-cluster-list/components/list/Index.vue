@@ -80,6 +80,7 @@
         :cluster-type="ClusterTypes.MONGO_SHARED_CLUSTER"
         field="master_domain"
         :get-table-instance="getTableInstance"
+        :is-filter="isFilter"
         :label="t('访问入口')"
         :selected-list="selected"
         @go-detail="handleToDetails"
@@ -87,6 +88,7 @@
       <ClusterNameColumn
         :cluster-type="ClusterTypes.MONGO_SHARED_CLUSTER"
         :get-table-instance="getTableInstance"
+        :is-filter="isFilter"
         :selected-list="selected"
         @refresh="fetchData" />
       <StatusColumn :cluster-type="ClusterTypes.MONGO_SHARED_CLUSTER" />
@@ -95,6 +97,7 @@
         :cluster-type="ClusterTypes.MONGO_SHARED_CLUSTER"
         field="mongo_config"
         :get-table-instance="getTableInstance"
+        :is-filter="isFilter"
         label="ConfigSvr"
         :search-ip="batchSearchIpInatanceList"
         :selected-list="selected" />
@@ -102,6 +105,7 @@
         :cluster-type="ClusterTypes.MONGO_SHARED_CLUSTER"
         field="mongos"
         :get-table-instance="getTableInstance"
+        :is-filter="isFilter"
         label="Mongos"
         :search-ip="batchSearchIpInatanceList"
         :selected-list="selected" />
@@ -109,6 +113,7 @@
         :cluster-type="ClusterTypes.MONGO_SHARED_CLUSTER"
         field="mongodb"
         :get-table-instance="getTableInstance"
+        :is-filter="isFilter"
         label="ShardSvr"
         :search-ip="batchSearchIpInatanceList"
         :selected-list="selected" />
@@ -272,6 +277,7 @@
     searchValue,
     sortValue,
     batchSearchIpInatanceList,
+    isFilter,
     columnFilterChange,
     columnSortChange,
     clearSearchValue,

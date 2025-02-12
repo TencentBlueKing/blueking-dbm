@@ -62,7 +62,6 @@
   import { getSqlServerInstanceList } from '@services/source/sqlserveHaCluster';
 
   import {
-    useCopy,
     useLinkQueryColumnSerach,
     useStretchLayout,
     useTableSettings,
@@ -83,7 +82,7 @@
 
   import DropdownExportExcel from '@views/db-manage/common/dropdown-export-excel/index.vue';
 
-  import { getSearchSelectorParams } from '@utils';
+  import { execCopy, getSearchSelectorParams } from '@utils';
 
   const instanceData = defineModel<{
     instanceAddress: string,
@@ -92,7 +91,6 @@
 
   const router = useRouter();
   const globalBizsStore = useGlobalBizs();
-  const copy = useCopy();
   const { t } = useI18n();
   const {
     isOpen: isStretchLayoutOpen,
@@ -227,7 +225,7 @@
                 <db-icon
                   v-bk-tooltips={t('复制集群名称')}
                   type="copy"
-                  onClick={() => copy(data.cluster_name)} />
+                  onClick={() => execCopy(data.cluster_name, t('复制成功，共n条', { n: 1 }))} />
               ),
             }}
           </TextOverflowLayout>
@@ -271,7 +269,7 @@
                 <db-icon
                   v-bk-tooltips={t('复制主访问入口')}
                   type="copy"
-                  onClick={() => copy(data.master_domain)} />
+                  onClick={() => execCopy(data.master_domain, t('复制成功，共n条', { n: 1 }))} />
               ),
             }}
           </TextOverflowLayout>
@@ -290,7 +288,7 @@
                 <db-icon
                   v-bk-tooltips={t('复制从访问入口')}
                   type="copy"
-                  onClick={() => copy(data.slave_domain)} />
+                  onClick={() => execCopy(data.slave_domain, t('复制成功，共n条', { n: 1 }))} />
               ),
             }}
           </TextOverflowLayout>

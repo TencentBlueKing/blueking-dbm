@@ -91,13 +91,13 @@
         <template #content>
           <BkDropdownMenu>
             <BkDropdownItem @click="handleCopyAll()">
-              {{ t('复制全部实例') }}
+              {{ t('复制所有实例') }}
             </BkDropdownItem>
             <BkDropdownItem @click="handleCopy()">
               {{ t('复制已选实例') }}
             </BkDropdownItem>
             <BkDropdownItem @click="handleCopyAll(true)">
-              {{ t('复制全部IP') }}
+              {{ t('复制所有IP') }}
             </BkDropdownItem>
             <BkDropdownItem @click="handleCopy(true)">
               {{ t('复制已选IP') }}
@@ -160,12 +160,13 @@
   import { createTicket } from '@services/source/ticket';
   import { getUserList } from '@services/source/user';
 
-  import { useCopy, useLinkQueryColumnSerach, useTableSettings, useTicketMessage } from '@hooks';
+  import { useLinkQueryColumnSerach, useTableSettings, useTicketMessage } from '@hooks';
 
   import { useGlobalBizs } from '@stores';
 
   import { ClusterTypes, UserPersonalSettings } from '@common/const';
 
+  import DbTable from '@components/db-table/index.vue'
   import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
 
   import DropdownExportExcel from '@views/db-manage/common/dropdown-export-excel/index.vue';
@@ -174,6 +175,7 @@
   import RenderOperationTag from '@views/db-manage/common/RenderOperationTagNew.vue';
 
   import {
+    execCopy,
     getMenuListSearch,
     getSearchSelectorParams,
     isRecentDays,
@@ -192,7 +194,6 @@
   const ticketMessage = useTicketMessage();
   const { currentBizId } = useGlobalBizs();
   const { t, locale } = useI18n();
-  const copy = useCopy();
 
   const {
     columnAttrs,
@@ -263,7 +264,7 @@
   });
 
   const isCN = computed(() => locale.value === 'zh-cn');
-  const tableRef = ref();
+  const tableRef = ref<InstanceType<typeof DbTable>>();
   const isInit = ref(true);
   const isShowGroupMove = ref(false);
   const isCopyDropdown = ref(false);
@@ -358,7 +359,7 @@
                     v-bk-tooltips={t('复制实例')}
                     class="mt-4"
                     type="copy"
-                    onClick={() => copy(data.instance_address)} />
+                    onClick={() => copy([data.instance_address])} />
                 </>
               ),
             }}
@@ -616,12 +617,14 @@
 
 
   const handleCopyAll = (isIp = false) => {
-    const list = (tableRef.value.getData() as InfluxDBInstanceModel[]).map(item => item.instance_address);
-    if (isIp) {
-      copy(list.map(inst => inst.split(':')[0]).join(','));
-      return;
-    }
-    copy(list.join(','));
+    tableRef.value!.getAllData<InfluxDBInstanceModel>().then(influxdbList => {
+      const list = influxdbList.map(item => item.instance_address);
+      if (isIp) {
+        copy(list.map(inst => inst.split(':')[0]));
+        return;
+      }
+      copy(list);
+    })
   };
 
   const handleCopy = (isIp = false) => {
@@ -632,12 +635,16 @@
     }
 
     if (isIp) {
-      copy(list.map(inst => inst.split(':')[0]).join(','));
+      copy(list.map(inst => inst.split(':')[0]));
       return;
     }
 
-    copy(list.join(','));
+    copy(list);
   };
+
+  const copy = (list: string[]) => {
+    execCopy(list.join(','), t('复制成功，共n条', { n: list.length }))
+  }
 
   // 取消节点的选中状态
   const handleRemoveNodeSelect = (instanceId: number) => {
@@ -651,7 +658,7 @@
     }
 
     if (Object.values(checkedMap).length === 0) {
-      tableRef.value.clearSelected();
+      tableRef.value!.clearSelected();
     }
   };
 
@@ -671,7 +678,7 @@
   const handleSelectAll = (data:{checked: boolean}) => {
     let selectedMap = { ...batchSelectInstances.value };
     if (data.checked) {
-      selectedMap = (tableRef.value.getData() as InfluxDBInstanceModel[]).reduce((result, item) => ({
+      selectedMap = (tableRef.value!.getData() as InfluxDBInstanceModel[]).reduce((result, item) => ({
         ...result,
         [item.id]: item,
       }), {});
@@ -708,7 +715,7 @@
         fetchTableData();
         batchSelectInstances.value = {};
         eventBus.emit('fetch-group-list');
-        tableRef.value.clearSelected();
+        tableRef.value!.clearSelected();
       });
   };
 
@@ -718,7 +725,7 @@
   };
 
   const handleReplaceSucceeded = () => {
-    tableRef.value.clearSelected();
+    tableRef.value!.clearSelected();
   };
 
   const handleBatchRestart = () => {
@@ -754,7 +761,7 @@
           .then((res) => {
             ticketMessage(res.id);
             if (data.length > 1) {
-              tableRef.value.clearSelected();
+              tableRef.value!.clearSelected();
             }
           })
           .finally(() => {

@@ -87,6 +87,7 @@
           :cluster-type="ClusterTypes.TENDBCLUSTER"
           field="master_domain"
           :get-table-instance="getTableInstance"
+          :is-filter="isFilter"
           :label="t('主访问入口')"
           :selected-list="selected"
           @go-detail="handleToDetails"
@@ -94,11 +95,13 @@
         <ClusterNameColumn
           :cluster-type="ClusterTypes.TENDBCLUSTER"
           :get-table-instance="getTableInstance"
+          :is-filter="isFilter"
           :selected-list="selected"
           @refresh="fetchTableData" />
         <SlaveDomainColumn
           :cluster-type="ClusterTypes.TENDBCLUSTER"
           :get-table-instance="getTableInstance"
+          :is-filter="isFilter"
           :selected-list="selected" />
         <StatusColumn :cluster-type="ClusterTypes.TENDBCLUSTER" />
         <ClusterStatsColumn :cluster-type="ClusterTypes.TENDBCLUSTER" />
@@ -106,6 +109,7 @@
           :cluster-type="ClusterTypes.TENDBCLUSTER"
           field="spider_master"
           :get-table-instance="getTableInstance"
+          :is-filter="isFilter"
           label="Spider Master"
           :search-ip="searchIp"
           :selected-list="selected">
@@ -384,6 +388,7 @@
     searchAttrs,
     searchValue,
     sortValue,
+    isFilter,
     columnFilterChange,
     columnSortChange,
     clearSearchValue,

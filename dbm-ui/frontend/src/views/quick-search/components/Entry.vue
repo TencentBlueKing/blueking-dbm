@@ -168,8 +168,6 @@
 
   import QuickSearchEntryModel from '@services/model/quiker-search/quick-search-entry';
 
-  import { useCopy } from '@hooks';
-
   import { batchSplitRegex } from '@common/regex';
 
   import RenderClusterStatus from '@components/cluster-status/Index.vue';
@@ -178,7 +176,7 @@
   import { useRedirect } from '@components/system-search/hooks/useRedirect';
   import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
 
-  import { exportExcelFile } from '@utils';
+  import { execCopy, exportExcelFile } from '@utils';
 
   import { groupByDbType } from '../common/utils';
 
@@ -199,7 +197,6 @@
   const emits = defineEmits<Emits>();
 
   const { t } = useI18n();
-  const copy = useCopy();
   const handleRedirect = useRedirect();
 
   const settingChangeKey = ref(1);
@@ -260,7 +257,7 @@
   };
 
   const handleCopy = (content: string) => {
-    copy(content);
+    execCopy(content, t('复制成功，共n条', { n: 1 }));
   };
 
   const handleToCluster = (data: QuickSearchEntryModel) => {

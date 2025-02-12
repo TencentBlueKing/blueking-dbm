@@ -71,7 +71,7 @@
 
   const handleCopy = (role: keyof Props['data']['roleFailedInstanceInfo']) => {
     const ipList = props.data.roleFailedInstanceInfo[role].map((item) => item.ip);
-    execCopy(ipList.join(','), t('复制成功n个IP', { n: ipList.length }));
+    execCopy(ipList.join('\n'), t('复制成功，共n条', { n: ipList.length }));
   };
 </script>
 <style lang="less">

@@ -76,7 +76,7 @@
                 <i
                   v-if="config.isCopy"
                   class="base-info__icon db-icon-copy"
-                  @click.stop="handleCopy(data[config.key])" />
+                  @click.stop="execCopy(data[config.key], t('复制成功，共n条', { n: 1 }))" />
               </div>
             </template>
           </div>
@@ -88,9 +88,7 @@
 <script lang="tsx">
   import type { VNode } from 'vue';
 
-  import { useCopy } from '@hooks';
-
-  import { generateId } from '@utils';
+  import { execCopy, generateId } from '@utils';
 
   import { t } from '@locales/index';
 
@@ -226,11 +224,6 @@
       }
     }
   };
-
-  /**
-   * 复制信息
-   */
-  const handleCopy = useCopy();
 </script>
 
 <style lang="less" scoped>

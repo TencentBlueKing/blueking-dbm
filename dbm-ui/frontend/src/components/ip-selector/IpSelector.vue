@@ -118,12 +118,14 @@
   import { getWhitelist } from '@services/source/whitelist';
   import type { HostInfo } from '@services/types';
 
-  import { useCopy, useFormItem } from '@hooks';
+  import { useFormItem } from '@hooks';
 
   import { OSTypes } from '@common/const';
 
   import DBCollapseTable from '@components/db-collapse-table/DBCollapseTable.vue';
   import DbStatus from '@components/db-status/index.vue';
+
+  import { execCopy } from '@utils';
 
   import { t } from '@locales/index';
 
@@ -192,7 +194,6 @@
     default: false,
   });
 
-  const copy = useCopy();
   const formItem = useFormItem();
 
   const cloudTips = computed(() => {
@@ -369,7 +370,7 @@
       label: t('复制所有IP'),
       onClick: () => {
         const ips = selectorState.selected.host_list.map((item: any) => item.ip);
-        copy(ips.join('\n'));
+        copy(ips);
       },
     },
     {
@@ -377,7 +378,7 @@
       onClick: () => {
         const abnormalHosts = selectorState.selected.host_list.filter((item: any) => item.alive === 0);
         const abnormalIps = abnormalHosts.map((item: any) => item.ip);
-        copy(abnormalIps.join('\n'));
+        copy(abnormalIps);
       },
     }];
 
@@ -391,6 +392,10 @@
     immediate: true,
     deep: true,
   });
+
+  const copy = (list: string[]) => {
+    execCopy(list.join('\n'), t('复制成功，共n条', { n: list.length }))
+  }
 
   /**
    * ip 选择器预览表默认配置

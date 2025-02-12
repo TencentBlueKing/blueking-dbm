@@ -95,23 +95,20 @@
   import { getTicketTypes } from '@services/source/ticket';
   import { getUserList } from '@services/source/user';
 
-  import {
-    useCopy,
-    useLinkQueryColumnSerach,
-  } from '@hooks';
+  import { useLinkQueryColumnSerach } from '@hooks';
 
   import { useGlobalBizs } from '@stores';
 
   import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
 
   import {
+    execCopy,
     getMenuListSearch,
     getSearchSelectorParams,
-    messageSuccess,
+    messageSuccess
   } from '@utils';
 
   const router = useRouter();
-  const copy = useCopy();
   const { t } = useI18n();
   const useGlobalBizsStore = useGlobalBizs();
 
@@ -414,7 +411,8 @@
   // };
 
   const handleCopySelected = () => {
-    copy(selectedHosts.value.map(item => item.ip).join(','));
+    const ipList = selectedHosts.value.map(item => item.ip)
+    execCopy(ipList.join(','), t('复制成功，共n条', { n: ipList.length }));
   };
 
   // 转移单台主机

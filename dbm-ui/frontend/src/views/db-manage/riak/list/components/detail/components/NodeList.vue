@@ -41,7 +41,7 @@
         <template #content>
           <BkDropdownMenu>
             <BkDropdownItem @click="handleCopyAll">
-              {{ t('复制全部IP') }}
+              {{ t('复制所有IP') }}
             </BkDropdownItem>
             <BkDropdownItem>
               <BkButton
@@ -137,7 +137,7 @@
   import { getRiakDetail, getRiakNodeList } from '@services/source/riak';
   import { createTicket } from '@services/source/ticket';
 
-  import { useCopy, useDebouncedRef, useTicketMessage } from '@hooks';
+  import { useDebouncedRef, useTicketMessage } from '@hooks';
 
   import { useGlobalBizs } from '@stores';
 
@@ -150,7 +150,7 @@
 
   import OperationBtnStatusTips from '@views/db-manage/common/OperationBtnStatusTips.vue';
 
-  import { messageWarn } from '@utils';
+  import { execCopy, messageWarn } from '@utils';
 
   import { useTimeoutPoll } from '@vueuse/core';
 
@@ -163,7 +163,6 @@
 
   const props = defineProps<Props>();
 
-  const copy = useCopy();
   const ticketMessage = useTicketMessage();
   const { currentBizId } = useGlobalBizs();
   const { t } = useI18n();
@@ -417,7 +416,7 @@
 
   const handleCopyRowIp = (event: Event, ip: string) => {
     event.stopPropagation();
-    copy(ip);
+    execCopy(ip, t('复制成功，共n条', { n: 1 }))
   };
 
   const handleCopy = (ipList: string[]) => {
@@ -425,7 +424,7 @@
       messageWarn(t('没有可复制IP'));
       return;
     }
-    copy(ipList.join('\n'));
+    execCopy(ipList.join('\n'), t('复制成功，共n条', { n: ipList.length }))
   };
 
   // 复制所有 IP

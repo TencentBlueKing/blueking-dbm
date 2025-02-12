@@ -133,9 +133,9 @@
   import { getClusterEntries } from '@services/source/clusterEntry';
   import { getRedisPassword } from '@services/source/redis';
 
-  import { useCopy } from '@hooks';
-
   import { useGlobalBizs } from '@stores';
+
+  import { execCopy } from '@utils';
 
   interface Props {
     title?: string;
@@ -205,7 +205,6 @@
     password: '',
   });
 
-  const copy = useCopy();
   const { t } = useI18n();
   const { currentBizId } = useGlobalBizs();
 
@@ -281,6 +280,10 @@
       content = `${content}${t('存储层（Nodes）域名')}: ${dataObj.value.nodes.list[0].value}\n`;
     }
     copy(content);
+  };
+
+  const copy = (value: string) => {
+    execCopy(value, t('复制成功，共n条', { n: 1 }));
   };
 
   const handleNavigateTo = (url: string) => {

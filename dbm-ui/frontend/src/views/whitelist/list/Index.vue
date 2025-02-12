@@ -77,11 +77,10 @@
     getWhitelist,
   } from '@services/source/whitelist';
 
-  import { useCopy } from '@hooks';
-
   import RenderRow from '@components/render-row/index.vue';
 
   import {
+    execCopy,
     messageSuccess,
   } from '@utils';
 
@@ -92,7 +91,6 @@
   }
 
   const route = useRoute();
-  const copy = useCopy();
   const { t } = useI18n();
 
   const isPlatformManage = route.name === 'PlatformWhitelist';
@@ -133,7 +131,7 @@
               v-bk-tooltips={t('复制')}
               type="copy"
               class="copy-btn"
-              onClick={() => copy(data.ips.join('\n'))} />
+              onClick={() => execCopy(data.ips.join('\n'), t('复制成功，共n条', { n: data.ips.length }))} />
           </>
         );
       },

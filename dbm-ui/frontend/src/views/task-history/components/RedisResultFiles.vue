@@ -70,13 +70,13 @@
   import { getKeyFiles } from '@services/source/taskflow';
   import { createTicket } from '@services/source/ticket';
 
-  import { useCopy, useTicketMessage } from '@hooks';
+  import { useTicketMessage } from '@hooks';
 
   import { useGlobalBizs } from '@stores';
 
   import { TicketTypes } from '@common/const';
 
-  import { downloadUrl, generateBkRepoDownloadUrl,messageWarn } from '@utils';
+  import { downloadUrl, execCopy, generateBkRepoDownloadUrl, messageWarn } from '@utils';
 
   type KeyFileItem = ServiceReturnType<typeof getKeyFiles>[number]
 
@@ -96,7 +96,6 @@
 
   const { t } = useI18n();
   const globalBizsStore = useGlobalBizs();
-  const copy = useCopy();
   const ticketMessage = useTicketMessage();
 
   const isAnomalies = ref(false);
@@ -210,7 +209,7 @@
     createBkrepoAccessToken({ file_path: data.path })
       .then((tokenResult) => {
         const url = generateBkRepoDownloadUrl(tokenResult);
-        copy(url);
+        execCopy(url);
       })
       .finally(() => {
         state.fileLoadings[index] = false;

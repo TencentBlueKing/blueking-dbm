@@ -64,6 +64,7 @@
         :cluster-type="ClusterTypes.SQLSERVER_HA"
         field="master_domain"
         :get-table-instance="getTableInstance"
+        :is-filter="isFilter"
         :label="t('主访问入口')"
         :selected-list="selected"
         @go-detail="handleToDetails"
@@ -71,11 +72,13 @@
       <ClusterNameColumn
         :cluster-type="ClusterTypes.SQLSERVER_HA"
         :get-table-instance="getTableInstance"
+        :is-filter="isFilter"
         :selected-list="selected"
         @refresh="fetchData" />
       <SlaveDomainColumn
         :cluster-type="ClusterTypes.SQLSERVER_HA"
         :get-table-instance="getTableInstance"
+        :is-filter="isFilter"
         :selected-list="selected" />
       <StatusColumn :cluster-type="ClusterTypes.SQLSERVER_HA" />
       <ClusterStatsColumn :cluster-type="ClusterTypes.SQLSERVER_HA" />
@@ -83,6 +86,7 @@
         :cluster-type="ClusterTypes.SQLSERVER_HA"
         field="masters"
         :get-table-instance="getTableInstance"
+        :is-filter="isFilter"
         label="Master"
         :search-ip="batchSearchIpInatanceList"
         :selected-list="selected" />
@@ -90,6 +94,7 @@
         :cluster-type="ClusterTypes.SQLSERVER_HA"
         field="slaves"
         :get-table-instance="getTableInstance"
+        :is-filter="isFilter"
         label="Slave"
         :search-ip="batchSearchIpInatanceList"
         :selected-list="selected" />
@@ -253,6 +258,7 @@
     searchValue,
     sortValue,
     batchSearchIpInatanceList,
+    isFilter,
     columnFilterChange,
     columnSortChange,
     clearSearchValue,

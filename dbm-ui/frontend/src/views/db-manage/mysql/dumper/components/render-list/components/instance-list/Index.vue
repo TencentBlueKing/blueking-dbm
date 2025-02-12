@@ -149,7 +149,6 @@
   import { createTicket } from '@services/source/ticket';
 
   import {
-    useCopy,
     useTicketMessage,
   } from '@hooks';
 
@@ -166,7 +165,7 @@
 
   import RenderOperationTagNew from '@views/db-manage/common/RenderOperationTagNew.vue';
 
-  import { getSearchSelectorParams } from '@utils';
+  import { execCopy, getSearchSelectorParams } from '@utils';
 
   import AppendSubscribeSlider from '../append-subscribe/Index.vue';
 
@@ -185,7 +184,6 @@
   const ticketMessage = useTicketMessage();
   const { currentBizId } = useGlobalBizs();
   const { t, locale } = useI18n();
-  const copy = useCopy();
   const router = useRouter();
 
   const searchSelectData = [
@@ -670,21 +668,25 @@
   const handleCopyAll = (isInstance = false) => {
     const list = (tableRef.value.getData() as DumperInstanceModel[]).map(item => `${item.ip}:${item.listen_port}`);
     if (!isInstance) {
-      copy(list.map(inst => inst.split(':')[0]).join(','));
+      copy(list.map(inst => inst.split(':')[0]));
       return;
     }
-    copy(list.join(','));
+    copy(list);
   };
 
   const handleCopySelected = (isInstance = false) => {
     const list = selectedList.value.map(item => `${item.ip}:${item.listen_port}`);
     if (!isInstance) {
-      copy(list.map(inst => inst.split(':')[0]).join(','));
+      copy(list.map(inst => inst.split(':')[0]));
       return;
     }
 
-    copy(list.join(','));
+    copy(list);
   };
+
+  const copy = (value: string[]) => {
+    execCopy(value.join(','), t('复制成功，共n条', { n: value.length }))
+  }
 
   // 选择单台
   const handleSelect = (_idList: string[], list: DumperInstanceModel[]) => {

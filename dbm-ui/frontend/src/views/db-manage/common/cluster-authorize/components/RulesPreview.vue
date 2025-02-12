@@ -144,11 +144,11 @@
 
   import type { AccountRulePrivilege, PermissionRule } from '@services/types';
 
-  import { useCopy } from '@hooks';
-
   import { AccountTypes } from '@common/const';
 
   import configMap from '@views/db-manage/common/permission/components/mysql/config';
+
+  import { execCopy } from '@utils';
 
   interface Props {
     accountType: AccountTypes.MYSQL | AccountTypes.TENDBCLUSTER;
@@ -178,7 +178,6 @@
   const isShow = ref(false);
 
   const { t } = useI18n();
-  const copy = useCopy();
 
   const showAllIp = ref(false);
   const showAllDb = ref(false);
@@ -220,13 +219,13 @@
   };
 
   const handleCopyIps = () => {
-    const ips = props.data.source_ips.map((item) => item.ip).join('\n');
-    copy(ips);
+    const ips = props.data.source_ips.map((item) => item.ip);
+    execCopy(ips.join('\n'), t('复制成功，共n条', { n: ips.length }));
   };
 
   const handleCopyDomains = () => {
-    const domians = props.data.target_instances.join('\n');
-    copy(domians);
+    const domians = props.data.target_instances;
+    execCopy(domians.join('\n'), t('复制成功，共n条', { n: domians.length }));
   };
 </script>
 

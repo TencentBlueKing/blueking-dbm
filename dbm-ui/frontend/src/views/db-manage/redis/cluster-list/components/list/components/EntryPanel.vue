@@ -31,7 +31,7 @@
               <DbIcon
                 class="icon"
                 type="copy"
-                @click="() => copy(item.value)" />
+                @click="() => execCopy(item.value, t('复制成功，共n条', { n: 1 }))" />
               <DbIcon
                 v-if="item.shareLink"
                 class="icon"
@@ -54,9 +54,9 @@
   } from '@services/model/cluster-entry/cluster-entry-details';
   import { getClusterEntries } from '@services/source/clusterEntry';
 
-  import { useCopy } from '@hooks';
-
   import { useGlobalBizs } from '@stores';
+
+  import { execCopy } from '@utils';
 
   interface Props {
     entryType: 'clb' | 'polaris';
@@ -70,7 +70,6 @@
 
   const { t } = useI18n();
   const { currentBizId } = useGlobalBizs();
-  const copy = useCopy();
 
   const dataObj = reactive({
     clb: {

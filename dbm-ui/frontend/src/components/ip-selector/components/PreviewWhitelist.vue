@@ -38,10 +38,10 @@
 
   import { getWhitelist } from '@services/source/whitelist';
 
-  import { useCopy } from '@hooks';
-
   import DBCollapseTable from '@components/db-collapse-table/DBCollapseTable.vue';
   import RenderRow from '@components/render-row/index.vue';
+
+  import { execCopy } from '@utils';
 
   type WhitelistItem = ServiceReturnType<typeof getWhitelist>['results'][number]
 
@@ -59,7 +59,6 @@
   const emits = defineEmits<Emits>();
 
   const { t } = useI18n();
-  const copy = useCopy();
 
   const totals = computed(() => {
     const ips = props.data.reduce((result, item) => result.concat(item.ips || []), [] as string[]);
@@ -114,7 +113,7 @@
     label: t('复制'),
     onClick: () => {
       const ips = props.data.reduce((result: string[], item: WhitelistItem) => result.concat(item.ips), []);
-      copy(ips.join('\n'));
+      execCopy(ips.join('\n'), t('复制成功，共n条', { n: ips.length }));
     },
   }];
 

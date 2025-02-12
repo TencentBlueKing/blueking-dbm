@@ -87,7 +87,6 @@
   import { queryAdminPassword } from '@services/source/permission';
 
   import {
-    useCopy,
     useTableMaxHeight,
   } from '@hooks';
 
@@ -95,7 +94,7 @@
 
   import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
 
-  import { getSearchSelectorParams } from '@utils';
+  import { execCopy, getSearchSelectorParams } from '@utils'
 
   const isShow = defineModel<boolean>({
     required: true,
@@ -103,7 +102,6 @@
   });
 
   const { t } = useI18n();
-  const copy = useCopy();
   const tableMaxHeight = useTableMaxHeight(OccupiedInnerHeight.NOT_PAGINATION);
 
   const searchSelectData = [
@@ -273,11 +271,11 @@
 
   const handleInstancesCopy = () => {
     const instances = selected.value.map(row => `${row.ip}:${row.port}`);
-    copy(instances.join('\n'));
+    execCopy(instances.join('\n'), t('复制成功，共n条', { n: instances.length }));
   };
 
   const handleCopy = (val: string) => {
-    copy(val);
+    execCopy(val, t('复制成功，共n条', { n: 1 }));
   };
 
   const handleDbTypeChange = () => {

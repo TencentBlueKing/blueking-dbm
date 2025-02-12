@@ -43,7 +43,7 @@
           <BkButton
             text
             @click="handleCopyAll(item.field)">
-            {{ `${t('复制所有')}${item?.label ?? ''}` }}
+            {{ `${t('复制所有')}${item?.label ?? ''}（${isFilter ? t('筛选后') : t('全量')}）` }}
           </BkButton>
         </li>
       </ul>
@@ -61,6 +61,7 @@
       label?: string;
       field: keyof T;
     }[];
+    isFilter: boolean;
   }
 
   export interface Emits<T> {

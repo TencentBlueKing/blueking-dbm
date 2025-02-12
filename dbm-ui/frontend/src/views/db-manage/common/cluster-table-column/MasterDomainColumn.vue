@@ -19,6 +19,7 @@
           },
         ]"
         :has-selected="selectedList.length > 0"
+        :is-filter="isFilter"
         @handle-copy-all="handleCopyAll"
         @handle-copy-selected="handleCopySelected">
         {{ label }}
@@ -104,6 +105,7 @@
     clusterType: clusterType;
     dbType?: DBTypes;
     selectedList: ClusterModel<clusterType>[];
+    isFilter: boolean;
     // eslint-disable-next-line vue/no-unused-properties
     getTableInstance: () => InstanceType<typeof DbTable> | undefined;
   }
@@ -177,7 +179,7 @@
   };
 
   const handleCopy = (data: string) => {
-    execCopy(data, t('复制成功'));
+    execCopy(data, t('复制成功，共n条', { n: 1 }));
   };
 
   const handleToDetails = (id: number) => {

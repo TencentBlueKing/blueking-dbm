@@ -84,9 +84,9 @@
 
   import type { HostInfo } from '@services/types';
 
-  import { useCopy } from '@hooks';
-
   import DbStatus from '@components/db-status/index.vue';
+
+  import { execCopy } from '@utils';
 
   import tableSetting from './common/tableSetting';
   import useLocalPagination from './hook/useLocalPagination';
@@ -103,7 +103,6 @@
   const emits = defineEmits<Emits>();
 
   const { t } = useI18n();
-  const copy = useCopy();
   const isLoading = ref(false);
   const localData = shallowRef(props.data);
   const isShowTable = ref(true);
@@ -249,7 +248,7 @@
   // 复制所有主机IP
   const handleCopyAll = () => {
     const ipList = serachList.value.map(_ => _.ip);
-    copy(ipList.join('\n'));
+    execCopy(ipList.join('\n'), t('复制成功，共n条', { n: ipList.length }));
   };
 
   // 复制异常主机IP
@@ -260,7 +259,7 @@
       }
       return result;
     }, [] as Array<string>);
-    copy(abnormalList.join('\n'));
+    execCopy(abnormalList.join('\n'), t('复制成功，共n条', { n: abnormalList.length }));
   };
 </script>
 <style lang="less" scoped>
