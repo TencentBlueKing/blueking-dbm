@@ -26,7 +26,9 @@
     :tab-list-config="tabListConfig"
     @change="handelClusterChange" />
 </template>
-
+<script lang="ts">
+  const clusterIdMemo: { [key: string]: Record<string, boolean> } = {};
+</script>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
@@ -40,6 +42,8 @@
   import ClusterSelector, { type TabConfig } from '@components/cluster-selector/Index.vue';
 
   import TableSeletorInput from '@views/db-manage/common/TableSeletorInput.vue';
+
+  import { random } from '@utils';
 
   interface Props {
     sourceClusterId: number;
@@ -60,6 +64,8 @@
   });
 
   const { t } = useI18n();
+  const instanceKey = `render_cluster_${random()}`;
+  clusterIdMemo[instanceKey] = {};
 
   const editRef = ref<InstanceType<typeof TableSeletorInput>>();
   const isShowSelector = ref(false);
@@ -111,12 +117,30 @@
         }).then((data) => {
           if (data.length === list.length) {
             localClusterId.value = data[0].id;
+            clusterIdMemo[instanceKey] = {
+              [data[0].id]: true,
+            };
             return true;
           }
           return false;
         });
       },
       message: t('目标集群不存在'),
+    },
+    {
+      validator: () => {
+        const otherClusterMemoMap = { ...clusterIdMemo };
+        delete otherClusterMemoMap[instanceKey];
+        const otherClusterIdMap = Object.values(otherClusterMemoMap).reduce(
+          (result, item) => ({
+            ...result,
+            ...item,
+          }),
+          {} as Record<string, boolean>,
+        );
+        return !otherClusterIdMap[localClusterId.value];
+      },
+      message: t('目标集群重复'),
     },
   ];
 
@@ -158,12 +182,21 @@
     (id) => {
       if (id) {
         queryClustersById(id);
+        clusterIdMemo[instanceKey] = {
+          [id]: true,
+        };
+        return;
       }
+      clusterIdMemo[instanceKey] = {};
     },
     {
       immediate: true,
     },
   );
+
+  onBeforeUnmount(() => {
+    delete clusterIdMemo[instanceKey];
+  });
 
   defineExpose<Exposes>({
     getValue() {
