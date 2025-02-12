@@ -138,6 +138,7 @@
       | SqlServerSingleModel
   ">
   import _ from 'lodash';
+  import type { VNode } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import MongodbModel from '@services/model/mongodb/mongodb';
@@ -210,7 +211,7 @@
     };
   }
 
-  interface Props {
+  export interface Props<T> {
     selected: Record<string, T[]>;
     clusterTypes: string[];
     tabListConfig?: Record<string, TabConfig>;
@@ -219,19 +220,21 @@
     disableDialogSubmitMethod?: (hostList: Array<string>) => string | boolean;
   }
 
-  interface Emits {
-    (e: 'change', value: Props['selected']): void;
+  export interface Emits<T> {
+    (e: 'change', value: Props<T>['selected']): void;
   }
 
-  const props = defineProps<Props>();
+  const props = defineProps<Props<T>>();
 
-  const emits = defineEmits<Emits>();
+  const emits = defineEmits<Emits<T>>();
 
   const isShow = defineModel<boolean>('isShow', {
     default: false,
   });
 
-  const slots = useSlots();
+  const slots = defineSlots<{
+    submitTips?: () => VNode;
+  }>();
   const copy = useCopy();
   const { dialogWidth } = useSelectorDialogWidth();
   const { t } = useI18n();

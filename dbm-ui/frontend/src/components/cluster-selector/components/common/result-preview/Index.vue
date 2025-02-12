@@ -44,24 +44,24 @@
     </template>
   </template>
 </template>
-<script setup lang="tsx" generic="T extends Record<string, any>">
+<script setup lang="tsx">
   import _ from 'lodash';
 
   import type { SelectMapValueType } from '../../../Index.vue';
 
   import CollapseMini from './CollapseMini.vue';
 
-  type Selected = Record<string, T[]>;
+  type Selected = Record<string, Record<string, any>[]>;
 
   interface Props {
     tabList: { name: string; id: string }[];
-    selectedMap: SelectMapValueType<T>;
+    selectedMap: SelectMapValueType<Record<string, any>>;
     showTitle?: boolean;
     displayKey?: string;
   }
 
   interface Emits {
-    (e: 'delete', value: T, tabKey: string): void;
+    (e: 'delete', value: Record<string, any>, tabKey: string): void;
   }
 
   const props = withDefaults(defineProps<Props>(), {
