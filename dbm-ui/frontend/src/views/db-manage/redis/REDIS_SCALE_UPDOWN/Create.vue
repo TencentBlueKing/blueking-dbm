@@ -93,7 +93,7 @@
 
   import { useCreateTicket } from '@hooks';
 
-  import { TicketTypes } from '@common/const';
+  import { ClusterTypes, TicketTypes } from '@common/const';
 
   import TicketPayload, {
     createTickePayload,
@@ -152,7 +152,7 @@
     cluster: data.cluster || {
       id: 0,
       master_domain: '',
-      cluster_type: '',
+      cluster_type: ClusterTypes.REDIS_CLUSTER,
       cluster_type_name: '',
       major_version: '',
       shard_num: 0,
@@ -297,6 +297,7 @@
               major_version: item.major_version,
               disaster_tolerance_level: item.disaster_tolerance_level,
             },
+            switchMode: 'user_confirm',
           }),
         );
       }

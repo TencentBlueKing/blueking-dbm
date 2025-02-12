@@ -347,6 +347,7 @@
     data: TendbClusterModel;
   }
 
+  const clusterId = defineModel<number>('clusterId');
   const route = useRoute();
   const router = useRouter();
   const { t } = useI18n();
@@ -379,8 +380,6 @@
     fetchDataFn: () => fetchTableData(),
     searchType: ClusterTypes.TENDBCLUSTER,
   });
-
-  const clusterId = defineModel<number>('clusterId');
 
   const tableRef = ref<InstanceType<typeof DbTable>>();
   const removeMNTInstanceIds = ref<number[]>([]);
@@ -630,12 +629,15 @@
             infos: [
               {
                 cluster_id: data.id,
-                spider_ip_list: data.spider_mnt
-                  .filter((item) => removeMNTInstanceIds.value.includes(item.bk_instance_id))
-                  .map((item) => ({
-                    bk_cloud_id: item.bk_cloud_id,
-                    ip: item.ip,
-                  })),
+                old_nodes: {
+                  spider_ip_list: data.spider_mnt
+                    .filter((item) => removeMNTInstanceIds.value.includes(item.bk_instance_id))
+                    .map((item) => ({
+                      bk_cloud_id: item.bk_cloud_id,
+                      bk_host_id: item.bk_host_id,
+                      ip: item.ip,
+                    })),
+                },
               },
             ],
             is_safe: true,
