@@ -50,7 +50,7 @@
           v-model="isShowBatchEdit.backupSource"
           :data-list="backupSourceList"
           :title="t('备份源')"
-          @change="(value) => handleBatchEdit('backupSource', value)">
+          @change="(value: string) => handleBatchEdit('backupSource', value)">
           <BatchOperateIcon
             class="ml-4"
             type="edit"
@@ -133,7 +133,7 @@
             :placeholder="t('请输入,如需输入多个用回车换行')"
             :title="t('回档DB')"
             type="textarea"
-            @change="(value) => handleBatchEdit('databases', value)">
+            @change="(value: string) => handleBatchEdit('databases', value)">
             <BatchOperateIcon
               class="ml-4"
               type="edit"
@@ -152,7 +152,7 @@
             :placeholder="t('请输入,如需输入多个用回车换行')"
             :title="t('忽略DB')"
             type="textarea"
-            @change="(value) => handleBatchEdit('databasesIgnore', value)">
+            @change="(value: string[]) => handleBatchEdit('databasesIgnore', value)">
             <BatchOperateIcon
               class="ml-4"
               type="edit"
@@ -170,7 +170,7 @@
             :placeholder="t('请输入,如需输入多个用回车换行')"
             :title="t('回档表名')"
             type="textarea"
-            @change="(value) => handleBatchEdit('tables', value)">
+            @change="(value: string[]) => handleBatchEdit('tables', value)">
             <BatchOperateIcon
               class="ml-4"
               type="edit"
@@ -189,7 +189,7 @@
             :placeholder="t('请输入,如需输入多个用回车换行')"
             :title="t('忽略表名')"
             type="textarea"
-            @change="(value) => handleBatchEdit('tablesIgnore', value)">
+            @change="(value: string[]) => handleBatchEdit('tablesIgnore', value)">
             <BatchOperateIcon
               class="ml-4"
               type="edit"
