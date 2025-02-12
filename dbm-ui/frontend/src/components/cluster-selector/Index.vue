@@ -110,7 +110,7 @@
       <span v-bk-tooltips="submitButtonDisabledInfo.tooltips">
         <BkButton
           class="cluster-selector-button mr-8"
-          :disabled="submitButtonDisabledInfo.disabled"
+          :disabled="submitButtonDisabledInfo.disabled || selectedMap[activeTab].list.length === 0"
           theme="primary"
           @click="handleConfirm">
           {{ t('确定') }}

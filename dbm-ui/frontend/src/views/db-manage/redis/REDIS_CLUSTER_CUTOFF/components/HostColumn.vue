@@ -16,7 +16,7 @@
     :append-rules="rules"
     field="host.ip"
     fixed="left"
-    :label="t('目标从库主机')"
+    :label="t('目标主机')"
     :loading="loading"
     :min-width="150"
     required>

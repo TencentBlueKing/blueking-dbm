@@ -1312,6 +1312,7 @@
                   .map(item => ({
                     ip: item.ip,
                     bk_cloud_id: item.bk_cloud_id,
+                    bk_host_id: item.bk_host_id,
                   })),
                 }
               },
