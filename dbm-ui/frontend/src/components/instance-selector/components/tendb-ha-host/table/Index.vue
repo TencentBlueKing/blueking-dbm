@@ -198,7 +198,7 @@
       field: props.firsrColumn?.field ? props.firsrColumn.field : 'instance_address',
     },
     {
-      label: t('关联的从库实例'),
+      label: t('关联实例'),
       field: 'related_instances',
       width: 200,
       render: ({ data }: DataRow) => <RenderInstance data={data.related_instances || []}></RenderInstance>,
