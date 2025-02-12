@@ -127,7 +127,7 @@
       cluster_id: props.id,
       cluster_entry_details: [
         {
-          cluster_entry_type: props.data.type,
+          cluster_entry_type: props.data.cluster_entry_type,
           domain_name: props.data.entry,
           target_instances: localValue.value.split('\n').map((row) => `${row}#${props.data.port}`),
         },
