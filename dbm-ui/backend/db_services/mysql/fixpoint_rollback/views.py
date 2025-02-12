@@ -62,6 +62,7 @@ class FixPointRollbackViewSet(viewsets.SystemViewSet):
         start_time = end_time - timedelta(days=validated_data["days"])
         handler = FixPointRollbackHandler(validated_data["cluster_id"], check_full_backup=True)
         logs = handler.query_backup_log_from_bklog(start_time, end_time)
+        logs.sort(key=lambda x: x["backup_time"], reverse=True)
         return Response(logs)
 
     @common_swagger_auto_schema(

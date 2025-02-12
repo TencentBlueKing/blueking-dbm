@@ -18,10 +18,7 @@ from django.utils.translation import ugettext as _
 from backend.components.bklog.handler import BKLogHandler
 from backend.db_meta.enums import ClusterType, InstanceInnerRole, InstanceStatus
 from backend.db_meta.models.cluster import Cluster
-from backend.db_services.mysql.fixpoint_rollback.constants import (
-    BACKUP_LOG_RANGE_DAYS,
-    BACKUP_LOG_ROLLBACK_TIME_RANGE_DAYS,
-)
+from backend.db_services.mysql.fixpoint_rollback.constants import BACKUP_LOG_ROLLBACK_TIME_RANGE_DAYS
 from backend.exceptions import AppBaseException
 from backend.flow.engine.bamboo.scene.mysql.common.get_local_backup import get_local_backup_list
 from backend.ticket.builders.common.constants import MySQLBackupSource
@@ -270,7 +267,7 @@ class FixPointRollbackHandler:
 
         backup_logs = self._get_log_from_bklog(
             collector="mysql_dbbackup_result",
-            start_time=end_time - timedelta(days=BACKUP_LOG_RANGE_DAYS),
+            start_time=end_time - timedelta(days=7),
             end_time=end_time,
             query_string=f'log: "cluster_id: \\"{self.cluster.id}\\""',
         )

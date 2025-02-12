@@ -28,7 +28,7 @@ logger = logging.getLogger("root")
 class MetaCheckReportSerializer(serializers.ModelSerializer, ReportCommonFieldSerializerMixin):
     class Meta:
         model = MetaCheckReport
-        fields = ("bk_biz_id", "ip", "port", "machine_type", "status", "msg", "create_at", "dba")
+        fields = ("bk_biz_id", "cluster", "ip", "port", "machine_type", "status", "msg", "create_at", "dba")
         swagger_schema_fields = {"example": mock_data.META_CHECK_DATA}
 
 
@@ -44,6 +44,11 @@ class MetaCheckReportBaseViewSet(ReportBaseViewSet):
         {
             "name": "dba",
             "display_name": _("DBA"),
+            "format": ReportFieldFormat.TEXT.value,
+        },
+        {
+            "name": "cluster",
+            "display_name": _("集群域名"),
             "format": ReportFieldFormat.TEXT.value,
         },
         {
