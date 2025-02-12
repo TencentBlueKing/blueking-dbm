@@ -69,10 +69,17 @@ class ReportCommonViewSet(viewsets.SystemViewSet):
     )
     @action(methods=["GET"], detail=False, serializer_class=GetReportOverviewSerializer)
     def get_report_overview(self, request, *args, **kwargs):
+        # 获取巡检报告类型与db组件映射
+        report_type__db_map = {
+            cls.report_type: db_type for db_type, report_cls_list in db_report_maps.items() for cls in report_cls_list
+        }
+
+        # 按照ReportType顺序分类
         db_report_types = defaultdict(list)
-        for db_type, report_cls_list in db_report_maps.items():
-            db_report_types[db_type] = [cls.report_type for cls in report_cls_list]
-            db_report_types[db_type].sort()
+        for report_type in ReportType.get_values():
+            if report_type in report_type__db_map:
+                db_report_types[report_type__db_map[report_type]].append(report_type)
+
         return Response(db_report_types)
 
     @common_swagger_auto_schema(

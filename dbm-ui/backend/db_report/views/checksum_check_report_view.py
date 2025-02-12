@@ -34,7 +34,6 @@ class ChecksumCheckReportSerializer(serializers.ModelSerializer):
 class ChecksumCheckReportBaseViewSet(ReportBaseViewSet):
     queryset = ChecksumCheckReport.objects.all().order_by("-create_at")
     serializer_class = ChecksumCheckReportSerializer
-    report_name = _("数据校验")
     report_title = [
         {
             "name": "id",

@@ -37,8 +37,8 @@ class ChecksumInstanceViewSet(ReportBaseViewSet):
     filter_fields = {
         "report_id": ["exact"],
     }
-    report_name = _("失败的从库实例详情")
     report_title = []
+    action_permission_map = {("list",): []}
 
     @common_swagger_auto_schema(
         operation_summary=_("失败的从库实例详情"),

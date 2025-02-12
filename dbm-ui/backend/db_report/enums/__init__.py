@@ -30,12 +30,13 @@ class ReportFieldFormat(str, StructuredEnum):
 
 
 class ReportType(str, StructuredEnum):
-    CHECKSUM = EnumField("checksum", _("数据校验"))
-    FULL_BACKUP_CHECK = EnumField("full_backup_check", _("全备校验"))
-    BINLOG_BACKUP_CHECK = EnumField("binlog_backup_check", _("集群binlog检查"))
+    """巡检报告类型，定义的顺序决定在页面展示的顺序"""
+
+    META_CHECK = EnumField("meta_check", _("元数据检查"))
+    FULL_BACKUP_CHECK = EnumField("full_backup_check", _("全备检查"))
+    BINLOG_BACKUP_CHECK = EnumField("binlog_backup_check", _("binlog检查"))
+    CHECKSUM = EnumField("checksum", _("数据校验检查"))
 
     ALONE_INSTANCE_CHECK = EnumField("alone_instance_check", _("孤立实例检查"))
     STATUS_ABNORMAL_CHECK = EnumField("status_abnormal_check", _("实例异常状态检查"))
-    META_CHECK = EnumField("meta_check", _("元数据检查"))
-
     REDIS_DBMON_HEARTBEAT_CHECK = EnumField("dbmon_heartbeat_check", _("dbmon心跳超时检查"))

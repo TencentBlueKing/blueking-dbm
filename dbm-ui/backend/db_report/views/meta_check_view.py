@@ -35,7 +35,6 @@ class MetaCheckReportSerializer(serializers.ModelSerializer, ReportCommonFieldSe
 class MetaCheckReportBaseViewSet(ReportBaseViewSet):
     queryset = MetaCheckReport.objects.all()
     serializer_class = MetaCheckReportSerializer
-    report_name = _("元数据检查")
     report_title = [
         {
             "name": "bk_biz_id",
