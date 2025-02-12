@@ -6,65 +6,66 @@
     @after-show="handleAfterShow"
     @cancel="() => (isShow = false)"
     @confirm="handleConfirm">
-    <slot />
+    <span>
+      <slot />
+    </span>
     <template #content>
       <div class="batch-edit-column-select">
         <div class="main-title">{{ titlePrefixTypeMap[titlePrefixType] }}{{ title }}</div>
-        <slot
-          v-if="slots.content"
-          name="content" />
-        <div v-else>
-          <div
-            class="title-spot edit-title"
-            style="font-weight: normal">
-            {{ title }} <span class="required" />
+        <slot name="content">
+          <div>
+            <div
+              class="title-spot edit-title"
+              style="font-weight: normal">
+              {{ title }} <span class="required" />
+            </div>
+            <BkSelect
+              v-if="type === 'select'"
+              :clearable="false"
+              :disabled="disabled"
+              filterable
+              :list="dataList"
+              :model-value="localValue"
+              @change="handleChange" />
+            <BkInput
+              v-else-if="type === 'textarea'"
+              ref="inputRef"
+              v-model="localValue"
+              :placeholder="placeholder"
+              :rows="5"
+              type="textarea"
+              @change="handleChange" />
+            <BkInput
+              v-else-if="type === 'input'"
+              :disabled="disabled"
+              :model-value="localValue"
+              @change="handleChange" />
+            <BkInput
+              v-else-if="type === 'number-input'"
+              :disabled="disabled"
+              :model-value="localValue"
+              type="number"
+              @change="handleChange" />
+            <BkTagInput
+              v-else-if="type === 'taginput'"
+              allow-auto-match
+              allow-create
+              :disabled="disabled"
+              has-delete-icon
+              :model-value="localValue"
+              :paste-fn="tagInputPasteFn"
+              @change="handleChange" />
+            <BkDatePicker
+              v-else-if="type === 'datetime'"
+              :clearable="false"
+              :disabled="disabled"
+              :disabled-date="disableFn"
+              :model-value="localValue"
+              type="datetime"
+              @change="handleChange">
+            </BkDatePicker>
           </div>
-          <BkSelect
-            v-if="type === 'select'"
-            :clearable="false"
-            :disabled="disabled"
-            filterable
-            :list="dataList"
-            :model-value="localValue"
-            @change="handleChange" />
-          <BkInput
-            v-else-if="type === 'textarea'"
-            ref="inputRef"
-            v-model="localValue"
-            :placeholder="placeholder"
-            :rows="5"
-            type="textarea"
-            @change="handleChange" />
-          <BkInput
-            v-else-if="type === 'input'"
-            :disabled="disabled"
-            :model-value="localValue as string"
-            @change="handleChange" />
-          <BkInput
-            v-else-if="type === 'number-input'"
-            :disabled="disabled"
-            :model-value="localValue as string"
-            type="number"
-            @change="handleChange" />
-          <BkTagInput
-            v-else-if="type === 'taginput'"
-            allow-auto-match
-            allow-create
-            :disabled="disabled"
-            has-delete-icon
-            :model-value="localValue as string[]"
-            :paste-fn="tagInputPasteFn"
-            @change="handleChange" />
-          <BkDatePicker
-            v-else-if="type === 'datetime'"
-            :clearable="false"
-            :disabled="disabled"
-            :disabled-date="disableFn"
-            :model-value="localValue as string"
-            type="datetime"
-            @change="handleChange">
-          </BkDatePicker>
-        </div>
+        </slot>
       </div>
     </template>
   </BkPopConfirm>
@@ -105,7 +106,7 @@
   const isShow = defineModel<boolean>({
     default: false,
   });
-  const slots = useSlots();
+  // const slots = useSlots();
 
   const { t } = useI18n();
 

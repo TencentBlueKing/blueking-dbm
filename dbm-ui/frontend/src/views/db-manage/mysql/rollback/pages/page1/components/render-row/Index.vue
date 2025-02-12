@@ -17,6 +17,7 @@
       <RenderCluster
         ref="clusterRef"
         :model-value="localClusterData"
+        :unique="rollbackClusterType === RollbackClusterTypes.BUILD_INTO_METACLUSTER"
         @change="handleClusterChange" />
     </FixedColumn>
     <template v-if="showHostColumn">
