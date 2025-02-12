@@ -16,7 +16,7 @@ from typing import Dict, Optional
 from django.utils.translation import ugettext as _
 
 from backend.components import DRSApi
-from backend.configuration.constants import DBType
+from backend.configuration.constants import DBType, MySQLMonitorPauseTime
 from backend.constants import IP_PORT_DIVIDER, IP_PORT_DIVIDER_FOR_DNS
 from backend.db_meta.enums import ClusterType, InstanceInnerRole, InstancePhase, InstanceStatus
 from backend.db_meta.exceptions import InstanceNotExistException
@@ -371,18 +371,18 @@ class MySQLRestoreSlaveRemoteFlow(object):
                     cluster_type=ClusterType.TenDBHA.value,
                 )
             )
-            # tendb_migrate_pipeline.add_act(
-            #     act_name=_("屏蔽监控 {}").format(self.data["new_slave_ip"]),
-            #     act_component_code=MysqlCrondMonitorControlComponent.code,
-            #     kwargs=asdict(
-            #         CrondMonitorKwargs(
-            #             bk_cloud_id=cluster_class.bk_cloud_id,
-            #             exec_ips=[self.data["new_slave_ip"]],
-            #             port=0,
-            #             minutes=240,
-            #         )
-            #     ),
-            # )
+            tendb_migrate_pipeline.add_act(
+                act_name=_("屏蔽监控 {}").format(self.data["new_slave_ip"]),
+                act_component_code=MysqlCrondMonitorControlComponent.code,
+                kwargs=asdict(
+                    CrondMonitorKwargs(
+                        bk_cloud_id=cluster_class.bk_cloud_id,
+                        exec_ips=[self.data["new_slave_ip"]],
+                        port=0,
+                        minutes=MySQLMonitorPauseTime.SLAVE_DELAY,
+                    )
+                ),
+            )
 
             if not self.add_slave_only:
                 # 人工确认切换迁移实例
@@ -400,6 +400,18 @@ class MySQLRestoreSlaveRemoteFlow(object):
                         is_init=False,
                         cluster_type=ClusterType.TenDBHA.value,
                     )
+                )
+                tendb_migrate_pipeline.add_act(
+                    act_name=_("切换后解除屏蔽监控 {}").format(self.data["new_slave_ip"]),
+                    act_component_code=MysqlCrondMonitorControlComponent.code,
+                    kwargs=asdict(
+                        CrondMonitorKwargs(
+                            bk_cloud_id=cluster_class.bk_cloud_id,
+                            exec_ips=[self.data["new_slave_ip"]],
+                            port=0,
+                            enable=True,
+                        )
+                    ),
                 )
                 # 卸载流程人工确认
                 tendb_migrate_pipeline.add_act(
@@ -514,13 +526,14 @@ class MySQLRestoreSlaveRemoteFlow(object):
             )
             # 屏蔽
             tendb_migrate_pipeline.add_act(
-                act_name=_("屏蔽监控 {}").format(target_slave.ip_port),
+                act_name=_("数据恢复屏蔽监控 {}").format(target_slave.ip_port),
                 act_component_code=MysqlCrondMonitorControlComponent.code,
                 kwargs=asdict(
                     CrondMonitorKwargs(
                         bk_cloud_id=cluster_model.bk_cloud_id,
                         exec_ips=[target_slave.machine.ip],
                         port=target_slave.port,
+                        minutes=MySQLMonitorPauseTime.RESTORE_DATA,
                     )
                 ),
             )
@@ -592,6 +605,19 @@ class MySQLRestoreSlaveRemoteFlow(object):
                 if priv_sub_flow:
                     tendb_migrate_pipeline.add_sub_pipeline(sub_flow=priv_sub_flow)
 
+            # 屏蔽
+            tendb_migrate_pipeline.add_act(
+                act_name=_("数据同步屏蔽监控 {}").format(target_slave.ip_port),
+                act_component_code=MysqlCrondMonitorControlComponent.code,
+                kwargs=asdict(
+                    CrondMonitorKwargs(
+                        bk_cloud_id=cluster_model.bk_cloud_id,
+                        exec_ips=[target_slave.machine.ip],
+                        port=target_slave.port,
+                        minutes=MySQLMonitorPauseTime.SLAVE_DELAY,
+                    )
+                ),
+            )
             # 卸载流程人工确认
             tendb_migrate_pipeline.add_act(act_name=_("人工确认"), act_component_code=PauseComponent.code, kwargs={})
             #  克隆权限
@@ -698,6 +724,18 @@ class MySQLRestoreSlaveRemoteFlow(object):
                     parent_global_data=copy.deepcopy(self.data),
                     cluster_type=ClusterType.TenDBHA.value,
                 )
+            )
+            tendb_migrate_pipeline.add_act(
+                act_name=_("切换后解除屏蔽监控 {}").format(self.data["new_slave_ip"]),
+                act_component_code=MysqlCrondMonitorControlComponent.code,
+                kwargs=asdict(
+                    CrondMonitorKwargs(
+                        bk_cloud_id=cluster_model.bk_cloud_id,
+                        exec_ips=[target_slave.machine.ip],
+                        port=target_slave.port,
+                        enable=True,
+                    )
+                ),
             )
 
             tendb_migrate_pipeline_list.append(

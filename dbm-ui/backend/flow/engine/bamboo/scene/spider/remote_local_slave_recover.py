@@ -17,7 +17,7 @@ from django.utils.crypto import get_random_string
 from django.utils.translation import ugettext as _
 
 from backend.components import DRSApi
-from backend.configuration.constants import DBType
+from backend.configuration.constants import DBType, MySQLMonitorPauseTime
 from backend.db_meta.enums import InstancePhase, InstanceStatus
 from backend.db_meta.exceptions import InstanceNotExistException
 from backend.db_meta.models import Cluster
@@ -174,6 +174,7 @@ class TenDBRemoteSlaveLocalRecoverFlow(object):
                             bk_cloud_id=cluster_class.bk_cloud_id,
                             exec_ips=[target_slave.machine.ip],
                             port=target_slave.port,
+                            minutes=MySQLMonitorPauseTime.RESTORE_DATA,
                         )
                     ),
                 )
@@ -286,6 +287,17 @@ class TenDBRemoteSlaveLocalRecoverFlow(object):
                     parent_global_data=copy.deepcopy(self.data),
                     cluster_type=cluster_class.cluster_type,
                 )
+            )
+            tendb_migrate_pipeline.add_act(
+                act_name=_("解除屏蔽监控 {}").format(self.data["slave_ip"]),
+                act_component_code=MysqlCrondMonitorControlComponent.code,
+                kwargs=asdict(
+                    CrondMonitorKwargs(
+                        bk_cloud_id=cluster_class.bk_cloud_id,
+                        exec_ips=[self.data["slave_ip"]],
+                        port=0,
+                    )
+                ),
             )
             tendb_migrate_pipeline_all_list.append(
                 tendb_migrate_pipeline.build_sub_process(_("slave原地重建{}".format(self.data["slave_ip"])))

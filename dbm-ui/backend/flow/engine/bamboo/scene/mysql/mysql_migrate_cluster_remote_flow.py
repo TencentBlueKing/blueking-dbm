@@ -19,7 +19,7 @@ from django.utils.translation import ugettext as _
 
 from backend.components import DBConfigApi
 from backend.components.dbconfig.constants import FormatType, LevelName
-from backend.configuration.constants import DBType
+from backend.configuration.constants import DBType, MySQLMonitorPauseTime
 from backend.constants import IP_PORT_DIVIDER
 from backend.db_meta.enums import ClusterType, InstanceInnerRole, InstanceStatus
 from backend.db_meta.models import Cluster
@@ -45,12 +45,14 @@ from backend.flow.plugins.components.collections.common.download_backup_client i
 from backend.flow.plugins.components.collections.common.pause import PauseComponent
 from backend.flow.plugins.components.collections.mysql.clear_machine import MySQLClearMachineComponent
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
+from backend.flow.plugins.components.collections.mysql.mysql_crond_control import MysqlCrondMonitorControlComponent
 from backend.flow.plugins.components.collections.mysql.mysql_db_meta import MySQLDBMetaComponent
 from backend.flow.plugins.components.collections.mysql.trans_flies import TransFileComponent
 from backend.flow.utils.common_act_dataclass import DownloadBackupClientKwargs
 from backend.flow.utils.mysql.common.mysql_cluster_info import get_ports, get_version_and_charset
 from backend.flow.utils.mysql.mysql_act_dataclass import (
     ClearMachineKwargs,
+    CrondMonitorKwargs,
     DBMetaOPKwargs,
     DownloadMediaKwargs,
     ExecActuatorKwargs,
@@ -267,7 +269,7 @@ class MySQLMigrateClusterRemoteFlow(object):
                     )
                 else:
                     rollback_time = datetime.now(timezone.utc)
-                    rollback_handler = FixPointRollbackHandler(cluster_id=cluster_model.id)
+                    rollback_handler = FixPointRollbackHandler(cluster_id=cluster_model.id, check_full_backup=True)
                     backup_info = rollback_handler.query_latest_backup_log(rollback_time)
                     if backup_info is None:
                         logger.error("cluster {} backup info not exists".format(cluster_model.id))
@@ -452,18 +454,19 @@ class MySQLMigrateClusterRemoteFlow(object):
                     db_backup_pkg_type=MysqlVersionToDBBackupForMap[self.data["db_version"]],
                 )
             )
-            # tendb_migrate_pipeline.add_act(
-            #     act_name=_("屏蔽监控 {} {}").format(self.data["new_master_ip"], self.data["new_slave_ip"]),
-            #     act_component_code=MysqlCrondMonitorControlComponent.code,
-            #     kwargs=asdict(
-            #         CrondMonitorKwargs(
-            #             bk_cloud_id=cluster_class.bk_cloud_id,
-            #             exec_ips=[self.data["new_master_ip"], self.data["new_slave_ip"]],
-            #             port=0,
-            #             minutes=240,
-            #         )
-            #     ),
-            # )
+            tendb_migrate_pipeline.add_act(
+                act_name=_("屏蔽监控 {} {}").format(self.data["new_master_ip"], self.data["new_slave_ip"]),
+                act_component_code=MysqlCrondMonitorControlComponent.code,
+                kwargs=asdict(
+                    CrondMonitorKwargs(
+                        bk_cloud_id=cluster_class.bk_cloud_id,
+                        exec_ips=[self.data["new_master_ip"], self.data["new_slave_ip"]],
+                        port=0,
+                        minutes=MySQLMonitorPauseTime.SLAVE_DELAY,
+                    )
+                ),
+            )
+
             # 人工确认切换迁移实例
             tendb_migrate_pipeline.add_act(act_name=_("人工确认切换"), act_component_code=PauseComponent.code, kwargs={})
             # 切换迁移实例
@@ -480,6 +483,18 @@ class MySQLMigrateClusterRemoteFlow(object):
                     cluster_type=ClusterType.TenDBHA.value,
                     db_backup_pkg_type=MysqlVersionToDBBackupForMap[self.data["db_version"]],
                 )
+            )
+            tendb_migrate_pipeline.add_act(
+                act_name=_("解除屏蔽监控 {} {}").format(self.data["new_master_ip"], self.data["new_slave_ip"]),
+                act_component_code=MysqlCrondMonitorControlComponent.code,
+                kwargs=asdict(
+                    CrondMonitorKwargs(
+                        bk_cloud_id=cluster_class.bk_cloud_id,
+                        exec_ips=[self.data["new_master_ip"], self.data["new_slave_ip"]],
+                        port=0,
+                        enable=True,
+                    )
+                ),
             )
 
             if use_for_upgrade:

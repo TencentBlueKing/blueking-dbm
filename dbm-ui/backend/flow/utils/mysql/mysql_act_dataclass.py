@@ -408,6 +408,7 @@ class CrondMonitorKwargs:
     port: int = 0
     minutes: int = 1440
     enable: bool = False
+    rewrite: bool = True
 
 
 @dataclass

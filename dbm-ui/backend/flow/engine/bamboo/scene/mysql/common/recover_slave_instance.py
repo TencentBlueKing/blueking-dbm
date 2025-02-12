@@ -64,7 +64,7 @@ def slave_recover_sub_flow(root_id: str, ticket_data: dict, cluster_info: dict):
     }
     # 查询备份
     rollback_time = datetime.now(timezone.utc)
-    rollback_handler = FixPointRollbackHandler(cluster_id=cluster["cluster_id"])
+    rollback_handler = FixPointRollbackHandler(cluster_id=cluster["cluster_id"], check_full_backup=True)
     shard_list = []
     if cluster["cluster_type"] == ClusterType.TenDBCluster:
         shard_list = [int(cluster_info["shard_id"])]

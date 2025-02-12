@@ -17,7 +17,7 @@ from typing import Dict, Optional
 from django.utils import timezone
 from django.utils.translation import ugettext as _
 
-from backend.configuration.constants import DBType
+from backend.configuration.constants import DBType, MySQLMonitorPauseTime
 from backend.constants import IP_PORT_DIVIDER
 from backend.db_meta.enums import ClusterType
 from backend.db_meta.models import Cluster
@@ -42,12 +42,14 @@ from backend.flow.plugins.components.collections.common.download_backup_client i
 from backend.flow.plugins.components.collections.common.pause import PauseComponent
 from backend.flow.plugins.components.collections.mysql.clear_machine import MySQLClearMachineComponent
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
+from backend.flow.plugins.components.collections.mysql.mysql_crond_control import MysqlCrondMonitorControlComponent
 from backend.flow.plugins.components.collections.mysql.trans_flies import TransFileComponent
 from backend.flow.plugins.components.collections.spider.spider_db_meta import SpiderDBMetaComponent
 from backend.flow.utils.common_act_dataclass import DownloadBackupClientKwargs
 from backend.flow.utils.mysql.common.mysql_cluster_info import get_version_and_charset
 from backend.flow.utils.mysql.mysql_act_dataclass import (
     ClearMachineKwargs,
+    CrondMonitorKwargs,
     DBMetaOPKwargs,
     DownloadMediaKwargs,
     ExecActuatorKwargs,
@@ -129,7 +131,7 @@ class TendbClusterMigrateRemoteFlow(object):
             if self.ticket_data["backup_source"] == MySQLBackupSource.REMOTE.value:
                 # 先查询备份，如果备份不存在则退出
                 # restore_time = datetime.strptime("2023-07-31 17:40:00", "%Y-%m-%d %H:%M:%S")
-                backup_handler = FixPointRollbackHandler(cluster_class.id)
+                backup_handler = FixPointRollbackHandler(cluster_class.id, check_full_backup=True)
                 restore_time = datetime.now(timezone.utc)
                 shard_list = [int(shard_id) for shard_id in cluster_info["my_shards"].keys()]
                 backup_info = backup_handler.query_latest_backup_log(restore_time, shard_list=shard_list)
@@ -344,6 +346,19 @@ class TendbClusterMigrateRemoteFlow(object):
                     is_install_backup=False,
                 )
             )
+            surrounding_sub_pipeline.add_act(
+                act_name=_("屏蔽监控 {} {}").format(self.data["new_master_ip"], self.data["new_slave_ip"]),
+                act_component_code=MysqlCrondMonitorControlComponent.code,
+                kwargs=asdict(
+                    CrondMonitorKwargs(
+                        bk_cloud_id=cluster_class.bk_cloud_id,
+                        exec_ips=[self.data["new_master_ip"], self.data["new_slave_ip"]],
+                        port=0,
+                        minutes=MySQLMonitorPauseTime.SLAVE_DELAY,
+                    )
+                ),
+            )
+
             surrounding_sub_pipeline_list.append(surrounding_sub_pipeline.build_sub_process(sub_name=_("新机器安装周边组件")))
 
             re_surrounding_sub_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(self.data))
@@ -357,6 +372,18 @@ class TendbClusterMigrateRemoteFlow(object):
                     is_init=True,
                     cluster_type=ClusterType.TenDBCluster.value,
                 )
+            )
+            re_surrounding_sub_pipeline.add_act(
+                act_name=_("解除屏蔽监控 {} {}").format(self.data["new_master_ip"], self.data["new_slave_ip"]),
+                act_component_code=MysqlCrondMonitorControlComponent.code,
+                kwargs=asdict(
+                    CrondMonitorKwargs(
+                        bk_cloud_id=cluster_class.bk_cloud_id,
+                        exec_ips=[self.data["new_master_ip"], self.data["new_slave_ip"]],
+                        port=0,
+                        enable=True,
+                    )
+                ),
             )
             re_surrounding_sub_pipeline_list.append(
                 re_surrounding_sub_pipeline.build_sub_process(sub_name=_("切换后重新安装周边组件"))

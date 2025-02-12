@@ -55,6 +55,8 @@ class MysqlCrondMonitorControlService(BkJobService):
             cmd_str += " --name-match mysql-monitor-{}-.*".format(kwargs["port"])
         if kwargs["name"] != "":
             cmd_str += " --name {}".format(kwargs["name"])
+        if kwargs["rewrite"] and not kwargs["enable"]:
+            cmd_str += " --rewrite "
         self.log_info(cmd_str)
         body = {
             "bk_biz_id": env.JOB_BLUEKING_BIZ_ID,

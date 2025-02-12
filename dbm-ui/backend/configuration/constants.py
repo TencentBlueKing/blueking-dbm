@@ -24,6 +24,11 @@ MYSQL_USUAL_JOB_TIME = 7200
 MYSQL8_VER_PARSE_NUM = 8000000
 
 
+class MySQLMonitorPauseTime(int, StructuredEnum):
+    RESTORE_DATA = EnumField(1440, _("数据同步时监控屏蔽"))
+    SLAVE_DELAY = EnumField(240, _("数据同步时监控屏蔽"))
+
+
 class DBPrivSecurityType(str, StructuredEnum):
     MYSQL_PASSWORD = EnumField("mysql_password", _("mysql密码策略"))
     REDIS_PASSWORD = EnumField("redis_password_v2", _("redis密码策略"))
