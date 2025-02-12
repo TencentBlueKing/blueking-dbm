@@ -40,7 +40,8 @@
             name: data.bk_cloud_name,
           }"
           :data="nodeInfoMap.hot"
-          :disable-host-method="(hostData) => nodeDisableHostMethod(hostData, 'hot')"
+          :db-type="DBTypes.ES"
+          :disable-host-method="(data: HostInfo) => nodeDisableHostMethod(data, 'hot')"
           :ip-source="ipSource"
           @remove-node="handleRemoveNode" />
       </div>
@@ -60,7 +61,8 @@
             name: data.bk_cloud_name,
           }"
           :data="nodeInfoMap.cold"
-          :disable-host-method="(hostData) => nodeDisableHostMethod(hostData, 'cold')"
+          :db-type="DBTypes.ES"
+          :disable-host-method="(data: HostInfo) => nodeDisableHostMethod(data, 'cold')"
           :ip-source="ipSource"
           @remove-node="handleRemoveNode" />
       </div>
@@ -80,7 +82,8 @@
             name: data.bk_cloud_name,
           }"
           :data="nodeInfoMap.client"
-          :disable-host-method="(hostData) => nodeDisableHostMethod(hostData, 'client')"
+          :db-type="DBTypes.ES"
+          :disable-host-method="(data: HostInfo) => nodeDisableHostMethod(data, 'client')"
           :ip-source="ipSource"
           @remove-node="handleRemoveNode" />
       </div>
@@ -98,7 +101,8 @@
             name: data.bk_cloud_name,
           }"
           :data="nodeInfoMap.master"
-          :disable-host-method="(hostData) => nodeDisableHostMethod(hostData, 'master')"
+          :db-type="DBTypes.ES"
+          :disable-host-method="(data: HostInfo) => nodeDisableHostMethod(data, 'master')"
           :ip-source="ipSource"
           @remove-node="handleRemoveNode" />
       </div>
@@ -123,20 +127,23 @@
   import { useI18n } from 'vue-i18n';
 
   import type EsModel from '@services/model/es/es';
+  import type EsNodeModel from '@services/model/es/es-node';
   import { createTicket } from '@services/source/ticket';
   import type { HostInfo } from '@services/types';
 
   import { useGlobalBizs } from '@stores';
 
-  import { ClusterTypes } from '@common/const';
+  import { ClusterTypes, DBTypes, TicketTypes } from '@common/const';
 
-  import HostReplace, { type TReplaceNode } from '@views/db-manage/common/es-host-replace/Index.vue';
+  import HostReplace, { type TReplaceNode } from '@views/db-manage/common/host-replace/Index.vue';
 
   import { messageError } from '@utils';
 
+  type TNodeInfo = TReplaceNode<EsNodeModel>;
+
   interface Props {
     data: EsModel;
-    nodeList: TReplaceNode['nodeList'];
+    nodeList: TNodeInfo['nodeList'];
   }
 
   interface Emits {
@@ -152,11 +159,11 @@
   const props = defineProps<Props>();
   const emits = defineEmits<Emits>();
 
-  const makeMapByHostId = (hostList: TReplaceNode['hostList']) =>
+  const makeMapByHostId = (hostList: TNodeInfo['hostList']) =>
     hostList.reduce(
       (result, item) => ({
         ...result,
-        [item.host_id]: true,
+        [item.bk_host_id]: true,
       }),
       {} as Record<number, boolean>,
     );
@@ -170,14 +177,13 @@
   const masterRef = ref();
 
   const ipSource = ref('resource_pool');
-  const nodeInfoMap = reactive<Record<string, TReplaceNode>>({
+  const nodeInfoMap = reactive<Record<string, TNodeInfo>>({
     client: {
       clusterId: props.data.id,
       hostList: [],
       nodeList: [],
       resourceSpec: {
         count: 0,
-        instance_num: 1,
         spec_id: 0,
       },
       role: 'es_client',
@@ -190,7 +196,6 @@
       nodeList: [],
       resourceSpec: {
         count: 0,
-        instance_num: 1,
         spec_id: 0,
       },
       role: 'es_datanode_cold',
@@ -203,7 +208,6 @@
       nodeList: [],
       resourceSpec: {
         count: 0,
-        instance_num: 1,
         spec_id: 0,
       },
       role: 'es_datanode_hot',
@@ -216,7 +220,6 @@
       nodeList: [],
       resourceSpec: {
         count: 0,
-        instance_num: 1,
         spec_id: 0,
       },
       role: 'es_master',
@@ -242,10 +245,10 @@
   watch(
     () => props.nodeList,
     () => {
-      const hotList: TReplaceNode['nodeList'] = [];
-      const coldList: TReplaceNode['nodeList'] = [];
-      const clientList: TReplaceNode['nodeList'] = [];
-      const masterList: TReplaceNode['nodeList'] = [];
+      const hotList: TNodeInfo['nodeList'] = [];
+      const coldList: TNodeInfo['nodeList'] = [];
+      const clientList: TNodeInfo['nodeList'] = [];
+      const masterList: TNodeInfo['nodeList'] = [];
 
       props.nodeList.forEach((nodeItem) => {
         if (nodeItem.isHot) {
@@ -283,7 +286,7 @@
     return false;
   };
 
-  const handleRemoveNode = (node: TReplaceNode['nodeList'][0]) => {
+  const handleRemoveNode = (node: TNodeInfo['nodeList'][0]) => {
     emits('removeNode', node.bk_host_id);
   };
 
@@ -351,12 +354,25 @@
               onConfirm: () => {
                 const nodeData = {};
                 if (ipSource.value === 'manual_input') {
+                  const formatHost = (hostList: TNodeInfo['hostList'] = []) => {
+                    const hosts = hostList.map((hostItem) => ({
+                      bk_biz_id: hostItem.dedicated_biz,
+                      bk_cloud_id: hostItem.bk_cloud_id,
+                      bk_host_id: hostItem.bk_host_id,
+                      ip: hostItem.ip,
+                    }));
+                    return {
+                      count: hostList.length,
+                      hosts,
+                      spec_id: 0,
+                    };
+                  };
                   Object.assign(nodeData, {
-                    new_nodes: {
-                      client: clientValue.new_nodes,
-                      cold: coldValue.new_nodes,
-                      hot: hotValue.new_nodes,
-                      master: masterValue.new_nodes,
+                    resource_spec: {
+                      client: formatHost(clientValue.new_nodes),
+                      cold: formatHost(coldValue.new_nodes),
+                      hot: formatHost(hotValue.new_nodes),
+                      master: formatHost(masterValue.new_nodes),
                     },
                   });
                 } else {
@@ -373,7 +389,7 @@
                   bk_biz_id: currentBizId,
                   details: {
                     cluster_id: props.data.id,
-                    ip_source: ipSource.value,
+                    ip_source: 'resource_pool',
                     old_nodes: {
                       client: clientValue.old_nodes,
                       cold: coldValue.old_nodes,
@@ -382,7 +398,7 @@
                     },
                     ...nodeData,
                   },
-                  ticket_type: 'ES_REPLACE',
+                  ticket_type: TicketTypes.ES_REPLACE,
                 }).then(() => {
                   emits('change');
                   resolve('success');

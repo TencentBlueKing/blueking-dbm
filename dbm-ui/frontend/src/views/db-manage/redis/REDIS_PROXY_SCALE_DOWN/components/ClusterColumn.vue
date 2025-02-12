@@ -74,14 +74,14 @@
     master_domain: string;
     cluster_type_name: string;
     role: string;
-    proxy_spec_ids: number[];
+    proxy_count: number;
   }>({
     default: () => ({
       id: undefined,
       master_domain: '',
       cluster_type_name: '',
       role: '',
-      proxy_spec_ids: [],
+      proxy_count: 0,
     }),
   });
 
@@ -152,7 +152,7 @@
           master_domain: currentCluster.master_domain,
           cluster_type_name: currentCluster.cluster_type_name,
           role: 'Proxy',
-          proxy_spec_ids: currentCluster.proxy.map((item) => item.spec_config?.id),
+          proxy_count: currentCluster.proxy.length,
         };
       }
     },
@@ -168,7 +168,7 @@
       master_domain: '',
       cluster_type_name: '',
       role: '',
-      proxy_spec_ids: [],
+      proxy_count: 0,
     };
     if (value) {
       queryCluster({
