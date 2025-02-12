@@ -64,12 +64,12 @@
     disable_merge_partition: false
     disable_merge_rules: false
     merge_rules:
-      - from: "(?P<db>stage_truncate_).+\\..*"
-        to: "${db}_MERGED._MERGED"
-      - from: "(?P<db>bak_20\\d\\d).+\\..*"
-        to: "${db}_MERGED._MERGED"
-      - from: "(bak_cbs)_.+\\.(?P<table>.+)"
-        to: "${1}_MERGED.${table}"
+      - from: (?P<db>stage_truncate_).+\..*
+        to: ${db}_MERGED._MERGED
+      - from: (?P<db>bak_20\d\d).+\..*
+        to: ${db}_MERGED._MERGED
+      - from: (bak_cbs)_.+\.(?P<table>.+)
+        to: ${1}_MERGED.${table}
 - name: master-slave-heartbeat
   enable: true
   schedule: '@every 1m'

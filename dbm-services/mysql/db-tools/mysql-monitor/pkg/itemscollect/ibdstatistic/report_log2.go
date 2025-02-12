@@ -63,7 +63,7 @@ func reportLog2(dbTableSize map[string]int64, dbSize map[string]int64) error {
 					"invalid dbname: '%s' on %s",
 					originalDBName, config.MonitorConfig.MachineType,
 				)
-				slog.Error("ibd-statistic report", slog.String("error", err.Error()))
+				slog.Warn("ibd-statistic report", slog.String("error", err.Error()))
 				// 这里不退出，尽可能上报  dbTableName == "_OTHER_._OTHER_"
 				//return err
 			} else {

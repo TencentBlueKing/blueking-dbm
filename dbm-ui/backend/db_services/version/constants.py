@@ -24,6 +24,12 @@ class MySQLVersion(str, StructuredEnum):
     MySQL56 = EnumField("MySQL-5.6", _("MySQL-5.6"))
     MySQL57 = EnumField("MySQL-5.7", _("MySQL-5.7"))
     MySQL80 = EnumField("MySQL-8.0", _("MySQL-8.0"))
+    TXSQL80 = EnumField("TXSQL-8.0", _("TXSQL-8.0"))
+    TENDB80 = EnumField("TENDB-8.0", _("TENDB-8.0"))
+    MySQL56TokuDB = EnumField("MySQL-5.6-TokuDB", _("MySQL-5.6-TokuDB"))
+    MySQL57RocksDB = EnumField("MySQL-5.7-RocksDB", _("MySQL-5.7-RocksDB"))
+    # MySQL57Community = EnumField("MySQL-5.7-Community", _("MySQL-5.7-Community"))
+    MySQL80Community = EnumField("MySQL-8.0-Community", _("MySQL-8.0-Community"))
 
 
 class SpiderVersion(str, StructuredEnum):
@@ -31,6 +37,7 @@ class SpiderVersion(str, StructuredEnum):
 
     Spider1 = EnumField("Spider-1", _("Spider-1"))
     Spider3 = EnumField("Spider-3", _("Spider-3"))
+    Spider35 = EnumField("Spider-3.5", _("Spider-3.5"))
     Spider36 = EnumField("Spider-3.6", _("Spider-3.6"))
     Spider37 = EnumField("Spider-3.7", _("Spider-3.7"))
     Spider38 = EnumField("Spider-3.8", _("Spider-3.8"))

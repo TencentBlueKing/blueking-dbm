@@ -31,10 +31,16 @@ func (c *ibdStatistic) collectResult2(dataDir string) (map[string]int64, map[str
 		if rule == nil {
 			continue
 		} else if rule.To == "" {
-			return nil, nil, errors.Errorf("rule to cannot be empty for %s", rule.From)
+			err = errors.Errorf("rule to cannot be empty for %s", rule.From)
+			slog.Error("ibd-statistic", slog.String("error", err.Error()))
+			continue
+			//return nil, nil, errors.Errorf("rule to cannot be empty for %s", rule.From)
 		}
 		if reMergeRule, err := regexp.Compile(rule.From); err != nil {
-			return nil, nil, err
+			err = errors.WithMessage(err, "compile merge rule")
+			slog.Error("ibd-statistic", slog.String("error", err.Error()))
+			continue
+			//return nil, nil, err
 		} else {
 			c.reMergeRulesFrom = append(c.reMergeRulesFrom, reMergeRule)
 			c.reMergeRulesTo = append(c.reMergeRulesTo, rule.To)
