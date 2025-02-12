@@ -210,7 +210,7 @@
     },
     {
       label: t('访问入口'),
-      field: 'cluster_name',
+      field: 'master_domain',
       width: 240,
       fixed: 'left',
       showOverflowTooltip: true,

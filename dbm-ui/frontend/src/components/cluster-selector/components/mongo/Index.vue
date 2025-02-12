@@ -224,7 +224,7 @@
     },
     {
       label: t('访问入口'),
-      field: 'cluster_name',
+      field: 'master_domain',
       minWidth: 250,
       showOverflowTooltip: true,
       render: ({ data }: { data: ResourceItem }) => (

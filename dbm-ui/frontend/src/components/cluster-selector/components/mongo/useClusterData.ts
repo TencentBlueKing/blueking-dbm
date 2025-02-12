@@ -12,7 +12,7 @@
  */
 
 import type { ISearchValue } from 'bkui-vue/lib/search-select/utils';
-import { type ComponentInternalInstance, getCurrentInstance, reactive, ref, shallowRef } from 'vue';
+import { type ComponentInternalInstance, getCurrentInstance, reactive, type Ref, ref, shallowRef } from 'vue';
 
 import { getSearchSelectorParams } from '@utils';
 
