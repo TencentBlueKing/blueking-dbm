@@ -110,7 +110,7 @@
   const tabListConfig = {
     TendbhaHost: [
       {
-        id: 'TENDBHA_HOST',
+        id: 'TendbhaHost',
         name: t('目标从库主机'),
         tableConfig: {
           firsrColumn: {
