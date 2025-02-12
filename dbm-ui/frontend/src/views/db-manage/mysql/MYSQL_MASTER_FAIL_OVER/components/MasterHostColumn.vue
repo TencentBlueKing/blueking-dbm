@@ -95,7 +95,7 @@
   const tabListConfig = {
     TendbhaHost: [
       {
-        id: 'TENDBHA_HOST',
+        id: 'TendbhaHost',
         name: t('故障主库主机'),
         tableConfig: {
           firsrColumn: {

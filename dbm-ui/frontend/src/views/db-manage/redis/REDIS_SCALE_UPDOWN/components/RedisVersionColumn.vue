@@ -80,20 +80,27 @@
         label: item,
         value: item,
       }));
-      modelValue.value = versions.includes(props.cluster.major_version) ? props.cluster.major_version : '';
+      versions.forEach((item) => {
+        if (item.indexOf(props.cluster.major_version.toLocaleLowerCase()) > -1) {
+          modelValue.value = item;
+        }
+      });
     },
   });
 
   watch(
     () => props.cluster,
     () => {
-      if (props.cluster) {
+      if (props.cluster.id) {
         fetchVersions({
           node_type: 'Backend',
           type: 'update',
           cluster_id: props.cluster.id,
         });
       }
+    },
+    {
+      immediate: true,
     },
   );
 
