@@ -582,6 +582,10 @@
     resumeFetchTableData();
   });
 
+  watch(searchValue, () => {
+    tableRef.value!.clearSelected();
+  });
+
   const getMenuList = async (item: ISearchItem | undefined, keyword: string) => {
     if (item?.id !== 'creator' && keyword) {
       return getMenuListSearch(item, keyword, searchSelectData.value, searchValue.value);

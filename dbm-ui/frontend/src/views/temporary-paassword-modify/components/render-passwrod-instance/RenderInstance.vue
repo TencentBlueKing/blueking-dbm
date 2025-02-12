@@ -51,14 +51,13 @@
           format="yyyy-MM-dd HH:mm:ss"
           :placeholder="t('请选择')"
           type="datetimerange"
-          @change="getDataSource"
-          @clear="getDataSource" />
+          @change="handleSearchValueChange" />
         <DbSearchSelect
           v-model="searchParams.keys"
           class="ml-8 search-select"
           :data="searchSelectData"
           :placeholder="t('请输入实例搜索')"
-          @change="getDataSource" />
+          @change="handleSearchValueChange" />
       </div>
       <DbTable
         ref="tableRef"
@@ -238,6 +237,11 @@
 
   const hasSelected = computed(() => selected.value.length > 0);
 
+  const handleSearchValueChange = () => {
+    tableRef.value!.clearSelected();
+    getDataSource();
+  }
+
   const getDataSource = () => {
     const keys = getSearchSelectorParams(searchParams.keys);
     const params = {
@@ -262,8 +266,6 @@
   const handlePasswordShow = () => {
     passwordShow.value = !passwordShow.value;
   };
-
-
 
   const handleSelection = (data: AdminPasswordModel, list: AdminPasswordModel[]) => {
     selected.value = list;

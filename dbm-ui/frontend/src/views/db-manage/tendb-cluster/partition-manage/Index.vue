@@ -354,6 +354,10 @@
     },
   ];
 
+  watch(searchValues, () => {
+    tableRef.value!.clearSelected();
+  });
+
   const getRowClass = (data: PartitionModel) => {
     const classList: string[] = [];
     if (data.isOffline) {

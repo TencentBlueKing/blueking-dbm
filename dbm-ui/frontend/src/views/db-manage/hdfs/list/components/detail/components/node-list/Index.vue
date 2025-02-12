@@ -608,6 +608,10 @@
     },
   );
 
+  watch(searchValue, () => {
+    checkedNodeMap.value = {}
+  })
+
   const handleOperationChange = () => {
     fetchNodeList();
     checkedNodeMap.value = {};

@@ -238,10 +238,11 @@
   const tableData = ref<RedisDSTJobTaskModel[]>([]);
   const timer = ref();
   const refreshTimer = ref();
+  const checkedMap = ref<Record<number, boolean>>({});
 
-  const isSelectedAll = computed(() => tableData.value.filter(item => item.checked).length === tableData.value.length);
+  const isSelectedAll = computed(() => tableData.value.length > 0 && Object.values(checkedMap.value).filter(item => item).length === tableData.value.length);
 
-  const isIndeterminate = computed(() => tableData.value.filter(item => item.checked).length > 0);
+  const isIndeterminate = computed(() => Object.values(checkedMap.value).filter(item => item).length > 0);
 
   const whiteRegexs = computed(() => {
     if (props.data?.key_white_regex === undefined || props.data?.key_white_regex === '') {
@@ -280,7 +281,7 @@
         <div style="display:flex;align-items:center;">
           <bk-checkbox
             label={false}
-            model-value={data.checked}
+            model-value={Boolean(checkedMap.value[data.id])}
             disabled={!data.isFailedStatus}
             onChange={() => handleSelectOne(index)}
           />
@@ -291,27 +292,32 @@
     {
       label: 'DtsServer',
       field: 'dts_server',
+      width: 100,
       showOverflowTooltip: true,
     },
     {
       label: t('Task 类型'),
       field: 'task_type',
+      width: 120,
       showOverflowTooltip: true,
     },
     {
       label: t('执行状态'),
       field: 'status',
+      width: 100,
       showOverflowTooltip: true,
       render: ({ data }: { data: RedisDSTJobTaskModel }) => <ExecuteStatus type={data.status} />,
     },
     {
       label: t('执行时间'),
       field: 'update_time',
+      width: 180,
       showOverflowTooltip: true,
     },
     {
       label: t('任务信息'),
       field: 'message',
+      minWidth: 200,
       showOverflowTooltip: true,
     }];
 
@@ -360,9 +366,11 @@
       const regex = new RegExp(encodeRegexp(keyword));
       timer.value = setTimeout(() => {
         tableData.value = tableRawData.filter(item => regex.test(item.src_cluster) || regex.test(item.dts_server));
+        checkedMap.value = {}
       }, 1000);
     } else {
       tableData.value = tableRawData;
+      checkedMap.value = {}
     }
   });
 
@@ -405,22 +413,23 @@
 
   const handleSelectPageAll = (checked: boolean) => {
     if (checked) {
-      tableData.value.forEach((item, index) => {
+      tableData.value.forEach((item) => {
         if (item.isFailedStatus) {
-          tableData.value[index].checked = true;
+          checkedMap.value[item.id] = true
         }
       });
     } else {
-      tableData.value.forEach((item, index) => {
+      tableData.value.forEach((item) => {
         if (item.isFailedStatus) {
-          tableData.value[index].checked = false;
+          checkedMap.value[item.id] = false;
         }
       });
     }
   };
 
   const handleSelectOne = (index: number) => {
-    tableData.value[index].checked = !tableData.value[index].checked;
+    const {id} = tableData.value[index]
+    checkedMap.value[id] = !checkedMap.value[id]
   };
 
   async function handleClose() {
@@ -496,11 +505,11 @@
         }
 
         .content {
+          max-height: 300px;
           margin-left: 5px;
+          overflow-y: auto;
           color: @title-color;
           flex: 1;
-          overflow-y: auto;
-          max-height: 300px;
 
           :deep(.bk-tag) {
             &:hover {

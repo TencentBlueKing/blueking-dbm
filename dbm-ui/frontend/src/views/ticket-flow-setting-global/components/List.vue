@@ -235,6 +235,10 @@
     }
   });
 
+  watch(searchValue, () => {
+    tableRef.value!.clearSelected();
+  });
+
   const fetchData = () => {
     tableRef.value.fetchData({ ...reqParams.value }, {
       db_type: props.dbType,

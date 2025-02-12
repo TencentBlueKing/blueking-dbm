@@ -72,7 +72,7 @@
     roleFilterList?: TableConfigType['roleFilterList'],
     disabledRowConfig?: TableConfigType['disabledRowConfig'],
     // eslint-disable-next-line vue/no-unused-properties
-    getTableList?: TableConfigType['getTableList'],
+    getTableList: NonNullable<TableConfigType['getTableList']>,
     statusFilter?: TableConfigType['statusFilter'],
   }
 
@@ -89,7 +89,6 @@
     activePanelId: 'tendbcluster',
     disabledRowConfig: undefined,
     roleFilterList: undefined,
-    getTableList: undefined,
   });
 
   const emits = defineEmits<Emits>();
@@ -125,6 +124,7 @@
     isLoading,
     data: tableData,
     pagination,
+    generateParams,
     fetchResources,
     handleChangePage,
     handeChangeLimit,
@@ -145,7 +145,7 @@
           label={true}
           model-value={isSelectedAll.value}
           disabled={mainSelectDisable.value}
-          onChange={handleSelectPageAll}
+          onChange={handleWholeSelect}
         />
       ),
       render: ({ data }: DataRow) => {
@@ -290,6 +290,11 @@
     fetchResources();
   });
 
+  watch(searchValue, () => {
+    checkedMap.value = {}
+    triggerChange()
+  })
+
   const triggerChange = () => {
     if (activePanel?.value) {
       emits('change', {
@@ -304,20 +309,39 @@
     }
   };
 
-  const handleSelectPageAll = (checked: boolean) => {
-    const list = tableData.value;
-    if (props.disabledRowConfig) {
-      for (const data of list) {
-        if (!props.disabledRowConfig.handler(data)) {
-          handleTableSelectOne(checked, data);
-        }
-      }
-      return;
-    }
-    for (const item of list) {
-      handleTableSelectOne(checked, item);
+  // 跨页全选
+  const handleWholeSelect = (value: boolean) => {
+    if (value) {
+      isLoading.value = true;
+      const params = generateParams();
+      params.limit = -1;
+      props.getTableList(params).then((data) => {
+        data.results.forEach((dataItem: IValue) => {
+          if (!props.disabledRowConfig?.handler(dataItem)) {
+            handleTableSelectOne(true, dataItem);
+          }
+        });
+      }).finally(() => isLoading.value = false);
+    } else {
+      checkedMap.value = {}
+      triggerChange()
     }
   };
+
+  // const handleSelectPageAll = (checked: boolean) => {
+  //   const list = tableData.value;
+  //   if (props.disabledRowConfig) {
+  //     for (const data of list) {
+  //       if (!props.disabledRowConfig.handler(data)) {
+  //         handleTableSelectOne(checked, data);
+  //       }
+  //     }
+  //     return;
+  //   }
+  //   for (const item of list) {
+  //     handleTableSelectOne(checked, item);
+  //   }
+  // };
 
   const handleTableSelectOne = (checked: boolean, data: IValue) => {
     const lastCheckMap = { ...checkedMap.value };

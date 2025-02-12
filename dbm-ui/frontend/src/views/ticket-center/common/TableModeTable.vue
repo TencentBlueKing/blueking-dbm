@@ -361,6 +361,9 @@
       pagination.current = 1;
     }
 
+    if (props.selectable) {
+      handleClearWholeSelect();
+    }
     fetchData();
   });
 
