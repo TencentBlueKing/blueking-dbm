@@ -40,6 +40,7 @@
             name: data.bk_cloud_name,
           }"
           :data="nodeInfoMap.hot"
+          :db-type="DBTypes.DORIS"
           :disable-host-method="(data: HostInfo) => disableHostMethod(data, ['observer', 'follower', 'cold'])"
           :ip-source="ipSource"
           @remove-node="handleRemoveNode" />
@@ -60,6 +61,7 @@
             name: data.bk_cloud_name,
           }"
           :data="nodeInfoMap.cold"
+          :db-type="DBTypes.DORIS"
           :disable-host-method="(data: HostInfo) => disableHostMethod(data, ['observer', 'follower', 'hot'])"
           :ip-source="ipSource"
           @remove-node="handleRemoveNode" />
@@ -80,6 +82,7 @@
             name: data.bk_cloud_name,
           }"
           :data="nodeInfoMap.observer"
+          :db-type="DBTypes.DORIS"
           :disable-host-method="(data: HostInfo) => disableHostMethod(data, ['follower', 'hot', 'cold'])"
           :ip-source="ipSource"
           @remove-node="handleRemoveNode" />
@@ -100,6 +103,7 @@
             name: data.bk_cloud_name,
           }"
           :data="nodeInfoMap.follower"
+          :db-type="DBTypes.DORIS"
           :disable-host-method="(data: HostInfo) => disableHostMethod(data, ['observer', 'hot', 'cold'])"
           :ip-source="ipSource"
           @remove-node="handleRemoveNode" />
@@ -136,6 +140,7 @@
 
   import {
     ClusterTypes,
+    DBTypes,
     TicketTypes
   } from '@common/const';
 
@@ -145,11 +150,11 @@
 
   import { messageError } from '@utils';
 
-  type ReplaceNode = TReplaceNode<DorisNodeModel>
+  type TNodeInfo = TReplaceNode<DorisNodeModel>
 
   interface Props {
     data: DorisModel,
-    nodeList: ReplaceNode['nodeList']
+    nodeList: TNodeInfo['nodeList']
   }
 
   interface Emits {
@@ -165,12 +170,12 @@
   const props = defineProps<Props>();
   const emits = defineEmits<Emits>();
 
-  const makeMapByHostId = (hostList: ReplaceNode['hostList']) =>  hostList.reduce((result, item) => ({
+  const makeMapByHostId = (hostList: TNodeInfo['hostList']) =>  hostList.reduce((result, item) => ({
     ...result,
-    [item.host_id]: true,
+    [item.bk_host_id]: true,
   }), {} as Record<number, boolean>);
 
-  const generateNodeInfo = (values: Pick<ReplaceNode, 'role' | 'specMachineType'>): ReplaceNode => ({
+  const generateNodeInfo = (values: Pick<TNodeInfo, 'role' | 'specMachineType'>): TNodeInfo => ({
     ...values,
     clusterId: props.data.id,
     nodeList: [],
@@ -192,7 +197,7 @@
   const followerRef = ref<ComponentExposed<typeof HostReplace>>();
   const ipSource = ref('resource_pool');
 
-  const nodeInfoMap = reactive<Record<string, ReplaceNode>>({
+  const nodeInfoMap = reactive<Record<string, TNodeInfo>>({
     hot: generateNodeInfo({
       role: 'doris_backend_hot',
       specMachineType: 'doris_backend',
@@ -225,10 +230,10 @@
   });
 
   watch(() => props.nodeList, () => {
-    const hotList: ReplaceNode['nodeList'] = [];
-    const coldList: ReplaceNode['nodeList'] = [];
-    const observerList: ReplaceNode['nodeList'] = [];
-    const followerList: ReplaceNode['nodeList'] = [];
+    const hotList: TNodeInfo['nodeList'] = [];
+    const coldList: TNodeInfo['nodeList'] = [];
+    const observerList: TNodeInfo['nodeList'] = [];
+    const followerList: TNodeInfo['nodeList'] = [];
 
     props.nodeList.forEach((nodeItem) => {
       if (nodeItem.isHot) {
@@ -268,7 +273,7 @@
     return false
   }
 
-  const handleRemoveNode = (node: ReplaceNode['nodeList'][0]) => {
+  const handleRemoveNode = (node: TNodeInfo['nodeList'][0]) => {
     emits('removeNode', node.bk_host_id);
   };
 
@@ -344,12 +349,28 @@
             onConfirm: () => {
               const nodeData = {};
               if (ipSource.value === 'manual_input') {
+                const formatValue = (data: {
+                  bk_host_id: number;
+                  ip: string;
+                  bk_cloud_id: number;
+                  }[] = []) => {
+                  const hosts =  data.map(hostItem => ({
+                    ip: hostItem.ip,
+                    bk_cloud_id: hostItem.bk_cloud_id,
+                    bk_host_id: hostItem.bk_host_id,
+                  }));
+                  return {
+                    spec_id: 0,
+                    hosts,
+                    count: data.length,
+                  }
+                }
                 Object.assign(nodeData, {
-                  new_nodes: {
-                    hot: hotValue.new_nodes,
-                    cold: coldValue.new_nodes,
-                    observer: observerValue.new_nodes,
-                    follower: followerValue.new_nodes
+                  resource_spec: {
+                    hot: formatValue(hotValue.new_nodes),
+                    cold: formatValue(coldValue.new_nodes),
+                    observer: formatValue(observerValue.new_nodes),
+                    follower: formatValue(followerValue.new_nodes)
                   },
                 });
               } else {
@@ -367,7 +388,7 @@
                 bk_biz_id: currentBizId,
                 details: {
                   cluster_id: props.data.id,
-                  ip_source: ipSource.value,
+                  ip_source: 'resource_pool',
                   old_nodes: {
                     hot: hotValue.old_nodes,
                     cold: coldValue.old_nodes,

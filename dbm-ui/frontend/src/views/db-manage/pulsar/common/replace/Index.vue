@@ -38,6 +38,7 @@
             name: data.bk_cloud_name,
           }"
           :data="nodeInfoMap.bookkeeper"
+          :db-type="DBTypes.PULSAR"
           :disable-host-method="bookkeeperDisableHostMethod"
           :ip-source="ipSource"
           @remove-node="handleRemoveNode" />
@@ -56,6 +57,7 @@
             name: data.bk_cloud_name,
           }"
           :data="nodeInfoMap.broker"
+          :db-type="DBTypes.PULSAR"
           :disable-host-method="brokerDisableHostMethod"
           :ip-source="ipSource"
           @remove-node="handleRemoveNode" />
@@ -74,6 +76,7 @@
             name: data.bk_cloud_name,
           }"
           :data="nodeInfoMap.zookeeper"
+          :db-type="DBTypes.PULSAR"
           :disable-host-method="zookeeperDisableHostMethod"
           :ip-source="ipSource"
           @remove-node="handleRemoveNode" />
@@ -104,7 +107,7 @@
 
   import { useGlobalBizs } from '@stores';
 
-  import { ClusterTypes } from '@common/const';
+  import { ClusterTypes, DBTypes, TicketTypes } from '@common/const';
 
   import HostReplace, { type TReplaceNode } from '@views/db-manage/common/host-replace/Index.vue';
 
@@ -134,7 +137,7 @@
     hostList.reduce(
       (result, item) => ({
         ...result,
-        [item.host_id]: true,
+        [item.bk_host_id]: true,
       }),
       {} as Record<number, boolean>,
     );
@@ -220,11 +223,11 @@
   // 节点主机互斥
   const bookkeeperDisableHostMethod = (hostData: TNodeInfo['hostList'][0]) => {
     const brokerHostIdMap = makeMapByHostId(nodeInfoMap.broker.hostList);
-    if (brokerHostIdMap[hostData.host_id]) {
+    if (brokerHostIdMap[hostData.bk_host_id]) {
       return t('主机已被xx节点使用', ['Broker']);
     }
     const zookeeperHostIdMap = makeMapByHostId(nodeInfoMap.zookeeper.hostList);
-    if (zookeeperHostIdMap[hostData.host_id]) {
+    if (zookeeperHostIdMap[hostData.bk_host_id]) {
       return t('主机已被xx节点使用', ['Zookeeper']);
     }
     return false;
@@ -232,11 +235,11 @@
   // 节点主机互斥
   const brokerDisableHostMethod = (hostData: TNodeInfo['hostList'][0]) => {
     const bookkeeperHostIdMap = makeMapByHostId(nodeInfoMap.bookkeeper.hostList);
-    if (bookkeeperHostIdMap[hostData.host_id]) {
+    if (bookkeeperHostIdMap[hostData.bk_host_id]) {
       return t('主机已被xx节点使用', ['Bookkeeper']);
     }
     const zookeeperHostIdMap = makeMapByHostId(nodeInfoMap.zookeeper.hostList);
-    if (zookeeperHostIdMap[hostData.host_id]) {
+    if (zookeeperHostIdMap[hostData.bk_host_id]) {
       return t('主机已被xx节点使用', ['Zookeeper']);
     }
     return false;
@@ -244,11 +247,11 @@
   // 节点主机互斥
   const zookeeperDisableHostMethod = (hostData: TNodeInfo['hostList'][0]) => {
     const brokerHostIdMap = makeMapByHostId(nodeInfoMap.broker.hostList);
-    if (brokerHostIdMap[hostData.host_id]) {
+    if (brokerHostIdMap[hostData.bk_host_id]) {
       return t('主机已被xx节点使用', ['Broker']);
     }
     const bookkeeperHostIdMap = makeMapByHostId(nodeInfoMap.bookkeeper.hostList);
-    if (bookkeeperHostIdMap[hostData.host_id]) {
+    if (bookkeeperHostIdMap[hostData.bk_host_id]) {
       return t('主机已被xx节点使用', ['Bookkeeper']);
     }
     return false;
@@ -311,11 +314,24 @@
               onConfirm: () => {
                 const nodeData = {};
                 if (ipSource.value === 'manual_input') {
+                  const formatHost = (hostList: TNodeInfo['hostList'] = []) => {
+                    const hosts = hostList.map((hostItem) => ({
+                      ip: hostItem.ip,
+                      bk_cloud_id: hostItem.bk_cloud_id,
+                      bk_host_id: hostItem.bk_host_id,
+                      bk_biz_id: hostItem.dedicated_biz,
+                    }));
+                    return {
+                      spec_id: 0,
+                      hosts,
+                      count: hostList.length,
+                    };
+                  };
                   Object.assign(nodeData, {
-                    new_nodes: {
-                      bookkeeper: bookkeeperValue.new_nodes,
-                      broker: brokerValue.new_nodes,
-                      zookeeper: zookeeperValue.new_nodes,
+                    resource_spec: {
+                      bookkeeper: formatHost(bookkeeperValue.new_nodes),
+                      broker: formatHost(brokerValue.new_nodes),
+                      zookeeper: formatHost(zookeeperValue.new_nodes),
                     },
                   });
                 } else {
@@ -328,11 +344,11 @@
                   });
                 }
                 createTicket({
-                  ticket_type: 'PULSAR_REPLACE',
+                  ticket_type: TicketTypes.PULSAR_REPLACE,
                   bk_biz_id: currentBizId,
                   details: {
                     cluster_id: props.data.id,
-                    ip_source: ipSource.value,
+                    ip_source: 'resource_pool',
                     old_nodes: {
                       bookkeeper: bookkeeperValue.old_nodes,
                       broker: brokerValue.old_nodes,

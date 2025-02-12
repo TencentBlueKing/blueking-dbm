@@ -106,8 +106,8 @@
   const { run: queryHost, loading } = useRequest(fetchList, {
     manual: true,
     onSuccess: (data) => {
-      if (data.results.length) {
-        const [currentHost] = data.results;
+      const [currentHost] = data.results;
+      if (currentHost) {
         modelValue.value.bk_biz_id = currentHost.dedicated_biz;
         modelValue.value.bk_cloud_id = currentHost.bk_cloud_id;
         modelValue.value.bk_host_id = currentHost.bk_host_id;
@@ -137,7 +137,15 @@
   };
 
   const handleSelectorChange = (hostList: IValue[]) => {
-    [modelValue.value] = hostList;
+    const [currentHost] = hostList;
+    if (currentHost) {
+      modelValue.value = {
+        bk_biz_id: currentHost.dedicated_biz || currentHost.bk_biz_id,
+        bk_cloud_id: currentHost.bk_cloud_id,
+        bk_host_id: currentHost.bk_host_id,
+        ip: currentHost.ip,
+      };
+    }
   };
 </script>
 
