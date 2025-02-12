@@ -44,11 +44,11 @@
               @change="handleChangeRole(item)" />
           </EditableColumn>
           <HybridHostColumn
-            v-model:list="item.host.list"
-            v-model:type="item.host.type"
-            :cluster-types="['TendbClusterHost']"
+            v-model:host-list="item.host.host_list"
+            v-model:select-method="item.host.select_method"
+            cluster-type="TendbClusterHost"
             :count="machineCount(item)"
-            field="host.type"
+            field="host.select_method"
             :tab-list-config="tabListConfig(item)" />
           <EditableColumn
             field="count"
@@ -57,12 +57,12 @@
             <div
               v-bk-tooltips="{
                 content: t('手动选择主机不需要设置缩容数量'),
-                disabled: item.host.type !== HostSelectType.MANUAL,
+                disabled: item.host.select_method !== SELECT_METHODS.MANUAL,
               }"
               style="flex: 1">
               <EditableInput
                 v-model="item.count"
-                :disabled="item.host.type === HostSelectType.MANUAL"
+                :disabled="item.host.select_method === SELECT_METHODS.MANUAL"
                 :min="0"
                 type="number" />
             </div>
@@ -110,7 +110,7 @@
   import { ClusterTypes, TicketTypes } from '@common/const';
 
   import HybridHostColumn, {
-    HostSelectType,
+    SELECT_METHODS,
   } from '@views/db-manage/common/toolbox-field/column/hybrid-host-column/Index.vue';
   import IgnoreBiz from '@views/db-manage/common/toolbox-field/form-item/ignore-biz/Index.vue';
   import TicketPayload, {
@@ -130,8 +130,8 @@
       slave_count: number;
     };
     host: {
-      type: string;
-      list: {
+      select_method: string;
+      host_list: {
         bk_biz_id: number;
         bk_cloud_id: number;
         bk_host_id: number;
@@ -153,8 +153,8 @@
       slave_count: 0,
     },
     host: data.host || {
-      type: '',
-      list: [],
+      select_method: '',
+      host_list: [],
     },
     count: data.count || '',
   });
@@ -215,8 +215,8 @@
             reduce_spider_role: item.cluster.role,
           };
 
-          if (item.host.list.length) {
-            info.old_nodes = { spider_reduced_hosts: item.host.list };
+          if (item.host.host_list.length) {
+            info.old_nodes = { spider_reduced_hosts: item.host.host_list };
           } else if (item.count) {
             info.spider_reduced_to_count = Number(item.count);
           }
@@ -253,7 +253,7 @@
   };
 
   const handleChangeRole = (row: RowData) => {
-    row.host.type = HostSelectType.AUTO;
+    row.host.select_method = SELECT_METHODS.AUTO;
   };
 
   const machineCount = (row: RowData) => {

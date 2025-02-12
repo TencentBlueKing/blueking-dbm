@@ -45,6 +45,7 @@
             name: data.bk_cloud_name,
           }"
           :data="nodeInfoMap[nodeType]"
+          :db-type="DBTypes.HDFS"
           :ip-source="ipSource" />
       </div>
     </div>
@@ -64,7 +65,7 @@
 
   import { useGlobalBizs } from '@stores';
 
-  import { ClusterTypes } from '@common/const';
+  import { ClusterTypes, DBTypes, TicketTypes } from '@common/const';
 
   import HostExpansion, { type TExpansionNode } from '@views/db-manage/common/host-expansion/Index.vue';
   import NodeStatusList from '@views/db-manage/common/host-expansion/NodeStatusList.vue';
@@ -212,18 +213,23 @@
             if (ipSource.value === 'manual_input') {
               const fomatHost = (hostList: TExpansionNode['hostList'] = []) =>
                 hostList.map((hostItem) => ({
-                  bk_biz_id: hostItem.meta.bk_biz_id,
-                  bk_cloud_id: hostItem.cloud_id,
-                  bk_host_id: hostItem.host_id,
+                  bk_biz_id: hostItem.dedicated_biz,
+                  bk_cloud_id: hostItem.bk_cloud_id,
+                  bk_host_id: hostItem.bk_host_id,
                   ip: hostItem.ip,
                 }));
               Object.assign(hostData, {
-                nodes: {
-                  datanode: fomatHost(nodeInfoMap.datanode.hostList),
+                resource_spec: {
+                  datanode: {
+                    count: nodeInfoMap.datanode.hostList.length,
+                    hosts: fomatHost(nodeInfoMap.datanode.hostList),
+                    spec_id: 0,
+                  },
                 },
               });
             } else {
               Object.assign(hostData, {
+                ext_info: generateExtInfo(),
                 resource_spec: {
                   datanode: nodeInfoMap.datanode.resourceSpec,
                 },
@@ -234,11 +240,10 @@
               bk_biz_id: bizId,
               details: {
                 cluster_id: props.data.id,
-                ip_source: ipSource.value,
+                ip_source: 'resource_pool',
                 ...hostData,
-                ext_info: generateExtInfo(),
               },
-              ticket_type: 'HDFS_SCALE_UP',
+              ticket_type: TicketTypes.HDFS_SCALE_UP,
             }).then((data) => {
               ticketMessage(data.id);
               resolve('success');

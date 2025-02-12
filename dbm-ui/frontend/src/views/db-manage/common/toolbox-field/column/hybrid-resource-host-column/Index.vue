@@ -80,7 +80,12 @@
 
   import ResourceHostSelector, { type IValue } from '@components/resource-host-selector/Index.vue';
 
-  export type HostInfo = IValue;
+  interface IHost {
+    bk_biz_id?: number;
+    bk_cloud_id?: number;
+    bk_host_id?: number;
+    ip: string;
+  }
 
   interface Props {
     field: string; // 绑选项值的vmodel，不绑主机列表
@@ -94,7 +99,7 @@
   }
 
   interface Emits {
-    (e: 'change', list: IValue[]): void;
+    (e: 'change', list: IHost[]): void;
   }
 
   const props = withDefaults(defineProps<Props>(), {
@@ -114,7 +119,7 @@
   });
 
   const showSelector = ref(false);
-  const hostList = ref<IValue[]>([]);
+  const hostList = ref<IHost[]>([]);
   const localValue = ref('');
 
   const countMap = reactive<Record<string, number>>({
@@ -177,7 +182,12 @@
   };
 
   const handleSelectorChange = (data: IValue[]) => {
-    hostList.value = data;
+    hostList.value = data.map((item) => ({
+      bk_biz_id: item.dedicated_biz || item.bk_biz_id,
+      bk_cloud_id: item.bk_cloud_id,
+      bk_host_id: item.bk_host_id,
+      ip: item.ip,
+    }));
     localValue.value = data.map((item) => item.ip).join(',');
     emits('change', hostList.value);
   };

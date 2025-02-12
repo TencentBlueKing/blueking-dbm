@@ -48,6 +48,7 @@
             name: data.bk_cloud_name,
           }"
           :data="nodeInfoMap[nodeType]"
+          :db-type="DBTypes.PULSAR"
           :disable-host-method="disableHostMethod"
           :ip-source="ipSource" />
       </div>
@@ -68,7 +69,7 @@
 
   import { useGlobalBizs } from '@stores';
 
-  import { ClusterTypes } from '@common/const';
+  import { ClusterTypes, DBTypes, TicketTypes } from '@common/const';
 
   import HostExpansion, { type TExpansionNode } from '@views/db-manage/common/host-expansion/Index.vue';
   import NodeStatusList from '@views/db-manage/common/host-expansion/NodeStatusList.vue';
@@ -92,7 +93,7 @@
     hostList.reduce(
       (result, item) => ({
         ...result,
-        [item.host_id]: true,
+        [item.bk_host_id]: true,
       }),
       {} as Record<number, boolean>,
     );
@@ -200,14 +201,14 @@
   const disableHostMethod = (hostData: TExpansionNode['hostList'][0]) => {
     const bookkeeperDisableHostMethod = (hostData: TExpansionNode['hostList'][0]) => {
       const brokerHostIdMap = makeMapByHostId(nodeInfoMap.broker.hostList);
-      if (brokerHostIdMap[hostData.host_id]) {
+      if (brokerHostIdMap[hostData.bk_host_id]) {
         return t('主机已被xx节点使用', ['Broker']);
       }
       return false;
     };
     const brokerDisableHostMethod = (hostData: TExpansionNode['hostList'][0]) => {
       const bookkeeperHostIdMap = makeMapByHostId(nodeInfoMap.bookkeeper.hostList);
-      if (bookkeeperHostIdMap[hostData.host_id]) {
+      if (bookkeeperHostIdMap[hostData.bk_host_id]) {
         return t('主机已被xx节点使用', ['Bookkeeper']);
       }
       return false;
@@ -280,17 +281,23 @@
               );
 
             if (ipSource.value === 'manual_input') {
-              const fomatHost = (hostList: TExpansionNode['hostList'] = []) =>
-                hostList.map((hostItem) => ({
-                  bk_biz_id: hostItem.meta.bk_biz_id,
-                  bk_cloud_id: hostItem.cloud_id,
-                  bk_host_id: hostItem.host_id,
+              const formatHost = (hostList: TExpansionNode['hostList'] = []) => {
+                const hosts = hostList.map((hostItem) => ({
+                  bk_biz_id: hostItem.dedicated_biz,
+                  bk_cloud_id: hostItem.bk_cloud_id,
+                  bk_host_id: hostItem.bk_host_id,
                   ip: hostItem.ip,
                 }));
+                return {
+                  count: hostList.length,
+                  hosts,
+                  spec_id: 0,
+                };
+              };
               Object.assign(hostData, {
-                nodes: {
-                  bookkeeper: fomatHost(nodeInfoMap.bookkeeper.hostList),
-                  broker: fomatHost(nodeInfoMap.broker.hostList),
+                resource_spec: {
+                  bookkeeper: formatHost(nodeInfoMap.bookkeeper.hostList),
+                  broker: formatHost(nodeInfoMap.broker.hostList),
                 },
               });
             } else {
@@ -306,6 +313,7 @@
                 });
               }
               Object.assign(hostData, {
+                ext_info: generateExtInfo(),
                 resource_spec: resourceSpec,
               });
             }
@@ -314,11 +322,10 @@
               bk_biz_id: bizId,
               details: {
                 cluster_id: props.data.id,
-                ip_source: ipSource.value,
+                ip_source: 'resource_pool',
                 ...hostData,
-                ext_info: generateExtInfo(),
               },
-              ticket_type: 'PULSAR_SCALE_UP',
+              ticket_type: TicketTypes.PULSAR_SCALE_UP,
             }).then((data) => {
               ticketMessage(data.id);
               resolve('success');

@@ -17,9 +17,9 @@
     :label="t(label)"
     :min-width="minWidth"
     required
-    :rule="rules">
+    :rules="selectMethod === SELECT_METHODS.MANUAL ? rules : []">
     <EditableSelect
-      v-model="selectType"
+      v-model="selectMethod"
       :list="selectList"
       @change="handleSelectChange">
       <template #option="{ item }">
@@ -30,7 +30,7 @@
       </template>
       <template #trigger>
         <div
-          v-if="selectType === HostSelectType.MANUAL"
+          v-if="selectMethod === SELECT_METHODS.MANUAL"
           class="table-cell">
           <EditableTagInput
             v-model="renderText"
@@ -43,7 +43,7 @@
             @click.stop="handleShowSelector" />
         </div>
         <div
-          v-else-if="selectType === HostSelectType.AUTO"
+          v-else-if="selectMethod === SELECT_METHODS.AUTO"
           class="table-cell pl-8">
           {{ t('自动匹配') }}
         </div>
@@ -56,22 +56,20 @@
     </EditableSelect>
   </EditableColumn>
   <InstanceSelector
-    v-if="selectType === HostSelectType.MANUAL"
-    v-model:is-show="showSelector"
-    :cluster-types="clusterTypes"
+    v-model:is-show="isShowSelector"
+    :cluster-types="[clusterType]"
     :selected="selected"
     :tab-list-config="tabListConfig"
     @change="handleSelectorChange" />
 </template>
 
 <script lang="ts">
-  export enum HostSelectType {
+  export enum SELECT_METHODS {
     AUTO = 'auto',
     MANUAL = 'manual',
   }
 </script>
 <script setup lang="ts">
-  import _ from 'lodash';
   import type { ComponentProps } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
 
@@ -80,12 +78,12 @@
   import InstanceSelector, { type InstanceSelectorValues, type IValue } from '@components/instance-selector/Index.vue';
 
   interface Props {
-    field: string; // 主机选择方式
+    field: string;
     label?: string;
     minWidth?: number;
     placeholder?: string;
-    clusterTypes: (ClusterTypes | 'TendbClusterHost' | 'mongoCluster')[];
-    tabListConfig: ComponentProps<typeof InstanceSelector>['tabListConfig'];
+    clusterType: ClusterTypes | 'TendbClusterHost' | 'mongoCluster';
+    tabListConfig?: ComponentProps<typeof InstanceSelector>['tabListConfig'];
     count: number;
   }
 
@@ -93,12 +91,13 @@
     label: '主机选择方式',
     minWidth: 200,
     placeholder: '请选择',
+    tabListConfig: () => ({}),
   });
 
   const { t } = useI18n();
 
-  const selectType = defineModel<string>('type', {
-    default: '',
+  const selectMethod = defineModel<string>('selectMethod', {
+    required: true,
   });
 
   const hostList = defineModel<
@@ -109,11 +108,11 @@
       ip: string;
       instance_address?: string;
     }[]
-  >('list', {
-    default: () => [],
+  >('hostList', {
+    required: true,
   });
 
-  const showSelector = ref(false);
+  const isShowSelector = ref(false);
   const selected = shallowRef<InstanceSelectorValues<IValue>>({});
   const firsrColumnKey = computed<'ip' | 'instance_address'>(() => props.tabListConfig?.firsrColumn?.field || 'ip');
   const renderText = computed(() => hostList.value.map((item) => item[firsrColumnKey.value] as string));
@@ -121,53 +120,28 @@
   const selectList = [
     {
       label: t('自动匹配'),
-      value: HostSelectType.AUTO,
+      value: SELECT_METHODS.AUTO,
     },
     {
       label: t('手动选择'),
-      value: HostSelectType.MANUAL,
+      value: SELECT_METHODS.MANUAL,
     },
   ];
 
   const rules = [
     {
-      validator: (value: HostSelectType) => Boolean(value),
-      message: t('请选择节点类型'),
-    },
-    {
-      validator: (value: HostSelectType) => {
-        if (value === HostSelectType.AUTO) {
-          return true;
-        }
-        return Boolean(renderText.value);
-      },
+      validator: () => hostList.value.length > 0,
       message: t('请选择主机'),
+      trigger: 'blur',
     },
   ];
 
   const handleShowSelector = () => {
-    showSelector.value = true;
+    isShowSelector.value = true;
   };
 
-  const handleRemoveAll = () => {
-    hostList.value = [];
-    props.clusterTypes.forEach((clusterType) => {
-      selected.value[clusterType] = [];
-    });
-  };
-
-  const handleRemove = (removeItem: { id: string; name: string }) => {
-    const removeIndex = hostList.value.findIndex((item) => item[firsrColumnKey.value] === removeItem.id);
-    hostList.value.splice(removeIndex, 1);
-    props.clusterTypes.forEach((clusterType) => {
-      const removeIndex = selected.value[clusterType].findIndex((item) => item[firsrColumnKey.value] === removeItem.id);
-      selected.value[clusterType].splice(removeIndex, 1);
-    });
-  };
-
-  const handleSelectorChange = (selectedValues: InstanceSelectorValues<IValue>) => {
-    selected.value = selectedValues;
-    hostList.value = _.flatten(Object.values(selectedValues)).map((item) => {
+  const updateHostList = () => {
+    hostList.value = selected.value[props.clusterType].map((item) => {
       const base: (typeof hostList.value)[0] = {
         bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
         bk_cloud_id: item.bk_cloud_id,
@@ -181,8 +155,32 @@
     });
   };
 
-  const handleSelectChange = () => {
-    handleSelectorChange({});
+  const handleRemoveAll = () => {
+    selected.value[props.clusterType] = [];
+    updateHostList();
+  };
+
+  const handleSelectorChange = (selectedValues: InstanceSelectorValues<IValue>) => {
+    selected.value = selectedValues;
+    updateHostList();
+    isShowSelector.value = false;
+  };
+
+  const handleRemove = (removeItem: { id: string; name: string }) => {
+    const removeIndex = selected.value[props.clusterType].findIndex(
+      (item) => item[firsrColumnKey.value] === removeItem.id,
+    );
+    selected.value[props.clusterType].splice(removeIndex, 1);
+    updateHostList();
+  };
+
+  const handleSelectChange = (value: string) => {
+    if (value === SELECT_METHODS.MANUAL) {
+      isShowSelector.value = true;
+    } else {
+      selected.value[props.clusterType] = [];
+      updateHostList();
+    }
   };
 </script>
 
