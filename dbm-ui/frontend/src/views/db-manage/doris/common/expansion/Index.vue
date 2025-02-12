@@ -48,6 +48,7 @@
             name: data.bk_cloud_name,
           }"
           :data="nodeInfoMap[nodeType]"
+          :db-type="DBTypes.DORIS"
           :disable-host-method="(data: HostInfo) => disableHostMethod(data, nodeInfoMap[nodeType].mutexNodeTypes)"
           :ip-source="ipSource" />
       </div>
@@ -71,6 +72,7 @@
 
   import {
     ClusterTypes,
+    DBTypes,
     TicketTypes
   } from '@common/const';
 
@@ -102,7 +104,7 @@
 
   const makeMapByHostId = (hostList: TExpansionNode['hostList'] = []) => hostList.reduce((result, item) => ({
     ...result,
-    [item.host_id]: true,
+    [item.bk_host_id]: true,
   }), {} as Record<number, boolean>);
 
   const generateNodeInfo = (values: Pick<TDorisExpansionNode, 'label' | 'role' | 'specMachineType' | 'tagText' | 'mutexNodeTypes' | 'showCount'>): TDorisExpansionNode => ({
@@ -315,17 +317,24 @@
             }, {} as Record<string, TExpansionNode>);
 
             if (ipSource.value === 'manual_input') {
-              const fomatHost = (hostList: TExpansionNode['hostList'] = []) => hostList.map(hostItem => ({
-                ip: hostItem.ip,
-                bk_cloud_id: hostItem.cloud_id,
-                bk_host_id: hostItem.host_id,
-                bk_biz_id: hostItem.meta.bk_biz_id,
-              }));
+              const formatHost = (hostList: TExpansionNode['hostList'] = []) => {
+                const hosts =  hostList.map(hostItem => ({
+                  ip: hostItem.ip,
+                  bk_cloud_id: hostItem.bk_cloud_id,
+                  bk_host_id: hostItem.bk_host_id,
+                  bk_biz_id: hostItem.dedicated_biz,
+                }));
+                return {
+                  spec_id: 0,
+                  hosts,
+                  count: hostList.length,
+                }
+              }
               Object.assign(hostData, {
-                nodes: {
-                  hot: fomatHost(nodeInfoMap.hot.hostList),
-                  cold: fomatHost(nodeInfoMap.cold.hostList),
-                  observer: fomatHost(nodeInfoMap.observer.hostList)
+                resource_spec: {
+                  hot: formatHost(nodeInfoMap.hot.hostList),
+                  cold: formatHost(nodeInfoMap.cold.hostList),
+                  observer: formatHost(nodeInfoMap.observer.hostList)
                 },
               });
             } else {
@@ -347,6 +356,7 @@
               }
               Object.assign(hostData, {
                 resource_spec: resourceSpec,
+                ext_info: generateExtInfo(),
               });
             }
 
@@ -354,10 +364,9 @@
               bk_biz_id: currentBizId,
               ticket_type: TicketTypes.DORIS_SCALE_UP,
               details: {
-                ip_source: ipSource.value,
+                ip_source: 'resource_pool',
                 cluster_id: props.data.id,
                 ...hostData,
-                ext_info: generateExtInfo(),
               },
             })
               .then((data) => {

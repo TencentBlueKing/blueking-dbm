@@ -32,7 +32,12 @@
           v-model:host-list="nodeInfoMap.influxdb.hostList"
           v-model:node-list="nodeInfoMap.influxdb.nodeList"
           v-model:resource-spec="nodeInfoMap.influxdb.resourceSpec"
+          :cloud-info="{
+            id: 0,
+            name: '',
+          }"
           :data="nodeInfoMap.influxdb"
+          :db-type="DBTypes.INFLUXDB"
           :ip-source="ipSource"
           @remove-node="handleRemoveNode" />
       </div>
@@ -61,7 +66,7 @@
 
   import { useGlobalBizs } from '@stores';
 
-  import { ClusterTypes } from '@common/const';
+  import { ClusterTypes, DBTypes, TicketTypes } from '@common/const';
 
   import HostReplace, { type TReplaceNode } from '@views/db-manage/common/host-replace/Index.vue';
 
@@ -174,8 +179,12 @@
                 const nodeData = {};
                 if (ipSource.value === 'manual_input') {
                   Object.assign(nodeData, {
-                    new_nodes: {
-                      influxdb: influxdbValue.new_nodes,
+                    resource_spec: {
+                      influxdb: {
+                        spec_id: 0,
+                        hosts: influxdbValue.new_nodes,
+                        count: influxdbValue.new_nodes.length,
+                      },
                     },
                   });
                 } else {
@@ -186,10 +195,10 @@
                   });
                 }
                 createTicket({
-                  ticket_type: 'INFLUXDB_REPLACE',
+                  ticket_type: TicketTypes.INFLUXDB_REPLACE,
                   bk_biz_id: currentBizId,
                   details: {
-                    ip_source: ipSource.value,
+                    ip_source: 'resource_pool',
                     old_nodes: {
                       influxdb: influxdbValue.old_nodes,
                     },

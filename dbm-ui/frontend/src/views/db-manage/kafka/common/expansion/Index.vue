@@ -45,6 +45,7 @@
             name: data.bk_cloud_name,
           }"
           :data="nodeInfoMap[nodeType]"
+          :db-type="DBTypes.KAFKA"
           :ip-source="ipSource" />
       </div>
     </div>
@@ -67,7 +68,7 @@
 
   import { useGlobalBizs } from '@stores';
 
-  import { ClusterTypes } from '@common/const';
+  import { ClusterTypes, DBTypes, TicketTypes } from '@common/const';
 
   import HostExpansion, {
     type TExpansionNode,
@@ -217,33 +218,40 @@
             }, {} as Record<string, any>);
 
             if (ipSource.value === 'manual_input') {
-              const fomatHost = (hostList: TExpansionNode['hostList'] = []) => hostList.map(hostItem => ({
-                ip: hostItem.ip,
-                bk_cloud_id: hostItem.cloud_id,
-                bk_host_id: hostItem.host_id,
-                bk_biz_id: hostItem.meta.bk_biz_id,
-              }));
+              const formatHost = (hostList: TExpansionNode['hostList'] = []) => {
+                const hosts = hostList.map((hostItem) => ({
+                  ip: hostItem.ip,
+                  bk_cloud_id: hostItem.bk_cloud_id,
+                  bk_host_id: hostItem.bk_host_id,
+                  bk_biz_id: hostItem.dedicated_biz,
+                }));
+                return {
+                  spec_id: 0,
+                  hosts,
+                  count: hostList.length,
+                };
+              };
               Object.assign(hostData, {
-                nodes: {
-                  broker: fomatHost(nodeInfoMap.broker.hostList),
+                resource_spec: {
+                  broker: formatHost(nodeInfoMap.broker.hostList),
                 },
               });
             } else {
               Object.assign(hostData, {
                 resource_spec: {
                   broker: nodeInfoMap.broker.resourceSpec,
+                  ext_info: generateExtInfo(),
                 },
               });
             }
 
             createTicket({
               bk_biz_id: bizId,
-              ticket_type: 'KAFKA_SCALE_UP',
+              ticket_type: TicketTypes.KAFKA_SCALE_UP,
               details: {
-                ip_source: ipSource.value,
+                ip_source: 'resource_pool',
                 cluster_id: props.data.id,
                 ...hostData,
-                ext_info: generateExtInfo(),
               },
             }).then((data) => {
               ticketMessage(data.id);

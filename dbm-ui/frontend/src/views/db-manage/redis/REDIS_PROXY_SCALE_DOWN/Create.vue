@@ -49,14 +49,12 @@
               v-model="item.cluster.role"
               :placeholder="t('自动生成')" />
           </EditableColumn>
-          <HybridResourceHostColumn
-            v-model="item.host.type"
-            field="host.type"
-            :label="t('主机选择方式')"
-            :limit="1"
-            :min-width="150"
-            :spec-ids="item.cluster.proxy_spec_ids"
-            @change="(list) => handleSelectHost(list, item)" />
+          <HybridHostColumn
+            v-model:host-list="item.host.host_list"
+            v-model:select-method="item.host.select_method"
+            :cluster-type="ClusterTypes.REDIS"
+            :count="item.cluster.proxy_count"
+            field="host.select_method" />
           <EditableColumn
             field="count"
             :label="t('缩容数量（台）')"
@@ -64,23 +62,23 @@
             <div
               v-bk-tooltips="{
                 content: t('手动选择主机不需要设置缩容数量'),
-                disabled: item.host.type !== HostSelectType.MANUAL,
+                disabled: item.host.select_method !== SELECT_METHODS.MANUAL,
               }"
               style="flex: 1">
               <EditableInput
                 v-model="item.count"
-                :disabled="item.host.type === HostSelectType.MANUAL"
+                :disabled="item.host.select_method === SELECT_METHODS.MANUAL"
                 :min="0"
                 type="number" />
             </div>
           </EditableColumn>
           <EditableColumn
-            field="switchMode"
+            field="switch_mode"
             :label="t('切换模式')"
             :min-width="150">
             <EditableSelect
-              v-model="item.switchMode"
-              :disabled="item.host.type === HostSelectType.MANUAL"
+              v-model="item.switch_mode"
+              :disabled="item.host.select_method === SELECT_METHODS.MANUAL"
               :input-search="false"
               :list="switchModeOptions" />
           </EditableColumn>
@@ -120,12 +118,11 @@
 
   import { useCreateTicket } from '@hooks';
 
-  import { TicketTypes } from '@common/const';
+  import { ClusterTypes, TicketTypes } from '@common/const';
 
-  import HybridResourceHostColumn, {
-    type HostInfo,
-    HostSelectType,
-  } from '@views/db-manage/common/toolbox-field/column/hybrid-resource-host-column/Index.vue';
+  import HybridHostColumn, {
+    SELECT_METHODS,
+  } from '@views/db-manage/common/toolbox-field/column/hybrid-host-column/Index.vue';
   import TicketPayload, {
     createTickePayload,
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
@@ -138,11 +135,11 @@
       master_domain: string;
       cluster_type_name: string;
       role: string;
-      proxy_spec_ids: number[];
+      proxy_count: number;
     };
     host: {
-      type: string;
-      list: {
+      select_method: string;
+      host_list: {
         bk_biz_id: number;
         bk_cloud_id: number;
         bk_host_id: number;
@@ -150,7 +147,7 @@
       }[];
     };
     count: string;
-    switchMode: string;
+    switch_mode: string;
   }
 
   const { t } = useI18n();
@@ -162,14 +159,14 @@
       master_domain: '',
       cluster_type_name: '',
       role: '',
-      proxy_spec_ids: [],
+      proxy_count: 0,
     },
     host: data.host || {
-      type: '',
-      list: [],
+      select_method: '',
+      host_list: [],
     },
     count: data.count || '',
-    switchMode: data.switchMode || '',
+    switch_mode: data.switch_mode || '',
   });
 
   const defaultData = () => ({
@@ -224,11 +221,11 @@
         infos: formData.tableData.map((item) => {
           const info: TicketDetail['infos'][0] = {
             cluster_id: item.cluster.id,
-            online_switch_type: item.switchMode,
+            online_switch_type: item.switch_mode,
           };
 
-          if (item.host.list.length) {
-            info.old_nodes = { proxy_reduced_hosts: item.host.list };
+          if (item.host.host_list.length) {
+            info.old_nodes = { proxy_reduced_hosts: item.host.host_list };
           } else if (item.count) {
             info.target_proxy_count = Number(item.count);
           }
@@ -254,22 +251,18 @@
               master_domain: item.master_domain,
               cluster_type_name: item.cluster_type_name,
               role: 'Proxy',
-              proxy_spec_ids: item?.proxy.map((item) => item.spec_config?.id),
+              proxy_count: item.proxy.length,
             },
             host: {
-              type: HostSelectType.AUTO,
-              list: [],
+              select_method: SELECT_METHODS.AUTO,
+              host_list: [],
             },
-            switchMode: 'user_confirm',
+            switch_mode: 'user_confirm',
           }),
         );
       }
       return acc;
     }, []);
     formData.tableData = [...(selected.value.length ? formData.tableData : []), ...dataList];
-  };
-
-  const handleSelectHost = (list: HostInfo[], row: RowData) => {
-    row.host.list = list;
   };
 </script>
