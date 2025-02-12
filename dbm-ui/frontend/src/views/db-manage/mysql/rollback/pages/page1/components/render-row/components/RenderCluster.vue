@@ -25,6 +25,7 @@
   interface Props {
     modelValue?: IDataRow['clusterData'];
     placeholder?: string;
+    unique?: boolean;
   }
 
   interface Emits {
@@ -55,6 +56,7 @@
       domain: '',
     }),
     placeholder: '',
+    unique: false,
   });
 
   const emits = defineEmits<Emits>();
@@ -76,7 +78,7 @@
         }
         return false;
       },
-      message: t('目标集群不能为空'),
+      message: t('待回档集群不能为空'),
     },
     {
       validator: (domain: string) =>
@@ -118,10 +120,13 @@
           });
           return false;
         }),
-      message: t('目标集群不存在'),
+      message: t('待回档集群不存在'),
     },
     {
       validator: () => {
+        if (!props.unique) {
+          return true;
+        }
         const otherClusterMemoMap = { ...clusterIdMemo };
         delete otherClusterMemoMap[instanceKey];
         const otherClusterIdMap = Object.values(otherClusterMemoMap).reduce(
@@ -133,7 +138,7 @@
         );
         return !otherClusterIdMap[localClusterId.value];
       },
-      message: t('目标集群重复'),
+      message: t('待回档集群重复'),
     },
   ];
 
@@ -144,6 +149,13 @@
       const { id = 0, domain = '' } = props.modelValue || {};
       localClusterId.value = id;
       localDomain.value = domain;
+      if (id) {
+        clusterIdMemo[instanceKey] = {
+          [id]: true,
+        };
+      } else {
+        clusterIdMemo[instanceKey] = {};
+      }
     },
     {
       immediate: true,
