@@ -87,11 +87,11 @@
             </div>
           </td>
           <td>
-            <HostSelector
+            <ResourceHostSelect
               v-if="ipSource === 'manual_input'"
               v-model="hostList"
               :data="data"
-              :disable-host-method="disableHostMethod"
+              :db-type="dbType"
               :placehoder-id="hostEditBtnPlaceholderId"
               @update:model-value="handleValueChange" />
             <ResourcePoolSelector
@@ -107,6 +107,27 @@
     </table>
   </div>
 </template>
+<script lang="tsx">
+  import DbResourceModel from '@services/model/db-resource/DbResource';
+
+  export interface TReplaceNode<N> {
+    // 集群id
+    clusterId: number;
+    hostList: DbResourceModel[];
+    nodeList: N[];
+    // 扩容资源池
+    resourceSpec: {
+      count: number;
+      spec_id: number;
+    };
+    // 集群的节点类型
+    role: string;
+    // 资源池规格集群类型
+    specClusterType: string;
+    // 资源池规格集群类型
+    specMachineType: string;
+  }
+</script>
 <script
   setup
   lang="tsx"
@@ -122,30 +143,13 @@
   import type InfluxDBInstanceModel from '@services/model/influxdb/influxdbInstance';
   import type KafkaNodeModel from '@services/model/kafka/kafka-node';
   import type PulsarNodeModel from '@services/model/pulsar/pulsar-node';
-  import { checkHost } from '@services/source/ipchooser';
+
+  import { DBTypes } from '@common/const';
 
   import { random } from '@utils';
 
-  import HostSelector from './components/HostSelector.vue';
+  import ResourceHostSelect from './components/ResourceHostSelect.vue';
   import ResourcePoolSelector from './components/ResourcePoolSelector.vue';
-
-  export interface TReplaceNode<N> {
-    // 集群id
-    clusterId: number;
-    hostList: ServiceReturnType<typeof checkHost>;
-    nodeList: N[];
-    // 扩容资源池
-    resourceSpec: {
-      count: number;
-      spec_id: number;
-    };
-    // 集群的节点类型
-    role: string;
-    // 资源池规格集群类型
-    specClusterType: string;
-    // 资源池规格集群类型
-    specMachineType: string;
-  }
 
   interface Ivalue {
     bk_cloud_id: number;
@@ -159,7 +163,7 @@
       name: string;
     };
     data: TReplaceNode<T>;
-    disableHostMethod?: (params: Props['data']['hostList'][0]) => string | boolean;
+    dbType: DBTypes;
     ipSource: string;
   }
 
@@ -252,8 +256,8 @@
       }
       return Promise.resolve({
         new_nodes: hostList.value.map((hostItem) => ({
-          bk_cloud_id: hostItem.cloud_id,
-          bk_host_id: hostItem.host_id,
+          bk_cloud_id: hostItem.bk_cloud_id,
+          bk_host_id: hostItem.bk_host_id,
           ip: hostItem.ip,
         })),
         old_nodes: nodeList.value.map((nodeItem) => ({

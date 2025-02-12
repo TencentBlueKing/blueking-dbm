@@ -48,6 +48,7 @@
             name: data.bk_cloud_name,
           }"
           :data="nodeInfoMap[nodeType]"
+          :db-type="DBTypes.DORIS"
           :disable-host-method="(data: HostInfo) => disableHostMethod(data, nodeInfoMap[nodeType].mutexNodeTypes)"
           :ip-source="ipSource" />
       </div>
@@ -69,7 +70,7 @@
 
   import { useGlobalBizs } from '@stores';
 
-  import { ClusterTypes, TicketTypes } from '@common/const';
+  import { ClusterTypes, DBTypes, TicketTypes } from '@common/const';
 
   import HostExpansion, { type TExpansionNode } from '@views/db-manage/common/host-expansion/Index.vue';
   import NodeStatusList from '@views/db-manage/common/host-expansion/NodeStatusList.vue';
@@ -97,7 +98,7 @@
     hostList.reduce(
       (result, item) => ({
         ...result,
-        [item.host_id]: true,
+        [item.bk_host_id]: true,
       }),
       {} as Record<number, boolean>,
     );
@@ -322,18 +323,24 @@
               );
 
             if (ipSource.value === 'manual_input') {
-              const fomatHost = (hostList: TExpansionNode['hostList'] = []) =>
-                hostList.map((hostItem) => ({
-                  bk_biz_id: hostItem.meta.bk_biz_id,
-                  bk_cloud_id: hostItem.cloud_id,
-                  bk_host_id: hostItem.host_id,
+              const formatHost = (hostList: TExpansionNode['hostList'] = []) => {
+                const hosts = hostList.map((hostItem) => ({
+                  bk_biz_id: hostItem.dedicated_biz,
+                  bk_cloud_id: hostItem.bk_cloud_id,
+                  bk_host_id: hostItem.bk_host_id,
                   ip: hostItem.ip,
                 }));
+                return {
+                  count: hostList.length,
+                  hosts,
+                  spec_id: 0,
+                };
+              };
               Object.assign(hostData, {
-                nodes: {
-                  cold: fomatHost(nodeInfoMap.cold.hostList),
-                  hot: fomatHost(nodeInfoMap.hot.hostList),
-                  observer: fomatHost(nodeInfoMap.observer.hostList),
+                resource_spec: {
+                  cold: formatHost(nodeInfoMap.cold.hostList),
+                  hot: formatHost(nodeInfoMap.hot.hostList),
+                  observer: formatHost(nodeInfoMap.observer.hostList),
                 },
               });
             } else {
@@ -354,6 +361,7 @@
                 });
               }
               Object.assign(hostData, {
+                ext_info: generateExtInfo(),
                 resource_spec: resourceSpec,
               });
             }
@@ -362,9 +370,8 @@
               bk_biz_id: currentBizId,
               details: {
                 cluster_id: props.data.id,
-                ip_source: ipSource.value,
+                ip_source: 'resource_pool',
                 ...hostData,
-                ext_info: generateExtInfo(),
               },
               ticket_type: TicketTypes.DORIS_SCALE_UP,
             })

@@ -86,14 +86,15 @@
     data: TExpansionNode;
   }
 
-  type Emits = (
-    e: 'change',
-    value: TExpansionNode['resourceSpec'],
-    expansionDisk: TExpansionNode['expansionDisk'],
-  ) => void;
-
   const props = defineProps<Props>();
-  const emits = defineEmits<Emits>();
+
+  const resourceSpec = defineModel<TExpansionNode['resourceSpec']>('resourceSpec', {
+    required: true,
+  });
+
+  const expansionDisk = defineModel<TExpansionNode['expansionDisk']>('expansionDisk', {
+    required: true,
+  });
 
   const { t } = useI18n();
 
@@ -160,14 +161,11 @@
 
   const triggerChange = () => {
     const count = machinePairCnt.value;
-    emits(
-      'change',
-      {
-        count,
-        spec_id: specId.value,
-      },
-      count ? estimateCapacity.value : 0,
-    );
+    resourceSpec.value = {
+      count,
+      spec_id: specId.value,
+    };
+    expansionDisk.value = count ? estimateCapacity.value : 0;
   };
 
   const handleSpecChange = (value: number) => {
