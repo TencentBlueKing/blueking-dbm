@@ -524,6 +524,8 @@ class TicketType(str, StructuredEnum):
                                                register_iam=False)  # noqa
     MONGODB_SHARD_APPLY = TicketEnumField("MONGODB_SHARD_APPLY", _("MongoDB 分片集群部署"), _("集群管理"),
                                           register_iam=False)  # noqa
+    MONGODB_PLUGIN_CREATE_CLB = TicketEnumField("MONGODB_PLUGIN_CREATE_CLB", _("MongoDB 创建CLB"), _("集群管理"))
+    MONGODB_PLUGIN_DELETE_CLB = TicketEnumField("MONGODB_PLUGIN_DELETE_CLB", _("MongoDB 删除CLB"), _("集群管理"))
     MONGODB_EXEC_SCRIPT_APPLY = TicketEnumField("MONGODB_EXEC_SCRIPT_APPLY", _("MongoDB 变更脚本执行"), _("脚本任务"))
     MONGODB_REMOVE_NS = TicketEnumField("MONGODB_REMOVE_NS", _("MongoDB 清档"), _("数据处理"))
     MONGODB_FULL_BACKUP = TicketEnumField("MONGODB_FULL_BACKUP", _("MongoDB 全库备份"), _("备份"))

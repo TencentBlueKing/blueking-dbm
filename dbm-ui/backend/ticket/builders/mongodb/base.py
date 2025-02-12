@@ -114,6 +114,13 @@ class BaseMongoDBOperateDetailSerializer(SkipToRepresentationMixin, serializers.
         return attrs
 
 
+class BaseMongoDBPluginDetailSerializer(BaseMongoDBOperateDetailSerializer):
+    cluster_id = serializers.IntegerField(help_text=_("集群ID"))
+
+    def validate(self, attrs):
+        return attrs
+
+
 class BaseMongoOperateFlowParamBuilder(builders.FlowParamBuilder):
     @classmethod
     def scatter_cluster_id_info(cls, infos):

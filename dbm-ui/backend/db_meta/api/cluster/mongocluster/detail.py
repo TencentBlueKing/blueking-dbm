@@ -16,7 +16,7 @@ from typing import List
 from django.db.models import Q
 from django.utils.translation import gettext as _
 
-from backend.db_meta.api.cluster.base.graph import Graphic, LineLabel
+from backend.db_meta.api.cluster.base.graph import Graphic, Group, LineLabel
 from backend.db_meta.enums import AccessLayer, MachineType, MachineTypeInstanceRoleMap
 from backend.db_meta.models import Cluster
 from backend.db_services.mongodb.resources.query import MongoDBListRetrieveResource
@@ -73,11 +73,12 @@ def scan_cluster(cluster: Cluster) -> Graphic:
             shard_groups.append(shard_group_name)
 
     # 获得访问入口节点组
-    entry = mongos_insts.first().bind_entry.first()
-    _dummy, entry_group = graph.add_node(entry)
-
-    # 访问入口 ----> Mongos节点，关系为：域名绑定
-    graph.add_line(source=entry_group, target=mongos_group, label=LineLabel.Bind)
+    for proxy_instance in cluster.proxyinstance_set.prefetch_related("bind_entry").all():
+        entry_group = Group(node_id="master_bind_entry_group", group_name=_("访问入口"))
+        for entry in proxy_instance.bind_entry.all():
+            _dummy, entry_group = graph.add_node(entry, to_group=entry_group)
+            # 访问入口 ----> Mongos节点，关系为：
+            graph.add_line(source=entry_group, target=mongos_group, label=LineLabel.Bind)
     # mongos -----> config_svr，关系为：访问
     graph.add_line(source=mongos_group, target=configs_group, label=LineLabel.Access)
 
