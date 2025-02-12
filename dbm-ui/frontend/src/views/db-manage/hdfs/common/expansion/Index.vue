@@ -45,6 +45,7 @@
             name: data.bk_cloud_name,
           }"
           :data="nodeInfoMap[nodeType]"
+          :db-type="DBTypes.HDFS"
           :ip-source="ipSource" />
       </div>
     </div>
@@ -67,7 +68,7 @@
 
   import { useGlobalBizs } from '@stores';
 
-  import { ClusterTypes } from '@common/const';
+  import { ClusterTypes, DBTypes, TicketTypes } from '@common/const';
 
   import HostExpansion, {
     type TExpansionNode,
@@ -219,13 +220,17 @@
             if (ipSource.value === 'manual_input') {
               const fomatHost = (hostList: TExpansionNode['hostList'] = []) => hostList.map(hostItem => ({
                 ip: hostItem.ip,
-                bk_cloud_id: hostItem.cloud_id,
-                bk_host_id: hostItem.host_id,
-                bk_biz_id: hostItem.meta.bk_biz_id,
+                bk_cloud_id: hostItem.bk_cloud_id,
+                bk_host_id: hostItem.bk_host_id,
+                bk_biz_id: hostItem.dedicated_biz,
               }));
               Object.assign(hostData, {
-                nodes: {
-                  datanode: fomatHost(nodeInfoMap.datanode.hostList),
+                resource_spec: {
+                  datanode: {
+                    spec_id: 0,
+                    hosts: fomatHost(nodeInfoMap.datanode.hostList),
+                    count: nodeInfoMap.datanode.hostList.length,
+                  },
                 },
               });
             } else {
@@ -233,17 +238,17 @@
                 resource_spec: {
                   datanode: nodeInfoMap.datanode.resourceSpec,
                 },
+                ext_info: generateExtInfo()
               });
             }
 
             createTicket({
               bk_biz_id: bizId,
-              ticket_type: 'HDFS_SCALE_UP',
+              ticket_type: TicketTypes.HDFS_SCALE_UP,
               details: {
-                ip_source: ipSource.value,
+                ip_source: 'resource_pool',
                 cluster_id: props.data.id,
                 ...hostData,
-                ext_info: generateExtInfo(),
               },
             }).then((data) => {
               ticketMessage(data.id);

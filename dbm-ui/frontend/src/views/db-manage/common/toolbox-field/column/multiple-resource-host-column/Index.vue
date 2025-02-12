@@ -65,6 +65,13 @@
 
   import ResourceHostSelector, { type IValue } from '@components/resource-host-selector/Index.vue';
 
+  interface IHost {
+    bk_biz_id?: number;
+    bk_cloud_id?: number;
+    bk_host_id?: number;
+    ip: string;
+  }
+
   interface Props {
     /**
      * field 对应的必须是model的数组变量
@@ -74,13 +81,6 @@
     minWidth?: number;
     limit?: number;
     params?: ComponentProps<typeof ResourceHostSelector>['params'];
-  }
-
-  interface IHost {
-    bk_biz_id?: number;
-    bk_cloud_id?: number;
-    bk_host_id?: number;
-    ip: string;
   }
 
   const props = withDefaults(defineProps<Props>(), {
@@ -205,7 +205,12 @@
   };
 
   const handleSelectorChange = (hostList: IValue[]) => {
-    modelValue.value = hostList;
+    modelValue.value = hostList.map((item) => ({
+      bk_biz_id: item.dedicated_biz || item.bk_biz_id,
+      bk_cloud_id: item.bk_cloud_id,
+      bk_host_id: item.bk_host_id,
+      ip: item.ip,
+    }));
   };
 
   onBeforeUnmount(() => {

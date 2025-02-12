@@ -80,14 +80,6 @@ const spiderProxyScaleUpRoute = {
   component: () => import('@views/db-manage/tendb-cluster/proxy-scale-up/Index.vue'),
 };
 
-// const spiderProxyScaleDownRoute = {
-//   name: 'SpiderProxyScaleDown',
-//   path: 'proxy-scale-down/:page?',
-//   meta: {
-//     navName: t('缩容接入层'),
-//   },
-//   component: () => import('@views/db-manage/tendb-cluster/proxy-scale-down/Index.vue'),
-// };
 const spiderProxyScaleDownRoute = createRouteItem(TicketTypes.TENDBCLUSTER_SPIDER_REDUCE_NODES, t('缩容接入层'));
 
 const spiderProxySlaveApplyRoute = {
@@ -184,26 +176,7 @@ const spiderOpenareaTemplateRoute = {
   component: () => import('@views/db-manage/tendb-cluster/openarea-template/Index.vue'),
 };
 
-// const spiderMasterSlaveCloneRoute = {
-//   path: 'master-slave-clone/:page?',
-//   name: 'spiderMasterSlaveClone',
-//   meta: {
-//     navName: t('迁移主从'),
-//     activeMenu: 'spiderToolbox',
-//   },
-//   component: () => import('@views/db-manage/tendb-cluster/master-slave-clone/Index.vue'),
-// };
 const spiderMasterSlaveCloneRoute = createRouteItem(TicketTypes.TENDBCLUSTER_MIGRATE_CLUSTER, t('迁移主从'));
-
-// const spiderSlaveRebuildRoute = {
-//   path: 'slave-rebuild/:page?',
-//   name: 'spiderSlaveRebuild',
-//   meta: {
-//     navName: t('重建从库'),
-//     activeMenu: 'spiderToolbox',
-//   },
-//   component: () => import('@views/db-manage/tendb-cluster/slave-rebuild/Index.vue'),
-// };
 
 const spiderSlaveRebuildRoute = createRouteItem(TicketTypes.TENDBCLUSTER_RESTORE_SLAVE, t('重建从库'));
 

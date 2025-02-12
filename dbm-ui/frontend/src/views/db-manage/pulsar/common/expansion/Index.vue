@@ -48,6 +48,7 @@
             name: data.bk_cloud_name,
           }"
           :data="nodeInfoMap[nodeType]"
+          :db-type="DBTypes.PULSAR"
           :disable-host-method="disableHostMethod"
           :ip-source="ipSource" />
       </div>
@@ -71,7 +72,7 @@
 
   import { useGlobalBizs } from '@stores';
 
-  import { ClusterTypes } from '@common/const';
+  import { ClusterTypes, DBTypes, TicketTypes } from '@common/const';
 
   import HostExpansion, {
     type TExpansionNode,
@@ -97,7 +98,7 @@
 
   const makeMapByHostId = (hostList: TExpansionNode['hostList'] = []) => hostList.reduce((result, item) => ({
     ...result,
-    [item.host_id]: true,
+    [item.bk_host_id]: true,
   }), {} as Record<number, boolean>);
 
   const { t } = useI18n();
@@ -202,14 +203,14 @@
   const disableHostMethod = (hostData: TExpansionNode['hostList'][0]) => {
     const bookkeeperDisableHostMethod = (hostData: TExpansionNode['hostList'][0]) => {
       const brokerHostIdMap = makeMapByHostId(nodeInfoMap.broker.hostList);
-      if (brokerHostIdMap[hostData.host_id]) {
+      if (brokerHostIdMap[hostData.bk_host_id]) {
         return t('主机已被xx节点使用', ['Broker']);
       }
       return false;
     };
     const brokerDisableHostMethod = (hostData: TExpansionNode['hostList'][0]) => {
       const bookkeeperHostIdMap = makeMapByHostId(nodeInfoMap.bookkeeper.hostList);
-      if (bookkeeperHostIdMap[hostData.host_id]) {
+      if (bookkeeperHostIdMap[hostData.bk_host_id]) {
         return t('主机已被xx节点使用', ['Bookkeeper']);
       }
       return false;
@@ -283,16 +284,23 @@
             }, {} as Record<string, any>);
 
             if (ipSource.value === 'manual_input') {
-              const fomatHost = (hostList: TExpansionNode['hostList'] = []) => hostList.map(hostItem => ({
-                ip: hostItem.ip,
-                bk_cloud_id: hostItem.cloud_id,
-                bk_host_id: hostItem.host_id,
-                bk_biz_id: hostItem.meta.bk_biz_id,
-              }));
+              const formatHost = (hostList: TExpansionNode['hostList'] = []) => {
+                const hosts = hostList.map((hostItem) => ({
+                  ip: hostItem.ip,
+                  bk_cloud_id: hostItem.bk_cloud_id,
+                  bk_host_id: hostItem.bk_host_id,
+                  bk_biz_id: hostItem.dedicated_biz,
+                }));
+                return {
+                  spec_id: 0,
+                  hosts,
+                  count: hostList.length,
+                };
+              };
               Object.assign(hostData, {
-                nodes: {
-                  broker: fomatHost(nodeInfoMap.broker.hostList),
-                  bookkeeper: fomatHost(nodeInfoMap.bookkeeper.hostList),
+                resource_spec: {
+                  broker: formatHost(nodeInfoMap.broker.hostList),
+                  bookkeeper: formatHost(nodeInfoMap.bookkeeper.hostList),
                 },
               });
             } else {
@@ -311,17 +319,17 @@
               }
               Object.assign(hostData, {
                 resource_spec: resourceSpec,
+                ext_info: generateExtInfo(),
               });
             }
 
             createTicket({
               bk_biz_id: bizId,
-              ticket_type: 'PULSAR_SCALE_UP',
+              ticket_type: TicketTypes.PULSAR_SCALE_UP,
               details: {
-                ip_source: ipSource.value,
+                ip_source: 'resource_pool',
                 cluster_id: props.data.id,
                 ...hostData,
-                ext_info: generateExtInfo(),
               },
             }).then((data) => {
               ticketMessage(data.id);
