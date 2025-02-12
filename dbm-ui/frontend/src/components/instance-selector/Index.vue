@@ -968,7 +968,11 @@
     if (isEmpty.value) {
       info.disabled = true;
       info.tooltips.disabled = false;
-      info.tooltips.content = panelTabActive.value.includes('Host') ? t('请选择主机') : t('请选择实例');
+      info.tooltips.content =
+        panelTabActive.value.includes('Host') ||
+        tabListMap[props.clusterTypes[0]][0]?.tableConfig?.firsrColumn?.field === 'ip'
+          ? t('请选择主机')
+          : t('请选择实例');
       return info;
     }
 
