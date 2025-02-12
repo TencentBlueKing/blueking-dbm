@@ -256,6 +256,11 @@
               role: 'Proxy',
               proxy_spec_ids: item?.proxy.map((item) => item.spec_config?.id),
             },
+            host: {
+              type: HostSelectType.AUTO,
+              list: [],
+            },
+            switchMode: 'user_confirm',
           }),
         );
       }

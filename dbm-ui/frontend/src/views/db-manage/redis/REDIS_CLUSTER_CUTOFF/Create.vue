@@ -16,7 +16,7 @@
     <BkAlert
       class="mb-20"
       closable
-      :title="t('添加运维节点：在原集群上增加运维节点实例来实现额外的数据访问，在运维节点上的操作不会影响原集群')" />
+      :title="t('整机替换：将原主机上的所有实例搬迁到同等规格的新主机')" />
     <BkForm
       class="mb-20"
       form-type="vertical"

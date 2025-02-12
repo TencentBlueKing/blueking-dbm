@@ -65,7 +65,7 @@
   </EditableColumn>
   <InstanceSelector
     v-model:is-show="showSelector"
-    :cluster-types="[TENDBHA_HOST]"
+    :cluster-types="['TendbhaHost']"
     :selected="selectedInstances"
     :tab-list-config="tabListConfig"
     @change="handleSelectorChange" />
@@ -123,11 +123,10 @@
 
   const { t } = useI18n();
 
-  const TENDBHA_HOST = 'TendbhaHost';
   const tabListConfig = {
-    [TENDBHA_HOST]: [
+    TendbhaHost: [
       {
-        id: [TENDBHA_HOST],
+        id: 'TendbhaHost',
         name: t('目标Proxy主机'),
         tableConfig: {
           firsrColumn: {
@@ -226,7 +225,7 @@
   };
 
   const handleSelectorChange = (selected: InstanceSelectorValues<IValue>) => {
-    emits('batch-edit', selected[TENDBHA_HOST]);
+    emits('batch-edit', selected.TendbhaHost);
   };
 </script>
 
