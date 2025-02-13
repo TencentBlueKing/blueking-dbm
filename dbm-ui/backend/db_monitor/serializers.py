@@ -238,7 +238,7 @@ class MonitorPolicyEmptySerializer(serializers.Serializer):
 
 
 class ListClusterSerializer(serializers.Serializer):
-    dbtype = serializers.ChoiceField(help_text=_("数据库类型"), choices=DBType.get_choices())
+    dbtype = serializers.ChoiceField(help_text=_("数据库类型"), choices=DBType.get_choices(), required=False)
     bk_biz_id = serializers.IntegerField(help_text=_("业务ID"))
 
 
@@ -287,20 +287,30 @@ class ListAlertSerializer(serializers.Serializer):
     self_manage = serializers.BooleanField(help_text=_("是否待我处理"), default=False)
     self_assist = serializers.BooleanField(help_text=_("是否待我协助"), default=False)
     db_types = serializers.ListSerializer(help_text=_("数据库类型"), child=serializers.CharField(), required=False)
+    cluster_domain = serializers.CharField(help_text=_("告警集群"), required=False)
+    instance = serializers.CharField(help_text=_("告警实例"), required=False)
+    ip = serializers.CharField(help_text=_("告警IP"), required=False)
+    alert_name = serializers.CharField(help_text=_("告警名称"), required=False)
+    description = serializers.CharField(help_text=_("告警内容"), required=False)
     severity = serializers.ChoiceField(help_text=_("告警级别"), choices=AlertLevelEnum.get_choices(), required=False)
     stage = serializers.ChoiceField(help_text=_("处理阶段"), choices=AlertStageEnum.get_choices(), required=False)
     status = serializers.ChoiceField(help_text=_("状态"), choices=AlertStatusEnum.get_choices(), required=False)
-    page = serializers.IntegerField(help_text=_("页码"), default=1)
-    page_size = serializers.IntegerField(help_text=_("每页数量"), default=100)
+    offset = serializers.IntegerField(help_text=_("分页偏移量"), default=0)
+    limit = serializers.IntegerField(help_text=_("每页数量"), default=100)
+    ordering = serializers.ListSerializer(help_text=_("排序字段"), child=serializers.CharField(), required=False)
     start_time = serializers.DateTimeField(help_text=_("开始时间"))
     end_time = serializers.DateTimeField(help_text=_("结束时间"))
 
     class Meta:
         swagger_schema_fields = {
             "example": {
-                "bk_biz_id": 101068,
+                "bk_biz_id": 3,
                 "self_manage": True,
                 "self_assist": False,
+                "offset": 0,
+                "limit": 10,
+                "stage": "is_handled",
+                "status": "ABNORMAL",
                 "start_time": None,
                 "end_time": None,
             }
@@ -337,6 +347,7 @@ class UpdateAlarmShieldSerializer(serializers.Serializer):
     end_time = serializers.CharField(help_text=_("结束时间"))
     description = serializers.CharField(help_text=_("屏蔽原因"))
     cycle_config = serializers.DictField(help_text=_("屏蔽周期"))
+    level = serializers.ListField(required=False, label=_("策略的屏蔽等级"))
     shield_notice = serializers.BooleanField(help_text=_("是否有屏蔽通知"), default=False)
 
     class Meta:
@@ -351,8 +362,6 @@ class ListAlarmShieldSerializer(serializers.Serializer):
     bk_biz_id = serializers.IntegerField(help_text=_("业务ID"))
     is_active = serializers.BooleanField(help_text=_("是否生效"), default=True)
     time_range = serializers.CharField(help_text=_("时间范围"), required=False)
-    page = serializers.IntegerField(help_text=_("页码"), default=1)
-    page_size = serializers.IntegerField(help_text=_("每页数量"), default=10)
     category = serializers.CharField(help_text=_("屏蔽类型"), required=False)
     conditions = serializers.ListSerializer(help_text=_("查询条件"), child=serializers.DictField(), required=False)
 

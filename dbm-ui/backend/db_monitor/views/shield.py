@@ -18,7 +18,7 @@ from backend.bk_web.viewsets import SystemViewSet
 from backend.components import BKMonitorV3Api
 from backend.db_monitor import serializers
 from backend.db_monitor.constants import SWAGGER_TAG
-from backend.db_monitor.utils import format_shield_description
+from backend.db_monitor.utils import deformat_shield_description, format_shield_description
 from backend.iam_app.handlers.drf_perm.base import DBManagePermission, RejectPermission
 
 
@@ -47,14 +47,34 @@ class AlarmShieldView(SystemViewSet):
         tags=[SWAGGER_TAG],
     )
     def list(self, request):
-        data = self.validated_data
-        data.update(
+        params = self.validated_data
+        page_size = int(request.query_params.get("limit", 10))
+        page = int(int(request.query_params.get("offset", 0)) / page_size) + 1
+        if params.get("category"):
+            params["categories"] = [params["category"]]
+        conditions = params.get("conditions", [])
+        conditions.append({"key": "query", "value": format_shield_description(params["bk_biz_id"])})
+        params.update(
             {
-                "bk_biz_id": env.DBA_APP_BK_BIZ_ID,
-                "conditions": [{"key": "description", "value": format_shield_description(data["bk_biz_id"])}],
+                "bk_biz_ids": [env.DBA_APP_BK_BIZ_ID],
+                "page": page,
+                "page_size": page_size,
+                "conditions": conditions,
             }
         )
-        return Response(BKMonitorV3Api.list_shield(data))
+        data = BKMonitorV3Api.list_shield(params)
+        for index, shield in enumerate(data["shield_list"]):
+            data["shield_list"][index]["description"] = deformat_shield_description(
+                params["bk_biz_id"], shield["description"]
+            )
+        return Response(data)
+
+    @common_swagger_auto_schema(
+        operation_summary=_("告警屏蔽详情"),
+        tags=[SWAGGER_TAG],
+    )
+    def retrieve(self, request, pk):
+        return Response(BKMonitorV3Api.get_shield({"bk_biz_id": env.DBA_APP_BK_BIZ_ID, "id": pk}))
 
     @common_swagger_auto_schema(
         operation_summary=_("新增告警屏蔽"),

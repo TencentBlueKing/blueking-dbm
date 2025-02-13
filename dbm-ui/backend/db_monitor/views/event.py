@@ -18,6 +18,7 @@ from backend.bk_web.swagger import common_swagger_auto_schema
 from backend.bk_web.viewsets import SystemViewSet
 from backend.components import BKMonitorV3Api
 from backend.configuration.models import DBAdministrator
+from backend.db_meta.enums import ClusterType
 from backend.db_monitor import serializers
 from backend.db_monitor.constants import SWAGGER_TAG
 from backend.iam_app.handlers.drf_perm.base import DBManagePermission
@@ -35,16 +36,26 @@ class AlertView(SystemViewSet):
     @action(detail=False, methods=["POST"], serializer_class=serializers.ListAlertSerializer)
     def search(self, request):
         params = self.validated_data
+
+        # 调整通用参数
         params.update(
             {
                 "bk_biz_ids": [env.DBA_APP_BK_BIZ_ID],
                 "start_time": self.validated_data.get("start_time").timestamp(),
                 "end_time": self.validated_data.get("end_time").timestamp(),
+                "page": int(self.validated_data.get("offset") / self.validated_data.get("limit") + 1),
+                "page_size": self.validated_data.get("limit"),
             }
         )
+
+        # 通用查询条件拼接 querystring
         filter_key_map = {
             "bk_biz_id": "tags.appid",
             "cluster_domain": "tags.cluster_domain",
+            "instance": "tags.instance",
+            "ip": "ip",
+            "alert_name": "alert_name",
+            "description": "description",
             "severity": "severity",
             "stage": "stage",
             "status": "status",
@@ -52,7 +63,8 @@ class AlertView(SystemViewSet):
         conditions = []
         for key, target_key in filter_key_map.items():
             if key in params:
-                conditions.append(f"{target_key}: {params[key]}")
+                conditions.append(f'{target_key}: "{params[key]}"')
+                del params[key]
 
         # 查询用户管理的告警事件，查出用户管理的业务，添加到查询条件中
         self_manage = params.pop("self_manage")
@@ -62,23 +74,24 @@ class AlertView(SystemViewSet):
         if self_manage:
             # 主负责的业务（第一个 DBA）
             biz_cluster_type_conditions = (
-                # TODO 目前策略的维度没有 db_type或 cluster_type，需要给策略都加上
-                # f"tags.appid : {dba.bk_biz_id} AND tags.db_type : {dba.db_type} "
-                f"tags.appid : {dba.bk_biz_id}"
-                for dba in dbas
-                if dba.users[0] == request.user.username
+                f'tags.appid : "{dba.bk_biz_id}"' for dba in dbas if dba.users[0] == request.user.username
             )
         elif self_assist:
             # 协助的业务（非第一个 DBA）
             biz_cluster_type_conditions = (
-                # f"tags.appid : {dba.bk_biz_id} AND tags.db_type : {dba.db_type} "
-                f"tags.appid : {dba.bk_biz_id}"
-                for dba in dbas
-                if dba.users[0] != request.user.username
+                f'tags.appid : "{dba.bk_biz_id}"' for dba in dbas if dba.users[0] != request.user.username
             )
-        biz_cluster_type_query_string = " OR ".join(biz_cluster_type_conditions)
+        biz_cluster_type_query_string = " OR ".join(set(biz_cluster_type_conditions))
         if biz_cluster_type_query_string:
             conditions.append(f"({biz_cluster_type_query_string})")
+
+        # 拼接集群类型查询条件
+        cluster_type_conditions = []
+        for db_type in params.pop("db_types", []):
+            for cluster_type in ClusterType.db_type_to_cluster_types(db_type):
+                cluster_type_conditions.append(f'tags.cluster_type : "{cluster_type}"')
+        if cluster_type_conditions:
+            conditions.append(f'({" OR ".join(cluster_type_conditions)})')
 
         params["query_string"] = " AND ".join(conditions)
 
