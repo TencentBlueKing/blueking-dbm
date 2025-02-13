@@ -121,6 +121,7 @@ class AddSpiderRoutingService(BaseService):
     def _exec_create_node(self, cluster: Cluster, user: str, passwd: str, spider_ip: str, spider_port: int, tag: str):
         """
         定义通过中控master添加node的公共方法
+        因为添加节点时候，需要导出导入表结构，如果碰到多表集群容易超时，所以timeout设置12小时。
         """
         cmds = ["set tc_admin=1"]
         rpc_params = {
@@ -128,6 +129,7 @@ class AddSpiderRoutingService(BaseService):
             "cmds": cmds,
             "force": False,
             "bk_cloud_id": cluster.bk_cloud_id,
+            "query_timeout": 43200,
         }
 
         if not self._check_node_is_add(cluster=cluster, spider_ip=spider_ip, spider_port=spider_port):

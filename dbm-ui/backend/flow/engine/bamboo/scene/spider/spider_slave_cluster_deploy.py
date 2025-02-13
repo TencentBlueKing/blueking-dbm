@@ -96,6 +96,7 @@ class TenDBSlaveClusterApplyFlow(object):
                     uid=self.data["uid"],
                     parent_global_data=copy.deepcopy(sub_flow_context),
                     slave_domain=info["slave_domain"],
+                    is_clone_user=False,
                 )
             )
 
