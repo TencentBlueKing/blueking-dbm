@@ -10,13 +10,14 @@
 package mainloop
 
 import (
+	"dbm-services/mysql/db-tools/dbactuator/pkg/core/cst"
 	"fmt"
 	"log/slog"
+	"math/rand"
 	"path/filepath"
 	"slices"
 	"strings"
-
-	"dbm-services/mysql/db-tools/dbactuator/pkg/core/cst"
+	"time"
 
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/config"
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/itemscollect"
@@ -82,9 +83,19 @@ func Run(hardcode bool) error {
 		return nil
 	}
 
+	randSleepN := rand.Intn(5)
+	slog.Info(
+		"run monitor items",
+		slog.Any("items", iNames),
+		slog.Int("randSleepN", randSleepN),
+	)
+	// 每次整体随机休眠 [0:5), 多实例场景时稍微错开
+	time.Sleep(time.Duration(randSleepN) * time.Second)
+
 	for _, iName := range iNames {
 
 		if constructor, ok := itemscollect.RegisteredItemConstructor()[iName]; ok {
+
 			msg, err := constructor(cc).Run()
 			if err != nil {
 				slog.Error("run monitor item", slog.String("error", err.Error()), slog.String("name", iName))

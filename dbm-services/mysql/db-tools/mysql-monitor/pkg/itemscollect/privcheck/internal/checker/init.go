@@ -1,8 +1,13 @@
 package checker
 
-import "slices"
+import (
+	"slices"
+
+	"golang.org/x/time/rate"
+)
 
 var systemUsers []string
+var limiter *rate.Limiter
 
 type Analyzer struct {
 	deep              bool
@@ -23,6 +28,8 @@ func init() {
 		"GM",
 		"gcs_spider",
 	}
+
+	limiter = rate.NewLimiter(20, 1)
 }
 
 func IsSystemUser(userName string) bool {

@@ -1,6 +1,7 @@
 package checker
 
 import (
+	"context"
 	"fmt"
 	"regexp"
 	"strings"
@@ -22,6 +23,8 @@ func coverEachOther(a, b string) bool {
 }
 
 func pCover(a, b string) bool {
+	_ = limiter.Wait(context.Background())
+
 	a = strings.Replace(a, "*", `\*`, -1)
 	a = strings.Replace(a, ".", `\.`, -1)
 	a = strings.Replace(a, "%", ".*", -1)

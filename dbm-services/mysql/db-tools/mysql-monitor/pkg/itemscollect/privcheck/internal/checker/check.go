@@ -1,5 +1,7 @@
 package checker
 
+import "log/slog"
+
 const (
 	PrivErrorHostConflict            = "host_conflict"
 	PrivErrorDBConflict              = "db_conflict"
@@ -8,6 +10,7 @@ const (
 	PrivErrorGrantToDifferentDB      = "grant_to_different_db"
 	PrivErrorGrantToDifferentTable   = "grant_to_different_table"
 	PrivErrorPrivilegesNotMatch      = "privileges_not_match"
+	PrvErrorsTooManyHosts            = "too_many_hosts"
 )
 
 type PrivErrorInfo struct {
@@ -20,6 +23,7 @@ type PrivErrorInfo struct {
 func (c *Analyzer) Check(deep bool) (res []*PrivErrorInfo) {
 	c.deep = deep
 	for userName, userSummary := range c.userPrivSummaries {
+		slog.Info("priv check", slog.String("userName", userName))
 		if !IsSystemUser(userName) {
 			res = append(res, c.checkUser(userSummary)...)
 		}

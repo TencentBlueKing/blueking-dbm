@@ -6,11 +6,13 @@ import (
 	"encoding/json"
 	errs "errors"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 
 	"github.com/pkg/errors"
 )
@@ -20,19 +22,24 @@ func ReverseCall(api config.ReverseApiName, bkCloudId int, ports ...int) (data [
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to read nginx proxy addresses")
 	}
+	slog.Info("reserve call", slog.String("nginx addrs", strings.Join(addrs, ",")))
 
 	var errCollect []error
 	for _, addr := range addrs {
+		slog.Info("reserve call", slog.String("on addr", addr))
 		apiPath, _ := url.JoinPath(config.ReverseApiBase, api.String(), "/")
 		ep := url.URL{
 			Scheme: "http",
 			Host:   addr,
 			Path:   apiPath,
 		}
+		slog.Info("reserve call", slog.String("endpoint", ep.String()))
 
 		req, err := http.NewRequest(http.MethodGet, ep.String(), nil)
 		if err != nil {
-			return nil, errors.Wrap(err, "failed to create request")
+			slog.Error("reserve call create request", slog.String("error", err.Error()))
+			errCollect = append(errCollect, err)
+			continue
 		}
 
 		q := req.URL.Query()
@@ -44,8 +51,10 @@ func ReverseCall(api config.ReverseApiName, bkCloudId int, ports ...int) (data [
 
 		data, err = do(req)
 		if err == nil {
+			slog.Info("reserve call", slog.String("data len", strconv.Itoa(len(data))))
 			return data, nil
 		}
+		slog.Error("reserve call do request", slog.String("error", err.Error()))
 		errCollect = append(errCollect, err)
 	}
 
@@ -77,7 +86,8 @@ func do(request *http.Request) (data []byte, err error) {
 	}
 
 	if !r.Result {
-		return nil, errors.Errorf("unexpected status code: %d, body: %s", resp.StatusCode, r.Errors)
+		return nil, errors.Errorf("unexpected status code: %d, msg: %s, error: %s", r.Code, r.Message,
+			r.Errors)
 	}
 
 	return r.Data, nil

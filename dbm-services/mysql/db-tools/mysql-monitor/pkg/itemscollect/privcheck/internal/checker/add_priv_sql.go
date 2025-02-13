@@ -1,13 +1,19 @@
 package checker
 
 import (
+	"context"
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/itemscollect/privcheck/internal/listener"
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/itemscollect/privcheck/internal/parsing"
+	"log/slog"
 
 	"github.com/antlr4-go/antlr/v4"
 )
 
 func (c *Analyzer) AddPrivSQLString(sql string) {
+	_ = limiter.Wait(context.Background())
+
+	slog.Info("adding privSQL string", slog.String("sql", sql))
+
 	in := antlr.NewInputStream(sql)
 	lexer := parsing.NewMySqlLexer(in)
 	stream := antlr.NewCommonTokenStream(lexer, 0)

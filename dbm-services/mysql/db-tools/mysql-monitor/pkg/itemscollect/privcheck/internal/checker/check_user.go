@@ -1,7 +1,9 @@
 package checker
 
 import (
+	"context"
 	"fmt"
+	"log/slog"
 	"slices"
 	"strings"
 
@@ -9,7 +11,24 @@ import (
 )
 
 func (c *Analyzer) checkUser(userSummary *userPrivSummary) (res []*PrivErrorInfo) {
+	_ = limiter.Wait(context.Background())
+
+	slog.Info("priv check user", slog.Any("summary", userSummary))
+	if len(userSummary.HostPrivSummaries) > 1000 {
+		slog.Info("priv check user too many hosts")
+		res = append(res, &PrivErrorInfo{
+			ErrorType: PrvErrorsTooManyHosts,
+			Msg: fmt.Sprintf(
+				"too many hosts [%d] on user %s",
+				len(userSummary.HostPrivSummaries),
+				userSummary.Username,
+			),
+		})
+		return res
+	}
+
 	conflictHosts := FindPatternCover(maps.Keys(userSummary.HostPrivSummaries))
+	slog.Info("priv check user", slog.Any("conflict hosts", conflictHosts))
 
 	for _, pair := range conflictHosts {
 		if ok, msg := compareHostSummary(
@@ -32,6 +51,15 @@ host 不同的权限明细对吧
 2. db 明细对比
 */
 func compareHostSummary(username string, hs0, hs1 *hostPrivSummary) (ok bool, res []*PrivErrorInfo) {
+	_ = limiter.Wait(context.Background())
+
+	slog.Info(
+		"priv check host summary",
+		slog.String("username", username),
+		slog.Any("hs0", hs0),
+		slog.Any("hs1", hs1),
+	)
+
 	if hs0.Password != hs1.Password {
 		res = append(res, &PrivErrorInfo{
 			ErrorType: PrivErrorPasswordNotMatch,

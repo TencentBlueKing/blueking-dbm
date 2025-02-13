@@ -281,7 +281,7 @@
   - spider_master
 - name: priv-check
   enable: true
-  schedule: 0 40 9 * * *
+  schedule: 0 40 9 * * 2
   machine_type:
   - spider
   - remote
@@ -290,7 +290,7 @@
   role: []
 - name: proxy-rebind
   enable: true
-  schedule: '@every 10s'
+  schedule: 0 55 9 * * *
   machine_type:
   - proxy
   role: []

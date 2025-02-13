@@ -1,7 +1,9 @@
 package checker
 
 import (
+	"context"
 	"fmt"
+	"log/slog"
 	"slices"
 	"strings"
 
@@ -48,6 +50,17 @@ dbname 不同的权限明细对比
   - 权限
 */
 func compareDBSummary(username, host0, host1 string, ds0, ds1 *dbPrivSummary) (ok bool, res []*PrivErrorInfo) {
+	_ = limiter.Wait(context.Background())
+
+	slog.Info(
+		"priv check compare db summary",
+		slog.String("username", username),
+		slog.String("host", host0),
+		slog.String("host1", host1),
+		slog.Any("ds0", ds0),
+		slog.Any("ds1", ds1),
+	)
+
 	if ds0.WithGrantOption != ds1.WithGrantOption {
 		res = append(
 			res,

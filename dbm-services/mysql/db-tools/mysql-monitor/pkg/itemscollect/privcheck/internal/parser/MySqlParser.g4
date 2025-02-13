@@ -1688,6 +1688,8 @@ privilege
     | LOAD FROM S3
     | SELECT INTO S3
     | INVOKE LAMBDA
+    | SENSITIVE_VARIABLES_OBSERVER
+    | GROUP_REPLICATION_STREAM
     ;
 
 privilegeLevel

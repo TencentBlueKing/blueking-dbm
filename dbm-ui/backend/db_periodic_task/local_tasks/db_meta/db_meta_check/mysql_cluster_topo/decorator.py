@@ -35,7 +35,7 @@ def checker_wrapper(checker):
                 updater="system",
                 # create_at=timezone.localtime(timezone.now()),
                 # update_at=timezone.localtime(timezone.now()),
-                ip="0.0.0.0",
+                ip="",
                 port=0,
                 machine_type="",
             )

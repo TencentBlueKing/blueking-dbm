@@ -30,12 +30,21 @@ func (c *Checker) Run() (msg string, err error) {
 		),
 	)
 
+	commandPath, err := exec.LookPath("lsof")
+	if err != nil {
+		slog.Error("find lsof failed", slog.String("error", err.Error()))
+		return "", err
+	}
+	slog.Info("find lsof command", slog.String("path", commandPath))
+
 	var stdout, stderr bytes.Buffer
-	cmd := exec.Command("sh", "-c", "lsof -nP -iTCP -sTCP:LISTEN")
+	cmd := exec.Command("sh", "-c", fmt.Sprintf("%s -nP -iTCP -sTCP:LISTEN", commandPath))
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
 
 	err = cmd.Run()
+	slog.Info("run lsof", slog.String("stderr", stderr.String()), slog.String("stdout", stdout.String()))
+
 	if err != nil {
 		slog.Error("run lsof", slog.String("err", err.Error()))
 		return "", err

@@ -1,6 +1,7 @@
 package privcheck
 
 import (
+	"bufio"
 	"dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/common/go-pubpkg/reportlog"
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/config"
@@ -8,9 +9,11 @@ import (
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/itemscollect/privcheck/internal/checker"
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/monitoriteminterface"
 	"fmt"
+	"io/fs"
 	"log/slog"
 	"os"
 	"path/filepath"
+	"regexp"
 	"time"
 
 	"github.com/jmoiron/sqlx"
@@ -36,17 +39,29 @@ type reportType struct {
 }
 
 func (c *Checker) Run() (msg string, err error) {
-	privs, err := c.showAllPrivileges()
+	//privs, err := c.showAllPrivileges()
+	//if err != nil {
+	//	slog.Error("show all privs", slog.String("err", err.Error()))
+	//	return "", err
+	//}
+
+	privs, err := c.readPrivBackupFile()
 	if err != nil {
-		slog.Error("show all privs", slog.String("err", err.Error()))
+		slog.Error("read backup file", slog.String("err", err.Error()))
 		return "", err
 	}
+
+	slog.Info("priv-check read priv success")
 
 	for _, priv := range privs {
 		c.az.AddPrivSQLString(priv)
 	}
 
+	slog.Info("init az finished")
+
 	report := c.az.Check(true)
+
+	slog.Info("check finished")
 
 	privCheckReportBaseDir := filepath.Join(cst.DBAReportBase, "mysql/privcheck")
 	err = os.MkdirAll(privCheckReportBaseDir, os.ModePerm)
@@ -55,7 +70,11 @@ func (c *Checker) Run() (msg string, err error) {
 		return "", err
 	}
 
-	resultReport, err := reportlog.NewReporter(privCheckReportBaseDir, "report.log", nil)
+	resultReport, err := reportlog.NewReporter(
+		privCheckReportBaseDir,
+		fmt.Sprintf("report_%d.log", config.MonitorConfig.Port),
+		nil,
+	)
 	if err != nil {
 		slog.Error("create priv check report", slog.String("err", err.Error()))
 		return "", err
@@ -76,6 +95,67 @@ func (c *Checker) Run() (msg string, err error) {
 	}
 
 	return "", nil
+}
+
+func (c *Checker) readPrivBackupFile() (privs []string, err error) {
+	dbBackupBaseDirs := []string{"/data/dbbak", "/data1/dbbak"}
+	filePattern := regexp.MustCompile(
+		fmt.Sprintf(
+			`^.*_%s_%d_%s.*priv$`,
+			config.MonitorConfig.Ip,
+			config.MonitorConfig.Port,
+			time.Now().Format("20060102"),
+		),
+	)
+
+	var latestPrivFileEntry *fs.DirEntry
+	var latestPrivFileInfo *fs.FileInfo
+	var latestPrivFilePath string
+
+	for _, dir := range dbBackupBaseDirs {
+		err := filepath.WalkDir(dir, func(path string, d fs.DirEntry, err error) error {
+			if err != nil {
+				return err
+			}
+
+			if !d.IsDir() && filePattern.MatchString(d.Name()) {
+				info, err := d.Info()
+				if err != nil {
+					return err
+				}
+				if latestPrivFileEntry == nil || info.ModTime().After((*latestPrivFileInfo).ModTime()) {
+					latestPrivFileEntry = &d
+					latestPrivFileInfo = &info
+					latestPrivFilePath = path
+				}
+			}
+
+			return nil
+		})
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	if latestPrivFileEntry != nil {
+		f, err := os.Open(latestPrivFilePath)
+		if err != nil {
+			return nil, err
+		}
+		defer func() {
+			_ = f.Close()
+		}()
+
+		scanner := bufio.NewScanner(f)
+		for scanner.Scan() {
+			privs = append(privs, scanner.Text())
+		}
+		if err := scanner.Err(); err != nil {
+			return nil, err
+		}
+	}
+
+	return privs, nil
 }
 
 func (c *Checker) showAllPrivileges() (privs []string, err error) {
