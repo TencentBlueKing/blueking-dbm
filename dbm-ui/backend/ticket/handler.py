@@ -42,7 +42,7 @@ from backend.ticket.constants import (
 from backend.ticket.exceptions import TicketFlowsConfigException
 from backend.ticket.flow_manager.manager import TicketFlowManager
 from backend.ticket.models import Flow, Ticket, TicketFlowsConfig, Todo
-from backend.ticket.todos import BaseTodoContext, TodoActorFactory
+from backend.ticket.todos import BaseTodoContext, TodoActionType, TodoActorFactory
 from backend.ticket.todos.itsm_todo import ItsmTodoContext
 
 logger = logging.getLogger("root")
@@ -226,8 +226,8 @@ class TicketHandler:
         return approval_key[approve_mode], remark_key[approve_mode]
 
     @classmethod
-    def approve_itsm_ticket(cls, ticket_id, action, operator, **kwargs):
-        """审批 / 终止itsm中的单据"""
+    def operate_itsm_ticket(cls, ticket_id, action, operator, **kwargs):
+        """操作itsm中的单据"""
         flow = Flow.objects.get(ticket_id=ticket_id, flow_type="BK_ITSM")
         sn = flow.flow_obj_id
         itsm_info = ItsmApi.get_ticket_info(params={"sn": sn})
@@ -260,6 +260,11 @@ class TicketHandler:
         # 终止/撤销单据
         elif action in [OperateNodeActionType.TERMINATE, OperateNodeActionType.WITHDRAW]:
             ItsmApi.operate_ticket(params)
+        # 转单派给他人
+        elif action == OperateNodeActionType.DELIVER:
+            processors = kwargs["processors"]
+            params.update(state_id=state_id, processors_type="PERSON", processors=processors)
+            ItsmApi.operate_node(params)
 
         return sn
 
@@ -309,7 +314,10 @@ class TicketHandler:
         for operation in operations:
             todo_id, params = operation["todo_id"], operation["params"]
             todo = Todo.objects.get(id=todo_id)
-            TodoActorFactory.actor(todo).process(user, action, params)
+            if action == TodoActionType.DELIVER:
+                TodoActorFactory.actor(todo).deliver(user, action, params)
+            else:
+                TodoActorFactory.actor(todo).process(user, action, params)
             results.append(todo)
         return TodoSerializer(results, many=True).data
 

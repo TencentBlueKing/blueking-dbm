@@ -31,7 +31,7 @@ from backend.exceptions import ApiResultError
 from backend.ticket.builders import BuilderFactory
 from backend.ticket.constants import TicketStatus, TicketType, TodoStatus
 from backend.ticket.models import Flow, Ticket
-from backend.ticket.todos import ActionType
+from backend.ticket.todos import TodoActionType
 from backend.utils.cache import func_cache_decorator
 
 logger = logging.getLogger("root")
@@ -92,14 +92,14 @@ class BkChatHandler(BaseNotifyHandler):
             "name": _("同意") if ticket.status == TicketStatus.APPROVE else _("确认执行"),
             "color": "green",
             "callback_url": f"{env.BK_DBM_APIGATEWAY}/tickets/bkchat_process_todo/",
-            "callback_data": {"action": ActionType.APPROVE.value, "todo_id": todo.id, "params": {}},
+            "callback_data": {"action": TodoActionType.APPROVE.value, "todo_id": todo.id, "params": {}},
         }
         refuse_action = {
             "name": _("拒绝") if ticket.status == TicketStatus.APPROVE else _("终止单据"),
             "color": "red",
             "callback_url": f"{env.BK_DBM_APIGATEWAY}/tickets/bkchat_process_todo/",
             "callback_data": {
-                "action": ActionType.TERMINATE.value,
+                "action": TodoActionType.TERMINATE.value,
                 "todo_id": todo.id,
                 "params": {"remark": _("使用「蓝鲸审批助手」终止单据")},
             },

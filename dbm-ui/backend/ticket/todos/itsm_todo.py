@@ -14,7 +14,7 @@ from dataclasses import dataclass
 from backend.constants import DEFAULT_SYSTEM_USER
 from backend.ticket import todos
 from backend.ticket.constants import TODO_RUNNING_STATUS, OperateNodeActionType, TodoType
-from backend.ticket.todos import ActionType, BaseTodoContext
+from backend.ticket.todos import BaseTodoContext, TodoActionType
 
 logger = logging.getLogger("root")
 
@@ -48,7 +48,7 @@ class ItsmTodo(todos.TodoActor):
         message = params.get("remark", "")
 
         def approve_itsm_ticket(itsm_action, is_approved):
-            sn = TicketHandler.approve_itsm_ticket(
+            sn = TicketHandler.operate_itsm_ticket(
                 ticket_id,
                 action=itsm_action,
                 operator=username,
@@ -58,19 +58,32 @@ class ItsmTodo(todos.TodoActor):
             return sn
 
         # 系统终止，认为是关单(调用itsm接口要用admin发起)
-        if action == ActionType.TERMINATE and username == DEFAULT_SYSTEM_USER:
+        if action == TodoActionType.TERMINATE and username == DEFAULT_SYSTEM_USER:
             username = "admin"
             approve_itsm_ticket(OperateNodeActionType.TERMINATE, is_approved=False)
             self.todo.set_terminated(username, action)
         # 审批人终止，认为是拒单
-        elif action == ActionType.TERMINATE and username != own:
+        elif action == TodoActionType.TERMINATE and username != own:
             approve_itsm_ticket(OperateNodeActionType.TRANSITION, is_approved=False)
             self.todo.set_terminated(username, action)
         # 自己终止，认为是撤单
-        elif action == ActionType.TERMINATE and username == own:
+        elif action == TodoActionType.TERMINATE and username == own:
             approve_itsm_ticket(OperateNodeActionType.WITHDRAW, is_approved=False)
             self.todo.set_terminated(username, action)
         # 只允许审批人通过
-        elif action == ActionType.APPROVE and username != own:
+        elif action == TodoActionType.APPROVE and username != own:
             approve_itsm_ticket(OperateNodeActionType.TRANSITION, is_approved=True)
             self.todo.set_success(username, action)
+
+    def _deliver(self, username, processors, remark):
+        # 在itsm将单据派给别人，分派用户就是当前todo处理人
+        from backend.ticket.handler import TicketHandler
+
+        processors = ",".join(self.todo.operators + self.todo.helpers)
+        TicketHandler.operate_itsm_ticket(
+            self.todo.ticket_id,
+            action=OperateNodeActionType.DELIVER,
+            operator=username,
+            action_message=remark,
+            processors=processors,
+        )

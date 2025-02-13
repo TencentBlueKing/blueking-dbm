@@ -34,7 +34,7 @@ from backend.ticket.constants import (
 )
 from backend.ticket.flow_manager.manager import TicketFlowManager
 from backend.ticket.models import Flow, Ticket, Todo
-from backend.ticket.todos import ActionType
+from backend.ticket.todos import TodoActionType
 from backend.ticket.yasg_slz import todo_operate_example
 from backend.utils.time import calculate_cost_time, strptime
 
@@ -384,7 +384,7 @@ class BatchApprovalSerializer(serializers.Serializer):
     ticket_ids = serializers.ListField(help_text=_("单据id集合"))
 
 
-class BatchTodoOperation(serializers.Serializer):
+class TodoOperation(serializers.Serializer):
     """
     批量待办操作
     """
@@ -398,10 +398,8 @@ class BatchTodoOperateSerializer(serializers.Serializer):
     批量待办处理
     """
 
-    action = serializers.ChoiceField(
-        choices=[ActionType.APPROVE.value, ActionType.TERMINATE.value], help_text=_("统一动作")
-    )
-    operations = serializers.ListField(child=BatchTodoOperation(), help_text=_("待办操作列表"))
+    action = serializers.ChoiceField(choices=TodoActionType.get_choices(), help_text=_("统一动作"))
+    operations = serializers.ListField(child=TodoOperation(), help_text=_("待办操作列表"))
 
     def validate(self, attrs):
         operations = attrs.get("operations", [])
@@ -418,9 +416,7 @@ class BatchTodoOperateSerializer(serializers.Serializer):
 
 
 class BatchTicketOperateSerializer(serializers.Serializer):
-    action = serializers.ChoiceField(
-        choices=[ActionType.APPROVE.value, ActionType.TERMINATE.value], help_text=_("统一动作")
-    )
+    action = serializers.ChoiceField(choices=TodoActionType.get_choices(), help_text=_("统一动作"))
     ticket_ids = serializers.ListField(help_text=_("单据ID列表"), child=serializers.IntegerField())
     params = serializers.JSONField(help_text=_("动作参数"), required=False, default={})
 

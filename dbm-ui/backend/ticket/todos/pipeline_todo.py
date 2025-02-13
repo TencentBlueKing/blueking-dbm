@@ -19,7 +19,7 @@ from backend.flow.engine.bamboo.engine import BambooEngine
 from backend.ticket import todos
 from backend.ticket.constants import TODO_RUNNING_STATUS, TodoStatus, TodoType
 from backend.ticket.models import Flow, TodoHistory
-from backend.ticket.todos import ActionType, BaseTodoContext
+from backend.ticket.todos import BaseTodoContext, TodoActionType
 
 logger = logging.getLogger("root")
 
@@ -40,7 +40,7 @@ class PipelineTodo(todos.TodoActor):
         root_id, node_id = self.context.get("root_id"), self.context.get("node_id")
         engine = BambooEngine(root_id=root_id)
 
-        if action == ActionType.TERMINATE:
+        if action == TodoActionType.TERMINATE:
             self.todo.set_status(username, TodoStatus.DONE_FAILED)
             # 终止时，直接将流程设置为失败
             engine.force_fail_node(node_id, ex_data=_("人工强制失败"))

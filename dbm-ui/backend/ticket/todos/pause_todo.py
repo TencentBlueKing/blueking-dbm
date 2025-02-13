@@ -14,7 +14,7 @@ from backend.db_meta.models.sqlserver_dts import DtsStatus, SqlserverDtsInfo
 from backend.ticket import todos
 from backend.ticket.constants import TicketFlowStatus, TicketType, TodoStatus, TodoType
 from backend.ticket.flow_manager.manager import TicketFlowManager
-from backend.ticket.todos import ActionType, BaseTodoContext
+from backend.ticket.todos import BaseTodoContext, TodoActionType
 
 
 @dataclass
@@ -39,7 +39,7 @@ class PauseTodo(todos.TodoActor):
 
     def _process(self, username, action, params):
         """确认/终止"""
-        if action == ActionType.TERMINATE:
+        if action == TodoActionType.TERMINATE:
             self.todo.set_terminated(username, action)
             return
 
@@ -63,7 +63,7 @@ class ResourceReplenishTodo(todos.TodoActor):
     def _process(self, username, action, params):
         """确认/终止"""
         # 终止单据
-        if action == ActionType.TERMINATE:
+        if action == TodoActionType.TERMINATE:
             self.todo.set_terminated(username, action)
             return
 
@@ -85,7 +85,7 @@ class FailedTodo(todos.TodoActor):
 
     def _process(self, username, action, params):
         # 终止-仅将todo进行终止(任务流程的终止)，确认-关联flow进行重试
-        if action == ActionType.TERMINATE:
+        if action == TodoActionType.TERMINATE:
             self.todo.set_status(username, TodoStatus.DONE_FAILED)
         else:
             manager = TicketFlowManager(ticket=self.todo.ticket)
