@@ -215,12 +215,12 @@
             "is_delete": false,
             "alias_name": "",
             "field_name": "valsize",
-            "field_type": "int",
+            "field_type": "long",
             "description": "",
             "is_analyzed": false,
             "is_built_in": false,
             "is_dimension": false,
-            "previous_type": "int"
+            "previous_type": "long"
         }
     ]
 }
