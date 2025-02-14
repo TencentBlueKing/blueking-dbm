@@ -22,6 +22,7 @@ fast_transfer_file_common_kwargs = {
 
 # mysql actuator 执行的shell命令，引入文件MD5值的比较，避免并发执行过程中输出错误信息，误导日志的捕捉
 actuator_template = """
+find /data/install/dbactuator-*/ -mtime +10 -name dbactuator -delete
 lock_file="/tmp/dbm-mysql-{{uid}}.lock"
 trap 'rm -f "$lock_file"' EXIT
 (
@@ -38,7 +39,6 @@ trap 'rm -f "$lock_file"' EXIT
    fi
 )  200>"$lock_file"
    rm -f "$lock_file"
-   
    cd /data/install/dbactuator-{{uid}}
    chmod +x dbactuator
    ./dbactuator {{db_type}} {{action}} --uid {{uid}} --root_id {{root_id}} --node_id {{node_id}} --version_id {{version_id}} --payload $1 {% for item in non_sensitive_payload %} -c {{ item }} {% endfor %}
@@ -47,6 +47,7 @@ trap 'rm -f "$lock_file"' EXIT
 
 # riak actuator 执行的shell命令，引入文件MD5值的比较，避免并发执行过程中输出错误信息，误导日志的捕捉
 riak_actuator_template = """
+find /data/install/dbactuator-*/ -mtime +10 -name dbactuator -delete
 mkdir -p /data/install/dbactuator-{{uid}}/logs
 if [[ ! -f /data/install/dbactuator-{{uid}}/dbactuator ]];then
    cp /data/install/dbactuator /data/install/dbactuator-{{uid}}
@@ -58,7 +59,6 @@ else
       cp /data/install/dbactuator /data/install/dbactuator-{{uid}}
    fi
 fi
-
 cd /data/install/dbactuator-{{uid}}
 chmod +x dbactuator
 ./dbactuator {{db_type}} {{action}} --uid {{uid}} --root_id {{root_id}} --node_id {{node_id}} --version_id {{version_id}} --payload $1
