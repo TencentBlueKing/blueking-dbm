@@ -4,16 +4,17 @@ import (
 	"testing"
 )
 
+// TestCliFormatReplyTTY0 tests the FormatReplyTTY function with different input types.
 func TestCliFormatReplyTTY0(t *testing.T) {
-	o := FormatReplyTTY(false, int64(3), "")
+	o := FormatReplyTTY(false, int64(3), "", false)
 	t.Log("\n|\n" + o)
 
-	o = FormatReplyTTY(false, "string", "")
+	o = FormatReplyTTY(false, "string", "", false)
 	t.Log("\n|\n" + o)
 
-	o = FormatReplyTTY(true, "OK", "")
+	o = FormatReplyTTY(true, "OK", "", false)
 	t.Log("\n|\n" + o)
-	o = FormatReplyTTY(true, make([]interface{}, 0), "")
+	o = FormatReplyTTY(true, make([]interface{}, 0), "", false)
 	t.Log("\n|\n" + o)
 }
 
@@ -24,7 +25,7 @@ func TestCliFormatReplyTTY(t *testing.T) {
 		interface2 = append(interface2, strs[i])
 	}
 
-	o := FormatReplyTTY(false, interface2, "")
+	o := FormatReplyTTY(false, interface2, "", false)
 	t.Log("\n|\n" + o)
 }
 
@@ -40,7 +41,7 @@ func TestCliFormatReplyTTY2(t *testing.T) {
 	}
 	interface1 = append(interface1, interface2, interface3)
 
-	o := FormatReplyTTY(false, interface1, "")
+	o := FormatReplyTTY(false, interface1, "", false)
 	t.Log("\n|\n" + o)
 }
 
@@ -60,6 +61,6 @@ func TestCliFormatReplyTTY3(t *testing.T) {
 	interface1 = append(interface1, interface2)
 	interface1 = append(interface1, interface2)
 
-	o := FormatReplyTTY(false, interface1, "")
+	o := FormatReplyTTY(false, interface1, "", false)
 	t.Log("\n" + o)
 }
