@@ -77,7 +77,7 @@
       "collapsed": false,
       "datasource": {
         "type": "bkmonitor-timeseries-datasource",
-        "uid": "HVlyYOe4z"
+        "uid": "${DS_蓝鲸监控_- 指标数据}"
       },
       "gridPos": {
         "h": 1,
@@ -92,7 +92,7 @@
         {
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "HVlyYOe4z"
+            "uid": "${DS_蓝鲸监控_- 指标数据}"
           },
           "refId": "A"
         }
@@ -2019,7 +2019,7 @@
       "collapsed": true,
       "datasource": {
         "type": "bkmonitor-timeseries-datasource",
-        "uid": "HVlyYOe4z"
+        "uid": "${DS_蓝鲸监控_- 指标数据}"
       },
       "gridPos": {
         "h": 1,
@@ -3158,7 +3158,7 @@
         {
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "HVlyYOe4z"
+            "uid": "${DS_蓝鲸监控_- 指标数据}"
           },
           "refId": "A"
         }
@@ -3170,7 +3170,7 @@
       "collapsed": true,
       "datasource": {
         "type": "bkmonitor-timeseries-datasource",
-        "uid": "HVlyYOe4z"
+        "uid": "${DS_蓝鲸监控_- 指标数据}"
       },
       "gridPos": {
         "h": 1,
@@ -5434,7 +5434,7 @@
         {
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "HVlyYOe4z"
+            "uid": "${DS_蓝鲸监控_- 指标数据}"
           },
           "refId": "A"
         }
@@ -8691,7 +8691,7 @@
       "collapsed": true,
       "datasource": {
         "type": "bkmonitor-timeseries-datasource",
-        "uid": "HVlyYOe4z"
+        "uid": "${DS_蓝鲸监控_- 指标数据}"
       },
       "gridPos": {
         "h": 1,
@@ -15313,7 +15313,7 @@
         {
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "HVlyYOe4z"
+            "uid": "${DS_蓝鲸监控_- 指标数据}"
           },
           "refId": "A"
         }
@@ -15325,7 +15325,7 @@
       "collapsed": true,
       "datasource": {
         "type": "bkmonitor-timeseries-datasource",
-        "uid": "HVlyYOe4z"
+        "uid": "${DS_蓝鲸监控_- 指标数据}"
       },
       "gridPos": {
         "h": 1,
@@ -21927,7 +21927,7 @@
         {
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "HVlyYOe4z"
+            "uid": "${DS_蓝鲸监控_- 指标数据}"
           },
           "refId": "A"
         }
@@ -21939,7 +21939,7 @@
       "collapsed": true,
       "datasource": {
         "type": "bkmonitor-timeseries-datasource",
-        "uid": "HVlyYOe4z"
+        "uid": "${DS_蓝鲸监控_- 指标数据}"
       },
       "gridPos": {
         "h": 1,
@@ -25354,7 +25354,7 @@
         {
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "HVlyYOe4z"
+            "uid": "${DS_蓝鲸监控_- 指标数据}"
           },
           "refId": "A"
         }
@@ -27811,7 +27811,7 @@
       "collapsed": true,
       "datasource": {
         "type": "bkmonitor-timeseries-datasource",
-        "uid": "HVlyYOe4z"
+        "uid": "${DS_蓝鲸监控_- 指标数据}"
       },
       "gridPos": {
         "h": 1,
@@ -30442,7 +30442,7 @@
         {
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "HVlyYOe4z"
+            "uid": "${DS_蓝鲸监控_- 指标数据}"
           },
           "refId": "A"
         }

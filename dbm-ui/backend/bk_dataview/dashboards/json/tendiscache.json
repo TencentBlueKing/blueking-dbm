@@ -22,7 +22,7 @@
     ]
   },
   "description": "tendisCache集群",
-  "editable": false,
+  "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
   "id": null,
@@ -42,7 +42,7 @@
         {
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "bkmonitor_timeseries"
+            "uid": "${DS_蓝鲸监控_- 指标数据}"
           },
           "description": "twemproxy cpu 单核使用率",
           "fieldConfig": {
@@ -127,7 +127,7 @@
               "cluster": [],
               "datasource": {
                 "type": "bkmonitor-timeseries-datasource",
-                "uid": "bkmonitor_timeseries"
+                "uid": "${DS_蓝鲸监控_- 指标数据}"
               },
               "expressionList": [],
               "format": "time_series",
@@ -185,7 +185,7 @@
         {
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "bkmonitor_timeseries"
+            "uid": "${DS_蓝鲸监控_- 指标数据}"
           },
           "description": "redis 机器cpu使用率",
           "fieldConfig": {
@@ -270,7 +270,7 @@
               "cluster": [],
               "datasource": {
                 "type": "bkmonitor-timeseries-datasource",
-                "uid": "bkmonitor_timeseries"
+                "uid": "${DS_蓝鲸监控_- 指标数据}"
               },
               "expressionList": [],
               "format": "time_series",
@@ -328,7 +328,7 @@
         {
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "bkmonitor_timeseries"
+            "uid": "${DS_蓝鲸监控_- 指标数据}"
           },
           "description": "twemproxy 主机内存使用率",
           "fieldConfig": {
@@ -413,7 +413,7 @@
               "cluster": [],
               "datasource": {
                 "type": "bkmonitor-timeseries-datasource",
-                "uid": "bkmonitor_timeseries"
+                "uid": "${DS_蓝鲸监控_- 指标数据}"
               },
               "expressionList": [],
               "format": "time_series",
@@ -471,7 +471,7 @@
         {
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "bkmonitor_timeseries"
+            "uid": "${DS_蓝鲸监控_- 指标数据}"
           },
           "description": "redis 主机内存使用率",
           "fieldConfig": {
@@ -556,7 +556,7 @@
               "cluster": [],
               "datasource": {
                 "type": "bkmonitor-timeseries-datasource",
-                "uid": "bkmonitor_timeseries"
+                "uid": "${DS_蓝鲸监控_- 指标数据}"
               },
               "expressionList": [],
               "format": "time_series",
@@ -614,7 +614,7 @@
         {
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "bkmonitor_timeseries"
+            "uid": "${DS_蓝鲸监控_- 指标数据}"
           },
           "description": "流量使用率：每核分配48M或96MB(<=2core)\n包量使用率：每核分配9w或15w(<=2core)\n适用于大部分腾讯云cvm",
           "fieldConfig": {
@@ -699,7 +699,7 @@
               "cluster": [],
               "datasource": {
                 "type": "bkmonitor-timeseries-datasource",
-                "uid": "bkmonitor_timeseries"
+                "uid": "${DS_蓝鲸监控_- 指标数据}"
               },
               "expressionList": [
                 {
@@ -959,7 +959,7 @@
               "cluster": [],
               "datasource": {
                 "type": "bkmonitor-timeseries-datasource",
-                "uid": "bkmonitor_timeseries"
+                "uid": "${DS_蓝鲸监控_- 指标数据}"
               },
               "expressionList": [
                 {
@@ -1222,7 +1222,7 @@
         {
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "bkmonitor_timeseries"
+            "uid": "${DS_蓝鲸监控_- 指标数据}"
           },
           "description": "流量使用率：每核分配48M或96MB(<=2core)\n包量使用率：每核分配9w或15w(<=2core)\n适用于大部分腾讯云cvm",
           "fieldConfig": {
@@ -1307,7 +1307,7 @@
               "cluster": [],
               "datasource": {
                 "type": "bkmonitor-timeseries-datasource",
-                "uid": "bkmonitor_timeseries"
+                "uid": "${DS_蓝鲸监控_- 指标数据}"
               },
               "expressionList": [
                 {
@@ -1567,7 +1567,7 @@
               "cluster": [],
               "datasource": {
                 "type": "bkmonitor-timeseries-datasource",
-                "uid": "bkmonitor_timeseries"
+                "uid": "${DS_蓝鲸监控_- 指标数据}"
               },
               "expressionList": [
                 {
@@ -1830,7 +1830,7 @@
         {
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "bkmonitor_timeseries"
+            "uid": "${DS_蓝鲸监控_- 指标数据}"
           },
           "description": "twemproxy 主机流量",
           "fieldConfig": {
@@ -1915,7 +1915,7 @@
               "cluster": [],
               "datasource": {
                 "type": "bkmonitor-timeseries-datasource",
-                "uid": "bkmonitor_timeseries"
+                "uid": "${DS_蓝鲸监控_- 指标数据}"
               },
               "expressionList": [],
               "format": "time_series",
@@ -1970,7 +1970,7 @@
               "cluster": [],
               "datasource": {
                 "type": "bkmonitor-timeseries-datasource",
-                "uid": "bkmonitor_timeseries"
+                "uid": "${DS_蓝鲸监控_- 指标数据}"
               },
               "expressionList": [],
               "format": "time_series",
@@ -2029,7 +2029,7 @@
         {
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "bkmonitor_timeseries"
+            "uid": "${DS_蓝鲸监控_- 指标数据}"
           },
           "description": "redis  主机流量",
           "fieldConfig": {
@@ -2114,7 +2114,7 @@
               "cluster": [],
               "datasource": {
                 "type": "bkmonitor-timeseries-datasource",
-                "uid": "bkmonitor_timeseries"
+                "uid": "${DS_蓝鲸监控_- 指标数据}"
               },
               "expressionList": [],
               "format": "time_series",
@@ -2169,7 +2169,7 @@
               "cluster": [],
               "datasource": {
                 "type": "bkmonitor-timeseries-datasource",
-                "uid": "bkmonitor_timeseries"
+                "uid": "${DS_蓝鲸监控_- 指标数据}"
               },
               "expressionList": [],
               "format": "time_series",
@@ -2228,7 +2228,7 @@
         {
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "bkmonitor_timeseries"
+            "uid": "${DS_蓝鲸监控_- 指标数据}"
           },
           "description": "twemproxy 主机包量",
           "fieldConfig": {
@@ -2313,7 +2313,7 @@
               "cluster": [],
               "datasource": {
                 "type": "bkmonitor-timeseries-datasource",
-                "uid": "bkmonitor_timeseries"
+                "uid": "${DS_蓝鲸监控_- 指标数据}"
               },
               "expressionList": [],
               "format": "time_series",
@@ -2368,7 +2368,7 @@
               "cluster": [],
               "datasource": {
                 "type": "bkmonitor-timeseries-datasource",
-                "uid": "bkmonitor_timeseries"
+                "uid": "${DS_蓝鲸监控_- 指标数据}"
               },
               "expressionList": [],
               "format": "time_series",
@@ -2427,7 +2427,7 @@
         {
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "bkmonitor_timeseries"
+            "uid": "${DS_蓝鲸监控_- 指标数据}"
           },
           "description": "redis 主机包量",
           "fieldConfig": {
@@ -2512,7 +2512,7 @@
               "cluster": [],
               "datasource": {
                 "type": "bkmonitor-timeseries-datasource",
-                "uid": "bkmonitor_timeseries"
+                "uid": "${DS_蓝鲸监控_- 指标数据}"
               },
               "expressionList": [],
               "format": "time_series",
@@ -2567,7 +2567,7 @@
               "cluster": [],
               "datasource": {
                 "type": "bkmonitor-timeseries-datasource",
-                "uid": "bkmonitor_timeseries"
+                "uid": "${DS_蓝鲸监控_- 指标数据}"
               },
               "expressionList": [],
               "format": "time_series",
@@ -2626,7 +2626,7 @@
         {
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "bkmonitor_timeseries"
+            "uid": "${DS_蓝鲸监控_- 指标数据}"
           },
           "description": "twemproxy 主机异常包\n物理层丢弃：dbm_system.net.overruns\n网卡冲突包: dbm_system.net.collisions\n网卡丢弃: dbm_system.net.dropped",
           "fieldConfig": {
@@ -2711,7 +2711,7 @@
               "cluster": [],
               "datasource": {
                 "type": "bkmonitor-timeseries-datasource",
-                "uid": "bkmonitor_timeseries"
+                "uid": "${DS_蓝鲸监控_- 指标数据}"
               },
               "expressionList": [],
               "format": "time_series",
@@ -2767,7 +2767,7 @@
               "cluster": [],
               "datasource": {
                 "type": "bkmonitor-timeseries-datasource",
-                "uid": "bkmonitor_timeseries"
+                "uid": "${DS_蓝鲸监控_- 指标数据}"
               },
               "expressionList": [],
               "format": "time_series",
@@ -2823,7 +2823,7 @@
               "cluster": [],
               "datasource": {
                 "type": "bkmonitor-timeseries-datasource",
-                "uid": "bkmonitor_timeseries"
+                "uid": "${DS_蓝鲸监控_- 指标数据}"
               },
               "expressionList": [],
               "format": "time_series",
@@ -2882,7 +2882,7 @@
         {
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "bkmonitor_timeseries"
+            "uid": "${DS_蓝鲸监控_- 指标数据}"
           },
           "description": "redis 主机异常包\n物理层丢弃：dbm_system.net.overruns\n网卡冲突包: dbm_system.net.collisions\n网卡丢弃: dbm_system.net.dropped",
           "fieldConfig": {
@@ -2967,7 +2967,7 @@
               "cluster": [],
               "datasource": {
                 "type": "bkmonitor-timeseries-datasource",
-                "uid": "bkmonitor_timeseries"
+                "uid": "${DS_蓝鲸监控_- 指标数据}"
               },
               "expressionList": [],
               "format": "time_series",
@@ -3023,7 +3023,7 @@
               "cluster": [],
               "datasource": {
                 "type": "bkmonitor-timeseries-datasource",
-                "uid": "bkmonitor_timeseries"
+                "uid": "${DS_蓝鲸监控_- 指标数据}"
               },
               "expressionList": [],
               "format": "time_series",
@@ -3079,7 +3079,7 @@
               "cluster": [],
               "datasource": {
                 "type": "bkmonitor-timeseries-datasource",
-                "uid": "bkmonitor_timeseries"
+                "uid": "${DS_蓝鲸监控_- 指标数据}"
               },
               "expressionList": [],
               "format": "time_series",
@@ -3138,7 +3138,7 @@
         {
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "bkmonitor_timeseries"
+            "uid": "${DS_蓝鲸监控_- 指标数据}"
           },
           "description": "redis 主机异常包\n物理层丢弃：dbm_system.net.overruns\n网卡冲突包: dbm_system.net.collisions\n网卡丢弃: dbm_system.net.dropped",
           "fieldConfig": {
@@ -3223,7 +3223,7 @@
               "cluster": [],
               "datasource": {
                 "type": "bkmonitor-timeseries-datasource",
-                "uid": "bkmonitor_timeseries"
+                "uid": "${DS_蓝鲸监控_- 指标数据}"
               },
               "expressionList": [],
               "format": "time_series",
@@ -3282,7 +3282,7 @@
         {
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "bkmonitor_timeseries"
+            "uid": "${DS_蓝鲸监控_- 指标数据}"
           },
           "description": "redis I/O使用率",
           "fieldConfig": {
@@ -3367,7 +3367,7 @@
               "cluster": [],
               "datasource": {
                 "type": "bkmonitor-timeseries-datasource",
-                "uid": "bkmonitor_timeseries"
+                "uid": "${DS_蓝鲸监控_- 指标数据}"
               },
               "expressionList": [],
               "format": "time_series",
@@ -3426,7 +3426,7 @@
         {
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "bkmonitor_timeseries"
+            "uid": "${DS_蓝鲸监控_- 指标数据}"
           },
           "description": "twemproxy 磁盘读写速率",
           "fieldConfig": {
@@ -3511,7 +3511,7 @@
               "cluster": [],
               "datasource": {
                 "type": "bkmonitor-timeseries-datasource",
-                "uid": "bkmonitor_timeseries"
+                "uid": "${DS_蓝鲸监控_- 指标数据}"
               },
               "expressionList": [],
               "format": "time_series",
@@ -3567,7 +3567,7 @@
               "cluster": [],
               "datasource": {
                 "type": "bkmonitor-timeseries-datasource",
-                "uid": "bkmonitor_timeseries"
+                "uid": "${DS_蓝鲸监控_- 指标数据}"
               },
               "expressionList": [],
               "format": "time_series",
@@ -3626,7 +3626,7 @@
         {
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "bkmonitor_timeseries"
+            "uid": "${DS_蓝鲸监控_- 指标数据}"
           },
           "description": "redis 磁盘读写速率",
           "fieldConfig": {
@@ -3711,7 +3711,7 @@
               "cluster": [],
               "datasource": {
                 "type": "bkmonitor-timeseries-datasource",
-                "uid": "bkmonitor_timeseries"
+                "uid": "${DS_蓝鲸监控_- 指标数据}"
               },
               "expressionList": [],
               "format": "time_series",
@@ -3767,7 +3767,7 @@
               "cluster": [],
               "datasource": {
                 "type": "bkmonitor-timeseries-datasource",
-                "uid": "bkmonitor_timeseries"
+                "uid": "${DS_蓝鲸监控_- 指标数据}"
               },
               "expressionList": [],
               "format": "time_series",
@@ -3843,7 +3843,7 @@
     {
       "datasource": {
         "type": "bkmonitor-timeseries-datasource",
-        "uid": "bkmonitor_timeseries"
+        "uid": "${DS_蓝鲸监控_- 指标数据}"
       },
       "description": "max(proxy 单核 cpu)",
       "fieldConfig": {
@@ -3901,7 +3901,7 @@
           "cluster": [],
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "bkmonitor_timeseries"
+            "uid": "${DS_蓝鲸监控_- 指标数据}"
           },
           "expressionList": [],
           "format": "time_series",
@@ -3957,7 +3957,7 @@
     {
       "datasource": {
         "type": "bkmonitor-timeseries-datasource",
-        "uid": "bkmonitor_timeseries"
+        "uid": "${DS_蓝鲸监控_- 指标数据}"
       },
       "description": "twemproxy连接数",
       "fieldConfig": {
@@ -4012,7 +4012,7 @@
           "cluster": [],
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "bkmonitor_timeseries"
+            "uid": "${DS_蓝鲸监控_- 指标数据}"
           },
           "expressionList": [],
           "format": "time_series",
@@ -4060,7 +4060,7 @@
     {
       "datasource": {
         "type": "bkmonitor-timeseries-datasource",
-        "uid": "bkmonitor_timeseries"
+        "uid": "${DS_蓝鲸监控_- 指标数据}"
       },
       "description": "twemproxy数量",
       "fieldConfig": {
@@ -4113,7 +4113,7 @@
           "cluster": [],
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "bkmonitor_timeseries"
+            "uid": "${DS_蓝鲸监控_- 指标数据}"
           },
           "expressionList": [],
           "format": "time_series",
@@ -4162,7 +4162,7 @@
     {
       "datasource": {
         "type": "bkmonitor-timeseries-datasource",
-        "uid": "bkmonitor_timeseries"
+        "uid": "${DS_蓝鲸监控_- 指标数据}"
       },
       "description": "twemproxy Qps",
       "fieldConfig": {
@@ -4214,7 +4214,7 @@
           "cluster": [],
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "bkmonitor_timeseries"
+            "uid": "${DS_蓝鲸监控_- 指标数据}"
           },
           "expressionList": [],
           "format": "time_series",
@@ -4272,7 +4272,7 @@
     {
       "datasource": {
         "type": "bkmonitor-timeseries-datasource",
-        "uid": "bkmonitor_timeseries"
+        "uid": "${DS_蓝鲸监控_- 指标数据}"
       },
       "description": "MemUsed",
       "fieldConfig": {
@@ -4328,7 +4328,7 @@
           "cluster": [],
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "bkmonitor_timeseries"
+            "uid": "${DS_蓝鲸监控_- 指标数据}"
           },
           "expressionList": [],
           "format": "time_series",
@@ -4384,7 +4384,7 @@
     {
       "datasource": {
         "type": "bkmonitor-timeseries-datasource",
-        "uid": "bkmonitor_timeseries"
+        "uid": "${DS_蓝鲸监控_- 指标数据}"
       },
       "description": "MemUsedRss",
       "fieldConfig": {
@@ -4440,7 +4440,7 @@
           "cluster": [],
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "bkmonitor_timeseries"
+            "uid": "${DS_蓝鲸监控_- 指标数据}"
           },
           "expressionList": [],
           "format": "time_series",
@@ -4496,7 +4496,7 @@
     {
       "datasource": {
         "type": "bkmonitor-timeseries-datasource",
-        "uid": "bkmonitor_timeseries"
+        "uid": "${DS_蓝鲸监控_- 指标数据}"
       },
       "description": "MemTotal",
       "fieldConfig": {
@@ -4552,7 +4552,7 @@
           "cluster": [],
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "bkmonitor_timeseries"
+            "uid": "${DS_蓝鲸监控_- 指标数据}"
           },
           "expressionList": [
             {
@@ -4617,7 +4617,7 @@
     {
       "datasource": {
         "type": "bkmonitor-timeseries-datasource",
-        "uid": "bkmonitor_timeseries"
+        "uid": "${DS_蓝鲸监控_- 指标数据}"
       },
       "description": "twemproxy版本",
       "fieldConfig": {
@@ -4672,7 +4672,7 @@
           "cluster": [],
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "bkmonitor_timeseries"
+            "uid": "${DS_蓝鲸监控_- 指标数据}"
           },
           "expressionList": [],
           "format": "heatmap",
@@ -4721,7 +4721,7 @@
     {
       "datasource": {
         "type": "bkmonitor-timeseries-datasource",
-        "uid": "bkmonitor_timeseries"
+        "uid": "${DS_蓝鲸监控_- 指标数据}"
       },
       "description": "max(redis_used_cpu_user+redis_used_cpu_sys)",
       "fieldConfig": {
@@ -4779,7 +4779,7 @@
           "cluster": [],
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "bkmonitor_timeseries"
+            "uid": "${DS_蓝鲸监控_- 指标数据}"
           },
           "expressionList": [],
           "format": "time_series",
@@ -4847,7 +4847,7 @@
     {
       "datasource": {
         "type": "bkmonitor-timeseries-datasource",
-        "uid": "bkmonitor_timeseries"
+        "uid": "${DS_蓝鲸监控_- 指标数据}"
       },
       "description": "Redis Key数量",
       "fieldConfig": {
@@ -4903,7 +4903,7 @@
           "cluster": [],
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "bkmonitor_timeseries"
+            "uid": "${DS_蓝鲸监控_- 指标数据}"
           },
           "expressionList": [],
           "format": "time_series",
@@ -4959,7 +4959,7 @@
     {
       "datasource": {
         "type": "bkmonitor-timeseries-datasource",
-        "uid": "bkmonitor_timeseries"
+        "uid": "${DS_蓝鲸监控_- 指标数据}"
       },
       "description": "redis数量",
       "fieldConfig": {
@@ -5012,7 +5012,7 @@
           "cluster": [],
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "bkmonitor_timeseries"
+            "uid": "${DS_蓝鲸监控_- 指标数据}"
           },
           "expressionList": [],
           "format": "time_series",
@@ -5068,7 +5068,7 @@
     {
       "datasource": {
         "type": "bkmonitor-timeseries-datasource",
-        "uid": "bkmonitor_timeseries"
+        "uid": "${DS_蓝鲸监控_- 指标数据}"
       },
       "description": "后端Redis Qps",
       "fieldConfig": {
@@ -5119,7 +5119,7 @@
           "cluster": [],
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "bkmonitor_timeseries"
+            "uid": "${DS_蓝鲸监控_- 指标数据}"
           },
           "expressionList": [],
           "format": "time_series",
@@ -5185,7 +5185,7 @@
     {
       "datasource": {
         "type": "bkmonitor-timeseries-datasource",
-        "uid": "bkmonitor_timeseries"
+        "uid": "${DS_蓝鲸监控_- 指标数据}"
       },
       "description": "max(ShardMemUsed%)",
       "fieldConfig": {
@@ -5245,7 +5245,7 @@
           "cluster": [],
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "bkmonitor_timeseries"
+            "uid": "${DS_蓝鲸监控_- 指标数据}"
           },
           "expressionList": [
             {
@@ -5347,7 +5347,7 @@
     {
       "datasource": {
         "type": "bkmonitor-timeseries-datasource",
-        "uid": "bkmonitor_timeseries"
+        "uid": "${DS_蓝鲸监控_- 指标数据}"
       },
       "description": "min(ShardMaxMemory)",
       "fieldConfig": {
@@ -5403,7 +5403,7 @@
           "cluster": [],
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "bkmonitor_timeseries"
+            "uid": "${DS_蓝鲸监控_- 指标数据}"
           },
           "expressionList": [],
           "format": "time_series",
@@ -5460,7 +5460,7 @@
     {
       "datasource": {
         "type": "bkmonitor-timeseries-datasource",
-        "uid": "bkmonitor_timeseries"
+        "uid": "${DS_蓝鲸监控_- 指标数据}"
       },
       "description": "bk_target_cloud_id",
       "fieldConfig": {
@@ -5516,7 +5516,7 @@
           "cluster": [],
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "bkmonitor_timeseries"
+            "uid": "${DS_蓝鲸监控_- 指标数据}"
           },
           "expressionList": [],
           "format": "time_series",
@@ -5574,7 +5574,7 @@
     {
       "datasource": {
         "type": "bkmonitor-timeseries-datasource",
-        "uid": "bkmonitor_timeseries"
+        "uid": "${DS_蓝鲸监控_- 指标数据}"
       },
       "description": "Redis版本",
       "fieldConfig": {
@@ -5630,7 +5630,7 @@
           "cluster": [],
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "bkmonitor_timeseries"
+            "uid": "${DS_蓝鲸监控_- 指标数据}"
           },
           "expressionList": [],
           "format": "time_series",
@@ -5689,7 +5689,7 @@
     {
       "datasource": {
         "type": "bkmonitor-timeseries-datasource",
-        "uid": "bkmonitor_timeseries"
+        "uid": "${DS_蓝鲸监控_- 指标数据}"
       },
       "description": "twemproxy cmd Qps",
       "fieldConfig": {
@@ -5774,7 +5774,7 @@
           "cluster": [],
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "bkmonitor_timeseries"
+            "uid": "${DS_蓝鲸监控_- 指标数据}"
           },
           "expressionList": [],
           "format": "time_series",
@@ -5831,7 +5831,7 @@
           "cluster": [],
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "bkmonitor_timeseries"
+            "uid": "${DS_蓝鲸监控_- 指标数据}"
           },
           "expressionList": [],
           "format": "time_series",
@@ -5892,7 +5892,7 @@
     {
       "datasource": {
         "type": "bkmonitor-timeseries-datasource",
-        "uid": "bkmonitor_timeseries"
+        "uid": "${DS_蓝鲸监控_- 指标数据}"
       },
       "description": "Redis Qps  By cmd",
       "fieldConfig": {
@@ -5981,7 +5981,7 @@
           "cluster": [],
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "bkmonitor_timeseries"
+            "uid": "${DS_蓝鲸监控_- 指标数据}"
           },
           "expressionList": [],
           "format": "time_series",
@@ -6046,7 +6046,7 @@
           "cluster": [],
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "bkmonitor_timeseries"
+            "uid": "${DS_蓝鲸监控_- 指标数据}"
           },
           "expressionList": [],
           "format": "time_series",
@@ -6115,7 +6115,7 @@
     {
       "datasource": {
         "type": "bkmonitor-timeseries-datasource",
-        "uid": "bkmonitor_timeseries"
+        "uid": "${DS_蓝鲸监控_- 指标数据}"
       },
       "description": "twemproxy  cmd 平均访问延迟 ",
       "fieldConfig": {
@@ -6198,7 +6198,7 @@
           "cluster": [],
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "bkmonitor_timeseries"
+            "uid": "${DS_蓝鲸监控_- 指标数据}"
           },
           "expressionList": [
             {
@@ -6304,7 +6304,7 @@
     {
       "datasource": {
         "type": "bkmonitor-timeseries-datasource",
-        "uid": "bkmonitor_timeseries"
+        "uid": "${DS_蓝鲸监控_- 指标数据}"
       },
       "description": "Redis   cmd 平均访问延迟  (待验证数据)\n",
       "fieldConfig": {
@@ -6389,7 +6389,7 @@
           "cluster": [],
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "bkmonitor_timeseries"
+            "uid": "${DS_蓝鲸监控_- 指标数据}"
           },
           "expressionList": [
             {
@@ -6495,7 +6495,7 @@
     {
       "datasource": {
         "type": "bkmonitor-timeseries-datasource",
-        "uid": "bkmonitor_timeseries"
+        "uid": "${DS_蓝鲸监控_- 指标数据}"
       },
       "description": "proxy 访问延迟分布",
       "fieldConfig": {
@@ -6579,7 +6579,7 @@
           "cluster": [],
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "bkmonitor_timeseries"
+            "uid": "${DS_蓝鲸监控_- 指标数据}"
           },
           "expressionList": [
             {
@@ -6947,7 +6947,7 @@
     {
       "datasource": {
         "type": "bkmonitor-timeseries-datasource",
-        "uid": "bkmonitor_timeseries"
+        "uid": "${DS_蓝鲸监控_- 指标数据}"
       },
       "description": "以某个Label作为别名 ",
       "fieldConfig": {
@@ -7035,7 +7035,7 @@
           "cluster": [],
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "bkmonitor_timeseries"
+            "uid": "${DS_蓝鲸监控_- 指标数据}"
           },
           "expressionList": [],
           "format": "time_series",
@@ -7090,7 +7090,7 @@
           "cluster": [],
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "bkmonitor_timeseries"
+            "uid": "${DS_蓝鲸监控_- 指标数据}"
           },
           "expressionList": [],
           "format": "time_series",
@@ -7149,7 +7149,7 @@
     {
       "datasource": {
         "type": "bkmonitor-timeseries-datasource",
-        "uid": "bkmonitor_timeseries"
+        "uid": "${DS_蓝鲸监控_- 指标数据}"
       },
       "description": "twemproxy  host 平均访问延迟 ",
       "fieldConfig": {
@@ -7231,7 +7231,7 @@
           "cluster": [],
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "bkmonitor_timeseries"
+            "uid": "${DS_蓝鲸监控_- 指标数据}"
           },
           "expressionList": [
             {
@@ -7337,7 +7337,7 @@
     {
       "datasource": {
         "type": "bkmonitor-timeseries-datasource",
-        "uid": "bkmonitor_timeseries"
+        "uid": "${DS_蓝鲸监控_- 指标数据}"
       },
       "description": "Redis host 平均访问延迟",
       "fieldConfig": {
@@ -7421,7 +7421,7 @@
           "cluster": [],
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "bkmonitor_timeseries"
+            "uid": "${DS_蓝鲸监控_- 指标数据}"
           },
           "expressionList": [
             {
@@ -7527,7 +7527,7 @@
     {
       "datasource": {
         "type": "bkmonitor-timeseries-datasource",
-        "uid": "bkmonitor_timeseries"
+        "uid": "${DS_蓝鲸监控_- 指标数据}"
       },
       "description": "twemproxy  新建连接incr[2m]",
       "fieldConfig": {
@@ -7612,7 +7612,7 @@
           "cluster": [],
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "bkmonitor_timeseries"
+            "uid": "${DS_蓝鲸监控_- 指标数据}"
           },
           "expressionList": [],
           "format": "time_series",
@@ -7673,7 +7673,7 @@
     {
       "datasource": {
         "type": "bkmonitor-timeseries-datasource",
-        "uid": "bkmonitor_timeseries"
+        "uid": "${DS_蓝鲸监控_- 指标数据}"
       },
       "description": "Redis  Qps  By Host",
       "fieldConfig": {
@@ -7757,7 +7757,7 @@
           "cluster": [],
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "bkmonitor_timeseries"
+            "uid": "${DS_蓝鲸监控_- 指标数据}"
           },
           "expressionList": [],
           "format": "time_series",
@@ -7826,7 +7826,7 @@
     {
       "datasource": {
         "type": "bkmonitor-timeseries-datasource",
-        "uid": "bkmonitor_timeseries"
+        "uid": "${DS_蓝鲸监控_- 指标数据}"
       },
       "description": "twemproxy当前连接",
       "fieldConfig": {
@@ -7909,7 +7909,7 @@
           "cluster": [],
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "bkmonitor_timeseries"
+            "uid": "${DS_蓝鲸监控_- 指标数据}"
           },
           "expressionList": [
             {
@@ -7967,7 +7967,7 @@
     {
       "datasource": {
         "type": "bkmonitor-timeseries-datasource",
-        "uid": "bkmonitor_timeseries"
+        "uid": "${DS_蓝鲸监控_- 指标数据}"
       },
       "description": "Dbsize/expired/evicted",
       "fieldConfig": {
@@ -8052,7 +8052,7 @@
           "cluster": [],
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "bkmonitor_timeseries"
+            "uid": "${DS_蓝鲸监控_- 指标数据}"
           },
           "expressionList": [
             {
@@ -8146,7 +8146,7 @@
           "cluster": [],
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "bkmonitor_timeseries"
+            "uid": "${DS_蓝鲸监控_- 指标数据}"
           },
           "expressionList": [],
           "format": "time_series",
@@ -8210,7 +8210,7 @@
           "cluster": [],
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "bkmonitor_timeseries"
+            "uid": "${DS_蓝鲸监控_- 指标数据}"
           },
           "expressionList": [],
           "format": "time_series",
@@ -8277,7 +8277,7 @@
     {
       "datasource": {
         "type": "bkmonitor-timeseries-datasource",
-        "uid": "bkmonitor_timeseries"
+        "uid": "${DS_蓝鲸监控_- 指标数据}"
       },
       "description": "每个TwemproxyHost的qps",
       "fieldConfig": {
@@ -8361,7 +8361,7 @@
           "cluster": [],
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "bkmonitor_timeseries"
+            "uid": "${DS_蓝鲸监控_- 指标数据}"
           },
           "expressionList": [],
           "format": "time_series",
@@ -8422,7 +8422,7 @@
     {
       "datasource": {
         "type": "bkmonitor-timeseries-datasource",
-        "uid": "bkmonitor_timeseries"
+        "uid": "${DS_蓝鲸监控_- 指标数据}"
       },
       "description": "cpu of nutcracker process",
       "fieldConfig": {
@@ -8506,7 +8506,7 @@
           "cluster": [],
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "bkmonitor_timeseries"
+            "uid": "${DS_蓝鲸监控_- 指标数据}"
           },
           "expressionList": [],
           "format": "time_series",
@@ -8541,7 +8541,7 @@
     {
       "datasource": {
         "type": "bkmonitor-timeseries-datasource",
-        "uid": "bkmonitor_timeseries"
+        "uid": "${DS_蓝鲸监控_- 指标数据}"
       },
       "description": "Redis MemUsedRss",
       "fieldConfig": {
@@ -8623,7 +8623,7 @@
           "cluster": [],
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "bkmonitor_timeseries"
+            "uid": "${DS_蓝鲸监控_- 指标数据}"
           },
           "expressionList": [],
           "format": "time_series",
@@ -8682,7 +8682,7 @@
     {
       "datasource": {
         "type": "bkmonitor-timeseries-datasource",
-        "uid": "bkmonitor_timeseries"
+        "uid": "${DS_蓝鲸监控_- 指标数据}"
       },
       "description": "Redis Hit/Miss",
       "fieldConfig": {
@@ -8763,7 +8763,7 @@
           "cluster": [],
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "bkmonitor_timeseries"
+            "uid": "${DS_蓝鲸监控_- 指标数据}"
           },
           "expressionList": [],
           "format": "time_series",
@@ -8827,7 +8827,7 @@
           "cluster": [],
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "bkmonitor_timeseries"
+            "uid": "${DS_蓝鲸监控_- 指标数据}"
           },
           "expressionList": [],
           "format": "time_series",
@@ -8894,7 +8894,7 @@
     {
       "datasource": {
         "type": "bkmonitor-timeseries-datasource",
-        "uid": "bkmonitor_timeseries"
+        "uid": "${DS_蓝鲸监控_- 指标数据}"
       },
       "description": "Redis MemUsed",
       "fieldConfig": {
@@ -8979,7 +8979,7 @@
           "cluster": [],
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "bkmonitor_timeseries"
+            "uid": "${DS_蓝鲸监控_- 指标数据}"
           },
           "expressionList": [],
           "format": "time_series",
@@ -9038,7 +9038,7 @@
     {
       "datasource": {
         "type": "bkmonitor-timeseries-datasource",
-        "uid": "bkmonitor_timeseries"
+        "uid": "${DS_蓝鲸监控_- 指标数据}"
       },
       "description": "master写入slave的数据量.  建议告警阀值: 10MiB ",
       "fieldConfig": {
@@ -9119,7 +9119,7 @@
           "cluster": [],
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "bkmonitor_timeseries"
+            "uid": "${DS_蓝鲸监控_- 指标数据}"
           },
           "expressionList": [],
           "format": "time_series",
@@ -9188,7 +9188,7 @@
     {
       "datasource": {
         "type": "bkmonitor-timeseries-datasource",
-        "uid": "bkmonitor_timeseries"
+        "uid": "${DS_蓝鲸监控_- 指标数据}"
       },
       "description": "redis net in/out bytes. 版本需大于3.0",
       "fieldConfig": {
@@ -9269,7 +9269,7 @@
           "cluster": [],
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "bkmonitor_timeseries"
+            "uid": "${DS_蓝鲸监控_- 指标数据}"
           },
           "expressionList": [],
           "format": "time_series",
@@ -9335,7 +9335,7 @@
           "cluster": [],
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "bkmonitor_timeseries"
+            "uid": "${DS_蓝鲸监控_- 指标数据}"
           },
           "expressionList": [],
           "format": "time_series",
@@ -9404,7 +9404,7 @@
     {
       "datasource": {
         "type": "bkmonitor-timeseries-datasource",
-        "uid": "bkmonitor_timeseries"
+        "uid": "${DS_蓝鲸监控_- 指标数据}"
       },
       "description": "Redis Cpu 使用率，user + sys",
       "fieldConfig": {
@@ -9485,7 +9485,7 @@
           "cluster": [],
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "bkmonitor_timeseries"
+            "uid": "${DS_蓝鲸监控_- 指标数据}"
           },
           "expressionList": [
             {
@@ -9607,7 +9607,7 @@
     {
       "datasource": {
         "type": "bkmonitor-timeseries-datasource",
-        "uid": "bkmonitor_timeseries"
+        "uid": "${DS_蓝鲸监控_- 指标数据}"
       },
       "description": "Host Memory",
       "fieldConfig": {
@@ -9690,7 +9690,7 @@
           "cluster": [],
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "bkmonitor_timeseries"
+            "uid": "${DS_蓝鲸监控_- 指标数据}"
           },
           "expressionList": [],
           "format": "table",
@@ -9736,7 +9736,7 @@
           "cluster": [],
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "bkmonitor_timeseries"
+            "uid": "${DS_蓝鲸监控_- 指标数据}"
           },
           "expressionList": [],
           "format": "table",
@@ -9782,7 +9782,7 @@
           "cluster": [],
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "bkmonitor_timeseries"
+            "uid": "${DS_蓝鲸监控_- 指标数据}"
           },
           "expressionList": [],
           "format": "table",
@@ -9838,7 +9838,7 @@
           "cluster": [],
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "bkmonitor_timeseries"
+            "uid": "${DS_蓝鲸监控_- 指标数据}"
           },
           "expressionList": [],
           "format": "table",
@@ -9933,7 +9933,7 @@
     {
       "datasource": {
         "type": "bkmonitor-timeseries-datasource",
-        "uid": "bkmonitor_timeseries"
+        "uid": "${DS_蓝鲸监控_- 指标数据}"
       },
       "description": "Shard Memory",
       "fieldConfig": {
@@ -10086,7 +10086,7 @@
           "cluster": [],
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "bkmonitor_timeseries"
+            "uid": "${DS_蓝鲸监控_- 指标数据}"
           },
           "expressionList": [],
           "format": "table",
@@ -10139,7 +10139,7 @@
           "cluster": [],
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "bkmonitor_timeseries"
+            "uid": "${DS_蓝鲸监控_- 指标数据}"
           },
           "expressionList": [],
           "format": "table",
@@ -10193,7 +10193,7 @@
           "cluster": [],
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "bkmonitor_timeseries"
+            "uid": "${DS_蓝鲸监控_- 指标数据}"
           },
           "expressionList": [],
           "format": "table",
@@ -10247,7 +10247,7 @@
           "cluster": [],
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "bkmonitor_timeseries"
+            "uid": "${DS_蓝鲸监控_- 指标数据}"
           },
           "expressionList": [],
           "format": "table",
@@ -10395,7 +10395,7 @@
         },
         "datasource": {
           "type": "bkmonitor-timeseries-datasource",
-          "uid": "bkmonitor_timeseries"
+          "uid": "${DS_蓝鲸监控_- 指标数据}"
         },
         "definition": "- Blueking Monitor - 维度",
         "hide": 2,
@@ -10431,7 +10431,7 @@
         },
         "datasource": {
           "type": "bkmonitor-timeseries-datasource",
-          "uid": "bkmonitor_timeseries"
+          "uid": "${DS_蓝鲸监控_- 指标数据}"
         },
         "definition": "- Blueking Monitor - 维度",
         "hide": 0,

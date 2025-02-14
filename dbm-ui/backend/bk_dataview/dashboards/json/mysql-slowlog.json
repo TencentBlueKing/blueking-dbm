@@ -1,4 +1,67 @@
 {
+  "__inputs": [
+    {
+      "name": "DS_日志平台",
+      "label": "日志平台",
+      "description": "",
+      "type": "datasource",
+      "pluginId": "bk_log_datasource",
+      "pluginName": "BlueKing Log TimeSeries"
+    },
+    {
+      "name": "DS_蓝鲸监控_- 指标数据",
+      "label": "蓝鲸监控 - 指标数据",
+      "description": "",
+      "type": "datasource",
+      "pluginId": "bkmonitor-timeseries-datasource",
+      "pluginName": "BlueKing Monitor TimeSeries"
+    }
+  ],
+  "__elements": {},
+  "__requires": [
+    {
+      "type": "datasource",
+      "id": "bk_log_datasource",
+      "name": "BlueKing Log TimeSeries",
+      "version": "1.0.0"
+    },
+    {
+      "type": "datasource",
+      "id": "bkmonitor-timeseries-datasource",
+      "name": "BlueKing Monitor TimeSeries",
+      "version": "3.6.0"
+    },
+    {
+      "type": "grafana",
+      "id": "grafana",
+      "name": "Grafana",
+      "version": "10.4.10"
+    },
+    {
+      "type": "panel",
+      "id": "piechart",
+      "name": "Pie chart",
+      "version": ""
+    },
+    {
+      "type": "panel",
+      "id": "table",
+      "name": "Table",
+      "version": ""
+    },
+    {
+      "type": "panel",
+      "id": "timeseries",
+      "name": "Time series",
+      "version": ""
+    },
+    {
+      "type": "panel",
+      "id": "xychart",
+      "name": "XY Chart",
+      "version": ""
+    }
+  ],
   "annotations": {
     "list": [
       {
@@ -31,7 +94,7 @@
     {
       "datasource": {
         "type": "bk_log_datasource",
-        "uid": "hHrSbzgIk"
+        "uid": "${DS_日志平台}"
       },
       "fieldConfig": {
         "defaults": {
@@ -359,7 +422,7 @@
           },
           "datasource": {
             "type": "bk_log_datasource",
-            "uid": "hHrSbzgIk"
+            "uid": "${DS_日志平台}"
           },
           "refId": "A"
         }
@@ -370,7 +433,7 @@
     {
       "datasource": {
         "type": "bk_log_datasource",
-        "uid": "hHrSbzgIk"
+        "uid": "${DS_日志平台}"
       },
       "fieldConfig": {
         "defaults": {
@@ -701,7 +764,7 @@
           },
           "datasource": {
             "type": "bk_log_datasource",
-            "uid": "hHrSbzgIk"
+            "uid": "${DS_日志平台}"
           },
           "refId": "A"
         }
@@ -712,7 +775,7 @@
     {
       "datasource": {
         "type": "bk_log_datasource",
-        "uid": "hHrSbzgIk"
+        "uid": "${DS_日志平台}"
       },
       "fieldConfig": {
         "defaults": {
@@ -1040,7 +1103,7 @@
           },
           "datasource": {
             "type": "bk_log_datasource",
-            "uid": "hHrSbzgIk"
+            "uid": "${DS_日志平台}"
           },
           "refId": "A"
         }
@@ -1051,7 +1114,7 @@
     {
       "datasource": {
         "type": "bk_log_datasource",
-        "uid": "hHrSbzgIk"
+        "uid": "${DS_日志平台}"
       },
       "fieldConfig": {
         "defaults": {
@@ -1375,7 +1438,7 @@
           },
           "datasource": {
             "type": "bk_log_datasource",
-            "uid": "hHrSbzgIk"
+            "uid": "${DS_日志平台}"
           },
           "refId": "A"
         }
@@ -1386,7 +1449,7 @@
     {
       "datasource": {
         "type": "bk_log_datasource",
-        "uid": "hHrSbzgIk"
+        "uid": "${DS_日志平台}"
       },
       "fieldConfig": {
         "defaults": {
@@ -1710,7 +1773,7 @@
           },
           "datasource": {
             "type": "bk_log_datasource",
-            "uid": "hHrSbzgIk"
+            "uid": "${DS_日志平台}"
           },
           "refId": "A"
         }
@@ -1721,7 +1784,7 @@
     {
       "datasource": {
         "type": "bk_log_datasource",
-        "uid": "hHrSbzgIk"
+        "uid": "${DS_日志平台}"
       },
       "fieldConfig": {
         "defaults": {
@@ -2017,7 +2080,7 @@
           },
           "datasource": {
             "type": "bk_log_datasource",
-            "uid": "hHrSbzgIk"
+            "uid": "${DS_日志平台}"
           },
           "refId": "A"
         }
@@ -2028,7 +2091,7 @@
     {
       "datasource": {
         "type": "bk_log_datasource",
-        "uid": "hHrSbzgIk"
+        "uid": "${DS_日志平台}"
       },
       "fieldConfig": {
         "defaults": {
@@ -2324,7 +2387,7 @@
           },
           "datasource": {
             "type": "bk_log_datasource",
-            "uid": "hHrSbzgIk"
+            "uid": "${DS_日志平台}"
           },
           "refId": "A"
         }
@@ -2335,7 +2398,7 @@
     {
       "datasource": {
         "type": "bk_log_datasource",
-        "uid": "hHrSbzgIk"
+        "uid": "${DS_日志平台}"
       },
       "fieldConfig": {
         "defaults": {
@@ -2654,7 +2717,7 @@
           },
           "datasource": {
             "type": "bk_log_datasource",
-            "uid": "hHrSbzgIk"
+            "uid": "${DS_日志平台}"
           },
           "refId": "A"
         }
@@ -2665,7 +2728,7 @@
     {
       "datasource": {
         "type": "bk_log_datasource",
-        "uid": "hHrSbzgIk"
+        "uid": "${DS_日志平台}"
       },
       "description": "慢查询列表",
       "fieldConfig": {
@@ -2974,7 +3037,7 @@
           },
           "datasource": {
             "type": "bk_log_datasource",
-            "uid": "hHrSbzgIk"
+            "uid": "${DS_日志平台}"
           },
           "refId": "A"
         }
@@ -3084,7 +3147,7 @@
         },
         "datasource": {
           "type": "bkmonitor-timeseries-datasource",
-          "uid": "P3XSxkgSz"
+          "uid": "${DS_蓝鲸监控_- 指标数据}"
         },
         "definition": "- Blueking Monitor - 维度",
         "hide": 0,
@@ -3120,7 +3183,7 @@
         },
         "datasource": {
           "type": "bkmonitor-timeseries-datasource",
-          "uid": "P3XSxkgSz"
+          "uid": "${DS_蓝鲸监控_- 指标数据}"
         },
         "definition": "- Blueking Monitor - 维度",
         "hide": 0,
@@ -3164,7 +3227,7 @@
         },
         "datasource": {
           "type": "bkmonitor-timeseries-datasource",
-          "uid": "P3XSxkgSz"
+          "uid": "${DS_蓝鲸监控_- 指标数据}"
         },
         "definition": "- Blueking Monitor - 维度",
         "hide": 0,

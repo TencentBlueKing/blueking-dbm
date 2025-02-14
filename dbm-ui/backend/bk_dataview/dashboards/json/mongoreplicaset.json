@@ -17,7 +17,7 @@
     ]
   },
   "description": "",
-  "editable": false,
+  "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
   "id": null,
@@ -53,7 +53,7 @@
       "collapsed": false,
       "datasource": {
         "type": "bkmonitor-timeseries-datasource",
-        "uid": "bkmonitor_timeseries"
+        "uid": "${DS_蓝鲸监控_- 指标数据}"
       },
       "gridPos": {
         "h": 1,
@@ -67,7 +67,7 @@
         {
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "bkmonitor_timeseries"
+            "uid": "${DS_蓝鲸监控_- 指标数据}"
           },
           "refId": "A"
         }
@@ -78,7 +78,7 @@
     {
       "datasource": {
         "type": "bkmonitor-timeseries-datasource",
-        "uid": "bkmonitor_timeseries"
+        "uid": "${DS_蓝鲸监控_- 指标数据}"
       },
       "description": "Version",
       "fieldConfig": {
@@ -135,7 +135,7 @@
           "cluster": [],
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "bkmonitor_timeseries"
+            "uid": "${DS_蓝鲸监控_- 指标数据}"
           },
           "expressionList": [],
           "format": "time_series",
@@ -185,7 +185,7 @@
     {
       "datasource": {
         "type": "bkmonitor-timeseries-datasource",
-        "uid": "bkmonitor_timeseries"
+        "uid": "${DS_蓝鲸监控_- 指标数据}"
       },
       "description": "Shows the storage engine used on the instance",
       "fieldConfig": {
@@ -264,7 +264,7 @@
     {
       "datasource": {
         "type": "bkmonitor-timeseries-datasource",
-        "uid": "bkmonitor_timeseries"
+        "uid": "${DS_蓝鲸监控_- 指标数据}"
       },
       "description": "Shows the number of members in the replica set",
       "fieldConfig": {
@@ -342,7 +342,7 @@
     {
       "datasource": {
         "type": "bkmonitor-timeseries-datasource",
-        "uid": "bkmonitor_timeseries"
+        "uid": "${DS_蓝鲸监控_- 指标数据}"
       },
       "description": "Shows the number of members in the replica set",
       "fieldConfig": {
@@ -420,7 +420,7 @@
     {
       "datasource": {
         "type": "bkmonitor-timeseries-datasource",
-        "uid": "bkmonitor_timeseries"
+        "uid": "${DS_蓝鲸监控_- 指标数据}"
       },
       "description": "max(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_mongod_replset_member_replication_lag)",
       "fieldConfig": {
@@ -500,7 +500,7 @@
     {
       "datasource": {
         "type": "bkmonitor-timeseries-datasource",
-        "uid": "bkmonitor_timeseries"
+        "uid": "${DS_蓝鲸监控_- 指标数据}"
       },
       "description": "max(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_mongod_replset_member_replication_lag)",
       "fieldConfig": {
@@ -580,7 +580,7 @@
     {
       "datasource": {
         "type": "bkmonitor-timeseries-datasource",
-        "uid": "bkmonitor_timeseries"
+        "uid": "${DS_蓝鲸监控_- 指标数据}"
       },
       "description": "Shows how long ago the last election occurred",
       "fieldConfig": {
@@ -660,7 +660,7 @@
     {
       "datasource": {
         "type": "bkmonitor-timeseries-datasource",
-        "uid": "bkmonitor_timeseries"
+        "uid": "${DS_蓝鲸监控_- 指标数据}"
       },
       "description": "实例所在硬件的cpu核数和内存。\ntodo: 显示同一主机上的实例数量。",
       "fieldConfig": {
@@ -942,7 +942,7 @@
     {
       "datasource": {
         "type": "bkmonitor-timeseries-datasource",
-        "uid": "bkmonitor_timeseries"
+        "uid": "${DS_蓝鲸监控_- 指标数据}"
       },
       "description": "Host cpu",
       "fieldConfig": {
@@ -1076,7 +1076,7 @@
         {
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "bkmonitor_timeseries"
+            "uid": "${DS_蓝鲸监控_- 指标数据}"
           },
           "description": "Host cpu",
           "fieldConfig": {
@@ -1225,7 +1225,7 @@
         {
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "bkmonitor_timeseries"
+            "uid": "${DS_蓝鲸监控_- 指标数据}"
           },
           "description": "bkmonitor:dbm_system:mem:pct_used",
           "fieldConfig": {
@@ -1373,7 +1373,7 @@
         {
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "bkmonitor_timeseries"
+            "uid": "${DS_蓝鲸监控_- 指标数据}"
           },
           "description": "shardsvr DiskUsed% 主机磁盘使用率",
           "fieldConfig": {
@@ -1460,7 +1460,7 @@
               "cluster": [],
               "datasource": {
                 "type": "bkmonitor-timeseries-datasource",
-                "uid": "bkmonitor_timeseries"
+                "uid": "${DS_蓝鲸监控_- 指标数据}"
               },
               "enableDownSampling": true,
               "expressionList": [],
@@ -1519,7 +1519,7 @@
         {
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "bkmonitor_timeseries"
+            "uid": "${DS_蓝鲸监控_- 指标数据}"
           },
           "description": "流量使用率：每核分配48M或96MB(<=2core)\n包量使用率：每核分配9w或15w(<=2core)\n适用于大部分腾讯云cvm",
           "fieldConfig": {
@@ -1606,7 +1606,7 @@
               "cluster": [],
               "datasource": {
                 "type": "bkmonitor-timeseries-datasource",
-                "uid": "bkmonitor_timeseries"
+                "uid": "${DS_蓝鲸监控_- 指标数据}"
               },
               "enableDownSampling": false,
               "expressionList": [
@@ -1867,7 +1867,7 @@
               "cluster": [],
               "datasource": {
                 "type": "bkmonitor-timeseries-datasource",
-                "uid": "bkmonitor_timeseries"
+                "uid": "${DS_蓝鲸监控_- 指标数据}"
               },
               "enableDownSampling": false,
               "expressionList": [
@@ -2131,7 +2131,7 @@
         {
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "bkmonitor_timeseries"
+            "uid": "${DS_蓝鲸监控_- 指标数据}"
           },
           "description": "shardsvr 磁盘读写速率",
           "fieldConfig": {
@@ -2219,7 +2219,7 @@
               "cluster": [],
               "datasource": {
                 "type": "bkmonitor-timeseries-datasource",
-                "uid": "bkmonitor_timeseries"
+                "uid": "${DS_蓝鲸监控_- 指标数据}"
               },
               "enableDownSampling": true,
               "expressionList": [],
@@ -2276,7 +2276,7 @@
               "cluster": [],
               "datasource": {
                 "type": "bkmonitor-timeseries-datasource",
-                "uid": "bkmonitor_timeseries"
+                "uid": "${DS_蓝鲸监控_- 指标数据}"
               },
               "enableDownSampling": true,
               "expressionList": [],
@@ -2336,7 +2336,7 @@
         {
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "bkmonitor_timeseries"
+            "uid": "${DS_蓝鲸监控_- 指标数据}"
           },
           "description": "主机流量",
           "fieldConfig": {
@@ -2423,7 +2423,7 @@
               "cluster": [],
               "datasource": {
                 "type": "bkmonitor-timeseries-datasource",
-                "uid": "bkmonitor_timeseries"
+                "uid": "${DS_蓝鲸监控_- 指标数据}"
               },
               "enableDownSampling": true,
               "expressionList": [],
@@ -2480,7 +2480,7 @@
               "cluster": [],
               "datasource": {
                 "type": "bkmonitor-timeseries-datasource",
-                "uid": "bkmonitor_timeseries"
+                "uid": "${DS_蓝鲸监控_- 指标数据}"
               },
               "enableDownSampling": true,
               "expressionList": [],
@@ -2541,7 +2541,7 @@
         {
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "bkmonitor_timeseries"
+            "uid": "${DS_蓝鲸监控_- 指标数据}"
           },
           "description": "主机包量",
           "fieldConfig": {
@@ -2628,7 +2628,7 @@
               "cluster": [],
               "datasource": {
                 "type": "bkmonitor-timeseries-datasource",
-                "uid": "bkmonitor_timeseries"
+                "uid": "${DS_蓝鲸监控_- 指标数据}"
               },
               "enableDownSampling": true,
               "expressionList": [],
@@ -2684,7 +2684,7 @@
               "cluster": [],
               "datasource": {
                 "type": "bkmonitor-timeseries-datasource",
-                "uid": "bkmonitor_timeseries"
+                "uid": "${DS_蓝鲸监控_- 指标数据}"
               },
               "enableDownSampling": true,
               "expressionList": [],
@@ -2762,7 +2762,7 @@
     {
       "datasource": {
         "type": "bkmonitor-timeseries-datasource",
-        "uid": "bkmonitor_timeseries"
+        "uid": "${DS_蓝鲸监控_- 指标数据}"
       },
       "description": "Operations",
       "fieldConfig": {
@@ -2932,7 +2932,7 @@
     {
       "datasource": {
         "type": "bkmonitor-timeseries-datasource",
-        "uid": "bkmonitor_timeseries"
+        "uid": "${DS_蓝鲸监控_- 指标数据}"
       },
       "description": "",
       "fieldConfig": {
@@ -3044,7 +3044,7 @@
     {
       "datasource": {
         "type": "bkmonitor-timeseries-datasource",
-        "uid": "bkmonitor_timeseries"
+        "uid": "${DS_蓝鲸监控_- 指标数据}"
       },
       "description": "mongodb_mongod_replset_my_state",
       "fieldConfig": {
@@ -3210,7 +3210,7 @@
     {
       "datasource": {
         "type": "bkmonitor-timeseries-datasource",
-        "uid": "bkmonitor_timeseries"
+        "uid": "${DS_蓝鲸监控_- 指标数据}"
       },
       "description": "",
       "fieldConfig": {
@@ -3323,7 +3323,7 @@
     {
       "datasource": {
         "type": "bkmonitor-timeseries-datasource",
-        "uid": "bkmonitor_timeseries"
+        "uid": "${DS_蓝鲸监控_- 指标数据}"
       },
       "description": "",
       "fieldConfig": {
@@ -3436,7 +3436,7 @@
     {
       "datasource": {
         "type": "bkmonitor-timeseries-datasource",
-        "uid": "bkmonitor_timeseries"
+        "uid": "${DS_蓝鲸监控_- 指标数据}"
       },
       "description": "Shows the time range in the oplog and the oldest backed up operation.",
       "fieldConfig": {
@@ -3567,7 +3567,7 @@
     {
       "datasource": {
         "type": "bkmonitor-timeseries-datasource",
-        "uid": "bkmonitor_timeseries"
+        "uid": "${DS_蓝鲸监控_- 指标数据}"
       },
       "description": "",
       "fieldConfig": {
@@ -3680,7 +3680,7 @@
     {
       "datasource": {
         "type": "bkmonitor-timeseries-datasource",
-        "uid": "bkmonitor_timeseries"
+        "uid": "${DS_蓝鲸监控_- 指标数据}"
       },
       "description": "Shows the delay between an operation occurring on the primary and that same operation getting applied on the selected member",
       "fieldConfig": {
@@ -3794,7 +3794,7 @@
     {
       "datasource": {
         "type": "bkmonitor-timeseries-datasource",
-        "uid": "bkmonitor_timeseries"
+        "uid": "${DS_蓝鲸监控_- 指标数据}"
       },
       "description": "du  -s  {datadir}，数据会有10分钟的延迟",
       "fieldConfig": {
@@ -3920,7 +3920,7 @@
     {
       "datasource": {
         "type": "bkmonitor-timeseries-datasource",
-        "uid": "bkmonitor_timeseries"
+        "uid": "${DS_蓝鲸监控_- 指标数据}"
       },
       "description": "mongodb_mongod_global_lock_current_queue\nrequire version >=3.6",
       "fieldConfig": {
@@ -4049,7 +4049,7 @@
     {
       "datasource": {
         "type": "bkmonitor-timeseries-datasource",
-        "uid": "bkmonitor_timeseries"
+        "uid": "${DS_蓝鲸监控_- 指标数据}"
       },
       "description": "mongodb_mongod_wiredtiger_session_open_sessions_total \nrequire version >=3.6",
       "fieldConfig": {
@@ -4179,7 +4179,7 @@
     {
       "datasource": {
         "type": "bkmonitor-timeseries-datasource",
-        "uid": "bkmonitor_timeseries"
+        "uid": "${DS_蓝鲸监控_- 指标数据}"
       },
       "description": "mongodb_mongod_wiredtiger_session_open_sessions_total \n\nrequire version >=3.6",
       "fieldConfig": {
@@ -4309,7 +4309,7 @@
     {
       "datasource": {
         "type": "bkmonitor-timeseries-datasource",
-        "uid": "bkmonitor_timeseries"
+        "uid": "${DS_蓝鲸监控_- 指标数据}"
       },
       "description": "avg(irate(mongodb_mongod_metrics_query_executor_total))",
       "fieldConfig": {
@@ -4499,7 +4499,7 @@
         },
         "datasource": {
           "type": "bkmonitor-timeseries-datasource",
-          "uid": "bkmonitor_timeseries"
+          "uid": "${DS_蓝鲸监控_- 指标数据}"
         },
         "definition": "- Blueking Monitor - 维度",
         "description": "app",
@@ -4550,7 +4550,7 @@
         },
         "datasource": {
           "type": "bkmonitor-timeseries-datasource",
-          "uid": "bkmonitor_timeseries"
+          "uid": "${DS_蓝鲸监控_- 指标数据}"
         },
         "definition": "- Blueking Monitor - 维度",
         "hide": 0,
@@ -4615,7 +4615,7 @@
         },
         "datasource": {
           "type": "bkmonitor-timeseries-datasource",
-          "uid": "bkmonitor_timeseries"
+          "uid": "${DS_蓝鲸监控_- 指标数据}"
         },
         "definition": "- Blueking Monitor - 维度",
         "description": "instance_role",

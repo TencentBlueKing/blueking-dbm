@@ -58,7 +58,7 @@
       }
     ]
   },
-  "editable": false,
+  "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
   "id": null,
@@ -81,7 +81,7 @@
     {
       "datasource": {
         "type": "bkmonitor-timeseries-datasource",
-        "uid": "bkmonitor_timeseries"
+        "uid": "${DS_蓝鲸监控_- 指标数据}"
       },
       "fieldConfig": {
         "defaults": {
@@ -132,7 +132,7 @@
           "cluster": [],
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "bkmonitor_timeseries"
+            "uid": "${DS_蓝鲸监控_- 指标数据}"
           },
           "expressionList": [],
           "format": "time_series",
@@ -183,7 +183,7 @@
     {
       "datasource": {
         "type": "bkmonitor-timeseries-datasource",
-        "uid": "bkmonitor_timeseries"
+        "uid": "${DS_蓝鲸监控_- 指标数据}"
       },
       "description": "",
       "fieldConfig": {
@@ -235,7 +235,7 @@
           "cluster": [],
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "bkmonitor_timeseries"
+            "uid": "${DS_蓝鲸监控_- 指标数据}"
           },
           "expressionList": [],
           "format": "time_series",
@@ -285,7 +285,7 @@
     {
       "datasource": {
         "type": "bkmonitor-timeseries-datasource",
-        "uid": "bkmonitor_timeseries"
+        "uid": "${DS_蓝鲸监控_- 指标数据}"
       },
       "fieldConfig": {
         "defaults": {
@@ -336,7 +336,7 @@
           "cluster": [],
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "bkmonitor_timeseries"
+            "uid": "${DS_蓝鲸监控_- 指标数据}"
           },
           "expressionList": [],
           "format": "time_series",
@@ -386,7 +386,7 @@
     {
       "datasource": {
         "type": "bkmonitor-timeseries-datasource",
-        "uid": "bkmonitor_timeseries"
+        "uid": "${DS_蓝鲸监控_- 指标数据}"
       },
       "fieldConfig": {
         "defaults": {
@@ -465,7 +465,7 @@
           "cluster": [],
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "bkmonitor_timeseries"
+            "uid": "${DS_蓝鲸监控_- 指标数据}"
           },
           "expressionList": [],
           "format": "time_series",
@@ -516,7 +516,7 @@
     {
       "datasource": {
         "type": "bkmonitor-timeseries-datasource",
-        "uid": "bkmonitor_timeseries"
+        "uid": "${DS_蓝鲸监控_- 指标数据}"
       },
       "fieldConfig": {
         "defaults": {
@@ -567,7 +567,7 @@
           "cluster": [],
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "bkmonitor_timeseries"
+            "uid": "${DS_蓝鲸监控_- 指标数据}"
           },
           "expressionList": [],
           "format": "time_series",
@@ -617,7 +617,7 @@
     {
       "datasource": {
         "type": "bkmonitor-timeseries-datasource",
-        "uid": "bkmonitor_timeseries"
+        "uid": "${DS_蓝鲸监控_- 指标数据}"
       },
       "fieldConfig": {
         "defaults": {
@@ -668,7 +668,7 @@
           "cluster": [],
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "bkmonitor_timeseries"
+            "uid": "${DS_蓝鲸监控_- 指标数据}"
           },
           "expressionList": [],
           "format": "time_series",
@@ -731,7 +731,7 @@
     {
       "datasource": {
         "type": "bkmonitor-timeseries-datasource",
-        "uid": "bkmonitor_timeseries"
+        "uid": "${DS_蓝鲸监控_- 指标数据}"
       },
       "fieldConfig": {
         "defaults": {
@@ -834,7 +834,7 @@
           "cluster": [],
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "bkmonitor_timeseries"
+            "uid": "${DS_蓝鲸监控_- 指标数据}"
           },
           "expressionList": [],
           "format": "time_series",
@@ -885,7 +885,7 @@
     {
       "datasource": {
         "type": "bkmonitor-timeseries-datasource",
-        "uid": "bkmonitor_timeseries"
+        "uid": "${DS_蓝鲸监控_- 指标数据}"
       },
       "description": "",
       "fieldConfig": {
@@ -964,7 +964,7 @@
           "cluster": [],
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "bkmonitor_timeseries"
+            "uid": "${DS_蓝鲸监控_- 指标数据}"
           },
           "expressionList": [],
           "format": "time_series",
@@ -1015,7 +1015,7 @@
     {
       "datasource": {
         "type": "bkmonitor-timeseries-datasource",
-        "uid": "bkmonitor_timeseries"
+        "uid": "${DS_蓝鲸监控_- 指标数据}"
       },
       "fieldConfig": {
         "defaults": {
@@ -1094,7 +1094,7 @@
           "cluster": [],
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "bkmonitor_timeseries"
+            "uid": "${DS_蓝鲸监控_- 指标数据}"
           },
           "expressionList": [],
           "format": "time_series",
@@ -1145,7 +1145,7 @@
     {
       "datasource": {
         "type": "bkmonitor-timeseries-datasource",
-        "uid": "bkmonitor_timeseries"
+        "uid": "${DS_蓝鲸监控_- 指标数据}"
       },
       "fieldConfig": {
         "defaults": {
@@ -1224,7 +1224,7 @@
           "cluster": [],
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "bkmonitor_timeseries"
+            "uid": "${DS_蓝鲸监控_- 指标数据}"
           },
           "expressionList": [],
           "format": "time_series",
@@ -1287,7 +1287,7 @@
     {
       "datasource": {
         "type": "bkmonitor-timeseries-datasource",
-        "uid": "bkmonitor_timeseries"
+        "uid": "${DS_蓝鲸监控_- 指标数据}"
       },
       "description": "各个节点的cpu使用率",
       "fieldConfig": {
@@ -1366,7 +1366,7 @@
           "cluster": [],
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "bkmonitor_timeseries"
+            "uid": "${DS_蓝鲸监控_- 指标数据}"
           },
           "expressionList": [],
           "format": "time_series",
@@ -1444,7 +1444,7 @@
     {
       "datasource": {
         "type": "bkmonitor-timeseries-datasource",
-        "uid": "bkmonitor_timeseries"
+        "uid": "${DS_蓝鲸监控_- 指标数据}"
       },
       "fieldConfig": {
         "defaults": {
@@ -1547,7 +1547,7 @@
           "cluster": [],
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "bkmonitor_timeseries"
+            "uid": "${DS_蓝鲸监控_- 指标数据}"
           },
           "expressionList": [],
           "format": "time_series",
@@ -1603,7 +1603,7 @@
           "cluster": [],
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "bkmonitor_timeseries"
+            "uid": "${DS_蓝鲸监控_- 指标数据}"
           },
           "expressionList": [],
           "format": "time_series",
@@ -1663,7 +1663,7 @@
     {
       "datasource": {
         "type": "bkmonitor-timeseries-datasource",
-        "uid": "bkmonitor_timeseries"
+        "uid": "${DS_蓝鲸监控_- 指标数据}"
       },
       "fieldConfig": {
         "defaults": {
@@ -1766,7 +1766,7 @@
           "cluster": [],
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "bkmonitor_timeseries"
+            "uid": "${DS_蓝鲸监控_- 指标数据}"
           },
           "expressionList": [],
           "format": "time_series",
@@ -1856,7 +1856,7 @@
         "current": {},
         "datasource": {
           "type": "bkmonitor-timeseries-datasource",
-          "uid": "bkmonitor_timeseries"
+          "uid": "${DS_蓝鲸监控_- 指标数据}"
         },
         "definition": "- Blueking Monitor - 维度",
         "hide": 2,
@@ -1889,7 +1889,7 @@
         "current": {},
         "datasource": {
           "type": "bkmonitor-timeseries-datasource",
-          "uid": "bkmonitor_timeseries"
+          "uid": "${DS_蓝鲸监控_- 指标数据}"
         },
         "definition": "- Blueking Monitor - 维度",
         "hide": 2,
@@ -1938,7 +1938,7 @@
         "current": {},
         "datasource": {
           "type": "bkmonitor-timeseries-datasource",
-          "uid": "bkmonitor_timeseries"
+          "uid": "${DS_蓝鲸监控_- 指标数据}"
         },
         "definition": "- Blueking Monitor - 维度",
         "hide": 0,

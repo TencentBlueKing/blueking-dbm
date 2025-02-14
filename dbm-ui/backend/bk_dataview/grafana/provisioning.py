@@ -103,8 +103,8 @@ class SimpleProvisioning(BaseProvisioning):
         file_content = file_content.replace("{BK_SAAS_HOST}", env.BK_SAAS_HOST)
 
         # 刷新监控数据源ID：bkmonitor_timeseries
-        file_content = file_content.replace("${DS_蓝鲸监控_-_指标数据}", "bkmonitor_timeseries")
         file_content = file_content.replace("${DS_蓝鲸监控_- 指标数据}", "bkmonitor_timeseries")
+        file_content = file_content.replace("${DS_日志平台}", "bklog")
         file_content = file_content.replace('"editable": true', '"editable": false')
 
         # 批量替换基础指标来源：system -> dbm_system
