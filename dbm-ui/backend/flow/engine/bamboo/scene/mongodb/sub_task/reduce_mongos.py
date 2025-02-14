@@ -21,6 +21,7 @@ from backend.flow.plugins.components.collections.mongodb.send_media import ExecS
 from backend.flow.utils.mongodb.mongodb_dataclass import ActKwargs
 
 from .deinstall import deinstall
+from .mongos_replace import cluster_clb, mongos_operate_clb
 
 
 def reduce_mongos(root_id: str, ticket_data: Optional[Dict], sub_kwargs: ActKwargs, info: dict) -> SubBuilder:
@@ -71,6 +72,19 @@ def reduce_mongos(root_id: str, ticket_data: Optional[Dict], sub_kwargs: ActKwar
     sub_get_kwargs.payload["shards_nodes"] = []
     sub_get_kwargs.payload["config_nodes"] = []
     sub_get_kwargs.payload["bk_cloud_id"] = sub_get_kwargs.payload["mongos_nodes"][0]["bk_cloud_id"]
+    # 判断是否有clb
+    clb = cluster_clb(cluster_id=cluster_id)
+    creator = sub_get_kwargs.payload["created_by"]
+
+    # clb解绑老ip
+    if clb:
+        mongos_operate_clb(
+            cluster_id=cluster_id,
+            creator=creator,
+            ips=["{}:{}".format(node["ip"], str(port)) for node in info["reduce_nodes"]],
+            bind=False,
+            pipeline=sub_pipeline,
+        )
 
     # 卸载mongos——子流程
     sub_sub_pipeline = deinstall(

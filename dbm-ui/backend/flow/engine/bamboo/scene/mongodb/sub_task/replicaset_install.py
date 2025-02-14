@@ -82,13 +82,13 @@ def replicaset_install(
         act_name=_("MongoDB--创建dba用户"), act_component_code=ExecuteDBActuatorJobComponent.code, kwargs=kwargs
     )
 
-    # 创建appdba，monitor，monitor用户
+    # 创建appdba，appmonitor，monitor用户
     kwargs = sub_get_kwargs.get_init_exec_script_kwargs(script_type=MongoDBTask.MongoDBExtraUserCreate)
     sub_pipeline.add_act(
         act_name=_("MongoDB--创建额外管理用户"), act_component_code=ExecuteDBActuatorJobComponent.code, kwargs=kwargs
     )
 
-    # dba, appdba，monitor，monitor用户密码写入密码服务
+    # dba, appdba，appmonitor，monitor用户密码写入密码服务
     kwargs = sub_get_kwargs.get_add_password_to_db_kwargs(
         usernames=[
             MongoDBManagerUser.DbaUser.value,

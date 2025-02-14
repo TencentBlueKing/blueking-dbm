@@ -219,6 +219,15 @@ class MongoDBInstallFlow(object):
             act_component_code=ExecAddRelationshipOperationComponent.code,
             kwargs=kwargs,
         )
+
+        # cluster初始配置
+        kwargs = self.get_kwargs.get_mongodb_cluster_init_kwargs()
+        pipeline.add_act(
+            act_name=_("MongoDB--cluster初始化设置"),
+            act_component_code=ExecuteDBActuatorJobComponent.code,
+            kwargs=kwargs,
+        )
+
         # 域名写入dns
         kwargs = self.get_kwargs.get_add_domain_to_dns_kwargs(cluster=True)
         pipeline.add_act(

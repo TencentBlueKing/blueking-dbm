@@ -32,6 +32,41 @@ from backend.flow.plugins.components.collections.mongodb.delete_password_from_db
 from backend.flow.plugins.components.collections.mongodb.exec_actuator_job import ExecuteDBActuatorJobComponent
 from backend.flow.plugins.components.collections.name_service.name_service import ExecNameServiceOperationComponent
 from backend.flow.utils.mongodb.mongodb_dataclass import ActKwargs
+from backend.flow.utils.name_service.name_service_dataclass import TransDataKwargs
+
+
+def cluster_clb(cluster_id: int) -> bool:
+    """判断分片集群是否有clb"""
+
+    if (
+        ClusterEntryType.CLB.value
+        in api.cluster.nosqlcomm.other.get_cluster_detail(cluster_id=cluster_id)[0]["clusterentry_set"]
+    ):
+        return True
+    return False
+
+
+def mongos_operate_clb(cluster_id: int, creator: str, ips: list, bind: bool, pipeline: SubBuilder):
+    """mongos操作clb"""
+
+    if bind:
+        name_service_operation_type = "clb_register_part_target"
+        act_name = _("MongoDB-clb绑定新ip")
+    else:
+        name_service_operation_type = "clb_deregister_part_target"
+        act_name = _("MongoDB-clb解绑老ip")
+    kwargs = {
+        "set_trans_data_dataclass": TransDataKwargs.__name__,
+        "name_service_operation_type": name_service_operation_type,
+        "creator": creator,
+        "cluster_id": cluster_id,
+        "ips": ips,
+    }
+    pipeline.add_act(
+        act_name=_(act_name),
+        act_component_code=ExecNameServiceOperationComponent.code,
+        kwargs=kwargs,
+    )
 
 
 def mongos_replace(root_id: str, ticket_data: Optional[Dict], sub_sub_kwargs: ActKwargs, info: dict) -> SubBuilder:
@@ -92,25 +127,17 @@ def mongos_replace(root_id: str, ticket_data: Optional[Dict], sub_sub_kwargs: Ac
     sub_sub_get_kwargs.payload["bk_cloud_id"] = info["bk_cloud_id"]
     sub_sub_get_kwargs.payload["set_id"] = sub_sub_get_kwargs.db_instance["cluster_name"]
     # 判断是否有clb
-    clb = False
-    if (
-        ClusterEntryType.CLB.value
-        in api.cluster.nosqlcomm.other.get_cluster_detail(cluster_id=cluster_id)[0]["clusterentry_set"]
-    ):
-        clb = True
+    clb = cluster_clb(cluster_id=cluster_id)
+    creator = sub_sub_get_kwargs.payload["created_by"]
 
     # clb解绑老ip
     if clb:
-        kwargs = {
-            "name_service_operation_type": "clb_deregister_part_target",
-            "creator": sub_sub_get_kwargs.payload["creator"],
-            "cluster_id": cluster_id,
-            "ips": ["{}:{}".format(info["ip"], str(sub_sub_get_kwargs.db_instance["port"]))],
-        }
-        sub_sub_pipeline.add_act(
-            act_name=_("MongoDB-clb解绑替换ip"),
-            act_component_code=ExecNameServiceOperationComponent.code,
-            kwargs=kwargs,
+        mongos_operate_clb(
+            cluster_id=cluster_id,
+            creator=creator,
+            ips=["{}:{}".format(info["ip"], str(sub_sub_get_kwargs.db_instance["port"]))],
+            bind=False,
+            pipeline=sub_sub_pipeline,
         )
 
     # 删除老的dns
@@ -131,16 +158,12 @@ def mongos_replace(root_id: str, ticket_data: Optional[Dict], sub_sub_kwargs: Ac
 
     # clb绑定新ip
     if clb:
-        kwargs = {
-            "name_service_operation_type": "clb_register_part_target",
-            "creator": sub_sub_get_kwargs.payload["creator"],
-            "cluster_id": cluster_id,
-            "ips": ["{}:{}".format(node["ip"], str(sub_sub_get_kwargs.db_instance["port"]))],
-        }
-        sub_sub_pipeline.add_act(
-            act_name=_("MongoDB-clb绑定新ip"),
-            act_component_code=ExecNameServiceOperationComponent.code,
-            kwargs=kwargs,
+        mongos_operate_clb(
+            cluster_id=cluster_id,
+            creator=creator,
+            ips=["{}:{}".format(node["ip"], str(sub_sub_get_kwargs.db_instance["port"]))],
+            bind=True,
+            pipeline=sub_sub_pipeline,
         )
 
     # 添加新的dns

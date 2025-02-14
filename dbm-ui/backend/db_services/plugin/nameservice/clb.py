@@ -17,6 +17,7 @@ from backend.configuration.constants import DBType
 from backend.configuration.models import DBAdministrator
 from backend.db_meta import api
 from backend.db_meta.enums import ClusterEntryType
+from backend.db_meta.enums.cluster_type import ClusterType
 from backend.db_meta.models import Cluster, ClusterEntry
 from backend.env import CLB_DOMAIN
 from backend.flow.utils import dns_manage
@@ -132,6 +133,12 @@ def create_lb_and_register_target(cluster_id: int) -> Dict[str, Any]:
     cluster = get_cluster_info(cluster_id=cluster_id)
     immute_domain = cluster["immute_domain"]
 
+    # 获取DB类型
+    if cluster["cluster_type"] == ClusterType.MongoShardedCluster.value:
+        db_type = DBType.MongoDB.value
+    else:
+        db_type = DBType.Redis.value
+
     # 判断clb是否已经存在
     if ClusterEntryType.CLB.value in cluster["clusterentry_set"]:
         message = "clb of cluster:{} has existed".format(immute_domain)
@@ -141,7 +148,7 @@ def create_lb_and_register_target(cluster_id: int) -> Dict[str, Any]:
     bk_biz_id = cluster["bk_biz_id"]
 
     # 通过bk_biz_id获取manager，backupmanager，去除admin
-    users = DBAdministrator().get_biz_db_type_admins(bk_biz_id=bk_biz_id, db_type=DBType.Redis)
+    users = DBAdministrator().get_biz_db_type_admins(bk_biz_id=bk_biz_id, db_type=db_type)
     users = [user for user in users if user != "admin"]
     manager = users[0]
     backupmanager = users[1] if len(users) > 1 else users[0]
@@ -391,7 +398,7 @@ def operate_part_target(cluster_id: int, ips: list, bind: bool) -> dict:
 
     # 获取信息
     cluster = get_cluster_info(cluster_id=cluster_id)
-    clb = cluster["clusterentry_set"]["clb"]
+    clb = cluster["clusterentry_set"]["clb"][0]
     clb_id = clb["clb_id"]
     listener_id = clb["listener_id"]
     clb_region = clb["clb_region"]

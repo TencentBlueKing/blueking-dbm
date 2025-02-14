@@ -121,7 +121,7 @@ class ExecuteDBActuatorJobService(BkJobService):
                 ]
 
         # cluster添加shards，从上游流程节点获取密码
-        if kwargs.get("add_shard_to_cluster", False):
+        if kwargs.get("add_shard_to_cluster", False) or kwargs.get("mongodb_cluster_init", False):
             kwargs["db_act_template"]["payload"]["adminPassword"] = trans_data[
                 kwargs["db_act_template"]["payload"]["adminUsername"]
             ]

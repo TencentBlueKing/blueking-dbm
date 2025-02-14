@@ -24,6 +24,7 @@ from backend.flow.plugins.components.collections.mongodb.send_media import ExecS
 from backend.flow.utils.mongodb.mongodb_dataclass import ActKwargs
 
 from .mongos_install import mongos_install
+from .mongos_replace import cluster_clb, mongos_operate_clb
 
 
 def increase_mongos(root_id: str, ticket_data: Optional[Dict], sub_kwargs: ActKwargs, info: dict) -> SubBuilder:
@@ -66,8 +67,9 @@ def increase_mongos(root_id: str, ticket_data: Optional[Dict], sub_kwargs: ActKw
     )
 
     # 获取信息
-    sub_get_kwargs.get_cluster_info_deinstall(cluster_id=info["cluster_id"])
-    sub_get_kwargs.payload["cluster_id"] = info["cluster_id"]
+    cluster_id = info["cluster_id"]
+    sub_get_kwargs.get_cluster_info_deinstall(cluster_id=cluster_id)
+    sub_get_kwargs.payload["cluster_id"] = cluster_id
     sub_get_kwargs.cluster_type = sub_get_kwargs.payload["cluster_type"]
     sub_get_kwargs.mongos_info = info
     sub_get_kwargs.mongos_info["nodes"] = info["mongos"]
@@ -85,6 +87,9 @@ def increase_mongos(root_id: str, ticket_data: Optional[Dict], sub_kwargs: ActKw
     sub_get_kwargs.payload["mongos"]["nodes"] = info["mongos"]
     sub_get_kwargs.payload["mongos"]["domain"] = sub_get_kwargs.payload["mongos_nodes"][0]["domain"]
     sub_get_kwargs.payload["mongos"]["port"] = sub_get_kwargs.payload["mongos_nodes"][0]["port"]
+    # 判断是否有clb
+    clb = cluster_clb(cluster_id=cluster_id)
+    creator = sub_get_kwargs.payload["created_by"]
 
     # 进行mongos安装——子流程
     sub_sub_pipeline = mongos_install(
@@ -94,6 +99,16 @@ def increase_mongos(root_id: str, ticket_data: Optional[Dict], sub_kwargs: ActKw
         increase_mongos=True,
     )
     sub_pipeline.add_sub_pipeline(sub_sub_pipeline)
+
+    # 实例绑定clb
+    if clb:
+        mongos_operate_clb(
+            cluster_id=cluster_id,
+            creator=creator,
+            ips=["{}:{}".format(node["ip"], str(sub_get_kwargs.mongos_info["port"])) for node in info["mongos"]],
+            bind=True,
+            pipeline=sub_pipeline,
+        )
 
     # dns新增实例
     kwargs = sub_get_kwargs.get_add_domain_to_dns_kwargs(cluster=True)

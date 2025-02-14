@@ -66,13 +66,10 @@ class NameServiceFlow(object):
         # 运行流程
         pipeline.run_pipeline()
 
-    def clb_delete_flow(self):
+    def clb_delete(self, pipeline: Builder):
         """
-        clb delete流程
+        clb delete
         """
-
-        # 创建流程实例
-        pipeline = Builder(root_id=self.root_id, data=self.data)
 
         # 添加活动节点
         self.kwargs.name_service_operation_type = "domain_unbind_clb_ip"
@@ -97,6 +94,17 @@ class NameServiceFlow(object):
             act_component_code=ExecNameServiceOperationComponent.code,
             kwargs=asdict(self.kwargs),
         )
+
+    def clb_delete_flow(self):
+        """
+        clb delete流程
+        """
+
+        # 创建流程实例
+        pipeline = Builder(root_id=self.root_id, data=self.data)
+
+        # 添加活动节点
+        self.clb_delete(pipeline=pipeline)
 
         # 运行流程
         pipeline.run_pipeline()

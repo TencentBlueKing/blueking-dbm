@@ -21,6 +21,7 @@ from backend.db_meta import api
 from backend.db_meta.api import common
 from backend.db_meta.enums import (
     AccessLayer,
+    ClusterEntryType,
     ClusterMachineAccessTypeDefine,
     ClusterType,
     InstanceInnerRole,
@@ -155,6 +156,8 @@ class MongosScaleMetaService(BaseService):
 
             # 修改表 db_meta_proxyinstance_bind_entry
             for cluster_entry_obj in cluster.clusterentry_set.all():
+                if cluster_entry_obj.cluster_entry_type == ClusterEntryType.CLBDNS.value:
+                    continue
                 cluster_entry_obj.proxyinstance_set.add(*proxy_objs)
                 logger.info(
                     "cluster {} entry {} add proxyinstance {}".format(

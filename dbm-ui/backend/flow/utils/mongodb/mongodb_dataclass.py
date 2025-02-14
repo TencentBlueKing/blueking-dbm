@@ -1963,6 +1963,37 @@ class ActKwargs:
             },
         }
 
+    def get_mongodb_cluster_init_kwargs(self):
+        """获取MongoDB分片集群初始设置参数"""
+
+        ip = self.payload["mongos"]["nodes"][0]["ip"]
+        return {
+            "set_trans_data_dataclass": CommonContext.__name__,
+            "get_trans_data_ip_var": None,
+            "mongodb_cluster_init": True,
+            "bk_cloud_id": self.payload["mongos"]["nodes"][0]["bk_cloud_id"],
+            "exec_ip": ip,
+            "db_act_template": {
+                "action": MongoDBActuatorActionEnum.MongoExecuteScript,
+                "file_path": self.file_path,
+                "payload": {
+                    "ip": ip,
+                    "port": self.payload["mongos"]["port"],
+                    "script": mongodb_script_template.mongodb_cluster_inti_js_script,
+                    "type": "cluster",
+                    "secondary": False,
+                    "adminUsername": MongoDBManagerUser.DbaUser.value,
+                    "adminPassword": "",
+                    "repoUrl": "",
+                    "repoUsername": "",
+                    "repoToken": "",
+                    "repoProject": "",
+                    "repoRepo": "",
+                    "repoPath": "",
+                },
+            },
+        }
+
 
 @dataclass()
 class CommonContext:

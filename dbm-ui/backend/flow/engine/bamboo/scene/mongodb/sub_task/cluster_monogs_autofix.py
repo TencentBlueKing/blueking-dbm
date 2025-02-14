@@ -14,8 +14,6 @@ from typing import Dict, Optional
 
 from django.utils.translation import ugettext as _
 
-from backend.db_meta import api
-from backend.db_meta.enums import ClusterEntryType
 from backend.db_meta.enums.cluster_type import ClusterType
 from backend.flow.consts import MongoDBInstanceType, MongoDBManagerUser
 from backend.flow.engine.bamboo.scene.common.builder import SubBuilder
@@ -34,8 +32,9 @@ from backend.flow.plugins.components.collections.mongodb.instance_deinstall_tick
 )
 from backend.flow.plugins.components.collections.mongodb.mongodb_cmr_4_meta import CMRMongoDBMetaComponent
 from backend.flow.plugins.components.collections.mongodb.send_media import ExecSendMediaOperationComponent
-from backend.flow.plugins.components.collections.name_service.name_service import ExecNameServiceOperationComponent
 from backend.flow.utils.mongodb.mongodb_dataclass import ActKwargs
+
+from .mongos_replace import cluster_clb, mongos_operate_clb
 
 
 def mongos_autofix(root_id: str, ticket_data: Optional[Dict], sub_sub_kwargs: ActKwargs, info: dict) -> SubBuilder:
@@ -109,12 +108,9 @@ def mongos_autofix(root_id: str, ticket_data: Optional[Dict], sub_sub_kwargs: Ac
     sub_sub_get_kwargs.payload["set_id"] = sub_sub_get_kwargs.db_instance["cluster_name"]
 
     # 判断是否有clb
-    clb = False
-    if (
-        ClusterEntryType.CLB.value
-        in api.cluster.nosqlcomm.other.get_cluster_detail(cluster_id=cluster_id)[0]["clusterentry_set"]
-    ):
-        clb = True
+    clb = cluster_clb(cluster_id=cluster_id)
+    creator = sub_sub_get_kwargs.payload.get("created_by")
+
     # dbha已做clb解绑，dns删除
     # # 删除clb中绑定的老ip
     # if clb:
@@ -183,16 +179,12 @@ def mongos_autofix(root_id: str, ticket_data: Optional[Dict], sub_sub_kwargs: Ac
 
     # clb绑定新ip
     if clb:
-        kwargs = {
-            "name_service_operation_type": "clb_register_part_target",
-            "creator": sub_sub_get_kwargs.payload["created_by"],
-            "cluster_id": cluster_id,
-            "ips": ["{}:{}".format(node["ip"], str(sub_sub_get_kwargs.db_instance["port"]))],
-        }
-        sub_sub_pipeline.add_act(
-            act_name=_("MongoDB-clb绑定新ip"),
-            act_component_code=ExecNameServiceOperationComponent.code,
-            kwargs=kwargs,
+        mongos_operate_clb(
+            cluster_id=cluster_id,
+            creator=creator,
+            ips=["{}:{}".format(node["ip"], str(sub_sub_get_kwargs.db_instance["port"]))],
+            bind=True,
+            pipeline=sub_sub_pipeline,
         )
 
     # 添加新的dns

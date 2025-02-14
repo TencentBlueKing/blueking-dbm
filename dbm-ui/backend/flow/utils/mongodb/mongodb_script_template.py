@@ -166,3 +166,10 @@ source /home/mysql/.bash_profile
 /home/mysql/filebeat-deploy/stop_filebeat
 killall -9 prome_exporter_manager | echo true
 """
+
+
+# 分片集群初始化设置
+mongodb_cluster_inti_js_script = """
+sh.setBalancerState(false);
+db.getSisterDB('config').settings.save({ _id:'chunksize', value: 512 });
+"""

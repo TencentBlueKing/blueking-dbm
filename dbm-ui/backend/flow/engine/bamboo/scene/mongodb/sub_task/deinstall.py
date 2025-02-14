@@ -17,6 +17,7 @@ from django.utils.translation import ugettext as _
 from backend.db_meta.enums.cluster_type import ClusterType
 from backend.flow.consts import MongoDBInstanceType
 from backend.flow.engine.bamboo.scene.common.builder import SubBuilder
+from backend.flow.engine.bamboo.scene.name_service.name_service import NameServiceFlow
 from backend.flow.plugins.components.collections.mongodb.delete_domain_from_dns import (
     ExecDeleteDomainFromDnsOperationComponent,
 )
@@ -26,6 +27,8 @@ from backend.flow.plugins.components.collections.mongodb.delete_password_from_db
 from backend.flow.plugins.components.collections.mongodb.exec_actuator_job import ExecuteDBActuatorJobComponent
 from backend.flow.plugins.components.collections.mongodb.mongo_shutdown_meta import MongosShutdownMetaComponent
 from backend.flow.utils.mongodb.mongodb_dataclass import ActKwargs
+
+from .mongos_replace import cluster_clb
 
 
 def mongo_deinstall_parallel(sub_get_kwargs: ActKwargs, nodes: list, instance_type: str, force: bool) -> list:
@@ -107,6 +110,17 @@ def deinstall(
         )
         if acts_list:
             sub_pipeline.add_parallel_acts(acts_list=acts_list)
+        if not reduce_mongos:
+            # 判断是否有clb
+            clb = cluster_clb(cluster_id=cluster_id)
+            creator = sub_get_kwargs.payload.get("created_by")
+            if clb:
+                kwargs = {
+                    "bk_biz_id": sub_get_kwargs.payload["bk_biz_id"],
+                    "created_by": creator,
+                    "cluster_id": cluster_id,
+                }
+                NameServiceFlow(root_id=root_id, data=kwargs).clb_delete(pipeline=sub_pipeline)
 
     # 删除dns
     kwargs = sub_get_kwargs.get_delete_domain_kwargs()
