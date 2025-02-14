@@ -26,8 +26,10 @@
               v-model="treeSearch"
               clearable
               :placeholder="t('搜索拓扑节点')" />
-            <div :class="TopoAlertContent ? 'topo-alert-box' : 'topo-box'">
-              <TopoAlertContent @close="handleCloseAlert" />
+            <div :class="!isCloseAlert ? 'topo-alert-box' : 'topo-box'">
+              <component
+                :is="TopoAlertContent"
+                @close="handleCloseAlert" />
               <BkTree
                 ref="treeRef"
                 children="children"
@@ -65,7 +67,6 @@
               :disabled-row-config="disabledRowConfig"
               :firsr-column="firsrColumn"
               :get-table-list="getTableList"
-              :is-remote-pagination="isRemotePagination"
               :last-values="lastValues"
               :role-filter-list="roleFilterList"
               :status-filter="statusFilter"
@@ -106,7 +107,6 @@
     tableSetting: TableSetting;
     firsrColumn?: TableConfigType['firsrColumn'];
     roleFilterList?: TableConfigType['roleFilterList'];
-    isRemotePagination?: TableConfigType['isRemotePagination'];
     disabledRowConfig?: TableConfigType['disabledRowConfig'];
     topoAlertContent?: TopoConfigType['topoAlertContent'];
     filterClusterId?: TopoConfigType['filterClusterId']; // 过滤的集群ID，单集群模式
@@ -136,7 +136,7 @@
   const treeSearch = ref('');
   const isCloseAlert = ref(false);
 
-  const TopoAlertContent = computed(() => (!isCloseAlert.value ? props.topoAlertContent : null));
+  const TopoAlertContent = computed(() => (!isCloseAlert.value ? props.topoAlertContent : 'div'));
   const filterClusterId = computed(() => props.filterClusterId);
 
   const { treeRef, isLoading, treeData, selectClusterId, fetchResources } =

@@ -47,7 +47,6 @@
           :firsr-column="activePanelObj?.tableConfig?.firsrColumn"
           :get-table-list="activePanelObj?.tableConfig?.getTableList"
           :get-topo-list="activePanelObj?.topoConfig?.getTopoList"
-          :is-remote-pagination="activePanelObj?.tableConfig?.isRemotePagination"
           :last-values="lastValues"
           :manual-config="activePanelObj?.manualConfig"
           :multiple="activePanelObj?.tableConfig?.multiple"
@@ -268,7 +267,6 @@
       countFunc?: (data: any) => number;
     };
     tableConfig?: {
-      isRemotePagination?: boolean;
       columnsChecked?: string[];
       firsrColumn?: {
         label: string;
@@ -377,7 +375,6 @@
           },
           columnsChecked: ['ip', 'role', 'cloud_area', 'status', 'host_name', 'os_name'],
           statusFilter: (data: RedisHostModel) => !data.isMasterFailover,
-          isRemotePagination: true,
         },
         previewConfig: {
           displayKey: 'ip',
@@ -397,7 +394,6 @@
           },
           columnsChecked: ['ip', 'role', 'cloud_area', 'status', 'host_name', 'os_name'],
           statusFilter: (data: RedisHostModel) => !data.isMasterFailover,
-          isRemotePagination: false,
         },
         manualConfig: {
           checkInstances: checkRedisInstances,
@@ -935,6 +931,7 @@
         newPageList.push(item);
       }
     });
+
     return newPageList;
   });
 
