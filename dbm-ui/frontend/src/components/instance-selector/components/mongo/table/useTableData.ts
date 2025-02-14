@@ -36,6 +36,7 @@ export function useTableData<T>(clusterId?: Ref<number | undefined>, role?: Ref<
     limitList: [10, 20, 50, 100],
     align: 'right',
     layout: ['total', 'limit', 'list'],
+    remote: true,
   });
   const searchValue = ref('');
 

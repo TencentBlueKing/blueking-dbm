@@ -72,10 +72,6 @@ export async function generateRedisClusterAddSlaveCloneData(ticketData: TicketMo
       },
       spec: machineIpMap[ip].spec_config,
       targetNum: 1,
-      slaveHost: {
-        faults: machineIpMap[ip].unavailable_slave,
-        total: machineIpMap[ip].total_slave,
-      },
     })),
     remark: ticketData.remark,
   };

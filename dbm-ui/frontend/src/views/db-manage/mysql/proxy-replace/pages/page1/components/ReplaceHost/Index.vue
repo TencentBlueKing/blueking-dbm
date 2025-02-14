@@ -87,7 +87,7 @@
   const tabListConfig = {
     [TENDBHA_HOST]: [
       {
-        id: [TENDBHA_HOST],
+        id: TENDBHA_HOST,
         name: t('目标Proxy主机'),
         tableConfig: {
           firsrColumn: {
