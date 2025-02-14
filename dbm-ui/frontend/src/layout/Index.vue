@@ -4,7 +4,7 @@
     navigation-type="top-bottom"
     :need-menu="needMenu"
     :side-title="t('数据库管理')"
-    @toggle="handleCollapse">
+    @toggle-click="handleCollapse">
     <template #side-header>
       <span>
         <img
@@ -230,6 +230,7 @@
 
   const handleCollapse = () => {
     isSideMenuFlod.value = !isSideMenuFlod.value;
+    console.log('handleCollapse');
   };
 
   const handleMenuChange = (type: string) => {
