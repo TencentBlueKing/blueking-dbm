@@ -28,8 +28,7 @@
         :data="tableData"
         :max-height="530"
         :pagination="pagination.count < 10 ? false : pagination"
-        :remote-pagination="isRemotePagination"
-        :settings="tableSettings"
+        :show-overflow="false"
         style="margin-top: 12px"
         @clear-search="clearSearchValue"
         @column-filter="columnFilterChange"
@@ -66,7 +65,6 @@
   interface Props {
     lastValues: InstanceSelectorValues<IValue>,
     clusterId?: number,
-    isRemotePagination?: TableConfigType['isRemotePagination'],
     firsrColumn?: TableConfigType['firsrColumn'],
     disabledRowConfig?: TableConfigType['disabledRowConfig'],
     getTableList: NonNullable<TableConfigType['getTableList']>,
@@ -196,15 +194,36 @@
     {
       label: t('关联实例'),
       field: 'related_instances',
-      showOverflowTooltip: true,
+      showOverflow: true,
       width: 200,
       render: ({ data }: DataRow) => <RenderInstance data={data.related_instances || []}></RenderInstance>,
+    },
+    {
+      label: t('园区'),
+      field: 'bk_sub_zone',
+      minWidth: 120,
+      showOverflow: true,
+      render: ({ data }: DataRow) => data.bk_sub_zone || '--',
+    },
+    {
+      label: t('机架ID'),
+      field: 'bk_rack_id',
+      minWidth: 80,
+      showOverflow: true,
+      render: ({ data }: DataRow) => data.bk_rack_id || '--',
+    },
+    {
+      label: t('机型'),
+      field: 'bk_svr_device_cls_name',
+      minWidth: 120,
+      showOverflow: true,
+      render: ({ data }: DataRow) => data.bk_svr_device_cls_name || '--',
     },
     {
       minWidth: 100,
       label: t('云区域'),
       field: 'bk_cloud_id',
-      showOverflowTooltip: true,
+      showOverflow: true,
       filter: {
         list: columnAttrs.value.bk_cloud_id,
         checked: columnCheckedMap.value.bk_cloud_id,
@@ -223,49 +242,49 @@
     {
       label: t('主机名称'),
       field: 'host_name',
-      showOverflowTooltip: true,
+      showOverflow: true,
       render: ({ data }: DataRow) => data.host_info?.host_name || '--',
     },
     {
       label: t('OS名称'),
       field: 'os_name',
-      showOverflowTooltip: true,
+      showOverflow: true,
       render: ({ data }: DataRow) => data.host_info?.os_name || '--',
     },
     {
       label: t('所属云厂商'),
       field: 'cloud_vendor',
-      showOverflowTooltip: true,
+      showOverflow: true,
       render: ({ data }: DataRow) => data.host_info?.cloud_vendor || '--',
     },
     {
       label: t('OS类型'),
       field: 'os_type',
-      showOverflowTooltip: true,
+      showOverflow: true,
       render: ({ data }: DataRow) => data.host_info.os_type || '--',
     },
     {
       label: t('主机ID'),
       field: 'host_id',
-      showOverflowTooltip: true,
+      showOverflow: true,
       render: ({ data }: DataRow) => data.host_info?.host_id || '--',
     },
     {
       label: 'Agent ID',
       field: 'agent_id',
-      showOverflowTooltip: true,
+      showOverflow: true,
       render: ({ data }: DataRow) => data.host_info?.agent_id || '--',
     },
   ]);
 
-  const tableSettings = computed(() => ({
-    fields: columns.value.filter(item => item.field).map(item => ({
-      label: item.label,
-      field: item.field,
-      disabled: firstColumnFieldId.value === item.field,
-    })),
-    checked: [firstColumnFieldId.value, 'related_instances', 'bk_cloud_id', 'role', 'status', 'cloud_area', 'alive', 'host_name', 'os_name'],
-  }))
+  // const tableSettings = computed(() => ({
+  //   fields: columns.value.filter(item => item.field).map(item => ({
+  //     label: item.label,
+  //     field: item.field,
+  //     disabled: firstColumnFieldId.value === item.field,
+  //   })),
+  //   checked: [firstColumnFieldId.value, 'related_instances', 'bk_cloud_id', 'role', 'status', 'cloud_area', 'alive', 'host_name', 'os_name'],
+  // }))
 
 
   watch(() => props.lastValues, () => {

@@ -25,8 +25,7 @@
         :data="tableData"
         :max-height="530"
         :pagination="pagination.count < 10 ? false : pagination"
-        :remote-pagination="isRemotePagination"
-        :settings="tableSetting"
+        :show-overflow="false"
         style="margin-top: 12px"
         @page-limit-change="handeChangeLimit"
         @page-value-change="handleChangePage"
@@ -46,7 +45,6 @@
     type InstanceSelectorValues,
     type IValue,
     type PanelListType,
-    type TableSetting,
   } from '../../../Index.vue';
   import RenderInstance from '../../common/render-instance/Index.vue';
 
@@ -57,9 +55,7 @@
 
   interface Props {
     lastValues: InstanceSelectorValues<IValue>,
-    tableSetting: TableSetting,
     clusterId?: number,
-    isRemotePagination?: TableConfigType['isRemotePagination'],
     firsrColumn?: TableConfigType['firsrColumn'],
     disabledRowConfig?: TableConfigType['disabledRowConfig'],
     getTableList: NonNullable<TableConfigType['getTableList']>,
@@ -110,7 +106,7 @@
 
   const columns = [
     {
-      minWidth: 70,
+      minWidth: 60,
       fixed: 'left',
       label: () => (
         <div style="display:flex;align-items:center">
@@ -164,19 +160,13 @@
       minWidth: 160,
       label: props.firsrColumn?.label ? props.firsrColumn.label : t('实例'),
       field: props.firsrColumn?.field ? props.firsrColumn.field : 'instance_address',
+      showOverflow: true,
     },
     {
       label: t('关联实例'),
       field: 'related_instances',
-      showOverflowTooltip: true,
       width: 200,
       render: ({ data }: DataRow) => <RenderInstance data={data.related_instances || []}></RenderInstance>,
-    },
-    {
-      minWidth: 100,
-      label: t('管控区域'),
-      field: 'bk_cloud_name',
-      showOverflowTooltip: true,
     },
     {
       minWidth: 100,
@@ -188,63 +178,92 @@
       },
     },
     {
-      label: t('主机名称'),
-      field: 'host_name',
-      showOverflowTooltip: true,
-      render: ({ data }: DataRow) => data.host_info?.host_name || '--',
+      label: t('园区'),
+      field: 'bk_sub_zone',
+      minWidth: 120,
+      showOverflow: true,
+      render: ({ data }: DataRow) => data.bk_sub_zone || '--',
+    },
+    {
+      label: t('机架ID'),
+      field: 'bk_rack_id',
+      minWidth: 80,
+      showOverflow: true,
+      render: ({ data }: DataRow) => data.bk_rack_id || '--',
+    },
+    {
+      label: t('机型'),
+      field: 'bk_svr_device_cls_name',
+      minWidth: 120,
+      showOverflow: true,
+      render: ({ data }: DataRow) => data.bk_svr_device_cls_name || '--',
+    },
+    {
+      minWidth: 100,
+      label: t('管控区域'),
+      field: 'bk_cloud_name',
+      showOverflow: true,
     },
     {
       label: t('OS名称'),
       field: 'os_name',
-      showOverflowTooltip: true,
+      minWidth: 120,
+      showOverflow: true,
       render: ({ data }: DataRow) => data.host_info?.os_name || '--',
+    },
+    {
+      label: t('主机名称'),
+      field: 'host_name',
+      minWidth: 120,
+      showOverflow: true,
+      render: ({ data }: DataRow) => data.host_info?.host_name || '--',
     },
     {
       label: t('所属云厂商'),
       field: 'cloud_vendor',
-      showOverflowTooltip: true,
+      showOverflow: true,
       render: ({ data }: DataRow) => data.host_info?.cloud_vendor || '--',
     },
     {
       label: t('OS类型'),
       field: 'os_type',
-      showOverflowTooltip: true,
+      showOverflow: true,
       render: ({ data }: DataRow) => data.host_info.os_type || '--',
     },
     {
       label: t('主机ID'),
       field: 'host_id',
-      showOverflowTooltip: true,
+      showOverflow: true,
       render: ({ data }: DataRow) => data.host_info?.host_id || '--',
     },
     {
       label: 'Agent ID',
       field: 'agent_id',
-      showOverflowTooltip: true,
+      showOverflow: true,
       render: ({ data }: DataRow) => data.host_info?.agent_id || '--',
     },
     {
       label: t('园区'),
       field: 'bk_sub_zone',
-      showOverflowTooltip: true,
+      showOverflow: true,
       render: ({ data }: DataRow) => data.host_info.bk_sub_zone || '--',
     },
     {
       label: t('CPU'),
       field: 'bk_cpu',
-      showOverflowTooltip: true,
+      showOverflow: true,
       render: ({ data }: DataRow) => data.host_info.bk_cpu || '--',
     },
     {
       label: t('内存'),
       field: 'bk_mem',
-      showOverflowTooltip: true,
+      showOverflow: true,
       render: ({ data }: DataRow) => data.host_info.bk_mem || '--',
     },
     {
       label: t('磁盘'),
       field: 'bk_disk',
-      showOverflowTooltip: true,
+      showOverflow: true,
       render: ({ data }: DataRow) => data.host_info.bk_disk || '--',
     },
   ];
