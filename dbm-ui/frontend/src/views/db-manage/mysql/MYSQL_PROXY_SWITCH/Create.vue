@@ -48,7 +48,7 @@
       <IgnoreBiz
         v-model="formData.force"
         v-bk-tooltips="t('如忽略_在有连接的情况下Proxy也会执行替换')" />
-      <TicketRemark v-model="formData.remark" />
+      <TicketPayload v-model="formData" />
     </BkForm>
     <template #action>
       <BkButton
@@ -82,7 +82,9 @@
   import CardCheckbox from '@components/db-card-checkbox/CardCheckbox.vue';
 
   import IgnoreBiz from '@views/db-manage/common/toolbox-field/form-item/ignore-biz/Index.vue';
-  import TicketRemark from '@views/db-manage/common/toolbox-field/form-item/ticket-remark/Index.vue';
+  import TicketPayload, {
+    createTickePayload,
+  } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
 
   import HostTable from './components/HostTable.vue';
   import InstanceTable from './components/InstanceTable.vue';
@@ -94,7 +96,7 @@
   const defaultData = () => ({
     tableData: [],
     force: false,
-    remark: '',
+    ...createTickePayload(),
   });
 
   const tableComponentMap = {

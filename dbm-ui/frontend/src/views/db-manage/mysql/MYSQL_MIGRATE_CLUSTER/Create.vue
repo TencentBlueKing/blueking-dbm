@@ -48,7 +48,7 @@
         ref="table"
         :data="formData.tableData" />
       <BackupSource v-model="formData.backupSource" />
-      <TicketRemark v-model="formData.remark" />
+      <TicketPayload v-model="formData" />
     </BkForm>
     <template #action>
       <BkButton
@@ -84,7 +84,9 @@
   import CardCheckbox from '@components/db-card-checkbox/CardCheckbox.vue';
 
   import BackupSource from '@views/db-manage/common/toolbox-field/form-item/backup-source/Index.vue';
-  import TicketRemark from '@views/db-manage/common/toolbox-field/form-item/ticket-remark/Index.vue';
+  import TicketPayload, {
+    createTickePayload,
+  } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
 
   import ClusterMigrateTable from './components/ClusterMigrateTable.vue';
   import HostMigrateTable from './components/HostMigrateTable.vue';
@@ -103,7 +105,7 @@
   const defaultData = () => ({
     tableData: [],
     backupSource: BackupSourceType.REMOTE,
-    remark: '',
+    ...createTickePayload(),
   });
 
   const formData = reactive(defaultData());
