@@ -31,6 +31,13 @@ const (
 	ShakeFullStatus = "full"
 	// ShakeIncrStatus incr
 	ShakeIncrStatus = "incr"
+
+	//redis-shakeV4 status
+	ShakeV4HandStatus       = "hand shaking"
+	ShakeV4WaitFullStatus   = "waiting bgsave"
+	ShakeV4ReceiveDdbStatus = "receiving rdb"
+	ShakeV4FullStatus       = "syncing rdb"
+	ShakeV4IncrStatus       = "syncing aof"
 )
 
 // MakeCacheSyncTask cache_task
@@ -43,6 +50,8 @@ type MakeCacheSyncTask struct {
 	HTTPProfile   int    `json:"httpProfile"`
 	SrcADDR       string `json:"srcAddr"`
 	SrcPassword   string `json:"srcPassword"`
+	SrcVersion    string `json:"srcVersion"`
+	SrcBigVersion int    `json:"srcBigVersion"`
 	DstADDR       string `json:"dstAddr"`
 	DstPassword   string `json:"dstPassword"`
 	DstVersion    string `json:"dstVersion"`
@@ -79,7 +88,8 @@ func (task *MakeCacheSyncTask) PreClear() {
 		if task.Err != nil {
 			return
 		}
-		rmCmd := fmt.Sprintf("cd %s && rm -rf  *-taskid%d-*.conf log/", syncDir, task.RowData.ID)
+		rmCmd := fmt.Sprintf("cd %s && rm -rf  *-taskid%d-*.conf *-taskid%d-*.toml *.log log/",
+			syncDir, task.RowData.ID, task.RowData.ID)
 		task.Logger.Info(fmt.Sprintf("makeCacheSync preClear execute:%s", rmCmd))
 		util.RunLocalCmd("bash", []string{"-c", rmCmd}, "", nil, 10*time.Second, task.Logger)
 	}()
@@ -115,6 +125,11 @@ func (task *MakeCacheSyncTask) Execute() {
 
 	task.HTTPProfile = task.RowData.SyncerPort
 	task.SystemProfile = task.HTTPProfile + 1
+
+	task.GetSrcRedisVersion()
+	if task.Err != nil {
+		return
+	}
 
 	isSyncOk := task.IsSyncStateOK()
 	if isSyncOk {
@@ -166,7 +181,35 @@ func (task *MakeCacheSyncTask) Execute() {
 	return
 }
 
-// GetDestRedisVersion TODO
+// GetSrcRedisVersion 获取源redis的版本
+func (task *MakeCacheSyncTask) GetSrcRedisVersion() {
+	if task.SrcVersion != "" {
+		return
+	}
+
+	srcConn, err := myredis.NewRedisClient(task.SrcADDR, task.SrcPassword, 0, task.Logger)
+	if err != nil {
+		task.Err = err
+		return
+	}
+	defer srcConn.Close()
+	infoData, err := srcConn.Info("server")
+	if err != nil {
+		task.Err = fmt.Errorf("srcRedis:%s both not support 'info server'", task.SrcADDR)
+		task.Logger.Error(task.Err.Error())
+		return
+	}
+	task.SrcVersion = infoData["redis_version"]
+	redisBigVerison, err := strconv.Atoi(strings.Split(task.SrcVersion, ".")[0])
+	if err != nil {
+		task.Logger.Warn(fmt.Sprintf("get src redis big version error, %+v", err.Error()))
+		return
+	}
+	task.SrcBigVersion = redisBigVerison
+	task.Logger.Info("get srcVersion:" + task.SrcVersion)
+}
+
+// GetDestRedisVersion
 // 通过info server命令获取目的redis版本;
 // 如果目的redis不支持info server命令,则用源redis版本当做目的redis版本;
 // 如果源redis、目的redis均不支持info server命令,则报错;
@@ -174,7 +217,6 @@ func (task *MakeCacheSyncTask) GetDestRedisVersion() {
 	if task.DstVersion != "" {
 		return
 	}
-	defer task.Logger.Info("get targetVersion:" + task.DstVersion)
 	srcConn, err := myredis.NewRedisClient(task.SrcADDR, task.SrcPassword, 0, task.Logger)
 	if err != nil {
 		task.Err = err
@@ -202,6 +244,8 @@ func (task *MakeCacheSyncTask) GetDestRedisVersion() {
 		return
 	}
 	task.DstVersion = infoData["redis_version"]
+	task.Logger.Info("get targetVersion:" + task.DstVersion)
+
 }
 
 // MkSyncDirIfNotExists create sync directory if not exists
@@ -216,7 +260,7 @@ func (task *MakeCacheSyncTask) MkSyncDirIfNotExists() (syncDir string) {
 
 // IsRedisShakeAlive redis-shake是否存活
 func (task *MakeCacheSyncTask) IsRedisShakeAlive() (isAlive bool, err error) {
-	isSyncAliaveCmd := fmt.Sprintf("ps -ef|grep %s_%d|grep 'taskid%d-'|grep -v grep|grep 'redis-shake'|grep conf || true",
+	isSyncAliaveCmd := fmt.Sprintf("ps -ef|grep %s_%d|grep 'taskid%d-'|grep -v grep|grep 'redis-shake'|grep -E 'toml|conf' || true",
 		task.RowData.SrcIP, task.RowData.SrcPort, task.RowData.ID)
 	task.Logger.Info("", zap.String("isSyncAliaveCmd", isSyncAliaveCmd))
 	ret, err := util.RunLocalCmd("bash", []string{"-c", isSyncAliaveCmd}, "", nil, 1*time.Minute, task.Logger)
@@ -243,10 +287,10 @@ func (task *MakeCacheSyncTask) IsSyncStateOK() (ok bool) {
 	}
 	getHttpProfileCmd := fmt.Sprintf(`
 	confFile=$(ps -ef|grep %s_%d|grep 'taskid%d-'|grep -v grep|grep 'redis-shake'| \
-	grep conf|grep -P --only-match "\-conf (.*.conf)$"|awk '{print $2}')
+	grep -E 'toml|conf'|grep -P --only-match "\-conf (.*.conf)$|redis-shake-v4 (.*.toml)$"|awk '{print $2}')
 	if [ -n "$confFile" ] &&  [ -f "$confFile" ]
 	then
-			ret=$(grep -iP "^http_profile" $confFile|awk '{print $3}')
+			ret=$(grep -iP "^http_profile|^status_port" $confFile|awk '{print $3}')
 			echo $ret
 	else
 			echo "0000"
@@ -292,7 +336,7 @@ func (task *MakeCacheSyncTask) RedisShakeStop() {
 
 	// kill redis-shake
 	killCmd := fmt.Sprintf(`
-	ps -ef|grep %s_%d|grep 'taskid%d-'|grep -v grep|grep 'redis-shake'|grep conf|awk '{print $2}'|while read pid
+	ps -ef|grep %s_%d|grep 'taskid%d-'|grep -v grep|grep 'redis-shake'|grep -E 'toml|conf' |awk '{print $2}'|while read pid
 	do
 	kill -9 $pid
 	done
@@ -423,6 +467,99 @@ func (task *MakeCacheSyncTask) clearOldShakeLogFile() {
 	}
 }
 
+// createShakeV4ConfigFile 生成redis-shakeV4版本的配置文件。后缀为toml
+func (task *MakeCacheSyncTask) createShakeV4ConfigFile() {
+	syncDir := task.MkSyncDirIfNotExists()
+	if task.Err != nil {
+		return
+	}
+	task.ShakeConfFile = filepath.Join(syncDir,
+		fmt.Sprintf("shake-taskid%d-%d.toml", task.RowData.ID, task.RowData.SyncerPort))
+
+	_, err := os.Stat(task.ShakeConfFile)
+	if err == nil {
+		// if config file exists,return
+		task.Logger.Info(fmt.Sprintf("redis-shake config file:%s already exists", task.ShakeConfFile))
+		return
+	}
+
+	currentPath, _ := util.CurrentExecutePath()
+	tempFile := filepath.Join(currentPath, "redis-shake-template.toml")
+	tempContent, err := ioutil.ReadFile(tempFile)
+	if err != nil {
+		task.Logger.Error("Read redis-shake template conf fail",
+			zap.Error(err), zap.String("templateConfig", tempFile))
+		task.Err = fmt.Errorf("Read redis-shake template conf fail.err:%v", err)
+		return
+	}
+	loglevel := "info"
+	debug := viper.GetBool("TENDIS_DEBUG")
+	if debug == true {
+		loglevel = "debug"
+	}
+	keyWhiteRegex, keyBlackRegex := "*", ""
+	if task.RowData.KeyWhiteRegex != "" && !task.IsMatchAny(task.RowData.KeyWhiteRegex) {
+		keyWhiteRegex = task.RowData.KeyWhiteRegex
+	}
+	if task.RowData.KeyBlackRegex != "" && !task.IsMatchAny(task.RowData.KeyBlackRegex) {
+		keyBlackRegex = task.RowData.KeyBlackRegex // V4配置文件变动
+	}
+
+	// WriteMode=delete_and_write_to_redis/flushall_and_write_to_redis
+	// 都需要用 restore [replace]
+	// redis-shakeV4 只支持 panic, rewrite or skip，
+	keyExists := "rewrite"
+	if task.RowData.WriteMode == constvar.WriteModeKeepAndAppendToRedis {
+		// 设置这两个参数后,redis-shake将通过 hset/rpush等命令同步数据
+		// 而不是restore 命令同步数据
+		keyExists = "ignore"
+	}
+
+	// V4更新下log file，只需要文件名。最终文件是：PID_PATH/LOG_FILE
+	task.ShakeLogFile = filepath.Join(filepath.Dir(task.ShakeConfFile), filepath.Base(task.ShakeLogFile))
+	tempData := string(tempContent)
+	tempData = strings.ReplaceAll(tempData, "{{LOG_FILE}}", filepath.Base(task.ShakeLogFile))
+	tempData = strings.ReplaceAll(tempData, "{{LOG_LEVEL}}", loglevel)
+	tempData = strings.ReplaceAll(tempData, "{{PID_PATH}}", filepath.Dir(task.ShakeConfFile))
+	tempData = strings.ReplaceAll(tempData, "{{SYSTEM_PROFILE}}", strconv.Itoa(task.SystemProfile))
+	tempData = strings.ReplaceAll(tempData, "{{HTTP_PROFILE}}", strconv.Itoa(task.HTTPProfile))
+	tempData = strings.ReplaceAll(tempData, "{{SRC_ADDR}}", task.SrcADDR)
+	tempData = strings.ReplaceAll(tempData, "{{SRC_PASSWORD}}", task.SrcPassword)
+	tempData = strings.ReplaceAll(tempData, "{{TARGET_ADDR}}", task.DstADDR)
+	tempData = strings.ReplaceAll(tempData, "{{TARGET_PASSWORD}}", task.DstPassword)
+	tempData = strings.ReplaceAll(tempData, "{{KEY_WHITE_REGEX}}", keyWhiteRegex)
+	tempData = strings.ReplaceAll(tempData, "{{KEY_BLACK_REGEX}}", keyBlackRegex)
+	tempData = strings.ReplaceAll(tempData, "{{KEY_EXISTS}}", keyExists)
+	err = ioutil.WriteFile(task.ShakeConfFile, []byte(tempData), 0755)
+
+	if err != nil {
+		task.Logger.Error("Save redis-shake toml fail", zap.Error(err), zap.String("syncConfig", task.ShakeConfFile))
+		task.Err = fmt.Errorf("Save redis-shake toml fail.err:%v", err)
+		return
+	}
+	task.Logger.Info(fmt.Sprintf("create redis-shake toml file:%s success", task.ShakeConfFile))
+
+	// 更新一下task.RedisShakeBin = shakeBin
+	shakeBin := filepath.Join(currentPath, "redis-shake-v4")
+	_, err = os.Stat(shakeBin)
+	if err != nil && os.IsNotExist(err) == true {
+		task.Err = fmt.Errorf("%s not exists,err:%v", shakeBin, err)
+		task.Logger.Error(task.Err.Error())
+		return
+	} else if err != nil && os.IsPermission(err) == true {
+		err = os.Chmod(shakeBin, 0774)
+		if err != nil {
+			task.Err = fmt.Errorf("%s os.Chmod 0774 fail,err:%v", shakeBin, err)
+			task.Logger.Error(task.Err.Error())
+			return
+		}
+	}
+	task.Logger.Info(fmt.Sprintf("%s is ok. redis version is %s. will update shakebin",
+		shakeBin, task.SrcVersion))
+	task.RedisShakeBin = shakeBin
+	return
+}
+
 // createShakeConfigFile create redis-shake config file if not exists
 func (task *MakeCacheSyncTask) createShakeConfigFile() {
 	syncDir := task.MkSyncDirIfNotExists()
@@ -473,8 +610,7 @@ func (task *MakeCacheSyncTask) createShakeConfigFile() {
 		startSeg = task.RowData.SrcSegStart
 		endSeg = task.RowData.SrcSegEnd
 	}
-	var keyWhiteRegex string = ""
-	var keyBlackRegex string = ""
+	keyWhiteRegex, keyBlackRegex := "", ""
 	if task.RowData.KeyWhiteRegex != "" && !task.IsMatchAny(task.RowData.KeyWhiteRegex) {
 		keyWhiteRegex = task.RowData.KeyWhiteRegex
 	}
@@ -558,20 +694,34 @@ func (task *MakeCacheSyncTask) RedisShakeStart(reacquirePort bool) {
 		if task.Err != nil {
 			return
 		}
-		task.createShakeConfigFile()
-		if task.Err != nil {
-			return
-		}
+
 		logFile, err := os.OpenFile(task.ShakeLogFile, os.O_RDWR|os.O_CREATE, 0755)
 		if err != nil {
 			task.Logger.Error("open logfile fail", zap.Error(err), zap.String("syncLogFile", task.ShakeLogFile))
 			task.Err = fmt.Errorf("open logfile fail,err:%v syncLogFile:%s", err, task.ShakeLogFile)
 			return
 		}
-		logCmd := fmt.Sprintf("%s -type=sync -conf=%s", task.RedisShakeBin, task.ShakeConfFile)
-		task.Logger.Info(logCmd)
+
+		var cmd *exec.Cmd
+		var logCmd string
 		ctx, cancel := context.WithCancel(context.Background())
-		cmd := exec.CommandContext(ctx, task.RedisShakeBin, "-type", "sync", "-conf", task.ShakeConfFile)
+		// redis7版本以上用redis-shake V4 去做同步
+		if err == nil && task.SrcBigVersion >= 7 {
+			task.createShakeV4ConfigFile()
+			logCmd = fmt.Sprintf("%s %s", task.RedisShakeBin, task.ShakeConfFile)
+			task.Logger.Info(logCmd)
+			cmd = exec.CommandContext(ctx, task.RedisShakeBin, task.ShakeConfFile)
+
+		} else {
+			task.createShakeConfigFile()
+			logCmd = fmt.Sprintf("%s -type=sync -conf=%s", task.RedisShakeBin, task.ShakeConfFile)
+			task.Logger.Info(logCmd)
+			cmd = exec.CommandContext(ctx, task.RedisShakeBin, "-type", "sync", "-conf", task.ShakeConfFile)
+
+		}
+		if task.Err != nil {
+			return
+		}
 		cmd.Stdout = logFile
 		cmd.Stderr = logFile
 		err = cmd.Start()
@@ -694,6 +844,32 @@ func (task *MakeCacheSyncTask) WatchShake() {
 				return
 			}
 		}
+
+		// add redis-shake v4 status
+		if metric.Status == ShakeV4HandStatus {
+			task.SetStatus(1)
+			task.UpdateDbAndLogLocal("redis-shake is handing.....")
+			continue
+		}
+		if metric.Status == ShakeV4WaitFullStatus {
+			task.SetStatus(1)
+			task.UpdateDbAndLogLocal("等待源实例执行bgsave...")
+			continue
+		}
+		if metric.Status == ShakeV4FullStatus {
+			task.SetStatus(1)
+			task.UpdateDbAndLogLocal("rdb导入中,进度:%d%%", metric.FullSyncProgress)
+			continue
+		}
+		if metric.Status == ShakeV4IncrStatus {
+			task.SetMessage("增量同步中,延迟:%s", metric.Delay)
+			task.SetStatus(1)
+			task.UpdateRow()
+			if task.RowData.TaskType == constvar.MakeCacheSyncTaskType {
+				// makeCacheSync 在确保rdb导入完成后,增量数据同步状态由 watchCacheSync 来完成
+				return
+			}
+		}
 		continue
 	}
 }
@@ -748,6 +924,29 @@ type RedisShakeMetric struct {
 	Details              interface{} `json:"Details"`
 }
 
+type ReaderStatus struct {
+	Name              string `json:"name"`
+	Address           string `json:"address"`
+	Dir               string `json:"dir"`
+	Status            string `json:"status"`
+	RdbFileSizeBytes  int    `json:"rdb_file_size_bytes"`
+	RdbFileSizeHuman  string `json:"rdb_file_size_human"`
+	RdbReceivedBytes  int    `json:"rdb_received_bytes"`
+	RdbReceivedHuman  string `json:"rdb_received_human"`
+	RdbSentBytes      int    `json:"rdb_sent_bytes"`
+	RdbSentHuman      string `json:"rdb_sent_human"`
+	AofReceivedOffset int    `json:"aof_received_offset"`
+	AofSentOffset     int    `json:"aof_sent_offset"`
+	AofReceivedBytes  int    `json:"aof_received_bytes"`
+	AofReceivedHuman  string `json:"aof_received_human"`
+}
+
+// RedisShakeV4Metric shake v4 meric
+type RedisShakeV4Metric struct {
+	Consistent bool         `json:"consistent"`
+	Reader     ReaderStatus `json:"reader"`
+}
+
 // GetShakeMerics get shake metric
 func (task *MakeCacheSyncTask) GetShakeMerics() *RedisShakeMetric {
 	var url string
@@ -769,15 +968,34 @@ func (task *MakeCacheSyncTask) GetShakeMerics() *RedisShakeMetric {
 		task.Err = fmt.Errorf("redis-shake错误退出")
 		return nil
 	}
-	shakeMeric := []RedisShakeMetric{}
-	task.Err = json.Unmarshal(resp, &shakeMeric)
-	if task.Err != nil {
-		task.Err = fmt.Errorf("json.Unmarshal fail,err:%v,url:%s", task.Err, url)
-		task.Logger.Error(task.Err.Error(), zap.String("resp", string(resp)))
-		return nil
-	}
-	if len(shakeMeric) > 0 {
-		return &shakeMeric[0]
+
+	// redis 大版本大于7，使用的是redis-shakeV4
+	if task.SrcBigVersion >= 7 {
+		shakeMetric := RedisShakeV4Metric{}
+		task.Err = json.Unmarshal(resp, &shakeMetric)
+		if task.Err != nil {
+			task.Err = fmt.Errorf("json.Unmarshal fail,err:%v,url:%s", task.Err, url)
+			task.Logger.Error(task.Err.Error(), zap.String("resp", string(resp)))
+			return nil
+		}
+		// 转换成低版本结构体返回
+		return &RedisShakeMetric{
+			Delay: fmt.Sprintf("%d ms",
+				shakeMetric.Reader.AofSentOffset-shakeMetric.Reader.AofReceivedOffset),
+			FullSyncProgress: 100 * shakeMetric.Reader.RdbReceivedBytes / shakeMetric.Reader.RdbFileSizeBytes,
+			Status:           shakeMetric.Reader.Status,
+		}
+	} else {
+		shakeMeric := []RedisShakeMetric{}
+		task.Err = json.Unmarshal(resp, &shakeMeric)
+		if task.Err != nil {
+			task.Err = fmt.Errorf("json.Unmarshal fail,err:%v,url:%s", task.Err, url)
+			task.Logger.Error(task.Err.Error(), zap.String("resp", string(resp)))
+			return nil
+		}
+		if len(shakeMeric) > 0 {
+			return &shakeMeric[0]
+		}
 	}
 	return nil
 }

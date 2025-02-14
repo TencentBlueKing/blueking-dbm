@@ -236,8 +236,8 @@ func (job *RedisDtsDataCheck) GetTools() (err error) {
 	// 这一部分和提取key保持一致
 	// 复制dbtools/ldb_tendisplus,ldb_with_len.3.8, ldb_with_len.5.13
 	// redis-shake redisSafeDeleteTool到get_keys_pattern
-	cpCmd := fmt.Sprintf("cp  %s/ldb* %s/redis-shake %s/redisSafeDeleteTool %s", consts.DbToolsPath,
-		consts.DbToolsPath, consts.DbToolsPath, job.saveDir)
+	cpCmd := fmt.Sprintf("cp  %s/ldb* %s/redis-shake %s/redis-shake-v4 %s/redisSafeDeleteTool %s", consts.DbToolsPath,
+		consts.DbToolsPath, consts.DbToolsPath, consts.DbToolsPath, job.saveDir)
 	job.runtime.Logger.Info(cpCmd)
 	_, err = util.RunBashCmd(cpCmd, "", nil, 100*time.Second)
 	if err != nil {

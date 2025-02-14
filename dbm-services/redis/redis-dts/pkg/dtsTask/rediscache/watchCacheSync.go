@@ -68,6 +68,7 @@ func (task *WatchCacheSyncTask) Execute() {
 	task.Logger.Info(fmt.Sprintf("WatchCacheSyncTask 开始处理,srcTendis:%s srcAddr:%s",
 		task.RowData.SrcCluster, task.SrcADDR))
 
+	task.GetSrcRedisVersion()
 	task.WatchShake()
 	return
 }
