@@ -93,6 +93,7 @@ class RemoteMasterSlaveSwitchFlow(object):
             # 计算预检测需要参数
             check_client_conn_inst = []
             verify_checksum_tuples = []
+            slave_addr_tuples = []
             if sub_flow_context["is_check_process"]:
                 # 需要做客户端连接检测，计算出需要做检查的实例
                 check_client_conn_inst = [s.ip_port for s in spiders]
@@ -105,9 +106,24 @@ class RemoteMasterSlaveSwitchFlow(object):
                     for master in objs:
                         slave = StorageInstanceTuple.objects.get(ejector=master).receiver
                         verify_checksum_tuples.append({"master": master.ip_port, "slave": slave.ip_port})
+                        slave_addr_tuples.append(slave.ip_port)
 
             # 启动子流程
             sub_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(sub_flow_context))
+            # 切换前做预检测
+            sub_flow = check_sub_flow(
+                uid=self.data["uid"],
+                root_id=self.root_id,
+                cluster=cluster,
+                is_check_client_conn=sub_flow_context["is_check_process"],
+                is_verify_checksum=sub_flow_context["is_verify_checksum"],
+                check_client_conn_inst=check_client_conn_inst,
+                verify_checksum_tuples=verify_checksum_tuples,
+                is_check_delay=sub_flow_context["is_check_delay"],
+                slave_addr_tuples=slave_addr_tuples,
+            )
+            if sub_flow:
+                sub_pipeline.add_sub_pipeline(sub_flow=sub_flow)
 
             sub_pipeline.add_act(
                 act_name=_("下发db-actuator介质"),
@@ -120,19 +136,6 @@ class RemoteMasterSlaveSwitchFlow(object):
                     )
                 ),
             )
-
-            # 切换前做预检测
-            sub_flow = check_sub_flow(
-                uid=self.data["uid"],
-                root_id=self.root_id,
-                cluster=cluster,
-                is_check_client_conn=sub_flow_context["is_check_process"],
-                is_verify_checksum=sub_flow_context["is_verify_checksum"],
-                check_client_conn_inst=check_client_conn_inst,
-                verify_checksum_tuples=verify_checksum_tuples,
-            )
-            if sub_flow:
-                sub_pipeline.add_sub_pipeline(sub_flow=sub_flow)
 
             sub_pipeline.add_act(
                 act_name=_("执行切换"),

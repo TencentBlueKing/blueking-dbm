@@ -39,6 +39,7 @@ from backend.flow.plugins.components.collections.common.sa_idle_check import Che
 from backend.flow.plugins.components.collections.mysql.authorize_rules import AuthorizeRulesComponent
 from backend.flow.plugins.components.collections.mysql.authorize_rules_v2 import AuthorizeRulesV2Component
 from backend.flow.plugins.components.collections.mysql.check_client_connections import CheckClientConnComponent
+from backend.flow.plugins.components.collections.mysql.check_slaves_delay import CheckSlavesDelayComponent
 from backend.flow.plugins.components.collections.mysql.clone_rules import CloneRulesComponent
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
 from backend.flow.plugins.components.collections.mysql.mysql_db_meta import MySQLDBMetaComponent
@@ -53,6 +54,7 @@ from backend.flow.utils.common_act_dataclass import DownloadBackupClientKwargs, 
 from backend.flow.utils.mysql.mysql_act_dataclass import (
     AuthorizeKwargs,
     CheckClientConnKwargs,
+    CheckSlavesDelayKwargs,
     CloneRuleKwargs,
     DBMetaOPKwargs,
     DownloadMediaKwargs,
@@ -672,6 +674,8 @@ def check_sub_flow(
     is_verify_checksum: bool = False,
     verify_checksum_tuples: list = None,
     is_proxy: bool = False,
+    slave_addr_tuples: list = None,
+    is_check_delay: bool = False,
 ):
     """
     设计预检测的公共子流程，主要服务于切换类的流程，做前置检查，方便管控
@@ -713,6 +717,20 @@ def check_sub_flow(
                     VerifyChecksumKwargs(
                         bk_cloud_id=cluster.bk_cloud_id,
                         checksum_instance_tuples=verify_checksum_tuples,
+                    )
+                ),
+            }
+        )
+    if is_check_delay:
+        act_list.append(
+            {
+                "act_name": _("检测延迟情况"),
+                "act_component_code": CheckSlavesDelayComponent.code,
+                "kwargs": asdict(
+                    CheckSlavesDelayKwargs(
+                        bk_cloud_id=cluster.bk_cloud_id,
+                        slave_addr_tuples=slave_addr_tuples,
+                        allow_delay_sec=60,
                     )
                 ),
             }

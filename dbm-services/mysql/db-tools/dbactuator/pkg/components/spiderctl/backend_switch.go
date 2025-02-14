@@ -159,21 +159,24 @@ func (r *SpiderClusterBackendSwitchComp) Init() (err error) {
 	r.mastesConn = make(map[string]*native.DbWorker)
 	r.slavesConn = make(map[string]*native.DbWorker)
 	for _, swpair := range r.Params.SwitchPairs {
-		masterAddr := swpair.Master.IpPort()
-		slaveAddr := swpair.Slave.IpPort()
-		masterSvr, ok := ipPortServersMap[masterAddr]
-		if !ok {
-			return fmt.Errorf("%s: servers not exist in ipPortServersMap", masterAddr)
+		// 故障场景下，master 一般会连接不上
+		if !r.Params.Force {
+			masterAddr := swpair.Master.IpPort()
+			masterSvr, ok := ipPortServersMap[masterAddr]
+			if !ok {
+				return fmt.Errorf("%s: servers not exist in ipPortServersMap", masterAddr)
+			}
+			masterConn, err := masterSvr.GetConn()
+			if err != nil {
+				return err
+			}
+			r.mastesConn[masterAddr] = masterConn
 		}
+		slaveAddr := swpair.Slave.IpPort()
 		slaveSvr, ok := ipPortServersMap[slaveAddr]
 		if !ok {
 			return fmt.Errorf("%s: servers not exist in ipPortServersMap", slaveAddr)
 		}
-		masterConn, err := masterSvr.GetConn()
-		if err != nil {
-			return err
-		}
-		r.mastesConn[masterAddr] = masterConn
 		slaveConn, err := slaveSvr.GetConn()
 		if err != nil {
 			return err
@@ -280,23 +283,6 @@ func (r *SpiderClusterBackendSwitchComp) checkReplicationRelation() (err error) 
 	}
 	return
 }
-
-// func (r *SpiderClusterBackendSwitchComp) checkReplicationStatus() (err error) {
-// 	for _, switch_pair := range r.Params.SwitchPairs {
-// 		slaveptname, err := r.getSvrName(switch_pair.Slave.IpPort())
-// 		if err != nil {
-// 			return err
-// 		}
-// 		logger.Info("check %s replicate status ...", switch_pair.Slave.IpPort())
-// 		err = r.tdbCtlConn.CheckSlaveReplStatus(func() (resp native.ShowSlaveStatusResp, err error) {
-// 			return r.tdbCtlConn.ShowSlaveStatus(slaveptname)
-// 		})
-// 		if err != nil {
-// 			return err
-// 		}
-// 	}
-// 	return
-// }
 
 func checkReplicationStatus(conns map[IPPORT]*native.DbWorker) (err error) {
 	for addr, conn := range conns {
@@ -425,21 +411,28 @@ func (r *SpiderClusterBackendSwitchComp) CutOver() (err error) {
 			logger.Info("flush rollback route successfully~")
 		}
 	}()
+	if !r.Params.Force {
+		if err = r.fushTablesAtEverySpiderNode(); err != nil {
+			return fmt.Errorf("[未切换]: flush tables failed:%w", err)
+		}
+	}
 	if _, err = r.tdbCtlConn.ExecMore(r.primaryShardSwitchSqls); err != nil {
 		tdbctlFlushed = true
 		return err
 	}
-	// lock all spider write
-	defer r.Unlock()
-	logger.Info("start locking the spider node")
-	if err = r.lockaAllSpidersWrite(); err != nil {
-		return err
-	}
 	// check the replication status again
 	if !r.Params.Force {
+		// lock all spider write
+		defer r.Unlock()
+		logger.Info("start locking the spider node")
+		if err = r.lockaAllSpidersWrite(); err != nil {
+			return err
+		}
 		if err = checkReplicationStatus(r.slavesConn); err != nil {
 			return err
 		}
+	} else {
+		logger.Info("force switch,skip lock all spider write")
 	}
 	logger.Info("record the location of each node binlog")
 	// record the binlog position information during the handover
@@ -575,12 +568,12 @@ func (r *SpiderClusterBackendSwitchComp) StopRepl() (err error) {
 	return nil
 }
 
-func (r *SpiderClusterBackendSwitchComp) grantReplSql(host string, verison string) []string {
+func (r *SpiderClusterBackendSwitchComp) grantReplSql(host string, version string) []string {
 	var execSQLs []string
 	repl_user := r.GeneralParam.RuntimeAccountParam.ReplUser
 	repl_pwd := r.GeneralParam.RuntimeAccountParam.ReplPwd
 	logger.Info("repl user:%s,repl_pwd:%s", repl_user, repl_pwd)
-	if cmutil.MySQLVersionParse(verison) >= cmutil.MySQLVersionParse("5.7") {
+	if cmutil.MySQLVersionParse(version) >= cmutil.MySQLVersionParse("5.7") {
 		// MySQL5.7以上的版本的授权
 		execSQLs = append(execSQLs, fmt.Sprintf("CREATE USER /*!50706 IF NOT EXISTS */ `%s`@`%s` IDENTIFIED BY '%s';",
 			repl_user, host, repl_pwd))
@@ -696,6 +689,23 @@ func (c *CutOverCtx) lockaAllSpidersWrite() (err error) {
 		}
 		fn := func() (e error) {
 			_, e = lockConn.ExecContext(context.Background(), "flush table with read lock;")
+			if e != nil {
+				return fmt.Errorf("lock tables at %s,err:%w", addr, e)
+			}
+			return e
+		}
+		if err = cmutil.Retry(cmutil.RetryConfig{Times: 3, DelayTime: 1 * time.Second}, fn); err != nil {
+			return err
+		}
+	}
+	return
+}
+
+// fushTablesAtEverySpiderNode flush tables at every spider node
+func (c *CutOverCtx) fushTablesAtEverySpiderNode() (err error) {
+	for addr, lockConn := range c.spidersLockConn {
+		fn := func() (e error) {
+			_, e = lockConn.ExecContext(context.Background(), "FLUSH TABLES")
 			if e != nil {
 				return fmt.Errorf("lock tables at %s,err:%w", addr, e)
 			}

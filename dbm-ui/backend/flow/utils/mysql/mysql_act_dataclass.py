@@ -438,6 +438,17 @@ class VerifyChecksumKwargs:
 
 
 @dataclass
+class CheckSlavesDelayKwargs:
+    """
+    定义检测check slave delay结果的私有变量结构体
+    """
+
+    bk_cloud_id: int
+    slave_addr_tuples: list
+    allow_delay_sec: int = 30
+
+
+@dataclass
 class RandomizeAdminPasswordKwargs:
     """
     定义ADMIN随机化的私有变量结构体
