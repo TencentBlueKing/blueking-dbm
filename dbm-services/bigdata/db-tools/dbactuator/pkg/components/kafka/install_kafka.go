@@ -822,6 +822,11 @@ func (i *InstallKafkaComp) InstallManager() error {
 		return err
 	}
 
+	// 0.10.2版本默认不开启鉴权
+	if version == cst.Kafka0102 {
+		noSecurity = 1
+	}
+
 	// Sleep 10 secs
 	time.Sleep(10 * time.Second)
 
@@ -871,7 +876,7 @@ func (i *InstallKafkaComp) InstallManager() error {
 	cmak := CmakConfig{
 		ZookeeperIP: zookeeperIP,
 		ClusterName: clusterName,
-		Version:     version,
+		Version:     kafkautil.KfVersionMap(version),
 		Username:    username,
 		Password:    password,
 		NodeIP:      nodeIP,
@@ -1020,6 +1025,11 @@ func configCluster(cmak CmakConfig, noSecurity int) (err error) {
 		postData.Add("securityProtocol", "SASL_PLAINTEXT")
 		postData.Add("saslMechanism", "SCRAM-SHA-512")
 		postData.Add("jaasConfig", jaasConfig)
+	}
+	if noSecurity == 1 {
+		postData.Add("securityProtocol", "PLAINTEXT")
+		postData.Add("saslMechanism", "DEFAULT")
+		postData.Add("jaasConfig", "")
 	}
 	// http://localhost:9000/{prefix}/clusters
 	url := "http://" + cmak.NodeIP + ":9000" + cmak.HTTPPath + "/clusters"

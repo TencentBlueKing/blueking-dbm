@@ -534,3 +534,15 @@ func ReadDataDirs(configFilePath string) ([]string, error) {
 
 	return dataDirs, nil
 }
+
+// KfVersionMap 转换成cmak能识别的版本
+func KfVersionMap(version string) string {
+	switch version {
+	case "2.4.0":
+		return "2.4.0"
+	case "0.10.2":
+		return "0.10.2.1"
+	default:
+		return "2.4.0"
+	}
+}
