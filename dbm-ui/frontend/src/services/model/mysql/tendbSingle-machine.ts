@@ -17,6 +17,10 @@ export default class TendbSingleMachine {
   bk_cloud_id: number;
   bk_cloud_name: string;
   bk_host_id: number;
+  bk_os_name: string;
+  bk_rack_id: number;
+  bk_sub_zone: string;
+  bk_svr_device_cls_name: string;
   cluster_type: string;
   create_at: string;
   host_info: HostInfo;
@@ -32,6 +36,10 @@ export default class TendbSingleMachine {
     this.bk_cloud_id = payload.bk_cloud_id;
     this.bk_cloud_name = payload.bk_cloud_name;
     this.bk_host_id = payload.bk_host_id;
+    this.bk_os_name = payload.bk_os_name;
+    this.bk_rack_id = payload.bk_rack_id;
+    this.bk_sub_zone = payload.bk_sub_zone;
+    this.bk_svr_device_cls_name = payload.bk_svr_device_cls_name;
     this.cluster_type = payload.cluster_type;
     this.create_at = payload.create_at;
     this.host_info = payload.host_info;

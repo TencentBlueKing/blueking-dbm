@@ -42,6 +42,7 @@ export function useTableData<T>(
     limitList: [10, 20, 50, 100],
     align: 'right',
     layout: ['total', 'limit', 'list'],
+    remote: true,
   });
 
   watch(searchSelectValue, () => {

@@ -37,8 +37,11 @@ export default class MongodbInstance {
   bk_cloud_id: number;
   bk_cloud_name: string;
   bk_host_id: number;
+  bk_os_name: string;
+  bk_rack_id: number;
   bk_sub_zone: string;
   bk_sub_zone_id: number;
+  bk_svr_device_cls_name: string;
   cluster_id: number;
   cluster_name: string;
   cluster_type: ClusterTypes;
@@ -65,8 +68,11 @@ export default class MongodbInstance {
     this.bk_cloud_id = payload.bk_cloud_id;
     this.bk_cloud_name = payload.bk_cloud_name;
     this.bk_host_id = payload.bk_host_id;
+    this.bk_os_name = payload.bk_os_name;
+    this.bk_rack_id = payload.bk_rack_id;
     this.bk_sub_zone = payload.bk_sub_zone;
     this.bk_sub_zone_id = payload.bk_sub_zone_id;
+    this.bk_svr_device_cls_name = payload.bk_svr_device_cls_name;
     this.cluster_id = payload.cluster_id;
     this.cluster_name = payload.cluster_name;
     this.cluster_type = payload.cluster_type;

@@ -69,11 +69,13 @@ export function useTopoData<T extends Record<string, any>>(filterClusterId: Comp
         const formatData = data.map((item: T) => {
           let count = item.instance_count;
           if (role === 'slave') {
-            count = item.slaves?.length || 0;
+            count = item.slaves.length || 0;
           } else if (role === 'proxy') {
-            count = item.proxies?.length || 0;
+            count = item.proxies.length || 0;
           } else if (role === 'master') {
-            count = item.masters?.length || 0;
+            count = item.masters.length || 0;
+          } else {
+            count = item.slaves.length + item.proxies.length + item.masters.length;
           }
           return { ...item, count: countFn ? countFn(item) : count };
         });

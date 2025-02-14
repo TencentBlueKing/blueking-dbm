@@ -25,8 +25,6 @@
         :data="isManul ? renderManualData : tableData"
         :max-height="530"
         :pagination="pagination.count < 10 ? false : pagination"
-        :remote-pagination="isRemotePagination"
-        :settings="tableSettings"
         style="margin-top: 12px"
         @page-limit-change="handeChangeLimit"
         @page-value-change="handleChangePage"
@@ -35,7 +33,6 @@
   </div>
 </template>
 <script setup lang="tsx">
-  import type { Column } from 'bkui-vue/lib/table/props';
   import type { Ref } from 'vue';
   import { useI18n } from 'vue-i18n';
 
@@ -60,7 +57,6 @@
     clusterId?: number,
     isManul?: boolean,
     manualTableData?: DataRow[];
-    isRemotePagination?: TableConfigType['isRemotePagination'],
     firsrColumn?: TableConfigType['firsrColumn'],
     // eslint-disable-next-line vue/no-unused-properties
     roleFilterList?: TableConfigType['roleFilterList'],
@@ -132,7 +128,7 @@
   const firstColumnField = props.firsrColumn?.field ? props.firsrColumn.field : 'instance_address'
 
   const columns = computed(() => {
-    const baseColumns: Column[] = [
+    const baseColumns = [
       {
         width: 60,
         fixed: 'left',
@@ -174,10 +170,31 @@
         field: firstColumnField,
       },
       {
+      label: t('园区'),
+      field: 'bk_sub_zone',
+      minWidth: 120,
+      showOverflow: true,
+      render: ({ data }: DataRow) => data.bk_sub_zone || '--',
+    },
+    {
+      label: t('机架ID'),
+      field: 'bk_rack_id',
+      minWidth: 80,
+      showOverflow: true,
+      render: ({ data }: DataRow) => data.bk_rack_id || '--',
+    },
+    {
+      label: t('机型'),
+      field: 'bk_svr_device_cls_name',
+      minWidth: 120,
+      showOverflow: true,
+      render: ({ data }: DataRow) => data.bk_svr_device_cls_name || '--',
+    },
+      {
         minWidth: 100,
         label: t('管控区域'),
         field: 'cloud_area',
-        showOverflowTooltip: true,
+        showOverflow: true,
         render: ({ data }: DataRow) => data.host_info?.cloud_area?.name || '--',
       },
       {
@@ -192,37 +209,37 @@
       {
         label: t('主机名称'),
         field: 'host_name',
-        showOverflowTooltip: true,
+        showOverflow: true,
         render: ({ data }: DataRow) => data.host_info?.host_name || '--',
       },
       {
         label: t('OS名称'),
         field: 'os_name',
-        showOverflowTooltip: true,
+        showOverflow: true,
         render: ({ data }: DataRow) => data.host_info?.os_name || '--',
       },
       {
         label: t('所属云厂商'),
         field: 'cloud_vendor',
-        showOverflowTooltip: true,
+        showOverflow: true,
         render: ({ data }: DataRow) => data.host_info?.cloud_vendor || '--',
       },
       {
         label: t('OS类型'),
         field: 'os_type',
-        showOverflowTooltip: true,
+        showOverflow: true,
         render: ({ data }: DataRow) => data.host_info.os_type || '--',
       },
       {
         label: t('主机ID'),
         field: 'host_id',
-        showOverflowTooltip: true,
+        showOverflow: true,
         render: ({ data }: DataRow) => data.host_info?.host_id || '--',
       },
       {
         label: 'Agent ID',
         field: 'agent_id',
-        showOverflowTooltip: true,
+        showOverflow: true,
         render: ({ data }: DataRow) => data.host_info?.agent_id || '--',
       },
     ];
@@ -231,8 +248,8 @@
       baseColumns.splice(2, 0, {
         label: t('关联的从库实例'),
         field: 'related_instances',
-        showOverflowTooltip: true,
-        width: 200,
+        showOverflow: true,
+        minWidth: 200,
         render: ({ data }: DataRow) => <RenderInstance data={data.related_instances}></RenderInstance>,
       })
     }
@@ -240,14 +257,14 @@
     return baseColumns
   })
 
-  const tableSettings = computed(() => ({
-    fields: columns.value.filter(item => item.field).map(item => ({
-      label: item.label,
-      field: item.field,
-      disabled: [firstColumnField, 'related_instances'].includes(item.field as string),
-    })),
-    checked: [firstColumnField, 'related_instances', 'role', 'status', 'cloud_area', 'alive', 'host_name', 'os_name'],
-  }))
+  // const tableSettings = computed(() => ({
+  //   fields: columns.value.filter(item => item.field).map(item => ({
+  //     label: item.label,
+  //     field: item.field,
+  //     disabled: [firstColumnField, 'related_instances'].includes(item.field as string),
+  //   })),
+  //   checked: [firstColumnField, 'related_instances', 'role', 'status', 'cloud_area', 'alive', 'host_name', 'os_name'],
+  // }))
 
   watch(() => props.lastValues, () => {
     if (props.isManul) {

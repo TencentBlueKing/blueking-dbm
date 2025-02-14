@@ -79,10 +79,6 @@
   import type { ChoosedItem } from './components/RenderRedisHost.vue';
 
   export type InstanceSelectorValues = { idleHosts: ChoosedItem[] };
-
-  export default {
-    name: 'InstanceSelector',
-  };
 </script>
 <script setup lang="ts">
   import getSettings from './common/tableSettings';

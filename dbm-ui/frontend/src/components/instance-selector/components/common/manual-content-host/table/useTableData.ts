@@ -36,6 +36,7 @@ export function useTableData<T>(role?: Ref<string | undefined>) {
     limitList: [10, 20, 50, 100],
     align: 'right',
     layout: ['total', 'limit', 'list'],
+    remote: false,
   });
   const searchValue = ref('');
 
