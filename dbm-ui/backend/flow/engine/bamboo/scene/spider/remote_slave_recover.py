@@ -306,7 +306,7 @@ class TenDBRemoteSlaveRecoverFlow(object):
                 )
             )
             surrounding_sub_pipeline.add_act(
-                act_name=_("屏蔽监控 {} {}").format(self.data["target_ip"]),
+                act_name=_("屏蔽监控 {}").format(self.data["target_ip"]),
                 act_component_code=MysqlCrondMonitorControlComponent.code,
                 kwargs=asdict(
                     CrondMonitorKwargs(
@@ -332,7 +332,7 @@ class TenDBRemoteSlaveRecoverFlow(object):
                 )
             )
             re_surrounding_sub_pipeline.add_act(
-                act_name=_("解除屏蔽监控 {} {}").format(self.data["target_ip"]),
+                act_name=_("解除屏蔽监控 {}").format(self.data["target_ip"]),
                 act_component_code=MysqlCrondMonitorControlComponent.code,
                 kwargs=asdict(
                     CrondMonitorKwargs(
