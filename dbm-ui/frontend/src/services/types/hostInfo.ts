@@ -26,9 +26,14 @@ export interface HostInfo {
   bk_cpu_module: string;
   bk_disk: number;
   bk_host_outerip: string;
+  bk_idc_city_id: number;
+  bk_idc_city_name: string;
   bk_idc_id: number;
   bk_idc_name: string;
   bk_mem: number;
+  bk_rack_id: number;
+  bk_sub_zone: string;
+  bk_svr_device_class_name: string;
   cloud_area: { id: number; name: string };
   cloud_id: number;
   cloud_vendor: string;

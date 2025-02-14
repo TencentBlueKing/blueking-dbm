@@ -60,7 +60,7 @@
           :data="selectorState.selected.dbm_whitelist"
           :search="selectorState.search"
           @clear-selected="handleClearSelected('dbm_whitelist')"
-          @remove-selected="(index) => handleRemoveSelected(index, 'dbm_whitelist')" />
+          @remove-selected="(index: number) => handleRemoveSelected(index, 'dbm_whitelist')" />
       </slot>
     </div>
   </div>

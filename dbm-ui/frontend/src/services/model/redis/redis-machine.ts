@@ -17,6 +17,10 @@ export default class RedisMachine {
   bk_cloud_id: number;
   bk_cloud_name: string;
   bk_host_id: number;
+  bk_os_name: string;
+  bk_rack_id: number;
+  bk_sub_zone: string;
+  bk_svr_device_cls_name: string;
   cluster_type: string;
   create_at: string;
   host_info: HostInfo;
@@ -27,15 +31,15 @@ export default class RedisMachine {
   related_instances: MachineRelatedInstance[];
   spec_config: MachineSpecConfig;
   spec_id: number;
-  total_master: number;
-  total_slave: number;
-  unavailable_master: number;
-  unavailable_slave: number;
 
   constructor(payload = {} as RedisMachine) {
     this.bk_cloud_id = payload.bk_cloud_id;
     this.bk_cloud_name = payload.bk_cloud_name;
     this.bk_host_id = payload.bk_host_id;
+    this.bk_os_name = payload.bk_os_name;
+    this.bk_rack_id = payload.bk_rack_id;
+    this.bk_sub_zone = payload.bk_sub_zone;
+    this.bk_svr_device_cls_name = payload.bk_svr_device_cls_name;
     this.cluster_type = payload.cluster_type;
     this.create_at = payload.create_at;
     this.host_info = payload.host_info;
@@ -46,10 +50,6 @@ export default class RedisMachine {
     this.related_instances = payload.related_instances;
     this.spec_config = payload.spec_config;
     this.spec_id = payload.spec_id;
-    this.total_master = payload.total_master;
-    this.total_slave = payload.total_slave;
-    this.unavailable_master = payload.unavailable_master;
-    this.unavailable_slave = payload.unavailable_slave;
   }
 
   get isSlaveFailover() {
@@ -57,7 +57,9 @@ export default class RedisMachine {
   }
 
   get isMasterFailover() {
-    return this.instance_role === 'redis_master' && this.unavailable_master > 0;
+    return (
+      this.instance_role === 'redis_master' && this.related_instances.some((item) => item.status === 'unavailable')
+    );
   }
 
   get isMaster() {

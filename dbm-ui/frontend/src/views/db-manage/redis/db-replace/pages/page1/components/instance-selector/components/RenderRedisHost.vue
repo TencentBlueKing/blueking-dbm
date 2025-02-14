@@ -96,10 +96,6 @@
     role: string;
     cluster_domain: string;
     spec_config: SpecInfo;
-    slaveHost?: {
-      faults: number;
-      total: number;
-    }
   }
 
   const props = withDefaults(defineProps<Props>(), {
@@ -424,10 +420,6 @@
     role: data?.instance_role || '',
     cluster_domain: props.node?.name ?? '',
     spec_config: data?.spec_config || null,
-    slaveHost: {
-      faults: data?.unavailable_slave || 0,
-      total: data?.total_slave || 0,
-    },
   });
 
   const handleSelectPageAll = (checked: boolean) => {

@@ -29,13 +29,27 @@ import createFactory from './index.js';
  * 创建 ip selector 组件
  */
 export const ipSelector = createFactory({
-  version: '1',
+  version: '2',
   panelList: ['staticTopo', 'manualInput'],
   unqiuePanelValue: false,
   hostTableCustomColumnList: [
     {
-      key: 'cpu',
+      key: 'bk_rack_id',
       index: 4,
+      width: '100px',
+      label: t('机架ID'),
+      renderCell: (h: (tag: string, value: string) => any, row: any) => h('span', row.bk_rack_id || '--'),
+    },
+    {
+      key: 'bk_svr_device_class_name',
+      index: 5,
+      width: '120px',
+      label: t('机型'),
+      renderCell: (h: (tag: string, value: string) => any, row: any) => h('span', row.bk_svr_device_class_name || '--'),
+    },
+    {
+      key: 'cpu',
+      index: 7,
       width: '100px',
       label: 'CPU',
       renderCell: (h: (tag: string, value: string) => any, row: any) =>
@@ -43,27 +57,38 @@ export const ipSelector = createFactory({
     },
     {
       key: 'memo',
-      index: 5,
+      index: 8,
       width: '100px',
       label: t('内存_MB'),
       field: 'bk_mem',
     },
     {
       key: 'disk',
-      index: 6,
+      index: 9,
       width: '100px',
       label: t('磁盘_GB'),
       field: 'bk_disk',
     },
     {
       key: 'zone',
-      index: 7,
+      index: 10,
       width: '100px',
       label: t('所在园区'),
       field: 'bk_sub_zone',
     },
   ],
-  hostTableRenderColumnList: ['ip', 'ipv6', 'cloudArea', 'alive', 'cpu', 'memo', 'disk', 'zone'],
+  hostTableRenderColumnList: [
+    'ip',
+    'ipv6',
+    'zone',
+    'bk_rack_id',
+    'bk_svr_device_class_name',
+    'cloudArea',
+    'alive',
+    'cpu',
+    'memo',
+    'disk',
+  ],
   fetchTopologyHostCount: getHostTopo,
   fetchTopologyHostsNodes: getHosts,
   fetchTopologyHostIdsNodes: getHostIdInfos,

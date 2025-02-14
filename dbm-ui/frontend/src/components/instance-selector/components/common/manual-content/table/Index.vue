@@ -22,9 +22,7 @@
       :columns="columns"
       :data="renderManualData"
       :max-height="530"
-      :pagination="pagination.count < 10 ? false : pagination"
-      :remote-pagination="false"
-      :settings="tableSetting" />
+      :pagination="pagination.count < 10 ? false : pagination" />
   </div>
 </template>
 <script setup lang="tsx">
@@ -36,7 +34,6 @@
     type InstanceSelectorValues,
     type IValue,
     type PanelListType,
-    type TableSetting,
   } from '../../../../Index.vue';
 
   type TableConfigType = Required<PanelListType[number]>['tableConfig'];
@@ -48,7 +45,6 @@
 
   interface Props {
     lastValues: InstanceSelectorValues<IValue>,
-    tableSetting: TableSetting,
     activePanelId?: string,
     manualTableData?: IValue[];
     firsrColumn?: TableConfigType['firsrColumn'],
@@ -85,6 +81,7 @@
     limitList: [10, 20, 50, 100],
     align: 'right',
     layout: ['total', 'limit', 'list'],
+    remote: false,
   });
 
   const checkedMap = shallowRef({} as Record<string, IValue>);
@@ -153,7 +150,7 @@
     {
       label: t('角色'),
       field: 'role',
-      showOverflowTooltip: true,
+      showOverflow: true,
       filter: props.roleFilterList,
       render: ({ data }: DataRow) => <span>{props.fieldFormat?.role ? props.fieldFormat.role[data.role] : data.role}</span>
     },
@@ -167,10 +164,31 @@
       },
     },
     {
+      label: t('园区'),
+      field: 'bk_sub_zone',
+      minWidth: 120,
+      showOverflow: true,
+      render: ({ data }: DataRow) => data.bk_sub_zone || '--',
+    },
+    {
+      label: t('机架ID'),
+      field: 'bk_rack_id',
+      minWidth: 80,
+      showOverflow: true,
+      render: ({ data }: DataRow) => data.bk_rack_id || '--',
+    },
+    {
+      label: t('机型'),
+      field: 'bk_svr_device_cls_name',
+      minWidth: 120,
+      showOverflow: true,
+      render: ({ data }: DataRow) => data.bk_svr_device_cls_name || '--',
+    },
+    {
       minWidth: 100,
       label: t('管控区域'),
       field: 'cloud_area',
-      showOverflowTooltip: true,
+      showOverflow: true,
       render: ({ data }: DataRow) => data.host_info?.cloud_area?.name || '--',
     },
     {
@@ -185,37 +203,37 @@
     {
       label: t('主机名称'),
       field: 'host_name',
-      showOverflowTooltip: true,
+      showOverflow: true,
       render: ({ data }: DataRow) => data.host_info?.host_name || '--',
     },
     {
       label: t('OS名称'),
       field: 'os_name',
-      showOverflowTooltip: true,
+      showOverflow: true,
       render: ({ data }: DataRow) => data.host_info?.os_name || '--',
     },
     {
       label: t('所属云厂商'),
       field: 'cloud_vendor',
-      showOverflowTooltip: true,
+      showOverflow: true,
       render: ({ data }: DataRow) => data.host_info?.cloud_vendor || '--',
     },
     {
       label: t('OS类型'),
       field: 'os_type',
-      showOverflowTooltip: true,
+      showOverflow: true,
       render: ({ data }: DataRow) => data.host_info.os_type || '--',
     },
     {
       label: t('主机ID'),
       field: 'host_id',
-      showOverflowTooltip: true,
+      showOverflow: true,
       render: ({ data }: DataRow) => data.host_info?.host_id || '--',
     },
     {
       label: 'Agent ID',
       field: 'agent_id',
-      showOverflowTooltip: true,
+      showOverflow: true,
       render: ({ data }: DataRow) => data.host_info?.agent_id || '--',
     },
   ];

@@ -11,7 +11,9 @@
  * the specific language governing permissions and limitations under the License.
  */
 
-import type { HostInfo, InstanceListOperation, InstanceRelatedCluster } from '@services/types';
+import type { HostInfo, InstanceListOperation, InstanceListSpecConfig, InstanceRelatedCluster } from '@services/types';
+
+import { ClusterTypes } from '@common/const';
 
 import { t } from '@locales/index';
 
@@ -27,36 +29,73 @@ export default class EsInstance {
   };
 
   bk_cloud_id: number;
+  bk_cloud_name: string;
   bk_host_id: number;
+  bk_os_name: string;
+  bk_rack_id: number;
+  bk_sub_zone: string;
+  bk_sub_zone_id: number;
+  bk_svr_device_cls_name: string;
   cluster_id: number;
+  cluster_name: string;
+  cluster_type: ClusterTypes;
+  cluster_type_name: string;
   create_at: string;
-  restart_at: string;
-  domain: string;
+  db_module_id: number;
+  db_module_name: string;
   host_info: HostInfo;
   id: number;
   instance_address: string;
   instance_name: string;
+  ip: string;
+  machine_type: string;
+  master_domain: string;
   operations: InstanceListOperation[];
+  permission: {
+    es_view: boolean;
+  };
+  port: number;
+  restart_at: string;
   related_clusters: InstanceRelatedCluster[];
   role: string;
+  slave_domain: string;
+  spec_config: InstanceListSpecConfig;
   status: string;
+  version: string;
 
   constructor(payload = {} as EsInstance) {
     this.bk_cloud_id = payload.bk_cloud_id;
+    this.bk_cloud_name = payload.bk_cloud_name;
     this.bk_host_id = payload.bk_host_id;
+    this.bk_os_name = payload.bk_os_name;
+    this.bk_rack_id = payload.bk_rack_id;
+    this.bk_sub_zone = payload.bk_sub_zone;
+    this.bk_sub_zone_id = payload.bk_sub_zone_id;
+    this.bk_svr_device_cls_name = payload.bk_svr_device_cls_name;
     this.cluster_id = payload.cluster_id;
+    this.cluster_name = payload.cluster_name;
+    this.cluster_type = payload.cluster_type;
+    this.cluster_type_name = payload.cluster_type_name;
     this.create_at = payload.create_at;
-    this.restart_at = payload.restart_at;
-    this.domain = payload.domain;
+    this.db_module_id = payload.db_module_id;
+    this.db_module_name = payload.db_module_name;
     this.host_info = payload.host_info || {};
     this.id = payload.id;
     this.instance_address = payload.instance_address;
     this.instance_name = payload.instance_name;
+    this.ip = payload.ip;
+    this.machine_type = payload.machine_type;
+    this.master_domain = payload.master_domain;
+    this.operations = payload.operations || [];
+    this.permission = payload.permission;
+    this.port = payload.port;
+    this.restart_at = payload.restart_at;
     this.related_clusters = payload.related_clusters || [];
     this.role = payload.role;
+    this.slave_domain = payload.slave_domain;
+    this.spec_config = payload.spec_config || {};
     this.status = payload.status;
-
-    this.operations = this.initOperations(payload.operations);
+    this.version = payload.version;
   }
 
   // 操作中的状态
@@ -104,13 +143,5 @@ export default class EsInstance {
       tip: EsInstance.operationTextMap[item.ticket_type],
       ticketId: item.ticket_id,
     }));
-  }
-
-  initOperations(payload = [] as EsInstance['operations']) {
-    if (!Array.isArray(payload)) {
-      return [];
-    }
-
-    return payload;
   }
 }

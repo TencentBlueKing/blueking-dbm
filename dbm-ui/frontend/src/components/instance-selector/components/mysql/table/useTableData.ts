@@ -34,7 +34,6 @@ export function useTableData<T>(
     };
   };
 
-  // const isLoading = ref(false);
   const tableData = shallowRef<T[]>([]);
   const isAnomalies = ref(false);
   const pagination = reactive({
@@ -44,6 +43,7 @@ export function useTableData<T>(
     limitList: [10, 20, 50, 100],
     align: 'right',
     layout: ['total', 'limit', 'list'],
+    remote: true,
   });
 
   const { run: getTableListRun, loading: isLoading } = useRequest(currentInstance.proxy.getTableList, {
