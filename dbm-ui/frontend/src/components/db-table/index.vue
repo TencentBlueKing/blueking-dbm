@@ -33,21 +33,6 @@
         @page-limit-change="handlePageLimitChange"
         @page-value-change="handlePageValueChange"
         @row-click="handleRowClick">
-        <template
-          v-if="releateUrlQuery && Object.keys(rowSelectMemo).length > 0"
-          #prepend>
-          <div class="head-prepend-row">
-            <I18nT keypath="已选n条，">
-              <span class="number">{{ Object.keys(rowSelectMemo).length }}</span>
-            </I18nT>
-            <BkButton
-              text
-              theme="primary"
-              @click="handleClearWholeSelect">
-              {{ t('清除所有勾选') }}
-            </BkButton>
-          </div>
-        </template>
         <BkTableColumn
           v-if="columns.length < 1 && selectable"
           fixed="left"
@@ -152,6 +137,8 @@
   import EmptyStatus from '@components/empty-status/EmptyStatus.vue';
 
   import { getOffset } from '@utils';
+
+  import { useStorage } from '@vueuse/core';
 
   export interface Props {
     columns?: InstanceType<typeof Table>['$props']['columns'],
@@ -281,6 +268,7 @@
   });
 
   const { t } = useI18n();
+  const paginationLimitCache = useStorage('table_pagination_limit', 20)
 
   const rootRef = ref();
   const bkTableRef = ref();
@@ -308,7 +296,7 @@
   }>({
     count: 0,
     current: 1,
-    limit: 10,
+    limit: paginationLimitCache.value,
     limitList: [10, 20, 50, 100],
     align: 'right',
     layout: ['total', 'limit', 'list'],
@@ -609,6 +597,7 @@
     pagination.limit = pageLimit;
     pagination.current = 1;
     isPaginationChangeFetch = true
+    paginationLimitCache.value = pageLimit
     fetchListData();
   };
 
@@ -635,23 +624,11 @@
     nextTick(() => {
       const top = props.containerHeight ? 0 : getOffset(rootRef.value).top;
       const totalHeight = props.containerHeight ? props.containerHeight : window.innerHeight;
-      const tableHeaderHeight = 42;
-      const paginationHeight = 60;
       const pageOffsetBottom = props.containerHeight ? 0 : 20;
-      const tableRowHeight = 42;
 
-      const tableRowTotalHeight = totalHeight - top - tableHeaderHeight - paginationHeight - pageOffsetBottom;
+      const tableRowTotalHeight = totalHeight - top - pageOffsetBottom;
 
-      const rowNum = Math.max(Math.floor(tableRowTotalHeight / tableRowHeight), 5);
-      const pageLimit = new Set([
-        ...pagination.limitList,
-        rowNum,
-      ]);
-
-      pagination.limit = rowNum;
-      pagination.limitList = [...pageLimit].sort((a, b) => a - b);
-
-      tableMaxHeight.value = tableHeaderHeight + rowNum * tableRowHeight + paginationHeight + 3;
+      tableMaxHeight.value = tableRowTotalHeight;
     });
   };
 
