@@ -25,7 +25,6 @@
         width: `${tableContext?.columnSizeConfig.value[columnKey]?.renderWidth}px`,
       }">
       <slot />
-
       <div
         v-if="loading"
         class="bk-editable-table-column-loading">
@@ -33,6 +32,9 @@
           <Loading />
         </div>
       </div>
+      <div
+        v-if="Boolean(disabledTips)"
+        class="bk-editable-table-column-disabled-mask" />
     </div>
     <div
       v-if="validateState.isError"
@@ -45,11 +47,18 @@
           class="bk-dbm db-icon-exclamation-fill" />
       </slot>
     </div>
+    <div
+      v-if="slots.tips"
+      ref="tipsRef"
+      class="bk-editable-table-body-column-tips">
+      <slot name="tips" />
+    </div>
   </td>
 </template>
 <script lang="ts">
   import { Loading } from 'bkui-vue/lib/icon';
   import _ from 'lodash';
+  import tippy, { type Instance, type SingleTarget } from 'tippy.js';
   import {
     type ComponentInternalInstance,
     computed,
@@ -96,6 +105,7 @@
     headPrepend?: () => VNode;
     headAppend?: () => VNode;
     error?: (params: { message: string }) => VNode;
+    tips?: () => VNode;
   }
 
   interface Expose {
@@ -113,6 +123,7 @@
     validate: (trigger?: string) => Promise<boolean>;
   }
 
+  // eslint-disable-next-line @typescript-eslint/naming-convention
   export const EditableTableColumnKey: InjectionKey<{
     blur: () => void;
     focus: () => void;
@@ -298,6 +309,7 @@
   let registerRules: IRule[] = [];
 
   const rootRef = ref<HTMLElement>();
+  const tipsRef = ref<HTMLElement>();
   const isRowspanRender = ref(false);
   const isFocused = ref(false);
   const isPreviousSiblingRowspan = ref(false);
@@ -320,6 +332,45 @@
     return result ? '无法操作' : '';
   });
 
+  let tippyIns: Instance;
+
+  const initTipsPopover = () => {
+    if (!slots.tips) {
+      return;
+    }
+
+    const tippyTarget = rootRef.value;
+
+    if (tippyTarget) {
+      tippyIns = tippy(tippyTarget as SingleTarget, {
+        content: tipsRef.value,
+        placement: 'top',
+        appendTo: () => document.body,
+        theme: 'light db-popconfirm-theme',
+        maxWidth: 'none',
+        trigger: 'manual',
+        interactive: true,
+        arrow: true,
+        offset: [0, 12],
+        zIndex: 9999,
+        hideOnClick: false,
+        popperOptions: {
+          strategy: 'fixed',
+          modifiers: [
+            {
+              name: 'flip',
+              options: {
+                fallbackPlacements: ['top', 'bottom'],
+                allowedAutoPlacements: ['top-start', 'top-end'],
+              },
+            },
+          ],
+        },
+      });
+    }
+    console.log('tippyIns', tippyIns);
+  };
+
   const getRowIndex = () => tableContext!.getColumnRelateRowIndexByInstance(currentInstance);
   const clearValidate = () => {
     validateState.isError = false;
@@ -329,7 +380,6 @@
   const triggerChangeQueue: string[] = [];
   const triggerBlurQueue: string[] = [];
   const triggerQueue: undefined[] = [];
-
   const validate = (trigger?: string): Promise<boolean> => {
     if (!tableContext) {
       return Promise.resolve(false);
@@ -344,7 +394,7 @@
     }
     let rules: IRule[] = [];
     // 继承 table 的验证规则
-    if (tableContext && tableContext.props.rules && _.has(tableContext.props.rules, props.field)) {
+    if (tableContext?.props.rules && _.has(tableContext.props.rules, props.field)) {
       rules = tableContext.props.rules[props.field];
     }
     // column 自己的 rules 规则优先级更高
@@ -447,7 +497,14 @@
         const rowDataValue = tableContext.props.model[rowContext!.getRowIndex()];
         const value = _.get(rowDataValue, props.field || '_');
 
-        return resolve(doValidate(finalRuleList, value, rowDataValue));
+        doValidate(finalRuleList, value, rowDataValue).then(
+          () => {
+            resolve(true);
+          },
+          () => {
+            reject(false);
+          },
+        );
       }, delay);
     });
   };
@@ -455,9 +512,11 @@
   provide(EditableTableColumnKey, {
     blur: () => {
       isFocused.value = false;
+      tippyIns?.hide();
     },
     focus: () => {
       isFocused.value = true;
+      tippyIns?.show();
     },
     registerRules: (rules: IRule[]) => {
       registerRules = rules;
@@ -497,12 +556,22 @@
         }
       });
     });
+
+    // 初始化 tips 弹框
+    setTimeout(() => {
+      initTipsPopover();
+    });
   });
 
   onBeforeUnmount(() => {
     rowContext?.unregisterColumn(columnKey);
     registerRules = [];
     clearTimeout(loadingValidatorTimer);
+    if (tippyIns) {
+      tippyIns.hide();
+      tippyIns.unmount();
+      tippyIns.destroy();
+    }
   });
 
   defineExpose<Expose>({
@@ -539,17 +608,10 @@
 
     &.is-disabled {
       .bk-editable-table-field-cell {
-        &::after {
-          position: absolute;
-          z-index: 9;
-          cursor: not-allowed;
-          content: '';
-          inset: 0;
-        }
+        background: #fafbfd;
 
-        * {
+        & > *:not(.bk-editable-table-column-disabled-mask) {
           pointer-events: none;
-          background: #fafbfd;
         }
       }
     }
@@ -636,5 +698,21 @@
       color: #3a84ff;
       animation: editable-table-column-loading 1.5s linear infinite;
     }
+  }
+
+  .bk-editable-table-column-disabled-mask {
+    position: absolute;
+    z-index: 1;
+    cursor: not-allowed;
+    content: '';
+    inset: 0;
+  }
+
+  .bk-editable-table-body-column-tips {
+    display: flex;
+    padding: 3px 7px;
+    font-size: 12px;
+    line-height: 24px;
+    flex-direction: column;
   }
 </style>

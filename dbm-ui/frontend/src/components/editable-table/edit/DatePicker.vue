@@ -7,7 +7,13 @@
     v-bind="{ ...attrs, ...props }"
     @blur="handleBlur"
     @change="handleChange"
-    @focus="handleFocus" />
+    @focus="handleFocus">
+    <template
+      v-if="slots.footer"
+      #footer>
+      <slot name="footer" />
+    </template>
+  </BkDatePicker>
 </template>
 <script lang="ts">
   /* eslint-disable vue/no-unused-properties */
@@ -19,15 +25,17 @@
   }
 </script>
 <script setup lang="ts" generic="T extends [string, string] | [Date, Date] | string | Date">
-  import { useAttrs, watch } from 'vue';
+  import { useAttrs, type VNode, watch } from 'vue';
 
   import useColumn from '../useColumn';
 
   const props = defineProps<Props>();
   const emits = defineEmits<{
-    (e: 'blur'): void;
-    (e: 'focus'): void;
+    (e: 'blur' | 'focus'): void;
     (e: 'change', value: T): void;
+  }>();
+  const slots = defineSlots<{
+    footer?: () => VNode;
   }>();
 
   const attrs = useAttrs();

@@ -24,7 +24,7 @@
             <BkRadioButton
               label="RECORD_FLASHBACK"
               style="width: 225px">
-              {{ t('记录及闪回') }}
+              {{ t('记录级闪回') }}
             </BkRadioButton>
           </BkRadioGroup>
         </BkFormItem>
@@ -38,26 +38,15 @@
               v-model="rowData.cluster"
               :selected-ids="selectedClusterIds"
               @batch-edit="handleBatchEdit" />
-            <EditableTableColumn
-              :label="t('回档时间')"
-              :min-width="180"
-              required>
-              <EditableDatePicker
-                v-model="rowData.start_time"
-                format="yyyy-MM-dd HH:mm:ss"
-                type="datetime" />
-            </EditableTableColumn>
-            <EditableTableColumn
-              :disabled-method="() => (!rowData.start_time ? t('请先选择回档时间') : false)"
-              :label="t('截止时间')"
-              :min-width="180"
-              required>
-              <EditableDatePicker
-                v-model="rowData.end_time"
-                :disabled-date="(date) => handleEditTimeDisableCallback(date, rowData.start_time)"
-                format="yyyy-MM-dd HH:mm:ss"
-                type="datetime" />
-            </EditableTableColumn>
+            <DatetimeColumn
+              v-model="rowData.start_time"
+              field="start_time"
+              :label="t('回档时间')" />
+            <DatetimeColumn
+              v-model="rowData.end_time"
+              :disabled-date="(date) => handleEditTimeDisableCallback(date, rowData.start_time)"
+              field="end_time"
+              :label="t('截止时间')" />
             <DbNameColumn
               v-model="rowData.databases"
               :cluster-id="rowData.cluster?.id" />
@@ -114,14 +103,11 @@
 
   import { TicketTypes } from '@common/const';
 
-  import EditableTable, {
-    Column as EditableTableColumn,
-    DatePicker as EditableDatePicker,
-    Row as EditableTableRow,
-  } from '@components/editable-table/Index.vue';
+  import EditableTable, { Row as EditableTableRow } from '@components/editable-table/Index.vue';
   import TimeZonePicker from '@components/time-zone-picker/index.vue';
 
   import ClusterColumn from './components/ClusterColumn.vue';
+  import DatetimeColumn from './components/DatetimeColumn.vue';
   import DbNameColumn from './components/DbNameColumn.vue';
   import OperationColumn from './components/OperationColumn.vue';
   import RecordColumn from './components/RecordColumn.vue';
@@ -201,7 +187,7 @@
   };
 
   const handleEditTimeDisableCallback = (date: Date | number, startDate: string) =>
-    dayjs(date).isBefore(dayjs(startDate));
+    dayjs(date).isBefore(startDate ? dayjs(startDate) : dayjs());
 
   const handleBatchEdit = (list: TendbhaModel[]) => {
     const dataList = list.reduce<ReturnType<typeof createTableData>[]>((acc, item) => {

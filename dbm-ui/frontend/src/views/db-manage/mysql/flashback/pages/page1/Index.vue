@@ -40,7 +40,7 @@
         <BkRadioButton
           label="RECORD_FLASHBACK"
           style="width: 225px">
-          {{ t('记录及闪回') }}
+          {{ t('记录级闪回') }}
         </BkRadioButton>
       </BkRadioGroup>
       <RenderData
@@ -259,6 +259,7 @@
         remark: remark.value,
         details: {
           infos,
+          flashback_type: 'TABLE_FLASHBACK',
         },
         bk_biz_id: currentBizId,
       }).then((data) => {
