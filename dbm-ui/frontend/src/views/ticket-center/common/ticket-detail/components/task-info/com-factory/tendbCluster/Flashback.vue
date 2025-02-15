@@ -14,7 +14,7 @@
 <template>
   <InfoList>
     <InfoItem :label="t('闪回方式:')">
-      {{ ticketDetails.details.flashback_type === 'RECORD_FLASHBACK' ? t('记录及闪回') : t('库表闪回') }}
+      {{ ticketDetails.details.flashback_type === 'RECORD_FLASHBACK' ? t('记录级闪回') : t('库表闪回') }}
     </InfoItem>
   </InfoList>
   <BkTable
@@ -113,6 +113,11 @@
       </template>
     </BkTableColumn>
   </BkTable>
+  <InfoList v-if="isRecordFlashback">
+    <InfoItem :label="t('覆盖原始数据:')">
+      {{ ticketDetails.details.infos[0].direct_write_back ? t('是') : t('否') }}
+    </InfoItem>
+  </InfoList>
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';

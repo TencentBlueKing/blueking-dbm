@@ -2,9 +2,10 @@
   <!-- prettier-ignore -->
   <BkTagInput
     v-model="(modelValue as string[])"
+    v-bind="{ ...attrs, ...props }"
+    allow-auto-match
     allow-create
     class="bk-editable-tag-input"
-    v-bind="{ ...attrs, ...props }"
     clearable
     has-delete-icon
     @blur="handleBlur"
@@ -65,6 +66,10 @@
           top: 50%;
           height: auto;
           transform: translateY(-50%);
+        }
+
+        .tag-input {
+          background: transparent;
         }
       }
     }

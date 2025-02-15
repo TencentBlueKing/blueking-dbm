@@ -36,8 +36,7 @@
   }
 
   interface Emits {
-    (e: 'blur'): void;
-    (e: 'focus'): void;
+    (e: 'blur' | 'focus'): void;
     (e: 'change', value: string): void;
   }
 
@@ -87,7 +86,7 @@
       padding-top: 6px;
       background: transparent;
       border: none;
-      border-radius: none;
+      border-radius: 0;
       box-shadow: none !important;
       flex-direction: row;
 
