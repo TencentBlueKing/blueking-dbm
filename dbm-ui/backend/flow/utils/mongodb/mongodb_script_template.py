@@ -18,6 +18,7 @@ mongodb_fast_execute_script_common_kwargs = {
 
 
 mongodb_create_actuator_dir_template = """
+find {{file_path}}/install -mtime +30  -type d -name "dbactuator-*"  |xargs rm -rf
 mkdir -p {{file_path}}/install/dbactuator-{{uid}}/logs
 cp {{file_path}}/install/mongo-dbactuator {{file_path}}/install/dbactuator-{{uid}}
 """
