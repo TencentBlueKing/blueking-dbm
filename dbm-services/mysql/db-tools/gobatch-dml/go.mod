@@ -1,8 +1,6 @@
 module dbm-services/mysql/db-tools/gobatch-dml
 
-go 1.21.0
-
-toolchain go1.21.11
+go 1.23
 
 require (
 	github.com/doug-martin/goqu/v9 v9.19.0

@@ -1,6 +1,6 @@
 module bk-dbconfig
 
-go 1.19
+go 1.23
 
 replace github.com/sirupsen/logrus v1.8.1 => github.com/Sirupsen/logrus v1.8.1
 

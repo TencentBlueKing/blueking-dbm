@@ -1,6 +1,6 @@
 module dbm-services/mysql/slow-query-parser-service
 
-go 1.21
+go 1.23
 
 require (
 	github.com/alecthomas/kingpin/v2 v2.3.2

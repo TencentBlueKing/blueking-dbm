@@ -1,6 +1,6 @@
 module dbm-services/riak/db-tools/riak-monitor
 
-go 1.19
+go 1.23
 
 require (
 	github.com/dlclark/regexp2 v1.10.0

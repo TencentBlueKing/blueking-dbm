@@ -1,6 +1,6 @@
 module dbm-services/mysql/db-tools/mysql-monitor
 
-go 1.21
+go 1.23
 
 require (
 	github.com/antlr4-go/antlr/v4 v4.13.0
@@ -25,6 +25,7 @@ require (
 require (
 	github.com/mitchellh/mapstructure v1.5.0
 	golang.org/x/exp v0.0.0-20230515195305-f3d0a9c9a5cc
+	golang.org/x/time v0.1.0
 )
 
 require (

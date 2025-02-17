@@ -1,20 +1,26 @@
-go 1.21.11
+go 1.23.6
 
 use (
 	bigdata/db-tools/dbactuator
 	common/celery-service
 	common/db-config
 	common/db-dns/dns-api
+	common/db-dns/dns-api/pkg
 	common/db-dns/dns-reload
 	common/db-resource
 	common/dbha/ha-module
 	common/dbha/hadb-api
 	common/go-pubpkg
+	common/reverse-api
+	mongodb/db-tools/dbactuator
+	mongodb/db-tools/dbmon
+	mongodb/db-tools/mongo-toolkit-go
 	mysql/db-partition
 	mysql/db-priv
 	mysql/db-remote-service
 	mysql/db-simulation
 	mysql/db-tools/dbactuator
+	mysql/db-tools/gobatch-dml
 	mysql/db-tools/mysql-crond
 	mysql/db-tools/mysql-dbbackup
 	mysql/db-tools/mysql-monitor
@@ -27,12 +33,6 @@ use (
 	riak/db-tools/dbactuator
 	riak/db-tools/riak-monitor
 	sqlserver/db-tools/dbactuator
-	mongodb/db-tools/dbmon
-	mongodb/db-tools/mongo-toolkit-go
-	mongodb/db-tools/dbactuator
-	common/db-dns/dns-api/pkg
-	common/reverse-api
-	mysql/db-tools/gobatch-dml
 )
 
 replace github.com/go-sql-driver/mysql => github.com/go-sql-driver/mysql v1.7.1
