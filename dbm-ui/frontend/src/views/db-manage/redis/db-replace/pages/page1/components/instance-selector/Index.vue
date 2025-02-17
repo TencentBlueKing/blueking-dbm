@@ -40,7 +40,6 @@
           :is-radio-mode="isRadioMode"
           :last-values="lastValues"
           :role="role"
-          :table-settings="tableSettings"
           :valid-tab="panelList[0]"
           @change="handleChange" />
       </template>
@@ -81,7 +80,6 @@
   export type InstanceSelectorValues = { idleHosts: ChoosedItem[] };
 </script>
 <script setup lang="ts">
-  import getSettings from './common/tableSettings';
   import PanelTab, { activePanelInjectionKey, defaultPanelList, type PanelTypes } from './components/PanelTab.vue';
   import PreviewResult from './components/preview-result/Index.vue';
   import RenderManualInput from './components/RenderManualInput.vue';
@@ -113,7 +111,6 @@
   });
   const emits = defineEmits<Emits>();
 
-  const tableSettings = getSettings(props.role);
   const panelTabActive = ref<PanelTypes>(props.activeTab);
 
   const lastValues = reactive<InstanceSelectorValues>({ idleHosts: [] });

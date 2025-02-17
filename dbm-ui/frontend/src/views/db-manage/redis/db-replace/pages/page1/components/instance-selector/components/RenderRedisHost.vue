@@ -32,8 +32,7 @@
         :is-searching="!!searchValue.length"
         :max-height="530"
         :pagination="pagination.count < 10 ? false : pagination"
-        remote-pagination
-        :settings="tableSettings"
+        :show-overflow="false"
         style="margin-top: 12px"
         @clear-search="clearSearchValue"
         @column-filter="columnFilterChange"
@@ -43,7 +42,6 @@
   </div>
 </template>
 <script setup lang="tsx">
-  import type { Table } from 'bkui-vue';
   import { useI18n } from 'vue-i18n';
 
   import { getRedisMachineList } from '@services/source/redis';
@@ -73,7 +71,6 @@
   }
 
   export interface Props {
-    tableSettings: InstanceType<typeof Table>['$props'],
     lastValues: InstanceSelectorValues,
     node?: {
       id: number,
@@ -148,6 +145,7 @@
     limitList: [10, 20, 50, 100],
     align: 'right',
     layout: ['total', 'limit', 'list'],
+    remote: true
   });
 
   const isSelectedAll = computed(() => (
@@ -252,15 +250,7 @@
     {
       label: t('角色类型'),
       field: 'instance_role',
-      showOverflowTooltip: true,
-      // filter: {
-      //   list: [
-      //     { text: 'master', value: 'master' },
-      //     { text: 'slave', value: 'slave' },
-      //     { text: 'proxy', value: 'proxy' },
-      //   ],
-      //   checked: columnCheckedMap.value.role,
-      // },
+      showOverflow: true,
       render: ({ data } : TableItem) => <span>{data.instance_role}</span>,
     },
     {
@@ -270,6 +260,27 @@
         const info = data.host_info.alive === 1 ? { theme: 'success', text: t('正常') } : { theme: 'danger', text: t('异常') };
         return <DbStatus theme={info.theme}>{info.text}</DbStatus>;
       },
+    },
+    {
+      label: t('园区'),
+      field: 'bk_sub_zone',
+      minWidth: 120,
+      showOverflow: true,
+      render: ({ data }: TableItem) => data.bk_sub_zone || '--',
+    },
+    {
+      label: t('机架ID'),
+      field: 'bk_rack_id',
+      minWidth: 80,
+      showOverflow: true,
+      render: ({ data }: TableItem) => data.bk_rack_id || '--',
+    },
+    {
+      label: t('机型'),
+      field: 'bk_svr_device_cls_name',
+      minWidth: 120,
+      showOverflow: true,
+      render: ({ data }: TableItem) => data.bk_svr_device_cls_name || '--',
     },
     {
       minWidth: 100,
@@ -293,37 +304,39 @@
     {
       label: t('主机名称'),
       field: 'host_name',
-      showOverflowTooltip: true,
+      showOverflow: true,
+      minWidth: 150,
       render: ({ data } : TableItem) => data.host_info?.host_name || '--',
     },
     {
       label: t('OS名称'),
       field: 'os_name',
-      showOverflowTooltip: true,
+      showOverflow: true,
+      minWidth: 150,
       render: ({ data } : TableItem) => data.host_info?.os_name || '--',
     },
     {
       label: t('所属云厂商'),
       field: 'cloud_vendor',
-      showOverflowTooltip: true,
+      showOverflow: true,
       render: ({ data }: TableItem) => data.host_info?.cloud_vendor || '--',
     },
     {
       label: t('OS类型'),
       field: 'os_type',
-      showOverflowTooltip: true,
+      showOverflow: true,
       render: ({ data }: TableItem) => data.host_info?.os_type || '--',
     },
     {
       label: t('主机ID'),
       field: 'host_id',
-      showOverflowTooltip: true,
+      showOverflow: true,
       render: ({ data } : TableItem) => data.host_info?.host_id || '--',
     },
     {
       label: 'Agent ID',
       field: 'agent_id',
-      showOverflowTooltip: true,
+      showOverflow: true,
       render: ({ data } : TableItem) => data.host_info?.agent_id || '--',
     },
   ]);
