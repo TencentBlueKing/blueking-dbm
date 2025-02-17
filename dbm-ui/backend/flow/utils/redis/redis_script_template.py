@@ -17,6 +17,7 @@ redis_fast_execute_script_common_kwargs = {
 }
 
 redis_actuator_template = """
+find /home/mysql/install/dbactuator-*/ -mtime +30  -type d -name "dbactuator-*"  |xargs rm -rf
 mkdir -p {{data_dir}}/install/dbactuator-{{uid}}/logs
 cp {{data_dir}}/install/dbactuator_redis {{data_dir}}/install/dbactuator-{{uid}}
 cd {{data_dir}}/install/dbactuator-{{uid}}
@@ -31,6 +32,7 @@ redis_data_structure_payload_template = """
 """
 
 redis_data_structure_actuator_template = """
+find /home/mysql/install/dbactuator-*/ -mtime +40  -type d -name "dbactuator-*"  |xargs rm -rf
 mkdir -p {{data_dir}}/install/dbactuator-{{uid}}/logs
 cp {{data_dir}}/install/dbactuator_redis {{data_dir}}/install/dbactuator-{{uid}}
 cd {{data_dir}}/install/dbactuator-{{uid}}
