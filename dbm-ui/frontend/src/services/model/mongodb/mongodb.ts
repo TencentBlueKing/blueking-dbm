@@ -79,6 +79,7 @@ export default class Mongodb extends ClusterBase {
     mongodb_destroy: boolean;
     mongodb_enable_disable: boolean;
     mongodb_view: boolean;
+    mongodb_plugin_create_clb: boolean;
   };
   phase: string;
   phase_name: string;
@@ -321,5 +322,9 @@ export default class Mongodb extends ClusterBase {
     return {
       mongodb: ClusterBase.getRoleFaildInstanceList(this.mongodb),
     };
+  }
+
+  get isOnlineCLB() {
+    return this.cluster_entry.some((item) => item.cluster_entry_type === 'clb');
   }
 }

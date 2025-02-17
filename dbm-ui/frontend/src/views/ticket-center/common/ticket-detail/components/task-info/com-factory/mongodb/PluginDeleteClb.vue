@@ -22,13 +22,13 @@
   import RenderClb from '../common/Clb.vue';
 
   interface Props {
-    ticketDetails: TicketModel<Redis.PluginDnsBindClb>;
+    ticketDetails: TicketModel<Redis.PluginDeleteClb>;
   }
 
   defineProps<Props>();
 
   defineOptions({
-    name: TicketTypes.REDIS_PLUGIN_DNS_BIND_CLB,
+    name: TicketTypes.MONGODB_PLUGIN_DELETE_CLB,
     inheritAttrs: false,
   });
 </script>
