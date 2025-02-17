@@ -1,7 +1,8 @@
 <template>
   <BkTable
     class="preview-privilege-table"
-    :data="tableData">
+    :data="tableData"
+    :show-overflow="false">
     <BkTableColumn
       :label="t('访问源')"
       :min-width="150">

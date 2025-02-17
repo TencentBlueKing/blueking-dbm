@@ -82,7 +82,6 @@
             :last-values="lastValues"
             :role="role"
             :table-data="inputState.tableData"
-            :table-settings="tableSettings"
             @change="handleHostChange" />
         </BkLoading>
       </template>
@@ -90,7 +89,6 @@
   </div>
 </template>
 <script setup lang="ts">
-  import type { Table } from 'bkui-vue';
   import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
 
@@ -115,7 +113,6 @@
   interface Props {
     validTab: Exclude<PanelTypes, 'manualInput'>;
     lastValues: InstanceSelectorValues;
-    tableSettings: InstanceType<typeof Table>['$props']['settings'];
     role?: string;
   }
 
