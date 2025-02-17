@@ -47,6 +47,8 @@ type ExecuteSQLFileParam struct {
 	Ports          []int               `json:"ports"`                                    // 被监控机器的上所有需要监控的端口
 	CharSet        string              `json:"charset" validate:"required,checkCharset"` // 字符集参数
 	FilePath       string              `json:"file_path"`                                // 文件路径
+	FilePathSubfix string              `json:"file_path_suffix"`
+	FileBaseDir    string              `json:"file_base_dir"`
 	ExecuteObjects []ExecuteSQLFileObj `json:"execute_objects"`
 	Force          bool                `json:"force"`     // 是否强制执行 执行出错后，是否继续往下执行
 	IsSpider       bool                `json:"is_spider"` // 是否是spider集群
@@ -77,10 +79,12 @@ func (e *ExecuteSQLFileComp) Example() interface{} {
 	return ExecuteSQLFileComp{
 		GeneralParam: &components.GeneralParam{},
 		Params: &ExecuteSQLFileParam{
-			Host:     "127.0.0.1",
-			Ports:    []int{3306, 3307},
-			CharSet:  "utf8",
-			FilePath: "/data/workspace",
+			Host:           "127.0.0.1",
+			Ports:          []int{3306, 3307},
+			CharSet:        "utf8",
+			FilePath:       "/data/workspace",
+			FileBaseDir:    "/datta",
+			FilePathSubfix: "sqlfile_",
 			ExecuteObjects: []ExecuteSQLFileObj{
 				{
 					SQLFiles:      []string{"111.sql"},
@@ -106,6 +110,22 @@ func (e *ExecuteSQLFileComp) Precheck() (err error) {
 		}
 	}
 	return
+}
+
+func (e *ExecuteSQLFileComp) cleanHistorySQLDir() {
+	if e.Params.FilePathSubfix == "" {
+		return
+	}
+	cleanCmd := fmt.Sprintf(`find %s -maxdepth 1 -name %s* -type d -mtime +60 |xargs -i rm {};`, cst.BK_PKG_INSTALL_PATH,
+		e.Params.FilePathSubfix)
+	logger.Warn("delete before 60 days dump sql file")
+	logger.Warn("will execute: %s", cleanCmd)
+	out, err := osutil.StandardShellCommand(false, cleanCmd)
+	if err != nil {
+		logger.Error("clean sql file failed:%s,out:%s", err.Error(), out)
+		return
+	}
+	logger.Warn("clean sql file success")
 }
 
 // checkSQLFileExist 检查文件是否存在
@@ -171,6 +191,7 @@ func (e *ExecuteSQLFileComp) checkDuplicateObjects(port int) (err error) {
 
 // Init init
 func (e *ExecuteSQLFileComp) Init() (err error) {
+	e.cleanHistorySQLDir()
 	e.ports = make([]int, len(e.Params.Ports))
 	e.dbConns = make(map[int]*native.DbWorker)
 	e.vermap = make(map[int]string)

@@ -852,6 +852,8 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
                     "host": kwargs["ip"],
                     "ports": [self.cluster["port"]],
                     "file_path": self.ticket_data["sql_path"],
+                    "file_path_suffix": self.ticket_data["file_path_suffix"],
+                    "file_base_dir": self.ticket_data["file_base_dir"],
                     "charset": self.ticket_data["charset"],
                     "execute_objects": self.ticket_data["execute_objects"],
                 },

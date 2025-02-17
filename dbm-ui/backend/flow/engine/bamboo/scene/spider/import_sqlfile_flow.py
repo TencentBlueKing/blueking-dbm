@@ -61,7 +61,11 @@ class ImportSQLFlow(object):
         self.semantic_dump_schema_file_name_suffix = "_semantic_dump_schema"
         self.semantic_dump_schema_file_name = f"{self.root_id}{self.semantic_dump_schema_file_name_suffix}.sql"
         # 定义SQL文件的下发位置
-        self.sql_path = os.path.join(consts.BK_PKG_INSTALL_PATH, f"sqlfile_{self.uid}") + "/"
+        # 定义SQL文件的下发位置
+        self.sql_path_suffix = "sqlfile_"
+        self.data["file_path_suffix"] = self.sql_path_suffix
+        self.data["file_base_dir"] = consts.BK_PKG_INSTALL_PATH
+        self.sql_path = os.path.join(consts.BK_PKG_INSTALL_PATH, f"{self.sql_path_suffix}{self.uid}") + "/"
         self.data["sql_path"] = self.sql_path
 
     def import_sqlfile_flow(self):
