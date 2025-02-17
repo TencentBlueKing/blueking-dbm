@@ -45,8 +45,7 @@
         ref="numRef"
         :data="data.targetNum"
         :disabled="!data.cluster || hostType === 'manual'"
-        :is-loading="data.isLoading"
-        :max="targetMax" />
+        :is-loading="data.isLoading" />
     </td>
     <OperateColumn
       :removeable="removeable"
@@ -149,7 +148,7 @@
   );
 
   const counts = computed(() => ({ master: props.data.masterCount, slave: props.data.slaveCount }));
-  const targetMax = computed(() => 37 - props.data.mntCount);
+  // const targetMax = computed(() => 37 - props.data.mntCount);
 
   const handleChangeNodeType = (choosedLabel: string) => {
     emits('nodeTypeChoosed', choosedLabel);
