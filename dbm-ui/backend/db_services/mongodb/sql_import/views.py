@@ -25,7 +25,7 @@ from backend.db_services.virtual_sql_import.handlers import SQLHandler
 from backend.db_services.virtual_sql_import.serializers import SQLUploadSerializer
 from backend.iam_app.handlers.drf_perm.base import DBManagePermission
 
-SWAGGER_TAG = "db_services/sqlserver/sql_import"
+SWAGGER_TAG = "db_services/mongodb/sql_import"
 
 
 class SQLImportViewSet(viewsets.SystemViewSet):
@@ -39,10 +39,10 @@ class SQLImportViewSet(viewsets.SystemViewSet):
     @action(methods=["POST"], detail=False, serializer_class=SQLUploadSerializer)
     def upload_sql(self, request, bk_biz_id):
         data = self.params_validate(self.get_serializer_class())
-        return Response(SQLHandler.upload_sql_file(**data, db_type=DBType.Sqlserver.value, bk_biz_id=bk_biz_id))
+        return Response(SQLHandler.upload_sql_file(**data, db_type=DBType.MongoDB.value, bk_biz_id=bk_biz_id))
 
     @common_swagger_auto_schema(
-        operation_summary=_("sqlserver语法检查"),
+        operation_summary=_("mongodb语法检查"),
         request_body=SQLGrammarCheckSerializer(),
         tags=[SWAGGER_TAG],
         responses={status.HTTP_200_OK: SQLGrammarCheckResponseSerializer()},
