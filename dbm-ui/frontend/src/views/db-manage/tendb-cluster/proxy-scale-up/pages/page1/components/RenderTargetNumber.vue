@@ -32,7 +32,6 @@
 
   interface Props {
     data?: IDataRow['targetNum'];
-    max?: number;
     isLoading?: boolean;
     disabled?: boolean;
   }
@@ -45,7 +44,6 @@
 
   const props = withDefaults(defineProps<Props>(), {
     data: '',
-    max: 1,
     isLoading: false,
     disabled: false,
   });
@@ -70,8 +68,8 @@
       message: t('必须大于0'),
     },
     {
-      validator: (value: string) => Number(value) <= props.max,
-      message: t('必须小于等于m台', { m: props.max }),
+      validator: (value: string) => Number(value) < 64,
+      message: t('必须小于m台', { m: 64 }),
     },
   ];
 
