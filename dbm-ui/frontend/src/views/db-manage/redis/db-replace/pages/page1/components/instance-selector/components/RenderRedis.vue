@@ -65,7 +65,6 @@
               :master-slave-map="masterSlaveMap"
               :node="selectNode"
               :role="role"
-              :table-settings="tableSettings"
               @change="handleHostChange" />
           </div>
         </template>
@@ -74,8 +73,6 @@
   </BkLoading>
 </template>
 <script setup lang="ts">
-  import type { Table } from 'bkui-vue';
-
   import { getRedisList } from '@services/source/redis';
   import { queryMasterSlavePairs } from '@services/source/redisToolbox';
 
@@ -100,7 +97,6 @@
 
   interface Props {
     lastValues: InstanceSelectorValues;
-    tableSettings: InstanceType<typeof Table>['$props']['settings'];
     role?: string;
     activeTab?: PanelTypes;
     isRadioMode?: boolean;

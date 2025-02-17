@@ -22,7 +22,6 @@
       :data="renderData"
       :height="505"
       :is-searching="!!search"
-      :settings="tableSettings"
       style="margin-top: 12px"
       @clear-search="handleClearSearch"
       @row-click.stop="handleRowClick" />
@@ -30,7 +29,6 @@
 </template>
 
 <script setup lang="tsx">
-  import type { Table } from 'bkui-vue';
   import { useI18n } from 'vue-i18n';
 
   import DbStatus from '@components/db-status/index.vue';
@@ -48,7 +46,6 @@
     role?: string;
     lastValues: InstanceSelectorValues;
     tableData: InstanceItem[];
-    tableSettings: InstanceType<typeof Table>['$props']['settings'];
   }
 
   interface Emits {
