@@ -146,7 +146,7 @@ func (c *PreDropStageOnRemoteComponent) instanceDropStageDBs(port int) error {
 }
 
 func (c *PreDropStageOnRemoteComponent) instanceDropStageDB(port int, dbName string) error {
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 500*time.Second)
 	defer cancel()
 
 	_, err := c.dbConn.ExecContext(

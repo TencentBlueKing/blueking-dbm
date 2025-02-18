@@ -1,5 +1,7 @@
 package rpc_core
 
+import "log/slog"
+
 // RPCWrapper RPC 对象
 type RPCWrapper struct {
 	addresses      []string
@@ -10,6 +12,7 @@ type RPCWrapper struct {
 	queryTimeout   int
 	timezone       string
 	force          bool
+	logger         *slog.Logger
 	RPCEmbedInterface
 }
 
@@ -24,8 +27,9 @@ func NewRPCWrapper(
 	timezone string,
 	force bool,
 	em RPCEmbedInterface,
+	requestId string,
 ) *RPCWrapper {
-	return &RPCWrapper{
+	w := &RPCWrapper{
 		addresses:         addresses,
 		commands:          commands,
 		user:              user,
@@ -36,4 +40,8 @@ func NewRPCWrapper(
 		force:             force,
 		RPCEmbedInterface: em,
 	}
+
+	w.logger = slog.Default().With("request-id", requestId)
+
+	return w
 }

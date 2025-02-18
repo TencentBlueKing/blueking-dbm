@@ -111,7 +111,7 @@
   role: []
 - name: mysql-err-notice
   enable: false
-  schedule: '@every 1m'
+  schedule: '@every 5m'
   machine_type:
   - single
   - backend
@@ -119,7 +119,7 @@
   role: []
 - name: mysql-err-critical
   enable: false
-  schedule: '@every 1m'
+  schedule: '@every 5m'
   machine_type:
   - single
   - backend
@@ -127,19 +127,19 @@
   role: []
 - name: spider-err-notice
   enable: false
-  schedule: '@every 1m'
+  schedule: '@every 5m'
   machine_type:
   - spider
   role: []
 - name: spider-err-warn
   enable: false
-  schedule: '@every 1m'
+  schedule: '@every 5m'
   machine_type:
   - spider
   role: []
 - name: spider-err-critical
   enable: false
-  schedule: '@every 1m'
+  schedule: '@every 5m'
   machine_type:
   - spider
   role: []
@@ -175,7 +175,7 @@
   role: []
 - name: proxy-backend
   enable: true
-  schedule: '@every 1m'
+  schedule: '@every 5m'
   machine_type:
   - proxy
   role: []
@@ -196,7 +196,7 @@
   role: []
 - name: slave-status
   enable: true
-  schedule: '@every 1m'
+  schedule: '@every 5m'
   machine_type:
   - backend
   - remote
@@ -205,14 +205,14 @@
   - repeater
 - name: ctl-replicate
   enable: true
-  schedule: '@every 1m'
+  schedule: '@every 5m'
   machine_type:
   - spider
   role:
   - spider_master
 - name: spider-remote
   enable: true
-  schedule: '@every 1m'
+  schedule: '@every 5m'
   machine_type:
   - spider
   role: []
@@ -233,7 +233,7 @@
   role: []
 - name: unique-ctl-master
   enable: true
-  schedule: '@every 1m'
+  schedule: '@every 5m'
   machine_type:
   - spider
   role:
@@ -249,7 +249,7 @@
   role: []
 - name: mysql-timezone-change
   enable: true
-  schedule: '@every 1m'
+  schedule: '@every 5m'
   machine_type:
   - spider
   - remote
@@ -258,7 +258,7 @@
   role: []
 - name: sys-timezone-change
   enable: true
-  schedule: '@every 1m'
+  schedule: '@every 5m'
   machine_type:
   - spider
   - proxy
@@ -274,20 +274,11 @@
   role: []
 - name: get-ctl-primary
   enable: true
-  schedule: '@every 1m'
+  schedule: '@every 5m'
   machine_type:
   - spider
   role:
   - spider_master
-- name: priv-check
-  enable: true
-  schedule: 0 40 9 * * 2
-  machine_type:
-  - spider
-  - remote
-  - backend
-  - single
-  role: []
 - name: proxy-rebind
   enable: true
   schedule: 0 55 9 * * *

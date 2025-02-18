@@ -3,6 +3,7 @@ package rpc_core
 import (
 	"context"
 	"log/slog"
+	"strings"
 	"time"
 
 	"github.com/pkg/errors"
@@ -12,7 +13,7 @@ func (c *RPCWrapper) executeOneAddr(address string) (res []CmdResultType, err er
 	db, err := c.MakeConnection(address, c.user, c.password, c.connectTimeout, c.timezone)
 
 	if err != nil {
-		slog.Error("make connection", slog.String("error", err.Error()))
+		c.logger.Error("make connection", slog.String("error", err.Error()))
 		return nil, err
 	}
 
@@ -25,7 +26,7 @@ func (c *RPCWrapper) executeOneAddr(address string) (res []CmdResultType, err er
 
 	conn, err := db.Connx(ctx)
 	if err != nil {
-		slog.Error("get conn from db", slog.String("error", err.Error()))
+		c.logger.Error("get conn from db", slog.String("error", err.Error()))
 		return nil, err
 	}
 	defer func() {
@@ -33,16 +34,19 @@ func (c *RPCWrapper) executeOneAddr(address string) (res []CmdResultType, err er
 	}()
 
 	for idx, command := range c.commands {
+		command = strings.TrimSpace(command)
+
 		pc, err := c.ParseCommand(command)
 		if err != nil {
-			slog.Error("parse command", slog.String("error", err.Error()))
+			c.logger.Error("parse command", slog.String("error", err.Error()))
 			return nil, err
 		}
 
 		if c.IsQueryCommand(pc) {
-			tableData, err := queryCmd(conn, command, time.Second*time.Duration(c.queryTimeout))
+			c.logger.Info("query command", slog.String("command", pc.Command))
+			tableData, err := queryCmd(c.logger, conn, command, time.Second*time.Duration(c.queryTimeout))
 			if err != nil {
-				slog.Error(
+				c.logger.Error(
 					"query command",
 					slog.String("error", err.Error()),
 					slog.String("address", address), slog.String("command", command),
@@ -69,9 +73,10 @@ func (c *RPCWrapper) executeOneAddr(address string) (res []CmdResultType, err er
 				},
 			)
 		} else if c.IsExecuteCommand(pc) {
-			rowsAffected, err := executeCmd(conn, command, time.Second*time.Duration(c.queryTimeout))
+			c.logger.Info("execute command", pc.Command)
+			rowsAffected, err := executeCmd(c.logger, conn, command, time.Second*time.Duration(c.queryTimeout))
 			if err != nil {
-				slog.Error(
+				c.logger.Error(
 					"execute command",
 					slog.String("error", err.Error()),
 					slog.String("address", address), slog.String("command", command),
@@ -99,7 +104,7 @@ func (c *RPCWrapper) executeOneAddr(address string) (res []CmdResultType, err er
 			)
 		} else {
 			err = errors.Errorf("commands[%d]: %s not support", idx, command)
-			slog.Error("dispatch command", slog.String("error", err.Error()))
+			c.logger.Error("dispatch command", slog.String("error", err.Error()))
 			res = append(
 				res, CmdResultType{Cmd: command, TableData: nil, RowsAffected: 0, ErrorMsg: err.Error()},
 			)

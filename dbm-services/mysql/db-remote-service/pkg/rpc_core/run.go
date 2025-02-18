@@ -1,7 +1,6 @@
 package rpc_core
 
 import (
-	"log/slog"
 	"sync"
 
 	"dbm-services/mysql/db-remote-service/pkg/config"
@@ -11,7 +10,7 @@ import (
 func (c *RPCWrapper) Run() (res []OneAddressResultType) {
 	addrResChan := make(chan OneAddressResultType)
 	tokenBulkChan := make(chan struct{}, config.RuntimeConfig.Concurrent)
-	slog.Debug("init bulk chan", slog.Int("concurrent", config.RuntimeConfig.Concurrent))
+	//c.logger.Debug("init bulk chan", slog.Int("concurrent", config.RuntimeConfig.Concurrent))
 
 	go func() {
 		var wg sync.WaitGroup

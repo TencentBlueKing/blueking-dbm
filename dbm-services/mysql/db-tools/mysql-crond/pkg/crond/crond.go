@@ -76,7 +76,7 @@ func Start() error {
 	// 心跳
 	if !viper.GetBool("without-heart-beat") {
 		entryID, err = cronJob.AddFunc(
-			"@every 1m", func() {
+			"@every 5m", func() {
 				err := config.SendMetrics(
 					"mysql_crond_heart_beat",
 					1,

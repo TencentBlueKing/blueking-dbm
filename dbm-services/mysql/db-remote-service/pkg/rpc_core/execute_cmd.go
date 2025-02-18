@@ -2,15 +2,55 @@ package rpc_core
 
 import (
 	"context"
+	"errors"
 	"log/slog"
+	"slices"
 	"time"
 
+	"github.com/go-sql-driver/mysql"
 	"github.com/jmoiron/sqlx"
 )
 
+var retryErrNum []uint16
+
+func init() {
+	retryErrNum = []uint16{
+		1130,
+		1045,
+		//1064,
+	}
+}
+
 // executeCmd TODO
 // func executeCmd(db *sqlx.DB, cmd string, timeout int) (int64, error) {
-func executeCmd(conn *sqlx.Conn, cmd string, timeout time.Duration) (int64, error) {
+func executeCmd(logger *slog.Logger, conn *sqlx.Conn, cmd string, timeout time.Duration) (int64, error) {
+	for i := 0; i < 5; i++ {
+		n, err := executeAtom(conn, cmd, timeout)
+		if err == nil {
+			logger.Info("execute cmd success", slog.String("cmd", cmd))
+			return n, nil
+		}
+
+		logger.Error("execute cmd failed", slog.String("cmd", cmd), slog.String("error", err.Error()))
+
+		var me *mysql.MySQLError
+		ok := errors.As(err, &me)
+
+		if !ok {
+			return n, err
+		}
+
+		// 不在重试错误中
+		if slices.Index(retryErrNum, me.Number) < 0 {
+			return n, err
+		}
+		logger.Error("retry execute cmd", slog.String("cmd", cmd))
+		time.Sleep(2 * time.Second)
+	}
+	return -1, errors.New("timeout")
+}
+
+func executeAtom(conn *sqlx.Conn, cmd string, timeout time.Duration) (int64, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
@@ -22,9 +62,34 @@ func executeCmd(conn *sqlx.Conn, cmd string, timeout time.Duration) (int64, erro
 	return result.RowsAffected()
 }
 
-// queryCmd TODO
-// func queryCmd(db *sqlx.DB, cmd string, timeout int) (tableDataType, error) {
-func queryCmd(conn *sqlx.Conn, cmd string, timeout time.Duration) (tableDataType, error) {
+func queryCmd(logger *slog.Logger, conn *sqlx.Conn, cmd string, timeout time.Duration) (tableDataType, error) {
+	for i := 0; i < 5; i++ {
+		dataType, err := queryAtom(conn, cmd, timeout)
+		if err == nil {
+			logger.Info("query cmd success", slog.String("cmd", cmd))
+			return dataType, nil
+		}
+
+		logger.Error("query cmd failed", slog.String("cmd", cmd), slog.String("error", err.Error()))
+
+		var me *mysql.MySQLError
+		ok := errors.As(err, &me)
+
+		if !ok {
+			return dataType, err
+		}
+
+		// 不在重试错误中
+		if slices.Index(retryErrNum, me.Number) < 0 {
+			return dataType, err
+		}
+		logger.Error("retry query cmd", slog.String("cmd", cmd))
+		time.Sleep(2 * time.Second)
+	}
+	return nil, errors.New("timeout")
+}
+
+func queryAtom(conn *sqlx.Conn, cmd string, timeout time.Duration) (tableDataType, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
@@ -46,14 +111,14 @@ func queryCmd(conn *sqlx.Conn, cmd string, timeout time.Duration) (tableDataType
 			return nil, err
 		}
 
-		slog.Debug("scan row map", slog.Any("map", data))
+		//slog.Debug("scan row map", slog.Any("map", data))
 		for k, v := range data {
 			if value, ok := v.([]byte); ok {
-				slog.Debug(
-					"reflect result",
-					slog.Any("before", v),
-					slog.Any("after", value),
-				)
+				//slog.Debug(
+				//	"reflect result",
+				//	slog.Any("before", v),
+				//	slog.Any("after", value),
+				//)
 				data[k] = string(value)
 			}
 		}

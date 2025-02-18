@@ -11,9 +11,10 @@ import (
 )
 
 var HeartBeatName = "mysql_monitor_heart_beat"
+var HeartBeatSchedule = "@every 5m"
 var MonitorConfig *Config
 var ItemsConfig []*MonitorItem
-var HardCodeSchedule = "@every 10s"
+var DBUpSchedule = "@every 10s"
 
 // InitConfig 配置初始化
 func InitConfig(configPath string) error {
@@ -85,7 +86,7 @@ func InjectMonitorHeartBeatItem() {
 	heartBeatItem := &MonitorItem{
 		Name:        HeartBeatName,
 		Enable:      &enable,
-		Schedule:    &HardCodeSchedule, //&MonitorConfig.DefaultSchedule,
+		Schedule:    &HeartBeatSchedule,
 		MachineType: []string{MonitorConfig.MachineType},
 		Role:        nil,
 	}
@@ -98,37 +99,11 @@ func InjectMonitorDbUpItem() {
 	dbUpItem := &MonitorItem{
 		Name:        "db-up",
 		Enable:      &enable,
-		Schedule:    &HardCodeSchedule, //&MonitorConfig.DefaultSchedule,
+		Schedule:    &DBUpSchedule,
 		MachineType: []string{MonitorConfig.MachineType},
 		Role:        nil,
 	}
 	ItemsConfig = injectItem(dbUpItem, ItemsConfig)
-	slog.Debug("inject hardcode", slog.Any("items", ItemsConfig))
-}
-
-// InjectHardCodeItem 注入硬编码的心跳和db-up监控
-func InjectHardCodeItem() {
-	enable := true
-	dbUpItem := &MonitorItem{
-		Name:        "db-up",
-		Enable:      &enable,
-		Schedule:    &HardCodeSchedule, //&MonitorConfig.DefaultSchedule,
-		MachineType: []string{MonitorConfig.MachineType},
-		Role:        nil,
-	}
-	heartBeatItem := &MonitorItem{
-		Name:        HeartBeatName,
-		Enable:      &enable,
-		Schedule:    &HardCodeSchedule, //&MonitorConfig.DefaultSchedule,
-		MachineType: []string{MonitorConfig.MachineType},
-		Role:        nil,
-	}
-	slog.Debug("load monitor item", slog.Any("items", ItemsConfig))
-
-	ItemsConfig = injectItem(dbUpItem, ItemsConfig)
-	slog.Debug("inject hardcode", slog.Any("items", ItemsConfig))
-
-	ItemsConfig = injectItem(heartBeatItem, ItemsConfig)
 	slog.Debug("inject hardcode", slog.Any("items", ItemsConfig))
 }
 

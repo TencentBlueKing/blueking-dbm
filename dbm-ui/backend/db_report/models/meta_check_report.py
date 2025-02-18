@@ -17,8 +17,8 @@ from backend.db_report.report_basemodel import BaseReportABS
 
 
 class MetaCheckReport(BaseReportABS):
-    ip = models.GenericIPAddressField(default="")
-    port = models.PositiveIntegerField(default=0)
+    ip = models.GenericIPAddressField(default=None, null=True)
+    port = models.PositiveIntegerField(default=None, null=True)
     cluster = models.CharField(max_length=255, default="")
     cluster_type = models.CharField(max_length=64, choices=ClusterType.get_choices(), default="")
     machine_type = models.CharField(max_length=64, choices=MachineType.get_choices(), default="")

@@ -62,7 +62,7 @@ func initLogger(cfg *config.LogConfig) {
 			Filename: logFile,
 			MaxAge:   2,
 			//MaxBackups: 2,
-			Compress: true,
+			Compress: false,
 		})
 	}
 

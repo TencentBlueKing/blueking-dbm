@@ -132,7 +132,7 @@ func initLogger() {
 		ioWriters = append(ioWriters, &lumberjack.Logger{
 			Filename: logFile,
 			MaxAge:   2,
-			Compress: true})
+			Compress: false})
 	}
 
 	handleOpt := slog.HandlerOptions{

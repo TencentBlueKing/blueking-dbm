@@ -111,7 +111,7 @@ func reschedule(configFileDir, configFileName, staff string) error {
 					"mysql-monitor-%d-hardcode-%s", config.MonitorConfig.Port, j.Name),
 				Command:  executable,
 				Args:     args,
-				Schedule: config.HardCodeSchedule,
+				Schedule: config.DBUpSchedule,
 				Creator:  staff, //viper.GetString("staff"),
 				Enable:   true,
 				WorkDir:  configFileDir,

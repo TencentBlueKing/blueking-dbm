@@ -10,12 +10,15 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/gin-contrib/requestid"
 	"github.com/gin-gonic/gin"
 )
 
 func MySQLComplexHandler(c *gin.Context) {
-	var postRequests []queryRequest
-	if err := c.ShouldBindJSON(&postRequests); err != nil {
+	requestId := requestid.Get(c)
+
+	var postRequestsMap = make(map[string]*queryRequest)
+	if err := c.ShouldBindJSON(&postRequestsMap); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"code":  1,
 			"data":  "",
@@ -25,11 +28,12 @@ func MySQLComplexHandler(c *gin.Context) {
 	}
 	slog.Info(
 		"enter mysql complex rpc handler",
-		slog.Any("original post requests", postRequests),
+		slog.Any("original post requests", postRequestsMap),
+		slog.String("request-id", requestId),
 	)
 
 	var allDupAddr []string
-	for _, postReq := range postRequests {
+	for _, postReq := range postRequestsMap {
 		postReq.TrimSpace()
 		if len(postReq.Timezone) == 0 {
 			postReq.Timezone = config.RuntimeConfig.Timezone
@@ -42,9 +46,13 @@ func MySQLComplexHandler(c *gin.Context) {
 		}
 
 		dupAddrs := findDuplicateAddresses(postReq.Addresses)
-		slog.Info("duplicate address", slog.String("addresses", strings.Join(dupAddrs, ",")))
 
 		if len(dupAddrs) > 0 {
+			slog.Info(
+				"duplicate address",
+				slog.String("addresses", strings.Join(dupAddrs, ",")),
+				slog.String("request-id", requestId),
+			)
 			allDupAddr = append(allDupAddr, dupAddrs...)
 		}
 	}
@@ -60,7 +68,8 @@ func MySQLComplexHandler(c *gin.Context) {
 
 	slog.Info(
 		"enter mysql complex rpc handler",
-		slog.Any("fill default post requests", postRequests),
+		slog.Any("fill default post requests", postRequestsMap),
+		slog.String("request-id", requestId),
 	)
 
 	var respCollect []rpc_core.OneAddressResultType
@@ -69,11 +78,11 @@ func MySQLComplexHandler(c *gin.Context) {
 	var bucketChan = make(chan int, 30)
 	go func() {
 		wg := sync.WaitGroup{}
-		wg.Add(len(postRequests))
+		wg.Add(len(postRequestsMap))
 
-		for _, postReq := range postRequests {
+		for _, postReq := range postRequestsMap {
 			bucketChan <- 1
-			go func(postReq queryRequest) {
+			go func(postReq *queryRequest) {
 				defer func() {
 					<-bucketChan
 					wg.Done()
@@ -83,10 +92,11 @@ func MySQLComplexHandler(c *gin.Context) {
 					config.RuntimeConfig.MySQLAdminUser, config.RuntimeConfig.MySQLAdminPassword,
 					postReq.ConnectTimeout, postReq.QueryTimeout, postReq.Timezone, postReq.Force,
 					&mysql_rpc.MySQLRPCEmbed{},
+					requestId,
 				)
 
 				for _, r := range rpcWrapper.Run() {
-					slog.Info("send response", slog.Any("result", r))
+					slog.Info("send response", slog.Any("result", r), slog.String("request-id", requestId))
 					respChan <- r
 				}
 			}(postReq)
@@ -99,10 +109,10 @@ func MySQLComplexHandler(c *gin.Context) {
 	for {
 		select {
 		case r := <-respChan:
-			slog.Info("collected response", slog.Any("response", r))
+			slog.Info("collected response", slog.Any("response", r), slog.String("request-id", requestId))
 			respCollect = append(respCollect, r)
 		case <-quitChange:
-			slog.Info("finish", slog.Any("response", respCollect))
+			slog.Info("finish", slog.Any("response", respCollect), slog.String("request-id", requestId))
 			c.JSON(
 				http.StatusOK, gin.H{
 					"code": 0,

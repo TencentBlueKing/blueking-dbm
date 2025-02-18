@@ -14,6 +14,7 @@ import (
 	"fmt"
 	"log/slog"
 	"math/rand"
+	"os"
 	"path/filepath"
 	"slices"
 	"strings"
@@ -42,11 +43,22 @@ func Run(hardcode bool) error {
 	slog.Info("main loop", slog.Bool("hardcode", hardcode))
 
 	lockFileName := fmt.Sprintf("%d-%s.lock", config.MonitorConfig.Port, strings.Join(iNames, "."))
-	lockFilePath := filepath.Join(cst.MySQLMonitorInstallPath, lockFileName)
+	localFileBasePath := filepath.Join(cst.MySQLMonitorInstallPath, "locks")
+	err := os.MkdirAll(localFileBasePath, os.ModePerm)
+	if err != nil {
+		slog.Error(
+			"main loop",
+			slog.String("lock file base dir", localFileBasePath),
+			slog.String("err", err.Error()),
+		)
+		return errors.WithStack(err)
+	}
+
+	lockFilePath := filepath.Join(localFileBasePath, lockFileName)
 
 	slog.Info("main loop", slog.String("lockFilePath", lockFilePath))
 	lk := fslock.New(lockFilePath)
-	err := lk.TryLock()
+	err = lk.TryLock()
 	if err != nil {
 		slog.Error("main loop",
 			slog.String("error", err.Error()))

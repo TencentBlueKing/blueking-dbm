@@ -18,6 +18,7 @@ import (
 	"dbm-services/mysql/db-remote-service/pkg/config"
 	"dbm-services/mysql/db-remote-service/pkg/service"
 
+	"github.com/gin-contrib/requestid"
 	"github.com/gin-gonic/gin"
 	"github.com/spf13/cobra"
 	"go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin"
@@ -42,6 +43,7 @@ var rootCmd = &cobra.Command{
 		trace.Setup()
 		// apm: add otlgin middleware
 		r.Use(otelgin.Middleware("drs"))
+		r.Use(requestid.New())
 		// add prom metrics middleware
 		metric.NewPrometheus("", apm.CustomMetrics).Use(r)
 
