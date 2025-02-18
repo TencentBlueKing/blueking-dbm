@@ -115,7 +115,7 @@ class MongoDBRestoreFlowParamBuilder(builders.FlowParamBuilder):
 
         tmp_cluster_filters = Q()
         for cluster_name in cluster_names:
-            tmp_cluster_filters |= Q(bk_biz_id=bk_biz_id, cluster_type=cluster_type, cluster_name=cluster_name)
+            tmp_cluster_filters |= Q(bk_biz_id=bk_biz_id, cluster_type=cluster_type, name=cluster_name)
         tmp_clusters = Cluster.objects.filter(tmp_cluster_filters)
 
         # 为临时集群添加临时标志和记录
@@ -125,7 +125,7 @@ class MongoDBRestoreFlowParamBuilder(builders.FlowParamBuilder):
         source_cluster_name__cluster: Dict[str, Cluster] = {}
         cluster_records: List[ClusterOperateRecord] = []
         for cluster in tmp_clusters:
-            cluster.tag_set.add(temporary_tag)
+            cluster.tags.add(temporary_tag)
             source_cluster_name__cluster[cluster.name.rsplit("-", 2)[0]] = cluster
             cluster_records.append(ClusterOperateRecord(cluster_id=cluster.id, ticket=self.ticket, flow=rollback_flow))
 
@@ -148,7 +148,7 @@ class MongoDBRestoreFlowParamBuilder(builders.FlowParamBuilder):
         rollback_flow.save(update_fields=["details"])
 
 
-@builders.BuilderFactory.register(TicketType.MONGODB_RESTORE)
+@builders.BuilderFactory.register(TicketType.MONGODB_RESTORE, is_apply=True)
 class MongoDBRestoreApplyFlowBuilder(BaseMongoDBTicketFlowBuilder):
     serializer = MongoDBRestoreDetailSerializer
 
@@ -235,7 +235,7 @@ class MongoDBRestoreApplyFlowBuilder(BaseMongoDBTicketFlowBuilder):
         cluster_type = self.ticket.details["cluster_type"]
         flow_infix = "_" if cluster_type == ClusterType.MongoShardedCluster else "_BATCH_"
         resource_apply_flow_type = getattr(FlowType, f"RESOURCE{flow_infix}APPLY")
-        resource_deliver_flow_type = getattr(FlowType, f"RESOURCE{flow_infix}DELIVERY")
+        resource_deliver_flow_type = getattr(FlowType, "RESOURCE_DELIVERY")
 
         flows = [
             Flow(
