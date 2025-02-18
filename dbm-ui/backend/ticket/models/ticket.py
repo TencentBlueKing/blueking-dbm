@@ -244,12 +244,26 @@ class Ticket(AuditedModel):
         return ticket
 
     @classmethod
-    def __create_recycle_ticket(cls, recycle_hosts, revoke_ticket, ip_recycle, ticket_type, flow_name):
+    def create_recycle_ticket(cls, revoke_ticket_id: int, recycle_hosts: list, ticket_type: TicketType):
+        """
+        从一个终止单据派生产生另一个清理单据
+        :param revoke_ticket_id: 终止单据ID
+        :param recycle_hosts: 回收机器列表
+        :param ticket_type: 回收单据类型
+        """
+        revoke_ticket = cls.objects.get(id=revoke_ticket_id)
+
+        # 暂定sqlserver机器回收到故障池，其他组件回收到公共资源池
+        # TODO: 后续改造需要根据uwork，裁撤列表等决定是回到故障池还是资源池
+        ip_dest = IpDest.Fault if revoke_ticket.group == DBType.Sqlserver else IpDest.Resource
+        ip_recycle = {"ip_dest": ip_dest, "for_biz": revoke_ticket.bk_biz_id}
+
         if not recycle_hosts:
             return
 
-        # 获取回收机器，
-        # 判定是否允许回收：主机的实例的phase不能是online
+        # 获取回收机器
+        # 判定是否允许回收：主机的实例的phase不能是online。
+        # TODO: 后续改造为回收流程进行空闲检查，不通过则不进行清理
         from backend.db_meta.models import Machine
 
         host_ids = [host["bk_host_id"] for host in recycle_hosts]
@@ -264,7 +278,7 @@ class Ticket(AuditedModel):
             ticket_type=ticket_type,
             creator=revoke_ticket.creator,
             bk_biz_id=revoke_ticket.bk_biz_id,
-            remark=_("单据{}终止后自动发起{}单据").format(revoke_ticket.id, TicketType.get_choice_label(ticket_type)),
+            remark=_("单据{}结束后自动发起{}单据").format(revoke_ticket.id, TicketType.get_choice_label(ticket_type)),
             details=details,
         )
 
@@ -273,44 +287,8 @@ class Ticket(AuditedModel):
             ticket=revoke_ticket,
             flow_type=FlowType.DELIVERY.value,
             details={"recycle_ticket": recycle_ticket.id},
-            flow_alias=flow_name,
+            flow_alias=TicketType.get_choice_label(ticket_type),
         )
-
-    @classmethod
-    def create_recycle_ticket(cls, revoke_ticket_id: int):
-        """
-        从一个终止单据派生产生另一个清理单据
-        :param revoke_ticket_id: 终止单据ID
-        """
-        from backend.ticket.builders import BuilderFactory
-        from backend.ticket.builders.common.base import fetch_apply_hosts, fetch_recycle_hosts
-
-        revoke_ticket = cls.objects.get(id=revoke_ticket_id)
-
-        # 对新申请机器进行回收
-        if revoke_ticket.ticket_type in BuilderFactory.apply_ticket_type:
-            recycle_apply_hosts = fetch_apply_hosts(revoke_ticket.details)
-            ip_dest = IpDest.Fault if revoke_ticket.group == DBType.Sqlserver else IpDest.Resource
-            ip_recycle = {"ip_dest": ip_dest, "for_biz": revoke_ticket.bk_biz_id}
-            cls.__create_recycle_ticket(
-                recycle_apply_hosts,
-                revoke_ticket,
-                ip_recycle,
-                ticket_type=TicketType.RECYCLE_APPLY_HOST,
-                flow_name=_("新分配主机退回"),
-            )
-
-        # 对将要下架机器进行回收
-        if revoke_ticket.ticket_type in BuilderFactory.recycle_ticket_type:
-            recycle_old_hosts = fetch_recycle_hosts(revoke_ticket.details)
-            ip_recycle = revoke_ticket.details["ip_recycle"]
-            cls.__create_recycle_ticket(
-                recycle_old_hosts,
-                revoke_ticket,
-                ip_recycle,
-                ticket_type=TicketType.RECYCLE_OLD_HOST,
-                flow_name=_("下架机器回收"),
-            )
 
     @classmethod
     def create_ticket_from_bk_monitor(cls, callback_data):

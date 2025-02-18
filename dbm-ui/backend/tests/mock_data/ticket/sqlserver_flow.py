@@ -361,10 +361,10 @@ SQLSERVER_RESTORE_SLAVE_TICKET_DATA = {
         "infos": [
             {
                 "cluster_ids": [CLUSTER_ID + 1],
-                "old_nodes": {"old_slave_host": [{"ip": "2.2.2.1", "bk_cloud_id": 0, "bk_host_id": 1001}]},
+                "old_nodes": {"old_slave_host": [{"ip": "2.2.2.1", "bk_cloud_id": 0, "bk_host_id": 1003}]},
                 "resource_spec": {
-                    "sqlserver_ha": [{"ip": "2.2.2.2", "bk_cloud_id": 0, "bk_host_id": 1002}]
-                }
+                    "sqlserver_ha": {"hosts": [{"ip": "2.2.2.2", "bk_cloud_id": 0, "bk_host_id": 1002}]}
+                },
             }
         ],
     },

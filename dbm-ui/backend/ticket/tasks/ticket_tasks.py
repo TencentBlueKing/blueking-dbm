@@ -353,6 +353,6 @@ def apply_ticket_task(
 
 
 @shared_task
-def create_recycle_ticket(revoke_ticket_id: int):
+def create_recycle_ticket(revoke_ticket_id: int, recycle_old_hosts: list, recycle_type: TicketType):
     """创建主机回收单据"""
-    Ticket.create_recycle_ticket(revoke_ticket_id)
+    Ticket.create_recycle_ticket(revoke_ticket_id, recycle_old_hosts, recycle_type)

@@ -130,6 +130,9 @@ ENABLE_CLEAN_EXPIRED_BAMBOO_TASK = get_type_env(key="ENABLE_CLEAN_EXPIRED_BAMBOO
 ENABLE_CLEAN_EXPIRED_FLOW_INSTANCE = get_type_env(key="ENABLE_CLEAN_EXPIRED_FLOW_INSTANCE", _type=bool, default=False)
 BAMBOO_TASK_VALIDITY_DAY = get_type_env(key="BAMBOO_TASK_VALIDITY_DAY", _type=int, default=360)
 
+# 主机回收流程观察时间天数
+HOST_RECYCLE_RETENTION_DAYS = get_type_env(key="HOST_RECYCLE_RETENTION_DAYS", _type=int, default=0)
+
 # 是否在部署 MySQL 的时候安装 PERL
 YUM_INSTALL_PERL = get_type_env(key="YUM_INSTALL_PERL", _type=bool, default=False)
 

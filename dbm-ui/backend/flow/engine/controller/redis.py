@@ -8,6 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+from backend.flow.engine.bamboo.scene.cloud.redis_machine_clear_flow import ClearRedisMachineFlow
 from backend.flow.engine.bamboo.scene.redis.dirty_machine_clear import DirtyMachineClearFlow
 from backend.flow.engine.bamboo.scene.redis.redis_add_dts_server import RedisAddDtsServerFlow
 from backend.flow.engine.bamboo.scene.redis.redis_backend_scale import RedisBackendScaleFlow
@@ -425,3 +426,10 @@ class RedisController(BaseController):
         """
         flow = RedisReplicasForceResyncSceneFlow(root_id=self.root_id, data=self.ticket_data)
         flow.replicas_force_resync()
+
+    def redis_machine_clear_scene(self):
+        """
+        redis 机器清理流程
+        """
+        flow = ClearRedisMachineFlow(root_id=self.root_id, data=self.ticket_data)
+        flow.run_flow()

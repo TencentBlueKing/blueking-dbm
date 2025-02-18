@@ -51,7 +51,7 @@ class ListMachineEventSerializer(serializers.ModelSerializer):
         if not ticket:
             clusters, ticket_type_display = [], ""
         else:
-            clusters = ticket.details.get("clusters", [])
+            clusters = ticket.details.get("clusters", {}).values()
             ticket_type_display = TicketType.get_choice_label(ticket.ticket_type)
 
         instance = super().to_representation(instance)

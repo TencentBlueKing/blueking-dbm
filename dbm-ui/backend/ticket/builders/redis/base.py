@@ -22,7 +22,7 @@ from backend.db_services.redis.constants import KeyDeleteType
 from backend.ticket import builders
 from backend.ticket.builders import TicketFlowBuilder
 from backend.ticket.builders.common.base import RedisTicketFlowBuilderPatchMixin, SkipToRepresentationMixin
-from backend.ticket.constants import CheckRepairFrequencyType, DataCheckRepairSettingType, FlowType
+from backend.ticket.constants import CheckRepairFrequencyType, DataCheckRepairSettingType
 
 KEY_FILE_PREFIX = "/redis/keyfiles/{biz}"
 
@@ -148,10 +148,8 @@ class RedisUpdateApplyResourceParamBuilder(builders.ResourceApplyParamBuilder):
         next_flow.save(update_fields=["details"])
 
         # 将下架的新proxy更新到清理流程中
-        recycle_flows = self.ticket.flows.filter(flow_type=FlowType.HOST_RECYCLE)
-        for flow in recycle_flows:
-            flow.details["ticket_data"]["hosts"].extend(drop_proxy_hosts)
-            flow.save(update_fields=["details"])
+        self.ticket.details["recycle_hosts"].extend(drop_proxy_hosts)
+        self.ticket.save()
 
 
 class ClusterValidateMixin(object):

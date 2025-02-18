@@ -21,9 +21,7 @@ from rest_framework import serializers
 from backend import env
 from backend.components.dbresource.client import DBResourceApi
 from backend.configuration.constants import AffinityEnum, DBType, SystemSettingsEnum
-from backend.configuration.models import BizSettings, DBAdministrator, SystemSettings
-from backend.db_dirty.constants import MachineEventType, PoolType
-from backend.db_dirty.models import MachineEvent
+from backend.configuration.models import DBAdministrator, SystemSettings
 from backend.db_meta.models import AppCache, Cluster
 from backend.db_services.dbbase.constants import IpSource
 from backend.flow.engine.controller.base import BaseController
@@ -276,7 +274,7 @@ class RecycleParamBuilder(FlowParamBuilder):
         DBType.Hdfs.value: "hdfs.HdfsController.hdfs_machine_clear_scene",
         DBType.Pulsar.value: "pulsar.PulsarController.pulsar_machine_clear_scene",
         DBType.Vm.value: "vm.VmController.vm_machine_clear_scene",
-        DBType.Redis.value: "redis.RedisController.redis_dirty_machine_clear",
+        DBType.Redis.value: "redis.RedisController.redis_machine_clear_scene",
         # TODO sqlserver，mongo，riak清理流程暂时没有
         DBType.Sqlserver.value: "",
         DBType.MongoDB.value: "",
@@ -391,12 +389,6 @@ class TicketFlowBuilder:
     pause_node_builder: PauseParamBuilder = PauseParamBuilder
     # 默认审批参数构造器
     itsm_flow_builder: ItsmParamBuilder = ItsmParamBuilder
-    # 默认主机回收参数构造器
-    recycle_flow_builder: RecycleParamBuilder = RecycleParamBuilder
-    # 默认资源重导入参数构造器
-    import_resource_flow_builder: ReImportResourceParamBuilder = ReImportResourceParamBuilder
-    # 默认主机导入故障池参数构造器
-    import_fault_pool_builder: ImportFaultPoolParamBuilder = ImportFaultPoolParamBuilder
     # 默认资源申请参数构造器
     # resource_apply_builder和resource_batch_apply_builder只能存在其一，表示是资源池单次申请还是批量申请
     resource_apply_builder: ResourceApplyParamBuilder = None
@@ -462,11 +454,6 @@ class TicketFlowBuilder:
     def need_resource_pool(self):
         """是否存在资源池接入"""
         return self.ticket.details.get("ip_source") == IpSource.RESOURCE_POOL
-
-    @property
-    def need_recycle(self):
-        """是否回收主机"""
-        return self.ticket.details.get("ip_recycle", {}).get("ip_dest")
 
     def custom_ticket_flows(self):
         return []
@@ -545,39 +532,6 @@ class TicketFlowBuilder:
         # 如果使用资源池，则在最后需要进行资源交付
         if self.need_resource_pool:
             flows.append(Flow(ticket=self.ticket, flow_type=FlowType.RESOURCE_DELIVERY, flow_alias=_("资源交付")))
-
-        # 判断并添加主机清理节点
-        if self.need_recycle:
-            flows.append(
-                Flow(
-                    ticket=self.ticket,
-                    flow_type=FlowType.HOST_RECYCLE.value,
-                    details=self.recycle_flow_builder(self.ticket).get_params(),
-                    flow_alias=_("已下架主机数据清理"),
-                ),
-            )
-
-        # 判断并添加导入故障池节点
-        if self.need_recycle == PoolType.Fault:
-            flows.append(
-                Flow(
-                    ticket=self.ticket,
-                    flow_type=FlowType.HOST_RECYCLE.value,
-                    details=self.import_resource_flow_builder(self.ticket).get_params(),
-                    flow_alias=_("已下架主机转入故障池"),
-                ),
-            )
-
-        # 判断并添加资源重导入节点
-        if self.need_recycle == PoolType.Resource:
-            flows.append(
-                Flow(
-                    ticket=self.ticket,
-                    flow_type=FlowType.HOST_RECYCLE.value,
-                    details=self.import_resource_flow_builder(self.ticket).get_params(),
-                    flow_alias=_("已下架主机重导入资源池"),
-                ),
-            )
 
         Flow.objects.bulk_create(flows)
         return list(Flow.objects.filter(ticket=self.ticket))

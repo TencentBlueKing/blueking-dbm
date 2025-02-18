@@ -52,7 +52,11 @@ class TendbMNTApplyParamBuilder(builders.FlowParamBuilder):
 
 
 class TendbMNTApplyResourceParamBuilder(BaseOperateResourceParamBuilder):
-    pass
+    def post_callback(self):
+        next_flow = self.ticket.next_flow()
+        for info in next_flow.details["ticket_data"]["infos"]:
+            info["resource_spec"]["spider"] = info["resource_spec"].pop("spider_ip_list")
+        next_flow.save(update_fields=["details"])
 
 
 @builders.BuilderFactory.register(TicketType.TENDBCLUSTER_SPIDER_MNT_APPLY, is_apply=True)

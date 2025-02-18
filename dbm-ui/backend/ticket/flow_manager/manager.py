@@ -14,7 +14,8 @@ from django.db import transaction
 
 from backend.core import notify
 from backend.ticket import constants
-from backend.ticket.constants import FLOW_FINISHED_STATUS, FlowType, TicketStatus
+from backend.ticket.builders import BuilderFactory
+from backend.ticket.constants import FLOW_FINISHED_STATUS, FlowType, TicketStatus, TicketType
 from backend.ticket.flow_manager.delivery import DeliveryFlow, DescribeTaskFlow
 from backend.ticket.flow_manager.inner import IgnoreResultInnerFlow, InnerFlow, QuickInnerFlow, SimpleTaskFlow
 from backend.ticket.flow_manager.itsm import ItsmFlow
@@ -117,6 +118,8 @@ class TicketFlowManager(object):
         if target_status not in [TicketStatus.RUNNING, TicketStatus.RESOURCE_REPLENISH]:
             notify.send_msg.apply_async(args=(self.ticket.id,))
 
-        # 如果是inner flow的终止，要联动回收主机。
-        if target_status == TicketStatus.TERMINATED and self.current_flow_obj.flow_type == FlowType.INNER_FLOW:
-            create_recycle_ticket.apply_async(args=(self.ticket.id,))
+        # 如果是inner flow的终止，要联动回收主机。TODO: 暂时去掉，改为flow独立决定回收机器
+        # 如果是待下架单据，正常结束要联动回收主机
+        if target_status == TicketStatus.SUCCEEDED and self.ticket.ticket_type in BuilderFactory.recycle_ticket_type:
+            recycle_old_hosts = self.ticket.details["recycle_hosts"]
+            create_recycle_ticket.apply_async(args=(self.ticket.id, recycle_old_hosts, TicketType.RECYCLE_OLD_HOST))

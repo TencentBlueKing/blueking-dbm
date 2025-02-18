@@ -59,7 +59,7 @@ DORIS_DESTROY_TICKET_DATA = {
     "bk_biz_id": BK_BIZ_ID,
     "remark": "测试下架doris集群",
     "ticket_type": TicketType.DORIS_DESTROY,
-    "details": {"cluster_id": 1},
+    "details": {"cluster_id": CLUSTER_ID},
 }
 
 # doris扩容input单据

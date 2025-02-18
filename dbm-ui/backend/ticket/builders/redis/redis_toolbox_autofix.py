@@ -18,7 +18,7 @@ from backend.db_monitor.serializers import AlarmCallBackDataSerializer
 from backend.db_services.dbbase.constants import IpSource
 from backend.flow.engine.controller.redis import RedisController
 from backend.ticket import builders
-from backend.ticket.builders.common.base import HostRecycleSerializer, SkipToRepresentationMixin
+from backend.ticket.builders.common.base import SkipToRepresentationMixin
 from backend.ticket.builders.redis.redis_toolbox_cut_off import (
     RedisClusterCutOffFlowBuilder,
     RedisClusterCutOffResourceParamBuilder,
@@ -42,7 +42,6 @@ class RedisClusterAutofixDetailSerializer(SkipToRepresentationMixin, serializers
     ip_source = serializers.ChoiceField(
         help_text=_("主机来源"), choices=IpSource.get_choices(), default=IpSource.RESOURCE_POOL.value
     )
-    ip_recycle = HostRecycleSerializer(help_text=_("主机回收信息"), default=HostRecycleSerializer.DEFAULT)
     infos = serializers.ListField(help_text=_("批量操作参数列表"), child=InfoSerializer())
 
 
@@ -86,7 +85,7 @@ class RedisClusterAutofixResourceParamBuilder(RedisClusterCutOffResourceParamBui
         super().post_callback()
 
 
-@builders.BuilderFactory.register(TicketType.REDIS_CLUSTER_AUTOFIX, is_apply=True, is_recycle=True)
+@builders.BuilderFactory.register(TicketType.REDIS_CLUSTER_AUTOFIX, is_apply=True)
 class RedisClusterAutofixFlowBuilder(RedisClusterCutOffFlowBuilder):
     serializer = RedisClusterAutofixDetailSerializer
     alarm_transform_serializer = RedisClusterAutofixAlarmTransformSerializer
@@ -95,8 +94,6 @@ class RedisClusterAutofixFlowBuilder(RedisClusterCutOffFlowBuilder):
     resource_batch_apply_builder = RedisClusterAutofixResourceParamBuilder
     default_need_itsm = True
     default_need_manual_confirm = False
-
-    need_patch_recycle_host_details = True
 
     @property
     def need_itsm(self):

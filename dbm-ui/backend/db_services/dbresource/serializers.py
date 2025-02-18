@@ -47,6 +47,7 @@ class ResourceImportSerializer(serializers.Serializer):
     bk_biz_id = serializers.IntegerField(help_text=_("机器当前所属的业务id	"), default=env.DBA_APP_BK_BIZ_ID)
     hosts = serializers.ListSerializer(help_text=_("主机"), child=HostInfoSerializer())
     labels = serializers.ListField(help_text=_("标签"), child=serializers.CharField(), required=False)
+    return_resource = serializers.BooleanField(help_text=_("是否为退回资源"), required=False)
 
     def validate(self, attrs):
         # 如果主机存在源数据，则拒绝导入

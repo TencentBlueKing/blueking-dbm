@@ -43,12 +43,13 @@ class RedisDestroyFlowParamBuilder(builders.FlowParamBuilder):
         super().format_ticket_data()
 
 
-@builders.BuilderFactory.register(TicketType.REDIS_DESTROY, phase=ClusterPhase.DESTROY)
+@builders.BuilderFactory.register(TicketType.REDIS_DESTROY, phase=ClusterPhase.DESTROY, is_recycle=True)
 class RedisDestroyFlowBuilder(BaseRedisTicketFlowBuilder):
     serializer = RedisDestroyDetailSerializer
     inner_flow_builder = RedisDestroyFlowParamBuilder
     inner_flow_name = _("下架集群")
     pause_node_builder = RedisBasePauseParamBuilder
+    need_patch_recycle_cluster_details = True
 
 
 class RedisInstanceDestroyDetailSerializer(SkipToRepresentationMixin, serializers.Serializer):

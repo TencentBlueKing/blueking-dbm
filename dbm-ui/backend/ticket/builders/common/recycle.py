@@ -9,17 +9,25 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import logging
+from datetime import datetime, timedelta, timezone
 
 from django.utils.translation import ugettext_lazy as _
 from rest_framework import serializers
 
+from backend import env
 from backend.db_services.dbbase.constants import IpDest
 from backend.db_services.dbresource.handlers import ResourceHandler
 from backend.ticket import builders
-from backend.ticket.builders import RecycleParamBuilder, ReImportResourceParamBuilder, TicketFlowBuilder
+from backend.ticket.builders import (
+    ImportFaultPoolParamBuilder,
+    RecycleParamBuilder,
+    ReImportResourceParamBuilder,
+    TicketFlowBuilder,
+)
 from backend.ticket.builders.common.base import HostRecycleSerializer
 from backend.ticket.constants import FlowType, TicketType
 from backend.ticket.models import Flow
+from backend.utils.time import datetime2str
 
 logger = logging.getLogger("root")
 
@@ -47,23 +55,30 @@ class RecycleHostParamBuilder(RecycleParamBuilder):
 class RecycleHostFlowBuilder(TicketFlowBuilder):
     serializer = RecycleHostDetailSerializer
     import_resource_flow_builder = RecycleHostResourceParamBuilder
+    import_fault_pool_builder = ImportFaultPoolParamBuilder
     recycle_flow_builder = RecycleHostParamBuilder
-    # 回收流程别名，新旧主机回收名称会有区别
-    import_resource_flow_alias = ""
-    import_fault_pool_flow_alias = ""
     # 此单据不属于任何db，暂定为common
     group = "common"
 
     def init_ticket_flows(self):
-        # 主机清理
-        flows = [
+        flows = []
+
+        # 定时执行
+        if env.HOST_RECYCLE_RETENTION_DAYS:
+            flows.append(
+                Flow(ticket=self.ticket, flow_type=FlowType.TIMER.value, flow_alias=_("定时执行")),
+            )
+
+        # 数据清理
+        flows.append(
             Flow(
                 ticket=self.ticket,
                 flow_type=FlowType.HOST_RECYCLE.value,
                 details=self.recycle_flow_builder(self.ticket).get_params(),
                 flow_alias=_("主机数据清理"),
             ),
-        ]
+        )
+
         # 导入资源池
         if self.ticket.details["ip_recycle"]["ip_dest"] == IpDest.Resource:
             flows.append(
@@ -75,6 +90,7 @@ class RecycleHostFlowBuilder(TicketFlowBuilder):
                 ),
             )
 
+        # 导入故障池
         if self.ticket.details["ip_recycle"]["ip_dest"] == IpDest.Fault:
             flows.append(
                 Flow(
@@ -89,8 +105,9 @@ class RecycleHostFlowBuilder(TicketFlowBuilder):
         return list(Flow.objects.filter(ticket=self.ticket))
 
     def patch_ticket_detail(self):
-        recycle_hosts = self.ticket.details["recycle_hosts"]
-        self.ticket.update_details(recycle_hosts=ResourceHandler.standardized_resource_host(recycle_hosts))
+        trigger_time = datetime2str(datetime.now(timezone.utc) + timedelta(days=env.HOST_RECYCLE_RETENTION_DAYS))
+        recycle_hosts = ResourceHandler.standardized_resource_host(self.ticket.details["recycle_hosts"])
+        self.ticket.update_details(recycle_hosts=recycle_hosts, trigger_time=trigger_time)
 
 
 @builders.BuilderFactory.register(TicketType.RECYCLE_APPLY_HOST)

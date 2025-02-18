@@ -173,7 +173,6 @@ MONGODB_PROXYINSTANCE_DATA = [
         "time_zone": "+08:00",
         "bk_instance_id": 7087,
         "machine_id": 1001,
-        "machine_id": 4,
         "phase": "online",
     },
     {
