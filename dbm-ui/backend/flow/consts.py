@@ -812,8 +812,22 @@ MSSQL_DRS = "mssql_drs"
 # sqlserver的用户登录admin账号名称
 MSSQL_ADMIN = SQLSERVER_ADMIN_USER
 
+# sqlserver的业务库数据只读账号
+MSSQL_DATA_READ_DRS_USER = "mssql_data_read_drs"
+
+# sqlserver的系统库数据只读账号
+MSSQL_SYS_READ_DRS_USER = "mssql_sys_read_drs"
+
 # sqlserver自定义系统账号列表
-SQLSERVER_CUSTOM_SYS_USER = [MSSQL_EXPORTER, MSSQL_ADMIN, MSSQL_DBHA, MSSQL_DRS, "sa"]
+SQLSERVER_CUSTOM_SYS_USER = [
+    MSSQL_EXPORTER,
+    MSSQL_ADMIN,
+    MSSQL_DBHA,
+    MSSQL_DRS,
+    MSSQL_DATA_READ_DRS_USER,
+    MSSQL_SYS_READ_DRS_USER,
+    "sa",
+]
 
 # window系统job账号
 WINDOW_SYSTEM_JOB_USER = "system"

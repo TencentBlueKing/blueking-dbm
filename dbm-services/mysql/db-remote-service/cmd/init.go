@@ -48,6 +48,10 @@ func init() {
 
 	_ = viper.BindEnv("sqlserver_admin_user", "SQLSERVER_ADMIN_USER")
 	_ = viper.BindEnv("sqlserver_admin_password", "SQLSERVER_ADMIN_PASSWORD")
+	_ = viper.BindEnv("sqlserver_data_read_user", "SQLSERVER_DATA_READ_USER")
+	_ = viper.BindEnv("sqlserver_data_read_password", "SQLSERVER_DATA_READ_PASSWORD")
+	_ = viper.BindEnv("sqlserver_sys_read_user", "SQLSERVER_SYS_READ_USER")
+	_ = viper.BindEnv("sqlserver_sys_read_password", "SQLSERVER_SYS_READ_PASSWORD")
 	_ = viper.BindEnv("concurrent", "CONCURRENT")
 	_ = viper.BindEnv("port", "PORT")
 	_ = viper.BindEnv("tmysqlparser_bin", "TMYSQLPARSER_BIN")

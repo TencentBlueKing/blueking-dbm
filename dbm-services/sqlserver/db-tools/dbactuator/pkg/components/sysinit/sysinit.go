@@ -246,7 +246,7 @@ func (s *SysInitParam) CheckSSHForLocal() error {
 	var host string
 	var err error
 	host, err = osutil.StandardPowerShellCommand(
-		`(Get-NetIPAddress -InterfaceAlias "Ethernet" -AddressFamily IPv4).IPAddress`,
+		`(Get-NetIPAddress -InterfaceAlias "Ethernet*" -AddressFamily IPv4).IPAddress`,
 	)
 	if err != nil {
 		return err

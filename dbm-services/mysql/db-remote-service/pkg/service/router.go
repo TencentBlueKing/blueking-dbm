@@ -23,7 +23,12 @@ func RegisterRouter(engine *gin.Engine) {
 	twemproxyGroup.POST("/rpc", handler_rpc.TwemproxyRPCHandler)
 
 	sqlserverGroup := engine.Group("/sqlserver")
+	// 这是drs内部远程查询接口，不给业务开放
 	sqlserverGroup.POST("/rpc", handler_rpc.SqlserverRPCHandler)
+	// 这是drs业务数据查询接口，对应运维用户自助查询功能
+	sqlserverGroup.POST("/data-read-rpc", handler_rpc.SqlserverDataReadRPCHandler)
+	// 这是drs系统库数据查询接口，对应DBA用户的自助查询功能
+	sqlserverGroup.POST("/sys-read-rpc", handler_rpc.SqlserverSySReadRPCHandler)
 
 	webConsoleGroup := engine.Group("/webconsole")
 	webConsoleGroup.POST("/rpc", handler_rpc.WebConsoleRPCHandler)

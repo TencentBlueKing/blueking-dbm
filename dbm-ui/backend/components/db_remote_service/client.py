@@ -89,6 +89,24 @@ class _DRSApi(object):
             description=_("sqlserver 远程执行"),
         )
 
+        self.sqlserver_data_read_rpc = ProxyAPI(
+            method="POST",
+            base=self.BASE_DOMAIN,
+            url="sqlserver/data-read-rpc",
+            module=self.MODULE,
+            ssl=ssl_flag,
+            description=_("sqlserver 远程执行(业务库数据只读账号)"),
+        )
+
+        self.sqlserver_sys_read_rpc = ProxyAPI(
+            method="POST",
+            base=self.BASE_DOMAIN,
+            url="sqlserver/sys-read-rpc",
+            module=self.MODULE,
+            ssl=ssl_flag,
+            description=_("sqlserver 远程执行(业务库数据只读账号)"),
+        )
+
         self.webconsole_rpc = ProxyAPI(
             method="POST",
             base=self.BASE_DOMAIN,

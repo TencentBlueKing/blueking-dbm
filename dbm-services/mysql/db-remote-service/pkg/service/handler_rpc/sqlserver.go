@@ -6,3 +6,9 @@ import (
 
 // SqlserverRPCHandler TODO
 var SqlserverRPCHandler = generalHandler(&sqlserver_rpc.SqlserverRPCEmbed{})
+
+// SqlserverRPCHandler TODO
+var SqlserverDataReadRPCHandler = generalHandler(&sqlserver_rpc.SqlserverDataReadRPCEmbed{})
+
+// SqlserverRPCHandler TODO
+var SqlserverSySReadRPCHandler = generalHandler(&sqlserver_rpc.SqlserverSySReadRPCEmbed{})
