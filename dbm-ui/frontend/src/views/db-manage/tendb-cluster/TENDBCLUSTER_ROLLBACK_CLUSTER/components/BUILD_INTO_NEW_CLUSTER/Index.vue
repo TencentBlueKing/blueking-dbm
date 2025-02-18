@@ -29,6 +29,7 @@
         :label="t('存储层主机')"
         :min-width="200"
         :params="{
+          for_bizs: [currentBizId, 0],
           resource_types: [DBTypes.TENDBCLUSTER, 'PUBLIC'],
         }" />
       <SingleResourceHostColumn
@@ -37,6 +38,7 @@
         :label="t('接入层主机')"
         :min-width="200"
         :params="{
+          for_bizs: [currentBizId, 0],
           resource_types: [DBTypes.TENDBCLUSTER, 'PUBLIC'],
         }" />
       <BackupModeColumn
@@ -176,6 +178,8 @@
 
   const { t } = useI18n();
   const tableRef = useTemplateRef('table');
+
+  const currentBizId = window.PROJECT_CONFIG.BIZ_ID;
 
   const createTableRow = (data = {} as Partial<RowData>) => ({
     cluster: data.cluster || {

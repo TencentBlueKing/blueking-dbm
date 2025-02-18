@@ -12,10 +12,10 @@
 -->
 
 <template>
-  <BkTable :data="ticketDetails.details.infos">
-    <BkTableColumn
-      :label="t('目标集群')"
-      :min-width="250">
+  <BkTable
+    :data="ticketDetails.details.infos"
+    show-overflow>
+    <BkTableColumn :label="t('目标集群')">
       <template #default="{ data }: { data: RowData }">
         <div
           v-for="clusterId in data.cluster_ids"
@@ -25,9 +25,14 @@
         </div>
       </template>
     </BkTableColumn>
-    <BkTableColumn :label="t('新Proxy主机')">
+    <BkTableColumn :label="t('新从库主机')">
       <template #default="{ data }: { data: RowData }">
-        {{ data.new_proxy.ip }}
+        {{ data.resource_spec.new_slave.hosts[0].ip }}
+      </template>
+    </BkTableColumn>
+    <BkTableColumn :label="t('备份源')">
+      <template #default>
+        {{ ticketDetails.details.backup_source === 'local' ? t('本地备份') : t('远程备份') }}
       </template>
     </BkTableColumn>
   </BkTable>
@@ -40,7 +45,7 @@
   import { TicketTypes } from '@common/const';
 
   interface Props {
-    ticketDetails: TicketModel<Mysql.ProxyAdd>;
+    ticketDetails: TicketModel<Mysql.ResourcePool.AddSlave>;
   }
 
   type RowData = Props['ticketDetails']['details']['infos'][number];
@@ -48,7 +53,7 @@
   defineProps<Props>();
 
   defineOptions({
-    name: TicketTypes.MYSQL_PROXY_ADD,
+    name: TicketTypes.MYSQL_ADD_SLAVE,
     inheritAttrs: false,
   });
 

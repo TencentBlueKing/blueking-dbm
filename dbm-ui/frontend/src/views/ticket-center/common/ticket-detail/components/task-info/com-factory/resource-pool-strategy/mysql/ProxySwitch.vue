@@ -13,34 +13,49 @@
 
 <template>
   <InfoList>
-    <InfoItem :label="t('备份源:')">
-      {{ ticketDetails.details.backup_source === 'local' ? t('本地备份') : t('远程备份') }}
+    <InfoItem :label="t('替换类型：')">
+      {{ displayInfoTypeMap[ticketDetails.details.infos[0].display_info.type] }}
     </InfoItem>
   </InfoList>
   <BkTable
     :data="ticketDetails.details.infos"
-    show-overflow-tooltip>
-    <BkTableColumn :label="t('待重建从库主机')">
+    :show-overflow="false">
+    <BkTableColumn :label="t('目标Proxy')">
       <template #default="{ data }: { data: RowData }">
-        {{ data.old_slave.ip }}
+        {{ data.old_nodes.origin_proxy[0].ip }}
       </template>
     </BkTableColumn>
-    <BkTableColumn :label="t('同机关联集群')">
+    <BkTableColumn
+      v-if="isHostReplace"
+      :label="t('关联实例')">
       <template #default="{ data }: { data: RowData }">
-        <div
-          v-for="clusterId in data.cluster_ids"
-          :key="clusterId"
-          style="line-height: 20px">
-          {{ ticketDetails.details.clusters[clusterId].immute_domain }}
-        </div>
+        <p
+          v-for="item in data.display_info.related_instances"
+          :key="item">
+          {{ item }}
+        </p>
       </template>
     </BkTableColumn>
-    <BkTableColumn :label="t('新从库主机')">
+    <BkTableColumn :label="t('关联集群')">
       <template #default="{ data }: { data: RowData }">
-        {{ data.new_slave.ip }}
+        <p
+          v-for="item in data.display_info.related_clusters"
+          :key="item">
+          {{ item }}
+        </p>
+      </template>
+    </BkTableColumn>
+    <BkTableColumn :label="t('新Proxy主机')">
+      <template #default="{ data }: { data: RowData }">
+        {{ data.resource_spec.target_proxy.hosts[0].ip }}
       </template>
     </BkTableColumn>
   </BkTable>
+  <InfoList>
+    <InfoItem :label="t('忽略业务连接：')">
+      {{ ticketDetails.details.force ? t('是') : t('否') }}
+    </InfoItem>
+  </InfoList>
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
@@ -49,20 +64,27 @@
 
   import { TicketTypes } from '@common/const';
 
-  import InfoList, { Item as InfoItem } from '../components/info-list/Index.vue';
+  import InfoList, { Item as InfoItem } from '../../components/info-list/Index.vue';
 
   interface Props {
-    ticketDetails: TicketModel<Mysql.RestoreSlave>;
+    ticketDetails: TicketModel<Mysql.ResourcePool.ProxySwitch>;
   }
 
   type RowData = Props['ticketDetails']['details']['infos'][number];
 
-  defineProps<Props>();
+  const props = defineProps<Props>();
 
   defineOptions({
-    name: TicketTypes.MYSQL_RESTORE_SLAVE,
+    name: TicketTypes.MYSQL_PROXY_SWITCH,
     inheritAttrs: false,
   });
 
   const { t } = useI18n();
+
+  const displayInfoTypeMap = {
+    INSTANCE_REPLACE: t('实例替换'),
+    HOST_REPLACE: t('整机替换'),
+  };
+
+  const isHostReplace = computed(() => props.ticketDetails.details.infos[0].display_info.type === 'HOST_REPLACE');
 </script>

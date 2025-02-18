@@ -12,10 +12,10 @@
 -->
 
 <template>
-  <BkTable :data="ticketDetails.details.infos">
-    <BkTableColumn
-      :label="t('目标集群')"
-      :min-width="250">
+  <BkTable
+    :data="ticketDetails.details.infos"
+    :show-overflow="false">
+    <BkTableColumn :label="t('目标集群')">
       <template #default="{ data }: { data: RowData }">
         <div
           v-for="clusterId in data.cluster_ids"
@@ -25,12 +25,32 @@
         </div>
       </template>
     </BkTableColumn>
-    <BkTableColumn :label="t('新Proxy主机')">
+    <BkTableColumn :label="t('新主从主机')">
       <template #default="{ data }: { data: RowData }">
-        {{ data.new_proxy.ip }}
+        <div>
+          <BkTag
+            size="small"
+            theme="success">
+            M
+          </BkTag>
+          {{ data.resource_spec.new_master.hosts[0].ip }}
+        </div>
+        <div>
+          <BkTag
+            size="small"
+            theme="info">
+            S
+          </BkTag>
+          {{ data.resource_spec.new_slave.hosts[0].ip }}
+        </div>
       </template>
     </BkTableColumn>
   </BkTable>
+  <InfoList>
+    <InfoItem :label="t('备份源:')">
+      {{ ticketDetails.details.backup_source === 'local' ? t('本地备份') : t('远程备份') }}
+    </InfoItem>
+  </InfoList>
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
@@ -39,8 +59,10 @@
 
   import { TicketTypes } from '@common/const';
 
+  import InfoList, { Item as InfoItem } from '../../components/info-list/Index.vue';
+
   interface Props {
-    ticketDetails: TicketModel<Mysql.ProxyAdd>;
+    ticketDetails: TicketModel<Mysql.ResourcePool.MigrateCluster>;
   }
 
   type RowData = Props['ticketDetails']['details']['infos'][number];
@@ -48,7 +70,7 @@
   defineProps<Props>();
 
   defineOptions({
-    name: TicketTypes.MYSQL_PROXY_ADD,
+    name: TicketTypes.MYSQL_MIGRATE_CLUSTER,
     inheritAttrs: false,
   });
 

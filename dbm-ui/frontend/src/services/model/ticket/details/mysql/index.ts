@@ -1,5 +1,5 @@
 export * from './accountRuleChange';
-export * from './addSlava';
+export * from './addSlave';
 export * from './authorizeRules';
 export * from './checkSum';
 export * from './clientCloneRules';
@@ -26,6 +26,7 @@ export * from './partition';
 export * from './proxyAdd';
 export * from './proxySwitch';
 export * from './proxyUpgrade';
+export * as ResourcePool from './resource-pool/index';
 export * from './restoreLocalSlave';
 export * from './restoreSlave';
 export * from './rollBackCluster';

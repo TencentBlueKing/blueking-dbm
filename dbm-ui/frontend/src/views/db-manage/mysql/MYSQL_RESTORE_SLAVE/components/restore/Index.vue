@@ -33,6 +33,7 @@
             field="newSlave.ip"
             :label="t('新从库主机')"
             :params="{
+              for_bizs: [currentBizId, 0],
               resource_types: [DBTypes.MYSQL, 'PUBLIC'],
             }" />
           <OperationColumn
@@ -103,6 +104,8 @@
 
   const { t } = useI18n();
   const tableRef = useTemplateRef('table');
+
+  const currentBizId = window.PROJECT_CONFIG.BIZ_ID;
 
   const createTableRow = (data = {} as Partial<RowData>) => ({
     slave: data.slave || {
