@@ -17,6 +17,7 @@ from rest_framework import serializers, status
 
 from backend.bk_web.swagger import common_swagger_auto_schema
 from backend.configuration.constants import DBType
+from backend.db_meta.enums import ClusterType
 from backend.db_report import mock_data
 from backend.db_report.enums import SWAGGER_TAG, MysqlBackupCheckSubType, ReportFieldFormat, ReportType
 from backend.db_report.models import MysqlBackupCheckReport
@@ -82,12 +83,15 @@ class MysqlBackupCheckReportBaseViewSet(ReportBaseViewSet):
 
 @register_report(DBType.MySQL)
 class MysqlFullBackupCheckReportViewSet(MysqlBackupCheckReportBaseViewSet):
-    queryset = MysqlBackupCheckReport.objects.filter(subtype=MysqlBackupCheckSubType.FullBackup.value)
+    cluster_types = ClusterType.db_type_to_cluster_types(DBType.MySQL)
+    queryset = MysqlBackupCheckReport.objects.filter(
+        subtype=MysqlBackupCheckSubType.FullBackup.value, cluster_type__in=cluster_types
+    )
     serializer_class = MysqlBackupCheckReportSerializer
     report_type = ReportType.FULL_BACKUP_CHECK
 
     @common_swagger_auto_schema(
-        operation_summary=_("MySQL 全备检查报告"),
+        operation_summary=_("全备检查报告"),
         responses={status.HTTP_200_OK: MysqlBackupCheckReportSerializer()},
         tags=[SWAGGER_TAG],
     )
@@ -97,12 +101,15 @@ class MysqlFullBackupCheckReportViewSet(MysqlBackupCheckReportBaseViewSet):
 
 @register_report(DBType.MySQL)
 class MysqlBinlogBackupCheckReportViewSet(MysqlBackupCheckReportBaseViewSet):
-    queryset = MysqlBackupCheckReport.objects.filter(subtype=MysqlBackupCheckSubType.BinlogSeq.value)
+    cluster_types = ClusterType.db_type_to_cluster_types(DBType.MySQL)
+    queryset = MysqlBackupCheckReport.objects.filter(
+        subtype=MysqlBackupCheckSubType.BinlogSeq.value, cluster_type__in=cluster_types
+    )
     serializer_class = MysqlBackupCheckReportSerializer
     report_type = ReportType.BINLOG_BACKUP_CHECK
 
     @common_swagger_auto_schema(
-        operation_summary=_("MySQL binlog检查报告"),
+        operation_summary=_("binlog检查报告"),
         responses={status.HTTP_200_OK: MysqlBackupCheckReportSerializer()},
         tags=[SWAGGER_TAG],
     )

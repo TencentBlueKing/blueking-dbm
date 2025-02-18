@@ -41,28 +41,43 @@ class BKLogHandler(object):
         @param start_time: 开始时间
         @param end_time: 结束时间
         @param query_string: 过滤条件
-        @param size: 返回条数
+        @param size: 返回条数，-1表示无限制
         @param sorting_rule: 排序规则，默认是 asc升序； desc倒序
         """
-        resp = BKLogApi.esquery_search(
-            {
-                "indices": f"{env.DBA_APP_BK_BIZ_ID}_bklog.{collector}",
-                "start_time": datetime2str(start_time),
-                "end_time": datetime2str(end_time),
-                "query_string": query_string,
-                "start": 0,
-                "size": size,
-                "sort_list": [
-                    ["dtEventTimeStamp", sorting_rule],
-                    ["gseIndex", sorting_rule],
-                    ["iterationIndex", sorting_rule],
-                ],
-            },
-            use_admin=True,
-        )
-        backup_logs = []
-        for hit in resp["hits"]["hits"]:
-            raw_log = json.loads(hit["_source"]["log"])
-            backup_logs.append({pascal_to_snake(key): value for key, value in raw_log.items()})
+        total_backup_logs = []
+        search_after = []
 
-        return backup_logs
+        while len(total_backup_logs) < size or size == -1:
+            resp = BKLogApi.esquery_search(
+                {
+                    "indices": f"{env.DBA_APP_BK_BIZ_ID}_bklog.{collector}",
+                    "start_time": datetime2str(start_time),
+                    "end_time": datetime2str(end_time),
+                    "query_string": query_string,
+                    "start": 0,
+                    "size": 1000,
+                    "sort_list": [
+                        ["dtEventTimeStamp", sorting_rule],
+                        ["gseIndex", sorting_rule],
+                        ["iterationIndex", sorting_rule],
+                    ],
+                    "search_after": search_after,
+                },
+                use_admin=True,
+            )
+
+            # 格式化日志结构
+            backup_logs = []
+            for hit in resp["hits"]["hits"]:
+                raw_log = json.loads(hit["_source"]["log"])
+                backup_logs.append({pascal_to_snake(key): value for key, value in raw_log.items()})
+
+            # 无更多日志则退出
+            if not backup_logs:
+                break
+
+            # 加入格式化日志，并更新搜索起始索引
+            total_backup_logs.extend(backup_logs)
+            search_after = resp["hits"]["hits"][-1]["sort"]
+
+        return total_backup_logs[:size]
