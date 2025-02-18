@@ -39,48 +39,28 @@
       :label="t('目标库')"
       :min-width="120">
       <template #default="{ data }: { data: RowData }">
-        <BkTag
-          v-for="item in data.databases"
-          :key="item">
-          {{ item }}
-        </BkTag>
-        <span v-if="data.databases.length < 1">--</span>
+        <TagBlock :data="data.databases" />
       </template>
     </BkTableColumn>
     <BkTableColumn
       :label="t('忽略库')"
       :min-width="120">
       <template #default="{ data }: { data: RowData }">
-        <BkTag
-          v-for="item in data.databases_ignore"
-          :key="item">
-          {{ item }}
-        </BkTag>
-        <span v-if="data.databases_ignore.length < 1">--</span>
+        <TagBlock :data="data.databases_ignore" />
       </template>
     </BkTableColumn>
     <BkTableColumn
       :label="t('目标表')"
       :min-width="120">
       <template #default="{ data }: { data: RowData }">
-        <BkTag
-          v-for="item in data.tables"
-          :key="item">
-          {{ item }}
-        </BkTag>
-        <span v-if="data.tables.length < 1">--</span>
+        <TagBlock :data="data.tables" />
       </template>
     </BkTableColumn>
     <BkTableColumn
       :label="t('忽略表')"
       :min-width="120">
       <template #default="{ data }: { data: RowData }">
-        <BkTag
-          v-for="item in data.tables_ignore"
-          :key="item">
-          {{ item }}
-        </BkTag>
-        <span v-if="data.tables_ignore.length < 1">--</span>
+        <TagBlock :data="data.tables_ignore" />
       </template>
     </BkTableColumn>
   </BkTable>
@@ -91,6 +71,8 @@
   import TicketModel, { type TendbCluster } from '@services/model/ticket/ticket';
 
   import { TicketTypes } from '@common/const';
+
+  import TagBlock from '@components/tag-block/Index.vue';
 
   import { utcDisplayTime } from '@utils';
 
