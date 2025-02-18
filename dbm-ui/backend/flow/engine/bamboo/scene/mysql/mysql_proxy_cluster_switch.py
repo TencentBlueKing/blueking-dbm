@@ -266,17 +266,6 @@ class MySQLProxyClusterSwitchFlow(object):
                     ),
                 )
 
-                switch_proxy_sub_pipeline.add_act(
-                    act_name=_("回收旧proxy在backend权限"),
-                    act_component_code=DropProxyUsersInBackendComponent.code,
-                    kwargs=asdict(
-                        DropProxyUsersInBackendKwargs(
-                            cluster_id=cluster["id"],
-                            origin_proxy_host=info["origin_proxy_ip"]["ip"],
-                        ),
-                    ),
-                )
-
                 switch_proxy_sub_list.append(
                     switch_proxy_sub_pipeline.build_sub_process(sub_name=_("{}集群替换proxy实例").format(cluster["name"]))
                 )
@@ -414,6 +403,17 @@ class MySQLProxyClusterSwitchFlow(object):
             act_name=_("卸载proxy实例"),
             act_component_code=ExecuteDBActuatorScriptComponent.code,
             kwargs=asdict(reduce_proxy_sub_act_kwargs),
+        )
+
+        sub_pipeline.add_act(
+            act_name=_("回收旧proxy在backend权限"),
+            act_component_code=DropProxyUsersInBackendComponent.code,
+            kwargs=asdict(
+                DropProxyUsersInBackendKwargs(
+                    cluster_id=cluster_id,
+                    origin_proxy_host=origin_proxy_ip,
+                ),
+            ),
         )
 
         return sub_pipeline.build_sub_process(sub_name=_("[{}:{}]下线").format(origin_proxy_ip, origin_proxy_port))

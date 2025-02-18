@@ -30,7 +30,7 @@ class DropProxyUsersInBackendService(BaseService):
     @staticmethod
     def drop_proxy_client(origin_proxy_host: str, backend: StorageInstance):
         """
-        计算集群可用的proxy实例，作为权限克隆源
+        在backend删除proxy的权限
         """
         result, user_hosts = show_user_host_for_host(host=origin_proxy_host, instance=backend)
         if not result:
