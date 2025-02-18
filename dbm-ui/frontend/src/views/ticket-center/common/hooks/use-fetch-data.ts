@@ -6,18 +6,19 @@ import { getTickets, getTicketStatus } from '@services/source/ticket';
 
 import { useEventBus, useUrlSearch } from '@hooks';
 
-import { useTimeoutFn } from '@vueuse/core';
+import { useStorage, useTimeoutFn } from '@vueuse/core';
 
 const create = (dataSource: typeof getTickets, options?: { onSuccess?: (data: TicketModel[]) => void }) => {
   const eventBus = useEventBus();
   const { replaceSearchParams, getSearchParams } = useUrlSearch();
+  const paginationLimitCache = useStorage('table_pagination_limit', 20);
 
   const searchParams = getSearchParams();
 
   const isLoading = ref(false);
   const dataList = ref<TicketModel[]>([]);
   const pagination = reactive({
-    limit: 20,
+    limit: paginationLimitCache.value,
     current: 1,
     count: 0,
     limitList: [10, 20, 50, 100, 500],
