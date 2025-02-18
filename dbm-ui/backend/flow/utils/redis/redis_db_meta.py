@@ -159,6 +159,10 @@ class RedisDBMeta(object):
         api.cluster.nosqlcomm.decommission_proxies(cluster, proxies=proxies, is_all=False)
         return True
 
+    # 统一的，暴力清理入口
+    def clear_machines(self) -> bool:
+        api.machine.clear_info_for_machine(machines=self.ticket_data["clear_hosts"])
+
     def clear_dirty_proxy_dbmetas(self) -> bool:
         """
         清理没在集群中的proxy的dbmeta
