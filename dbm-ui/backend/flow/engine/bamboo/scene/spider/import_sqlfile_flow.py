@@ -33,6 +33,7 @@ from backend.flow.plugins.components.collections.mysql.semantic_check import Sem
 from backend.flow.plugins.components.collections.mysql.trans_flies import TransFileComponent
 from backend.flow.utils.mysql.mysql_act_dataclass import DownloadMediaKwargs, ExecActuatorKwargs
 from backend.flow.utils.mysql.mysql_act_playload import MysqlActPayload
+from backend.flow.utils.mysql.mysql_bk_config import get_cluster_config, get_engine_from_bk_mysql_config
 from backend.flow.utils.mysql.mysql_commom_query import merge_resp_to_cluster, parse_db_from_sqlfile
 from backend.flow.utils.mysql.mysql_version_parse import major_version_parse
 from backend.flow.utils.spider.spider_bk_config import get_spider_version_and_charset
@@ -128,21 +129,43 @@ class ImportSQLFlow(object):
             # 这样获取顺便可以验证是否传入非法的集群id
             cluster = clusters.get(id=cluster_id)
             master_ctl_addr = cluster.tendbcluster_ctl_primary_address()
-
-            sub_pipeline = SubBuilder(self.root_id, self.data)
-            sub_pipeline.add_act(
-                act_name=_("执行SQL导入"),
-                act_component_code=ExecuteDBActuatorScriptComponent.code,
-                kwargs=asdict(
-                    ExecActuatorKwargs(
-                        job_timeout=LONG_JOB_TIMEOUT,
-                        exec_ip=master_ctl_addr.split(IP_PORT_DIVIDER)[0],
-                        bk_cloud_id=cluster.bk_cloud_id,
-                        cluster={"port": int(master_ctl_addr.split(IP_PORT_DIVIDER)[1])},
-                        get_mysql_payload_func=MysqlActPayload.get_import_sqlfile_payload.__name__,
-                    )
-                ),
+            cluster_config = get_cluster_config(
+                cluster.immute_domain,
+                cluster.major_version,
+                cluster.db_module_id,
+                cluster.cluster_type,
+                cluster.bk_biz_id,
             )
+            engine = get_engine_from_bk_mysql_config(cluster_config)
+            sub_pipeline = SubBuilder(self.root_id, self.data)
+            if engine.lower() == "rocksdb":
+                sub_pipeline.add_act(
+                    act_name=_("使用工具在线变更DDL"),
+                    act_component_code=ExecuteDBActuatorScriptComponent.code,
+                    kwargs=asdict(
+                        ExecActuatorKwargs(
+                            job_timeout=LONG_JOB_TIMEOUT,
+                            exec_ip=master_ctl_addr.split(IP_PORT_DIVIDER)[0],
+                            bk_cloud_id=cluster.bk_cloud_id,
+                            cluster={"port": int(master_ctl_addr.split(IP_PORT_DIVIDER)[1]), "engine": "rocksdb"},
+                            get_mysql_payload_func=MysqlActPayload.get_tendbcluster_online_ddl_payload.__name__,
+                        )
+                    ),
+                )
+            else:
+                sub_pipeline.add_act(
+                    act_name=_("执行SQL导入"),
+                    act_component_code=ExecuteDBActuatorScriptComponent.code,
+                    kwargs=asdict(
+                        ExecActuatorKwargs(
+                            job_timeout=LONG_JOB_TIMEOUT,
+                            exec_ip=master_ctl_addr.split(IP_PORT_DIVIDER)[0],
+                            bk_cloud_id=cluster.bk_cloud_id,
+                            cluster={"port": int(master_ctl_addr.split(IP_PORT_DIVIDER)[1])},
+                            get_mysql_payload_func=MysqlActPayload.get_import_sqlfile_payload.__name__,
+                        )
+                    ),
+                )
             sub_pipelines.append(
                 sub_pipeline.build_sub_process(sub_name=_("[{}]执行SQL变更".format(cluster.immute_domain)))
             )

@@ -19,11 +19,13 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// FastExecuteSqlAct TODO
 type FastExecuteSqlAct struct {
 	*subcmd.BaseOptions
 	Service mysql.FastExecuteSqlComp
 }
 
+// SubCmdFastExecuteSqlFile TODO
 const SubCmdFastExecuteSqlFile = "fast-execute-sql-file"
 
 // NewFastExecuteSqlActCommand godoc
@@ -54,10 +56,12 @@ func NewFastExecuteSqlActCommand() *cobra.Command {
 	return cmd
 }
 
+// Validate run selfdefine validate function
 func (c *FastExecuteSqlAct) Validate() (err error) {
 	return c.BaseOptions.Validate()
 }
 
+// Init prepare run env
 func (c *FastExecuteSqlAct) Init() (err error) {
 	if err = c.Deserialize(&c.Service.Params); err != nil {
 		logger.Error("DeserializeAndValidate err %s", err.Error())
@@ -68,6 +72,7 @@ func (c *FastExecuteSqlAct) Init() (err error) {
 	return nil
 }
 
+// Run Command Run
 func (c *FastExecuteSqlAct) Run() (err error) {
 	steps := subcmd.Steps{
 		{

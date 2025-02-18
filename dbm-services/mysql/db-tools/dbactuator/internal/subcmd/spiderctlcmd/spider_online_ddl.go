@@ -8,32 +8,35 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package mysqlcmd
+package spiderctlcmd
 
 import (
 	"fmt"
 
 	"github.com/spf13/cobra"
 
-	"dbm-services/bigdata/db-tools/dbactuator/pkg/util"
 	"dbm-services/common/go-pubpkg/logger"
 	"dbm-services/mysql/db-tools/dbactuator/internal/subcmd"
-	"dbm-services/mysql/db-tools/dbactuator/pkg/components/mysql"
+	"dbm-services/mysql/db-tools/dbactuator/pkg/components/spiderctl"
+	"dbm-services/mysql/db-tools/dbactuator/pkg/util"
 )
 
-// EnableTokudbPluginAct TODO
-type EnableTokudbPluginAct struct {
+// SpiderOnlineDDLAct use online ddl tools to change schema
+type SpiderOnlineDDLAct struct {
 	*subcmd.BaseOptions
-	Service mysql.EnableTokudbEngineComp
+	Service spiderctl.SpiderOnlineDDLComp
 }
 
-// NewEnableTokudbPluginCommand TODO
-func NewEnableTokudbPluginCommand() *cobra.Command {
-	act := &EnableTokudbPluginAct{}
+// NewSpiderOnlineDDLCommand create new subcommand
+func NewSpiderOnlineDDLCommand() *cobra.Command {
+	act := SpiderOnlineDDLAct{
+		BaseOptions: subcmd.GBaseOptions,
+	}
 	cmd := &cobra.Command{
-		Use:   "enable-tokudb-engine",
-		Short: "安装tokudb插件",
-		Example: fmt.Sprintf(`dbactuator mysql enable-tokudb-engine %s %s`,
+		Use:   "do-online-ddl",
+		Short: "使用gh-ost工具执行online ddl",
+		Example: fmt.Sprintf(
+			`dbactuator spiderctl do-online-ddl %s %s`,
 			subcmd.CmdBaseExampleStr, subcmd.ToPrettyJson(act.Service.Example()),
 		),
 		Run: func(cmd *cobra.Command, args []string) {
@@ -44,39 +47,40 @@ func NewEnableTokudbPluginCommand() *cobra.Command {
 	return cmd
 }
 
-// Init TODO
-func (e *EnableTokudbPluginAct) Init() (err error) {
-	if e.BaseOptions, err = subcmd.Deserialize(&e.Service.Params); err != nil {
+// Init prepare run env
+func (d *SpiderOnlineDDLAct) Init() (err error) {
+	logger.Info("SpiderOnlineDDLAct Init")
+	if err = d.Deserialize(&d.Service.Params); err != nil {
 		logger.Error("DeserializeAndValidate failed, %v", err)
 		return err
 	}
-	e.Service.GeneralParam = subcmd.GeneralRuntimeParam
-	return nil
+	d.Service.GeneralParam = subcmd.GeneralRuntimeParam
+	return
 }
 
-// Run TODO
-func (e *EnableTokudbPluginAct) Run() (err error) {
+// Run Command Run
+func (d *SpiderOnlineDDLAct) Run() (err error) {
 	steps := subcmd.Steps{
 		{
-			FunName: "前置初始化",
-			Func:    e.Service.Init,
+			FunName: "初始化",
+			Func:    d.Service.Init,
 		},
 		{
-			FunName: "写入tokudb配置到my.cnf",
-			Func:    e.Service.ReWriteMyCnf,
+			FunName: "precheck",
+			Func:    d.Service.Precheck,
 		},
 		{
-			FunName: "install tokudb plugin",
-			Func:    e.Service.Install,
+			FunName: "执行online ddl",
+			Func:    d.Service.Execute,
 		},
 		{
-			FunName: "close db conn",
-			Func:    e.Service.CloseConn,
+			FunName: "clean env",
+			Func:    d.Service.Close,
 		},
 	}
 	if err = steps.Run(); err != nil {
 		return err
 	}
-	logger.Info("enable-tokudb-engine success")
-	return nil
+	logger.Info("do online ddl successfully")
+	return err
 }

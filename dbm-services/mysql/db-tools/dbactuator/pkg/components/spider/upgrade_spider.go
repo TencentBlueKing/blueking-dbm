@@ -11,6 +11,7 @@
 package spider
 
 import (
+	"errors"
 	"fmt"
 	"path"
 
@@ -126,7 +127,7 @@ func (i *UpgradeSpiderComp) PreCheck() (err error) {
 		if len(activeprocesslist) > 0 {
 			errMsg := fmt.Sprintf("还存在活跃的业务连接,请先确认,具体连接%v", activeprocesslist)
 			logger.Error(errMsg)
-			return fmt.Errorf(errMsg)
+			return errors.New(errMsg)
 		}
 		version, err = conn.SelectVersion()
 		if err != nil {

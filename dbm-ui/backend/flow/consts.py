@@ -403,6 +403,7 @@ class DBActuatorActionEnum(str, StructuredEnum):
 
     SenmanticDumpSchema = EnumField("semantic-dumpschema", _("semantic-dumpschema"))
     ImportSQLFile = EnumField("import-sqlfile", _("import-sqlfile"))
+    DoOnlineDDL = EnumField("do-online-ddl", _("do-online-ddl"))
     CloneClientGrant = EnumField("clone-client-grant", _("clone-client-grant"))
     CloneProxyUser = EnumField("clone-proxy-user", _("clone-proxy-user"))
     ClearCrontab = EnumField("clear-crontab", _("clear-crontab"))

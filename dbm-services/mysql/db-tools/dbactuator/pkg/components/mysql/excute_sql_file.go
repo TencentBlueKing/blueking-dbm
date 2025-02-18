@@ -52,6 +52,8 @@ type ExecuteSQLFileParam struct {
 	ExecuteObjects []ExecuteSQLFileObj `json:"execute_objects"`
 	Force          bool                `json:"force"`     // 是否强制执行 执行出错后，是否继续往下执行
 	IsSpider       bool                `json:"is_spider"` // 是否是spider集群
+	Engine         string              `json:"engine"`    // 引擎类型 gh-ost 需要用
+	BillId         uint                `json:"bill_id"`   // billId
 }
 
 // ExecuteSQLFileObj 单个文件的执行对象
@@ -100,7 +102,7 @@ func (e *ExecuteSQLFileComp) Example() interface{} {
 
 // Precheck do some check step
 func (e *ExecuteSQLFileComp) Precheck() (err error) {
-	if err = e.checkSQLFileExist(); err != nil {
+	if err = e.CheckSQLFileExist(); err != nil {
 		logger.Error("SQL文件存在性检查失败:%s", err.Error())
 		return err
 	}
@@ -128,8 +130,8 @@ func (e *ExecuteSQLFileComp) cleanHistorySQLDir() {
 	logger.Warn("clean sql file success")
 }
 
-// checkSQLFileExist 检查文件是否存在
-func (e *ExecuteSQLFileComp) checkSQLFileExist() (err error) {
+// CheckSQLFileExist 检查文件是否存在
+func (e *ExecuteSQLFileComp) CheckSQLFileExist() (err error) {
 	var errs []error
 	for _, f := range e.Params.ExecuteObjects {
 		for _, sqlFile := range f.SQLFiles {
@@ -155,12 +157,12 @@ func (e *ExecuteSQLFileComp) checkDuplicateObjects(port int) (err error) {
 	for _, f := range e.Params.ExecuteObjects {
 		var realexcutedbs []string
 		// 获得目标库 因为是通配符 所以需要获取完整名称
-		intentionDbs, err := e.match(dbsExcluesysdbs, f.parseDbParamRe())
+		intentionDbs, err := e.Match(dbsExcluesysdbs, f.ParseDbParamRe())
 		if err != nil {
 			return err
 		}
 		// 获得忽略库
-		ignoreDbs, err := e.match(dbsExcluesysdbs, f.parseIgnoreDbParamRe())
+		ignoreDbs, err := e.Match(dbsExcluesysdbs, f.ParseIgnoreDbParamRe())
 		if err != nil {
 			return err
 		}
@@ -296,12 +298,12 @@ func (e *ExecuteSQLFileComp) executeOne(port int) (err error) {
 	for _, f := range e.Params.ExecuteObjects {
 		var realexcutedbs, intentionDbs, ignoreDbs []string
 		// 获得目标库 因为是通配符 所以需要获取完整名称
-		intentionDbs, err = e.match(dbsExcluesysdbs, f.parseDbParamRe())
+		intentionDbs, err = e.Match(dbsExcluesysdbs, f.ParseDbParamRe())
 		if err != nil {
 			return err
 		}
 		// 获得忽略库
-		ignoreDbs, err = e.match(dbsExcluesysdbs, f.parseIgnoreDbParamRe())
+		ignoreDbs, err = e.Match(dbsExcluesysdbs, f.ParseIgnoreDbParamRe())
 		if err != nil {
 			return err
 		}
@@ -332,12 +334,12 @@ func (e *ExecuteSQLFileComp) executeOne(port int) (err error) {
 	return err
 }
 
-// match 根据show databases 返回的实际db,匹配出dbname
+// Match 根据show databases 返回的实际db,匹配出dbname
 //
 //	@receiver e
 //	@receiver regularDbNames
 //	@return matched
-func (e *ExecuteSQLFileComp) match(dbsExculeSysdb, regularDbNames []string) (matched []string, err error) {
+func (e *ExecuteSQLFileComp) Match(dbsExculeSysdb, regularDbNames []string) (matched []string, err error) {
 	for _, regexpStr := range regularDbNames {
 		re, err := regexp.Compile(regexpStr)
 		if err != nil {
@@ -353,19 +355,19 @@ func (e *ExecuteSQLFileComp) match(dbsExculeSysdb, regularDbNames []string) (mat
 	return
 }
 
-// parseDbParamRe TODO
+// ParseDbParamRe TODO
 // ConvertDbParamToRegular 解析DbNames参数成正则参数
 //
 //	@receiver e
-func (e *ExecuteSQLFileObj) parseDbParamRe() (s []string) {
+func (e *ExecuteSQLFileObj) ParseDbParamRe() (s []string) {
 	return changeToMatch(e.DbNames)
 }
 
-// parseIgnoreDbParamRe  解析IgnoreDbNames参数成正则参数
+// ParseIgnoreDbParamRe  解析IgnoreDbNames参数成正则参数
 //
 //	@receiver e
 //	@return []string
-func (e *ExecuteSQLFileObj) parseIgnoreDbParamRe() (s []string) {
+func (e *ExecuteSQLFileObj) ParseIgnoreDbParamRe() (s []string) {
 	return changeToMatch(e.IgnoreDbNames)
 }
 

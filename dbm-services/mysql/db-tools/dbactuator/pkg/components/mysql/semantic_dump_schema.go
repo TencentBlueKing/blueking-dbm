@@ -216,12 +216,12 @@ func (c *SemanticDumpSchemaComp) getDumpdbs(alldbs []string, version string) (re
 		for _, f := range c.Params.ExecuteObjects {
 			var realexcutedbs []string
 			// 获得目标库 因为是通配符 所以需要获取完整名称
-			intentionDbs, err := match(dbsExcluesysdbs, f.parseDbParamRe())
+			intentionDbs, err := match(dbsExcluesysdbs, f.ParseDbParamRe())
 			if err != nil {
 				return nil, err
 			}
 			// 获得忽略库
-			ignoreDbs, err := match(dbsExcluesysdbs, f.parseIgnoreDbParamRe())
+			ignoreDbs, err := match(dbsExcluesysdbs, f.ParseIgnoreDbParamRe())
 			if err != nil {
 				return nil, err
 			}

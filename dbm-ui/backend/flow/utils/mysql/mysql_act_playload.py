@@ -869,6 +869,29 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
             },
         }
 
+    def get_tendbcluster_online_ddl_payload(self, **kwargs) -> dict:
+        """
+        return import sqlfile payload
+        """
+        return {
+            "db_type": DBActuatorTypeEnum.SpiderCtl.value,
+            "action": DBActuatorActionEnum.DoOnlineDDL.value,
+            "payload": {
+                "general": {"runtime_account": self.account},
+                "extend": {
+                    "host": kwargs["ip"],
+                    "ports": [self.cluster["port"]],
+                    "file_path": self.ticket_data["sql_path"],
+                    "file_path_suffix": self.ticket_data["file_path_suffix"],
+                    "file_base_dir": self.ticket_data["file_base_dir"],
+                    "charset": self.ticket_data["charset"],
+                    "execute_objects": self.ticket_data["execute_objects"],
+                    "bill_id": self.ticket_data.get("uid", 0),
+                    "engine": self.cluster["engine"],
+                },
+            },
+        }
+
     def get_clone_client_grant_payload(self, **kwargs):
         """
         克隆客户端的MySQL权限

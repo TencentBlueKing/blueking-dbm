@@ -48,6 +48,7 @@ func NewSpiderCtlCommand() *cobra.Command {
 				NewRenameDropFromViaCtlCommand(),
 				NewChkTdbctlSpiderSchaCommand(),
 				NewChkTdbctlSpiderRouterCommand(),
+				NewSpiderOnlineDDLCommand(),
 			},
 		},
 	}

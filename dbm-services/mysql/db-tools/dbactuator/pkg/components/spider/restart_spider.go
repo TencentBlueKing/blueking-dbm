@@ -26,7 +26,7 @@ type RestartSpiderParam struct {
 }
 
 // Example subcommand example input
-func (d *RestartSpiderComp) Example() interface{} {
+func (u *RestartSpiderComp) Example() interface{} {
 	comp := RestartSpiderComp{
 		Params: &RestartSpiderParam{
 			Host: "1.1.1.1",
@@ -42,7 +42,7 @@ func (u *RestartSpiderComp) Init() (err error) {
 	u.Params.myCnf = &util.CnfFile{
 		FileName: f,
 	}
-	if err := u.Params.myCnf.Load(); err != nil {
+	if err = u.Params.myCnf.Load(); err != nil {
 		return err
 	}
 	dbSocket, err := u.Params.myCnf.GetMySQLSocket()
