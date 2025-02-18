@@ -65,21 +65,12 @@
       <BkTable :data="ticketDetails.details.execute_objects">
         <BkTableColumn :label="t('变更的 DB')">
           <template #default="{ data }: { data: TargetDbRow }">
-            <BkTag
-              v-for="dbName in data.dbnames"
-              :key="dbName">
-              {{ dbName }}
-            </BkTag>
+            <TagBlock :data="data.dbnames" />
           </template>
         </BkTableColumn>
         <BkTableColumn :label="t('忽略的 DB')">
           <template #default="{ data }: { data: TargetDbRow }">
-            <BkTag
-              v-for="dbName in data.ignore_dbnames"
-              :key="dbName">
-              {{ dbName }}
-            </BkTag>
-            <span v-if="data.ignore_dbnames.length < 1">--</span>
+            <TagBlock :data="data.ignore_dbnames" />
           </template>
         </BkTableColumn>
         <BkTableColumn :label="t('执行的 SQL')">
@@ -120,6 +111,7 @@
   import TicketModel, { type Sqlserver } from '@services/model/ticket/ticket';
 
   import RenderClusterStatus from '@components/cluster-status/Index.vue';
+  import TagBlock from '@components/tag-block/Index.vue';
 
   import { getSQLFilename } from '@utils';
 

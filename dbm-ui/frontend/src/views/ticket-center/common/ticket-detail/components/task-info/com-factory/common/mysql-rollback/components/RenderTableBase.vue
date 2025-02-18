@@ -41,42 +41,22 @@
     <template v-if="showDbName">
       <BkTableColumn :label="t('回档DB名')">
         <template #default="{ data }: { data: RowData }">
-          <BkTag
-            v-for="item in data.databases"
-            :key="item">
-            {{ item }}
-          </BkTag>
-          <span v-if="data.databases.length < 1">--</span>
+          <TagBlock :data="data.databases" />
         </template>
       </BkTableColumn>
       <BkTableColumn :label="t('忽略DB名')">
         <template #default="{ data }: { data: RowData }">
-          <BkTag
-            v-for="item in data.databases_ignore"
-            :key="item">
-            {{ item }}
-          </BkTag>
-          <span v-if="data.databases_ignore.length < 1">--</span>
+          <TagBlock :data="data.databases_ignore" />
         </template>
       </BkTableColumn>
       <BkTableColumn :label="t('回档表名')">
         <template #default="{ data }: { data: RowData }">
-          <BkTag
-            v-for="item in data.tables"
-            :key="item">
-            {{ item }}
-          </BkTag>
-          <span v-if="data.tables.length < 1">--</span>
+          <TagBlock :data="data.tables" />
         </template>
       </BkTableColumn>
       <BkTableColumn :label="t('忽略表名')">
         <template #default="{ data }: { data: RowData }">
-          <BkTag
-            v-for="item in data.tables_ignore"
-            :key="item">
-            {{ item }}
-          </BkTag>
-          <span v-if="data.tables_ignore.length < 1">--</span>
+          <TagBlock :data="data.tables_ignore" />
         </template>
       </BkTableColumn>
     </template>
@@ -87,6 +67,8 @@
   import { useI18n } from 'vue-i18n';
 
   import TicketModel, { type Mysql } from '@services/model/ticket/ticket';
+
+  import TagBlock from '@components/tag-block/Index.vue';
 
   import { utcDisplayTime } from '@utils';
 

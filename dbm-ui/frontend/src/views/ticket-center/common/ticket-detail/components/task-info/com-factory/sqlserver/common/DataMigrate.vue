@@ -25,31 +25,17 @@
     </BkTableColumn>
     <BkTableColumn :label="t('迁移 DB 名')">
       <template #default="{ data }: { data: RowData }">
-        <BkTag
-          v-for="dbName in data.db_list"
-          :key="dbName">
-          {{ dbName }}
-        </BkTag>
-        <span v-if="data.db_list.length < 1">--</span>
+        <TagBlock :data="data.db_list" />
       </template>
     </BkTableColumn>
     <BkTableColumn :label="t('忽略 DB 名')">
       <template #default="{ data }: { data: RowData }">
-        <BkTag
-          v-for="dbName in data.ignore_db_list"
-          :key="dbName">
-          {{ dbName }}
-        </BkTag>
-        <span v-if="data.ignore_db_list.length < 1">--</span>
+        <TagBlock :data="data.ignore_db_list" />
       </template>
     </BkTableColumn>
     <BkTableColumn :label="t('迁移后 DB 名')">
       <template #default="{ data }: { data: RowData }">
-        <BkTag
-          v-for="item in data.rename_infos"
-          :key="item.db_name">
-          {{ item.target_db_name }}
-        </BkTag>
+        <TagBlock :data="data.rename_infos.map((item) => item.target_db_name)" />
       </template>
     </BkTableColumn>
   </BkTable>
@@ -65,6 +51,8 @@
   import { useI18n } from 'vue-i18n';
 
   import TicketModel, { type Sqlserver } from '@services/model/ticket/ticket';
+
+  import TagBlock from '@components/tag-block/Index.vue';
 
   import InfoList, { Item as InfoItem } from '../../components/info-list/Index.vue';
 
