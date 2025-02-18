@@ -38,6 +38,7 @@
             field="slave.ip"
             :label="t('新从库主机')"
             :params="{
+              for_bizs: [currentBizId, 0],
               resource_types: [DBTypes.MYSQL, 'PUBLIC'],
             }" />
           <OperationColumn
@@ -107,6 +108,8 @@
   const { t } = useI18n();
   const tableRef = useTemplateRef('table');
 
+  const currentBizId = window.PROJECT_CONFIG.BIZ_ID;
+
   const createTableRow = (data = {} as Partial<RowData>) => ({
     cluster: data.cluster || {
       id: 0,
@@ -159,13 +162,19 @@
 
   const { run: createTicketRun, loading: isSubmitting } = useCreateTicket<{
     backup_source: BackupSourceType;
+    ip_source: 'resource_pool';
     infos: {
       cluster_ids: number[];
-      new_slave: {
-        bk_biz_id: number;
-        bk_cloud_id: number;
-        bk_host_id: number;
-        ip: string;
+      resource_spec: {
+        new_slave: {
+          spec_id: number;
+          hosts: {
+            bk_biz_id: number;
+            bk_cloud_id: number;
+            bk_host_id: number;
+            ip: string;
+          }[];
+        };
       };
     }[];
   }>(TicketTypes.MYSQL_ADD_SLAVE);
@@ -178,10 +187,15 @@
     createTicketRun({
       details: {
         backup_source: formData.backupSource,
+        ip_source: 'resource_pool',
         infos: formData.tableData.map((item) => ({
           cluster_ids: [item.cluster.id, ...item.cluster.related_clusters.map((item) => item.id)],
-          new_master: item.slave,
-          new_slave: item.slave,
+          resource_spec: {
+            new_slave: {
+              spec_id: 0,
+              hosts: [item.slave],
+            },
+          },
         })),
       },
       remark: formData.remark,

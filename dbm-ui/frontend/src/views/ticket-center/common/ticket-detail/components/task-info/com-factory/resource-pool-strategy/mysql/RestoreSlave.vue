@@ -12,12 +12,20 @@
 -->
 
 <template>
+  <InfoList>
+    <InfoItem :label="t('备份源:')">
+      {{ ticketDetails.details.backup_source === 'local' ? t('本地备份') : t('远程备份') }}
+    </InfoItem>
+  </InfoList>
   <BkTable
     :data="ticketDetails.details.infos"
     :show-overflow="false">
-    <BkTableColumn
-      :label="t('目标集群')"
-      :min-width="250">
+    <BkTableColumn :label="t('待重建从库主机')">
+      <template #default="{ data }: { data: RowData }">
+        {{ data.old_nodes.old_slave[0].ip }}
+      </template>
+    </BkTableColumn>
+    <BkTableColumn :label="t('同机关联集群')">
       <template #default="{ data }: { data: RowData }">
         <div
           v-for="clusterId in data.cluster_ids"
@@ -27,9 +35,9 @@
         </div>
       </template>
     </BkTableColumn>
-    <BkTableColumn :label="t('新Proxy主机')">
+    <BkTableColumn :label="t('新从库主机')">
       <template #default="{ data }: { data: RowData }">
-        {{ data.new_proxy.ip }}
+        {{ data.resource_spec.new_slave.hosts[0].ip }}
       </template>
     </BkTableColumn>
   </BkTable>
@@ -41,18 +49,20 @@
 
   import { TicketTypes } from '@common/const';
 
+  import InfoList, { Item as InfoItem } from '../../components/info-list/Index.vue';
+
   interface Props {
-    ticketDetails: TicketModel<Mysql.ProxyAdd>;
+    ticketDetails: TicketModel<Mysql.ResourcePool.RestoreSlave>;
   }
 
   type RowData = Props['ticketDetails']['details']['infos'][number];
 
+  defineProps<Props>();
+
   defineOptions({
-    name: TicketTypes.MYSQL_PROXY_ADD,
+    name: TicketTypes.MYSQL_RESTORE_SLAVE,
     inheritAttrs: false,
   });
-
-  defineProps<Props>();
 
   const { t } = useI18n();
 </script>
