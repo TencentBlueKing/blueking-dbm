@@ -1,5 +1,5 @@
 ## go微服务打包的基础镜像，包含了：GO环境，Go Import工具/常用工具和dbm打包静态介质
-FROM golang:1.21
+FROM golang:1.23
 
 ## 标准化时区,安装依赖
 RUN set -ex && \
