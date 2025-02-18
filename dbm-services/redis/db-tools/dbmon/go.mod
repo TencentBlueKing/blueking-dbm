@@ -1,6 +1,6 @@
 module dbm-services/redis/db-tools/dbmon
 
-go 1.21
+go 1.23
 
 require (
 	github.com/Shopify/sarama v1.37.2

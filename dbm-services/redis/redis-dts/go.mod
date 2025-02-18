@@ -1,6 +1,6 @@
 module dbm-services/redis/redis-dts
 
-go 1.21
+go 1.23
 
 require (
 	github.com/dgrijalva/jwt-go/v4 v4.0.0-preview1
