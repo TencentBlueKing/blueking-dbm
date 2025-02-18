@@ -20,8 +20,12 @@
       class="ticket-details-page"
       :data="data" />
     <InfoList>
-      <Item :label="t('备注:')">
-        {{ data.remark || '--' }}
+      <Item
+        :label="t('备注:')"
+        style="width: 100%">
+        <div style="line-height: 24px; white-space: normal">
+          {{ data.remark || '--' }}
+        </div>
       </Item>
     </InfoList>
   </DbCard>
