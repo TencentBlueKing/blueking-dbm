@@ -14,7 +14,7 @@
 <template>
   <BkTable
     :data="ticketDetails.details.infos"
-    :show-overflow="false">
+    show-overflow>
     <BkTableColumn
       :label="t('目标集群')"
       :min-width="250">
@@ -29,7 +29,7 @@
     </BkTableColumn>
     <BkTableColumn :label="t('新Proxy主机')">
       <template #default="{ data }: { data: RowData }">
-        {{ data.new_proxy.ip }}
+        {{ data.resource_spec.new_proxy.hosts[0].ip }}
       </template>
     </BkTableColumn>
   </BkTable>
@@ -42,17 +42,17 @@
   import { TicketTypes } from '@common/const';
 
   interface Props {
-    ticketDetails: TicketModel<Mysql.ProxyAdd>;
+    ticketDetails: TicketModel<Mysql.ResourcePool.ProxyAdd>;
   }
 
   type RowData = Props['ticketDetails']['details']['infos'][number];
+
+  defineProps<Props>();
 
   defineOptions({
     name: TicketTypes.MYSQL_PROXY_ADD,
     inheritAttrs: false,
   });
-
-  defineProps<Props>();
 
   const { t } = useI18n();
 </script>

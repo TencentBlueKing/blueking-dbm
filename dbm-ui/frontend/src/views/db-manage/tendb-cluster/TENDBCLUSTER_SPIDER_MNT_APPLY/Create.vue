@@ -45,6 +45,7 @@
             field="host.ip"
             :label="t('运维节点 IP')"
             :params="{
+              for_bizs: [currentBizId, 0],
               resource_types: [DBTypes.TENDBCLUSTER, 'PUBLIC'],
             }" />
           <OperationColumn
@@ -109,6 +110,8 @@
 
   const { t } = useI18n();
   const tableRef = useTemplateRef('table');
+
+  const currentBizId = window.PROJECT_CONFIG.BIZ_ID;
 
   const createTableRow = (data = {} as Partial<RowData>) => ({
     cluster: data.cluster || {
