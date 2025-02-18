@@ -29,7 +29,7 @@
     </BkTableColumn>
     <BkTableColumn :label="t('新Proxy主机')">
       <template #default="{ data }: { data: RowData }">
-        {{ data?.new_proxy?.ip }}
+        {{ data.new_proxy.ip }}
       </template>
     </BkTableColumn>
   </BkTable>

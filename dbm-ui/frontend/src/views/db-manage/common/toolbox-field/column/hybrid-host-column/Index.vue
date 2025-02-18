@@ -75,7 +75,13 @@
 
   import { ClusterTypes } from '@common/const';
 
-  import InstanceSelector, { type InstanceSelectorValues, type IValue } from '@components/instance-selector/Index.vue';
+  import InstanceSelector, {
+    type InstanceSelectorValues,
+    type IValue,
+    type PanelListType as InstanceSelectorPanelListType,
+  } from '@components/instance-selector/Index.vue';
+
+  export type PanelListType = InstanceSelectorPanelListType;
 
   interface Props {
     field: string;

@@ -150,7 +150,7 @@
           </AuthButton>
           <MoreActionExtend>
             <BkDropdownItem
-              v-if="data.isOnline"
+              v-if="data.isOffline"
               v-db-console="'pulsar.clusterManage.enable'">
               <OperationBtnStatusTips :data="data">
                 <AuthButton
@@ -166,7 +166,7 @@
               </OperationBtnStatusTips>
             </BkDropdownItem>
             <BkDropdownItem
-              v-if="data.isOffline"
+              v-if="data.isOnline"
               v-db-console="'pulsar.clusterManage.disable'">
               <OperationBtnStatusTips :data="data">
                 <AuthButton

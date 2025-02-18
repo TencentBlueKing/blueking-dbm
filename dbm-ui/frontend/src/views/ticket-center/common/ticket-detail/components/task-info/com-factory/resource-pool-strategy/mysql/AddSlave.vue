@@ -12,20 +12,10 @@
 -->
 
 <template>
-  <InfoList>
-    <InfoItem :label="t('备份源:')">
-      {{ ticketDetails.details.backup_source === 'local' ? t('本地备份') : t('远程备份') }}
-    </InfoItem>
-  </InfoList>
   <BkTable
     :data="ticketDetails.details.infos"
-    :show-overflow="false">
-    <BkTableColumn :label="t('待重建从库主机')">
-      <template #default="{ data }: { data: RowData }">
-        {{ data.old_slave.ip }}
-      </template>
-    </BkTableColumn>
-    <BkTableColumn :label="t('同机关联集群')">
+    show-overflow>
+    <BkTableColumn :label="t('目标集群')">
       <template #default="{ data }: { data: RowData }">
         <div
           v-for="clusterId in data.cluster_ids"
@@ -37,7 +27,12 @@
     </BkTableColumn>
     <BkTableColumn :label="t('新从库主机')">
       <template #default="{ data }: { data: RowData }">
-        {{ data.new_slave.ip }}
+        {{ data.resource_spec.new_slave.hosts[0].ip }}
+      </template>
+    </BkTableColumn>
+    <BkTableColumn :label="t('备份源')">
+      <template #default>
+        {{ ticketDetails.details.backup_source === 'local' ? t('本地备份') : t('远程备份') }}
       </template>
     </BkTableColumn>
   </BkTable>
@@ -49,10 +44,8 @@
 
   import { TicketTypes } from '@common/const';
 
-  import InfoList, { Item as InfoItem } from '../components/info-list/Index.vue';
-
   interface Props {
-    ticketDetails: TicketModel<Mysql.RestoreSlave>;
+    ticketDetails: TicketModel<Mysql.ResourcePool.AddSlave>;
   }
 
   type RowData = Props['ticketDetails']['details']['infos'][number];
@@ -60,7 +53,7 @@
   defineProps<Props>();
 
   defineOptions({
-    name: TicketTypes.MYSQL_RESTORE_SLAVE,
+    name: TicketTypes.MYSQL_ADD_SLAVE,
     inheritAttrs: false,
   });
 

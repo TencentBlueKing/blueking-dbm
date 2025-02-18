@@ -22,7 +22,7 @@
     :show-overflow="false">
     <BkTableColumn :label="t('待重建从库主机')">
       <template #default="{ data }: { data: RowData }">
-        {{ data.old_slave.ip }}
+        {{ data.old_nodes.old_slave[0].ip }}
       </template>
     </BkTableColumn>
     <BkTableColumn :label="t('同机关联集群')">
@@ -37,7 +37,7 @@
     </BkTableColumn>
     <BkTableColumn :label="t('新从库主机')">
       <template #default="{ data }: { data: RowData }">
-        {{ data.new_slave.ip }}
+        {{ data.resource_spec.new_slave.hosts[0].ip }}
       </template>
     </BkTableColumn>
   </BkTable>
@@ -49,10 +49,10 @@
 
   import { TicketTypes } from '@common/const';
 
-  import InfoList, { Item as InfoItem } from '../components/info-list/Index.vue';
+  import InfoList, { Item as InfoItem } from '../../components/info-list/Index.vue';
 
   interface Props {
-    ticketDetails: TicketModel<Mysql.RestoreSlave>;
+    ticketDetails: TicketModel<Mysql.ResourcePool.RestoreSlave>;
   }
 
   type RowData = Props['ticketDetails']['details']['infos'][number];
