@@ -206,6 +206,9 @@ class ListRetrieveResource(query.ListRetrieveResource):
             "machine__machine_type",
             "machine__bk_sub_zone",
             "machine__bk_sub_zone_id",
+            "machine__bk_os_name",
+            "machine__bk_rack_id",
+            "machine__bk_svr_device_cls_name",
         ]
 
         # 获取remote实例的查询集

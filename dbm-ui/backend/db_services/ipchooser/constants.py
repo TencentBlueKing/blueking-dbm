@@ -46,6 +46,9 @@ class CommonEnum(EnhanceEnum):
         "idc_city_id",
         "idc_city_name",
         "operator",
+        "sub_zone",
+        "rack_id",
+        "svr_device_class",
     ]
 
     @classmethod

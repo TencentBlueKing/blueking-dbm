@@ -210,6 +210,9 @@ class QSearchHandler(object):
             "bk_idc_area": F("machine__bk_idc_area"),
             "bk_idc_name": F("machine__bk_idc_name"),
             "bk_sub_zone": F("machine__bk_sub_zone"),
+            "bk_os_name": F("machine__bk_os_name"),
+            "bk_rack_id": F("machine__bk_rack_id"),
+            "bk_svr_device_cls_name": F("machine__bk_svr_device_cls_name"),
             "ip_port": Concat("machine__ip", Value(":"), "port", output_field=CharField()),
         }
         fields = [

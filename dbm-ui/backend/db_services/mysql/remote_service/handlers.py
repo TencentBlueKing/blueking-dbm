@@ -21,6 +21,7 @@ from backend.db_services.mysql.constants import QUERY_SCHEMA_DBS_SQL, QUERY_SCHE
 from backend.db_services.mysql.remote_service.exceptions import RemoteServiceBaseException
 from backend.db_services.mysql.sqlparse.exceptions import SQLParseBaseException
 from backend.db_services.mysql.sqlparse.handlers import SQLParseHandler
+from backend.db_services.partition.constants import QUERY_DATABASE_FIELD_TYPE
 from backend.flow.consts import SYSTEM_DBS
 
 
@@ -293,3 +294,39 @@ class RemoteServiceHandler:
             return {"query": [], "error_msg": rpc_results[0]["error_msg"]}
 
         return {"query": rpc_results[0]["cmd_results"][0]["table_data"], "error_msg": ""}
+
+    def validate_table_fields(self, info, input_fild_names):
+        """
+        校验库表中字段是否存在
+        @param info:
+        @param input_fild_names: csv头部并计算列数信息
+        """
+        bk_biz_id = self.bk_biz_id
+        cluster_id = info["cluster_id"]
+
+        # 获取集群的DRS查询地址，格式化库表过滤条件
+        cluster = Cluster.objects.get(id=cluster_id)
+        address = ClusterHandler.get_exact_handler(bk_biz_id=bk_biz_id, cluster_id=cluster_id).get_remote_address()
+
+        table_sts = "(" + " or ".join([f"table_name = '{table}'" for table in info["tables"]]) + ")"
+        db_sts = "(" + " or ".join([f"table_schema like '{db}'" for db in info["databases"]]) + ")"
+        fields_type_sql = QUERY_DATABASE_FIELD_TYPE.format(table_sts=table_sts, db_sts=db_sts)
+
+        # 查询涉及的所有库表索引信息和字段类型信息
+        rpc_results = DRSApi.rpc(
+            {"bk_cloud_id": cluster.bk_cloud_id, "addresses": [address], "cmds": [fields_type_sql]}
+        )
+        if rpc_results[0]["cmd_results"] is None:
+            raise RemoteServiceBaseException(_("字段信息查询错误：{}").format(rpc_results[0]["error_msg"]))
+
+        db_table_fields: Dict[str, Dict[str, list]] = defaultdict(lambda: defaultdict(list))
+        for table_data in rpc_results[0]["cmd_results"][0]["table_data"]:
+            db_table_fields[table_data["table_schema"]][table_data["table_name"]].append(table_data["column_name"])
+
+        for db_name, table_info in db_table_fields.items():
+            for table_name, fild_names in table_info.items():
+                no_file_name = set(input_fild_names).difference(set(fild_names))
+                if no_file_name:
+                    raise RemoteServiceBaseException(
+                        _("数据库【{}】表【{}】中不存在字段{}".format(db_name, table_name, no_file_name))
+                    )

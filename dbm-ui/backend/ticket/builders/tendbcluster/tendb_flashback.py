@@ -11,7 +11,6 @@ specific language governing permissions and limitations under the License.
 
 from django.utils.translation import gettext_lazy as _
 
-from backend.db_services.mysql.remote_service.handlers import RemoteServiceHandler
 from backend.flow.engine.controller.spider import SpiderController
 from backend.ticket import builders
 from backend.ticket.builders.mysql.mysql_flashback import MySQLFlashbackDetailSerializer
@@ -29,8 +28,10 @@ class TendbFlashbackDetailSerializer(MySQLFlashbackDetailSerializer, TendbBaseOp
         super().validate_flash_time(attrs)
         # 校验集群是否可用
         super(TendbBaseOperateDetailSerializer, self).validate_cluster_can_access(attrs)
-        # 校验flash的库表选择器
-        RemoteServiceHandler(bk_biz_id=self.context["bk_biz_id"]).check_flashback_database(attrs["infos"])
+        # 库表校验结果判断
+        self.check_flashback_database_result(attrs)
+        # 校验待闪回记录格式与字段是否存在
+        self.validate_rows_filter(attrs)
 
         return attrs
 

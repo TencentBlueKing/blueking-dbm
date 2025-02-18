@@ -149,3 +149,12 @@ class MongoDBScriptImportMode(str, StructuredEnum):
 
     FILE = EnumField("file", _("文件上传"))
     MANUAL = EnumField("manual", _("手动输入"))
+
+
+class FlashbackBuildType(str, StructuredEnum):
+    """
+    闪回方式
+    """
+
+    TABLE_FLASHBACK = EnumField("TABLE_FLASHBACK", _("库表闪回"))
+    RECORD_FLASHBACK = EnumField("RECORD_FLASHBACK", _("记录级闪回"))

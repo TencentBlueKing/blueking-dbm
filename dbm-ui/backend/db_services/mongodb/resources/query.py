@@ -254,6 +254,9 @@ class MongoDBListRetrieveResource(query.ListRetrieveResource):
             "machine__spec_config",
             "machine__bk_sub_zone",
             "machine__bk_sub_zone_id",
+            "machine__bk_os_name",
+            "machine__bk_rack_id",
+            "machine__bk_svr_device_cls_name",
             "shard",
         ]
         storage_instance = (
