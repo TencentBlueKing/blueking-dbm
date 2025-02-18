@@ -54,7 +54,8 @@
             v-model:select-method="item.host.select_method"
             :cluster-type="ClusterTypes.REDIS"
             :count="item.cluster.proxy_count"
-            field="host.select_method" />
+            field="host.select_method"
+            :tab-list-config="tabListConfig" />
           <EditableColumn
             field="count"
             :label="t('缩容数量（台）')"
@@ -121,6 +122,7 @@
   import { ClusterTypes, TicketTypes } from '@common/const';
 
   import HybridHostColumn, {
+    type PanelListType,
     SELECT_METHODS,
   } from '@views/db-manage/common/toolbox-field/column/hybrid-host-column/Index.vue';
   import TicketPayload, {
@@ -152,6 +154,33 @@
 
   const { t } = useI18n();
   const tableRef = useTemplateRef('table');
+
+  const tabListConfig = {
+    [ClusterTypes.REDIS]: [
+      {
+        id: 'redis',
+        name: t('目标从库主机'),
+        tableConfig: {
+          firsrColumn: {
+            label: t('Proxy 主机'),
+            field: 'ip',
+            role: 'proxy',
+          },
+        },
+      },
+      {
+        id: 'manualInput',
+        name: t('手动输入'),
+        tableConfig: {
+          firsrColumn: {
+            label: t('Proxy 主机'),
+            field: 'ip',
+            role: 'proxy',
+          },
+        },
+      },
+    ],
+  } as unknown as Record<ClusterTypes, PanelListType>;
 
   const createTableRow = (data = {} as Partial<RowData>) => ({
     cluster: data.cluster || {
@@ -227,7 +256,7 @@
           if (item.host.host_list.length) {
             info.old_nodes = { proxy_reduced_hosts: item.host.host_list };
           } else if (item.count) {
-            info.target_proxy_count = Number(item.count);
+            info.target_proxy_count = item.cluster.proxy_count - Number(item.count);
           }
 
           return info;
