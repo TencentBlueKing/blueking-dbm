@@ -17,28 +17,13 @@
       {{ ticketDetails.details.clusters[ticketDetails.details.cluster_id].immute_domain }}
     </InfoItem>
     <InfoItem :label="t('目标 DB：')">
-      <BkTag
-        v-for="tag in ticketDetails.details.databases"
-        :key="tag">
-        {{ tag }}
-      </BkTag>
-      <template v-if="ticketDetails.details.databases.length < 1">--</template>
+      <TagBlock :data="ticketDetails.details.databases" />
     </InfoItem>
     <InfoItem :label="t('目标表名：')">
-      <BkTag
-        v-for="tag in ticketDetails.details.tables"
-        :key="tag">
-        {{ tag }}
-      </BkTag>
-      <template v-if="ticketDetails.details.tables.length < 1">--</template>
+      <TagBlock :data="ticketDetails.details.tables" />
     </InfoItem>
     <InfoItem :label="t('忽略表名：')">
-      <BkTag
-        v-for="tag in ticketDetails.details.tables_ignore"
-        :key="tag">
-        {{ tag }}
-      </BkTag>
-      <template v-if="ticketDetails.details.tables_ignore.length < 1">--</template>
+      <TagBlock :data="ticketDetails.details.tables_ignore" />
     </InfoItem>
     <InfoItem :label="t('where 条件：')">
       {{ ticketDetails.details.where || '--' }}
@@ -59,6 +44,8 @@
   import { useI18n } from 'vue-i18n';
 
   import TicketModel, { type Mysql } from '@services/model/ticket/ticket';
+
+  import TagBlock from '@components/tag-block/Index.vue';
 
   import InfoList, { Item as InfoItem } from '../../components/info-list/Index.vue';
 

@@ -48,30 +48,17 @@
     </BkTableColumn>
     <BkTableColumn :label="t('构造 DB')">
       <template #default="{ data }: { data: RowData }">
-        <BkTag
-          v-for="item in data.db_list"
-          :key="item">
-          {{ item }}
-        </BkTag>
+        <TagBlock :data="data.db_list" />
       </template>
     </BkTableColumn>
     <BkTableColumn :label="t('忽略 DB')">
       <template #default="{ data }: { data: RowData }">
-        <BkTag
-          v-for="item in data.ignore_db_list"
-          :key="item">
-          {{ item }}
-        </BkTag>
-        <span v-if="data.ignore_db_list.length < 1">--</span>
+        <TagBlock :data="data.ignore_db_list" />
       </template>
     </BkTableColumn>
     <BkTableColumn :label="t('构造后 DB 名')">
       <template #default="{ data }: { data: RowData }">
-        <BkTag
-          v-for="item in data.rename_infos"
-          :key="item.db_name">
-          {{ item.target_db_name }}
-        </BkTag>
+        <TagBlock :data="data.rename_infos.map((item) => item.target_db_name)" />
       </template>
     </BkTableColumn>
   </BkTable>
@@ -83,6 +70,8 @@
   import TicketModel, { type Sqlserver } from '@services/model/ticket/ticket';
 
   import { TicketTypes } from '@common/const';
+
+  import TagBlock from '@components/tag-block/Index.vue';
 
   import InfoList, { Item as InfoItem } from '../components/info-list/Index.vue';
 

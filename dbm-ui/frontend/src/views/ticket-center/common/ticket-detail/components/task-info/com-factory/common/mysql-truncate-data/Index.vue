@@ -25,42 +25,22 @@
     </BkTableColumn>
     <BkTableColumn :label="t('指定 DB 名')">
       <template #default="{ data }: { data: RowData }">
-        <BkTag
-          v-for="item in data.db_patterns"
-          :key="item">
-          {{ item }}
-        </BkTag>
-        <span v-if="data.db_patterns.length < 1">--</span>
+        <TagBlock :data="data.db_patterns" />
       </template>
     </BkTableColumn>
     <BkTableColumn :label="t('忽略 DB 名')">
       <template #default="{ data }: { data: RowData }">
-        <BkTag
-          v-for="item in data.ignore_dbs"
-          :key="item">
-          {{ item }}
-        </BkTag>
-        <span v-if="data.ignore_dbs.length < 1">--</span>
+        <TagBlock :data="data.ignore_dbs" />
       </template>
     </BkTableColumn>
     <BkTableColumn :label="t('指定表名')">
       <template #default="{ data }: { data: RowData }">
-        <BkTag
-          v-for="item in data.table_patterns"
-          :key="item">
-          {{ item }}
-        </BkTag>
-        <span v-if="data.table_patterns.length < 1">--</span>
+        <TagBlock :data="data.table_patterns" />
       </template>
     </BkTableColumn>
     <BkTableColumn :label="t('忽略表名')">
       <template #default="{ data }: { data: RowData }">
-        <BkTag
-          v-for="item in data.ignore_tables"
-          :key="item">
-          {{ item }}
-        </BkTag>
-        <span v-if="data.ignore_tables.length < 1">--</span>
+        <TagBlock :data="data.ignore_tables" />
       </template>
     </BkTableColumn>
   </BkTable>
@@ -75,6 +55,8 @@
   import { useI18n } from 'vue-i18n';
 
   import TicketModel, { type Mysql } from '@services/model/ticket/ticket';
+
+  import TagBlock from '@components/tag-block/Index.vue';
 
   import InfoList, { Item as InfoItem } from '../../components/info-list/Index.vue';
 

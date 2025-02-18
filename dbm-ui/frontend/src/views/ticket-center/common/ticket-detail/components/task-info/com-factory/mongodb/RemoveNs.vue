@@ -46,12 +46,7 @@
       :label="t('指定 DB 名')"
       :min-width="120">
       <template #default="{data}: {data: RowData}">
-        <BkTag
-          v-for="(item, index) in data.ns_filter.db_patterns"
-          :key="index">
-          {{ item }}
-        </BkTag>
-        <span v-if="data.ns_filter.db_patterns.length < 1">--</span>
+        <TagBlock :data="data.ns_filter.db_patterns" />
       </template>
     </BkTableColumn>
     <BkTableColumn
@@ -59,12 +54,7 @@
       :label="t('忽略 DB 名')"
       :min-width="120">
       <template #default="{data}: {data: RowData}">
-        <BkTag
-          v-for="(item, index) in data.ns_filter.ignore_dbs"
-          :key="index">
-          {{ item }}
-        </BkTag>
-        <span v-if="data.ns_filter.ignore_dbs.length < 1">--</span>
+        <TagBlock :data="data.ns_filter.ignore_dbs" />
       </template>
     </BkTableColumn>
     <BkTableColumn
@@ -72,12 +62,7 @@
       :label="t('指定表名')"
       :min-width="120">
       <template #default="{data}: {data: RowData}">
-        <BkTag
-          v-for="(item, index) in data.ns_filter.table_patterns"
-          :key="index">
-          {{ item }}
-        </BkTag>
-        <span v-if="data.ns_filter.table_patterns.length < 1">--</span>
+        <TagBlock :data="data.ns_filter.table_patterns" />
       </template>
     </BkTableColumn>
     <BkTableColumn
@@ -85,12 +70,7 @@
       :label="t('忽略表名')"
       :min-width="120">
       <template #default="{data}: {data: RowData}">
-        <BkTag
-          v-for="(item, index) in data.ns_filter.ignore_tables"
-          :key="index">
-          {{ item }}
-        </BkTag>
-        <span v-if="data.ns_filter.ignore_tables.length < 1">--</span>
+        <TagBlock :data="data.ns_filter.ignore_tables" />
       </template>
     </BkTableColumn>
   </BkTable>
@@ -107,6 +87,8 @@
   import TicketModel, { type Mongodb } from '@services/model/ticket/ticket';
 
   import { TicketTypes } from '@common/const';
+
+  import TagBlock from '@components/tag-block/Index.vue';
 
   import InfoList, { Item as InfoItem } from '../components/info-list/Index.vue';
 

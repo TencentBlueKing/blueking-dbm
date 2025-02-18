@@ -32,48 +32,28 @@
       :label="t('备份DB名')"
       :min-width="120">
       <template #default="{ data }: { data: RowData }">
-        <BkTag
-          v-for="item in data.db_patterns"
-          :key="item">
-          {{ item }}
-        </BkTag>
-        <span v-if="data.db_patterns.length < 1">--</span>
+        <TagBlock :data="data.db_patterns" />
       </template>
     </BkTableColumn>
     <BkTableColumn
       :label="t('忽略DB名')"
       :min-width="120">
       <template #default="{ data }: { data: RowData }">
-        <BkTag
-          v-for="item in data.ignore_dbs"
-          :key="item">
-          {{ item }}
-        </BkTag>
-        <span v-if="data.ignore_dbs.length < 1">--</span>
+        <TagBlock :data="data.ignore_dbs" />
       </template>
     </BkTableColumn>
     <BkTableColumn
       :label="t('备份表名')"
       :min-width="120">
       <template #default="{ data }: { data: RowData }">
-        <BkTag
-          v-for="item in data.table_patterns"
-          :key="item">
-          {{ item }}
-        </BkTag>
-        <span v-if="data.table_patterns.length < 1">--</span>
+        <TagBlock :data="data.table_patterns" />
       </template>
     </BkTableColumn>
     <BkTableColumn
       :label="t('忽略表名')"
       :min-width="120">
       <template #default="{ data }: { data: RowData }">
-        <BkTag
-          v-for="item in data.ignore_tables"
-          :key="item">
-          {{ item }}
-        </BkTag>
-        <span v-if="data.ignore_tables.length < 1">--</span>
+        <TagBlock :data="data.ignore_tables" />
       </template>
     </BkTableColumn>
   </BkTable>
@@ -84,6 +64,8 @@
   import TicketModel, { type TendbCluster } from '@services/model/ticket/ticket';
 
   import { TicketTypes } from '@common/const';
+
+  import TagBlock from '@components/tag-block/Index.vue';
 
   interface Props {
     ticketDetails: TicketModel<TendbCluster.DbTableBackup>;

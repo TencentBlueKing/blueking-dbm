@@ -27,51 +27,27 @@
     </BkTableColumn>
     <BkTableColumn :label="t('指定 DB 名')">
       <template #default="{ data }: { data: RowData }">
-        <BkTag
-          v-for="dbName in data.clean_dbs_patterns"
-          :key="dbName">
-          {{ dbName }}
-        </BkTag>
-        <span v-if="data.clean_dbs_patterns.length < 1">--</span>
+        <TagBlock :data="data.clean_dbs_patterns" />
       </template>
     </BkTableColumn>
     <BkTableColumn :label="t('忽略 DB 名')">
       <template #default="{ data }: { data: RowData }">
-        <BkTag
-          v-for="dbName in data.clean_ignore_dbs_patterns"
-          :key="dbName">
-          {{ dbName }}
-        </BkTag>
-        <span v-if="data.clean_ignore_dbs_patterns.length < 1">--</span>
+        <TagBlock :data="data.clean_ignore_dbs_patterns" />
       </template>
     </BkTableColumn>
     <BkTableColumn :label="t('指定表名')">
       <template #default="{ data }: { data: RowData }">
-        <BkTag
-          v-for="dbName in data.clean_tables"
-          :key="dbName">
-          {{ dbName }}
-        </BkTag>
-        <span v-if="data.clean_tables.length < 1">--</span>
+        <TagBlock :data="data.clean_tables" />
       </template>
     </BkTableColumn>
     <BkTableColumn :label="t('忽略表名')">
       <template #default="{ data }: { data: RowData }">
-        <BkTag
-          v-for="dbName in data.ignore_clean_tables"
-          :key="dbName">
-          {{ dbName }}
-        </BkTag>
-        <span v-if="data.ignore_clean_tables.length < 1">--</span>
+        <TagBlock :data="data.ignore_clean_tables" />
       </template>
     </BkTableColumn>
     <BkTableColumn :label="t('最终 DB')">
       <template #default="{ data }: { data: RowData }">
-        <BkTag
-          v-for="dbName in data.clean_dbs"
-          :key="dbName">
-          {{ dbName }}
-        </BkTag>
+        <TagBlock :data="data.clean_dbs" />
       </template>
     </BkTableColumn>
   </BkTable>
@@ -82,6 +58,8 @@
   import TicketModel, { type Sqlserver } from '@services/model/ticket/ticket';
 
   import { TicketTypes } from '@common/const';
+
+  import TagBlock from '@components/tag-block/Index.vue';
 
   interface Props {
     ticketDetails: TicketModel<Sqlserver.ClearDbs>;
