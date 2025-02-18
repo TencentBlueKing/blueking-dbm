@@ -19,7 +19,7 @@
       class="mt-16"
       style="padding: 0 45px">
       <BkTable :data="semanticExecuteResult">
-        <BKTableColumn
+        <BkTableColumn
           field="dbnames"
           :label="t('变更的 DB')"
           :width="200">
@@ -30,8 +30,8 @@
               {{ tag }}
             </BkTag>
           </template>
-        </BKTableColumn>
-        <BKTableColumn
+        </BkTableColumn>
+        <BkTableColumn
           field="ignore_dbnames"
           :label="t('忽略的 DB')"
           :width="200">
@@ -45,8 +45,8 @@
             </template>
             <span v-else>--</span>
           </template>
-        </BKTableColumn>
-        <BKTableColumn
+        </BkTableColumn>
+        <BkTableColumn
           field="status"
           :label="t('SQL 文件执行结果')"
           :width="200">
@@ -70,8 +70,8 @@
               {{ t('待执行') }}
             </span>
           </template>
-        </BKTableColumn>
-        <BKTableColumn :label="t('失败原因')">
+        </BkTableColumn>
+        <BkTableColumn :label="t('失败原因')">
           <template #default="{ data }">
             <div v-if="data.status === 'Failed'">
               <div style="font-size: 12px; font-weight: bold; line-height: 22px; color: #ea3636">
@@ -85,7 +85,7 @@
             </div>
             <div v-else>--</div>
           </template>
-        </BKTableColumn>
+        </BkTableColumn>
       </BkTable>
     </div>
   </div>
