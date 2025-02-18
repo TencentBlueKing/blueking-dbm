@@ -76,7 +76,7 @@
 
   const moreTagCount = computed(() => props.data.length - renderTagNum.value);
 
-  let tippyIns: Instance;
+  let tippyIns: Instance | undefined;
 
   const calcRenderTagNum = () => {
     // next 确保组件是 mounted 状态
@@ -134,6 +134,8 @@
         if (tippyIns) {
           tippyIns.hide();
           tippyIns.disable();
+          tippyIns.destroy();
+          tippyIns = undefined;
         }
         return;
       }
