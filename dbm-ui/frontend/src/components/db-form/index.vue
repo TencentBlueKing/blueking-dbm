@@ -14,6 +14,7 @@
 <template>
   <BkForm
     ref="dbFormRef"
+    :form-type="formType"
     :model="model"
     v-bind="$attrs"
     @click="handleUserChange">
@@ -24,16 +25,21 @@
 <script setup lang="ts">
   import { debounce } from 'lodash';
 
-  interface Props {
+  export interface Props {
     model?: Record<string, any>;
     autoLabelWidth?: boolean;
+    formType?: 'default' | 'vertical';
   }
 
   const props = withDefaults(defineProps<Props>(), {
     model: () => ({}),
     autoLabelWidth: false,
+    formType: 'default',
   });
 
+  defineOptions({
+    name: 'DbForm',
+  });
   const dbFormRef = ref();
 
   watch(

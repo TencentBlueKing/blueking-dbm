@@ -168,9 +168,12 @@
   });
 
   defineExpose<Exposes>({
-    getValue() {
-      return validator(localValue.value).then(() => localValue.value);
-    },
+    getValue: () =>
+      validator(localValue.value).then(() => {
+        emits('update:modelValue', localValue.value as string[]);
+        emits('change', localValue.value as string[]);
+        return localValue.value;
+      }),
   });
 </script>
 <style lang="less">
