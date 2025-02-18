@@ -260,7 +260,7 @@
   </BkLoading>
 </template>
 <script setup lang="tsx">
-  import { getCurrentInstance, onActivated, shallowRef, useTemplateRef } from 'vue';
+  import { getCurrentInstance, onActivated, shallowRef, useTemplateRef, type VNode } from 'vue';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
   import { useRouter } from 'vue-router';
