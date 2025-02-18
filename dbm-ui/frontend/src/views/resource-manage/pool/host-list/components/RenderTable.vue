@@ -30,21 +30,6 @@
         @column-sort="handleColumnSortChange"
         @page-limit-change="handlePageLimitChange"
         @page-value-change="handlePageValueChange">
-        <template
-          v-if="Object.keys(rowSelectMemo).length > 0"
-          #prepend>
-          <div class="prepend-row">
-            <I18nT keypath="已选n条，">
-              <span class="number">{{ Object.keys(rowSelectMemo).length }}</span>
-            </I18nT>
-            <BkButton
-              text
-              theme="primary"
-              @click="handleClearWholeSelect">
-              {{ t('清除所有勾选') }}
-            </BkButton>
-          </div>
-        </template>
         <slot />
         <template #expandRow="row">
           <slot
@@ -133,6 +118,8 @@
     random,
   } from '@utils';
 
+  import { useStorage } from '@vueuse/core';
+
   const props = withDefaults(defineProps<Props>(), {
     fixedPagination: false,
     clearSelection: true,
@@ -203,6 +190,7 @@
   });
 
   const { t } = useI18n();
+  const paginationLimitCache = useStorage('table_pagination_limit', 20)
 
   const rootRef = ref();
   const bkTableRef = ref();
@@ -223,7 +211,7 @@
   const pagination = reactive<IPagination>({
     count: 0,
     current: 1,
-    limit: 10,
+    limit: paginationLimitCache.value,
     limitList: [10, 20, 50, 100],
     align: 'right',
     layout: ['total', 'limit', 'list'],
@@ -455,6 +443,7 @@
   const handlePageLimitChange = (pageLimit: number) => {
     pagination.limit = pageLimit;
     pagination.current = 1;
+    paginationLimitCache.value = pageLimit
     fetchListData();
   };
 
