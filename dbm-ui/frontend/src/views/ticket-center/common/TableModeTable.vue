@@ -278,6 +278,7 @@
   import { getBusinessHref, getOffset } from '@utils';
 
   import { type VxeTableDefines } from '@blueking/vxe-table';
+  import { useStorage } from '@vueuse/core';
 
   import useDatePicker from './hooks/use-date-picker';
   import useFetchData from './hooks/use-fetch-data';
@@ -311,6 +312,7 @@
   const router = useRouter();
   const { t } = useI18n();
   const eventBus = useEventBus();
+  const paginationLimitCache = useStorage('table_pagination_limit', 20);
   const { isSplited: isStretchLayoutOpen, splitScreen: stretchLayoutSplitScreen } = useStretchLayout();
 
   const { value: datePickerValue, formatValue: formatDateValue } = useDatePicker();
@@ -470,6 +472,7 @@
   // 切换每页条数
   const handlePageLimitChange = (pageLimit: number) => {
     pagination.limit = pageLimit;
+    paginationLimitCache.value = pageLimit;
     fetchData();
   };
 
