@@ -21,7 +21,7 @@ const create = (dataSource: typeof getTickets, options?: { onSuccess?: (data: Ti
     limit: paginationLimitCache.value,
     current: 1,
     count: 0,
-    limitList: [10, 20, 50, 100, 500],
+    limitList: [10, 20, 50, 100],
     remote: true,
   });
   const ordering = ref('');
@@ -81,7 +81,7 @@ const create = (dataSource: typeof getTickets, options?: { onSuccess?: (data: Ti
         };
 
         replaceSearchParams(urlSearchParams);
-        if (options && options.onSuccess) {
+        if (options?.onSuccess) {
           options.onSuccess(data.results);
         }
       })

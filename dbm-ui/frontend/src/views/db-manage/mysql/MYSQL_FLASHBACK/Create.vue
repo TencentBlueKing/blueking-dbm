@@ -46,7 +46,8 @@
               v-model="rowData.end_time"
               :disabled-date="(date) => handleEditTimeDisableCallback(date, rowData.start_time)"
               field="end_time"
-              :label="t('截止时间')" />
+              :label="t('截止时间')"
+              nowenable />
             <DbNameColumn
               v-model="rowData.databases"
               :cluster-id="rowData.cluster?.id" />

@@ -101,7 +101,7 @@
               class="mb-24">
               <DbFormItem
                 ref="backendRef"
-                label="Master / Slave"
+                :label="isSingleType ? t('服务器') : 'Master / Slave'"
                 property="details.nodes.backend"
                 required>
                 <IpSelector
@@ -326,7 +326,12 @@
     ],
   }));
 
-  const hostNums = computed(() => Math.ceil(formData.details.cluster_count / formData.details.inst_num));
+  const resourceSpecbackendGroupCount = computed(() =>
+    Math.ceil(formData.details.cluster_count / formData.details.inst_num),
+  );
+  const hostNums = computed(() =>
+    isSingleType ? resourceSpecbackendGroupCount.value : resourceSpecbackendGroupCount.value * 2,
+  );
 
   /**
    * 预览功能
@@ -463,7 +468,7 @@
                 city: cityCode,
                 sub_zone_ids: [],
               },
-              count: hostNums.value,
+              count: resourceSpecbackendGroupCount.value,
             },
           },
         };
