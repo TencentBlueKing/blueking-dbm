@@ -133,22 +133,22 @@
 
   interface RowData {
     cluster: {
+      cluster_type_name: string;
       id: number;
       master_domain: string;
-      cluster_type_name: string;
-      role: string;
       proxy_count: number;
+      role: string;
     };
+    count: string;
     host: {
-      select_method: string;
       host_list: {
         bk_biz_id: number;
         bk_cloud_id: number;
         bk_host_id: number;
         ip: string;
       }[];
+      select_method: string;
     };
-    count: string;
     switch_mode: string;
   }
 
@@ -162,8 +162,8 @@
         name: t('目标从库主机'),
         tableConfig: {
           firsrColumn: {
-            label: t('Proxy 主机'),
             field: 'ip',
+            label: t('Proxy 主机'),
             role: 'proxy',
           },
         },
@@ -173,8 +173,8 @@
         name: t('手动输入'),
         tableConfig: {
           firsrColumn: {
-            label: t('Proxy 主机'),
             field: 'ip',
+            label: t('Proxy 主机'),
             role: 'proxy',
           },
         },
@@ -184,17 +184,17 @@
 
   const createTableRow = (data = {} as Partial<RowData>) => ({
     cluster: data.cluster || {
+      cluster_type_name: '',
       id: 0,
       master_domain: '',
-      cluster_type_name: '',
-      role: '',
       proxy_count: 0,
-    },
-    host: data.host || {
-      select_method: '',
-      host_list: [],
+      role: '',
     },
     count: data.count || '',
+    host: data.host || {
+      host_list: [],
+      select_method: '',
+    },
     switch_mode: data.switch_mode || '',
   });
 
@@ -209,20 +209,18 @@
 
   const switchModeOptions = [
     {
-      value: 'user_confirm',
       label: t('需人工确认'),
+      value: 'user_confirm',
     },
     {
-      value: 'no_confirm',
       label: t('无需确认'),
+      value: 'no_confirm',
     },
   ];
 
   interface TicketDetail {
-    ip_source: 'resource_pool';
     infos: {
       cluster_id: number;
-      target_proxy_count?: number;
       old_nodes?: {
         proxy_reduced_hosts: {
           bk_biz_id: number;
@@ -232,10 +230,12 @@
         }[];
       };
       online_switch_type: string;
+      target_proxy_count?: number;
     }[];
+    ip_source: 'resource_pool';
   }
 
-  const { run: createTicketRun, loading: isSubmitting } = useCreateTicket<TicketDetail>(
+  const { loading: isSubmitting, run: createTicketRun } = useCreateTicket<TicketDetail>(
     TicketTypes.REDIS_PROXY_SCALE_DOWN,
   );
 
@@ -246,7 +246,6 @@
     }
     createTicketRun({
       details: {
-        ip_source: 'resource_pool',
         infos: formData.tableData.map((item) => {
           const info: TicketDetail['infos'][0] = {
             cluster_id: item.cluster.id,
@@ -261,6 +260,7 @@
 
           return info;
         }),
+        ip_source: 'resource_pool',
       },
       remark: formData.remark,
     });
@@ -276,15 +276,15 @@
         acc.push(
           createTableRow({
             cluster: {
+              cluster_type_name: item.cluster_type_name,
               id: item.id,
               master_domain: item.master_domain,
-              cluster_type_name: item.cluster_type_name,
-              role: 'Proxy',
               proxy_count: item.proxy.length,
+              role: 'Proxy',
             },
             host: {
-              select_method: SELECT_METHODS.AUTO,
               host_list: [],
+              select_method: SELECT_METHODS.AUTO,
             },
             switch_mode: 'user_confirm',
           }),

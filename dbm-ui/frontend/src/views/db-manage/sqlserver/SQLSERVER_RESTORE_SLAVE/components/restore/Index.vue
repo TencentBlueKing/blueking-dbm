@@ -84,8 +84,12 @@
   import SlaveHostColumnGroup, { type SelectorHost } from './SlaveHostColumnGroup.vue';
 
   interface RowData {
+    newSlave: {
+      bk_cloud_id: number;
+      bk_host_id: number;
+      ip: string;
+    };
     slave: {
-      bk_biz_id: number;
       bk_cloud_id: number;
       bk_host_id: number;
       ip: string;
@@ -93,12 +97,6 @@
         id: number;
         master_domain: string;
       }[];
-    };
-    newSlave: {
-      bk_biz_id: number;
-      bk_host_id: number;
-      bk_cloud_id: number;
-      ip: string;
     };
   }
 
@@ -108,24 +106,22 @@
   const currentBizId = window.PROJECT_CONFIG.BIZ_ID;
 
   const createTableRow = (data = {} as Partial<RowData>) => ({
+    newSlave: data.newSlave || {
+      bk_cloud_id: 0,
+      bk_host_id: 0,
+      ip: '',
+    },
     slave: data.slave || {
-      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
       bk_cloud_id: 0,
       bk_host_id: 0,
       ip: '',
       related_clusters: [],
     },
-    newSlave: data.newSlave || {
-      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-      bk_cloud_id: 0,
-      bk_host_id: 0,
-      ip: '',
-    },
   });
 
   const defaultData = () => ({
-    tableData: [createTableRow()],
     backupSource: BackupSourceType.REMOTE,
+    tableData: [createTableRow()],
     ...createTickePayload(),
   });
 
@@ -133,31 +129,29 @@
   const selected = computed(() => formData.tableData.filter((item) => item.slave.bk_host_id).map((item) => item.slave));
   const selectedMap = computed(() => Object.fromEntries(selected.value.map((cur) => [cur.ip, true])));
 
-  const { run: createTicketRun, loading: isSubmitting } = useCreateTicket<{
-    ip_source: 'resource_pool';
+  const { loading: isSubmitting, run: createTicketRun } = useCreateTicket<{
     backup_source: BackupSourceType;
     infos: {
       cluster_ids: number[];
       old_nodes: {
-        old_slave: {
-          bk_biz_id: number;
-          bk_host_id: number;
+        old_slave_host: {
           bk_cloud_id: number;
+          bk_host_id: number;
           ip: string;
         }[];
       };
       resource_spec: {
-        new_slave: {
-          spec_id: number;
+        sqlserver_ha: {
           hosts: {
-            bk_biz_id: number;
-            bk_host_id: number;
             bk_cloud_id: number;
+            bk_host_id: number;
             ip: string;
           }[];
+          spec_id: number;
         };
       };
     }[];
+    ip_source: 'resource_pool';
   }>(TicketTypes.SQLSERVER_RESTORE_SLAVE);
 
   const handleSubmit = async () => {
@@ -165,27 +159,26 @@
     if (valid) {
       createTicketRun({
         details: {
-          ip_source: 'resource_pool',
           backup_source: formData.backupSource,
           infos: formData.tableData.map((item) => ({
             cluster_ids: item.slave.related_clusters.map((item) => item.id),
             old_nodes: {
-              old_slave: [
+              old_slave_host: [
                 {
-                  bk_biz_id: item.slave.bk_biz_id,
-                  bk_host_id: item.slave.bk_host_id,
                   bk_cloud_id: item.slave.bk_cloud_id,
+                  bk_host_id: item.slave.bk_host_id,
                   ip: item.slave.ip,
                 },
               ],
             },
             resource_spec: {
-              new_slave: {
-                spec_id: 0,
+              sqlserver_ha: {
                 hosts: [item.newSlave],
+                spec_id: 0,
               },
             },
           })),
+          ip_source: 'resource_pool',
         },
         remark: formData.remark,
       });
@@ -202,7 +195,6 @@
         acc.push(
           createTableRow({
             slave: {
-              bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
               bk_cloud_id: item.bk_cloud_id,
               bk_host_id: item.bk_host_id,
               ip: item.ip,

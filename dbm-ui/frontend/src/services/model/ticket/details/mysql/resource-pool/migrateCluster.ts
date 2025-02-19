@@ -1,18 +1,15 @@
-import type { DetailBase, DetailClusters } from '../../common';
+import type { ResourcePoolDetailBase } from '../../common';
 
 /**
  * MySQL 迁移主从
  */
 
-export interface MigrateCluster extends DetailBase {
+export interface MigrateCluster extends ResourcePoolDetailBase {
   backup_source: string;
-  clusters: DetailClusters;
-  ip_source: 'resource_pool';
   infos: {
     cluster_ids: number[];
     resource_spec: {
       new_master: {
-        spec_id: number;
         hosts: {
           bk_biz_id: number;
           bk_cloud_id: number;
@@ -20,9 +17,9 @@ export interface MigrateCluster extends DetailBase {
           ip: string;
           port: number;
         }[];
+        spec_id: number;
       };
       new_slave: {
-        spec_id: number;
         hosts: {
           bk_biz_id: number;
           bk_cloud_id: number;
@@ -30,6 +27,7 @@ export interface MigrateCluster extends DetailBase {
           ip: string;
           port: number;
         }[];
+        spec_id: number;
       };
     };
   }[];

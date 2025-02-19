@@ -31,6 +31,7 @@ export * from './proxyOpen';
 export * from './proxyScaleDown';
 export * from './proxyScaleUp';
 export * from './purge';
+export * as ResourcePool from './resource-pool/index';
 export * from './scaleUpdown';
 export * from './slotsMigrate';
 export * from './versionUpdateOnline';

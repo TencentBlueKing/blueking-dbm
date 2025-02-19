@@ -145,7 +145,7 @@
       tables?: string[];
       tables_ignore?: string[];
     }[];
-  }>(TicketTypes.MYSQL_ROLLBACK_CLUSTER);
+  }>(TicketTypes.TENDBCLUSTER_ROLLBACK_CLUSTER);
 
   const handleSubmit = async () => {
     const ticketDetails = await tableRef.value!.getValue();
