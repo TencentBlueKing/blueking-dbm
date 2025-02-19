@@ -16,6 +16,8 @@ import type { Instance } from 'tippy.js';
 import type { VNode } from 'vue';
 import type { JSX } from 'vue/jsx-runtime';
 
+import D3Graph from '@blueking/bkflow.js';
+
 import { retrieveDorisInstance } from '@services/source/doris';
 import { retrieveEsInstance } from '@services/source/es';
 import { retrieveHdfsInstance } from '@services/source/hdfs';
@@ -40,7 +42,7 @@ import { generateId, vNodeToHtml } from '@utils';
 
 import { t } from '@locales/index';
 
-import D3Graph from '@blueking/bkflow.js';
+import { checkOverflow } from '@/directives/overflowTips';
 
 import {
   type GraphInstance,
@@ -51,21 +53,24 @@ import {
   nodeTypes,
 } from './graphData';
 
-import { checkOverflow } from '@/directives/overflowTips';
-
 interface InstanceDetails {
   bk_cloud_id: number;
+  bk_cloud_name: string;
   bk_cpu: number;
   bk_disk: number;
   bk_host_id: number;
   bk_host_innerip: string;
   bk_idc_city_name: string;
+  bk_idc_name: string;
   bk_mem: number;
   bk_os_name: string;
   bk_sub_zone: string;
   cluster_id: number;
   cluster_type: string;
+  cluster_type_display: string;
   create_at: string;
+  db_module_id: number;
+  db_version: string;
   idc_city_id: string;
   idc_city_name: string;
   idc_id: number;
@@ -78,17 +83,12 @@ interface InstanceDetails {
   slave_domain: string;
   status: string;
   sub_zone: string;
-  db_module_id: number;
-  cluster_type_display: string;
-  bk_idc_name: string;
-  bk_cloud_name: string;
-  db_version: string;
   version?: string;
 }
 
 interface ClusterTopoProps {
-  dbType: string;
   clusterType: string;
+  dbType: string;
   id: number;
 }
 
@@ -96,24 +96,24 @@ type ResourceTopoNode = ResourceTopo['nodes'][number];
 type DetailColumnsRenderFunc<T> = (value: T) => JSX.Element;
 
 type DetailColumns<T> = {
-  label: string;
   key: keyof InstanceDetails;
+  label: string;
   render?: DetailColumnsRenderFunc<T>;
 }[];
 
 // 实例信息
 export const detailColumns: DetailColumns<any> = [
   {
-    label: t('部署角色'),
     key: 'role',
+    label: t('部署角色'),
   },
   {
-    label: t('版本'),
     key: 'db_version',
+    label: t('版本'),
   },
   {
-    label: t('状态'),
     key: 'status',
+    label: t('状态'),
     render: (status: 'running' | 'unavailable') => {
       if (!status) {
         return <span>--</span>;
@@ -121,12 +121,12 @@ export const detailColumns: DetailColumns<any> = [
 
       const statusMap = {
         running: {
-          theme: 'success',
           text: t('运行中'),
+          theme: 'success',
         },
         unavailable: {
-          theme: 'danger',
           text: t('异常'),
+          theme: 'danger',
         },
       };
       const info = statusMap[status] || statusMap.unavailable;
@@ -134,46 +134,46 @@ export const detailColumns: DetailColumns<any> = [
     },
   },
   {
-    label: t('主机IP'),
     key: 'bk_host_innerip',
+    label: t('主机IP'),
   },
   {
-    label: t('地域'),
     key: 'bk_idc_city_name',
+    label: t('地域'),
   },
   {
-    label: t('园区'),
     key: 'bk_sub_zone',
+    label: t('园区'),
   },
   {
-    label: 'CPU',
     key: 'bk_cpu',
+    label: 'CPU',
     render: (value: number) => <span>{Number.isFinite(value) ? `${value}${t('核')}` : '--'}</span>,
   },
   {
-    label: t('内存'),
     key: 'bk_mem',
+    label: t('内存'),
     render: (value: number) => <span>{Number.isFinite(value) ? `${value}MB` : '--'}</span>,
   },
   {
-    label: t('硬盘'),
     key: 'bk_disk',
+    label: t('硬盘'),
     render: (value: number) => <span>{Number.isFinite(value) ? `${value}GB` : '--'}</span>,
   },
 ];
 
 const apiMap: Record<string, (params: any) => Promise<any>> = {
+  doris: retrieveDorisInstance,
   es: retrieveEsInstance,
-  kafka: retrieveKafkaInstance,
   hdfs: retrieveHdfsInstance,
+  kafka: retrieveKafkaInstance,
+  mongodb: retrieveMongoInstanceDetail,
   pulsar: retrievePulsarInstance,
   redis: retrieveRedisInstance,
-  tendbsingle: retrieveTendbsingleInstance,
-  tendbha: retrieveTendbhaInstance,
-  tendbcluster: getTendbclusterInstanceDetail,
   riak: retrieveRiakInstance,
-  doris: retrieveDorisInstance,
-  mongodb: retrieveMongoInstanceDetail,
+  tendbcluster: getTendbclusterInstanceDetail,
+  tendbha: retrieveTendbhaInstance,
+  tendbsingle: retrieveTendbsingleInstance,
 };
 
 const entryTagMap: Record<string, string> = {
@@ -184,8 +184,8 @@ const entryTagMap: Record<string, string> = {
 export const useRenderGraph = (props: ClusterTopoProps, nodeConfig: NodeConfig = {}) => {
   const graphState = reactive({
     instance: null as any,
-    topoId: generateId('cluster_topo_'),
     isLoadNodeDetatils: false,
+    topoId: generateId('cluster_topo_'),
   });
   const tippyInstances: Map<string, Instance> = new Map();
 
@@ -195,21 +195,21 @@ export const useRenderGraph = (props: ClusterTopoProps, nodeConfig: NodeConfig =
     }
 
     graphState.instance = new D3Graph(`#${graphState.topoId}`, {
-      mode: 'readonly',
-      nodeTemplateKey: 'id',
-      canvasPadding: { x: 200, y: 0 },
       background: '#F5F7FA',
+      canvasPadding: { x: 200, y: 0 },
       lineConfig: {
+        activeColor: '#C4C6CC',
         canvasLine: false,
         color: '#C4C6CC',
-        activeColor: '#C4C6CC',
       },
+      mode: 'readonly',
       nodeConfig: _.cloneDeep(locations),
-      zoom: {
-        scaleExtent: [0.5, 1.5],
-        controlPanel: false,
-      },
+      nodeTemplateKey: 'id',
       onNodeRender: getNodeRender,
+      zoom: {
+        controlPanel: false,
+        scaleExtent: [0.5, 1.5],
+      },
     })
       .on('nodeMouseEnter', async (node: GraphNode, e: MouseEvent) => {
         if (node.type === GroupTypes.GROUP) {
@@ -230,9 +230,9 @@ export const useRenderGraph = (props: ClusterTopoProps, nodeConfig: NodeConfig =
           if (el && contentEl && checkOverflow(contentEl)) {
             const instance = dbTippy(el, {
               content: node.id,
-              theme: 'light',
-              placement: 'right',
               offset: [0, 5],
+              placement: 'right',
+              theme: 'light',
             });
             tippyInstances.set(node.id, instance);
           }
@@ -250,19 +250,19 @@ export const useRenderGraph = (props: ClusterTopoProps, nodeConfig: NodeConfig =
           // 设置节点详情
           nextTick(() => {
             const instance = dbTippy(el, {
+              allowHTML: true,
+              appendTo: () => el,
+              arrow: true,
+              content,
+              hideOnClick: false,
+              interactive: true,
+              maxWidth: 320,
+              offset: [0, 5],
+              onHidden: () => template?.append?.(content),
+              placement: 'right-start',
               // trigger: 'manual',
               theme: 'light',
-              content,
-              arrow: true,
-              placement: 'right-start',
-              appendTo: () => el,
-              interactive: true,
-              allowHTML: true,
-              maxWidth: 320,
               zIndex: 9999,
-              onHidden: () => template?.append?.(content),
-              offset: [0, 5],
-              hideOnClick: false,
             });
             tippyInstances.set(node.id, instance);
             instState.activeId = node.id;
@@ -285,7 +285,7 @@ export const useRenderGraph = (props: ClusterTopoProps, nodeConfig: NodeConfig =
         }
         instState.nodeData = null;
       });
-    graphState.instance.renderGraph({ locations, lines }, false);
+    graphState.instance.renderGraph({ lines, locations }, false);
     renderLineLabels(graphState.instance, lines, locations, nodeConfig);
   }
 
@@ -313,13 +313,13 @@ export const useRenderGraph = (props: ClusterTopoProps, nodeConfig: NodeConfig =
   const globalBizsStore = useGlobalBizs();
   const instState = reactive<{
     activeId: string;
-    isLoading: boolean;
     detailsCaches: Map<string, InstanceDetails>;
+    isLoading: boolean;
     nodeData: ResourceTopoNode | null;
   }>({
     activeId: '',
-    isLoading: false,
     detailsCaches: new Map(),
+    isLoading: false,
     nodeData: null,
   });
   const instDetails = computed(() => instState.detailsCaches.get(instState.activeId));
@@ -329,10 +329,10 @@ export const useRenderGraph = (props: ClusterTopoProps, nodeConfig: NodeConfig =
   function fetchInstDetails(address: string) {
     const params = {
       bk_biz_id: globalBizsStore.currentBizId,
-      type: props.clusterType,
-      instance_address: address,
       cluster_id: props.id,
       dbType: props.dbType,
+      instance_address: address,
+      type: props.clusterType,
     };
     instState.isLoading = true;
     return apiMap[props.clusterType](params)
@@ -353,11 +353,11 @@ export const useRenderGraph = (props: ClusterTopoProps, nodeConfig: NodeConfig =
     let vNode: VNode | string = '';
 
     if (props.dbType === DBTypes.RIAK) {
-      const { url, status } = node.data as ResourceTopoNode;
+      const { status, url } = node.data as ResourceTopoNode;
       vNode = (
         <div
-          class={['cluster-node', 'riak-node', { 'has-link': url }]}
-          id={node.id}>
+          id={node.id}
+          class={['cluster-node', 'riak-node', { 'has-link': url }]}>
           <svg class='db-svg-icon'>
             <use xlinkHref={`#db-icon-${status === 'running' ? 'sync-success' : 'sync-failed'}`} />
           </svg>
@@ -383,12 +383,12 @@ export const useRenderGraph = (props: ClusterTopoProps, nodeConfig: NodeConfig =
         const isEntryExternalLinks = nodeType.startsWith('entry_') && /^https?:\/\//.test(url);
         vNode = (
           <div
-            class={['cluster-node', { 'has-link': url }]}
-            id={node.id}>
+            id={node.id}
+            class={['cluster-node', { 'has-link': url }]}>
             {isEntryExternalLinks ? (
               <a
-                style='display: flex; align-items: center; color: #63656E;'
                 href={url}
+                style='display: flex; align-items: center; color: #63656E;'
                 target='__blank'>
                 <span class='cluster-node__content text-overflow'>{node.id}</span>
                 {entryTagMap[nodeType] ? <span class='cluster-node__tag'>{entryTagMap[nodeType]}</span> : null}
@@ -411,12 +411,12 @@ export const useRenderGraph = (props: ClusterTopoProps, nodeConfig: NodeConfig =
 
   return {
     graphState,
-    instState,
-    instDetails,
-    renderDraph,
     handleZoomIn,
     handleZoomOut,
     handleZoomReset,
+    instDetails,
+    instState,
+    renderDraph,
   };
 };
 
@@ -433,7 +433,6 @@ function renderLineLabels(
   nodeConfig: NodeConfig = {},
 ) {
   if (graphInstance?._diagramInstance?._canvas) {
-    // eslint-disable-line no-underscore-dangle
     // eslint-disable-next-line no-underscore-dangle
     graphInstance._diagramInstance._canvas
       .insert('div', ':first-child')

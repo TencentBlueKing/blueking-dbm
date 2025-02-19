@@ -81,12 +81,12 @@
 
   const selectList = [
     {
-      value: 'master',
       label: 'RemoteDB',
+      value: 'master',
     },
     {
-      value: 'slave',
       label: 'RemoteDR',
+      value: 'slave',
     },
   ];
 

@@ -49,10 +49,10 @@
 
   interface Props {
     data?: T;
+    isDisabled?: boolean;
     isLoading?: boolean;
     placeholder?: string;
     rules?: Rules;
-    isDisabled?: boolean;
   }
 
   interface Exposes {

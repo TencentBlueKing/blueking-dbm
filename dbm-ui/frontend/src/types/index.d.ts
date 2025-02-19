@@ -24,12 +24,12 @@ declare global {
   }
 
   interface DragEvent {
-    target: {
-      innerText: string;
-    };
     relatedTarget: {
       innerText: string;
     } | null;
+    target: {
+      innerText: string;
+    };
   }
 }
 

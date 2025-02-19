@@ -57,10 +57,10 @@ export const listClustersCreateSlaveProxy = async (params: { bk_biz_id: number }
  * 查询集群版本信息
  */
 export function getClusterVersions(params: {
-  node_type: string;
-  type: string;
   cluster_id?: number;
   cluster_type?: string;
+  node_type: string;
+  type: string;
 }) {
   return http.get<string[]>(`${getRootPath()}/get_cluster_versions/`, params);
 }
@@ -69,15 +69,14 @@ export function getClusterVersions(params: {
  * 根据IP/实例查询关联对
  */
 export function queryMachineInstancePair(params: {
-  machines?: string[]; // 0:127.0.0.1 云区域ID:IP
   instances?: string[]; // IP:PORT
+  machines?: string[]; // 0:127.0.0.1 云区域ID:IP
 }) {
   return http.post<{
+    instances?: Record<string, MachineInstancePairItem>;
     machines?: Record<
       string,
-      MachineInstancePairItem & {
-        related_instances: MachineInstancePairItem[];
-        related_pair_instances: MachineInstancePairItem[];
+      {
         related_clusters: {
           bk_biz_id: number;
           bk_cloud_id: number;
@@ -88,9 +87,10 @@ export function queryMachineInstancePair(params: {
           name: string;
           region: string;
         }[];
-      }
+        related_instances: MachineInstancePairItem[];
+        related_pair_instances: MachineInstancePairItem[];
+      } & MachineInstancePairItem
     >;
-    instances?: Record<string, MachineInstancePairItem>;
   }>(`${getRootPath()}/query_machine_instance_pair/`, params);
 }
 
@@ -112,16 +112,16 @@ export function findRelatedClustersByClusterIds(params: { cluster_ids: number[] 
  */
 export function getRedisClusterCapacityUpdateInfo(params: {
   cluster_id: number;
-  new_storage_version: string;
-  new_spec_id: number;
   new_machine_group_num: number;
   new_shards_num: number;
+  new_spec_id: number;
+  new_storage_version: string;
 }) {
   return http.get<{
     capacity_update_type: string; // 原地变更(keep_current_machines)、替换变更(all_machines_replace)
-    require_spec_id: number;
-    require_machine_group_num: number;
     err_msg: string;
+    require_machine_group_num: number;
+    require_spec_id: number;
   }>(`${getRootPath()}/get_cluster_capacity_update_info/`, params);
 }
 

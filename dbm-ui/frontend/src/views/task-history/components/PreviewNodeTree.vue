@@ -75,19 +75,19 @@
   type NodeType = ServiceReturnType<typeof getTaskflowDetails>['activities'][string];
 
   interface Props {
-    nodesCount: number;
-    nodesTreeData: Array<
-      NodeType & {
-        failedChildren?: NodeType[];
-        todoChildren?: NodeType[];
-      }
-    >;
-    statusKeypath: string;
-    titleKeypath: string;
-    tooltips: string;
-    theme?: 'error' | 'warning';
     children?: string;
     marginRight?: boolean;
+    nodesCount: number;
+    nodesTreeData: Array<
+      {
+        failedChildren?: NodeType[];
+        todoChildren?: NodeType[];
+      } & NodeType
+    >;
+    statusKeypath: string;
+    theme?: 'error' | 'warning';
+    titleKeypath: string;
+    tooltips: string;
   }
 
   interface Emits {
@@ -108,9 +108,9 @@
   }
 
   const props = withDefaults(defineProps<Props>(), {
-    theme: 'error',
     children: 'children',
     marginRight: false,
+    theme: 'error',
   });
   const emits = defineEmits<Emits>();
 

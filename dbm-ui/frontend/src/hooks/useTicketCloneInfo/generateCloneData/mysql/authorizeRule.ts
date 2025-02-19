@@ -26,8 +26,8 @@ export async function generateMysqlAuthorizeRuleCloneData(ticketData: TicketMode
       ip_list: ticketData.details.authorize_data.source_ips!.map((item) => item.ip),
       scope_list: [
         {
-          scope_type: 'biz',
           scope_id: ticketData.bk_biz_id,
+          scope_type: 'biz',
         },
       ],
     });
@@ -35,8 +35,8 @@ export async function generateMysqlAuthorizeRuleCloneData(ticketData: TicketMode
   }
 
   const clusterList: {
-    master_domain: string;
     cluster_name: string;
+    master_domain: string;
   }[] = [];
 
   if (authorizeData.cluster_type === ClusterTypes.TENDBHA) {
@@ -56,8 +56,8 @@ export async function generateMysqlAuthorizeRuleCloneData(ticketData: TicketMode
   }
 
   return {
-    clusterType: authorizeData.cluster_type as ClusterTypes,
     clusterList,
+    clusterType: authorizeData.cluster_type as ClusterTypes,
     dbs: authorizeData.access_dbs,
     sourceIpList,
     user: authorizeData.user,

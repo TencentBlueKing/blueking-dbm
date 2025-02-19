@@ -6,8 +6,8 @@ import type { DetailBase, DetailClusters } from '../common';
 export interface DbTableBackup extends DetailBase {
   clusters: DetailClusters;
   infos: {
-    cluster_id: number;
     backup_local: string;
+    cluster_id: number;
     db_patterns: string[];
     ignore_dbs: string[];
     ignore_tables: string[];

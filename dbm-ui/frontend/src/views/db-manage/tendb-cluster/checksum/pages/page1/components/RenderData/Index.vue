@@ -169,21 +169,21 @@
   const { t } = useI18n();
 
   const batchEditShow = reactive({
-    scope: false,
     dbPatterns: false,
     ignoreDbs: false,
-    tablePatterns: false,
     ignoreTables: false,
+    scope: false,
+    tablePatterns: false,
   });
 
   const selectList = [
     {
-      value: 'all',
       label: t('整个集群'),
+      value: 'all',
     },
     {
-      value: 'partial',
       label: t('部分实例'),
+      value: 'partial',
     },
   ];
 

@@ -167,20 +167,20 @@
   const isCapacityChange = ref(false);
   const activePanelKey = ref('topo');
   const capacityData = ref<{
-    id: number;
-    clusterName: string;
-    specId: number;
-    specName: string;
     bizId: number;
     cloudId: number;
-    shardNum: number;
+    clusterName: string;
+    id: number;
     shardNodeCount: number;
+    shardNum: number;
+    specId: number;
+    specName: string;
   }>();
   const monitorPanelList = ref<
     {
       label: string;
-      name: string;
       link: string;
+      name: string;
     }[]
   >([]);
   const accessEntryInfoShow = ref(false);
@@ -196,25 +196,25 @@
     manual: true,
     onSuccess(result) {
       const {
-        id,
-        cluster_name: clusterName,
         bk_biz_id: bizId,
         bk_cloud_id: cloudId,
-        shard_num: shardNum,
-        shard_node_count: shardNodeCount,
+        cluster_name: clusterName,
+        id,
         mongodb,
+        shard_node_count: shardNodeCount,
+        shard_num: shardNum,
       } = result;
       const { id: specId, name } = mongodb[0].spec_config;
 
       capacityData.value = {
-        id,
-        clusterName,
-        specId,
-        specName: name,
         bizId,
         cloudId,
-        shardNum,
+        clusterName,
+        id,
         shardNodeCount,
+        shardNum,
+        specId,
+        specName: name,
       };
       accessEntryInfo.value = result;
     },
@@ -226,8 +226,8 @@
       if (res.urls.length > 0) {
         monitorPanelList.value = res.urls.map((item) => ({
           label: item.view,
-          name: item.view,
           link: item.url,
+          name: item.view,
         }));
       }
     },
@@ -244,8 +244,8 @@
       });
       runGetMonitorUrls({
         bk_biz_id: currentBizId,
-        cluster_type: ClusterTypes.MONGO_SHARED_CLUSTER,
         cluster_id: props.clusterId,
+        cluster_type: ClusterTypes.MONGO_SHARED_CLUSTER,
       });
     },
     {

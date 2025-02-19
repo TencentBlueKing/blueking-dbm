@@ -31,13 +31,13 @@
 
 <script setup lang="ts">
   interface Props {
-    width?: number;
     text?: string;
+    width?: number;
   }
 
   withDefaults(defineProps<Props>(), {
-    width: 200,
     text: '',
+    width: 200,
   });
 </script>
 

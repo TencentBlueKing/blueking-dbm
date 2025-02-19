@@ -29,12 +29,12 @@ export default class Tendbha extends ClusterBase {
   static MYSQL_SINGLE_ENABLE = 'MYSQL_SINGLE_ENABLE';
 
   static operationIconMap = {
-    [Tendbha.MYSQL_HA_ENABLE]: t('启用中'),
-    [Tendbha.MYSQL_HA_DISABLE]: t('禁用中'),
     [Tendbha.MYSQL_HA_DESTROY]: t('删除中'),
-    [Tendbha.MYSQL_SINGLE_ENABLE]: t('启用中'),
-    [Tendbha.MYSQL_SINGLE_DISABLE]: t('禁用中'),
+    [Tendbha.MYSQL_HA_DISABLE]: t('禁用中'),
+    [Tendbha.MYSQL_HA_ENABLE]: t('启用中'),
     [Tendbha.MYSQL_SINGLE_DESTROY]: t('删除中'),
+    [Tendbha.MYSQL_SINGLE_DISABLE]: t('禁用中'),
+    [Tendbha.MYSQL_SINGLE_ENABLE]: t('启用中'),
   };
 
   static operationTextMap = {
@@ -68,7 +68,7 @@ export default class Tendbha extends ClusterBase {
   immute_domain: string;
   major_version: string;
   master_domain: string;
-  masters: (ClusterListNode & { is_stand_by: boolean })[];
+  masters: ({ is_stand_by: boolean } & ClusterListNode)[];
   operations: ClusterListOperation[];
   permission: {
     access_entry_edit: boolean;
@@ -76,15 +76,15 @@ export default class Tendbha extends ClusterBase {
     mysql_dump_data: boolean;
     mysql_enable_disable: boolean;
     mysql_view: boolean;
-    tbinlogdumper_install: boolean;
     mysql_webconsole: boolean;
+    tbinlogdumper_install: boolean;
   };
   phase: string;
   phase_name: string;
   proxies: ClusterListNode[];
   region: string;
   slave_domain: string;
-  slaves: (ClusterListNode & { is_stand_by: boolean })[];
+  slaves: ({ is_stand_by: boolean } & ClusterListNode)[];
   status: string;
   update_at: string;
   updater: string;
@@ -127,15 +127,6 @@ export default class Tendbha extends ClusterBase {
     this.updater = payload.updater;
   }
 
-  get isStarting() {
-    return Boolean(this.operations.find((item) => item.ticket_type === Tendbha.MYSQL_HA_ENABLE));
-  }
-
-  get runningOperation() {
-    const operateTicketTypes = Object.keys(Tendbha.operationTextMap);
-    return this.operations.find((item) => operateTicketTypes.includes(item.ticket_type) && item.status === 'RUNNING');
-  }
-
   get allInstanceList() {
     return [...this.masters, ...this.proxies, ...this.slaves];
   }
@@ -152,6 +143,36 @@ export default class Tendbha extends ClusterBase {
         [] as string[],
       ),
     );
+  }
+
+  get disasterToleranceLevelName() {
+    return ClusterAffinityMap[this.disaster_tolerance_level];
+  }
+
+  get isStarting() {
+    return Boolean(this.operations.find((item) => item.ticket_type === Tendbha.MYSQL_HA_ENABLE));
+  }
+
+  get masterDomainDisplayName() {
+    const port = this.proxies[0]?.port;
+    const displayName = port ? `${this.master_domain}:${port}` : this.master_domain;
+    return displayName;
+  }
+
+  get operationDisabled() {
+    // 集群异常不支持操作
+    if (this.status === 'abnormal') {
+      return true;
+    }
+    // 被禁用的集群不支持操作
+    if (this.phase !== 'online') {
+      return true;
+    }
+    // 各个操作互斥，有其他任务进行中禁用操作按钮
+    if (this.operationTicketId) {
+      return true;
+    }
+    return false;
   }
 
   // 操作中的状态
@@ -171,6 +192,19 @@ export default class Tendbha extends ClusterBase {
     return Tendbha.operationTextMap[this.operationRunningStatus];
   }
 
+  get operationTagTips() {
+    return this.operations.reduce<{ icon: string; ticketId: number; tip: string }[]>((result, item) => {
+      if (Tendbha.operationIconMap[item.ticket_type]) {
+        result.push({
+          icon: Tendbha.operationIconMap[item.ticket_type],
+          ticketId: item.ticket_id,
+          tip: Tendbha.operationTextMap[item.ticket_type],
+        });
+      }
+      return result;
+    }, []);
+  }
+
   // 操作中的单据 ID
   get operationTicketId() {
     if (this.operations.length < 1) {
@@ -183,26 +217,16 @@ export default class Tendbha extends ClusterBase {
     return operation.ticket_id;
   }
 
-  get operationDisabled() {
-    // 集群异常不支持操作
-    if (this.status === 'abnormal') {
-      return true;
-    }
-    // 被禁用的集群不支持操作
-    if (this.phase !== 'online') {
-      return true;
-    }
-    // 各个操作互斥，有其他任务进行中禁用操作按钮
-    if (this.operationTicketId) {
-      return true;
-    }
-    return false;
+  get roleFailedInstanceInfo() {
+    return {
+      Master: ClusterBase.getRoleFaildInstanceList(this.masters),
+      Slaves: ClusterBase.getRoleFaildInstanceList(this.slaves),
+    };
   }
 
-  get masterDomainDisplayName() {
-    const port = this.proxies[0]?.port;
-    const displayName = port ? `${this.master_domain}:${port}` : this.master_domain;
-    return displayName;
+  get runningOperation() {
+    const operateTicketTypes = Object.keys(Tendbha.operationTextMap);
+    return this.operations.find((item) => operateTicketTypes.includes(item.ticket_type) && item.status === 'RUNNING');
   }
 
   get slaveEntryList() {
@@ -213,30 +237,6 @@ export default class Tendbha extends ClusterBase {
         ...item,
         port,
       }));
-  }
-
-  get operationTagTips() {
-    return this.operations.reduce<{ icon: string; tip: string; ticketId: number }[]>((result, item) => {
-      if (Tendbha.operationIconMap[item.ticket_type]) {
-        result.push({
-          icon: Tendbha.operationIconMap[item.ticket_type],
-          tip: Tendbha.operationTextMap[item.ticket_type],
-          ticketId: item.ticket_id,
-        });
-      }
-      return result;
-    }, []);
-  }
-
-  get disasterToleranceLevelName() {
-    return ClusterAffinityMap[this.disaster_tolerance_level];
-  }
-
-  get roleFailedInstanceInfo() {
-    return {
-      Master: ClusterBase.getRoleFaildInstanceList(this.masters),
-      Slaves: ClusterBase.getRoleFaildInstanceList(this.slaves),
-    };
   }
 
   get slaveList() {

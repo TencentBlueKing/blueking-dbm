@@ -148,13 +148,13 @@
   const ticketModeData = computed(() => {
     const ticketModeTypeMap = {
       manual: {
-        text: t('手动执行'),
         icon: 'manual',
+        text: t('手动执行'),
         tips: t('单据审批之后_需要人工确认方可执行'),
       },
       timer: {
-        text: t('定时执行'),
         icon: 'timed-task',
+        text: t('定时执行'),
         tips: t('单据审批通过之后_定时执行_无需确认'),
       },
     };

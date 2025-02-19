@@ -20,19 +20,19 @@ const getRootPath = () => `/apis/redis/bizs/${window.PROJECT_CONFIG.BIZ_ID}/dts`
  * 获取DTS历史任务以及其对应task cnt
  */
 export function getRedisDTSHistoryJobs(params: {
-  start_time?: string;
-  end_time?: string;
   cluster_name?: string;
+  end_time?: string;
   page?: number;
   page_size?: number;
+  start_time?: string;
 }) {
-  return http.post<{ total_cnt: number; jobs: RedisDSTHistoryJobModel[] }>(`${getRootPath()}/history_jobs/`, params);
+  return http.post<{ jobs: RedisDSTHistoryJobModel[]; total_cnt: number }>(`${getRootPath()}/history_jobs/`, params);
 }
 
 /**
  * dts job批量断开同步
  */
-export function setJobDisconnectSync(params: { bill_id: number; src_cluster: string; dst_cluster: string }) {
+export function setJobDisconnectSync(params: { bill_id: number; dst_cluster: string; src_cluster: string }) {
   return http.post<unknown>(`${getRootPath()}/job_disconnect_sync/`, params);
 }
 
@@ -46,7 +46,7 @@ export function setJobTaskFailedRetry(params: { task_ids: number[] }) {
 /**
  * 获取迁移任务task列表,失败的排在前面
  */
-export function getRedisDTSJobTasks(params: { bill_id: number; src_cluster: string; dst_cluster: string }) {
+export function getRedisDTSJobTasks(params: { bill_id: number; dst_cluster: string; src_cluster: string }) {
   return http
     .post<RedisDSTJobTaskModel[]>(`${getRootPath()}/job_tasks/`, params)
     .then((arr) => arr.map((item) => new RedisDSTJobTaskModel(item)));
@@ -58,10 +58,10 @@ export function getRedisDTSJobTasks(params: { bill_id: number; src_cluster: stri
 export function testRedisConnection(params: {
   data_copy_type: string;
   infos: {
-    src_cluster: string;
-    src_cluster_password: string;
     dst_cluster: string;
     dst_cluster_password: string;
+    src_cluster: string;
+    src_cluster_password: string;
   }[];
 }) {
   return http.post<boolean>(`${getRootPath()}/test_redis_connection/`, params);

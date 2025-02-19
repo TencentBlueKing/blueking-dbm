@@ -89,15 +89,13 @@
   export interface Props<clusterType extends ISupportClusterType> {
     // eslint-disable-next-line vue/no-unused-properties
     clusterType: clusterType;
-    selectedList: ClusterModel<clusterType>[];
-    isFilter: boolean;
     // eslint-disable-next-line vue/no-unused-properties
     getTableInstance: () => InstanceType<typeof DbTable> | undefined;
+    isFilter: boolean;
+    selectedList: ClusterModel<clusterType>[];
   }
 
-  export interface Emits {
-    (e: 'refresh'): void;
-  }
+  export type Emits = (e: 'refresh') => void;
 
   const props = defineProps<Props<T>>();
   const emits = defineEmits<Emits>();
@@ -107,7 +105,7 @@
 
   const isToolsShow = ref(false);
 
-  const { handleCopySelected, handleCopyAll } = useColumnCopy(props);
+  const { handleCopyAll, handleCopySelected } = useColumnCopy(props);
 
   const handleToolsShow = () => {
     setTimeout(() => {

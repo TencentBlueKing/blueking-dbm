@@ -36,9 +36,7 @@
     ip?: string;
   }
 
-  interface Emits {
-    (e: 'change', value: string): void;
-  }
+  type Emits = (e: 'change', value: string) => void;
 
   interface Exposes {
     getValue: () => Promise<{
@@ -58,8 +56,8 @@
 
   const rules = [
     {
-      validator: (value: string) => !!value,
       message: t('不能为空'),
+      validator: (value: string) => !!value,
     },
   ];
 
@@ -100,10 +98,10 @@
     getValue() {
       return textRef.value!.getValue().then(() => ({
         old_slave: {
-          ip: slaveInfo.value?.ip,
+          bk_biz_id: slaveInfo.value?.bk_biz_id,
           bk_cloud_id: slaveInfo.value?.bk_cloud_id,
           bk_host_id: slaveInfo.value?.bk_host_id,
-          bk_biz_id: slaveInfo.value?.bk_biz_id,
+          ip: slaveInfo.value?.ip,
         },
       }));
     },

@@ -56,16 +56,16 @@
 
   const rules = [
     {
-      validator: (value: string) => Boolean(value),
       message: t('访问入口不能为空'),
+      validator: (value: string) => Boolean(value),
     },
     {
-      validator: (value: string) => ipPort.test(value) || domainPort.test(value),
       message: t('访问入口格式不正确'),
+      validator: (value: string) => ipPort.test(value) || domainPort.test(value),
     },
     {
-      validator: (value: string) => props.inputed.filter((item) => item === value).length < 2,
       message: t('目标访问入口重复'),
+      validator: (value: string) => props.inputed.filter((item) => item === value).length < 2,
     },
   ];
 

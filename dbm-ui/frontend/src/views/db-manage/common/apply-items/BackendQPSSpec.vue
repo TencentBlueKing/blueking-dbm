@@ -176,27 +176,24 @@
   import ClusterSpecModel from '@services/model/resource-spec/cluster-sepc';
   import ResourceSpecModel from '@services/model/resource-spec/resourceSpec';
   import { getSpecResourceCount } from '@services/source/dbresourceResource';
-  import {
-    getFilterClusterSpec,
-    queryQPSRange,
-  } from '@services/source/dbresourceSpec';
+  import { getFilterClusterSpec, queryQPSRange } from '@services/source/dbresourceSpec';
 
   import { ClusterTypes } from '@common/const';
 
   import SpecSelector from '@views/db-manage/common/apply-items/SpecSelector.vue';
 
   interface ModelValue {
-    spec_id: number | string,
-    capacity: number | string,
-    count: number,
-    future_capacity: number | string,
+    capacity: number | string;
+    count: number;
+    future_capacity: number | string;
+    spec_id: number | string;
   }
 
   interface Props {
-    dbType: string,
-    machineType: string,
-    bizId: number | string,
-    cloudId: number | string,
+    bizId: number | string;
+    cloudId: number | string;
+    dbType: string;
+    machineType: string;
   }
 
   const props = defineProps<Props>();
@@ -205,38 +202,38 @@
   const { t } = useI18n();
 
   const specRef = ref();
-  const specSelectorRef = ref<InstanceType<typeof SpecSelector>>()
+  const specSelectorRef = ref<InstanceType<typeof SpecSelector>>();
   const specs = shallowRef<ClusterSpecModel[]>([]);
   const renderSpecs = shallowRef<ClusterSpecModel[]>([]);
   const isLoading = ref(false);
   const sliderProps = reactive({
-    value: [0, 0],
+    disabled: true,
     max: 0,
     min: 0,
-    disabled: true,
+    value: [0, 0],
   });
 
-  const applyType = ref('auto')
-  const shardNum = ref(1)
+  const applyType = ref('auto');
+  const shardNum = ref(1);
 
   const columns = [
     {
       field: 'spec_name',
       label: t('资源规格'),
-      showOverflowTooltip: false,
-      render: ({ data, index }: { data: ClusterSpecModel, index: number }) => (
+      render: ({ data, index }: { data: ClusterSpecModel; index: number }) => (
         <bk-radio
           v-model={modelValue.value.spec_id}
-          label={data.spec_id}
+          class='spec-radio'
           kye={index}
-          class="spec-radio">
+          label={data.spec_id}>
           <div
-            class="text-overflow"
-            v-overflow-tips>
+            v-overflow-tips
+            class='text-overflow'>
             {data.spec_name}
           </div>
         </bk-radio>
-        ),
+      ),
+      showOverflowTooltip: false,
     },
     {
       field: 'machine_pair',
@@ -263,38 +260,39 @@
     },
   ];
 
-  const clusterShardNum = computed(() => modelValue.value.count * shardNum.value || '')
+  const clusterShardNum = computed(() => modelValue.value.count * shardNum.value || '');
 
   const specInfo = computed(() => {
-    const data = specSelectorRef.value?.getData()
-    const {count} = modelValue.value
+    const data = specSelectorRef.value?.getData();
+    const { count } = modelValue.value;
 
     if (_.isEmpty(data)) {
       return {
+        qps: '',
         totalCapcity: '',
-        qps: ''
-      }
+      };
     }
 
     return {
+      qps: count * (data.qps.min ?? 0),
       totalCapcity: count * getSpecCapacity(data.storage_spec),
-      qps: count * (data.qps.min ?? 0)
-    }
-  })
+    };
+  });
 
   const getSpecCapacity = (storageSpec: ResourceSpecModel['storage_spec']) => {
-    let specCapacity = 0
+    let specCapacity = 0;
+    // eslint-disable-next-line @typescript-eslint/prefer-for-of
     for (let i = 0; i < storageSpec.length; i++) {
-      const storageSpecItem = storageSpec[i]
+      const storageSpecItem = storageSpec[i];
       if (storageSpecItem.mount_point === '/data1') {
-        return storageSpecItem.size
+        return storageSpecItem.size;
       }
       if (storageSpecItem.mount_point === '/data') {
-        specCapacity = storageSpecItem.size / 2
+        specCapacity = storageSpecItem.size / 2;
       }
     }
-    return specCapacity
-  }
+    return specCapacity;
+  };
 
   const formatterLabel = (value: string) => `${value}/s`;
 
@@ -315,38 +313,37 @@
     }
 
     queryQPSRange({
-      spec_cluster_type: props.dbType,
-      spec_machine_type: props.machineType,
       capacity: Number(capacity),
       future_capacity: Number(futureCapacity),
-    })
-      .then(({ max, min }) => {
-        if (!max || !min) {
-          sliderProps.max = 0;
-          sliderProps.min = 0;
-          sliderProps.disabled = true;
-        }
-        sliderProps.value = [min, max];
-        sliderProps.max = max;
-        sliderProps.min = min;
-      });
+      spec_cluster_type: props.dbType,
+      spec_machine_type: props.machineType,
+    }).then(({ max, min }) => {
+      if (!max || !min) {
+        sliderProps.max = 0;
+        sliderProps.min = 0;
+        sliderProps.disabled = true;
+      }
+      sliderProps.value = [min, max];
+      sliderProps.max = max;
+      sliderProps.min = min;
+    });
   }, 400);
 
   const fetchFilterClusterSpec = () => {
     const { capacity, future_capacity: futureCapacity } = modelValue.value;
     const [min, max] = sliderProps.value;
 
-    if (!capacity || !futureCapacity || (max === 0)) {
+    if (!capacity || !futureCapacity || max === 0) {
       return;
     }
 
     isLoading.value = true;
     getFilterClusterSpec({
-      spec_cluster_type: props.dbType,
-      spec_machine_type: props.machineType,
       capacity: Number(capacity),
       future_capacity: Number(futureCapacity),
-      qps: { min, max },
+      qps: { max, min },
+      spec_cluster_type: props.dbType,
+      spec_machine_type: props.machineType,
     })
       .then((res) => {
         specs.value = res;
@@ -397,56 +394,63 @@
     getSpecResourceCount({
       bk_biz_id: Number(props.bizId),
       bk_cloud_id: Number(props.cloudId),
-      spec_ids: specs.value.map(item => item.spec_id),
+      spec_ids: specs.value.map((item) => item.spec_id),
     }).then((data) => {
-      renderSpecs.value = specs.value.map(item => ({
+      renderSpecs.value = specs.value.map((item) => ({
         ...item,
         count: data[item.spec_id] ?? 0,
       }));
     });
   }, 100);
 
-  watch(() => sliderProps.value, _.debounce(() => {
-    modelValue.value.spec_id = '';
-    if (sliderProps.value[1] > 0) {
-      fetchFilterClusterSpec();
-    } else {
-      specs.value = [];
-      renderSpecs.value = [];
-    }
-  }, 400), { immediate: true, deep: true });
+  watch(
+    () => sliderProps.value,
+    _.debounce(() => {
+      modelValue.value.spec_id = '';
+      if (sliderProps.value[1] > 0) {
+        fetchFilterClusterSpec();
+      } else {
+        specs.value = [];
+        renderSpecs.value = [];
+      }
+    }, 400),
+    { deep: true, immediate: true },
+  );
 
-  watch(() => modelValue.value.spec_id, () => {
-    if (modelValue.value.spec_id) {
-      specRef.value?.clearValidate();
-    }
-  });
+  watch(
+    () => modelValue.value.spec_id,
+    () => {
+      if (modelValue.value.spec_id) {
+        specRef.value?.clearValidate();
+      }
+    },
+  );
 
-  watch([
-    () => props.bizId,
-    () => props.cloudId,
-    specs,
-  ], () => {
-    if (
-      typeof props.bizId === 'number'
-      && props.bizId > 0
-      && typeof props.cloudId === 'number'
-      && specs.value.length > 0
-    ) {
-      fetchSpecResourceCount();
-    }
-  }, { immediate: true, deep: true });
+  watch(
+    [() => props.bizId, () => props.cloudId, specs],
+    () => {
+      if (
+        typeof props.bizId === 'number' &&
+        props.bizId > 0 &&
+        typeof props.cloudId === 'number' &&
+        specs.value.length > 0
+      ) {
+        fetchSpecResourceCount();
+      }
+    },
+    { deep: true, immediate: true },
+  );
 
-  watch([
-    () => modelValue.value.capacity,
-    () => modelValue.value.future_capacity,
-  ], ([capacityValue, futureCapacityValue]) => {
-    if (capacityValue === '' || futureCapacityValue === '') {
-      resetSlider();
-    } else {
-      fetchQPSRange();
-    }
-  });
+  watch(
+    [() => modelValue.value.capacity, () => modelValue.value.future_capacity],
+    ([capacityValue, futureCapacityValue]) => {
+      if (capacityValue === '' || futureCapacityValue === '') {
+        resetSlider();
+      } else {
+        fetchQPSRange();
+      }
+    },
+  );
 
   const handleRowClick = (event: Event, row: ClusterSpecModel) => {
     modelValue.value.spec_id = row.spec_id;
@@ -463,23 +467,23 @@
   defineExpose({
     getData() {
       if (applyType.value === 'auto') {
-        const item = specs.value.find(item => item.spec_id === Number(modelValue.value.spec_id))!;
+        const item = specs.value.find((item) => item.spec_id === Number(modelValue.value.spec_id))!;
         return {
-          spec_name: item.spec_name,
-          machine_pair: item.machine_pair,
-          cluster_shard_num: item.cluster_shard_num,
           cluster_capacity: item.cluster_capacity,
-          qps: item.qps
+          cluster_shard_num: item.cluster_shard_num,
+          machine_pair: item.machine_pair,
+          qps: item.qps,
+          spec_name: item.spec_name,
         };
       }
-      const item = specSelectorRef.value!.getData()!
-      const { count } = modelValue.value
+      const item = specSelectorRef.value!.getData()!;
+      const { count } = modelValue.value;
       return {
-        spec_name: item.spec_name,
-        machine_pair: count,
-        cluster_shard_num: clusterShardNum.value,
         cluster_capacity: count * getSpecCapacity(item.storage_spec!),
-        qps: item.qps
+        cluster_shard_num: clusterShardNum.value,
+        machine_pair: count,
+        qps: item.qps,
+        spec_name: item.spec_name,
       };
     },
   });

@@ -49,9 +49,9 @@
   type RowData = Props['ticketDetails']['details']['infos'][number];
 
   interface OldInfo {
+    backup_type: Mysql.HaFullBackup['backup_type'];
     clusters: RowData[];
     file_tag: Mysql.HaFullBackup['file_tag'];
-    backup_type: Mysql.HaFullBackup['backup_type'];
   }
 
   const props = defineProps<Props>();
@@ -76,9 +76,9 @@
   // 备份保存时间
   const fileTagMap = {
     DBFILE1M: t('1个月'),
-    DBFILE6M: t('6个月'),
     DBFILE1Y: t('1年'),
     DBFILE3Y: t('3年'),
+    DBFILE6M: t('6个月'),
   };
 
   watchEffect(() => {

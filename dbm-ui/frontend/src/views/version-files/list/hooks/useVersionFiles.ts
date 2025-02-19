@@ -73,11 +73,9 @@ export const useVersionFiles = (state: IState, typeParams: Ref<TypeParams>) => {
    */
   function handleConfirmDelete(data: ServiceReturnType<typeof getPackages>['results'][number]) {
     InfoBox({
-      title: t('确认删除'),
-      content: t('确认删除xx', [data.name]),
       cancelText: t('取消'),
       confirmText: t('删除'),
-      theme: 'danger',
+      content: t('确认删除xx', [data.name]),
       onConfirm: () =>
         deletePackage({ id: data.id })
           .then(() => {
@@ -89,13 +87,15 @@ export const useVersionFiles = (state: IState, typeParams: Ref<TypeParams>) => {
             return true;
           })
           .catch(() => false),
+      theme: 'danger',
+      title: t('确认删除'),
     });
   }
 
   return {
     fetchPackages,
-    handleChangePage,
     handeChangeLimit,
+    handleChangePage,
     handleConfirmDelete,
   };
 };

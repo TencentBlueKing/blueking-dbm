@@ -95,13 +95,13 @@
 <script lang="ts">
   export interface IValue {
     clusterData: {
-      id: number;
-      domain: string;
       cloudId: number;
+      domain: string;
+      id: number;
     };
     proxyIp: {
-      bk_host_id: number;
       bk_cloud_id: number;
+      bk_host_id: number;
       ip: string;
     };
   }
@@ -122,8 +122,8 @@
   type RealDataMap = Record<
     string,
     {
-      id: number;
       bk_cloud_id: number;
+      id: number;
     }
   >;
 
@@ -215,16 +215,16 @@
       immute_domain: item.domain,
     }));
     queryClusters({
-      cluster_filters: clusterFilters,
       bk_biz_id: currentBizId,
+      cluster_filters: clusterFilters,
     })
-      .then((data: Array<{ master_domain: string; id: number; bk_cloud_id: number }>) => {
+      .then((data: Array<{ bk_cloud_id: number; id: number; master_domain: string }>) => {
         const realDataMap = data.reduce(
           (result, item) => ({
             ...result,
             [item.master_domain]: {
-              id: item.id,
               bk_cloud_id: item.bk_cloud_id,
+              id: item.id,
             },
           }),
           {} as RealDataMap,
@@ -238,13 +238,13 @@
           } else {
             resultList.push({
               clusterData: {
-                id: realDataMap[item.domain].id,
-                domain: item.domain,
                 cloudId: realDataMap[item.domain].bk_cloud_id,
+                domain: item.domain,
+                id: realDataMap[item.domain].id,
               },
               proxyIp: {
-                bk_host_id: 0,
                 bk_cloud_id: 0,
+                bk_host_id: 0,
                 ip: item.ipStr,
               },
             });

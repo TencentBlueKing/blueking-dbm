@@ -26,23 +26,23 @@
 
   import type OpenareaTemplateModel from '@services/model/openarea/openareaTemplate';
   import TicketModel, { type Mysql } from '@services/model/ticket/ticket';
-  import { getPermissionRules } from '@services/source/mysqlPermissionAccount'
+  import { getPermissionRules } from '@services/source/mysqlPermissionAccount';
 
   import { AccountTypes, ClusterTypes } from '@common/const';
 
   import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
 
   interface IDataRow {
-    user: string;
     rules: {
-      priv: string;
       access_db: string;
+      priv: string;
     }[];
+    user: string;
   }
 
   interface Props {
-    ticketDetails: TicketModel<Mysql.OpenArea>;
     templateDetail?: OpenareaTemplateModel;
+    ticketDetails: TicketModel<Mysql.OpenArea>;
   }
 
   const props = defineProps<Props>();
@@ -54,55 +54,50 @@
 
   const columns = computed(() => [
     {
-      label: t('账号名称'),
       field: 'user',
-      width: 220,
-      showOverflowTooltip: false,
+      label: t('账号名称'),
       render: ({ data }: { data: IDataRow }) => (
-        <div class="account-box">
-          {
-            data.rules.length > 1
-            && (
+        <div class='account-box'>
+          {data.rules.length > 1 && (
             <db-icon
-              type="down-shape"
               class={{
                 'flod-flag': true,
                 'is-flod': rowFlodMap.value[data.user],
               }}
-              onClick={() => handleToogleExpand(data.user)}/>
-            )
-          }
-          { data.user }
+              type='down-shape'
+              onClick={() => handleToogleExpand(data.user)}
+            />
+          )}
+          {data.user}
         </div>
       ),
+      showOverflowTooltip: false,
+      width: 220,
     },
     {
-      label: t('访问的DB名'),
-      width: 300,
       field: 'access_db',
-      showOverflowTooltip: true,
+      label: t('访问的DB名'),
       render: ({ data }: { data: IDataRow }) => {
         const renderRules = rowFlodMap.value[data.user] ? data.rules.slice(0, 1) : data.rules;
-        return renderRules.map(item => (
-          <div class="inner-row">
-            <bk-tag>
-              { item.access_db }
-            </bk-tag>
+        return renderRules.map((item) => (
+          <div class='inner-row'>
+            <bk-tag>{item.access_db}</bk-tag>
           </div>
         ));
       },
+      showOverflowTooltip: true,
+      width: 300,
     },
     {
-      label: t('权限'),
       field: 'priv',
-      showOverflowTooltip: false,
+      label: t('权限'),
       render: ({ data }: { data: IDataRow }) => {
         if (data.rules.length === 0) {
-          return <div class="inner-row">--</div>;
+          return <div class='inner-row'>--</div>;
         }
         const renderRules = rowFlodMap.value[data.user] ? data.rules.slice(0, 1) : data.rules;
-        return renderRules.map(item => (
-          <div class="inner-row cell-privilege">
+        return renderRules.map((item) => (
+          <div class='inner-row cell-privilege'>
             <TextOverflowLayout>
               {{
                 default: () => item.priv.replace(/,/g, '，'),
@@ -111,18 +106,19 @@
           </div>
         ));
       },
+      showOverflowTooltip: false,
     },
   ]);
 
-  const { run: getPermissionRulesRun, loading: isLoading } = useRequest(getPermissionRules, {
+  const { loading: isLoading, run: getPermissionRulesRun } = useRequest(getPermissionRules, {
     manual: true,
     onSuccess({ results }) {
       tableData.value = results.map((item) => ({
-        user: item.account.user,
         rules: item.rules.map((rule) => ({
-          priv: rule.privilege,
           access_db: rule.access_db,
+          priv: rule.privilege,
         })),
+        user: item.account.user,
       }));
     },
   });
@@ -132,13 +128,13 @@
     () => {
       // 有权限快照返回直接渲染
       if (props.ticketDetails.details.rules_set?.[0]?.privileges?.length) {
-        const rulesMemo: Record<string, boolean> = {}
+        const rulesMemo: Record<string, boolean> = {};
         tableData.value = props.ticketDetails.details.rules_set.reduce<IDataRow[]>((acc, cur) => {
           if (!rulesMemo[cur.user]) {
             rulesMemo[cur.user] = true;
             acc.push({
-              user: cur.user,
               rules: cur.privileges,
+              user: cur.user,
             });
           }
           return acc;
@@ -147,7 +143,7 @@
     },
     {
       immediate: true,
-    }
+    },
   );
 
   watch(
@@ -156,16 +152,16 @@
       // 无权限返回则现查
       if (props.templateDetail.related_authorize.length && tableData.value.length === 0) {
         const accountTypeMap = {
+          [ClusterTypes.TENDBCLUSTER]: AccountTypes.TENDBCLUSTER,
           [ClusterTypes.TENDBHA]: AccountTypes.MYSQL,
           [ClusterTypes.TENDBSINGLE]: AccountTypes.MYSQL,
-          [ClusterTypes.TENDBCLUSTER]: AccountTypes.TENDBCLUSTER,
-        }
+        };
         getPermissionRulesRun({
-          bk_biz_id: props.ticketDetails.bk_biz_id,
-          rule_ids: props.templateDetail.related_authorize.join(','),
           account_type: accountTypeMap[props.templateDetail.cluster_type as keyof typeof accountTypeMap],
-          offset: 0,
+          bk_biz_id: props.ticketDetails.bk_biz_id,
           limit: -1,
+          offset: 0,
+          rule_ids: props.templateDetail.related_authorize.join(','),
         });
       }
     },

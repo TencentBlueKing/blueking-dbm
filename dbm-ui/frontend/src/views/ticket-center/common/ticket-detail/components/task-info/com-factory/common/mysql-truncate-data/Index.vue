@@ -71,8 +71,8 @@
   const { t } = useI18n();
 
   const truncateDataTypes = {
-    truncate_table: t('清除表数据_truncatetable'),
-    drop_table: t('清除表数据和结构_droptable'),
     drop_database: t('删除整库_dropdatabase'),
+    drop_table: t('清除表数据和结构_droptable'),
+    truncate_table: t('清除表数据_truncatetable'),
   };
 </script>

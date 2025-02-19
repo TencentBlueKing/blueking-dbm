@@ -27,16 +27,16 @@
 
   import { utcDisplayTime } from '@utils';
 
-  interface Props{
-    ticketDetails: TicketModel<Redis.Purge>
+  interface Props {
+    ticketDetails: TicketModel<Redis.Purge>;
   }
 
   const props = defineProps<Props>();
 
   defineOptions({
     name: TicketTypes.REDIS_PURGE,
-    inheritAttrs: false
-  })
+    inheritAttrs: false,
+  });
 
   const { t } = useI18n();
 
@@ -44,56 +44,55 @@
    * redis-rules | clusters 合并参数
    */
   interface RedisAssign {
-    alias: string,
-    bk_biz_id: number,
-    black_regex: string,
-    cluster_id: number,
-    cluster_type: string,
-    cluster_type_name: string,
-    creator: string,
-    db_module_id: number,
-    domain: string,
-    id: number,
-    immute_domain: string,
-    major_version: string,
-    name: string,
-    path: string,
-    total_size: string,
-    updater: string,
-    white_regex: string,
-    create_at: string,
+    alias: string;
+    bk_biz_id: number;
+    black_regex: string;
+    cluster_id: number;
+    cluster_type: string;
+    cluster_type_name: string;
+    create_at: string;
+    creator: string;
+    db_module_id: number;
+    domain: string;
+    id: number;
+    immute_domain: string;
+    major_version: string;
+    name: string;
+    path: string;
+    total_size: string;
+    updater: string;
+    white_regex: string;
   }
 
   // 清档
   const columns = [
     {
-      label: t('域名'),
       field: 'domain',
+      label: t('域名'),
+      render: ({ data }: { data: RedisAssign }) => data.domain,
       showOverflowTooltip: false,
-      render: ({ data } : { data: RedisAssign }) => data.domain,
     },
     {
-      label: t('架构版本'),
       field: 'cluster_type_name',
+      label: t('架构版本'),
       render: ({ cell }: { cell: string }) => <span>{cell || '--'}</span>,
     },
     {
-      label: t('强制清档'),
       field: 'force',
+      label: t('强制清档'),
       render: ({ cell }: { cell: string }) => <span>{cell ? t('是') : t('否')}</span>,
     },
     {
-      label: t('清档前备份'),
       field: 'backup',
+      label: t('清档前备份'),
       render: ({ cell }: { cell: string }) => <span>{cell ? t('是') : t('否')}</span>,
     },
   ];
-
 
   const dataList = computed(() => {
     const rules = props.ticketDetails?.details?.rules || [];
     const clusters = props.ticketDetails?.details?.clusters || {};
     const createAt = props.ticketDetails?.create_at;
-    return rules.map(item => Object.assign({ create_at: utcDisplayTime(createAt) }, item, clusters[item.cluster_id]));
+    return rules.map((item) => Object.assign({ create_at: utcDisplayTime(createAt) }, item, clusters[item.cluster_id]));
   });
 </script>

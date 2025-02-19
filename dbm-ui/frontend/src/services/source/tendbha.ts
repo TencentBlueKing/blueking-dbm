@@ -26,16 +26,16 @@ const getRootPath = () => `/apis/mysql/bizs/${window.PROJECT_CONFIG.BIZ_ID}/tend
  */
 export function getTendbhaList(params: {
   bk_biz_id?: number;
-  limit?: number;
-  offset?: number;
-  type?: string;
-  dbType?: string;
   cluster_ids?: number[] | number;
+  dbType?: string;
   domain?: string;
-  master_domain?: string;
-  slave_domain?: string;
   exact_domain?: string;
   id?: string;
+  limit?: number;
+  master_domain?: string;
+  offset?: number;
+  slave_domain?: string;
+  type?: string;
 }) {
   return http.get<ListBase<TendbhaModel[]>>(`${getRootPath()}/`, params).then((data) => ({
     ...data,
@@ -55,16 +55,16 @@ export function getTendbhaList(params: {
  */
 export function getTendbhaFlatList(params: {
   bk_biz_id?: number;
-  limit?: number;
-  offset?: number;
-  type?: string;
-  dbType?: string;
   cluster_ids?: number[] | number;
+  dbType?: string;
   domain?: string;
-  master_domain?: string;
-  slave_domain?: string;
   exact_domain?: string;
   id?: string;
+  limit?: number;
+  master_domain?: string;
+  offset?: number;
+  slave_domain?: string;
+  type?: string;
 }) {
   return http.get<ListBase<TendbhaModel[]>>(`${getRootPath()}/`, params).then((data) =>
     data.results.map(
@@ -80,14 +80,14 @@ export function getTendbhaFlatList(params: {
 
 export function getTendbhaSalveList(params: {
   bk_biz_id?: number;
-  limit?: number;
-  offset?: number;
-  type?: string;
-  dbType?: string;
   cluster_ids?: number[] | number;
+  dbType?: string;
   domain?: string;
+  limit?: number;
   master_domain?: string;
+  offset?: number;
   slave_domain?: string;
+  type?: string;
 }) {
   return http.get<ListBase<TendbhaModel[]>>(`${getRootPath()}/`, params).then((data) => ({
     ...data,
@@ -95,8 +95,8 @@ export function getTendbhaSalveList(params: {
       (item) =>
         new TendbhaModel(
           Object.assign(item, {
-            permission: Object.assign({}, item.permission, data.permission),
             master_domain: item.slave_domain,
+            permission: Object.assign({}, item.permission, data.permission),
           }),
         ),
     ),
@@ -108,9 +108,9 @@ export function getTendbhaSalveList(params: {
  */
 export function getTendbhaListByBizId(params: {
   bk_biz_id: number;
+  cluster_ids?: number[] | number;
   limit?: number;
   offset?: number;
-  cluster_ids?: number[] | number;
 }) {
   return http
     .get<ListBase<TendbhaModel[]>>(`/apis/mysql/bizs/${params.bk_biz_id}/tendbha_resources/`, params)
@@ -135,7 +135,7 @@ export function getTendbhaTableFields() {
 /**
  * 获取集群实例列表
  */
-export const getTendbhaInstanceList = function (params: Record<string, any> & { role_exclude?: string }) {
+export const getTendbhaInstanceList = function (params: { role_exclude?: string } & Record<string, any>) {
   return http.get<ListBase<TendbhaInstanceModel[]>>(`${getRootPath()}/list_instances/`, params).then((data) => ({
     ...data,
     results: data.results.map((item) => new TendbhaInstanceModel(item)),
@@ -147,10 +147,10 @@ export const getTendbhaInstanceList = function (params: Record<string, any> & { 
  */
 export function retrieveTendbhaInstance(params: {
   bk_biz_id: number;
-  type: string;
-  instance_address: string;
   cluster_id?: number;
   dbType: string;
+  instance_address: string;
+  type: string;
 }) {
   return http
     .get<TendbhaInstanceModel>(`${getRootPath()}/retrieve_instance/`, params)
@@ -189,16 +189,16 @@ export function exportTendbhaInstanceToExcel(params: { bk_host_ids?: number[] })
  * 查询主机列表
  */
 export function getTendbhaMachineList(params: {
-  limit?: number;
-  offset?: number;
-  bk_host_id?: number;
-  ip?: string;
-  machine_type?: string;
-  bk_os_name?: string;
-  bk_cloud_id?: number;
   bk_agent_id?: string;
-  instance_role?: string;
+  bk_cloud_id?: number;
+  bk_host_id?: number;
+  bk_os_name?: string;
   creator?: string;
+  instance_role?: string;
+  ip?: string;
+  limit?: number;
+  machine_type?: string;
+  offset?: number;
 }) {
   return http.get<ListBase<TendbhaMachineModel[]>>(`${getRootPath()}/list_machines/`, params).then((data) => ({
     ...data,

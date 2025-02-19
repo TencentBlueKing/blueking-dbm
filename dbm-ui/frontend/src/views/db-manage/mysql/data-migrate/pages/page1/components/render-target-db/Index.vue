@@ -55,17 +55,15 @@
 
   interface Props {
     data: {
+      dbs: string[];
+      ignoreDbs: string[];
       sourceCluster: string;
       sourceClusterId: number;
       targetClusters: number[];
-      dbs: string[];
-      ignoreDbs: string[];
     };
   }
 
-  interface Emits {
-    (e: 'change', value: DbsType): void;
-  }
+  type Emits = (e: 'change', value: DbsType) => void;
 
   interface Exposes {
     getValue: () => Promise<string[]>;
@@ -86,12 +84,12 @@
 
   const rules = computed(() => [
     {
-      validator: () => targetDbList.value.length > 0,
       message: t('不能为空'),
+      validator: () => targetDbList.value.length > 0,
     },
     {
-      validator: () => existedDbNameList.value.length === 0,
       message: t('在目标集群已存在 DB： xx，请先修改名称', { n: existedDbNameList.value.join(',') }),
+      validator: () => existedDbNameList.value.length === 0,
     },
   ]);
 
@@ -119,7 +117,7 @@
   watch(
     () => props.data,
     () => {
-      const { sourceClusterId, targetClusters, dbs, ignoreDbs } = props.data;
+      const { dbs, ignoreDbs, sourceClusterId, targetClusters } = props.data;
       if (sourceClusterId || targetClusters.length > 0) {
         const infos = [sourceClusterId, ...targetClusters].map((id) => ({
           cluster_id: id,
@@ -130,8 +128,8 @@
       }
     },
     {
-      immediate: true,
       deep: true,
+      immediate: true,
     },
   );
 

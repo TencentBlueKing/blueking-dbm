@@ -65,7 +65,7 @@
 
   import EditRule from '../edit-rule/Index.vue';
 
-  import PriorityInput from './components/PriorityInput.vue'
+  import PriorityInput from './components/PriorityInput.vue';
   import RenderRotateTable from './components/RenderRotateTable.vue';
 
   interface Props {
@@ -75,19 +75,23 @@
   const props = defineProps<Props>();
 
   const enum RuleStatus {
-    TERMINATED = 'TERMINATED', // 已停用
+    ACTIVE = 'ACTIVE', // 当前生效
     EXPIRED = 'EXPIRED', // 已失效
     NOT_ACTIVE = 'NOT_ACTIVE', // 未生效
-    ACTIVE = 'ACTIVE', // 当前生效
+    TERMINATED = 'TERMINATED', // 已停用
   }
 
   const { t } = useI18n();
 
-  const dataSource = (params: ServiceParameters<typeof queryDutyRuleList>) => queryDutyRuleList(Object.assign(params, {
-    db_type: props.activeDbType
-  }), {
-    permission: 'catch'
-  })
+  const dataSource = (params: ServiceParameters<typeof queryDutyRuleList>) =>
+    queryDutyRuleList(
+      Object.assign(params, {
+        db_type: props.activeDbType,
+      }),
+      {
+        permission: 'catch',
+      },
+    );
 
   const tableRef = ref();
   const pageType = ref();
@@ -104,15 +108,15 @@
       theme: 'success',
       title: t('当前值班人'),
     },
-    [RuleStatus.NOT_ACTIVE]: {
-      label: t('未生效'),
-      theme: 'info',
-      title: t('待值班人'),
-    },
     [RuleStatus.EXPIRED]: {
       label: t('已失效'),
       theme: '',
       title: t('已值班人'),
+    },
+    [RuleStatus.NOT_ACTIVE]: {
+      label: t('未生效'),
+      theme: 'info',
+      title: t('待值班人'),
     },
     [RuleStatus.TERMINATED]: {
       label: t('已停用'),
@@ -123,70 +127,71 @@
 
   const columns = computed(() => [
     {
-      label: t('规则名称'),
       field: 'name',
-      minWidth: 220,
       fixed: 'left',
-      render: ({ data }: {data: DutyRuleModel}) => (
+      label: t('规则名称'),
+      minWidth: 220,
+      render: ({ data }: { data: DutyRuleModel }) => (
         <TextOverflowLayout>
           {{
+            append: () =>
+              data.isNewCreated && (
+                <MiniTag
+                  content='NEW'
+                  theme='success'
+                />
+              ),
             default: () => (
               <auth-button
-                action-id="duty_rule_update"
+                action-id='duty_rule_update'
                 permission={data.permission.duty_rule_update}
                 resource={props.activeDbType}
+                theme='primary'
                 text
-                theme="primary"
                 onClick={() => handleOperate('edit', data)}>
                 {data.name}
               </auth-button>
-            ),
-            append: () => data.isNewCreated && (
-              <MiniTag
-                theme='success'
-                content="NEW" />
             ),
           }}
         </TextOverflowLayout>
       ),
     },
     {
-      label: t('状态'),
       field: 'status',
-      width: 120,
-      render: ({ data }: {data: DutyRuleModel}) => {
+      label: t('状态'),
+      render: ({ data }: { data: DutyRuleModel }) => {
         const { label, theme } = statusMap[data.status as RuleStatus];
         return <bk-tag theme={theme}>{label}</bk-tag>;
       },
+      width: 120,
     },
     {
+      field: 'priority',
       label: () => (
         <span
           v-bk-tooltips={{
             content: t('范围 1～100，数字越高代表优先级越高，当有规则冲突时，优先执行数字较高的规则'),
             theme: 'dark',
           }}
-          style="border-bottom: 1px dashed #979BA5;">
+          style='border-bottom: 1px dashed #979BA5;'>
           {t('优先级')}
         </span>
       ),
-      field: 'priority',
-      sort: true,
-      width: 120,
-      render: ({ data }: {data: DutyRuleModel}) => {
+      render: ({ data }: { data: DutyRuleModel }) => {
         const renderPriority = () => {
           const level = data.priority;
-          if (data.is_show_edit){
+          if (data.is_show_edit) {
             return (
               <auth-template
-                action-id="duty_rule_update"
+                action-id='duty_rule_update'
                 permission={data.permission.duty_rule_update}
                 resource={props.activeDbType}>
                 <PriorityInput
                   model-value={level}
-                  requestHandler={(value: number) => handlePriorityChange(data, value)}/>
+                  requestHandler={(value: number) => handlePriorityChange(data, value)}
+                />
               </auth-template>
-            )
+            );
           }
 
           let theme = '';
@@ -202,60 +207,64 @@
           }
           return (
             <>
-              {
-                theme ?
+              {theme ? (
                 <bk-tag
                   theme={theme}
-                  type="filled">
+                  type='filled'>
                   {level}
-                </bk-tag> : <bk-tag>{level}</bk-tag>
-              }
+                </bk-tag>
+              ) : (
+                <bk-tag>{level}</bk-tag>
+              )}
               <auth-template
-                action-id="duty_rule_update"
+                action-id='duty_rule_update'
                 permission={data.permission.duty_rule_update}
                 resource={props.activeDbType}>
                 <db-icon
-                  class="edit-icon"
-                  type="edit"
-                  style="font-size: 18px"
-                  onClick={() => handleClickEditPriority(data)} />
+                  class='edit-icon'
+                  style='font-size: 18px'
+                  type='edit'
+                  onClick={() => handleClickEditPriority(data)}
+                />
               </auth-template>
-
             </>
-          )
-        }
+          );
+        };
 
-        return (
-          <div class="priority-box">
-            { renderPriority() }
-          </div>
-        );
+        return <div class='priority-box'>{renderPriority()}</div>;
       },
+      sort: true,
+      width: 120,
     },
     {
-      label: t('轮值业务'),
       field: 'status',
-      width: 250,
-      render: ({ data }: {data: DutyRuleModel}) => {
+      label: t('轮值业务'),
+      render: ({ data }: { data: DutyRuleModel }) => {
         if (data.biz_config_display.include) {
-          return data.biz_config_display.include.map((biz) => biz.bk_biz_name).join(' , ')
+          return data.biz_config_display.include.map((biz) => biz.bk_biz_name).join(' , ');
         }
         if (data.biz_config_display.exclude) {
-          return `${t('全部业务')} (${t('排除业务')} : ${data.biz_config_display.exclude.map((biz) => biz.bk_biz_name).join(' , ')}) `
+          return `${t('全部业务')} (${t('排除业务')} : ${data.biz_config_display.exclude.map((biz) => biz.bk_biz_name).join(' , ')}) `;
         }
-        return t('全部业务')
+        return t('全部业务');
       },
+      width: 250,
     },
     {
-      label: t('轮值表'),
       field: 'duty_arranges',
-      width: 280,
-      render: ({ data }: {data: DutyRuleModel}) => {
+      label: t('轮值表'),
+      render: ({ data }: { data: DutyRuleModel }) => {
         let title = '';
         if (data.status in statusMap) {
           title = statusMap[data.status as RuleStatus].title;
         } else {
-          return <div class="display-text" style="width: 27px;">--</div>;
+          return (
+            <div
+              class='display-text'
+              style='width: 27px;'>
+              --
+            </div>
+          );
         }
         const peopleSet = data.duty_arranges.reduce((result, item) => {
           item.members.forEach((member) => {
@@ -265,110 +274,112 @@
         }, new Set<string>());
         const peoples = [...peopleSet].join(' , ');
         return (
-          <div class="rotate-table-column">
+          <div class='rotate-table-column'>
             <bk-popover
-              placement="bottom"
-              theme="light"
-              width={780}
-              popoverDelay={[500, 50]}>
+              placement='bottom'
+              popoverDelay={[500, 50]}
+              theme='light'
+              width={780}>
               {{
-                default: () => (
-                  <div class="display-text">{title}: {peoples}</div>
-                ),
                 content: () => <RenderRotateTable data={data} />,
+                default: () => (
+                  <div class='display-text'>
+                    {title}: {peoples}
+                  </div>
+                ),
               }}
             </bk-popover>
           </div>
         );
       },
+      width: 280,
     },
     {
-      label: t('生效时间'),
       field: 'effective_time',
-      width: 240,
+      label: t('生效时间'),
       render: ({ data }: { data: DutyRuleModel }) => <span>{data.effectiveTimeDisplay}</span>,
+      width: 240,
     },
     {
-      label: t('更新时间'),
       field: 'update_at',
+      label: t('更新时间'),
+      render: ({ data }: { data: DutyRuleModel }) => <span>{data.updateAtDisplay}</span>,
       sort: true,
       width: 240,
-      render: ({ data }: { data: DutyRuleModel }) => <span>{data.updateAtDisplay}</span>,
     },
     {
-      label: t('更新人'),
       field: 'updater',
+      label: t('更新人'),
       width: 120,
     },
     {
-      label: t('启停'),
       field: 'is_enabled',
-      width: 80,
-      showOverflow: false,
+      label: t('启停'),
       render: ({ data }: { data: DutyRuleModel }) => (
         <bk-pop-confirm
-          title={t('确认停用该策略？')}
           content={t('停用后，所有的业务将会停用该策略，请谨慎操作！')}
-          width="320"
           is-show={showTipMap.value[data.id]}
-          trigger="manual"
-          placement="bottom"
-          onConfirm={() => handleClickConfirm(data)}
+          placement='bottom'
+          title={t('确认停用该策略？')}
+          trigger='manual'
+          width='320'
           onCancel={() => handleCancelConfirm(data)}
-        >
+          onConfirm={() => handleClickConfirm(data)}>
           <auth-switcher
-            action-id="duty_rule_update"
+            v-model={data.is_enabled}
+            action-id='duty_rule_update'
+            before-change={(isEnable: boolean) => enableRequestHandler(isEnable, data)}
             permission={data.permission.duty_rule_update}
             resource={props.activeDbType}
-            size="small"
-            v-model={data.is_enabled}
-            theme="primary"
-            before-change={(isEnable: boolean) => enableRequestHandler(isEnable, data)}
+            size='small'
+            theme='primary'
           />
         </bk-pop-confirm>
       ),
+      showOverflow: false,
+      width: 80,
     },
     {
-      label: t('操作'),
-      fixed: 'right',
-      showOverflow: false,
       field: '',
-      width: 140,
-      render: ({ data }: {data: DutyRuleModel}) => (
-      <div class="operate-box">
-        <auth-button
-          action-id="duty_rule_update"
-          permission={data.permission.duty_rule_update}
-          resource={props.activeDbType}
-          text
-          theme="primary"
-          onClick={() => handleOperate('edit', data)}>
-          {t('编辑')}
-        </auth-button>
-        <auth-button
-          action-id="duty_rule_create"
-          permission={data.permission.duty_rule_create}
-          resource={props.activeDbType}
-          text
-          theme="primary"
-          onClick={() => handleOperate('clone', data)}>
-          {t('克隆')}
-        </auth-button>
-        {!data.is_enabled && (
+      fixed: 'right',
+      label: t('操作'),
+      render: ({ data }: { data: DutyRuleModel }) => (
+        <div class='operate-box'>
           <auth-button
-            action-id="duty_rule_destroy"
-            permission={data.permission.duty_rule_destroy}
+            action-id='duty_rule_update'
+            permission={data.permission.duty_rule_update}
             resource={props.activeDbType}
+            theme='primary'
             text
-            theme="primary"
-            onClick={() => handleDelete(data)}>
-            {t('删除')}
+            onClick={() => handleOperate('edit', data)}>
+            {t('编辑')}
           </auth-button>
-        )}
-      </div>),
+          <auth-button
+            action-id='duty_rule_create'
+            permission={data.permission.duty_rule_create}
+            resource={props.activeDbType}
+            theme='primary'
+            text
+            onClick={() => handleOperate('clone', data)}>
+            {t('克隆')}
+          </auth-button>
+          {!data.is_enabled && (
+            <auth-button
+              action-id='duty_rule_destroy'
+              permission={data.permission.duty_rule_destroy}
+              resource={props.activeDbType}
+              theme='primary'
+              text
+              onClick={() => handleDelete(data)}>
+              {t('删除')}
+            </auth-button>
+          )}
+        </div>
+      ),
+      showOverflow: false,
+      width: 140,
     },
   ]);
-
 
   const { run: runGetPriorityDistinct } = useRequest(getPriorityDistinct, {
     onSuccess: (list) => {
@@ -383,24 +394,31 @@
   let enableRequestHandlerResolver = null as null | ((value: boolean) => void);
   let enableRequestHandlerRejecter = null as null | (() => void);
 
-  watch(() => props.activeDbType, (type) => {
-    if (type) {
-      setTimeout(() => {
-        fetchHostNodes();
-      });
-    }
-  }, {
-    immediate: true,
-  });
+  watch(
+    () => props.activeDbType,
+    (type) => {
+      if (type) {
+        setTimeout(() => {
+          fetchHostNodes();
+        });
+      }
+    },
+    {
+      immediate: true,
+    },
+  );
 
   const updateRowClass = (row: DutyRuleModel) => (row.isNewCreated ? 'is-new' : '');
 
   const fetchHostNodes = async () => {
     isTableLoading.value = true;
     try {
-      await tableRef.value.fetchData({}, {
-        db_type: props.activeDbType,
-      });
+      await tableRef.value.fetchData(
+        {},
+        {
+          db_type: props.activeDbType,
+        },
+      );
     } finally {
       isTableLoading.value = false;
     }
@@ -422,7 +440,7 @@
     try {
       const updateResult = await updatePartialDutyRule(row.id, {
         priority,
-      })
+      });
 
       if (updateResult.priority === priority) {
         // 设置成功
@@ -432,9 +450,9 @@
       window.changeConfirm = false;
     } finally {
       Object.assign(row, {
-        priority,
         is_show_edit: false,
-      })
+        priority,
+      });
     }
   };
 
@@ -445,12 +463,14 @@
       if (isEnable) {
         updatePartialDutyRule(row.id, {
           is_enabled: true,
-        }).then(() => {
-          resolve(true);
-          messageSuccess(t('启用成功'));
-        }).catch(() => {
-          reject();
         })
+          .then(() => {
+            resolve(true);
+            messageSuccess(t('启用成功'));
+          })
+          .catch(() => {
+            reject();
+          });
       } else {
         showTipMap.value[row.id] = true;
       }
@@ -476,7 +496,7 @@
   };
 
   const handleOperate = (type: string, row?: DutyRuleModel) => {
-    existedNames.value = tableRef.value.getData().map((item: { name: string; }) => item.name);
+    existedNames.value = tableRef.value.getData().map((item: { name: string }) => item.name);
     currentRowData.value = row;
     pageType.value = type;
     isShowEditRuleSideSilder.value = true;
@@ -484,13 +504,14 @@
 
   const handleDelete = async (row: DutyRuleModel) => {
     InfoBox({
-      title: t('确认删除该轮值?'),
-      subTitle: t('重置 Secure Key,需自定修改 Template 中的地址字段！'),
-      width: 450,
       onConfirm: async () => {
         await deleteDutyRule({ id: row.id });
         fetchHostNodes();
-      } });
+      },
+      subTitle: t('重置 Secure Key,需自定修改 Template 中的地址字段！'),
+      title: t('确认删除该轮值?'),
+      width: 450,
+    });
   };
 
   const handleSuccess = () => {

@@ -88,13 +88,13 @@
 
   // 单据克隆
   useTicketCloneInfo({
-    type: TicketTypes.TENDBCLUSTER_CLIENT_CLONE_RULES,
     onSuccess(cloneData) {
       const { tableDataList } = cloneData;
       tableData.value = tableDataList;
       remark.value = cloneData.remark;
       window.changeConfirm = true;
     },
+    type: TicketTypes.TENDBCLUSTER_CLIENT_CLONE_RULES,
   });
 
   const rowRefs = ref();
@@ -180,22 +180,22 @@
       const infos = await Promise.all(rowRefs.value.map((item: { getValue: () => Promise<any> }) => item.getValue()));
       const precheckResult = await precheckPermissionClone({
         bizId: currentBizId,
-        clone_type: 'client',
-        clone_list: infos,
         clone_cluster_type: 'tendbcluster',
+        clone_list: infos,
+        clone_type: 'client',
       });
       if (!precheckResult.pre_check) {
         return;
       }
 
       await createTicket({
-        ticket_type: TicketTypes.TENDBCLUSTER_CLIENT_CLONE_RULES,
         bk_biz_id: currentBizId,
-        remark: remark.value,
         details: {
           ...precheckResult,
           clone_type: 'client',
         },
+        remark: remark.value,
+        ticket_type: TicketTypes.TENDBCLUSTER_CLIENT_CLONE_RULES,
       }).then((data) => {
         window.changeConfirm = false;
 

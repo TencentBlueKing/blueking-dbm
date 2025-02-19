@@ -89,12 +89,12 @@
   import RenderRow from './components/RenderRow.vue';
 
   interface Props {
-    title: string;
     data: {
-      shardName: string;
       instanceList: string[];
+      shardName: string;
     }[];
-    instanceList: MongodbModel['mongodb']
+    instanceList: MongodbModel['mongodb'];
+    title: string;
   }
 
   const props = defineProps<Props>();
@@ -102,37 +102,41 @@
   const { t } = useI18n();
 
   const tableRef = ref();
-  const isDialogShow = ref(false)
-  const keyword = ref('')
+  const isDialogShow = ref(false);
+  const keyword = ref('');
   const pagination = reactive({
     current: 1,
     limit: 10,
     limitList: [10, 20, 50, 100, 500],
   });
 
-  const tableList = shallowRef<Props['data']>([])
+  const tableList = shallowRef<Props['data']>([]);
 
-  const MAX_COUNT = 3
+  const MAX_COUNT = 3;
 
   const columns = [
     {
-      label: t('ShardSvr 名称'),
       field: 'shardName',
+      label: t('ShardSvr 名称'),
       width: 200,
     },
     {
-      label: t('实例'),
       field: 'instanceList',
+      label: t('实例'),
+      render: ({ data }: { data: Props['data'][number] }) => <RenderRow data={data.instanceList} />,
       showOverflowTooltip: false,
-      render: ({ data }: { data: Props['data'][number] }) => <RenderRow data={data.instanceList} />
-      },
+    },
   ];
 
-  watch(() => props.data,() => {
-    tableList.value = props.data
-  }, {
-    immediate: true
-  })
+  watch(
+    () => props.data,
+    () => {
+      tableList.value = props.data;
+    },
+    {
+      immediate: true,
+    },
+  );
 
   const renderData = computed(() => props.data.slice(0, MAX_COUNT));
   const hasMore = computed(() => props.data.length > MAX_COUNT);
@@ -147,7 +151,7 @@
 
   const handleTableLimitChange = () => {
     pagination.current = 1;
-  }
+  };
 
   /**
    * 复制异常实例
@@ -178,19 +182,19 @@
   const filterInstance = () => {
     if (keyword.value) {
       tableList.value = props.data.reduce<Props['data']>((prev, item) => {
-        const filterInstanceList = item.instanceList.filter(instanceItem => instanceItem.includes(keyword.value))
+        const filterInstanceList = item.instanceList.filter((instanceItem) => instanceItem.includes(keyword.value));
         if (filterInstanceList.length) {
           prev.push({
+            instanceList: filterInstanceList,
             shardName: item.shardName,
-            instanceList: filterInstanceList
-          })
+          });
         }
-        return prev
-      }, [])
-      return
+        return prev;
+      }, []);
+      return;
     }
-    tableList.value = props.data
-  }
+    tableList.value = props.data;
+  };
 
   const handleClose = () => {
     isDialogShow.value = false;

@@ -47,8 +47,8 @@
   import RenderDataRow, { createRowData, type IDataRow } from './components/Row.vue';
 
   interface Expose {
-    submit: () => Promise<any>;
     reset: () => void;
+    submit: () => Promise<any>;
   }
 
   // 检测列表是否为空
@@ -76,28 +76,28 @@
   const tableData = shallowRef<Array<IDataRow>>([createRowData({})]);
 
   useTicketCloneInfo({
-    type: TicketTypes.SQLSERVER_ROLLBACK,
     onSuccess(cloneData) {
       tableData.value = cloneData.infos.map((item) =>
         createRowData({
           clusterData: {
-            id: item.src_cluster.id,
-            domain: item.src_cluster.immute_domain,
             cloudId: item.src_cluster.bk_cloud_id,
+            domain: item.src_cluster.immute_domain,
+            id: item.src_cluster.id,
             majorVersion: item.src_cluster.major_version,
           },
-          dstClusterData: {
-            id: item.dst_cluster.id,
-            domain: item.dst_cluster.immute_domain,
-            cloudId: item.dst_cluster.bk_cloud_id,
-          },
-          restoreBackupFile: item.restore_backup_file,
-          dbName: item.db_list,
           dbIgnoreName: item.ignore_db_list,
+          dbName: item.db_list,
+          dstClusterData: {
+            cloudId: item.dst_cluster.bk_cloud_id,
+            domain: item.dst_cluster.immute_domain,
+            id: item.dst_cluster.id,
+          },
           renameDbName: item.rename_infos,
+          restoreBackupFile: item.restore_backup_file,
         }),
       );
     },
+    type: TicketTypes.SQLSERVER_ROLLBACK,
   });
 
   // 批量选择
@@ -115,9 +115,9 @@
     const newList = list.reduce((result, item) => {
       const row = createRowData({
         clusterData: {
-          id: item.id,
-          domain: item.master_domain,
           cloudId: item.bk_cloud_id,
+          domain: item.master_domain,
+          id: item.id,
           majorVersion: item.major_version,
         },
       });
@@ -146,9 +146,6 @@
     tableData.value = dataList;
   };
   defineExpose<Expose>({
-    submit() {
-      return Promise.all(rowRefs.value!.map((item) => item.getValue()));
-    },
     reset() {
       tableData.value = [createRowData()];
       selectedSrcClusters.value = {
@@ -156,6 +153,9 @@
         [ClusterTypes.SQLSERVER_SINGLE]: [],
       };
       window.changeConfirm = false;
+    },
+    submit() {
+      return Promise.all(rowRefs.value!.map((item) => item.getValue()));
     },
   });
 </script>

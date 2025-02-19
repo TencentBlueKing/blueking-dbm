@@ -34,7 +34,7 @@ export const useTimeZoneFormat = () => {
   };
 
   return {
-    timeZone,
     format,
+    timeZone,
   };
 };

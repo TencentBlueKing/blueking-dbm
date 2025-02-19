@@ -52,11 +52,11 @@
   import type { UnwrapRef } from 'vue';
   import { useI18n } from 'vue-i18n';
 
+  import type { VxeTablePropTypes } from '@blueking/vxe-table';
+
   import TicketModel, { type Redis } from '@services/model/ticket/ticket';
 
   import { TicketTypes } from '@common/const';
-
-  import type { VxeTablePropTypes } from '@blueking/vxe-table';
 
   interface Props {
     ticketDetails: TicketModel<Redis.MigrateCluster>;
@@ -76,7 +76,7 @@
   const mergeCells = ref<VxeTablePropTypes.MergeCells>([]);
 
   watchEffect(() => {
-    const { infos, clusters } = props.ticketDetails.details;
+    const { clusters, infos } = props.ticketDetails.details;
     const domainMap = infos.reduce<Record<string, number>>((prevMap, infoItem) => {
       const domain = clusters[infoItem.cluster_id].immute_domain;
       if (prevMap[domain]) {
@@ -86,7 +86,7 @@
     }, {});
     mergeCells.value = Object.values(domainMap).reduce<UnwrapRef<typeof mergeCells>>((prevMergeCells, count) => {
       const row = prevMergeCells.length ? prevMergeCells[prevMergeCells.length - 1].rowspan : 0;
-      const item = { row, col: 1, rowspan: count, colspan: 1 };
+      const item = { col: 1, colspan: 1, row, rowspan: count };
       return prevMergeCells.concat(item);
     }, []);
   });

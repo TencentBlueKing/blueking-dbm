@@ -108,74 +108,74 @@
   const { t } = useI18n();
 
   const configMap = {
-    [t('关系型数据库')]: [
-      {
-        name: 'MySQL',
-        value: 'mysql',
-        icon: 'mysql',
-      },
-      {
-        name: 'Tendb Cluster',
-        value: 'tendbCluster',
-        icon: 'mysql',
-      },
-      {
-        name: 'SqlServer',
-        value: 'sqlserver',
-        icon: 'mysql',
-      },
-    ],
     [t('NoSQL 数据库')]: [
       {
+        icon: 'redis',
         name: 'Redis',
         value: 'redis',
-        icon: 'redis',
       },
       {
+        icon: 'cluster',
         name: 'Riak',
         value: 'riak',
-        icon: 'cluster',
       },
       {
+        icon: 'mysql',
         name: 'MongoDB',
         value: 'mongodb',
+      },
+    ],
+    [t('关系型数据库')]: [
+      {
         icon: 'mysql',
-      },
-    ],
-    [t('时序数据库')]: [
-      {
-        name: 'influxDB',
-        value: 'influxdb',
-        icon: 'influxdb',
-      },
-    ],
-    [t('消息队列')]: [
-      {
-        name: 'Pulsar',
-        value: 'pulsar',
-        icon: 'pulsar',
+        name: 'MySQL',
+        value: 'mysql',
       },
       {
-        name: 'Kafka',
-        value: 'kafka',
-        icon: 'kafka',
+        icon: 'mysql',
+        name: 'Tendb Cluster',
+        value: 'tendbCluster',
+      },
+      {
+        icon: 'mysql',
+        name: 'SqlServer',
+        value: 'sqlserver',
       },
     ],
     [t('大数据存储')]: [
       {
+        icon: 'es',
         name: 'ElasticSearch',
         value: 'es',
-        icon: 'es',
       },
       {
+        icon: 'hdfs',
         name: 'HDFS',
         value: 'hdfs',
-        icon: 'hdfs',
       },
       {
+        icon: 'doris',
         name: 'Doris',
         value: 'doris',
-        icon: 'doris',
+      },
+    ],
+    [t('时序数据库')]: [
+      {
+        icon: 'influxdb',
+        name: 'influxDB',
+        value: 'influxdb',
+      },
+    ],
+    [t('消息队列')]: [
+      {
+        icon: 'pulsar',
+        name: 'Pulsar',
+        value: 'pulsar',
+      },
+      {
+        icon: 'kafka',
+        name: 'Kafka',
+        value: 'kafka',
       },
     ],
   };

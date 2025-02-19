@@ -184,8 +184,8 @@
       if (!domainMemo[domain]) {
         const row = {
           clusterData: {
-            id: item.id,
             domain: item.master_domain,
+            id: item.id,
           },
           rowData: item,
         } as IDataRow;
@@ -220,8 +220,8 @@
     const item = result.results[0];
     const row = {
       clusterData: {
-        id: item.id,
         domain: item.master_domain,
+        id: item.id,
       },
       rowData: item,
     } as IDataRow;
@@ -260,13 +260,13 @@
       );
       const params: Record<string, any> = {
         bk_biz_id: currentBizId,
-        ticket_type: TicketTypes.MONGODB_BACKUP,
-        remark: '',
         details: {
-          file_tag: formData.file_tag,
           backup_type: backupType.value,
+          file_tag: formData.file_tag,
           infos,
         },
+        remark: '',
+        ticket_type: TicketTypes.MONGODB_BACKUP,
       };
       if (clusterType.value === ClusterTypes.MONGO_REPLICA_SET) {
         delete params.details.backup_type;

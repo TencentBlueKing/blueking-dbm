@@ -126,8 +126,8 @@
 
   const targetVersionList = ref<
     {
-      value: string;
       label: string;
+      value: string;
     }[]
   >([]);
   const batchEditShow = reactive({
@@ -137,12 +137,12 @@
 
   const selectList = [
     {
-      value: 'Proxy',
       label: 'Proxy',
+      value: 'Proxy',
     },
     {
-      value: 'Backend',
       label: 'Backend',
+      value: 'Backend',
     },
   ];
 
@@ -161,9 +161,9 @@
     () => {
       if (props.versionListParams) {
         fetchTargetClusterVersions({
+          cluster_id: props.versionListParams.clusterId,
           node_type: props.versionListParams.nodeType,
           type: 'update',
-          cluster_id: props.versionListParams.clusterId,
         });
       } else {
         targetVersionList.value = [];

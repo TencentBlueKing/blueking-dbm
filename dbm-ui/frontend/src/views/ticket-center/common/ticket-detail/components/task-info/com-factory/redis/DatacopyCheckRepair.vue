@@ -65,7 +65,7 @@
   import { utcDisplayTime } from '@utils';
 
   interface Props {
-    ticketDetails: TicketModel<Redis.DatacopyCheckRepair>
+    ticketDetails: TicketModel<Redis.DatacopyCheckRepair>;
   }
 
   type RowData = Props['ticketDetails']['details']['infos'][0];
@@ -74,8 +74,8 @@
 
   defineOptions({
     name: TicketTypes.REDIS_DATACOPY_CHECK_REPAIR,
-    inheritAttrs: false
-  })
+    inheritAttrs: false,
+  });
 
   const { t } = useI18n();
 
@@ -91,45 +91,57 @@
 
   const columns = [
     {
-      label: t('关联单据'),
       field: 'bill_id',
+      label: t('关联单据'),
     },
     {
-      label: t('源集群'),
       field: 'src_cluster',
+      label: t('源集群'),
       showOverflowTooltip: true,
     },
     {
-      label: t('源实例'),
       field: 'src_instances',
+      label: t('源实例'),
       showOverflowTooltip: true,
     },
     {
-      label: t('目标集群'),
       field: 'taregtClusterName',
+      label: t('目标集群'),
       showOverflowTooltip: true,
     },
     {
-      label: t('包含 Key'),
       field: 'targetNum',
-      showOverflowTooltip: true,
-      render: ({ data }: {data: RowData}) => {
+      label: t('包含 Key'),
+      render: ({ data }: { data: RowData }) => {
         if (data.key_white_regex.length > 0) {
-          return data.key_white_regex.split('\n').map((key, index) => <bk-tag key={index} type="stroke">{key}</bk-tag>);
+          return data.key_white_regex.split('\n').map((key, index) => (
+            <bk-tag
+              key={index}
+              type='stroke'>
+              {key}
+            </bk-tag>
+          ));
         }
         return <span>--</span>;
       },
+      showOverflowTooltip: true,
     },
     {
-      label: t('排除 Key'),
       field: 'time',
-      showOverflowTooltip: true,
-      render: ({ data }: {data: RowData}) => {
+      label: t('排除 Key'),
+      render: ({ data }: { data: RowData }) => {
         if (data.key_black_regex.length > 0) {
-          return data.key_black_regex.split('\n').map((key, index) => <bk-tag key={index} type="stroke">{key}</bk-tag>);
+          return data.key_black_regex.split('\n').map((key, index) => (
+            <bk-tag
+              key={index}
+              type='stroke'>
+              {key}
+            </bk-tag>
+          ));
         }
         return <span>--</span>;
       },
+      showOverflowTooltip: true,
     },
   ];
 </script>

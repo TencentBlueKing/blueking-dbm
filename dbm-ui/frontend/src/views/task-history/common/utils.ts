@@ -23,19 +23,19 @@ type FlowType = FlowDetail['end_event']['type'];
 
 export type RenderKey = 'start_event' | 'end_event' | 'activities' | 'gateways';
 export interface GraphNode {
-  id: string;
-  tpl: RenderCollectionKey;
+  children?: GraphNode[][];
   data: FlowDetail & FlowDetail['activities'][string];
-  width: number;
   height: number;
-  level: number;
-  isExpand: boolean;
+  id: string;
   index: number;
-  parent: null | GraphNode;
+  isExpand: boolean;
   isTodoNode: boolean;
+  level: number;
+  parent: null | GraphNode;
+  tpl: RenderCollectionKey;
+  width: number;
   x?: number;
   y?: number;
-  children?: GraphNode[][];
 }
 export interface GraphLine {
   id: string;
@@ -98,13 +98,13 @@ const getLineTargets = (
  * @returns lines
  */
 const formartLines = (data: FlowDetail, level = 0, lines: GraphLine[] = []) => {
-  const { gateways, activities, end_event: endNode, start_event: startNode, flows } = data;
+  const { activities, end_event: endNode, flows, gateways, start_event: startNode } = data;
   // 当层节点映射
   const nodesMap = {
     ...gateways,
     ...activities,
-    [startNode.id]: startNode,
     [endNode.id]: endNode,
+    [startNode.id]: startNode,
   };
   /**
    * nodeId: lineId mapping
@@ -202,8 +202,8 @@ export const formatGraphData = (data: FlowDetail, expandNodes: string[] = [], to
   const renderLines = getRenderLines(lines, flagNodes);
 
   return reactive({
-    locations: flagNodes, // 渲染根节点
     lines: renderLines,
+    locations: flagNodes, // 渲染根节点
   });
 };
 
@@ -217,8 +217,8 @@ function getRenderLines(lines: GraphLine[], nodes: GraphNode[]) {
 
     if (sourceNode && targetNode) {
       const isLowerLevel = sourceNode.level !== targetNode.level; // 节点不属于同一层
-      const { x: sourceX = 0, y: sourceY = 0, width: sourceWidth } = sourceNode;
-      const { x: targetX = 0, y: targetY = 0, width: targetWidth, height: targetHeight } = targetNode;
+      const { width: sourceWidth, x: sourceX = 0, y: sourceY = 0 } = sourceNode;
+      const { height: targetHeight, width: targetWidth, x: targetX = 0, y: targetY = 0 } = targetNode;
       const sourceOffsetX = sourceWidth / 2 - 14 - 24;
       const targetOffsetX = targetWidth / 2;
       Object.assign(source, {
@@ -263,9 +263,9 @@ function getFlagNodes(nodes: GraphNode[][], flagNodes: GraphNode[] = [], expandN
 }
 
 const config = {
+  chidlOffset: 66, // 子节点 x 偏移量
   horizontalSep: 100, // 节点水平间距
   verticalSep: 36, // 节点垂直间距
-  chidlOffset: 66, // 子节点 x 偏移量
 };
 
 /**
@@ -288,16 +288,16 @@ function addNode(
   const isRoundType = bothEndTypes.includes(node.type);
   const len = nodes[index].length;
   const graphNode: GraphNode = {
-    id: node.id,
-    tpl: isRoundType ? 'round' : 'ractangle',
     data: node,
-    width: isRoundType ? 48 : 280,
     height: 48,
+    id: node.id,
     index: len,
-    level,
-    parent,
     isExpand: expandNodes.includes(node.id),
     isTodoNode: todoNodeIdList.includes(node.id),
+    level,
+    parent,
+    tpl: isRoundType ? 'round' : 'ractangle',
+    width: isRoundType ? 48 : 280,
   };
   nodes[index].push(graphNode);
 }
@@ -321,14 +321,14 @@ function getLevelNodes(
 ) {
   const nodes: GraphNode[][] = [];
 
-  const { gateways = {}, activities = {}, end_event: endNode, start_event: startNode, flows } = data;
+  const { activities = {}, end_event: endNode, flows, gateways = {}, start_event: startNode } = data;
 
   // 当层节点映射
   const nodesMap = {
     ...gateways,
     ...activities,
-    [startNode.id]: startNode,
     [endNode.id]: endNode,
+    [startNode.id]: startNode,
   };
 
   let index = 0;
@@ -428,7 +428,7 @@ function calcNodesLocation(nodes: GraphNode[][], expandNodes: string[] = [], pre
     const columnNodes = nodes[columnIndex]; // 获取同level的节点
     const coefficient = len - 1 - columnIndex; // 节点为倒叙
     for (const node of columnNodes) {
-      const { level, index, parent, children, height } = node;
+      const { children, height, index, level, parent } = node;
       let y = 0;
       if (index === 0 && level === 0) {
         y = 0; // 根节点第一行节点默认为0
@@ -440,7 +440,7 @@ function calcNodesLocation(nodes: GraphNode[][], expandNodes: string[] = [], pre
         y = config.verticalSep + height + preNodeMaxY;
       }
       node.y = y;
-      if (parent && parent.x !== undefined) {
+      if (parent?.x !== undefined) {
         const startX = config.chidlOffset + parent.x;
         node.x = startX + (node.width + config.horizontalSep) * coefficient;
       }

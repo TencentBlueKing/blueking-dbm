@@ -48,9 +48,7 @@
 
   import { execCopy } from '@utils';
 
-  const emits = defineEmits<{
-    (e: 'change', value: string[]): void;
-  }>();
+  const emits = defineEmits<(e: 'change', value: string[]) => void>();
 
   const modelValue = defineModel<string[]>({
     required: true,
@@ -74,19 +72,19 @@
     }).then((searchList) => ({
       next: false,
       results: searchList.results.map((userItem) => ({
-        username: userItem.username,
         display_name: userItem.display_name,
+        username: userItem.username,
       })),
     }));
 
   const renderTag = (
     renderMethod: typeof h,
     node: {
-      username: string;
       user: {
-        username: string;
         display_name: string;
+        username: string;
       };
+      username: string;
     },
   ) =>
     renderMethod('div', null, [
@@ -103,9 +101,9 @@
     renderMethod: typeof h,
     node: {
       user: {
-        username: string;
         display_name: string;
         type: string;
+        username: string;
       };
     },
   ) => {

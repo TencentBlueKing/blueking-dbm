@@ -30,7 +30,7 @@ const path = `/apis/bigdata/bizs/${currentBizId}/pulsar/pulsar_resources`;
 /**
  * 获取集群列表
  */
-export function getPulsarList(params: Record<string, any> & { bk_biz_id: number }) {
+export function getPulsarList(params: { bk_biz_id: number } & Record<string, any>) {
   return http.get<ListBase<PulsarModel[]>>(`${path}/`, params).then((data) => ({
     ...data,
     results: data.results.map(
@@ -54,7 +54,7 @@ export function getPulsarTableFields() {
 /**
  * 获取实例列表
  */
-export function getPulsarInstanceList(params: Record<string, any> & { bk_biz_id: number }) {
+export function getPulsarInstanceList(params: { bk_biz_id: number } & Record<string, any>) {
   return http.get<ListBase<PulsarInstanceModel[]>>(`${path}/list_instances/`, params).then((data) => ({
     ...data,
     results: data.results.map((item: PulsarInstanceModel) => new PulsarInstanceModel(item)),
@@ -95,10 +95,10 @@ export function getPulsarPassword(params: { cluster_id: number }) {
  * 获取 Pulsar 集群节点列表信息
  */
 export function getPulsarNodeList(
-  params: Record<string, any> & {
+  params: {
     bk_biz_id: number;
     cluster_id: number;
-  },
+  } & Record<string, any>,
 ) {
   return http
     .get<ListBase<Array<PulsarNodeModel>>>(`${path}/${params.cluster_id}/list_nodes/`, params)
@@ -133,20 +133,20 @@ export function exportPulsarInstanceToExcel(params: { bk_host_ids?: number[] }) 
  * 查询主机列表
  */
 export function getPulsarMachineList(params: {
-  limit?: number;
-  offset?: number;
-  bk_host_id?: number;
-  ip?: string;
-  cluster_ids?: string;
-  bk_city_name?: string;
-  machine_type?: string;
-  bk_os_name?: string;
-  bk_cloud_id?: number;
-  bk_agent_id?: string;
-  instance_role?: string;
-  creator?: string;
   add_role_count?: boolean;
+  bk_agent_id?: string;
+  bk_city_name?: string;
+  bk_cloud_id?: number;
+  bk_host_id?: number;
+  bk_os_name?: string;
+  cluster_ids?: string;
   cluster_type?: string;
+  creator?: string;
+  instance_role?: string;
+  ip?: string;
+  limit?: number;
+  machine_type?: string;
+  offset?: number;
 }) {
   return http.get<ListBase<PulsarMachineModel[]>>(`${path}/list_machines/`, params).then((data) => ({
     ...data,

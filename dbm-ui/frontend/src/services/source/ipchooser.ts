@@ -22,13 +22,13 @@ const path = '/apis/ipchooser';
  */
 export function checkHost(params: {
   ip_list: string[];
-  mode?: string;
   ipv6_list?: string[];
   key_list?: string[];
+  mode?: string;
   scope_list?: {
+    bk_cloud_id?: number | string;
     scope_id: number;
     scope_type: string;
-    bk_cloud_id?: number | string;
   }[];
 }) {
   return http.post<HostInfo[]>(`${path}/host/check/`, params);
@@ -38,7 +38,6 @@ export function checkHost(params: {
  * 根据主机关键信息获取机器详情信息
  */
 export function getHostDetails(params: {
-  mode?: string;
   host_list: {
     host_id: number;
     meta?: {
@@ -47,6 +46,7 @@ export function getHostDetails(params: {
       scope_type: string;
     };
   }[];
+  mode?: string;
   scope_list: {
     scope_id: string;
     scope_type: string;
@@ -73,14 +73,14 @@ export function updateIpSelectorSettings(params: any) {
  * 根据多个拓扑节点与搜索条件批量分页查询所包含的主机 ID 信息
  */
 export function getHostIdInfos(params: {
+  mode?: string;
   node_list: Array<{
     instance_id: number;
-    object_id: string;
     meta: HostInfo['meta'];
+    object_id: string;
   }>;
   page_size: number;
   start: number;
-  mode?: string;
 }) {
   return http.post(`${path}/topo/query_host_id_infos/`, params);
 }
@@ -88,14 +88,14 @@ export function getHostIdInfos(params: {
  * 根据多个拓扑节点与搜索条件批量分页查询所包含的主机信息
  */
 export function getHosts(params: {
+  mode?: string;
   node_list: Array<{
     instance_id: number;
-    object_id: string;
     meta: HostInfo['meta'];
+    object_id: string;
   }>;
   page_size: number;
   start: number;
-  mode?: string;
 }) {
   return http.post(`${path}/topo/query_hosts/`, params);
 }
@@ -104,12 +104,12 @@ export function getHosts(params: {
  * 批量获取含各节点主机数量的拓扑树
  */
 export function getHostTopo(params: {
-  mode?: string;
   all_scope: boolean;
+  mode?: string;
   scope_list: {
+    bk_cloud_id?: number | string;
     scope_id: number;
     scope_type: string;
-    bk_cloud_id?: number | string;
   }[];
 }) {
   return http.post(`${path}/topo/trees/`, params);
@@ -121,19 +121,19 @@ export function getHostTopo(params: {
 export function getHostTopoInfos(params: {
   bk_biz_id: number;
   filter_conditions: {
-    bk_host_innerip?: string[];
     bk_host_id?: string[];
+    bk_host_innerip?: string[];
     mode?: string;
   };
 }) {
   return http.post<{
-    total: number;
     hosts_topo_info: Array<{
       bk_cloud_id: number;
       bk_host_id: number;
       ip: string;
       topo: string[];
     }>;
+    total: number;
   }>(`${path}/topo/query_host_topo_infos/`, params);
 }
 

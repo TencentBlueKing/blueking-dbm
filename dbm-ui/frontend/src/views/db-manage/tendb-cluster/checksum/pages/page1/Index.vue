@@ -159,13 +159,13 @@
 
   // 单据克隆
   useTicketCloneInfo({
-    type: TicketTypes.TENDBCLUSTER_CHECKSUM,
     onSuccess(cloneData) {
-      const { tableDataList, formInfo } = cloneData;
+      const { formInfo, tableDataList } = cloneData;
       tableData.value = tableDataList;
       Object.assign(formData, formInfo);
       window.changeConfirm = true;
     },
+    type: TicketTypes.TENDBCLUSTER_CHECKSUM,
   });
 
   const rowRefs = ref();
@@ -178,9 +178,9 @@
       mode: 'manual',
     },
     is_sync_non_innodb: true,
-    timing: dayjs().format('YYYY-MM-DD HH:mm:ss'),
-    runtime_hour: 48,
     remark: '',
+    runtime_hour: 48,
+    timing: dayjs().format('YYYY-MM-DD HH:mm:ss'),
   });
 
   const tableData = ref<Array<IDataRow>>([createRowData({})]);
@@ -229,8 +229,8 @@
       if (!domainMemo[domain]) {
         const row = createRowData({
           clusterData: {
-            id: item.id,
             domain: item.master_domain,
+            id: item.id,
           },
         });
         result.push(row);
@@ -271,14 +271,14 @@
       const infos = await Promise.all(rowRefs.value!.map((item: { getValue: () => Promise<any> }) => item.getValue()));
 
       await createTicket({
-        ticket_type: TicketTypes.TENDBCLUSTER_CHECKSUM,
-        remark: formData.remark,
+        bk_biz_id: currentBizId,
         details: {
           ...formData,
-          timing: formatDateToUTC(dayjs(formData.timing).format('YYYY-MM-DD HH:mm:ss')),
           infos,
+          timing: formatDateToUTC(dayjs(formData.timing).format('YYYY-MM-DD HH:mm:ss')),
         },
-        bk_biz_id: currentBizId,
+        remark: formData.remark,
+        ticket_type: TicketTypes.TENDBCLUSTER_CHECKSUM,
       }).then((data) => {
         window.changeConfirm = false;
         router.push({

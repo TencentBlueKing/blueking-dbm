@@ -45,17 +45,17 @@
   import type { IDataRow } from './Row.vue';
 
   export interface ExposeValue {
-    spec_id: number;
-    count: number;
-    target_shard_num: number;
     capacity: number;
+    count: number;
     future_capacity: number;
+    spec_id: number;
+    target_shard_num: number;
   }
 
   interface Props {
-    rowData: IDataRow;
     isDisabled: boolean;
     isLoading?: boolean;
+    rowData: IDataRow;
   }
 
   interface Exposes {
@@ -75,21 +75,21 @@
   const activeRowData = ref<TargetPlanProps['data']>();
 
   const localValue = reactive({
-    spec_id: 0,
-    count: 0,
-    target_shard_num: 0,
     capacity: 0,
+    count: 0,
     future_capacity: 0,
+    spec_id: 0,
+    target_shard_num: 0,
   });
 
   const rules = [
     {
-      validator: (value: string) => Boolean(value),
       message: t('请选择目标容量'),
+      validator: (value: string) => Boolean(value),
     },
     {
-      validator: () => props.rowData.currentShardNum !== localValue.target_shard_num,
       message: t('目标分片数不能与当前分片数相同'),
+      validator: () => props.rowData.currentShardNum !== localValue.target_shard_num,
     },
   ];
 
@@ -105,11 +105,11 @@
   const handleChoosedTargetCapacity = (choosedObj: SpecResultInfo, capacity: CapacityNeed) => {
     displayText.value = `${choosedObj.cluster_capacity}G_（${choosedObj.cluster_shard_num} 分片）`;
     Object.assign(localValue, {
-      spec_id: choosedObj.spec_id,
-      count: choosedObj.machine_pair,
-      target_shard_num: choosedObj.cluster_shard_num,
       capacity: capacity.current,
+      count: choosedObj.machine_pair,
       future_capacity: capacity.future,
+      spec_id: choosedObj.spec_id,
+      target_shard_num: choosedObj.cluster_shard_num,
     });
     showChooseClusterTargetPlan.value = false;
   };
@@ -120,19 +120,19 @@
     if (rowData.srcCluster) {
       const { specConfig } = rowData;
       const obj = {
-        targetCluster: rowData.srcCluster,
+        bkCloudId: rowData.bkCloudId,
+        capacity: { total: rowData.currentCapacity?.total ?? 1, used: 0 },
+        clusterType: rowData.clusterType as ClusterTypes,
         currentSepc: t('cpus核memsGB_disksGB_QPS:qps', {
           cpus: specConfig.cpu.max,
-          mems: specConfig.mem.max,
           disks: rowData.currentCapacity?.total,
+          mems: specConfig.mem.max,
           qps: specConfig.qps.max,
         }),
         currentSepcId: `${specConfig.id}`,
-        capacity: { total: rowData.currentCapacity?.total ?? 1, used: 0 },
-        clusterType: rowData.clusterType as ClusterTypes,
-        shardNum: localValue.target_shard_num,
         groupNum: localValue.count,
-        bkCloudId: rowData.bkCloudId,
+        shardNum: localValue.target_shard_num,
+        targetCluster: rowData.srcCluster,
       };
       activeRowData.value = obj;
       showChooseClusterTargetPlan.value = true;

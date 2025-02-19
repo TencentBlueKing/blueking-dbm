@@ -28,8 +28,8 @@
   import mysqlToolboxMenuConfig from '@views/db-manage/mysql/toolbox-menu';
 
   interface Props {
-    id: string;
     favorMap: Record<string, boolean>;
+    id: string;
     toolboxMenuConfig: typeof mysqlToolboxMenuConfig;
   }
 

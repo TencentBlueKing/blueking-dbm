@@ -133,15 +133,15 @@
 
   // 单据克隆
   useTicketCloneInfo({
-    type: TicketTypes.MYSQL_HA_FULL_BACKUP,
     onSuccess(cloneData) {
-      const { backupType, tableDataList, fileTag } = cloneData;
+      const { backupType, fileTag, tableDataList } = cloneData;
       tableData.value = tableDataList;
       formData.backup_type = backupType;
       formData.file_tag = fileTag;
       formData.remark = cloneData.remark;
       window.changeConfirm = true;
     },
+    type: TicketTypes.MYSQL_HA_FULL_BACKUP,
   });
 
   const formRef = ref();
@@ -193,8 +193,8 @@
         if (!domainMemo[domain]) {
           const row = createRowData({
             clusterData: {
-              id: clusterData.id,
               domain: clusterData.master_domain,
+              id: clusterData.id,
               type: clusterData.cluster_type,
             },
           });
@@ -221,12 +221,12 @@
     }
 
     const resultList = await queryClusters({
+      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
       cluster_filters: [
         {
           id: clusterId,
         },
       ],
-      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
     });
     if (resultList.length < 1) {
       return;
@@ -235,8 +235,8 @@
     const domain = item.master_domain;
     const row = createRowData({
       clusterData: {
-        id: item.id,
         domain,
+        id: item.id,
         type: item.cluster_type,
       },
     });
@@ -284,13 +284,13 @@
 
       await createTicket({
         bk_biz_id: currentBizId,
-        ticket_type: TicketTypes.MYSQL_HA_FULL_BACKUP,
-        remark: formData.remark,
         details: {
           backup_type: formData.backup_type,
           file_tag: formData.file_tag,
           infos,
         },
+        remark: formData.remark,
+        ticket_type: TicketTypes.MYSQL_HA_FULL_BACKUP,
       }).then((data) => {
         window.changeConfirm = false;
         router.push({

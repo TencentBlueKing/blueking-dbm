@@ -18,44 +18,44 @@ import { t } from '@locales/index';
 
 const routes: RouteRecordRaw[] = [
   {
-    name: 'PlatformDbConfigure',
-    path: 'platform-db-configure',
-    meta: {
-      navName: t('数据库配置'),
-    },
-    redirect: {
-      name: 'PlatformDbConfigureList',
-    },
-    component: () => import('@views/platform-db-configure/Index.vue'),
     children: [
       {
+        component: () => import('@views/db-configure/platform/List.vue'),
+        meta: {
+          fullscreen: true,
+          navName: t('数据库配置'),
+        },
         name: 'PlatformDbConfigureList',
         path: 'list/:clusterType?',
-        meta: {
-          navName: t('数据库配置'),
-          fullscreen: true,
-        },
-        component: () => import('@views/db-configure/platform/List.vue'),
       },
       {
-        name: 'PlatformDbConfigureEdit',
-        path: 'edit/:clusterType/:version/:confType',
+        component: () => import('@views/db-configure/platform/Edit.vue'),
         meta: {
           navName: t('编辑平台配置'),
           // fullscreen: true,
         },
-        component: () => import('@views/db-configure/platform/Edit.vue'),
+        name: 'PlatformDbConfigureEdit',
+        path: 'edit/:clusterType/:version/:confType',
       },
       {
+        component: () => import('@views/db-configure/platform/Detail.vue'),
+        meta: {
+          fullscreen: true,
+          navName: t('配置详情'),
+        },
         name: 'PlatformDbConfigureDetail',
         path: 'detail/:clusterType/:version/:confType',
-        meta: {
-          navName: t('配置详情'),
-          fullscreen: true,
-        },
-        component: () => import('@views/db-configure/platform/Detail.vue'),
       },
     ],
+    component: () => import('@views/platform-db-configure/Index.vue'),
+    meta: {
+      navName: t('数据库配置'),
+    },
+    name: 'PlatformDbConfigure',
+    path: 'platform-db-configure',
+    redirect: {
+      name: 'PlatformDbConfigureList',
+    },
   },
 ];
 

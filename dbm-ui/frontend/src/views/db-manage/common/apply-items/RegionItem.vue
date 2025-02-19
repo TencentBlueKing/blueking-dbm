@@ -53,9 +53,7 @@
 
   type CityItem = ServiceReturnType<typeof getInfrasCities>;
 
-  interface Emits {
-    (e: 'change', value: string): void;
-  }
+  type Emits = (e: 'change', value: string) => void;
 
   interface Expose {
     getValue: () => { cityCode: string; cityName: string };
@@ -75,10 +73,10 @@
   type InventoryStrings = keyof typeof Inventory;
 
   const state = reactive({
-    isLoading: false,
-    regions: [] as CityItem,
     cityCode: modelValue.value,
     cityName: '' as string | undefined,
+    isLoading: false,
+    regions: [] as CityItem,
   });
 
   watch(modelValue, () => {

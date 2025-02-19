@@ -53,7 +53,7 @@
   import { useI18n } from 'vue-i18n';
 
   import TendbhaModel from '@services/model/mysql/tendbha';
-  import type { HostInfo } from '@services/types/ip';
+  import type { HostInfo } from '@services/types';
 
   import { useTicketCloneInfo } from '@hooks';
 
@@ -68,8 +68,8 @@
 
   interface Props {
     clusterType: ClusterTypes;
-    variableList: string[];
     showIpCloumn: boolean;
+    variableList: string[];
   }
   interface Exposes {
     getValue: () => Promise<Record<string, any>[]>;
@@ -79,7 +79,6 @@
 
   // 单据克隆
   useTicketCloneInfo({
-    type: TicketTypes.MYSQL_OPEN_AREA,
     onSuccess({ data }) {
       data.forEach((item) => {
         domainMemo[item.clusterData.master_domain] = true;
@@ -87,6 +86,7 @@
       });
       tableData.value = data;
     },
+    type: TicketTypes.MYSQL_OPEN_AREA,
   });
 
   const { t } = useI18n();
@@ -175,11 +175,11 @@
     }
     const row = createRowData({
       clusterData: {
-        id: item.id,
-        master_domain: item.master_domain,
         bk_biz_id: item.bk_biz_id,
         bk_cloud_id: item.bk_cloud_id,
         bk_cloud_name: item.bk_cloud_name,
+        id: item.id,
+        master_domain: item.master_domain,
       },
     });
     tableData.value[index] = row;
@@ -196,11 +196,11 @@
       if (!domainMemo[domain]) {
         const row = createRowData({
           clusterData: {
-            id: item.id,
-            master_domain: domain,
             bk_biz_id: item.bk_biz_id,
             bk_cloud_id: item.bk_cloud_id,
             bk_cloud_name: item.bk_cloud_name,
+            id: item.id,
+            master_domain: domain,
           },
         });
         result.push(row);

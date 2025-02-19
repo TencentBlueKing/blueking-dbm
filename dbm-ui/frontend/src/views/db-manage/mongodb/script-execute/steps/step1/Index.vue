@@ -66,11 +66,11 @@
   const router = useRouter();
 
   const createDefaultData = () => ({
-    cluster_ids: [],
-    import_mode: 'manual',
-    execute_sqls: [] as string[],
-    execute_db_infos: [],
     backup: [],
+    cluster_ids: [],
+    execute_db_infos: [],
+    execute_sqls: [] as string[],
+    import_mode: 'manual',
   });
 
   const { t } = useI18n();

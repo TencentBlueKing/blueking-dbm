@@ -22,19 +22,19 @@ import { t } from '@locales/index';
 import type { GraphNode } from './utils';
 
 enum NODE_ICON {
+  actuator_script = 'db-icon-deploy',
   db_resource_pool = 'db-icon-check-search',
   transfer_file = 'db-icon-file',
-  actuator_script = 'db-icon-deploy',
 }
 
 export const NODE_STATUS_TEXT = {
-  FINISHED: '执行成功',
-  RUNNING: '执行中',
-  FAILED: '执行失败',
-  READY: '待执行',
   CREATED: '待执行',
-  SKIPPED: '跳过',
+  FAILED: '执行失败',
+  FINISHED: '执行成功',
+  READY: '待执行',
   REVOKED: '已终止',
+  RUNNING: '执行中',
+  SKIPPED: '跳过',
 } as Readonly<Record<string, string>>;
 
 interface RenderCollectionItem {
@@ -42,8 +42,8 @@ interface RenderCollectionItem {
 }
 interface RenderCollection {
   empty: RenderCollectionItem;
-  round: RenderCollectionItem;
   ractangle: RenderCollectionItem;
+  round: RenderCollectionItem;
 }
 export type RenderCollectionKey = 'round' | 'ractangle' | 'empty';
 
@@ -57,14 +57,14 @@ export default class GraphRender {
         render: this.renderEmpty,
       },
 
-      // 圆形渲染
-      round: {
-        render: this.renderRound,
-      },
-
       // 长方形渲染
       ractangle: {
         render: this.renderRactangle,
+      },
+
+      // 圆形渲染
+      round: {
+        render: this.renderRound,
       },
     };
   }
@@ -84,41 +84,27 @@ export default class GraphRender {
     return <span data-node-id={node.id}></span>;
   }
 
-  renderRound(args: any[] = []) {
-    const node: GraphNode = args[0];
-    const { status } = node.data;
-    const text = node.data.type === FlowTypes.EmptyStartEvent ? t('始') : t('终');
-    const nodeCls = status ? `node-round--${status.toLowerCase()}` : '';
-    return (
-      <div
-        class={['node-round', nodeCls]}
-        data-node-id={node.id}>
-        <span>{text}</span>
-      </div>
-    );
-  }
-
   renderRactangle(args: any[] = []) {
     const node: GraphNode = args[0];
     const flowInfo = args[1];
     const {
       component,
       pipeline,
-      status,
-      updated_at: updatedAt,
-      type,
-      started_at: startedAt,
       retryable,
-      skippable,
       skip,
+      skippable,
+      started_at: startedAt,
+      status,
+      type,
+      updated_at: updatedAt,
     } = node.data;
 
     const activities = pipeline?.activities;
     let isParentFlow = false;
     const abstractNum = {
-      success: 0,
       failed: 0,
       running: 0,
+      success: 0,
     };
 
     if (activities) {
@@ -181,9 +167,9 @@ export default class GraphRender {
         )}
         <div
           class={['node-ractangle', nodeCls]}
-          style={`max-width: calc(100% - ${node.children ? '14px' : 0})`}
+          data-evt-type={nodeClickType}
           data-node-id={node.id}
-          data-evt-type={nodeClickType}>
+          style={`max-width: calc(100% - ${node.children ? '14px' : 0})`}>
           <div class='node-ractangle__status'>
             <i class={['node-ractangle__icon', icon]} />
             {status === 'RUNNING' ? <span class='node-ractangle__icon--loading'></span> : ''}
@@ -196,32 +182,29 @@ export default class GraphRender {
                 {node.data.name}
               </strong>
               <p class='node-ractangle__text'>
-                {
-                  // eslint-disable-next-line no-nested-ternary
-                  isParentFlow ? (
-                    <span style='color: #63656E'>
-                      <span
-                        title={t('成功')}
-                        style='color: #2DCB56'>
-                        {`${abstractNum.success}`}
-                      </span>
-                      <span style='margin: 0 5px'>/</span>
-                      <span
-                        title={t('失败')}
-                        style='color: #EA3636'>
-                        {`${abstractNum.failed}`}
-                      </span>
-                      <span style='margin: 0 5px'>/</span>
-                      <span
-                        title={t('执行中')}
-                        style='color: #3a84ff'>
-                        {`${abstractNum.running}`}
-                      </span>
+                {isParentFlow ? (
+                  <span style='color: #63656E'>
+                    <span
+                      style='color: #2DCB56'
+                      title={t('成功')}>
+                      {`${abstractNum.success}`}
                     </span>
-                  ) : (
-                    getNodeStatusText(skip)
-                  )
-                }
+                    <span style='margin: 0 5px'>/</span>
+                    <span
+                      style='color: #EA3636'
+                      title={t('失败')}>
+                      {`${abstractNum.failed}`}
+                    </span>
+                    <span style='margin: 0 5px'>/</span>
+                    <span
+                      style='color: #3a84ff'
+                      title={t('执行中')}>
+                      {`${abstractNum.running}`}
+                    </span>
+                  </span>
+                ) : (
+                  getNodeStatusText(skip)
+                )}
               </p>
               {/* <p class="node-ractangle__text">{nodeStatusText ? t(nodeStatusText) : t('待执行')}</p> */}
             </div>
@@ -232,8 +215,8 @@ export default class GraphRender {
             <div class='node-ractangle__operations'>
               {node.isTodoNode ? (
                 <i
-                  class='operation-icon db-icon-check  mr-5'
                   v-bk-tooltips={t('人工确认')}
+                  class='operation-icon db-icon-check  mr-5'
                   data-evt-type='todo'
                 />
               ) : (
@@ -241,15 +224,15 @@ export default class GraphRender {
               )}
               {status === 'RUNNING' && (
                 <i
-                  class='operation-icon db-icon-qiangzhizhongzhi'
                   v-bk-tooltips={t('强制失败')}
+                  class='operation-icon db-icon-qiangzhizhongzhi'
                   data-evt-type='force-fail'
                 />
               )}
               {status === 'FAILED' && skippable ? (
                 <i
-                  class='operation-icon db-icon-stop mr-4'
                   v-bk-tooltips={t('跳过')}
+                  class='operation-icon db-icon-stop mr-4'
                   data-evt-type='skipp'
                 />
               ) : (
@@ -257,8 +240,8 @@ export default class GraphRender {
               )}
               {status === 'FAILED' && retryable ? (
                 <i
-                  class='operation-icon db-icon-refresh-2 mr-4'
                   v-bk-tooltips={t('失败重试')}
+                  class='operation-icon db-icon-refresh-2 mr-4'
                   data-evt-type='refresh'
                 />
               ) : (
@@ -271,12 +254,26 @@ export default class GraphRender {
     );
   }
 
+  renderRound(args: any[] = []) {
+    const node: GraphNode = args[0];
+    const { status } = node.data;
+    const text = node.data.type === FlowTypes.EmptyStartEvent ? t('始') : t('终');
+    const nodeCls = status ? `node-round--${status.toLowerCase()}` : '';
+    return (
+      <div
+        class={['node-round', nodeCls]}
+        data-node-id={node.id}>
+        <span>{text}</span>
+      </div>
+    );
+  }
+
   private vNodeToHtml(vNode: VNode | string): string | HTMLElement {
     if (typeof vNode === 'string') {
       return vNode;
     }
 
-    const { type, children, props } = vNode;
+    const { children, props, type } = vNode;
     if (typeof children === 'string') {
       return children;
     }

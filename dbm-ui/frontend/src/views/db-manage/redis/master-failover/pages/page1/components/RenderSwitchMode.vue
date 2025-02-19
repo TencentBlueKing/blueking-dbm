@@ -26,8 +26,8 @@
 </template>
 <script lang="ts">
   export enum OnlineSwitchType {
-    USER_CONFIRM = 'user_confirm',
     NO_CONFIRM = 'no_confirm',
+    USER_CONFIRM = 'user_confirm',
   }
 </script>
 <script setup lang="ts">
@@ -56,19 +56,19 @@
 
   const selectList = [
     {
-      value: OnlineSwitchType.USER_CONFIRM,
       label: t('需人工确认'),
+      value: OnlineSwitchType.USER_CONFIRM,
     },
     {
-      value: OnlineSwitchType.NO_CONFIRM,
       label: t('无需确认'),
+      value: OnlineSwitchType.NO_CONFIRM,
     },
   ];
 
   const rules = [
     {
-      validator: (value: string) => Boolean(value),
       message: t('请选择切换模式'),
+      validator: (value: string) => Boolean(value),
     },
   ];
 

@@ -37,19 +37,16 @@
   import { nextTick } from 'vue';
   import { useI18n } from 'vue-i18n';
 
-  import {
-    getClusterOperateRecords,
-    getInstanceOperateRecords,
-  } from '@services/source/ticket';
+  import { getClusterOperateRecords, getInstanceOperateRecords } from '@services/source/ticket';
 
   import DbStatus from '@components/db-status/index.vue';
 
   interface Props {
-    id: number, // 集群 or 实例 id
-    isFetchInstance?: boolean
+    id: number; // 集群 or 实例 id
+    isFetchInstance?: boolean;
   }
 
-  type IRowData = ServiceReturnType<typeof getInstanceOperateRecords>['results'][number]
+  type IRowData = ServiceReturnType<typeof getInstanceOperateRecords>['results'][number];
 
   const props = withDefaults(defineProps<Props>(), {
     isFetchInstance: false,
@@ -59,41 +56,51 @@
 
   const tableRef = ref();
 
-  const daterange = ref<[string, string]|[Date, Date]>([subDays(new Date(), 6), new Date()])
+  const daterange = ref<[string, string] | [Date, Date]>([subDays(new Date(), 6), new Date()]);
 
   const dataSource = computed(() => (props.isFetchInstance ? getInstanceOperateRecords : getClusterOperateRecords));
 
   const columns = [
     {
-      label: t('时间'),
       field: 'create_at',
-    }, {
-      label: t('操作类型'),
+      label: t('时间'),
+    },
+    {
       field: 'op_type',
-    }, {
-      label: t('操作结果'),
+      label: t('操作类型'),
+    },
+    {
       field: 'op_status',
-      render: ({ data }: {data: IRowData}) => {
+      label: t('操作结果'),
+      render: ({ data }: { data: IRowData }) => {
         const errorStatus = { text: t('失败'), theme: 'danger' };
         const successStatus = { text: t('成功'), theme: 'success' };
         const loadingStatus = { text: t('执行中'), theme: 'loading' };
         const statusInfoMap = {
+          FAILED: errorStatus,
           PENDING: loadingStatus,
+          REVOKED: errorStatus,
           RUNNING: loadingStatus,
           SUCCEEDED: successStatus,
-          FAILED: errorStatus,
-          REVOKED: errorStatus,
         };
         const status = statusInfoMap[data.op_status] || errorStatus;
-        return <DbStatus type="linear" theme={status.theme}>{status.text}</DbStatus>;
+        return (
+          <DbStatus
+            theme={status.theme}
+            type='linear'>
+            {status.text}
+          </DbStatus>
+        );
       },
-    }, {
-      label: t('操作人'),
+    },
+    {
       field: 'creator',
-    }, {
-      label: t('单据链接'),
+      label: t('操作人'),
+    },
+    {
       field: 'ticket_id',
-      render: ({ data }: {data: IRowData}) => (
+      label: t('单据链接'),
+      render: ({ data }: { data: IRowData }) => (
         <router-link
           to={{
             name: 'bizTicketManage',
@@ -101,8 +108,8 @@
               ticketId: data.ticket_id,
             },
           }}
-          target="_blank">
-          { data.ticket_id }
+          target='_blank'>
+          {data.ticket_id}
         </router-link>
       ),
     },
@@ -113,27 +120,37 @@
       if (!props.id) return;
 
       const [start, end] = daterange.value;
-      const dateParams = start && end ? {
-        start_time: format(new Date(Number(start)), 'yyyy-MM-dd HH:mm:ss'),
-        end_time: format(new Date(Number(end)), 'yyyy-MM-dd HH:mm:ss'),
-      } : {
-        start_time: '',
-        end_time: '',
-      };
+      const dateParams =
+        start && end
+          ? {
+              end_time: format(new Date(Number(end)), 'yyyy-MM-dd HH:mm:ss'),
+              start_time: format(new Date(Number(start)), 'yyyy-MM-dd HH:mm:ss'),
+            }
+          : {
+              end_time: '',
+              start_time: '',
+            };
       const fetchKey = props.isFetchInstance ? 'instance_id' : 'cluster_id';
-      tableRef.value.fetchData({
-        ...dateParams,
-      }, {
-        [fetchKey]: props.id,
-      });
+      tableRef.value.fetchData(
+        {
+          ...dateParams,
+        },
+        {
+          [fetchKey]: props.id,
+        },
+      );
     });
   };
 
-  watch(() => props.id, () => {
-    fetchData();
-  }, {
-    immediate: true,
-  });
+  watch(
+    () => props.id,
+    () => {
+      fetchData();
+    },
+    {
+      immediate: true,
+    },
+  );
 
   function handleClearFilters() {
     daterange.value = ['', ''];

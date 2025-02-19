@@ -144,28 +144,28 @@
   import { getDiffDays, random } from '@utils';
 
   interface RowData {
-    dateTime: string,
-    timeRange: string[],
-    peoples: string[],
+    dateTime: string;
+    peoples: string[];
+    timeRange: string[];
   }
 
   interface Props {
-    data?: DutyRuleModel
+    data?: DutyRuleModel;
   }
 
   interface Exposes {
     getValue: () => Promise<{
-      effective_time: string,
-      end_time: string,
-      duty_arranges:{
-        duty_number: number,
-        duty_day: number,
-        members: string[],
-        work_type: string,
-        work_days: number[],
-        work_times:string[],
-      }[],
-    }>
+      duty_arranges: {
+        duty_day: number;
+        duty_number: number;
+        members: string[];
+        work_days: number[];
+        work_times: string[];
+        work_type: string;
+      }[];
+      effective_time: string;
+      end_time: string;
+    }>;
   }
 
   const props = defineProps<Props>();
@@ -175,19 +175,24 @@
   }
 
   function initDateSelect() {
-    return ({
+    return {
       date: 'daily',
+      timeList: [
+        {
+          id: random(),
+          value: ['00:00', '23:59'],
+        },
+      ],
       weekday: [] as number[],
-      timeList: [{
-        id: random(),
-        value: ['00:00', '23:59'],
-      }],
-    });
+    };
   }
 
   const { t } = useI18n();
 
-  const dateTimeRange = ref<[string, string]>([dayjs().format('YYYY-MM-DD HH:mm:ss'), dayjs().add(1, 'day').format('YYYY-MM-DD HH:mm:ss')]);
+  const dateTimeRange = ref<[string, string]>([
+    dayjs().format('YYYY-MM-DD HH:mm:ss'),
+    dayjs().add(1, 'day').format('YYYY-MM-DD HH:mm:ss'),
+  ]);
   const dateSelect = ref(initDateSelect());
   const tableData = ref<RowData[]>([]);
   const formRef = ref();
@@ -200,87 +205,93 @@
 
   const dateList = [
     {
-      value: 'daily',
       label: t('每日'),
+      value: 'daily',
     },
     {
-      value: 'weekly',
       label: t('每周'),
+      value: 'weekly',
     },
   ];
 
   const weekdayList = [
     {
-      value: 1,
       label: t('周一'),
+      value: 1,
     },
     {
-      value: 2,
       label: t('周二'),
+      value: 2,
     },
     {
-      value: 3,
       label: t('周三'),
+      value: 3,
     },
     {
-      value: 4,
       label: t('周四'),
+      value: 4,
     },
     {
-      value: 5,
       label: t('周五'),
+      value: 5,
     },
     {
-      value: 6,
       label: t('周六'),
+      value: 6,
     },
     {
-      value: 0,
       label: t('周日'),
+      value: 0,
     },
   ];
 
   const columns = [
     {
-      label: t('日期'),
       field: 'dateTime',
+      label: t('日期'),
       width: 120,
     },
     {
-      label: t('时段'),
       field: 'timeRange',
+      label: t('时段'),
+      render: ({ data }: { data: RowData }) => data.timeRange.join(','),
       showOverflow: 'tooltip',
       width: 200,
-      render: ({ data }: {data: RowData}) => data.timeRange.join(','),
     },
     {
-      label: t('轮值人员'),
       field: 'peoples',
+      label: t('轮值人员'),
+      render: ({ data }: { data: RowData }) => (
+        <div class='peoples'>
+          {data.peoples.map((item) => (
+            <bk-tag>{item}</bk-tag>
+          ))}
+        </div>
+      ),
       width: 528,
-      render: ({ data }: {data: RowData}) => <div class="peoples">{data.peoples.map(item => <bk-tag>{item}</bk-tag>)}</div>,
     },
   ];
 
   const formRules = {
     peopleList: [
       {
-        validator: (value: string[]) => value.length > 0,
         message: t('轮值人员不能为空'),
         trigger: 'blur',
+        validator: (value: string[]) => value.length > 0,
       },
     ],
     singleDutyPeoples: [
       {
-        validator: (value: number) => value > 0,
         message: t('必须大于0'),
         trigger: 'blur',
+        validator: (value: number) => value > 0,
       },
     ],
     sinlgeDutyDays: [
       {
-        validator: (value: number) => value > 0,
         message: t('必须大于0'),
         trigger: 'blur',
+        validator: (value: number) => value > 0,
       },
     ],
   };
@@ -302,7 +313,7 @@
       };
 
       if (data.date && formModel.peopleList.length > 0) {
-        const { singleDutyPeoples, sinlgeDutyDays, peopleList } = formModel;
+        const { peopleList, singleDutyPeoples, sinlgeDutyDays } = formModel;
         const days = sinlgeDutyDays;
         const peoplesCount = Math.min(singleDutyPeoples, peopleList.length);
         const startDate = formatDate(dateRange[0]);
@@ -331,8 +342,8 @@
           const dutyPeoples = getRangeList(peopleList, startIndex, peoplesCount);
           const obj = {
             dateTime: item,
-            timeRange: dateSelect.value.timeList.map(item => item.value.join('~')),
             peoples: dutyPeoples,
+            timeRange: dateSelect.value.timeList.map((item) => item.value.join('~')),
           };
           results.push(obj);
           return results;
@@ -345,38 +356,43 @@
         showMoreTip.value = false;
         tableData.value = targetArr;
       }
-    }, {
-      immediate: true,
+    },
+    {
       deep: true,
+      immediate: true,
     },
   );
 
-  watch(() => props.data, (data) => {
-    if (data) {
-      dateTimeRange.value = [data.effective_time, data.end_time];
-      const arranges = data.duty_arranges as DutyCycleItem[];
-      dateSelect.value.timeList = arranges[0].work_times.map(item => ({
-        id: random(),
-        value: item.split('--'),
-      }));
-      formModel.sinlgeDutyDays = arranges[0].duty_day;
-      formModel.singleDutyPeoples = arranges[0].duty_number;
-      const allMembers = _.flatMap(arranges.map(item => item.members));
-      const members = [...new Set(allMembers)];
-      formModel.peopleList = members;
-      const workType = arranges[0].work_type;
-      dateSelect.value.date = workType;
-      let workdays = arranges[0].work_days;
-      workdays = workType === 'weekly' ? workdays.map(num => (num === 7 ? 0 : num)) : workdays;
-      dateSelect.value.weekday = workdays || [];
-    }
-  }, {
-    immediate: true,
-  });
+  watch(
+    () => props.data,
+    (data) => {
+      if (data) {
+        dateTimeRange.value = [data.effective_time, data.end_time];
+        const arranges = data.duty_arranges as DutyCycleItem[];
+        dateSelect.value.timeList = arranges[0].work_times.map((item) => ({
+          id: random(),
+          value: item.split('--'),
+        }));
+        formModel.sinlgeDutyDays = arranges[0].duty_day;
+        formModel.singleDutyPeoples = arranges[0].duty_number;
+        const allMembers = _.flatMap(arranges.map((item) => item.members));
+        const members = [...new Set(allMembers)];
+        formModel.peopleList = members;
+        const workType = arranges[0].work_type;
+        dateSelect.value.date = workType;
+        let workdays = arranges[0].work_days;
+        workdays = workType === 'weekly' ? workdays.map((num) => (num === 7 ? 0 : num)) : workdays;
+        dateSelect.value.weekday = workdays || [];
+      }
+    },
+    {
+      immediate: true,
+    },
+  );
 
   const handleMemberSelectorChange = () => {
     formRef.value.validate('peopleList');
-  }
+  };
 
   const handleAddTime = () => {
     dateSelect.value.timeList.push({
@@ -389,23 +405,23 @@
     dateSelect.value.timeList.splice(index, 1);
   };
 
-
   defineExpose<Exposes>({
     async getValue() {
       await formRef.value.validate();
       return {
-        effective_time: dayjs(dateTimeRange.value![0]).startOf('day').format('YYYY-MM-DD HH:mm:ss'),
-        end_time: dayjs(dateTimeRange.value![1]).endOf('day').format('YYYY-MM-DD HH:mm:ss'),
         duty_arranges: [
           {
-            duty_number: formModel.singleDutyPeoples,
             duty_day: formModel.sinlgeDutyDays,
+            duty_number: formModel.singleDutyPeoples,
             members: formModel.peopleList,
+            work_days:
+              dateSelect.value.date === 'weekly' ? dateSelect.value.weekday.map((num) => (num === 0 ? 7 : num)) : [],
+            work_times: dateSelect.value.timeList.map((item) => item.value.join('--')),
             work_type: dateSelect.value.date,
-            work_days: dateSelect.value.date === 'weekly' ? dateSelect.value.weekday.map(num => (num === 0 ? 7 : num)) : [],
-            work_times: dateSelect.value.timeList.map(item => item.value.join('--')),
-          }
+          },
         ],
+        effective_time: dayjs(dateTimeRange.value![0]).startOf('day').format('YYYY-MM-DD HH:mm:ss'),
+        end_time: dayjs(dateTimeRange.value![1]).endOf('day').format('YYYY-MM-DD HH:mm:ss'),
       };
     },
   });

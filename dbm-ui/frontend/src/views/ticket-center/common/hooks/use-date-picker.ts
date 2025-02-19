@@ -18,39 +18,39 @@ const create = () => {
 
   const shortcutsRange = [
     {
+      onClick: (picker: IPicker) => {
+        value.value = picker.value();
+      },
       text: '今天',
       value() {
         return [dayjs().startOf('day').toDate(), dayjs().endOf('day').toDate()];
       },
+    },
+    {
       onClick: (picker: IPicker) => {
         value.value = picker.value();
       },
-    },
-    {
       text: '近7天',
       value() {
         return [dayjs().subtract(7, 'day').toDate(), dayjs().toDate()];
       },
+    },
+    {
       onClick: (picker: IPicker) => {
         value.value = picker.value();
       },
-    },
-    {
       text: '近15天',
       value() {
         return [dayjs().subtract(15, 'day').toDate(), dayjs().toDate()];
       },
+    },
+    {
       onClick: (picker: IPicker) => {
         value.value = picker.value();
       },
-    },
-    {
       text: '近30天',
       value() {
         return [dayjs().subtract(30, 'day').toDate(), dayjs().toDate()];
-      },
-      onClick: (picker: IPicker) => {
-        value.value = picker.value();
       },
     },
   ];
@@ -66,9 +66,9 @@ const create = () => {
   });
 
   return {
-    value,
     formatValue,
     shortcutsRange,
+    value,
   };
 };
 

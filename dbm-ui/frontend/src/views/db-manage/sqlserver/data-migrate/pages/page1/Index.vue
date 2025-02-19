@@ -143,27 +143,27 @@
   };
 
   useTicketCloneInfo({
-    type: ticketType.value,
     onSuccess(cloneData) {
       tableData.value = cloneData.map((item) =>
         createRowData({
-          srcClusterData: {
-            id: item.src_cluster.id,
-            domain: item.src_cluster.immute_domain,
-            cloudId: item.src_cluster.bk_cloud_id,
-            majorVersion: item.src_cluster.major_version,
-          },
-          dstClusterData: {
-            id: item.dst_cluster.id,
-            domain: item.dst_cluster.immute_domain,
-            cloudId: item.dst_cluster.bk_cloud_id,
-          },
           dbList: item.db_list,
+          dstClusterData: {
+            cloudId: item.dst_cluster.bk_cloud_id,
+            domain: item.dst_cluster.immute_domain,
+            id: item.dst_cluster.id,
+          },
           ignoreDbList: item.ignore_db_list,
           renameInfos: [],
+          srcClusterData: {
+            cloudId: item.src_cluster.bk_cloud_id,
+            domain: item.src_cluster.immute_domain,
+            id: item.src_cluster.id,
+            majorVersion: item.src_cluster.major_version,
+          },
         }),
       );
     },
+    type: ticketType.value,
   });
 
   // 批量选择
@@ -178,9 +178,9 @@
     const newList = list.reduce((result, item) => {
       const row = createRowData({
         srcClusterData: {
-          id: item.id,
-          domain: item.master_domain,
           cloudId: item.bk_cloud_id,
+          domain: item.master_domain,
+          id: item.id,
           majorVersion: item.major_version,
         },
       });
@@ -214,13 +214,13 @@
     Promise.all(rowRefs.value!.map((item) => item.getValue()))
       .then((data) =>
         createTicket({
-          ticket_type: ticketType.value,
-          remark: '',
+          bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
           details: {
             ...formData,
             infos: data,
           },
-          bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+          remark: '',
+          ticket_type: ticketType.value,
         }),
       )
       .then((data) => {

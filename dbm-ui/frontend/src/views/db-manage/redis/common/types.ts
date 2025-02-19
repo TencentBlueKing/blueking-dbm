@@ -12,8 +12,8 @@
  */
 
 export enum AffinityType {
-  SAME_SUBZONE_CROSS_SWTICH = 'SAME_SUBZONE_CROSS_SWTICH', // 同城同subzone跨交换机跨机架
-  SAME_SUBZONE = 'SAME_SUBZONE', // 同城同subzone
   CROS_SUBZONE = 'CROS_SUBZONE', // 同城跨subzone
   NONE = 'NONE', // 无需亲和性处理
+  SAME_SUBZONE = 'SAME_SUBZONE', // 同城同subzone
+  SAME_SUBZONE_CROSS_SWTICH = 'SAME_SUBZONE_CROSS_SWTICH', // 同城同subzone跨交换机跨机架
 }

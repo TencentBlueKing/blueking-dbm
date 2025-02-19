@@ -48,12 +48,12 @@
 
   import TicketModel, { type Mongodb } from '@services/model/ticket/ticket';
 
-  import { ClusterTypes,TicketTypes  } from '@common/const';
+  import { ClusterTypes, TicketTypes } from '@common/const';
 
   import { utcDisplayTime } from '@utils';
 
   interface Props {
-    ticketDetails: TicketModel<Mongodb.Restore>
+    ticketDetails: TicketModel<Mongodb.Restore>;
   }
 
   const props = defineProps<Props>();
@@ -66,102 +66,118 @@
   const { t } = useI18n();
 
   const {
-    clusters,
-    cluster_ids: clusterIds,
     backupinfo,
+    cluster_ids: clusterIds,
+    clusters,
+    instance_per_host,
     ns_filter: nsFilter,
     resource_spec,
-    instance_per_host,
     rollback_time: rollbackTime,
-    specs
+    specs,
   } = props.ticketDetails.details;
 
   const columns = [
     {
-      label: t('集群'),
       field: 'immute_domain',
+      label: t('集群'),
       showOverflowTooltip: true,
     },
     {
-      label: t('构造类型'),
       field: 'struct_type',
+      label: t('构造类型'),
       rowspan: clusterIds.length,
       showOverflowTooltip: true,
     },
     {
-      label: t('备份文件'),
       field: 'backup_file',
+      label: t('备份文件'),
     },
   ];
 
   if (!backupinfo) {
     columns[2] = {
-      label: t('指定时间'),
       field: 'target_time',
+      label: t('指定时间'),
     };
   }
 
   const dbTableColumns = [
     {
-      label: t('备份DB名'),
       field: 'db_patterns',
-      showOverflowTooltip: false,
+      label: t('备份DB名'),
       render: ({ cell }: { cell: string[] }) => (
-        <div class="text-overflow" v-overflow-tips={{
+        <div
+          v-overflow-tips={{
             content: cell,
-          }}>
-          {cell.length > 0 ? cell.map(item => <bk-tag>{item}</bk-tag>) : '--'}
+          }}
+          class='text-overflow'>
+          {cell.length > 0 ? cell.map((item) => <bk-tag>{item}</bk-tag>) : '--'}
         </div>
       ),
+      showOverflowTooltip: false,
     },
     {
-      label: t('忽略DB名'),
       field: 'ignore_dbs',
-      showOverflowTooltip: false,
+      label: t('忽略DB名'),
       render: ({ cell }: { cell: string[] }) => (
-        <div class="text-overflow" v-overflow-tips={{
+        <div
+          v-overflow-tips={{
             content: cell,
-          }}>
-          {cell.length > 0 ? cell.map(item => <bk-tag>{item}</bk-tag>) : '--'}
+          }}
+          class='text-overflow'>
+          {cell.length > 0 ? cell.map((item) => <bk-tag>{item}</bk-tag>) : '--'}
         </div>
       ),
+      showOverflowTooltip: false,
     },
     {
-      label: t('备份表名'),
       field: 'table_patterns',
-      showOverflowTooltip: false,
+      label: t('备份表名'),
       render: ({ cell }: { cell: string[] }) => (
-        <div class="text-overflow" v-overflow-tips={{
+        <div
+          v-overflow-tips={{
             content: cell,
-          }}>
-          {cell.map(item => <bk-tag>{item}</bk-tag>)}
+          }}
+          class='text-overflow'>
+          {cell.map((item) => (
+            <bk-tag>{item}</bk-tag>
+          ))}
         </div>
       ),
+      showOverflowTooltip: false,
     },
     {
-      label: t('忽略表名'),
       field: 'ignore_tables',
-      showOverflowTooltip: false,
+      label: t('忽略表名'),
       render: ({ cell }: { cell: string[] }) => (
-        <div class="text-overflow" v-overflow-tips={{
+        <div
+          v-overflow-tips={{
             content: cell,
-          }}>
-          {cell.length > 0 ? cell.map(item => <bk-tag>{item}</bk-tag>) : '--'}
+          }}
+          class='text-overflow'>
+          {cell.length > 0 ? cell.map((item) => <bk-tag>{item}</bk-tag>) : '--'}
         </div>
       ),
+      showOverflowTooltip: false,
     },
   ];
 
-  const tableSettingData = nsFilter ? [{
-    ...nsFilter,
-  }] : [];
+  const tableSettingData = nsFilter
+    ? [
+        {
+          ...nsFilter,
+        },
+      ]
+    : [];
 
-
-  const tableData = computed(() => clusterIds.map(id => ({
-    immute_domain: clusters[id].immute_domain,
-    struct_type: backupinfo ? t('备份记录') : t('回档至指定时间'),
-    backup_file: backupinfo ? `${clusters[id].cluster_type === ClusterTypes.MONGO_SHARED_CLUSTER ? backupinfo[id].set_name : ''}-${backupinfo[id].role_type}-${utcDisplayTime(backupinfo[id].end_time)}` : '',
-    target_time: rollbackTime ? utcDisplayTime(rollbackTime) : '',
-  }))
-  )
+  const tableData = computed(() =>
+    clusterIds.map((id) => ({
+      backup_file: backupinfo
+        ? `${clusters[id].cluster_type === ClusterTypes.MONGO_SHARED_CLUSTER ? backupinfo[id].set_name : ''}-${backupinfo[id].role_type}-${utcDisplayTime(backupinfo[id].end_time)}`
+        : '',
+      immute_domain: clusters[id].immute_domain,
+      struct_type: backupinfo ? t('备份记录') : t('回档至指定时间'),
+      target_time: rollbackTime ? utcDisplayTime(rollbackTime) : '',
+    })),
+  );
 </script>

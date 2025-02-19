@@ -27,8 +27,8 @@ export function getClusterTypeToVersions() {
  */
 export function getVersions(
   params: {
-    query_key: string;
     db_type?: string;
+    query_key: string;
   },
   payload = {} as IRequestPayload,
 ) {
@@ -49,6 +49,6 @@ export function getProjectVersion() {
 /**
  * 根据sqlserver部署版本查询可支持的系统版本
  */
-export function listSqlserverSystemVersion(params: { sqlserver_version: string; limit?: number; offset?: number }) {
+export function listSqlserverSystemVersion(params: { limit?: number; offset?: number; sqlserver_version: string }) {
   return http.get<string[]>(`${path}/list_sqlserver_system_version/`, params);
 }

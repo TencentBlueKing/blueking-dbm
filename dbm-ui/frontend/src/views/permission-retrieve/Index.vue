@@ -39,10 +39,10 @@
   import type { ComponentProps } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
 
+  import type { AccountTypes } from '@/common/const';
+
   import Options from './components/options/Index.vue';
   import Result from './components/result/Index.vue';
-
-  import type { AccountTypes } from '@/common/const';
 
   interface Props {
     accountType: AccountTypes;

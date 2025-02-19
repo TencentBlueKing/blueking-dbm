@@ -40,9 +40,7 @@
     modelValue: string;
   }
 
-  interface Emits {
-    (e: 'change', value: string): void;
-  }
+  type Emits = (e: 'change', value: string) => void;
 
   interface Exposes {
     getValue: () => Promise<Record<string, string>>;
@@ -56,8 +54,8 @@
 
   const rules = [
     {
-      validator: (value: string) => Boolean(value),
       message: t('主机来源不能为空'),
+      validator: (value: string) => Boolean(value),
     },
   ];
 
@@ -65,16 +63,16 @@
   const localValue = ref('');
   const list = ref([
     {
-      value: 'idle',
-      label: t('业务空闲机'),
       count: 0,
+      label: t('业务空闲机'),
+      value: 'idle',
     },
   ]);
 
   const getHostsCount = () => {
     getHostTopo({
-      mode: 'idle_only',
       all_scope: true,
+      mode: 'idle_only',
       scope_list: [
         {
           scope_id: window.PROJECT_CONFIG.BIZ_ID,

@@ -45,32 +45,32 @@
   import { random } from '@utils';
 
   export interface IHostData {
-    bk_host_id: number;
     bk_cloud_id: number;
+    bk_host_id: number;
     ip: string;
   }
 
   export interface IDataRow {
-    rowKey: string;
+    bkCloudId?: number;
     clusterData?: {
-      id: number;
-      domain: string;
       bkCloudId: number;
       bkCloudName: string;
+      domain: string;
+      id: number;
     };
-    bkCloudId?: number;
+    rowKey: string;
     spiderIpList?: {
-      ip: string;
       bk_cloud_id: number;
       bk_host_id: number;
+      ip: string;
     }[];
   }
 
   // 创建表格数据
   export const createRowData = (data = {} as Partial<IDataRow>) => ({
-    rowKey: random(),
-    clusterData: data.clusterData,
     bkCloudId: data.bkCloudId,
+    clusterData: data.clusterData,
+    rowKey: random(),
     spiderIpList: data.spiderIpList,
   });
 </script>
@@ -139,8 +139,8 @@
       emits(
         'clone',
         createRowData({
-          clusterData: props.data.clusterData,
           bkCloudId: netData.bk_cloud_id,
+          clusterData: props.data.clusterData,
           spiderIpList: proxyData.spider_ip_list,
         }),
       );

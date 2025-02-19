@@ -27,13 +27,13 @@ const getRootPath = () => `/apis/redis/bizs/${window.PROJECT_CONFIG.BIZ_ID}/redi
  */
 export function getRedisList(
   params: {
-    limit?: number;
-    offset?: number;
+    bk_biz_id?: number;
     cluster_ids?: string;
+    cluster_type?: string;
     domain?: string;
     exact_domain?: string;
-    bk_biz_id?: number;
-    cluster_type?: string;
+    limit?: number;
+    offset?: number;
   } = {},
 ) {
   return http.get<ListBase<RedisModel[]>>(`${getRootPath()}/`, params).then((data) => ({
@@ -54,11 +54,11 @@ export function getRedisList(
  */
 export function getRedisListByBizId(
   params: {
-    limit?: number;
-    offset?: number;
+    bk_biz_id?: number;
     cluster_ids?: number[] | number;
     domain?: string;
-    bk_biz_id?: number;
+    limit?: number;
+    offset?: number;
   } = {},
 ) {
   return http
@@ -85,16 +85,16 @@ export function getRedisTableFields() {
  * 获取集群实例列表
  */
 export function getRedisInstances(params: {
-  limit?: number;
-  offset?: number;
-  instance_address?: string;
-  ip?: string;
-  port?: number;
-  domain?: string;
-  status?: string;
-  role?: string;
   cluster_id?: number;
   cluster_type?: string;
+  domain?: string;
+  instance_address?: string;
+  ip?: string;
+  limit?: number;
+  offset?: number;
+  port?: number;
+  role?: string;
+  status?: string;
 }) {
   return http.get<ListBase<RedisInstanceModel[]>>(`${getRootPath()}/list_instances/`, params).then((data) => ({
     ...data,
@@ -107,9 +107,9 @@ export function getRedisInstances(params: {
  */
 export function retrieveRedisInstance(params: {
   bk_biz_id: number;
-  type: string;
-  instance_address: string;
   cluster_id?: number;
+  instance_address: string;
+  type: string;
 }) {
   return http
     .get<RedisInstanceModel>(`${getRootPath()}/retrieve_instance/`, params)
@@ -126,7 +126,7 @@ export function getRedisDetail(params: { id: number }) {
 /**
  * 查询集群主机列表
  */
-export function getRedisNodes(params: { db_type: string; bk_biz_id: string; cluster_id: string }) {
+export function getRedisNodes(params: { bk_biz_id: string; cluster_id: string; db_type: string }) {
   return http.get<HostNode[]>(`${getRootPath()}/${params.cluster_id}/get_nodes/`, params);
 }
 
@@ -172,9 +172,9 @@ export function exportRedisInstanceToExcel(params: { bk_host_ids?: number[] }) {
 // 获取集群列表
 export const getRedisClusterList = async (params: {
   bk_biz_id: number;
+  cluster_type?: string;
   domain?: string;
   region?: string;
-  cluster_type?: string;
 }) =>
   http
     .get<ListBase<RedisModel[]>>(`/apis/redis/bizs/${params.bk_biz_id}/redis_resources/`, params)
@@ -184,21 +184,21 @@ export const getRedisClusterList = async (params: {
  * 查询主机列表
  */
 export function getRedisMachineList(params: {
-  limit?: number;
-  offset?: number;
-  extra?: number;
-  bk_host_id?: number;
-  ip?: string;
-  cluster_ids?: string;
-  bk_city_name?: string;
-  machine_type?: string;
-  bk_os_name?: string;
-  bk_cloud_id?: number;
-  bk_agent_id?: string;
-  instance_role?: string;
-  creator?: string;
   add_role_count?: boolean;
+  bk_agent_id?: string;
+  bk_city_name?: string;
+  bk_cloud_id?: number;
+  bk_host_id?: number;
+  bk_os_name?: string;
+  cluster_ids?: string;
   cluster_type?: string;
+  creator?: string;
+  extra?: number;
+  instance_role?: string;
+  ip?: string;
+  limit?: number;
+  machine_type?: string;
+  offset?: number;
 }) {
   return http.get<ListBase<RedisMachineModel[]>>(`${getRootPath()}/list_machines/`, params).then((data) => ({
     ...data,

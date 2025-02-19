@@ -20,10 +20,10 @@ export interface InstanceInfos {
   bk_cloud_id: number;
   bk_cloud_name: string;
   bk_host_id: number;
+  cluster_domain: string;
   cluster_id: number;
   cluster_name: string;
   cluster_type: string;
-  cluster_domain: string;
   create_at: string;
   db_module_id: number;
   db_module_name: string;

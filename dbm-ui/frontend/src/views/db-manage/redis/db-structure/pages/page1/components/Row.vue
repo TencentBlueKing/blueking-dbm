@@ -80,50 +80,50 @@
   import RenderTargetHostNumber from './RenderTargetHostNumber.vue';
 
   export interface IDataRow {
-    rowKey: string;
-    isLoading: boolean;
+    bkCloudId: number;
     cluster: string;
     clusterId: number;
-    bkCloudId: number;
     clusterType: string;
     clusterTypeName: string;
-    instances?: string[];
-    spec?: SpecInfo;
     hostNum?: string;
+    instances?: string[];
+    isLoading: boolean;
+    rowKey: string;
+    spec?: SpecInfo;
     targetDateTime?: string;
   }
 
   export type IDataRowBatchKey = keyof Pick<IDataRow, 'hostNum' | 'targetDateTime'>;
 
   export interface InfoItem {
-    cluster_id: number;
     bk_cloud_id: number;
+    cluster_id: number;
     master_instances: string[];
     recovery_time_point: string;
     resource_spec: {
       redis: {
-        spec_id: number;
         count: number;
+        spec_id: number;
       };
     };
   }
 
   // 创建表格数据
   export const createRowData = (): IDataRow => ({
-    rowKey: random(),
-    isLoading: false,
+    bkCloudId: 0,
     cluster: '',
+    clusterId: 0,
     clusterType: '',
     clusterTypeName: '',
-    clusterId: 0,
-    bkCloudId: 0,
+    isLoading: false,
+    rowKey: random(),
   });
 </script>
 <script setup lang="ts">
   interface Props {
     data: IDataRow;
-    removeable: boolean;
     inputedClusters?: string[];
+    removeable: boolean;
   }
 
   interface Emits {
@@ -183,9 +183,9 @@
       );
       emits('clone', {
         ...props.data,
-        rowKey: random(),
-        isLoading: false,
         hostNum,
+        isLoading: false,
+        rowKey: random(),
         targetDateTime,
       });
     });
@@ -198,14 +198,14 @@
         (data) => {
           const [instances, hostNum, targetDateTime] = data;
           return {
-            cluster_id: props.data.clusterId,
             bk_cloud_id: props.data.bkCloudId,
+            cluster_id: props.data.clusterId,
             master_instances: instances,
             recovery_time_point: targetDateTime,
             resource_spec: {
               redis: {
-                spec_id: props.data.spec?.id ?? 0,
                 count: Number(hostNum),
+                spec_id: props.data.spec?.id ?? 0,
               },
             },
           };

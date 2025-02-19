@@ -25,17 +25,17 @@ export default function () {
   const fileStartReg = /.*\[start\]-(.+)$/;
   const fileEndReg = /.*\[end\]-(.+)$/;
   const counts = reactive({
-    success: 0,
     fail: 0,
+    success: 0,
   });
 
   let lastLogLength = 0;
   let logTimer = 0;
   const fetchLog = (rootId: string, nodeId: string) => {
     getNodeLog({
-      version_id: versionId,
-      root_id: rootId,
       node_id: nodeId,
+      root_id: rootId,
+      version_id: versionId,
     })
       .then((logData) => {
         if (lastLogLength !== logData.length) {
@@ -59,8 +59,8 @@ export default function () {
   const fetchVersion = (rootId: string, nodeId: string) => {
     isLoading.value = true;
     getRetryNodeHistories({
-      root_id: rootId,
       node_id: nodeId,
+      root_id: rootId,
     })
       .then((data) => {
         if (data.length > 0 && data[0].version) {
@@ -101,8 +101,8 @@ export default function () {
       counts.fail = diffCounts === 0 ? 0 : diffCounts;
     },
     {
-      immediate: true,
       deep: true,
+      immediate: true,
     },
   );
 

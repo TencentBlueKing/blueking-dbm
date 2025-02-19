@@ -46,12 +46,12 @@
 
   const rules = [
     {
-      validator: (value: string) => Boolean(_.trim(value)),
       message: t('源客户端 IP 不能为空'),
+      validator: (value: string) => Boolean(_.trim(value)),
     },
     {
-      validator: (value: string) => netIp.test(value),
       message: t('源客户端 IP 格式不正确'),
+      validator: (value: string) => netIp.test(value),
     },
   ];
 
@@ -71,8 +71,8 @@
   const handleChange = (value: string) => {
     const [bkCloudId, ip] = value.split(':');
     modelValue.value = {
-      ip,
       bk_cloud_id: Number(bkCloudId),
+      ip,
     };
   };
 
@@ -85,16 +85,16 @@
             return Promise.reject();
           }
           return {
-            source: modelValue.value.ip,
             bk_cloud_id: modelValue.value.bk_cloud_id,
+            source: modelValue.value.ip,
           };
         })
         .catch(() =>
           Promise.reject(
             modelValue.value
               ? {
-                  source: modelValue.value.ip,
                   bk_cloud_id: modelValue.value.bk_cloud_id,
+                  source: modelValue.value.ip,
                 }
               : undefined,
           ),

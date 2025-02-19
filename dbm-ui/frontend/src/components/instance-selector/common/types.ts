@@ -16,15 +16,15 @@ import type { ClusterTypes } from '@common/const';
 export type MySQLClusterTypes = ClusterTypes.TENDBHA | ClusterTypes.TENDBSINGLE;
 
 export interface IValue {
-  bk_host_id: number;
   bk_cloud_id: number;
   bk_cloud_name: string;
-  ip: string;
-  port: number;
-  instance_address: string;
+  bk_host_id: number;
   cluster_id: number;
   cluster_type: ClusterTypes;
   db_module_id: number;
   db_module_name: string;
+  instance_address: string;
+  ip: string;
   master_domain: string;
+  port: number;
 }

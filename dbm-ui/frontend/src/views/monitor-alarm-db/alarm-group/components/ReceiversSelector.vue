@@ -60,10 +60,10 @@
   type UserGroup = ServiceReturnType<typeof getUserGroupList>[number];
 
   interface Props {
-    type: 'add' | 'edit' | 'copy' | '';
-    isBuiltIn: boolean;
     bizId: number;
     disabled: boolean;
+    isBuiltIn: boolean;
+    type: 'add' | 'edit' | 'copy' | '';
   }
 
   interface Exposes {
@@ -71,9 +71,9 @@
   }
 
   interface RecipientItem {
-    username: string;
     display_name: string;
     type: string;
+    username: string;
   }
 
   const props = defineProps<Props>();
@@ -137,9 +137,9 @@
 
       userGroupList.forEach((userGroupItem) => {
         const newUserGroupItem = {
-          username: userGroupItem.id,
           display_name: userGroupItem.display_name,
           type: 'group',
+          username: userGroupItem.id,
         };
         itemMap[userGroupItem.id] = newUserGroupItem;
         userGroupMap[userGroupItem.id] = userGroupItem;
@@ -159,9 +159,9 @@
 
   const defaultAlternate = () => [
     {
+      children: _.cloneDeep(roleList.value),
       display_name: t('用户组'),
       username: 'role',
-      children: _.cloneDeep(roleList.value),
     },
   ];
 
@@ -172,13 +172,13 @@
       next: false,
       results: [
         {
-          display_name: t('个人用户'),
-          username: 'role',
           children: searchList.results.map((userItem) => ({
-            username: userItem.username,
             display_name: userItem.username,
             type: 'group',
+            username: userItem.username,
           })),
+          display_name: t('个人用户'),
+          username: 'role',
         },
       ],
     }));
@@ -213,7 +213,7 @@
       user: RecipientItem;
     },
   ) => {
-    const { type, display_name: displayName } = node.user;
+    const { display_name: displayName, type } = node.user;
 
     return renderMethod(Fragment, [
       renderMethod(dbIcon, {
@@ -231,15 +231,15 @@
   const pasteValidator = (values: string[]) =>
     getUserList({
       exact_lookups: values.join(','),
-      offset: 0,
       limit: -1,
+      offset: 0,
     }).then((userResult) => userResult.results.map((userItem) => userItem.username));
 
   defineExpose<Exposes>({
     getSelectedReceivers() {
       return modelValue.value.map((modelValueItem) => ({
-        type: itemMap[modelValueItem]?.type || 'user',
         id: modelValueItem,
+        type: itemMap[modelValueItem]?.type || 'user',
       }));
     },
   });

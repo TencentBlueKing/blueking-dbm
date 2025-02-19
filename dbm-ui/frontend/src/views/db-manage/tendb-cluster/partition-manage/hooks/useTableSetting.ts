@@ -23,50 +23,6 @@ export default function () {
   const cache = listColumnsCache.getItem(TABLE_COLUMN_CACHE) || {};
 
   const setting = shallowRef({
-    fields: [
-      {
-        label: '策略 ID',
-        field: 'id',
-        disabled: true,
-      },
-      {
-        label: t('集群域名'),
-        field: 'immute_domain',
-        disabled: true,
-      },
-      {
-        label: t('DB 名'),
-        field: 'dblike',
-      },
-      {
-        label: t('表名'),
-        field: 'tblike',
-      },
-      {
-        label: t('分区字段'),
-        field: 'partition_columns',
-      },
-      {
-        label: t('分区字段类型'),
-        field: 'partition_column_type',
-      },
-      {
-        label: '分区间隔（天）',
-        field: 'partition_time_interval',
-      },
-      {
-        label: '数据过期时间（天）',
-        field: 'expire_time',
-      },
-      {
-        label: '最近一次执行状态',
-        field: 'status',
-      },
-      {
-        label: '最近一次执行时间',
-        field: 'execute_time',
-      },
-    ],
     checked: cache.columns || [
       'id',
       'immute_domain',
@@ -78,6 +34,50 @@ export default function () {
       'expire_time',
       'status',
       'execute_time',
+    ],
+    fields: [
+      {
+        disabled: true,
+        field: 'id',
+        label: '策略 ID',
+      },
+      {
+        disabled: true,
+        field: 'immute_domain',
+        label: t('集群域名'),
+      },
+      {
+        field: 'dblike',
+        label: t('DB 名'),
+      },
+      {
+        field: 'tblike',
+        label: t('表名'),
+      },
+      {
+        field: 'partition_columns',
+        label: t('分区字段'),
+      },
+      {
+        field: 'partition_column_type',
+        label: t('分区字段类型'),
+      },
+      {
+        field: 'partition_time_interval',
+        label: '分区间隔（天）',
+      },
+      {
+        field: 'expire_time',
+        label: '数据过期时间（天）',
+      },
+      {
+        field: 'status',
+        label: '最近一次执行状态',
+      },
+      {
+        field: 'execute_time',
+        label: '最近一次执行时间',
+      },
     ],
     size: cache.size || 'small',
   });
@@ -96,7 +96,7 @@ export default function () {
   };
 
   return {
-    setting,
     handleChange,
+    setting,
   };
 }

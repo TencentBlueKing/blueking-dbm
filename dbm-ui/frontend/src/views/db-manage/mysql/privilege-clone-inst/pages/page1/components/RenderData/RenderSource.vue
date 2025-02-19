@@ -53,10 +53,12 @@
 
   const rules = [
     {
-      validator: (value: string) => Boolean(value),
       message: t('源实例不能为空'),
+      validator: (value: string) => Boolean(value),
     },
     {
+      message: t('请输入合法管控区域_IP_Port'),
+      trigger: 'blur',
       validator: (value: string) => {
         const infos = value.split(':');
         if (infos.length !== 2) {
@@ -70,10 +72,9 @@
 
         return true;
       },
-      message: t('请输入合法管控区域_IP_Port'),
-      trigger: 'blur',
     },
     {
+      message: t('源实例不存在'),
       validator: (value: string) =>
         checkMysqlInstances({
           bizId: currentBizId,
@@ -89,17 +90,17 @@
           modelValue.value = {
             bkCloudId: currentInstanceData.bk_cloud_id,
             clusterId: currentInstanceData.cluster_id,
+            clusterType: currentInstanceData.cluster_type,
             dbModuleId: currentInstanceData.db_module_id,
             dbModuleName: currentInstanceData.db_module_name,
             instanceAddress: currentInstanceData.instance_address,
             masterDomain: currentInstanceData.master_domain,
-            clusterType: currentInstanceData.cluster_type,
           };
           return true;
         }),
-      message: t('源实例不存在'),
     },
     {
+      message: t('源实例重复'),
       validator: () => {
         const currentClusterSelectMap = instanceAddreddMemo[instanceKey];
         const otherClusterMemoMap = { ...instanceAddreddMemo };
@@ -114,6 +115,7 @@
         );
 
         const currentSelectClusterIdList = Object.keys(currentClusterSelectMap);
+        // eslint-disable-next-line @typescript-eslint/prefer-for-of
         for (let i = 0; i < currentSelectClusterIdList.length; i++) {
           if (otherClusterIdMap[currentSelectClusterIdList[i]]) {
             return false;
@@ -121,7 +123,6 @@
         }
         return true;
       },
-      message: t('源实例重复'),
     },
   ];
 

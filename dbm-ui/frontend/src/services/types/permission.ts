@@ -25,8 +25,8 @@ export type PermissionRulesResult = ListBase<PermissionRule[]>;
  */
 export interface PermissionRule {
   account: PermissionRuleAccount;
-  rules: PermissionRuleInfo[];
   permission: Record<string, boolean>;
+  rules: PermissionRuleInfo[];
 }
 
 /**
@@ -35,10 +35,10 @@ export interface PermissionRule {
 export interface PermissionRuleAccount {
   account_id: number;
   bk_biz_id: number;
-  user: string;
-  password: string;
-  creator: string;
   create_time: string;
+  creator: string;
+  password: string;
+  user: string;
 }
 
 /**
@@ -62,9 +62,9 @@ export interface PermissionRuleInfo {
  * 创建账户
  */
 export interface CreateAccountParams {
-  user: string;
-  password: string;
   account_type?: AccountTypesValues;
+  password: string;
+  user: string;
 }
 
 /**
@@ -78,42 +78,42 @@ export interface PasswordStrength {
  * 密码强度校验项
  */
 export interface PasswordStrengthVerifyInfo {
-  number_of_types_valid: boolean;
   allowed_valid: boolean;
-  out_of_range: string;
-  repeats_valid: boolean;
   follow_keyboards_valid: boolean;
   follow_letters_valid: boolean;
   follow_numbers_valid: boolean;
   follow_symbols_valid: boolean;
-  min_length_valid: boolean;
   max_length_valid: boolean;
+  min_length_valid: boolean;
+  number_of_types_valid: boolean;
+  out_of_range: string;
+  repeats_valid: boolean;
 }
 
 // 密码策略
 export interface PasswordPolicy {
+  create_time?: string;
+  creator?: string;
   id: number;
   name: string;
+  operator?: string;
   rule: {
-    repeats: number;
+    include_rule: PasswordPolicyIncludeRule;
     max_length: number;
     min_length: number;
-    include_rule: PasswordPolicyIncludeRule;
-    weak_password: boolean;
     number_of_types: number;
+    repeats: number;
     symbols_allowed: string;
+    weak_password: boolean;
   };
-  creator?: string;
-  create_time?: string;
-  operator?: string;
   update_time?: string;
 }
 
 // 密码策略 include_rule
 export interface PasswordPolicyIncludeRule {
+  lowercase: boolean;
   numbers: boolean;
   symbols: boolean;
-  lowercase: boolean;
   uppercase: boolean;
 }
 
@@ -133,9 +133,9 @@ export type AccountRulePrivilegeKey = keyof AccountRulePrivilege;
  */
 export interface AccountRule {
   access_db: string;
-  privilege: AccountRulePrivilege;
   account_id: number | null;
   account_type?: AccountTypesValues;
+  privilege: AccountRulePrivilege;
 }
 
 /**
@@ -144,6 +144,13 @@ export interface AccountRule {
 export interface AuthorizePreCheckData {
   access_dbs: string[];
   bk_biz_id?: number;
+  cluster_ids?: number[];
+  cluster_type: string;
+  privileges?: {
+    access_db: string;
+    priv: string;
+    user: string;
+  }[];
   source_ips?:
     | {
         bk_host_id?: number;
@@ -152,24 +159,17 @@ export interface AuthorizePreCheckData {
     | string[];
   target_instances: string[];
   user: string;
-  cluster_type: string;
-  cluster_ids?: number[];
-  privileges?: {
-    priv: string;
-    user: string;
-    access_db: string;
-  }[];
 }
 
 /**
  * 规则授权前置检查返回结果
  */
 export interface AuthorizePreCheckResult {
+  authorize_data: AuthorizePreCheckData;
+  authorize_data_list: AuthorizePreCheckData[];
   authorize_uid: string;
   excel_url?: string;
-  authorize_data: AuthorizePreCheckData;
   message: string;
   pre_check: boolean;
   task_index: number;
-  authorize_data_list: AuthorizePreCheckData[];
 }

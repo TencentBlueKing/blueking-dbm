@@ -24,9 +24,9 @@
 <script setup lang="ts">
   import ClusterTab from '@components/cluster-tab/Index.vue';
 
-  import Content from './components/Content.vue';
-
   import { ClusterTypes } from '@/common/const';
+
+  import Content from './components/Content.vue';
 
   const router = useRouter();
   const route = useRoute();

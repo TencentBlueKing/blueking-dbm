@@ -52,7 +52,7 @@
   }
 
   interface Props {
-    data?: (IHostData & { instance: string })[];
+    data?: ({ instance: string } & IHostData)[];
     loading?: boolean;
   }
 
@@ -75,8 +75,8 @@
   let clusterMap = {} as Record<string, number>;
   const rules = [
     {
-      validator: (value: string) => !!value,
       message: t('关联的主从实例不能为空'),
+      validator: (value: string) => !!value,
     },
   ];
 
@@ -94,8 +94,8 @@
   );
 
   const {
-    loading: instancePairLoading,
     data: instanceMap,
+    loading: instancePairLoading,
     run: runQueryMachineInstancePair,
   } = useRequest(queryMachineInstancePair, {
     manual: true,
@@ -131,7 +131,7 @@
   );
 
   watch(instanceMap, () => {
-    if (instanceMap.value && instanceMap.value.instances) {
+    if (instanceMap.value?.instances) {
       const masterMap = props.data!.reduce<Record<string, IHostData>>((prevMap, instanceItem) => {
         if (prevMap[instanceItem.instance]) {
           return prevMap;

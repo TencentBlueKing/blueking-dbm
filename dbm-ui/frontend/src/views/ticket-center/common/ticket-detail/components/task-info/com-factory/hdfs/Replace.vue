@@ -27,84 +27,120 @@
   import { execCopy } from '@utils';
 
   interface Props {
-    ticketDetails: TicketModel<Hdfs.Replace>
+    ticketDetails: TicketModel<Hdfs.Replace>;
   }
 
   const props = defineProps<Props>();
 
   defineOptions({
     name: TicketTypes.HDFS_REPLACE,
-    inheritAttrs: false
-  })
+    inheritAttrs: false,
+  });
 
   const { t } = useI18n();
 
   type nodeIpList = {
-    key: string,
-    value: string[],
-  }
+    key: string;
+    value: string[];
+  };
 
   /**
    * 替换
    */
 
-  const columns = [{
-    label: t('集群ID'),
-    field: 'cluster_id',
-    render: ({ cell }: { cell: string }) => <span class="details-replace__cell">{cell || '--'}</span>,
-  }, {
-    label: t('集群名称'),
-    field: 'immute_domain',
-    showOverflowTooltip: false,
-    render: ({ data }: { data: any }) => (
-      <div class="details-replace__cell text-overflow"
-        v-overflow-tips={{
-          content: `
+  const columns = [
+    {
+      field: 'cluster_id',
+      label: t('集群ID'),
+      render: ({ cell }: { cell: string }) => <span class='details-replace__cell'>{cell || '--'}</span>,
+    },
+    {
+      field: 'immute_domain',
+      label: t('集群名称'),
+      render: ({ data }: { data: any }) => (
+        <div
+          v-overflow-tips={{
+            allowHTML: true,
+            content: `
             <p>${t('域名')}：${data.immute_domain}</p>
-            ${data.name ? `<p>${('集群别名')}：${data.name}</p>` : null}
+            ${data.name ? `<p>${'集群别名'}：${data.name}</p>` : null}
           `,
-          allowHTML: true,
-      }}>
-        <span>{data.immute_domain}</span><br />
-        <span class="cluster-name__alias">{data.name}</span>
-      </div>
-    ),
-  }, {
-    label: t('集群类型'),
-    field: 'cluster_type_name',
-    render: ({ cell }: { cell: string }) => <span class="details-replace__cell">{cell || '--'}</span>,
-  }, {
-    label: t('角色类型'),
-    field: 'new_nodes',
-    render: ({ cell }: { cell: nodeIpList[] }) => cell.map((item) => {
-      const lineHeight = item.value.length * 30;
-      return <p class="details-replace__cell" style={{ 'line-height': `${lineHeight}px` }}>{item.key}</p>;
-    }),
-  }, {
-    label: t('新节点IP'),
-    field: 'new_nodes',
-    render: ({ cell }: { cell: nodeIpList[] }) => cell.map(item => (
-      <div class="details-replace__cell">
-        {item.value.map((ip, index) => <p class="details-replace__ip">{ip}
-          { index === 0
-            ? <i v-bk-tooltips={t('复制 IP')} class="db-icon-copy" onClick={() => handleCopy(item.value)} />
-            : '' }
-          </p>)}
-      </div>
-    )),
-  }, {
-    label: t('被替换的节点IP'),
-    field: 'old_nodes',
-    render: ({ cell }: { cell: nodeIpList[] }) => cell.map(item => (
-      <div class="details-replace__cell">
-        {item.value.map((ip, index) => <p class="details-replace__ip">{ip}
-          { index === 0
-            ? <i v-bk-tooltips={t('复制 IP')} class="db-icon-copy" onClick={() => handleCopy(item.value)} />
-            : '' }
-          </p>)}
-      </div>
-    )),
-  }];
+          }}
+          class='details-replace__cell text-overflow'>
+          <span>{data.immute_domain}</span>
+          <br />
+          <span class='cluster-name__alias'>{data.name}</span>
+        </div>
+      ),
+      showOverflowTooltip: false,
+    },
+    {
+      field: 'cluster_type_name',
+      label: t('集群类型'),
+      render: ({ cell }: { cell: string }) => <span class='details-replace__cell'>{cell || '--'}</span>,
+    },
+    {
+      field: 'new_nodes',
+      label: t('角色类型'),
+      render: ({ cell }: { cell: nodeIpList[] }) =>
+        cell.map((item) => {
+          const lineHeight = item.value.length * 30;
+          return (
+            <p
+              class='details-replace__cell'
+              style={{ 'line-height': `${lineHeight}px` }}>
+              {item.key}
+            </p>
+          );
+        }),
+    },
+    {
+      field: 'new_nodes',
+      label: t('新节点IP'),
+      render: ({ cell }: { cell: nodeIpList[] }) =>
+        cell.map((item) => (
+          <div class='details-replace__cell'>
+            {item.value.map((ip, index) => (
+              <p class='details-replace__ip'>
+                {ip}
+                {index === 0 ? (
+                  <i
+                    v-bk-tooltips={t('复制 IP')}
+                    class='db-icon-copy'
+                    onClick={() => handleCopy(item.value)}
+                  />
+                ) : (
+                  ''
+                )}
+              </p>
+            ))}
+          </div>
+        )),
+    },
+    {
+      field: 'old_nodes',
+      label: t('被替换的节点IP'),
+      render: ({ cell }: { cell: nodeIpList[] }) =>
+        cell.map((item) => (
+          <div class='details-replace__cell'>
+            {item.value.map((ip, index) => (
+              <p class='details-replace__ip'>
+                {ip}
+                {index === 0 ? (
+                  <i
+                    v-bk-tooltips={t('复制 IP')}
+                    class='db-icon-copy'
+                    onClick={() => handleCopy(item.value)}
+                  />
+                ) : (
+                  ''
+                )}
+              </p>
+            ))}
+          </div>
+        )),
+    },
+  ];
 
   const dataList = computed(() => {
     const list: any = [];
@@ -112,9 +148,16 @@
     const clusters = props.ticketDetails?.details?.clusters?.[clusterId] || {};
     const newNodes = convertNodeFormat(props.ticketDetails?.details?.new_nodes || {});
     const oldNodes = convertNodeFormat(props.ticketDetails?.details?.old_nodes || {});
-    list.push(Object.assign({
-      cluster_id: clusterId, new_nodes: newNodes, old_nodes: oldNodes,
-    }, clusters));
+    list.push(
+      Object.assign(
+        {
+          cluster_id: clusterId,
+          new_nodes: newNodes,
+          old_nodes: oldNodes,
+        },
+        clusters,
+      ),
+    );
     return list;
   });
 
@@ -134,5 +177,5 @@
 
   const handleCopy = (value: nodeIpList['value']) => {
     execCopy(value.join('\n'), t('复制成功，共n条', { n: value.length }));
-  }
+  };
 </script>

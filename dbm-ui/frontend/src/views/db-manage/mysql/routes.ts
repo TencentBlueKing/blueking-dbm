@@ -24,315 +24,315 @@ import { t } from '@locales/index';
 
 export const mysqlToolboxChildrenRouters: RouteRecordRaw[] = [
   {
-    name: 'MySQLExecute',
-    path: 'sql-execute/:step?',
+    component: () => import('@views/db-manage/mysql/sql-execute/index.vue'),
     meta: {
       navName: t('变更SQL执行'),
     },
-    component: () => import('@views/db-manage/mysql/sql-execute/index.vue'),
+    name: 'MySQLExecute',
+    path: 'sql-execute/:step?',
   },
   {
-    name: 'MySQLDBRename',
-    path: 'db-rename/:page?',
+    component: () => import('@views/db-manage/mysql/db-rename/Index.vue'),
     meta: {
       navName: t('DB重命名'),
     },
-    component: () => import('@views/db-manage/mysql/db-rename/Index.vue'),
+    name: 'MySQLDBRename',
+    path: 'db-rename/:page?',
   },
   {
-    name: 'MySQLPrivilegeCloneClient',
-    path: 'privilege-clone-client/:page?',
+    component: () => import('@views/db-manage/mysql/privilege-clone-client/Index.vue'),
     meta: {
       navName: t('客户端权限克隆'),
     },
-    component: () => import('@views/db-manage/mysql/privilege-clone-client/Index.vue'),
+    name: 'MySQLPrivilegeCloneClient',
+    path: 'privilege-clone-client/:page?',
   },
   {
-    name: 'MySQLPrivilegeCloneInst',
-    path: 'privilege-clone-inst/:page?',
+    component: () => import('@views/db-manage/mysql/privilege-clone-inst/Index.vue'),
     meta: {
       navName: t('DB实例权限克隆'),
     },
-    component: () => import('@views/db-manage/mysql/privilege-clone-inst/Index.vue'),
+    name: 'MySQLPrivilegeCloneInst',
+    path: 'privilege-clone-inst/:page?',
   },
   {
-    name: 'MySQLSlaveRebuild',
-    path: 'slave-rebuild/:page?',
+    component: () => import('@views/db-manage/mysql/slave-rebuild/index.vue'),
     meta: {
       navName: t('重建从库'),
     },
-    component: () => import('@views/db-manage/mysql/slave-rebuild/index.vue'),
+    name: 'MySQLSlaveRebuild',
+    path: 'slave-rebuild/:page?',
   },
   {
-    name: 'MySQLSlaveAdd',
-    path: 'slave-add/:page?',
+    component: () => import('@views/db-manage/mysql/slave-add/Index.vue'),
     meta: {
       navName: t('添加从库'),
     },
-    component: () => import('@views/db-manage/mysql/slave-add/Index.vue'),
+    name: 'MySQLSlaveAdd',
+    path: 'slave-add/:page?',
   },
   {
-    name: 'MySQLMasterSlaveClone',
-    path: 'master-slave-clone/:page?',
+    component: () => import('@views/db-manage/mysql/master-slave-clone/index.vue'),
     meta: {
       navName: t('迁移主从'),
     },
-    component: () => import('@views/db-manage/mysql/master-slave-clone/index.vue'),
+    name: 'MySQLMasterSlaveClone',
+    path: 'master-slave-clone/:page?',
   },
   {
-    name: 'MySQLMasterSlaveSwap',
-    path: 'master-slave-swap/:page?',
+    component: () => import('@views/db-manage/mysql/master-slave-swap/index.vue'),
     meta: {
       navName: t('主从互切'),
     },
-    component: () => import('@views/db-manage/mysql/master-slave-swap/index.vue'),
+    name: 'MySQLMasterSlaveSwap',
+    path: 'master-slave-swap/:page?',
   },
   {
-    name: 'MySQLProxyReplace',
-    path: 'proxy-replace/:page?',
+    component: () => import('@views/db-manage/mysql/proxy-replace/index.vue'),
     meta: {
       navName: t('替换Proxy'),
     },
-    component: () => import('@views/db-manage/mysql/proxy-replace/index.vue'),
+    name: 'MySQLProxyReplace',
+    path: 'proxy-replace/:page?',
   },
   {
-    name: 'MySQLProxyAdd',
-    path: 'proxy-add/:page?',
+    component: () => import('@views/db-manage/mysql/proxy-add/index.vue'),
     meta: {
       navName: t('添加Proxy'),
     },
-    component: () => import('@views/db-manage/mysql/proxy-add/index.vue'),
+    name: 'MySQLProxyAdd',
+    path: 'proxy-add/:page?',
   },
   {
-    name: 'MySQLMasterFailover',
-    path: 'master-failover/:page?',
+    component: () => import('@views/db-manage/mysql/master-failover/index.vue'),
     meta: {
       navName: t('主库故障切换'),
     },
-    component: () => import('@views/db-manage/mysql/master-failover/index.vue'),
+    name: 'MySQLMasterFailover',
+    path: 'master-failover/:page?',
   },
   {
-    name: 'MySQLDBTableBackup',
-    path: 'db-table-backup/:page?',
+    component: () => import('@views/db-manage/mysql/db-table-backup/index.vue'),
     meta: {
       navName: t('库表备份'),
     },
-    component: () => import('@views/db-manage/mysql/db-table-backup/index.vue'),
+    name: 'MySQLDBTableBackup',
+    path: 'db-table-backup/:page?',
   },
   {
-    name: 'MySQLDBBackup',
-    path: 'db-backup/:page?',
+    component: () => import('@views/db-manage/mysql/db-backup/index.vue'),
     meta: {
       navName: t('全库备份'),
     },
-    component: () => import('@views/db-manage/mysql/db-backup/index.vue'),
+    name: 'MySQLDBBackup',
+    path: 'db-backup/:page?',
   },
   {
-    name: 'MySQLDBClear',
-    path: 'db-clear/:page?',
+    component: () => import('@views/db-manage/mysql/db-clear/Index.vue'),
     meta: {
       navName: t('清档'),
     },
-    component: () => import('@views/db-manage/mysql/db-clear/Index.vue'),
+    name: 'MySQLDBClear',
+    path: 'db-clear/:page?',
   },
   {
-    name: 'MySQLDBRollback',
-    path: 'rollback/:page?',
+    component: () => import('@views/db-manage/mysql/rollback/Index.vue'),
     meta: {
       navName: t('定点构造'),
     },
-    component: () => import('@views/db-manage/mysql/rollback/Index.vue'),
+    name: 'MySQLDBRollback',
+    path: 'rollback/:page?',
   },
   {
-    name: 'MySQLDBFlashback',
-    path: 'flashback/:page?',
+    component: () => import('@views/db-manage/mysql/flashback/Index.vue'),
     meta: {
       navName: t('闪回'),
     },
-    component: () => import('@views/db-manage/mysql/flashback/Index.vue'),
+    name: 'MySQLDBFlashback',
+    path: 'flashback/:page?',
   },
   {
-    name: 'MySQLChecksum',
-    path: 'checksum/:page?',
+    component: () => import('@views/db-manage/mysql/checksum/Index.vue'),
     meta: {
       navName: t('数据校验修复'),
     },
-    component: () => import('@views/db-manage/mysql/checksum/Index.vue'),
+    name: 'MySQLChecksum',
+    path: 'checksum/:page?',
   },
   {
-    name: 'MySQLOpenareaTemplate',
-    path: 'openarea-template',
+    component: () => import('@views/db-manage/mysql/openarea/template/Index.vue'),
     meta: {
       navName: t('开区模版'),
     },
-    component: () => import('@views/db-manage/mysql/openarea/template/Index.vue'),
+    name: 'MySQLOpenareaTemplate',
+    path: 'openarea-template',
   },
   {
-    name: 'MySQLDataMigrate',
-    path: 'data-migrate/:page?',
+    component: () => import('@views/db-manage/mysql/data-migrate/Index.vue'),
     meta: {
       navName: t('DB克隆'),
     },
-    component: () => import('@views/db-manage/mysql/data-migrate/Index.vue'),
+    name: 'MySQLDataMigrate',
+    path: 'data-migrate/:page?',
   },
   {
-    name: 'MySQLWebconsole',
-    path: 'webconsole',
+    component: () => import('@views/db-manage/mysql/webconsole/Index.vue'),
     meta: {
       navName: 'Webconsole',
     },
-    component: () => import('@views/db-manage/mysql/webconsole/Index.vue'),
+    name: 'MySQLWebconsole',
+    path: 'webconsole',
   },
   {
-    name: 'MySQLVersionUpgrade',
-    path: 'version-upgrade/:page?',
+    component: () => import('@views/db-manage/mysql/version-upgrade/Index.vue'),
     meta: {
       navName: t('版本升级'),
     },
-    component: () => import('@views/db-manage/mysql/version-upgrade/Index.vue'),
+    name: 'MySQLVersionUpgrade',
+    path: 'version-upgrade/:page?',
   },
   {
-    name: 'MYSQL_FLASHBACK',
-    path: 'MYSQL_FLASHBACK/:page?',
+    component: () => import('@views/db-manage/mysql/MYSQL_FLASHBACK/Index.vue'),
     meta: {
       navName: t('闪回'),
     },
-    component: () => import('@views/db-manage/mysql/MYSQL_FLASHBACK/Index.vue'),
+    name: 'MYSQL_FLASHBACK',
+    path: 'MYSQL_FLASHBACK/:page?',
   },
 ];
 
 const singleRoutes: RouteRecordRaw[] = [
   {
-    name: 'DatabaseTendbsingle',
-    path: 'single-cluster-list',
+    component: () => import('@views/db-manage/mysql/single-cluster-list/Index.vue'),
     meta: {
-      navName: t('MySQL单节点_集群管理'),
       fullscreen: true,
+      navName: t('MySQL单节点_集群管理'),
       skeleton: 'clusterList',
     },
-    component: () => import('@views/db-manage/mysql/single-cluster-list/Index.vue'),
+    name: 'DatabaseTendbsingle',
+    path: 'single-cluster-list',
   },
 ];
 
 const haRoutes: RouteRecordRaw[] = [
   {
+    component: () => import('@views/db-manage/mysql/ha-cluster-list/Index.vue'),
+    meta: {
+      fullscreen: true,
+      navName: t('MySQL主从集群_集群管理'),
+      skeleton: 'clusterList',
+    },
     name: 'DatabaseTendbha',
     path: 'ha-cluster-list',
-    meta: {
-      navName: t('MySQL主从集群_集群管理'),
-      fullscreen: true,
-      skeleton: 'clusterList',
-    },
-    component: () => import('@views/db-manage/mysql/ha-cluster-list/Index.vue'),
   },
   {
-    name: 'DatabaseTendbhaInstance',
-    path: 'ha-instance-list',
+    component: () => import('@views/db-manage/mysql/ha-instance-list/Index.vue'),
     meta: {
-      navName: t('MySQL主从集群_实例视图'),
       fullscreen: true,
+      navName: t('MySQL主从集群_实例视图'),
       skeleton: 'clusterList',
     },
-    component: () => import('@views/db-manage/mysql/ha-instance-list/Index.vue'),
+    name: 'DatabaseTendbhaInstance',
+    path: 'ha-instance-list',
   },
 ];
 
 const mysqlToolboxRouters: RouteRecordRaw[] = [
   {
+    children: mysqlToolboxChildrenRouters,
+    component: () => import('@views/db-manage/mysql/toolbox/index.vue'),
+    meta: {
+      fullscreen: true,
+      navName: t('工具箱'),
+    },
     name: 'MySQLToolbox',
     path: 'toolbox',
     redirect: {
       name: 'MySQLExecute',
     },
-    meta: {
-      navName: t('工具箱'),
-      fullscreen: true,
-    },
-    component: () => import('@views/db-manage/mysql/toolbox/index.vue'),
-    children: mysqlToolboxChildrenRouters,
   },
 ];
 
 const dumperDataSubscription = {
+  component: () => import('@views/db-manage/mysql/dumper/Index.vue'),
+  meta: {
+    fullscreen: true,
+    navName: t('数据订阅'),
+  },
   name: 'DumperDataSubscription',
   path: 'dumper-data-subscribe/:dumperId(\\d+)?',
-  meta: {
-    navName: t('数据订阅'),
-    fullscreen: true,
-  },
-  component: () => import('@views/db-manage/mysql/dumper/Index.vue'),
 };
 
 const commonRouters: RouteRecordRaw[] = [
   {
-    name: 'MysqlManage',
-    path: 'mysql',
-    meta: {
-      navName: t('Mysql 集群管理'),
-    },
-    redirect: {
-      name: 'DatabaseTendbha',
-    },
-    component: () => import('@views/db-manage/mysql/Index.vue'),
     children: [
       {
-        name: 'PermissionRules',
-        path: 'permission-rules',
+        component: () => import('@views/db-manage/mysql/permission/Index.vue'),
         meta: {
           navName: t('【MySQL】授权规则'),
         },
-        component: () => import('@views/db-manage/mysql/permission/Index.vue'),
+        name: 'PermissionRules',
+        path: 'permission-rules',
       },
       {
-        name: 'MysqlPermissionRetrieve',
-        path: 'permission-retrieve',
+        component: () => import('@views/permission-retrieve/Index.vue'),
         meta: {
           navName: t('权限查询'),
         },
+        name: 'MysqlPermissionRetrieve',
+        path: 'permission-retrieve',
         props: { accountType: AccountTypes.MYSQL },
-        component: () => import('@views/permission-retrieve/Index.vue'),
       },
       {
-        path: 'whitelist',
-        name: 'mysqlWhitelist',
+        component: () => import('@views/whitelist/list/Index.vue'),
         meta: {
           navName: t('授权白名单'),
         },
-        component: () => import('@views/whitelist/list/Index.vue'),
+        name: 'mysqlWhitelist',
+        path: 'whitelist',
       },
       {
-        path: 'partition-manage',
-        name: 'mysqlPartitionManage',
+        component: () => import('@views/db-manage/mysql/partition-manage/Index.vue'),
         meta: {
           navName: t('Mysql 分区管理'),
         },
-        component: () => import('@views/db-manage/mysql/partition-manage/Index.vue'),
+        name: 'mysqlPartitionManage',
+        path: 'partition-manage',
       },
       {
-        path: 'openarea-template-create',
-        name: 'MySQLOpenareaTemplateCreate',
+        component: () => import('@views/db-manage/mysql/openarea/template-create/Index.vue'),
         meta: {
           navName: t('新建开区模板'),
         },
-        component: () => import('@views/db-manage/mysql/openarea/template-create/Index.vue'),
+        name: 'MySQLOpenareaTemplateCreate',
+        path: 'openarea-template-create',
       },
       {
-        path: 'openarea-template-edit/:id',
-        name: 'MySQLOpenareaTemplateEdit',
+        component: () => import('@views/db-manage/mysql/openarea/template-create/Index.vue'),
         meta: {
           navName: t('编辑开区模板'),
         },
-        component: () => import('@views/db-manage/mysql/openarea/template-create/Index.vue'),
+        name: 'MySQLOpenareaTemplateEdit',
+        path: 'openarea-template-edit/:id',
       },
       {
-        path: 'openarea-create/:id',
-        name: 'mysqlOpenareaCreate',
+        component: () => import('@views/db-manage/mysql/openarea/create/Index.vue'),
         meta: {
           navName: t('新建开区'),
         },
-        component: () => import('@views/db-manage/mysql/openarea/create/Index.vue'),
+        name: 'mysqlOpenareaCreate',
+        path: 'openarea-create/:id',
       },
     ],
+    component: () => import('@views/db-manage/mysql/Index.vue'),
+    meta: {
+      navName: t('Mysql 集群管理'),
+    },
+    name: 'MysqlManage',
+    path: 'mysql',
+    redirect: {
+      name: 'DatabaseTendbha',
+    },
   },
 ];
 

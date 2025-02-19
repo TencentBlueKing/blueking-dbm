@@ -95,21 +95,21 @@
   }
 
   interface InfoItem {
-    cluster_ids: number[];
     bk_cloud_id: number;
-    // cluster_domain: string;
-    proxy: SpecItem[];
-    redis_master: SpecItem[];
-    redis_slave: SpecItem[];
+    cluster_ids: number[];
     display_info: {
       data: {
+        cluster_domain: string;
         ip: string;
         role: string;
-        cluster_domain: string;
         spec_id: number;
         spec_name: string;
       }[];
     };
+    // cluster_domain: string;
+    proxy: SpecItem[];
+    redis_master: SpecItem[];
+    redis_slave: SpecItem[];
   }
 
   const { currentBizId } = useGlobalBizs();
@@ -118,7 +118,6 @@
 
   // 单据克隆
   useTicketCloneInfo({
-    type: TicketTypes.REDIS_CLUSTER_CUTOFF,
     onSuccess(cloneData) {
       tableData.value = cloneData.tableDataList;
       remark.value = cloneData.remark;
@@ -126,6 +125,7 @@
       updateSlaveMasterMap();
       window.changeConfirm = true;
     },
+    type: TicketTypes.REDIS_CLUSTER_CUTOFF,
   });
 
   const rowRefs = ref();
@@ -197,9 +197,9 @@
         ...item,
         cluster: {
           ...item.cluster,
+          isGeneral,
           isStart: index === 0,
           rowSpan: index === 0 ? sameArr.length : 1,
-          isGeneral,
         },
       }));
     });
@@ -210,8 +210,8 @@
     selected.value = data;
     const dataList = data.idleHosts;
     const listResult = await getRedisMachineList({
-      ip: dataList.map((item) => item.ip).join(','),
       add_role_count: true,
+      ip: dataList.map((item) => item.ip).join(','),
     });
 
     const machineIpMap = Object.fromEntries(listResult.results.map((item) => [item.ip, item]));
@@ -220,18 +220,18 @@
       const { ip } = item;
       if (!ipMemo[ip]) {
         acc.push({
-          rowKey: random(),
-          isLoading: false,
-          ip,
-          role: item.role,
-          clusterIds: machineIpMap[ip].related_clusters.map((cluster) => cluster.id),
           bkCloudId: item.bk_cloud_id,
           cluster: {
             domain: machineIpMap[ip].related_clusters.map((cluster) => cluster.immute_domain).join(','),
-            isStart: false,
             isGeneral: true,
+            isStart: false,
             rowSpan: 1,
           },
+          clusterIds: machineIpMap[ip].related_clusters.map((cluster) => cluster.id),
+          ip,
+          isLoading: false,
+          role: item.role,
+          rowKey: random(),
           spec: item.spec_config,
         });
         ipMemo[ip] = true;
@@ -257,34 +257,34 @@
     tableData.value[index].ip = ip;
 
     try {
-      const result = await getRedisMachineList({ ip, add_role_count: true });
+      const result = await getRedisMachineList({ add_role_count: true, ip });
       const data = result.results[0];
       const relatedClusters = data.related_clusters;
       const clusterDomain = relatedClusters.map((item) => item.immute_domain).join(',');
 
       const row: IDataRow = {
-        rowKey: tableData.value[index].rowKey,
-        isLoading: false,
-        ip,
-        role: data.instance_role,
-        clusterIds: relatedClusters.map((item) => item.id),
         bkCloudId: data.bk_cloud_id,
         cluster: {
           domain: clusterDomain,
-          isStart: false,
           isGeneral: true,
+          isStart: false,
           rowSpan: 1,
         },
+        clusterIds: relatedClusters.map((item) => item.id),
+        ip,
+        isLoading: false,
+        role: data.instance_role,
+        rowKey: tableData.value[index].rowKey,
         spec: data.spec_config,
       };
       tableData.value[index] = row;
 
       const appendItem = {
-        ip,
-        bk_host_id: data.bk_host_id,
         bk_cloud_id: data.bk_cloud_id,
-        role: data.instance_role,
+        bk_host_id: data.bk_host_id,
         cluster_domain: clusterDomain,
+        ip,
+        role: data.instance_role,
         spec_config: data.spec_config,
       };
       selected.value.idleHosts.push(appendItem);
@@ -295,8 +295,8 @@
       if (data.instance_role === 'redis_master') {
         const slaveIp = slaveMasterMap[ip];
         const slaveClusterInfo = {
-          role: 'redis_slave',
           ip: slaveIp,
+          role: 'redis_slave',
         };
         tableData.value[index + 1] = {
           ...row,
@@ -348,7 +348,7 @@
     }
     sortTableByCluster();
     const ipsArr = selected.value.idleHosts;
-    selected.value.idleHosts = ipsArr.filter((item) => ![removeIp, masterIp].includes(item.ip));
+    selected.value.idleHosts = ipsArr.filter((item) => ![masterIp, removeIp].includes(item.ip));
     if (tableData.value.length === 0) {
       tableData.value = [createRowData()];
       return;
@@ -379,15 +379,15 @@
     const infos = domains.map((domain) => {
       const sameArr = clusterMap[domain];
       const infoItem: InfoItem = {
+        bk_cloud_id: sameArr[0].bkCloudId,
         // cluster_domain: domain,
         cluster_ids: sameArr[0].clusterIds,
-        bk_cloud_id: sameArr[0].bkCloudId,
-        proxy: [],
-        redis_master: [],
-        redis_slave: [],
         display_info: {
           data: [],
         },
+        proxy: [],
+        redis_master: [],
+        redis_slave: [],
       };
       const needDeleteSlaves: string[] = [];
       sameArr.forEach((item) => {
@@ -396,9 +396,9 @@
           spec_id: item.spec?.id ?? 0,
         };
         infoItem.display_info.data.push({
+          cluster_domain: item.cluster.domain,
           ip: item.ip,
           role: item.role,
-          cluster_domain: item.cluster.domain,
           spec_id: item.spec?.id ?? 0,
           spec_name: item.spec?.name ?? '',
         });
@@ -431,12 +431,12 @@
       const infos = generateRequestParam();
       const params = {
         bk_biz_id: currentBizId,
-        ticket_type: TicketTypes.REDIS_CLUSTER_CUTOFF,
-        remark: remark.value,
         details: {
-          ip_source: 'resource_pool',
           infos,
+          ip_source: 'resource_pool',
         },
+        remark: remark.value,
+        ticket_type: TicketTypes.REDIS_CLUSTER_CUTOFF,
       };
       await createTicket(params).then((data) => {
         window.changeConfirm = false;

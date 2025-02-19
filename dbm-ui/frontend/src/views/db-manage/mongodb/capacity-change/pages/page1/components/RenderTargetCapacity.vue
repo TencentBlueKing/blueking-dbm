@@ -120,21 +120,21 @@
 
   interface Props {
     isDisabled: boolean;
-    rowData: IDataRow;
     isLoading?: boolean;
+    rowData: IDataRow;
   }
 
   interface Exposes {
     getValue: () => Promise<{
+      resource_spec: {
+        mongodb: {
+          count: number;
+          spec_id: number;
+        };
+      };
       shard_machine_group: number;
       shard_node_count: number;
       shards_num: number;
-      resource_spec: {
-        mongodb: {
-          spec_id: number;
-          count: number;
-        };
-      };
     }>;
   }
 
@@ -178,15 +178,15 @@
 
   const rules = [
     {
-      validator: (value: string) => !!value,
       message: t('请选择目标容量'),
+      validator: (value: string) => !!value,
     },
   ];
 
   // 点击目标容量
   const handleClickSelect = () => {
     const { rowData } = props;
-    if (rowData && rowData.clusterName) {
+    if (rowData?.clusterName) {
       activeRowData.value = rowData;
       isShowSelector.value = true;
     }
@@ -204,15 +204,15 @@
     async getValue() {
       await selectRef.value?.getValue();
       return Promise.resolve({
+        resource_spec: {
+          mongodb: {
+            count: localValue.value!.machine_pair * props.rowData.shardNodeCount,
+            spec_id: localValue.value!.spec_id,
+          },
+        },
         shard_machine_group: localValue.value!.machine_pair,
         shard_node_count: props.rowData.shardNodeCount,
         shards_num: localValue.value!.shard_num,
-        resource_spec: {
-          mongodb: {
-            spec_id: localValue.value!.spec_id,
-            count: localValue.value!.machine_pair * props.rowData.shardNodeCount,
-          },
-        },
       });
     },
   });

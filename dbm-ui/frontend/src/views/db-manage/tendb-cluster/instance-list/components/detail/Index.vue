@@ -48,8 +48,8 @@
 
   interface Props {
     instanceData?: {
-      instanceAddress: string;
       clusterId: number;
+      instanceAddress: string;
     };
   }
 
@@ -58,8 +58,8 @@
   const activePanel = ref('info');
   const data = ref<TendbclusterInstanceModel>();
   const queryConfigInfos = computed(() => ({
-    dbModuleId: data.value?.db_module_id ?? 0,
     clusterId: props.instanceData?.clusterId,
+    dbModuleId: data.value?.db_module_id ?? 0,
     version: data.value?.version ?? '',
   }));
 
@@ -77,8 +77,8 @@
         return;
       }
       fetchInstDetails({
-        instance_address: props.instanceData.instanceAddress,
         cluster_id: props.instanceData.clusterId,
+        instance_address: props.instanceData.instanceAddress,
       });
     },
     {

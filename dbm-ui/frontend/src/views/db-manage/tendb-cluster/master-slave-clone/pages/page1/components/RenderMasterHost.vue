@@ -34,13 +34,11 @@
   import TableEditInput from '@components/render-table/columns/input/index.vue';
 
   interface Props {
-    ip?: string;
     inputedIps?: string[];
+    ip?: string;
   }
 
-  interface Emits {
-    (e: 'inputFinish', value: string): void;
-  }
+  type Emits = (e: 'inputFinish', value: string) => void;
 
   interface Exposes {
     getValue: () => Promise<{
@@ -55,8 +53,8 @@
   }
 
   const props = withDefaults(defineProps<Props>(), {
-    ip: '',
     inputedIps: () => [],
+    ip: '',
   });
 
   const emits = defineEmits<Emits>();
@@ -70,14 +68,15 @@
 
   const rules = [
     {
-      validator: (value: string) => Boolean(value),
       message: t('IP不能为空'),
+      validator: (value: string) => Boolean(value),
     },
     {
-      validator: (value: string) => ipv4.test(value),
       message: t('IP格式不正确'),
+      validator: (value: string) => ipv4.test(value),
     },
     {
+      message: t('目标主机不存在'),
       validator: async (value: string) => {
         const data = await checkMysqlInstances({
           bizId: currentBizId,
@@ -91,11 +90,10 @@
         }
         return false;
       },
-      message: t('目标主机不存在'),
     },
     {
-      validator: (value: string) => props.inputedIps.filter((item) => item === value).length < 2,
       message: t('目标主机重复'),
+      validator: (value: string) => props.inputedIps.filter((item) => item === value).length < 2,
     },
   ];
 
@@ -135,10 +133,10 @@
       return editRef.value!.getValue().then(() => ({
         cluster_id: hostInfo.value?.cluster_id,
         old_master: {
-          ip: hostInfo.value?.ip,
+          bk_biz_id: currentBizId,
           bk_cloud_id: hostInfo.value?.bk_cloud_id,
           bk_host_id: hostInfo.value?.bk_host_id,
-          bk_biz_id: currentBizId,
+          ip: hostInfo.value?.ip,
         },
       }));
     },

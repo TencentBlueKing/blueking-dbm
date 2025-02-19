@@ -26,10 +26,10 @@
   import HightLightText from './components/HightLightText.vue';
 
   interface Props {
-    keyWord: string;
     data: {
       ip: string;
     }[];
+    keyWord: string;
   }
 
   defineProps<Props>();

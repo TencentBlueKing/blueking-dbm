@@ -77,11 +77,7 @@
 </template>
 <script setup lang="tsx">
   import _ from 'lodash';
-  import {
-    computed,
-    ref,
-    shallowRef,
-  } from 'vue';
+  import { computed, ref, shallowRef } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import type { HostInfo } from '@services/types';
@@ -94,12 +90,12 @@
   import useLocalPagination from './hook/useLocalPagination';
 
   interface Props {
-    data: HostInfo[],
+    data: HostInfo[];
   }
 
   interface Emits {
-    (e: 'update:data', value: Array<HostInfo>): void,
-    (e: 'change', nameNode: Array<HostInfo>, zookeeper: Array<HostInfo>): void
+    (e: 'update:data', value: Array<HostInfo>): void;
+    (e: 'change', nameNode: Array<HostInfo>, zookeeper: Array<HostInfo>): void;
   }
 
   const props = defineProps<Props>();
@@ -121,170 +117,167 @@
 
   const columns = [
     {
-      label: t('主机ID'),
       field: 'host_id',
-      render: ({ data }: {data: HostInfo}) => data.host_id || '--',
+      label: t('主机ID'),
+      render: ({ data }: { data: HostInfo }) => data.host_id || '--',
     },
     {
-      label: 'IP',
       field: 'ip',
-      render: ({ data }: {data: HostInfo}) => data.ip,
+      label: 'IP',
+      render: ({ data }: { data: HostInfo }) => data.ip,
     },
     {
       label: t('部署NameNode_2台'),
-      width: '180px',
-      render: ({ data }: {data: HostInfo}) => {
+      render: ({ data }: { data: HostInfo }) => {
         const isDisabled = isNameNodeCheckDisabled.value && !nameNodeCheckedMap.value[data.host_id];
         const tooltipsOptions = {
-          disabled: !isDisabled,
           content: t('最多只能选择两台'),
+          disabled: !isDisabled,
         };
         return (
           <span
-            v-bk-tooltips={tooltipsOptions}
-            key={data.host_id}>
+            key={data.host_id}
+            v-bk-tooltips={tooltipsOptions}>
             <bk-checkbox
-              modelValue={Boolean(nameNodeCheckedMap.value[data.host_id])}
               disabled={isDisabled}
-              onChange={(value: boolean) => handleNameNodesChange(value, data)} />
+              modelValue={Boolean(nameNodeCheckedMap.value[data.host_id])}
+              onChange={(value: boolean) => handleNameNodesChange(value, data)}
+            />
           </span>
         );
       },
+      width: '180px',
     },
     {
       label: t('部署Zookeeper_JournalNode_3台'),
-      width: '250px',
-      render: ({ data }: {data: HostInfo}) => {
+      render: ({ data }: { data: HostInfo }) => {
         const isDisabled = isZookeeperCheckDisabled.value && !zookeeperCheckedMap.value[data.host_id];
         const tooltipsOptions = {
-          disabled: !isDisabled,
           content: t('最多只能选择三台'),
+          disabled: !isDisabled,
         };
         return (
           <span
-            v-bk-tooltips={tooltipsOptions}
-            key={data.host_id}>
+            key={data.host_id}
+            v-bk-tooltips={tooltipsOptions}>
             <bk-checkbox
-              modelValue={Boolean(zookeeperCheckedMap.value[data.host_id])}
               disabled={isDisabled}
-              onChange={(value: boolean) => handleZookeeperChange(value, data)} />
+              modelValue={Boolean(zookeeperCheckedMap.value[data.host_id])}
+              onChange={(value: boolean) => handleZookeeperChange(value, data)}
+            />
           </span>
         );
       },
+      width: '250px',
     },
     {
-      label: t('机型'),
       field: 'bk_cpu',
-      render: ({ data }: {data: HostInfo}) => data.bk_cpu || '--',
+      label: t('机型'),
+      render: ({ data }: { data: HostInfo }) => data.bk_cpu || '--',
     },
     {
-      label: t('机房'),
       field: 'bk_idc_name',
-      render: ({ data }: {data: HostInfo}) => data.bk_idc_name || '--',
+      label: t('机房'),
+      render: ({ data }: { data: HostInfo }) => data.bk_idc_name || '--',
     },
     {
-      label: t('主机名称'),
       field: 'host_name',
-      render: ({ data }: {data: HostInfo}) => data.host_name || '--',
+      label: t('主机名称'),
+      render: ({ data }: { data: HostInfo }) => data.host_name || '--',
     },
     {
-      label: t('Agent状态'),
       field: 'alive',
-      render: ({ data }: {data: HostInfo}) => {
-        const info = data.alive === 1 ? { theme: 'success', text: t('正常') } : { theme: 'danger', text: t('异常') };
+      label: t('Agent状态'),
+      render: ({ data }: { data: HostInfo }) => {
+        const info = data.alive === 1 ? { text: t('正常'), theme: 'success' } : { text: t('异常'), theme: 'danger' };
         return <DbStatus theme={info.theme}>{info.text}</DbStatus>;
       },
     },
     {
-      label: t('管控区域'),
       field: 'cloud_area',
-      render: ({ data }: {data: HostInfo}) => data.cloud_area.name || '--',
+      label: t('管控区域'),
+      render: ({ data }: { data: HostInfo }) => data.cloud_area.name || '--',
     },
     {
-      label: t('OS名称'),
       field: 'os_name',
-      render: ({ data }: {data: HostInfo}) => data.os_name || '--',
+      label: t('OS名称'),
+      render: ({ data }: { data: HostInfo }) => data.os_name || '--',
     },
     {
-      label: t('OS类型'),
       field: 'os_type',
-      render: ({ data }: {data: HostInfo}) => data.os_type || '--',
+      label: t('OS类型'),
+      render: ({ data }: { data: HostInfo }) => data.os_type || '--',
     },
     {
-      label: 'Agent ID',
       field: 'agent_id',
-      render: ({ data }: {data: HostInfo}) => data.agent_id || '--',
+      label: 'Agent ID',
+      render: ({ data }: { data: HostInfo }) => data.agent_id || '--',
     },
     {
-      label: t('操作'),
       field: 'operation',
-      width: 100,
-      render: ({ index }: {index: number}) => (
+      label: t('操作'),
+      render: ({ index }: { index: number }) => (
         <bk-button
+          theme='primary'
           text
-          theme="primary"
           onClick={() => handleRemove(index)}>
-          { t('删除') }
+          {t('删除')}
         </bk-button>
       ),
+      width: 100,
     },
   ];
 
   const triggerChange = () => {
-    emits(
-      'change',
-      Object.values(nameNodeCheckedMap.value),
-      Object.values(zookeeperCheckedMap.value),
-    );
+    emits('change', Object.values(nameNodeCheckedMap.value), Object.values(zookeeperCheckedMap.value));
   };
 
-  watch(() => props.data, () => {
-    localData.value = props.data;
+  watch(
+    () => props.data,
+    () => {
+      localData.value = props.data;
 
-    const isEmpty = Object.keys(nameNodeCheckedMap.value).length < 1
-      && Object.keys(zookeeperCheckedMap.value).length < 1;
+      const isEmpty =
+        Object.keys(nameNodeCheckedMap.value).length < 1 && Object.keys(zookeeperCheckedMap.value).length < 1;
 
-    const nameNodeChecked = {} as Record<number, HostInfo>;
-    const zookeeperChecked = {} as Record<number, HostInfo>;
+      const nameNodeChecked = {} as Record<number, HostInfo>;
+      const zookeeperChecked = {} as Record<number, HostInfo>;
 
-    if (isEmpty) {
-      _.forEach(props.data, (item) => {
-        if (Object.keys(nameNodeChecked).length >= 2) {
-          return;
-        }
-        nameNodeChecked[item.host_id] = item;
-      });
-      _.forEachRight(props.data, (item) => {
-        if (Object.keys(zookeeperChecked).length >= 3) {
-          return;
-        }
-        zookeeperChecked[item.host_id] = item;
-      });
-    } else {
-      props.data.forEach((item) => {
-        const hostId = item.host_id;
-        if (nameNodeCheckedMap.value[hostId]) {
-          nameNodeChecked[hostId] = nameNodeCheckedMap.value[hostId];
-        }
-        if (zookeeperCheckedMap.value[hostId]) {
-          zookeeperChecked[hostId] = zookeeperCheckedMap.value[hostId];
-        }
-      });
-    }
-    nameNodeCheckedMap.value = nameNodeChecked;
-    zookeeperCheckedMap.value = zookeeperChecked;
-    triggerChange();
-  }, {
-    immediate: true,
-  });
+      if (isEmpty) {
+        _.forEach(props.data, (item) => {
+          if (Object.keys(nameNodeChecked).length >= 2) {
+            return;
+          }
+          nameNodeChecked[item.host_id] = item;
+        });
+        _.forEachRight(props.data, (item) => {
+          if (Object.keys(zookeeperChecked).length >= 3) {
+            return;
+          }
+          zookeeperChecked[item.host_id] = item;
+        });
+      } else {
+        props.data.forEach((item) => {
+          const hostId = item.host_id;
+          if (nameNodeCheckedMap.value[hostId]) {
+            nameNodeChecked[hostId] = nameNodeCheckedMap.value[hostId];
+          }
+          if (zookeeperCheckedMap.value[hostId]) {
+            zookeeperChecked[hostId] = zookeeperCheckedMap.value[hostId];
+          }
+        });
+      }
+      nameNodeCheckedMap.value = nameNodeChecked;
+      zookeeperCheckedMap.value = zookeeperChecked;
+      triggerChange();
+    },
+    {
+      immediate: true,
+    },
+  );
 
-  const {
-    searchKey,
-    pagination,
-    serachList,
-    handlePaginationCurrentChange,
-    handlePaginationLimitChange,
-  } = useLocalPagination(localData);
+  const { handlePaginationCurrentChange, handlePaginationLimitChange, pagination, searchKey, serachList } =
+    useLocalPagination(localData);
 
   const handleClearSearch = () => {
     searchKey.value = '';
@@ -295,7 +288,7 @@
   };
 
   const handleNameNodesChange = (value: boolean, data: HostInfo) => {
-    const checkedMap  = { ...nameNodeCheckedMap.value };
+    const checkedMap = { ...nameNodeCheckedMap.value };
     if (value) {
       checkedMap[data.host_id] = data;
     } else {
@@ -306,7 +299,7 @@
   };
 
   const handleZookeeperChange = (value: boolean, data: HostInfo) => {
-    const checkedMap  = { ...zookeeperCheckedMap.value };
+    const checkedMap = { ...zookeeperCheckedMap.value };
     if (value) {
       checkedMap[data.host_id] = data;
     } else {
@@ -336,13 +329,13 @@
   // 清空异常主机
   const handleClearAbnormal = () => {
     const list = [...props.data];
-    _.remove(list, _ => !_.alive);
+    _.remove(list, (_) => !_.alive);
     triggerChange();
   };
 
   // 复制所有主机IP
   const handleCopyAll = () => {
-    const ipList = props.data.map(_ => _.ip);
+    const ipList = props.data.map((_) => _.ip);
     execCopy(ipList.join('\n'), t('复制成功，共n条', { n: ipList.length }));
   };
   // 复制异常主机IP

@@ -16,54 +16,54 @@ import { utcDisplayTime } from '@utils';
 import { t } from '@locales/index';
 
 const enum STATUS {
-  TODO = 'todo',
-  TERMINATED = 'terminated',
-  DISCONNECTING = 'disconnecting',
   DISCONNECTED = 'disconnected',
-  FULL_ONLINE = 'full_online',
+  DISCONNECTING = 'disconnecting',
   FULL_FAILED = 'full_failed',
+  FULL_ONLINE = 'full_online',
   FULL_SUCCESS = 'full_success',
-  INCR_ONLINE = 'incr_online',
   INCR_FAILED = 'incr_failed',
+  INCR_ONLINE = 'incr_online',
   INCR_SUCCESS = 'incr_success',
+  TERMINATED = 'terminated',
+  TODO = 'todo',
 }
 
 export default class MigrateRecord {
-  static STATUS_TODO = STATUS.TODO;
-  static STATUS_TERMINATED = STATUS.TERMINATED;
-  static STATUS_DISCONNECTING = STATUS.DISCONNECTING;
   static STATUS_DISCONNECTED = STATUS.DISCONNECTED;
-  static STATUS_FULL_ONLINE = STATUS.FULL_ONLINE;
+  static STATUS_DISCONNECTING = STATUS.DISCONNECTING;
   static STATUS_FULL_FAILED = STATUS.FULL_FAILED;
+  static STATUS_FULL_ONLINE = STATUS.FULL_ONLINE;
   static STATUS_FULL_SUCCESS = STATUS.FULL_SUCCESS;
-  static STATUS_INCR_ONLINE = STATUS.INCR_ONLINE;
   static STATUS_INCR_FAILED = STATUS.INCR_FAILED;
+  static STATUS_INCR_ONLINE = STATUS.INCR_ONLINE;
   static STATUS_INCR_SUCCESS = STATUS.INCR_SUCCESS;
-
-  static statusTextMap = {
-    [STATUS.TODO]: t('待执行'),
-    [STATUS.TERMINATED]: t('已终止'),
-    [STATUS.DISCONNECTING]: t('中断中'),
-    [STATUS.DISCONNECTED]: t('已断开'),
-    [STATUS.FULL_ONLINE]: t('全量传输中'),
-    [STATUS.FULL_FAILED]: t('全量传输失败'),
-    [STATUS.FULL_SUCCESS]: t('全量传输完成'),
-    [STATUS.INCR_ONLINE]: t('增量传输中'),
-    [STATUS.INCR_FAILED]: t('增量传输失败'),
-    [STATUS.INCR_SUCCESS]: t('增量传输完成'),
-  };
+  static STATUS_TERMINATED = STATUS.TERMINATED;
+  static STATUS_TODO = STATUS.TODO;
 
   static statusIconMap = {
-    [STATUS.TODO]: 'sync-default',
-    [STATUS.TERMINATED]: 'sync-waiting-01',
-    [STATUS.DISCONNECTING]: 'sync-pending',
     [STATUS.DISCONNECTED]: 'sync-failed',
-    [STATUS.FULL_ONLINE]: 'sync-pending',
+    [STATUS.DISCONNECTING]: 'sync-pending',
     [STATUS.FULL_FAILED]: 'sync-failed',
+    [STATUS.FULL_ONLINE]: 'sync-pending',
     [STATUS.FULL_SUCCESS]: 'sync-success',
-    [STATUS.INCR_ONLINE]: 'sync-pending',
     [STATUS.INCR_FAILED]: 'sync-failed',
+    [STATUS.INCR_ONLINE]: 'sync-pending',
     [STATUS.INCR_SUCCESS]: 'sync-success',
+    [STATUS.TERMINATED]: 'sync-waiting-01',
+    [STATUS.TODO]: 'sync-default',
+  };
+
+  static statusTextMap = {
+    [STATUS.DISCONNECTED]: t('已断开'),
+    [STATUS.DISCONNECTING]: t('中断中'),
+    [STATUS.FULL_FAILED]: t('全量传输失败'),
+    [STATUS.FULL_ONLINE]: t('全量传输中'),
+    [STATUS.FULL_SUCCESS]: t('全量传输完成'),
+    [STATUS.INCR_FAILED]: t('增量传输失败'),
+    [STATUS.INCR_ONLINE]: t('增量传输中'),
+    [STATUS.INCR_SUCCESS]: t('增量传输完成'),
+    [STATUS.TERMINATED]: t('已终止'),
+    [STATUS.TODO]: t('待执行'),
   };
 
   bk_biz_id: number;
@@ -107,8 +107,29 @@ export default class MigrateRecord {
     this.updater = payload.updater;
   }
 
+  get createAtDisplay() {
+    return utcDisplayTime(this.create_at);
+  }
+
   get dtsModeText() {
     return this.dts_mode === 'full' ? t('一次性全备迁移') : t('持续增量迁移');
+  }
+
+  get forcedTerminationDisableTips() {
+    if (
+      [
+        STATUS.DISCONNECTED,
+        STATUS.DISCONNECTING,
+        STATUS.FULL_ONLINE,
+        STATUS.FULL_SUCCESS,
+        STATUS.INCR_SUCCESS,
+        STATUS.TERMINATED,
+        STATUS.TODO,
+      ].includes(this.status)
+    ) {
+      return t('迁移任务：n，不支持该操作', { n: MigrateRecord.statusTextMap[this.status] });
+    }
+    return '';
   }
 
   get isFull() {
@@ -116,7 +137,7 @@ export default class MigrateRecord {
   }
 
   get isRunning() {
-    return [STATUS.TODO, STATUS.DISCONNECTING, STATUS.FULL_ONLINE, STATUS.INCR_ONLINE].includes(this.status);
+    return [STATUS.DISCONNECTING, STATUS.FULL_ONLINE, STATUS.INCR_ONLINE, STATUS.TODO].includes(this.status);
   }
 
   get isSuccess() {
@@ -127,43 +148,22 @@ export default class MigrateRecord {
     return this.dts_config.map((item) => item.target_db_name);
   }
 
-  get forcedTerminationDisableTips() {
-    if (
-      [
-        STATUS.TODO,
-        STATUS.TERMINATED,
-        STATUS.FULL_ONLINE,
-        STATUS.FULL_SUCCESS,
-        STATUS.INCR_SUCCESS,
-        STATUS.DISCONNECTING,
-        STATUS.DISCONNECTED,
-      ].includes(this.status)
-    ) {
-      return t('迁移任务：n，不支持该操作', { n: MigrateRecord.statusTextMap[this.status] });
-    }
-    return '';
-  }
-
   get terminateSynceDisableTips() {
     if (
       [
-        STATUS.TODO,
-        STATUS.TERMINATED,
+        STATUS.DISCONNECTED,
+        STATUS.DISCONNECTING,
+        STATUS.FULL_FAILED,
         STATUS.FULL_ONLINE,
         STATUS.FULL_SUCCESS,
-        STATUS.INCR_SUCCESS,
-        STATUS.DISCONNECTING,
-        STATUS.DISCONNECTED,
-        STATUS.FULL_FAILED,
         STATUS.INCR_FAILED,
+        STATUS.INCR_SUCCESS,
+        STATUS.TERMINATED,
+        STATUS.TODO,
       ].includes(this.status)
     ) {
       return t('迁移任务：n，不支持该操作', { n: MigrateRecord.statusTextMap[this.status] });
     }
     return '';
-  }
-
-  get createAtDisplay() {
-    return utcDisplayTime(this.create_at);
   }
 }

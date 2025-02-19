@@ -16,16 +16,16 @@ import { bytePretty, isRecentDays, utcDisplayTime } from '@utils';
 import { t } from '@locales/index';
 
 export default class DorisNode {
-  static ROLE_FOLLOWER = 'doris_follower';
-  static ROLE_OBSERVER = 'doris_observer';
-  static ROLE_HOT = 'doris_backend_hot';
   static ROLE_COLD = 'doris_backend_cold';
+  static ROLE_FOLLOWER = 'doris_follower';
+  static ROLE_HOT = 'doris_backend_hot';
+  static ROLE_OBSERVER = 'doris_observer';
 
   static roleLabelMap = {
-    [DorisNode.ROLE_FOLLOWER]: t('Follower节点'),
-    [DorisNode.ROLE_OBSERVER]: t('Observer节点'),
-    [DorisNode.ROLE_HOT]: t('热节点'),
     [DorisNode.ROLE_COLD]: t('冷节点'),
+    [DorisNode.ROLE_FOLLOWER]: t('Follower节点'),
+    [DorisNode.ROLE_HOT]: t('热节点'),
+    [DorisNode.ROLE_OBSERVER]: t('Observer节点'),
   };
 
   bk_cloud_id: number;
@@ -39,8 +39,6 @@ export default class DorisNode {
   machine_type: string;
   mem: number;
   node_count: number;
-  role: string;
-  status: number;
   permission: {
     doris_access_entry_view: boolean;
     doris_destroy: boolean;
@@ -51,6 +49,8 @@ export default class DorisNode {
     doris_shrink: boolean;
     doris_view: boolean;
   };
+  role: string;
+  status: number;
 
   constructor(payload = {} as DorisNode) {
     this.bk_cloud_id = payload.bk_cloud_id;
@@ -69,32 +69,32 @@ export default class DorisNode {
     this.permission = payload.permission || {};
   }
 
-  get isNew() {
-    return isRecentDays(this.create_at, 24);
-  }
-
   get createAtDisplay() {
     return utcDisplayTime(this.create_at);
   }
 
-  get isFollower() {
-    return this.role === DorisNode.ROLE_FOLLOWER;
-  }
-
-  get isObserver() {
-    return this.role === DorisNode.ROLE_OBSERVER;
-  }
-
-  get isHot() {
-    return this.role === DorisNode.ROLE_HOT;
+  get isAbnormal() {
+    return this.status === 0;
   }
 
   get isCold() {
     return this.role === DorisNode.ROLE_COLD;
   }
 
-  get isAbnormal() {
-    return this.status === 0;
+  get isFollower() {
+    return this.role === DorisNode.ROLE_FOLLOWER;
+  }
+
+  get isHot() {
+    return this.role === DorisNode.ROLE_HOT;
+  }
+
+  get isNew() {
+    return isRecentDays(this.create_at, 24);
+  }
+
+  get isObserver() {
+    return this.role === DorisNode.ROLE_OBSERVER;
   }
 
   get memText() {

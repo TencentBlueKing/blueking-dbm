@@ -56,14 +56,11 @@
 </template>
 <script setup lang="tsx">
   import { InfoBox } from 'bkui-vue';
-  import {
-    reactive,
-    ref,
-  } from 'vue';
+  import { reactive, ref } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import PulsarModel from '@services/model/pulsar/pulsar';
-  import PulsarMachineModel from '@services/model/pulsar/pulsar-machine'
+  import PulsarMachineModel from '@services/model/pulsar/pulsar-machine';
   import { getPulsarMachineList } from '@services/source/pulsar';
   import { createTicket } from '@services/source/ticket';
 
@@ -73,32 +70,32 @@
 
   import { ClusterTypes } from '@common/const';
 
-  import HostExpansion, {
-    type TExpansionNode,
-  } from '@views/db-manage/common/host-expansion/Index.vue';
+  import HostExpansion, { type TExpansionNode } from '@views/db-manage/common/host-expansion/Index.vue';
   import NodeStatusList from '@views/db-manage/common/host-expansion/NodeStatusList.vue';
 
   import { messageError } from '@utils';
 
   interface Props {
-    data: PulsarModel,
+    data: PulsarModel;
   }
 
-  interface Emits {
-    (e: 'change'): void
-  }
+  type Emits = (e: 'change') => void;
 
   interface Exposes {
-    submit: () => Promise<any>
+    submit: () => Promise<any>;
   }
 
   const props = defineProps<Props>();
   const emits = defineEmits<Emits>();
 
-  const makeMapByHostId = (hostList: TExpansionNode['hostList'] = []) => hostList.reduce((result, item) => ({
-    ...result,
-    [item.host_id]: true,
-  }), {} as Record<number, boolean>);
+  const makeMapByHostId = (hostList: TExpansionNode['hostList'] = []) =>
+    hostList.reduce(
+      (result, item) => ({
+        ...result,
+        [item.host_id]: true,
+      }),
+      {} as Record<number, boolean>,
+    );
 
   const { t } = useI18n();
   const globalBizsStore = useGlobalBizs();
@@ -118,41 +115,41 @@
   ];
 
   const nodeInfoMap = reactive<Record<string, TExpansionNode>>({
-    broker: {
-      label: 'Broker',
-      clusterId: props.data.id,
-      role: 'pulsar_broker',
-      originalHostList: [],
-      ipSource: 'resource_pool',
-      hostList: [],
-      totalDisk: 0,
-      // targetDisk: 0,
-      expansionDisk: 0,
-      specClusterType: ClusterTypes.PULSAR,
-      specMachineType: 'pulsar_broker',
-      resourceSpec: {
-        spec_id: 0,
-        count: 0,
-      },
-      tagText: t('接入层')
-    },
     bookkeeper: {
-      label: 'Bookkeeper',
       clusterId: props.data.id,
-      role: 'pulsar_bookkeeper',
-      originalHostList: [],
-      ipSource: 'resource_pool',
-      hostList: [],
-      totalDisk: 0,
       // targetDisk: 0,
       expansionDisk: 0,
+      hostList: [],
+      ipSource: 'resource_pool',
+      label: 'Bookkeeper',
+      originalHostList: [],
+      resourceSpec: {
+        count: 0,
+        spec_id: 0,
+      },
+      role: 'pulsar_bookkeeper',
       specClusterType: ClusterTypes.PULSAR,
       specMachineType: 'pulsar_bookkeeper',
+      tagText: t('存储层'),
+      totalDisk: 0,
+    },
+    broker: {
+      clusterId: props.data.id,
+      // targetDisk: 0,
+      expansionDisk: 0,
+      hostList: [],
+      ipSource: 'resource_pool',
+      label: 'Broker',
+      originalHostList: [],
       resourceSpec: {
-        spec_id: 0,
         count: 0,
+        spec_id: 0,
       },
-      tagText: t('存储层')
+      role: 'pulsar_broker',
+      specClusterType: ClusterTypes.PULSAR,
+      specMachineType: 'pulsar_broker',
+      tagText: t('接入层'),
+      totalDisk: 0,
     },
   });
 
@@ -166,31 +163,32 @@
     isLoading.value = true;
     getPulsarMachineList({
       cluster_ids: String(props.data.id),
+      limit: -1,
       offset: 0,
-      limit: -1
-    }).then((data) => {
-      const bookkeeperOriginalHostList: PulsarMachineModel[] = [];
-      const brokerOriginalHostList: PulsarMachineModel[] = [];
-
-      let bookkeeperDiskTotal = 0;
-      let brokerDiskTotal = 0;
-
-      data.results.forEach((hostItem) => {
-        if (hostItem.isBookKeeper) {
-          bookkeeperDiskTotal += Math.floor(Number(hostItem.host_info.bk_disk));
-          bookkeeperOriginalHostList.push(hostItem);
-        } else if (hostItem.isBroker) {
-          brokerDiskTotal += Math.floor(Number(hostItem.host_info.bk_disk));
-          brokerOriginalHostList.push(hostItem);
-        }
-      });
-
-      nodeInfoMap.bookkeeper.totalDisk = bookkeeperDiskTotal;
-      nodeInfoMap.bookkeeper.originalHostList = bookkeeperOriginalHostList;
-
-      nodeInfoMap.broker.totalDisk = brokerDiskTotal;
-      nodeInfoMap.broker.originalHostList = brokerOriginalHostList;
     })
+      .then((data) => {
+        const bookkeeperOriginalHostList: PulsarMachineModel[] = [];
+        const brokerOriginalHostList: PulsarMachineModel[] = [];
+
+        let bookkeeperDiskTotal = 0;
+        let brokerDiskTotal = 0;
+
+        data.results.forEach((hostItem) => {
+          if (hostItem.isBookKeeper) {
+            bookkeeperDiskTotal += Math.floor(Number(hostItem.host_info.bk_disk));
+            bookkeeperOriginalHostList.push(hostItem);
+          } else if (hostItem.isBroker) {
+            brokerDiskTotal += Math.floor(Number(hostItem.host_info.bk_disk));
+            brokerOriginalHostList.push(hostItem);
+          }
+        });
+
+        nodeInfoMap.bookkeeper.totalDisk = bookkeeperDiskTotal;
+        nodeInfoMap.bookkeeper.originalHostList = bookkeeperOriginalHostList;
+
+        nodeInfoMap.broker.totalDisk = brokerDiskTotal;
+        nodeInfoMap.broker.originalHostList = brokerOriginalHostList;
+      })
       .finally(() => {
         isLoading.value = false;
       });
@@ -233,78 +231,76 @@
       }
 
       const renderSubTitle = () => {
-        const renderExpansionDiskTips = () => Object.values(nodeInfoMap).map((nodeData) => {
-          if (nodeData.expansionDisk) {
-            return (
-              <div>
-                {t('name容量从nG扩容至nG', {
-                  name: nodeData.label,
-                  totalDisk: nodeData.totalDisk,
-                  expansionDisk: nodeData.totalDisk + nodeData.expansionDisk,
-                })}
-              </div>
-            );
-          }
-          return null;
-        });
+        const renderExpansionDiskTips = () =>
+          Object.values(nodeInfoMap).map((nodeData) => {
+            if (nodeData.expansionDisk) {
+              return (
+                <div>
+                  {t('name容量从nG扩容至nG', {
+                    expansionDisk: nodeData.totalDisk + nodeData.expansionDisk,
+                    name: nodeData.label,
+                    totalDisk: nodeData.totalDisk,
+                  })}
+                </div>
+              );
+            }
+            return null;
+          });
 
-        return (
-          <div style="font-size: 14px; line-height: 28px; color: #63656E;">
-            {renderExpansionDiskTips()}
-          </div>
-        );
+        return <div style='font-size: 14px; line-height: 28px; color: #63656E;'>{renderExpansionDiskTips()}</div>;
       };
 
       return new Promise((resolve, reject) => {
         InfoBox({
-          title: t('确认扩容【name】集群', { name: props.data.cluster_name }),
-          subTitle: renderSubTitle,
-          confirmText: t('确认'),
           cancelText: t('取消'),
-          headerAlign: 'center',
+          confirmText: t('确认'),
           contentAlign: 'center',
           footerAlign: 'center',
+          headerAlign: 'center',
           onCancel: () => reject(),
           onConfirm: () => {
             const hostData = {};
 
-            const generateExtInfo = () => Object.entries(nodeInfoMap).reduce((results, [key, item]) => {
-              const obj = {
-                host_list: item.hostList,
-                total_hosts: item.originalHostList.length,
-                total_disk: item.totalDisk,
-                // target_disk: item.targetDisk,
-                expansion_disk: item.expansionDisk,
-              };
-              Object.assign(results, {
-                [key]: obj,
-              });
-              return results;
-            }, {} as Record<string, any>);
+            const generateExtInfo = () =>
+              Object.entries(nodeInfoMap).reduce(
+                (results, [key, item]) => {
+                  const obj = {
+                    // target_disk: item.targetDisk,
+                    expansion_disk: item.expansionDisk,
+                    host_list: item.hostList,
+                    total_disk: item.totalDisk,
+                    total_hosts: item.originalHostList.length,
+                  };
+                  Object.assign(results, {
+                    [key]: obj,
+                  });
+                  return results;
+                },
+                {} as Record<string, any>,
+              );
 
             if (ipSource.value === 'manual_input') {
-              const fomatHost = (hostList: TExpansionNode['hostList'] = []) => hostList.map(hostItem => ({
-                ip: hostItem.ip,
-                bk_cloud_id: hostItem.cloud_id,
-                bk_host_id: hostItem.host_id,
-                bk_biz_id: hostItem.meta.bk_biz_id,
-              }));
+              const fomatHost = (hostList: TExpansionNode['hostList'] = []) =>
+                hostList.map((hostItem) => ({
+                  bk_biz_id: hostItem.meta.bk_biz_id,
+                  bk_cloud_id: hostItem.cloud_id,
+                  bk_host_id: hostItem.host_id,
+                  ip: hostItem.ip,
+                }));
               Object.assign(hostData, {
                 nodes: {
-                  broker: fomatHost(nodeInfoMap.broker.hostList),
                   bookkeeper: fomatHost(nodeInfoMap.bookkeeper.hostList),
+                  broker: fomatHost(nodeInfoMap.broker.hostList),
                 },
               });
             } else {
               const resourceSpec = {};
-              if (nodeInfoMap.broker.resourceSpec.spec_id > 0
-                && nodeInfoMap.broker.resourceSpec.count > 0) {
+              if (nodeInfoMap.broker.resourceSpec.spec_id > 0 && nodeInfoMap.broker.resourceSpec.count > 0) {
                 Object.assign(resourceSpec, {
                   broker: nodeInfoMap.broker.resourceSpec,
                 });
               }
-              if (nodeInfoMap.bookkeeper.resourceSpec.spec_id > 0
-                && nodeInfoMap.bookkeeper.resourceSpec.count > 0) {
+              if (nodeInfoMap.bookkeeper.resourceSpec.spec_id > 0 && nodeInfoMap.bookkeeper.resourceSpec.count > 0) {
                 Object.assign(resourceSpec, {
                   bookkeeper: nodeInfoMap.bookkeeper.resourceSpec,
                 });
@@ -316,19 +312,21 @@
 
             createTicket({
               bk_biz_id: bizId,
-              ticket_type: 'PULSAR_SCALE_UP',
               details: {
-                ip_source: ipSource.value,
                 cluster_id: props.data.id,
+                ip_source: ipSource.value,
                 ...hostData,
                 ext_info: generateExtInfo(),
               },
+              ticket_type: 'PULSAR_SCALE_UP',
             }).then((data) => {
               ticketMessage(data.id);
               resolve('success');
               emits('change');
-            })
+            });
           },
+          subTitle: renderSubTitle,
+          title: t('确认扩容【name】集群', { name: props.data.cluster_name }),
         });
       });
     },

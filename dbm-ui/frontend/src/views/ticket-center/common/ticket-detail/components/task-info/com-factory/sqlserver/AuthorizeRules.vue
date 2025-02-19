@@ -24,21 +24,19 @@
 
   import { TicketTypes } from '@common/const';
 
-  import DemandInfo, {
-    type DemandInfoConfig,
-  } from '../components/DemandInfo.vue';
+  import DemandInfo, { type DemandInfoConfig } from '../components/DemandInfo.vue';
 
   interface Props {
-    ticketDetails: TicketModel<Sqlserver.authorizeRules>
+    ticketDetails: TicketModel<Sqlserver.authorizeRules>;
   }
 
   type dataItem = {
-    username: string,
+    isExpand: boolean;
     rule_sets: {
-      access_db: string
-    }[],
-    isExpand: boolean
-  }
+      access_db: string;
+    }[];
+    username: string;
+  };
 
   const props = defineProps<Props>();
   defineOptions({
@@ -50,52 +48,48 @@
 
   // 是否是添加授权
   const isAddAuth = props.ticketDetails.ticket_type === TicketTypes.SQLSERVER_AUTHORIZE_RULES;
-  const ruleList = (props.ticketDetails.details?.authorize_data || [])
-    .reduce((prevRuleList, authorizeItem) => [...prevRuleList, {
-      username: authorizeItem.user,
-      rule_sets: authorizeItem.access_dbs.map(dbItem => ({ access_db: dbItem })),
-      isExpand: true,
-    }], [] as dataItem[]);
+  const ruleList = (props.ticketDetails.details?.authorize_data || []).reduce(
+    (prevRuleList, authorizeItem) => [
+      ...prevRuleList,
+      {
+        isExpand: true,
+        rule_sets: authorizeItem.access_dbs.map((dbItem) => ({ access_db: dbItem })),
+        username: authorizeItem.user,
+      },
+    ],
+    [] as dataItem[],
+  );
   const domainList = props.ticketDetails.details.authorize_data?.[0].target_instances || [];
   const excelUrl = props.ticketDetails.details?.excel_url;
 
   let config: DemandInfoConfig[] = [];
   const columns = [
     {
-      label: t('账号名称'),
       field: 'user',
+      label: t('账号名称'),
       render: ({ data }: { data: dataItem }) => (
-          <div
-            class="mongo-permission-cell"
-            onClick={ () => handleToggleExpand(data) }>
-            {
-              data.rule_sets.length > 1 && (
-                <db-icon
-                  type="down-shape"
-                  class={[
-                  'user-icon',
-                  { 'user-icon-expand': data.isExpand },
-                  ]} />
-              )
-            }
-            {
-              <div class="user-name">
-                { data.username }
-              </div>
-            }
-          </div>
-        ),
+        <div
+          class='mongo-permission-cell'
+          onClick={() => handleToggleExpand(data)}>
+          {data.rule_sets.length > 1 && (
+            <db-icon
+              class={['user-icon', { 'user-icon-expand': data.isExpand }]}
+              type='down-shape'
+            />
+          )}
+          {<div class='user-name'>{data.username}</div>}
+        </div>
+      ),
     },
     {
-      label: t('访问DB'),
       field: 'access_db',
-      render: ({ data }: { data: dataItem }) => (
-        getRenderList(data).map(rule => (
-          <div class="mongo-permission-cell">
-            <bk-tag>{ rule.access_db }</bk-tag>
+      label: t('访问DB'),
+      render: ({ data }: { data: dataItem }) =>
+        getRenderList(data).map((rule) => (
+          <div class='mongo-permission-cell'>
+            <bk-tag>{rule.access_db}</bk-tag>
           </div>
-        ))
-      ),
+        )),
     },
   ];
 
@@ -106,16 +100,17 @@
           list: [
             {
               label: t('目标集群'),
-              render: () => domainList.join('，')
+              render: () => domainList.join('，'),
             },
             {
-              label: t('权限明细'),
               isTable: true,
+              label: t('权限明细'),
               render: () => (
                 <db-original-table
-                  class="mongo-permission-table"
+                  class='mongo-permission-table'
                   columns={columns}
-                  data={ruleList} />
+                  data={ruleList}
+                />
               ),
             },
           ],
@@ -129,18 +124,20 @@
           {
             label: t('Excel文件'),
             render: () => (
-              <div class="excel-link">
+              <div class='excel-link'>
                 <db-icon
-                  color="#2dcb56"
+                  class='mr-6'
+                  color='#2dcb56'
+                  type='excel'
                   svg
-                  type="excel"
-                  class="mr-6"/>
+                />
                 <a href={excelUrl}>
-                  { t('批量授权文件') }
+                  {t('批量授权文件')}
                   <db-icon
-                    class="ml-6"
+                    class='ml-6'
+                    type='import'
                     svg
-                    type="import" />
+                  />
                 </a>
               </div>
             ),

@@ -84,67 +84,74 @@
   import CustomSchema from './components/CustomSchema.vue';
 
   interface ModelValue {
-    spec_id: number | '',
-    count: number,
-    capacity: number | string,
-    future_capacity: number | string,
+    capacity: number | string;
+    count: number;
+    future_capacity: number | string;
+    spec_id: number | '';
   }
 
   interface Props {
-    clusterType: string,
-    machineType: string,
-    bizId: number | string,
-    cloudId: number | string,
+    bizId: number | string;
+    cloudId: number | string;
+    clusterType: string;
+    machineType: string;
   }
 
   const props = defineProps<Props>();
   const modelValue = defineModel<ModelValue>({ required: true });
-  const applySchema = defineModel<APPLY_SCHEME>('applySchema', {required: true})
+  const applySchema = defineModel<APPLY_SCHEME>('applySchema', { required: true });
 
   const { t } = useI18n();
 
   const specRef = ref();
-  const customSchemaRef = ref<InstanceType<typeof CustomSchema>>()
+  const customSchemaRef = ref<InstanceType<typeof CustomSchema>>();
   const isLoading = ref(false);
 
   const specs = shallowRef<ClusterSpecModel[]>([]);
-  const countMap = shallowRef({} as Record<number, number>)
+  const countMap = shallowRef({} as Record<number, number>);
 
-  const isMemoryType = computed(() => [ClusterTypes.TWEMPROXY_REDIS_INSTANCE, ClusterTypes.PREDIXY_REDIS_CLUSTER].includes(props.clusterType as ClusterTypes));
-  const targetCapacityTitle = computed(() => (isMemoryType.value ? t('集群容量需求(内存容量)') : t('集群容量需求(磁盘容量)')));
-  const futureCapacityTitle = computed(() => (isMemoryType.value ? t('未来集群容量需求(内存容量)') : t('未来集群容量需求(磁盘容量)')));
+  const isMemoryType = computed(() =>
+    [ClusterTypes.PREDIXY_REDIS_CLUSTER, ClusterTypes.TWEMPROXY_REDIS_INSTANCE].includes(
+      props.clusterType as ClusterTypes,
+    ),
+  );
+  const targetCapacityTitle = computed(() =>
+    isMemoryType.value ? t('集群容量需求(内存容量)') : t('集群容量需求(磁盘容量)'),
+  );
+  const futureCapacityTitle = computed(() =>
+    isMemoryType.value ? t('未来集群容量需求(内存容量)') : t('未来集群容量需求(磁盘容量)'),
+  );
 
   const columns = [
     {
       field: 'spec_name',
       label: t('资源规格'),
-      width: 300,
-      showOverflowTooltip: false,
-      render: ({ data, index }: { data: ClusterSpecModel, index: number }) => (
+      render: ({ data, index }: { data: ClusterSpecModel; index: number }) => (
         <TextOverflowLayout>
           {{
-            default: () => (
-              <bk-radio
-                v-model={modelValue.value.spec_id}
-                label={data.spec_id}
-                key={index}
-                class="spec-radio">
-                  {data.spec_name}
-              </bk-radio>
-            ),
-            append: () => (
+            append: () =>
               (countMap.value[data.spec_id] || 0) < data.machine_pair && (
                 <bk-tag
                   class='ml-6'
-                  size="small"
-                  theme="danger">
-                    {t('资源不足')}
-                  </bk-tag>
-              )
-            )
+                  size='small'
+                  theme='danger'>
+                  {t('资源不足')}
+                </bk-tag>
+              ),
+            default: () => (
+              <bk-radio
+                key={index}
+                v-model={modelValue.value.spec_id}
+                class='spec-radio'
+                label={data.spec_id}>
+                {data.spec_name}
+              </bk-radio>
+            ),
           }}
         </TextOverflowLayout>
       ),
+      showOverflowTooltip: false,
+      width: 300,
     },
     {
       field: 'machine_pair',
@@ -164,41 +171,50 @@
     {
       field: 'count',
       label: t('可用主机数'),
-      render: ({ data }: { data: ClusterSpecModel }) => countMap.value[data.spec_id] || 0
+      render: ({ data }: { data: ClusterSpecModel }) => countMap.value[data.spec_id] || 0,
     },
   ];
 
   let timer = 0;
 
-  watch(() => modelValue.value.spec_id, () => {
-    if (modelValue.value.spec_id) {
-      specRef.value?.clearValidate();
-    }
-  });
+  watch(
+    () => modelValue.value.spec_id,
+    () => {
+      if (modelValue.value.spec_id) {
+        specRef.value?.clearValidate();
+      }
+    },
+  );
 
   watch(
-    () => [props.bizId, props.cloudId, specs], () => {
-    if (
-      typeof props.bizId === 'number'
-      && props.bizId > 0
-      && typeof props.cloudId === 'number'
-      && specs.value.length > 0
-    ) {
-      fetchSpecResourceCount();
-    }
-  }, { immediate: true, deep: true });
+    () => [props.bizId, props.cloudId, specs],
+    () => {
+      if (
+        typeof props.bizId === 'number' &&
+        props.bizId > 0 &&
+        typeof props.cloudId === 'number' &&
+        specs.value.length > 0
+      ) {
+        fetchSpecResourceCount();
+      }
+    },
+    { deep: true, immediate: true },
+  );
 
-  watch(() => [modelValue.value.capacity, modelValue.value.future_capacity], ([capacityValue, futureCapacityValue]) => {
-    if (capacityValue === '' || futureCapacityValue === '') {
-      resetSlider();
-    } else {
-      modelValue.value.spec_id = '';
-      clearTimeout(timer);
-      timer = setTimeout(() => {
-        fetchFilterClusterSpec();
-      }, 400);
-    }
-  });
+  watch(
+    () => [modelValue.value.capacity, modelValue.value.future_capacity],
+    ([capacityValue, futureCapacityValue]) => {
+      if (capacityValue === '' || futureCapacityValue === '') {
+        resetSlider();
+      } else {
+        modelValue.value.spec_id = '';
+        clearTimeout(timer);
+        timer = setTimeout(() => {
+          fetchFilterClusterSpec();
+        }, 400);
+      }
+    },
+  );
 
   const resetSlider = () => {
     specs.value = [];
@@ -213,10 +229,10 @@
 
     isLoading.value = true;
     getFilterClusterSpec({
-      spec_cluster_type: 'redis',
-      spec_machine_type: props.machineType,
       capacity: Number(capacity),
       future_capacity: Number(futureCapacity),
+      spec_cluster_type: 'redis',
+      spec_machine_type: props.machineType,
     })
       .then((res) => {
         specs.value = res;
@@ -226,7 +242,7 @@
       })
       .finally(() => {
         isLoading.value = false;
-        countMap.value = {}
+        countMap.value = {};
       });
   };
 
@@ -266,9 +282,9 @@
     getSpecResourceCount({
       bk_biz_id: Number(props.bizId),
       bk_cloud_id: Number(props.cloudId),
-      spec_ids: specs.value.map(item => item.spec_id),
+      spec_ids: specs.value.map((item) => item.spec_id),
     }).then((data) => {
-      countMap.value = data
+      countMap.value = data;
     });
   }, 100);
 
@@ -279,20 +295,20 @@
   defineExpose({
     getData() {
       if (applySchema.value === APPLY_SCHEME.AUTO) {
-        const item = specs.value.find(item => item.spec_id === Number(modelValue.value.spec_id));
+        const item = specs.value.find((item) => item.spec_id === Number(modelValue.value.spec_id));
         if (item) {
           return {
-            spec_name: item.spec_name,
-            machine_pair: item.machine_pair,
-            cluster_shard_num: item.cluster_shard_num,
             cluster_capacity: item.cluster_capacity,
-            qps: item.qps
-          }
+            cluster_shard_num: item.cluster_shard_num,
+            machine_pair: item.machine_pair,
+            qps: item.qps,
+            spec_name: item.spec_name,
+          };
         }
-        return {}
+        return {};
       }
 
-      return customSchemaRef.value!.getInfo()
+      return customSchemaRef.value!.getInfo();
     },
   });
 </script>

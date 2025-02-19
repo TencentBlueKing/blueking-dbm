@@ -192,14 +192,15 @@
 
   // 单据克隆
   useTicketCloneInfo({
-    type: TicketTypes.MYSQL_CHECKSUM,
     onSuccess(cloneData) {
-      (tableData.value = cloneData.tableDataList), (formdata.timing = cloneData.timing);
+      tableData.value = cloneData.tableDataList;
+      formdata.timing = cloneData.timing;
       formdata.runtime_hour = cloneData.runtime_hour;
       formdata.data_repair = cloneData.data_repair;
       formdata.remark = cloneData.remark;
       window.changeConfirm = true;
     },
+    type: TicketTypes.MYSQL_CHECKSUM,
   });
 
   const rowRefs = ref();
@@ -212,13 +213,13 @@
   const selectedClusters = shallowRef<{ [key: string]: Array<TendbhaModel> }>({ [ClusterTypes.TENDBHA]: [] });
 
   const formdata = reactive({
-    timing: getCurrentDate(),
-    runtime_hour: 48,
     data_repair: {
       is_repair: true,
       mode: 'manual',
     },
     remark: '',
+    runtime_hour: 48,
+    timing: getCurrentDate(),
   });
 
   // 集群域名是否已存在表格的映射表
@@ -255,17 +256,17 @@
       return {
         ...createRowData(),
         clusterData: {
-          id: currentCluster.id,
           domain,
+          id: currentCluster.id,
         },
-        master: masterInfo ? `${masterInfo.ip}:${masterInfo.port}` : '',
-        slaves: item.slaves,
-        masterInstance: masterInfo || createInstanceData(),
-        slaveList: currentCluster.slaves || [],
         dbPatterns: item.dbs,
         ignoreDbs: item.ignoreDbs,
-        tablePatterns: item.tables,
         ignoreTables: item.ignoreTables,
+        master: masterInfo ? `${masterInfo.ip}:${masterInfo.port}` : '',
+        masterInstance: masterInfo || createInstanceData(),
+        slaveList: currentCluster.slaves || [],
+        slaves: item.slaves,
+        tablePatterns: item.tables,
       };
     });
 
@@ -289,8 +290,8 @@
     return {
       ...createRowData(),
       clusterData: {
-        id: item.id,
         domain,
+        id: item.id,
       },
       master: masterInfo ? `${masterInfo.ip}:${masterInfo.port}` : '',
       masterInstance: masterInfo || createInstanceData(),
@@ -386,14 +387,14 @@
     Promise.all(rowRefs.value.map((item: { getValue: () => Promise<any> }) => item.getValue()))
       .then((data) => {
         const params = {
-          ticket_type: TicketTypes.MYSQL_CHECKSUM,
           bk_biz_id: globalBizsStore.currentBizId,
-          remark: formdata.remark,
           details: {
             ...formdata,
-            timing: formatDateToUTC(format(new Date(formdata.timing), 'yyyy-MM-dd HH:mm:ss')),
             infos: data,
+            timing: formatDateToUTC(format(new Date(formdata.timing), 'yyyy-MM-dd HH:mm:ss')),
           },
+          remark: formdata.remark,
+          ticket_type: TicketTypes.MYSQL_CHECKSUM,
         };
         return createTicket(params).then((data) => {
           window.changeConfirm = false;

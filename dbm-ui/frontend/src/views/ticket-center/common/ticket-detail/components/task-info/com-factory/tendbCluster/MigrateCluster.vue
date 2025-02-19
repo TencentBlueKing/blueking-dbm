@@ -140,10 +140,10 @@
   const { loading: isRelateClusterLoading } = useRequest(checkInstance, {
     defaultParams: [
       {
+        bk_biz_id: props.ticketDetails.bk_biz_id,
         instance_addresses: _.flatten(
           props.ticketDetails.details.infos.map((item) => [item.old_master.ip, item.old_slave.ip]),
         ),
-        bk_biz_id: props.ticketDetails.bk_biz_id,
       },
     ],
     onSuccess(data) {

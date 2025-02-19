@@ -23,11 +23,11 @@ const path = '/apis/dbresource/spec';
  * 获取资源规格列表
  */
 export function getResourceSpecList(
-  params: Record<string, any> & {
+  params: {
+    enable?: boolean;
     spec_cluster_type: string;
     spec_machine_type?: string;
-    enable?: boolean;
-  },
+  } & Record<string, any>,
 ) {
   return http.get<ListBase<ResourceSpecModel[]>>(`${path}/`, params).then((data) => ({
     ...data,
@@ -52,7 +52,7 @@ export function createResourceSpec(params: Record<any, any>) {
 /**
  * 批量删除规格
  */
-export function batchDeleteResourceSpec(params: Record<string, any> & { spec_ids: number[] }) {
+export function batchDeleteResourceSpec(params: { spec_ids: number[] } & Record<string, any>) {
   return http.delete(`${path}/batch_delete/`, params, {});
 }
 
@@ -60,15 +60,15 @@ export function batchDeleteResourceSpec(params: Record<string, any> & { spec_ids
  * 筛选集群部署规格方案
  */
 export function getFilterClusterSpec(params: {
-  spec_cluster_type: string;
-  spec_machine_type: string;
   capacity: number;
   future_capacity?: number;
   qps?: {
-    min: number;
     max: number;
+    min: number;
   };
   shard_num?: number;
+  spec_cluster_type: string;
+  spec_machine_type: string;
 }) {
   return http
     .post<ClusterSpecModel[]>(`${path}/filter_cluster_spec/`, params)
@@ -79,10 +79,10 @@ export function getFilterClusterSpec(params: {
  * 获取 qps 的范围
  */
 export function queryQPSRange(params: {
-  spec_cluster_type: string;
-  spec_machine_type: string;
   capacity: number;
   future_capacity: number;
+  spec_cluster_type: string;
+  spec_machine_type: string;
 }) {
   return http.get<{
     max: number;
@@ -114,9 +114,9 @@ export function fetchRecommendSpec(
  */
 export function verifyDuplicatedSpecName(params: {
   spec_cluster_type: string;
+  spec_id?: number;
   spec_machine_type: string;
   spec_name: string;
-  spec_id?: number;
 }) {
   return http.post<boolean>(`${path}/verify_duplicated_spec_name/`, params);
 }
@@ -132,14 +132,14 @@ export function getResourceSpec(params: { spec_id: number }) {
  * 更新规格
  */
 export function updateResourceSpec(
-  params: Record<string, any> & {
-    spec_id: number;
-    spec_name: string;
-    spec_cluster_type: string;
-    spec_machine_type: string;
-    enable?: boolean;
+  params: {
     device_class?: string[];
-  },
+    enable?: boolean;
+    spec_cluster_type: string;
+    spec_id: number;
+    spec_machine_type: string;
+    spec_name: string;
+  } & Record<string, any>,
 ) {
   return http.put<ResourceSpecModel>(`${path}/${params.spec_id}/`, params);
 }
@@ -147,7 +147,7 @@ export function updateResourceSpec(
 /**
  * 更新规格的启用禁用态
  */
-export function updateResourceSpecEnableStatus(params: { spec_ids: number[]; enable: boolean }) {
+export function updateResourceSpecEnableStatus(params: { enable: boolean; spec_ids: number[] }) {
   return http.post<ResourceSpecModel>(`${path}/modify_spec_enable_status/`, params);
 }
 

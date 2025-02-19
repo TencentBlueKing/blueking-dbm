@@ -12,8 +12,8 @@
  */
 
 export default class RedisClusterNodeByIp {
-  bk_host_id: number;
   bk_cloud_id: number;
+  bk_host_id: number;
   cluster: {
     bk_cloud_id: number;
     cluster_type: string;
@@ -26,8 +26,8 @@ export default class RedisClusterNodeByIp {
       shard_cnt: number;
     };
     deploy_plan_id: number;
-    immute_domain: string;
     id: number;
+    immute_domain: string;
     name: string;
     proxy_count: number;
     redis_master_count: number;
@@ -38,7 +38,6 @@ export default class RedisClusterNodeByIp {
   role: string;
   running_master: number;
   running_slave: number;
-  spec_id: number;
   spec_config: {
     count: number;
     cpu: {
@@ -61,6 +60,7 @@ export default class RedisClusterNodeByIp {
       type: string;
     }[];
   };
+  spec_id: number;
   total_master: number;
   total_slave: number;
   unavailable_master: number;

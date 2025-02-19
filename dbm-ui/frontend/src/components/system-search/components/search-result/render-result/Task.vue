@@ -25,13 +25,13 @@
   import HightLightText from './components/HightLightText.vue';
 
   interface Props {
-    keyWord: string;
+    bizIdNameMap: Record<number, string>;
     data: {
       bk_biz_id: number;
       root_id: string;
       ticket_type: string;
     }[];
-    bizIdNameMap: Record<number, string>;
+    keyWord: string;
   }
 
   defineProps<Props>();

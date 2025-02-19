@@ -44,9 +44,9 @@
   import DbStatus from '@components/db-status/index.vue';
 
   interface Props {
-    id: number,
+    id: number;
   }
-  type IRowData = ServiceReturnType<typeof getClusterOperateRecords>['results'][number]
+  type IRowData = ServiceReturnType<typeof getClusterOperateRecords>['results'][number];
 
   const props = defineProps<Props>();
   const loadingCount = defineModel<number>('loadingCount', {
@@ -60,48 +60,48 @@
   const successStatus = { text: t('成功'), theme: 'success' };
   const loadingStatus = { text: t('执行中'), theme: 'loading' };
   const statusInfoMap = {
+    FAILED: errorStatus,
     PENDING: loadingStatus,
+    REVOKED: errorStatus,
     RUNNING: loadingStatus,
     SUCCEEDED: successStatus,
-    FAILED: errorStatus,
-    REVOKED: errorStatus,
   };
 
   const columns = [
     {
-      label: t('时间'),
       field: 'create_at',
+      label: t('时间'),
     },
     {
-      label: t('操作类型'),
       field: 'op_type',
+      label: t('操作类型'),
     },
     {
-      label: t('操作结果'),
       field: 'op_status',
+      label: t('操作结果'),
       render: ({ data }: { data: IRowData }) => {
         const status = statusInfoMap[data.op_status] || errorStatus;
         return (
           <DbStatus
-            type="linear"
-            theme={status.theme}>
+            theme={status.theme}
+            type='linear'>
             {status.text}
           </DbStatus>
         );
       },
     },
     {
-      label: t('操作人'),
       field: 'creator',
+      label: t('操作人'),
     },
     {
-      label: t('单据链接'),
       field: 'ticket_id',
+      label: t('单据链接'),
       render: ({ cell }: { cell: number }) => (
         <bk-button
-          theme="primary"
+          theme='primary'
           text
-          onClick={ () => handleToTicket(cell)}>
+          onClick={() => handleToTicket(cell)}>
           {cell}
         </bk-button>
       ),
@@ -109,41 +109,47 @@
   ];
 
   const tableRef = ref();
-  const dateRange = ref([
-    dayjs().subtract(6, 'day')
-      .format(),
-    dayjs().format(),
-  ] as [string, string]);
+  const dateRange = ref([dayjs().subtract(6, 'day').format(), dayjs().format()] as [string, string]);
 
   const fetchData = () => {
     nextTick(() => {
       if (!props.id) return;
 
       const [start, end] = dateRange.value;
-      const dateParams = start && end ? {
-        start_time: dayjs(start).format('YYYY-MM-DD HH:mm:ss'),
-        end_time: dayjs(end).format('YYYY-MM-DD HH:mm:ss'),
-      } : {
-        start_time: '',
-        end_time: '',
-      };
+      const dateParams =
+        start && end
+          ? {
+              end_time: dayjs(end).format('YYYY-MM-DD HH:mm:ss'),
+              start_time: dayjs(start).format('YYYY-MM-DD HH:mm:ss'),
+            }
+          : {
+              end_time: '',
+              start_time: '',
+            };
 
-      tableRef.value.fetchData({
-        ...dateParams,
-      }, {
-        cluster_id: props.id,
-      });
+      tableRef.value.fetchData(
+        {
+          ...dateParams,
+        },
+        {
+          cluster_id: props.id,
+        },
+      );
     });
   };
 
-  watch(() => props.id, () => {
-    fetchData();
-  }, {
-    immediate: true,
-  });
+  watch(
+    () => props.id,
+    () => {
+      fetchData();
+    },
+    {
+      immediate: true,
+    },
+  );
 
-  const handleRequestSuccess = ({ results } : { results: IRowData[] }) => {
-    loadingCount.value = results.filter(resultItem => ['PENDING', 'RUNNING'].includes(resultItem.op_status)).length;
+  const handleRequestSuccess = ({ results }: { results: IRowData[] }) => {
+    loadingCount.value = results.filter((resultItem) => ['PENDING', 'RUNNING'].includes(resultItem.op_status)).length;
   };
 
   const handleClearFilters = () => {

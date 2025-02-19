@@ -48,7 +48,7 @@
       </div>
       <TicketRemark v-model="formData.remark" />
       <InstanceSelector
-        v-model:isShow="isShowMasterInstanceSelector"
+        v-model:is-show="isShowMasterInstanceSelector"
         :cluster-types="[ClusterTypes.TENDBCLUSTER]"
         :selected="selectedIps"
         @change="handelMasterProxyChange" />
@@ -103,18 +103,18 @@
 
   // 单据克隆
   useTicketCloneInfo({
-    type: TicketTypes.TENDBCLUSTER_MASTER_FAIL_OVER,
     onSuccess(cloneData) {
-      const { tableDataList, isCheckProcess, isVerifyChecksum, isCheckDelay, remark } = cloneData;
+      const { isCheckDelay, isCheckProcess, isVerifyChecksum, remark, tableDataList } = cloneData;
       tableData.value = tableDataList;
       Object.assign(formData, {
-        is_check_process: isCheckProcess,
         is_check_delay: isCheckDelay,
+        is_check_process: isCheckProcess,
         is_verify_checksum: isVerifyChecksum,
         remark,
       });
       window.changeConfirm = true;
     },
+    type: TicketTypes.TENDBCLUSTER_MASTER_FAIL_OVER,
   });
 
   const rowRefs = ref();
@@ -125,9 +125,9 @@
   const selectedIps = shallowRef<InstanceSelectorValues<IValue>>({ tendbcluster: [] });
 
   const formData = reactive({
+    is_check_delay: false,
     is_check_process: false,
     is_verify_checksum: false,
-    is_check_delay: false,
     remark: '',
   });
 
@@ -151,13 +151,13 @@
   const handelMasterProxyChange = (data: InstanceSelectorValues<IValue>) => {
     selectedIps.value = data;
     const newList = data.tendbcluster.reduce((result, item) => {
-      const { bk_host_id, bk_cloud_id, instance_address: instanceAddress } = item;
+      const { bk_cloud_id, bk_host_id, instance_address: instanceAddress } = item;
       const [ip] = instanceAddress.split(':');
       if (!ipMemo[ip]) {
         const row = createRowData({
           masterData: {
-            bk_host_id,
             bk_cloud_id,
+            bk_host_id,
             ip,
           },
         });
@@ -219,13 +219,13 @@
       const data = await Promise.all(rowRefs.value.map((item: { getValue: () => Promise<any> }) => item.getValue()));
 
       await createTicket({
-        ticket_type: TicketTypes.TENDBCLUSTER_MASTER_FAIL_OVER,
-        remark: formData.remark,
+        bk_biz_id: currentBizId,
         details: {
           ...formData,
           infos: data,
         },
-        bk_biz_id: currentBizId,
+        remark: formData.remark,
+        ticket_type: TicketTypes.TENDBCLUSTER_MASTER_FAIL_OVER,
       }).then((data) => {
         window.changeConfirm = false;
         router.push({

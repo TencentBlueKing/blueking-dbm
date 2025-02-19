@@ -59,6 +59,7 @@
 
   const rules = [
     {
+      message: t('DB 名不能为空'),
       validator: (value: string[]) => {
         if (props.allowEmpty) {
           return true;
@@ -66,30 +67,30 @@
 
         return value && value.length > 0;
       },
-      message: t('DB 名不能为空'),
     },
     {
-      validator: (value: string[]) => _.every(value, (item) => /^(?!stage_truncate)(?!.*dba_rollback$).*/.test(item)),
       message: t('不能以stage_truncate开头或dba_rollback结尾'),
+      validator: (value: string[]) => _.every(value, (item) => /^(?!stage_truncate)(?!.*dba_rollback$).*/.test(item)),
     },
     {
-      validator: (value: string[]) => _.every(value, (item) => /^[-_a-zA-Z0-9*?%]{0,35}$/.test(item)),
       message: t('库表名支持数字、字母、中划线、下划线，最大35字符'),
+      validator: (value: string[]) => _.every(value, (item) => /^[-_a-zA-Z0-9*?%]{0,35}$/.test(item)),
     },
     {
-      validator: (value: string[]) => _.every(value, (item) => !systemDbNames.includes(item)),
       message: t('不允许输入系统库和特殊库'),
+      validator: (value: string[]) => _.every(value, (item) => !systemDbNames.includes(item)),
     },
     {
+      message: t('* 只能独立使用'),
       validator: (value: string[]) =>
         !_.some(value, (item) => (/\*/.test(item) && item.length > 1) || (value.length > 1 && item === '*')),
-      message: t('* 只能独立使用'),
     },
     {
-      validator: (value: string[]) => _.every(value, (item) => !/^[%?]$/.test(item)),
       message: t('% 或 ? 不允许单独使用'),
+      validator: (value: string[]) => _.every(value, (item) => !/^[%?]$/.test(item)),
     },
     {
+      message: t('DB名不允许重复'),
       validator: (value: string[]) => {
         if (!props.checkDuplicate) {
           return true;
@@ -101,7 +102,6 @@
         const nextValueMap = makeMap(value);
         return _.flatten(Object.values(otherTagMap)).every((item) => !nextValueMap[item]);
       },
-      message: t('DB名不允许重复'),
     },
   ];
 

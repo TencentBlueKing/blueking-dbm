@@ -136,10 +136,10 @@
   import { getPasswordPolicy, modifyRandomCycle, queryRandomCycle } from '@services/source/permission';
 
   const initData = () => ({
-    typeValue: 'day',
-    weekValue: [] as string[],
     monthValue: [] as string[],
     timeValue: '00:00',
+    typeValue: 'day',
+    weekValue: [] as string[],
   });
 
   type PasswordPolicyRule = ServiceReturnType<typeof getPasswordPolicy>['rule'];
@@ -150,10 +150,10 @@
 
   const timeDataRules = [
     {
-      required: true,
       message: t('请选择'),
+      required: true,
       validator() {
-        const { typeValue, weekValue, monthValue, timeValue } = formData.timeData;
+        const { monthValue, timeValue, typeValue, weekValue } = formData.timeData;
 
         if (typeValue === 'day') {
           return timeValue !== '';
@@ -171,21 +171,21 @@
   ];
 
   const POLICY_MAP: {
-    includeRule: Record<string, string>;
     excludeContinuousRule: Record<string, string>;
+    includeRule: Record<string, string>;
   } = {
-    includeRule: {
-      uppercase: t('大写字母'),
-      lowercase: t('小写字母'),
-      numbers: t('数字'),
-      symbols: t('特殊字符_除空格外'),
-    },
     excludeContinuousRule: {
       keyboards: t('键盘序'),
       letters: t('字母序'),
       numbers: t('数字序'),
       repeats: t('连续特殊符号序'),
       symbols: t('重复字母_数字_特殊符号'),
+    },
+    includeRule: {
+      lowercase: t('小写字母'),
+      numbers: t('数字'),
+      symbols: t('特殊字符_除空格外'),
+      uppercase: t('大写字母'),
     },
   };
 
@@ -198,47 +198,47 @@
   const passwordVisible = ref(false);
   const typeOptions = ref([
     {
-      value: 'day',
       label: t('每天'),
+      value: 'day',
     },
     {
-      value: 'week',
       label: t('每周'),
+      value: 'week',
     },
     {
-      value: 'month',
       label: t('每月'),
+      value: 'month',
     },
   ]);
 
   const weekOptions = ref([
     {
-      value: '1',
       label: t('周一'),
+      value: '1',
     },
     {
-      value: '2',
       label: t('周二'),
+      value: '2',
     },
     {
-      value: '3',
       label: t('周三'),
+      value: '3',
     },
     {
-      value: '4',
       label: t('周四'),
+      value: '4',
     },
     {
-      value: '5',
       label: t('周五'),
+      value: '5',
     },
     {
-      value: '6',
       label: t('周六'),
+      value: '6',
     },
     {
-      value: '7',
       label: t('周日'),
+      value: '7',
     },
   ]);
 
@@ -249,8 +249,8 @@
 
   const complexity = reactive(
     {} as {
-      includeRules: string;
       excludeContinuousRules: string;
+      includeRules: string;
     },
   );
 
@@ -261,7 +261,7 @@
     defaultParams: [{}, { permission: 'page' }],
     onSuccess(passwordPolicy) {
       const { rule } = passwordPolicy;
-      const { includeRule, excludeContinuousRule } = POLICY_MAP;
+      const { excludeContinuousRule, includeRule } = POLICY_MAP;
 
       const includeRules = Object.keys(includeRule).reduce((includeRulePrev, includeRuleKey) => {
         if (rule.include_rule[includeRuleKey as keyof PasswordPolicyRule['include_rule']]) {
@@ -294,7 +294,7 @@
   useRequest(queryRandomCycle, {
     defaultParams: [{}, { permission: 'page' }],
     onSuccess(randomCycle) {
-      const { minute, hour, day_of_week: dayOfWeek, day_of_month: dayOfMonth } = randomCycle.crontab;
+      const { day_of_month: dayOfMonth, day_of_week: dayOfWeek, hour, minute } = randomCycle.crontab;
       const formDataRes = initData();
 
       formDataRes.timeValue = `${hour}:${minute}`;
@@ -311,7 +311,7 @@
     },
   });
 
-  const { run: modifyRandomCycleRun, loading } = useRequest(modifyRandomCycle, {
+  const { loading, run: modifyRandomCycleRun } = useRequest(modifyRandomCycle, {
     manual: true,
     onSuccess() {
       if (submitType === 'reset') {
@@ -319,8 +319,8 @@
       }
       window.changeConfirm = false;
       Message({
-        theme: 'success',
         message: submitType === 'edit' ? t('保存成功') : t('重置成功'),
+        theme: 'success',
       });
     },
   });
@@ -329,10 +329,10 @@
     submitType = 'reset';
     modifyRandomCycleRun({
       crontab: {
+        day_of_month: '*',
+        day_of_week: '*',
         hour: '0',
         minute: '0',
-        day_of_week: '*',
-        day_of_month: '*',
       },
     });
   };
@@ -340,14 +340,14 @@
   const handleSubmit = async () => {
     await formRef.value.validate();
 
-    const { typeValue, weekValue, monthValue, timeValue } = formData.timeData;
+    const { monthValue, timeValue, typeValue, weekValue } = formData.timeData;
     const [hour, minute] = timeValue.split(':');
     const params: ServiceReturnType<typeof queryRandomCycle> = {
       crontab: {
+        day_of_month: '*',
+        day_of_week: '*',
         hour,
         minute,
-        day_of_week: '*',
-        day_of_month: '*',
       },
     };
 

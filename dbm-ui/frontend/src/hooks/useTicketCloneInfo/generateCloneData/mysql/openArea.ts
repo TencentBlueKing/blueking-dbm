@@ -49,21 +49,21 @@ export async function generateMysqlOpenAreaCloneData(ticketData: TicketModel<Mys
     const authorizeIps: string[] = _.get(details, `rules_set[${index}].source_ips`, []);
 
     return {
-      rowKey: random(),
+      authorizeIps,
       clusterData: {
-        id: clusterInfo.id,
-        master_domain: clusterInfo.immute_domain,
         bk_biz_id: clusterInfo.bk_biz_id,
         bk_cloud_id: clusterInfo.bk_cloud_id,
         bk_cloud_name: clusterInfo.bk_cloud_name,
+        id: clusterInfo.id,
+        master_domain: clusterInfo.immute_domain,
       },
+      rowKey: random(),
       vars,
-      authorizeIps,
     };
   });
 
   return Promise.resolve({
-    id: details.config_id,
     data,
+    id: details.config_id,
   });
 }

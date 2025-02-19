@@ -80,13 +80,11 @@
   import { getSearchSelectorParams } from '@utils';
 
   interface Props {
-    clusterId: number,
-    accountType: AccountTypes.MYSQL | AccountTypes.TENDBCLUSTER,
+    accountType: AccountTypes.MYSQL | AccountTypes.TENDBCLUSTER;
+    clusterId: number;
   }
 
-  interface Emits {
-    (e: 'submit', value: number[]): void
-  }
+  type Emits = (e: 'submit', value: number[]) => void;
 
   const props = defineProps<Props>();
   const emits = defineEmits<Emits>();
@@ -112,57 +110,56 @@
 
   const searchSelectData = [
     {
-      name: t('账号名称'),
       id: 'user',
       multiple: true,
+      name: t('账号名称'),
     },
     {
-      name: t('访问DB'),
       id: 'access_db',
       multiple: true,
+      name: t('访问DB'),
     },
   ];
 
-
   const columns = [
     {
-      label: t('账号名称'),
       field: 'user',
-      width: 220,
-      showOverflowTooltip: false,
+      label: t('账号名称'),
       render: ({ data }: { data: MysqlPermissionAccountModel }) => (
-        <div class="account-box">
-          {
-            data.rules.length > 1
-              && <db-icon
-                  type="down-shape"
-                  class={{
-                    'flod-flag': true,
-                    'is-flod': rowFlodMap.value[data.account.user],
-                  }}
-                  onClick={() => handleToogleExpand(data.account.user)} />
-          }
-          { data.account.user }
+        <div class='account-box'>
+          {data.rules.length > 1 && (
+            <db-icon
+              class={{
+                'flod-flag': true,
+                'is-flod': rowFlodMap.value[data.account.user],
+              }}
+              type='down-shape'
+              onClick={() => handleToogleExpand(data.account.user)}
+            />
+          )}
+          {data.account.user}
         </div>
       ),
+      showOverflowTooltip: false,
+      width: 220,
     },
     {
-      label: t('访问DB'),
-      width: 300,
       field: 'access_db',
-      showOverflowTooltip: true,
-      sort: true,
+      label: t('访问DB'),
       render: ({ data }: { data: MysqlPermissionAccountModel }) => {
         if (data.rules.length === 0) {
           return (
-            <div class="inner-row">
-              <bk-checkbox class="mr-8" disabled />
+            <div class='inner-row'>
+              <bk-checkbox
+                class='mr-8'
+                disabled
+              />
               <span>{t('暂无规则，')}</span>
               <router-link
                 to={{
-                    name: 'PermissionRules',
+                  name: 'PermissionRules',
                 }}
-                target="_blank">
+                target='_blank'>
                 {t('去创建')}
               </router-link>
             </div>
@@ -170,39 +167,41 @@
         }
         const renderRules = rowFlodMap.value[data.account.user] ? data.rules.slice(0, 1) : data.rules;
 
-        return renderRules.map(item => (
-          <div class="inner-row">
+        return renderRules.map((item) => (
+          <div class='inner-row'>
             <bk-checkbox
-              class="mr-8"
+              class='mr-8'
               model-value={ruleCheckedMap.value[item.rule_id]}
-              onChange={(value: boolean) => handleDbChange(value, item.rule_id)} />
-            <bk-tag>
-              {item.access_db}
-            </bk-tag>
+              onChange={(value: boolean) => handleDbChange(value, item.rule_id)}
+            />
+            <bk-tag>{item.access_db}</bk-tag>
           </div>
         ));
       },
+      showOverflowTooltip: true,
+      sort: true,
+      width: 300,
     },
     {
-      label: t('权限'),
       field: 'privilege',
-      showOverflowTooltip: false,
-      sort: true,
+      label: t('权限'),
       render: ({ data }: { data: MysqlPermissionAccountModel }) => {
         if (data.rules.length === 0) {
-          return <div class="inner-row">--</div>;
+          return <div class='inner-row'>--</div>;
         }
         const renderRules = rowFlodMap.value[data.account.user] ? data.rules.slice(0, 1) : data.rules;
-        return renderRules.map(item => (
-          <div class="inner-row">
+        return renderRules.map((item) => (
+          <div class='inner-row'>
             <TextOverflowLayout>
               {{
-                default: () => item.privilege
+                default: () => item.privilege,
               }}
             </TextOverflowLayout>
           </div>
         ));
       },
+      showOverflowTooltip: false,
+      sort: true,
     },
   ];
 
@@ -212,9 +211,13 @@
       return;
     }
 
-    ruleCheckedMap.value = modleValue.value.reduce((result, id) => Object.assign(result, {
-      [id]: true,
-    }), {});
+    ruleCheckedMap.value = modleValue.value.reduce(
+      (result, id) =>
+        Object.assign(result, {
+          [id]: true,
+        }),
+      {},
+    );
 
     nextTick(() => {
       fetchTableData();
@@ -222,30 +225,36 @@
   });
 
   const fetchTableData = () => {
-    tableRef.value.fetchData({
-      cluster_id: props.clusterId,
-    }, {
-      account_type: props.accountType,
-    });
-  }
+    tableRef.value.fetchData(
+      {
+        cluster_id: props.clusterId,
+      },
+      {
+        account_type: props.accountType,
+      },
+    );
+  };
 
   const cellClassCallback = (data: any) => (data.field ? `cell-${data.field}` : '');
 
   const handleSearchChange = (valueList: ISearchValue[]) => {
-    ruleCheckedMap.value = {}
+    ruleCheckedMap.value = {};
     const params = getSearchSelectorParams(valueList);
-    tableRef.value.fetchData({
-      cluster_id: props.clusterId,
-      ...params,
-    }, {
-      account_type: props.accountType,
-    });
-  }
+    tableRef.value.fetchData(
+      {
+        cluster_id: props.clusterId,
+        ...params,
+      },
+      {
+        account_type: props.accountType,
+      },
+    );
+  };
 
   const handleClearSearch = () => {
     searchSelectValue.value = [];
     fetchTableData();
-  }
+  };
 
   const handleToogleExpand = (user: string) => {
     if (rowFlodMap.value[user]) {
@@ -265,28 +274,31 @@
 
   const handleChangeOnlyShowSelected = (isShow: boolean) => {
     if (isShow) {
-      const ruleIds = Object.keys(ruleCheckedMap.value).map(item => Number(item));
-      tableRef.value.fetchData({
-        cluster_id: props.clusterId,
-        rule_ids: ruleIds.join(',')
-      }, {
-        account_type: props.accountType,
-      });
+      const ruleIds = Object.keys(ruleCheckedMap.value).map((item) => Number(item));
+      tableRef.value.fetchData(
+        {
+          cluster_id: props.clusterId,
+          rule_ids: ruleIds.join(','),
+        },
+        {
+          account_type: props.accountType,
+        },
+      );
       return;
     }
     fetchTableData();
-  }
+  };
 
   const handleGoCreateRules = () => {
     const route = router.resolve({
       name: 'PermissionRules',
     });
     window.open(route.href);
-  }
+  };
 
   const handleSubmit = () => {
-    const ruleIds = Object.keys(ruleCheckedMap.value).map(item => Number(item));
-    modleValue.value = ruleIds
+    const ruleIds = Object.keys(ruleCheckedMap.value).map((item) => Number(item));
+    modleValue.value = ruleIds;
     emits('submit', ruleIds);
     isShow.value = false;
   };

@@ -59,25 +59,28 @@
 
   export interface Props {
     cluster: ServiceReturnType<typeof queryAllTypeCluster>[number];
-    placeholder?: string;
     extParams?: Record<string, unknown>;
+    placeholder?: string;
     preCheck?: (value: string) => string;
   }
 
-  interface Emits {
-    (e: 'success', cmd: string, message: ServiceReturnType<typeof queryWebconsole>['query'], ...args: unknown[]): void;
-  }
+  type Emits = (
+    e: 'success',
+    cmd: string,
+    message: ServiceReturnType<typeof queryWebconsole>['query'],
+    ...args: unknown[]
+  ) => void;
 
   interface Expose {
-    updateCommand: () => void;
+    clearCurrentScreen: (id?: number) => void;
     export: () => void;
     isInputed: (id?: number) => boolean;
-    clearCurrentScreen: (id?: number) => void;
+    updateCommand: () => void;
   }
 
   const props = withDefaults(defineProps<Props>(), {
-    placeholder: '',
     extParams: () => ({}),
+    placeholder: '',
     preCheck: () => '',
   });
 
@@ -279,10 +282,12 @@
   };
 
   defineExpose<Expose>({
-    updateCommand() {
-      nextTick(() => {
-        command.value = localPlaceholder.value;
-      });
+    clearCurrentScreen(id?: number) {
+      const currentClusterId = id ?? clusterId.value;
+      panelInputMap[currentClusterId] = [];
+      executedCommands[currentClusterId] = [];
+      noExecuteCommand[currentClusterId] = '';
+      command.value = localPlaceholder.value;
     },
     export() {
       const lines = panelInputMap[clusterId.value].map((item) => item.message);
@@ -315,12 +320,10 @@
       const currentClusterId = id ?? clusterId.value;
       return executedCommands[currentClusterId]?.some(Boolean) || noExecuteCommand[currentClusterId]?.length > 0;
     },
-    clearCurrentScreen(id?: number) {
-      const currentClusterId = id ?? clusterId.value;
-      panelInputMap[currentClusterId] = [];
-      executedCommands[currentClusterId] = [];
-      noExecuteCommand[currentClusterId] = '';
-      command.value = localPlaceholder.value;
+    updateCommand() {
+      nextTick(() => {
+        command.value = localPlaceholder.value;
+      });
     },
   });
 </script>

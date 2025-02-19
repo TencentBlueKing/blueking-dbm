@@ -7,8 +7,8 @@ import { execCopy, messageWarn } from '@utils';
 import type { ClusterModel, ISupportClusterType } from '../types';
 
 export default <T extends ISupportClusterType>(props: {
-  selectedList: ClusterModel<T>[];
   getTableInstance: () => InstanceType<typeof DbTable> | undefined;
+  selectedList: ClusterModel<T>[];
 }) => {
   const { t } = useI18n();
 
@@ -33,7 +33,7 @@ export default <T extends ISupportClusterType>(props: {
   };
 
   return {
-    handleCopySelected,
     handleCopyAll,
+    handleCopySelected,
   };
 };

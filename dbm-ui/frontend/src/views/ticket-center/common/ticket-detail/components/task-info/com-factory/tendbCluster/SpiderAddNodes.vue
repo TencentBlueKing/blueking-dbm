@@ -70,9 +70,9 @@
   useRequest(getResourceSpecList, {
     defaultParams: [
       {
-        spec_cluster_type: DBTypes.TENDBCLUSTER,
         limit: -1,
         offset: 0,
+        spec_cluster_type: DBTypes.TENDBCLUSTER,
       },
     ],
     onSuccess(data) {

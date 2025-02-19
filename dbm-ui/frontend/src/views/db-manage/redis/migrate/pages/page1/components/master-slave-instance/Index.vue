@@ -139,8 +139,8 @@
   import RenderDataRow, { createRowData, type IDataRow, type IDataRowBatchKey } from './Row.vue';
 
   interface Props {
-    tableList: IDataRow[];
     remark: string;
+    tableList: IDataRow[];
   }
 
   const props = defineProps<Props>();
@@ -164,14 +164,14 @@
 
   const specList = shallowRef<
     {
-      value: number;
       label: string;
+      value: number;
     }[]
   >();
   const versionList = shallowRef<
     {
-      value: string;
       label: string;
+      value: string;
     }[]
   >([]);
 
@@ -197,16 +197,16 @@
   useRequest(getResourceSpecList, {
     defaultParams: [
       {
-        spec_cluster_type: ClusterTypes.REDIS,
-        spec_machine_type: specClusterMachineMap[ClusterTypes.REDIS_INSTANCE],
         limit: -1,
         offset: 0,
+        spec_cluster_type: ClusterTypes.REDIS,
+        spec_machine_type: specClusterMachineMap[ClusterTypes.REDIS_INSTANCE],
       },
     ],
     onSuccess(listResult) {
       specList.value = listResult.results.map((item) => ({
-        value: item.spec_id,
         label: item.spec_name,
+        value: item.spec_id,
       }));
     },
   });
@@ -220,8 +220,8 @@
     ],
     onSuccess(listResult) {
       versionList.value = listResult.map((item) => ({
-        value: item,
         label: item,
+        value: item,
       }));
     },
   });
@@ -267,24 +267,24 @@
   };
 
   const generateTableRow = (item: RedisModel) => ({
-    rowKey: random(),
-    isLoading: false,
     clusterData: {
-      domain: item.master_domain,
       cloudId: item.bk_cloud_id,
-      clusterType: item.cluster_type,
       clusterId: item.id,
+      clusterType: item.cluster_type,
+      currentSpecId: item.cluster_spec.spec_id,
+      dbVersion: item.major_version,
+      domain: item.master_domain,
       relatedInstance: item.redis_master.map((masterItem) => ({
         bk_biz_id: masterItem.bk_biz_id,
         bk_cloud_id: masterItem.bk_cloud_id,
         bk_host_id: masterItem.bk_host_id,
+        instance: masterItem.instance,
         ip: masterItem.ip,
         port: masterItem.port,
-        instance: masterItem.instance,
       })),
-      currentSpecId: item.cluster_spec.spec_id,
-      dbVersion: item.major_version,
     },
+    isLoading: false,
+    rowKey: random(),
   });
 
   // 批量选择
@@ -354,19 +354,19 @@
         .map((infoItem) =>
           infoItem.instance.map((instaneItem) => ({
             ...instaneItem,
-            resource_spec: infoItem.resource_spec,
             db_version: infoItem.db_version,
             display_info: infoItem.display_info,
+            resource_spec: infoItem.resource_spec,
           })),
         )
         .flat();
       await createTicket({
-        ticket_type: TicketTypes.REDIS_SINGLE_INS_MIGRATE,
-        remark: localRemark.value,
+        bk_biz_id: currentBizId,
         details: {
           infos,
         },
-        bk_biz_id: currentBizId,
+        remark: localRemark.value,
+        ticket_type: TicketTypes.REDIS_SINGLE_INS_MIGRATE,
       }).then((data) => {
         window.changeConfirm = false;
 

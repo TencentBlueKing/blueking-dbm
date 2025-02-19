@@ -20,61 +20,62 @@
 <script setup lang="tsx">
   import { useI18n } from 'vue-i18n';
 
-  import TicketModel, {type Redis} from '@services/model/ticket/ticket';
+  import TicketModel, { type Redis } from '@services/model/ticket/ticket';
 
   import { TicketTypes } from '@common/const';
 
   interface Props {
-    ticketDetails: TicketModel<Redis.VersionUpdateOnline>
+    ticketDetails: TicketModel<Redis.VersionUpdateOnline>;
   }
 
   const props = defineProps<Props>();
 
   defineOptions({
     name: TicketTypes.REDIS_VERSION_UPDATE_ONLINE,
-    inheritAttrs: false
-  })
+    inheritAttrs: false,
+  });
 
   const { t } = useI18n();
 
   const { clusters, infos } = props.ticketDetails.details;
-  const dataList: (Props['ticketDetails']['details']['infos'][number] & Props['ticketDetails']['details']['clusters'][number])[] = [];
-  infos.forEach(infoItem => {
+  const dataList: (Props['ticketDetails']['details']['clusters'][number] &
+    Props['ticketDetails']['details']['infos'][number])[] = [];
+  infos.forEach((infoItem) => {
     infoItem.cluster_ids.forEach((clusterId) => {
       dataList.push(Object.assign({}, infoItem, clusters[clusterId]));
     });
-  })
+  });
 
   const columns = [
     {
-      label: t('目标集群'),
       field: 'immute_domain',
-      showOverflowTooltip: true,
+      label: t('目标集群'),
       render: ({ cell }: { cell: string }) => <span>{cell || '--'}</span>,
+      showOverflowTooltip: true,
     },
     {
-      label: t('架构版本'),
       field: 'cluster_type_name',
-      showOverflowTooltip: true,
+      label: t('架构版本'),
       render: ({ cell }: { cell: string }) => <span>{cell || '--'}</span>,
+      showOverflowTooltip: true,
     },
     {
-      label: t('节点类型'),
       field: 'node_type',
-      showOverflowTooltip: true,
+      label: t('节点类型'),
       render: ({ cell }: { cell: string }) => <span>{cell || '--'}</span>,
+      showOverflowTooltip: true,
     },
     {
-      label: t('当前使用的版本'),
       field: 'current_versions',
-      showOverflowTooltip: true,
+      label: t('当前使用的版本'),
       render: ({ cell }: { cell: string[] }) => <span>{cell.length > 0 ? cell.join(',') : '--'}</span>,
+      showOverflowTooltip: true,
     },
     {
-      label: t('目标版本'),
       field: 'target_version',
-      showOverflowTooltip: true,
+      label: t('目标版本'),
       render: ({ cell }: { cell: string }) => <span>{cell || '--'}</span>,
+      showOverflowTooltip: true,
     },
   ];
 </script>

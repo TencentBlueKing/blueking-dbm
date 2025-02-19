@@ -33,27 +33,27 @@ export async function generateRedisDataStructureCloneData(ticketData: TicketMode
   );
 
   return Promise.resolve({
+    remark: ticketData.remark,
     tableDataList: infos.map((item) => {
       const currentClusterInfo = clusterListMap[item.cluster_id];
       const instances = currentClusterInfo.redis_master.map((row) => `${row.ip}:${row.port}`);
       return {
-        rowKey: random(),
-        isLoading: false,
+        bkCloudId: item.bk_cloud_id,
         cluster: currentClusterInfo.master_domain,
+        clusterId: item.cluster_id,
         clusterType: currentClusterInfo.cluster_type,
         clusterTypeName: currentClusterInfo.cluster_type_name,
-        clusterId: item.cluster_id,
-        bkCloudId: item.bk_cloud_id,
         hostNum: `${item.resource_spec.redis.count}`,
-        targetDateTime: item.recovery_time_point,
         instances,
+        isLoading: false,
+        rowKey: random(),
         spec: {
           ...currentClusterInfo.cluster_spec,
-          name: currentClusterInfo.cluster_spec.spec_name,
           id: currentClusterInfo.cluster_spec.spec_id,
+          name: currentClusterInfo.cluster_spec.spec_name,
         },
+        targetDateTime: item.recovery_time_point,
       };
     }),
-    remark: ticketData.remark,
   });
 }

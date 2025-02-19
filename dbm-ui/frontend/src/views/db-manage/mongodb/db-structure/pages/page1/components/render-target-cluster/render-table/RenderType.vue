@@ -21,9 +21,7 @@
 
   import TableEditSelect from '@components/render-table/columns/select/index.vue';
 
-  interface Emits {
-    (e: 'structTypeChange', value: string): void;
-  }
+  type Emits = (e: 'structTypeChange', value: string) => void;
 
   const emits = defineEmits<Emits>();
 
@@ -31,12 +29,12 @@
 
   const targetList = [
     {
-      value: 'REMOTE_AND_BACKUPID',
       label: t('备份记录'),
+      value: 'REMOTE_AND_BACKUPID',
     },
     {
-      value: 'REMOTE_AND_TIME',
       label: t('回档到指定时间'),
+      value: 'REMOTE_AND_TIME',
     },
   ];
 

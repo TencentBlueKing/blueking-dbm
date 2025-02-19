@@ -31,11 +31,11 @@ export default class SqlserverPermissionAccount implements PermissionRule {
     this.rules = payload.rules;
   }
 
-  get isNew() {
-    return dayjs().isBefore(dayjs(this.account.create_time).add(24, 'hour'));
-  }
-
   get createAtDisplay() {
     return utcDisplayTime(this.account.create_time);
+  }
+
+  get isNew() {
+    return dayjs().isBefore(dayjs(this.account.create_time).add(24, 'hour'));
   }
 }

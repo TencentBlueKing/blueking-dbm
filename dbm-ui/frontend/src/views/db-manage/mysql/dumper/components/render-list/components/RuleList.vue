@@ -55,16 +55,16 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import { getDumperConfigDetail,listDumperConfig } from '@services/source/dumper';
+  import { getDumperConfigDetail, listDumperConfig } from '@services/source/dumper';
 
   import ApplyPermissionCatch from '@components/apply-permission/Catch.vue';
 
   import { getSearchSelectorParams } from '@utils';
 
-  type DumperConfig = ServiceReturnType<typeof getDumperConfigDetail>
+  type DumperConfig = ServiceReturnType<typeof getDumperConfigDetail>;
 
   interface Props {
-    data: ServiceReturnType<typeof listDumperConfig>['results'][number] | null
+    data: ServiceReturnType<typeof listDumperConfig>['results'][number] | null;
   }
 
   const props = defineProps<Props>();
@@ -84,30 +84,34 @@
 
   const searchSelectData = [
     {
-      name: 'DB',
       id: 'db_name',
+      name: 'DB',
     },
     {
-      name: t('表名'),
       id: 'table_name',
+      name: t('表名'),
     },
   ];
 
   const subscribeColumns = [
     {
-      label: t('DB 名'),
       field: 'db_name',
+      label: t('DB 名'),
       width: 300,
     },
     {
-      label: t('表名'),
       field: 'table_names',
+      label: t('表名'),
       minWidth: 100,
-      render: ({ data }: {data: { table_names: string[] }}) => (
-        <div class="table-names-box">
-          {
-            data.table_names.map((item, index) => <div key={index} class="name-item">{ item }</div>)
-          }
+      render: ({ data }: { data: { table_names: string[] } }) => (
+        <div class='table-names-box'>
+          {data.table_names.map((item, index) => (
+            <div
+              key={index}
+              class='name-item'>
+              {item}
+            </div>
+          ))}
         </div>
       ),
     },
@@ -115,25 +119,25 @@
 
   const receiverColumns = [
     {
-      label: t('数据源集群'),
       field: 'source_cluster_domain',
+      label: t('数据源集群'),
     },
     {
-      label: t('部署dumper实例ID'),
       field: 'dumper_id',
+      label: t('部署dumper实例ID'),
     },
     {
-      label: t('接收端类型'),
       field: 'protocol_type',
+      label: t('接收端类型'),
     },
     {
-      label: t('接收端集群与端口'),
       field: 'target_address',
+      label: t('接收端集群与端口'),
     },
     {
-      label: t('同步方式'),
       field: 'add_type',
-      render: ({ data }: {data: { add_type: string }}) => <span>{syncTypeMap[data.add_type]}</span>,
+      label: t('同步方式'),
+      render: ({ data }: { data: { add_type: string } }) => <span>{syncTypeMap[data.add_type]}</span>,
     },
   ];
 
@@ -146,23 +150,33 @@
     },
   });
 
-  watch(() => props.data, (data) => {
-    if (data) {
-      fetchGetDumperConfigDetail({
-        id: data.id
-      }, {
-        permission: 'catch'
-      });
-    }
-  }, {
-    immediate: true,
-  });
+  watch(
+    () => props.data,
+    (data) => {
+      if (data) {
+        fetchGetDumperConfigDetail(
+          {
+            id: data.id,
+          },
+          {
+            permission: 'catch',
+          },
+        );
+      }
+    },
+    {
+      immediate: true,
+    },
+  );
 
   const handleLocalSearch = () => {
     const searchParams = getSearchSelectorParams(search.value);
-    const { db_name: dbName, table_name: tableName } = searchParams as { db_name?: string, table_name?: string };
-    subscribeTableData.value = subscribeRawTableData.filter(item => (!dbName || new RegExp(dbName).test(item.db_name))
-      && (!tableName || item.table_names.some(name => new RegExp(tableName).test(name))));
+    const { db_name: dbName, table_name: tableName } = searchParams as { db_name?: string; table_name?: string };
+    subscribeTableData.value = subscribeRawTableData.filter(
+      (item) =>
+        (!dbName || new RegExp(dbName).test(item.db_name)) &&
+        (!tableName || item.table_names.some((name) => new RegExp(tableName).test(name))),
+    );
   };
 </script>
 

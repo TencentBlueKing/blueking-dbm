@@ -34,9 +34,7 @@
     data?: IDataRow['cluster'];
   }
 
-  interface Emits {
-    (e: 'onInputFinish', value: string): void;
-  }
+  type Emits = (e: 'onInputFinish', value: string) => void;
 
   const props = withDefaults(defineProps<Props>(), {
     data: '',
@@ -49,12 +47,12 @@
 
   const rules = [
     {
-      validator: (value: string) => Boolean(value),
       message: t('目标集群不能为空'),
+      validator: (value: string) => Boolean(value),
     },
     {
-      validator: (value: string) => domainRegex.test(value),
       message: t('目标集群输入格式有误'),
+      validator: (value: string) => domainRegex.test(value),
     },
   ];
 

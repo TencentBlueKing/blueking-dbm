@@ -132,25 +132,25 @@
   export interface TReplaceNode<N> {
     // 集群id
     clusterId: number;
+    hostList: ServiceReturnType<typeof checkHost>;
+    nodeList: N[];
+    // 扩容资源池
+    resourceSpec: {
+      count: number;
+      spec_id: number;
+    };
     // 集群的节点类型
     role: string;
-    nodeList: N[];
-    hostList: ServiceReturnType<typeof checkHost>;
     // 资源池规格集群类型
     specClusterType: string;
     // 资源池规格集群类型
     specMachineType: string;
-    // 扩容资源池
-    resourceSpec: {
-      spec_id: number;
-      count: number;
-    };
   }
 
   interface Ivalue {
+    bk_cloud_id: number;
     bk_host_id: number;
     ip: string;
-    bk_cloud_id: number;
   }
 
   interface Props {
@@ -159,18 +159,16 @@
       name: string;
     };
     data: TReplaceNode<T>;
-    ipSource: string;
     disableHostMethod?: (params: Props['data']['hostList'][0]) => string | boolean;
+    ipSource: string;
   }
 
-  interface Emits {
-    (e: 'removeNode', node: T): void;
-  }
+  type Emits = (e: 'removeNode', node: T) => void;
 
   interface Exposes {
     getValue: () => Promise<{
-      old_nodes: Ivalue[];
       new_nodes: Ivalue[];
+      old_nodes: Ivalue[];
       resource_spec: Props['data']['resourceSpec'];
     }>;
   }
@@ -244,24 +242,24 @@
       }
       if (nodeList.value.length < 1) {
         return Promise.resolve({
-          old_nodes: [],
           new_nodes: [],
+          old_nodes: [],
           resource_spec: {
-            spec_id: 0,
             count: 0,
+            spec_id: 0,
           },
         });
       }
       return Promise.resolve({
-        old_nodes: nodeList.value.map((nodeItem) => ({
-          bk_host_id: nodeItem.bk_host_id,
-          ip: nodeItem.ip,
-          bk_cloud_id: nodeItem.bk_cloud_id,
-        })),
         new_nodes: hostList.value.map((hostItem) => ({
+          bk_cloud_id: hostItem.cloud_id,
           bk_host_id: hostItem.host_id,
           ip: hostItem.ip,
-          bk_cloud_id: hostItem.cloud_id,
+        })),
+        old_nodes: nodeList.value.map((nodeItem) => ({
+          bk_cloud_id: nodeItem.bk_cloud_id,
+          bk_host_id: nodeItem.bk_host_id,
+          ip: nodeItem.ip,
         })),
         resource_spec: {
           ...resourceSpec.value,

@@ -21,8 +21,8 @@ export function generateSpiderSqlExecuteCloneData(ticketData: TicketModel<TendbC
     charset: details.charset,
     cluster_ids: details.cluster_ids,
     execute_objects: details.execute_objects,
-    ticket_mode: details.ticket_mode,
     path: details.path,
     remark: ticketData.remark,
+    ticket_mode: details.ticket_mode,
   });
 }

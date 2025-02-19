@@ -36,35 +36,35 @@
   const columns: InfoColumn[][] = [
     [
       {
-        label: t('集群名称'),
         key: 'cluster_name',
+        label: t('集群名称'),
       },
       {
-        label: t('所属DB模块'),
         key: 'db_module_name',
+        label: t('所属DB模块'),
       },
       {
-        label: t('管控区域'),
         key: 'bk_cloud_name',
+        label: t('管控区域'),
       },
     ],
     [
       {
-        label: t('主访问入口'),
         key: 'master_domain',
+        label: t('主访问入口'),
       },
       {
-        label: t('实例'),
         key: 'masters',
+        label: t('实例'),
         render: () => props.data.masters.map((item) => item.instance).join(','),
       },
       {
-        label: t('创建人'),
         key: 'creator',
+        label: t('创建人'),
       },
       {
-        label: t('创建时间'),
         key: 'create_at',
+        label: t('创建时间'),
       },
     ],
   ];

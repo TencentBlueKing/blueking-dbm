@@ -253,38 +253,38 @@
   const getSmartActionOffsetTarget = () => document.querySelector('.bk-form-content');
 
   const getDefaultformData = () => ({
-    ticket_type: isSingleType ? TicketTypes.SQLSERVER_SINGLE_APPLY : TicketTypes.SQLSERVER_HA_APPLY,
-    remark: '',
+    bk_biz_id: currentBizId,
     details: {
-      db_app_abbr: '', // 业务 Code
       bk_cloud_id: 0,
       city_code: '',
-      db_module_id: null as null | number,
       cluster_count: 1,
-      inst_num: 1,
+      db_app_abbr: '', // 业务 Code
+      db_module_id: null as null | number,
+      disaster_tolerance_level: '', // 容灾
       domains: [{ key: '' }],
+      inst_num: 1,
       ip_source: 'resource_pool',
       nodes: {
         backend: [] as HostInfo[],
       },
       resource_spec: {
         backend_group: {
-          spec_id: '',
-          spec_name: '',
           // spec_cluster_type: 'mysql',
           // spec_machine_type: 'backend',
           affinity: '',
+          count: 0,
           location_spec: {
             city: '', // 城市
             sub_zone_ids: [],
           },
-          count: 0,
+          spec_id: '',
+          spec_name: '',
         },
       },
       start_mssql_port: 48322, // SQLServer起始端口
-      disaster_tolerance_level: '', // 容灾
     },
-    bk_biz_id: currentBizId,
+    remark: '',
+    ticket_type: isSingleType ? TicketTypes.SQLSERVER_SINGLE_APPLY : TicketTypes.SQLSERVER_HA_APPLY,
   });
 
   const formRef = ref();
@@ -338,10 +338,10 @@
    */
   const previewNodes = computed(() =>
     formData.details.nodes.backend.map((host) => ({
-      ip: host.ip,
-      bk_host_id: host.host_id,
-      bk_cloud_id: host.cloud_id,
       bk_biz_id: host.biz.id,
+      bk_cloud_id: host.cloud_id,
+      bk_host_id: host.host_id,
+      ip: host.ip,
     })),
   );
 
@@ -353,26 +353,26 @@
   });
 
   const previewData = computed(() => {
-    const { dbVersion, charset } = moduleLevelConfig.value;
+    const { charset, dbVersion } = moduleLevelConfig.value;
     return tableData.value.reduce(
       (accumulator, { key }) => [
         ...accumulator,
         {
+          charset,
+          deployStructure: isSingleType ? t('单节点部署') : t('主从部署'),
+          disasterDefence: t('同城跨园区'),
           domain: `${moduleAliasName.value}db.${key}.${formData.details.db_app_abbr}.db`,
           slaveDomain: `${moduleAliasName.value}db.${key}.${formData.details.db_app_abbr}.db`,
-          disasterDefence: t('同城跨园区'),
-          deployStructure: isSingleType ? t('单节点部署') : t('主从部署'),
           version: dbVersion,
-          charset,
         },
       ],
       [] as {
+        charset: string;
+        deployStructure: string;
+        disasterDefence: string;
         domain: string;
         slaveDomain: string;
-        disasterDefence: string;
-        deployStructure: string;
         version: string;
-        charset: string;
       }[],
     );
   });
@@ -400,7 +400,7 @@
   );
 
   const backendHost = (hostList: Array<HostInfo>) =>
-    hostList.length !== hostNums.value ? t('xx共需n台', { title: 'Master / Slave', n: hostNums.value }) : false;
+    hostList.length !== hostNums.value ? t('xx共需n台', { n: hostNums.value, title: 'Master / Slave' }) : false;
 
   // 只能选择 module 配置中对应操作系统版本的机器
   const disableHostMethod = (data: HostInfo) => {
@@ -438,10 +438,10 @@
 
   const formatNodes = (hosts: HostInfo[]) =>
     hosts.map((host) => ({
-      ip: host.ip,
-      bk_host_id: host.host_id,
-      bk_cloud_id: host.cloud_id,
       bk_biz_id: host.biz.id,
+      bk_cloud_id: host.cloud_id,
+      bk_host_id: host.host_id,
+      ip: host.ip,
     }));
 
   /**
@@ -461,14 +461,14 @@
             backend_group: {
               spec_id: details.resource_spec.backend_group.spec_id,
               ...specBackendRef.value!.getData(),
-              spec_cluster_type: clusterType,
-              spec_machine_type: clusterType,
               affinity: details.disaster_tolerance_level,
+              count: resourceSpecbackendGroupCount.value,
               location_spec: {
                 city: cityCode,
                 sub_zone_ids: [],
               },
-              count: resourceSpecbackendGroupCount.value,
+              spec_cluster_type: clusterType,
+              spec_machine_type: clusterType,
             },
           },
         };
@@ -476,10 +476,10 @@
 
       return {
         ...details,
-        resource_spec: undefined,
         nodes: {
           [clusterType]: formatNodes(details.nodes.backend),
         },
+        resource_spec: undefined,
       };
     };
     const params = {
@@ -495,9 +495,8 @@
    */
   const handleResetFormdata = () => {
     InfoBox({
-      title: t('确认重置表单内容'),
-      content: t('重置后_将会清空当前填写的内容'),
       cancelText: t('取消'),
+      content: t('重置后_将会清空当前填写的内容'),
       onConfirm: () => {
         Object.assign(formData, getDefaultformData());
         nextTick(() => {
@@ -505,6 +504,7 @@
         });
         return true;
       },
+      title: t('确认重置表单内容'),
     });
   };
 

@@ -99,20 +99,20 @@
   };
 
   useTicketCloneInfo({
-    type: TicketTypes.SQLSERVER_DBRENAME,
     onSuccess(cloneData) {
       tableData.value = cloneData.map((item) =>
         createRowData({
           clusterData: {
-            id: item.cluster.id,
-            domain: item.cluster.immute_domain,
             cloudId: item.cluster.bk_cloud_id,
+            domain: item.cluster.immute_domain,
+            id: item.cluster.id,
           },
           fromDatabase: item.from_database,
           toDatabase: item.to_database,
         }),
       );
     },
+    type: TicketTypes.SQLSERVER_DBRENAME,
   });
 
   // 批量选择
@@ -127,9 +127,9 @@
     const newList = list.reduce((result, item) => {
       const row = createRowData({
         clusterData: {
-          id: item.id,
-          domain: item.master_domain,
           cloudId: item.bk_cloud_id,
+          domain: item.master_domain,
+          id: item.id,
         },
       });
       result.push(row);
@@ -162,12 +162,12 @@
     Promise.all(rowRefs.value!.map((item) => item.getValue()))
       .then((data) =>
         createTicket({
-          ticket_type: TicketTypes.SQLSERVER_DBRENAME,
-          remark: '',
+          bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
           details: {
             infos: data,
           },
-          bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+          remark: '',
+          ticket_type: TicketTypes.SQLSERVER_DBRENAME,
         }),
       )
       .then((data) => {

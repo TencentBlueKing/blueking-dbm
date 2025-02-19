@@ -23,13 +23,13 @@
     const colorMap = {
       [TicketModel.STATUS_APPROVE]: '#DAE9FD',
       [TicketModel.STATUS_FAILED]: '#EA3636',
+      [TicketModel.STATUS_INNER_TODO]: '#FDEED8',
       [TicketModel.STATUS_RESOURCE_REPLENISH]: '#DFF5FD',
       [TicketModel.STATUS_RUNNING]: '#E1ECFF',
       [TicketModel.STATUS_SUCCEEDED]: '#DAF6E5',
       [TicketModel.STATUS_TERMINATED]: '#FFEBEB',
       [TicketModel.STATUS_TIMER]: '#C8E8E6',
       [TicketModel.STATUS_TODO]: '#F0F1F5',
-      [TicketModel.STATUS_INNER_TODO]: '#FDEED8',
     };
 
     return colorMap[props.data.status] || '#f0f1f5';
@@ -39,13 +39,13 @@
     const colorMap = {
       [TicketModel.STATUS_APPROVE]: '#267BCF',
       [TicketModel.STATUS_FAILED]: '#FFFFFF',
+      [TicketModel.STATUS_INNER_TODO]: '#E38B02',
       [TicketModel.STATUS_RESOURCE_REPLENISH]: '#2F96A7',
       [TicketModel.STATUS_RUNNING]: '#1768EF',
       [TicketModel.STATUS_SUCCEEDED]: '#299E56',
       [TicketModel.STATUS_TERMINATED]: '#E71818',
       [TicketModel.STATUS_TIMER]: '#3F726F',
       [TicketModel.STATUS_TODO]: '#4D4F56',
-      [TicketModel.STATUS_INNER_TODO]: '#E38B02',
     };
 
     return colorMap[props.data.status] || '#63656e';

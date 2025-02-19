@@ -20,19 +20,19 @@ import { getSearchSelectorParams } from '@utils';
  * 处理集群列表数据
  */
 export function useClusterData<T>(searchSelectValue: Ref<ISearchValue[]>) {
-  const currentInstance = getCurrentInstance() as ComponentInternalInstance & {
+  const currentInstance = getCurrentInstance() as {
     proxy: {
       activeTab: string;
       getResourceList: (params: any) => Promise<any>;
     };
-  };
+  } & ComponentInternalInstance;
 
   const isLoading = ref(false);
   const tableData = shallowRef<T[]>([]);
   const isAnomalies = ref(false);
   const pagination = reactive({
-    current: 1,
     count: 0,
+    current: 1,
     limit: 10,
     limitList: [10, 20, 50, 100, 500],
     small: true,
@@ -46,8 +46,8 @@ export function useClusterData<T>(searchSelectValue: Ref<ISearchValue[]>) {
       });
     },
     {
-      immediate: true,
       deep: true,
+      immediate: true,
     },
   );
 
@@ -89,13 +89,13 @@ export function useClusterData<T>(searchSelectValue: Ref<ISearchValue[]>) {
   };
 
   return {
-    isLoading,
     data: tableData,
-    pagination,
-    isAnomalies,
-    searchSelectValue,
     fetchResources,
-    handleChangePage,
     handeChangeLimit,
+    handleChangePage,
+    isAnomalies,
+    isLoading,
+    pagination,
+    searchSelectValue,
   };
 }

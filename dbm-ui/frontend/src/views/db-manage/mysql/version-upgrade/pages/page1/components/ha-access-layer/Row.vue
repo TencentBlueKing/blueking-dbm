@@ -50,21 +50,21 @@
   import RenderTargetVersion from './RenderTargetVersion.vue';
 
   export interface IDataRow {
-    rowKey: string;
-    isLoading: boolean;
     clusterData?: {
-      domain: string;
       clusterId: number;
       clusterType: string;
       currentVersion: string;
+      domain: string;
     };
+    isLoading: boolean;
+    rowKey: string;
     targetVersion?: string;
   }
 
   // 创建表格数据
   export const createRowData = (data?: Omit<IDataRow, 'rowKey' | 'isLoading'>): IDataRow => ({
-    rowKey: random(),
     isLoading: false,
+    rowKey: random(),
     ...data,
   });
 
@@ -97,8 +97,8 @@
   const clusterInfo = computed(() => {
     if (props.data.clusterData) {
       return {
-        id: props.data.clusterData.clusterId,
         domain: props.data.clusterData.domain,
+        id: props.data.clusterData.clusterId,
       };
     }
     return undefined;

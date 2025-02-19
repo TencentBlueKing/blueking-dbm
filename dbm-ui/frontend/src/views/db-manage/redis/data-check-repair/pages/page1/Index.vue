@@ -176,9 +176,8 @@
 
   // 单据克隆
   useTicketCloneInfo({
-    type: TicketTypes.REDIS_DATACOPY_CHECK_REPAIR,
     onSuccess(cloneData) {
-      const { tableList, executeType, executeTime, stopTime, isKeepCheck, isRepairEnable, repairType } = cloneData;
+      const { executeTime, executeType, isKeepCheck, isRepairEnable, repairType, stopTime, tableList } = cloneData;
 
       tableData.value = tableList;
       executeMode.value = executeType;
@@ -190,6 +189,7 @@
       remark.value = cloneData.remark;
       window.changeConfirm = true;
     },
+    type: TicketTypes.REDIS_DATACOPY_CHECK_REPAIR,
   });
 
   // TODO:
@@ -217,12 +217,12 @@
     tableData.value = [
       {
         billId: item.bill_id,
+        excludeKey: item.key_black_regex === '' ? [] : item.key_black_regex.split('\n'),
+        includeKey: item.key_white_regex === '' ? [] : item.key_white_regex.split('\n'),
+        instances: t('全部'),
+        relateTicket: item.bill_id,
         srcCluster: item.src_cluster,
         targetCluster: item.dst_cluster,
-        relateTicket: item.bill_id,
-        instances: t('全部'),
-        includeKey: item.key_white_regex === '' ? [] : item.key_white_regex.split('\n'),
-        excludeKey: item.key_black_regex === '' ? [] : item.key_black_regex.split('\n'),
       },
     ];
     setTimeout(() => {
@@ -236,22 +236,20 @@
     const infos = (await tableRef.value.getValue()) as InfoItem[];
     const params = {
       bk_biz_id: currentBizId,
-      ticket_type: TicketTypes.REDIS_DATACOPY_CHECK_REPAIR,
-      remark: remark.value,
       details: {
+        check_stop_time: isKeepCheckAndRepair.value ? '' : formatDatetime(specifyStopTime.value),
+        data_repair_enabled: isRepairData.value,
         execute_mode: executeMode.value,
+        infos,
+        keep_check_and_repair: isKeepCheckAndRepair.value,
+        repair_mode: repairMode.value,
         specified_execution_time:
           executeMode.value === ExecuteModes.SCHEDULED_EXECUTION ? formatDatetime(specifyExecuteTime.value) : '',
-        check_stop_time: isKeepCheckAndRepair.value ? '' : formatDatetime(specifyStopTime.value),
-        keep_check_and_repair: isKeepCheckAndRepair.value,
-        data_repair_enabled: isRepairData.value,
-        repair_mode: repairMode.value,
-        infos,
       },
+      remark: remark.value,
+      ticket_type: TicketTypes.REDIS_DATACOPY_CHECK_REPAIR,
     };
     InfoBox({
-      title: t('确认提交数据校验修复任务？'),
-      width: 480,
       onConfirm: () => {
         isSubmitting.value = true;
         createTicket(params)
@@ -271,6 +269,8 @@
             isSubmitting.value = false;
           });
       },
+      title: t('确认提交数据校验修复任务？'),
+      width: 480,
     });
   };
 

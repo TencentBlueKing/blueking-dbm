@@ -145,8 +145,8 @@
   }
 
   interface Exposes {
-    submit: () => Promise<any>;
     cancel: () => Promise<any>;
+    submit: () => Promise<any>;
   }
 
   const props = defineProps<Props>();
@@ -171,70 +171,70 @@
 
   const ipSource = ref('resource_pool');
   const nodeInfoMap = reactive<Record<string, TReplaceNode>>({
-    hot: {
+    client: {
       clusterId: props.data.id,
-      role: 'es_datanode_hot',
-      nodeList: [],
       hostList: [],
-      specClusterType: ClusterTypes.ES,
-      specMachineType: 'es_datanode',
+      nodeList: [],
       resourceSpec: {
-        spec_id: 0,
         count: 0,
         instance_num: 1,
+        spec_id: 0,
       },
+      role: 'es_client',
+      specClusterType: ClusterTypes.ES,
+      specMachineType: 'es_client',
     },
     cold: {
       clusterId: props.data.id,
-      role: 'es_datanode_cold',
-      nodeList: [],
       hostList: [],
+      nodeList: [],
+      resourceSpec: {
+        count: 0,
+        instance_num: 1,
+        spec_id: 0,
+      },
+      role: 'es_datanode_cold',
       specClusterType: ClusterTypes.ES,
       specMachineType: 'es_datanode',
-      resourceSpec: {
-        spec_id: 0,
-        count: 0,
-        instance_num: 1,
-      },
     },
-    client: {
+    hot: {
       clusterId: props.data.id,
-      role: 'es_client',
-      nodeList: [],
       hostList: [],
-      specClusterType: ClusterTypes.ES,
-      specMachineType: 'es_client',
+      nodeList: [],
       resourceSpec: {
-        spec_id: 0,
         count: 0,
         instance_num: 1,
+        spec_id: 0,
       },
+      role: 'es_datanode_hot',
+      specClusterType: ClusterTypes.ES,
+      specMachineType: 'es_datanode',
     },
     master: {
       clusterId: props.data.id,
-      role: 'es_master',
-      nodeList: [],
       hostList: [],
-      specClusterType: ClusterTypes.ES,
-      specMachineType: 'es_master',
+      nodeList: [],
       resourceSpec: {
-        spec_id: 0,
         count: 0,
         instance_num: 1,
+        spec_id: 0,
       },
+      role: 'es_master',
+      specClusterType: ClusterTypes.ES,
+      specMachineType: 'es_master',
     },
   });
 
   const isEmpty = computed(() => {
-    const { hot, cold, client, master } = nodeInfoMap;
+    const { client, cold, hot, master } = nodeInfoMap;
     return (
       hot.nodeList.length < 1 && cold.nodeList.length < 1 && client.nodeList.length < 1 && master.nodeList.length < 1
     );
   });
 
   const disableTipsMap = {
-    cold: t('主机已被冷节点使用'),
     client: t('主机已被 Client 节点使用'),
+    cold: t('主机已被冷节点使用'),
     hot: t('主机已被热节点使用'),
     master: t('主机已被 Master 节点使用'),
   };
@@ -288,6 +288,9 @@
   };
 
   defineExpose<Exposes>({
+    cancel() {
+      return Promise.resolve();
+    },
     submit() {
       return new Promise((resolve, reject) => {
         if (isEmpty.value) {
@@ -339,62 +342,59 @@
             };
 
             InfoBox({
-              title: t('确认替换n台节点IP', { n: getReplaceNodeNums() }),
-              subTitle: t('替换后原节点 IP 将不在可用，资源将会被释放'),
-              confirmText: t('确认'),
               cancelText: t('取消'),
-              headerAlign: 'center',
+              confirmText: t('确认'),
               contentAlign: 'center',
               footerAlign: 'center',
+              headerAlign: 'center',
               onCancel: () => reject(),
               onConfirm: () => {
                 const nodeData = {};
                 if (ipSource.value === 'manual_input') {
                   Object.assign(nodeData, {
                     new_nodes: {
-                      hot: hotValue.new_nodes,
-                      cold: coldValue.new_nodes,
                       client: clientValue.new_nodes,
+                      cold: coldValue.new_nodes,
+                      hot: hotValue.new_nodes,
                       master: masterValue.new_nodes,
                     },
                   });
                 } else {
                   Object.assign(nodeData, {
                     resource_spec: {
-                      hot: hotValue.resource_spec,
-                      cold: coldValue.resource_spec,
                       client: clientValue.resource_spec,
+                      cold: coldValue.resource_spec,
+                      hot: hotValue.resource_spec,
                       master: masterValue.resource_spec,
                     },
                   });
                 }
                 createTicket({
-                  ticket_type: 'ES_REPLACE',
                   bk_biz_id: currentBizId,
                   details: {
                     cluster_id: props.data.id,
                     ip_source: ipSource.value,
                     old_nodes: {
-                      hot: hotValue.old_nodes,
-                      cold: coldValue.old_nodes,
                       client: clientValue.old_nodes,
+                      cold: coldValue.old_nodes,
+                      hot: hotValue.old_nodes,
                       master: masterValue.old_nodes,
                     },
                     ...nodeData,
                   },
+                  ticket_type: 'ES_REPLACE',
                 }).then(() => {
                   emits('change');
                   resolve('success');
                 });
               },
+              subTitle: t('替换后原节点 IP 将不在可用，资源将会被释放'),
+              title: t('确认替换n台节点IP', { n: getReplaceNodeNums() }),
             });
           },
           () => reject('error'),
         );
       });
-    },
-    cancel() {
-      return Promise.resolve();
     },
   });
 </script>

@@ -22,15 +22,15 @@ export function generateMysqlRestoreLocalSlaveCloneData(ticketData: TicketModel<
     slave: {
       bkCloudId: item.slave.bk_cloud_id,
       bkHostId: item.slave.bk_host_id,
+      clusterId: item.cluster_id,
+      instanceAddress: `${item.slave.ip}:${item.slave.port}`,
       ip: item.slave.ip,
       port: item.slave.port,
-      instanceAddress: `${item.slave.ip}:${item.slave.port}`,
-      clusterId: item.cluster_id,
     },
   }));
   return Promise.resolve({
     backupType: ticketData.details.backup_source,
-    tableDataList,
     remark: ticketData.remark,
+    tableDataList,
   });
 }

@@ -1,8 +1,8 @@
 export default class DeployPlan {
   capacity: number;
   cluster_type: string;
-  creator: string;
   create_at: string;
+  creator: string;
   desc: string;
   id: number;
   is_refer: boolean;
@@ -10,8 +10,8 @@ export default class DeployPlan {
   name: string;
   shard_cnt: number;
   spec: number;
-  updater: string;
   update_at: string;
+  updater: string;
 
   constructor(payload = {} as DeployPlan) {
     this.capacity = payload.capacity;

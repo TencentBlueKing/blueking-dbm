@@ -90,17 +90,20 @@
 
   import { useTimeoutPoll } from '@vueuse/core';
 
-  type InstanceModel = EsInstanceModel | HdfsInstanceModel | KafkaInstanceModel | PulsarInstanceModel | DorisInstanceModel
+  type InstanceModel =
+    | EsInstanceModel
+    | HdfsInstanceModel
+    | KafkaInstanceModel
+    | PulsarInstanceModel
+    | DorisInstanceModel;
 
   interface Props {
-    clusterId: number,
-    clusterType: ClusterTypes.ES | ClusterTypes.HDFS | ClusterTypes.KAFKA | ClusterTypes.PULSAR | ClusterTypes.DORIS
-    data: T,
+    clusterId: number;
+    clusterType: ClusterTypes.ES | ClusterTypes.HDFS | ClusterTypes.KAFKA | ClusterTypes.PULSAR | ClusterTypes.DORIS;
+    data: T;
   }
 
-  interface Emits {
-    (e: 'close'): void
-  }
+  type Emits = (e: 'close') => void;
 
   const props = defineProps<Props>();
   const emits = defineEmits<Emits>();
@@ -122,101 +125,103 @@
 
   const isBatchRestartDisabled = computed(() => Object.keys(batchSelectNodeMap.value).length === 0);
   const isIndeterminate = computed(() => !isSelectedAll.value && Object.keys(batchSelectNodeMap.value).length > 0);
-  const mainSelectDisable = computed(() => tableData.value.every(tableItem => tableItem.operationRunningStatus));
+  const mainSelectDisable = computed(() => tableData.value.every((tableItem) => tableItem.operationRunningStatus));
 
   const infoColumns: InfoColumn[][] = [
     [
       {
-        label: t('节点IP'),
         key: 'ip',
+        label: t('节点IP'),
       },
       {
-        label: t('主机名称'),
         key: 'bk_host_name',
+        label: t('主机名称'),
       },
       {
-        label: t('Agent状态'),
         key: 'status',
-        render: () => <RenderHostStatus data={props.data.status} />
+        label: t('Agent状态'),
+        render: () => <RenderHostStatus data={props.data.status} />,
       },
     ],
     [
       {
-        label: t('类型'),
         key: 'roleLabel',
+        label: t('类型'),
       },
       {
-        label: t('实例数量'),
         key: 'node_num',
+        label: t('实例数量'),
       },
       {
-        label: t('内存'),
         key: 'memText',
+        label: t('内存'),
       },
     ],
-  ]
+  ];
 
   const tableColumns = [
     {
-      width: 60,
       label: () => (
         <bk-checkbox
-          model-value={isSelectedAll.value}
-          indeterminate={isIndeterminate.value}
           disabled={mainSelectDisable.value}
+          indeterminate={isIndeterminate.value}
           label={true}
+          model-value={isSelectedAll.value}
           onChange={handleSelectAll}
         />
       ),
       render: ({ data }: { data: InstanceModel }) => (
         <bk-popover
-          theme="dark"
-          placement="top">
+          placement='top'
+          theme='dark'>
           {{
+            content: () => <span>{t('实例正在重启中，不能勾选')}</span>,
             default: () => (
               <bk-checkbox
-                style="vertical-align: middle;"
-                model-value={Boolean(batchSelectNodeMap.value[data.id])}
-                label={true}
                 disabled={Boolean(data.operationRunningStatus)}
+                label={true}
+                model-value={Boolean(batchSelectNodeMap.value[data.id])}
+                style='vertical-align: middle;'
                 onChange={(value: boolean) => handleSelectRow(data, value)}
               />
             ),
-            content: () => <span>{t('实例正在重启中，不能勾选')}</span>,
           }}
         </bk-popover>
-      )
+      ),
+      width: 60,
     },
     {
-      label: t('实例'),
       field: 'instance_address',
+      label: t('实例'),
       render: ({ data }: { data: InstanceModel }) => (
         <div>
           <span>{data.instance_address || '--'}</span>
-          {
-            data.operationTagTips.map(item => <RenderOperationTag class="ml-4" data={item}/>)
-          }
+          {data.operationTagTips.map((item) => (
+            <RenderOperationTag
+              class='ml-4'
+              data={item}
+            />
+          ))}
         </div>
       ),
     },
     {
-      label: t('实例状态'),
       field: 'status',
+      label: t('实例状态'),
       render: ({ data }: { data: InstanceModel }) => (
         <>
-          {
-            data.operationRunningStatus
-            ? (
-              <div class='loading-box'>
-                <db-icon
-                  class="rotate-loading mr-4"
-                  type='loading'
-                  svg />
-                <div>{ t('重启中') }</div>
-              </div>
-            )
-            : <RenderInstanceStatus data={data.status} />
-          }
+          {data.operationRunningStatus ? (
+            <div class='loading-box'>
+              <db-icon
+                class='rotate-loading mr-4'
+                type='loading'
+                svg
+              />
+              <div>{t('重启中')}</div>
+            </div>
+          ) : (
+            <RenderInstanceStatus data={data.status} />
+          )}
         </>
       ),
     },
@@ -226,30 +231,30 @@
     },
     {
       label: t('操作'),
-      width: 116,
       render: ({ data }: { data: InstanceModel }) => (
         <OperationBtnStatusTips data={data}>
           <bk-button
-            theme="primary"
-            text
             disabled={data.operationDisabled || isRestartActionDisabled.value}
+            theme='primary'
+            text
             onClick={() => handleRestart(data)}>
-            { t('重启') }
+            {t('重启')}
           </bk-button>
         </OperationBtnStatusTips>
       ),
+      width: 116,
     },
   ];
 
   const fetchData = () => {
     isLoading.value = true;
     const apiMap = {
+      doris: getDorisInstanceList,
       es: getEsInstanceList,
       hdfs: getHdfsInstanceList,
       kafka: getKafkaInstanceList,
       pulsar: getPulsarInstanceList,
-      doris: getDorisInstanceList,
-    }
+    };
     apiMap[props.clusterType]({
       bk_biz_id: currentBizId,
       cluster_id: props.clusterId,
@@ -272,10 +277,13 @@
     immediate: true,
   });
 
-  watch(() => props.data, () => {
-    isSelectedAll.value = false
-    batchSelectNodeMap.value = {}
-  })
+  watch(
+    () => props.data,
+    () => {
+      isSelectedAll.value = false;
+      batchSelectNodeMap.value = {};
+    },
+  );
 
   // 选择单台
   const handleSelectRow = (data: InstanceModel, value: boolean) => {
@@ -288,10 +296,13 @@
 
     batchSelectNodeMap.value = selectNodeMap;
 
-    if (Object.keys(selectNodeMap).length === tableData.value.filter(tableItem => !tableItem.operationRunningStatus).length) {
-      isSelectedAll.value = true
+    if (
+      Object.keys(selectNodeMap).length ===
+      tableData.value.filter((tableItem) => !tableItem.operationRunningStatus).length
+    ) {
+      isSelectedAll.value = true;
     } else {
-      isSelectedAll.value = false
+      isSelectedAll.value = false;
     }
   };
 
@@ -301,31 +312,32 @@
     if (value) {
       selectNodeMap = tableData.value.reduce((result, item) => {
         if (item.operationRunningStatus) {
-          return result
+          return result;
         }
         return {
           ...result,
           [item.id]: item,
-        }
+        };
       }, {});
     } else {
       selectNodeMap = {};
     }
     batchSelectNodeMap.value = selectNodeMap;
-    isSelectedAll.value = value
+    isSelectedAll.value = value;
   };
 
-  const formatRequestData = (data: Array<InstanceModel>) => data.map((item) => {
-    const [ip, port] = item.instance_address.split(':');
-    return ({
-      ip,
-      port: Number(port),
-      instance_name: item.instance_name,
-      bk_host_id: item.bk_host_id,
-      bk_cloud_id: item.bk_cloud_id,
-      instance_id: item.id,
+  const formatRequestData = (data: Array<InstanceModel>) =>
+    data.map((item) => {
+      const [ip, port] = item.instance_address.split(':');
+      return {
+        bk_cloud_id: item.bk_cloud_id,
+        bk_host_id: item.bk_host_id,
+        instance_id: item.id,
+        instance_name: item.instance_name,
+        ip,
+        port: Number(port),
+      };
     });
-  });
 
   const handleRestart = (data?: InstanceModel) => {
     if (data) {
@@ -334,31 +346,29 @@
       isBatchRestartLoading.value = true;
     }
 
-    const instanceList = data ? [data] : Object.values(batchSelectNodeMap.value)
+    const instanceList = data ? [data] : Object.values(batchSelectNodeMap.value);
     const subTitle = (
-      <div style="background-color: #F5F7FA; padding: 8px 16px;">
+      <div style='background-color: #F5F7FA; padding: 8px 16px;'>
         <div class='tips-item'>
           {t('实例')} :
           <span
-            style="color: #313238"
-            class="ml-8">
-            {instanceList.map(instanceItem => instanceItem.instance_address)}
+            class='ml-8'
+            style='color: #313238'>
+            {instanceList.map((instanceItem) => instanceItem.instance_address)}
           </span>
         </div>
         <div class='mt-4'>{t('连接将会断开，请谨慎操作！')}</div>
       </div>
-    )
+    );
 
     InfoBox({
-      title: t('确认重启该实例？'),
-      subTitle,
-      infoType: 'warning',
-      confirmText: t('确认重启'),
       cancelText: t('取消'),
-      headerAlign: 'center',
+      confirmText: t('确认重启'),
       contentAlign: 'left',
-      footerAlign: 'center',
       extCls: 'bigdata-replace-model',
+      footerAlign: 'center',
+      headerAlign: 'center',
+      infoType: 'warning',
       onClose: () => {
         if (data) {
           isRestartLoading.value = false;
@@ -369,19 +379,19 @@
       onConfirm: () => {
         isRestartActionDisabled.value = true;
         const clusterTypeMap = {
+          doris: TicketTypes.DORIS_REBOOT,
           es: TicketTypes.ES_REBOOT,
           hdfs: TicketTypes.HDFS_REBOOT,
           kafka: TicketTypes.KAFKA_REBOOT,
           pulsar: TicketTypes.PULSAR_REBOOT,
-          doris: TicketTypes.DORIS_REBOOT,
-        }
+        };
         createTicket({
           bk_biz_id: currentBizId,
-          ticket_type: clusterTypeMap[props.clusterType],
           details: {
             cluster_id: props.clusterId,
             instance_list: formatRequestData(instanceList),
           },
+          ticket_type: clusterTypeMap[props.clusterType],
         })
           .then((data) => {
             ticketMessage(data.id);
@@ -398,6 +408,8 @@
             }
           });
       },
+      subTitle,
+      title: t('确认重启该实例？'),
     });
   };
 </script>

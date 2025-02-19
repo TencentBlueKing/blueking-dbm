@@ -17,23 +17,23 @@ import { random } from '@utils';
 
 // Spider flashback
 export function generateSpiderFlashbackCloneData(ticketData: TicketModel<TendbCluster.FlashBack>) {
-  const { infos, clusters } = ticketData.details;
+  const { clusters, infos } = ticketData.details;
   const tableDataList = infos.map((item) => {
     const clusterItem = clusters[item.cluster_id];
     return {
-      rowKey: random(),
-      isLoading: false,
       clusterData: {
-        id: clusterItem.id,
         domain: clusterItem.immute_domain,
+        id: clusterItem.id,
       },
       databases: item.databases,
       databasesIgnore: item.databases_ignore,
       directWriteBack: item.direct_write_back,
       endTime: item.end_time,
+      isLoading: false,
       message: item.message,
       mysqlbinlogRollback: item.mysqlbinlog_rollback,
       recoredFile: item.recored_file,
+      rowKey: random(),
       rowsFilter: item.rows_filter,
       startTime: item.start_time,
       tables: item.tables,
@@ -42,11 +42,11 @@ export function generateSpiderFlashbackCloneData(ticketData: TicketModel<TendbCl
   });
 
   return Promise.resolve({
-    tableDataList,
-    remark: ticketData.remark,
     flashbackType: ticketData.details.flashback_type,
     force: ticketData.details.force,
     id: ticketData.id,
+    remark: ticketData.remark,
+    tableDataList,
     ticketType: ticketData.ticket_type,
   });
 }

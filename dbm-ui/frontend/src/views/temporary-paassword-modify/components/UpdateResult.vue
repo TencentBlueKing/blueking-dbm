@@ -184,7 +184,7 @@
        * FAILED: 失败态
        * REVOKED: 取消态
        */
-      if (['FINISHED', 'FAILED', 'REVOKED'].includes(data.status)) {
+      if (['FAILED', 'FINISHED', 'REVOKED'].includes(data.status)) {
         pause();
       } else if (!isActive.value) {
         resume();
@@ -202,7 +202,7 @@
   });
 
   // 轮询
-  const { isActive, resume, pause } = useTimeoutPoll(() => {
+  const { isActive, pause, resume } = useTimeoutPoll(() => {
     queryAsyncModifyResultRun({
       root_id: props.rootId,
     });

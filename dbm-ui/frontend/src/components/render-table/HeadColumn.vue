@@ -51,11 +51,11 @@
   import { renderTablekey } from './Index.vue';
 
   interface Props {
-    width?: number;
-    required?: boolean;
-    minWidth?: number;
-    maxWidth?: number;
     fixed?: 'right' | 'left';
+    maxWidth?: number;
+    minWidth?: number;
+    required?: boolean;
+    width?: number;
   }
 
   interface Slots {
@@ -64,16 +64,16 @@
   }
 
   const props = withDefaults(defineProps<Props>(), {
-    width: undefined,
-    required: true,
-    minWidth: undefined,
-    maxWidth: undefined,
     fixed: undefined,
+    maxWidth: undefined,
+    minWidth: undefined,
+    required: true,
+    width: undefined,
   });
 
   const slots = defineSlots<Slots>();
 
-  const { rowWidth, isOverflow: isMinimize, isScrollToLeft, isScrollToRight } = inject(renderTablekey)!;
+  const { isOverflow: isMinimize, isScrollToLeft, isScrollToRight, rowWidth } = inject(renderTablekey)!;
   const parentTable = inject('toolboxRenderTableKey', {} as any);
 
   const columnRef = ref();
@@ -94,7 +94,6 @@
         // 宽度变化了
         let width = 0;
         if (isMinimize?.value) {
-          // eslint-disable-next-line max-len
           if (
             currentWidth.value !== 0 &&
             (currentWidth.value !== finalMinWidth.value || currentWidth.value !== props.width)

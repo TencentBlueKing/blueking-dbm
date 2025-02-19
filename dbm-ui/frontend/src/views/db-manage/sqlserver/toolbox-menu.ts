@@ -14,100 +14,100 @@
 import { t } from '@locales/index';
 
 export interface MenuChild {
-  name: string;
   id: string;
+  name: string;
   parentId: string;
 }
 
 export default [
   {
-    name: t('SQL任务'),
-    id: 'sql',
-    icon: 'db-icon-mysql',
     children: [
       {
-        name: t('变更SQL执行'),
         id: 'sqlServerExecute',
+        name: t('变更SQL执行'),
         parentId: 'sql',
       },
       {
-        name: t('DB重命名'),
         id: 'sqlServerDBRename',
+        name: t('DB重命名'),
         parentId: 'sql',
       },
     ],
+    icon: 'db-icon-mysql',
+    id: 'sql',
+    name: t('SQL任务'),
   },
   {
-    name: t('备份'),
-    id: 'copy',
-    icon: 'db-icon-copy',
     children: [
       {
-        name: t('库表备份'),
         id: 'SqlServerDbBackup',
+        name: t('库表备份'),
         parentId: 'copy',
       },
     ],
+    icon: 'db-icon-copy',
+    id: 'copy',
+    name: t('备份'),
   },
   {
-    name: t('回档'),
-    id: 'fileback',
-    icon: 'db-icon-rollback',
     children: [
       {
-        name: t('定点构造'),
         id: 'sqlServerDBRollback',
+        name: t('定点构造'),
         parentId: 'fileback',
       },
     ],
+    icon: 'db-icon-rollback',
+    id: 'fileback',
+    name: t('回档'),
   },
   {
-    name: t('集群维护'),
-    id: 'migrate',
-    icon: 'db-icon-cluster',
     children: [
       {
-        name: t('重建从库'),
         id: 'sqlServerSlaveRebuild',
+        name: t('重建从库'),
         parentId: 'migrate',
       },
       {
-        name: t('添加从库'),
         id: 'sqlServerSlaveAdd',
+        name: t('添加从库'),
         parentId: 'migrate',
       },
       {
-        name: t('主从互切'),
         id: 'sqlServerMasterSlaveSwap',
+        name: t('主从互切'),
         parentId: 'migrate',
       },
       {
-        name: t('主库故障切换'),
         id: 'sqlServerMasterFailover',
+        name: t('主库故障切换'),
         parentId: 'migrate',
       },
     ],
+    icon: 'db-icon-cluster',
+    id: 'migrate',
+    name: t('集群维护'),
   },
   {
-    name: t('数据处理'),
-    id: 'data',
-    icon: 'db-icon-data',
     children: [
       {
-        name: t('数据迁移'),
         id: 'sqlServerDataMigrate',
+        name: t('数据迁移'),
         parentId: 'data',
       },
       {
-        name: t('迁移记录'),
         id: 'sqlServerDataMigrateRecord',
+        name: t('迁移记录'),
         parentId: 'data',
       },
       {
-        name: t('清档'),
         id: 'sqlServerDBClear',
+        name: t('清档'),
         parentId: 'data',
       },
     ],
+    icon: 'db-icon-data',
+    id: 'data',
+    name: t('数据处理'),
   },
 ];

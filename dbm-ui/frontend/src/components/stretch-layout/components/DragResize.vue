@@ -70,9 +70,9 @@
   });
 
   const emits = defineEmits<{
-    trigger: [isLeft: boolean];
     change: [leftWidth: number];
     open: [direction: string];
+    trigger: [isLeft: boolean];
   }>();
 
   const { t } = useI18n();

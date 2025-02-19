@@ -80,29 +80,29 @@
   import RenderTargetBusiness from './RenderTargetBusiness.vue';
 
   export interface IDataRow {
-    rowKey: string;
-    isLoading: boolean;
-    srcCluster: string;
-    srcClusterTypeName: string;
-    srcClusterId: number;
-    targetClusterId: number;
-    includeKey: string[];
     excludeKey: string[];
+    includeKey: string[];
+    isLoading: boolean;
+    rowKey: string;
+    srcCluster: string;
+    srcClusterId: number;
+    srcClusterTypeName: string;
     targetBusines?: number;
+    targetClusterId: number;
   }
 
   export type IDataRowBatchKey = keyof Pick<IDataRow, 'includeKey' | 'excludeKey'>;
 
   // 创建表格数据
   export const createRowData = (): IDataRow => ({
-    rowKey: random(),
-    isLoading: false,
-    srcCluster: '',
-    srcClusterTypeName: '',
-    srcClusterId: 0,
-    targetClusterId: 0,
-    includeKey: ['*'],
     excludeKey: [],
+    includeKey: ['*'],
+    isLoading: false,
+    rowKey: random(),
+    srcCluster: '',
+    srcClusterId: 0,
+    srcClusterTypeName: '',
+    targetClusterId: 0,
   });
 </script>
 <script setup lang="ts">
@@ -110,8 +110,8 @@
 
   interface Props {
     data: IDataRow;
-    removeable: boolean;
     inputedClusters?: string[];
+    removeable: boolean;
   }
   interface Emits {
     (e: 'add', params: Array<IDataRow>): void;
@@ -143,14 +143,14 @@
   const handleBusinessChange = async (bizId: number) => {
     const result = await getRedisListByBizId({
       bk_biz_id: bizId,
-      offset: 0,
       limit: -1,
+      offset: 0,
     });
     clusterList.value = result.results.reduce((results, item) => {
       if (item.master_domain !== props.data.srcCluster) {
         const obj = {
-          value: item.id,
           label: item.master_domain,
+          value: item.id,
         };
         results.push(obj);
       }
@@ -187,11 +187,11 @@
       );
       emits('clone', {
         ...props.data,
-        rowKey: random(),
-        targetClusterId,
-        targetBusines,
-        includeKey,
         excludeKey,
+        includeKey,
+        rowKey: random(),
+        targetBusines,
+        targetClusterId,
       });
     });
   };
@@ -202,11 +202,11 @@
       return await Promise.all(getRowData()).then((data) => {
         const [srcClusterId, targetBusines, targetClusterId, includeKey, excludeKey] = data;
         return {
-          src_cluster: srcClusterId,
-          dst_cluster: targetClusterId,
           dst_bk_biz_id: targetBusines,
-          key_white_regex: includeKey.join('\n'),
+          dst_cluster: targetClusterId,
           key_black_regex: excludeKey.join('\n'),
+          key_white_regex: includeKey.join('\n'),
+          src_cluster: srcClusterId,
         };
       });
     },

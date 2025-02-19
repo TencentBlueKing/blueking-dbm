@@ -50,8 +50,8 @@
   interface Props {
     data: {
       icon: string;
-      tip: string;
       ticketId: number;
+      tip: string;
     };
   }
 
@@ -80,22 +80,22 @@
         destroyInst();
         nextTick(() => {
           tippyIns = tippy(rootRef.value as SingleTarget, {
-            content: popRef.value.$el,
-            placement: 'top',
             appendTo: () => document.body,
-            theme: 'light',
-            maxWidth: 'none',
-            interactive: true,
             arrow: true,
-            offset: [0, 8],
-            zIndex: 999999,
+            content: popRef.value.$el,
             hideOnClick: true,
-            onShow() {
-              isShown.value = true;
-            },
+            interactive: true,
+            maxWidth: 'none',
+            offset: [0, 8],
             onHide() {
               isShown.value = false;
             },
+            onShow() {
+              isShown.value = true;
+            },
+            placement: 'top',
+            theme: 'light',
+            zIndex: 999999,
           });
         });
       }

@@ -53,45 +53,46 @@
   });
 
   const disabledTagMap = {
-    monitor: true,
     model: true,
+    monitor: true,
     msdb: true,
     tempdb: true,
   };
   const rules = [
     {
+      message: t('DB名不能为空'),
       validator: (value: string[]) => {
         tagMemo[instanceKey] = value;
         return value && value.length > 0;
       },
-      message: t('DB名不能为空'),
     },
     {
-      validator: (value: string[]) => !(value.includes('master') && value.length > 1),
       message: t('有 master 时只允许一个'),
+      validator: (value: string[]) => !(value.includes('master') && value.length > 1),
     },
     {
-      validator: (value: string[]) => _.every(value, (item) => !disabledTagMap[item as keyof typeof disabledTagMap]),
       message: t(`DB名不能支持 n`, { n: Object.keys(disabledTagMap).join(',') }),
+      validator: (value: string[]) => _.every(value, (item) => !disabledTagMap[item as keyof typeof disabledTagMap]),
     },
     {
-      validator: (value: string[]) => !_.some(value, (item) => /\*/.test(item) && item.length > 1),
       message: t('* 只能独立使用'),
+      validator: (value: string[]) => !_.some(value, (item) => /\*/.test(item) && item.length > 1),
     },
     {
-      validator: (value: string[]) => _.every(value, (item) => !/^%$/.test(item)),
       message: t('% 不允许单独使用'),
+      validator: (value: string[]) => _.every(value, (item) => !/^%$/.test(item)),
     },
     {
+      message: t('含通配符的单元格仅支持输入单个对象'),
       validator: (value: string[]) => {
         if (_.some(value, (item) => /[*%?]/.test(item))) {
           return value.length < 2;
         }
         return true;
       },
-      message: t('含通配符的单元格仅支持输入单个对象'),
     },
     {
+      message: t('DB名不允许重复'),
       validator: (value: string[]) => {
         const otherTagMap = { ...tagMemo };
         delete otherTagMap[instanceKey];
@@ -99,7 +100,6 @@
         const nextValueMap = makeMap(value);
         return _.flatten(Object.values(otherTagMap)).every((item) => !nextValueMap[item]);
       },
-      message: t('DB名不允许重复'),
     },
   ];
 

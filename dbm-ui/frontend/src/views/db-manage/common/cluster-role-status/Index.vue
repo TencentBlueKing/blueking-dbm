@@ -60,8 +60,8 @@
 
   interface Props {
     data: {
-      status: string;
       roleFailedInstanceInfo: Record<any, ClusterListNode[]>;
+      status: string;
     };
   }
 

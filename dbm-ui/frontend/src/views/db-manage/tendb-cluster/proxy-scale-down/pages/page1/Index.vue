@@ -107,13 +107,13 @@
 
   // 单据克隆
   useTicketCloneInfo({
-    type: TicketTypes.TENDBCLUSTER_SPIDER_REDUCE_NODES,
     onSuccess(cloneData) {
       tableData.value = cloneData.tableDataList;
       isIgnoreBusinessAccess.value = !cloneData.isSafe;
       remark.value = cloneData.remark;
       window.changeConfirm = true;
     },
+    type: TicketTypes.TENDBCLUSTER_SPIDER_REDUCE_NODES,
   });
 
   const rowRefs = ref();
@@ -176,21 +176,21 @@
 
   // 根据集群选择返回的数据加工成table所需的数据
   const generateRowDateFromRequest = (item: TendbClusterModel) => ({
-    rowKey: random(),
-    isLoading: false,
+    bkCloudId: item.bk_cloud_id,
     cluster: item.master_domain,
     clusterId: item.id,
-    bkCloudId: item.bk_cloud_id,
-    nodeType: '',
+    isLoading: false,
     masterCount: item.spider_master.length,
+    nodeType: '',
+    rowKey: random(),
     slaveCount: item.spider_slave.length,
     spec: {
       ...item.spider_master[0].spec_config,
       count: 0,
     },
-    targetNum: '',
     spiderMasterList: item.spider_master,
     spiderSlaveList: item.spider_slave,
+    targetNum: '',
   });
 
   // 批量选择
@@ -275,14 +275,14 @@
       index + 1,
       0,
       Object.assign(sourceData, {
+        bkCloudId: clusterData.bkCloudId,
         cluster: clusterData.cluster,
         clusterId: clusterData.clusterId,
-        bkCloudId: clusterData.bkCloudId,
         masterCount: clusterData.masterCount,
         slaveCount: clusterData.slaveCount,
+        spec: clusterData.spec,
         spiderMasterList: clusterData.spiderMasterList,
         spiderSlaveList: clusterData.spiderSlaveList,
-        spec: clusterData.spec,
       }),
     );
     tableData.value = dataList;
@@ -300,12 +300,12 @@
       );
       const params = {
         bk_biz_id: currentBizId,
+        details: {
+          infos,
+          is_safe: !isIgnoreBusinessAccess.value,
+        },
         remark: remark.value,
         ticket_type: TicketTypes.TENDBCLUSTER_SPIDER_REDUCE_NODES,
-        details: {
-          is_safe: !isIgnoreBusinessAccess.value,
-          infos,
-        },
       };
 
       const ticketResult = await createTicket(params);

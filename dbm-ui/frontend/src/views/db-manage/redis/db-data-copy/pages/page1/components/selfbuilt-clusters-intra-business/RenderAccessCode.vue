@@ -44,8 +44,8 @@
 
   interface Props {
     data?: string;
-    srcCluster: string;
     dstCluster: string;
+    srcCluster: string;
   }
 
   interface Exposes {
@@ -61,33 +61,33 @@
 
   const rules = [
     {
-      validator: (value: string) => Boolean(value),
       message: t('密码不能为空'),
+      validator: (value: string) => Boolean(value),
     },
     {
-      validator: () => Boolean(props.srcCluster),
       message: t('请先输入源集群'),
+      validator: () => Boolean(props.srcCluster),
     },
     {
-      validator: () => Boolean(props.dstCluster),
       message: t('请先选择目标集群'),
+      validator: () => Boolean(props.dstCluster),
     },
     {
+      message: t('密码不匹配'),
       validator: async (value: string) => {
         const r = await testRedisConnection({
           data_copy_type: 'user_built_to_dbm',
           infos: [
             {
-              src_cluster: props.srcCluster,
-              src_cluster_password: value,
               dst_cluster: props.dstCluster,
               dst_cluster_password: '',
+              src_cluster: props.srcCluster,
+              src_cluster_password: value,
             },
           ],
         });
         return r;
       },
-      message: t('密码不匹配'),
     },
   ];
 

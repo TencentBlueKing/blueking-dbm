@@ -47,19 +47,19 @@
   const { t } = useI18n();
   const rules = [
     {
-      validator: (value: string) => Boolean(value),
       message: t('备份源不能为空'),
+      validator: (value: string) => Boolean(value),
     },
   ];
 
   const baseList = [
     {
-      value: 'master',
       label: 'RemoteDB',
+      value: 'master',
     },
     {
-      value: 'slave',
       label: 'RemoteDR',
+      value: 'slave',
     },
   ];
 
@@ -67,7 +67,8 @@
   const localValue = ref('');
   const backupList = shallowRef<Record<'label' | 'value', string>[]>([]);
 
-  const { run: fetchClusterList, loading: isListLoading } = useRequest(getTendbClusterList, {
+  const { loading: isListLoading, run: fetchClusterList } = useRequest(getTendbClusterList, {
+    manual: true,
     onSuccess(data) {
       if (data.results.length < 1) {
         backupList.value = [...baseList];
@@ -79,7 +80,6 @@
       }));
       backupList.value = [...baseList, ...mntList];
     },
-    manual: true,
   });
 
   watch(

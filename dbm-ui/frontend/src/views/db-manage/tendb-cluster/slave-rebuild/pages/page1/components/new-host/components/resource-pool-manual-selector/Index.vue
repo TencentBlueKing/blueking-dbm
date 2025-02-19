@@ -85,23 +85,21 @@
   import Table from './components/table/Index.vue';
 
   interface Props {
-    selected?: DbResourceModel[];
-    disableHostMethod?: (data: DbResourceModel, list: DbResourceModel[]) => boolean | string;
     // eslint-disable-next-line vue/require-default-prop
     disableDialogSubmitMethod?: (list: DbResourceModel[]) => boolean | string;
+    disableHostMethod?: (data: DbResourceModel, list: DbResourceModel[]) => boolean | string;
+    selected?: DbResourceModel[];
   }
 
-  interface Emits {
-    (e: 'change', value: DbResourceModel[]): void;
-  }
+  type Emits = (e: 'change', value: DbResourceModel[]) => void;
 
   interface Slots {
     submitTips(value: { hostList: DbResourceModel[] }): void;
   }
 
   const props = withDefaults(defineProps<Props>(), {
-    selected: undefined,
     disableHostMethod: () => false,
+    selected: undefined,
   });
 
   const emits = defineEmits<Emits>();
@@ -118,8 +116,8 @@
     const info = {
       disabled: false,
       tooltips: {
-        disabled: true,
         content: '',
+        disabled: true,
       },
     };
 

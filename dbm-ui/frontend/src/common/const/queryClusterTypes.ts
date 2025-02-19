@@ -5,8 +5,14 @@ import { DBTypes } from './dbTypes';
  * db类型关联集群类型集合映射关系
  */
 export const queryClusterTypes = {
+  [DBTypes.DORIS]: [ClusterTypes.DORIS],
+  [DBTypes.ES]: [ClusterTypes.ES],
+  [DBTypes.HDFS]: [ClusterTypes.HDFS],
+  [DBTypes.INFLUXDB]: [ClusterTypes.INFLUXDB],
+  [DBTypes.KAFKA]: [ClusterTypes.KAFKA],
+  [DBTypes.MONGODB]: [ClusterTypes.MONGODB, ClusterTypes.MONGO_REPLICA_SET, ClusterTypes.MONGO_SHARED_CLUSTER],
   [DBTypes.MYSQL]: [ClusterTypes.TENDBSINGLE, ClusterTypes.TENDBHA],
-  [DBTypes.TENDBCLUSTER]: [ClusterTypes.TENDBCLUSTER],
+  [DBTypes.PULSAR]: [ClusterTypes.PULSAR],
   [DBTypes.REDIS]: [
     ClusterTypes.REDIS,
     ClusterTypes.PREDIXY_REDIS_CLUSTER,
@@ -20,13 +26,7 @@ export const queryClusterTypes = {
     ClusterTypes.REDIS_CLUSTER,
     ClusterTypes.TENDIS_PLUS_CLUSTER,
   ],
-  [DBTypes.MONGODB]: [ClusterTypes.MONGODB, ClusterTypes.MONGO_REPLICA_SET, ClusterTypes.MONGO_SHARED_CLUSTER],
-  [DBTypes.SQLSERVER]: [ClusterTypes.SQLSERVER_HA, ClusterTypes.SQLSERVER_SINGLE],
-  [DBTypes.ES]: [ClusterTypes.ES],
-  [DBTypes.KAFKA]: [ClusterTypes.KAFKA],
-  [DBTypes.HDFS]: [ClusterTypes.HDFS],
   [DBTypes.RIAK]: [ClusterTypes.RIAK],
-  [DBTypes.PULSAR]: [ClusterTypes.PULSAR],
-  [DBTypes.INFLUXDB]: [ClusterTypes.INFLUXDB],
-  [DBTypes.DORIS]: [ClusterTypes.DORIS],
+  [DBTypes.SQLSERVER]: [ClusterTypes.SQLSERVER_HA, ClusterTypes.SQLSERVER_SINGLE],
+  [DBTypes.TENDBCLUSTER]: [ClusterTypes.TENDBCLUSTER],
 };

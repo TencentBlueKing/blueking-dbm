@@ -85,8 +85,8 @@
   const isModuleLoading = computed(() => renderModuleList.value.length < 1);
 
   const {
-    parentKey,
     key: currentActiveKey,
+    parentKey,
     routeLocation: handleMenuChange,
   } = useActiveKey(menuRef as Ref<InstanceType<typeof Menu>>, 'DatabaseTendbha', isModuleLoading);
 

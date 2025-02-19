@@ -33,8 +33,8 @@
   import TableEditSelect from '@views/db-manage/redis/common/edit/Select.vue';
 
   interface Props {
-    isLoading?: boolean;
     data?: number;
+    isLoading?: boolean;
   }
 
   interface Exposes {
@@ -53,15 +53,15 @@
   const localValue = ref();
   const selectList = computed(() =>
     bizs.map((item) => ({
-      value: item.bk_biz_id,
       label: item.name,
+      value: item.bk_biz_id,
     })),
   );
 
   const rules = [
     {
-      validator: (value: string) => Boolean(value),
       message: t('请选择目标业务'),
+      validator: (value: string) => Boolean(value),
     },
   ];
 

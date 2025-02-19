@@ -15,8 +15,8 @@ import { utcDisplayTime } from '@utils';
 export default class HdfsNode {
   static ROLE_DATA_NODE = 'hdfs_datanode';
   static ROLE_JOURNAL_NODE = 'hdfs_journalnode';
-  static ROLE_ZOOKEEPER = 'hdfs_zookeeper';
   static ROLE_NAME_NODE = 'hdfs_namenode';
+  static ROLE_ZOOKEEPER = 'hdfs_zookeeper';
 
   bk_cloud_id: number;
   bk_cloud_name: string;
@@ -58,6 +58,10 @@ export default class HdfsNode {
     this.status = payload.status || 0;
   }
 
+  get createAtDisplay() {
+    return utcDisplayTime(this.create_at);
+  }
+
   get isDataNode() {
     return this.role_set.includes(HdfsNode.ROLE_DATA_NODE);
   }
@@ -66,15 +70,11 @@ export default class HdfsNode {
     return this.role_set.includes(HdfsNode.ROLE_JOURNAL_NODE);
   }
 
-  get isZookeeper() {
-    return this.role_set.includes(HdfsNode.ROLE_ZOOKEEPER);
-  }
-
   get isNameNode() {
     return this.role_set.includes(HdfsNode.ROLE_NAME_NODE);
   }
 
-  get createAtDisplay() {
-    return utcDisplayTime(this.create_at);
+  get isZookeeper() {
+    return this.role_set.includes(HdfsNode.ROLE_ZOOKEEPER);
   }
 }

@@ -73,31 +73,29 @@
   type IKey = string | number;
 
   export interface IListItem {
-    value: IKey;
+    isCurrentSpec?: boolean;
     label: string;
     specData: SpecInfo;
-    isCurrentSpec?: boolean;
+    value: IKey;
   }
 
   interface Props {
+    disabled?: boolean;
     list: IListItem[];
     placeholder?: string;
     rules?: Rules;
-    disabled?: boolean;
   }
-  interface Emits {
-    (e: 'change', value: IKey): void;
-  }
+  type Emits = (e: 'change', value: IKey) => void;
 
   interface Exposes {
     getValue: () => Promise<IKey>;
   }
 
   const props = withDefaults(defineProps<Props>(), {
-    placeholder: '请输入',
-    textarea: false,
-    rules: () => [],
     disabled: false,
+    placeholder: '请输入',
+    rules: () => [],
+    textarea: false,
   });
 
   const emits = defineEmits<Emits>();

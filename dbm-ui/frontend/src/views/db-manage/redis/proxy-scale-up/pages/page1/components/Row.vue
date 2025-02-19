@@ -76,23 +76,23 @@
 
   interface Props {
     data: IDataRow;
-    removeable: boolean;
     inputedClusters?: string[];
+    removeable: boolean;
   }
 
   export interface IDataRow {
-    rowKey: string;
-    isLoading: boolean;
-    cluster: string;
-    clusterId: number;
     bkCloudId: number;
-    nodeType: string;
+    cluster: string;
     cluster_type_name: string;
-    spec?: SpecInfo;
-    targetNum?: string;
+    clusterId: number;
     clusterType?: string;
+    isLoading: boolean;
+    nodeType: string;
+    rowKey: string;
     rowModelData?: RedisModel;
     selectedSpecId?: number;
+    spec?: SpecInfo;
+    targetNum?: string;
   }
 
   export interface MoreDataItem {
@@ -101,26 +101,26 @@
   }
 
   export interface InfoItem {
-    cluster_id: number;
     bk_cloud_id: number;
-    target_proxy_count: number;
+    cluster_id: number;
     resource_spec: {
       proxy: {
-        spec_id: number;
         count: number;
+        spec_id: number;
       };
     };
+    target_proxy_count: number;
   }
 
   // 创建表格数据
   export const createRowData = (): IDataRow => ({
-    rowKey: random(),
-    isLoading: false,
-    cluster: '',
-    clusterId: 0,
     bkCloudId: 0,
-    nodeType: '',
+    cluster: '',
     cluster_type_name: '',
+    clusterId: 0,
+    isLoading: false,
+    nodeType: '',
+    rowKey: random(),
   });
 </script>
 <script setup lang="ts">
@@ -154,25 +154,25 @@
       });
     }, {});
     const ret = await getResourceSpecList({
-      spec_cluster_type: 'redis',
-      spec_machine_type: 'proxy',
       limit: -1,
       offset: 0,
+      spec_cluster_type: 'redis',
+      spec_machine_type: 'proxy',
     });
     const retArr = ret.results;
     const arr = retArr.map((item) => ({
-      value: item.spec_id,
       label: specCountMap[item.spec_id]
         ? `${item.spec_name} ${t('((n))台', { n: specCountMap[item.spec_id] })}`
         : item.spec_name,
       specData: {
-        name: item.spec_name,
+        count: 0,
         cpu: item.cpu,
         id: item.spec_id,
         mem: item.mem,
-        count: 0,
+        name: item.spec_name,
         storage_spec: item.storage_spec,
       },
+      value: item.spec_id,
     }));
     return arr;
   };
@@ -234,10 +234,10 @@
       const rowInfo = rowData.map((item) => (item.status === 'fulfilled' ? item.value : item.reason));
       emits('clone', {
         ...props.data,
-        rowKey: random(),
         isLoading: false,
-        targetNum: rowInfo[1] || '',
+        rowKey: random(),
         selectedSpecId: rowInfo[0],
+        targetNum: rowInfo[1] || '',
       });
     });
   };
@@ -248,15 +248,15 @@
       return await Promise.all([sepcRef.value!.getValue(), numRef.value!.getValue()]).then((data) => {
         const [specId, targetNum] = data;
         return {
-          cluster_id: props.data.clusterId,
           bk_cloud_id: props.data.bkCloudId,
-          target_proxy_count: (props.data.spec?.count || 0) + targetNum,
+          cluster_id: props.data.clusterId,
           resource_spec: {
             proxy: {
-              spec_id: specId,
               count: targetNum,
+              spec_id: specId,
             },
           },
+          target_proxy_count: (props.data.spec?.count || 0) + targetNum,
         };
       });
     },

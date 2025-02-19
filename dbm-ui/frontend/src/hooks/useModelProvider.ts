@@ -48,19 +48,19 @@ export const useModelProvider = () => {
     const provider = findProvider(currentInstance);
     if (!provider) {
       return {
-        submit: () => Promise.resolve(),
         cancel: () => Promise.resolve(),
+        submit: () => Promise.resolve(),
       };
     }
 
-    const { submit = () => Promise.resolve(), cancel = () => Promise.resolve() } = provider.exposed as Record<
+    const { cancel = () => Promise.resolve(), submit = () => Promise.resolve() } = provider.exposed as Record<
       'submit' | 'cancel',
       () => Promise<any>
     >;
 
     return {
-      submit,
       cancel,
+      submit,
     };
   };
 };

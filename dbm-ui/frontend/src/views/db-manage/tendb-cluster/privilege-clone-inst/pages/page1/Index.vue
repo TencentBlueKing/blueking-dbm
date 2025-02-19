@@ -90,13 +90,13 @@
 
   // 单据克隆
   useTicketCloneInfo({
-    type: TicketTypes.TENDBCLUSTER_INSTANCE_CLONE_RULES,
     onSuccess(cloneData) {
       const { tableDataList } = cloneData;
       tableData.value = tableDataList;
       remark.value = cloneData.remark;
       window.changeConfirm = true;
     },
+    type: TicketTypes.TENDBCLUSTER_INSTANCE_CLONE_RULES,
   });
 
   const rowRefs = ref();
@@ -137,12 +137,12 @@
       if (!ipMemo[ip]) {
         const row = createRowData({
           source: {
+            bkCloudId: item.bk_cloud_id,
             clusterId: item.cluster_id,
-            masterDomain: item.master_domain,
             dbModuleId: item.db_module_id,
             dbModuleName: item.db_module_name,
             instanceAddress: item.instance_address,
-            bkCloudId: item.bk_cloud_id,
+            masterDomain: item.master_domain,
           },
         });
         result.push(row);
@@ -194,21 +194,21 @@
       const infos = await Promise.all(rowRefs.value.map((item: { getValue: () => Promise<any> }) => item.getValue()));
       const precheckResult = await precheckPermissionClone({
         bizId: currentBizId,
-        clone_type: 'instance',
-        clone_list: infos,
         clone_cluster_type: 'tendbcluster',
+        clone_list: infos,
+        clone_type: 'instance',
       });
       if (!precheckResult.pre_check) {
         return;
       }
       await createTicket({
-        ticket_type: TicketTypes.TENDBCLUSTER_INSTANCE_CLONE_RULES,
-        remark: remark.value,
+        bk_biz_id: currentBizId,
         details: {
           ...precheckResult,
           clone_type: 'instance',
         },
-        bk_biz_id: currentBizId,
+        remark: remark.value,
+        ticket_type: TicketTypes.TENDBCLUSTER_INSTANCE_CLONE_RULES,
       }).then((data) => {
         window.changeConfirm = false;
 

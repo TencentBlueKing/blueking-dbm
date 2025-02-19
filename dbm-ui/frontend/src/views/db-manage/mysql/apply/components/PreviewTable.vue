@@ -28,31 +28,31 @@
   type TableProps = InstanceType<typeof Table>['$props'];
 
   interface HostInfo {
-    ip: string,
-    bk_host_id: number,
-    bk_cloud_id: number
+    bk_cloud_id: number;
+    bk_host_id: number;
+    ip: string;
   }
   interface Nodes {
-    proxy?: Array<HostInfo>,
-    backend: Array<HostInfo>,
+    backend: Array<HostInfo>;
+    proxy?: Array<HostInfo>;
   }
   interface Props {
-    data?: unknown[],
-    nodes?: Nodes,
-    isShowNodes?: boolean,
-    isSingleType?: boolean,
-    maxHeight?: number
+    data?: unknown[];
+    isShowNodes?: boolean;
+    isSingleType?: boolean;
+    maxHeight?: number;
+    nodes?: Nodes;
   }
 
   const props = withDefaults(defineProps<Props>(), {
     data: () => [],
-    nodes: () => ({
-      proxy: [],
-      backend: [],
-    }),
     isShowNodes: true,
     isSingleType: false,
     maxHeight: 436,
+    nodes: () => ({
+      backend: [],
+      proxy: [],
+    }),
   });
 
   const { t } = useI18n();
@@ -61,45 +61,41 @@
     if (props.isSingleType) {
       const singleColumns: TableProps['columns'] = [
         {
-          label: t('主访问入口'),
           field: 'domain',
+          label: t('主访问入口'),
           showOverflowTooltip: true,
         },
         {
-          label: t('部署架构'),
           field: 'deployStructure',
+          label: t('部署架构'),
           showOverflowTooltip: true,
         },
         {
-          label: t('数据库版本'),
           field: 'version',
+          label: t('数据库版本'),
           showOverflowTooltip: true,
         },
         {
-          label: t('字符集'),
           field: 'charset',
+          label: t('字符集'),
           showOverflowTooltip: true,
         },
       ];
       if (props.isShowNodes) {
         singleColumns.push({
-          label: t('服务器'),
           field: 'backend',
-          width: 200,
-          rowspan: () => (props.data.length === 0 ? 1 : props.data.length),
+          label: t('服务器'),
           render: () => {
             const hosts = props.nodes.backend;
-            return (
-              hosts.map(item => (
-                <div class="host-list__item">
-                  <strong class='host-list__tag host-list__tag--master'>
-                    M
-                  </strong>
-                  <span class="host-list__ip">{item.ip}</span>
-                </div>
-              ))
-            );
+            return hosts.map((item) => (
+              <div class='host-list__item'>
+                <strong class='host-list__tag host-list__tag--master'>M</strong>
+                <span class='host-list__ip'>{item.ip}</span>
+              </div>
+            ));
           },
+          rowspan: () => (props.data.length === 0 ? 1 : props.data.length),
+          width: 200,
         });
       }
       return singleColumns;
@@ -107,89 +103,85 @@
 
     const haColumns: TableProps['columns'] = [
       {
-        label: t('主访问入口'),
         field: 'domain',
-        showOverflowTooltip: true,
+        label: t('主访问入口'),
         minWidth: 240,
+        showOverflowTooltip: true,
       },
       {
-        label: t('从访问入口'),
         field: 'slaveDomain',
-        showOverflowTooltip: true,
+        label: t('从访问入口'),
         minWidth: 240,
+        showOverflowTooltip: true,
       },
       {
-        label: t('部署架构'),
         field: 'deployStructure',
+        label: t('部署架构'),
         showOverflowTooltip: true,
         width: 100,
       },
       {
-        label: t('数据库版本'),
         field: 'version',
+        label: t('数据库版本'),
         showOverflowTooltip: true,
         width: 120,
       },
       {
-        label: t('字符集'),
         field: 'charset',
+        label: t('字符集'),
         showOverflowTooltip: true,
         width: 100,
       },
     ];
 
     if (props.isShowNodes) {
-      haColumns.push(...[{
-        label: 'Proxy IP',
-        field: 'proxy',
-        width: 300,
-        rowspan: () => (props.data.length === 0 ? 1 : props.data.length),
-        render: () => {
-          const hosts = props.nodes.proxy;
-          return (
-            getRenderHosts(hosts).map(group => (
-              <div class="host-list__group">
-                {
-                  group.map(item => (
-                    <div class="host-list__item">
-                      <strong class="host-list__tag host-list__tag--proxy">P</strong>
-                      <span class="host-list__ip">{item.ip}</span>
+      haColumns.push(
+        ...[
+          {
+            field: 'proxy',
+            label: 'Proxy IP',
+            render: () => {
+              const hosts = props.nodes.proxy;
+              return getRenderHosts(hosts).map((group) => (
+                <div class='host-list__group'>
+                  {group.map((item) => (
+                    <div class='host-list__item'>
+                      <strong class='host-list__tag host-list__tag--proxy'>P</strong>
+                      <span class='host-list__ip'>{item.ip}</span>
                     </div>
-                  ))
-                }
-              </div>
-            ))
-
-          );
-        },
-      }, {
-        label: 'Master / Slave IP',
-        field: 'backend',
-        width: 300,
-        rowspan: () => (props.data.length === 0 ? 1 : props.data.length),
-        render: () => {
-          const hosts = props.nodes.backend;
-          return (
-            getRenderHosts(hosts).map(group => (
-              <div class="host-list__group">
-                {
-                  group.map((item, index) => {
+                  ))}
+                </div>
+              ));
+            },
+            rowspan: () => (props.data.length === 0 ? 1 : props.data.length),
+            width: 300,
+          },
+          {
+            field: 'backend',
+            label: 'Master / Slave IP',
+            render: () => {
+              const hosts = props.nodes.backend;
+              return getRenderHosts(hosts).map((group) => (
+                <div class='host-list__group'>
+                  {group.map((item, index) => {
                     const tag = index === 0 ? 'master' : 'slave';
                     return (
-                      <div class="host-list__item">
+                      <div class='host-list__item'>
                         <strong class={`host-list__tag ${`host-list__tag--${tag}`}`}>
                           {tag.charAt(0).toUpperCase()}
                         </strong>
-                        <span class="host-list__ip">{item.ip}</span>
+                        <span class='host-list__ip'>{item.ip}</span>
                       </div>
                     );
-                  })
-                }
-              </div>
-            ))
-          );
-        },
-      }]);
+                  })}
+                </div>
+              ));
+            },
+            rowspan: () => (props.data.length === 0 ? 1 : props.data.length),
+            width: 300,
+          },
+        ],
+      );
     }
     return haColumns;
   });

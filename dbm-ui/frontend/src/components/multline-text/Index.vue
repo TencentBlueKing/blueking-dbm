@@ -33,8 +33,8 @@
   import { useI18n } from 'vue-i18n';
 
   interface Props {
-    line: number;
     expandable?: boolean;
+    line: number;
   }
 
   const props = withDefaults(defineProps<Props>(), {
@@ -42,8 +42,8 @@
   });
 
   defineSlots<{
-    default?: () => VNode;
     actionText?: () => VNode;
+    default?: () => VNode;
   }>();
 
   const { t } = useI18n();

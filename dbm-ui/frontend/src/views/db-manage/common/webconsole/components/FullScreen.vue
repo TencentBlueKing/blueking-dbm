@@ -10,9 +10,7 @@
   </div>
 </template>
 <script lang="ts" setup>
-  interface Emits {
-    (e: 'change'): void;
-  }
+  type Emits = (e: 'change') => void;
 
   const emits = defineEmits<Emits>();
 

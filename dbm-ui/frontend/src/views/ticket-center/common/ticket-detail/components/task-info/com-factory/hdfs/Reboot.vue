@@ -28,15 +28,15 @@
   import { execCopy } from '@utils';
 
   interface Props {
-    ticketDetails: TicketModel<Hdfs.Reboot>
+    ticketDetails: TicketModel<Hdfs.Reboot>;
   }
 
   const props = defineProps<Props>();
 
   defineOptions({
     name: TicketTypes.HDFS_REBOOT,
-    inheritAttrs: false
-  })
+    inheritAttrs: false,
+  });
 
   const { t } = useI18n();
 
@@ -44,37 +44,58 @@
    * 实例重启
    */
 
-  const columns = [{
-    label: t('集群ID'),
-    field: 'cluster_id',
-    render: ({ cell }: { cell: string }) => <span>{cell || '--'}</span>,
-  }, {
-    label: t('集群名称'),
-    field: 'immute_domain',
-    showOverflowTooltip: false,
-    render: ({ data }: { data: any }) => data.immute_domain,
-  }, {
-    label: t('集群类型'),
-    field: 'cluster_type_name',
-    render: ({ cell }: { cell: string }) => <span>{cell || '--'}</span>,
-  }, {
-    label: t('节点IP'),
-    field: 'node_ip',
-    render: ({ cell }: { cell: [] }) => cell.map((ip, index) => <p class="pt-2 pb-2">{ip}
-      { index === 0
-        ? <i v-bk-tooltips={t('复制IP')} class="db-icon-copy" onClick={() => execCopy(cell.join('\n'), t('复制成功，共n条', { n: cell.length }))} />
-        : '' }
-    </p>),
-  }];
+  const columns = [
+    {
+      field: 'cluster_id',
+      label: t('集群ID'),
+      render: ({ cell }: { cell: string }) => <span>{cell || '--'}</span>,
+    },
+    {
+      field: 'immute_domain',
+      label: t('集群名称'),
+      render: ({ data }: { data: any }) => data.immute_domain,
+      showOverflowTooltip: false,
+    },
+    {
+      field: 'cluster_type_name',
+      label: t('集群类型'),
+      render: ({ cell }: { cell: string }) => <span>{cell || '--'}</span>,
+    },
+    {
+      field: 'node_ip',
+      label: t('节点IP'),
+      render: ({ cell }: { cell: [] }) =>
+        cell.map((ip, index) => (
+          <p class='pt-2 pb-2'>
+            {ip}
+            {index === 0 ? (
+              <i
+                v-bk-tooltips={t('复制IP')}
+                class='db-icon-copy'
+                onClick={() => execCopy(cell.join('\n'), t('复制成功，共n条', { n: cell.length }))}
+              />
+            ) : (
+              ''
+            )}
+          </p>
+        )),
+    },
+  ];
 
   const dataList = computed(() => {
     const list: any = [];
     const clusterId = props.ticketDetails?.details?.cluster_id;
     const clusters = props.ticketDetails?.details?.clusters?.[clusterId] || {};
-    const nodeIp = props.ticketDetails?.details?.instance_list.map(k => k.ip) || [] ;
-    list.push(Object.assign({
-      cluster_id: clusterId, node_ip: nodeIp,
-    }, clusters));
+    const nodeIp = props.ticketDetails?.details?.instance_list.map((k) => k.ip) || [];
+    list.push(
+      Object.assign(
+        {
+          cluster_id: clusterId,
+          node_ip: nodeIp,
+        },
+        clusters,
+      ),
+    );
     return list;
   });
 </script>

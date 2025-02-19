@@ -61,8 +61,8 @@
   import { QueryKeyMap } from '@views/db-manage/redis/common/const';
 
   interface Props {
-    data?: string;
     clusterType?: string;
+    data?: string;
   }
 
   interface Exposes {
@@ -70,8 +70,8 @@
   }
 
   const props = withDefaults(defineProps<Props>(), {
-    data: '',
     clusterType: '',
+    data: '',
   });
 
   const { t } = useI18n();
@@ -80,15 +80,15 @@
   const localValue = ref('');
   const selectList = ref<
     {
-      value: string;
       label: string;
+      value: string;
     }[]
   >([]);
 
   const rules = [
     {
-      validator: (value: string) => Boolean(value),
       message: t('请选择Redis版本'),
+      validator: (value: string) => Boolean(value),
     },
   ];
 
@@ -99,8 +99,8 @@
         [localValue.value] = listResult;
       }
       selectList.value = listResult.map((value) => ({
-        value,
         label: value,
+        value,
       }));
     },
   });

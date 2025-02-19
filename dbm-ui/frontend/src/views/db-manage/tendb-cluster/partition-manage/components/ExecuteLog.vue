@@ -14,11 +14,7 @@
 </template>
 <script setup lang="tsx">
   import dayjs from 'dayjs';
-  import {
-    nextTick,
-    ref,
-    watch,
-  } from 'vue';
+  import { nextTick, ref, watch } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import type PartitionModel from '@services/model/partition/partition';
@@ -28,7 +24,7 @@
   import { ClusterTypes } from '@common/const';
 
   interface Props {
-    data: PartitionModel
+    data: PartitionModel;
   }
 
   const props = defineProps<Props>();
@@ -37,63 +33,66 @@
 
   const tableRef = ref();
   const recordTime = ref<[string, string]>([
-    dayjs().date(-100)
-      .format('YYYY-MM-DD HH:mm:ss'),
+    dayjs().date(-100).format('YYYY-MM-DD HH:mm:ss'),
     dayjs().format('YYYY-MM-DD HH:mm:ss'),
   ]);
 
   const tableColumns = [
     {
-      label: t('执行时间'),
       field: 'execute_time',
+      label: t('执行时间'),
     },
     {
-      label: t('关联单据'),
       field: 'ticket_id',
-      render: ({ data }: {data: PartitionLogModel}) => (data.ticket_id ? (
-        <router-link
-          target="_blank"
-          to={{
-            name: 'bizTicketManage',
-            params: {
-              ticketId: data.ticket_id,
-            },
-          }}>
-          {data.ticket_id}
-        </router-link>
-        ) : '--'),
+      label: t('关联单据'),
+      render: ({ data }: { data: PartitionLogModel }) =>
+        data.ticket_id ? (
+          <router-link
+            to={{
+              name: 'bizTicketManage',
+              params: {
+                ticketId: data.ticket_id,
+              },
+            }}
+            target='_blank'>
+            {data.ticket_id}
+          </router-link>
+        ) : (
+          '--'
+        ),
     },
     {
-      label: t('执行状态'),
       field: 'status',
-      render: ({ data }: {data: PartitionLogModel}) => (
+      label: t('执行状态'),
+      render: ({ data }: { data: PartitionLogModel }) => (
         <div>
           <db-icon
             class={{ 'rotate-loading': data.isRunning }}
-            style="vertical-align: middle;"
+            style='vertical-align: middle;'
             type={data.statusIcon}
-            svg />
+            svg
+          />
           <span
             v-bk-tooltips={{
-              disabled: !data.isFailed && data.check_info,
               content: data.check_info,
+              disabled: !data.isFailed && data.check_info,
               extCls: 'partition-execute-error-message-pop',
             }}
-            class="ml-4">
+            class='ml-4'>
             {data.statusText}
           </span>
         </div>
       ),
     },
     {
-      label: t('失败原因'),
       field: 'check_info',
+      label: t('失败原因'),
+      render: ({ data }: { data: PartitionLogModel }) => data.check_info || '--',
       showOverflowTooltip: {
         popoverOption: {
           maxWidth: 300,
-        }
+        },
       },
-      render: ({ data }: {data: PartitionLogModel}) => data.check_info || '--',
     },
   ];
 
@@ -102,8 +101,8 @@
     const params = {};
     if (startTime && endTime) {
       Object.assign(params, {
-        start_time: dayjs(startTime).format('YYYY-MM-DD HH:mm:ss'),
         end_time: dayjs(endTime).format('YYYY-MM-DD HH:mm:ss'),
+        start_time: dayjs(startTime).format('YYYY-MM-DD HH:mm:ss'),
       });
     }
     tableRef.value.fetchData(params, {
@@ -116,20 +115,20 @@
     fetchData();
   };
 
-  watch(() => props.data, () => {
-    nextTick(() => {
-      fetchData();
-    });
-  }, {
-    immediate: true,
-  });
+  watch(
+    () => props.data,
+    () => {
+      nextTick(() => {
+        fetchData();
+      });
+    },
+    {
+      immediate: true,
+    },
+  );
 
   const handleClearSearch = () => {
-    recordTime.value = [
-      dayjs().date(-100)
-        .format('YYYY-MM-DD HH:mm:ss'),
-      dayjs().format('YYYY-MM-DD HH:mm:ss'),
-    ];
+    recordTime.value = [dayjs().date(-100).format('YYYY-MM-DD HH:mm:ss'), dayjs().format('YYYY-MM-DD HH:mm:ss')];
     fetchData();
   };
 </script>

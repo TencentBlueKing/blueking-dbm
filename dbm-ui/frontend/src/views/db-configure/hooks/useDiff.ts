@@ -20,18 +20,18 @@ type ParameterConfigItem = ServiceReturnType<typeof getLevelConfig>['conf_items'
 type DiffData = ComputedRef<ParameterConfigItem[]> | ParameterConfigItem[];
 
 export type DiffItem = {
+  after?: ParameterConfigItem;
+  before?: ParameterConfigItem;
   name: string;
   status: string;
-  before?: ParameterConfigItem;
-  after?: ParameterConfigItem;
 };
 
 export const useDiff = (data: DiffData, origin: DiffData) => {
   const state = reactive({
     count: {
       create: 0,
-      update: 0,
       delete: 0,
+      update: 0,
     },
     data: [] as DiffItem[],
   });
@@ -52,10 +52,10 @@ export const useDiff = (data: DiffData, origin: DiffData) => {
     state.count.create = created.length;
     for (const item of created) {
       state.data.push({
+        after: item,
+        before: undefined,
         name: item.conf_name,
         status: 'create',
-        before: undefined,
-        after: item,
       });
     }
 
@@ -64,10 +64,10 @@ export const useDiff = (data: DiffData, origin: DiffData) => {
     state.count.delete = deleted.length;
     for (const item of deleted) {
       state.data.push({
+        after: undefined,
+        before: item,
         name: item.conf_name,
         status: 'delete',
-        before: item,
-        after: undefined,
       });
     }
 
@@ -88,10 +88,10 @@ export const useDiff = (data: DiffData, origin: DiffData) => {
     }
     for (const item of updated) {
       state.data.push({
+        after: item,
+        before: originNames[item.conf_name] || {},
         name: item.conf_name,
         status: 'update',
-        before: originNames[item.conf_name] || {},
-        after: item,
       });
     }
 
@@ -99,7 +99,7 @@ export const useDiff = (data: DiffData, origin: DiffData) => {
     state.data = state.data.filter((item: DiffItem) => item.name);
   };
 
-  watch(() => data, diff, { immediate: true, deep: true });
+  watch(() => data, diff, { deep: true, immediate: true });
 
   return state;
 };

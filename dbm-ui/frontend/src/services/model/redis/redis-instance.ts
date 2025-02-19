@@ -27,7 +27,6 @@ export default class RedisInstance {
   bk_sub_zone: string;
   bk_sub_zone_id: number;
   bk_svr_device_cls_name: string;
-  db_version: string;
   cluster_id: number;
   cluster_name: string;
   cluster_type: ClusterTypes;
@@ -35,6 +34,7 @@ export default class RedisInstance {
   create_at: string;
   db_module_id: number;
   db_module_name: string;
+  db_version: string;
   host_info: HostInfo;
   id: number;
   instance_address: string;
@@ -90,11 +90,11 @@ export default class RedisInstance {
     return utcDisplayTime(this.create_at);
   }
 
-  get isNew() {
-    return isRecentDays(this.create_at, 24 * 3);
-  }
-
   get getStatusInfo() {
     return clusterInstStatus[this.status] || clusterInstStatus.unavailable;
+  }
+
+  get isNew() {
+    return isRecentDays(this.create_at, 24 * 3);
   }
 }

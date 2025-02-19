@@ -22,30 +22,30 @@ import { t } from '@locales/index';
 import ClusterBase from '../_clusterBase';
 
 export default class TendbCluster extends ClusterBase {
+  static MYSQL_OPEN_AREA = 'MYSQL_OPEN_AREA';
+  static TENDBCLUSTER_DESTROY = 'TENDBCLUSTER_DESTROY';
+  static TENDBCLUSTER_DISABLE = 'TENDBCLUSTER_DISABLE';
+  static TENDBCLUSTER_ENABLE = 'TENDBCLUSTER_ENABLE';
   static TENDBCLUSTER_SPIDER_ADD_NODES = 'TENDBCLUSTER_SPIDER_ADD_NODES';
   static TENDBCLUSTER_SPIDER_REDUCE_NODES = 'TENDBCLUSTER_SPIDER_REDUCE_NODES';
-  static TENDBCLUSTER_ENABLE = 'TENDBCLUSTER_ENABLE';
-  static TENDBCLUSTER_DISABLE = 'TENDBCLUSTER_DISABLE';
-  static TENDBCLUSTER_DESTROY = 'TENDBCLUSTER_DESTROY';
-  static MYSQL_OPEN_AREA = 'MYSQL_OPEN_AREA';
-  static TENDBCLUSTER_CHECKSUM = 'TENDBCLUSTER_CHECKSUM';
-
   static operationIconMap = {
+    [TendbCluster.TENDBCLUSTER_DESTROY]: t('删除中'),
+    [TendbCluster.TENDBCLUSTER_DISABLE]: t('禁用中'),
+    [TendbCluster.TENDBCLUSTER_ENABLE]: t('启用中'),
     [TendbCluster.TENDBCLUSTER_SPIDER_ADD_NODES]: t('扩容中'),
     [TendbCluster.TENDBCLUSTER_SPIDER_REDUCE_NODES]: t('缩容中'),
-    [TendbCluster.TENDBCLUSTER_ENABLE]: t('启用中'),
-    [TendbCluster.TENDBCLUSTER_DISABLE]: t('禁用中'),
-    [TendbCluster.TENDBCLUSTER_DESTROY]: t('删除中'),
   };
 
+  static TENDBCLUSTER_CHECKSUM = 'TENDBCLUSTER_CHECKSUM';
+
   static operationTextMap = {
-    [TendbCluster.TENDBCLUSTER_SPIDER_ADD_NODES]: t('扩容任务进行中'),
-    [TendbCluster.TENDBCLUSTER_SPIDER_REDUCE_NODES]: t('缩容任务进行中'),
-    [TendbCluster.TENDBCLUSTER_ENABLE]: t('启用任务进行中'),
-    [TendbCluster.TENDBCLUSTER_DISABLE]: t('禁用任务进行中'),
-    [TendbCluster.TENDBCLUSTER_DESTROY]: t('删除任务进行中'),
     [TendbCluster.MYSQL_OPEN_AREA]: t('开区任务进行中'),
     [TendbCluster.TENDBCLUSTER_CHECKSUM]: t('数据校验修复任务进行中'),
+    [TendbCluster.TENDBCLUSTER_DESTROY]: t('删除任务进行中'),
+    [TendbCluster.TENDBCLUSTER_DISABLE]: t('禁用任务进行中'),
+    [TendbCluster.TENDBCLUSTER_ENABLE]: t('启用任务进行中'),
+    [TendbCluster.TENDBCLUSTER_SPIDER_ADD_NODES]: t('扩容任务进行中'),
+    [TendbCluster.TENDBCLUSTER_SPIDER_REDUCE_NODES]: t('缩容任务进行中'),
   };
 
   bk_biz_id: number;
@@ -74,6 +74,8 @@ export default class TendbCluster extends ClusterBase {
   master_domain: string;
   operations: ClusterListOperation[];
   permission: {
+    access_entry_edit: boolean;
+    tendb_spider_slave_destroy: boolean;
     tendbcluster_destroy: boolean;
     tendbcluster_dump_data: boolean;
     tendbcluster_enable_disable: boolean;
@@ -82,15 +84,13 @@ export default class TendbCluster extends ClusterBase {
     tendbcluster_spider_mnt_destroy: boolean;
     tendbcluster_spider_reduce_nodes: boolean;
     tendbcluster_view: boolean;
-    tendb_spider_slave_destroy: boolean;
     tendbcluster_webconsole: boolean;
-    access_entry_edit: boolean;
   };
   phase: 'online' | 'offline';
   phase_name: string;
   region: string;
-  remote_db: (ClusterListNode & { shard_id: number })[];
-  remote_dr: (ClusterListNode & { shard_id: number })[];
+  remote_db: ({ shard_id: number } & ClusterListNode)[];
+  remote_dr: ({ shard_id: number } & ClusterListNode)[];
   remote_shard_num: number;
   slave_domain: string;
   slaves: ClusterListNode[];
@@ -168,43 +168,22 @@ export default class TendbCluster extends ClusterBase {
     );
   }
 
-  get runningOperation() {
-    const operateTicketTypes = Object.keys(TendbCluster.operationTextMap);
-    return this.operations.find((item) => operateTicketTypes.includes(item.ticket_type) && item.status === 'RUNNING');
+  get disasterToleranceLevelName() {
+    return ClusterAffinityMap[this.disaster_tolerance_level];
   }
 
-  // 操作中的状态
-  get operationRunningStatus() {
-    if (this.operations.length < 1) {
-      return '';
-    }
-    const operation = this.runningOperation;
-    if (!operation) {
-      return '';
-    }
-    return operation.ticket_type;
+  get isStarting() {
+    return Boolean(this.operations.find((item) => item.ticket_type === TendbCluster.TENDBCLUSTER_ENABLE));
   }
 
-  // 操作中的状态描述文本
-  get operationStatusText() {
-    return TendbCluster.operationTextMap[this.operationRunningStatus];
+  get isTemporary() {
+    return Object.keys(this.temporary_info).length > 0;
   }
 
-  // 操作中的状态 icon
-  get operationStatusIcon() {
-    return TendbCluster.operationIconMap[this.operationRunningStatus];
-  }
-
-  // 操作中的单据 ID
-  get operationTicketId() {
-    if (this.operations.length < 1) {
-      return 0;
-    }
-    const operation = this.runningOperation;
-    if (!operation) {
-      return 0;
-    }
-    return operation.ticket_id;
+  get masterDomainDisplayName() {
+    const port = this.spider_master[0]?.port;
+    const displayName = port ? `${this.master_domain}:${port}` : this.master_domain;
+    return displayName;
   }
 
   get operationDisabled() {
@@ -224,18 +203,61 @@ export default class TendbCluster extends ClusterBase {
     return false;
   }
 
-  get isStarting() {
-    return Boolean(this.operations.find((item) => item.ticket_type === TendbCluster.TENDBCLUSTER_ENABLE));
+  // 操作中的状态
+  get operationRunningStatus() {
+    if (this.operations.length < 1) {
+      return '';
+    }
+    const operation = this.runningOperation;
+    if (!operation) {
+      return '';
+    }
+    return operation.ticket_type;
   }
 
-  get isTemporary() {
-    return Object.keys(this.temporary_info).length > 0;
+  // 操作中的状态 icon
+  get operationStatusIcon() {
+    return TendbCluster.operationIconMap[this.operationRunningStatus];
   }
 
-  get masterDomainDisplayName() {
-    const port = this.spider_master[0]?.port;
-    const displayName = port ? `${this.master_domain}:${port}` : this.master_domain;
-    return displayName;
+  // 操作中的状态描述文本
+  get operationStatusText() {
+    return TendbCluster.operationTextMap[this.operationRunningStatus];
+  }
+
+  get operationTagTips() {
+    return this.operations.map((item) => ({
+      icon: TendbCluster.operationIconMap[item.ticket_type],
+      ticketId: item.ticket_id,
+      tip: TendbCluster.operationTextMap[item.ticket_type],
+    }));
+  }
+
+  // 操作中的单据 ID
+  get operationTicketId() {
+    if (this.operations.length < 1) {
+      return 0;
+    }
+    const operation = this.runningOperation;
+    if (!operation) {
+      return 0;
+    }
+    return operation.ticket_id;
+  }
+
+  get roleFailedInstanceInfo() {
+    return {
+      RemoteDB: ClusterBase.getRoleFaildInstanceList(this.remote_db),
+      RemoteDR: ClusterBase.getRoleFaildInstanceList(this.remote_dr),
+      'Spider Master': ClusterBase.getRoleFaildInstanceList(this.spider_master),
+      'Spider Slave': ClusterBase.getRoleFaildInstanceList(this.spider_slave),
+      [t('运维节点')]: ClusterBase.getRoleFaildInstanceList(this.spider_mnt),
+    };
+  }
+
+  get runningOperation() {
+    const operateTicketTypes = Object.keys(TendbCluster.operationTextMap);
+    return this.operations.find((item) => operateTicketTypes.includes(item.ticket_type) && item.status === 'RUNNING');
   }
 
   get slaveEntryList() {
@@ -246,28 +268,6 @@ export default class TendbCluster extends ClusterBase {
         ...item,
         port,
       }));
-  }
-
-  get operationTagTips() {
-    return this.operations.map((item) => ({
-      icon: TendbCluster.operationIconMap[item.ticket_type],
-      tip: TendbCluster.operationTextMap[item.ticket_type],
-      ticketId: item.ticket_id,
-    }));
-  }
-
-  get disasterToleranceLevelName() {
-    return ClusterAffinityMap[this.disaster_tolerance_level];
-  }
-
-  get roleFailedInstanceInfo() {
-    return {
-      'Spider Master': ClusterBase.getRoleFaildInstanceList(this.spider_master),
-      'Spider Slave': ClusterBase.getRoleFaildInstanceList(this.spider_slave),
-      RemoteDB: ClusterBase.getRoleFaildInstanceList(this.remote_db),
-      RemoteDR: ClusterBase.getRoleFaildInstanceList(this.remote_dr),
-      [t('运维节点')]: ClusterBase.getRoleFaildInstanceList(this.spider_mnt),
-    };
   }
 
   get slaveList() {

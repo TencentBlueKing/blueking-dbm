@@ -93,16 +93,16 @@
       setTimeout(() => {
         if (props.data?.operationTicketId && !props.disabled && !tippyIns) {
           tippyIns = tippy(rootRef.value as SingleTarget, {
-            content: popRef.value,
-            placement: 'top',
             appendTo: () => document.body,
-            theme: 'light',
-            maxWidth: 'none',
-            interactive: true,
             arrow: true,
-            offset: [0, 8],
-            zIndex: 999999,
+            content: popRef.value,
             hideOnClick: true,
+            interactive: true,
+            maxWidth: 'none',
+            offset: [0, 8],
+            placement: 'top',
+            theme: 'light',
+            zIndex: 999999,
           });
         }
         if (!props.data?.operationTicketId) {

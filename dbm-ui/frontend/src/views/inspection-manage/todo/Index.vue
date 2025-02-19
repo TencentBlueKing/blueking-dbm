@@ -44,7 +44,7 @@
   const { t } = useI18n();
   const route = useRoute();
   const router = useRouter();
-  const { manageCount, assistCount } = useReportCount();
+  const { assistCount, manageCount } = useReportCount();
 
   const currentActiveTab = ref(route.query.manage || 'todo');
 

@@ -90,27 +90,27 @@
   const { rootId, ticket_id: ticketId } = route.query as { rootId?: string; ticket_id?: string };
 
   const createDefaultData = () => ({
+    backup: [],
     bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-    is_auto_commit: true,
     charset: 'default',
     cluster_ids: [],
+    cluster_type: DBTypes.TENDBCLUSTER,
     execute_objects: [],
-    backup: [],
+    is_auto_commit: true,
+    remark: '',
     ticket_mode: {
       mode: 'manual',
       trigger_time: '',
     },
     ticket_type: TicketTypes.TENDBCLUSTER_SEMANTIC_CHECK,
-    cluster_type: DBTypes.TENDBCLUSTER,
-    remark: '',
   });
 
   useTicketCloneInfo({
-    type: TicketTypes.TENDBCLUSTER_IMPORT_SQLFILE,
     onSuccess(cloneData) {
       Object.assign(formData, cloneData);
       window.changeConfirm = true;
     },
+    type: TicketTypes.TENDBCLUSTER_IMPORT_SQLFILE,
   });
 
   const formRef = ref();
@@ -130,10 +130,10 @@
     manual: !rootId,
     onSuccess(semanticData) {
       Object.assign(formData, {
+        backup: semanticData.backup,
         charset: semanticData.charset,
         cluster_ids: semanticData.cluster_ids,
         execute_objects: semanticData.execute_objects,
-        backup: semanticData.backup,
         ticket_mode: semanticData.ticket_mode,
       });
       uploadFilePath.value = semanticData.path;
@@ -162,8 +162,8 @@
           step: 'log',
         },
         query: {
-          rootId: data.root_id,
           nodeId: data.node_id,
+          rootId: data.root_id,
         },
       });
     },

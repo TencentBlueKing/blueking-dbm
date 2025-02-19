@@ -53,34 +53,24 @@
   import RedisInstanceModel from '@services/model/redis/redis-instance';
   import { getRedisInstances } from '@services/source/redis';
 
-  import {
-    useLinkQueryColumnSerach,
-    useStretchLayout,
-    useTableSettings,
-  } from '@hooks';
+  import { useLinkQueryColumnSerach, useStretchLayout, useTableSettings } from '@hooks';
 
   import { useGlobalBizs } from '@stores';
 
-  import {
-    ClusterTypes,
-    UserPersonalSettings,
-  } from '@common/const';
+  import { ClusterTypes, UserPersonalSettings } from '@common/const';
 
   import DbStatus from '@components/db-status/index.vue';
   import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
 
-  import {
-    execCopy,
-    getSearchSelectorParams,
-  } from '@utils';
+  import { execCopy, getSearchSelectorParams } from '@utils';
 
-  const instanceData = defineModel<{instanceAddress: string, clusterId: number, clusterType: string}>('instanceData');
+  const instanceData = defineModel<{ clusterId: number; clusterType: string; instanceAddress: string }>('instanceData');
 
-  const fetchData = (loading?:boolean) => {
+  const fetchData = (loading?: boolean) => {
     const params = {
       ...getSearchSelectorParams(searchValue.value),
       cluster_type: ClusterTypes.REDIS_INSTANCE,
-    }
+    };
     tableRef.value.fetchData(params, { ...sortValue }, loading);
     isInit = false;
   };
@@ -88,52 +78,46 @@
   const router = useRouter();
   const globalBizsStore = useGlobalBizs();
   const { t } = useI18n();
-  const {
-    isOpen: isStretchLayoutOpen,
-    splitScreen: stretchLayoutSplitScreen,
-  } = useStretchLayout();
+  const { isOpen: isStretchLayoutOpen, splitScreen: stretchLayoutSplitScreen } = useStretchLayout();
 
   const {
+    clearSearchValue,
     columnAttrs,
-    searchAttrs,
-    searchValue,
-    sortValue,
     columnCheckedMap,
     columnFilterChange,
     columnSortChange,
-    clearSearchValue,
     handleSearchValueChange,
+    searchAttrs,
+    searchValue,
+    sortValue,
   } = useLinkQueryColumnSerach({
-    searchType: ClusterTypes.REDIS,
     attrs: ['role'],
-    isCluster: false,
-    fetchDataFn: () => fetchData(isInit),
     defaultSearchItem: {
-      name: t('访问入口'),
       id: 'domain',
-    }
+      name: t('访问入口'),
+    },
+    fetchDataFn: () => fetchData(isInit),
+    isCluster: false,
+    searchType: ClusterTypes.REDIS,
   });
 
   let isInit = true;
 
   const searchSelectData = computed(() => [
     {
-      name: t('IP 或 IP:Port'),
       id: 'instance',
+      name: t('IP 或 IP:Port'),
     },
     {
-      name: t('访问入口'),
       id: 'domain',
       multiple: true,
+      name: t('访问入口'),
     },
     {
-      name: t('集群名称'),
       id: 'name',
+      name: t('集群名称'),
     },
     {
-      name: t('状态'),
-      id: 'status',
-      multiple: true,
       children: [
         {
           id: 'running',
@@ -148,16 +132,19 @@
         //   name: t('重建中'),
         // },
       ],
+      id: 'status',
+      multiple: true,
+      name: t('状态'),
     },
     {
-      name: t('部署角色'),
+      children: searchAttrs.value.role,
       id: 'role',
       multiple: true,
-      children: searchAttrs.value.role,
+      name: t('部署角色'),
     },
     {
-      name: t('端口'),
       id: 'port',
+      name: t('端口'),
     },
   ]);
 
@@ -166,116 +153,119 @@
   const columns = computed(() => {
     const list = [
       {
-        label: 'ID',
         field: 'id',
         fixed: 'left',
+        label: 'ID',
         width: 80,
       },
       {
-        label: t('实例'),
         field: 'instance_address',
         fixed: 'left',
+        label: t('实例'),
         minWidth: 200,
         render: ({ data }: { data: RedisInstanceModel }) => (
           <TextOverflowLayout>
             {{
+              append: () =>
+                !data.isNew && (
+                  <bk-tag
+                    class='ml-4'
+                    size='small'
+                    theme='success'>
+                    NEW
+                  </bk-tag>
+                ),
               default: () => (
                 <auth-button
-                  action-id="redis_view"
-                  resource={data.cluster_id}
+                  action-id='redis_view'
                   permission={data.permission.redis_view}
+                  resource={data.cluster_id}
+                  theme='primary'
                   text
-                  theme="primary"
                   onClick={() => handleToDetails(data)}>
                   {data.instance_address}
                 </auth-button>
               ),
-              append: () => !data.isNew && (
-                <bk-tag
-                  size="small"
-                  theme="success"
-                  class="ml-4">
-                  NEW
-                </bk-tag>
-              )
             }}
           </TextOverflowLayout>
         ),
       },
       {
-        label: t('集群名称'),
         field: 'cluster_name',
+        label: t('集群名称'),
         minWidth: 200,
         render: ({ data }: { data: RedisInstanceModel }) => (
-        <TextOverflowLayout>
-          {{
-            default: () => (
-              <auth-button
-                action-id="redis_view"
-                resource={data.cluster_id}
-                permission={data.permission.redis_view}
-                text
-                theme="primary"
-                onClick={() => handleToClusterDetails(data)}>
-                {data.cluster_name}
-              </auth-button>
-            ),
-            append: () => (
-              <db-icon
-                v-bk-tooltips={t('复制集群名称')}
-                type="copy"
-                class="copy-btn"
-                onClick={() => execCopy(data.cluster_name, t('复制成功，共n条', { n: 1 }))} />
-            ),
-          }}
-        </TextOverflowLayout>
-      ),
+          <TextOverflowLayout>
+            {{
+              append: () => (
+                <db-icon
+                  v-bk-tooltips={t('复制集群名称')}
+                  class='copy-btn'
+                  type='copy'
+                  onClick={() => execCopy(data.cluster_name, t('复制成功，共n条', { n: 1 }))}
+                />
+              ),
+              default: () => (
+                <auth-button
+                  action-id='redis_view'
+                  permission={data.permission.redis_view}
+                  resource={data.cluster_id}
+                  theme='primary'
+                  text
+                  onClick={() => handleToClusterDetails(data)}>
+                  {data.cluster_name}
+                </auth-button>
+              ),
+            }}
+          </TextOverflowLayout>
+        ),
       },
       {
-        label: t('状态'),
         field: 'status',
-        width: 140,
         filter: {
+          checked: columnCheckedMap.value.status,
           list: [
             {
-              value: 'running',
               text: t('正常'),
+              value: 'running',
             },
             {
-              value: 'unavailable',
               text: t('异常'),
+              value: 'unavailable',
             },
             // {
             //   value: 'restoring',
             //   text: t('重建中'),
             // },
           ],
-          checked: columnCheckedMap.value.status,
         },
+        label: t('状态'),
         render: ({ data }: { data: RedisInstanceModel }) => {
           const info = data.getStatusInfo;
           return <DbStatus theme={info.theme}>{info.text}</DbStatus>;
         },
+        width: 140,
       },
       {
-        label: t('主访问入口'),
         field: 'master_domain',
+        label: t('主访问入口'),
         minWidth: 200,
-        showOverflowTooltip: false,
         render: ({ data }: { data: RedisInstanceModel }) => (
           <TextOverflowLayout>
             {{
-              default: () => data.master_domain,
               append: () => (
                 <db-icon
                   v-bk-tooltips={t('复制主访问入口')}
-                  type="copy"
-                  class="copy-btn"
-                  onClick={() => execCopy(data.master_domain, t('复制成功，共n条', { n: 1 }))} />
+                  class='copy-btn'
+                  type='copy'
+                  onClick={() => execCopy(data.master_domain, t('复制成功，共n条', { n: 1 }))}
+                />
               ),
+              default: () => data.master_domain,
             }}
           </TextOverflowLayout>
         ),
+        showOverflowTooltip: false,
       },
       // {
       //   label: t('从访问入口'),
@@ -298,42 +288,42 @@
       //   ),
       // },
       {
-        label: t('所在园区'),
         field: 'bk_sub_zone',
-        width: 140,
+        label: t('所在园区'),
         render: ({ data }: { data: RedisInstanceModel }) => data.bk_sub_zone || '--',
+        width: 140,
       },
       {
-        label: t('部署角色'),
         field: 'role',
-        width: 140,
         filter: {
-          list: columnAttrs.value.role,
           checked: columnCheckedMap.value.role,
+          list: columnAttrs.value.role,
         },
-      },
-      {
-        label: t('部署时间'),
-        field: 'create_at',
-        width: 160,
-        sort: true,
-        render: ({ data }: { data: RedisInstanceModel }) => data.createAtDisplay || '--',
-      },
-      {
-        label: t('操作'),
-        fixed: 'right',
+        label: t('部署角色'),
         width: 140,
+      },
+      {
+        field: 'create_at',
+        label: t('部署时间'),
+        render: ({ data }: { data: RedisInstanceModel }) => data.createAtDisplay || '--',
+        sort: true,
+        width: 160,
+      },
+      {
+        fixed: 'right',
+        label: t('操作'),
         render: ({ data }: { data: RedisInstanceModel }) => (
           <auth-button
-            action-id="redis_view"
+            action-id='redis_view'
             permission={data.permission.redis_view}
             resource={data.cluster_id}
-            theme="primary"
+            theme='primary'
             text
             onClick={() => handleToDetails(data)}>
-            { t('查看详情') }
+            {t('查看详情')}
           </auth-button>
         ),
+        width: 140,
       },
     ];
 
@@ -349,31 +339,33 @@
     const classList = [row.isNew ? 'is-new-row' : ''];
 
     if (
-      row.cluster_id === instanceData.value?.clusterId
-      && row.instance_address === instanceData.value.instanceAddress
+      row.cluster_id === instanceData.value?.clusterId &&
+      row.instance_address === instanceData.value.instanceAddress
     ) {
       classList.push('is-selected-row');
     }
 
-    return classList.filter(classItem => classItem).join(' ');
+    return classList.filter((classItem) => classItem).join(' ');
   };
 
   // 设置用户个人表头信息
   const defaultSettings = {
-    fields: columns.value.filter(item => item.field).map(item => ({
-      label: item.label,
-      field: item.field,
-      disabled: ['instance_address', 'master_domain'].includes(item.field as string),
-    })),
-    checked: columns.value.map(item => item.field).filter(key => !!key) as string[],
+    checked: columns.value.map((item) => item.field).filter((key) => !!key) as string[],
+    fields: columns.value
+      .filter((item) => item.field)
+      .map((item) => ({
+        disabled: ['instance_address', 'master_domain'].includes(item.field as string),
+        field: item.field,
+        label: item.label,
+      })),
     showLineHeight: false,
     trigger: 'manual' as const,
   };
 
-  const {
-    settings,
-    updateTableSettings,
-  } = useTableSettings(UserPersonalSettings.REDIS_HA_TABLE_SETTINGS, defaultSettings);
+  const { settings, updateTableSettings } = useTableSettings(
+    UserPersonalSettings.REDIS_HA_TABLE_SETTINGS,
+    defaultSettings,
+  );
 
   /**
    * 申请实例
@@ -393,9 +385,9 @@
   const handleToDetails = (data: RedisInstanceModel) => {
     stretchLayoutSplitScreen();
     instanceData.value = {
-      instanceAddress: data.instance_address,
       clusterId: data.cluster_id,
-      clusterType: data.cluster_type
+      clusterType: data.cluster_type,
+      instanceAddress: data.instance_address,
     };
   };
 

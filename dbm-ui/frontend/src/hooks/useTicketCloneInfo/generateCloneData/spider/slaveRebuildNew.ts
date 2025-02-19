@@ -19,10 +19,10 @@ import { random } from '@utils';
 
 // spider 重建从库-新机重建
 export async function generateSpiderSlaveRebuildNewCloneData(ticketData: TicketModel<TendbCluster.RestoreSlave>) {
-  const { infos, backup_source } = ticketData.details;
+  const { infos } = ticketData.details;
   const slaveMachineResult = await getTendbclusterMachineList({
-    ip: infos.map((item) => item.old_slave.ip).join(','),
     instance_role: 'remote_slave',
+    ip: infos.map((item) => item.old_slave.ip).join(','),
   });
   const slaveMachineMap = slaveMachineResult.results.reduce<Record<string, TendbclusterMachineModel>>((obj, item) => {
     Object.assign(obj, {
@@ -34,26 +34,26 @@ export async function generateSpiderSlaveRebuildNewCloneData(ticketData: TicketM
   const tableDataList = infos.map((item) => {
     const slaveMachineItem = slaveMachineMap[item.old_slave.ip];
     return {
-      rowKey: random(),
       isLoading: false,
       oldSlave: {
         bkCloudId: slaveMachineItem.bk_cloud_id,
         bkCloudName: slaveMachineItem.bk_cloud_name,
         bkHostId: slaveMachineItem.bk_host_id,
-        ip: item.old_slave.ip,
-        domian: slaveMachineItem.related_clusters[0].immute_domain,
         clusterId: slaveMachineItem.related_clusters[0].id,
-        specConfig: item.resource_spec.new_slave,
+        domian: slaveMachineItem.related_clusters[0].immute_domain,
+        ip: item.old_slave.ip,
         slaveInstanceList: slaveMachineItem.related_instances,
+        specConfig: item.resource_spec.new_slave,
       },
+      rowKey: random(),
     };
   });
 
   return {
-    tableDataList,
     formData: {
+      backup_source: ticketData.details.backup_source,
       remark: ticketData.remark,
-      backup_source,
     },
+    tableDataList,
   };
 }

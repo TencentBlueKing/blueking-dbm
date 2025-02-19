@@ -53,19 +53,17 @@
 
 <script setup lang="ts">
   interface Props {
-    title?: string;
     desc?: string;
     mode?: 'normal' | 'collapse' | string;
+    title?: string;
   }
 
-  interface Emits {
-    (e: 'collapsed', value: boolean): void;
-  }
+  type Emits = (e: 'collapsed', value: boolean) => void;
 
   const props = withDefaults(defineProps<Props>(), {
-    title: '',
     desc: '',
     mode: 'normal',
+    title: '',
   });
   const emits = defineEmits<Emits>();
   const collapse = defineModel<boolean>('collapse', {

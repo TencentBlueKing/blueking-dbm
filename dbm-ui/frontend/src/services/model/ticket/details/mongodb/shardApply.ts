@@ -16,10 +16,10 @@ export interface ShardApply extends DetailBase {
   ip_source: string;
   oplog_percent: number;
   proxy_port: number;
-  start_port: number;
   resource_spec: {
     mongo_config: SpecInfo;
-    mongos: SpecInfo;
     mongodb: SpecInfo;
+    mongos: SpecInfo;
   };
+  start_port: number;
 }

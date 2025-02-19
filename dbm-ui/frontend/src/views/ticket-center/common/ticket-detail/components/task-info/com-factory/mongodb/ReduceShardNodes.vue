@@ -38,9 +38,9 @@
   }
 
   interface RowData {
-    immute_domain: string;
     cluster_type: string;
     current_nodes: number;
+    immute_domain: string;
     reduce_shard_nodes: number;
   }
 
@@ -59,23 +59,23 @@
 
   const columns = [
     {
-      label: t('目标集群'),
       field: 'immute_domain',
+      label: t('目标集群'),
       showOverflowTooltip: true,
     },
     {
-      label: t('集群类型'),
       field: 'cluster_type',
+      label: t('集群类型'),
       showOverflowTooltip: true,
     },
     {
-      label: t('当前Shard的节点数'),
       field: 'current_nodes',
+      label: t('当前Shard的节点数'),
       showOverflowTooltip: true,
     },
     {
-      label: t('缩容至（节点数）'),
       field: 'reduce_shard_nodes',
+      label: t('缩容至（节点数）'),
       showOverflowTooltip: true,
     },
   ];
@@ -83,9 +83,9 @@
   tableData.value = infos.map((item) => {
     const cluster = clusters[item.cluster_ids[0]];
     return {
-      immute_domain: cluster.immute_domain,
       cluster_type: cluster.cluster_type_name,
       current_nodes: item.current_shard_nodes_num,
+      immute_domain: cluster.immute_domain,
       reduce_shard_nodes: item.current_shard_nodes_num - item.reduce_shard_nodes,
     };
   });

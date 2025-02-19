@@ -48,14 +48,14 @@ interface DumperConfig {
  * 查询数据订阅配置列表
  */
 export function listDumperConfig(
-  params: { db_name?: string; table_name?: string; limit?: number; offset?: number },
+  params: { db_name?: string; limit?: number; offset?: number; table_name?: string },
   payload = {} as IRequestPayload,
 ) {
   return http.get<
     ListBase<
       {
-        instance_count: number;
         id: number;
+        instance_count: number;
         name: string;
         permission: {
           dumper_config_destroy: boolean;
@@ -112,12 +112,12 @@ export function deleteDumperConfig(params: { id: number }) {
  * 查询数据订阅实例列表
  */
 export function listDumperInstance(params: {
-  ip?: string;
   dumper_id?: string;
-  source_cluster?: string;
-  receiver_type?: string;
-  start_time?: string;
   end_time?: string;
+  ip?: string;
+  receiver_type?: string;
+  source_cluster?: string;
+  start_time?: string;
 }) {
   return http
     .get<ListBase<DumperModel[]>>(`/apis/mysql/bizs/${currentBizId}/dumper_instance/`, params)

@@ -58,17 +58,17 @@
   const { t } = useI18n();
 
   const actionMap = {
-    delete: {
-      tip: t('权限规则_t_任务正在进行中', { t: t('删除') }),
-      text: t('删除中'),
-      theme: 'danger',
-    },
     change: {
-      tip: t('权限规则_t_任务正在进行中', { t: t('修改') }),
       text: t('编辑中'),
       theme: 'warning',
+      tip: t('权限规则_t_任务正在进行中', { t: t('修改') }),
     },
-  } as Record<string, { tip: string; text: string; theme: 'danger' | 'warning' }>;
+    delete: {
+      text: t('删除中'),
+      theme: 'danger',
+      tip: t('权限规则_t_任务正在进行中', { t: t('删除') }),
+    },
+  } as Record<string, { text: string; theme: 'danger' | 'warning'; tip: string }>;
 
   const rootRef = ref();
   const popRef = ref();
@@ -92,22 +92,22 @@
         destroyInst();
         nextTick(() => {
           tippyIns = tippy(rootRef.value as SingleTarget, {
-            content: popRef.value.$el,
-            placement: 'top',
             appendTo: () => document.body,
-            theme: 'light',
-            maxWidth: 'none',
-            interactive: true,
             arrow: true,
-            offset: [0, 8],
-            zIndex: 999999,
+            content: popRef.value.$el,
             hideOnClick: true,
-            onShow() {
-              isShown.value = true;
-            },
+            interactive: true,
+            maxWidth: 'none',
+            offset: [0, 8],
             onHide() {
               isShown.value = false;
             },
+            onShow() {
+              isShown.value = true;
+            },
+            placement: 'top',
+            theme: 'light',
+            zIndex: 999999,
           });
         });
       }

@@ -39,10 +39,7 @@
 
   import TaskFlowModel from '@services/model/taskflow/taskflow';
 
-  import {
-    useLocation,
-    useTableSettings,
-  } from '@hooks';
+  import { useLocation, useTableSettings } from '@hooks';
 
   import { UserPersonalSettings } from '@common/const';
 
@@ -51,16 +48,16 @@
   import HightLightText from '@components/system-search/components/search-result/render-result/components/HightLightText.vue';
 
   interface Props {
-    keyword: string,
-    data: TaskFlowModel[]
-    bizIdNameMap: Record<number, string>
-    isAnomalies: boolean,
-    isSearching: boolean
+    bizIdNameMap: Record<number, string>;
+    data: TaskFlowModel[];
+    isAnomalies: boolean;
+    isSearching: boolean;
+    keyword: string;
   }
 
   interface Emits {
-    (e: 'refresh'): void,
-    (e: 'clearSearch'): void
+    (e: 'refresh'): void;
+    (e: 'clearSearch'): void;
   }
 
   const props = defineProps<Props>();
@@ -96,78 +93,79 @@
 
   const columns = computed(() => [
     {
-      label: 'ID',
       field: 'root_id',
-      width: 160,
+      label: 'ID',
       render: ({ data }: { data: TaskFlowModel }) => (
         <bk-button
+          theme='primary'
           text
-          theme="primary"
           onclick={() => handleToTask(data)}>
           <HightLightText
             keyWord={props.keyword}
+            highLightColor='#FF9C01'
             text={data.root_id}
-            highLightColor='#FF9C01' />
+          />
         </bk-button>
       ),
+      width: 160,
     },
     {
-      label: t('任务类型'),
       field: 'ticket_type_display',
-      width: 200,
       filter: {
-        list: Array.from(filterMap.value.ticketTypeSet).map(ticketTypeItem => ({
-          value: ticketTypeItem,
+        list: Array.from(filterMap.value.ticketTypeSet).map((ticketTypeItem) => ({
           text: ticketTypeItem,
+          value: ticketTypeItem,
         })),
       },
+      label: t('任务类型'),
       render: ({ data }: { data: TaskFlowModel }) => data.ticket_type_display || '--',
+      width: 200,
     },
     {
-      label: t('状态'),
       field: 'status',
+      label: t('状态'),
       render: ({ data }: { data: TaskFlowModel }) => (
         <DbStatus
-          type="linear"
-          theme={data.statusTheme}>
+          theme={data.statusTheme}
+          type='linear'>
           {t(data.statusText)}
         </DbStatus>
       ),
     },
     {
-      label: t('业务'),
       field: 'bk_biz_id',
       filter: {
-        list: Object.entries(filterMap.value.bizNameMap).map(bizItem => ({
-          value: Number(bizItem[0]),
+        list: Object.entries(filterMap.value.bizNameMap).map((bizItem) => ({
           text: bizItem[1],
+          value: Number(bizItem[0]),
         })),
       },
+      label: t('业务'),
       render: ({ data }: { data: TaskFlowModel }) => filterMap.value.bizNameMap[data.bk_biz_id] || '--',
     },
     {
-      label: t('关联单据'),
       field: 'bk_idc_name',
+      label: t('关联单据'),
       render: ({ data }: { data: TaskFlowModel }) => (
         <bk-button
+          theme='primary'
           text
-          theme="primary"
           onClick={() => handleToTicket(data.uid)}>
-          { data.uid }
+          {data.uid}
         </bk-button>
       ),
     },
     {
-      label: t('执行人'),
       field: 'created_by',
-      sort: true,
+      label: t('执行人'),
       render: ({ data }: { data: TaskFlowModel }) => data.created_by || '--',
+      sort: true,
     },
     {
-      label: t('执行时间'),
       field: 'created_at',
-      sort: true,
+      label: t('执行时间'),
       render: ({ data }: { data: TaskFlowModel }) => data.createAtDisplay,
+      sort: true,
     },
     // {
     //   label: t('耗时'),
@@ -178,34 +176,31 @@
 
   // 设置用户个人表头信息
   const defaultSettings = {
-    fields: (columns.value || []).filter(item => item.field).map(item => ({
-      label: item.label as string,
-      field: item.field as string,
-      disabled: item.field === 'root_id',
-    })),
-    checked: [
-      'root_id',
-      'ticket_type_display',
-      'status',
-      'bk_biz_id',
-      'bk_idc_name',
-      'created_by',
-      'created_at',
-    ],
+    checked: ['root_id', 'ticket_type_display', 'status', 'bk_biz_id', 'bk_idc_name', 'created_by', 'created_at'],
+    fields: (columns.value || [])
+      .filter((item) => item.field)
+      .map((item) => ({
+        disabled: item.field === 'root_id',
+        field: item.field as string,
+        label: item.label as string,
+      })),
   };
 
-  const {
-    settings: tableSetting,
-    updateTableSettings,
-  } = useTableSettings(UserPersonalSettings.QUICK_SEARCH_TASK, defaultSettings);
+  const { settings: tableSetting, updateTableSettings } = useTableSettings(
+    UserPersonalSettings.QUICK_SEARCH_TASK,
+    defaultSettings,
+  );
 
   const handleToTask = (data: Props['data'][number]) => {
-    location({
-      name: 'taskHistoryDetail',
-      params: {
-        root_id: data.root_id,
+    location(
+      {
+        name: 'taskHistoryDetail',
+        params: {
+          root_id: data.root_id,
+        },
       },
-    }, data.bk_biz_id);
+      data.bk_biz_id,
+    );
   };
 
   const handleToTicket = (id: string) => {

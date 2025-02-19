@@ -191,31 +191,32 @@
 
   const rules = [
     {
-      validator: (value: string) => value.split(splitReg).length === 2,
       message: t('请输入2台IP'),
+      validator: (value: string) => value.split(splitReg).length === 2,
     },
     {
+      message: t('IP格式不正确'),
       validator: (value: string) => {
         const ipList = value.split(splitReg);
         return _.every(ipList, (item) => ipv4.test(_.trim(item)));
       },
-      message: t('IP格式不正确'),
     },
     {
+      message: t('输入的主从IP重复'),
       validator: (value: string) => {
         const [fisrt, last] = value.split(splitReg);
         return _.trim(fisrt) !== _.trim(last);
       },
-      message: t('输入的主从IP重复'),
     },
     {
+      message: t('IP不存在'),
       validator: (value: string) => {
         const [masterIp, slaveIp] = value.split(splitReg);
         return getHostTopoInfos({
+          bk_biz_id: currentBizId,
           filter_conditions: {
             bk_host_innerip: [masterIp, slaveIp],
           },
-          bk_biz_id: currentBizId,
         }).then(async (data) => {
           // 一个 IP 存在于多个管控区域
           if (data.hosts_topo_info.length > 2) {
@@ -249,13 +250,13 @@
             if (!_.isEmpty(masterHost) && !_.isEmpty(slaveHost)) {
               const hostList = await checkHost({
                 ip_list: [masterHost.ip, slaveHost.ip],
+                mode: 'all',
                 scope_list: [
                   {
                     scope_id: currentBizId,
                     scope_type: 'biz',
                   },
                 ],
-                mode: 'all',
               });
               localHostList.value = hostList;
             }
@@ -264,9 +265,9 @@
           return false;
         });
       },
-      message: t('IP不存在'),
     },
     {
+      message: t('IP重复'),
       validator: () => {
         const otherHostSelectMemo = { ...singleHostSelectMemo };
         delete otherHostSelectMemo[instanceKey];
@@ -283,7 +284,6 @@
 
         return true;
       },
-      message: t('IP重复'),
     },
   ];
 
@@ -317,15 +317,15 @@
           return;
         }
         tippyIns = tippy(handlerRef.value as SingleTarget, {
-          content: popRef.value,
-          placement: 'top',
           appendTo: () => document.body,
-          theme: 'light',
-          maxWidth: 'none',
-          trigger: 'click',
-          interactive: true,
           arrow: true,
+          content: popRef.value,
+          interactive: true,
+          maxWidth: 'none',
           offset: [0, 8],
+          placement: 'top',
+          theme: 'light',
+          trigger: 'click',
           zIndex: 999999,
         });
       }
@@ -377,10 +377,10 @@
   defineExpose<Exposes>({
     getValue() {
       const hostList = localHostList.value.map((hostItem) => ({
-        ip: hostItem.ip,
+        bk_biz_id: hostItem.biz.id,
         bk_cloud_id: hostItem.cloud_id,
         bk_host_id: hostItem.host_id,
-        bk_biz_id: hostItem.biz.id,
+        ip: hostItem.ip,
       }));
       return inputRef.value!.getValue().then(() => ({
         new_master: hostList[0],

@@ -52,10 +52,7 @@
 </template>
 <script setup lang="tsx">
   import { InfoBox } from 'bkui-vue';
-  import {
-    reactive,
-    ref,
-  } from 'vue';
+  import { reactive, ref } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import HdfsModel from '@services/model/hdfs/hdfs';
@@ -69,23 +66,19 @@
 
   import { ClusterTypes } from '@common/const';
 
-  import HostExpansion, {
-    type TExpansionNode,
-  } from '@views/db-manage/common/host-expansion/Index.vue';
+  import HostExpansion, { type TExpansionNode } from '@views/db-manage/common/host-expansion/Index.vue';
   import NodeStatusList from '@views/db-manage/common/host-expansion/NodeStatusList.vue';
 
   import { messageError } from '@utils';
 
   interface Props {
-    data: HdfsModel,
+    data: HdfsModel;
   }
 
-  interface Emits {
-    (e: 'change'): void
-  }
+  type Emits = (e: 'change') => void;
 
   interface Exposes {
-    submit: () => Promise<any>
+    submit: () => Promise<any>;
   }
 
   const props = defineProps<Props>();
@@ -106,22 +99,22 @@
 
   const nodeInfoMap = reactive<Record<string, TExpansionNode>>({
     datanode: {
-      label: 'Datanode',
       clusterId: props.data.id,
-      role: 'hdfs_datanode',
-      originalHostList: [],
-      ipSource: 'resource_pool',
-      hostList: [],
-      totalDisk: 0,
       // targetDisk: 0,
       expansionDisk: 0,
+      hostList: [],
+      ipSource: 'resource_pool',
+      label: 'Datanode',
+      originalHostList: [],
+      resourceSpec: {
+        count: 0,
+        spec_id: 0,
+      },
+      role: 'hdfs_datanode',
       specClusterType: ClusterTypes.HDFS,
       specMachineType: 'hdfs_datanode',
-      resourceSpec: {
-        spec_id: 0,
-        count: 0,
-      },
-      tagText: t('存储层')
+      tagText: t('存储层'),
+      totalDisk: 0,
     },
   });
 
@@ -135,23 +128,24 @@
     isLoading.value = true;
     getHdfsMachineList({
       cluster_ids: String(props.data.id),
+      limit: -1,
       offset: 0,
-      limit: -1
-    }).then((data) => {
-      const datanodeOriginalHostList: HdfsMachineModel[] = [];
-
-      let datanodeDiskTotal = 0;
-
-      data.results.forEach((hostItem) => {
-        if (hostItem.isDataNode) {
-          datanodeDiskTotal += Math.floor(Number(hostItem.host_info.bk_disk));
-          datanodeOriginalHostList.push(hostItem);
-        }
-      });
-
-      nodeInfoMap.datanode.totalDisk = datanodeDiskTotal;
-      nodeInfoMap.datanode.originalHostList = datanodeOriginalHostList;
     })
+      .then((data) => {
+        const datanodeOriginalHostList: HdfsMachineModel[] = [];
+
+        let datanodeDiskTotal = 0;
+
+        data.results.forEach((hostItem) => {
+          if (hostItem.isDataNode) {
+            datanodeDiskTotal += Math.floor(Number(hostItem.host_info.bk_disk));
+            datanodeOriginalHostList.push(hostItem);
+          }
+        });
+
+        nodeInfoMap.datanode.totalDisk = datanodeDiskTotal;
+        nodeInfoMap.datanode.originalHostList = datanodeOriginalHostList;
+      })
       .finally(() => {
         isLoading.value = false;
       });
@@ -167,62 +161,62 @@
       }
 
       const renderSubTitle = () => {
-        const renderExpansionDiskTips = () => Object.values(nodeInfoMap).map((nodeData) => {
-          if (nodeData.expansionDisk) {
-            return (
-              <div>
-                {t('name容量从nG扩容至nG', {
-                  name: nodeData.label,
-                  totalDisk: nodeData.totalDisk,
-                  expansionDisk: nodeData.totalDisk + nodeData.expansionDisk,
-                })}
-              </div>
-            );
-          }
-          return null;
-        });
+        const renderExpansionDiskTips = () =>
+          Object.values(nodeInfoMap).map((nodeData) => {
+            if (nodeData.expansionDisk) {
+              return (
+                <div>
+                  {t('name容量从nG扩容至nG', {
+                    expansionDisk: nodeData.totalDisk + nodeData.expansionDisk,
+                    name: nodeData.label,
+                    totalDisk: nodeData.totalDisk,
+                  })}
+                </div>
+              );
+            }
+            return null;
+          });
 
-        return (
-          <div style="font-size: 14px; line-height: 28px; color: #63656E;">
-            {renderExpansionDiskTips()}
-          </div>
-        );
+        return <div style='font-size: 14px; line-height: 28px; color: #63656E;'>{renderExpansionDiskTips()}</div>;
       };
 
       return new Promise((resolve, reject) => {
         InfoBox({
-          title: t('确认扩容【name】集群', { name: props.data.cluster_name }),
-          subTitle: renderSubTitle,
-          confirmText: t('确认'),
           cancelText: t('取消'),
-          headerAlign: 'center',
+          confirmText: t('确认'),
           contentAlign: 'center',
           footerAlign: 'center',
+          headerAlign: 'center',
           onCancel: () => reject(),
           onConfirm: () => {
             const hostData = {};
 
-            const generateExtInfo = () => Object.entries(nodeInfoMap).reduce((results, [key, item]) => {
-              const obj = {
-                host_list: item.hostList,
-                total_hosts: item.originalHostList.length,
-                total_disk: item.totalDisk,
-                // target_disk: item.targetDisk,
-                expansion_disk: item.expansionDisk,
-              };
-              Object.assign(results, {
-                [key]: obj,
-              });
-              return results;
-            }, {} as Record<string, any>);
+            const generateExtInfo = () =>
+              Object.entries(nodeInfoMap).reduce(
+                (results, [key, item]) => {
+                  const obj = {
+                    // target_disk: item.targetDisk,
+                    expansion_disk: item.expansionDisk,
+                    host_list: item.hostList,
+                    total_disk: item.totalDisk,
+                    total_hosts: item.originalHostList.length,
+                  };
+                  Object.assign(results, {
+                    [key]: obj,
+                  });
+                  return results;
+                },
+                {} as Record<string, any>,
+              );
 
             if (ipSource.value === 'manual_input') {
-              const fomatHost = (hostList: TExpansionNode['hostList'] = []) => hostList.map(hostItem => ({
-                ip: hostItem.ip,
-                bk_cloud_id: hostItem.cloud_id,
-                bk_host_id: hostItem.host_id,
-                bk_biz_id: hostItem.meta.bk_biz_id,
-              }));
+              const fomatHost = (hostList: TExpansionNode['hostList'] = []) =>
+                hostList.map((hostItem) => ({
+                  bk_biz_id: hostItem.meta.bk_biz_id,
+                  bk_cloud_id: hostItem.cloud_id,
+                  bk_host_id: hostItem.host_id,
+                  ip: hostItem.ip,
+                }));
               Object.assign(hostData, {
                 nodes: {
                   datanode: fomatHost(nodeInfoMap.datanode.hostList),
@@ -238,19 +232,21 @@
 
             createTicket({
               bk_biz_id: bizId,
-              ticket_type: 'HDFS_SCALE_UP',
               details: {
-                ip_source: ipSource.value,
                 cluster_id: props.data.id,
+                ip_source: ipSource.value,
                 ...hostData,
                 ext_info: generateExtInfo(),
               },
+              ticket_type: 'HDFS_SCALE_UP',
             }).then((data) => {
               ticketMessage(data.id);
               resolve('success');
               emits('change');
-            })
+            });
           },
+          subTitle: renderSubTitle,
+          title: t('确认扩容【name】集群', { name: props.data.cluster_name }),
         });
       });
     },

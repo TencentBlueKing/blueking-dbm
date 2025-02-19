@@ -153,18 +153,18 @@
   const props = defineProps<Props>();
 
   const initData = () => ({
-    repeats: 0,
-    max_length: 48,
-    min_length: 6,
     include_rule: {
+      lowercase: true,
       numbers: true,
       symbols: true,
-      lowercase: true,
       uppercase: true,
     },
-    weak_password: false,
+    max_length: 48,
+    min_length: 6,
     number_of_types: 0,
+    repeats: 0,
     symbols_allowed: '',
+    weak_password: false,
   });
 
   const { t } = useI18n();
@@ -177,15 +177,15 @@
   const rules = {
     include_rule: [
       {
-        trigger: 'change',
         message: t('请至少选择一种类型'),
+        trigger: 'change',
         validator: () => Object.values(formData.include_rule).some((checked) => checked),
       },
     ],
     symbols_allowed: [
       {
-        trigger: 'blur',
         message: t('请指定特殊字符'),
+        trigger: 'blur',
         validator: (value: string) => {
           if (formData.include_rule.symbols) {
             return !!value;
@@ -194,8 +194,8 @@
         },
       },
       {
-        trigger: 'blur',
         message: t('特殊字符不允许包含空格'),
+        trigger: 'blur',
         validator: (value: string) => {
           if (formData.include_rule.symbols) {
             return !/\s/.test(value);
@@ -204,8 +204,8 @@
         },
       },
       {
-        trigger: 'blur',
         message: t('请输入除大小写字母、数字外的英文半角字符'),
+        trigger: 'blur',
         validator: (value: string) => {
           if (formData.include_rule.symbols) {
             return /^[\u0021-\u002f\u003a-\u0040\u005b-\u0060\u007b-\u007e]+$/.test(value);
@@ -222,14 +222,14 @@
     keyboards: [] as string[],
     letters: [] as string[],
     numbers: [] as string[],
-    symbols: [] as string[],
     repeats: [] as string[],
+    symbols: [] as string[],
   });
   const isSubmitting = ref(false);
 
   const typeMaxCount = computed(() => Object.values(formData.include_rule).filter((item) => item).length);
 
-  const { run: getPasswordPolicyRun, loading: isLoading } = useRequest(getPasswordPolicy, {
+  const { loading: isLoading, run: getPasswordPolicyRun } = useRequest(getPasswordPolicy, {
     manual: true,
     onSuccess: (data) => {
       const { id, name, rule } = data;
@@ -241,8 +241,8 @@
         keyboards: ['123456789'.slice(9 - repeats)],
         letters: ['abcdefghijklmnopqrstuvwxyz'.slice(0, repeats)],
         numbers: ['1234567890'.slice(0, repeats)],
-        symbols: ['!#%&()*+,-./;<=>?[]^_{|}~@:$'.slice(0, repeats)],
         repeats: ['a', '2', '@'].map((char) => char.repeat(repeats)),
+        symbols: ['!#%&()*+,-./;<=>?[]^_{|}~@:$'.slice(0, repeats)],
       };
     },
   });
@@ -275,11 +275,11 @@
       await formRef.value.validate();
       await updatePasswordPolicyRunAsync({
         ...passwordPolicyData,
+        reset: false,
         rule: {
           ...formData,
           symbols_allowed: _.uniq(formData.symbols_allowed.split('')).join(''),
         },
-        reset: false,
       });
       messageSuccess(t('保存成功'));
       fetchData();
@@ -291,11 +291,11 @@
   const handleReset = () =>
     updatePasswordPolicyRunAsync({
       ...passwordPolicyData,
+      reset: true,
       rule: {
         ...formData,
         symbols_allowed: _.uniq(formData.symbols_allowed.split('')).join(''),
       },
-      reset: true,
     }).then(() => {
       messageSuccess(t('重置成功'));
       fetchData();

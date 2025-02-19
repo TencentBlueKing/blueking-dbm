@@ -21,15 +21,15 @@ import { notModuleClusters } from '@views/db-configure/common/const';
 
 import type { TreeData } from '../types';
 
-type LevelConfigDetail = ServiceReturnType<typeof getLevelConfig> & { charset?: string };
+type LevelConfigDetail = { charset?: string } & ServiceReturnType<typeof getLevelConfig>;
 
 interface State {
-  loading: boolean;
-  loadingDetails: boolean;
-  isEmpty: boolean;
-  version: string;
   data: LevelConfigDetail;
   deployInfo: LevelConfigDetail;
+  isEmpty: boolean;
+  loading: boolean;
+  loadingDetails: boolean;
+  version: string;
 }
 /**
  * 获取参数管理基本信息
@@ -40,16 +40,16 @@ export const useBaseDetails = (immediateFetch = true, confName = 'db_version') =
       return {} as ServiceParameters<typeof getLevelConfig>;
     }
 
-    const { id, levelType, parentId, data } = treeNode.value;
+    const { data, id, levelType, parentId } = treeNode.value;
     const notExistModule = notModuleClusters.includes(dbType.value);
     const params = {
-      meta_cluster_type: clusterType.value,
-      conf_type: confType,
-      version: state.version || data?.extra?.[versionKey],
       bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+      conf_type: confType,
+      level_info: undefined as any,
       level_name: levelType,
       level_value: id,
-      level_info: undefined as any,
+      meta_cluster_type: clusterType.value,
+      version: state.version || data?.extra?.[versionKey],
     };
     if (parentId && levelType === ConfLevels.CLUSTER) {
       let [parentLevelType, parentNodeId] = parentId.split('-');
@@ -69,24 +69,24 @@ export const useBaseDetails = (immediateFetch = true, confName = 'db_version') =
   const clusterType = computed(() => (route.params.clusterType as ClusterTypes) || ClusterTypes.TENDBSINGLE);
   const dbType = computed(() => clusterTypeInfos[clusterType.value].dbType);
   const state = reactive<State>({
-    loading: false,
-    loadingDetails: false,
-    isEmpty: false,
-    version: '',
     data: {
-      conf_items: [],
-      version: '',
-      name: '',
-      description: '',
       charset: '',
+      conf_items: [],
+      description: '',
+      name: '',
+      version: '',
     },
     deployInfo: {
-      conf_items: [],
-      version: '',
-      name: '',
-      description: '',
       charset: '',
+      conf_items: [],
+      description: '',
+      name: '',
+      version: '',
     },
+    isEmpty: false,
+    loading: false,
+    loadingDetails: false,
+    version: '',
   });
 
   const fetchParams = computed(() => getFetchParams('version'));
@@ -113,12 +113,12 @@ export const useBaseDetails = (immediateFetch = true, confName = 'db_version') =
    */
   const fetchModuleConfig = (moduleId: number) => {
     const params = {
+      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
       conf_type: 'deploy',
       level_name: 'module',
-      version: 'deploy_info',
-      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
       level_value: moduleId,
       meta_cluster_type: clusterType.value,
+      version: 'deploy_info',
     };
 
     state.loading = true;
@@ -152,7 +152,7 @@ export const useBaseDetails = (immediateFetch = true, confName = 'db_version') =
           const parentInfo = (node.value.parentId as string).split('-');
           id = Number(parentInfo[1]);
         }
-        if ([DBTypes.MYSQL, DBTypes.TENDBCLUSTER, DBTypes.SQLSERVER].includes(dbType.value)) {
+        if ([DBTypes.MYSQL, DBTypes.SQLSERVER, DBTypes.TENDBCLUSTER].includes(dbType.value)) {
           fetchModuleConfig(id);
         } else if (notModuleClusters.includes(dbType.value)) {
           fetchLevelConfig();
@@ -163,9 +163,9 @@ export const useBaseDetails = (immediateFetch = true, confName = 'db_version') =
   );
 
   return {
-    state,
     dbType,
     fetchParams,
     getFetchParams,
+    state,
   };
 };

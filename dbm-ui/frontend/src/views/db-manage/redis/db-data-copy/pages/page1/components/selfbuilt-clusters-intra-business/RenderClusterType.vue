@@ -30,16 +30,16 @@
   import TableEditSelect from '@views/db-manage/redis/common/edit/Select.vue';
 
   interface Props {
-    isLoading?: boolean;
     data?: ClusterType;
+    isLoading?: boolean;
   }
 
   interface Exposes {
     getValue: () => Promise<string>;
   }
   enum ClusterType {
-    REDIS_INSTANCE = 'RedisInstance', // 主从版
     REDIS_CLUSTER = 'RedisCluster', // 集群版
+    REDIS_INSTANCE = 'RedisInstance', // 主从版
   }
 </script>
 <script setup lang="ts">
@@ -55,19 +55,19 @@
 
   const selectList = [
     {
-      value: ClusterType.REDIS_INSTANCE,
       label: '主从版',
+      value: ClusterType.REDIS_INSTANCE,
     },
     {
-      value: ClusterType.REDIS_CLUSTER,
       label: '集群版',
+      value: ClusterType.REDIS_CLUSTER,
     },
   ];
 
   const rules = [
     {
-      validator: (value: string) => Boolean(value),
       message: t('请选择集群类型'),
+      validator: (value: string) => Boolean(value),
     },
   ];
 

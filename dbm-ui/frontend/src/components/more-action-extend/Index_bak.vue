@@ -51,23 +51,23 @@
 
   onMounted(() => {
     tippyIns = tippy(rootRef.value as SingleTarget, {
-      content: popRef.value,
-      placement: 'bottom',
       appendTo: () => document.body,
-      theme: 'light',
-      maxWidth: 'none',
-      trigger: 'manual',
-      interactive: true,
       arrow: false,
-      offset: [0, 8],
-      zIndex: 999999,
+      content: popRef.value,
       hideOnClick: true,
-      onShow() {
-        isPopoverShow.value = true;
-      },
+      interactive: true,
+      maxWidth: 'none',
+      offset: [0, 8],
       onHidden() {
         isPopoverShow.value = false;
       },
+      onShow() {
+        isPopoverShow.value = true;
+      },
+      placement: 'bottom',
+      theme: 'light',
+      trigger: 'manual',
+      zIndex: 999999,
     });
   });
   onBeforeUnmount(() => {

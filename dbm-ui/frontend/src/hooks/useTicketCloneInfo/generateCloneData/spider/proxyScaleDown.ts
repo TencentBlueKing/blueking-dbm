@@ -45,18 +45,18 @@ export async function generateSpiderProxyScaleDownCloneData(ticketData: TicketMo
   }, {});
 
   const formatValue = (data: TendbclusterInstanceModel) => ({
-    bk_host_id: data.bk_host_id,
-    instance_address: data.instance_address || '',
-    cluster_id: data.cluster_id,
     bk_cloud_id: data?.host_info?.cloud_id || 0,
-    ip: data.ip || '',
-    port: data.port,
-    cluster_type: data.cluster_type,
-    id: data.id,
-    master_domain: data.master_domain,
     bk_cloud_name: data.bk_cloud_name,
+    bk_host_id: data.bk_host_id,
+    cluster_id: data.cluster_id,
+    cluster_type: data.cluster_type,
     db_module_id: data.db_module_id,
     db_module_name: data.db_module_name,
+    id: data.id,
+    instance_address: data.instance_address || '',
+    ip: data.ip || '',
+    master_domain: data.master_domain,
+    port: data.port,
   });
 
   const tableDataList = infos.map((item) => {
@@ -67,32 +67,32 @@ export async function generateSpiderProxyScaleDownCloneData(ticketData: TicketMo
     const targetNum = item.spider_reduced_to_count;
 
     return {
-      rowKey: random(),
-      isLoading: false,
+      bkCloudId: clusterItem.bk_cloud_id,
       cluster: clusterItem.master_domain,
       clusterId: item.cluster_id,
-      bkCloudId: clusterItem.bk_cloud_id,
-      nodeType: item.reduce_spider_role,
+      isLoading: false,
       masterCount,
-      slaveCount,
       mntCount: clusterItem.spider_mnt.length,
-      spiderMasterList: clusterItem.spider_master,
-      spiderSlaveList: clusterItem.spider_slave,
+      nodeType: item.reduce_spider_role,
+      rowKey: random(),
+      selectedNodeList: (item.spider_reduced_hosts || []).map((proxyHost) =>
+        formatValue(instanceListMap[proxyHost.ip]),
+      ),
+      slaveCount,
       spec: {
         ...clusterItem.spider_master[0].spec_config,
         count: targetNum,
       },
-      selectedNodeList: (item.spider_reduced_hosts || []).map((proxyHost) =>
-        formatValue(instanceListMap[proxyHost.ip]),
-      ),
+      spiderMasterList: clusterItem.spider_master,
+      spiderSlaveList: clusterItem.spider_slave,
       targetNum: `${nodeList.length - (item.spider_reduced_to_count || 0)}`,
       // targetNum: String(targetNum),
     };
   });
 
   return Promise.resolve({
-    tableDataList,
     isSafe,
     remark: ticketData.remark,
+    tableDataList,
   });
 }

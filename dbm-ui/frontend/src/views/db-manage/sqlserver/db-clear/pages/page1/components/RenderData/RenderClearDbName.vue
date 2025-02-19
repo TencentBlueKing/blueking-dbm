@@ -105,10 +105,11 @@
 
   const rules = [
     {
-      validator: () => localDbList.value.length > 0,
       message: t('构造后 DB 名不能为空'),
+      validator: () => localDbList.value.length > 0,
     },
     {
+      message: t('最终 DB 和指定 DB 数量不匹配'),
       validator: () => {
         const cleanIgnoreDbsPatternsMap = makeMap(cleanIgnoreDbsPatterns.value);
         const cleanDbsPatternList = cleanDbsPatterns.value.filter(
@@ -116,7 +117,6 @@
         );
         return cleanDbsPatternList.length <= localDbList.value.length;
       },
-      message: t('最终 DB 和指定 DB 数量不匹配'),
     },
   ];
 

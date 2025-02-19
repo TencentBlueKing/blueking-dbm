@@ -77,8 +77,8 @@
   export type ClusterItem = ServiceReturnType<typeof queryAllTypeCluster>[number];
 
   interface Props {
-    dbType: DBTypes;
     beforeClose: (clusterId: number) => Promise<boolean>;
+    dbType: DBTypes;
   }
 
   interface Emits {
@@ -202,25 +202,25 @@
 
   onMounted(() => {
     tippyIns = tippy(addTabRef.value as SingleTarget, {
-      content: popRef.value,
-      placement: 'bottom-start',
       appendTo: () => document.body,
-      theme: 'light',
-      maxWidth: 'none',
-      trigger: 'mouseenter click',
-      interactive: true,
       arrow: true,
-      offset: [0, 0],
-      zIndex: 999999,
+      content: popRef.value,
       hideOnClick: true,
+      interactive: true,
+      maxWidth: 'none',
+      offset: [0, 0],
+      onHide() {
+        clutersRef.value.hidePopover();
+      },
       onShow() {
         setTimeout(() => {
           clutersRef.value.showPopover();
         });
       },
-      onHide() {
-        clutersRef.value.hidePopover();
-      },
+      placement: 'bottom-start',
+      theme: 'light',
+      trigger: 'mouseenter click',
+      zIndex: 999999,
     });
   });
 

@@ -77,16 +77,18 @@
   import type { TExpansionNode } from '../Index.vue';
 
   interface Props {
-    data: TExpansionNode;
     cloudInfo: {
       id: number;
       name: string;
     };
+    data: TExpansionNode;
   }
 
-  interface Emits {
-    (e: 'change', value: TExpansionNode['resourceSpec'], expansionDisk: TExpansionNode['expansionDisk']): void;
-  }
+  type Emits = (
+    e: 'change',
+    value: TExpansionNode['resourceSpec'],
+    expansionDisk: TExpansionNode['expansionDisk'],
+  ) => void;
 
   const props = defineProps<Props>();
   const emits = defineEmits<Emits>();
@@ -119,9 +121,9 @@
     emits(
       'change',
       {
-        spec_id: specId.value,
         count,
         instance_num: currentSelectSpec.value ? (currentSelectSpec.value.instance_num as number) : 0,
+        spec_id: specId.value,
       },
       count ? estimateCapacity.value : 0,
     );
@@ -134,12 +136,12 @@
     },
   });
 
-  const { loading: isResourceSpecLoading, data: resourceSpecList } = useRequest(getResourceSpecList, {
+  const { data: resourceSpecList, loading: isResourceSpecLoading } = useRequest(getResourceSpecList, {
     defaultParams: [
       {
+        limit: -1,
         spec_cluster_type: props.data.specClusterType,
         spec_machine_type: props.data.specMachineType,
-        limit: -1,
       },
     ],
     onSuccess(data) {

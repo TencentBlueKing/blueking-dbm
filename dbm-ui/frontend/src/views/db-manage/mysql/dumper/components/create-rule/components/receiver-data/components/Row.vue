@@ -91,45 +91,45 @@
   import RenderSourceCluster from './RenderSourceCluster.vue';
 
   export interface IDataRow {
-    rowKey: string;
-    isLoading: boolean;
-    srcCluster: {
-      clusterName: string;
-      clusterId: number;
-      moduleId: number;
-    };
+    account: string;
     dumperId: string;
+    isLoading: boolean;
+    l5CmdId: number;
+    l5ModId: number;
+    password: string;
     receiver: string;
     receiverType: string;
-    account: string;
-    password: string;
-    l5ModId: number;
-    l5CmdId: number;
+    rowKey: string;
+    srcCluster: {
+      clusterId: number;
+      clusterName: string;
+      moduleId: number;
+    };
   }
 
   // 创建表格数据
   export const createRowData = (): IDataRow => ({
-    rowKey: random(),
-    isLoading: false,
-    srcCluster: {
-      clusterName: '',
-      clusterId: 0,
-      moduleId: 0,
-    },
+    account: '',
     dumperId: '',
+    isLoading: false,
+    l5CmdId: 0,
+    l5ModId: 0,
+    password: '',
     receiver: '',
     receiverType: 'KAFKA',
-    account: '',
-    password: '',
-    l5ModId: 0,
-    l5CmdId: 0,
+    rowKey: random(),
+    srcCluster: {
+      clusterId: 0,
+      clusterName: '',
+      moduleId: 0,
+    },
   });
 </script>
 <script setup lang="ts">
   interface Props {
     data: IDataRow;
-    rowSpan: number;
     index: number;
+    rowSpan: number;
     type: string;
   }
 
@@ -195,13 +195,13 @@
         const rowObj = {
           ...srcCluster,
           dumper_id: id,
+          kafka_pwd: pwd, // protocol_type为KAFKA填入用户值
+          kafka_user: user, // protocol_type为KAFKA填入用户值
+          l5_cmdid: cmdid, // protocol_type为L5_AGENT填入用户值
+          l5_modid: modid, // protocol_type为L5_AGENT填入用户值
           protocol_type: receiverType.value,
           target_address: targetArr[0] as string | undefined, // protocol_type为L5_AGENT要去除
           target_port: Number(targetArr[1]) as number | undefined, // protocol_type为L5_AGENT要去除
-          l5_modid: modid, // protocol_type为L5_AGENT填入用户值
-          l5_cmdid: cmdid, // protocol_type为L5_AGENT填入用户值
-          kafka_user: user, // protocol_type为KAFKA填入用户值
-          kafka_pwd: pwd, // protocol_type为KAFKA填入用户值
         };
         if (receiverType.value === 'KAFKA') {
           delete rowObj.l5_modid;

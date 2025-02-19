@@ -34,10 +34,10 @@
 
   interface Props {
     data: {
-      version: string;
-      package: string;
       charSet: string;
       moduleName: string;
+      package: string;
+      version: string;
     };
   }
 

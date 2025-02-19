@@ -51,9 +51,7 @@
 
   import { ClusterTypes } from '@common/const';
 
-  import ClusterSelector, {
-    type TabItem,
-  } from '@components/cluster-selector/Index.vue';
+  import ClusterSelector, { type TabItem } from '@components/cluster-selector/Index.vue';
   import RenderClusterStatus from '@components/cluster-status/Index.vue';
 
   const modelValue = defineModel<number[]>();
@@ -64,11 +62,10 @@
   const isShowClusterSelector = ref(false);
   const formItemRef = ref();
   const clusterSelectorValue = shallowRef<{ [key: string]: MongodbModel[] }>({
-    [ClusterTypes.MONGO_SHARED_CLUSTER]: [],
     [ClusterTypes.MONGO_REPLICA_SET]: [],
+    [ClusterTypes.MONGO_SHARED_CLUSTER]: [],
   });
   const targetClusterList = shallowRef<Array<MongodbModel>>([]);
-
 
   const tabListConfig = {
     [ClusterTypes.MONGO_REPLICA_SET]: {
@@ -83,45 +80,43 @@
 
   const colums = [
     {
-      label: t('集群'),
       field: 'master_domain',
+      label: t('集群'),
     },
     {
-      label: t('集群类型'),
       field: 'cluster_type',
-      render: ({ data }: {data: MongodbModel}) => data.clusterTypeText,
+      label: t('集群类型'),
+      render: ({ data }: { data: MongodbModel }) => data.clusterTypeText,
     },
     {
       label: t('状态'),
-      render: ({ data }: {data: MongodbModel}) => (
-        <RenderClusterStatus data={data.status} />
-      ),
+      render: ({ data }: { data: MongodbModel }) => <RenderClusterStatus data={data.status} />,
     },
     {
-      label: t('操作'),
-      width: '100',
       field: 'action',
-      render: ({ data }: {data: MongodbModel}) => (
+      label: t('操作'),
+      render: ({ data }: { data: MongodbModel }) => (
         <bk-button
-          theme="primary"
+          theme='primary'
           text
           onClick={() => handleRemove(data)}>
-          { t('删除') }
+          {t('删除')}
         </bk-button>
       ),
+      width: '100',
     },
   ];
 
   const rules = [
     {
-      validator: (value: number[]) => value.length > 0,
       message: t('目标集群不能为空'),
       trigger: 'change',
+      validator: (value: number[]) => value.length > 0,
     },
   ];
 
   const triggerChange = () => {
-    modelValue.value = targetClusterList.value.map(item => item.id);
+    modelValue.value = targetClusterList.value.map((item) => item.id);
   };
 
   const handleShowClusterSelector = () => {

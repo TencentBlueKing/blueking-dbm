@@ -81,8 +81,8 @@
 
   interface Props {
     data: TReplaceNode;
-    placehoderId: string;
     disableHostMethod?: (params: HostInfo) => string | boolean;
+    placehoderId: string;
   }
 
   const props = defineProps<Props>();

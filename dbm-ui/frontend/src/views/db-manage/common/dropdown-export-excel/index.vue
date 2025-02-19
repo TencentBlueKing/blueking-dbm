@@ -51,6 +51,8 @@
   import { exportTendbsingleClusterToExcel, exportTendbsingleInstanceToExcel } from '@services/source/tendbsingle';
 
   interface Props {
+    exportType?: 'cluster' | 'instance';
+    ids?: number[];
     type:
       | 'tendbsingle'
       | 'tendbha'
@@ -66,8 +68,6 @@
       | 'sqlserver_ha'
       | 'sqlserver_single'
       | 'doris';
-    ids?: number[];
-    exportType?: 'cluster' | 'instance';
   }
 
   const props = withDefaults(defineProps<Props>(), {
@@ -84,49 +84,45 @@
   const isCluster = props.exportType === 'cluster';
 
   const apiMap = {
-    tendbsingle: {
-      cluster: exportTendbsingleClusterToExcel,
-      instance: exportTendbsingleInstanceToExcel,
-    },
-    tendbha: {
-      cluster: exportTendbhaClusterToExcel,
-      instance: exportTendbhaInstanceToExcel,
-    },
-    spider: {
-      cluster: exportTendbclusterToExcel,
-      instance: exportTendbclusterInstanceToExcel,
-    },
-    redis: {
-      cluster: exportRedisClusterToExcel,
-      instance: exportRedisInstanceToExcel,
-    },
-    pulsar: {
-      cluster: exportPulsarClusterToExcel,
-      instance: exportPulsarInstanceToExcel,
-    },
-    kafka: {
-      cluster: exportKafkaClusterToExcel,
-      instance: exportKafkaInstanceToExcel,
-    },
-    influxdb: {
-      cluster: exportInfluxdbClusterToExcel,
-      instance: exportInfluxdbInstanceToExcel,
-    },
-    hdfs: {
-      cluster: exportHdfsClusterToExcel,
-      instance: exportHdfsInstanceToExcel,
+    doris: {
+      cluster: exportDorisClusterToExcel,
+      instance: exportDorisInstanceToExcel,
     },
     es: {
       cluster: exportEsClusterToExcel,
       instance: exportEsInstanceToExcel,
     },
-    riak: {
-      cluster: exportRiakClusterToExcel,
-      instance: exportRiakInstanceToExcel,
+    hdfs: {
+      cluster: exportHdfsClusterToExcel,
+      instance: exportHdfsInstanceToExcel,
+    },
+    influxdb: {
+      cluster: exportInfluxdbClusterToExcel,
+      instance: exportInfluxdbInstanceToExcel,
+    },
+    kafka: {
+      cluster: exportKafkaClusterToExcel,
+      instance: exportKafkaInstanceToExcel,
     },
     mongodb: {
       cluster: exportMongodbClusterToExcel,
       instance: exportMongodbInstanceToExcel,
+    },
+    pulsar: {
+      cluster: exportPulsarClusterToExcel,
+      instance: exportPulsarInstanceToExcel,
+    },
+    redis: {
+      cluster: exportRedisClusterToExcel,
+      instance: exportRedisInstanceToExcel,
+    },
+    riak: {
+      cluster: exportRiakClusterToExcel,
+      instance: exportRiakInstanceToExcel,
+    },
+    spider: {
+      cluster: exportTendbclusterToExcel,
+      instance: exportTendbclusterInstanceToExcel,
     },
     sqlserver_ha: {
       cluster: exportSqlServerHaClusterToExcel,
@@ -135,9 +131,13 @@
     sqlserver_single: {
       cluster: exportSqlServerSingleClusterToExcel,
     },
-    doris: {
-      cluster: exportDorisClusterToExcel,
-      instance: exportDorisInstanceToExcel,
+    tendbha: {
+      cluster: exportTendbhaClusterToExcel,
+      instance: exportTendbhaInstanceToExcel,
+    },
+    tendbsingle: {
+      cluster: exportTendbsingleClusterToExcel,
+      instance: exportTendbsingleInstanceToExcel,
     },
   };
 

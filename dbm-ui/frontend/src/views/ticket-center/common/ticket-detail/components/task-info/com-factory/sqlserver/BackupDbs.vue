@@ -85,9 +85,9 @@
 
   const fileTagMap = {
     DBFILE1M: t('1 个月'),
-    DBFILE6M: t('6 个月'),
     DBFILE1Y: t('1 年'),
     DBFILE3Y: t('3 年'),
+    DBFILE6M: t('6 个月'),
     INCREMENT_BACKUP: t('15天'),
   } as Record<string, string>;
 </script>

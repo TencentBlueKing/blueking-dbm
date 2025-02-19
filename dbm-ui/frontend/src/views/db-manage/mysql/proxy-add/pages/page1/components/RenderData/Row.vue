@@ -40,26 +40,26 @@
   import { random } from '@utils';
 
   export interface IHostData {
-    bk_host_id: number;
     bk_cloud_id: number;
+    bk_host_id: number;
     ip: string;
   }
 
   export interface IDataRow {
-    rowKey: string;
     clusterData?: {
-      id: number;
-      domain: string;
       cloudId: number | null;
+      domain: string;
+      id: number;
     };
     proxyIp?: IHostData;
+    rowKey: string;
   }
 
   // 创建表格数据
   export const createRowData = (data = {} as Partial<IDataRow>) => ({
-    rowKey: random(),
     clusterData: data.clusterData,
     proxyIp: data.proxyIp,
+    rowKey: random(),
   });
 </script>
 <script setup lang="ts">
@@ -89,8 +89,8 @@
       cluster_ids: number[];
       new_proxy: {
         bk_biz_id: number;
-        bk_host_id: number;
         bk_cloud_id: number;
+        bk_host_id: number;
         ip: string;
       };
     }>;
@@ -120,7 +120,7 @@
     },
   );
 
-  const handleClusterIdChange = (idData: { id: number; cloudId: number | null }) => {
+  const handleClusterIdChange = (idData: { cloudId: number | null; id: number }) => {
     localClusterId.value = idData.id;
     cloudId.value = idData.cloudId;
   };

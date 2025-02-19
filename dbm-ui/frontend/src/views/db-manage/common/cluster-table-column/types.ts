@@ -32,21 +32,21 @@ export type ISupportClusterType =
   | ClusterTypes.MONGO_SHARED_CLUSTER;
 
 interface ClusterTypeRelateClusterModel {
-  [ClusterTypes.TENDBCLUSTER]: TendbClusterModel;
   [ClusterTypes.DORIS]: DorisModel;
   [ClusterTypes.ES]: EsModel;
   [ClusterTypes.HDFS]: HdfsModel;
-  [ClusterTypes.TENDBHA]: TendbhaModel;
-  [ClusterTypes.TENDBSINGLE]: TendbsingleModel;
-  [ClusterTypes.PULSAR]: PulsarModel;
-  [ClusterTypes.REDIS]: RedisModel;
-  [ClusterTypes.REDIS_INSTANCE]: RedisModel;
-  [ClusterTypes.RIAK]: RiakModel;
   [ClusterTypes.KAFKA]: KafkaModel;
-  [ClusterTypes.SQLSERVER_HA]: SqlserverHaModel;
-  [ClusterTypes.SQLSERVER_SINGLE]: SqlserverSingleModel;
   [ClusterTypes.MONGO_REPLICA_SET]: MongodbModel;
   [ClusterTypes.MONGO_SHARED_CLUSTER]: MongodbModel;
+  [ClusterTypes.PULSAR]: PulsarModel;
+  [ClusterTypes.REDIS_INSTANCE]: RedisModel;
+  [ClusterTypes.REDIS]: RedisModel;
+  [ClusterTypes.RIAK]: RiakModel;
+  [ClusterTypes.SQLSERVER_HA]: SqlserverHaModel;
+  [ClusterTypes.SQLSERVER_SINGLE]: SqlserverSingleModel;
+  [ClusterTypes.TENDBCLUSTER]: TendbClusterModel;
+  [ClusterTypes.TENDBHA]: TendbhaModel;
+  [ClusterTypes.TENDBSINGLE]: TendbsingleModel;
 }
 
 export type ClusterModel<T extends keyof ClusterTypeRelateClusterModel> = ClusterTypeRelateClusterModel[T];

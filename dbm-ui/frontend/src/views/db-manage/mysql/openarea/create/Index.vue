@@ -127,7 +127,7 @@
     previewData.value?.config_data.some((item) => item.execute_objects.some((obj) => obj.error_msg)),
   );
 
-  const { loading: isLoading, data: openareaTemplateData } = useRequest(getDetail, {
+  const { data: openareaTemplateData, loading: isLoading } = useRequest(getDetail, {
     defaultParams: [
       {
         id: Number(route.params.id),
@@ -157,8 +157,8 @@
       .getValue()
       .then((data) =>
         getPreview({
-          config_id: (openareaTemplateData.value as OpenareaTemplateModel).id,
           config_data: data as any,
+          config_id: (openareaTemplateData.value as OpenareaTemplateModel).id,
         }).then((data) => {
           isShowPreivew.value = true;
           previewData.value = data;

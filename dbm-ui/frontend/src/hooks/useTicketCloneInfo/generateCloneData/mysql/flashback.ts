@@ -18,10 +18,9 @@ import { random } from '@utils';
 export function generateMysqlFlashbackCloneData(ticketData: TicketModel<Mysql.FlashBack>) {
   const { clusters, infos } = ticketData.details;
   const tableDataList = infos.map((item) => ({
-    rowKey: random(),
     clusterData: {
-      id: item.cluster_id,
       domain: clusters[item.cluster_id].immute_domain,
+      id: item.cluster_id,
     },
     databases: item.databases,
     databasesIgnore: item.databases_ignore,
@@ -30,17 +29,18 @@ export function generateMysqlFlashbackCloneData(ticketData: TicketModel<Mysql.Fl
     message: item.message,
     mysqlbinlogRollback: item.mysqlbinlog_rollback,
     recoredFile: item.recored_file,
+    rowKey: random(),
     rowsFilter: item.rows_filter,
     startTime: item.start_time,
     tables: item.tables,
     tablesIgnore: item.tables_ignore,
   }));
   return Promise.resolve({
-    tableDataList,
-    remark: ticketData.remark,
     flashbackType: ticketData.details.flashback_type,
     force: ticketData.details.force,
     id: ticketData.id,
+    remark: ticketData.remark,
+    tableDataList,
     ticketType: ticketData.ticket_type,
   });
 }

@@ -53,10 +53,10 @@ export const useUrlSearch = () => {
   };
 
   return {
-    searchParams,
-    getSearchParams,
     appendSearchParams,
+    getSearchParams,
     removeSearchParam,
     replaceSearchParams,
+    searchParams,
   };
 };

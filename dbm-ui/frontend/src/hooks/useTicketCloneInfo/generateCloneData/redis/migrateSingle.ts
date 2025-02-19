@@ -17,7 +17,7 @@ import { random } from '@utils';
 
 // Redis 主从迁移
 export async function generateRedisMigrateSingleCloneData(ticketData: TicketModel<RedisSingleMigrate>) {
-  const { infos, clusters } = ticketData.details;
+  const { clusters, infos } = ticketData.details;
   const isDomain = infos[0].display_info.migrate_type === 'domain';
   const mapKey = isDomain ? 'domain' : 'ip';
 
@@ -40,37 +40,37 @@ export async function generateRedisMigrateSingleCloneData(ticketData: TicketMode
         bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
         bk_cloud_id: masterItem.bk_cloud_id,
         bk_host_id: masterItem.bk_host_id,
+        instance: `${masterItem.ip}:${masterItem.port}`,
         ip: masterItem.ip,
         port: masterItem.port,
-        instance: `${masterItem.ip}:${masterItem.port}`,
       };
     });
 
     const clusterData = isDomain
       ? {
-          domain: rowItem.display_info.domain,
           cloudId: clusterItem.bk_cloud_id,
-          clusterType: clusterItem.cluster_type,
           clusterId: rowItem.cluster_id,
+          clusterType: clusterItem.cluster_type,
+          domain: rowItem.display_info.domain,
           relatedInstance: relatedInstanceList,
         }
       : {
-          ip: rowItem.display_info.ip,
           cloudId: clusterItem.bk_cloud_id,
           clusterType: clusterItem.cluster_type,
+          ip: rowItem.display_info.ip,
           relatedInstance: relatedInstanceList,
         };
     return {
-      rowKey: random(),
-      isLoading: false,
       clusterData,
+      isLoading: false,
+      rowKey: random(),
       targetSpecId: rowItem.resource_spec.backend_group.spec_id,
       targetVersion: rowItem.db_version,
     };
   });
   return {
-    tableDataList,
-    remark: ticketData.remark,
     isDomain,
+    remark: ticketData.remark,
+    tableDataList,
   };
 }

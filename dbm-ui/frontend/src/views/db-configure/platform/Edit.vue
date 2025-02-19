@@ -124,8 +124,8 @@
 
   const loading = ref(false);
   const diffData = reactive({
-    origin: [] as ServiceReturnType<typeof getConfigBaseDetails>['conf_items'],
     data: {} as ServiceReturnType<typeof getConfigBaseDetails>,
+    origin: [] as ServiceReturnType<typeof getConfigBaseDetails>['conf_items'],
   });
 
   // 判断表单内容是否变更
@@ -159,12 +159,12 @@
    */
   const steps = [
     {
-      title: t('基本信息'),
       icon: '1',
+      title: t('基本信息'),
     },
     {
-      title: t('差异对比'),
       icon: '2',
+      title: t('差异对比'),
     },
   ];
   const curStep = ref(1);
@@ -173,15 +173,15 @@
    * (pre | next) control
    */
   const buttonInfo = computed<{
+    isNext: boolean;
     text: string;
     theme: 'success' | 'warning' | 'danger' | 'primary' | undefined;
-    isNext: boolean;
   }>(() => {
     const isNext = curStep.value === 1;
     return {
+      isNext,
       text: isNext ? t('下一步') : t('上一步'),
       theme: isNext ? 'primary' : undefined,
-      isNext,
     };
   });
   const contentRef = ref();
@@ -211,7 +211,7 @@
 
       // 获取 diff 数据
       if (contentRef.value.getData) {
-        const { origin, data } = contentRef.value.getData();
+        const { data, origin } = contentRef.value.getData();
         diffData.origin = origin;
         diffData.data = data;
       }
@@ -248,14 +248,14 @@
     });
 
     const params = {
-      meta_cluster_type: clusterType,
-      conf_type: confType,
-      version,
       conf_items: confItems,
-      name: diffData.data.name,
-      description: diffData.data.description,
-      publish_description: publishDialog.publish_description,
+      conf_type: confType,
       confirm: 0,
+      description: diffData.data.description,
+      meta_cluster_type: clusterType,
+      name: diffData.data.name,
+      publish_description: publishDialog.publish_description,
+      version,
     };
 
     loading.value = true;

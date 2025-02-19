@@ -136,8 +136,8 @@
 
   const tableData = ref<IDataRow[]>([createRowData()]);
   const selectedClusters = shallowRef<{ [key: string]: MongodbModel[] }>({
-    [ClusterTypes.MONGO_SHARED_CLUSTER]: [],
     [ClusterTypes.MONGO_REPLICA_SET]: [],
+    [ClusterTypes.MONGO_SHARED_CLUSTER]: [],
   });
 
   const totalNum = computed(() => tableData.value.filter((item) => Boolean(item.clusterName)).length);
@@ -172,12 +172,12 @@
 
   // 根据集群选择返回的数据加工成table所需的数据
   const generateRowDateFromRequest = (item: MongodbModel) => ({
-    rowKey: item.master_domain,
-    isLoading: false,
-    clusterName: item.master_domain,
     clusterId: item.id,
-    clusterTypeText: item.clusterTypeText,
+    clusterName: item.master_domain,
     clusterType: item.cluster_type,
+    clusterTypeText: item.clusterTypeText,
+    isLoading: false,
+    rowKey: item.master_domain,
   });
 
   // 批量选择
@@ -255,13 +255,13 @@
       const infos = await Promise.all(rowRefs.value.map((item: { getValue: () => Promise<any> }) => item.getValue()));
       const params = {
         bk_biz_id: currentBizId,
-        ticket_type: TicketTypes.MONGODB_FULL_BACKUP,
-        remark: '',
         details: {
           file_tag: formData.file_tag,
-          oplog: formData.oplog === '1',
           infos,
+          oplog: formData.oplog === '1',
         },
+        remark: '',
+        ticket_type: TicketTypes.MONGODB_FULL_BACKUP,
       };
       await createTicket(params).then((data) => {
         window.changeConfirm = false;

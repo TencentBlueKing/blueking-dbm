@@ -35,29 +35,29 @@ export async function generateRedisScaleUpdownCloneData(ticketData: TicketModel<
   );
 
   const tableDataList = infos.map((item) => ({
-    rowKey: random(),
-    isLoading: false,
-    targetCluster: clusters[item.cluster_id].immute_domain,
-    currentSepc: clusterListMap[item.cluster_id].cluster_spec.spec_name,
-    clusterId: item.cluster_id,
     bkCloudId: item.bk_cloud_id,
-    clusterTypeName: clusterListMap[item.cluster_id].cluster_type_name,
+    clusterId: item.cluster_id,
     clusterStats: clusterListMap[item.cluster_id].cluster_stats,
-    disasterToleranceLevel: clusterListMap[item.cluster_id].disaster_tolerance_level,
-    shardNum: clusterListMap[item.cluster_id].cluster_shard_num,
-    groupNum: clusterListMap[item.cluster_id].machine_pair_cnt,
-    version: item.db_version,
     clusterType: clusters[item.cluster_id].cluster_type as ClusterTypes,
+    clusterTypeName: clusterListMap[item.cluster_id].cluster_type_name,
     currentCapacity: {
-      used: 1,
       total: clusterListMap[item.cluster_id].cluster_capacity,
+      used: 1,
     },
-    switchMode: item.online_switch_type,
+    currentSepc: clusterListMap[item.cluster_id].cluster_spec.spec_name,
+    disasterToleranceLevel: clusterListMap[item.cluster_id].disaster_tolerance_level,
+    groupNum: clusterListMap[item.cluster_id].machine_pair_cnt,
+    isLoading: false,
+    rowKey: random(),
+    shardNum: clusterListMap[item.cluster_id].cluster_shard_num,
     spec: clusterListMap[item.cluster_id].cluster_spec,
+    switchMode: item.online_switch_type,
+    targetCluster: clusters[item.cluster_id].immute_domain,
+    version: item.db_version,
   }));
 
   return {
-    tableDataList,
     remark: ticketData.remark,
+    tableDataList,
   };
 }

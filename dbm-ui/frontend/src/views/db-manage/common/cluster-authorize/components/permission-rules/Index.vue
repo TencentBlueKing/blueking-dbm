@@ -65,8 +65,8 @@
 
   const modelValue = defineModel<
     {
-      user: string;
       rules: PermissionRule['rules'];
+      user: string;
     }[]
   >('modelValue', {
     default: () => [],
@@ -79,8 +79,8 @@
 
   const rules = [
     {
-      trigger: 'change',
       message: t('请添加账号规则'),
+      trigger: 'change',
       validator: (value: T[]) => value.length > 0,
     },
   ];
@@ -93,8 +93,8 @@
     selectedList.value = value;
     if (value.length > 0) {
       modelValue.value = value.map((item) => ({
-        user: item.account.user,
         rules: item.rules,
+        user: item.account.user,
       }));
     }
   };

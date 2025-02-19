@@ -96,15 +96,13 @@
   import ReceiversSelector from './ReceiversSelector.vue';
 
   interface Props {
-    type: 'add' | 'edit' | 'copy';
-    detailData: ServiceReturnType<typeof getAlarmGroupList>['results'][number];
     bizId: number;
+    detailData: ServiceReturnType<typeof getAlarmGroupList>['results'][number];
     nameList: string[];
+    type: 'add' | 'edit' | 'copy';
   }
 
-  interface Emits {
-    (e: 'successed'): void;
-  }
+  type Emits = (e: 'successed') => void;
 
   const props = defineProps<Props>();
   const emits = defineEmits<Emits>();
@@ -117,8 +115,8 @@
 
   const titleMap: Record<string, string> = {
     add: t('新建告警组'),
-    edit: t('编辑告警组'),
     copy: t('克隆告警组'),
+    edit: t('编辑告警组'),
   };
 
   const nameRules = [
@@ -183,11 +181,11 @@
 
     const { name } = formData;
     const params = {
-      name,
-      receivers: receiversSelectorRef.value.getSelectedReceivers(),
       details: {
         alert_notice: noticeMethodRef.value.getSubmitData(),
       },
+      name,
+      receivers: receiversSelectorRef.value.getSelectedReceivers(),
     };
 
     if (props.type === 'edit') {

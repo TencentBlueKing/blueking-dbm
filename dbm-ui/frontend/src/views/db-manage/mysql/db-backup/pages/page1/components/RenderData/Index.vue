@@ -77,12 +77,12 @@
 
   const selectList = [
     {
-      value: 'master',
       label: 'Master',
+      value: 'master',
     },
     {
-      value: 'slave',
       label: 'Slave',
+      value: 'slave',
     },
   ];
 

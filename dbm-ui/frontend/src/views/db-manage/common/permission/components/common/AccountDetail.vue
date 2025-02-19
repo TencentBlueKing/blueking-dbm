@@ -44,42 +44,40 @@
     data: PermissionRule;
   }
 
-  interface Emits {
-    (e: 'deleteAccount', row: PermissionRule): void;
-  }
+  type Emits = (e: 'deleteAccount', row: PermissionRule) => void;
 
   const props = defineProps<Props>();
 
   const emits = defineEmits<Emits>();
 
   const isShow = defineModel<boolean>({
-    required: true,
     default: false,
+    required: true,
   });
 
   const { t } = useI18n();
 
   const accountColumns: Array<{
-    label: string;
     key: keyof PermissionRuleAccount;
+    label: string;
     value?: string;
   }> = [
     {
-      label: t('账号名'),
       key: 'user',
+      label: t('账号名'),
     },
     {
-      label: t('密码'),
       key: 'password',
+      label: t('密码'),
       value: '****************',
     },
     {
-      label: t('创建时间'),
       key: 'create_time',
+      label: t('创建时间'),
     },
     {
-      label: t('创建人'),
       key: 'creator',
+      label: t('创建人'),
     },
   ];
 

@@ -167,11 +167,11 @@
   const initFormData = () => ({
     cluster_id: undefined as unknown as number,
     dblikes: [] as string[],
-    tblikes: [] as string[],
+    expire_time: 30,
     partition_column: '',
     partition_column_type: 'int',
-    expire_time: 30,
     partition_time_interval: undefined as unknown as number,
+    tblikes: [] as string[],
   });
 
   let showPopConfirm = false;
@@ -190,42 +190,49 @@
   const rules = computed(() => ({
     dblikes: [
       {
-        required: true,
-        validator: (value: string[]) => value.length > 0,
         message: t('目标 DB 不能为空'),
+        required: true,
         trigger: 'blur',
+        validator: (value: string[]) => value.length > 0,
       },
       {
-        validator: (value: string[]) => !value.some((item) => item === '*'),
         message: t('目标 DB 不能为*'),
         trigger: 'blur',
+        validator: (value: string[]) => !value.some((item) => item === '*'),
       },
       {
-        validator: (value: string[]) => value.every((item) => dbRegex.test(item)),
         message: t('只允许数字、大小写字母开头和结尾，或%结尾'),
         trigger: 'change',
+        validator: (value: string[]) => value.every((item) => dbRegex.test(item)),
       },
       {
-        validator: (value: string[]) => value.every((item) => !dbSysExclude.includes(item)),
         message: t('不能是系统库'),
         trigger: 'change',
+        validator: (value: string[]) => value.every((item) => !dbSysExclude.includes(item)),
       },
     ],
-    tblikes: [
+    expire_time: [
       {
+        message: t('数据过期时间不能为空'),
         required: true,
-        validator: (value: string[]) => value.length > 0,
-        message: t('目标表不能为空'),
         trigger: 'blur',
+        validator: (value: number) => Boolean(value),
       },
       {
-        validator: (value: string[]) => value.every((item) => !/[*%?]/.test(item)),
-        message: t('不支持通配符 *, %, ?'),
-        trigger: 'blur',
+        message: t('数据过期时间必须不小于分区间隔'),
+        trigger: 'change',
+        validator: (value: number) => value >= formData.partition_time_interval,
+      },
+      {
+        message: t('数据过期时间是分区间隔的整数倍'),
+        trigger: 'change',
+        validator: (value: number) => value % formData.partition_time_interval === 0,
       },
     ],
     partition_column: [
       {
+        message: t('请输入完整信息验证分区字段'),
+        trigger: 'blur',
         validator: () => {
           if (
             !formData.cluster_id ||
@@ -237,17 +244,17 @@
           }
           return true;
         },
-        message: t('请输入完整信息验证分区字段'),
-        trigger: 'blur',
       },
       {
+        message: () => partionColumnVerifyErrorText,
+        trigger: 'blur',
         validator: (value: string) =>
           verifyPartitionField({
             cluster_id: formData.cluster_id,
             dblikes: formData.dblikes,
-            tblikes: formData.tblikes,
             partition_column: value,
             partition_column_type: formData.partition_column_type,
+            tblikes: formData.tblikes,
           })
             .then((result) => {
               if (result) {
@@ -263,26 +270,19 @@
               partionColumnVerifyErrorText = err.message;
               return false;
             }),
-        message: () => partionColumnVerifyErrorText,
-        trigger: 'blur',
       },
     ],
-    expire_time: [
+    tblikes: [
       {
+        message: t('目标表不能为空'),
         required: true,
-        validator: (value: number) => Boolean(value),
-        message: t('数据过期时间不能为空'),
         trigger: 'blur',
+        validator: (value: string[]) => value.length > 0,
       },
       {
-        validator: (value: number) => value >= formData.partition_time_interval,
-        message: t('数据过期时间必须不小于分区间隔'),
-        trigger: 'change',
-      },
-      {
-        validator: (value: number) => value % formData.partition_time_interval === 0,
-        message: t('数据过期时间是分区间隔的整数倍'),
-        trigger: 'change',
+        message: t('不支持通配符 *, %, ?'),
+        trigger: 'blur',
+        validator: (value: string[]) => value.every((item) => !/[*%?]/.test(item)),
       },
     ],
   }));
@@ -310,13 +310,13 @@
     },
   ];
 
-  const { loading: isCluserListLoading, data: clusterList } = useRequest(queryAllTypeCluster, {
+  const { data: clusterList, loading: isCluserListLoading } = useRequest(queryAllTypeCluster, {
     defaultParams: [
       {
-        offset: 0,
-        limit: -1,
         bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
         cluster_types: ClusterTypes.TENDBCLUSTER,
+        limit: -1,
+        offset: 0,
       },
     ],
   });
@@ -336,7 +336,7 @@
         // 从编辑态进入创建态，初始化表单
         Object.assign(formData, initFormData());
       }
-      isEditMode.value = Boolean(props.data && props.data.id);
+      isEditMode.value = Boolean(props.data?.id);
     },
     {
       immediate: true,
@@ -363,7 +363,7 @@
   };
 
   const submitPartition = () => {
-    if (props.data && props.data.id) {
+    if (props.data?.id) {
       editPartition({
         id: props.data.id,
         ...formData,

@@ -56,8 +56,8 @@
   import TableEditSelect from '@components/render-table/columns/select/index.vue';
 
   interface Props {
-    data?: string[];
     clusterId: number;
+    data?: string[];
     version: string;
   }
 
@@ -76,15 +76,15 @@
   const selectList = ref<
     {
       disabled: boolean;
-      value: string;
       label: string;
+      value: string;
     }[]
   >([]);
 
   const rules = [
     {
-      validator: (value: string[]) => Boolean(value.length),
       message: t('请选择Module'),
+      validator: (value: string[]) => Boolean(value.length),
     },
   ];
 
@@ -93,8 +93,8 @@
     onSuccess({ results }) {
       selectList.value = Object.entries(results).map(([key, value]) => ({
         disabled: value,
-        value: key,
         label: key,
+        value: key,
       }));
     },
   });

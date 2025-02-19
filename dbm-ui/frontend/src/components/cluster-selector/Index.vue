@@ -174,30 +174,30 @@
   import TendbhaTable from './components/tendbha/Index.vue';
 
   export type TabListType = {
-    name: string;
-    id: string;
-    tableContent: any;
-    resultContent: any;
+    // checkbox hover 提示
+    checkboxHoverTip?: (data: any) => string;
+    // 状态列
+    columnStatusFilter?: (data: any) => boolean;
+    // 自定义列
+    customColums?: any[];
     // 不可选行及提示
     disabledRowConfig?: {
       handler: (data: any) => boolean;
       tip: string;
     }[];
-    // 自定义列
-    customColums?: any[];
+    // 查询接口
+    getResourceList?: (params: any) => Promise<ListBase<Record<string, any>[]>>;
+    id: string;
+    // 多选模式
+    multiple?: boolean;
+    name: string;
     // 结果预览使用的key
     previewResultKey?: string;
+    resultContent: any;
     // 搜索栏下拉选项
     searchSelectList?: SearchSelectList;
     showPreviewResultTitle?: boolean;
-    // 多选模式
-    multiple?: boolean;
-    // checkbox hover 提示
-    checkboxHoverTip?: (data: any) => string;
-    // 状态列
-    columnStatusFilter?: (data: any) => boolean;
-    // 查询接口
-    getResourceList?: (params: any) => Promise<ListBase<Record<string, any>[]>>;
+    tableContent: any;
   }[];
 
   export type TabItem = TabListType[number];
@@ -206,23 +206,21 @@
 
   export interface SelectMapValueType<T> {
     [key: string]: {
-      map: Record<string, T>;
       list: T[];
+      map: Record<string, T>;
     };
   }
 
   export interface Props<T> {
-    selected: Record<string, T[]>;
     clusterTypes: string[];
-    tabListConfig?: Record<string, TabConfig>;
-    onlyOneType?: boolean;
-    supportOfflineData?: boolean;
     disableDialogSubmitMethod?: (hostList: Array<string>) => string | boolean;
+    onlyOneType?: boolean;
+    selected: Record<string, T[]>;
+    supportOfflineData?: boolean;
+    tabListConfig?: Record<string, TabConfig>;
   }
 
-  export interface Emits<T> {
-    (e: 'change', value: Props<T>['selected']): void;
-  }
+  export type Emits<T> = (e: 'change', value: Props<T>['selected']) => void;
 
   const props = defineProps<Props<T>>();
 
@@ -233,43 +231,41 @@
   });
 
   const slots = defineSlots<{
-    submitTips?: () => VNode;
+    submitTips?: (params: { clusterList: string[] }) => VNode;
   }>();
   const { dialogWidth } = useSelectorDialogWidth();
   const { t } = useI18n();
 
   const tabListMap: Record<string, TabItem> = {
-    [ClusterTypes.TENDBCLUSTER]: {
-      id: ClusterTypes.TENDBCLUSTER,
-      name: t('集群选择'),
+    [ClusterTypes.MONGO_REPLICA_SET]: {
       disabledRowConfig: [
         {
           handler: (data: T) => data.isOffline,
           tip: t('集群已禁用'),
         },
       ],
+      getResourceList: getMongoList,
+      id: ClusterTypes.MONGO_REPLICA_SET,
       multiple: true,
-      getResourceList: getTendbClusterList,
-      tableContent: SpiderTable,
+      name: t('副本集'),
       resultContent: ResultPreview,
+      tableContent: MongoTable,
     },
-    tendbclusterSlave: {
-      id: 'tendbclusterSlave',
-      name: t('集群选择'),
+    [ClusterTypes.MONGO_SHARED_CLUSTER]: {
       disabledRowConfig: [
         {
           handler: (data: T) => data.isOffline,
           tip: t('集群已禁用'),
         },
       ],
+      getResourceList: getMongoList,
+      id: ClusterTypes.MONGO_SHARED_CLUSTER,
       multiple: true,
-      getResourceList: getTendbClusterList,
-      tableContent: SpiderTable,
+      name: t('分片集群'),
       resultContent: ResultPreview,
+      tableContent: MongoTable,
     },
     [ClusterTypes.REDIS]: {
-      id: ClusterTypes.REDIS,
-      name: t('集群选择'),
       disabledRowConfig: [
         {
           handler: (data: T) => data.isOffline,
@@ -277,108 +273,110 @@
         },
       ],
       getResourceList: getRedisList,
+      id: ClusterTypes.REDIS,
+      name: t('集群选择'),
+      resultContent: ResultPreview,
       tableContent: RedisTable,
-      resultContent: ResultPreview,
-    },
-    [ClusterTypes.TENDBHA]: {
-      id: ClusterTypes.TENDBHA,
-      name: t('主从集群'),
-      disabledRowConfig: [
-        {
-          handler: (data: T) => data.isOffline,
-          tip: t('集群已禁用'),
-        },
-      ],
-      multiple: true,
-      getResourceList: getTendbhaList,
-      tableContent: TendbhaTable,
-      resultContent: ResultPreview,
-    },
-    tendbhaSlave: {
-      id: 'tendbhaSlave',
-      name: t('主从集群'),
-      disabledRowConfig: [
-        {
-          handler: (data: T) => data.isOffline,
-          tip: t('集群已禁用'),
-        },
-      ],
-      multiple: true,
-      getResourceList: getTendbhaSalveList,
-      tableContent: TendbhaTable,
-      resultContent: ResultPreview,
-    },
-    [ClusterTypes.TENDBSINGLE]: {
-      id: ClusterTypes.TENDBSINGLE,
-      name: t('单节点集群'),
-      disabledRowConfig: [
-        {
-          handler: (data: T) => data.isOffline,
-          tip: t('集群已禁用'),
-        },
-      ],
-      multiple: true,
-      getResourceList: getTendbsingleList,
-      tableContent: TendbSingleTable,
-      resultContent: ResultPreview,
-    },
-    [ClusterTypes.MONGO_REPLICA_SET]: {
-      id: ClusterTypes.MONGO_REPLICA_SET,
-      name: t('副本集'),
-      disabledRowConfig: [
-        {
-          handler: (data: T) => data.isOffline,
-          tip: t('集群已禁用'),
-        },
-      ],
-      multiple: true,
-      getResourceList: getMongoList,
-      tableContent: MongoTable,
-      resultContent: ResultPreview,
-    },
-    [ClusterTypes.MONGO_SHARED_CLUSTER]: {
-      id: ClusterTypes.MONGO_SHARED_CLUSTER,
-      name: t('分片集群'),
-      disabledRowConfig: [
-        {
-          handler: (data: T) => data.isOffline,
-          tip: t('集群已禁用'),
-        },
-      ],
-      multiple: true,
-      getResourceList: getMongoList,
-      tableContent: MongoTable,
-      resultContent: ResultPreview,
-    },
-    [ClusterTypes.SQLSERVER_SINGLE]: {
-      id: ClusterTypes.SQLSERVER_SINGLE,
-      name: t('SqlServer 单节点'),
-      disabledRowConfig: [
-        {
-          handler: (data: T) => data.isOffline,
-          tip: t('集群已禁用'),
-        },
-      ],
-      multiple: true,
-      getResourceList: getSingleClusterList,
-      tableContent: SqlserverSingleTable,
-      resultContent: ResultPreview,
-      showPreviewResultTitle: true,
     },
     [ClusterTypes.SQLSERVER_HA]: {
-      id: ClusterTypes.SQLSERVER_HA,
-      name: t('SqlServer 主从'),
       disabledRowConfig: [
         {
           handler: (data: T) => data.isOffline,
           tip: t('集群已禁用'),
         },
       ],
-      multiple: true,
       getResourceList: getHaClusterList,
-      tableContent: SqlserverHaTable,
+      id: ClusterTypes.SQLSERVER_HA,
+      multiple: true,
+      name: t('SqlServer 主从'),
       resultContent: ResultPreview,
       showPreviewResultTitle: true,
+      tableContent: SqlserverHaTable,
+    },
+    [ClusterTypes.SQLSERVER_SINGLE]: {
+      disabledRowConfig: [
+        {
+          handler: (data: T) => data.isOffline,
+          tip: t('集群已禁用'),
+        },
+      ],
+      getResourceList: getSingleClusterList,
+      id: ClusterTypes.SQLSERVER_SINGLE,
+      multiple: true,
+      name: t('SqlServer 单节点'),
+      resultContent: ResultPreview,
+      showPreviewResultTitle: true,
+      tableContent: SqlserverSingleTable,
+    },
+    [ClusterTypes.TENDBCLUSTER]: {
+      disabledRowConfig: [
+        {
+          handler: (data: T) => data.isOffline,
+          tip: t('集群已禁用'),
+        },
+      ],
+      getResourceList: getTendbClusterList,
+      id: ClusterTypes.TENDBCLUSTER,
+      multiple: true,
+      name: t('集群选择'),
+      resultContent: ResultPreview,
+      tableContent: SpiderTable,
+    },
+    [ClusterTypes.TENDBHA]: {
+      disabledRowConfig: [
+        {
+          handler: (data: T) => data.isOffline,
+          tip: t('集群已禁用'),
+        },
+      ],
+      getResourceList: getTendbhaList,
+      id: ClusterTypes.TENDBHA,
+      multiple: true,
+      name: t('主从集群'),
+      resultContent: ResultPreview,
+      tableContent: TendbhaTable,
+    },
+    [ClusterTypes.TENDBSINGLE]: {
+      disabledRowConfig: [
+        {
+          handler: (data: T) => data.isOffline,
+          tip: t('集群已禁用'),
+        },
+      ],
+      getResourceList: getTendbsingleList,
+      id: ClusterTypes.TENDBSINGLE,
+      multiple: true,
+      name: t('单节点集群'),
+      resultContent: ResultPreview,
+      tableContent: TendbSingleTable,
+    },
+    tendbclusterSlave: {
+      disabledRowConfig: [
+        {
+          handler: (data: T) => data.isOffline,
+          tip: t('集群已禁用'),
+        },
+      ],
+      getResourceList: getTendbClusterList,
+      id: 'tendbclusterSlave',
+      multiple: true,
+      name: t('集群选择'),
+      resultContent: ResultPreview,
+      tableContent: SpiderTable,
+    },
+    tendbhaSlave: {
+      disabledRowConfig: [
+        {
+          handler: (data: T) => data.isOffline,
+          tip: t('集群已禁用'),
+        },
+      ],
+      getResourceList: getTendbhaSalveList,
+      id: 'tendbhaSlave',
+      multiple: true,
+      name: t('主从集群'),
+      resultContent: ResultPreview,
+      tableContent: TendbhaTable,
     },
   };
 
@@ -439,8 +437,8 @@
     const info = {
       disabled: false,
       tooltips: {
-        disabled: true,
         content: '',
+        disabled: true,
       },
     };
 
@@ -471,8 +469,8 @@
       }
     },
     {
-      immediate: true,
       deep: true,
+      immediate: true,
     },
   );
 
@@ -485,6 +483,7 @@
             return result;
           }
           const tabSelectMap = {
+            list: props.selected[tabKey],
             map: props.selected[tabKey].reduce(
               (selectResult, selectItem) => ({
                 ...selectResult,
@@ -492,7 +491,6 @@
               }),
               {} as Record<string, T>,
             ),
-            list: props.selected[tabKey],
           };
           return {
             ...result,
@@ -508,8 +506,8 @@
     selectedMap.value = Object.keys(selectedMap.value).reduce<SelectMapValueType<T>>((results, id) => {
       Object.assign(results, {
         [id]: {
-          map: {},
           list: [],
+          map: {},
         },
       });
       return results;
@@ -600,8 +598,8 @@
       Object.keys(selectedMap.value).forEach((key) => {
         if (key !== activeTab.value) {
           selectedMap.value[key] = {
-            map: {},
             list: [],
+            map: {},
           };
         }
       });

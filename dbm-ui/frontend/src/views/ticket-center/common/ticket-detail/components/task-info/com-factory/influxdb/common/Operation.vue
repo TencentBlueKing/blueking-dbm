@@ -40,12 +40,12 @@
   const tableData = computed(() => props.ticketDetails?.details?.instance_list || []);
   const columns = [
     {
-      label: t('实例ID'),
       field: 'instance_id',
+      label: t('实例ID'),
     },
     {
-      label: t('实例'),
       field: 'instance',
+      label: t('实例'),
       render: ({ data }: { data: Details['ticketDetails']['details']['instance_list'] }) => {
         if (data.ip && data.port) {
           return `${data.ip}:${data.port}`;

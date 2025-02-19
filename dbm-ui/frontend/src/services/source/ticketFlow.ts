@@ -32,16 +32,16 @@ export function revokeTicket(params: { ticket_ids: number[] }) {
 }
 
 // 单据流程终止
-export function revokeFlow(params: { id: number; flow_id: number }) {
+export function revokeFlow(params: { flow_id: number; id: number }) {
   return http.post(`${path}/${params.id}/revoke_flow/`, { flow_id: params.flow_id });
 }
 
 // 单据流程重试
-export function retryFlow(params: { id: number; flow_id: number }) {
+export function retryFlow(params: { flow_id: number; id: number }) {
   return http.post(`${path}/${params.id}/retry_flow/`, { flow_id: params.flow_id });
 }
 
-export function processTodo(params: { id: number; todo_id: number; action: string; params: Record<string, any> }) {
+export function processTodo(params: { action: string; id: number; params: Record<string, any>; todo_id: number }) {
   const realParams = { ...params } as { id?: number };
   delete realParams.id;
 
@@ -55,20 +55,20 @@ export function getTicketCount() {
     MY_APPROVE: number;
     pending: {
       APPROVE: number;
-      TODO: number;
-      INNER_TODO: number;
-      INNER_HELP: number;
-      RESOURCE_REPLENISH: number;
       FAILED: number;
+      INNER_HELP: number;
+      INNER_TODO: number;
+      RESOURCE_REPLENISH: number;
+      TODO: number;
     };
     SELF_MANAGE: number;
     to_help: {
       APPROVE: number;
-      TODO: number;
-      INNER_TODO: number;
-      INNER_HELP: number;
-      RESOURCE_REPLENISH: number;
       FAILED: number;
+      INNER_HELP: number;
+      INNER_TODO: number;
+      RESOURCE_REPLENISH: number;
+      TODO: number;
     };
   }>(`${path}/get_tickets_count/`);
 }
@@ -76,8 +76,8 @@ export function getTicketCount() {
 // 批量处理单据的待办
 export function batchProcessTicket(params: {
   action: 'APPROVE' | 'TERMINATE';
-  ticket_ids: number[];
   params?: Record<string, any>;
+  ticket_ids: number[];
 }) {
   return http.post(`${path}/batch_process_ticket/`, params);
 }
@@ -86,8 +86,8 @@ export function batchProcessTicket(params: {
 export function batchProcessTodo(params: {
   action: 'APPROVE' | 'TERMINATE';
   operations: {
-    todo_id: number;
     params?: Record<string, any>;
+    todo_id: number;
   }[];
 }) {
   return http.post(`${path}/batch_process_todo/`, params);

@@ -63,8 +63,8 @@
     data: {
       ip: string;
       port: number;
-      status: string;
       shard_id?: string;
+      status: string;
     }[];
     role: string;
   }

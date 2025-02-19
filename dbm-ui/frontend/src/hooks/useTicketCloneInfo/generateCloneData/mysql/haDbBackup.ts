@@ -19,18 +19,18 @@ export function generateMysqlDbBackupCloneData(ticketData: TicketModel<Mysql.HaF
   const { clusters, infos } = ticketData.details;
   const isNewProtocol = Array.isArray(infos);
   const tableDataList = (isNewProtocol ? infos : infos.clusters).map((item) => ({
-    rowKey: random(),
+    backupLocal: item.backup_local,
     clusterData: {
-      id: item.cluster_id,
       domain: clusters[item.cluster_id].immute_domain,
+      id: item.cluster_id,
       type: clusters[item.cluster_id].cluster_type,
     },
-    backupLocal: item.backup_local,
+    rowKey: random(),
   }));
   return Promise.resolve({
-    tableDataList,
     backupType: isNewProtocol ? ticketData.details.backup_type : infos.backup_type,
     fileTag: isNewProtocol ? ticketData.details.file_tag : infos.file_tag,
     remark: ticketData.remark,
+    tableDataList,
   });
 }

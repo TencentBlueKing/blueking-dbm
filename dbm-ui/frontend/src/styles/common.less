@@ -11,11 +11,11 @@
  * the specific language governing permissions and limitations under the License.
 */
 
-@import "./iconCool.less";
-@import "./reset.less";
-@import "./base.less";
-@import "./mixins.less";
-@import "./tippy.less";
+@import './iconCool.less';
+@import './reset.less';
+@import './base.less';
+@import './mixins.less';
+@import './tippy.less';
 
 .app-exception {
   height: 100%;
@@ -26,7 +26,7 @@
     width: 0;
     height: 100%;
     vertical-align: middle;
-    content: "";
+    content: '';
   }
 
   .app-exception-content {
@@ -150,7 +150,6 @@
   }
 }
 
-
 /** 面包屑下 steps 样式 */
 .top-steps {
   .flex-center();
@@ -190,13 +189,13 @@
 // }
 // }
 
-.bk-modal-wrapper{
+.bk-modal-wrapper {
   right: initial;
   left: initial;
   transform: none;
 }
 
-.bk-dialog-content{
+.bk-dialog-content {
   max-height: unset !important;
 }
 
@@ -273,12 +272,13 @@
 
     &.is-offline {
       td {
-        .cell, .vxe-cell {
+        .cell,
+        .vxe-cell {
           color: @disable-color;
 
           .bk-tag {
-            color: #C4C6CC;
-            background-color: #F0F1F5;
+            color: #c4c6cc;
+            background-color: #f0f1f5;
           }
         }
       }
@@ -351,7 +351,6 @@
 //     }
 //   }
 // }
-
 
 .bk-radio-button {
   &.is-disabled {
@@ -471,14 +470,14 @@
       font-size: 12px;
       line-height: 40px;
       color: @danger-color;
-      content: "*";
+      content: '*';
     }
   }
 }
 
 .toolbox-right-fixed-column {
-  position:sticky;
-  right:0;
+  position: sticky;
+  right: 0;
   z-index: 1;
   background-color: #fff;
 
@@ -494,8 +493,8 @@
 }
 
 .toolbox-left-fixed-column {
-  position:sticky;
-  left:0;
+  position: sticky;
+  left: 0;
   z-index: 1;
   background-color: #fff;
 
@@ -532,7 +531,6 @@
   font-size: 12px;
 }
 
-
 .bk-form--vertical {
   .bk-form-label {
     font-size: 12px;
@@ -543,12 +541,12 @@
   }
 }
 
-.bk-loading-wrapper{
-  .bk-loading-mask{
+.bk-loading-wrapper {
+  .bk-loading-mask {
     z-index: 9 !important;
   }
 
-  .bk-loading-indicator{
+  .bk-loading-indicator {
     z-index: 9 !important;
   }
 }

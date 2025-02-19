@@ -48,10 +48,10 @@
   const createTippyInst = () => {
     const { width } = rootRef.value!.getBoundingClientRect();
     tippyInst = dbTippy(rootRef.value as SingleTarget, {
-      content: placeholderRef.value,
       appendTo: () => document.body,
-      maxWidth: width,
       arrow: true,
+      content: placeholderRef.value,
+      maxWidth: width,
       zIndex: 999999,
     });
   };

@@ -86,7 +86,7 @@
   import('@blueking/notice-component/dist/style.css');
 
   const userProfileStore = useUserProfile();
-  const { t, locale } = useI18n();
+  const { locale, t } = useI18n();
   const systemEnvironStore = useSystemEnviron();
 
   const documentTitles: Record<string, string> = {
@@ -125,13 +125,13 @@
 
   const handleSignOut = () => {
     InfoBox({
-      title: t('确认退出登录'),
       onConfirm: () =>
         getLogout().then(() => {
           window.changeConfirm = false;
           window.location.reload();
           return true;
         }),
+      title: t('确认退出登录'),
     });
   };
 

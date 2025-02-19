@@ -136,19 +136,19 @@
 
   // 单据克隆
   useTicketCloneInfo({
-    type: TicketTypes.TENDBCLUSTER_NODE_REBALANCE,
     onSuccess(cloneData) {
       const { tableDataList } = cloneData;
       tableData.value = tableDataList;
       Object.assign(formData, {
         backup_source: cloneData.backupSource,
         need_checksum: cloneData.needChecksum,
-        trigger_checksum_type: cloneData.triggerChecksumType,
-        trigger_checksum_time: cloneData.triggerChecksumTime,
         remark: cloneData.remark,
+        trigger_checksum_time: cloneData.triggerChecksumTime,
+        trigger_checksum_type: cloneData.triggerChecksumType,
       });
       window.changeConfirm = true;
     },
+    type: TicketTypes.TENDBCLUSTER_NODE_REBALANCE,
   });
 
   const rowRefs = ref();
@@ -161,9 +161,9 @@
   const formData = reactive({
     backup_source: 'local',
     need_checksum: false,
-    trigger_checksum_type: 'timer',
-    trigger_checksum_time: dayjs().format('YYYY-MM-DD HH:mm:ss'),
     remark: '',
+    trigger_checksum_time: dayjs().format('YYYY-MM-DD HH:mm:ss'),
+    trigger_checksum_type: 'timer',
   });
 
   // 集群域名是否已存在表格的映射表
@@ -252,13 +252,13 @@
       isSubmitting.value = true;
       const infos = await Promise.all(rowRefs.value.map((item: { getValue: () => Promise<any> }) => item.getValue()));
       await createTicket({
-        ticket_type: TicketTypes.TENDBCLUSTER_NODE_REBALANCE,
-        remark: formData.remark,
+        bk_biz_id: currentBizId,
         details: {
           ...formData,
           infos,
         },
-        bk_biz_id: currentBizId,
+        remark: formData.remark,
+        ticket_type: TicketTypes.TENDBCLUSTER_NODE_REBALANCE,
       }).then((data) => {
         window.changeConfirm = false;
         router.push({

@@ -157,25 +157,25 @@
   const { t } = useI18n();
 
   const batchEditShow = reactive({
-    truncateDataType: false,
     dbPatterns: false,
-    tablePatterns: false,
     ignoreDbs: false,
     ignoreTables: false,
+    tablePatterns: false,
+    truncateDataType: false,
   });
 
   const selectList = [
     {
-      value: 'truncate_table',
       label: t('清除表数据_truncatetable'),
+      value: 'truncate_table',
     },
     {
-      value: 'drop_table',
       label: t('清除表数据和结构_droptable'),
+      value: 'drop_table',
     },
     {
-      value: 'drop_database',
       label: t('删除整库_dropdatabase'),
+      value: 'drop_database',
     },
   ];
 

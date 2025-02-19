@@ -14,8 +14,8 @@
 export default class DorisPassword {
   cluster_name: string;
   domain: string;
-  username: string;
   password: string;
+  username: string;
 
   constructor(payload = {} as DorisPassword) {
     this.cluster_name = payload.cluster_name;

@@ -84,8 +84,8 @@
 
   const rules = [
     {
-      validator: () => modelValue.value.length > 0,
       message: t('执行的 SQL 不能为空'),
+      validator: () => modelValue.value.length > 0,
     },
   ];
 

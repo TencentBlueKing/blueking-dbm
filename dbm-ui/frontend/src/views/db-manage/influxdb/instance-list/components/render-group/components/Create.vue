@@ -60,9 +60,9 @@
   const name = ref(props.originName);
   const rules = [
     {
-      validator: (val: string) => nameRegx.test(val),
       message: t('以小写英文字母开头_且只能包含英文字母_数字_连字符'),
       trigger: 'change',
+      validator: (val: string) => nameRegx.test(val),
     },
   ];
 

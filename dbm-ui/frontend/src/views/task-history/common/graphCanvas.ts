@@ -11,25 +11,25 @@
  * the specific language governing permissions and limitations under the License.
  */
 
-import { getTaskflowDetails } from '@services/source/taskflow';
-
 import D3Graph from '@blueking/bkflow.js';
+
+import { getTaskflowDetails } from '@services/source/taskflow';
 
 import GraphRender from './graphRender';
 import type { GraphNode } from './utils';
 
 interface GraphData {
-  locations: GraphNode[];
   lines: any[];
+  locations: GraphNode[];
 }
 
 export default class GraphCanvas {
-  flowInstance: any;
-  selector: string;
-  tplRender: GraphRender;
-  graphData: GraphData;
   expandNodes: string[]; // 展开节点
   flowInfo: ServiceReturnType<typeof getTaskflowDetails>['flow_info'];
+  flowInstance: any;
+  graphData: GraphData;
+  selector: string;
+  tplRender: GraphRender;
 
   constructor(selector: string, flowInfo: ServiceReturnType<typeof getTaskflowDetails>['flow_info']) {
     this.expandNodes = [];
@@ -37,70 +37,15 @@ export default class GraphCanvas {
     this.selector = selector;
     this.tplRender = new GraphRender();
     this.graphData = {
-      locations: [],
       lines: [],
+      locations: [],
     };
     this.flowInfo = flowInfo;
     this.renderCanvas();
   }
 
-  renderCanvas() {
-    const { flowInfo } = this;
-    this.flowInstance = new D3Graph(this.selector, {
-      mode: 'readonly',
-      nodeTemplateKey: 'tpl',
-      canvasPadding: { x: 60, y: 100 },
-      background: '#f5f7fb',
-      lineConfig: {
-        canvasLine: false,
-        color: '#C4C6CC',
-        type: 'polyline',
-        activeColor: '#C4C6CC',
-      },
-      nodeConfig: [
-        { tpl: 'round', width: 48, height: 48, radius: '50%' },
-        { tpl: 'ractangle', width: 280, height: 48, radius: '4px' },
-      ],
-      zoom: {
-        scaleExtent: [0.5, 1.5],
-        controlPanel: false,
-      },
-      onNodeRender: (node: any) => this.tplRender.render(node.tpl, [node, flowInfo]),
-    });
-    this.flowInstance.renderGraph(this.graphData, false);
-    this.updateLinePosition();
-  }
-
-  setUpdateCallback(callback: () => void) {
-    this.flowInstance.updateCallback = callback;
-  }
-
-  update(graphData: GraphData) {
-    this.graphData = graphData;
-    this.flowInstance.clear();
-    this.flowInstance.renderGraph(this.graphData, false);
-    this.updateLinePosition();
-    this.flowInstance?.updateCallback?.();
-  }
-
-  on(eventName: string, callback: (node: any, event: any) => void) {
-    return this.flowInstance.on(eventName, callback);
-  }
-
-  zoomReset() {
-    this.flowInstance?.reSet?.();
-  }
-
-  zoomIn() {
-    this.flowInstance?.zoomIn?.();
-  }
-
-  zoomOut() {
-    this.flowInstance?.zoomOut?.();
-  }
-
-  translate(left: number, top: number) {
-    this.flowInstance?.translate?.(left, top);
+  clear() {
+    this.flowInstance?.clear?.();
   }
 
   destroy() {
@@ -112,8 +57,51 @@ export default class GraphCanvas {
     this.flowInstance = null;
   }
 
-  clear() {
-    this.flowInstance?.clear?.();
+  on(eventName: string, callback: (node: any, event: any) => void) {
+    return this.flowInstance.on(eventName, callback);
+  }
+
+  renderCanvas() {
+    const { flowInfo } = this;
+    this.flowInstance = new D3Graph(this.selector, {
+      background: '#f5f7fb',
+      canvasPadding: { x: 60, y: 100 },
+      lineConfig: {
+        activeColor: '#C4C6CC',
+        canvasLine: false,
+        color: '#C4C6CC',
+        type: 'polyline',
+      },
+      mode: 'readonly',
+      nodeConfig: [
+        { height: 48, radius: '50%', tpl: 'round', width: 48 },
+        { height: 48, radius: '4px', tpl: 'ractangle', width: 280 },
+      ],
+      nodeTemplateKey: 'tpl',
+      onNodeRender: (node: any) => this.tplRender.render(node.tpl, [node, flowInfo]),
+      zoom: {
+        controlPanel: false,
+        scaleExtent: [0.5, 1.5],
+      },
+    });
+    this.flowInstance.renderGraph(this.graphData, false);
+    this.updateLinePosition();
+  }
+
+  setUpdateCallback(callback: () => void) {
+    this.flowInstance.updateCallback = callback;
+  }
+
+  translate(left: number, top: number) {
+    this.flowInstance?.translate?.(left, top);
+  }
+
+  update(graphData: GraphData) {
+    this.graphData = graphData;
+    this.flowInstance.clear();
+    this.flowInstance.renderGraph(this.graphData, false);
+    this.updateLinePosition();
+    this.flowInstance?.updateCallback?.();
   }
 
   /**
@@ -170,5 +158,17 @@ export default class GraphCanvas {
     };
 
     lineCollectionInstance.reDrawLins(this.graphData.lines);
+  }
+
+  zoomIn() {
+    this.flowInstance?.zoomIn?.();
+  }
+
+  zoomOut() {
+    this.flowInstance?.zoomOut?.();
+  }
+
+  zoomReset() {
+    this.flowInstance?.reSet?.();
   }
 }

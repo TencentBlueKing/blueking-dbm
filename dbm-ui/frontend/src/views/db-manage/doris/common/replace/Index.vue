@@ -122,7 +122,7 @@
 
 <script setup lang="tsx">
   import { InfoBox } from 'bkui-vue';
-  import type { ComponentExposed } from 'vue-component-type-helpers'
+  import type { ComponentExposed } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
 
   import DorisModel from '@services/model/doris/doris';
@@ -134,53 +134,52 @@
 
   import { useGlobalBizs } from '@stores';
 
-  import {
-    ClusterTypes,
-    TicketTypes
-  } from '@common/const';
+  import { ClusterTypes, TicketTypes } from '@common/const';
 
-  import HostReplace, {
-    type TReplaceNode,
-  } from '@views/db-manage/common/host-replace/Index.vue';
+  import HostReplace, { type TReplaceNode } from '@views/db-manage/common/host-replace/Index.vue';
 
   import { messageError } from '@utils';
 
-  type ReplaceNode = TReplaceNode<DorisNodeModel>
+  type ReplaceNode = TReplaceNode<DorisNodeModel>;
 
   interface Props {
-    data: DorisModel,
-    nodeList: ReplaceNode['nodeList']
+    data: DorisModel;
+    nodeList: ReplaceNode['nodeList'];
   }
 
   interface Emits {
-    (e: 'change'): void,
-    (e: 'removeNode', bkHostId: number): void
+    (e: 'change'): void;
+    (e: 'removeNode', bkHostId: number): void;
   }
 
   interface Exposes {
-    submit: () => Promise<any>,
-    cancel: () => Promise<any>,
+    cancel: () => Promise<any>;
+    submit: () => Promise<any>;
   }
 
   const props = defineProps<Props>();
   const emits = defineEmits<Emits>();
 
-  const makeMapByHostId = (hostList: ReplaceNode['hostList']) =>  hostList.reduce((result, item) => ({
-    ...result,
-    [item.host_id]: true,
-  }), {} as Record<number, boolean>);
+  const makeMapByHostId = (hostList: ReplaceNode['hostList']) =>
+    hostList.reduce(
+      (result, item) => ({
+        ...result,
+        [item.host_id]: true,
+      }),
+      {} as Record<number, boolean>,
+    );
 
   const generateNodeInfo = (values: Pick<ReplaceNode, 'role' | 'specMachineType'>): ReplaceNode => ({
     ...values,
     clusterId: props.data.id,
-    nodeList: [],
     hostList: [],
-    specClusterType: ClusterTypes.DORIS,
+    nodeList: [],
     resourceSpec: {
-      spec_id: 0,
       count: 0,
+      spec_id: 0,
     },
-  })
+    specClusterType: ClusterTypes.DORIS,
+  });
 
   const { currentBizId } = useGlobalBizs();
   const { t } = useI18n();
@@ -193,71 +192,72 @@
   const ipSource = ref('resource_pool');
 
   const nodeInfoMap = reactive<Record<string, ReplaceNode>>({
-    hot: generateNodeInfo({
-      role: 'doris_backend_hot',
-      specMachineType: 'doris_backend',
-    }),
     cold: generateNodeInfo({
       role: 'doris_backend_cold',
+      specMachineType: 'doris_backend',
+    }),
+    follower: generateNodeInfo({
+      role: 'doris_follower',
+      specMachineType: 'doris_follower',
+    }),
+    hot: generateNodeInfo({
+      role: 'doris_backend_hot',
       specMachineType: 'doris_backend',
     }),
     observer: generateNodeInfo({
       role: 'doris_observer',
       specMachineType: 'doris_observer',
     }),
-    follower: generateNodeInfo({
-      role: 'doris_follower',
-      specMachineType: 'doris_follower',
-    }),
   });
 
   const isEmpty = computed(() => {
-    const {
-      hot,
-      cold,
-      observer,
-      follower
-    } = nodeInfoMap;
-    return hot.nodeList.length < 1
-      && cold.nodeList.length < 1
-      && observer.nodeList.length < 1
-      && follower.nodeList.length < 1;
+    const { cold, follower, hot, observer } = nodeInfoMap;
+    return (
+      hot.nodeList.length < 1 &&
+      cold.nodeList.length < 1 &&
+      observer.nodeList.length < 1 &&
+      follower.nodeList.length < 1
+    );
   });
 
-  watch(() => props.nodeList, () => {
-    const hotList: ReplaceNode['nodeList'] = [];
-    const coldList: ReplaceNode['nodeList'] = [];
-    const observerList: ReplaceNode['nodeList'] = [];
-    const followerList: ReplaceNode['nodeList'] = [];
+  watch(
+    () => props.nodeList,
+    () => {
+      const hotList: ReplaceNode['nodeList'] = [];
+      const coldList: ReplaceNode['nodeList'] = [];
+      const observerList: ReplaceNode['nodeList'] = [];
+      const followerList: ReplaceNode['nodeList'] = [];
 
-    props.nodeList.forEach((nodeItem) => {
-      if (nodeItem.isHot) {
-        hotList.push(nodeItem);
-      } else if (nodeItem.isCold) {
-        coldList.push(nodeItem);
-      } else if (nodeItem.isObserver) {
-        observerList.push(nodeItem);
-      } else if (nodeItem.isFollower) {
-        followerList.push(nodeItem);
-      }
-    });
+      props.nodeList.forEach((nodeItem) => {
+        if (nodeItem.isHot) {
+          hotList.push(nodeItem);
+        } else if (nodeItem.isCold) {
+          coldList.push(nodeItem);
+        } else if (nodeItem.isObserver) {
+          observerList.push(nodeItem);
+        } else if (nodeItem.isFollower) {
+          followerList.push(nodeItem);
+        }
+      });
 
-    nodeInfoMap.hot.nodeList = hotList;
-    nodeInfoMap.cold.nodeList = coldList;
-    nodeInfoMap.observer.nodeList = observerList;
-    nodeInfoMap.follower.nodeList = followerList;
-  }, {
-    immediate: true,
-  });
+      nodeInfoMap.hot.nodeList = hotList;
+      nodeInfoMap.cold.nodeList = coldList;
+      nodeInfoMap.observer.nodeList = observerList;
+      nodeInfoMap.follower.nodeList = followerList;
+    },
+    {
+      immediate: true,
+    },
+  );
 
   // 主机节点互斥
   const disableHostMethod = (data: HostInfo, mutexNodeTypes: ('follower' | 'observer' | 'hot' | 'cold')[]) => {
     const tipMap = {
-      'follower': t('主机已被Follower节点使用'),
-      'observer': t('主机已被Observer节点使用'),
-      'hot': t('主机已被热节点使用'),
-      'cold': t('主机已被冷节点使用')
-    }
+      cold: t('主机已被冷节点使用'),
+      follower: t('主机已被Follower节点使用'),
+      hot: t('主机已被热节点使用'),
+      observer: t('主机已被Observer节点使用'),
+    };
 
     for (const mutexNodeType of mutexNodeTypes) {
       const hostMap = makeMapByHostId(nodeInfoMap[mutexNodeType].hostList);
@@ -265,14 +265,17 @@
         return tipMap[mutexNodeType];
       }
     }
-    return false
-  }
+    return false;
+  };
 
   const handleRemoveNode = (node: ReplaceNode['nodeList'][0]) => {
     emits('removeNode', node.bk_host_id);
   };
 
   defineExpose<Exposes>({
+    cancel() {
+      return Promise.resolve();
+    },
     submit() {
       return new Promise((resolve, reject) => {
         if (isEmpty.value) {
@@ -284,114 +287,119 @@
           hotRef.value!.getValue(),
           coldRef.value!.getValue(),
           observerRef.value!.getValue(),
-          followerRef.value!.getValue()
-        ]).then(([hotValue, coldValue, observerValue, followerValue]) => {
-          const isEmptyValue = () => {
-            if (ipSource.value === 'manual_input') {
-              return hotValue.new_nodes.length
-                + coldValue.new_nodes.length
-                + observerValue.new_nodes.length
-                + followerValue.new_nodes.length < 1;
-            }
-
-            return !((hotValue.resource_spec.spec_id > 0 && hotValue.resource_spec.count > 0)
-              || (coldValue.resource_spec.spec_id > 0 && coldValue.resource_spec.count > 0)
-              || (observerValue.resource_spec.spec_id > 0 && observerValue.resource_spec.count > 0)
-              || (followerValue.resource_spec.spec_id > 0 && followerValue.resource_spec.count > 0));
-          };
-
-          if (isEmptyValue()) {
-            messageError(t('替换节点不能为空'));
-            return reject();
-          }
-
-          const getReplaceNodeNums = () => {
-            if (ipSource.value === 'manual_input') {
-              return Object.values(nodeInfoMap).reduce((result, nodeData) => result + nodeData.hostList.length, 0);
-            }
-            return Object.values(nodeInfoMap).reduce((result, nodeData) => {
-              if (nodeData.resourceSpec.spec_id > 0) {
-                return result + nodeData.nodeList.length;
-              }
-              return result;
-            }, 0);
-          };
-
-          const subTitle = (
-            <div style="background-color: #F5F7FA; padding: 8px 16px;">
-              <div class='tips-item'>
-                {t('集群')} :
-                <span
-                  style="color: #313238"
-                  class="ml-8">
-                  {props.data.cluster_name}
-                </span>
-              </div>
-              <div class='mt-4'>{t('替换后原节点 IP 将不在可用，资源将会被释放')}</div>
-            </div>
-          )
-
-          InfoBox({
-            title: t('确认替换n台节点IP', { n: getReplaceNodeNums() }),
-            subTitle,
-            confirmText: t('确认'),
-            cancelText: t('取消'),
-            headerAlign: 'center',
-            contentAlign: 'left',
-            footerAlign: 'center',
-            extCls: 'doris-replace-modal',
-            onClose: () => reject(),
-            onConfirm: () => {
-              const nodeData = {};
+          followerRef.value!.getValue(),
+        ]).then(
+          ([hotValue, coldValue, observerValue, followerValue]) => {
+            const isEmptyValue = () => {
               if (ipSource.value === 'manual_input') {
-                Object.assign(nodeData, {
-                  new_nodes: {
-                    hot: hotValue.new_nodes,
-                    cold: coldValue.new_nodes,
-                    observer: observerValue.new_nodes,
-                    follower: followerValue.new_nodes
-                  },
-                });
-              } else {
-                Object.assign(nodeData, {
-                  resource_spec: {
-                    hot: hotValue.resource_spec,
-                    cold: coldValue.resource_spec,
-                    observer: observerValue.resource_spec,
-                    follower: followerValue.resource_spec
-                  },
-                });
+                return (
+                  hotValue.new_nodes.length +
+                    coldValue.new_nodes.length +
+                    observerValue.new_nodes.length +
+                    followerValue.new_nodes.length <
+                  1
+                );
               }
-              createTicket({
-                ticket_type: TicketTypes.DORIS_REPLACE,
-                bk_biz_id: currentBizId,
-                details: {
-                  cluster_id: props.data.id,
-                  ip_source: ipSource.value,
-                  old_nodes: {
-                    hot: hotValue.old_nodes,
-                    cold: coldValue.old_nodes,
-                    observer: observerValue.old_nodes,
-                    follower: followerValue.old_nodes
+
+              return !(
+                (hotValue.resource_spec.spec_id > 0 && hotValue.resource_spec.count > 0) ||
+                (coldValue.resource_spec.spec_id > 0 && coldValue.resource_spec.count > 0) ||
+                (observerValue.resource_spec.spec_id > 0 && observerValue.resource_spec.count > 0) ||
+                (followerValue.resource_spec.spec_id > 0 && followerValue.resource_spec.count > 0)
+              );
+            };
+
+            if (isEmptyValue()) {
+              messageError(t('替换节点不能为空'));
+              return reject();
+            }
+
+            const getReplaceNodeNums = () => {
+              if (ipSource.value === 'manual_input') {
+                return Object.values(nodeInfoMap).reduce((result, nodeData) => result + nodeData.hostList.length, 0);
+              }
+              return Object.values(nodeInfoMap).reduce((result, nodeData) => {
+                if (nodeData.resourceSpec.spec_id > 0) {
+                  return result + nodeData.nodeList.length;
+                }
+                return result;
+              }, 0);
+            };
+
+            const subTitle = (
+              <div style='background-color: #F5F7FA; padding: 8px 16px;'>
+                <div class='tips-item'>
+                  {t('集群')} :
+                  <span
+                    class='ml-8'
+                    style='color: #313238'>
+                    {props.data.cluster_name}
+                  </span>
+                </div>
+                <div class='mt-4'>{t('替换后原节点 IP 将不在可用，资源将会被释放')}</div>
+              </div>
+            );
+
+            InfoBox({
+              cancelText: t('取消'),
+              confirmText: t('确认'),
+              contentAlign: 'left',
+              extCls: 'doris-replace-modal',
+              footerAlign: 'center',
+              headerAlign: 'center',
+              onClose: () => reject(),
+              onConfirm: () => {
+                const nodeData = {};
+                if (ipSource.value === 'manual_input') {
+                  Object.assign(nodeData, {
+                    new_nodes: {
+                      cold: coldValue.new_nodes,
+                      follower: followerValue.new_nodes,
+                      hot: hotValue.new_nodes,
+                      observer: observerValue.new_nodes,
+                    },
+                  });
+                } else {
+                  Object.assign(nodeData, {
+                    resource_spec: {
+                      cold: coldValue.resource_spec,
+                      follower: followerValue.resource_spec,
+                      hot: hotValue.resource_spec,
+                      observer: observerValue.resource_spec,
+                    },
+                  });
+                }
+                createTicket({
+                  bk_biz_id: currentBizId,
+                  details: {
+                    cluster_id: props.data.id,
+                    ip_source: ipSource.value,
+                    old_nodes: {
+                      cold: coldValue.old_nodes,
+                      follower: followerValue.old_nodes,
+                      hot: hotValue.old_nodes,
+                      observer: observerValue.old_nodes,
+                    },
+                    ...nodeData,
                   },
-                  ...nodeData,
-                },
-              })
-                .then((data) => {
-                  ticketMessage(data.id);
-                  emits('change');
-                  resolve('success');
+                  ticket_type: TicketTypes.DORIS_REPLACE,
                 })
-                .catch(() => {
-                  reject();
-                });
-            },
-          });
-        }, () => reject('error'));
+                  .then((data) => {
+                    ticketMessage(data.id);
+                    emits('change');
+                    resolve('success');
+                  })
+                  .catch(() => {
+                    reject();
+                  });
+              },
+              subTitle,
+              title: t('确认替换n台节点IP', { n: getReplaceNodeNums() }),
+            });
+          },
+          () => reject('error'),
+        );
       });
-    },
-    cancel() {
-      return Promise.resolve();
     },
   });
 </script>

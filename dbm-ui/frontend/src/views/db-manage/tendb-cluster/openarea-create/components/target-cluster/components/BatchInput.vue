@@ -96,9 +96,7 @@
 
   import type { IData } from './Row.vue';
 
-  interface Emits {
-    (e: 'change', value: Array<IData>): void;
-  }
+  type Emits = (e: 'change', value: Array<IData>) => void;
 
   interface Props {
     variableList: string[];
@@ -120,13 +118,13 @@
   const loading = ref(false);
 
   const state = reactive({
-    values: '',
     formatError: {
-      show: false,
-      selectionStart: 0,
-      selectionEnd: 0,
       count: 0,
+      selectionEnd: 0,
+      selectionStart: 0,
+      show: false,
     },
+    values: '',
   });
 
   const placeholder = t(
@@ -144,7 +142,7 @@
    * 标记错误信息
    */
   const handleSelectionError = (key: 'formatError') => {
-    const { selectionStart, selectionEnd } = state[key];
+    const { selectionEnd, selectionStart } = state[key];
     const textarea = inputRef.value?.$el?.getElementsByTagName?.('textarea')?.[0];
     if (textarea) {
       (textarea as HTMLInputElement).focus();
@@ -158,10 +156,10 @@
 
   const handleClose = () => {
     const init = {
-      show: false,
-      selectionStart: 0,
-      selectionEnd: 0,
       count: 0,
+      selectionEnd: 0,
+      selectionStart: 0,
+      show: false,
     };
     state.formatError = { ...init };
     state.values = '';
@@ -211,9 +209,9 @@
     const newLineInfos = newLines.map((item) => getContents(item));
     const clusters = newLineInfos.map((item) => item[0]);
     const clusterInfoResults = await getTendbClusterList({
-      offset: 0,
-      limit: -1,
       domain: clusters.join(','),
+      limit: -1,
+      offset: 0,
     }).finally(() => {
       loading.value = false;
     });
@@ -230,15 +228,15 @@
       const domain = rowValues[0];
       const ips = rowValues[rowValues.length - 1];
       const rowInfo = {
+        authorizeIps: ips === 'null' ? [] : ips.split(','),
         clusterData: {
-          id: clusterInfoMap[domain].id,
-          master_domain: domain,
           bk_biz_id: clusterInfoMap[domain].bk_biz_id,
           bk_cloud_id: clusterInfoMap[domain].bk_cloud_id,
           bk_cloud_name: clusterInfoMap[domain].bk_cloud_name,
+          id: clusterInfoMap[domain].id,
+          master_domain: domain,
         },
         vars: {},
-        authorizeIps: ips === 'null' ? [] : ips.split(','),
       };
       const varValues = rowValues.slice(1, rowValues.length - 1);
       props.variableList.forEach((varName, index) => {

@@ -58,17 +58,17 @@
     }
     if (props.data.length > overflowMaxCount) {
       tippyIns = tippy(rootRef.value as SingleTarget, {
-        content: popRef.value,
-        placement: 'top',
         appendTo: () => document.body,
-        theme: 'db-tippy',
-        maxWidth: 'none',
-        trigger: 'mouseenter',
-        interactive: true,
         arrow: true,
-        offset: [0, 0],
-        zIndex: 999999,
+        content: popRef.value,
         hideOnClick: true,
+        interactive: true,
+        maxWidth: 'none',
+        offset: [0, 0],
+        placement: 'top',
+        theme: 'db-tippy',
+        trigger: 'mouseenter',
+        zIndex: 999999,
       });
     }
   });

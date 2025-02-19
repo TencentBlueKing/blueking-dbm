@@ -51,30 +51,28 @@
   import TableTagInput from '@components/render-table/columns/tag-input/index.vue';
 
   interface Props {
-    data?: string[];
     compareData?: string[];
+    data?: string[];
     required?: boolean;
-    single?: boolean;
     rules?: {
-      validator: (value: string[]) => boolean;
       message: string;
+      validator: (value: string[]) => boolean;
     }[];
+    single?: boolean;
   }
 
-  interface Emits {
-    (e: 'change', value: string[]): void;
-  }
+  type Emits = (e: 'change', value: string[]) => void;
 
   interface Exposes {
     getValue: (field: string, isSubmit?: boolean) => Promise<Record<string, string[]>>;
   }
 
   const props = withDefaults(defineProps<Props>(), {
-    data: () => [],
     compareData: undefined,
+    data: () => [],
     required: true,
-    single: false,
     rules: undefined,
+    single: false,
   });
 
   const emits = defineEmits<Emits>();
@@ -93,25 +91,27 @@
 
     return [
       {
+        message: t('表名不能为空'),
         validator: (value: string[]) => {
           if (!props.required) {
             return true;
           }
           return value && value.length > 0;
         },
-        message: t('表名不能为空'),
       },
       {
-        validator: (value: string[]) => _.every(value, (item) => item.length <= 255),
         message: t('表名长度不超过255个字符'),
         trigger: 'change',
+        validator: (value: string[]) => _.every(value, (item) => item.length <= 255),
       },
       {
-        validator: (value: string[]) => _.every(value, (item) => /^[a-zA-Z0-9_-]*\*?[a-zA-Z0-9_-]*$/.test(item)),
         message: t('输入格式有误'),
         trigger: 'change',
+        validator: (value: string[]) => _.every(value, (item) => /^[a-zA-Z0-9_-]*\*?[a-zA-Z0-9_-]*$/.test(item)),
       },
       {
+        message: t('忽略DB名、忽略表名要么同时为空, 要么同时不为空'),
+        trigger: 'change',
         validator: (value: string[]) => {
           if (!isSubmitting) {
             return true;
@@ -122,8 +122,6 @@
           }
           return true;
         },
-        message: t('忽略DB名、忽略表名要么同时为空, 要么同时不为空'),
-        trigger: 'change',
       },
     ];
   });

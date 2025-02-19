@@ -75,57 +75,66 @@
   const isSideMenuFlod = useStorage('is_side_menu_flod', false);
 
   const enum menuEnum {
-    databaseManage = 'databaseManage',
-    observableManage = 'observableManage',
     configManage = 'configManage',
-    resourceManage = 'resourceManage',
+    databaseManage = 'databaseManage',
     globalConfigManage = 'globalConfigManage',
-    platformManage = 'platformManage',
+    observableManage = 'observableManage',
     personalWorkbench = 'personalWorkbench',
+    platformManage = 'platformManage',
+    resourceManage = 'resourceManage',
   }
 
   const menuList = [
     {
+      dbConsoleValue: 'databaseManage',
       label: t('数据库管理'),
       value: menuEnum.databaseManage,
-      dbConsoleValue: 'databaseManage',
     },
     {
+      dbConsoleValue: 'observableManage',
       label: t('可观测'),
       value: menuEnum.observableManage,
-      dbConsoleValue: 'observableManage',
     },
     {
+      dbConsoleValue: 'bizConfigManage',
       label: t('业务配置'),
       value: menuEnum.configManage,
-      dbConsoleValue: 'bizConfigManage',
     },
     userProfile.rerourceManage && {
+      dbConsoleValue: 'resourceManage',
       label: t('资源管理'),
       value: menuEnum.resourceManage,
-      dbConsoleValue: 'resourceManage',
     },
     userProfile.globalManage && {
+      dbConsoleValue: 'globalConfigManage',
       label: t('全局配置'),
       value: menuEnum.globalConfigManage,
-      dbConsoleValue: 'globalConfigManage',
     },
     userProfile.platformManage && {
       label: t('平台管理'),
       value: menuEnum.platformManage,
     },
     {
+      dbConsoleValue: 'personalWorkbench',
       label: t('个人工作台'),
       value: menuEnum.personalWorkbench,
-      dbConsoleValue: 'personalWorkbench',
     },
   ].filter((item) => item) as {
+    dbConsoleValue: string;
     label: string;
     value: string;
-    dbConsoleValue: string;
   }[];
 
   const routeGroup = {
+    [menuEnum.configManage]: [
+      'DbConfigure',
+      'DBMonitorStrategy',
+      'DBMonitorAlarmGroup',
+      'StaffManage',
+      'TicketFlowSetting',
+      'TicketCooperationSetting',
+      'TicketNoticeSetting',
+    ],
     [menuEnum.databaseManage]: [
       'MysqlManage',
       'EsManage',
@@ -144,17 +153,6 @@
       'bizTicketManage',
       'DBPasswordTemporaryModify',
     ],
-    [menuEnum.observableManage]: ['DBHASwitchEvents', 'inspectionManage'],
-    [menuEnum.configManage]: [
-      'DbConfigure',
-      'DBMonitorStrategy',
-      'DBMonitorAlarmGroup',
-      'StaffManage',
-      'TicketFlowSetting',
-      'TicketCooperationSetting',
-      'TicketNoticeSetting',
-    ],
-    [menuEnum.resourceManage]: ['ResourceSpec', 'resourceManage', 'resourcePoolDirtyMachines'],
     [menuEnum.globalConfigManage]: [
       'PlatformVersionFiles',
       'PlatformDbConfigure',
@@ -166,7 +164,7 @@
       'PlatformTicketFlowSetting',
       'PlatformStaffManage',
     ],
-    [menuEnum.platformManage]: ['platformTaskManage', 'ticketPlatformManage', 'inspectionReportGlobal'],
+    [menuEnum.observableManage]: ['DBHASwitchEvents', 'inspectionManage'],
     [menuEnum.personalWorkbench]: [
       'serviceApply',
       'SelfServiceMyTickets',
@@ -175,19 +173,21 @@
       'ticketSelfManage',
       'InspectionTodos',
     ],
+    [menuEnum.platformManage]: ['platformTaskManage', 'ticketPlatformManage', 'inspectionReportGlobal'],
+    [menuEnum.resourceManage]: ['ResourceSpec', 'resourceManage', 'resourcePoolDirtyMachines'],
   } as Record<string, string[]>;
 
   const menuType = ref('');
 
   const renderMenuCom = computed(() => {
     const comMap = {
-      databaseManage: DatabaseManage,
-      observableManage: ObservableManage,
       configManage: ConfigManage,
-      resourceManage: ResourceManage,
+      databaseManage: DatabaseManage,
       globalConfigManage: GlobalConfigManage,
       [menuEnum.platformManage]: PlatformManage,
+      observableManage: ObservableManage,
       personalWorkbench: PersonalWorkbench,
+      resourceManage: ResourceManage,
     };
     return comMap[menuType.value as keyof typeof comMap];
   });

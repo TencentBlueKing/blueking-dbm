@@ -84,9 +84,9 @@
   const formRef = ref<InstanceType<typeof Form>>();
 
   const formData = reactive({
-    use: '',
-    method: '',
     complexity: '',
+    method: '',
+    use: '',
   });
 
   watch(
@@ -108,10 +108,15 @@
 
   const handleGenarate = async () => {
     await formRef.value!.validate();
-    const { use, method, complexity } = formData;
+    const { complexity, method, use } = formData;
     const architectrueMap: Record<string, ClusterTypes[]> = {
       cache: [ClusterTypes.PREDIXY_REDIS_CLUSTER, ClusterTypes.TWEMPROXY_REDIS_INSTANCE],
-      storage: [ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER],
+      no: [
+        ClusterTypes.TWEMPROXY_REDIS_INSTANCE,
+        ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE,
+        ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER,
+        ClusterTypes.PREDIXY_REDIS_CLUSTER,
+      ],
       normal: [
         ClusterTypes.TWEMPROXY_REDIS_INSTANCE,
         ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE,
@@ -119,13 +124,8 @@
         ClusterTypes.PREDIXY_REDIS_CLUSTER,
       ],
       smart: [ClusterTypes.PREDIXY_REDIS_CLUSTER, ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER],
+      storage: [ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER],
       yes: [ClusterTypes.PREDIXY_REDIS_CLUSTER, ClusterTypes.TWEMPROXY_REDIS_INSTANCE],
-      no: [
-        ClusterTypes.TWEMPROXY_REDIS_INSTANCE,
-        ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE,
-        ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER,
-        ClusterTypes.PREDIXY_REDIS_CLUSTER,
-      ],
     };
 
     const intersectedArrayList = intersection([
@@ -157,9 +157,9 @@
 
   const handleClear = () => {
     Object.assign(formData, {
-      use: '',
-      method: '',
       complexity: '',
+      method: '',
+      use: '',
     });
   };
 </script>

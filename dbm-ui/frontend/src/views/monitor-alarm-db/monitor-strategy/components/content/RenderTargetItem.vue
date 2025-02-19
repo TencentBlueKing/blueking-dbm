@@ -19,13 +19,13 @@
   import { t } from '@locales/index';
 
   interface Props {
-    title?: string;
     list?: string[];
+    title?: string;
   }
 
   const props = withDefaults(defineProps<Props>(), {
-    title: '',
     list: () => [],
+    title: '',
   });
 
   const titleMap = {

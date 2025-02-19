@@ -41,8 +41,8 @@
   import { AccountTypes } from '@common/const';
 
   interface Props {
-    accountType: AccountTypes;
     accountRules: PermissionRule['rules'];
+    accountType: AccountTypes;
   }
 
   const props = defineProps<Props>();
@@ -56,8 +56,8 @@
 
   const rules = [
     {
-      trigger: 'blur',
       message: t('请选择访问DB'),
+      trigger: 'blur',
       validator: (value: string[]) => value.length > 0,
     },
   ];
@@ -67,10 +67,10 @@
    */
   const handleToCreateRules = () => {
     const routeMap = {
-      [AccountTypes.MYSQL]: 'PermissionRules',
-      [AccountTypes.TENDBCLUSTER]: 'spiderPermission',
       [AccountTypes.MONGODB]: 'MongodbPermission',
+      [AccountTypes.MYSQL]: 'PermissionRules',
       [AccountTypes.SQLSERVER]: 'SqlServerPermissionRules',
+      [AccountTypes.TENDBCLUSTER]: 'spiderPermission',
     };
     const url = router.resolve({ name: routeMap[props.accountType] });
     window.open(url.href, '_blank');

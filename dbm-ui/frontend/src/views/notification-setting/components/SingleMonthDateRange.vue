@@ -45,17 +45,15 @@
 </template>
 <script setup lang="ts">
   interface ListItem {
-    value: number;
     active: boolean;
     choosed: boolean;
-    isStart: boolean;
     isEnd: boolean;
+    isStart: boolean;
     isToday: boolean;
+    value: number;
   }
 
-  interface Emits {
-    (e: 'change', value: number[]): void;
-  }
+  type Emits = (e: 'change', value: number[]) => void;
 
   const emits = defineEmits<Emits>();
 
@@ -64,12 +62,12 @@
       const date = index + 1;
       const isToday = date === todayDate;
       const obj = {
-        value: date,
         active: false,
         choosed: false,
-        isStart: false,
         isEnd: false,
+        isStart: false,
         isToday,
+        value: date,
       };
       results.push(obj);
       return results;

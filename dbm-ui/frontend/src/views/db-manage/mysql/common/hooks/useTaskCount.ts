@@ -46,17 +46,17 @@ export const useTaskCount = (clusterType: string) => {
   const initPopover = () => {
     if (rootRef.value && !tippyIns) {
       tippyIns = tippy(rootRef.value as SingleTarget, {
-        content: popRef.value,
-        placement: 'right',
         appendTo: () => document.body,
-        theme: 'light',
-        maxWidth: 'none',
-        trigger: 'mouseenter click',
-        interactive: true,
         arrow: true,
-        offset: [0, 8],
-        zIndex: 999,
+        content: popRef.value,
         hideOnClick: true,
+        interactive: true,
+        maxWidth: 'none',
+        offset: [0, 8],
+        placement: 'right',
+        theme: 'light',
+        trigger: 'mouseenter click',
+        zIndex: 999,
       });
     }
   };
@@ -94,8 +94,8 @@ export const useTaskCount = (clusterType: string) => {
 
   const handleRevokeTask = (taskData: UserSemanticTaskModel) => {
     deleteUserSemanticTasks({
-      task_ids: [taskData.root_id],
       cluster_type: clusterType,
+      task_ids: [taskData.root_id],
     }).then(() => {
       fetchData();
     });
@@ -108,8 +108,8 @@ export const useTaskCount = (clusterType: string) => {
         step: 'log',
       },
       query: {
-        rootId: taskData.root_id,
         nodeId: taskData.node_id,
+        rootId: taskData.root_id,
       },
     });
   };
@@ -121,11 +121,11 @@ export const useTaskCount = (clusterType: string) => {
   });
 
   return {
-    rootRef,
-    popRef,
-    taskList,
-    taskCount,
-    handleRevokeTask,
     handleGoTaskLog,
+    handleRevokeTask,
+    popRef,
+    rootRef,
+    taskCount,
+    taskList,
   };
 };

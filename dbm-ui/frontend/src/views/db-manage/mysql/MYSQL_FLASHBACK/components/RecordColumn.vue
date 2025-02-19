@@ -61,6 +61,8 @@
 
   const rules = [
     {
+      message: t('待闪回的记录格式不正确'),
+      trigger: 'blur',
       validator: (value: string) => {
         const lineList = value.split('\n');
         if (lineList.length < 2) {
@@ -69,8 +71,6 @@
         const columnCount = lineList[0].split(',').length;
         return _.every(lineList, (lineItem) => lineItem.split(',').length === columnCount);
       },
-      message: t('待闪回的记录格式不正确'),
-      trigger: 'blur',
     },
   ];
 </script>

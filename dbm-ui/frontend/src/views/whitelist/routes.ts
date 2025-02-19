@@ -18,12 +18,12 @@ import { t } from '@locales/index';
 
 const routes: RouteRecordRaw[] = [
   {
-    name: 'PlatformWhitelist',
-    path: 'whitelist_platform',
+    component: () => import('@views/whitelist/list/Index.vue'),
     meta: {
       navName: t('授权白名单'),
     },
-    component: () => import('@views/whitelist/list/Index.vue'),
+    name: 'PlatformWhitelist',
+    path: 'whitelist_platform',
   },
 ];
 

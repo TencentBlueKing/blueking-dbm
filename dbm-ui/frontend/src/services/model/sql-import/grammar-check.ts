@@ -54,29 +54,29 @@ export default class GrammarCheck {
   }
 
   get messageList() {
-    const result: Array<{ type: 'warning' | 'error'; line: number; message: string }> = [];
+    const result: Array<{ line: number; message: string; type: 'warning' | 'error' }> = [];
 
     this.bancommand_warnings.forEach((item) => {
       result.push({
-        type: 'error',
         line: item.line,
         message: item.warn_info,
+        type: 'error',
       });
     });
 
     this.syntax_fails.forEach((item) => {
       result.push({
-        type: 'error',
         line: item.line,
         message: item.error_msg,
+        type: 'error',
       });
     });
 
     this.highrisk_warnings.forEach((item) => {
       result.push({
-        type: 'warning',
         line: item.line,
         message: item.warn_info,
+        type: 'warning',
       });
     });
     return result;

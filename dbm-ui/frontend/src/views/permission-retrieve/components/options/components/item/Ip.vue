@@ -55,9 +55,7 @@
 
   import BatchInput from './components/BatchInput.vue';
 
-  interface Emits {
-    (e: 'change'): void;
-  }
+  type Emits = (e: 'change') => void;
 
   const emits = defineEmits<Emits>();
   const modelValue = defineModel<string>({
@@ -70,8 +68,8 @@
 
   const rules = [
     {
-      required: true,
       message: t('源客户端 IP 不能为空'),
+      required: true,
       validator: (value: string) => value !== '',
     },
     {

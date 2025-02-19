@@ -37,8 +37,8 @@
 
   const { username } = useUserProfile();
 
-  const { value: datePickerValue, shortcutsRange } = useDatePicker();
-  const { value: searachSelectValue, searchSelectData } = useSearchSelect({
+  const { shortcutsRange, value: datePickerValue } = useDatePicker();
+  const { searchSelectData, value: searachSelectValue } = useSearchSelect({
     exclude: ['creator'],
   });
 

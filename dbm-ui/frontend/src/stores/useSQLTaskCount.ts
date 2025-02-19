@@ -19,11 +19,11 @@ import type UserSemanticTaskModel from '@services/model/sql-import/user-semantic
  * 变更 SQL 执行任务数量
  */
 export const useSQLTaskCount = defineStore('useSQLTaskCount', {
-  state: () => ({
-    taskList: [] as UserSemanticTaskModel[],
-    isPolling: false,
-  }),
   getters: {
     taskCount: (state) => state.taskList.length ?? 0,
   },
+  state: () => ({
+    isPolling: false,
+    taskList: [] as UserSemanticTaskModel[],
+  }),
 });

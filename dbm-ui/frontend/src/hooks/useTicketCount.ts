@@ -13,20 +13,20 @@ const run = () => {
     MY_APPROVE: 0,
     pending: {
       APPROVE: 0,
-      TODO: 0,
-      INNER_TODO: 0,
-      INNER_HELP: 0,
-      RESOURCE_REPLENISH: 0,
       FAILED: 0,
+      INNER_HELP: 0,
+      INNER_TODO: 0,
+      RESOURCE_REPLENISH: 0,
+      TODO: 0,
     },
     SELF_MANAGE: 0,
     to_help: {
       APPROVE: 0,
-      TODO: 0,
-      INNER_TODO: 0,
-      INNER_HELP: 0,
-      RESOURCE_REPLENISH: 0,
       FAILED: 0,
+      INNER_HELP: 0,
+      INNER_TODO: 0,
+      RESOURCE_REPLENISH: 0,
+      TODO: 0,
     },
   });
 
@@ -46,8 +46,8 @@ const run = () => {
   });
 
   return {
-    loading: isLoading,
     data,
+    loading: isLoading,
   };
 };
 

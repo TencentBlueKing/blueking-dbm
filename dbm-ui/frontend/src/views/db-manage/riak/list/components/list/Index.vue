@@ -234,9 +234,7 @@
   import AddNodes from '../components/AddNodes.vue';
   import DeleteNodes from '../components/DeleteNodes.vue';
 
-  interface Emits {
-    (e: 'detailOpenChange', data: boolean): void;
-  }
+  type Emits = (e: 'detailOpenChange', data: boolean) => void;
 
   interface Expose {
     freshData: () => void;
@@ -250,68 +248,65 @@
   const { t } = useI18n();
   const { currentBizId } = useGlobalBizs();
   const { isOpen: isStretchLayoutOpen, splitScreen: stretchLayoutSplitScreen } = useStretchLayout();
-  const { handleDisableCluster, handleEnableCluster, handleDeleteCluster } = useOperateClusterBasic(ClusterTypes.RIAK, {
+  const { handleDeleteCluster, handleDisableCluster, handleEnableCluster } = useOperateClusterBasic(ClusterTypes.RIAK, {
     onSuccess: () => fetchData(),
   });
   const {
+    batchSearchIpInatanceList,
+    clearSearchValue,
+    columnFilterChange,
+    columnSortChange,
+    handleSearchValueChange,
+    isFilter,
     searchAttrs,
     searchValue,
     sortValue,
-    batchSearchIpInatanceList,
-    isFilter,
-    columnFilterChange,
-    columnSortChange,
-    clearSearchValue,
-    handleSearchValueChange,
   } = useLinkQueryColumnSerach({
-    searchType: ClusterTypes.RIAK,
     attrs: ['bk_cloud_id', 'db_module_id', 'major_version', 'region', 'time_zone'],
-    fetchDataFn: () => fetchData(),
     defaultSearchItem: {
-      name: t('访问入口'),
       id: 'domain',
+      name: t('访问入口'),
     },
+    fetchDataFn: () => fetchData(),
+    searchType: ClusterTypes.RIAK,
   });
 
   const serachData = computed(
     () =>
       [
         {
-          name: t('集群名称'),
+          async: false,
           id: 'name',
           multiple: true,
-          async: false,
+          name: t('集群名称'),
         },
         {
-          name: t('IP 或 IP:Port'),
+          async: false,
           id: 'instance',
           multiple: true,
-          async: false,
+          name: t('IP 或 IP:Port'),
         },
         {
-          name: 'ID',
           id: 'id',
+          name: 'ID',
         },
         {
-          name: t('创建人'),
           id: 'creator',
+          name: t('创建人'),
         },
         {
-          name: t('模块'),
+          children: searchAttrs.value.db_module_id,
           id: 'db_module_id',
           multiple: true,
-          children: searchAttrs.value.db_module_id,
+          name: t('模块'),
         },
         {
-          name: t('管控区域'),
+          children: searchAttrs.value.bk_cloud_id,
           id: 'bk_cloud_id',
           multiple: true,
-          children: searchAttrs.value.bk_cloud_id,
+          name: t('管控区域'),
         },
         {
-          name: t('状态'),
-          id: 'status',
-          multiple: true,
           children: [
             {
               id: 'normal',
@@ -322,24 +317,27 @@
               name: t('异常'),
             },
           ],
+          id: 'status',
+          multiple: true,
+          name: t('状态'),
         },
         {
-          name: t('版本'),
+          children: searchAttrs.value.major_version,
           id: 'major_version',
           multiple: true,
-          children: searchAttrs.value.major_version,
+          name: t('版本'),
         },
         {
-          name: t('地域'),
+          children: searchAttrs.value.region,
           id: 'region',
           multiple: true,
-          children: searchAttrs.value.region,
+          name: t('地域'),
         },
         {
-          name: t('时区'),
+          children: searchAttrs.value.time_zone,
           id: 'time_zone',
           multiple: true,
-          children: searchAttrs.value.time_zone,
+          name: t('时区'),
         },
       ] as ISearchItem[],
   );
@@ -465,8 +463,8 @@
     const [startTime, endTime] = deployTime.value;
     if (startTime && endTime) {
       Object.assign(params, {
-        start_time: dayjs(startTime).format('YYYY-MM-DD'),
         end_time: dayjs(endTime).format('YYYY-MM-DD '),
+        start_time: dayjs(startTime).format('YYYY-MM-DD'),
       });
     }
 

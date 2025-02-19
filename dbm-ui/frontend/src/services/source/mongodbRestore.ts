@@ -60,8 +60,8 @@ const path = `/apis/mongodb/bizs/${currentBizId}/restore`;
  * 查询定点构造记录
  */
 export function queryRestoreRecord(params: {
-  immute_domain?: string;
   cluster_type?: string;
+  immute_domain?: string;
   ips?: string;
   limit?: number;
   offset?: number;

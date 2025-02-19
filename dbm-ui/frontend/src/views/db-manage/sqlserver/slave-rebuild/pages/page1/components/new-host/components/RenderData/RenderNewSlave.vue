@@ -70,9 +70,9 @@
   interface Exposes {
     getValue: () => Promise<{
       new_slave_host: {
+        bk_cloud_id: number;
         bk_host_id: number;
         ip: string;
-        bk_cloud_id: number;
       };
     }>;
   }
@@ -109,8 +109,8 @@
 
   const rules = [
     {
-      validator: () => Boolean(localHostData.value?.ip),
       message: t('新从库主机不能为空'),
+      validator: () => Boolean(localHostData.value?.ip),
     },
   ];
 

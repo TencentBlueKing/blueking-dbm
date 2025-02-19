@@ -100,14 +100,14 @@
   import type { ClusterModel, ISupportClusterType } from './types';
 
   export interface Props<clusterType extends ISupportClusterType> {
-    label: string;
-    field: string;
     clusterType: clusterType;
     dbType?: DBTypes;
-    selectedList: ClusterModel<clusterType>[];
-    isFilter: boolean;
+    field: string;
     // eslint-disable-next-line vue/no-unused-properties
     getTableInstance: () => InstanceType<typeof DbTable> | undefined;
+    isFilter: boolean;
+    label: string;
+    selectedList: ClusterModel<clusterType>[];
   }
 
   export interface Emits {
@@ -126,39 +126,39 @@
   defineSlots<Slots<T>>();
 
   const viewActionIdMap: Record<ISupportClusterType, string> = {
-    [ClusterTypes.TENDBCLUSTER]: 'tendbcluster_view',
     [ClusterTypes.DORIS]: 'doris_view',
     [ClusterTypes.ES]: 'es_view',
     [ClusterTypes.HDFS]: 'hdfs_view',
-    [ClusterTypes.TENDBHA]: 'mysql_view',
-    [ClusterTypes.TENDBSINGLE]: 'mysql_view',
+    [ClusterTypes.KAFKA]: 'kafka_view',
+    [ClusterTypes.MONGO_REPLICA_SET]: 'mongodb_view',
+    [ClusterTypes.MONGO_SHARED_CLUSTER]: 'mongodb_view',
     [ClusterTypes.PULSAR]: 'pulsar_view',
     [ClusterTypes.REDIS]: 'redis_view',
     [ClusterTypes.REDIS_INSTANCE]: 'redis_view',
     [ClusterTypes.RIAK]: 'riak_view',
-    [ClusterTypes.KAFKA]: 'kafka_view',
     [ClusterTypes.SQLSERVER_HA]: 'sqlserver_view',
     [ClusterTypes.SQLSERVER_SINGLE]: 'sqlserver_view',
-    [ClusterTypes.MONGO_REPLICA_SET]: 'mongodb_view',
-    [ClusterTypes.MONGO_SHARED_CLUSTER]: 'mongodb_view',
+    [ClusterTypes.TENDBCLUSTER]: 'tendbcluster_view',
+    [ClusterTypes.TENDBHA]: 'mysql_view',
+    [ClusterTypes.TENDBSINGLE]: 'mysql_view',
   };
 
   const dbConsoleMap: Record<ISupportClusterType, string> = {
-    [ClusterTypes.TENDBCLUSTER]: 'tendbCluster.clusterManage.modifyEntryConfiguration',
     [ClusterTypes.DORIS]: 'doris.clusterManage.modifyEntryConfiguration',
     [ClusterTypes.ES]: 'es.clusterManage.modifyEntryConfiguration',
     [ClusterTypes.HDFS]: 'hdfs.clusterManage.modifyEntryConfiguration',
-    [ClusterTypes.TENDBHA]: 'mysql.haClusterList.modifyEntryConfiguration',
-    [ClusterTypes.TENDBSINGLE]: 'mysql.singleClusterList.modifyEntryConfiguration',
+    [ClusterTypes.KAFKA]: 'kafka.clusterManage.modifyEntryConfiguration',
+    [ClusterTypes.MONGO_REPLICA_SET]: 'mongodb.clusterManage.modifyEntryConfiguration',
+    [ClusterTypes.MONGO_SHARED_CLUSTER]: 'mongodb.clusterManage.modifyEntryConfiguration',
     [ClusterTypes.PULSAR]: 'pulsar.clusterManage.modifyEntryConfiguration',
     [ClusterTypes.REDIS]: 'redis.clusterManage.modifyEntryConfiguration',
     [ClusterTypes.REDIS_INSTANCE]: 'redis.clusterManage.modifyEntryConfiguration',
     [ClusterTypes.RIAK]: 'riak.clusterManage.modifyEntryConfiguration',
-    [ClusterTypes.KAFKA]: 'kafka.clusterManage.modifyEntryConfiguration',
     [ClusterTypes.SQLSERVER_HA]: 'sqlserver.haClusterList.modifyEntryConfiguration',
     [ClusterTypes.SQLSERVER_SINGLE]: 'sqlserver.singleClusterList.modifyEntryConfiguration',
-    [ClusterTypes.MONGO_REPLICA_SET]: 'mongodb.clusterManage.modifyEntryConfiguration',
-    [ClusterTypes.MONGO_SHARED_CLUSTER]: 'mongodb.clusterManage.modifyEntryConfiguration',
+    [ClusterTypes.TENDBCLUSTER]: 'tendbCluster.clusterManage.modifyEntryConfiguration',
+    [ClusterTypes.TENDBHA]: 'mysql.haClusterList.modifyEntryConfiguration',
+    [ClusterTypes.TENDBSINGLE]: 'mysql.singleClusterList.modifyEntryConfiguration',
   };
 
   const { t } = useI18n();
@@ -170,7 +170,7 @@
 
   const accessEntryDbConsole = computed(() => dbConsoleMap[props.clusterType]);
 
-  const { handleCopySelected, handleCopyAll } = useColumnCopy(props);
+  const { handleCopyAll, handleCopySelected } = useColumnCopy(props);
 
   const handleToolsShow = () => {
     setTimeout(() => {

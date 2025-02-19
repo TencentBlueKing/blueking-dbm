@@ -31,27 +31,25 @@
 
   interface Props {
     data: number;
-    selectList?: SelectItem[];
     isLoading?: boolean;
+    selectList?: SelectItem[];
   }
 
   interface Exposes {
     getValue: () => Promise<string>;
   }
 
-  interface Emits {
-    (e: 'select-change', value: number): void;
-  }
+  type Emits = (e: 'select-change', value: number) => void;
 
   export interface SelectItem {
-    value: number;
     label: string;
+    value: number;
   }
 
   const props = withDefaults(defineProps<Props>(), {
     data: undefined,
-    selectList: () => [],
     isLoading: false,
+    selectList: () => [],
   });
 
   const emits = defineEmits<Emits>();
@@ -63,8 +61,8 @@
 
   const rules = [
     {
-      validator: (value: string) => Boolean(value),
       message: t('请选择目标集群'),
+      validator: (value: string) => Boolean(value),
     },
   ];
 

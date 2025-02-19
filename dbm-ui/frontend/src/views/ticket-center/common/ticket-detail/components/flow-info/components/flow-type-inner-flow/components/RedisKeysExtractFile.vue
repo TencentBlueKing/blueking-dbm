@@ -99,12 +99,12 @@
   const isShow = ref(false);
 
   const state = reactive({
-    isLoading: false,
     data: [] as KeyFileItem[],
-    selected: [] as KeyFileItem[],
     downloadLoadings: [] as boolean[],
     fileLoadings: [] as boolean[],
     isBatchDownloading: false,
+    isLoading: false,
+    selected: [] as KeyFileItem[],
   });
 
   watch(isShow, (isShow) => {
@@ -155,9 +155,9 @@
    * 表格选中
    */
   function handleTableSelected({
-    isAll,
     checked,
     data,
+    isAll,
     row,
   }: {
     checked: boolean;

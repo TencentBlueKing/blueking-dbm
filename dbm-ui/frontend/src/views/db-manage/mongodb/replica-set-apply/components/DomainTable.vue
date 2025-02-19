@@ -30,18 +30,18 @@
   import ClusterIdBatchEdit from './ClusterIdBatchEdit.vue';
   import ClusterNameBatchEdit from './ClusterNameBatchEdit.vue';
 
-  type FormItem = typeof Form.FormItem
+  type FormItem = typeof Form.FormItem;
 
   interface Domain {
-    [key: string]: string
-    domain: string,
-    set_id: string,
-    name: string,
+    [key: string]: string;
+    domain: string;
+    name: string;
+    set_id: string;
   }
 
   interface Props {
-    appAbbr: string
-    nodesNumber: number
+    appAbbr: string;
+    nodesNumber: number;
   }
 
   const props = defineProps<Props>();
@@ -54,8 +54,8 @@
   const rules = {
     set_id: [
       {
-        required: true,
         message: t('必填项'),
+        required: true,
         trigger: 'change',
       },
       {
@@ -71,7 +71,7 @@
       {
         message: t('集群ID重复'),
         trigger: 'blur',
-        validator: (val: string) => clusterIdKeys.value.filter(item => item === val).length < 2,
+        validator: (val: string) => clusterIdKeys.value.filter((item) => item === val).length < 2,
       },
     ],
     // name: [
@@ -95,78 +95,73 @@
 
   const columns: Column[] = [
     {
-      type: 'index',
       label: t('序号'),
+      type: 'index',
       width: 60,
     },
     {
-      label: t('主域名'),
       field: 'domain',
+      label: t('主域名'),
       width: 200,
     },
     {
+      field: 'set_id',
       label: () => (
         <div class='table-custom-label'>
-          { t('集群ID') }
-          {
-            tableData.value.length !== 0 && (
-              <span v-bk-tooltips={t('批量录入')}>
-                <ClusterIdBatchEdit onChange={value => handleBatchEdit(value, 'set_id')} />
-              </span>
-            )
-          }
-          <span class="required-mark ml-4">*</span>
+          {t('集群ID')}
+          {tableData.value.length !== 0 && (
+            <span v-bk-tooltips={t('批量录入')}>
+              <ClusterIdBatchEdit onChange={(value) => handleBatchEdit(value, 'set_id')} />
+            </span>
+          )}
+          <span class='required-mark ml-4'>*</span>
         </div>
       ),
-      field: 'set_id',
       minWidth: 300,
       render: ({ index }: { index: number }) => (
         <bk-form-item
-          ref={(value: FormItem) => setSetIdRef(value)}
-          class="cell-item"
-          errorDisplayType="tooltips"
-          property={`details.replica_sets.${index}.set_id`}
           key={index}
-          rules={rules.set_id}
-          label-width={0}>
+          ref={(value: FormItem) => setSetIdRef(value)}
+          class='cell-item'
+          errorDisplayType='tooltips'
+          label-width={0}
+          property={`details.replica_sets.${index}.set_id`}
+          rules={rules.set_id}>
           <bk-input
-            model-value={domains.value[index]?.set_id}
-            placeholder={t('请输入')}
             v-bk-tooltips={{
-              trigger: 'click',
+              content: t('以小写英文字母开头_且只能包含英文字母_数字_连字符'),
               placement: 'top',
               theme: 'light',
-              content: t('以小写英文字母开头_且只能包含英文字母_数字_连字符'),
+              trigger: 'click',
             }}
+            model-value={domains.value[index]?.set_id}
+            placeholder={t('请输入')}
             onInput={(value: string) => handleChangeCellValue(value, index, 'set_id')}
           />
         </bk-form-item>
       ),
     },
     {
+      field: 'name',
       label: () => (
         <div class='table-custom-label'>
-          { t('集群名称') }
-          {
-            tableData.value.length !== 0 && (
-              <span v-bk-tooltips={t('批量录入')}>
-              <ClusterNameBatchEdit
-                onChange={value => handleBatchEdit(value, 'name')} />
-              </span>
-            )
-          }
+          {t('集群名称')}
+          {tableData.value.length !== 0 && (
+            <span v-bk-tooltips={t('批量录入')}>
+              <ClusterNameBatchEdit onChange={(value) => handleBatchEdit(value, 'name')} />
+            </span>
+          )}
         </div>
       ),
-      field: 'name',
       minWidth: 300,
       render: ({ index }: { index: number }) => (
         <bk-form-item
-          ref={(value: FormItem) => setNameRef(value)}
-          class="cell-item"
-          errorDisplayType="tooltips"
-          property={`details.replica_sets.${index}.name`}
           key={index}
-          label-width={0}>
+          ref={(value: FormItem) => setNameRef(value)}
+          class='cell-item'
+          errorDisplayType='tooltips'
+          label-width={0}
+          property={`details.replica_sets.${index}.name`}>
           <bk-input
             model-value={domains.value[index]?.name}
             placeholder={t('请输入')}
@@ -187,13 +182,16 @@
     }
     return [];
   });
-  const clusterIdKeys = computed(() => tableData.value.map(item => item.set_id));
+  const clusterIdKeys = computed(() => tableData.value.map((item) => item.set_id));
   // const clusterNameKeys = computed(() => tableData.value.map(item => item.name));
 
-  watch(() => props.nodesNumber, () => {
-    clusterIdRefs.splice(0, clusterIdRefs.length - 1);
-    clusterNameRefs.splice(0, clusterNameRefs.length - 1);
-  });
+  watch(
+    () => props.nodesNumber,
+    () => {
+      clusterIdRefs.splice(0, clusterIdRefs.length - 1);
+      clusterNameRefs.splice(0, clusterNameRefs.length - 1);
+    },
+  );
 
   const setSetIdRef = (el: FormItem) => {
     if (el) {
@@ -226,9 +224,9 @@
       // 校验集群ID信息
       nextTick(() => {
         if (fieldName === 'set_id') {
-          clusterIdRefs.forEach(item => item?.validate?.());
+          clusterIdRefs.forEach((item) => item?.validate?.());
         } else {
-          clusterNameRefs.forEach(item => item?.validate?.());
+          clusterNameRefs.forEach((item) => item?.validate?.());
         }
       });
     }

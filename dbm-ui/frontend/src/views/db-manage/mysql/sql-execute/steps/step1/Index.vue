@@ -88,19 +88,19 @@
   const { rootId } = route.query as { rootId: string | undefined };
 
   const createDefaultData = () => ({
+    backup: [],
     bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-    is_auto_commit: true,
     charset: 'default',
     cluster_ids: [],
+    cluster_type: DBTypes.MYSQL,
     execute_objects: [],
-    backup: [],
+    is_auto_commit: true,
+    remark: '',
     ticket_mode: {
       mode: 'manual',
       trigger_time: '',
     },
     ticket_type: 'MYSQL_SEMANTIC_CHECK',
-    cluster_type: DBTypes.MYSQL,
-    remark: '',
   });
 
   const formRef = ref();
@@ -113,19 +113,19 @@
 
   // 单据克隆
   useTicketCloneInfo({
-    type: TicketTypes.MYSQL_IMPORT_SQLFILE,
     onSuccess(cloneData) {
       Object.assign(formData, {
         backup: cloneData.backup,
         charset: cloneData.charset,
         cluster_ids: cloneData.cluster_ids,
         execute_objects: cloneData.execute_objects,
-        ticket_mode: cloneData.ticket_mode,
         remark: cloneData.remark,
+        ticket_mode: cloneData.ticket_mode,
       });
       window.changeConfirm = true;
       uploadFilePath.value = cloneData.path;
     },
+    type: TicketTypes.MYSQL_IMPORT_SQLFILE,
   });
 
   // 模拟执行日志重新修改
@@ -138,10 +138,10 @@
     manual: !rootId,
     onSuccess(semanticData) {
       Object.assign(formData, {
+        backup: semanticData.backup,
         charset: semanticData.charset,
         cluster_ids: semanticData.cluster_ids,
         execute_objects: semanticData.execute_objects,
-        backup: semanticData.backup,
         ticket_mode: semanticData.ticket_mode,
       });
       uploadFilePath.value = semanticData.path;
@@ -158,8 +158,8 @@
           step: 'log',
         },
         query: {
-          rootId: data.root_id,
           nodeId: data.node_id,
+          rootId: data.root_id,
         },
       });
     },

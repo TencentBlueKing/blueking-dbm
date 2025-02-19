@@ -27,13 +27,13 @@
   import { useI18n } from 'vue-i18n';
 
   interface Props {
-    title?: string;
     list?: string[];
+    title?: string;
   }
 
   const props = withDefaults(defineProps<Props>(), {
-    title: '',
     list: () => [],
+    title: '',
   });
 
   const { t } = useI18n();

@@ -97,38 +97,38 @@
 
   export interface IHostData {
     bk_biz_id: number;
+    bk_cloud_id: number;
     bk_host_id: number;
     ip: string;
-    bk_cloud_id: number;
   }
 
   export interface IDataRow {
-    rowKey: string;
-    isLoading: boolean;
     clusterData?: {
-      domain: string;
+      cloudId: number;
       clusterId: number;
       clusterType: string;
       currentVersion: string;
-      packageVersion: string;
-      moduleName: string;
-      moduleId: number;
-      cloudId: number;
+      domain: string;
       masterSlaveList: IHostData[];
+      moduleId: number;
+      moduleName: string;
+      packageVersion: string;
       readonlySlaveList: IHostData[];
     };
-    targetVersion?: string;
-    targetPackage?: number;
-    targetModule?: number;
+    isLoading: boolean;
     masterHostData?: IHostData;
-    slaveHostData?: IHostData;
     readonlyHostData?: IHostData[];
+    rowKey: string;
+    slaveHostData?: IHostData;
+    targetModule?: number;
+    targetPackage?: number;
+    targetVersion?: string;
   }
 
   // 创建表格数据
   export const createRowData = (data?: Omit<IDataRow, 'rowKey' | 'isLoading'>): IDataRow => ({
-    rowKey: random(),
     isLoading: false,
+    rowKey: random(),
     ...data,
   });
 
@@ -165,8 +165,8 @@
   const clusterInfo = computed(() => {
     if (props.data.clusterData) {
       return {
-        id: props.data.clusterData.clusterId,
         domain: props.data.clusterData.domain,
+        id: props.data.clusterData.clusterId,
       };
     }
     return undefined;
@@ -215,10 +215,10 @@
         const [clusterData, targetVersionData, masterSlaveHostData, newReadonlySlaveHostData] = data;
         const clusterInfo = props.data.clusterData!;
         Object.assign(targetVersionData.display_info, {
-          current_version: clusterInfo.currentVersion,
-          current_package: clusterInfo.packageVersion,
           charset: localCharset.value,
           current_module_name: clusterInfo.moduleName,
+          current_package: clusterInfo.packageVersion,
+          current_version: clusterInfo.currentVersion,
           old_master_slave: oldMasterSlaveHost.value,
         });
         return {

@@ -122,10 +122,10 @@
 
   import { createGroup, deleteGroup, getGroupList, updateGroupInfo } from '@services/source/influxdbGroup';
 
-  import GroupCreate from './components/Create.vue';
-
   import { useGlobalBizs } from '@/stores';
   import { messageSuccess } from '@/utils';
+
+  import GroupCreate from './components/Create.vue';
 
   type InfluxDBGroupItem = ServiceReturnType<typeof getGroupList>['results'][number];
 
@@ -149,7 +149,7 @@
     () => {
       eventBus.emit('update-group-list', groupList.value);
     },
-    { immediate: true, deep: true },
+    { deep: true, immediate: true },
   );
 
   const hasGroupId = (id: number) => !!groupList.value.find((item) => item.id === id) || id === 0;
@@ -215,8 +215,8 @@
       const { id } = item;
       if (id === curEditGroupId.value) {
         updateGroupInfo({
-          id,
           bk_biz_id: item.bk_biz_id,
+          id,
           name,
         }).then(() => {
           fetchGroupList();

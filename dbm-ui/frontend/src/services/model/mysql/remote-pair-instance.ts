@@ -6,8 +6,8 @@ export default class RemotePaisInstance {
   instance: string;
   ip: string;
   name: string;
-  port: number;
   phase: string;
+  port: number;
   spec_config: {
     id: number;
   };

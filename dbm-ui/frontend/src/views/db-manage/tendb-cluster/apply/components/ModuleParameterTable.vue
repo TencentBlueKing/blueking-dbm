@@ -40,10 +40,10 @@
   const isAnomalies = ref(false);
   const originConfItems = shallowRef<ServiceReturnType<typeof getLevelConfig>['conf_items']>([]);
   const configData = ref<ServiceReturnType<typeof getLevelConfig>>({
+    conf_items: [],
+    description: '',
     name: '',
     version: '',
-    description: '',
-    conf_items: [],
   });
   const paramsConfigDataStringify = ref('');
 
@@ -56,8 +56,8 @@
     () => {
       if (props.version) {
         fetchParameters({
-          meta_cluster_type: 'tendbcluster',
           conf_type: 'dbconf',
+          meta_cluster_type: 'tendbcluster',
           version: props.version,
         });
         fetchLevelConfig();
@@ -68,12 +68,12 @@
 
   const fetchParams = computed(() => ({
     bk_biz_id: props.bizId,
+    conf_type: 'dbconf',
     level_name: 'app',
     level_value: props.bizId,
     // level_name: isReadonly.value ? 'module' : 'app',
     // level_value: isReadonly.value ? moduleId.value : bizId.value,
     meta_cluster_type: 'tendbcluster',
-    conf_type: 'dbconf',
     version: props.version,
   }));
 
@@ -94,10 +94,10 @@
       })
       .catch(() => {
         configData.value = {
+          conf_items: [],
+          description: '',
           name: '',
           version: '',
-          description: '',
-          conf_items: [],
         };
         isAnomalies.value = true;
       })
@@ -115,11 +115,11 @@
       flag_disable: 0,
       flag_locked: 0,
       need_restart: 0,
+      op_type: 'add',
       value_allowed: '',
       value_default: '',
       value_type: '',
       value_type_sub: '',
-      op_type: 'add',
     });
   };
 
@@ -183,11 +183,11 @@
     });
 
     const params = {
-      name: moduleName,
       conf_items: confItems,
-      description: '',
-      publish_description: '',
       confirm: 0,
+      description: '',
+      name: moduleName,
+      publish_description: '',
       ...fetchParams.value,
     };
     return updateBusinessConfig(params);
@@ -195,10 +195,10 @@
 
   const handleReset = () => {
     configData.value = {
+      conf_items: [],
+      description: '',
       name: '',
       version: '',
-      description: '',
-      conf_items: [],
     };
     parameters.value = [];
     originConfItems.value = [];
@@ -207,7 +207,7 @@
   defineExpose({
     bindConfigParameters,
     handleReset,
-    validate: () => tableRef.value.validate(),
     hasChange: () => paramsConfigDataStringify.value !== JSON.stringify(configData.value.conf_items),
+    validate: () => tableRef.value.validate(),
   });
 </script>

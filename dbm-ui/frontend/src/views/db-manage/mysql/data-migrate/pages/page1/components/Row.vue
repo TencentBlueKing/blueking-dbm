@@ -69,34 +69,34 @@
   import { random } from '@utils';
 
   export interface IDataRow {
-    rowKey: string;
+    cloneType?: string;
     clusterData: {
-      id: number;
       domain: string;
+      id: number;
       type: string;
     };
-    cloneType?: string;
     dbPatterns?: string[];
     ignoreDbs?: string[];
+    rowKey: string;
     targetClusters?: string;
   }
 
   export interface InfoItem {
+    db_list: string[];
     source_cluster: number;
     target_clusters: number[];
-    db_list: string[];
   }
 
   // 创建表格数据
   export const createRowData = (clusterData?: IDataRow['clusterData']) => ({
-    rowKey: random(),
     clusterData: clusterData
       ? clusterData
       : {
-          id: 0,
           domain: '',
+          id: 0,
           type: '',
         },
+    rowKey: random(),
   });
 </script>
 <script setup lang="ts">
@@ -136,11 +136,11 @@
   const targetDbsRef = ref<InstanceType<typeof RenderTargetDb>>();
 
   const rowInfo = reactive({
+    dbs: [] as string[],
+    ignoreDbs: [] as string[],
     sourceCluster: '',
     sourceClusterId: 0,
     targetClusters: [] as number[],
-    dbs: [] as string[],
-    ignoreDbs: [] as string[],
   });
 
   watch(
@@ -150,8 +150,8 @@
       rowInfo.sourceCluster = clusterData.domain;
     },
     {
-      immediate: true,
       deep: true,
+      immediate: true,
     },
   );
 
@@ -230,9 +230,9 @@
       ]);
       return Promise.all([targetDbsRef.value!.getValue(), cloneTypeRef.value!.getValue()]).then(
         ([dbList, cloneTypeInfo]) => ({
+          db_list: dbList,
           source_cluster: rowInfo.sourceClusterId,
           target_clusters: rowInfo.targetClusters,
-          db_list: dbList,
           ...cloneTypeInfo,
         }),
       );

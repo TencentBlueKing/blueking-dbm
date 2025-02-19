@@ -86,20 +86,20 @@
     mode: string;
     trigger_time: string;
   }>({
-    required: true,
     default: () => ({
       mode: 'manual',
       trigger_time: '',
     }),
+    required: true,
   });
 
   const disableDate = (date: number | Date) => Boolean(date && date.valueOf() < Date.now() - 86400000);
 
   const rules = [
     {
-      validator: (value: string) => !!value,
       message: t('定时执行时执行时间不能为空'),
       trigger: 'change',
+      validator: (value: string) => !!value,
     },
   ];
 

@@ -103,13 +103,13 @@
 
   // 单据克隆
   useTicketCloneInfo({
-    type: TicketTypes.MYSQL_ADD_SLAVE,
     onSuccess(cloneData) {
       const { backupSource: sourceType, tableDataList } = cloneData;
       backupSource.value = sourceType;
       tableData.value = tableDataList;
       window.changeConfirm = true;
     },
+    type: TicketTypes.MYSQL_ADD_SLAVE,
   });
 
   const isShowBatchInput = ref(false);
@@ -154,9 +154,9 @@
     const formatList = list.map((item) => ({
       ...createRowData(),
       clusterData: {
-        id: domainsInfoMap[item.cluster].id,
-        domain: item.cluster,
         cloudId: domainsInfoMap[item.cluster].bk_cloud_id,
+        domain: item.cluster,
+        id: domainsInfoMap[item.cluster].id,
       },
       newSlaveIp: item.ip,
     }));
@@ -185,9 +185,9 @@
         const row = {
           ...createRowData(),
           clusterData: {
-            id: item.id,
-            domain: item.master_domain,
             cloudId: item.bk_cloud_id,
+            domain: item.master_domain,
+            id: item.id,
           },
         };
         results.push(row);
@@ -241,12 +241,12 @@
     Promise.all(rowRefs.value!.map((item) => item.getValue()))
       .then((data) => {
         const params = {
-          ticket_type: TicketTypes.MYSQL_ADD_SLAVE,
           bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
           details: {
-            infos: data,
             backup_source: backupSource.value,
+            infos: data,
           },
+          ticket_type: TicketTypes.MYSQL_ADD_SLAVE,
         };
 
         return createTicket(params).then((data) => {

@@ -108,7 +108,6 @@
 
   // 单据克隆
   useTicketCloneInfo({
-    type: TicketTypes.TENDBCLUSTER_FLASHBACK,
     onSuccess(cloneData) {
       const { tableDataList } = cloneData;
       tableData.value = tableDataList;
@@ -124,6 +123,7 @@
         });
       }
     },
+    type: TicketTypes.TENDBCLUSTER_FLASHBACK,
   });
 
   const rowRefs = ref();
@@ -170,8 +170,8 @@
       if (!domainMemo[domain]) {
         const row = createRowData({
           clusterData: {
-            id: item.id,
             domain: item.master_domain,
+            id: item.id,
           },
         });
         result.push(row);
@@ -249,13 +249,13 @@
         return;
       }
       await createTicket({
-        ticket_type: TicketTypes.TENDBCLUSTER_FLASHBACK,
-        remark: remark.value,
-        details: {
-          infos,
-          flashback_type: 'TABLE_FLASHBACK',
-        },
         bk_biz_id: currentBizId,
+        details: {
+          flashback_type: 'TABLE_FLASHBACK',
+          infos,
+        },
+        remark: remark.value,
+        ticket_type: TicketTypes.TENDBCLUSTER_FLASHBACK,
       }).then((data) => {
         window.changeConfirm = false;
         router.push({

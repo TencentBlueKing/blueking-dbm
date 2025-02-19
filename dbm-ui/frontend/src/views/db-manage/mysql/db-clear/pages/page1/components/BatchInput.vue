@@ -98,13 +98,11 @@
     cluster: string;
     dbs: string[];
     ignoreDbs: string[];
-    tables: string[];
     ignoreTables: string[];
+    tables: string[];
   }
 
-  interface Emits {
-    (e: 'change', value: Array<InputItem>): void;
-  }
+  type Emits = (e: 'change', value: Array<InputItem>) => void;
 
   const emits = defineEmits<Emits>();
 
@@ -120,13 +118,13 @@
   const placeholder = t('请分别输入目标集群_目标DB名_目标表名_忽略DB名_忽略表名_多个对象_换行分隔');
 
   const state = reactive({
-    values: '',
     formatError: {
-      show: false,
-      selectionStart: 0,
-      selectionEnd: 0,
       count: 0,
+      selectionEnd: 0,
+      selectionStart: 0,
+      show: false,
     },
+    values: '',
   });
 
   /**
@@ -140,7 +138,7 @@
    * 标记错误信息
    */
   const handleSelectionError = (key: 'formatError') => {
-    const { selectionStart, selectionEnd } = state[key];
+    const { selectionEnd, selectionStart } = state[key];
     const textarea = inputRef.value?.$el?.getElementsByTagName?.('textarea')?.[0];
     if (textarea) {
       (textarea as HTMLInputElement).focus();
@@ -154,10 +152,10 @@
 
   const handleClose = () => {
     const init = {
-      show: false,
-      selectionStart: 0,
-      selectionEnd: 0,
       count: 0,
+      selectionEnd: 0,
+      selectionStart: 0,
+      show: false,
     };
     state.formatError = { ...init };
     state.values = '';
@@ -209,8 +207,8 @@
         cluster,
         dbs: getValue(dbs),
         ignoreDbs: ignoreDBs === 'null' ? [] : getValue(ignoreDBs),
-        tables: getValue(tables),
         ignoreTables: ignoreTables === 'null' ? [] : getValue(ignoreTables),
+        tables: getValue(tables),
       };
     });
     emits('change', res);

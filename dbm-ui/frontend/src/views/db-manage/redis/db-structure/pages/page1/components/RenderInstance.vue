@@ -67,9 +67,7 @@
     isLoading?: boolean;
   }
 
-  interface Emits {
-    (e: 'change', value: string[]): void;
-  }
+  type Emits = (e: 'change', value: string[]) => void;
 
   interface Exposes {
     getValue: () => Promise<string[]>;
@@ -89,15 +87,15 @@
 
   const selectList = computed(() => {
     if (props.data) {
-      return props.data.map((item) => ({ value: item, label: item }));
+      return props.data.map((item) => ({ label: item, value: item }));
     }
     return [];
   });
 
   const rules = [
     {
-      validator: (arr: string[]) => arr.length > 0,
       message: t('请选择实例'),
+      validator: (arr: string[]) => arr.length > 0,
     },
   ];
 

@@ -140,35 +140,34 @@
   };
 
   const handleDisabled = () => {
-    const {
-      cluster_name: clusterName,
-    } = detailData.value as RiakModel;
+    const { cluster_name: clusterName } = detailData.value as RiakModel;
     InfoBox({
-      title: t('确定禁用该集群', { name: clusterName }),
+      cancelText: t('取消'),
+      confirmText: t('禁用'),
       content: (
         <>
-          <p>{ t('集群') }：<span class='info-box-cluster-name'>{ clusterName }</span></p>
-          <p>{ t('被禁用后将无法访问，如需恢复访问，可以再次「启用」') }</p>
+          <p>
+            {t('集群')}：<span class='info-box-cluster-name'>{clusterName}</span>
+          </p>
+          <p>{t('被禁用后将无法访问，如需恢复访问，可以再次「启用」')}</p>
         </>
       ),
-      type: 'warning',
-      confirmText: t('禁用'),
-      cancelText: t('取消'),
-      headerAlign: 'center',
       contentAlign: 'center',
       footerAlign: 'center',
+      headerAlign: 'center',
       onConfirm: () => {
         createTicket({
           bk_biz_id: detailData.value!.bk_biz_id,
-          ticket_type: TicketTypes.RIAK_CLUSTER_DISABLE,
           details: {
             cluster_id: clusterId.value,
           },
-        })
-          .then((createTicketResult) => {
-            ticketMessage(createTicketResult.id);
-          });
+          ticket_type: TicketTypes.RIAK_CLUSTER_DISABLE,
+        }).then((createTicketResult) => {
+          ticketMessage(createTicketResult.id);
+        });
       },
+      title: t('确定禁用该集群', { name: clusterName }),
+      type: 'warning',
     });
   };
 </script>

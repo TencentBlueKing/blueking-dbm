@@ -94,7 +94,7 @@
 
   const props = defineProps<Props>();
 
-  const { rootRef, popRef, taskList, taskCount, handleRevokeTask, handleGoTaskLog } = useTaskCount(props.dbType);
+  const { handleGoTaskLog, handleRevokeTask, popRef, rootRef, taskCount, taskList } = useTaskCount(props.dbType);
 </script>
 <style lang="less">
   .sql-execute-task-tips {

@@ -8,14 +8,14 @@ export default class NoticGroup {
   dba_sync: boolean;
   details: {
     alert_notice: {
-      time_range: string;
       notify_config: {
+        level: 3 | 2 | 1;
         notice_ways: {
           name: string;
           receivers?: string[];
         }[];
-        level: 3 | 2 | 1;
       }[];
+      time_range: string;
     }[];
   };
   id: number;
@@ -23,20 +23,20 @@ export default class NoticGroup {
   monitor_duty_rule_id: number;
   monitor_group_id: number;
   name: string;
-  receivers: {
-    type: string;
-    id: string;
-  }[];
-  sync_at: string;
-  update_at: string;
-  updater: string;
-  used_count: number;
   permission: {
     global_notify_group_update: boolean;
     notify_group_create: boolean;
     notify_group_delete: boolean;
     notify_group_update: boolean;
   };
+  receivers: {
+    id: string;
+    type: string;
+  }[];
+  sync_at: string;
+  update_at: string;
+  updater: string;
+  used_count: number;
 
   constructor(payload = {} as NoticGroup) {
     this.bk_biz_id = payload.bk_biz_id;
@@ -58,11 +58,11 @@ export default class NoticGroup {
     this.permission = payload.permission || {};
   }
 
-  get updateAtDisplay() {
-    return utcDisplayTime(this.update_at);
-  }
-
   get isNew() {
     return isRecentDays(this.create_at, 24);
+  }
+
+  get updateAtDisplay() {
+    return utcDisplayTime(this.update_at);
   }
 }

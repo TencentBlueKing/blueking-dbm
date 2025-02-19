@@ -31,18 +31,18 @@
   import TableTagInput from '@components/render-table/columns/db-table-name/Index.vue';
 
   interface Props {
-    modelValue?: string[];
-    initValue?: string[];
-    clusterId?: number;
-    required?: boolean;
-    single?: boolean;
-    checkExist?: boolean;
     allowAsterisk?: boolean;
+    checkExist?: boolean;
     checkNotExist?: boolean;
+    clusterId?: number;
+    initValue?: string[];
+    modelValue?: string[];
+    required?: boolean;
     rules?: {
-      validator: (value: string[]) => boolean;
       message: string;
+      validator: (value: string[]) => boolean;
     }[];
+    single?: boolean;
   }
 
   interface Emits {
@@ -55,15 +55,15 @@
   }
 
   const props = withDefaults(defineProps<Props>(), {
-    modelValue: undefined,
-    initValue: undefined,
-    clusterId: undefined,
-    required: true,
-    single: false,
+    allowAsterisk: true,
     checkExist: false,
     checkNotExist: false,
+    clusterId: undefined,
+    initValue: undefined,
+    modelValue: undefined,
+    required: true,
     rules: undefined,
-    allowAsterisk: true,
+    single: false,
   });
 
   const emits = defineEmits<Emits>();
@@ -82,27 +82,28 @@
 
     return [
       {
+        message: t('DB 名不能为空'),
         validator: (value: string[]) => {
           if (!props.required) {
             return true;
           }
           return value && value.length > 0;
         },
-        message: t('DB 名不能为空'),
       },
       {
-        validator: (value: string[]) => _.every(value, (item) => /^(?!stage_truncate)(?!.*dba_rollback$).*/.test(item)),
         message: t('不能以stage_truncate开头或dba_rollback结尾'),
+        validator: (value: string[]) => _.every(value, (item) => /^(?!stage_truncate)(?!.*dba_rollback$).*/.test(item)),
       },
       {
-        validator: (value: string[]) => _.every(value, (item) => /^[-_a-zA-Z0-9*?%]{0,35}$/.test(item)),
         message: t('库表名支持数字、字母、中划线、下划线，最大35字符'),
+        validator: (value: string[]) => _.every(value, (item) => /^[-_a-zA-Z0-9*?%]{0,35}$/.test(item)),
       },
       {
-        validator: (value: string[]) => _.every(value, (item) => !systemDbNames.includes(item)),
         message: t('不允许输入系统库和特殊库'),
+        validator: (value: string[]) => _.every(value, (item) => !systemDbNames.includes(item)),
       },
       {
+        message: t('不允许为 *'),
         validator: (value: string[]) => {
           if (props.allowAsterisk) {
             return true;
@@ -110,16 +111,15 @@
 
           return _.every(value, (item) => item !== '*');
         },
-        message: t('不允许为 *'),
       },
       {
+        message: t('* 只能独立使用'),
         validator: (value: string[]) =>
           !_.some(value, (item) => (/\*/.test(item) && item.length > 1) || (value.length > 1 && item === '*')),
-        message: t('* 只能独立使用'),
       },
       {
-        validator: (value: string[]) => _.every(value, (item) => !/^[%?]$/.test(item)),
         message: t('% 或 ? 不允许单独使用'),
+        validator: (value: string[]) => _.every(value, (item) => !/^[%?]$/.test(item)),
       },
       // {
       //   validator: (value: string[]) => {
@@ -131,6 +131,7 @@
       //   message: t('含通配符的单元格仅支持输入单个对象'),
       // },
       {
+        message: t('DB 已存在'),
         validator: (value: string[]) => {
           if (!props.checkExist) {
             return true;
@@ -139,7 +140,7 @@
             return false;
           }
           // % 通配符不需要校验存在
-          if (/%$/.test(value[0]) || value[0] === '*') {
+          if (value[0].endsWith('%') || value[0] === '*') {
             return true;
           }
           const clearDbList = _.filter(value, (item) => !/[*%]/.test(item));
@@ -164,9 +165,9 @@
             return true;
           });
         },
-        message: t('DB 已存在'),
       },
       {
+        message: t('DB 不存在'),
         validator: (value: string[]) => {
           if (!props.checkNotExist) {
             return true;
@@ -196,7 +197,6 @@
             return true;
           });
         },
-        message: t('DB 不存在'),
       },
     ];
   });

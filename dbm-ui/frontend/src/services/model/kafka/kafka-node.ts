@@ -28,13 +28,13 @@ export default class KafkaNode {
   mem: number;
   node_count: number;
   permission: {
-    kafka_view: boolean;
-    kafka_enable_disable: boolean;
     kafka_destroy: boolean;
+    kafka_enable_disable: boolean;
+    kafka_reboot: boolean;
+    kafka_replace: boolean;
     kafka_scale_up: boolean;
     kafka_shrink: boolean;
-    kafka_replace: boolean;
-    kafka_reboot: boolean;
+    kafka_view: boolean;
   };
   role: string;
   status: number;
@@ -56,15 +56,15 @@ export default class KafkaNode {
     this.permission = payload.permission || {};
   }
 
+  get createAtDisplay() {
+    return utcDisplayTime(this.create_at);
+  }
+
   get isBroker() {
     return this.role === KafkaNode.ROLE_BROKER;
   }
 
   get isZookeeper() {
     return this.role === KafkaNode.ROLE_ZOOKEEPER;
-  }
-
-  get createAtDisplay() {
-    return utcDisplayTime(this.create_at);
   }
 }

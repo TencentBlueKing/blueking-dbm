@@ -16,12 +16,12 @@ import { t } from '@locales/index';
 
 const routes = [
   {
-    name: 'DBPasswordTemporaryModify',
-    path: 'temporary-paassword-modify',
+    component: () => import('@views/temporary-paassword-modify/Index.vue'),
     meta: {
       navName: t('临时密码修改'),
     },
-    component: () => import('@views/temporary-paassword-modify/Index.vue'),
+    name: 'DBPasswordTemporaryModify',
+    path: 'temporary-paassword-modify',
   },
 ];
 

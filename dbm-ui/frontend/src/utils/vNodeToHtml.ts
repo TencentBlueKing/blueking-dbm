@@ -23,7 +23,7 @@ export function vNodeToHtml(vNode: VNode | string): string | HTMLElement {
     return vNode;
   }
 
-  const { type, children, props } = vNode;
+  const { children, props, type } = vNode;
   if (typeof children === 'string') {
     return children;
   }

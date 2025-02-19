@@ -70,31 +70,38 @@
     },
   ]);
 
-  const { state, fetchParams } = useBaseDetails();
+  const { fetchParams, state } = useBaseDetails();
   const publishParams = computed(() => {
     if (fetchParams.value) {
-      const { meta_cluster_type, conf_type, version, bk_biz_id, level_name, level_value } = fetchParams.value;
+      const {
+        bk_biz_id: bkBizId,
+        conf_type: confType,
+        level_name: levelName,
+        level_value: levelValue,
+        meta_cluster_type: metaClusterType,
+        version,
+      } = fetchParams.value;
       return {
-        meta_cluster_type,
-        conf_type,
+        bk_biz_id: bkBizId,
+        conf_type: confType,
+        level_name: levelName,
+        level_value: levelValue,
+        meta_cluster_type: metaClusterType,
         version: version ? version : '',
-        bk_biz_id,
-        level_name,
-        level_value,
       };
     }
     return null;
   });
   const configParams = computed(() => {
     if (fetchParams.value) {
-      const { meta_cluster_type, conf_type, version, bk_biz_id, level_name, level_value } = fetchParams.value;
+      const { bk_biz_id, conf_type, level_name, level_value, meta_cluster_type, version } = fetchParams.value;
       return {
-        meta_cluster_type,
-        conf_type,
-        version,
         bk_biz_id,
+        conf_type,
         level_name,
         level_value,
+        meta_cluster_type,
+        version,
       };
     }
     return null;

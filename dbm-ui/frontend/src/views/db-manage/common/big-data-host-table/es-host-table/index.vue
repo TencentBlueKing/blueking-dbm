@@ -89,20 +89,14 @@
     searchable?: boolean;
   }
 
-  interface Emits {
-    (e: 'update:data', value: Array<IHostTableDataWithInstance>): void;
-  }
+  type Emits = (e: 'update:data', value: Array<IHostTableDataWithInstance>) => void;
 
   export interface IHostTableDataWithInstance extends HostInfo {
     instance_num: number;
   }
 </script>
 <script setup lang="tsx">
-  import {
-    ref,
-    shallowRef,
-    watch,
-  } from 'vue';
+  import { ref, shallowRef, watch } from 'vue';
 
   import DbStatus from '@components/db-status/index.vue';
 
@@ -112,8 +106,6 @@
   import useLocalPagination from '../hook/useLocalPagination';
 
   import EditHostInstance from './components/EditHostInstance.vue';
-
-
 
   const props = withDefaults(defineProps<Props>(), {
     searchable: true,
@@ -129,155 +121,155 @@
 
   const columns = [
     {
-      label: t('主机ID'),
       field: 'host_id',
-      render: ({ data }: {data: IHostTableDataWithInstance}) => data.host_id || '--',
+      label: t('主机ID'),
+      render: ({ data }: { data: IHostTableDataWithInstance }) => data.host_id || '--',
     },
     {
-      label: 'IP',
       field: 'ip',
+      label: 'IP',
+      render: ({ data }: { data: HostInfo }) => data.ip,
       width: 120,
-      render: ({ data }: {data: HostInfo}) => data.ip,
     },
     {
       label: t('每台主机实例数'),
-      width: 150,
-      render: ({ data }: {data: IHostTableDataWithInstance}) => (
+      render: ({ data }: { data: IHostTableDataWithInstance }) => (
         <EditHostInstance
-          modelValue={data.instance_num}
           key={data.instance_num}
-          onChange={value => handleInstanceNumChange(value, data)} />
+          modelValue={data.instance_num}
+          onChange={(value) => handleInstanceNumChange(value, data)}
+        />
       ),
+      width: 150,
     },
     {
-      label: t('机型'),
       field: 'bk_cpu',
-      render: ({ data }: {data: IHostTableDataWithInstance}) => data.bk_cpu || '--',
+      label: t('机型'),
+      render: ({ data }: { data: IHostTableDataWithInstance }) => data.bk_cpu || '--',
     },
     {
-      label: t('机房'),
       field: 'bk_idc_name',
-      render: ({ data }: {data: IHostTableDataWithInstance}) => data.bk_idc_name || '--',
+      label: t('机房'),
+      render: ({ data }: { data: IHostTableDataWithInstance }) => data.bk_idc_name || '--',
     },
     {
-      label: t('主机名称'),
       field: 'host_name',
-      render: ({ data }: {data: IHostTableDataWithInstance}) => data.host_name || '--',
+      label: t('主机名称'),
+      render: ({ data }: { data: IHostTableDataWithInstance }) => data.host_name || '--',
     },
     {
-      label: t('Agent状态'),
       field: 'alive',
-      render: ({ data }: {data: IHostTableDataWithInstance}) => {
-        const info = data.alive === 1 ? { theme: 'success', text: t('正常') } : { theme: 'danger', text: t('异常') };
+      label: t('Agent状态'),
+      render: ({ data }: { data: IHostTableDataWithInstance }) => {
+        const info = data.alive === 1 ? { text: t('正常'), theme: 'success' } : { text: t('异常'), theme: 'danger' };
         return <DbStatus theme={info.theme}>{info.text}</DbStatus>;
       },
     },
     {
-      label: t('管控区域'),
       field: 'cloud_area',
-      render: ({ data }: {data: IHostTableDataWithInstance}) => data.cloud_area.name || '--',
+      label: t('管控区域'),
+      render: ({ data }: { data: IHostTableDataWithInstance }) => data.cloud_area.name || '--',
     },
     {
-      label: t('OS名称'),
       field: 'os_name',
-      render: ({ data }: {data: IHostTableDataWithInstance}) => data.os_name || '--',
+      label: t('OS名称'),
+      render: ({ data }: { data: IHostTableDataWithInstance }) => data.os_name || '--',
     },
     {
-      label: t('OS类型'),
       field: 'os_type',
-      render: ({ data }: {data: IHostTableDataWithInstance}) => data.os_type || '--',
+      label: t('OS类型'),
+      render: ({ data }: { data: IHostTableDataWithInstance }) => data.os_type || '--',
     },
     {
-      label: 'Agent ID',
       field: 'agent_id',
-      render: ({ data }: {data: IHostTableDataWithInstance}) => data.agent_id || '--',
+      label: 'Agent ID',
+      render: ({ data }: { data: IHostTableDataWithInstance }) => data.agent_id || '--',
     },
     {
-      label: t('操作'),
       field: 'operation',
-      width: 100,
-      render: ({ data }: {data: IHostTableDataWithInstance}) => (
+      label: t('操作'),
+      render: ({ data }: { data: IHostTableDataWithInstance }) => (
         <bk-button
+          theme='primary'
           text
-          theme="primary"
           onClick={() => handleRemove(data)}>
-          { t('删除') }
+          {t('删除')}
         </bk-button>
       ),
+      width: 100,
     },
   ];
 
   const tableHeadOption = {
-    height: 40,
-    isShow: true,
-    cellFn: (data: {label: string}) => {
+    cellFn: (data: { label: string }) => {
       if (data.label !== t('每台主机节点数')) {
         return data.label;
       }
       return (
         <bk-popover
-          placement="bottom"
-          theme="light"
-          trigger="manual"
           isShow={isShowBatchEditPopover.value}
-          width="316">
+          placement='bottom'
+          theme='light'
+          trigger='manual'
+          width='316'>
           {{
+            content: () => (
+              <div>
+                <div style='font-size: 16px; color:#313238; line-height: 24px'>{t('批量设置每台主机节点数')}</div>
+                <bk-input
+                  v-model={batchEditValue.value}
+                  min={1}
+                  style='margin: 19px 0 17px;'
+                  type='number'
+                />
+                <div style='text-align: right'>
+                  <bk-button
+                    theme='primary'
+                    onClick={handleSubmitBatchEditInstanceNum}>
+                    {t('确定')}
+                  </bk-button>
+                  <bk-button
+                    style='margin-left: 8px;'
+                    onClick={handleCloseBatchEdit}>
+                    {t('取消')}
+                  </bk-button>
+                </div>
+              </div>
+            ),
             default: () => (
               <span onClick={handleShowBatchEdit}>
                 {data.label}
                 <i
-                  class="db-icon-bulk-edit"
-                  style='color: #3A84FF; margin-left: 5px' />
+                  class='db-icon-bulk-edit'
+                  style='color: #3A84FF; margin-left: 5px'
+                />
               </span>
-            ),
-            content: () => (
-              <div>
-                <div style="font-size: 16px; color:#313238; line-height: 24px">
-                  { t('批量设置每台主机节点数') }
-                </div>
-                <bk-input
-                  type='number'
-                  v-model={batchEditValue.value}
-                  style="margin: 19px 0 17px;"
-                  min={1} />
-                <div style="text-align: right">
-                  <bk-button
-                    theme='primary'
-                    onClick={handleSubmitBatchEditInstanceNum}>
-                    { t('确定') }
-                  </bk-button>
-                  <bk-button
-                    style="margin-left: 8px;"
-                    onClick={handleCloseBatchEdit}>
-                    { t('取消') }
-                  </bk-button>
-                </div>
-              </div>
             ),
           }}
         </bk-popover>
       );
     },
+    height: 40,
+    isShow: true,
   };
 
   let isInnerChange = false;
-  watch(() => props.data, () => {
-    if (isInnerChange) {
-      isInnerChange = false;
-      return;
-    }
-    localTableData.value = props.data;
-  }, {
-    immediate: true,
-  });
+  watch(
+    () => props.data,
+    () => {
+      if (isInnerChange) {
+        isInnerChange = false;
+        return;
+      }
+      localTableData.value = props.data;
+    },
+    {
+      immediate: true,
+    },
+  );
 
-  const {
-    searchKey,
-    pagination,
-    serachList,
-    handlePaginationCurrentChange,
-    handlePaginationLimitChange,
-  } = useLocalPagination(localTableData);
+  const { handlePaginationCurrentChange, handlePaginationLimitChange, pagination, searchKey, serachList } =
+    useLocalPagination(localTableData);
 
   const handleClearSearch = () => {
     searchKey.value = '';
@@ -304,7 +296,7 @@
 
   // 批量编辑每台主机节点数
   const handleSubmitBatchEditInstanceNum = () => {
-    localTableData.value = localTableData.value.map(item => ({
+    localTableData.value = localTableData.value.map((item) => ({
       ...item,
       instance_num: batchEditValue.value,
     }));
@@ -336,10 +328,13 @@
   };
   // 清空所有主机
   const handleClearAll = () => {
-    const searchHostIdMap = serachList.value.reduce((result, hostData) => ({
-      ...result,
-      [hostData.host_id]: true,
-    }), {} as Record<number, boolean>);
+    const searchHostIdMap = serachList.value.reduce(
+      (result, hostData) => ({
+        ...result,
+        [hostData.host_id]: true,
+      }),
+      {} as Record<number, boolean>,
+    );
 
     localTableData.value = props.data.reduce((result, hostData) => {
       if (!searchHostIdMap[hostData.host_id]) {
@@ -351,15 +346,18 @@
   };
   // 清空异常主机
   const handleClearAbnormal = () => {
-    const searchHostIdMap = serachList.value.reduce((result, hostData) => {
-      if (!hostData.alive) {
-        return {
-          ...result,
-          [hostData.host_id]: true,
-        };
-      }
-      return result;
-    }, {} as Record<number, boolean>);
+    const searchHostIdMap = serachList.value.reduce(
+      (result, hostData) => {
+        if (!hostData.alive) {
+          return {
+            ...result,
+            [hostData.host_id]: true,
+          };
+        }
+        return result;
+      },
+      {} as Record<number, boolean>,
+    );
 
     localTableData.value = props.data.reduce((result, hostData) => {
       if (!searchHostIdMap[hostData.host_id]) {
@@ -372,7 +370,7 @@
 
   // 复制所有主机IP
   const handleCopyAll = () => {
-    const ipList = props.data.map(_ => _.ip);
+    const ipList = props.data.map((_) => _.ip);
     if (ipList.length < 1) {
       messageWarn(t('没有可以复制主机'));
       return;

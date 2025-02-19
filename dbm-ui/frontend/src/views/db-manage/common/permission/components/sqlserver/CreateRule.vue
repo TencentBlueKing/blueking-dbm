@@ -136,9 +136,7 @@
     accountId: number;
   }
 
-  interface Emits {
-    (e: 'success'): void;
-  }
+  type Emits = (e: 'success') => void;
 
   const props = withDefaults(defineProps<Props>(), {
     accountId: -1,
@@ -147,8 +145,8 @@
   const emits = defineEmits<Emits>();
 
   const isShow = defineModel<boolean>({
-    required: true,
     default: false,
+    required: true,
   });
 
   const { t } = useI18n();
@@ -165,42 +163,35 @@
    * 初始化表单数据
    */
   const initFormdata = () => ({
-    account_id: 0,
     access_db: '',
+    account_id: 0,
     privilege: [] as string[],
   });
 
   const rules = {
-    privilege: [
-      {
-        trigger: 'change',
-        message: t('请设置权限'),
-        validator: () => formData.privilege.length || checkAllPrivileges.value,
-      },
-    ],
     access_db: [
       {
+        message: t('访问 DB 不能为空'),
         required: true,
         trigger: 'blur',
-        message: t('访问 DB 不能为空'),
         validator: (value: string) => {
           const dbs = value.split(/[\n;,]/);
           return _.every(dbs, (item) => !!item.trim());
         },
       },
       {
+        message: t('请输入访问DB名_以字母开头_支持 % 通配符 或 % 单独使用代表ALL_多个使用英文逗号_分号或换行分隔'),
         required: true,
         trigger: 'blur',
-        message: t('请输入访问DB名_以字母开头_支持 % 通配符 或 % 单独使用代表ALL_多个使用英文逗号_分号或换行分隔'),
         validator: (value: string) => {
           const dbs = value.split(/[\n;,]/);
           return _.every(dbs, (item) => (!item ? true : /^(?:[a-zA-Z].*|%$)/.test(item)));
         },
       },
       {
+        message: () => t('该账号下已存在xx规则', [existDBs.value.join(',')]),
         required: true,
         trigger: 'blur',
-        message: () => t('该账号下已存在xx规则', [existDBs.value.join(',')]),
         validator: () => {
           existDBs.value = [];
           const user = accounts.value.find((item) => item.account_id === formData.account_id)?.user;
@@ -212,9 +203,9 @@
             return false;
           }
           return queryAccountRules({
-            user,
             access_dbs: dbs,
             account_type: AccountTypes.SQLSERVER,
+            user,
           }).then((res) => {
             const rules = res.results[0]?.rules || [];
             existDBs.value = rules.map((item) => item.access_db);
@@ -223,13 +214,20 @@
         },
       },
     ],
+    privilege: [
+      {
+        message: t('请设置权限'),
+        trigger: 'change',
+        validator: () => formData.privilege.length || checkAllPrivileges.value,
+      },
+    ],
   };
 
   const formData = reactive(initFormdata());
 
   const allChecked = computed(() => formData.privilege.length === dbOperations.sqlserver_dml.length);
 
-  const { run: getPermissionRulesRun, loading: getPermissionRulesLoading } = useRequest(getPermissionRules, {
+  const { loading: getPermissionRulesLoading, run: getPermissionRulesRun } = useRequest(getPermissionRules, {
     manual: true,
     onSuccess(permissionRules) {
       accounts.value = permissionRules.results.map((item) => item.account);
@@ -260,9 +258,9 @@
     if (isShow.value) {
       formData.account_id = props.accountId;
       getPermissionRulesRun({
-        offset: 0,
-        limit: -1,
         account_type: AccountTypes.SQLSERVER,
+        limit: -1,
+        offset: 0,
       });
     }
   });
@@ -295,9 +293,9 @@
     await formRef.value!.validate();
     const params = {
       access_db: formData.access_db.replace(replaceReg, ','), // 统一分隔符
-      privilege: {},
       account_id: formData.account_id,
       account_type: AccountTypes.SQLSERVER,
+      privilege: {},
     };
     if (checkAllPrivileges.value) {
       Object.assign(params.privilege, {

@@ -21,16 +21,16 @@
   import { useIntervalFn } from '@vueuse/core';
 
   interface Props {
-    value: number;
     isTiming: boolean;
     startTime: number;
+    value: number;
   }
 
   const props = defineProps<Props>();
 
   const costTime = ref(0);
   // 计时
-  const { resume, pause } = useIntervalFn(
+  const { pause, resume } = useIntervalFn(
     () => {
       costTime.value = Math.floor(Date.now() / 1000) - props.startTime;
     },

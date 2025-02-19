@@ -186,16 +186,16 @@
   import MonitorTarget from './monitor-target/Index.vue';
 
   interface Props {
-    data: MonitorPolicyModel;
-    bizsMap: Record<string, string>;
-    dbType: string;
     alarmGroupList: SelectItem<string>[];
     alarmGroupNameMap: Record<string, string>;
-    moduleList: SelectItem<string>[];
+    bizsMap: Record<string, string>;
     clusterList: SelectItem<string>[];
+    data: MonitorPolicyModel;
+    dbType: string;
     defaultNotifyId: number;
-    pageStatus?: string;
     existedNames?: string[];
+    moduleList: SelectItem<string>[];
+    pageStatus?: string;
   }
 
   interface Emits {
@@ -204,8 +204,8 @@
   }
 
   const props = withDefaults(defineProps<Props>(), {
-    pageStatus: 'edit',
     existedNames: () => [],
+    pageStatus: 'edit',
   });
   const emits = defineEmits<Emits>();
   const isShow = defineModel<boolean>({
@@ -228,9 +228,9 @@
   const dangerValueRef = ref();
   const formRef = ref();
   const formModel = reactive({
-    strategyName: '',
     notifyRules: [] as string[],
     notifyTarget: [] as number[],
+    strategyName: '',
   });
 
   const isEditPage = computed(() => props.pageStatus === 'edit');
@@ -240,58 +240,60 @@
   const infoRule = computed(() => generateRule(props.data, 3));
 
   const titleMap = {
-    edit: t('编辑策略'),
     clone: t('克隆策略'),
+    edit: t('编辑策略'),
     read: t('策略'),
   } as Record<string, string>;
 
   const notifyTypes = [
     {
-      value: 'abnormal',
       label: t('告警时触发'),
+      value: 'abnormal',
     },
     {
-      value: 'recovered',
       label: t('告警恢复时'),
+      value: 'recovered',
     },
     {
-      value: 'closed',
       label: t('告警关闭时'),
+      value: 'closed',
     },
     {
-      value: 'ack',
       label: t('告警确认时'),
+      value: 'ack',
     },
   ];
 
   const formRules = {
     strategyName: [
       {
-        validator: (value: string) => Boolean(value),
         message: t('策略名称不能为空'),
         trigger: 'blur',
+        validator: (value: string) => Boolean(value),
       },
       {
+        message: t('不能超过n个字符', { n: 128 }),
+        trigger: 'blur',
         validator: (value: string) => {
           if (value.length > 128) {
             return false;
           }
           return true;
         },
-        message: t('不能超过n个字符', { n: 128 }),
-        trigger: 'blur',
       },
       {
+        message: t('策略名称与原策略名称相同'),
+        trigger: 'blur',
         validator: (value: string) => {
           if (!isEditPage.value) {
             return value !== props.data.name;
           }
           return true;
         },
-        message: t('策略名称与原策略名称相同'),
-        trigger: 'blur',
       },
       {
+        message: t('策略名称重复'),
+        trigger: 'blur',
         validator: async (value: string) => {
           if (!isEditPage.value) {
             // TODO: 以后看情况是否增加接口支持，暂时先用当前页做冲突检测
@@ -299,8 +301,6 @@
           }
           return true;
         },
-        message: t('策略名称重复'),
-        trigger: 'blur',
       },
     ],
   };
@@ -396,21 +396,21 @@
       warnRule.value ? warnValueRef.value.getValue() : undefined,
       dangerRule.value ? dangerValueRef.value.getValue() : undefined,
     ];
-    const { targets, custom_conditions } = monitorTargetRef.value.getValue();
+    const { custom_conditions, targets } = monitorTargetRef.value.getValue();
     const reqParams = {
-      targets,
       custom_conditions,
-      test_rules: testRules.filter((item) => item && item.config.length !== 0),
-      notify_rules: formModel.notifyRules,
       notify_groups: formModel.notifyTarget,
+      notify_rules: formModel.notifyRules,
+      targets,
+      test_rules: testRules.filter((item) => item && item.config.length !== 0),
     };
     if (!isEditPage.value) {
       // 克隆额外参数
       const params = {
         ...reqParams,
-        parent_id: props.data.id, // 父策略id
-        name: formModel.strategyName,
         bk_biz_id: currentBizId,
+        name: formModel.strategyName,
+        parent_id: props.data.id, // 父策略id
       };
       runClonePolicy(params);
       return;

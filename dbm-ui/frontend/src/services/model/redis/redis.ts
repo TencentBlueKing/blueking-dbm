@@ -22,28 +22,28 @@ import ClusterBase from '../_clusterBase';
 
 export default class Redis extends ClusterBase {
   static REDIS_DESTROY = 'REDIS_DESTROY';
+  static REDIS_INSTANCE_CLOSE = 'REDIS_INSTANCE_CLOSE';
+  static REDIS_INSTANCE_DESTROY = 'REDIS_INSTANCE_DESTROY';
+  static REDIS_INSTANCE_OPEN = 'REDIS_INSTANCE_OPEN';
   static REDIS_PROXY_CLOSE = 'REDIS_PROXY_CLOSE';
   static REDIS_PROXY_OPEN = 'REDIS_PROXY_OPEN';
-  static REDIS_INSTANCE_DESTROY = 'REDIS_INSTANCE_DESTROY';
-  static REDIS_INSTANCE_CLOSE = 'REDIS_INSTANCE_CLOSE';
-  static REDIS_INSTANCE_OPEN = 'REDIS_INSTANCE_OPEN';
 
   static operationIconMap = {
-    [Redis.REDIS_PROXY_OPEN]: t('启用中'),
-    [Redis.REDIS_PROXY_CLOSE]: t('禁用中'),
     [Redis.REDIS_DESTROY]: t('删除中'),
-    [Redis.REDIS_INSTANCE_OPEN]: t('启用中'),
     [Redis.REDIS_INSTANCE_CLOSE]: t('禁用中'),
     [Redis.REDIS_INSTANCE_DESTROY]: t('删除中'),
+    [Redis.REDIS_INSTANCE_OPEN]: t('启用中'),
+    [Redis.REDIS_PROXY_CLOSE]: t('禁用中'),
+    [Redis.REDIS_PROXY_OPEN]: t('启用中'),
   };
 
   static operationTextMap = {
     [Redis.REDIS_DESTROY]: t('删除任务执行中'),
+    [Redis.REDIS_INSTANCE_CLOSE]: t('禁用任务执行中'),
+    [Redis.REDIS_INSTANCE_DESTROY]: t('删除任务执行中'),
+    [Redis.REDIS_INSTANCE_OPEN]: t('启用任务执行中'),
     [Redis.REDIS_PROXY_CLOSE]: t('禁用任务执行中'),
     [Redis.REDIS_PROXY_OPEN]: t('启用任务执行中'),
-    [Redis.REDIS_INSTANCE_DESTROY]: t('删除任务执行中'),
-    [Redis.REDIS_INSTANCE_CLOSE]: t('禁用任务执行中'),
-    [Redis.REDIS_INSTANCE_OPEN]: t('启用任务执行中'),
   };
 
   bk_biz_id: number;
@@ -141,96 +141,6 @@ export default class Redis extends ClusterBase {
     this.updater = payload.updater;
   }
 
-  get redisMasterCount() {
-    const len = this.redis_master.length;
-    if (len <= 1) {
-      return len;
-    }
-    return new Set(this.redis_master.map((item) => item.ip)).size;
-  }
-
-  get redisMasterFaultNum() {
-    const ips = this.redis_master.reduce((result, item) => {
-      if (item.status !== 'running') {
-        result.push(item.ip);
-      }
-      return result;
-    }, [] as string[]);
-    return new Set(ips).size;
-  }
-
-  get redisSlaveFaults() {
-    const ips = this.redis_slave.reduce((result, item) => {
-      if (item.status !== 'running') {
-        result.push(item.ip);
-      }
-      return result;
-    }, [] as string[]);
-    return new Set(ips).size;
-  }
-
-  get redisSlaveCount() {
-    const len = this.redis_slave.length;
-    if (len <= 1) {
-      return len;
-    }
-    return new Set(this.redis_slave.map((item) => item.ip)).size;
-  }
-
-  get storageCount() {
-    return this.redisMasterCount + this.redisSlaveCount;
-  }
-
-  get proxyCount() {
-    const len = this.proxy.length;
-    if (len <= 1) {
-      return len;
-    }
-    return new Set(this.proxy.map((item) => item.ip)).size;
-  }
-
-  get count() {
-    return this.storageCount + this.proxyCount;
-  }
-
-  get isSlaveNormal() {
-    return this.redis_slave.every((item) => item.status === 'running');
-  }
-
-  get masterDomainDisplayName() {
-    const port = this.proxy[0]?.port;
-    const displayName = port ? `${this.master_domain}:${port}` : this.master_domain;
-    return displayName;
-  }
-
-  get redisInstanceMasterDomainDisplayName() {
-    const port = this.cluster_access_port;
-    const displayName = port ? `${this.master_domain}:${port}` : this.master_domain;
-    return displayName;
-  }
-
-  get slaveEntryList() {
-    const port = this.redis_slave[0]?.port;
-    return this.cluster_entry
-      .filter((item) => item.role === 'slave_entry')
-      .map((item) => ({
-        ...item,
-        port,
-      }));
-  }
-
-  get isOnlineCLB() {
-    return this.cluster_entry.some((item) => item.cluster_entry_type === 'clb');
-  }
-
-  get isOnlinePolaris() {
-    return this.cluster_entry.some((item) => item.cluster_entry_type === 'polaris');
-  }
-
-  get isStarting() {
-    return Boolean(this.operations.find((item) => item.ticket_type === Redis.REDIS_PROXY_OPEN));
-  }
-
   get allInstanceList() {
     return [...this.proxy, ...this.redis_master, ...this.redis_slave];
   }
@@ -249,38 +159,34 @@ export default class Redis extends ClusterBase {
     );
   }
 
-  get runningOperation() {
-    const operateTicketTypes = Object.keys(Redis.operationTextMap);
-    return this.operations.find((item) => operateTicketTypes.includes(item.ticket_type) && item.status === 'RUNNING');
+  get count() {
+    return this.storageCount + this.proxyCount;
   }
 
-  // 操作中的状态
-  get operationRunningStatus() {
-    if (this.operations.length < 1) {
-      return '';
-    }
-    const operation = this.runningOperation;
-    if (!operation) {
-      return '';
-    }
-    return operation.ticket_type;
+  get disasterToleranceLevelName() {
+    return ClusterAffinityMap[this.disaster_tolerance_level];
   }
 
-  // 操作中的状态描述文本
-  get operationStatusText() {
-    return Redis.operationTextMap[this.operationRunningStatus];
+  get isOnlineCLB() {
+    return this.cluster_entry.some((item) => item.cluster_entry_type === 'clb');
   }
 
-  // 操作中的单据 ID
-  get operationTicketId() {
-    if (this.operations.length < 1) {
-      return 0;
-    }
-    const operation = this.runningOperation;
-    if (!operation) {
-      return 0;
-    }
-    return operation.ticket_id;
+  get isOnlinePolaris() {
+    return this.cluster_entry.some((item) => item.cluster_entry_type === 'polaris');
+  }
+
+  get isSlaveNormal() {
+    return this.redis_slave.every((item) => item.status === 'running');
+  }
+
+  get isStarting() {
+    return Boolean(this.operations.find((item) => item.ticket_type === Redis.REDIS_PROXY_OPEN));
+  }
+
+  get masterDomainDisplayName() {
+    const port = this.proxy[0]?.port;
+    const displayName = port ? `${this.master_domain}:${port}` : this.master_domain;
+    return displayName;
   }
 
   get operationDisabled() {
@@ -300,16 +206,91 @@ export default class Redis extends ClusterBase {
     return false;
   }
 
+  // 操作中的状态
+  get operationRunningStatus() {
+    if (this.operations.length < 1) {
+      return '';
+    }
+    const operation = this.runningOperation;
+    if (!operation) {
+      return '';
+    }
+    return operation.ticket_type;
+  }
+
+  // 操作中的状态描述文本
+  get operationStatusText() {
+    return Redis.operationTextMap[this.operationRunningStatus];
+  }
+
   get operationTagTips() {
     return this.operations.map((item) => ({
       icon: Redis.operationIconMap[item.ticket_type],
-      tip: Redis.operationTextMap[item.ticket_type],
       ticketId: item.ticket_id,
+      tip: Redis.operationTextMap[item.ticket_type],
     }));
   }
 
-  get disasterToleranceLevelName() {
-    return ClusterAffinityMap[this.disaster_tolerance_level];
+  // 操作中的单据 ID
+  get operationTicketId() {
+    if (this.operations.length < 1) {
+      return 0;
+    }
+    const operation = this.runningOperation;
+    if (!operation) {
+      return 0;
+    }
+    return operation.ticket_id;
+  }
+
+  get proxyCount() {
+    const len = this.proxy.length;
+    if (len <= 1) {
+      return len;
+    }
+    return new Set(this.proxy.map((item) => item.ip)).size;
+  }
+
+  get redisInstanceMasterDomainDisplayName() {
+    const port = this.cluster_access_port;
+    const displayName = port ? `${this.master_domain}:${port}` : this.master_domain;
+    return displayName;
+  }
+
+  get redisMasterCount() {
+    const len = this.redis_master.length;
+    if (len <= 1) {
+      return len;
+    }
+    return new Set(this.redis_master.map((item) => item.ip)).size;
+  }
+
+  get redisMasterFaultNum() {
+    const ips = this.redis_master.reduce((result, item) => {
+      if (item.status !== 'running') {
+        result.push(item.ip);
+      }
+      return result;
+    }, [] as string[]);
+    return new Set(ips).size;
+  }
+
+  get redisSlaveCount() {
+    const len = this.redis_slave.length;
+    if (len <= 1) {
+      return len;
+    }
+    return new Set(this.redis_slave.map((item) => item.ip)).size;
+  }
+
+  get redisSlaveFaults() {
+    const ips = this.redis_slave.reduce((result, item) => {
+      if (item.status !== 'running') {
+        result.push(item.ip);
+      }
+      return result;
+    }, [] as string[]);
+    return new Set(ips).size;
   }
 
   get roleFailedInstanceInfo() {
@@ -319,7 +300,26 @@ export default class Redis extends ClusterBase {
     };
   }
 
+  get runningOperation() {
+    const operateTicketTypes = Object.keys(Redis.operationTextMap);
+    return this.operations.find((item) => operateTicketTypes.includes(item.ticket_type) && item.status === 'RUNNING');
+  }
+
+  get slaveEntryList() {
+    const port = this.redis_slave[0]?.port;
+    return this.cluster_entry
+      .filter((item) => item.role === 'slave_entry')
+      .map((item) => ({
+        ...item,
+        port,
+      }));
+  }
+
   get slaveList() {
     return this.redis_slave;
+  }
+
+  get storageCount() {
+    return this.redisMasterCount + this.redisSlaveCount;
   }
 }

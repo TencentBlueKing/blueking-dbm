@@ -89,15 +89,15 @@
   const tableData = ref([createRowData()]);
 
   const selectedClusters = shallowRef<{ [key: string]: Array<MongodbModel> }>({
-    [ClusterTypes.MONGO_SHARED_CLUSTER]: [],
     [ClusterTypes.MONGO_REPLICA_SET]: [],
+    [ClusterTypes.MONGO_SHARED_CLUSTER]: [],
   });
 
   const tabListConfig = {
-    [ClusterTypes.MONGO_SHARED_CLUSTER]: {
+    [ClusterTypes.MONGO_REPLICA_SET]: {
       showPreviewResultTitle: true,
     },
-    [ClusterTypes.MONGO_REPLICA_SET]: {
+    [ClusterTypes.MONGO_SHARED_CLUSTER]: {
       showPreviewResultTitle: true,
     },
   } as unknown as Record<string, TabConfig>;
@@ -118,26 +118,26 @@
 
   // 根据集群选择返回的数据加工成table所需的数据
   const generateRowDateFromRequest = (data: MongodbModel) => ({
-    rowKey: data.master_domain,
-    isLoading: false,
-    clusterName: data.master_domain,
-    currentSepc: data.mongodb[0].spec_config.name,
-    shardSpecName: data.shard_spec,
-    clusterId: data.id,
-    machineType: data.machine_type,
-    machinePair: data.mongodb_machine_pair,
-    machineNum: data.mongodb_machine_num,
-    clusterType: data.cluster_type,
-    shardNum: data.shard_num,
-    shardNodeCount: data.shard_node_count,
     bkCloudId: data.bk_cloud_id,
+    clusterId: data.id,
+    clusterName: data.master_domain,
+    clusterType: data.cluster_type,
     currentCapacity: {
-      used: 0,
       total: 1,
+      used: 0,
     },
-    targetShardNum: 0,
-    targetGroupNum: 0,
+    currentSepc: data.mongodb[0].spec_config.name,
+    isLoading: false,
+    machineNum: data.mongodb_machine_num,
+    machinePair: data.mongodb_machine_pair,
+    machineType: data.machine_type,
+    rowKey: data.master_domain,
+    shardNodeCount: data.shard_node_count,
+    shardNum: data.shard_num,
+    shardSpecName: data.shard_spec,
     spec: data.mongodb[0].spec_config,
+    targetGroupNum: 0,
+    targetShardNum: 0,
   });
 
   // 批量选择
@@ -212,11 +212,11 @@
       );
       const params = {
         bk_biz_id: currentBizId,
-        ticket_type: TicketTypes.MONGODB_SCALE_UPDOWN,
         details: {
-          ip_source: 'resource_pool',
           infos,
+          ip_source: 'resource_pool',
         },
+        ticket_type: TicketTypes.MONGODB_SCALE_UPDOWN,
       };
       await createTicket(params).then((data) => {
         window.changeConfirm = false;

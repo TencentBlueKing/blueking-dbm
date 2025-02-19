@@ -133,46 +133,44 @@
   export interface TReplaceNode {
     // 集群id
     clusterId: number;
+    hostList: IHostTableDataWithInstance[];
+    nodeList: EsNodeModel[];
+    // 扩容资源池
+    resourceSpec: {
+      count: number;
+      instance_num: number;
+      spec_id: number;
+    };
     // 集群的节点类型
     role: string;
-    nodeList: EsNodeModel[];
-    hostList: IHostTableDataWithInstance[];
     // 资源池规格集群类型
     specClusterType: string;
     // 资源池规格集群类型
     specMachineType: string;
-    // 扩容资源池
-    resourceSpec: {
-      spec_id: number;
-      count: number;
-      instance_num: number;
-    };
   }
 
   interface Ivalue {
+    bk_cloud_id: number;
     bk_host_id: number;
     ip: string;
-    bk_cloud_id: number;
   }
 
   interface Props {
-    data: TReplaceNode;
-    ipSource: string;
     cloudInfo: {
       id: number;
       name: string;
     };
+    data: TReplaceNode;
     disableHostMethod?: (params: ServiceReturnType<typeof checkHost>[number]) => string | boolean;
+    ipSource: string;
   }
 
-  interface Emits {
-    (e: 'removeNode', node: EsNodeModel): void;
-  }
+  type Emits = (e: 'removeNode', node: EsNodeModel) => void;
 
   interface Exposes {
     getValue: () => Promise<{
-      old_nodes: Ivalue[];
       new_nodes: Ivalue[];
+      old_nodes: Ivalue[];
       resource_spec: TReplaceNode['resourceSpec'];
     }>;
   }
@@ -247,26 +245,26 @@
 
       if (nodeList.value.length < 1) {
         return Promise.resolve({
-          old_nodes: [],
           new_nodes: [],
+          old_nodes: [],
           resource_spec: {
-            spec_id: 0,
             count: 0,
             instance_num: 0,
+            spec_id: 0,
           },
         });
       }
       return Promise.resolve({
+        new_nodes: hostList.value.map((hostItem) => ({
+          bk_cloud_id: hostItem.cloud_id,
+          bk_host_id: hostItem.host_id,
+          instance_num: hostItem.instance_num,
+          ip: hostItem.ip,
+        })),
         old_nodes: nodeList.value.map((nodeItem) => ({
+          bk_cloud_id: nodeItem.bk_cloud_id,
           bk_host_id: nodeItem.bk_host_id,
           ip: nodeItem.ip,
-          bk_cloud_id: nodeItem.bk_cloud_id,
-        })),
-        new_nodes: hostList.value.map((hostItem) => ({
-          bk_host_id: hostItem.host_id,
-          ip: hostItem.ip,
-          bk_cloud_id: hostItem.cloud_id,
-          instance_num: hostItem.instance_num,
         })),
         resource_spec: {
           ...resourceSpec.value,

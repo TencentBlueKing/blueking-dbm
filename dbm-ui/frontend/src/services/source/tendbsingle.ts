@@ -23,7 +23,7 @@ const getRootPath = () => `/apis/mysql/bizs/${window.PROJECT_CONFIG.BIZ_ID}/tend
 /**
  * 查询资源列表
  */
-export function getTendbsingleList(params: { limit?: number; offset?: number; cluster_ids?: number[] | number }) {
+export function getTendbsingleList(params: { cluster_ids?: number[] | number; limit?: number; offset?: number }) {
   return http.get<ListBase<TendbsingleModel[]>>(`${getRootPath()}/`, params).then((data) => ({
     ...data,
     results: data.results.map(
@@ -40,7 +40,7 @@ export function getTendbsingleList(params: { limit?: number; offset?: number; cl
 /**
  * 查询资源列表
  */
-export function getTendbsingleFlatList(params: { limit?: number; offset?: number; cluster_ids?: number[] | number }) {
+export function getTendbsingleFlatList(params: { cluster_ids?: number[] | number; limit?: number; offset?: number }) {
   return http.get<ListBase<TendbsingleModel[]>>(`${getRootPath()}/`, params).then((data) =>
     data.results.map(
       (item) =>
@@ -58,9 +58,9 @@ export function getTendbsingleFlatList(params: { limit?: number; offset?: number
  */
 export function getTendbsingleListByBizId(params: {
   bk_biz_id: number;
+  cluster_ids?: number[] | number;
   limit?: number;
   offset?: number;
-  cluster_ids?: number[] | number;
 }) {
   return http.get<ListBase<TendbsingleModel[]>>(`/apis/mysql/bizs/${params.bk_biz_id}/tendbsingle_resources/`, params);
 }
@@ -92,10 +92,10 @@ export function getTendbsingleInstanceList(params: Record<string, any>) {
  */
 export function retrieveTendbsingleInstance(params: {
   bk_biz_id: number;
-  type: string;
-  instance_address: string;
   cluster_id?: number;
   dbType: string;
+  instance_address: string;
+  type: string;
 }) {
   return http
     .get<TendbsingleInstanceModel>(`${getRootPath()}/retrieve_instance/`, params)
@@ -136,17 +136,17 @@ export function exportTendbsingleInstanceToExcel(params: { bk_host_ids?: number[
  * 查询主机列表
  */
 export function getTendbSingleMachineList(params: {
-  limit?: number;
-  offset?: number;
-  bk_host_id?: number;
-  ip?: string;
-  machine_type?: string;
-  bk_os_name?: string;
-  bk_cloud_id?: number;
   bk_agent_id?: string;
-  instance_role?: string;
-  spider_role?: string;
+  bk_cloud_id?: number;
+  bk_host_id?: number;
+  bk_os_name?: string;
   creator?: string;
+  instance_role?: string;
+  ip?: string;
+  limit?: number;
+  machine_type?: string;
+  offset?: number;
+  spider_role?: string;
 }) {
   return http.get<ListBase<TendbSingleMachineModel[]>>(`${getRootPath()}/list_machines/`, params).then((data) => ({
     ...data,

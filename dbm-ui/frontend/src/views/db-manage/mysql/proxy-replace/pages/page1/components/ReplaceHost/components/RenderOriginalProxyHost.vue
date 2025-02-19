@@ -21,16 +21,14 @@
 <script lang="ts">
   const proxyHostMemo: { [key: string]: Record<string, boolean> } = {};
 
-  interface Emits {
-    (
-      e: 'inputFinish',
-      data: {
-        originProxy: IDataRow['originProxy'];
-        relatedInstances: IDataRow['relatedInstances'];
-        relatedClusters: IDataRow['relatedClusters'];
-      },
-    ): void;
-  }
+  type Emits = (
+    e: 'inputFinish',
+    data: {
+      originProxy: IDataRow['originProxy'];
+      relatedClusters: IDataRow['relatedClusters'];
+      relatedInstances: IDataRow['relatedInstances'];
+    },
+  ) => void;
 
   interface Exposes {
     getValue: () => {
@@ -70,15 +68,16 @@
 
   const rules = [
     {
+      message: t('目标Proxy主机不能为空'),
       validator: (value: string) => {
         if (value) {
           return true;
         }
         return false;
       },
-      message: t('目标Proxy主机不能为空'),
     },
     {
+      message: t('目标Proxy主机不存在'),
       validator: (value: string): Promise<boolean> =>
         checkInstance<InstanceInfos>({
           bk_biz_id: currentBizId,
@@ -90,10 +89,10 @@
           const [currentData] = data;
           proxyHostMemo[instanceKey][currentData.ip] = true;
           originProxy = {
-            ip: currentData.ip,
+            bk_biz_id: currentBizId,
             bk_cloud_id: currentData.bk_cloud_id,
             bk_host_id: currentData.bk_host_id,
-            bk_biz_id: currentBizId,
+            ip: currentData.ip,
             port: currentData.port,
           };
           const relatedInstances = data.map((item) => ({
@@ -109,14 +108,14 @@
           );
           emits('inputFinish', {
             originProxy,
-            relatedInstances,
             relatedClusters,
+            relatedInstances,
           });
           return true;
         }),
-      message: t('目标Proxy主机不存在'),
     },
     {
+      message: t('目标Proxy主机重复'),
       validator: () => {
         const currentClusterSelectMap = proxyHostMemo[instanceKey];
         const otherClusterMemoMap = { ...proxyHostMemo };
@@ -131,6 +130,7 @@
         );
 
         const currentSelectClusterIdList = Object.keys(currentClusterSelectMap);
+        // eslint-disable-next-line @typescript-eslint/prefer-for-of
         for (let i = 0; i < currentSelectClusterIdList.length; i++) {
           if (otherClusterIdMap[currentSelectClusterIdList[i]]) {
             return false;
@@ -138,7 +138,6 @@
         }
         return true;
       },
-      message: t('目标Proxy主机重复'),
     },
   ];
 

@@ -19,25 +19,25 @@ import type { HostInfo } from '@services/types';
  */
 export const getInitFormdata = () => ({
   bk_biz_id: '',
-  ticket_type: 'INFLUXDB_APPLY',
-  remark: '',
   details: {
     bk_cloud_id: 0,
-    ip_source: 'resource_pool',
-    db_app_abbr: '',
     city_code: '',
+    db_app_abbr: '',
     db_version: '',
-    port: 8080,
-    group_id: '',
     disaster_tolerance_level: 'NONE', // 同 affinity
+    group_id: '',
+    ip_source: 'resource_pool',
     nodes: {
       influxdb: [] as HostInfo[],
     },
+    port: 8080,
     resource_spec: {
       influxdb: {
-        spec_id: '',
         count: 1,
+        spec_id: '',
       },
     },
   },
+  remark: '',
+  ticket_type: 'INFLUXDB_APPLY',
 });

@@ -47,15 +47,13 @@
   import NodeNumber from './components/NodeNumber.vue';
 
   interface Props {
-    data: RiakModel
+    data: RiakModel;
   }
 
-  interface Emits {
-    (e: 'submitSuccess'): void
-  }
+  type Emits = (e: 'submitSuccess') => void;
 
   interface Expose {
-    submit: () => Promise<boolean>
+    submit: () => Promise<boolean>;
   }
 
   const props = defineProps<Props>();
@@ -67,30 +65,30 @@
 
   const columns = [
     {
-      type: 'selection',
       minWidth: 48,
+      type: 'selection',
       width: 48,
     },
     {
-      label: t('节点实例'),
       field: 'ip',
-      render: ({ data }: { data: RiakNodeModel }) => <span>{ data.ip || '--' }</span>,
+      label: t('节点实例'),
+      render: ({ data }: { data: RiakNodeModel }) => <span>{data.ip || '--'}</span>,
     },
     {
-      label: t('Agent状态'),
       field: 'status',
-      width: 100,
+      label: t('Agent状态'),
       render: ({ data }: { data: RiakNodeModel }) => <RenderHostStatus data={data.status} />,
+      width: 100,
     },
     {
-      label: t('CPU内存'),
       field: 'cpu',
-      render: ({ data }: { data: RiakNodeModel }) => <span>{ data.cpu || '--' }</span>,
+      label: t('CPU内存'),
+      render: ({ data }: { data: RiakNodeModel }) => <span>{data.cpu || '--'}</span>,
     },
     {
-      label: t('机型'),
       field: 'bk_host_name',
-      render: ({ data }: { data: RiakNodeModel }) => <span>{ data.bk_host_name || '--' }</span>,
+      label: t('机型'),
+      render: ({ data }: { data: RiakNodeModel }) => <span>{data.bk_host_name || '--'}</span>,
     },
   ];
 
@@ -107,10 +105,13 @@
   // };
 
   const fetchData = () => {
-    tableRef.value.fetchData({}, {
-      bk_biz_id: currentBizId,
-      cluster_id: props.data.id,
-    });
+    tableRef.value.fetchData(
+      {},
+      {
+        bk_biz_id: currentBizId,
+        cluster_id: props.data.id,
+      },
+    );
   };
 
   onMounted(() => {
@@ -127,47 +128,46 @@
 
         if (params.nodes.length) {
           InfoBox({
-            title: t('确认删除n个节点?', [params.nodes.length]),
-            subTitle: (
-              <>
-                <p>
-                  { t('节点IP') }：
-                  {
-                    params.nodes.map((riakNodeItem: RiakNodeModel) => <span>{ riakNodeItem.ip }</span>)
-                  }
-                </p>
-                <p>{ t('删除后不可恢复，请谨慎操作！') }</p>
-              </>
-            ),
-            confirmText: t('禁用'),
             cancelText: t('取消'),
-            headerAlign: 'center',
+            confirmText: t('禁用'),
             contentAlign: 'left',
             footerAlign: 'center',
-            onConfirm: () => {
-              createTicket({
-                bk_biz_id: currentBizId,
-                ticket_type: TicketTypes.RIAK_CLUSTER_SCALE_IN,
-                details: {
-                  cluster_id: props.data.id,
-                  bk_cloud_id: props.data.bk_cloud_id,
-                  nodes: tableRef.value.bkTableRef.getSelection().map((nodeItem: RiakNodeModel) => ({
-                    ip: nodeItem.ip,
-                    bk_host_id: nodeItem.bk_host_id,
-                    bk_cloud_id: nodeItem.bk_cloud_id,
-                    bk_biz_id: currentBizId,
-                  })),
-                },
-              })
-                .then((createTicketResult) => {
-                  ticketMessage(createTicketResult.id);
-                  emits('submitSuccess');
-                  resolve(true);
-                })
-            },
+            headerAlign: 'center',
             onClosed: () => {
               reject();
             },
+            onConfirm: () => {
+              createTicket({
+                bk_biz_id: currentBizId,
+                details: {
+                  bk_cloud_id: props.data.bk_cloud_id,
+                  cluster_id: props.data.id,
+                  nodes: tableRef.value.bkTableRef.getSelection().map((nodeItem: RiakNodeModel) => ({
+                    bk_biz_id: currentBizId,
+                    bk_cloud_id: nodeItem.bk_cloud_id,
+                    bk_host_id: nodeItem.bk_host_id,
+                    ip: nodeItem.ip,
+                  })),
+                },
+                ticket_type: TicketTypes.RIAK_CLUSTER_SCALE_IN,
+              }).then((createTicketResult) => {
+                ticketMessage(createTicketResult.id);
+                emits('submitSuccess');
+                resolve(true);
+              });
+            },
+            subTitle: (
+              <>
+                <p>
+                  {t('节点IP')}：
+                  {params.nodes.map((riakNodeItem: RiakNodeModel) => (
+                    <span>{riakNodeItem.ip}</span>
+                  ))}
+                </p>
+                <p>{t('删除后不可恢复，请谨慎操作！')}</p>
+              </>
+            ),
+            title: t('确认删除n个节点?', [params.nodes.length]),
           });
         } else {
           messageWarn(t('请选择xx', [t('节点实例')]));
