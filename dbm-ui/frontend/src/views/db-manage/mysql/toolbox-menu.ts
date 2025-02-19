@@ -65,7 +65,7 @@ export default [
     children: [
       {
         dbConsoleValue: 'mysql.toolbox.rollback',
-        id: 'MySQLDBRollback',
+        id: TicketTypes.MYSQL_ROLLBACK_CLUSTER,
         name: t('定点构造'),
         parentId: 'fileback',
       },

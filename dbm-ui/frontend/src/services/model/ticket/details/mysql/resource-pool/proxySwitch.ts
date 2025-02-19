@@ -1,19 +1,17 @@
-import type { DetailBase, DetailClusters } from '../../common';
+import type { ResourcePoolDetailBase } from '../../common';
 
 /**
  * MySQL 替换Proxy
  */
 
-export interface ProxySwitch extends DetailBase {
-  clusters: DetailClusters;
+export interface ProxySwitch extends ResourcePoolDetailBase {
   force: boolean;
-  ip_source: 'resource_pool';
   infos: {
     cluster_ids: number[];
     display_info: {
-      type: 'INSTANCE_REPLACE' | 'HOST_REPLACE';
       related_clusters: string[];
       related_instances: string[];
+      type: 'INSTANCE_REPLACE' | 'HOST_REPLACE';
     };
     old_nodes: {
       origin_proxy: {

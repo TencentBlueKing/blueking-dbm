@@ -101,3 +101,40 @@ export interface NodeInfo {
   sub_zone: string;
   sub_zone_id: string;
 }
+
+export interface ResourcePoolDetailBase {
+  clusters: DetailClusters;
+  ip_recycle?: {
+    for_biz: number;
+    ip_dest: 'resource';
+  };
+  ip_source?: 'resource_pool';
+  recycle_hosts?: {
+    bk_agent_id: string;
+    bk_biz_id: number;
+    bk_cloud_id: number;
+    bk_cloud_name: string;
+    bk_cloud_vendor?: any;
+    bk_cpu: number;
+    bk_cpu_architecture: string;
+    bk_cpu_module: string;
+    bk_disk: number;
+    bk_host_id: number;
+    bk_host_innerip: string;
+    bk_host_innerip_v6: string;
+    bk_host_name: string;
+    bk_host_outerip: string;
+    bk_mem: number;
+    bk_os_name: string;
+    bk_os_type: string;
+    city: string;
+    device_class: string;
+    host_id: number;
+    ip: string;
+    operator: string;
+    os_name: string;
+    os_type: string;
+    status: number;
+  }[];
+  spec: DetailSpecs;
+}

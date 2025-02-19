@@ -1,14 +1,21 @@
-import type { DetailBase, DetailClusters } from '../../common';
+import type { ResourcePoolDetailBase } from '../../common';
 
 /**
  * MySQL Slave重建
  */
-export interface RestoreSlave extends DetailBase {
+export interface RestoreSlave extends ResourcePoolDetailBase {
   backup_source: string;
-  clusters: DetailClusters;
-  ip_source: 'resource_pool';
   infos: {
     cluster_ids: number[];
+    old_nodes: {
+      old_slave: {
+        bk_biz_id: number;
+        bk_cloud_id: number;
+        bk_host_id: number;
+        ip: string;
+        port?: number;
+      }[];
+    };
     resource_spec: {
       new_slave: {
         hosts: {
@@ -20,15 +27,6 @@ export interface RestoreSlave extends DetailBase {
         }[];
         spec_id: number;
       };
-    };
-    old_nodes: {
-      old_slave: {
-        bk_biz_id: number;
-        bk_cloud_id: number;
-        bk_host_id: number;
-        ip: string;
-        port?: number;
-      }[];
     };
   }[];
 }
