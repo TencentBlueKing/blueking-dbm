@@ -33,16 +33,16 @@
 
   /* eslint-disable vue/no-unused-properties */
   interface Props {
-    permission?: boolean | string;
     actionId: string;
-    resource?: string | number;
     bizId?: string | number;
+    permission?: boolean | string;
+    resource?: string | number;
   }
 
   const props = withDefaults(defineProps<Props>(), {
+    bizId: undefined,
     permission: 'normal',
     resource: '',
-    bizId: undefined,
   });
   defineOptions({
     inheritAttrs: false,
@@ -51,7 +51,7 @@
   const attrs = useAttrs();
   const slots = useSlots();
 
-  const { isShowRaw, handleRequestPermission } = useBase(props);
+  const { handleRequestPermission, isShowRaw } = useBase(props);
 </script>
 <style lang="less" scoped>
   .auth-option-disabled {

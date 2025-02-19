@@ -89,20 +89,18 @@
   import { generateId } from '@utils';
 
   interface DataItem extends RedisModel {
-    force: boolean,
-    backup: boolean
+    backup: boolean;
+    force: boolean;
   }
 
   interface Props {
-    data?: RedisModel[]
+    data?: RedisModel[];
   }
 
-  interface Emits {
-    (e: 'success'): void
-  }
+  type Emits = (e: 'success') => void;
 
   const props = withDefaults(defineProps<Props>(), {
-    data: () => ([]),
+    data: () => [],
   });
   const emits = defineEmits<Emits>();
   const isShow = defineModel<boolean>('isShow', {
@@ -120,72 +118,86 @@
   const isBatch = computed(() => props.data.length > 1);
   // 第一个集群的数据
   const firstData = computed(() => props.data[0]);
-  const columns = [{
-    label: t('域名'),
-    field: 'name',
-    showOverflowTooltip: false,
-    render: ({ data }: { data: DataItem }) => (
-      <div
-        class="cluster-name text-overflow"
-        v-overflow-tips={{
-          content: `
+  const columns = [
+    {
+      field: 'name',
+      label: t('域名'),
+      render: ({ data }: { data: DataItem }) => (
+        <div
+          v-overflow-tips={{
+            allowHTML: true,
+            content: `
             <p>${t('域名')}：${data.master_domain}</p>
-            ${data.cluster_alias ? `<p>${('集群别名')}：${data.cluster_alias}</p>` : null}
+            ${data.cluster_alias ? `<p>${'集群别名'}：${data.cluster_alias}</p>` : null}
           `,
-          allowHTML: true,
-      }}>
-        <span>{data.master_domain}</span><br />
-        <span class="cluster-name__alias">{data.cluster_alias}</span>
-      </div>
-    ),
-  }, {
-    label: t('架构版本'),
-    field: 'cluster_type_name',
-    render: ({ cell }: { cell: string }) => <span>{cell || '--'}</span>,
-  }, {
-    label: () => (
-      <bk-checkbox
-        model-value={isCheckedAllForce.value}
-        false-label={false}
-        onChange={(value: boolean) => handleChangeChecked('force', value)}>
-        { t('强制清档') }
-      </bk-checkbox>
-    ),
-    field: 'force',
-    render: ({ data }: { data: DataItem }) => (
-      <bk-checkbox v-model={data.force} false-label={false} style="vertical-align: middle;" />
-    ),
-  }, {
-    label: () => (
-      <bk-checkbox
-        model-value={isCheckedAllBackup.value}
-        false-label={false}
-        onChange={(value: boolean) => handleChangeChecked('backup', value)}>
-        { t('清档前备份') }
-      </bk-checkbox>
-    ),
-    field: 'backup',
-    render: ({ data }: { data: DataItem }) => (
-      <bk-checkbox v-model={data.backup} false-label={false} style="vertical-align: middle;" />
-    ),
-  }];
+          }}
+          class='cluster-name text-overflow'>
+          <span>{data.master_domain}</span>
+          <br />
+          <span class='cluster-name__alias'>{data.cluster_alias}</span>
+        </div>
+      ),
+      showOverflowTooltip: false,
+    },
+    {
+      field: 'cluster_type_name',
+      label: t('架构版本'),
+      render: ({ cell }: { cell: string }) => <span>{cell || '--'}</span>,
+    },
+    {
+      field: 'force',
+      label: () => (
+        <bk-checkbox
+          false-label={false}
+          model-value={isCheckedAllForce.value}
+          onChange={(value: boolean) => handleChangeChecked('force', value)}>
+          {t('强制清档')}
+        </bk-checkbox>
+      ),
+      render: ({ data }: { data: DataItem }) => (
+        <bk-checkbox
+          v-model={data.force}
+          false-label={false}
+          style='vertical-align: middle;'
+        />
+      ),
+    },
+    {
+      field: 'backup',
+      label: () => (
+        <bk-checkbox
+          false-label={false}
+          model-value={isCheckedAllBackup.value}
+          onChange={(value: boolean) => handleChangeChecked('backup', value)}>
+          {t('清档前备份')}
+        </bk-checkbox>
+      ),
+      render: ({ data }: { data: DataItem }) => (
+        <bk-checkbox
+          v-model={data.backup}
+          false-label={false}
+          style='vertical-align: middle;'
+        />
+      ),
+    },
+  ];
   // 实际渲染表头配置
   const rederColumns = computed(() => {
     if (isBatch.value) {
       const opertaionColumn = {
-        label: t('操作'),
         field: 'operation',
-        width: 88,
+        label: t('操作'),
         render: ({ index }: { index: number }) => (
           <bk-button
-            theme="primary"
-            text
             v-bk-tooltips={t('移除')}
             disabled={state.formdata.length === 1}
+            theme='primary'
+            text
             onClick={() => handleRemoveItem(index)}>
-            { t('删除') }
+            {t('删除')}
           </bk-button>
         ),
+        width: 88,
       };
       return [...columns, opertaionColumn];
     }
@@ -193,21 +205,25 @@
     return columns;
   });
   const state = reactive({
-    isLoading: false,
     formdata: [] as DataItem[],
+    isLoading: false,
     renderKey: generateId('PURGE_FORM_'),
   });
-  const isCheckedAllForce = computed(() => state.formdata.every(item => item.force));
-  const isCheckedAllBackup = computed(() => state.formdata.every(item => item.backup));
+  const isCheckedAllForce = computed(() => state.formdata.every((item) => item.force));
+  const isCheckedAllBackup = computed(() => state.formdata.every((item) => item.backup));
 
-  watch(() => props.data, (data) => {
-    state.formdata = data.map(item => ({
-      backup: false,
-      force: false,
-      ...item,
-    }));
-    state.renderKey = generateId('PURGE_FORM_');
-  }, { immediate: true, deep: true });
+  watch(
+    () => props.data,
+    (data) => {
+      state.formdata = data.map((item) => ({
+        backup: false,
+        force: false,
+        ...item,
+      }));
+      state.renderKey = generateId('PURGE_FORM_');
+    },
+    { deep: true, immediate: true },
+  );
 
   function handleRemoveItem(index: number) {
     state.formdata.splice(index, 1);
@@ -228,18 +244,18 @@
     state.isLoading = true;
     const params = {
       bk_biz_id: globalBizsStore.currentBizId,
-      ticket_type: TicketTypes.REDIS_PURGE,
       details: {
-        rules: state.formdata.map(item => ({
-          cluster_id: item.id,
-          domain: item.master_domain,
-          cluster_type: item.cluster_type,
-          force: item.force,
+        rules: state.formdata.map((item) => ({
           backup: item.backup,
+          cluster_id: item.id,
+          cluster_type: item.cluster_type,
           db_list: [],
+          domain: item.master_domain,
           flushall: true, // TODO: 目前都是 true, 后续根据后端实现调整
+          force: item.force,
         })),
       },
+      ticket_type: TicketTypes.REDIS_PURGE,
     };
     return createTicket(params)
       .then((res) => {

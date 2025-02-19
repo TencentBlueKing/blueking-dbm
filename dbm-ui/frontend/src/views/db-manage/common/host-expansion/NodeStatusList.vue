@@ -52,12 +52,12 @@
   import type { TExpansionNode } from './Index.vue';
 
   interface Props {
+    ipSource: string;
     list: Array<{
       key: string;
       label: string;
     }>;
     nodeInfo: Record<string, TExpansionNode>;
-    ipSource: string;
   }
   interface Exposes {
     validate: () => boolean;

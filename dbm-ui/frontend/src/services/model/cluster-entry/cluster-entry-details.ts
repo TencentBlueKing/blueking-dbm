@@ -29,10 +29,10 @@ export interface DnsTargetDetails {
 
 export interface ClbPolarisTargetDetails {
   alias_token: string;
-  creator: string;
-  clb_ip: string;
-  clb_id: string;
   clb_domain: string;
+  clb_id: string;
+  clb_ip: string;
+  creator: string;
   entry: number;
   id: number;
   polaris_l5: string;
@@ -56,19 +56,19 @@ export default class ClusterEntryDetail<T extends unknown | DnsTargetDetails | C
     this.target_details = payload.target_details;
   }
 
-  get isDns() {
-    return this.cluster_entry_type === 'dns';
-  }
-
   get isClb() {
     return this.cluster_entry_type === 'clb';
   }
 
-  get isPolaris() {
-    return this.cluster_entry_type === 'polaris';
+  get isDns() {
+    return this.cluster_entry_type === 'dns';
   }
 
   get isNodeEntry() {
     return this.role === 'node_entry';
+  }
+
+  get isPolaris() {
+    return this.cluster_entry_type === 'polaris';
   }
 }

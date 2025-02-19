@@ -13,14 +13,14 @@ export interface Apply extends DetailBase {
   ip_source: string;
   nodes: {
     client: HostInfo[];
-    master: HostInfo[];
-    hot: HostInfo[];
     cold: HostInfo[];
+    hot: HostInfo[];
+    master: HostInfo[];
   };
   resource_spec: {
-    master: SpecInfo;
     client: SpecInfo;
-    hot: SpecInfo;
     cold: SpecInfo;
+    hot: SpecInfo;
+    master: SpecInfo;
   };
 }

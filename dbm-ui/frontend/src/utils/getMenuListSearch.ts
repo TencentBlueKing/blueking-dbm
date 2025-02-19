@@ -41,8 +41,8 @@ export function getMenuListSearch(
     const resList = [
       {
         ...searchItem,
-        realId: searchItem.id,
         id: generateId('MISSION_SEARCH_ID_'),
+        realId: searchItem.id,
         value: {
           id: keyword,
           name: keyword,
@@ -54,8 +54,8 @@ export function getMenuListSearch(
         .filter((child) => child.name.toLocaleLowerCase().includes(lowerCaseKeyword))
         .map((child) => ({
           ...searchItem,
-          realId: searchItem.id,
           id: generateId('MISSION_SEARCH_ID_'),
+          realId: searchItem.id,
           value: child,
         }));
       resList.push(...childList);
@@ -71,8 +71,8 @@ export function getMenuListSearch(
       if (child.name.toLocaleLowerCase().includes(lowerCaseKeyword)) {
         list.push({
           ...dataItem,
-          realId: dataItem.id,
           id: generateId('MISSION_SEARCH_ID_'),
+          realId: dataItem.id,
           value: child,
         });
       }

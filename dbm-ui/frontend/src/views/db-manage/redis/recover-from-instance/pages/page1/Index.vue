@@ -104,7 +104,6 @@
 
   // 单据克隆
   useTicketCloneInfo({
-    type: TicketTypes.REDIS_CLUSTER_ROLLBACK_DATA_COPY,
     onSuccess(cloneData) {
       const { tableList, writeMode } = cloneData;
 
@@ -113,6 +112,7 @@
       remark.value = cloneData.remark;
       window.changeConfirm = true;
     },
+    type: TicketTypes.REDIS_CLUSTER_ROLLBACK_DATA_COPY,
   });
 
   const rowRefs = ref();
@@ -129,34 +129,34 @@
 
   const tabListConfig = {
     [ClusterTypes.REDIS]: {
-      getResourceList: getRollbackList,
       customColums: [
         {
-          label: t('构造产物访问入口'),
           field: 'temp_cluster_proxy',
+          label: t('构造产物访问入口'),
           showOverflowTooltip: true,
         },
         {
-          label: t('目标集群'),
           field: 'prod_cluster',
-          showOverflowTooltip: true,
+          label: t('目标集群'),
           minWidth: 100,
+          showOverflowTooltip: true,
         },
         {
-          label: t('构造到指定时间'),
           field: 'recovery_time_point',
+          label: t('构造到指定时间'),
           showOverflowTooltip: true,
         },
       ],
+      getResourceList: getRollbackList,
       previewResultKey: 'temp_cluster_proxy',
       searchSelectList: [
         {
-          name: t('访问入口'),
           id: 'temp_cluster_proxy',
+          name: t('访问入口'),
         },
         {
-          name: t('目标集群'),
           id: 'prod_cluster',
+          name: t('目标集群'),
         },
       ],
     },
@@ -187,14 +187,14 @@
     }
     const dataList = JSON.parse(r) as RedisRollbackModel[];
     tableData.value = dataList.map((item) => ({
-      rowKey: item.prod_cluster,
+      excludeKey: [],
+      includeKey: ['*'],
       isLoading: false,
+      rowKey: item.prod_cluster,
       srcCluster: item.temp_cluster_proxy,
       targetCluster: item.prod_cluster,
       targetClusterId: item.prod_cluster_id,
       targetTime: item.recovery_time_point,
-      includeKey: ['*'],
-      excludeKey: [],
     }));
     localStorage.removeItem(LocalStorageKeys.REDIS_ROLLBACK_LIST);
   };
@@ -239,14 +239,14 @@
   };
 
   const generateTableRow = (item: RedisRollbackModel) => ({
-    rowKey: item.prod_cluster,
+    excludeKey: [],
+    includeKey: ['*'],
     isLoading: false,
+    rowKey: item.prod_cluster,
     srcCluster: item.temp_cluster_proxy,
-    targetTime: item.recovery_time_point,
     targetCluster: item.prod_cluster,
     targetClusterId: item.prod_cluster_id,
-    includeKey: ['*'],
-    excludeKey: [],
+    targetTime: item.recovery_time_point,
   });
 
   // 批量选择
@@ -310,13 +310,13 @@
       );
       const params = {
         bk_biz_id: currentBizId,
-        ticket_type: TicketTypes.REDIS_CLUSTER_ROLLBACK_DATA_COPY,
-        remark: remark.value,
         details: {
           dts_copy_type: 'copy_from_rollback_instance',
-          write_mode: writeType.value,
           infos,
+          write_mode: writeType.value,
         },
+        remark: remark.value,
+        ticket_type: TicketTypes.REDIS_CLUSTER_ROLLBACK_DATA_COPY,
       };
 
       await createTicket(params).then((data) => {

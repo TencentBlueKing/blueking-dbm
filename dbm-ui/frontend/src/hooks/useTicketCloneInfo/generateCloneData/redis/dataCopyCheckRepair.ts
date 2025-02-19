@@ -22,25 +22,25 @@ import { t } from '@locales/index';
 export function generateRedisDataCopyCheckRepairCloneData(ticketData: TicketModel<Redis.DatacopyCheckRepair>) {
   const { details } = ticketData;
   const tableList = details.infos.map((item) => ({
-    rowKey: random(),
-    isLoading: false,
     billId: item.bill_id,
+    excludeKey: item.key_black_regex ? item.key_black_regex.split(',') : [],
+    includeKey: item.key_white_regex ? item.key_white_regex.split(',') : [],
+    instances: t('全部'),
+    isLoading: false,
+    relateTicket: item.bill_id,
+    rowKey: random(),
     srcCluster: item.src_cluster,
     targetCluster: item.dst_cluster,
-    relateTicket: item.bill_id,
-    instances: t('全部'),
-    includeKey: item.key_white_regex ? item.key_white_regex.split(',') : [],
-    excludeKey: item.key_black_regex ? item.key_black_regex.split(',') : [],
   }));
 
   return Promise.resolve({
-    tableList,
-    executeType: details.execute_mode,
     executeTime: dayjs(details.specified_execution_time).toDate(),
-    stopTime: dayjs(details.check_stop_time).toDate(),
+    executeType: details.execute_mode,
     isKeepCheck: details.keep_check_and_repair,
     isRepairEnable: details.data_repair_enabled,
-    repairType: details.repair_mode,
     remark: ticketData.remark,
+    repairType: details.repair_mode,
+    stopTime: dayjs(details.check_stop_time).toDate(),
+    tableList,
   });
 }

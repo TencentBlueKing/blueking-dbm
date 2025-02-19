@@ -26,14 +26,14 @@ export interface MysqlIpItem extends DetailBase {
  * mysql-授权详情
  */
 export interface MysqlAuthorizationDetails extends DetailBase {
-  authorize_uid: string;
   // 普通授权
   authorize_data: AuthorizePreCheckData;
-  // 批量导入
-  excel_url: string;
   authorize_data_list: AuthorizePreCheckData[];
   // 插件授权
   authorize_plugin_infos: AuthorizePreCheckData[];
+  authorize_uid: string;
+  // 批量导入
+  excel_url: string;
 }
 
 export interface MySQLForceImportSQLFileExecuteSqlFiles {
@@ -45,19 +45,27 @@ export interface MySQLForceImportSQLFileExecuteSqlFiles {
  * MySQL SQL变更执行
  */
 export interface MySQLImportSQLFileDetails extends DetailBase {
-  uid: string;
-  path: string;
   backup: {
     backup_on: string;
     db_patterns: [];
     table_patterns: [];
   }[];
-  charset: string;
-  root_id: string;
   bk_biz_id: number;
-  created_by: string;
+  charset: string;
   cluster_ids: number[];
   clusters: DetailClusters;
+  created_by: string;
+  dump_file_path?: string;
+  execute_db_infos: {
+    dbnames: [];
+    ignore_dbnames: [];
+  }[];
+  execute_objects: {
+    dbnames: [];
+    ignore_dbnames: [];
+    sql_files: string[];
+  }[];
+  execute_sql_files: string[] | MySQLForceImportSQLFileExecuteSqlFiles[];
   grammar_check_info: Record<
     string,
     {
@@ -69,24 +77,16 @@ export interface MySQLImportSQLFileDetails extends DetailBase {
       }[];
     }
   >;
+  import_mode: string;
+  path: string;
+  root_id: string;
+  semantic_node_id: string;
   ticket_mode: {
     mode: string;
     trigger_time: string;
   };
   ticket_type: string;
-  execute_objects: {
-    dbnames: [];
-    ignore_dbnames: [];
-    sql_files: string[];
-  }[];
-  execute_db_infos: {
-    dbnames: [];
-    ignore_dbnames: [];
-  }[];
-  execute_sql_files: string[] | MySQLForceImportSQLFileExecuteSqlFiles[];
-  import_mode: string;
-  semantic_node_id: string;
-  dump_file_path?: string;
+  uid: string;
 }
 
 /**
@@ -124,39 +124,39 @@ export interface MySQLChecksumDetails extends DetailBase {
  * MySQL 权限克隆详情
  */
 export interface MySQLCloneDetails extends DetailBase {
-  clone_type: string;
-  clone_uid: string;
   clone_data: {
     bk_cloud_id: number;
+    cluster_domain?: string;
+    module: string;
     source: string;
     target: string[];
-    module: string;
-    cluster_domain?: string;
   }[];
+  clone_type: string;
+  clone_uid: string;
 }
 
 /**
  * MySQL DB实例克隆详情
  */
 export interface MySQLInstanceCloneDetails extends DetailBase {
-  clone_type: string;
-  clone_uid: string;
   clone_data: {
     bk_cloud_id: number;
-    source: string;
-    target: string;
-    module: string;
     cluster_domain: string;
     cluster_id: number;
+    module: string;
+    source: string;
+    target: string;
   }[];
+  clone_type: string;
+  clone_uid: string;
 }
 
 /**
  * MySQL 启停删
  */
 export interface MySQLOperationDetails extends DetailBase {
-  clusters: DetailClusters;
   cluster_ids: number[];
+  clusters: DetailClusters;
   force: boolean;
 }
 
@@ -165,88 +165,88 @@ export interface MySQLOperationDetails extends DetailBase {
  */
 export interface MySQLDetails extends DetailBase {
   bk_cloud_id: number;
+  charset: string;
   city_code: string;
   city_name: string;
   cluster_count: number;
-  charset: string;
-  db_module_name: string;
   db_module_id: number;
+  db_module_name: string;
   db_version: string;
   disaster_tolerance_level: string;
-  ip_source: string;
-  inst_num: number;
-  start_mysql_port: number;
-  spec_display: string;
-  start_proxy_port: number;
-  spec: string;
   domains: {
     key: string;
     master: string;
     slave?: string;
   }[];
+  inst_num: number;
+  ip_source: string;
   nodes: {
-    proxy: { ip: string; bk_host_id: number; bk_cloud_id: number }[];
-    backend: { ip: string; bk_host_id: number; bk_cloud_id: number }[];
+    backend: { bk_cloud_id: number; bk_host_id: number; ip: string }[];
+    proxy: { bk_cloud_id: number; bk_host_id: number; ip: string }[];
   };
   resource_spec: {
-    proxy: SpecInfo;
-    backend_group: SpecInfo;
     backend: SpecInfo;
+    backend_group: SpecInfo;
+    proxy: SpecInfo;
   };
+  spec: string;
+  spec_display: string;
+  start_mysql_port: number;
+  start_proxy_port: number;
 }
 
 export interface DumperInstallDetails extends DetailBase {
-  name: string;
-  infos: {
-    l5_cmdid: number;
-    l5_modid: number;
-    dumper_id: number;
-    cluster_id: number;
-    db_module_id: number;
-    protocol_type: string;
-    target_port: number;
-    target_address: string;
-    kafka_pwd: string;
-  }[];
   add_type: string;
   clusters: DetailClusters;
+  infos: {
+    cluster_id: number;
+    db_module_id: number;
+    dumper_id: number;
+    kafka_pwd: string;
+    l5_cmdid: number;
+    l5_modid: number;
+    protocol_type: string;
+    target_address: string;
+    target_port: number;
+  }[];
+  name: string;
   repl_tables: string[];
 }
 
 export interface DumperNodeStatusUpdateDetails extends DetailBase {
+  dumper_instance_ids: number[];
   dumpers: {
     [key: string]: {
-      id: number;
-      ip: string;
-      phase: string;
-      creator: string;
-      updater: string;
-      version: string;
       add_type: string;
       bk_biz_id: number;
-      dumper_id: string;
-      proc_type: string;
-      cluster_id: number;
       bk_cloud_id: number;
+      cluster_id: number;
+      creator: string;
+      dumper_id: string;
+      id: number;
+      ip: string;
       listen_port: number;
-      target_port: number;
       need_transfer: boolean;
+      phase: string;
+      proc_type: string;
       protocol_type: string;
       source_cluster: {
-        id: number;
-        name: string;
-        region: string;
-        master_ip: string;
         bk_cloud_id: number;
-        master_port: number;
         cluster_type: string;
+        id: number;
         immute_domain: string;
         major_version: string;
+        master_ip: string;
+        master_port: number;
+        name: string;
+        region: string;
       };
       target_address: string;
+      target_port: number;
+      updater: string;
+      version: string;
     };
   };
-  dumper_instance_ids: number[];
 }
 
 export interface DumperSwitchNodeDetails extends DetailBase {
@@ -285,11 +285,10 @@ export interface MySQLFlashback extends DetailBase {
  * MySQL 全库备份
  */
 export interface MySQLFullBackupDetails extends DetailBase {
-  clusters: DetailClusters;
   // 新版协议
   backup_type: string;
+  clusters: DetailClusters;
   file_tag: string;
-  online: boolean;
   infos:
     | {
         // 旧版协议
@@ -306,6 +305,7 @@ export interface MySQLFullBackupDetails extends DetailBase {
         backup_local: string;
         cluster_id: number;
       }[];
+  online: boolean;
 }
 
 /**
@@ -316,10 +316,10 @@ export interface MySQLHATruncateDetails extends DetailBase {
   infos: {
     cluster_id: number;
     db_patterns: [];
+    force: boolean;
     ignore_dbs: [];
     ignore_tables: [];
     table_patterns: [];
-    force: boolean;
     truncate_data_type: string;
   }[];
 }
@@ -371,7 +371,6 @@ export interface MySQLMigrateDetails extends DetailBase {
 export interface MysqlOpenAreaDetails extends DetailBase {
   cluster_id: number;
   clusters: DetailClusters;
-  config_id: number;
   config_data: {
     cluster_id: number;
     execute_objects: {
@@ -381,6 +380,7 @@ export interface MysqlOpenAreaDetails extends DetailBase {
       target_db: string;
     }[];
   }[];
+  config_id: number;
   force: boolean;
   rules_set: {
     account_rules: {
@@ -388,14 +388,14 @@ export interface MysqlOpenAreaDetails extends DetailBase {
       dbname: string;
     }[];
     cluster_type: string;
+    privileges: {
+      access_db: string;
+      priv: string;
+      user: string;
+    }[];
     source_ips: string[];
     target_instances: string[];
     user: string;
-    privileges: {
-      priv: string;
-      user: string;
-      access_db: string;
-    }[];
   }[];
 }
 
@@ -417,8 +417,8 @@ export interface MySQLProxySwitchDetails extends DetailBase {
   clusters: DetailClusters;
   force: boolean;
   infos: {
-    display_info: Record<string, unknown>;
     cluster_ids: number[];
+    display_info: Record<string, unknown>;
     origin_proxy: MysqlIpItem;
     target_proxy: MysqlIpItem;
   }[];
@@ -469,9 +469,9 @@ export interface MySQLRestoreLocalSlaveDetails extends DetailBase {
  * MySql 定点回档类型
  */
 export enum RollbackClusterTypes {
-  BUILD_INTO_NEW_CLUSTER = 'BUILD_INTO_NEW_CLUSTER',
   BUILD_INTO_EXIST_CLUSTER = 'BUILD_INTO_EXIST_CLUSTER',
   BUILD_INTO_METACLUSTER = 'BUILD_INTO_METACLUSTER',
+  BUILD_INTO_NEW_CLUSTER = 'BUILD_INTO_NEW_CLUSTER',
 }
 
 /**
@@ -491,25 +491,25 @@ export interface MySQLRollbackDetails extends DetailBase {
   clusters: DetailClusters;
   infos: {
     backup_source: string;
-    cluster_id: number;
-    databases: string[];
-    databases_ignore: string[];
-    tables: string[];
-    tables_ignore: string[];
-    rollback_host: RollbackHost;
-    target_cluster_id: number;
-    rollback_type: string;
-    rollback_time: string;
     backupinfo: {
       backup_id: string;
-      mysql_host: string;
-      mysql_port: number;
-      mysql_role: string;
       backup_time: string;
       backup_type: string;
       master_host: string;
       master_port: number;
+      mysql_host: string;
+      mysql_port: number;
+      mysql_role: string;
     };
+    cluster_id: number;
+    databases: string[];
+    databases_ignore: string[];
+    rollback_host: RollbackHost;
+    rollback_time: string;
+    rollback_type: string;
+    tables: string[];
+    tables_ignore: string[];
+    target_cluster_id: number;
   }[];
   rollback_cluster_type: RollbackClusterTypes;
 }
@@ -521,8 +521,8 @@ export interface MySQLSlaveDetails extends DetailBase {
   backup_source: string;
   clusters: DetailClusters;
   infos: {
-    cluster_ids: number[];
     cluster_id: number;
+    cluster_ids: number[];
     new_slave: MysqlIpItem;
     slave: MysqlIpItem;
   }[];
@@ -537,10 +537,10 @@ export interface MySQLTableBackupDetails extends DetailBase {
     backup_on: string;
     cluster_id: number;
     db_patterns: string[];
+    force: boolean;
     ignore_dbs: string[];
     ignore_tables: string[];
     table_patterns: string[];
-    force: boolean;
   }[];
 }
 
@@ -548,15 +548,15 @@ export interface MySQLTableBackupDetails extends DetailBase {
  * MySQL 数据导出
  */
 export interface MySQLExportData extends DetailBase {
-  clusters: DetailClusters;
-  cluster_id: number;
   charset: string;
+  cluster_id: number;
+  clusters: DetailClusters;
   databases: string[];
+  dump_data: boolean; // 是否导出表数据
+  dump_schema: boolean; // 是否导出表结构
   tables: string[];
   tables_ignore: string[];
   where: string;
-  dump_data: boolean; // 是否导出表数据
-  dump_schema: boolean; // 是否导出表结构
 }
 
 export interface MysqlDataMigrateDetails extends DetailBase {
@@ -574,14 +574,14 @@ export interface MysqlDataMigrateDetails extends DetailBase {
  */
 export interface MySQLProxyUpgradeDetails extends DetailBase {
   clusters: DetailClusters;
+  force: boolean;
   infos: {
-    pkg_id: string;
     cluster_ids: number[];
     display_info: {
       current_version: string;
     };
+    pkg_id: string;
   }[];
-  force: boolean;
 }
 
 /**
@@ -589,64 +589,64 @@ export interface MySQLProxyUpgradeDetails extends DetailBase {
  */
 export interface MySQLLocalUpgradeDetails extends DetailBase {
   clusters: DetailClusters;
+  force: boolean;
   infos: {
-    pkg_id: number;
     cluster_ids: number[];
     display_info: {
-      cluster_type: string;
-      current_version: string;
-      current_package: string;
-      target_package: string;
       charset: string;
+      cluster_type: string;
       current_module_name: string;
+      current_package: string;
+      current_version: string;
+      target_package: string;
     };
+    pkg_id: number;
   }[];
-  force: boolean;
 }
 
 /**
  * MySQL 迁移升级
  */
 export interface MySQLMigrateUpgradeDetails extends DetailBase {
-  clusters: DetailClusters;
-  ip_source: string;
   backup_source: string;
+  clusters: DetailClusters;
+  force: boolean;
   infos: {
     cluster_ids: number[];
-    new_db_module_id: number;
-    pkg_id: string;
-    new_master: MysqlIpItem;
-    new_slave: MysqlIpItem;
-    read_only_slaves?: {
-      old_slave: MysqlIpItem;
-      new_slave: MysqlIpItem;
-    }[];
     display_info: {
-      current_version: string;
-      target_version: string;
-      current_package: string;
-      target_package: string;
       charset: string;
       current_module_name: string;
-      target_module_name: string;
+      current_package: string;
+      current_version: string;
       old_master_slave?: string[];
+      target_module_name: string;
+      target_package: string;
+      target_version: string;
     };
+    new_db_module_id: number;
+    new_master: MysqlIpItem;
+    new_slave: MysqlIpItem;
+    pkg_id: string;
+    read_only_slaves?: {
+      new_slave: MysqlIpItem;
+      old_slave: MysqlIpItem;
+    }[];
   }[];
-  force: boolean;
+  ip_source: string;
 }
 
 /**
  * MySQL 权限规则变更
  */
 export interface MySQLAccountRuleChangeDetails extends DetailBase {
-  last_account_rules: AccountRule & {
-    userName: string;
-  };
-  action: 'change' | 'delete';
-  account_id: number;
   access_db: string;
-  privilege: AccountRulePrivilege;
-  bk_biz_id: number;
+  account_id: number;
   account_type: string;
+  action: 'change' | 'delete';
+  bk_biz_id: number;
+  last_account_rules: {
+    userName: string;
+  } & AccountRule;
+  privilege: AccountRulePrivilege;
   rule_id: number;
 }

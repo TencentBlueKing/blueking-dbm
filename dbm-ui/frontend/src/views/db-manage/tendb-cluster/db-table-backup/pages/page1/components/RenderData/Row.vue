@@ -73,29 +73,29 @@
   }
 
   export interface IDataRow {
-    rowKey: string;
-    clusterData?: {
-      id: number;
-      domain: string;
-    };
     backupLocal: string;
+    clusterData?: {
+      domain: string;
+      id: number;
+    };
     dbPatterns?: string[];
-    tablePatterns?: string[];
     ignoreDbs?: string[];
     ignoreTables?: string[];
+    rowKey: string;
+    tablePatterns?: string[];
   }
 
   export type IDataRowBatchKey = keyof Omit<IDataRow, 'rowKey' | 'clusterData'>;
 
   // 创建表格数据
   export const createRowData = (data = {} as Partial<IDataRow>): IDataRow => ({
-    rowKey: random(),
-    clusterData: data.clusterData,
     backupLocal: data.backupLocal || '',
+    clusterData: data.clusterData,
     dbPatterns: data.dbPatterns,
-    tablePatterns: data.tablePatterns,
     ignoreDbs: data.ignoreDbs,
     ignoreTables: data.ignoreTables,
+    rowKey: random(),
+    tablePatterns: data.tablePatterns,
   });
 </script>
 <script setup lang="ts">
@@ -151,8 +151,8 @@
       list.map((domain) =>
         createRowData({
           clusterData: {
-            id: 0,
             domain,
+            id: 0,
           },
         }),
       ),
@@ -186,15 +186,15 @@
       emits(
         'clone',
         createRowData({
-          clusterData: {
-            id: clusterData.cluster_id,
-            domain: '',
-          },
           backupLocal: backupLocalData.backup_local,
+          clusterData: {
+            domain: '',
+            id: clusterData.cluster_id,
+          },
           dbPatterns: dbPatternsData.db_patterns,
-          tablePatterns: tablePatternsData.table_patterns,
           ignoreDbs: ignoreDbsData.ignore_dbs,
           ignoreTables: ignoreTablesData.ignore_tables,
+          tablePatterns: tablePatternsData.table_patterns,
         }),
       );
     });

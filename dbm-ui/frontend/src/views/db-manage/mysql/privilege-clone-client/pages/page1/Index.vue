@@ -99,13 +99,13 @@
 
   // 单据克隆
   useTicketCloneInfo({
-    type: TicketTypes.MYSQL_CLIENT_CLONE_RULES,
     onSuccess(cloneData) {
       const { tableDataList } = cloneData;
       tableData.value = tableDataList;
       remark.value = cloneData.remark;
       window.changeConfirm = true;
     },
+    type: TicketTypes.MYSQL_CLIENT_CLONE_RULES,
   });
 
   const rowRefs = ref();
@@ -209,21 +209,21 @@
       .then((data) =>
         precheckPermissionClone({
           bizId: currentBizId,
-          clone_type: 'client',
-          clone_list: data,
           clone_cluster_type: 'mysql',
+          clone_list: data,
+          clone_type: 'client',
         }).then((precheckResult) => {
           if (!precheckResult.pre_check) {
             return Promise.reject();
           }
           return createTicket({
-            ticket_type: TicketTypes.MYSQL_CLIENT_CLONE_RULES,
             bk_biz_id: currentBizId,
-            remark: remark.value,
             details: {
               ...precheckResult,
               clone_type: 'client',
             },
+            remark: remark.value,
+            ticket_type: TicketTypes.MYSQL_CLIENT_CLONE_RULES,
           }).then((data) => {
             window.changeConfirm = false;
 

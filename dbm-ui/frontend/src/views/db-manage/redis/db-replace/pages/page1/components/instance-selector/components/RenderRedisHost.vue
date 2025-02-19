@@ -62,69 +62,65 @@
 
   import { activePanelInjectionKey } from './PanelTab.vue';
 
-  type RedisHostModel = ServiceReturnType<typeof getRedisMachineList>['results'][number] & {
+  type RedisHostModel = {
     isShowTip?: boolean;
-  };
+  } & ServiceReturnType<typeof getRedisMachineList>['results'][number];
 
   interface TableItem {
-    data: RedisHostModel
+    data: RedisHostModel;
   }
 
   export interface Props {
-    lastValues: InstanceSelectorValues,
+    isRadioMode?: boolean;
+    lastValues: InstanceSelectorValues;
+    masterSlaveMap?: Record<string, ServiceReturnType<typeof queryMasterSlavePairs>[number]>;
     node?: {
-      id: number,
-      name: string
-      obj: 'biz' | 'cluster'
-    },
-    role?: string,
-    isRadioMode?: boolean,
-    masterSlaveMap?: Record<string, ServiceReturnType<typeof queryMasterSlavePairs>[number]>,
+      id: number;
+      name: string;
+      obj: 'biz' | 'cluster';
+    };
+    role?: string;
   }
 
-  interface Emits {
-    (e: 'change', value: InstanceSelectorValues): void;
-  }
+  type Emits = (e: 'change', value: InstanceSelectorValues) => void;
 
-  export  interface ChoosedItem {
-    bk_host_id: number;
+  export interface ChoosedItem {
     bk_cloud_id: number;
+    bk_host_id: number;
+    cluster_domain: string;
     ip: string;
     role: string;
-    cluster_domain: string;
     spec_config: SpecInfo;
   }
 
   const props = withDefaults(defineProps<Props>(), {
-    node: undefined,
-    role: '',
     isRadioMode: false,
     masterSlaveMap: () => ({}),
+    node: undefined,
+    role: '',
   });
   const emits = defineEmits<Emits>();
 
   const { t } = useI18n();
 
   const {
+    clearSearchValue,
     columnAttrs,
-    searchAttrs,
-    searchValue,
     columnCheckedMap,
     columnFilterChange,
-    clearSearchValue,
-    validateSearchValues,
     handleSearchValueChange,
+    searchAttrs,
+    searchValue,
+    validateSearchValues,
   } = useLinkQueryColumnSerach({
-    searchType: ClusterTypes.REDIS,
-    attrs: [
-      'bk_cloud_id'
-    ],
-    fetchDataFn: () => fetchData(),
+    attrs: ['bk_cloud_id'],
     defaultSearchItem: {
-      name: 'IP',
       id: 'ip',
+      name: 'IP',
     },
+    fetchDataFn: () => fetchData(),
     isDiscardNondefault: true,
+    searchType: ClusterTypes.REDIS,
   });
 
   const activePanel = inject(activePanelInjectionKey);
@@ -139,222 +135,248 @@
   const checkedMap = shallowRef<Record<string, ChoosedItem>>({});
 
   const pagination = reactive({
+    align: 'right',
     count: 0,
     current: 1,
+    layout: ['total', 'limit', 'list'],
     limit: 10,
     limitList: [10, 20, 50, 100],
-    align: 'right',
-    layout: ['total', 'limit', 'list'],
-    remote: true
+    remote: true,
   });
 
-  const isSelectedAll = computed(() => (
-    tableData.value.length > 0
-    && tableData.value.length === tableData.value.filter(item => checkedMap.value[item.ip]).length
-  ));
+  const isSelectedAll = computed(
+    () =>
+      tableData.value.length > 0 &&
+      tableData.value.length === tableData.value.filter((item) => checkedMap.value[item.ip]).length,
+  );
 
   const isIndeterminate = computed(() => !isSelectedAll.value && Object.values(checkedMap.value).length > 0);
 
   const isSingleSelect = computed(() => props.isRadioMode);
 
   // 选中域名列表
-  const selectedDomains = computed(() => Object.values(checkedMap.value).map(item => item.ip));
+  const selectedDomains = computed(() => Object.values(checkedMap.value).map((item) => item.ip));
 
   const columns = computed(() => [
     {
-      width: 70,
       fixed: 'left',
-      label: () => (isSingleSelect.value ? '' : (
-        <div style="display:flex;align-items:center">
-          <bk-checkbox
-            indeterminate={isIndeterminate.value}
-            model-value={isSelectedAll.value}
-            onChange={handleSelectPageAll}
-          />
-          <bk-popover
-            placement="bottom-start"
-            theme="light db-table-select-menu"
-            arrow={ false }
-            trigger='hover'
-            v-slots={{
-              default: () => <db-icon class="select-menu-flag ml-10" type="down-big" />,
-              content: () => (
-                <div class="db-table-select-plan">
-                  <div
-                    class="item"
-                    onClick={handleWholeSelect}>{t('跨页全选')}</div>
-                </div>
-              ),
-            }}>
-          </bk-popover>
-        </div>
-      )),
-      render: ({ index, data }: {index: number, data: RedisHostModel}) => {
+      label: () =>
+        isSingleSelect.value ? (
+          ''
+        ) : (
+          <div style='display:flex;align-items:center'>
+            <bk-checkbox
+              indeterminate={isIndeterminate.value}
+              model-value={isSelectedAll.value}
+              onChange={handleSelectPageAll}
+            />
+            <bk-popover
+              v-slots={{
+                content: () => (
+                  <div class='db-table-select-plan'>
+                    <div
+                      class='item'
+                      onClick={handleWholeSelect}>
+                      {t('跨页全选')}
+                    </div>
+                  </div>
+                ),
+                default: () => (
+                  <db-icon
+                    class='select-menu-flag ml-10'
+                    type='down-big'
+                  />
+                ),
+              }}
+              arrow={false}
+              placement='bottom-start'
+              theme='light db-table-select-menu'
+              trigger='hover'></bk-popover>
+          </div>
+        ),
+      render: ({ data, index }: { data: RedisHostModel; index: number }) => {
         if (data.instance_role === 'redis_master' && showMasterTip.value) {
-          return <bk-popover
-            is-show={data.isShowTip}
-            popover-delay={0}
-            width={270}
-            trigger="manual"
-            theme="light"
-            placement="top">
-            {{
-              default: () => (isSingleSelect.value ? (
-                <bk-radio
-                  class="check-box"
-                  label={data.ip}
-                  model-value={selectedDomains.value[0]}
-                  onChange={() => handleTableSelectOne(true, data)}
-                />
-              ) : (
-                <bk-checkbox
-                  style="vertical-align:middle;padding-top:5px;"
-                  model-value={Boolean(checkedMap.value[data.ip])}
-                  onMouseenter={() => handleControlTip(index, true)}
-                  onChange={(value: boolean) => handleTableSelectOne(value, data)}
-                />
-              )),
-              content: () => (
-                <div class="redis-host-master-tip-box">
-                  <span>{t('选择 Master IP 会默认选上关联的 Slave IP，一同替换')}</span>
-                  <div class="no-tip" onClick={handleClickNoTip}>{t('不再提示')}</div>
-                </div>
-              ),
-            }}
-          </bk-popover>;
+          return (
+            <bk-popover
+              is-show={data.isShowTip}
+              placement='top'
+              popover-delay={0}
+              theme='light'
+              trigger='manual'
+              width={270}>
+              {{
+                content: () => (
+                  <div class='redis-host-master-tip-box'>
+                    <span>{t('选择 Master IP 会默认选上关联的 Slave IP，一同替换')}</span>
+                    <div
+                      class='no-tip'
+                      onClick={handleClickNoTip}>
+                      {t('不再提示')}
+                    </div>
+                  </div>
+                ),
+                default: () =>
+                  isSingleSelect.value ? (
+                    <bk-radio
+                      class='check-box'
+                      label={data.ip}
+                      model-value={selectedDomains.value[0]}
+                      onChange={() => handleTableSelectOne(true, data)}
+                    />
+                  ) : (
+                    <bk-checkbox
+                      model-value={Boolean(checkedMap.value[data.ip])}
+                      style='vertical-align:middle;padding-top:5px;'
+                      onChange={(value: boolean) => handleTableSelectOne(value, data)}
+                      onMouseenter={() => handleControlTip(index, true)}
+                    />
+                  ),
+              }}
+            </bk-popover>
+          );
         }
         return isSingleSelect.value ? (
           <bk-radio
-            class="check-box"
+            class='check-box'
             label={data.ip}
             model-value={selectedDomains.value[0]}
             onChange={() => handleTableSelectOne(true, data)}
           />
-          ) : (
+        ) : (
           <bk-checkbox
-            style="vertical-align: middle;"
             model-value={Boolean(checkedMap.value[data.ip])}
+            style='vertical-align: middle;'
+            onChange={(value: boolean) => handleTableSelectOne(value, data)}
             onClick={(e: Event) => e.stopPropagation()}
             onMouseenter={() => handleControlTip(index, false)}
-            onChange={(value: boolean) => handleTableSelectOne(value, data)}
           />
         );
       },
+      width: 70,
     },
     {
-      fixed: 'left',
-      minWidth: 160,
-      label: props.role ? props.role.charAt(0).toUpperCase() + props.role.slice(1) : t('实例'),
       field: 'ip',
+      fixed: 'left',
+      label: props.role ? props.role.charAt(0).toUpperCase() + props.role.slice(1) : t('实例'),
+      minWidth: 160,
     },
     {
-      label: t('角色类型'),
       field: 'instance_role',
+      label: t('角色类型'),
+      render: ({ data }: TableItem) => <span>{data.instance_role}</span>,
       showOverflow: true,
-      render: ({ data } : TableItem) => <span>{data.instance_role}</span>,
     },
     {
-      label: t('实例状态'),
       field: 'status',
-      render: ({ data } : TableItem) => {
-        const info = data.host_info.alive === 1 ? { theme: 'success', text: t('正常') } : { theme: 'danger', text: t('异常') };
+      label: t('实例状态'),
+      render: ({ data }: TableItem) => {
+        const info =
+          data.host_info.alive === 1 ? { text: t('正常'), theme: 'success' } : { text: t('异常'), theme: 'danger' };
         return <DbStatus theme={info.theme}>{info.text}</DbStatus>;
       },
     },
     {
-      label: t('园区'),
       field: 'bk_sub_zone',
+      label: t('园区'),
       minWidth: 120,
-      showOverflow: true,
       render: ({ data }: TableItem) => data.bk_sub_zone || '--',
+      showOverflow: true,
     },
     {
-      label: t('机架ID'),
       field: 'bk_rack_id',
+      label: t('机架ID'),
       minWidth: 80,
-      showOverflow: true,
       render: ({ data }: TableItem) => data.bk_rack_id || '--',
-    },
-    {
-      label: t('机型'),
-      field: 'bk_svr_device_cls_name',
-      minWidth: 120,
       showOverflow: true,
-      render: ({ data }: TableItem) => data.bk_svr_device_cls_name || '--',
     },
     {
-      minWidth: 100,
-      label: t('管控区域'),
+      field: 'bk_svr_device_cls_name',
+      label: t('机型'),
+      minWidth: 120,
+      render: ({ data }: TableItem) => data.bk_svr_device_cls_name || '--',
+      showOverflow: true,
+    },
+    {
       field: 'bk_cloud_id',
       filter: {
-        list: columnAttrs.value.bk_cloud_id,
         checked: columnCheckedMap.value.bk_cloud_id,
+        list: columnAttrs.value.bk_cloud_id,
       },
+      label: t('管控区域'),
+      minWidth: 100,
       render: ({ data }: TableItem) => <span>{data.bk_cloud_name ?? '--'}</span>,
     },
     {
-      minWidth: 100,
-      label: t('Agent状态'),
       field: 'alive',
-      render: ({ data } : TableItem) => {
-        const info = data.host_info?.alive === 1 ? { theme: 'success', text: t('正常') } : { theme: 'danger', text: t('异常') };
+      label: t('Agent状态'),
+      minWidth: 100,
+      render: ({ data }: TableItem) => {
+        const info =
+          data.host_info?.alive === 1 ? { text: t('正常'), theme: 'success' } : { text: t('异常'), theme: 'danger' };
         return <DbStatus theme={info.theme}>{info.text}</DbStatus>;
       },
     },
     {
-      label: t('主机名称'),
       field: 'host_name',
-      showOverflow: true,
+      label: t('主机名称'),
       minWidth: 150,
-      render: ({ data } : TableItem) => data.host_info?.host_name || '--',
+      render: ({ data }: TableItem) => data.host_info?.host_name || '--',
+      showOverflow: true,
     },
     {
-      label: t('OS名称'),
       field: 'os_name',
-      showOverflow: true,
+      label: t('OS名称'),
       minWidth: 150,
-      render: ({ data } : TableItem) => data.host_info?.os_name || '--',
+      render: ({ data }: TableItem) => data.host_info?.os_name || '--',
+      showOverflow: true,
     },
     {
-      label: t('所属云厂商'),
       field: 'cloud_vendor',
-      showOverflow: true,
+      label: t('所属云厂商'),
       render: ({ data }: TableItem) => data.host_info?.cloud_vendor || '--',
+      showOverflow: true,
     },
     {
-      label: t('OS类型'),
       field: 'os_type',
-      showOverflow: true,
+      label: t('OS类型'),
       render: ({ data }: TableItem) => data.host_info?.os_type || '--',
+      showOverflow: true,
     },
     {
-      label: t('主机ID'),
       field: 'host_id',
+      label: t('主机ID'),
+      render: ({ data }: TableItem) => data.host_info?.host_id || '--',
       showOverflow: true,
-      render: ({ data } : TableItem) => data.host_info?.host_id || '--',
     },
     {
-      label: 'Agent ID',
       field: 'agent_id',
+      label: 'Agent ID',
+      render: ({ data }: TableItem) => data.host_info?.agent_id || '--',
       showOverflow: true,
-      render: ({ data } : TableItem) => data.host_info?.agent_id || '--',
     },
   ]);
 
-  watch(() => props.lastValues, (lastValues) => {
-    // 切换 tab 回显选中状态 \ 预览结果操作选中状态
-    checkedMap.value = {};
-    const checkedList = lastValues.idleHosts;
-    for (const item of checkedList) {
-      checkedMap.value[item.ip] = item;
-    }
-  }, { immediate: true, deep: true });
+  watch(
+    () => props.lastValues,
+    (lastValues) => {
+      // 切换 tab 回显选中状态 \ 预览结果操作选中状态
+      checkedMap.value = {};
+      const checkedList = lastValues.idleHosts;
+      for (const item of checkedList) {
+        checkedMap.value[item.ip] = item;
+      }
+    },
+    { deep: true, immediate: true },
+  );
 
-  watch(() => props.node, () => {
-    if (props.node) {
-      fetchData();
-    }
-  });
+  watch(
+    () => props.node,
+    () => {
+      if (props.node) {
+        fetchData();
+      }
+    },
+  );
 
   const handleControlTip = (index: number, isMaster: boolean) => {
     tableData.value.forEach((item) => {
@@ -373,25 +395,27 @@
   };
 
   const generateParams = () => ({
+    extra: 1,
     limit: pagination.limit,
     offset: (pagination.current - 1) * pagination.limit,
-    extra: 1,
     ...getSearchSelectorParams(searchValue.value),
     ...(props.node?.obj === 'cluster' && {
       cluster_ids: `${props.node.id}`,
     }),
-  })
+  });
 
   // 跨页全选
   const handleWholeSelect = () => {
     isTableDataLoading.value = true;
     const params = generateParams();
     params.limit = -1;
-    getRedisMachineList(params).then((data) => {
-      data.results.forEach((dataItem) => {
-        handleTableSelectOne(true, dataItem);
-      });
-    }).finally(() => isTableDataLoading.value = false);
+    getRedisMachineList(params)
+      .then((data) => {
+        data.results.forEach((dataItem) => {
+          handleTableSelectOne(true, dataItem);
+        });
+      })
+      .finally(() => (isTableDataLoading.value = false));
   };
 
   const fetchData = () => {
@@ -400,9 +424,11 @@
       const params = generateParams();
       getRedisMachineList(params)
         .then((data) => {
-          tableData.value = data.results.map(item => Object.assign(item, {
-            isShowTip: false,
-          }));
+          tableData.value = data.results.map((item) =>
+            Object.assign(item, {
+              isShowTip: false,
+            }),
+          );
           pagination.count = data.count;
           isAnomalies.value = false;
         })
@@ -427,11 +453,11 @@
   };
 
   const formatValue = (data: RedisHostModel) => ({
-    bk_host_id: data?.bk_host_id || 0,
     bk_cloud_id: data?.host_info?.cloud_id || 0,
+    bk_host_id: data?.bk_host_id || 0,
+    cluster_domain: props.node?.name ?? '',
     ip: data?.ip || '',
     role: data?.instance_role || '',
-    cluster_domain: props.node?.name ?? '',
     spec_config: data?.spec_config || null,
   });
 
@@ -454,7 +480,7 @@
       lastCheckMap[data.ip] = formatValue(data);
       // master 与 slave 关联选择
       if (Object.keys(props.masterSlaveMap).length > 0 && data.instance_role === 'redis_master') {
-        const {slave_ip: slaveIp, slaves } = props.masterSlaveMap[data.ip];
+        const { slave_ip: slaveIp, slaves } = props.masterSlaveMap[data.ip];
         lastCheckMap[slaveIp] = {
           ...formatValue(data),
           ...slaves,
@@ -484,7 +510,7 @@
     handlePageValueChange(1);
   };
   // 切换页码
-  const handlePageValueChange = (pageValue:number) => {
+  const handlePageValueChange = (pageValue: number) => {
     pagination.current = pageValue;
     fetchData();
   };

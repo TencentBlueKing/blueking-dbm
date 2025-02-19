@@ -14,193 +14,193 @@
 import { t } from '@locales/index';
 
 export interface MenuChild {
-  name: string;
-  id: string;
-  parentId: string;
   dbConsoleValue: string;
+  id: string;
+  name: string;
+  parentId: string;
 }
 
 export default [
   {
-    name: t('SQL任务'),
-    id: 'sql',
-    icon: 'db-icon-mysql',
     children: [
       {
-        name: t('变更SQL执行'),
-        id: 'MySQLExecute',
-        parentId: 'sql',
         dbConsoleValue: 'mysql.toolbox.sqlExecute',
-      },
-      {
-        name: t('DB重命名'),
-        id: 'MySQLDBRename',
+        id: 'MySQLExecute',
+        name: t('变更SQL执行'),
         parentId: 'sql',
+      },
+      {
         dbConsoleValue: 'mysql.toolbox.dbRename',
+        id: 'MySQLDBRename',
+        name: t('DB重命名'),
+        parentId: 'sql',
       },
     ],
+    icon: 'db-icon-mysql',
+    id: 'sql',
+    name: t('SQL任务'),
   },
   {
-    name: t('备份'),
-    id: 'copy',
-    icon: 'db-icon-copy',
     children: [
       {
-        name: t('库表备份'),
-        id: 'MySQLDBTableBackup',
-        parentId: 'copy',
         dbConsoleValue: 'mysql.toolbox.dbTableBackup',
-      },
-      {
-        name: t('全库备份'),
-        id: 'MySQLDBBackup',
+        id: 'MySQLDBTableBackup',
+        name: t('库表备份'),
         parentId: 'copy',
+      },
+      {
         dbConsoleValue: 'mysql.toolbox.dbBackup',
+        id: 'MySQLDBBackup',
+        name: t('全库备份'),
+        parentId: 'copy',
       },
     ],
+    icon: 'db-icon-copy',
+    id: 'copy',
+    name: t('备份'),
   },
   {
-    name: t('回档'),
-    id: 'fileback',
-    icon: 'db-icon-rollback',
     children: [
       {
-        name: t('定点构造'),
-        id: 'MySQLDBRollback',
-        parentId: 'fileback',
         dbConsoleValue: 'mysql.toolbox.rollback',
-      },
-      {
-        name: t('闪回'),
-        id: 'MySQLDBFlashback',
+        id: 'MySQLDBRollback',
+        name: t('定点构造'),
         parentId: 'fileback',
+      },
+      {
         dbConsoleValue: 'mysql.toolbox.flashback',
+        id: 'MySQLDBFlashback',
+        name: t('闪回'),
+        parentId: 'fileback',
       },
     ],
+    icon: 'db-icon-rollback',
+    id: 'fileback',
+    name: t('回档'),
   },
   {
-    name: t('权限克隆'),
-    id: 'privilege',
-    icon: 'db-icon-clone',
     children: [
       {
-        name: t('客户端权限克隆'),
-        id: 'MySQLPrivilegeCloneClient',
-        parentId: 'privilege',
         dbConsoleValue: 'mysql.toolbox.clientPermissionClone',
-      },
-      {
-        name: t('DB实例权限克隆'),
-        id: 'MySQLPrivilegeCloneInst',
+        id: 'MySQLPrivilegeCloneClient',
+        name: t('客户端权限克隆'),
         parentId: 'privilege',
+      },
+      {
         dbConsoleValue: 'mysql.toolbox.dbInstancePermissionClone',
+        id: 'MySQLPrivilegeCloneInst',
+        name: t('DB实例权限克隆'),
+        parentId: 'privilege',
       },
     ],
+    icon: 'db-icon-clone',
+    id: 'privilege',
+    name: t('权限克隆'),
   },
   {
-    name: t('集群维护'),
-    id: 'migrate',
-    icon: 'db-icon-cluster',
     children: [
       {
-        name: t('重建从库'),
-        id: 'MySQLSlaveRebuild',
-        parentId: 'migrate',
         dbConsoleValue: 'mysql.toolbox.slaveRebuild',
+        id: 'MySQLSlaveRebuild',
+        name: t('重建从库'),
+        parentId: 'migrate',
       },
       {
-        name: t('添加从库'),
-        id: 'MySQLSlaveAdd',
-        parentId: 'migrate',
         dbConsoleValue: 'mysql.toolbox.slaveAdd',
+        id: 'MySQLSlaveAdd',
+        name: t('添加从库'),
+        parentId: 'migrate',
       },
       {
-        name: t('迁移主从'),
-        id: 'MySQLMasterSlaveClone',
-        parentId: 'migrate',
         dbConsoleValue: 'mysql.toolbox.masterSlaveClone',
+        id: 'MySQLMasterSlaveClone',
+        name: t('迁移主从'),
+        parentId: 'migrate',
       },
       {
-        name: t('主从互切'),
-        id: 'MySQLMasterSlaveSwap',
-        parentId: 'migrate',
         dbConsoleValue: 'mysql.toolbox.masterSlaveSwap',
+        id: 'MySQLMasterSlaveSwap',
+        name: t('主从互切'),
+        parentId: 'migrate',
       },
       {
-        name: t('替换Proxy'),
-        id: 'MySQLProxyReplace',
-        parentId: 'migrate',
         dbConsoleValue: 'mysql.toolbox.proxyReplace',
+        id: 'MySQLProxyReplace',
+        name: t('替换Proxy'),
+        parentId: 'migrate',
       },
       {
-        name: t('添加Proxy'),
-        id: 'MySQLProxyAdd',
-        parentId: 'migrate',
         dbConsoleValue: 'mysql.toolbox.proxyAdd',
+        id: 'MySQLProxyAdd',
+        name: t('添加Proxy'),
+        parentId: 'migrate',
       },
       {
-        name: t('主库故障切换'),
-        id: 'MySQLMasterFailover',
-        parentId: 'migrate',
         dbConsoleValue: 'mysql.toolbox.masterFailover',
-      },
-      {
-        name: t('版本升级'),
-        id: 'MySQLVersionUpgrade',
+        id: 'MySQLMasterFailover',
+        name: t('主库故障切换'),
         parentId: 'migrate',
+      },
+      {
         dbConsoleValue: 'mysql.toolbox.versionUpgrade',
+        id: 'MySQLVersionUpgrade',
+        name: t('版本升级'),
+        parentId: 'migrate',
       },
     ],
+    icon: 'db-icon-cluster',
+    id: 'migrate',
+    name: t('集群维护'),
   },
   {
-    name: t('数据处理'),
-    id: 'data',
-    icon: 'db-icon-data',
     children: [
       {
-        name: t('清档'),
-        id: 'MySQLDBClear',
-        parentId: 'data',
         dbConsoleValue: 'mysql.toolbox.dbClear',
+        id: 'MySQLDBClear',
+        name: t('清档'),
+        parentId: 'data',
       },
       {
-        name: t('数据校验修复'),
-        id: 'MySQLChecksum',
-        parentId: 'data',
         dbConsoleValue: 'mysql.toolbox.checksum',
-      },
-      {
-        name: t('DB克隆'),
-        id: 'MySQLDataMigrate',
+        id: 'MySQLChecksum',
+        name: t('数据校验修复'),
         parentId: 'data',
+      },
+      {
         dbConsoleValue: 'mysql.toolbox.dataMigrate',
+        id: 'MySQLDataMigrate',
+        name: t('DB克隆'),
+        parentId: 'data',
       },
     ],
+    icon: 'db-icon-data',
+    id: 'data',
+    name: t('数据处理'),
   },
   {
-    name: t('克隆开区'),
-    id: 'mysql_openarea',
-    icon: 'db-icon-template',
     children: [
       {
-        name: t('开区模版'),
-        id: 'MySQLOpenareaTemplate',
-        parentId: 'mysql_openarea',
         dbConsoleValue: 'mysql.toolbox.openareaTemplate',
+        id: 'MySQLOpenareaTemplate',
+        name: t('开区模版'),
+        parentId: 'mysql_openarea',
       },
     ],
+    icon: 'db-icon-template',
+    id: 'mysql_openarea',
+    name: t('克隆开区'),
   },
   {
-    name: t('数据查询'),
-    id: 'mysql_data_query',
-    icon: 'db-icon-search',
     children: [
       {
-        name: 'Webconsole',
-        id: 'MySQLWebconsole',
-        parentId: 'mysql_data_query',
         dbConsoleValue: 'mysql.toolbox.webconsole',
+        id: 'MySQLWebconsole',
+        name: 'Webconsole',
+        parentId: 'mysql_data_query',
       },
     ],
+    icon: 'db-icon-search',
+    id: 'mysql_data_query',
+    name: t('数据查询'),
   },
 ];

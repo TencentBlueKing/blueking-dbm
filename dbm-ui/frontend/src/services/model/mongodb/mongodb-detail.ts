@@ -32,26 +32,26 @@ interface MongoInstance {
   port: number;
   role?: string;
   spec_config: {
-    id: number;
+    count: number;
     cpu: {
       max: number;
       min: number;
     };
+    device_class: string[];
+    id: number;
     mem: {
       max: number;
       min: number;
     };
+    name: string;
     qps: {
       max: number;
       min: number;
     };
-    name: string;
-    count: number;
-    device_class: string[];
     storage_spec: {
+      mount_point: string;
       size: number;
       type: string;
-      mount_point: string;
     }[];
   };
   status: string;
@@ -59,15 +59,15 @@ interface MongoInstance {
 
 export default class MongodbDetail {
   static operationIconMap: Record<string, string> = {
-    [TicketTypes.MONGODB_ENABLE]: t('启用中'),
-    [TicketTypes.MONGODB_DISABLE]: t('禁用中'),
     [TicketTypes.MONGODB_DESTROY]: t('删除中'),
+    [TicketTypes.MONGODB_DISABLE]: t('禁用中'),
+    [TicketTypes.MONGODB_ENABLE]: t('启用中'),
   };
 
   static operationTextMap: Record<string, string> = {
-    [TicketTypes.MONGODB_ENABLE]: t('启用任务进行中'),
-    [TicketTypes.MONGODB_DISABLE]: t('禁用任务进行中'),
     [TicketTypes.MONGODB_DESTROY]: t('删除任务进行中'),
+    [TicketTypes.MONGODB_DISABLE]: t('禁用任务进行中'),
+    [TicketTypes.MONGODB_ENABLE]: t('启用任务进行中'),
   };
 
   bk_biz_id: number;
@@ -97,16 +97,23 @@ export default class MongodbDetail {
     cluster_type: string;
     create_at: string;
     host_info?: {
+      agent_id: number;
       alive: number;
       biz: {
         id: number;
         name: string;
       };
+      bk_cpu?: number;
+      bk_disk?: number;
+      bk_idc_name?: string;
+      bk_mem?: number;
       cloud_area: {
         id: number;
         name: string;
       };
       cloud_id: number;
+      cloud_vendor: string;
+      cpu: string;
       host_id: number;
       host_name?: string;
       ip: string;
@@ -116,17 +123,10 @@ export default class MongodbDetail {
         scope_id: number;
         scope_type: string;
       };
+      os_name: string;
+      os_type: string;
       scope_id: string;
       scope_type: string;
-      os_name: string;
-      bk_cpu?: number;
-      bk_disk?: number;
-      bk_mem?: number;
-      os_type: string;
-      agent_id: number;
-      cpu: string;
-      cloud_vendor: string;
-      bk_idc_name?: string;
     };
     instance_address: string;
     ip: string;
@@ -156,9 +156,9 @@ export default class MongodbDetail {
   }[];
   major_version: string;
   master_domain: string;
+  mongo_config: MongoInstance[];
   mongodb: MongoInstance[];
   mongos: MongoInstance[];
-  mongo_config: MongoInstance[];
   operations: {
     cluster_id: number;
     flow_id: number;
@@ -233,117 +233,12 @@ export default class MongodbDetail {
     this.status = payload.status;
   }
 
-  get isOnline() {
-    return this.phase === 'online';
-  }
-
-  get isOffline() {
-    return this.phase === 'offline';
-  }
-
-  get isStarting() {
-    return Boolean(this.operations.find((item) => item.ticket_type === TicketTypes.MONGODB_ENABLE));
-  }
-
-  get runningOperation() {
-    const operateTicketTypes = Object.keys(MongodbDetail.operationTextMap);
-    return this.operations.find((item) => operateTicketTypes.includes(item.ticket_type) && item.status === 'RUNNING');
-  }
-
-  // 操作中的状态
-  get operationRunningStatus() {
-    if (this.operations.length < 1) {
-      return '';
-    }
-    const operation = this.runningOperation;
-    if (!operation) {
-      return '';
-    }
-    return operation.ticket_type;
-  }
-
-  // 操作中的状态描述文本
-  get operationStatusText() {
-    return MongodbDetail.operationTextMap[this.operationRunningStatus];
-  }
-
-  get operationStatusIcon() {
-    return MongodbDetail.operationIconMap[this.operationRunningStatus];
-  }
-
-  // 操作中的单据 ID
-  get operationTicketId() {
-    if (this.operations.length < 1) {
-      return 0;
-    }
-    const operation = this.runningOperation;
-    if (!operation) {
-      return 0;
-    }
-    return operation.ticket_id;
-  }
-
-  get operationDisabled() {
-    // 集群异常不支持操作
-    if (this.status === 'abnormal') {
-      return true;
-    }
-    // 被禁用的集群不支持操作
-    if (this.phase !== 'online') {
-      return true;
-    }
-    // 各个操作互斥，有其他任务进行中禁用操作按钮
-    if (this.operationTicketId) {
-      return true;
-    }
-    return false;
-  }
-
-  get isNormal() {
-    return this.status === 'normal';
-  }
-
-  get masterDomainDisplayName() {
-    return `${this.master_domain}:${this.cluster_access_port}`;
-  }
-
-  get isOfflineOperationRunning() {
-    return ([TicketTypes.MONGODB_ENABLE, TicketTypes.MONGODB_DESTROY] as string[]).includes(
-      this.operationRunningStatus,
-    );
-  }
-
-  get isDisabled() {
-    return !this.isOnline && !this.isOfflineOperationRunning;
-  }
-
-  get operationTagTips() {
-    return this.operations.map((item) => ({
-      icon: MongodbDetail.operationIconMap[item.ticket_type],
-      tip: MongodbDetail.operationTextMap[item.ticket_type],
-      ticketId: item.ticket_id,
-    }));
-  }
-
   get createAtDisplay() {
     return utcDisplayTime(this.create_at);
   }
 
-  get isMongoReplicaSet() {
-    return this.cluster_type === 'MongoReplicaSet';
-  }
-
-  get entryDomain() {
-    if (this.isMongoReplicaSet) {
-      const domainList = this.cluster_entry.reduce<string[]>((prevDomainList, entryItem) => {
-        if (!entryItem.entry.includes('backup')) {
-          return prevDomainList.concat(`${entryItem.entry}:${this.cluster_access_port}`);
-        }
-        return prevDomainList;
-      }, []);
-      return domainList.join(',');
-    }
-    return `${this.master_domain}:${this.cluster_access_port}`;
+  get disasterToleranceLevelName() {
+    return ClusterAffinityMap[this.disaster_tolerance_level];
   }
 
   get entryAccess() {
@@ -363,7 +258,112 @@ export default class MongodbDetail {
     return '';
   }
 
-  get disasterToleranceLevelName() {
-    return ClusterAffinityMap[this.disaster_tolerance_level];
+  get entryDomain() {
+    if (this.isMongoReplicaSet) {
+      const domainList = this.cluster_entry.reduce<string[]>((prevDomainList, entryItem) => {
+        if (!entryItem.entry.includes('backup')) {
+          return prevDomainList.concat(`${entryItem.entry}:${this.cluster_access_port}`);
+        }
+        return prevDomainList;
+      }, []);
+      return domainList.join(',');
+    }
+    return `${this.master_domain}:${this.cluster_access_port}`;
+  }
+
+  get isDisabled() {
+    return !this.isOnline && !this.isOfflineOperationRunning;
+  }
+
+  get isMongoReplicaSet() {
+    return this.cluster_type === 'MongoReplicaSet';
+  }
+
+  get isNormal() {
+    return this.status === 'normal';
+  }
+
+  get isOffline() {
+    return this.phase === 'offline';
+  }
+
+  get isOfflineOperationRunning() {
+    return ([TicketTypes.MONGODB_ENABLE, TicketTypes.MONGODB_DESTROY] as string[]).includes(
+      this.operationRunningStatus,
+    );
+  }
+
+  get isOnline() {
+    return this.phase === 'online';
+  }
+
+  get isStarting() {
+    return Boolean(this.operations.find((item) => item.ticket_type === TicketTypes.MONGODB_ENABLE));
+  }
+
+  get masterDomainDisplayName() {
+    return `${this.master_domain}:${this.cluster_access_port}`;
+  }
+
+  get operationDisabled() {
+    // 集群异常不支持操作
+    if (this.status === 'abnormal') {
+      return true;
+    }
+    // 被禁用的集群不支持操作
+    if (this.phase !== 'online') {
+      return true;
+    }
+    // 各个操作互斥，有其他任务进行中禁用操作按钮
+    if (this.operationTicketId) {
+      return true;
+    }
+    return false;
+  }
+
+  // 操作中的状态
+  get operationRunningStatus() {
+    if (this.operations.length < 1) {
+      return '';
+    }
+    const operation = this.runningOperation;
+    if (!operation) {
+      return '';
+    }
+    return operation.ticket_type;
+  }
+
+  get operationStatusIcon() {
+    return MongodbDetail.operationIconMap[this.operationRunningStatus];
+  }
+
+  // 操作中的状态描述文本
+  get operationStatusText() {
+    return MongodbDetail.operationTextMap[this.operationRunningStatus];
+  }
+
+  get operationTagTips() {
+    return this.operations.map((item) => ({
+      icon: MongodbDetail.operationIconMap[item.ticket_type],
+      ticketId: item.ticket_id,
+      tip: MongodbDetail.operationTextMap[item.ticket_type],
+    }));
+  }
+
+  // 操作中的单据 ID
+  get operationTicketId() {
+    if (this.operations.length < 1) {
+      return 0;
+    }
+    const operation = this.runningOperation;
+    if (!operation) {
+      return 0;
+    }
+    return operation.ticket_id;
+  }
+
+  get runningOperation() {
+    const operateTicketTypes = Object.keys(MongodbDetail.operationTextMap);
+    return this.operations.find((item) => operateTicketTypes.includes(item.ticket_type) && item.status === 'RUNNING');
   }
 }

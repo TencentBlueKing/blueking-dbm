@@ -117,8 +117,8 @@
   import RenderDataRow, { createRowData, type IDataRow, type IHostData } from './Row.vue';
 
   interface Props {
-    tableList: IDataRow[];
     remark: string;
+    tableList: IDataRow[];
   }
 
   const props = defineProps<Props>();
@@ -142,22 +142,16 @@
         [ClusterTypes.REDIS]: [
           {
             name: t('实例选择'),
-            topoConfig: {
-              getTopoList: (params: ServiceParameters<typeof getRedisClusterList>) =>
-                getRedisClusterList({
-                  cluster_type: [
-                    ClusterTypes.TWEMPROXY_REDIS_INSTANCE,
-                    ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER,
-                    ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE,
-                    ClusterTypes.PREDIXY_REDIS_CLUSTER,
-                  ].join(','),
-                  ...params,
-                }),
-              countFunc: (data: RedisModel) => data.redis_master.length,
-              totalCountFunc: (dataList: RedisModel[]) =>
-                dataList.reduce<number>((prevCount, item) => prevCount + item.redis_master.length, 0),
+            previewConfig: {
+              displayKey: 'instance_address',
             },
             tableConfig: {
+              columnsChecked: ['instance_address', 'cloud_area', 'status', 'host_name', 'os_name'],
+              firsrColumn: {
+                field: 'instance_address',
+                label: t('Master 实例'),
+                role: '',
+              },
               getTableList: (params: ServiceParameters<typeof getRedisInstances>) =>
                 getRedisInstances({
                   cluster_type: [
@@ -170,29 +164,44 @@
                   ...params,
                 }),
               multiple: true,
-              firsrColumn: {
-                label: t('Master 实例'),
-                field: 'instance_address',
-                role: '',
-              },
-              columnsChecked: ['instance_address', 'cloud_area', 'status', 'host_name', 'os_name'],
             },
-            previewConfig: {
-              displayKey: 'instance_address',
+            topoConfig: {
+              countFunc: (data: RedisModel) => data.redis_master.length,
+              getTopoList: (params: ServiceParameters<typeof getRedisClusterList>) =>
+                getRedisClusterList({
+                  cluster_type: [
+                    ClusterTypes.TWEMPROXY_REDIS_INSTANCE,
+                    ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER,
+                    ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE,
+                    ClusterTypes.PREDIXY_REDIS_CLUSTER,
+                  ].join(','),
+                  ...params,
+                }),
+              totalCountFunc: (dataList: RedisModel[]) =>
+                dataList.reduce<number>((prevCount, item) => prevCount + item.redis_master.length, 0),
             },
           },
           {
+            content: ManualInputHostContent,
             manualConfig: {
-              checkType: 'instance',
-              checkKey: 'instance_address',
               activePanelId: 'redis',
+              checkKey: 'instance_address',
+              checkType: 'instance',
               fieldFormat: {
                 role: {
                   master: 'redis_master',
                 },
               },
             },
+            previewConfig: {
+              displayKey: 'instance_address',
+            },
             tableConfig: {
+              firsrColumn: {
+                field: 'instance_address',
+                label: t('Master 实例'),
+                role: 'redis_master',
+              },
               getTableList: (params: ServiceParameters<typeof getRedisInstances>) =>
                 getRedisInstances({
                   cluster_type: [
@@ -203,17 +212,8 @@
                   ].join(','),
                   ...params,
                 }),
-              firsrColumn: {
-                label: t('Master 实例'),
-                field: 'instance_address',
-                role: 'redis_master',
-              },
               multiple: true,
             },
-            previewConfig: {
-              displayKey: 'instance_address',
-            },
-            content: ManualInputHostContent,
           },
         ],
       }) as unknown as Record<ClusterTypes, PanelListType>,
@@ -293,9 +293,9 @@
       return sameArr.map<IDataRow>((item, index) => ({
         ...item,
         spanData: {
+          isGeneral,
           isStart: index === 0,
           rowSpan: index === 0 ? sameArr.length : 1,
-          isGeneral,
         },
       }));
     });
@@ -303,23 +303,23 @@
   };
 
   const generateTableRow = (item: RedisInstanceModel, master?: IHostData, slave?: IHostData) => ({
-    rowKey: random(),
-    isLoading: false,
-    spanData: {
-      isStart: false,
-      isGeneral: true,
-      rowSpan: 1,
-    },
     clusterData: {
-      instance: item.instance_address,
-      domain: item.master_domain,
       clusterId: item.cluster_id,
       clusterType: item.cluster_type,
+      domain: item.master_domain,
+      instance: item.instance_address,
       specId: item.spec_config.id,
       specName: item.spec_config.name,
     },
+    isLoading: false,
     master,
+    rowKey: random(),
     slave,
+    spanData: {
+      isGeneral: true,
+      isStart: false,
+      rowSpan: 1,
+    },
   });
 
   // 批量选择
@@ -331,7 +331,7 @@
       instances: data[ClusterTypes.REDIS].map((item) => item.instance_address),
     });
 
-    if (slaveInstanceMap && slaveInstanceMap.instances) {
+    if (slaveInstanceMap?.instances) {
       const masterInstanceMap = data[ClusterTypes.REDIS].reduce<
         Record<
           string,
@@ -397,7 +397,7 @@
         instances: [value],
       });
 
-      if (newInstanceMap && newInstanceMap.instances) {
+      if (newInstanceMap?.instances) {
         const slaveItem = newInstanceMap.instances[value];
         Object.assign(row, {
           master: {
@@ -438,12 +438,12 @@
       isSubmitting.value = true;
       const infos = await Promise.all(rowRefs.value.map((item: { getValue: () => Promise<any> }) => item.getValue()));
       await createTicket({
-        ticket_type: TicketTypes.REDIS_CLUSTER_INS_MIGRATE,
-        remark: localRemark.value,
+        bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
         details: {
           infos,
         },
-        bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+        remark: localRemark.value,
+        ticket_type: TicketTypes.REDIS_CLUSTER_INS_MIGRATE,
       }).then((data) => {
         window.changeConfirm = false;
 

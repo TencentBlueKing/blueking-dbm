@@ -19,11 +19,11 @@ import { ClusterTypes } from '@common/const';
  * 对应集群参数配置版本信息
  */
 export type ExtraConfListItem = {
-  version: string;
   conf_type: string;
-  title: string;
-  loading: boolean;
   data: ServiceReturnType<typeof getLevelConfig> | null;
+  loading: boolean;
+  title: string;
+  version: string;
 };
 
 /**

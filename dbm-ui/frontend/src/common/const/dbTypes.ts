@@ -9,13 +9,13 @@ export enum DBTypes {
   REDIS = 'redis',
 }
 export enum DBTypes {
+  DORIS = 'doris',
   ES = 'es', // ElasticSearch
-  KAFKA = 'kafka',
   HDFS = 'hdfs',
   INFLUXDB = 'influxdb',
-  RIAK = 'riak',
+  KAFKA = 'kafka',
   PULSAR = 'pulsar',
-  DORIS = 'doris',
+  RIAK = 'riak',
 }
 export enum DBTypes {
   MONGODB = 'mongodb',

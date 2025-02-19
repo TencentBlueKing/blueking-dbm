@@ -89,26 +89,26 @@
   import type GrammarCheckModel from '@services/model/sql-import/grammar-check';
 
   export interface IFileData {
-    isSuccess: boolean;
-    isCheckFailded: boolean;
-    isUploading: boolean;
-    isUploadFailed: boolean;
-    file: File | null;
     content: string;
-    messageList: GrammarCheckModel['messageList'];
+    file: File | null;
     grammarCheck?: GrammarCheckModel;
+    isCheckFailded: boolean;
+    isSuccess: boolean;
+    isUploadFailed: boolean;
+    isUploading: boolean;
+    messageList: GrammarCheckModel['messageList'];
     realFilePath: string;
   }
 
   export const createFileData = (data = {} as Partial<IFileData>) => ({
-    isSuccess: data.isSuccess || false,
-    isCheckFailded: data.isCheckFailded === undefined,
-    isUploading: data.isUploading || false,
-    isUploadFailed: data.isUploadFailed || false,
-    file: data.file || null,
     content: data.content || '',
-    messageList: data.messageList || [],
+    file: data.file || null,
     grammarCheck: data.grammarCheck,
+    isCheckFailded: data.isCheckFailded === undefined,
+    isSuccess: data.isSuccess || false,
+    isUploadFailed: data.isUploadFailed || false,
+    isUploading: data.isUploading || false,
+    messageList: data.messageList || [],
     realFilePath: data.realFilePath || '',
   });
 </script>

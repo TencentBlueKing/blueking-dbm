@@ -46,7 +46,6 @@
 
   interface Props {
     dataList: {
-      name: string;
       cpu: {
         max: number;
         min: number;
@@ -56,6 +55,7 @@
         max: number;
         min: number;
       };
+      name: string;
       qps: {
         max: number;
         min: number;
@@ -66,24 +66,24 @@
         type: string;
       }[];
     }[];
-    isLoading?: boolean;
-    isIgnoreCounts?: boolean;
-    placeholder?: string;
     hideQps?: boolean;
+    isIgnoreCounts?: boolean;
+    isLoading?: boolean;
+    placeholder?: string;
   }
 
   const props = withDefaults(defineProps<Props>(), {
-    placeholder: undefined,
-    isLoading: false,
-    isIgnoreCounts: false,
     hideQps: true,
+    isIgnoreCounts: false,
+    isLoading: false,
+    placeholder: undefined,
   });
 
   const { t } = useI18n();
 
   const renderList = computed(() => {
     const proxySpecMap = props.dataList.reduce<
-      Record<number, NonNullable<Props['dataList']>[number] & { count: number }>
+      Record<number, { count: number } & NonNullable<Props['dataList']>[number]>
     >((prevSpecMap, dataItem) => {
       const specId = dataItem.id;
       if (prevSpecMap[specId]) {

@@ -88,8 +88,8 @@
   const { runAsync: fetchTicketDetails } = useRequest(
     (params: ServiceParameters<typeof getTicketDetails>) =>
       getTicketDetails(params, {
-        permission: 'catch',
         cache: 1000,
+        permission: 'catch',
       }),
     {
       onSuccess(data, params) {

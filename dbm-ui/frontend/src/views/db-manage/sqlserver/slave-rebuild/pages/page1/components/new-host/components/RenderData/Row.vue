@@ -53,16 +53,6 @@
   import RenderOldSlave from './RenderOldSlave.vue';
 
   export interface IDataRow {
-    rowKey: string;
-    oldSlave?: {
-      bkCloudId: number;
-      bkCloudName: string;
-      bkHostId: number;
-      ip: string;
-      port: number;
-      clusterId: number;
-      dbModuleId: SqlServerHaInstanceModel['db_module_id'];
-    };
     clusterId?: number;
     newSlave?: {
       bkCloudId: number;
@@ -70,14 +60,24 @@
       ip: string;
       port: number;
     };
+    oldSlave?: {
+      bkCloudId: number;
+      bkCloudName: string;
+      bkHostId: number;
+      clusterId: number;
+      dbModuleId: SqlServerHaInstanceModel['db_module_id'];
+      ip: string;
+      port: number;
+    };
+    rowKey: string;
   }
 
   // 创建表格数据
   export const createRowData = (data = {} as Partial<IDataRow>) => ({
-    rowKey: random(),
-    oldSlave: data.oldSlave,
     clusterId: data.clusterId,
     newSlave: data.newSlave,
+    oldSlave: data.oldSlave,
+    rowKey: random(),
   });
 </script>
 <script setup lang="ts">

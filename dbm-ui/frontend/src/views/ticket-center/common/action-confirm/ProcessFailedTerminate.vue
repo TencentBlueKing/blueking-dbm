@@ -79,8 +79,8 @@
         }
         if (props.flowData) {
           return revokeFlow({
-            id: props.data.id,
             flow_id: props.flowData.id,
+            id: props.data.id,
           });
         }
         return Promise.reject();

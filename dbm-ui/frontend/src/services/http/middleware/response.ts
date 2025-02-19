@@ -27,7 +27,7 @@ import RequestError from '../lib/request-error';
 let hasLogined = false;
 
 const redirectLogin = (loginUrl: string) => {
-  const { protocol, host, pathname } = parseURL(loginUrl);
+  const { host, pathname, protocol } = parseURL(loginUrl);
   const domain = `${protocol}://${host}${pathname}`;
 
   if (hasLogined) {
@@ -78,7 +78,7 @@ export default (interceptors: AxiosInterceptorManager<AxiosResponse>) => {
         }
       }
     },
-    (error: AxiosError<{ message: string }> & { __CANCEL__: any }) => {
+    (error: { __CANCEL__: any } & AxiosError<{ message: string }>) => {
       // 超时取消
       // eslint-disable-next-line no-underscore-dangle
       if (error.__CANCEL__) {

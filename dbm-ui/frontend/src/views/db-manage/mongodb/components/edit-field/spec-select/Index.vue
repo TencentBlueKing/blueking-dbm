@@ -32,9 +32,9 @@
   import TableEditSelect, { type IListItem } from './components/Select.vue';
 
   interface Props {
-    selectList: IListItem[];
     data?: SpecInfo;
     isLoading?: boolean;
+    selectList: IListItem[];
   }
 
   interface Exposes {
@@ -49,8 +49,8 @@
 
   const rules = [
     {
-      validator: (value: string) => !!value,
       message: t('不能为空'),
+      validator: (value: string) => !!value,
     },
   ];
 

@@ -43,13 +43,11 @@
   import TableEditInput from './Input.vue';
 
   interface Props {
-    sourceClusterId: number;
     data?: string;
+    sourceClusterId: number;
   }
 
-  interface Emits {
-    (e: 'change', value: TendbhaModel[]): void;
-  }
+  type Emits = (e: 'change', value: TendbhaModel[]) => void;
 
   interface Exposes {
     getValue: () => Promise<number[]>;
@@ -64,10 +62,10 @@
   const checkClusterExisted = async (value: string) => {
     const list = value.split(batchSplitRegex);
     return await queryClusters({
+      bk_biz_id: currentBizId,
       cluster_filters: list.map((item) => ({
         immute_domain: item,
       })),
-      bk_biz_id: currentBizId,
     }).then((data) => {
       if (data.length === list.length) {
         if (!ignoreEmitChange) {
@@ -94,22 +92,22 @@
 
   const tabListConfig = {
     [ClusterTypes.TENDBHA]: {
-      showPreviewResultTitle: true,
       disabledRowConfig: [
         {
           handler: (data: TendbhaModel) => data.id === props.sourceClusterId,
           tip: t('不能选择源集群'),
         },
       ],
+      showPreviewResultTitle: true,
     },
     [ClusterTypes.TENDBSINGLE]: {
-      showPreviewResultTitle: true,
       disabledRowConfig: [
         {
           handler: (data: TendbhaModel) => data.id === props.sourceClusterId,
           tip: t('不能选择源集群'),
         },
       ],
+      showPreviewResultTitle: true,
     },
   } as unknown as Record<string, TabConfig>;
 
@@ -117,16 +115,16 @@
 
   const rules = [
     {
-      validator: (value: string) => value.split(',').every((domain) => Boolean(domain)),
       message: t('目标集群不能为空'),
+      validator: (value: string) => value.split(',').every((domain) => Boolean(domain)),
     },
     {
-      validator: (value: string) => value.split(',').every((domain) => domainRegex.test(domain)),
       message: t('目标集群输入格式有误'),
+      validator: (value: string) => value.split(',').every((domain) => domainRegex.test(domain)),
     },
     {
-      validator: (value: string) => checkClusterExisted(value),
       message: t('目标集群不存在'),
+      validator: (value: string) => checkClusterExisted(value),
     },
   ];
 

@@ -24,9 +24,7 @@
     data: TicketModel;
   }
 
-  interface Emits {
-    (e: 'go-ticket-detail', params: TicketModel): void;
-  }
+  type Emits = (e: 'go-ticket-detail', params: TicketModel) => void;
 
   const props = defineProps<Props>();
   const emits = defineEmits<Emits>();

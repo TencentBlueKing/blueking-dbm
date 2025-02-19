@@ -22,17 +22,17 @@ const path = '/apis/users';
  */
 export function getUserList(
   params: {
+    exact_lookups?: string;
+    fuzzy_lookups?: string;
     limit?: number;
     offset?: number;
-    fuzzy_lookups?: string;
-    exact_lookups?: string;
   } = {},
 ) {
   return http.get<
     ListBase<
       {
-        username: string;
         display_name: string;
+        username: string;
       }[]
     >
   >(`${path}/list_users/`, params, {

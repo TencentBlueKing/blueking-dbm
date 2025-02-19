@@ -18,77 +18,77 @@ import { t } from '@locales/index';
 
 const routes: RouteRecordRaw[] = [
   {
-    name: 'DbConfigure',
-    path: 'db-configure',
-    meta: {
-      navName: t('数据库配置'),
-    },
-    redirect: {
-      name: 'DbConfigureList',
-    },
-    component: () => import('@views/db-configure/Index.vue'),
     children: [
       {
+        component: () => import('@views/db-configure/business/list/Index.vue'),
+        meta: {
+          fullscreen: true,
+          navName: t('数据库配置'),
+        },
         name: 'DbConfigureList',
         path: 'list/:clusterType?',
-        meta: {
-          navName: t('数据库配置'),
-          fullscreen: true,
-        },
-        component: () => import('@views/db-configure/business/list/Index.vue'),
       },
       {
+        component: () => import('@views/db-configure/business/Detail.vue'),
+        meta: {
+          fullscreen: true,
+          navName: t('配置详情'),
+        },
         name: 'DbConfigureDetail',
         path: 'detail/:clusterType/:version/:confType/:treeId/:parentId?',
-        meta: {
-          navName: t('配置详情'),
-          fullscreen: true,
-        },
         props: true,
-        component: () => import('@views/db-configure/business/Detail.vue'),
       },
       {
-        name: 'DbConfigureEdit',
-        path: 'edit/:clusterType/:version/:confType/:treeId/:parentId?',
+        component: () => import('@views/db-configure/business/Edit.vue'),
         meta: {
           navName: t('配置编辑'),
         },
+        name: 'DbConfigureEdit',
+        path: 'edit/:clusterType/:version/:confType/:treeId/:parentId?',
         props: true,
-        component: () => import('@views/db-configure/business/Edit.vue'),
       },
       {
-        name: 'DbConfigureBind',
-        path: 'bind/:clusterType/:moduleId',
+        component: () => import('@views/db-configure/business/Bind.vue'),
         meta: {
           navName: t('绑定模块'),
         },
-        component: () => import('@views/db-configure/business/Bind.vue'),
+        name: 'DbConfigureBind',
+        path: 'bind/:clusterType/:moduleId',
       },
       {
+        component: () => import('@views/service-apply/create-db-module/Index.vue'),
+        meta: {
+          navName: t('新建模块'),
+        },
         name: 'SelfServiceCreateDbModule',
         path: 'create-db-module/:type/:bk_biz_id/',
+      },
+      {
+        component: () => import('@views/db-manage/tendb-cluster/apply/CreateModule.vue'),
         meta: {
           navName: t('新建模块'),
         },
-        component: () => import('@views/service-apply/create-db-module/Index.vue'),
-      },
-      {
         name: 'createSpiderModule',
         path: 'create-module/:bizId(\\d+)',
-        meta: {
-          navName: t('新建模块'),
-        },
-        component: () => import('@views/db-manage/tendb-cluster/apply/CreateModule.vue'),
       },
       {
-        name: 'SqlServerCreateDbModule',
-        path: 'sqlserver-create-db-module/:ticketType/:bizId/',
+        component: () => import('@views/service-apply/create-db-module/SqlServerCreateDbModule.vue'),
         meta: {
           navName: t('新建模块'),
         },
-        component: () => import('@views/service-apply/create-db-module/SqlServerCreateDbModule.vue'),
+        name: 'SqlServerCreateDbModule',
+        path: 'sqlserver-create-db-module/:ticketType/:bizId/',
       },
     ],
+    component: () => import('@views/db-configure/Index.vue'),
+    meta: {
+      navName: t('数据库配置'),
+    },
+    name: 'DbConfigure',
+    path: 'db-configure',
+    redirect: {
+      name: 'DbConfigureList',
+    },
   },
 ];
 

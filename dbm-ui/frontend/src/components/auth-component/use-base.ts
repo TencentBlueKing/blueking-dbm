@@ -6,10 +6,10 @@ import { simpleCheckAllowed } from '@services/source/iam';
 import { permissionDialog } from '@utils';
 
 export interface Props {
-  permission?: string | boolean;
   actionId: string;
-  resource?: string | number;
   bizId?: string | number;
+  permission?: string | boolean;
+  resource?: string | number;
 }
 
 const withBizActionList = [
@@ -139,8 +139,8 @@ export default function (props: Props) {
   });
 
   return {
-    loading,
-    isShowRaw,
     handleRequestPermission,
+    isShowRaw,
+    loading,
   };
 }

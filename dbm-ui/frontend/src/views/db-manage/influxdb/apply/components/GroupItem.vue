@@ -106,8 +106,8 @@
   }
 
   interface Props {
-    modelValue: number | string;
     bizId: number | string;
+    modelValue: number | string;
   }
 
   const props = defineProps<Props>();
@@ -181,9 +181,9 @@
   });
   const rules = [
     {
-      validator: (val: string) => nameRegx.test(val),
       message: t('以小写英文字母开头_且只能包含英文字母_数字_连字符'),
       trigger: 'change',
+      validator: (val: string) => nameRegx.test(val),
     },
   ];
 
@@ -208,8 +208,8 @@
     formRef.value.validate().then(() => {
       isCreating.value = true;
       createGroup({
-        name: createState.name,
         bk_biz_id: Number(props.bizId),
+        name: createState.name,
       })
         .then((data) => {
           fetchGroupList(data.id);

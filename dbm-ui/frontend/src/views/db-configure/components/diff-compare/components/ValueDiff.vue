@@ -51,83 +51,106 @@
   type ParameterConfigItem = ServiceReturnType<typeof getLevelConfig>['conf_items'][number];
 
   interface Props {
-    data?: DiffItem[],
     count?: {
-      create: number,
-      update: number,
-      delete: number,
-    },
+      create: number;
+      delete: number;
+      update: number;
+    };
+    data?: DiffItem[];
     labels?: {
-      label: string,
-      key: string,
-      render: (row: any, columnKey: string) => any
-    }[],
-    maxHeight?: string | number,
+      key: string;
+      label: string;
+      render: (row: any, columnKey: string) => any;
+    }[];
+    maxHeight?: string | number;
   }
 
   const props = withDefaults(defineProps<Props>(), {
+    count: () => ({}) as NonNullable<Props['count']>,
     data: () => [],
-    count: () => ({} as NonNullable<Props['count']>),
     labels: () => [],
     maxHeight: 'auto',
   });
 
   const { t } = useI18n();
 
-  const columns = [{
-    label: t('参数名'),
-    field: 'name',
-    render: ({ data }: {data: DiffItem}) => (
-      <strong class={['bk-diff__parameter', `bk-diff__parameter--${data.status}`]} v-overflow-tips>{data.name}</strong>
-    ),
-  }, {
-    label: t('更新前'),
-    field: 'before',
-    render: ({ data }: {data: DiffItem}) => (
-      <>
-        {props.labels.map((label) => {
+  const columns = [
+    {
+      field: 'name',
+      label: t('参数名'),
+      render: ({ data }: { data: DiffItem }) => (
+        <strong
+          v-overflow-tips
+          class={['bk-diff__parameter', `bk-diff__parameter--${data.status}`]}>
+          {data.name}
+        </strong>
+      ),
+    },
+    {
+      field: 'before',
+      label: t('更新前'),
+      render: ({ data }: { data: DiffItem }) => (
+        <>
+          {props.labels.map((label) => {
+            const itemData = data.before;
+            if (!itemData) {
+              return '--';
+            }
+            const displayValue = label.render
+              ? label.render(data, 'before')
+              : itemData[label.key as keyof ParameterConfigItem];
+            return (
+              <div class='bk-diff__item'>
+                <span class='bk-diff__item-label'>{label.label}</span>
+                <span
+                  v-overflow-tips
+                  class='bk-diff__item-value text-overflow'>
+                  {displayValue}
+                </span>
+              </div>
+            );
+          })}
+        </>
+      ),
+    },
+    {
+      field: 'after',
+      label: t('更新后'),
+      render: ({ data }: { data: DiffItem }) => (
+        <>
+          {props.labels.map((label) => {
+            if (!data.before || !data.after) {
+              return '--';
+            }
+            const displayValue = label.render
+              ? label.render(data, 'after')
+              : data.after[label.key as keyof ParameterConfigItem];
 
-      const itemData = data.before;
-      if (!itemData){
-        return '--'
-      }
-      const displayValue = label.render ? label.render(data, 'before') : itemData[label.key as keyof ParameterConfigItem];
-      return (
-        <div class="bk-diff__item">
-          <span class="bk-diff__item-label">{label.label}</span>
-          <span class="bk-diff__item-value text-overflow" v-overflow-tips>{displayValue}</span>
-        </div>
-      );
-    })}
-      </>
-    ),
-  }, {
-    label: t('更新后'),
-    field: 'after',
-    render: ({ data }: {data: DiffItem}) => (
-      <>
-        {props.labels.map((label) => {
-        if (!data.before || !data.after){
-          return '--'
-        }
-        const displayValue = label.render ? label.render(data, 'after') : data.after[label.key as keyof ParameterConfigItem];
+            let { status } = data;
+            if (status === 'update') {
+              status =
+                data.after[label.key as keyof ParameterConfigItem] ===
+                data.before[label.key as keyof ParameterConfigItem]
+                  ? ''
+                  : 'update';
+            }
+            const statusCls = status ? `bk-diff__item--${data.status}` : '';
 
-        let { status } = data;
-        if (status === 'update') {
-          status = data.after[label.key as keyof ParameterConfigItem] === data.before[label.key as keyof ParameterConfigItem] ? '' : 'update';
-        }
-        const statusCls = status ? `bk-diff__item--${data.status}` : '';
-
-        return (
-          <div class={['bk-diff__item', statusCls]}>
-            <span class="bk-diff__item-label">{label.label}</span>
-            <span class="bk-diff__item-value text-overflow" v-overflow-tips>{displayValue}</span>
-          </div>
-        );
-      })}
-      </>
-    ),
-  }];
+            return (
+              <div class={['bk-diff__item', statusCls]}>
+                <span class='bk-diff__item-label'>{label.label}</span>
+                <span
+                  v-overflow-tips
+                  class='bk-diff__item-value text-overflow'>
+                  {displayValue}
+                </span>
+              </div>
+            );
+          })}
+        </>
+      ),
+    },
+  ];
 </script>
 
 <style lang="less">

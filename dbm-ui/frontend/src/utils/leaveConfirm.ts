@@ -23,18 +23,18 @@ export const leaveConfirm = (): Promise<boolean> => {
 
   return new Promise((resolve, reject) => {
     InfoBox({
-      title: t('确认离开当前页'),
-      content: t('离开将会导致未保存信息丢失'),
-      confirmText: t('离开'),
       cancelText: t('取消'),
+      confirmText: t('离开'),
+      content: t('离开将会导致未保存信息丢失'),
+      onCancel: () => {
+        reject(false);
+      },
       onConfirm: () => {
         window.changeConfirm = false;
         resolve(true);
         return true;
       },
-      onCancel: () => {
-        reject(false);
-      },
+      title: t('确认离开当前页'),
     });
   });
 };

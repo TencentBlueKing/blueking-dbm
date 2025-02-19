@@ -32,7 +32,7 @@ export function removeResource(params: { bk_host_ids: number[] }) {
 /**
  * 获取机型列表
  */
-export function fetchDeviceClass(params: { offset?: number; limit?: number; device_type?: string }) {
+export function fetchDeviceClass(params: { device_type?: string; limit?: number; offset?: number }) {
   return http.get<
     ListBase<
       {
@@ -65,12 +65,12 @@ export function fetchMountPoints() {
  */
 export function importResource(params: {
   for_biz: number;
-  resource_type: string;
   hosts: Array<{
-    ip: string;
-    host_id: number;
     bk_cloud_id: number;
+    host_id: number;
+    ip: string;
   }>;
+  resource_type: string;
 }) {
   return http.post(`${path}/import/`, params);
 }
@@ -98,12 +98,12 @@ export function fetchList(params: Record<string, any>, payload = {} as IRequestP
 export function fetchListDbaHost(params: { limit: number; offset: number; search_content: string }) {
   return http
     .get<{
-      total: number;
       data: HostInfo[];
+      total: number;
     }>(`${path}/list_dba_hosts/`, {
+      page_size: params.limit,
       search_content: params.search_content,
       start: params.offset,
-      page_size: params.limit,
     })
     .then((data) => ({
       count: data.total,
@@ -133,10 +133,10 @@ export function fetchImportTask() {
  */
 export function fetchOperationList(
   params: {
-    limit: number;
-    offset: number;
     begin_time: string;
     end_time: string;
+    limit: number;
+    offset: number;
   },
   payload = {} as IRequestPayload,
 ) {
@@ -162,9 +162,9 @@ export function fetchResourceImportUrls() {
  */
 export function getSpecResourceCount(params: {
   bk_biz_id: number;
+  bk_cloud_id: number;
   city?: string;
   resource_type?: string;
-  bk_cloud_id: number;
   spec_ids: number[];
 }) {
   return http.post<Record<number, number>>(`${path}/spec_resource_count/`, params);
@@ -178,7 +178,7 @@ export function updateResource(params: {
   for_biz?: number;
   rack_id?: string;
   resource_type?: string;
-  storage_device?: Record<string, { size: number; disk_type: string }>;
+  storage_device?: Record<string, { disk_type: string; size: number }>;
 }) {
   return http.post(`${path}/update/`, params);
 }
@@ -186,7 +186,7 @@ export function updateResource(params: {
 /**
  * 获取操作系统类型
  */
-export function getOsTypeList(params: { offset?: number; limit?: number }) {
+export function getOsTypeList(params: { limit?: number; offset?: number }) {
   return http.get<string[]>(`${path}/get_os_types/`, params);
 }
 
@@ -194,23 +194,23 @@ export function getOsTypeList(params: { offset?: number; limit?: number }) {
  * 按照组件统计资源数量
  */
 export function getGroupCount() {
-  return http.post<{ rs_type: string; count: number }[]>(`${path}/resource_group_count/`);
+  return http.post<{ count: number; rs_type: string }[]>(`${path}/resource_group_count/`);
 }
 
 /**
  * 按照条件聚合资源统计
  */
 export function getSummaryList(params: {
-  group_by: string;
-  for_biz?: number;
   city?: string;
-  sub_zones?: string[];
+  for_biz?: number;
+  group_by: string;
   spec_param: {
+    cluster_type?: string;
     db_type: DBTypes;
     machine_type?: string;
-    cluster_type?: string;
     spec_id_list?: number[];
   };
+  sub_zones?: string[];
 }) {
   return http.get<SummaryModel[]>(`${path}/resource_summary/`, params).then((data) => ({
     count: data.length || 0,

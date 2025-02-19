@@ -30,10 +30,10 @@ const path = `/apis/bigdata/bizs/${currentBizId}/riak/riak_resources`;
  */
 export function getRiakList(params: {
   bk_biz_id: number;
+  cluster_ids?: number[] | number;
   limit: number;
   offset: number;
   type: string;
-  cluster_ids?: number[] | number;
 }) {
   return http.get<ListBase<RiakModel[]>>(`${path}/`, params).then((res) => ({
     ...res,
@@ -52,10 +52,10 @@ export function getRiakList(params: {
  * 获取集群实例列表
  */
 export function getRiakInstanceList(params: {
-  offset?: number;
-  limit?: number;
   bk_biz_id: number;
   cluster_id: number;
+  limit?: number;
+  offset?: number;
   role: string;
 }) {
   return http.get<ListBase<RiakInstanceModel[]>>(`${path}/list_instances/`, params).then((res) => ({
@@ -69,9 +69,9 @@ export function getRiakInstanceList(params: {
  */
 export function retrieveRiakInstance(params: {
   bk_biz_id: number;
-  type: string;
-  instance_address: string;
   cluster_id?: number;
+  instance_address: string;
+  type: string;
 }) {
   return http.get<RiakInstanceModel>(`${path}/retrieve_instance/`, params);
 }
@@ -94,10 +94,10 @@ export function getRiakTopoGraph(params: { cluster_id: number }) {
  * 获取 Riak 集群节点列表信息
  */
 export function getRiakNodeList(
-  params: Record<string, any> & {
+  params: {
     bk_biz_id: number;
     cluster_id: number;
-  },
+  } & Record<string, any>,
 ) {
   return http.get<ListBase<Array<RiakNodeModel>>>(`${path}/${params.cluster_id}/list_nodes/`, params).then((data) => ({
     ...data,

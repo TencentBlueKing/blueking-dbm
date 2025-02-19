@@ -120,29 +120,29 @@
   const inputRef = ref();
   const isShowSelector = ref(false);
   const futureSpec = ref({
-    name: '',
     futureCapacity: 0,
+    name: '',
   });
   const choosedSpecId = ref(-1);
 
   const localSpec = shallowRef<TicketSpecInfo>();
 
   const customSpecInfo = reactive({
-    specId: '',
     count: 1,
+    specId: '',
   });
 
   const showText = computed(() => `${localSpec.value ? `${localSpec.value.cluster_capacity} G` : ''}`);
 
   const rules = [
     {
+      message: t('目标总容量不能为空'),
       validator: (value: string) => {
         if (value) {
           return true;
         }
         return false;
       },
-      message: t('目标总容量不能为空'),
     },
   ];
 
@@ -151,8 +151,8 @@
     () => {
       if (!props.clusterData) {
         futureSpec.value = {
-          name: '',
           futureCapacity: 0,
+          name: '',
         };
         localSpec.value = undefined;
       }
@@ -168,10 +168,10 @@
         }).then((specData) => {
           const backend = props.rowData.resource_spec?.backend_group;
           handlePlanChange(newSpecId, {
+            cluster_capacity: backend?.futureCapacity ?? 0,
+            machine_pair: backend?.count ?? 0,
             spec_id: newSpecId,
             spec_name: specData.spec_name,
-            machine_pair: backend?.count ?? 0,
-            cluster_capacity: backend?.futureCapacity ?? 0,
           });
         });
       }
@@ -193,8 +193,8 @@
     choosedSpecId.value = specId;
     localSpec.value = specData;
     futureSpec.value = {
-      name: specData.spec_name,
       futureCapacity: specData.cluster_capacity,
+      name: specData.spec_name,
     };
   };
 
@@ -222,10 +222,10 @@
             remote_shard_num: Math.ceil(props.clusterData.clusterShardNum / localSpec.value.machine_pair),
             resource_spec: {
               backend_group: {
-                spec_id: localSpec.value.spec_id,
-                count: localSpec.value.machine_pair,
                 affinity: '',
+                count: localSpec.value.machine_pair,
                 futureCapacity: localSpec.value.cluster_capacity,
+                spec_id: localSpec.value.spec_id,
                 specName: localSpec.value.spec_name,
               },
             },
@@ -239,10 +239,10 @@
             remote_shard_num: Math.ceil(props.clusterData.clusterShardNum / localSpec.value.machine_pair),
             resource_spec: {
               backend_group: {
-                spec_id: localSpec.value.spec_id,
-                count: localSpec.value.machine_pair,
                 affinity: '',
+                count: localSpec.value.machine_pair,
                 futureCapacity: localSpec.value.cluster_capacity,
+                spec_id: localSpec.value.spec_id,
                 specName: localSpec.value.spec_name,
               },
             },

@@ -54,13 +54,13 @@
   import { utcDisplayTime, utcTimeToSeconds } from '@utils';
 
   interface Props {
-    ticketData: TicketModel;
     data: FlowMode<unknown>['todos'][number];
     flowData: FlowMode<unknown>;
+    ticketData: TicketModel;
   }
 
   defineProps<Props>();
 
   const { t } = useI18n();
-  const { username, isSuperuser } = useUserProfile();
+  const { isSuperuser, username } = useUserProfile();
 </script>

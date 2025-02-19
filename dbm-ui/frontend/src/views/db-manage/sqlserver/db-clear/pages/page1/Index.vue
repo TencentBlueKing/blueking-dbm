@@ -109,24 +109,24 @@
   };
 
   useTicketCloneInfo({
-    type: TicketTypes.SQLSERVER_CLEAR_DBS,
     onSuccess(cloneData) {
       tableData.value = cloneData.map((item) =>
         createRowData({
-          clusterData: {
-            id: item.cluster.id,
-            domain: item.cluster.immute_domain,
-            cloudId: item.cluster.bk_cloud_id,
-          },
-          cleanMode: item.clean_mode,
+          cleanDbs: item.clean_dbs,
           cleanDbsPatterns: item.clean_dbs_patterns,
           cleanIgnoreDbsPatterns: item.clean_ignore_dbs_patterns,
+          cleanMode: item.clean_mode,
           cleanTables: item.clean_tables,
+          clusterData: {
+            cloudId: item.cluster.bk_cloud_id,
+            domain: item.cluster.immute_domain,
+            id: item.cluster.id,
+          },
           ignoreCleanTables: item.ignore_clean_tables,
-          cleanDbs: item.clean_dbs,
         }),
       );
     },
+    type: TicketTypes.SQLSERVER_CLEAR_DBS,
   });
 
   // 批量选择
@@ -141,9 +141,9 @@
     const newList = list.reduce((result, item) => {
       const row = createRowData({
         clusterData: {
-          id: item.id,
-          domain: item.master_domain,
           cloudId: item.bk_cloud_id,
+          domain: item.master_domain,
+          id: item.id,
         },
       });
       result.push(row);
@@ -176,12 +176,12 @@
     Promise.all(rowRefs.value.map((item: { getValue: () => Promise<any> }) => item.getValue()))
       .then((data) =>
         createTicket({
-          ticket_type: TicketTypes.SQLSERVER_CLEAR_DBS,
-          remark: '',
+          bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
           details: {
             infos: data,
           },
-          bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+          remark: '',
+          ticket_type: TicketTypes.SQLSERVER_CLEAR_DBS,
         }),
       )
       .then((data) => {

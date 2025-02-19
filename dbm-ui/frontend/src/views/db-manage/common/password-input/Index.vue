@@ -66,14 +66,12 @@
   type PasswordStrengthVerifyInfo = ServiceReturnType<typeof verifyPasswordStrength>['password_verify_info'];
 
   interface Props {
-    dbType?: DBTypes;
     buttonDisabled?: boolean;
     buttonDisabledTip?: string;
+    dbType?: DBTypes;
   }
 
-  interface Emits {
-    (e: 'verifyResult', isPass: boolean): void;
-  }
+  type Emits = (e: 'verifyResult', isPass: boolean) => void;
 
   interface Exposes {
     getEncyptPassword: () => string;
@@ -81,9 +79,9 @@
   }
 
   const props = withDefaults(defineProps<Props>(), {
-    dbType: DBTypes.MYSQL,
     buttonDisabled: false,
     buttonDisabledTip: '',
+    dbType: DBTypes.MYSQL,
   });
 
   const emits = defineEmits<Emits>();
@@ -110,16 +108,16 @@
   >({});
   const appendTips = ref<Record<string, string>>({});
   const validate = ref<PasswordStrengthVerifyInfo>({
-    number_of_types_valid: false,
     allowed_valid: false,
-    out_of_range: '',
-    repeats_valid: false,
     follow_keyboards_valid: false,
     follow_letters_valid: false,
     follow_numbers_valid: false,
     follow_symbols_valid: false,
-    min_length_valid: false,
     max_length_valid: false,
+    min_length_valid: false,
+    number_of_types_valid: false,
+    out_of_range: '',
+    repeats_valid: false,
   });
 
   const passwordParam = computed(() =>
@@ -137,9 +135,9 @@
     defaultParams: [{ name: passwordParam.value }],
     onSuccess(data) {
       const {
-        min_length: minLength,
-        max_length: maxLength,
         include_rule: includeRule,
+        max_length: maxLength,
+        min_length: minLength,
         number_of_types: numberOfType,
         symbols_allowed: symbolsAllowed,
       } = data.rule;
@@ -148,9 +146,9 @@
 
       const PASSWORD_POLICY = {
         lowercase: t('小写字母'),
-        uppercase: t('大写字母'),
         numbers: t('数字'),
         symbols: t('指定特殊字符(s)', { s: symbolsAllowed }),
+        uppercase: t('大写字母'),
       };
 
       const texts = Object.entries(PASSWORD_POLICY).reduce<string[]>((acc, [key, text]) => {
@@ -181,23 +179,23 @@
         const el = passwordInputRef.value.$el as HTMLDivElement;
         tippyInstance?.destroy();
         tippyInstance = dbTippy(el, {
-          trigger: 'manual',
-          theme: 'light',
-          content,
-          arrow: true,
-          placement: 'top-start',
-          interactive: true,
           allowHTML: true,
-          hideOnClick: false,
-          zIndex: 9999,
-          onDestroy: () => template?.append?.(content),
           appendTo: () => document.body,
+          arrow: true,
+          content,
+          hideOnClick: false,
+          interactive: true,
+          onDestroy: () => template?.append?.(content),
+          placement: 'top-start',
+          theme: 'light',
+          trigger: 'manual',
+          zIndex: 9999,
         });
       }
     },
   });
 
-  const { run: getRandomPasswordRun, loading: isLoading } = useRequest(getRandomPassword, {
+  const { loading: isLoading, run: getRandomPasswordRun } = useRequest(getRandomPassword, {
     manual: true,
     onSuccess(data) {
       modelValue.value = data.password;
@@ -258,8 +256,8 @@
    */
   const verifyPassword = async () => {
     const { is_strength: isStrength } = await verifyPasswordRun({
-      security_type: passwordParam.value,
       password: getEncyptPassword(),
+      security_type: passwordParam.value,
     });
     emits('verifyResult', isStrength);
     return isStrength;

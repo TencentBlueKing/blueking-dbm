@@ -102,20 +102,18 @@
   import RotateBizs from './components/RotateBizs.vue';
 
   interface Props {
-    dbType: string;
     data?: DutyRuleModel;
-    pageType?: string;
+    dbType: string;
     existedNames?: string[];
+    pageType?: string;
   }
 
-  interface Emits {
-    (e: 'success'): void;
-  }
+  type Emits = (e: 'success') => void;
 
   const props = withDefaults(defineProps<Props>(), {
-    pageType: 'create',
     data: undefined,
     existedNames: () => [],
+    pageType: 'create',
   });
   const emits = defineEmits<Emits>();
   const isShow = defineModel<boolean>();
@@ -136,35 +134,37 @@
   const isCreate = computed(() => props.pageType !== 'edit');
 
   const titleMap = {
+    clone: t('克隆规则'),
     create: t('新建规则'),
     edit: t('编辑规则'),
-    clone: t('克隆规则'),
   } as Record<string, string>;
 
   const rotateTypeList = [
     {
-      value: 'handoff',
       label: t('周期轮值'),
+      value: 'handoff',
     },
     {
-      value: 'regular',
       label: t('自定义轮值'),
+      value: 'regular',
     },
   ];
 
   const formRules = {
     ruleName: [
       {
+        message: t('不能超过n个字符', { n: 80 }),
+        trigger: 'blur',
         validator: (value: string) => {
           if (value.length > 80) {
             return false;
           }
           return true;
         },
-        message: t('不能超过n个字符', { n: 80 }),
-        trigger: 'blur',
       },
       {
+        message: t('规则名称与原规则名称相同'),
+        trigger: 'blur',
         validator: (value: string) => {
           if (props.pageType === 'clone' && props.data && value === props.data.name) {
             // 克隆才需要校验
@@ -172,19 +172,17 @@
           }
           return true;
         },
-        message: t('规则名称与原规则名称相同'),
-        trigger: 'blur',
       },
       // TODO: 以后看情况是否增加接口支持，暂时先用当前页做冲突检测
       {
+        message: t('规则名称重复'),
+        trigger: 'blur',
         validator: async (value: string) => {
           if (['clone', 'create'].includes(props.pageType)) {
             return props.existedNames.every((item) => item !== value);
           }
           return true;
         },
-        message: t('规则名称重复'),
-        trigger: 'blur',
       },
     ],
   };
@@ -229,13 +227,13 @@
       // 周期轮值
       const cycleValues = await cycleRef.value.getValue();
       const cycleParams = {
-        name: formModel.ruleName,
-        priority: 1,
-        db_type: props.dbType,
         category: rotateType.value,
+        db_type: props.dbType,
+        duty_arranges: cycleValues.duty_arranges,
         effective_time: cycleValues.effective_time,
         end_time: cycleValues.end_time,
-        duty_arranges: cycleValues.duty_arranges,
+        name: formModel.ruleName,
+        priority: 1,
         ...bizConfig,
       };
       if (isCreate.value) {
@@ -253,13 +251,13 @@
       // 自定义轮值
       const customValues = await customRef.value.getValue();
       const customParams = {
-        name: formModel.ruleName,
-        priority: 2,
-        db_type: props.dbType,
         category: 'regular',
+        db_type: props.dbType,
+        duty_arranges: customValues.duty_arranges,
         effective_time: customValues.effective_time,
         end_time: customValues.end_time,
-        duty_arranges: customValues.duty_arranges,
+        name: formModel.ruleName,
+        priority: 2,
         ...bizConfig,
       };
       if (isCreate.value) {

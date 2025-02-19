@@ -25,12 +25,12 @@ const getRootPath = () => `/apis/mongodb/bizs/${window.PROJECT_CONFIG.BIZ_ID}/pe
  */
 export function addAccountRule(params: {
   access_db: string;
-  privilege: {
-    mongo_user: string[];
-    mongo_manager: string[];
-  };
   account_id: number | null;
   account_type: AccountTypesValues;
+  privilege: {
+    mongo_manager: string[];
+    mongo_user: string[];
+  };
 }) {
   return http.post(`${getRootPath()}/add_account_rule/`, params);
 }
@@ -38,14 +38,14 @@ export function addAccountRule(params: {
 /**
  * 创建账号
  */
-export function createAccount(params: { user: string; password: string; account_type?: AccountTypesValues }) {
+export function createAccount(params: { account_type?: AccountTypesValues; password: string; user: string }) {
   return http.post(`${getRootPath()}/create_account/`, params);
 }
 
 /**
  * 删除账号
  */
-export function deleteAccount(params: { bizId: number; account_id: number; account_type?: AccountTypesValues }) {
+export function deleteAccount(params: { account_id: number; account_type?: AccountTypesValues; bizId: number }) {
   return http.delete(`${getRootPath()}/delete_account/`, params);
 }
 
@@ -54,12 +54,12 @@ export function deleteAccount(params: { bizId: number; account_id: number; accou
  */
 export function getPermissionRules(
   params: {
+    access_db?: string;
+    account_type?: AccountTypesValues;
     limit?: number;
     offset?: number;
-    user?: string;
-    access_db?: string;
     privilege?: string;
-    account_type?: AccountTypesValues;
+    user?: string;
   },
   payload = {} as IRequestPayload,
 ) {
@@ -74,7 +74,7 @@ export function getPermissionRules(
 /**
  * 查询账号规则
  */
-export function queryAccountRules(params: { user: string; access_dbs: string[]; account_type?: AccountTypesValues }) {
+export function queryAccountRules(params: { access_dbs: string[]; account_type?: AccountTypesValues; user: string }) {
   return http
     .post<ListBase<MongodbPermissonAccountModel[]>>(`${getRootPath()}/query_account_rules/`, params)
     .then((res) => ({

@@ -180,11 +180,11 @@
 
   const startTime = ref('');
   const batchEditShow = reactive({
-    startTime: false,
-    endTime: false,
     databases: false,
-    tables: false,
     databasesIgnore: false,
+    endTime: false,
+    startTime: false,
+    tables: false,
     tablesIgnore: false,
   });
   const disabledStartTime = (date?: Date | number) => !!date && date.valueOf() > Date.now();

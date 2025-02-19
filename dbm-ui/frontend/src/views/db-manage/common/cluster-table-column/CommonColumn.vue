@@ -100,9 +100,7 @@
     clusterType: ISupportClusterType;
   }
 
-  export interface Emits {
-    (e: 'refresh'): void;
-  }
+  export type Emits = (e: 'refresh') => void;
 
   const props = defineProps<Props>();
   const emits = defineEmits<Emits>();
@@ -112,13 +110,13 @@
   type IRowData = ClusterModel<T>;
 
   const { columnAttrs, columnCheckedMap } = useLinkQueryColumnSerach({
-    searchType: props.clusterType,
     attrs: ['bk_cloud_id', 'db_module_id', 'major_version', 'region', 'time_zone'],
-    fetchDataFn: () => handleRefresh(),
     defaultSearchItem: {
-      name: t('访问入口'),
       id: 'domain',
+      name: t('访问入口'),
     },
+    fetchDataFn: () => handleRefresh(),
+    searchType: props.clusterType,
   });
 
   const handleRefresh = () => {

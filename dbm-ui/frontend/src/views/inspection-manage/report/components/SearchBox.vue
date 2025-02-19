@@ -32,19 +32,17 @@
   import { getMenuListSearch } from '@utils';
 
   interface Props {
-    isTodos?: boolean;
     isAssist?: boolean;
     isShowAll?: boolean;
+    isTodos?: boolean;
   }
 
-  interface Emits {
-    (e: 'change', value: Record<string, any>): void;
-  }
+  type Emits = (e: 'change', value: Record<string, any>) => void;
 
   const props = withDefaults(defineProps<Props>(), {
-    isTodos: false,
     isAssist: false,
     isShowAll: false,
+    isTodos: false,
   });
   const emits = defineEmits<Emits>();
 
@@ -57,16 +55,14 @@
 
   const searchData = computed(() => {
     const bizFilter = {
-      name: t('业务'),
-      id: 'bk_biz_id',
       children: globalBizsStore.bizs.map((biz) => ({
         id: biz.bk_biz_id,
         name: biz.name,
       })),
+      id: 'bk_biz_id',
+      name: t('业务'),
     };
     const statusFilter = {
-      name: t('状态'),
-      id: 'status',
       children: [
         {
           id: 1,
@@ -77,15 +73,17 @@
           name: t('异常'),
         },
       ],
+      id: 'status',
+      name: t('状态'),
     };
     const clusterFilter = {
-      name: t('集群'),
       id: 'cluster',
       multiple: true,
+      name: t('集群'),
     };
     const dbaFilter = {
-      name: t('主DBA'),
       id: 'dba',
+      name: t('主DBA'),
     };
     if (props.isShowAll) {
       return [bizFilter, dbaFilter, clusterFilter, statusFilter] as ISearchItem[];

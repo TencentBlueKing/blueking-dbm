@@ -118,7 +118,7 @@
 
   import MysqlPermissionAccountModel from '@services/model/mysql/mysql-permission-account';
   import TendbclusterModel from '@services/model/tendbcluster/tendbcluster';
-  import { getPermissionRules } from '@services/source/mysqlPermissionAccount'
+  import { getPermissionRules } from '@services/source/mysqlPermissionAccount';
   import { create as createOpenarea, getDetail, update as updateOpenarea } from '@services/source/openarea';
 
   import { useBeforeClose } from '@hooks';
@@ -151,8 +151,8 @@
 
   const genDefaultValue = () => ({
     config_name: '',
-    source_cluster_id: 0,
     config_rules: [] as ServiceReturnType<typeof getDetail>['config_rules'],
+    source_cluster_id: 0,
   });
 
   const configRuleRef = ref<InstanceType<typeof ConfigRule>>();
@@ -167,95 +167,93 @@
   const permissionTableData = ref<MysqlPermissionAccountModel[]>([]);
   const formDataChanged = ref(false);
   const currentCluster = ref({
-    type: 'tendbha',
     domain: '',
+    type: 'tendbha',
   });
 
   const clusterSelectorValue = shallowRef<Record<string, TendbclusterModel[]>>({
-    [ClusterTypes.TENDBCLUSTER]: []
+    [ClusterTypes.TENDBCLUSTER]: [],
   });
 
   const tabListConfig = {
     [ClusterTypes.TENDBCLUSTER]: {
       multiple: false,
-    }
+    },
   } as Record<string, TabConfig>;
 
   const permissionTableColumns = computed(() => [
     {
-      label: t('账号名称'),
       field: 'user',
-      width: 220,
-      showOverflowTooltip: false,
+      label: t('账号名称'),
       render: ({ data }: { data: MysqlPermissionAccountModel }) => (
-        <div class="account-box">
-          {
-            data.rules.length > 1
-              && <db-icon
-                  type="down-shape"
-                  class={{
-                    'flod-flag': true,
-                    'is-flod': rowFlodMap.value[data.account.user],
-                  }}
-                  onClick={() => handleToogleExpand(data.account.user)} />
-          }
-          { data.account.user }
+        <div class='account-box'>
+          {data.rules.length > 1 && (
+            <db-icon
+              class={{
+                'flod-flag': true,
+                'is-flod': rowFlodMap.value[data.account.user],
+              }}
+              type='down-shape'
+              onClick={() => handleToogleExpand(data.account.user)}
+            />
+          )}
+          {data.account.user}
         </div>
       ),
+      showOverflowTooltip: false,
+      width: 220,
     },
     {
-      label: t('访问DB'),
-      width: 300,
       field: 'access_db',
-      showOverflowTooltip: true,
+      label: t('访问DB'),
       render: ({ data }: { data: MysqlPermissionAccountModel }) => {
         const renderRules = rowFlodMap.value[data.account.user] ? data.rules.slice(0, 1) : data.rules;
-        return renderRules.map(item => (
-          <div class="inner-row">
-            <bk-tag>
-              {item.access_db}
-            </bk-tag>
+        return renderRules.map((item) => (
+          <div class='inner-row'>
+            <bk-tag>{item.access_db}</bk-tag>
           </div>
         ));
       },
+      showOverflowTooltip: true,
+      width: 300,
     },
     {
-      label: t('权限'),
       field: 'privilege',
-      showOverflowTooltip: false,
+      label: t('权限'),
       render: ({ data }: { data: MysqlPermissionAccountModel }) => {
         if (data.rules.length === 0) {
-          return <div class="inner-row">--</div>;
+          return <div class='inner-row'>--</div>;
         }
         const renderRules = rowFlodMap.value[data.account.user] ? data.rules.slice(0, 1) : data.rules;
-        return renderRules.map(item => (
-          <div class="inner-row cell-privilege">
+        return renderRules.map((item) => (
+          <div class='inner-row cell-privilege'>
             <TextOverflowLayout>
               {{
-                default: () => item.privilege
+                default: () => item.privilege,
               }}
             </TextOverflowLayout>
           </div>
         ));
       },
+      showOverflowTooltip: false,
     },
     {
-      label: t('操作'),
       field: 'operate',
-      width: 145,
+      label: t('操作'),
       render: ({ data }: { data: MysqlPermissionAccountModel }) => {
         const renderRules = rowFlodMap.value[data.account.user] ? data.rules.slice(0, 1) : data.rules;
-        return renderRules.map(item => (
-          <div class="inner-row">
+        return renderRules.map((item) => (
+          <div class='inner-row'>
             <bk-button
+              theme='primary'
               text
-              theme="primary"
               onClick={() => handleRemoveSelectedPermissionRules(item)}>
               {t('移除')}
             </bk-button>
           </div>
         ));
-      }
+      },
+      width: 145,
     },
   ]);
 
@@ -268,16 +266,20 @@
       formData.config_rules = data.config_rules;
 
       permissionRules.value = data.related_authorize;
-      await handleSelectedPermissionRule(data.related_authorize)
+      await handleSelectedPermissionRule(data.related_authorize);
     },
   });
 
-  watch(formData, () => {
-    window.changeConfirm = true;
-    formDataChanged.value = true;
-  }, {
-    deep: true,
-  })
+  watch(
+    formData,
+    () => {
+      window.changeConfirm = true;
+      formDataChanged.value = true;
+    },
+    {
+      deep: true,
+    },
+  );
 
   if (isEditMode) {
     fetchTemplateDetail({
@@ -285,37 +287,38 @@
     });
   }
 
-  const getCellClass = (data: { field: string }) => ['privilege', 'operate'].includes(data.field) ? 'cell-privilege' : '';
+  const getCellClass = (data: { field: string }) =>
+    ['operate', 'privilege'].includes(data.field) ? 'cell-privilege' : '';
 
   const handleRemoveSelectedPermissionRules = (data: MysqlPermissionAccountModel['rules'][number]) => {
-    const permissionIndex = permissionTableData.value.findIndex(item => item.account.account_id === data.account_id)!;
+    const permissionIndex = permissionTableData.value.findIndex((item) => item.account.account_id === data.account_id)!;
     const permission = permissionTableData.value[permissionIndex];
-    const ruleIndex = permission.rules.findIndex(item => item.rule_id === data.rule_id)!;
+    const ruleIndex = permission.rules.findIndex((item) => item.rule_id === data.rule_id)!;
     if (permission.rules.length === 1) {
       permissionTableData.value.splice(permissionIndex, 1);
     } else {
       permission.rules.splice(ruleIndex, 1);
     }
-    const selectedRuleIndex = permissionRules.value.findIndex(id => id === data.rule_id);
+    const selectedRuleIndex = permissionRules.value.findIndex((id) => id === data.rule_id);
     permissionRules.value.splice(selectedRuleIndex, 1);
-  }
+  };
 
   const handleSelectedPermissionRule = async (ruleIds: number[]) => {
     if (ruleIds.length === 0) {
-      return
+      return;
     }
     permissionTableloading.value = true;
     const rulesResult = await getPermissionRules({
-      offset: 0,
-      limit: -1,
-      rule_ids: ruleIds.join(','),
       account_type: 'tendbcluster',
       bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+      limit: -1,
+      offset: 0,
+      rule_ids: ruleIds.join(','),
     }).finally(() => {
       permissionTableloading.value = false;
     });
     permissionTableData.value = rulesResult.results;
-  }
+  };
 
   const handleToogleExpand = (user: string) => {
     if (rowFlodMap.value[user]) {
@@ -327,7 +330,7 @@
 
   const handleShowPermissionRule = () => {
     isShowPermissionRule.value = true;
-  }
+  };
 
   const handleShowClusterSelector = () => {
     isShowClusterSelector.value = true;
@@ -336,21 +339,21 @@
   const handelClusterChange = (selected: Record<string, TendbclusterModel[]>) => {
     clusterSelectorValue.value = selected;
 
-    const { id, master_domain: domain, cluster_type: clusterType } = selected[ClusterTypes.TENDBCLUSTER][0];
+    const { cluster_type: clusterType, id, master_domain: domain } = selected[ClusterTypes.TENDBCLUSTER][0];
     formData.source_cluster_id = id;
     currentCluster.value = {
-      type: clusterType,
       domain,
+      type: clusterType,
     };
   };
 
   const handleDeleteCurrentCluster = () => {
     formData.source_cluster_id = 0;
     currentCluster.value = {
-      type: '',
       domain: '',
+      type: '',
     };
-  }
+  };
 
   const handleSubmit = () => {
     isSubmiting.value = true;
@@ -359,12 +362,12 @@
       (formRef.value as InstanceType<typeof Form>).validate(),
     ])
       .then(([configRule]) => {
-        const params: CreateOpenareaParams & { id: number } = {
-          id: 0,
+        const params: { id: number } & CreateOpenareaParams = {
           bk_biz_id: currentBizId,
+          id: 0,
           ...formData,
-          config_rules: configRule,
           cluster_type: 'tendbcluster',
+          config_rules: configRule,
           related_authorize: permissionRules.value,
         };
         if (isEditMode) {
@@ -402,7 +405,7 @@
     router.push({
       name: 'spiderOpenareaTemplate',
     });
-  }
+  };
 
   defineExpose({
     routerBack() {

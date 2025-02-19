@@ -59,13 +59,11 @@
   import { ipv4 } from '@common/regex';
 
   interface Props {
-    cloudId: string | number;
     cityName: string;
+    cloudId: string | number;
   }
 
-  interface Emits {
-    (e: 'change', value: string[]): void;
-  }
+  type Emits = (e: 'change', value: string[]) => void;
 
   const props = defineProps<Props>();
   const emits = defineEmits<Emits>();
@@ -122,11 +120,11 @@
     // }
     // 存在性
     const data = await getRedisMachineList({
-      ip: inputHostList.join(','),
-      instance_role: 'redis_master',
-      bk_cloud_id: props.cloudId as number,
       bk_city_name: props.cityName,
+      bk_cloud_id: props.cloudId as number,
       cluster_type: ClusterTypes.REDIS_INSTANCE,
+      instance_role: 'redis_master',
+      ip: inputHostList.join(','),
     });
     const inputHostMap = inputHostList.reduce(
       (prevMap, hostItem) => ({

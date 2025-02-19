@@ -58,44 +58,46 @@
 
   const rules = [
     {
-      validator: (value: string[]) => _.every(value, (item) => /^(?!stage_truncate)(?!.*dba_rollback$).*/.test(item)),
       message: t('不能以stage_truncate开头或dba_rollback结尾'),
       trigger: 'blur',
+      validator: (value: string[]) => _.every(value, (item) => /^(?!stage_truncate)(?!.*dba_rollback$).*/.test(item)),
     },
     {
-      validator: (value: string[]) => _.every(value, (item) => /^[-_a-zA-Z0-9*?%]{0,35}$/.test(item)),
       message: t('库表名支持数字、字母、中划线、下划线，最大35字符'),
       trigger: 'blur',
+      validator: (value: string[]) => _.every(value, (item) => /^[-_a-zA-Z0-9*?%]{0,35}$/.test(item)),
     },
     {
+      message: t('不允许输入系统库和特殊库'),
+      trigger: 'blur',
       validator: (value: string[]) =>
         _.every(
           value,
           (item) =>
-            !['mysql', 'db_infobase', 'information_schema', 'performance_schema', 'sys', 'infodba_schema'].includes(
+            !['db_infobase', 'infodba_schema', 'information_schema', 'mysql', 'performance_schema', 'sys'].includes(
               item,
             ),
         ),
-      message: t('不允许输入系统库和特殊库'),
-      trigger: 'blur',
     },
     {
-      validator: (value: string[]) => _.every(value, (item) => item !== '*'),
       message: t('不允许为 *'),
       trigger: 'blur',
+      validator: (value: string[]) => _.every(value, (item) => item !== '*'),
     },
     {
-      validator: (value: string[]) =>
-        !_.some(value, (item) => (/\*/.test(item) && item.length > 1) || (value.length > 1 && item === '*')),
       message: t('* 只能独立使用'),
       trigger: 'blur',
+      validator: (value: string[]) =>
+        !_.some(value, (item) => (/\*/.test(item) && item.length > 1) || (value.length > 1 && item === '*')),
     },
     {
-      validator: (value: string[]) => _.every(value, (item) => !/^[%?]$/.test(item)),
       message: t('% 或 ? 不允许单独使用'),
       trigger: 'blur',
+      validator: (value: string[]) => _.every(value, (item) => !/^[%?]$/.test(item)),
     },
     {
+      message: t('DB 不存在'),
+      trigger: 'blur',
       validator: (value: string[]) => {
         const clearDbList = _.filter(value, (item) => !/[*%]/.test(item));
         if (clearDbList.length < 1) {
@@ -119,8 +121,6 @@
           return true;
         });
       },
-      message: t('DB 不存在'),
-      trigger: 'blur',
     },
   ];
 </script>

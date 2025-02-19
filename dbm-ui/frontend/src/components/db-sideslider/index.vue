@@ -56,29 +56,27 @@
   import { leaveConfirm } from '@utils';
 
   interface Props {
-    isShow: boolean;
-    showFooter?: boolean;
-    confirmText?: string;
     cancelText?: string;
+    confirmText?: string;
     disabledConfirm?: boolean;
+    isShow: boolean;
     renderDirective?: 'if' | 'show';
+    showFooter?: boolean;
   }
 
-  interface Emits {
-    (e: 'update:isShow', isShow: boolean): void;
-  }
+  type Emits = (e: 'update:isShow', isShow: boolean) => void;
   interface Exposes {
-    handleConfirm: () => void;
     handleCancle: () => void;
+    handleConfirm: () => void;
   }
 
   const props = withDefaults(defineProps<Props>(), {
-    isShow: false,
-    showFooter: true,
-    disabledConfirm: false,
-    confirmText: '',
     cancelText: '',
+    confirmText: '',
+    disabledConfirm: false,
+    isShow: false,
     renderDirective: 'if',
+    showFooter: true,
   });
 
   const emit = defineEmits<Emits>();
@@ -136,7 +134,7 @@
   };
 
   defineExpose<Exposes>({
-    handleConfirm,
     handleCancle,
+    handleConfirm,
   });
 </script>

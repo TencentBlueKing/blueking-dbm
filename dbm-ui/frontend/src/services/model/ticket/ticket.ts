@@ -46,24 +46,24 @@ const STATUS_INNER_TODO = 'INNER_TODO';
 export default class Ticket<T extends unknown | DetailBase = unknown> {
   static STATUS_APPROVE = STATUS_APPROVE;
   static STATUS_FAILED = STATUS_FAILED;
+  static STATUS_INNER_TODO = STATUS_INNER_TODO;
   static STATUS_RESOURCE_REPLENISH = STATUS_RESOURCE_REPLENISH;
-  static STATUS_SUCCEEDED = STATUS_SUCCEEDED;
   static STATUS_RUNNING = STATUS_RUNNING;
+  static STATUS_SUCCEEDED = STATUS_SUCCEEDED;
   static STATUS_TERMINATED = STATUS_TERMINATED;
   static STATUS_TIMER = STATUS_TIMER;
   static STATUS_TODO = STATUS_TODO;
-  static STATUS_INNER_TODO = STATUS_INNER_TODO;
 
   static statusTextMap = {
     [STATUS_APPROVE]: t('待审批'),
-    [STATUS_TODO]: t('待执行'),
-    [STATUS_RUNNING]: t('执行中'),
-    [STATUS_RESOURCE_REPLENISH]: t('待补货'),
-    [STATUS_INNER_TODO]: t('待继续'),
     [STATUS_FAILED]: t('已失败'),
+    [STATUS_INNER_TODO]: t('待继续'),
+    [STATUS_RESOURCE_REPLENISH]: t('待补货'),
+    [STATUS_RUNNING]: t('执行中'),
     [STATUS_SUCCEEDED]: t('已完成'),
     [STATUS_TERMINATED]: t('已终止'),
     [STATUS_TIMER]: t('定时中'),
+    [STATUS_TODO]: t('待执行'),
   };
 
   bk_biz_id: number;
@@ -81,8 +81,8 @@ export default class Ticket<T extends unknown | DetailBase = unknown> {
     ticket_view: boolean;
   };
   related_object: {
-    title: string;
     objects: string[];
+    title: string;
   };
   remark: string;
   send_msg_config: Record<string, string>;
@@ -124,25 +124,25 @@ export default class Ticket<T extends unknown | DetailBase = unknown> {
     };
   }
 
-  get statusText() {
-    return Ticket.statusTextMap[this.status];
-  }
-
   get createAtDisplay() {
     return utcDisplayTime(this.create_at);
+  }
+
+  get isFinished() {
+    return [Ticket.STATUS_SUCCEEDED, Ticket.STATUS_TERMINATED].includes(this.status);
   }
 
   get isTodo() {
     return [
       Ticket.STATUS_APPROVE,
-      Ticket.STATUS_TODO,
-      Ticket.STATUS_RESOURCE_REPLENISH,
       Ticket.STATUS_FAILED,
+      Ticket.STATUS_RESOURCE_REPLENISH,
       Ticket.STATUS_RUNNING,
+      Ticket.STATUS_TODO,
     ].includes(this.status);
   }
 
-  get isFinished() {
-    return [Ticket.STATUS_SUCCEEDED, Ticket.STATUS_TERMINATED].includes(this.status);
+  get statusText() {
+    return Ticket.statusTextMap[this.status];
   }
 }

@@ -289,23 +289,23 @@
 
   interface Props {
     dataSource: typeof getTickets;
-    selectable?: boolean;
-    rowClass: (params: TicketModel) => string;
     excludeColumn?: string[];
+    rowClass: (params: TicketModel) => string;
+    selectable?: boolean;
   }
 
   type Emits = (e: 'selection', data: TicketModel<unknown>[]) => void;
 
   const props = withDefaults(defineProps<Props>(), {
-    selectable: false,
     excludeColumn: () => [],
+    selectable: false,
   });
 
   const emits = defineEmits<Emits>();
 
   defineSlots<{
-    prepend?: () => VNode;
     action?: () => VNode;
+    prepend?: () => VNode;
   }>();
 
   const router = useRouter();
@@ -314,9 +314,9 @@
   const paginationLimitCache = useStorage('table_pagination_limit', 20);
   const { isSplited: isStretchLayoutOpen, splitScreen: stretchLayoutSplitScreen } = useStretchLayout();
 
-  const { value: datePickerValue, formatValue: formatDateValue } = useDatePicker();
-  const { loading: isLoading, pagination, fetchTicketList, dataList, ordering } = useFetchData(props.dataSource);
-  const { value: searchSelectValue, formatSearchValue, searchFieldMap } = useSearchSelect();
+  const { formatValue: formatDateValue, value: datePickerValue } = useDatePicker();
+  const { dataList, fetchTicketList, loading: isLoading, ordering, pagination } = useFetchData(props.dataSource);
+  const { formatSearchValue, searchFieldMap, value: searchSelectValue } = useSearchSelect();
 
   const currentInstance = getCurrentInstance();
   const { getSearchParams } = useUrlSearch();

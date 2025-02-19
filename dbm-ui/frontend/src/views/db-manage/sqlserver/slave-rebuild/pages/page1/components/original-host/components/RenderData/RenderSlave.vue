@@ -49,14 +49,15 @@
 
   const rules = [
     {
-      validator: (value: string) => Boolean(_.trim(value)),
       message: t('目标从库实例不能为空'),
+      validator: (value: string) => Boolean(_.trim(value)),
     },
     {
-      validator: (value: string) => ipPort.test(value),
       message: t('目标从库实例格式不正确'),
+      validator: (value: string) => ipPort.test(value),
     },
     {
+      message: t('目标从库实例不存在'),
       validator: (value: string) =>
         checkInstance({
           bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
@@ -69,13 +70,12 @@
           modelValue.value = {
             bkCloudId: instanceData.bk_cloud_id,
             bkHostId: instanceData.bk_host_id,
+            instanceAddress: instanceData.instance_address,
             ip: instanceData.ip,
             port: instanceData.port,
-            instanceAddress: instanceData.instance_address,
           };
           return true;
         }),
-      message: t('目标从库实例不存在'),
     },
   ];
 
@@ -102,10 +102,10 @@
           slave: {
             bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
             bk_cloud_id: modelValue.value.bkCloudId,
-            ip: modelValue.value.ip,
             bk_host_id: modelValue.value.bkHostId,
-            port: modelValue.value.port,
             instance_address: modelValue.value.instanceAddress,
+            ip: modelValue.value.ip,
+            port: modelValue.value.port,
           },
         };
       });

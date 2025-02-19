@@ -18,19 +18,19 @@ import { random } from '@utils';
 export function generateRedisRollbackDataCloneData(ticketData: TicketModel<Redis.ClusterRollbackDataCopy>) {
   const { clusters, infos } = ticketData.details;
   const tableList = infos.map((item) => ({
-    rowKey: random(),
+    excludeKey: item.key_black_regex ? item.key_black_regex.split(',') : [],
+    includeKey: item.key_white_regex ? item.key_white_regex.split(',') : [],
     isLoading: false,
+    rowKey: random(),
     srcCluster: item.src_cluster,
-    targetTime: item.recovery_time_point,
     targetCluster: clusters[item.dst_cluster].immute_domain,
     targetClusterId: item.dst_cluster,
-    includeKey: item.key_white_regex ? item.key_white_regex.split(',') : [],
-    excludeKey: item.key_black_regex ? item.key_black_regex.split(',') : [],
+    targetTime: item.recovery_time_point,
   }));
 
   return Promise.resolve({
+    remark: ticketData.remark,
     tableList,
     writeMode: ticketData.details.write_mode,
-    remark: ticketData.remark,
   });
 }

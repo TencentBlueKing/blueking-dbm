@@ -54,10 +54,10 @@ export default function (tableContentRef: Ref<HTMLElement | undefined>) {
   });
 
   return {
-    leftFixedStyles,
-    rightFixedStyles,
     fixedLeft: isFixedLeft,
     fixedRight: isFixedRight,
     initalScroll: handleHorizontalScroll,
+    leftFixedStyles,
+    rightFixedStyles,
   };
 }

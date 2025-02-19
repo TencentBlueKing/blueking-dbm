@@ -41,23 +41,23 @@
   import RenderSlave from './RenderSlave.vue';
 
   export interface IDataRow {
+    clusterId?: number;
     rowKey: string;
     slave?: {
       bkCloudId: number;
       bkHostId: number;
+      clusterId: number;
+      instanceAddress: string;
       ip: string;
       port: number;
-      instanceAddress: string;
-      clusterId: number;
     };
-    clusterId?: number;
   }
 
   // 创建表格数据
   export const createRowData = (data = {} as Partial<IDataRow>) => ({
+    clusterId: data.clusterId,
     rowKey: random(),
     slave: data.slave,
-    clusterId: data.clusterId,
   });
 </script>
 <script setup lang="ts">
@@ -115,17 +115,17 @@
       emits(
         'clone',
         createRowData({
+          clusterId: clusterData.cluster_id,
           slave: sourceData
             ? {
                 bkCloudId: sourceData.slave.bk_cloud_id,
                 bkHostId: sourceData.slave.bk_host_id,
+                clusterId: clusterData.cluster_id,
+                instanceAddress: sourceData.slave.instance_address,
                 ip: sourceData.slave.ip,
                 port: sourceData.slave.port,
-                instanceAddress: sourceData.slave.instance_address,
-                clusterId: clusterData.cluster_id,
               }
             : undefined,
-          clusterId: clusterData.cluster_id,
         }),
       );
     });

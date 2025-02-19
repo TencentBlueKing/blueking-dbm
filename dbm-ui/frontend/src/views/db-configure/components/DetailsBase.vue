@@ -98,41 +98,37 @@
   import ReadonlyTable from './ReadonlyTable.vue';
 
   type PlatConfDetailsParams = ServiceParameters<typeof getConfigBaseDetails>;
-  type DetailData = ServiceReturnType<typeof getLevelConfig> & { charset?: string };
+  type DetailData = { charset?: string } & ServiceReturnType<typeof getLevelConfig>;
 
   interface Props {
     data?: Partial<DetailData>;
-    loading?: boolean;
-    fetchParams?: PlatConfDetailsParams | ServiceParameters<typeof getLevelConfig>;
-    stickyTop?: number;
-    level?: ConfLevelValues;
-    title?: string;
-    extraParametersCards?: ExtraConfListItem[];
-    routeParams?: Record<string, any>;
     deployInfo?: Partial<DetailData>;
+    extraParametersCards?: ExtraConfListItem[];
+    fetchParams?: PlatConfDetailsParams | ServiceParameters<typeof getLevelConfig>;
+    level?: ConfLevelValues;
+    loading?: boolean;
+    routeParams?: Record<string, any>;
+    stickyTop?: number;
+    title?: string;
   }
 
-  interface Emits {
-    (e: 'update-info', value: { key: string; value: string }): void;
-  }
+  type Emits = (e: 'update-info', value: { key: string; value: string }) => void;
 
-  // eslint-disable-next-line max-len
-  type updateFuncParam = ServiceParameters<typeof updatePlatformConfig> &
-    ServiceParameters<typeof updateBusinessConfig>;
+  type updateFuncParam = ServiceParameters<typeof updateBusinessConfig> &
+    ServiceParameters<typeof updatePlatformConfig>;
 
   const props = withDefaults(defineProps<Props>(), {
     data: () => ({}) as NonNullable<Props['data']>,
-    loading: false,
-    fetchParams: () => ({}) as PlatConfDetailsParams,
-    stickyTop: 0,
-    level: ConfLevels.PLAT,
-    title: '',
-    extraParametersCards: () => [],
-    routeParams: () => ({}),
-    deployInfo: () =>
-    ({
+    deployInfo: () => ({
       conf_items: [] as DetailData['conf_items'],
     }),
+    extraParametersCards: () => [],
+    fetchParams: () => ({}) as PlatConfDetailsParams,
+    level: ConfLevels.PLAT,
+    loading: false,
+    routeParams: () => ({}),
+    stickyTop: 0,
+    title: '',
   });
 
   const emits = defineEmits<Emits>();
@@ -145,7 +141,7 @@
   const clusterType = ref(props.data.version);
 
   const isSqlServer = computed(() =>
-    [ClusterTypes.SQLSERVER_SINGLE, ClusterTypes.SQLSERVER_HA].includes(props.routeParams.clusterType),
+    [ClusterTypes.SQLSERVER_HA, ClusterTypes.SQLSERVER_SINGLE].includes(props.routeParams.clusterType),
   );
   const tabs = computed(() => {
     if (!state.version) {
@@ -167,64 +163,62 @@
     const baseColumns = [
       [
         {
-          label: t('配置名称'),
-          key: 'name',
           isEdit: isPlat.value,
+          key: 'name',
+          label: t('配置名称'),
         },
         {
-          label: t('描述'),
-          key: 'description',
           isEdit: true,
+          key: 'description',
+          label: t('描述'),
         },
         {
-          label: t('数据库版本'),
           key: 'version',
+          label: t('数据库版本'),
         },
       ],
       [
         {
-          label: t('更新时间'),
           key: 'updated_at',
+          label: t('更新时间'),
         },
         {
-          label: t('更新人'),
           key: 'updated_by',
+          label: t('更新人'),
         },
       ],
     ];
     if (isShowCharset.value) {
       baseColumns[1].push({
-        label: t('字符集'),
         key: 'charset',
+        label: t('字符集'),
       });
     }
     if (isSqlServer.value) {
       baseColumns[0].push(
         ...[
           {
-            label: t('实际内存分配比率'),
             key: 'buffer_percent',
+            label: t('实际内存分配比率'),
           },
           {
-            label: t('主从方式'),
             key: 'sync_type',
-            render: () => <span> {
-              detailData.value.sync_type === 'mirroring'
-                ? t('镜像')
-                : detailData.value.sync_type
-            } </span>
+            label: t('主从方式'),
+            render: () => (
+              <span> {detailData.value.sync_type === 'mirroring' ? t('镜像') : detailData.value.sync_type} </span>
+            ),
           },
         ],
       );
       baseColumns[1].push(
         ...[
           {
-            label: t('最大系统保留内存'),
             key: 'max_remain_mem_gb',
+            label: t('最大系统保留内存'),
           },
           {
-            label: t('操作系统版本'),
             key: 'system_version',
+            label: t('操作系统版本'),
           },
         ],
       );
@@ -242,8 +236,9 @@
       return {
         ...props.data,
         ...props.deployInfo.conf_items!.reduce<Record<string, string>>((acc, item) => {
-          acc[item.conf_name] = item.conf_value!;
-          return acc;
+          return Object.assign(acc, {
+            [item.conf_name]: item.conf_value,
+          });
         }, {}),
       };
     }
@@ -261,15 +256,15 @@
   /**
    * 基础信息编辑
    */
-  const handleSaveEditInfo = ({ value, key, editResolve }: EditEmitData) => {
+  const handleSaveEditInfo = ({ editResolve, key, value }: EditEmitData) => {
     // 默认需要把所有信息带上，否则接口会报错。
     const params = {
       ...props.fetchParams,
-      name: props.data.name,
       conf_items: [],
-      description: props.data.description,
       confirm: 0,
+      description: props.data.description,
       [key]: value,
+      name: props.data.name,
     } as updateFuncParam;
 
     const handleRequest = isPlat.value ? updatePlatformConfig : updateBusinessConfig;

@@ -94,16 +94,16 @@
 <script lang="ts">
   export interface IValue {
     originProxyIp: {
-      cluster_id: number;
-      bk_host_id: number;
       bk_cloud_id: number;
-      port: number;
-      ip: string;
+      bk_host_id: number;
+      cluster_id: number;
       instance_address: string;
+      ip: string;
+      port: number;
     };
     targetProxyIp: {
-      bk_host_id: number;
       bk_cloud_id: number;
+      bk_host_id: number;
       ip: string;
     };
   }
@@ -219,16 +219,16 @@
             const originIpData = realDataMap[inputData.originIp];
             resultList.push({
               originProxyIp: {
-                cluster_id: originIpData.cluster_id,
-                bk_host_id: originIpData.bk_host_id,
                 bk_cloud_id: originIpData.bk_cloud_id,
-                port: originIpData.port,
-                ip: originIpData.ip,
+                bk_host_id: originIpData.bk_host_id,
+                cluster_id: originIpData.cluster_id,
                 instance_address: inputData.originIp,
+                ip: originIpData.ip,
+                port: originIpData.port,
               },
               targetProxyIp: {
-                bk_host_id: 0,
                 bk_cloud_id: 0,
+                bk_host_id: 0,
                 ip: inputData.targetIp,
               },
             });

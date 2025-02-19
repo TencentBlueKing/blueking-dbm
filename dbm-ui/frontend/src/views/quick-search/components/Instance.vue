@@ -137,16 +137,16 @@
 
   import { execCopy } from '@utils';
 
-  import { groupByDbType } from '../common/utils';
-
   import { exportExcelFile } from '@/utils';
 
+  import { groupByDbType } from '../common/utils';
+
   interface Props {
-    keyword: string;
-    data: QuickSearchInstanceModel[];
     bizIdNameMap: Record<number, string>;
+    data: QuickSearchInstanceModel[];
     isAnomalies: boolean;
     isSearching: boolean;
+    keyword: string;
   }
 
   interface Emits {
@@ -187,16 +187,16 @@
     const formatData = dataList.map((dataItem) => ({
       ['IP']: dataItem.ip,
       [t('IP端口')]: String(dataItem.port),
-      [t('实例角色')]: dataItem.role,
-      [t('城市')]: dataItem.bk_idc_area,
-      [t('机房')]: dataItem.bk_idc_name,
-      [t('集群ID')]: dataItem.cluster_id,
-      [t('集群类型')]: dataItem.cluster_type,
-      [t('主域名')]: dataItem.cluster_domain,
-      [t('主版本')]: dataItem.major_version,
       [t('业务ID')]: String(dataItem.bk_biz_id),
       [t('业务名称')]: props.bizIdNameMap[dataItem.bk_biz_id],
       [t('主 DBA')]: dataItem.dba,
+      [t('主域名')]: dataItem.cluster_domain,
+      [t('主版本')]: dataItem.major_version,
+      [t('城市')]: dataItem.bk_idc_area,
+      [t('实例角色')]: dataItem.role,
+      [t('机房')]: dataItem.bk_idc_name,
+      [t('集群ID')]: dataItem.cluster_id,
+      [t('集群类型')]: dataItem.cluster_type,
     }));
     const colsWidths = [
       { width: 10 },

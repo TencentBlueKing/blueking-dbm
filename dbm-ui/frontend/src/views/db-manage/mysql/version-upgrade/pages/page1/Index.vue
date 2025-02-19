@@ -93,7 +93,6 @@
 
   // 单据克隆
   useTicketCloneInfo({
-    type: TicketTypes.MYSQL_PROXY_UPGRADE,
     onSuccess(cloneData) {
       tableList.value = cloneData.tableList;
       force.value = cloneData.force;
@@ -101,11 +100,11 @@
       window.changeConfirm = true;
       formData.roleType = 'haAccessLayer';
     },
+    type: TicketTypes.MYSQL_PROXY_UPGRADE,
   });
 
   // 单据克隆
   useTicketCloneInfo({
-    type: TicketTypes.MYSQL_LOCAL_UPGRADE,
     onSuccess(cloneData) {
       const isSingle = cloneData.tableList[0].clusterData.clusterType === ClusterTypes.TENDBSINGLE;
       formData.roleType = isSingle ? 'singleStorageLayer' : 'haStorageLayer';
@@ -118,11 +117,11 @@
         window.changeConfirm = true;
       });
     },
+    type: TicketTypes.MYSQL_LOCAL_UPGRADE,
   });
 
   // 单据克隆
   useTicketCloneInfo({
-    type: TicketTypes.MYSQL_MIGRATE_UPGRADE,
     onSuccess(cloneData) {
       backupSource.value = cloneData.backupSource;
       force.value = cloneData.force;
@@ -138,6 +137,7 @@
         tableList.value = cloneData.tableList;
       });
     },
+    type: TicketTypes.MYSQL_MIGRATE_UPGRADE,
   });
 
   const initFormData = () => ({

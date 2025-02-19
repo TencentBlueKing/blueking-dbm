@@ -104,12 +104,12 @@
 
   // 单据克隆
   useTicketCloneInfo({
-    type: TicketTypes.MYSQL_INSTANCE_CLONE_RULES,
     onSuccess(cloneData) {
       tableData.value = cloneData.tableDataList;
       remark.value = cloneData.remark;
       window.changeConfirm = true;
     },
+    type: TicketTypes.MYSQL_INSTANCE_CLONE_RULES,
   });
 
   const rowRefs = ref();
@@ -129,17 +129,17 @@
   const tabListConfig = {
     [ClusterTypes.TENDBHA]: [
       {
-        tableConfig: {
-          firsrColumn: {
-            label: '',
-            field: '',
-            role: '',
-          },
-        },
         previewConfig: {
           displayKey: 'instance_address',
           showTitle: true,
           title: t('主从'),
+        },
+        tableConfig: {
+          firsrColumn: {
+            field: '',
+            label: '',
+            role: '',
+          },
         },
       },
     ],
@@ -194,19 +194,19 @@
         source: {
           bkCloudId: sourceInstance.bk_cloud_id,
           clusterId: sourceInstance.cluster_id,
+          clusterType: sourceInstance.cluster_type,
           dbModuleId: sourceInstance.db_module_id,
           dbModuleName: sourceInstance.db_module_name,
           instanceAddress: sourceInstance.instance_address,
           masterDomain: sourceInstance.master_domain,
-          clusterType: sourceInstance.cluster_type,
         },
         target: {
-          cluster_id: targetInstance.cluster_id,
-          bk_host_id: targetInstance.bk_host_id,
           bk_cloud_id: targetInstance.bk_cloud_id,
-          port: targetInstance.port,
-          ip: targetInstance.ip,
+          bk_host_id: targetInstance.bk_host_id,
+          cluster_id: targetInstance.cluster_id,
           instance_address: targetInstance.instance_address,
+          ip: targetInstance.ip,
+          port: targetInstance.port,
         },
       };
     });
@@ -232,13 +232,13 @@
       if (!instanceMemo[ip]) {
         const row = createRowData({
           source: {
+            bkCloudId: item.bk_cloud_id,
             clusterId: item.cluster_id,
             clusterType: item.cluster_type,
-            masterDomain: item.master_domain,
             dbModuleId: item.db_module_id,
             dbModuleName: item.db_module_name,
             instanceAddress: item.instance_address,
-            bkCloudId: item.bk_cloud_id,
+            masterDomain: item.master_domain,
           },
         });
         results.push(row);
@@ -264,7 +264,7 @@
   // 删除一个集群
   const handleRemove = (index: number) => {
     const dataList = [...tableData.value];
-    const { instanceAddress, clusterType } = dataList[index].source!;
+    const { clusterType, instanceAddress } = dataList[index].source!;
     dataList.splice(index, 1);
     tableData.value = dataList;
     if (instanceAddress) {
@@ -290,22 +290,22 @@
       .then((data) =>
         precheckPermissionClone({
           bizId: currentBizId,
-          clone_type: 'instance',
-          clone_list: data,
           clone_cluster_type: 'mysql',
+          clone_list: data,
+          clone_type: 'instance',
         }).then((precheckResult) => {
           if (!precheckResult.pre_check) {
             return Promise.reject();
           }
 
           const params = {
-            ticket_type: TicketTypes.MYSQL_INSTANCE_CLONE_RULES,
-            remark: remark.value,
+            bk_biz_id: currentBizId,
             details: {
               ...precheckResult,
               clone_type: 'instance',
             },
-            bk_biz_id: currentBizId,
+            remark: remark.value,
+            ticket_type: TicketTypes.MYSQL_INSTANCE_CLONE_RULES,
           };
           return createTicket(params).then((data) => {
             window.changeConfirm = false;

@@ -3,31 +3,31 @@ import type { HostInfo } from '@services/types';
 import type { DetailBase, DetailClusters } from '../common';
 
 export interface Replace extends DetailBase {
+  cluster_id: number;
   clusters: DetailClusters;
   ip_source: string;
-  cluster_id: number;
   new_nodes: {
+    broker: HostInfo[];
+    client: HostInfo[];
+    cold: HostInfo[];
     datanode: HostInfo[];
     hot: HostInfo[];
-    cold: HostInfo[];
     master: HostInfo[];
-    client: HostInfo[];
     namenode: HostInfo[];
-    zookeeper: HostInfo[];
-    broker: HostInfo[];
     proxy: HostInfo[];
     slave: HostInfo[];
+    zookeeper: HostInfo[];
   };
   old_nodes: {
+    broker: HostInfo[];
+    client: HostInfo[];
+    cold: HostInfo[];
     datanode: HostInfo[];
     hot: HostInfo[];
-    cold: HostInfo[];
     master: HostInfo[];
-    client: HostInfo[];
     namenode: HostInfo[];
-    zookeeper: HostInfo[];
-    broker: HostInfo[];
     proxy: HostInfo[];
     slave: HostInfo[];
+    zookeeper: HostInfo[];
   };
 }

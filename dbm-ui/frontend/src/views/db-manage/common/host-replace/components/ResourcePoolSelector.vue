@@ -69,12 +69,12 @@
   import type { TReplaceNode } from '../Index.vue';
 
   interface Props {
-    data: TReplaceNode<T>;
-    error: boolean;
     cloudInfo: {
       id: number;
       name: string;
     };
+    data: TReplaceNode<T>;
+    error: boolean;
   }
 
   const props = defineProps<Props>();
@@ -94,12 +94,12 @@
     },
   });
 
-  const { loading: isResourceSpecLoading, data: resourceSpecList } = useRequest(getResourceSpecList, {
+  const { data: resourceSpecList, loading: isResourceSpecLoading } = useRequest(getResourceSpecList, {
     defaultParams: [
       {
+        limit: -1,
         spec_cluster_type: props.data.specClusterType,
         spec_machine_type: props.data.specMachineType,
-        limit: -1,
       },
     ],
     onSuccess(data) {
@@ -113,28 +113,27 @@
 
   const getDefaultParams = ():
     | {
-        role: string;
         instance_id: number;
+        role: string;
       }
     | {
-        role: string;
         cluster_id: number;
+        role: string;
       } => {
     // influxdb 没有 cluster_id 需要通过 instance_id 查询
     if (props.data.role === 'influxdb') {
-      // eslint-disable-next-line vue/no-setup-props-destructure
       const [firstNode] = props.data.nodeList;
       if (firstNode instanceof InfluxdbInstanceModel) {
         return {
-          role: props.data.role,
           instance_id: firstNode.id,
+          role: props.data.role,
         };
       }
     }
     // 大数据集群同步 cluster_id 查询
     return {
-      role: props.data.role,
       cluster_id: props.data.clusterId,
+      role: props.data.role,
     };
   };
 
@@ -143,8 +142,8 @@
     onSuccess(recommendSpecList) {
       if (recommendSpecList.length > 0) {
         modelValue.value = {
-          spec_id: recommendSpecList[0].spec_id,
           count: props.data.nodeList.length,
+          spec_id: recommendSpecList[0].spec_id,
         };
       }
     },
@@ -152,8 +151,8 @@
 
   const handleChange = (value: number) => {
     modelValue.value = {
-      spec_id: value,
       count: props.data.nodeList.length,
+      spec_id: value,
     };
   };
 </script>

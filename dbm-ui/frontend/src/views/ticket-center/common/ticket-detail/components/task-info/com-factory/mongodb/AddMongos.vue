@@ -29,10 +29,10 @@
   }
 
   interface RowData {
+    add_shard_num: number;
     immute_domain: string;
     node_type: string;
     sepc_name: string;
-    add_shard_num: number;
   }
 
   const props = defineProps<Props>();
@@ -50,29 +50,29 @@
 
   const columns = [
     {
-      label: t('目标分片集群'),
       field: 'immute_domain',
+      label: t('目标分片集群'),
       showOverflowTooltip: true,
     },
     {
-      label: t('扩容节点类型'),
       field: 'node_type',
+      label: t('扩容节点类型'),
     },
     {
-      label: t('扩容规格'),
       field: 'sepc_name',
+      label: t('扩容规格'),
       showOverflowTooltip: true,
     },
     {
-      label: t('扩容数量（台）'),
       field: 'add_shard_num',
+      label: t('扩容数量（台）'),
     },
   ];
 
   tableData.value = infos.map((item) => ({
+    add_shard_num: item.resource_spec.mongos.count,
     immute_domain: clusters[item.cluster_id].immute_domain,
     node_type: 'mongos',
     sepc_name: specs[item.resource_spec.mongos.spec_id].name,
-    add_shard_num: item.resource_spec.mongos.count,
   }));
 </script>

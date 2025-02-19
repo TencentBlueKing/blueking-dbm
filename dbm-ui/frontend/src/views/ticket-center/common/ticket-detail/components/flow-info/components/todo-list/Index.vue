@@ -34,8 +34,8 @@
   import TypeResourceReplenish from './type-resource-replenish/Index.vue';
 
   interface Props {
-    flowData: FlowMode<unknown, any>;
     data: FlowMode['todos'];
+    flowData: FlowMode<unknown, any>;
   }
 
   const props = defineProps<Props>();

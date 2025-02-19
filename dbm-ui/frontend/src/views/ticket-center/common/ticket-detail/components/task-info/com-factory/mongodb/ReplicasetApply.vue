@@ -30,8 +30,8 @@
   import DemandInfo from '../components/DemandInfo.vue';
   import SpecInfos from '../components/SpecInfos.vue';
 
-  interface Props{
-    ticketDetails: TicketModel<Mongodb.ReplicasetApply>
+  interface Props {
+    ticketDetails: TicketModel<Mongodb.ReplicasetApply>;
   }
 
   const props = defineProps<Props>();
@@ -46,127 +46,125 @@
 
   const columns = [
     {
-      label: t('主域名'),
       field: 'mainDomain',
+      label: t('主域名'),
       showOverflowTooltip: true,
     },
     {
-      label: t('集群ID'),
       field: 'clusterId',
+      label: t('集群ID'),
       showOverflowTooltip: true,
     },
     {
-      label: t('集群名称'),
       field: 'clusterName',
+      label: t('集群名称'),
       showOverflowTooltip: true,
     },
   ];
 
-  const {
-    resource_spec: resourceSpec,
-    replica_sets: replicaSets,
-  } = props.ticketDetails.details;
+  const { replica_sets: replicaSets, resource_spec: resourceSpec } = props.ticketDetails.details;
   const backendSpec = resourceSpec.mongo_machine_set;
-  const tableData = replicaSets.map(domainItem => ({
-    mainDomain: domainItem.domain,
+  const tableData = replicaSets.map((domainItem) => ({
     clusterId: domainItem.set_id,
     clusterName: domainItem.name,
+    mainDomain: domainItem.domain,
   }));
 
   const config = [
     {
-      title: t('部署模块'),
       list: [
         {
+          key: 'bk_biz_name',
           label: t('所属业务'),
-          key: 'bk_biz_name',
         },
         {
+          key: 'bk_biz_name',
           label: t('业务英文名'),
-          key: 'bk_biz_name',
         },
         {
-          label: t('管控区域'),
           key: 'details.bk_cloud_name',
+          label: t('管控区域'),
         },
       ],
+      title: t('部署模块'),
     },
     {
-      title: t('地域要求'),
       list: [
         {
           label: t('数据库部署地域'),
           render: () => cityName.value || '--',
         },
       ],
+      title: t('地域要求'),
     },
     {
-      title: t('数据库部署信息'),
       list: [
         {
           label: t('容灾要求'),
           render: () => affinity.value || '--',
         },
         {
-          label: t('MongoDB版本'),
           key: 'details.db_version',
+          label: t('MongoDB版本'),
         },
         {
-          label: t('访问端口'),
           key: 'details.start_port',
+          label: t('访问端口'),
         },
       ],
+      title: t('数据库部署信息'),
     },
     {
-      title: t('需求信息'),
       list: [
         {
-          label: t('部署副本集数量'),
           key: 'details.replica_count',
+          label: t('部署副本集数量'),
         },
         {
-          label: t('每组主机部署副本集数量'),
           key: 'details.node_replica_count',
+          label: t('每组主机部署副本集数量'),
         },
         {
-          label: t('Shard 节点数'),
           key: 'details.node_count',
+          label: t('Shard 节点数'),
         },
         {
           label: t('后端存储规格'),
           render: () => (
             <bk-popover
-              placement="top"
-              theme="light">
+              placement='top'
+              theme='light'>
               {{
+                content: () => <SpecInfos data={backendSpec} />,
                 default: () => (
                   <span
-                    class="pb-2"
-                    style="cursor: pointer;border-bottom: 1px dashed #979ba5;">
-                    {backendSpec.spec_name }（{ `${backendSpec.count} ${t('台')}`}）
+                    class='pb-2'
+                    style='cursor: pointer;border-bottom: 1px dashed #979ba5;'>
+                    {backendSpec.spec_name}（{`${backendSpec.count} ${t('台')}`}）
                   </span>
                 ),
-                content: () => <SpecInfos data={backendSpec} />,
               }}
             </bk-popover>
           ),
         },
         {
-          label: t('每台主机oplog容量占比'),
           key: 'details.oplog_percent',
+          label: t('每台主机oplog容量占比'),
         },
         {
-          label: t('集群设置'),
           isTable: true,
+          label: t('集群设置'),
           render: () => (
             <db-original-table
               columns={columns}
               data={tableData}
               max-height={240}
-              min-height={0} />
+              min-height={0}
+            />
           ),
         },
       ],
+      title: t('需求信息'),
     },
   ];
 
@@ -175,7 +173,7 @@
   useRequest(getInfrasCities, {
     onSuccess: (cityList) => {
       const cityCode = props.ticketDetails.details.city_code;
-      const name = cityList.find(item => item.city_code === cityCode)?.city_name;
+      const name = cityList.find((item) => item.city_code === cityCode)?.city_name;
       cityName.value = name ?? '--';
     },
   });

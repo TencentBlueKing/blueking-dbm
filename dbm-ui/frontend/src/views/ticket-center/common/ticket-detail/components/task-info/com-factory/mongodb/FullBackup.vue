@@ -48,34 +48,33 @@
 
   const { t } = useI18n();
 
-  const { clusters, file_tag: fileTag, oplog, infos } = props.ticketDetails.details;
+  const { clusters, file_tag: fileTag, infos, oplog } = props.ticketDetails.details;
 
   const fileTagMap: Record<string, string> = {
-    normal_backup: t('25天'),
-    half_year_backup: t('6 个月'),
     a_year_backup: t('1 年'),
     forever_backup: t('3 年'),
+    half_year_backup: t('6 个月'),
+    normal_backup: t('25天'),
   };
 
-  // eslint-disable-next-line camelcase
   const fileTagText = fileTagMap[fileTag];
   const oplogType = oplog ? t('是') : t('否');
 
   const columns = [
     {
-      label: t('目标集群'),
       field: 'immute_domain',
+      label: t('目标集群'),
       showOverflowTooltip: true,
     },
     {
-      label: t('集群类型'),
       field: 'cluster_type_name',
+      label: t('集群类型'),
       showOverflowTooltip: true,
     },
   ];
 
   const dataList = infos.map((item) => ({
-    immute_domain: clusters[item.cluster_id].immute_domain,
     cluster_type_name: clusters[item.cluster_id].cluster_type_name,
+    immute_domain: clusters[item.cluster_id].immute_domain,
   }));
 </script>

@@ -189,19 +189,15 @@
   import { Message } from 'bkui-vue';
   import { useI18n } from 'vue-i18n';
 
-  import RedisDSTHistoryJobModel,
-    {
-      CopyModes,
-      DisconnectModes,
-      RemindFrequencyModes,
-      RepairAndVerifyModes,
-      WriteModes,
-    } from '@services/model/redis/redis-dst-history-job';
+  import RedisDSTHistoryJobModel, {
+    CopyModes,
+    DisconnectModes,
+    RemindFrequencyModes,
+    RepairAndVerifyModes,
+    WriteModes,
+  } from '@services/model/redis/redis-dst-history-job';
   import RedisDSTJobTaskModel from '@services/model/redis/redis-dst-job-task';
-  import {
-    getRedisDTSJobTasks,
-    setJobTaskFailedRetry,
-  } from '@services/source/redisDts';
+  import { getRedisDTSJobTasks, setJobTaskFailedRetry } from '@services/source/redisDts';
 
   import { useBeforeClose } from '@hooks';
 
@@ -212,14 +208,11 @@
   import ExecuteStatus from './ExecuteStatus.vue';
   import KeyTags from './KeyTags.vue';
 
-
   interface Props {
     data?: RedisDSTHistoryJobModel;
   }
 
-  interface Emits {
-    (e: 'on-close'): void
-  }
+  type Emits = (e: 'on-close') => void;
 
   const props = defineProps<Props>();
 
@@ -233,16 +226,20 @@
 
   const { bizs } = globalBizsStore;
 
-  const activeIndex =  ref(['base-info', 'detail']);
+  const activeIndex = ref(['base-info', 'detail']);
   const searchValue = ref('');
   const tableData = ref<RedisDSTJobTaskModel[]>([]);
   const timer = ref();
   const refreshTimer = ref();
   const checkedMap = ref<Record<number, boolean>>({});
 
-  const isSelectedAll = computed(() => tableData.value.length > 0 && Object.values(checkedMap.value).filter(item => item).length === tableData.value.length);
+  const isSelectedAll = computed(
+    () =>
+      tableData.value.length > 0 &&
+      Object.values(checkedMap.value).filter((item) => item).length === tableData.value.length,
+  );
 
-  const isIndeterminate = computed(() => Object.values(checkedMap.value).filter(item => item).length > 0);
+  const isIndeterminate = computed(() => Object.values(checkedMap.value).filter((item) => item).length > 0);
 
   const whiteRegexs = computed(() => {
     if (props.data?.key_white_regex === undefined || props.data?.key_white_regex === '') {
@@ -258,82 +255,88 @@
     return props.data.key_black_regex.split('\n');
   });
 
-  const failedList = computed(() => tableData.value.filter(item => item.isFailedStatus));
+  const failedList = computed(() => tableData.value.filter((item) => item.isFailedStatus));
 
   const columns = [
     {
+      field: 'src_instance',
       label: () => (
-        <div style="display:flex;align-items:center;">
+        <div style='display:flex;align-items:center;'>
           <bk-checkbox
-            label={t('源实例')}
-            indeterminate={isSelectedAll.value ? false : isIndeterminate.value}
-            model-value={isSelectedAll.value}
             disabled={failedList.value.length === 0}
-            onClick={(e: Event) => e.stopPropagation()}
+            indeterminate={isSelectedAll.value ? false : isIndeterminate.value}
+            label={t('源实例')}
+            model-value={isSelectedAll.value}
             onChange={handleSelectPageAll}
+            onClick={(e: Event) => e.stopPropagation()}
           />
         </div>
       ),
-      field: 'src_instance',
-      width: 220,
-      showOverflowTooltip: true,
-      render: ({ index, data }: {index: number, data: RedisDSTJobTaskModel}) => (
-        <div style="display:flex;align-items:center;">
+      render: ({ data, index }: { data: RedisDSTJobTaskModel; index: number }) => (
+        <div style='display:flex;align-items:center;'>
           <bk-checkbox
+            disabled={!data.isFailedStatus}
             label={false}
             model-value={Boolean(checkedMap.value[data.id])}
-            disabled={!data.isFailedStatus}
             onChange={() => handleSelectOne(index)}
           />
-          <span class="ml-8">{data.src_ip}:{data.src_port}</span>
+          <span class='ml-8'>
+            {data.src_ip}:{data.src_port}
+          </span>
         </div>
       ),
+      showOverflowTooltip: true,
+      width: 220,
     },
     {
-      label: 'DtsServer',
       field: 'dts_server',
-      width: 100,
+      label: 'DtsServer',
       showOverflowTooltip: true,
+      width: 100,
     },
     {
-      label: t('Task 类型'),
       field: 'task_type',
+      label: t('Task 类型'),
+      showOverflowTooltip: true,
       width: 120,
-      showOverflowTooltip: true,
     },
     {
-      label: t('执行状态'),
       field: 'status',
-      width: 100,
-      showOverflowTooltip: true,
+      label: t('执行状态'),
       render: ({ data }: { data: RedisDSTJobTaskModel }) => <ExecuteStatus type={data.status} />,
-    },
-    {
-      label: t('执行时间'),
-      field: 'update_time',
-      width: 180,
       showOverflowTooltip: true,
+      width: 100,
     },
     {
-      label: t('任务信息'),
+      field: 'update_time',
+      label: t('执行时间'),
+      showOverflowTooltip: true,
+      width: 180,
+    },
+    {
       field: 'message',
+      label: t('任务信息'),
       minWidth: 200,
       showOverflowTooltip: true,
-    }];
+    },
+  ];
 
-  const bizsMap = bizs.reduce((result, item) => {
-    // eslint-disable-next-line no-param-reassign
-    result[String(item.bk_biz_id)] = item.name;
-    return result;
-  }, {} as Record<string, string>);
+  const bizsMap = bizs.reduce(
+    (result, item) => {
+      // eslint-disable-next-line no-param-reassign
+      result[String(item.bk_biz_id)] = item.name;
+      return result;
+    },
+    {} as Record<string, string>,
+  );
 
   const copyTypesMap = {
+    [CopyModes.COPY_FROM_ROLLBACK_INSTANCE]: t('构造实例至业务内'),
+    [CopyModes.COPY_FROM_ROLLBACK_TEMP]: t('从回滚临时环境复制数据'),
     [CopyModes.CROSS_BISNESS]: t('跨业务'),
     [CopyModes.INTRA_BISNESS]: t('业务内'),
     [CopyModes.INTRA_TO_THIRD]: t('业务内至第三方'),
     [CopyModes.SELFBUILT_TO_INTRA]: t('自建集群至业务内'),
-    [CopyModes.COPY_FROM_ROLLBACK_INSTANCE]: t('构造实例至业务内'),
-    [CopyModes.COPY_FROM_ROLLBACK_TEMP]: t('从回滚临时环境复制数据'),
   };
 
   const writeModesMap = {
@@ -365,48 +368,51 @@
       clearTimeout(timer.value);
       const regex = new RegExp(encodeRegexp(keyword));
       timer.value = setTimeout(() => {
-        tableData.value = tableRawData.filter(item => regex.test(item.src_cluster) || regex.test(item.dts_server));
-        checkedMap.value = {}
+        tableData.value = tableRawData.filter((item) => regex.test(item.src_cluster) || regex.test(item.dts_server));
+        checkedMap.value = {};
       }, 1000);
     } else {
       tableData.value = tableRawData;
-      checkedMap.value = {}
+      checkedMap.value = {};
     }
   });
 
-  watch(() => props.data, (data) => {
-    if (!data) {
-      return;
-    }
-    queryTasksTableData(data);
-  });
+  watch(
+    () => props.data,
+    (data) => {
+      if (!data) {
+        return;
+      }
+      queryTasksTableData(data);
+    },
+  );
 
   const queryTasksTableData = async (data: RedisDSTHistoryJobModel) => {
     const r = await getRedisDTSJobTasks({
       bill_id: data.bill_id,
-      src_cluster: data.src_cluster,
       dst_cluster: data.dst_cluster,
+      src_cluster: data.src_cluster,
     });
     tableRawData = r;
     tableData.value = r;
   };
 
-  const handleClickFailRetry  = async () => {
-    const taskIds = failedList.value.map(item => item.id);
+  const handleClickFailRetry = async () => {
+    const taskIds = failedList.value.map((item) => item.id);
     const r = await setJobTaskFailedRetry({ task_ids: taskIds });
     if (r.length === taskIds.length) {
       // 待确认
       Message({
-        theme: 'success',
         message: h('div', t('重试成功')),
+        theme: 'success',
       });
       if (props.data) {
         queryTasksTableData(props.data);
       }
     } else {
       Message({
-        theme: 'success',
         message: h('div', t('重试失败')),
+        theme: 'success',
       });
     }
   };
@@ -415,7 +421,7 @@
     if (checked) {
       tableData.value.forEach((item) => {
         if (item.isFailedStatus) {
-          checkedMap.value[item.id] = true
+          checkedMap.value[item.id] = true;
         }
       });
     } else {
@@ -428,8 +434,8 @@
   };
 
   const handleSelectOne = (index: number) => {
-    const {id} = tableData.value[index]
-    checkedMap.value[id] = !checkedMap.value[id]
+    const { id } = tableData.value[index];
+    checkedMap.value[id] = !checkedMap.value[id];
   };
 
   async function handleClose() {

@@ -21,7 +21,7 @@ const path = '/apis/dbresource/deploy_plan';
 /**
  * 查询部署方案列表
  */
-export function fetchDeployPlan(params: { cluster_type: string; limit: number; offset: number; name?: string }) {
+export function fetchDeployPlan(params: { cluster_type: string; limit: number; name?: string; offset: number }) {
   return http.get<ListBase<DeployPlanModel[]>>(`${path}/`, params).then((data) => ({
     ...data,
     results: data.results.map((item) => new DeployPlanModel(item)),

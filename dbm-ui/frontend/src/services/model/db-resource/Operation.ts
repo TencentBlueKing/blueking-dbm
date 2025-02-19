@@ -24,14 +24,14 @@ const OPERATIN_TYPE_IMPORTED = 'imported';
 const OPERATIN_TYPE_CONSUMED = 'consumed';
 
 export default class Operation {
-  static STATUS_PENDING = STATUS_PENDING;
-  static STATUS_RUNNING = STATUS_RUNNING;
-  static STATUS_SUCCEEDED = STATUS_SUCCEEDED;
+  static OPERATIN_TYPE_CONSUMED = OPERATIN_TYPE_CONSUMED;
+  static OPERATIN_TYPE_IMPORTED = OPERATIN_TYPE_IMPORTED;
   static STATUS_FAILED = STATUS_FAILED;
+  static STATUS_PENDING = STATUS_PENDING;
   static STATUS_REVOKED = STATUS_REVOKED;
 
-  static OPERATIN_TYPE_IMPORTED = OPERATIN_TYPE_IMPORTED;
-  static OPERATIN_TYPE_CONSUMED = OPERATIN_TYPE_CONSUMED;
+  static STATUS_RUNNING = STATUS_RUNNING;
+  static STATUS_SUCCEEDED = STATUS_SUCCEEDED;
 
   bk_biz_id: number;
   bk_host_ids: number[];
@@ -66,10 +66,14 @@ export default class Operation {
     this.update_time = payload.update_time;
   }
 
+  get isRunning() {
+    return this.status === Operation.STATUS_RUNNING;
+  }
+
   get operationTypeText() {
     const textMap = {
-      [Operation.OPERATIN_TYPE_IMPORTED]: t('导入主机'),
       [Operation.OPERATIN_TYPE_CONSUMED]: t('消费主机'),
+      [Operation.OPERATIN_TYPE_IMPORTED]: t('导入主机'),
     } as Record<string, string>;
 
     return textMap[this.operation_type];
@@ -77,11 +81,11 @@ export default class Operation {
 
   get statusIcon() {
     const iconMap = {
+      [Operation.STATUS_FAILED]: 'sync-failed',
       [Operation.STATUS_PENDING]: 'sync-default',
+      [Operation.STATUS_REVOKED]: 'sync-failed',
       [Operation.STATUS_RUNNING]: 'sync-pending',
       [Operation.STATUS_SUCCEEDED]: 'sync-success',
-      [Operation.STATUS_FAILED]: 'sync-failed',
-      [Operation.STATUS_REVOKED]: 'sync-failed',
     };
 
     return iconMap[this.status] || 'sync-default';
@@ -89,17 +93,13 @@ export default class Operation {
 
   get statusText() {
     const textMap = {
+      [Operation.STATUS_FAILED]: t('执行失败'),
       [Operation.STATUS_PENDING]: t('等待执行'),
+      [Operation.STATUS_REVOKED]: t('执行失败'),
       [Operation.STATUS_RUNNING]: t('执行中'),
       [Operation.STATUS_SUCCEEDED]: t('执行成功'),
-      [Operation.STATUS_FAILED]: t('执行失败'),
-      [Operation.STATUS_REVOKED]: t('执行失败'),
     };
     return textMap[this.status] || t('等待执行');
-  }
-
-  get isRunning() {
-    return this.status === Operation.STATUS_RUNNING;
   }
 
   get updateTimeDisplay() {

@@ -79,19 +79,12 @@
 <script setup lang="tsx">
   import { InfoBox } from 'bkui-vue';
   import type { ISearchItem } from 'bkui-vue/lib/search-select/utils';
-  import {
-    onMounted,
-    ref,
-  } from 'vue';
+  import { onMounted, ref } from 'vue';
   import { useI18n } from 'vue-i18n';
   import { useRouter } from 'vue-router';
 
   import DirtyMachinesModel from '@services/model/db-resource/dirtyMachines';
-  import {
-    deleteDirtyRecords,
-    getDirtyMachines,
-    transferDirtyMachines,
-  } from '@services/source/dbdirty';
+  import { deleteDirtyRecords, getDirtyMachines, transferDirtyMachines } from '@services/source/dbdirty';
   import { getTicketTypes } from '@services/source/ticket';
   import { getUserList } from '@services/source/user';
 
@@ -101,12 +94,7 @@
 
   import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
 
-  import {
-    execCopy,
-    getMenuListSearch,
-    getSearchSelectorParams,
-    messageSuccess
-  } from '@utils';
+  import { execCopy, getMenuListSearch, getSearchSelectorParams, messageSuccess } from '@utils';
 
   const router = useRouter();
   const { t } = useI18n();
@@ -128,7 +116,7 @@
     fetchDataFn: () => fetchData(),
     defaultSearchItem: {
       id: 'ip',
-      name: 'IP'
+      name: 'IP',
     },
     isDiscardNondefault: true,
   });
@@ -136,14 +124,18 @@
   const dataSource = getDirtyMachines;
 
   const tableRef = ref();
-  const ticketTypes = ref<Array<{id: string, name: string}>>([]);
+  const ticketTypes = ref<Array<{ id: string; name: string }>>([]);
 
   const selectedTransferHostMap = shallowRef<Record<number, DirtyMachinesModel>>({});
 
   const selectedHosts = computed(() => Object.values(selectedTransferHostMap.value));
 
-  const enableWaitForRecycle = computed(() => selectedHosts.value.length > 0 && selectedHosts.value.every(item => item.is_dirty));
-  const enableMarkProcess = computed(() => selectedHosts.value.length > 0 && selectedHosts.value.every(item => !item.is_dirty));
+  const enableWaitForRecycle = computed(
+    () => selectedHosts.value.length > 0 && selectedHosts.value.every((item) => item.is_dirty),
+  );
+  const enableMarkProcess = computed(
+    () => selectedHosts.value.length > 0 && selectedHosts.value.every((item) => !item.is_dirty),
+  );
 
   const searchSelectData = computed(() => [
     {
@@ -191,19 +183,23 @@
       label: 'IP',
       field: 'ip',
       fixed: 'left',
-      render: ({ data }: {data: DirtyMachinesModel}) => (
+      render: ({ data }: { data: DirtyMachinesModel }) => (
         <TextOverflowLayout>
           {{
             default: () => data.ip,
-            append: () => !data.is_dirty && (
-              <db-icon
-                type="attention"
-                class="mark-tip-icon"
-                v-bk-tooltips={t('主机已经被移动至 “x模块”，可以标记为已处理', { x: data.bk_module_infos.map(item => item.bk_module_name).join(' , ')})} />
-            )
+            append: () =>
+              !data.is_dirty && (
+                <db-icon
+                  type='attention'
+                  class='mark-tip-icon'
+                  v-bk-tooltips={t('主机已经被移动至 “x模块”，可以标记为已处理', {
+                    x: data.bk_module_infos.map((item) => item.bk_module_name).join(' , '),
+                  })}
+                />
+              ),
           }}
         </TextOverflowLayout>
-      )
+      ),
     },
     {
       label: t('管控区域'),
@@ -212,7 +208,7 @@
         list: columnAttrs.value.bk_cloud_id,
         checked: columnCheckedMap.value.bk_cloud_id,
       },
-      render: ({ data }: {data: DirtyMachinesModel}) => <span>{data.bk_cloud_name || '--'}</span>,
+      render: ({ data }: { data: DirtyMachinesModel }) => <span>{data.bk_cloud_name || '--'}</span>,
     },
     {
       label: t('业务'),
@@ -221,7 +217,7 @@
         list: columnAttrs.value.bk_biz_ids,
         checked: columnCheckedMap.value.bk_biz_id,
       },
-      render: ({ data }: {data: DirtyMachinesModel}) => <span>{data.bk_biz_name || '--'}</span>,
+      render: ({ data }: { data: DirtyMachinesModel }) => <span>{data.bk_biz_name || '--'}</span>,
     },
     {
       label: t('单据类型'),
@@ -230,39 +226,44 @@
         list: columnAttrs.value.ticket_types,
         checked: columnCheckedMap.value.ticket_types,
       },
-      render: ({ data }: {data: DirtyMachinesModel}) => <span>{data.ticket_type_display || '--'}</span>,
+      render: ({ data }: { data: DirtyMachinesModel }) => <span>{data.ticket_type_display || '--'}</span>,
     },
     {
       label: t('关联单据'),
       field: 'ticket_id',
       width: 170,
-      render: ({ data }: {data: DirtyMachinesModel}) => (data.ticket_id
-        ? <auth-button
-            action-id="ticket_view"
+      render: ({ data }: { data: DirtyMachinesModel }) =>
+        data.ticket_id ? (
+          <auth-button
+            action-id='ticket_view'
             resource={data.ticket_id}
             permission={data.permission.ticket_view}
             text
-            theme="primary"
+            theme='primary'
             onClick={() => handleGoTicketDetail(data)}>
             {data.ticket_id}
           </auth-button>
-        : '--')
-      ,
+        ) : (
+          '--'
+        ),
     },
     {
       label: t('关联任务'),
       field: 'task_id',
-      render: ({ data }: {data: DirtyMachinesModel}) => (data.task_id
-        ? <auth-button
-            action-id="flow_detail"
+      render: ({ data }: { data: DirtyMachinesModel }) =>
+        data.task_id ? (
+          <auth-button
+            action-id='flow_detail'
             resource={data.task_id}
             permission={data.permission.flow_detail}
             text
-            theme="primary"
+            theme='primary'
             onClick={() => handleGoTaskHistoryDetail(data)}>
             {data.task_id}
           </auth-button>
-        : '--'),
+        ) : (
+          '--'
+        ),
     },
     {
       label: t('操作人'),
@@ -273,28 +274,28 @@
       field: 'operations',
       width: 150,
       flexd: 'right',
-      render: ({ data }: {data: DirtyMachinesModel}) => (
-        data.is_dirty ?
+      render: ({ data }: { data: DirtyMachinesModel }) =>
+        data.is_dirty ? (
           <bk-pop-confirm
             title={t('确认移入待回收机池？')}
             content={
               <span>
                 <div>{data.ip}</div>
-                <div>{t('主机将移入“x业务下的空闲机池”', { x: bizName})}</div>
+                <div>{t('主机将移入“x业务下的空闲机池”', { x: bizName })}</div>
               </span>
             }
             width={280}
-            trigger="click"
+            trigger='click'
             onConfirm={() => transferHosts(data)}>
             <auth-button
-              action-id="dirty_pool_manage"
+              action-id='dirty_pool_manage'
               permission={data.permission.dirty_pool_manage}
-              theme="primary"
+              theme='primary'
               text>
               {t('移入待回收')}
             </auth-button>
           </bk-pop-confirm>
-          :
+        ) : (
           <bk-pop-confirm
             title={t('确认标记为已经处理？')}
             content={
@@ -304,17 +305,17 @@
               </span>
             }
             width={280}
-            trigger="click"
+            trigger='click'
             onConfirm={() => markProcessHosts(data)}>
             <auth-button
-              action-id="dirty_pool_manage"
+              action-id='dirty_pool_manage'
               permission={data.permission.dirty_pool_manage}
-              theme="primary"
+              theme='primary'
               text>
               {t('标记为已处理')}
             </auth-button>
           </bk-pop-confirm>
-      ),
+        ),
     },
   ]);
 
@@ -349,8 +350,8 @@
     // 没有选中过滤标签
     if (!item) {
       // 过滤掉已经选过的标签
-      const selected = (searchValue.value || []).map(value => value.id);
-      return searchSelectData.value.filter(item => !selected.includes(item.id));
+      const selected = (searchValue.value || []).map((value) => value.id);
+      return searchSelectData.value.filter((item) => !selected.includes(item.id));
     }
 
     // 远程加载执行人
@@ -360,31 +361,37 @@
       }
       return getUserList({
         fuzzy_lookups: keyword,
-      }).then(res => res.results.map(item => ({
-        id: item.username,
-        name: item.username,
-      })));
+      }).then((res) =>
+        res.results.map((item) => ({
+          id: item.username,
+          name: item.username,
+        })),
+      );
     }
 
     // 不需要远层加载
-    return searchSelectData.value.find(set => set.id === item.id)?.children || [];
+    return searchSelectData.value.find((set) => set.id === item.id)?.children || [];
   };
 
   // 获取单据类型
-  const fetchTicketTypes = () => getTicketTypes({
-    is_apply: 1,
-  }).then((res) => {
-    ticketTypes.value = res.map(item => ({
-      id: item.key,
-      name: item.value,
-    }));
-  });
+  const fetchTicketTypes = () =>
+    getTicketTypes({
+      is_apply: 1,
+    }).then((res) => {
+      ticketTypes.value = res.map((item) => ({
+        id: item.key,
+        name: item.value,
+      }));
+    });
 
   const handleSelection = (data: DirtyMachinesModel, list: DirtyMachinesModel[]) => {
-    selectedTransferHostMap.value = list.reduce((result, item) => ({
-      ...result,
-      [item.bk_host_id]: item,
-    }), {});
+    selectedTransferHostMap.value = list.reduce(
+      (result, item) => ({
+        ...result,
+        [item.bk_host_id]: item,
+      }),
+      {},
+    );
   };
 
   // 选择单台
@@ -415,7 +422,7 @@
   // };
 
   const handleCopySelected = () => {
-    const ipList = selectedHosts.value.map(item => item.ip)
+    const ipList = selectedHosts.value.map((item) => item.ip);
     execCopy(ipList.join(','), t('复制成功，共n条', { n: ipList.length }));
   };
 
@@ -423,12 +430,11 @@
   const transferHosts = (data: DirtyMachinesModel) => {
     transferDirtyMachines({
       bk_host_ids: [data.bk_host_id],
-    })
-      .then(() => {
-        messageSuccess(t('转移成功'));
-        fetchData();
-        selectedTransferHostMap.value = {};
-      })
+    }).then(() => {
+      messageSuccess(t('转移成功'));
+      fetchData();
+      selectedTransferHostMap.value = {};
+    });
   };
 
   // 批量转移主机
@@ -438,22 +444,24 @@
       title: t('确认将n台主机移入待回收机池？', { n: selectedHosts.value.length }),
       cancelText: t('取消'),
       content: () => (
-        <div class="dirty-machine-operation-infobox">
-          <div class="tip-title">{t('主机将移入“x业务下的空闲机池”', { x: bizName})}</div>
-          <div class="ip-list">
-            {selectedHosts.value.map(item => <p>{item.ip}</p>)}
+        <div class='dirty-machine-operation-infobox'>
+          <div class='tip-title'>{t('主机将移入“x业务下的空闲机池”', { x: bizName })}</div>
+          <div class='ip-list'>
+            {selectedHosts.value.map((item) => (
+              <p>{item.ip}</p>
+            ))}
           </div>
         </div>
       ),
-      onConfirm: () => transferDirtyMachines({
-        bk_host_ids: selectedHosts.value.map(item => item.bk_host_id),
-      })
-        .then(() => {
+      onConfirm: () =>
+        transferDirtyMachines({
+          bk_host_ids: selectedHosts.value.map((item) => item.bk_host_id),
+        }).then(() => {
           messageSuccess(t('转移成功'));
           fetchData();
           selectedTransferHostMap.value = {};
           return true;
-        })
+        }),
     });
   };
 
@@ -461,12 +469,11 @@
   const markProcessHosts = (data: DirtyMachinesModel) => {
     deleteDirtyRecords({
       bk_host_ids: [data.bk_host_id],
-    })
-      .then(() => {
-        messageSuccess(t('标记成功'));
-        fetchData();
-        selectedTransferHostMap.value = {};
-      })
+    }).then(() => {
+      messageSuccess(t('标记成功'));
+      fetchData();
+      selectedTransferHostMap.value = {};
+    });
   };
 
   // 批量标记单台为已处理
@@ -476,22 +483,24 @@
       title: t('确认将n台主机标记为已处理？', { n: selectedHosts.value.length }),
       cancelText: t('取消'),
       content: () => (
-        <div class="dirty-machine-operation-infobox">
-          <div class="tip-title">{t('将会删除n条主机记录', { n: selectedHosts.value.length })}</div>
-          <div class="ip-list">
-            {selectedHosts.value.map(item => <p>{item.ip}</p>)}
+        <div class='dirty-machine-operation-infobox'>
+          <div class='tip-title'>{t('将会删除n条主机记录', { n: selectedHosts.value.length })}</div>
+          <div class='ip-list'>
+            {selectedHosts.value.map((item) => (
+              <p>{item.ip}</p>
+            ))}
           </div>
         </div>
       ),
-      onConfirm: () => deleteDirtyRecords({
-        bk_host_ids: selectedHosts.value.map(item => item.bk_host_id),
-      })
-        .then(() => {
+      onConfirm: () =>
+        deleteDirtyRecords({
+          bk_host_ids: selectedHosts.value.map((item) => item.bk_host_id),
+        }).then(() => {
           messageSuccess(t('标记成功'));
           fetchData();
           selectedTransferHostMap.value = {};
           return true;
-        })
+        }),
     });
   };
 

@@ -78,8 +78,8 @@
   import RenderResult from './render-result/Index.vue';
 
   interface Props {
-    showOptions?: boolean;
     filterType: string;
+    showOptions?: boolean;
   }
 
   interface Expose {
@@ -106,17 +106,17 @@
   const resultTypeTextMap: Record<string, string> = {
     entry: t('访问入口'),
     instance: t('实例（IP、IP:Port）'),
+    resource_pool: t('主机（资源池、故障池、待回收池）'),
     task: t('任务ID'),
     ticket: t('单据'),
-    resource_pool: t('主机（资源池、故障池、待回收池）'),
   };
 
   const isSearchEmpty = ref(false);
   const formData = ref({
     bk_biz_ids: [] as number[],
     db_types: [] as string[],
-    resource_types: [] as string[],
     filter_type: props.filterType,
+    resource_types: [] as string[],
   });
   const showUnsubscribeButton = ref(localStorage.getItem(QUICK_SEARCH_NO_LONGER_PROMPT) !== 'true');
   const firstSearch = ref(true);
@@ -172,8 +172,8 @@
       });
     },
     {
-      immediate: true,
       deep: true,
+      immediate: true,
     },
   );
 

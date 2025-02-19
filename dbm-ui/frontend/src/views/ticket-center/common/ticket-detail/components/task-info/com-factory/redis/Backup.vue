@@ -64,7 +64,7 @@
   const { t } = useI18n();
 
   const backupTypeMap = {
-    normal_backup: t('常规备份'),
     forever_backup: t('长期备份'),
+    normal_backup: t('常规备份'),
   };
 </script>

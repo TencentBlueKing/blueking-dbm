@@ -23,6 +23,8 @@ interface UpdatePolicyParams {
     method: string;
     value: string[];
   }[];
+  notify_groups: number[];
+  notify_rules: string[];
   targets: {
     level: string;
     rule: {
@@ -31,42 +33,40 @@ interface UpdatePolicyParams {
     };
   }[];
   test_rules: {
-    type: string;
-    level: number;
     config: [
       {
         method: string;
         threshold: number;
       },
     ][];
+    level: number;
+    type: string;
     unit_prefix: string;
   }[];
-  notify_rules: string[];
-  notify_groups: number[];
 }
 
 interface CreateCycleDutyRuleParams {
-  name: string;
-  priority: number;
-  db_type: string;
   category: string;
-  effective_time: string;
-  end_time: string;
+  db_type: string;
   duty_arranges: {
-    duty_number: number;
     duty_day: number;
+    duty_number: number;
     members: string[];
-    work_type: string;
     work_days: number[];
     work_times: string[];
+    work_type: string;
   }[];
+  effective_time: string;
+  end_time: string;
+  name: string;
+  priority: number;
 }
 
 interface CreateCustomDutyRuleParams extends Omit<CreateCycleDutyRuleParams, 'duty_arranges'> {
   duty_arranges: {
     date: string;
-    work_times: string[];
     members: string[];
+    work_times: string[];
   }[];
 }
 
@@ -83,40 +83,40 @@ interface DutyNoticeConfig {
     qywx_id: string;
     send_at: {
       freq: string;
-      time: string;
       freq_values: number[];
+      time: string;
     };
     send_day: number;
   };
 }
 
 interface AlarmGroupItem {
-  id: number;
-  name: string;
-  updater: string;
-  update_at: string;
   bk_biz_id: number;
-  monitor_group_id: number;
-  related_policy_count: number;
-  group_type: string;
   db_type: string;
-  receivers: {
-    type: string;
-    id: string;
-  }[];
   details: {
     alert_notice: {
-      time_range: string;
       notify_config: {
+        level: 3 | 2 | 1;
         notice_ways: {
           name: string;
           receivers?: string[];
         }[];
-        level: 3 | 2 | 1;
       }[];
+      time_range: string;
     }[];
   };
+  group_type: string;
+  id: number;
   is_built_in: boolean;
+  monitor_group_id: number;
+  name: string;
+  receivers: {
+    id: string;
+    type: string;
+  }[];
+  related_policy_count: number;
+  update_at: string;
+  updater: string;
 }
 
 // 获取策略列表
@@ -124,12 +124,12 @@ export const queryMonitorPolicyList = (
   params: {
     bk_biz_id?: number;
     db_type?: string;
-    name?: string;
-    updater?: string;
-    target_keyword?: string; // 监控目标
-    notify_groups?: string;
     limit?: number;
+    name?: string;
+    notify_groups?: string;
     offset?: number;
+    target_keyword?: string; // 监控目标
+    updater?: string;
   },
   payload = {} as IRequestPayload,
 ) =>
@@ -154,11 +154,11 @@ export const updatePolicy = (id: number, params: UpdatePolicyParams) =>
 
 // 克隆策略
 export const clonePolicy = (
-  params: UpdatePolicyParams & {
-    name: string;
+  params: {
     bk_biz_id: number;
+    name: string;
     parent_id: number;
-  },
+  } & UpdatePolicyParams,
 ) =>
   http.post<{
     bkm_id: number;
@@ -180,11 +180,11 @@ export const deletePolicy = (params: { id: number }) =>
   http.delete<null | Record<string, any>>(`/apis/monitor/policy/${params.id}/`);
 
 // 根据db类型查询集群列表
-export const getClusterList = (params: { dbtype: string; bk_biz_id: number }) =>
+export const getClusterList = (params: { bk_biz_id: number; dbtype: string }) =>
   http.get<string[]>('/apis/monitor/policy/cluster_list/', params);
 
 // 根据db类型查询模块列表
-export const getDbModuleList = (params: { dbtype: string; bk_biz_id: number }) =>
+export const getDbModuleList = (params: { bk_biz_id: number; dbtype: string }) =>
   http.get<
     {
       db_module_id: number;
@@ -195,7 +195,7 @@ export const getDbModuleList = (params: { dbtype: string; bk_biz_id: number }) =
 /**
  * 获取告警组列表
  */
-export const getAlarmGroupList = (params: { bk_biz_id: number; db_type?: string; offset?: number; limit?: number }) =>
+export const getAlarmGroupList = (params: { bk_biz_id: number; db_type?: string; limit?: number; offset?: number }) =>
   http.get<ListBase<AlarmGroupItem[]>>('/apis/monitor/notice_group/', params);
 
 // 查询轮值规则列表

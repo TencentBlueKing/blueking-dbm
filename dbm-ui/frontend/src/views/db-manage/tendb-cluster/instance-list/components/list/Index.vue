@@ -59,225 +59,217 @@
   import type TendbInstanceModel from '@services/model/tendbcluster/tendbcluster-instance';
   import { getTendbclusterInstanceList } from '@services/source/tendbcluster';
 
-  import {
-    useLinkQueryColumnSerach,
-    useStretchLayout,
-    useTableSettings,
-  } from '@hooks';
+  import { useLinkQueryColumnSerach, useStretchLayout, useTableSettings } from '@hooks';
 
   import { useGlobalBizs } from '@stores';
 
-  import {
-    type ClusterInstStatus,
-    clusterInstStatus,
-    ClusterTypes,
-    UserPersonalSettings,
-  } from '@common/const';
+  import { type ClusterInstStatus, clusterInstStatus, ClusterTypes, UserPersonalSettings } from '@common/const';
 
   import DbStatus from '@components/db-status/index.vue';
   import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
 
   import DropdownExportExcel from '@views/db-manage/common/dropdown-export-excel/index.vue';
 
-  import {
-    execCopy,
-    getSearchSelectorParams,
-    isRecentDays,
-    utcDisplayTime  } from '@utils';
+  import { execCopy, getSearchSelectorParams, isRecentDays, utcDisplayTime } from '@utils';
 
   interface IColumn {
-    cell: string,
-    data: TendbInstanceModel
+    cell: string;
+    data: TendbInstanceModel;
   }
 
-  const instanceData = defineModel<{instanceAddress: string, clusterId: number}>('instanceData');
+  const instanceData = defineModel<{ clusterId: number; instanceAddress: string }>('instanceData');
 
   const router = useRouter();
   const { currentBizId } = useGlobalBizs();
   const { t } = useI18n();
+  const { isOpen: isStretchLayoutOpen, splitScreen: stretchLayoutSplitScreen } = useStretchLayout();
   const {
-    isOpen: isStretchLayoutOpen,
-    splitScreen: stretchLayoutSplitScreen,
-  } = useStretchLayout();
-  const {
+    clearSearchValue,
     columnAttrs,
-    searchAttrs,
-    searchValue,
-    sortValue,
     columnCheckedMap,
     columnFilterChange,
     columnSortChange,
-    clearSearchValue,
-    validateSearchValues,
     handleSearchValueChange,
+    searchAttrs,
+    searchValue,
+    sortValue,
+    validateSearchValues,
   } = useLinkQueryColumnSerach({
-    searchType: ClusterTypes.TENDBCLUSTER,
     attrs: ['role'],
-    isCluster: false,
-    fetchDataFn: () => fetchTableData(),
     defaultSearchItem: {
-      name: t('访问入口'),
       id: 'domain',
-    }
+      name: t('访问入口'),
+    },
+    fetchDataFn: () => fetchTableData(),
+    isCluster: false,
+    searchType: ClusterTypes.TENDBCLUSTER,
   });
 
   const tableRef = ref();
 
   const selected = shallowRef<TendbInstanceModel[]>([]);
 
-  const selectedIds = computed(() => selected.value.map(item => item.bk_host_id));
+  const selectedIds = computed(() => selected.value.map((item) => item.bk_host_id));
   const paginationExtra = computed(() => {
     if (!isStretchLayoutOpen.value) {
       return { small: false };
     }
     return {
-      small: true,
       align: 'left',
       layout: ['total', 'limit', 'list'],
+      small: true,
     };
   });
   const columns = computed(() => {
     const list = [
       {
-        label: 'ID',
         field: 'id',
         fixed: 'left',
+        label: 'ID',
         width: 80,
       },
       {
-        label: t('实例'),
         field: 'instance',
         fixed: 'left',
-        width: 200,
+        label: t('实例'),
         render: ({ data }: IColumn) => (
           <TextOverflowLayout>
             {{
+              append: () =>
+                data.isNew && (
+                  <span
+                    class='glob-new-tag ml-4'
+                    data-text='NEW'
+                  />
+                ),
               default: () => (
                 <auth-button
-                  action-id="tendbcluster_view"
+                  action-id='tendbcluster_view'
                   permission={data.permission.tendbcluster_view}
                   resource={data.cluster_id}
-                  theme="primary"
+                  theme='primary'
                   text
                   onClick={() => handleToDetails(data)}>
                   {data.instance_address}
                 </auth-button>
               ),
-              append: () => data.isNew && <span class="glob-new-tag ml-4" data-text="NEW" />
             }}
           </TextOverflowLayout>
-        )
+        ),
+        width: 200,
       },
       {
-        label: t('状态'),
         field: 'status',
-        width: 140,
         filter: {
+          checked: columnCheckedMap.value.status,
           list: [
             {
-              value: 'normal',
               text: t('正常'),
+              value: 'normal',
             },
             {
-              value: 'abnormal',
               text: t('异常'),
+              value: 'abnormal',
             },
           ],
-          checked: columnCheckedMap.value.status,
         },
+        label: t('状态'),
         render: ({ cell }: { cell: ClusterInstStatus }) => {
           const info = clusterInstStatus[cell] || clusterInstStatus.unavailable;
           return <DbStatus theme={info.theme}>{info.text}</DbStatus>;
         },
+        width: 140,
       },
       {
-        label: t('部署角色'),
         field: 'role',
-        width: 140,
         filter: {
-          list: columnAttrs.value.role,
           checked: columnCheckedMap.value.role,
+          list: columnAttrs.value.role,
         },
-      },
-      {
-        label: t('所在园区'),
-        field: 'bk_sub_zone',
+        label: t('部署角色'),
         width: 140,
-        render: ({ data }: IColumn) => data.bk_sub_zone || '--',
       },
       {
-        label: t('所属集群'),
+        field: 'bk_sub_zone',
+        label: t('所在园区'),
+        render: ({ data }: IColumn) => data.bk_sub_zone || '--',
+        width: 140,
+      },
+      {
         field: 'master_domain',
+        label: t('所属集群'),
         minWidth: 260,
-        showOverflowTooltip: false,
-        render: ({ data }: {data: TendbInstanceModel}) => (
+        render: ({ data }: { data: TendbInstanceModel }) => (
           <TextOverflowLayout>
             {{
+              append: () =>
+                data.master_domain && (
+                  <db-icon
+                    v-bk-tooltips={t('复制所属集群')}
+                    type='copy'
+                    onClick={() => execCopy(data.master_domain, t('复制成功，共n条', { n: 1 }))}
+                  />
+                ),
               default: () => data.master_domain || '--',
-              append: () => data.master_domain && (
-                <db-icon
-                  v-bk-tooltips={t('复制所属集群')}
-                  type="copy"
-                  onClick={() => execCopy(data.master_domain, t('复制成功，共n条', { n: 1 }))} />
-              )
             }}
           </TextOverflowLayout>
-        )
+        ),
+        showOverflowTooltip: false,
       },
       {
-        label: t('集群名称'),
         field: 'cluster_name',
+        label: t('集群名称'),
         minWidth: 180,
-        showOverflowTooltip: false,
-        render: ({ data }: {data: TendbInstanceModel}) => (
+        render: ({ data }: { data: TendbInstanceModel }) => (
           <TextOverflowLayout>
             {{
+              append: () => (
+                <db-icon
+                  v-bk-tooltips={t('复制集群名称')}
+                  type='copy'
+                  onClick={() => execCopy(data.cluster_name, t('复制成功，共n条', { n: 1 }))}
+                />
+              ),
               default: () => (
                 <router-link
                   to={{
                     name: 'tendbClusterList',
                     query: {
                       cluster_id: data.cluster_id,
-                    }
+                    },
                   }}
-                  target="_blank">
+                  target='_blank'>
                   {data.cluster_name}
                 </router-link>
               ),
-              append: () => (
-                <db-icon
-                  type="copy"
-                  v-bk-tooltips={t('复制集群名称')}
-                  onClick={() => execCopy(data.cluster_name, t('复制成功，共n条', { n: 1 }))} />
-              )
-
             }}
           </TextOverflowLayout>
         ),
+        showOverflowTooltip: false,
       },
       {
-        label: t('部署时间'),
         field: 'create_at',
+        label: t('部署时间'),
+        render: ({ cell }: IColumn) => <span>{utcDisplayTime(cell)}</span>,
         sort: true,
         width: 240,
-        render: ({ cell }: IColumn) => <span>{utcDisplayTime(cell)}</span>,
       },
       {
-        label: t('操作'),
         field: '',
         fixed: 'right',
-        width: 100,
+        label: t('操作'),
         render: ({ data }: { data: TendbInstanceModel }) => (
           <auth-button
-            action-id="tendbcluster_view"
+            action-id='tendbcluster_view'
             permission={data.permission.tendbcluster_view}
             resource={data.cluster_id}
-            theme="primary"
+            theme='primary'
             text
             onClick={() => handleToDetails(data)}>
-            { t('查看详情') }
+            {t('查看详情')}
           </auth-button>
         ),
+        width: 100,
       },
     ];
 
@@ -290,24 +282,21 @@
 
   const searchSelectData = computed(() => [
     {
-      name: t('IP 或 IP:Port'),
       id: 'instance',
       multiple: true,
+      name: t('IP 或 IP:Port'),
     },
     {
-      name: t('访问入口'),
       id: 'domain',
       multiple: true,
+      name: t('访问入口'),
     },
     {
-      name: t('集群名称'),
       id: 'name',
       multiple: true,
+      name: t('集群名称'),
     },
     {
-      name: t('状态'),
-      id: 'status',
-      multiple: true,
       children: [
         {
           id: 'normal',
@@ -318,16 +307,19 @@
           name: t('异常'),
         },
       ],
+      id: 'status',
+      multiple: true,
+      name: t('状态'),
     },
     {
-      name: t('端口'),
       id: 'port',
+      name: t('端口'),
     },
     {
-      name: t('部署角色'),
+      children: searchAttrs.value.role,
       id: 'role',
       multiple: true,
-      children: searchAttrs.value.role,
+      name: t('部署角色'),
     },
   ]);
 
@@ -336,48 +328,52 @@
     const classList = [isRecentDays(row.create_at, 24 * 3) ? 'is-new-row' : ''];
 
     if (
-      row.cluster_id === instanceData.value?.clusterId
-      && row.instance_address === instanceData.value.instanceAddress
+      row.cluster_id === instanceData.value?.clusterId &&
+      row.instance_address === instanceData.value.instanceAddress
     ) {
       classList.push('is-selected-row');
     }
 
-    return classList.filter(cls => cls).join(' ');
+    return classList.filter((cls) => cls).join(' ');
   };
 
   // 设置用户个人表头信息
   const defaultSettings = {
-    fields: columns.value.filter(item => item.field).map(item => ({
-      label: item.label as string,
-      field: item.field as string,
-      disabled: ['instance_address', 'master_domain'].includes(item.field as string),
-    })),
-    checked: columns.value.map(item => item.field).filter(key => !!key) as string[],
+    checked: columns.value.map((item) => item.field).filter((key) => !!key) as string[],
+    fields: columns.value
+      .filter((item) => item.field)
+      .map((item) => ({
+        disabled: ['instance_address', 'master_domain'].includes(item.field as string),
+        field: item.field as string,
+        label: item.label as string,
+      })),
     showLineHeight: false,
     trigger: 'manual' as const,
   };
-  const {
-    settings,
-    updateTableSettings,
-  } = useTableSettings(UserPersonalSettings.TENDBCLUSTER_INSTANCE_TABLE, defaultSettings);
+  const { settings, updateTableSettings } = useTableSettings(
+    UserPersonalSettings.TENDBCLUSTER_INSTANCE_TABLE,
+    defaultSettings,
+  );
 
   const fetchTableData = () => {
-    tableRef.value.fetchData({
-      ...getSearchSelectorParams(searchValue.value),
-    }, { ...sortValue });
+    tableRef.value.fetchData(
+      {
+        ...getSearchSelectorParams(searchValue.value),
+      },
+      { ...sortValue },
+    );
   };
 
   const handleSelection = (data: TendbInstanceModel, list: TendbInstanceModel[]) => {
     selected.value = list;
   };
 
-
   // 查看实例详情
   const handleToDetails = (data: TendbInstanceModel) => {
     stretchLayoutSplitScreen();
     instanceData.value = {
-      instanceAddress: data.instance_address,
       clusterId: data.cluster_id,
+      instanceAddress: data.instance_address,
     };
   };
 

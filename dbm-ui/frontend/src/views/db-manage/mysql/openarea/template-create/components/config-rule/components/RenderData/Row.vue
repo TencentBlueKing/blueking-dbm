@@ -54,10 +54,10 @@
 
   // 创建表格数据
   export const createRowData = (data = {} as Partial<IDataRow>) => ({
-    rowKey: random(),
-    source_db: data.source_db || '',
-    schema_tblist: data.schema_tblist || [],
     data_tblist: data.data_tblist || [],
+    rowKey: random(),
+    schema_tblist: data.schema_tblist || [],
+    source_db: data.source_db || '',
     target_db_pattern: data.target_db_pattern || '',
   });
 </script>
@@ -68,9 +68,9 @@
   import RenderTargetDbPattern from './RenderTargetDbPattern.vue';
 
   export interface IData {
-    source_db: string;
-    schema_tblist: string[];
     data_tblist: string[];
+    schema_tblist: string[];
+    source_db: string;
     target_db_pattern: string;
   }
 
@@ -79,9 +79,9 @@
   }
 
   interface Props {
+    clusterId: number;
     data: IDataRow;
     removeable: boolean;
-    clusterId: number;
   }
 
   interface Emits {
@@ -112,8 +112,8 @@
       Object.assign(localRowData, props.data);
     },
     {
-      immediate: true,
       deep: true,
+      immediate: true,
     },
   );
 

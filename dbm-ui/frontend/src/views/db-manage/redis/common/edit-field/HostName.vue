@@ -66,9 +66,7 @@
     inputed?: string[];
   }
 
-  interface Emits {
-    (e: 'inputFinish', ipInfo: string, clusterId: number): void;
-  }
+  type Emits = (e: 'inputFinish', ipInfo: string, clusterId: number) => void;
 
   interface Exposes {
     getValue: (isSubmit?: boolean) => Promise<string>;
@@ -97,14 +95,15 @@
 
   const rules = [
     {
-      validator: (value: string) => Boolean(value),
       message: t('IP不能为空'),
+      validator: (value: string) => Boolean(value),
     },
     {
-      validator: (value: string) => ipv4.test(value),
       message: t('IP格式不正确'),
+      validator: (value: string) => ipv4.test(value),
     },
     {
+      message: t('目标主机不存在'),
       validator: async (value: string) => {
         const checkResult = await checkRedisInstances({
           bizId: currentBizId,
@@ -121,11 +120,10 @@
 
         return true;
       },
-      message: t('目标主机不存在'),
     },
     {
-      validator: (value: string) => props.inputed.filter((item) => item === value).length < 2,
       message: t('目标主机重复'),
+      validator: (value: string) => props.inputed.filter((item) => item === value).length < 2,
     },
   ];
 

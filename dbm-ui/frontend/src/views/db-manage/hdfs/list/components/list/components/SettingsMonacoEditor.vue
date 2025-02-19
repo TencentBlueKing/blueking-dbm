@@ -32,17 +32,17 @@
 
   onMounted(() => {
     editor = monaco.editor.create(editorRef.value, {
+      automaticLayout: true,
       language: 'xml',
-      theme: 'vs-dark',
-      readOnly: true,
       minimap: {
         enabled: false,
       },
-      wordWrap: 'bounded',
+      readOnly: true,
       scrollbar: {
         alwaysConsumeMouseWheel: false,
       },
-      automaticLayout: true,
+      theme: 'vs-dark',
+      wordWrap: 'bounded',
     });
     editor.setValue(props.value);
   });

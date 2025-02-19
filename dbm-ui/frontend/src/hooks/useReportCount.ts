@@ -39,14 +39,14 @@ export const useReportCount = () => {
         const singleDbCount = Object.values(value).reduce(
           (results, item) => {
             Object.assign(results, {
-              manageCount: item.manage_count + results.manageCount,
               assistCount: item.assist_count + results.assistCount,
+              manageCount: item.manage_count + results.manageCount,
             });
             return results;
           },
           {
-            manageCount: 0,
             assistCount: 0,
+            manageCount: 0,
           },
         );
         dbReportCountMap.value[db] = singleDbCount;
@@ -59,8 +59,8 @@ export const useReportCount = () => {
   });
 
   return {
-    manageCount,
     assistCount,
     dbReportCountMap,
+    manageCount,
   };
 };

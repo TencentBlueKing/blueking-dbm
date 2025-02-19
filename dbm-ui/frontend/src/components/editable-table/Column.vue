@@ -78,78 +78,77 @@
 
   /* eslint-disable vue/no-unused-properties */
   interface Props {
-    field?: string;
-    label: string;
-    rowspan?: number;
-    width?: number;
-    minWidth?: number;
-    maxWidth?: number;
-    rules?: IRule[];
-    required?: boolean;
-    email?: boolean;
-    max?: number;
-    min?: number;
-    maxlength?: number;
-    fixed?: 'left' | 'right';
-    disabledMethod?: (rowData?: any, field?: string) => string | boolean;
-    description?: string;
-    loading?: boolean;
     appendRules?: IRule[];
+    description?: string;
+    disabledMethod?: (rowData?: any, field?: string) => string | boolean;
+    email?: boolean;
+    field?: string;
+    fixed?: 'left' | 'right';
+    label: string;
+    loading?: boolean;
+    max?: number;
+    maxlength?: number;
+    maxWidth?: number;
+    min?: number;
+    minWidth?: number;
     readonly?: boolean;
+    required?: boolean;
     resizeable?: boolean;
+    rowspan?: number;
+    rules?: IRule[];
+    width?: number;
   }
 
   interface Slots {
     default: () => VNode;
-    head?: () => VNode;
-    headPrepend?: () => VNode;
-    headAppend?: () => VNode;
     error?: (params: { message: string }) => VNode;
+    head?: () => VNode;
+    headAppend?: () => VNode;
+    headPrepend?: () => VNode;
     tips?: () => VNode;
   }
 
   interface Expose {
-    validate: () => Promise<boolean>;
     clearValidate: () => void;
     getRowIndex: () => number;
+    validate: () => Promise<boolean>;
   }
 
   export interface IContext {
-    instance: ComponentInternalInstance;
     el: HTMLElement;
+    instance: ComponentInternalInstance;
     key: string;
     props: Props;
     slots: Slots;
     validate: (trigger?: string) => Promise<boolean>;
   }
 
-  // eslint-disable-next-line @typescript-eslint/naming-convention
   export const EditableTableColumnKey: InjectionKey<{
     blur: () => void;
+    clearValidate: () => void;
     focus: () => void;
+    getRowIndex: () => number;
     registerRules: (params: IRule[]) => void;
     validate: (trigger?: string) => Promise<boolean>;
-    clearValidate: () => void;
-    getRowIndex: () => number;
   }> = Symbol('EditableTableColumnKey');
 </script>
 <script setup lang="ts">
   const props = withDefaults(defineProps<Props>(), {
-    field: undefined,
-    rowspan: undefined,
-    width: undefined,
-    minWidth: undefined,
-    maxWidth: undefined,
-    rules: undefined,
-    max: undefined,
-    min: undefined,
-    maxlength: undefined,
-    fixed: undefined,
-    disabledMethod: undefined,
-    description: undefined,
     appendRules: undefined,
+    description: undefined,
+    disabledMethod: undefined,
+    field: undefined,
+    fixed: undefined,
+    max: undefined,
+    maxlength: undefined,
+    maxWidth: undefined,
+    min: undefined,
+    minWidth: undefined,
     readonly: false,
     resizeable: true,
+    rowspan: undefined,
+    rules: undefined,
+    width: undefined,
   });
   const slots = defineSlots<Slots>();
 
@@ -160,22 +159,24 @@
   const columnKey = `bk-editable-table-column-${rowContext?.getColumnIndex()}`;
 
   interface IFinalRule {
-    validator: (value: any, rowData?: Record<string, any>) => Promise<boolean | string> | boolean | string;
     message: string | (() => string);
     trigger: string;
+    validator: (value: any, rowData?: Record<string, any>) => Promise<boolean | string> | boolean | string;
   }
 
   let loadingValidatorTimer: ReturnType<typeof setTimeout>;
 
   const getRulesFromProps = (props: Props) => {
-    const rules: (IFinalRule & {
-      required?: boolean;
+    const rules: ({
       email?: boolean;
-    })[] = [];
+      required?: boolean;
+    } & IFinalRule)[] = [];
 
     const label = props.label || '';
     if (props.loading) {
       rules.push({
+        message: `${label}查询中`,
+        trigger: '',
         validator: () => {
           clearTimeout(loadingValidatorTimer);
           return new Promise((resolve) => {
@@ -191,45 +192,43 @@
             loop();
           });
         },
-        message: `${label}查询中`,
-        trigger: '',
       });
     }
     if (props.required) {
       rules.push({
-        required: true,
-        validator: defaultValidator.required,
         message: `${label}不能为空`,
+        required: true,
         trigger: 'change',
+        validator: defaultValidator.required,
       });
     }
     if (props.email) {
       rules.push({
         email: true,
-        validator: (value: string) => defaultValidator.email(value),
         message: `${label}不是 email`,
         trigger: 'change',
+        validator: (value: string) => defaultValidator.email(value),
       });
     }
     if (Number(props.max) > -1) {
       rules.push({
-        validator: (value: number) => defaultValidator.max(value, props.max as number),
         message: `${label}最大值 ${props.max}`,
         trigger: 'change',
+        validator: (value: number) => defaultValidator.max(value, props.max as number),
       });
     }
     if (Number(props.min) > -1) {
       rules.push({
-        validator: (value) => defaultValidator.min(value, props.min as number),
         message: `${label}最小值 ${props.min}`,
         trigger: 'change',
+        validator: (value) => defaultValidator.min(value, props.min as number),
       });
     }
     if (Number(props.maxlength) > -1) {
       rules.push({
-        validator: (value) => defaultValidator.maxlength(value, props.maxlength as number),
         message: `${label}最大长度 ${props.maxlength}`,
         trigger: 'change',
+        validator: (value) => defaultValidator.maxlength(value, props.maxlength as number),
       });
     }
     return rules;
@@ -265,9 +264,9 @@
         return result;
       }
       result.push({
-        validator: rulevalidator,
         message: rule.message,
         trigger: rule.trigger || 'blur',
+        validator: rulevalidator,
       });
       return result;
     }, []);
@@ -315,8 +314,8 @@
   const isPreviousSiblingRowspan = ref(false);
 
   const validateState = reactive({
-    isError: false,
     errorMessage: 'error',
+    isError: false,
   });
 
   const disabledTips = computed(() => {
@@ -343,29 +342,29 @@
 
     if (tippyTarget) {
       tippyIns = tippy(tippyTarget as SingleTarget, {
-        content: tipsRef.value,
-        placement: 'top',
         appendTo: () => document.body,
-        theme: 'light db-popconfirm-theme',
-        maxWidth: 'none',
-        trigger: 'manual',
-        interactive: true,
         arrow: true,
-        offset: [0, 12],
-        zIndex: 9999,
+        content: tipsRef.value,
         hideOnClick: false,
+        interactive: true,
+        maxWidth: 'none',
+        offset: [0, 12],
+        placement: 'top',
         popperOptions: {
-          strategy: 'fixed',
           modifiers: [
             {
               name: 'flip',
               options: {
-                fallbackPlacements: ['top', 'bottom'],
                 allowedAutoPlacements: ['top-start', 'top-end'],
+                fallbackPlacements: ['top', 'bottom'],
               },
             },
           ],
+          strategy: 'fixed',
         },
+        theme: 'light db-popconfirm-theme',
+        trigger: 'manual',
+        zIndex: 9999,
       });
     }
   };
@@ -513,23 +512,23 @@
       isFocused.value = false;
       tippyIns?.hide();
     },
+    clearValidate,
     focus: () => {
       isFocused.value = true;
       tippyIns?.show();
     },
+    getRowIndex,
     registerRules: (rules: IRule[]) => {
       registerRules = rules;
     },
     validate,
-    clearValidate,
-    getRowIndex,
   });
 
   onMounted(() => {
     rowContext?.registerColumn({
-      key: columnKey,
-      instance: currentInstance,
       el: rootRef.value as HTMLElement,
+      instance: currentInstance,
+      key: columnKey,
       props,
       slots,
       validate,
@@ -574,9 +573,9 @@
   });
 
   defineExpose<Expose>({
-    validate,
     clearValidate,
     getRowIndex,
+    validate,
   });
 </script>
 <style lang="less">

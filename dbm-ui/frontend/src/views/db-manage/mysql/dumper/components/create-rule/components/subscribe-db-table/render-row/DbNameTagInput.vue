@@ -41,8 +41,8 @@
 
   const rules = [
     {
-      validator: (value: string[]) => value && value.length > 0,
       message: t('不能为空'),
+      validator: (value: string[]) => value && value.length > 0,
     },
     // {
     //   validator: (value: string []) => _.every(value, item => !/^%$/.test(item)),
@@ -50,9 +50,9 @@
     //   trigger: 'change',
     // },
     {
-      validator: (value: string[]) => _.some(value, (item) => /^[a-zA-Z0-9_%]+$/.test(item)),
       message: t('不合法的输入'),
       trigger: 'change',
+      validator: (value: string[]) => _.some(value, (item) => /^[a-zA-Z0-9_%]+$/.test(item)),
     },
   ];
 

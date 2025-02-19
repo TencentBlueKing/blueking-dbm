@@ -94,8 +94,8 @@
 <script lang="ts">
   export interface IValue {
     masterData: {
-      bk_host_id: number;
       bk_cloud_id: number;
+      bk_host_id: number;
       ip: string;
     };
     slaveData: {
@@ -196,10 +196,10 @@
     isChecking.value = true;
     const allValidIpList = validList.reduce((result, item) => [...result, item.masterIp, item.slaveIp], [] as string[]);
     getHostTopoInfos({
+      bk_biz_id: currentBizId,
       filter_conditions: {
         bk_host_innerip: allValidIpList,
       },
-      bk_biz_id: currentBizId,
     })
       .then((data) => {
         const realDataMap = data.hosts_topo_info.reduce(
@@ -217,9 +217,9 @@
           if (!realDataMap[inputData.masterIp] || !realDataMap[inputData.slaveIp]) {
             hostErrorList.push(inputData);
           } else {
-            const getValue = ({ bk_host_id, bk_cloud_id, ip }: HostTopoInfo) => ({
-              bk_host_id,
+            const getValue = ({ bk_cloud_id, bk_host_id, ip }: HostTopoInfo) => ({
               bk_cloud_id,
+              bk_host_id,
               ip,
             });
             resultList.push({

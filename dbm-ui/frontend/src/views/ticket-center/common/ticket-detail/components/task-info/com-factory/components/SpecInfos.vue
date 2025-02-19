@@ -27,8 +27,6 @@
   import { useI18n } from 'vue-i18n';
 
   export interface SpecInfo {
-    spec_id: number;
-    spec_name: string;
     count: number;
     cpu: {
       max: number;
@@ -38,6 +36,8 @@
       max: number;
       min: number;
     };
+    spec_id: number;
+    spec_name: string;
     storage_spec: {
       mount_point: string;
       size: number;

@@ -95,41 +95,34 @@
   import { useI18n } from 'vue-i18n';
   import { useRouter } from 'vue-router';
 
-  import RedisDSTHistoryJobModel,
-    {
-      CopyModes,
-      TransmissionTypes,
-    } from '@services/model/redis/redis-dst-history-job';
-  import {
-    getRedisDTSHistoryJobs,
-    setJobDisconnectSync,
-  } from '@services/source/redisDts';
+  import DatePicker, { DateRange } from '@blueking/date-picker';
+
+  import RedisDSTHistoryJobModel, { CopyModes, TransmissionTypes } from '@services/model/redis/redis-dst-history-job';
+  import { getRedisDTSHistoryJobs, setJobDisconnectSync } from '@services/source/redisDts';
 
   import { useDefaultPagination } from '@hooks';
 
-  import { LocalStorageKeys   } from '@common/const';
+  import { LocalStorageKeys } from '@common/const';
 
   import useResetTableHeight from '@views/db-manage/redis/common/hooks/useResetTableHeight';
 
   import { utcDisplayTime } from '@utils';
 
-  import DatePicker, { DateRange } from '@blueking/date-picker';
+  import '@blueking/date-picker/dist/vue3-full.css';
 
   import DataCopyTransferDetail from './components/DataCopyTransferDetail.vue';
   import ExecuteStatus from './components/ExecuteStatus.vue';
   import KeyTags from './components/KeyTags.vue';
-
-  import '@blueking/date-picker/dist/vue3-full.css';
 
   const { t } = useI18n();
   const router = useRouter();
 
   const datePickerFormat = 'YYYY-MM-DDTHH:mm:ssZ';
 
-  // eslint-disable-next-line max-len
-  const generateUTCDateTime = (value?: [string, string]) => new DateRange(value ? value : dateTimeRange.value, datePickerFormat)
-    .toEmitValue()[1]
-    .map(item => item.formatText) as [string, string];
+  const generateUTCDateTime = (value?: [string, string]) =>
+    new DateRange(value ? value : dateTimeRange.value, datePickerFormat)
+      .toEmitValue()[1]
+      .map((item) => item.formatText) as [string, string];
 
   const tableData = ref<RedisDSTHistoryJobModel[]>([]);
   const isTableDataLoading = ref(false);
@@ -144,54 +137,64 @@
   const searchTimer = ref();
 
   const settings = {
+    checked: [
+      'src_cluster',
+      'dst_cluster',
+      'dts_copy_type',
+      'key_white_regex',
+      'key_black_regex',
+      'bill_id',
+      'update_time',
+      'status',
+      'create_time',
+    ],
     fields: [
       {
-        label: t('源集群'),
         field: 'src_cluster',
+        label: t('源集群'),
       },
       {
-        label: t('目标集群'),
         field: 'dst_cluster',
+        label: t('目标集群'),
       },
       {
-        label: t('复制类型'),
         field: 'dts_copy_type',
+        label: t('复制类型'),
       },
       {
-        label: t('包含 key'),
         field: 'key_white_regex',
+        label: t('包含 key'),
       },
       {
-        label: t('排除 key'),
         field: 'key_black_regex',
+        label: t('排除 key'),
       },
       {
-        label: t('关联单据'),
         field: 'bill_id',
+        label: t('关联单据'),
       },
       {
-        label: t('最近一次修复单'),
         field: 'update_time',
+        label: t('最近一次修复单'),
       },
       {
-        label: t('状态'),
         field: 'status',
+        label: t('状态'),
       },
       {
-        label: t('创建时间'),
         field: 'create_time',
+        label: t('创建时间'),
       },
     ],
-    checked: ['src_cluster', 'dst_cluster', 'dts_copy_type', 'key_white_regex', 'key_black_regex', 'bill_id', 'update_time', 'status', 'create_time'],
   };
 
   const copyTypesMap = {
+    [CopyModes.COPY_FROM_ROLLBACK_INSTANCE]: t('构造实例至业务内'),
+    [CopyModes.COPY_FROM_ROLLBACK_TEMP]: t('从回滚临时环境复制数据'),
     [CopyModes.CROSS_BISNESS]: t('跨业务'),
     [CopyModes.INTRA_BISNESS]: t('业务内'),
     [CopyModes.INTRA_TO_THIRD]: t('业务内至第三方'),
     [CopyModes.SELFBUILT_TO_INTRA]: t('自建集群至业务内'),
-    [CopyModes.COPY_FROM_ROLLBACK_INSTANCE]: t('构造实例至业务内'),
-    [CopyModes.COPY_FROM_ROLLBACK_TEMP]: t('从回滚临时环境复制数据'),
     REDIS_CLUSTER_SHARD_NUM_UPDATE: t('集群分片变更'),
     REDIS_CLUSTER_TYPE_UPDATE: t('集群类型变更'),
   };
@@ -208,61 +211,70 @@
       showDisconnect = true;
     }
     switch (data.status) {
-    case TransmissionTypes.INCREMENTAL_TRANSFERING: // 增量传输中
-      showDataCheckAndRepair = true;
-      break;
-    case TransmissionTypes.END_OF_TRANSMISSION: // 传输结束
-      showRecopy = true;
-      break;
-    case TransmissionTypes.TRANSSION_TERMINATE: // 传输终止
-      showRecopy = true;
-      break;
-    default:
-      break;
+      case TransmissionTypes.INCREMENTAL_TRANSFERING: // 增量传输中
+        showDataCheckAndRepair = true;
+        break;
+      case TransmissionTypes.END_OF_TRANSMISSION: // 传输结束
+        showRecopy = true;
+        break;
+      case TransmissionTypes.TRANSSION_TERMINATE: // 传输终止
+        showRecopy = true;
+        break;
+      default:
+        break;
     }
 
-    return (<div style="color:#3A84FF;cursor:pointer;'">
-        {showRecopy
-          ? <bk-button
-              text
-              theme="primary"
-              onClick={() => handleClickRecopy(data)}>
-              {t('重新复制')}
-            </bk-button>
-          : <>
+    return (
+      <div style="color:#3A84FF;cursor:pointer;'">
+        {showRecopy ? (
+          <bk-button
+            theme='primary'
+            text
+            onClick={() => handleClickRecopy(data)}>
+            {t('重新复制')}
+          </bk-button>
+        ) : (
+          <>
             <bk-button
-              text
-              theme="primary"
               style={{ color: showDisconnect ? '#3A84FF' : '#C4C6CC' }}
+              theme='primary'
+              text
               onClick={() => handleClickDisconnectSync(data, index, showDisconnect)}>
               {t('断开同步')}
-              </bk-button>
+            </bk-button>
             <bk-button
-              text
-              theme="primary"
               style={{ color: showDataCheckAndRepair ? '#3A84FF' : '#C4C6CC', marginLeft: '10px' }}
+              theme='primary'
+              text
               onClick={() => handleClickDataCheckAndRepair(data, showDataCheckAndRepair)}>
               {t('数据校验与修复')}
             </bk-button>
-            </>
-        }
-      </div>);
+          </>
+        )}
+      </div>
+    );
   };
 
   const columns = [
     {
-      label: t('源集群'),
       field: 'src_cluster',
+      label: t('源集群'),
       minWidth: 220,
-      render: ({ data }: {data: RedisDSTHistoryJobModel}) => <span style="color:#3A84FF;cursor:pointer;" onClick={() => handleClickOpenTransferDetail(data)}>{data.src_cluster}</span>,
+      render: ({ data }: { data: RedisDSTHistoryJobModel }) => (
+        <span
+          style='color:#3A84FF;cursor:pointer;'
+          onClick={() => handleClickOpenTransferDetail(data)}>
+          {data.src_cluster}
+        </span>
+      ),
     },
     {
-      label: t('目标集群'),
       field: 'dst_cluster',
+      label: t('目标集群'),
       minWidth: 220,
     },
     {
-      label: t('复制类型'),
+      field: 'dts_copy_type',
       filter: {
         list: [
           { text: t('业务内'), value: CopyModes.INTRA_BISNESS },
@@ -271,82 +283,90 @@
           { text: t('自建集群至业务内'), value: CopyModes.SELFBUILT_TO_INTRA },
         ],
       },
-      field: 'dts_copy_type',
+      label: t('复制类型'),
+      render: ({ data }: { data: RedisDSTHistoryJobModel }) => <span>{copyTypesMap[data.dts_copy_type]}</span>,
       width: 120,
-      render: ({ data }: {data: RedisDSTHistoryJobModel}) => <span>{copyTypesMap[data.dts_copy_type]}</span>,
     },
     {
-      label: t('包含 key'),
       field: 'key_white_regex',
-      showOverflowTooltip: false,
+      label: t('包含 key'),
       minWidth: 250,
-      render: ({ data }: {data: RedisDSTHistoryJobModel}) => {
+      render: ({ data }: { data: RedisDSTHistoryJobModel }) => {
         if (data.key_white_regex) {
           const tags = data.key_white_regex.split('\n');
-          return <KeyTags maxRow={2} data={tags} />;
+          return (
+            <KeyTags
+              data={tags}
+              maxRow={2}
+            />
+          );
         }
         return <span>--</span>;
       },
+      showOverflowTooltip: false,
     },
     {
-      label: t('排除 key'),
       field: 'key_black_regex',
-      showOverflowTooltip: true,
+      label: t('排除 key'),
       minWidth: 250,
-      render: ({ data }: {data: RedisDSTHistoryJobModel}) => {
+      render: ({ data }: { data: RedisDSTHistoryJobModel }) => {
         if (data.key_black_regex) {
           const tags = data.key_black_regex.split('\n');
           return <KeyTags data={tags} />;
         }
         return <span>--</span>;
       },
+      showOverflowTooltip: true,
     },
     {
-      label: t('关联单据'),
       field: 'bill_id',
+      label: t('关联单据'),
+      render: ({ data }: { data: RedisDSTHistoryJobModel }) =>
+        data.bill_id ? (
+          <router-link
+            to={{
+              name: 'bizTicketManage',
+              params: {
+                ticketId: data.bill_id,
+              },
+            }}
+            target='_blank'>
+            {data.bill_id}
+          </router-link>
+        ) : (
+          '--'
+        ),
       showOverflowTooltip: true,
       width: 120,
-      render: ({ data }: {data: RedisDSTHistoryJobModel}) => (data.bill_id ? (
-        <router-link
-          target="_blank"
-          to={{
-            name: 'bizTicketManage',
-            params: {
-              ticketId: data.bill_id,
-            },
-          }}>
-          {data.bill_id}
-        </router-link>
-        ) : '--'),
     },
     {
-      label: t('最近一次修复单'),
       field: 'update_time',
+      label: t('最近一次修复单'),
+      render: ({ data }: { data: RedisDSTHistoryJobModel }) => <span>{utcDisplayTime(data.update_time)}</span>,
       showOverflowTooltip: true,
       width: 120,
-      render: ({ data }: {data: RedisDSTHistoryJobModel}) => <span>{utcDisplayTime(data.update_time)}</span>,
     },
     {
-      label: t('状态'),
       field: 'status',
+      label: t('状态'),
+      render: ({ data }: { data: RedisDSTHistoryJobModel }) => <ExecuteStatus type={data.status} />,
       showOverflowTooltip: true,
       width: 120,
-      render: ({ data }: {data: RedisDSTHistoryJobModel}) => <ExecuteStatus type={data.status} />,
     },
     {
-      label: t('创建时间'),
       field: 'create_time',
+      label: t('创建时间'),
+      render: ({ data }: { data: RedisDSTHistoryJobModel }) => <span>{utcDisplayTime(data.create_time)}</span>,
       showOverflowTooltip: true,
       width: 180,
-      render: ({ data }: {data: RedisDSTHistoryJobModel}) => <span>{utcDisplayTime(data.create_time)}</span>,
     },
     {
-      label: t('操作'),
-      fixed: 'right',
       field: '',
+      fixed: 'right',
+      label: t('操作'),
+      render: ({ data, index }: { data: RedisDSTHistoryJobModel; index: number }) => renderOperation(data, index),
       showOverflowTooltip: true,
       width: 180,
-      render: ({ index, data }: {index: number, data: RedisDSTHistoryJobModel}) => renderOperation(data, index),
     },
   ];
 
@@ -369,7 +389,6 @@
   onBeforeUnmount(() => {
     clearTimeout(timer.value);
   });
-
 
   // const copyTypeList = [
   //   {
@@ -401,17 +420,16 @@
     fetchHostNodes();
   };
 
-
   const fetchHostNodes = async () => {
     if (!dateTimeRangeUTC.value[0] || !dateTimeRangeUTC.value[0]) {
       return;
     }
     const ret = await getRedisDTSHistoryJobs({
+      cluster_name: searchValue.value,
+      end_time: dateTimeRangeUTC.value[1],
       page: pagination.value.current,
       page_size: pagination.value.limit,
       start_time: dateTimeRangeUTC.value[0],
-      end_time: dateTimeRangeUTC.value[1],
-      cluster_name: searchValue.value,
     });
     tableData.value = ret.jobs;
     pagination.value.count = ret.total_cnt;
@@ -419,7 +437,7 @@
 
   fetchHostNodes();
 
-  const handleValueChange = (value: number[],  info: { formatText: string }[]) => {
+  const handleValueChange = (value: number[], info: { formatText: string }[]) => {
     const [{ formatText: startDate }, { formatText: endDate }] = info;
     dateTimeRangeUTC.value = generateUTCDateTime([startDate, endDate]);
     nextTick(() => {
@@ -437,22 +455,23 @@
       return;
     }
     InfoBox({
-      title: t('确认断开同步？'),
-      subTitle: t('断开后，数据将不会再再自动同步，请谨慎操作！'),
-      width: 420,
       confirmText: '断开同步',
       onConfirm: async () => {
         await setJobDisconnectSync({
           bill_id: row.bill_id,
-          src_cluster: row.src_cluster,
           dst_cluster: row.dst_cluster,
+          src_cluster: row.src_cluster,
         });
         if (row.status === TransmissionTypes.INCREMENTAL_TRANSFERING) {
           tableData.value[index].status = TransmissionTypes.END_OF_TRANSMISSION;
         } else {
           tableData.value[index].status = TransmissionTypes.TRANSSION_TERMINATE;
         }
-      } });
+      },
+      subTitle: t('断开后，数据将不会再再自动同步，请谨慎操作！'),
+      title: t('确认断开同步？'),
+      width: 420,
+    });
   };
 
   const handleClickDataCheckAndRepair = (row: RedisDSTHistoryJobModel, isAvailable: boolean) => {
@@ -464,7 +483,6 @@
       name: 'RedisToolboxDataCheckRepair',
     });
   };
-
 
   const handleClickRecopy = (row: RedisDSTHistoryJobModel) => {
     localStorage.setItem(LocalStorageKeys.REDIS_DB_DATA_RECORD_RECOPY, JSON.stringify(row));

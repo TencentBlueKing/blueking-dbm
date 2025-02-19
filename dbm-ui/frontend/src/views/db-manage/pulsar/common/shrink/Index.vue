@@ -37,11 +37,7 @@
 </template>
 <script setup lang="tsx">
   import { InfoBox } from 'bkui-vue';
-  import {
-    reactive,
-    ref,
-    watch,
-  } from 'vue';
+  import { reactive, ref, watch } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import type PulsarModel from '@services/model/pulsar/pulsar';
@@ -53,26 +49,22 @@
 
   import { useGlobalBizs } from '@stores';
 
-  import HostShrink, {
-    type TShrinkNode,
-  } from '@views/db-manage/common/host-shrink/Index.vue';
+  import HostShrink, { type TShrinkNode } from '@views/db-manage/common/host-shrink/Index.vue';
   import NodeStatusList from '@views/db-manage/common/host-shrink/NodeStatusList.vue';
 
   import { messageError } from '@utils';
 
-  type TNodeInfo = TShrinkNode<PulsarNodeModel>
+  type TNodeInfo = TShrinkNode<PulsarNodeModel>;
 
   interface Props {
-    data: PulsarModel,
-    nodeList?: TNodeInfo['nodeList']
+    data: PulsarModel;
+    nodeList?: TNodeInfo['nodeList'];
   }
 
-  interface Emits {
-    (e: 'change'): void
-  }
+  type Emits = (e: 'change') => void;
 
   interface Exposes {
-    submit: () => Promise<any>
+    submit: () => Promise<any>;
   }
 
   const props = withDefaults(defineProps<Props>(), {
@@ -99,28 +91,28 @@
 
   const nodeStatusListRef = ref();
   const nodeInfoMap = reactive<Record<string, TNodeInfo>>({
+    bookkeeper: {
+      label: 'Bookkeeper',
+      minHost: 2,
+      nodeList: [],
+      originalNodeList: [],
+      // targetDisk: 0,
+      shrinkDisk: 0,
+      tagText: t('存储层'),
+      totalDisk: 0,
+    },
     broker: {
       label: 'Broker',
-      originalNodeList: [],
+      minHost: 1,
       nodeList: [],
-      // 当前主机总容量
-      totalDisk: 0,
+      originalNodeList: [],
       // 缩容后的目标容量
       // targetDisk: 0,
       // 实际选择的缩容主机容量
       shrinkDisk: 0,
-      minHost: 1,
-      tagText: t('接入层')
-    },
-    bookkeeper: {
-      label: 'Bookkeeper',
-      originalNodeList: [],
-      nodeList: [],
+      tagText: t('接入层'),
+      // 当前主机总容量
       totalDisk: 0,
-      // targetDisk: 0,
-      shrinkDisk: 0,
-      minHost: 2,
-      tagText: t('存储层')
     },
   });
 
@@ -136,26 +128,27 @@
       bk_biz_id: globalBizsStore.currentBizId,
       cluster_id: props.data.id,
       no_limit: 1,
-    }).then((data) => {
-      let bookkeeperDiskTotal = 0;
-      let brokerDiskTotal = 0;
-
-      data.results.forEach((nodeItem) => {
-        if (nodeItem.isBookkeeper) {
-          bookkeeperDiskTotal += nodeItem.disk;
-          bookkeeperOriginalNodeList.push(nodeItem);
-        } else if (nodeItem.isBroker) {
-          brokerDiskTotal += nodeItem.disk;
-          brokerOriginalNodeList.push(nodeItem);
-        }
-      });
-
-      nodeInfoMap.bookkeeper.originalNodeList = bookkeeperOriginalNodeList;
-      nodeInfoMap.bookkeeper.totalDisk = bookkeeperDiskTotal;
-
-      nodeInfoMap.broker.originalNodeList = brokerOriginalNodeList;
-      nodeInfoMap.broker.totalDisk = brokerDiskTotal;
     })
+      .then((data) => {
+        let bookkeeperDiskTotal = 0;
+        let brokerDiskTotal = 0;
+
+        data.results.forEach((nodeItem) => {
+          if (nodeItem.isBookkeeper) {
+            bookkeeperDiskTotal += nodeItem.disk;
+            bookkeeperOriginalNodeList.push(nodeItem);
+          } else if (nodeItem.isBroker) {
+            brokerDiskTotal += nodeItem.disk;
+            brokerOriginalNodeList.push(nodeItem);
+          }
+        });
+
+        nodeInfoMap.bookkeeper.originalNodeList = bookkeeperOriginalNodeList;
+        nodeInfoMap.bookkeeper.totalDisk = bookkeeperDiskTotal;
+
+        nodeInfoMap.broker.originalNodeList = brokerOriginalNodeList;
+        nodeInfoMap.broker.totalDisk = brokerDiskTotal;
+      })
       .finally(() => {
         isLoading.value = false;
       });
@@ -164,35 +157,39 @@
   fetchListNode();
 
   // 默认选中的缩容节点
-  watch(() => props.nodeList, () => {
-    const bookkeeperNodeList: TNodeInfo['nodeList'] = [];
-    const brokerNodeList: TNodeInfo['nodeList'] = [];
+  watch(
+    () => props.nodeList,
+    () => {
+      const bookkeeperNodeList: TNodeInfo['nodeList'] = [];
+      const brokerNodeList: TNodeInfo['nodeList'] = [];
 
-    let bookkeeperShrinkDisk = 0;
-    let brokerShrinkDisk = 0;
+      let bookkeeperShrinkDisk = 0;
+      let brokerShrinkDisk = 0;
 
-    props.nodeList.forEach((nodeItem) => {
-      if (nodeItem.isBookkeeper) {
-        bookkeeperShrinkDisk += nodeItem.disk;
-        bookkeeperNodeList.push(nodeItem);
-      } else if (nodeItem.isBroker) {
-        brokerShrinkDisk += nodeItem.disk;
-        brokerNodeList.push(nodeItem);
+      props.nodeList.forEach((nodeItem) => {
+        if (nodeItem.isBookkeeper) {
+          bookkeeperShrinkDisk += nodeItem.disk;
+          bookkeeperNodeList.push(nodeItem);
+        } else if (nodeItem.isBroker) {
+          brokerShrinkDisk += nodeItem.disk;
+          brokerNodeList.push(nodeItem);
+        }
+      });
+      nodeInfoMap.bookkeeper.nodeList = bookkeeperNodeList;
+      nodeInfoMap.bookkeeper.shrinkDisk = bookkeeperShrinkDisk;
+      nodeInfoMap.broker.nodeList = brokerNodeList;
+      nodeInfoMap.broker.shrinkDisk = brokerShrinkDisk;
+
+      if (bookkeeperNodeList.length) {
+        nodeType.value = 'bookkeeper';
+      } else if (brokerNodeList.length) {
+        nodeType.value = 'broker';
       }
-    });
-    nodeInfoMap.bookkeeper.nodeList = bookkeeperNodeList;
-    nodeInfoMap.bookkeeper.shrinkDisk = bookkeeperShrinkDisk;
-    nodeInfoMap.broker.nodeList = brokerNodeList;
-    nodeInfoMap.broker.shrinkDisk = brokerShrinkDisk;
-
-    if (bookkeeperNodeList.length) {
-      nodeType.value = 'bookkeeper'
-    } else if (brokerNodeList.length) {
-      nodeType.value = 'broker'
-    }
-  }, {
-    immediate: true,
-  });
+    },
+    {
+      immediate: true,
+    },
+  );
 
   // 缩容节点主机修改
   const handleNodeHostChange = (nodeList: TNodeInfo['nodeList']) => {
@@ -210,81 +207,83 @@
         }
 
         const renderSubTitle = () => {
-          const renderShrinkDiskTips = () => Object.values(nodeInfoMap).map((nodeData) => {
-            if (nodeData.shrinkDisk) {
-              return (
-                <div>
-                  {t('name容量从nG缩容至nG', {
-                    name: nodeData.label,
-                    totalDisk: nodeData.totalDisk,
-                    targetDisk: nodeData.totalDisk - nodeData.shrinkDisk,
-                  })}
-                </div>
-              );
-            }
-            return null;
-          });
+          const renderShrinkDiskTips = () =>
+            Object.values(nodeInfoMap).map((nodeData) => {
+              if (nodeData.shrinkDisk) {
+                return (
+                  <div>
+                    {t('name容量从nG缩容至nG', {
+                      name: nodeData.label,
+                      targetDisk: nodeData.totalDisk - nodeData.shrinkDisk,
+                      totalDisk: nodeData.totalDisk,
+                    })}
+                  </div>
+                );
+              }
+              return null;
+            });
 
-          return (
-          <div style="font-size: 14px; line-height: 28px; color: #63656E;">
-            {renderShrinkDiskTips()}
-          </div>
-          );
+          return <div style='font-size: 14px; line-height: 28px; color: #63656E;'>{renderShrinkDiskTips()}</div>;
         };
 
         InfoBox({
-          title: t('确认缩容【name】集群', { name: props.data.cluster_name }),
-          subTitle: renderSubTitle,
-          confirmText: t('确认'),
           cancelText: t('取消'),
-          headerAlign: 'center',
+          confirmText: t('确认'),
           contentAlign: 'center',
           footerAlign: 'center',
+          headerAlign: 'center',
           onCancel: () => reject(),
           onConfirm: () => {
-            const fomatHost = (nodeList: TNodeInfo['nodeList'] = []) => nodeList.map(hostItem => ({
-              ip: hostItem.ip,
-              bk_cloud_id: hostItem.bk_cloud_id,
-              bk_host_id: hostItem.bk_host_id,
-              bk_biz_id: bizId,
-            }));
+            const fomatHost = (nodeList: TNodeInfo['nodeList'] = []) =>
+              nodeList.map((hostItem) => ({
+                bk_biz_id: bizId,
+                bk_cloud_id: hostItem.bk_cloud_id,
+                bk_host_id: hostItem.bk_host_id,
+                ip: hostItem.ip,
+              }));
 
-            const generateExtInfo = () => Object.entries(nodeInfoMap).reduce((results, [key, item]) => {
-              const obj = {
-                host_list: item.nodeList.map(item => ({
-                  ip: item.ip,
-                  bk_disk: item.disk,
-                  alive: item.status,
-                })),
-                total_hosts: item.originalNodeList.length,
-                total_disk: item.totalDisk,
-                // target_disk: item.targetDisk,
-                shrink_disk: item.shrinkDisk,
-              };
-              Object.assign(results, {
-                [key]: obj,
-              });
-              return results;
-            }, {} as Record<string, any>);
+            const generateExtInfo = () =>
+              Object.entries(nodeInfoMap).reduce(
+                (results, [key, item]) => {
+                  const obj = {
+                    host_list: item.nodeList.map((item) => ({
+                      alive: item.status,
+                      bk_disk: item.disk,
+                      ip: item.ip,
+                    })),
+                    // target_disk: item.targetDisk,
+                    shrink_disk: item.shrinkDisk,
+                    total_disk: item.totalDisk,
+                    total_hosts: item.originalNodeList.length,
+                  };
+                  Object.assign(results, {
+                    [key]: obj,
+                  });
+                  return results;
+                },
+                {} as Record<string, any>,
+              );
 
             createTicket({
-              ticket_type: 'PULSAR_SHRINK',
               bk_biz_id: bizId,
               details: {
                 cluster_id: props.data.id,
+                ext_info: generateExtInfo(),
                 ip_source: 'manual_input',
                 nodes: {
-                  broker: fomatHost(nodeInfoMap.broker.nodeList),
                   bookkeeper: fomatHost(nodeInfoMap.bookkeeper.nodeList),
+                  broker: fomatHost(nodeInfoMap.broker.nodeList),
                 },
-                ext_info: generateExtInfo(),
               },
+              ticket_type: 'PULSAR_SHRINK',
             }).then((data) => {
               ticketMessage(data.id);
               resolve('success');
               emits('change');
-            })
+            });
           },
+          subTitle: renderSubTitle,
+          title: t('确认缩容【name】集群', { name: props.data.cluster_name }),
         });
       });
     },

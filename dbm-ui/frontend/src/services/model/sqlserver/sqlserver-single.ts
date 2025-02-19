@@ -26,9 +26,9 @@ export default class SqlServerSingleCluster extends ClusterBase {
   static SQLSERVER_DISABLE = 'SQLSERVER_DISABLE';
   static SQLSERVER_ENABLE = 'SQLSERVER_ENABLE';
   static operationIconMap = {
-    [SqlServerSingleCluster.SQLSERVER_ENABLE]: t('启用中'),
-    [SqlServerSingleCluster.SQLSERVER_DISABLE]: t('禁用中'),
     [SqlServerSingleCluster.SQLSERVER_DESTROY]: t('删除中'),
+    [SqlServerSingleCluster.SQLSERVER_DISABLE]: t('禁用中'),
+    [SqlServerSingleCluster.SQLSERVER_ENABLE]: t('启用中'),
   };
   static operationTextMap = {
     [SqlServerSingleCluster.SQLSERVER_DESTROY]: t('删除任务执行中'),
@@ -115,21 +115,6 @@ export default class SqlServerSingleCluster extends ClusterBase {
     this.updater = payload.updater;
   }
 
-  get dbStatusConfigureObj() {
-    const text = SqlServerSingleCluster.statusMap[this.status] || '--';
-    const theme = SqlServerSingleCluster.themes[this.status] || 'danger';
-    return {
-      text,
-      theme,
-    };
-  }
-
-  get masterDomainDisplayName() {
-    const port = this.storages[0]?.port;
-    const displayName = port ? `${this.master_domain}:${port}` : this.master_domain;
-    return displayName;
-  }
-
   get allInstanceList() {
     return [...this.storages];
   }
@@ -148,42 +133,31 @@ export default class SqlServerSingleCluster extends ClusterBase {
     );
   }
 
-  get runningOperation() {
-    const operateTicketTypes = Object.keys(SqlServerSingleCluster.operationTextMap);
-    return this.operations.find((item) => operateTicketTypes.includes(item.ticket_type) && item.status === 'RUNNING');
+  get dbStatusConfigureObj() {
+    const text = SqlServerSingleCluster.statusMap[this.status] || '--';
+    const theme = SqlServerSingleCluster.themes[this.status] || 'danger';
+    return {
+      text,
+      theme,
+    };
   }
 
-  // 操作中的状态
-  get operationRunningStatus() {
-    if (this.operations.length < 1) {
-      return '';
-    }
-    const operation = this.runningOperation;
-    if (!operation) {
-      return '';
-    }
-    return operation.ticket_type;
+  get disasterToleranceLevelName() {
+    return ClusterAffinityMap[this.disaster_tolerance_level];
   }
 
-  // 操作中的状态描述文本
-  get operationStatusText() {
-    return SqlServerSingleCluster.operationTextMap[this.operationRunningStatus];
+  get isAbnormal() {
+    return this.status === 'abnormal';
   }
 
-  get operationStatusIcon() {
-    return SqlServerSingleCluster.operationIconMap[this.operationRunningStatus];
+  get isStarting() {
+    return Boolean(this.operations.find((item) => item.ticket_type === SqlServerSingleCluster.SQLSERVER_ENABLE));
   }
 
-  // 操作中的单据 ID
-  get operationTicketId() {
-    if (this.operations.length < 1) {
-      return 0;
-    }
-    const operation = this.runningOperation;
-    if (!operation) {
-      return 0;
-    }
-    return operation.ticket_id;
+  get masterDomainDisplayName() {
+    const port = this.storages[0]?.port;
+    const displayName = port ? `${this.master_domain}:${port}` : this.master_domain;
+    return displayName;
   }
 
   get operationDisabled() {
@@ -202,23 +176,49 @@ export default class SqlServerSingleCluster extends ClusterBase {
     return false;
   }
 
+  // 操作中的状态
+  get operationRunningStatus() {
+    if (this.operations.length < 1) {
+      return '';
+    }
+    const operation = this.runningOperation;
+    if (!operation) {
+      return '';
+    }
+    return operation.ticket_type;
+  }
+
+  get operationStatusIcon() {
+    return SqlServerSingleCluster.operationIconMap[this.operationRunningStatus];
+  }
+
+  // 操作中的状态描述文本
+  get operationStatusText() {
+    return SqlServerSingleCluster.operationTextMap[this.operationRunningStatus];
+  }
+
   get operationTagTips() {
     return this.operations.map((item) => ({
       icon: SqlServerSingleCluster.operationIconMap[item.ticket_type],
-      tip: SqlServerSingleCluster.operationTextMap[item.ticket_type],
       ticketId: item.ticket_id,
+      tip: SqlServerSingleCluster.operationTextMap[item.ticket_type],
     }));
   }
 
-  get isAbnormal() {
-    return this.status === 'abnormal';
+  // 操作中的单据 ID
+  get operationTicketId() {
+    if (this.operations.length < 1) {
+      return 0;
+    }
+    const operation = this.runningOperation;
+    if (!operation) {
+      return 0;
+    }
+    return operation.ticket_id;
   }
 
-  get isStarting() {
-    return Boolean(this.operations.find((item) => item.ticket_type === SqlServerSingleCluster.SQLSERVER_ENABLE));
-  }
-
-  get disasterToleranceLevelName() {
-    return ClusterAffinityMap[this.disaster_tolerance_level];
+  get runningOperation() {
+    const operateTicketTypes = Object.keys(SqlServerSingleCluster.operationTextMap);
+    return this.operations.find((item) => operateTicketTypes.includes(item.ticket_type) && item.status === 'RUNNING');
   }
 }

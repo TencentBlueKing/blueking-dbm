@@ -118,15 +118,7 @@
 <script setup lang="tsx">
   import type { Table } from 'bkui-vue';
   import _ from 'lodash';
-  import {
-    computed,
-    nextTick,
-    onMounted,
-    reactive,
-    type Ref,
-    ref,
-    shallowRef,
-  } from 'vue';
+  import { computed, nextTick, onMounted, reactive, type Ref, ref, shallowRef } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import type { IRequestPayload } from '@services/http';
@@ -141,61 +133,61 @@
   import { useStorage } from '@vueuse/core';
 
   export interface Props {
-    columns?: InstanceType<typeof Table>['$props']['columns'],
-    dataSource: (params: any, payload?: IRequestPayload)=> Promise<any>,
-    fixedPagination?: boolean,
-    clearSelection?: boolean,
+    // 是否允许行点击选中
+    allowRowClickSelect?: boolean;
+    clearSelection?: boolean;
+    columns?: InstanceType<typeof Table>['$props']['columns'];
+    // 没提供默认使用浏览器窗口的高度 window.innerHeight
+    containerHeight?: number;
+    dataSource: (params: any, payload?: IRequestPayload) => Promise<any>;
+    disableSelectMethod?: (data: any) => boolean | string;
+    fixedPagination?: boolean;
     paginationExtra?: {
       small?: boolean;
-    },
-    selectable?: boolean,
-    disableSelectMethod?: (data: any) => boolean|string,
+    };
     // data 数据的主键
-    primaryKey?: string,
+    primaryKey?: string;
     // 是否解析 URL query 参数
-    releateUrlQuery?: boolean,
-    // 没提供默认使用浏览器窗口的高度 window.innerHeight
-    containerHeight?: number,
+    releateUrlQuery?: boolean;
     // 是否开启远程分页
-    remotePagination?: boolean,
-    // 是否允许行点击选中
-    allowRowClickSelect?: boolean,
-    remoteSort?: boolean,
-    showSettings?: boolean,
+    remotePagination?: boolean;
+    remoteSort?: boolean;
+    selectable?: boolean;
+    showSettings?: boolean;
   }
 
   export interface Emits {
-    (e: 'requestSuccess', value: any): void,
-    (e: 'requestFinished', value: any[]): void,
-    (e: 'clearSearch'): void,
-    (e: 'selection', key: string[], list: any[]): void,
-    (e: 'selection', key: number[], list: any[]): void,
+    (e: 'requestSuccess', value: any): void;
+    (e: 'requestFinished', value: any[]): void;
+    (e: 'clearSearch'): void;
+    (e: 'selection', key: string[], list: any[]): void;
+    (e: 'selection', key: number[], list: any[]): void;
   }
 
-  export interface Exposes{
-    fetchData: (params?: Record<string, any>, baseParams?: Record<string, any>, loading?: boolean) => void,
-    getData: <T>() => Array<T>,
-    getAllData: <T>() => Promise<Array<T>>,
-    clearSelected: () => void,
-    loading: Ref<boolean>,
-    bkTableRef: Ref<InstanceType<typeof Table>>,
-    updateTableKey: () => void,
-    removeSelectByKey: (key: string) => void,
+  export interface Exposes {
+    bkTableRef: Ref<InstanceType<typeof Table>>;
+    clearSelected: () => void;
+    fetchData: (params?: Record<string, any>, baseParams?: Record<string, any>, loading?: boolean) => void;
+    getAllData: <T>() => Promise<Array<T>>;
+    getData: <T>() => Array<T>;
+    loading: Ref<boolean>;
+    removeSelectByKey: (key: string) => void;
+    updateTableKey: () => void;
   }
 
   const props = withDefaults(defineProps<Props>(), {
-    columns: () => [],
-    fixedPagination: false,
+    allowRowClickSelect: false,
     clearSelection: true,
-    paginationExtra: () => ({}),
-    selectable: false,
+    columns: () => [],
+    containerHeight: undefined,
     disableSelectMethod: () => false,
+    fixedPagination: false,
+    paginationExtra: () => ({}),
     primaryKey: 'id',
     releateUrlQuery: false,
-    containerHeight: undefined,
     remotePagination: true,
-    allowRowClickSelect: false,
     remoteSort: false,
+    selectable: false,
     showSettings: false,
   });
 
@@ -207,68 +199,83 @@
 
   // 生成可选中列配置
   const genSelectionColumn = () => ({
-    width: 80,
     fixed: 'left',
     label: () => {
       const renderCheckbox = () => {
         if (isWholeChecked.value) {
           return (
-            <div class="db-table-whole-check" onClick={handleClearWholeSelect} />
+            <div
+              class='db-table-whole-check'
+              onClick={handleClearWholeSelect}
+            />
           );
         }
-        if (isCurrentPageAllSelected.value){
+        if (isCurrentPageAllSelected.value) {
           return (
             <bk-checkbox
               label={true}
               modelValue={true}
-              onChange={handleTogglePageSelect} />
+              onChange={handleTogglePageSelect}
+            />
           );
         }
-        return (
-          <bk-checkbox onChange={handleWholeSelect} />
-        );
+        return <bk-checkbox onChange={handleWholeSelect} />;
       };
       return (
-        <div class="db-table-select-cell">
+        <div class='db-table-select-cell'>
           {renderCheckbox()}
           <bk-popover
-            placement="bottom-start"
-            theme="light db-table-select-menu"
-            arrow={ false }
-            trigger='hover'
             v-slots={{
-              default: () => <db-icon class="select-menu-flag" type="down-big" />,
               content: () => (
-                <div class="db-table-select-plan">
-                  <div class="item" onClick={handlePageSelect}>{t('本页全选')}</div>
-                  <div class="item" onClick={handleWholeSelect}>{t('跨页全选')}</div>
+                <div class='db-table-select-plan'>
+                  <div
+                    class='item'
+                    onClick={handlePageSelect}>
+                    {t('本页全选')}
+                  </div>
+                  <div
+                    class='item'
+                    onClick={handleWholeSelect}>
+                    {t('跨页全选')}
+                  </div>
                 </div>
               ),
-            }}>
-          </bk-popover>
-      </div>
+              default: () => (
+                <db-icon
+                  class='select-menu-flag'
+                  type='down-big'
+                />
+              ),
+            }}
+            arrow={false}
+            placement='bottom-start'
+            theme='light db-table-select-menu'
+            trigger='hover'></bk-popover>
+        </div>
       );
     },
-    render: ({ data }: {data: any}) => {
+    render: ({ data }: { data: any }) => {
       const selectDisabled = props.disableSelectMethod(data);
       const tips = {
-        disabled: !selectDisabled,
         content: _.isString(selectDisabled) ? selectDisabled : t('禁止选择'),
+        disabled: !selectDisabled,
       };
       return (
         <span v-bk-tooltips={tips}>
           <bk-checkbox
-            label={true}
             disabled={Boolean(selectDisabled)}
+            label={true}
+            modelValue={Boolean(rowSelectMemo.value[_.get(data, props.primaryKey)])}
             onChange={() => handleSelecteRow(data)}
-            modelValue={Boolean(rowSelectMemo.value[_.get(data, props.primaryKey)])} />
+          />
         </span>
       );
     },
+    width: 80,
   });
 
   const { t } = useI18n();
-  const paginationLimitCache = useStorage('table_pagination_limit', 20)
+  const paginationLimitCache = useStorage('table_pagination_limit', 20);
 
   const rootRef = ref();
   const bkTableRef = ref();
@@ -278,28 +285,28 @@
   const tableData = ref<ListBase<any>>({
     count: 0,
     next: '',
+    permission: {},
     previous: '',
     results: [],
-    permission: {},
   });
   const isSearching = ref(false);
   const isAnomalies = ref(false);
-  const rowSelectMemo = shallowRef<Record<string|number, Record<any, any>>>({});
+  const rowSelectMemo = shallowRef<Record<string | number, Record<any, any>>>({});
   const isWholeChecked = ref(false);
   const pagination = reactive<{
+    align: string;
     count: number;
     current: number;
+    layout: Array<string>;
     limit: number;
     limitList: Array<number>;
-    align: string;
-    layout: Array<string>;
   }>({
+    align: 'right',
     count: 0,
     current: 1,
+    layout: ['total', 'limit', 'list'],
     limit: paginationLimitCache.value,
     limitList: [10, 20, 50, 100],
-    align: 'right',
-    layout: ['total', 'limit', 'list'],
     ...props.paginationExtra,
   });
   // 是否本页全选
@@ -309,6 +316,7 @@
       return false;
     }
     const selectMap = { ...rowSelectMemo.value };
+    // eslint-disable-next-line @typescript-eslint/prefer-for-of
     for (let i = 0; i < list.length; i++) {
       if (!selectMap[_.get(list[i], props.primaryKey)]) {
         return false;
@@ -319,10 +327,7 @@
 
   const localColumns = computed(() => {
     if (props.selectable && props.columns.length > 0) {
-      return [
-        genSelectionColumn(),
-        ...props.columns,
-      ];
+      return [genSelectionColumn(), ...props.columns];
     }
     return props.columns;
   });
@@ -341,18 +346,15 @@
     const baseParamsKeys = Object.keys(baseParamsMemo);
 
     for (const [key, value] of Object.entries(paramsMemo)) {
-      if (baseParamsKeys.includes(key) || [undefined, ''].includes(value as any)) continue;
+      if (baseParamsKeys.includes(key) || ['', undefined].includes(value as any)) continue;
 
       searchKeys.push(key);
     }
 
-    return searchKeys.filter(key => !baseParamsKeys.includes(key)).length > 0;
+    return searchKeys.filter((key) => !baseParamsKeys.includes(key)).length > 0;
   };
 
-  const {
-    getSearchParams,
-    replaceSearchParams,
-  } = useUrlSearch();
+  const { getSearchParams, replaceSearchParams } = useUrlSearch();
 
   const triggerSelection = () => {
     emits('selection', Object.keys(rowSelectMemo.value), Object.values(rowSelectMemo.value));
@@ -360,96 +362,92 @@
 
   const fetchListData = (loading = true) => {
     isReady = true;
-    Promise.resolve()
-      .then(() => {
-        isLoading.value = loading;
-        const params = {
-          offset: (pagination.current - 1) * pagination.limit,
-          limit: pagination.limit,
-          bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-          ...paramsMemo,
-          ...sortParams,
-        };
+    Promise.resolve().then(() => {
+      isLoading.value = loading;
+      const params = {
+        bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+        limit: pagination.limit,
+        offset: (pagination.current - 1) * pagination.limit,
+        ...paramsMemo,
+        ...sortParams,
+      };
 
-        const payload = {};
-        // API 参数需要和 URL 联动基本可以确认是页面级别的列表
-        // 这个时候权限提示交互为页面嵌入的方式
-        if (props.releateUrlQuery) {
-          Object.assign(payload, {
-            permission: 'page',
-          });
-        }
+      const payload = {};
+      // API 参数需要和 URL 联动基本可以确认是页面级别的列表
+      // 这个时候权限提示交互为页面嵌入的方式
+      if (props.releateUrlQuery) {
+        Object.assign(payload, {
+          permission: 'page',
+        });
+      }
 
-        isAnomalies.value = false;
+      isAnomalies.value = false;
 
-        props.dataSource(params, payload)
-          .then((data) => {
-            tableData.value = data;
-            console.log('tabledata = ', data);
-            pagination.count = data.count;
-            isSearching.value = getSearchingStatus();
-            isAnomalies.value = false;
+      props
+        .dataSource(params, payload)
+        .then((data) => {
+          tableData.value = data;
+          console.log('tabledata = ', data);
+          pagination.count = data.count;
+          isSearching.value = getSearchingStatus();
+          isAnomalies.value = false;
 
-            // 默认清空选项
-            if (props.clearSelection) {
-              bkTableRef.value?.clearSelection?.();
-            }
+          // 默认清空选项
+          if (props.clearSelection) {
+            bkTableRef.value?.clearSelection?.();
+          }
 
-            if (!props.fixedPagination && props.releateUrlQuery) {
-              replaceSearchParams(params);
-            }
-            if (!isPaginationChangeFetch) {
-              isPaginationChangeFetch = false;
-              rowSelectMemo.value = {}
-              isWholeChecked.value = false
-              triggerSelection();
-            }
+          if (!props.fixedPagination && props.releateUrlQuery) {
+            replaceSearchParams(params);
+          }
+          if (!isPaginationChangeFetch) {
+            isPaginationChangeFetch = false;
+            rowSelectMemo.value = {};
+            isWholeChecked.value = false;
+            triggerSelection();
+          }
 
-            emits('requestSuccess', data);
-          })
-          .catch((error) => {
-            console.log('from dbtable error = ', error);
-            tableData.value.results = [];
-            pagination.count = 0;
-            isAnomalies.value = true;
-          })
-          .finally(() => {
-            isReady = false;
-            isLoading.value = false;
-            emits('requestFinished', tableData.value.results);
-          });
-      });
+          emits('requestSuccess', data);
+        })
+        .catch((error) => {
+          console.log('from dbtable error = ', error);
+          tableData.value.results = [];
+          pagination.count = 0;
+          isAnomalies.value = true;
+        })
+        .finally(() => {
+          isReady = false;
+          isLoading.value = false;
+          emits('requestFinished', tableData.value.results);
+        });
+    });
   };
 
   // 拉取全量数据
   const fetchAllData = async () => {
     const { results } = await props.dataSource({
       bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-      offset: (pagination.current - 1) * pagination.limit,
       limit: -1,
+      offset: (pagination.current - 1) * pagination.limit,
       ...paramsMemo,
       ...sortParams,
-    })
+    });
     return results;
   };
 
-  watch(() => props.columns, () => {
-    tableKey.value = Date.now().toString();
-  });
-
-
+  watch(
+    () => props.columns,
+    () => {
+      tableKey.value = Date.now().toString();
+    },
+  );
 
   // 解析 URL 上面的分页信息
   const parseURL = () => {
     if (!props.releateUrlQuery || props.fixedPagination) {
       return;
     }
-    const {
-      offset,
-      page_size: limit,
-      order_field: orderField,
-      order_type: orderType,
-    } = getSearchParams();
+    const { offset, order_field: orderField, order_type: orderType, page_size: limit } = getSearchParams();
     if (offset && limit) {
       pagination.current = ~~offset;
       pagination.limit = ~~limit;
@@ -506,24 +504,26 @@
 
   // 跨页全选
   const handleWholeSelect = () => {
-    props.dataSource({
-      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-      offset: (pagination.current - 1) * pagination.limit,
-      limit: -1,
-      ...paramsMemo,
-      ...sortParams,
-    }).then((data) => {
-      const selectMap = { ...rowSelectMemo.value };
-      data.results.forEach((dataItem: any) => {
-        if (props.disableSelectMethod(dataItem)) {
-          return;
-        }
-        selectMap[_.get(dataItem, props.primaryKey)] = dataItem;
+    props
+      .dataSource({
+        bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+        limit: -1,
+        offset: (pagination.current - 1) * pagination.limit,
+        ...paramsMemo,
+        ...sortParams,
+      })
+      .then((data) => {
+        const selectMap = { ...rowSelectMemo.value };
+        data.results.forEach((dataItem: any) => {
+          if (props.disableSelectMethod(dataItem)) {
+            return;
+          }
+          selectMap[_.get(dataItem, props.primaryKey)] = dataItem;
+        });
+        rowSelectMemo.value = selectMap;
+        isWholeChecked.value = true;
+        triggerSelection();
       });
-      rowSelectMemo.value = selectMap;
-      isWholeChecked.value = true;
-      triggerSelection();
-    });
   };
 
   // 选中单行
@@ -579,9 +579,9 @@
       return;
     }
     const valueMap = {
-      null: undefined,
-      desc: 0,
       asc: 1,
+      desc: 0,
+      null: undefined,
     };
     sortParams = {
       [sortPayload.column.field]: valueMap[sortPayload.type as keyof typeof valueMap],
@@ -591,29 +591,29 @@
 
   // 切换每页条数
   const handlePageLimitChange = (pageLimit: number) => {
-  if (pagination.limit === pageLimit){
-    return
-  }
+    if (pagination.limit === pageLimit) {
+      return;
+    }
     pagination.limit = pageLimit;
     pagination.current = 1;
-    isPaginationChangeFetch = true
-    paginationLimitCache.value = pageLimit
+    isPaginationChangeFetch = true;
+    paginationLimitCache.value = pageLimit;
     fetchListData();
   };
 
   // 切换页码
-  const handlePageValueChange = (pageValue:number) => {
+  const handlePageValueChange = (pageValue: number) => {
     if (pagination.current === pageValue) {
-      return
+      return;
     }
     pagination.current = pageValue;
-    isPaginationChangeFetch = true
+    isPaginationChangeFetch = true;
 
     fetchListData();
   };
 
   // 情况搜索条件
-  const handleClearSearch  = () => {
+  const handleClearSearch = () => {
     emits('clearSearch');
   };
 
@@ -638,6 +638,12 @@
   });
 
   defineExpose<Exposes>({
+    bkTableRef,
+    // 清空选择
+    clearSelected() {
+      // bkTableRef.value?.clearSelection();
+      handleClearWholeSelect();
+    },
     // 获取远程数据
     fetchData(params = {} as Record<string, any>, baseParams = {} as Record<string, any>, loading = true) {
       paramsMemo = {
@@ -652,25 +658,19 @@
         fetchListData(loading);
       });
     },
+    // 获取全量数据
+    getAllData: fetchAllData,
     // 获取表格渲染数据
     getData() {
       return tableData.value.results;
     },
-    // 获取全量数据
-    getAllData: fetchAllData,
-    // 清空选择
-    clearSelected() {
-      // bkTableRef.value?.clearSelection();
-      handleClearWholeSelect();
+    loading: isLoading,
+    removeSelectByKey(key: string) {
+      delete rowSelectMemo.value[key];
     },
     updateTableKey() {
       tableKey.value = Date.now().toString();
     },
-    removeSelectByKey(key: string) {
-      delete rowSelectMemo.value[key];
-    },
-    loading: isLoading,
-    bkTableRef,
   });
 </script>
 <style lang="less">

@@ -23,8 +23,8 @@ import { t } from '@locales/index';
 
 export const useShowPurge = () => {
   const state = reactive({
-    isShow: false,
     data: [] as RedisModel[],
+    isShow: false,
   });
 
   const handleShow = (data: RedisModel[]) => {
@@ -44,7 +44,7 @@ export const useShowPurge = () => {
   };
 
   return {
-    state,
     handleShow,
+    state,
   };
 };

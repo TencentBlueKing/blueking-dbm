@@ -13,9 +13,9 @@
 import { isRecentDays, utcDisplayTime } from '@utils';
 
 export default class PulsarNode {
+  static ROLE_BOOKKEEPER = 'pulsar_bookkeeper';
   static ROLE_BROKER = 'pulsar_broker';
   static ROLE_ZOOKEEPER = 'pulsar_zookeeper';
-  static ROLE_BOOKKEEPER = 'pulsar_bookkeeper';
 
   bk_cloud_id: number;
   bk_cloud_name: string;
@@ -28,8 +28,6 @@ export default class PulsarNode {
   machine_type: string;
   mem: number;
   node_count: number;
-  role: string;
-  status: number;
   permission: Record<
     | 'pulsar_view'
     | 'pulsar_enable_disable'
@@ -40,6 +38,8 @@ export default class PulsarNode {
     | 'pulsar_reboot',
     boolean
   >;
+  role: string;
+  status: number;
 
   constructor(payload = {} as PulsarNode) {
     this.bk_cloud_id = payload.bk_cloud_id;
@@ -58,23 +58,23 @@ export default class PulsarNode {
     this.permission = payload.permission || {};
   }
 
-  get isBroker() {
-    return this.role === PulsarNode.ROLE_BROKER;
-  }
-
-  get isZookeeper() {
-    return this.role === PulsarNode.ROLE_ZOOKEEPER;
+  get createAtDisplay() {
+    return utcDisplayTime(this.create_at);
   }
 
   get isBookkeeper() {
     return this.role === PulsarNode.ROLE_BOOKKEEPER;
   }
 
+  get isBroker() {
+    return this.role === PulsarNode.ROLE_BROKER;
+  }
+
   get isNew() {
     return isRecentDays(this.create_at, 24 * 3);
   }
 
-  get createAtDisplay() {
-    return utcDisplayTime(this.create_at);
+  get isZookeeper() {
+    return this.role === PulsarNode.ROLE_ZOOKEEPER;
   }
 }

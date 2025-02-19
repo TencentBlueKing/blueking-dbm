@@ -93,18 +93,18 @@
   import { t } from '@locales/index';
 
   export type InfoColumn = {
-    label: string;
-    key: string;
-    isEdit?: boolean;
     isCopy?: boolean;
+    isEdit?: boolean;
     isRequired?: boolean;
+    key: string;
+    label: string;
     render?: () => VNode | string | null;
   };
 
   export type EditEmitData = {
-    value: string;
-    key: string;
     editResolve: (value: unknown) => void;
+    key: string;
+    value: string;
   };
 
   /**
@@ -113,29 +113,29 @@
   export const getDefaultColumns = () => [
     [
       {
-        label: t('配置名称'),
-        key: 'name',
         isEdit: true,
         isRequired: true,
+        key: 'name',
+        label: t('配置名称'),
       },
       {
-        label: t('描述'),
-        key: 'description',
         isEdit: true,
+        key: 'description',
+        label: t('描述'),
       },
       {
-        label: t('数据库版本'),
         key: 'version',
+        label: t('数据库版本'),
       },
     ],
     [
       {
-        label: t('更新时间'),
         key: 'updated_at',
+        label: t('更新时间'),
       },
       {
-        label: t('更新人'),
         key: 'updated_by',
+        label: t('更新人'),
       },
     ],
   ];
@@ -147,20 +147,18 @@
 
 <script setup lang="tsx">
   interface Props {
-    readonly?: boolean;
     columns?: Array<Array<InfoColumn>>;
     data?: Record<string, any>;
+    readonly?: boolean;
     width?: string;
   }
 
-  interface Emits {
-    (e: 'save', value: EditEmitData): void;
-  }
+  type Emits = (e: 'save', value: EditEmitData) => void;
 
   const props = withDefaults(defineProps<Props>(), {
-    readonly: false,
     columns: () => getDefaultColumns(),
     data: () => ({}),
+    readonly: false,
     width: '50%',
   });
 
@@ -168,7 +166,7 @@
 
   const unique = ref(generateId('EDITABLE_INFO_KEY_', 6));
   const loading = ref(false);
-  const rules = [{ required: true, trigger: 'blur', message: t('必填项') }];
+  const rules = [{ message: t('必填项'), required: true, trigger: 'blur' }];
 
   watch(
     () => props.columns,
@@ -182,8 +180,8 @@
    * 编辑基本信息
    */
   const editState = reactive({
-    value: '',
     key: '',
+    value: '',
   });
   const editItemRef = ref();
   const editInputRef = ref();

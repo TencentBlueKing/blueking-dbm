@@ -32,11 +32,11 @@
   import RenderText from '@components/render-table/columns/text-plain/index.vue';
 
   interface Props {
-    list: {
-      cluster_id: number;
-      [key: string]: string | number;
-    }[];
     field: string;
+    list: {
+      [key: string]: string | number;
+      cluster_id: number;
+    }[];
   }
 
   interface Exposes {
@@ -44,8 +44,8 @@
   }
 
   const props = withDefaults(defineProps<Props>(), {
-    list: () => [],
     field: 'domain',
+    list: () => [],
   });
 
   const { t } = useI18n();

@@ -15,12 +15,12 @@ import dayjs from 'dayjs';
 import { utcDisplayTime } from '@utils';
 
 export interface DutyCycleItem {
-  members: string[];
   duty_day: number;
-  work_days: number[];
-  work_type: string;
-  work_times: string[];
   duty_number: number;
+  members: string[];
+  work_days: number[];
+  work_times: string[];
+  work_type: string;
 }
 
 export interface DutyCustomItem {
@@ -45,8 +45,8 @@ export default class DutyRule {
     }[];
   };
   category: string;
-  creator: string;
   create_at: string;
+  creator: string;
   db_type: string;
   duty_arranges: DutyCycleItem[] | DutyCustomItem[];
   effective_time: string;
@@ -62,8 +62,8 @@ export default class DutyRule {
   };
   priority: number;
   status: string;
-  updater: string;
   update_at: string;
+  updater: string;
 
   constructor(payload = {} as DutyRule) {
     this.biz_config = payload.biz_config;
@@ -86,16 +86,16 @@ export default class DutyRule {
     this.status = this.generateStatus();
   }
 
+  get effectiveTimeDisplay() {
+    return utcDisplayTime(this.effective_time);
+  }
+
   get isNewCreated() {
     return dayjs().isBefore(dayjs(this.create_at).add(24, 'hour'));
   }
 
   get updateAtDisplay() {
     return utcDisplayTime(this.update_at);
-  }
-
-  get effectiveTimeDisplay() {
-    return utcDisplayTime(this.effective_time);
   }
 
   generateStatus() {

@@ -66,8 +66,8 @@
   import RenderDataRow, { createRowData, type IData, type IDataRow } from './components/Row.vue';
 
   interface Props {
-    variableList: string[];
     showIpCloumn: boolean;
+    variableList: string[];
   }
   interface Exposes {
     getValue: () => Promise<Record<string, any>[]>;
@@ -154,11 +154,11 @@
   const handleInputCluster = async (index: number, item: TendbClusterModel) => {
     const row = createRowData({
       clusterData: {
-        id: item.id,
-        master_domain: item.master_domain,
         bk_biz_id: item.bk_biz_id,
         bk_cloud_id: item.bk_cloud_id,
         bk_cloud_name: item.bk_cloud_name,
+        id: item.id,
+        master_domain: item.master_domain,
       },
     });
     tableData.value[index] = row;
@@ -175,11 +175,11 @@
       if (!domainMemo[domain]) {
         const row = createRowData({
           clusterData: {
-            id: item.id,
-            master_domain: domain,
             bk_biz_id: item.bk_biz_id,
             bk_cloud_id: item.bk_cloud_id,
             bk_cloud_name: item.bk_cloud_name,
+            id: item.id,
+            master_domain: domain,
           },
         });
         result.push(row);

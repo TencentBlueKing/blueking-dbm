@@ -10,7 +10,6 @@ export interface SpiderSlaveApply extends DetailBase {
     cluster_id: number;
     resource_spec: {
       spider_slave_ip_list: {
-        id: number;
         count: number;
         cpu: {
           max: number;
@@ -20,6 +19,7 @@ export interface SpiderSlaveApply extends DetailBase {
         desc: string;
         device_class: string[];
         enable: boolean;
+        id: number;
         instance_num: number;
         mem: {
           max: number;
@@ -35,9 +35,9 @@ export interface SpiderSlaveApply extends DetailBase {
         spec_machine_type: string;
         spec_name: string;
         storage_spec: {
+          mount_point: string;
           size: number;
           type: string;
-          mount_point: string;
         }[];
       };
     };

@@ -100,14 +100,14 @@
   import type { AccountRule, AccountRulePrivilege, AccountRulePrivilegeKey } from '@services/types';
 
   interface PrivilegeRow {
-    privilegeKey: string;
-    privilegeDisplay: string;
-    beforePrivilege: string;
     afterPrivilege: string;
+    beforePrivilege: string;
     // 差异类型
     diffType: 'add' | 'delete' | 'unchanged';
     // 是否敏感词
     isSensitiveWord: boolean;
+    privilegeDisplay: string;
+    privilegeKey: string;
   }
 
   interface Props {
@@ -116,8 +116,8 @@
       ddlSensitiveWords: string[];
     };
     rulesFormData: {
-      beforeChange: AccountRule;
       afterChange: AccountRule;
+      beforeChange: AccountRule;
     };
   }
 
@@ -140,32 +140,32 @@
     privilege: true,
   });
   const privilegeData = shallowRef<PrivilegeRow[]>([]);
-  const mergeCells = shallowRef<Array<{ row: number; col: number; rowspan: number; colspan: number }>>([]);
+  const mergeCells = shallowRef<Array<{ col: number; colspan: number; row: number; rowspan: number }>>([]);
 
   const accessDbData = computed(() => [
     {
-      oldAccessDb: props.rulesFormData.beforeChange?.access_db || '--',
       newAccessDb: props.rulesFormData.afterChange?.access_db || '--',
+      oldAccessDb: props.rulesFormData.beforeChange?.access_db || '--',
     },
   ]);
   const addCount = computed(() => privilegeData.value.filter((item) => item.diffType === 'add').length);
   const deleteCount = computed(() => privilegeData.value.filter((item) => item.diffType === 'delete').length);
 
   const tags: {
-    type: PrivilegeRow['diffType'];
     text: string;
+    type: PrivilegeRow['diffType'];
   }[] = [
     {
-      type: 'add',
       text: t('新增'),
+      type: 'add',
     },
     {
-      type: 'delete',
       text: t('删除'),
+      type: 'delete',
     },
     {
-      type: 'unchanged',
       text: t('不变'),
+      type: 'unchanged',
     },
   ];
 
@@ -191,12 +191,12 @@
       (acc, [privilege, diffType]) => [
         ...acc,
         {
-          privilegeKey: key,
-          privilegeDisplay: key === 'glob' ? t('全局') : key.toUpperCase(),
-          beforePrivilege: diffType === 'add' ? '' : privilege,
           afterPrivilege: privilege,
+          beforePrivilege: diffType === 'add' ? '' : privilege,
           diffType,
           isSensitiveWord: key === 'glob' || sensitiveWordMap[privilege],
+          privilegeDisplay: key === 'glob' ? t('全局') : key.toUpperCase(),
+          privilegeKey: key,
         },
       ],
       [],
@@ -209,22 +209,22 @@
     const globData = getPrivilegeData('glob');
     mergeCells.value = [
       {
+        col: 0,
+        colspan: 1,
         row: 0,
-        col: 0,
         rowspan: dmlData.length,
-        colspan: 1,
       },
       {
+        col: 0,
+        colspan: 1,
         row: dmlData.length,
-        col: 0,
         rowspan: ddlData.length,
-        colspan: 1,
       },
       {
-        row: dmlData.length + ddlData.length,
         col: 0,
-        rowspan: globData.length,
         colspan: 1,
+        row: dmlData.length + ddlData.length,
+        rowspan: globData.length,
       },
     ];
     privilegeData.value = [...dmlData, ...ddlData, ...globData];

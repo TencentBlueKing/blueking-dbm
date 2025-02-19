@@ -17,6 +17,10 @@ import { ClusterTypes } from '@common/const';
 export default class RedisClusterNodeByFilter {
   cluster: {
     bk_cloud_id: number;
+    capacity: {
+      total: string;
+      used: string;
+    };
     cluster_type: ClusterTypes;
     deploy_plan: any;
     deploy_plan_id: number;
@@ -28,10 +32,6 @@ export default class RedisClusterNodeByFilter {
     redis_master_count: number;
     redis_slave_count: number;
     region: string;
-    capacity: {
-      used: string;
-      total: string;
-    };
   };
   proxy: {
     id: number;

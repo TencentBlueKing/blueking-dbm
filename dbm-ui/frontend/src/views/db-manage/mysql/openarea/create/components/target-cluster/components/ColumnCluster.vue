@@ -41,9 +41,7 @@
     modelValue?: IDataRow['clusterData'];
   }
 
-  interface Emits {
-    (e: 'clusterInputFinish', value: TendbhaModel): void;
-  }
+  type Emits = (e: 'clusterInputFinish', value: TendbhaModel) => void;
 
   interface Exposes {
     getValue: (isSubmit: boolean) => Promise<{
@@ -71,18 +69,19 @@
 
   const rules = [
     {
-      validator: (value: string) => Boolean(value),
       message: t('目标集群不能为空'),
+      validator: (value: string) => Boolean(value),
     },
     {
+      message: t('目标集群不存在'),
       validator: (value: string) =>
         queryClusters({
+          bk_biz_id: currentBizId,
           cluster_filters: [
             {
               immute_domain: value,
             },
           ],
-          bk_biz_id: currentBizId,
         }).then((data) => {
           if (data.length > 0) {
             if (!isSkipInputFinish) {
@@ -93,7 +92,6 @@
           }
           return false;
         }),
-      message: t('目标集群不存在'),
     },
     // {
     //   validator: () => {

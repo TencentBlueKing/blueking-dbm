@@ -17,23 +17,23 @@ import { random } from '@utils';
 
 // Spider Tendbcluster 重命名
 export function generateSpiderDbRenameCloneData(ticketData: TicketModel<TendbCluster.RenameDataBase>) {
-  const { infos, force, clusters } = ticketData.details;
+  const { clusters, force, infos } = ticketData.details;
   const tableDataList = infos.map((item) => {
     const clusterItem = clusters[item.cluster_id];
     return {
-      rowKey: random(),
       clusterData: {
-        id: item.cluster_id,
         domain: clusterItem.immute_domain,
+        id: item.cluster_id,
       },
       fromDatabase: item.from_database,
+      rowKey: random(),
       toDatabase: item.to_database,
     };
   });
 
   return Promise.resolve({
-    tableDataList,
     force,
     remark: ticketData.remark,
+    tableDataList,
   });
 }

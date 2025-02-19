@@ -53,9 +53,9 @@
   }
 
   const modelValue = defineModel<{
-    id: number;
-    domain: string;
     cloudId: number;
+    domain: string;
+    id: number;
     majorVersion: string;
   }>();
 
@@ -76,35 +76,36 @@
 
   const clusterSelectorTabConfig = {
     [ClusterTypes.SQLSERVER_HA]: {
-      id: ClusterTypes.SQLSERVER_HA,
-      name: t('SqlServer 主从'),
       disabledRowConfig: [
         {
           handler: (data: any) => data.isOffline,
           tip: t('集群已禁用'),
         },
       ],
+      id: ClusterTypes.SQLSERVER_HA,
       multiple: false,
+      name: t('SqlServer 主从'),
     },
     [ClusterTypes.SQLSERVER_SINGLE]: {
-      id: ClusterTypes.SQLSERVER_SINGLE,
-      name: t('SqlServer 单节点'),
       disabledRowConfig: [
         {
           handler: (data: any) => data.isOffline,
           tip: t('集群已禁用'),
         },
       ],
+      id: ClusterTypes.SQLSERVER_SINGLE,
       multiple: false,
+      name: t('SqlServer 单节点'),
     },
   };
 
   const rules = [
     {
-      validator: (value: string) => Boolean(value),
       message: t('目标集群不能为空'),
+      validator: (value: string) => Boolean(value),
     },
     {
+      message: t('目标集群不存在'),
       validator: (value: string) =>
         filterClusters<SqlServerHaModel>({
           bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
@@ -112,9 +113,9 @@
         }).then((data) => {
           if (data.length > 0) {
             modelValue.value = {
-              id: data[0].id,
               cloudId: data[0].bk_cloud_id,
               domain: data[0].master_domain,
+              id: data[0].id,
               majorVersion: data[0].major_version,
             };
             clusterIdMemo[instanceKey] = data[0].id;
@@ -124,9 +125,9 @@
           modelValue.value = undefined;
           return false;
         }),
-      message: t('目标集群不存在'),
     },
     {
+      message: t('目标集群重复'),
       validator: () => {
         const otherClusterIdMemo = { ...clusterIdMemo };
         delete otherClusterIdMemo[instanceKey];
@@ -135,7 +136,6 @@
         }
         return true;
       },
-      message: t('目标集群重复'),
     },
   ];
 
@@ -162,9 +162,9 @@
   const handelClusterChange = (selected: { [key: string]: Array<SqlServerSingleModel | SqlServerHaModel> }) => {
     const [clusterData] = Object.values(selected)[0];
     modelValue.value = {
-      id: clusterData.id,
       cloudId: clusterData.bk_cloud_id,
       domain: clusterData.master_domain,
+      id: clusterData.id,
       majorVersion: clusterData.major_version,
     };
     localDomain.value = clusterData.master_domain;

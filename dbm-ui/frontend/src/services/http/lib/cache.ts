@@ -17,26 +17,27 @@ export type CacheValue = Promise<any>;
 export type CacheExpire = number | boolean;
 
 export interface ICache {
-  set: (name: string, value: CacheValue, expire: CacheExpire) => boolean;
+  clear: () => boolean;
+  delete: (name: string) => boolean;
   get: (name: string) => any;
   has: (name: string) => boolean;
-  delete: (name: string) => boolean;
-  clear: () => boolean;
+  set: (name: string, value: CacheValue, expire: CacheExpire) => boolean;
 }
 
 export default class Cache implements ICache {
-  cacheMap: Map<string, CacheValue>;
   cacheExpireMap: Map<string, number>;
+  cacheMap: Map<string, CacheValue>;
   constructor() {
     this.cacheMap = new Map();
     this.cacheExpireMap = new Map();
   }
-  set(name: string, value: CacheValue, expire: CacheExpire) {
-    if (_.isNumber(expire)) {
-      this.cacheExpireMap.set(name, Date.now() + expire);
-    }
-    if (!this.cacheMap.has(name)) {
-      this.cacheMap.set(name, value);
+  clear() {
+    this.cacheMap.clear();
+    return this.cacheMap.size < 1;
+  }
+  delete(name: string) {
+    if (this.cacheMap.has(name)) {
+      return this.cacheMap.delete(name);
     }
     return true;
   }
@@ -61,14 +62,13 @@ export default class Cache implements ICache {
     }
     return true;
   }
-  delete(name: string) {
-    if (this.cacheMap.has(name)) {
-      return this.cacheMap.delete(name);
+  set(name: string, value: CacheValue, expire: CacheExpire) {
+    if (_.isNumber(expire)) {
+      this.cacheExpireMap.set(name, Date.now() + expire);
+    }
+    if (!this.cacheMap.has(name)) {
+      this.cacheMap.set(name, value);
     }
     return true;
-  }
-  clear() {
-    this.cacheMap.clear();
-    return this.cacheMap.size < 1;
   }
 }

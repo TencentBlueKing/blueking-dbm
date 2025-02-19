@@ -36,9 +36,9 @@
   } from '@components/editable-table/Index.vue';
 
   interface Props {
-    label: string;
-    field: string;
     disabledDate?: (params: any) => boolean;
+    field: string;
+    label: string;
     nowenable?: boolean;
   }
 
@@ -55,15 +55,15 @@
 
   const rules = [
     {
+      message: `${props.label}${t('不能为空')}`,
       required: true,
+      trigger: 'blur',
       validator: (value: string[]) => {
         if (isNowTime.value) {
           return true;
         }
         return Boolean(value);
       },
-      message: `${props.label}${t('不能为空')}`,
-      trigger: 'blur',
     },
   ];
 

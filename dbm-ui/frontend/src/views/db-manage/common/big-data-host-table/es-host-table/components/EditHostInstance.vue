@@ -33,9 +33,7 @@
   interface Props {
     modelValue: number;
   }
-  interface Emits {
-    (e: 'change', value: number): void;
-  }
+  type Emits = (e: 'change', value: number) => void;
 
   const props = defineProps<Props>();
   const emits = defineEmits<Emits>();

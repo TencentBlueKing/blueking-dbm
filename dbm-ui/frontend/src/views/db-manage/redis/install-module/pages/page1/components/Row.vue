@@ -62,15 +62,15 @@
   import RenderModule from './RenderModule.vue';
 
   export interface IDataRow {
-    rowKey: string;
-    isLoading: boolean;
-    srcCluster: string;
-    clusterId: number;
     bkCloudId: number;
+    clusterId: number;
     clusterType: string;
     clusterTypeName: string;
     dbVersion: string;
+    isLoading: boolean;
     loadModules: string[];
+    rowKey: string;
+    srcCluster: string;
   }
 
   export interface InfoItem {
@@ -82,21 +82,21 @@
 
   // 创建表格数据
   export const createRowData = (): IDataRow => ({
-    rowKey: random(),
-    isLoading: false,
-    srcCluster: '',
-    clusterId: 0,
     bkCloudId: 0,
+    clusterId: 0,
     clusterType: '',
     clusterTypeName: '',
     dbVersion: '',
+    isLoading: false,
     loadModules: [],
+    rowKey: random(),
+    srcCluster: '',
   });
 
   interface Props {
     data: IDataRow;
-    removeable: boolean;
     inputedClusters?: string[];
+    removeable: boolean;
   }
 
   interface Emits {
@@ -141,9 +141,9 @@
     moduleRef.value!.getValue().then((modules: string[]) => {
       emits('clone', {
         ...props.data,
-        rowKey: random(),
         isLoading: false,
         loadModules: modules,
+        rowKey: random(),
       });
     });
   };

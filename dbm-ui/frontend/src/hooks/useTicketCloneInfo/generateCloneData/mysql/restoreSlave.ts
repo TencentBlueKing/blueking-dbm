@@ -21,16 +21,6 @@ export function generateMysqlRestoreSlaveCloneData(ticketData: TicketModel<Mysql
   const tableDataList = infos.map((item) => {
     const clusterId = item.cluster_ids[0];
     return {
-      rowKey: random(),
-      oldSlave: {
-        bkCloudId: item.old_slave.bk_cloud_id,
-        bkCloudName: '',
-        bkHostId: item.old_slave.bk_host_id,
-        ip: item.old_slave.ip,
-        port: item.old_slave.port,
-        instanceAddress: `${item.old_slave.ip}:${item.old_slave.port}`,
-        clusterId,
-      },
       newSlave: {
         bkBizId: item.new_slave.bk_biz_id,
         bkCloudId: item.new_slave.bk_cloud_id,
@@ -38,11 +28,21 @@ export function generateMysqlRestoreSlaveCloneData(ticketData: TicketModel<Mysql
         ip: item.new_slave.ip,
         port: item.new_slave.port,
       },
+      oldSlave: {
+        bkCloudId: item.old_slave.bk_cloud_id,
+        bkCloudName: '',
+        bkHostId: item.old_slave.bk_host_id,
+        clusterId,
+        instanceAddress: `${item.old_slave.ip}:${item.old_slave.port}`,
+        ip: item.old_slave.ip,
+        port: item.old_slave.port,
+      },
+      rowKey: random(),
     };
   });
 
   return Promise.resolve({
-    tableDataList,
     remark: ticketData.remark,
+    tableDataList,
   });
 }

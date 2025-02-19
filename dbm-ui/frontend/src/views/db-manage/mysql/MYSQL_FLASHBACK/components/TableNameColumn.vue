@@ -43,8 +43,8 @@
   import { Column, TagInput as EditTagInput } from '@components/editable-table/Index.vue';
 
   interface Props {
-    label: string;
     clusterId?: number;
+    label: string;
   }
 
   const props = defineProps<Props>();
@@ -57,25 +57,25 @@
 
   const rules = [
     {
-      validator: (value: string[]) => _.every(value, (item) => /^[-_a-zA-Z0-9*?%]{0,64}$/.test(item)),
       message: t('库表名支持数字、字母、中划线、下划线，最大64字符'),
       trigger: 'blur',
+      validator: (value: string[]) => _.every(value, (item) => /^[-_a-zA-Z0-9*?%]{0,64}$/.test(item)),
     },
     {
-      validator: (value: string[]) => _.every(value, (item) => item !== '*'),
       message: t('不允许为 *'),
       trigger: 'blur',
+      validator: (value: string[]) => _.every(value, (item) => item !== '*'),
     },
     {
-      validator: (value: string[]) =>
-        !_.some(value, (item) => (/\*/.test(item) && item.length > 1) || (value.length > 1 && item === '*')),
       message: t('* 只能独立使用'),
       trigger: 'blur',
+      validator: (value: string[]) =>
+        !_.some(value, (item) => (/\*/.test(item) && item.length > 1) || (value.length > 1 && item === '*')),
     },
     {
-      validator: (value: string[]) => _.every(value, (item) => !/^[%?]$/.test(item)),
       message: t('% 或 ? 不允许单独使用'),
       trigger: 'blur',
+      validator: (value: string[]) => _.every(value, (item) => !/^[%?]$/.test(item)),
     },
   ];
 </script>

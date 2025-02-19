@@ -5,12 +5,12 @@
 import { t } from '@locales/index';
 
 export enum MessageTypes {
-  SMS = 'sms',
-  WEIXIN = 'weixin',
   MAIL = 'mail',
-  VOICE = 'voice',
   RTX = 'rtx',
+  SMS = 'sms',
+  VOICE = 'voice',
   WECOM_ROBOT = 'wecom_robot',
+  WEIXIN = 'weixin',
 }
 
 export const InputMessageTypes = [MessageTypes.WECOM_ROBOT] as string[];

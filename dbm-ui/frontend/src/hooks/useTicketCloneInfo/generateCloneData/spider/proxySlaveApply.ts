@@ -33,18 +33,18 @@ export async function generateSpiderProxySlaveApplyCloneData(ticketData: TicketM
   const tableDataList = infos.map((item) => {
     const clusterItem = clusterListMap[item.cluster_id];
     return {
-      rowKey: random(),
-      isLoading: false,
+      bizId: clusterItem.bk_biz_id,
+      cloudId: clusterItem.bk_cloud_id,
       cluster: clusterItem.master_domain,
       clusterId: clusterItem.id,
       clusterType: clusterItem.cluster_spec.spec_cluster_type,
-      cloudId: clusterItem.bk_cloud_id,
-      bizId: clusterItem.bk_biz_id,
+      isLoading: false,
+      rowKey: random(),
       spec: {
         ...clusterItem.cluster_spec,
-        name: clusterItem.cluster_spec.spec_name,
-        id: item.resource_spec.spider_slave_ip_list.spec_id,
         count: item.resource_spec.spider_slave_ip_list.count,
+        id: item.resource_spec.spider_slave_ip_list.spec_id,
+        name: clusterItem.cluster_spec.spec_name,
       },
       specId: item.resource_spec.spider_slave_ip_list.spec_id,
       targetNum: String(item.resource_spec.spider_slave_ip_list.count),
@@ -52,7 +52,7 @@ export async function generateSpiderProxySlaveApplyCloneData(ticketData: TicketM
   });
 
   return {
-    tableDataList,
     remark: ticketData.remark,
+    tableDataList,
   };
 }

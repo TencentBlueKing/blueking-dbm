@@ -10,7 +10,7 @@ import { useStorage, useTimeoutFn } from '@vueuse/core';
 
 const create = (dataSource: typeof getTickets, options?: { onSuccess?: (data: TicketModel[]) => void }) => {
   const eventBus = useEventBus();
-  const { replaceSearchParams, getSearchParams } = useUrlSearch();
+  const { getSearchParams, replaceSearchParams } = useUrlSearch();
   const paginationLimitCache = useStorage('table_pagination_limit', 20);
 
   const searchParams = getSearchParams();
@@ -18,9 +18,9 @@ const create = (dataSource: typeof getTickets, options?: { onSuccess?: (data: Ti
   const isLoading = ref(false);
   const dataList = ref<TicketModel[]>([]);
   const pagination = reactive({
-    limit: paginationLimitCache.value,
-    current: 1,
     count: 0,
+    current: 1,
+    limit: paginationLimitCache.value,
     limitList: [10, 20, 50, 100],
     remote: true,
   });
@@ -74,8 +74,8 @@ const create = (dataSource: typeof getTickets, options?: { onSuccess?: (data: Ti
         pagination.count = data.count;
 
         const urlSearchParams = {
-          limit: pagination.limit,
           current: pagination.current,
+          limit: pagination.limit,
           ordering: ordering.value,
           ...params,
         };
@@ -97,12 +97,12 @@ const create = (dataSource: typeof getTickets, options?: { onSuccess?: (data: Ti
   });
 
   return {
-    loading: isLoading,
-    tableMaxHeight,
     dataList,
-    pagination,
-    ordering,
     fetchTicketList,
+    loading: isLoading,
+    ordering,
+    pagination,
+    tableMaxHeight,
   };
 };
 

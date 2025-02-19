@@ -48,7 +48,7 @@
     }
 
     let color = '#2DCB56';
-    const { used = 0, total = 0, in_use: inUse = 0 } = props.clusterStats;
+    const { in_use: inUse = 0, total = 0, used = 0 } = props.clusterStats;
 
     if (inUse >= 90) {
       color = '#EA3636';
@@ -57,10 +57,10 @@
     }
 
     return {
+      color,
+      num: `(${bytePretty(used)}/${bytePretty(total)})`,
       percent: parseFloat(inUse.toFixed(2)),
       rate: `${inUse.toFixed(2)}%`,
-      num: `(${bytePretty(used)}/${bytePretty(total)})`,
-      color,
     };
   });
 </script>

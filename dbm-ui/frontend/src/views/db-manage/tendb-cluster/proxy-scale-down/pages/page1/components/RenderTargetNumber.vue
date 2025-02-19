@@ -31,11 +31,11 @@
   import type { IDataRow } from './Row.vue';
 
   interface Props {
-    data?: IDataRow['targetNum'];
-    isLoading?: boolean;
     count?: number;
-    role?: string;
+    data?: IDataRow['targetNum'];
     disabled?: boolean;
+    isLoading?: boolean;
+    role?: string;
   }
 
   interface Exposes {
@@ -43,11 +43,11 @@
   }
 
   const props = withDefaults(defineProps<Props>(), {
-    data: '',
     count: 0,
-    role: 'spider_slave',
-    isLoading: false,
+    data: '',
     disabled: false,
+    isLoading: false,
+    role: 'spider_slave',
   });
 
   const { t } = useI18n();
@@ -61,30 +61,30 @@
 
   const rules = [
     {
-      validator: (value: string) => Boolean(value),
       message: t('目标台数不能为空'),
+      validator: (value: string) => Boolean(value),
     },
     {
-      validator: (value: string) => !nonInterger.test(value),
       message: t('格式有误，请输入数字'),
+      validator: (value: string) => !nonInterger.test(value),
     },
     {
+      message: t('缩容后不能少于2台'),
       validator: (value: number) => {
         if (props.role === 'spider_master') {
           return props.count - value >= 2;
         }
         return true;
       },
-      message: t('缩容后不能少于2台'),
     },
     {
+      message: t('缩容后不能少于1台'),
       validator: (value: number) => {
         if (props.role === 'spider_slave') {
           return props.count - value >= 1;
         }
         return true;
       },
-      message: t('缩容后不能少于1台'),
     },
   ];
 

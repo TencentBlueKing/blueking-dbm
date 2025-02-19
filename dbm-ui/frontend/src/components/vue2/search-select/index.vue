@@ -30,9 +30,9 @@
     values: Item[];
   }
   export interface SearchData {
+    children?: Item[];
     id: string;
     name: string;
-    children?: Item[];
   }
 
   export default {
@@ -43,18 +43,18 @@
 <script setup lang="tsx">
   interface Props {
     appKey?: string;
-    data?: SearchData[];
-    // eslint-disable-next-line vue/no-unused-properties
-    placeholder?: string;
     // eslint-disable-next-line vue/no-unused-properties
     clearable?: boolean;
-    // eslint-disable-next-line vue/no-unused-properties
-    showCondition?: boolean;
+    data?: SearchData[];
+    // 是否允许自定义输入内容
+    isCustom?: boolean;
     // ----- 自定义属性 -------
     // data 是否可重复选择
     isRepeat?: boolean;
-    // 是否允许自定义输入内容
-    isCustom?: boolean;
+    // eslint-disable-next-line vue/no-unused-properties
+    placeholder?: string;
+    // eslint-disable-next-line vue/no-unused-properties
+    showCondition?: boolean;
   }
 
   interface Emits {
@@ -64,12 +64,12 @@
 
   const props = withDefaults(defineProps<Props>(), {
     appKey: 'search-select',
-    data: () => [],
-    placeholder: '请输入',
     clearable: true,
-    showCondition: false,
-    isRepeat: false,
+    data: () => [],
     isCustom: false,
+    isRepeat: false,
+    placeholder: '请输入',
+    showCondition: false,
   });
   const emits = defineEmits<Emits>();
   const modelValue = defineModel<SearchValue[]>({
@@ -151,20 +151,19 @@
   onMounted(async () => {
     const { VITE_PUBLIC_PATH } = window.PROJECT_ENV;
     await loadInstance({
-      url: `${window.location.origin}${VITE_PUBLIC_PATH ? VITE_PUBLIC_PATH : '/'}vue2-components/search-select/index.js`,
-      mode: 'js',
-      id: key.value,
       container: searchSelectRef.value,
-      showSourceCode: true,
+      id: key.value,
+      mode: 'js',
       scopeCss: true,
       scopeJs: true,
+      showSourceCode: true,
+      url: `${window.location.origin}${VITE_PUBLIC_PATH ? VITE_PUBLIC_PATH : '/'}vue2-components/search-select/index.js`,
     });
 
-    mount(key.value, searchSelectRef.value, (instance, { Vue2, BkSearchSelect }: any) => {
+    mount(key.value, searchSelectRef.value, (instance, { BkSearchSelect, Vue2 }: any) => {
       const div = document.createElement('div');
       searchSelectRef.value?.appendChild(div);
       vueInstance.value = new Vue2({
-        el: div,
         components: {
           SearchSelect: BkSearchSelect,
         },
@@ -173,13 +172,9 @@
             values: [],
           };
         },
+        el: div,
         render(h: any) {
           return h('SearchSelect', {
-            props: {
-              ...props,
-              data: filterData.value,
-              values: this.values,
-            },
             on: {
               change: (values: any[]) => {
                 modelValue.value = values;
@@ -189,6 +184,11 @@
                 modelValue.value = [];
                 emits('clear');
               },
+            },
+            props: {
+              ...props,
+              data: filterData.value,
+              values: this.values,
             },
           });
         },

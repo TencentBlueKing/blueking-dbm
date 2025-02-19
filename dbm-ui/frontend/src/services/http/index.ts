@@ -24,9 +24,9 @@ export type IRequestPayload = Config['payload'];
 
 export type IRequestResponseData<T> = T;
 export interface IRequestResponsePaginationData<T> {
-  results: Array<T>;
-  page: number;
   num_pages: number;
+  page: number;
+  results: Array<T>;
   total: number;
 }
 
@@ -53,10 +53,10 @@ methodList.forEach((method) => {
           return Promise.resolve();
         }
         const handler = new Request({
-          url,
           method,
           params,
           payload,
+          url,
         });
         return handler.run();
       };

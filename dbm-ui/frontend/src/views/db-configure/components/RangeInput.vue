@@ -67,15 +67,13 @@
 </script>
 
 <script setup lang="ts">
-  interface Emits {
-    (
-      e: 'change',
-      value: {
-        min: number;
-        max: number;
-      },
-    ): void;
-  }
+  type Emits = (
+    e: 'change',
+    value: {
+      max: number;
+      min: number;
+    },
+  ) => void;
 
   const emits = defineEmits<Emits>();
   const min = defineModel<number>('min', {

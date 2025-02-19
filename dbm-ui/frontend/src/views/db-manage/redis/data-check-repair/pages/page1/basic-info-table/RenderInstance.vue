@@ -56,8 +56,8 @@
   import type { IDataRow } from './Row.vue';
 
   interface Props {
-    selectList?: string[];
     data?: IDataRow['instances'];
+    selectList?: string[];
   }
 
   interface Exposes {
@@ -65,8 +65,8 @@
   }
 
   const props = withDefaults(defineProps<Props>(), {
-    selectList: () => [],
     data: '',
+    selectList: () => [],
   });
 
   const { t } = useI18n();
@@ -77,7 +77,7 @@
   const displayText = ref(totalText);
 
   const selectList = computed(() =>
-    props.selectList ? props.selectList.map((item) => ({ value: item, label: item })) : [],
+    props.selectList ? props.selectList.map((item) => ({ label: item, value: item })) : [],
   );
   const isSelectAll = computed(() => localValue.value.length === props.selectList.length);
 

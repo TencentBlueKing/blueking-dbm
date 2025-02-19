@@ -97,11 +97,11 @@
 
   // 单据克隆
   useTicketCloneInfo({
-    type: TicketTypes.REDIS_DATA_STRUCTURE,
     onSuccess(cloneData) {
       tableData.value = cloneData.tableDataList;
       window.changeConfirm = true;
     },
+    type: TicketTypes.REDIS_DATA_STRUCTURE,
   });
 
   const rowRefs = ref();
@@ -135,18 +135,18 @@
   const generateRowDateFromRequest = (item: RedisModel) => {
     const instances = item.redis_master.map((row) => `${row.ip}:${row.port}`);
     const row = {
-      rowKey: item.master_domain,
-      isLoading: false,
+      bkCloudId: item.bk_cloud_id,
       cluster: item.master_domain,
+      clusterId: item.id,
       clusterType: item.cluster_type,
       clusterTypeName: item.cluster_type_name,
-      clusterId: item.id,
-      bkCloudId: item.bk_cloud_id,
       instances,
+      isLoading: false,
+      rowKey: item.master_domain,
       spec: {
         ...item.cluster_spec,
-        name: item.cluster_spec.spec_name,
         id: item.cluster_spec.spec_id,
+        name: item.cluster_spec.spec_name,
       },
     };
     return row;
@@ -224,12 +224,12 @@
       );
       const params = {
         bk_biz_id: currentBizId,
-        ticket_type: TicketTypes.REDIS_DATA_STRUCTURE,
-        remark: remark.value,
         details: {
-          ip_source: 'resource_pool',
           infos,
+          ip_source: 'resource_pool',
         },
+        remark: remark.value,
+        ticket_type: TicketTypes.REDIS_DATA_STRUCTURE,
       };
 
       await createTicket(params).then((data) => {

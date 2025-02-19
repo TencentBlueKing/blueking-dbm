@@ -23,10 +23,7 @@
     @selection="handleSelectionChange" />
 </template>
 <script setup lang="tsx">
-  import {
-    onMounted,
-    ref,
-  } from 'vue';
+  import { onMounted, ref } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import FixpointLogModel from '@services/model/fixpoint-rollback/fixpoint-log';
@@ -37,7 +34,7 @@
 
   import { useGlobalBizs } from '@stores';
 
-  import { TicketTypes } from '@common/const'
+  import { TicketTypes } from '@common/const';
 
   const { t } = useI18n();
   const { currentBizId } = useGlobalBizs();
@@ -49,83 +46,85 @@
   const tableColumns = [
     {
       label: t('源集群'),
+      render: ({ data }: { data: FixpointLogModel }) => data.source_cluster.immute_domain,
       showOverflowTooltip: true,
       width: 200,
-      render: ({ data }: {data: FixpointLogModel}) => data.source_cluster.immute_domain,
     },
     {
       label: t('构造主机'),
-      showOverflowTooltip: true,
       minWidth: 200,
-      render: ({ data }: {data: FixpointLogModel}) => data.ipText || '--',
+      render: ({ data }: { data: FixpointLogModel }) => data.ipText || '--',
+      showOverflowTooltip: true,
     },
     {
       label: t('回档类型'),
-      showOverflowTooltip: true,
       minWidth: 200,
-      render: ({ data }: {data: FixpointLogModel}) => data.rollbackTypeText,
+      render: ({ data }: { data: FixpointLogModel }) => data.rollbackTypeText,
+      showOverflowTooltip: true,
     },
     {
       label: t('构造 DB 名'),
-      showOverflowTooltip: true,
       minWidth: 100,
-      render: ({ data }: {data: FixpointLogModel}) => (data.databases.length < 1 ? '--' : (
-        <>
-          {
-            data.databases.map(item => (
+      render: ({ data }: { data: FixpointLogModel }) =>
+        data.databases.length < 1 ? (
+          '--'
+        ) : (
+          <>
+            {data.databases.map((item) => (
               <bk-tag>{item}</bk-tag>
-            ))
-          }
-        </>
-      )),
+            ))}
+          </>
+        ),
+      showOverflowTooltip: true,
     },
     {
       label: t('忽略 DB 名'),
-      showOverflowTooltip: true,
       minWidth: 100,
-      render: ({ data }: {data: FixpointLogModel}) => (data.databases_ignore.length < 1 ? '--' : (
-        <>
-          {
-            data.databases_ignore.map(item => (
+      render: ({ data }: { data: FixpointLogModel }) =>
+        data.databases_ignore.length < 1 ? (
+          '--'
+        ) : (
+          <>
+            {data.databases_ignore.map((item) => (
               <bk-tag>{item}</bk-tag>
-            ))
-          }
-        </>
-      )),
+            ))}
+          </>
+        ),
+      showOverflowTooltip: true,
     },
     {
       label: t('构造表名'),
-      showOverflowTooltip: true,
       minWidth: 100,
-      render: ({ data }: {data: FixpointLogModel}) => (data.tables.length < 1 ? '--' : (
-        <>
-          {
-            data.tables.map(item => (
+      render: ({ data }: { data: FixpointLogModel }) =>
+        data.tables.length < 1 ? (
+          '--'
+        ) : (
+          <>
+            {data.tables.map((item) => (
               <bk-tag>{item}</bk-tag>
-            ))
-          }
-        </>
-      )),
+            ))}
+          </>
+        ),
+      showOverflowTooltip: true,
     },
     {
       label: t('忽略表名'),
-      showOverflowTooltip: true,
       minWidth: 100,
-      render: ({ data }: {data: FixpointLogModel}) => (data.tables_ignore.length < 1 ? '--' : (
-        <>
-          {
-            data.tables_ignore.map(item => (
+      render: ({ data }: { data: FixpointLogModel }) =>
+        data.tables_ignore.length < 1 ? (
+          '--'
+        ) : (
+          <>
+            {data.tables_ignore.map((item) => (
               <bk-tag>{item}</bk-tag>
-            ))
-          }
-        </>
-      )),
+            ))}
+          </>
+        ),
+      showOverflowTooltip: true,
     },
     {
       label: t('关联单据'),
-      showOverflowTooltip: true,
-      width: 90,
-      render: ({ data }: {data: FixpointLogModel}) => (
+      render: ({ data }: { data: FixpointLogModel }) => (
         <router-link
           to={{
             name: 'bizTicketManage',
@@ -133,28 +132,30 @@
               ticketId: data.ticket_id,
             },
           }}
-          target="_blank">
+          target='_blank'>
           {data.ticket_id}
         </router-link>
       ),
+      showOverflowTooltip: true,
+      width: 90,
     },
     {
-      label: t('操作'),
-      width: 100,
       fixed: 'right',
-      render: ({ data }: {data: FixpointLogModel}) => (
+      label: t('操作'),
+      render: ({ data }: { data: FixpointLogModel }) => (
         <db-popconfirm
           confirm-handler={() => handleDestroy(data)}
           content={t('移除后将不可恢复')}
           title={t('确认销毁选中的实例')}>
           <bk-button
-            theme="primary"
             disabled={!data.isDestoryEnable}
+            theme='primary'
             text>
             {t('销毁')}
           </bk-button>
         </db-popconfirm>
       ),
+      width: 100,
     },
   ];
 
@@ -164,31 +165,32 @@
 
   const disableSelectMethodCallback = (data: FixpointLogModel) => !data.isDestoryEnable;
 
-  const handleDestroy = (payload: FixpointLogModel) => createTicket({
-    bk_biz_id: currentBizId,
-    remark: '',
-    ticket_type: TicketTypes.TENDBCLUSTER_TEMPORARY_DESTROY,
-    details: {
-      cluster_ids: [payload.target_cluster.cluster_id],
-    },
-  }).then((data) => {
-    ticketMessage(data.id);
-    fetchData();
-  });
+  const handleDestroy = (payload: FixpointLogModel) =>
+    createTicket({
+      bk_biz_id: currentBizId,
+      details: {
+        cluster_ids: [payload.target_cluster.cluster_id],
+      },
+      remark: '',
+      ticket_type: TicketTypes.TENDBCLUSTER_TEMPORARY_DESTROY,
+    }).then((data) => {
+      ticketMessage(data.id);
+      fetchData();
+    });
 
   const handleSelectionChange = (payload: string[]) => {
     selectionList.value = payload;
   };
 
-  const handleBatchDisable = () => createTicket({
-    bk_biz_id: currentBizId,
-    remark: '',
-    ticket_type: TicketTypes.TENDBCLUSTER_TEMPORARY_DESTROY,
-    details: {
-      cluster_ids: selectionList.value,
-    },
-  })
-    .then((data) => {
+  const handleBatchDisable = () =>
+    createTicket({
+      bk_biz_id: currentBizId,
+      details: {
+        cluster_ids: selectionList.value,
+      },
+      remark: '',
+      ticket_type: TicketTypes.TENDBCLUSTER_TEMPORARY_DESTROY,
+    }).then((data) => {
       ticketMessage(data.id);
       fetchData();
     });

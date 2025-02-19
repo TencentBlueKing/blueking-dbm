@@ -85,12 +85,12 @@
 
   // 单据克隆
   useTicketCloneInfo({
-    type: TicketTypes.TENDBCLUSTER_SPIDER_MNT_APPLY,
     onSuccess(cloneData) {
       tableData.value = cloneData.tableDataList;
       remark.value = cloneData.remark;
       window.changeConfirm = true;
     },
+    type: TicketTypes.TENDBCLUSTER_SPIDER_MNT_APPLY,
   });
 
   const rowRefs = ref();
@@ -127,10 +127,10 @@
       if (!domainMemo[domain]) {
         const row = createRowData({
           clusterData: {
-            id: item.id,
-            domain: item.master_domain,
             bkCloudId: item.bk_cloud_id,
             bkCloudName: item.bk_cloud_name,
+            domain: item.master_domain,
+            id: item.id,
           },
         });
         result.push(row);
@@ -181,12 +181,12 @@
       isSubmitting.value = true;
       const infos = await Promise.all(rowRefs.value.map((item: { getValue: () => Promise<any> }) => item.getValue()));
       await createTicket({
-        ticket_type: TicketTypes.TENDBCLUSTER_SPIDER_MNT_APPLY,
-        remark: remark.value,
+        bk_biz_id: currentBizId,
         details: {
           infos,
         },
-        bk_biz_id: currentBizId,
+        remark: remark.value,
+        ticket_type: TicketTypes.TENDBCLUSTER_SPIDER_MNT_APPLY,
       }).then((data) => {
         window.changeConfirm = false;
 

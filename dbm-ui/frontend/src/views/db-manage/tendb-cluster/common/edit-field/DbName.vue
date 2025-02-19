@@ -27,14 +27,12 @@
   import TableEditTag from '@components/render-table/columns/db-table-name/Index.vue';
 
   interface Props {
-    modelValue?: string[];
     clusterId: number;
+    modelValue?: string[];
     required?: boolean;
   }
 
-  interface Emits {
-    (e: 'change', value: string[]): void;
-  }
+  type Emits = (e: 'change', value: string[]) => void;
 
   interface Exposes {
     getValue: (field: string) => Promise<Record<string, string[]>>;
@@ -51,20 +49,20 @@
 
   const rules = [
     {
+      message: t('DB 名不能为空'),
       validator: (value: string[]) => {
         if (!props.required) {
           return true;
         }
         return value && value.length > 0;
       },
-      message: t('DB 名不能为空'),
     },
     {
+      message: t('一格仅支持单个 % 对象'),
       validator: (value: string[]) => {
-        const hasAllMatch = _.find(value, (item) => /%$/.test(item));
+        const hasAllMatch = _.find(value, (item) => item.endsWith('%'));
         return !(value.length > 1 && hasAllMatch);
       },
-      message: t('一格仅支持单个 % 对象'),
     },
   ];
 

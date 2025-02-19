@@ -67,9 +67,7 @@
     title?: string;
   }
 
-  interface Emits {
-    (e: 'change', value: string): void;
-  }
+  type Emits = (e: 'change', value: string) => void;
 
   withDefaults(defineProps<Props>(), {
     title: '',
@@ -83,8 +81,8 @@
     value: '',
   });
   const validateState = reactive({
-    isShow: false,
     errorTxt: '',
+    isShow: false,
   });
   const { body } = document;
   const textareaRef = ref();

@@ -32,12 +32,10 @@
 
   import Editor from '../editor/Index.vue';
 
-  interface Emits {
-    (e: 'change', value: string): void;
-  }
+  type Emits = (e: 'change', value: string) => void;
 
   interface Exposes {
-    getValue: () => { name: string; content: string }[];
+    getValue: () => { content: string; name: string }[];
   }
 
   const emits = defineEmits<Emits>();
@@ -53,8 +51,8 @@
   defineExpose<Exposes>({
     getValue: () => [
       {
-        name: '',
         content: content.value,
+        name: '',
       },
     ],
   });

@@ -81,39 +81,39 @@
   import RenderSrcCluster from './SrcCluster.vue';
 
   export interface IDataRow {
-    rowKey: string;
     clusterData?: {
-      id: number;
-      domain: string;
       cloudId: number | null;
+      domain: string;
+      id: number;
       majorVersion: string;
     };
-    dstClusterData?: {
-      id: number;
-      domain: string;
-      cloudId: number | null;
-    };
-    restoreBackupFile?: ServiceReturnType<typeof queryBackupLogs>[number];
-    restoreTime: string;
-    dbName: string[];
     dbIgnoreName: string[];
+    dbName: string[];
+    dstClusterData?: {
+      cloudId: number | null;
+      domain: string;
+      id: number;
+    };
     renameDbName: {
       db_name: string;
-      target_db_name: string;
       rename_db_name: string;
+      target_db_name: string;
     }[];
+    restoreBackupFile?: ServiceReturnType<typeof queryBackupLogs>[number];
+    restoreTime: string;
+    rowKey: string;
   }
 
   // 创建表格数据
   export const createRowData = (data = {} as Partial<IDataRow>) => ({
-    rowKey: random(),
     clusterData: data.clusterData,
+    dbIgnoreName: data.dbIgnoreName || [],
+    dbName: data.dbName || [],
     dstClusterData: data.dstClusterData,
+    renameDbName: data.renameDbName || [],
     restoreBackupFile: data.restoreBackupFile,
     restoreTime: data.restoreTime || '',
-    dbName: data.dbName || [],
-    dbIgnoreName: data.dbIgnoreName || [],
-    renameDbName: data.renameDbName || [],
+    rowKey: random(),
   });
 </script>
 <script setup lang="ts">

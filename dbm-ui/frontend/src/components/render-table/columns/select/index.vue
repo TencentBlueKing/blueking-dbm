@@ -63,10 +63,10 @@
   type IKey = string | number | string[];
 
   export interface IListItem {
-    value: IKey;
-    label: string;
-    disabled?: boolean;
     [x: string]: any;
+    disabled?: boolean;
+    label: string;
+    value: IKey;
   }
 </script>
 <script setup lang="ts">
@@ -78,9 +78,9 @@
   import useValidtor, { type Rules } from '../../hooks/useValidtor';
 
   interface Props {
+    disabled?: boolean;
     list: Array<IListItem>;
     rules?: Rules;
-    disabled?: boolean;
     validateAfterSelect?: boolean; // 选择完立即校验
   }
   interface Emits {
@@ -94,8 +94,8 @@
   }
 
   const props = withDefaults(defineProps<Props>(), {
-    rules: () => [],
     disabled: false,
+    rules: () => [],
     validateAfterSelect: true,
   });
   const emits = defineEmits<Emits>();
@@ -105,7 +105,7 @@
 
   const slots = defineSlots<
     Partial<{
-      default: (values: { optionItem: IListItem; index: number }) => VNode | VNode[];
+      default: (values: { index: number; optionItem: IListItem }) => VNode | VNode[];
       trigger: () => VNode | VNode[];
     }>
   >();

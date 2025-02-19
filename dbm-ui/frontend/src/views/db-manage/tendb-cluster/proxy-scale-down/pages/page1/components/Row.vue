@@ -86,43 +86,43 @@
   import RenderTargetNumber from './RenderTargetNumber.vue';
 
   export interface IDataRow {
-    rowKey: string;
-    isLoading: boolean;
+    bkCloudId: number;
     cluster: string;
     clusterId: number;
-    bkCloudId: number;
-    nodeType: string;
+    hostSelectType?: string;
+    isLoading: boolean;
     masterCount: number;
+    nodeType: string;
+    rowKey: string;
+    selectedNodeList?: IValue[];
     slaveCount: number;
+    spec?: SpecInfo;
     spiderMasterList: TendbClusterModel['spider_master'];
     spiderSlaveList: TendbClusterModel['spider_slave'];
-    spec?: SpecInfo;
-    hostSelectType?: string;
-    selectedNodeList?: IValue[];
     targetNum?: string;
   }
 
   export interface InfoItem {
     cluster_id: number;
-    spider_reduced_to_count?: number | string;
-    spider_reduced_hosts?: {
-      ip: string;
-      bk_host_id: number;
-      bk_cloud_id: number;
-      bk_biz_id: number;
-    }[];
     reduce_spider_role: string;
+    spider_reduced_hosts?: {
+      bk_biz_id: number;
+      bk_cloud_id: number;
+      bk_host_id: number;
+      ip: string;
+    }[];
+    spider_reduced_to_count?: number | string;
   }
 
   // 创建表格数据
   export const createRowData = (): IDataRow => ({
-    rowKey: random(),
-    isLoading: false,
+    bkCloudId: 0,
     cluster: '',
     clusterId: 0,
-    bkCloudId: 0,
-    nodeType: '',
+    isLoading: false,
     masterCount: 0,
+    nodeType: '',
+    rowKey: random(),
     slaveCount: 0,
     spiderMasterList: [],
     spiderSlaveList: [],
@@ -130,9 +130,9 @@
 </script>
 <script setup lang="ts">
   interface Props {
+    choosedNodeType?: string[];
     data: IDataRow;
     removeable: boolean;
-    choosedNodeType?: string[];
   }
   interface Emits {
     (e: 'add', params: Array<IDataRow>): void;
@@ -173,39 +173,39 @@
       TendbClusterHost: [
         {
           name: t('主机选择'),
+          tableConfig: {
+            firsrColumn: {
+              field: 'ip',
+              label: isMater ? t('Master 主机') : t('Slave 主机'),
+              role: '',
+            },
+            getTableList: (params: ServiceReturnType<typeof getTendbclusterMachineList>) =>
+              getTendbclusterMachineList({
+                ...params,
+                spider_role: isMater ? 'spider_master' : 'spider_slave',
+              }),
+          },
           topoConfig: {
-            filterClusterId: props.data!.clusterId,
             countFunc: (clusterItem: TendbClusterModel) => {
               const hostList = isMater ? clusterItem.spider_master : clusterItem.spider_slave;
               const ipList = hostList.map((hostItem) => hostItem.ip);
               return new Set(ipList).size;
             },
-          },
-          tableConfig: {
-            getTableList: (params: ServiceReturnType<typeof getTendbclusterMachineList>) =>
-              getTendbclusterMachineList({
-                ...params,
-                spider_role: isMater ? 'spider_master' : 'spider_slave',
-              }),
-            firsrColumn: {
-              label: isMater ? t('Master 主机') : t('Slave 主机'),
-              field: 'ip',
-              role: '',
-            },
+            filterClusterId: props.data!.clusterId,
           },
         },
         {
           tableConfig: {
+            firsrColumn: {
+              field: 'ip',
+              label: isMater ? t('Master 主机') : t('Slave 主机'),
+              role: '',
+            },
             getTableList: (params: ServiceReturnType<typeof getTendbclusterMachineList>) =>
               getTendbclusterMachineList({
                 ...params,
                 spider_role: isMater ? 'spider_master' : 'spider_slave',
               }),
-            firsrColumn: {
-              label: isMater ? t('Master 主机') : t('Slave 主机'),
-              field: 'ip',
-              role: '',
-            },
           },
         },
       ],
@@ -276,13 +276,13 @@
     ]).then((rowData) => {
       const rowInfo = rowData.map((item) => (item.status === 'fulfilled' ? item.value : item.reason));
       const cloneData = {
-        rowKey: random(),
-        isLoading: false,
+        bkCloudId: 0,
         cluster: '',
         clusterId: 0,
-        bkCloudId: 0,
-        nodeType: rowInfo[1].reduce_spider_role,
+        isLoading: false,
         masterCount: 0,
+        nodeType: rowInfo[1].reduce_spider_role,
+        rowKey: random(),
         slaveCount: 0,
         spiderMasterList: [],
         spiderSlaveList: [],

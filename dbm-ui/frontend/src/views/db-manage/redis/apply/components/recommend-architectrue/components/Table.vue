@@ -47,78 +47,74 @@
 
   const columns = [
     {
-      label: t('Tendis 架构'),
       field: 'attribute',
+      label: t('Tendis 架构'),
       resizable: false,
     },
     {
+      className: (row: RowData) =>
+        !row && props.recommendArchitectrue === ClusterTypes.TWEMPROXY_REDIS_INSTANCE ? 'recommend-head' : '',
+      colspan: ({ rowIndex }: { rowIndex: number }) => (rowIndex === tableData.length - 1 ? 4 : 1),
       field: ClusterTypes.TWEMPROXY_REDIS_INSTANCE,
-      className: (row: RowData) => !row && props.recommendArchitectrue === ClusterTypes.TWEMPROXY_REDIS_INSTANCE ? 'recommend-head' : '',
+      render: ({ data }: { data: RowData }) => data.value[ClusterTypes.TWEMPROXY_REDIS_INSTANCE].text,
       renderHead: () => (
         <>
           <span>{t('TendisCache 集群')}</span>
-          {
-            props.recommendArchitectrue === ClusterTypes.TWEMPROXY_REDIS_INSTANCE && (
-              <div class="recommend-head-tip">
-                <div class="tip-text">{t('推荐')}</div>
-              </div>
-            )
-          }
+          {props.recommendArchitectrue === ClusterTypes.TWEMPROXY_REDIS_INSTANCE && (
+            <div class='recommend-head-tip'>
+              <div class='tip-text'>{t('推荐')}</div>
+            </div>
+          )}
         </>
       ),
-      colspan: ({ rowIndex}: { rowIndex: number }) => rowIndex === tableData.length - 1 ? 4 : 1,
-      render: ({ data }: { data: RowData }) => data.value[ClusterTypes.TWEMPROXY_REDIS_INSTANCE].text,
     },
     {
+      className: (row: RowData) =>
+        !row && props.recommendArchitectrue === ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE ? 'recommend-head' : '',
       field: ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE,
-      className: (row: RowData) => !row && props.recommendArchitectrue === ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE ? 'recommend-head' : '',
+      render: ({ data }: { data: RowData }) => data.value[ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE].text,
       renderHead: () => (
         <>
           <span>{t('TendisSSD 集群')}</span>
-          {
-            props.recommendArchitectrue === ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE && (
-              <div class="recommend-head-tip">
-                <div class="tip-text">{t('推荐')}</div>
-              </div>
-            )
-          }
+          {props.recommendArchitectrue === ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE && (
+            <div class='recommend-head-tip'>
+              <div class='tip-text'>{t('推荐')}</div>
+            </div>
+          )}
         </>
       ),
-      render: ({ data }: { data: RowData }) => data.value[ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE].text,
     },
     {
+      className: (row: RowData) =>
+        !row && props.recommendArchitectrue === ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER ? 'recommend-head' : '',
       field: ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER,
-      className: (row: RowData) => !row && props.recommendArchitectrue === ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER ? 'recommend-head' : '',
+      render: ({ data }: { data: RowData }) => data.value[ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER].text,
       renderHead: () => (
         <>
           <span>{t('Tendisplus 集群')}</span>
-          {
-            props.recommendArchitectrue === ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER && (
-              <div class="recommend-head-tip">
-                <div class="tip-text">{t('推荐')}</div>
-              </div>
-            )
-          }
+          {props.recommendArchitectrue === ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER && (
+            <div class='recommend-head-tip'>
+              <div class='tip-text'>{t('推荐')}</div>
+            </div>
+          )}
         </>
       ),
-      render: ({ data }: { data: RowData }) => data.value[ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER].text,
     },
     {
+      className: (row: RowData) =>
+        !row && props.recommendArchitectrue === ClusterTypes.PREDIXY_REDIS_CLUSTER ? 'recommend-head' : '',
       field: ClusterTypes.PREDIXY_REDIS_CLUSTER,
-      className: (row: RowData) => !row && props.recommendArchitectrue === ClusterTypes.PREDIXY_REDIS_CLUSTER ? 'recommend-head' : '',
+      render: ({ data }: { data: RowData }) => data.value[ClusterTypes.PREDIXY_REDIS_CLUSTER].text,
       renderHead: () => (
         <>
           <span>{t('原生 Redis Cluster')}</span>
-          {
-            props.recommendArchitectrue === ClusterTypes.PREDIXY_REDIS_CLUSTER && (
-              <div class="recommend-head-tip">
-                <div class="tip-text">{t('推荐')}</div>
-              </div>
-            )
-          }
+          {props.recommendArchitectrue === ClusterTypes.PREDIXY_REDIS_CLUSTER && (
+            <div class='recommend-head-tip'>
+              <div class='tip-text'>{t('推荐')}</div>
+            </div>
+          )}
         </>
       ),
-      render: ({ data }: { data: RowData }) => data.value[ClusterTypes.PREDIXY_REDIS_CLUSTER].text,
     },
   ];
 
@@ -131,15 +127,15 @@
       classList.push(`${row.value[column.field as string].type}-cell`);
     }
 
-    if (props.recommendArchitectrue === column.field as string && rowIndex !== tableData.length - 1) {
+    if (props.recommendArchitectrue === (column.field as string) && rowIndex !== tableData.length - 1) {
       classList.push('recommend-cell');
       if (rowIndex === tableData.length - 2) {
-        classList.push('recommend-cell-last-row')
+        classList.push('recommend-cell-last-row');
       }
     }
 
-    if (rowIndex === tableData.length - 1 && colIndex > 1 ) {
-      classList.push('colspan-row')
+    if (rowIndex === tableData.length - 1 && colIndex > 1) {
+      classList.push('colspan-row');
     }
 
     return classList;

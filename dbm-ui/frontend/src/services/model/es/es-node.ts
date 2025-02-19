@@ -13,10 +13,10 @@
 import { utcDisplayTime } from '@utils';
 
 export default class EsNode {
-  static ROLE_MASTER = 'es_master';
   static ROLE_CLIENT = 'es_client';
-  static ROLE_HOT = 'es_datanode_hot';
   static ROLE_COLD = 'es_datanode_cold';
+  static ROLE_HOT = 'es_datanode_hot';
+  static ROLE_MASTER = 'es_master';
 
   bk_cloud_id: number;
   bk_cloud_name: string;
@@ -30,13 +30,13 @@ export default class EsNode {
   mem: number;
   node_count: number;
   permission: {
-    es_view: boolean;
-    es_enable_disable: boolean;
     es_destroy: boolean;
+    es_enable_disable: boolean;
+    es_reboot: boolean;
+    es_replace: boolean;
     es_scale_up: boolean;
     es_shrink: boolean;
-    es_replace: boolean;
-    es_reboot: boolean;
+    es_view: boolean;
   };
   role: string;
   status: number;
@@ -58,23 +58,23 @@ export default class EsNode {
     this.status = payload.status || 0;
   }
 
-  get isMaster() {
-    return this.role === EsNode.ROLE_MASTER;
+  get createAtDisplay() {
+    return utcDisplayTime(this.create_at);
   }
 
   get isClient() {
     return this.role === EsNode.ROLE_CLIENT;
   }
 
-  get isHot() {
-    return this.role === EsNode.ROLE_HOT;
-  }
-
   get isCold() {
     return this.role === EsNode.ROLE_COLD;
   }
 
-  get createAtDisplay() {
-    return utcDisplayTime(this.create_at);
+  get isHot() {
+    return this.role === EsNode.ROLE_HOT;
+  }
+
+  get isMaster() {
+    return this.role === EsNode.ROLE_MASTER;
   }
 }

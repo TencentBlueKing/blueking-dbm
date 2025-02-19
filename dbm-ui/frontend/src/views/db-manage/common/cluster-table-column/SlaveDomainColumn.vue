@@ -105,15 +105,13 @@
 
   export interface Props<clusterType extends ISupportClusterType> {
     clusterType: clusterType;
-    selectedList: ClusterModel<clusterType>[];
-    isFilter: boolean;
-    // eslint-disable-next-line vue/no-unused-properties
+
     getTableInstance: () => InstanceType<typeof DbTable> | undefined;
+    isFilter: boolean;
+    selectedList: ClusterModel<clusterType>[];
   }
 
-  export interface Emits {
-    (e: 'refresh'): void;
-  }
+  export type Emits = (e: 'refresh') => void;
 
   type IRowData = ClusterModel<T>;
 
@@ -121,10 +119,10 @@
   const emits = defineEmits<Emits>();
 
   const dbConsoleMap: Record<ISupportClusterType, string> = {
-    [ClusterTypes.TENDBCLUSTER]: 'tendbCluster.clusterManage.modifyEntryConfiguration',
-    [ClusterTypes.TENDBHA]: 'mysql.haClusterList.modifyEntryConfiguration',
     [ClusterTypes.REDIS_INSTANCE]: 'redis.clusterManage.modifyEntryConfiguration',
     [ClusterTypes.SQLSERVER_HA]: 'sqlserver.haClusterList.modifyEntryConfiguration',
+    [ClusterTypes.TENDBCLUSTER]: 'tendbCluster.clusterManage.modifyEntryConfiguration',
+    [ClusterTypes.TENDBHA]: 'mysql.haClusterList.modifyEntryConfiguration',
   };
 
   const { t } = useI18n();

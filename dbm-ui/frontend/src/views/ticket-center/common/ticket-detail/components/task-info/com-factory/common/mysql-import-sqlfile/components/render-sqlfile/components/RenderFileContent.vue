@@ -119,17 +119,17 @@
 
   onMounted(() => {
     editor = monaco.editor.create(editorRef.value, {
+      automaticLayout: true,
       language: 'sql',
-      theme: 'vs-dark',
-      readOnly: true,
       minimap: {
         enabled: false,
       },
-      wordWrap: 'bounded',
+      readOnly: true,
       scrollbar: {
         alwaysConsumeMouseWheel: false,
       },
-      automaticLayout: true,
+      theme: 'vs-dark',
+      wordWrap: 'bounded',
     });
     screenfull.on('change', handleToggleScreenfull);
     window.addEventListener('resize', handleReize);

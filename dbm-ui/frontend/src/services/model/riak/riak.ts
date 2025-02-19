@@ -23,29 +23,29 @@ import ClusterBase from '../_clusterBase';
 import type ClusterSpec from '../resource-spec/cluster-sepc';
 
 export default class Riak extends ClusterBase {
-  static RIAK_CLUSTER_SCALE_OUT = 'RIAK_CLUSTER_SCALE_OUT';
-  static RIAK_CLUSTER_SCALE_IN = 'RIAK_CLUSTER_SCALE_IN';
-  static RIAK_CLUSTER_ENABLE = 'RIAK_CLUSTER_ENABLE';
-  static RIAK_CLUSTER_DISABLE = 'RIAK_CLUSTER_DISABLE';
   static RIAK_CLUSTER_DESTROY = 'RIAK_CLUSTER_DESTROY';
+  static RIAK_CLUSTER_DISABLE = 'RIAK_CLUSTER_DISABLE';
+  static RIAK_CLUSTER_ENABLE = 'RIAK_CLUSTER_ENABLE';
   static RIAK_CLUSTER_REBOOT = 'RIAK_CLUSTER_REBOOT';
+  static RIAK_CLUSTER_SCALE_IN = 'RIAK_CLUSTER_SCALE_IN';
+  static RIAK_CLUSTER_SCALE_OUT = 'RIAK_CLUSTER_SCALE_OUT';
 
   static operationIconMap: Record<string, string> = {
-    [Riak.RIAK_CLUSTER_SCALE_OUT]: t('扩容中'),
-    [Riak.RIAK_CLUSTER_SCALE_IN]: t('缩容中'),
-    [Riak.RIAK_CLUSTER_ENABLE]: t('启用中'),
-    [Riak.RIAK_CLUSTER_DISABLE]: t('禁用中'),
     [Riak.RIAK_CLUSTER_DESTROY]: t('删除中'),
+    [Riak.RIAK_CLUSTER_DISABLE]: t('禁用中'),
+    [Riak.RIAK_CLUSTER_ENABLE]: t('启用中'),
     [Riak.RIAK_CLUSTER_REBOOT]: t('重启中'),
+    [Riak.RIAK_CLUSTER_SCALE_IN]: t('缩容中'),
+    [Riak.RIAK_CLUSTER_SCALE_OUT]: t('扩容中'),
   };
 
   static operationTextMap: Record<string, string> = {
-    [Riak.RIAK_CLUSTER_SCALE_OUT]: t('扩容任务进行中'),
-    [Riak.RIAK_CLUSTER_SCALE_IN]: t('缩容任务进行中'),
-    [Riak.RIAK_CLUSTER_ENABLE]: t('启用任务进行中'),
-    [Riak.RIAK_CLUSTER_DISABLE]: t('禁用任务进行中'),
     [Riak.RIAK_CLUSTER_DESTROY]: t('删除任务进行中'),
+    [Riak.RIAK_CLUSTER_DISABLE]: t('禁用任务进行中'),
+    [Riak.RIAK_CLUSTER_ENABLE]: t('启用任务进行中'),
     [Riak.RIAK_CLUSTER_REBOOT]: t('重启任务进行中'),
+    [Riak.RIAK_CLUSTER_SCALE_IN]: t('缩容任务进行中'),
+    [Riak.RIAK_CLUSTER_SCALE_OUT]: t('扩容任务进行中'),
   };
 
   access_url: string;
@@ -147,47 +147,30 @@ export default class Riak extends ClusterBase {
     );
   }
 
-  get runningOperation() {
-    const operateTicketTypes = Object.keys(Riak.operationTextMap);
-    return this.operations.find((item) => operateTicketTypes.includes(item.ticket_type) && item.status === 'RUNNING');
+  get disasterToleranceLevelName() {
+    return ClusterAffinityMap[this.disaster_tolerance_level];
   }
 
-  get operationRunningStatus() {
-    if (this.operations.length < 1) {
-      return '';
-    }
-    const operation = this.runningOperation;
-    if (!operation) {
-      return '';
-    }
-    return operation.ticket_type;
-  }
-
-  get operationStatusText() {
-    return Riak.operationTextMap[this.operationRunningStatus];
-  }
-
-  get operationStatusIcon() {
-    return Riak.operationIconMap[this.operationRunningStatus];
-  }
-
-  get isOfflineOperationRunning() {
-    return ([Riak.RIAK_CLUSTER_ENABLE, Riak.RIAK_CLUSTER_DESTROY] as string[]).includes(this.operationRunningStatus);
+  get isClusterNormal() {
+    return this.status === 'normal';
   }
 
   get isDisabled() {
     return !this.isOnline && !this.isOfflineOperationRunning;
   }
 
-  get operationTicketId() {
-    if (this.operations.length < 1) {
-      return 0;
-    }
-    const operation = this.runningOperation;
-    if (!operation) {
-      return 0;
-    }
-    return operation.ticket_id;
+  get isOfflineOperationRunning() {
+    return ([Riak.RIAK_CLUSTER_ENABLE, Riak.RIAK_CLUSTER_DESTROY] as string[]).includes(this.operationRunningStatus);
+  }
+
+  get isStarting() {
+    return Boolean(this.operations.find((item) => item.ticket_type === Riak.RIAK_CLUSTER_ENABLE));
+  }
+
+  get masterDomainDisplayName() {
+    const port = this.riak_node[0]?.port;
+    const displayName = port ? `${this.master_domain}:${port}` : this.master_domain;
+    return displayName;
   }
 
   get operationDisabled() {
@@ -201,35 +184,52 @@ export default class Riak extends ClusterBase {
     return false;
   }
 
-  get isClusterNormal() {
-    return this.status === 'normal';
+  get operationRunningStatus() {
+    if (this.operations.length < 1) {
+      return '';
+    }
+    const operation = this.runningOperation;
+    if (!operation) {
+      return '';
+    }
+    return operation.ticket_type;
   }
 
-  get isStarting() {
-    return Boolean(this.operations.find((item) => item.ticket_type === Riak.RIAK_CLUSTER_ENABLE));
+  get operationStatusIcon() {
+    return Riak.operationIconMap[this.operationRunningStatus];
+  }
+
+  get operationStatusText() {
+    return Riak.operationTextMap[this.operationRunningStatus];
   }
 
   get operationTagTips() {
     return this.operations.map((item) => ({
       icon: Riak.operationIconMap[item.ticket_type],
-      tip: Riak.operationTextMap[item.ticket_type],
       ticketId: item.ticket_id,
+      tip: Riak.operationTextMap[item.ticket_type],
     }));
   }
 
-  get disasterToleranceLevelName() {
-    return ClusterAffinityMap[this.disaster_tolerance_level];
-  }
-
-  get masterDomainDisplayName() {
-    const port = this.riak_node[0]?.port;
-    const displayName = port ? `${this.master_domain}:${port}` : this.master_domain;
-    return displayName;
+  get operationTicketId() {
+    if (this.operations.length < 1) {
+      return 0;
+    }
+    const operation = this.runningOperation;
+    if (!operation) {
+      return 0;
+    }
+    return operation.ticket_id;
   }
 
   get roleFailedInstanceInfo() {
     return {
       [t('节点')]: ClusterBase.getRoleFaildInstanceList(this.riak_node),
     };
+  }
+
+  get runningOperation() {
+    const operateTicketTypes = Object.keys(Riak.operationTextMap);
+    return this.operations.find((item) => operateTicketTypes.includes(item.ticket_type) && item.status === 'RUNNING');
   }
 }

@@ -33,13 +33,11 @@
 
   interface Props {
     data?: string;
-    isLoading?: boolean;
     excludeType?: string;
+    isLoading?: boolean;
   }
 
-  interface Emits {
-    (e: 'change', value: string): void;
-  }
+  type Emits = (e: 'change', value: string) => void;
 
   interface Exposes {
     getValue: () => Promise<string>;
@@ -47,8 +45,8 @@
 
   const props = withDefaults(defineProps<Props>(), {
     data: '',
-    isLoading: false,
     excludeType: '',
+    isLoading: false,
   });
 
   const emits = defineEmits<Emits>();
@@ -60,27 +58,27 @@
 
   const selectList = [
     {
-      value: ClusterTypes.TWEMPROXY_REDIS_INSTANCE,
       label: 'TendisCache',
+      value: ClusterTypes.TWEMPROXY_REDIS_INSTANCE,
     },
     {
-      value: ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE,
       label: 'TendisSSD',
+      value: ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE,
     },
     {
-      value: ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER,
       label: 'Tendisplus',
+      value: ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER,
     },
     {
-      value: ClusterTypes.PREDIXY_REDIS_CLUSTER,
       label: 'RedisCluster',
+      value: ClusterTypes.PREDIXY_REDIS_CLUSTER,
     },
   ];
 
   const rules = [
     {
-      validator: (value: string) => Boolean(value),
       message: t('请选择类型'),
+      validator: (value: string) => Boolean(value),
     },
   ];
 

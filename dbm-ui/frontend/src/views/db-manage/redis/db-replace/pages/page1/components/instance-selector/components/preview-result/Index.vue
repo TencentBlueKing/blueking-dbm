@@ -83,9 +83,7 @@
 
   type Keys = keyof InstanceSelectorValues;
 
-  interface Emits {
-    (e: 'change', value: InstanceSelectorValues): void;
-  }
+  type Emits = (e: 'change', value: InstanceSelectorValues) => void;
 
   const props = defineProps<Props>();
   const emits = defineEmits<Emits>();

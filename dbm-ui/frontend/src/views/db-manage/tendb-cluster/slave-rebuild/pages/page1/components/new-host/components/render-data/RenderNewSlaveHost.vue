@@ -247,9 +247,9 @@
   const isShowIpSelector = ref(false);
   const isShowResourcePoolSelector = ref(false);
   const countMap = reactive<Record<string, number>>({
+    manual_input: 0,
     resource_pool: 0,
     resource_pool_manual: 0,
-    manual_input: 0,
   });
 
   const localHostList = shallowRef<
@@ -266,11 +266,11 @@
     (newClusterData) => {
       if (newClusterData) {
         getResourceSpecList({
+          enable: true,
           limit: -1,
-          spec_name: newClusterData.specConfig.name,
           spec_cluster_type: ClusterTypes.TENDBCLUSTER,
           spec_machine_type: 'proxy',
-          enable: true,
+          spec_name: newClusterData.specConfig.name,
         }).then((specResult) => {
           if (specResult.results.length) {
             const specItem = specResult.results[0];
@@ -387,7 +387,7 @@
     if (item?.id === 'resource_pool') {
       return item.name;
     }
-    if (['resource_pool_manual', 'manual_input'].includes(value)) {
+    if (['manual_input', 'resource_pool_manual'].includes(value)) {
       return '';
     }
     return value;

@@ -182,9 +182,7 @@
   import PulsarNodeModel from '@services/model/pulsar/pulsar-node';
   import { getPulsarDetail, getPulsarNodeList } from '@services/source/pulsar';
 
-  import {
-    useLinkQueryColumnSerach,
-  } from '@hooks';
+  import { useLinkQueryColumnSerach } from '@hooks';
 
   import { useGlobalBizs } from '@stores';
 
@@ -199,11 +197,7 @@
   import ClusterReplace from '@views/db-manage/pulsar/common/replace/Index.vue';
   import ClusterShrink from '@views/db-manage/pulsar/common/shrink/Index.vue';
 
-  import {
-    execCopy,
-    getSearchSelectorParams,
-    messageWarn,
-  } from '@utils';
+  import { execCopy, getSearchSelectorParams, messageWarn } from '@utils';
 
   import { useTimeoutPoll } from '@vueuse/core';
 
@@ -219,8 +213,8 @@
     const options = {
       disabled: false,
       tooltips: {
-        disabled: true,
         content: '',
+        disabled: true,
       },
     };
 
@@ -256,25 +250,25 @@
   };
 
   const globalBizsStore = useGlobalBizs();
-  const { t, locale } = useI18n();
+  const { locale, t } = useI18n();
 
   const {
-    searchValue,
-    sortValue,
+    clearSearchValue,
     columnCheckedMap,
     columnFilterChange,
     columnSortChange,
-    clearSearchValue,
-    validateSearchValues,
     handleSearchValueChange,
+    searchValue,
+    sortValue,
+    validateSearchValues,
   } = useLinkQueryColumnSerach({
-    searchType: ClusterTypes.PULSAR,
     attrs: ['bk_cloud_id'],
-    fetchDataFn: () => fetchNodeList(),
     defaultSearchItem: {
       id: 'ip',
       name: 'IP',
-    }
+    },
+    fetchDataFn: () => fetchNodeList(),
+    searchType: ClusterTypes.PULSAR,
   });
 
   let totalTableData: PulsarNodeModel[] = [];
@@ -296,15 +290,16 @@
   const isCN = computed(() => locale.value === 'zh-cn');
   const isBatchReplaceDisabeld = computed(() => Object.keys(checkedNodeMap.value).length < 1);
 
-  const isSelectedAll = computed(() => tableData.value.length > 0
-    && Object.keys(checkedNodeMap.value).length >= tableData.value.length);
+  const isSelectedAll = computed(
+    () => tableData.value.length > 0 && Object.keys(checkedNodeMap.value).length >= tableData.value.length,
+  );
 
   const batchShrinkDisabledInfo = computed(() => {
     const options = {
       disabled: false,
       tooltips: {
-        disabled: true,
         content: '',
+        disabled: true,
       },
     };
     const selectList = Object.values(checkedNodeMap.value);
@@ -314,7 +309,7 @@
       options.tooltips.content = t('请先选中节点');
       return options;
     }
-    if (_.find(Object.values(checkedNodeMap.value), item => item.isZookeeper)) {
+    if (_.find(Object.values(checkedNodeMap.value), (item) => item.isZookeeper)) {
       options.disabled = true;
       options.tooltips.disabled = false;
       options.tooltips.content = t('Zookeeper 节点不支持缩容');
@@ -350,156 +345,149 @@
 
   const columns = computed(() => [
     {
-      width: 60,
       fixed: 'left',
       label: () => (
-      <bk-checkbox
-        label={true}
-        model-value={isSelectedAll.value}
-        onChange={handleSelectAll}
-      />
-    ),
+        <bk-checkbox
+          label={true}
+          model-value={isSelectedAll.value}
+          onChange={handleSelectAll}
+        />
+      ),
       render: ({ data }: { data: PulsarNodeModel }) => (
-      <bk-checkbox
-        label={true}
-        model-value={Boolean(checkedNodeMap.value[data.bk_host_id])}
-        onChange={(value: boolean) => handleSelect(value, data)}
-      />
-    ),
+        <bk-checkbox
+          label={true}
+          model-value={Boolean(checkedNodeMap.value[data.bk_host_id])}
+          onChange={(value: boolean) => handleSelect(value, data)}
+        />
+      ),
+      width: 60,
     },
     {
-      label: t('节点IP'),
       field: 'ip',
-      render: ({ data }: {data: PulsarNodeModel}) => (
+      label: t('节点IP'),
+      render: ({ data }: { data: PulsarNodeModel }) => (
         <>
           <span>{data.ip}</span>
-          {
-            data.isNew && (
-              <bk-tag
-                theme="success"
-                size="small"
-                class="ml-4">
-                NEW
-              </bk-tag>
-            )
-          }
+          {data.isNew && (
+            <bk-tag
+              class='ml-4'
+              size='small'
+              theme='success'>
+              NEW
+            </bk-tag>
+          )}
         </>
       ),
     },
     {
-      label: t('实例数量'),
       field: 'node_count',
+      label: t('实例数量'),
       sort: true,
       width: 120,
     },
     {
-      label: t('类型'),
       field: 'node_type',
       filter: {
+        checked: columnCheckedMap.value.node_type,
         filterFn: () => true,
         list: [
           {
-            value: 'pulsar_bookkeeper',
             text: 'Bookkeeper',
+            value: 'pulsar_bookkeeper',
           },
           {
-            value: 'pulsar_zookeeper',
             text: 'Zookeeper',
+            value: 'pulsar_zookeeper',
           },
           {
-            value: 'pulsar_broker',
             text: 'Broker',
+            value: 'pulsar_broker',
           },
         ],
-        checked: columnCheckedMap.value.node_type,
       },
+      label: t('类型'),
+      render: ({ data }: { data: PulsarNodeModel }) => <RenderClusterRole data={[data.role]} />,
       width: 200,
-      render: ({ data }: {data: PulsarNodeModel}) => (
-        <RenderClusterRole data={[data.role]} />
-      ),
     },
     {
-      label: t('Agent状态'),
       field: 'status',
+      label: t('Agent状态'),
+      render: ({ data }: { data: PulsarNodeModel }) => <RenderHostStatus data={data.status} />,
       width: 120,
-      render: ({ data }: {data: PulsarNodeModel}) => <RenderHostStatus data={data.status} />,
     },
     {
-      label: t('部署时间'),
       field: 'create_at',
+      label: t('部署时间'),
+      render: ({ data }: { data: PulsarNodeModel }) => <span>{data.createAtDisplay}</span>,
       sort: true,
-      render: ({ data }: {data: PulsarNodeModel}) => <span>{data.createAtDisplay}</span>,
     },
     {
-      label: t('操作'),
-      width: isCN.value ? 200 : 260,
       fixed: 'right',
+      label: t('操作'),
       render: ({ data }: { data: PulsarNodeModel }) => {
         const shrinkDisableTooltips = checkNodeShrinkDisable(data);
         return (
           <>
             <OperationBtnStatusTips
-              v-db-console="pulsar.nodeList.scaleDown"
+              v-db-console='pulsar.nodeList.scaleDown'
               data={operationData.value}>
               <span v-bk-tooltips={shrinkDisableTooltips.tooltips}>
                 <auth-button
-                  text
-                  theme="primary"
-                  action-id="pulsar_shrink"
+                  action-id='pulsar_shrink'
+                  disabled={shrinkDisableTooltips.disabled || operationData.value?.operationDisabled}
                   permission={data.permission.pulsar_shrink}
                   resource={props.clusterId}
-                  disabled={shrinkDisableTooltips.disabled || operationData.value?.operationDisabled}
+                  theme='primary'
+                  text
                   onClick={() => handleShrinkOne(data)}>
-                  { t('缩容') }
+                  {t('缩容')}
                 </auth-button>
               </span>
             </OperationBtnStatusTips>
             <OperationBtnStatusTips
-              v-db-console="pulsar.nodeList.replace"
+              v-db-console='pulsar.nodeList.replace'
               data={operationData.value}>
               <auth-button
-                text
-                theme="primary"
-                class="ml8"
-                action-id="pulsar_replace"
+                action-id='pulsar_replace'
+                class='ml8'
+                disabled={operationData.value?.operationDisabled}
                 permission={data.permission.pulsar_replace}
                 resource={props.clusterId}
-                disabled={operationData.value?.operationDisabled}
+                theme='primary'
+                text
                 onClick={() => handleReplaceOne(data)}>
-                { t('替换') }
+                {t('替换')}
               </auth-button>
             </OperationBtnStatusTips>
             <OperationBtnStatusTips
-              v-db-console="pulsar.nodeList.restartInstance"
+              v-db-console='pulsar.nodeList.restartInstance'
               data={operationData.value}>
               <auth-button
-                text
-                theme="primary"
-                action-id="pulsar_reboot"
+                action-id='pulsar_reboot'
+                class='ml8'
+                disabled={operationData.value?.operationDisabled}
                 permission={data.permission.pulsar_reboot}
                 resource={props.clusterId}
-                class="ml8"
-                disabled={operationData.value?.operationDisabled}
+                theme='primary'
+                text
                 onClick={() => handleShowDetail(data)}>
-                { t('重启实例') }
+                {t('重启实例')}
               </auth-button>
             </OperationBtnStatusTips>
           </>
         );
       },
+      width: isCN.value ? 200 : 260,
     },
   ]);
 
   const searchSelectData = [
     {
-      name: 'IP',
       id: 'ip',
       multiple: true,
+      name: 'IP',
     },
     {
-      name: t('类型'),
-      id: 'node_type',
-      multiple: true,
       children: [
         {
           id: 'pulsar_bookkeeper',
@@ -514,6 +502,9 @@
           name: 'Broker',
         },
       ],
+      id: 'node_type',
+      multiple: true,
+      name: t('类型'),
     },
   ];
 
@@ -539,13 +530,14 @@
       cluster_id: props.clusterId,
       no_limit: 1,
       ...extraParams,
-    }).then((data) => {
-      tableData.value = data.results;
-      isAnomalies.value = false;
-      if (searchValue.value.length === 0) {
-        totalTableData = _.cloneDeep(tableData.value);
-      }
     })
+      .then((data) => {
+        tableData.value = data.results;
+        isAnomalies.value = false;
+        if (searchValue.value.length === 0) {
+          totalTableData = _.cloneDeep(tableData.value);
+        }
+      })
       .catch(() => {
         tableData.value = [];
         isAnomalies.value = true;
@@ -555,12 +547,13 @@
       });
   };
 
-  const {
-    pause: pauseFetchClusterDetail,
-    resume: resumeFetchClusterDetail,
-  } =  useTimeoutPoll(fetchClusterDetail, 5000, {
-    immediate: true,
-  });
+  const { pause: pauseFetchClusterDetail, resume: resumeFetchClusterDetail } = useTimeoutPoll(
+    fetchClusterDetail,
+    5000,
+    {
+      immediate: true,
+    },
+  );
 
   watch(
     () => props.clusterId,
@@ -575,8 +568,8 @@
   );
 
   watch(searchValue, () => {
-    checkedNodeMap.value = {}
-  })
+    checkedNodeMap.value = {};
+  });
 
   const handleOperationChange = () => {
     fetchNodeList();
@@ -590,12 +583,12 @@
 
   // 复制所有 IP
   const handleCopyAll = () => {
-    const ipList = tableData.value.map(item => item.ip);
+    const ipList = tableData.value.map((item) => item.ip);
     if (ipList.length < 1) {
       messageWarn(t('没有可复制IP'));
       return;
     }
-    execCopy(ipList.join('\n'), t('复制成功，共n条', { n: ipList.length }))
+    execCopy(ipList.join('\n'), t('复制成功，共n条', { n: ipList.length }));
   };
 
   // 复制异常 IP
@@ -610,17 +603,17 @@
       messageWarn(t('没有可复制IP'));
       return;
     }
-    execCopy(ipList.join('\n'), t('复制成功，共n条', { n: ipList.length }))
+    execCopy(ipList.join('\n'), t('复制成功，共n条', { n: ipList.length }));
   };
 
   // 复制已选 IP
   const handleCopeActive = () => {
-    const list = Object.values(checkedNodeMap.value).map(item => item.ip);
+    const list = Object.values(checkedNodeMap.value).map((item) => item.ip);
     if (list.length < 1) {
       messageWarn(t('没有可复制IP'));
       return;
     }
-    execCopy(list.join('\n'), t('复制成功，共n条', { n: list.length }))
+    execCopy(list.join('\n'), t('复制成功，共n条', { n: list.length }));
   };
 
   const handleSelect = (checked: boolean, data: PulsarNodeModel) => {

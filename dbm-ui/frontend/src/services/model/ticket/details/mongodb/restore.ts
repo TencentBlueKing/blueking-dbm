@@ -2,56 +2,56 @@ import type { DetailBase, DetailSpecs } from '../common';
 
 export interface Restore extends DetailBase {
   apply_details: {
+    bk_cloud_id: number;
+    city_code: string;
+    cluster_type: string;
+    db_app_abbr: string;
+    db_version: string;
+    disaster_tolerance_level: string;
     infos: {
       bk_cloud_id: number;
       resource_spec: {
         mongo_machine_set: {
-          count: number;
-          set_id: string;
-          spec_id: {
-            count: number;
-            spec_id: number;
-          };
           affinity: string;
+          count: number;
           group_count: number;
           location_spec: {
             city: string;
             sub_zone_ids: any[];
           };
+          set_id: string;
+          spec_id: {
+            count: number;
+            spec_id: number;
+          };
         };
       };
+    }[];
+    ip_source: string;
+    node_count: number;
+    node_replica_count: number;
+    oplog_percent: number;
+    replica_count: number;
+    replica_sets: {
+      domain: string;
+      name: string;
+      set_id: string;
     }[];
     spec_id: {
       count: number;
       spec_id: number;
     };
-    city_code: string;
-    ip_source: string;
-    db_version: string;
-    node_count: number;
     start_port: number;
-    bk_cloud_id: number;
-    db_app_abbr: string;
-    cluster_type: string;
-    replica_sets: {
-      name: string;
-      domain: string;
-      set_id: string;
-    }[];
-    oplog_percent: number;
-    replica_count: number;
-    node_replica_count: number;
-    disaster_tolerance_level: string;
   };
   backupinfo: {
     [clusterId: string]: {
       app: string;
       app_name: string;
+      bk_biz_id: number;
+      bk_cloud_id: number;
       bs_status: string;
       bs_tag: string;
       bs_taskid: string;
-      bk_biz_id: number;
-      bk_cloud_id: number;
       cluster_domain: string;
       cluster_id: number;
       cluster_name: string;
@@ -67,9 +67,9 @@ export interface Restore extends DetailBase {
       pitr_file_type: string;
       pitr_fullname: string;
       pitr_last_pos: number;
-      report_type: string;
       releate_bill_id: string;
       releate_bill_info: string;
+      report_type: string;
       role_type: string;
       server_ip: string;
       server_port: number;
@@ -79,6 +79,7 @@ export interface Restore extends DetailBase {
       total_file_num: number;
     };
   };
+  city_code: string;
   cluster_ids: number[];
   cluster_type: string;
   clusters: {
@@ -103,7 +104,6 @@ export interface Restore extends DetailBase {
       updater: string;
     };
   };
-  city_code: string;
   instance_per_host: number;
   ns_filter?: {
     db_patterns: string[];

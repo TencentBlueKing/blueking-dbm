@@ -63,9 +63,9 @@
 
   const { removeSearchParam } = useUrlSearch();
 
-  const { value: datePickerValue, shortcutsRange } = useDatePicker();
+  const { shortcutsRange, value: datePickerValue } = useDatePicker();
 
-  const { value: searachSelectValue, searchSelectData } = useSearchSelect({
+  const { searchSelectData, value: searachSelectValue } = useSearchSelect({
     exclude: ['bk_biz_id'],
   });
 

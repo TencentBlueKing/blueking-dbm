@@ -7,9 +7,9 @@ const path = '/apis/mysql/bizs';
 
 // 开区模板列表
 export const getList = function (params: {
-  config_name?: string;
   bk_biz_id?: number;
   cluster_type?: 'tendbha' | 'tendbcluster';
+  config_name?: string;
   desc?: number;
   limit?: number;
   offset?: number;
@@ -25,6 +25,7 @@ export const getList = function (params: {
 // 新建开区
 export const create = function (params: {
   bk_biz_id: number;
+  cluster_type?: string;
   config_name: string;
   config_rules: {
     data_tblist: string[];
@@ -34,7 +35,6 @@ export const create = function (params: {
   }[];
   related_authorize: number[];
   source_cluster_id: number;
-  cluster_type?: string;
 }) {
   return http.post(`${path}/${window.PROJECT_CONFIG.BIZ_ID}/openarea/`, params);
 };
@@ -46,12 +46,12 @@ export const remove = function (params: { id: number }) {
 
 // 获取开区结果预览
 export const getPreview = function (params: {
-  config_id: number;
   config_data: {
+    authorize_ips: string[];
     cluster_id: number;
     vars: Record<string, any>;
-    authorize_ips: string[];
   }[];
+  config_id: number;
 }) {
   return http.post<{
     config_data: {
@@ -91,8 +91,8 @@ export const getDetail = function (params: { id: number }) {
 
 // 更新开区模板
 export const update = function (params: {
-  id: number;
   bk_biz_id: number;
+  cluster_type?: string;
   config_name: string;
   config_rules: {
     data_tblist: string[];
@@ -100,9 +100,9 @@ export const update = function (params: {
     source_db: string;
     target_db_pattern: string;
   }[];
+  id: number;
   related_authorize: number[];
   source_cluster_id: number;
-  cluster_type?: string;
 }) {
   const realParams = { ...params } as { id?: number };
   delete realParams.id;
@@ -111,21 +111,21 @@ export const update = function (params: {
 };
 
 export const updateVariable = function <T extends 'add' | 'update' | 'delete'>(params: {
-  op_type: T;
-  old_var: T extends 'update' | 'delete'
-    ? {
-        name: string;
-        builtin: boolean;
-        desc: string;
-      }
-    : undefined;
   new_var: T extends 'add' | 'update'
     ? {
-        name: string;
         builtin: boolean;
         desc: string;
+        name: string;
       }
     : undefined;
+  old_var: T extends 'update' | 'delete'
+    ? {
+        builtin: boolean;
+        desc: string;
+        name: string;
+      }
+    : undefined;
+  op_type: T;
 }) {
   return http.post(`${path}/${window.PROJECT_CONFIG.BIZ_ID}/openarea/alter_var/`, params);
 };

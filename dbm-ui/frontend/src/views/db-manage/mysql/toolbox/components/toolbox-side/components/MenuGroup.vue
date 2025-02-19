@@ -69,9 +69,9 @@
   import TaskCount from './TaskCount.vue';
 
   interface Props {
-    id: string;
-    draggable: boolean;
     activeViewName: string;
+    draggable: boolean;
+    id: string;
     serachKey: string;
   }
 

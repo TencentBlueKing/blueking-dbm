@@ -11,15 +11,15 @@ export default class VersionFile {
   mode: string;
   name: string;
   path: string;
+  permission: {
+    package_manage: boolean;
+  };
   pkg_type: string;
   priority: number;
   size: number;
   update_at: string;
   updater: string;
   version: string;
-  permission: {
-    package_manage: boolean;
-  };
 
   constructor(payload = {} as VersionFile) {
     this.allow_biz_ids = payload.allow_biz_ids;

@@ -38,21 +38,19 @@
   import _ from 'lodash';
 
   interface Props {
-    viewportWidth?: number;
-    viewportHeight?: number;
-    width?: number;
     height?: number;
+    viewportHeight?: number;
+    viewportWidth?: number;
+    width?: number;
   }
 
-  interface Emits {
-    (e: 'change', value: { left: number; top: number }): void;
-  }
+  type Emits = (e: 'change', value: { left: number; top: number }) => void;
 
   const props = withDefaults(defineProps<Props>(), {
-    width: 380,
     height: 160,
-    viewportWidth: 210,
     viewportHeight: 110,
+    viewportWidth: 210,
+    width: 380,
   });
   const emits = defineEmits<Emits>();
 

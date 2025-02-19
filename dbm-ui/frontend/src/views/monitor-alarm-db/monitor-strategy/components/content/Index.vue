@@ -48,7 +48,7 @@
   </ApplyPermissionCatch>
 </template>
 <script setup lang="tsx">
-  import { Button,InfoBox } from 'bkui-vue';
+  import { Button, InfoBox } from 'bkui-vue';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
   import { useRoute } from 'vue-router';
@@ -62,11 +62,11 @@
     getDbModuleList,
     queryMonitorPolicyList,
   } from '@services/source/monitor';
-  import { getSimpleList } from '@services/source/monitorNoticeGroup'
+  import { getSimpleList } from '@services/source/monitorNoticeGroup';
 
   import { useGlobalBizs } from '@stores';
 
-  import ApplyPermissionCatch from '@components/apply-permission/Catch.vue'
+  import ApplyPermissionCatch from '@components/apply-permission/Catch.vue';
   import AuthButton from '@components/auth-component/button.vue';
   import MoreActionExtend from '@components/more-action-extend/Index.vue';
   import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
@@ -85,26 +85,30 @@
   }
 
   interface SearchSelectItem {
-    id: string,
-    name: string,
+    id: string;
+    name: string;
   }
 
   const props = defineProps<Props>();
 
   const { t } = useI18n();
-  const { currentBizId, bizs } = useGlobalBizs();
+  const { bizs, currentBizId } = useGlobalBizs();
   const { notifyGroupId } = useRoute().query as { notifyGroupId: string };
 
-  const dataSource = (params: ServiceParameters<typeof queryMonitorPolicyList>) => queryMonitorPolicyList(Object.assign(params, {
-    db_type: props.activeDbType
-  }), {
-    permission: 'catch'
-  })
+  const dataSource = (params: ServiceParameters<typeof queryMonitorPolicyList>) =>
+    queryMonitorPolicyList(
+      Object.assign(params, {
+        db_type: props.activeDbType,
+      }),
+      {
+        permission: 'catch',
+      },
+    );
 
   const tableRef = ref();
   const isShowEditStrrategySideSilder = ref(false);
   const currentChoosedRow = ref({} as MonitorPolicyModel);
-  const searchValue = ref<Array<SearchSelectItem & {values: SearchSelectItem[]}>>([]);
+  const searchValue = ref<Array<{ values: SearchSelectItem[] } & SearchSelectItem>>([]);
   const alarmGroupList = ref<SelectItem<string>[]>([]);
   const sliderPageType = ref('edit');
   const moduleList = ref<SelectItem<string>[]>([]);
@@ -117,52 +121,63 @@
   async function fetchData() {
     isTableLoading.value = true;
     try {
-      await tableRef.value.fetchData({ ...reqParams.value }, {
-        bk_biz_id: currentBizId,
-        db_type: props.activeDbType,
-      });
+      await tableRef.value.fetchData(
+        { ...reqParams.value },
+        {
+          bk_biz_id: currentBizId,
+          db_type: props.activeDbType,
+        },
+      );
     } finally {
       isTableLoading.value = false;
     }
   }
 
-  const bizsMap = computed(() => bizs.reduce((results, item) => {
-    // eslint-disable-next-line no-param-reassign
-    results[item.bk_biz_id] = item.name;
-    return results;
-  }, {} as Record<string, string>));
+  const bizsMap = computed(() =>
+    bizs.reduce(
+      (results, item) => {
+        // eslint-disable-next-line no-param-reassign
+        results[item.bk_biz_id] = item.name;
+        return results;
+      },
+      {} as Record<string, string>,
+    ),
+  );
 
-  const searchSelectList = computed(() => ([
+  const searchSelectList = computed(() => [
     {
-      name: t('策略名称'),
       id: 'name',
+      name: t('策略名称'),
     },
     {
-      name: t('监控目标'),
       id: 'target_keyword',
+      name: t('监控目标'),
     },
     {
-      name: t('告警组'),
-      id: 'notify_groups',
-      multiple: true,
-      children: alarmGroupList.value.map(item => ({
+      children: alarmGroupList.value.map((item) => ({
         id: String(item.value),
         name: item.label,
       })) as SearchSelectItem[],
+      id: 'notify_groups',
+      multiple: true,
+      name: t('告警组'),
     },
     {
-      name: t('更新人'),
       id: 'updater',
+      name: t('更新人'),
     },
-  ]));
+  ]);
 
   const reqParams = computed(() => {
-    const searchParams = searchValue.value.reduce((obj, item) => {
-      Object.assign(obj, {
-        [item.id]: item.values.map(data => data.id).join(','),
-      });
-      return obj;
-    }, {} as Record<string, string>);
+    const searchParams = searchValue.value.reduce(
+      (obj, item) => {
+        Object.assign(obj, {
+          [item.id]: item.values.map((data) => data.id).join(','),
+        });
+        return obj;
+      },
+      {} as Record<string, string>,
+    );
     return {
       ...searchParams,
     };
@@ -172,43 +187,30 @@
   const dbModuleMap: Record<string, string> = {};
   const columns = [
     {
-      label: t('策略名称'),
       field: 'name',
       fixed: 'left',
+      label: t('策略名称'),
       minWidth: 150,
-      width: 280,
-      render: ({ data }: {data: MonitorPolicyModel}) => {
+      render: ({ data }: { data: MonitorPolicyModel }) => {
         const isDanger = data.event_count > 0;
         const pageType = data.isInner ? 'read' : 'edit';
-        const ButtonCom = data.isInner ? Button : AuthButton
+        const ButtonCom = data.isInner ? Button : AuthButton;
         return (
           <TextOverflowLayout>
             {{
-              default: () => (
-                <ButtonCom
-                  actionId="monitor_policy_edit"
-                  resource={data.id}
-                  permission={data.permission.monitor_policy_edit}
-                  text
-                  theme="primary"
-                  disabled={!data.is_enabled}
-                  onClick={() => handleOpenSlider(data, pageType)}>
-                  {data.name}
-                </ButtonCom>
-              ),
               append: () => (
                 <>
                   {data.isInner && (
                     <bk-tag
-                      size="small"
-                      class="ml-4">
+                      class='ml-4'
+                      size='small'>
                       {t('内置')}
                     </bk-tag>
                   )}
                   {!data.is_enabled && (
                     <bk-tag
-                      size="small"
-                      class="ml-4">
+                      class='ml-4'
+                      size='small'>
                       {t('已停用')}
                     </bk-tag>
                   )}
@@ -217,74 +219,92 @@
                       v-bk-tooltips={{
                         content: t('当前有n个未恢复事件', { n: data.event_count }),
                       }}
+                      class='ml-4'
+                      size='small'
+                      style='cursor: pointer;'
                       theme='danger'
-                      size="small"
-                      class="ml-4"
-                      style="cursor: pointer;"
-                      onclick={() => handleGoMonitorPage(data.event_url)} >
-                      <db-icon type="alert" />
+                      onclick={() => handleGoMonitorPage(data.event_url)}>
+                      <db-icon type='alert' />
                       {data.event_count}
                     </bk-tag>
                   )}
                   {data.isNewCreated && (
                     <bk-tag
-                      size="small"
-                      theme="success"
-                      class="ml-4">
+                      class='ml-4'
+                      size='small'
+                      theme='success'>
                       NEW
                     </bk-tag>
                   )}
                 </>
               ),
+              default: () => (
+                <ButtonCom
+                  actionId='monitor_policy_edit'
+                  disabled={!data.is_enabled}
+                  permission={data.permission.monitor_policy_edit}
+                  resource={data.id}
+                  theme='primary'
+                  text
+                  onClick={() => handleOpenSlider(data, pageType)}>
+                  {data.name}
+                </ButtonCom>
+              ),
             }}
           </TextOverflowLayout>
         );
       },
+      width: 280,
     },
     {
-      label: t('监控目标'),
       field: 'targets',
+      label: t('监控目标'),
       minWidth: 180,
-      showOverflow: false,
-      render: ({ data }: {data: MonitorPolicyModel}) => {
-        if (data.targets.length < 1){
-          return '--'
+      render: ({ data }: { data: MonitorPolicyModel }) => {
+        if (data.targets.length < 1) {
+          return '--';
         }
-        return (
-          data.targets.map((item, index) => {
-            const {level} = item;
-            let list = item.rule.value;
-            if (level === 'appid') {
-              // 业务级
-              list = [bizsMap.value[list[0]]];
-            }
-            if (level === 'db_module') {
-              // 模块
-              list = item.rule.value.map(item => dbModuleMap[item]);
-            }
-            return <RenderTargetItem key={index} title={level} list={list} data-test={level}/>;
-          })
-        )
+        return data.targets.map((item, index) => {
+          const { level } = item;
+          let list = item.rule.value;
+          if (level === 'appid') {
+            // 业务级
+            list = [bizsMap.value[list[0]]];
+          }
+          if (level === 'db_module') {
+            // 模块
+            list = item.rule.value.map((item) => dbModuleMap[item]);
+          }
+          return (
+            <RenderTargetItem
+              key={index}
+              data-test={level}
+              list={list}
+              title={level}
+            />
+          );
+        });
       },
+      showOverflow: false,
     },
     {
-      label: t('告警组'),
       field: 'notify_groups',
+      label: t('告警组'),
       minWidth: 180,
-      render: ({ data }: {data: MonitorPolicyModel}) => {
+      render: ({ data }: { data: MonitorPolicyModel }) => {
         if (data.notify_groups.length === 0) {
           return '--';
         }
 
         const dataList: {
-          id: string,
-          displayName: string,
+          displayName: string;
+          id: string;
         }[] = [];
         data.notify_groups.forEach((id) => {
           if (id in alarmGroupNameMap) {
             dataList.push({
-              id: `${id}`,
               displayName: alarmGroupNameMap[id],
+              id: `${id}`,
             });
           }
         });
@@ -292,111 +312,115 @@
       },
     },
     {
-      label: t('启停'),
       field: 'is_enabled',
-      showOverflowTooltip: true,
+      label: t('启停'),
       minWidth: 60,
-      render: ({ data }: {data: MonitorPolicyModel}) => {
+      render: ({ data }: { data: MonitorPolicyModel }) => {
         if (data.isInner) {
           return (
             <bk-switcher
-              size="small"
               disabled={true}
               model-value={data.is_enabled}
-              theme="primary"/>
-          )
+              size='small'
+              theme='primary'
+            />
+          );
         }
         return (
           <bk-pop-confirm
-            title={t('确认停用该策略？')}
             content={t('停用后所有监控动作将会停止，请谨慎操作！')}
             disabled={data.isInner}
-            width="320"
             is-show={showTipMap.value[data.id]}
-            trigger="manual"
-            placement="bottom"
-            onConfirm={() => handleClickConfirm(data)}
-            onCancel={() => handleCancelConfirm(data)}>
+            placement='bottom'
+            title={t('确认停用该策略？')}
+            trigger='manual'
+            width='320'
+            onCancel={() => handleCancelConfirm(data)}
+            onConfirm={() => handleClickConfirm(data)}>
             <auth-switcher
-              action-id="monitor_policy_start_stop"
-              resource={data.id}
-              permission={data.permission.monitor_policy_start_stop}
-              size="small"
-              disabled={data.isInner}
               v-model={data.is_enabled}
-              theme="primary"
-              onChange={() => handleChangeSwitch(data)}/>
+              action-id='monitor_policy_start_stop'
+              disabled={data.isInner}
+              permission={data.permission.monitor_policy_start_stop}
+              resource={data.id}
+              size='small'
+              theme='primary'
+              onChange={() => handleChangeSwitch(data)}
+            />
           </bk-pop-confirm>
         );
       },
+      showOverflowTooltip: true,
     },
     {
-      label: t('更新时间'),
       field: 'update_at',
-      sort: true,
+      label: t('更新时间'),
       minWidth: 160,
-      render: ({ data }: {data: RowData}) => <span>{data.updateAtDisplay}</span>,
+      render: ({ data }: { data: RowData }) => <span>{data.updateAtDisplay}</span>,
+      sort: true,
     },
     {
-      label: t('更新人'),
       field: 'updater',
+      label: t('更新人'),
       minWidth: 100,
-      render: ({ data }: {data: RowData}) => <span>{data.updater || '--'}</span>,
+      render: ({ data }: { data: RowData }) => <span>{data.updater || '--'}</span>,
     },
     {
-      label: t('操作'),
-      fixed: 'right',
       field: '',
-      width: 200,
-      showOverflow: false,
-      render: ({ data }: {data: MonitorPolicyModel}) => (
-          <div class="operate-box">
+      fixed: 'right',
+      label: t('操作'),
+      render: ({ data }: { data: MonitorPolicyModel }) => (
+        <div class='operate-box'>
           {!data.isInner && (
             <auth-button
-              text
-              action-id="monitor_policy_edit"
-              resource={data.id}
+              action-id='monitor_policy_edit'
               permission={data.permission.monitor_policy_edit}
-              theme="primary"
+              resource={data.id}
+              theme='primary'
+              text
               onClick={() => handleOpenSlider(data, 'edit')}>
               {t('编辑')}
             </auth-button>
           )}
           <auth-button
-            action-id="monitor_policy_clone"
+            action-id='monitor_policy_clone'
             permission={data.permission.monitor_policy_clone}
             resource={props.activeDbType}
+            theme='primary'
             text
-            theme="primary"
             onClick={() => handleOpenSlider(data, 'clone')}>
             {t('克隆')}
           </auth-button>
           <bk-button
+            theme='primary'
             text
-            theme="primary"
             onClick={() => handleOpenMonitorAlarmPage(data.event_url)}>
             {t('监控告警')}
           </bk-button>
           <MoreActionExtend>
             {{
-              default: () => <>
-                <bk-dropdown-item>
-                  <auth-button
-                    disabled={data.isInner}
-                    text
-                    action-id="monitor_policy_delete"
-                    results={data.permission.monitor_policy_delete}
-                    permission={data.permission.monitor_policy_delete}
-                    resource={data.id}
-                    onClick={() => handleClickDelete(data)}>
-                    {t('删除')}
-                  </auth-button>
-                </bk-dropdown-item>
-              </>
+              default: () => (
+                <>
+                  <bk-dropdown-item>
+                    <auth-button
+                      action-id='monitor_policy_delete'
+                      disabled={data.isInner}
+                      permission={data.permission.monitor_policy_delete}
+                      resource={data.id}
+                      results={data.permission.monitor_policy_delete}
+                      text
+                      onClick={() => handleClickDelete(data)}>
+                      {t('删除')}
+                    </auth-button>
+                  </bk-dropdown-item>
+                </>
+              ),
             }}
           </MoreActionExtend>
         </div>
-        ),
+      ),
+      showOverflow: false,
+      width: 200,
     },
   ];
 
@@ -413,15 +437,18 @@
       });
       alarmGroupList.value = groupList;
       if (notifyGroupId !== undefined) {
-        searchValue.value = [{
-          id: 'notify_groups',
-          name: t('告警组'),
-          values: [
-            {
-              id: notifyGroupId,
-              name: alarmGroupNameMap[notifyGroupId],
-            }],
-        }];
+        searchValue.value = [
+          {
+            id: 'notify_groups',
+            name: t('告警组'),
+            values: [
+              {
+                id: notifyGroupId,
+                name: alarmGroupNameMap[notifyGroupId],
+              },
+            ],
+          },
+        ];
       }
     },
   });
@@ -429,7 +456,7 @@
   const { run: fetchClusers } = useRequest(getClusterList, {
     manual: true,
     onSuccess: (res) => {
-      clusterList.value = res.map(item => ({
+      clusterList.value = res.map((item) => ({
         label: item,
         value: item,
       }));
@@ -441,10 +468,10 @@
     onSuccess: (res) => {
       moduleList.value = res.map((item) => {
         dbModuleMap[item.db_module_id] = item.db_module_name;
-        return ({
+        return {
           label: item.db_module_name,
           value: String(item.db_module_id),
-        });
+        };
       });
     },
   });
@@ -481,35 +508,43 @@
     },
   });
 
-  watch(reqParams, () => {
-    setTimeout(() => {
-      if (tableRef.value) {
-        fetchData();
-      }
-    });
-  }, {
-    immediate: true,
-    deep: true,
-  });
+  watch(
+    reqParams,
+    () => {
+      setTimeout(() => {
+        if (tableRef.value) {
+          fetchData();
+        }
+      });
+    },
+    {
+      deep: true,
+      immediate: true,
+    },
+  );
 
-  watch(() => props.activeDbType, (type) => {
-    if (type) {
-      fetchClusers({
-        dbtype: type,
-        bk_biz_id: currentBizId,
-      });
-      fetchAlarmGroupList({
-        bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-        db_type: type,
-      });
-      fetchDbModuleList({
-        dbtype: type,
-        bk_biz_id: currentBizId,
-      });
-    }
-  }, {
-    immediate: true,
-  });
+  watch(
+    () => props.activeDbType,
+    (type) => {
+      if (type) {
+        fetchClusers({
+          bk_biz_id: currentBizId,
+          dbtype: type,
+        });
+        fetchAlarmGroupList({
+          bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+          db_type: type,
+        });
+        fetchDbModuleList({
+          bk_biz_id: currentBizId,
+          dbtype: type,
+        });
+      }
+    },
+    {
+      immediate: true,
+    },
+  );
 
   const handleClearSearch = () => {
     searchValue.value = [];
@@ -524,12 +559,13 @@
   const handleClickDelete = (data: MonitorPolicyModel) => {
     InfoBox({
       infoType: 'warning',
-      title: t('确认删除该策略？'),
-      subTitle: t('将会删除所有内容，请谨慎操作！'),
-      width: 400,
       onConfirm: () => {
         runDeletePolicy({ id: data.id });
-      } });
+      },
+      subTitle: t('将会删除所有内容，请谨慎操作！'),
+      title: t('确认删除该策略？'),
+      width: 400,
+    });
   };
 
   const handleChangeSwitch = (row: MonitorPolicyModel) => {
@@ -554,7 +590,7 @@
   };
 
   const handleOpenSlider = (row: MonitorPolicyModel, type: string) => {
-    existedNames.value = tableRef.value.getData().map((item: { name: string; }) => item.name);
+    existedNames.value = tableRef.value.getData().map((item: { name: string }) => item.name);
     sliderPageType.value = type;
     currentChoosedRow.value = row;
     isShowEditStrrategySideSilder.value = true;

@@ -127,7 +127,6 @@
 
   // 单据克隆
   useTicketCloneInfo({
-    type: TicketTypes.MYSQL_FLASHBACK,
     onSuccess(cloneData) {
       tableData.value = cloneData.tableDataList;
       remark.value = cloneData.remark;
@@ -142,6 +141,7 @@
         });
       }
     },
+    type: TicketTypes.MYSQL_FLASHBACK,
   });
 
   const rowRefs = ref();
@@ -204,8 +204,8 @@
       if (!domainMemo[domain]) {
         const row = createRowData({
           clusterData: {
-            id: clusterData.id,
             domain: clusterData.master_domain,
+            id: clusterData.id,
           },
         });
         results.push(row);
@@ -255,13 +255,13 @@
       isSubmitting.value = true;
       const infos = await Promise.all(rowRefs.value.map((item: { getValue: () => Promise<any> }) => item.getValue()));
       await createTicket({
-        ticket_type: 'MYSQL_FLASHBACK',
-        remark: remark.value,
-        details: {
-          infos,
-          flashback_type: 'TABLE_FLASHBACK',
-        },
         bk_biz_id: currentBizId,
+        details: {
+          flashback_type: 'TABLE_FLASHBACK',
+          infos,
+        },
+        remark: remark.value,
+        ticket_type: 'MYSQL_FLASHBACK',
       }).then((data) => {
         window.changeConfirm = false;
         router.push({

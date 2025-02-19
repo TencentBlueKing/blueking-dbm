@@ -22,7 +22,7 @@ const path = '/apis/dbbase';
 /**
  * 查询集群名字是否重复
  */
-export function verifyDuplicatedClusterName(params: { cluster_type: string; name: string; bk_biz_id: number }) {
+export function verifyDuplicatedClusterName(params: { bk_biz_id: number; cluster_type: string; name: string }) {
   return http.get<boolean>(`${path}/verify_duplicated_cluster_name/`, params);
 }
 
@@ -36,11 +36,11 @@ export function filterClusters<
     bk_cloud_name: string;
     cluster_name: string;
     cluster_type: string;
+    id: number;
     major_version: string;
     master_domain: string;
-    id: number;
   },
->(params: { bk_biz_id: number; exact_domain?: string; cluster_ids?: string; domain?: string }) {
+>(params: { bk_biz_id: number; cluster_ids?: string; domain?: string; exact_domain?: string }) {
   return http.get<T[]>(`${path}/filter_clusters/`, params);
 }
 
@@ -50,8 +50,8 @@ export function filterClusters<
  */
 export function queryBizClusterAttrs(params: {
   bk_biz_id: number;
-  cluster_type: ClusterTypes;
   cluster_attrs?: string;
+  cluster_type: ClusterTypes;
   instances_attrs?: string;
   limit?: number;
   offset?: number;
@@ -60,8 +60,8 @@ export function queryBizClusterAttrs(params: {
     Record<
       string,
       {
-        value: string;
         text: string;
+        value: string;
       }[]
     >
   >(`${path}/query_biz_cluster_attrs/`, params, {
@@ -72,13 +72,13 @@ export function queryBizClusterAttrs(params: {
 /**
  * 查询资源池,污点主机管理表头筛选数据
  */
-export function queryResourceAdministrationAttrs(params: { resource_type: string; limit?: number; offset?: number }) {
+export function queryResourceAdministrationAttrs(params: { limit?: number; offset?: number; resource_type: string }) {
   return http.get<
     Record<
       string,
       {
-        value: string;
         text: string;
+        value: string;
       }[]
     >
   >(`${path}/query_resource_administration_attrs/`, params, {
@@ -91,8 +91,8 @@ export function queryResourceAdministrationAttrs(params: { resource_type: string
  */
 export function queryWebconsole(params: { cluster_id: number; cmd: string }) {
   return http.post<{
-    query: string | Record<string, string>[];
     error_msg?: string;
+    query: string | Record<string, string>[];
   }>(`${path}/webconsole/`, params);
 }
 
@@ -102,7 +102,7 @@ export function checkClusterDatabase(params: { bk_biz_id: number; cluster_id: nu
 }
 
 // 根据用户手动输入的ip[:port]查询真实的实例
-export function checkInstance<T extends InstanceInfos>(params: { instance_addresses: string[]; bk_biz_id: number }) {
+export function checkInstance<T extends InstanceInfos>(params: { bk_biz_id: number; instance_addresses: string[] }) {
   return http.post<T[]>(`${path}/check_instances/`, params);
 }
 
@@ -111,9 +111,9 @@ export function queryAllTypeCluster(params: {
   bk_biz_id: number;
   cluster_types?: string;
   immute_domain?: string;
-  phase?: string;
   limit?: number;
   offset?: number;
+  phase?: string;
 }) {
   return http.get<
     {

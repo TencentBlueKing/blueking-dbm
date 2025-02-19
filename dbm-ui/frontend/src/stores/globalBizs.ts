@@ -21,24 +21,9 @@ import { useUserProfile } from '@stores';
 import { UserPersonalSettings } from '@common/const';
 
 export const useGlobalBizs = defineStore('GlobalBizs', {
-  state: () => ({
-    bizs: [] as BizItem[],
-    loading: false,
-    currentBizId: 0,
-    isError: false,
-  }),
-  getters: {
-    currentBizInfo: (state): BizItem | undefined => state.bizs.find((item) => item.bk_biz_id === state.currentBizId),
-  },
   actions: {
-    /**
-     * 判断是否存在业务且有业务权限
-     * @param bizId 业务 ID
-     * @returns boolean | undefined
-     */
-    hasBizPermission(bizId: number) {
-      const targetBizItem = this.bizs.find((item) => item.bk_biz_id === bizId);
-      return targetBizItem && targetBizItem.permission.db_manage;
+    changeBizId(id: number) {
+      this.currentBizId = id;
     },
     /**
      * 获取全局业务列表
@@ -94,11 +79,26 @@ export const useGlobalBizs = defineStore('GlobalBizs', {
           this.loading = false;
         });
     },
+    /**
+     * 判断是否存在业务且有业务权限
+     * @param bizId 业务 ID
+     * @returns boolean | undefined
+     */
+    hasBizPermission(bizId: number) {
+      const targetBizItem = this.bizs.find((item) => item.bk_biz_id === bizId);
+      return targetBizItem?.permission.db_manage;
+    },
     setBizs(payload: BizItem[]) {
       this.bizs = payload;
     },
-    changeBizId(id: number) {
-      this.currentBizId = id;
-    },
   },
+  getters: {
+    currentBizInfo: (state): BizItem | undefined => state.bizs.find((item) => item.bk_biz_id === state.currentBizId),
+  },
+  state: () => ({
+    bizs: [] as BizItem[],
+    currentBizId: 0,
+    isError: false,
+    loading: false,
+  }),
 });

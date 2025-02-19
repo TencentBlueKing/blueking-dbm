@@ -99,18 +99,18 @@
   interface Props {
     clusterData?: IDataRow['clusterData'];
     ipList?: {
+      bk_cloud_id: number;
       bk_host_id: number;
       ip: string;
-      bk_cloud_id: number;
     }[];
   }
 
   interface Exposes {
     getValue: () => Promise<{
       spider_ip_list: {
+        bk_cloud_id: number;
         bk_host_id: number;
         ip: string;
-        bk_cloud_id: number;
       }[];
     }>;
   }
@@ -132,8 +132,8 @@
 
   const rules = [
     {
-      validator: (value: string[]) => value.length > 0,
       message: t('运维节点 IP 不能为空'),
+      validator: (value: string[]) => value.length > 0,
     },
   ];
 
@@ -148,8 +148,8 @@
           mode: 'all',
           scope_list: [
             {
-              scope_type: 'biz',
               scope_id: window.PROJECT_CONFIG.BIZ_ID,
+              scope_type: 'biz',
             },
           ],
         }).then((hostList) => {
@@ -194,9 +194,9 @@
     getValue() {
       const formatHost = (hostList: HostInfo[]) =>
         hostList.map((item) => ({
+          bk_cloud_id: item.cloud_area.id,
           bk_host_id: item.host_id,
           ip: item.ip,
-          bk_cloud_id: item.cloud_area.id,
         }));
 
       return validator(localHostList.value)

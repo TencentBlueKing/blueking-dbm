@@ -58,23 +58,23 @@
   import RenderFianlDb from './RenderFianlDb.vue';
 
   export interface IDataRow {
-    rowKey: string;
     clusterData?: {
-      id: number;
-      domain: string;
       cloudId: number;
+      domain: string;
+      id: number;
       majorVersion: string;
     };
     dbList: string[];
     ignoreDbList: string[];
+    rowKey: string;
   }
 
   // 创建表格数据
   export const createRowData = (data = {} as Partial<IDataRow>) => ({
-    rowKey: random(),
     clusterData: data.clusterData,
     dbList: data.dbList || [],
     ignoreDbList: data.ignoreDbList || [],
+    rowKey: random(),
   });
 
   interface Props {

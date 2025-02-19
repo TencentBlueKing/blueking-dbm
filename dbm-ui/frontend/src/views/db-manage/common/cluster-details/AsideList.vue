@@ -75,14 +75,14 @@
 
 <script setup lang="ts">
   interface Props {
-    loading?: boolean;
-    data?: { [key: string]: string }[];
     activeItem?: Record<string, any>;
-    total?: number;
-    limit?: number;
-    showKey?: string;
-    placeholder?: string;
+    data?: { [key: string]: string }[];
     isAnomalies?: boolean;
+    limit?: number;
+    loading?: boolean;
+    placeholder?: string;
+    showKey?: string;
+    total?: number;
   }
 
   interface Emits {
@@ -94,25 +94,25 @@
   }
 
   const props = withDefaults(defineProps<Props>(), {
-    loading: false,
-    data: () => [],
     activeItem: () => ({}),
-    total: 0,
-    limit: 50,
-    showKey: 'master_domain',
-    placeholder: '',
+    data: () => [],
     isAnomalies: false,
+    limit: 50,
+    loading: false,
+    placeholder: '',
+    showKey: 'master_domain',
+    total: 0,
   });
   const emits = defineEmits<Emits>();
 
   const state = reactive({
-    search: '',
     activeLocationPage: 1,
     pagination: {
-      limit: 50,
-      current: 1,
       count: 0,
+      current: 1,
+      limit: 50,
     },
+    search: '',
   });
 
   /**
@@ -143,11 +143,11 @@
    */
   function getItemStatus(data: any) {
     const statusMap = {
+      abnormal: 'danger',
+      normal: 'success',
+      restoring: 'loading',
       running: 'success',
       unavailable: 'danger',
-      normal: 'success',
-      abnormal: 'danger',
-      restoring: 'loading',
     };
     return statusMap[data.status as keyof typeof statusMap] || 'danger';
   }
@@ -219,8 +219,8 @@
   }
 
   defineExpose({
-    setActiveLocationPage,
     isInsertToPage,
+    setActiveLocationPage,
   });
 </script>
 

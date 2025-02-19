@@ -146,21 +146,14 @@
 <script setup lang="tsx">
   import type { FormItemProps } from 'bkui-vue/lib/form/form-item';
   import _ from 'lodash';
-  import {
-    reactive,
-    ref,
-    watch,
-  } from 'vue';
+  import { reactive, ref, watch } from 'vue';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
   import ClusterSpecModel from '@services/model/resource-spec/cluster-sepc';
   import ResourceSpecModel from '@services/model/resource-spec/resourceSpec';
   import { getSpecResourceCount } from '@services/source/dbresourceResource';
-  import {
-    getFilterClusterSpec,
-    queryQPSRange,
-  } from '@services/source/dbresourceSpec';
+  import { getFilterClusterSpec, queryQPSRange } from '@services/source/dbresourceSpec';
 
   import { useGlobalBizs } from '@stores';
 
@@ -168,19 +161,17 @@
 
   import SpecSelector from '@views/db-manage/common/apply-items/SpecSelector.vue';
 
-  export type TicketSpecInfo = Pick<ClusterSpecModel, 'spec_id' | 'spec_name' | 'cluster_capacity' | 'machine_pair'>
+  export type TicketSpecInfo = Pick<ClusterSpecModel, 'spec_id' | 'spec_name' | 'cluster_capacity' | 'machine_pair'>;
 
   interface Props {
-    clusterType: string,
-    machineType: string,
-    cloudId: number,
-    clusterShardNum: number,
-    planFormItemProps?: Partial<FormItemProps>,
+    cloudId: number;
+    clusterShardNum: number;
+    clusterType: string;
+    machineType: string;
+    planFormItemProps?: Partial<FormItemProps>;
   }
 
-  interface Emits{
-    (e: 'change', modelValue: number, data: TicketSpecInfo): void
-  }
+  type Emits = (e: 'change', modelValue: number, data: TicketSpecInfo) => void;
 
   const props = defineProps<Props>();
   const emits = defineEmits<Emits>();
@@ -189,28 +180,28 @@
   const { currentBizId } = useGlobalBizs();
 
   const modelValue = defineModel<number>('modelValue');
-  const specData = defineModel<{name: string, futureCapacity: number}>('specData');
+  const specData = defineModel<{ futureCapacity: number; name: string }>('specData');
   const customSpecInfo = defineModel<{
-    specId: string | number,
-    count: number
+    count: number;
+    specId: string | number;
   }>('customSpecInfo', {
-    required: true
+    required: true,
   });
 
   const genSliderData = () => ({
-    value: [0, 1],
+    disabled: false,
     max: 1,
     min: 0,
-    disabled: false,
+    value: [0, 1],
   });
   const formatterLabel = (value: string) => `${value}/s`;
 
-  const specSelectorRef = ref<InstanceType<typeof SpecSelector>>()
+  const specSelectorRef = ref<InstanceType<typeof SpecSelector>>();
   const localCapacity = ref();
   const localFutureCapacity = ref();
   const localClusterShardNum = ref();
   const queryTimer = ref();
-  const applyType = ref('auto')
+  const applyType = ref('auto');
 
   const sliderProps = reactive(genSliderData());
 
@@ -221,29 +212,29 @@
     {
       message: t('必须要能除尽总分片数'),
       trigger: 'change',
-      validator: () => props.clusterShardNum % customSpecInfo.value.count === 0
+      validator: () => props.clusterShardNum % customSpecInfo.value.count === 0,
     },
-  ]
+  ];
 
   const tableColumns = [
     {
       field: 'spec_name',
       label: t('资源规格'),
-      width: 200,
-      render: ({ data }: { data: ClusterSpecModel}) => (
+      render: ({ data }: { data: ClusterSpecModel }) => (
         <bk-radio
           label={data.spec_id}
           modelValue={modelValue.value}
-          style="display: flex"
+          style='display: flex'
           onClick={() => handleRowClick(data)}>
           <div
-            class="text-overflow"
             v-overflow-tips
+            class='text-overflow'
             onClick={(event: Event) => event.stopPropagation()}>
             {data.spec_name}
           </div>
         </bk-radio>
       ),
+      width: 200,
     },
     {
       field: 'machine_pair',
@@ -267,11 +258,13 @@
     {
       field: 'count',
       label: t('可用主机数'),
-      render: ({ data }: {data: ClusterSpecModel}) => {
+      render: ({ data }: { data: ClusterSpecModel }) => {
         if (isCountLoading.value) {
           return (
-            <div class="rotate-loading" style="display: inline-block;">
-              <db-icon type="sync-pending" />
+            <div
+              class='rotate-loading'
+              style='display: inline-block;'>
+              <db-icon type='sync-pending' />
             </div>
           );
         }
@@ -281,48 +274,46 @@
   ];
 
   const specInfo = computed(() => {
-    const data = specSelectorRef.value?.getData()
-    const {count} = customSpecInfo.value
+    const data = specSelectorRef.value?.getData();
+    const { count } = customSpecInfo.value;
 
     if (_.isEmpty(data)) {
       return {
+        qps: '',
         totalCapcity: '',
-        qps: ''
-      }
+      };
     }
 
     return {
+      qps: count * (data.qps.min ?? 0),
       totalCapcity: count * getSpecCapacity(data.storage_spec),
-      qps: count * (data.qps.min ?? 0)
-    }
-  })
+    };
+  });
 
-  const localRemoteShardNum = computed(() => props.clusterShardNum / customSpecInfo.value.count)
+  const localRemoteShardNum = computed(() => props.clusterShardNum / customSpecInfo.value.count);
 
   const getSpecCapacity = (storageSpec: ResourceSpecModel['storage_spec']) => {
-    let specCapacity = 0
+    let specCapacity = 0;
+    // eslint-disable-next-line @typescript-eslint/prefer-for-of
     for (let i = 0; i < storageSpec.length; i++) {
-      const storageSpecItem = storageSpec[i]
+      const storageSpecItem = storageSpec[i];
       if (storageSpecItem.mount_point === '/data1') {
-        return storageSpecItem.size
+        return storageSpecItem.size;
       }
       if (storageSpecItem.mount_point === '/data') {
-        specCapacity = storageSpecItem.size / 2
+        specCapacity = storageSpecItem.size / 2;
       }
     }
-    return specCapacity
-  }
+    return specCapacity;
+  };
 
   // QPS 范围
-  const {
-    loading: isDpsRangLoading,
-    run: fetchQpsRang,
-  } = useRequest(queryQPSRange, {
-    manual: true,
+  const { loading: isDpsRangLoading, run: fetchQpsRang } = useRequest(queryQPSRange, {
     debounceOptions: {
       maxWait: 20000,
       trailing: true,
     },
+    manual: true,
     onSuccess({ max, min }) {
       if (!max && !min) {
         sliderProps.max = 0;
@@ -339,10 +330,7 @@
   });
 
   // 规格列表
-  const {
-    loading: isPlanLoading,
-    run: fetchPlanList,
-  } = useRequest(getFilterClusterSpec, {
+  const { loading: isPlanLoading, run: fetchPlanList } = useRequest(getFilterClusterSpec, {
     debounceOptions: {
       maxWait: 2000,
       trailing: true,
@@ -350,7 +338,7 @@
     manual: true,
     onSuccess(data) {
       if (props.clusterShardNum && props.clusterShardNum > 0) {
-        planList.value = _.filter(data, item => item.cluster_shard_num === props.clusterShardNum);
+        planList.value = _.filter(data, (item) => item.cluster_shard_num === props.clusterShardNum);
       } else {
         planList.value = data;
       }
@@ -358,92 +346,107 @@
   });
 
   // 可用主机数
-  const {
-    loading: isCountLoading,
-    run: fetchSpecCount,
-  } = useRequest(getSpecResourceCount, {
+  const { loading: isCountLoading, run: fetchSpecCount } = useRequest(getSpecResourceCount, {
     manual: true,
     onSuccess(data) {
       specCountMap.value = data;
     },
   });
 
-  watch(() => [props.clusterType, props.machineType], () => {
-    Object.assign(sliderProps, genSliderData());
-    planList.value = [];
-  });
+  watch(
+    () => [props.clusterType, props.machineType],
+    () => {
+      Object.assign(sliderProps, genSliderData());
+      planList.value = [];
+    },
+  );
 
   watch([localCapacity, localFutureCapacity], () => {
     if (!localCapacity.value || !localFutureCapacity.value) {
       return;
     }
     fetchQpsRang({
-      spec_cluster_type: props.clusterType,
-      spec_machine_type: props.machineType,
       capacity: localCapacity.value,
       future_capacity: localFutureCapacity.value,
+      spec_cluster_type: props.clusterType,
+      spec_machine_type: props.machineType,
     });
     modelValue.value = undefined;
     specData.value = {
-      name: '',
       futureCapacity: 0,
+      name: '',
     };
   });
 
-  watch(planList, () => {
-    if (!planList.value || planList.value.length < 1) {
-      return;
-    }
-    fetchSpecCount({
-      bk_biz_id: currentBizId,
-      bk_cloud_id: props.cloudId,
-      spec_ids: planList.value.map(item => item.spec_id),
-    });
-  }, {
-    immediate: true,
-  });
-
-  watch(() => sliderProps.value, (data) => {
-    if (!localCapacity.value || !localFutureCapacity.value) {
-      return;
-    }
-    clearTimeout(queryTimer.value);
-    queryTimer.value = setTimeout(() => {
-      handleDpsRangChange(data as [number, number]);
-    }, 1000);
-  });
-
-  watch(() => props.clusterShardNum, () => {
-    localClusterShardNum.value = props.clusterShardNum
-  }, {
-    immediate: true
-  })
-
-  watch([() => customSpecInfo.value.count, () => customSpecInfo.value.specId], ([count, specId]) => {
-    nextTick(() => {
-      const data = specSelectorRef.value?.getData()
-      if(!_.isEmpty(data)) {
-        handleRowClick({
-          spec_id: Number(specId),
-          spec_name: data.spec_name,
-          cluster_capacity: count * getSpecCapacity(data.storage_spec),
-          machine_pair: customSpecInfo.value.count
-        })
+  watch(
+    planList,
+    () => {
+      if (!planList.value || planList.value.length < 1) {
+        return;
       }
-    })
-  }, {
-    immediate: true
-  })
+      fetchSpecCount({
+        bk_biz_id: currentBizId,
+        bk_cloud_id: props.cloudId,
+        spec_ids: planList.value.map((item) => item.spec_id),
+      });
+    },
+    {
+      immediate: true,
+    },
+  );
+
+  watch(
+    () => sliderProps.value,
+    (data) => {
+      if (!localCapacity.value || !localFutureCapacity.value) {
+        return;
+      }
+      clearTimeout(queryTimer.value);
+      queryTimer.value = setTimeout(() => {
+        handleDpsRangChange(data as [number, number]);
+      }, 1000);
+    },
+  );
+
+  watch(
+    () => props.clusterShardNum,
+    () => {
+      localClusterShardNum.value = props.clusterShardNum;
+    },
+    {
+      immediate: true,
+    },
+  );
+
+  watch(
+    [() => customSpecInfo.value.count, () => customSpecInfo.value.specId],
+    ([count, specId]) => {
+      nextTick(() => {
+        const data = specSelectorRef.value?.getData();
+        if (!_.isEmpty(data)) {
+          handleRowClick({
+            cluster_capacity: count * getSpecCapacity(data.storage_spec),
+            machine_pair: customSpecInfo.value.count,
+            spec_id: Number(specId),
+            spec_name: data.spec_name,
+          });
+        }
+      });
+    },
+    {
+      immediate: true,
+    },
+  );
 
   const handleDpsRangChange = (data: [number, number]) => {
     const [min, max] = data;
     fetchPlanList({
-      spec_cluster_type: props.clusterType,
-      spec_machine_type: props.machineType,
       capacity: localCapacity.value,
       future_capacity: localFutureCapacity.value,
-      qps: { min, max },
+      qps: { max, min },
       shard_num: props.clusterShardNum,
+      spec_cluster_type: props.clusterType,
+      spec_machine_type: props.machineType,
     });
   };
 
@@ -452,17 +455,16 @@
     if (data) {
       modelValue.value = data.spec_id;
       specData.value = {
-        name: data.spec_name,
         futureCapacity: data.cluster_capacity,
+        name: data.spec_name,
       };
       emits('change', data.spec_id, {
+        cluster_capacity: data.cluster_capacity,
+        machine_pair: data.machine_pair,
         spec_id: data.spec_id,
         spec_name: data.spec_name,
-        cluster_capacity: data.cluster_capacity,
-        machine_pair: data.machine_pair
       });
     }
-
   };
 </script>
 <style lang="less">

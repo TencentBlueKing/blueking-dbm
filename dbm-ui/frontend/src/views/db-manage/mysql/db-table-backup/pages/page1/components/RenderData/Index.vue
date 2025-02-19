@@ -143,9 +143,9 @@
 
   const batchEditShow = reactive({
     dbPatterns: false,
-    tablePatterns: false,
     ignoreDbs: false,
     ignoreTables: false,
+    tablePatterns: false,
   });
 
   const handleShowBatchSelector = () => {

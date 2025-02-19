@@ -72,16 +72,14 @@
 
   export interface Props {
     data: {
+      checked_related: TendbhaModel[];
       cluster_domain: string;
       cluster_id: number;
       cluster_related: TendbhaModel[];
-      checked_related: TendbhaModel[];
     };
   }
 
-  interface Emits {
-    (e: 'change-related', values: number[]): void;
-  }
+  type Emits = (e: 'change-related', values: number[]) => void;
 
   const props = defineProps<Props>();
 
@@ -104,7 +102,7 @@
     () => {
       isEdit.value = !props.data.cluster_id;
     },
-    { immediate: true, deep: true },
+    { deep: true, immediate: true },
   );
 
   watch(
@@ -113,16 +111,16 @@
       setTimeout(() => {
         if (!mode) {
           tippyInst = dbTippy(iconRef.value.$el as SingleTarget, {
-            content: relatedRef.value,
-            placement: 'bottom-start',
             appendTo: () => document.body,
-            theme: 'light',
-            maxWidth: 'none',
-            interactive: true,
             arrow: true,
-            offset: [0, 8],
-            zIndex: 999999,
+            content: relatedRef.value,
             hideOnClick: true,
+            interactive: true,
+            maxWidth: 'none',
+            offset: [0, 8],
+            placement: 'bottom-start',
+            theme: 'light',
+            zIndex: 999999,
           });
         } else {
           tippyInstDestroy();

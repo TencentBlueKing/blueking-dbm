@@ -17,22 +17,22 @@ import { checkDbConsole } from '@utils';
 import { t } from '@locales/index';
 
 const staffManageRoute = {
+  component: () => import('@views/staff-manage/Index.vue'),
+  meta: {
+    fullScreen: true,
+    navName: t('DBA人员管理'),
+  },
   name: 'StaffManage',
   path: 'staff-manage',
-  meta: {
-    navName: t('DBA人员管理'),
-    fullScreen: true,
-  },
-  component: () => import('@views/staff-manage/Index.vue'),
 };
 
 const platformStaffManageRoute = {
-  name: 'PlatformStaffManage',
-  path: 'platform-staff-manage',
+  component: () => import('@views/staff-manage/Index.vue'),
   meta: {
     navName: t('DBA人员管理'),
   },
-  component: () => import('@views/staff-manage/Index.vue'),
+  name: 'PlatformStaffManage',
+  path: 'platform-staff-manage',
 };
 
 export default function getRoutes() {

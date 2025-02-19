@@ -111,7 +111,7 @@
   const route = useRoute();
   const { t } = useI18n();
 
-  const { rootId } = route.query as { rootId: string; nodeId: string };
+  const { rootId } = route.query as { nodeId: string; rootId: string };
   const { step } = route.params as { step: string };
 
   const ticketMode = ref('');
@@ -126,8 +126,8 @@
   const renderStatusCom = computed(() => {
     const statusComMap = {
       failed: StatusFailed,
-      successed: StatusSuccess,
       pending: StatusPending,
+      successed: StatusSuccess,
     };
 
     return statusComMap[flowStatus.value as keyof typeof statusComMap];

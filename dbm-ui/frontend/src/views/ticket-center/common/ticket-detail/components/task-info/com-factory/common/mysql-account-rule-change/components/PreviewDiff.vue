@@ -105,19 +105,19 @@
   import InfoList, { Item as InfoItem } from '../../../components/info-list/Index.vue';
 
   interface PrivilegeRow {
-    privilegeKey: string;
-    privilegeDisplay: string;
-    beforePrivilege: string;
     afterPrivilege: string;
+    beforePrivilege: string;
     // 差异类型
     diffType: 'add' | 'delete' | 'unchanged';
     // 是否敏感词
     isSensitiveWord: boolean;
+    privilegeDisplay: string;
+    privilegeKey: string;
   }
 
   interface Props {
-    ticketDetails: TicketModel<Mysql.AccountRuleChange>;
     accountType?: AccountTypes.MYSQL | AccountTypes.TENDBCLUSTER;
+    ticketDetails: TicketModel<Mysql.AccountRuleChange>;
   }
 
   const props = withDefaults(defineProps<Props>(), {
@@ -131,16 +131,16 @@
     privilege: true,
   });
   const rulesFormData = reactive({
-    beforeChange: {} as AccountRule,
     afterChange: {} as AccountRule,
+    beforeChange: {} as AccountRule,
   });
   const privilegeData = shallowRef<PrivilegeRow[]>([]);
-  const mergeCells = shallowRef<Array<{ row: number; col: number; rowspan: number; colspan: number }>>([]);
+  const mergeCells = shallowRef<Array<{ col: number; colspan: number; row: number; rowspan: number }>>([]);
 
   const accessDbData = computed(() => [
     {
-      oldAccessDb: rulesFormData.beforeChange.access_db || '--',
       newAccessDb: rulesFormData.afterChange.access_db || '--',
+      oldAccessDb: rulesFormData.beforeChange.access_db || '--',
     },
   ]);
   const addCount = computed(() => privilegeData.value.filter((item) => item.diffType === 'add').length);
@@ -168,12 +168,12 @@
       (acc, [privilege, diffType]) => [
         ...acc,
         {
-          privilegeKey: key,
-          privilegeDisplay: key === 'glob' ? t('全局') : key.toUpperCase(),
-          beforePrivilege: diffType === 'add' ? '' : privilege,
           afterPrivilege: privilege,
+          beforePrivilege: diffType === 'add' ? '' : privilege,
           diffType,
           isSensitiveWord: key === 'glob' || sensitiveWordMap[privilege],
+          privilegeDisplay: key === 'glob' ? t('全局') : key.toUpperCase(),
+          privilegeKey: key,
         },
       ],
       [],
@@ -184,15 +184,15 @@
     () => props.ticketDetails,
     () => {
       const {
-        last_account_rules: lastAccountRules,
-        account_id: accountId,
         access_db: accessDb,
+        account_id: accountId,
+        last_account_rules: lastAccountRules,
         privilege,
       } = props.ticketDetails.details;
       rulesFormData.beforeChange = lastAccountRules;
       rulesFormData.afterChange = {
-        account_id: accountId,
         access_db: accessDb,
+        account_id: accountId,
         privilege,
       };
     },
@@ -207,22 +207,22 @@
     const globData = getPrivilegeData('glob');
     mergeCells.value = [
       {
+        col: 0,
+        colspan: 1,
         row: 0,
-        col: 0,
         rowspan: dmlData.length,
-        colspan: 1,
       },
       {
+        col: 0,
+        colspan: 1,
         row: dmlData.length,
-        col: 0,
         rowspan: ddlData.length,
-        colspan: 1,
       },
       {
-        row: dmlData.length + ddlData.length,
         col: 0,
-        rowspan: globData.length,
         colspan: 1,
+        row: dmlData.length + ddlData.length,
+        rowspan: globData.length,
       },
     ];
     privilegeData.value = [...dmlData, ...ddlData, ...globData];

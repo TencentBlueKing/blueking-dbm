@@ -60,7 +60,6 @@
 
   // 单据克隆
   useTicketCloneInfo({
-    type: TicketTypes.MYSQL_RESTORE_LOCAL_SLAVE,
     onSuccess(cloneData) {
       const { backupType: backupSouce, tableDataList } = cloneData;
       ticketType.value = TicketTypes.MYSQL_RESTORE_LOCAL_SLAVE;
@@ -69,11 +68,11 @@
       remark.value = cloneData.remark;
       window.changeConfirm = true;
     },
+    type: TicketTypes.MYSQL_RESTORE_LOCAL_SLAVE,
   });
 
   // 单据克隆
   useTicketCloneInfo({
-    type: TicketTypes.MYSQL_RESTORE_SLAVE,
     onSuccess(cloneData) {
       const { tableDataList } = cloneData;
       ticketType.value = TicketTypes.MYSQL_RESTORE_SLAVE;
@@ -81,6 +80,7 @@
       remark.value = cloneData.remark;
       window.changeConfirm = true;
     },
+    type: TicketTypes.MYSQL_RESTORE_SLAVE,
   });
 
   const comMap = {

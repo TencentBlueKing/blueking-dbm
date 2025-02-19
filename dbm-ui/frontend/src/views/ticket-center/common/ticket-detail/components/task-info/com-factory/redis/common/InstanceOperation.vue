@@ -44,7 +44,7 @@
   }
 
   interface Props {
-    ticketDetails: TicketModel<Redis.InstanceDestroy>
+    ticketDetails: TicketModel<Redis.InstanceDestroy>;
   }
 
   const props = defineProps<Props>();
@@ -53,35 +53,41 @@
 
   const columns = [
     {
-      label: t('集群ID'),
       field: 'cluster_id',
+      label: t('集群ID'),
       render: ({ cell }: { cell: string }) => <span>{cell || '--'}</span>,
     },
     {
-      label: t('集群名称'),
       field: 'immute_domain',
-      showOverflowTooltip: false,
+      label: t('集群名称'),
       render: ({ data }: { data: any }) => data.immute_domain,
+      showOverflowTooltip: false,
     },
     {
-      label: t('架构版本'),
       field: 'cluster_type_name',
+      label: t('架构版本'),
       render: ({ cell }: { cell: string }) => <span>{cell || '--'}</span>,
-    }
+    },
   ];
 
-  const dataList = props.ticketDetails.details.cluster_ids.reduce((prevList, clusterId) => {
-    const clusters = props.ticketDetails.details.clusters[clusterId];
-    return [...prevList, {
-      cluster_id: clusterId,
-      cluster_type_name: clusters.cluster_type_name,
-      immute_domain: clusters.immute_domain,
-      name: clusters.name,
-    }]
-  }, [] as {
-    cluster_id: number,
-    immute_domain: string,
-    name: string,
-    cluster_type_name: string,
-  }[])
+  const dataList = props.ticketDetails.details.cluster_ids.reduce(
+    (prevList, clusterId) => {
+      const clusters = props.ticketDetails.details.clusters[clusterId];
+      return [
+        ...prevList,
+        {
+          cluster_id: clusterId,
+          cluster_type_name: clusters.cluster_type_name,
+          immute_domain: clusters.immute_domain,
+          name: clusters.name,
+        },
+      ];
+    },
+    [] as {
+      cluster_id: number;
+      cluster_type_name: string;
+      immute_domain: string;
+      name: string;
+    }[],
+  );
 </script>

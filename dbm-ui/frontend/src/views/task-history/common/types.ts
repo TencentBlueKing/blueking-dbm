@@ -22,9 +22,9 @@ import TaskFlowModel from '@services/model/taskflow/taskflow';
  */
 export interface ListState {
   data: TaskFlowModel[];
-  ticketTypes: Array<{ id: string; name: string }>;
   filter: {
     daterange: [string, string];
     searchValues?: ISearchValue[];
   };
+  ticketTypes: Array<{ id: string; name: string }>;
 }

@@ -51,21 +51,21 @@
   import { random } from '@utils';
 
   export interface IDataRow {
-    rowKey: string;
     clusterData?: {
-      id: number;
       domain: string;
+      id: number;
       type: string;
     };
     fromDatabase?: string;
+    rowKey: string;
     toDatabase?: string;
   }
 
   // 创建表格数据
   export const createRowData = (data = {} as Partial<IDataRow>): IDataRow => ({
-    rowKey: random(),
     clusterData: data.clusterData,
     fromDatabase: data.fromDatabase,
+    rowKey: random(),
     toDatabase: data.toDatabase,
   });
 
@@ -82,9 +82,9 @@
   import RenderDbName from './RenderDbName.vue';
 
   interface Props {
+    clusterTypes?: string[];
     data: IDataRow;
     removeable: boolean;
-    clusterTypes?: string[];
   }
 
   interface Emits {
@@ -147,9 +147,9 @@
       emits(
         'clone',
         createRowData({
-          rowKey: random(),
           clusterData: props.data.clusterData,
           fromDatabase: rowInfo[1].from_database,
+          rowKey: random(),
           toDatabase: rowInfo[2].to_database,
         }),
       );

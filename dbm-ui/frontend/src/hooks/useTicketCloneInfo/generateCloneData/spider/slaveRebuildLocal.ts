@@ -21,7 +21,7 @@ import { random } from '@utils';
 export async function generateSpiderSlaveRebuildLocalCloneData(
   ticketData: TicketModel<TendbCluster.RestoreLocalSlave>,
 ) {
-  const { infos, backup_source } = ticketData.details;
+  const { infos } = ticketData.details;
   const instanceListResult = await getTendbclusterInstanceList({
     instance: infos.map((item) => item.slave.ip),
     role: 'remote_slave',
@@ -37,25 +37,25 @@ export async function generateSpiderSlaveRebuildLocalCloneData(
     const instanceItem = instanceMap[item.slave.ip];
 
     return {
-      rowKey: random(),
       isLoading: false,
+      rowKey: random(),
       slave: {
         bkCloudId: instanceItem.bk_cloud_id,
         bkHostId: instanceItem.bk_host_id,
-        ip: instanceItem.ip,
-        port: item.slave.port,
-        instanceAddress: instanceItem.instance_address,
         clusterId: instanceItem.cluster_id,
         domain: instanceItem.master_domain,
+        instanceAddress: instanceItem.instance_address,
+        ip: instanceItem.ip,
+        port: item.slave.port,
       },
     };
   });
 
   return {
-    tableDataList,
     formData: {
+      backup_source: ticketData.details.backup_source,
       remark: ticketData.remark,
-      backup_source,
     },
+    tableDataList,
   };
 }

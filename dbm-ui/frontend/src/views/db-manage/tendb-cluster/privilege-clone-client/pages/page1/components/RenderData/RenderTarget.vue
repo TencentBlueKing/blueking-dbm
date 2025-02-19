@@ -43,8 +43,8 @@
   import type { IDataRow } from './Row.vue';
 
   interface Props {
-    source?: IDataRow['source'];
     modelValue: IDataRow['target'];
+    source?: IDataRow['source'];
   }
 
   interface Exposes {
@@ -63,20 +63,21 @@
 
   const rules = [
     {
+      message: t('IP 不能为空'),
       validator: (value: string) => {
         const ipList = _.filter(value.split(splitReg), (item) => _.trim(item)) as Array<string>;
         return ipList.length > 0;
       },
-      message: t('IP 不能为空'),
     },
     {
+      message: t('IP格式不正确'),
       validator: (value: string) => {
         const ipList = value.split(splitReg) as Array<string>;
         return _.every(ipList, (item) => ipv4.test(_.trim(item)));
       },
-      message: t('IP格式不正确'),
     },
     {
+      message: t('输入的IP重复'),
       validator: (value: string) => {
         const hostList = value.split(splitReg).filter((item) => !!_.trim(item));
         if (_.uniq(hostList).length !== hostList.length) {
@@ -86,7 +87,6 @@
         isRepeat.value = false;
         return true;
       },
-      message: t('输入的IP重复'),
     },
   ];
 

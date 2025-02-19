@@ -129,14 +129,12 @@
   import { ClusterTypes, TicketTypes, type TicketTypesStrings } from '@common/const';
 
   interface Props {
-    isShow: boolean;
     clusterType: ClusterTypes;
+    isShow: boolean;
     ticketType?: TicketTypesStrings;
   }
 
-  interface Emits {
-    (e: 'update:isShow', value: boolean): void;
-  }
+  type Emits = (e: 'update:isShow', value: boolean) => void;
 
   const props = withDefaults(defineProps<Props>(), {
     ticketType: TicketTypes.MYSQL_EXCEL_AUTHORIZE_RULES,
@@ -149,12 +147,12 @@
 
   const basePath = window.PROJECT_ENV.VITE_PUBLIC_PATH ? window.PROJECT_ENV.VITE_PUBLIC_PATH : '/';
   const excelState = reactive({
-    isLoading: false,
     importable: false,
+    isLoading: false,
     precheck: {
-      uid: '',
-      excelUrl: '',
       authorizeDataList: [] as AuthorizePreCheckData[],
+      excelUrl: '',
+      uid: '',
     },
   });
   const uploadRef = ref();
@@ -162,28 +160,28 @@
   const apiInfo = computed(() => {
     if ([ClusterTypes.MONGO_REPLICA_SET, ClusterTypes.MONGO_SHARED_CLUSTER].includes(props.clusterType)) {
       return {
-        uploadLink: `/apis/mongodb/bizs/${globalBizsStore.currentBizId}/permission/authorize/pre_check_excel_rules/`,
         downloadTemplatePath: `${basePath}mongo_cluster_authorize.xlsx`,
+        uploadLink: `/apis/mongodb/bizs/${globalBizsStore.currentBizId}/permission/authorize/pre_check_excel_rules/`,
       };
     }
-    if ([ClusterTypes.SQLSERVER_SINGLE, ClusterTypes.SQLSERVER_HA].includes(props.clusterType)) {
+    if ([ClusterTypes.SQLSERVER_HA, ClusterTypes.SQLSERVER_SINGLE].includes(props.clusterType)) {
       return {
-        uploadLink: `/apis/sqlserver/bizs/${globalBizsStore.currentBizId}/permission/authorize/pre_check_excel_rules/`,
         downloadTemplatePath: `${basePath}sqlserver_cluster_authorize.xlsx`,
+        uploadLink: `/apis/sqlserver/bizs/${globalBizsStore.currentBizId}/permission/authorize/pre_check_excel_rules/`,
       };
     }
     return {
-      uploadLink: `/apis/mysql/bizs/${globalBizsStore.currentBizId}/permission/authorize/pre_check_excel_rules/`,
       downloadTemplatePath: `${basePath}cluster-authorize.xlsx`,
+      uploadLink: `/apis/mysql/bizs/${globalBizsStore.currentBizId}/permission/authorize/pre_check_excel_rules/`,
     };
   });
 
   const handleInitExcelData = () => {
     excelState.importable = false;
     excelState.precheck = {
-      uid: '',
-      excelUrl: '',
       authorizeDataList: [] as AuthorizePreCheckData[],
+      excelUrl: '',
+      uid: '',
     };
   };
 
@@ -196,8 +194,6 @@
     const params = {
       bk_biz_id: globalBizsStore.currentBizId,
       details: {
-        authorize_uid: excelState.precheck.uid,
-        excel_url: excelState.precheck.excelUrl,
         authorize_data_list: excelState.precheck.authorizeDataList.map((authorizeItem) => {
           const authorizeItemCopy = { ...authorizeItem };
           if ([ClusterTypes.MONGO_REPLICA_SET, ClusterTypes.MONGO_SHARED_CLUSTER].includes(props.clusterType)) {
@@ -205,6 +201,8 @@
           }
           return authorizeItemCopy;
         }),
+        authorize_uid: excelState.precheck.uid,
+        excel_url: excelState.precheck.excelUrl,
       },
       remark: '',
       ticket_type: props.ticketType,

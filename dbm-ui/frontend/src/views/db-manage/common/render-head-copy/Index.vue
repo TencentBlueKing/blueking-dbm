@@ -56,11 +56,11 @@
   import { useI18n } from 'vue-i18n';
 
   export interface Props<T> {
-    hasSelected: boolean;
     config: {
-      label?: string;
       field: keyof T;
+      label?: string;
     }[];
+    hasSelected: boolean;
     isFilter: boolean;
   }
 
@@ -90,23 +90,23 @@
   onMounted(() => {
     nextTick(() => {
       tippyIns = tippy(copyRootRef.value.$el as SingleTarget, {
-        content: popRef.value,
-        placement: 'bottom',
-        appendTo: () => document.body,
-        theme: 'light db-dropdownmenu-theme',
-        maxWidth: 'none',
-        trigger: 'mouseenter click',
-        interactive: true,
-        arrow: false,
         allowHTML: true,
-        zIndex: 999,
+        appendTo: () => document.body,
+        arrow: false,
+        content: popRef.value,
         hideOnClick: true,
-        onShow() {
-          isCopyIconClicked.value = true;
-        },
+        interactive: true,
+        maxWidth: 'none',
         onHide() {
           isCopyIconClicked.value = false;
         },
+        onShow() {
+          isCopyIconClicked.value = true;
+        },
+        placement: 'bottom',
+        theme: 'light db-dropdownmenu-theme',
+        trigger: 'mouseenter click',
+        zIndex: 999,
       });
     });
   });

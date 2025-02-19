@@ -96,11 +96,11 @@
 
   // 单据克隆
   useTicketCloneInfo({
-    type: TicketTypes.REDIS_VERSION_UPDATE_ONLINE,
     onSuccess(cloneData) {
       tableData.value = cloneData.tableDataList;
       window.changeConfirm = true;
     },
+    type: TicketTypes.REDIS_VERSION_UPDATE_ONLINE,
   });
 
   const rowRefs = ref();
@@ -119,8 +119,8 @@
     }
     const [firstRow, ...otherRowList] = tableData.value;
     const params = {
-      nodeType: firstRow.nodeType,
       clusterId: firstRow.clusterId,
+      nodeType: firstRow.nodeType,
     };
     if (
       otherRowList.length === 0 ||
@@ -157,12 +157,12 @@
 
   // 根据集群选择返回的数据加工成table所需的数据
   const generateRowDateFromRequest = (item: RedisModel) => ({
-    rowKey: item.master_domain,
-    isLoading: false,
     cluster: item.master_domain,
     clusterId: item.id,
     clusterType: item.cluster_type_name,
+    isLoading: false,
     nodeType: item.cluster_spec.spec_cluster_type === ClusterTypes.REDIS_INSTANCE ? 'Backend' : 'Proxy',
+    rowKey: item.master_domain,
   });
 
   // 批量选择
@@ -268,10 +268,10 @@
       );
       const params = {
         bk_biz_id: currentBizId,
-        ticket_type: TicketTypes.REDIS_VERSION_UPDATE_ONLINE,
         details: {
           infos,
         },
+        ticket_type: TicketTypes.REDIS_VERSION_UPDATE_ONLINE,
       };
       await createTicket(params).then((data) => {
         window.changeConfirm = false;

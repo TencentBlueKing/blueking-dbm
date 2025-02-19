@@ -19,11 +19,7 @@ import { differenceInHours } from 'date-fns';
  * @param hours 用于判断是否为最近几天的小时数
  */
 export const isRecentDays = (date: string | Date, hours: number) => {
-  try {
-    const createDay = new Date(date);
-    const today = new Date();
-    return differenceInHours(today, createDay) < hours;
-  } catch (e) {
-    return false;
-  }
+  const createDay = new Date(date);
+  const today = new Date();
+  return differenceInHours(today, createDay) < hours;
 };

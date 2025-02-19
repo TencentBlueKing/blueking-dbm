@@ -51,8 +51,8 @@
   import type { IDataRow } from './Row.vue';
 
   interface Props {
-    data: IDataRow;
     currentList?: string[];
+    data: IDataRow;
   }
 
   interface Exposes {
@@ -81,8 +81,8 @@
 
   const rules = [
     {
-      validator: (value: string) => !!value,
       message: t('请选择版本'),
+      validator: (value: string) => !!value,
     },
   ];
 
@@ -91,10 +91,10 @@
     () => {
       if (props.data.clusterId) {
         fetchTargetClusterVersions({
-          node_type: props.data.nodeType,
-          type: 'update',
           // cluster_type: props.data.clusterType,
           cluster_id: props.data.clusterId,
+          node_type: props.data.nodeType,
+          type: 'update',
         });
       }
     },
@@ -108,9 +108,9 @@
     () => {
       if (props.currentList.length > 0) {
         targetVersionList.value = targetVersionList.value.map((item) => ({
+          disabled: props.currentList.every((value) => value === item.value),
           label: item.label,
           value: item.value,
-          disabled: props.currentList.every((value) => value === item.value),
         }));
       }
     },

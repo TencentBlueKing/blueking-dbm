@@ -105,26 +105,26 @@
   defineProps<Props>();
   const emits = defineEmits<Emits>();
 
-  const { t, locale } = useI18n();
+  const { locale, t } = useI18n();
   const copy = useCopy();
   const inputRef = ref();
   const placeholder = t('请分别输入目标重库实例_备份来源_多个对象_换行分隔');
   const isCN = computed(() => locale.value === 'zh-cn');
 
   const state = reactive({
-    values: '',
     formatError: {
-      show: false,
-      selectionStart: 0,
-      selectionEnd: 0,
       count: 0,
+      selectionEnd: 0,
+      selectionStart: 0,
+      show: false,
     },
     ipError: {
-      show: false,
-      selectionStart: 0,
-      selectionEnd: 0,
       count: 0,
+      selectionEnd: 0,
+      selectionStart: 0,
+      show: false,
     },
+    values: '',
   });
 
   /**
@@ -138,7 +138,7 @@
    * 标记错误信息
    */
   function handleSelectionError(key: 'ipError' | 'formatError') {
-    const { selectionStart, selectionEnd } = state[key];
+    const { selectionEnd, selectionStart } = state[key];
     const textarea = inputRef.value?.$el?.getElementsByTagName?.('textarea')?.[0];
     if (textarea) {
       (textarea as HTMLInputElement).focus();
@@ -153,10 +153,10 @@
 
   function handleClose() {
     const init = {
-      show: false,
-      selectionStart: 0,
-      selectionEnd: 0,
       count: 0,
+      selectionEnd: 0,
+      selectionStart: 0,
+      show: false,
     };
     state.formatError = { ...init };
     state.ipError = { ...init };

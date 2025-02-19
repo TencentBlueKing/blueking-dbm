@@ -16,8 +16,8 @@ import mitt from 'mitt';
 const emitter = mitt();
 
 export const useEventBus = () => ({
-  emit: emitter.emit,
-  on: emitter.on,
-  off: emitter.off,
   clearAll: emitter.all.clear,
+  emit: emitter.emit,
+  off: emitter.off,
+  on: emitter.on,
 });

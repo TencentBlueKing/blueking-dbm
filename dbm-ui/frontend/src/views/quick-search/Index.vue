@@ -100,8 +100,8 @@
   const comMap = {
     entry: Entry,
     instance: Instance,
-    task: Task,
     resource_pool: ResourcePool,
+    task: Task,
     ticket: Ticket,
   };
 
@@ -115,43 +115,43 @@
   const dataMap = ref<Omit<ServiceReturnType<typeof quickSearch>, 'keyword' | 'short_code'>>({
     entry: [],
     instance: [],
-    task: [],
     resource_pool: [],
+    task: [],
     ticket: [],
   });
 
   const formData = ref({
     bk_biz_ids: [] as number[],
     db_types: [] as string[],
-    resource_types: [] as string[],
     filter_type: FilterType.EXACT,
+    resource_types: [] as string[],
   });
   const activeTab = ref('entry');
   const panelList = reactive([
     {
-      name: 'entry',
+      count: 0,
       label: t('访问入口'),
-      count: 0,
+      name: 'entry',
     },
     {
-      name: 'instance',
+      count: 0,
       label: t('实例（IP、IP:Port）'),
-      count: 0,
+      name: 'instance',
     },
     {
-      name: 'task',
+      count: 0,
       label: t('历史任务'),
-      count: 0,
+      name: 'task',
     },
     {
-      name: 'ticket',
+      count: 0,
       label: t('单据'),
-      count: 0,
+      name: 'ticket',
     },
     {
-      name: 'resource_pool',
-      label: t('主机（资源池、故障池、待回收池）'),
       count: 0,
+      label: t('主机（资源池、故障池、待回收池）'),
+      name: 'resource_pool',
     },
   ]);
 
@@ -182,11 +182,14 @@
   });
 
   const {
-    loading,
     error,
+    loading,
     run: quickSearchRun,
   } = useRequest(quickSearch, {
     manual: true,
+    onAfter() {
+      isRedirectSearch = false;
+    },
     onSuccess(data, params) {
       if (isRedirectSearch) {
         keyword.value = data.keyword.replace(batchSplitRegex, '|');
@@ -195,8 +198,8 @@
       Object.assign(dataMap.value, {
         entry: data.entry,
         instance: data.instance,
-        task: data.task,
         resource_pool: data.resource_pool,
+        task: data.task,
         ticket: data.ticket,
       });
       panelList[0].count = data.entry.length;
@@ -230,9 +233,6 @@
 
       replaceSearchParams(routeParamsMemo);
     },
-    onAfter() {
-      isRedirectSearch = false;
-    },
   });
 
   watch(
@@ -249,8 +249,8 @@
     Object.assign(dataMap.value, {
       entry: [],
       instance: [],
-      task: [],
       resource_pool: [],
+      task: [],
       ticket: [],
     });
     panelList[0].count = 0;
@@ -314,17 +314,17 @@
   const initRetrieve = () => {
     const formatRouteQuery = (initParams: Record<string, string>) => {
       const {
-        filter_type: filterType,
         bk_biz_ids: bkBizIds,
         db_types: dbTypes,
+        filter_type: filterType,
         resource_types: resourceTypes,
       } = initParams;
 
       return {
         bk_biz_ids: bkBizIds ? bkBizIds.split(',').map((bizId) => Number(bizId)) : [],
         db_types: dbTypes ? dbTypes.split(',') : [],
-        resource_types: resourceTypes ? resourceTypes.split(',') : [],
         filter_type: (filterType as FilterType) || FilterType.EXACT,
+        resource_types: resourceTypes ? resourceTypes.split(',') : [],
       };
     };
     const initParams = getSearchParams();
@@ -334,8 +334,8 @@
     if (shortCode) {
       quickSearchRun({
         ...formData.value,
-        short_code: shortCode,
         limit: 1000,
+        short_code: shortCode,
       });
     }
   };

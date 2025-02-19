@@ -35,10 +35,10 @@
 
   import TicketModel, { type Mongodb } from '@services/model/ticket/ticket';
 
-  import { TicketTypes  } from '@common/const';
+  import { TicketTypes } from '@common/const';
 
   interface Props {
-    ticketDetails: TicketModel<Mongodb.Backup>
+    ticketDetails: TicketModel<Mongodb.Backup>;
   }
 
   const props = defineProps<Props>();
@@ -50,90 +50,98 @@
 
   const { t } = useI18n();
 
-  const {
-    clusters,
-    backup_type: backupType,
-    file_tag: fileTag,
-    infos,
-  } = props.ticketDetails.details;
+  const { backup_type: backupType, clusters, file_tag: fileTag, infos } = props.ticketDetails.details;
 
   const isShowBackupHost = infos[0].backup_host;
 
   const columns = [
     {
-      label: backupType ? t('目标分片集群') : t('目标副本集集群'),
       field: 'immute_domain',
+      label: backupType ? t('目标分片集群') : t('目标副本集集群'),
     },
     {
-      label: t('备份DB名'),
       field: 'db_patterns',
-      showOverflowTooltip: false,
+      label: t('备份DB名'),
       render: ({ cell }: { cell: string[] }) => (
-      <div class="text-overflow" v-overflow-tips={{
-          content: cell,
-        }}>
-        {cell.map(item => <bk-tag>{item}</bk-tag>)}
-      </div>
-    ),
+        <div
+          v-overflow-tips={{
+            content: cell,
+          }}
+          class='text-overflow'>
+          {cell.map((item) => (
+            <bk-tag>{item}</bk-tag>
+          ))}
+        </div>
+      ),
+      showOverflowTooltip: false,
     },
     {
-      label: t('忽略DB名'),
       field: 'ignore_dbs',
-      showOverflowTooltip: false,
+      label: t('忽略DB名'),
       render: ({ cell }: { cell: string[] }) => (
-      <div class="text-overflow" v-overflow-tips={{
-          content: cell,
-        }}>
-        {cell.length > 0 ? cell.map(item => <bk-tag>{item}</bk-tag>) : '--'}
-      </div>
-    ),
+        <div
+          v-overflow-tips={{
+            content: cell,
+          }}
+          class='text-overflow'>
+          {cell.length > 0 ? cell.map((item) => <bk-tag>{item}</bk-tag>) : '--'}
+        </div>
+      ),
+      showOverflowTooltip: false,
     },
     {
-      label: t('备份表名'),
       field: 'table_patterns',
-      showOverflowTooltip: false,
+      label: t('备份表名'),
       render: ({ cell }: { cell: string[] }) => (
-      <div class="text-overflow" v-overflow-tips={{
-          content: cell,
-        }}>
-        {cell.map(item => <bk-tag>{item}</bk-tag>)}
-      </div>
-    ),
+        <div
+          v-overflow-tips={{
+            content: cell,
+          }}
+          class='text-overflow'>
+          {cell.map((item) => (
+            <bk-tag>{item}</bk-tag>
+          ))}
+        </div>
+      ),
+      showOverflowTooltip: false,
     },
     {
-      label: t('忽略表名'),
       field: 'ignore_tables',
-      showOverflowTooltip: false,
+      label: t('忽略表名'),
       render: ({ cell }: { cell: string[] }) => (
-      <div class="text-overflow" v-overflow-tips={{
-          content: cell,
-        }}>
-        {cell.length > 0 ? cell.map(item => <bk-tag>{item}</bk-tag>) : '--'}
-      </div>
-    ),
-    }];
+        <div
+          v-overflow-tips={{
+            content: cell,
+          }}
+          class='text-overflow'>
+          {cell.length > 0 ? cell.map((item) => <bk-tag>{item}</bk-tag>) : '--'}
+        </div>
+      ),
+      showOverflowTooltip: false,
+    },
+  ];
 
   if (isShowBackupHost) {
     columns.splice(1, 0, {
-      label: t('目标主机'),
       field: 'backup_host',
+      label: t('目标主机'),
     });
   }
 
-  const dataList =  infos.map(item => ({
-    immute_domain: item.cluster_ids.map(id => clusters[id].immute_domain).join(','),
+  const dataList = infos.map((item) => ({
     backup_host: item.backup_host,
     db_patterns: item.ns_filter.db_patterns,
     ignore_dbs: item.ns_filter.ignore_dbs,
     ignore_tables: item.ns_filter.ignore_tables,
+    immute_domain: item.cluster_ids.map((id) => clusters[id].immute_domain).join(','),
     table_patterns: item.ns_filter.table_patterns,
   }));
 
   const fileTagMap: Record<string, string> = {
-    normal_backup: t('25天'),
-    half_year_backup: t('6 个月'),
     a_year_backup: t('1 年'),
     forever_backup: t('3 年'),
+    half_year_backup: t('6 个月'),
+    normal_backup: t('25天'),
   };
 
   const fileTagText = fileTagMap[fileTag];

@@ -44,9 +44,9 @@ export const useTreeData = (treeState: TreeState) => {
 
   const apiMap: Record<string, (params: any) => ReturnType<typeof getBigdataResourceTree>> = {
     bigdata: getBigdataResourceTree,
-    redis: getRedisResourceTree,
-    mysql: getMysqlResourceTree,
     mongodb: getMongoDBResourceTree,
+    mysql: getMysqlResourceTree,
+    redis: getRedisResourceTree,
     sqlserver: geSqlserverResourceTree,
     tendbcluster: getMysqlResourceTree,
   };
@@ -64,10 +64,10 @@ export const useTreeData = (treeState: TreeState) => {
    * tree search
    */
   const treeSearchConfig = computed<SearchOption>(() => ({
-    value: treeState.search,
     match: treeSearchMatch,
     resultType: 'tree',
     showChildNodes: false,
+    value: treeState.search,
   }));
   const treeSearchMatch = (searchValue: string, value: string) => value.indexOf(searchValue) > -1;
 
@@ -107,13 +107,13 @@ export const useTreeData = (treeState: TreeState) => {
         // set route query info
         router.replace({
           query: {
-            treeId: (node as TreeData).treeId,
             parentId: (node as TreeData).parentId,
+            treeId: (node as TreeData).treeId,
           },
         });
       }
     },
-    { immediate: true, deep: true },
+    { deep: true, immediate: true },
   );
 
   /**
@@ -151,14 +151,14 @@ export const useTreeData = (treeState: TreeState) => {
         if (currentBizInfo) {
           const treeId = `${ConfLevels.APP}-${currentBizInfo.bk_biz_id}`;
           const rootNode = {
-            treeId,
-            id: currentBizInfo.bk_biz_id,
-            name: currentBizInfo.name,
-            levelType: ConfLevels.APP,
-            tag: confLevelInfos[ConfLevels.APP].tagText,
-            isOpen: true,
-            parentId: '',
             children: formatTreeData(res, treeId),
+            id: currentBizInfo.bk_biz_id,
+            isOpen: true,
+            levelType: ConfLevels.APP,
+            name: currentBizInfo.name,
+            parentId: '',
+            tag: confLevelInfos[ConfLevels.APP].tagText,
+            treeId,
           };
           treeData.push(rootNode);
         }
@@ -187,13 +187,13 @@ export const useTreeData = (treeState: TreeState) => {
         const value = val.value as ClusterTypeInfos;
         const { dbType } = clusterTypeInfos[value];
         const isBigdata = [
+          ClusterTypes.DORIS,
           ClusterTypes.ES,
-          ClusterTypes.KAFKA,
           ClusterTypes.HDFS,
           ClusterTypes.INFLUXDB,
+          ClusterTypes.KAFKA,
           ClusterTypes.PULSAR,
           ClusterTypes.RIAK,
-          ClusterTypes.DORIS,
         ].includes(value);
         fetchBusinessTopoTree(isBigdata ? 'bigdata' : dbType);
       }
@@ -206,16 +206,16 @@ export const useTreeData = (treeState: TreeState) => {
       const mysqlTypes = [ClusterTypes.TENDBSINGLE, ClusterTypes.TENDBHA] as string[];
       if (mysqlTypes.includes(clusterType.value)) {
         const ticketTypeMap = {
-          [ClusterTypes.TENDBSINGLE]: TicketTypes.MYSQL_SINGLE_APPLY,
-          [ClusterTypes.TENDBHA]: TicketTypes.MYSQL_HA_APPLY,
-          [ClusterTypes.SQLSERVER_SINGLE]: TicketTypes.SQLSERVER_SINGLE_APPLY,
           [ClusterTypes.SQLSERVER_HA]: TicketTypes.SQLSERVER_HA_APPLY,
+          [ClusterTypes.SQLSERVER_SINGLE]: TicketTypes.SQLSERVER_SINGLE_APPLY,
+          [ClusterTypes.TENDBHA]: TicketTypes.MYSQL_HA_APPLY,
+          [ClusterTypes.TENDBSINGLE]: TicketTypes.MYSQL_SINGLE_APPLY,
         };
         router.push({
           name: 'SelfServiceCreateDbModule',
           params: {
-            type: ticketTypeMap[clusterType.value as keyof typeof ticketTypeMap],
             bk_biz_id: globalBizsStore.currentBizId,
+            type: ticketTypeMap[clusterType.value as keyof typeof ticketTypeMap],
           },
         });
       } else {
@@ -241,25 +241,25 @@ export const useTreeData = (treeState: TreeState) => {
       const treeId = `${item.obj_id}-${item.instance_id}`;
       const children = item.children ? formatTreeData(item.children, treeId) : [];
       return {
-        treeId,
-        id: item.instance_id,
-        name: item.obj_id === ConfLevels.CLUSTER ? item?.extra?.domain : item.instance_name,
-        levelType: item.obj_id,
-        tag: confLevelInfos[item.obj_id].tagText,
-        data: item,
-        parentId,
         children,
+        data: item,
+        id: item.instance_id,
+        levelType: item.obj_id,
+        name: item.obj_id === ConfLevels.CLUSTER ? item?.extra?.domain : item.instance_name,
+        parentId,
+        tag: confLevelInfos[item.obj_id].tagText,
+        treeId,
       };
     });
   }
 
   return {
-    treeRef,
-    treeState,
-    treeSearchConfig,
-    treePrefixIcon,
+    createModule,
     fetchBusinessTopoTree,
     handleSelectedTreeNode,
-    createModule,
+    treePrefixIcon,
+    treeRef,
+    treeSearchConfig,
+    treeState,
   };
 };

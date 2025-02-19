@@ -55,13 +55,13 @@
   import { execCopy } from '@utils';
 
   interface Props {
-    data: Array<string>;
     copyenable?: boolean;
+    data: Array<string>;
   }
 
   const props = withDefaults(defineProps<Props>(), {
-    max: 0,
     copyenable: false,
+    max: 0,
   });
 
   const { t } = useI18n();
@@ -101,6 +101,7 @@
         } else {
           const tagMargin = 6;
           let totalTagWidth = -tagMargin;
+          // eslint-disable-next-line @typescript-eslint/prefer-for-of
           for (let i = 0; i < allTagEleList.length; i++) {
             const { width: tagWidth } = allTagEleList[i].getBoundingClientRect();
             totalTagWidth += tagWidth + tagMargin;
@@ -146,18 +147,18 @@
           return;
         }
         tippyIns = tippy(moreRef.value.$el as SingleTarget, {
-          content: tipsPanelRef.value as Element,
-          placement: 'top',
           allowHTML: true,
           appendTo: () => document.body,
-          theme: 'light',
-          interactive: true,
           arrow: true,
+          content: tipsPanelRef.value as Element,
+          hideOnClick: true,
+          interactive: true,
           maxWidth: 400,
           offset: [0, 8],
-          zIndex: 999999,
-          hideOnClick: true,
+          placement: 'top',
+          theme: 'light',
           trigger: 'mouseenter',
+          zIndex: 999999,
         });
       });
     },

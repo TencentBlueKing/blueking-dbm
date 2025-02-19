@@ -100,11 +100,11 @@
   }
 
   interface Props {
-    modelValue?: IKey;
+    disabled?: boolean;
     list: Array<IListItem>;
+    modelValue?: IKey;
     placeholder?: string;
     rules?: Rules;
-    disabled?: boolean;
   }
   interface Emits {
     (e: 'update:modelValue', value: IKey): void;
@@ -116,11 +116,11 @@
   }
 
   const props = withDefaults(defineProps<Props>(), {
+    disabled: false,
     modelValue: '',
     placeholder: '请输入',
-    textarea: false,
     rules: () => [],
-    disabled: false,
+    textarea: false,
   });
   const emits = defineEmits<Emits>();
 
@@ -185,15 +185,17 @@
 
   onMounted(() => {
     tippyIns = tippy(rootRef.value as SingleTarget, {
-      content: popRef.value,
-      placement: 'bottom',
       appendTo: () => document.body,
-      theme: 'table-edit-select light',
-      maxWidth: 'none',
-      trigger: 'click',
-      interactive: true,
       arrow: false,
+      content: popRef.value,
+      interactive: true,
+      maxWidth: 'none',
       offset: [0, 8],
+      onHide: () => {
+        isShowPop.value = false;
+        searchKey.value = '';
+        validator(localValue.value);
+      },
       onShow: () => {
         const { width } = rootRef.value.getBoundingClientRect();
         Object.assign(popRef.value.style, {
@@ -202,11 +204,9 @@
         isShowPop.value = true;
         isError.value = false;
       },
-      onHide: () => {
-        isShowPop.value = false;
-        searchKey.value = '';
-        validator(localValue.value);
-      },
+      placement: 'bottom',
+      theme: 'table-edit-select light',
+      trigger: 'click',
     });
   });
 

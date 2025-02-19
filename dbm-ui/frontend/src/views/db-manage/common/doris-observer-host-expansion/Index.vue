@@ -53,8 +53,8 @@
       name: string;
     };
     data: TExpansionNode;
-    ipSource: string;
     disableHostMethod?: (params: HostInfo) => string | boolean;
+    ipSource: string;
   }
 
   defineProps<Props>();

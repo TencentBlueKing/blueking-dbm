@@ -59,7 +59,7 @@
   const { overflowTagIndex } = useTagsOverflow(tagsRef, tagsList);
 
   const overflowNum = computed(() => (overflowTagIndex.value === 0 ? 0 : props.data.length - overflowTagIndex.value));
-  const overflowTagList = computed(() => [...props.data.slice(overflowTagIndex.value)]);
+  const overflowTagList = computed(() => props.data.slice(overflowTagIndex.value));
   let rawList = '';
 
   watch(
@@ -74,7 +74,7 @@
   );
 
   watch(overflowTagIndex, (index) => {
-    displayList.value = [...props.data.slice(0, index)];
+    displayList.value = props.data.slice(0, index);
   });
 </script>
 <style lang="less" scoped>

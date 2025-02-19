@@ -1,19 +1,19 @@
 import type { DetailBase, DetailClusters } from '../common';
 
 export interface Install extends DetailBase {
-  name: string;
-  infos: {
-    l5_cmdid: number;
-    l5_modid: number;
-    dumper_id: number;
-    cluster_id: number;
-    db_module_id: number;
-    protocol_type: string;
-    target_port: number;
-    target_address: string;
-    kafka_pwd: string;
-  }[];
   add_type: string;
   clusters: DetailClusters;
+  infos: {
+    cluster_id: number;
+    db_module_id: number;
+    dumper_id: number;
+    kafka_pwd: string;
+    l5_cmdid: number;
+    l5_modid: number;
+    protocol_type: string;
+    target_address: string;
+    target_port: number;
+  }[];
+  name: string;
   repl_tables: string[];
 }

@@ -77,11 +77,11 @@
 </template>
 <script lang="tsx">
   export const signMap: Record<string, string> = {
+    eq: '=',
     gt: '>',
     gte: '>=',
     lt: '<',
     lte: '<=',
-    eq: '=',
     neq: '!=',
   };
 </script>
@@ -95,15 +95,13 @@
 
   type Data = MonitorPolicyModel['test_rules'][0];
 
-  interface Emits {
-    (e: 'change', value: Data): void;
-  }
+  type Emits = (e: 'change', value: Data) => void;
 
   interface Props {
     data?: Data;
+    disabled?: boolean;
     indicator?: string;
     title?: string;
-    disabled?: boolean;
   }
 
   interface Exposes {
@@ -112,15 +110,15 @@
   }
 
   const props = withDefaults(defineProps<Props>(), {
-    title: '',
-    indicator: '',
-    disabled: false,
     data: () => ({
       config: [],
       level: 1,
       type: 'Threshold',
       unit_prefix: '%',
     }),
+    disabled: false,
+    indicator: '',
+    title: '',
   });
 
   const emits = defineEmits<Emits>();
@@ -147,7 +145,7 @@
   defineExpose<Exposes>({
     getValue() {
       const retData = _.cloneDeep(localValue.value);
-      // eslint-disable-next-line max-len
+
       // retData.config = retData.config.filter(item => item.filter(data => data.method !== '' && typeof data.threshold !== 'string').length > 0);
       return retData;
     },

@@ -107,21 +107,19 @@
   export interface ClusterEntryInfo {
     cluster_entry_type: string;
     entry: string;
-    role: string;
     ips: string;
     port: number;
+    role: string;
   }
 
   interface Props {
-    id: number;
     bizId: number;
-    resource: DBTypes;
+    id: number;
     permission: boolean;
+    resource: DBTypes;
   }
 
-  interface Emits {
-    (e: 'success'): void;
-  }
+  type Emits = (e: 'success') => void;
 
   const props = defineProps<Props>();
 
@@ -141,18 +139,18 @@
   const tableRef = ref();
   const tableData = ref<ClusterEntryInfo[]>([]);
 
-  const { run: fetchResources, loading } = useRequest(getClusterEntries, {
+  const { loading, run: fetchResources } = useRequest(getClusterEntries, {
     manual: true,
     onSuccess: (data) => {
       tableData.value = data
         .map((item) => ({
           cluster_entry_type: item.cluster_entry_type,
           entry: item.entry,
-          role: item.role,
           ips: item.isDns
             ? (item as ClusterEntryDetailModel<DnsTargetDetails>).target_details.map((row) => row.ip).join('\n')
             : '',
           port: (item as ClusterEntryDetailModel<DnsTargetDetails>).target_details[0]?.port,
+          role: item.role,
         }))
         .sort((a) => (a.role === 'master_entry' ? -1 : 1));
     },
@@ -161,8 +159,8 @@
   watch(isShow, () => {
     if (isShow.value && props.id !== 0) {
       fetchResources({
-        cluster_id: props.id,
         bk_biz_id: props.bizId,
+        cluster_id: props.id,
       });
     }
   });

@@ -6,8 +6,8 @@ export default defineComponent({
   name: 'RenderColumnCell',
   props: {
     column: {
-      type: Object as () => IColumnContext,
       required: true,
+      type: Object as () => IColumnContext,
     },
   },
   setup(props) {

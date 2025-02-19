@@ -76,12 +76,12 @@
 
   interface Props {
     clusterData?: {
-      id: number;
       domain: string;
+      id: number;
     };
     dstClusterData?: {
-      id: number;
       domain: string;
+      id: number;
     };
   }
 
@@ -106,8 +106,8 @@
   const localRenameInfoList = shallowRef<
     {
       db_name: string;
-      target_db_name: string;
       rename_db_name: string;
+      target_db_name: string;
     }[]
   >([]);
   const isShowEditName = ref(false);
@@ -122,12 +122,12 @@
 
   const rules = [
     {
-      validator: () => localRenameInfoList.value.length > 0,
       message: t('构造后 DB 名不能为空'),
+      validator: () => localRenameInfoList.value.length > 0,
     },
     {
-      validator: () => hasEditDbName.value,
       message: t('构造后 DB 名待有冲突更新'),
+      validator: () => hasEditDbName.value,
     },
   ];
 
@@ -143,8 +143,8 @@
     onSuccess(data) {
       localRenameInfoList.value = data.map((item) => ({
         db_name: item,
-        target_db_name: item,
         rename_db_name: '',
+        target_db_name: item,
       }));
       if (data.length > 0) {
         runCheckClusterDatabase({

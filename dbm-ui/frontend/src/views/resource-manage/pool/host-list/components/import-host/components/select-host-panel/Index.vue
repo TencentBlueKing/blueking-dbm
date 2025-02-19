@@ -50,10 +50,7 @@
   </div>
 </template>
 <script setup lang="tsx">
-  import {
-    onMounted,
-    watch,
-  } from 'vue';
+  import { onMounted, watch } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import { fetchListDbaHost } from '@services/source/dbresourceResource';
@@ -64,8 +61,8 @@
   import HostEmpty from './components/HostEmpty.vue';
 
   interface Props {
-    modelValue: HostInfo[],
-    contentHeight: number
+    modelValue: HostInfo[];
+    contentHeight: number;
   }
   interface Emits {
     (e: 'update:modelValue', value: Props['modelValue']): void;
@@ -89,7 +86,7 @@
     {
       label: 'IPV6',
       field: 'ipv6',
-      render: ({ data }: { data: HostInfo}) => data.ipv6 || '--',
+      render: ({ data }: { data: HostInfo }) => data.ipv6 || '--',
     },
     {
       label: t('管控区域'),
@@ -98,7 +95,7 @@
     {
       label: t('Agent 状态'),
       field: 'agent',
-      render: ({ data }: { data: HostInfo}) => {
+      render: ({ data }: { data: HostInfo }) => {
         const info = data.alive === 1 ? { theme: 'success', text: t('正常') } : { theme: 'danger', text: t('异常') };
         return <DbStatus theme={info.theme}>{info.text}</DbStatus>;
       },
@@ -114,20 +111,26 @@
   ];
 
   // 同步外部的删除操作
-  watch(() => props.modelValue, (newModleValue, oldModleValue) => {
-    if (newModleValue.length >= oldModleValue.length) {
-      return;
-    }
-    const newValueIdMap = newModleValue.reduce((result, item) => ({
-      ...result,
-      [item.host_id]: true,
-    }), {} as Record<HostInfo['host_id'], boolean>);
-    oldModleValue.forEach((hostData) => {
-      if (!newValueIdMap[hostData.host_id]) {
-        tableRef.value.removeSelectByKey(hostData.host_id);
+  watch(
+    () => props.modelValue,
+    (newModleValue, oldModleValue) => {
+      if (newModleValue.length >= oldModleValue.length) {
+        return;
       }
-    });
-  });
+      const newValueIdMap = newModleValue.reduce(
+        (result, item) => ({
+          ...result,
+          [item.host_id]: true,
+        }),
+        {} as Record<HostInfo['host_id'], boolean>,
+      );
+      oldModleValue.forEach((hostData) => {
+        if (!newValueIdMap[hostData.host_id]) {
+          tableRef.value.removeSelectByKey(hostData.host_id);
+        }
+      });
+    },
+  );
 
   const disableSelectMethod = (data: HostInfo) => {
     if (data.alive !== 1) {

@@ -20,10 +20,10 @@
 <script setup lang="tsx">
   import { useI18n } from 'vue-i18n';
 
-  import TicketModel, {type Dumper} from '@services/model/ticket/ticket';
+  import TicketModel, { type Dumper } from '@services/model/ticket/ticket';
 
   interface Props {
-    ticketDetails: TicketModel<Dumper.EnableNodes>
+    ticketDetails: TicketModel<Dumper.EnableNodes>;
   }
 
   type RowData = Props['ticketDetails']['details']['dumpers'][string];
@@ -32,7 +32,9 @@
 
   const { t } = useI18n();
 
-  const tableData = props.ticketDetails.details.dumper_instance_ids.map(id => props.ticketDetails.details.dumpers[id]);
+  const tableData = props.ticketDetails.details.dumper_instance_ids.map(
+    (id) => props.ticketDetails.details.dumpers[id],
+  );
 
   const syncTypeMap = {
     full_sync: t('全量同步'),
@@ -41,42 +43,50 @@
 
   const columns = [
     {
+      field: 'ip',
+      fixed: 'left',
       label: t('实例'),
       minWidth: 150,
+      render: ({ data }: { data: RowData }) => (
+        <span>
+          {data.ip}:{data.listen_port}
+        </span>
+      ),
       width: 200,
-      fixed: 'left',
-      field: 'ip',
-      render: ({ data }: {data: RowData}) => <span>{data.ip}:{data.listen_port}</span>,
     },
     {
-      label: t('实例 ID'),
       field: 'dumper_id',
+      label: t('实例 ID'),
       width: 80,
     },
     {
-      label: t('数据源集群'),
       field: 'source_cluster',
+      label: t('数据源集群'),
       minWidth: 200,
-      width: 250,
-      render: ({ data }: {data: RowData}) => (
+      render: ({ data }: { data: RowData }) => (
         <span>
           {data.source_cluster.immute_domain}:{data.source_cluster.master_port}
         </span>
       ),
+      width: 250,
     },
     {
-      label: t('接收端类型'),
       field: 'protocol_type',
+      label: t('接收端类型'),
     },
     {
-      label: t('接收端地址'),
       field: 'target_address',
-      render: ({ data }: {data: RowData}) => <span>{data.target_address}:{data.target_port}</span>,
+      label: t('接收端地址'),
+      render: ({ data }: { data: RowData }) => (
+        <span>
+          {data.target_address}:{data.target_port}
+        </span>
+      ),
     },
     {
-      label: t('同步方式'),
       field: 'add_type',
-      render: ({ data }: {data: RowData}) => <span>{syncTypeMap[data.add_type]}</span>,
+      label: t('同步方式'),
+      render: ({ data }: { data: RowData }) => <span>{syncTypeMap[data.add_type]}</span>,
     },
   ];
 </script>

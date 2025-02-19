@@ -5,7 +5,7 @@
 </template>
 <script setup lang="ts">
   const modelValue = defineModel<boolean>({
-    required: false,
     default: false,
+    required: false,
   });
 </script>

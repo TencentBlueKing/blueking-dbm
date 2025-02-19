@@ -19,14 +19,14 @@ export const parseURL = (url: string) => {
   a.href = url;
 
   return {
-    source: url,
-    protocol: a.protocol.replace(':', ''),
+    hash: a.hash.replace('#', ''),
     host: a.hostname,
+    origin: a.origin,
     pathname: a.pathname.replace(/\/?$/, '/'),
     port: a.port,
+    protocol: a.protocol.replace(':', ''),
     search: a.search.replace(/^\?/, ''),
-    hash: a.hash.replace('#', ''),
-    origin: a.origin,
+    source: url,
   };
 };
 
@@ -67,7 +67,6 @@ export const buildURLParams = (params: any) => {
       .replace(/%5B/gi, '[')
       .replace(/%5D/gi, ']');
   }
-  /* eslint no-param-reassign:0*/
   if (!params) {
     return '';
   }

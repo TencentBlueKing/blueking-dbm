@@ -17,33 +17,33 @@ import { random } from '@utils';
 
 // Redis 集群迁移
 export async function generateRedisMigrateClusterCloneData(ticketData: TicketModel<RedisClusterMigrate>) {
-  const { infos, clusters, specs } = ticketData.details;
+  const { clusters, infos, specs } = ticketData.details;
   const tableDataList = infos.map((infoItem) => {
     const clusterItem = clusters[infoItem.cluster_id];
     const specItem = specs[infoItem.resource_spec.backend_group.spec_id];
     return {
-      rowKey: random(),
-      isLoading: false,
-      spanData: {
-        isStart: false,
-        isGeneral: true,
-        rowSpan: 1,
-      },
       clusterData: {
-        instance: infoItem.display_info.instance,
-        domain: clusterItem.immute_domain,
         clusterId: clusterItem.id,
         clusterType: clusterItem.cluster_type,
+        domain: clusterItem.immute_domain,
+        instance: infoItem.display_info.instance,
         specId: specItem.id,
         specName: specItem.name,
       },
+      isLoading: false,
       master: infoItem.old_nodes.master[0],
+      rowKey: random(),
       slave: infoItem.old_nodes.slave[0],
+      spanData: {
+        isGeneral: true,
+        isStart: false,
+        rowSpan: 1,
+      },
     };
   });
 
   return {
-    tableDataList,
     remark: ticketData.remark,
+    tableDataList,
   };
 }

@@ -141,29 +141,29 @@
 </template>
 <script lang="tsx">
   enum ClusterType {
-    REDIS_INSTANCE = 'RedisInstance', // 主从版
     REDIS_CLUSTER = 'RedisCluster', // 集群版
+    REDIS_INSTANCE = 'RedisInstance', // 主从版
   }
 
   // 业务内，通用
   export interface InfoItem {
-    src_cluster: number | string;
     dst_cluster: number | string;
-    key_white_regex: string; // 包含key
     key_black_regex: string; // 排除key
+    key_white_regex: string; // 包含key
+    src_cluster: number | string;
   }
 
   // 跨业务
-  export type CrossBusinessInfoItem = InfoItem & { dst_bk_biz_id: number };
+  export type CrossBusinessInfoItem = { dst_bk_biz_id: number } & InfoItem;
 
   // 业务内至第三方
-  export type IntraBusinessToThirdInfoItem = InfoItem & { dst_cluster_password: string };
+  export type IntraBusinessToThirdInfoItem = { dst_cluster_password: string } & InfoItem;
 
   // 自建集群至业务内
-  export type SelfbuiltClusterToIntraInfoItem = InfoItem & {
-    src_cluster_type: ClusterType;
+  export type SelfbuiltClusterToIntraInfoItem = {
     src_cluster_password: string;
-  };
+    src_cluster_type: ClusterType;
+  } & InfoItem;
 
   export const destroyLocalStorage = () => {
     setTimeout(() => {
@@ -217,9 +217,8 @@
 
   // 单据克隆
   useTicketCloneInfo({
-    type: TicketTypes.REDIS_CLUSTER_DATA_COPY,
     onSuccess(cloneData) {
-      const { copyMode, writeMode, disconnectSetting } = cloneData;
+      const { copyMode, disconnectSetting, writeMode } = cloneData;
 
       copyType.value = copyMode;
       writeType.value = writeMode;
@@ -228,6 +227,7 @@
       remark.value = cloneData.remark;
       window.changeConfirm = true;
     },
+    type: TicketTypes.REDIS_CLUSTER_DATA_COPY,
   });
 
   const isSubmitting = ref(false);
@@ -244,8 +244,8 @@
 
   const currentTable = computed(() => {
     const comMap = {
-      [CopyModes.INTRA_BISNESS]: RenderWithinBusinessTable,
       [CopyModes.CROSS_BISNESS]: RenderCrossBusinessTable,
+      [CopyModes.INTRA_BISNESS]: RenderWithinBusinessTable,
       [CopyModes.INTRA_TO_THIRD]: RenderIntraBusinessToThirdPartTable,
       [CopyModes.SELFBUILT_TO_INTRA]: RenderSelfbuiltToIntraBusinessTable,
     };
@@ -284,12 +284,12 @@
 
   const queryClusterList = async () => {
     const result = await getRedisList({
-      offset: 0,
       limit: -1,
+      offset: 0,
     });
     clusterList.value = result.results.map((item) => ({
-      value: item.id,
       label: item.master_domain,
+      value: item.id,
     }));
   };
 
@@ -298,25 +298,25 @@
     const isAutoDisconnect = disconnectType.value === DisconnectModes.AUTO_DISCONNECT_AFTER_REPLICATION;
     const params = {
       bk_biz_id: currentBizId,
-      ticket_type: TicketTypes.REDIS_CLUSTER_DATA_COPY,
-      remark: remark.value,
       details: {
-        dts_copy_type: copyType.value,
-        write_mode: writeType.value,
-        // 断开设置与提醒频率
-        sync_disconnect_setting: {
-          type: disconnectType.value,
-          reminder_frequency: isAutoDisconnect ? '' : remindFrequencyType.value,
-        },
         data_check_repair_setting: {
-          type: isAutoDisconnect ? '' : repairAndVerifyType.value,
           execution_frequency:
             isAutoDisconnect || repairAndVerifyType.value === RepairAndVerifyModes.NO_CHECK_NO_REPAIR
               ? ''
               : repairAndVerifyFrequency.value,
+          type: isAutoDisconnect ? '' : repairAndVerifyType.value,
         },
+        dts_copy_type: copyType.value,
         infos,
+        // 断开设置与提醒频率
+        sync_disconnect_setting: {
+          reminder_frequency: isAutoDisconnect ? '' : remindFrequencyType.value,
+          type: disconnectType.value,
+        },
+        write_mode: writeType.value,
       },
+      remark: remark.value,
+      ticket_type: TicketTypes.REDIS_CLUSTER_DATA_COPY,
     };
     return params;
   };

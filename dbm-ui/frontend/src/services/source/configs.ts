@@ -21,19 +21,19 @@ const path = '/apis/configs';
 interface ParameterConfigItem {
   conf_name: string;
   conf_name_lc?: string;
+  conf_value?: string;
   description: string;
+  extra_info?: string;
   flag_disable: number;
   flag_locked: number;
+  leval_value?: string;
+  level_name?: string;
   need_restart: number;
-  value_allowed: string;
   op_type: string;
+  value_allowed: string;
   value_default?: string;
   value_type?: string;
   value_type_sub?: string;
-  conf_value?: string;
-  extra_info?: string;
-  level_name?: string;
-  leval_value?: string;
 }
 
 /**
@@ -49,8 +49,8 @@ interface ConfigVersionDetails {
     flag_locked: number;
     level_name: string;
     level_value: string;
-    op_type: string;
     need_restart: number;
+    op_type: string;
     value_allowed: string;
   }[];
   configs_diff: ConfigVersionDetails['configs'];
@@ -60,28 +60,28 @@ interface ConfigVersionDetails {
   description: string;
   id: number;
   is_published: number;
-  pre_revision: string;
-  revision: string;
   name: string;
-  version: string;
-  rows_affected: number;
+  pre_revision: string;
   publish_description: string;
+  revision: string;
+  rows_affected: number;
   updated_at: string;
   updated_by: string;
+  version: string;
 }
 
 /**
  * 查询配置发布记录详情
  */
 export function getConfigVersionDetails(params: {
-  meta_cluster_type: string;
-  conf_type: string;
-  version: string;
   bk_biz_id?: number;
+  conf_type: string;
+  level_info?: any;
   level_name?: string;
   level_value?: number;
-  level_info?: any;
+  meta_cluster_type: string;
   revision?: string;
+  version: string;
 }) {
   return http.get<ConfigVersionDetails>(`${path}/get_config_version_detail/`, params);
 }
@@ -91,26 +91,26 @@ export function getConfigVersionDetails(params: {
  */
 export function getLevelConfig(
   params: {
-    conf_type: string;
-    meta_cluster_type: string;
-    version?: string;
     bk_biz_id?: number;
+    conf_type: string;
+    level_info?: {
+      app?: string;
+      module?: string;
+    };
     level_name?: string;
     level_value?: number;
-    level_info?: {
-      module?: string;
-      app?: string;
-    };
+    meta_cluster_type: string;
+    version?: string;
   },
   payload = {} as IRequestPayload,
 ) {
   return http.post<{
     conf_items: ParameterConfigItem[];
-    version: string;
-    name: string;
     description: string;
+    name: string;
     updated_at?: string;
     updated_by?: string;
+    version: string;
   }>(`${path}/get_level_config/`, params, payload);
 }
 /**
@@ -118,19 +118,19 @@ export function getLevelConfig(
  */
 export function getConfigBaseDetails(
   params: {
-    meta_cluster_type: string;
     conf_type: string;
+    meta_cluster_type: string;
     version: string;
   },
   payload = {} as IRequestPayload,
 ) {
   return http.get<{
     conf_items: ParameterConfigItem[];
-    version: string;
-    name: string;
     description: string;
+    name: string;
     updated_at?: string;
     updated_by?: string;
+    version: string;
   }>(`${path}/get_platform_config/`, params, payload);
 }
 
@@ -139,9 +139,9 @@ export function getConfigBaseDetails(
  */
 export function getBusinessConfigList(
   params: {
-    meta_cluster_type: string;
-    conf_type: string;
     bk_biz_id: number;
+    conf_type: string;
+    meta_cluster_type: string;
   },
   payload = {} as IRequestPayload,
 ) {
@@ -149,10 +149,10 @@ export function getBusinessConfigList(
     .get<
       {
         name: string;
+        permission: Record<'dbconfig_edit', boolean>;
         updated_at: string;
         updated_by: string;
         version: string;
-        permission: Record<'dbconfig_edit', boolean>;
       }[]
     >(`${path}/list_biz_configs/`, params, payload)
     .then((data) =>
@@ -166,7 +166,7 @@ export function getBusinessConfigList(
 /**
  * 查询配置项名称列表
  */
-export function getConfigNames(params: { meta_cluster_type: string; conf_type: string; version: string }) {
+export function getConfigNames(params: { conf_type: string; meta_cluster_type: string; version: string }) {
   return http.get<ParameterConfigItem[]>(`${path}/list_config_names/`, params);
 }
 
@@ -174,14 +174,14 @@ export function getConfigNames(params: { meta_cluster_type: string; conf_type: s
  * 查询配置发布历史记录
  */
 export function getConfigVersionList(params: {
-  meta_cluster_type: string;
-  conf_type: string;
-  version: string;
   bk_biz_id?: number;
+  conf_type: string;
+  level_info?: any;
   level_name?: string;
   level_value?: number;
-  level_info?: any;
+  meta_cluster_type: string;
   revision?: string;
+  version: string;
 }) {
   return http.get<{
     bk_biz_id: number | string;
@@ -207,8 +207,8 @@ export function getConfigVersionList(params: {
  */
 export function getPlatformConfigList(
   params: {
-    meta_cluster_type: string;
     conf_type: string;
+    meta_cluster_type: string;
   },
   payload = {} as IRequestPayload,
 ) {
@@ -230,8 +230,8 @@ export function saveModulesDeployInfo(params: {
   conf_items: {
     conf_name: string;
     conf_value: string;
-    op_type: string;
     description: string;
+    op_type: string;
   }[];
   conf_type: string;
   level_name: string;
@@ -253,18 +253,18 @@ export function saveModulesDeployInfo(params: {
  * 编辑层级（业务、模块、集群）配置
  */
 export function updateBusinessConfig(params: {
-  name: string;
-  meta_cluster_type: string;
-  conf_type: string;
   bk_biz_id: number;
-  version: string;
+  conf_items: ParameterConfigItem[];
+  conf_type: string;
+  confirm: number;
+  description: string;
+  level_info?: any;
   level_name: string;
   level_value: number;
-  conf_items: ParameterConfigItem[];
-  description: string;
-  confirm: number;
+  meta_cluster_type: string;
+  name: string;
   publish_description?: string;
-  level_info?: any;
+  version: string;
 }) {
   return http.post<
     {
@@ -281,13 +281,13 @@ export function updateBusinessConfig(params: {
  */
 export function updatePlatformConfig(params: {
   conf_items: ParameterConfigItem[];
-  version: string;
-  name: string;
-  description: string;
   conf_type: string;
   confirm: number;
+  description: string;
   meta_cluster_type: string;
+  name: string;
   publish_description?: string;
+  version: string;
 }) {
   return http.post<{
     conf_file: string;

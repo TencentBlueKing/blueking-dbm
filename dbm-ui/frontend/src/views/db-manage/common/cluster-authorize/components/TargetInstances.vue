@@ -51,11 +51,11 @@
     accountType: AccountTypes;
     clusterTypes: string[];
     data: {
-      master_domain: string;
       cluster_name: string;
       cluster_type: ClusterTypes;
       db_module_name?: string;
       isMaster?: boolean;
+      master_domain: string;
     }[];
   }
 
@@ -64,7 +64,7 @@
   type ClusterSelectorResult = Record<string, Props['data']>;
 
   interface Exposes {
-    getClusterType(): ClusterTypes,
+    getClusterType(): ClusterTypes;
     init(clusterType: ClusterTypes, data: ResourceItem[]): void;
   }
 
@@ -79,62 +79,13 @@
   const formRef = ref();
   const rules = [
     {
-      trigger: 'change',
       message: t('请添加目标集群'),
+      trigger: 'change',
       validator: (value: string[]) => value.length > 0,
     },
-  ]
+  ];
 
   const tabListConfigMap = {
-    tendbhaSlave: {
-      name: t('MySQL主从-从域名'),
-      showPreviewResultTitle: true,
-      getResourceList: (params: ServiceParameters<typeof getTendbhaSalveList>) => {
-        const realParams = { ...params }
-        realParams.slave_domain = realParams.domain;
-        delete realParams.domain;
-        return getTendbhaSalveList(realParams).then(data => ({
-          ...data,
-          results: data.results.reduce<ServiceReturnType<typeof getTendbhaSalveList>['results']>((result, item) => {
-            item.cluster_entry.forEach(entryItem => {
-              if (entryItem.role === 'slave_entry') {
-                result.push(Object.assign({}, item, {
-                  master_domain: entryItem.entry
-                }))
-              }
-            })
-            return result
-          }, [])
-        }))
-      }
-    },
-    [ClusterTypes.TENDBCLUSTER]: {
-      name: t('TendbCluster-主域名'),
-      showPreviewResultTitle: true,
-    },
-    tendbclusterSlave: {
-      name: t('TendbCluster-从域名'),
-      showPreviewResultTitle: true,
-      getResourceList: (params: any) => {
-        params.slave_domain = params.domain;
-        delete params.domain;
-        return getTendbSlaveClusterList(params)
-      }
-    },
-    [ClusterTypes.TENDBHA]: {
-      name: t('MySQL主从-主域名'),
-      showPreviewResultTitle: true,
-      getResourceList: (params: ServiceParameters<typeof getTendbhaList>) => {
-        const realParams = { ...params }
-        realParams.master_domain = params.domain;
-        delete realParams.domain;
-        return getTendbhaList(realParams)
-      }
-    },
-    [ClusterTypes.TENDBSINGLE]: {
-      name: t('MySQL单节点'),
-      showPreviewResultTitle: true,
-    },
     [ClusterTypes.MONGO_REPLICA_SET]: {
       name: t('副本集集群'),
       showPreviewResultTitle: true,
@@ -143,37 +94,72 @@
       name: t('分片集群'),
       showPreviewResultTitle: true,
     },
+    [ClusterTypes.SQLSERVER_HA]: {
+      name: t('主从集群'),
+      showPreviewResultTitle: true,
+    },
     [ClusterTypes.SQLSERVER_SINGLE]: {
       name: t('单节点集群'),
       showPreviewResultTitle: true,
     },
-    [ClusterTypes.SQLSERVER_HA]: {
-      name: t('主从集群'),
+    [ClusterTypes.TENDBCLUSTER]: {
+      name: t('TendbCluster-主域名'),
+      showPreviewResultTitle: true,
+    },
+    [ClusterTypes.TENDBHA]: {
+      getResourceList: (params: ServiceParameters<typeof getTendbhaList>) => {
+        const realParams = { ...params };
+        realParams.master_domain = params.domain;
+        delete realParams.domain;
+        return getTendbhaList(realParams);
+      },
+      name: t('MySQL主从-主域名'),
+      showPreviewResultTitle: true,
+    },
+    [ClusterTypes.TENDBSINGLE]: {
+      name: t('MySQL单节点'),
+      showPreviewResultTitle: true,
+    },
+    tendbclusterSlave: {
+      getResourceList: (params: any) => {
+        // eslint-disable-next-line no-param-reassign
+        params.slave_domain = params.domain;
+        // eslint-disable-next-line no-param-reassign
+        delete params.domain;
+        return getTendbSlaveClusterList(params);
+      },
+      name: t('TendbCluster-从域名'),
+      showPreviewResultTitle: true,
+    },
+    tendbhaSlave: {
+      getResourceList: (params: ServiceParameters<typeof getTendbhaSalveList>) => {
+        const realParams = { ...params };
+        realParams.slave_domain = realParams.domain;
+        delete realParams.domain;
+        return getTendbhaSalveList(realParams).then((data) => ({
+          ...data,
+          results: data.results.reduce<ServiceReturnType<typeof getTendbhaSalveList>['results']>((result, item) => {
+            item.cluster_entry.forEach((entryItem) => {
+              if (entryItem.role === 'slave_entry') {
+                result.push(
+                  Object.assign({}, item, {
+                    master_domain: entryItem.entry,
+                  }),
+                );
+              }
+            });
+            return result;
+          }, []),
+        }));
+      },
+      name: t('MySQL主从-从域名'),
       showPreviewResultTitle: true,
     },
   } as unknown as Record<string, TabConfig>;
 
   const state = reactive({
     clusterType: ClusterTypes.TENDBHA,
-    selected: {
-      [ClusterTypes.TENDBHA]: [],
-      [ClusterTypes.TENDBSINGLE]: [],
-      tendbhaSlave: [],
-      [ClusterTypes.TENDBCLUSTER]: [],
-      tendbclusterSlave: [],
-      [ClusterTypes.SQLSERVER_HA]: [],
-      [ClusterTypes.SQLSERVER_SINGLE]: [],
-      [ClusterTypes.MONGO_REPLICA_SET]: [],
-      [ClusterTypes.MONGO_SHARED_CLUSTER]: [],
-    } as ClusterSelectorResult,
     isShow: false,
-    tableProps: {
-      data: [] as ResourceItem[],
-      pagination: {
-        small: true,
-        count: 0,
-      },
-    },
     operations: [
       {
         label: t('清除所有'),
@@ -184,57 +170,79 @@
       {
         label: t('复制所有域名'),
         onClick: () => {
-          const value = state.tableProps.data.map((item) => item.master_domain)
+          const value = state.tableProps.data.map((item) => item.master_domain);
           execCopy(value.join('\n'), t('复制成功，共n条', { n: value.length }));
         },
       },
     ],
+    selected: {
+      [ClusterTypes.MONGO_REPLICA_SET]: [],
+      [ClusterTypes.MONGO_SHARED_CLUSTER]: [],
+      [ClusterTypes.SQLSERVER_HA]: [],
+      [ClusterTypes.SQLSERVER_SINGLE]: [],
+      [ClusterTypes.TENDBCLUSTER]: [],
+      [ClusterTypes.TENDBHA]: [],
+      [ClusterTypes.TENDBSINGLE]: [],
+      tendbclusterSlave: [],
+      tendbhaSlave: [],
+    } as ClusterSelectorResult,
+    tableProps: {
+      data: [] as ResourceItem[],
+      pagination: {
+        count: 0,
+        small: true,
+      },
+    },
   });
 
-  const tabListConfig = computed(() => props.clusterTypes.reduce((prevConfig, clusterTypeItem) => ({
-    ...prevConfig,
-    [clusterTypeItem]: tabListConfigMap[clusterTypeItem],
-  }), {} as Record<string, TabConfig>));
+  const tabListConfig = computed(() =>
+    props.clusterTypes.reduce(
+      (prevConfig, clusterTypeItem) => ({
+        ...prevConfig,
+        [clusterTypeItem]: tabListConfigMap[clusterTypeItem],
+      }),
+      {} as Record<string, TabConfig>,
+    ),
+  );
 
   const collapseTableColumns = computed(() => {
     const columns = [
       {
-        label: t('域名'),
         field: 'master_domain',
-        render: ({ data }: { data: ResourceItem }) => (
-          data.isMaster !== undefined
-            ? <div class="domain-column">
-              {data.isMaster
-                ? <span class="master-icon">{t('主')}</span>
-                : <span class="slave-icon">{t('从')}</span>}
-              <span class="ml-6">{data.master_domain}</span>
+        label: t('域名'),
+        render: ({ data }: { data: ResourceItem }) =>
+          data.isMaster !== undefined ? (
+            <div class='domain-column'>
+              {data.isMaster ? <span class='master-icon'>{t('主')}</span> : <span class='slave-icon'>{t('从')}</span>}
+              <span class='ml-6'>{data.master_domain}</span>
             </div>
-            : <span>{data.master_domain}</span>
-        ),
+          ) : (
+            <span>{data.master_domain}</span>
+          ),
       },
       {
-        label: t('集群'),
         field: 'cluster_name',
+        label: t('集群'),
       },
       {
-        label: t('操作'),
         field: 'operation',
-        width: 100,
+        label: t('操作'),
         render: ({ index }: { index: number }) => (
           <bk-button
+            theme='primary'
             text
-            theme="primary"
             onClick={() => handleRemoveSelected(index)}>
             {t('删除')}
           </bk-button>
         ),
+        width: 100,
       },
     ];
 
     if (props.accountType !== AccountTypes.MONGODB) {
       columns.splice(2, 0, {
-        label: t('所属DB模块'),
         field: 'db_module_name',
+        label: t('所属DB模块'),
       });
     }
 
@@ -242,11 +250,7 @@
   });
 
   const selectedList = computed(() => {
-    const {
-      clusterType,
-      selected,
-      tableProps,
-    } = state;
+    const { clusterType, selected, tableProps } = state;
     selected[clusterType] = tableProps.data;
     return selected;
   });
@@ -258,12 +262,12 @@
         state.clusterType = props.data[0].cluster_type;
         nextTick(() => {
           updateTableData(props.data);
-        })
+        });
       }
     },
     {
       immediate: true,
-    }
+    },
   );
 
   const handleShowTargetCluster = () => {
@@ -274,7 +278,7 @@
     formRef.value.clearValidate();
     state.tableProps.data = data;
     state.tableProps.pagination.count = data.length;
-    targetInstances.value = data.map(item => item.master_domain);
+    targetInstances.value = data.map((item) => item.master_domain);
   };
 
   const handleClusterChange = (selected: ClusterSelectorResult) => {
@@ -310,6 +314,6 @@
         [clusterType]: data,
       };
       updateTableData(data);
-    }
+    },
   });
 </script>

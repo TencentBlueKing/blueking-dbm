@@ -19,42 +19,42 @@ import type { HostInfo } from '@services/types';
  */
 export const getInitFormdata = () => ({
   bk_biz_id: '' as number | '',
-  remark: '',
-  ticket_type: 'PULSAR_APPLY',
   details: {
-    username: '',
-    password: '',
-    ip_source: 'resource_pool',
-    db_version: '',
-    bk_cloud_id: 0,
-    retention_hours: 1,
-    replication_num: 2,
     ack_quorum: 1,
-    port: 6650,
-    partition_num: 1,
-    cluster_name: '',
-    cluster_alias: '',
+    bk_cloud_id: 0,
     city_code: '',
+    cluster_alias: '',
+    cluster_name: '',
     db_app_abbr: '',
+    db_version: '',
     disaster_tolerance_level: 'NONE', // 同 affinity
+    ip_source: 'resource_pool',
     nodes: {
-      zookeeper: [] as HostInfo[],
-      broker: [] as HostInfo[],
       bookkeeper: [] as HostInfo[],
+      broker: [] as HostInfo[],
+      zookeeper: [] as HostInfo[],
     },
+    partition_num: 1,
+    password: '',
+    port: 6650,
+    replication_num: 2,
     resource_spec: {
-      zookeeper: {
+      bookkeeper: {
+        count: 2,
         spec_id: '',
-        count: 3,
       },
       broker: {
-        spec_id: '',
         count: 1,
-      },
-      bookkeeper: {
         spec_id: '',
-        count: 2,
+      },
+      zookeeper: {
+        count: 3,
+        spec_id: '',
       },
     },
+    retention_hours: 1,
+    username: '',
   },
+  remark: '',
+  ticket_type: 'PULSAR_APPLY',
 });

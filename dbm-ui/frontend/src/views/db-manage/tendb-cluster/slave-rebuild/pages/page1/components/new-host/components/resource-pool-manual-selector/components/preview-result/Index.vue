@@ -79,9 +79,7 @@
     lastValues: DbResourceModel[];
   }
 
-  interface Emits {
-    (e: 'change', value: DbResourceModel[]): void;
-  }
+  type Emits = (e: 'change', value: DbResourceModel[]) => void;
 
   const props = defineProps<Props>();
   const emits = defineEmits<Emits>();

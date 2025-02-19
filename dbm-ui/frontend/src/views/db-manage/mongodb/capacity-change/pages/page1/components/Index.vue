@@ -61,9 +61,7 @@
   import RenderTableHeadColumn from '@components/render-table/HeadColumn.vue';
   import RenderTable from '@components/render-table/Index.vue';
 
-  interface Emits {
-    (e: 'showBatchSelector'): void;
-  }
+  type Emits = (e: 'showBatchSelector') => void;
 
   const emits = defineEmits<Emits>();
 

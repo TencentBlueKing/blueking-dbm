@@ -60,9 +60,7 @@
   import { queryRestoreRecord } from '@services/source/mongodbRestore';
   import { createTicket } from '@services/source/ticket';
 
-  import {
-    useTicketMessage,
-  } from '@hooks';
+  import { useTicketMessage } from '@hooks';
 
   import { useGlobalBizs } from '@stores';
 
@@ -77,277 +75,302 @@
   import { execCopy, getSearchSelectorParams } from '@utils';
 
   interface SearchSelectItem {
-    id: string,
-    name: string,
+    id: string;
+    name: string;
   }
 
   const { currentBizId } = useGlobalBizs();
   const { t } = useI18n();
   const handleDeleteSuccess = useTicketMessage();
 
-  const searchValue = ref<Array<SearchSelectItem & {values: SearchSelectItem[]}>>([]);
+  const searchValue = ref<Array<{ values: SearchSelectItem[] } & SearchSelectItem>>([]);
   const selectedList = ref<MongodbRollbackRecordModel[]>([]);
   const isTableDataLoading = ref(false);
   const tableRef = ref();
 
-  const searchSelectList = computed(() => ([
+  const searchSelectList = computed(() => [
     {
-      name: t('集群'),
       id: 'immute_domain',
+      name: t('集群'),
     },
     {
-      name: t('集群类型'),
-      id: 'cluster_type',
-      multiple: true,
       children: [
         {
           id: 'MongoReplicaSet',
           name: t('副本集集群'),
-
         },
         {
           id: 'MongoShardedCluster',
           name: t('分片集群'),
         },
-      ]
+      ],
+      id: 'cluster_type',
+      multiple: true,
+      name: t('集群类型'),
     },
     {
-      name: 'IP',
       id: 'ips',
+      name: 'IP',
     },
-  ]));
+  ]);
 
   const settings = {
+    checked: [
+      'target_cluster',
+      'source_cluster',
+      'cluster_type',
+      'target_nodes',
+      'instance_per_host',
+      'struct_type',
+      'ticket_id',
+    ],
     fields: [
       {
-        label: t('构造的集群'),
         field: 'target_cluster',
+        label: t('构造的集群'),
       },
       {
-        label: t('源集群'),
         field: 'source_cluster',
+        label: t('源集群'),
       },
       {
-        label: t('集群类型'),
         field: 'cluster_type',
+        label: t('集群类型'),
       },
       {
-        label: t('构造的主机'),
         field: 'target_nodes',
+        label: t('构造的主机'),
       },
       {
-        label: t('每台主机Shard数'),
         field: 'instance_per_host',
+        label: t('每台主机Shard数'),
       },
       {
-        label: t('构造类型'),
         field: 'struct_type',
+        label: t('构造类型'),
       },
       {
-        label: t('关联单据'),
         field: 'ticket_id',
+        label: t('关联单据'),
       },
       {
-        label: t('构造DB名'),
         field: 'db_patterns',
+        label: t('构造DB名'),
       },
       {
-        label: t('忽略DB名'),
         field: 'ignore_dbs',
+        label: t('忽略DB名'),
       },
       {
-        label: t('构造表名'),
         field: 'table_patterns',
+        label: t('构造表名'),
       },
       {
-        label: t('忽略表名'),
         field: 'ignore_tables',
+        label: t('忽略表名'),
       },
-
     ],
-    checked: ['target_cluster', 'source_cluster', 'cluster_type', 'target_nodes', 'instance_per_host', 'struct_type', 'ticket_id'],
   };
 
   const columns = [
     {
-      label: t('构造的集群'),
       field: 'target_cluster',
       fixed: 'left',
+      label: t('构造的集群'),
       minWidth: 140,
-      width: 140,
-      render: ({ data }: {data: MongodbRollbackRecordModel}) => (
+      render: ({ data }: { data: MongodbRollbackRecordModel }) => (
         <TextOverflowLayout>
           {{
-            default: () => <span>{data.target_cluster.immute_domain}</span>,
             append: () => (
               <>
-              {
-                data.operationTagTips.map(item => <RenderOperationTag class="cluster-tag" data={item} />)
-              }
-              <db-icon
-                type="copy"
-                v-bk-tooltips={t('复制n', { n: t('构造的集群') })}
-                onClick={() => execCopy(data.target_cluster.immute_domain, t('复制成功，共n条', { n: 1 }))} />
+                {data.operationTagTips.map((item) => (
+                  <RenderOperationTag
+                    class='cluster-tag'
+                    data={item}
+                  />
+                ))}
+                <db-icon
+                  v-bk-tooltips={t('复制n', { n: t('构造的集群') })}
+                  type='copy'
+                  onClick={() => execCopy(data.target_cluster.immute_domain, t('复制成功，共n条', { n: 1 }))}
+                />
               </>
             ),
+            default: () => <span>{data.target_cluster.immute_domain}</span>,
           }}
         </TextOverflowLayout>
       ),
+      width: 140,
     },
     {
-      label: t('源集群'),
       field: 'source_cluster',
-      showOverflowTooltip: true,
+      label: t('源集群'),
       minWidth: 150,
-      render: ({ data }: {data: MongodbRollbackRecordModel}) => (
+      render: ({ data }: { data: MongodbRollbackRecordModel }) => (
         <TextOverflowLayout>
           {{
-            default: () => <span>{data.sourceClusteText}</span>,
             append: () => (
               <db-icon
-                type="copy"
                 v-bk-tooltips={t('复制n', { n: t('源集群') })}
-                onClick={() => execCopy(data.sourceClusteText, t('复制成功，共n条', { n: 1 }))} />
+                type='copy'
+                onClick={() => execCopy(data.sourceClusteText, t('复制成功，共n条', { n: 1 }))}
+              />
             ),
+            default: () => <span>{data.sourceClusteText}</span>,
           }}
         </TextOverflowLayout>
       ),
+      showOverflowTooltip: true,
     },
     {
-      label: t('集群类型'),
       field: 'cluster_type',
-      showOverflowTooltip: false,
-      minWidth: 100,
-      width: 100,
       filter: {
         list: [
           {
-            value: 'MongoReplicaSet',
             text: t('副本集集群'),
-
+            value: 'MongoReplicaSet',
           },
           {
-            value: 'MongoShardedCluster',
             text: t('分片集群'),
+            value: 'MongoShardedCluster',
           },
-        ]
+        ],
       },
-      render: ({ data }: {data: MongodbRollbackRecordModel}) => data.sourceClusterTypeText,
+      label: t('集群类型'),
+      minWidth: 100,
+      render: ({ data }: { data: MongodbRollbackRecordModel }) => data.sourceClusterTypeText,
+      showOverflowTooltip: false,
+      width: 100,
     },
     {
-      label: t('构造的主机'),
       field: 'target_nodes',
+      label: t('构造的主机'),
       minWidth: 130,
-      render: ({ data }: {data: MongodbRollbackRecordModel}) => (
-        <div class="struct-host">
-          <RenderRow data={data.target_nodes} showAll />
+      render: ({ data }: { data: MongodbRollbackRecordModel }) => (
+        <div class='struct-host'>
+          <RenderRow
+            data={data.target_nodes}
+            showAll
+          />
           <db-icon
-            type="copy"
             v-bk-tooltips={t('复制n', { n: t('构造的主机') })}
-            onClick={() => execCopy(data.target_nodes.join(','), t('复制成功，共n条', { n: 1 }))} />
+            type='copy'
+            onClick={() => execCopy(data.target_nodes.join(','), t('复制成功，共n条', { n: 1 }))}
+          />
         </div>
-        ),
+      ),
     },
     {
-      label: t('每台主机Shard数'),
       field: 'instance_per_host',
+      label: t('每台主机Shard数'),
       minWidth: 140,
       width: 140,
     },
 
     {
-      label: t('构造类型'),
       field: 'struct_type',
-      showOverflowTooltip: true,
+      label: t('构造类型'),
       minWidth: 120,
+      render: ({ data }: { data: MongodbRollbackRecordModel }) => data.rollbackTypeText,
+      showOverflowTooltip: true,
       width: 200,
-      render: ({ data }: {data: MongodbRollbackRecordModel}) => data.rollbackTypeText,
     },
     {
-      label: t('关联单据'),
       field: 'ticket_id',
-      showOverflowTooltip: true,
+      label: t('关联单据'),
       minWidth: 100,
-      width: 100,
-      render: ({ data }: {data: MongodbRollbackRecordModel}) => (data.ticket_id ? (
-        <router-link
-          target="_blank"
-          to={{
-            name: 'bizTicketManage',
-            params: {
-              ticketId: data.ticket_id,
-            },
-          }}>
-          {data.ticket_id}
-        </router-link>
-        ) : '--'),
-    },
-    {
-      label: t('构造DB名'),
-      field: 'db_patterns',
-      showOverflowTooltip: false,
-      render: ({ data }: {data: MongodbRollbackRecordModel}) => (
-        <>
-          {data.ns_filter.db_patterns.length > 0 ? data.ns_filter.db_patterns.map(item => <bk-tag>{item}</bk-tag>) : '--'}
-        </>
-      ),
-    },
-    {
-      label: t('忽略DB名'),
-      field: 'ignore_dbs',
-      showOverflowTooltip: false,
-      render: ({ data }: {data: MongodbRollbackRecordModel}) => (
-        <>
-          {data.ns_filter.ignore_dbs.length > 0 ? data.ns_filter.ignore_dbs.map(item => <bk-tag>{item}</bk-tag>) : '--'}
-        </>
-      ),
-    },
-    {
-      label: t('构造表名'),
-      field: 'table_patterns',
-      showOverflowTooltip: false,
-      render: ({ data }: {data: MongodbRollbackRecordModel}) => (
-        <>
-          {data.ns_filter.table_patterns.length > 0 ? data.ns_filter.table_patterns.map(item => <bk-tag>{item}</bk-tag>) : '--'}
-        </>
-      ),
-    },
-    {
-      label: t('忽略表名'),
-      field: 'ignore_tables',
-      showOverflowTooltip: false,
-      render: ({ data }: {data: MongodbRollbackRecordModel}) => (
-        <>
-          {data.ns_filter.ignore_tables.length > 0 ? data.ns_filter.ignore_tables.map(item => <bk-tag>{item}</bk-tag>) : '--'}
-        </>
-      ),
-    },
-    {
-      label: t('操作'),
-      fixed: 'right',
+      render: ({ data }: { data: MongodbRollbackRecordModel }) =>
+        data.ticket_id ? (
+          <router-link
+            to={{
+              name: 'bizTicketManage',
+              params: {
+                ticketId: data.ticket_id,
+              },
+            }}
+            target='_blank'>
+            {data.ticket_id}
+          </router-link>
+        ) : (
+          '--'
+        ),
       showOverflowTooltip: true,
+      width: 100,
+    },
+    {
+      field: 'db_patterns',
+      label: t('构造DB名'),
+      render: ({ data }: { data: MongodbRollbackRecordModel }) => (
+        <>
+          {data.ns_filter.db_patterns.length > 0
+            ? data.ns_filter.db_patterns.map((item) => <bk-tag>{item}</bk-tag>)
+            : '--'}
+        </>
+      ),
+      showOverflowTooltip: false,
+    },
+    {
+      field: 'ignore_dbs',
+      label: t('忽略DB名'),
+      render: ({ data }: { data: MongodbRollbackRecordModel }) => (
+        <>
+          {data.ns_filter.ignore_dbs.length > 0
+            ? data.ns_filter.ignore_dbs.map((item) => <bk-tag>{item}</bk-tag>)
+            : '--'}
+        </>
+      ),
+      showOverflowTooltip: false,
+    },
+    {
+      field: 'table_patterns',
+      label: t('构造表名'),
+      render: ({ data }: { data: MongodbRollbackRecordModel }) => (
+        <>
+          {data.ns_filter.table_patterns.length > 0
+            ? data.ns_filter.table_patterns.map((item) => <bk-tag>{item}</bk-tag>)
+            : '--'}
+        </>
+      ),
+      showOverflowTooltip: false,
+    },
+    {
+      field: 'ignore_tables',
+      label: t('忽略表名'),
+      render: ({ data }: { data: MongodbRollbackRecordModel }) => (
+        <>
+          {data.ns_filter.ignore_tables.length > 0
+            ? data.ns_filter.ignore_tables.map((item) => <bk-tag>{item}</bk-tag>)
+            : '--'}
+        </>
+      ),
+      showOverflowTooltip: false,
+    },
+    {
+      fixed: 'right',
+      label: t('操作'),
       minWidth: 140,
-      width: 180,
-      render: ({ data }: {data: MongodbRollbackRecordModel}) => (
+      render: ({ data }: { data: MongodbRollbackRecordModel }) => (
         <>
           <OperationBtnStatusTips data={data}>
             <bk-button
-              text
-              theme="primary"
               disabled={data.operationDisabled}
+              theme='primary'
+              text
               onClick={() => handleDestroyCluster(data)}>
               {t('销毁')}
             </bk-button>
           </OperationBtnStatusTips>
           <bk-button
+            style='margin-left:10px;'
+            theme='primary'
             text
-            theme="primary"
-            onClick={() => execCopy(data.target_cluster.immute_domain, t('复制成功，共n条', { n: 1 }))}
-            style="margin-left:10px;">
+            onClick={() => execCopy(data.target_cluster.immute_domain, t('复制成功，共n条', { n: 1 }))}>
             {t('复制访问地址')}
           </bk-button>
         </>
       ),
+      showOverflowTooltip: true,
+      width: 180,
     },
   ];
 
@@ -370,31 +393,33 @@
   };
 
   const handleColumnFilter = (data: {
-    checked: string[],
+    checked: string[];
     column: {
-      field: string,
-      label: string,
+      field: string;
       filter: {
         list: {
-          value: string,
-          text: string,
-        }[]
-      }
-    },
-    index: number,
+          text: string;
+          value: string;
+        }[];
+      };
+      label: string;
+    };
+    index: number;
   }) => {
     if (data.checked.length === 0) {
-      searchValue.value = searchValue.value.filter(item => item.id !== data.column.field);
+      searchValue.value = searchValue.value.filter((item) => item.id !== data.column.field);
       return;
     }
-    searchValue.value = [{
-      id: data.column.field,
-      name: data.column.label,
-      values: data.checked.map(item => ({
-        id: item,
-        name: data.column.filter.list.find(row => row.value === item)?.text ?? '',
-      })),
-    }];
+    searchValue.value = [
+      {
+        id: data.column.field,
+        name: data.column.label,
+        values: data.checked.map((item) => ({
+          id: item,
+          name: data.column.filter.list.find((row) => row.value === item)?.text ?? '',
+        })),
+      },
+    ];
   };
 
   const handleClearFilters = () => {
@@ -405,29 +430,28 @@
   // 设置行样式
   // const setRowClass = (row: MongodbRollbackRecordModel) => (row.isDestroyed ? 'disable-color' : 'normal-color');
 
-
   // 批量销毁
   const handleDestroyCluster = (row?: MongodbRollbackRecordModel) => {
     const params = {
       bk_biz_id: currentBizId,
-      ticket_type: TicketTypes.MONGODB_TEMPORARY_DESTROY,
       details: {
-        cluster_ids: row ? [row.target_cluster.id] : selectedList.value.map(item => item.target_cluster.id),
+        cluster_ids: row ? [row.target_cluster.id] : selectedList.value.map((item) => item.target_cluster.id),
       },
+      ticket_type: TicketTypes.MONGODB_TEMPORARY_DESTROY,
     };
     const count = row ? 1 : selectedList.value.length;
     InfoBox({
-      title: t('确认销毁n个集群的构造记录', { n: count }),
-      subTitle: t('销毁后将不可再恢复，请谨慎操作！'),
-      width: 400,
       confirmText: t('删除'),
       onConfirm: () => {
-        createTicket(params)
-          .then((data) => {
-            const ticketId = data.id;
-            handleDeleteSuccess(ticketId);
-          });
-      } });
+        createTicket(params).then((data) => {
+          const ticketId = data.id;
+          handleDeleteSuccess(ticketId);
+        });
+      },
+      subTitle: t('销毁后将不可再恢复，请谨慎操作！'),
+      title: t('确认销毁n个集群的构造记录', { n: count }),
+      width: 400,
+    });
   };
 </script>
 

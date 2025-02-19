@@ -116,12 +116,12 @@
 
   // 单据克隆
   useTicketCloneInfo({
-    type: TicketTypes.MYSQL_HA_DB_TABLE_BACKUP,
     onSuccess(cloneData) {
       tableData.value = cloneData.tableDataList;
       remark.value = cloneData.remark;
       window.changeConfirm = true;
     },
+    type: TicketTypes.MYSQL_HA_DB_TABLE_BACKUP,
   });
 
   const rowRefs = ref();
@@ -165,11 +165,11 @@
         const domain = clusterData.master_domain;
         if (!domainMemo[domain]) {
           const row = createRowData({
-            clusterData: {
-              id: clusterData.id,
-              domain: clusterData.master_domain,
-            },
             backupLocal: clusterData.cluster_type === ClusterTypes.TENDBHA ? 'Slave' : 'Master',
+            clusterData: {
+              domain: clusterData.master_domain,
+              id: clusterData.id,
+            },
           });
           results.push(row);
           domainMemo[domain] = true;
@@ -203,11 +203,11 @@
     const item = resultList[0];
     const domain = item.master_domain;
     const row = createRowData({
-      clusterData: {
-        id: item.id,
-        domain,
-      },
       backupLocal: item.cluster_type === ClusterTypes.TENDBHA ? 'Slave' : 'Master',
+      clusterData: {
+        domain,
+        id: item.id,
+      },
     });
     tableData.value[index] = row;
     domainMemo[domain] = true;
@@ -262,12 +262,12 @@
       isSubmitting.value = true;
       const infos = await Promise.all(rowRefs.value.map((item: { getValue: () => Promise<any> }) => item.getValue()));
       await createTicket({
-        ticket_type: 'MYSQL_HA_DB_TABLE_BACKUP',
-        remark: remark.value,
+        bk_biz_id: currentBizId,
         details: {
           infos,
         },
-        bk_biz_id: currentBizId,
+        remark: remark.value,
+        ticket_type: 'MYSQL_HA_DB_TABLE_BACKUP',
       }).then((data) => {
         window.changeConfirm = false;
         router.push({

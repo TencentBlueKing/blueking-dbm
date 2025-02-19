@@ -13,18 +13,18 @@
   import StatusTodo from './StatusTodo.vue';
 
   interface Props {
-    ticketStatus: string;
     data: TicketModel;
+    ticketStatus: string;
   }
 
   const props = defineProps<Props>();
 
   const comMap = {
-    [TicketModel.STATUS_TODO]: StatusTodo,
     [TicketModel.STATUS_APPROVE]: StatusApprove,
-    [TicketModel.STATUS_RESOURCE_REPLENISH]: StatusResourceReplenish,
     [TicketModel.STATUS_FAILED]: StatusFailed,
     [TicketModel.STATUS_INNER_TODO]: StatusInnerTodo,
+    [TicketModel.STATUS_RESOURCE_REPLENISH]: StatusResourceReplenish,
+    [TicketModel.STATUS_TODO]: StatusTodo,
   };
 
   const renderCom = comMap[props.ticketStatus];

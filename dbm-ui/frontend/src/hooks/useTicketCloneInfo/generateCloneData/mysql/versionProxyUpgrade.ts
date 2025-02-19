@@ -17,21 +17,21 @@ import { random } from '@utils';
 
 // MySQL Proxy 升级
 export function generateMysqlVersionProxyUpgradeCloneData(ticketData: TicketModel<Mysql.ProxyUpgrade>) {
-  const { clusters, infos, force } = ticketData.details;
+  const { clusters, force, infos } = ticketData.details;
   const tableList = infos.map((item) => {
     const clusterId = item.cluster_ids[0];
     return {
-      rowKey: random(),
-      isLoading: false,
       clusterData: {
-        domain: clusters[clusterId].immute_domain,
         clusterId,
         clusterType: clusters[clusterId].cluster_type,
         currentVersion: item.display_info.current_version,
+        domain: clusters[clusterId].immute_domain,
       },
+      isLoading: false,
+      rowKey: random(),
       targetVersion: item.pkg_id,
     };
   });
 
-  return Promise.resolve({ tableList, remark: ticketData.remark, force });
+  return Promise.resolve({ force, remark: ticketData.remark, tableList });
 }

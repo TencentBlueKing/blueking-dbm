@@ -85,34 +85,34 @@
   import RenderInstanceList from './components/InstanceList.vue';
 
   export interface Props<clusterType extends ISupportClusterType, F extends keyof ClusterModel<clusterType>> {
-    field: F;
-    label: string;
-    searchIp?: string[];
     // eslint-disable-next-line vue/no-unused-properties
     clusterType: clusterType;
-    selectedList: ClusterModel<clusterType>[];
-    minWidth?: number;
-    isFilter: boolean;
+    field: F;
     getTableInstance: () => InstanceType<typeof DbTable> | undefined;
+    isFilter: boolean;
+    label: string;
+    minWidth?: number;
+    searchIp?: string[];
+    selectedList: ClusterModel<clusterType>[];
   }
 
   export type ReturnArrayElement<T> = T extends (infer U)[] ? U : T;
 
   export interface Slots<clusterType extends ISupportClusterType, F extends keyof ClusterModel<clusterType>> {
     default?: (params: { data: ReturnArrayElement<ClusterModel<clusterType>[F]> }) => void;
-    nodeTag: (params: { data: ReturnArrayElement<ClusterModel<clusterType>[F]> }) => void;
-    instanceListTitle: (params: { data: ClusterModel<clusterType> }) => VNode;
     instanceList: (params: {
-      instanceList: ClusterModel<clusterType>[F];
       clusterData: ClusterModel<clusterType>;
+      instanceList: ClusterModel<clusterType>[F];
     }) => VNode;
+    instanceListTitle: (params: { data: ClusterModel<clusterType> }) => VNode;
+    nodeTag: (params: { data: ReturnArrayElement<ClusterModel<clusterType>[F]> }) => void;
   }
 
   type IRowData = ClusterModel<T>;
 
   const props = withDefaults(defineProps<Props<T, F>>(), {
-    searchIp: undefined,
     minWidth: 200,
+    searchIp: undefined,
   });
   const slots = defineSlots<Slots<T, F>>();
 

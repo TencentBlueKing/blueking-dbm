@@ -412,8 +412,8 @@
   type CapSepcs = ServiceReturnType<typeof getCapSpecs>[number];
 
   type Version = {
-    value: string;
     label: string;
+    value: string;
   };
 
   // 基础设置
@@ -425,11 +425,11 @@
 
   // 单据克隆
   useTicketCloneInfo({
-    type: TicketTypes.REDIS_CLUSTER_APPLY,
     onSuccess(formdata) {
       state.formdata = formdata;
       bizState.hasEnglishName = !!formdata.details.db_app_abbr;
     },
+    type: TicketTypes.REDIS_CLUSTER_APPLY,
   });
 
   const renderRedisClusterTypes = computed(() => {
@@ -442,44 +442,44 @@
   /** 初始化数据 */
   const initData = () => ({
     bk_biz_id: '' as number | '',
-    ticket_type: TicketTypes.REDIS_CLUSTER_APPLY,
-    remark: '',
     details: {
       bk_cloud_id: 0,
-      db_app_abbr: '',
-      proxy_port: 50000,
-      cluster_name: '',
-      cluster_alias: '',
-      cluster_type: renderRedisClusterTypes.value[0].id,
-      city_code: '',
-      db_version: '',
       cap_key: '',
-      ip_source: redisIpSources.resource_pool.id,
+      city_code: '',
+      cluster_alias: '',
+      cluster_name: '',
+      cluster_type: renderRedisClusterTypes.value[0].id,
+      db_app_abbr: '',
+      db_version: '',
       disaster_tolerance_level: 'NONE',
-      proxy_pwd: '',
+      ip_source: redisIpSources.resource_pool.id,
       nodes: {
-        proxy: [] as HostInfo[],
         master: [] as HostInfo[],
+        proxy: [] as HostInfo[],
         slave: [] as HostInfo[],
       },
+      proxy_port: 50000,
+      proxy_pwd: '',
       resource_spec: {
-        proxy: {
-          spec_id: '' as number | '',
-          count: 2,
-        },
         backend_group: {
-          count: 1,
-          spec_id: '' as number | '',
-          capacity: '' as number | string,
-          future_capacity: '' as number | string,
           affinity: 'NONE',
+          capacity: '' as number | string,
+          count: 1,
+          future_capacity: '' as number | string,
           location_spec: {
             city: '',
             sub_zone_ids: [] as number[],
           },
+          spec_id: '' as number | '',
+        },
+        proxy: {
+          count: 2,
+          spec_id: '' as number | '',
         },
       },
     },
+    remark: '',
+    ticket_type: TicketTypes.REDIS_CLUSTER_APPLY,
   });
 
   const formRef = ref();
@@ -499,11 +499,11 @@
   const applySchema = ref(APPLY_SCHEME.AUTO);
 
   const state = reactive({
+    capSpecs: [] as CapSepcs[],
     formdata: initData(),
+    isLoadCapSpecs: false,
     isLoadVersion: false,
     versions: [] as Version[],
-    isLoadCapSpecs: false,
-    capSpecs: [] as CapSepcs[],
   });
 
   const rules = {
@@ -514,19 +514,19 @@
         validator: (val: string) => nameRegx.test(val),
       },
     ],
-    'details.nodes.proxy': [
-      {
-        message: t('Proxy数量至少为2台'),
-        trigger: 'change',
-        validator: (value: HostInfo[]) => value.length >= 2,
-      },
-    ],
     'details.nodes.master': [
       {
         message: t('Master数量至少为1台_且机器数要和Slave相等'),
         trigger: 'change',
         validator: (value: HostInfo[]) =>
           value.length > 0 && state.formdata.details.nodes.slave.length === value.length,
+      },
+    ],
+    'details.nodes.proxy': [
+      {
+        message: t('Proxy数量至少为2台'),
+        trigger: 'change',
+        validator: (value: HostInfo[]) => value.length >= 2,
       },
     ],
     'details.nodes.slave': [
@@ -539,13 +539,13 @@
     ],
     'details.proxy_pwd': [
       {
-        trigger: 'blur',
         message: t('密码不能为空'),
+        trigger: 'blur',
         validator: (value: string) => !!value,
       },
       {
-        trigger: 'blur',
         message: t('密码不满足要求'),
+        trigger: 'blur',
         validator: () => passwordRef.value!.validate(),
       },
     ],
@@ -564,29 +564,29 @@
 
   const typeInfos = computed(() => {
     const types = {
+      [ClusterTypes.PREDIXY_REDIS_CLUSTER]: {
+        backend_machine_type: 'tendiscache',
+        cluster_type: ClusterTypes.PREDIXY_REDIS_CLUSTER,
+        machine_type: MachineTypes.REDIS_TENDIS_CACHE,
+        pkg_type: 'redis',
+      },
+      [ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER]: {
+        backend_machine_type: 'tendisplus',
+        cluster_type: ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER,
+        machine_type: MachineTypes.REDIS_TENDIS_PLUS,
+        pkg_type: 'tendisplus',
+      },
       [ClusterTypes.TWEMPROXY_REDIS_INSTANCE]: {
+        backend_machine_type: 'tendiscache',
         cluster_type: ClusterTypes.TWEMPROXY_REDIS_INSTANCE,
         machine_type: MachineTypes.REDIS_TENDIS_CACHE,
-        backend_machine_type: 'tendiscache',
         pkg_type: 'redis',
       },
       [ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE]: {
+        backend_machine_type: 'tendisssd',
         cluster_type: ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE,
         machine_type: MachineTypes.REDIS_TENDIS_SSD,
-        backend_machine_type: 'tendisssd',
         pkg_type: 'tendisssd',
-      },
-      [ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER]: {
-        cluster_type: ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER,
-        machine_type: MachineTypes.REDIS_TENDIS_PLUS,
-        backend_machine_type: 'tendisplus',
-        pkg_type: 'tendisplus',
-      },
-      [ClusterTypes.PREDIXY_REDIS_CLUSTER]: {
-        cluster_type: ClusterTypes.PREDIXY_REDIS_CLUSTER,
-        machine_type: MachineTypes.REDIS_TENDIS_CACHE,
-        backend_machine_type: 'tendiscache',
-        pkg_type: 'redis',
       },
     };
     return types[state.formdata.details.cluster_type as keyof typeof types];
@@ -651,7 +651,7 @@
   };
 
   const handleChangeClusterType = () => {
-    const count = [ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER, ClusterTypes.PREDIXY_REDIS_CLUSTER].includes(
+    const count = [ClusterTypes.PREDIXY_REDIS_CLUSTER, ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER].includes(
       state.formdata.details.cluster_type,
     )
       ? 3
@@ -660,10 +660,10 @@
     state.formdata.details.resource_spec.proxy.spec_id = '';
     state.formdata.details.resource_spec.backend_group = {
       ...state.formdata.details.resource_spec.backend_group,
-      count,
-      spec_id: '',
       capacity: '',
+      count,
       future_capacity: '',
+      spec_id: '',
     };
     isManualInput.value && fetchCapSpecs('');
   };
@@ -696,9 +696,8 @@
   /** 重置表单 */
   const handleResetFormdata = () => {
     InfoBox({
-      title: t('确认重置表单内容'),
-      content: t('重置后_将会清空当前填写的内容'),
       cancelText: t('取消'),
+      content: t('重置后_将会清空当前填写的内容'),
       onConfirm: () => {
         state.formdata = initData();
         nextTick(() => {
@@ -706,12 +705,13 @@
         });
         return true;
       },
+      title: t('确认重置表单内容'),
     });
   };
 
   const ipSelectorDisableSubmitMethods = {
-    proxy: (hostList: Array<any>) => (hostList.length >= 2 ? false : t('至少n台', { n: 2 })),
     master: (hostList: Array<any>) => (hostList.length >= 1 ? false : t('至少n台', { n: 1 })),
+    proxy: (hostList: Array<any>) => (hostList.length >= 2 ? false : t('至少n台', { n: 2 })),
     slave: (hostList: Array<any>) => (hostList.length >= 1 ? false : t('至少n台', { n: 1 })),
   };
 
@@ -800,13 +800,13 @@
    */
   const formatNodes = (hosts: HostInfo[]) =>
     hosts.map((host) => ({
-      ip: host.ip,
-      bk_host_id: host.host_id,
+      bk_biz_id: host.biz.id,
       bk_cloud_id: host.cloud_id,
       bk_cpu: host.bk_cpu,
       bk_disk: host.bk_disk,
+      bk_host_id: host.host_id,
       bk_mem: host.bk_mem,
-      bk_biz_id: host.biz.id,
+      ip: host.ip,
     }));
 
   const handleRecommendArchitectrueOpen = () => {
@@ -843,6 +843,15 @@
           cluster_shard_num: Number(specInfo.cluster_shard_num),
           disaster_tolerance_level: affinity,
           resource_spec: {
+            backend_group: {
+              ...details.resource_spec.backend_group,
+              count: specInfo.machine_pair,
+              location_spec: {
+                city: cityCode,
+                sub_zone_ids: [],
+              },
+              spec_info: specInfo,
+            },
             proxy: {
               ...details.resource_spec.proxy,
               ...specProxyRef.value.getData(),
@@ -851,15 +860,6 @@
               spec_cluster_type: typeInfos.value.cluster_type,
               spec_machine_type: typeInfos.value.machine_type,
             },
-            backend_group: {
-              ...details.resource_spec.backend_group,
-              count: specInfo.machine_pair,
-              spec_info: specInfo,
-              location_spec: {
-                city: cityCode,
-                sub_zone_ids: [],
-              },
-            },
           },
         };
       }
@@ -867,12 +867,12 @@
       delete details.resource_spec;
       return {
         ...details,
+        disaster_tolerance_level: affinity,
         nodes: {
-          proxy: formatNodes(state.formdata.details.nodes.proxy),
           master: formatNodes(state.formdata.details.nodes.master),
+          proxy: formatNodes(state.formdata.details.nodes.proxy),
           slave: formatNodes(state.formdata.details.nodes.slave),
         },
-        disaster_tolerance_level: affinity,
       };
     };
     const params = {

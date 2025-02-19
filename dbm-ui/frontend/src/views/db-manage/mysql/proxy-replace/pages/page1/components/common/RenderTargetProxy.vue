@@ -53,15 +53,15 @@
 
   const modelValue = defineModel<ProxyItem>('modelValue', {
     default: () => ({
-      ip: '',
+      bk_biz_id: 0,
       bk_cloud_id: null,
       bk_host_id: 0,
-      bk_biz_id: 0,
+      ip: '',
       port: 0,
     }),
   });
 
-  const { t, locale } = useI18n();
+  const { locale, t } = useI18n();
   const { currentBizId, currentBizInfo } = useGlobalBizs();
 
   const inputRef = ref();
@@ -73,17 +73,18 @@
 
   const rules = [
     {
-      validator: (value: string) => ipv4.test(value),
       message: t('IP格式不正确'),
+      validator: (value: string) => ipv4.test(value),
     },
     {
+      message: () => errorMessage,
       validator: (value: string) =>
         getHostTopoInfos({
+          bk_biz_id: currentBizId,
           filter_conditions: {
             bk_host_innerip: [value],
             mode: 'idle_only',
           },
-          bk_biz_id: currentBizId,
         }).then((data) => {
           if (data.hosts_topo_info.length < 1) {
             const bizName = isCN.value ? currentBizInfo?.name || '--' : currentBizInfo?.english_name || '--';
@@ -101,7 +102,6 @@
           hostDataMemo = hostData;
           return true;
         }),
-      message: () => errorMessage,
     },
   ];
 
@@ -112,8 +112,8 @@
         .then(() => ({
           target_proxy: {
             bk_biz_id: currentBizId,
-            bk_host_id: hostDataMemo.bk_host_id,
             bk_cloud_id: hostDataMemo.bk_cloud_id,
+            bk_host_id: hostDataMemo.bk_host_id,
             ip: hostDataMemo.ip,
           },
         }))
@@ -121,8 +121,8 @@
           Promise.reject({
             target_proxy: {
               bk_biz_id: currentBizId,
-              bk_host_id: hostDataMemo.bk_host_id,
               bk_cloud_id: hostDataMemo.bk_cloud_id,
+              bk_host_id: hostDataMemo.bk_host_id,
               ip: hostDataMemo.ip,
             },
           }),

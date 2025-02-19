@@ -17,7 +17,7 @@
 export interface ListBase<T extends any[]> {
   count: number;
   next: string;
+  permission: T[number]['permission'];
   previous: string;
   results: T;
-  permission: T[number]['permission'];
 }

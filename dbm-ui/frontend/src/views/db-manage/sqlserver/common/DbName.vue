@@ -39,13 +39,13 @@
   import TableTagInput from '@components/render-table/columns/tag-input/index.vue';
 
   interface Props {
-    modelValue?: string[];
-    clusterId?: number;
-    required?: boolean;
-    single?: boolean;
+    allowAsterisk?: boolean;
     checkExist?: boolean;
     checkNotExist?: boolean;
-    allowAsterisk?: boolean;
+    clusterId?: number;
+    modelValue?: string[];
+    required?: boolean;
+    single?: boolean;
   }
 
   interface Emits {
@@ -58,15 +58,15 @@
   }
 
   const props = withDefaults(defineProps<Props>(), {
-    modelValue: undefined,
-    clusterId: undefined,
-    required: true,
-    single: false,
+    allowAsterisk: true,
     // db 已存在报错
     checkExist: false,
     // db 不存在报错
     checkNotExist: false,
-    allowAsterisk: true,
+    clusterId: undefined,
+    modelValue: undefined,
+    required: true,
+    single: false,
   });
 
   const emits = defineEmits<Emits>();
@@ -80,24 +80,25 @@
 
   const rules = [
     {
+      message: t('DB 名不能为空'),
       validator: (value: string[]) => {
         if (!props.required) {
           return true;
         }
         return value && value.length > 0;
       },
-      message: t('DB 名不能为空'),
     },
     {
-      validator: (value: string[]) => _.every(value, (item) => !systemDbNames.includes(item)),
       message: t('不允许输入系统库和特殊库 n', { n: systemDbNames.join(',') }),
+      validator: (value: string[]) => _.every(value, (item) => !systemDbNames.includes(item)),
     },
     {
-      validator: (value: string[]) => !_.some(value, (item) => /\*/.test(item) && item.length > 1),
       message: t('* 只能独立使用'),
       trigger: 'change',
+      validator: (value: string[]) => !_.some(value, (item) => /\*/.test(item) && item.length > 1),
     },
     {
+      message: t('不允许为 *'),
       validator: (value: string[]) => {
         if (props.allowAsterisk) {
           return true;
@@ -105,24 +106,24 @@
 
         return _.every(value, (item) => item !== '*');
       },
-      message: t('不允许为 *'),
     },
     {
-      validator: (value: string[]) => _.every(value, (item) => !/^%$/.test(item)),
       message: t('% 不允许单独使用'),
       trigger: 'change',
+      validator: (value: string[]) => _.every(value, (item) => !/^%$/.test(item)),
     },
     {
+      message: t('含通配符的单元格仅支持输入单个对象'),
+      trigger: 'change',
       validator: (value: string[]) => {
         if (_.some(value, (item) => /[*%?]/.test(item))) {
           return value.length < 2;
         }
         return true;
       },
-      message: t('含通配符的单元格仅支持输入单个对象'),
-      trigger: 'change',
     },
     {
+      message: t('DB 已存在'),
       validator: (value: string[]) => {
         if (!props.checkExist) {
           return true;
@@ -131,7 +132,7 @@
           return false;
         }
         // % 通配符不需要校验存在
-        if (/%$/.test(value[0]) || value[0] === '*') {
+        if (value[0].endsWith('%') || value[0] === '*') {
           return true;
         }
         const clearDbList = _.filter(value, (item) => !/[*%]/.test(item));
@@ -156,9 +157,9 @@
           return true;
         });
       },
-      message: t('DB 已存在'),
     },
     {
+      message: t('DB 不存在'),
       validator: (value: string[]) => {
         if (!props.checkNotExist) {
           return true;
@@ -188,7 +189,6 @@
           return true;
         });
       },
-      message: t('DB 不存在'),
     },
   ];
 

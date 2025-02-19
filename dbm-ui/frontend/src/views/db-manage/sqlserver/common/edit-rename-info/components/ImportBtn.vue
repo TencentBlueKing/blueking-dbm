@@ -28,13 +28,11 @@
 
   interface Props {
     clusterId: number;
-    dbName: string[];
     dbIgnoreName: string[];
+    dbName: string[];
   }
 
-  interface Emits {
-    (e: 'change', value: { db_name: string; target_db_name: string; rename_db_name: string }[]): void;
-  }
+  type Emits = (e: 'change', value: { db_name: string; rename_db_name: string; target_db_name: string }[]) => void;
 
   const props = defineProps<Props>();
   const emits = defineEmits<Emits>();

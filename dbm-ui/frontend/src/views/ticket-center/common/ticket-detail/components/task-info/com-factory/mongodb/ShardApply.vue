@@ -30,8 +30,8 @@
   import DemandInfo from '../components/DemandInfo.vue';
   import SpecInfos from '../components/SpecInfos.vue';
 
-  interface Props{
-    ticketDetails: TicketModel<Mongodb.ShardApply>
+  interface Props {
+    ticketDetails: TicketModel<Mongodb.ShardApply>;
   }
 
   const props = defineProps<Props>();
@@ -46,84 +46,83 @@
 
   const {
     mongo_config: configServerSpec,
-    mongos: mongosSpec,
     mongodb: shardSvrSpec,
+    mongos: mongosSpec,
   } = props.ticketDetails.details.resource_spec;
 
   const config = [
     {
-      title: t('部署模块'),
       list: [
         {
-          label: t('所属业务'),
           key: 'bk_biz_name',
+          label: t('所属业务'),
         },
         {
-          label: t('业务英文名'),
           key: 'db_app_abbr',
+          label: t('业务英文名'),
         },
         {
-          label: t('集群ID'),
           key: 'details.cluster_id',
+          label: t('集群ID'),
         },
         {
-          label: t('集群名称'),
           key: 'details.cluster_name',
+          label: t('集群名称'),
         },
         {
-          label: t('集群别名'),
           key: 'details.cluster_alias',
+          label: t('集群别名'),
         },
         {
-          label: t('管控区域'),
           key: 'details.bk_cloud_name',
+          label: t('管控区域'),
         },
       ],
+      title: t('部署模块'),
     },
     {
-      title: t('地域要求'),
       list: [
         {
           label: t('数据库部署地域'),
           render: () => cityName.value || '--',
         },
       ],
+      title: t('地域要求'),
     },
     {
-      title: t('数据库部署信息'),
       list: [
         {
           label: t('容灾要求'),
           render: () => affinity.value || '--',
         },
         {
-          label: t('MongoDB版本'),
           key: 'details.db_version',
+          label: t('MongoDB版本'),
         },
         {
-          label: t('访问端口'),
           key: 'details.start_port',
+          label: t('访问端口'),
         },
       ],
+      title: t('数据库部署信息'),
     },
     {
-      title: t('需求信息'),
       list: [
         {
           label: t('Config Server资源规格'),
           render: () => (
             <bk-popover
-              placement="top"
-              theme="light">
+              placement='top'
+              theme='light'>
               {{
+                content: () => <SpecInfos data={configServerSpec} />,
                 default: () => (
                   <span
-                    class="pb-2"
-                    style="cursor: pointer;border-bottom: 1px dashed #979ba5;">
-                    {configServerSpec.spec_name }（{ `${configServerSpec.count} ${t('台')}`}）
+                    class='pb-2'
+                    style='cursor: pointer;border-bottom: 1px dashed #979ba5;'>
+                    {configServerSpec.spec_name}（{`${configServerSpec.count} ${t('台')}`}）
                   </span>
                 ),
-                content: () => <SpecInfos data={configServerSpec} />,
               }}
             </bk-popover>
           ),
@@ -132,17 +131,17 @@
           label: t('Mongos资源规格'),
           render: () => (
             <bk-popover
-              placement="top"
-              theme="light">
+              placement='top'
+              theme='light'>
               {{
+                content: () => <SpecInfos data={mongosSpec} />,
                 default: () => (
                   <span
-                    class="pb-2"
-                    style="cursor: pointer;border-bottom: 1px dashed #979ba5;">
-                    {mongosSpec.spec_name }（{ `${mongosSpec.count} ${t('台')}`}）
+                    class='pb-2'
+                    style='cursor: pointer;border-bottom: 1px dashed #979ba5;'>
+                    {mongosSpec.spec_name}（{`${mongosSpec.count} ${t('台')}`}）
                   </span>
                 ),
-                content: () => <SpecInfos data={mongosSpec} />,
               }}
             </bk-popover>
           ),
@@ -151,26 +150,27 @@
           label: t('ShardSvr资源规格'),
           render: () => (
             <bk-popover
-              placement="top"
-              theme="light">
+              placement='top'
+              theme='light'>
               {{
+                content: () => <SpecInfos data={shardSvrSpec} />,
                 default: () => (
                   <span
-                    class="pb-2"
-                    style="cursor: pointer;border-bottom: 1px dashed #979ba5;">
-                    {shardSvrSpec.spec_name }（{ `${shardSvrSpec.count} ${t('台')}`}）
+                    class='pb-2'
+                    style='cursor: pointer;border-bottom: 1px dashed #979ba5;'>
+                    {shardSvrSpec.spec_name}（{`${shardSvrSpec.count} ${t('台')}`}）
                   </span>
                 ),
-                content: () => <SpecInfos data={shardSvrSpec} />,
               }}
             </bk-popover>
           ),
         },
         {
-          label: t('每台主机oplog容量占比'),
           key: 'details.oplog_percent',
+          label: t('每台主机oplog容量占比'),
         },
       ],
+      title: t('需求信息'),
     },
   ];
 
@@ -179,7 +179,7 @@
   useRequest(getInfrasCities, {
     onSuccess: (cityList) => {
       const cityCode = props.ticketDetails.details.city_code;
-      const name = cityList.find(item => item.city_code === cityCode)?.city_name;
+      const name = cityList.find((item) => item.city_code === cityCode)?.city_name;
       cityName.value = name ?? '--';
     },
   });

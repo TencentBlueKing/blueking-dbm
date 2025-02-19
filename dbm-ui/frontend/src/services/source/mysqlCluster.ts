@@ -21,7 +21,7 @@ const getRootPath = () => `/apis/mysql/bizs/${window.PROJECT_CONFIG.BIZ_ID}/clus
 /**
  * 通过集群查询同机关联集群
  */
-export function findRelatedClustersByClusterIds(params: { cluster_ids: number[]; bk_biz_id: number }) {
+export function findRelatedClustersByClusterIds(params: { bk_biz_id: number; cluster_ids: number[] }) {
   return http.post<
     Array<{
       cluster_id: number;
@@ -35,13 +35,13 @@ export function findRelatedClustersByClusterIds(params: { cluster_ids: number[];
  * 通过实例查询同机关联集群
  */
 export function findRelatedClustersByInstances(params: {
+  bk_biz_id: number;
   instances: Array<{
     bk_cloud_id: number;
-    ip: string;
     bk_host_id: number;
+    ip: string;
     port: number;
   }>;
-  bk_biz_id: number;
 }) {
   return http.post(`${getRootPath()}/find_related_clusters_by_instances/`, params);
 }
@@ -99,13 +99,13 @@ export function getRemoteParis(params: { cluster_ids: number[] }) {
  * 通过过滤条件批量查询集群
  */
 export function queryClusters(params: {
+  bk_biz_id: number;
   cluster_filters: Array<{
+    bk_biz_id?: number;
+    cluster_type?: string;
     id?: number;
     immute_domain?: string;
-    cluster_type?: string;
-    bk_biz_id?: number;
   }>;
-  bk_biz_id: number;
 }) {
   return http.post<TendbhaModel[]>(`${getRootPath()}/query_clusters/`, params);
 }

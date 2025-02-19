@@ -43,31 +43,29 @@
   import { type InjectionKey, nextTick, provide, type Ref } from 'vue';
 
   interface Props {
-    name: string;
     leftWidth?: number;
     minLeftWidth?: number;
+    name: string;
   }
 
   interface Slots {
-    list(): any;
     default(): any;
+    list(): any;
     right(): any;
   }
 
-  interface Emits {
-    (e: 'change', split: boolean): void;
-  }
+  type Emits = (e: 'change', split: boolean) => void;
   interface Expose {
+    handleOpenChange: (direction: string) => void;
     isSplited: Ref<boolean>;
     splitScreen: () => void;
-    handleOpenChange: (direction: string) => void;
   }
 
   export const provideKey: InjectionKey<{
+    handleOpenChange: (direction: string) => void;
     isOpen: Ref<boolean>;
     isSplited: Ref<boolean>;
     splitScreen: () => void;
-    handleOpenChange: (direction: string) => void;
   }> = Symbol.for('stretch-layout');
 </script>
 <script setup lang="ts">
@@ -151,10 +149,10 @@
   };
 
   provide(provideKey, {
+    handleOpenChange,
     isOpen: readonly(isOpen),
     isSplited,
     splitScreen,
-    handleOpenChange,
   });
 
   onMounted(() => {
@@ -170,9 +168,9 @@
   });
 
   defineExpose<Expose>({
+    handleOpenChange,
     isSplited,
     splitScreen,
-    handleOpenChange,
   });
 </script>
 

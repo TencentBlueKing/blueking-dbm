@@ -72,18 +72,16 @@
 
   import { nameRegx } from '@common/regex';
 
-  interface Emits {
-    (e: 'change', value: string[]): void;
-  }
+  type Emits = (e: 'change', value: string[]) => void;
 
   const emits = defineEmits<Emits>();
 
   const { t } = useI18n();
 
   const errorTextMap = {
-    rule: t('以小写英文字母开头_且只能包含英文字母_数字_连字符'),
-    repeat: t('集群ID重复'),
     maxlength: t('最大长度为m', { m: 63 }),
+    repeat: t('集群ID重复'),
+    rule: t('以小写英文字母开头_且只能包含英文字母_数字_连字符'),
   };
 
   const { body } = document;

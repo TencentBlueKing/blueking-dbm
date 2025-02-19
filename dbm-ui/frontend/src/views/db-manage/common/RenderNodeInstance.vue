@@ -107,11 +107,7 @@
   </div>
 </template>
 <script setup lang="tsx">
-  import {
-    computed,
-    nextTick,
-    ref,
-  } from 'vue';
+  import { computed, nextTick, ref } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import { useCopy } from '@hooks';
@@ -124,18 +120,18 @@
   import { messageWarn } from '@utils';
 
   interface Props {
-    title: string,
-    role: string,
-    clusterId: number,
-    originalList: Array<{ip: string, port: number, status: 'running' | 'unavailable'}>;
-    dataSource: (params: any)=> Promise<any>,
-    highlightIps?: string[],
+    clusterId: number;
+    dataSource: (params: any) => Promise<any>;
+    highlightIps?: string[];
+    originalList: Array<{ ip: string; port: number; status: 'running' | 'unavailable' }>;
+    role: string;
+    title: string;
   }
 
   interface ITableData {
-    status: string,
-    instance_address: string,
-    role: string,
+    instance_address: string;
+    role: string;
+    status: string;
   }
 
   const props = withDefaults(defineProps<Props>(), {
@@ -150,29 +146,29 @@
   const tableRef = ref();
   const isShowMore = ref(false);
   const renderList = computed(() => props.originalList.slice(0, maxRenderNum));
-  const isNeedShowMore =  computed(() => props.originalList.length > maxRenderNum);
+  const isNeedShowMore = computed(() => props.originalList.length > maxRenderNum);
   const search = ref('');
 
   const copy = useCopy();
 
   const columns = [
     {
-      label: t('实例'),
       field: 'instance_address',
+      label: t('实例'),
     },
     {
-      label: t('部署角色'),
       field: 'role',
+      label: t('部署角色'),
       render: ({ data }: { data: ITableData }) => <RenderClusterRole data={[data.role]} />,
     },
     {
-      label: t('实例状态'),
       field: 'status',
+      label: t('实例状态'),
       render: ({ data }: { data: ITableData }) => <RenderInstanceStatus data={data.status} />,
     },
     {
-      label: t('部署时间'),
       field: 'create_at',
+      label: t('部署时间'),
     },
   ];
 
@@ -192,9 +188,9 @@
     tableRef.value.fetchData({
       bk_biz_id: currentBizId,
       cluster_id: props.clusterId,
-      role: props.role,
       instance_address: search.value,
       offset: 0,
+      role: props.role,
     });
   };
 
@@ -203,7 +199,7 @@
   };
 
   const handleCopyAllIps = () => {
-    const ips = [...new Set(props.originalList.map(item => item.ip))];
+    const ips = [...new Set(props.originalList.map((item) => item.ip))];
     if (ips.length < 1) {
       messageWarn(t('没有可复制IP'));
       return;
@@ -212,7 +208,7 @@
   };
 
   const handleCopyAll = () => {
-    const instances = props.originalList.map(item => `${item.ip}:${item.port}`);
+    const instances = props.originalList.map((item) => `${item.ip}:${item.port}`);
     if (instances.length < 1) {
       messageWarn(t('没有可复制实例'));
       return;
@@ -237,7 +233,7 @@
 
   // 复制所有实例
   const handleCopyListAll = () => {
-    const instances = (tableRef.value.getData() as Array<ITableData>).map(item => item.instance_address);
+    const instances = (tableRef.value.getData() as Array<ITableData>).map((item) => item.instance_address);
     if (instances.length < 1) {
       messageWarn(t('没有可复制实例'));
       return;

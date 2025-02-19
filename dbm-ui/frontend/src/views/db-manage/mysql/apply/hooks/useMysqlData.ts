@@ -26,50 +26,50 @@ type FetchState = {
 
 const getFormData = (type: string) => ({
   bk_biz_id: '' as '' | number,
-  remark: '',
-  ticket_type: type,
   details: {
     bk_cloud_id: 0,
-    city_code: '',
-    db_app_abbr: '',
-    spec: '',
-    db_module_id: null as null | number,
-    cluster_count: 1,
-    inst_num: 1,
     charset: '',
-    start_mysql_port: 20000,
-    start_proxy_port: 10000,
-    domains: [{ key: '' }],
+    city_code: '',
+    cluster_count: 1,
+    db_app_abbr: '',
+    db_module_id: null as null | number,
     disaster_tolerance_level: 'NONE', // 同 affinity
+    domains: [{ key: '' }],
+    inst_num: 1,
     ip_source: 'resource_pool',
     nodes: {
       backend: [] as HostInfo[],
       proxy: [] as HostInfo[],
     },
     resource_spec: {
-      single: {
-        count: 0,
-        spec_id: '' as string | number,
-        location_spec: {
-          city: '',
-          sub_zone_ids: [],
-        },
-      },
       backend: {
-        count: 0,
-        spec_id: '' as string | number,
         affinity: 'NONE',
+        count: 0,
         location_spec: {
           city: '',
           sub_zone_ids: [],
         },
+        spec_id: '' as string | number,
       },
       proxy: {
         count: 0,
         spec_id: '' as string | number,
       },
+      single: {
+        count: 0,
+        location_spec: {
+          city: '',
+          sub_zone_ids: [],
+        },
+        spec_id: '' as string | number,
+      },
     },
+    spec: '',
+    start_mysql_port: 20000,
+    start_proxy_port: 10000,
   },
+  remark: '',
+  ticket_type: type,
 });
 
 export const useMysqlData = (type: string) => {
@@ -191,9 +191,8 @@ export const useMysqlData = (type: string) => {
    */
   const handleResetFormdata = () => {
     InfoBox({
-      title: t('确认重置表单内容'),
-      content: t('重置后_将会清空当前填写的内容'),
       cancelText: t('取消'),
+      content: t('重置后_将会清空当前填写的内容'),
       onConfirm: () => {
         _.merge(formdata, getFormData(route.params.type as string));
         nextTick(() => {
@@ -201,6 +200,7 @@ export const useMysqlData = (type: string) => {
         });
         return true;
       },
+      title: t('确认重置表单内容'),
     });
   };
 
@@ -210,8 +210,8 @@ export const useMysqlData = (type: string) => {
   // const submitTicket = () => createTicket(formdata);
 
   return {
-    formdata,
     fetchState,
+    formdata,
     // loading,
     // leveConfig,
     // submitTicket,

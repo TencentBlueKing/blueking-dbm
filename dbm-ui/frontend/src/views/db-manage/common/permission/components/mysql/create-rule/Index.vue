@@ -79,11 +79,15 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import { createAccountRule, modifyAccountRule, preCheckAddAccountRule } from '@services/source/mysqlPermissionAccount';
+  import {
+    createAccountRule,
+    modifyAccountRule,
+    preCheckAddAccountRule,
+  } from '@services/source/mysqlPermissionAccount';
   import { createTicket } from '@services/source/ticket';
   import type { AccountRule, AccountRulePrivilege, PermissionRuleInfo } from '@services/types/permission';
 
-  import { useBeforeClose,useTicketMessage } from '@hooks';
+  import { useBeforeClose, useTicketMessage } from '@hooks';
 
   import { AccountTypes, TicketTypes } from '@common/const';
 
@@ -96,25 +100,23 @@
 
   interface Props {
     accountId?: number;
-    ruleObj?: PermissionRuleInfo;
     accountType?: AccountTypes.MYSQL | AccountTypes.TENDBCLUSTER;
+    ruleObj?: PermissionRuleInfo;
   }
 
-  interface Emits {
-    (e: 'success'): void;
-  }
+  type Emits = (e: 'success') => void;
 
   const props = withDefaults(defineProps<Props>(), {
     accountId: -1,
-    ruleObj: undefined,
     accountType: AccountTypes.MYSQL,
+    ruleObj: undefined,
   });
 
   const emits = defineEmits<Emits>();
 
   const isShow = defineModel<boolean>({
-    required: true,
     default: false,
+    required: true,
   });
 
   const { t } = useI18n();
@@ -122,8 +124,8 @@
   const handleBeforeClose = useBeforeClose();
 
   const initFormData = (): AccountRule => ({
-    account_id: null,
     access_db: '',
+    account_id: null,
     privilege: {
       ddl: [],
       dml: [],
@@ -138,13 +140,13 @@
   const precheckWarnTip = ref<JSX.Element>();
   const isSubmitting = ref(false);
   const rulesFormData = reactive<{
-    beforeChange: AccountRule;
     afterChange: AccountRule;
+    beforeChange: AccountRule;
   }>({
-    beforeChange: initFormData(),
     afterChange: initFormData(),
+    beforeChange: initFormData(),
   });
-  let userName = ''
+  let userName = '';
 
   const isEdit = computed(() => !!props.ruleObj?.account_id);
   const isFirstStep = computed(() => currentStep.value === 1);
@@ -154,63 +156,70 @@
    */
   const { run: createAccountRuleRun } = useRequest(createAccountRule, {
     manual: true,
-    onSuccess() {
-      messageSuccess(t('成功添加授权规则'));
-      emits('success');
+    onAfter() {
+      isSubmitting.value = false;
+      handleClose();
     },
     onError() {
       messageError(t('提交失败'));
     },
-    onAfter() {
-      isSubmitting.value = false;
-      handleClose();
-    }
-  })
+    onSuccess() {
+      messageSuccess(t('成功添加授权规则'));
+      emits('success');
+    },
+  });
 
   /**
    * 编辑授权规则
    */
   const { run: modifyAccountRuleRun } = useRequest(modifyAccountRule, {
     manual: true,
-    onSuccess() {
-      messageSuccess(t('编辑授权规则成功'));
-      emits('success');
+    onAfter() {
+      isSubmitting.value = false;
+      handleClose();
     },
     onError() {
       messageError(t('提交失败'));
     },
-    onAfter() {
-      isSubmitting.value = false;
-      handleClose();
-    }
-  })
+    onSuccess() {
+      messageSuccess(t('编辑授权规则成功'));
+      emits('success');
+    },
+  });
 
   /**
    * 规则变更（有权限被删除）时走单据
    */
   const { run: createTicketRun } = useRequest(createTicket, {
     manual: true,
+    onAfter() {
+      isSubmitting.value = false;
+    },
     onSuccess(data) {
       window.changeConfirm = false;
       handleClose();
       ticketMessage(data.id);
       emits('success');
     },
-    onAfter() {
-      isSubmitting.value = false;
-    }
-  })
+  });
 
   watch(
     isShow,
     () => {
       rulesFormData.beforeChange = {
-        account_id: props.accountId ?? -1,
         access_db: props.ruleObj?.access_db || '',
-        privilege: props.ruleObj?.privilege ? Object.entries(configMap[props.accountType].dbOperations).reduce<AccountRulePrivilege>((acc, [key, values]) => {
-          acc[key as keyof AccountRulePrivilege] = values.filter(value => props.ruleObj?.privilege.includes(value));
-          return acc
-        }, {} as AccountRulePrivilege) : {},
+        account_id: props.accountId ?? -1,
+        privilege: props.ruleObj?.privilege
+          ? Object.entries(configMap[props.accountType].dbOperations).reduce<AccountRulePrivilege>(
+              (acc, [key, values]) => {
+                acc[key as keyof AccountRulePrivilege] = values.filter((value) =>
+                  props.ruleObj?.privilege.includes(value),
+                );
+                return acc;
+              },
+              {} as AccountRulePrivilege,
+            )
+          : {},
       } as AccountRule;
     },
     {
@@ -248,9 +257,9 @@
     }
     return {
       ...accountRule,
-      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
       access_db: accountRule.access_db.replace(/\n|;/g, ','), // 统一分隔符
       account_type: props.accountType,
+      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
     };
   };
 
@@ -279,20 +288,20 @@
           const ticketTypeMap = {
             [AccountTypes.MYSQL]: TicketTypes.MYSQL_ACCOUNT_RULE_CHANGE,
             [AccountTypes.TENDBCLUSTER]: TicketTypes.TENDBCLUSTER_ACCOUNT_RULE_CHANGE,
-          }
+          };
           createTicketRun({
             bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-            ticket_type: ticketTypeMap[props.accountType],
-            remark: '',
             details: {
+              action: 'change',
               last_account_rules: {
                 userName,
-                ...rulesFormData.beforeChange
+                ...rulesFormData.beforeChange,
               },
-              action: 'change',
               ...params,
               rule_id: props.ruleObj!.rule_id,
             },
+            remark: '',
+            ticket_type: ticketTypeMap[props.accountType],
           });
         } else {
           modifyAccountRuleRun({
@@ -301,19 +310,20 @@
           });
         }
       } else {
-        preCheckAddAccountRule(params)
-          .then((result) => {
-            if (result.warning) {
-              precheckWarnTip.value = (
-                <div class="pre-check-content">
-                  {result.warning.split('\n').map(line => <div>{line}</div>)}
-                </div>
-              );
-              showPopConfirm.value = true;
-              return;
-            }
-            createAccountRuleRun(params);
-          })
+        preCheckAddAccountRule(params).then((result) => {
+          if (result.warning) {
+            precheckWarnTip.value = (
+              <div class='pre-check-content'>
+                {result.warning.split('\n').map((line) => (
+                  <div>{line}</div>
+                ))}
+              </div>
+            );
+            showPopConfirm.value = true;
+            return;
+          }
+          createAccountRuleRun(params);
+        });
       }
     } finally {
       isSubmitting.value = false;

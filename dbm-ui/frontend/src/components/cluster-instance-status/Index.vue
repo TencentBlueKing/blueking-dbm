@@ -38,17 +38,17 @@
   const { t } = useI18n();
 
   const clusterInstStatus = {
+    restoring: {
+      icon: 'sync-pending',
+      text: t('重建中'),
+    },
     running: {
-      text: t('正常'),
       icon: 'normal',
+      text: t('正常'),
     },
     unavailable: {
-      text: t('异常'),
       icon: 'abnormal',
-    },
-    restoring: {
-      text: t('重建中'),
-      icon: 'sync-pending',
+      text: t('异常'),
     },
   };
 </script>

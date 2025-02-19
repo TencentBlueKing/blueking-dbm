@@ -1,6 +1,6 @@
 <template>
   <BkSideslider
-    v-model:isShow="isShow"
+    v-model:is-show="isShow"
     :before-close="handleClose"
     class="append-config-side"
     render-directive="if"
@@ -62,13 +62,11 @@
   import RenderTarget from './render-target/Index.vue';
 
   interface Props {
-    isEdit?: boolean;
     data: TicketFlowDescribeModel;
+    isEdit?: boolean;
   }
 
-  interface Emits {
-    (e: 'success'): void;
-  }
+  type Emits = (e: 'success') => void;
 
   const props = withDefaults(defineProps<Props>(), {
     isEdit: false,
@@ -87,12 +85,12 @@
   const targetRef = ref<InstanceType<typeof RenderTarget>>();
 
   const targetData = computed(() => ({
-    dbType: (props.data.group as DBTypes) || DBTypes.MYSQL,
     bizId: props.data.bk_biz_id || window.PROJECT_CONFIG.BIZ_ID,
     clusterIds: props.data.cluster_ids || [],
+    dbType: (props.data.group as DBTypes) || DBTypes.MYSQL,
   }));
 
-  const { run: createTicketFlowConfigRun, loading: isCreateSubmitting } = useRequest(createTicketFlowConfig, {
+  const { loading: isCreateSubmitting, run: createTicketFlowConfigRun } = useRequest(createTicketFlowConfig, {
     manual: true,
     onSuccess() {
       isShow.value = false;
@@ -102,7 +100,7 @@
     },
   });
 
-  const { run: updateTicketFlowConfigRun, loading: isUpdateSubmitting } = useRequest(updateTicketFlowConfig, {
+  const { loading: isUpdateSubmitting, run: updateTicketFlowConfigRun } = useRequest(updateTicketFlowConfig, {
     manual: true,
     onSuccess() {
       isShow.value = false;
@@ -125,11 +123,11 @@
     const targetData = await targetRef.value!.getValue();
     const params: ServiceParameters<typeof updateTicketFlowConfig> = {
       ...targetData,
-      ticket_types: [props.data.ticket_type],
       configs: {
-        need_manual_confirm: props.data.configs.need_manual_confirm,
         need_itsm: false,
+        need_manual_confirm: props.data.configs.need_manual_confirm,
       },
+      ticket_types: [props.data.ticket_type],
     };
     if (props.isEdit) {
       params.config_ids = [props.data.id];

@@ -63,8 +63,8 @@
   const activeVersion = ref('');
 
   const {
-    loading: isVersionLogDetailLoading,
     data: logContent,
+    loading: isVersionLogDetailLoading,
     run: fetchVersionLogDetail,
   } = useRequest(getVersionLogDetail, {
     manual: true,
@@ -80,7 +80,7 @@
     });
   };
 
-  const { loading: isVersionLogListLoading, data: versionLogList } = useRequest(getVersionLogList, {
+  const { data: versionLogList, loading: isVersionLogListLoading } = useRequest(getVersionLogList, {
     onSuccess(data) {
       if (data.length > 0) {
         const [[lastVersion]] = data;

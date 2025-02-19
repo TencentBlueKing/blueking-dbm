@@ -48,10 +48,11 @@
 
   const rules = [
     {
-      validator: (value: string) => Boolean(value),
       message: t('不能为空'),
+      validator: (value: string) => Boolean(value),
     },
     {
+      message: t('变量只能以字母开头'),
       validator: (value: string) => {
         const matches = value.match(/{(.*?)}/g);
         if (matches) {
@@ -60,7 +61,6 @@
         }
         return true;
       },
-      message: t('变量只能以字母开头'),
     },
   ];
 

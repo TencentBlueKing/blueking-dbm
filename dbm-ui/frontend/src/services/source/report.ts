@@ -4,12 +4,12 @@ import http, { type IRequestPayload } from '../http';
 
 interface IResult {
   count: number;
-  results: Record<string, unknown>[];
   name: string;
+  results: Record<string, unknown>[];
   title: {
-    name: string;
     display_name: string;
     format: 'text' | 'status' | 'fail_slave_instance';
+    name: string;
   }[];
 }
 
@@ -110,9 +110,9 @@ export function getReport(path: string, params: Record<string, any>, payload = {
     name: string;
     results: Record<string, string>[];
     title: {
-      name: string;
       display_name: string;
       format: string;
+      name: string;
     }[];
   }>(path, params, payload);
 }

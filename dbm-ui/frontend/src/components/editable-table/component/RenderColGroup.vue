@@ -14,10 +14,10 @@
     columnSizeMap: Record<
       string,
       {
-        width?: number;
-        minWidth?: number;
         maxWidth?: number;
+        minWidth?: number;
         renderWidth: number;
+        width?: number;
       }
     >;
   }

@@ -55,28 +55,26 @@
   import TendbclusterForm from './db-form/Tendbcluster.vue';
 
   interface Props {
-    accountType: AccountTypes;
-    user?: string;
     accessDbs?: string[];
+    accountType: AccountTypes;
+    clusterTypes?: string[];
+    rules?: PermissionRule['rules'];
     selected?: {
-      master_domain: string;
       cluster_name: string;
       cluster_type: ClusterTypes;
       db_module_name?: string;
       isMaster?: boolean;
+      master_domain: string;
     }[];
-    clusterTypes?: string[];
-    rules?: PermissionRule['rules'];
+    user?: string;
   }
 
-  interface Emits {
-    (e: 'success'): void;
-  }
+  type Emits = (e: 'success') => void;
 
   interface Exposes {
     init: (data: {
-      clusterType: ClusterTypes;
       clusterList: NonNullable<Props['selected']>;
+      clusterType: ClusterTypes;
       sourceIpList: HostInfo[];
     }) => void;
   }
@@ -90,8 +88,8 @@
   });
 
   const isShow = defineModel<boolean>({
-    required: true,
     default: false,
+    required: true,
   });
 
   const { t } = useI18n();
@@ -99,15 +97,15 @@
   const handleBeforeClose = useBeforeClose();
 
   const comMap = {
-    [AccountTypes.MYSQL]: MysqlForm,
-    [AccountTypes.TENDBCLUSTER]: TendbclusterForm,
     [AccountTypes.MONGODB]: MongoForm,
+    [AccountTypes.MYSQL]: MysqlForm,
     [AccountTypes.SQLSERVER]: SqlserverForm,
+    [AccountTypes.TENDBCLUSTER]: TendbclusterForm,
   };
 
   const state = reactive({
-    isLoading: false,
     errorMessage: '',
+    isLoading: false,
   });
   const dbComRef = ref();
 
@@ -127,29 +125,29 @@
    * 授权规则前置检测
    */
   const handleSubmit = async () => {
-    const { ticketType, params } = await dbComRef.value.getValue();
+    const { params, ticketType } = await dbComRef.value.getValue();
 
     const apiMap = {
-      [AccountTypes.MYSQL]: preCheckMysqlAuthorizeRules,
-      [AccountTypes.TENDBCLUSTER]: preCheckMysqlAuthorizeRules,
       [AccountTypes.MONGODB]: preCheckMongodbAuthorizeRules,
+      [AccountTypes.MYSQL]: preCheckMysqlAuthorizeRules,
       [AccountTypes.SQLSERVER]: preCheckSqlserverAuthorizeRules,
+      [AccountTypes.TENDBCLUSTER]: preCheckMysqlAuthorizeRules,
     };
 
     try {
       state.isLoading = true;
       const {
-        pre_check: preCheck,
-        authorize_uid: uid,
         authorize_data: data,
+        authorize_uid: uid,
         message,
+        pre_check: preCheck,
       } = await apiMap[props.accountType](params);
       if (preCheck) {
         createTicketRun({
           bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
           details: {
-            authorize_uid: uid,
             authorize_data: data,
+            authorize_uid: uid,
           },
           remark: '',
           ticket_type: ticketType,

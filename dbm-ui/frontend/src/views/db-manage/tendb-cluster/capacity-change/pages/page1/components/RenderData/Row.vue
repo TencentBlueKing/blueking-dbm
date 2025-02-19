@@ -58,7 +58,6 @@
   import { random } from '@utils';
 
   export interface IDataRow {
-    rowKey: string;
     clusterData?: {
       bkCloudId: number;
       clusterCapacity: number;
@@ -72,27 +71,28 @@
       masterDomain: string;
       remoteShardNum: number;
     };
+    resource_spec?: {
+      backend_group: {
+        affinity: string;
+        count: number;
+        futureCapacity: number;
+        spec_id: number;
+        specName: string;
+      };
+    };
     resourceSpec?: {
       id: number;
       name: string;
     };
-    resource_spec?: {
-      backend_group: {
-        spec_id: number;
-        count: number;
-        affinity: string;
-        futureCapacity: number;
-        specName: string;
-      };
-    };
+    rowKey: string;
   }
 
   // 创建表格数据
   export const createRowData = (data = {} as Partial<IDataRow>): IDataRow => ({
-    rowKey: random(),
     clusterData: data.clusterData,
-    resourceSpec: data.resourceSpec,
     resource_spec: data.resource_spec,
+    resourceSpec: data.resourceSpec,
+    rowKey: random(),
   });
 </script>
 <script setup lang="ts">
@@ -168,11 +168,11 @@
         'clone',
         createRowData({
           clusterData: localClusterData.value,
+          resource_spec: rowInfo[2].resource_spec,
           resourceSpec: {
             id: 0,
             name: localClusterData.value?.clusterSpec.spec_name ?? '',
           },
-          resource_spec: rowInfo[2].resource_spec,
         }),
       );
     });
@@ -183,8 +183,8 @@
       return Promise.all(getRowData()).then(([clusterData, resourceSpecData, targetResourceSpecData]) => ({
         ...clusterData,
         ...targetResourceSpecData,
-        prev_machine_pair: props.data.clusterData!.machinePairCnt,
         prev_cluster_spec_name: props.data.clusterData!.clusterSpec.spec_name,
+        prev_machine_pair: props.data.clusterData!.machinePairCnt,
       }));
     },
   });

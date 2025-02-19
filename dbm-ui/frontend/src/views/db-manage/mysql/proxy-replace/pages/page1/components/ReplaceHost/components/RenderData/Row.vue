@@ -48,7 +48,6 @@
   import { random } from '@utils';
 
   export interface IDataRow {
-    rowKey: string;
     originProxy: {
       bk_biz_id: number;
       bk_cloud_id: number | null;
@@ -56,14 +55,15 @@
       ip: string;
       port?: number;
     };
-    relatedInstances: {
-      cluster_id: number;
-      instance: string;
-    }[];
     relatedClusters: {
       cluster_id: number;
       domain: string;
     }[];
+    relatedInstances: {
+      cluster_id: number;
+      instance: string;
+    }[];
+    rowKey: string;
     targetProxy: {
       bk_biz_id: number;
       bk_cloud_id: number | null;
@@ -85,37 +85,37 @@
   interface Exposes {
     getValue: () => Promise<{
       cluster_ids: number[];
+      display_info: {
+        related_clusters: string[];
+        related_instances: string[];
+        type: string;
+      };
       origin_proxy: IDataRow['originProxy'];
       target_proxy: IDataRow['targetProxy'];
-      display_info: {
-        type: string;
-        related_instances: string[];
-        related_clusters: string[];
-      };
     }>;
   }
 
   // 创建表格数据
   export const createRowData = (data = {} as Partial<IDataRow>) => ({
-    rowKey: random(),
     originProxy:
       data.originProxy ||
       ({
-        ip: '',
+        bk_biz_id: 0,
         bk_cloud_id: null,
         bk_host_id: 0,
-        bk_biz_id: 0,
+        ip: '',
         port: 0,
       } as IDataRow['originProxy']),
-    relatedInstances: data.relatedInstances || [],
     relatedClusters: data.relatedClusters || [],
+    relatedInstances: data.relatedInstances || [],
+    rowKey: random(),
     targetProxy:
       data.targetProxy ||
       ({
-        ip: '',
+        bk_biz_id: 0,
         bk_cloud_id: null,
         bk_host_id: 0,
-        bk_biz_id: 0,
+        ip: '',
         port: 0,
       } as IDataRow['targetProxy']),
   });
@@ -176,9 +176,9 @@
         ...relatedInstancesData,
         ...targetData,
         display_info: {
-          type: ProxyReplaceTypes.HOST_REPLACE,
-          related_instances: rowData.value.relatedInstances.map((item) => item.instance),
           related_clusters: rowData.value.relatedClusters.map((item) => item.domain),
+          related_instances: rowData.value.relatedInstances.map((item) => item.instance),
+          type: ProxyReplaceTypes.HOST_REPLACE,
         },
       }));
     },

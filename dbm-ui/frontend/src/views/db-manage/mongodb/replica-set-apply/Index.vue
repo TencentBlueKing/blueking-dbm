@@ -223,31 +223,31 @@
 
   const initData = () => ({
     bk_biz_id: '' as number | '',
-    ticket_type: TicketTypes.MONGODB_REPLICASET_APPLY,
-    remark: '',
     details: {
-      db_app_abbr: '',
       bk_cloud_id: 0,
-      cluster_type: ClusterTypes.MONGO_REPLICA_SET,
-      db_version: '',
-      replica_sets: [] as Array<{
-        set_id: string;
-        domain: string;
-        name: string;
-      }>,
-      start_port: 27001,
-      node_count: 3,
-      replica_count: 1,
-      node_replica_count: 1,
-      oplog_percent: 10,
       city_code: '',
+      cluster_type: ClusterTypes.MONGO_REPLICA_SET,
+      db_app_abbr: '',
+      db_version: '',
       disaster_tolerance_level: 'SAME_SUBZONE_CROSS_SWTICH',
       ip_source: 'resource_pool',
+      node_count: 3,
+      node_replica_count: 1,
+      oplog_percent: 10,
+      replica_count: 1,
+      replica_sets: [] as Array<{
+        domain: string;
+        name: string;
+        set_id: string;
+      }>,
       resource_spec: {
-        spec_id: '',
         count: 2,
+        spec_id: '',
       },
+      start_port: 27001,
     },
+    remark: '',
+    ticket_type: TicketTypes.MONGODB_REPLICASET_APPLY,
   });
 
   const { t } = useI18n();
@@ -271,7 +271,7 @@
       {
         message: t('节点数目前只支持xxx', ['1, 3, 5, 7, 9, 11']),
         trigger: 'change',
-        validator: (val: number) => [1, 3, 5, 7, 9, 11].includes(val),
+        validator: (val: number) => [1, 11, 3, 5, 7, 9].includes(val),
       },
     ],
   };
@@ -279,8 +279,8 @@
   const hostNumber = computed(() => {
     const {
       node_count: nodesNumber,
-      replica_count: setNumber,
       node_replica_count: setNumberPerHost,
+      replica_count: setNumber,
     } = formData.details;
 
     return Math.ceil((setNumber / setNumberPerHost) * nodesNumber);
@@ -305,9 +305,9 @@
         const len = formData.details.replica_sets.length;
         if (count > len) {
           const appends = Array.from({ length: count - len }, () => ({
-            set_id: '',
             domain: '',
             name: '',
+            set_id: '',
           }));
           formData.details.replica_sets.push(...appends);
           return;
@@ -334,9 +334,8 @@
 
   const handleResetFormdata = () => {
     InfoBox({
-      title: t('确认重置表单内容'),
-      content: t('重置后_将会清空当前填写的内容'),
       cancelText: t('取消'),
+      content: t('重置后_将会清空当前填写的内容'),
       onConfirm: () => {
         Object.assign(formData, initData());
         nextTick(() => {
@@ -344,6 +343,7 @@
         });
         return true;
       },
+      title: t('确认重置表单内容'),
     });
   };
 
@@ -358,7 +358,6 @@
       ...formData,
       details: {
         ...details,
-        spec_id: details.resource_spec.spec_id,
         resource_spec: {
           mongo_machine_set: {
             count: details.node_count,
@@ -366,6 +365,7 @@
             ...specRef.value!.getData(),
           },
         },
+        spec_id: details.resource_spec.spec_id,
       },
     };
 

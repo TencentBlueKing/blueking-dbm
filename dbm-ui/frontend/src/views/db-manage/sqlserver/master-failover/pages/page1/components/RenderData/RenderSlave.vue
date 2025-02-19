@@ -38,8 +38,8 @@
   import type { IDataRow } from './Row.vue';
 
   interface Props {
-    modelValue: IDataRow['slaveData'];
     clusterList: number[];
+    modelValue: IDataRow['slaveData'];
   }
 
   interface Exposes {
@@ -65,13 +65,13 @@
 
   const editRef = ref();
   const localValue = ref('');
-  const slaveHostSelectList = shallowRef([] as Array<{ value: string; label: string }>);
+  const slaveHostSelectList = shallowRef([] as Array<{ label: string; value: string }>);
   let allSlaveHostList: ISlaveHost[] = [];
 
   const rules = [
     {
-      validator: (value: string) => !!_.find(allSlaveHostList, (item) => genHostKey(item) === value),
       message: t('目标从库不能为空'),
+      validator: (value: string) => !!_.find(allSlaveHostList, (item) => genHostKey(item) === value),
     },
   ];
 
@@ -100,8 +100,8 @@
           cluster_ids: props.clusterList,
         }).then((data) => {
           slaveHostSelectList.value = data.map((hostData) => ({
-            value: genHostKey(hostData),
             label: hostData.ip,
+            value: genHostKey(hostData),
           }));
           allSlaveHostList = data;
         });

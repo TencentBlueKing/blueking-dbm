@@ -23,9 +23,9 @@
   const comMap = {
     entry: RenderEntry,
     instance: RenderInstance,
+    resource_pool: ResourcePool,
     task: RenderTask,
     ticket: RenderTicket,
-    resource_pool: ResourcePool,
   };
 
   const renderCom = computed(() => {

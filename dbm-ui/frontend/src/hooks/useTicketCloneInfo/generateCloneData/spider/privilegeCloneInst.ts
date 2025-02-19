@@ -34,6 +34,7 @@ export async function generateSpiderPrivilegeCloneInstCloneData(
   }, {});
 
   return {
+    remark: ticketData.remark,
     tableDataList: ticketData.details.clone_data.map((item) => {
       const sourceInfo = instanceListMap[item.source];
       // const targetInfo = instanceListMap[item.target];
@@ -58,6 +59,5 @@ export async function generateSpiderPrivilegeCloneInstCloneData(
         // },
       };
     }),
-    remark: ticketData.remark,
   };
 }

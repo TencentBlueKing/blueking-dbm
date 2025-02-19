@@ -75,15 +75,13 @@
 
   import { getCostTimeDisplay } from '@utils';
 
-  type RetryNodeItem = ServiceReturnType<typeof getRetryNodeHistories>[number]
+  type RetryNodeItem = ServiceReturnType<typeof getRetryNodeHistories>[number];
 
   interface Props {
-    nodeId: string
+    nodeId: string;
   }
 
-  interface Emits {
-    (e: 'change', value: RetryNodeItem): void
-  }
+  type Emits = (e: 'change', value: RetryNodeItem) => void;
 
   const props = defineProps<Props>();
   const emit = defineEmits<Emits>();
@@ -93,33 +91,41 @@
   const rootId = computed(() => route.params.root_id as string);
 
   const isAnomalies = ref(false);
-  const columns: Column[] = [{
-    label: t('执行时间'),
-    field: 'started_time',
-    render: ({ data }: { data: RetryNodeItem }) => (
-      <div class="started-time-column">
-        <span>{data.started_time}</span>
-        {state.latestVersion === data.version ? <bk-tag class="ml-8" theme="info">{ t('最新') }</bk-tag> : null}
-      </div>
-    ),
-  }, {
-    label: t('耗时'),
-    field: 'cost_time',
-    width: 120,
-    render: ({ data }: { data: RetryNodeItem }) => (
-      <div class="started-time-column">
-        <span>{getCostTimeDisplay(data.cost_time)}</span>
-      </div>
-    ),
-  },
+  const columns: Column[] = [
+    {
+      field: 'started_time',
+      label: t('执行时间'),
+      render: ({ data }: { data: RetryNodeItem }) => (
+        <div class='started-time-column'>
+          <span>{data.started_time}</span>
+          {state.latestVersion === data.version ? (
+            <bk-tag
+              class='ml-8'
+              theme='info'>
+              {t('最新')}
+            </bk-tag>
+          ) : null}
+        </div>
+      ),
+    },
+    {
+      field: 'cost_time',
+      label: t('耗时'),
+      render: ({ data }: { data: RetryNodeItem }) => (
+        <div class='started-time-column'>
+          <span>{getCostTimeDisplay(data.cost_time)}</span>
+        </div>
+      ),
+      width: 120,
+    },
   ];
 
   const state = reactive({
-    isShow: false,
-    loading: true,
-    histories: [] as RetryNodeItem[],
-    latestVersion: '',
     active: {} as RetryNodeItem,
+    histories: [] as RetryNodeItem[],
+    isShow: false,
+    latestVersion: '',
+    loading: true,
   });
   const isLatest = computed(() => state.active.version === state.latestVersion);
   const { body } = document;
@@ -142,8 +148,8 @@
   const fetchData = () => {
     state.loading = true;
     getRetryNodeHistories({
-      root_id: rootId.value,
       node_id: props.nodeId,
+      root_id: rootId.value,
     })
       .then((res) => {
         state.histories = res;
@@ -162,7 +168,6 @@
       });
   };
 
-
   /**
    * 设置行选中样式
    */
@@ -178,19 +183,27 @@
     state.isShow = false;
   };
 
-  watch(() => state.active, () => {
-    if (!_.isEmpty(state.active)) {
-      emit('change', state.active);
-    }
-  }, { immediate: true, deep: true });
+  watch(
+    () => state.active,
+    () => {
+      if (!_.isEmpty(state.active)) {
+        emit('change', state.active);
+      }
+    },
+    { deep: true, immediate: true },
+  );
 
-  watch(() => props.nodeId, () => {
-    if (props.nodeId) {
-      fetchData();
-    }
-  }, {
-    immediate: true,
-  })
+  watch(
+    () => props.nodeId,
+    () => {
+      if (props.nodeId) {
+        fetchData();
+      }
+    },
+    {
+      immediate: true,
+    },
+  );
 </script>
 
 <style lang="less" scoped>

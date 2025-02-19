@@ -43,8 +43,8 @@
 
   defineProps<Props>();
   const isShow = defineModel<boolean>('isShow', {
-    required: true,
     default: false,
+    required: true,
   });
 
   const { t } = useI18n();

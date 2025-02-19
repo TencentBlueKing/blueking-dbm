@@ -24,8 +24,8 @@
   const route = useRoute();
 
   const comMap = {
-    ticket: Page1,
     success: Page2,
+    ticket: Page1,
   };
 
   const page = ref('');

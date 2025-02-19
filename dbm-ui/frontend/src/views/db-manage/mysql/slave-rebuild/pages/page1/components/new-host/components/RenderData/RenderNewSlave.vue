@@ -95,16 +95,16 @@
   import useValidtor from './useValidtor';
 
   interface Props {
-    oldSlave?: IDataRow['oldSlave'];
     newSlave?: IDataRow['newSlave'];
+    oldSlave?: IDataRow['oldSlave'];
   }
 
   interface Exposes {
     getValue: () => Promise<{
       new_slave: {
+        bk_cloud_id: number;
         bk_host_id: number;
         ip: string;
-        bk_cloud_id: number;
       };
     }>;
   }
@@ -125,8 +125,8 @@
 
   const rules = [
     {
-      validator: (value: string) => Boolean(value),
       message: t('新从库主机不能为空'),
+      validator: (value: string) => Boolean(value),
     },
   ];
 

@@ -62,8 +62,8 @@
   import { getSearchSelectorParams } from '@utils';
 
   interface Props {
-    title: string
-    clusterIds?: number[]
+    clusterIds?: number[];
+    title: string;
   }
 
   const props = withDefaults(defineProps<Props>(), {
@@ -77,30 +77,30 @@
 
   const columns = [
     {
-      label: t('域名'),
       field: 'master_domain',
+      label: t('域名'),
       showOverflowTooltip: true,
     },
     {
-      label: t('集群'),
       field: 'cluster_name',
+      label: t('集群'),
       showOverflowTooltip: true,
     },
     {
-      label: t('状态'),
       field: 'status',
+      label: t('状态'),
       render: ({ cell }: { cell: 'normal' | 'abnormal' }) => <RenderClusterStatus data={cell} />,
     },
   ];
 
   const searchSelectData = [
     {
-      name: t('域名'),
       id: 'domain',
+      name: t('域名'),
     },
     {
-      name: t('集群'),
       id: 'name',
+      name: t('集群'),
     },
   ];
 
@@ -110,17 +110,17 @@
 
   const {
     data: mongoList,
-    run: getMongoListRun,
     loading,
+    run: getMongoListRun,
   } = useRequest(getMongoList, {
     manual: true,
-    onSuccess(mongoList) {
-      pagination.value.count = mongoList.count;
-      isAnomalies.value = false;
-    },
     onError() {
       pagination.value.count = 0;
       isAnomalies.value = true;
+    },
+    onSuccess(mongoList) {
+      pagination.value.count = mongoList.count;
+      isAnomalies.value = false;
     },
   });
 
@@ -154,7 +154,7 @@
     });
   };
 
-  const handleClearSearch = () =>  {
+  const handleClearSearch = () => {
     searchSelectValue.value = [];
     handleChangePage(1);
   };

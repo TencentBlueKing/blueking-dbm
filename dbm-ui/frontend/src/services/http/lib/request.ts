@@ -27,20 +27,21 @@ const cacheHandler = new Cache();
 
 export type Method = 'get' | 'delete' | 'post' | 'put' | 'download' | 'patch';
 export interface Config {
-  url: string;
   method: Method;
   params?: Record<string, any>;
   payload?: {
-    timeout?: number;
     cache?: string | number | boolean;
+    catchError?: boolean;
     onUploadProgress?: (params: CancelTokenSource) => void;
     permission?: 'page' | 'dialog' | 'catch';
-    catchError?: boolean;
+    timeout?: number;
   } & AxiosRequestConfig;
+  url: string;
 }
 
-/* @ts-ignore */
+/* @ts-expect-error 插件类型问题 */
 if (axios.interceptors.response.handlers.length < 1) {
+  /* @ts-expect-error 插件类型问题 */
   requestMiddleware(axios.interceptors.request);
   responseMiddleware(axios.interceptors.response);
 }
@@ -57,18 +58,18 @@ if (CSRFToken !== undefined) {
   console.warn('Can not find csrftoken in document.cookie');
 }
 const defaultConfig = {
-  timeout: 120000,
   headers: {},
-  withCredentials: true,
   paramsSerializer,
+  timeout: 120000,
+  withCredentials: true,
   xsrfCookieName: 'dbm_csrftoken',
   xsrfHeaderName: 'X-CSRFToken',
 };
 
 export default class Request {
+  static bodyDataMethods = ['post', 'put', 'delete', 'patch'];
   static supporMethods = ['get', 'post', 'delete', 'put', 'patch'];
   static willCachedMethods = ['get'];
-  static bodyDataMethods = ['post', 'put', 'delete', 'patch'];
 
   cache: Cache;
   config: Config;
@@ -78,26 +79,12 @@ export default class Request {
     this.config = config;
   }
 
-  get taskKey() {
-    return `${this.config.method}_${this.config.url}_${JSON.stringify(this.config.params)}`;
-  }
-
-  get isCachedable() {
-    if (!Request.willCachedMethods.includes(this.config.method)) {
-      return false;
-    }
-    if (!this.config.payload || !_.has(this.config.payload, 'cache')) {
-      return false;
-    }
-    return true;
-  }
-
   get axiosConfig() {
     const config: Record<string, any> = Object.assign({}, defaultConfig, {
       baseURL: window.PROJECT_ENV.VITE_AJAX_URL_PREFIX,
-      url: this.config.url,
       method: this.config.method,
       payload: this.config.payload || {},
+      url: this.config.url,
     });
 
     if (this.config.params) {
@@ -118,12 +105,22 @@ export default class Request {
     return config;
   }
 
-  checkCache() {
-    return this.isCachedable && this.cache.has(this.taskKey);
+  get isCachedable() {
+    if (!Request.willCachedMethods.includes(this.config.method)) {
+      return false;
+    }
+    if (!this.config.payload || !_.has(this.config.payload, 'cache')) {
+      return false;
+    }
+    return true;
   }
 
-  setCache(data: CacheValue) {
-    this.isCachedable && this.cache.set(this.taskKey, data, this.config.payload?.cache as CacheExpire);
+  get taskKey() {
+    return `${this.config.method}_${this.config.url}_${JSON.stringify(this.config.params)}`;
+  }
+
+  checkCache() {
+    return this.isCachedable && this.cache.has(this.taskKey);
   }
 
   deleteCache() {
@@ -150,5 +147,9 @@ export default class Request {
     });
     this.setCache(requestHandler);
     return requestHandler;
+  }
+
+  setCache(data: CacheValue) {
+    this.isCachedable && this.cache.set(this.taskKey, data, this.config.payload?.cache as CacheExpire);
   }
 }

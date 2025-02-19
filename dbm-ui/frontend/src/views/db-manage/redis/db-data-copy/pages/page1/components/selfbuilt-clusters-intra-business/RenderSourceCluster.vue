@@ -34,9 +34,7 @@
     data?: IDataRow['srcCluster'];
   }
 
-  interface Emits {
-    (e: 'inputFinish', value: string): void;
-  }
+  type Emits = (e: 'inputFinish', value: string) => void;
 
   interface Exposes {
     getValue: () => Promise<string>;
@@ -54,12 +52,12 @@
 
   const rules = [
     {
-      validator: (value: string) => Boolean(value),
       message: t('目标集群不能为空'),
+      validator: (value: string) => Boolean(value),
     },
     {
-      validator: (value: string) => ipPort.test(value) || domainPort.test(value),
       message: t('目标集群格式不正确'),
+      validator: (value: string) => ipPort.test(value) || domainPort.test(value),
     },
   ];
 

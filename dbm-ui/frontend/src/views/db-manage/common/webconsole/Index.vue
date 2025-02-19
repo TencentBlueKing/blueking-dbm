@@ -82,8 +82,8 @@
 
   const consolePanelMap = {
     [DBTypes.MYSQL]: MysqlConsolePanel,
-    [DBTypes.TENDBCLUSTER]: MysqlConsolePanel,
     [DBTypes.REDIS]: RedisConsolePanel,
+    [DBTypes.TENDBCLUSTER]: MysqlConsolePanel,
   } as Record<DBTypes, any>;
 
   const rootRef = ref();
@@ -103,18 +103,18 @@
       const isInputed = consolePanelRef.value!.isInputed(clusterId);
       if (isInputed) {
         InfoBox({
-          title: t('确认关闭当前窗口？'),
-          content: t('关闭后，内容将不会再在保存，请谨慎操作！'),
-          headerAlign: 'center',
-          footerAlign: 'center',
-          confirmText: t('关闭'),
           cancelText: t('取消'),
-          onConfirm() {
-            resolve(true);
-          },
+          confirmText: t('关闭'),
+          content: t('关闭后，内容将不会再在保存，请谨慎操作！'),
+          footerAlign: 'center',
+          headerAlign: 'center',
           onCancel() {
             reject(false);
           },
+          onConfirm() {
+            resolve(true);
+          },
+          title: t('确认关闭当前窗口？'),
         });
       } else {
         resolve(true);

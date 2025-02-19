@@ -82,50 +82,50 @@
   import RenderTargetVersion from './RenderTargetVersion.vue';
 
   export interface IDataRow {
-    rowKey: string;
-    isLoading: boolean;
-    targetCluster: string;
-    clusterId: number;
     bkCloudId: number;
-    clusterTypeName: string;
+    clusterId: number;
     clusterStats: RedisModel['cluster_stats'];
-    disasterToleranceLevel: string;
-    shardNum?: number;
-    groupNum?: number;
+    clusterType?: string;
+    clusterTypeName: string;
+    currentCapacity?: {
+      total: number;
+      used: number;
+    };
     currentSepc?: string;
+    disasterToleranceLevel: string;
+    groupNum?: number;
+    isLoading: boolean;
+    rowKey: string;
+    shardNum?: number;
+    spec?: RedisModel['cluster_spec'];
+    switchMode?: OnlineSwitchType;
     targetCapacity?: {
       current: number;
-      used: number;
       total: number;
-    };
-    currentCapacity?: {
       used: number;
-      total: number;
     };
+    targetCluster: string;
     version?: string;
-    clusterType?: string;
-    switchMode?: OnlineSwitchType;
-    spec?: RedisModel['cluster_spec'];
   }
 
   export type InfoItem = Redis.ScaleUpdown['infos'][number];
 
   // 创建表格数据
   export const createRowData = (): IDataRow => ({
-    rowKey: random(),
-    isLoading: false,
-    targetCluster: '',
-    clusterId: 0,
     bkCloudId: 0,
-    clusterTypeName: '',
+    clusterId: 0,
     clusterStats: {} as IDataRow['clusterStats'],
+    clusterTypeName: '',
     disasterToleranceLevel: '',
+    isLoading: false,
+    rowKey: random(),
+    targetCluster: '',
   });
 
   interface Props {
     data: IDataRow;
-    removeable: boolean;
     inputedClusters?: string[];
+    removeable: boolean;
   }
 
   interface Emits {
@@ -153,10 +153,10 @@
   const switchModeRef = ref<InstanceType<typeof RenderSwitchMode>>();
   const localTargetVersion = ref<string>('');
   const displayInfo = ref<InfoItem['display_info']>({
-    cluster_stats: {},
-    cluster_spec: {},
-    cluster_shard_num: 0,
     cluster_capacity: 0,
+    cluster_shard_num: 0,
+    cluster_spec: {},
+    cluster_stats: {},
     machine_pair_cnt: 0,
   } as InfoItem['display_info']);
 
@@ -167,10 +167,10 @@
   const handleInputFinish = (value: RedisModel) => {
     emits('clusterInputFinish', value);
     displayInfo.value = {
-      cluster_stats: value.cluster_stats,
-      cluster_spec: value.cluster_spec,
-      cluster_shard_num: value.cluster_shard_num,
       cluster_capacity: value.cluster_capacity,
+      cluster_shard_num: value.cluster_shard_num,
+      cluster_spec: value.cluster_spec,
+      cluster_stats: value.cluster_stats,
       machine_pair_cnt: value.machine_pair_cnt,
     };
   };
@@ -193,9 +193,9 @@
       ]).then((data) => {
         const [version, switchMode, targetCapacity] = data;
         return {
+          bk_cloud_id: props.data.bkCloudId,
           cluster_id: props.data.clusterId,
           db_version: version,
-          bk_cloud_id: props.data.bkCloudId,
           online_switch_type: switchMode,
           ...targetCapacity,
           display_info: displayInfo.value,

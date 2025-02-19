@@ -111,14 +111,14 @@
 
   // 单据克隆
   useTicketCloneInfo({
-    type: TicketTypes.TENDBCLUSTER_MIGRATE_CLUSTER,
     onSuccess(cloneData) {
-      const { tableDataList, remark, backupSource } = cloneData;
+      const { backupSource, remark, tableDataList } = cloneData;
       tableData.value = tableDataList;
       formData.backup_source = backupSource;
       formData.remark = remark;
       window.changeConfirm = true;
     },
+    type: TicketTypes.TENDBCLUSTER_MIGRATE_CLUSTER,
   });
 
   const rowRefs = ref<InstanceType<typeof RenderDataRow>[]>();
@@ -154,18 +154,18 @@
   };
 
   const generateRowDateFromRequest = (item: IValue) => ({
-    rowKey: random(),
-    isLoading: false,
     clusterData: {
-      ip: item.ip,
-      clusterId: item.cluster_id,
-      domain: item.master_domain || '',
       cloudId: item.bk_cloud_id,
       cloudName: item.bk_cloud_name || '',
+      clusterId: item.cluster_id,
+      domain: item.master_domain || '',
       hostId: item.bk_host_id,
+      ip: item.ip,
     },
+    isLoading: false,
     masterInstanceList: item.related_instances || [],
     newHostList: [],
+    rowKey: random(),
   });
 
   // 批量选择
@@ -193,19 +193,19 @@
       const { ip } = tableData.value[index].clusterData;
       ipMemo[ip] = false;
       Object.assign(tableData.value[index].clusterData, {
-        id: 0,
-        ip: '',
-        clusterId: 0,
-        domain: '',
         cloudId: 0,
         cloudName: '',
+        clusterId: 0,
+        domain: '',
+        id: 0,
+        ip: '',
       });
       return;
     }
     tableData.value[index].isLoading = true;
     const spiderMachineResult = await getTendbclusterMachineList({
-      ip,
       instance_role: 'remote_master',
+      ip,
     }).finally(() => {
       tableData.value[index].isLoading = false;
     });
@@ -215,11 +215,11 @@
     const spiderMachineItem = spiderMachineResult.results[0];
     Object.assign(tableData.value[index], {
       clusterData: {
-        ip,
-        clusterId: spiderMachineItem.related_clusters[0].id,
-        domain: spiderMachineItem.related_clusters[0].immute_domain,
         cloudId: spiderMachineItem.bk_cloud_id,
         cloudName: spiderMachineItem.bk_cloud_name,
+        clusterId: spiderMachineItem.related_clusters[0].id,
+        domain: spiderMachineItem.related_clusters[0].immute_domain,
+        ip,
       },
       masterInstanceList: spiderMachineItem.related_instances,
     });
@@ -274,13 +274,13 @@
       const infos = await Promise.all(rowRefs.value!.map((item) => item.getValue()));
       const params = {
         bk_biz_id: currentBizId,
-        ticket_type: TicketTypes.TENDBCLUSTER_MIGRATE_CLUSTER,
-        remark: formData.remark,
         details: {
           ...formData,
-          ip_source: 'manual_input',
           infos,
+          ip_source: 'manual_input',
         },
+        remark: formData.remark,
+        ticket_type: TicketTypes.TENDBCLUSTER_MIGRATE_CLUSTER,
       };
       await createTicket(params).then((data) => {
         window.changeConfirm = false;

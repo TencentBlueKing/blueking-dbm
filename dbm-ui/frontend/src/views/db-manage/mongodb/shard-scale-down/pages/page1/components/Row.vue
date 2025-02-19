@@ -65,16 +65,16 @@
   import RenderTargetNumber from './RenderTargetNumber.vue';
 
   export interface IDataRow {
-    rowKey: string;
-    isLoading: boolean;
-    clusterName: string;
     clusterId: number;
-    currentNodeNum: number;
-    machineInstanceNum: number;
-    shardNum: number;
+    clusterName: string;
     clusterType: string;
     clusterTypeText: string;
+    currentNodeNum: number;
+    isLoading: boolean;
     isMongoReplicaSet: boolean;
+    machineInstanceNum: number;
+    rowKey: string;
+    shardNum: number;
     targetNum?: string;
   }
 
@@ -85,22 +85,22 @@
 
   // 创建表格数据
   export const createRowData = (): IDataRow => ({
-    rowKey: random(),
-    isLoading: false,
-    clusterName: '',
     clusterId: 0,
+    clusterName: '',
     clusterType: '',
     clusterTypeText: '',
     currentNodeNum: 0,
-    machineInstanceNum: 0,
+    isLoading: false,
     isMongoReplicaSet: false,
+    machineInstanceNum: 0,
+    rowKey: random(),
     shardNum: 0,
   });
 
   interface Props {
     data: IDataRow;
-    removeable: boolean;
     inputedClusters?: string[];
+    removeable: boolean;
   }
 
   interface Emits {
@@ -192,10 +192,10 @@
         cluster_ids: props.data.isMongoReplicaSet
           ? [props.data.clusterId, ...relatedClusterIds]
           : [props.data.clusterId],
-        reduce_shard_nodes: props.data.currentNodeNum - nodeNum, // 当前 - 缩容至
         current_shard_nodes_num: props.data.currentNodeNum, // 当前shard节点数
-        shard_num: props.data.shardNum, // 分片数
         machine_instance_num: props.data.machineInstanceNum, // 单机部署实例
+        reduce_shard_nodes: props.data.currentNodeNum - nodeNum, // 当前 - 缩容至
+        shard_num: props.data.shardNum, // 分片数
       }));
     },
   });

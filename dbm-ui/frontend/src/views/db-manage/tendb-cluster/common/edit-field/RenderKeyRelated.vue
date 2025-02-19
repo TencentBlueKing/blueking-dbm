@@ -45,9 +45,7 @@
     data: string[];
     required?: boolean;
   }
-  interface Emits {
-    (e: 'change', value: string[]): void;
-  }
+  type Emits = (e: 'change', value: string[]) => void;
   interface Exposes {
     getValue: () => Promise<string[]>;
   }
@@ -64,13 +62,13 @@
   const { t } = useI18n();
   const rules = [
     {
+      message: t('不能为空'),
       validator: (value: string[]) => {
         if (!props.required) {
           return true;
         }
         return value && value.length > 0;
       },
-      message: t('不能为空'),
     },
   ];
 
@@ -89,17 +87,17 @@
 
   onMounted(() => {
     tippyIns = tippy(rootRef.value as SingleTarget, {
-      content: popRef.value,
-      placement: 'top',
       appendTo: () => document.body,
-      theme: 'light',
-      maxWidth: 'none',
-      trigger: 'manual',
-      interactive: true,
       arrow: true,
-      offset: [0, 8],
-      zIndex: 999999,
+      content: popRef.value,
       hideOnClick: true,
+      interactive: true,
+      maxWidth: 'none',
+      offset: [0, 8],
+      placement: 'top',
+      theme: 'light',
+      trigger: 'manual',
+      zIndex: 999999,
     });
   });
 

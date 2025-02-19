@@ -14,35 +14,35 @@
 import _ from 'lodash';
 
 type IRenderPermissionList = Array<{
-  systemName: string;
   actionName: string;
   relatedResources: Array<{
-    type: string;
     instances: Array<string>;
+    type: string;
   }>;
+  systemName: string;
 }>;
 
 export default class ApplyData {
   apply_url: string;
   permission: {
-    system_id: string;
-    system_name: string;
     actions: Array<{
       id: string;
       name: string;
       related_resource_types: {
+        instances: {
+          id: string;
+          name: string;
+          type: string;
+          type_name: string;
+        }[][];
         system_id: string;
         system_name: string;
         type: string;
         type_name: string;
-        instances: {
-          type: string;
-          type_name: string;
-          id: string;
-          name: string;
-        }[][];
       }[];
     }>;
+    system_id: string;
+    system_name: string;
   };
 
   constructor(payload = {} as ApplyData) {
@@ -68,14 +68,14 @@ export default class ApplyData {
           return result;
         }, [] as Array<string>);
         relatedResourceTypes.push({
-          type: relateResource.type_name,
           instances,
+          type: relateResource.type_name,
         });
       });
       stack.push({
-        systemName,
         actionName: action.name,
         relatedResources: relatedResourceTypes,
+        systemName,
       });
     });
 

@@ -79,20 +79,20 @@
   const router = useRouter();
 
   useTicketCloneInfo({
-    type: TicketTypes.SQLSERVER_RESTORE_LOCAL_SLAVE,
     onSuccess(data) {
       tableData.value = data.map((item) =>
         createRowData({
           slave: {
             bkCloudId: item.slave.bk_cloud_id,
             bkHostId: item.slave.bk_host_id,
+            instanceAddress: `${item.slave.ip}:${item.slave.port}`,
             ip: item.slave.ip,
             port: item.slave.port,
-            instanceAddress: `${item.slave.ip}:${item.slave.port}`,
           },
         }),
       );
     },
+    type: TicketTypes.SQLSERVER_RESTORE_LOCAL_SLAVE,
   });
 
   const tabListConfig = {
@@ -140,9 +140,9 @@
         slave: {
           bkCloudId: instanceData.bk_cloud_id,
           bkHostId: instanceData.bk_host_id,
+          instanceAddress: instanceData.instance_address,
           ip: instanceData.ip,
           port: instanceData.port,
-          instanceAddress: instanceData.instance_address,
         },
       }),
     );
@@ -174,13 +174,13 @@
     Promise.all(rowRefs.value.map((item) => item.getValue()))
       .then((data) =>
         createTicket({
-          ticket_type: TicketTypes.SQLSERVER_RESTORE_LOCAL_SLAVE,
-          remark: '',
+          bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
           details: {
             backup_source: 'manual_input',
             infos: data,
           },
-          bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+          remark: '',
+          ticket_type: TicketTypes.SQLSERVER_RESTORE_LOCAL_SLAVE,
         }).then((data) => {
           window.changeConfirm = false;
 

@@ -12,25 +12,25 @@
   import type { Table } from 'bkui-vue';
   import { useI18n } from 'vue-i18n';
 
-  type TableProps = InstanceType<typeof Table>['$props']
+  type TableProps = InstanceType<typeof Table>['$props'];
 
   interface Props {
     data: {
-      domain:string,
-      slaveDomain:string,
-      disasterDefence:string,
-      deployStructure:string,
-      version:string,
-      charset:string,
-    }[],
+      charset: string;
+      deployStructure: string;
+      disasterDefence: string;
+      domain: string;
+      slaveDomain: string;
+      version: string;
+    }[];
+    isShowNodes?: boolean;
+    isSingleType?: boolean;
+    maxHeight?: number;
     nodeList: {
-      ip: string,
-      bk_host_id: number,
-      bk_cloud_id: number
-    }[],
-    isShowNodes?: boolean,
-    isSingleType?: boolean,
-    maxHeight?: number
+      bk_cloud_id: number;
+      bk_host_id: number;
+      ip: string;
+    }[];
   }
 
   const props = withDefaults(defineProps<Props>(), {
@@ -45,77 +45,75 @@
     if (props.isSingleType) {
       const singleColumns: TableProps['columns'] = [
         {
-          label: t('主访问入口'),
           field: 'domain',
+          label: t('主访问入口'),
           showOverflowTooltip: true,
         },
         {
-          label: t('部署架构'),
           field: 'deployStructure',
+          label: t('部署架构'),
           showOverflowTooltip: true,
         },
         {
-          label: t('数据库版本'),
           field: 'version',
+          label: t('数据库版本'),
           showOverflowTooltip: true,
         },
         {
-          label: t('字符集'),
           field: 'charset',
+          label: t('字符集'),
           showOverflowTooltip: true,
         },
       ];
       if (props.isShowNodes) {
         singleColumns.push({
-          label: t('服务器'),
           field: 'backend',
-          width: 200,
-          rowspan: () => props.data.length || 1,
+          label: t('服务器'),
           render: () => {
-            const {nodeList} = props;
+            const { nodeList } = props;
             return (
-              <div class="host-list">
-                <div class="host-list-wrapper">
-                  {
-                    nodeList.map(item => (
-                      <div class="host-list-item">
-                        <span class='host-list-tag host-list-tag-master'></span>
-                        <span class="host-list-ip">{ item.ip }</span>
-                      </div>
-                    ))
-                  }
+              <div class='host-list'>
+                <div class='host-list-wrapper'>
+                  {nodeList.map((item) => (
+                    <div class='host-list-item'>
+                      <span class='host-list-tag host-list-tag-master'></span>
+                      <span class='host-list-ip'>{item.ip}</span>
+                    </div>
+                  ))}
                 </div>
               </div>
             );
           },
+          rowspan: () => props.data.length || 1,
+          width: 200,
         });
       }
       return singleColumns;
     }
     const haColumns: TableProps['columns'] = [
       {
-        label: t('主访问入口'),
         field: 'domain',
+        label: t('主访问入口'),
         showOverflowTooltip: true,
       },
       {
-        label: t('从访问入口'),
         field: 'slaveDomain',
+        label: t('从访问入口'),
         showOverflowTooltip: true,
       },
       {
-        label: t('部署架构'),
         field: 'deployStructure',
+        label: t('部署架构'),
         showOverflowTooltip: true,
       },
       {
-        label: t('数据库版本'),
         field: 'version',
+        label: t('数据库版本'),
         showOverflowTooltip: true,
       },
       {
-        label: t('字符集'),
         field: 'charset',
+        label: t('字符集'),
         showOverflowTooltip: true,
       },
     ];

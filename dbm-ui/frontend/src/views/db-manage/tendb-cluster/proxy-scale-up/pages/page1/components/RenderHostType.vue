@@ -92,24 +92,24 @@
 
   const rules = [
     {
+      message: t('请选择主机'),
       validator: (value: string) => {
         if (value === HostSwicthType.MANUAL) {
           return selectedIpList.value.length > 0;
         }
         return true;
       },
-      message: t('请选择主机'),
     },
   ];
 
   const selectList = [
     {
-      value: HostSwicthType.AUTO,
       label: t('资源池自动匹配'),
+      value: HostSwicthType.AUTO,
     },
     {
-      value: HostSwicthType.MANUAL,
       label: t('资源池手动选择'),
+      value: HostSwicthType.MANUAL,
     },
   ];
 

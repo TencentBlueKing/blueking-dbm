@@ -30,9 +30,7 @@
     modelValue: string;
   }
 
-  interface Emits {
-    (e: 'change', value: string): void;
-  }
+  type Emits = (e: 'change', value: string) => void;
 
   interface Exposes {
     getValue: (field: string) => Promise<Record<string, string>>;
@@ -44,8 +42,8 @@
   const { t } = useI18n();
   const rules = [
     {
-      validator: (value: string) => Boolean(value),
       message: t('备份源不能为空'),
+      validator: (value: string) => Boolean(value),
     },
   ];
 

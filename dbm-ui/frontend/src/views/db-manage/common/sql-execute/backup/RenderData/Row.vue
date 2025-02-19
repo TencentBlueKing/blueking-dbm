@@ -43,17 +43,17 @@
   import { random } from '@utils';
 
   export interface IDataRow {
-    rowKey?: string;
-    db_patterns: string[];
     backup_on: string;
+    db_patterns: string[];
+    rowKey?: string;
     table_patterns: string[];
   }
 
   // 创建表格数据
   export const createRowData = (data = {} as Partial<IDataRow>) => ({
-    rowKey: random(),
-    db_patterns: data.db_patterns || [],
     backup_on: '',
+    db_patterns: data.db_patterns || [],
+    rowKey: random(),
     table_patterns: data.table_patterns || [],
   });
 </script>
@@ -94,9 +94,9 @@
 
   const triggerChange = () => {
     emits('change', {
-      rowKey: props.data.rowKey,
-      db_patterns: dbPatterns.value,
       backup_on: backupOn.value,
+      db_patterns: dbPatterns.value,
+      rowKey: props.data.rowKey,
       table_patterns: tablePatterns.value,
     });
   };

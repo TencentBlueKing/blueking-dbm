@@ -32,10 +32,10 @@
   import TableEditSelect, { type IListItem } from './SpecSelect.vue';
 
   interface Props {
-    selectList: IListItem[];
     data?: IDataRow['rowModelData'];
     isLoading?: boolean;
     selectedSpecId?: number;
+    selectList: IListItem[];
   }
 
   interface Exposes {
@@ -50,8 +50,8 @@
 
   const rules = [
     {
-      validator: (value: string) => Boolean(value),
       message: t('请先输入集群'),
+      validator: (value: string) => Boolean(value),
     },
   ];
 

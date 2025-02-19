@@ -105,14 +105,14 @@
 
   // 单据克隆
   useTicketCloneInfo({
-    type: TicketTypes.TENDBCLUSTER_RENAME_DATABASE,
     onSuccess(cloneData) {
-      const { tableDataList, force, remark } = cloneData;
+      const { force, remark, tableDataList } = cloneData;
       tableData.value = tableDataList;
       isIgnore.value = force;
       formData.remark = remark;
       window.changeConfirm = true;
     },
+    type: TicketTypes.TENDBCLUSTER_RENAME_DATABASE,
   });
 
   const rowRefs = ref();
@@ -151,8 +151,8 @@
       if (!domainMemo[domain]) {
         const row = createRowData({
           clusterData: {
-            id: item.id,
             domain: item.master_domain,
+            id: item.id,
           },
         });
         result.push(row);
@@ -200,8 +200,8 @@
     const item = resultList.results[0];
     const row = createRowData({
       clusterData: {
-        id: item.id,
         domain,
+        id: item.id,
       },
     });
     tableData.value[index] = row;
@@ -246,13 +246,13 @@
       isSubmitting.value = true;
       const infos = await Promise.all(rowRefs.value.map((item: { getValue: () => Promise<any> }) => item.getValue()));
       await createTicket({
-        ticket_type: TicketTypes.TENDBCLUSTER_RENAME_DATABASE,
-        remark: formData.remark,
+        bk_biz_id: currentBizId,
         details: {
           force: isIgnore.value,
           infos,
         },
-        bk_biz_id: currentBizId,
+        remark: formData.remark,
+        ticket_type: TicketTypes.TENDBCLUSTER_RENAME_DATABASE,
       }).then((data) => {
         window.changeConfirm = false;
         router.push({

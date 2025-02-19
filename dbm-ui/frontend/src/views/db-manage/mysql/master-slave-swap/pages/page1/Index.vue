@@ -124,7 +124,6 @@
 
   // 单据克隆
   useTicketCloneInfo({
-    type: TicketTypes.MYSQL_MASTER_SLAVE_SWITCH,
     onSuccess(cloneData) {
       const { isCheckDelay, isCheckProcess, isVerifyChecksum, tableDataList } = cloneData;
       tableData.value = tableDataList;
@@ -134,6 +133,7 @@
       formData.remark = cloneData.remark;
       window.changeConfirm = true;
     },
+    type: TicketTypes.MYSQL_MASTER_SLAVE_SWITCH,
   });
 
   const rowRefs = ref();
@@ -145,9 +145,9 @@
   const selectedIps = shallowRef<InstanceSelectorValues<TendbhaInstanceModel>>({ [ClusterTypes.TENDBHA]: [] });
 
   const formData = reactive({
+    is_check_delay: true,
     is_check_process: true,
     is_verify_checksum: true,
-    is_check_delay: true,
     remark: '',
   });
 
@@ -184,13 +184,13 @@
     selectedIps.value = data;
     const newList = [] as IDataRow[];
     data.tendbha.forEach((proxyData) => {
-      const { ip, bk_host_id, bk_cloud_id } = proxyData;
+      const { bk_cloud_id, bk_host_id, ip } = proxyData;
       if (!ipMemo[ip]) {
         newList.push(
           createRowData({
             masterData: {
-              bk_host_id,
               bk_cloud_id,
+              bk_host_id,
               ip,
             },
           }),
@@ -239,13 +239,13 @@
       isSubmitting.value = true;
       const infos = await Promise.all(rowRefs.value.map((item: { getValue: () => Promise<any> }) => item.getValue()));
       await createTicket({
-        ticket_type: 'MYSQL_MASTER_SLAVE_SWITCH',
-        remark: formData.remark,
+        bk_biz_id: currentBizId,
         details: {
           ...formData,
           infos,
         },
-        bk_biz_id: currentBizId,
+        remark: formData.remark,
+        ticket_type: 'MYSQL_MASTER_SLAVE_SWITCH',
       }).then((data) => {
         window.changeConfirm = false;
 

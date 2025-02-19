@@ -24,14 +24,14 @@
   import TicketModel, { type Mongodb } from '@services/model/ticket/ticket';
 
   type ClusterItem = {
-    id: number,
-    immute_domain: string,
-    name: string,
-    cluster_type_name: string,
-  }
+    cluster_type_name: string;
+    id: number;
+    immute_domain: string;
+    name: string;
+  };
 
   interface Props {
-    ticketDetails: TicketModel<Mongodb.Destroy>
+    ticketDetails: TicketModel<Mongodb.Destroy>;
   }
 
   const props = defineProps<Props>();
@@ -43,19 +43,19 @@
    */
   const columns = [
     {
-      label: t('集群ID'),
       field: 'cluster_id',
+      label: t('集群ID'),
       render: ({ data }: { data: ClusterItem }) => <span>{data.id || '--'}</span>,
     },
     {
-      label: t('集群名称'),
       field: 'immute_domain',
-      showOverflowTooltip: false,
+      label: t('集群名称'),
       render: ({ data }: { data: ClusterItem }) => data.immute_domain,
+      showOverflowTooltip: false,
     },
     {
-      label: t('集群类型'),
       field: 'cluster_type_name',
+      label: t('集群类型'),
       render: ({ data }: { data: ClusterItem }) => <span>{data.cluster_type_name || '--'}</span>,
     },
   ];
@@ -63,11 +63,14 @@
   const { clusters } = props.ticketDetails.details;
   const dataList = Object.keys(clusters).reduce((prevData, clusterId) => {
     const clusterItem = clusters[Number(clusterId)];
-    return [...prevData, {
-      id: clusterItem.id,
-      immute_domain: clusterItem.immute_domain,
-      name: clusterItem.name,
-      cluster_type_name: clusterItem.cluster_type_name,
-    }];
+    return [
+      ...prevData,
+      {
+        cluster_type_name: clusterItem.cluster_type_name,
+        id: clusterItem.id,
+        immute_domain: clusterItem.immute_domain,
+        name: clusterItem.name,
+      },
+    ];
   }, [] as ClusterItem[]);
 </script>

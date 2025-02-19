@@ -43,11 +43,13 @@
 
   const rules = [
     {
-      validator: (val: string) => val === '' || /^[\u4e00-\u9fa5A-Za-z0-9-]*$/.test(val),
       message: t('只能包含中文_英文字母_数字_连字符'),
       trigger: 'blur',
+      validator: (val: string) => val === '' || /^[\u4e00-\u9fa5A-Za-z0-9-]*$/.test(val),
     },
     {
+      message: t('集群别名重复'),
+      trigger: 'blur',
       validator: (val: string) => {
         if (!val) {
           return true;
@@ -56,13 +58,11 @@
           return false;
         }
         return verifyDuplicatedClusterName({
-          name: val,
           bk_biz_id: props.bizId,
           cluster_type: props.clusterType,
+          name: val,
         }).then((data) => !data);
       },
-      message: t('集群别名重复'),
-      trigger: 'blur',
     },
   ];
 </script>

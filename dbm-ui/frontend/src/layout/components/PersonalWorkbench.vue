@@ -102,8 +102,8 @@
   const menuRef = ref<InstanceType<typeof Menu>>();
 
   const {
-    parentKey,
     key: currentActiveKey,
+    parentKey,
     routeLocation: handleMenuChange,
   } = useActiveKey(menuRef as Ref<InstanceType<typeof Menu>>, 'MyTodos');
 

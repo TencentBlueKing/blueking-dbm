@@ -90,13 +90,13 @@
 
   // 单据克隆
   useTicketCloneInfo({
-    type: TicketTypes.REDIS_PROXY_SCALE_UP,
     onSuccess(cloneData) {
       tableData.value = cloneData.tableDataList;
       remark.value = cloneData.remark;
 
       window.changeConfirm = true;
     },
+    type: TicketTypes.REDIS_PROXY_SCALE_UP,
   });
 
   const rowRefs = ref();
@@ -143,21 +143,21 @@
 
   // 根据集群选择返回的数据加工成table所需的数据
   const generateRowDateFromRequest = (item: RedisModel) => ({
-    rowKey: item.master_domain,
-    isLoading: false,
-    cluster: item.master_domain,
-    clusterId: item.id,
     bkCloudId: item.bk_cloud_id,
-    clusterType: item.cluster_spec.spec_cluster_type,
-    nodeType: 'Proxy',
+    cluster: item.master_domain,
     cluster_type_name: item.cluster_type_name,
+    clusterId: item.id,
+    clusterType: item.cluster_spec.spec_cluster_type,
+    isLoading: false,
+    nodeType: 'Proxy',
+    rowKey: item.master_domain,
+    rowModelData: item,
     spec: {
       ...item.proxy[0].spec_config,
-      name: item.cluster_spec.spec_name,
-      id: item.proxy[0].spec_config.id,
       count: item.proxy.length,
+      id: item.proxy[0].spec_config.id,
+      name: item.cluster_spec.spec_name,
     },
-    rowModelData: item,
   });
   // 批量选择
   const handelClusterChange = async (selected: { [key: string]: Array<RedisModel> }) => {
@@ -239,12 +239,12 @@
       );
       await createTicket({
         bk_biz_id: currentBizId,
-        ticket_type: TicketTypes.REDIS_PROXY_SCALE_UP,
-        remark: remark.value,
         details: {
-          ip_source: 'resource_pool',
           infos,
+          ip_source: 'resource_pool',
         },
+        remark: remark.value,
+        ticket_type: TicketTypes.REDIS_PROXY_SCALE_UP,
       }).then((data) => {
         window.changeConfirm = false;
         router.push({

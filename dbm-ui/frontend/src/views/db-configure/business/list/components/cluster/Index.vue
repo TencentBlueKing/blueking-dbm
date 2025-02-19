@@ -60,7 +60,7 @@
     },
   ]);
 
-  const { state, fetchParams, dbType } = useBaseDetails();
+  const { dbType, fetchParams, state } = useBaseDetails();
 
   const showEmpty = computed(() => state.isEmpty && dbType.value === DBTypes.MYSQL);
 </script>

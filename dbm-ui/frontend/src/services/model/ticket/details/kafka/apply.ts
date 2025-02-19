@@ -11,15 +11,15 @@ export interface Apply extends DetailBase {
   disaster_tolerance_level: string;
   http_port: number;
   ip_source: string;
+  no_security?: number;
   nodes: {
     client: HostInfo[];
-    master: HostInfo[];
-    hot: HostInfo[];
     cold: HostInfo[];
+    hot: HostInfo[];
+    master: HostInfo[];
   };
   resource_spec: {
-    zookeeper: SpecInfo;
     broker: SpecInfo;
+    zookeeper: SpecInfo;
   };
-  no_security?: number;
 }

@@ -87,8 +87,8 @@
   const props = defineProps<Props>();
 
   defineSlots<{
-    title: () => VNode;
     content: () => VNode;
+    title: () => VNode;
   }>();
 
   defineOptions({
@@ -96,7 +96,7 @@
   });
 
   const { t } = useI18n();
-  const { username, isSuperuser } = useUserProfile();
+  const { isSuperuser, username } = useUserProfile();
 
   const isCanOperation = computed(
     () =>

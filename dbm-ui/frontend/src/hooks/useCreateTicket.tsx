@@ -7,7 +7,7 @@ import { createTicket } from '@services/source/ticket';
 import { messageError, messageSuccess } from '@utils';
 
 export const useCreateTicket = (params: Record<string, any>) => {
-  const { t, locale } = useI18n();
+  const { locale, t } = useI18n();
   const router = useRouter();
 
   createTicket(params)
@@ -19,7 +19,8 @@ export const useCreateTicket = (params: Record<string, any>) => {
         const id = data.duplicate_ticket_id;
 
         InfoBox({
-          title: t('是否继续提交单据'),
+          cancelText: t('取消提单'),
+          confirmText: t('继续提单'),
           content: () => {
             const route = router.resolve({
               name: 'bizTicketManage',
@@ -55,8 +56,6 @@ export const useCreateTicket = (params: Record<string, any>) => {
               </span>
             );
           },
-          confirmText: t('继续提单'),
-          cancelText: t('取消提单'),
           onConfirm: async () => {
             try {
               await createTicket({
@@ -67,6 +66,7 @@ export const useCreateTicket = (params: Record<string, any>) => {
               messageError(e?.message);
             }
           },
+          title: t('是否继续提交单据'),
         });
       }
 

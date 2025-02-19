@@ -107,19 +107,19 @@
 
   const bkAppAbbrRuels = [
     {
-      validator: (val: string) => nameRegx.test(val),
       message: dbAppAbbrPlaceholder,
       trigger: 'change',
+      validator: (val: string) => nameRegx.test(val),
     },
     {
+      message: t('业务code不允许重复'),
+      trigger: 'blur',
       validator: (val: string) => {
         if (hasEnglishName.value || val === '') {
           return true;
         }
         return !bizList.value!.find((item) => item.english_name === val);
       },
-      message: t('业务code不允许重复'),
-      trigger: 'blur',
     },
   ];
 

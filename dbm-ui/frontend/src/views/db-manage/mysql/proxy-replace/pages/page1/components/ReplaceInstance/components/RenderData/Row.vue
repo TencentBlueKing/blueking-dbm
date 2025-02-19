@@ -43,19 +43,19 @@
   import { random } from '@utils';
 
   export interface IDataRow {
-    rowKey: string;
     originProxy: {
       bk_biz_id: number;
       bk_cloud_id: number | null;
       bk_host_id: number;
+      instance_address: string;
       ip: string;
       port?: number;
-      instance_address: string;
     };
     relatedClusters: {
       cluster_id: number;
       domain: string;
     }[];
+    rowKey: string;
     targetProxy: {
       bk_biz_id: number;
       bk_cloud_id: number | null;
@@ -78,36 +78,36 @@
   interface Exposes {
     getValue: () => Promise<{
       cluster_ids: number[];
+      display_info: {
+        related_clusters: string[];
+        type: string;
+      };
       origin_proxy: IDataRow['originProxy'];
       target_proxy: IDataRow['targetProxy'];
-      display_info: {
-        type: string;
-        related_clusters: string[];
-      };
     }>;
   }
 
   // 创建表格数据
   export const createRowData = (data = {} as Partial<IDataRow>) => ({
-    rowKey: random(),
     originProxy:
       data.originProxy ||
       ({
-        ip: '',
+        bk_biz_id: 0,
         bk_cloud_id: null,
         bk_host_id: 0,
-        bk_biz_id: 0,
-        port: 0,
         instance_address: '',
+        ip: '',
+        port: 0,
       } as IDataRow['originProxy']),
     relatedClusters: data.relatedClusters || [],
+    rowKey: random(),
     targetProxy:
       data.targetProxy ||
       ({
-        ip: '',
+        bk_biz_id: 0,
         bk_cloud_id: null,
         bk_host_id: 0,
-        bk_biz_id: 0,
+        ip: '',
         port: 0,
       } as IDataRow['targetProxy']),
   });
@@ -168,8 +168,8 @@
         ...relatedClustersData,
         ...targetData,
         display_info: {
-          type: ProxyReplaceTypes.INSTANCE_REPLACE,
           related_clusters: rowData.value.relatedClusters.map((item) => item.domain),
+          type: ProxyReplaceTypes.INSTANCE_REPLACE,
         },
       }));
     },

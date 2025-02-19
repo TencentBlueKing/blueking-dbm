@@ -73,8 +73,8 @@
         if (props.data) {
           return batchProcessTicket({
             action: 'APPROVE',
-            ticket_ids: [props.data.id],
             params: approveFormMode,
+            ticket_ids: [props.data.id],
           });
         }
         if (props.todoData) {
@@ -82,8 +82,8 @@
             action: 'APPROVE',
             operations: [
               {
-                todo_id: props.todoData.id,
                 params: approveFormMode,
+                todo_id: props.todoData.id,
               },
             ],
           });

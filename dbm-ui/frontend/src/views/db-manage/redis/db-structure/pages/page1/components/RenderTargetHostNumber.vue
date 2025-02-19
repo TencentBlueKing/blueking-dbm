@@ -30,8 +30,8 @@
 
   interface Props {
     data?: IDataRow['hostNum'];
-    max?: number;
     isLoading?: boolean;
+    max?: number;
   }
 
   interface Exposes {
@@ -40,8 +40,8 @@
 
   const props = withDefaults(defineProps<Props>(), {
     data: '',
-    max: 0,
     isLoading: false,
+    max: 0,
   });
 
   const { t } = useI18n();
@@ -52,16 +52,16 @@
 
   const rules = [
     {
-      validator: (value: string) => Boolean(value),
       message: t('构造主机数量不能为空'),
+      validator: (value: string) => Boolean(value),
     },
     {
-      validator: (value: string) => !nonInterger.test(value),
       message: t('格式有误，请输入数字'),
+      validator: (value: string) => !nonInterger.test(value),
     },
     {
-      validator: (value: string) => Number(value) <= props.max,
       message: t('不能超过实例数'),
+      validator: (value: string) => Number(value) <= props.max,
     },
   ];
 

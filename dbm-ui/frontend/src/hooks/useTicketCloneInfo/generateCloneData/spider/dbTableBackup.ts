@@ -17,26 +17,26 @@ import { random } from '@utils';
 
 // Spider TenDBCluster 库表备份
 export function generateSpiderDbTableBackupCloneData(ticketData: TicketModel<TendbCluster.DbTableBackup>) {
-  const { infos, clusters } = ticketData.details;
+  const { clusters, infos } = ticketData.details;
   const tableDataList = infos.map((item) => {
     const clusterItem = clusters[item.cluster_id];
     return {
-      rowKey: random(),
-      isLoading: false,
-      clusterData: {
-        id: clusterItem.id,
-        domain: clusterItem.immute_domain,
-      },
       backupLocal: item.backup_local,
+      clusterData: {
+        domain: clusterItem.immute_domain,
+        id: clusterItem.id,
+      },
       dbPatterns: item.db_patterns,
-      tablePatterns: item.table_patterns,
       ignoreDbs: item.ignore_dbs,
       ignoreTables: item.ignore_tables,
+      isLoading: false,
+      rowKey: random(),
+      tablePatterns: item.table_patterns,
     };
   });
 
   return Promise.resolve({
-    tableDataList,
     remark: ticketData.remark,
+    tableDataList,
   });
 }

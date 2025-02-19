@@ -98,13 +98,13 @@
 
   // 单据克隆
   useTicketCloneInfo({
-    type: TicketTypes.TENDBCLUSTER_TRUNCATE_DATABASE,
     onSuccess(cloneData) {
-      const { tableDataList, remark: ticketRemark } = cloneData;
+      const { remark: ticketRemark, tableDataList } = cloneData;
       tableData.value = tableDataList;
       remark.value = ticketRemark;
       window.changeConfirm = true;
     },
+    type: TicketTypes.TENDBCLUSTER_TRUNCATE_DATABASE,
   });
 
   const rowRefs = ref();
@@ -160,8 +160,8 @@
       if (!domainMemo[domain]) {
         const row = createRowData({
           clusterData: {
-            id: item.id,
             domain: item.master_domain,
+            id: item.id,
           },
         });
         result.push(row);
@@ -222,8 +222,7 @@
       const infos = await Promise.all(rowRefs.value.map((item: { getValue: () => Promise<any> }) => item.getValue()));
 
       await createTicket({
-        ticket_type: TicketTypes.TENDBCLUSTER_TRUNCATE_DATABASE,
-        remark: remark.value,
+        bk_biz_id: currentBizId,
         details: {
           infos: infos.map((item) =>
             Object.assign(item, {
@@ -231,7 +230,8 @@
             }),
           ),
         },
-        bk_biz_id: currentBizId,
+        remark: remark.value,
+        ticket_type: TicketTypes.TENDBCLUSTER_TRUNCATE_DATABASE,
       }).then((data) => {
         window.changeConfirm = false;
         router.push({

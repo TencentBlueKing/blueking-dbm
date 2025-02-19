@@ -190,9 +190,9 @@
       name: OperateType.MANUAL,
     },
     {
+      hoverText: t('自动匹配指定日期前的最新全库备份'),
       label: t('指定时间自动匹配'),
       name: OperateType.MATCH,
-      hoverText: t('自动匹配指定日期前的最新全库备份'),
     },
   ];
 
@@ -219,10 +219,10 @@
 
   const logRecordOptions = computed(() =>
     backupLogListMemo.value.map((item) => ({
-      value: item.backup_id,
+      isMissed: item.expected_cnt < item.real_cnt,
       label: formatLogName(item),
       payload: item,
-      isMissed: item.expected_cnt < item.real_cnt,
+      value: item.backup_id,
     })),
   );
 
@@ -238,10 +238,11 @@
 
   const rules = [
     {
-      validator: () => (recordType.value === OperateType.MANUAL ? Boolean(modelValue.value) : true),
       message: t('备份记录不能为空'),
+      validator: () => (recordType.value === OperateType.MANUAL ? Boolean(modelValue.value) : true),
     },
     {
+      message: t('暂无与指定时间最近的备份记录'),
       validator: () => {
         // 非日期输入无需调接口匹配最近记录，跳过该校验
         if (recordType.value === OperateType.MANUAL) {
@@ -260,7 +261,6 @@
           return true;
         });
       },
-      message: t('暂无与指定时间最近的备份记录'),
     },
   ];
 
@@ -347,23 +347,23 @@
 
   onMounted(() => {
     tippyIns = tippy(rootRef.value as SingleTarget, {
-      content: popRef.value,
-      placement: 'bottom-start',
       appendTo: () => document.body,
-      theme: 'rollback-mode-select light',
-      maxWidth: 'none',
-      trigger: 'click',
-      interactive: true,
       arrow: false,
+      content: popRef.value,
+      interactive: true,
+      maxWidth: 'none',
       offset: [0, 8],
-      onShow: () => {
-        isShowPop.value = true;
-      },
       onHide: () => {
         isShowPop.value = false;
         searchKey.value = '';
         editElementRef.value!.getValue();
       },
+      onShow: () => {
+        isShowPop.value = true;
+      },
+      placement: 'bottom-start',
+      theme: 'rollback-mode-select light',
+      trigger: 'click',
     });
     tippyIns.disable();
   });

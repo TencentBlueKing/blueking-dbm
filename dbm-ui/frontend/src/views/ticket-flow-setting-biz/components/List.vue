@@ -256,11 +256,8 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import TicketFlowDescribeModel from '@services/model/ticket-flow-describe/TicketFlowDescribe'
-  import {
-    getTicketTypes,
-    queryTicketFlowDescribe,
-  } from '@services/source/ticket';
+  import TicketFlowDescribeModel from '@services/model/ticket-flow-describe/TicketFlowDescribe';
+  import { getTicketTypes, queryTicketFlowDescribe } from '@services/source/ticket';
 
   import { useDefaultPagination } from '@hooks';
 
@@ -275,7 +272,7 @@
   import { random } from '@utils';
 
   import AppendConfigSide from './AppendConfigSide.vue';
-  import DeleteConfig from "./DeleteConfig.vue";
+  import DeleteConfig from './DeleteConfig.vue';
   import EditConfig from './EditConfig.vue';
 
   interface IDataRow extends TicketFlowDescribeModel {
@@ -292,29 +289,29 @@
   const { currentBizId } = useGlobalBizs();
 
   const ticketTypeList = shallowRef<ISearchItem[]>([]);
-  const searchValue = ref<Array<ISearchItem & { values: ISearchItem[] }>>([]);
+  const searchValue = ref<Array<{ values: ISearchItem[] } & ISearchItem>>([]);
   const showEditConfig = ref<Record<string, boolean>>({});
   const isAnomalies = ref(false);
   const pagination = ref(useDefaultPagination());
   const allTableData = shallowRef<IDataRow[]>([]);
   const appendConfig = reactive({
-    isShow: false,
-    isEdit: false,
     data: {} as TicketFlowDescribeModel,
+    isEdit: false,
+    isShow: false,
   });
   /*
-  * 单据类型下是否所有集群已免审批
-  * 0、非免审批
-  * 1、部分集群免审批
-  * 2、所有集群免审批
-  * 非0都禁用追加按钮
-  */
+   * 单据类型下是否所有集群已免审批
+   * 0、非免审批
+   * 1、部分集群免审批
+   * 2、所有集群免审批
+   * 非0都禁用追加按钮
+   */
   const appendBtnController = ref<Record<string, 0 | 1 | 2>>({});
   const appendBtnTipMap = {
     0: '',
     1: t('已存在自定义的免审批'),
     2: t('所有集群已免审批'),
-  }
+  };
 
   const reqParams = computed(() =>
     searchValue.value.reduce<Record<string, string>>((obj, item) => {
@@ -326,10 +323,10 @@
   );
   const searchSelectList = computed(() => [
     {
-      name: t('单据类型'),
+      children: ticketTypeList.value,
       id: 'ticket_types',
       multiple: true,
-      children: ticketTypeList.value,
+      name: t('单据类型'),
     },
   ]);
   const tableData = computed(() => {
@@ -339,7 +336,7 @@
     // 计算结束索引
     const endIndex = startIndex + limit;
     return allTableData.value.slice(startIndex, endIndex);
-  })
+  });
 
   useRequest(getTicketTypes, {
     onSuccess: (data) => {
@@ -350,27 +347,29 @@
     },
   });
 
-  const {
-    run: queryTicketFlowDescribeRun,
-    loading,
-  } = useRequest(queryTicketFlowDescribe, {
+  const { loading, run: queryTicketFlowDescribeRun } = useRequest(queryTicketFlowDescribe, {
     manual: true,
+    onError() {
+      pagination.value.count = 0;
+      allTableData.value = [];
+      isAnomalies.value = true;
+    },
     onSuccess(data) {
       pagination.value.count = data.count;
       const resultsMap = _.groupBy(data.results, 'ticket_type');
       appendBtnController.value = {};
-      allTableData.value = Object.values(resultsMap).flatMap(values => {
+      allTableData.value = Object.values(resultsMap).flatMap((values) => {
         const hasCurrentBizTarget = values.some((item) => item.isCurrentBizTarget);
         const rows = values.reduce<TicketFlowDescribeModel[]>((acc, item) => {
           const level = Math.max(
             // 业务目标和全局（内置）目标，且是否审批为免审批状态，禁用等级为2，否则不禁用
-            (item.isCurrentBizTarget || item.isDefaultTarget ) && !item.configs.need_itsm ? 2 : 0,
+            (item.isCurrentBizTarget || item.isDefaultTarget) && !item.configs.need_itsm ? 2 : 0,
             // 集群目标，且是否审批为免审批状态，禁用等级为1，否则不禁用
-            item.isClusterTarget && !item.configs.need_itsm ? 1 : 0
+            item.isClusterTarget && !item.configs.need_itsm ? 1 : 0,
           );
           appendBtnController.value[item.ticket_type] = Math.max(
             appendBtnController.value[item.ticket_type] ?? 0,
-            level
+            level,
           ) as 0 | 1 | 2;
 
           // 1、存在多条生效策略
@@ -382,26 +381,21 @@
           }
           return acc;
         }, []);
-        rows.sort((_, b) => b.isClusterTarget ? 1 : -1);// 集群目标排前面;
+        rows.sort((_, b) => (b.isClusterTarget ? 1 : -1)); // 集群目标排前面;
         const result = rows.map((item) => ({
           ..._.cloneDeep(item),
-          rowKey: random(),
-          updateAtDisplay: item.updateAtDisplay,
-          isDefaultTarget: item.isDefaultTarget,
-          isCustomTarget: item.isCustomTarget,
+          clusterDomainList: item.clusterDomainList,
           isClusterTarget: item.isClusterTarget,
           isCurrentBizTarget: item.isCurrentBizTarget,
-          clusterDomainList: item.clusterDomainList,
-          rowSpan: rows.length
+          isCustomTarget: item.isCustomTarget,
+          isDefaultTarget: item.isDefaultTarget,
+          rowKey: random(),
+          rowSpan: rows.length,
+          updateAtDisplay: item.updateAtDisplay,
         }));
         return result;
       });
       isAnomalies.value = false;
-    },
-    onError() {
-      pagination.value.count = 0;
-      allTableData.value = [];
-      isAnomalies.value = true;
     },
   });
 
@@ -426,33 +420,28 @@
     if (key === 'need_itsm') {
       return (
         <p
-          class="configs-head"
-          v-bk-tooltips={t('是否经由DBA审批后才可执行')}>
+          v-bk-tooltips={t('是否经由DBA审批后才可执行')}
+          class='configs-head'>
           {t('是否审批')}
         </p>
-      )
+      );
     }
     return (
       <p
-        class="configs-head"
-        v-bk-tooltips={t('是否经由提单人确认后才可执行')}>
+        v-bk-tooltips={t('是否经由提单人确认后才可执行')}
+        class='configs-head'>
         {t('是否人工确认')}
       </p>
-    )
-  }
+    );
+  };
 
-  const rowSpan = ({ row }: {
-    column: any;
-    colIndex: number;
-    row: IDataRow;
-    rowIndex: number;
-  }) => row.rowSpan;
+  const rowSpan = ({ row }: { colIndex: number; column: any; row: IDataRow; rowIndex: number }) => row.rowSpan;
 
   const fetchData = () => {
     queryTicketFlowDescribeRun({
       ...reqParams.value,
-      db_type: props.dbType,
       bk_biz_id: currentBizId,
+      db_type: props.dbType,
     });
   };
 
@@ -482,7 +471,7 @@
     }
     appendConfig.isEdit = isEdit;
     appendConfig.isShow = true;
-  }
+  };
 
   onMounted(() => {
     fetchData();

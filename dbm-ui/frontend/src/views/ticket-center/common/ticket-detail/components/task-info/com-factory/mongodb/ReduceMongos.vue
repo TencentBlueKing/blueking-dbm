@@ -50,22 +50,22 @@
 
   const columns = [
     {
-      label: t('目标分片集群'),
       field: 'immute_domain',
+      label: t('目标分片集群'),
       showOverflowTooltip: true,
     },
     {
-      label: t('缩容节点类型'),
       field: 'node_type',
+      label: t('缩容节点类型'),
     },
     {
-      label: t('缩容的IP'),
       field: 'reduce_ips',
+      label: t('缩容的IP'),
       showOverflowTooltip: true,
     },
     {
-      label: t('缩容数量（台）'),
       field: 'reduce_shard_num',
+      label: t('缩容数量（台）'),
     },
   ];
 

@@ -60,18 +60,18 @@
   };
 
   export interface IDataRow {
-    rowKey: string;
-    masterData?: IHostData;
-    slaveData?: IHostData;
     clusterIdList: number[];
+    masterData?: IHostData;
+    rowKey: string;
+    slaveData?: IHostData;
   }
 
   // 创建表格数据
   export const createRowData = (data = {} as Partial<IDataRow>) => ({
-    rowKey: random(),
-    masterData: data.masterData,
-    slaveData: data.slaveData,
     clusterIdList: data.clusterIdList || [],
+    masterData: data.masterData,
+    rowKey: random(),
+    slaveData: data.slaveData,
   });
 </script>
 <script setup lang="ts">

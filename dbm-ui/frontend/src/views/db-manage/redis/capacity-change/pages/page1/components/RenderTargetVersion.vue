@@ -57,9 +57,7 @@
     data: IDataRow;
   }
 
-  interface Emits {
-    (e: 'change', value: string): void;
-  }
+  type Emits = (e: 'change', value: string) => void;
 
   interface Exposes {
     getValue: () => Promise<string>;
@@ -86,8 +84,8 @@
 
   const rules = [
     {
-      validator: (value: string) => !!value,
       message: t('请选择版本'),
+      validator: (value: string) => !!value,
     },
   ];
 
@@ -96,10 +94,10 @@
     () => {
       if (props.data.clusterId) {
         fetchTargetClusterVersions({
-          node_type: 'Backend',
-          type: 'update',
           // cluster_type: props.data.clusterType,
           cluster_id: props.data.clusterId,
+          node_type: 'Backend',
+          type: 'update',
         });
       }
     },

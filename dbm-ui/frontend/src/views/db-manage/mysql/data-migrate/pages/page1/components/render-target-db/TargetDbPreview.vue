@@ -78,15 +78,13 @@
 
   interface Props {
     data: {
-      sourceClusterId: number;
       dbs: string[];
       ignoreDbs: string[];
+      sourceClusterId: number;
     };
   }
 
-  interface Emits {
-    (e: 'change', value: DbsType): void;
-  }
+  type Emits = (e: 'change', value: DbsType) => void;
 
   const props = defineProps<Props>();
 
@@ -109,8 +107,8 @@
       dbInfo.ignoreDbs = props.data.ignoreDbs;
     },
     {
-      immediate: true,
       deep: true,
+      immediate: true,
     },
   );
 

@@ -15,25 +15,25 @@ import dayjs from 'dayjs';
 import { t } from '@locales/index';
 
 export default class Dumper {
+  static TBINLOGDUMPER_DISABLE_NODES = 'TBINLOGDUMPER_DISABLE_NODES'; // 禁用
+  static TBINLOGDUMPER_ENABLE_NODES = 'TBINLOGDUMPER_ENABLE_NODES'; // 启用
   static TBINLOGDUMPER_REDUCE_NODES = 'TBINLOGDUMPER_REDUCE_NODES'; // 下架
   static TBINLOGDUMPER_SWITCH_NODES = 'TBINLOGDUMPER_SWITCH_NODES'; // 切换
-  static TBINLOGDUMPER_ENABLE_NODES = 'TBINLOGDUMPER_ENABLE_NODES'; // 启用
-  static TBINLOGDUMPER_DISABLE_NODES = 'TBINLOGDUMPER_DISABLE_NODES'; // 禁用
 
   static operationIconMap = {
+    [Dumper.TBINLOGDUMPER_DISABLE_NODES]: t('禁用中'),
+    [Dumper.TBINLOGDUMPER_ENABLE_NODES]: t('启用中'),
     [Dumper.TBINLOGDUMPER_REDUCE_NODES]: t('删除中'),
     [Dumper.TBINLOGDUMPER_SWITCH_NODES]: t('迁移中'),
-    [Dumper.TBINLOGDUMPER_ENABLE_NODES]: t('启用中'),
-    [Dumper.TBINLOGDUMPER_DISABLE_NODES]: t('禁用中'),
   };
 
   static operationTextMap = {
+    [Dumper.TBINLOGDUMPER_DISABLE_NODES]: t('禁用任务进行中'),
+    [Dumper.TBINLOGDUMPER_ENABLE_NODES]: t('启用任务进行中'),
     [Dumper.TBINLOGDUMPER_REDUCE_NODES]: t('删除任务进行中'),
     [Dumper.TBINLOGDUMPER_SWITCH_NODES]: t('迁移任务进行中'),
-    MYSQL_MASTER_SLAVE_SWITCH: t('迁移任务进行中'),
     MYSQL_MASTER_FAIL_OVER: t('迁移任务进行中'),
-    [Dumper.TBINLOGDUMPER_ENABLE_NODES]: t('启用任务进行中'),
-    [Dumper.TBINLOGDUMPER_DISABLE_NODES]: t('禁用任务进行中'),
+    MYSQL_MASTER_SLAVE_SWITCH: t('迁移任务进行中'),
   };
 
   add_type: string;
@@ -62,8 +62,8 @@ export default class Dumper {
   listen_port: number;
   need_transfer: true;
   operations: {
-    ticket_type?: string;
     ticket_id?: number;
+    ticket_type?: string;
   }[];
   permission: {
     mysql_view: boolean;
@@ -118,29 +118,8 @@ export default class Dumper {
     this.version = payload.version;
   }
 
-  // 操作中的状态
-  get operationRunningStatus() {
-    return this.operations[0]?.ticket_type ?? '';
-  }
-
-  // 操作中的状态描述文本
-  get operationStatusText() {
-    return Dumper.operationTextMap[this.operationRunningStatus];
-  }
-
-  // 操作中的按钮状态提示文本
-  get operationBtnTipStatusText() {
-    return `${Dumper.operationTextMap[this.operationRunningStatus]}，${t('无法操作')}`;
-  }
-
-  // 操作中的状态 icon
-  get operationStatusIcon() {
-    return Dumper.operationIconMap[this.operationRunningStatus];
-  }
-
-  // 操作中的单据 ID
-  get operationTicketId() {
-    return this.operations[0]?.ticket_id ?? 0;
+  get isNew() {
+    return dayjs().isBefore(dayjs(this.create_at).add(24, 'hour'));
   }
 
   get isOnline() {
@@ -151,19 +130,40 @@ export default class Dumper {
     return Boolean(this.operationRunningStatus);
   }
 
-  get isNew() {
-    return dayjs().isBefore(dayjs(this.create_at).add(24, 'hour'));
-  }
-
   get isStarting() {
     return this.operationRunningStatus === Dumper.TBINLOGDUMPER_ENABLE_NODES;
+  }
+
+  // 操作中的按钮状态提示文本
+  get operationBtnTipStatusText() {
+    return `${Dumper.operationTextMap[this.operationRunningStatus]}，${t('无法操作')}`;
+  }
+
+  // 操作中的状态
+  get operationRunningStatus() {
+    return this.operations[0]?.ticket_type ?? '';
+  }
+
+  // 操作中的状态 icon
+  get operationStatusIcon() {
+    return Dumper.operationIconMap[this.operationRunningStatus];
+  }
+
+  // 操作中的状态描述文本
+  get operationStatusText() {
+    return Dumper.operationTextMap[this.operationRunningStatus];
   }
 
   get operationTagTip() {
     return {
       icon: Dumper.operationIconMap[this.operations[0]?.ticket_type ?? ''],
-      tip: Dumper.operationTextMap[this.operations[0]?.ticket_type ?? ''],
       ticketId: this.operations[0]?.ticket_id ?? 0,
+      tip: Dumper.operationTextMap[this.operations[0]?.ticket_type ?? ''],
     };
+  }
+
+  // 操作中的单据 ID
+  get operationTicketId() {
+    return this.operations[0]?.ticket_id ?? 0;
   }
 }

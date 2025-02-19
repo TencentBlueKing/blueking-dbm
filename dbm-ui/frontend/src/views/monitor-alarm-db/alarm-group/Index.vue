@@ -55,27 +55,24 @@
 
   import NoticGroupModel from '@services/model/notice-group/notice-group';
   import { getUserGroupList } from '@services/source/cmdb';
-  import {
-    deleteAlarmGroup,
-    getAlarmGroupList,
-  } from '@services/source/monitorNoticeGroup';
+  import { deleteAlarmGroup, getAlarmGroupList } from '@services/source/monitorNoticeGroup';
   import type { ListBase } from '@services/types';
 
   import { useGlobalBizs } from '@stores';
 
   import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
 
-  import { messageSuccess  } from '@utils';
+  import { messageSuccess } from '@utils';
 
   import DetailDialog from './components/DetailDialog.vue';
   import RenderRow from './components/RenderRow.vue';
 
   interface TableRenderData {
-    data: NoticGroupModel
+    data: NoticGroupModel;
   }
 
   interface UserGroupMap {
-    [key: string]: ServiceReturnType<typeof getUserGroupList>[number]
+    [key: string]: ServiceReturnType<typeof getUserGroupList>[number];
   }
 
   const { t } = useI18n();
@@ -84,67 +81,63 @@
 
   const columns = [
     {
-      label: t('告警组名称'),
       field: 'name',
-      width: 240,
       fixed: 'left',
-      showOverflow: false,
+      label: t('告警组名称'),
       render: ({ data }: TableRenderData) => (
         <TextOverflowLayout>
           {{
+            append: () => (
+              <>
+                {data.is_built_in && (
+                  <bk-tag
+                    class='ml-4'
+                    size='small'>
+                    {t('内置')}
+                  </bk-tag>
+                )}
+                {data.isNew && (
+                  <bk-tag
+                    class='ml-4'
+                    size='small'
+                    theme='success'>
+                    NEW
+                  </bk-tag>
+                )}
+              </>
+            ),
             default: () => {
-              if (data.is_built_in){
+              if (data.is_built_in) {
                 return (
                   <bk-button
+                    theme='primary'
                     text
-                    theme="primary"
-                    onClick={ () => handleOpenDetail('edit', data) }>
+                    onClick={() => handleOpenDetail('edit', data)}>
                     {data.name}
                   </bk-button>
-                )
+                );
               }
               return (
                 <auth-button
-                  actionId="notify_group_update"
+                  actionId='notify_group_update'
                   permission={data.permission.notify_group_update}
                   resource={data.id}
+                  theme='primary'
                   text
-                  theme="primary"
-                  onClick={ () => handleOpenDetail('edit', data) }>
+                  onClick={() => handleOpenDetail('edit', data)}>
                   {data.name}
                 </auth-button>
-              )
+              );
             },
-            append: () => (
-              <>
-                {
-                  data.is_built_in && (
-                    <bk-tag
-                      size="small"
-                      class="ml-4">
-                      {t('内置')}
-                    </bk-tag>
-                  )
-                }
-                {
-                  data.isNew && (
-                    <bk-tag
-                      size="small"
-                      theme='success'
-                      class="ml-4">
-                      NEW
-                    </bk-tag>
-                  )
-                }
-              </>
-            ),
           }}
         </TextOverflowLayout>
       ),
+      showOverflow: false,
+      width: 240,
     },
     {
-      label: t('通知对象'),
       field: 'recipient',
+      label: t('通知对象'),
       minWidth: 400,
       render: ({ data }: TableRenderData) => {
         const userGroup = userGroupMap.value;
@@ -162,87 +155,83 @@
             };
           });
 
-          return <RenderRow data={ receivers } />;
+          return <RenderRow data={receivers} />;
         }
       },
     },
     {
-      label: t('应用策略'),
       field: 'relatedPolicyCount',
-      width: 100,
+      label: t('应用策略'),
       render: ({ data }: TableRenderData) => {
         const { used_count: usedCount } = data;
 
-        return (
-          usedCount
-            ? <bk-button
-              text
-              theme="primary"
-              onClick={ () => toRelatedPolicy(data.id, data.db_type) }>
-              { usedCount }
-            </bk-button>
-            : <span>0</span>
+        return usedCount ? (
+          <bk-button
+            theme='primary'
+            text
+            onClick={() => toRelatedPolicy(data.id, data.db_type)}>
+            {usedCount}
+          </bk-button>
+        ) : (
+          <span>0</span>
         );
       },
-    },
-    {
-      label: t('更新时间'),
-      field: 'update_at',
-      width: 250,
-      sort: true,
-      render: ({ data }: TableRenderData) => (<span>{ data.updateAtDisplay || '--' }</span>),
-    },
-    {
-      label: t('更新人'),
-      field: 'updater',
-      width: 180,
-      render: ({ data }: TableRenderData) => (<span>{ data.updater || '--' }</span>),
-    },
-    {
-      label: t('操作'),
       width: 100,
+    },
+    {
+      field: 'update_at',
+      label: t('更新时间'),
+      render: ({ data }: TableRenderData) => <span>{data.updateAtDisplay || '--'}</span>,
+      sort: true,
+      width: 250,
+    },
+    {
+      field: 'updater',
+      label: t('更新人'),
+      render: ({ data }: TableRenderData) => <span>{data.updater || '--'}</span>,
+      width: 180,
+    },
+    {
       fixed: 'right',
-      showOverflow: false,
+      label: t('操作'),
       render: ({ data }: TableRenderData) => (
         <>
           <auth-button
-            actionId="notify_group_create"
+            actionId='notify_group_create'
+            class='mr-8'
             permission={data.permission.notify_group_create}
-            class="mr-8"
+            theme='primary'
             text
-            theme="primary"
-            onClick={ () => handleOpenDetail('copy', data) }>
-            { t('克隆') }
+            onClick={() => handleOpenDetail('copy', data)}>
+            {t('克隆')}
           </auth-button>
-          {
-            !data.is_built_in && (
-              <auth-button
-                actionId="notify_group_update"
-                permission={data.permission.notify_group_update}
-                resource={data.id}
-                class="mr-8"
-                text
-                theme="primary"
-                onClick={ () => handleOpenDetail('edit', data) }>
-                { t('编辑') }
-              </auth-button>
-            )
-          }
-          {
-            !data.is_built_in && (
-              <auth-button
-                action-id="notify_group_delete"
-                resource={data.id}
-                permission={data.permission.notify_group_delete}
-                text
-                theme="primary"
-                onClick={ () => handleDelete(data.id) }>
-                { t('删除') }
-              </auth-button>
-            )
-          }
+          {!data.is_built_in && (
+            <auth-button
+              actionId='notify_group_update'
+              class='mr-8'
+              permission={data.permission.notify_group_update}
+              resource={data.id}
+              theme='primary'
+              text
+              onClick={() => handleOpenDetail('edit', data)}>
+              {t('编辑')}
+            </auth-button>
+          )}
+          {!data.is_built_in && (
+            <auth-button
+              action-id='notify_group_delete'
+              permission={data.permission.notify_group_delete}
+              resource={data.id}
+              theme='primary'
+              text
+              onClick={() => handleDelete(data.id)}>
+              {t('删除')}
+            </auth-button>
+          )}
         </>
       ),
+      showOverflow: false,
+      width: 100,
     },
   ];
 
@@ -257,19 +246,25 @@
   useRequest(getUserGroupList, {
     defaultParams: [{ bk_biz_id: currentBizId }],
     onSuccess(userGroupList) {
-      userGroupMap.value = userGroupList
-        .reduce((userGroupPrev, userGroup) => Object.assign({}, userGroupPrev, {
-          [userGroup.id]: userGroup,
-        }), {} as UserGroupMap);
+      userGroupMap.value = userGroupList.reduce(
+        (userGroupPrev, userGroup) =>
+          Object.assign({}, userGroupPrev, {
+            [userGroup.id]: userGroup,
+          }),
+        {} as UserGroupMap,
+      );
     },
   });
 
   const fetchTableData = () => {
-    tableRef.value.fetchData({
-      name: keyword.value,
-    }, {
-      bk_biz_id: currentBizId,
-    });
+    tableRef.value.fetchData(
+      {
+        name: keyword.value,
+      },
+      {
+        bk_biz_id: currentBizId,
+      },
+    );
   };
 
   const setRowClass = (data: NoticGroupModel) => (data.isNew ? 'is-new' : '');
@@ -281,8 +276,8 @@
         bizId: currentBizId,
       },
       query: {
-        notifyGroupId,
         dbType,
+        notifyGroupId,
       },
     });
 
@@ -299,19 +294,19 @@
 
   const handleDelete = (id: number) => {
     InfoBox({
-      type: 'warning',
-      title: t('确认删除该告警组'),
       content: t('删除后将无法恢复'),
       onConfirm: async () => {
         await deleteAlarmGroup({ id });
         messageSuccess(t('删除成功'));
         fetchTableData();
       },
+      title: t('确认删除该告警组'),
+      type: 'warning',
     });
   };
 
   const handleRequestSuccess = (tableData: ListBase<NoticGroupModel[]>) => {
-    nameList.value = tableData.results.map(tableItem => tableItem.name);
+    nameList.value = tableData.results.map((tableItem) => tableItem.name);
   };
 
   onMounted(() => {

@@ -14,28 +14,28 @@
 import { DBTypeInfos, DBTypes, MachineTypes } from '@common/const';
 
 export default class Summary {
-  dedicated_biz: number;
-  for_biz_name: string;
   city: string;
-  spec_id?: number;
-  spec_name?: string;
-  spec_cluster_type?: DBTypes;
-  spec_machine_type?: MachineTypes;
+  count: number;
+  cpu_mem_summary?: string;
+  dedicated_biz: number;
   device_class?: string;
   disk_summary?: {
+    disk_id: string | number;
+    disk_type: string;
+    file_type: string;
     mount_point: string;
     size: number;
-    file_type: string;
-    disk_type: string;
-    disk_id: string | number;
   }[];
-  cpu_mem_summary?: string;
-  count: number;
+  for_biz_name: string;
+  spec_cluster_type?: DBTypes;
+  spec_id?: number;
+  spec_machine_type?: MachineTypes;
+  spec_name?: string;
   sub_zone_detail: Record<
     number,
     {
-      name: string;
       count: number;
+      name: string;
     }
   >;
 
@@ -66,9 +66,9 @@ export default class Summary {
     if (!this.spec_cluster_type || !this.spec_machine_type) {
       return '--';
     }
-    const { name, machineList } = DBTypeInfos[this.spec_cluster_type] || {
-      name: '',
+    const { machineList, name } = DBTypeInfos[this.spec_cluster_type] || {
       machineList: [],
+      name: '',
     };
     const matchMachine = machineList.find(({ value }) => value === this.spec_machine_type);
     return matchMachine ? `${name} - ${matchMachine.label}` : '--';

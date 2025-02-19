@@ -22,19 +22,17 @@
   import RenderDbName from '@views/db-manage/sqlserver/common/DbName.vue';
 
   interface Props {
-    dbName: string[];
     dbIgnoreName: string[];
+    dbName: string[];
   }
 
-  interface Emits {
-    (
-      e: 'change',
-      value: {
-        dbName: Props['dbName'];
-        dbIgnoreName: Props['dbIgnoreName'];
-      },
-    ): void;
-  }
+  type Emits = (
+    e: 'change',
+    value: {
+      dbIgnoreName: Props['dbIgnoreName'];
+      dbName: Props['dbName'];
+    },
+  ) => void;
 
   interface Expose {
     refresh(): void;
@@ -54,8 +52,8 @@
     }
     if (!localDbIgnoreName.value) {
       emits('change', {
-        dbName: localDBName.value,
         dbIgnoreName: localDbIgnoreName.value,
+        dbName: localDBName.value,
       });
       return;
     }

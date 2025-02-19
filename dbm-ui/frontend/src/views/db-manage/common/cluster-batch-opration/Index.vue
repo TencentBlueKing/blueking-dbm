@@ -59,26 +59,24 @@
   import { ClusterTypes } from '@common/const';
 
   interface ClusterModelMap {
-    [ClusterTypes.TENDBSINGLE]: TendbSingleModel;
-    [ClusterTypes.TENDBHA]: TendbHaModel;
-    [ClusterTypes.TENDBCLUSTER]: TendbClusterModel;
-    [ClusterTypes.REDIS]: RedisModel;
-    [ClusterTypes.REDIS_INSTANCE]: RedisModel;
     [ClusterTypes.MONGO_REPLICA_SET]: MongodbModel;
     [ClusterTypes.MONGO_SHARED_CLUSTER]: MongodbModel;
-    [ClusterTypes.SQLSERVER_SINGLE]: SqlserverSingleModel;
+    [ClusterTypes.REDIS_INSTANCE]: RedisModel;
+    [ClusterTypes.REDIS]: RedisModel;
     [ClusterTypes.SQLSERVER_HA]: SqlserverHaModel;
+    [ClusterTypes.SQLSERVER_SINGLE]: SqlserverSingleModel;
+    [ClusterTypes.TENDBCLUSTER]: TendbClusterModel;
+    [ClusterTypes.TENDBHA]: TendbHaModel;
+    [ClusterTypes.TENDBSINGLE]: TendbSingleModel;
   }
 </script>
 <script setup lang="ts" generic="T extends keyof ClusterModelMap">
   interface Props {
-    selected: ClusterModelMap[T][];
     clusterType: T;
+    selected: ClusterModelMap[T][];
   }
 
-  interface Emits {
-    (e: 'success'): void;
-  }
+  type Emits = (e: 'success') => void;
 
   const props = defineProps<Props>();
   const emits = defineEmits<Emits>();
@@ -114,8 +112,8 @@
 
   const popoverOptions = computed(() => ({
     boundary: 'body',
-    disableOutsideClick: sideSliderShow.value,
     clickContentAutoHide: true,
+    disableOutsideClick: sideSliderShow.value,
     renderDirective: 'show',
   }));
 

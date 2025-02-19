@@ -39,18 +39,16 @@
   import type { ChoosedItem } from './RenderRedisHost.vue';
 
   interface TableItem {
-    data: InstanceItem
+    data: InstanceItem;
   }
 
   interface Props {
-    role?: string;
     lastValues: InstanceSelectorValues;
+    role?: string;
     tableData: InstanceItem[];
   }
 
-  interface Emits {
-    (e: 'change', value: InstanceSelectorValues): void;
-  }
+  type Emits = (e: 'change', value: InstanceSelectorValues) => void;
 
   const props = defineProps<Props>();
 
@@ -62,123 +60,128 @@
 
   const checkedMap = shallowRef({} as Record<string, ChoosedItem>);
 
-  watch(() => props.lastValues, () => {
-    checkedMap.value = {};
-    for (const checkedList of Object.values(props.lastValues)) {
-      for (const item of checkedList) {
-        checkedMap.value[item.ip] = item as ChoosedItem;
+  watch(
+    () => props.lastValues,
+    () => {
+      checkedMap.value = {};
+      for (const checkedList of Object.values(props.lastValues)) {
+        for (const item of checkedList) {
+          checkedMap.value[item.ip] = item as ChoosedItem;
+        }
       }
-    }
-  }, { immediate: true, deep: true });
+    },
+    { deep: true, immediate: true },
+  );
 
   const renderData = computed(() => {
     if (search.value === '') return props.tableData;
 
-    return props.tableData.filter(item => (
-      item.ip.includes(search.value)
-    ));
+    return props.tableData.filter((item) => item.ip.includes(search.value));
   });
-  const isSelectedAll = computed(() => (
-    renderData.value.length > 0
-    && renderData.value.length === renderData.value.filter(item => checkedMap.value[item.ip]).length
-  ));
+  const isSelectedAll = computed(
+    () =>
+      renderData.value.length > 0 &&
+      renderData.value.length === renderData.value.filter((item) => checkedMap.value[item.ip]).length,
+  );
 
   const columns = [
     {
-      width: 60,
       fixed: 'left',
       label: () => (
         <bk-checkbox
           label={true}
           model-value={isSelectedAll.value}
-          onClick={(e: Event) => e.stopPropagation()}
           onChange={handleSelectPageAll}
+          onClick={(e: Event) => e.stopPropagation()}
         />
       ),
       render: ({ data }: TableItem) => (
         <bk-checkbox
-          style="vertical-align: middle;"
           label={true}
           model-value={Boolean(checkedMap.value[data.ip])}
-          onClick={(e: Event) => e.stopPropagation()}
+          style='vertical-align: middle;'
           onChange={(value: boolean) => handleTableSelectOne(value, data)}
+          onClick={(e: Event) => e.stopPropagation()}
         />
       ),
+      width: 60,
     },
     {
-      fixed: 'left',
-      minWidth: 160,
-      label: props.role ? props.role.charAt(0).toUpperCase() + props.role.slice(1) : t('实例'),
       field: 'ip',
+      fixed: 'left',
+      label: props.role ? props.role.charAt(0).toUpperCase() + props.role.slice(1) : t('实例'),
+      minWidth: 160,
     },
     {
-      label: t('角色'),
       field: 'role',
-      showOverflowTooltip: true,
+      label: t('角色'),
       // filter: {
       //   list: [{ text: 'master', value: 'master' }, { text: 'slave', value: 'slave' }, { text: 'proxy', value: 'proxy' }],
       // },
-      render: ({ data } : TableItem) => <span>{data.role}</span>,
+      render: ({ data }: TableItem) => <span>{data.role}</span>,
+      showOverflowTooltip: true,
     },
     {
-      label: t('实例状态'),
       field: 'status',
+      label: t('实例状态'),
       render: ({ data }: TableItem) => {
-        const info = data.host_info.alive === 1 ? { theme: 'success', text: t('正常') } : { theme: 'danger', text: t('异常') };
+        const info =
+          data.host_info.alive === 1 ? { text: t('正常'), theme: 'success' } : { text: t('异常'), theme: 'danger' };
         return <DbStatus theme={info.theme}>{info.text}</DbStatus>;
       },
     },
     {
-      minWidth: 100,
-      label: t('管控区域'),
       field: 'cloud_area',
+      label: t('管控区域'),
+      minWidth: 100,
       render: ({ data }: TableItem) => data.host_info?.cloud_area.name || '--',
     },
     {
-      minWidth: 100,
-      label: t('Agent状态'),
       field: 'alive',
-      sort: true,
+      label: t('Agent状态'),
+      minWidth: 100,
       render: ({ data }: TableItem) => {
-        const info = data.host_info?.alive === 1 ? { theme: 'success', text: t('正常') } : { theme: 'danger', text: t('异常') };
+        const info =
+          data.host_info?.alive === 1 ? { text: t('正常'), theme: 'success' } : { text: t('异常'), theme: 'danger' };
         return <DbStatus theme={info.theme}>{info.text}</DbStatus>;
       },
+      sort: true,
     },
     {
-      label: t('主机名称'),
       field: 'host_name',
-      showOverflowTooltip: true,
+      label: t('主机名称'),
       render: ({ data }: TableItem) => data.host_info?.host_name || '--',
+      showOverflowTooltip: true,
     },
     {
-      label: t('OS名称'),
       field: 'os_name',
-      showOverflowTooltip: true,
+      label: t('OS名称'),
       render: ({ data }: TableItem) => data.host_info?.os_name || '--',
+      showOverflowTooltip: true,
     },
     {
-      label: t('所属云厂商'),
       field: 'cloud_vendor',
-      showOverflowTooltip: true,
+      label: t('所属云厂商'),
       render: ({ data }: TableItem) => data.host_info?.cloud_vendor || '--',
+      showOverflowTooltip: true,
     },
     {
-      label: t('OS类型'),
       field: 'os_type',
-      showOverflowTooltip: true,
+      label: t('OS类型'),
       render: ({ data }: TableItem) => data.host_info?.os_type || '--',
+      showOverflowTooltip: true,
     },
     {
-      label: t('主机ID'),
       field: 'host_id',
-      showOverflowTooltip: true,
+      label: t('主机ID'),
       render: ({ data }: TableItem) => data.host_info?.host_id || '--',
+      showOverflowTooltip: true,
     },
     {
-      label: 'Agent ID',
       field: 'agent_id',
-      showOverflowTooltip: true,
+      label: 'Agent ID',
       render: ({ data }: TableItem) => data.host_info?.agent_id || '--',
+      showOverflowTooltip: true,
     },
   ];
 
@@ -195,12 +198,12 @@
   };
 
   const formatValue = (data: InstanceItem) => ({
-    bk_host_id: data.bk_host_id,
-    cluster_id: data.cluster_id,
     bk_cloud_id: data.host_info?.cloud_id || 0,
+    bk_host_id: data.bk_host_id,
+    cluster_domain: data.master_domain,
+    cluster_id: data.cluster_id,
     ip: data.ip || '',
     role: data.role,
-    cluster_domain: data.master_domain,
     spec_config: data.spec_config,
   });
 
