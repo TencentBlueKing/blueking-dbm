@@ -17,8 +17,9 @@ export function useCreateTicket<T>(ticketType: TicketTypes, options?: { onSucces
     const params = {
       bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
       details: formData.details,
-      remark: formData.remark || '',
       ignore_duplication: formData.ignore_duplication,
+      remark: formData.remark || '',
+      ticket_type: ticketType,
     };
     try {
       loading.value = true;

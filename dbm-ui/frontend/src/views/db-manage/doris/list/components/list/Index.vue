@@ -220,6 +220,7 @@
               :data="data">
               <AuthButton
                 action-id="doris_destroy"
+                class="ml-8"
                 :disabled="Boolean(data.operationTicketId)"
                 :permission="data.permission.doris_destroy"
                 :resource="data.id"

@@ -61,27 +61,25 @@
     }[];
   }
 
-  interface Emits {
-    (e: 'batch-edit', list: RedisModel[]): void;
-  }
+  type Emits = (e: 'batch-edit', list: RedisModel[]) => void;
 
   const props = defineProps<Props>();
 
   const emits = defineEmits<Emits>();
 
   const modelValue = defineModel<{
+    cluster_type_name: string;
     id?: number;
     master_domain: string;
-    cluster_type_name: string;
-    role: string;
     proxy_count: number;
+    role: string;
   }>({
     default: () => ({
+      cluster_type_name: '',
       id: undefined,
       master_domain: '',
-      cluster_type_name: '',
-      role: '',
       proxy_count: 0,
+      role: '',
     }),
   });
 
@@ -100,6 +98,12 @@
 
   const tabListConfig = {
     [ClusterTypes.REDIS]: {
+      disabledRowConfig: [
+        {
+          handler: (data: RedisModel) => data.proxy.length <= 2,
+          tip: t('数量不足，Proxy至少保留 2 台'),
+        },
+      ],
       getResourceList: (params: ServiceParameters<typeof getRedisList>) =>
         getRedisList({
           cluster_type: [
@@ -110,49 +114,43 @@
           ].join(','),
           ...params,
         }),
-      disabledRowConfig: [
-        {
-          handler: (data: RedisModel) => data.proxy.length <= 2,
-          tip: t('数量不足，Proxy至少保留 2 台'),
-        },
-      ],
     },
   } as unknown as Record<string, TabConfig>;
 
   const rules = [
     {
-      validator: (value: string) => domainRegex.test(value),
       message: t('集群域名格式不正确'),
       trigger: 'change',
+      validator: (value: string) => domainRegex.test(value),
     },
     {
-      validator: (value: string) => props.selected.filter((item) => item.master_domain === value).length < 2,
       message: t('目标集群重复'),
       trigger: 'blur',
+      validator: (value: string) => props.selected.filter((item) => item.master_domain === value).length < 2,
     },
     {
+      message: t('目标集群不存在'),
+      trigger: 'blur',
       validator: () => {
         if (!modelValue.value.master_domain) {
           return true;
         }
         return Boolean(modelValue.value.id);
       },
-      message: t('目标集群不存在'),
-      trigger: 'blur',
     },
   ];
 
-  const { run: queryCluster, loading } = useRequest(filterClusters<RedisModel>, {
+  const { loading, run: queryCluster } = useRequest(filterClusters<RedisModel>, {
     manual: true,
     onSuccess: (data) => {
       if (data.length) {
         const [currentCluster] = data;
         modelValue.value = {
+          cluster_type_name: currentCluster.cluster_type_name,
           id: currentCluster.id,
           master_domain: currentCluster.master_domain,
-          cluster_type_name: currentCluster.cluster_type_name,
-          role: 'Proxy',
           proxy_count: currentCluster.proxy.length,
+          role: 'Proxy',
         };
       }
     },
@@ -164,11 +162,11 @@
 
   const handleInputChange = (value: string) => {
     modelValue.value = {
+      cluster_type_name: '',
       id: undefined,
       master_domain: '',
-      cluster_type_name: '',
-      role: '',
       proxy_count: 0,
+      role: '',
     };
     if (value) {
       queryCluster({
