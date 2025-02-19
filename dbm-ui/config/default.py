@@ -464,6 +464,8 @@ def get_logging_config(log_dir: str, log_level: str = "ERROR") -> Dict:
         "loggers": {
             "root": {"level": "DEBUG", "handlers": ["console"], "propagate": False},
             "flow": {"level": "DEBUG", "handlers": ["flow"], "propagate": False},
+            # shell窗口的调试信息是parso库输出的，屏蔽DEBUG类型日志
+            "parso": {"level": "INFO", "handlers": ["flow"], "propagate": False},
         },
     }
 

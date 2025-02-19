@@ -229,6 +229,20 @@ class MonitorPolicyViewSet(AuditedModelViewSet):
     def update_strategy(self, request, *args, **kwargs):
         return Response(self.get_object().update(self.validated_data, request.user.username))
 
+    @common_swagger_auto_schema(
+        operation_summary=_("批量更新策略告警组"),
+        tags=[constants.SWAGGER_TAG],
+        request_body=serializers.BatchUpdateMonitorPolicyNotifySerializer(),
+    )
+    @action(methods=["POST"], detail=False, serializer_class=serializers.BatchUpdateMonitorPolicyNotifySerializer)
+    def batch_update_notify_group(self, request, *args, **kwargs):
+        policy_list = MonitorPolicy.objects.filter(id__in=self.validated_data["policy_ids"])
+        # 更新较慢考虑采用多线程方案
+        for policy in policy_list:
+            policy.notify_groups = self.validated_data["notify_groups"]
+            policy.save()
+        return Response()
+
     # @common_swagger_auto_schema(
     #     operation_summary=_("恢复默认策略"),
     #     tags=[constants.SWAGGER_TAG],

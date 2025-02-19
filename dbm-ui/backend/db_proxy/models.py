@@ -12,6 +12,7 @@ specific language governing permissions and limitations under the License.
 from collections import defaultdict
 from typing import Dict, Union
 
+from django.core.cache import cache
 from django.db import models
 from django.db.models.manager import Manager
 from django.utils.translation import gettext_lazy as _
@@ -19,7 +20,13 @@ from django.utils.translation import gettext_lazy as _
 from backend.bk_web.constants import LEN_LONG, LEN_NORMAL, LEN_SHORT
 from backend.bk_web.models import AuditedModel
 from backend.configuration.constants import DBType
-from backend.db_proxy.constants import CLUSTER__SERVICE_MAP, ClusterServiceType, ExtensionServiceStatus, ExtensionType
+from backend.db_proxy.constants import (
+    CLUSTER__SERVICE_MAP,
+    DB_CLOUD_PROXY_EXPIRE_TIME,
+    ClusterServiceType,
+    ExtensionServiceStatus,
+    ExtensionType,
+)
 from backend.db_proxy.exceptions import ProxyPassBaseException
 
 
@@ -33,6 +40,20 @@ class DBCloudProxy(AuditedModel):
 
     class Meta:
         verbose_name_plural = verbose_name = _("云区域代理（DBCloudProxy）")
+
+    @classmethod
+    def get_cloud_proxy_external_address(cls, bk_cloud_id):
+        """获取该云区域下代理外部地址(缓存)"""
+        proxy_cache_key = f"cache_db_cloud_token_{bk_cloud_id}"
+        proxy_url = cache.get(proxy_cache_key)
+        # 缓存proxy，避免大量重复请求占用mysql
+        if not proxy_url:
+            proxy = DBCloudProxy.objects.filter(bk_cloud_id=bk_cloud_id).last()
+            if not proxy:
+                raise ProxyPassBaseException(_("该云区域[{}]下没有部署proxy").format(bk_cloud_id))
+            proxy_url = proxy.external_address
+            cache.set(proxy_cache_key, proxy.external_address, timeout=DB_CLOUD_PROXY_EXPIRE_TIME)
+        return proxy_url
 
 
 class DBExtension(AuditedModel):

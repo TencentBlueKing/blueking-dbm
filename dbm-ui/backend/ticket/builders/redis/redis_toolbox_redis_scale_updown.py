@@ -15,6 +15,7 @@ from backend.configuration.constants import AffinityEnum
 from backend.db_services.dbbase.constants import IpSource
 from backend.flow.consts import RedisCapacityUpdateType
 from backend.flow.engine.controller.redis import RedisController
+from backend.flow.utils.redis.redis_proxy_util import get_major_version_by_version_name
 from backend.ticket import builders
 from backend.ticket.builders.common.base import (
     BaseOperateResourceParamBuilder,
@@ -62,6 +63,8 @@ class RedisScaleUpDownParamBuilder(builders.FlowParamBuilder):
     controller = RedisController.redis_backend_scale
 
     def format_ticket_data(self):
+        for info in self.ticket_data["infos"]:
+            info["db_version"] = get_major_version_by_version_name(info["db_version"]) or info["db_version"]
         super().format_ticket_data()
 
 
