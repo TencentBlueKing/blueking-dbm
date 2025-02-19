@@ -28,7 +28,6 @@ import (
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/dbareport"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/logger"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/mysqlconn"
-	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/util"
 )
 
 // LogicalLoaderMysqldump this logical loader is used to load logical backup with mysql(client)
@@ -190,7 +189,8 @@ func (l *LogicalLoaderMysqldump) Execute() (err error) {
 		logger.Log.Error("mysqldump load backup failed: ", err, errStr)
 		// 尝试读取 mysqldump_load.log 里 CRITICAL 关键字
 		errStrPrefix := fmt.Sprintf("tail 5 error from %s", logfile)
-		errStrDetail, _ := util.GrepLinesFromFile(logfile, []string{"ERROR", "unknown", " No such"}, 5, false, true)
+		errStrDetail, _ := cmutil.NewGrepLines(logfile, true, false).
+			MatchWords([]string{"ERROR", "unknown", " No such"}, 5)
 		if len(errStrDetail) > 0 {
 			logger.Log.Info(errStrPrefix)
 			logger.Log.Error(errStrDetail)

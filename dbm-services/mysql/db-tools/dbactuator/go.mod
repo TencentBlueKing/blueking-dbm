@@ -20,6 +20,7 @@ require (
 	github.com/spf13/cobra v1.7.0
 	github.com/xdg-go/scram v1.1.2
 	golang.org/x/exp v0.0.0-20230905200255-921286631fa9
+	golang.org/x/sync v0.7.0
 	gopkg.in/ini.v1 v1.67.0
 )
 

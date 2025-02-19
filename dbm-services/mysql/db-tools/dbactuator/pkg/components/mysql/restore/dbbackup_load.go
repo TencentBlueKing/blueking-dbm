@@ -192,6 +192,27 @@ func (m *DBLoader) PostCheck() error {
 	if _, err = dbWorker.ExecMore([]string{"set session sql_log_bin=off", sqlStr}); err != nil {
 		logger.Warn("fail to repair data for table global_backup. ignore %s", err.Error())
 	}
+
+	_ = m.removeRestoreDir()
+	return nil
+}
+
+// removeRestoreDir 恢复成功后，删除 restore 目录
+// 这里目前只删除备份文件，恢复工作产生的配置/日志，暂时保留以便后续跟踪问题
+func (m *DBLoader) removeRestoreDir() error {
+	// 安全起见，只清理路径带 doDr_ 的目录
+	if strings.Contains(m.targetDir, "doDr_") {
+		if err := os.RemoveAll(m.targetDir); err != nil {
+			logger.Warn("fail to remove old recover dir: %s. ignore %s", m.targetDir, err.Error())
+			//return err
+		}
+	}
+	//oldDirs, _ := filepath.Glob(fmt.Sprintf("%s/doDr_*", m.WorkDir))
+	for _, oldFile := range m.dbLoaderUtil.IndexObj.GetTarFileList("") {
+		oldFile = filepath.Join(m.BackupInfo.WorkDir, oldFile)
+		//logger.Info("remove old backup file: %s", oldFile)
+		_ = os.Remove(oldFile)
+	}
 	return nil
 }
 
@@ -219,7 +240,7 @@ func (m *DBLoader) initDirs(removeOld bool) error {
 			if dirInfo, err := os.Stat(oldDir); err == nil && dirInfo.IsDir() {
 				if timeNow.Sub(dirInfo.ModTime()) > 1*time.Minute {
 					logger.Warn("remove old recover work directory: ", oldDirs)
-					_ = os.RemoveAll(oldDir)
+					cmutil.SafeRmDir(oldDir)
 				}
 			}
 		}

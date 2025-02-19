@@ -18,7 +18,6 @@ import (
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/dbareport"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/logger"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/mysqlconn"
-	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/util"
 )
 
 // LogicalLoader this is used to load logical backup
@@ -216,8 +215,8 @@ func (l *LogicalLoader) Execute() (err error) {
 		logger.Log.Error("myloader load backup failed: ", err, errStr)
 		// 尝试读取 myloader.log 里 CRITICAL 关键字
 		errStrPrefix := fmt.Sprintf("tail 5 error from %s", logfile)
-		errStrDetail, _ := util.GrepLinesFromFile(logfile,
-			[]string{"CRITICAL", "not found", "error", "fatal"}, 5, false, true)
+		errStrDetail, _ := cmutil.NewGrepLines(logfile, true, false).
+			MatchWords([]string{"CRITICAL", "not found", "error", "fatal"}, 5)
 		if len(errStrDetail) > 0 {
 			logger.Log.Info(errStrPrefix)
 			logger.Log.Error(errStrDetail)

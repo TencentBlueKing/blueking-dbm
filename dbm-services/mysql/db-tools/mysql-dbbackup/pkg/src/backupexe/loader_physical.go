@@ -154,7 +154,7 @@ func (p *PhysicalLoader) apply() error {
 		logger.Log.Error("physical apply failed: ", err, errStr)
 		// 尝试读取 xtrabackup.log 里 ERROR 关键字
 		errStrPrefix := fmt.Sprintf("tail 5 error from %s", logfile)
-		errStrDetail, _ := util.GrepLinesFromFile(logfile, []string{"ERROR", "fatal"}, 5, false, true)
+		errStrDetail, _ := cmutil.NewGrepLines(logfile, true, false).MatchWords([]string{"ERROR", "fatal"}, 5)
 		if len(errStrDetail) > 0 {
 			logger.Log.Info(errStrPrefix)
 			logger.Log.Error(errStrDetail)
@@ -218,7 +218,7 @@ func (p *PhysicalLoader) load() error {
 		logger.Log.Error("xtrabackup copy data failed: ", err, errStr)
 		// 尝试读取 xtrabackup.log 里 ERROR 关键字
 		errStrPrefix := fmt.Sprintf("tail 5 error from %s", logfile)
-		errStrDetail, _ := util.GrepLinesFromFile(logfile, []string{"ERROR", "fatal"}, 5, false, true)
+		errStrDetail, _ := cmutil.NewGrepLines(logfile, true, false).MatchWords([]string{"ERROR", "fatal"}, 5)
 		if len(errStrDetail) > 0 {
 			logger.Log.Info(errStrPrefix)
 			logger.Log.Error(errStrDetail)

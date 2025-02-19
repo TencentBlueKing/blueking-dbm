@@ -217,8 +217,8 @@ func (p *PhysicalDumper) Execute(ctx context.Context) error {
 	err = cmd.Run()
 	if err != nil {
 		errStrPrefix := fmt.Sprintf("tail 5 error from %s", xtrabackupLogFile)
-		errStrDetail, _ := util.GrepLinesFromFile(xtrabackupLogFile,
-			[]string{"ERROR", "fatal", "unknown", "No such file"}, 5, false, true)
+		errStrDetail, _ := cmutil.NewGrepLines(xtrabackupLogFile, true, false).
+			MatchWords([]string{"ERROR", "fatal", "unknown", "No such file"}, 5)
 		if len(errStrDetail) > 0 {
 			logger.Log.Info(errStrPrefix)
 			logger.Log.Error(errStrDetail)

@@ -139,29 +139,31 @@ func (b *GoMySQLBinlogUtil) BuildArgs(filterMode bool) ([]string, error) {
 	return b.cmdArgs, nil
 }
 
+// Parse 解析 binlog 文件
 func (b *GoMySQLBinlogUtil) Parse(binlogDir, fileName string, filterMode bool) (string, error) {
 	_, err := b.BuildArgs(filterMode)
 	if err != nil {
 		return "", err
 	}
-	parsedFile := fmt.Sprintf(`%s/%s.sql`, dirBinlogParsed, fileName)
+	resultFile := fmt.Sprintf(`%s/%s.sql`, dirBinlogParsed, fileName)
 	binlogFile := filepath.Join(binlogDir, fileName)
 	cmdStr := ""
 	if b.workDir != "" {
 		cmdStr += fmt.Sprintf("cd %s && ", b.workDir)
 	}
 	cmdStr += fmt.Sprintf("%s %s --file %s  -r %s",
-		b.cmdPath, strings.Join(b.cmdArgs, " "), binlogFile, parsedFile)
+		b.cmdPath, strings.Join(b.cmdArgs, " "), binlogFile, resultFile)
 	logger.Info("parse command: %s", cmdStr)
 	if outStr, err := osutil.ExecShellCommand(false, cmdStr); err != nil {
-		return parsedFile, errors.Wrapf(err, "fail to parse %s: %s, cmd: %s", fileName, outStr, cmdStr)
+		return resultFile, errors.Wrapf(err, "fail to parse %s: %s, cmd: %s", fileName, outStr, cmdStr)
 	}
-	return parsedFile, nil
+	return resultFile, nil
 }
 
 func (b *GoMySQLBinlogUtil) ReturnParseCommand(binlogDir string, fileNames []string) string {
 	binlogFiles := strings.Join(fileNames, ",")
-	cmd := fmt.Sprintf("cd %s && %s %s -f %s ", binlogDir, b.cmdPath, strings.Join(b.cmdArgs, ","), binlogFiles)
+	cmd := fmt.Sprintf("cd %s && %s %s -f %s ",
+		binlogDir, b.cmdPath, strings.Join(b.cmdArgs, ","), binlogFiles)
 	return cmd
 }
 

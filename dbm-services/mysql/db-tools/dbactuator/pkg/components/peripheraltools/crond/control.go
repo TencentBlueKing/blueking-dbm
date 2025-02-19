@@ -7,10 +7,10 @@ import (
 
 	"github.com/pkg/errors"
 
+	"dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/common/go-pubpkg/logger"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/core/cst"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util/osutil"
-	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/util"
 )
 
 func (c *MySQLCrondComp) Stop() (err error) {
@@ -58,7 +58,7 @@ func (c *MySQLCrondComp) Start() (err error) {
 
 		startErrFilePath := path.Join(cst.MySQLCrondInstallPath, "start-crond.err")
 		errStrPrefix := fmt.Sprintf("grep error from %s", startErrFilePath)
-		errStrDetail, _ := util.GrepLinesFromFile(startErrFilePath, []string{"ERROR", "panic"}, 5, false, false)
+		errStrDetail, _ := cmutil.NewGrepLines(startErrFilePath, true, true).MatchWords([]string{"ERROR", "panic"}, 5)
 		if len(errStrDetail) > 0 {
 			logger.Info(errStrPrefix)
 			logger.Error(errStrDetail)

@@ -67,6 +67,9 @@ type BaseOptions struct {
 	// 是否为外部版本
 	// on ON
 	External string
+	// Phase 1. prepare 2. execute
+	// 某些情绪需要把步骤拆分出来，即一个 actor 子命令，通过 root-id 来关联两个子步骤，可能通过 root-id 来共享一些变量
+	Phase string
 }
 
 // IsExternal 是否编译成外部版本

@@ -11,7 +11,6 @@ import (
 	"dbm-services/mysql/db-tools/dbactuator/pkg/components"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/native"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util"
-	"dbm-services/mysql/db-tools/dbactuator/pkg/util/osutil"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util/proxyutil"
 )
 
@@ -121,7 +120,7 @@ func (u *UnInstallMySQLProxyComp) UnInstallProxy() (err error) {
 			logger.Error("停止%d进程失败:%s", port, err.Error())
 			return err
 		}
-		if err = osutil.SafeRmDir(u.runTimeCtx.proxyInsLogDir[port]); err != nil {
+		if err = cmutil.SafeRmDir(u.runTimeCtx.proxyInsLogDir[port]); err != nil {
 			logger.Error("删除log dir失败:%s", u.runTimeCtx.proxyInsLogDir[port])
 			return err
 		}

@@ -24,11 +24,13 @@ package:
 	make build
 	echo "Packaging ${PROJ_PKG} using dependency ${PROJ_PKG_DEPS}"
 	mkdir -p ${PKG_DIR}
-	cp ${OUTPUT_DIR}/${PROJ_BIN} ${PKG_DIR}/
-	cp mydumper_for_tdbctl.cnf ${PKG_DIR}/
-	cp dbbackup_main.sh ${PKG_DIR}/
 	rm -rf ${PROJ_PKG_DEPS} && tar -zxf ${PROJ_PKG_DEPS}.tar.gz
 	cp -r ${PROJ_PKG_DEPS}/* ${PKG_DIR}/
+	cp -r dbbackup-go-deps/bin/* ${PKG_DIR}/bin/  # rewrite
+	cp mydumper_for_tdbctl.cnf ${PKG_DIR}/
+	cp dbbackup_main.sh ${PKG_DIR}/
+	cp {dump.3305.ini.example,load.3305.ini.example} ${PKG_DIR}/
+	cp ${OUTPUT_DIR}/${PROJ_BIN} ${PKG_DIR}/
 	chmod +x ${PKG_DIR}/*.sh && chmod +x ${PKG_DIR}/dbbackup
 	chmod +x ${PKG_DIR}/bin/* && chmod +x ${PKG_DIR}/bin/*/*
 	tar -C ${OUTPUT_DIR} -zcf ${OUTPUT_DIR}/${PROJ_PKG} ${PROJ}

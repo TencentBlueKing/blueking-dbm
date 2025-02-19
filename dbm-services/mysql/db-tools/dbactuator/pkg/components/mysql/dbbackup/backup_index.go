@@ -173,6 +173,10 @@ func (f *BackupIndexFile) UntarFiles(untarDir string, removeOriginal bool) error
 			if _, err := osutil.ExecShellCommand(false, cmd); err != nil {
 				return errors.Wrap(err, cmd)
 			}
+			if removeOriginal {
+				logger.Info("remove original file %s", p)
+				os.Remove(p)
+			}
 		}
 	}
 
@@ -188,49 +192,53 @@ func (f *BackupIndexFile) UntarFiles(untarDir string, removeOriginal bool) error
 func MergeAndUntarFiles(splitParts []string, srcDir, untarDir string, removeOriginal bool) error {
 	pipeReader, pipeWriter := io.Pipe()
 	untarCmd := exec.Command("tar", "-xf", "-", "-C", untarDir)
-	if !strings.Contains(splitParts[0], ".gz") {
+	if strings.Contains(splitParts[0], ".gz") {
 		untarCmd = exec.Command("tar", "-zxf", "-", "-C", untarDir)
 	}
-	untarCmd.Dir = srcDir
-	//untarCmd.Stdout = os.Stdout
 	var stderrBuff bytes.Buffer
 	untarCmd.Stderr = &stderrBuff
 	untarCmd.Stdin = pipeReader
-	chanErr := make(chan error, 1)
+	untarCmd.Dir = srcDir
+	errChan := make(chan error, 2) // read and write 共用，避免 hang 住，所以给 2 个
 	go func() {
-		chanErr <- untarCmd.Run()
+		cmdErr := untarCmd.Run()
+		if cmdErr != nil {
+			cmdErr = errors.Wrapf(cmdErr, "%s: %s", stderrBuff.String(), untarCmd.String())
+			// 这里要关闭 pipeWriter，不然后面的 io.Copy 可能会阻塞
+			pipeWriter.CloseWithError(cmdErr)
+		}
+		errChan <- cmdErr
+		return
 	}()
-	/*
-		go func() {
-			cmutil.ExtractTarGz(pipeReader)
-		}()
-	*/
 
-	var readErr error
-	for _, tarFile := range splitParts {
-		logger.Info("read file %s", tarFile)
-		tarFile = filepath.Join(srcDir, tarFile)
-		tarf, err := os.OpenFile(tarFile, os.O_RDONLY, 0644)
-		if err != nil {
-			readErr = errors.WithMessage(err, "read file")
-			break // 任何错误，都传输给 pipeWriter，以便管道下游命令能够捕获 error
-			//return readErr
+	go func() {
+		var readErr error
+		for _, tarFile := range splitParts {
+			logger.Info("read file %s", tarFile)
+			tarFile = filepath.Join(srcDir, tarFile)
+			tarf, err := os.OpenFile(tarFile, os.O_RDONLY, 0644)
+			if err != nil {
+				readErr = errors.WithMessage(err, "read file")
+				errChan <- readErr
+				// 任何错误，都传输给 pipeWriter，以便管道下游命令能够捕获 error
+				break
+			}
+			if _, err = io.Copy(pipeWriter, tarf); err != nil {
+				readErr = errors.WithMessage(err, "copy file to stdout")
+				errChan <- readErr
+				break
+			}
+			tarf.Close()
+			if removeOriginal {
+				logger.Info("remove backup file %s", tarFile)
+				os.Remove(tarFile)
+			}
 		}
-		if _, err = io.Copy(pipeWriter, tarf); err != nil {
-			readErr = errors.WithMessage(err, "copy file to stdout")
-			break // 任何错误，都传输给 pipeWriter，以便管道下游命令能够捕获 error
-			//return readErr
-		}
-		tarf.Close()
-		if removeOriginal {
-			os.Remove(tarFile)
-		}
-	}
-	pipeWriter.CloseWithError(readErr)
-	//time.Sleep(100 * time.Millisecond) // 确保 reader 在收到 EOF 之后，再退出函数
+		pipeWriter.CloseWithError(readErr)
+	}()
 
 	select {
-	case err := <-chanErr:
+	case err := <-errChan:
 		if err != nil {
 			return err
 		}

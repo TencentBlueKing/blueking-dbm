@@ -1,6 +1,7 @@
 package restore
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"os"
@@ -9,10 +10,12 @@ import (
 	"slices"
 	"sort"
 	"strings"
-	"sync"
 	"text/template"
 	"time"
 
+	"golang.org/x/sync/errgroup"
+
+	"dbm-services/common/go-pubpkg/filecontext"
 	"dbm-services/common/go-pubpkg/mysqlcomm"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/core/cst"
 
@@ -122,41 +125,64 @@ func (r *GoApplyBinlog) ParseBinlogFiles() error {
 	logger.Info("start to parse binlog files with concurrency %d", r.ParseConcurrency)
 
 	errChan := make(chan error)
-	tokenBulkChan := make(chan struct{}, r.ParseConcurrency)
+	//var externalErr error
+	//tokenBulkChan := make(chan struct{}, r.ParseConcurrency)
+	binlogParseLockFile := "/tmp/mysql_binlog_parse.lock.yaml"
+	fileLock, err := filecontext.NewIncrFile(binlogParseLockFile, r.ParseConcurrency, 10*time.Second)
+	if err != nil {
+		return err
+	}
+	logger.Info("using lock file %s", fileLock.GetContextFilePath())
+	//cancelCtx, cancel := context.WithCancel(context.Background())
+	g, _ := errgroup.WithContext(context.Background())
+	g.SetLimit(r.ParseConcurrency) // 单个进程也设置一下最大并发
 
-	go func() {
-		var wg = &sync.WaitGroup{}
-		wg.Add(len(r.BinlogFiles))
-		logger.Info("need parse %d binlog files: %s", len(r.BinlogFiles), r.BinlogFiles)
+	logger.Info("need parse %d binlog files: %s", len(r.BinlogFiles), r.BinlogFiles)
 
-		for _, f := range r.BinlogFiles {
-			tokenBulkChan <- struct{}{}
-			go func(binlogFilePath string) {
-				logger.Info("parse %s", binlogFilePath)
-				if binlogFilePath == r.BinlogStartFile {
-					r.BinlogOpt.StartPos = r.BinlogStartPos
-				} else {
-					r.BinlogOpt.StartPos = 0
-				}
-				_, err := r.BinlogOpt.Parse(r.BinlogDir, binlogFilePath, r.QuickMode)
-
-				<-tokenBulkChan
-
-				if err != nil {
-					logger.Error("parse %s failed: %s", binlogFilePath, err.Error())
-				}
-				errChan <- err
-				wg.Done()
-			}(f)
+	for _, f := range r.BinlogFiles {
+		//tokenBulkChan <- struct{}{}
+		// 如果遇到解析错误，不启动后续解析的 goroutine，所以要在 routine 外层
+		select {
+		case e := <-errChan:
+			if e != nil {
+				//不直接 return e，error 信息在 g.Wait() 也能获取到
+				close(errChan)
+				break
+			}
+		default:
+			// 默认不阻塞
 		}
-		wg.Wait()
+		lockErr := fileLock.Incr(1)
+
+		if lockErr != nil {
+			// 这里全局并发控制失效，但不让任务失败
+			logger.Error("failed to get file lock:%s. ignore error and concurrency not work", err.Error())
+		}
+		g.Go(func() error {
+			defer func() {
+				if lockErr == nil {
+					_ = fileLock.Incr(-1)
+				}
+			}()
+			logger.Info("parse %s", f)
+			if f == r.BinlogStartFile {
+				r.BinlogOpt.StartPos = r.BinlogStartPos
+			} else {
+				r.BinlogOpt.StartPos = 0
+			}
+			_, internalErr := r.BinlogOpt.Parse(r.BinlogDir, f, r.QuickMode)
+			if internalErr != nil {
+				logger.Error("parse %s failed: %s", f, internalErr.Error())
+				errChan <- internalErr
+			}
+			//<-tokenBulkChan
+			return internalErr
+		})
+	}
+	if err := g.Wait(); err != nil {
+		return err
+	} else {
 		logger.Info("all binlog finish")
-		close(errChan)
-	}()
-	for err := range errChan {
-		if err != nil {
-			return err
-		}
 	}
 	return nil
 }
@@ -207,6 +233,8 @@ if [ "$dbpass" = "" ];then
 	echo 'please set password'
 	exit 1
 fi
+cd {{.taskDir}}
+
 mysql_opt="-u$dbuser -p$dbpass -h$dbhost -P$dbport {{.mysqlOpt}} -A "
 sqlFiles="{{.sqlFiles}}"
 for f in $sqlFiles
@@ -219,6 +247,7 @@ do
 		break
 	fi
 done
+cd -
 exit $retcode
 `
 	r.importScript = fmt.Sprintf(filepath.Join(r.taskDir, importScript))
@@ -243,6 +272,7 @@ exit $retcode
 			"mysqlCmd":        r.ToolSet.MustGet(tools.ToolMysqlclient),
 			"dirBinlogParsed": dirBinlogParsed,
 			"sqlFiles":        strings.Join(r.BinlogFiles, " "),
+			"taskDir":         r.taskDir,
 		}
 		if err := tpl.Execute(fi, Vars); err != nil {
 			return err
@@ -649,8 +679,15 @@ func (r *GoApplyBinlog) checkTimeRange() error {
 // Start godoc
 // 一定会解析 binlog
 func (r *GoApplyBinlog) Start() error {
+	// 本机可能多个实例，会共享解析binlog的并发数
+	binlogParseLockFile := "/tmp/mysql_binlog_parse.lock.yaml"
+	fileLock, err := filecontext.NewIncrFile(binlogParseLockFile, r.ParseConcurrency, 10*time.Second)
+	if err != nil {
+		return err
+	}
+	logger.Info("using lock file %s", fileLock.GetContextFilePath())
 	if r.ParseOnly {
-		if err := r.buildScript(); err != nil {
+		if err = r.buildScript(); err != nil {
 			return err
 		}
 		return r.ParseBinlogFiles()
@@ -675,23 +712,28 @@ func (r *GoApplyBinlog) Start() error {
 		outFile := filepath.Join(r.taskDir, fmt.Sprintf("import_binlog_%s.log", r.WorkID))
 		errFile := filepath.Join(r.taskDir, fmt.Sprintf("import_binlog_%s.err", r.WorkID))
 		parseCmd := r.BinlogOpt.ReturnParseCommand(r.BinlogDir, r.BinlogFiles)
+		// gomysqlbinlog ... | mysql ...
 		cmd := fmt.Sprintf(`%s | %s >>%s 2>%s`, parseCmd, r.mysqlCli, outFile, errFile)
 		logger.Info(mysqlcomm.ClearSensitiveInformation(mysqlcomm.RemovePassword(cmd)))
-		stdoutStr, err := mysqlutil.ExecCommandMySQLShell(cmd)
-		if err != nil {
-			if strings.TrimSpace(stdoutStr) == "" {
-				if errContent, err := osutil.ExecShellCommand(
-					false,
-					fmt.Sprintf("head -2 %s", errFile),
-				); err == nil {
-					if strings.TrimSpace(errContent) != "" {
-						logger.Error(errContent)
-					}
-				}
-			} else {
-				return errors.WithMessagef(err, "errFile: %s", errFile)
+
+		if err := fileLock.Incr(1); err == nil {
+			defer fileLock.Incr(-1)
+			// 标准输出，错误输出到打印到 errFile 了
+			retContent, err := mysqlutil.ExecCommandMySQLShell(cmd)
+			if err != nil {
+				//fileLock.FileIncrSafe(-1, 60)
+				return errors.WithMessage(err, retContent)
 			}
-			return err
+			// 因为错误日志都重定向到文件了，所以真实错误判断要从 errFile 中读取
+			errContent, _ := cmutil.NewGrepLines(errFile, true, true).
+				MatchWordsExclude([]string{"Using a password"}, 2)
+			if errContent != "" || err != nil {
+				logger.Error(errContent)
+				//fileLock.FileIncrSafe(-1, 60)
+				return errors.New(errContent)
+			}
+		} else {
+			return errors.WithMessage(err, "file lock incr failed")
 		}
 	} else {
 		return errors.New("flashback=true must have parse_only=true")
@@ -701,26 +743,30 @@ func (r *GoApplyBinlog) Start() error {
 
 // Import import_binlog.sh
 func (r *GoApplyBinlog) Import() error {
-	if r.BinlogOpt.Idempotent {
-		// 这个要在主函数运行，调用 defer 来设置回去
-		newValue := "IDEMPOTENT"
-		originValue, err := r.dbWorker.SetSingleGlobalVarAndReturnOrigin("slave_exec_mode", newValue)
-		if err != nil {
-			return err
-		}
-		if originValue != newValue {
-			defer func() {
-				if err = r.dbWorker.SetSingleGlobalVar("slave_exec_mode", originValue); err != nil {
-					logger.Error("fail to set back slave_exec_mode=%s", originValue)
-				}
-			}()
-		}
-	}
-	script := fmt.Sprintf(`cd %s && %s > import.log 2>import.err`, r.taskDir, r.importScript)
-	logger.Info("run script: %s", script)
-	_, err := osutil.ExecShellCommand(false, script)
+
+	return BinlogImport(r.taskDir, r.importScript, r.dbWorker)
+
+}
+
+// BinlogImport run import_binlog.sh
+func BinlogImport(taskDir, scriptName string, dbWorker *native.DbWorker) error {
+	newValue := "IDEMPOTENT"
+	originValue, err := dbWorker.SetSingleGlobalVarAndReturnOrigin("slave_exec_mode", newValue)
 	if err != nil {
-		return errors.Wrap(err, "run import_binlog.sh")
+		return err
+	}
+	if originValue != newValue {
+		defer func() {
+			if err = dbWorker.SetSingleGlobalVar("slave_exec_mode", originValue); err != nil {
+				logger.Error("fail to set back slave_exec_mode=%s", originValue)
+			}
+		}()
+	}
+	script := fmt.Sprintf(`cd %s && %s > import.log 2>import.err`, taskDir, scriptName)
+	logger.Warn("run script: %s", script)
+	_, err = mysqlutil.ExecCommandMySQLShell(script)
+	if err != nil {
+		return errors.Wrapf(err, "run import_binlog.sh has error")
 	}
 	return nil
 }
@@ -745,4 +791,8 @@ func (r *GoApplyBinlog) GetDBWorker() *native.DbWorker {
 // GetTaskDir TODO
 func (r *GoApplyBinlog) GetTaskDir() string {
 	return r.taskDir
+}
+
+func (r *GoApplyBinlog) GetScriptName() string {
+	return r.importScript
 }

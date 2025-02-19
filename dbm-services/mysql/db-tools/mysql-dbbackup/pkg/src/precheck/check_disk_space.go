@@ -111,12 +111,13 @@ func CheckAndCleanDiskSpace(cnf *config.Public, dbh *sql.DB) error {
 		// 删除 binlog，第三次检查
 		cleanBinlogCmd := []string{"./rotatebinlog", "clean-space", "--max-disk-used-pct", "20"}
 		//"--size-to-free", cast.ToString(math.Abs(float64(sizeLeft)))
-		logger.Log.Infof("clean binlog: %s", strings.Join(cleanBinlogCmd, " "))
+		logger.Log.Infof("to backup %d, clean binlog: %s", cnf.MysqlPort, strings.Join(cleanBinlogCmd, " "))
 		// 如果备份全部清理完成，预测空间还不够备份，则请求清理 binlog
 		_, strErr, err := cmutil.ExecCommand(false, cst.MysqlRotateBinlogInstallPath,
 			cleanBinlogCmd[0], cleanBinlogCmd[1:]...)
 		if err != nil {
-			logger.Log.Warnf("rotatebinlog clean-space failed: %s, %s", err.Error(), strErr)
+			logger.Log.Warnf("to backup %d, rotatebinlog clean-space failed: %s, %s",
+				cnf.MysqlPort, err.Error(), strErr)
 		}
 
 		// 如果空间还不满足，尝试找上一个全备的大小，因为实际可能并不需要这么 dataDir 空间大小

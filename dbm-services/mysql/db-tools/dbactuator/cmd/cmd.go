@@ -174,6 +174,7 @@ Buildstamp:%s`, version, githash, strings.ToUpper(external), buildstamp,
 		&subcmd.GBaseOptions.VersionId, "version_id", "V", subcmd.GBaseOptions.NodeId,
 		"run version id",
 	)
+	cmds.PersistentFlags().StringVar(&subcmd.GBaseOptions.Phase, "phase", "", "phase name")
 	cmds.PersistentFlags().BoolVarP(
 		&subcmd.GBaseOptions.RollBack,
 		"rollback",
