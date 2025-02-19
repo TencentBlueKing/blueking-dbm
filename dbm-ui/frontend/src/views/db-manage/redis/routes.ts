@@ -198,6 +198,11 @@ const toolboxRoutes = [
   {
     path: 'toolbox',
     name: 'RedisToolbox',
+    name: 'RedisToolbox',
+    meta: {
+      fullscreen: true,
+      navName: t('工具箱'),
+    },
     meta: {
       fullscreen: true,
       navName: t('工具箱'),
