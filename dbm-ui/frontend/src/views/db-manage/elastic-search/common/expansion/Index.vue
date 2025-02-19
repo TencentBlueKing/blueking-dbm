@@ -343,7 +343,6 @@
                 });
               }
               Object.assign(hostData, {
-                ext_info: generateExtInfo(),
                 resource_spec: resourceSpec,
               });
             }
@@ -352,6 +351,7 @@
               bk_biz_id: bizId,
               details: {
                 cluster_id: props.data.id,
+                ext_info: generateExtInfo(),
                 ip_source: 'resource_pool',
                 ...hostData,
               },

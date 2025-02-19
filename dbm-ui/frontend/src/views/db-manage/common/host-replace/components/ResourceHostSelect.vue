@@ -37,6 +37,7 @@
       v-model="modelValue"
       v-model:is-show="isShowSelector"
       :params="{
+        for_bizs: [currentBizId, 0],
         resource_types: [dbType, 'PUBLIC'],
       }"
       :selected="modelValue" />
@@ -65,8 +66,8 @@
 
   interface Props {
     data: TReplaceNode<T>;
-    placehoderId: string;
     dbType: DBTypes;
+    placehoderId: string;
   }
 
   defineProps<Props>();
@@ -76,6 +77,8 @@
   });
 
   const { t } = useI18n();
+
+  const currentBizId = window.PROJECT_CONFIG.BIZ_ID;
 
   const isShowSelector = ref(false);
 

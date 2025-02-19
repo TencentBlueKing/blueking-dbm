@@ -310,7 +310,7 @@
               details: {
                 cluster_id: props.data.id,
                 ext_info: generateExtInfo(),
-                ip_source: 'manual_input',
+                ip_source: 'resource_pool',
                 old_nodes: {
                   client: fomatHost(nodeInfoMap.client.nodeList),
                   cold: fomatHost(nodeInfoMap.cold.nodeList),

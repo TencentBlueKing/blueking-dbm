@@ -36,7 +36,11 @@
   });
 
   const detailsComp = computed(() => {
-    const isResourcePool = (props.data as TicketModel<{ ip_source: string }>).details.ip_source === 'resource_pool';
+    const resourcePoolDetails = (props.data as TicketModel<{ ip_source?: string; ip_recycle?: { ip_dest: string } }>)
+      .details;
+
+    const isResourcePool =
+      resourcePoolDetails.ip_recycle?.ip_dest === 'resource' || resourcePoolDetails.ip_source === 'resource_pool';
 
     const renderResourcePoolModule = _.find(
       Object.values(resourcePoolModule),
