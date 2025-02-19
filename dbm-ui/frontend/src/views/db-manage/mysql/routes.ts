@@ -241,6 +241,11 @@ const mysqlToolboxRouters: RouteRecordRaw[] = [
   {
     path: 'toolbox',
     name: 'MySQLToolbox',
+    name: 'MySQLToolbox',
+    meta: {
+      fullscreen: true,
+      navName: t('工具箱'),
+    },
     meta: {
       fullscreen: true,
       navName: t('工具箱'),
