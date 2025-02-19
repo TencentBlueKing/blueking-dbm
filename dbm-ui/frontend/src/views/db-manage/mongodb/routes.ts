@@ -173,6 +173,11 @@ const routes: RouteRecordRaw[] = [
       {
         path: 'toolbox',
         name: 'MongoToolbox',
+        name: 'MongoToolbox',
+        meta: {
+          fullscreen: true,
+          navName: t('工具箱'),
+        },
         meta: {
           fullscreen: true,
           navName: t('工具箱'),
