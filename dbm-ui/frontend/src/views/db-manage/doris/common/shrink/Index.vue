@@ -329,9 +329,10 @@
               bk_biz_id: bizId,
               details: {
                 cluster_id: props.data.id,
+                ext_info: generateExtInfo(),
+                ip_source: 'resource_pool',
                 old_nodes: {
                   cold: fomatHost(nodeInfoMap.cold.nodeList),
-                  hot: fomatHost(nodeInfoMap.hot.nodeList),
                   hot: fomatHost(nodeInfoMap.hot.nodeList),
                   observer: fomatHost(nodeInfoMap.observer.nodeList),
                 },

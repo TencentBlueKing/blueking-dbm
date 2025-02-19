@@ -7,6 +7,7 @@
     v-model="hostList"
     v-model:is-show="showSelector"
     :params="{
+      for_bizs: [currentBizId, 0],
       resource_types: [dbType, 'PUBLIC'],
     }"
     :selected="hostList" />
@@ -83,6 +84,8 @@
   });
 
   const { t } = useI18n();
+
+  const currentBizId = window.PROJECT_CONFIG.BIZ_ID;
 
   const showSelector = ref(false);
 

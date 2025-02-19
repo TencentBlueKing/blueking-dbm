@@ -95,14 +95,7 @@ export const mysqlToolboxChildrenRouters: RouteRecordRaw[] = [
     },
     component: () => import('@views/db-manage/mysql/db-clear/Index.vue'),
   },
-  {
-    path: 'rollback/:page?',
-    name: 'MySQLDBRollback',
-    meta: {
-      navName: t('定点构造'),
-    },
-    component: () => import('@views/db-manage/mysql/rollback/Index.vue'),
-  },
+  createRouteItem(TicketTypes.MYSQL_ROLLBACK_CLUSTER, t('定点构造')),
   {
     path: 'flashback/:page?',
     name: 'MySQLDBFlashback',

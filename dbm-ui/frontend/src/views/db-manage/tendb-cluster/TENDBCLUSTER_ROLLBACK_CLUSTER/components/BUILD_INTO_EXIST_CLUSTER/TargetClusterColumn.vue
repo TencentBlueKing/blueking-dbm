@@ -90,23 +90,23 @@
 
   const rules = [
     {
-      validator: (value: string) => domainRegex.test(value),
       message: t('集群域名格式不正确'),
       trigger: 'change',
+      validator: (value: string) => domainRegex.test(value),
     },
     {
+      message: t('目标集群不存在'),
+      trigger: 'blur',
       validator: () => {
         if (!modelValue.value.master_domain) {
           return true;
         }
         return Boolean(modelValue.value.id);
       },
-      message: t('目标集群不存在'),
-      trigger: 'blur',
     },
   ];
 
-  const { run: queryCluster, loading } = useRequest(filterClusters<TendbClusterModel>, {
+  const { loading, run: queryCluster } = useRequest(filterClusters<TendbClusterModel>, {
     manual: true,
     onSuccess: (data) => {
       if (data.length) {

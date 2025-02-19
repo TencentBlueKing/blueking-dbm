@@ -1,13 +1,10 @@
-import type { DetailBase, DetailClusters } from '../../common';
+import type { ResourcePoolDetailBase } from '../../common';
 
-export interface ProxyAdd extends DetailBase {
-  clusters: DetailClusters;
-  ip_source: 'resource_pool';
+export interface ProxyAdd extends ResourcePoolDetailBase {
   infos: {
     cluster_ids: number[];
     resource_spec: {
       new_proxy: {
-        spec_id: number;
         hosts: {
           bk_biz_id: number;
           bk_cloud_id: number;
@@ -15,6 +12,7 @@ export interface ProxyAdd extends DetailBase {
           ip: string;
           port: number;
         }[];
+        spec_id: number;
       };
     };
   }[];

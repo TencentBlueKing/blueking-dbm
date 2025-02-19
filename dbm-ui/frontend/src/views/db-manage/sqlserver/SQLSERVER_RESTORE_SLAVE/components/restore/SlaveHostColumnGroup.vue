@@ -79,16 +79,13 @@
     }[];
   }
 
-  interface Emits {
-    (e: 'batch-edit', list: IValue[]): void;
-  }
+  type Emits = (e: 'batch-edit', list: IValue[]) => void;
 
   const props = defineProps<Props>();
 
   const emits = defineEmits<Emits>();
 
   const modelValue = defineModel<{
-    bk_biz_id: number;
     bk_cloud_id: number;
     bk_host_id?: number;
     ip: string;
@@ -98,7 +95,6 @@
     }[];
   }>({
     default: () => ({
-      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
       bk_cloud_id: 0,
       bk_host_id: undefined,
       ip: '',
@@ -135,31 +131,30 @@
 
   const rules = [
     {
-      validator: (value: string) => ipv4.test(value),
       message: t('IP 格式不符合IPv4标准'),
       trigger: 'change',
+      validator: (value: string) => ipv4.test(value),
     },
     {
-      validator: (value: string) => props.selected.filter((item) => item.ip === value).length < 2,
       message: t('目标主机重复'),
       trigger: 'blur',
+      validator: (value: string) => props.selected.filter((item) => item.ip === value).length < 2,
     },
     {
-      validator: () => Boolean(modelValue.value.bk_host_id),
       message: t('目标主机不存在'),
       trigger: 'blur',
+      validator: () => Boolean(modelValue.value.bk_host_id),
     },
   ];
 
-  const { run: queryHost, loading } = useRequest(checkInstance, {
+  const { loading, run: queryHost } = useRequest(checkInstance, {
     manual: true,
     onSuccess: (data) => {
       if (data.length) {
         const [currentHost] = data;
         modelValue.value = {
-          bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-          bk_host_id: currentHost.bk_host_id,
           bk_cloud_id: currentHost.bk_cloud_id,
+          bk_host_id: currentHost.bk_host_id,
           ip: currentHost.ip,
           related_clusters: currentHost.related_clusters.map((item) => ({
             id: item.id,
@@ -176,7 +171,6 @@
 
   const handleInputChange = (value: string) => {
     modelValue.value = {
-      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
       bk_cloud_id: 0,
       bk_host_id: undefined,
       ip: value,
