@@ -11,26 +11,34 @@
  * the specific language governing permissions and limitations under the License.
 -->
 
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" href="/favicon.png" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+    <link
+      rel="icon"
+      href="/favicon.png" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, user-scalable=yes" />
     <title>数据库管理 | 腾讯蓝鲸智云</title>
   </head>
   <body>
-    <div id="app" class="app"></div>
-    <script type="module" src="/src/main.ts"></script>
+    <div
+      id="app"
+      class="app"></div>
+    <script
+      type="module"
+      src="/src/main.ts"></script>
     <script>
       window.PROJECT_ENV = {
-        VITE_PUBLIC_PATH: '{{ VITE_PUBLIC_PATH }}',
-        VITE_AJAX_URL_PREFIX: '{{ VITE_AJAX_URL_PREFIX }}',
-        VITE_ROUTER_PERFIX: '{{ VITE_ROUTER_PERFIX }}',
-      }
+        VITE_PUBLIC_PATH: '%VITE_PUBLIC_PATH%',
+        VITE_AJAX_URL_PREFIX: '%VITE_AJAX_URL_PREFIX%',
+        VITE_ROUTER_PERFIX: '%VITE_ROUTER_PERFIX%',
+      };
       window.PROJECT_CONFIG = {
         BIZ_ID: '',
-      }
+      };
     </script>
   </body>
 </html>
