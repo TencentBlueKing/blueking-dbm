@@ -12,13 +12,13 @@
  */
 import type { AxiosError, AxiosInterceptorManager, AxiosResponse } from 'axios';
 
+import { showLoginModal } from '@blueking/login-modal';
+
 import IamApplyDataModel from '@services/model/iam/apply-data';
 
 import { useEventBus } from '@hooks';
 
 import { downloadFile, messageError, parseURL, permissionDialog } from '@utils';
-
-import { showLoginModal } from '@blueking/login-modal';
 
 import RequestError from '../lib/request-error';
 
@@ -41,9 +41,9 @@ const redirectLogin = (loginUrl: string) => {
 
 const handlePermission = (error: RequestError) => {
   const { emit } = useEventBus();
-  // eslint-disable-next-line no-case-declarations
+
   const requestPayload = error.response.config.payload;
-  // eslint-disable-next-line no-case-declarations
+
   const iamResult = new IamApplyDataModel(error.response.data.data || {});
   if (requestPayload.permission === 'page') {
     // 配合 jb-router-view（@components/audit-router-view）全局展示没权限提示
@@ -93,7 +93,7 @@ export default (interceptors: AxiosInterceptorManager<AxiosResponse>) => {
         // 默认使用 http 错误描述，
         // 如果 response body 里面有自定义错误描述优先使用
         let errorMessage = error.response.statusText;
-        if (error.response.data && error.response.data.message) {
+        if (error.response.data?.message) {
           errorMessage = error.response.data.message as string;
         }
         return Promise.reject(new RequestError(error.response.status || -1, errorMessage, error.response));

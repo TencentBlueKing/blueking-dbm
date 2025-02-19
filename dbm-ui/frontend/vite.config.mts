@@ -14,7 +14,6 @@
 import { resolve } from 'path';
 import AutoImport from 'unplugin-auto-import/vite';
 import { defineConfig, loadEnv } from 'vite';
-import ViteHTMLEnv from 'vite-plugin-html-env';
 import monacoEditorPlugin from 'vite-plugin-monaco-editor';
 import { viteStaticCopy } from 'vite-plugin-static-copy';
 
@@ -91,10 +90,6 @@ export default defineConfig(({ mode }) => {
         ],
       }),
       monacoEditorPlugin.default({}),
-      ViteHTMLEnv({
-        prefix: '{{',
-        suffix: '}}',
-      }),
     ].concat(isHttps ? [basicSsl()] : []),
     optimizeDeps: {
       exclude: ['@blueking/ip-selector/dist/vue3.x.js'],
