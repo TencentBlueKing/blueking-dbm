@@ -265,6 +265,8 @@
   import { useRequest } from 'vue-request';
   import { useRouter } from 'vue-router';
 
+  import { type VxeTableDefines } from '@blueking/vxe-table';
+
   import TicketModel from '@services/model/ticket/ticket';
   import { getTickets } from '@services/source/ticket';
   import { getInnerFlowInfo } from '@services/source/ticketFlow';
@@ -277,7 +279,6 @@
 
   import { getBusinessHref, getOffset } from '@utils';
 
-  import { type VxeTableDefines } from '@blueking/vxe-table';
   import { useStorage } from '@vueuse/core';
 
   import useDatePicker from './hooks/use-date-picker';
@@ -293,9 +294,7 @@
     excludeColumn?: string[];
   }
 
-  interface Emits {
-    (e: 'selection', data: TicketModel<unknown>[]): void;
-  }
+  type Emits = (e: 'selection', data: TicketModel<unknown>[]) => void;
 
   const props = withDefaults(defineProps<Props>(), {
     selectable: false,

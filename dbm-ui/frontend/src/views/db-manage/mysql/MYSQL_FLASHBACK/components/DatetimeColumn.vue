@@ -10,7 +10,9 @@
       :disabled-date="disabledDate"
       format="yyyy-MM-dd HH:mm:ss"
       type="datetime">
-      <template #footer>
+      <template
+        v-if="nowenable"
+        #footer>
         <div
           style="line-height: 32px; text-align: center; cursor: pointer"
           @click="handleNowTime">
@@ -37,10 +39,12 @@
     label: string;
     field: string;
     disabledDate?: (params: any) => boolean;
+    nowenable?: boolean;
   }
 
   const props = withDefaults(defineProps<Props>(), {
     disabledDate: () => false,
+    nowenable: false,
   });
 
   const { t } = useI18n();
