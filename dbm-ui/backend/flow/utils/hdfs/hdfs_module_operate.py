@@ -52,4 +52,4 @@ class HdfsCCTopoOperator(CCTopoOperator):
         """
         if machine_type == MachineType.HDFS_MASTER:
             instances = filter(lambda ins: ins.instance_role == InstanceRole.HDFS_NAME_NODE, instances)
-        super(HdfsCCTopoOperator, self).init_instances_service(machine_type, instances)
+        return super(HdfsCCTopoOperator, self).init_instances_service(machine_type, instances)

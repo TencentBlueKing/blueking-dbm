@@ -23,7 +23,7 @@ class EsCCTopoOperator(CCTopoOperator):
         """
         if machine_type != MachineType.ES_DATANODE.value:
             # 非 datanode，不创建服务实例
-            return
+            return []
 
         # machine_type==datanode, 只需一个服务实例
-        self.init_unique_service(machine_type)
+        return self.init_unique_service(machine_type)

@@ -154,6 +154,7 @@ class CCTopoOperator:
         """
         适配部分场景下，某种 machine_type 只需要一个服务实例的情况
         """
+        bk_instance_ids = []
         for cluster in self.clusters:
             # 若服务实例存在，忽略即可
             if (
@@ -169,13 +170,17 @@ class CCTopoOperator:
                 bk_biz_id=self.hosting_biz_id, cluster_id=cluster.id, machine_type=machine_type
             ).bk_module_id
             instance = StorageInstance.objects.filter(cluster=cluster, machine_type=machine_type).first()
-            self.init_instance_service(
+
+            # 写入服务实例
+            bk_instance_id = self.init_instance_service(
                 cluster=cluster,
                 ins=instance,
                 bk_module_id=bk_module_id,
                 instance_role=instance.instance_role,
                 func_name=func_name,
             )
+            bk_instance_ids.append(bk_instance_id)
+        return bk_instance_ids
 
     @staticmethod
     def generate_ins_instance_role(ins: Union[StorageInstance, ProxyInstance]):

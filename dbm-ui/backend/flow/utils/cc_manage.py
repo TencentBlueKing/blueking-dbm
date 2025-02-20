@@ -553,7 +553,7 @@ def operate_collector(db_type: str, machine_type: str, bk_instance_ids: list, ac
     trigger_time = RedisConn.get(trigger_time_key)
 
     # 通过触发时间，加上延迟窗口，来实现滚动窗口，避免串行调用节点管理
-    if trigger_time is None or time.time() - float(trigger_time) > OPERATE_COLLECTOR_COUNTDOWN:
+    if trigger_time is None or time.time() - float(trigger_time) >= OPERATE_COLLECTOR_COUNTDOWN:
         bk_instance_ids = [int(bk_inst_id) for bk_inst_id in RedisConn.lrange(cache_key, 0, -1)]
         if not bk_instance_ids:
             return

@@ -44,10 +44,9 @@ class KafkaCCTopoOperator(CCTopoOperator):
         """
         KAFKA 的 zk 只需要一个采集器，采集消费延迟的数据
         """
+        # 非 zk 节点，使用默认方法创建服务实例
         if machine_type != MachineType.ZOOKEEPER.value:
-            # 非 zk 节点，使用默认方法创建服务实例
-            super(KafkaCCTopoOperator, self).init_instances_service(machine_type, instances)
-            return
+            return super(KafkaCCTopoOperator, self).init_instances_service(machine_type, instances)
 
         # machine_type==zk, 消费延迟，仅需一个服务实例
-        self.init_unique_service(machine_type)
+        return self.init_unique_service(machine_type)

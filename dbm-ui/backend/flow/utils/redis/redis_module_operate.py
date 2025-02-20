@@ -31,4 +31,4 @@ class RedisCCTopoOperator(CCTopoOperator):
             # 属于构造场景的临时节点，没有集群归属信息，不需要创建服务实例
             return
         # 创建 CMDB 服务实例
-        super(RedisCCTopoOperator, self).init_instances_service(machine_type, instances)
+        return super(RedisCCTopoOperator, self).init_instances_service(machine_type, instances)
