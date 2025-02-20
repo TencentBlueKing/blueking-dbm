@@ -55,6 +55,7 @@ export default class RiakNode {
   cpu: number;
   create_at: string;
   disk: number;
+  id: number;
   ip: string;
   machine_type: string;
   mem: number;
@@ -70,6 +71,7 @@ export default class RiakNode {
     this.cpu = payload.cpu;
     this.create_at = payload.create_at;
     this.disk = payload.disk;
+    this.id = payload.id;
     this.ip = payload.ip;
     this.machine_type = payload.machine_type;
     this.mem = payload.mem;

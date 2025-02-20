@@ -75,7 +75,7 @@ export function useTopoData<T extends Record<string, any>>(filterClusterId: Comp
           } else if (role === 'master') {
             count = item.masters.length || 0;
           } else {
-            count = item.slaves.length + item.proxies.length + item.masters.length;
+            count = (item.slaves?.length || 0) + (item.proxies?.length || 0) + (item.masters?.length || 0);
           }
           return { ...item, count: countFn ? countFn(item) : count };
         });
