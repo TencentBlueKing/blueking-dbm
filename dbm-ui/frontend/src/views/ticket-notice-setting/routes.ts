@@ -16,11 +16,11 @@ import { t } from '@locales/index';
 
 const routes = [
   {
-    name: 'TicketNoticeSetting',
     path: 'ticket-notice-setting',
+    name: 'TicketNoticeSetting',
     meta: {
-      navName: t('单据通知'),
       fullscreen: true,
+      navName: t('单据通知'),
     },
     component: () => import('@views/ticket-notice-setting/Index.vue'),
   },

@@ -19,47 +19,47 @@ import { t } from '@locales/index';
 export default function getRoutes() {
   registerModule([
     {
-      component: () => import('@views/inspection-manage/todo/Index.vue'),
+      path: 'inspection-todos',
+      name: 'InspectionTodos',
       meta: {
         fullscreen: true,
         navName: t('巡检待办'),
       },
-      name: 'InspectionTodos',
-      path: 'inspection-todos',
+      component: () => import('@views/inspection-manage/todo/Index.vue'),
     },
     {
-      component: () => import('@views/inspection-manage/report/Index.vue'),
+      path: 'inspection-report-global',
+      name: 'inspectionReportGlobal',
       meta: {
         fullscreen: true,
         navName: t('巡检报告'),
       },
-      name: 'inspectionReportGlobal',
-      path: 'inspection-report-global',
+      component: () => import('@views/inspection-manage/report/Index.vue'),
     },
   ]);
   if (checkDbConsole('observableManage.healthReport')) {
     registerBusinessModule([
       {
+        path: 'inspection-manage',
+        name: 'inspectionManage',
+        meta: {
+          navName: t('巡检'),
+        },
+        redirect: {
+          name: 'inspectionReport',
+        },
+        component: () => import('@views/inspection-manage/Index.vue'),
         children: [
           {
-            component: () => import('@views/inspection-manage/report/Index.vue'),
+            path: 'report',
+            name: 'inspectionReport',
             meta: {
               fullscreen: true,
               navName: t('巡检报告'),
             },
-            name: 'inspectionReport',
-            path: 'report',
+            component: () => import('@views/inspection-manage/report/Index.vue'),
           },
         ],
-        component: () => import('@views/inspection-manage/Index.vue'),
-        meta: {
-          navName: t('巡检'),
-        },
-        name: 'inspectionManage',
-        path: 'inspection-manage',
-        redirect: {
-          name: 'inspectionReport',
-        },
       },
     ]);
   }

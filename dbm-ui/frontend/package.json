@@ -12,7 +12,7 @@
     "type-check": "vue-tsc --build",
     "lint:oxlint": "oxlint . --fix -D correctness --ignore-path .gitignore",
     "lint:lint-staged": "lint-staged",
-    "lint:script": "eslint ./src/views/db-manage --fix",
+    "lint:script": "eslint ./src/**/routes.ts --fix",
     "lint:style": "stylelint --fix ./src/**/*.{vue,css,less} --custom-syntax",
     "lint": "run-s lint:*",
     "prettier": "prettier --write ./src"
@@ -86,7 +86,6 @@
     "postcss-html": "^1.8.0",
     "postcss-less": "6.0.0",
     "prettier": "^3.4.2",
-    "prettier-plugin-curly": "^0.3.1",
     "simple-git-hooks": "2.11.1",
     "stylelint": "^16.14.1",
     "stylelint-config-standard": "^37.0.0",
@@ -117,6 +116,6 @@
     ]
   },
   "engines": {
-    "node": ">=16.0.1"
+    "node": ">=18.0.1"
   }
 }

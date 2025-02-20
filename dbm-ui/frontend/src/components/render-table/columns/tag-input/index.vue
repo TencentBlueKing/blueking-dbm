@@ -57,7 +57,7 @@
 
   import useValidtor, { type Rules } from '../../hooks/useValidtor';
 
-  interface Props {
+  export interface Props {
     disabled?: boolean;
     modelValue?: string[];
     placeholder?: string;

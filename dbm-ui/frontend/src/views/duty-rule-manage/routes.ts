@@ -19,26 +19,26 @@ import { t } from '@locales/index';
 
 const routes: RouteRecordRaw[] = [
   {
-    children: [
-      {
-        component: () => import('@views/duty-rule-manage/index/Index.vue'),
-        meta: {
-          navName: t('轮值策略'),
-        },
-        name: 'dutyRuleManangeIndex',
-        path: 'index',
-      },
-    ],
-    component: () => import('@views/duty-rule-manage/Index.vue'),
+    path: 'duty-rule-manage',
+    name: 'dutyRuleManange',
     meta: {
       fullscreen: true,
       navName: t('轮值策略'),
     },
-    name: 'dutyRuleManange',
-    path: 'duty-rule-manage',
     redirect: {
       name: 'dutyRuleManangeIndex',
     },
+    component: () => import('@views/duty-rule-manage/Index.vue'),
+    children: [
+      {
+        path: 'index',
+        name: 'dutyRuleManangeIndex',
+        meta: {
+          navName: t('轮值策略'),
+        },
+        component: () => import('@views/duty-rule-manage/index/Index.vue'),
+      },
+    ],
   },
 ];
 

@@ -17,18 +17,18 @@ import { checkDbConsole } from '@utils';
 import { t } from '@locales/index';
 
 const resourcePoolRoute = {
-  name: 'resourcePool',
   path: 'pool/:page?',
+  name: 'resourcePool',
   meta: {
-    navName: t('DB 资源池'),
     fullscreen: true,
+    navName: t('DB 资源池'),
   },
   component: () => import('@views/resource-manage/pool/Index.vue'),
 };
 
 const resourcePoolOperationRecordRoute = {
-  name: 'resourcePoolOperationRecord',
   path: 'record',
+  name: 'resourcePoolOperationRecord',
   meta: {
     navName: t('资源操作记录'),
   },
@@ -36,8 +36,8 @@ const resourcePoolOperationRecordRoute = {
 };
 
 const resourcePoolDirtyMachinesRoute = {
-  name: 'resourcePoolDirtyMachines',
   path: 'dirty-machine',
+  name: 'resourcePoolDirtyMachines',
   meta: {
     navName: t('污点主机处理'),
   },
@@ -45,23 +45,23 @@ const resourcePoolDirtyMachinesRoute = {
 };
 
 const resourceSpecRoute = {
-  name: 'resourceSpec',
   path: 'spec',
+  name: 'resourceSpec',
   meta: {
-    navName: t('资源规格管理'),
     fullscreen: true,
+    navName: t('资源规格管理'),
   },
   component: () => import('@views/resource-manage/spec/Index.vue'),
 };
 
 const mainRoute = [
   {
-    name: 'resourceManage',
     path: 'resource-manage',
-    component: () => import('@views/resource-manage/Index.vue'),
+    name: 'resourceManage',
     redirect: {
       name: 'resourcePool',
     },
+    component: () => import('@views/resource-manage/Index.vue'),
     children: [] as RouteRecordRaw[],
   },
 ];

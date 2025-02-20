@@ -54,7 +54,7 @@
   import { type Rules } from '../../hooks/useValidtor';
   import TagInput from '../tag-input/index.vue';
 
-  interface Props {
+  export interface Props {
     disabled?: boolean;
     placeholder?: string;
     rules?: Rules;

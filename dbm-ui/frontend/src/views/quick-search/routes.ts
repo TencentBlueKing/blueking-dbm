@@ -4,12 +4,12 @@ import { t } from '@locales/index';
 
 export default (): RouteRecordRaw[] => [
   {
-    component: () => import('@views/quick-search/Index.vue'),
+    path: 'quick-search',
+    name: 'QuickSearch',
     meta: {
       fullscreen: true,
       navName: t('查询结果'),
     },
-    name: 'QuickSearch',
-    path: 'quick-search',
+    component: () => import('@views/quick-search/Index.vue'),
   },
 ];
