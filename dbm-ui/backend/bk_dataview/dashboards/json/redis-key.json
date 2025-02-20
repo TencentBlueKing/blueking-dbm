@@ -627,7 +627,7 @@
               "timeNum": 1
             },
             "queryString": "",
-            "size": 500,
+            "size": 5000,
             "target": {
               "expandKeys": [],
               "realValues": [],
@@ -1245,7 +1245,7 @@
               "timeNum": 1
             },
             "queryString": "",
-            "size": 500,
+            "size": 5000,
             "target": {
               "expandKeys": [],
               "realValues": [],
@@ -1864,7 +1864,7 @@
               "timeNum": 1
             },
             "queryString": "",
-            "size": 500,
+            "size": 5000,
             "target": {
               "expandKeys": [],
               "realValues": [],
