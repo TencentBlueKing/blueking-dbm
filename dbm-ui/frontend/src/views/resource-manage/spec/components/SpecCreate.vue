@@ -44,6 +44,7 @@
           <SpecStorage
             ref="specStorageRef"
             :data="formdata.storage_spec"
+            :db-type="dbType"
             :is-edit="isEdit"
             :is-required="isRequired"
             @table-value-change="handleTableValueChange" />
@@ -129,13 +130,13 @@
 
   import { ClusterTypes, DBTypes } from '@common/const';
 
+  import { messageSuccess } from '@/utils';
+
   import { useHasQPS } from '../hooks/useHasQPS';
 
   import SpecDeviceOrCpuMem from './spec-form-item/spec-device-or-cpu-mem/Index.vue';
   import SpecStorage from './spec-form-item/spec-storage/Index.vue';
   import SpecQps from './spec-form-item/SpecQPS.vue';
-
-  import { messageSuccess } from '@/utils';
 
   interface Emits {
     (e: 'cancel'): void;
@@ -147,13 +148,13 @@
   }
 
   interface Props {
+    data: Data | null;
     dbType: string;
+    hasInstance: boolean;
+    isEdit: boolean;
     machineType: string;
     machineTypeLabel: string;
     mode: string;
-    isEdit: boolean;
-    hasInstance: boolean;
-    data: Data | null;
   }
 
   const props = defineProps<Props>();
@@ -193,16 +194,16 @@
 
     const genSystemDriveStorageSpec = () => [
       {
+        isSystemDrive: true,
         mount_point: 'C:\\',
         size: '' as string | number,
         type: '',
-        isSystemDrive: true,
       },
       {
+        isSystemDrive: true,
         mount_point: 'D:\\',
         size: '' as string | number,
         type: '',
-        isSystemDrive: true,
       },
     ];
 
@@ -211,23 +212,23 @@
         max: '' as string | number,
         min: '' as string | number,
       },
+      desc: '',
+      device_class: [],
+      enable: true,
+      instance_num: 1,
       mem: {
         max: '' as string | number,
         min: '' as string | number,
       },
-      storage_spec: isSqlserver.value ? genSystemDriveStorageSpec() : genStorageSpec(),
-      device_class: [],
-      desc: '',
-      enable: true,
-      spec_cluster_type: props.dbType,
-      spec_machine_type: props.machineType,
-      spec_name: '',
-      spec_id: undefined,
-      instance_num: 1,
       qps: {
         max: '',
         min: '',
       },
+      spec_cluster_type: props.dbType,
+      spec_id: undefined,
+      spec_machine_type: props.machineType,
+      spec_name: '',
+      storage_spec: isSqlserver.value ? genSystemDriveStorageSpec() : genStorageSpec(),
     };
   };
 
@@ -247,21 +248,21 @@
 
   const nameRules = computed(() => [
     {
-      required: true,
-      validator: (value: string) => !!value,
       message: t('规格名称不能为空'),
+      required: true,
       trigger: 'blur',
+      validator: (value: string) => !!value,
     },
     {
+      message: t('规格名称已存在_请修改规格'),
+      trigger: 'blur',
       validator: (value: string) =>
         verifyDuplicatedSpecName({
           spec_cluster_type: props.dbType,
+          spec_id: props.mode === 'edit' ? formdata.value.spec_id : undefined,
           spec_machine_type: props.machineType,
           spec_name: value,
-          spec_id: props.mode === 'edit' ? formdata.value.spec_id : undefined,
         }).then((exists) => !exists),
-      message: t('规格名称已存在_请修改规格'),
-      trigger: 'blur',
     },
   ]);
 
@@ -295,23 +296,23 @@
   };
 
   const getName = () => {
-    const { cpu, mem, storage_spec: StorageSpec, qps } = formdata.value;
+    const { cpu, mem, qps, storage_spec: StorageSpec } = formdata.value;
     const displayList = [
       {
-        value: cpu.min,
         unit: t('核'),
+        value: cpu.min,
       },
       {
+        unit: 'G',
         value: mem.min,
-        unit: 'G',
       },
       {
+        unit: 'G',
         value: Math.min(...StorageSpec.map((item) => Number(item.size))),
-        unit: 'G',
       },
       {
-        value: qps?.min ?? 0,
         unit: '/s',
+        value: qps?.min ?? 0,
       },
     ];
     return displayList
@@ -330,8 +331,8 @@
       await formRef.value.validate();
       const storageSpec = await specStorageRef.value!.getValue();
       const params = Object.assign(_.cloneDeep(formdata.value), {
-        spec_id: (formdata.value as ResourceSpecModel).spec_id,
         device_class: formdata.value.device_class[0] === '-1' ? [] : formdata.value.device_class,
+        spec_id: (formdata.value as ResourceSpecModel).spec_id,
         storage_spec: storageSpec,
       });
       const type = specDeviceOrCpuMemRef.value!.getCurrentType();
