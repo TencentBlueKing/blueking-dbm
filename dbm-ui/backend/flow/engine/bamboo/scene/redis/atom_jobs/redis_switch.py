@@ -18,12 +18,14 @@ from django.utils.translation import ugettext as _
 from backend.configuration.constants import DBType
 from backend.db_meta.api.cluster.nosqlcomm.other import get_cluster_ins_dns
 from backend.db_meta.enums import ClusterType
-from backend.flow.consts import DnsOpType, SwitchType, SyncType
+from backend.db_services.redis.redis_dts.constants import REDIS_CONF_DEL_SLAVEOF
+from backend.flow.consts import DnsOpType, SwitchType, SyncType, WriteContextOpType
 from backend.flow.engine.bamboo.scene.common.builder import SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.plugins.components.collections.common.pause import PauseComponent
 from backend.flow.plugins.components.collections.redis.dns_manage import RedisDnsManageComponent
 from backend.flow.plugins.components.collections.redis.exec_actuator_script import ExecuteDBActuatorScriptComponent
+from backend.flow.plugins.components.collections.redis.exec_shell_script import ExecuteShellScriptComponent
 from backend.flow.plugins.components.collections.redis.redis_db_meta import RedisDBMetaComponent
 from backend.flow.plugins.components.collections.redis.trans_flies import TransFileComponent
 from backend.flow.utils.redis.redis_act_playload import RedisActPayload
@@ -170,6 +172,23 @@ def RedisClusterSwitchAtomJob(root_id, data, act_kwargs: ActKwargs, sync_params:
             act_component_code=ExecuteDBActuatorScriptComponent.code,
             kwargs=asdict(check_act),
         )
+
+    # 清理掉GCS 过来的instance.conf中slaveof 配置项
+    if act_kwargs.cluster["cluster_type"] not in [ClusterType.TendisPredixyTendisplusCluster.value]:
+        acts_list = []
+        for sync_host in sync_params:
+            act_kwargs.exec_ip = sync_host["sync_dst1"]
+            act_kwargs.write_op = WriteContextOpType.APPEND.value
+            ports_str = "\n".join(str(sync_port["sync_dst1"]) for sync_port in sync_host["ins_link"])
+            act_kwargs.cluster["shell_command"] = REDIS_CONF_DEL_SLAVEOF.format(ports_str)
+            acts_list.append(
+                {
+                    "act_name": _("清理SLAVEOF配置:{}").format(sync_host["sync_dst1"]),
+                    "act_component_code": ExecuteShellScriptComponent.code,
+                    "kwargs": asdict(act_kwargs),
+                }
+            )
+        sub_pipeline.add_parallel_acts(acts_list=acts_list)
 
     # 刷新DNS 主从版本需要
     if act_kwargs.cluster["cluster_type"] in [ClusterType.TendisRedisInstance.value]:
