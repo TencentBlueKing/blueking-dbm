@@ -20,6 +20,15 @@ import { t } from '@locales/index';
 
 const routes: RouteRecordRaw[] = [
   {
+    path: 'influxdb',
+    name: 'InfluxDBManage',
+    meta: {
+      navName: t('InfluxDB实例管理'),
+    },
+    redirect: {
+      name: 'InfluxDBInstances',
+    },
+    component: () => import('@views/db-manage/influxdb/Index.vue'),
     children: [
       // {
       //   name: 'SelfServiceApplyInfluxDB',
@@ -30,33 +39,24 @@ const routes: RouteRecordRaw[] = [
       //   component: () => import('@views/db-manage/influxdb/apply/index.vue'),
       // },
       {
-        component: () => import('@views/db-manage/influxdb/instance-list/Index.vue'),
+        path: 'instance-list/:groupId(\\d+)?',
+        name: 'InfluxDBInstances',
         meta: {
           fullscreen: true,
           navName: t('InfluxDB实例管理'),
         },
-        name: 'InfluxDBInstances',
-        path: 'instance-list/:groupId(\\d+)?',
+        component: () => import('@views/db-manage/influxdb/instance-list/Index.vue'),
       },
       {
-        component: () => import('@views/db-manage/influxdb/details/Details.vue'),
+        path: 'instance-details/:instId(\\d+)',
+        name: 'InfluxDBInstDetails',
         meta: {
           fullscreen: true,
           navName: t('InfluxDB实例详情'),
         },
-        name: 'InfluxDBInstDetails',
-        path: 'instance-details/:instId(\\d+)',
+        component: () => import('@views/db-manage/influxdb/details/Details.vue'),
       },
     ],
-    component: () => import('@views/db-manage/influxdb/Index.vue'),
-    meta: {
-      navName: t('InfluxDB实例管理'),
-    },
-    name: 'InfluxDBManage',
-    path: 'influxdb',
-    redirect: {
-      name: 'InfluxDBInstances',
-    },
   },
 ];
 

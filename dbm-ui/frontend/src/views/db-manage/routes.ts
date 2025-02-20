@@ -36,13 +36,13 @@ export default function getRoutes() {
 
   const routes = [
     {
-      children,
-      component: () => import('@views/db-manage/Index.vue'),
+      path: 'db-manage',
+      name: 'DbManage',
       meta: {
         navName: t('数据库管理'),
       },
-      name: 'DbManage',
-      path: 'db-manage',
+      component: () => import('@views/db-manage/Index.vue'),
+      children,
     },
   ];
 

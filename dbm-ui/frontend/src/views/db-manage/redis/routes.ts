@@ -22,156 +22,156 @@ import { checkDbConsole } from '@utils';
 import { t } from '@locales/index';
 
 const redisInstallModuleRoute = {
-  component: () => import('@views/db-manage/redis/install-module/Index.vue'),
+  path: 'install-module/:page?',
+  name: 'RedisInstallModule',
   meta: {
     navName: t('安装 Module'),
   },
-  name: 'RedisInstallModule',
-  path: 'install-module/:page?',
+  component: () => import('@views/db-manage/redis/install-module/Index.vue'),
 };
 
 const redisCapacityChangeRoute = {
-  component: () => import('@views/db-manage/redis/capacity-change/Index.vue'),
+  path: 'capacity-change/:page?',
+  name: 'RedisCapacityChange',
   meta: {
     navName: t('集群容量变更'),
   },
-  name: 'RedisCapacityChange',
-  path: 'capacity-change/:page?',
+  component: () => import('@views/db-manage/redis/capacity-change/Index.vue'),
 };
 
 const redisProxyScaleUpRoute = {
-  component: () => import('@views/db-manage/redis/proxy-scale-up/Index.vue'),
+  path: 'proxy-scale-up/:page?',
+  name: 'RedisProxyScaleUp',
   meta: {
     navName: t('扩容接入层'),
   },
-  name: 'RedisProxyScaleUp',
-  path: 'proxy-scale-up/:page?',
+  component: () => import('@views/db-manage/redis/proxy-scale-up/Index.vue'),
 };
 
 const redisProxyScaleDownRoute = {
-  component: () => import('@views/db-manage/redis/proxy-scale-down/Index.vue'),
+  path: 'proxy-scale-down/:page?',
+  name: 'RedisProxyScaleDown',
   meta: {
     navName: t('缩容接入层'),
   },
-  name: 'RedisProxyScaleDown',
-  path: 'proxy-scale-down/:page?',
+  component: () => import('@views/db-manage/redis/proxy-scale-down/Index.vue'),
 };
 
 const redisDBCreateSlaveRoute = {
-  component: () => import('@views/db-manage/redis/db-create-slave/Index.vue'),
+  path: 'db-create-slave/:page?',
+  name: 'RedisDBCreateSlave',
   meta: {
     navName: t('重建从库'),
   },
-  name: 'RedisDBCreateSlave',
-  path: 'db-create-slave/:page?',
+  component: () => import('@views/db-manage/redis/db-create-slave/Index.vue'),
 };
 
 const redisMasterFailoverRoute = {
-  component: () => import('@views/db-manage/redis/master-failover/Index.vue'),
+  path: 'master-failover/:page?',
+  name: 'RedisMasterFailover',
   meta: {
     navName: t('主从切换'),
   },
-  name: 'RedisMasterFailover',
-  path: 'master-failover/:page?',
+  component: () => import('@views/db-manage/redis/master-failover/Index.vue'),
 };
 
 const redisDBReplaceRoute = {
-  component: () => import('@views/db-manage/redis/db-replace/Index.vue'),
+  path: 'db-replace/:page?',
+  name: 'RedisDBReplace',
   meta: {
     navName: t('整机替换'),
   },
-  name: 'RedisDBReplace',
-  path: 'db-replace/:page?',
+  component: () => import('@views/db-manage/redis/db-replace/Index.vue'),
 };
 
 const redisMigrateRoute = {
-  component: () => import('@views/db-manage/redis/migrate/Index.vue'),
+  path: 'db-migrate/:page?',
+  name: 'RedisMigrate',
   meta: {
     navName: t('迁移'),
   },
-  name: 'RedisMigrate',
-  path: 'db-migrate/:page?',
+  component: () => import('@views/db-manage/redis/migrate/Index.vue'),
 };
 
 const redisClusterShardUpdateRoute = {
-  component: () => import('@views/db-manage/redis/cluster-shard-update/Index.vue'),
+  path: 'cluster-shard-update/:page?',
+  name: 'RedisClusterShardUpdate',
   meta: {
     navName: t('集群分片变更'),
   },
-  name: 'RedisClusterShardUpdate',
-  path: 'cluster-shard-update/:page?',
+  component: () => import('@views/db-manage/redis/cluster-shard-update/Index.vue'),
 };
 
 const redisClusterTypeUpdateRoute = {
-  component: () => import('@views/db-manage/redis/cluster-type-update/Index.vue'),
+  path: 'cluster-type-update/:page?',
+  name: 'RedisClusterTypeUpdate',
   meta: {
     navName: t('集群类型变更'),
   },
-  name: 'RedisClusterTypeUpdate',
-  path: 'cluster-type-update/:page?',
+  component: () => import('@views/db-manage/redis/cluster-type-update/Index.vue'),
 };
 
 const redisDBStructureRoute = {
-  component: () => import('@views/db-manage/redis/db-structure/Index.vue'),
+  path: 'db-structure/:page?',
+  name: 'RedisDBStructure',
   meta: {
     navName: t('定点构造'),
   },
-  name: 'RedisDBStructure',
-  path: 'db-structure/:page?',
+  component: () => import('@views/db-manage/redis/db-structure/Index.vue'),
 };
 
 const redisStructureInstanceRoute = {
-  component: () => import('@views/db-manage/redis/structure-instance/Index.vue'),
+  path: 'structure-instance/:page?',
+  name: 'RedisStructureInstance',
   meta: {
     navName: t('构造实例'),
   },
-  name: 'RedisStructureInstance',
-  path: 'structure-instance/:page?',
+  component: () => import('@views/db-manage/redis/structure-instance/Index.vue'),
 };
 
 const redisRecoverFromInstanceRoute = {
-  component: () => import('@views/db-manage/redis/recover-from-instance/Index.vue'),
+  path: 'recover-from-instance/:page?',
+  name: 'RedisRecoverFromInstance',
   meta: {
     navName: t('以构造实例恢复'),
   },
-  name: 'RedisRecoverFromInstance',
-  path: 'recover-from-instance/:page?',
+  component: () => import('@views/db-manage/redis/recover-from-instance/Index.vue'),
 };
 
 const redisDBDataCopyRoute = {
-  component: () => import('@views/db-manage/redis/db-data-copy/Index.vue'),
+  path: 'db-data-copy/:page?',
+  name: 'RedisDBDataCopy',
   meta: {
     navName: t('数据复制'),
   },
-  name: 'RedisDBDataCopy',
-  path: 'db-data-copy/:page?',
+  component: () => import('@views/db-manage/redis/db-data-copy/Index.vue'),
 };
 
 const redisDBDataCopyRecordRoute = {
-  component: () => import('@views/db-manage/redis/db-data-copy-record/Index.vue'),
+  path: 'db-data-copy-record/:page?',
+  name: 'RedisDBDataCopyRecord',
   meta: {
     navName: t('数据复制记录'),
   },
-  name: 'RedisDBDataCopyRecord',
-  path: 'db-data-copy-record/:page?',
+  component: () => import('@views/db-manage/redis/db-data-copy-record/Index.vue'),
 };
 
 const redisVersionUpgradeRoute = {
-  component: () => import('@views/db-manage/redis/version-upgrade/Index.vue'),
+  path: 'version-upgrade/:page?',
+  name: 'RedisVersionUpgrade',
   meta: {
     navName: t('版本升级'),
   },
-  name: 'RedisVersionUpgrade',
-  path: 'version-upgrade/:page?',
+  component: () => import('@views/db-manage/redis/version-upgrade/Index.vue'),
 };
 
 const redisWebconsoleRoute = {
-  component: () => import('@views/db-manage/redis/webconsole/Index.vue'),
+  path: 'webconsole',
+  name: 'RedisWebconsole',
   meta: {
     navName: 'Webconsole',
   },
-  name: 'RedisWebconsole',
-  path: 'webconsole',
+  component: () => import('@views/db-manage/redis/webconsole/Index.vue'),
 };
 
 const toolboxDbConsoleRouteMap = {
@@ -196,80 +196,80 @@ const toolboxDbConsoleRouteMap = {
 
 const toolboxRoutes = [
   {
-    children: [] as RouteRecordRaw[],
-    component: () => import('@views/db-manage/redis/toolbox/Index.vue'),
+    path: 'toolbox',
+    name: 'RedisToolbox',
     meta: {
       fullscreen: true,
       navName: t('工具箱'),
     },
-    name: 'RedisToolbox',
-    path: 'toolbox',
     redirect: {
       name: '',
     },
+    component: () => import('@views/db-manage/redis/toolbox/Index.vue'),
+    children: [] as RouteRecordRaw[],
   },
   {
-    component: () => import('@views/db-manage/redis/data-check-repair/Index.vue'),
+    path: 'data-check-repair/:page?',
+    name: 'RedisToolboxDataCheckRepair',
     meta: {
       navName: t('数据校验修复'),
     },
-    name: 'RedisToolboxDataCheckRepair',
-    path: 'data-check-repair/:page?',
+    component: () => import('@views/db-manage/redis/data-check-repair/Index.vue'),
   },
 ];
 
 const redisInstanceListRoute = {
-  component: () => import('@views/db-manage/redis/instance-list/Index.vue'),
+  path: 'instance-list',
+  name: 'DatabaseRedisInstanceList',
   meta: {
     fullscreen: true,
     navName: t('Redis 集群实例视图'),
   },
-  name: 'DatabaseRedisInstanceList',
-  path: 'instance-list',
+  component: () => import('@views/db-manage/redis/instance-list/Index.vue'),
 };
 
 const redisHaInstanceListRoute = {
-  component: () => import('@views/db-manage/redis/instance-ha-list/Index.vue'),
+  path: 'instance-ha-list',
+  name: 'DatabaseRedisHaInstanceList',
   meta: {
     fullscreen: true,
     navName: t('Redis 主从实例视图'),
   },
-  name: 'DatabaseRedisHaInstanceList',
-  path: 'instance-ha-list',
+  component: () => import('@views/db-manage/redis/instance-ha-list/Index.vue'),
 };
 
 const redisDatabaseHaList = {
-  component: () => import('@views/db-manage/redis/cluster-ha-list/Index.vue'),
+  path: 'cluster-ha-list',
+  name: 'DatabaseRedisHaList',
   meta: {
     fullscreen: true,
     navName: t('Redis 主从管理'),
   },
-  name: 'DatabaseRedisHaList',
-  path: 'cluster-ha-list',
+  component: () => import('@views/db-manage/redis/cluster-ha-list/Index.vue'),
 };
 
 const routes: RouteRecordRaw[] = [
   {
+    path: 'redis',
+    name: 'RedisManage',
+    meta: {
+      navName: t('Redis_集群管理'),
+    },
+    redirect: {
+      name: 'DatabaseRedisList',
+    },
+    component: () => import('@views/db-manage/redis/Index.vue'),
     children: [
       {
-        component: () => import('@views/db-manage/redis/cluster-list/Index.vue'),
+        path: 'cluster-list',
+        name: 'DatabaseRedisList',
         meta: {
           fullscreen: true,
           navName: t('Redis_集群管理'),
         },
-        name: 'DatabaseRedisList',
-        path: 'cluster-list',
+        component: () => import('@views/db-manage/redis/cluster-list/Index.vue'),
       },
     ],
-    component: () => import('@views/db-manage/redis/Index.vue'),
-    meta: {
-      navName: t('Redis_集群管理'),
-    },
-    name: 'RedisManage',
-    path: 'redis',
-    redirect: {
-      name: 'DatabaseRedisList',
-    },
   },
 ];
 

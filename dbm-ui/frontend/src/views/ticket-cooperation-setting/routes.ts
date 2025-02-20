@@ -16,12 +16,12 @@ import { t } from '@locales/index';
 
 const routes = [
   {
-    component: () => import('@views/ticket-cooperation-setting/Index.vue'),
+    path: 'ticket-cooperation-setting',
+    name: 'TicketCooperationSetting',
     meta: {
       navName: t('单据协助设置'),
     },
-    name: 'TicketCooperationSetting',
-    path: 'ticket-cooperation-setting',
+    component: () => import('@views/ticket-cooperation-setting/Index.vue'),
   },
 ];
 

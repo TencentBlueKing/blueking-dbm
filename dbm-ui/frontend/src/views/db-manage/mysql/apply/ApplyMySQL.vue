@@ -27,7 +27,6 @@
             perrmision-action-id="mysql_apply"
             @change-biz="handleChangeBiz" />
           <ModuleItem
-            ref="moduleItemRef"
             v-model="formdata.details.db_module_id"
             v-model:module-alias-name="moduleAliasName"
             v-model:module-level-config="moduleLevelConfig"
@@ -427,7 +426,6 @@
   const isSingleType = route.name === 'SelfServiceApplySingle';
   const dbType: string = isSingleType ? TicketTypes.MYSQL_SINGLE_APPLY : TicketTypes.MYSQL_HA_APPLY;
 
-  const moduleItemRef = ref<InstanceType<typeof ModuleItem>>();
   const specProxyRef = ref();
   const specBackendRef = ref();
   const specSingleRef = ref();

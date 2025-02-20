@@ -1,6 +1,6 @@
 {
   "extends": "@vue/tsconfig/tsconfig.dom.json",
-  "include": ["env.d.ts","components.d.ts", "src/**/*", "src/**/*.vue", "vite.config.*"],
+  "include": ["env.d.ts", "components.d.ts", "src/**/*", "src/**/*.vue", "vite.config.*"],
   "compilerOptions": {
     "composite": true,
     "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.app.tsbuildinfo",
@@ -21,14 +21,10 @@
       "@styles/*": ["src/styles/*"],
       "@locales/*": ["src/locales/*"],
       "@images/*": ["src/images/*"],
-      "@lib/*": ["lib/*"],
+      "@lib/*": ["lib/*"]
     },
-    "typeRoots": [
-      "node_modules",
-      "./src/types"
-    ],
-    "types": ["bkui-vue/lib/volar.components"],
+    "typeRoots": ["node_modules", "./src/types"],
+    "types": ["bkui-vue/lib/volar.components"]
   },
   "exclude": ["node_modules"]
-
 }
