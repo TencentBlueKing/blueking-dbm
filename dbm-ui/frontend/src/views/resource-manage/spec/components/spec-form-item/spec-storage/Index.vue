@@ -41,6 +41,7 @@
             :key="item.rowKey"
             ref="rowRefs"
             :data="item"
+            :db-type="dbType"
             :disk-type-list="diskTypeList"
             :is-edit="isEdit"
             :is-required="isRequired"
@@ -65,13 +66,12 @@
 
   interface Props {
     data?: InfoItem[];
+    dbType: string;
     isEdit?: boolean;
     isRequired?: boolean;
   }
 
-  interface Emits {
-    (e: 'table-value-change', params?: InfoItem): void;
-  }
+  type Emits = (e: 'table-value-change', params?: InfoItem) => void;
 
   interface Exposes {
     getValue: () => Promise<InfoItem[]>;
