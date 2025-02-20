@@ -21,7 +21,10 @@
       ref="tableRef"
       class="mt-16"
       :columns="columns"
-      :data-source="getRiakNodeList" />
+      :data-source="getRiakNodeList"
+      selectable
+      @selection="handleSelection">
+    </DbTable>
   </div>
 </template>
 
@@ -65,11 +68,6 @@
 
   const columns = [
     {
-      minWidth: 48,
-      type: 'selection',
-      width: 48,
-    },
-    {
       field: 'ip',
       label: t('节点实例'),
       render: ({ data }: { data: RiakNodeModel }) => <span>{data.ip || '--'}</span>,
@@ -91,6 +89,8 @@
       render: ({ data }: { data: RiakNodeModel }) => <span>{data.bk_host_name || '--'}</span>,
     },
   ];
+
+  let selectedList: RiakNodeModel[] = [];
 
   const tableRef = ref();
 
@@ -114,6 +114,10 @@
     );
   };
 
+  const handleSelection = (_: any, list: RiakNodeModel[]) => {
+    selectedList = list;
+  };
+
   onMounted(() => {
     fetchData();
   });
@@ -123,7 +127,7 @@
       return new Promise((resolve, reject) => {
         const params = {
           id: props.data.id,
-          nodes: tableRef.value.bkTableRef.getSelection(),
+          nodes: selectedList,
         };
 
         if (params.nodes.length) {
@@ -142,7 +146,7 @@
                 details: {
                   bk_cloud_id: props.data.bk_cloud_id,
                   cluster_id: props.data.id,
-                  nodes: tableRef.value.bkTableRef.getSelection().map((nodeItem: RiakNodeModel) => ({
+                  nodes: selectedList.map((nodeItem: RiakNodeModel) => ({
                     bk_biz_id: currentBizId,
                     bk_cloud_id: nodeItem.bk_cloud_id,
                     bk_host_id: nodeItem.bk_host_id,
