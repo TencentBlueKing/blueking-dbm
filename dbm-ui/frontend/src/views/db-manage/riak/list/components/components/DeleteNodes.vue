@@ -21,7 +21,10 @@
       ref="tableRef"
       class="mt-16"
       :columns="columns"
-      :data-source="getRiakNodeList" />
+      :data-source="getRiakNodeList"
+      selectable
+      @selection="handleSelection">
+    </DbTable>
   </div>
 </template>
 
@@ -50,9 +53,7 @@
     data: RiakModel
   }
 
-  interface Emits {
-    (e: 'submitSuccess'): void
-  }
+  type Emits = (e: 'submitSuccess') => void
 
   interface Expose {
     submit: () => Promise<boolean>
@@ -66,11 +67,6 @@
   const ticketMessage = useTicketMessage();
 
   const columns = [
-    {
-      type: 'selection',
-      minWidth: 48,
-      width: 48,
-    },
     {
       label: t('节点实例'),
       field: 'ip',
@@ -94,6 +90,8 @@
     },
   ];
 
+  let selectedList: RiakNodeModel[] = [];
+
   const tableRef = ref();
 
   // const nodeList = computed<RiakNodeModel[]>(() => tableRef.value?.getData() || []);
@@ -113,6 +111,10 @@
     });
   };
 
+  const handleSelection = (_: any, list: RiakNodeModel[]) => {
+    selectedList = list;
+  };
+
   onMounted(() => {
     fetchData();
   });
@@ -122,7 +124,7 @@
       return new Promise((resolve, reject) => {
         const params = {
           id: props.data.id,
-          nodes: tableRef.value.bkTableRef.getSelection(),
+          nodes: selectedList,
         };
 
         if (params.nodes.length) {
@@ -139,31 +141,30 @@
                 <p>{ t('删除后不可恢复，请谨慎操作！') }</p>
               </>
             ),
-            confirmText: t('禁用'),
             cancelText: t('取消'),
-            headerAlign: 'center',
+            confirmText: t('禁用'),
             contentAlign: 'left',
             footerAlign: 'center',
+            headerAlign: 'center',
             onConfirm: () => {
               createTicket({
                 bk_biz_id: currentBizId,
-                ticket_type: TicketTypes.RIAK_CLUSTER_SCALE_IN,
                 details: {
-                  cluster_id: props.data.id,
                   bk_cloud_id: props.data.bk_cloud_id,
-                  nodes: tableRef.value.bkTableRef.getSelection().map((nodeItem: RiakNodeModel) => ({
-                    ip: nodeItem.ip,
-                    bk_host_id: nodeItem.bk_host_id,
-                    bk_cloud_id: nodeItem.bk_cloud_id,
+                  cluster_id: props.data.id,
+                  nodes: selectedList.map((nodeItem: RiakNodeModel) => ({
                     bk_biz_id: currentBizId,
+                    bk_cloud_id: nodeItem.bk_cloud_id,
+                    bk_host_id: nodeItem.bk_host_id,
+                    ip: nodeItem.ip,
                   })),
                 },
-              })
-                .then((createTicketResult) => {
-                  ticketMessage(createTicketResult.id);
-                  emits('submitSuccess');
-                  resolve(true);
-                })
+                ticket_type: TicketTypes.RIAK_CLUSTER_SCALE_IN,
+              }).then((createTicketResult) => {
+                ticketMessage(createTicketResult.id);
+                emits('submitSuccess');
+                resolve(true);
+              });
             },
             onClosed: () => {
               reject();

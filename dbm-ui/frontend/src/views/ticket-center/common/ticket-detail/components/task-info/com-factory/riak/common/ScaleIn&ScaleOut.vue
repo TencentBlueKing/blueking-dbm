@@ -42,6 +42,14 @@
           </InfoItem>
         </template>
       </template>
+      <InfoItem
+        v-else
+        :label="t('缩容主机：')"
+        style="width: 100%">
+        <BkTable
+          :columns="scaleDownTableColumns"
+          :data="ticketDetails.details?.nodes" />
+      </InfoItem>
     </InfoList>
   </BkLoading>
 </template>
@@ -88,6 +96,13 @@
     {
       label: t('磁盘_GB'),
       field: 'bk_disk',
+    },
+  ];
+
+  const scaleDownTableColumns = [
+    {
+      field: 'ip',
+      label: 'IP',
     },
   ];
 
