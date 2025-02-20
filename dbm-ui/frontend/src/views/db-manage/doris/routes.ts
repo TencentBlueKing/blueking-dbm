@@ -20,26 +20,26 @@ import { t } from '@locales/index';
 
 const routes: RouteRecordRaw[] = [
   {
+    path: 'doris',
+    name: 'DorisManage',
+    meta: {
+      navName: t('【Doris】集群管理'),
+    },
+    redirect: {
+      name: 'DorisList',
+    },
+    component: () => import('@views/db-manage/doris/Index.vue'),
     children: [
       {
-        component: () => import('@views/db-manage/doris/list/Index.vue'),
+        path: 'list',
+        name: 'DorisList',
         meta: {
           fullscreen: true,
           navName: t('【Doris】集群管理'),
         },
-        name: 'DorisList',
-        path: 'list',
+        component: () => import('@views/db-manage/doris/list/Index.vue'),
       },
     ],
-    component: () => import('@views/db-manage/doris/Index.vue'),
-    meta: {
-      navName: t('【Doris】集群管理'),
-    },
-    name: 'DorisManage',
-    path: 'doris',
-    redirect: {
-      name: 'DorisList',
-    },
   },
 ];
 

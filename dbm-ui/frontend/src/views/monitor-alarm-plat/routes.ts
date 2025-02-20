@@ -18,13 +18,13 @@ import { t } from '@locales/index';
 
 const routes: RouteRecordRaw[] = [
   {
-    component: () => import('@views/monitor-alarm-plat/global-strategy/Index.vue'),
+    path: 'global-strategy',
+    name: 'PlatGlobalStrategy',
     meta: {
       fullscreen: true,
       navName: t('全局策略'),
     },
-    name: 'PlatGlobalStrategy',
-    path: 'global-strategy',
+    component: () => import('@views/monitor-alarm-plat/global-strategy/Index.vue'),
   },
 ];
 

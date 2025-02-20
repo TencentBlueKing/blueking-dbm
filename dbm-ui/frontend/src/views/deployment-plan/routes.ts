@@ -17,25 +17,25 @@ import { t } from '@locales/index';
 
 const routes: RouteRecordRaw[] = [
   {
-    children: [
-      {
-        component: () => import('@views/deployment-plan/list/Index.vue'),
-        meta: {
-          navName: t('部署方案'),
-        },
-        name: 'deploymentPlanList',
-        path: 'list',
-      },
-    ],
-    component: () => import('@views/deployment-plan/Index.vue'),
+    path: 'deployment-plan',
+    name: 'deploymentPlanManage',
     meta: {
       navName: t('部署方案'),
     },
-    name: 'deploymentPlanManage',
-    path: 'deployment-plan',
     redirect: {
       name: 'deploymentPlanList',
     },
+    component: () => import('@views/deployment-plan/Index.vue'),
+    children: [
+      {
+        path: 'list',
+        name: 'deploymentPlanList',
+        meta: {
+          navName: t('部署方案'),
+        },
+        component: () => import('@views/deployment-plan/list/Index.vue'),
+      },
+    ],
   },
 ];
 
