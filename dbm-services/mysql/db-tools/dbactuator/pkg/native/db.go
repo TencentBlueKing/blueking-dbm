@@ -62,9 +62,8 @@ func Opendb(host, user, pwd, dbName string) (conn *sql.DB, err error) {
 func (o InsObject) Conn() (*DbWorker, error) {
 	if o.Socket != "" {
 		return NewDbWorker(DsnBySocket(o.Socket, o.User, o.Pwd))
-	} else {
-		return NewDbWorker(DsnByTcp(o.tcpdsn(), o.User, o.Pwd))
 	}
+	return NewDbWorker(DsnByTcp(o.tcpdsn(), o.User, o.Pwd))
 }
 
 // ConnBySocket Connect Tcp/Ip

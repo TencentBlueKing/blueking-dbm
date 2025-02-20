@@ -18,10 +18,10 @@ import (
 	"os"
 	"strings"
 
+	"github.com/jmoiron/sqlx"
+
 	"dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/common/go-pubpkg/logger"
-
-	"github.com/jmoiron/sqlx"
 )
 
 const (
@@ -681,7 +681,7 @@ func (h *DbWorker) ConvertInnodbRowFomart(ver string, file *os.File) (err error)
 			return fmt.Errorf("when get tables in %s,failed %w", db, err)
 		}
 		for _, tb := range tables {
-			var werr error = nil
+			var werr error
 			if strings.ToLower(tb.Engine) == "innodb" {
 				switch strings.ToLower(tb.RowFormat) {
 				case "compact":
@@ -783,6 +783,9 @@ func (h *DbWorker) passwordCheck() (err error) {
 func (h *DbWorker) partitionCheck() (err error) {
 	var data []TableInfo
 	data, err = h.GetPartitionSchema()
+	if err != nil {
+		return err
+	}
 	if len(data) > 0 {
 		return fmt.Errorf("%v found partition name,but it is not allowed", data)
 	}
@@ -1016,7 +1019,7 @@ func (h *DbWorker) tableCommentIllegalChar() (err error) {
 	if err = conn.SelectContext(context.Background(), &warnings, "show warnings;"); err != nil {
 		return err
 	}
-	if len(warnings) <= 0 {
+	if len(warnings) == 0 {
 		return nil
 	}
 	logger.Error("get warnings %v", warnings)

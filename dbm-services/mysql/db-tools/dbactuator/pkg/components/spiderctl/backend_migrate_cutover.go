@@ -13,6 +13,7 @@ package spiderctl
 import (
 	"errors"
 	"fmt"
+	"slices"
 
 	"dbm-services/common/go-pubpkg/logger"
 	"dbm-services/common/go-pubpkg/mysqlcomm"
@@ -215,14 +216,15 @@ func (s *SpiderClusterBackendMigrateCutoverComp) Init() (err error) {
 
 // PreCheck TODO
 func (s *SpiderClusterBackendMigrateCutoverComp) PreCheck() (err error) {
-	if err := s.cutOverPairsParamCheck(); err != nil {
+	if err = s.cutOverPairsParamCheck(); err != nil {
 		return err
 	}
 	// check dest master with dest slave replicate status
 	if s.existRemoteSlave {
 		logger.Info("check whether the master slave synchronization status to be switched is normal")
 		for addr, conn := range s.destSlaveConn {
-			slaveStatus, err := conn.ShowSlaveStatus()
+			var slaveStatus native.ShowSlaveStatusResp
+			slaveStatus, err = conn.ShowSlaveStatus()
 			if err != nil {
 				return err
 			}
@@ -242,7 +244,7 @@ func (s *SpiderClusterBackendMigrateCutoverComp) PreCheck() (err error) {
 		return err
 	}
 	if s.Params.ClientConnCheck {
-		if err := s.CheckSpiderAppProcesslist(); err != nil {
+		if err = s.CheckSpiderAppProcesslist(); err != nil {
 			return err
 		}
 	}
@@ -375,7 +377,7 @@ func (s *SpiderClusterBackendMigrateCutoverComp) PersistenceRollbackFile() (err 
 			s.slaveShardrollbackSqls = append(s.slaveShardrollbackSqls, pair.SlaveSvr.GetAlterNodeSql(slaveSvrName))
 		}
 	}
-	rollbackSqls := append(s.primaryShardrollbackSqls, s.slaveShardrollbackSqls...)
+	rollbackSqls := slices.Concat(s.primaryShardrollbackSqls, s.slaveShardrollbackSqls)
 	if err = s.writeContents(rollbackSqls); err != nil {
 		return err
 	}
@@ -389,7 +391,7 @@ func (s *SpiderClusterBackendMigrateCutoverComp) CutOver() (err error) {
 	// change the central control route
 	// release the lock until after performing the rollback routing
 	defer func() {
-		rollbackSqls := append(s.primaryShardrollbackSqls, s.slaveShardrollbackSqls...)
+		rollbackSqls := slices.Concat(s.primaryShardrollbackSqls, s.slaveShardrollbackSqls)
 		if err != nil && len(rollbackSqls) > 0 {
 			_, xerr := s.tdbCtlConn.ExecMore(rollbackSqls)
 			if xerr != nil {

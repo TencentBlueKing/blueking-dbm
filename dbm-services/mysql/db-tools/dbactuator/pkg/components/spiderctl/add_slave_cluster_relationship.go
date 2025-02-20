@@ -6,7 +6,6 @@ import (
 	"dbm-services/common/go-pubpkg/logger"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/components"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/native"
-	"dbm-services/mysql/db-tools/dbactuator/pkg/tools"
 )
 
 // AddSlaveClusterRoutingComp TODO
@@ -14,7 +13,6 @@ type AddSlaveClusterRoutingComp struct {
 	GeneralParam *components.GeneralParam     `json:"general"`
 	Params       *AddSlaveClusterRoutingParam `json:"extend"`
 	AddCtx
-	tools *tools.ToolSet
 }
 
 // AddSlaveClusterRoutingParam TODO
@@ -112,7 +110,7 @@ func (a *AddSlaveClusterRoutingComp) AddSlaveRouting() (err error) {
 	// 首先添加 remote-slave 的路由信息，每添加一个slave，先判断信息是否存在, 然后执行加入
 	for _, inst := range a.Params.SlaveInstances {
 		var execSQLs []string
-		err, isInsert := a.CheckInst(inst.Host, inst.Port)
+		isInsert, err := a.CheckInst(inst.Host, inst.Port)
 		if err != nil {
 			// 判断出现异常
 			return err
@@ -142,7 +140,7 @@ func (a *AddSlaveClusterRoutingComp) AddSlaveRouting() (err error) {
 
 		var execSQLs []string
 
-		err, isInsert := a.CheckInst(inst.Host, inst.Port)
+		isInsert, err := a.CheckInst(inst.Host, inst.Port)
 		if err != nil {
 			// 判断出现异常
 			return err
@@ -178,24 +176,24 @@ func (a *AddSlaveClusterRoutingComp) AddSlaveRouting() (err error) {
 
 // CheckInst todo
 // 检查添加的集群实例的路由信息之前是否添加完成
-func (a *AddSlaveClusterRoutingComp) CheckInst(host string, port int) (err error, result bool) {
+func (a *AddSlaveClusterRoutingComp) CheckInst(host string, port int) (result bool, err error) {
 	var cnt int
 	// 先把session级别tc_admin 设置为0，让show命令生效
 	if _, err := a.dbConn.Exec("set tc_admin = 0"); err != nil {
 		logger.Error("set tc_admin failed:[%s]", err.Error())
-		return err, false
+		return false, err
 	}
 
 	checkSQL := fmt.Sprintf("select count(0) from mysql.servers where Host = '%s' and Port = %d ", host, port)
 	if err := a.dbConn.Queryxs(&cnt, checkSQL); err != nil {
 		logger.Error("检查失败%s", err.Error())
-		return err, false
+		return false, err
 	}
 	if cnt != 0 {
 		// 返回结果非0，则代表该实例已经写入路由表
 		logger.Warn("实例【%s:%d】已经在中控实例录入到，这次选跳过", host, port)
-		return nil, false
+		return false, nil
 
 	}
-	return nil, true
+	return true, nil
 }

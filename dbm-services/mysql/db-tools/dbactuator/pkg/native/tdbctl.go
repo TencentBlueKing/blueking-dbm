@@ -224,12 +224,12 @@ func (t *TdbctlDbWork) QueryGlobalVariables(serverName string) (map[string]strin
 }
 
 // MySQLVarsCompare TODO
-func (h *TdbctlDbWork) MySQLVarsCompare(serverName string, referInsConn *DbWorker, checkVars []string) (err error) {
+func (t *TdbctlDbWork) MySQLVarsCompare(serverName string, referInsConn *DbWorker, checkVars []string) (err error) {
 	referVars, err := referInsConn.QueryGlobalVariables()
 	if err != nil {
 		return err
 	}
-	compareVars, err := h.QueryGlobalVariables(serverName)
+	compareVars, err := t.QueryGlobalVariables(serverName)
 	if err != nil {
 		return err
 	}
@@ -248,7 +248,7 @@ func (t *TdbctlDbWork) ShowMasterStatus(serverName string) (data MasterStatusRes
 	return
 }
 
-// LockTables TODO
+// LockTables lock tables
 func (t *TdbctlDbWork) LockTables(serverName string) (data MasterStatusResp, err error) {
 	_, err = t.Exec(fmt.Sprintf("%s 'lock table with read lock'", t.get_exec_special_node_cmd(serverName)))
 	return

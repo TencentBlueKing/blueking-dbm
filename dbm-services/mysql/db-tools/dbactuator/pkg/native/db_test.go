@@ -4,14 +4,10 @@ import (
 	"testing"
 	"time"
 
-	"dbm-services/mysql/db-tools/dbactuator/pkg/native"
-
 	"github.com/jmoiron/sqlx"
-)
 
-func TestConnByTcp(t *testing.T) {
-	t.Log("start conn ... ")
-}
+	"dbm-services/mysql/db-tools/dbactuator/pkg/native"
+)
 
 func TestShowVersion(t *testing.T) {
 	t.Log("start conn ... ")
@@ -153,7 +149,6 @@ func TestQueryx(t *testing.T) {
 		return
 	}
 	t.Log("show tables;", data)
-	return
 }
 
 func TestGetSingleGlobalVar(t *testing.T) {
@@ -194,11 +189,10 @@ func TestFindLongQuerySQL(t *testing.T) {
 		return
 	}
 	pls, err := d.SelectLongRunningProcesslist(0)
+	if err != nil {
+		t.Fatal(err)
+	}
 	for _, pl := range pls {
-		// if !pl.DB.Valid {
-		// 	continue
-		// }
-		//	t.Log(pl.DB.String)
 		t.Log(pl.Info.String)
 		t.Log(pl.State.String)
 	}

@@ -130,7 +130,7 @@ func (h *ProxyAdminDbWork) ShowAppProcesslists(skipUsers []string) (activeproces
 	if err != nil {
 		return nil, err
 	}
-	if len(skipUsers) <= 0 {
+	if len(skipUsers) == 0 {
 		return processlists, nil
 	}
 	skipUserMap := make(map[string]struct{})

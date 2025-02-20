@@ -20,13 +20,13 @@ import (
 	"strings"
 	"time"
 
+	"github.com/jmoiron/sqlx"
+	"github.com/spf13/cast"
+
 	"dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/common/go-pubpkg/logger"
 	"dbm-services/common/go-pubpkg/mysqlcomm"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util"
-
-	"github.com/jmoiron/sqlx"
-	"github.com/spf13/cast"
 )
 
 // DbWorker TODO
@@ -198,7 +198,7 @@ func (h *DbWorker) QueryWithArgs(query string, args ...interface{}) ([]map[strin
 	logger.Info("Query: %s, params:%v", query, args)
 	var rows *sql.Rows
 	var err error
-	if len(args) <= 0 {
+	if len(args) == 0 {
 		rows, err = h.Db.Query(query)
 	} else {
 		rows, err = h.Db.Query(query, args...)
@@ -207,7 +207,7 @@ func (h *DbWorker) QueryWithArgs(query string, args ...interface{}) ([]map[strin
 		return nil, err
 	}
 	defer func() {
-		if err := rows.Close(); err != nil {
+		if err = rows.Close(); err != nil {
 			logger.Warn("close row failed, err:%s", err.Error())
 		}
 	}()
@@ -243,7 +243,7 @@ func (h *DbWorker) QueryWithArgs(query string, args ...interface{}) ([]map[strin
 		return nil, err
 	}
 	if len(result) == 0 {
-		return nil, fmt.Errorf(NotRowFound)
+		return nil, errors.New(NotRowFound)
 	}
 	return result, nil
 }
@@ -323,7 +323,7 @@ func (h *DbWorker) TotalDelayBinlogSize() (total int, err error) {
 // output: 224712
 func getIndexFromBinlogFile(fileName string) (seq int, err error) {
 	ss := strings.Split(fileName, ".")
-	if len(ss) <= 0 {
+	if len(ss) == 0 {
 		return -1, fmt.Errorf("empty after split . %s", fileName)
 	}
 	return strconv.Atoi(ss[1])
@@ -416,7 +416,7 @@ func (h *DbWorker) GetSocketPath() (string, error) {
 // ShowApplicationProcesslist 查询是否存在非系统用户的processlist
 // 已经忽略了dbsysUsers
 func (h *DbWorker) ShowApplicationProcesslist(sysUsers []string) (processLists []SelectProcessListResp, err error) {
-	users := append(sysUsers, dbSysUsers...)
+	users := slices.Concat(sysUsers, dbSysUsers)
 	query, args, err := sqlx.In("select * from information_schema.processlist  where  User not in (?)", users)
 	if err != nil {
 		return nil, err
@@ -439,7 +439,7 @@ func (h *DbWorker) SelectProcesslist(usersIn []string) (processList []SelectProc
 
 // SelectLongRunningProcesslist 查询Time > ? And state != 'Sleep'的processLists
 func (h *DbWorker) SelectLongRunningProcesslist(time int) ([]SelectProcessListResp, error) {
-	var userExcluded []string = []string{"repl", "system user", "event_scheduler"}
+	var userExcluded = []string{"repl", "system user", "event_scheduler"}
 	var processList []SelectProcessListResp
 	query, args, err := sqlx.In(
 		"select * from information_schema.processlist where  Command <> 'Sleep' and Time > ? and User Not In (?)",
@@ -599,9 +599,8 @@ func (h *DbWorker) SelectDatabases(dbNameLike string) (databases []string, err e
 	if databases, err = h.QueryOneColumn("SCHEMA_NAME", dbsSql); err != nil {
 		if h.IsNotRowFound(err) {
 			return nil, nil
-		} else {
-			return nil, err
 		}
+		return nil, err
 	}
 	return databases, nil
 }
@@ -928,7 +927,7 @@ func GetTableUniqueKeyBest(uniqKeys map[string][]string) []string {
 	} else {
 		// 或者列最少的unique key // 获取 not null unique key
 		var uniqKeyBest []string
-		var colCnt int = 9999
+		colCnt := 9999
 		for _, v := range uniqKeys {
 			if len(v) <= colCnt {
 				colCnt = len(v)
@@ -1079,7 +1078,7 @@ func CompareBinlogPos(masterStatus MasterStatusResp, slaveStatus ShowSlaveStatus
 	)
 	logger.Info(msg)
 	if strings.Compare(masterStatus.File, slaveStatus.RelayMasterLogFile) != 0 {
-		return fmt.Errorf("主从同步有差异," + msg)
+		return fmt.Errorf("主从同步有差异:%s", msg)
 	}
 	// 比较主库的位点和从库已经回放的位点信息
 	// 比较从库回放到了对应主库的哪个BinLog File

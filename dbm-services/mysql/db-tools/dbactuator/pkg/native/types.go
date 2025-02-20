@@ -10,10 +10,10 @@ import (
 )
 
 const (
-	// SLAVE_IO_RUNING_OK TODO
-	SLAVE_IO_RUNING_OK = "YES"
-	// SLAVE_SQL_RUNING_OK TODO
-	SLAVE_SQL_RUNING_OK = "YES"
+	// SLAVE_IO_RUNNING_OK TODO
+	SLAVE_IO_RUNNING_OK = "YES"
+	// SLAVE_SQL_RUNNING_OK TODO
+	SLAVE_SQL_RUNNING_OK = "YES"
 )
 
 // NotRowFound TODO
@@ -21,7 +21,7 @@ const NotRowFound = "not row found"
 const (
 	// INFODBA_SCHEMA TODO
 	INFODBA_SCHEMA = "infodba_schema"
-	// old info_dba_schema old platform db
+	// OLD_INFO_DBA_SCHEMA info_dba_schema old platform db
 	OLD_INFO_DBA_SCHEMA = "db_infobase"
 	// TEST_DB TODO
 	TEST_DB = "test"
@@ -77,8 +77,8 @@ func (s ShowSlaveStatusResp) ReplSyncIsOk() bool {
 	if s == empty {
 		return false
 	}
-	ioRunningIsOk := strings.EqualFold(strings.ToUpper(s.SlaveIORunning), strings.ToUpper(SLAVE_IO_RUNING_OK))
-	sqlRunningIsOk := strings.EqualFold(strings.ToUpper(s.SlaveSQLRunning), strings.ToUpper(SLAVE_SQL_RUNING_OK))
+	ioRunningIsOk := strings.EqualFold(strings.ToUpper(s.SlaveIORunning), strings.ToUpper(SLAVE_IO_RUNNING_OK))
+	sqlRunningIsOk := strings.EqualFold(strings.ToUpper(s.SlaveSQLRunning), strings.ToUpper(SLAVE_SQL_RUNNING_OK))
 	return ioRunningIsOk && sqlRunningIsOk
 }
 
@@ -154,7 +154,7 @@ type UserHosts struct {
 	User string `db:"User"`
 }
 
-// Warning show warnings respone
+// Warning show warnings response
 type Warning struct {
 	Level   string `db:"Level"`
 	Code    int    `db:"Code"`
