@@ -22,7 +22,7 @@
           disabled: !isEdit && !localValue.isSystemDrive,
         }"
         :disabled="isEdit || localValue.isSystemDrive"
-        placeholder="/data123"
+        :placeholder="mountPointPlaceholder"
         :rules="mountPointRules" />
     </td>
     <td style="padding: 0">
@@ -71,14 +71,14 @@
   }
 
   export interface IDataRow extends InfoItem {
-    rowKey: string;
     isSystemDrive?: boolean;
+    rowKey: string;
   }
 
   // 创建行数据
   export const createRowData = (data = {} as InfoItem) => ({
-    rowKey: random(),
     mount_point: data.mount_point || '',
+    rowKey: random(),
     size: data.size || ('' as string | number),
     type: data.type || '',
   });
@@ -87,15 +87,18 @@
   import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
 
+  import { DBTypes } from '@common/const';
+
   import RenderInput from '@components/render-table/columns/input/index.vue';
   import RenderSelect from '@components/render-table/columns/select/index.vue';
 
   interface Props {
     data: IDataRow;
-    isEdit: boolean;
+    dbType: string;
     diskTypeList: { label: string; value: string }[];
-    mountPointList: string[];
+    isEdit: boolean;
     isRequired?: boolean;
+    mountPointList: string[];
   }
 
   interface Emits {
@@ -122,8 +125,13 @@
   const minCapacityRef = ref<InstanceType<typeof RenderInput>>();
   const diskTypeRef = ref<InstanceType<typeof RenderSelect>>();
 
+  const isSqlserver = computed(() => props.dbType === DBTypes.SQLSERVER);
+
+  const mountPointPlaceholder = computed(() => (isSqlserver.value ? 'X:\\' : '/data123'));
+
   const mountPointRules = [
     {
+      message: t('不能为空'),
       validator: (value: string) => {
         // 非必填且所有输入框没有输入
         if (!props.isRequired) {
@@ -142,26 +150,36 @@
 
         return true;
       },
-      message: t('不能为空'),
     },
     {
+      message: t('输入需符合正则_regx', { regx: '/data(\\d)*/' }),
       validator: (value: string) => {
-        console.log('props.isRequired?>??', props.isRequired, localValue.value.isSystemDrive, value);
-        if (localValue.value.isSystemDrive) {
+        if (localValue.value.isSystemDrive || isSqlserver.value) {
           return true;
         }
         return /\/data(\d)*/.test(value);
       },
-      message: t('输入需符合正则_regx', { regx: '/data(\\d)*/' }),
+    },
+    // 仅针对sqlserver
+    {
+      message: t('输入需符合正则_regx', { regx: '[A-Z]:\\' }),
+      validator: (value: string) => {
+        if (isSqlserver.value) {
+          return /[A-Z]:/.test(value);
+        }
+
+        return true;
+      },
     },
     {
-      validator: (value: string) => props.mountPointList.filter((item) => item === value).length < 2,
       message: () => t('挂载点name重复', { name: localValue.value.mount_point }),
+      validator: (value: string) => props.mountPointList.filter((item) => item === value).length < 2,
     },
   ];
 
   const minCapacityRules = [
     {
+      message: t('不能为空'),
       validator: (value: string) => {
         // 非必填且所有输入框没有输入
         if (!props.isRequired) {
@@ -180,12 +198,12 @@
 
         return true;
       },
-      message: t('不能为空'),
     },
   ];
 
   const diskTypRules = [
     {
+      message: t('不能为空'),
       validator: (value: string) => {
         // 非必填且所有输入框没有输入
         if (!props.isRequired) {
@@ -204,7 +222,6 @@
 
         return true;
       },
-      message: t('不能为空'),
     },
   ];
 
