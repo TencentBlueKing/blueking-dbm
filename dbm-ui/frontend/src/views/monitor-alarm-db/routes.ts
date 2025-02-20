@@ -17,7 +17,8 @@ import { checkDbConsole } from '@utils';
 import { t } from '@locales/index';
 
 const dbMonitorStrategyRoute = {
-  component: () => import('@views/monitor-alarm-db/monitor-strategy/Index.vue'),
+  path: 'monitor-strategy',
+  name: 'DBMonitorStrategy',
   meta: {
     fullscreen: true,
     navName: t('监控策略'),
@@ -28,17 +29,16 @@ const dbMonitorStrategyRoute = {
       },
     ],
   },
-  name: 'DBMonitorStrategy',
-  path: 'monitor-strategy',
+  component: () => import('@views/monitor-alarm-db/monitor-strategy/Index.vue'),
 };
 
 const dbMonitorAlarmGroupRoute = {
-  component: () => import('@views/monitor-alarm-db/alarm-group/Index.vue'),
+  path: 'alarm-group',
+  name: 'DBMonitorAlarmGroup',
   meta: {
     navName: t('告警组'),
   },
-  name: 'DBMonitorAlarmGroup',
-  path: 'alarm-group',
+  component: () => import('@views/monitor-alarm-db/alarm-group/Index.vue'),
 };
 
 export default function getRoutes() {

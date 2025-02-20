@@ -188,6 +188,43 @@ export default defineConfigWithVueTs(
         },
       ],
     },
+    ignores: ['**/**/routes.ts'],
+  },
+  {
+    plugins: {
+      perfectionist,
+    },
+    files: ['**/**/routes.ts'],
+    rules: {
+      'perfectionist/sort-objects': [
+        'error',
+        {
+          groups: ['path', 'name', 'meta', 'unknown', 'component', 'children'],
+          customGroups: [
+            {
+              groupName: 'path',
+              elementNamePattern: 'path',
+            },
+            {
+              groupName: 'name',
+              elementNamePattern: 'name',
+            },
+            {
+              groupName: 'meta',
+              elementNamePattern: 'meta',
+            },
+            {
+              groupName: 'component',
+              elementNamePattern: 'component',
+            },
+            {
+              groupName: 'children',
+              elementNamePattern: 'children',
+            },
+          ],
+        },
+      ],
+    },
   },
   {
     files: ['**/*.ts', '**/*.tsx', '**/*.vue'],
@@ -265,7 +302,13 @@ export default defineConfigWithVueTs(
           alphabetical: true,
         },
       ],
-      'vue/define-macros-order': ['error', { order: ['defineProps', 'defineEmits'] }],
+      'vue/define-macros-order': [
+        'error',
+        {
+          order: ['defineOptions', 'defineProps', 'defineEmits', 'defineSlots', 'defineModel'],
+          defineExposeLast: false,
+        },
+      ],
       'vue/no-undef-properties': ['error', { ignores: ['/^\\$/'] }],
       'vue/no-unused-properties': [
         'error',
@@ -302,6 +345,13 @@ export default defineConfigWithVueTs(
       ],
       'vue/no-setup-props-reactivity-loss': 'off',
       'vue/no-setup-props-destructure': 'off',
+      'vue/v-on-function-call': [
+        'error',
+        'never',
+        {
+          ignoreIncludesComment: false,
+        },
+      ],
     },
   },
   {

@@ -20,26 +20,26 @@ import { t } from '@locales/index';
 
 const routes: RouteRecordRaw[] = [
   {
+    path: 'riak',
+    name: 'RiakManage',
+    meta: {
+      navName: t('Riak_集群管理'),
+    },
+    redirect: {
+      name: 'RiakList',
+    },
+    component: () => import('@views/db-manage/riak/Index.vue'),
     children: [
       {
-        component: () => import('@views/db-manage/riak/list/Index.vue'),
+        path: 'list',
+        name: 'RiakList',
         meta: {
           fullscreen: true,
           navName: t('Riak_集群管理'),
         },
-        name: 'RiakList',
-        path: 'list',
+        component: () => import('@views/db-manage/riak/list/Index.vue'),
       },
     ],
-    component: () => import('@views/db-manage/riak/Index.vue'),
-    meta: {
-      navName: t('Riak_集群管理'),
-    },
-    name: 'RiakManage',
-    path: 'riak',
-    redirect: {
-      name: 'RiakList',
-    },
   },
 ];
 
