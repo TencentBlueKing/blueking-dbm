@@ -86,9 +86,9 @@
 
   interface Expose {
     getValue: () => Promise<{
+      for_biz: number;
       labels: number[];
       resource_type: string;
-      for_biz: number;
     }>;
   }
 
@@ -99,17 +99,17 @@
 
   const formRef = useTemplateRef('formRef');
 
+  const isBusiness = route.name === 'BizResourcePool';
+
   const formData = reactive({
-    for_biz: 0,
-    resource_type: '',
+    for_biz: isBusiness ? window.PROJECT_CONFIG.BIZ_ID : 0,
     labels: [] as number[],
+    resource_type: '',
   });
 
   const bizList = shallowRef<ServiceReturnType<typeof getBizs>>([]);
   const dbTypeList = shallowRef<ServiceReturnType<typeof fetchDbTypeList>>([]);
   const tagList = shallowRef<ServiceReturnType<typeof listTag>['results']>([]);
-
-  const isBusiness = route.name === 'BizResourcePool';
 
   useRequest(getBizs, {
     onSuccess(data) {
@@ -150,8 +150,8 @@
     getValue() {
       return formRef.value!.validate().then(() => ({
         for_biz: Number(formData.for_biz),
-        resource_type: formData.resource_type,
         labels: formData.labels,
+        resource_type: formData.resource_type,
       }));
     },
   });

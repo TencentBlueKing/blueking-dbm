@@ -67,9 +67,7 @@
     selected: DbResourceModel[];
   }
 
-  interface Emits {
-    (e: 'refresh'): void;
-  }
+  type Emits = (e: 'refresh') => void;
 
   const props = defineProps<Props>();
 
@@ -77,9 +75,6 @@
 
   const isShow = defineModel<boolean>('isShow', {
     default: false,
-  });
-  const hostList = defineModel<DbResourceModel[]>('hostList', {
-    default: () => [],
   });
 
   const { t } = useI18n();
@@ -90,6 +85,8 @@
   const layoutStyle = {
     height: `${contentHeight}px`,
   };
+
+  const hostList = shallowRef<DbResourceModel[]>([]);
 
   const curBizId = computed(() => hostList.value[0]?.for_biz.bk_biz_id || 0);
 

@@ -63,12 +63,12 @@
 
   const panels = [
     {
-      name: 'business',
       label: t('业务资源池'),
+      name: 'business',
     },
     {
-      name: 'public',
       label: t('公共资源池'),
+      name: 'public',
     },
   ];
 
@@ -89,6 +89,7 @@
 <style lang="less" scoped>
   .pool-container {
     .pool-tab {
+      padding: 0 24px;
       background: #fff;
       box-shadow: 0 3px 4px 0 rgb(0 0 0 / 4%);
 
