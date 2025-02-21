@@ -205,15 +205,13 @@ export function getGroupCount() {
  */
 export function getSummaryList(params: {
   city?: string;
+  cluster_type?: string;
+  db_type: DBTypes;
+  enable_spec?: boolean;
   for_biz?: number;
   group_by: string;
-  spec_param: {
-    cluster_type?: string;
-    db_type: DBTypes;
-    enable_spec?: boolean;
-    machine_type?: string;
-    spec_id_list?: number[];
-  };
+  machine_type?: string;
+  spec_id_list?: number[];
   sub_zones?: string[];
 }) {
   return http.get<SummaryModel[]>(`${path}/resource_summary/`, params).then((data) => ({

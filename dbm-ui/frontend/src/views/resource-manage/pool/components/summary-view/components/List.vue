@@ -12,9 +12,7 @@
         :data="allTableData"
         :dimension="dimension" />
     </div>
-    <BkLoading
-      ref="loadingRef"
-      :loading="loading">
+    <BkLoading :loading="loading">
       <BkTable
         ref="tableRef"
         class="summary-view-table"
@@ -109,10 +107,10 @@
   const router = useRouter();
   const { getSearchParams } = useUrlSearch();
 
-  const loadingRef = ref();
+  const tableRef = useTemplateRef('tableRef');
+
   const dimension = ref('spec');
   const isSpecEnable = ref(true);
-  const tableRef = ref();
   const pagination = ref(useDefaultPagination());
   const isAnomalies = ref(false);
   const allTableData = shallowRef<SummaryModel[]>([]);
@@ -125,26 +123,24 @@
     return allTableData.value.slice(startIndex, endIndex);
   });
 
-  const { run: fetchData, loading } = useRequest(getSummaryList, {
+  const { loading, run: fetchData } = useRequest(getSummaryList, {
     manual: true,
-    onSuccess(data) {
-      allTableData.value = data.results;
-      pagination.value.count = data.count;
-      isAnomalies.value = false;
-    },
     onError() {
       allTableData.value = [];
       pagination.value.count = 0;
       isAnomalies.value = true;
     },
+    onSuccess(data) {
+      allTableData.value = data.results;
+      pagination.value.count = data.count;
+      isAnomalies.value = false;
+    },
   });
 
   const fetchListData = () => {
     fetchData({
+      enable_spec: isSpecEnable.value,
       group_by: dimension.value,
-      spec_param: {
-        enable_spec: isSpecEnable.value,
-      },
       ...getSearchParams(),
     } as ServiceParameters<typeof getSummaryList>);
   };
@@ -163,6 +159,7 @@
 
   const handleChangePage = (value: number) => {
     pagination.value.current = value;
+    tableRef.value!.getVxeTableInstance().scrollTo(0, 0);
   };
 
   const handeChangeLimit = (value: number) => {
@@ -172,15 +169,15 @@
 
   const handleClick = (row: SummaryModel, subzoneId?: number) => {
     const params = {
-      for_biz: row.dedicated_biz,
-      resource_type: getSearchParams().db_type,
       city: row.city,
-      subzone_ids: subzoneId || '',
-      spec_id: row.spec_id,
       device_class: row.device_class,
-      mount_point: row.disk_summary?.[0].mount_point,
       disk: row.disk_summary?.[0].size ? `${row.disk_summary?.[0].size}-` : '',
       disk_type: row.disk_summary?.[0].disk_type,
+      for_biz: row.dedicated_biz,
+      mount_point: row.disk_summary?.[0].mount_point,
+      resource_type: getSearchParams().db_type,
+      spec_id: row.spec_id,
+      subzone_ids: subzoneId || '',
     };
     router.push({
       name: 'resourcePool',
