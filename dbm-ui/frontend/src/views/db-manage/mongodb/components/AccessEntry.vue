@@ -45,6 +45,33 @@
         </BkButton>
       </div>
     </div>
+    <BkLoading :loading="clbLoading">
+      <div
+        v-if="entryInfo"
+        class="cluster-clb-main">
+        <div class="main-title">
+          {{ entryInfo.title }}
+        </div>
+        <div
+          v-for="(item, index) in entryInfo.list"
+          :key="index"
+          class="item-box">
+          <div class="item-title">{{ item.title }}：</div>
+          <div class="item-content">
+            <span
+              v-overflow-tips
+              class="text-overflow">
+              {{ item.value }}
+            </span>
+            <DbIcon
+              v-bk-tooltips="t('复制n', { n: item.title })"
+              class="copy-btn"
+              type="copy"
+              @click="() => execCopy(item.value)" />
+          </div>
+        </div>
+      </div>
+    </BkLoading>
     <template #footer>
       <BkButton @click="handleClose">
         {{ t('关闭') }}
@@ -55,9 +82,14 @@
 
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
+  import { useRequest } from 'vue-request';
 
+  import ClusterEntryDetailModel, {
+    type ClbPolarisTargetDetails,
+  } from '@services/model/cluster-entry/cluster-entry-details';
   import MongodbModel from '@services/model/mongodb/mongodb';
   import MongodbDetailModel from '@services/model/mongodb/mongodb-detail';
+  import { getClusterEntries } from '@services/source/clusterEntry';
 
   import { execCopy } from '@utils';
 
@@ -72,6 +104,15 @@
   });
 
   const { t } = useI18n();
+
+  const entryInfo = shallowRef<{
+    list: {
+      shareLink?: string;
+      title: string;
+      value: string;
+    }[];
+    title: string;
+  }>();
 
   const dataList = computed(() => {
     const { data } = props;
@@ -100,8 +141,53 @@
     return infoList;
   });
 
+  const { loading: clbLoading, run: runGetClusterEntries } = useRequest(getClusterEntries, {
+    manual: true,
+    onSuccess: (res) => {
+      res.forEach((item) => {
+        if (item.target_details.length) {
+          if (item.isClb) {
+            const targetDetailItem = (item as ClusterEntryDetailModel<ClbPolarisTargetDetails>).target_details[0];
+            const clbInfo = {
+              list: [
+                {
+                  title: 'IP',
+                  value: `${targetDetailItem.clb_ip}:${targetDetailItem.port}`,
+                },
+                {
+                  title: t('CLB域名'),
+                  value: `${targetDetailItem.clb_domain}:${targetDetailItem.port}`,
+                },
+              ],
+              title: t('腾讯云负载均衡（CLB）'),
+            };
+            entryInfo.value = clbInfo;
+          }
+        }
+      });
+    },
+  });
+
+  watch(
+    isShow,
+    () => {
+      if (isShow.value) {
+        runGetClusterEntries({
+          bk_biz_id: props.data.bk_biz_id,
+          cluster_id: props.data.id,
+        });
+      }
+    },
+    {
+      immediate: true,
+    },
+  );
+
   const handleCopyAll = () => {
     const content = dataList.value.map((dataItem) => `${dataItem.label}：${dataItem.value}`);
+    if (entryInfo.value) {
+      content.push(...entryInfo.value.list.map((valueItem) => `${valueItem.title}：${valueItem.value}`));
+    }
     execCopy(content.join('\n'));
   };
 
@@ -147,6 +233,58 @@
       .copy-btn {
         margin-left: 4px;
         visibility: hidden;
+      }
+    }
+
+    .cluster-clb-main {
+      .main-title {
+        margin-bottom: 10px;
+        font-size: 12px;
+        font-weight: 700;
+        color: #313238;
+      }
+
+      .item-box {
+        display: flex;
+        width: 100%;
+        height: 28px;
+        font-size: 12px;
+        align-items: center;
+
+        .item-title {
+          width: 118px;
+          color: #63656e;
+          text-align: right;
+        }
+
+        .item-content {
+          display: flex;
+          overflow: hidden;
+          color: #313238;
+          flex: 1;
+          align-items: center;
+
+          &:hover {
+            .copy-btn {
+              visibility: visible;
+            }
+          }
+
+          .icon {
+            margin-left: 6px;
+            color: #3a84ff;
+            cursor: pointer;
+          }
+
+          .copy-btn {
+            display: inline-block;
+            margin-left: 6px;
+            font-size: @font-size-mini;
+            color: @primary-color;
+            cursor: pointer;
+            visibility: hidden;
+          }
+        }
       }
     }
   }

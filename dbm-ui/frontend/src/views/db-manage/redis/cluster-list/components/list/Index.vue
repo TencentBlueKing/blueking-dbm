@@ -80,23 +80,15 @@
           @go-detail="handleToDetails"
           @refresh="fetchData">
           <template #append="{ data }">
-            <EntryPanel
+            <ClusterEntryPanel
               v-if="data.isOnlineCLB"
               :cluster-id="data.id"
-              entry-type="clb">
-              <MiniTag
-                content="CLB"
-                ext-cls="redis-manage-clb-minitag" />
-            </EntryPanel>
-            <EntryPanel
+              entry-type="clb" />
+            <ClusterEntryPanel
               v-if="data.isOnlinePolaris"
               :cluster-id="data.id"
               entry-type="polaris"
-              :panel-width="418">
-              <MiniTag
-                content="北极星"
-                ext-cls="redis-manage-polary-minitag" />
-            </EntryPanel>
+              :panel-width="418" />
           </template>
         </MasterDomainColumn>
         <ClusterNameColumn
@@ -266,7 +258,7 @@
                       :resource="data.id"
                       style="width: 100%; height: 32px"
                       text
-                      @click="handleSwitchCLB(data)">
+                      @click="handleSwitchClb(data)">
                       {{ data.isOnlineCLB ? t('禁用CLB') : t('启用CLB') }}
                     </AuthButton>
                   </OperationBtnStatusTips>
@@ -407,10 +399,10 @@
   import { ClusterTypes, DBTypes, TicketTypes, UserPersonalSettings } from '@common/const';
 
   import DbTable from '@components/db-table/index.vue';
-  import MiniTag from '@components/mini-tag/index.vue';
   import MoreActionExtend from '@components/more-action-extend/Index.vue';
 
   import ClusterBatchOperation from '@views/db-manage/common/cluster-batch-opration/Index.vue';
+  import ClusterEntryPanel from '@views/db-manage/common/cluster-entry-panel/Index.vue';
   import ClusterIpCopy from '@views/db-manage/common/cluster-ip-copy/Index.vue';
   import ClusterNameColumn from '@views/db-manage/common/cluster-table-column/ClusterNameColumn.vue';
   import ClusterStatsColumn from '@views/db-manage/common/cluster-table-column/ClusterStatsColumn.vue';
@@ -420,7 +412,7 @@
   import RoleColumn from '@views/db-manage/common/cluster-table-column/RoleColumn.vue';
   import StatusColumn from '@views/db-manage/common/cluster-table-column/StatusColumn.vue';
   import DropdownExportExcel from '@views/db-manage/common/dropdown-export-excel/index.vue';
-  import { useOperateClusterBasic } from '@views/db-manage/common/hooks';
+  import { useOperateClusterBasic, useSwitchClb } from '@views/db-manage/common/hooks';
   import OperationBtnStatusTips from '@views/db-manage/common/OperationBtnStatusTips.vue';
   import { useShowBackup } from '@views/db-manage/common/redis-backup/hooks/useShowBackup';
   import RedisBackup from '@views/db-manage/common/redis-backup/Index.vue';
@@ -434,16 +426,15 @@
 
   import { getMenuListSearch, getSearchSelectorParams } from '@utils';
 
-  import EntryPanel from './components/EntryPanel.vue';
   import MasterSlaveRoleColumn from './components/MasterSlaveRoleColume.vue';
+
+  const clusterId = defineModel<number>('clusterId');
 
   enum ClusterNodeKeys {
     PROXY = 'proxy',
     REDIS_MASTER = 'redis_master',
     REDIS_SLAVE = 'redis_slave',
   }
-
-  const clusterId = defineModel<number>('clusterId');
 
   let isInit = true;
 
@@ -463,6 +454,7 @@
       onSuccess: () => fetchData(),
     },
   );
+  const { handleSwitchClb } = useSwitchClb(ClusterTypes.REDIS_CLUSTER);
   const { isOpen: isStretchLayoutOpen, splitScreen: stretchLayoutSplitScreen } = useStretchLayout();
 
   const {
@@ -741,33 +733,6 @@
   const handleShowPassword = (id: number) => {
     passwordState.isShow = true;
     passwordState.fetchParams.cluster_id = id;
-  };
-
-  /**
-   * 集群 CLB 启用/禁用
-   */
-  const handleSwitchCLB = (data: RedisModel) => {
-    const ticketType = data.isOnlineCLB ? TicketTypes.REDIS_PLUGIN_DELETE_CLB : TicketTypes.REDIS_PLUGIN_CREATE_CLB;
-
-    const title = ticketType === TicketTypes.REDIS_PLUGIN_CREATE_CLB ? t('确定启用CLB？') : t('确定禁用CLB？');
-
-    InfoBox({
-      content: t('启用 CLB 之后，该集群可以通过 CLB 来访问'),
-      onConfirm: async () => {
-        const params = {
-          bk_biz_id: globalBizsStore.currentBizId,
-          details: {
-            cluster_id: data.id,
-          },
-          ticket_type: ticketType,
-        };
-        await createTicket(params).then((res) => {
-          ticketMessage(res.id);
-        });
-      },
-      title,
-      width: 400,
-    });
   };
 
   /**

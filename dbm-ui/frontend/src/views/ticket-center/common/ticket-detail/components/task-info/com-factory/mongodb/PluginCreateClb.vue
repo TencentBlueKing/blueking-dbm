@@ -26,7 +26,7 @@
   }
 
   defineOptions({
-    name: TicketTypes.REDIS_PLUGIN_CREATE_CLB,
+    name: TicketTypes.MONGODB_PLUGIN_CREATE_CLB,
     inheritAttrs: false,
   });
 
