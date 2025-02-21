@@ -113,6 +113,7 @@ class ExecuteRiakActuatorScriptService(BkJobService):
             "script_param": base64_encode(json.dumps(db_act_template["payload"])),
             "script_language": 1,
             "target_server": {"ip_list": target_ip_info},
+            "timeout": kwargs.get("job_timeout", 86400),
         }
         self.log_info("[{}] ready start task with body {}".format(node_name, body))
 
