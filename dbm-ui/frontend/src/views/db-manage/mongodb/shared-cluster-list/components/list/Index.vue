@@ -84,7 +84,14 @@
         :label="t('访问入口')"
         :selected-list="selected"
         @go-detail="handleToDetails"
-        @refresh="fetchData" />
+        @refresh="fetchData">
+        <template #append="{ data }">
+          <ClusterEntryPanel
+            v-if="data.isOnlineCLB"
+            :cluster-id="data.id"
+            entry-type="clb" />
+        </template>
+      </MasterDomainColumn>
       <ClusterNameColumn
         :cluster-type="ClusterTypes.MONGO_SHARED_CLUSTER"
         :get-table-instance="getTableInstance"
@@ -151,7 +158,7 @@
           </OperationBtnStatusTips>
           <BkButton
             v-db-console="'mongodb.sharedClusterList.getAccess'"
-            class="ml-8"
+            class="ml-8 mr-8"
             :disabled="data.isOffline"
             text
             theme="primary"
@@ -159,6 +166,22 @@
             {{ t('获取访问方式') }}
           </BkButton>
           <MoreActionExtend>
+            <BkDropdownItem v-db-console="'mongodb.sharedClusterList.enableCLB'">
+              <OperationBtnStatusTips
+                :data="data"
+                :disabled="!data.isOffline">
+                <AuthButton
+                  action-id="mongodb_plugin_create_clb"
+                  :disabled="data.isOffline"
+                  :permission="data.permission.mongodb_plugin_create_clb"
+                  :resource="data.id"
+                  text
+                  theme="primary"
+                  @click="handleSwitchClb(data)">
+                  {{ data.isOnlineCLB ? t('禁用CLB') : t('启用CLB') }}
+                </AuthButton>
+              </OperationBtnStatusTips>
+            </BkDropdownItem>
             <BkDropdownItem v-db-console="'mongodb.sharedClusterList.disable'">
               <OperationBtnStatusTips :data="data">
                 <BkButton
@@ -242,6 +265,7 @@
 
   import ClusterAuthorize from '@views/db-manage/common/cluster-authorize/Index.vue';
   import ClusterBatchOperation from '@views/db-manage/common/cluster-batch-opration/Index.vue';
+  import ClusterEntryPanel from '@views/db-manage/common/cluster-entry-panel/Index.vue';
   import ClusterIpCopy from '@views/db-manage/common/cluster-ip-copy/Index.vue';
   import ClusterNameColumn from '@views/db-manage/common/cluster-table-column/ClusterNameColumn.vue';
   import ClusterStatsColumn from '@views/db-manage/common/cluster-table-column/ClusterStatsColumn.vue';
@@ -252,7 +276,7 @@
   import StatusColumn from '@views/db-manage/common/cluster-table-column/StatusColumn.vue';
   import DropdownExportExcel from '@views/db-manage/common/dropdown-export-excel/index.vue';
   import ExcelAuthorize from '@views/db-manage/common/ExcelAuthorize.vue';
-  import { useOperateClusterBasic } from '@views/db-manage/common/hooks';
+  import { useOperateClusterBasic, useSwitchClb } from '@views/db-manage/common/hooks';
   import OperationBtnStatusTips from '@views/db-manage/common/OperationBtnStatusTips.vue';
   import AccessEntry from '@views/db-manage/mongodb/components/AccessEntry.vue';
   import CapacityChange from '@views/db-manage/mongodb/components/CapacityChange.vue';
@@ -271,6 +295,7 @@
       onSuccess: () => fetchData(),
     },
   );
+  const { handleSwitchClb } = useSwitchClb(ClusterTypes.MONGO_SHARED_CLUSTER);
   const { isOpen: isStretchLayoutOpen, splitScreen: stretchLayoutSplitScreen } = useStretchLayout();
   const {
     batchSearchIpInatanceList,
