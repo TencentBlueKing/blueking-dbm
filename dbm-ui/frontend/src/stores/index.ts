@@ -11,6 +11,7 @@
  * the specific language governing permissions and limitations under the License.
  */
 
+export * from './alarmEventsTodoCount';
 export * from './globalBizs';
 export * from './useFunController';
 export * from './useMenu';

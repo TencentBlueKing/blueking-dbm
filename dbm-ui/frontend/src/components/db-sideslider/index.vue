@@ -31,16 +31,16 @@
       #footer>
       <slot name="footer">
         <BkButton
-          class="mr8"
+          class="mr-8"
           :disabled="disabledConfirm"
           :loading="isLoading"
-          style="width: 102px"
+          style="min-width: 88px"
           theme="primary"
           @click="handleConfirm">
           {{ confirmText || $t('提交') }}
         </BkButton>
         <BkButton
-          style="min-width: 64px"
+          style="min-width: 88px"
           @click="handleCancle">
           {{ cancelText || $t('取消') }}
         </BkButton>

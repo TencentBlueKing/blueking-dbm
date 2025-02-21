@@ -21,6 +21,7 @@
     :placeholder="t('请选择机型')"
     :remote-method="remoteMethod"
     :scroll-height="384"
+    :scroll-loading="scrollLoading"
     @change="handleChange"
     @scroll-end="handleScrollEnd">
     <BkOption
@@ -42,17 +43,15 @@
     defaultValue?: string;
   }
 
-  interface Emits {
-    (e: 'change', value: string): void;
-  }
-
-  defineProps<Props>();
-
-  const emits = defineEmits<Emits>();
+  type Emits = (e: 'change', value: string) => void;
 
   defineOptions({
     inheritAttrs: false,
   });
+
+  defineProps<Props>();
+
+  const emits = defineEmits<Emits>();
 
   const { t } = useI18n();
 
@@ -60,9 +59,9 @@
   const scrollLoading = ref(false);
 
   const searchParams = {
-    offset: 0,
-    limit: 12,
     device_type: '',
+    limit: 12,
+    offset: 0,
   };
 
   let isAppend = false;
@@ -70,6 +69,7 @@
   const { loading: isLoading, run: getDeviceClassList } = useRequest(fetchDeviceClass, {
     defaultParams: [searchParams],
     onSuccess(data) {
+      scrollLoading.value = false;
       const deviceClassList = data.results.map((item) => item.device_type);
       if (isAppend) {
         deviceList.value.push(...deviceClassList);

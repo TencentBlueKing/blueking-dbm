@@ -74,7 +74,12 @@
   });
 
   const labelConfig = computed(() => {
-    if (isInspectionReport || !dbOverviewConfig.value || !Object.keys(dbReportCountMap.value).length) {
+    if (
+      isInspectionReport ||
+      isInspectionReportGlobal ||
+      !dbOverviewConfig.value ||
+      !Object.keys(dbReportCountMap.value).length
+    ) {
       return undefined;
     }
 

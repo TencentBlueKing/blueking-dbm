@@ -19,6 +19,17 @@
         <span class="ticket-count">{{ todoCount }}</span>
       </BkMenuItem>
       <BkMenuItem
+        key="AlarmEventsTodo"
+        v-db-console="'personalWorkbench.AlarmEventsTodo'">
+        <template #icon>
+          <DbIcon type="warning" />
+        </template>
+        <span>
+          {{ t('告警事件待办') }}
+        </span>
+        <span class="ticket-count">{{ alarmEventsTodoCountStore.todoCount }}</span>
+      </BkMenuItem>
+      <BkMenuItem
         v-if="userProfileStore.isDba"
         key="InspectionTodos"
         v-db-console="'personalWorkbench.InspectionTodos'">
@@ -93,7 +104,7 @@
 
   import { useReportCount, useTicketCount } from '@hooks';
 
-  import { useUserProfile } from '@stores';
+  import { alarmEventsTodoCount, useUserProfile } from '@stores';
 
   import { useActiveKey } from './hooks/useActiveKey';
 
@@ -110,6 +121,7 @@
   const { data: ticketCount } = useTicketCount();
   const { manageCount } = useReportCount();
   const userProfileStore = useUserProfile();
+  const alarmEventsTodoCountStore = alarmEventsTodoCount();
 
   const todoCount = computed(() => {
     if (!ticketCount.value) {
@@ -124,6 +136,10 @@
       ticketCount.value.pending.TODO
     );
   });
+
+  if (alarmEventsTodoCountStore.todoCount === 0) {
+    alarmEventsTodoCountStore.initCount();
+  }
 </script>
 <style lang="less">
   .bk-menu-item {

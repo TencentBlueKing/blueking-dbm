@@ -179,6 +179,9 @@ url("fonts/iconcool.eot?#iefix") format("embedded-opentype");
 .db-icon-edit:before {
 	content: "\e108";
 }
+.db-icon-date-line:before {
+	content: "\e20e";
+}
 .db-icon-loading:before {
 	content: "\e1a8";
 }
@@ -682,4 +685,10 @@ url("fonts/iconcool.eot?#iefix") format("embedded-opentype");
 }
 .db-icon-yonghu-2:before {
 	content: "\e20a";
+}
+.db-icon-chouti:before {
+	content: "\e20c";
+}
+.db-icon-liaotianchuang:before {
+	content: "\e20d";
 }
