@@ -134,6 +134,7 @@
       'TicketFlowSetting',
       'TicketCooperationSetting',
       'TicketNoticeSetting',
+      'AlarmShield',
     ],
     [menuEnum.databaseManage]: [
       'MysqlManage',
@@ -164,7 +165,7 @@
       'PlatformTicketFlowSetting',
       'PlatformStaffManage',
     ],
-    [menuEnum.observableManage]: ['DBHASwitchEvents', 'inspectionManage'],
+    [menuEnum.observableManage]: ['DBHASwitchEvents', 'inspectionManage', 'AlarmEvents'],
     [menuEnum.personalWorkbench]: [
       'serviceApply',
       'SelfServiceMyTickets',
@@ -172,6 +173,7 @@
       'ticketSelfDone',
       'ticketSelfManage',
       'InspectionTodos',
+      'AlarmEventsTodo',
     ],
     [menuEnum.platformManage]: ['platformTaskManage', 'ticketPlatformManage', 'inspectionReportGlobal'],
     [menuEnum.resourceManage]: ['ResourceSpec', 'resourceManage', 'resourcePoolDirtyMachines'],

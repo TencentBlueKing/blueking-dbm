@@ -1,0 +1,457 @@
+<template>
+  <div class="alarm-events-page">
+    <div class="operation-main">
+      <div class="left-operation">
+        <BkButton
+          class="w-64 mr-8"
+          theme="primary"
+          @click="() => handleOpenShieldAlarms('create')">
+          {{ t('新建') }}
+        </BkButton>
+        <BkRadioGroup
+          v-model="filterValue"
+          style="background: #eaebf0"
+          type="capsule"
+          @change="handleFilterChange">
+          <BkRadioButton
+            v-for="item in filterList"
+            :key="item.name"
+            :label="item.value">
+            {{ item.name }}
+          </BkRadioButton>
+        </BkRadioGroup>
+      </div>
+      <div class="right-operation">
+        <SearchOperation
+          ref="searchOperationRef"
+          @search="handleSearchChange" />
+      </div>
+    </div>
+    <DbTable
+      ref="tableRef"
+      :data-source="getAlarmShieldList"
+      :line-height="56"
+      releate-url-query
+      :row-config="{
+        useKey: true,
+        keyField: 'id',
+      }"
+      :show-overflow="false"
+      :show-prepend="false"
+      @clear-search="handleClearSearchValue"
+      @column-filter="handleColumnFilterChange"
+      @selection="handleSelection">
+      <BkTableColumn
+        field="id"
+        fixed="left"
+        label="ID"
+        :min-width="160"
+        :show-overflow="false">
+        <template #default="{ data }: { data: RowData }">
+          <BkButton
+            text
+            theme="primary"
+            @click="() => handleOpenShieldAlarms('edit', data)">
+            {{ data.id }}
+          </BkButton>
+        </template>
+      </BkTableColumn>
+      <BkTableColumn
+        field="category"
+        :filters="phaseFilterList"
+        :label="t('屏蔽类型')"
+        :min-width="160"
+        :show-overflow="false">
+        <template #default="{ data }: { data: RowData }">
+          <BkTag
+            v-if="data.category === 'alert'"
+            theme="info">
+            {{ t('基于事件屏蔽') }}
+          </BkTag>
+          <BkTag
+            v-else-if="data.category === 'dimension'"
+            theme="danger">
+            {{ t('基于维度屏蔽') }}
+          </BkTag>
+          <BkTag
+            v-else-if="data.category === 'scope'"
+            theme="warning">
+            {{ t('基于主机屏蔽') }}
+          </BkTag>
+          <BkTag
+            v-else
+            theme="success">
+            {{ t('基于策略屏蔽') }}
+          </BkTag>
+        </template>
+      </BkTableColumn>
+      <BkTableColumn
+        field="content"
+        :label="t('屏蔽内容')"
+        :min-width="400"
+        :show-overflow="false">
+        <template #default="{ data }: { data: RowData }">
+          <span>{{ data.content }}</span>
+        </template>
+      </BkTableColumn>
+      <BkTableColumn
+        field="description"
+        :label="t('屏蔽原因')"
+        :min-width="160"
+        show-overflow="tooltip">
+      </BkTableColumn>
+      <BkTableColumn
+        field="update_user"
+        :label="t('更新人')"
+        :min-width="160"
+        :show-overflow="false">
+        <template #default="{ data }: { data: RowData }">
+          <span>{{ data.update_user }}</span>
+        </template>
+      </BkTableColumn>
+      <BkTableColumn
+        field="shieldTimeDisplay"
+        :label="t('屏蔽时间')"
+        :min-width="420"
+        :show-overflow="false">
+      </BkTableColumn>
+      <BkTableColumn
+        fixed="right"
+        :label="t('操作')"
+        :show-overflow="false"
+        :width="130">
+        <template #default="{ data }: { data: RowData }">
+          <BkButton
+            v-bk-tooltips="{
+              disabled: data.isEdiatable,
+              content: t('暂不支持'),
+            }"
+            :disabled="!data.isEdiatable"
+            text
+            theme="primary"
+            @click="() => handleOpenShieldAlarms('edit', data)">
+            {{ t('编辑') }}
+          </BkButton>
+          <BkButton
+            v-bk-tooltips="{
+              disabled: data.isEdiatable,
+              content: t('暂不支持'),
+            }"
+            class="ml-8 mr-8"
+            :disabled="!data.isEdiatable"
+            text
+            theme="primary"
+            @click="() => handleOpenShieldAlarms('clone', data)">
+            {{ t('克隆') }}
+          </BkButton>
+          <BkPopConfirm
+            :confirm-text="t('解除')"
+            :title="t('确认解除该告警屏蔽？')"
+            trigger="click"
+            :width="280"
+            @confirm="() => unlockAlarmShield({ id: data.id })">
+            <BkButton
+              text
+              theme="primary">
+              {{ t('解除') }}
+            </BkButton>
+            <template #content>
+              <div>{{ t('屏蔽 ID') }}：{{ data.id }}</div>
+              <div class="mb-16 mt-5">{{ t('解除后，所有的屏蔽内容将同步失效') }}</div>
+            </template>
+          </BkPopConfirm>
+        </template>
+      </BkTableColumn>
+    </DbTable>
+  </div>
+  <DbSideslider
+    v-model:is-show="showShieldAlarm"
+    :before-close="handleBeforeClose"
+    class="shiled-alarm-page"
+    :confirm-text="t('确定')"
+    width="960"
+    @closed="handleClosed">
+    <template #header>
+      <div class="header-main">
+        <div>{{ editModeTitleMap[editMode] }}{{ t('屏蔽告警') }}</div>
+        <template v-if="editMode !== 'create'">
+          <div class="split-line"></div>
+          <div class="name">{{ currentAlarmShield?.id }}</div>
+        </template>
+      </div>
+    </template>
+    <EditShieldAlarms
+      :data="currentAlarmShield"
+      :edit-mode="editMode"
+      @success="handleCreateSuccess" />
+  </DbSideslider>
+</template>
+<script setup lang="tsx">
+  import _ from 'lodash';
+  import { useI18n } from 'vue-i18n';
+  import { useRequest } from 'vue-request';
+
+  import { disabledAlarmShield, getAlarmShieldList } from '@services/source/monitor';
+
+  import { useBeforeClose } from '@hooks';
+
+  import DbTable from '@components/db-table/index.vue';
+
+  import { messageSuccess } from '@utils';
+
+  import EditShieldAlarms from './components/edit-shield-alarms/Index.vue';
+  import SearchOperation from './components/SearchOperation.vue';
+
+  type RowData = ServiceReturnType<typeof getAlarmShieldList>['results'][number];
+
+  const { t } = useI18n();
+  const router = useRouter();
+  const route = useRoute();
+  const handleBeforeClose = useBeforeClose();
+
+  const editMode = ref('edit');
+  const showShieldAlarm = ref(false);
+  const filterValue = ref(1);
+  const shieldingCount = ref(0);
+  const expiredCount = ref(0);
+  const currentAlarmShield = ref<RowData>();
+  const tableRef = ref<InstanceType<typeof DbTable>>();
+  const searchOperationRef = ref<InstanceType<typeof SearchOperation>>();
+
+  const selectionList = shallowRef<RowData[]>([]);
+
+  const filterList = computed(() => [
+    {
+      name: t('屏蔽中(n)', { n: shieldingCount.value }),
+      value: 1,
+    },
+    {
+      name: t('已失效(n)', { n: expiredCount.value }),
+      value: 0,
+    },
+  ]);
+
+  const editModeTitleMap: Record<string, string> = {
+    clone: t('克隆'),
+    create: t('新建'),
+    edit: t('编辑'),
+  };
+  const phaseFilterList = [
+    {
+      label: t('基于事件屏蔽'),
+      value: 'alert',
+    },
+    {
+      label: t('基于维度屏蔽'),
+      value: 'dimension',
+    },
+    {
+      label: t('基于主机屏蔽'),
+      value: 'scope',
+    },
+    {
+      label: t('基于策略屏蔽'),
+      value: 'strategy',
+    },
+  ];
+  const searchDataKeys = ['category', 'content', 'updator', 'time_range'];
+  const columnFilterParams: Record<string, any> = {};
+
+  const { run: unlockAlarmShield } = useRequest(disabledAlarmShield, {
+    manual: true,
+    onSuccess() {
+      messageSuccess(t('解除告警屏蔽成功'));
+      const params = route.query;
+      tableRef.value?.fetchData({
+        bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+        ...params,
+      });
+    },
+  });
+
+  watch(showShieldAlarm, () => {
+    if (showShieldAlarm.value) {
+      setTimeout(() => {
+        window.changeConfirm = false;
+      });
+    }
+  });
+
+  watch(
+    () => route.query,
+    () => {
+      const params = route.query;
+      setTimeout(() => {
+        tableRef.value?.fetchData({
+          bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+          is_active: filterValue.value,
+          ...params,
+        });
+      });
+    },
+    {
+      deep: true,
+      immediate: true,
+    },
+  );
+
+  const handleOpenShieldAlarms = (mode: string, data?: RowData) => {
+    editMode.value = mode;
+    currentAlarmShield.value = data;
+    showShieldAlarm.value = true;
+  };
+
+  const handleClearSearchValue = () => {
+    searchOperationRef.value!.reset();
+  };
+
+  const handleFilterChange = (value: number) => {
+    router.push({
+      name: route.name,
+      query: {
+        ...route.query,
+        is_active: value,
+      },
+    });
+  };
+
+  const handleSelection = (_: any, list: RowData[]) => {
+    selectionList.value = list;
+  };
+
+  const handleColumnFilterChange = (data: { checked: string[]; field: string }) => {
+    if (data.checked.length) {
+      columnFilterParams[data.field] = data.checked.join(',');
+    } else {
+      delete columnFilterParams[data.field];
+    }
+    tableRef.value?.fetchData({
+      ...route.query,
+      ...columnFilterParams,
+    });
+  };
+
+  const handleSearchChange = (data: Record<string, string>) => {
+    const searchData = _.cloneDeep(data);
+    const query = _.cloneDeep(route.query);
+    Object.keys(route.query).forEach((key) => {
+      if (!searchData[key] && searchDataKeys.includes(key)) {
+        // searchselect 删除的项
+        delete query[key];
+      } else if (searchData[key]) {
+        query[key] = searchData[key];
+        delete searchData[key];
+      }
+    });
+    Object.assign(query, searchData);
+    router.push({
+      name: route.name,
+      query,
+    });
+  };
+
+  const handleClosed = () => {
+    window.changeConfirm = false;
+  };
+
+  const handleCreateSuccess = () => {
+    const params = route.query;
+    tableRef.value?.fetchData({
+      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+      ...params,
+    });
+  };
+
+  const initFilterCount = async () => {
+    const data = await Promise.all([
+      getAlarmShieldList({
+        bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+        is_active: true,
+      }),
+      getAlarmShieldList({
+        bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+        is_active: false,
+      }),
+    ]);
+    shieldingCount.value = data[0].count;
+    expiredCount.value = data[1].count;
+  };
+
+  initFilterCount();
+</script>
+<style lang="less" scoped>
+  .alarm-events-page {
+    padding: 20px 24px;
+
+    .operation-main {
+      display: flex;
+      flex-wrap: wrap;
+
+      .left-operation {
+        display: flex;
+        min-width: 430px;
+        margin-bottom: 16px;
+        flex: 1;
+
+        .level-filter-main {
+          display: flex;
+          height: 32px;
+          padding: 4px;
+          font-size: 12px;
+          cursor: pointer;
+          background: #eaebf0;
+          border-radius: 2px;
+
+          .filter-item {
+            display: flex;
+            align-items: center;
+            padding: 0 12px;
+            border-radius: 2px;
+
+            &.filter-item-active {
+              color: #3a84ff;
+              background: #fff;
+            }
+
+            .icon {
+              width: 8px;
+              height: 8px;
+              margin-right: 4px;
+            }
+          }
+        }
+      }
+
+      .right-operation {
+        margin-bottom: 16px;
+      }
+    }
+  }
+</style>
+<style lang="less">
+  .shiled-alarm-page {
+    .header-main {
+      display: flex;
+      width: 100%;
+      height: 52px;
+      align-items: center;
+
+      .split-line {
+        width: 1px;
+        height: 14px;
+        margin-right: 8px;
+        margin-left: 12px;
+        background: #dcdee5;
+      }
+
+      .name {
+        overflow: hidden;
+        font-size: 14px;
+        color: #979ba5;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        flex: 1;
+      }
+    }
+  }
+</style>

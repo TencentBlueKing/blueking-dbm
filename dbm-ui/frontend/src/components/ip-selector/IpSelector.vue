@@ -230,6 +230,9 @@
   const dbCollapseTableTableData = computed(() => ({
     ...previewTableProps.value,
     data: renderData.value,
+    pagination: {
+      count: renderData.value.length,
+    },
     pagination: previewTableProps.value.pagination
       ? {
           ...(previewTableProps.value.pagination as Exclude<TablePropTypes['pagination'], boolean>),
@@ -419,6 +422,7 @@
     const columns = [
       {
         field: 'ip',
+        fixed: 'left',
         label: 'IP',
       },
       {
@@ -471,6 +475,7 @@
       },
       {
         field: 'operation',
+        fixed: 'right',
         label: t('操作'),
         render: ({ index }: { index: number }) => (
           <bk-button

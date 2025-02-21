@@ -73,6 +73,7 @@
                       {{ t('本页全选') }}
                     </div>
                     <div
+                      v-if="showSelectAllPage"
                       class="item"
                       @click="handleWholeSelect">
                       {{ t('跨页全选') }}
@@ -153,6 +154,8 @@
     remotePagination?: boolean;
     remoteSort?: boolean;
     selectable?: boolean;
+    // 是否开启跨页全选
+    showSelectAllPage?: boolean;
     showSettings?: boolean;
   }
 
@@ -188,6 +191,8 @@
     remotePagination: true,
     remoteSort: false,
     selectable: false,
+    showPrepend: true,
+    showSelectAllPage: true,
     showSettings: false,
   });
 

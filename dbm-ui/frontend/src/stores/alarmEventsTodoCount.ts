@@ -1,0 +1,52 @@
+/*
+ * TencentBlueKing is pleased to support the open source community by making 蓝鲸智云-DB管理系统(BlueKing-BK-DBM) available.
+ *
+ * Copyright (C) 2017-2023 THL A29 Limited, a Tencent company. All rights reserved.
+ *
+ * Licensed under the MIT License (the "License"); you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at https://opensource.org/licenses/MIT
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
+ * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
+ * the specific language governing permissions and limitations under the License.
+ */
+
+import dayjs from 'dayjs';
+import { defineStore } from 'pinia';
+
+import { getAlarmEventsList } from '@services/source/monitor';
+
+/**
+ * 告警事件待办统计数据
+ * 需要联动页面的过滤项
+ */
+export const alarmEventsTodoCount = defineStore('alarmEventsTodoCount', {
+  actions: {
+    /**
+     * 查询环境变量信息
+     */
+    initCount() {
+      const startTime = dayjs().subtract(6, 'day').format('YYYY-MM-DD HH:mm:ss');
+      const endTime = dayjs().format('YYYY-MM-DD HH:mm:ss');
+      Promise.all([
+        getAlarmEventsList({
+          end_time: endTime,
+          self_manage: true,
+          start_time: startTime,
+        }),
+        getAlarmEventsList({
+          end_time: endTime,
+          self_assist: true,
+          start_time: startTime,
+        }),
+      ]).then(([todoData, assistData]) => {
+        this.todoCount = todoData.overview.count;
+        this.assitCount = assistData.overview.count;
+      });
+    },
+  },
+  state: () => ({
+    assitCount: 0,
+    todoCount: 0,
+  }),
+});
