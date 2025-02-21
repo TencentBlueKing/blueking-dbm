@@ -64,14 +64,12 @@
   import { importResource } from '@services/source/dbresourceResource';
   import type { HostInfo } from '@services/types';
 
-  import { messageSuccess } from '@utils';
+  import { useImportResourcePoolMessage } from '../../../hooks/useImportResourcePoolMessage';
 
   import FormPanel from './components/FormPanel.vue';
   import SelectHostPanel from './components/select-host-panel/Index.vue';
 
-  interface Emits {
-    (e: 'change'): void;
-  }
+  type Emits = (e: 'change') => void;
 
   const emits = defineEmits<Emits>();
 
@@ -81,6 +79,7 @@
 
   const { t } = useI18n();
   const router = useRouter();
+  const importSuccessMessage = useImportResourcePoolMessage();
 
   const formRef = ref();
   const isSubmitting = ref(false);
@@ -94,23 +93,27 @@
 
   const tooltip = computed(() => {
     const path = router.resolve({
-      name: 'taskHistory'
+      name: 'taskHistory',
     });
     return !hostSelectList.value.length
       ? {
-        disabled: !!hostSelectList.value.length,
-        content: t('请选择主机'),
-      }
+          content: t('请选择主机'),
+          disabled: !!hostSelectList.value.length,
+        }
       : {
-        theme: 'light',
-        content: () => (
-          <div>
-            {t('提交后，将会进行主机初始化任务，具体的导入结果，可以通过“')}
-            <a href={path.href} target='_blank'>{t('任务历史')}</a>
-            {t('”查看')}
-          </div>
-        ),
-      }
+          content: () => (
+            <div>
+              {t('提交后，将会进行主机初始化任务，具体的导入结果，可以通过“')}
+              <a
+                href={path.href}
+                target='_blank'>
+                {t('任务历史')}
+              </a>
+              {t('”查看')}
+            </div>
+          ),
+          theme: 'light',
+        };
   });
 
   const handleSubmit = () => {
@@ -120,16 +123,16 @@
       .then((data: any) =>
         importResource({
           for_biz: data.for_biz,
-          resource_type: data.resource_type,
           hosts: hostSelectList.value.map((item) => ({
-            ip: item.ip,
-            host_id: item.host_id,
             bk_cloud_id: item.cloud_id,
+            host_id: item.host_id,
+            ip: item.ip,
           })),
           labels: data.labels,
+          resource_type: data.resource_type,
         }).then(() => {
           window.changeConfirm = false;
-          messageSuccess(t('操作成功'));
+          importSuccessMessage();
           handleCancel();
           emits('change');
         }),

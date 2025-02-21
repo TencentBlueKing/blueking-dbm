@@ -86,15 +86,13 @@
 
   import TagSelector from '@views/resource-manage/pool/components/tag-selector/Index.vue';
 
-  import { messageSuccess } from '@utils';
+  import { useImportResourcePoolMessage } from '../../hooks/useImportResourcePoolMessage';
 
   interface Props {
     data: FaultOrRecycleMachineModel;
   }
 
-  interface Emits {
-    (e: 'refresh'): void;
-  }
+  type Emits = (e: 'refresh') => void;
 
   const props = defineProps<Props>();
 
@@ -107,41 +105,42 @@
   const { t } = useI18n();
   const router = useRouter();
   const globalBizsStore = useGlobalBizs();
+  const importSuccessMessage = useImportResourcePoolMessage();
 
   const formRef = useTemplateRef('formRef');
 
   const formData = reactive({
     for_biz: 0,
-    resource_type: '',
     labels: [] as DbResourceModel['labels'][number]['id'][],
+    resource_type: '',
   });
   const dbTypeList = shallowRef<ServiceReturnType<typeof fetchDbTypeList>>([]);
 
-  const bizList = computed(() => (
-    [
-      {
-        bk_biz_id: 0,
-        display_name: t('公共资源池'),
-      } as BizItem,
-      ...globalBizsStore.bizs
-    ]
-  ));
+  const bizList = computed(() => [
+    {
+      bk_biz_id: 0,
+      display_name: t('公共资源池'),
+    } as BizItem,
+    ...globalBizsStore.bizs,
+  ]);
 
   const path = router.resolve({
-    name: 'taskHistory'
+    name: 'taskHistory',
   });
 
   const tooltip = {
-    theme: 'light',
     content: () => (
       <div>
         {t('提交后，将会进行主机初始化任务，具体的导入结果，可以通过“')}
-        <a href={path.href} target='_blank'>
+        <a
+          href={path.href}
+          target='_blank'>
           {t('任务历史')}
         </a>
         {t('”查看')}
       </div>
-    )
+    ),
+    theme: 'light',
   };
 
   useRequest(fetchDbTypeList, {
@@ -161,23 +160,23 @@
     onSuccess() {
       emits('refresh');
       isShow.value = false;
-      messageSuccess(t('操作成功'));
+      importSuccessMessage();
     },
   });
 
   const handleSubmit = async () => {
     await formRef.value!.validate();
     runImport({
+      for_biz: Number(formData.for_biz),
       hosts: [
         {
-          ip: props.data.ip,
-          host_id: props.data.bk_host_id,
           bk_cloud_id: props.data.bk_cloud_id,
+          host_id: props.data.bk_host_id,
+          ip: props.data.ip,
         },
       ],
-      for_biz: Number(formData.for_biz),
-      resource_type: formData.resource_type,
       labels: formData.labels,
+      resource_type: formData.resource_type,
     });
   };
 

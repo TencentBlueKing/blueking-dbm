@@ -63,13 +63,11 @@
 
   import { useGlobalBizs, useUserProfile } from '@stores';
 
-  interface Emits {
-    (e: 'change', value: number): void;
-  }
+  type Emits = (e: 'change', value: number) => void;
 
   const emits = defineEmits<Emits>();
 
-  const { bizs: bizList, currentBizInfo, bizIdMap } = useGlobalBizs();
+  const { bizIdMap, bizs: bizList, currentBizInfo } = useGlobalBizs();
   const userStore = useUserProfile();
 
   const favorBizIdSet = ref<Set<number>>(new Set());
@@ -94,7 +92,7 @@
   watch(
     () => userStore.profile,
     (profile) => {
-      favorBizIdSet.value = new Set(profile.APP_FAVOR.map((bizId: string) => +bizId));
+      favorBizIdSet.value = new Set((profile.APP_FAVOR || []).map((bizId: string) => +bizId));
     },
     {
       deep: true,

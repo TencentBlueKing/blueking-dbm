@@ -460,15 +460,18 @@
   };
 
   const fetchData = () => {
+    const params = {
+      spec_cluster_type: props.dbType,
+      spec_machine_type: props.machineType,
+    };
+    if (isEnableSpec.value) {
+      Object.assign(params, { enable: isEnableSpec.value });
+    }
     tableRef.value.fetchData(
       {
         spec_name: searchKey.value,
       },
-      {
-        enable: isEnableSpec.value,
-        spec_cluster_type: props.dbType,
-        spec_machine_type: props.machineType,
-      },
+      params,
     );
   };
 
