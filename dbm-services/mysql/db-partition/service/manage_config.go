@@ -32,8 +32,7 @@ import (
 // GetPartitionsConfig TODO
 func (m *QueryParititionsInput) GetPartitionsConfig() ([]*PartitionConfigWithLog, int64, error) {
 	allResults := []*PartitionConfigWithLog{}
-	var configTb, logTb, orderBy string
-	var desc bool
+	var configTb, logTb string
 	// Cnt 用于返回匹配到的行数
 	type Cnt struct {
 		Count int64 `gorm:"column:cnt"`
@@ -49,23 +48,28 @@ func (m *QueryParititionsInput) GetPartitionsConfig() ([]*PartitionConfigWithLog
 	default:
 		return nil, 0, errors.New("不支持的db类型")
 	}
-	tx := model.DB.Self.Table(configTb).Session(&gorm.Session{}).Where("1=1")
+	tx := model.DB.Self.Table(configTb + " as pc").Session(&gorm.Session{}).Where("1=1")
 	//where := " 1=1 "
 	if m.BkBizId > 0 {
-		tx.Where("bk_biz_id=?", m.BkBizId)
+		tx.Where("pc.bk_biz_id=?", m.BkBizId)
 	}
+	// 使用分区配置的策略id进行查询
 	if len(m.Ids) != 0 {
-		tx.Where("id in ?", m.Ids)
+		tx.Where("pc.id in ?", m.Ids)
 	}
 	if len(m.ImmuteDomains) != 0 {
-		tx.Where("immute_domain in ?", m.ImmuteDomains)
+		tx.Where("pc.immute_domain in ?", m.ImmuteDomains)
 	}
 	if len(m.DbLikes) != 0 {
-		tx.Where("dblike in ?", m.DbLikes)
+		tx.Where("pc.dblike in ?", m.DbLikes)
 	}
 	if len(m.TbLikes) != 0 {
-		tx.Where("tblike in ?", m.TbLikes)
+		tx.Where("pc.tblike in ?", m.TbLikes)
 	}
+	if m.DomainName != "" {
+		tx.Where("pc.immute_domain like ?", fmt.Sprintf("%%%s%%", m.DomainName))
+	}
+
 	cnt := Cnt{}
 	cntResult := tx.Session(&gorm.Session{}).Select("count(*) as cnt").Find(&cnt)
 	if cntResult.Error != nil {
@@ -76,54 +80,18 @@ func (m *QueryParititionsInput) GetPartitionsConfig() ([]*PartitionConfigWithLog
 	if m.Limit == -1 {
 		m.Limit = cnt.Count
 	}
-	if m.OrderBy == "" {
-		orderBy = "id"
-		desc = true
-	} else {
-		orderBy = m.OrderBy
-		switch m.AscDesc {
-		case "desc":
-			desc = true
-		default:
-			desc = false
-		}
-	}
-
-	//order := fmt.Sprintf("%s %s", orderBy, ascDesc)
-	// 先在partition_config中查出分区配置的相关信息
-	//Logger: glogger.Default.LogMode(glogger.Info)
-	order := clause.OrderByColumn{
-		Column: clause.Column{
-			Name: orderBy,
-		},
-		Desc: desc,
-	}
+	subQuery := model.DB.Self.Table(logTb).Session(&gorm.Session{}).
+		Select("config_id,MAX(id) as max_id").Group("config_id")
+	//joinSql := fmt.Sprintf("left join s%")
 	result := tx.Session(&gorm.Session{Logger: glogger.Default.LogMode(glogger.Info)}).
-		Order(order).Limit(int(m.Limit)).Offset(m.Offset).Find(&allResults)
+		Select("pc.*,pcl.create_time as execute_time,pcl.check_info as check_info,pcl.status as status ").
+		Joins("left join (?) as pclm on pc.id=pclm.config_id", subQuery).
+		Joins("left join " + logTb + " as pcl on pcl.config_id=pclm.config_id and pcl.id=pclm.max_id").
+		Order("pcl.status,pc.id desc").Limit(int(m.Limit)).Offset(m.Offset).Find(&allResults)
+
 	if result.Error != nil {
 		slog.Error("sql execute error", result.Error)
 		return nil, 0, result.Error
-	}
-
-	logTx := model.DB.Self.Table(logTb)
-	for _, configResult := range allResults {
-		logInfo := struct {
-			ExecuteTime string `gorm:"execute_time"`
-			Status      string `gorm:"status"`
-			CheckInfo   string `gorm:"check_info"`
-		}{}
-		logResult := logTx.Session(&gorm.Session{}).
-			Select("create_time as execute_time,check_info as check_info,status as status").
-			Where("config_id = ?", configResult.ID).
-			Where("create_time > DATE_SUB(now(),interval 100 day)").
-			Order("id desc").Limit(1).Find(&logInfo)
-		if logResult.Error != nil {
-			slog.Error("sql execute err.", logResult.Error)
-			return nil, 0, logResult.Error
-		}
-		configResult.ExecuteTime = logInfo.ExecuteTime
-		configResult.Status = logInfo.Status
-		configResult.CheckInfo = logInfo.CheckInfo
 	}
 
 	return allResults, cnt.Count, nil
