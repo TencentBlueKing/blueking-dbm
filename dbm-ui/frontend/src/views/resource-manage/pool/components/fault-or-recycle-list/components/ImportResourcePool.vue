@@ -86,7 +86,7 @@
 
   import TagSelector from '@views/resource-manage/pool/components/tag-selector/Index.vue';
 
-  import { useImportResourcePoolMessage } from '../../hooks/useImportResourcePoolMessage';
+  import { useImportResourcePoolTooltip } from '../../hooks/useImportResourcePoolTip';
 
   interface Props {
     data: FaultOrRecycleMachineModel;
@@ -103,9 +103,8 @@
   });
 
   const { t } = useI18n();
-  const router = useRouter();
   const globalBizsStore = useGlobalBizs();
-  const importSuccessMessage = useImportResourcePoolMessage();
+  const { successMessage, tooltip } = useImportResourcePoolTooltip();
 
   const formRef = useTemplateRef('formRef');
 
@@ -124,25 +123,6 @@
     ...globalBizsStore.bizs,
   ]);
 
-  const path = router.resolve({
-    name: 'taskHistory',
-  });
-
-  const tooltip = {
-    content: () => (
-      <div>
-        {t('提交后，将会进行主机初始化任务，具体的导入结果，可以通过“')}
-        <a
-          href={path.href}
-          target='_blank'>
-          {t('任务历史')}
-        </a>
-        {t('”查看')}
-      </div>
-    ),
-    theme: 'light',
-  };
-
   useRequest(fetchDbTypeList, {
     onSuccess(data) {
       dbTypeList.value = [
@@ -160,7 +140,7 @@
     onSuccess() {
       emits('refresh');
       isShow.value = false;
-      importSuccessMessage();
+      successMessage();
     },
   });
 
@@ -177,6 +157,7 @@
       ],
       labels: formData.labels,
       resource_type: formData.resource_type,
+      return_resource: true,
     });
   };
 
