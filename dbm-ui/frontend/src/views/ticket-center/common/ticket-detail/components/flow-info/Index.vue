@@ -16,101 +16,27 @@
     v-model:collapse="isCardCollapse"
     mode="collapse"
     :title="t('实施进度')">
-    <BkLoading :loading="isLoading">
-      <DbTimeLine>
-        <template
-          v-for="item in flowList"
-          :key="`${item.flow_type}#${item.status}`">
-          <template v-if="flowTypeModule[item.flow_type]">
-            <Component
-              :is="flowTypeModule[item.flow_type]"
-              :data="item"
-              :ticket-detail="data" />
-          </template>
-          <FlowTypeBase
-            v-else
-            :data="item"
-            :ticket-detail="data" />
-        </template>
-      </DbTimeLine>
-    </BkLoading>
+    <RenderFlow :ticket-detail="data" />
   </DbCard>
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
-  import { useRequest } from 'vue-request';
 
   import TicketModel from '@services/model/ticket/ticket';
-  import { getTicketFlows } from '@services/source/ticketFlow';
 
-  import { useTimeoutFn } from '@vueuse/core';
-
-  import FlowTypeBase from './components/FlowTypeBase.vue';
-  import DbTimeLine from './components/time-line/Index.vue';
+  import RenderFlow from './RenderFlow.vue';
 
   interface Props {
     data: TicketModel<unknown>;
   }
 
-  const props = defineProps<Props>();
-
   defineOptions({
     name: 'TicketFlowInfo',
   });
 
+  defineProps<Props>();
+
   const { t } = useI18n();
 
-  const flowTypeModule = Object.values(
-    import.meta.glob<{
-      default: {
-        name: string;
-      };
-    }>('./components/flow-type-*/Index.vue', {
-      eager: true,
-    }),
-  ).reduce<Record<string, Record<string, string>>>(
-    (result, item) =>
-      Object.assign(result, {
-        [item.default.name]: item.default,
-      }),
-    {},
-  );
-
   const isCardCollapse = ref(true);
-  const isLoading = ref(true);
-  const flowList = shallowRef<ServiceReturnType<typeof getTicketFlows>>([]);
-
-  const { refresh: refreshTicketFlows } = useRequest(
-    () => {
-      if (!props.data) {
-        return Promise.reject();
-      }
-      return getTicketFlows({
-        id: props.data.id,
-      });
-    },
-    {
-      manual: true,
-      onSuccess(data) {
-        flowList.value = data;
-        loopFetchTicketStatus();
-        isLoading.value = false;
-      },
-    },
-  );
-
-  watch(
-    () => props.data,
-    () => {
-      isLoading.value = true;
-      isCardCollapse.value = true;
-      refreshTicketFlows();
-    },
-    {
-      immediate: true,
-    },
-  );
-  const { start: loopFetchTicketStatus } = useTimeoutFn(() => {
-    refreshTicketFlows();
-  }, 3000);
 </script>

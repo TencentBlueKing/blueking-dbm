@@ -188,6 +188,9 @@ url("fonts/iconcool.eot?#iefix") format("embedded-opentype");
 .db-icon-help-fill:before {
 	content: "\e109";
 }
+.db-icon-links:before {
+	content: "\e20f";
+}
 .db-icon-unlock-line-2:before {
 	content: "\e10b";
 }
